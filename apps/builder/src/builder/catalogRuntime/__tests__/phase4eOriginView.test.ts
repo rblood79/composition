@@ -374,7 +374,67 @@ describe("ADR-248 4e library origin view", () => {
       "◆ GridList",
       "◇ GridList",
     ]);
-    const itemCells = cellsOf(gridRows[1]!);
+    // The Item row opens with the item origin itself (◆ — its editable sample; user 2026-10-13
+    // 「Item 줄 맨 앞에 ◆ 원본 칸」), then its instances (◇) at rest and in each state.
+    const ITEM_ORIGIN =
+      "lib:definition:origin-component-gridlist-item-default" as LibraryDefinitionId;
+    const [itemOriginCell, ...itemCells] = cellsOf(gridRows[1]!);
+    expect(itemOriginCell!.name).toBe("◆ GridListItem");
+    const itemSample = sampleOf(itemOriginCell!);
+    expect(itemSample.id).toBe(originSampleId(ITEM_ORIGIN));
+    expect(itemSample.definitionId).toBe(ITEM_ORIGIN);
+    expect(catalogComponentState(graph, itemSample.id, COMPONENTS_VIEW)).toMatchObject({
+      originOf: { definitionId: ITEM_ORIGIN },
+    });
+    // (Its label filled in as the instances' — the origin's `{label}` alone draws nothing.)
+    expect(
+      itemSample.descendantOverrides.find(
+        (item) => item.kind === "patch" && item.props,
+      ),
+    ).toMatchObject({
+      address: { instances: [itemSample.id] },
+      props: { children: { kind: "set", value: "Item" } },
+    });
+    expect(itemCells.map((cell) => cell.name)[0]).toMatch(/^◇ /);
+    // Every page node stands in one place (no item origin's sample is drawn twice).
+    const placed = new Map<string, number>();
+    const visit = (id: string) => {
+      for (const child of (graph.getEntry(id) as NodeEntry | undefined)?.children ?? []) {
+        placed.set(child, (placed.get(child) ?? 0) + 1);
+        visit(child);
+      }
+    };
+    visit(ORIGIN_VIEW_NODE);
+    expect([...placed].filter(([, count]) => count > 1)).toEqual([]);
+    expect(placed.get(originSampleId(ITEM_ORIGIN))).toBe(1);
+    // An item origin with a card of its own (a ButtonGroup's Button) is not drawn again.
+    const buttonGroup = cards.find((candidate) => candidate.name === "ButtonGroup");
+    if (buttonGroup) {
+      const groupRows = buttonGroup.children.slice(1).map(nodeOf);
+      const itemRow = groupRows.find((row) => row.name === "Item");
+      if (itemRow)
+        expect(cellsOf(itemRow).map((cell) => cell.name)[0]).toMatch(/^◇ /);
+    }
+    // A root edit on the item origin's sample is that origin's project default.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: itemSample.id }],
+        visual: { paddingTop: { kind: "set", value: 20 } },
+      }),
+    );
+    const project = graph.getEntry(graph.projectId);
+    const overrides =
+      project?.kind === "project"
+        ? project.overrideIds.map((id) => graph.getEntry(id))
+        : [];
+    expect(overrides).toContainEqual(
+      expect.objectContaining({
+        kind: "definitionOverride",
+        targetId: ITEM_ORIGIN,
+        visual: { paddingTop: { kind: "set", value: 20 } },
+      }),
+    );
+    workspace.undo();
     expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
       [
         "",

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 페이지 — 컬렉션 item 원본 칸] - 2026-10-13
+
+### Added
+
+- **Components 페이지의 컬렉션 카드 Item 줄 맨 앞에 item 원본 (◆) 칸** (사용자 「Item 줄 맨 앞에 ◆ 원본 칸 추가해」): ListBoxItem · GridListItem · Tab · TreeItem · Tag · Radio · Breadcrumb 같은 item 원본은 팔레트에 없어 자기 카드가 없고, Item 줄에는 instance (◇) 만 있어 원본을 볼 · 고칠 자리가 없었다. 이제 줄 맨 앞이 그 원본의 편집 sample 이다 — 다른 카드의 ◆ 처럼 props · 기본 스타일 편집이 그 원본의 프로젝트 기본값이 된다 (`componentsPage.ts`, `originSampleId`). 라벨은 옆 instance 처럼 "Item" 으로 채운다. item 원본이 자기 카드를 가진 경우 (ButtonGroup 의 Button · Breadcrumbs 의 Link · CheckboxGroup 의 Checkbox · DisclosureGroup 의 Disclosure · ToggleButtonGroup 의 ToggleButton) 는 그 카드에 ◆ 가 있어 Item 줄에 다시 두지 않는다 — sample 은 페이지에 한 곳만. (Menu · Popover · Dialog · Select 등의 Item 줄은 template 안 첫 상태 원본인 trigger Button 이다 — 종전 그대로, MenuItem 칸은 없다.)
+  - Live (Chrome): Components 페이지 ListBox 카드 Item 줄 = `◆ ListBoxItem` · `◇ Selected` · `◇ Default` · `◇ Selected / Disabled` · `/ Hover` · `/ Pressed` · `/ Focus`, ◆ 칸은 선택 모양 (강조색 · 흰 글자 "Item"). 콘솔 오류 0. 테스트 `phase4eOriginView` (◆ 칸 · 편집 = 원본 기본값 · 페이지 노드 중복 0 — 원복 RED 확인).
+
 ## [ListBox · GridList — RAC 레퍼런스 테마] - 2026-10-13
 
 ### Changed

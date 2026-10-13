@@ -663,6 +663,9 @@ export function catalogComponentsPageEntries(
     );
   }
 
+  const cardOrigins = new Set<string>(
+    catalogBuiltinOrigins(library).map((origin) => origin.id),
+  );
   catalogBuiltinOrigins(library).forEach((origin) => {
     const facets = originFacets(
       graph,
@@ -785,11 +788,41 @@ export function catalogComponentsPageEntries(
       // its hover) — the item at rest and in each state, drawn on its own so its display state
       // shows (inside the collection the collection's selection decides).
       const states = [items.origin, ...(stateIds.get(items.origin) ?? [])];
+      // The item origin itself first (◆ — its editable sample, as a card's origin: its props and
+      // styles are the project's override of the item origin; user 2026-10-13 「Item 줄 맨 앞에 ◆
+      // 원본 칸」), its parts filled in as the instances beside it — unless it has a card of its
+      // own (a ButtonGroup's Button, a Breadcrumbs' Link): a sample stands in one place.
+      const itemSampleId = originSampleId(items.origin);
+      const itemTitle = catalogDefinitionTitle(graph, items.origin);
+      const itemOriginCell = !cardOrigins.has(items.origin);
+      if (itemOriginCell) entries.set(itemSampleId, () => {
+        const override = catalogOriginOverride(graph, items.origin);
+        return node(itemSampleId, items.origin, {
+          name: itemTitle,
+          props: override?.defaults ?? {},
+          visual: override?.visual ?? {},
+          descendantOverrides: items.parts.map((item) => ({
+            kind: "patch" as const,
+            address: { instances: [itemSampleId], templatePath: item.path },
+            ...(item.label
+              ? { props: { children: set("Item") } }
+              : { enabled: false }),
+          })),
+        });
+      });
       rows.push(
-        row(
-          base("row", "items"),
-          "Item",
-          states.map((stateId) => {
+        row(base("row", "items"), "Item", [
+          ...(itemOriginCell
+            ? [
+                cell(
+                  base("cell", "item-origin"),
+                  // (Its type — the origin's own name carries its state: `ListBoxItem/Selected`.)
+                  `${ORIGIN_MARK} ${itemTitle.split("/")[0]}`,
+                  itemSampleId,
+                ),
+              ]
+            : []),
+          ...states.map((stateId) => {
             const title = catalogDefinitionTitle(graph, stateId);
             const caption = title
               .slice(title.indexOf("/") + 1)
@@ -823,9 +856,9 @@ export function catalogComponentsPageEntries(
               ),
             );
           }),
-        ),
+        ]),
       );
-      weight += lineHeight(states.length);
+      weight += lineHeight(states.length + (itemOriginCell ? 1 : 0));
     } else if (facets.states.length > 0 && facets.variants.length > 1) {
       // Variants × states: a line per variant.
       for (const variant of facets.variants)
