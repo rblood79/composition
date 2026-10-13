@@ -21,15 +21,17 @@
   /* ADR-256 Phase 9 — the reference starter's `div.month` (one per shown month): its header over its
      grid, 6px apart (`manualBoxRules` CalendarMonth — the Canvas reads the same).
      The calendar has no size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 —
-     RAC · S2 Calendar take none): like S2 `calendarStyles`, a month is at most 7 cells of 30 (+ the
-     tds' 2px padding each side = 238) and shrinks with its parent (`max-width: 100%`); its day cells
-     follow its width (`container-type` — `100cqw` below; the Canvas: `catalogCalendarGridSize`). */
+     RAC · S2 Calendar take none): a month is 7 cells of 30 (+ the tds' 2px padding each side = 238)
+     unless the calendar is given a width — then it fills it, wider or narrower (`flex: 1 1 auto`,
+     `min-width: 0`, `max-width: 100%`); its day cells follow its width (`container-type` — `100cqw`
+     below, the RAC starter's `calc(100cqw / 7 - gap)`; the Canvas: `catalogCalendarGridSize`). */
   .react-aria-Calendar .month,
   .react-aria-RangeCalendar .month {
     display: flex;
     flex-direction: column;
     gap: 6px;
     width: calc(7 * (var(--text-3xl) + 2 * var(--spacing-2xs)));
+    flex: 1 1 auto;
     max-width: 100%;
     min-width: 0;
     container-type: inline-size;
@@ -140,13 +142,10 @@
 
   .react-aria-CalendarGridBody td {
     padding: var(--spacing-2xs);
-    /* A day cell: 30, or a seventh of its month less the td padding when the month is narrower
-       (S2 `--cell-responsive-size`). */
+    /* A day cell: a seventh of its month less the td padding (the RAC starter's
+       `calc(100cqw / 7 - var(--gap))` — 30 at the month's own 238). */
     .react-aria-CalendarCell {
-      --calendar-cell: min(
-        var(--text-3xl),
-        100cqw / 7 - 2 * var(--spacing-2xs)
-      );
+      --calendar-cell: calc(100cqw / 7 - 2 * var(--spacing-2xs));
       width: var(--calendar-cell);
       height: var(--calendar-cell);
       margin: 0px;

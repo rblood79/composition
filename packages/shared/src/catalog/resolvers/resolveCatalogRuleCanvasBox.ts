@@ -258,14 +258,14 @@ export function catalogTextAreaInputHeight(
 
 /**
  * CalendarGrid's DOM table box (`CalendarCommon.css`): `columns` columns of `cell + 4` (td padding
- * 2px each side) and a weekday header row of the widest cell over one `cell + 4` row per week row.
- * The calendar has no size (사용자 2026-10-13 — RAC · S2 take none): `cell` is the CalendarGrid
- * rule's `iconSize + 4` (30), or — when the grid is laid out narrower (`width`, its month's width) —
- * a `columns`th of it less the td padding (S2 `--cell-responsive-size`; the DOM: `100cqw / 7 - 4px`).
- * Columns · rows are the calendar model's (`calendarModel.ts`); a week row with no day shown (all
- * outside the month — `[data-outside-month] { display: none }` — or past the calendar's first ·
- * last day) is its tds' padding only (`emptyRows`, the 6th row of a 5-week month at `weeksInMonth`
- * 6).
+ * 2px each side) and a weekday header row of 30 over one `cell + 4` row per week row. The calendar
+ * has no size (사용자 2026-10-13 — RAC · S2 take none): `cell` is the CalendarGrid rule's
+ * `iconSize + 4` (30) at the month's own width, or — laid out at another width (`width`, its
+ * month's: a calendar given a width) — a `columns`th of it less the td padding (the RAC starter's
+ * `calc(100cqw / 7 - gap)`; the DOM: `100cqw / 7 - 4px`). Columns · rows are the calendar model's
+ * (`calendarModel.ts`); a week row with no day shown (all outside the month — `[data-outside-month]
+ * { display: none }` — or past the calendar's first · last day) is its tds' padding only
+ * (`emptyRows`, the 6th row of a 5-week month at `weeksInMonth` 6).
  */
 export function catalogCalendarGridSize(
   columns: number,
@@ -285,8 +285,7 @@ export function catalogCalendarGridSize(
 
 /**
  * A calendar day cell's side (`catalogCalendarGridSize`): the CalendarGrid rule's `iconSize + 4`,
- * or a `columns`th of `width` less the td padding when that is smaller. The Canvas grid primitive
- * draws at the same side.
+ * or a `columns`th of `width` less the td padding. The Canvas grid primitive draws at the same side.
  */
 export function catalogCalendarCellSize(
   columns: number,
@@ -296,10 +295,9 @@ export function catalogCalendarCellSize(
   const sizes = rule?.sizes as Record<string, ComponentRuleSize> | undefined;
   const size = rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined;
   if (typeof size?.iconSize !== "number") return undefined;
-  const widest = size.iconSize + 4;
   return width !== undefined && columns > 0
-    ? Math.max(0, Math.min(widest, width / columns - 4))
-    : widest;
+    ? Math.max(0, width / columns - 4)
+    : size.iconSize + 4;
 }
 
 /**

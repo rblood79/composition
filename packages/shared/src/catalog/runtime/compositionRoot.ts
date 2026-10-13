@@ -910,9 +910,9 @@ function styleOf(
   const leaf = measure
     ? textLeaf(node, typeName, labelSuffix, inheritedLineHeight)
     : undefined;
-  // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`) at its
-  // widest; laid out narrower (its month shrinks with its parent), its height is re-measured at
-  // the laid-out width (`rewrap` → `wrappedHeight`).
+  // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`) at the
+  // month's own width; laid out at another (a calendar given a width, or a narrower parent), its
+  // height is re-measured at the laid-out width (`rewrap` → `wrappedHeight`).
   const grid =
     node.bindingId === "calendargrid"
       ? calendarGridShape(node.derivedProps?._calendarGrid)
@@ -1123,14 +1123,13 @@ function styleOf(
           contentHeight: wrappedHeight ?? dropZone.height,
         }
       : {}),
-    // The day table fills its month (at most 7 widest cells — the month's `width`), its cells a
-    // seventh of it (`catalogCalendarGridSize`); no wider than its widest cells.
+    // The day table fills its month (7 cells of 30 — the month's own width — or the calendar's),
+    // its cells a seventh of it (`catalogCalendarGridSize`).
     ...(table
       ? {
           contentMinWidth: 0,
           contentMaxWidth: table.width,
           contentHeight: wrappedHeight ?? table.height,
-          maxWidth: `${table.width}px`,
         }
       : {}),
   };
@@ -2655,11 +2654,11 @@ export class CatalogCompositionRoot {
       if (record.bindingId === "calendargrid") {
         const grid = calendarGridShape(record.derivedProps?._calendarGrid);
         const rect = grid && this.layout.getLayoutsForIds([id]).get(id);
-        const widest = grid
+        const own = grid
           ? catalogCalendarGridSize(grid.columns, grid.rows, grid.emptyRows)
           : undefined;
         const next =
-          grid && rect && widest && rect.width + 0.5 < widest.width
+          grid && rect && own && Math.abs(rect.width - own.width) > 0.5
             ? catalogCalendarGridSize(
                 grid.columns,
                 grid.rows,

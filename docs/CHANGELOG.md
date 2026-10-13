@@ -19,8 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **달력이 폭에 반응한다** (S2 `calendarStyles` 방식 — `--cell-max-width` · `--cell-responsive-size`): 한 달은 최대 238 (셀 30 + td padding 2×2, 7칸) 이고 부모가 좁으면 같이 줄며, 날짜 셀은 `min(30, 폭 / 7 − 4)` 이다. 요일 행 · header (nav 30 정사각형 · 제목 `--text-sm`) 는 고정.
-  - DOM: `CalendarCommon.css` `.month { width: 238px; max-width: 100%; min-width: 0; container-type: inline-size }` · 셀 `min(var(--text-3xl), 100cqw / 7 - 4px)`. `Calendar.css` · `RangeCalendar.css` 의 size 블록 삭제.
+- **달력이 폭에 반응한다**: 폭을 정하지 않은 달력은 한 달 238 (셀 30 + td padding 2×2, 7칸) 이고 부모가 좁으면 같이 준다. 달력에 폭을 주면 (Styles width) 한 달이 그 폭을 채우고 — 넓게도 좁게도 (사용자 「캘린더 크기를 변경해도 캘린더 폭은 고정이다」) — 날짜 셀은 `폭 / 7 − 4` 다 (RAC starter 의 `calc(100cqw / 7 - gap)` — S2 의 셀 상한 32 는 두지 않았다). 요일 행 · header (nav 30 정사각형 · 제목 `--text-sm`) 높이는 고정.
+  - DOM: `CalendarCommon.css` `.month { width: 238px; flex: 1 1 auto; max-width: 100%; min-width: 0; container-type: inline-size }` · 셀 `calc(100cqw / 7 - 4px)`. `Calendar.css` · `RangeCalendar.css` 의 size 블록 삭제.
   - Canvas: CalendarMonth 같은 상자 (`manualBoxRules`), grid 높이는 배치된 폭에서 다시 잰다 (`rewrap` — `catalogCalendarGridSize(columns, rows, emptyRows, width)`), Skia grid 는 상자 폭으로 셀을 그린다 (`BOX_SIZE_TYPES` CalendarGrid).
 - **Month and Year Pickers** (같은 날 이어진 작업): picker 의 Select 는 기본 M Select 다 (origin template 의 `size: "S"` 삭제 — Canvas 22 / Preview 30 높이 차이 해소). 폭은 RAC 레퍼런스 방식 (header `gap: 4` · nav `flex-shrink: 0` · 두 Select 가 남은 폭을 똑같이 — `flex 1 1 0%` · DOM `contain: inline-size`), nav 버튼은 정사각형 30 (사용자 「높이가 30 이면 넓이도 30」). picker trigger 시작 padding 8 (사용자 「left padding 을 8 로」 — `PART_RULE_PASS_HOSTS` 로 picker 를 건너 trigger 에).
 - **Select trigger 의 끝 padding = Button 의 위아래 padding** (사용자 「M 8 → 4」 · 「S · L 도 같은 식으로」): `--select-btn-pad-end` S 4 → 2 · M 8 → 4 · L 12 → 8 (XS · XL 그대로). 모든 Select.
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **엔진: column flex 안 `width: fit-content` 상자의 `%` max-width** (Chrome oracle): column 부모가 fit-content 자식에게 indefinite 폭을 내려 `max-width: 100%` 가 풀리지 않았고, 부모 커널이 상자만 clamp 해 자식은 clamp 이전 폭에 놓였다 (부모 175 > 내용 238 → 상자 175 / 자식 238, Chrome 175 / 175). intrinsic 키워드 폭도 명시 폭처럼 definite available 을 받는다 (`tree.rs` `child_cross_solve`, Rust `fit_content_box_with_percent_max_width_lays_children_at_the_clamped_width`).
 
-- Live (Chrome, Compare Mode): Calendar · RangeCalendar 기본 238 × 236 · 폭 175 프레임 175 × 191 (셀 21) · 140 프레임 140 × 178 (셀 16) · 400 프레임 238 — 전부 Canvas 부품 9 = Preview (차이 0), `data-size` 없음. DatePicker (size L) 를 열면 달력 238 · 셀 30 · `data-size` 없음. 콘솔 오류 0.
+- Live (Chrome, Compare Mode): Calendar · RangeCalendar 기본 238 × 236 · 폭 175 프레임 175 × 191 (셀 21) · 140 프레임 140 × 178 (셀 16) · 400 프레임 238 · 달력 폭 180 → 셀 22 · 400 → 400 × 352 (셀 53) · 600 → 셀 82 — 전부 Canvas 부품 9 = Preview (차이 0), `data-size` 없음. DatePicker (size L) 를 열면 달력 238 · 셀 30 · `data-size` 없음. 콘솔 오류 0.
 
 ## [RangeCalendar — 기간 표시를 S2 형태로] - 2026-10-13
 

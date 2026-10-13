@@ -1800,15 +1800,14 @@ function calendarGridModel(value: unknown):
 
 const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const iconSize = (size.iconSize as unknown as number) ?? 26;
-  // The widest cell; laid out narrower (the calendar has no size — 2026-10-13: its month shrinks
-  // with its parent), a column's share less the td padding (`catalogCalendarCellSize` — the DOM's
-  // `min(30px, 100cqw / 7 - 4px)`). The weekday row keeps the widest cell's height.
+  // A column's share of the laid-out grid less the td padding (the calendar has no size — 2026-10-13:
+  // its month follows its width — `catalogCalendarCellSize`, the DOM's `100cqw / 7 - 4px`); 30 at
+  // the month's own width. The weekday row keeps 30.
   const widest = iconSize + 4;
   const model = calendarGridModel(props._calendarGrid);
   const columns = model?.weekdays.length || 7;
   const boxWidth = Number(props._containerWidth);
-  const cellSize =
-    boxWidth > 0 ? Math.max(0, Math.min(widest, boxWidth / columns - 4)) : widest;
+  const cellSize = boxWidth > 0 ? Math.max(0, boxWidth / columns - 4) : widest;
   // ADR-151 B1/B2 (2026-07-16): DOM 셀 박스 모델 정렬 — table `td { padding: 2px }`
   //   (CalendarCommon.css --spacing-2xs) → 셀 pitch = cellSize + 4, inter-cell gap 없음.
   //   구 코드의 sizes.gap(컨테이너 세로 gap 값) 오용은 셀 간격 6px 로 DOM(4px)과 발산.

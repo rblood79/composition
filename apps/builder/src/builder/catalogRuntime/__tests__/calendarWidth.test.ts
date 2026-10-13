@@ -30,17 +30,22 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * Calendar width (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」): RAC · S2
- * Calendar take no `size`. Like S2 `calendarStyles` a month is at most 7 cells of 30 (+ the tds' 2px
- * padding — 238 wide) and shrinks with its parent; its day cells follow (`min(30, W / 7 - 4)`). The
- * Canvas lays the grid at its month's width and re-measures its height there; the DOM sheet does the
- * same with a container query. An old document's `size` is dropped on load.
+ * Calendar take no `size`. A month is 7 cells of 30 (+ the tds' 2px padding — 238 wide) and shrinks
+ * with its parent; a calendar given a width — wider or narrower (사용자 「캘린더 크기를 변경해도 캘린더 폭은
+ * 고정이다」) — its month fills it; the day cells follow (`W / 7 - 4`, the RAC starter's `calc(100cqw / 7
+ * - gap)`). The Canvas lays the grid at its month's width and re-measures its height there; the DOM
+ * sheet does the same with a container query. An old document's `size` is dropped on load.
  */
 const FRAME = "project:node:frame" as NodeId;
 const OWNER = "project:node:calendar" as NodeId;
 const TYPES = ["Calendar", "RangeCalendar"] as const;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 
-async function open(type: (typeof TYPES)[number], frameWidth?: number) {
+async function open(
+  type: (typeof TYPES)[number],
+  frameWidth?: number,
+  calendarWidth?: number,
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -65,9 +70,9 @@ async function open(type: (typeof TYPES)[number], frameWidth?: number) {
     children: [],
     props: {},
     visual: {},
-    sizing: {},
+    sizing: calendarWidth === undefined ? {} : { width: set(calendarWidth) },
     descendantOverrides: [],
-  } as NodeEntry;
+  } as unknown as NodeEntry;
   const frame = {
     kind: "node",
     id: FRAME,
@@ -121,7 +126,7 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
   });
 
   for (const type of TYPES)
-    it(`${type}: at most 238 wide — the month and its grid of 30 cells`, async () => {
+    it(`${type}: 238 wide by itself — the month and its grid of 30 cells`, async () => {
       const { root, calendar, one, box } = await open(type);
       const grid = one("CalendarGrid");
       const model = JSON.parse(
@@ -165,6 +170,28 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
       expect(navs.map((nav) => box(nav).width)).toEqual([30, 30]);
     });
 
+  for (const [type, width] of [
+    ["Calendar", 400],
+    ["RangeCalendar", 400],
+    ["Calendar", 180],
+  ] as const)
+    it(`${type} given a width (${width}): its month fills it — the cells grow or shrink with it`, async () => {
+      const { root, calendar, one, box } = await open(type, undefined, width);
+      const grid = one("CalendarGrid");
+      const model = JSON.parse(
+        String(root.canvasInputs.get(grid)!.derivedProps?._calendarGrid),
+      ) as { rows: string[][] };
+      const { rows, emptyRows } = gridShape(model.rows);
+      expect(box(calendar).width).toBe(width);
+      expect(box(one("CalendarMonth")).width).toBe(width);
+      expect(box(one("CalendarHeader")).width).toBe(width);
+      const cell = width / 7 - 4;
+      expect(box(grid).width).toBe(width);
+      expect(box(grid).height).toBeCloseTo(
+        30 + (rows - emptyRows) * (cell + 4) + emptyRows * 4,
+      );
+    });
+
   it("the Canvas grid draws its cells at its laid-out width", async () => {
     const { workspace, root, one } = await open("Calendar", 175);
     const grid = root.canvasInputs.get(one("CalendarGrid"))!;
@@ -189,6 +216,9 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
     expect(columns(238)).toEqual(
       Array.from({ length: 7 }, (_, col) => [col * 34 + 2, 30]),
     );
+    expect(columns(406)).toEqual(
+      Array.from({ length: 7 }, (_, col) => [col * 58 + 2, 54]),
+    );
     expect(columns(175)).toEqual(
       Array.from({ length: 7 }, (_, col) => [
         Math.round((col * 25 + 2) * 10) / 10,
@@ -197,7 +227,7 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
     );
   });
 
-  it("the DOM sheet: a month at most 7 cells of 30, shrinking with its parent; its cells follow its width", () => {
+  it("the DOM sheet: a month 7 cells of 30 by itself, filling a calendar given a width; its cells follow its width", () => {
     const styles = join(
       dirname(fileURLToPath(import.meta.url)),
       "../../../../../../packages/shared/src/components/styles",
@@ -207,10 +237,10 @@ describe("Calendar · RangeCalendar width = the references' (no size)", () => {
       common.indexOf(".react-aria-RangeCalendar .month {"),
     );
     expect(month.slice(0, month.indexOf("}"))).toMatch(
-      /width: calc\(7 \* \(var\(--text-3xl\) \+ 2 \* var\(--spacing-2xs\)\)\);\s*max-width: 100%;\s*min-width: 0;\s*container-type: inline-size;/,
+      /width: calc\(7 \* \(var\(--text-3xl\) \+ 2 \* var\(--spacing-2xs\)\)\);\s*flex: 1 1 auto;\s*max-width: 100%;\s*min-width: 0;\s*container-type: inline-size;/,
     );
     expect(common).toMatch(
-      /--calendar-cell: min\(\s*var\(--text-3xl\),\s*100cqw \/ 7 - 2 \* var\(--spacing-2xs\)\s*\);\s*width: var\(--calendar-cell\);\s*height: var\(--calendar-cell\);/,
+      /--calendar-cell: calc\(100cqw \/ 7 - 2 \* var\(--spacing-2xs\)\);\s*width: var\(--calendar-cell\);\s*height: var\(--calendar-cell\);/,
     );
     for (const sheet of [
       "CalendarCommon.css",

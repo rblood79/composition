@@ -69,8 +69,8 @@ const DATE_RANGE_GROUP_VARIABLES = () =>
 const CALENDAR_HEADER = { nav: "text-3xl", font: "text-sm" } as const;
 
 /**
- * A calendar month block's widest width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds'
- * 2px padding each side — S2 `calendarStyles` `7 * --cell-max-width` (`CalendarCommon.css` `.month`).
+ * A calendar month block's own width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds' 2px
+ * padding each side (`CalendarCommon.css` `.month`) — a calendar given a width stretches it.
  */
 const calendarMonthWidth = (): number | undefined => {
   const icon = px(sizesOf("CalendarGrid").M?.iconSize);
@@ -422,14 +422,21 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // item (`display: contents` — the engine lays their children out in the parent's flow).
   CalendarMonthPicker: () => ({ replace: true, layout: { display: "contents" } }),
   CalendarYearPicker: () => ({ replace: true, layout: { display: "contents" } }),
-  // (No size — 2026-10-13: at most 7 cells wide, shrinking with its parent like the DOM's `.month`
-  // `width: 238px; max-width: 100%` with no intrinsic minimum (`container-type` — `min-width: 0`
-  // here); its grid's cells follow its width — `catalogCalendarGridSize`.)
+  // (No size — 2026-10-13: 7 cells of 30 wide unless the calendar is given a width, which it then
+  // fills, wider or narrower — the DOM's `.month` `width: 238px; flex: 1 1 auto; max-width: 100%`
+  // with no intrinsic minimum (`container-type` — `min-width: 0` here); its grid's cells follow its
+  // width — `catalogCalendarGridSize`.)
   CalendarMonth: () => {
     const width = calendarMonthWidth();
     return {
       replace: true,
-      layout: { display: "flex", flexDirection: "column", maxWidth: "100%" },
+      layout: {
+        display: "flex",
+        flexDirection: "column",
+        flexGrow: "1",
+        flexShrink: "1",
+        maxWidth: "100%",
+      },
       visual: { gap: 6, ...(width ? { width, minWidth: 0 } : {}) },
     };
   },
