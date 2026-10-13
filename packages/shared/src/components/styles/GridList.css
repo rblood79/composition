@@ -1,184 +1,239 @@
 @layer components {
-  /* ========== Base GridList Styles (카드형 선택 UI) ========== */
+  /* 2026-10-13 (사용자 「gridlist 를 RAC 레퍼런스 테마 기준으로」 · 「이미지 카드로」) — the RAC
+   * reference `GridList.css` (react-aria.adobe.com/GridList). Only catalog GridLists match these
+   * classes: the Builder's own GridList (ApiEndpointList) names its own (`list-group` · `list-item`).
+   * The card's surface · shadow · radius · gap · size padding are the catalog GridListItem rule's
+   * (generated `GridListItem.css`); the Canvas mirrors this sheet in `manualBoxRules` (GridList ·
+   * GridListItem). Sizes the reference fixes (`max-height: 500px` · `min-height: 100px`) are the
+   * author's, as the ListBox's (2026-07-29 사용자 결정). */
+
+  /* ========== GridList ========== */
   .react-aria-GridList {
     display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-    padding: 0;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-sm);
+    scroll-padding: var(--spacing-sm);
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius-lg);
     background: transparent;
     color: var(--fg);
+    width: 100%;
+    overflow: auto;
     outline: none;
-    gap: var(--spacing-md);
+    forced-color-adjust: none;
+    box-sizing: border-box;
+    --grid-item-size: 200px;
+
+    &[data-layout="grid"] {
+      grid-auto-rows: min-content;
+
+      &:not([data-orientation="horizontal"]) {
+        grid-template-columns: repeat(
+          auto-fit,
+          minmax(100px, var(--grid-item-size))
+        );
+      }
+    }
+
+    /* The reference's one `auto` column: there its cards' photos are wider than their 250 cap —
+       the column is the cap (a card with no photo yet would shrink to its text). */
+    &[data-layout="stack"] {
+      grid-template-columns: minmax(0, 250px);
+      align-items: center;
+    }
 
     &[data-focus-visible] {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+      outline: 2px solid var(--focus-ring);
     }
 
     &[data-empty] {
+      display: flex;
       align-items: center;
       justify-content: center;
       font-style: italic;
-      color: var(--fg-muted);
-      padding: var(--spacing-lg);
+    }
+
+    &[data-drop-target] {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px;
+      background: var(--accent-subtle);
+    }
+
+    .react-aria-DropIndicator {
+      display: none;
+
+      &[data-drop-target] {
+        display: block;
+        outline: 2px solid var(--accent);
+        outline-offset: -1px;
+        background: var(--accent-subtle);
+        border-radius: var(--radius-lg);
+      }
+    }
+
+    /* Sections: each a grid of the same cards, its header across. */
+    > .react-aria-GridListSection {
+      display: grid;
+      justify-content: center;
+      gap: var(--spacing-lg);
+      width: 100%;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(100px, var(--grid-item-size))
+      );
+      grid-auto-rows: min-content;
+
+      &:not(:first-child) {
+        margin-top: var(--spacing-lg);
+      }
+
+      > .react-aria-GridListHeader {
+        grid-column: 1 / -1;
+      }
+    }
+
+    &[data-layout="stack"] > .react-aria-GridListSection {
+      grid-template-columns: minmax(0, 250px);
+      align-items: center;
     }
   }
 
-  /* ========== Layout: Grid (격자) ========== */
-  .react-aria-GridList[data-layout="grid"] {
-    grid-template-columns: repeat(var(--gl-columns, 2), 1fr);
-    .react-aria-GridListItem {
-      justify-content: flex-start;
-    }
-  }
-
-  /* ========== GridListItem Styles (카드형) ========== */
-  .react-aria-GridListItem {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: var(--spacing-2xs);
-    padding: var(--spacing-md) var(--spacing-lg);
-    border-radius: var(
-      --radius-lg
-    ); /* ADR-105-c: Spec {radius.lg}=8px / resolver 8 / CSS 삼자 정합 */
-    border: 1px solid var(--border);
+  .react-aria-GridListHeader {
+    position: sticky;
+    z-index: 2;
+    top: calc(var(--spacing-sm) * -1);
+    font-size: var(--text-base);
+    font-weight: 500;
     background: var(--bg-overlay);
-    color: var(--fg);
-    font-size: var(--text-sm);
-    /* 굵기를 두지 않는다 (사용자 결정 2026-09-29, catalog GridListItem 과 같음) — 종전 600 은
-       description 까지 물려받았다. */
-    cursor: pointer;
+    border: var(--border-width-hairline) solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xs) var(--spacing-lg);
+    cursor: default;
+    user-select: none;
+  }
+
+  /* ========== GridListItem (card) ========== */
+  .react-aria-GridListItem {
+    padding-bottom: var(--spacing-lg);
+    max-width: 250px;
+    overflow: clip;
     outline: none;
-    transition: all 150ms ease;
-    forced-color-adjust: none;
-
-    /* quiet 카드는 hover/pressed 배경을 생성 CSS(`[data-variant="quiet"]`, catalog
-       GridListItem.variants.quiet.fill)가 소유한다 — 여기서 배경·테두리를 다시 칠하면
-       quiet 이 hover 순간 일반 카드로 돌아간다. 두 규칙 다 (0,2,0) 이라 순서 의존이
-       되므로, 이쪽 선택자를 quiet 제외로 좁혀 승부를 없앤다. */
-    &[data-hovered]:not([data-variant="quiet"]) {
-      border-color: var(--border-hover);
-      background: color-mix(in srgb, var(--bg-overlay) 90%, var(--bg-muted));
-    }
-
-    &[data-pressed] {
-      /* ADR-140 C1-b: press-scale 0.98 (transition: all 이 scale 포함) */
-      scale: 0.98;
-    }
-
-    &[data-pressed]:not([data-variant="quiet"]) {
-      background: color-mix(in srgb, var(--bg-overlay) 80%, var(--bg-muted));
-    }
+    cursor: default;
+    transform: translateZ(0);
+    transition-property: scale;
+    transition-duration: 200ms;
+    -webkit-tap-highlight-color: transparent;
 
     &[data-focus-visible] {
-      outline: 2px solid var(--accent);
+      outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
     }
 
-    &[data-selected] {
-      border-color: var(--accent);
-      border-width: 2px;
-      /* 2px border 보정: padding 1px 줄여서 레이아웃 시프트 방지 */
-      padding: calc(var(--spacing-md) - 1px) calc(var(--spacing-lg) - 1px);
+    &[data-pressed] {
+      scale: 0.98;
+    }
 
-      &[data-focus-visible] {
-        outline-color: var(--accent);
-      }
+    /* The selection ring: 2px of the text color, a 2px light inner line. */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      border: 2px solid var(--fg);
+      outline: 2px solid color-mix(in srgb, var(--bg) 70%, transparent);
+      outline-offset: -4px;
+      opacity: 0;
+      transition: opacity 200ms;
+    }
+
+    &[data-selected]::after {
+      opacity: 1;
+    }
+
+    &[data-href] {
+      cursor: pointer;
     }
 
     &[data-disabled] {
       color: var(--fg-disabled);
-      cursor: not-allowed;
-      opacity: 0.38;
-      border-color: var(--border-disabled);
     }
 
     &[data-dragging] {
       opacity: 0.6;
     }
 
-    /* 카드 내부 라벨 — RAC GridListItem 은 label slot 미제공(DEFAULT_SLOT + description 만)
-       이라 default slot `<Text>` 로 렌더 → description 이 아닌 Text 로 타깃. react-aria-Text
-       기본 16 → line box 24. font-size 미지정으로 기본 16 유지 → Skia gridlist_card
-       metric(label 16/24) 및 DOM origin 과 정합(카드 76). */
-    .react-aria-Text:not([slot="description"]) {
-      /* 굵기 없음 — catalog GridListItem 은 굵기를 선언하지 않는다 (사용자 결정 2026-09-29) */
+    &[data-drop-target]::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      z-index: 5;
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      background: var(--accent-subtle);
+    }
+
+    /* (Descendants — RAC draws the item's children in its `gridcell`.)
+       The photo: the card's width, 200 high (`--grid-item-size`), then 8 more to the texts
+       (the reference's `padding-bottom: 8` — a margin here: an empty Image paints its
+       placeholder fill over its padding). */
+    .react-aria-Image {
+      /* (An Image with no source shows the Image rule's placeholder fill — `{color.neutral-subtle}`,
+         as the Canvas paints it; the generated Image sheet is not loaded — inline-style contract.) */
+      background: var(--bg-muted);
+      width: 100%;
+      height: var(--grid-item-size);
+      object-fit: cover;
+      margin-bottom: var(--spacing-sm);
+      flex-shrink: 0;
+      -webkit-user-drag: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* The texts: inset 16 a side, the label 500, the description 12 — both in the card's color.
+       (Their one line · wrap is S2 ListView `overflowMode` — the item rule's block.) */
+    .react-aria-Text {
+      padding: 0 var(--spacing-lg);
       color: inherit;
+      font-size: inherit;
+      line-height: inherit;
+
+      &:not([slot]) {
+        font-weight: 500;
+      }
+
+      &[slot="description"] {
+        font-size: var(--text-xs);
+        line-height: var(--text-xs--line-height);
+      }
     }
 
-    /* 카드 내부 설명 — muted 만. ListBox `[slot=description]` 는 `--lb-desc-size`(--text-xs 12)로
-       축소하지만 GridList slot 은 line-height override 가 없어 Skia 가 desc 를 16/24(1.5×)로 계산
-       → DOM 도 font-size 축소 없이 16 유지해야 76 정합(과거 --text-xs 12 는 인스턴스 64 로 발산). */
-    [slot="description"] {
-      color: var(--fg-muted);
+    /* The selection checkbox (`Checkbox slot="selection"` — ADR-256 Phase 5f) over the photo. */
+    .react-aria-CheckboxField[slot="selection"],
+    .react-aria-Checkbox[slot="selection"] {
+      position: absolute;
+      top: var(--spacing-lg);
+      inset-inline-start: var(--spacing-lg);
     }
 
-    /* 드래그 핸들 */
-    [slot="drag"] {
+    .react-aria-Button[slot="drag"] {
       all: unset;
-      width: 15px;
-      text-align: center;
-      color: var(--fg-muted);
-      cursor: grab;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      bottom: var(--spacing-sm);
+      inset-inline-end: var(--spacing-sm);
+      border-radius: var(--radius-lg);
+      color: var(--fg);
 
       &[data-focus-visible] {
         border-radius: 4px;
-        outline: 2px solid var(--accent);
-      }
-
-      &:active {
-        cursor: grabbing;
+        outline: 2px solid var(--focus-ring);
       }
     }
-
-    .react-aria-Button:not([slot]) {
-      margin-left: auto;
-    }
-
-    .react-aria-Button {
-      background: transparent;
-      border: none;
-      font-size: var(--text-sm);
-      line-height: var(--text-sm--line-height);
-      padding: var(--spacing) var(--spacing-md);
-      transition: background 200ms;
-
-      &[data-hovered] {
-        background: color-mix(in srgb, var(--fg) 8%, transparent);
-      }
-
-      &[data-pressed] {
-        background: color-mix(in srgb, var(--fg) 12%, transparent);
-        box-shadow: none;
-      }
-    }
-  }
-
-  /* ========== Checkbox Integration ========== */
-  :where(.react-aria-GridListItem) .react-aria-Checkbox {
-    --selected-color: var(--accent);
-    --checkmark-color: var(--fg-on-accent);
-  }
-
-  /* ========== Drag and Drop Styles ========== */
-  .react-aria-DropIndicator {
-    &[data-drop-target] {
-      outline: 1px solid var(--accent);
-    }
-  }
-
-  .react-aria-GridList[data-drop-target] {
-    outline: 2px solid var(--accent);
-    outline-offset: -1px;
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-  }
-
-  .react-aria-GridListItem[data-drop-target] {
-    outline: 2px solid var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   /* ========== Forced Colors Mode (High Contrast) ========== */

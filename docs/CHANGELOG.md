@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox · GridList — RAC 레퍼런스 테마] - 2026-10-13
+
+### Changed
+
+- **ListBox 가 RAC 레퍼런스 (`react-aria.adobe.com/ListBox` 의 `ListBox.css`) 모양이다** (사용자 「listbox, gridlist 를 RAC, RSC 레퍼런스 테마 기준으로 수정해」):
+  - 목록: 0.5px 테두리 (새 토큰 `{border.width.hairline}` · `--border-width-hairline`) · 모서리 12 (`--radius-xl`) · padding · gap 없음. 크기 (폭 · 높이) 는 레퍼런스의 250 · 100–300 고정값을 따르지 않는다 — 2026-07-29 사용자 결정대로 작성자가 정한다.
+  - 항목: 좌우 4 · 목록 (또는 section) 의 첫 항목 위 · 끝 항목 아래 4 의 여백, 최소 높이 32, 모서리 8, 끝 항목을 뺀 항목 아래 0.5px 구분선 (좌우 12 안쪽). hover 칠 없음 · 누름은 연한 칠 · **선택은 강조색 배경 + 흰 글자** (종전 `--accent-subtle`). 선택 체크 글리프는 그리지 않는다 (레퍼런스대로 강조 배경만).
+  - **다중 선택에서 붙어 있는 선택 항목끼리 맞닿은 쪽 모서리는 각지다** (사용자 「인접한 두개를 선택시 border radius 가 인접한부분은 제외된다」) — 위 항목은 아래 두 모서리, 아래 항목은 위 두 모서리. 사이 구분선은 흰 30%.
+  - label 은 항목 글자 (14 · 굵기 500 · 항목 색 — 선택 시 흰색), description 은 12 · 항목 색 (종전 muted). section header 는 한 줄 전체 · 12 · 600 · padding 4 16 · overlay 바탕 · 위아래 0.5px 선. section 사이 여백 (종전 12) 은 없다.
+  - DOM: 생성 CSS (`generated/ListBox.css`) 의 단독 목록 선택자 (`.react-aria-ListBox:not(.react-aria-Popover *)` — rule 의 `rootSelectors`) 가 수동 `ListBox.css` 위에 얹힌다. 수동 시트는 Builder 자체 목록 (`builder-components.css`) 과 같이 쓰여 손대지 않았다. DOM ListBoxItem 에 `data-variant="default"` 를 달아 rule 의 상태 블록 (누름 · 선택 칠) 이 닿는다. ListBoxItem 원본의 옛 선택 배경 (`stateRules.selected` `--accent-subtle`) 삭제.
+  - Canvas: 같은 rule 선택자를 읽어 항목 여백을 놓고 (`catalogListItemEdgeMargins` → resolver `_itemMargin*` · `_lastItem`), Skia `listbox_item` 이 구분선을 그린다. 항목 안 Text 가 항목 색을 받는다 (`MANUAL_ITEM_LABEL_COLORS.ListBoxItem`). section 안 항목도 같은 부품 규칙 (`manualBoxRules` `ListBoxSection`).
+- **Select · ComboBox 의 팝오버 목록이 레퍼런스 `.dropdown-listbox` · `.dropdown-item` 이다**: 목록은 팝오버 바탕 그대로 (테두리 · padding 없음, 항목 여백 4), 항목은 왼쪽 24 를 체크 자리로 비우고 (padding `(32 − 1lh) / 2` 12 · 24) 굵기 500, 선택 표시는 16 lucide 체크 (왼쪽 4 · 항목 글자색 — 종전 강조색 `✓` 글자), 키보드 포커스 항목은 강조색 + 흰 글자 (종전 연한 회색), 누름은 연한 칠, 선택 배경 · hover 칠 없음. section header 는 왼쪽 28.
+  - ListBox rule 의 `&:is(.react-aria-Popover *)` 블록 (생성 CSS). 수동 `ListBox.css` 의 팝오버 규칙은 Builder 자체 picker (패널 Select — `data-catalog-id` 없는 팝오버) 로 좁혔다 — Builder 화면은 그대로다. 열린 picker 는 Canvas 가 그리지 않는다 (DOM 만).
+- **GridList 가 RAC 레퍼런스 (`react-aria.adobe.com/GridList` 의 `GridList.css`) 이미지 카드다** (사용자 「이미지 카드로」 — 레퍼런스 예제는 전부 사진 카드):
+  - 원본 항목이 `GridListItem > Image + Text + Text[slot=description]` 이다 (Image 노드 추가 — 행 템플릿에서 행마다 사진 `src` · `alt` 를 채울 수 있다). 사진은 카드 폭 · 높이 200, 비어 있으면 Image 원본의 회색 자리 표시.
+  - 카드: overlay 바탕 · 한 겹 그림자 (`0 2px 8px rgb(0 0 0 / 0.15)`) · 테두리 없음 · 모서리 8 · 아래 padding 16 · 최대 폭 250, 글자는 좌우 16 안쪽 (label 14 · 500, description 12 — 둘 다 카드 글자색, 종전 muted), 사진과 글자 사이 16 · 글자 사이 8. 선택은 카드 안쪽 2px 링 (글자색 + 안쪽 흰 70% 선 — 종전 강조색 2px 테두리), 누르면 0.98 로 줄어든다. hover 칠 없음. 선택 체크박스 (`Checkbox[slot=selection]`) 는 사진 위 16 안쪽.
+  - 목록: padding 8 · 카드 사이 16 · 모서리 8, `grid` 는 `repeat(auto-fit, minmax(100px, 200px))` 가운데 정렬 (종전 고정 2열 — `columns` 기본값 삭제), `stack` 은 가운데 한 열 (카드 상한 250 — 사진이 없는 카드도 사진 카드 폭으로). section 은 같은 격자에 header (16 · 500 · overlay · hairline 테두리 · 모서리 8) 를 한 줄 전체로.
+  - DOM: 수동 `GridList.css` 를 레퍼런스대로 다시 썼다 (Builder 의 GridList 는 자기 class — `list-group` — 라 닿지 않는다). 카드 바탕 · 그림자 · gap 은 GridListItem rule (생성 CSS · Canvas 같이). Canvas: `manualBoxRules` GridList · GridListItem 이 같은 값, 그림자는 rule 의 `boxShadow` 를 Canvas 도 그린다.
+  - S2 ListView prop (`isQuiet` · `selectionStyle` · `overflowMode` · `hideLinkOutIcon`) 은 그대로다. 링크 글리프 (`hideLinkOutIcon` 이 끄는) 는 카드에 좌우 padding 이 없어 카드 오른쪽 끝 · 세로 가운데에 놓인다 — 이미지 카드에서의 자리는 후속.
+
+### Fixed
+
+- **엔진: auto 폭 상자의 좌우 margin 이 자식 배치 폭에서 빠지지 않았다** (CSS 2 §10.3.3): 부모가 넘긴 available (부모 content 폭) 에서 padding · border 만 빼 자식을 놓아, `margin: 0 4px` 상자 안의 `width: 100%` 자식이 상자보다 8 넓었다 (ListBox 항목 label — Canvas 1873 / Preview 1865). block · flex · grid 컨테이너 모두 자기 inline margin 을 뺀다 (`tree.rs` `auto_content_avail_w`, Rust `stretched_column_flex_item_with_margins_lays_children_in_its_content_box` — 원복 RED 확인). 엔진 parity (Chrome 대조) 811 통과.
+
+- Live (Chrome, Compare Mode): ListBox (항목 3 + section 1) — Canvas 부품 18 = Preview (차이 0). Preview 에서 다중 선택으로 위 두 항목을 누르면 강조색 · 흰 글자 · 모서리 `8 8 0 0` / `0 0 8 8` · 사이 선 흰 30%. GridList `grid` — 카드 200 × 280 셋 가운데 · `stack` — 250 × 276 한 열, 둘 다 Canvas 부품 12 = Preview, 카드를 누르면 링. Select · ComboBox 를 열면 항목 32 · padding 6 12 6 24 · 굵기 500, 고른 항목에 체크 16 (왼쪽 4), 화살표로 옮긴 항목 강조색 · 흰 글자. 콘솔 오류 0.
+- ADR-248 G3 palette 비교의 ListBox · GridList 항목은 이 변경으로 옛 캡처와 달라 실패한다 (의도). 같은 하니스의 InlineAlert · Card · Menu · SearchField · TableView · Dialog · Popover · Tooltip 8 항목도 실패 중 — 이번 변경 밖.
+
 ## [Calendar · RangeCalendar — size 삭제 · 폭에 반응하는 크기] - 2026-10-13
 
 ### Removed (Breaking)

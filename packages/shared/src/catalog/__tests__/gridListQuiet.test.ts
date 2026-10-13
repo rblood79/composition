@@ -36,8 +36,9 @@ describe("GridList quiet — 채널은 컨테이너가 아니라 카드", () => 
     expect(quiet!.colors?.border).toBe("{color.transparent}");
     // 쉬는 상태만 비우고 hover/pressed 는 배경이 돌아온다 (Spectrum quiet 정의).
     expect(quiet!.fill?.default.hover).toBe("{color.neutral-subtle}");
-    // 선택 표시는 남긴다 — 지우면 어떤 카드가 선택됐는지 알 수 없다.
-    expect(quiet!.colors?.selectedBorder).toBe("{color.accent}");
+    // 선택 표시는 남긴다 — 지우면 어떤 카드가 선택됐는지 알 수 없다 (2026-10-13: RAC 레퍼런스 링 —
+    //   글자색 2px).
+    expect(quiet!.colors?.selectedBorder).toBe("{color.neutral}");
   });
 
 });

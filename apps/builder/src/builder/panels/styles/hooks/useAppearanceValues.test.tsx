@@ -55,7 +55,8 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(values?.backgroundColor).toBe(lightColors.raised);
     expect(values?.borderColor).toBe(lightColors.border);
     expect(values?.borderRadius).toBe("8px");
-    expect(values?.borderWidth).toBe("1px");
+    // (The width is the drawn record's — the ListBox rule's hairline, 2026-10-13.)
+    expect(values?.borderWidth).toBe("0.5px");
   });
 
   it("inline value wins over spec preset (회귀 0 보장)", async () => {
@@ -63,7 +64,7 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(values?.backgroundColor).toBe("#ABCDEF"); // inline
     expect(values?.borderRadius).toBe("12px"); // inline
     expect(values?.borderColor).toBe(lightColors.border); // spec fallback
-    expect(values?.borderWidth).toBe("1px"); // spec fallback
+    expect(values?.borderWidth).toBe("0.5px"); // spec fallback
   });
 
   it("fills color 가 있으면 inline backgroundColor 없이도 appearance 값이 fill 파생값을 본다", async () => {

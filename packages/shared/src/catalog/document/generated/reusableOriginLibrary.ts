@@ -1856,14 +1856,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected",
-    "stateRules": {
-      "selected": {
-        "backgroundColor": {
-          "kind": "set",
-          "value": "var(--accent-subtle)"
-        }
-      }
-    }
+    "stateRules": {}
   },
   {
     "id": "lib:template:component-listbox-item-default__icon",
@@ -2071,6 +2064,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-gridlist-item-default",
     "definitionId": "lib:definition:type-GridListItem",
     "children": [
+      "lib:template:component-gridlist-item-default__image",
       "lib:template:component-gridlist-item-default__label",
       "lib:template:component-gridlist-item-default__description"
     ],
@@ -2079,6 +2073,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-gridlist-item-default__image",
+    "definitionId": "lib:definition:type-Image",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-gridlist-item-default__label",

@@ -197,26 +197,56 @@ describe("ADR-248 4e item insert ('+')", () => {
       expect(keys.length).toBeGreaterThanOrEqual(4);
       expect(new Set(keys).size).toBe(keys.length);
       if (host === "ListBox") {
-        // G5 example 1: a section after another starts `--spacing-md` lower on the Canvas too (the
-        // ListBoxSection rule's `&:not(:first-child)` margin — the sheet's).
-        const sections = recordOf(workspace, host)
-          .children.map((id) => workspace.root.domInputs.get(id)!)
+        // 2026-10-13 — the RAC reference `ListBox.css` (no margin between sections — G5 example 1's
+        // `--spacing-md` was the old starter's): each item 4 in from the list's sides, 4 below
+        // the first · above the last of its run (the list's, a section's), the run's last item
+        // with no line under it. The Canvas reads the ListBox rule's item selectors.
+        const list = recordOf(workspace, host);
+        const sections = list.children
+          .map((id) => workspace.root.domInputs.get(id)!)
           .filter((record) => typeOf(workspace, record) === section);
-        // (The palette ListBox keeps its items first: no section is the first child.)
-        expect(sections.map((record) => record.derivedProps?._firstChild)).toEqual([
-          false,
-          false,
-        ]);
-        // (The gap above a section is the margin over the list's own gap between its items.)
-        const items = recordOf(workspace, host)
-          .children.map((id) => workspace.root.domInputs.get(id)!)
+        const items = list.children
+          .map((id) => workspace.root.domInputs.get(id)!)
           .filter((record) => typeOf(workspace, record) === item);
-        const ids = [...items, ...sections].map((record) => record.id);
-        const geometry = workspace.root.getGeometry(ids);
+        const inSection = sections[0]!.children
+          .map((id) => workspace.root.domInputs.get(id)!)
+          .filter((record) => typeOf(workspace, record) === item);
+        const geometry = workspace.root.getGeometry([
+          list.id,
+          ...[...items, ...sections, ...inSection].map((record) => record.id),
+        ]);
         const box = (record: CatalogConsumerNode) => geometry.get(record.id)!;
-        const listGap = box(items[1]).y - (box(items[0]).y + box(items[0]).height);
-        const above = box(sections[1]).y - (box(sections[0]).y + box(sections[0]).height);
-        expect(above - listGap).toBe(12);
+        const listBox = geometry.get(list.id)!;
+        const border = 0.5;
+        expect(box(items[0]).x - listBox.x).toBeCloseTo(border + 4);
+        expect(box(items[0]).y - listBox.y).toBeCloseTo(border + 4);
+        expect(box(items[0]).width).toBeCloseTo(listBox.width - 2 * (border + 4));
+        // (Items touch — their margins only at a run's ends; each at least 32 high.)
+        expect(box(items[1]).y).toBeCloseTo(box(items[0]).y + box(items[0]).height);
+        expect(box(items[0]).height).toBeGreaterThanOrEqual(32);
+        // The list's last item is 4 above the first section.
+        const lastItem = items.at(-1)!;
+        expect(box(sections[0]).y - (box(lastItem).y + box(lastItem).height)).toBeCloseTo(4);
+        expect(items.map((record) => record.derivedProps?._lastItem)).toEqual(
+          items.map(() => false),
+        );
+        // In a section: the first item 4 below its header, the last with no line under it.
+        expect(inSection.map((record) => record.derivedProps?._lastItem)).toEqual(
+          inSection.map((_, index) => index === inSection.length - 1),
+        );
+        expect(
+          inSection.map((record) => record.derivedProps?._itemMarginTop),
+        ).toEqual(inSection.map((_, index) => (index === 0 ? 4 : 0)));
+        // (Section children stand in the section's box.) Its last item 4 above the section's
+        // end; the next section starts right there (no margin between sections).
+        const sectionLast = inSection.at(-1)!;
+        expect(
+          box(sections[0]).height -
+            (box(sectionLast).y + box(sectionLast).height),
+        ).toBeCloseTo(4);
+        expect(box(sections[1]).y).toBeCloseTo(
+          box(sections[0]).y + box(sections[0]).height,
+        );
       }
       workspace.dispose();
     }

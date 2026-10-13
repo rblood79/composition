@@ -1314,7 +1314,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           variant: props.variant || "default",
           isQuiet: bool(props.isQuiet),
           layout: props.layout || "grid",
-          columns: Number(props.columns) || 2,
           selectionMode: props.selectionMode ?? "none",
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),

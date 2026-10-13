@@ -210,8 +210,8 @@ describe("border width 토큰 (ADR-227 Phase 3)", () => {
 
   it("resolveToken — 미등록 키는 경고 + ref 그대로 (1 로 숨기지 않는다)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(resolveToken("{border.width.hairline}")).toBe(
-      "{border.width.hairline}",
+    expect(resolveToken("{border.width.heavy}" as never)).toBe(
+      "{border.width.heavy}",
     );
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();

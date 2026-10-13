@@ -13,34 +13,37 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  position: relative;
 
   /* Default variant */
   background: var(--bg-overlay);
   color: var(--fg);
-  border: var(--border-width-thin) solid var(--border);
+  border: var(--border-width-none) solid transparent;
 
   /* Default size */
   height: auto;
-  padding: 12px 16px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
   line-height: var(--text-sm--line-height);
-  border-width: var(--border-width-thin);
-  gap: 2px;
+  border-width: var(--border-width-none);
+  gap: 8px;
 }
 
 .react-aria-GridListItem[data-variant="default"] {
   background: var(--bg-overlay);
   color: var(--fg);
-  border-color: var(--border);
+  border-color: transparent;
 
   &[data-hovered] {
+    background: var(--bg-overlay);
   }
 
   &[data-pressed] {
+    background: var(--bg-overlay);
   }
 }
 

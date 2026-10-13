@@ -665,6 +665,14 @@ export function ListBox<T extends object>({
   );
 }
 
+// `data-variant="default"`: the item rule's state block (generated `ListBoxItem.css`
+// `[data-variant="default"]` — pressed · selected paint) reaches the item, as a GridListItem's.
 export function ListBoxItem(props: ListBoxItemProps) {
-  return <AriaListBoxItem {...props} className="react-aria-ListBoxItem" />;
+  return (
+    <AriaListBoxItem
+      {...props}
+      className="react-aria-ListBoxItem"
+      data-variant="default"
+    />
+  );
 }

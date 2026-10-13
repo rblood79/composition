@@ -149,7 +149,8 @@ describe("ADR-248 Phase 4e-4e row template", () => {
     const rowTemplate = catalogRowTemplateId(graph, GRID)!;
     expect(rowTemplate).toBe(items[0]!.sourceId);
     expect(catalogRowTemplateOwner(graph, items[0]!.target)).toBe(GRID);
-    const [label] = childPositions(graph, items[0]!);
+    // (The card's first child is its photo — 2026-10-13; the label Text follows.)
+    const [, label] = childPositions(graph, items[0]!);
     expect(catalogRowTemplateOwner(graph, label!.target)).toBe(GRID);
     expect(catalogRowTemplateOwner(graph, items[1]!.target)).toBeUndefined();
     const unbound = await open(false);
@@ -168,21 +169,32 @@ describe("ADR-248 Phase 4e-4e row template", () => {
     expect(
       cards.fields.map((field) => [field.label, field.key, field.value]),
     ).toEqual([
+      // The reference card's photo (2026-10-13 「이미지 카드로」) — a row can fill it too.
+      ["Image", "src", ""],
+      ["Image", "alt", ""],
       ["Text", "children", "{label}"],
       ["Text", "children", "{description}"],
     ]);
+    const DESCRIPTION = 3;
     const depth = workspace.runtime.historyDepth.undo;
-    workspace.execute(catalogCardFieldCommand(cards.fields[1]!, "{size}"));
+    workspace.execute(
+      catalogCardFieldCommand(cards.fields[DESCRIPTION]!, "{size}"),
+    );
     expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
     expect(rowTexts(workspace)).toEqual([
       ["Report", "2 MB"],
       ["Photo", "5 MB"],
     ]);
-    expect(catalogCardFields(graph, grid)!.fields[1]!.value).toBe("{size}");
-    workspace.execute(
-      catalogCardFieldCommand(catalogCardFields(graph, grid)!.fields[1]!, ""),
+    expect(catalogCardFields(graph, grid)!.fields[DESCRIPTION]!.value).toBe(
+      "{size}",
     );
-    expect(catalogCardFields(graph, grid)!.fields[1]!.value).toBe(
+    workspace.execute(
+      catalogCardFieldCommand(
+        catalogCardFields(graph, grid)!.fields[DESCRIPTION]!,
+        "",
+      ),
+    );
+    expect(catalogCardFields(graph, grid)!.fields[DESCRIPTION]!.value).toBe(
       "{description}",
     );
     expect(rowTexts(workspace)).toEqual([
@@ -193,7 +205,8 @@ describe("ADR-248 Phase 4e-4e row template", () => {
 
   it("only content props read the row: another prop's {field} text stays", async () => {
     const { workspace, graph, items } = await open();
-    const [label] = childPositions(graph, items[0]!);
+    // (The card's first child is its photo — 2026-10-13; the label Text follows.)
+    const [, label] = childPositions(graph, items[0]!);
     workspace.execute(
       setFields({
         targets: [label!.target],
@@ -274,7 +287,8 @@ describe("ADR-248 Phase 4e-4e row template", () => {
         {children}
       </CatalogWorkspaceProvider>
     );
-    const [label] = childPositions(graph, items[0]!);
+    // (The card's first child is its photo — 2026-10-13; the label Text follows.)
+    const [, label] = childPositions(graph, items[0]!);
     const fields = (identity: string) =>
       renderHook(() => CATALOG_FIELD_VALUE_SOURCE.useOwnerFields!(identity), {
         wrapper,

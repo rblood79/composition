@@ -111,7 +111,9 @@ export function GridList<T extends object>({
   items,
   // 2026-07-29: 기본값 stack → grid (catalog `GridList.binding.ts` layout.default 정합).
   layout = "grid",
-  columns = 2,
+  // No default column count (2026-10-13 — the RAC reference: `GridList.css` lays the cards in
+  //   `repeat(auto-fit, minmax(100px, 200px))`). A caller's explicit count still fixes it.
+  columns,
   variant = "primary",
   filter,
   filterText,
@@ -245,7 +247,7 @@ export function GridList<T extends object>({
     //   로 2열 렌더한다. 저장 style 의 display:flex(+flexWrap) 가 CSS display:grid 를 override
     //   해 1열로 무너지던 문제 차단 — layout=grid 시 inline display:grid 로 덮는다(flexDirection/
     //   flexWrap 는 grid 에서 무시되어 무해). stack 은 저장 display:flex column 유지.
-    ...(layout === "grid"
+    ...(layout === "grid" && columns
       ? ({
           "--gl-columns": columns,
           display: "grid",

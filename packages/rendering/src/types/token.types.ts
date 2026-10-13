@@ -245,6 +245,7 @@ export interface BorderWidthTokens {
   none: number; // 0
   thin: number; // 1
   thick: number; // 2
+  hairline: number; // 0.5 — the RAC reference theme's dividers (ListBox · its items · headers)
 }
 
 /**

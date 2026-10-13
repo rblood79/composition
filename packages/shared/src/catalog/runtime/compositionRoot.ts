@@ -1089,10 +1089,18 @@ function styleOf(
     ...(node.derivedProps?.trackStyle === "thick"
       ? { height: `${CATALOG_SLIDER_THICK_TRACK.height}px` }
       : {}),
-    // A section after another (its parent rule's `:not(:first-child)` top margin — the resolver's
-    // `_siblingMarginTop`); an authored margin wins.
-    ...(typeof node.derivedProps?._siblingMarginTop === "number"
-      ? { marginTop: `${node.derivedProps._siblingMarginTop}px` }
+    // A standalone list's item (its list rule's item selectors — the resolver's `_itemMargin*`,
+    // 2026-10-13: 4 inline, 4 above the first · below the last of a run); an authored margin wins.
+    ...(typeof node.derivedProps?._itemMarginInline === "number"
+      ? {
+          marginTop: `${node.derivedProps._itemMarginTop}px`,
+          marginRight: `${node.derivedProps._itemMarginInline}px`,
+          marginBottom: `${node.derivedProps._itemMarginBottom}px`,
+          marginLeft: `${node.derivedProps._itemMarginInline}px`,
+          ...(typeof node.derivedProps._itemShrink === "number"
+            ? { flexShrink: node.derivedProps._itemShrink }
+            : {}),
+        }
       : {}),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),

@@ -24,6 +24,7 @@ import { resolveToken, tokenToCSSVar } from "@composition/rendering";
 import { spacing, radius, typography } from "@composition/rendering";
 import type { TokenRef } from "@composition/rendering";
 import { resolveContainerStylesFallback } from "./implicitStyles";
+import { catalogListItemEdgeMargins } from "../../../../../../../../packages/shared/src/catalog/document/rulePartRules";
 
 describe("ADR-081 G2 — token consumer drift cross-reference", () => {
   describe("C1 — tokenToCSSVar 매핑 회귀 (CSS var 문자열)", () => {
@@ -96,16 +97,12 @@ describe("ADR-081 G2 — token consumer drift cross-reference", () => {
       expect(fb).toMatchSnapshot();
     });
 
-    it("listbox.gap === spacing.2xs (primitives 직접 비교)", () => {
+    // 2026-10-13 — the RAC reference ListBox has no gap · padding (its items' margins: the rule's
+    //   item selectors, `catalogListItemEdgeMargins` — 4 = spacing.xs).
+    it("listbox gap · padding 0 — the items' margins carry the spacing (spacing.xs)", () => {
       const fb = resolveContainerStylesFallback("listbox", {});
-      expect(fb.gap, "C3 drift: listbox.gap !== spacing.2xs").toBe(
-        spacing["2xs"],
-      );
-    });
-
-    it("listbox.padding === spacing.xs (primitives 직접 비교)", () => {
-      const fb = resolveContainerStylesFallback("listbox", {});
-      expect(fb.padding, "C3 drift: listbox.padding !== spacing.xs").toBe(
+      expect([fb.gap, fb.padding]).toEqual(["0px", "0px"]);
+      expect(catalogListItemEdgeMargins("ListBox", "ListBoxItem")?.inline).toBe(
         spacing.xs,
       );
     });

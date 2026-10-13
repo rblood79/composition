@@ -226,8 +226,8 @@ const linkLineHeightRatio = (): number | undefined => {
   return fontSize && lineHeight ? lineHeight / fontSize : undefined;
 };
 
-/** Column counts `GridList.tsx` writes as `repeat(n, minmax(0, 1fr))` (typed conditions). */
-const GRID_LIST_COLUMNS = [1, 2, 3, 4, 5, 6];
+/** The reference GridList's card columns (`GridList.css` `--grid-item-size` 200). */
+const GRID_LIST_TRACKS = "repeat(auto-fit, minmax(100px, 200px))";
 
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   Separator: () => ({
@@ -267,123 +267,111 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // `GridList.css` base grid (1fr, gap `--spacing-md`) and `[data-layout="grid"]` columns from the
-  // component's inline `repeat(columns, minmax(0, 1fr))`; its items start-align (0,3,0 selector).
+  // 2026-10-13 (사용자 「gridlist 를 RAC 레퍼런스 테마 기준으로」 · 「이미지 카드로」) — the RAC
+  // reference `GridList.css` (the manual sheet — only catalog GridLists carry its classes): a grid
+  // padded 8, 16 between cards, `grid` = `repeat(auto-fit, minmax(100px, 200px))` centred rows,
+  // `stack` = one centred `auto` column. A section is the same grid with its header across.
   GridList: () => ({
     replace: true,
-    layout: { display: "grid", gridTemplateColumns: "1fr" },
-    visual: { width: "100%", gap: 12 },
+    layout: {
+      display: "grid",
+      justifyContent: "center",
+      // (The sheet's `grid-auto-rows: min-content` — the implicit `auto` rows are the same in a
+      // list without a set height.)
+      gridTemplateColumns: GRID_LIST_TRACKS,
+    },
+    visual: { width: "100%", gap: 16, paddingX: 8, paddingY: 8, radius: 8 },
     conditional: [
-      // `GridList.tsx` default `columns = 2`.
       {
-        when: { layout: "grid" },
-        layout: { gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" },
-      },
-      ...GRID_LIST_COLUMNS.map((columns) => ({
-        when: { layout: "grid", columns },
+        when: { layout: "stack" },
+        // (The sheet's one column — the cards' 250 cap.)
         layout: {
-          gridTemplateColumns: Array(columns).fill("minmax(0, 1fr)").join(" "),
+          gridTemplateColumns: "minmax(0, 250px)",
+          alignItems: "center",
         },
-      })),
-    ],
-    parts: [
-      {
-        childType: "GridListItem",
-        layout: { justifyContent: "flex-start" },
-        visual: {},
       },
-      // A GridList section's Header is RAC `GridListHeader` (`div.react-aria-GridListHeader`):
-      // no Header sheet reaches it — a block box with the GridList's font (line-height inherited
-      // from the Preview body, 1.5).
-      ...Object.entries(sizesOf("GridList")).flatMap(
-        ([size, values]): CompiledPartRule[] => {
-          const fontSize = px(values.fontSize);
-          return fontSize
-            ? [
-                {
-                  childType: "Header",
-                  via: "GridListSection",
-                  size,
-                  layout: { display: "block" },
-                  visual: {
-                    fontSize,
-                    fontWeight: 400,
-                    lineHeight: 1.5,
-                    paddingX: 0,
-                    paddingY: 0,
-                    width: "100%",
-                  },
-                },
-              ]
-            : [];
+    ],
+    parts: <CompiledPartRule[]>[
+      {
+        childType: "GridListSection",
+        layout: {
+          display: "grid",
+          justifyContent: "center",
+          gridTemplateColumns: GRID_LIST_TRACKS,
         },
-      ),
+        visual: { width: "100%", gap: 16 },
+      },
+      // `.react-aria-GridListHeader` (RAC `GridListHeader` — no Header sheet reaches it): across the
+      // section's columns, `--text-base` 500, `padding: 4 16`, the overlay surface in a hairline
+      // border, radius 8 (line-height inherited from the Preview body, 1.5).
+      {
+        childType: "Header",
+        via: "GridListSection",
+        layout: { display: "block", gridColumnStart: "1", gridColumnEnd: "-1" },
+        visual: {
+          fontSize: textPx("text-base") ?? 16,
+          fontWeight: 500,
+          lineHeight: 1.5,
+          paddingX: 16,
+          paddingY: 4,
+          radius: 8,
+          fill: "var(--bg-overlay)",
+          color: "{color.neutral}",
+          borderStyle: "solid",
+          borderColor: "var(--border)",
+          borderWidth: Number(
+            resolveToken("{border.width.hairline}" as TokenRef),
+          ),
+        } as CompiledPartRule["visual"],
+      },
     ],
   }),
-  // `ListBox.css` `.react-aria-ListBox .react-aria-Header` over the generated Header sheet: a
-  // section header at `--text-sm`, weight 700, `padding: 0 --spacing-md`, `margin-bottom:
-  // --spacing-xs` (line-height inherited from the Preview body, 1.5).
-  //
-  // Item slot roles (`ListBox.css` `.react-aria-ListBoxItem [slot=…]`): the Preview puts `slot` on
-  // an item child only inside a ListBox (`itemSlotAttr`), hence the owner is the ListBox, through
-  // the item. Label weight 600; description `--lb-desc-size` / `--lb-desc-line-height`
-  // (`--text-xs`); the icon absolutely placed at `left: --spacing-md`, vertically centred
-  // (`top: 50%; translateY(-50%)`), `--lb-icon-size` 16px square. The item's matching
-  // `padding-left` (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
+  // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the ListBox rule's item
+  // selectors (`rootSelectors["&:not(.react-aria-Popover *)"]`, the reference `ListBox.css`) over
+  // the generated Header · Text sheets:
+  // - a section header: sticky, `--text-xs` 600, `padding: 4 16`, the overlay surface between two
+  //   0.5px lines (line-height inherited from the Preview body, 1.5);
+  // - the label: the item's text (14 · its line height · its color — `MANUAL_ITEM_LABEL_COLORS`),
+  //   weight 500; the description `--text-xs` / `--text-xs--line-height` in the item's color.
+  // Item slot roles: the Preview puts `slot` on an item child only inside a ListBox
+  // (`itemSlotAttr`), hence the owner is the ListBox, through the item. The icon (`ListBox.css`
+  // `[slot="icon"]`) absolutely placed at `left: --spacing-md`, vertically centred (`top: 50%;
+  // translateY(-50%)`), `--lb-icon-size` 16px square. The item's matching `padding-left`
+  // (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
   ListBox: () => {
-    const fontSize = textPx("text-sm");
     const descSize = textPx("text-xs");
-    const descLine = textPx("text-xs--line-height");
+    const hairline = Number(resolveToken("{border.width.hairline}" as TokenRef));
     const parts: CompiledPartRule[] = [
-      ...(fontSize
+      ...(descSize
         ? [
             {
               childType: "Header",
               via: "ListBoxSection",
-              layout: { marginBottom: "4px" },
+              layout: { display: "block" },
               visual: {
-                fontSize,
-                fontWeight: 700,
+                fontSize: descSize,
+                fontWeight: 600,
                 lineHeight: 1.5,
-                paddingX: 12,
-                paddingY: 0,
-              },
+                paddingX: 16,
+                paddingY: 4,
+                fill: "var(--bg-overlay)",
+                color: "{color.neutral}",
+                borderStyle: "solid",
+                borderColor: "var(--border)",
+                borderTopWidth: hairline,
+                borderRightWidth: 0,
+                borderLeftWidth: 0,
+                borderBottomWidth: hairline,
+              } as CompiledPartRule["visual"],
             },
           ]
         : []),
-      {
-        childType: "Text",
-        via: "ListBoxItem",
-        childProps: { slot: "label" },
-        layout: {},
-        visual: { fontWeight: 600 },
-      },
-      ...(descSize && descLine
-        ? [
-            {
-              childType: "Text",
-              via: "ListBoxItem",
-              childProps: { slot: "description" },
-              layout: {},
-              visual: { fontSize: descSize, lineHeight: descLine / descSize },
-            },
-          ]
-        : []),
-      {
-        childType: "Icon",
-        via: "ListBoxItem",
-        childProps: { slot: "icon" },
-        layout: {
-          position: "absolute",
-          insetLeft: "12px",
-          insetTop: "50%",
-          marginTop: "-8px",
-        },
-        visual: { width: 16, height: 16, iconSize: 16 },
-      },
+      ...listBoxItemParts(),
     ];
     return { parts };
   },
+  // A section's items take the same item parts (the sheet's descendant selectors reach them).
+  ListBoxSection: () => ({ parts: listBoxItemParts() }),
   // `TagGroup.css` `.react-aria-TagList { display: contents }`: the visible box is
   // `.tag-list-wrapper` (flex wrap, centered, catalog `TagList` size gap/min-height) with the
   // catalog `height: 100%` — the RAC TagGroup fills the styled outer div (4e-11), so the wrapper
@@ -395,21 +383,56 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     layout: { display: "flex", flexWrap: "wrap", alignItems: "center" },
     visual: { height: "100%" },
   }),
-  // `.react-aria-GridListItem .react-aria-Text:not([slot="description"])`: weight 600 for an item's
-  // Text children; a description keeps the item's weight and is muted. The Preview marks the slot in a GridList
-  // and in a standalone item's GridList host (4e-11).
-  GridListItem: () => ({
-    parts: <CompiledPartRule[]>[
-      { childType: "Text", layout: {}, visual: { fontWeight: 600 } },
-      // `GridList.css` `[slot="description"] { color: var(--fg-muted) }`.
-      {
-        childType: "Text",
-        childProps: { slot: "description" },
-        layout: {},
-        visual: { fontWeight: 400, color: "{color.neutral-subdued}" },
-      },
-    ],
-  }),
+  // The reference card (`GridList.css` — 2026-10-13 「이미지 카드로」): padded only at its bottom
+  // (16), at most 250 wide, clipped. Its photo (an Image child) the card's width, 200 high, 8 above
+  // the texts; its texts inset 16 a side — the label 500, the description `--text-xs`, both in the
+  // card's color (`MANUAL_ITEM_LABEL_COLORS`); the selection checkbox over the photo, 16 in.
+  GridListItem: () => {
+    const fontSize = textPx("text-sm");
+    const lineHeight = textPx("text-sm--line-height");
+    const descSize = textPx("text-xs");
+    const descLine = textPx("text-xs--line-height");
+    return {
+      layout: { maxWidth: "250px" },
+      visual: { paddingTop: 0, paddingBottom: 16, overflow: "clip" },
+      parts: <CompiledPartRule[]>[
+        {
+          childType: "Image",
+          layout: { flexShrink: "0", marginBottom: "8px" },
+          visual: { width: "100%", height: 200 },
+        },
+        {
+          childType: "Text",
+          layout: {},
+          visual: {
+            fontWeight: 500,
+            paddingX: 16,
+            ...(fontSize && lineHeight
+              ? { fontSize, lineHeight: lineHeight / fontSize }
+              : {}),
+          },
+        },
+        {
+          childType: "Text",
+          childProps: { slot: "description" },
+          layout: {},
+          visual: {
+            fontWeight: 400,
+            paddingX: 16,
+            ...(descSize && descLine
+              ? { fontSize: descSize, lineHeight: descLine / descSize }
+              : {}),
+          },
+        },
+        {
+          childType: "Checkbox",
+          childProps: { slot: "selection" },
+          layout: { position: "absolute", insetTop: "16px", insetLeft: "16px" },
+          visual: {},
+        },
+      ],
+    };
+  },
   // ADR-256 Phase 9 — a calendar month block's header row (`generated/CalendarHeader.css` is not
   // loaded, `UNLOADED_GENERATED_CSS` D): `CalendarCommon.css` `.react-aria-Calendar header` — a flex
   // row (space-between, centered, 4 apart) around the author's parts. Its nav Buttons
@@ -912,6 +935,60 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
 };
 
 /**
+ * A ListBox item's slot children (the ListBox rule's item selectors — the RAC reference): the label
+ * is the item's text (14 · its line height — `MANUAL_ITEM_LABEL_COLORS` its color), weight 500; the
+ * description `--text-xs` / `--text-xs--line-height`; the icon absolutely placed at `left:
+ * --spacing-md`, vertically centred, 16 square (`ListBox.css` `[slot="icon"]`). Reached through the
+ * item from the list and from a section.
+ */
+function listBoxItemParts(): CompiledPartRule[] {
+  const fontSize = textPx("text-sm");
+  const lineHeight = textPx("text-sm--line-height");
+  const descSize = textPx("text-xs");
+  const descLine = textPx("text-xs--line-height");
+  return [
+    ...(fontSize && lineHeight
+      ? [
+          {
+            childType: "Text",
+            via: "ListBoxItem",
+            childProps: { slot: "label" },
+            layout: {},
+            visual: {
+              fontSize,
+              lineHeight: lineHeight / fontSize,
+              fontWeight: 500,
+            },
+          },
+        ]
+      : []),
+    ...(descSize && descLine
+      ? [
+          {
+            childType: "Text",
+            via: "ListBoxItem",
+            childProps: { slot: "description" },
+            layout: {},
+            visual: { fontSize: descSize, lineHeight: descLine / descSize },
+          },
+        ]
+      : []),
+    {
+      childType: "Icon",
+      via: "ListBoxItem",
+      childProps: { slot: "icon" },
+      layout: {
+        position: "absolute",
+        insetLeft: "12px",
+        insetTop: "50%",
+        marginTop: "-8px",
+      },
+      visual: { width: 16, height: 16, iconSize: 16 },
+    },
+  ];
+}
+
+/**
  * Item types whose label Text takes the item's color: `TabsIndicator.css` / `TagGroup.css`
  * `.react-aria-Tab/Tag .react-aria-Text.react-aria-Text { color: inherit }` (the Text rule's own
  * color does not apply). Each entry holds the item colors a manual sheet declares over the rule's
@@ -922,6 +999,10 @@ export const MANUAL_ITEM_LABEL_COLORS: Readonly<
 > = {
   Tab: { selectedText: "{color.neutral}" },
   Tag: {},
+  // The reference ListBox item's label · description inherit its color (the selected white).
+  ListBoxItem: {},
+  // The reference GridList card's label · description inherit its color.
+  GridListItem: {},
 };
 
 export function manualBoxRule(type: string): ManualBoxRule | undefined {

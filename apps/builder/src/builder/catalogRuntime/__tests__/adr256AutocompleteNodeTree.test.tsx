@@ -264,15 +264,17 @@ describe("ADR-256 Phase 6g — Autocomplete", () => {
     // Side by side, the parent's gap between them.
     expect(last.x).toBe(first.x + first.width + 24);
     const box = nested.pageRect(autocomplete.id);
+    // (Rounded to the engine's f32 — the ListBox's 0.5px border leaves a fraction in a sum.)
+    const round = (value: number) => Math.round(value * 1000) / 1000;
     expect({
       x: box.x,
       y: box.y,
-      width: box.width,
+      width: round(box.width),
       height: box.height,
     }).toEqual({
       x: first.x,
       y: Math.min(first.y, last.y),
-      width: last.x + last.width - first.x,
+      width: round(last.x + last.width - first.x),
       height:
         Math.max(first.y + first.height, last.y + last.height) -
         Math.min(first.y, last.y),

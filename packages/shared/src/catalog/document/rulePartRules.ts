@@ -703,26 +703,46 @@ function sizeNames(rule: ComponentRule): string[] {
 }
 
 /**
- * The top margin a parent's rule gives a child after a sibling (its `staticSelectors`
- * `> .react-aria-{Child}:not(:first-child)` `margin-top`, px) — a ListBox's gap above a section
- * after another (G5 example 1). Undefined when the parent's rule has none.
+ * A standalone list's item margins (2026-10-13 — the reference `ListBox.css`, the list rule's item
+ * selectors under `&:not(.react-aria-Popover *)`): `inline` on each item, `first` above the first
+ * and `last` below the last item of a run (the list's · a section's), px; `shrink` the items' flex
+ * shrink. Undefined when the list's rule declares none.
  */
-export function catalogNotFirstChildMarginTop(
-  parentType: string,
-  childType: string,
-): number | undefined {
+export function catalogListItemEdgeMargins(
+  listType: string,
+  itemType: string,
+):
+  | { inline: number; first: number; last: number; shrink?: number }
+  | undefined {
   const composition = (
     COMPONENT_RULES_TABLE as Record<
       string,
       { structure?: { composition?: unknown } }
     >
-  )[parentType]?.structure?.composition as
-    { staticSelectors?: Record<string, Record<string, string>> } | undefined;
-  const value =
-    composition?.staticSelectors?.[
-      `> .react-aria-${childType}:not(:first-child)`
-    ]?.["margin-top"];
-  return value === undefined ? undefined : lengthPx(value);
+  )[listType]?.structure?.composition as
+    | {
+        rootSelectors?: Record<
+          string,
+          { nested?: Record<string, Record<string, string>> }
+        >;
+      }
+    | undefined;
+  const nested =
+    composition?.rootSelectors?.["&:not(.react-aria-Popover *)"]?.nested;
+  const item = `.react-aria-${itemType}`;
+  const inline = nested?.[item]?.["margin-inline"];
+  const first = nested?.[`${item}:nth-child(1 of ${item})`]?.["margin-top"];
+  const last =
+    nested?.[`${item}:nth-last-child(1 of ${item})`]?.["margin-bottom"];
+  if (inline === undefined || first === undefined || last === undefined)
+    return undefined;
+  const shrink = nested?.[item]?.["flex-shrink"];
+  return {
+    inline: lengthPx(inline) ?? 0,
+    first: lengthPx(first) ?? 0,
+    last: lengthPx(last) ?? 0,
+    ...(shrink === undefined ? {} : { shrink: Number(shrink) }),
+  };
 }
 /**
  * Inline padding of a DateInput's RAC date segments (the DateInput rule's `.react-aria-DateSegment`

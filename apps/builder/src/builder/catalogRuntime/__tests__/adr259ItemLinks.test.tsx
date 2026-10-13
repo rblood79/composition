@@ -238,7 +238,9 @@ describe("ADR-259 Phase 1 — item links", () => {
     const item = of("GridListItem")[0];
     const owner = of("GridList")[0];
     const before = root.getGeometry([item.id]).get(item.id)!;
-    const ownRight = 16; // GridListItem rule size M paddingX
+    // GridListItem rule size M paddingX (0 since the RAC reference card — 2026-10-13; its texts
+    // carry their own 16 inset).
+    const ownRight = 0;
     edit(item.id, { href: "https://x.test", target: "_blank" });
     const record = root.canvasInputs.get(item.id)!;
     const glyph = catalogLinkOutGlyph("GridListItem", record.props.size);
@@ -263,10 +265,12 @@ describe("ADR-259 Phase 1 — item links", () => {
         shape.type === "icon_font" &&
         (shape as { iconName?: string }).iconName === "external-link",
     ) as { x: number; y: number; fontSize: number } | undefined;
-    // (Padding-box x — the shape converter adds the 1 px border; the DOM places the glyph from
-    // the padding box: final centre = width − border − own right − half the glyph.)
+    // (Padding-box x — the shape converter adds the border; the DOM places the glyph from the
+    // padding box: final centre = width − border − own right − half the glyph. The reference card
+    // has no border — 2026-10-13.)
+    const border = 0;
     expect(icon).toMatchObject({
-      x: box.width - 2 - ownRight - glyph.size / 2,
+      x: box.width - 2 * border - ownRight - glyph.size / 2,
       y: box.height / 2,
       fontSize: glyph.size,
     });

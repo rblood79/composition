@@ -560,8 +560,9 @@ describe("standalone collection items — item slot roles", () => {
       (record) => record.props.slot === "description",
     )!;
     expect(description.visual.fontWeight).toBe(400);
-    // `GridList.css` `[slot=description]` muted (`--fg-muted` = neutral-600).
-    expect(description.visual.color).toBe(TAILWIND_NEUTRAL_600);
+    // The RAC reference card's description is in the card's color (2026-10-13 — no muted color;
+    // `MANUAL_ITEM_LABEL_COLORS.GridListItem`).
+    expect(description.visual.color).not.toBe(TAILWIND_NEUTRAL_600);
     const owner = [...root.domInputs.values()].find(
       (record) => record.sourceId === "project:node:owner",
     )!;

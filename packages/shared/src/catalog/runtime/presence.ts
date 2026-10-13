@@ -18,7 +18,7 @@ import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
-import { catalogNotFirstChildMarginTop } from "../document/rulePartRules";
+import { catalogListItemEdgeMargins } from "../document/rulePartRules";
 import {
   type CatalogCalendarModelInput,
   catalogCalendarGrid,
@@ -1693,8 +1693,9 @@ export function catalogDerivedProps(
   // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
   // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
   const grouped = catalogDisclosureGroupPosition(node, get, typeOf);
-  // (A ListBoxSection after another starts lower — its ListBox rule's `:not(:first-child)` margin.)
-  const first = catalogFirstChildPosition(node, get, typeOf);
+  // (A standalone list's item: its margins and the line under it — the ListBox rule's item
+  // selectors, 2026-10-13.)
+  const first = catalogListItemEdges(node, get, typeOf);
   const placed = grouped
     ? { ...result, ...grouped }
     : first
@@ -1746,24 +1747,51 @@ function catalogDisclosureGroupPosition(
 }
 
 /**
- * A child whose parent's rule gives it a top margin after a sibling (`> .react-aria-{Child}
- * :not(:first-child)` — `catalogNotFirstChildMarginTop`): whether it is the parent's first shown
- * child (`_firstChild` — the sheet's `:first-child`; hidden records render no element) and, when
- * not, that margin (`_siblingMarginTop`, px — the Canvas's). Undefined for other children.
+ * A standalone list's item (2026-10-13 — the reference `ListBox.css`): its margins from the list
+ * rule's item selectors (`catalogListItemEdgeMargins` — inline on each, above the first and below
+ * the last item of its run: the list's children or a section's; px) and whether it is its parent's
+ * last shown child (`_lastItem` — the sheet's `:not(:last-child)` line under it; hidden records
+ * render no element). Undefined for other nodes and for a picker's list (in a Popover — the
+ * reference's dropdown list, its own sheet).
  */
-function catalogFirstChildPosition(
+function catalogListItemEdges(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): { _firstChild: boolean; _siblingMarginTop?: number } | undefined {
+):
+  | {
+      _itemMarginTop: number;
+      _itemMarginInline: number;
+      _itemMarginBottom: number;
+      _itemShrink?: number;
+      _lastItem: boolean;
+    }
+  | undefined {
+  const type = typeOf(node);
+  if (type !== "ListBoxItem") return undefined;
   const parent = get(node.parentId);
   if (!parent) return undefined;
-  const margin = catalogNotFirstChildMarginTop(typeOf(parent), typeOf(node));
-  if (margin === undefined) return undefined;
-  const first = parent.children.find((id) => get(id)?.hidden !== true);
-  return first === node.id
-    ? { _firstChild: true }
-    : { _firstChild: false, _siblingMarginTop: margin };
+  const parentType = typeOf(parent);
+  const list =
+    parentType === "ListBox"
+      ? parent
+      : parentType === "ListBoxSection"
+        ? get(parent.parentId)
+        : undefined;
+  if (!list || typeOf(list) !== "ListBox") return undefined;
+  for (let up = get(list.parentId); up; up = get(up.parentId))
+    if (typeOf(up) === "Popover") return undefined;
+  const margins = catalogListItemEdgeMargins("ListBox", type);
+  if (!margins) return undefined;
+  const shown = parent.children.filter((id) => get(id)?.hidden !== true);
+  const items = shown.filter((id) => typeOf(get(id)!) === type);
+  return {
+    _itemMarginTop: items[0] === node.id ? margins.first : 0,
+    _itemMarginInline: margins.inline,
+    _itemMarginBottom: items.at(-1) === node.id ? margins.last : 0,
+    ...(margins.shrink === undefined ? {} : { _itemShrink: margins.shrink }),
+    _lastItem: shown.at(-1) === node.id,
+  };
 }
 
 /** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
@@ -2166,12 +2194,12 @@ export function catalogDerivedPropsDependents(
         typeOf(child) === "Disclosure" &&
         !!catalogDisclosureGroupOf(child, get, typeOf),
     ),
-    // (Its sections: which one is its first child — `catalogFirstChildPosition`.)
-    ...childrenOf(owner, get).filter(
-      (child) =>
-        catalogNotFirstChildMarginTop(typeOf(owner), typeOf(child)) !==
-        undefined,
-    ),
+    // (A list's · a section's items: which is the first · last — `catalogListItemEdges`.)
+    ...(typeOf(owner) === "ListBox" || typeOf(owner) === "ListBoxSection"
+      ? childrenOf(owner, get).filter(
+          (child) => typeOf(child) === "ListBoxItem",
+        )
+      : []),
   ];
   return [
     ...items,

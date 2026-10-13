@@ -33,8 +33,9 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
-        gap: 2, // {spacing.2xs}
-        padding: 4, // {spacing.xs}
+        // 2026-10-13 — the RAC reference ListBox: no gap · padding (its items' margins).
+        gap: "0px",
+        padding: "0px",
         width: "100%",
         overflow: "auto",
         outline: "none",
@@ -42,7 +43,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         //   생성 CSS `border: 1px solid` 를 캔버스가 못 받아 h Δ2 였다 (실측 DOM 52 /
         //   캔버스 50, `catalogComponentBox.browser.test.ts`). Calendar/RangeCalendar 는
         //   같은 슬립을 ADR-151 B1/B2 에서 이미 고쳤고 ListBox 만 남아 있었다.
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
+        borderWidth: 0.5, // `{border.width.hairline}` → 활성 테마 px (RAC 레퍼런스 0.5px)
       });
     });
 
@@ -53,12 +54,12 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).not.toHaveProperty("display");
       expect(fb).toEqual({
         flexDirection: "column",
-        gap: 2,
-        padding: 4,
+        gap: "0px",
+        padding: "0px",
         width: "100%",
         overflow: "auto",
         outline: "none",
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
+        borderWidth: 0.5, // `{border.width.hairline}` → 활성 테마 px
       });
     });
 
@@ -75,7 +76,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         width: "100%",
         overflow: "auto",
         outline: "none",
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
+        borderWidth: 0.5, // `{border.width.hairline}` → 활성 테마 px
       });
     });
 
@@ -139,19 +140,20 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
 
   describe("gridlistitem — ADR-171 Phase 3 (catalog 3층 개방 → 실효 DOM 값 도달)", () => {
     it("empty parentStyle → structure.containerStyles + sizes 축 반환 (실효 DOM 정합)", () => {
+      // 2026-10-13 — the RAC reference card: no size padding (its bottom 16 is the manual
+      //   sheet's · `manualBoxRules`), 8 between children, no border, relative.
       expect(resolveContainerStylesFallback("gridlistitem", {})).toEqual({
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
-        paddingTop: 12,
-        paddingBottom: 12,
-        paddingLeft: 16,
-        paddingRight: 16,
-        rowGap: 2,
-        columnGap: 2,
-        // ADR-923 r22m1 sweep — catalog `sizes.M.borderWidth` 축 (생성 CSS
-        //   `.react-aria-GridListItem { border: 1px solid var(--border); border-width: 1px }`).
-        borderWidth: 1,
+        position: "relative",
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        rowGap: 8,
+        columnGap: 8,
+        // catalog `sizes.M.borderWidth` 축 — `{border.width.none}`.
+        borderWidth: 0,
       });
     });
   });
@@ -393,14 +395,14 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(resolveContainerStylesFallback("listbox", {})).toEqual({
         display: "flex",
         flexDirection: "column",
-        gap: 2,
-        padding: 4,
+        gap: "0px",
+        padding: "0px",
         width: "100%",
         // maxHeight 는 2026-07-29 제거 — Tree/Menu 는 그대로라 이 케이스가 "listbox 만
         //   바뀌었고 재배선은 무오염" 을 계속 증명한다.
         overflow: "auto",
         outline: "none",
-        borderWidth: 1, // ADR-227 P3 토큰 해석 · ADR-171 Phase 3-b — 위 listbox describe 참조
+        borderWidth: 0.5, // `{border.width.hairline}` — 위 listbox describe 참조
       });
     });
   });

@@ -459,12 +459,12 @@ describe("listbox_item — wrap 블록 높이 기반 스택 offset", () => {
     setSpecWrappedTextHeightMeasurer((text, _fs, _fw, _ff, _mw, lineHeight) =>
       text === flatProps.children ? 72 : (lineHeight ?? 16),
     );
-    const shapes = drawWith({ ...flatProps, isSelected: true });
-    // check 아이콘 y = rowHeight/2 — rowHeight = pad 8 + 72 + 2 + 16 = 98
-    const check = ((shapes ?? []) as AnyShape[]).find(
-      (s) => s.type === "icon_font" && s.iconName === "check",
+    const shapes = drawWith({ ...flatProps, _lastItem: false });
+    // The line under the item sits on the row's bottom — rowHeight = pad 8 + 72 + 2 + 16 = 98.
+    const separator = ((shapes ?? []) as Array<AnyShape & { id?: string }>).find(
+      (s) => s.id === "separator",
     );
-    expect(check?.y).toBe(98 / 2);
+    expect(separator?.y).toBe(98 - 0.5);
   });
 
   it("단일 entry(label-only) wrap 블록은 행 내 세로 중앙 배치", () => {

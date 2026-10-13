@@ -5393,15 +5393,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
+      // 2026-10-13 (사용자 「gridlist 를 RAC 레퍼런스 테마 기준으로」 · 「이미지 카드로」): the reference
+      //   `.react-aria-GridListItem` — a flex column card (its photo, then its texts) on the overlay
+      //   surface with the reference's one-layer shadow (the Canvas draws it too —
+      //   `resolveEffectiveBoxShadow`), no border, its children from the top (no centring).
       containerStyles: {
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
-        // ADR-171 Phase 2 (2026-07-29): 실효 DOM(`GridList.css`/`collections.css`)이
-        //   `justify-content: center` 인데 catalog 에 없어 Skia 는 flex-start 였다.
-        //   지금은 L1 게이트(composition 부재)에 막혀 무효 — Phase 3 에서 전달되며
-        //   그 시점의 시각 변화는 Phase 5 fixture 가 감시한다.
-        justifyContent: "center",
+        position: "relative",
+        boxShadow: "0 2px 8px rgb(0 0 0 / 0.15)",
       },
       // ADR-248 4e-11: `GridList.css` `[data-disabled]` (opacity 0.38) — the same disabled state as
       //   ListBoxItem, read by both consumers.
@@ -5423,13 +5424,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fill: {
           default: {
             base: "{color.layer-1}",
+            hover: "{color.layer-1}",
+            pressed: "{color.layer-1}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
-          // ADR-913 slice 4: selected 카드 테두리 (DOM [data-selected] accent 정합).
-          selectedBorder: "{color.accent}",
+          border: "{color.transparent}",
+          // The reference's selection ring (`::after` 2px `light-dark(black, white)` — the text
+          //   color in either theme); the Canvas draws it as the selected card's 2px border.
+          selectedBorder: "{color.neutral}",
         },
         // 굵기 선언 없음 (사용자 결정 2026-09-29): 카드 label · description 모두 기본 굵기 (400).
         //   종전 600 은 description 까지 굵게 했다 (DOM 상속).
@@ -5458,7 +5462,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.transparent}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.neutral}",
         },
       },
     },
@@ -5467,14 +5471,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.lg}",
-        // height 0 = content-fit (카드 시각 = label + description 합산 + padding).
+        // height 0 = content-fit (카드 시각 = 사진 + label + description + 아래 padding).
         height: 0,
-        // spec.sizes.M 이전: paddingX 16 / paddingY 12 (수동 CSS spacing-md/lg 정합).
-        paddingX: 16,
-        paddingY: 12,
-        // label↔description 수직 간격 (spec gap 2 + descGap, card_description 이 소비).
-        gap: 2,
-        borderWidth: "{border.width.thin}",
+        // The reference card pads only its bottom (16 — `GridList.css` · the Canvas's
+        //   `manualBoxRules` GridListItem); its texts are inset 16 a side themselves.
+        paddingX: 0,
+        paddingY: 0,
+        // The reference's `gap: var(--spacing-2)` between the photo and its texts.
+        gap: 8,
+        borderWidth: "{border.width.none}",
       },
     },
   },
@@ -6782,23 +6787,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // 2026-07-29 사용자 결정: `maxHeight: "300px"` 고정값 제거. 컨테이너 높이는 내용이
     //   정하고, 잘라야 하면 요소별로 저작한다 — catalog 가 전 인스턴스에 300 을 강제할
     //   근거가 없다. `overflow:auto` 는 남긴다(높이를 저작하면 그때 스크롤이 살아난다).
+    // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」): the reference
+    //   `ListBox.css` — no padding · gap (each item's own margins: 4 inline, 4 above the first ·
+    //   below the last — the staticSelectors below), a 0.5px border and the radius + spacing (12)
+    //   corners. Its fixed sizes (250 wide · 100–300 high) stay out — 2026-07-29 사용자 결정: the
+    //   author sizes the container.
     containerStyles: {
       display: "flex",
       flexDirection: "column",
-      gap: "{spacing.2xs}",
-      padding: "{spacing.xs}",
+      gap: "0px",
+      padding: "0px",
       width: "100%",
       overflow: "auto",
       outline: "none",
-      // top-level `containerStyles` 는 `Record<string, string>` 이라 Calendar/RangeCalendar
-      //   선례대로 `"1px"` 문자열로 둔다 (structure 층은 number 1 — 두 타입이 다르다).
-      borderWidth: "{border.width.thin}",
+      borderWidth: "{border.width.hairline}",
     },
     sizes: {
       M: {
-        paddingX: 4,
+        paddingX: 0,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.lg}",
+        borderRadius: "{radius.xl}",
         height: 0,
       },
     },
@@ -6809,10 +6817,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         background: "{color.raised}",
         text: "{color.neutral}",
         border: "{color.border}",
-        borderWidth: "{border.width.thin}",
-        borderRadius: "{radius.lg}",
-        padding: "{spacing.xs}",
-        gap: "{spacing.2xs}",
+        borderWidth: "{border.width.hairline}",
+        borderRadius: "{radius.xl}",
+        padding: "0px",
+        gap: "0px",
         display: "flex",
         flexDirection: "column",
         width: "100%",
@@ -6832,15 +6840,205 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
-      // G5 example 1 (2026-10-12): a section after another starts `--spacing-md` (12px) lower — once
-      //   only in the manual `ListBox.css`, which the Canvas does not read. The Canvas reads this
-      //   selector with the resolver's `_firstChild` (`catalogNotFirstChildMarginTop`). (The
-      //   section's own generated sheet stays unloaded — ADR-238: its base would change the DOM.)
+      // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」) — the reference
+      //   `ListBox.css` (stack · vertical) for a list standing on its own (a picker's list — in a
+      //   Popover — is the reference's `.dropdown-listbox`, its own sheet). Over the manual
+      //   `ListBox.css`, which the Builder's own lists share (`builder-components.css` — not this
+      //   generated sheet), hence the more specific selectors:
+      //   - each item's margins: 4 inline, 4 above the first and below the last of a run (the
+      //     list's · a section's) — the Canvas reads them (`catalogListItemEdgeMargins`);
+      //   - a 0.5px line under each item but the last, inset 12 a side (`::after` — the Canvas
+      //     draws it, `listBoxItem` `_lastItem`), hidden on a selected item, light between two;
+      //   - adjacent selected items join: the touching corners square (multiple selection —
+      //     사용자 2026-10-13 「인접한 두개를 선택시 border radius 가 인접한부분은 제외」);
+      //   - the label 500, the description 12 in the item's color, the section header.
+      //   (No margin between sections — the reference has none; G5 example 1's `--spacing-md` was
+      //   the old starter's.)
       composition: {
         delegation: [],
-        staticSelectors: {
-          "> .react-aria-ListBoxSection:not(:first-child)": {
-            "margin-top": "var(--spacing-md)",
+        rootSelectors: {
+          "&:not(.react-aria-Popover *)": {
+            nested: {
+              // (`flex-shrink: 0`: with the reference's min-height — 32, the item's
+              //   `sizes.M.minHeight` — a column list of a fixed height would squeeze a
+              //   two-line item to 32, the 2026-07-22 note; it scrolls instead.)
+              ".react-aria-ListBoxItem": {
+                "margin-inline": "var(--spacing-xs)",
+                "flex-shrink": "0",
+                "--listbox-separator": "var(--border)",
+              },
+              ".react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem)": {
+                "margin-top": "var(--spacing-xs)",
+              },
+              ".react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem)":
+                {
+                  "margin-bottom": "var(--spacing-xs)",
+                },
+              ".react-aria-ListBoxItem:not(:last-child)::after": {
+                content: "''",
+                display: "block",
+                position: "absolute",
+                bottom: "0",
+                width: "calc(100% - var(--spacing-xl))",
+                "border-bottom":
+                  "var(--border-width-hairline) solid var(--listbox-separator)",
+              },
+              ".react-aria-ListBoxItem[data-selected]": {
+                "--listbox-separator": "transparent",
+              },
+              ".react-aria-ListBoxItem[data-selected]:has(+ [data-selected])": {
+                "--listbox-separator":
+                  "color-mix(in srgb, var(--fg-on-accent) 30%, transparent)",
+                "border-end-start-radius": "0",
+                "border-end-end-radius": "0",
+              },
+              ".react-aria-ListBoxItem[data-selected] + [data-selected]": {
+                "border-start-start-radius": "0",
+                "border-start-end-radius": "0",
+              },
+              ".react-aria-ListBoxItem[data-focus-visible]": {
+                outline: "2px solid var(--focus-ring)",
+                "outline-offset": "-2px",
+                "z-index": "2",
+              },
+              ".react-aria-ListBoxItem[data-selected][data-focus-visible]": {
+                "outline-color": "var(--fg-on-accent)",
+                "outline-offset": "-4px",
+              },
+              ".react-aria-ListBoxItem[data-selected][data-pressed]": {
+                background: "var(--accent-pressed)",
+              },
+              // (The label is the item's text — `.react-aria-Text` declares its own size and
+              //   color, the reference's label inherits them: 14, the selected white.)
+              '.react-aria-ListBoxItem [slot="label"]': {
+                "font-size": "inherit",
+                "line-height": "inherit",
+                "font-weight": "500",
+                color: "inherit",
+              },
+              '.react-aria-ListBoxItem [slot="description"]': {
+                "font-size": "var(--text-xs)",
+                "line-height": "var(--text-xs--line-height)",
+                color: "inherit",
+              },
+              ".react-aria-ListBoxSection .react-aria-Header": {
+                display: "block",
+                position: "sticky",
+                top: "calc(-1 * var(--border-width-hairline))",
+                "z-index": "2",
+                margin: "0",
+                "font-size": "var(--text-xs)",
+                "font-weight": "600",
+                color: "var(--fg)",
+                padding: "var(--spacing-xs) var(--spacing-lg)",
+                background: "var(--bg-overlay)",
+                "border-block": "var(--border-width-hairline) solid var(--border)",
+              },
+            },
+          },
+          // A picker's list (Select · ComboBox — in a Popover): the reference `.dropdown-listbox` ·
+          //   `.dropdown-item` (`ListBox.css` — RAC Select · ComboBox examples). The list is the
+          //   popover's surface (no border · padding — the items' margins), an item leaves 24 at its
+          //   start for the check (a 16 lucide check, 4 in, in the item's color — the
+          //   author's `showWhen: isSelected` node takes its place, `data-selection-mark`), weight
+          //   500; the focused item is the highlight pair, a pressed one the light wash; no hover
+          //   fill and no selected fill. The manual `ListBox.css` popover rules now stay with the
+          //   Builder's own pickers (`:not([data-catalog-id])`). DOM only — the Canvas draws no open
+          //   picker.
+          "&:is(.react-aria-Popover *)[data-empty]": {
+            styles: {
+              "min-height": "var(--spacing-2xl)",
+              padding: "var(--spacing-sm)",
+            },
+          },
+          "&:is(.react-aria-Popover *)": {
+            styles: {
+              display: "block",
+              border: "none",
+              padding: "0",
+              background: "transparent",
+              "border-radius": "inherit",
+            },
+            nested: {
+              ".react-aria-ListBoxItem": {
+                padding:
+                  "calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl)",
+                "margin-inline": "var(--spacing-xs)",
+                "font-weight": "500",
+              },
+              ".react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem)": {
+                "margin-top": "var(--spacing-xs)",
+              },
+              ".react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem)":
+                {
+                  "margin-bottom": "var(--spacing-xs)",
+                },
+              ".react-aria-ListBoxItem[data-selected]": {
+                background: "transparent",
+                color: "var(--fg)",
+              },
+              ".react-aria-ListBoxItem[data-selected]:not([data-selection-mark])::before":
+                {
+                  content: "''",
+                  position: "absolute",
+                  top: "50%",
+                  left: "var(--spacing-xs)",
+                  translate: "0 -50%",
+                  width: "var(--spacing-lg)",
+                  height: "var(--spacing-lg)",
+                  background: "currentColor",
+                  mask: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E\") center / contain no-repeat",
+                },
+              ".react-aria-ListBoxItem[data-selection-mark] > .react-aria-Icon:not([slot])":
+                {
+                  position: "absolute",
+                  top: "50%",
+                  left: "var(--spacing-xs)",
+                  translate: "0 -50%",
+                  width: "var(--spacing-lg)",
+                  height: "var(--spacing-lg)",
+                },
+              ".react-aria-ListBoxItem[data-pressed]": {
+                background: "var(--bg-muted)",
+              },
+              ".react-aria-ListBoxItem[data-focused]": {
+                background: "var(--accent)",
+                color: "var(--fg-on-accent)",
+              },
+              ".react-aria-ListBoxItem[data-focus-visible]": {
+                outline: "none",
+              },
+              '.react-aria-ListBoxItem [slot="label"]': {
+                "font-size": "inherit",
+                "line-height": "inherit",
+                "font-weight": "500",
+                color: "inherit",
+              },
+              '.react-aria-ListBoxItem [slot="description"]': {
+                "font-size": "var(--text-xs)",
+                "line-height": "var(--text-xs--line-height)",
+                color: "inherit",
+              },
+              // (The item's icon after the check's 24 — the sheet's general icon is 12 in.)
+              '.react-aria-ListBoxItem [slot="icon"]': {
+                left: "var(--spacing-xl)",
+              },
+              '.react-aria-ListBoxItem:has([slot="icon"])': {
+                "padding-left":
+                  "calc(var(--spacing-xl) + var(--lb-icon-size, 16px) + 6px)",
+              },
+              ".react-aria-Header": {
+                display: "block",
+                margin: "0",
+                "font-size": "var(--text-xs)",
+                "font-weight": "600",
+                color: "var(--fg)",
+                padding:
+                  "var(--spacing-xs) var(--spacing-lg) var(--spacing-xs) calc(var(--spacing-xl) + var(--spacing-xs))",
+                background: "var(--bg-overlay)",
+                "border-block": "var(--border-width-hairline) solid var(--border)",
+              },
+            },
           },
         },
       },
@@ -6854,38 +7052,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   description neutral-subdued + check)를 rule + listbox_item skiaPrimitive(replace)로
     //   이전. 기본 행은 배경 없음(transparent) — selection(accent-subtle)/hover(layer-1)만
     //   row-bg 그림(escape 가 props.isSelected/state 보편 축으로 판정).
+    // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」): the reference
+    //   `.react-aria-ListBoxItem` — no hover fill, the pressed highlight (`--highlight-hover` →
+    //   the neutral-subtle wash), selected = the highlight pair (accent · on-accent; the item's
+    //   Text children inherit it — `MANUAL_ITEM_LABEL_COLORS`). The DOM item carries
+    //   `data-variant="default"` so this block reaches the sheet.
     variants: {
       default: {
         fill: {
           default: {
             base: "{color.transparent}",
-            hover: "{color.layer-1}",
-            selected: "{color.accent-subtle}",
+            hover: "{color.transparent}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent}",
           },
         },
         colors: {
           text: "{color.neutral}",
+          selectedText: "{color.on-accent}",
         },
-        // label 굵기 (spec fontWeight 600).
-        textWeight: 600,
+        // The item's own weight (`font: var(--font-size) system-ui`); its label is 500
+        //   (`[slot='label']` — the ListBox part rule).
+        textWeight: 400,
       },
     },
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.xs}",
+        // The reference's `--radius` (8).
+        borderRadius: "{radius.lg}",
         // height 0 = content-fit (행 시각 = label(+description) + padding).
         height: 0,
-        // minHeight 미정의 (2026-07-22): CSS `min-height: 20px` 는 flex column collection item 의
-        //   자동 min-content(= min-height:auto) 보호를 덮어써, 컨테이너 고정 높이일 때 각 item 이 내용
-        //   (label+description) 아래로 축소·겹치고 scrollHeight 가 clientHeight 를 못 넘겨 스크롤이 안 생김.
-        //   Skia resolveListBoxItemRowHeight 는 element style.minHeight ?? 20 을 읽어(catalog 미참조)
-        //   무회귀. min-content(≥ line-height 20)가 이미 하한 역할이라 명시 floor 불필요.
-        // label 두께 (spec.sizes.M.fontWeight 600 — semibold). generate-css virtual 이
-        //   `font-weight: 600` emit (기존 generated childSpec block 동형 복원). 수동 ListBox.css
-        //   `[slot="label"] { font-weight: 600 }` 와 중복이나 description slot 상속분까지 보장.
-        fontWeight: 600,
+        // The reference's `min-height: var(--spacing-8)` (32). (2026-07-22: an explicit min-height
+        //   drops a flex column item's automatic minimum — a fixed-height list squeezed its items;
+        //   the ListBox rule's item selector gives `flex-shrink: 0`, so they stay whole and the list
+        //   scrolls.)
+        minHeight: 32,
+        // The item's weight (normal — the reference's `font` shorthand); the label slot's 500 is
+        //   the ListBox rule's item selector (the Canvas's ListBox part rule).
+        fontWeight: 400,
         // spec.sizes.M 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
         paddingX: 12,
         paddingY: 4,
@@ -6907,9 +7113,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         position: "relative",
       },
       states: {
-        hover: {
-          background: "{color.layer-1}",
-        },
         focusVisible: {
           focusRing: "{focus.ring.default}",
         },

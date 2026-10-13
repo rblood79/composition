@@ -39,7 +39,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
       if (key !== "borderWidth") return;
       if (
         typeof v === "string" &&
-        /^\{border\.width\.(none|thin|thick)\}$/.test(v)
+        /^\{border\.width\.(none|thin|thick|hairline)\}$/.test(v)
       ) {
         tokens.add(v);
         return;
@@ -48,6 +48,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     });
     expect(offenders).toEqual([]);
     expect([...tokens].sort()).toEqual([
+      "{border.width.hairline}",
       "{border.width.none}",
       "{border.width.thick}",
       "{border.width.thin}",

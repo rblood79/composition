@@ -286,9 +286,12 @@
     background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
-  /* ========== Popover Context (ComboBox, Select) ========== */
-  .react-aria-Popover[data-trigger="ComboBox"],
-  .react-aria-Popover[data-trigger="Select"] {
+  /* ========== Popover Context (ComboBox, Select) ==========
+   * The Builder's own pickers (panel Selects — `builder-components.css`). A catalog picker's list
+   * (its Popover carries `data-catalog-id`) is the RAC reference `.dropdown-listbox` — the ListBox
+   * rule's `&:is(.react-aria-Popover *)` block in the generated sheet (2026-10-13). */
+  .react-aria-Popover[data-trigger="ComboBox"]:not([data-catalog-id]),
+  .react-aria-Popover[data-trigger="Select"]:not([data-catalog-id]) {
     .react-aria-ListBox {
       display: block;
       width: unset;

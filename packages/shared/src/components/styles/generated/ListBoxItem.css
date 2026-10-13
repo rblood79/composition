@@ -28,9 +28,10 @@
   height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-lg);
   line-height: var(--text-sm--line-height);
-  font-weight: 600;
+  font-weight: 400;
+  min-height: 32px;
   gap: 2px;
   --icon-size: 16px;
 }
@@ -40,19 +41,17 @@
   color: var(--fg);
 
   &[data-hovered] {
-    background: var(--bg-overlay);
+    background: transparent;
   }
 
   &[data-pressed] {
+    background: var(--bg-muted);
   }
 
   &[data-selected] {
-    background: var(--accent-subtle);
+    background: var(--accent);
+    color: var(--fg-on-accent);
   }
-}
-
-.react-aria-ListBoxItem[data-hovered] {
-  background: var(--bg-overlay);
 }
 
 .react-aria-ListBoxItem[data-focus-visible] {

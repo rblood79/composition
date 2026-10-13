@@ -23,17 +23,18 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(rule).toBeDefined();
     });
 
-    it("sizes.M — paddingX 12 / paddingY 4 / gap 2 / minHeight 미정의 / fontWeight 600", () => {
+    it("sizes.M — paddingX 12 / paddingY 4 / gap 2 / minHeight 32 / fontWeight 400 (RAC 레퍼런스)", () => {
       const md = rule?.sizes?.M as Record<string, unknown> | undefined;
       expect(md).toBeDefined();
       expect(md?.paddingX).toBe(12);
       expect(md?.paddingY).toBe(4);
       expect(md?.gap).toBe(2);
-      // minHeight 는 9c2142e04("fix(listbox): CSS ListBoxItem min-height 제거 — Skia 렌더 대칭
-      //   복원")에서 catalog 에서 의도적으로 제거됨(min-height:20px 가 flex min-content 를 덮어써
-      //   스크롤 미생성). Skia 는 element style.minHeight ?? 20 을 직접 읽으므로 catalog 불참조.
-      expect(md?.minHeight).toBeUndefined();
-      expect(md?.fontWeight).toBe(600);
+      // 2026-10-13 — the reference `min-height: var(--spacing-8)`; the ListBox rule's item selector
+      //   keeps items from shrinking under it (`flex-shrink: 0` — 9c2142e04's scroll note).
+      expect(md?.minHeight).toBe(32);
+      // The item's normal weight; its label is 500 (the ListBox rule's item selector).
+      expect(md?.fontWeight).toBe(400);
+      expect(md?.borderRadius).toBe("{radius.lg}");
     });
 
     // ADR-171 Phase 1 (2026-07-29): `position: "relative"` 는 수동 `ListBox.css` 에만
@@ -56,12 +57,14 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(rule).toBeDefined();
     });
 
-    it("sizes.M — paddingX 16 / paddingY 12 / gap 2", () => {
+    // 2026-10-13 — the RAC reference card (사용자 「이미지 카드로」): padded only at its bottom (16 —
+    //   the manual sheet · `manualBoxRules`), its texts inset 16 themselves, 8 between children.
+    it("sizes.M — paddingX 0 / paddingY 0 / gap 8 (RAC 레퍼런스 카드)", () => {
       const md = rule?.sizes?.M as Record<string, unknown> | undefined;
       expect(md).toBeDefined();
-      expect(md?.paddingX).toBe(16);
-      expect(md?.paddingY).toBe(12);
-      expect(md?.gap).toBe(2);
+      expect(md?.paddingX).toBe(0);
+      expect(md?.paddingY).toBe(0);
+      expect(md?.gap).toBe(8);
     });
 
     it("항목에는 굵기를 선언하지 않는다 — description 이 600 을 물려받지 않게", () => {
@@ -71,14 +74,15 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
         expect((variant as { textWeight?: number }).textWeight).toBeUndefined();
     });
 
-    // ADR-171 Phase 2 (2026-07-29): `justifyContent: "center"` 는 실효 DOM 이 이미
-    //   갖고 있던 값의 catalog 이관이다 (Skia 도달은 Phase 3).
-    it("containerStyles — flex column + 수직 중앙 (minWidth 0 로 grid track 축소 허용)", () => {
+    // 2026-10-13 — the RAC reference card: children from the top (no centring), relative (its
+    //   selection ring · checkbox), the reference's one-layer shadow.
+    it("containerStyles — flex column (minWidth 0 로 grid track 축소 허용) · relative · 그림자", () => {
       expect(rule?.structure?.containerStyles).toEqual({
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
-        justifyContent: "center",
+        position: "relative",
+        boxShadow: "0 2px 8px rgb(0 0 0 / 0.15)",
       });
     });
   });

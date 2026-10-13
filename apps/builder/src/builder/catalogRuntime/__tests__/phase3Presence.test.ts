@@ -416,24 +416,29 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(items.map((input) => input.derivedProps?._isSelected)).toEqual(
       items.map(() => false),
     );
-    // The ListBoxItem origin's own background is its selected look (old state layer: the resting
-    // `--unselected` layer removes it): shown by the selected origin only — not by its resting
-    // variant, nor by its instances inside a ListBox (the collection's selection decides).
+    // No origin authors a background: the selected look is the ListBoxItem rule's selected paint
+    // (2026-10-13 — the RAC reference highlight; the old `--accent-subtle` state layer is gone),
+    // shown by the selected origin (its display state) and inside a ListBox by the collection's
+    // selection.
     expect(items.map((input) => input.visual.backgroundColor)).toEqual(
       items.map(() => undefined),
     );
-    const itemVisual = async (definition: string) =>
+    const item = async (definition: string) =>
       (await open(definition as DefinitionId, definition)).byType(
         "ListBoxItem",
-      )[0].visual.backgroundColor;
-    expect(
-      await itemVisual("lib:definition:origin-component-listbox-item-default"),
-    ).toBe("var(--accent-subtle)");
+      )[0];
+    const selected = await item(
+      "lib:definition:origin-component-listbox-item-default",
+    );
+    expect(selected.visual.backgroundColor).toBeUndefined();
+    expect(selected.displayState).toBe("selected");
     for (const variant of ["unselected", "hover", "pressed"])
       expect(
-        await itemVisual(
-          `lib:definition:origin-component-listbox-item-default--${variant}`,
-        ),
+        (
+          await item(
+            `lib:definition:origin-component-listbox-item-default--${variant}`,
+          )
+        ).visual.backgroundColor,
       ).toBeUndefined();
   });
 

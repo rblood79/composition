@@ -157,23 +157,24 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
   describe("Non-composite containerStyles (ADR-071 스키마)", () => {
     it("ListBox.containerStyles → Appearance preset (borderRadius/borderWidth/colors)", () => {
-      // ListBoxSpec.containerStyles = { borderRadius: "{radius.lg}"=8, borderWidth: 1,
-      //   background: "{color.raised}", border: "{color.border}" }
+      // ListBox rule (2026-10-13 — the RAC reference): { borderRadius: "{radius.xl}"=12,
+      //   borderWidth: "{border.width.hairline}"=0.5, background: "{color.raised}",
+      //   border: "{color.border}" }
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
-      expect(preset.borderRadius).toBe(8);
-      expect(preset.borderWidth).toBe(1);
+      expect(preset.borderRadius).toBe(12);
+      expect(preset.borderWidth).toBe(0.5);
       expect(preset.backgroundColor).toBe("var(--bg-raised)");
       expect(preset.borderColor).toBe("var(--border)");
     });
 
     it("ListBox.containerStyles → Layout preset (gap/padding 4-way split)", () => {
-      // ListBoxSpec.containerStyles = { gap: "{spacing.2xs}"=2, padding: "{spacing.xs}"=4 }
+      // ListBox rule (2026-10-13 — the RAC reference): no gap · padding — its items' margins.
       const preset = resolveLayoutSpecPreset("ListBox", undefined);
-      expect(preset.gap).toBe(2);
-      expect(preset.paddingTop).toBe(4);
-      expect(preset.paddingRight).toBe(4);
-      expect(preset.paddingBottom).toBe(4);
-      expect(preset.paddingLeft).toBe(4);
+      expect(preset.gap ?? 0).toBe(0);
+      expect(preset.paddingTop ?? 0).toBe(0);
+      expect(preset.paddingRight ?? 0).toBe(0);
+      expect(preset.paddingBottom ?? 0).toBe(0);
+      expect(preset.paddingLeft ?? 0).toBe(0);
     });
 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).
@@ -282,7 +283,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     it("containerStyles 만 있고 sizes 없으면 containerStyles 반환", () => {
       // ListBox 는 sizes 블록 자체가 거의 비어있고 containerStyles 보유
       const preset = resolveAppearanceSpecPreset("ListBox", undefined);
-      expect(preset.borderRadius).toBe(8); // from containerStyles
+      expect(preset.borderRadius).toBe(12); // from containerStyles
     });
   });
 
@@ -392,16 +393,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         width: "100%",
       });
       expect(resolveAppearanceSpecPreset("ListBox", undefined)).toMatchObject({
-        borderRadius: 8,
-        borderWidth: 1,
+        borderRadius: 12,
+        borderWidth: 0.5,
         backgroundColor: "var(--bg-raised)",
         borderColor: "var(--border)",
       });
       expect(resolveLayoutSpecPreset("ListBox", undefined)).toMatchObject({
         display: "flex",
         flexDirection: "column",
-        gap: 2,
-        paddingTop: 4,
       });
       // Typography: ListBoxSpec.sizes.M.fontSize='{typography.text-sm}'=14
       expect(resolveTypographySpecPreset("ListBox", "M")).toMatchObject({

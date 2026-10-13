@@ -774,7 +774,9 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({
     typeof size.iconSize === "number" ? size.iconSize : 16,
   );
   const slotGap = 6;
-  const showCheck = Boolean(props.isSelected);
+  // No check glyph (2026-10-13 — the reference standalone list shows its selection by the row's
+  // highlight only; a picker's list is the dropdown sheet's, which the Canvas does not draw).
+  const showCheck = false;
   const checkSize = iconSize;
   const slotInset = typeof size.paddingX === "number" ? size.paddingX : 12;
   // ADR-160 후속: textX/rightReserve 산출을 layout(M1)과 공유 SSOT `resolveListBoxItemInset` 로 위임
@@ -1010,21 +1012,27 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({
     });
   }
 
-  // selection-indicator (우측 체크마크)
-  if (showCheck) {
+  // The line under a standalone list's item but the last (2026-10-13 — the reference
+  // `.react-aria-ListBoxItem:not(:last-child)::after`: 0.5px of `--border-color`, the row less
+  // `--spacing-6` wide from its padding edge, hidden on a selected item). `_lastItem` is the
+  // resolver's (`catalogListItemEdges`) — absent outside a standalone ListBox.
+  const separator = resolveBorderWidthPx("{border.width.hairline}" as TokenRef);
+  if (props._lastItem === false && !props.isSelected) {
     shapes.push({
-      type: "icon_font",
-      iconName: "check",
-      x: width - slotInset - checkSize / 2,
-      y: rowHeight / 2,
-      fontSize: checkSize,
-      fill: "{color.accent}" as TokenRef,
-      baseline: "middle",
+      id: "separator",
+      type: "roundRect",
+      x: paddingLeft,
+      y: rowHeight - separator,
+      width: Math.max(0, width - 2 * slotInset),
+      height: separator,
+      radius: 0,
+      fill: "{color.border}" as TokenRef,
     });
   }
 
   return shapes;
 };
+
 
 /**
  * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +

@@ -84,7 +84,7 @@ describe("listbox_item — _hasChildren shell gating", () => {
     expect(iconShapes(shapes)).toHaveLength(0);
   });
 
-  it("_hasChildren=true + isSelected → selection row-bg + check 는 유지 (shell)", () => {
+  it("_hasChildren=true + isSelected → selection row-bg only (shell — no check: the RAC reference list shows its selection by the highlight, 2026-10-13)", () => {
     const shapes = draw({
       props: { ...flatProps, _hasChildren: true, isSelected: true },
       size: listBoxSizeMd,
@@ -94,8 +94,33 @@ describe("listbox_item — _hasChildren shell gating", () => {
 
     const all = shapesOf(shapes);
     expect(all.some((s) => s.id === "row-bg")).toBe(true);
-    expect(all.some((s) => s.iconName === "check")).toBe(true);
+    expect(all.some((s) => s.iconName === "check")).toBe(false);
     expect(textShapes(shapes)).toHaveLength(0);
+  });
+
+  it("the line under an item but the last — none on the last, none on a selected item (RAC reference `:not(:last-child)::after`)", () => {
+    const separator = (props: Record<string, unknown>) =>
+      shapesOf(
+        draw({
+          props: { ...flatProps, _hasChildren: true, ...props },
+          size: listBoxSizeMd,
+          visual: undefined,
+          style: { width: 200, height: 32 },
+        } as Parameters<typeof draw>[0]),
+      ).find((s) => s.id === "separator") as
+        | { x: number; y: number; width: number; height: number }
+        | undefined;
+    // 0.5px, from the padding edge (12) the row less 24 wide, on the row's bottom.
+    expect(separator({ _lastItem: false })).toMatchObject({
+      x: 12,
+      y: 31.5,
+      width: 176,
+      height: 0.5,
+    });
+    expect(separator({ _lastItem: true })).toBeUndefined();
+    expect(separator({ _lastItem: false, isSelected: true })).toBeUndefined();
+    // (Outside a standalone list the resolver gives no `_lastItem` — no line.)
+    expect(separator({})).toBeUndefined();
   });
 
   it("BC: _hasChildren 부재 → flat props 내용 렌더 (기존 동작)", () => {

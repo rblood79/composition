@@ -288,7 +288,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
 
   it("border.width.thin 3 · thick 4 (ADR-227 Phase 3) → border 맵 + --border-width-* · 음수/문자열은 경고 · seed 는 0/1/2", () => {
     const seed = resolve(theme({}));
-    expect(seed.border).toEqual({ none: 0, thin: 1, thick: 2 });
+    expect(seed.border).toEqual({ none: 0, thin: 1, thick: 2, hairline: 0.5 });
     expect(varOf(seed, "--border-width-thin")).toBe("1px");
     const s = resolve(
       theme({
@@ -306,7 +306,7 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
         "border.thin": { type: "number", value: 5, source: "spec-token" },
       }),
     );
-    expect(s.border).toEqual({ none: 0, thin: 3, thick: 4 });
+    expect(s.border).toEqual({ none: 0, thin: 3, thick: 4, hairline: 0.5 });
     expect(varOf(s, "--border-width-thin")).toBe("3px");
     expect(varOf(s, "--border-width-thick")).toBe("4px");
     expect(varOf(s, "--border-width-none")).toBe("0px");
