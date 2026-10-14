@@ -84,8 +84,9 @@ function componentRef(
 }
 
 /**
- * ADR-260: the project component whose origin a node is, in place on its page (or inside another
- * origin, or a hidden template) — `originRef: true`. The node alone decides (Decision 9).
+ * ADR-260: the project component whose origin a node is — in place on its page (or inside another
+ * origin), or deleted and kept by its definition (the project components page shows it there). The
+ * node alone decides (Decision 9); a layout's template root is no component.
  */
 function referencedOriginOf(
   graph: CatalogReader,
@@ -94,7 +95,7 @@ function referencedOriginOf(
   const definitionId = graph.definitionOfTemplateRoot(id);
   if (!definitionId) return undefined;
   const definition = graph.getEntry(definitionId);
-  return definition?.kind === "definition" && definition.originRef === true
+  return definition?.kind === "definition" && definition.usage !== "layout"
     ? definitionId
     : undefined;
 }

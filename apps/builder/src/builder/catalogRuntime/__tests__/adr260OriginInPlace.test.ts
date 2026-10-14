@@ -290,22 +290,68 @@ describe("ADR-260 Phase 3 — the origin in place in the Builder", () => {
     expect(
       root().recordsOfSource(projectComponentOriginCellId(titleDefinition)),
     ).toHaveLength(0);
-    // Deleting the origin (its Layers row): the component leaves the page; its instance stays
-    // and can restore it (Figma). Undo brings it back.
+    // Deleting the origin (its Layers row): its instance stays and can restore it (Figma); the
+    // definition keeps it, and this page still shows it — where a deleted origin is found (user
+    // 2026-10-14). Undo puts it back on its page.
     workspace.execute(
       removeTargets({ targets: [{ kind: "node", id: id("card") }] }),
     );
-    expect(
-      root().recordsOfSource(projectComponentOriginCellId(definitionId)),
-    ).toHaveLength(0);
     expect(catalogComponentState(graph, copy).instanceOf).toMatchObject({
       restorable: true,
     });
+    expect(graph.getEntry(graph.ownerOf(id("card"))!)?.kind).toBe("definition");
+    expect(
+      root().recordsOfSource(projectComponentOriginCellId(definitionId)),
+    ).toHaveLength(1);
+    expect(root().recordsOfSource(id("card"))).toHaveLength(1);
     workspace.undo();
+    expect(graph.ownerOf(id("card"))).toBe(BODY);
     expect(root().recordsOfSource(id("card"))).toHaveLength(1);
     // Nothing of the page is saved.
     workspace.showDefinition(undefined);
     expect(graph.getEntry(PROJECT_ORIGIN_VIEW_NODE)).toBeUndefined();
+    workspace.dispose();
+  });
+
+  it("Go to component of a deleted origin opens the project components page on it (user 2026-10-14)", async () => {
+    const { workspace, graph, definitionId } = await open();
+    const copy = workspace.execute(
+      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+    ).plan.selectAfter![0]!;
+    // (The Layers tree is open on the page before the deletion: its row follows the step.)
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
+    const layers = new CatalogLayerTreeStore(
+      {
+        readModel: workspace.readModel,
+        graph,
+        subscribeSteps: (listener) =>
+          workspace.runtime.subscribeSteps(listener),
+      },
+      PROJECT_COMPONENTS_VIEW as never,
+    );
+    const [bodyRow] = layers.getSnapshot();
+    layers.setExpanded(new Set([bodyRow!.id]));
+    expect(layers.getSnapshot()[0]!.children?.[0]?.keptOrigin).toBeUndefined();
+    workspace.execute(
+      removeTargets({ targets: [{ kind: "node", id: id("card") }] }),
+    );
+    workspace.showDefinition(undefined);
+    workspace.showDefinition(definitionId as never);
+    const snapshot = workspace.session.getSnapshot();
+    expect(snapshot.definitionView).toBe(PROJECT_COMPONENTS_VIEW);
+    expect(snapshot.selection[0]?.target).toEqual({
+      kind: "node",
+      id: id("card"),
+    });
+    // Its Layers row is not removable again (Restore origin on the instance brings it back).
+    const originRow = layers.getSnapshot()[0]!.children?.[0];
+    expect(originRow?.position.target).toEqual({ kind: "node", id: id("card") });
+    expect(originRow?.keptOrigin).toBe(true);
+    layers.dispose();
+    // Restored, it stands on its page again: Go to component goes there.
+    workspace.execute(catalogComponentCommands.restore(copy));
+    workspace.showDefinition(definitionId as never);
+    expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
     workspace.dispose();
   });
 

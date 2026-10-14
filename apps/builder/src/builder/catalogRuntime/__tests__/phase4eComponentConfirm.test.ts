@@ -26,6 +26,7 @@ import {
 import { catalogNewLayoutCommand, catalogDefinitionList } from "../layouts";
 import { catalogPageCommands } from "../pageSettings";
 import { newCatalogProjectDocument } from "../project";
+import { PROJECT_COMPONENTS_VIEW } from "../originView";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -124,16 +125,15 @@ async function open() {
 }
 
 describe("ADR-248 4e component confirmations", () => {
-  it("the first template edit in a component view asks; Cancel undoes it, Continue keeps later edits quiet", async () => {
+  it("the first edit of a deleted origin (on the project components page) asks; Cancel undoes it, Continue keeps later edits quiet", async () => {
     const { workspace, definitionId, text, edit } = await open();
     const { confirm, requests } = stub(false, true);
     const stop = watchCatalogComponentEdits(workspace, confirm);
-    // On the page: no question.
-    edit("On page");
-    await flush();
-    expect(requests).toEqual([]);
-
+    // Go to component: the deleted origin is on the project components page (user 2026-10-14).
     workspace.showDefinition(definitionId);
+    expect(workspace.session.getSnapshot().definitionView).toBe(
+      PROJECT_COMPONENTS_VIEW,
+    );
     // An edit outside the template (the page body) asks nothing.
     workspace.execute(
       setFields({
@@ -147,10 +147,12 @@ describe("ADR-248 4e component confirmations", () => {
     edit("Cancelled");
     await flush();
     expect(requests).toEqual([{ kind: "impact", count: 1, label: "Title" }]);
-    expect(text()).toBe("On page");
+    expect(text()).toBe("Hello");
     expect(workspace.runtime.historyDepth.undo).toBe(depth);
-    // Still in the view.
-    expect(workspace.session.getSnapshot().definitionView).toBe(definitionId);
+    // Still on the page.
+    expect(workspace.session.getSnapshot().definitionView).toBe(
+      PROJECT_COMPONENTS_VIEW,
+    );
 
     edit("Kept");
     await flush();

@@ -180,8 +180,9 @@ const edited = await page.evaluate((made) => {
 check("the edit wrote the origin node and the card redraws it", edited.origin?.value === "horizontal" && edited.drawn === "horizontal", edited);
 writeFileSync(`${OUT}/3-edited.png`, await page.screenshot());
 
-// Delete the Button component from its Layers row: it leaves the page; its instance stays and
-// offers Restore origin (Figma). Undo brings it back.
+// Delete the Button origin from its Layers row: its instance stays (Restore origin) and the Local
+// page still shows it — where a deleted origin is found (user 2026-10-14); its row is not
+// removable again. Go to component on the instance comes back here. Undo puts it on its page.
 const deleteButton = page.locator(".elementItem", { hasText: /^Button$/ }).getByRole("button", { name: /^Delete /i }).first();
 const hasDelete = await deleteButton.isVisible().catch(() => false);
 check("Layers: the origin row has a Delete button", hasDelete);
@@ -194,15 +195,37 @@ if (hasDelete) {
     const graph = workspace.runtime.graph;
     return {
       drawn: root.recordsOfSource(made.Button.origin).length,
+      kept: graph.getEntry(graph.ownerOf(made.Button.origin))?.kind ?? null,
       rows: [...document.querySelectorAll('[data-section-id="navigator-layers"] .elementItemLabelText')].map((e) => e.textContent.trim()),
       instanceKept: graph.getEntry(made.Button.instance)?.definitionId === made.Button.definitionId,
     };
   }, made);
-  check("delete: the component leaves the page, its instance stays", afterDelete.drawn === 0 && !afterDelete.rows.includes("Button") && afterDelete.instanceKept, afterDelete);
+  check("delete: the origin stays on the Local page (kept by its definition), its instance stays", afterDelete.drawn === 1 && afterDelete.kept === "definition" && afterDelete.rows.includes("Button") && afterDelete.instanceKept, afterDelete);
+  const keptDelete = await page.locator(".elementItem", { hasText: /^Button$/ }).getByRole("button", { name: /^Delete /i }).count();
+  check("the kept origin's row has no Delete button", keptDelete === 0, keptDelete);
+  // From the page: the instance's Go to component opens the Local page on the kept origin.
+  await page.getByRole("tab", { name: "Pages", exact: true }).first().click();
+  await page.waitForTimeout(800);
+  await page.evaluate((id) => {
+    const { workspace } = window.__COMPOSITION_CATALOG__;
+    workspace.selectRecords([workspace.root.recordsOfSource(id)[0]]);
+  }, made.Button.instance);
+  await page.waitForTimeout(400);
+  await panelButton("Go to component").click();
+  await page.waitForTimeout(1500);
+  const went = await snapshot();
+  const wentChip = await page.evaluate(() =>
+    document.querySelector('.workspace-panel-frame[data-panel="properties"] .component-semantics-identity')?.getAttribute("data-role") ?? null,
+  );
+  check("Go to component on the instance opens Local and selects the kept origin (ORIGIN)", went.view === "view:project-components" && went.target?.id === made.Button.origin && wentChip === "origin", { went, wentChip });
+  writeFileSync(`${OUT}/3b-kept-origin.png`, await page.screenshot());
   await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.undo());
   await page.waitForTimeout(800);
-  const back = await page.evaluate((id) => window.__COMPOSITION_CATALOG__.workspace.root.recordsOfSource(id).length, made.Button.origin);
-  check("undo: the component is back on the page", back === 1, back);
+  const back = await page.evaluate((id) => {
+    const graph = window.__COMPOSITION_CATALOG__.workspace.runtime.graph;
+    return graph.getEntry(graph.ownerOf(id))?.kind ?? null;
+  }, made.Button.origin);
+  check("undo: the origin is back on its page", back === "node", back);
 }
 
 // Back to the pages: the origin there and its instance show the edit.

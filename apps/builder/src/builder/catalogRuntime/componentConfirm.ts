@@ -13,6 +13,7 @@ import {
 import {
   catalogDefinitionTitle,
   isComponentsView,
+  isProjectComponentsView,
   isLibraryOrigin,
 } from "./originView";
 import type { CatalogWorkspace } from "./workspace";
@@ -110,8 +111,8 @@ function touchesTemplate(
 }
 
 /**
- * ADR-260: the component whose origin in place a step edited — a changed node is the origin or
- * lies under it (the nearest origin on its owner chain).
+ * ADR-260: the component whose origin a step edited — a changed node is the origin (in place, or
+ * deleted and kept by its definition) or lies under it (the nearest origin on its owner chain).
  */
 function editedOrigin(
   graph: CatalogReader,
@@ -125,7 +126,8 @@ function editedOrigin(
     ) {
       const definitionId = graph.definitionOfTemplateRoot(at);
       const definition = definitionId ? graph.getEntry(definitionId) : undefined;
-      if (definition?.kind === "definition" && definition.originRef === true)
+      // (A deleted origin its definition keeps too — the project components page edits it.)
+      if (definition?.kind === "definition" && definition.usage !== "layout")
         return definitionId;
     }
   return undefined;
@@ -163,16 +165,17 @@ export function watchCatalogComponentEdits(
     // The Components page: a sample's edits are the project's defaults for its origin (its
     // override) — the component edited is that origin.
     let edited: string | undefined;
-    if (view && isComponentsView(view)) {
+    if (view && isComponentsView(view) && !isProjectComponentsView(view)) {
       edited = overriddenOrigin(graph, result.changedIds);
       if (!edited) return;
-    } else if (view) {
+    } else if (view && !isProjectComponentsView(view)) {
       const definition = graph.getEntry(view);
       if (definition?.kind !== "definition" || definition.usage === "layout")
         return;
       if (touchesTemplate(graph, result.changedIds, view)) edited = view;
     }
-    // ADR-260 Decision 4: an origin in place (on a page, or inside a viewed template).
+    // ADR-260 Decision 4: an origin in place (on a page, or inside a viewed template), or one
+    // the project components page shows.
     edited ??= editedOrigin(graph, result.changedIds);
     if (!edited) return;
     const request = impactRequest(graph, edited);

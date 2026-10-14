@@ -18,15 +18,17 @@ import {
   catalogComponentState,
 } from "../componentActions";
 import { CatalogLayerTreeStore } from "../layerTree";
+import { PROJECT_COMPONENTS_VIEW } from "../originView";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * ADR-248 4e definition edit view: the Canvas draws one project definition's template instead of
- * the pages; its nodes are owned nodes, so picking selects them as `node` targets and an edit is
- * the ordinary command — the page's instances follow it.
+ * ADR-248 4e definition edit view → ADR-260 (user 2026-10-14): a component's deleted origin (its
+ * definition keeps it) is drawn on the project components page; its nodes are owned nodes, so
+ * picking selects them as `node` targets and an edit is the ordinary command — the page's
+ * instances follow it. (The definition edit view stays for layouts.)
  */
 const BODY = "project:node:home-body" as NodeId;
 const id = (name: string) => `project:node:${name}` as NodeId;
@@ -110,9 +112,16 @@ describe("ADR-248 4e definition edit view", () => {
         .find((record) => textOf(workspace, record) !== undefined);
     expect(workspace.root.recordsOfSource(instance)).toHaveLength(1);
 
+    // Go to component (ADR-260 · user 2026-10-14): the deleted origin is on the project components
+    // page, selected — no definition edit view for a component.
     workspace.showDefinition(definitionId);
-    expect(workspace.session.getSnapshot().definitionView).toBe(definitionId);
-    expect([...workspace.root.pageFrameRects().keys()]).toEqual([definitionId]);
+    expect(workspace.session.getSnapshot().definitionView).toBe(
+      PROJECT_COMPONENTS_VIEW,
+    );
+    expect(workspace.session.getSnapshot().selection[0]?.target).toEqual({
+      kind: "node",
+      id: templateRoot,
+    });
     expect(workspace.root.recordsOfSource(instance)).toHaveLength(0);
     // The template's nodes are drawn and picked as owned node targets.
     const [titleRecord] = workspace.root.recordsOfSource(id("title"));
@@ -122,7 +131,7 @@ describe("ADR-248 4e definition edit view", () => {
       kind: "node",
       id: id("title"),
     });
-    // Layers lists the template root.
+    // Layers lists it under the page's body, with the origin mark.
     const layers = new CatalogLayerTreeStore(
       {
         readModel: workspace.readModel,
@@ -130,13 +139,16 @@ describe("ADR-248 4e definition edit view", () => {
         subscribeSteps: (listener) =>
           workspace.runtime.subscribeSteps(listener),
       },
-      definitionId,
+      PROJECT_COMPONENTS_VIEW as never,
     );
-    expect(layers.getSnapshot().map((row) => row.position.target)).toEqual([
-      { kind: "node", id: templateRoot },
-    ]);
-    // Its root row carries the old row's origin mark.
-    expect(layers.getSnapshot()[0].role).toBe("origin");
+    const [viewBody] = layers.getSnapshot();
+    layers.setExpanded(new Set([viewBody!.id]));
+    const originRow = layers.getSnapshot()[0]!.children?.[0];
+    expect(originRow?.position.target).toEqual({
+      kind: "node",
+      id: templateRoot,
+    });
+    expect(originRow?.role).toBe("origin");
     layers.dispose();
     // An origin edit: one step, drawn in the view; back on the page the instance shows it.
     workspace.execute(
@@ -180,10 +192,14 @@ describe("ADR-248 4e definition edit view", () => {
     workspace.dispose();
   });
 
-  it("leaves the view when its definition goes away", async () => {
+  it("Go to component follows where the origin is", async () => {
     const { workspace, definitionId } = await open();
     workspace.showDefinition(definitionId);
+    expect(workspace.session.getSnapshot().definitionView).toBe(
+      PROJECT_COMPONENTS_VIEW,
+    );
     workspace.undo(); // the origin's deletion: it is back on the page (ADR-260)
+    workspace.showDefinition(definitionId);
     expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
     expect(workspace.root.pageFrameRects().size).toBeGreaterThan(0);
     expect(() =>

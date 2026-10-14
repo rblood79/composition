@@ -1098,32 +1098,21 @@ export function catalogProjectComponentsPageEntries(
 }
 
 /**
- * The project's components the project components page lists (project order): those whose origin
- * stands on a page (or in a layout). A deleted origin's component is not listed — as Figma's
- * assets list only the main components on the canvas; its instances stay and restore it.
+ * The project's components the project components page lists (project order): every component —
+ * its origin on a page, or deleted (its definition keeps it, hidden — Restore origin on an
+ * instance brings it back): the page is where a deleted origin is found (user 2026-10-14).
  */
 export function catalogProjectComponents(
   graph: CatalogReader,
 ): { id: EntryId<"definition">; name: string; rootId: NodeId }[] {
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return [];
-  const standsOnAPage = (rootId: string) => {
-    let top = rootId;
-    for (let at = graph.ownerOf(rootId); at; at = graph.ownerOf(at)) top = at;
-    const holder = graph.getEntry(top);
-    return (
-      holder?.kind === "page" ||
-      (holder?.kind === "definition" && holder.usage === "layout")
-    );
-  };
   return project.definitionIds.flatMap((id) => {
     const definition = graph.getEntry(id);
     return definition?.kind === "definition" &&
       definition.usage !== "layout" &&
-      definition.originRef === true &&
       definition.templateRootId &&
-      graph.getEntry(definition.templateRootId) &&
-      standsOnAPage(definition.templateRootId)
+      graph.getEntry(definition.templateRootId)
       ? [
           {
             id: definition.id,

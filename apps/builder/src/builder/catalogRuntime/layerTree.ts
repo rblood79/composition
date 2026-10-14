@@ -5,6 +5,7 @@ import { catalogComponentsPageRows } from "./componentsPage";
 import {
   isComponentsView,
   isComponentsViewRoot,
+  isProjectComponentsView,
   originOfEditableSample,
 } from "./originView";
 import type { CatalogDefinitionViewId } from "./session";
@@ -53,6 +54,11 @@ export interface CatalogLayerNode {
    * and on a page that uses the layout (the slot positions under the page body).
    */
   readonly slot?: string;
+  /**
+   * A deleted component origin its definition keeps (ADR-260 — listed on the project components
+   * page): not removable again; Restore origin on an instance brings it back.
+   */
+  readonly keptOrigin?: true;
 }
 
 /** The data rows one row holds (4e-6-36): the drawn rows and the count the sample leaves out. */
@@ -132,11 +138,8 @@ const roleOf = (
   if (nodeId) {
     const definitionId = graph.definitionOfTemplateRoot(nodeId);
     const definition = definitionId ? graph.getEntry(definitionId) : undefined;
-    if (
-      definition?.kind === "definition" &&
-      definition.originRef === true &&
-      definition.usage !== "layout"
-    )
+    // (A deleted one its definition keeps too — the project components page lists it.)
+    if (definition?.kind === "definition" && definition.usage !== "layout")
       return "origin";
   }
   if (definitionView && parentId === null)
@@ -158,6 +161,7 @@ const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.projection === b.projection &&
   a.selects === b.selects &&
   a.slot === b.slot &&
+  a.keptOrigin === b.keptOrigin &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -205,7 +209,10 @@ export class CatalogLayerTreeStore {
           );
         }),
       );
-      if (renamed || this.rowsChanged) this.rebuild();
+      // The project components page: a row's origin can be deleted (kept by its definition) or
+      // restored without its row list changing — its few rows are read again each step.
+      if (renamed || this.rowsChanged || isProjectComponentsView(this.ownerId))
+        this.rebuild();
     });
     this.unsubscribeBoundRows =
       host.subscribeBoundRows?.(() => this.rebuild()) ?? (() => {});
@@ -281,6 +288,12 @@ export class CatalogLayerTreeStore {
         body: parentId === null && isBodyType(typeName),
         ...(role ? { role } : {}),
         ...(slot ? { slot } : {}),
+        ...(isProjectComponentsView(this.ownerId) &&
+        position.target.kind === "node" &&
+        graph.getEntry(graph.ownerOf(position.target.id) ?? "")?.kind ===
+          "definition"
+          ? { keptOrigin: true as const }
+          : {}),
       };
       const old = previous.get(next.id);
       const node = old && sameNode(old, next) ? old : next;

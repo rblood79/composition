@@ -47,6 +47,7 @@ import {
   isLibraryOrigin,
   isProjectComponentsView,
   originCardId,
+  PROJECT_COMPONENTS_VIEW,
   originSampleId,
 } from "./originView";
 import {
@@ -279,26 +280,24 @@ export class CatalogWorkspace {
           listener(card.identity);
       return;
     }
-    // ADR-260: a component whose origin stands in place — go to that node where it is (its page,
-    // or the hidden template it sits in) and select it, as for a built-in origin.
+    // ADR-260: a component's origin — go to that node and select it, as for a built-in origin:
+    // on its page when it stands on one, else (deleted — its definition keeps it — or inside
+    // one deleted) on the project components page, where every component is (user 2026-10-14).
     const viewed =
       definitionId && !isComponentsView(definitionId)
         ? this.runtime.graph.getEntry(definitionId)
         : undefined;
     if (
       viewed?.kind === "definition" &&
-      viewed.originRef === true &&
-      viewed.templateRootId
+      viewed.usage !== "layout" &&
+      viewed.templateRootId &&
+      this.runtime.graph.getEntry(viewed.templateRootId)
     ) {
       const graph = this.runtime.graph;
       let top: string = viewed.templateRootId;
       for (let at = graph.ownerOf(top); at; at = graph.ownerOf(at)) top = at;
-      const holder = graph.getEntry(top);
-      this.showDefinition(
-        holder?.kind === "definition"
-          ? (holder.id as CatalogDefinitionViewId)
-          : undefined,
-      );
+      const onPage = graph.getEntry(top)?.kind === "page";
+      this.showDefinition(onPage ? undefined : PROJECT_COMPONENTS_VIEW);
       const items = this.itemsOfNode(viewed.templateRootId, 1);
       this.selectItems(items);
       if (items[0])
