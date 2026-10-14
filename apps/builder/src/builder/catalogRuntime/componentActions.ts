@@ -81,14 +81,10 @@ function componentRef(
  * origin, as the one its "+" adds (an owned node) is (user 2026-10-14 — the panel, the Layers dot
  * and the Canvas chrome said "not an instance" for the template rows alone).
  */
-function targetDefinitionId(
+function templateRowDefinitionId(
   graph: CatalogReader,
-  target: EditTarget,
+  target: Extract<EditTarget, { kind: "descendant" }>,
 ): string | undefined {
-  if (target.kind === "node") {
-    const node = graph.getEntry(target.id);
-    return node?.kind === "node" ? node.definitionId : undefined;
-  }
   const templateId = target.address.templatePath.at(-1);
   try {
     return templateId ? templateDefinitionId(graph, templateId) : undefined;
@@ -127,8 +123,10 @@ export function catalogComponentState(
         return originOf ? { originOf } : {};
       }
     }
+    const instanceOf = componentRef(graph, node.definitionId);
+    return instanceOf ? { instanceOf } : {};
   }
-  const definitionId = targetDefinitionId(graph, target);
+  const definitionId = templateRowDefinitionId(graph, target);
   const instanceOf = definitionId && componentRef(graph, definitionId);
   return instanceOf ? { instanceOf } : {};
 }
@@ -153,8 +151,9 @@ export function catalogComponentRole(
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id)
         return componentDefinition(graph, definitionView) ? "origin" : undefined;
     }
+    return componentDefinition(graph, node.definitionId) ? "instance" : undefined;
   }
-  const definitionId = targetDefinitionId(graph, target);
+  const definitionId = templateRowDefinitionId(graph, target);
   return definitionId && componentDefinition(graph, definitionId)
     ? "instance"
     : undefined;

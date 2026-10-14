@@ -34,6 +34,8 @@ export function catalogMenuHost(
   onError: (error: unknown) => void = () => {},
   view?: CatalogMenuHost["view"],
 ): CatalogMenuHost {
+  // One root read per host (the action bar builds a host per selection — ADR-246 ratchet).
+  const root = workspace.root;
   return {
     arrange: (id) => catalogArrangeCommand(workspace, id),
     arrangeItems: () => {
@@ -44,7 +46,7 @@ export function catalogMenuHost(
     },
     showDefinition: (id) => workspace.showDefinition(id),
     // (The root knows the view — no session snapshot per menu build, ADR-246 ratchet.)
-    definitionView: () => workspace.root.definitionView,
+    definitionView: () => root.definitionView,
     pointIn: (identity, point) => {
       const record = workspace.root.domInputs.get(identity);
       const rect = workspace.root.getGeometry([identity]).get(identity);
@@ -57,7 +59,7 @@ export function catalogMenuHost(
     },
     ...(view ? { view } : {}),
     graph: workspace.runtime.graph,
-    records: workspace.root.domInputs,
+    records: root.domInputs,
     selection: () => workspace.session.getSnapshot().selection,
     execute: (command: CatalogCommand) => {
       try {

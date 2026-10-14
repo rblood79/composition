@@ -132,6 +132,9 @@ function rowTemplateOwnerOf(
   reader: CatalogReader,
   target: EditTarget,
 ): NodeId | undefined {
+  // No bound node in the document: no row template anywhere (the committed graph's index).
+  const graph = reader as { hasBoundNodes?: () => boolean };
+  if (graph.hasBoundNodes && !graph.hasBoundNodes()) return undefined;
   // An owned row template (or a node in it, or a position of its own template): its bound owner
   // is an ancestor whose row template is on the target's owner chain. Only a bound ancestor has a
   // row template, so the chain is read once and only bound ones are asked.

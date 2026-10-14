@@ -457,6 +457,11 @@ export class CatalogGraph {
   bindingsOf(collectionId: string): ReadonlySet<string> {
     return this.collectionIndex.get(collectionId) ?? new Set();
   }
+  /** Whether any committed node is bound to a data collection (a bound-row lookup skips otherwise). */
+  hasBoundNodes(): boolean {
+    for (const ids of this.collectionIndex.values()) if (ids.size) return true;
+    return false;
+  }
   /** Committed nodes whose author DOM id (`metadata.htmlId`) is `htmlId` (duplicate check). */
   nodesWithHtmlId(htmlId: string): ReadonlySet<string> {
     return this.htmlIdIndex.get(htmlId) ?? new Set();
