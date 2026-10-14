@@ -31,7 +31,7 @@ import type { PrimitiveBinding } from "../types";
  *   넘기고 자식 노드를 순서대로 그 안에 그린다.
  *
  * D1: composition `<div>` (internal source, shared `Card.tsx`).
- * D2: variant/size/accentColor + interaction(href/target) + 상태 편집 surface (S2 Card 에 title prop 없음).
+ * D2: variant/size + interaction(href/target) + 상태 편집 surface (S2 Card 에 title prop 없음).
  * D3: 시각(variant 별 배경/테두리 + radius)은 theme rule(COMPONENT_RULES_TABLE.Card). Skia generic
  *     box shell ↔ DOM `react-aria-Card[data-variant]` 시각 대칭.
  */
@@ -55,12 +55,6 @@ export const cardBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "M",
-      },
-      // live consumer: CATALOG_DELEGATED_DOM.card (data-accent attr)
-      accentColor: {
-        kind: "string",
-        label: "Accent Color",
-        section: "appearance",
       },
       // interactions / state
       href: { kind: "string", label: "Link", section: "content" },

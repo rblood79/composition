@@ -17,10 +17,6 @@ import {
 } from "../../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import type { FillItem } from "../../../../types/builder/fill.types";
 import {
-  TINT_PRESETS,
-  type TintPreset,
-} from "../../../../utils/theme/tintToSkiaColors";
-import {
   catalogFillItems,
   catalogFillLayers,
 } from "../../../catalogRuntime/authoredStyle";
@@ -149,24 +145,6 @@ function useMasterFieldsOf(
   return useSyncExternalStore(subscribe, () =>
     master ? workspace.readModel.ownFields(master) : undefined,
   );
-}
-
-/** A drawn record's accent: its own, else the nearest ancestor record's (the old walk). */
-function accentOf(
-  workspace: CatalogWorkspace,
-  id: string | null,
-): TintPreset | undefined {
-  const records = workspace.root.domInputs;
-  for (
-    let record = id ? records.get(id) : undefined;
-    record;
-    record = records.get(record.parentId)
-  ) {
-    const accent = record.props.accentColor;
-    if (typeof accent === "string" && accent in TINT_PRESETS)
-      return accent as TintPreset;
-  }
-  return undefined;
 }
 
 /** The drawn parent record of a record (`null` at a page body or the page grid). */
@@ -572,8 +550,6 @@ export function createCatalogStylesHost(
           fills:
             catalogFillItems(own?.fills) ?? catalogFillItems(master?.fills),
           props,
-          // The accent the token swatches resolve with: the node's, else an ancestor's.
-          accentColor: accentOf(workspace, id),
         };
       }, [
         breakpoint,

@@ -1,7 +1,6 @@
-import { darkColors, lightColors } from "@composition/rendering";
+import { lightColors } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 
-import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
 import { resolveStylePanelColor } from "./styleValueHelpers";
 
 describe("resolveStylePanelColor", () => {
@@ -12,22 +11,6 @@ describe("resolveStylePanelColor", () => {
     expect(resolveStylePanelColor("var(--accent)", "light")).toBe(
       lightColors.accent,
     );
-  });
-
-  it("요소 accent를 global token mutation 없이 해석한다", () => {
-    const lightBefore = lightColors.accent;
-    const darkBefore = darkColors.accent;
-    const lightExpected = resolveAccentColorTokens("red", "light")?.accent;
-    const darkExpected = resolveAccentColorTokens("blue", "dark")?.accent;
-
-    expect(resolveStylePanelColor("var(--accent)", "light", "red")).toBe(
-      lightExpected,
-    );
-    expect(resolveStylePanelColor("var(--accent)", "dark", "blue")).toBe(
-      darkExpected,
-    );
-    expect(lightColors.accent).toBe(lightBefore);
-    expect(darkColors.accent).toBe(darkBefore);
   });
 
   it("transparent catalog 색을 picker가 보존 가능한 완전 투명 hex로 정규화한다", () => {

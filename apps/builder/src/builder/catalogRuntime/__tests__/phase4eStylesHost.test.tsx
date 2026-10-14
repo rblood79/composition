@@ -271,43 +271,4 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     });
   });
 
-  it("the token swatches resolve with the node's accent, else an ancestor's", async () => {
-    const { workspace, host } = await open();
-    const card = "project:node:card" as NodeId;
-    workspace.execute(
-      insertNodes({
-        parent: { kind: "node", id: BODY },
-        entries: [
-          {
-            kind: "node",
-            id: card,
-            definitionId: catalogPaletteDefinitionId(
-              workspace.runtime.graph.library,
-              "Card",
-            ),
-            children: [],
-            props: { accentColor: { kind: "set", value: "red" } },
-            visual: {},
-            sizing: {},
-            descendantOverrides: [],
-          },
-        ],
-        rootIds: [card],
-        newId: workspace.newId,
-      }),
-    );
-    const record = workspace.root.recordsOfSource(card)[0]!;
-    const child = workspace.root.domInputs.get(record)!.children[0]!;
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <CatalogWorkspaceProvider workspace={workspace}>
-        {children}
-      </CatalogWorkspaceProvider>
-    );
-    const accent = (id: string) =>
-      renderHook(() => host.useElementStyleContext(id), { wrapper }).result
-        .current.accentColor;
-    expect(accent(record)).toBe("red");
-    expect(accent(child)).toBe("red");
-    expect(accent(workspace.root.recordsOfSource(BOX)[0]!)).toBeUndefined();
-  });
 });

@@ -72,11 +72,6 @@
       --link-color: var(--color-white);
     }
 
-    &[data-quiet="true"] {
-      text-decoration: none;
-      opacity: 0.72;
-    }
-
     /* S2 1.8.0 isStandalone (2026-10-10): 문단 밖 단독 링크 = medium weight. 값의 정본은
        catalog Link rule 의 top-level containerVariants.standalone (Canvas 가 같은 값을 읽는다 —
        rulePaint.ts). [data-size] 를 겹쳐 생성 size 블록(font-weight 400, 동일 특이도·뒤 순서)을

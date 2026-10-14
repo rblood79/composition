@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { darkColors, lightColors } from "@composition/rendering";
 
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
-import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
 import {
   openStylesFixture,
   type StylesFixture,
@@ -76,7 +75,7 @@ describe("Style Panel catalog color values", () => {
 
   it("tint 변경(themeVersion 증가)을 같은 theme 문자열에서도 다시 해석한다", async () => {
     // resolveToken 은 lightColors 전역 객체를 읽고 setTint 는 그 객체를 제자리 mutation 한다.
-    // theme("light") 와 accentColor 는 그대로라 themeVersion 이 유일한 재계산 신호다.
+    // theme("light") 는 그대로라 themeVersion 이 유일한 재계산 신호다.
     await setButton({ size: "M", variant: "accent", fillStyle: "fill" });
     const appearance = hookOf(useAppearanceValues, "button-1");
     const before = appearance.result.current?.backgroundColor;
@@ -251,84 +250,6 @@ describe("Style Panel catalog color values", () => {
         backgroundColor: lightColors.accent,
         borderColor: lightColors.accent,
         color: lightColors["on-accent"],
-      });
-    });
-
-    // ADR-248 4e-9 C 발견: catalog host 의 context props 는 edit contract 에서 오고, 원본 기반 Card 의
-    //   계약에는 isSelected/isSelectable 이 없어 패널이 비선택 paint 를 보인다 (Canvas record 는
-    //   isSelected:true). 결함 수리 전까지 실패가 기대값 — 고치면 이 it.fails 가 빨개진다.
-    it.fails(
-      "D4 선택 Card 자신의 accentColor를 selected paint에 적용한다",
-      async () => {
-        const accent = resolveAccentColorTokens("red", "light");
-        await setElements([
-          makeElement("card-1", "Card", {
-            size: "M",
-            variant: "primary",
-            accentColor: "red",
-            isSelectable: true,
-            isSelected: true,
-          }),
-        ]);
-
-        expect(readColorValues("card-1")).toMatchObject({
-          backgroundColor: accent?.["accent-subtle"],
-          borderColor: accent?.accent,
-        });
-      },
-    );
-
-    it("D4 조상 Card의 accentColor를 자식 accent variant에 적용한다", async () => {
-      const accent = resolveAccentColorTokens("red", "light");
-      const card = makeElement("card-1", "Card", { accentColor: "red" });
-      const button = makeElement(
-        "button-1",
-        "Button",
-        { size: "M", variant: "accent", fillStyle: "fill" },
-        card.id,
-      );
-      await setElements([card, button]);
-
-      expect(readColorValues("button-1")).toEqual({
-        backgroundColor: accent?.accent,
-        borderColor: accent?.accent,
-        color: accent?.["on-accent"],
-      });
-    });
-
-    it("D4 sibling accent를 교차오염 없이 dark theme에서 각각 해석한다", async () => {
-      useThemeConfigStore.setState({ darkMode: "dark", themeVersion: 1 });
-      const redAccent = resolveAccentColorTokens("red", "dark");
-      const blueAccent = resolveAccentColorTokens("blue", "dark");
-      const redParent = makeElement("red-parent", "Card", {
-        accentColor: "red",
-      });
-      const blueParent = makeElement("blue-parent", "Card", {
-        accentColor: "blue",
-      });
-      const redButton = makeElement(
-        "red-button",
-        "Button",
-        { size: "M", variant: "accent", fillStyle: "fill" },
-        redParent.id,
-      );
-      const blueButton = makeElement(
-        "blue-button",
-        "Button",
-        { size: "M", variant: "accent", fillStyle: "fill" },
-        blueParent.id,
-      );
-      await setElements([redParent, redButton, blueParent, blueButton]);
-
-      expect(readColorValues(redButton.id)).toEqual({
-        backgroundColor: redAccent?.accent,
-        borderColor: redAccent?.accent,
-        color: redAccent?.["on-accent"],
-      });
-      expect(readColorValues(blueButton.id)).toEqual({
-        backgroundColor: blueAccent?.accent,
-        borderColor: blueAccent?.accent,
-        color: blueAccent?.["on-accent"],
       });
     });
 

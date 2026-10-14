@@ -13,7 +13,9 @@ import type { PrimitiveBinding } from "../types";
  *   안에서 그린다 (density · size 는 Tabs 조상 값).
  *
  * D1: RAC `<TabList>` — ARIA(role=tablist) 는 RAC 권위.
- * D2: size 편집 surface.
+ * D2: size · density 는 Tabs 의 것 (S2 TabList 에는 없다) — resolver 가 Tabs 값을 싣는다
+ *   (`CATALOG_SIZE_PROPAGATION.Tabs` · `CATALOG_DENSITY_PROPAGATION_OWNER.TabList`, 2026-10-14 —
+ *   전에는 DOM 만 Tabs 값을 읽고 Canvas 는 TabList 자기 값을 그렸다).
  * D3: 시각(하단/우측 구분선)은 tablist_divider escape ↔ DOM generated CSS 시각 대칭.
  */
 export const tabListBinding: PrimitiveBinding = {
@@ -28,6 +30,17 @@ export const tabListBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "M",
+      },
+      // Tabs 의 density 내부 운반 값 (resolver 전파 — 패널 미노출). densities 채널 (탭 사이 gap).
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+        ],
       },
     },
     toRacProps: "default",

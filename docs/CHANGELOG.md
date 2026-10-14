@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
   - 회귀 검증: 세로·가로 flex Body의 gap preview·commit·Undo/Redo에서 엔진과 Skia 좌표 일치, 기존 증분 갱신·국소 기하 조회 검사.
 
+## [Design 패널 — 한쪽에만 반영되던 칸을 Canvas · Preview 양쪽에] - 2026-10-14
+
+### Fixed
+
+- **Tabs 의 Size · Density 가 Canvas 의 TabList 에도 반영된다.** Preview 는 Tabs 값을, Canvas 는 TabList 자기 값을 그렸다. 이제 resolver 가 Tabs 값을 TabList 에 싣고 (`CATALOG_SIZE_PROPAGATION.Tabs` · `CATALOG_DENSITY_PROPAGATION_OWNER.TabList`), Tabs 안 TabList 의 Size 칸은 숨기며 「Tabs 에서 편집합니다」 를 표시한다.
+- **Breadcrumbs 의 Size 가 crumb 의 구분자 아이콘 크기에 양쪽 같이 반영된다.** crumb 자기 Size 는 Canvas 아이콘만 바꾸고 Preview 는 무시했다 (S2 Breadcrumb 에는 size 가 없다). 이제 Breadcrumbs 값이 crumb 에 전달되고 crumb 의 Size 칸은 숨긴다.
+- **Form 의 Size 가 양쪽에 반영된다.** 전에는 DOM 에 `data-size` 가 없었고 Canvas 도 그에 맞춰 M 으로 고정해, 어느 쪽도 바뀌지 않았다.
+- **ToggleButtonGroup 의 Emphasized · Disabled 가 Canvas 버튼에도 반영된다.** 그룹이 켜면 버튼도 켜진다 (`CATALOG_GROUP_TURNS_ON`). Disabled 그룹은 Preview 에서 그룹과 버튼이 이중으로 흐려졌다 (0.14). 이제는 버튼만 0.38 로 흐려진다 (S2).
+- **GridList 의 Quiet 가 항목에 반영된다.** 전에는 어느 쪽도 항목 모양이 바뀌지 않았다. 이제 항목이 rule 의 quiet variant 를 Canvas · Preview 양쪽에서 쓴다.
+- **Link 의 Quiet 가 Canvas 밑줄도 지운다.** Preview 만 밑줄을 지우고 S2 에 없는 투명도 0.72 를 줬다. 이제 S2 대로 쉴 때 밑줄만 없고 hover 하면 생긴다 (값은 Link rule 의 `[data-quiet]` 블록).
+
+### Removed
+
+- **Card 의 Accent Color 칸.** Preview 만 Card 아래 강조색을 바꾸고 Canvas 는 바꾸지 못했다 (S2 Card 에 없는 확장 prop · 「지금은 제거」). 저장된 값은 열 때 지운다. Styles 패널의 조상 accent 조회와 `preview-system.css` 의 `[data-accent]` 규칙도 같이 지웠다.
+- 검증: 회귀 테스트 `oneSidedProps.test.ts` (원복 시 RED 확인) · live `apps/builder/scripts/one-sided-props-live.mjs` (Compare Mode, 10 PASS).
+
 ## [Design 패널 — 효과 없는 칸 제거 · 부모가 정하는 칸 숨김 · 칩 제목 "Options" 제거] - 2026-10-14
 
 ### Removed

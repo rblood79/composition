@@ -1212,8 +1212,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   tablist: {
     render: (input) => {
-      const tabs = tabsAncestor(input.root, input.node);
-      const props = tabs?.props ?? {};
+      // (Its size · density are the Tabs' — the resolver carries them, `CATALOG_SIZE_PROPAGATION`
+      // · `CATALOG_DENSITY_PROPAGATION_OWNER`, the value the Canvas draws.)
+      const props = input.node.props;
       return createElement(
         TabList as ElementType,
         {
@@ -2306,7 +2307,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             textValue: cardTitleText(input) || undefined,
             className: "react-aria-Card",
             style: input.style,
-            "data-accent": opt(props.accentColor),
             "data-variant": str(props.variant || "primary"),
             "data-size": str(props.size || "M"),
             href: opt(props.href),
@@ -2319,7 +2319,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...marker(input),
           style: input.style,
-          "data-accent": opt(props.accentColor),
           variant: props.variant || undefined,
           size: props.size || "M",
           isSelected: bool(props.isSelected),
@@ -2410,7 +2409,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: container("nav", (input) => ({
       ...chrome(input, "Pagination"),
       "aria-label": "Pagination",
-      "data-accent": opt(input.node.props.accentColor),
     })),
   },
   nav: {
@@ -2442,7 +2440,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           role: "alert",
           "data-position": str(props.position || "top-right"),
           "data-max-toasts": opt(props.maxToasts),
-          "data-accent": opt(props.accentColor),
           style: input.style,
         },
         ...(list.length
@@ -2691,6 +2688,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           labelPosition: props.labelPosition || undefined,
           labelAlign: props.labelAlign || undefined,
           necessityIndicator: props.necessityIndicator || undefined,
+          size: str(props.size) || "M",
         },
         ...renderAll(input),
       );

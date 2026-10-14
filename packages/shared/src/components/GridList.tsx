@@ -555,12 +555,15 @@ export function GridListItem({
   isQuiet?: boolean;
 }) {
   const textValue = typeof children === "string" ? children : undefined;
+  // (A catalog item passes its resolved variant — its GridList's quiet, `CATALOG_GROUP_TURNS_ON` —
+  // as `data-variant`: it stays, as the Canvas paints that variant.)
+  const passedVariant = (props as { "data-variant"?: string })["data-variant"];
   return (
     <AriaGridListItem
       textValue={textValue}
       {...props}
       className="react-aria-GridListItem"
-      data-variant={isQuiet ? "quiet" : "default"}
+      data-variant={isQuiet ? "quiet" : (passedVariant ?? "default")}
     >
       {({ allowsDragging }) => (
         <>

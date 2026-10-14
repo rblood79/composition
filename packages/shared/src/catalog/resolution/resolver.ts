@@ -40,6 +40,7 @@ import {
 import {
   CATALOG_BOOLEAN_VARIANTS,
   CATALOG_EMPHASIS_FROM_GROUP,
+  CATALOG_GROUP_TURNS_ON,
   CATALOG_VARIANT_FROM_OWNER,
 } from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
@@ -971,6 +972,25 @@ export function resolveCatalogNode(
     else delete props.isEmphasized;
   };
   /**
+   * A group's state that turns its toggles on (`CATALOG_GROUP_TURNS_ON`, 2026-10-14): a
+   * ToggleButtonGroup's Emphasized · Disabled reach its buttons — the toggle's own value stays
+   * when the group's is off (the DOM's `own || group`).
+   */
+  const applyGroupTurnsOn = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const entry = CATALOG_GROUP_TURNS_ON[lookupDefinition(definitionId).name];
+    if (!entry) return;
+    let group = structuralParent(parent);
+    while (group && lookupDefinition(group.definitionId).name !== entry.group)
+      group = structuralParent(group.parent);
+    if (!group) return;
+    for (const key of entry.keys)
+      if (group.props[key] === true) props[key] = true;
+  };
+  /**
    * S2 CardView context (`CATALOG_VARIANT_FROM_OWNER`, 2026-10-10): CardView 의 `variant` 를
    * 안의 Card 중 자기 값을 안 적은 것이 입는다 (S2 `ctx = {size, variant}` — 작성 값이 이긴다).
    */
@@ -1073,6 +1093,7 @@ export function resolveCatalogNode(
     applyOwnerHideLinkOut(node.definitionId, props, parent);
     applyContextualHelpGlyph(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
+    applyGroupTurnsOn(node.definitionId, props, parent);
     applyOwnerVariant(
       node.definitionId,
       props,
@@ -1284,6 +1305,7 @@ export function resolveCatalogNode(
       applyOwnerHideLinkOut(definitionId, props, parent);
       applyContextualHelpGlyph(definitionId, props, parent);
       applyOwnerEmphasis(definitionId, props, parent);
+      applyGroupTurnsOn(definitionId, props, parent);
       applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
       applyBooleanVariant(definitionId, props);
       applyPropVisualRules(definitionId, props, visual);
@@ -1550,6 +1572,7 @@ export function resolveCatalogNode(
     applyOwnerHideLinkOut(template.definitionId, props, parent);
     applyContextualHelpGlyph(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);
+    applyGroupTurnsOn(template.definitionId, props, parent);
     applyOwnerVariant(template.definitionId, props, parent, instanceAuthored);
     applyBooleanVariant(template.definitionId, props);
     applyPropVisualRules(template.definitionId, props, visual);

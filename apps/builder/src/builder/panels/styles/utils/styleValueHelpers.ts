@@ -7,22 +7,6 @@ import {
   resolveToken,
   type TokenRef,
 } from "@composition/rendering";
-import {
-  resolveAccentColorTokens,
-  type AccentColorTokens,
-  type TintPreset,
-} from "../../../../utils/theme/tintToSkiaColors";
-
-const ACCENT_TOKEN_KEYS: Readonly<
-  Record<string, keyof AccentColorTokens | undefined>
-> = {
-  "{color.accent}": "accent",
-  "{color.accent-hover}": "accent-hover",
-  "{color.accent-pressed}": "accent-pressed",
-  "{color.on-accent}": "on-accent",
-  "{color.accent-subtle}": "accent-subtle",
-};
-
 function toTokenRef(value: string): TokenRef | null {
   if (/^\{[a-z]+\.[^}]+\}$/.test(value)) return value as TokenRef;
   return cssVarToTokenRef(value);
@@ -40,16 +24,9 @@ function toPickerCompatibleColor(value: string): string {
 export function resolveStylePanelColor(
   value: string,
   theme: "light" | "dark",
-  accentColor?: TintPreset,
 ): string {
   const token = toTokenRef(value);
   if (!token) return toPickerCompatibleColor(value);
-
-  const accentKey = ACCENT_TOKEN_KEYS[token];
-  if (accentKey) {
-    const accentTokens = resolveAccentColorTokens(accentColor, theme);
-    if (accentTokens) return accentTokens[accentKey];
-  }
 
   const resolved = resolveToken(token, theme);
   return typeof resolved === "string"

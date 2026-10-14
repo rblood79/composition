@@ -53,6 +53,21 @@ export const gridListItemBinding: PrimitiveBinding = {
       // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView), carried here by the resolver
       //   (`CATALOG_OVERFLOW_MODE_OWNERS`) for the label · description Text inside — not edited on
       //   the item.
+      // The GridList's S2 `isQuiet` (resolver — `CATALOG_GROUP_TURNS_ON`) and the rule variant it
+      //   picks (`CATALOG_BOOLEAN_VARIANTS`): carried, not edited on the item.
+      isQuiet: {
+        kind: "boolean",
+        label: "Quiet",
+        section: "appearance",
+        editorHidden: true,
+      },
+      variant: {
+        kind: "variant",
+        label: "Variant",
+        section: "appearance",
+        default: "default",
+        editorHidden: true,
+      },
       overflowMode: {
         kind: "enum",
         label: "Overflow",

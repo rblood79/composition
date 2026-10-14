@@ -14,6 +14,7 @@ import {
 } from "../document/sizePropagation";
 import {
   CATALOG_EMPHASIS_FROM_GROUP,
+  CATALOG_GROUP_TURNS_ON,
   CATALOG_VARIANT_FROM_OWNER,
 } from "../document/s2PropAlignment";
 import { isFieldControlGroup } from "../../domain/componentTraits";
@@ -3768,6 +3769,25 @@ export class CatalogCompositionRoot {
         for (const item of catalogToggleGroupItems(
           record,
           emphasisItemType,
+          (key) => this.records.get(key),
+          this.typeOf,
+        ).items)
+          if (!queued.has(item.id)) {
+            queued.add(item.id);
+            queue.push(item.id);
+          }
+      }
+      // A group's state that turns its toggles on (`CATALOG_GROUP_TURNS_ON` — the resolver's
+      // `applyGroupTurnsOn`): its toggles resolve again.
+      for (const [itemType, entry] of Object.entries(CATALOG_GROUP_TURNS_ON)) {
+        if (
+          entry.group !== this.typeOf(record) ||
+          entry.keys.every((key) => before.props[key] === record.props[key])
+        )
+          continue;
+        for (const item of catalogToggleGroupItems(
+          record,
+          itemType,
           (key) => this.records.get(key),
           this.typeOf,
         ).items)

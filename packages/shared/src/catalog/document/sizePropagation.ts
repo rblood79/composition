@@ -63,6 +63,13 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // buttons inside).
   AvatarGroup: ["Avatar", "Text"],
   ButtonGroup: ["Button"],
+  // S2 Tabs `size` sizes its TabList (the list's tab row height) — RAC's TabList has none of its
+  //   own; the DOM read the Tabs' value, now one resolved value for both consumers (2026-10-14).
+  Tabs: ["TabList"],
+  // S2 Breadcrumbs `size` is its crumbs' (S2 Breadcrumb has none): the separator glyph's size
+  //   (`Breadcrumb.sizes[size].iconSize`) — the DOM's `--breadcrumb-icon-size` comes from the
+  //   Breadcrumbs (2026-10-14 — the Canvas drew the crumb's own value, the DOM ignored it).
+  Breadcrumbs: ["Breadcrumb"],
   // (A calendar has no size — 사용자 2026-10-13: its month blocks follow its width, its header is
   //   fixed — `CalendarCommon.css` · `manualBoxRules`.)
   // ADR-253: a field's parts (`FIELD_PARTS`).
@@ -182,6 +189,8 @@ export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
 > = {
   Column: "Table",
   Cell: "Table",
+  // S2 Tabs `density` spaces its tabs (2026-10-14 — the DOM's TabList read the Tabs' value).
+  TabList: "Tabs",
 };
 
 /**

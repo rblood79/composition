@@ -54,7 +54,7 @@
 }
 
 .react-aria-ToggleButtonGroup[data-disabled] {
-  opacity: 0.38;
+  opacity: 1;
   cursor: not-allowed;
   pointer-events: none;
 }

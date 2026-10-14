@@ -451,6 +451,9 @@ function catalogTextDecoration(
   ruleDecoration: string | undefined,
 ): string | undefined {
   if (props._noUnderline === true) return undefined;
+  // S2 Link `isQuiet`: no underline at rest (the Link rule's `&[data-quiet="true"]` — the DOM's
+  // generated sheet; its hover underline is the Preview's).
+  if (props.isQuiet === true) return undefined;
   const own = (visual as Record<string, unknown> | undefined)?.textDecoration;
   if (own === undefined) return ruleDecoration;
   return String(own) === "none" ? undefined : String(own);

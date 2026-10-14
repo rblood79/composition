@@ -929,9 +929,8 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       ),
     ],
   }),
-  // `Form.tsx` renders RAC Form with label/necessity data attributes only (no size): the generated
-  // `.react-aria-Form[data-size]` gap blocks never match.
-  Form: () => ({ rootSizeAttribute: null }),
+  // (Form: `Form.tsx` carries `data-size` since 2026-10-14 — the generated `[data-size]` gap ·
+  //  font · radius blocks apply, so the Form's size reaches the Canvas too. Before, neither drew it.)
 };
 
 /**

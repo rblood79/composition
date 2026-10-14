@@ -24,6 +24,8 @@ export const CATALOG_BOOLEAN_VARIANTS: Readonly<
   Tree: { prop: "isEmphasized", variant: "emphasized" },
   // 2026-06-15 의 역전환: isQuiet boolean → variant "quiet" 흡수를 S2 표면 (isQuiet) 으로 되돌린다.
   TableView: { prop: "isQuiet", variant: "quiet" },
+  // (Its GridList's — `CATALOG_GROUP_TURNS_ON`.)
+  GridListItem: { prop: "isQuiet", variant: "quiet" },
 };
 
 /**
@@ -35,6 +37,24 @@ export const CATALOG_BOOLEAN_VARIANTS: Readonly<
 export const CATALOG_EMPHASIS_FROM_GROUP: Readonly<Record<string, string>> = {
   Checkbox: "CheckboxGroup",
   Radio: "RadioGroup",
+};
+
+/**
+ * A group's boolean state that turns its toggles on (2026-10-14 — 전에는 DOM 만 받았다): S2
+ * ToggleButtonGroup 의 `isEmphasized` (shared `ToggleButton` `isEmphasized || groupEmphasized`) 와
+ * RAC ToggleButtonGroup 의 `isDisabled` (그룹 state 가 모든 버튼을 끈다) — 그룹이 켜면 버튼도
+ * 켜지고, 그룹이 안 켰으면 버튼 자기 값이다. resolver `applyGroupTurnsOn`.
+ */
+export const CATALOG_GROUP_TURNS_ON: Readonly<
+  Record<string, { readonly group: string; readonly keys: readonly string[] }>
+> = {
+  ToggleButton: {
+    group: "ToggleButtonGroup",
+    keys: ["isEmphasized", "isDisabled"],
+  },
+  // S2 ListView `isQuiet` is its items' (the item rule's `quiet` variant — `CATALOG_BOOLEAN_VARIANTS`):
+  //   전에는 어느 쪽도 항목에 닿지 않았다 (shared GridList 의 데이터 행 경로만 읽었다).
+  GridListItem: { group: "GridList", keys: ["isQuiet"] },
 };
 
 type PropValueMigration = (
@@ -95,6 +115,9 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  *   swatches), ToggleButtonGroup `isQuiet` (S2 — no context to the buttons, no sheet).
  * - ColorPicker `defaultValue` (its children hold their own values — the picker is a box).
  * - GridListItem · Tag `children`: the item's text is its Text node's (`itemTextChildren`).
+ * - Card `accentColor` (composition 확장 — S2 Card 에 없음, 2026-10-14 「한쪽만 반영되는 칸 고쳐」 ·
+ *   「지금은 제거」): the DOM re-tinted the Card's subtree (`data-accent` → `--tint`), the Canvas has
+ *   no subtree tint (its color tokens are one theme table) — the accent is the theme's tint.
  */
 const UNUSED_PROPS = {
   CardView: { layout: dropOf, density: dropOf, selectionStyle: dropOf },
@@ -103,6 +126,7 @@ const UNUSED_PROPS = {
   ToggleButtonGroup: { isQuiet: dropOf },
   GridListItem: { children: dropOf },
   Tag: { children: dropOf },
+  Card: { accentColor: dropOf },
 } as const satisfies Record<string, Readonly<Record<string, PropValueMigration>>>;
 
 /**
@@ -188,6 +212,7 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   ToggleButtonGroup: UNUSED_PROPS.ToggleButtonGroup,
   GridListItem: UNUSED_PROPS.GridListItem,
   Tag: UNUSED_PROPS.Tag,
+  Card: UNUSED_PROPS.Card,
   // Calendar size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」): RAC · S2
   // Calendar take no size — a month follows its width. The calendar's and its parts' old `size` is
   // dropped. (CalendarGrid's `variant`: 조사 §4.2 F, above.)

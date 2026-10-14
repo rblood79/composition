@@ -1,6 +1,5 @@
 import { useStylesHost } from "../stylesHost";
 import type { FillAxes } from "@composition/shared";
-import type { TintPreset } from "../../../../utils/theme/tintToSkiaColors";
 
 export interface ElementStyleContext {
   sizing?: FillAxes;
@@ -15,7 +14,6 @@ export interface ElementStyleContext {
   size: string | undefined;
   fills: unknown[] | undefined;
   props: Readonly<Record<string, unknown>> | undefined;
-  accentColor: TintPreset | undefined;
 }
 
 /**

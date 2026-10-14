@@ -39,11 +39,10 @@ export interface ColorStyleValues {
 function editorColor(
   raw: string,
   theme: "light" | "dark",
-  accentColor: ElementStyleContext["accentColor"],
 ): ResolvedEditorColor {
   return {
     raw,
-    concrete: resolveStylePanelColor(raw, theme, accentColor),
+    concrete: resolveStylePanelColor(raw, theme),
   };
 }
 
@@ -55,7 +54,7 @@ export function useColorStyleValues(
   id: string | null,
 ): ColorStyleValues | null {
   const context = useElementStyleContext(id);
-  const { style, type, size, fills, props, accentColor } = context;
+  const { style, type, size, fills, props } = context;
   const theme = useResolvedSkiaTheme();
   const themeVersion = useThemeConfigVersion();
 
@@ -98,7 +97,7 @@ export function useColorStyleValues(
   return useMemo(() => {
     if (!id) return null;
     // resolveStylePanelColor → resolveToken 은 lightColors/darkColors 전역 객체를 읽고,
-    // setTint/setNeutral 은 그 객체를 제자리 mutation 한다. theme 문자열과 accentColor 는
+    // setTint/setNeutral 은 그 객체를 제자리 mutation 한다. theme 문자열은
     // 그대로이므로 themeVersion 이 이 memo 의 유일한 재계산 신호다 (구독 + cache key).
     void themeVersion;
 
@@ -123,9 +122,9 @@ export function useColorStyleValues(
       effectiveStyle,
       appearancePreset,
       typographyPreset,
-      backgroundColor: editorColor(backgroundRaw, theme, accentColor),
-      borderColor: editorColor(borderRaw, theme, accentColor),
-      color: editorColor(colorRaw, theme, accentColor),
+      backgroundColor: editorColor(backgroundRaw, theme),
+      borderColor: editorColor(borderRaw, theme),
+      color: editorColor(colorRaw, theme),
     };
   }, [
     id,
@@ -136,6 +135,5 @@ export function useColorStyleValues(
     paint,
     theme,
     themeVersion,
-    accentColor,
   ]);
 }

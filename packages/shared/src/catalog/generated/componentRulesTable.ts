@@ -6747,6 +6747,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "text-decoration-thickness": "1.5px",
             },
           },
+          // S2 1.8.0 Link `isQuiet` (2026-10-14): no underline until hovered (S2 Link.tsx
+          //   `textDecoration: { isQuiet: { default: 'none', isHovered: 'underline' } }`). The
+          //   Canvas reads `isQuiet` in `catalogTextDecoration` (`ruleShapes.ts`). (Was the manual
+          //   `Link.css` block with an extra 0.72 opacity S2 does not have — the Canvas drew neither.)
+          '&[data-quiet="true"]:not([data-hovered])': {
+            styles: {
+              "text-decoration": "none",
+            },
+          },
         },
         delegation: [],
       },
@@ -13108,6 +13117,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       states: {
         focusVisible: {
           focusRing: "{focus.ring.default}",
+        },
+        // 2026-10-14: a disabled group dims its buttons (RAC group state → each ToggleButton's own
+        //   disabled 0.38 — resolver `CATALOG_GROUP_TURNS_ON`), not itself as well (S2 ActionButtonGroup
+        //   has no group opacity). Without this block the generated sheet gave the group the default
+        //   0.38 too — the DOM drew 0.14, the Canvas 0.38.
+        disabled: {
+          opacity: 1,
+          cursor: "not-allowed",
+          pointerEvents: "none",
         },
       },
       composition: {

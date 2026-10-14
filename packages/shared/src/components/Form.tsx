@@ -17,6 +17,8 @@ export interface ExtendedFormProps extends FormProps {
   labelPosition?: "top" | "side";
   labelAlign?: "start" | "center" | "end";
   necessityIndicator?: "icon" | "label";
+  /** The Form rule's size (its field gap · padding — `.react-aria-Form[data-size]`). */
+  size?: string;
 }
 
 /**
@@ -41,6 +43,7 @@ export function Form({
   labelPosition,
   labelAlign,
   necessityIndicator,
+  size,
   children,
   ...props
 }: ExtendedFormProps) {
@@ -51,6 +54,7 @@ export function Form({
       data-label-position={labelPosition}
       data-label-align={labelAlign}
       data-necessity-indicator={necessityIndicator}
+      data-size={size}
     >
       <ContentFocusScope autoFocus={autoFocus} restoreFocus={restoreFocus}>
         {children}
