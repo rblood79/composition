@@ -8,9 +8,16 @@ describe("button root layout shared by CSS and Canvas", () => {
     (type) => {
       const css = COMPONENT_RULES_TABLE[type].structure!.containerStyles!;
       const canvas = resolveCatalogRuleCanvasBox(type, "M");
-      for (const key of ["display", "width", "alignItems", "justifyContent"])
+      for (const key of [
+        "display",
+        "width",
+        "height",
+        "alignItems",
+        "justifyContent",
+      ])
         expect(canvas[key], key).toBe(css[key]);
       expect(canvas.width).toBe("fit-content");
+      expect(canvas.height).toBe("fit-content");
     },
   );
 });

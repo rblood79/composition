@@ -15,6 +15,7 @@
     width: fit-content;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  height: fit-content;
   display: flex;
   align-items: center;
 

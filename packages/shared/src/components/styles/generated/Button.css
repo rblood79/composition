@@ -20,6 +20,7 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: fit-content;
+  height: fit-content;
   display: inline-flex;
   flex-direction: row;
   align-items: center;
@@ -31,7 +32,6 @@
   --button-border: var(--fg);
 
   /* Default size */
-  height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
@@ -138,7 +138,6 @@
 }
 
 .react-aria-Button[data-size="XS"] {
-  height: auto;
   padding: 1px 4px;
   font-size: var(--text-2xs);
   border-radius: var(--radius-sm);
@@ -152,7 +151,6 @@
 }
 
 .react-aria-Button[data-size="S"] {
-  height: auto;
   padding: 2px 8px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
@@ -166,7 +164,6 @@
 }
 
 .react-aria-Button[data-size="M"] {
-  height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
@@ -180,7 +177,6 @@
 }
 
 .react-aria-Button[data-size="L"] {
-  height: auto;
   padding: 8px 16px;
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
@@ -194,7 +190,6 @@
 }
 
 .react-aria-Button[data-size="XL"] {
-  height: auto;
   padding: 12px 24px;
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);

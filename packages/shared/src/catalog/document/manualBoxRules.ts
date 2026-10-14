@@ -247,6 +247,11 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // The renderer's div has no rule class: its inline flex box is the whole DOM box.
   ButtonGroup: () => ({
     replace: true,
+    // The typed root becomes the DOM inline box; retain its catalog intrinsic height.
+    visual: {
+      height:
+        COMPONENT_RULES_TABLE.ButtonGroup.structure!.containerStyles!.height!,
+    },
     layout: {
       display: "flex",
       flexDirection: "row",

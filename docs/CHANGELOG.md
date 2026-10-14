@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Buttons 기본 높이 — 부모 flex stretch 방지] - 2026-10-14
+
+### Fixed
+
+- **Button·IconButton·ToggleButton·두 버튼 그룹·Toolbar·Menu trigger가 부모 flex 높이만큼 늘어나지 않고 콘텐츠 높이를 유지한다.**
+  - **Why:** 기본 `height: auto`는 가로 flex 부모의 교차축 stretch를 허용했다. 400px Frame 안 IconButton이 Canvas와 CSS 모두 400px로 표시됐다.
+  - 루트 높이를 catalog의 `fit-content`로 선언하고 CSS 생성·typed box 변환·ButtonGroup DOM 소비 경로에서 보존한다. 숫자 높이와 Fill 오버라이드는 유지한다.
+  - 회귀 검증: Buttons 7종의 row/column·Undo/Redo·문서 재로드, size 변경, 명시적 높이·Fill 및 Compare Mode.
+
 ## [Canvas 버튼 기본 너비 — flex column 전환] - 2026-10-14
 
 ### Fixed

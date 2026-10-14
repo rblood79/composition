@@ -51,6 +51,7 @@ const BUTTON_ROOT_BOX = {
   alignItems: "center",
   justifyContent: "center",
   width: "fit-content",
+  height: "fit-content",
 } as const;
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
@@ -1357,7 +1358,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      containerStyles: undefined,
+      containerStyles: { height: "fit-content" },
       states: {
         disabled: {
           opacity: 0.38,
@@ -13039,6 +13040,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       alignItems: "center",
       width: "fit-content",
+      height: "fit-content",
     },
     // density (2026-08-21) — Spectrum ActionGroup 규칙: "compact density retains the same
     //   font and icon sizes, but has tighter spacing. The action buttons also become
@@ -13104,6 +13106,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         alignItems: "center",
+        height: "fit-content",
       },
       states: {
         focusVisible: {
@@ -13421,6 +13424,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         alignItems: "center",
         width: "fit-content",
+        height: "fit-content",
       },
       states: {
         disabled: {

@@ -130,7 +130,8 @@ export function catalogSizeAxisSkip(
     (structure.archetype === "slider" &&
       containerStyles?.gridTemplateAreas != null);
   return {
-    height: ownsContainerBox || trackOwningGrid,
+    height:
+      ownsContainerBox || trackOwningGrid || containerStyles?.height != null,
     padding: ownsContainerBox || containerStyles?.padding != null,
     gap: containerStyles?.gap != null,
   };

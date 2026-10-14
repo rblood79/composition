@@ -12,13 +12,15 @@
     box-sizing: border-box;
     font-family: var(--font-sans);
 
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  height: fit-content;
+
   /* Default variant */
   background: transparent;
   color: var(--fg);
   border: var(--border-width-thin) solid transparent;
 
   /* Default size */
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-md);
@@ -39,35 +41,30 @@
 }
 
 .react-aria-ButtonGroup[data-size="XS"] {
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
 }
 
 .react-aria-ButtonGroup[data-size="S"] {
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
 }
 
 .react-aria-ButtonGroup[data-size="M"] {
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-md);
 }
 
 .react-aria-ButtonGroup[data-size="L"] {
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
 }
 
 .react-aria-ButtonGroup[data-size="XL"] {
-  height: auto;
   padding: 0px 0px;
   font-size: var(--text-xl);
   border-radius: var(--radius-xl);

@@ -197,8 +197,9 @@ export function typedCanvasBox(
         layout.flexBasis = "0%";
       }
     } else if (key === "width") visual.width = value;
+    else if (key === "height") visual.height = boxPixels(value) ?? value;
     else if (key === "overflow") visual.overflow = String(value);
-    else if (key === "height" || key === "minHeight" || key === "padding") {
+    else if (key === "minHeight" || key === "padding") {
       const px = boxPixels(value);
       if (px !== undefined) visual[key] = px;
     } else if (key === "gap") {

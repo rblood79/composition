@@ -586,7 +586,10 @@ export function generateCSS<Props>(
   //   skip (height:auto). 단 트랙 leaf(SliderTrack/ProgressBarTrack — gridTemplateAreas 없음)는
   //   height(=트랙 높이)가 grid track 행을 차지해야 하므로 유지. 판정 = grid 컨테이너 여부
   //   (containerStyles.gridTemplateAreas 보유). specPresetResolver.TRACK_HEIGHT_ARCHETYPES 정합.
-  const skipHeight = ownsContainerBox || isTrackOwningGridContainer(spec);
+  const skipHeight =
+    ownsContainerBox ||
+    isTrackOwningGridContainer(spec) ||
+    spec.containerStyles?.height != null;
   // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
   const skipPaddingOuter =
     ownsContainerBox ||
@@ -827,7 +830,9 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     // per-size 블록(skipHeight)과 동일 기준 — grid 컨테이너만 height skip(컨테이너 auto),
     //   트랙 leaf(SliderTrack/ProgressBarTrack)는 height 유지(track 행 높이).
     const skipDefaultHeight =
-      ownsContainerBox || isTrackOwningGridContainer(spec);
+      ownsContainerBox ||
+      isTrackOwningGridContainer(spec) ||
+      spec.containerStyles?.height != null;
     // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
     const skipPadding =
       ownsContainerBox ||
@@ -896,6 +901,7 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
     lines.push(`  box-shadow: ${resolveBoxShadow(c.boxShadow)};`);
   }
   if (c.width) lines.push(`  width: ${c.width};`);
+  if (c.height) lines.push(`  height: ${c.height};`);
   if (c.maxWidth) lines.push(`  max-width: ${c.maxWidth};`);
   if (c.minHeight) lines.push(`  min-height: ${c.minHeight};`);
   if (c.maxHeight) lines.push(`  max-height: ${c.maxHeight};`);

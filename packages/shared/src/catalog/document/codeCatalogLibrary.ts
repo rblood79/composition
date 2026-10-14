@@ -459,13 +459,23 @@ function withRuleBox(input: LibraryDefinition): LibraryDefinition {
   if (!rule || definition.mode === "composite") return definition;
   const box = ruleRootBox(definition.name, rule);
   const width = definition.visual.width ?? box.visual.width;
+  // Only copy a declared root height. A size-derived default would pin hand-derived Icons
+  // to M's height and override the owning field/button's icon size.
+  const rootHeight = (rule.containerStyles ?? rule.structure?.containerStyles)
+    ?.height;
+  const height =
+    definition.visual.height ??
+    (rootHeight == null ? undefined : box.visual.height);
   const next: {
     -readonly [K in keyof LibraryDefinition]: LibraryDefinition[K];
   } = {
     ...definition,
     layout: definition.layout ?? (box.layout as LayoutValues),
-    visual:
-      width === undefined ? definition.visual : { ...definition.visual, width },
+    visual: {
+      ...definition.visual,
+      ...(width === undefined ? {} : { width }),
+      ...(height === undefined ? {} : { height }),
+    },
   };
   // Manual stylesheet box facts (idempotent over `ruleTypeDefinition`'s own application).
   const layout: Record<string, string> = { ...next.layout };

@@ -18,6 +18,7 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: fit-content;
+  height: fit-content;
   display: flex;
   align-items: center;
 

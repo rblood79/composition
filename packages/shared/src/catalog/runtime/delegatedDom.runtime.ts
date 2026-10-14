@@ -2248,6 +2248,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             flexDirection: props.orientation === "vertical" ? "column" : "row",
             gap: gap[str(props.size || "M")] ?? 8,
             justifyContent: justify[str(props.align || "end")] ?? "flex-end",
+            // This group has no generated class; consume the typed catalog root height.
+            height:
+              typeof input.node.visual.height === "string" ||
+              typeof input.node.visual.height === "number"
+                ? input.node.visual.height
+                : undefined,
             ...input.style,
           },
         },

@@ -69,12 +69,14 @@ describe("emitContainerStyles — ADR-071", () => {
   it("emits raw CSS values for string props", () => {
     const c: ContainerStylesSchema = {
       width: "100%",
+      height: "fit-content",
       maxHeight: "300px",
       overflow: "auto",
       outline: "none",
     };
     const lines = emitContainerStyles(c);
     expect(lines).toContain("  width: 100%;");
+    expect(lines).toContain("  height: fit-content;");
     expect(lines).toContain("  max-height: 300px;");
     expect(lines).toContain("  overflow: auto;");
     expect(lines).toContain("  outline: none;");
@@ -129,6 +131,17 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
       react: () => ({}),
     },
   };
+
+  it("preserves root intrinsic height over default and per-size auto height", () => {
+    const css = generateCSS({
+      ...baseSpec,
+      defaultSize: "M",
+      sizes: { M: { ...baseSpec.sizes.md }, L: { ...baseSpec.sizes.md } },
+      containerStyles: { height: "fit-content" },
+    });
+    expect(css).toContain("height: fit-content;");
+    expect(css).not.toMatch(/(?:^|\n)\s+height: auto;/);
+  });
 
   it("emits containerStyles in base instead of defaultVariant colors", () => {
     const spec: ComponentSpec<{ variant?: string }> = {
