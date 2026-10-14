@@ -45,20 +45,20 @@ export function catalogSlotDeclaration(
 ): { slot?: CatalogSlot } | undefined {
   const node = graph.getEntry(nodeId);
   if (node?.kind !== "node") return undefined;
-  // ADR-260: a component's origin in place (and what it holds) declares slots like a template.
-  for (let id: string | undefined = nodeId; id; id = graph.ownerOf(id)) {
+  // One walk up the owners (ADR-246 — a selection reads it): a template's node, or — ADR-260 — a
+  // component's origin in place and what it holds, declares slots.
+  for (let id: string = nodeId; ; ) {
     const definitionId = graph.definitionOfTemplateRoot(id);
     const definition = definitionId ? graph.getEntry(definitionId) : undefined;
     if (definition?.kind === "definition" && definition.originRef === true)
       return node.slot ? { slot: node.slot } : {};
-  }
-  for (let id = graph.ownerOf(nodeId); id; id = graph.ownerOf(id)) {
-    const owner = graph.getEntry(id);
+    const ownerId = graph.ownerOf(id);
+    const owner = ownerId ? graph.getEntry(ownerId) : undefined;
     if (owner?.kind === "definition")
       return node.slot ? { slot: node.slot } : {};
     if (owner?.kind !== "node") return undefined;
+    id = owner.id;
   }
-  return undefined;
 }
 
 /** The template node at an instance address (a library template or a project template node). */
