@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-14 ADR-260 Implemented** (main `010f3a2b5` · `af29d12e8`): Create component 뒤 노드가 그 자리에서 ORIGIN. 사용자 G5 「확인했다」 + 보고 결함 2 (사용자 컴포넌트 instance 의 속성 미적용 · 「+」 없음) 같은 날 수리. 후속 요청: Navigator Components 탭 = 「Library」 · 「Local」 두 page — Local 은 Create component 로 만든 컴포넌트를 한 page 에 (카드 = 원본 노드 자체 · Layers body > 원본 행 · 삭제). pre-push ratchet 등급 A 초과 1 (선택 `ownerOf` — slot 선언 판정의 이중 걷기) 수리 뒤 pass. live 33/33 + 14/14. 열림 −1, 완료 +1 (열림 3, 합계 285).
+>
 > **2026-10-14 ADR-260 Accepted + Phase 0 ~ 3 완료** (`/execute-adr 260`): Create component 뒤 노드가 그 자리에서 ORIGIN — 정의가 원본을 참조 (`DefinitionEntry.originRef`, `template` 역색인 `definitionOfTemplateRoot`) · 옛 문서 · layout 의 소유 template 그대로 (전환 0). 명령: create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard 출처 · 정의 · token snapshot. 지금 모델에도 있던 결함 3 수리 — template 노드 override 투영 (Decision 11) · 순환 걷기 (12) · 다른 프로젝트 붙여넣기 (13). Builder: ORIGIN on page · Go to component = page · Restore origin · 원본 편집 확인 대화상자. G0 ~ G4 통과 (shared 1641 · builder 5762 · live 33/33 · 번들 상한 안) · perf ratchet 은 커밋 뒤 pre-push · **G5 사용자 확인 대기**. 열림 2 (Accepted 1 · Proposed 1), 합계 287.
 > **2026-10-14 ADR-260 Proposed**: Create component — 선택 노드가 **그 자리에서 ORIGIN** 으로 남는다 (사용자 `/create-adr`, 원문 「origin - instance, slot 은 pen.dev 와 Figma 참조 모델이다」 · AskUserQuestion 「선택 노드가 ORIGIN 으로」 · 「해체는 원본에서만」 · 「ADR 먼저 작성」). 실측: `createComponent` 가 노드를 정의 안으로 옮기고 그 자리에 instance 를 둔다 (ADR-248 2026-09-30 판정 ② — 정의의 template 소유와 동시 소유 불가) → 생성 직후 패널은 INSTANCE 칩이고 ORIGIN 은 정의 편집 view 에서만 · instance 에 detach 가 둘 (해체 버튼) · `createComponent` 가 template 루트 `fillSlot` 을 버리는 기존 결함이 10-14 「slot 내용 = instance 의 것」 뒤 범위가 넓어짐. 채택 B — 「정의 → template 루트」 edge 를 소유에서 **참조** 로 (`DefinitionEntry.originRef`), 원본은 page 의 보통 노드 · 정의 세 모양 공존 (옛 문서 · layout · 삭제된 원본 = 소유 template 그대로, 전환 코드 0) · 해체는 원본을 남긴다 · 원본 삭제는 Figma 대로 instance 유지 + Restore (사용자 결정 1). A (view 만 열기 — 사용자 기각) · C (Figma 식 감싸기 type — D1 요소 추가) · D (전용 page 이동) 기각. 판정 ② 를 뒤집는 결정 (결정 지점 ④ confirm = 사용자 답). 선행 반영 (커밋 전): 해체 버튼은 원본에서만 (패널 · Canvas 메뉴 · ⌘⌥K). 사용자 결정 5건 중 3건 같은 날 답 — 삭제 = Figma 대로 instance 유지 + Restore · 복제 = pen.dev 대로 instance (`cloneNodeSubgraph` 한 곳) · Components 탭 클릭 = page 의 원본 · Restore 자리 = Figma 대로 instance 옆 · 중첩 원본 = pen.dev 대로 허용 (자기 ORIGIN) — 5건 모두 답. 열림 2 (Proposed 2), 합계 287. breakdown: [design/260](design/260-component-origin-in-place-breakdown.md).
 
@@ -254,15 +256,15 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     281 |
-| ├ Implemented / Complete(d)   |     234 |
+| 완료 (`completed/`)           |     282 |
+| ├ Implemented / Complete(d)   |     235 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       3 |
 | ├ Proposed                    |       2 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **285** |
 
@@ -278,11 +280,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [260](260-component-origin-in-place.md) — Create component — 선택 노드가 그 자리에서 ORIGIN (pen.dev · Figma 참조 모델)
-
-- **상태**: Accepted — 2026-10-14 (`/execute-adr 260`, 리뷰 Round 3 pending 0) · **Phase 0 ~ 3 완료 · Phase 4 G5 (사용자 Builder 확인) 대기** — create 무이동 (`originRef` 참조 원본) · Go to component = page · 원본 삭제 = 숨은 template + Restore origin · 해체는 원본 유지 · 복제 · 붙여넣기 = instance · template 노드 override 투영 · clipboard origins/definitions/tokens · live 33/33. 리뷰: Round 1 HIGH 4 · Round 2 H5 · Round 3 해소
-- **규모**: Phase 0 inventory (`templateRootId` 34 파일 · `kind === "definition"` 53 파일 분류 · 문서 수 · pen.dev / Figma 대조표) → Phase 1 문서 모델 (`originRef` · 소유 edge → 참조 · 역색인 · 검증 · 정의 순환 걷기 · template 노드 override 투영) → Phase 2 명령 (create 무이동 · 해체 원본 유지 · 원본 삭제 · restore · 복제) → Phase 3 Builder (Component 절 ORIGIN on page · Go to component = page · 확인 대화상자 · 메뉴 · Layers) → Phase 4 마감. 사용자 결정 5건 모두 답 (10-14). breakdown: [design/260](design/260-component-origin-in-place-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -313,8 +310,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [260](260-component-origin-in-place.md)                                                        | Phase 0 ~ 3 완료 (10-14) — G5 사용자 Builder 확인 뒤 Implemented | 커밋 뒤 pre-push perf ratchet · 사용자 「확인했어」                         |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
@@ -608,6 +604,7 @@
 | [257](completed/257-table-column-tracks.md) | Table 열 배치 — Column 의 S2 `width` · `defaultWidth` · `minWidth` · `maxWidth` 가 열 트랙을 정하고 머리글 행 · 모든 Row 가 같은 grid 트랙 (Table · TableView · 바운드, 대안 C2 — flex 파생 기각) · Cell `colSpan` · `align` · `showDivider` · `selectionStyle` · `overflowMode` (Table · GridList · Badge) · Preview 정렬 · 열 크기 조절 (Preview 실행 상태) · TableView = RAC `ResizableTableContainer` > RAC Table · G6 열 폭 편집 화면 반영 +6 ms 수용 | Implemented | 2026-10-12 |
 | [258](completed/258-color-controls-canvas-gradient.md) | Color 조작기 (ColorArea · ColorSlider · ColorWheel) 의 Canvas 그라데이션 · thumb + S2 색 축 prop — 레퍼런스 노드 트리 (`ColorThumb` · `ColorWheelTrack` · 원본 3 · contract 41) · 공용 함수 (설치 react-stately `Color` — RAC oracle 444 행 문자열 일치) 를 Preview (RAC inline) 와 Canvas (`_colorGradient` · `_colorThumb` → `skiaPrimitive` 4, premul 보간) 가 같이 따름 · 값 타입 `racColor` · 색 공간 · 채널 한 번에 정규화 · Decision 7 key · 수동 CSS → rule (값 그대로) · 팔레트 Forms (ColorField 뒤) | Implemented | 2026-10-12 |
 | [259](completed/259-s2-contextual-help-prefix-item-links.md) | S2 field 도움말 (`contextualHelp`) · 입력 앞 글자 (`prefix`) · 항목 링크 (`href` · `target` · `rel` · `hideLinkOutIcon`) — 새 type `ContextualHelp` (원본 · 팔레트 overlay) · `FieldLabel` (라벨 행, Label 자리를 잇는 별칭 하나를 생성 CSS · Canvas 가 같이 읽음) · 앞 글자 Group = Input rule 상자 (S2 `FieldGroup`) · Design 패널 Contextual Help · Prefix · 링크 7 type. 사용자 결정 3 (글리프 자동 · 독립 원본 · 사본 감수). live 13 · 51 · 106 (다크 포함) | Implemented | 2026-10-13 |
+| [260](completed/260-component-origin-in-place.md) | Create component — 선택 노드가 그 자리에서 ORIGIN (pen.dev · Figma 참조 모델) — 정의가 page 의 원본을 참조 (`originRef` · `definitionOfTemplateRoot`) · 원본 삭제 = instance 유지 + Restore origin · 복제 = instance · 해체는 원본 유지 · template 노드 override 투영 · clipboard 원본 · 정의 · token snapshot · Components 탭 Library · Local page | Implemented | 2026-10-14 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

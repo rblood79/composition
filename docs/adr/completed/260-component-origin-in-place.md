@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](reviews/260.md) Round 3 pending 0 · HIGH 5 전부 fixed — 전제 확정)
+Implemented — 2026-10-14 (Phase 0 ~ 4 · G0 ~ G5 종결 — main `010f3a2b5` · `af29d12e8`, pre-push perf ratchet pass · 사용자 G5 「확인했다」 · 아래 Live Exercise). Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](../reviews/260.md) Round 3 pending 0 · HIGH 5 전부 fixed — 전제 확정)
 
-> **Phase 0 ~ 3 완료 (2026-10-14) · Phase 4 진행 — G5 확인됨, 커밋 뒤 Implemented**: G0 inventory (37 파일 · 참조 종류 전수 · 후속 4 기능 막지 않음) · G1 모델 (`originRef` · `template` 역색인 · 순환 걷기 · template 노드 override 투영) · G2 명령 (create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard origins/definitions/tokens · 무작위 500 단계) · G3 Builder (ORIGIN on page · Go to component = page · Restore origin · 확인 대화상자 · slot · Layers · ⌘⌥K) + live 33/33 · **G5 사용자 확인 (10-14) — 보고 결함 2 (instance 속성 · 「+」) 수리**. G4 — type-check · shared 1641 · builder 5762 (기존 `resolveContainerStylesFallback` 1 제외) · 번들 initial Builder 1,319,045 / Preview 300,625 B gzip · `gate:perf-ratchet` 은 커밋 뒤 pre-push 에서 (dirty 트리는 HEAD 를 잰다). [breakdown §6](design/260-component-origin-in-place-breakdown.md).
+> **Phase 0 ~ 4 완료 (2026-10-14) · Implemented** (G5 사용자 확인 · 보고 결함 2 수리 · 후속 요청 — Library · Local page): G0 inventory (37 파일 · 참조 종류 전수 · 후속 4 기능 막지 않음) · G1 모델 (`originRef` · `template` 역색인 · 순환 걷기 · template 노드 override 투영) · G2 명령 (create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard origins/definitions/tokens · 무작위 500 단계) · G3 Builder (ORIGIN on page · Go to component = page · Restore origin · 확인 대화상자 · slot · Layers · ⌘⌥K) + live 33/33 · **G5 사용자 확인 (10-14) — 보고 결함 2 (instance 속성 · 「+」) 수리**. G4 — type-check · shared 1641 · builder 5762 (기존 `resolveContainerStylesFallback` 1 제외) · 번들 initial Builder 1,319,045 / Preview 300,625 B gzip · `gate:perf-ratchet` 은 커밋 뒤 pre-push 에서 (dirty 트리는 HEAD 를 잰다). [breakdown §6](../design/260-component-origin-in-place-breakdown.md).
 
-> Codex 설계 리뷰 Round 1 (2026-10-14): HIGH 4 (slot 투영 · 중첩 삭제 소유권 · clipboard 원본 식별 · slot 순환 검증). 같은 날 r1 에서 설계를 고쳤다 — 현재 11 ~ 13 (세 건은 지금 소유 모양에도 있는 결함) · Decision 1 (`originRef` 세 상태 · 숨은 template 안 참조 원본) · 6 (중첩 삭제) · 11 ~ 13. 수리 검증 (Round 2) 대기. 상세: [리뷰 기록](reviews/260.md).
+> Codex 설계 리뷰 Round 1 (2026-10-14): HIGH 4 (slot 투영 · 중첩 삭제 소유권 · clipboard 원본 식별 · slot 순환 검증). 같은 날 r1 에서 설계를 고쳤다 — 현재 11 ~ 13 (세 건은 지금 소유 모양에도 있는 결함) · Decision 1 (`originRef` 세 상태 · 숨은 template 안 참조 원본) · 6 (중첩 삭제) · 11 ~ 13. 수리 검증 (Round 2) 대기. 상세: [리뷰 기록](../reviews/260.md).
 
 - 사용자 요청: `/create-adr` (2026-10-14) — 「instance component 를 create component 하게 되면 detach instance 가 하나 더 생성된다. create component 로 생성한 컴포넌트 표시도 design 패널 property-component section 에 표기되었지만 현재 나타나지 않는다」 보고에서 출발. 같은 날 AskUserQuestion 답 — **「선택 노드가 ORIGIN 으로」** (Figma 처럼 만든 노드 자신이 새 컴포넌트의 원본으로 표시 — ORIGIN 칩 · Select instances · Detach component) · **「원본에서만 표시」** (해체 버튼은 원본의 것) · **「ADR 먼저 작성」** (문서 모델 변경이라 바로 구현 · 가벼운 대안 기각).
 - 방향을 정한 사용자 원문 (2026-10-14): **「origin - instance, slot 은 pen.dev 와 pigma(Figma) 참조 모델이다」**.
@@ -121,7 +121,7 @@ Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](reviews
 
 위험 수용 근거: B 의 HIGH 는 소유 edge 의 종류 하나에 모인다 (현재 11 ~ 13 은 지금 모델에도 있는 결함이라 B 와 무관하게 고쳐야 하고, B 가 그것을 드러낼 뿐이다). 기존 검증기 (`DUPLICATE_OWNERSHIP` · `UNOWNED_NODE` · `OWNERSHIP_CYCLE` · `DEFINITION_CYCLE`) 와 무작위 명령 하니스가 그대로 돌고, 참조 모양의 정의는 새 필드로만 생기므로 옛 문서는 한 줄도 바뀌지 않는다.
 
-> 구현 상세: [260-component-origin-in-place-breakdown.md](design/260-component-origin-in-place-breakdown.md)
+> 구현 상세: [260-component-origin-in-place-breakdown.md](../design/260-component-origin-in-place-breakdown.md)
 
 ### 사용자 결정 N건 (execute-adr 가 닿을 때 묻는다)
 

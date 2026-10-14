@@ -1,6 +1,6 @@
 # ADR-260 design breakdown — 원본이 page 에 남는 컴포넌트
 
-> 본문: [../260-component-origin-in-place.md](../260-component-origin-in-place.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../completed/260-component-origin-in-place.md](../completed/260-component-origin-in-place.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문 — 분리가 아니라 ADR-248 판정 ② 의 개정)
 
@@ -149,3 +149,4 @@
 - 2026-10-14 **후속 지시 4** — 카드의 「Origin」 줄 제목과 아래 「◆ 이름」 글자 제거: 카드 = 번호 제목 + 원본 노드 (다른 원본 안 원본만 「In 바깥」 한 줄). 테스트에 카드 구조 단언 추가 · live 14/14.
 - 2026-10-14 **후속 지시 5** — 이름 중복 제거: Components 탭 항목 「Built-in components」 · 「My components」 → 「Built-in」 · 「Local」 (ko 「기본」 · 「로컬」 — Figma local components), 두 파생 page 의 Layers 루트는 이름 없이 type 이름 「body」 (Pages · Layouts 와 같게 — `pageKit.finish` 에서 name 제거). 테스트 · live 14/14 갱신.
 - 2026-10-14 **후속 지시 6** — 기본 원본 page 이름 「Built-in」 → 「Library」 (ko 「라이브러리」 — 사용자 선택, Figma Assets 의 Libraries · Local 짝 · 코드의 library 원본과 같은 말).
+- 2026-10-14 **Implemented** — main `010f3a2b5` (구현 · 문서) · `af29d12e8` (pre-push ratchet 등급 A 초과 수리: slot 선언 판정이 owner 사슬을 두 번 걷던 것을 한 번으로 — select `ownerOf` 2311 → 2041, 한도 2071). B 경고 (edit `typeOf` 1053 → 1930 등) 는 차단 아님 — 기록만. 본문 `completed/` 이동.

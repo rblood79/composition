@@ -11,11 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-260 Phase 0 ~ 3 — Create component 노드가 그 자리에서 ORIGIN] - 2026-10-14
+## [ADR-260 Implemented — Create component 노드가 그 자리에서 ORIGIN] - 2026-10-14
 
 ### Changed
 
-- **Create component 뒤 선택한 노드가 그 자리에서 컴포넌트의 원본 (ORIGIN) 이 된다** (pen.dev · Figma 참조 모델 — 사용자 결정 2026-10-14 「선택 노드가 ORIGIN 으로」, [ADR-260](adr/260-component-origin-in-place.md)). 노드를 정의 안으로 옮기고 그 자리에 instance 를 두던 2026-09-30 모델 (ADR-248 판정 ②) 을 뒤집는다. Design 패널 Component 절에 바로 ORIGIN 칩 · Select instances · Detach component 가 나오고 Canvas · Layers 도 ORIGIN 표식이다. instance 는 Components 탭 · 팔레트 · 원본의 복제 (⌘D · 복사-붙여넣기) 로 만든다.
+- **Create component 뒤 선택한 노드가 그 자리에서 컴포넌트의 원본 (ORIGIN) 이 된다** (pen.dev · Figma 참조 모델 — 사용자 결정 2026-10-14 「선택 노드가 ORIGIN 으로」, [ADR-260](adr/completed/260-component-origin-in-place.md)). 노드를 정의 안으로 옮기고 그 자리에 instance 를 두던 2026-09-30 모델 (ADR-248 판정 ②) 을 뒤집는다. Design 패널 Component 절에 바로 ORIGIN 칩 · Select instances · Detach component 가 나오고 Canvas · Layers 도 ORIGIN 표식이다. instance 는 Components 탭 · 팔레트 · 원본의 복제 (⌘D · 복사-붙여넣기) 로 만든다.
   - **Why**: 사용자 보고 — 「instance 를 create component 하면 detach instance 가 하나 더 생기고, 만든 컴포넌트 표시가 Component 절에 나타나지 않는다」. 원본이 정의 편집 view 에만 있어 생성 직후 패널이 INSTANCE 였다.
   - 문서 모델: `DefinitionEntry.originRef` — `true` = 정의가 page 의 원본 노드를 **참조** (소유하지 않음), `false` = 원본을 지워 정의가 숨은 template 으로 소유, 없음 = 옛 문서 · layout 의 소유 template (그대로 — 전환 코드 0). 그래프 역색인 `definitionOfTemplateRoot` 로 원본 편집이 instance 재검증 · Canvas 갱신 · 확인 대화상자에 닿는다.
   - **Go to component** = 원본이 있는 page 로 가서 원본 선택 (Components 탭의 사용자 컴포넌트 클릭도). 정의 편집 view 는 숨은 template · 옛 문서 · layout 전용.
