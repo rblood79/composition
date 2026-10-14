@@ -152,19 +152,24 @@ function validateComponentProperties(
 ): void {
   const rootId = definition.templateRootId;
   const inOrigin = new Set<string>();
+  const parentOf = new Map<string, string>();
   const queue = rootId ? [rootId] : [];
   while (queue.length) {
     const id = queue.pop()!;
     if (inOrigin.has(id)) continue;
     inOrigin.add(id);
     const entry = get(id);
-    if (entry?.kind === "node") queue.push(...ownedChildren(entry));
+    if (entry?.kind === "node")
+      for (const child of ownedChildren(entry)) {
+        if (!parentOf.has(child)) parentOf.set(child, id);
+        queue.push(child);
+      }
   }
   const root = rootId ? get(rootId) : undefined;
   const rootAccepts =
     root?.kind === "node" ? contractOf(root.definitionId)?.accepts : undefined;
   // (Phase 5: a swapped nested instance is a new node — a text property cannot reach it there.)
-  const swapped = new Set(
+  const swapped = new Set<string>(
     (definition.properties ?? [])
       .filter((property) => property.kind === "instance")
       .flatMap((property) => property.targets.map((target) => target.id)),
@@ -207,6 +212,16 @@ function validateComponentProperties(
         );
     }
   }
+  // (Codex M2: a swapped layer is copied with what it holds — a swap target inside another one
+  // would no longer be reached by an instance; one swap layer is not inside another.)
+  for (const id of swapped)
+    for (
+      let cursor = parentOf.get(id);
+      cursor !== undefined;
+      cursor = parentOf.get(cursor)
+    )
+      if (swapped.has(cursor))
+        throw new CatalogValidationError("PROPERTY_TARGET_NESTED", id);
 }
 function edgesOf(entry: CatalogEntry): Edge[] {
   const edges: Edge[] = [];

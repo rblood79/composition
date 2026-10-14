@@ -25,9 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: `removeWithReferrers` 가 주소가 끊긴 override 만 걸러 냈다 — `replace` 의 노드는 그 override 가 유일한 소유 edge 다.
   - 위치: `packages/shared/src/catalog/commands/structure.ts`.
 
+- **Codex 착수 완료 검토 수리** (ADR-261, MEDIUM 4). 교체한 레이어를 detach 하면 표시 속성으로 숨긴 레이어가 다시 보이던 문제 · 원본 레이어와 그 slot 안 레이어에 같은 교체 속성을 걸면 안쪽이 안 바뀌던 문제 (이제 그런 대상은 거부) · 교체 값이 있는 원본 레이어를 원본 밖으로 옮기면 거부되던 문제 (이제 그 레이어에 대한 instance 의 변경이 함께 사라진다 — Figma 와 같음) · Swap instance 에서 이름에 「/」 · 「#」 가 든 레이어가 다른 경로의 변경을 받던 문제.
+  - **Why**: materializer 가 교체 노드에 속성 값을 굳히지 않음 · 대상 주소를 첫 상태로만 계산 · 이동 정리가 속성 대상만 봄 · 경로 키를 구분자 그대로 이어 붙임.
+  - 위치: `packages/shared/src/catalog/commands/{materialize,structure,swap}.ts` · `document/graph.ts` · `apps/builder/src/builder/catalogRuntime/componentProperties.ts`.
+
 ### Tests
 
-- shared `commands/__tests__/instanceProperty.test.ts` 18 · `randomUndo.test.ts` 에 instance 값 행동 (속성이 없으면 같은 step 에 만듦) · builder `catalogRuntime/__tests__/adr261InstanceProperty.test.ts` 2 · 원복 RED 11/11 + 판독 수리 검증 5/5 (표시 속성 복사 · 직접 표시 우선 · 바깥 값 거부 · 경로 중간 slot 내용) · live `apps/builder/scripts/adr261-instance-property-live.mjs` 15/15 (Compare Mode).
+- shared `commands/__tests__/instanceProperty.test.ts` 21 · `swap.test.ts` +1 (Codex 재현 4, 원복 RED 4/4) · 이전 기록: `instanceProperty.test.ts` 18 · `randomUndo.test.ts` 에 instance 값 행동 (속성이 없으면 같은 step 에 만듦) · builder `catalogRuntime/__tests__/adr261InstanceProperty.test.ts` 2 · 원복 RED 11/11 + 판독 수리 검증 5/5 (표시 속성 복사 · 직접 표시 우선 · 바깥 값 거부 · 경로 중간 slot 내용) · live `apps/builder/scripts/adr261-instance-property-live.mjs` 15/15 (Compare Mode).
 
 ## [ADR-261 Phase 4 — 사용자 컴포넌트 속성 (text · boolean)] - 2026-10-15
 

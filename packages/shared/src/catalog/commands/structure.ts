@@ -870,6 +870,7 @@ export const moveNodes =
     placeAt(draft, input.parent, input.index, roots, input.newId);
     for (const order of columnOrders) order.follow();
     pruneMovedPropertyTargets(draft, roots);
+    dropAddressesLeftOrigin(draft, roots, owners);
     assertRequiredPartsKept(draft, roots);
     assertTablesAligned(draft, [
       ...roots,
@@ -897,6 +898,85 @@ export const moveNodes =
       selectAfter: roots,
     };
   };
+
+/**
+ * ADR-261 Phase 5 (Codex M3): a node moved out of a component's origin is no position of that
+ * component any more — other instances' overrides addressed through it go (Figma: an instance's
+ * changes to a layer moved out of the main component are gone), and what such an override owned
+ * (a swap's replacement, slot contents there) goes with it. A move inside the origin keeps them.
+ */
+function dropAddressesLeftOrigin(
+  draft: CommandDraft,
+  roots: readonly NodeId[],
+  owners: ReadonlyMap<string, string | undefined>,
+): void {
+  const originOf = (
+    id: string,
+    ownerOf: (id: string) => string | undefined,
+  ): string | undefined => {
+    const seen = new Set<string>();
+    for (
+      let cursor: string | undefined = id;
+      cursor && !seen.has(cursor);
+      cursor = ownerOf(cursor)
+    ) {
+      seen.add(cursor);
+      if (draft.reader.definitionOfTemplateRoot(cursor)) return cursor;
+    }
+    return undefined;
+  };
+  const ownerAfter = (id: string): string | undefined => {
+    for (const entry of draft.writtenEntries())
+      if ((ownedChildren(entry) as string[]).includes(id)) return entry.id;
+    return draft.reader.ownerOf(id);
+  };
+  // (Only a move whose root another node addresses costs the origin walks — an address of any
+  // position below it holds its id in the path; an ordinary move asks the reference index once
+  // per root. ADR-246 select ratchet: `graph.ownerOf` · `getEntry`.)
+  const addressed = roots.filter((root) =>
+    [...draft.reader.referrersOf(root)].some((referrer) =>
+      referrer.startsWith("project:node:"),
+    ),
+  );
+  if (!addressed.length) return;
+  const left = new Set<string>();
+  for (const root of addressed) {
+    const before = owners.get(root);
+    const from = before ? originOf(before, (id) => draft.reader.ownerOf(id)) : undefined;
+    if (!from || from === root) continue;
+    if (originOf(root, ownerAfter) === from) continue;
+    for (const id of subtree(draft, root)) left.add(id);
+  }
+  if (!left.size) return;
+  const gone: string[] = [];
+  const holders = new Set<string>();
+  for (const id of left)
+    for (const referrer of draft.reader.referrersOf(id)) holders.add(referrer);
+  for (const holderId of holders) {
+    if (left.has(holderId)) continue;
+    const holder = draft.read(holderId);
+    if (holder?.kind !== "node") continue;
+    const through = (override: (typeof holder.descendantOverrides)[number]) =>
+      [...override.address.instances, ...override.address.templatePath].some(
+        (step) => left.has(step),
+      );
+    if (!holder.descendantOverrides.some(through)) continue;
+    for (const override of holder.descendantOverrides.filter(through))
+      if (override.kind === "replace") gone.push(override.replacementId);
+      else if (override.kind === "fillSlot") gone.push(...override.childIds);
+    draft.write({
+      ...holder,
+      descendantOverrides: holder.descendantOverrides.filter(
+        (override) => !through(override),
+      ),
+    });
+  }
+  if (gone.length)
+    removeWithReferrers(
+      draft,
+      gone.flatMap((id) => subtree(draft, id as NodeId)),
+    );
+}
 
 /** Owned subtree of a node (children, fill-slot children and replacements), node first. */
 export function subtree(draft: CommandDraft, id: NodeId): NodeId[] {

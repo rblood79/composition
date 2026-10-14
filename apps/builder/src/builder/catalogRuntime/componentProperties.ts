@@ -151,8 +151,27 @@ export function catalogPropertyView(
       property.kind === "text" &&
       property.targets.some((target) => target.id === nodeId),
   );
+  // (Codex M2: one swap layer is not inside another — the graph refuses it.)
+  const swapTargets = new Set(
+    properties
+      .filter((property) => property.kind === "instance")
+      .flatMap((property) => property.targets.map((target) => target.id)),
+  );
+  const within = (id: string, ancestor: string) => {
+    for (
+      let cursor = graph.ownerOf(id);
+      cursor && cursor !== origin.rootId;
+      cursor = graph.ownerOf(cursor)
+    )
+      if (cursor === ancestor) return true;
+    return false;
+  };
+  const nested = [...swapTargets].some(
+    (target) =>
+      target !== nodeId && (within(nodeId, target) || within(target, nodeId)),
+  );
   const canInstance =
-    !isRoot && !driven && catalogIsComponentInstance(graph, nodeId);
+    !isRoot && !driven && !nested && catalogIsComponentInstance(graph, nodeId);
   return {
     origin,
     isRoot,

@@ -117,8 +117,13 @@ function templatePaths(
   const root = (definition as { templateRootId?: TemplateId } | undefined)
     ?.templateRootId;
   if (!root) return undefined;
-  const keyOf = new Map<string, string>([[root, ""]]);
-  const atKey = new Map<string, TemplateId | null>([["", root]]);
+  // (A key is the JSON of its `[name ?? type, order among same-name siblings]` steps — a name
+  // holding "/" or "#" is not another layer's path; Codex review M4.)
+  const stepsOf = new Map<string, readonly (readonly [string, number])[]>([
+    [root, []],
+  ]);
+  const keyOf = new Map<string, string>([[root, "[]"]]);
+  const atKey = new Map<string, TemplateId | null>([["[]", root]]);
   const parentOf = new Map<string, TemplateId>();
   const definitionOf = new Map<string, string>();
   const slotOf = new Map<string, string>();
@@ -136,7 +141,9 @@ function templatePaths(
       const step = childNode.name ?? typeNameOf(reader, childNode.definitionId);
       const n = counts.get(step) ?? 0;
       counts.set(step, n + 1);
-      const key = `${keyOf.get(id)}/${step}#${n}`;
+      const steps = [...stepsOf.get(id)!, [step, n] as const];
+      stepsOf.set(child, steps);
+      const key = JSON.stringify(steps);
       keyOf.set(child, key);
       atKey.set(key, atKey.has(key) ? null : (child as TemplateId));
       parentOf.set(child, id);

@@ -27,10 +27,11 @@ import {
 } from "../instanceProperty";
 import {
   addComponentProperty,
+  applyComponentProperty,
   removeComponentProperty,
   setComponentPropertyPreferred,
 } from "../properties";
-import { copyNodes, removeTargets } from "../structure";
+import { copyNodes, moveNodes, removeTargets } from "../structure";
 import { swapInstance } from "../swap";
 import {
   allocator,
@@ -638,6 +639,90 @@ describe("ADR-261 Phase 5 — instance swap property", () => {
     );
     // I is on the page: Card inside a Card instance is an ordinary nested instance.
     expect(code(() => pick(graph, CARD as never))).toBe("ACCEPTED");
+  });
+
+  it("Codex M1: detach keeps the visibility a property gave the swapped layer", () => {
+    const graph = fixture();
+    const newId = allocator();
+    run(
+      graph,
+      setFields({
+        targets: [{ kind: "node", id: I }],
+        props: { showIcon: { kind: "set", value: false } },
+      }),
+    );
+    pick(graph, HEART, I, [I], newId);
+    expect(texts(resolveCatalogNode(graph, I))).toEqual(["Title"]);
+    run(graph, detachInstances({ ids: [I], newId }));
+    expect(texts(resolveCatalogNode(graph, I))).toEqual(["Title"]);
+  });
+
+  it("Codex M2: a layer inside another layer the same kind of property swaps is refused as a target", () => {
+    const graph = fixture();
+    // cIcon (a Star instance) holds another Star in its slot position? Use a second nested
+    // instance owned by cIcon: Star gets a slot, cIcon fills it with an origin-level Star.
+    const slot = node("sSlot", SECTION, {
+      slot: { name: "more", required: false },
+    });
+    run(graph, (reader) => ({
+      label: "seed",
+      ops: [
+        { kind: "put", entry: slot },
+        { kind: "put", entry: node("inner", STAR, { name: "Inner" }) },
+        {
+          kind: "put",
+          entry: {
+            ...(reader.getEntry(id("sRoot")) as NodeEntry),
+            children: [id("sGlyph"), id("sSlot")],
+          },
+        },
+        {
+          kind: "put",
+          entry: {
+            ...(reader.getEntry(id("cIcon")) as NodeEntry),
+            descendantOverrides: [
+              {
+                kind: "fillSlot",
+                address: {
+                  instances: [id("cIcon")],
+                  templatePath: [id("sRoot"), id("sSlot")],
+                },
+                childIds: [id("inner")],
+              },
+            ],
+          },
+        },
+      ],
+    }));
+    expect(
+      code(() =>
+        run(
+          graph,
+          applyComponentProperty({
+            definitionId: CARD,
+            key: "icon",
+            target: { id: id("inner") },
+          }),
+        ),
+      ),
+    ).toBe("PROPERTY_TARGET_NESTED");
+  });
+
+  it("Codex M3: moving the swapped origin layer out of the origin takes the instances' swaps with it", () => {
+    const graph = fixture();
+    pick(graph, HEART);
+    const placed = replacement(graph)!;
+    run(
+      graph,
+      moveNodes({
+        ids: [id("cIcon")],
+        parent: { kind: "page", id: "project:page:main" },
+        newId: allocator(),
+      }),
+    );
+    expect(graph.getEntry(placed)).toBeUndefined();
+    expect(replacement(graph)).toBeUndefined();
+    expect(texts(resolveCatalogNode(graph, I))).toEqual(["Title"]);
   });
 
   it("validates kinds, targets and preferred components", () => {

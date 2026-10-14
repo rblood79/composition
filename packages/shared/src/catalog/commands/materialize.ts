@@ -361,6 +361,20 @@ export function createMaterializer(
       if (fixedId) fail("POSITION_REPLACED", path[path.length - 1]);
       placed.set(key(path), change.replacementId);
       placedByTemplate.set(path[path.length - 1], change.replacementId);
+      // ADR-261 Phase 5 (Codex M1): the resolver shows a replacement by its own show / hide, else a
+      // visibility property's value, else the position's origin value — once copied the property
+      // no longer reaches it, so that value is kept on the node.
+      const replacement = draft.node(change.replacementId);
+      if (replacement.enabled === undefined) {
+        const templateId = path[path.length - 1];
+        const shown =
+          propertyWrites?.get(templateId)?.enabled ??
+          (templateId.startsWith("lib:")
+            ? undefined
+            : readTemplate(draft, templateId).enabled);
+        if (shown !== undefined)
+          draft.write({ ...replacement, enabled: shown });
+      }
       return change.replacementId;
     }
     const templateId = path[path.length - 1];

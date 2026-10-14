@@ -144,6 +144,35 @@ function fixture() {
 }
 
 describe("ADR-261 Phase 2 — swapInstance", () => {
+  it("Codex M4: a layer name holding the path separators is not another layer's path", () => {
+    const P = "project:definition:P" as const;
+    const Q = "project:definition:Q" as const;
+    const nodes: NodeEntry[] = [
+      node("pRoot", SECTION, { children: [id("pGroup")] }),
+      node("pGroup", SECTION, { name: "Group", children: [id("pTitle")] }),
+      { ...text("pTitle", "title"), name: "Title" },
+      node("qRoot", SECTION, { children: [id("qOdd")] }),
+      { ...text("qOdd", "Unrelated"), name: "Group#0/Title" },
+      node("X", P, {
+        descendantOverrides: [
+          {
+            kind: "patch",
+            address: {
+              instances: [id("X")],
+              templatePath: [id("pRoot"), id("pGroup"), id("pTitle")],
+            },
+            props: { children: { kind: "set", value: "Mine" } },
+          },
+        ],
+      }),
+    ];
+    const graph = graphOf(nodes, ["X"], [definition("P", "pRoot"), definition("Q", "qRoot")]);
+    const { report } = planSwapInstance(graph, { id: id("X"), definitionId: Q });
+    expect(report).toMatchObject({ kept: 0, dropped: 1 });
+    run(graph, swapInstance({ id: id("X"), definitionId: Q }));
+    expect((graph.getEntry(id("X")) as NodeEntry).descendantOverrides).toEqual([]);
+  });
+
   it("moves the instance's changes to the same places by name path; the rest is counted; undo restores", () => {
     const graph = fixture();
     const start = snapshot(graph);
