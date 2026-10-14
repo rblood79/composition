@@ -23,6 +23,14 @@ import type { CatalogOperation } from "../../../../../packages/shared/src/catalo
  */
 import {
   COMPONENTS_VIEW,
+  PROJECT_COMPONENTS_VIEW,
+  PROJECT_ORIGIN_VIEW_NODE,
+  componentsViewRoot,
+  isComponentsViewRoot,
+  isProjectComponentsView,
+  projectComponentCardId,
+  projectComponentOriginCellId,
+  isProjectComponentOriginCell,
   ORIGIN_VIEW_NODE,
   isComponentsView,
   isLibraryOrigin,
@@ -38,6 +46,14 @@ import {
 
 export {
   COMPONENTS_VIEW,
+  PROJECT_COMPONENTS_VIEW,
+  PROJECT_ORIGIN_VIEW_NODE,
+  componentsViewRoot,
+  isComponentsViewRoot,
+  isProjectComponentsView,
+  projectComponentCardId,
+  projectComponentOriginCellId,
+  isProjectComponentOriginCell,
   ORIGIN_VIEW_NODE,
   isComponentsView,
   isLibraryOrigin,

@@ -23,7 +23,7 @@ import {
   pagePositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import { isComponentsView, ORIGIN_VIEW_NODE } from "./originView";
+import { componentsViewRoot, isComponentsView } from "./originView";
 import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogRuntime, CatalogStepContext } from "./controller";
 import type { DataBindingValue } from "@composition/shared";
@@ -74,6 +74,11 @@ function recording(graph: CatalogReader, deps: Set<string>): CatalogReader {
     instancesOf: (id) => {
       deps.add(`instances:${id}`);
       return graph.instancesOf(id);
+    },
+    // (An index read like `instancesOf`: any step may add or drop a definition on the root.)
+    definitionOfTemplateRoot: (id) => {
+      deps.add(`instances:template:${id}`);
+      return graph.definitionOfTemplateRoot(id);
     },
   };
 }
@@ -172,9 +177,14 @@ export class CatalogReadModel {
           ? pagePositions(reader, parent.pageId)
           : "definitionId" in parent
             ? isComponentsView(parent.definitionId)
-              ? // The Components page: its derived root frame.
-                reader.getEntry(ORIGIN_VIEW_NODE)
-                ? [nodePosition(reader, ORIGIN_VIEW_NODE)]
+              ? // A derived components page: its root frame.
+                reader.getEntry(componentsViewRoot(parent.definitionId))
+                ? [
+                    nodePosition(
+                      reader,
+                      componentsViewRoot(parent.definitionId),
+                    ),
+                  ]
                 : []
               : definitionPositions(reader, parent.definitionId)
             : childPositions(reader, parent.position);

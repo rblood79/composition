@@ -123,7 +123,7 @@ describe("ADR-248 Phase 4b component commands", () => {
     expect(a.visual.color).toBe("blue");
   });
 
-  it("makes a component: template to Components, an instance in place", () => {
+  it("makes a component: the node stays in place as its origin (ADR-260)", () => {
     const graph = graphOf(
       [
         node("card", "lib:definition:section", {
@@ -144,33 +144,59 @@ describe("ADR-248 Phase 4b component commands", () => {
         newId: allocator(),
       }),
     );
-    const [instanceId] = created.plan.selectAfter!;
-    expect(children(graph, PAGE)).toEqual([instanceId]);
-    const instance = graph.getEntry(instanceId) as NodeEntry;
-    const definition = graph.getEntry(instance.definitionId) as DefinitionEntry;
-    expect(definition).toMatchObject({
+    expect(created.plan.selectAfter).toEqual(["project:node:card"]);
+    expect(children(graph, PAGE)).toEqual(["project:node:card"]);
+    const [definitionId] = (graph.getEntry(PROJECT) as ProjectEntry)
+      .definitionIds;
+    expect(graph.getEntry(definitionId)).toMatchObject({
       kind: "definition",
       name: "Card",
       usage: "component",
       templateRootId: "project:node:card",
+      originRef: true,
     });
-    expect(instance.placement).toEqual({ kind: "absolute", x: 10, y: 20 });
     expect(
       (graph.getEntry("project:node:card") as NodeEntry).placement,
-    ).toBeUndefined();
-    expect(graph.ownerOf("project:node:card")).toBe(definition.id);
-    // The instance shows the template root's content.
+    ).toEqual({ kind: "absolute", x: 10, y: 20 });
+    expect(graph.ownerOf("project:node:card")).toBe(PAGE);
+    expect(pageView(graph)).toEqual(shown);
+    // An instance placed later shows the origin's content.
+    const page = graph.getEntry(PAGE) as PageEntry;
+    const instance = node("inst", definitionId);
+    run(graph, () => ({
+      label: "add",
+      ops: [
+        { kind: "put", entry: instance },
+        {
+          kind: "put",
+          entry: { ...page, children: [...page.children, instance.id] },
+        },
+      ],
+    }));
     expect(
-      (view(resolveCatalogNode(graph, instanceId)) as { children: unknown[] })
+      (view(resolveCatalogNode(graph, instance.id)) as { children: unknown[] })
         .children,
-    ).toEqual([
-      {
-        ...(shown[0] as object),
-        children: (shown[0] as { children: unknown[] }).children,
-      },
-    ]);
-    undo(graph, created.result.inverse);
-    expect(snapshot(graph)).toBe(initial);
+    ).toEqual([shown[0]]);
+    const fresh = graphOf(
+      [
+        node("card", "lib:definition:section", {
+          children: ["project:node:t"],
+          placement: { kind: "absolute", x: 10, y: 20 },
+        }),
+        text("t", "Title"),
+      ],
+      ["card"],
+    );
+    const again = run(
+      fresh,
+      createComponent({
+        id: "project:node:card",
+        name: "Card",
+        newId: allocator(),
+      }),
+    );
+    undo(fresh, again.result.inverse);
+    expect(snapshot(fresh)).toBe(initial);
   });
 
   it("dissolves a component: instances keep what they showed, the definition goes", () => {
@@ -184,13 +210,14 @@ describe("ADR-248 Phase 4b component commands", () => {
       ["card"],
     );
     const newId = allocator();
-    const created = run(
+    run(
       graph,
       createComponent({ id: "project:node:card", name: "Card", newId }),
     );
-    const [first] = created.plan.selectAfter!;
-    const definitionId = (graph.getEntry(first) as NodeEntry).definitionId;
-    // A second instance with an authored override on the template text.
+    const [definitionId] = (graph.getEntry(PROJECT) as ProjectEntry)
+      .definitionIds;
+    const first = "project:node:first" as NodeId;
+    // Two instances; the second with an authored override on the template text.
     const page = graph.getEntry(PAGE) as PageEntry;
     const second = node("second", definitionId, {
       descendantOverrides: [
@@ -207,10 +234,11 @@ describe("ADR-248 Phase 4b component commands", () => {
     run(graph, () => ({
       label: "add",
       ops: [
+        { kind: "put", entry: node("first", definitionId) },
         { kind: "put", entry: second },
         {
           kind: "put",
-          entry: { ...page, children: [...page.children, second.id] },
+          entry: { ...page, children: [...page.children, first, second.id] },
         },
       ],
     }));
@@ -224,7 +252,9 @@ describe("ADR-248 Phase 4b component commands", () => {
       dissolveComponent({ definitionId: definitionId as never, newId }),
     );
     expect(graph.getEntry(definitionId)).toBeUndefined();
-    expect(graph.getEntry("project:node:card")).toBeUndefined();
+    // (ADR-260 Decision 5: the origin stays where it was, an ordinary node.)
+    expect(children(graph, PAGE)[0]).toBe("project:node:card");
+    expect(graph.getEntry("project:node:card")?.kind).toBe("node");
     expect((graph.getEntry(PROJECT) as ProjectEntry).definitionIds).toEqual([]);
     expect(view(resolveCatalogNode(graph, first))).toEqual(shownFirst);
     expect(view(resolveCatalogNode(graph, second.id))).toEqual(shownSecond);

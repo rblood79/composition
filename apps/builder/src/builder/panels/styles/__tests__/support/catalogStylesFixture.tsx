@@ -9,7 +9,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
 import type { FillItem } from "../../../../../types/builder/fill.types";
 import { catalogComponentCommands } from "../../../../catalogRuntime/componentActions";
@@ -238,21 +241,13 @@ export async function openStylesFixture(
     },
     setBreakpoint: (breakpoint) => workspace.setBreakpoint(breakpoint),
     componentize(id, name) {
-      const graph = workspace.runtime.graph;
-      const parentOf = (nodeId: NodeId) =>
-        [...nodes.map((node) => nodeIdOf(node.id)), BODY].find((candidate) =>
-          (graph.getEntry(candidate) as NodeEntry | undefined)?.children.includes(
-            nodeId,
-          ),
-        )!;
-      const parent = parentOf(nodeIdOf(id));
-      const index = (graph.getEntry(parent) as NodeEntry).children.indexOf(
-        nodeIdOf(id),
-      );
       workspace.execute(
         catalogComponentCommands.create(nodeIdOf(id), name, workspace.newId),
       );
-      const instance = (graph.getEntry(parent) as NodeEntry).children[index]!;
+      // ADR-260: the node stays as the origin; its copy is an instance.
+      const instance = workspace.execute(
+        duplicateNodes({ ids: [nodeIdOf(id)], newId: workspace.newId }),
+      ).plan.selectAfter![0]!;
       return workspace.root.recordsOfSource(instance)[0]!;
     },
   };

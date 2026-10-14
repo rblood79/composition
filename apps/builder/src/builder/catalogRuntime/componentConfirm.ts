@@ -109,6 +109,28 @@ function touchesTemplate(
   return false;
 }
 
+/**
+ * ADR-260: the component whose origin in place a step edited — a changed node is the origin or
+ * lies under it (the nearest origin on its owner chain).
+ */
+function editedOrigin(
+  graph: CatalogReader,
+  changedIds: ReadonlySet<string>,
+): string | undefined {
+  for (const id of changedIds)
+    for (
+      let at: string | undefined = id, depth = 0;
+      at && depth < 64;
+      at = graph.ownerOf(at), depth += 1
+    ) {
+      const definitionId = graph.definitionOfTemplateRoot(at);
+      const definition = definitionId ? graph.getEntry(definitionId) : undefined;
+      if (definition?.kind === "definition" && definition.originRef === true)
+        return definitionId;
+    }
+  return undefined;
+}
+
 /** The built-in origin whose project override a step changed (`undefined` = none). */
 function overriddenOrigin(
   graph: CatalogReader,
@@ -122,8 +144,8 @@ function overriddenOrigin(
 }
 
 /**
- * Watch user actions in a component's edit view: the first one that changes its template while
- * it has instances asks "Editing … will affect N instances" — Continue keeps it (and later edits
+ * Watch user actions on a component's origin — in its edit view, or the origin in place on a page
+ * (ADR-260) — the first one that changes it while it has instances asks "Editing … will affect N instances" — Continue keeps it (and later edits
  * of the same component and instances ask no more), Cancel undoes the steps since it. A layout's
  * view does not ask (the old gate was the component origin's). Returns the unsubscribe.
  */
@@ -137,20 +159,22 @@ export function watchCatalogComponentEdits(
     // Steps while the dialog is open share its answer.
     if (pending) return;
     const view = workspace.session.getSnapshot().definitionView;
-    if (!view) return;
     const graph = workspace.runtime.graph;
     // The Components page: a sample's edits are the project's defaults for its origin (its
     // override) — the component edited is that origin.
-    let edited: string | undefined = view;
-    if (isComponentsView(view)) {
+    let edited: string | undefined;
+    if (view && isComponentsView(view)) {
       edited = overriddenOrigin(graph, result.changedIds);
       if (!edited) return;
-    } else {
+    } else if (view) {
       const definition = graph.getEntry(view);
       if (definition?.kind !== "definition" || definition.usage === "layout")
         return;
-      if (!touchesTemplate(graph, result.changedIds, view)) return;
+      if (touchesTemplate(graph, result.changedIds, view)) edited = view;
     }
+    // ADR-260 Decision 4: an origin in place (on a page, or inside a viewed template).
+    edited ??= editedOrigin(graph, result.changedIds);
+    if (!edited) return;
     const request = impactRequest(graph, edited);
     if (!request) return;
     const key = JSON.stringify([edited, request.impactedInstanceIds]);

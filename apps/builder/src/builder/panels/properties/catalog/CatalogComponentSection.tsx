@@ -69,8 +69,10 @@ function templateLabel(graph: CatalogReader, id: string | undefined): string {
  * - an instance (of a project component or a built-in origin): what it is an instance of, go to
  *   component (the project template, or the built-in origin's view), detach, select instances,
  *   its own overrides (props and styles, each resettable); a project component's also dissolves;
- * - the origin the definition edit view shows: what it is the origin of, select instances, and a
- *   project component dissolves; a built-in origin lists its project defaults (each resettable);
+ * - the origin (a project component's node in place — ADR-260 — or the root the definition edit
+ *   view shows): what it is the origin of, select instances, and a project component dissolves
+ *   (the node stays); a built-in origin lists its project defaults (each resettable);
+ * - an instance of a component whose origin was deleted also restores the origin beside it;
  * - any other node (and an instance, as the old section did) can become a component.
  * Each action is one step.
  */
@@ -266,6 +268,20 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 />
               </RACButton>
             </ActionTooltipTrigger>
+          )}
+          {/* ADR-260 Decision 6: the component's origin was deleted — put it back beside this
+              instance (Figma 「Restore main component」). */}
+          {instanceOf?.restorable && nodeId && (
+            <RACButton
+              className="control-button"
+              onPress={() => run(catalogComponentCommands.restore(nodeId))}
+            >
+              <ACTION_ICONS.restoreOrigin
+                aria-hidden="true"
+                size={iconProps.size}
+              />
+              {t("componentAction.restoreOrigin")}
+            </RACButton>
           )}
           {instanceOf && nodeId && (
             <ActionTooltipTrigger

@@ -4,7 +4,7 @@ import { definitionTypeName } from "../../../../../packages/shared/src/catalog/c
 import { catalogComponentsPageRows } from "./componentsPage";
 import {
   isComponentsView,
-  ORIGIN_VIEW_NODE,
+  isComponentsViewRoot,
   originOfEditableSample,
 } from "./originView";
 import type { CatalogDefinitionViewId } from "./session";
@@ -115,8 +115,9 @@ const nameOf = (
   return own || node?.slot?.name || typeName;
 };
 /**
- * A row's mark: the definition view's root is the origin, as is a built-in origin's sample on the
- * Components page (whose own root is only the page); a component's instance is an instance.
+ * A row's mark: a component's origin in place (ADR-260) and the definition view's root are the
+ * origin, as is a built-in origin's sample on the Components page (whose own root is only the
+ * page); a component's instance is an instance.
  */
 const roleOf = (
   graph: CatalogReader,
@@ -127,8 +128,19 @@ const roleOf = (
   const nodeId =
     position.target.kind === "node" ? position.target.id : undefined;
   if (originOfEditableSample(nodeId)) return "origin";
+  // ADR-260: a component's origin in place (the node alone decides — Decision 9).
+  if (nodeId) {
+    const definitionId = graph.definitionOfTemplateRoot(nodeId);
+    const definition = definitionId ? graph.getEntry(definitionId) : undefined;
+    if (
+      definition?.kind === "definition" &&
+      definition.originRef === true &&
+      definition.usage !== "layout"
+    )
+      return "origin";
+  }
   if (definitionView && parentId === null)
-    return nodeId === ORIGIN_VIEW_NODE ? undefined : "origin";
+    return isComponentsViewRoot(nodeId) ? undefined : "origin";
   // A position of an instance's template is an instance too when its row is one (a
   // ToggleButtonGroup's "Toggle 1" — a ToggleButton origin row, user 2026-10-14).
   const definitionId = String(position.definitionId);

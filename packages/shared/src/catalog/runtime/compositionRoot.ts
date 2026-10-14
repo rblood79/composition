@@ -66,8 +66,8 @@ import {
 } from "./rulePaint";
 import { resolveComponentRule } from "../resolvers/resolveComponentRule";
 import {
+  componentsViewRoot,
   isComponentsView,
-  ORIGIN_VIEW_NODE,
   type CatalogComponentsViewId,
 } from "./originViewNode";
 type CatalogDefinitionViewId =
@@ -1993,10 +1993,10 @@ export class CatalogCompositionRoot {
   private pageRoots(): NodeId[] {
     if (this.definitionView) {
       // The Components page: the derived root frame the workspace put in the graph's view.
-      if (isComponentsView(this.definitionView))
-        return this.runtime.graph.isViewEntry(ORIGIN_VIEW_NODE)
-          ? [ORIGIN_VIEW_NODE]
-          : [];
+      if (isComponentsView(this.definitionView)) {
+        const root = componentsViewRoot(this.definitionView);
+        return this.runtime.graph.isViewEntry(root) ? [root] : [];
+      }
       const definition = this.runtime.graph.getEntry(this.definitionView);
       return definition?.kind === "definition" && definition.templateRootId
         ? [definition.templateRootId]

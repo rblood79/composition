@@ -380,13 +380,14 @@ const koKR: TranslationKeys = {
     selectInstances: "인스턴스 선택 ({count})",
     createComponent: "컴포넌트 만들기",
     detachComponent: "컴포넌트 분리",
+    restoreOrigin: "원본 복원",
     systemOriginLocked:
-      "Components 페이지의 기본 컴포넌트는 분리할 수 없습니다",
+      "라이브러리 컴포넌트는 분리할 수 없습니다",
   },
   operation: {
     bodyLocked: "페이지 body 에는 이 작업을 할 수 없습니다",
     systemOriginLocked:
-      "Components 페이지의 기본 컴포넌트는 삭제 · 풀기 · 분리할 수 없습니다",
+      "라이브러리 컴포넌트는 삭제 · 풀기 · 분리할 수 없습니다",
     templateAnchorLocked: "목록의 항목 템플릿은 삭제할 수 없습니다",
     requiredPartKept:
       "컴포넌트가 동작하는 데 필요한 부품이라 삭제하거나 밖으로 옮길 수 없습니다",
@@ -1525,8 +1526,6 @@ const koKR: TranslationKeys = {
     components: "컴포넌트",
     deleteLayout: "레이아웃 삭제",
     layoutDefaultName: "레이아웃",
-    noComponents:
-      "컴포넌트가 없습니다. 요소를 선택해 「컴포넌트 만들기」로 만드세요",
     layouts: "레이아웃",
     panelTabs: "탐색기 탭",
     addPage: "페이지 추가",
@@ -1535,8 +1534,8 @@ const koKR: TranslationKeys = {
     noLayouts: "사용 가능한 레이아웃이 없습니다",
     selectLayout: "레이아웃을 선택하면 요소가 표시됩니다",
     selectComponent: "컴포넌트를 선택하면 요소가 표시됩니다",
-    userComponents: "내 컴포넌트",
-    builtinComponents: "기본 컴포넌트",
+    userComponents: "로컬",
+    builtinComponents: "라이브러리",
     noElements: "이 레이아웃에 요소가 없습니다",
     layers: "레이어",
     collapseTree: "트리 접기",
@@ -2531,13 +2530,14 @@ const enUS: TranslationKeys = {
     selectInstances: "Select instances ({count})",
     createComponent: "Create component",
     detachComponent: "Detach component",
+    restoreOrigin: "Restore origin",
     systemOriginLocked:
-      "Built-in components on the Components page can't be detached",
+      "Library components can't be detached",
   },
   operation: {
     bodyLocked: "This can't be done to the page body",
     systemOriginLocked:
-      "Built-in components on the Components page can't be deleted, ungrouped, or detached",
+      "Library components can't be deleted, ungrouped, or detached",
     templateAnchorLocked: "A list's item template can't be deleted",
     requiredPartKept:
       "The component needs this part to work — it can't be deleted or moved out",
@@ -3679,8 +3679,6 @@ const enUS: TranslationKeys = {
     components: "Components",
     deleteLayout: "Delete Layout",
     layoutDefaultName: "Layout",
-    noComponents:
-      "No components yet. Select an element and choose Create component",
     layouts: "Layouts",
     panelTabs: "Navigator tabs",
     addPage: "Add Page",
@@ -3689,8 +3687,8 @@ const enUS: TranslationKeys = {
     noLayouts: "No layouts available",
     selectLayout: "Select a layout to view elements",
     selectComponent: "Select a component to view elements",
-    userComponents: "My components",
-    builtinComponents: "Built-in components",
+    userComponents: "Local",
+    builtinComponents: "Library",
     noElements: "No elements in this layout",
     layers: "Layers",
     collapseTree: "Collapse tree",

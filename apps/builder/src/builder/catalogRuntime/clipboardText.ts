@@ -12,7 +12,17 @@ export const CATALOG_CLIPBOARD_PREFIX = "composition-catalog-clipboard/1\n";
 export function serializeCatalogClipboard(clipboard: CatalogClipboard): string {
   return (
     CATALOG_CLIPBOARD_PREFIX +
-    JSON.stringify({ rootIds: clipboard.rootIds, entries: clipboard.entries })
+    JSON.stringify({
+      rootIds: clipboard.rootIds,
+      entries: clipboard.entries,
+      // ADR-260 Decision 13: the source project, copied origins, definition and token snapshots.
+      ...(clipboard.sourceProjectId
+        ? { sourceProjectId: clipboard.sourceProjectId }
+        : {}),
+      ...(clipboard.origins ? { origins: clipboard.origins } : {}),
+      ...(clipboard.definitions ? { definitions: clipboard.definitions } : {}),
+      ...(clipboard.tokens ? { tokens: clipboard.tokens } : {}),
+    })
   );
 }
 
@@ -26,21 +36,37 @@ export function parseCatalogClipboard(
       text.slice(CATALOG_CLIPBOARD_PREFIX.length),
     );
     if (!parsed || typeof parsed !== "object") return undefined;
-    const { rootIds, entries } = parsed as Record<string, unknown>;
-    if (
-      !Array.isArray(rootIds) ||
-      !rootIds.every((id) => typeof id === "string") ||
-      !Array.isArray(entries) ||
-      !entries.every(
+    const { rootIds, entries, sourceProjectId, origins, definitions, tokens } =
+      parsed as Record<string, unknown>;
+    const records = (value: unknown) =>
+      Array.isArray(value) &&
+      value.every(
         (entry) =>
           !!entry &&
           typeof entry === "object" &&
           typeof (entry as { id?: unknown }).id === "string" &&
           typeof (entry as { kind?: unknown }).kind === "string",
-      )
+      );
+    if (
+      !Array.isArray(rootIds) ||
+      !rootIds.every((id) => typeof id === "string") ||
+      !records(entries)
     )
       return undefined;
-    return { rootIds, entries } as CatalogClipboard;
+    // (The ADR-260 fields are optional: an older copy pastes as before; a malformed one is dropped.)
+    return {
+      rootIds,
+      entries,
+      ...(typeof sourceProjectId === "string" ? { sourceProjectId } : {}),
+      ...(origins &&
+      typeof origins === "object" &&
+      !Array.isArray(origins) &&
+      Object.values(origins).every((id) => typeof id === "string")
+        ? { origins }
+        : {}),
+      ...(records(definitions) ? { definitions } : {}),
+      ...(records(tokens) ? { tokens } : {}),
+    } as CatalogClipboard;
   } catch {
     return undefined;
   }

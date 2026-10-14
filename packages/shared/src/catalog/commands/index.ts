@@ -36,6 +36,7 @@ export {
   detachInstances,
   dissolveComponent,
   setLibraryDefault,
+  restoreOrigin,
 } from "./components";
 export {
   addRecord,

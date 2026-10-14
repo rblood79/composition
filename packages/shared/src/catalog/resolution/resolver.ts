@@ -26,7 +26,11 @@ import type {
   VisualWrites,
   WriteValue,
 } from "../document/types";
-import { descendantPatchOf } from "../document/types";
+import {
+  innerOwnerPlace,
+  layeredOverride,
+  overridesAt,
+} from "./templateOwners";
 import { CatalogGraph } from "../document/graph";
 import { catalogCalendarDurationFits } from "../document/valueType";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
@@ -427,6 +431,7 @@ export function resolveCatalogNode(
   tableSort?: CatalogTableSortSource,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
+  const lookupEntry = (entryId: string) => graph.getEntry(entryId);
   const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
     CASCADE[breakpoint]
       .map((name) => node.responsive?.[name])
@@ -1507,19 +1512,38 @@ export function resolveCatalogNode(
       throw new CatalogValidationError("DANGLING_TEMPLATE", templateId);
     // An override address starts at its owner instance (`validateInstanceAddress`); the
     // resolution path also carries the ancestors above the owner when resolving from one of them.
-    const address = {
-      instances: instancePath.slice(instancePath.lastIndexOf(owner.id)),
-      templatePath: path,
-    };
-    const change = owner.descendantOverrides.find((item) =>
-      same(item.address, address),
-    );
+    // ADR-260 Decision 11: the owner's override and those of the project template nodes on the
+    // way (a component inside the component), the outer ones winning.
+    const found = overridesAt(lookupEntry, owner, instancePath, path);
+    const { structural, patch: layeredPatch } = layeredOverride(found);
+    const change = structural?.override ?? found[0]?.override;
+    // An inner owner's replacement · slot contents are positions of the template it sits in.
+    const innerPlace =
+      structural && structural.owner !== owner
+        ? innerOwnerPlace(
+            lookupEntry,
+            (id) => graph.ownerOf(id),
+            library,
+            instancePath,
+            structural.owner,
+          )
+        : undefined;
+    if (structural && structural.owner !== owner && !innerPlace)
+      throw new CatalogValidationError("DANGLING_TEMPLATE", templateId);
     if (change?.kind === "replace") {
       const replacement = graph.getEntry(change.replacementId);
       if (replacement?.kind !== "node")
         throw new CatalogValidationError(
           "DANGLING_CHILD",
           change.replacementId,
+        );
+      if (innerPlace)
+        return projectTemplate(
+          owner,
+          replacement.id,
+          innerPlace.instancePath,
+          [...innerPlace.templatePath, replacement.id],
+          parent,
         );
       return resolveOwned(
         replacement,
@@ -1533,14 +1557,14 @@ export function resolveCatalogNode(
         ? patches.patches.find((item) => sameIds(item.templatePath, path))
         : undefined;
     const enabled =
-      descendantPatchOf(change)?.enabled ??
+      layeredPatch?.enabled ??
       libraryPatch?.enabled ??
       template.enabled ??
       true;
     if (!enabled) return undefined;
     // A path patch's authoring fields (Phase 4b) layer over the template node's own.
     // (A position holding the instance's own child list carries its field writes too.)
-    const patch = descendantPatchOf(change);
+    const patch = layeredPatch;
     const visibleBy = patch?.visibility
       ? patch
       : "kind" in template
@@ -1568,9 +1592,12 @@ export function resolveCatalogNode(
     // so every instance draws it — over the root's template values, under the instance's.
     // (Its prop defaults are the origin's accepted keys: they reach the template as bindings.)
     const originOverride = root?.origin ? findOverride(root.origin) : undefined;
+    // (A composite position takes them all: its instance contract is its accepts plus its template
+    // root's — `instanceContract` — and they go on to that root, as an owned instance's do.)
     if (root)
       for (const [key, value] of Object.entries(root.props))
-        if (key in definition.accepts) props[key] = value;
+        if (key in definition.accepts || definition.mode === "composite")
+          props[key] = value;
     const sizing: Record<string, number | null> = { ...root?.sizing };
     if ("kind" in template) {
       applyWrites(sizing, template.sizing);
@@ -1886,6 +1913,10 @@ export function resolveCatalogNode(
                 [
                   ...Object.keys(template.props),
                   ...Object.keys(patch?.props ?? {}),
+                  // What the instance above authored for this root goes on to the root it
+                  // collapses into, as its visual does (ADR-260 follow-up — a RadioGroup
+                  // component's instance set Orientation and its group stayed vertical).
+                  ...Object.keys(root?.props ?? {}),
                   ...(rowing?.rowStart ? ["id"] : []),
                 ],
                 props,
@@ -1959,7 +1990,24 @@ export function resolveCatalogNode(
     if (libraryFill) children.push(...libraryFill.project(self));
     else children.push(...projectChildren(ownChildIds, childParent, self));
     let ownedRowItems = 0;
-    if (change?.kind === "fillSlot") {
+    if (change?.kind === "fillSlot" && innerPlace) {
+      // An inner owner's slot contents: template positions of the instance (ADR-260 Decision 11).
+      children.length = 0;
+      for (const childId of change.childIds) {
+        if (selection && !selection.include(childId, innerPlace.instancePath))
+          continue;
+        push(
+          children,
+          projectTemplate(
+            owner,
+            childId,
+            innerPlace.instancePath,
+            [...innerPlace.templatePath, childId],
+            self,
+          ),
+        );
+      }
+    } else if (change?.kind === "fillSlot") {
       children.length = 0;
       // A bound collection whose items are its own nodes (placed since 2026-10-14, or added by its
       // "+"): as for template positions, the first item is the row template, repeated per row; the

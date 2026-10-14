@@ -2,6 +2,7 @@ import {
   createComponent,
   detachInstances,
   dissolveComponent,
+  restoreOrigin,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
@@ -26,6 +27,11 @@ export interface CatalogComponentRef {
   project: boolean;
   /** The component's instances in the document (select-instances). */
   instanceIds: readonly NodeId[];
+  /**
+   * ADR-260 Decision 6: the component's origin was deleted (its definition holds it as a hidden
+   * template) — an instance offers 「Restore origin」.
+   */
+  restorable?: boolean;
 }
 /** What the Component section offers for a selected node. */
 export interface CatalogComponentState {
@@ -71,7 +77,26 @@ function componentRef(
         ),
     project,
     instanceIds: [...graph.instancesOf(definitionId)] as NodeId[],
+    ...(project && (definition as { originRef?: boolean }).originRef === false
+      ? { restorable: true }
+      : {}),
   };
+}
+
+/**
+ * ADR-260: the project component whose origin a node is, in place on its page (or inside another
+ * origin, or a hidden template) — `originRef: true`. The node alone decides (Decision 9).
+ */
+function referencedOriginOf(
+  graph: CatalogReader,
+  id: string,
+): string | undefined {
+  const definitionId = graph.definitionOfTemplateRoot(id);
+  if (!definitionId) return undefined;
+  const definition = graph.getEntry(definitionId);
+  return definition?.kind === "definition" && definition.originRef === true
+    ? definitionId
+    : undefined;
 }
 
 /**
@@ -116,6 +141,11 @@ export function catalogComponentState(
       const originOf = componentRef(graph, sampled);
       return originOf ? { originOf } : {};
     }
+    const inPlace = referencedOriginOf(graph, target.id);
+    if (inPlace) {
+      const originOf = componentRef(graph, inPlace);
+      if (originOf) return { originOf };
+    }
     if (definitionView) {
       const viewed = graph.getEntry(definitionView);
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id) {
@@ -146,6 +176,8 @@ export function catalogComponentRole(
     const node = graph.getEntry(target.id);
     if (node?.kind !== "node") return undefined;
     if (originOfEditableSample(target.id)) return "origin";
+    const inPlace = referencedOriginOf(graph, target.id);
+    if (inPlace && componentDefinition(graph, inPlace)) return "origin";
     if (definitionView) {
       const viewed = graph.getEntry(definitionView);
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id)
@@ -160,10 +192,11 @@ export function catalogComponentRole(
 }
 
 /**
- * ADR-248 Phase 4e-4: the Component section's commands — create a component from a node (the node
- * becomes its template, an instance takes its place), detach an instance (it keeps what it
- * showed, as owned nodes), dissolve a project component (every instance detached, the definition
- * and template removed). Each is one history step.
+ * ADR-248 Phase 4e-4 · ADR-260: the Component section's commands — create a component from a node
+ * (the node stays in place as its origin), detach an instance (it keeps what it showed, as owned
+ * nodes), dissolve a project component (every instance detached, the definition removed — an
+ * origin in place stays an ordinary node), restore a deleted origin beside an instance. Each is
+ * one history step.
  */
 export const catalogComponentCommands = {
   create: (id: NodeId, name: string, newId: NewId): CatalogCommand =>
@@ -175,4 +208,6 @@ export const catalogComponentCommands = {
       definitionId: definitionId as EntryId<"definition">,
       newId,
     }),
+  restore: (instanceId: NodeId): CatalogCommand =>
+    restoreOrigin({ instanceId }),
 };

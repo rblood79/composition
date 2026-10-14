@@ -642,6 +642,13 @@ export interface DefinitionEntry {
    * definition and filling the template's slots. Absent = a component definition.
    */
   usage?: "component" | "layout";
+  /**
+   * ADR-260 — how the definition holds `templateRootId`. Absent (every older document and every
+   * layout): it owns the template. `true`: the root is a node it references — the component origin,
+   * owned by a page-side parent (or by the subtree of a hidden template, Decision 6). `false`: the
+   * origin was deleted and the definition owns the subtree as a hidden template ("Restore origin").
+   */
+  originRef?: boolean;
 }
 export interface DefinitionOverrideEntry {
   kind: "definitionOverride";
@@ -861,6 +868,8 @@ export interface CatalogReader {
   ownerOf(id: string): string | undefined;
   referrersOf(id: string): ReadonlySet<string>;
   instancesOf(definitionId: string): ReadonlySet<string>;
+  /** ADR-260: the project definition whose template root `id` is (owned or referenced). */
+  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined;
 }
 
 export interface CatalogDocument {

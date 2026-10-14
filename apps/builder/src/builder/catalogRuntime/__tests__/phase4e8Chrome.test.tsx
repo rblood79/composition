@@ -9,6 +9,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  duplicateNodes,
   insertNodes,
   moveNodes,
   removeTargets,
@@ -247,7 +248,13 @@ describe("ADR-248 4e-8 instance override rows", () => {
       ),
     );
     const graph = workspace.runtime.graph;
-    const instance = (graph.getEntry(BODY) as NodeEntry).children[0]!;
+    // ADR-260: the tile stays as the origin; its copy is an instance.
+    const instance = workspace.execute(
+      duplicateNodes({
+        ids: ["project:node:tile" as NodeId],
+        newId: workspace.newId,
+      }),
+    ).plan.selectAfter![0]!;
     const record = workspace.root.recordsOfSource(instance)[0]!;
     const child = workspace.root.domInputs.get(record)!.children[0]!;
     const target = workspace.itemOfRecord(child)!.target;
@@ -333,8 +340,13 @@ describe("ADR-248 4e-8 instance override rows", () => {
         workspace.newId,
       ),
     );
-    const graph = workspace.runtime.graph;
-    const instance = (graph.getEntry(BODY) as NodeEntry).children[0]!;
+    // ADR-260: the pair stays as the origin; its copy is an instance.
+    const instance = workspace.execute(
+      duplicateNodes({
+        ids: ["project:node:pair" as NodeId],
+        newId: workspace.newId,
+      }),
+    ).plan.selectAfter![0]!;
     const record = workspace.root.recordsOfSource(instance)[0]!;
     const targets = workspace.root.domInputs
       .get(record)!

@@ -37,7 +37,13 @@ export function catalogSlotMarks(
       cursor;
       cursor = records.get(cursor.parentId)
     )
-      if (originOfSample(cursor.sourceId)) return "origin" as const;
+      if (
+        originOfSample(cursor.sourceId) ||
+        // The project components page draws a component's origin node itself.
+        (cursor.sourceId.startsWith("project:node:") &&
+          graph.definitionOfTemplateRoot(cursor.sourceId) !== undefined)
+      )
+        return "origin" as const;
     return "instance" as const;
   };
   // The Components page: content laid out but not drawn (an origin sample's slot contents).

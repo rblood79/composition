@@ -1,6 +1,6 @@
 import { componentTypeSet } from "../../domain/componentTraits";
 import { cloneNodeSubgraph } from "../document/clone";
-import { ownedChildren, referencedIds } from "../document/graph";
+import { ownedChildren, referencedIds, tokenRefs } from "../document/graph";
 import {
   catalogShowWhenRefs,
   catalogStateKeysOf,
@@ -8,14 +8,17 @@ import {
 import type {
   CatalogEntry,
   CatalogReader,
+  DefinitionEntry,
   DefinitionId,
   EntryId,
   InteractionEntry,
   NodeEntry,
   NodeId,
   NodePlacement,
+  ProjectEntry,
   StateVariableEntry,
   TemplateId,
+  TokenEntry,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CatalogStage } from "../transactions/transaction";
@@ -38,7 +41,12 @@ import {
   type EditTarget,
   type NodeParent,
 } from "./context";
-import { ensureChildList, ownSlotContents, type NewId } from "./materialize";
+import {
+  detachInto,
+  ensureChildList,
+  ownSlotContents,
+  type NewId,
+} from "./materialize";
 import {
   dropTableColumnTemplateCells,
   tableAlignedIn,
@@ -93,7 +101,10 @@ const COLLECTION_ITEM_TYPES = componentTypeSet("staticCollectionItem");
  * "+" always did): without this an item took new content only after its template's (a GridList
  * item's selection Checkbox at index 0 stood last). An item with own children keeps its list.
  */
-function itemContentParent(draft: CommandDraft, parent: NodeParent): NodeParent {
+function itemContentParent(
+  draft: CommandDraft,
+  parent: NodeParent,
+): NodeParent {
   if (parent.kind !== "node") return parent;
   const node = draft.node(parent.id);
   if (node.children.length || !node.definitionId.startsWith("lib:"))
@@ -406,7 +417,8 @@ export function tableHidingTargets(
   // outgrow the shown columns at that breakpoint).
   for (const target of targets)
     if (
-      (target.kind !== "node" || revisionType(reader, target.id) === "Column") &&
+      (target.kind !== "node" ||
+        revisionType(reader, target.id) === "Column") &&
       tableColumnSpanningCells(draft, target).length
     )
       fail(
@@ -675,10 +687,7 @@ function showsPart(
     (item) => item.address.instances.length === 1,
   );
   const gone = local
-    .filter(
-      (item) =>
-        item.kind === "replace" || item.enabled === false,
-    )
+    .filter((item) => item.kind === "replace" || item.enabled === false)
     .map((item) => item.address.templatePath.join("\n"));
   const shown = (path: readonly string[]) => {
     const key = path.join("\n");
@@ -798,9 +807,7 @@ function assertTemplatePartsKept(
         instance,
         ownerPath.slice(0, ownerPath.length - depth),
         owner,
-        RAC_REQUIRED_PARTS[owner]!.find((kinds) =>
-          kinds.includes(part.type),
-        )!,
+        RAC_REQUIRED_PARTS[owner]!.find((kinds) => kinds.includes(part.type))!,
         (definitionId) => definitionTypeName(reader, definitionId),
         true,
       )
@@ -898,6 +905,51 @@ export function subtree(draft: CommandDraft, id: NodeId): NodeId[] {
   return out;
 }
 
+/** A node that is the origin of a component in place (ADR-260 — `originRef: true`), its definition. */
+export function referencedOriginOf(
+  draft: CommandDraft,
+  id: string,
+): DefinitionEntry | undefined {
+  const definitionId = draft.reader.definitionOfTemplateRoot(id);
+  const definition = definitionId ? draft.read(definitionId) : undefined;
+  return definition?.kind === "definition" && definition.originRef === true
+    ? definition
+    : undefined;
+}
+
+/**
+ * ADR-260 Decision 6 (Figma): deleting an origin keeps its instances — the definition takes the
+ * origin's subtree as a hidden template (`originRef: false`, 「Restore origin」). Only the outermost
+ * origins of the deleted nodes move; an origin inside one stays referenced (its owner is still its
+ * parent there). Returns the nodes still to remove.
+ */
+export function keepRemovedOrigins(
+  draft: CommandDraft,
+  removed: readonly NodeId[],
+): NodeId[] {
+  const gone = new Set<string>(removed);
+  const kept = new Set<string>();
+  for (const id of removed) {
+    if (kept.has(id)) continue;
+    const definition = referencedOriginOf(draft, id);
+    if (!definition) continue;
+    let inside = false;
+    for (
+      let at = draft.reader.ownerOf(id);
+      at && gone.has(at);
+      at = draft.reader.ownerOf(at)
+    )
+      if (referencedOriginOf(draft, at)) {
+        inside = true;
+        break;
+      }
+    if (inside) continue;
+    draft.write({ ...definition, originRef: false });
+    for (const node of subtree(draft, id)) kept.add(node);
+  }
+  return removed.filter((id) => !kept.has(id));
+}
+
 /**
  * Remove records and everything that names them: owned state variables and interactions (and
  * interactions that act on a removed variable or target), and other instances' overrides whose
@@ -967,7 +1019,10 @@ export const removeTargets =
           revisionType(reader, target.id) === "Column"
         ) {
           // ADR-257 Phase 2: a cell spanning the column with others narrows by one (it stays).
-          for (const { cell, span } of tableColumnSpanningCells(draft, target)) {
+          for (const { cell, span } of tableColumnSpanningCells(
+            draft,
+            target,
+          )) {
             if (cell.kind !== "node")
               return fail(
                 "TABLE_CELLS_NOT_ALIGNED",
@@ -1055,7 +1110,7 @@ export const removeTargets =
       if (templateId && target.address.templatePath.length > 1)
         assertTemplatePartsKept(draft, target, templateId);
     }
-    removeWithReferrers(draft, removed);
+    removeWithReferrers(draft, keepRemovedOrigins(draft, removed));
     assertRequiredPartsKept(draft, nodeIds);
     assertTablesAligned(draft, [
       ...nodeIds,
@@ -1135,6 +1190,8 @@ export const duplicateNodes =
         id,
         () => input.newId("node"),
         relatedId(input.newId),
+        // A copy of a component origin is an instance of it (ADR-260 Decision 8 — pen.dev).
+        (nodeId) => referencedOriginOf(draft, nodeId)?.id,
       );
       clones.push({ clone, parent, index });
       roots.push(clone.entries.find((entry) => entry.id === clone.rootId)!);
@@ -1159,6 +1216,16 @@ export const duplicateNodes =
 export interface CatalogClipboard {
   rootIds: readonly NodeId[];
   entries: readonly (NodeEntry | Related)[];
+  /**
+   * ADR-260 Decision 13 — what a paste needs beyond the copied records (absent in an older copy):
+   * the project copied from, the copied component origins (node → its definition), the project
+   * definitions the copied nodes rest on (each with its template subtree, closed over nested
+   * definitions) and the project tokens they name.
+   */
+  sourceProjectId?: EntryId<"project">;
+  origins?: Readonly<Record<string, EntryId<"definition">>>;
+  definitions?: readonly (DefinitionEntry | NodeEntry)[];
+  tokens?: readonly TokenEntry[];
 }
 /** Read-only: the top-level nodes' subtrees and their owned state variables and interactions. */
 export function copyNodes(
@@ -1170,8 +1237,11 @@ export function copyNodes(
   const nodes = new Set(rootIds.flatMap((id) => subtree(draft, id)));
   const entries: (NodeEntry | Related)[] = [];
   const related = new Set<string>();
+  const origins: Record<string, EntryId<"definition">> = {};
   for (const id of nodes) {
     entries.push(structuredClone(draft.node(id)));
+    const origin = referencedOriginOf(draft, id);
+    if (origin) origins[id] = origin.id;
     for (const referrerId of reader.referrersOf(id)) {
       const entry = reader.getEntry(referrerId);
       if (
@@ -1184,7 +1254,41 @@ export function copyNodes(
       }
     }
   }
-  return { rootIds, entries };
+  // The project definitions the copy rests on, closed over their templates' own.
+  const definitions: (DefinitionEntry | NodeEntry)[] = [];
+  const seen = new Set<string>();
+  const rest = (definitionId: string): void => {
+    if (
+      !definitionId.startsWith("project:definition:") ||
+      seen.has(definitionId)
+    )
+      return;
+    seen.add(definitionId);
+    const definition = reader.getEntry(definitionId);
+    if (definition?.kind !== "definition") return;
+    definitions.push(structuredClone(definition));
+    if (!definition.templateRootId) return;
+    for (const id of subtree(draft, definition.templateRootId)) {
+      const node = draft.node(id);
+      definitions.push(structuredClone(node));
+      rest(node.definitionId);
+    }
+  };
+  for (const id of nodes) rest(draft.node(id).definitionId);
+  const tokenIds = new Set<string>();
+  for (const entry of [...entries, ...definitions]) tokenRefs(entry, tokenIds);
+  const tokens = [...tokenIds].flatMap((id) => {
+    const token = id.startsWith("project:") ? reader.getEntry(id) : undefined;
+    return token?.kind === "token" ? [structuredClone(token)] : [];
+  });
+  return {
+    rootIds,
+    entries,
+    sourceProjectId: reader.projectId,
+    ...(Object.keys(origins).length ? { origins } : {}),
+    ...(definitions.length ? { definitions } : {}),
+    ...(tokens.length ? { tokens } : {}),
+  };
 }
 
 export interface PasteNodesInput {
@@ -1195,15 +1299,23 @@ export interface PasteNodesInput {
   placement?: CopyPlacement;
   label?: string;
 }
-/** Paste a clipboard with new IDs (the source may be gone or in another project). */
+/**
+ * Paste a clipboard with new IDs (the source may be gone or in another project). ADR-260
+ * Decision 13: a copied origin pastes as an instance where its definition is (the same project,
+ * the origin in place or hidden); an instance of a definition the target lacks (another project, a
+ * dissolved component) pastes as ordinary nodes from the copied snapshot; a project token the
+ * target lacks becomes the target's token of the same name and type, else its copied value; an
+ * interaction acting on something the target lacks stays behind.
+ */
 export const pasteNodes =
   (input: PasteNodesInput): CatalogCommand =>
   (reader) => {
+    const { clipboard } = input;
     const records = new Map(
-      input.clipboard.entries.map((entry) => [entry.id as string, entry]),
+      clipboard.entries.map((entry) => [entry.id as string, entry]),
     );
     const referrers = new Map<string, Set<string>>();
-    for (const entry of input.clipboard.entries)
+    for (const entry of clipboard.entries)
       for (const ref of referencedIds(entry as CatalogEntry)) {
         if (!referrers.has(ref)) referrers.set(ref, new Set());
         referrers.get(ref)!.add(entry.id);
@@ -1212,20 +1324,45 @@ export const pasteNodes =
       getEntry: (id: string) => records.get(id) as CatalogEntry | undefined,
       referrersOf: (id: string) => referrers.get(id) ?? new Set<string>(),
     };
-    const entries: NodeEntry[] = [];
-    const related: Related[] = [];
+    const sameProject =
+      !clipboard.sourceProjectId ||
+      clipboard.sourceProjectId === reader.projectId;
+    const asInstance = (id: NodeId) => {
+      const definitionId = clipboard.origins?.[id];
+      return sameProject &&
+        definitionId &&
+        reader.getEntry(definitionId)?.kind === "definition"
+        ? definitionId
+        : undefined;
+    };
+    let entries: NodeEntry[] = [];
+    let related: Related[] = [];
     const rootIds: NodeId[] = [];
-    for (const rootId of input.clipboard.rootIds) {
+    for (const rootId of clipboard.rootIds) {
       const clone = cloneNodeSubgraph(
         source,
         rootId,
         () => input.newId("node"),
         relatedId(input.newId),
+        asInstance,
       );
       entries.push(...clone.entries);
       related.push(...clone.relatedEntries);
       rootIds.push(clone.rootId);
     }
+    entries = materializeMissingDefinitions(
+      reader,
+      clipboard.definitions ?? [],
+      entries,
+      rootIds,
+      input.newId,
+    );
+    entries = entries.map((entry) =>
+      withTargetTokens(reader, clipboard.tokens ?? [], entry),
+    );
+    related = keepPlaceableRelated(reader, entries, related).map((entry) =>
+      withTargetTokens(reader, clipboard.tokens ?? [], entry),
+    );
     placeCopies(
       rootIds.map((id) => entries.find((entry) => entry.id === id)!),
       input.placement,
@@ -1240,6 +1377,124 @@ export const pasteNodes =
       label: input.label ?? "Paste",
     })(reader);
   };
+
+/**
+ * Pasted instances of project definitions the target lacks become ordinary nodes: each is
+ * detached against the copied definition snapshot (nested ones too, until none is left).
+ */
+function materializeMissingDefinitions(
+  reader: CatalogReader,
+  snapshot: readonly (DefinitionEntry | NodeEntry)[],
+  entries: readonly NodeEntry[],
+  rootIds: readonly NodeId[],
+  newId: NewId,
+): NodeEntry[] {
+  const missing = (definitionId: string) =>
+    definitionId.startsWith("project:definition:") &&
+    reader.getEntry(definitionId)?.kind !== "definition";
+  if (!entries.some((entry) => missing(entry.definitionId)))
+    return [...entries];
+  const overlay = new Map<string, CatalogEntry>();
+  for (const entry of snapshot)
+    if (!reader.getEntry(entry.id)) overlay.set(entry.id, entry);
+  for (const entry of entries) overlay.set(entry.id, entry);
+  const owners = new Map<string, string>();
+  for (const entry of overlay.values())
+    for (const child of ownedChildren(entry)) owners.set(child, entry.id);
+  const view: CatalogReader = {
+    projectId: reader.projectId,
+    revision: reader.revision,
+    library: reader.library,
+    getEntry: (id) => overlay.get(id) ?? reader.getEntry(id),
+    ownerOf: (id) => owners.get(id) ?? reader.ownerOf(id),
+    referrersOf: (id) =>
+      overlay.has(id) ? new Set<string>() : reader.referrersOf(id),
+    instancesOf: (id) => reader.instancesOf(id),
+    definitionOfTemplateRoot: (id) => {
+      for (const entry of snapshot)
+        if (entry.kind === "definition" && entry.templateRootId === id)
+          return entry.id;
+      return reader.definitionOfTemplateRoot(id);
+    },
+  };
+  const draft = new CommandDraft(view);
+  const reachable = (): NodeEntry[] => {
+    const out: NodeEntry[] = [];
+    const stack = [...rootIds];
+    while (stack.length) {
+      const node = draft.node(stack.pop()!);
+      out.push(node);
+      stack.push(...ownedChildren(node));
+    }
+    return out;
+  };
+  for (let round = 0; round < 64; round++) {
+    const pending = reachable().filter(
+      (node) =>
+        missing(node.definitionId) &&
+        snapshot.some((entry) => entry.id === node.definitionId),
+    );
+    if (!pending.length) return reachable();
+    for (const node of pending) detachInto(draft, node.id, newId);
+  }
+  return fail("PASTE_DEFINITION_DEPTH", rootIds[0] ?? "clipboard");
+}
+
+/** Token references the target lacks: its token of the same name and type, else the copied value. */
+function withTargetTokens<T extends CatalogEntry>(
+  reader: CatalogReader,
+  copied: readonly TokenEntry[],
+  entry: T,
+): T {
+  const project = reader.getEntry(reader.projectId) as ProjectEntry;
+  const target = new Map<string, string>();
+  for (const id of project.tokenIds) {
+    const token = reader.getEntry(id);
+    if (token?.kind === "token")
+      target.set(`${token.name}\0${token.tokenType}`, token.id);
+  }
+  let changed = false;
+  const map = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(map);
+    if (!value || typeof value !== "object") return value;
+    const record = value as Record<string, unknown>;
+    if (record.kind === "token" && typeof record.tokenId === "string") {
+      const id = record.tokenId;
+      if (!id.startsWith("project:") || reader.getEntry(id)?.kind === "token")
+        return value;
+      const token = copied.find((item) => item.id === id);
+      if (!token) return value;
+      changed = true;
+      const same = target.get(`${token.name}\0${token.tokenType}`);
+      return same ? { ...record, tokenId: same } : token.value;
+    }
+    return Object.fromEntries(
+      Object.entries(record).map(([key, item]) => [key, map(item)]),
+    );
+  };
+  const next = map(entry) as T;
+  return changed ? next : entry;
+}
+
+/** Copied interactions and state variables whose references the target has (or the paste brings). */
+function keepPlaceableRelated(
+  reader: CatalogReader,
+  entries: readonly NodeEntry[],
+  related: readonly Related[],
+): Related[] {
+  const pasted = new Set<string>([
+    ...entries.map((entry) => entry.id),
+    ...related.map((entry) => entry.id),
+  ]);
+  const there = (id: string) => pasted.has(id) || !!reader.getEntry(id);
+  return related.filter(
+    (entry) =>
+      entry.kind !== "interaction" ||
+      referencedIds(entry).every(
+        (id) => !id.startsWith("project:") || there(id),
+      ),
+  );
+}
 
 export interface GroupNodesInput {
   ids: readonly NodeId[];

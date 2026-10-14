@@ -167,7 +167,8 @@ const PAINT_ONLY_VISUAL_KEYS: ReadonlySet<string> = new Set([
 /** Owned child IDs of a record as one comparable key (order matters). */
 function ownedChildIds(entry: CatalogEntry): string {
   if (entry.kind === "page") return entry.children.join("\0");
-  if (entry.kind === "definition") return entry.templateRootId ?? "";
+  // (ADR-260: a referenced origin is not owned — switching the shape changes the owned list.)
+  if (entry.kind === "definition") return ownedChildren(entry).join("\0");
   if (entry.kind !== "node") return "";
   const ids = [...entry.children];
   for (const override of entry.descendantOverrides) {
@@ -184,7 +185,8 @@ function withoutChildren(entry: CatalogEntry): string {
 }
 /**
  * Pages rendering any of `ids`: walk owners up to a page; a template (owner chain ends at a
- * definition) reaches the pages of that definition's instances. Cost = depth × fan-out.
+ * definition, or passes a referenced origin root — ADR-260) reaches the pages of that definition's
+ * instances. Cost = depth × fan-out.
  */
 function affectedPagesOf(
   graph: CatalogGraph,
@@ -206,6 +208,9 @@ function affectedPagesOf(
         queue.push(...graph.instancesOf(entry.id));
         break;
       }
+      // ADR-260: an origin in place is drawn on its page and in every instance of its definition.
+      const definition = graph.definitionOfTemplateRoot(cursor);
+      if (definition) queue.push(definition);
       cursor = graph.ownerOf(cursor);
     }
   }
@@ -364,6 +369,14 @@ export class CatalogStage implements CatalogReader {
       this.graph.instancesOf(definitionId),
       (entry) => entry.kind === "node" && entry.definitionId === definitionId,
     );
+  }
+  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined {
+    const committed = this.graph.definitionOfTemplateRoot(id);
+    const found = this.overlay(
+      committed ? new Set<string>([committed]) : new Set<string>(),
+      (entry) => entry.kind === "definition" && entry.templateRootId === id,
+    );
+    return found.values().next().value as EntryId<"definition"> | undefined;
   }
   /** A committed index set with the staged records re-tested against `holds`. */
   private overlay(

@@ -8,6 +8,7 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
+  RefreshCcwDot,
   ClipboardPaste,
   Component,
   Copy,
@@ -138,6 +139,8 @@ export const ACTION_ICONS = {
   goToOrigin: Focus,
   createComponent: DiamondPlus,
   detach: DiamondMinus,
+  /** ADR-260: a deleted origin back beside the instance (Figma 「Restore main component」). */
+  restoreOrigin: RefreshCcwDot,
 
   // ── 정렬·분배 ─────────────────────────────────────────
   /** 정렬 서브메뉴 자신을 가리키는 대표 아이콘 */

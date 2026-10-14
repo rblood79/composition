@@ -19,6 +19,72 @@
 - oracle 대조표 (pen.dev docs · Figma help, 2026-10-14 조회 — 본문 Context): 만들기 (둘 다 그 자리) · 편집 전파 (둘 다 흐름, override 유지) · detach (instance 하나) · 해체 (pen.dev ⌘⌥K 토글 / Figma 없음 — undo 또는 instance 떼고 원본 삭제) · 원본 삭제 (Figma instance 유지 + Restore / pen.dev 미문서) · 복제 (pen.dev instance / Figma 새 컴포넌트) · 이동 (둘 다 자유) · 중첩 (둘 다 지원).
 - 사용자 결정 5건 모두 2026-10-14 답 (본문 Status). oracle 표에 Figma 「Restore main component」 의 실제 자리 (instance 옆 — 문서 미명시) 를 실물로 확인해 적는다 — 다르면 1회 보고.
 
+### Phase 0 결과 (2026-10-14, G0 통과)
+
+**규모 실측**: `templateRootId` 33 · `kind === "definition"` 25 → 합집합 **37 파일** (테스트 제외, 2026-10-14 grep). 본문 추정 34 + 53 보다 작다 (두 목록이 겹친다). 목록 밖에서 소유 사슬을 타는 파일 12 (아래 표 끝).
+
+**분류** — (a) id 로 template 을 읽음 · (b) 소유 사슬로 정의를 만남 · (c) 정의 편집 view 전제 · (d) 무관 (타입 · 생성 데이터). 「노드 override」 = template 노드 자신의 `descendantOverrides` 를 읽는가 (Decision 11).
+
+| 파일 | 묶음 | 근거 · 바꿀 곳 | 노드 override |
+| --- | --- | --- | --- |
+| `catalogRuntime/actionBar.ts` | (c) | `frameOf` — frame 주인 = page 첫 자식 또는 view 의 `templateRootId` | — |
+| `catalogRuntime/componentActions.ts` | (c) | `catalogComponentState` · `catalogComponentRole` — ORIGIN 은 `definitionView` 루트만 → Phase 3 역색인 | — |
+| `catalogRuntime/componentConfirm.ts` | (b)+(c) | `touchesTemplate` 사슬이 정의에 닿아야 · `watchCatalogComponentEdits` view 전제 → Phase 3 | — |
+| `catalogRuntime/componentsPage.ts` | (a) | library 정의 · template 만 | 아니오 |
+| `catalogRuntime/documentColors.ts` | (b, 경미) | page 서브트리와 정의 template 을 따로 걸음 — 참조 원본은 두 번 방문 (중복 제거만) | 아니오 |
+| `catalogRuntime/itemInsert.ts` | (a)+(b) | `wrapperGroupHost` 의 `ownerOf` — 원본 루트 위가 page 쪽 노드 (참조 모양에서 정상) | 아니오 |
+| `catalogRuntime/layerTree.ts` | (c) | `roleOf` — view 루트 = origin → Phase 3 역색인 | — |
+| `catalogRuntime/layouts.ts` | (a) | 정의 목록 · 탭 | 아니오 |
+| `catalogRuntime/pageSettings.ts` | (a)+(b) | `catalogSettingsPage` 사슬 → page (참조 원본이면 page 설정 대상 — 정상) | 아니오 |
+| `catalogRuntime/readModel.ts` | (c)+(a) | `definitionRows` = `definitionPositions` (view) | 아니오 |
+| `catalogRuntime/rowTemplate.ts` | (a)+(b) | `rowTemplateOwnerOf` 사슬이 page 쪽 bound 조상까지 (정상) | 자기 bound owner 것만 |
+| `catalogRuntime/slots.ts` | **(b)** | `catalogSlotDeclaration` — 사슬이 정의에 닿아야 slot 선언 → Phase 3 (참조 원본 서브트리도 허용) | 아니오 |
+| `catalogRuntime/textBinding.ts` | (a) | library 만 | 아니오 |
+| `catalogRuntime/workspace.ts` | **(c)**+(b) | `showDefinition` · `ownerOfRecord` · `findPositionOfRecord` → Phase 3 | — |
+| `panels/components/CatalogComponentsPanel.tsx` | (c) | view 루트에 넣기 — 소유 모양에만 | — |
+| `panels/properties/catalog/CatalogLayoutBodySection.tsx` | (a) | layout 전용 | 아니오 |
+| `panels/styles/catalog/catalogStylesHost.ts` | (a) | `masterTargetOf` — instance → `templateRootId` (모양 무관) | 아니오 |
+| `workspace/canvas/catalog/CatalogCanvas.tsx` | **(c)**+(b) | view 분기 7곳 · `movablePageOf` 의 `ownerOf` → Phase 3 확인 | — |
+| `workspace/canvas/catalog/CatalogDefinitionBar.tsx` | (c) | view 막대 (소유 모양 · 숨은 template 전용으로 남음) | — |
+| `commands/collections.ts` | (a)+(b) | `parentOf` 사슬 — 참조 원본은 page 쪽으로 이어짐 (정상) | 아니오 |
+| `commands/components.ts` | **(b)** | `createComponent` 이동 · `dissolveComponent` 서브트리 삭제 → Phase 2 | (`detachInto` 는 materializer) |
+| `commands/context.ts` | **(b)** | `locate` 의 `TEMPLATE_ROOT_FIXED` (소유 모양만) · `nodeAncestorTypes` — 원본 편집의 중첩 규칙이 page 위치를 따름 (pen.dev: 원본은 캔버스 문맥에서 편집 — 정상) | 아니오 |
+| `commands/materialize.ts` | (a) | `readTemplate` · `materialize` | **예** — project template 노드 `overrides` 를 사본에 복사하되 `fillSlot` · `replace` 자식 id 를 그대로 둔다 → Phase 1 (Decision 11: 자식도 물질화) |
+| `commands/project.ts` | (a)+(b) | layout 소유 모양 그대로 · page 삭제 → Phase 2 | 아니오 |
+| `commands/structure.ts` | **(b)** | `removeTargets` · `duplicateNodes` · `copyNodes` · `pasteNodes` · `moveNodes` → Phase 2 | `templateChildren` 은 이미 `ownedChildren` |
+| `document/fixture.ts` · `generated/reusableOriginLibrary.ts` · `library.ts` · `types.ts` · `validation.ts` | (d) | library · 타입 | — |
+| `document/graph.ts` | **(b)** | 소유 · 역색인 · 재검증 · 순환 → Phase 1 | — |
+| `resolution/address.ts` | (a) | `findInside` · templatePath 걷기 = `children` 만 → Phase 1 (Decision 11 규칙) | 아니오 |
+| `resolution/fieldSource.ts` | (a)+(b) | `targetsAbove` · `nodeAncestors` 사슬 (정상) | 아니오 → Phase 1 확인 |
+| `resolution/positions.ts` | (a)+(c) | `childPositions` · `definitionPositions` | 아니오 → Phase 1 |
+| `resolution/resolver.ts` | (a) | `projectTemplate` override 조회 · `nestedScope` | 아니오 → Phase 1 (Decision 11) |
+| `runtime/compositionRoot.ts` | **(c)**+(b) | `pageRoots` · 영향 root = `collectAffectedIds` (Phase 1 에서 역색인 포함) | 아니오 |
+| `transactions/transaction.ts` | **(b)** | `ownedChildIds` · `affectedPagesOf` → Phase 1 | — |
+| 목록 밖: `shortcuts.ts` (`catalogPageNudgeCommand`) · `dataVariables.ts` · `stateVariables.ts` · `position.ts` · `contextualHelpCommand.ts` · `fieldPrefixCommand.ts` · `catalogDataVariablesHost.ts` · `catalogQuickConnectHost.ts` · `controller.ts` · `preview/receiver.ts` · `clone.ts` · `attributes.ts` | (b, 경미) · (a) | 사슬이 page 쪽 조상까지 이어짐 — 원본의 변수 가시성 · Form context 가 page 위치를 따른다 (원본 = page 노드, 정상). `controller` · `receiver` 는 `collectAffectedIds` 경유 | `clone.ts` 예 (복제 대상 자신의 override) |
+
+**Decision 11 의 주소 규칙 (Phase 0 결정 — 통상 구현 판단)**: project template 노드 T 의 `fillSlot` · `replace` 자식 C 는 바깥 instance I 에서 **template 자리** `{instances: [I…], templatePath: [R, …, T, C]}` 다 — templatePath 의 한 걸음이 project 노드의 `ownedChildren` (children · fillSlot · replace) 으로 들어간다 (Decision 12 의 순환 걷기와 같은 집합). library template 의 `slotFills` (자식이 template `children` 에 있음) 와 같은 모양을 project 노드에 준다. 소비자 4곳이 한 규칙을 따른다: `address.ts` (주소 검증) · `resolver.ts` (투영 — override 조회는 「투영 경로의 owner 들, 바깥부터」) · `positions.ts` (Layers · 선택 자리) · `materialize.ts` (detach — C 도 사본으로).
+
+**참조 종류 전수 (Decision 13)** — 그래프가 존재를 검증하는 것: 노드 → 정의 (`DANGLING_DEFINITION`) · override 주소 (`address.ts` 6 코드) · 소유 자식 (`DANGLING_CHILD`) · 참조 원본 (`DANGLING_TEMPLATE`, 이번 Phase 1) · definitionOverride target · bindingId · token (`DANGLING_TOKEN` · `TOKEN_TYPE_MISMATCH`) · interaction owner · address · navigate page (`DANGLING_PAGE`) · capability target (`DANGLING_TARGET`) · setState `project:` 변수 (`DANGLING_VARIABLE`) · 상태 변수 owner · page parent · theme token · project 목록. 검증하지 않는 것 (그대로 옮김): collection 바인딩 (접두만) · `data:variable` · `data:endpoint` · showWhen 조상 (명령 단계 `STATE_OWNER_UNLINKED` 만) · image url.
+
+| 다른 프로젝트 붙여넣기 — 지금 | Phase 2 정책 |
+| --- | --- |
+| project 정의 instance (루트 · 중첩) — `DANGLING_DEFINITION` | 정의 snapshot 으로 물질화 (Decision 13) |
+| project token — `DANGLING_TOKEN` | 이름 · `tokenType` 같은 token 으로, 없으면 값 고정 (Decision 13) |
+| navigate pageId — `DANGLING_PAGE` (같은 프로젝트의 지운 page 도) | interaction 을 빼고 붙인다 (대상 page 없음) |
+| capability target · setState 변수 (복사 범위 밖) — `DANGLING_TARGET` · `DANGLING_VARIABLE` | interaction 을 빼고 붙인다 |
+| showWhen 조상 (복사 범위 밖) — `STATE_OWNER_UNLINKED` (같은 프로젝트도) | 지금 동작 유지 (이 ADR 밖 — 같은 프로젝트에서도 같은 결과) |
+| stateVariable · interaction owner (복사 범위 안) · `lib:` 참조 · `data:` 참조 | 그대로 (지금도 통과) |
+
+**pen.dev 동작 확인 3건**: (i) detach 는 중첩 instance 를 instance 로 · token 을 참조로 남긴다 (`materialize.ts` `definitionId` 복사 · `children` 만 재귀) — pen.dev 와 같다. (ii) instance 안 template 자리는 옮길 수 없다 (`moveNodes` 는 소유 노드만 · `TEMPLATE_ROOT_FIXED` · `REPLACEMENT_NOT_MOVABLE` · Canvas `beginMove` · Layers drop 이 node 만) — pen.dev 와 같다. **의심 1건** (코드 추론, 미실행): instance 편집 맥락에서 project 컴포넌트 instance 의 template 자리에 drop · 「선택 뒤 붙여넣기」 가 `record.sourceId` (원본 template 노드 id) 를 소유 부모로 넘길 수 있다 (`canvasGesture.ts` drop · `canvasMenu.ts` paste-after) — Phase 3 live 에서 확인, 재현되면 수리 행. (iii) slot 채우기: 팔레트 · slot 명령 · layout body 붙여넣기는 `fillSlot` 을 만들지만 Canvas · Layers drag-drop 과 「선택 뒤 붙여넣기」 는 slot 을 채우지 못한다 — pen.dev 는 drag · paste 로 채운다. **차이** — 소유 모델과 무관한 입력 경로 기능이라 이 ADR 의 Phase 2 수리 행이 아니라 후속 목록 (Consequences 의 컴포넌트 API 후속) 에 더한다 (scope 유지).
+
+**후속 기능 4건 — 막지 않음**: (1) slot 추천 — `slot` 은 노드 필드, 소유 모양 무관 (project 정의 id 를 담으면 새 참조 종류 → 그때 `referencedIds` · clipboard 에 더함). (2) 컴포넌트 속성 — `createComponent` 는 `accepts: {}`, 계약은 `instanceContract` 가 겹침; page 위 원본의 `{key}` 표시값 규칙만 그때 정한다. (3) instance 교체 — 전용 명령 없음, override 재매핑이 필요 (역색인이 도움). (4) 원본에 반영 — override 주소의 templatePath 가 원본 노드 id 라 참조 모양에서 그 노드에 `setFields` + override 제거로 끝난다.
+
+**문서 수**: 저장소 fixture (`document/fixture.ts` · `commands/__tests__/fixture.ts` · JSON fixture) 의 `project:definition:` = **0**. 테스트 리터럴 5 (component 4 · layout 1). 로컬 IndexedDB 프로젝트 수는 Phase 3 live 에서 같이 센다.
+
+**oracle 대조 (문서 근거, 2026-10-14)**: 만들기 그 자리 (둘 다) · 편집 전파 + override 유지 (둘 다) · detach = instance 하나 (둘 다) · 해체 pen.dev ⌘⌥K 토글 / Figma 없음 · 원본 삭제 Figma instance 유지 + Restore / pen.dev 미문서 · 복제 pen.dev instance / Figma 새 컴포넌트 · 이동 자유 · 중첩 지원. Figma 「Restore main component」 의 실제 자리는 이 환경에서 Figma 실물을 열 수 없어 **미확인** — 사용자 결정 4 (instance 옆) 를 그대로 따른다.
+
+**Phase 1 착수 중 나온 모델 결정 (통상 구현 판단)**: 역색인은 `ref` edge 가 아니라 새 edge 종류 `template` (정의 → template 루트, 소유 · 참조 두 모양 모두) — `referrersOf` 소비자 (`removeWithReferrers` · 변수 · interaction 탐색) 가 정의를 참조자로 만나지 않게 한다. 「원본의 소유 사슬에 자기 정의가 없다」 검사는 두지 않는다 — `originRef: true` 정의는 아무것도 소유하지 않아 사슬에 나타날 수 없다.
+
 ## 2. Phase 1 — 문서 모델 (G1)
 
 | 파일                                                | 변경                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -72,3 +138,14 @@
 - 2026-10-14 Proposed. 같은 날 선행 반영 (커밋 전): 해체 버튼은 원본에서만 (패널 · Canvas 메뉴 · ⌘⌥K) — `phase4e8Chrome` · `phase4eCanvasMenu` · `phase4eShortcuts` 갱신, live `create-component-live.mjs`.
 - 2026-10-14 Codex 설계 리뷰 Round 1 HIGH 4 → 같은 날 r1 수정: H1 template 노드 override 투영 (Decision 11 · resolver 행) · H2 중첩 삭제 = 가장 바깥 참조 원본만 소유 이전, 안쪽은 참조 유지 (Decision 1 · 6) · H3 clipboard 원본 식별 + 정의 snapshot (Decision 13) · H4 순환 걷기 = `ownedChildren` (Decision 12). H1 · H3(다른 프로젝트) · H4 는 지금 소유 모양에도 있는 결함이다. 필드 이름 `originOnPage` → `originRef` (숨은 template 안에도 참조 원본이 있어 「page 위」 가 맞지 않는다).
 - 2026-10-14 Codex Round 2 (수리 검증): H1 ~ H4 해소 판정 · 새 HIGH H5 (다른 프로젝트 물질화가 project token 참조를 남겨 `DANGLING_TOKEN`) → 같은 날 r2 수정: clipboard `tokens` snapshot · 이름 같은 대상 token 으로 바꾸거나 값 고정 · 참조 종류 전수 표 (Phase 0).
+- 2026-10-14 `/execute-adr 260` — Accepted (리뷰 Round 3 pending 0). **Phase 0 (G0)** 위 「Phase 0 결과」 — 37 파일 분류 · 참조 종류 전수 · pen.dev 3건 (차이 1: drag · paste 로 slot 채우기 — 후속 목록) · 후속 4 기능 막지 않음 · fixture 정의 0.
+- 2026-10-14 **Phase 1 (G1 — 모델 · 투영)**: `originRef` (types · validation `ORIGIN_REF_NOT_COMPONENT`) · graph — `ownedChildren` 분기 · `template` edge + `definitionOfTemplateRoot` (`CatalogReader` 에 추가 — Stage · attributes · readModel 기록 reader) · `DUPLICATE_TEMPLATE_ROOT` · 참조 원본 `DANGLING_TEMPLATE` · 재검증 · `collectAffectedIds` · `affectedPagesOf` 가 역색인으로 instance 에 닿음 · 원본 서브트리 아래로 옮긴 노드의 순환 재검사 (인벤토리 지적 — 깊은 자기 instance). Decision 12 순환 걷기 = `ownedChildren`. Decision 11 — `resolution/templateOwners.ts` (`overridesAt` · `layeredOverride` · `innerOwnerPlace`) 를 resolver · positions · fieldSource (`template` 출처) 가 같이 쓰고, `address.ts` 의 template 걸음이 project 노드의 owned children 으로 들어간다; detach (`materialize.ts`) 는 template 노드의 slot 내용 · 대체 노드를 사본으로 만든다 (바깥 instance 의 같은 자리 목록이 있으면 그것만). 테스트 `document/__tests__/adr260.test.ts` 24 · `commands/__tests__/adr260.test.ts` 3, 원복 RED 7종 (ownedChildren 7 · 영향 id 1 · 깊은 순환 1 · resolver 4 · address 2 · positions 2 · fieldSource 1 · detach 2 = `DUPLICATE_OWNERSHIP`). shared 1629 · builder 5759 (실패 1 = 기존 `resolveContainerStylesFallback`) · type-check 6/6. 무작위 명령 하니스 확장 (Create · 해체 · 원본 삭제 · 복제 · 이동) 은 그 명령이 생기는 Phase 2 로 옮긴다. template 노드 안 bound 컬렉션의 행 반복 · `{key}` binding 은 inner owner 의 slot 내용에 넘기지 않는다 (지금도 template 노드의 binding 은 읽지 않는다 — 범위 밖).
+- 2026-10-14 **Phase 2 (G2 — 명령)**: `createComponent` 무이동 (`ALREADY_COMPONENT_ORIGIN`) · `dissolveComponent` 참조 모양은 원본 유지 · `keepRemovedOrigins` (가장 바깥 참조 원본만 정의가 소유 — `removeTargets` · `removePage`) · `restoreOrigin` (instance 다음 index, 절대 배치 +10) · `cloneNodeSubgraph` `asInstance` (⌘D · page 복제) · clipboard `sourceProjectId` · `origins` · `definitions` · `tokens` + `pasteNodes` (같은 프로젝트 원본 → instance · 정의 없는 instance → snapshot 물질화 반복 · token 이름 · 종류 매칭 또는 값 고정 · 대상 없는 interaction 제외) · `detachInto` 를 `materialize.ts` 로 옮김 (붙여넣기가 순환 import 없이). 무작위 500 단계에 `placeInstance` · `removeOrigin` · `restore` 추가 (전 동작 수락 · 전체 undo). 옛 「create → 그 자리 instance」 전제 shared 테스트 3 갱신 — G0 descendant-route 비교는 옛 앱 root 순서 (`origin, instance, later, moved`) 와 이제 **그대로** 같다 (2026-09-30 모델의 「모델 차이」 필터 제거). 원복 RED 3 경로 (삭제 · 복제 4 · 해체 1 · paste 3 = asInstance 2 · 물질화 3 · token 2). 계획과 다른 점: breakdown 의 「정의 view template 안 노드에서 Create 거부」 는 두지 않았다 — Decision 1 · 6 의 검증이 숨은 template 안 참조 원본을 허용하므로 만들기만 막으면 모순 (중첩 원본 = 사용자 결정 5).
+- 2026-10-14 **Phase 3 (G3 — Builder)**: `componentActions` (역색인 ORIGIN · `restorable` · restore 명령) · Component 절 Restore origin (`ACTION_ICONS.restoreOrigin` = `RefreshCcwDot` — `ArchiveRestore` 는 History 복원이 이미 씀) · Canvas 메뉴 restore 항목 · `workspace.showDefinition` 참조 모양 = page + 선택 + reveal (숨은 정의 안이면 그 view) · 원본이 page 로 돌아오면 view 를 닫음 (`afterStep`) · `componentConfirm` 원본 서브트리 편집 = 영향 대화상자 · `slots` 원본 안 선언 · `layerTree` ORIGIN 점 · AI `reusable` 은 노드 그대로 (instance 추적 제거) · i18n `restoreOrigin`. builder 실패 27 (옛 「create → 그 자리 instance」 · 정의 view 전제) 갱신 — 정의 view 를 보는 테스트는 숨은 template 으로, 옛 구조가 필요한 곳은 `support/legacyComponent.ts` (create → 복제 → 원본 삭제). 원복 RED 4 (원본 판정 · Layers · Go to component · 대화상자). live 33/33 (위 본문 Live Exercise).
+- 2026-10-14 **Phase 4 (G4)**: type-check 6/6 · shared 1641 · builder 5762 (실패 1 = 기존 제외) · 번들 initial Builder JS 1,319,045 / Preview 300,625 B gzip (상한 안) · `docs:stale-symbols` 0 · lint (변경 파일, 기존 `catalogPaletteDefinitionId` 미사용 1 제외). `gate:perf-ratchet` 은 미커밋 상태에서 HEAD 를 재므로 커밋 뒤 pre-push 에서. CHANGELOG · `state-management.md` · ADR-248 breakdown 판정 ② 개정 표기. **G5 (사용자 Builder 확인) 대기**.
+- 2026-10-14 **G5 사용자 확인 「확인했다」 + 결함 보고 2건** (RadioGroup 예) → 같은 날 수리: (1) instance 속성 미적용 — resolver 가 template 자리에서 instance 값을 라이브러리 원본 `accepts` 로만 걸렀고 (원본 RadioGroup 은 label · description · errorMessage) 중첩 루트로 넘기는 키에 instance 값이 없었다 → composite 자리는 instance 계약 전체 (`instanceContract` = 원본 schema + 루트 계약) 를 받고 넘긴다. (2) instance 의 「+」 없음 — `insertGroupItem` 의 자식 걷기가 원본의 라이브러리 composite 안으로 들어가지 않음 (`NO_ITEMS_WRAPPER`) → 사용자 컴포넌트 instance 면 `positions.ts` 자리 목록으로 묶음 · 루트 slot 을 찾고, `ensureChildList` 가 안쪽 owner (원본) 의 slot 내용을 바깥 instance 높이에서 복사 (`templateNodeFillAt` — `librarySlotFillAt` 과 같은 모양). 두 결함 모두 옛 소유 모양 컴포넌트에도 있었다 (shared 테스트 두 모양 RED). unit: shared 26 · builder 5 (원복 RED — accepts 2 · 넘김 2 · 묶음 찾기 1 · 원본 항목 복사 1). live (headed Chrome, UI 클릭): 원본 RadioGroup → Create component → ⌘D instance → Design 패널 Horizontal · L · 「Insert Radio」 → instance 가로 · L · Radio 2 → 3, 원본 세로 · M 그대로, page error 0. shared 1643 · builder 5767 (실패 1 = 기존) · type-check 6/6.
+- 2026-10-14 **사용자 요청 — 내 컴포넌트 page** (AskUserQuestion 2: 별도 page · 카드 편집 = 실제 원본): Components 탭의 컴포넌트별 항목을 없애고 「My components」 파생 page 하나로 (`PROJECT_COMPONENTS_VIEW` — 루트 `PROJECT_ORIGIN_VIEW_NODE` 는 `ORIGIN_VIEW_NODE` 접두라 파생 노드 판정이 두 page 를 같이 받는다, 읽기 모델 행 캐시가 identity 로 갈리게 루트는 따로). 카드는 원본 노드 id 를 그대로 자식으로 둔다 — 파생 항목은 색인 · 저장 밖이라 소유는 그대로, 해석 · 선택 · 패널 · 명령이 그 노드에 바로 간다 (편집 변환 0). 파생 항목에 쓰는 op 는 기존 `catalogOriginEditCommand` 가 거부 (instance 카드 · 틀). 다른 원본 안 원본은 바깥 카드에만 (한 page 의 같은 노드 = 같은 record identity). 컴포넌트 목록이 바뀐 step 뒤 page 재배치 (`afterStep` → `openComponentsView`). 기본 page 의 그리기 도구는 `pageKit` 으로 빼 둘이 같이 쓴다. 테스트 `adr260OriginInPlace` +1 (원복 RED: `canvasPick` 원본 칸 판정 제거 → 1 실패) · `phase4eNavigatorTabs` 갱신 · live 10/10.
+- 2026-10-14 **후속 지시 3** — Layers 루트 이름 「Components」 (기본 page 와 같게) · 카드는 origin 만 (instance 카드 삭제 — `projectComponentInstanceId` 제거) · Layers 에서 삭제: 「My components」 의 Layers 는 카드 대신 원본 노드를 루트 아래 바로 나열 (`catalogComponentsPageRows`) → 행의 삭제 버튼 = `removeTargets` (page 삭제와 같음 — instance 유지 · Restore). 목록 = `originRef: true` 이고 원본이 page (또는 layout) 에 있는 정의만 (`catalogProjectComponents` — 지운 원본의 컴포넌트는 빠진다, Figma assets 와 같음). 원본 행은 옮기기 핸들 없음 (파생 page 는 옮길 자리가 아니다). 테스트 갱신 (원본만 · Layers 행 · 중첩 원본 1회 · 삭제 → 빠짐 · instance restorable · undo) · live 14/14.
+- 2026-10-14 **후속 지시 4** — 카드의 「Origin」 줄 제목과 아래 「◆ 이름」 글자 제거: 카드 = 번호 제목 + 원본 노드 (다른 원본 안 원본만 「In 바깥」 한 줄). 테스트에 카드 구조 단언 추가 · live 14/14.
+- 2026-10-14 **후속 지시 5** — 이름 중복 제거: Components 탭 항목 「Built-in components」 · 「My components」 → 「Built-in」 · 「Local」 (ko 「기본」 · 「로컬」 — Figma local components), 두 파생 page 의 Layers 루트는 이름 없이 type 이름 「body」 (Pages · Layouts 와 같게 — `pageKit.finish` 에서 name 제거). 테스트 · live 14/14 갱신.
+- 2026-10-14 **후속 지시 6** — 기본 원본 page 이름 「Built-in」 → 「Library」 (ko 「라이브러리」 — 사용자 선택, Figma Assets 의 Libraries · Local 짝 · 코드의 library 원본과 같은 말).

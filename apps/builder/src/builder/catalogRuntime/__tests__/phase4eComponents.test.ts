@@ -83,7 +83,7 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-4 Component section", () => {
-  it("create → the instance takes the node's place; dissolve → the instance keeps what it showed", async () => {
+  it("create → the node stays as the origin (ADR-260); dissolve → the instance keeps what it showed, the origin stays", async () => {
     const { workspace, children } = await open();
     const graph = workspace.runtime.graph;
     expect(catalogComponentState(graph, id("card"))).toEqual({});
@@ -92,31 +92,47 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     );
     expect(graph.revision).toBe(revision + 1);
-    const instance = plan.selectAfter![0];
-    expect(children()[0]).toBe(instance);
-    const state = catalogComponentState(graph, instance);
-    expect(state.instanceOf).toMatchObject({
+    expect(plan.selectAfter).toEqual([id("card")]);
+    expect(children()[0]).toBe(id("card"));
+    const state = catalogComponentState(graph, id("card"));
+    expect(state.originOf).toMatchObject({
       name: "Card",
       project: true,
-      instanceIds: [instance],
+      instanceIds: [],
     });
+    expect(state.instanceOf).toBeUndefined();
     expect(workspace.readModel.components()).toHaveLength(1);
+    // An instance placed beside it.
+    const definitionId = state.originOf!.definitionId as NodeEntry["definitionId"];
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("copy", definitionId)],
+        rootIds: [id("copy")],
+        newId: workspace.newId,
+      }),
+    );
+    expect(catalogComponentState(graph, id("copy")).instanceOf).toMatchObject({
+      instanceIds: [id("copy")],
+    });
 
     workspace.execute(
-      catalogComponentCommands.dissolve(
-        state.instanceOf!.definitionId,
-        workspace.newId,
-      ),
+      catalogComponentCommands.dissolve(definitionId, workspace.newId),
     );
     expect(workspace.readModel.components()).toHaveLength(0);
-    const detached = graph.getEntry(children()[0]);
+    expect(graph.getEntry(id("card"))).toMatchObject({
+      definitionId: "lib:definition:type-frame",
+    });
+    const detached = graph.getEntry(id("copy"));
     expect(detached).toMatchObject({
       definitionId: "lib:definition:type-frame",
     });
     expect((detached as NodeEntry).children).toHaveLength(1);
     workspace.undo();
     workspace.undo();
+    workspace.undo();
     expect(children()[0]).toBe(id("card"));
+    expect(catalogComponentState(graph, id("card"))).toEqual({});
   });
 
   it("a library component instance detaches into owned nodes", async () => {

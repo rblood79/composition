@@ -221,6 +221,7 @@ export interface TranslationKeys {
     selectInstances: string;
     createComponent: string;
     detachComponent: string;
+    restoreOrigin: string;
     systemOriginLocked: string;
   };
   operation: {
@@ -1424,7 +1425,6 @@ export interface TranslationKeys {
     layersDragCount: string;
     deleteLayout: string;
     layoutDefaultName: string;
-    noComponents: string;
     pages: string;
     layouts: string;
     panelTabs: string;

@@ -2,6 +2,7 @@ import type {
   CatalogReader,
   DefinitionId,
   DescendantOverride,
+  DescendantPatchFields,
   EditTarget,
   EntryId,
   LibraryDescendantPatch,
@@ -11,9 +12,13 @@ import type {
   NodeId,
   TemplateId,
 } from "../document/types";
-import { descendantPatchOf } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
 import { validateInstanceAddress } from "./address";
+import {
+  innerOwnerPlace,
+  layeredOverride,
+  overridesAt,
+} from "./templateOwners";
 
 /**
  * ADR-248 Phase 4c — the element positions a reader shows (Layers rows, selection targets), one
@@ -124,17 +129,48 @@ function ownedPosition(
   };
 }
 
-/** The override of an owner instance at an address (starting at the owner, §validateInstanceAddress). */
-function overrideAt(
+/**
+ * The overrides at a template position, as the resolver layers them (ADR-260 Decision 11): the
+ * owner's and those of the project template nodes on the way, the outer ones winning. `inner` is
+ * where an inner owner's replacement · slot contents stand (positions of the instance).
+ */
+function positionOverride(
+  reader: CatalogReader,
   owner: NodeEntry,
-  instances: readonly (NodeId | TemplateId)[],
+  instancePath: readonly (NodeId | TemplateId)[],
   path: readonly TemplateId[],
-): DescendantOverride | undefined {
-  return owner.descendantOverrides.find(
-    (item) =>
-      sameIds(item.address.instances, instances) &&
-      sameIds(item.address.templatePath, path),
-  );
+): {
+  change?: DescendantOverride;
+  patch?: DescendantPatchFields;
+  inner?: {
+    instancePath: readonly (NodeId | TemplateId)[];
+    templatePath: readonly TemplateId[];
+  };
+} {
+  const get = (id: string) => reader.getEntry(id);
+  const found = overridesAt(get, owner, instancePath, path);
+  const { structural, patch } = layeredOverride(found);
+  const change = structural?.override ?? found[0]?.override;
+  const inner =
+    structural && structural.owner !== owner
+      ? innerOwnerPlace(
+          get,
+          (id) => reader.ownerOf(id),
+          reader.library,
+          instancePath,
+          structural.owner,
+        )
+      : undefined;
+  if (structural && structural.owner !== owner && !inner)
+    throw new CatalogValidationError(
+      "DANGLING_TEMPLATE",
+      path[path.length - 1],
+    );
+  return {
+    ...(change ? { change } : {}),
+    ...(patch ? { patch } : {}),
+    ...(inner ? { inner } : {}),
+  };
 }
 
 /** Options of a child listing. */
@@ -156,12 +192,27 @@ function templatePosition(
   const owner = readNode(reader, scope.owner);
   const instances = instancePath.slice(instancePath.lastIndexOf(owner.id));
   const templateId = scope.path[scope.path.length - 1];
-  const change = overrideAt(owner, instances, scope.path);
+  const { change, patch, inner } = positionOverride(
+    reader,
+    owner,
+    instancePath,
+    scope.path,
+  );
   if (change?.kind === "replace")
-    return ownedPosition(readNode(reader, change.replacementId), [
-      ...instancePath,
-      change.replacementId,
-    ]);
+    return inner
+      ? templatePosition(
+          reader,
+          {
+            owner: owner.id,
+            path: [...inner.templatePath, change.replacementId],
+          },
+          inner.instancePath,
+          options,
+        )
+      : ownedPosition(readNode(reader, change.replacementId), [
+          ...instancePath,
+          change.replacementId,
+        ]);
   const template = readTemplate(reader, templateId);
   const libraryPatch =
     scope.patches && sameIds(scope.patches.instances, instancePath)
@@ -170,8 +221,7 @@ function templatePosition(
         )
       : undefined;
   const inheritedEnabled = libraryPatch?.enabled ?? template.enabled ?? true;
-  const enabled =
-    descendantPatchOf(change)?.enabled ?? inheritedEnabled;
+  const enabled = patch?.enabled ?? inheritedEnabled;
   if (!enabled && !options.includeDisabled) return undefined;
   return {
     target: {
@@ -264,11 +314,23 @@ export function childPositions(
   const { scope } = position;
   const templateId = scope.path[scope.path.length - 1];
   const owner = readNode(reader, scope.owner);
-  const change = overrideAt(
+  const { change, inner } = positionOverride(
+    reader,
     owner,
-    instancePath.slice(instancePath.lastIndexOf(owner.id)),
+    instancePath,
     scope.path,
   );
+  if (change?.kind === "fillSlot" && inner)
+    // An inner owner's slot contents: template positions of the instance (ADR-260 Decision 11).
+    return change.childIds.flatMap((id) => {
+      const child = templatePosition(
+        reader,
+        { owner: owner.id, path: [...inner.templatePath, id] },
+        inner.instancePath,
+        options,
+      );
+      return child ? [child] : [];
+    });
   if (change?.kind === "fillSlot")
     return change.childIds.map((id) =>
       ownedPosition(readNode(reader, id), [...instancePath, id]),

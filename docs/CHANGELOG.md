@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-260 Phase 0 ~ 3 — Create component 노드가 그 자리에서 ORIGIN] - 2026-10-14
+
+### Changed
+
+- **Create component 뒤 선택한 노드가 그 자리에서 컴포넌트의 원본 (ORIGIN) 이 된다** (pen.dev · Figma 참조 모델 — 사용자 결정 2026-10-14 「선택 노드가 ORIGIN 으로」, [ADR-260](adr/260-component-origin-in-place.md)). 노드를 정의 안으로 옮기고 그 자리에 instance 를 두던 2026-09-30 모델 (ADR-248 판정 ②) 을 뒤집는다. Design 패널 Component 절에 바로 ORIGIN 칩 · Select instances · Detach component 가 나오고 Canvas · Layers 도 ORIGIN 표식이다. instance 는 Components 탭 · 팔레트 · 원본의 복제 (⌘D · 복사-붙여넣기) 로 만든다.
+  - **Why**: 사용자 보고 — 「instance 를 create component 하면 detach instance 가 하나 더 생기고, 만든 컴포넌트 표시가 Component 절에 나타나지 않는다」. 원본이 정의 편집 view 에만 있어 생성 직후 패널이 INSTANCE 였다.
+  - 문서 모델: `DefinitionEntry.originRef` — `true` = 정의가 page 의 원본 노드를 **참조** (소유하지 않음), `false` = 원본을 지워 정의가 숨은 template 으로 소유, 없음 = 옛 문서 · layout 의 소유 template (그대로 — 전환 코드 0). 그래프 역색인 `definitionOfTemplateRoot` 로 원본 편집이 instance 재검증 · Canvas 갱신 · 확인 대화상자에 닿는다.
+  - **Go to component** = 원본이 있는 page 로 가서 원본 선택 (Components 탭의 사용자 컴포넌트 클릭도). 정의 편집 view 는 숨은 template · 옛 문서 · layout 전용.
+  - **Detach component** 는 원본을 남긴다 — instance 만 분리되고 노드는 보통 노드로 (Create ↔ Detach component 왕복, ⌘⌥K 토글).
+  - **원본 삭제** = Figma 대로 instance 는 남고 정의가 숨은 template 이 된다. instance 의 Component 절 · Canvas 메뉴에 **Restore origin** — 그 instance 바로 뒤에 원본을 되돌린다 (절대 배치면 10 px 옆). 원본 안의 원본은 바깥만 숨고 안쪽은 원본 그대로.
+  - 원본의 복제 · 복사-붙여넣기 · page 복제 = 그 정의의 instance (pen.dev). 다른 프로젝트에 붙이면 보통 노드.
+- **Create component 로 만든 컴포넌트가 Navigator Components 탭에 「Local」 page 하나로 모인다** (사용자 요청 2026-10-14 「원본 components page 처럼 한 page 에」 — 종전은 컴포넌트마다 탭 항목). 탭에는 「Library」 · 「Local」 두 page 만 있다 (이름에 components 를 되풀이하지 않는다 — Figma Assets 의 Libraries · Local). 「Local」 은 저장하지 않는 파생 page 로, 컴포넌트마다 번호 카드 (제목 + 노드 — 「Origin」 줄 제목 · 이름 글자 없음) 에 **원본 노드 자체** (page 에 있는 그 노드를 그대로 그린다) 만 그린다 (instance 는 두지 않는다 — 사용자 「origin 만 있으면 된다」). 카드의 원본을 Canvas 에서 누르면 그 원본이 선택되고 (ORIGIN 칩), 거기서 고친 값은 원본에 써져 모든 instance 에 퍼진다 (사용자 선택 「실제 원본에 반영」). Layers 는 page 처럼 루트 「body」 (두 page 모두 — Pages · Layouts 와 같게) 아래에 원본 노드를 나열하고, 그 행의 삭제 버튼은 원본을 지운다 — page 에서 지울 때와 같이 instance 는 남아 Restore origin 을 주고 컴포넌트는 목록에서 빠진다 (Figma). 컴포넌트를 만들거나 해체 · 삭제 · 되돌리면 page 를 다시 배치한다. 다른 원본 안에 든 원본은 그 원본의 카드에만 그린다 (한 page 에 같은 노드를 두 번 그리지 않는다).
+  - 위치: `packages/shared/src/catalog/runtime/originViewNode.ts` (`PROJECT_COMPONENTS_VIEW` · `componentsViewRoot`) · `apps/builder/src/builder/catalogRuntime/componentsPage.ts` (`catalogProjectComponentsPageEntries` — 기본 page 와 같은 그리기 도구 `pageKit`) · `workspace.ts` (`openComponentsView`) · `canvasPick.ts` · `panels/navigator/catalog/CatalogDefinitionsSection.tsx`.
+  - 위치: `packages/shared/src/catalog/document/{types,validation,graph}.ts` · `commands/{components,structure,project,materialize}.ts` · `document/clone.ts` · `transactions/transaction.ts` · `apps/builder/src/builder/catalogRuntime/{componentActions,componentConfirm,workspace,layerTree,slots,canvasMenu,aiHost,clipboardText}.ts` · `panels/properties/catalog/CatalogComponentSection.tsx`.
+
+### Fixed
+
+- **컴포넌트 안 컴포넌트의 slot 내용 · style 이 instance 에서 빠지던 문제** (ADR-260 Decision 11 — 옛 문서에도 있던 결함). 원본 안 ToggleButtonGroup 의 항목 · Card Content 의 style 처럼 template 노드 자신의 override 가 instance 에 투영되지 않았다. 이제 resolver · Layers 자리 · 패널 값 (`template` 출처) · detach 가 「투영 경로의 owner 들, 바깥부터」 를 읽고 instance 의 같은 자리 override 가 이긴다. 그 slot 내용은 instance 의 template 자리 (`templatePath: [… , T, C]`) 로 고를 수 있다. 위치: `packages/shared/src/catalog/resolution/templateOwners.ts` · `resolver.ts` · `positions.ts` · `fieldSource.ts` · `address.ts` · `commands/materialize.ts`.
+- **template 노드가 가진 slot 내용을 detach 하면 `DUPLICATE_OWNERSHIP` 으로 거부되던 문제** — 이제 사본으로 물질화한다.
+- **사용자 컴포넌트 instance 의 속성이 그려진 컴포넌트에 반영되지 않던 문제** (사용자 G5 보고 2026-10-14 — RadioGroup 컴포넌트의 instance 에서 Orientation · Size 가 안 바뀜). 문서에는 써졌지만 resolver 가 template 자리에서 라이브러리 원본의 `accepts` (RadioGroup 원본은 label · description · errorMessage 뿐) 로 걸러 버렸고, 그 아래 실제로 그려지는 루트 (RadioGroup) 로 넘기지도 않았다. instance 계약은 원본 schema + 루트 계약 (`instanceContract`) 이라 이제 그대로 넘긴다 — 놓은 노드와 같다. 옛 소유 모양 컴포넌트에도 있던 결함. 위치: `resolver.ts` (template 자리의 instance 값 · 중첩 루트로 넘기는 키).
+- **사용자 컴포넌트 instance 에 「+」 (Insert Radio 등) 가 없던 문제** (같은 보고). 그룹의 항목 묶음을 찾는 걷기가 원본의 라이브러리 composite 안으로 들어가지 않아 (`NO_ITEMS_WRAPPER`) 선택지가 숨었다. 이제 instance 가 보여 주는 자리 목록 (`positions.ts`) 으로 묶음 · 루트 slot 을 찾고, 그 자리를 처음 채울 때 라이브러리 기본 항목이 아니라 **원본의 항목** 을 복사한다 (`ensureChildList` — `templateNodeFillAt`). 위치: `commands/collections.ts` `insertGroupItem` · `commands/materialize.ts`.
+- **자기 instance 를 slot 내용 (`fillSlot` · `replace`) 으로 원본 안에 넣어도 거부되지 않던 문제** (Decision 12) — 정의 순환 검사가 `children` 만 걸었다. 원본 안쪽 깊이 옮긴 서브트리의 자기 instance 도 거부한다.
+- **다른 프로젝트에 붙여넣기가 `DANGLING_DEFINITION` · `DANGLING_TOKEN` 으로 실패하던 문제** (Decision 13). clipboard 가 출처 프로젝트 · 원본 · 정의 snapshot · 사용자 token 을 담는다 — 정의가 없는 instance 는 보통 노드로 물질화, 없는 token 은 이름 · 종류가 같은 대상 token 으로, 없으면 값 고정, 대상이 없는 interaction 은 빼고 붙인다. 옛 clipboard 글은 그대로 붙는다.
+
+### Tests
+
+- shared `document/__tests__/adr260.test.ts` 26 · `commands/__tests__/adr260.test.ts` 15 · 무작위 명령 500 단계 하니스에 원본 삭제 · Restore · instance 넣기 추가. builder `adr260OriginInPlace.test.ts` 5 (RadioGroup 컴포넌트 instance 의 「+ Radio」 · Orientation — 원복 RED 3) · `adr260ClipboardText.test.ts` 2 · 옛 「create → 그 자리 instance」 전제 테스트 20 파일 갱신 (옛 구조가 필요한 곳은 `support/legacyComponent.ts` — create → 복제 → 원본 삭제). 원복 RED 확인 (모델 · 투영 · 명령 · Builder 각 경로).
+- live `apps/builder/scripts/adr260-origin-in-place-live.mjs` (headed Chrome, Button · ToggleButtonGroup · Card) 33/33 · page error 0.
+- live `apps/builder/scripts/adr260-project-components-page-live.mjs` (headed Chrome — Local page: 탭 항목 「Library」 · 「Local」 · 카드 = 원본만 · Layers 루트 body > 원본 행 · Canvas 클릭 → 원본 선택 · Orientation 편집 → page 원본 · instance 반영 · Layers 삭제 버튼 → 목록에서 빠지고 instance 유지 · 되돌리기 · 새로고침 저장) 14/14 · page error 0.
+
 ## [놓은 instance 의 slot 기본 내용 = 자기 노드] - 2026-10-14
 
 ### Changed

@@ -39,9 +39,13 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   const derived =
     node.position.target.kind === "node" &&
     node.position.target.id.startsWith(ORIGIN_VIEW_NODE);
+  // An origin the project components page lists (ADR-260 — a page node itself): deletable, but
+  // it stays where it is on its page (the derived page is no place to move it to).
+  const onDerivedPage = !!node.parentId?.startsWith(ORIGIN_VIEW_NODE);
   const fixed =
     body ||
     derived ||
+    onDerivedPage ||
     node.projection === true ||
     node.position.target.kind !== "node";
   return (

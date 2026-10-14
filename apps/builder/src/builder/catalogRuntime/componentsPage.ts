@@ -8,6 +8,7 @@ import {
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   CatalogReader,
+  EntryId,
   LibraryDefinitionId,
   LibraryTemplateId,
   NodeEntry,
@@ -19,10 +20,18 @@ import {
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { resolveCatalogRuleCanvasBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { catalogBuiltinOrigins } from "./layouts";
+import type { CatalogComponentsViewId } from "./originViewNode";
 import {
   catalogDefinitionTitle,
   catalogOriginOverride,
+  COMPONENTS_VIEW,
+  componentsViewRoot,
+  isComponentsViewRoot,
   isPageCard,
+  isProjectComponentsView,
+  PROJECT_ORIGIN_VIEW_NODE,
+  projectComponentCardId,
+  projectComponentOriginCellId,
   isThemeSample,
   ORIGIN_VIEW_NODE,
   originCardId,
@@ -291,7 +300,10 @@ export function catalogComponentsPageRows(
   reader: CatalogReader,
   position: CatalogPosition,
 ): CatalogPosition[] | undefined {
-  const page = reader.getEntry(ORIGIN_VIEW_NODE);
+  // (One derived page is shown at a time.)
+  const page =
+    reader.getEntry(ORIGIN_VIEW_NODE) ??
+    reader.getEntry(PROJECT_ORIGIN_VIEW_NODE);
   if (!page) return undefined;
   let rows = pageRows.get(page);
   if (!rows) pageRows.set(page, (rows = new Map()));
@@ -309,7 +321,7 @@ function readPageRows(
 ): CatalogPosition[] | undefined {
   if (position.target.kind !== "node") return undefined;
   const id = position.target.id;
-  const isPageRoot = id === ORIGIN_VIEW_NODE;
+  const isPageRoot = isComponentsViewRoot(id);
   if (!isPageRoot && !isPageCard(id)) return undefined;
   // A row's identity carries its drawn ancestry: rows are found by walking the page's frames.
   const found: CatalogPosition[] = [];
@@ -319,6 +331,17 @@ function readPageRows(
       else if (child.definitionId === FRAME) walk(child, wanted);
     }
   };
+  // The project components page: its origins themselves (a card holds one — the row deletes it).
+  if (id === PROJECT_ORIGIN_VIEW_NODE) {
+    walk(
+      position,
+      (nodeId) =>
+        nodeId.startsWith("project:node:") &&
+        !nodeId.startsWith(ORIGIN_VIEW_NODE) &&
+        reader.definitionOfTemplateRoot(nodeId as NodeId) !== undefined,
+    );
+    return found;
+  }
   if (isPageRoot) {
     // The cards in their numbered order (the columns hold them in drawn order).
     walk(position, isPageCard);
@@ -352,11 +375,15 @@ function readPageRows(
  * = the cards' drawn heights (by card id): the columns are balanced by them instead of the
  * estimate (the workspace measures the first layout, then lays the page out again).
  */
-export function catalogComponentsPageEntries(
+/**
+ * The drawing kit of a derived components page: its entries (each computed on read), the theme
+ * colors, and the frames a page is made of — captioned cells, named lines, numbered cards.
+ */
+function pageKit(
   graph: CatalogGraph,
-  heights?: ReadonlyMap<string, number>,
-  mode: "light" | "dark" = "light",
-): Map<NodeId, () => NodeEntry> {
+  heights: ReadonlyMap<string, number> | undefined,
+  mode: "light" | "dark",
+) {
   const library = graph.library;
   // The page's own colors are the theme's (read in the workspace's color mode).
   const color = (name: string) => String(resolveToken(`{color.${name}}`, mode));
@@ -435,14 +462,6 @@ export function catalogComponentsPageEntries(
       { flexDirection: "column", gap: 10 },
     );
 
-  const stateIds = new Map<string, LibraryDefinitionId[]>();
-  for (const id of library.definitions.keys()) {
-    const at = id.indexOf("--");
-    if (at < 0) continue;
-    const base = id.slice(0, at);
-    stateIds.set(base, [...(stateIds.get(base) ?? []), id]);
-  }
-
   const cards: { id: NodeId; weight: number }[] = [];
   /** A numbered card (numbered in the order the cards are made). */
   const card = (
@@ -468,6 +487,72 @@ export function catalogComponentsPageEntries(
       weight: heights?.get(cardId) ?? weight,
     });
   };
+
+  /**
+   * Lay the cards down the columns (each next card on the lightest one) under the root frame — a
+   * body, named by its type in Layers as a page's body is (user 2026-10-14).
+   */
+  const finish = (rootId: NodeId) => {
+    const columns = Array.from({ length: COLUMNS }, () => ({
+      cards: [] as NodeId[],
+      weight: 0,
+    }));
+    for (const card of cards) {
+      const column = columns.reduce((lightest, candidate) =>
+        candidate.weight < lightest.weight ? candidate : lightest,
+      );
+      column.cards.push(card.id);
+      column.weight += card.weight + GAP;
+    }
+    fixed(
+      node(rootId, "lib:definition:type-body", {
+        children: columns.map((column, index) =>
+          frame(
+            `${rootId}/column/${index + 1}` as NodeId,
+            `Column ${index + 1}`,
+            column.cards,
+            {
+              flexDirection: "column",
+              gap: GAP,
+              width: COLUMN_WIDTH,
+              flexShrink: 0,
+            },
+          ),
+        ),
+        ...catalogCreationStyle({
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: GAP,
+            padding: PAGE_PADDING,
+            width: COMPONENTS_PAGE_WIDTH,
+            backgroundColor: color("neutral-subtle"),
+            // The view's root container is the viewport wide: keep the page its own width.
+            flexShrink: 0,
+          },
+        }),
+      }),
+    );
+    return entries;
+  };
+  return { library, color, MUTED_COLOR, entries, fixed, text, frame, cell, row, card, finish };
+}
+
+export function catalogComponentsPageEntries(
+  graph: CatalogGraph,
+  heights?: ReadonlyMap<string, number>,
+  mode: "light" | "dark" = "light",
+): Map<NodeId, () => NodeEntry> {
+  const { library, color, MUTED_COLOR, entries, fixed, text, frame, cell, row, card, finish } =
+    pageKit(graph, heights, mode);
+  const stateIds = new Map<string, LibraryDefinitionId[]>();
+  for (const id of library.definitions.keys()) {
+    const at = id.indexOf("--");
+    if (at < 0) continue;
+    const base = id.slice(0, at);
+    stateIds.set(base, [...(stateIds.get(base) ?? []), id]);
+  }
 
   // The theme first (01–04): its colors, type scale, icons and spacing — the values every
   // component below is drawn with.
@@ -922,55 +1007,140 @@ export function catalogComponentsPageEntries(
     card(base("card"), base("title"), origin.name, rows, weight);
   });
 
-  // Palette order down the columns, each next card on the lightest column so far.
-  const columns = Array.from({ length: COLUMNS }, () => ({
-    cards: [] as NodeId[],
-    weight: 0,
-  }));
-  for (const card of cards) {
-    const column = columns.reduce((lightest, candidate) =>
-      candidate.weight < lightest.weight ? candidate : lightest,
-    );
-    column.cards.push(card.id);
-    column.weight += card.weight + GAP;
-  }
-  fixed(
-    node(ORIGIN_VIEW_NODE, "lib:definition:type-body", {
-      name: "Components",
-      children: columns.map((column, index) =>
-        frame(
-          part("column", String(index + 1)),
-          `Column ${index + 1}`,
-          column.cards,
-          {
+  // Palette order down the columns.
+  return finish(ORIGIN_VIEW_NODE);
+}
+
+/**
+ * The project components page (user 2026-10-14): a numbered card per component made with Create
+ * component, in the project's order — its origin node itself (◆ — ADR-260: the node stands on a
+ * page; the card draws that very node, so selecting, editing and deleting it there is doing so to
+ * the origin; no instance beside it — user 2026-10-14 「origin 만 있으면 된다」). An origin inside
+ * another listed origin is drawn in that one's card only (a node is drawn once on a page — its
+ * record identity is its node id).
+ */
+export function catalogProjectComponentsPageEntries(
+  graph: CatalogGraph,
+  heights?: ReadonlyMap<string, number>,
+  mode: "light" | "dark" = "light",
+): Map<NodeId, () => NodeEntry> {
+  const { MUTED_COLOR, entries, text, card, finish } = pageKit(
+    graph,
+    heights,
+    mode,
+  );
+  const components = catalogProjectComponents(graph);
+  const roots = new Set<string>(components.map((item) => item.rootId));
+  const insideOf = (rootId: NodeId): string | undefined => {
+    for (let at = graph.ownerOf(rootId); at; at = graph.ownerOf(at))
+      if (roots.has(at))
+        return components.find((item) => item.rootId === at)?.name;
+    return undefined;
+  };
+  const width = COLUMN_WIDTH - CARD_PADDING * 2;
+  for (const component of components) {
+    const base = (...path: string[]) =>
+      `${projectComponentCardId(component.id).slice(0, -"/card".length)}/${path.join("/")}` as NodeId;
+    const outer = insideOf(component.rootId);
+    // The origin's cell: the node itself, under the card's title only (user 2026-10-14 — no
+    // "Origin" line label, no caption). Read on each read: a deleted origin leaves the cell
+    // empty until the page is laid out again. An origin inside another one is drawn in that
+    // one's card: its own card says where it is.
+    const originCell = projectComponentOriginCellId(component.id);
+    const where = outer
+      ? text(base("origin", "where"), `In ${outer}`, {
+          fontSize: 11,
+          color: MUTED_COLOR,
+        })
+      : undefined;
+    entries.set(originCell, () =>
+      node(originCell, FRAME, {
+        name: component.name,
+        children: where
+          ? [where]
+          : graph.getEntry(component.rootId)
+            ? [component.rootId]
+            : [],
+        ...catalogCreationStyle({
+          style: {
+            display: "flex",
             flexDirection: "column",
-            gap: GAP,
-            width: COLUMN_WIDTH,
+            width,
             flexShrink: 0,
           },
-        ),
-      ),
-      ...catalogCreationStyle({
-        style: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "flex-start",
-          gap: GAP,
-          padding: PAGE_PADDING,
-          width: COMPONENTS_PAGE_WIDTH,
-          backgroundColor: color("neutral-subtle"),
-          // The view's root container is the viewport wide: keep the page its own width.
-          flexShrink: 0,
-        },
+        }),
       }),
-    }),
-  );
-  return entries;
+    );
+    card(
+      projectComponentCardId(component.id),
+      base("title"),
+      component.name,
+      [originCell],
+      heights?.get(projectComponentCardId(component.id)) ?? 420,
+    );
+  }
+  // An empty page says what fills it.
+  if (components.length === 0)
+    card(
+      `${PROJECT_ORIGIN_VIEW_NODE}/empty/card` as NodeId,
+      `${PROJECT_ORIGIN_VIEW_NODE}/empty/title` as NodeId,
+      "No components",
+      [
+        text(
+          `${PROJECT_ORIGIN_VIEW_NODE}/empty/text` as NodeId,
+          "Select a node and choose Create component.",
+          { fontSize: 12, color: MUTED_COLOR },
+        ),
+      ],
+      100,
+    );
+  return finish(PROJECT_ORIGIN_VIEW_NODE);
+}
+
+/**
+ * The project's components the project components page lists (project order): those whose origin
+ * stands on a page (or in a layout). A deleted origin's component is not listed — as Figma's
+ * assets list only the main components on the canvas; its instances stay and restore it.
+ */
+export function catalogProjectComponents(
+  graph: CatalogReader,
+): { id: EntryId<"definition">; name: string; rootId: NodeId }[] {
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind !== "project") return [];
+  const standsOnAPage = (rootId: string) => {
+    let top = rootId;
+    for (let at = graph.ownerOf(rootId); at; at = graph.ownerOf(at)) top = at;
+    const holder = graph.getEntry(top);
+    return (
+      holder?.kind === "page" ||
+      (holder?.kind === "definition" && holder.usage === "layout")
+    );
+  };
+  return project.definitionIds.flatMap((id) => {
+    const definition = graph.getEntry(id);
+    return definition?.kind === "definition" &&
+      definition.usage !== "layout" &&
+      definition.originRef === true &&
+      definition.templateRootId &&
+      graph.getEntry(definition.templateRootId) &&
+      standsOnAPage(definition.templateRootId)
+      ? [
+          {
+            id: definition.id,
+            name: definition.name,
+            rootId: definition.templateRootId,
+          },
+        ]
+      : [];
+  });
 }
 
 /** The page's card ids (a column's children), in drawn order. */
-export function catalogComponentsPageCards(graph: CatalogGraph): NodeId[] {
-  const root = graph.getEntry(ORIGIN_VIEW_NODE);
+export function catalogComponentsPageCards(
+  graph: CatalogGraph,
+  view: CatalogComponentsViewId = COMPONENTS_VIEW,
+): NodeId[] {
+  const root = graph.getEntry(componentsViewRoot(view));
   if (root?.kind !== "node") return [];
   return root.children.flatMap((columnId) => {
     const column = graph.getEntry(columnId);
@@ -979,23 +1149,22 @@ export function catalogComponentsPageCards(graph: CatalogGraph): NodeId[] {
 }
 
 /**
- * Show (or stop showing) the Components page in the graph's view entries (`heights`: see
- * `catalogComponentsPageEntries`).
+ * Show a derived components page in the graph's view entries — the built-in origins'
+ * (`COMPONENTS_VIEW`) or the project's components (`PROJECT_COMPONENTS_VIEW`) — or stop showing
+ * one (`undefined`). `heights`: see `catalogComponentsPageEntries`.
  */
 export function setCatalogComponentsView(
   graph: CatalogGraph,
-  on: boolean,
+  view: CatalogComponentsViewId | undefined,
   heights?: ReadonlyMap<string, number>,
   mode?: "light" | "dark",
 ): void {
   for (const id of graph.viewEntryIds())
     if (id.startsWith(ORIGIN_VIEW_NODE))
       graph.setViewEntry(id as NodeId, undefined);
-  if (!on) return;
-  for (const [id, compute] of catalogComponentsPageEntries(
-    graph,
-    heights,
-    mode,
-  ))
+  if (!view) return;
+  for (const [id, compute] of isProjectComponentsView(view)
+    ? catalogProjectComponentsPageEntries(graph, heights, mode)
+    : catalogComponentsPageEntries(graph, heights, mode))
     graph.setViewEntry(id, compute);
 }

@@ -8,7 +8,9 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  duplicateNodes,
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
@@ -71,10 +73,18 @@ async function open() {
       newId: workspace.newId,
     }),
   );
-  const { plan } = workspace.execute(
+  workspace.execute(
     catalogComponentCommands.create(id("card"), "Card", workspace.newId),
   );
-  const instance = plan.selectAfter![0] as NodeId;
+  // ADR-260: the node stays as the origin; its copy is an instance, and deleting the origin hides
+  // it in its definition (a hidden template — the definition edit view's case, as an older
+  // document's owned template).
+  const instance = workspace.execute(
+    duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+  ).plan.selectAfter![0] as NodeId;
+  workspace.execute(
+    removeTargets({ targets: [{ kind: "node", id: id("card") }] }),
+  );
   const definitionId = catalogComponentState(
     workspace.runtime.graph,
     instance,
@@ -173,7 +183,7 @@ describe("ADR-248 4e definition edit view", () => {
   it("leaves the view when its definition goes away", async () => {
     const { workspace, definitionId } = await open();
     workspace.showDefinition(definitionId);
-    workspace.undo(); // the component's creation
+    workspace.undo(); // the origin's deletion: it is back on the page (ADR-260)
     expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
     expect(workspace.root.pageFrameRects().size).toBeGreaterThan(0);
     expect(() =>

@@ -7,8 +7,15 @@ import {
   mapShowWhenNodeIds,
 } from "../document/stateOwnerRefs";
 import { DISPLAY_STATE_PROPS } from "../resolution/resolver";
+import {
+  innerOwnerPlace,
+  layeredOverride,
+  overridesAt,
+} from "../resolution/templateOwners";
 import { descendantPatchOf } from "../document/types";
 import type {
+  CatalogReader,
+  DefinitionEntry,
   DefinitionId,
   DescendantOverride,
   DescendantPatchFields,
@@ -17,6 +24,7 @@ import type {
   InstanceAddress,
   InteractionEntry,
   LayoutWrites,
+  LibraryDefinitionId,
   LibraryTemplateNode,
   NodeEntry,
   NodeId,
@@ -339,13 +347,8 @@ export function createMaterializer(
       ),
       visual: template.visual,
       sizing: template.sizing ?? {},
-      descendantOverrides: (template.overrides ?? []).map((item) => ({
-        ...item,
-        address: {
-          ...item.address,
-          instances: [id, ...item.address.instances.slice(1)],
-        },
-      })),
+      // (A project template node's own overrides follow below, after the owner's moved ones.)
+      descendantOverrides: [],
       ...(template.layout ? { layout: template.layout } : {}),
       ...(template.slot ? { slot: template.slot } : {}),
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
@@ -455,7 +458,47 @@ export function createMaterializer(
         ),
       });
     }
-    const overrides = [...entry.descendantOverrides];
+    // A project template node's own overrides (ADR-260 Decision 11): re-addressed from the copy.
+    // Its slot contents and replacements are positions of this instance — owned copies of them
+    // stand there, unless the owner's own child list at that address replaces them (moved above).
+    const overrides: DescendantOverride[] = [];
+    for (const item of template.overrides ?? []) {
+      const address = {
+        ...item.address,
+        instances: [id, ...item.address.instances.slice(1)],
+      } as InstanceAddress;
+      const outer = moved.find((other) =>
+        sameAddress(other.address, address),
+      );
+      if (item.kind === "patch" || (outer && outer.kind !== "patch")) {
+        const fields = descendantPatchOf(item);
+        if (fields) {
+          const { childIds: _childIds, ...rest } = fields as Patch & {
+            childIds?: unknown;
+          };
+          overrides.push({ ...rest, kind: "patch", address });
+        }
+        continue;
+      }
+      overrides.push(
+        item.kind === "fillSlot"
+          ? {
+              ...item,
+              address,
+              childIds: item.childIds.map((childId) =>
+                materialize([...path, childId as TemplateId]),
+              ),
+            }
+          : {
+              ...item,
+              address,
+              replacementId: materialize([
+                ...path,
+                item.replacementId as TemplateId,
+              ]),
+            },
+      );
+    }
     for (const item of [...ownPatches, ...ownFills, ...moved]) {
       const index = overrides.findIndex((existing) =>
         sameAddress(existing.address, item.address),
@@ -538,7 +581,9 @@ export function ensureChildList(
   const path = parent.address.templatePath;
   // A slot position the enclosing library template node fills (`slotFills`) shows that node's
   // children: those are the positions copied (they sit in the enclosing node's own template).
-  const fill = librarySlotFillAt(draft, parent.address);
+  const fill =
+    librarySlotFillAt(draft, parent.address) ??
+    templateNodeFillAt(draft, parent.ownerId, parent.address);
   const materializer = createMaterializer(
     draft,
     parent.ownerId,
@@ -801,6 +846,50 @@ function positionBindings(
  * address level they sit at (the step's own template: `instances` without the step, `path` =
  * the step's template path from its template root).
  */
+/**
+ * ADR-260 follow-up: a slot position a project template node above fills (an origin's own items —
+ * a RadioGroup component's Radios) shows that node's slot contents. The instance's first edit
+ * there copies those (positions of the template the node sits in — Decision 11), not the library
+ * defaults under them.
+ */
+export function templateNodeFillAt(
+  draft: CommandDraft,
+  ownerId: NodeId,
+  address: InstanceAddress,
+):
+  | {
+      instances: InstanceAddress["instances"];
+      path: readonly TemplateId[];
+      childIds: readonly TemplateId[];
+    }
+  | undefined {
+  const owner = draft.node(ownerId);
+  const read = (id: string) => draft.read(id);
+  const { structural } = layeredOverride(
+    overridesAt(read, owner, address.instances, address.templatePath),
+  );
+  if (
+    !structural ||
+    structural.owner.id === ownerId ||
+    structural.override.kind !== "fillSlot"
+  )
+    return undefined;
+  const place = innerOwnerPlace(
+    read,
+    (id) => draft.reader.ownerOf(id),
+    draft.reader.library,
+    address.instances,
+    structural.owner,
+  );
+  return place
+    ? {
+        instances: place.instancePath as InstanceAddress["instances"],
+        path: place.templatePath,
+        childIds: structural.override.childIds as readonly TemplateId[],
+      }
+    : undefined;
+}
+
 export function librarySlotFillAt(
   draft: CommandDraft,
   address: InstanceAddress,
@@ -912,4 +1001,64 @@ function reanchorInteractions(
     }
     if (next) draft.write(next);
   }
+}
+
+type AnyDefinition = Pick<
+  DefinitionEntry,
+  "name" | "mode" | "accepts" | "defaults" | "templateRootId"
+>;
+function definitionOf(reader: CatalogReader, id: DefinitionId): AnyDefinition {
+  const definition = id.startsWith("lib:")
+    ? reader.library.definitions.get(id as LibraryDefinitionId)
+    : reader.getEntry(id);
+  if (!definition || ("kind" in definition && definition.kind !== "definition"))
+    return fail("DANGLING_DEFINITION", id);
+  return definition as AnyDefinition;
+}
+
+/**
+ * The instance becomes the owned copy of its template root, keeping its ID (references and the
+ * selection stay valid). Template values, library patches, the instance's overrides and its own
+ * authored root values carry over; `{key}` placeholders take the instance's current values.
+ */
+export function detachInto(draft: CommandDraft, id: NodeId, newId: NewId): void {
+  const instance = draft.node(id);
+  const definition = definitionOf(draft.reader, instance.definitionId);
+  if (definition.mode !== "composite" || !definition.templateRootId)
+    fail("NOT_AN_INSTANCE", id);
+  const materializer = createMaterializer(
+    draft,
+    id,
+    [id],
+    newId,
+    instanceBindings(draft, id),
+  );
+  materializer.node([definition.templateRootId!], id);
+  const root = draft.node(id);
+  const rootAccepts = definitionOf(draft.reader, root.definitionId).accepts;
+  // The instance's authored values are its root's (the resolver's instance root layer).
+  const props = { ...root.props };
+  for (const [key, write] of Object.entries(instance.props))
+    if (key in rootAccepts) props[key] = write;
+  const {
+    kind: _kind,
+    id: _id,
+    definitionId: _definitionId,
+    children: _children,
+    props: _props,
+    visual,
+    sizing,
+    layout,
+    descendantOverrides: _overrides,
+    ...fields
+  } = instance;
+  draft.write({
+    ...root,
+    ...fields,
+    props,
+    visual: { ...root.visual, ...visual },
+    sizing: { ...sizing, ...root.sizing },
+    ...(root.layout || layout ? { layout: { ...root.layout, ...layout } } : {}),
+  });
+  materializer.reanchorInteractions();
 }

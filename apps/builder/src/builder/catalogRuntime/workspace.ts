@@ -36,14 +36,16 @@ import { catalogRowSampleHidden } from "./rowSample";
 import { CatalogHistoryStore } from "./history";
 import {
   catalogComponentsPageCards,
+  catalogProjectComponents,
   setCatalogComponentsView,
 } from "./componentsPage";
 import {
   catalogOriginEditCommand,
   COMPONENTS_VIEW,
   isComponentsView,
+  isComponentsViewRoot,
   isLibraryOrigin,
-  ORIGIN_VIEW_NODE,
+  isProjectComponentsView,
   originCardId,
   originSampleId,
 } from "./originView";
@@ -54,6 +56,7 @@ import {
 } from "./session";
 import type { SlotChromeContext } from "./slotChrome";
 import type { CatalogStorage } from "./storage";
+import type { CatalogComponentsViewId } from "./originViewNode";
 import type { CatalogThemeState } from "./theme";
 
 export interface CatalogWorkspaceOptions {
@@ -186,7 +189,7 @@ export class CatalogWorkspace {
     if (isComponentsView(this.definitionView))
       setCatalogComponentsView(
         this.runtime.graph,
-        true,
+        this.definitionView,
         this.componentsHeights,
         this.colorMode,
       );
@@ -204,17 +207,54 @@ export class CatalogWorkspace {
   }
   /** After a step: a changed theme builds a new root in its color mode with its token values. */
   private afterStep(result: CatalogTransactionResult | undefined): void {
-    // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
+    // The viewed definition is gone (an undo of its creation, a dissolve), or its origin is back
+    // on a page (ADR-260 — Restore origin, an undo of the deletion): back to the pages.
+    const viewed =
+      this.definitionView && !isComponentsView(this.definitionView)
+        ? this.runtime.graph.getEntry(this.definitionView)
+        : undefined;
     if (
       this.definitionView &&
       !isComponentsView(this.definitionView) &&
-      this.runtime.graph.getEntry(this.definitionView)?.kind !== "definition"
+      (viewed?.kind !== "definition" || viewed.originRef === true)
     ) {
       this.showDefinition(undefined);
       return;
     }
     if (touchesTheme(result, this.projectId) && this.applyTheme())
       this.rebuildThemed();
+    // The project components page lists the project's components: one made, renamed, dissolved
+    // or deleted (an undo too) lays the page out again.
+    else if (
+      isProjectComponentsView(this.definitionView) &&
+      this.projectComponentsKey !==
+        JSON.stringify(catalogProjectComponents(this.runtime.graph))
+    )
+      this.openComponentsView(this.definitionView);
+  }
+  /** The components the project components page was laid out with. */
+  private projectComponentsKey: string | undefined;
+  /**
+   * Lay a derived components page out (its view entries, a new root), then again with the cards'
+   * drawn heights so its columns are balanced.
+   */
+  private openComponentsView(view: CatalogComponentsViewId): void {
+    const graph = this.runtime.graph;
+    this.componentsHeights = undefined;
+    this.projectComponentsKey = isProjectComponentsView(view)
+      ? JSON.stringify(catalogProjectComponents(graph))
+      : undefined;
+    setCatalogComponentsView(graph, view, undefined, this.colorMode);
+    this.replaceRoot(this.currentRoot.breakpoint);
+    const heights = new Map<string, number>();
+    for (const cardId of catalogComponentsPageCards(graph, view)) {
+      const records = this.root.recordsOfSource(cardId);
+      const height = this.root.getGeometry(records).get(records[0]!)?.height;
+      if (height !== undefined) heights.set(cardId, height);
+    }
+    this.componentsHeights = heights;
+    setCatalogComponentsView(graph, view, heights, this.colorMode);
+    this.replaceRoot(this.currentRoot.breakpoint);
   }
   private definitionView: CatalogDefinitionViewId | undefined;
   /**
@@ -239,6 +279,33 @@ export class CatalogWorkspace {
           listener(card.identity);
       return;
     }
+    // ADR-260: a component whose origin stands in place — go to that node where it is (its page,
+    // or the hidden template it sits in) and select it, as for a built-in origin.
+    const viewed =
+      definitionId && !isComponentsView(definitionId)
+        ? this.runtime.graph.getEntry(definitionId)
+        : undefined;
+    if (
+      viewed?.kind === "definition" &&
+      viewed.originRef === true &&
+      viewed.templateRootId
+    ) {
+      const graph = this.runtime.graph;
+      let top: string = viewed.templateRootId;
+      for (let at = graph.ownerOf(top); at; at = graph.ownerOf(at)) top = at;
+      const holder = graph.getEntry(top);
+      this.showDefinition(
+        holder?.kind === "definition"
+          ? (holder.id as CatalogDefinitionViewId)
+          : undefined,
+      );
+      const items = this.itemsOfNode(viewed.templateRootId, 1);
+      this.selectItems(items);
+      if (items[0])
+        for (const listener of [...this.recordRevealListeners])
+          listener(items[0].identity);
+      return;
+    }
     if (definitionId === this.definitionView) return;
     const graph = this.runtime.graph;
     if (
@@ -247,29 +314,19 @@ export class CatalogWorkspace {
       graph.getEntry(definitionId)?.kind !== "definition"
     )
       throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
-    // The Components page is derived view entries (never saved); a project one is its template.
-    this.componentsHeights = undefined;
-    setCatalogComponentsView(
-      graph,
-      isComponentsView(definitionId),
-      undefined,
-      this.colorMode,
-    );
+    // A components page is derived view entries (never saved); a project definition is its
+    // template.
     this.definitionView = definitionId;
     this.session.setDefinitionView(definitionId);
-    this.replaceRoot(this.currentRoot.breakpoint);
-    // The Components page: balance its columns by the cards' drawn heights (a second layout).
     if (isComponentsView(definitionId)) {
-      const heights = new Map<string, number>();
-      for (const cardId of catalogComponentsPageCards(graph)) {
-        const records = this.root.recordsOfSource(cardId);
-        const height = this.root.getGeometry(records).get(records[0]!)?.height;
-        if (height !== undefined) heights.set(cardId, height);
-      }
-      this.componentsHeights = heights;
-      setCatalogComponentsView(graph, true, heights, this.colorMode);
-      this.replaceRoot(this.currentRoot.breakpoint);
+      // Balance its columns by the cards' drawn heights (a second layout).
+      this.openComponentsView(definitionId);
+      return;
     }
+    this.componentsHeights = undefined;
+    this.projectComponentsKey = undefined;
+    setCatalogComponentsView(graph, undefined);
+    this.replaceRoot(this.currentRoot.breakpoint);
   }
   /**
    * Show another breakpoint: a new composition root over the same runtime (history, saves and
@@ -529,7 +586,7 @@ export class CatalogWorkspace {
   ): EntryId<"page"> | CatalogDefinitionViewId | undefined {
     const [top] = this.recordChain(recordId);
     const source = top && this.root.domInputs.get(top)?.sourceId;
-    if (source === ORIGIN_VIEW_NODE) return this.definitionView;
+    if (isComponentsViewRoot(source)) return this.definitionView;
     const owner = source && this.runtime.graph.ownerOf(source);
     const kind = owner ? this.runtime.graph.getEntry(owner)?.kind : undefined;
     return kind === "page"

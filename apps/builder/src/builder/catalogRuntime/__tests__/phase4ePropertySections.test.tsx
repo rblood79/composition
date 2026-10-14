@@ -1,7 +1,10 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
@@ -317,10 +320,13 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         newId: workspace.newId,
       }),
     );
-    const { plan } = workspace.execute(
+    workspace.execute(
       catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     );
-    const instance = plan.selectAfter![0];
+    // ADR-260: "card" stays as the origin; its copy is an instance.
+    const instance = workspace.execute(
+      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+    ).plan.selectAfter![0];
     const declare = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>

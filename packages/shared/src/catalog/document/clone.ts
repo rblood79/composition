@@ -1,6 +1,7 @@
 import { mapShowWhenNodeIds } from "./stateOwnerRefs";
 import type {
   CatalogReader,
+  DefinitionId,
   DescendantOverride,
   EntryId,
   NodeEntry,
@@ -10,7 +11,12 @@ import type {
 } from "./types";
 import { CatalogValidationError } from "./validation";
 
-/** Clones owned records only. Definition, library and external data references remain IDs. */
+/**
+ * Clones owned records only. Definition, library and external data references remain IDs.
+ * `asInstance` (ADR-260 Decision 8): a node it names a definition for (a component origin) is
+ * copied as an instance of that definition — a node of its own with no subtree, at the origin's
+ * placement.
+ */
 export function cloneNodeSubgraph(
   graph: Pick<CatalogReader, "getEntry" | "referrersOf">,
   rootId: NodeId,
@@ -18,6 +24,7 @@ export function cloneNodeSubgraph(
   allocateRelatedId?: (
     oldId: EntryId<"stateVariable"> | EntryId<"interaction">,
   ) => EntryId<"stateVariable"> | EntryId<"interaction">,
+  asInstance?: (id: NodeId) => DefinitionId | undefined,
 ): {
   rootId: NodeId;
   entries: readonly NodeEntry[];
@@ -26,6 +33,8 @@ export function cloneNodeSubgraph(
   const cloned = new Map<NodeId, NodeId>();
   const allocated = new Set<NodeId>();
   const ordered: NodeEntry[] = [];
+  /** Origins copied as instances: original id → its definition. */
+  const instanced = new Map<NodeId, DefinitionId>();
   const read = (id: NodeId): NodeEntry => {
     const entry = graph.getEntry(id);
     if (entry?.kind !== "node")
@@ -40,6 +49,12 @@ export function cloneNodeSubgraph(
     cloned.set(id, next);
     allocated.add(next);
     const node = read(id);
+    const definitionId = asInstance?.(id);
+    if (definitionId) {
+      instanced.set(id, definitionId);
+      ordered.push(node);
+      return;
+    }
     for (const childId of node.children) visit(childId);
     for (const override of node.descendantOverrides) {
       if (override.kind === "replace") visit(override.replacementId);
@@ -77,7 +92,8 @@ export function cloneNodeSubgraph(
       const entry = graph.getEntry(referrerId);
       if (
         (entry?.kind === "stateVariable" || entry?.kind === "interaction") &&
-        cloned.has(entry.ownerId as NodeId)
+        cloned.has(entry.ownerId as NodeId) &&
+        !instanced.has(entry.ownerId as NodeId)
       ) {
         seen.add(referrerId);
         related.push(entry);
@@ -137,16 +153,33 @@ export function cloneNodeSubgraph(
   });
   return {
     rootId: map(rootId),
-    entries: ordered.map((entry) => ({
-      ...structuredClone(entry),
-      id: map(entry.id),
-      children: entry.children.map(map),
-      descendantOverrides: overrides(entry.descendantOverrides),
-      // ADR-256 §1-1: a state owner inside the copy is the copy's (a reference outside stays).
-      ...(entry.showWhen
-        ? { showWhen: mapShowWhenNodeIds(entry.showWhen, map) }
-        : {}),
-    })),
+    entries: ordered.map((entry): NodeEntry => {
+      const definitionId = instanced.get(entry.id);
+      if (definitionId)
+        return {
+          kind: "node",
+          id: map(entry.id),
+          definitionId,
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+          ...(entry.placement
+            ? { placement: structuredClone(entry.placement) }
+            : {}),
+        };
+      return {
+        ...structuredClone(entry),
+        id: map(entry.id),
+        children: entry.children.map(map),
+        descendantOverrides: overrides(entry.descendantOverrides),
+        // ADR-256 §1-1: a state owner inside the copy is the copy's (a reference outside stays).
+        ...(entry.showWhen
+          ? { showWhen: mapShowWhenNodeIds(entry.showWhen, map) }
+          : {}),
+      };
+    }),
     relatedEntries,
   };
 }

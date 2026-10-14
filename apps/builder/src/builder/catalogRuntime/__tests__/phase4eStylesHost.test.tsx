@@ -9,7 +9,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import {
   createDefaultColorFill,
   type FillItem,
@@ -245,9 +248,14 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     workspace.execute(
       catalogComponentCommands.create(BOX, "Tile", workspace.newId),
     );
-    const body = graph.getEntry(BODY) as NodeEntry;
-    const instance = body.children[0]!;
+    // ADR-260: the box stays as the origin; its copy is an instance.
+    const instance = workspace.execute(
+      duplicateNodes({ ids: [BOX], newId: workspace.newId }),
+    ).plan.selectAfter![0]!;
     expect(instance).not.toBe(BOX);
+    expect((graph.getEntry(instance) as NodeEntry).definitionId).toMatch(
+      /^project:definition:/,
+    );
     const record = workspace.root.recordsOfSource(instance)[0]!;
     workspace.selectRecords([record]);
     const wrapper = ({ children }: { children: ReactNode }) => (

@@ -8,7 +8,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogArrangeCommand } from "../shortcuts";
 import type { ContextMenuItem } from "../../components/overlay/contextMenu/types";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "../canvasMenu";
@@ -104,7 +107,6 @@ async function open() {
   };
   return { workspace, host, record, children, ids, run };
 }
-
 
 /** Answer the component confirmation dialog (detach · dissolve ask first); returns the asked kinds. */
 function answerComponentConfirm(answer: boolean) {
@@ -205,7 +207,11 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
-        entries: [placed("p", 10, 10), placed("q", 100, 60), placed("r", 200, 30)],
+        entries: [
+          placed("p", 10, 10),
+          placed("q", 100, 60),
+          placed("r", 200, 30),
+        ],
         rootIds: [id("p"), id("q"), id("r")],
         newId: allocator(),
       }),
@@ -218,7 +224,11 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       arrange: (shortcut) => catalogArrangeCommand(workspace, shortcut),
     };
     workspace.selectRecords(records.slice(0, 2));
-    const two = catalogCanvasMenuItems(withArrange, "canvas-element", records[0]);
+    const two = catalogCanvasMenuItems(
+      withArrange,
+      "canvas-element",
+      records[0],
+    );
     const align = two.find((item) => item.id === "align");
     expect(align?.kind).toBe("submenu");
     // Two elements: no distribution (it needs three).
@@ -231,7 +241,11 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       "align-bottom",
     ]);
     workspace.selectRecords(records);
-    const three = catalogCanvasMenuItems(withArrange, "canvas-element", records[0]);
+    const three = catalogCanvasMenuItems(
+      withArrange,
+      "canvas-element",
+      records[0],
+    );
     const submenu = three.find((item) => item.id === "align");
     expect(submenu?.kind === "submenu" && ids(submenu.items)).toContain(
       "distribute-horizontal",
@@ -264,13 +278,28 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       showDefinition: (definitionId) => shown.push(definitionId),
     };
     workspace.selectRecords([record("list")]);
-    const before = catalogCanvasMenuItems(withOrigin, "canvas-element", record("list"));
+    const before = catalogCanvasMenuItems(
+      withOrigin,
+      "canvas-element",
+      record("list"),
+    );
     const create = before.find((item) => item.id === "toggle-component-origin");
-    expect(create).toMatchObject({ labelKey: "componentAction.createComponent" });
+    expect(create).toMatchObject({
+      labelKey: "componentAction.createComponent",
+    });
     run(before, "toggle-component-origin");
-    // An instance of the new component takes the node's place (the node is its template).
-    const bodyEntry = workspace.runtime.graph.getEntry(BODY);
-    const instanceId = (bodyEntry?.kind === "node" ? bodyEntry.children : [])[0];
+    // ADR-260: the node stays as the origin — its menu now detaches the component (⌘⌥K toggle).
+    workspace.selectRecords([record("list")]);
+    expect(
+      catalogCanvasMenuItems(withOrigin, "canvas-element", record("list")).find(
+        (item) => item.id === "toggle-component-origin",
+      ),
+    ).toMatchObject({ labelKey: "componentAction.detachComponent" });
+    // A copy of the origin is an instance (pen.dev).
+    const { plan } = workspace.execute(
+      duplicateNodes({ ids: [id("list")], newId: workspace.newId }),
+    );
+    const instanceId = plan.selectAfter![0];
     const instance = workspace.runtime.graph.getEntry(instanceId);
     expect(instance?.kind === "node" && instance.definitionId).toMatch(
       /^project:definition:/,
@@ -306,10 +335,7 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     run(after, "detach-instance");
     await settle();
     confirm.stop();
-    const detachedBody = workspace.runtime.graph.getEntry(BODY);
-    const detached = workspace.runtime.graph.getEntry(
-      (detachedBody?.kind === "node" ? detachedBody.children : [])[0],
-    );
+    const detached = workspace.runtime.graph.getEntry(instanceId);
     expect(detached?.kind === "node" && detached.definitionId).toBe(
       "lib:definition:type-frame",
     );
@@ -327,7 +353,11 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       toggleSnap: () => calls.push("snap"),
     };
     const body = workspace.root.recordsOfSource(BODY)[0];
-    const items = catalogCanvasMenuItems({ ...host, view }, "canvas-empty", body);
+    const items = catalogCanvasMenuItems(
+      { ...host, view },
+      "canvas-empty",
+      body,
+    );
     expect(ids(items)).toEqual([
       "zoom-to-fit",
       "zoom-100",
@@ -343,8 +373,7 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     });
     run(items, "zoom-to-fit");
     run(items, "zoom-100");
-    for (const item of items)
-      if (item.kind === "toggle") void item.run();
+    for (const item of items) if (item.kind === "toggle") void item.run();
     expect(calls).toEqual(["fit", "100", "rulers", "snap"]);
   });
 });

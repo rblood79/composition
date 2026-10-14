@@ -20,78 +20,14 @@ import {
   setChildList,
   topLevel,
 } from "./context";
-import {
-  createMaterializer,
-  instanceBindings,
-  type NewId,
-} from "./materialize";
+import { detachInto, type NewId } from "./materialize";
 import { removeWithReferrers, subtree } from "./structure";
 
 /**
  * ADR-248 Phase 4b component commands: detach an instance, write a library definition's project
- * defaults, make a component from a node (its template moves to the Components area and an
- * instance stands in its place — user decision 2026-09-30), and dissolve a component.
+ * defaults, make a component from a node (it stays in place as the origin — ADR-260, revising the
+ * 2026-09-30 decision), restore a deleted origin, and dissolve a component.
  */
-
-type AnyDefinition = Pick<
-  DefinitionEntry,
-  "name" | "mode" | "accepts" | "defaults" | "templateRootId"
->;
-function definitionOf(reader: CatalogReader, id: DefinitionId): AnyDefinition {
-  const definition = id.startsWith("lib:")
-    ? reader.library.definitions.get(id as LibraryDefinitionId)
-    : reader.getEntry(id);
-  if (!definition || ("kind" in definition && definition.kind !== "definition"))
-    return fail("DANGLING_DEFINITION", id);
-  return definition as AnyDefinition;
-}
-
-/**
- * The instance becomes the owned copy of its template root, keeping its ID (references and the
- * selection stay valid). Template values, library patches, the instance's overrides and its own
- * authored root values carry over; `{key}` placeholders take the instance's current values.
- */
-function detachInto(draft: CommandDraft, id: NodeId, newId: NewId): void {
-  const instance = draft.node(id);
-  const definition = definitionOf(draft.reader, instance.definitionId);
-  if (definition.mode !== "composite" || !definition.templateRootId)
-    fail("NOT_AN_INSTANCE", id);
-  const materializer = createMaterializer(
-    draft,
-    id,
-    [id],
-    newId,
-    instanceBindings(draft, id),
-  );
-  materializer.node([definition.templateRootId!], id);
-  const root = draft.node(id);
-  const rootAccepts = definitionOf(draft.reader, root.definitionId).accepts;
-  // The instance's authored values are its root's (the resolver's instance root layer).
-  const props = { ...root.props };
-  for (const [key, write] of Object.entries(instance.props))
-    if (key in rootAccepts) props[key] = write;
-  const {
-    kind: _kind,
-    id: _id,
-    definitionId: _definitionId,
-    children: _children,
-    props: _props,
-    visual,
-    sizing,
-    layout,
-    descendantOverrides: _overrides,
-    ...fields
-  } = instance;
-  draft.write({
-    ...root,
-    ...fields,
-    props,
-    visual: { ...root.visual, ...visual },
-    sizing: { ...sizing, ...root.sizing },
-    ...(root.layout || layout ? { layout: { ...root.layout, ...layout } } : {}),
-  });
-  materializer.reanchorInteractions();
-}
 
 export const detachInstances =
   (input: {
@@ -169,9 +105,9 @@ export const setLibraryDefault =
   };
 
 /**
- * Make a component from an owned node: a new definition takes the node as its template root
- * (the Components area shows it), and an instance of it takes the node's place. The node's
- * position in its parent (`placement`) stays with the instance.
+ * Make a component from an owned node (ADR-260 — pen.dev · Figma): the node stays where it is as
+ * the component's origin, and a new definition references it (`originRef`). Instances placed from
+ * the Components tab · the palette · a duplicate of the origin show it.
  */
 export const createComponent =
   (input: {
@@ -183,7 +119,10 @@ export const createComponent =
   (reader) => {
     const draft = new CommandDraft(reader);
     const node = draft.node(input.id);
-    const { parent } = locate(draft, input.id);
+    // An owned node in a place it can stand (not a template root or a replacement).
+    locate(draft, input.id);
+    if (reader.definitionOfTemplateRoot(input.id))
+      return fail("ALREADY_COMPONENT_ORIGIN", input.id);
     const definitionId = input.newId("definition");
     const definition: DefinitionEntry = {
       kind: "definition",
@@ -196,44 +135,26 @@ export const createComponent =
       stateRules: {},
       templateRootId: node.id,
       usage: "component",
+      originRef: true,
     };
-    const instance: NodeEntry = {
-      kind: "node",
-      id: input.newId("node"),
-      definitionId,
-      children: [],
-      props: {},
-      visual: {},
-      sizing: {},
-      descendantOverrides: [],
-      ...(node.placement ? { placement: node.placement } : {}),
-    };
-    const { placement: _placement, ...template } = node;
     draft.create(definition);
-    draft.create(instance);
-    draft.write(template);
     const project = draft.project();
     draft.write({
       ...project,
       definitionIds: [...project.definitionIds, definitionId],
     });
-    setChildList(
-      draft,
-      parent,
-      (childList(draft, parent) ?? []).map((id) =>
-        id === input.id ? instance.id : id,
-      ),
-    );
     return {
       label: input.label ?? "Create component",
       ops: draft.ops(),
-      selectAfter: [instance.id],
+      selectAfter: [node.id],
     };
   };
 
 /**
  * Dissolve a project component: every instance is detached (it keeps what it showed), then the
- * definition and its template are removed.
+ * definition is removed. An origin in place stays as an ordinary node (ADR-260 Decision 5 —
+ * Create ↔ Detach component on the same node); an owned template (an older component, or an
+ * origin deleted into a hidden template) goes with the definition.
  */
 export const dissolveComponent =
   (input: {
@@ -248,9 +169,10 @@ export const dissolveComponent =
       return fail("DANGLING_DEFINITION", input.definitionId);
     for (const id of reader.instancesOf(input.definitionId))
       detachInto(draft, id as NodeId, input.newId);
-    const template = definition.templateRootId
-      ? subtree(draft, definition.templateRootId)
-      : [];
+    const template =
+      definition.templateRootId && definition.originRef !== true
+        ? subtree(draft, definition.templateRootId)
+        : [];
     removeWithReferrers(draft, [input.definitionId, ...template]);
     const project = draft.project();
     draft.write({
@@ -260,4 +182,51 @@ export const dissolveComponent =
       ),
     });
     return { label: input.label ?? "Dissolve component", ops: draft.ops() };
+  };
+
+/** How far a restored origin sits from the instance it is restored beside (as a duplicate). */
+const RESTORE_OFFSET = 10;
+/**
+ * Restore a deleted origin (ADR-260 Decision 6 — Figma 「Restore main component」): the hidden
+ * template of the instance's definition goes back on the canvas beside that instance (the same
+ * parent, the next index; an absolutely placed instance's origin sits 10 px off it), and the
+ * definition references it again. Nested origins inside it come back with it.
+ */
+export const restoreOrigin =
+  (input: { instanceId: NodeId; label?: string }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const instance = draft.node(input.instanceId);
+    const definition = draft.read(instance.definitionId);
+    if (
+      definition?.kind !== "definition" ||
+      definition.originRef !== false ||
+      !definition.templateRootId
+    )
+      return fail("ORIGIN_NOT_HIDDEN", instance.definitionId);
+    const { parent, index } = locate(draft, input.instanceId);
+    const root = draft.node(definition.templateRootId);
+    const { placement: _placement, ...rest } = root;
+    const placement = instance.placement;
+    draft.write({ ...definition, originRef: true });
+    draft.write(
+      placement?.kind === "absolute"
+        ? {
+            ...rest,
+            placement: {
+              ...placement,
+              x: placement.x + RESTORE_OFFSET,
+              y: placement.y + RESTORE_OFFSET,
+            },
+          }
+        : rest,
+    );
+    const list = [...(childList(draft, parent) ?? [])];
+    list.splice(index + 1, 0, root.id);
+    setChildList(draft, parent, list);
+    return {
+      label: input.label ?? "Restore origin",
+      ops: draft.ops(),
+      selectAfter: [root.id],
+    };
   };

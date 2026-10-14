@@ -1,7 +1,8 @@
 import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommands";
 import {
-  ORIGIN_VIEW_NODE,
+  isComponentsViewRoot,
   isPageCard,
+  isProjectComponentOriginCell,
   isThemeSample,
   originOfPageInstance,
   originOfSample,
@@ -94,12 +95,14 @@ export function resolveCatalogClickRecord(
         originOfSample(record.sourceId) ||
         originOfPageInstance(record.sourceId) ||
         isThemeSample(record.sourceId) ||
+        // The project components page: a component's origin node.
+        isProjectComponentOriginCell(parent?.sourceId) ||
         isPageCard(record.sourceId)
       )
         return record.id;
       if (record.parentId === PAGE_GRID) return record.id;
       if (parent?.parentId === PAGE_GRID)
-        return parent.sourceId === ORIGIN_VIEW_NODE ? parent.id : record.id;
+        return isComponentsViewRoot(parent.sourceId) ? parent.id : record.id;
     } else if (isContext(parent, editingContext)) return record.id;
   }
   return undefined;

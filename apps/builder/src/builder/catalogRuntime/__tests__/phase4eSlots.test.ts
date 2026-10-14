@@ -8,7 +8,10 @@ import type {
   NodeId,
   TemplateId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogComponentCommands } from "../componentActions";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -68,10 +71,13 @@ describe("ADR-248 Phase 4e-4 slot section", () => {
     const { workspace, graph } = await open();
     // A plain page node has no slot to declare.
     expect(catalogSlotDeclaration(graph, id("content"))).toBe(undefined);
-    const { plan } = workspace.execute(
+    workspace.execute(
       catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     );
-    const instance = plan.selectAfter![0];
+    // ADR-260: "card" stays as the origin; its copy is an instance.
+    const instance = workspace.execute(
+      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+    ).plan.selectAfter![0];
     expect(catalogSlotDeclaration(graph, id("content"))).toEqual({});
 
     workspace.execute(

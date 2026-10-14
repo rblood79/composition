@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CatalogGraph, ownedChildren } from "../../document/graph";
 import type { CatalogOperation } from "../../transactions/transaction";
 import type {
+  DefinitionEntry,
   EntryId,
   InstanceAddress,
   NodeEntry,
@@ -27,6 +28,7 @@ import {
   pasteNodes,
   removeTargets,
   renameNode,
+  restoreOrigin,
   setFields,
   setWholeField,
   ungroupNodes,
@@ -352,6 +354,45 @@ describe("ADR-248 Phase 4b random command sequence", () => {
               newId,
             })
           : undefined;
+      },
+      // ADR-260: place an instance of a component (its origin stays in place), restore a deleted one.
+      placeInstance: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const definitionId = pickOne(project.definitionIds);
+        const parent = pickOne(parents());
+        const id = makeId("node") as NodeId;
+        return definitionId && parent
+          ? insertNodes({
+              parent,
+              index: Math.floor(random() * 4),
+              entries: [node(id.slice(13), definitionId)],
+              rootIds: [id],
+              newId,
+            })
+          : undefined;
+      },
+      removeOrigin: () => {
+        const origins = ownedNodes().filter((entry) => {
+          const definitionId = graph.definitionOfTemplateRoot(entry.id);
+          return (
+            !!definitionId &&
+            (graph.getEntry(definitionId) as DefinitionEntry).originRef ===
+              true
+          );
+        });
+        const target = pickOne(origins);
+        return target
+          ? removeTargets({ targets: [{ kind: "node", id: target.id }] })
+          : undefined;
+      },
+      restore: () => {
+        const hidden = ownedNodes().filter(
+          (entry) =>
+            (graph.getEntry(entry.definitionId) as DefinitionEntry | undefined)
+              ?.originRef === false,
+        );
+        const target = pickOne(hidden);
+        return target ? restoreOrigin({ instanceId: target.id }) : undefined;
       },
       rename: () => {
         const target = pickOne(ownedNodes());

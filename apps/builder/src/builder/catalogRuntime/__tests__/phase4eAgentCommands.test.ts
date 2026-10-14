@@ -8,7 +8,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  duplicateNodes,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { setAgentCommandHost } from "../../../services/agent/agentCommandHost";
 import { executeAgentCommand } from "../../../services/agent/executeAgentCommand";
 import type { AgentReadModel } from "../../config/commandMeta";
@@ -148,6 +151,10 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
     const { workspace, select } = await open();
     select("a");
     await executeAgentCommand("toggleComponentOrigin", {}, context());
+    // ADR-260: "a" stays as the origin; its copy is an instance.
+    workspace.execute(
+      duplicateNodes({ ids: [id("a")], newId: workspace.newId }),
+    );
     const instance = workspace.session.getSnapshot().selection[0]!;
     workspace.selectRecords([instance.identity]);
     const asked: string[] = [];

@@ -52,15 +52,23 @@ export interface CatalogHistoryRecord {
 }
 type MutableIndex = Map<string, Set<string>>;
 /** `ref`: any other by-ID reference (addresses, interaction/state owners and targets, theme tokens). */
+/** `template`: a project definition → its template root (owned or, ADR-260, referenced). */
 type EdgeType =
-  "definition" | "owner" | "token" | "collection" | "ref" | "htmlId";
+  | "definition"
+  | "owner"
+  | "token"
+  | "collection"
+  | "ref"
+  | "htmlId"
+  | "template";
 interface Edge {
   type: EdgeType;
   key: string;
   target: string;
 }
 
-function tokenRefs(value: unknown, target: Set<string>): void {
+/** Every token id a value names (`{ kind: "token", tokenId }` at any depth). */
+export function tokenRefs(value: unknown, target: Set<string>): void {
   if (Array.isArray(value)) {
     for (const item of value) tokenRefs(item, target);
     return;
@@ -75,8 +83,11 @@ function tokenRefs(value: unknown, target: Set<string>): void {
 }
 export function ownedChildren(entry: CatalogEntry): NodeId[] {
   if (entry.kind === "page") return [...entry.children];
+  // ADR-260: a definition owns its template root unless it references it (the origin in place).
   if (entry.kind === "definition")
-    return entry.templateRootId ? [entry.templateRootId] : [];
+    return entry.templateRootId && entry.originRef !== true
+      ? [entry.templateRootId]
+      : [];
   if (entry.kind !== "node") return [];
   const ids = [...entry.children];
   for (const override of entry.descendantOverrides) {
@@ -136,6 +147,12 @@ function edgesOf(entry: CatalogEntry): Edge[] {
   }
   for (const child of ownedChildren(entry))
     edges.push({ type: "owner", key: entry.id, target: child });
+  if (entry.kind === "definition" && entry.templateRootId)
+    edges.push({
+      type: "template",
+      key: entry.templateRootId,
+      target: entry.id,
+    });
   for (const id of new Set(referencedIds(entry)))
     edges.push({ type: "ref", key: id, target: entry.id });
   const refs = new Set<string>();
@@ -198,6 +215,7 @@ export class CatalogGraph {
   private readonly collectionIndex: MutableIndex = new Map();
   private readonly refIndex: MutableIndex = new Map();
   private readonly htmlIdIndex: MutableIndex = new Map();
+  private readonly templateIndex: MutableIndex = new Map();
   private readonly libraryDependents: MutableIndex = new Map();
   private readonly overrideIndex = new Map<
     LibraryDefinitionId,
@@ -453,6 +471,16 @@ export class CatalogGraph {
   referrersOf(id: string): ReadonlySet<string> {
     return this.refIndex.get(id) ?? new Set();
   }
+  /**
+   * ADR-260: the project definition whose template root `id` is — owned (a definition's template)
+   * or referenced (a component origin in place on a page). The reverse of `templateRootId`.
+   */
+  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined {
+    const found = this.templateIndex.get(id);
+    return found
+      ? (found.values().next().value as EntryId<"definition">)
+      : undefined;
+  }
   /** Committed nodes bound to a data collection (the Data panel's usage, no scan). */
   bindingsOf(collectionId: string): ReadonlySet<string> {
     return this.collectionIndex.get(collectionId) ?? new Set();
@@ -588,6 +616,9 @@ export class CatalogGraph {
         if (cursor === child || seen.has(cursor))
           throw new CatalogValidationError("OWNERSHIP_CYCLE", child);
         seen.add(cursor);
+        // ADR-260: a subtree placed inside a referenced origin (its chain ends at a page) may
+        // hold an instance of that origin's definition too.
+        if (this.templateIndex.has(cursor)) definitionsChanged = true;
         top = cursor;
       }
       // A subtree placed inside a template may contain an instance of that template.
@@ -600,11 +631,39 @@ export class CatalogGraph {
         this.definitionIndex,
         this.tokenIndex,
         this.refIndex,
+        this.templateIndex,
       ])
         for (const referrer of index.get(id) ?? []) referrers.add(referrer);
       const before = this.table.get(id);
       if (entry?.kind === "definition" || before?.kind === "definition")
         definitionsChanged = true;
+      // A template root read by reference (ADR-260) carries the instance contract the same way.
+      for (const definition of this.templateIndex.get(id) ?? [])
+        if (!staged.has(definition)) {
+          definitionsChanged = true;
+          for (const instance of this.instancesOf(definition))
+            referrers.add(instance);
+        }
+      if (entry?.kind === "definition" && entry.templateRootId) {
+        const root = entry.templateRootId;
+        const others = [...(this.templateIndex.get(root) ?? [])].filter(
+          (other) =>
+            other !== id &&
+            (!staged.has(other) ||
+              (staged.get(other) as DefinitionEntry | null)?.templateRootId ===
+                root),
+        );
+        for (const [otherId, other] of staged)
+          if (
+            otherId !== id &&
+            other?.kind === "definition" &&
+            other.templateRootId === root &&
+            !others.includes(otherId)
+          )
+            others.push(otherId);
+        if (others.length)
+          throw new CatalogValidationError("DUPLICATE_TEMPLATE_ROOT", root);
+      }
       // A template root carries its definition's instance contract.
       for (const owner of [ownerAfter(id), this.ownerByChild.get(id)])
         if (owner && get(owner)?.kind === "definition") {
@@ -678,6 +737,7 @@ export class CatalogGraph {
     if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
       throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
     const owners = new Map<string, string>();
+    const templateRoots = new Set<string>();
     const overrides = new Set<string>();
     const entryIds = new Set(entries.map((entry) => entry.id));
     if (entries.length !== entryIds.size)
@@ -700,6 +760,14 @@ export class CatalogGraph {
         !listed.has(entry.id)
       )
         throw new CatalogValidationError("UNOWNED_ENTRY", entry.id);
+      if (entry.kind === "definition" && entry.templateRootId) {
+        if (templateRoots.has(entry.templateRootId))
+          throw new CatalogValidationError(
+            "DUPLICATE_TEMPLATE_ROOT",
+            entry.templateRootId,
+          );
+        templateRoots.add(entry.templateRootId);
+      }
       const children = ownedChildren(entry);
       for (const child of children) {
         if (owners.has(child))
@@ -850,6 +918,16 @@ export class CatalogGraph {
         this.validateStateTokenRules(entry.stateRules, get, entry.id);
       }
       if (entry.kind === "definition") {
+        // ADR-260: a referenced origin is a node (its owner is checked like any node's).
+        if (
+          entry.originRef === true &&
+          entry.templateRootId &&
+          get(entry.templateRootId)?.kind !== "node"
+        )
+          throw new CatalogValidationError(
+            "DANGLING_TEMPLATE",
+            entry.templateRootId,
+          );
         this.validatePropValues(entry.defaults, entry.accepts, entry.id);
         this.validateTokenFields(entry.defaults, entry.accepts, get, entry.id);
         this.validateTokenFields(entry.visual, undefined, get, entry.id);
@@ -1100,7 +1178,9 @@ export class CatalogGraph {
           if (!node) return;
           if (node.definitionId.startsWith("project:definition:"))
             visit(node.definitionId);
-          for (const child of node.children) walk(child, seen);
+          // Every child the template projects: its children and its `replace` · `fillSlot`
+          // nodes (ADR-260 Decision 12 — a self instance in a slot fill is a cycle too).
+          for (const child of ownedChildren(node)) walk(child, seen);
         };
         walk(definition.templateRootId, new Set());
       }
@@ -1115,6 +1195,7 @@ export class CatalogGraph {
     if (type === "token") return this.tokenIndex;
     if (type === "ref") return this.refIndex;
     if (type === "htmlId") return this.htmlIdIndex;
+    if (type === "template") return this.templateIndex;
     return this.collectionIndex;
   }
   private addEdge(edge: Edge): void {
@@ -1137,6 +1218,8 @@ export class CatalogGraph {
         this.libraryDependents,
         this.tokenIndex,
         this.collectionIndex,
+        // ADR-260: an origin in place is not owned by its definition — reach it by the root.
+        this.templateIndex,
       ])
         for (const next of index.get(id) ?? [])
           if (!affected.has(next))

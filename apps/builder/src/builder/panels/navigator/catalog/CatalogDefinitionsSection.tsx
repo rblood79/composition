@@ -15,7 +15,10 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { COMPONENTS_VIEW } from "../../../catalogRuntime/originView";
+import {
+  COMPONENTS_VIEW,
+  PROJECT_COMPONENTS_VIEW,
+} from "../../../catalogRuntime/originView";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { Section } from "../../../components/panel/Section";
@@ -46,7 +49,8 @@ const AddIcon = ACTION_ICONS.add;
  * A component is made from a selection (Create component) and dissolved from Properties. The
  * Components tab lists the Components page first — one derived page that draws every built-in
  * component origin with its state variants (user 2026-10-05, `componentsPage`) — then the
- * project's components.
+ * project's components page: every component made with Create component on one page, as the
+ * built-in origins are (user 2026-10-14 — no item per component).
  */
 export const CatalogDefinitionsSection = memo(
   function CatalogDefinitionsSection({
@@ -82,6 +86,16 @@ export const CatalogDefinitionsSection = memo(
         {
           id: COMPONENTS_VIEW,
           name: t("navigator.builtinComponents"),
+          usage: "component",
+          page: true,
+          parentId: null,
+          depth: 0,
+          hasChildren: false,
+        },
+        // The components made with Create component, on one page (user 2026-10-14).
+        {
+          id: PROJECT_COMPONENTS_VIEW,
+          name: t("navigator.userComponents"),
           usage: "component",
           page: true,
           parentId: null,
@@ -199,28 +213,20 @@ export const CatalogDefinitionsSection = memo(
           ) : undefined
         }
       >
-        {usage === "component" && (
-          <>
-            <TreeBase<DefinitionNode>
-              aria-label={t("navigator.builtinComponents")}
-              items={componentsPage}
-              getKey={(item) => item.id}
-              getTextValue={(item) => item.name}
-              renderContent={renderContent}
-              selectedKeys={selectedKeys}
-              onSelectionChange={handleSelectionChange}
-              className="page-tree"
-            />
-            <div className="navigator-definition-group">
-              {t("navigator.userComponents")}
-            </div>
-          </>
-        )}
-        {items.length === 0 ? (
+        {usage === "component" ? (
+          <TreeBase<DefinitionNode>
+            aria-label={title}
+            items={componentsPage}
+            getKey={(item) => item.id}
+            getTextValue={(item) => item.name}
+            renderContent={renderContent}
+            selectedKeys={selectedKeys}
+            onSelectionChange={handleSelectionChange}
+            className="page-tree"
+          />
+        ) : items.length === 0 ? (
           <div className="page-search-empty" role="status">
-            {usage === "layout"
-              ? t("navigator.noLayouts")
-              : t("navigator.noComponents")}
+            {t("navigator.noLayouts")}
           </div>
         ) : (
           <TreeBase<DefinitionNode>

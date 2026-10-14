@@ -10,6 +10,11 @@ import type {
 } from "../document/types";
 import { descendantPatchOf } from "../document/types";
 import { readPropSource } from "../resolution/fieldSource";
+import {
+  childPositions as positionRows,
+  nodePosition,
+  type CatalogPosition,
+} from "../resolution/positions";
 import { catalogNodeVisibleAt } from "../resolution/resolver";
 import type { CatalogOperation } from "../transactions/transaction";
 import type { CatalogCommand } from "./compose";
@@ -427,6 +432,47 @@ function shownSelected(draft: CommandDraft, item: NodeParent): boolean {
  * unused color (and the last swatch's box); a selected Radio (or a single-selection ToggleButton)
  * clears its siblings' selection, and a RadioGroup takes the new value.
  */
+/** A position's edit target as a command parent. */
+function parentOfTarget(position: CatalogPosition): NodeParent {
+  return position.target.kind === "node"
+    ? { kind: "node", id: position.target.id }
+    : {
+        kind: "descendant",
+        ownerId: position.target.ownerId,
+        address: position.target.address,
+      };
+}
+/**
+ * ADR-260 follow-up: the group a user component's instance shows — its origin (the template root,
+ * an instance of a library group) — as the resolver draws it under the instance: the rows under
+ * the instance, the origin's id and its library template root (`undefined` = not such a host).
+ */
+function projectGroupLevel(
+  draft: CommandDraft,
+  hostId: NodeId,
+  rootTemplate: string | undefined,
+):
+  | {
+      rows: readonly CatalogPosition[];
+      originId: NodeId;
+      libraryRoot: string | undefined;
+    }
+  | undefined {
+  if (!rootTemplate?.startsWith("project:node:")) return undefined;
+  const origin = draft.node(rootTemplate);
+  const definition = origin.definitionId.startsWith("lib:")
+    ? draft.reader.library.definitions.get(
+        origin.definitionId as `lib:definition:${string}`,
+      )
+    : undefined;
+  return {
+    rows: positionRows(draft.reader, nodePosition(draft.reader, hostId)),
+    originId: origin.id,
+    libraryRoot:
+      definition?.mode === "composite" ? definition.templateRootId : undefined,
+  };
+}
+
 export const insertGroupItem =
   (input: {
     hostId: NodeId;
@@ -457,17 +503,24 @@ export const insertGroupItem =
       hostDefinition.templateRootId
         ? hostDefinition.templateRootId
         : undefined;
+    // ADR-260 follow-up: an instance of a user component whose origin is a group (a RadioGroup
+    // made a component) adds to that group as the instance shows it — the group's items wrapper
+    // or root slot through the origin's own composite (`positions.ts`, the resolver's rows), its
+    // current items the origin's (Decision 11).
+    const inner = projectGroupLevel(draft, host.id, rootTemplate);
     // The host's children: the instance's template positions, then its own children.
-    const hostChildren: NodeParent[] = [
-      ...(rootTemplate
-        ? childPositions(draft, {
-            kind: "descendant",
-            ownerId: host.id,
-            address: { instances: [host.id], templatePath: [rootTemplate] },
-          })
-        : []),
-      ...host.children.map((id): NodeParent => ({ kind: "node", id })),
-    ];
+    const hostChildren: NodeParent[] = inner
+      ? inner.rows.map(parentOfTarget)
+      : [
+          ...(rootTemplate
+            ? childPositions(draft, {
+                kind: "descendant",
+                ownerId: host.id,
+                address: { instances: [host.id], templatePath: [rootTemplate] },
+              })
+            : []),
+          ...host.children.map((id): NodeParent => ({ kind: "node", id })),
+        ];
     // ADR-251: the items live in the wrapper node (a template position of an instance, or an
     // owned node); the item goes there and its siblings are the wrapper's children.
     const wrapperType = GROUP_ITEMS_WRAPPER[groupType];
@@ -475,15 +528,24 @@ export const insertGroupItem =
     // AvatarGroup, Nav, DisclosureGroup): the item joins the slot's content, where the items the
     // group starts with are (2026-10-14 — appended to the instance's own children it stood after
     // the slot and the Design panel's slot list did not show it).
+    const slotRoot = inner ? inner.libraryRoot : rootTemplate;
     const rootSlot =
-      rootTemplate?.startsWith("lib:") &&
-      reader.library.templates.get(rootTemplate as `lib:template:${string}`)
-        ?.slot
+      slotRoot?.startsWith("lib:") &&
+      reader.library.templates.get(slotRoot as `lib:template:${string}`)?.slot
         ? ({
             kind: "descendant",
             ownerId: host.id,
-            address: { instances: [host.id], templatePath: [rootTemplate] },
+            address: {
+              instances: inner ? [host.id, inner.originId] : [host.id],
+              templatePath: [slotRoot as TemplateId],
+            },
           } as NodeParent)
+        : undefined;
+    const wrapperRow =
+      inner && wrapperType
+        ? inner.rows.find(
+            (row) => positionType(draft, parentOfTarget(row)) === wrapperType,
+          )
         : undefined;
     const container: NodeParent = wrapperType
       ? (hostChildren.find(
@@ -491,7 +553,12 @@ export const insertGroupItem =
         ) ?? fail("NO_ITEMS_WRAPPER", groupType))
       : (rootSlot ?? { kind: "node", id: host.id });
     const containerChildren = wrapperType
-      ? childPositions(draft, container)
+      ? (childList(draft, container)?.map(
+          (id): NodeParent => ({ kind: "node", id }),
+        ) ??
+        (wrapperRow
+          ? positionRows(reader, wrapperRow).map(parentOfTarget)
+          : childPositions(draft, container)))
       : hostChildren;
     const siblings = containerChildren.filter((sibling) =>
       itemTypes.includes(positionType(draft, sibling)),

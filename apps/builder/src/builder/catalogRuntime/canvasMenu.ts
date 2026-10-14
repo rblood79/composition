@@ -494,6 +494,17 @@ export function catalogCanvasMenuItems(
       run: () => showDefinition(origin.definitionId as CatalogDefinitionViewId),
     });
   }
+  // ADR-260 Decision 6: the component's origin was deleted — put it back beside this instance.
+  if (origin?.restorable)
+    component.push(
+      ...action(
+        "restore-origin",
+        "componentAction.restoreOrigin",
+        catalogComponentCommands.restore(ids[0]),
+        undefined,
+        ACTION_ICONS.restoreOrigin,
+      ),
+    );
   const detachable = ids.find((_, index) => states[index].instanceOf);
   if (detachable)
     component.push(

@@ -36,7 +36,8 @@ export type CatalogSlot = NonNullable<NodeEntry["slot"]>;
 
 /**
  * A node's slot declaration, when it can declare one: an owned node inside a project definition's
- * template (a component's or a layout's — instances fill it). Other nodes have none to edit.
+ * template (a component's or a layout's — instances fill it), or inside a component's origin in
+ * place (ADR-260). Other nodes have none to edit.
  */
 export function catalogSlotDeclaration(
   graph: CatalogSlotReader,
@@ -44,6 +45,13 @@ export function catalogSlotDeclaration(
 ): { slot?: CatalogSlot } | undefined {
   const node = graph.getEntry(nodeId);
   if (node?.kind !== "node") return undefined;
+  // ADR-260: a component's origin in place (and what it holds) declares slots like a template.
+  for (let id: string | undefined = nodeId; id; id = graph.ownerOf(id)) {
+    const definitionId = graph.definitionOfTemplateRoot(id);
+    const definition = definitionId ? graph.getEntry(definitionId) : undefined;
+    if (definition?.kind === "definition" && definition.originRef === true)
+      return node.slot ? { slot: node.slot } : {};
+  }
   for (let id = graph.ownerOf(nodeId); id; id = graph.ownerOf(id)) {
     const owner = graph.getEntry(id);
     if (owner?.kind === "definition")

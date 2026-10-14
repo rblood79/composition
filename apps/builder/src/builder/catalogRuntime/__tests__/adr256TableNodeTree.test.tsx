@@ -13,7 +13,6 @@ import {
 } from "react-aria-components/Table";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  createComponent,
   insertNodes,
   insertTableColumns,
   insertTableRow,
@@ -22,6 +21,7 @@ import {
   setFields,
   setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { componentizeInPlace } from "./support/legacyComponent";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -738,7 +738,7 @@ describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => 
     const opened = await open();
     const { workspace } = opened;
     workspace.execute(
-      createComponent({
+      componentizeInPlace({
         id: "project:node:r0" as NodeId,
         name: "File row",
         newId: workspace.newId,

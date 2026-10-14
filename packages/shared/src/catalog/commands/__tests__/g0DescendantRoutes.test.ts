@@ -266,11 +266,20 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
       ],
       ["card", "moved"],
     );
-    const created = run(
+    run(graph, createComponent({ id: id("card"), name: "Card", newId }));
+    // (ADR-260: the card stays as the origin, as in the old app; an instance of it follows.)
+    const definitionId = graph.definitionOfTemplateRoot(id("card"))!;
+    const instance = id("inst");
+    run(
       graph,
-      createComponent({ id: id("card"), name: "Card", newId }),
+      insertNodes({
+        parent: { kind: "page", id: PAGE },
+        index: 1,
+        entries: [node("inst", definitionId)],
+        rootIds: [instance],
+        newId,
+      }),
     );
-    const instance = created.plan.selectAfter![0];
     const slot = at(instance, [id("card") as never, id("slot") as never]);
     run(
       graph,
@@ -293,21 +302,22 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
       graph,
       insertNodes({
         parent: { kind: "page", id: PAGE },
-        index: 1,
+        index: 2,
         entries: [text("later", "Later")],
         rootIds: [id("later")],
         newId,
       }),
     );
-    // Model difference: the origin is a definition in Components, not a page root.
-    const oldOrder = (old.reader.rootOrder as string[]).filter(
-      (name) => name !== "adr248-origin",
-    );
+    // ADR-260: the origin stands on the page as in the old app (the 2026-09-30 model differed).
     expect(
       pageChildren(graph).map((child) =>
-        child === instance ? "adr248-instance" : `adr248-${child.slice(13)}`,
+        child === instance
+          ? "adr248-instance"
+          : child === id("card")
+            ? "adr248-origin"
+            : `adr248-${child.slice(13)}`,
       ),
-    ).toEqual(oldOrder);
+    ).toEqual(old.reader.rootOrder);
     expect(slotTexts()).toEqual(old.reader.retainedDescendantText);
   });
 

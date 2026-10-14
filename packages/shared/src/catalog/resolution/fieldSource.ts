@@ -13,6 +13,7 @@ import type {
 } from "../document/types";
 import { descendantPatchOf } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import { nodeOwnedChildren, overridesAt } from "./templateOwners";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import { DISPLAY_STATE_PROPS } from "./resolver";
 import {
@@ -240,7 +241,11 @@ function pathInside(
   sought: TemplateId,
 ): TemplateId[] | undefined {
   if (rootId === sought) return [rootId];
-  for (const child of readTemplate(reader, rootId).children) {
+  const template = readTemplate(reader, rootId);
+  // (A project template node's slot contents are positions too — ADR-260 Decision 11.)
+  for (const child of "kind" in template
+    ? nodeOwnedChildren(template as unknown as NodeEntry)
+    : template.children) {
     const rest = pathInside(reader, child, sought);
     if (rest) return [rootId, ...rest];
   }
@@ -301,12 +306,21 @@ function propLayers(
     throw new CatalogValidationError("NODE_REQUIRED", target.ownerId);
   const { instances, templatePath } = target.address;
   const layers: PropLayer[] = [];
-  const patch = overrideAt(owner, target.address);
-  const patched = descendantPatchOf(patch)?.props?.[key];
-  if (patched?.kind === "set")
-    layers.push({ source: "own", value: patched.value });
-  else if (patched?.kind === "mask")
-    layers.push({ source: "own", value: undefined });
+  // The owner's write, then those of the project template nodes on the way — the origin's values
+  // (ADR-260 Decision 11, the resolver's layering).
+  for (const found of overridesAt(
+    (id) => reader.getEntry(id),
+    owner,
+    instances,
+    templatePath,
+  )) {
+    const patched = descendantPatchOf(found.override)?.props?.[key];
+    const source = found.owner === owner ? "own" : "template";
+    if (patched?.kind === "set")
+      layers.push({ source, value: patched.value });
+    else if (patched?.kind === "mask")
+      layers.push({ source, value: undefined });
+  }
   // A composite root: the instance's value for it (the owner node, or the enclosing position's
   // own patch and template value) and the enclosing position's display state.
   let enclosingState: TemplateRecord["displayState"];

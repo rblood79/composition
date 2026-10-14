@@ -436,21 +436,19 @@ const acceptedKeys = (workspace: CatalogWorkspace, target: EditTarget) =>
  * The canonical first-class fields as commands on an owned node (after its other writes): clip =
  * the Frame's overflow (`frameClipInputToOperation`), slot / placeholder = its slot declaration
  * (a slot only inside a component template — the old recommended component ids have no place in
- * the declaration), reusable = make a component of it (last: an instance takes the node's place;
- * `instance` names it). `reusable: false` is refused (dissolving a component is the Component
- * section's, it detaches every instance).
+ * the declaration), reusable = make a component of it (last — the node stays in place as the
+ * component's origin, ADR-260). `reusable: false` is refused (dissolving a component is the
+ * Component section's, it detaches every instance).
  */
 export function catalogCanonicalCommands(
   workspace: CatalogWorkspace,
   target: EditTarget,
   canonical: AiElementWrite["canonical"],
   name: () => string,
-): { commands: CatalogCommand[]; instance: () => NodeId | undefined } {
-  let instance: NodeId | undefined;
+): { commands: CatalogCommand[] } {
   const commands: CatalogCommand[] = [];
   const fields = canonical ?? {};
-  if (!Object.keys(fields).length)
-    return { commands, instance: () => instance };
+  if (!Object.keys(fields).length) return { commands };
   if (target.kind !== "node") throw new Error("CANONICAL_NODE_REQUIRED");
   const id = target.id;
   if (fields.reusable === false)
@@ -487,15 +485,11 @@ export function catalogCanonicalCommands(
       createComponent({
         id,
         name: name(),
-        newId: (kind) => {
-          const next = workspace.newId(kind);
-          if (kind === "node" && !instance) instance = next as NodeId;
-          return next;
-        },
+        newId: workspace.newId,
         label: "AI: component",
       }),
     );
-  return { commands, instance: () => instance };
+  return { commands };
 }
 
 /** One step of several commands, without moving the user's selection. */
@@ -606,9 +600,7 @@ export function createCatalogAiWriteHost(
         );
         commands.push(...canonical.commands);
         runSteps(workspace, `AI: add ${input.type}`, commands);
-        const elementId = workspace.root.recordsOfSource(
-          canonical.instance() ?? nodeId,
-        )[0];
+        const elementId = workspace.root.recordsOfSource(nodeId)[0];
         if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
         return { ok: true, elementId, parentId: parent.identity };
       } catch (error) {
@@ -645,12 +637,7 @@ export function createCatalogAiWriteHost(
           ),
           ...canonical.commands,
         ]);
-        const instance = canonical.instance();
-        const elementId = instance
-          ? workspace.root.recordsOfSource(instance)[0]
-          : id;
-        if (!elementId) return { ok: false, error: `NOT_DRAWN: ${instance}` };
-        return { ok: true, elementId };
+        return { ok: true, elementId: id };
       } catch (error) {
         return failure(error);
       }

@@ -7,7 +7,10 @@ import type {
   EntryId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  removeTargets,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
 import { CatalogNavigatorPanel } from "../../panels/navigator/catalog/CatalogNavigatorPanel";
 import { catalogComponentCommands } from "../componentActions";
@@ -71,6 +74,13 @@ async function open() {
       workspace.newId,
     ),
   );
+  // ADR-260: the heading stays as the origin; deleting it hides it in its definition — the case
+  // that opens the definition edit view (as an older document's owned template).
+  workspace.execute(
+    removeTargets({
+      targets: [{ kind: "node", id: "project:node:title" as NodeId }],
+    }),
+  );
   workspace.execute(catalogNewLayoutCommand("Shell", workspace.newId));
   const graph = workspace.runtime.graph;
   const [layout, component] = catalogDefinitionList(graph);
@@ -104,10 +114,13 @@ describe("ADR-248 4e Navigator tabs", () => {
     const panel = () => screen.getByRole("tabpanel");
     expect(tab("Pages").getAttribute("aria-selected")).toBe("true");
 
-    // Components: the component only, no Add layout.
+    // Components: the built-in origins' page and the project's components page (one page for
+    // them all — no item per component, user 2026-10-14), no Add layout.
     fireEvent.click(tab("Components"));
     expect(tab("Components").getAttribute("aria-selected")).toBe("true");
-    expect(within(panel()).getByText("Title")).toBeTruthy();
+    expect(within(panel()).getByText("Library")).toBeTruthy();
+    expect(within(panel()).getByText("Local")).toBeTruthy();
+    expect(within(panel()).queryByText("Title")).toBeNull();
     expect(within(panel()).queryByText("Shell")).toBeNull();
     expect(within(panel()).queryByLabelText("Add Layout")).toBeNull();
     // Choosing a tab does not leave the page.

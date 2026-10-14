@@ -106,6 +106,7 @@ export function catalogAutoHtmlIds(
       ownerOf: (id) => reader.ownerOf(id),
       referrersOf: (id) => reader.referrersOf(id),
       instancesOf: (id) => reader.instancesOf(id),
+      definitionOfTemplateRoot: (id) => reader.definitionOfTemplateRoot(id),
     };
     // The ids this plan gives, in order: a later copy of one moves on.
     const given = new Set<string>();

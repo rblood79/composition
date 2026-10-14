@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-10-14
+Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](reviews/260.md) Round 3 pending 0 · HIGH 5 전부 fixed — 전제 확정)
+
+> **Phase 0 ~ 3 완료 (2026-10-14) · Phase 4 진행 — G5 확인됨, 커밋 뒤 Implemented**: G0 inventory (37 파일 · 참조 종류 전수 · 후속 4 기능 막지 않음) · G1 모델 (`originRef` · `template` 역색인 · 순환 걷기 · template 노드 override 투영) · G2 명령 (create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard origins/definitions/tokens · 무작위 500 단계) · G3 Builder (ORIGIN on page · Go to component = page · Restore origin · 확인 대화상자 · slot · Layers · ⌘⌥K) + live 33/33 · **G5 사용자 확인 (10-14) — 보고 결함 2 (instance 속성 · 「+」) 수리**. G4 — type-check · shared 1641 · builder 5762 (기존 `resolveContainerStylesFallback` 1 제외) · 번들 initial Builder 1,319,045 / Preview 300,625 B gzip · `gate:perf-ratchet` 은 커밋 뒤 pre-push 에서 (dirty 트리는 HEAD 를 잰다). [breakdown §6](design/260-component-origin-in-place-breakdown.md).
 
 > Codex 설계 리뷰 Round 1 (2026-10-14): HIGH 4 (slot 투영 · 중첩 삭제 소유권 · clipboard 원본 식별 · slot 순환 검증). 같은 날 r1 에서 설계를 고쳤다 — 현재 11 ~ 13 (세 건은 지금 소유 모양에도 있는 결함) · Decision 1 (`originRef` 세 상태 · 숨은 template 안 참조 원본) · 6 (중첩 삭제) · 11 ~ 13. 수리 검증 (Round 2) 대기. 상세: [리뷰 기록](reviews/260.md).
 
@@ -158,7 +160,9 @@ Proposed — 2026-10-14
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+- 2026-10-14 실행자 (headed Chrome, Playwright, 저장된 인증 세션 · dev 5173) — `apps/builder/scripts/adr260-origin-in-place-live.mjs`. 새 프로젝트에 팔레트로 Button · ToggleButtonGroup · Card 를 놓고 Design 패널 Component 절의 「Create component」: 같은 노드가 선택된 채 ORIGIN 칩 · Detach component (Detach instance 0) · 정의 `originRef: true` · ToggleButtonGroup 항목 2 → 2 · Components 목록에 이름. Canvas 에서 ⌘D (실제 키 입력) → INSTANCE (Go to component · Detach instance 1) · instance 의 ToggleButton 항목 2. 「Go to component」 → page 의 원본 선택 (정의 view 없음). 원본 opacity 편집 → 영향 대화상자 1회 · instance opacity 0.5. Button 원본 Delete → instance 유지 · 정의 숨은 template · instance 에 「Restore origin」 → 원본이 instance 바로 뒤로. Card 원본 「Detach component」 → 원본 노드 유지 · instance 분리. ToggleButtonGroup 원본 복사 → 같은 프로젝트 붙여넣기 = INSTANCE · 새로고침 뒤 원본 · instance 2 유지 · 다른 프로젝트 붙여넣기 = 보통 노드 (project instance 0). **33/33 PASS · page error 0**. (새로고침 직전 1.5 s 대기 — paste 직후 즉시 reload 는 autosave 쓰기 전이라 측정 조건에서 뺐다.)
+- 2026-10-14 **G5 사용자 확인 「확인했다」** (Builder) + 결함 보고 2건 (RadioGroup 컴포넌트의 instance: 「+ Radio」 없음 · 속성 미적용) → 같은 날 수리 · 실행자 live 재확인 (headed Chrome, Design 패널 클릭): instance 에서 Horizontal · Size L · 「Insert Radio」 → 가로 · L · Radio 2 → 3, 원본은 세로 · M · 2 그대로, page error 0. 커밋 (main 반영) 뒤 Implemented.
+- 2026-10-14 사용자 요청 「Create component 로 만든 것들을 원본 components page 처럼 한 page 에」 (선택: 별도 page · 카드 편집 = 실제 원본) + 후속 지시 (카드는 origin 만 · Layers 에서 삭제 · 탭 이름 「Library」 · 「Local」 · Layers 루트 body) → 실행자 live (headed Chrome) `apps/builder/scripts/adr260-project-components-page-live.mjs`: Button · RadioGroup 을 Create component + 복제 → Navigator Components 탭 항목 = 「Library」 · 「Local」 둘 · Local → 파생 page 에 원본 노드 자체 1 씩 (instance 없음, page 의 instance 는 그리지 않음) · Layers = body > Button · RadioGroup · 카드의 RadioGroup 원본을 Canvas 에서 실제 클릭 → 그 원본 선택 · Design 패널 ORIGIN · Orientation Horizontal 클릭 → 원본 노드 · page 원본과 instance 모두 가로 · Layers 의 Button 행 삭제 버튼 → 카드 · 행이 빠지고 instance 유지 · 되돌리기 → 복귀 · 새로고침 뒤 유지 · 파생 page 노드 문서에 0. **14/14 PASS · page error 0**.
 
 ## Consequences
 

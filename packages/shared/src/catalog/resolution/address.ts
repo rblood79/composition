@@ -8,6 +8,7 @@ import type {
   TemplateId,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import { nodeOwnedChildren } from "./templateOwners";
 
 export interface AddressTarget {
   id: TemplateId;
@@ -36,7 +37,9 @@ export function validateInstanceAddress(
     const node = get(id);
     if (node?.kind !== "node")
       throw new CatalogValidationError("DANGLING_TEMPLATE", id);
-    return node;
+    // ADR-260 Decision 11: a project template node's slot contents and replacements are positions
+    // of the template it sits in (the steps follow its owned children).
+    return { ...node, children: nodeOwnedChildren(node) };
   };
   const getRoot = (definitionId: DefinitionId): TemplateId => {
     const definition = definitionId.startsWith("lib:")

@@ -14,6 +14,7 @@ import type {
 import {
   createComponent,
   detachInstances,
+  duplicateNodes,
   insertNodes,
   moveNodes,
   removeTargets,
@@ -380,9 +381,10 @@ describe("ADR-256 Decision 5 — required parts", () => {
       workspace.execute(
         createComponent({ id, name: "My combo", newId: workspace.newId }),
       );
-      const instance = (graph.getEntry(BODY) as NodeEntry).children.find(
-        (child) => child !== id && !String(child).includes("home"),
-      )!;
+      // ADR-260: the combo stays as the origin; its copy is an instance.
+      const instance = workspace.execute(
+        duplicateNodes({ ids: [id], newId: workspace.newId }),
+      ).plan.selectAfter![0]!;
       expect(
         (graph.getEntry(instance) as NodeEntry).definitionId.startsWith(
           "project:",
