@@ -1,0 +1,6 @@
+/* ADR-261 Decision 3 — an instance slot's suggested components (one press fills). */
+.slot-suggestion-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}

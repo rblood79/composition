@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-261 Phase 2 · 3 — instance 교체 · slot 추천] - 2026-10-15
+
+### Added
+
+- **Swap instance** ([ADR-261](adr/261-component-api-swap-slot-suggestions-properties.md) Phase 2, Figma 「Swap instance」). instance 를 다른 컴포넌트로 바꾼다 — Design 패널 Component 절의 컴포넌트 이름을 누르거나 Canvas 오른쪽 클릭 「Swap instance」. 목록은 검색되고, 같은 루트 종류 (「관련」) 가 맨 위, 그다음 Local · Library 다 (그 자리에 놓을 수 있는 것만). 노드 id · 위치 · 크기 · 스타일은 그대로이고, instance 에서 바꾼 것 (글자 · 숨김 · slot 내용 · 인터랙션 · 조건부 표시의 상태 기준) 은 새 컴포넌트의 **같은 이름 자리**로 옮겨진다. slot 내용은 같은 이름의 slot 으로. 옮길 자리가 없는 slot 내용은 instance 바로 뒤로 꺼내고 (잃지 않음), 나머지는 지운다. 결과는 알림 「유지 N · 버림 M · 밖으로 K」 + Undo 로 보이고, 한 번의 undo 로 되돌린다. 라이브러리 컴포넌트 (Button ↔ IconButton 등) 도 바꿀 수 있다.
+  - 위치: `packages/shared/src/catalog/commands/swap.ts` · `apps/builder/src/builder/catalogRuntime/swapInstance.ts` · `panels/properties/catalog/CatalogSwapPicker.tsx` · `CatalogComponentSection.tsx` · `catalogRuntime/canvasMenu.ts`.
+- **slot 추천 컴포넌트** (Phase 3, pen.dev 「suggested slot components」). 컴포넌트 원본의 slot 섹션에서 「추천 추가」 로 그 slot 에 어울리는 컴포넌트를 고른다. instance 의 slot 섹션에는 추천이 버튼으로 맨 위에 나오고, 누르면 그 slot 에 넣는다. 제한이 아니라 안내다 — 다른 것도 그대로 넣을 수 있다. 추천한 컴포넌트를 지우면 추천에서도 빠지고, 다른 프로젝트에 붙여넣으면 그 프로젝트에 없는 추천은 빠진다.
+  - 위치: `packages/shared/src/catalog/document/{types,validation,graph}.ts` · `commands/structure.ts` · `apps/builder/src/builder/catalogRuntime/slots.ts` · `panels/properties/catalog/CatalogSlotSection.tsx`.
+
+### Tests
+
+- shared `commands/__tests__/swap.test.ts` 9 (코드 라이브러리 3 포함) · `slotSuggestions.test.ts` 5 · `randomUndo.test.ts` 에 swap · builder `catalogRuntime/__tests__/adr261Swap.test.ts` 4 · live `apps/builder/scripts/adr261-swap-live.mjs` 14/14.
+
+## [ADR-261 Phase 1 — instance 안 drop · 붙여넣기 · 순서가 원본에 쓰지 않는다] - 2026-10-15
+
+### Fixed
+
+- **사용자 컴포넌트 instance 의 slot 안에서 순서를 바꾸거나 붙여넣으면 원본 컴포넌트가 바뀌던 문제** ([ADR-261](adr/261-component-api-swap-slot-suggestions-properties.md) Phase 1). Canvas drop · Alt 복제 drop · 선택 뒤 붙여넣기 (⌘V · 메뉴) · z-order · 화살표 순서 · Layers drop 이 부모를 그려진 자리의 원본 노드로 잡아, instance 의 slot 자식을 화살표로 옮기면 그 자식이 instance 에서 빠져 **원본의 slot 에** 들어가고 (모든 instance 에 퍼짐), ⌘V 사본도 원본에 들어갔다. layout 을 적용한 page 의 내용도 화살표로 옮기면 **layout template 에** 들어갔다 (확인 대화상자도 없이). 이제 instance 안 자리는 그 instance 의 slot 내용 (`fillSlot`) 에 쓰고 원본 · layout 은 바뀌지 않는다.
+  - **Why**: ADR-260 Phase 0 의 의심을 live 로 재현 — ArrowDown · ⌘V · layout page ArrowDown 셋 다 원본 · layout template 에 썼다.
+  - 원본에서 투영된 레이어는 instance 안에서 옮기지 않는다 (pen.dev 「Layers inherited from an origin cannot be freely reparented」). slot 이 아닌 자리에는 넣지 않고 바깥 부모로 간다 (사용자 결정 2 — 「slot 에만」).
+
+### Added
+
+- **drag · 붙여넣기로 slot 채우기** — instance 의 slot 자리에 Canvas 로 끌어 놓거나 붙여넣으면 그 instance 의 slot 내용이 된다 (pen.dev 「Drag and drop or copy and paste an element into the slot」). 라이브러리 원본의 slot (Card Content 등) 에도 끌어 놓을 수 있다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/insertParent.ts` (`catalogInsertParent` · `catalogParentOfNode`) · `canvasGesture.ts` · `canvasMenu.ts` · `shortcuts.ts` · `layerTree.ts`.
+
+### Tests
+
+- `apps/builder/src/builder/catalogRuntime/__tests__/adr261DropParent.test.ts` 9 (원복 RED 전량) · live `apps/builder/scripts/adr261-drop-parent-live.mjs` 5/5.
+
 ## [ADR-260 Implemented — Create component 노드가 그 자리에서 ORIGIN] - 2026-10-14
 
 ### Changed

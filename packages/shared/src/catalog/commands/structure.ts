@@ -978,12 +978,34 @@ export function removeWithReferrers(
             !referencedIds({
               ...entry,
               descendantOverrides: [item],
+              slot: undefined,
             } as CatalogEntry).some((ref) => draft.removed(ref)),
         );
-        if (kept.length !== entry.descendantOverrides.length)
-          draft.write({ ...entry, descendantOverrides: kept });
+        // ADR-261 Decision 3: a removed component leaves the slots that suggested it.
+        const suggested = entry.slot?.suggested?.filter(
+          (id) => !draft.removed(id),
+        );
+        const slotChanged =
+          suggested !== undefined &&
+          suggested.length !== entry.slot!.suggested!.length;
+        if (kept.length !== entry.descendantOverrides.length || slotChanged)
+          draft.write({
+            ...entry,
+            descendantOverrides: kept,
+            ...(slotChanged
+              ? { slot: withSuggested(entry.slot!, suggested) }
+              : {}),
+          });
       }
     }
+  }
+  // ADR-261 (Phase 3 review): copies this command made (a detach's template copies) are not in
+  // the committed reference index — their suggestions of a removed component go too.
+  for (const entry of draft.writtenEntries()) {
+    if (entry.kind !== "node" || !entry.slot?.suggested) continue;
+    const suggested = entry.slot.suggested.filter((id) => !draft.removed(id));
+    if (suggested.length !== entry.slot.suggested.length)
+      draft.write({ ...entry, slot: withSuggested(entry.slot, suggested) });
   }
   if (!removedRelated.length) return;
   const gone = new Set(removedRelated);
@@ -1358,7 +1380,10 @@ export const pasteNodes =
       input.newId,
     );
     entries = entries.map((entry) =>
-      withTargetTokens(reader, clipboard.tokens ?? [], entry),
+      withTargetSuggestions(
+        reader,
+        withTargetTokens(reader, clipboard.tokens ?? [], entry),
+      ),
     );
     related = keepPlaceableRelated(reader, entries, related).map((entry) =>
       withTargetTokens(reader, clipboard.tokens ?? [], entry),
@@ -1438,6 +1463,33 @@ function materializeMissingDefinitions(
     for (const node of pending) detachInto(draft, node.id, newId);
   }
   return fail("PASTE_DEFINITION_DEPTH", rootIds[0] ?? "clipboard");
+}
+
+/** A slot with these suggestions (none left = the field goes). */
+function withSuggested(
+  slot: NonNullable<NodeEntry["slot"]>,
+  suggested: readonly DefinitionId[],
+): NonNullable<NodeEntry["slot"]> {
+  const { suggested: _old, ...rest } = slot;
+  return suggested.length ? { ...rest, suggested: [...suggested] } : rest;
+}
+
+/**
+ * ADR-261 Decision 3 (review m1): a slot's suggestions of project components the target lacks are
+ * dropped — another project's paste brings no definitions; a suggestion is a hint, not content.
+ */
+function withTargetSuggestions<T extends CatalogEntry>(
+  reader: CatalogReader,
+  entry: T,
+): T {
+  if (entry.kind !== "node" || !entry.slot?.suggested) return entry;
+  const kept = entry.slot.suggested.filter(
+    (id) =>
+      !id.startsWith("project:") || reader.getEntry(id)?.kind === "definition",
+  );
+  return kept.length === entry.slot.suggested.length
+    ? entry
+    : ({ ...entry, slot: withSuggested(entry.slot, kept) } as T);
 }
 
 /** Token references the target lacks: its token of the same name and type, else the copied value. */

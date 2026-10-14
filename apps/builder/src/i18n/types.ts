@@ -222,6 +222,12 @@ export interface TranslationKeys {
     createComponent: string;
     detachComponent: string;
     restoreOrigin: string;
+    swapInstance: string;
+    swapSearch: string;
+    swapRelated: string;
+    swapLocal: string;
+    swapLibrary: string;
+    swapped: string;
     systemOriginLocked: string;
   };
   operation: {
@@ -709,6 +715,8 @@ export interface TranslationKeys {
     classNamePlaceholder: string;
     ariaLabelPlaceholder: string;
     slotSection: string;
+    slotSuggested: string;
+    slotSuggestAdd: string;
     slotStatus: string;
     slotInactive: string;
     slotRecommendations: string;

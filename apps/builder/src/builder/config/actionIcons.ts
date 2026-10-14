@@ -9,6 +9,7 @@ import {
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
   RefreshCcwDot,
+  Replace,
   ClipboardPaste,
   Component,
   Copy,
@@ -141,6 +142,8 @@ export const ACTION_ICONS = {
   detach: DiamondMinus,
   /** ADR-260: a deleted origin back beside the instance (Figma 「Restore main component」). */
   restoreOrigin: RefreshCcwDot,
+  /** ADR-261: show another component in the instance's place (Figma 「Swap instance」). */
+  swapInstance: Replace,
 
   // ── 정렬·분배 ─────────────────────────────────────────
   /** 정렬 서브메뉴 자신을 가리키는 대표 아이콘 */

@@ -26,6 +26,7 @@ import type {
 import { getPaletteItems } from "../panels/components/paletteItems";
 import { catalogBuiltinOrigins } from "./layouts";
 import { catalogPaletteDefinitionId } from "./paletteInsert";
+import { catalogTemplateNodeAt as templateNodeAt } from "./insertParent";
 
 /** The graph reads the slot section needs (`CatalogGraph` is one). */
 export interface CatalogSlotReader extends CatalogReader {
@@ -47,7 +48,7 @@ export function catalogSlotDeclaration(
   if (node?.kind !== "node") return undefined;
   // One walk up the owners (ADR-246 — a selection reads it): a template's node, or — ADR-260 — a
   // component's origin in place and what it holds, declares slots.
-  for (let id: string = nodeId; ; ) {
+  for (let id: string = nodeId; ;) {
     const definitionId = graph.definitionOfTemplateRoot(id);
     const definition = definitionId ? graph.getEntry(definitionId) : undefined;
     if (definition?.kind === "definition" && definition.originRef === true)
@@ -59,19 +60,6 @@ export function catalogSlotDeclaration(
     if (owner?.kind !== "node") return undefined;
     id = owner.id;
   }
-}
-
-/** The template node at an instance address (a library template or a project template node). */
-function templateNodeAt(
-  graph: CatalogReader,
-  address: InstanceAddress,
-): { slot?: CatalogSlot } | undefined {
-  const id = address.templatePath[address.templatePath.length - 1];
-  if (!id) return undefined;
-  if (id.startsWith("lib:"))
-    return graph.library.templates.get(id as `lib:template:${string}`);
-  const node = graph.getEntry(id);
-  return node?.kind === "node" ? node : undefined;
 }
 
 export interface CatalogSlotPosition {
@@ -233,6 +221,8 @@ export interface CatalogSlotInsertOption {
   readonly label: string;
   /** The palette type it was offered for (its creation props), when it is a palette type. */
   readonly type?: string;
+  /** ADR-261 Decision 3: the slot's origin suggests it (listed first — a hint, not a limit). */
+  readonly suggested?: true;
 }
 
 /** The type name a slot position draws (the template at the address, or the node itself). */
@@ -396,5 +386,53 @@ export function catalogSlotInsertOptions(
       return [];
     }
   }
-  return allowed;
+  // ADR-261 Decision 3: the origin's suggested components first (pen.dev — the instance's slot
+  // shows them on top; everything else stays available).
+  const suggested =
+    target.kind === "descendant"
+      ? (templateNodeAt(graph, target.address)?.slot?.suggested ?? [])
+      : [];
+  if (!suggested.length) return allowed;
+  const rank = new Map(suggested.map((id, index) => [id as string, index]));
+  return [
+    ...allowed
+      .filter((option) => rank.has(option.definitionId))
+      .sort((a, b) => rank.get(a.definitionId)! - rank.get(b.definitionId)!)
+      .map((option) => ({ ...option, suggested: true as const })),
+    ...allowed.filter((option) => !rank.has(option.definitionId)),
+  ];
+}
+
+/**
+ * ADR-261 Decision 3: what a project component's slot can suggest — the project's components
+ * (not layouts, not the one the slot belongs to: filling with it would nest it in itself) and the
+ * built-in origins. Library slots keep the code's (user 2026-10-14) — the section asks only for a
+ * slot it can declare.
+ */
+export function catalogSlotSuggestionChoices(
+  graph: CatalogSlotReader,
+  nodeId: NodeId,
+): { definitionId: DefinitionId; label: string }[] {
+  const own = new Set<string>();
+  for (let id: string | undefined = nodeId; id; id = graph.ownerOf(id)) {
+    const definitionId = graph.definitionOfTemplateRoot(id);
+    if (definitionId) own.add(definitionId);
+    const entry = graph.getEntry(id);
+    if (entry?.kind === "definition") own.add(entry.id);
+  }
+  const choices: { definitionId: DefinitionId; label: string }[] = [];
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind === "project")
+    for (const id of project.definitionIds) {
+      const definition = graph.getEntry(id);
+      if (
+        definition?.kind === "definition" &&
+        definition.usage !== "layout" &&
+        !own.has(id)
+      )
+        choices.push({ definitionId: id, label: definition.name });
+    }
+  for (const item of catalogBuiltinOrigins(graph.library))
+    choices.push({ definitionId: item.id as DefinitionId, label: item.name });
+  return choices;
 }

@@ -3,6 +3,7 @@ import { CatalogGraph, ownedChildren } from "../../document/graph";
 import type { CatalogOperation } from "../../transactions/transaction";
 import type {
   DefinitionEntry,
+  DefinitionId,
   EntryId,
   InstanceAddress,
   NodeEntry,
@@ -31,6 +32,7 @@ import {
   restoreOrigin,
   setFields,
   setWholeField,
+  swapInstance,
   ungroupNodes,
   type NewId,
   type NodeParent,
@@ -376,8 +378,7 @@ describe("ADR-248 Phase 4b random command sequence", () => {
           const definitionId = graph.definitionOfTemplateRoot(entry.id);
           return (
             !!definitionId &&
-            (graph.getEntry(definitionId) as DefinitionEntry).originRef ===
-              true
+            (graph.getEntry(definitionId) as DefinitionEntry).originRef === true
           );
         });
         const target = pickOne(origins);
@@ -393,6 +394,30 @@ describe("ADR-248 Phase 4b random command sequence", () => {
         );
         const target = pickOne(hidden);
         return target ? restoreOrigin({ instanceId: target.id }) : undefined;
+      },
+      // ADR-261 Phase 2: swap a component instance (library or project) to another component.
+      swap: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const components = [
+          "lib:definition:panel",
+          "lib:definition:badge",
+          "lib:definition:picker",
+          ...project.definitionIds,
+        ];
+        const target = pickOne(
+          ownedNodes().filter((entry) =>
+            components.includes(entry.definitionId),
+          ),
+        );
+        const definitionId = pickOne(
+          components.filter((id) => id !== target?.definitionId),
+        );
+        return target && definitionId
+          ? swapInstance({
+              id: target.id,
+              definitionId: definitionId as DefinitionId,
+            })
+          : undefined;
       },
       rename: () => {
         const target = pickOne(ownedNodes());

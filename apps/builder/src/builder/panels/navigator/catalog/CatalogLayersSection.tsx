@@ -230,6 +230,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       !tree.node(target)?.projection
         ? catalogLayerDropCommand(
             tree,
+            workspace.runtime.graph,
             dragged,
             target,
             position,

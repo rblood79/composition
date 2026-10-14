@@ -178,11 +178,7 @@ export interface NumberFormatValue {
   readonly signDisplay?: "auto" | "never" | "always" | "exceptZero";
 }
 export type AuthoredValue =
-  | Scalar
-  | TokenUse
-  | StructuredValue
-  | CalendarDuration
-  | NumberFormatValue;
+  Scalar | TokenUse | StructuredValue | CalendarDuration | NumberFormatValue;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -206,10 +202,7 @@ export type ValueType =
   | "numberFormat";
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
-  | Scalar
-  | StructuredValue
-  | CalendarDuration
-  | NumberFormatValue;
+  Scalar | StructuredValue | CalendarDuration | NumberFormatValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:
@@ -738,7 +731,15 @@ export interface NodeEntry {
   stateRules?: StateRules;
   descendantOverrides: readonly DescendantOverride[];
   binding?: DataBindingRef;
-  slot?: { name: string; required: boolean };
+  /**
+   * A slot an instance fills. ADR-261 Decision 3 — `suggested`: components offered first when an
+   * instance fills it (pen.dev 「suggested slot components」 — a hint, not a restriction).
+   */
+  slot?: {
+    name: string;
+    required: boolean;
+    suggested?: readonly DefinitionId[];
+  };
   /** Named content regions declared by an authored container. */
   regions?: readonly { name: string; required: boolean }[];
   placeholder?: boolean;

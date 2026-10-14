@@ -37,7 +37,60 @@
 
 ### Phase 0 결과
 
-(실행 시 기록)
+**live 재현 (2026-10-15, headed Chrome · dev 5173 · `apps/builder/scripts/adr261-drop-parent-live.mjs`, main `21705cd91`)** — fixture: Frame A > Frame S (slot `content`) → Create component → ⌘D instance I → 팔레트로 I 의 slot 에 Button b1 · b2 (fillSlot, 이미 맞는 경로).
+
+| 행  | 조작                                        | 결과 (수리 전)                                                                             | 판정 |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------ | ---- |
+| ①-a | I slot 의 b1 선택 · ArrowDown               | b1 이 I `fillSlot` 에서 빠져 **원본 S `children`** 으로 — 「instance 영향」 대화상자 뜸    | RED  |
+| ①-b | b1 선택 · ⌘C ⌘V (선택 뒤 붙여넣기)          | 사본이 **원본 S `children`** 에 — 대화상자 없음                                            | RED  |
+| ①-c | page 의 Button 을 I slot 자리로 Canvas drag | 문서 무변경 (drag 좌표 · 시작 조건 미확인 — G1 에서 다시 잰다)                             | 미정 |
+| ②   | layout 적용 page 내용 p1 선택 · ArrowDown   | p1 이 body `fillSlot` 에서 빠져 **layout template slot C `children`** 으로 — 대화상자 없음 | RED  |
+
+**주소 보유 필드 전수 (grep, 서브에이전트 + 실행자 인용 확인)** — 저장 주소는 넷이다.
+
+| 필드                                                                         | 형태 · 위치                                    | 검증                                                                                                                        | 교체 시 주의                                                                                                 |
+| ---------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `NodeEntry.descendantOverrides[].address` (`patch` · `replace` · `fillSlot`) | `InstanceAddress` `types.ts:454-459 · 477-489` | 형태 `validation.ts:795-866` · 참조 `graph.ts:846-893` → `address.ts:21-91` · refIndex (`referencedIds` `graph.ts:100-110`) | `replacementId` · `childIds` 는 소유 edge — 버리면 `UNOWNED_NODE`. 지우거나 옮겨야 한다                      |
+| `InteractionEntry.address?` (`ownerId` 와 쌍)                                | `types.ts:801-805`                             | `graph.ts:937-942` · refIndex                                                                                               | 선례 `reanchorInteractions` (`materialize.ts:958-1004`)                                                      |
+| `showWhen.from` · `all[].from` 의 `ancestor.address`                         | `types.ts:698-726`                             | **graph 검증 없음 · refIndex 밖** — 명령의 `assertStateOwnersLinked` (`structure.ts:469-610`) 만                            | 깨져도 거부되지 않고 노드가 조용히 숨는다 (`presence.ts:2729-2781`). 재매핑 유틸 `stateOwnerRefs.ts:135-174` |
+| `showWhen` 의 `ancestor.local`                                               | `types.ts:704-708`                             | 형태만 (`validation.ts:1600-1617`)                                                                                          | 지금 production 작성자 0 (패널은 `nodeId` 만) — 스키마상 대상                                                |
+
+주소가 아닌 것 (재매핑 불요): `binding` (collection · field id) · `slot` / `regions` (이름) · `metadata` · `{key}` 바인딩 · `StateVariableEntry.ownerId` · `action.targetId` (NodeId — 교체해도 id 유지). 단 `ancestor.nodeId` = X 인 `showWhen` 은 교체로 X 의 type 이 바뀌면 그 상태 키가 없어질 수 있다 (Phase 2 결과 알림 대상).
+
+교체 대상 X 가 원본 (project template) 안 노드면, 그 정의의 다른 instance 주소 중 `instances` 에 X 가 든 것도 옛 정의 경로라 깨진다 (`address.ts:74-80`) — Phase 2 범위 (Decision 2 「바깥 instance 의 이 노드를 지나는 override」).
+
+**`replace` override 지원 표** (서브에이전트 + 실행자 인용 확인 `graph.ts:865` · `fields.ts:472` · `structure.ts:1052-1069`)
+
+| 층                                      | 지원 | 근거 · 빠진 것                                                                                                                                                                                                                          |
+| --------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| resolver 투영                           | O    | `resolver.ts:1516-1552` — replacement 는 `resolveOwned` 로 slot 정보 · `{prop}` · 행 · 루트 props 를 받지 않는다 (Phase 5 확인 행)                                                                                                      |
+| 자리 열거 · `targetExists`              | O    | `positions.ts:201-215 · 411-415` — replace 분기는 그 자리 patch `enabled` 를 보지 않는다                                                                                                                                                |
+| 주소 검증                               | O    | `graph.ts:846-852`. 호환성 (type · nesting) 검사 없음 · prop 검증은 replace 를 건너뜀 (`graph.ts:865`)                                                                                                                                  |
+| 소유 · 순환 · 영향                      | O    | `ownedChildren` `graph.ts:84-97` · `validateDefinitionCycles` `graph.ts:1158-1190` · `collectAffectedIds` `graph.ts:1209-1241`                                                                                                          |
+| clipboard · 다른 프로젝트 붙여넣기      | O    | `structure.ts:1237 · 1271-1275 · 1401-1438`                                                                                                                                                                                             |
+| detach                                  | 부분 | 일반 O (`materialize.ts:324-329`). template root replace 는 `POSITION_REPLACED`. replacement 하위 `showWhen` 주소 재매핑 없음 · 같은 주소 patch 가 replace 사본을 덮음 (`materialize.ts:473 · 508`)                                     |
+| Builder Layers · 선택 · compositionRoot | O    | `readModel.childRows` · `positionOfRecord` · `compositionRoot.ts:2999-3004 · 3577-3583 · 3770-3778`                                                                                                                                     |
+| 되돌리기 명령                           | X    | `resetDescendant` 가 replace 면 `OVERRIDE_NOT_FOUND` (`fields.ts:472`) · replacement 삭제는 그 자리 숨김 (`structure.ts:1052-1069`)                                                                                                     |
+| replace 를 덮어 고아 만드는 경로        | X    | `setChildList` (`context.ts:308-328`) · `removeTargets` descendant (`structure.ts:1099-1108`) · `mergePatch` (`transaction.ts:252 · 278-281`) · `releaseLayout` (`project.ts:400-418`) — 모두 `UNOWNED_NODE` 로 거부 (조용한 손상 아님) |
+| 패널 override 목록                      | X    | `CatalogComponentSection.tsx:117` 이 replace 를 건너뜀                                                                                                                                                                                  |
+
+→ Phase 5 의 수리 행: replace 되돌리기 명령 · 덮어쓰기 경로 4 · 패널 목록 · detach 의 showWhen · replacement 에 instance 루트 props 전달. Phase 1 은 replace 에 닿지 않는다 (Layers drop 이 replacement 행을 옮기려 하면 `REPLACEMENT_NOT_MOVABLE` — 출발지 판정에서 뺀다).
+
+**명령 층 검증 추가 여부 (§1 재확인)**: 유지 — 명령은 편집 맥락을 모른다. 원본 page 위에서 원본 S 에 직접 넣는 것은 정상 편집이라, 「template 노드 부모 거부」 를 그래프에 넣으면 원본 편집까지 막는다. 수리는 Builder 의 부모 · 출발지 결정 (record → EditTarget) 한 곳.
+
+**oracle 표** (pen.dev · Figma 문서 — 본문 Context)
+
+| 규칙                                         | 출처               | 지금 composition                                        | Phase 뒤               |
+| -------------------------------------------- | ------------------ | ------------------------------------------------------- | ---------------------- |
+| slot 에 drag · paste 로 채운다               | pen.dev Slots      | 팔레트 · slot 섹션만 · Canvas 4 경로는 원본에 씀 (①)    | Phase 1                |
+| 채운 내용은 그 instance 의 것                | pen.dev Slots      | 팔레트 경로만                                           | Phase 1                |
+| 원본 유래 레이어는 instance 안에서 못 옮긴다 | pen.dev Components | 화살표 · z-order 가 원본 자식을 빼 올 수 있음 (리뷰 h1) | Phase 1 출발지 판정    |
+| slot 이 아닌 곳에는 넣지 않는다              | pen.dev Slots      | container 자리는 `ensureChildList` 로 받음              | Phase 1 (결정 2: 거부) |
+| 교체 시 override 유지 (이름 기준)            | Figma Swap         | 교체 명령 없음                                          | Phase 2                |
+| slot 추천 = 제한 아닌 안내                   | pen.dev Slots      | 없음                                                    | Phase 3                |
+| 속성 text · boolean · instance swap · 기본값 | Figma properties   | 없음                                                    | Phase 4 · 5            |
+
+사용자 결정 2 (2026-10-15 AskUserQuestion): **거부 — slot 에만** (pen.dev).
 
 ## 2. Phase 1 — drop · 붙여넣기 · 순서 부모 = EditTarget (G1, 본문 Decision 1)
 
@@ -92,4 +145,18 @@
 
 - 2026-10-15 Proposed — 코드 판독 (서브에이전트 2 · 핵심 인용은 실행자 재확인: `components.ts:124-140` · `types.ts:191-207 · 454-496 · 739-747` · `canvasGesture.ts:1245-1285` · `canvasMenu.ts:305-326` · `positions.ts:224-236` · `layerTree.ts:440-465` · `structure.ts:829-845` · `graph.ts:861-864`). Phase 0 의심 1건은 코드상 확정, live 재현은 Phase 0.
 - 2026-10-15 Codex 설계 리뷰 Round 1 — HIGH 4 · MEDIUM 1. 실행자 코드 대조: `shortcuts.ts:426-444` (ids 도 `sourceId`) · `types.ts:801` + `graph.ts:936-941` (interaction 주소 검증) · `positions.ts:333-340` (자리 열거는 authored 정의). r1 수리 — 본문 Decision 1 · 2 · 3 · 4 · 사용자 결정 6 · Risks R8 · R9, 이 문서 §1 · §2 · §3 · §4 · §6. 수리 검증 (Round 2) 대기.
+- 2026-10-15 Accepted (`/execute-adr 261`) · 사용자 결정 1 · 2 · 3 · 5 · 6 답 (권장안 전부).
+- 2026-10-15 **Phase 0 완료** — 위 「Phase 0 결과」. 서브에이전트 2 (주소 필드 · `replace` 지원) 인용은 실행자가 `graph.ts:100-112 · 860-868` · `fields.ts:468-476` · `structure.ts:1052-1070` 로 재확인.
+- 2026-10-15 **Phase 1 완료** — `apps/builder/src/builder/catalogRuntime/insertParent.ts` (`catalogInsertParent` · `catalogParentOfNode` · `catalogTemplateNodeAt` — slots.ts 의 템플릿 조회를 옮김, 팔레트 모듈을 끌지 않게 별도 파일) · `canvasGesture.ts` (host `itemOfRecord`, `CatalogDropTarget.parent: NodeParent`) · `canvasMenu.ts` · `shortcuts.ts` · `layerTree.ts` (`catalogLayerDropCommand(tree, graph, …)`).
+  - 설계에서 바뀐 것: 메뉴 · 화살표의 부모는 부모 record 의 EditTarget 이 아니라 **노드가 문서에 놓인 자리** (`catalogParentOfNode` — `locate()` 와 같은 판정, throw 대신 `undefined`). 처음 구현 (부모 record `itemOfRecord`) 이 action bar 의 선택마다 메뉴 빌드에 조회를 더해 ratchet 등급 A 4 초과 (`readModel#read` 1710→1770 · `get root` 1797→1887 …) — 자리 판정으로 바꾼 뒤 초과 0.
+  - 판독 1회 (reviewer, 임시 probe 실행): HIGH 1 — 비-slot 자리를 건너뛴 걷기가 instance 루트 record (`node` target) 에 닿아 `I.children` 에 넣음 · layout body 면 `releaseLayout` 이 덮어 고아 → `catalogInsertParent` 가 프로젝트 정의 instance 는 루트 slot (`descendant`) 만, 없으면 `undefined`. MEDIUM 1 — Layers 가 아직 채우지 않은 slot 의 형제를 owned 행만 세어 index 0 → slot 부모면 전체 행. 수리 검증: 원복 RED 2/2 · 테스트 +2.
+  - LOW deferred 1: 팔레트 (`paletteInsert.ts` `parentOf`) 는 slot 이 아닌 template 자리에도 `ensureChildList` 로 넣는다 — 결정 2 는 drop · paste 질문이었고 팔레트는 「이미 맞는 경로」 로 범위 밖. 재현되는 손상 없음 (instance 쪽 `fillSlot`).
+  - live (`adr261-drop-parent-live.mjs`, headed Chrome): ①-a ArrowDown · ①-b ⌘C ⌘V · ①-c Canvas drag 로 slot 채우기 · ② layout page ArrowDown — 원본 · layout template 바이트 동일, 콘솔 오류 0. G0 의 ①-c 무변경은 Components 패널이 Canvas 왼쪽 (노드 자리) 을 덮어 drag 가 시작되지 않은 측정 결함이었다 (스크립트가 패널을 닫도록 수정).
+- 2026-10-15 **Phase 2 완료** — shared `commands/swap.ts` (`planSwapInstance` · `swapInstance`, index export) · 테스트 `swap.test.ts` 9 · `randomUndo.test.ts` 에 `swap` 행동. Builder `catalogRuntime/swapInstance.ts` (후보 · 요청 신호) · `panels/properties/catalog/CatalogSwapPicker.tsx` (+ .css — RAC DialogTrigger · Popover · Autocomplete · SearchField · ListBox 섹션) · `CatalogComponentSection.tsx` (이름 칩 = picker, 알림) · `canvasMenu.ts` 「swap-instance」 · `shortcuts.ts` (`openDesignPanel` + 요청) · `config/actionIcons.ts` `swapInstance: Replace` · i18n 7 키.
+  - 설계에서 바뀐 것: (1) 이름 경로 키에 같은 키 형제 순번을 넣어 키가 늘 유일하다 — 「중복 이름」 은 순번으로 맞춘다 (Figma 도 레이어 순서로 잇는다). (2) 걷기는 교체 전 구조로 한다 — 처음 구현은 꺼낸 slot 내용이 instance 밖으로 나간 뒤 걸어 그 `showWhen` 이 옛 주소로 남았다 (unit 이 잡음). 밖으로 나가는 내용의 그 instance 조건은 결정 6 대로 지운다. (3) prop 은 옛 · 새 계약의 값 타입이 같고 값이 맞을 때만 남긴다 · 색 조합 오류면 조합 키를 버린다 · 다른 정의로 맞춘 `fillSlot` 의 쓰기 필드는 버린다 (판독 m1). (4) 교체 노드 자신은 그 자리 nesting 검사 (거부), 맞춘 slot 내용은 새 자리 nesting 이 안 맞으면 꺼낸다 · picker 후보도 같은 검사 (판독 h2).
+  - 판독 1회 (reviewer, 기본 원본 81 × 81 교체 probe): HIGH 1 · MEDIUM 1 → 수리 검증 원복 RED 3 + probe 재실행 (적용 거부 107 → 0, 5112 통과, 1080 계획 단계 nesting 거부, ListBox → GridList 항목 3 밖으로). LOW deferred 3: holder 밖 instance 의 `showWhen` 주소 (패널은 `nodeId` 만 작성 — production 경로 0) · `ancestor.nodeId` 조건의 상태 키 소실 미집계 · 알림 수치는 계획 시점 graph (REVISION_CONFLICT 재계획 시 표시만 어긋남).
+  - live (`adr261-swap-live.mjs`): 이름 칩 → 목록 (Card B 관련 맨 위 · 현재 제외 · 70) · 검색 · 교체 한 step (id 유지) · 제목 override 「Mine」 · slot 내용이 B 의 같은 자리로 · 알림 「kept 2 · dropped 0 · moved out 0」 · undo 한 번 복원 · Canvas 오른쪽 클릭 「Swap instance」 → Design 패널 목록. ratchet 등급 A 초과 0 · initial JS gzip 1,323,007 B (상한 1,421,000 — picker 는 Properties 지연 청크).
+- 2026-10-15 **Phase 3 완료** — shared `document/types.ts` (`slot.suggested`) · `validation.ts` (`DEFINITION_ID_REQUIRED` · `DUPLICATE_SUGGESTION`) · `graph.ts` (`referencedIds` · 존재 검증) · `commands/structure.ts` (`removeWithReferrers` 정리 · `withTargetSuggestions` · `withSuggested`) · `commands/context.ts` (`CommandDraft.writtenEntries`). Builder `slots.ts` (`catalogSlotInsertOptions` 추천 먼저 · `catalogSlotSuggestionChoices`) · `CatalogSlotSection.tsx` (+ .css) · i18n 2 키. 테스트 `slotSuggestions.test.ts` 5 · `adr261Swap.test.ts` Phase 3 1.
+  - 판독 1회 (reviewer probe): MEDIUM 1 — `removeWithReferrers` 는 committed 역색인만 봐서, dissolve 가 같은 draft 에서 만든 detach 사본 (원본 slot 의 `suggested` 를 그대로 복사 — `materialize.ts:353`) 을 놓쳐 `DANGLING_DEFINITION`. 수리: draft 가 쓴 노드도 걷는다 (`writtenEntries`). 수리 검증 원복 RED 1/1. LOW deferred 2 (본문 Status).
+  - live (`adr261-swap-live.mjs` 4): 원본 slot 선택 → 「Add suggestion」 → Card B (원본 첫 편집이라 영향 확인 대화상자 — 계속) · `suggested` 저장 · instance slot 에 Card B 버튼 · 눌러 fillSlot +1 (Card B instance) · 원본 slot 무변경.
 - 2026-10-15 Codex 수리 검증 Round 2 — h1 · h3 · h4 · m1 닫힘 (실행 확인), h2 남음 (`showWhen` 상태 소유자 주소 — `types.ts:698-726` 실행자 확인). r2 — Decision 2 대상을 주소 필드 전수로 · `showWhen` 추가. LOW deferred 1 (Phase 5 순환 문구 — 정정). 판독 상한 도달 — 확인은 Phase 2 G2.

@@ -20,13 +20,15 @@ import {
   type DistributionType,
 } from "../stores/utils/elementDistribution";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "./canvasMenu";
+import { catalogParentOfNode } from "./insertParent";
+import { requestCatalogSwap } from "./swapInstance";
+import { openDesignPanel } from "../panels/design/designPanelView";
 import { catalogPageDropCommand } from "./canvasPage";
 import { confirmCatalogDetach } from "./componentConfirm";
 import { catalogComponentCommands } from "./componentActions";
 import type { CatalogWorkspace } from "./workspace";
 
 const PAGE_GRID = "catalog:root";
-const isNodeSource = (id: string) => id.startsWith("project:node:");
 
 /** The Canvas menu host over the open workspace (a refused command reports, never throws). */
 export function catalogMenuHost(
@@ -45,6 +47,10 @@ export function catalogMenuHost(
       );
     },
     showDefinition: (id) => workspace.showDefinition(id),
+    swapInstance: (id) => {
+      openDesignPanel("property");
+      requestCatalogSwap(id);
+    },
     // (The root knows the view — no session snapshot per menu build, ADR-246 ratchet.)
     definitionView: () => root.definitionView,
     pointIn: (identity, point) => {
@@ -423,21 +429,23 @@ export function planCatalogShortcut(
       if (nudge !== null) return nudge && (() => host.execute(nudge));
       if (id.endsWith("Shift")) return undefined;
       // One step among the siblings (the flow order is the children order, ADR-118).
+      // ADR-261: the moved node is an owned one (not a position projected from an origin — pen.dev),
+      // and its parent where it lives (an instance's slot = its `fillSlot`, not the template node).
       const record = singleElement(workspace);
       const parent = record && workspace.root.domInputs.get(record.parentId);
-      if (
-        !record ||
-        !parent ||
-        !isNodeSource(parent.sourceId) ||
-        !isNodeSource(record.sourceId)
-      )
+      const moved = record && workspace.itemOfRecord(record.id)?.target;
+      const into =
+        moved?.kind === "node"
+          ? catalogParentOfNode(workspace.runtime.graph, moved.id)
+          : undefined;
+      if (!record || !parent || moved?.kind !== "node" || !into)
         return undefined;
       const index = parent.children.indexOf(record.id);
       const to = index + (id === "arrowUp" || id === "arrowLeft" ? -1 : 1);
       if (to < 0 || to > parent.children.length - 1) return undefined;
       const command = moveNodes({
-        ids: [record.sourceId as NodeId],
-        parent: { kind: "node", id: parent.sourceId as NodeId },
+        ids: [moved.id],
+        parent: into,
         index: to,
         newId: workspace.newId,
         label: "Reorder",

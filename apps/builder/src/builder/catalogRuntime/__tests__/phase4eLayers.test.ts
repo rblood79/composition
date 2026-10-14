@@ -178,6 +178,7 @@ describe("ADR-248 Phase 4e-4 Layers tree", () => {
     ) =>
       catalogLayerDropCommand(
         tree,
+        workspace.runtime.graph,
         dragged.map(record),
         record(target),
         position,

@@ -2,7 +2,16 @@
 
 ## Status
 
-Proposed — 2026-10-15
+Accepted — 2026-10-15
+
+- **Accepted 근거 (2026-10-15)**: 사용자 `/execute-adr 261` 호출 + [리뷰 기록](reviews/261.md) Round 2 — pending 0 · HIGH 전부 fixed (Round 2 h1 은 r2 수리, 확인은 Phase 2 G2).
+- **사용자 결정 답 (2026-10-15 AskUserQuestion)**: 1 = 바로 뒤 형제로 꺼냄 · 2 = 거부 (slot 에만) · 3 = 전체 검색 + 맨 위 「관련」 · 4 = text · boolean 먼저 (instance 교체 속성은 Phase 5) · 5 = 허용 · 6 = 지우고 알림에 셈 — 6건 모두 답.
+
+> **Phase 0 · 1 완료 (2026-10-15)** — G0: live 재현 RED 3 (instance slot 자식의 ArrowDown · ⌘V 가 원본 slot 노드에 씀 · layout page 내용의 ArrowDown 이 layout template 에 씀), 주소 보유 필드 4종 · `replace` 지원 표 · oracle 표 (breakdown §1). G1: Canvas drop · Alt 복제 · 절대 배치 복제 · Layers drop 은 record 의 EditTarget (`catalogInsertParent` — 소유 노드 · slot 선언 자리 = instance `fillSlot`, 프로젝트 컴포넌트 · layout instance 는 루트 slot 만), 선택 뒤 붙여넣기 · z-order · 화살표 순서는 노드가 놓인 자리 (`catalogParentOfNode`). 원본에서 투영된 자리는 옮기지 않는다. unit 9 (원복 RED 전량) · builder 279 파일 · type-check 6 · live 5/5 (drag · ⌘V · ArrowDown · layout) · perf ratchet 등급 A 초과 0 (작업 트리 측정 `--judge`). 판독 1회 HIGH 1 · MEDIUM 1 (instance 루트가 비-slot drop 을 받음 · Layers 의 빈 slot index) → 수리 검증 RED 2/2 — 닫힘.
+
+> **Phase 2 완료 (2026-10-15)** — `swapInstance` (`commands/swap.ts`): 노드 id · 자리 · 루트 own 필드 유지, 이름 경로 (`name ?? type` + 같은 키 형제 순번) 유일 매칭으로 override · interaction · `showWhen` 상태 소유자 · 이 노드를 지나는 다른 instance 주소를 한 step 에 옮긴다. 못 맞춘 slot 내용 · replacement 는 바로 뒤 형제로 (결정 1), 못 맞춘 쓰기 · interaction · 조건은 지우고 센다 (결정 6). Builder: Component 절 이름 칩 = 교체 목록 (검색 · 관련 먼저 — 결정 3, 기본 원본 포함 — 결정 5, 그 자리에 놓을 수 있는 것만) · Canvas 오른쪽 클릭 「Swap instance」 · 알림 (유지 · 버림 · 밖으로) + undo. G2: unit 9 + 무작위 500 단계 하니스에 swap (수락 26) · 원복 RED 전량 · live 10/10 · Round 2 h2 (`showWhen` 유지) 확인. 판독 1회 HIGH 1 · MEDIUM 1 (교체가 nesting 검사를 건너뜀 — ListBox 항목 → Button · ListBox → GridList 의 항목 / 값 타입이 다른 같은 이름 prop 이 교체 전체를 거부 — 기본 원본 전수 교체 probe 107건) → 수리 검증: 원복 RED 3 · probe 재실행 (적용 거부 0 · 놓을 수 없는 교체는 계획 단계 `NESTING_NOT_ALLOWED`) — 닫힘. LOW deferred: holder 밖 instance 의 `showWhen` 주소 (작성 경로 0) · `ancestor.nodeId` 조건의 상태 키 소실 알림.
+
+> **Phase 3 완료 (2026-10-15)** — `NodeEntry.slot.suggested` (선택 필드, 사용자 컴포넌트 slot 만): 검증 (정의 id · 중복) · 참조 색인 + `DANGLING_DEFINITION` · 정의 삭제 시 정리 (같은 명령이 만든 detach 사본 포함) · 다른 프로젝트 붙여넣기에서 대상에 없는 project 추천 제거 (library 유지 — 리뷰 m1). Builder: 원본 slot 섹션의 「추천 컴포넌트」 목록 · 「추천 추가」 (자기 컴포넌트 제외), instance slot 섹션은 추천을 버튼으로 맨 위에 — 누르면 채움, 넣기 목록에서도 맨 위 (제한 아님). G2: shared 5 · builder 1 · live 4/4 (추가 → 저장 · instance 버튼 · 눌러 채움 · 원본 무변경). 판독 1회 MEDIUM 1 (자기 컴포넌트를 추천하는 slot 사본이 같은 명령의 detach 로 생기면 dissolve 가 `DANGLING_DEFINITION`) → `removeWithReferrers` 가 이 명령이 쓴 노드도 정리 · 수리 검증 RED 1/1 — 닫힘. LOW deferred: 항목만 받는 slot 에 넣은 project 추천은 instance 에 안 보임 (UX) · slot 선언 원본 선택 중 step 마다 추천 선택지 계산 (원본 선택 시에만).
 
 - 사용자 요청: `/create-adr` (2026-10-15) — 「ADR-260 후속 A — 컴포넌트 API (instance 교체 · slot 추천 · 사용자 컴포넌트 속성 · drag/paste slot 채우기 · Phase 0 의심 확인)」.
 - 방향을 정한 사용자 원문: 「origin - instance, slot 은 pen.dev 와 pigma(Figma) 참조 모델이다」 (2026-10-14) · 「260 종료 후 설계」 (2026-10-14, ADR-260 후속 4 기능). 동작 판단이 갈리면 「pen.dev / Figma 에 같은 기능이 있다면 그 방식으로」 (2026-10-14, ADR-260 결정 4 · 5 답).

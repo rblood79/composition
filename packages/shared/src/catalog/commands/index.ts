@@ -22,6 +22,11 @@ export {
 } from "./structure";
 export { setShowWhen } from "./showWhen";
 export {
+  planSwapInstance,
+  swapInstance,
+  type SwapInstanceReport,
+} from "./swap";
+export {
   renameNode,
   resetDescendant,
   setFields,

@@ -381,8 +381,14 @@ const koKR: TranslationKeys = {
     createComponent: "컴포넌트 만들기",
     detachComponent: "컴포넌트 분리",
     restoreOrigin: "원본 복원",
-    systemOriginLocked:
-      "라이브러리 컴포넌트는 분리할 수 없습니다",
+    swapInstance: "인스턴스 교체",
+    swapSearch: "컴포넌트 검색",
+    swapRelated: "관련",
+    swapLocal: "로컬",
+    swapLibrary: "라이브러리",
+    swapped:
+      "{name} 으로 교체 — 유지 {kept} · 버림 {dropped} · 밖으로 {movedOut}",
+    systemOriginLocked: "라이브러리 컴포넌트는 분리할 수 없습니다",
   },
   operation: {
     bodyLocked: "페이지 body 에는 이 작업을 할 수 없습니다",
@@ -889,6 +895,8 @@ const koKR: TranslationKeys = {
     classNamePlaceholder: "예: hero-title",
     ariaLabelPlaceholder: "예: 업로드 진행률",
     slotSection: "슬롯",
+    slotSuggested: "추천 컴포넌트",
+    slotSuggestAdd: "추천 추가",
     slotStatus: "상태",
     slotInactive: "비활성",
     slotRecommendations: "추천 {count}개",
@@ -2531,8 +2539,14 @@ const enUS: TranslationKeys = {
     createComponent: "Create component",
     detachComponent: "Detach component",
     restoreOrigin: "Restore origin",
-    systemOriginLocked:
-      "Library components can't be detached",
+    swapInstance: "Swap instance",
+    swapSearch: "Search components",
+    swapRelated: "Related",
+    swapLocal: "Local",
+    swapLibrary: "Library",
+    swapped:
+      "Swapped to {name} — kept {kept} · dropped {dropped} · moved out {movedOut}",
+    systemOriginLocked: "Library components can't be detached",
   },
   operation: {
     bodyLocked: "This can't be done to the page body",
@@ -3037,6 +3051,8 @@ const enUS: TranslationKeys = {
     classNamePlaceholder: "e.g. hero-title",
     ariaLabelPlaceholder: "e.g. Upload progress",
     slotSection: "Slot",
+    slotSuggested: "Suggested components",
+    slotSuggestAdd: "Add suggestion",
     slotStatus: "Status",
     slotInactive: "Inactive",
     slotRecommendations: "{count} recommendations",
@@ -5419,6 +5435,8 @@ const formattedMessages: Record<
       `페이지를 찾을 수 없습니다: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override 해제됨`,
+    "componentAction.swapped": (args) =>
+      `${String(args?.name ?? "")} 으로 교체 — 유지 ${String(args?.kept ?? 0)} · 버림 ${String(args?.dropped ?? 0)} · 밖으로 ${String(args?.movedOut ?? 0)}`,
     "propertiesPanel.stateVariantOf": (args) =>
       `${String(args?.name ?? "")} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다`,
     "history.entryThemeAdd": (args) => `테마 추가: ${String(args?.name ?? "")}`,
@@ -5935,6 +5953,8 @@ const formattedMessages: Record<
       `Page not found: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override cleared`,
+    "componentAction.swapped": (args) =>
+      `Swapped to ${String(args?.name ?? "")} — kept ${String(args?.kept ?? 0)} · dropped ${String(args?.dropped ?? 0)} · moved out ${String(args?.movedOut ?? 0)}`,
     "propertiesPanel.stateVariantOf": (args) =>
       `State variant of ${String(args?.name ?? "")} — edit only the background · color · border · opacity used in this state`,
     "history.entryThemeAdd": (args) => `Add theme: ${String(args?.name ?? "")}`,

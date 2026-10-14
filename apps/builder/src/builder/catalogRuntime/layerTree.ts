@@ -2,6 +2,7 @@ import { isBodyType } from "@composition/shared";
 import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import { catalogComponentsPageRows } from "./componentsPage";
+import { catalogInsertParent } from "./insertParent";
 import {
   isComponentsView,
   isComponentsViewRoot,
@@ -420,12 +421,15 @@ export class CatalogLayerTreeStore {
 
 /**
  * A Layers drop as the move command: rows dropped before/after a row go to that row's parent,
- * rows dropped on a row go into it (at the end). The parent must be an owned node (as on the
- * Canvas); the index counts its owned child rows without the dragged ones (on a row = its end). `undefined` = the drop
- * is not a move of owned nodes; the command's own checks (nesting, into itself) still decide.
+ * rows dropped on a row go into it (at the end). The parent is the row's edit target as on the
+ * Canvas (ADR-261): an owned node, or an instance's slot position (its `fillSlot`); a template
+ * position without a slot takes nothing. The index counts its owned child rows without the dragged
+ * ones (on a row = its end). `undefined` = the drop is not a move of owned nodes; the command's own
+ * checks (nesting, into itself) still decide.
  */
 export function catalogLayerDropCommand(
   tree: Pick<CatalogLayerTreeStore, "node">,
+  graph: CatalogReader,
   draggedIds: readonly string[],
   targetId: string,
   dropPosition: "before" | "after" | "on",
@@ -439,7 +443,8 @@ export function catalogLayerDropCommand(
       : target.parentId
         ? tree.node(target.parentId)
         : undefined;
-  if (!parent || parent.position.target.kind !== "node") return undefined;
+  const into = parent && catalogInsertParent(graph, parent.position.target);
+  if (!parent || !into) return undefined;
   const dragged = draggedIds.map((id) => tree.node(id));
   if (
     !dragged.length ||
@@ -452,15 +457,19 @@ export function catalogLayerDropCommand(
   let index: number | undefined;
   if (dropPosition !== "on") {
     const draggedSet = new Set(draggedIds);
+    // An owned node: its owned rows (its collapsed template rows come first). An instance slot:
+    // every row — before its first fill the rows are the template children `ensureChildList` copies.
     const siblings = (parent.children ?? []).filter(
-      (row) => row.position.target.kind === "node" && !draggedSet.has(row.id),
+      (row) =>
+        (into.kind === "descendant" || row.position.target.kind === "node") &&
+        !draggedSet.has(row.id),
     );
     const at = siblings.findIndex((row) => row.id === targetId);
     index = at < 0 ? siblings.length : dropPosition === "before" ? at : at + 1;
   }
   return moveNodes({
     ids: dragged.map((node) => (node!.position.target as { id: NodeId }).id),
-    parent: { kind: "node", id: parent.position.target.id },
+    parent: into,
     ...(index !== undefined ? { index } : {}),
     newId,
     label: "Move",

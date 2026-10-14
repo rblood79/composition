@@ -16,6 +16,7 @@ import type {
   CatalogReader,
   DefinitionId,
   NodeId,
+  NodeParent,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
   ContextMenuIcon,
@@ -44,6 +45,7 @@ import {
   confirmCatalogDissolve,
 } from "./componentConfirm";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogParentOfNode } from "./insertParent";
 import { catalogPageContentTarget } from "./pageSettings";
 import type { CatalogDefinitionViewId, CatalogSelectionItem } from "./session";
 
@@ -78,6 +80,8 @@ export interface CatalogMenuHost {
     identity: string,
     point: { x: number; y: number },
   ): { x: number; y: number } | undefined;
+  /** ADR-261: open Swap instance for an instance (the Design panel's component list). */
+  swapInstance?(id: NodeId): void;
   /** Open a project component's definition edit view (go to origin). */
   showDefinition?(id: CatalogDefinitionViewId): void;
   /** The definition edit view open now (its root is that component's origin). */
@@ -176,11 +180,11 @@ export function catalogCanvasMenuItems(
       : [];
   const clipboard = host.clipboard.get();
   // Absolute copies land 10 px from their source (the old paste), so they are not hidden under it.
-  const pasteInto = (parent: NodeId, index?: number) =>
+  const pasteInto = (parent: NodeParent, index?: number) =>
     clipboard &&
     pasteNodes({
       clipboard,
-      parent: { kind: "node", id: parent },
+      parent,
       ...(index !== undefined ? { index } : {}),
       newId: host.newId,
       placement: COPY_OFFSET,
@@ -309,9 +313,12 @@ export function catalogCanvasMenuItems(
   // Paste after the last selected element, in its parent.
   const last = host.records.get(elements[elements.length - 1].identity)!;
   const parent = host.records.get(last.parentId);
-  if (parent && isNodeSource(parent.sourceId)) {
+  // ADR-261: where the node lives — inside an instance, its slot (`fillSlot`), never the origin's
+  // or the layout's template node the parent record was projected from.
+  const into = catalogParentOfNode(host.graph, ids[ids.length - 1]);
+  if (parent && into) {
     const at = parent.children.indexOf(last.id) + 1;
-    const paste = pasteInto(parent.sourceId as NodeId, at);
+    const paste = pasteInto(into, at);
     if (paste)
       items.push(
         ...action(
@@ -334,13 +341,13 @@ export function catalogCanvasMenuItems(
   );
 
   // Z-order: one element among its siblings (the index counts the siblings without it).
-  if (ids.length === 1 && parent && isNodeSource(parent.sourceId)) {
+  if (ids.length === 1 && parent && into) {
     const index = parent.children.indexOf(last.id);
     const siblings = parent.children.length - 1;
     const reorder = (to: number) =>
       moveNodes({
         ids,
-        parent: { kind: "node", id: parent.sourceId as NodeId },
+        parent: into,
         index: to,
         newId: host.newId,
         label: "Reorder",
@@ -492,6 +499,17 @@ export function catalogCanvasMenuItems(
       labelKey: "componentAction.goToOrigin",
       icon: ACTION_ICONS.goToOrigin,
       run: () => showDefinition(origin.definitionId as CatalogDefinitionViewId),
+    });
+  }
+  // ADR-261 Decision 2: Swap instance (Figma's right-click item) — the component list opens.
+  if (origin && single && host.swapInstance && !ownOrigin) {
+    const swap = host.swapInstance;
+    component.push({
+      kind: "action",
+      id: "swap-instance",
+      labelKey: "componentAction.swapInstance",
+      icon: ACTION_ICONS.swapInstance,
+      run: () => swap(ids[0]),
     });
   }
   // ADR-260 Decision 6: the component's origin was deleted — put it back beside this instance.

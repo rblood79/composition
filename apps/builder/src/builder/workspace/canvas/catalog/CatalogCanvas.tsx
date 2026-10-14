@@ -549,6 +549,7 @@ export function CatalogCanvas({
       bounds: (id) => scene.stream.boundsMap.get(id),
       pick: (x, y) => picking.pick(x, y),
       selection: () => workspace.session.getSnapshot().selection,
+      itemOfRecord: (record) => workspace.itemOfRecord(record),
       editingContext: () => workspace.session.getSnapshot().editingContext,
       selectRecords: (ids, options) => workspace.selectRecords(ids, options),
       breakpoint: () => workspace.session.getSnapshot().breakpoint,

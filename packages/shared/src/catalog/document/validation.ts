@@ -858,7 +858,11 @@ function descendant(value: unknown, at: string): void {
     address(item.address, `${at}.address`);
     id(item.replacementId, "project:node:", `${at}.replacementId`);
   } else if (item.kind === "fillSlot") {
-    exact(item, ["kind", "address", "childIds", ...DESCENDANT_PATCH_FIELDS], at);
+    exact(
+      item,
+      ["kind", "address", "childIds", ...DESCENDANT_PATCH_FIELDS],
+      at,
+    );
     address(item.address, `${at}.address`);
     list(item.childIds, "project:node:", `${at}.childIds`);
     descendantPatchFields(item, at);
@@ -1197,10 +1201,27 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       if (item.binding !== undefined) binding(item.binding, "entry.binding");
       if (item.slot !== undefined) {
         const slot = object(item.slot, "entry.slot");
-        exact(slot, ["name", "required"], "entry.slot");
+        exact(slot, ["name", "required", "suggested"], "entry.slot");
         string(slot.name, "entry.slot.name");
         if (typeof slot.required !== "boolean")
           invalid("SLOT_REQUIRED_BOOLEAN", "entry.slot.required");
+        // ADR-261 Decision 3: suggested components — definition ids, each once.
+        if (slot.suggested !== undefined) {
+          if (!Array.isArray(slot.suggested))
+            invalid("ARRAY_REQUIRED", "entry.slot.suggested");
+          const seen = new Set<string>();
+          for (const [index, id] of (slot.suggested as unknown[]).entries()) {
+            const at = `entry.slot.suggested[${index}]`;
+            const value = string(id, at);
+            if (
+              !value.startsWith("project:definition:") &&
+              !value.startsWith("lib:definition:")
+            )
+              invalid("DEFINITION_ID_REQUIRED", at);
+            if (seen.has(value)) invalid("DUPLICATE_SUGGESTION", at);
+            seen.add(value);
+          }
+        }
       }
       if (item.name !== undefined) string(item.name, "entry.name");
       if (item.regions !== undefined) {

@@ -1,0 +1,49 @@
+/* ADR-261 Swap instance — the Component section's name chip is the trigger (same chip, a button). */
+.component-swap-trigger {
+  inline-size: 100%;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &[data-hovered],
+  &[data-pressed] {
+    border-color: var(--border);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+
+  & > svg:last-child {
+    flex: 0 0 auto;
+    color: var(--fg-muted);
+  }
+}
+
+.component-swap-popover.property-select-popover {
+  min-width: 240px;
+}
+
+.component-swap-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  outline: none;
+}
+
+.component-swap-search .react-aria-Input {
+  inline-size: 100%;
+}
+
+.component-swap-list {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.component-swap-header {
+  padding: var(--spacing-xs) var(--spacing-sm) 0;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}

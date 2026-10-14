@@ -111,6 +111,7 @@ async function open(options: { paddingLinked?: () => boolean } = {}) {
     pick: (x, y) =>
       pickTopmostRecord(scene.stream, x, y, scene.stream.hitBoundsMap.keys()),
     selection: () => workspace.session.getSnapshot().selection,
+    itemOfRecord: (record) => workspace.itemOfRecord(record),
     editingContext: () => workspace.session.getSnapshot().editingContext,
     selectRecords: (ids, options) => workspace.selectRecords(ids, options),
     breakpoint: () => workspace.session.getSnapshot().breakpoint,

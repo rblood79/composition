@@ -73,6 +73,12 @@ export class CommandDraft {
   removed(id: string): boolean {
     return this.written.has(id) && this.written.get(id) === null;
   }
+  /** The entries this command wrote or created so far (not the removed ones). */
+  writtenEntries(): CatalogEntry[] {
+    return [...this.written.values()].filter(
+      (entry): entry is CatalogEntry => entry !== null,
+    );
+  }
   ops(): CatalogOperation[] {
     const puts: CatalogOperation[] = [];
     const removes: CatalogOperation[] = [];
@@ -167,7 +173,9 @@ function nodeAncestorTypes(draft: CommandDraft, id: NodeId): string[] {
           )
         : undefined;
     if (filled) {
-      types.push(...templatePathTypes(draft.reader, filled.address.templatePath));
+      types.push(
+        ...templatePathTypes(draft.reader, filled.address.templatePath),
+      );
       seen.add(ownerId!);
       cursor = draft.reader.ownerOf(ownerId!);
       entry = cursor ? draft.read(cursor) : undefined;

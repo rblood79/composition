@@ -141,6 +141,7 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
       pick: (x, y) =>
         pickTopmostRecord(scene.stream, x, y, scene.stream.hitBoundsMap.keys()),
       selection: () => workspace.session.getSnapshot().selection,
+      itemOfRecord: (record) => workspace.itemOfRecord(record),
       editingContext: () => undefined,
       selectRecords: (ids) => workspace.selectRecords(ids),
       breakpoint: () => "desktop",
@@ -274,6 +275,7 @@ describe("ADR-248 Phase 4e-3b page frame drag", () => {
       pick: (x, y) =>
         pickTopmostRecord(scene.stream, x, y, scene.stream.hitBoundsMap.keys()),
       selection: () => workspace.session.getSnapshot().selection,
+      itemOfRecord: (record) => workspace.itemOfRecord(record),
       editingContext: () => undefined,
       selectRecords: (ids) => workspace.selectRecords(ids),
       breakpoint: () => "desktop",

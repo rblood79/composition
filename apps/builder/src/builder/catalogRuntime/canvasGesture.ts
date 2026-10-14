@@ -25,8 +25,10 @@ import type {
   CatalogReader,
   DefinitionId,
   NodeId,
+  NodeParent,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { parseAspectRatio } from "../utils/aspectRatio";
+import { catalogInsertParent } from "./insertParent";
 import {
   resolveResizeRequest,
   type ResizeRatioLockInput,
@@ -85,6 +87,8 @@ export interface CatalogGestureHost {
   /** Topmost drawn record under a scene point. */
   pick(x: number, y: number): string | undefined;
   selection(): readonly CatalogSelectionItem[];
+  /** The edit target of a drawn record (ADR-261 — drops write to it, not to its source node). */
+  itemOfRecord(id: string): CatalogSelectionItem | undefined;
   /** The entered container (its direct children are the marquee's level). */
   editingContext(): string | undefined;
   selectRecords(ids: readonly string[], options?: { additive?: boolean }): void;
@@ -158,7 +162,8 @@ interface SnapContext {
 /** Where a flow drag drops: the container record, its node and the index among the rest. */
 export interface CatalogDropTarget {
   readonly container: string;
-  readonly parent: NodeId;
+  /** Where the nodes go: an owned node, or an instance's slot position (its `fillSlot`). */
+  readonly parent: NodeParent;
   readonly index: number;
   /** The insertion line (scene coordinates; zero width or height). */
   readonly line: BoundingBox;
@@ -1000,7 +1005,7 @@ export class CatalogCanvasGestures {
       return (reader) =>
         pasteNodes({
           clipboard: copyNodes(reader, ids),
-          parent: { kind: "node", id: drop.parent },
+          parent: drop.parent,
           index: drop.index,
           newId,
           label: "Duplicate",
@@ -1015,7 +1020,7 @@ export class CatalogCanvasGestures {
       return undefined;
     return moveNodes({
       ids: gesture.ids,
-      parent: { kind: "node", id: drop.parent },
+      parent: drop.parent,
       index: drop.index,
       newId: this.host.newId,
     });
@@ -1065,7 +1070,7 @@ export class CatalogCanvasGestures {
         return (reader) =>
           pasteNodes({
             clipboard: copyNodes(reader, ids),
-            parent: { kind: "node", id: drop.parent },
+            parent: drop.parent,
             index: drop.index,
             newId,
             label: "Duplicate",
@@ -1087,7 +1092,7 @@ export class CatalogCanvasGestures {
           ids: gesture.ids.filter((_, index) =>
             leaving.has(gesture.records[index]!),
           ),
-          parent: { kind: "node", id: drop.parent },
+          parent: drop.parent,
           index: drop.index,
           newId,
         }),
@@ -1134,9 +1139,12 @@ export class CatalogCanvasGestures {
     const commands: CatalogCommand[] = [];
     for (const item of items) {
       const record = records.get(item.record);
-      const parent = record ? records.get(record.parentId) : undefined;
-      if (!record || !parent || !isNodeSource(parent.sourceId)) continue;
-      const index = parent.children.indexOf(record.id) + 1;
+      const parentRecord = record ? records.get(record.parentId) : undefined;
+      const target =
+        parentRecord && this.host.itemOfRecord(parentRecord.id)?.target;
+      const parent = target && catalogInsertParent(this.host.graph, target);
+      if (!record || !parentRecord || !parent) continue;
+      const index = parentRecord.children.indexOf(record.id) + 1;
       const placement = offset(item);
       commands.push((reader) => {
         const clipboard = copyNodes(reader, [item.id]);
@@ -1149,7 +1157,7 @@ export class CatalogCanvasGestures {
                 : entry,
             ),
           },
-          parent: { kind: "node", id: parent.sourceId as NodeId },
+          parent,
           index,
           newId,
           label: "Duplicate",
@@ -1250,7 +1258,12 @@ export class CatalogCanvasGestures {
       record;
       record = records.get(record.parentId)
     ) {
-      if (within(record.id) || !isNodeSource(record.sourceId)) continue;
+      if (within(record.id)) continue;
+      // ADR-261: the record's edit target — an instance's slot position fills that instance, a
+      // template position without a slot takes nothing (the origin and the layout stay as they are).
+      const target = this.host.itemOfRecord(record.id)?.target;
+      const parent = target && catalogInsertParent(graph, target);
+      if (!parent) continue;
       if (!this.structural(record)) continue;
       // Past a refused container the nodes go to the end of the accepting ancestor (the old
       // Canvas's nearest droppable ancestor).
@@ -1261,7 +1274,7 @@ export class CatalogCanvasGestures {
         // The command's own checks (nesting, not into itself) decide whether the drop is allowed.
         moveNodes({
           ids: gesture.ids,
-          parent: { kind: "node", id: record.sourceId as NodeId },
+          parent,
           index,
           newId: this.host.newId,
         })(graph);
@@ -1280,7 +1293,7 @@ export class CatalogCanvasGestures {
       }
       return {
         container: record.id,
-        parent: record.sourceId as NodeId,
+        parent,
         index,
         line: this.insertionLine(record, excluded, index),
         ...(refused ? { relocated: refused } : {}),

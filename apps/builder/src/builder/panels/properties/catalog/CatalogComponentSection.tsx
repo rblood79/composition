@@ -32,6 +32,8 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { catalogSwapPlan } from "../../../catalogRuntime/swapInstance";
+import { CatalogSwapPicker } from "./CatalogSwapPicker";
 
 const ComponentIcon = ACTION_ICONS.component;
 
@@ -196,6 +198,30 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       originOf.instanceIds.flatMap((id) => workspace.itemsOfNode(id, 1)),
     );
   }, [originOf, definitionView, workspace]);
+  // ADR-261 Decision 2: one step; the notice counts what moved, what was dropped and what moved
+  // out (user decisions 1 · 6), with undo.
+  const swap = useCallback(
+    (definitionId: DefinitionId) => {
+      if (!nodeId) return;
+      const { command, report } = catalogSwapPlan(graph, nodeId, definitionId);
+      if (!run(command)) return;
+      const name = graph.getDefinition(definitionId)?.name ?? definitionId;
+      useToastStore.getState().showToast(
+        "info",
+        t("componentAction.swapped", {
+          name,
+          kept: report.kept,
+          dropped: report.dropped,
+          movedOut: report.movedOut,
+        }),
+        {
+          bypassCooldown: true,
+          action: { label: t("errors.undo"), onClick: () => workspace.undo() },
+        },
+      );
+    },
+    [graph, nodeId, run, t, workspace],
+  );
   const reset = useCallback(
     ({ key, field, label, target }: OverrideRow) => {
       const command =
@@ -229,24 +255,35 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
 
   return (
     <PropertySection title="Component">
-      {component && (
+      {component && instanceOf && nodeId && !originOf ? (
         <div className="fieldset-row">
-          <div
-            className="component-semantics-identity"
-            data-role={instanceOf ? "instance" : "origin"}
-          >
-            <ComponentIcon aria-hidden="true" size={14} />
-            <span
-              className="component-semantics-identity-name"
-              title={component.name}
-            >
-              {component.name}
-            </span>
-            <span className="component-semantics-identity-role">
-              {instanceOf ? t("properties.instance") : t("properties.origin")}
-            </span>
-          </div>
+          <CatalogSwapPicker
+            key={nodeId}
+            nodeId={nodeId}
+            name={component.name}
+            onSwap={swap}
+          />
         </div>
+      ) : (
+        component && (
+          <div className="fieldset-row">
+            <div
+              className="component-semantics-identity"
+              data-role={instanceOf ? "instance" : "origin"}
+            >
+              <ComponentIcon aria-hidden="true" size={14} />
+              <span
+                className="component-semantics-identity-name"
+                title={component.name}
+              >
+                {component.name}
+              </span>
+              <span className="component-semantics-identity-role">
+                {instanceOf ? t("properties.instance") : t("properties.origin")}
+              </span>
+            </div>
+          </div>
+        )
       )}
       <div className="fieldset-row">
         <div className="component-semantics-strip">

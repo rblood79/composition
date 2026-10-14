@@ -16,6 +16,7 @@ import {
   catalogSlotDeclaration,
   catalogSlotInsertOptions,
   catalogSlotPosition,
+  catalogSlotSuggestionChoices,
   catalogSlotTarget,
 } from "../../../catalogRuntime/slots";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -23,6 +24,7 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import "./CatalogSlotSection.css";
 
 const DEFAULT_SLOT_NAME = "content";
 
@@ -72,14 +74,40 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       position || (type !== undefined && CATALOG_PART_INSERT_HOSTS.has(type))
         ? catalogSlotInsertOptions(graph, target)
         : [];
-    return JSON.stringify({ declaration, position, filled, options });
+    // ADR-261 Decision 3: a declared slot's suggestions (and what it can suggest).
+    const nameOf = (id: string) => {
+      const definition = graph.getDefinition(id as DefinitionId);
+      return definition?.name ?? id;
+    };
+    const suggestions = declaration?.slot?.suggested?.map((id) => ({
+      id,
+      label: nameOf(id),
+    }));
+    const choices =
+      declaration?.slot && target.kind === "node"
+        ? catalogSlotSuggestionChoices(graph, target.id).filter(
+            (choice) =>
+              !declaration.slot?.suggested?.includes(choice.definitionId),
+          )
+        : [];
+    return JSON.stringify({
+      declaration,
+      position,
+      filled,
+      options,
+      suggestions,
+      choices,
+    });
   });
-  const { declaration, position, filled, options } = JSON.parse(viewKey) as {
-    declaration?: ReturnType<typeof catalogSlotDeclaration>;
-    position?: ReturnType<typeof catalogSlotPosition>;
-    filled?: { id: string; label: string }[];
-    options: ReturnType<typeof catalogSlotInsertOptions>;
-  };
+  const { declaration, position, filled, options, suggestions, choices } =
+    JSON.parse(viewKey) as {
+      suggestions?: { id: string; label: string }[];
+      choices: ReturnType<typeof catalogSlotSuggestionChoices>;
+      declaration?: ReturnType<typeof catalogSlotDeclaration>;
+      position?: ReturnType<typeof catalogSlotPosition>;
+      filled?: { id: string; label: string }[];
+      options: ReturnType<typeof catalogSlotInsertOptions>;
+    };
 
   // Handlers read the committed declaration (field controls keep their first onChange).
   const currentSlot = useCallback(
@@ -174,6 +202,20 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     },
     [graph, run, target, workspace],
   );
+  const setSuggested = useCallback(
+    (next: readonly string[]) => {
+      const slot = currentSlot();
+      if (target.kind !== "node" || !slot) return;
+      const { suggested: _old, ...rest } = slot;
+      run(
+        catalogSlotCommands.declare(
+          target.id,
+          next.length ? { ...rest, suggested: next as DefinitionId[] } : rest,
+        ),
+      );
+    },
+    [currentSlot, run, target],
+  );
   const restore = useCallback(() => {
     const slotTarget = catalogSlotTarget(graph, target);
     if (slotTarget) run(catalogSlotCommands.restore(slotTarget));
@@ -214,6 +256,54 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
                 label="Required"
                 isSelected={slot.required}
                 onChange={setRequired}
+              />
+            </div>
+            {/* ADR-261 Decision 3 — pen.dev 「suggested slot components」: offered first in an
+                instance's slot, never a restriction. */}
+            <fieldset className="properties-aria slot-suggestions">
+              <legend className="fieldset-legend">
+                {t("propertiesPanel.slotSuggested")}
+              </legend>
+              {suggestions?.map((item) => (
+                <div key={item.id} className="list-row">
+                  <div className="list-row__body">
+                    <span className="list-row__label">{item.label}</span>
+                  </div>
+                  <div className="list-row__actions">
+                    <button
+                      type="button"
+                      className="list-row__action"
+                      aria-label={`Remove ${item.label}`}
+                      onClick={() =>
+                        setSuggested(
+                          (slot.suggested ?? []).filter((id) => id !== item.id),
+                        )
+                      }
+                    >
+                      <Minus size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </fieldset>
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("propertiesPanel.slotSuggestAdd")}
+                value=""
+                options={[
+                  {
+                    value: "",
+                    label: `${t("propertiesPanel.slotSuggestAdd")}…`,
+                  },
+                  ...choices.map((choice) => ({
+                    value: choice.definitionId,
+                    label: choice.label,
+                  })),
+                ]}
+                translateOptions={false}
+                onChange={(value) =>
+                  value && setSuggested([...(slot.suggested ?? []), value])
+                }
               />
             </div>
           </>
@@ -270,6 +360,22 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           </div>
         ))}
       </fieldset>
+      {/* ADR-261 Decision 3: the origin's suggestions, one press to fill (pen.dev). */}
+      {options.some((option) => option.suggested) && (
+        <div className="slot-suggestion-strip">
+          {options
+            .filter((option) => option.suggested)
+            .map((option) => (
+              <RACButton
+                key={option.definitionId}
+                className="control-button"
+                onPress={() => fill(option.definitionId)}
+              >
+                {option.label}
+              </RACButton>
+            ))}
+        </div>
+      )}
       <div className="fieldset-row" data-wide="true">
         <PropertySelect
           label="Fill slot"

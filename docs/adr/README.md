@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-15 ADR-261 Phase 2 · 3 완료**: **instance 교체** (Figma Swap instance — Component 절 이름 칩 · Canvas 오른쪽 클릭, 검색 + 관련 먼저 · 그 자리에 놓을 수 있는 것만) — 이름 경로 유일 매칭으로 override · interaction · `showWhen` 상태 소유자 · 이 노드를 지나는 다른 instance 주소를 한 step 에 옮기고, 못 맞춘 slot 내용은 바로 뒤 형제로 · 나머지는 지우고 알림. **slot 추천** (pen.dev suggested slot components — 원본 slot 에 추천 · instance slot 맨 위 버튼, 제한 아님 · 다른 프로젝트 붙여넣기는 없는 추천 제거). 판독 Phase 2 HIGH 1 · MEDIUM 1 (nesting 우회 · prop 타입) · Phase 3 MEDIUM 1 (detach 사본의 추천) 모두 수리 · RED. 기본 원본 81×81 교체 probe 적용 거부 0. live 14/14. 사용자 결정 6건 모두 답. 다음 Phase 4 속성 text · boolean.
+
+> **2026-10-15 ADR-261 Accepted + Phase 0 · 1 완료** (`/execute-adr 261`): instance 안 drop · 붙여넣기 · 순서가 원본 · layout template 에 쓰던 main 결함 수리 — live 재현 RED 3 (slot 자식 ArrowDown · ⌘V → 원본 slot 노드, layout page ArrowDown → layout template) 뒤 Canvas drop · Alt 복제 · Layers drop 은 record 의 EditTarget, 메뉴 붙여넣기 · z-order · 화살표는 노드가 놓인 자리를 부모로. slot 이 아닌 자리에는 넣지 않는다 (사용자 결정 2) · 원본에서 투영된 자리는 옮기지 않는다 (pen.dev). drag · paste 로 slot 채우기가 같은 수리로 열림. unit 9 원복 RED 전량 · live 5/5 · ratchet A 초과 0. 사용자 결정 1 · 2 · 3 · 5 · 6 답 (권장안). 다음 Phase 2 `swapInstance`.
+
 > **2026-10-15 ADR-261 · 262 Codex 리뷰 Round 1 · 2**: 261 — Round 1 HIGH 4 · MEDIUM 1 (화살표 순서가 원본 자식을 instance 로 빼 옴 · 교체가 interaction 주소를 끊음 · instance 속성을 resolver 에서만 바꾸면 의존성 · 자리 열거가 옛 정의 · 다른 프로젝트 붙여넣기의 추천) → r1 (출발지도 EditTarget · 주소 보유자 재매핑 · instance 속성 = `replace` 소유 노드 · 없는 추천 제거). Round 2 — 4 닫힘 · h2 잔존 (`showWhen` 상태 소유자 주소) → r2. 262 — Round 1 HIGH 2 · MEDIUM 1 (반영이 투영 순서를 뒤집음 · 루트 own 필드 누락 · 비교 계약) → r1. Round 2 — 2 닫힘 · h1 잔존 (instance 층이 원본의 모든 층 뒤) → r2 쓰기 규칙 = 키별 breakpoint 마다 결과값 맞추기. 판독 상한 도달 — r2 수리의 확인은 각 Phase 게이트 (261 G2 · 262 G1). 기록: [reviews/261](reviews/261.md) · [reviews/262](reviews/262.md).
 >
 > **2026-10-15 ADR-261 · 262 Proposed** (사용자 `/create-adr` 두 번 — ADR-260 후속을 직교성으로 둘로 나눔, AskUserQuestion 「2개 (권장)」 · 추가 범위 3건 포함): **261** 컴포넌트 API — instance 교체 → slot 추천 → 사용자 컴포넌트 속성 (text · boolean · instance) + drag · paste 로 slot 채우기. 실측: ADR-260 Phase 0 의심이 코드상 확정 — Canvas drop · 「선택 뒤 붙여넣기」 · z-order · 화살표 순서가 부모를 record `sourceId` 로 잡아 instance 안 자리면 **원본 노드 · layout template 에 쓴다** (지금 main 결함, HIGH). 채택: 부모 = EditTarget (팔레트와 같은 길 — 결함 수리와 slot 채우기가 한 수리) · 교체 = Figma 대로 이름 경로 유일 매칭 · 속성 = Figma 대로 정의의 속성 표가 원본 레이어를 가리키고 기본값은 원본 노드 값 (library `"{key}"` 방식은 page 원본이 바인딩 문자를 그려 기각). 사용자 결정 5. **262** override 정리 — 원본에 반영 (Figma Push changes to main: instance 자신만 · 중첩 주소는 원본의 중첩 instance 로 한 단계 줄여) · Reset all changes (slot 내용 유지 — `resetDescendant` 규칙). 반영 불변식 (반영 instance resolved record 불변) · 되돌리기 불변식 (= 새 instance) 이 게이트. 사용자 결정 4. 열림 5 (Proposed 3 · 부분 2), 합계 287. breakdown: [design/261](design/261-component-api-breakdown.md) · [design/262](design/262-instance-override-push-and-reset-all-breakdown.md).
@@ -287,7 +291,7 @@
 
 #### [261](261-component-api-swap-slot-suggestions-properties.md) — 컴포넌트 API: instance 교체 · slot 추천 · 사용자 컴포넌트 속성 (pen.dev · Figma)
 
-- **상태**: Proposed — 2026-10-15 (ADR-260 후속 A · 분리 confirm 10-15)
+- **상태**: Accepted — 2026-10-15 · Phase 0 ~ 3 완료 (drop 부모 수리 · instance 교체 · slot 추천) · 다음 Phase 4 속성 text · boolean (ADR-260 후속 A · 분리 confirm 10-15)
 - **규모**: Phase 0 live 재현 (instance 안 drop → 원본 쓰기 · layout page) + Phase 1 drop · 붙여넣기 · 순서 · Layers 부모 = EditTarget (지금 결함 수리 + drag · paste slot 채우기) → 2 `swapInstance` → 3 `slot.suggested` → 4 속성 text · boolean (`DefinitionEntry.properties`) → 5 instance 교체 속성. 사용자 결정 5 (못 맞춘 slot 내용 · slot 아닌 자리 drop · 교체 후보 · 속성 순서 · 기본 원본 교체). breakdown: [design/261](design/261-component-api-breakdown.md)
 
 #### [262](262-instance-override-push-and-reset-all.md) — instance override 정리: 원본에 반영 · 전부 되돌리기 (Figma)
@@ -322,13 +326,13 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                   |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-|  1   | [261](261-component-api-swap-slot-suggestions-properties.md)                                   | Proposed — 리뷰 · `/execute-adr` 는 사용자 지시              | Phase 1 이 지금 main 결함 (instance 안 drop → 원본 쓰기) 수리 · 사용자 결정 5 |
-|  2   | [262](262-instance-override-push-and-reset-all.md)                                             | Proposed — 리뷰 · `/execute-adr` 는 사용자 지시              | 261 과 직교 (속성 값 반영 행만 261 Phase 4 뒤) · 사용자 결정 4                |
-|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)     |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                        |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                   |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+|  1   | [261](261-component-api-swap-slot-suggestions-properties.md)                                   | Accepted — Phase 0 ~ 3 완료, Phase 4 진행                    | 사용자 결정 6건 답 완료 · 남은 Phase 4 · 5 · 6                            |
+|  2   | [262](262-instance-override-push-and-reset-all.md)                                             | Proposed — 리뷰 · `/execute-adr` 는 사용자 지시              | 261 과 직교 (속성 값 반영 행만 261 Phase 4 뒤) · 사용자 결정 4            |
+|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 

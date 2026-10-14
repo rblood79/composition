@@ -106,8 +106,12 @@ export function referencedIds(entry: CatalogEntry): string[] {
     for (const id of [...value.instances, ...value.templatePath])
       if (id.startsWith("project:")) ids.push(id);
   };
-  if (entry.kind === "node")
+  if (entry.kind === "node") {
     for (const override of entry.descendantOverrides) address(override.address);
+    // ADR-261 Decision 3: a slot's suggested project components.
+    for (const id of entry.slot?.suggested ?? [])
+      if (id.startsWith("project:")) ids.push(id);
+  }
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
@@ -822,6 +826,9 @@ export class CatalogGraph {
           "DANGLING_DEFINITION",
           entry.definitionId,
         );
+      for (const id of entry.slot?.suggested ?? [])
+        if (!lookupDefinition(id))
+          throw new CatalogValidationError("DANGLING_DEFINITION", id);
       const definition = { ...found, ...contractOf(found) };
       this.validatePropWrites(entry.props, definition.accepts, entry.id);
       this.validatePropChoices(entry.props, definition, get, entry.id);
