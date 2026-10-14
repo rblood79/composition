@@ -251,3 +251,6 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - ToggleButton의 기본 Icon은 owner 텍스트 색상을 상속하고, owner 변경의 derived dependents에 포함한다. 명시한 Icon 색상은 보존한다.
   **Why (2026-10-14)**: 강조된 선택 버튼의 글자는 흰색인데 Icon은 기본 fg로 남았다. DOM Icon의 자체 fg보다 color:inherit를 우선하고 SVG는 currentColor를 쓴다. Canvas는 같은 catalog owner paint를 읽으며, 기본값과 같은 명시 색상도 저작 선택으로 판정한다.
+
+- 증분 step 에서 「이 instance 의 template 이 바뀐 prop 을 묶는가」 는 노드 자신의 정의만이 아니라 record 가 접은 층 (`collapsedSourceIds`) 의 정의 전부로 판정한다 (`compositionRoot.ts` `bindingDependents`).
+  **Why (2026-10-15)**: Create component 로 만든 TextField 컴포넌트의 instance 는 정의가 `accepts: {}` 라 Label · Description · placeholder 쓰기가 Canvas · Preview 에 다음 구조 변경 뒤에야 반영됐다 (사용자 보고). `{label}` 을 묶는 composite 는 원본 (lib 컴포넌트 instance) 의 정의이고, record 는 그 층을 접어 가장 안쪽 primitive 정의를 든다.

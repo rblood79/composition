@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [사용자 컴포넌트 instance 의 묶인 속성 즉시 반영] - 2026-10-15
+
+### Fixed
+
+- **Create component 로 만든 컴포넌트 (TextField · Checkbox · Select 등 65 경로) 의 instance 에서 Label · Description · Error Message · Placeholder · 글자 · 아이콘을 바꾸면 Canvas 와 Preview 가 다음 구조 변경 (레이어 추가 · 이동 등) 뒤에야 따라오던 문제** (사용자 보고 「일부는 변경 후 화면의 상태 변경이 일어나야 반영」). 이제 입력 직후 같은 step 에 반영된다. 원본 · Undo 는 그대로.
+  - **Why**: 증분 step 이 「이 instance 의 template 이 바뀐 prop 을 묶는가」 를 노드 자신의 정의로만 판정했다 — 사용자 컴포넌트 정의는 `accepts: {}` 라 `{label}` 을 묶는 원본 (라이브러리 composite) 층을 보지 못했다. 이제 record 가 접은 층 (`collapsedSourceIds`) 의 정의 전부로 판정한다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`bindingDependents`). 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/adr261Properties.test.ts` (2026-10-15 절, 원복 RED 2/2) · live `apps/builder/scripts/adr261-bound-props-live.mjs` (8/8 — 패널 입력 → Canvas record · Preview DOM 즉시 일치).
+  - 같은 probe 에서 남은 별도 결함 1 (instance 와 무관, 원본에서도 재현): Disclosure 의 `size` 를 바꿔도 제목 Text 의 fontSize 가 증분 반영되지 않음 (Heading · Button 을 건너는 part rule 도달 범위). 별도 수리 대상.
+
 ## [ADR-261 Phase 5 — instance 교체 속성 (instance swap property)] - 2026-10-15
 
 ### Added

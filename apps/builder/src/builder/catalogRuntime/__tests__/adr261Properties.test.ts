@@ -287,3 +287,100 @@ describe("ADR-261 Phase 4 — component properties (Builder)", () => {
     ).toBeUndefined();
   });
 });
+
+/**
+ * 2026-10-15 user report — a Create-component'd field's instance: its root props the library
+ * template binds (`{label}` · `{description}` · `{placeholder}` · a Checkbox's `{children}`)
+ * reached the Canvas records only after a later structural step. The incremental step judged
+ * "does this instance's template bind the key" by the node's own definition — a user component
+ * accepts nothing; the composite that binds it is the origin's, a layer the record collapses.
+ */
+describe("2026-10-15 — a user component instance's bound root props update incrementally", () => {
+  const PALETTE = "lib:definition:origin-component-textfield";
+  const CHECKBOX = "lib:definition:origin-component-checkbox";
+  async function field(definitionId: string, name: string) {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({ projectId: PROJECT, name: "Bound" }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `adr261-bound-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1920, height: 1080 },
+        autosaveSchedule: () => {},
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("F", definitionId)],
+        rootIds: [id("F")],
+        newId: allocator(),
+      }),
+    );
+    workspace.execute(
+      createComponent({ id: id("F"), name, newId: workspace.newId }),
+    );
+    const I = workspace.execute(
+      duplicateNodes({ ids: [id("F")], newId: workspace.newId }),
+    ).plan.selectAfter![0] as NodeId;
+    /** The instance's parts' text by part type (Label · Description children, Input placeholder). */
+    const texts = () =>
+      Object.fromEntries(
+        [...workspace.root.domInputs.values()]
+          .filter(
+            (record) =>
+              record.instancePath.includes(I) &&
+              /type-(Label|Description|Input)$/.test(record.definitionId),
+          )
+          .map((record) => [
+            record.definitionId.replace(/.*type-/, ""),
+            record.definitionId.endsWith("Input")
+              ? record.props.placeholder
+              : record.props.children,
+          ]),
+      );
+    return { workspace, I, texts };
+  }
+  it("a TextField component's instance: label · description · placeholder reach the parts in the same step", async () => {
+    const { workspace, I, texts } = await field(PALETTE, "Field");
+    expect(texts()).toEqual({
+      Label: "Text Field",
+      Input: "Enter text...",
+      Description: "",
+    });
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: I }],
+        props: {
+          label: { kind: "set", value: "Name" },
+          placeholder: { kind: "set", value: "Your name" },
+          description: { kind: "set", value: "Required" },
+        },
+      }),
+    );
+    expect(texts()).toEqual({
+      Label: "Name",
+      Input: "Your name",
+      Description: "Required",
+    });
+    workspace.undo();
+    expect(texts()).toEqual({
+      Label: "Text Field",
+      Input: "Enter text...",
+      Description: "",
+    });
+  });
+  it("a Checkbox component's instance: its text (`children`) reaches the label part", async () => {
+    const { workspace, I, texts } = await field(CHECKBOX, "Check");
+    expect(texts().Label).toBe("Checkbox");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: I }],
+        props: { children: { kind: "set", value: "Agree" } },
+      }),
+    );
+    expect(texts().Label).toBe("Agree");
+  });
+});

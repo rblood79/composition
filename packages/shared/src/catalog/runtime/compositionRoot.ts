@@ -3694,15 +3694,46 @@ export class CatalogCompositionRoot {
         keys.add(op.key);
       }
     const dependents: string[] = [];
+    const graph = this.runtime.graph;
+    const definitionOf = (sourceId: string): DefinitionId | undefined => {
+      if (sourceId.startsWith("lib:"))
+        return graph.library.templates.get(sourceId as `lib:template:${string}`)
+          ?.definitionId as DefinitionId | undefined;
+      const entry = graph.getEntry(sourceId);
+      return entry?.kind === "node" ? entry.definitionId : undefined;
+    };
+    const bindsAny = (
+      definitionId: DefinitionId | undefined,
+      keys: Set<string>,
+    ) => {
+      const definition = definitionId
+        ? graph.getDefinition(definitionId)
+        : undefined;
+      return (
+        definition?.mode === "composite" &&
+        [...keys].some((key) => Object.hasOwn(definition.accepts, key))
+      );
+    };
     for (const [nodeId, keys] of changedKeys) {
-      const node = this.runtime.graph.getEntry(nodeId);
+      const node = graph.getEntry(nodeId);
       if (node?.kind !== "node") continue;
-      const definition = this.runtime.graph.getDefinition(node.definitionId);
-      if (definition?.mode !== "composite") continue;
-      if (![...keys].some((key) => Object.hasOwn(definition.accepts, key)))
-        continue;
       for (const recordId of this.sourceInstances.get(nodeId) ?? []) {
-        const stack = [...(this.records.get(recordId)?.children ?? [])];
+        const instance = this.records.get(recordId);
+        if (!instance) continue;
+        // The composite whose template binds the key (`{label}`) may be a layer the record
+        // collapses: a user component's instance (ADR-261 — its definition accepts nothing) takes
+        // its root prop through the origin, an instance of the library composite. Judged over the
+        // node's definition and every collapsed layer's. Why (2026-10-15): the Label · Description
+        // · placeholder of a Create-component'd TextField's instance changed on the Canvas only
+        // after a later structural step.
+        if (
+          !bindsAny(node.definitionId, keys) &&
+          !recordSources(instance).some((sourceId) =>
+            bindsAny(definitionOf(sourceId), keys),
+          )
+        )
+          continue;
+        const stack = [...instance.children];
         while (stack.length) {
           const record = this.records.get(stack.pop()!);
           if (
