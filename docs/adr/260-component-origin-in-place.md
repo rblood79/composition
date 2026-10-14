@@ -174,5 +174,6 @@ Proposed — 2026-10-14
 - 정의의 모양이 둘 (소유 template · 참조 원본) — 소비자가 둘 다 읽어야 하고 (R3), layout · 옛 문서 · 삭제된 원본은 계속 소유 모양이다.
 - 원본이 page 의 보통 노드라 실수로 지우거나 옮기기 쉽다 — 삭제 시 instance 유지 + Restore (사용자 결정 1) 로 막는다.
 - 2026-09-30 판정 ② 를 뒤집는다 — ADR-248 breakdown 에 뒤집은 기록을 남긴다 (사유: 소유 모델 제약을 이 ADR 이 푼다).
+- 후속 (이 ADR 뒤 별도 ADR, 사용자 지시 2026-10-14 「260 종료 후 설계」): pen.dev · Figma 대비 남은 축은 컴포넌트 API 다 — slot 추천 컴포넌트 (pen.dev) · 사용자 컴포넌트 속성 · instance 교체 · 원본에 반영 (Figma). Phase 0 이 이 넷을 막지 않는지 확인한다 (breakdown §1). variant · 라이브러리 공유는 범위 밖 그대로.
 - Phase 0 inventory 에 34 + 53 파일 분류가 든다 (추정 — 실측이 1.5 배를 넘으면 사후 보고).
 - 리뷰 H1 · H3 · H4 로 범위가 는다 — resolver 의 override 조회 · 정의 순환 걷기 · clipboard 형식. 세 곳 모두 지금 소유 모양에도 있는 결함이라, 고치면 옛 문서의 사용자 컴포넌트도 바뀐다 (컴포넌트 안 library instance 의 override 가 instance 에 나타남 · 다른 프로젝트 붙여넣기가 실패 대신 보통 사본).
