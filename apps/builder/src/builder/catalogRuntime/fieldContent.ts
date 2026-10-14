@@ -19,8 +19,12 @@ import { CATALOG_PREFIX_FIELDS } from "../../../../../packages/shared/src/catalo
 export function catalogOwnedFieldContent(
   reader: CatalogReader,
   target: EditTarget,
+  knownType?: string,
 ): ReadonlyMap<string, { target: EditTarget; key: string }> {
   const parts = new Map<string, { target: EditTarget; key: string }>();
+  // The inspector already resolved its type. Non-fields need no further graph reads.
+  if (knownType !== undefined && !CATALOG_PREFIX_FIELDS.has(knownType))
+    return parts;
   const entry = target.kind === "node" ? reader.getEntry(target.id) : undefined;
   const definitionId =
     target.kind === "descendant"

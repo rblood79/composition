@@ -110,7 +110,7 @@ export function catalogEditContract(
   const type = definitionTypeName(graph, definitionId);
   const rule = resolveComponentRule(type);
   const node = { type };
-  const ownedContent = catalogOwnedFieldContent(graph, target);
+  const ownedContent = catalogOwnedFieldContent(graph, target, type);
   const fields: ResolvedField[] = Object.entries(
     catalogSemanticContracts(definitionId, type),
   ).map(([key, contract]) => {

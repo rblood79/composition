@@ -169,6 +169,7 @@ export function useCatalogEditContract(
         for (const { target: part } of catalogOwnedFieldContent(
           runtime.graph,
           target,
+          contract.type,
         ).values())
           dependencies.add(part.kind === "node" ? part.id : part.ownerId);
       } catch {

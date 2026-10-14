@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TextField·TextArea의 Prefix Text 변경 직후 Input이 이동하고, Label·Placeholder 편집이 Canvas와 Preview에 반영된다.**
   - 파생 flex Group을 block으로 판단하던 Canvas 형제 갱신·줄바꿈 범위를 실제 엔진 입력으로 판정한다.
   - 구조 편집으로 독립 노드가 된 Label·Input·Description·FieldError의 Content 편집과 Reset을 실제 부품에도 같은 명령으로 적용한다. 패널은 부품 값을 읽고 직접 편집·Undo를 구독한다.
+  - 패널이 이미 판별한 컴포넌트 타입을 재사용해 일반 컴포넌트 선택 시 불필요한 graph 조회를 추가하지 않는다.
   - 같은 Prefix 경로의 NumberField·ComboBox·ColorField와 Undo/Redo·Prefix 제거/교체·문서 재로드도 검증한다.
 
 ## [D2 — binding prop 을 설치된 S2 1.8.1 과 대조] - 2026-10-14
