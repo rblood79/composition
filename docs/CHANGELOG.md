@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Field Prefix·Content 속성 즉시 반영] - 2026-10-14
+
+### Fixed
+
+- **TextField·TextArea의 Prefix Text 변경 직후 Input이 이동하고, Label·Placeholder 편집이 Canvas와 Preview에 반영된다.**
+  - 파생 flex Group을 block으로 판단하던 Canvas 형제 갱신·줄바꿈 범위를 실제 엔진 입력으로 판정한다.
+  - 구조 편집으로 독립 노드가 된 Label·Input·Description·FieldError의 Content 편집과 Reset을 실제 부품에도 같은 명령으로 적용한다. 패널은 부품 값을 읽고 직접 편집·Undo를 구독한다.
+  - 같은 Prefix 경로의 NumberField·ComboBox·ColorField와 Undo/Redo·Prefix 제거/교체·문서 재로드도 검증한다.
+
+## [D2 — binding prop 을 설치된 S2 1.8.1 과 대조] - 2026-10-14
+
+### Changed
+
+- **Tooltip 의 배치 칸 (Placement · Offset · Cross Offset · Should Flip · Container Padding) 이 TooltipTrigger 로 옮겨 갔다.** S2 `TooltipTrigger` 가 가진 prop 이고, shared `TooltipTrigger` 가 context 로 Tooltip 에 넘긴다 (S2 와 같은 길). Placement 값은 S2 의 `top · bottom · left · right · start · end`. TooltipTrigger 의 Close Delay 는 S2 가 받지 않아 제거.
+- **field 12종 (TextField · TextArea · NumberField · SearchField · ColorField · ComboBox · Select · DateField · TimeField · DatePicker · DateRangePicker · Form) 의 Label Align 에서 `center` 를 제거** — S2 `labelAlign` 은 `start · end`. rule 의 `label-align.center` 변형과 생성 CSS 도 함께.
+- **TableView 의 Allow Sorting 칸 제거** — S2 는 Column 단위 (`allowsSorting`) 만 있고 DOM 은 표 단위 값을 버리고 있었다.
+- 옛 문서의 옮긴 · 지운 값은 그대로 무시된다 (로드 시 전환 없음 — 사용자 지시 2026-10-14).
+
+### Added
+
+- **D2 게이트** `d2S2Alignment.static.test.ts`: 설치된 `@react-spectrum/s2` 의 TypeScript 타입 (상속 RAC prop 포함) 과 binding 147개의 보이는 prop 키 · 선택지 값을 대조한다. S2 에 없는 prop 185개는 `d2Provenance.ts` 에 출처 (`v3` 14 · `rac` 8 · `composition` 나머지 — `dataBinding` · 부품 `size` · Chart · FileUpload …) 와 함께 적었다.
+- 규칙 `ssot-hierarchy.md` D2: 설치 버전 1.8.1 로 정정 · 확장 출처는 `d2Provenance.ts`.
+
 ## [Buttons 기본 높이 — 부모 flex stretch 방지] - 2026-10-14
 
 ### Fixed

@@ -15,7 +15,7 @@ export interface ExtendedFormProps extends FormProps {
    */
   restoreFocus?: boolean;
   labelPosition?: "top" | "side";
-  labelAlign?: "start" | "center" | "end";
+  labelAlign?: "start" | "end";
   necessityIndicator?: "icon" | "label";
   /** The Form rule's size (its field gap · padding — `.react-aria-Form[data-size]`). */
   size?: string;

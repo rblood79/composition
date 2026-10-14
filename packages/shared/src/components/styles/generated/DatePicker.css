@@ -178,10 +178,6 @@
   grid-column: 2;
 }
 
-.react-aria-DatePicker[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-DatePicker[data-label-align="end"] {
   --form-label-align: end;
 }

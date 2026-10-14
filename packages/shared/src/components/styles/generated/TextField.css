@@ -120,10 +120,6 @@
   grid-column: 2;
 }
 
-.react-aria-TextField[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-TextField[data-label-align="end"] {
   --form-label-align: end;
 }

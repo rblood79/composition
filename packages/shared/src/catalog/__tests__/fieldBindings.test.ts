@@ -165,7 +165,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
         type: "Form",
         props: {
           labelPosition: "side",
-          labelAlign: "center",
+          labelAlign: "end",
           necessityIndicator: "label",
         },
       },
@@ -174,7 +174,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     // label-layout hint 3종은 RAC/DOM prop 이 아님 → data-* 라우팅(theme·Form.css 가 소비).
     //   raw prop 으로 흘리면 RAC `<Form>` 이 `<form>` DOM 에 그대로 전달 → React 경고.
     expect(result["data-label-position"]).toBe("side");
-    expect(result["data-label-align"]).toBe("center");
+    expect(result["data-label-align"]).toBe("end");
     expect(result["data-necessity-indicator"]).toBe("label");
     expect(result.labelPosition).toBeUndefined();
     expect(result.labelAlign).toBeUndefined();

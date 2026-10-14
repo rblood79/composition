@@ -58,7 +58,6 @@ export const selectBinding: PrimitiveBinding = {
         default: "start",
         options: [
           { value: "start", label: "Start" },
-          { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
         // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)

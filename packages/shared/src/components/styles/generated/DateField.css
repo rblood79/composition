@@ -112,10 +112,6 @@
   grid-column: 2;
 }
 
-.react-aria-DateField[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-DateField[data-label-align="end"] {
   --form-label-align: end;
 }

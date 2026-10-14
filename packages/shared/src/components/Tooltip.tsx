@@ -4,7 +4,20 @@ import {
   TooltipProps as AriaTooltipProps,
 } from "react-aria-components/Tooltip";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import { createContext, useContext } from "react";
 import type { ComponentSize } from "../types";
+
+/**
+ * The tooltip's placement, handed down by the shared `TooltipTrigger` (S2 1.8 `TooltipTrigger`
+ * owns `placement` · `offset` · `crossOffset` · `shouldFlip` · `containerPadding` — 2026-10-14 D2
+ * 정렬). A Tooltip's own props win over the context's; undefined keeps RAC's default.
+ */
+export const TooltipPlacementContext = createContext<
+  Pick<
+    AriaTooltipProps,
+    "placement" | "offset" | "crossOffset" | "shouldFlip" | "containerPadding"
+  >
+>({});
 
 
 export type TooltipProps = AriaTooltipProps & {
@@ -55,9 +68,25 @@ export function Tooltip({
   const tooltipClassName = composeRenderProps(props.className, (className) =>
     className ? `react-aria-Tooltip ${className}` : "react-aria-Tooltip",
   );
+  const fromTrigger = useContext(TooltipPlacementContext);
+  const placement: typeof fromTrigger = {};
+  for (const key of [
+    "placement",
+    "offset",
+    "crossOffset",
+    "shouldFlip",
+    "containerPadding",
+  ] as const)
+    if (fromTrigger[key] !== undefined)
+      (placement as Record<string, unknown>)[key] = fromTrigger[key];
 
   return (
-    <AriaTooltip {...props} className={tooltipClassName} data-size={size}>
+    <AriaTooltip
+      {...placement}
+      {...props}
+      className={tooltipClassName}
+      data-size={size}
+    >
       {!hideArrow && (
         <OverlayArrow>
           <svg width={8} height={8} viewBox="0 0 8 8">

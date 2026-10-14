@@ -244,10 +244,6 @@
   grid-column: 2;
 }
 
-.react-aria-DateRangePicker[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-DateRangePicker[data-label-align="end"] {
   --form-label-align: end;
 }

@@ -181,10 +181,6 @@
   grid-column: 2;
 }
 
-.react-aria-ComboBox[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-ComboBox[data-label-align="end"] {
   --form-label-align: end;
 }

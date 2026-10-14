@@ -934,7 +934,7 @@ export interface FormElementProps extends BaseElementProps {
   restoreFocus?: boolean;
   validationBehavior?: "native" | "aria";
   labelPosition?: "top" | "side";
-  labelAlign?: "start" | "center" | "end";
+  labelAlign?: "start" | "end";
   necessityIndicator?: "icon" | "label";
 }
 
@@ -1083,7 +1083,7 @@ export interface ColorFieldElementProps extends BaseElementProps {
   validationBehavior?: "native" | "aria";
   necessityIndicator?: "icon" | "label";
   labelPosition?: "top" | "side";
-  labelAlign?: "start" | "center" | "end";
+  labelAlign?: "start" | "end";
 }
 
 export interface ColorPickerElementProps extends BaseElementProps {
@@ -2148,7 +2148,6 @@ export function createDefaultTableViewProps(): BaseElementProps {
     density: "regular",
     isStriped: false,
     isQuiet: false,
-    allowsSorting: true,
   };
 }
 

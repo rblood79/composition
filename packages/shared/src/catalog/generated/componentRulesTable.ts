@@ -2556,11 +2556,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -3130,11 +3125,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -3350,11 +3340,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -3759,11 +3744,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -4005,11 +3985,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -5272,11 +5247,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -8116,11 +8086,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -9425,11 +9390,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -9712,11 +9672,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -12432,11 +12387,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -12628,11 +12578,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",
@@ -12768,11 +12713,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           "label-align": {
-            center: {
-              styles: {
-                "--form-label-align": "center",
-              },
-            },
             end: {
               styles: {
                 "--form-label-align": "end",

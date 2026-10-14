@@ -13,7 +13,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 | Domain              | 권위                                                                      | 내용                                                      | Spec 개입                         |
 | ------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------- |
 | **D1. DOM/접근성**  | **설치된 `react-aria-components` (절대)**                                 | HTML 구조, ARIA 속성, 키보드 동작, 포커스 관리, 접근성    | **금지 — 관찰·소비만**            |
-| **D2. Props/API**   | **S2 `@react-spectrum/s2` 1.8.0 (고정) → design-data → v3 → custom 확장** | prop 이름 · 값 (isEmphasized, variant, staticColor 등)    | 타입 선언만, 구현은 RAC + custom  |
+| **D2. Props/API**   | **S2 `@react-spectrum/s2` 1.8.1 (고정) → design-data → v3 → custom 확장** | prop 이름 · 값 (isEmphasized, variant, staticColor 등)    | 타입 선언만, 구현은 RAC + custom  |
 | **D3. 시각 스타일** | **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens (SSOT)**                | 화면에 보여지는 style 전부 — 색상/크기/폰트/레이아웃/형태 | **Frame/Group/Slot 포함 catalog** |
 
 ### D1 (DOM/접근성)
@@ -30,10 +30,11 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 ### D2 (Props/API)
 
 - **정본 순서 (2026-10-09 사용자 결정 — 「S2 1.8.0 고정 우선」)**: prop 이름 · 값은 위에서부터 처음 답하는 곳을 따른다.
-  1. **S2 `@react-spectrum/s2` 1.8.0** (버전 고정 — 올릴 때는 이 줄을 같이 고친다). S2 는 RAC 위에 Spectrum 2 를 얹은 구현이라, 동작 · 상태 · 데이터 prop 은 RAC 이름 그대로이고 (`isSelected` · `selectedKeys` · `orientation` …) 시각 prop 은 Spectrum 축이다 (`variant` · `size` · `isEmphasized` · `fillStyle` · `staticColor` · `isQuiet` · `density`). 이 표면을 그대로 가져오면 D1 과 이름이 충돌하지 않는다.
+  1. **S2 `@react-spectrum/s2` 1.8.1** (버전 고정 = `apps/builder/package.json` 의 설치 버전 — 올릴 때는 이 줄을 같이 고친다. 2026-10-14 전까지 1.8.0 으로 적혀 있었으나 설치본은 1.8.1 이었다). S2 는 RAC 위에 Spectrum 2 를 얹은 구현이라, 동작 · 상태 · 데이터 prop 은 RAC 이름 그대로이고 (`isSelected` · `selectedKeys` · `orientation` …) 시각 prop 은 Spectrum 축이다 (`variant` · `size` · `isEmphasized` · `fillStyle` · `staticColor` · `isQuiet` · `density`). 이 표면을 그대로 가져오면 D1 과 이름이 충돌하지 않는다.
   2. S2 에 없는 컴포넌트 · 축: **spectrum-design-data** (Spectrum 디자인 정본의 컴포넌트 스키마 — design-data MCP).
   3. 거기에도 없으면 **v3 `@adobe/react-spectrum`** (Spectrum 1 구현 — RAC 가 아니라 react-aria hooks 기반이라 동작 이름이 RAC 와 다를 수 있다: v3 `selectionStyle` ↔ RAC `selectionBehavior`).
-  4. 어디에도 없으면 **composition 확장** — binding 머리말에 확장이라고 적는다.
+  4. 어디에도 없으면 **composition 확장** — `packages/shared/src/catalog/document/d2Provenance.ts` 에 type · key 와 출처 (`v3` · `rac` · `composition`) 를 적는다 (2026-10-14 전까지는 binding 머리말).
+- **게이트 (2026-10-14)**: `apps/builder/src/builder/catalogRuntime/__tests__/d2S2Alignment.static.test.ts` 가 설치된 S2 의 TypeScript 타입 (상속한 RAC prop 포함) 과 모든 binding 의 보이는 `accepts` 키 · `options` 값을 대조한다 — S2 에 없는 키는 `d2Provenance.ts` 에 있어야 하고, S2 가 선언하는 키가 거기 있으면 낡은 것으로 막는다. **Why**: 「S2 1.8.0 정본」 결정 뒤 전수 대조가 없어 Tooltip 의 배치 prop 5 (S2 는 TooltipTrigger 소유) · TooltipTrigger `closeDelay` (S2 가 뺌) · TableView `allowsSorting` (S2 는 Column 단위 — DOM 이 버리던 죽은 칸) · field 12종 `labelAlign: center` (S2 `start · end`) 가 남아 있었다. S2 의 상위집합인 RAC prop (Calendar `visibleDuration` ⊃ S2 `visibleMonths`) 은 `rac` 출처로 둔다.
 - **Why**: RAC 는 headless 라 테마를 바꿀 수 있어 채택했고 (D1), prop 개념은 Spectrum 이 앞서 따랐다. 기준이 "RSP" 로만 적혀 v3 · S2 이름이 섞였다 (Meter `warning` · `critical` = v3, Checkbox `variant` ≠ S2 · v3 `isEmphasized` — 2026-10-09 전수 조사). S2 의 스타일은 쓰지 않는다 — 시각 값은 D3 (catalog) 가 정본이다.
 - **마이그레이션 기준**: **RAC + custom 구현으로 달성 가능한 범위 전부** 채택
   - 예: `isQuiet` — RAC 지원 가능 → 채택

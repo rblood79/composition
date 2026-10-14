@@ -89,7 +89,8 @@ export const SIZE_MAX_STEPS = 5;
 const ICON_SEG: Readonly<Record<string, Readonly<Record<string, LucideIcon>>>> =
   {
     orientation: { horizontal: MoveHorizontal, vertical: MoveVertical },
-    labelAlign: { start: AlignLeft, center: AlignCenter, end: AlignRight },
+    // (S2 `labelAlign` is start · end — `center` removed 2026-10-14.)
+    labelAlign: { start: AlignLeft, end: AlignRight },
     align: { start: AlignLeft, center: AlignCenter, end: AlignRight },
     // labelPosition (Top · Side) 은 글자 seg — 아이콘은 가독성이 떨어진다 (2026-09-16 사용자 판정)
     legendPosition: {

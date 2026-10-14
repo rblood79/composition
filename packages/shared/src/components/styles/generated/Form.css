@@ -64,10 +64,6 @@
   --form-label-width: 11rem;
 }
 
-.react-aria-Form[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-Form[data-label-align="end"] {
   --form-label-align: end;
 }

@@ -5488,8 +5488,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "default",
-      "density": "regular",
-      "allowsSorting": true
+      "density": "regular"
     },
     "visual": {}
   },
@@ -6789,12 +6788,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "{variant}",
-      "size": "{size}",
-      "placement": "{placement}",
-      "offset": "{offset}",
-      "crossOffset": "{crossOffset}",
-      "shouldFlip": "{shouldFlip}",
-      "containerPadding": "{containerPadding}"
+      "size": "{size}"
     },
     "visual": {}
   },

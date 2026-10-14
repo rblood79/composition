@@ -192,6 +192,13 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
 
   it("the Preview's Tooltip opens on the trigger's keyboard focus, and follows the Description origin", async () => {
     const { workspace, root } = await place("tooltip");
+    // (S2 TooltipTrigger owns the placement — the trigger node's prop reaches RAC's Tooltip by context.)
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: PLACED }],
+        props: { placement: set("bottom"), crossOffset: set(6) },
+      }),
+    );
     workspace.execute(
       setLibraryDefault({
         definitionId:
@@ -215,6 +222,7 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     const tooltip = document.querySelector('[role="tooltip"]')!;
     expect(tooltip).not.toBeNull();
     expect(tooltip.textContent).toContain("Tooltip text");
+    expect(tooltip.getAttribute("data-placement")).toBe("bottom");
     expect(button.getAttribute("aria-describedby")).toBe(tooltip.id);
     expect(
       (tooltip.querySelector('[slot="description"]') as HTMLElement).style
@@ -254,22 +262,26 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
       ["variant", ["neutral", "informative", "negative"]],
       ["size", ["S", "M", "L"]],
     ]);
+    // (S2 TooltipTrigger owns the tooltip's placement — 2026-10-14 D2 정렬: a Tooltip's placement
+    //  props are the trigger node's, a Popover's stay the Popover node's.)
     for (const [type, placement] of [
       ["popover", "bottom"],
       ["tooltip", "top"],
     ] as const) {
       const { workspace, root, child } = await place(type);
       const overlay = () => child(root(), 1);
-      expect(overlay().props.placement).toBe(placement);
-      expect(overlay().props.offset).toBe(type === "popover" ? 8 : 0);
+      const placed = () => (type === "tooltip" ? root() : overlay());
+      expect(placed().props.placement).toBe(placement);
+      expect(placed().props.offset).toBe(type === "popover" ? 8 : 0);
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: PLACED }],
           props: { placement: set("right"), size: set("L") },
         }),
       );
-      expect(overlay().props.placement).toBe("right");
+      expect(placed().props.placement).toBe("right");
       expect(overlay().props.size).toBe("L");
+      if (type === "tooltip") expect(overlay().props.placement).toBeUndefined();
     }
   });
 });

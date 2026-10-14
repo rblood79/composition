@@ -182,10 +182,6 @@
   grid-column: 2;
 }
 
-.react-aria-Select[data-label-align="center"] {
-  --form-label-align: center;
-}
-
 .react-aria-Select[data-label-align="end"] {
   --form-label-align: end;
 }

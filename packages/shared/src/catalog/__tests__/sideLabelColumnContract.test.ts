@@ -47,7 +47,7 @@ const SIDE_LABEL_COLUMN_FAMILIES = [
 /** The groups take S2 `labelAlign` start · end only. */
 const GROUP_FAMILIES = ["CheckboxGroup", "RadioGroup"] as const;
 
-/** Side-column fields that take `labelAlign` with center (the groups: start · end). */
+/** Side-column fields that take `labelAlign` (S2 start · end — `center` removed 2026-10-14). */
 const LABEL_ALIGN_FAMILIES = SIDE_LABEL_COLUMN_FAMILIES.filter(
   (component) => component !== "CheckboxGroup" && component !== "RadioGroup",
 );
@@ -103,10 +103,10 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
   );
 
   it.each(LABEL_ALIGN_FAMILIES)(
-    "%s: labelAlign 이 --form-label-align 을 정의한다 (center/end)",
+    "%s: labelAlign 이 --form-label-align 을 정의한다 (S2 start · end — center 없음)",
     (component) => {
       const variant = labelAlignVariant(component);
-      expect(variant?.center?.styles?.["--form-label-align"]).toBe("center");
+      expect(variant?.center).toBeUndefined();
       expect(variant?.end?.styles?.["--form-label-align"]).toBe("end");
     },
   );

@@ -33,52 +33,9 @@ export const tooltipBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): `domRegistry.tsx` `INTERNAL_RENDERERS.tooltip` 이 전달 —
-      //   RAC Tooltip 공식 배치 prop (placement/offset/crossOffset/shouldFlip/containerPadding).
-      placement: {
-        kind: "enum",
-        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
-        default: "top",
-        label: "Placement",
-        section: "appearance",
-        options: [
-          { value: "top", label: "Top" },
-          { value: "bottom", label: "Bottom" },
-          { value: "left", label: "Left" },
-          { value: "right", label: "Right" },
-          { value: "top start", label: "Top Start" },
-          { value: "top end", label: "Top End" },
-          { value: "bottom start", label: "Bottom Start" },
-          { value: "bottom end", label: "Bottom End" },
-        ],
-      },
-      offset: {
-        kind: "number",
-        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
-        default: 0,
-        label: "Offset",
-        section: "appearance",
-      },
-      crossOffset: {
-        kind: "number",
-        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
-        default: 0,
-        label: "Cross Offset",
-        section: "appearance",
-      },
-      shouldFlip: {
-        kind: "boolean",
-        label: "Should Flip",
-        section: "appearance",
-        default: true,
-      },
-      containerPadding: {
-        kind: "number",
-        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
-        default: 12,
-        label: "Container Padding",
-        section: "appearance",
-      },
+      // S2 1.8 (2026-10-14 D2 정렬): the placement props (`placement` · `offset` · `crossOffset` ·
+      //   `shouldFlip` · `containerPadding`) are the TooltipTrigger's — S2 `TooltipTrigger` takes them
+      //   and hands them to its Tooltip by context (shared `TooltipTrigger` → `TooltipPlacementContext`).
     },
     toRacProps: "default",
   },

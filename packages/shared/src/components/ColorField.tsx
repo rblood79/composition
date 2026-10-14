@@ -35,7 +35,7 @@ export interface ColorFieldProps extends AriaColorFieldProps {
   /** The field's Input node element (catalog runtime, ADR-253); absent = composed from props. */
   inputElement?: ReactNode;
   labelPosition?: "top" | "side";
-  labelAlign?: "start" | "center" | "end";
+  labelAlign?: "start" | "end";
   isQuiet?: boolean;
 }
 

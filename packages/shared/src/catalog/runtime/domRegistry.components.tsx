@@ -86,7 +86,6 @@ export function CatalogTableView({
   selectionStyle,
   density,
   overflowMode: _overflowMode,
-  allowsSorting: _allowsSorting,
   tableResizable: _tableResizable,
   style,
   ...props

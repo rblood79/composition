@@ -102,7 +102,7 @@ describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
       "selectionMode",
     );
     expect(getPrimitiveBinding("TableView")!.props.accepts).toHaveProperty(
-      "allowsSorting",
+      "overflowMode",
     );
   });
 

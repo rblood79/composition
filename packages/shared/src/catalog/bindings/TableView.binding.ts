@@ -31,7 +31,8 @@ import type { PrimitiveBinding } from "../types";
  *   `TableView.tsx` 처럼 RAC `ResizableTableContainer` (늘) > RAC `Table` (`domRegistry`
  *   `CatalogTableView` — container 가 `.react-aria-TableView` 상자, 부품은 Table 과 같은
  *   `ruleDom` 경로). RAC 의 선택 · 정렬 · 열 크기 조절. S2 `Virtualizer` 는 쓰지 않는다 (부품이 노드).
- * D2: variant/density(appearance) + selectionMode/allowsSorting(state) surface.
+ * D2: variant/density(appearance) + selectionMode(state) surface — a table-level `allowsSorting`
+ *     was removed 2026-10-14 (S2 has none; the DOM discarded it).
  *     allowsResizingColumns 는 2026-09-10 제거 — 소비처 0 (미구현 surface). 정렬 · 크기 조절은
  *     S2 대로 Column 의 `allowsSorting` · `allowsResizing` 이다 (ADR-257 Phase 4).
  * D3: 시각(variant default: layer-1+border / quiet: transparent)은 theme rule
@@ -109,11 +110,6 @@ export const tableViewBinding: PrimitiveBinding = {
           { value: "truncate", label: "Truncate" },
           { value: "wrap", label: "Wrap" },
         ],
-      },
-      allowsSorting: {
-        kind: "boolean",
-        label: "Allow Sorting",
-        section: "state",
       },
     },
     toRacProps: "default",
