@@ -3403,10 +3403,18 @@ function withHtmlId(
       const owner = catalogDomPartParent(root, node);
       return owner !== undefined && catalogTypeName(root, owner) === "Slider";
     })();
+  // (A Card in a CardView is the view's RAC GridListItem: its `id` is the item key the view's
+  // selection names — `cardview` — so the author's HTML id would unselect it. A Card the view
+  // starts with is an owned node with an automatic id since 2026-10-14.)
+  const cardViewItem =
+    type === "Card" &&
+    parent !== undefined &&
+    catalogTypeName(root, parent) === "CardView";
   if (
     node.htmlId &&
     !selectTrigger &&
     !sliderLabel &&
+    !cardViewItem &&
     !STATIC_ITEM_TYPES.has(type) &&
     type !== "TabPanel"
   ) {

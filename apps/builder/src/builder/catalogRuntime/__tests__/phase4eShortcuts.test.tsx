@@ -347,7 +347,7 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(children("menu").length).toBeGreaterThan(0);
   });
 
-  it("⌘⌥K creates a component from one element and dissolves it again (the menu label follows)", async () => {
+  it("⌘⌥K creates a component from one element; on the new instance it offers create again, not dissolve", async () => {
     const { workspace, record, steps } = await open();
     const errors: unknown[] = [];
     const definitions = () => {
@@ -381,25 +381,14 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(steps()).toBe(before + 1);
     expect(definitions()).toBe(count + 1);
 
-    // The element is now the component's origin instance: the same key dissolves it.
-    workspace.selectRecords([
-      workspace.session.getSnapshot().selection[0]!.identity,
-    ]);
+    // The element is now an instance of the component: the key would make another component
+    // from it — an instance does not dissolve its component (user 2026-10-14; the origin's
+    // Component section does).
+    const selected = workspace.session.getSnapshot().selection[0]!;
+    workspace.selectRecords([selected.identity]);
     expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
-      "componentAction.detachComponent",
+      "componentAction.createComponent",
     );
-    // The dissolve asks first (the instance count) — the old origin toggle.
-    const dialog = answerComponentConfirm(true);
-    expect(
-      runCatalogShortcut(workspace, "toggleComponentOrigin", (e) =>
-        errors.push(e),
-      ),
-    ).toBe(true);
-    await settle();
-    dialog.stop();
-    expect(dialog.asked).toEqual(["origin-impact"]);
-    expect(errors).toEqual([]);
-    expect(definitions()).toBe(count);
   });
 
   it("the global hook: ⌘Z undoes from anywhere; Delete needs the Canvas focus and skips a text field", async () => {

@@ -329,8 +329,10 @@ describe("ADR-256 Phase 3 — Checkbox is CheckboxField > CheckboxButton", () =>
     expect(host.querySelectorAll(`[id="${labelledBy}"]`)).toHaveLength(1);
     const inputs = [...host.querySelectorAll('input[type="checkbox"]')];
     expect(inputs).toHaveLength(2);
-    for (const input of inputs)
-      expect(input.getAttribute("value")).toMatch(/__checkbox-\d$/);
+    // (Each value is its item's record — a placed group's items are its own nodes, 2026-10-14.)
+    const values = inputs.map((input) => input.getAttribute("value"));
+    expect(new Set(values).size).toBe(2);
+    for (const value of values) expect(value).toMatch(/::project:node:/);
     expect(
       host.querySelectorAll(
         "div.react-aria-Checkbox > label.react-aria-CheckboxButton",

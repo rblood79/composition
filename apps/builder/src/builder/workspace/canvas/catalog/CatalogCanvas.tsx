@@ -414,10 +414,10 @@ export function CatalogCanvas({
       hitBounds: () => scene.stream.hitBoundsMap,
       roleOf: (identity) => {
         const target = workspace.itemOfRecord(identity)?.target;
-        return target?.kind === "node"
+        return target
           ? (catalogComponentRole(
               workspace.runtime.graph,
-              target.id,
+              target,
               workspace.root.definitionView,
             ) ?? null)
           : null;

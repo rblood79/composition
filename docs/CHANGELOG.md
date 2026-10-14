@@ -11,6 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [놓은 instance 의 slot 기본 내용 = 자기 노드] - 2026-10-14
+
+### Changed
+
+- **팔레트 · "+" 로 놓은 원본 instance 는 slot 기본 내용을 처음부터 자기 노드로 가진다** (사용자 결정 「slot 호스트 전부」, 같은 날 「Tabs · Table · Tree · Menu · Select · ComboBox 도 동일하게」). ToggleButtonGroup 의 「Toggle 1 · 2」 는 그룹의 "+" 가 넣은 ToggleButton 과 같다 — Design 패널 Component 절의 detach instance · create component, Attributes 절의 ID, Layers 의 instance 점이 모두 나온다. CheckboxGroup · RadioGroup · ButtonGroup · Toolbar · Card · CardView · Form · DisclosureGroup · Nav · Tabs · Tree · Menu · Select · ComboBox 가 같다. Table 은 원본이 빈 머리글 · 본문이라 처음 항목이 없고 "+" 의 열 · 행이 원래 자기 노드다.
+  - **Why**: slot 기본 내용은 instance 의 템플릿 자리 (`descendant`) 로 남아 있다가 첫 구조 편집에서야 소유 노드 (`fillSlot`) 가 됐다 (ADR-248 4b `ensureChildList`). 그래서 같은 그룹 안의 처음 항목과 "+" 항목이 다른 객체였다. 이제 `insertNodes` 와 컬렉션 "+" 가 놓는 순간 같은 materialize 를 한다 (`ownSlotContents`, 놓인 노드 아래로 재귀).
+  - ListBox · GridList · TagGroup · Breadcrumbs 의 항목도 소유 노드다 — 처음 항목과 "+" 항목이 같은 ListBoxItem instance (detach · ID). data binding 의 행 반복이 소유 항목도 따른다: 첫 소유 항목이 행 템플릿이고 나머지는 견본 항목이다. 행 템플릿의 글자 그대로인 내용 (「Inbox」) 은 견본이라 행이 읽지 않고, `{field}` 내용만 행 값이 된다 (`resolver.ts` `withoutSampleContent` · `rowTemplate.ts`).
+  - 선언된 slot 밖의 항목 목록도 같다: 항목을 담은 자리 (MenuTrigger 의 Menu) 와, 중첩 원본의 slot 을 템플릿이 항목으로 채운 자리 (Select · ComboBox 의 ListBox — `slotFills`). 데이터 binding 한 Select · ComboBox 는 ListBox 의 첫 소유 항목을 행마다 반복한다 (resolver 가 중첩 원본 루트에 행을 넘긴다).
+  - 제외 — slot 내용이 instance prop 에 묶인 경우 (AvatarGroup 의 `{label}` Text): 복사본은 prop 을 더는 따르지 않아 템플릿 자리로 둔다.
+  - 한 자리의 override 는 하나라서, 소유 목록을 가진 자리 (`fillSlot`) 가 그 자리의 prop · style 쓰기도 함께 담는다 (`DescendantPatchFields` — 문서 스키마 확장, 옛 문서는 그대로 읽힌다).
+  - 옛 문서는 바꾸지 않는다 (개발 단계 — 로드 전환 코드 없음).
+  - 위치: `packages/shared/src/catalog/commands/materialize.ts` (`ownSlotContents` · `librarySlotAddresses`) · `structure.ts` · `collections.ts` · `document/types.ts` · `document/validation.ts` · `transactions/transaction.ts` · `apps/builder/src/builder/catalogRuntime/componentActions.ts` · `layerTree.ts` · `panels/properties/catalog/CatalogComponentSection.tsx`
+
+### Fixed
+
+- **Create component 뒤 instance 에 detach 가 둘 나오던 문제.** 프로젝트 컴포넌트의 instance 가 Detach instance 와 「Detach component」 (컴포넌트 해체 — 모든 instance 분리) 를 함께 보였다. 해체는 원본의 것이다 — Design 패널 Component 절 · Canvas 메뉴 · ⌘⌥K 모두 원본 (정의 화면의 루트) 에서만 낸다 (사용자 결정 2026-10-14, 09-16 「Create ↔ Detach component」 규칙). 위치: `panels/properties/catalog/CatalogComponentSection.tsx` · `catalogRuntime/canvasMenu.ts` · `shortcuts.ts`.
+- **소유 항목을 가진 slot 자리에 style · prop 을 쓰면 명령이 거부되던 문제.** Card 의 Content · Tabs 의 TabList · Menu 처럼 항목이 instance 의 것인 자리에 배경색 하나만 바꿔도, patch 가 그 자리의 항목 목록 (`fillSlot`) 을 덮어 항목이 주인 없는 노드가 됐다 (`UNOWNED_NODE`). "+" 로 항목을 넣은 slot 은 전부터 같았다. 이제 `fillSlot` 이 그 자리의 쓰기를 함께 담고, 쓰기 · "+" · reset 이 서로의 것을 지우지 않는다. 위치: `transactions/transaction.ts` `mergePatch` · `commands/context.ts` `setChildList` · `commands/fields.ts` `resetDescendant` · resolver · fieldSource 등 patch 를 읽는 곳.
+- **소유 TreeItem 안 TreeItem 이 선택된 것으로 그려지던 문제.** 놓은 Tree 의 Node 1.1 이 TreeItem 원본의 `selected` 표시 상태를 실제 선택으로 받았다 — 조상 타입을 원본 이름 (「TreeItem/Default」) 으로 읽어 컬렉션 안 항목으로 보지 못했다. 이제 원본 instance 는 루트 타입으로 읽는다 (`resolver.ts` `ancestorTypes`).
+- **ToggleButtonGroup "+" 뒤 Design 패널 slot 목록이 그대로이던 문제.** 루트가 항목 slot 인 그룹 (ToggleButtonGroup · ButtonGroup · AvatarGroup · Nav · DisclosureGroup) 의 "+" 가 새 항목을 slot 내용이 아니라 instance 자체 children 끝에 붙였다. 이제 slot 내용에 들어간다. 위치: `packages/shared/src/catalog/commands/collections.ts`.
+- **"+" 로 항목을 넣은 ListBox · GridList 에 data binding 을 걸면 행이 사라지던 문제.** 소유 항목 (`fillSlot`) 이면 resolver 가 행을 버렸다. 이제 첫 소유 항목을 행마다 반복한다.
+- **소유 컬렉션 항목에 넣은 노드가 index 를 따르지 않던 문제.** "+" 로 넣은 항목에 GridList 선택 Checkbox 를 index 0 으로 넣으면 템플릿 내용 뒤에 섰다. 이제 템플릿 자리 항목처럼 항목의 원본 내용 목록 안 그 자리에 들어간다 (`structure.ts` `itemContentParent`).
+- **CardView 안 Card 에 HTML id 가 있으면 Preview 선택이 빠지던 문제.** Card 는 RAC GridListItem 이라 `id` 가 선택 key 인데, 작성자 · 자동 HTML id 가 key 를 바꿔 `isSelected` 가 맞지 않았다 ("+" 로 넣은 Card 도 같았다). 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts` `withHtmlId`.
+
+### Tests
+
+- `phase4eComponents.test.ts` (놓은 ToggleButtonGroup 항목 = 소유 ToggleButton instance · detach · undo) — 원복 RED 확인. `adr256CardS2.test.tsx` 선택 — 원복 RED 확인.
+- `phase4eComponents.test.ts` 그룹 "+" → slot 목록 3 · ListBox 처음 항목 = "+" 항목 (원복 RED). `phase4eBoundRows.test.tsx` 7 이 소유 항목 경로를 지난다 (resolver 원복 RED 7). `adr256GridListNodeTree` · `adr256ListBoxNodeTree` index 0 (원복 RED 2).
+- `phase4eComponents.test.ts` 놓은 Tabs · Tree · Menu · Select · ComboBox 항목 = 소유 instance · ID (원복 RED 4 · 5) / Card Content · TabList · Menu 의 style + 항목 공존 · "+" 뒤 style 유지 · reset 뒤 항목 유지 (`mergePatch` 원복 RED 3 · `setChildList` 원복 RED 2). `phase4eBoundRows.test.tsx` bound Select · ComboBox 행 반복 (수정 전 RED). `adr256TreeNodeTree` · `collectionItemSelection` Tree 선택 (`ancestorTypes` 원복 RED 4).
+- `phase4e8Chrome` (instance 의 detach 하나 · 원본의 Detach component) · `phase4eCanvasMenu` · `phase4eShortcuts` — 원복 RED 1 · 2. live `apps/builder/scripts/create-component-live.mjs` (Button · ToggleButton 생성 뒤 instance 버튼 = Go to · Detach instance · Create, 원본 = Select instances · Detach component, 오류 0).
+- live: `apps/builder/scripts/slot-owned-collections-live.mjs` 9/9 (Tabs · Tree · Menu · Select · ComboBox 처음 항목 = "+" 항목 Component · ID, Table "+" 열, Card Content · TabList · Menu style 뒤 항목 유지, 오류 0) · `apps/builder/scripts/template-row-instance-live.mjs` 4/4 (놓은 항목 · "+" 항목이 Component · Attributes(ID) · Layers 점까지 같음, Components 페이지 표시) · `slot-owned-hosts-live.mjs` (6 host Compare Mode, 오류 0) · `slot-list-refresh-live.mjs` 4/4 (ToggleButtonGroup · RadioGroup slot 목록 갱신, ListBox 처음 항목 = "+" 항목 패널 · 폭).
+
 ## [ToggleButton Icon 색상 상속] - 2026-10-14
 
 ### Fixed

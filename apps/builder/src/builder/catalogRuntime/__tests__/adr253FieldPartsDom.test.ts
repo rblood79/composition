@@ -636,6 +636,18 @@ const CHECKBOX_INPUT = "data-react-aria-pressable=true tabindex=0 type=checkbox"
 const REQUIRED_CHECKBOX_INPUT =
   "data-react-aria-pressable=true required= tabindex=0 type=checkbox";
 
+/**
+ * 2026-10-14 (user 「slot 호스트 전부」): a placed CheckboxGroup · RadioGroup · TagGroup holds its
+ * items as its own nodes — each item's input carries the node's HTML id, and a checkbox's value is the item's
+ * record (a node, no longer the template position).
+ */
+const ownedGroupItems = (markup: string) =>
+  markup
+    .replace(/(<input [^>]*?) id( [^>]*>| ?>)/g, "$1$2")
+    .replace(/value=project:node:[^ >]+/g, "value=<item>")
+    // (A TagGroup's Tags too: RAC's key is the item's record.)
+    .replace(/data-key=project:node:[^ >]+/g, "data-key=<item>");
+
 describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its props before", () => {
   const write = process.env.ADR253_WRITE_DOM === "1";
   const fixture: Record<string, string> =
@@ -732,7 +744,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                                       name,
                                     )
                                   : fixed;
-          expect(glyphless(structure)).toBe(glyphless(expected));
+          const owned =
+            type === "checkboxgroup" ||
+            type === "radiogroup" ||
+            type === "taggroup"
+              ? ownedGroupItems
+              : (text: string) => text;
+          expect(owned(glyphless(structure))).toBe(owned(glyphless(expected)));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.

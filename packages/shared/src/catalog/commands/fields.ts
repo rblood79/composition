@@ -15,6 +15,7 @@ import type {
   VisualField,
   WriteValue,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import type {
   CatalogOperation,
   PatchWholeField,
@@ -160,7 +161,7 @@ export const setFields =
       // A breakpoint layer of a path patch is part of its whole `responsive` value.
       const current = overrideAt(owner, target.address);
       const responsive = {
-        ...(current?.kind === "patch" ? current.responsive : undefined),
+        ...descendantPatchOf(current)?.responsive,
       };
       const layer: NodeResponsiveLayer = { ...responsive[breakpoint] };
       const next = {
@@ -363,7 +364,7 @@ export const setFillSizing =
       const owner = reader.getEntry(target.ownerId);
       if (owner?.kind !== "node") return fail("NODE_REQUIRED", target.ownerId);
       const current = overrideAt(owner, target.address);
-      const patch = current?.kind === "patch" ? current : undefined;
+      const patch = descendantPatchOf(current);
       if (!breakpoint) {
         const fill = withFillAxis(patch?.fillSizing, input.axis, input.value);
         ops.push({
@@ -468,7 +469,7 @@ export const resetDescendant =
     const owner = reader.getEntry(input.ownerId);
     if (owner?.kind !== "node") return fail("NODE_REQUIRED", input.ownerId);
     const current = overrideAt(owner, input.address);
-    if (current?.kind !== "patch")
+    if (!current || current.kind === "replace")
       return fail("OVERRIDE_NOT_FOUND", input.ownerId);
     if (!input.scope)
       return {
@@ -479,6 +480,20 @@ export const resetDescendant =
             id: input.ownerId,
             address: input.address,
           },
+          // (A position holding the instance's own child list keeps it: only its writes go.)
+          ...(current.kind === "fillSlot"
+            ? [
+                {
+                  kind: "upsertDescendant" as const,
+                  id: input.ownerId,
+                  override: {
+                    kind: "fillSlot" as const,
+                    address: input.address,
+                    childIds: current.childIds,
+                  },
+                },
+              ]
+            : []),
         ],
       };
     const keys = input.keys ?? Object.keys(current[input.scope] ?? {});

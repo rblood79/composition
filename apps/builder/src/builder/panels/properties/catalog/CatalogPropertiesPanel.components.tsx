@@ -155,12 +155,10 @@ export function CatalogPropertiesBody({
   return (
     <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
       <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
-        {first.target.kind === "node" && (
-          <CatalogComponentSection
-            key={`component:${first.target.id}`}
-            nodeId={first.target.id}
-          />
-        )}
+        <CatalogComponentSection
+          key={`component:${targetKey(first.target)}`}
+          target={first.target}
+        />
         {/* The Components page: only a sample's root props and styles are its origin's project
             defaults (user decision: root only) — no node attributes, state or slot. */}
         {!originSample && (

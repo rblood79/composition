@@ -11,6 +11,7 @@ import type {
   TemplateId,
   WriteValue,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import { DISPLAY_STATE_PROPS } from "./resolver";
@@ -301,7 +302,7 @@ function propLayers(
   const { instances, templatePath } = target.address;
   const layers: PropLayer[] = [];
   const patch = overrideAt(owner, target.address);
-  const patched = patch?.kind === "patch" ? patch.props?.[key] : undefined;
+  const patched = descendantPatchOf(patch)?.props?.[key];
   if (patched?.kind === "set")
     layers.push({ source: "own", value: patched.value });
   else if (patched?.kind === "mask")
@@ -317,7 +318,7 @@ function propLayers(
     } else {
       const enclosing = enclosingAddress(reader, owner, instances);
       const change = overrideAt(owner, enclosing);
-      const write = change?.kind === "patch" ? change.props?.[key] : undefined;
+      const write = descendantPatchOf(change)?.props?.[key];
       const position = readTemplate(
         reader,
         enclosing.templatePath[enclosing.templatePath.length - 1],
@@ -618,8 +619,8 @@ export function readOwnFields(
   const owner = reader.getEntry(target.ownerId);
   if (owner?.kind !== "node")
     throw new CatalogValidationError("NODE_REQUIRED", target.ownerId);
-  const patch = overrideAt(owner, target.address);
-  if (patch?.kind !== "patch")
+  const patch = descendantPatchOf(overrideAt(owner, target.address));
+  if (!patch)
     return { props: {}, visual: {}, layout: {}, sizing: {} };
   return {
     props: patch.props ?? {},

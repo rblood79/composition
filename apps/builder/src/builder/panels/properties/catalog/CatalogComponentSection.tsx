@@ -7,7 +7,6 @@ import type {
   DefinitionId,
   EditTarget,
   InstanceAddress,
-  NodeId,
   VisualField,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -76,10 +75,16 @@ function templateLabel(graph: CatalogReader, id: string | undefined): string {
  * Each action is one step.
  */
 export const CatalogComponentSection = memo(function CatalogComponentSection({
-  nodeId,
+  target,
 }: {
-  nodeId: NodeId;
+  /**
+   * An owned node, or a position of an instance's template — an instance of its row's definition
+   * (a ToggleButtonGroup's "Toggle 1" is a ToggleButton instance, user 2026-10-14): identity, go
+   * to origin and its own overrides; create and detach need an owned node.
+   */
+  target: EditTarget;
 }) {
+  const nodeId = target.kind === "node" ? target.id : undefined;
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
@@ -90,24 +95,24 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     [workspace],
   );
   const stateKey = useSyncExternalStore(subscribe, () =>
-    JSON.stringify(catalogComponentState(graph, nodeId, definitionView)),
+    JSON.stringify(catalogComponentState(graph, target, definitionView)),
   );
   const { instanceOf, originOf } = JSON.parse(stateKey) as ReturnType<
     typeof catalogComponentState
   >;
   const component = instanceOf ?? originOf;
-  const own = useCatalogOwnFields({ kind: "node", id: nodeId });
+  const own = useCatalogOwnFields(target);
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
   const listsOwn = !!instanceOf || (!!originOf && !originOf.project);
-  const rootTarget: EditTarget = { kind: "node", id: nodeId };
+  const rootTarget: EditTarget = target;
   // The instance's writes at its template positions (the old list's `path.field` rows).
   const patchKey = useSyncExternalStore(subscribe, () => {
-    if (!instanceOf) return "[]";
+    if (!instanceOf || !nodeId) return "[]";
     const node = graph.getEntry(nodeId);
     if (node?.kind !== "node") return "[]";
     return JSON.stringify(
       node.descendantOverrides.flatMap((item) => {
-        if (item.kind !== "patch") return [];
+        if (item.kind === "replace") return [];
         const at = templateLabel(graph, item.address.templatePath.at(-1));
         return PATCH_FIELDS.flatMap((field) =>
           Object.keys(item[field] ?? {}).map((key) => ({
@@ -143,12 +148,17 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           })[]
         ).map(({ address, ...row }) => ({
           ...row,
-          target: { kind: "descendant", ownerId: nodeId, address } as const,
+          target: {
+            kind: "descendant",
+            ownerId: nodeId!,
+            address,
+          } as const,
         })),
       ]
     : [];
 
   const create = useCallback(() => {
+    if (!nodeId) return;
     const node = graph.getEntry(nodeId);
     // An unnamed node names its component after what it is (Frame, Card …).
     const name =
@@ -159,13 +169,12 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     run(catalogComponentCommands.create(nodeId, name, workspace.newId));
   }, [graph, nodeId, run, t, workspace]);
   // Detach and dissolve ask first (the old component confirmation dialog).
-  const detach = useCallback(
-    () =>
-      void confirmCatalogDetach(graph, nodeId, () =>
-        run(catalogComponentCommands.detach(nodeId, workspace.newId)),
-      ),
-    [graph, nodeId, run, workspace],
-  );
+  const detach = useCallback(() => {
+    if (!nodeId) return;
+    void confirmCatalogDetach(graph, nodeId, () =>
+      run(catalogComponentCommands.detach(nodeId, workspace.newId)),
+    );
+  }, [graph, nodeId, run, workspace]);
   const dissolve = useCallback(() => {
     if (component?.project)
       void confirmCatalogDissolve(graph, component.definitionId, () =>
@@ -258,7 +267,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               </RACButton>
             </ActionTooltipTrigger>
           )}
-          {instanceOf && (
+          {instanceOf && nodeId && (
             <ActionTooltipTrigger
               shortcutId="detachInstance"
               tooltip={t("componentAction.detachInstance")}
@@ -295,13 +304,15 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               </RACButton>
             </ActionTooltipTrigger>
           )}
-          {component?.project && (
+          {/* Dissolving is the origin's (it detaches every instance) — an instance has its own
+              Detach instance (user 2026-10-14: a second detach after Create component). */}
+          {originOf?.project && (
             <RACButton className="control-button" onPress={dissolve}>
               <ACTION_ICONS.detach aria-hidden="true" size={iconProps.size} />
               {t("componentAction.detachComponent")}
             </RACButton>
           )}
-          {!originOf && (
+          {!originOf && nodeId && (
             <RACButton className="control-button" onPress={create}>
               <ACTION_ICONS.createComponent
                 aria-hidden="true"

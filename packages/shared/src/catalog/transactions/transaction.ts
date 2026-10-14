@@ -6,6 +6,7 @@ import type {
   ResponsiveBreakpointName,
   DataBindingRef,
   DescendantOverride,
+  DescendantPatchFields,
   EntryId,
   StateName,
   NodeEntry,
@@ -16,6 +17,7 @@ import type {
   WriteValue,
   AuthoredValue,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { CatalogGraph, ownedChildren, referencedIds } from "../document/graph";
 import {
   validateCatalogEntry,
@@ -239,8 +241,10 @@ function mergePatch(
   old: DescendantOverride | undefined,
   incoming: Extract<DescendantOverride, { kind: "patch" }>,
   clear: readonly PatchWholeField[] = [],
-): Extract<DescendantOverride, { kind: "patch" }> | null {
-  const previous = old?.kind === "patch" ? old : undefined;
+): DescendantOverride | null {
+  // (A position holding the instance's own child list keeps it: its field writes ride on the
+  // `fillSlot` — one override per address.)
+  const previous = descendantPatchOf(old);
   const props = mergeWrites(previous?.props, incoming.props);
   const visual = mergeWrites(previous?.visual, incoming.visual);
   const sizing = mergeWrites(previous?.sizing, incoming.sizing);
@@ -266,7 +270,12 @@ function mergePatch(
   const wholeFields = Object.fromEntries(
     Object.entries(whole).filter(([, value]) => value !== undefined),
   );
+  const list =
+    old?.kind === "fillSlot"
+      ? { kind: "fillSlot" as const, childIds: old.childIds }
+      : { kind: "patch" as const };
   if (
+    list.kind === "patch" &&
     !Object.keys(props).length &&
     !Object.keys(visual).length &&
     !Object.keys(sizing).length &&
@@ -276,7 +285,7 @@ function mergePatch(
   )
     return null;
   return {
-    kind: "patch",
+    ...list,
     address: incoming.address,
     ...(Object.keys(props).length ? { props } : {}),
     ...(Object.keys(visual).length ? { visual } : {}),
@@ -285,6 +294,20 @@ function mergePatch(
     ...(Object.keys(stateRules).length ? { stateRules } : {}),
     ...wholeFields,
   };
+}
+/** A child list taking the field writes the position held (its patch, or the list it replaces). */
+function withPatchFields(
+  list: Extract<DescendantOverride, { kind: "fillSlot" }>,
+  previous: DescendantPatchFields | undefined,
+): DescendantOverride {
+  if (!previous) return list;
+  const { address: _address, kind: _kind, childIds: _childIds, ...fields } =
+    previous as DescendantPatchFields & {
+      address?: unknown;
+      kind?: unknown;
+      childIds?: unknown;
+    };
+  return { ...fields, ...list };
 }
 function requireNode(value: CatalogEntry | undefined, id: string): NodeEntry {
   if (value?.kind !== "node")
@@ -559,23 +582,29 @@ export class CatalogStage implements CatalogReader {
         (item) => keyOfOverride(item) === key,
       );
       const overrides = [...node.descendantOverrides];
+      const previous = found >= 0 ? overrides[found] : undefined;
       const merged =
         op.override.kind === "patch"
-          ? mergePatch(
-              found >= 0 ? overrides[found] : undefined,
-              op.override,
-              op.clear,
-            )
-          : op.override;
+          ? mergePatch(previous, op.override, op.clear)
+          : op.override.kind === "fillSlot"
+            ? withPatchFields(op.override, descendantPatchOf(previous))
+            : op.override;
       if (merged === null) {
         if (found >= 0) overrides.splice(found, 1);
       } else if (found < 0) overrides.push(merged);
       else overrides[found] = merged;
       this.stage(node.id, { ...node, descendantOverrides: overrides });
+      // (A patch is structural when it takes a position's replacement or child list away; field
+      // writes riding on a `fillSlot` keep its list.)
       this.structural =
         this.structural ||
         op.override.kind !== "patch" ||
-        (found >= 0 && node.descendantOverrides[found].kind !== "patch");
+        (!!previous &&
+          previous.kind !== "patch" &&
+          (merged?.kind !== previous.kind ||
+            (merged.kind === "fillSlot" &&
+              previous.kind === "fillSlot" &&
+              merged.childIds !== previous.childIds)));
       return;
     }
     const key = JSON.stringify(op.address);

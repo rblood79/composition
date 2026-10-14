@@ -1,3 +1,4 @@
+import { componentTypeSet } from "../../domain/componentTraits";
 import { cloneNodeSubgraph } from "../document/clone";
 import { ownedChildren, referencedIds } from "../document/graph";
 import {
@@ -14,6 +15,7 @@ import type {
   NodeId,
   NodePlacement,
   StateVariableEntry,
+  TemplateId,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CatalogStage } from "../transactions/transaction";
@@ -36,7 +38,7 @@ import {
   type EditTarget,
   type NodeParent,
 } from "./context";
-import { ensureChildList, type NewId } from "./materialize";
+import { ensureChildList, ownSlotContents, type NewId } from "./materialize";
 import {
   dropTableColumnTemplateCells,
   tableAlignedIn,
@@ -82,6 +84,40 @@ function addRelated(draft: CommandDraft, related: readonly Related[]): void {
   });
 }
 
+const COLLECTION_ITEM_TYPES = componentTypeSet("staticCollectionItem");
+
+/**
+ * Where a node put into an owned collection item goes (2026-10-14): the content of the item's
+ * origin template, at the index given — as into an item that is a template position (`listParent`
+ * collapses it into that root). A placed collection holds its items as its own nodes now (and its
+ * "+" always did): without this an item took new content only after its template's (a GridList
+ * item's selection Checkbox at index 0 stood last). An item with own children keeps its list.
+ */
+function itemContentParent(draft: CommandDraft, parent: NodeParent): NodeParent {
+  if (parent.kind !== "node") return parent;
+  const node = draft.node(parent.id);
+  if (node.children.length || !node.definitionId.startsWith("lib:"))
+    return parent;
+  const definition = draft.reader.library.definitions.get(
+    node.definitionId as `lib:definition:${string}`,
+  );
+  const rootId =
+    definition?.mode === "composite" ? definition.templateRootId : undefined;
+  if (!rootId) return parent;
+  let type: string;
+  try {
+    type = definitionTypeName(draft.reader, node.definitionId);
+  } catch {
+    return parent;
+  }
+  if (!COLLECTION_ITEM_TYPES.has(type)) return parent;
+  return {
+    kind: "descendant",
+    ownerId: node.id,
+    address: { instances: [node.id], templatePath: [rootId as TemplateId] },
+  };
+}
+
 function placeAt(
   draft: CommandDraft,
   parent: NodeParent,
@@ -124,7 +160,14 @@ export const insertNodes =
     );
     for (const entry of input.entries) draft.create(entry);
     addRelated(draft, input.related ?? []);
-    placeAt(draft, input.parent, input.index, input.rootIds, input.newId);
+    placeAt(
+      draft,
+      itemContentParent(draft, input.parent),
+      input.index,
+      input.rootIds,
+      input.newId,
+    );
+    ownSlotContents(draft, input.rootIds, input.newId);
     assertTablesAligned(
       draft,
       input.parent.kind === "node"
@@ -381,8 +424,9 @@ export function tableHidingTargets(
     }
     const owner = draft.node(target.ownerId);
     const current = overrideAt(owner, target.address);
+    // (A position holding the instance's own child list keeps it.)
     const patch =
-      current?.kind === "patch"
+      current && current.kind !== "replace"
         ? current
         : { kind: "patch" as const, address: target.address };
     const { [field]: _old, ...rest } = patch;
@@ -633,8 +677,7 @@ function showsPart(
   const gone = local
     .filter(
       (item) =>
-        item.kind === "replace" ||
-        (item.kind === "patch" && item.enabled === false),
+        item.kind === "replace" || item.enabled === false,
     )
     .map((item) => item.address.templatePath.join("\n"));
   const shown = (path: readonly string[]) => {
@@ -1003,7 +1046,7 @@ export const removeTargets =
         (item) => !sameAddress(item.address, target.address),
       );
       overrides.push(
-        current?.kind === "patch"
+        current && current.kind !== "replace"
           ? { ...current, enabled: false }
           : { kind: "patch", address: target.address, enabled: false },
       );

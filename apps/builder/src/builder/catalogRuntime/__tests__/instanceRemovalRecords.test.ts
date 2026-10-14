@@ -106,9 +106,10 @@ describe("removing an instance removes its records", () => {
   it("a node the author put into one of its items goes with it — no item points at a removed child", async () => {
     const workspace = await open("select");
     const root = workspace.root;
-    const item = [...root.canvasInputs.values()].find((record) =>
-      record.sourceId.endsWith("__item-3"),
-    )!;
+    // (A placed Select's items are its own ListBoxItem nodes — 2026-10-14.)
+    const item = [...root.canvasInputs.values()].filter(
+      (record) => root.typeOf(record) === "ListBoxItem",
+    )[2]!;
     workspace.execute(
       insertNodes({
         parent: workspace.positionOfRecord(item.id)!.target as never,

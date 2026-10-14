@@ -129,8 +129,9 @@ const roleOf = (
   if (originOfEditableSample(nodeId)) return "origin";
   if (definitionView && parentId === null)
     return nodeId === ORIGIN_VIEW_NODE ? undefined : "origin";
+  // A position of an instance's template is an instance too when its row is one (a
+  // ToggleButtonGroup's "Toggle 1" — a ToggleButton origin row, user 2026-10-14).
   const definitionId = String(position.definitionId);
-  if (position.target.kind !== "node") return undefined;
   if (definitionId.startsWith("lib:definition:origin-")) return "instance";
   // A page body that is a layout's instance is not a component instance.
   const definition = definitionId.startsWith("project:definition:")

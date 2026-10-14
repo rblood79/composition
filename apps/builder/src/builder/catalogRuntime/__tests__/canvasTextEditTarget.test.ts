@@ -82,7 +82,11 @@ async function placedCard() {
     card: bySource("node:card"),
     // (ADR-256 Phase 10: the S2 Card's title sits in its Content.)
     content: bySource("component-card__content"),
-    title: bySource("component-card__title"),
+    // (Its title is the Content's first node — a placed Card holds its slots' contents as its own
+    // nodes since 2026-10-14.)
+    title: [...records.values()].find(
+      (record) => record.parentId === bySource("component-card__content").id,
+    )!,
     footer: bySource("component-card__footer"),
   };
 }
@@ -112,35 +116,38 @@ describe("a double click enters one level, then edits the text it cannot enter f
       LIST,
     );
     const list = bySource("node:list");
-    const item = bySource("component-listbox__item-1");
+    // (A placed ListBox's items are its own nodes since 2026-10-14 — its first record child.)
+    const item = [...records.values()].find(
+      (record) => record.parentId === list.id,
+    )!;
     const label = [...records.values()].find(
       (record) =>
         record.parentId === item.id && record.sourceId.endsWith("__label"),
     )!;
-    // The item is a template position (no document node) with a text of its own (`{label}`):
-    // before, the double click edited that text instead of entering it.
-    expect(item.sourceId.startsWith("lib:template:")).toBe(true);
+    // The item (an owned ListBoxItem instance) has a text of its own (`{label}`): before, the
+    // double click edited that text instead of entering it.
+    expect(item.sourceId.startsWith("project:node:")).toBe(true);
     expect(hasText(item.id)).toBe(true);
     // In the ListBox the click target is the item; a double click enters it, the label selected.
     expect(resolveCatalogClickRecord(records, label.id, list.sourceId)).toBe(
       item.id,
     );
     expect(resolveCatalogContextEntry(records, label.id, list.sourceId)).toEqual({
-      context: item.id,
+      context: item.sourceId,
       target: label.id,
     });
     // Inside the item a click selects its child; the next double click edits the label's text.
-    expect(resolveCatalogClickRecord(records, label.id, item.id)).toBe(label.id);
-    expect(resolveCatalogContextEntry(records, label.id, item.id)).toBeUndefined();
+    expect(resolveCatalogClickRecord(records, label.id, item.sourceId)).toBe(label.id);
+    expect(resolveCatalogContextEntry(records, label.id, item.sourceId)).toBeUndefined();
     expect(
       resolveCatalogTextEditRecord(records, label.id, label.id, hasText),
     ).toBe(label.id);
-    // The session takes the item's identity as its context and keeps it across a step; Escape
+    // (An owned item is entered by its node id, as a Card.) The session takes it as its context and keeps it across a step; Escape
     // climbs back to the ListBox with the item selected.
-    workspace.session.enterContext(item.id);
+    workspace.session.enterContext(item.sourceId);
     workspace.session.reconcile();
-    expect(workspace.session.getSnapshot().editingContext).toBe(item.id);
-    expect(resolveCatalogContextExit(records, label.id, item.id)).toEqual({
+    expect(workspace.session.getSnapshot().editingContext).toBe(item.sourceId);
+    expect(resolveCatalogContextExit(records, label.id, item.sourceId)).toEqual({
       select: item.id,
       context: list.sourceId,
     });

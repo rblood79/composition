@@ -177,9 +177,11 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
         expect(childTypes).not.toContain("ListBoxItem");
         expect(itemTypes).toEqual(items.map(() => "ListBoxItem"));
         expect(labels).toEqual(LABELS);
-        expect(items.map((item) => item.sourceId)).toEqual(
-          [1, 2, 3, 4].map((n) => `lib:template:component-${type}__item-${n}`),
-        );
+        // (User 2026-10-14: a placed picker's items are its own ListBoxItem nodes — the ones its
+        // "+" adds are the same.)
+        expect(new Set(items.map((item) => item.sourceId)).size).toBe(4);
+        for (const item of items)
+          expect(item.sourceId).toMatch(/^project:node:/);
         expect(
           all.filter((record) =>
             record.sourceId.startsWith("lib:template:component-listbox__item-"),
@@ -274,12 +276,10 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       });
       const { workspace } = picker;
       const graph = workspace.runtime.graph;
-      expect(catalogRowTemplateId(graph, FIELD)).toBe(
-        `lib:template:component-${type}__item-1`,
-      );
-      // (No rows loaded: the template items stay.) The first item and what is inside it edit
-      // every row; the sample items do not.
+      // (No rows loaded: the items stay.) The first item and what is inside it edit every row;
+      // the sample items do not.
       const [first, second] = picker.dom().items;
+      expect(catalogRowTemplateId(graph, FIELD)).toBe(first!.sourceId);
       const targetOf = (record: CatalogConsumerNode) =>
         workspace.itemOfRecord(record.id)!.target;
       expect(catalogRowTemplateOwner(graph, targetOf(first!))).toBe(FIELD);

@@ -458,31 +458,42 @@ export interface InstanceAddress {
   templatePath: readonly TemplateId[];
 }
 
+/** The fields an instance writes at one of its template positions (a `patch`, or a `fillSlot`'s own). */
+export interface DescendantPatchFields {
+  props?: PropWrites;
+  visual?: VisualWrites;
+  sizing?: SizingWrites;
+  stateRules?: StateRules;
+  /** `false` hides the addressed descendant (slot toggle); absent keeps the template value. */
+  enabled?: boolean;
+  /** ADR-248 Phase 4b: the node authoring fields a path override can write (§3.4). */
+  layout?: LayoutWrites;
+  fills?: readonly CatalogFillLayer[];
+  fillSizing?: FillSizing;
+  responsive?: Partial<Record<ResponsiveBreakpointName, NodeResponsiveLayer>>;
+  visibility?: Partial<Record<BreakpointName, boolean>>;
+}
+
 export type DescendantOverride =
-  | {
-      kind: "patch";
-      address: InstanceAddress;
-      props?: PropWrites;
-      visual?: VisualWrites;
-      sizing?: SizingWrites;
-      stateRules?: StateRules;
-      /** `false` hides the addressed descendant (slot toggle); absent keeps the template value. */
-      enabled?: boolean;
-      /** ADR-248 Phase 4b: the node authoring fields a path override can write (§3.4). */
-      layout?: LayoutWrites;
-      fills?: readonly CatalogFillLayer[];
-      fillSizing?: FillSizing;
-      responsive?: Partial<
-        Record<ResponsiveBreakpointName, NodeResponsiveLayer>
-      >;
-      visibility?: Partial<Record<BreakpointName, boolean>>;
-    }
+  | ({ kind: "patch"; address: InstanceAddress } & DescendantPatchFields)
   | { kind: "replace"; address: InstanceAddress; replacementId: NodeId }
-  | {
+  /**
+   * The instance's own child list at a position (its slot contents — owned since 2026-10-14 when
+   * placed). One override per address: the position's own field writes ride along (a Card's
+   * Content styled after its items became the instance's).
+   */
+  | ({
       kind: "fillSlot";
       address: InstanceAddress;
       childIds: readonly NodeId[];
-    };
+    } & DescendantPatchFields);
+
+/** The field writes an override holds at its position (a `replace` holds none). */
+export function descendantPatchOf(
+  override: DescendantOverride | undefined,
+): (DescendantPatchFields & { address: InstanceAddress }) | undefined {
+  return override && override.kind !== "replace" ? override : undefined;
+}
 
 export interface DataBindingRef {
   collectionId: DataCollectionId;

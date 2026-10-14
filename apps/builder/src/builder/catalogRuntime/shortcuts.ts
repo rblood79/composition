@@ -43,6 +43,7 @@ export function catalogMenuHost(
       );
     },
     showDefinition: (id) => workspace.showDefinition(id),
+    definitionView: () => workspace.session.getSnapshot().definitionView,
     pointIn: (identity, point) => {
       const record = workspace.root.domInputs.get(identity);
       const rect = workspace.root.getGeometry([identity]).get(identity);

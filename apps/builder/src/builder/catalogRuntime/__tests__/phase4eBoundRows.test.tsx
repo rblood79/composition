@@ -271,6 +271,21 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
     ]);
   });
 
+  it.each(["Select", "ComboBox"])(
+    "a bound %s repeats the first own item of its ListBox per row (its items are its own nodes)",
+    async (type) => {
+      // (2026-10-14: a placed picker's items are its own ListBoxItem nodes — the ListBox's slot
+      // fill; the rows follow the first one, the others are sample items.)
+      const { workspace } = await open(type);
+      expect(
+        items(workspace).map((item) => [item.key, item.texts[0]]),
+      ).toEqual([
+        ["a", "Alpha"],
+        ["b", "Beta"],
+      ]);
+    },
+  );
+
   it("a bound TagGroup repeats its first Tag under the TagList (the rows pass the TagList part)", async () => {
     const { workspace } = await open("TagGroup");
     const shown = items(workspace, "Tag");

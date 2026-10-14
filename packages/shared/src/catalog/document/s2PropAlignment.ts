@@ -292,7 +292,7 @@ export function migrateCatalogEntriesS2(
         changed =
           migrateWrites(entry.props as MutablePropWrites, rules) || changed;
       for (const override of entry.descendantOverrides)
-        if (override.kind === "patch" && override.props) {
+        if (override.kind !== "replace" && override.props) {
           const target = override.address.templatePath.at(-1);
           const targetRules =
             typeof target === "string" && target.startsWith("lib:template:")

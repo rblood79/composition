@@ -4,6 +4,7 @@ import type {
   CatalogReader,
   DefinitionId,
   DescendantOverride,
+  DescendantPatchFields,
   EntryId,
   InstanceAddress,
   NodeEntry,
@@ -11,6 +12,7 @@ import type {
   PageEntry,
   ProjectEntry,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
 import type { CatalogOperation } from "../transactions/transaction";
 
@@ -301,10 +303,24 @@ export function setChildList(
     return;
   }
   const owner = draft.node(parent.ownerId);
+  // (The position's own field writes stay with it — a styled Card Content that gets its first
+  // item; one override per address.)
+  const previous = descendantPatchOf(overrideAt(owner, parent.address));
+  const {
+    kind: _kind,
+    address: _address,
+    childIds: _childIds,
+    ...fields
+  } = (previous ?? {}) as DescendantPatchFields & {
+    kind?: unknown;
+    address?: unknown;
+    childIds?: unknown;
+  };
   const overrides = owner.descendantOverrides.filter(
     (item) => !sameAddress(item.address, parent.address),
   );
   overrides.push({
+    ...fields,
     kind: "fillSlot",
     address: parent.address,
     childIds: [...childIds],

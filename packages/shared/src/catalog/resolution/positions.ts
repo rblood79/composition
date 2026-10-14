@@ -11,6 +11,7 @@ import type {
   NodeId,
   TemplateId,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
 import { validateInstanceAddress } from "./address";
 
@@ -170,7 +171,7 @@ function templatePosition(
       : undefined;
   const inheritedEnabled = libraryPatch?.enabled ?? template.enabled ?? true;
   const enabled =
-    (change?.kind === "patch" ? change.enabled : undefined) ?? inheritedEnabled;
+    descendantPatchOf(change)?.enabled ?? inheritedEnabled;
   if (!enabled && !options.includeDisabled) return undefined;
   return {
     target: {

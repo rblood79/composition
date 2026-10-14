@@ -39,13 +39,30 @@ function templateType(reader: CatalogReader, templateId: TemplateId): string {
   }
 }
 
-/** A bound instance's row template position (its template root's first item child). */
+/**
+ * A bound instance's row template: its first own item (a placed collection holds its items as its
+ * own nodes since 2026-10-14 — the resolver repeats that one per row), else its template root's
+ * first item position.
+ */
 export function catalogRowTemplateId(
   reader: CatalogReader,
   ownerId: NodeId,
-): TemplateId | undefined {
+): TemplateId | NodeId | undefined {
   const owner = reader.getEntry(ownerId);
   if (owner?.kind !== "node" || !owner.binding) return undefined;
+  for (const override of owner.descendantOverrides) {
+    if (override.kind !== "fillSlot") continue;
+    const item = override.childIds.find((id) => {
+      const entry = reader.getEntry(id);
+      if (entry?.kind !== "node") return false;
+      try {
+        return ROW_ITEM_TYPES.has(definitionTypeName(reader, entry.definitionId));
+      } catch {
+        return false;
+      }
+    });
+    if (item) return item;
+  }
   const definition = owner.definitionId.startsWith("lib:")
     ? reader.library.definitions.get(
         owner.definitionId as `lib:definition:${string}`,
@@ -82,6 +99,19 @@ export function catalogRowTemplateOwner(
   reader: CatalogReader,
   target: EditTarget,
 ): NodeId | undefined {
+  // An owned row template (or a node in it, or a position of its own template): its bound owner
+  // is an ancestor whose row template is on the target's owner chain.
+  const chain: string[] = [];
+  for (
+    let id: string | undefined =
+      target.kind === "node" ? target.id : target.ownerId;
+    id && reader.getEntry(id)?.kind === "node";
+    id = reader.ownerOf(id)
+  ) {
+    const rowTemplate = catalogRowTemplateId(reader, id as NodeId);
+    if (rowTemplate && chain.includes(rowTemplate)) return id as NodeId;
+    chain.push(id);
+  }
   if (target.kind !== "descendant") return undefined;
   const rowTemplate = catalogRowTemplateId(reader, target.ownerId);
   if (!rowTemplate) return undefined;
@@ -108,7 +138,19 @@ function rowValue(
   target: EditTarget,
   key: string,
 ): string {
-  if (target.kind !== "descendant") return "";
+  // (An owned row template's literal content is its sample content — the rows do not read it,
+  // `resolver.ts` `withoutSampleContent`: only a `{field}` write is the rows'.)
+  const rowsRead = (value: string) => (value.includes("{") ? value : "");
+  if (target.kind === "node") {
+    const node = reader.getEntry(target.id);
+    const write = node?.kind === "node" ? node.props[key] : undefined;
+    return write?.kind === "set" && typeof write.value === "string"
+      ? rowsRead(write.value)
+      : "";
+  }
+  const ownedTemplate =
+    catalogRowTemplateOwner(reader, { kind: "node", id: target.ownerId }) !==
+    undefined;
   const owner = reader.getEntry(target.ownerId);
   if (owner?.kind !== "node") return "";
   const same = (left: readonly string[], right: readonly string[]) =>
@@ -116,11 +158,19 @@ function rowValue(
     left.every((id, index) => id === right[index]);
   const patch = owner.descendantOverrides.find(
     (item) =>
-      item.kind === "patch" &&
+      item.kind !== "replace" &&
       same(item.address.instances, target.address.instances) &&
       same(item.address.templatePath, target.address.templatePath),
   );
-  const write = patch?.kind === "patch" ? patch.props?.[key] : undefined;
+  const written = patch?.kind !== "replace" ? patch?.props?.[key] : undefined;
+  // (An owned row template's literal write is its sample content: the rows read the template's.)
+  const write =
+    ownedTemplate &&
+    written?.kind === "set" &&
+    typeof written.value === "string" &&
+    !written.value.includes("{")
+      ? undefined
+      : written;
   if (write?.kind === "set")
     return typeof write.value === "string" ? write.value : "";
   if (write) return "";

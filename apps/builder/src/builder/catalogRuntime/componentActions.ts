@@ -5,8 +5,10 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import { templateDefinitionId } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
   CatalogReader,
+  EditTarget,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -72,51 +74,90 @@ function componentRef(
   };
 }
 
-/** The component state of a node (owned nodes only; a template position has none). */
+/**
+ * The definition a selected target is an instance of: an owned node's own definition, or — a
+ * position of an instance's template (`descendant`) — the template row's definition. A
+ * ToggleButtonGroup instance's "Toggle 1" is such a row and an instance of the ToggleButton
+ * origin, as the one its "+" adds (an owned node) is (user 2026-10-14 — the panel, the Layers dot
+ * and the Canvas chrome said "not an instance" for the template rows alone).
+ */
+function targetDefinitionId(
+  graph: CatalogReader,
+  target: EditTarget,
+): string | undefined {
+  if (target.kind === "node") {
+    const node = graph.getEntry(target.id);
+    return node?.kind === "node" ? node.definitionId : undefined;
+  }
+  const templateId = target.address.templatePath.at(-1);
+  try {
+    return templateId ? templateDefinitionId(graph, templateId) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const asTarget = (target: NodeId | EditTarget): EditTarget =>
+  typeof target === "string" ? { kind: "node", id: target } : target;
+
+/**
+ * The component state of a target: an owned node, or a position of an instance's template (an
+ * instance of the row's definition — go to origin; detach and create need an owned node).
+ */
 export function catalogComponentState(
   graph: CatalogReader,
-  id: NodeId,
+  selected: NodeId | EditTarget,
   /** The definition edit view open now: its root is that component's origin. */
   definitionView?: string,
 ): CatalogComponentState {
-  const node = graph.getEntry(id);
-  if (node?.kind !== "node") return {};
-  // A built-in origin's sample on the Components page is that origin.
-  const sampled = originOfEditableSample(id);
-  if (sampled) {
-    const originOf = componentRef(graph, sampled);
-    return originOf ? { originOf } : {};
-  }
-  if (definitionView) {
-    const viewed = graph.getEntry(definitionView);
-    if (viewed?.kind === "definition" && viewed.templateRootId === id) {
-      const originOf = componentRef(graph, definitionView);
+  const target = asTarget(selected);
+  if (target.kind === "node") {
+    const node = graph.getEntry(target.id);
+    if (node?.kind !== "node") return {};
+    // A built-in origin's sample on the Components page is that origin.
+    const sampled = originOfEditableSample(target.id);
+    if (sampled) {
+      const originOf = componentRef(graph, sampled);
       return originOf ? { originOf } : {};
     }
+    if (definitionView) {
+      const viewed = graph.getEntry(definitionView);
+      if (viewed?.kind === "definition" && viewed.templateRootId === target.id) {
+        const originOf = componentRef(graph, definitionView);
+        return originOf ? { originOf } : {};
+      }
+    }
   }
-  const instanceOf = componentRef(graph, node.definitionId);
+  const definitionId = targetDefinitionId(graph, target);
+  const instanceOf = definitionId && componentRef(graph, definitionId);
   return instanceOf ? { instanceOf } : {};
 }
 
 /**
- * The editing role the Canvas chrome colors a node with (the old `getEditingSemanticsRole`): the
+ * The editing role the Canvas chrome colors a target with (the old `getEditingSemanticsRole`): the
  * origin the definition edit view shows, or an instance of a component — the same test as the
  * Component section (`catalogComponentState`), without its instance list.
  */
 export function catalogComponentRole(
   graph: CatalogReader,
-  id: NodeId,
+  selected: NodeId | EditTarget,
   definitionView?: string,
 ): "origin" | "instance" | undefined {
-  const node = graph.getEntry(id);
-  if (node?.kind !== "node") return undefined;
-  if (originOfEditableSample(id)) return "origin";
-  if (definitionView) {
-    const viewed = graph.getEntry(definitionView);
-    if (viewed?.kind === "definition" && viewed.templateRootId === id)
-      return componentDefinition(graph, definitionView) ? "origin" : undefined;
+  const target = asTarget(selected);
+  if (target.kind === "node") {
+    const node = graph.getEntry(target.id);
+    if (node?.kind !== "node") return undefined;
+    if (originOfEditableSample(target.id)) return "origin";
+    if (definitionView) {
+      const viewed = graph.getEntry(definitionView);
+      if (viewed?.kind === "definition" && viewed.templateRootId === target.id)
+        return componentDefinition(graph, definitionView) ? "origin" : undefined;
+    }
   }
-  return componentDefinition(graph, node.definitionId) ? "instance" : undefined;
+  const definitionId = targetDefinitionId(graph, target);
+  return definitionId && componentDefinition(graph, definitionId)
+    ? "instance"
+    : undefined;
 }
 
 /**

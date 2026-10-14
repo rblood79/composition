@@ -262,7 +262,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
     const view = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogComponentSection nodeId={instance as NodeId} />
+          <CatalogComponentSection
+            target={{ kind: "node", id: instance as NodeId }}
+          />
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
@@ -281,6 +283,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
     expect(view.queryByRole("button", { name: /Text\.color/ })).toBeNull();
     // An instance has no instances to pick (the old app showed the count on the origin only).
     expect(view.queryByRole("button", { name: /Select instances/ })).toBeNull();
+    // … nor its component's dissolve: one detach, its own (user 2026-10-14).
+    expect(view.queryByRole("button", { name: "Detach component" })).toBeNull();
+    expect(view.getAllByRole("button", { name: "Detach instance" })).toHaveLength(1);
     view.unmount();
 
     const definitionId = (graph.getEntry(instance) as NodeEntry).definitionId;
@@ -291,13 +296,15 @@ describe("ADR-248 4e-8 instance override rows", () => {
     const origin = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogComponentSection nodeId={originRoot} />
+          <CatalogComponentSection target={{ kind: "node", id: originRoot }} />
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
     expect(
       origin.getByRole("button", { name: "Select instances (1)" }),
     ).toBeTruthy();
+    // Dissolving is the origin's (user 2026-10-14) — the instance above has no such button.
+    expect(origin.getByRole("button", { name: "Detach component" })).toBeTruthy();
     origin.unmount();
   });
 
@@ -343,7 +350,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
     const view = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogComponentSection nodeId={instance as NodeId} />
+          <CatalogComponentSection
+            target={{ kind: "node", id: instance as NodeId }}
+          />
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );

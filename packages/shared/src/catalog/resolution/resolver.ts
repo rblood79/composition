@@ -26,6 +26,7 @@ import type {
   VisualWrites,
   WriteValue,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { CatalogGraph } from "../document/graph";
 import { catalogCalendarDurationFits } from "../document/valueType";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
@@ -194,6 +195,22 @@ const TABLE_ROW_DEFINITION = "lib:definition:type-Row" as DefinitionId;
 const TABLE_CELL_DEFINITION = "lib:definition:type-Cell" as DefinitionId;
 /** The shortest row a Table density gives (compact: line 24 + padding 4 × 2). */
 const TABLE_MIN_ROW_HEIGHT = 32;
+/**
+ * An owned row template's writes without its sample content (2026-10-14): a literal content prop
+ * (the ADR-162 allowlist) is what the item showed before the rows; a `{field}` one reads the row.
+ */
+function withoutSampleContent(writes: PropWrites): PropWrites {
+  const kept: Record<string, PropWrites[string]> = {};
+  for (const [key, write] of Object.entries(writes)) {
+    const literal =
+      (ROW_TEMPLATE_BINDABLE_PROP_KEYS as readonly string[]).includes(key) &&
+      write.kind === "set" &&
+      typeof write.value === "string" &&
+      !write.value.includes("{");
+    if (!literal) kept[key] = write;
+  }
+  return kept as PropWrites;
+}
 /** A row value: `{field}` templates read the row (a `{{ state }}` template is not a row field). */
 function bindRowValue(value: PropValue, row: CatalogBoundRow): PropValue {
   if (typeof value !== "string" || !value.includes("{") || value.includes("{{"))
@@ -596,7 +613,11 @@ export function resolveCatalogNode(
       if (Object.keys(out[name]!).length === 0) delete out[name];
     return Object.keys(out).length ? out : undefined;
   };
-  /** Structural ancestor type names, nearest first (collapsed composite layers skipped). */
+  /**
+   * Structural ancestor type names, nearest first (collapsed composite layers skipped). An owned
+   * origin instance is its template root's type: a TreeItem node in an owned TreeItem instance
+   * (placed since 2026-10-14) sits in a TreeItem, not a "TreeItem/Default".
+   */
   function* ancestorTypes(
     context: ParentContext | undefined,
   ): Generator<string> {
@@ -605,7 +626,7 @@ export function resolveCatalogNode(
       cursor;
       cursor = structuralParent(cursor.parent)
     )
-      yield lookupDefinition(cursor.definitionId).name;
+      yield ruleDefinitionOf(cursor.definitionId).name;
   }
   const base = (definitionId: DefinitionId) => {
     const definition = lookupDefinition(definitionId);
@@ -1062,7 +1083,26 @@ export function resolveCatalogNode(
       slot?: { name: string; required: boolean };
     },
     parent?: ParentContext,
+    /**
+     * A data row over an owned node (2026-10-14): `rowStart` on a bound collection's own first item
+     * (the row template — its literal content is sample content, its key the row's), `row` on what
+     * it holds, `rowSet` passed to an owned part with no item of its own (TagGroup > TagList).
+     */
+    ownedRowing?: {
+      row?: CatalogBoundRow;
+      rowStart?: boolean;
+      rowLabel?: boolean;
+      rowSet?: readonly CatalogBoundRow[];
+      sampleOwner?: NodeId;
+    },
   ): ResolvedCatalogNode | undefined => {
+    const ownedRow = ownedRowing?.row;
+    const sampleOwner = ownedRowing?.rowStart
+      ? node.id
+      : ownedRowing?.sampleOwner;
+    // (A Breadcrumb row's label text is the row's label — as on a template position.)
+    const ownedRowLabel =
+      !!ownedRow && ruleDefinitionOf(node.definitionId).name === "Breadcrumb";
     selection?.onVisit?.(node.id);
     if (node.enabled === false) return undefined;
     if (!catalogNodeVisibleAt(node, breakpoint)) return undefined;
@@ -1077,7 +1117,23 @@ export function resolveCatalogNode(
       Object.assign(props, inherited.props);
       Object.assign(visual, inherited.visual);
     }
-    applyWrites(props, node.props);
+    applyWrites(
+      props,
+      ownedRow && sampleOwner ? withoutSampleContent(node.props) : node.props,
+    );
+    if (ownedRow) {
+      // As on a row template position: only content props read the row (ADR-162 allowlist).
+      for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
+        if (key in props) props[key] = bindRowValue(props[key], ownedRow);
+      if (ownedRowing?.rowStart) props.id = ownedRow.key;
+      if (
+        ownedRowing?.rowLabel &&
+        props.slot !== "separator" &&
+        typeof props.children === "string" &&
+        !props.children.includes("{")
+      )
+        props.children = String(ownedRow.values.label ?? "");
+    }
     applyFormContext(
       node.definitionId,
       props,
@@ -1153,7 +1209,9 @@ export function resolveCatalogNode(
             { ...self, collapsed: true },
             templateBindings(node.definitionId, props),
             instanceRoot(
-              Object.keys(node.props),
+              ownedRowing?.rowStart
+                ? [...Object.keys(node.props), "id"]
+                : Object.keys(node.props),
               props,
               [
                 ...Object.keys(node.visual),
@@ -1171,7 +1229,19 @@ export function resolveCatalogNode(
               },
             ),
             undefined,
-            rowSet ? { rowSet } : records ? { records } : undefined,
+            rowSet
+              ? { rowSet }
+              : records
+                ? { records }
+                : ownedRow
+                  ? {
+                      row: ownedRow,
+                      ...(ownedRowLabel ? { rowLabel: true } : {}),
+                      ...(sampleOwner ? { sampleOwner } : {}),
+                    }
+                  : ownedRowing?.rowSet
+                    ? { rowSet: ownedRowing.rowSet }
+                    : undefined,
           ),
           rowSet,
           `${instancePath.join("/")}::${node.id}`,
@@ -1187,7 +1257,19 @@ export function resolveCatalogNode(
       pushOwnedChild(
         children,
         child,
-        resolveOwned(child, childPath, undefined, self),
+        resolveOwned(
+          child,
+          childPath,
+          undefined,
+          self,
+          ownedRow
+            ? {
+                row: ownedRow,
+                ...(ownedRowLabel ? { rowLabel: true } : {}),
+                ...(sampleOwner ? { sampleOwner } : {}),
+              }
+            : undefined,
+        ),
         self,
       );
     }
@@ -1409,6 +1491,11 @@ export function resolveCatalogNode(
       rowStart?: boolean;
       rowLabel?: boolean;
       records?: readonly CatalogBoundRow[];
+      /**
+       * The owned row template (a bound collection's first own item, 2026-10-14) whose positions
+       * this projects: its literal content writes are its sample content, not the row's.
+       */
+      sampleOwner?: NodeId;
     },
   ): ResolvedCatalogNode | undefined => {
     const row = rowing?.row;
@@ -1446,13 +1533,14 @@ export function resolveCatalogNode(
         ? patches.patches.find((item) => sameIds(item.templatePath, path))
         : undefined;
     const enabled =
-      (change?.kind === "patch" ? change.enabled : undefined) ??
+      descendantPatchOf(change)?.enabled ??
       libraryPatch?.enabled ??
       template.enabled ??
       true;
     if (!enabled) return undefined;
     // A path patch's authoring fields (Phase 4b) layer over the template node's own.
-    const patch = change?.kind === "patch" ? change : undefined;
+    // (A position holding the instance's own child list carries its field writes too.)
+    const patch = descendantPatchOf(change);
     const visibleBy = patch?.visibility
       ? patch
       : "kind" in template
@@ -1489,9 +1577,15 @@ export function resolveCatalogNode(
       for (const layer of templateLayers)
         if (layer.sizing) applyWrites(sizing, layer.sizing);
     }
-    if (change?.kind === "patch") {
-      if (change.props) applyWrites(props, change.props);
-      if (change.sizing) applyWrites(sizing, change.sizing);
+    if (patch) {
+      if (patch.props)
+        applyWrites(
+          props,
+          row && rowing?.sampleOwner === owner.id
+            ? withoutSampleContent(patch.props)
+            : patch.props,
+        );
+      if (patch.sizing) applyWrites(sizing, patch.sizing);
       for (const layer of patchLayers)
         if (layer.sizing) applyWrites(sizing, layer.sizing);
     }
@@ -1530,7 +1624,7 @@ export function resolveCatalogNode(
     // this position (its root layer or path patch) is more specific and stays.
     const instanceAuthored = new Set([
       ...Object.keys(root?.props ?? {}),
-      ...(change?.kind === "patch" ? Object.keys(change.props ?? {}) : []),
+      ...Object.keys(patch?.props ?? {}),
     ]);
     // An authored value against the state's own prop (an instance of the selected origin set
     // unselected) ends the state at this position: RAC draws the authored value in the DOM, and the
@@ -1624,8 +1718,7 @@ export function resolveCatalogNode(
       parent,
       ...(nodeState ? { state: nodeState } : {}),
     };
-    if (change?.kind === "patch" && change.visual)
-      applyWrites(visual, change.visual);
+    if (patch?.visual) applyWrites(visual, patch.visual);
     for (const layer of patchLayers)
       if (layer.visual) applyWrites(visual, layer.visual);
     // This position's fills: a path patch's, else the owning instance's (template root), else the
@@ -1667,6 +1760,9 @@ export function resolveCatalogNode(
             ...(row ? { row } : {}),
             ...(passRows ? { rowSet: passRows } : {}),
             ...(rowLabel ? { rowLabel } : {}),
+            ...(row && rowing?.sampleOwner
+              ? { sampleOwner: rowing.sampleOwner }
+              : {}),
           }
         : undefined;
     /** This node's template children (`ids`) projected under `childrenParent`, rows repeated. */
@@ -1756,6 +1852,21 @@ export function resolveCatalogNode(
     const children: ResolvedCatalogNode[] = [];
     if (definition.mode === "composite" && definition.templateRootId) {
       const nestedPath = [...instancePath, templateId];
+      // A slot of the nested composite the instance holds as its own list (a placed Select's
+      // ListBox items, 2026-10-14) repeats there: the rows go in with it. (Its template positions
+      // repeat here — `projectChildren` of the fill.)
+      const nestedRoot = definition.templateRootId as TemplateId;
+      const ownedNestedRows =
+        rowSet &&
+        !row &&
+        owner.descendantOverrides.some(
+          (item) =>
+            item.kind === "fillSlot" &&
+            same(item.address, {
+              instances: nestedPath.slice(nestedPath.lastIndexOf(owner.id)),
+              templatePath: [nestedRoot],
+            }),
+        );
       if (
         !selection ||
         selection.include(definition.templateRootId, nestedPath)
@@ -1774,9 +1885,7 @@ export function resolveCatalogNode(
               instanceRoot(
                 [
                   ...Object.keys(template.props),
-                  ...(change?.kind === "patch"
-                    ? Object.keys(change.props ?? {})
-                    : []),
+                  ...Object.keys(patch?.props ?? {}),
                   ...(rowing?.rowStart ? ["id"] : []),
                 ],
                 props,
@@ -1785,9 +1894,7 @@ export function resolveCatalogNode(
                   ...Object.keys(root?.visual ?? {}),
                   ...Object.keys(originOverride?.visual ?? {}),
                   ...Object.keys(template.visual),
-                  ...(change?.kind === "patch"
-                    ? Object.keys(change.visual ?? {})
-                    : []),
+                  ...Object.keys(patch?.visual ?? {}),
                 ],
                 visual,
                 sizing,
@@ -1798,15 +1905,22 @@ export function resolveCatalogNode(
                   stateRules: [
                     ...(template.stateRules ? [template.stateRules] : []),
                     ...receivedStateRules,
-                    ...(change?.kind === "patch" && change.stateRules
-                      ? [change.stateRules]
-                      : []),
+                    ...(patch?.stateRules ? [patch.stateRules] : []),
                   ],
                 },
               ),
             ),
             nestedScope(nestedPath),
-            row ? { row } : undefined,
+            row
+              ? {
+                  row,
+                  ...(rowing?.sampleOwner
+                    ? { sampleOwner: rowing.sampleOwner }
+                    : {}),
+                }
+              : ownedNestedRows
+                ? { rowSet }
+                : undefined,
           ),
         );
     }
@@ -1844,20 +1958,65 @@ export function resolveCatalogNode(
         : undefined;
     if (libraryFill) children.push(...libraryFill.project(self));
     else children.push(...projectChildren(ownChildIds, childParent, self));
+    let ownedRowItems = 0;
     if (change?.kind === "fillSlot") {
       children.length = 0;
+      // A bound collection whose items are its own nodes (placed since 2026-10-14, or added by its
+      // "+"): as for template positions, the first item is the row template, repeated per row; the
+      // other items are sample items.
+      const rowItems = rowSet
+        ? change.childIds.filter((childId) => {
+            const child = graph.getEntry(childId);
+            return (
+              child?.kind === "node" &&
+              CATALOG_ROW_ITEM_TYPES.has(
+                ruleDefinitionOf(child.definitionId).name,
+              )
+            );
+          })
+        : [];
+      ownedRowItems = rowItems.length;
       for (const childId of change.childIds) {
         const childPath = [...instancePath, childId];
         if (selection && !selection.include(childId, childPath)) continue;
         const child = graph.getEntry(childId);
         if (child?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", childId);
+        if (rowSet && rowItems.includes(childId)) {
+          if (childId !== rowItems[0]) continue;
+          rowSet.forEach((data, index) => {
+            const projected = resolveOwned(child, childPath, undefined, self, {
+              row: data,
+              rowStart: true,
+            });
+            if (projected)
+              push(children, {
+                ...(index === 0 ? projected : withRowKey(projected, data.key)),
+                rowIndex: index,
+              });
+          });
+          continue;
+        }
         // (A filled slot's owned children repeat like any owned children — a month block put back
         // in its calendar's frame, 판독 R1.)
         pushOwnedChild(
           children,
           child,
-          resolveOwned(child, childPath, undefined, self),
+          resolveOwned(
+            child,
+            childPath,
+            undefined,
+            self,
+            row || (rowSet && !rowItems.length)
+              ? {
+                  ...(row ? { row } : {}),
+                  ...(rowSet && !rowItems.length ? { rowSet } : {}),
+                  ...(rowing?.sampleOwner
+                    ? { sampleOwner: rowing.sampleOwner }
+                    : {}),
+                }
+              : undefined,
+          ),
           self,
         );
       }
@@ -1869,14 +2028,14 @@ export function resolveCatalogNode(
     if (nodeState)
       for (const rules of receivedStateRules)
         if (rules[nodeState]) applyWrites(visual, rules[nodeState]);
-    if (nodeState && change?.kind === "patch" && change.stateRules?.[nodeState])
-      applyWrites(visual, change.stateRules[nodeState]);
+    if (nodeState && patch?.stateRules?.[nodeState])
+      applyWrites(visual, patch.stateRules[nodeState]);
     const templateStates = stateValues([
       lookupDefinition(template.definitionId).stateRules,
       findOverride(template.definitionId)?.stateRules,
       template.stateRules,
       ...receivedStateRules,
-      change?.kind === "patch" ? change.stateRules : undefined,
+      patch?.stateRules,
     ]);
     return {
       sourceId: templateId,
@@ -1901,7 +2060,7 @@ export function resolveCatalogNode(
       ...(template.showWhen ? { showWhen: template.showWhen } : {}),
       ...(displayState ? { displayState } : {}),
       ...(rowSet &&
-      itemPositions.length > 0 &&
+      (itemPositions.length > 0 || ownedRowItems > 0) &&
       SAMPLED_ROW_OWNERS.has(templateTypeName(templateId)) &&
       growsWithRows(visual, sizing)
         ? { rowCount: rowCountOf(rowSet) }

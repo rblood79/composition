@@ -131,24 +131,21 @@ describe("ADR-248 Phase 4e-4e item roles", () => {
     expect(shown(graph, item)).toEqual(before);
   });
 
-  it("a Select item's icon is off by default (library patch): listed off, switching it on writes enabled true", async () => {
-    const { workspace, graph, id } = await open("Select");
+  it("a Select item's icon is off by default: listed off, switching it on shows it", async () => {
+    // (The Select origin's library patch turns its items' icon off. A placed Select's items are
+    // its own nodes since 2026-10-14 — the off is the item's own write, copied when placed.)
+    const { workspace, graph } = await open("Select");
     const item = firstItem(graph);
     const icon = catalogItemRoles(graph, item)!.rows.find(
       (row) => row.role === "icon",
     )!;
-    expect(icon).toMatchObject({ enabled: false, inheritedEnabled: false });
+    expect(icon).toMatchObject({ enabled: false });
+    const before = shown(graph, item);
     workspace.execute(catalogItemRoleCommand(icon, true));
-    const owner = graph.getEntry(id);
-    expect(
-      owner?.kind === "node" &&
-        owner.descendantOverrides.find(
-          (override) => override.kind === "patch" && override.enabled === true,
-        ),
-    ).toBeTruthy();
     expect(
       catalogItemRoles(graph, item)!.rows.find((row) => row.role === "icon"),
     ).toMatchObject({ enabled: true });
+    expect(shown(graph, item).length).toBe(before.length + 1);
   });
 
   it("a non-item position has no role section; the default child listing still hides switched-off positions", async () => {

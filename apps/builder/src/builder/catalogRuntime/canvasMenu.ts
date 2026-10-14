@@ -80,6 +80,8 @@ export interface CatalogMenuHost {
   ): { x: number; y: number } | undefined;
   /** Open a project component's definition edit view (go to origin). */
   showDefinition?(id: CatalogDefinitionViewId): void;
+  /** The definition edit view open now (its root is that component's origin). */
+  definitionView?(): string | undefined;
   /** The empty-area view items: fit, 100 %, rulers and snapping (Builder view settings). */
   view?: {
     zoomToFit(): void;
@@ -468,9 +470,13 @@ export function catalogCanvasMenuItems(
   // Properties Component section's commands over one selected element; detach takes the first
   // instance of a multi-selection, as the old menu did.
   const component: ContextMenuItem[] = [];
-  const states = ids.map((id) => catalogComponentState(host.graph, id));
+  const view = host.definitionView?.();
+  const states = ids.map((id) => catalogComponentState(host.graph, id, view));
   const single = ids.length === 1 ? states[0] : undefined;
   const origin = single?.instanceOf;
+  // Dissolving is the origin's; an instance detaches itself (user 2026-10-14 — the Component
+  // section's rule).
+  const ownOrigin = single?.originOf;
   // Go to component: a project component's template, or a built-in origin's view.
   if (origin && host.showDefinition) {
     const showDefinition = host.showDefinition;
@@ -495,20 +501,24 @@ export function catalogCanvasMenuItems(
         (execute) => void confirmCatalogDetach(host.graph, detachable, execute),
       ),
     );
-  if (single && origin?.project)
+  if (ownOrigin?.project)
     component.push(
       ...action(
         "toggle-component-origin",
         "componentAction.detachComponent",
-        catalogComponentCommands.dissolve(origin.definitionId, host.newId),
+        catalogComponentCommands.dissolve(ownOrigin.definitionId, host.newId),
         "toggleComponentOrigin",
         ACTION_ICONS.detach,
         false,
         (execute) =>
-          void confirmCatalogDissolve(host.graph, origin.definitionId, execute),
+          void confirmCatalogDissolve(
+            host.graph,
+            ownOrigin.definitionId,
+            execute,
+          ),
       ),
     );
-  else if (single && !origin) {
+  else if (single && !ownOrigin) {
     const node = host.graph.getEntry(ids[0]);
     const name =
       (node?.kind === "node" &&

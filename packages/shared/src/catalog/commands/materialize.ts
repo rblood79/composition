@@ -1,3 +1,4 @@
+import { componentTypeSet } from "../../domain/componentTraits";
 import { ownedChildren } from "../document/graph";
 import {
   mapShowWhenAddress,
@@ -6,8 +7,11 @@ import {
   mapShowWhenNodeIds,
 } from "../document/stateOwnerRefs";
 import { DISPLAY_STATE_PROPS } from "../resolution/resolver";
+import { descendantPatchOf } from "../document/types";
 import type {
+  DefinitionId,
   DescendantOverride,
+  DescendantPatchFields,
   EntryId,
   EntryKind,
   InstanceAddress,
@@ -23,6 +27,7 @@ import type {
 } from "../document/types";
 import {
   childList,
+  definitionTypeName,
   listParent,
   fail,
   overrideAt,
@@ -181,7 +186,7 @@ export function readTemplate(
 }
 
 type Patch = Extract<DescendantOverride, { kind: "patch" }>;
-function applyPatch(entry: NodeEntry, patch: Patch): NodeEntry {
+function applyPatch(entry: NodeEntry, patch: DescendantPatchFields): NodeEntry {
   const next = { ...entry } as Record<string, unknown> & NodeEntry;
   const merge = (key: "props" | "visual" | "sizing" | "layout") => {
     const writes = patch[key];
@@ -370,8 +375,6 @@ export function createMaterializer(
     );
     if (libraryPatch)
       entry = applyPatch(entry, {
-        kind: "patch",
-        address,
         ...(libraryPatch.props
           ? { props: sets(libraryPatch.props) as PropWrites }
           : {}),
@@ -457,13 +460,33 @@ export function createMaterializer(
       const index = overrides.findIndex((existing) =>
         sameAddress(existing.address, item.address),
       );
+      const existing = overrides[index];
       if (index < 0) overrides.push(item);
-      else if (overrides[index].kind === "patch" && item.kind === "patch")
-        overrides[index] = mergePatches(overrides[index] as Patch, item);
-      else overrides[index] = item;
+      else if (existing.kind === "replace" || item.kind === "replace")
+        overrides[index] = item;
+      else {
+        // (A child list and field writes at one address combine — a `fillSlot` carries both.)
+        const fields = mergePatches(
+          { ...existing, kind: "patch" } as Patch,
+          { ...item, kind: "patch" } as Patch,
+        );
+        const list =
+          item.kind === "fillSlot"
+            ? item
+            : existing.kind === "fillSlot"
+              ? existing
+              : undefined;
+        const { childIds: _childIds, ...patchFields } = fields as Patch & {
+          childIds?: unknown;
+        };
+        overrides[index] = list
+          ? { ...patchFields, kind: "fillSlot", childIds: list.childIds }
+          : patchFields;
+      }
     }
     entry = { ...entry, descendantOverrides: overrides };
-    if (change?.kind === "patch") entry = applyPatch(entry, change);
+    const changePatch = descendantPatchOf(change);
+    if (changePatch) entry = applyPatch(entry, changePatch);
     entry = {
       ...entry,
       children:
@@ -548,6 +571,127 @@ export function ensureChildList(
   setChildList(draft, parent, ids);
   materializer.reanchorInteractions();
   return ids;
+}
+
+/**
+ * The item lists the "+" of a collection writes (`collections.ts`): a template node holding
+ * collection items (a MenuTrigger's Menu — no declared slot).
+ */
+const COLLECTION_ITEM_TYPES = componentTypeSet("staticCollectionItem");
+
+/**
+ * The child lists of a library origin's own template a placed instance holds as its own nodes:
+ * the outermost declared slots that hold something (a ToggleButtonGroup's root "Buttons", a Card's
+ * Preview · Content · Footer, a Tabs' tab list and panels), a node holding collection items (a
+ * MenuTrigger's Menu), and a nested composite's slot the template fills with items (`slotFills` —
+ * a Select's · ComboBox's ListBox: the address steps into that composite, as its "+" does). A slot
+ * inside a slot goes with its outer one; a nested composite's other slots are its own.
+ */
+function librarySlotAddresses(
+  reader: CommandDraft["reader"],
+  definitionId: string,
+): { steps: TemplateId[]; templatePath: TemplateId[] }[] {
+  if (!definitionId.startsWith("lib:")) return [];
+  const library = reader.library;
+  const definition = library.definitions.get(
+    definitionId as `lib:definition:${string}`,
+  );
+  if (definition?.mode !== "composite" || !definition.templateRootId)
+    return [];
+  const typeOf = (templateId: string): string => {
+    const template = library.templates.get(
+      templateId as `lib:template:${string}`,
+    );
+    try {
+      return template
+        ? definitionTypeName(reader, template.definitionId as DefinitionId)
+        : "";
+    } catch {
+      return "";
+    }
+  };
+  const holdsItems = (ids: readonly string[]) =>
+    ids.some((id) => COLLECTION_ITEM_TYPES.has(typeOf(id)));
+  // A slot whose contents follow the instance's props (`{label}` — an AvatarGroup's Text) stays
+  // the template's: an owned copy would keep the value it had and stop following the prop. (A
+  // bound collection repeats its own first item per row — `resolver.ts` fill-slot rows.)
+  const holdsBinding = (ids: readonly string[]): boolean =>
+    ids.some((id) => {
+      const template = library.templates.get(id as `lib:template:${string}`);
+      return (
+        !!template &&
+        (Object.values(template.props).some(
+          (value) => typeof value === "string" && TEMPLATE_BINDING.test(value),
+        ) ||
+          holdsBinding(template.children))
+      );
+    });
+  const out: { steps: TemplateId[]; templatePath: TemplateId[] }[] = [];
+  const visit = (path: TemplateId[]) => {
+    const node = library.templates.get(
+      path[path.length - 1] as `lib:template:${string}`,
+    );
+    if (!node) return;
+    if (node.slot || holdsItems(node.children)) {
+      if (node.children.length && !holdsBinding(node.children))
+        out.push({ steps: [], templatePath: path });
+      return;
+    }
+    for (const child of node.children) {
+      const template = library.templates.get(
+        child as `lib:template:${string}`,
+      );
+      const nested = template
+        ? library.definitions.get(
+            template.definitionId as `lib:definition:${string}`,
+          )
+        : undefined;
+      if (nested?.mode === "composite") {
+        for (const fill of template?.slotFills ?? [])
+          if (holdsItems(fill.childIds) && !holdsBinding(fill.childIds))
+            out.push({
+              steps: [child as TemplateId],
+              templatePath: [...fill.templatePath],
+            });
+        continue;
+      }
+      visit([...path, child as TemplateId]);
+    }
+  };
+  visit([definition.templateRootId as TemplateId]);
+  return out;
+}
+
+/**
+ * A placed library origin instance holds its slots' contents as its own nodes (each slot a
+ * `fillSlot`), as the first structural edit there makes them (`ensureChildList`): the items a
+ * ToggleButtonGroup starts with are ToggleButton instances with an id, detach and create
+ * component, the same as one its "+" adds (user 2026-10-14 「slot 호스트 전부」). Down the new
+ * nodes too (a CardView's Cards are Card instances with slots of their own). The Components page's
+ * origin sample keeps its slots as template positions (shown empty) — it is not placed by this.
+ */
+export function ownSlotContents(
+  draft: CommandDraft,
+  rootIds: readonly NodeId[],
+  newId: NewId,
+): void {
+  const stack = [...rootIds];
+  while (stack.length) {
+    const id = stack.pop()!;
+    const node = draft.node(id);
+    for (const { steps, templatePath } of librarySlotAddresses(
+      draft.reader,
+      node.definitionId,
+    )) {
+      const at: NodeParent = {
+        kind: "descendant",
+        ownerId: id,
+        address: { instances: [id, ...steps], templatePath },
+      };
+      if (!childList(draft, at)) ensureChildList(draft, at, newId);
+    }
+    stack.push(...ownedChildren(draft.node(id)));
+  }
 }
 
 /** A template position's display state as the accepted boolean props it sets (an owned node's). */
@@ -638,8 +782,7 @@ function positionBindings(
   const scalar = (value: unknown) => scalarValue(draft, value);
   const bindings: Record<string, Scalar> = {};
   for (const key of Object.keys(definition?.accepts ?? {})) {
-    const patched =
-      patch?.kind === "patch" ? patch.props?.[key] : undefined;
+    const patched = descendantPatchOf(patch)?.props?.[key];
     const own = template.props[key];
     const value =
       patched?.kind === "set"

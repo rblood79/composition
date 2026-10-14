@@ -811,66 +811,57 @@ function address(value: unknown, at: string): InstanceAddress {
   });
   return value as InstanceAddress;
 }
+const DESCENDANT_PATCH_FIELDS = [
+  "props",
+  "visual",
+  "sizing",
+  "stateRules",
+  "enabled",
+  "layout",
+  "fills",
+  "fillSizing",
+  "responsive",
+  "visibility",
+] as const;
+/** A `patch`'s (or a `fillSlot`'s own) field writes; true when it holds one. */
+function descendantPatchFields(
+  item: Record<string, unknown>,
+  at: string,
+): boolean {
+  if (item.layout !== undefined) layoutWrites(item.layout, `${at}.layout`);
+  if (item.fills !== undefined) fillLayers(item.fills, `${at}.fills`);
+  if (item.fillSizing !== undefined)
+    fillSizing(item.fillSizing, `${at}.fillSizing`);
+  if (item.responsive !== undefined)
+    responsiveLayers(item.responsive, `${at}.responsive`);
+  if (item.visibility !== undefined)
+    visibility(item.visibility, `${at}.visibility`);
+  if (item.enabled !== undefined && typeof item.enabled !== "boolean")
+    invalid("ENABLED_BOOLEAN", `${at}.enabled`);
+  if (item.props !== undefined) writes(item.props, `${at}.props`);
+  if (item.visual !== undefined)
+    writes(item.visual, `${at}.visual`, visualFields);
+  if (item.sizing !== undefined)
+    writes(item.sizing, `${at}.sizing`, sizingFields, true);
+  if (item.stateRules !== undefined)
+    stateRules(item.stateRules, `${at}.stateRules`);
+  return DESCENDANT_PATCH_FIELDS.some((field) => item[field] !== undefined);
+}
 function descendant(value: unknown, at: string): void {
   const item = object(value, at);
   if (item.kind === "patch") {
-    exact(
-      item,
-      [
-        "kind",
-        "address",
-        "props",
-        "visual",
-        "sizing",
-        "stateRules",
-        "enabled",
-        "layout",
-        "fills",
-        "fillSizing",
-        "responsive",
-        "visibility",
-      ],
-      at,
-    );
+    exact(item, ["kind", "address", ...DESCENDANT_PATCH_FIELDS], at);
     address(item.address, `${at}.address`);
-    if (item.layout !== undefined) layoutWrites(item.layout, `${at}.layout`);
-    if (item.fills !== undefined) fillLayers(item.fills, `${at}.fills`);
-    if (item.fillSizing !== undefined)
-      fillSizing(item.fillSizing, `${at}.fillSizing`);
-    if (item.responsive !== undefined)
-      responsiveLayers(item.responsive, `${at}.responsive`);
-    if (item.visibility !== undefined)
-      visibility(item.visibility, `${at}.visibility`);
-    if (item.enabled !== undefined && typeof item.enabled !== "boolean")
-      invalid("ENABLED_BOOLEAN", `${at}.enabled`);
-    if (item.props !== undefined) writes(item.props, `${at}.props`);
-    if (item.visual !== undefined)
-      writes(item.visual, `${at}.visual`, visualFields);
-    if (item.sizing !== undefined)
-      writes(item.sizing, `${at}.sizing`, sizingFields, true);
-    if (item.stateRules !== undefined)
-      stateRules(item.stateRules, `${at}.stateRules`);
-    if (
-      item.props === undefined &&
-      item.visual === undefined &&
-      item.sizing === undefined &&
-      item.stateRules === undefined &&
-      item.enabled === undefined &&
-      item.layout === undefined &&
-      item.fills === undefined &&
-      item.fillSizing === undefined &&
-      item.responsive === undefined &&
-      item.visibility === undefined
-    )
-      invalid("EMPTY_PATCH", at);
+    if (!descendantPatchFields(item, at)) invalid("EMPTY_PATCH", at);
   } else if (item.kind === "replace") {
     exact(item, ["kind", "address", "replacementId"], at);
     address(item.address, `${at}.address`);
     id(item.replacementId, "project:node:", `${at}.replacementId`);
   } else if (item.kind === "fillSlot") {
-    exact(item, ["kind", "address", "childIds"], at);
+    exact(item, ["kind", "address", "childIds", ...DESCENDANT_PATCH_FIELDS], at);
     address(item.address, `${at}.address`);
     list(item.childIds, "project:node:", `${at}.childIds`);
+    descendantPatchFields(item, at);
   } else invalid("UNKNOWN_OVERRIDE_KIND", at);
 }
 function binding(value: unknown, at: string): void {

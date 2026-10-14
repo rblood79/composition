@@ -157,10 +157,21 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
       });
       // The rest value stays the record's own.
       expect(record.visual.backgroundColor).not.toBe("#123456");
-      // Instances inside another origin's template.
-      const nested = buttons(records).filter((item) =>
-        String(item.sourceId).includes("component-toolbar"),
-      );
+      // Instances inside another origin (the Toolbar's buttons — its own nodes since 2026-10-14).
+      const toolbar = records.get(
+        [...records.values()].find(
+          (record) => record.sourceId === node("toolbar"),
+        )!.id,
+      )!;
+      const nested = buttons(records).filter((item) => {
+        for (
+          let up = records.get(item.parentId);
+          up;
+          up = records.get(up.parentId)
+        )
+          if (up.id === toolbar.id) return true;
+        return false;
+      });
       expect(nested.length).toBeGreaterThan(0);
       for (const item of nested)
         expect(item.stateVisual?.hover, String(item.sourceId)).toEqual({

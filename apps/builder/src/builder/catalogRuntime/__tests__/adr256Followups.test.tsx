@@ -146,7 +146,8 @@ describe("ADR-256 후속 D — 편집", () => {
     const items = () => all("TreeItem").filter((record) => !record.hidden);
     const count = all("TreeItem").length;
     const target = all("TreeItem").at(-1)!;
-    expect(target.sourceId!.startsWith("lib:")).toBe(true);
+    // (A placed Tree's items are its own nodes — owned by the instance, 2026-10-14.)
+    expect(target.sourceId!.startsWith("project:node:")).toBe(true);
     workspace.selectRecords([target.id]);
     const errors: unknown[] = [];
     expect(runCatalogShortcut(workspace, "delete", (error) => errors.push(error))).toBe(true);

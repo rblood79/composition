@@ -8,6 +8,7 @@ import type {
   TemplateId,
   WriteValue,
 } from "../document/types";
+import { descendantPatchOf } from "../document/types";
 import { readPropSource } from "../resolution/fieldSource";
 import { catalogNodeVisibleAt } from "../resolution/resolver";
 import type { CatalogOperation } from "../transactions/transaction";
@@ -26,7 +27,12 @@ import {
 } from "./context";
 import { setFields } from "./fields";
 import { readTargetProp } from "./items";
-import { ensureChildList, readTemplate, type NewId } from "./materialize";
+import {
+  ensureChildList,
+  ownSlotContents,
+  readTemplate,
+  type NewId,
+} from "./materialize";
 import { removeWithReferrers, subtree } from "./structure";
 
 /**
@@ -224,6 +230,7 @@ function place(
     ...ensureChildList(draft, parent, newId),
     rootId,
   ]);
+  ownSlotContents(draft, [rootId], newId);
 }
 
 // ── Collection items ──────────────────────────────────────────────────────
@@ -464,11 +471,25 @@ export const insertGroupItem =
     // ADR-251: the items live in the wrapper node (a template position of an instance, or an
     // owned node); the item goes there and its siblings are the wrapper's children.
     const wrapperType = GROUP_ITEMS_WRAPPER[groupType];
+    // A group whose template root is its items' slot (ToggleButtonGroup "Buttons", ButtonGroup,
+    // AvatarGroup, Nav, DisclosureGroup): the item joins the slot's content, where the items the
+    // group starts with are (2026-10-14 — appended to the instance's own children it stood after
+    // the slot and the Design panel's slot list did not show it).
+    const rootSlot =
+      rootTemplate?.startsWith("lib:") &&
+      reader.library.templates.get(rootTemplate as `lib:template:${string}`)
+        ?.slot
+        ? ({
+            kind: "descendant",
+            ownerId: host.id,
+            address: { instances: [host.id], templatePath: [rootTemplate] },
+          } as NodeParent)
+        : undefined;
     const container: NodeParent = wrapperType
       ? (hostChildren.find(
           (child) => positionType(draft, child) === wrapperType,
         ) ?? fail("NO_ITEMS_WRAPPER", groupType))
-      : { kind: "node", id: host.id };
+      : (rootSlot ?? { kind: "node", id: host.id });
     const containerChildren = wrapperType
       ? childPositions(draft, container)
       : hostChildren;
@@ -758,7 +779,7 @@ function hidingAt(
     return { enabled, visibility };
   }
   const override = overrideAt(draft.node(position.ownerId), position.address);
-  const patch = override?.kind === "patch" ? override : undefined;
+  const patch = descendantPatchOf(override);
   const templateId = position.address.templatePath.at(-1)!;
   const template = (
     templateId.startsWith("lib:")

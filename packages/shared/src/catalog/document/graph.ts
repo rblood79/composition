@@ -789,7 +789,7 @@ export class CatalogGraph {
           (!targetType || catalogChildKind(targetType).kind === "leaf")
         )
           throw new CatalogValidationError("TARGET_NOT_SLOT", entry.id);
-        if (override.kind === "patch") {
+        if (override.kind !== "replace") {
           const foundTarget = lookupDefinition(target.definitionId);
           if (!foundTarget)
             throw new CatalogValidationError(

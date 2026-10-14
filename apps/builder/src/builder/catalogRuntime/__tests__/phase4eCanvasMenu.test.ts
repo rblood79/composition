@@ -256,7 +256,7 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     ).not.toContain("align");
   });
 
-  it("component items: create, then on the instance go to origin · detach (dissolve offered)", async () => {
+  it("component items: create, then on the instance go to origin · detach · create (dissolving is the origin's — its Component section)", async () => {
     const { workspace, host, record, ids, run } = await open();
     const shown: string[] = [];
     const withOrigin: CatalogMenuHost = {
@@ -287,9 +287,10 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       "detach-instance",
       "toggle-component-origin",
     ]);
+    // (User 2026-10-14: an instance detaches itself — dissolving is the origin's.)
     expect(
       after.find((item) => item.id === "toggle-component-origin"),
-    ).toMatchObject({ labelKey: "componentAction.detachComponent" });
+    ).toMatchObject({ labelKey: "componentAction.createComponent" });
     run(after, "go-to-origin");
     expect(shown).toEqual([
       instance?.kind === "node" ? instance.definitionId : "",
