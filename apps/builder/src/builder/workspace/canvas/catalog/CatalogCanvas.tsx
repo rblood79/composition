@@ -25,6 +25,7 @@ import {
 } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
+import { catalogHasOwnText } from "../../../catalogRuntime/textBinding";
 import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
 import {
   catalogDefinitionTitle,
@@ -1225,7 +1226,15 @@ export function CatalogCanvas({
             records,
             picked,
             target.id,
-            (record) => !!catalogTextKey(records.get(record)),
+            // (A text a part inside draws — a field's · group's `label` on its Label — is that
+            // part's to edit, not the whole box's.)
+            (record) =>
+              catalogHasOwnText(
+                workspace.runtime.graph.library,
+                records,
+                record,
+                catalogTextKey,
+              ),
           );
         const item = id && workspace.itemOfRecord(id);
         if (item) {

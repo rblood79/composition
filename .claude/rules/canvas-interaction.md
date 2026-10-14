@@ -127,6 +127,7 @@ pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정�
 | 히트 없음 (`hitElementId === null`)        |     ✅      | 기존 동작 보존 — 빈 영역이어도 박스 안이면 드래그 핸들 |
 
 - 깊이 진입은 **더블클릭 + `editingContext`** (`resolveClickTarget` / `handleElementDoubleClick`) 가 전담한다. 드래그 의도 판정이 깊이 모델을 겸하면 안 된다 — 두 축이 섞이면 겹친 형제 클릭이 삼켜진다.
+- 더블클릭으로 들어갈 곳이 없을 때의 글자 편집 (`resolveCatalogTextEditRecord`) 은 **그 요소가 직접 그리는 글자만** 대상이다 — 안쪽 부품이 바인딩으로 그리는 글자 (필드 · 그룹의 `label` → Label 의 `{label}`) 는 `catalogHasOwnText` (`textBinding.ts`) 가 제외한다. **Why (2026-10-14)**: RadioGroup 빈 영역 더블클릭이 그룹 상자 전체 (1440×63) 에 label 편집창을 열었다 — 필드 · 그룹 19종 공통.
 - body 예외를 판정 함수 **바깥**에 특수 분기로 두지 않는다. body 선택 박스는 페이지 전체를 덮어 bbox 판정이면 모든 클릭이 무시되므로, 같은 결함의 국소 우회가 재발한다.
 - **Why (2026-07-24 실측 + 외부 도구 대조)**: 판정이 bbox 였을 때 `component-gridlist` 선택 상태에서 그 박스(`20,374 350x340`) 안으로 들어온 `component-form__field-1-input` 클릭이 무반응이었다. Figma 는 실제 객체 지오메트리로 판정해 그 객체를 선택하고(공식 문서), Pencil 도 동일 — 실측 확인: 파랑 프레임 선택 → 파랑 bbox 안의 주황 프레임 클릭 → **주황 선택**. 깊이 진입은 두 도구 모두 더블클릭이라 composition 과 이미 일치했고, 발산 지점은 이 판정 하나였다.
 

@@ -30,6 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
   - 회귀 검증: 세로·가로 flex Body의 gap preview·commit·Undo/Redo에서 엔진과 Skia 좌표 일치, 기존 증분 갱신·국소 기하 조회 검사.
 
+## [Canvas — 그룹 · 필드의 빈 영역 더블클릭이 label 편집창을 열지 않는다] - 2026-10-14
+
+### Fixed
+
+- **RadioGroup · CheckboxGroup 등 필드의 빈 영역을 더블클릭하면 상자 전체에 label 편집창이 열리던 것.** 들어갈 자식이 없는 곳이면 「클릭한 요소의 글자」를 편집했는데, 그 `label` 은 그룹이 아니라 안쪽 Label 노드가 `{label}` 바인딩으로 그린다. 이제 안쪽 부품이 그리는 글자는 그 부품을 더블클릭해야 편집되고, 빈 영역에서는 아무것도 열리지 않는다. 같은 증상이 있던 필드 · 그룹 19종(TextField · Select · Checkbox · Switch · Slider 등)에 같이 적용된다. 자기 글자를 직접 그리는 Button 은 그대로다 (`catalogHasOwnText` — `textBinding.ts`).
+- 검증: `groupTextDoubleClick.test.ts` (원복 시 5 RED) · live `apps/builder/scripts/group-empty-dblclick-live.mjs` (수정 전 편집창 1440×63 재현 → 수정 후 열리지 않음, Label 더블클릭은 Label 상자에서 편집).
+
 ## [Design 패널 — 한쪽에만 반영되던 칸을 Canvas · Preview 양쪽에] - 2026-10-14
 
 ### Fixed

@@ -93,3 +93,49 @@ export function catalogTextBinding(
   }
   return found;
 }
+
+/**
+ * 2026-10-14 (사용자 「radioGroup, checkbox Group 선택영역의 빈공간에 더블클릭했을때 전체영역으로 label편집창」):
+ * whether a record's `key` text is drawn by a node inside it — a field's · group's `label` is its
+ * Label part's `{label}` (`catalogTextBinding`), not text the record paints itself. A double click on
+ * the record's own area (not on that part) then edits nothing: the old rule opened the editor over
+ * the whole group box.
+ */
+export function catalogTextDrawnInside(
+  library: CatalogLibrary,
+  records: ReadonlyMap<string, CatalogConsumerNode>,
+  record: CatalogConsumerNode,
+  key: string,
+  textKeyOf: (record: CatalogConsumerNode) => string | undefined,
+): boolean {
+  const visit = (ids: readonly string[]): boolean =>
+    ids.some((id) => {
+      const child = records.get(id);
+      if (!child) return false;
+      const childKey = textKeyOf(child);
+      const bound =
+        childKey && catalogTextBinding(library, records, child, childKey);
+      return (
+        (!!bound && bound.source.id === record.id && bound.prop === key) ||
+        visit(child.children)
+      );
+    });
+  return visit(record.children);
+}
+
+/**
+ * The Canvas double click's "has its own text" test (`resolveCatalogTextEditRecord`): a text key,
+ * and not one a part inside draws (`catalogTextDrawnInside`).
+ */
+export function catalogHasOwnText(
+  library: CatalogLibrary,
+  records: ReadonlyMap<string, CatalogConsumerNode>,
+  id: string,
+  textKeyOf: (record: CatalogConsumerNode | undefined) => string | undefined,
+): boolean {
+  const record = records.get(id);
+  const key = textKeyOf(record);
+  return (
+    !!key && !catalogTextDrawnInside(library, records, record!, key, textKeyOf)
+  );
+}
