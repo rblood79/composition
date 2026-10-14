@@ -96,6 +96,20 @@ export function catalogAuthoredVisual(
   return authored;
 }
 
+/** A color write equal to the library default is still an explicit Icon color choice. */
+export function catalogHasAuthoredColor(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  return (
+    catalogAuthoredVisual(root, node).color !== undefined ||
+    [node.sourceId, ...(node.collapsedSourceIds ?? [])].some((id) => {
+      const entry = root.runtime.graph.getEntry(id);
+      return entry?.kind === "node" && entry.visual.color?.kind === "set";
+    })
+  );
+}
+
 /**
  * Resolved layout declarations that differ from the definition's own (template/instance authored
  * layout): the DOM executors inline these over the generated class CSS, as the Rust input reads

@@ -85,6 +85,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   부모가 소유하는 부품은 해당 계약에 따라 처리하고, 별도 상자를 임의 생성하지 않는다.
 - TextArea의 Prefix는 공통 FieldBox에서 첫 입력 줄에 정렬하고, Side Label 선택자는 Prefix Group 안의 입력도 인식한다.
   **Why (2026-10-14)**: 한 줄용 center를 쓰면 rows=3에서 Prefix가 placeholder보다 20px 아래에 놓인다.
+- Canvas 텍스트의 line-height는 자기 visual 다음 inheritedText를 읽고, 부모 변경 때 상속 leaf를 다시 계획한다.
+  **Why (2026-10-14)**: SelectValue는 버튼의 줄 높이를 상속한다. 측정에만 반영하면 상자는 중앙이어도 placeholder 글자가 어긋난다.
   직접 형제 textarea만 찾는 CSS는 Prefix Group 삽입 후 매칭되지 않아 Side Label이 Canvas보다 22.5px 아래에 놓였다.
   Canvas 검증은 상자 좌표와 글자 내부 여백을 함께 본다. **Why (2026-10-14)**: Prefix Input의 paddingTop=0이
   rule paint에서 누락되어 상자가 일치해도 placeholder에 기본 size 여백(S/M/L/XL: 2/4/8/12px)이 다시 붙었다.
@@ -234,3 +236,16 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)
 - [SPEC_CSS_BOUNDARY.md](../../docs/legacy/SPEC_CSS_BOUNDARY.md)
+
+- 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산한다.
+  **Why (2026-10-14)**: ToggleButton에 Icon을 추가하면 Label이 사라졌고, 고정 폭 버튼의 Label 편집은 Icon 좌표를 남겼다. 부품 입력도 증분 비교하며, 텍스트 부품은 자기 폭으로 줄바꿈하고 autoCenter로 부모 폭을 덮지 않는다.
+- 자기 타이포그래피를 Reset할 때도 현재 부모 체인에서 inheritedText를 다시 해석한다.
+  **Why (2026-10-14)**: Body를 Inter→Arial로 바꾼 뒤 Text의 Menlo를 Reset하면 상속 값이 비었지만, 재로드는 Arial이었다. 일곱 상속 키의 Reset/Undo/Redo를 fresh root와 비교한다.
+- Icon DOM wrapper의 기본 width·height는 공통 glyph 크기를 쓰되 저작 치수를 보존한다.
+  **Why (2026-10-14)**: fontSize만 전달하면 SVG는 XS 16px·XL 48px인데 wrapper는 24px로 남았다. 특정 부모의 height:auto 선택자로 우회하지 않는다.
+
+- 상속 Reset 검증은 해당 DOM 요소가 상속하는 키와 자체 CSS 기본값을 구분한다.
+  **Why (2026-10-14)**: Body 자간 4px에서 Text는 Reset 직후 DOM·Canvas 모두 4px였지만, 네이티브 ToggleButton은 normal을 복원한다. 텍스트를 담는 Body의 속성을 소비자가 거절하거나 ToggleButton 경계를 건너 상속하면 양쪽 결과가 달라진다.
+
+- ToggleButton의 기본 Icon은 owner 텍스트 색상을 상속하고, owner 변경의 derived dependents에 포함한다. 명시한 Icon 색상은 보존한다.
+  **Why (2026-10-14)**: 강조된 선택 버튼의 글자는 흰색인데 Icon은 기본 fg로 남았다. DOM Icon의 자체 fg보다 color:inherit를 우선하고 SVG는 currentColor를 쓴다. Canvas는 같은 catalog owner paint를 읽으며, 기본값과 같은 명시 색상도 저작 선택으로 판정한다.

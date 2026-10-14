@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ToggleButton Icon 색상 상속] - 2026-10-14
+
+### Fixed
+
+- **ToggleButton에 추가한 Icon이 기본적으로 텍스트 색상을 따른다.** 독립 버튼과 ToggleButtonGroup 안의 버튼 모두 선택·강조·Static Color 변경 직후 Icon 색상을 갱신한다.
+  - DOM wrapper는 부모 색상을 상속하고 SVG는 `currentColor`를 사용한다. Canvas는 같은 owner의 catalog 상태별 텍스트 색상을 읽는다.
+  - Icon에 직접 지정한 색상은 보존한다. 기본값과 같은 색상을 명시해도 상속으로 바꾸지 않으며, Reset하면 부모 색상을 다시 따른다.
+
+## [혼합 버튼 텍스트·상속 Reset·Icon 상자 정합성] - 2026-10-14
+
+### Fixed
+
+- **Button·ToggleButton에 Icon을 추가해도 Label이 Canvas에 남고, 편집한 텍스트 폭과 자식 배치가 즉시 갱신된다.**
+  - DOM의 익명 텍스트와 ToggleButtonGroup 내부 span을 레이아웃 부품으로 반영한다. 좁은 폭에서 텍스트 부품을 재측정하고, 넓히면 한 줄로 복원한다.
+  - 중첩 flex 최소 폭에 최대 폭이 들어가던 계산과, 재배치한 폭을 flex basis로 다시 사용하던 계산을 수정한다.
+- **타이포그래피 값을 Reset하면 부모의 최신 값을 즉시 상속한다.** fontFamily·letterSpacing·fontStyle·textTransform·wordBreak·overflowWrap·textAlign의 Reset/Undo/Redo를 새 문서 로드 결과와 대조한다. Body 등 텍스트를 담는 상자의 상속 속성은 두 소비자에 전달하고, ToggleButton의 네이티브 기본값은 상속 경계로 보존한다.
+- **Icon의 DOM 상자를 해석된 glyph 크기에 맞춘다.** XS/S/M/L/XL, 독립 Icon과 버튼 내부 Icon에 공통 적용하며, 직접 지정한 width·height는 보존한다.
+
+## [Select Side 높이·placeholder 정렬] - 2026-10-14
+
+### Fixed
+
+- **Select의 Side Label에서 선택 영역이 버튼 높이를 포함하고, placeholder가 세로 중앙에 놓인다.**
+  - Grid의 auto 행 계산에서 intrinsic 높이 자식의 padding·border를 포함해 Label 높이만 남던 문제를 수정한다.
+  - Canvas 텍스트가 부모의 line-height를 상속하며, 직접 지정한 값과 편집·Undo도 반영한다.
+  - Quiet 모드에서도 버튼 안 아이콘의 상자 높이를 glyph에 맞춰 기본 Icon 높이로 늘어나지 않도록 한다.
+  - XS/S/M/L/XL의 Top·Side 전환, 필드 계열 Side 배치와 실제 Builder의 Canvas·CSS 높이를 검증한다.
+
 ## [Field Prefix·Content 속성 즉시 반영] - 2026-10-14
 
 ### Fixed

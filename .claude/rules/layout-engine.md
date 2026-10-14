@@ -34,6 +34,8 @@ paths:
 | 6   | Canvas 반영                | `canvasBinding.ts` — `root.subscribeCanvas` dirty → `root.getGeometry` rect diff                                | 바뀐 rect 의 subtree 명령만 다시 만들어 끼운다 (`presentationRevision` 로컬 증가). 전역 카운터 없음                                                                                                                                                                                                                                                                                      |
 
 - `buildFull` 은 bind 때 (`buildLayout`) 와 실패 롤백 (`restore`) 에서만 쓴다. 편집은 전부 증분 (`addNode` · `updateStyleRaw`) 이다.
+- Grid auto 행 기여는 auto뿐 아니라 min/max/fit-content 높이 자식도 padding·border를 포함한다.
+  **Why (2026-10-14)**: 두 경우 모두 solve 반환이 content-box다. intrinsic을 제외하면 Select Side의 행·선택 영역이 버튼보다 낮은 Label 높이로 축소된다.
 - **엔진 입력의 유일한 직렬화기는 `styleOf`** (`compositionRoot.ts`). 길이는 `px()` 로 `"Npx"` 문자열, grid track 은 `containerTracks` 가 `parseGridTemplate` 로 배열, 텍스트 측정 스칼라 (`contentMinWidth` · `contentMaxWidth` · `contentHeight`) 는 TS 측정값, 상속 줄 높이는 `inheritedLineHeight`.
 
 ### 새 레이아웃 키를 추가할 때 (체크리스트)
@@ -192,3 +194,6 @@ paths:
 - 2026-10-05: 옛 TS 파이프라인 삭제와 함께 이 규칙의 해당 절을 삭제 기록으로 바꿨다.
 - 2026-10-04: production 레이아웃 경로 (`compositionRoot.ts` · `canvasBinding.ts` · `transaction.ts`) 를 추가했다.
 - `paths` 는 2026-08-31 협소화 — 구 `**/layout/**` 가 `builder/layout`(패널)·`styles/layout` 까지 매칭해 패널 작업에 본 규칙 전량(116KB)이 주입됐다. 새 레이아웃 파이프라인 경로가 생기면 여기 등재.
+
+- 중첩 flex의 min-content 측정은 자식 컨테이너의 min-content를 사용하고, flex 재배치 후에는 원래 main basis를 보존한다.
+  **Why (2026-10-14)**: 텍스트+Icon을 감싼 span의 최소 폭이 68px 대신 113px가 되어 shrink가 막혔다. used 폭을 다시 basis로 쓰면 부모 최종 폭과 손자 배치 폭도 달라졌다.

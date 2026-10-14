@@ -37,7 +37,7 @@ import {
   catalogCalendarYearFirst,
 } from "./calendarModel";
 import { racFieldHourCycle } from "../document/dateSegments";
-import type { CatalogConsumerNode } from "./compositionRoot";
+import type { CatalogConsumerNode, CatalogTextFont } from "./compositionRoot";
 import type {
   CatalogShowWhen,
   CatalogStateKey,
@@ -237,6 +237,17 @@ export function catalogPartParent(
   return parent;
 }
 
+/** ToggleButton's decorative Icon follows its text color, including selected/hover states. */
+export function catalogToggleButtonGlyphOwner(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (node.bindingId !== "icon") return undefined;
+  const parent = catalogPartParent(node, get, typeOf);
+  return parent && typeOf(parent) === "ToggleButton" ? parent : undefined;
+}
+
 /**
  * ADR-259 Phase 3 — the ContextualHelp a Button is the trigger of (its parent, layout frames
  * skipped): S2's quiet icon-only ActionButton (`slot={null}`), its box the ContextualHelp part rule.
@@ -398,7 +409,9 @@ function catalogCollectionItemSelected(
   // A Column's select-all checkbox is checked while every row is (RAC `useTableSelectAllCheckbox`).
   if (typeOf(node) === "Column") {
     const counts = catalogTableSelectedRows(node, get, typeOf);
-    return counts ? counts.total > 0 && counts.selected === counts.total : undefined;
+    return counts
+      ? counts.total > 0 && counts.selected === counts.total
+      : undefined;
   }
   const tabs = catalogTabsOfTab(node, get, typeOf);
   if (tabs) {
@@ -1150,6 +1163,13 @@ export interface CatalogComposedPart {
    * them; absent = a leaf before the record's children.
    */
   readonly wraps?: readonly string[];
+  /** Anonymous DOM text item; Button appends it, ToggleButton prepends it. */
+  readonly afterChildren?: boolean;
+  readonly text?: {
+    readonly content: string;
+    readonly font: CatalogTextFont;
+    readonly singleLine: boolean;
+  };
 }
 
 /** `Tree.css` chevron button: `width: 20px` (content box) + `padding-left: (level − 1) × --padding`. */
@@ -2221,6 +2241,12 @@ export function catalogDerivedPropsDependents(
     ...items,
     ...[owner, ...items].flatMap((item) => [
       ...catalogItemLabels(item, get, typeOf),
+      ...(typeOf(item) === "ToggleButton"
+        ? partChildrenOf(item, get, typeOf).filter(
+            (glyph) =>
+              catalogToggleButtonGlyphOwner(glyph, get, typeOf)?.id === item.id,
+          )
+        : []),
       // (its selection indicators — their bar follows the Tab's orientation, ADR-256 Phase 5e)
       ...catalogSelectionIndicators(item, get, typeOf),
       // (its selection checkboxes — the item's selection and selectability, Phase 5f)

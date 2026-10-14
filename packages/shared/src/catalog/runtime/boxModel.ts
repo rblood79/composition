@@ -280,8 +280,8 @@ export function catalogTextMetrics(
   if (!Number.isFinite(fontSize) || fontSize <= 0)
     throw new Error(`CATALOG_TEXT_FONT_SIZE_UNSUPPORTED:${node.id}`);
   const lineHeight = inheritsSlot
-    ? parent.visual.lineHeight
-    : node.visual.lineHeight;
+    ? (parent.visual.lineHeight ?? parent.inheritedText?.lineHeight)
+    : (node.visual.lineHeight ?? node.inheritedText?.lineHeight);
   return {
     ...catalogTextTypography(node),
     fontSize,

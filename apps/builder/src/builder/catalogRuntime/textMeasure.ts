@@ -110,7 +110,7 @@ function paragraphMetrics(
  * measures the paint's own paragraph (the glyphs the Canvas draws — default font features such as
  * Pretendard cv11 change advances, which Canvas 2D `measureText` cannot apply); before that the
  * shared Canvas 2D metrics. Without `maxWidth`: single-line max-content / min-content widths
- * (ceil, the engine's content-box scalars; `exactWidth` unrounded for single-line labels) and one
+ * (`width` ceil, intrinsic `exactWidth` and `minWidth` unrounded for CSS flex sizing) and one
  * line box; with `maxWidth` the `white-space: normal` wrapped height.
  */
 export const catalogTextMeasure: CatalogTextMeasure = (raw, font, maxWidth) => {
@@ -155,7 +155,7 @@ const measureOneBlock = (
       return {
         width: Math.ceil(paragraph.max),
         exactWidth: paragraph.max,
-        minWidth: Math.ceil(paragraph.min),
+        minWidth: paragraph.min,
         height: lineBox(1),
       };
     return { width: maxWidth, height: lineBox(Math.max(1, paragraph.lines)) };

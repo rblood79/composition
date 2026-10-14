@@ -109,6 +109,8 @@ import {
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
   CATALOG_ROW_SEPARATOR,
+  CATALOG_INHERITED_TEXT_KEYS,
+  CATALOG_TEXT_STYLE_CONTAINERS,
   type CatalogCompositionRoot,
   type CatalogConsumerNode,
 } from "./compositionRoot";
@@ -134,7 +136,11 @@ import {
 
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 
-import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
+import {
+  catalogAuthoredLayout,
+  catalogAuthoredVisual,
+  catalogHasAuthoredColor,
+} from "./libraryVisual";
 
 import {
   CATALOG_SLIDER_THICK_TRACK,
@@ -158,6 +164,7 @@ import {
   catalogStepperHidden,
   catalogTreeChevronButtonItem,
   catalogTreeChevronGlyphItem,
+  catalogToggleButtonGlyphOwner,
   FIELD_HINT_OWNERS,
 } from "./presence";
 
@@ -604,8 +611,23 @@ const glyph =
           (node.derivedProps?.color as string | undefined) ?? node.visual.color,
         ),
         fontSize: catalogGlyphSize(node) ?? fallbackSize,
+        // The resolved glyph sets the natural box too. Icon.css's default M height must
+        // not override XS/XL or a field-owned glyph; explicit authored boxes still win.
+        width: style.width ?? catalogGlyphSize(node) ?? fallbackSize,
+        height: style.height ?? catalogGlyphSize(node) ?? fallbackSize,
       },
     });
+
+function withInheritedIconColor(
+  node: CatalogConsumerNode,
+): CatalogConsumerNode {
+  const { color: _color, ...derivedProps } = node.derivedProps ?? {};
+  return {
+    ...node,
+    visual: { ...node.visual, color: "inherit" },
+    derivedProps,
+  };
+}
 
 const bindings: Readonly<Record<string, DomBinding>> = {
   composite: element("div"),
@@ -1165,10 +1187,8 @@ function nodeTreeControlGroup(
       ? catalogFieldPrefixDomId(box.prefix)
       : undefined;
   const content = prefixId
-    ? createElement(
-        RAC.InputContext.Consumer as ElementType,
-        {
-          children: (ctx: Record<string, unknown> | null) =>
+    ? createElement(RAC.InputContext.Consumer as ElementType, {
+        children: (ctx: Record<string, unknown> | null) =>
           createElement(
             RAC.InputContext.Provider,
             {
@@ -1181,15 +1201,17 @@ function nodeTreeControlGroup(
             },
             ...children,
           ),
-        },
-      )
+      })
     : undefined;
   return createElement(RAC.Group, {
     key: node.id,
     "data-catalog-id": node.id,
     ...(className || box
       ? {
-          className: [className ?? "react-aria-Group", box && CATALOG_FIELD_BOX_CLASS]
+          className: [
+            className ?? "react-aria-Group",
+            box && CATALOG_FIELD_BOX_CLASS,
+          ]
             .filter(Boolean)
             .join(" "),
         }
@@ -1203,8 +1225,7 @@ function nodeTreeControlGroup(
       (["isDisabled", "isInvalid", "isReadOnly"] as const)
         .filter(
           (key) =>
-            node.props[key] === true ||
-            (ownGroup && field.props[key] === true),
+            node.props[key] === true || (ownGroup && field.props[key] === true),
         )
         .map((key) => [key, true]),
     ),
@@ -1962,7 +1983,8 @@ function ruleDom(
   if (lower === "popover" || lower === "tooltip") rest.hideArrow = true;
   // ADR-259 Phase 3: S2 names a ContextualHelp's Popover by its `slot="title"` Heading (without
   // one RAC names it by the trigger).
-  if (lower === "contextualhelp") rest.titled = contextualHelpTitled(root, node);
+  if (lower === "contextualhelp")
+    rest.titled = contextualHelpTitled(root, node);
   // S2 ColorWheel `size` → RAC's required radii (outer = half the diameter, inner = outer − the
   // track) — the raw number must not reach the DOM element. The box is the diameter square: S2
   // writes width/height from `size` over the style (ColorWheel.tsx), so a box sizing never parts
@@ -2566,11 +2588,25 @@ function authoredStyle(
     ? root.runtime.graph.library.rules.get(node.ruleId)
     : undefined;
   const noSheet = !!rule && !rule.structure;
+  const carriesText = CATALOG_TEXT_STYLE_CONTAINERS.has(
+    catalogTypeName(root, node),
+  );
+  const composedText = root.composedPartInputs
+    .get(node.id)
+    ?.some((part) => part.text);
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
+    const textCss =
+      TYPOGRAPHY_KEYS.has(key) &&
+      (composedText ||
+        (carriesText &&
+          CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)))
+        ? (value: unknown) => ({ [key]: value }) as CSSProperties
+        : undefined;
     const css =
       AUTHORED_CSS[key] ??
+      textCss ??
       (RULE_TEXT_BOX_BINDINGS.has(node.bindingId ?? "")
         ? RULE_TEXT_BOX_CSS[key]
         : undefined);
@@ -3159,6 +3195,12 @@ export function renderNode(
           derivedProps: { ...node.derivedProps, color: undefined },
         }
       : undefined;
+  const toggleColored =
+    node.bindingId === "icon" &&
+    !catalogHasAuthoredColor(root, node) &&
+    catalogToggleButtonGlyphOwner(node, domGet, domType)
+      ? withInheritedIconColor(node)
+      : undefined;
   const rendered = helpOwner
     ? createElement(
         ContextualHelpButton,
@@ -3167,7 +3209,9 @@ export function renderNode(
           // (The Button sheet gives every RAC Button a border — the quiet box writes its own out.)
           style: {
             ...bound,
-            ...(Number(node.visual.borderWidth) === 0 ? { borderWidth: 0 } : {}),
+            ...(Number(node.visual.borderWidth) === 0
+              ? { borderWidth: 0 }
+              : {}),
             ...styleOverride,
           },
           ...(buttonDisabled(node) ? { isDisabled: true } : {}),
@@ -3176,13 +3220,15 @@ export function renderNode(
         ...children,
       )
     : binding
-    ? binding(
-        (sheetColored as CatalogConsumerNode | undefined) ?? node,
-        sheetBox ?? (styleOverride ? { ...bound, ...styleOverride } : bound!),
-        children,
-        context,
-      )
-    : ruleDom(root, node, children, context);
+      ? binding(
+          toggleColored ??
+            (sheetColored as CatalogConsumerNode | undefined) ??
+            node,
+          sheetBox ?? (styleOverride ? { ...bound, ...styleOverride } : bound!),
+          children,
+          context,
+        )
+      : ruleDom(root, node, children, context);
   const slot = itemSlotRole(root, node);
   const named = withHtmlId(
     root,

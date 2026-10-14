@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -19,11 +20,13 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { bindCatalogCanvas } from "../canvasBinding";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
 
-async function placeSelect() {
+async function placeSelect(size = "M", labelPosition = "top") {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -49,7 +52,10 @@ async function placeSelect() {
           definitionId:
             "lib:definition:origin-component-select" as LibraryDefinitionId,
           children: [],
-          props: {},
+          props: {
+            size: { kind: "set", value: size },
+            labelPosition: { kind: "set", value: labelPosition },
+          },
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -73,6 +79,57 @@ async function placeSelect() {
  * the document writes on the value wins, as the DOM's inline color does over the sheet.
  */
 describe("Select placeholder paint", () => {
+  for (const size of ["XS", "S", "M", "L", "XL"])
+    for (const position of ["top", "side"])
+      it(`${size} ${position}: value paints with its trigger's inherited line height`, async () => {
+        const { workspace, value } = await placeSelect(size, position);
+        const root = workspace.root;
+        const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+        const trigger = root.canvasInputs.get(value.parentId)!;
+        const expected =
+          Number(value.visual.fontSize) * Number(trigger.visual.lineHeight);
+        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+          expected,
+          4,
+        );
+        const target = workspace.itemOfRecord(trigger.id)!.target;
+        workspace.execute(
+          setFields({
+            targets: [target],
+            visual: { lineHeight: { kind: "set", value: 2 } },
+          }),
+        );
+        canvas.update();
+        expect(getSkiaNode(value.id)!.text!.lineHeight).toBe(
+          Number(value.visual.fontSize) * 2,
+        );
+        workspace.undo();
+        canvas.update();
+        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+          expected,
+          4,
+        );
+        // A value's own typography wins over its inherited trigger metric.
+        const valueTarget = workspace.itemOfRecord(value.id)!.target;
+        workspace.execute(
+          setFields({
+            targets: [valueTarget],
+            visual: { lineHeight: { kind: "set", value: 2.5 } },
+          }),
+        );
+        canvas.update();
+        expect(getSkiaNode(value.id)!.text!.lineHeight).toBe(
+          Number(value.visual.fontSize) * 2.5,
+        );
+        workspace.undo();
+        canvas.update();
+        expect(getSkiaNode(value.id)!.text!.lineHeight).toBeCloseTo(
+          expected,
+          4,
+        );
+        canvas.dispose();
+      });
+
   it("the Canvas paints the value in the placeholder state the DOM sheet declares", async () => {
     const { workspace, value } = await placeSelect();
     const node = () => workspace.root.canvasInputs.get(value.id)!;

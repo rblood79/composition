@@ -23,6 +23,10 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
+import {
+  CATALOG_INHERITED_TEXT_KEYS,
+  CATALOG_TEXT_STYLE_CONTAINERS,
+} from "./compositionRoot";
 import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
 import {
@@ -771,9 +775,17 @@ function ruleNodeData(
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
+  const composedText = root.composedPartInputs
+    .get(node.id)
+    ?.some((part) => part.text);
   for (const key of RULE_UNPAINTED_TEXT_KEYS)
     if (
       node.visual[key] !== undefined &&
+      !composedText &&
+      !(
+        CATALOG_TEXT_STYLE_CONTAINERS.has(root.typeOf(node)) &&
+        CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)
+      ) &&
       !RULE_CARRIED_TEXT_KEYS[root.typeOf(node)]?.has(key)
     )
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
@@ -900,32 +912,103 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        withDisclosureBorders(
+        withComposedText(
           root,
           node,
-          OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
-            ? ownerDrawnPartNodeData(root, node, rect)
-            : binding &&
-                // (ADR-259 Phase 2: a prefix box Group draws the Input rule's box — not a Group's.)
-                !catalogFieldBox(
-                  node,
-                  (id) => root.canvasInputs.get(id),
-                  root.typeOf,
-                )
-              ? binding(
-                  node,
-                  rect,
-                  parent,
-                  root.textWraps(node.id),
-                  root.labelSuffix(node.id),
-                )
-              : ruleNodeData(root, node, rect),
+          withDisclosureBorders(
+            root,
+            node,
+            OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
+              ? ownerDrawnPartNodeData(root, node, rect)
+              : binding &&
+                  // (ADR-259 Phase 2: a prefix box Group draws the Input rule's box — not a Group's.)
+                  !catalogFieldBox(
+                    node,
+                    (id) => root.canvasInputs.get(id),
+                    root.typeOf,
+                  )
+                ? binding(
+                    node,
+                    rect,
+                    parent,
+                    root.textWraps(node.id),
+                    root.labelSuffix(node.id),
+                  )
+                : ruleNodeData(root, node, rect),
+          ),
         ),
         rect,
         root.colorMode,
       ),
     ),
   );
+}
+
+/** Paint the anonymous text at the same engine item box the DOM's mixed content occupies. */
+function withComposedText(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  const parts = root.composedPartInputs.get(node.id);
+  const part = parts?.find((item) => item.text);
+  if (!part?.text) return data;
+  const wrapper = parts?.find((item) => item.wraps?.includes(part.id));
+  const rects = root.getGeometry([part.id, ...(wrapper ? [wrapper.id] : [])]);
+  const rect = rects.get(part.id)!;
+  const offset = wrapper ? rects.get(wrapper.id) : undefined;
+  const color = node.ruleId
+    ? catalogRuleTextColor(fieldBoxShapeInput(root, node, data))
+    : node.visual.color;
+  const metrics = catalogTextMetrics(
+    node,
+    root.canvasInputs.get(node.parentId),
+  );
+  const text = bindings.text(
+    {
+      ...node,
+      children: [],
+      bindingId: "text",
+      props: { children: part.text.content },
+      derivedProps: undefined,
+      inheritedText: undefined,
+      visual: {
+        ...part.text.font,
+        // Native button text defaults to centered, including each line of a wrapped label.
+        textAlign: node.visual.textAlign ?? "center",
+        ...(metrics.textDecoration !== undefined
+          ? { textDecoration: metrics.textDecoration }
+          : {}),
+        ...(metrics.textOverflow !== undefined
+          ? { textOverflow: metrics.textOverflow }
+          : {}),
+        ...(node.visual.overflow !== undefined
+          ? { overflow: node.visual.overflow }
+          : {}),
+        color: color ?? node.visual.color ?? "#000000",
+      },
+    },
+    { ...rect, x: rect.x + (offset?.x ?? 0), y: rect.y + (offset?.y ?? 0) },
+    undefined,
+    root.textWraps(part.id),
+  );
+  text.text = { ...text.text!, autoCenter: false };
+  if (data.text)
+    return {
+      ...data,
+      text: {
+        ...text.text!,
+        color: data.text.color,
+        content: part.text.content,
+        paddingLeft: rect.x + (offset?.x ?? 0),
+        paddingTop: rect.y + (offset?.y ?? 0),
+        autoCenter: false,
+      },
+    };
+  return {
+    ...data,
+    children: [...(data.children ?? []), text],
+  };
 }
 
 /**
@@ -1444,11 +1527,17 @@ function bindInColorMode(
     );
     const bound = new Map<string, CatalogConsumerNode>();
     const boundLayoutInputs = new Map<string, string | undefined>();
+    const boundParts = new Map<string, string | undefined>();
+    const partInput = (id: string) => {
+      const parts = root.composedPartInputs.get(id);
+      return parts?.length ? JSON.stringify(parts) : undefined;
+    };
     const dirty = new Set<string>();
     const unsubscribe = new Map<string, () => void>();
     for (const node of root.canvasInputs.values()) {
       bound.set(node.id, node);
       boundLayoutInputs.set(node.id, root.getAppliedLayoutInput(node.id));
+      boundParts.set(node.id, partInput(node.id));
       unsubscribe.set(
         node.id,
         root.subscribeCanvas(node.id, () => dirty.add(node.id)),
@@ -1699,6 +1788,7 @@ function bindInColorMode(
           layoutMap.delete(id);
           bound.delete(id);
           boundLayoutInputs.delete(id);
+          boundParts.delete(id);
           ranges.delete(id);
           scrollbars.delete(id);
           reconciled.add(id);
@@ -1726,7 +1816,8 @@ function bindInColorMode(
         // Use the engine's complete, already measured input, including visual longhands and
         // derived Table tracks. Fixed container geometry does not imply fixed child geometry.
         const layoutInput =
-          boundLayoutInputs.get(id) !== root.getAppliedLayoutInput(id);
+          boundLayoutInputs.get(id) !== root.getAppliedLayoutInput(id) ||
+          boundParts.get(id) !== partInput(id);
         if (!layoutInput && !compare([id]).length) {
           patchRoots.add(id);
           continue;
@@ -1832,6 +1923,7 @@ function bindInColorMode(
       for (const id of new Set([...dirty, ...reconciled])) {
         if (input(id))
           boundLayoutInputs.set(id, root.getAppliedLayoutInput(id));
+        boundParts.set(id, partInput(id));
       }
       dirty.clear();
       return {

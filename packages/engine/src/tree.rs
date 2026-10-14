@@ -1470,12 +1470,12 @@ impl LayoutTree {
             + resolve_signed(n.style.margin_bottom.as_deref(), &ctx)
     }
 
-    /// 자식의 **블록 축이 auto** 이면 상하 pad+border 합, 아니면 0 (인라인 축 대칭).
+    /// 자식의 블록 축이 auto 또는 intrinsic 키워드이면 상하 pad+border 합, 아니면 0.
+    /// 두 경우 모두 solve 반환은 content-box이므로 행 기여는 border-box로 올린다 (인라인 축 대칭).
     fn child_auto_block_pad_border(&self, c: usize, container_w: f32, container_h: f32) -> f32 {
         let Some(n) = self.get(c) else { return 0.0 };
         let h = n.style.height.as_deref();
-        let is_auto = resolve_dimension_opt(h, &self.ctx_for(container_h)).is_none()
-            && !size_is_intrinsic_keyword(h);
+        let is_auto = resolve_dimension_opt(h, &self.ctx_for(container_h)).is_none();
         if is_auto {
             axis_pad_border(&n.style, &self.ctx_for(container_w.max(0.0)), false)
         } else {
@@ -3175,11 +3175,15 @@ impl LayoutTree {
                     .and_then(|w| resolve_css_size_value(w, &ctx));
                 data[off + 13] = match kw {
                     Some(k) if k == MIN_CONTENT => min_w,
+                    Some(k) if k == MAX_CONTENT => max_w,
                     Some(k) if k == FIT_CONTENT && child_avail_w >= 0.0 => {
                         // row: main margin = left(6)/right(4) · pad_border_main(7)
                         let stretch_fit = child_avail_w - data[off + 4] - data[off + 6] - data[off + 7];
                         stretch_fit.clamp(min_w, max_w)
                     }
+                    // A nested flex item's contribution follows the measurement pass too.
+                    // Keeping max-content here made a span containing text + icon unshrinkable.
+                    _ if matches!(intrinsic_mode(avail_w), Some(IntrinsicMode::Min)) => min_w,
                     _ => max_w,
                 };
                 if min_w > 0.0 {
@@ -3475,7 +3479,12 @@ impl LayoutTree {
                     } else {
                         new_cm
                     };
-                    data[d_off + 13] = new_cm;
+                    // Reflow at the allocated width determines cross size, not a new flex
+                    // basis. Feeding the shrunk width back redistributes space a second time
+                    // and leaves descendants laid out at a different width from their item.
+                    if !is_row {
+                        data[d_off + 13] = new_cm;
+                    }
                     data[d_off + 14] = new_cc;
                     changed = true;
                 }
@@ -8001,6 +8010,24 @@ mod tests {
         assert_eq!(t.get_layout(h[1]).height, 40.0, "align start 배치 높이 = border-box 40");
     }
 
+    #[test]
+    fn grid_auto_row_intrinsic_height_includes_padding_and_border() {
+        for height in ["fit-content", "min-content", "max-content"] {
+            let (t, h) = solve(
+                &format!(r#"[
+                    {{"style":{{"width":"40px","contentHeight":20,"alignSelf":"center","gridColumnStart":"1"}},"children":[]}},
+                    {{"style":{{"contentHeight":20}},"children":[]}},
+                    {{"style":{{"display":"inline-flex","height":"{height}","paddingTop":"4px","paddingBottom":"4px","borderTop":"1px","borderBottom":"1px","gridColumnStart":"2"}},"children":[1]}},
+                    {{"style":{{"display":"grid","gridTemplateColumns":["auto","1fr"],"alignItems":"start","width":"400px"}},"children":[0,2]}}
+                ]"#),
+                3, 400.0, -1.0,
+            );
+            assert_eq!(t.get_layout(h[2]).height, 30.0, "{height}: trigger border box");
+            assert_eq!(t.get_layout(h[3]).height, 30.0, "{height}: row contains the trigger");
+            assert_eq!(t.get_layout(h[0]).y, 5.0, "{height}: label centered in the row");
+        }
+    }
+
     /// 2026-09-18 — padded 컨테이너의 intrinsic 키워드 폭이 **flex item / grid item** 일 때
     /// (실측 `catalogComponentBox` Tooltip: flex row 부모 안 `width:fit-content` + padding 10 →
     /// 엔진 80 / Chrome 60 · grid 부모는 40). block 부모만 60 으로 맞았다.
@@ -11146,6 +11173,41 @@ mod tests {
         let mut tree = LayoutTree::new();
         let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
         assert_eq!(tree.measure_intrinsic_width(leaf), Some((300.0, 500.0)));
+    }
+
+    #[test]
+    fn nested_flex_anonymous_text_keeps_min_content_width() {
+        let mut tree = LayoutTree::new();
+        let text = tree.create_node(scalar_leaf(44.0, 89.0));
+        let icon = tree.create_node(NodeStyle {
+            flex_shrink: Some(0.0),
+            ..px_leaf(16.0, 16.0)
+        });
+        let span = tree.create_node(NodeStyle {
+            column_gap: Some("8px".into()),
+            ..flex_row_auto()
+        });
+        tree.set_children(span, vec![text, icon]);
+        let button = tree.create_node(NodeStyle {
+            width: Some("fit-content".into()),
+            padding_left: Some("13px".into()),
+            padding_right: Some("13px".into()),
+            ..flex_row_auto()
+        });
+        tree.set_children(button, vec![span]);
+        assert_eq!(tree.measure_intrinsic_width(button), Some((68.0, 113.0)));
+        tree.compute_layout(button, 120.0, 100.0);
+        assert_eq!(tree.get_layout(button).width, 120.0);
+        assert_eq!(tree.get_layout(text).width, 70.0);
+
+        let sibling = tree.create_node(scalar_leaf(50.0, 100.0));
+        let group = tree.create_node(flex_row_fixed(200.0, 60.0));
+        tree.set_children(group, vec![button, sibling]);
+        tree.compute_layout(group, 200.0, 100.0);
+        let button_width = tree.get_layout(button).width;
+        let span_width = tree.get_layout(span).width;
+        assert!((span_width - (button_width - 26.0)).abs() < 0.01,
+            "descendants must use the final flex width: span={span_width}, button={button_width}");
     }
 
     /// 높이 확정 0 의 column flex — 자식은 definite main 0 안에서 줄어든다 (Chrome: 둘 다 0).

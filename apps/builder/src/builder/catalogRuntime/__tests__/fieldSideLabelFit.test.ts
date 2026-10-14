@@ -157,8 +157,55 @@ async function open(type: string, inForm?: "side" | "top") {
     owner: box(ids[3]!),
     labelWidth: () => box(ids[0]!).width,
     setForm,
+    edit: (props: Record<string, string>) =>
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: OWNER }],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [key, set(value)]),
+          ),
+        }),
+      ),
+    boxes: () => ({
+      label: box(ids[0]!),
+      control: box(ids[1]!),
+      description: box(ids[2]!),
+      owner: box(ids[3]!),
+    }),
   };
 }
+
+describe("Select side row extent", () => {
+  it.each([
+    ["XS", 20],
+    ["S", 22],
+    ["M", 30],
+    ["L", 42],
+    ["XL", 54],
+  ] as const)(
+    "%s: top/side edits keep the trigger, label and following hint in their row",
+    async (size, height) => {
+      const { edit, boxes } = await open("Select");
+      edit({ size });
+      for (const labelPosition of ["top", "side", "top", "side"]) {
+        edit({ labelPosition });
+        const { label, control, description, owner } = boxes();
+        expect(control.height).toBe(height);
+        expect(description.y).toBeGreaterThanOrEqual(
+          control.y + control.height,
+        );
+        expect(owner.height).toBeGreaterThanOrEqual(
+          description.y + description.height,
+        );
+        if (labelPosition === "side")
+          expect(label.y + label.height / 2).toBeCloseTo(
+            control.y + control.height / 2,
+            4,
+          );
+      }
+    },
+  );
+});
 
 describe.each(FIELDS)("S2 %s side label", (type) => {
   it("the label is its text's width, the control takes the rest, the help text sits under it", async () => {

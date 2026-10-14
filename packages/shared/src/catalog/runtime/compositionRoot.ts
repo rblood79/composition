@@ -56,7 +56,10 @@ import type {
   CatalogTransactionResult,
 } from "../transactions/transaction";
 import { catalogNodeState, resolveCatalogNode } from "../resolution/resolver";
-import { catalogAuthoredVisual } from "./libraryVisual";
+import {
+  catalogAuthoredVisual,
+  catalogHasAuthoredColor,
+} from "./libraryVisual";
 import {
   catalogContainerVariantPaint,
   catalogRuleTextColor,
@@ -135,7 +138,9 @@ import {
   catalogPresenceDependents,
   catalogStateDependents,
   catalogToggleGroupItems,
+  catalogToggleGroupOf,
   catalogItemRemoveGlyphItem,
+  catalogToggleButtonGlyphOwner,
   catalogTreeChevronGlyphItem,
   catalogSelectionIndicatorLayout,
   catalogPresenceScope,
@@ -283,6 +288,7 @@ export interface CatalogConsumerNode {
 export const CATALOG_INHERITED_TEXT_KEYS = [
   "fontFamily",
   "fontStyle",
+  "lineHeight",
   "letterSpacing",
   "textAlign",
   "textTransform",
@@ -290,13 +296,35 @@ export const CATALOG_INHERITED_TEXT_KEYS = [
   "wordBreak",
   "overflowWrap",
 ] as const;
+/** Structural rule boxes carry typography to child text instead of painting a label. */
+export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
+  "body",
+  "frame",
+  "Group",
+  "Slot",
+  "ToggleButtonGroup",
+  "ButtonGroup",
+]);
+// ToggleButton's native <button> and catalog font-family own these defaults. Unlike the
+// bound Button (which explicitly forwards resolved text CSS), its rule DOM does not inherit
+// them from a wrapper. Descendant text must stop at the same CSS inheritance boundary.
+const TOGGLE_OWN_TEXT_DEFAULTS: ReadonlySet<string> = new Set([
+  "fontFamily",
+  "fontStyle",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "whiteSpace",
+]);
+const ownsTextDefault = (node: CatalogConsumerNode, key: string): boolean =>
+  node.bindingId === "togglebutton" && TOGGLE_OWN_TEXT_DEFAULTS.has(key);
 function inheritedTextOf(
   node: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
 ): Record<string, string | number | boolean> | undefined {
   const out: Record<string, string | number | boolean> = {};
   let missing = CATALOG_INHERITED_TEXT_KEYS.filter(
-    (key) => node.visual[key] === undefined,
+    (key) => node.visual[key] === undefined && !ownsTextDefault(node, key),
   );
   for (
     let cursor = get(node.parentId);
@@ -305,7 +333,11 @@ function inheritedTextOf(
   )
     missing = missing.filter((key) => {
       const value = cursor!.visual[key];
-      if (value === undefined) return true;
+      if (value === undefined) {
+        if (!ownsTextDefault(cursor!, key)) return true;
+        if (key === "textAlign") out[key] = "center";
+        return false;
+      }
       out[key] = value;
       return false;
     });
@@ -346,7 +378,8 @@ const textKeysChanged = (
   right: CatalogConsumerNode,
 ): boolean =>
   CATALOG_INHERITED_TEXT_KEYS.some(
-    (key) => left?.visual[key] !== right.visual[key],
+    // lineHeight has its own pruned dependency walk (lineHeightInheritors).
+    (key) => key !== "lineHeight" && left?.visual[key] !== right.visual[key],
   );
 /**
  * The author's DOM attributes of a collapsed composite instance: the instance node's (the element
@@ -414,7 +447,12 @@ function layoutChildrenOf(
   chromeId: string | undefined,
   orderOf?: (id: string) => number,
 ): string[] {
-  const out = parts.filter((part) => !part.wraps).map((part) => part.id);
+  const wrapped = new Set(parts.flatMap((part) => part.wraps ?? []));
+  const out = parts
+    .filter(
+      (part) => !part.wraps && !part.afterChildren && !wrapped.has(part.id),
+    )
+    .map((part) => part.id);
   // CSS `order` places a flex / grid item by its order, then source order (a stable sort).
   const ordered = orderOf
     ? children
@@ -427,6 +465,8 @@ function layoutChildrenOf(
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
   }
+  for (const part of parts)
+    if (part.afterChildren && !wrapped.has(part.id)) out.push(part.id);
   if (chromeId) out.push(chromeId);
   return out;
 }
@@ -1019,12 +1059,18 @@ function styleOf(
           insetTop: `${box.position.y}px`,
         }
       : {}),
-    ...(box.width !== undefined ? { width: px(box.width) } : {}),
+    ...(box.width !== undefined
+      ? { width: px(box.width) }
+      : glyph !== undefined
+        ? { width: `${glyph}px` }
+        : {}),
     ...(box.height !== undefined
       ? { height: px(box.height) }
-      : node.bindingId === "table"
-        ? catalogTableHeight(node, box.borderWidth)
-        : {}),
+      : glyph !== undefined
+        ? { height: `${glyph}px` }
+        : node.bindingId === "table"
+          ? catalogTableHeight(node, box.borderWidth)
+          : {}),
     ...(box.minHeight !== undefined ? { minHeight: px(box.minHeight) } : {}),
     ...(box.minWidth !== undefined ? { minWidth: px(box.minWidth) } : {}),
     ...(box.gap !== undefined
@@ -2118,7 +2164,15 @@ export class CatalogCompositionRoot {
       };
     // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
     // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)
+    const toggleGlyphOwner = catalogToggleButtonGlyphOwner(
+      record,
+      get,
+      this.typeOf,
+    );
     const glyphItem =
+      (toggleGlyphOwner && !catalogHasAuthoredColor(this, record)
+        ? toggleGlyphOwner
+        : undefined) ??
       catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
       catalogTreeChevronGlyphItem(record, get, this.typeOf);
     const item = glyphItem ?? get(record.parentId);
@@ -2218,6 +2272,71 @@ export class CatalogCompositionRoot {
       flexBasis: `${input.flexBasis}px`,
       minWidth: `${input.minWidth}px`,
     };
+  }
+  /** Anonymous text and group span boxes composed by the existing DOM bindings. */
+  private partsFor(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined = (id) =>
+      this.records.get(id),
+  ): readonly CatalogComposedPart[] {
+    const parts = [...catalogComposedParts(record, get, this.typeOf)];
+    if (
+      !record.children.length ||
+      (record.bindingId !== "button" && record.bindingId !== "togglebutton")
+    )
+      return parts;
+    const type = this.typeOf(record);
+    const leaf = textLeaf(
+      { ...record, children: [] },
+      type,
+      "",
+      inheritedLineHeight(record, get),
+    );
+    let textId: string | undefined;
+    if (leaf) {
+      textId = `${record.id}::part:text`;
+      const measured = this.textMeasure?.(leaf.text, leaf.font);
+      const width = measured?.exactWidth ?? measured?.width ?? 0;
+      const singleLine = catalogBindingKeepsOneLine(record) || leaf.singleLine;
+      parts.push({
+        id: textId,
+        afterChildren: type === "Button",
+        text: { content: leaf.text, font: leaf.font, singleLine },
+        style: {
+          contentMinWidth: singleLine
+            ? width
+            : Math.min(measured?.minWidth ?? width, width),
+          contentMaxWidth: width,
+          contentHeight:
+            this.wrapHeights.get(textId) ??
+            measured?.height ??
+            leaf.font.fontSize * leaf.font.lineHeight,
+        },
+      });
+    }
+    if (
+      type === "ToggleButton" &&
+      catalogToggleGroupOf(record, get, this.typeOf)
+    ) {
+      // The shared ToggleButton wraps group content in a span. Its layout declarations
+      // come from the same catalog selector that emits the DOM CSS.
+      const selectors = resolveComponentRule("ToggleButtonGroup")?.structure
+        ?.composition?.staticSelectors as
+        Record<string, Record<string, string>> | undefined;
+      const span = selectors?.[".react-aria-ToggleButton > span"];
+      parts.push({
+        id: `${record.id}::part:content`,
+        wraps: [...(textId ? [textId] : []), ...record.children],
+        style: {
+          display: catalogBoxModel(record).display,
+          alignItems: span?.["align-items"] ?? "center",
+          justifyContent: span?.["justify-content"] ?? "center",
+          rowGap: span?.gap ?? "0px",
+          columnGap: span?.gap ?? "0px",
+        },
+      });
+    }
+    return parts;
   }
   private styleFor(
     record: CatalogConsumerNode,
@@ -2683,6 +2802,42 @@ export class CatalogCompositionRoot {
         continue;
       }
       if (!this.textMeasure) continue;
+      // Mixed content creates anonymous flex text items in DOM. They wrap at their own
+      // assigned width, not at the owner's width (which also contains icons and gaps).
+      const parts = this.composedParts.get(id);
+      for (const part of parts ?? []) {
+        if (!part.text) continue;
+        const { content, font, singleLine } = part.text;
+        const rect = this.layout.getLayoutsForIds([part.id]).get(part.id);
+        if (!rect) continue;
+        const single = this.textMeasure(content, font);
+        const width = catalogTextBreaksWords(font)
+          ? rect.width
+          : Math.max(rect.width, single.minWidth ?? 0);
+        const next =
+          !singleLine &&
+          rect.width > 0 &&
+          width + 0.5 < (single.exactWidth ?? single.width)
+            ? this.textMeasure(content, font, width).height
+            : undefined;
+        if (next === this.wrapHeights.get(part.id)) continue;
+        this.keep(this.wrapHeights, part.id);
+        if (next === undefined) this.wrapHeights.delete(part.id);
+        else this.wrapHeights.set(part.id, next);
+        const updated = {
+          ...part,
+          style: { ...part.style, contentHeight: next ?? single.height },
+        };
+        this.keep(this.composedParts, id);
+        this.composedParts.set(
+          id,
+          this.composedParts
+            .get(id)!
+            .map((item) => (item.id === part.id ? updated : item)),
+        );
+        this.layout.updateNodeStyle(part.id, updated.style);
+        changed = true;
+      }
       // A DropZone's composed texts break at its content box (the column's stacked height).
       if (record.bindingId === "dropzone") {
         const content = catalogDropZoneContent(record, this.textMeasure);
@@ -2930,7 +3085,7 @@ export class CatalogCompositionRoot {
     }
     const get = (key: string) => this.records.get(key);
     for (const [id, record] of this.records) {
-      const parts = catalogComposedParts(record, get, this.typeOf);
+      const parts = this.partsFor(record, get);
       if (parts.length) this.composedParts.set(id, parts);
     }
     this.buildLayout();
@@ -3230,11 +3385,7 @@ export class CatalogCompositionRoot {
       styleChanged:
         !old || frameChanged || !sameFields(this.styleFor(old), style),
       chrome: deriveSlotChromeInput(record, this.slotChromeContext),
-      parts: catalogComposedParts(
-        record,
-        get ?? ((key) => this.records.get(key)),
-        this.typeOf,
-      ),
+      parts: this.partsFor(record, get ?? ((key) => this.records.get(key))),
     };
   }
 
@@ -3336,6 +3487,8 @@ export class CatalogCompositionRoot {
     }
     for (const part of oldParts)
       if (!parts.some((item) => item.id === part.id)) {
+        this.keep(this.wrapHeights, part.id);
+        this.wrapHeights.delete(part.id);
         this.layout.updateChildren(part.id, []);
         this.layout.removeNode(part.id);
       }
@@ -3381,6 +3534,8 @@ export class CatalogCompositionRoot {
       this.composedParts.delete(id);
       this.layout.updateChildren(id, []);
       for (const part of parts) {
+        this.keep(this.wrapHeights, part.id);
+        this.wrapHeights.delete(part.id);
         this.layout.updateChildren(part.id, []);
         this.layout.removeNode(part.id);
       }
@@ -3964,6 +4119,33 @@ export class CatalogCompositionRoot {
     const planned = new Map(updates.map((update) => [update.id, update]));
     const get = (key: string) =>
       planned.get(key)?.record ?? this.records.get(key);
+    // Resetting a node's own typography changes what it inherits, even when no ancestor
+    // changed. Resolve against the final transaction so multi-target writes and Undo agree
+    // with a fresh load, rather than retaining the previous inheritedText snapshot.
+    for (let index = 0; index < updates.length; index++) {
+      const update = updates[index];
+      if (
+        !CATALOG_INHERITED_TEXT_KEYS.some(
+          (key) =>
+            this.records.get(update.id)?.visual[key] !==
+            update.record.visual[key],
+        )
+      )
+        continue;
+      const { inheritedText: _previous, ...record } = update.record;
+      const inheritedText = inheritedTextOf(record, get);
+      const next = this.planRecord(
+        update.id,
+        {
+          ...record,
+          ...(inheritedText ? { inheritedText } : {}),
+        },
+        update.rootId,
+        get,
+      );
+      updates[index] = next;
+      planned.set(update.id, next);
+    }
     const owners = new Set<string>();
     for (const update of updates) {
       const owner = catalogPresenceScope(update.record, get, this.typeOf);

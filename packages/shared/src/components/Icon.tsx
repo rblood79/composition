@@ -43,7 +43,6 @@ export const Icon = memo(function Icon({
         : parseFloat(String(style.fontSize)) || undefined
       : undefined;
   const pxSize = styleFontSize ?? ICON_SIZE_MAP[size] ?? 24;
-  const color = style?.color ?? "currentColor";
 
   const data = getIconData(iconName);
   if (!data) return null;
@@ -74,7 +73,7 @@ export const Icon = memo(function Icon({
         height={pxSize}
         viewBox="0 0 24 24"
         fill="none"
-        stroke={color}
+        stroke="currentColor"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
