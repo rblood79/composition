@@ -90,6 +90,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   직접 형제 textarea만 찾는 CSS는 Prefix Group 삽입 후 매칭되지 않아 Side Label이 Canvas보다 22.5px 아래에 놓였다.
   Canvas 검증은 상자 좌표와 글자 내부 여백을 함께 본다. **Why (2026-10-14)**: Prefix Input의 paddingTop=0이
   rule paint에서 누락되어 상자가 일치해도 placeholder에 기본 size 여백(S/M/L/XL: 2/4/8/12px)이 다시 붙었다.
+- Canvas 글자 binding (`canvasBinding.ts` `bindings.text` · `bindings.button` — `textInset`) 의 글자 inset · 폭은 `catalogBoxModel` 의 변 padding + border 로 잡는다 — rule 의 `visual.paddingX` 를 직접 읽거나 inset 0 으로 두지 않는다.
+  **Why (2026-10-14)**: Button 에 네 변 padding 4 를 쓰면 배치 · DOM 은 상자를 줄이는데 글자만 `paddingX` 12 inset 에 24px 좁은 maxWidth 로 놓여 줄이 넘쳐 밖으로 나갔다 (사용자 Compare Mode 재현). Text · Label · Heading · Paragraph 는 inset 0 고정이라 padding-left 24 를 써도 글자가 상자 모서리에 붙었다.
 - 노드 트리의 자식 배치는 엔진이 계산한다. 삭제된 `calculateContentHeight` 분기나
   컴포넌트별 spec·옛 renderer 등록표를 재생성하지 않는다.
 - 검증은 변경된 spacing/typed field를 기본값과 다르게 설정해 DOM·Canvas·레이아웃에

@@ -3,6 +3,7 @@ import {
   catalogColorControlParts,
 } from "./colorControlParts";
 import { getIconData } from "@composition/rendering";
+import { catalogButtonPending } from "../document/buttonPending";
 import { NumberFormatter } from "@internationalized/number";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import {
@@ -1931,6 +1932,22 @@ function ownDerivedProps(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  const own = ownDerivedPropsBase(node, get, typeOf, locale);
+  // S2 Button `isPending`: the button's children (its icon · text nodes) stay laid out but are not
+  // shown (`buttonPending.ts` — the DOM wraps them in `visibility: hidden`, the Canvas registers
+  // them unpainted).
+  const parent = get(node.parentId);
+  if (!parent || !catalogButtonPending(typeOf(parent), parent.props))
+    return own;
+  return { ...own, _pendingHidden: true };
+}
+
+function ownDerivedPropsBase(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  locale?: string,
+): Readonly<Record<string, string | number | boolean>> | undefined {
   // ADR-256 Phase 8a: an overlay arrow's svg is its overlay's (the reference starter's — Tooltip 8,
   // Popover 12); the DOM binding draws it at that size.
   if (node.bindingId === "overlayarrow") {
@@ -2208,6 +2225,8 @@ export function catalogDerivedPropsDependents(
   const items = [
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
+    // (A Button's children follow its `isPending` — `_pendingHidden`, `buttonPending.ts`.)
+    ...(typeOf(owner) === "Button" ? childrenOf(owner, get) : []),
     // (A Color control's gradient · thumb parts — ADR-258 Phase 2.)
     ...catalogColorControlParts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)

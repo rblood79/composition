@@ -66,6 +66,17 @@ export interface ProgressCircleProps {
   /** 접근 가능한 이름을 다른 요소에서 참조할 때 (`aria-label` 과 택일). */
   "aria-labelledby"?: string;
   /**
+   * S2 Button `isPending` 의 원 (`buttonPending.ts`): 지름 · 선 굵기를 버튼 size 가 정하고, 색은
+   * 버튼의 글자색 (`currentColor`) 이다 — size 표 대신 이 값을 쓴다. Canvas 는 같은 두 호를
+   * `ruleShapes` 가 그린다.
+   */
+  diameter?: number;
+  strokeWidth?: number;
+  /** indicator 색 (기본 `{color.accent}`). */
+  indicatorColor?: string;
+  /** track 색 (기본 rule fill base). */
+  trackColor?: string;
+  /**
    * cutover 경로(toRacProps propPassthrough)가 함께 emit 하는 `data-*` 속성(예: data-size).
    * root `<div>` 에 passthrough 하여 CSS/debug marker 보존. 지름 계산엔 props.size 사용.
    */
@@ -99,11 +110,15 @@ export function ProgressCircle({
   staticColor,
   style,
   className,
+  diameter: diameterProp,
+  strokeWidth: strokeWidthProp,
+  indicatorColor: indicatorColorProp,
+  trackColor: trackColorProp,
   ...rest
 }: ProgressCircleProps): React.ReactElement {
   const sizeKey = String(size).toUpperCase();
-  const diameter = DIAMETER[sizeKey] ?? DIAMETER.M;
-  const strokeWidth = STROKE_WIDTH;
+  const diameter = diameterProp ?? DIAMETER[sizeKey] ?? DIAMETER.M;
+  const strokeWidth = strokeWidthProp ?? STROKE_WIDTH;
 
   const radius = (diameter - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -124,12 +139,16 @@ export function ProgressCircle({
   const variant = rule?.variants?.default;
   const isStatic = staticColor === "white" || staticColor === "black";
   const staticRgb = staticColor === "white" ? "255 255 255" : "0 0 0";
-  const trackColor = isStatic
-    ? `rgb(${staticRgb} / 0.17)`
-    : colorTokenToCss(variant?.fill?.default?.base, "var(--bg-muted)");
-  const indicatorColor = isStatic
-    ? `rgb(${staticRgb} / 0.94)`
-    : colorTokenToCss("{color.accent}", "var(--accent)");
+  const trackColor =
+    trackColorProp ??
+    (isStatic
+      ? `rgb(${staticRgb} / 0.17)`
+      : colorTokenToCss(variant?.fill?.default?.base, "var(--bg-muted)"));
+  const indicatorColor =
+    indicatorColorProp ??
+    (isStatic
+      ? `rgb(${staticRgb} / 0.94)`
+      : colorTokenToCss("{color.accent}", "var(--accent)"));
 
   return (
     <div
@@ -160,6 +179,22 @@ export function ProgressCircle({
           stroke={trackColor}
           strokeWidth={strokeWidth}
         />
+        {isIndeterminate && (
+          // (The 270° static arc — the Skia `value_fill_arc` indeterminate arc; the sheet may spin it.)
+          <circle
+            cx={diameter / 2}
+            cy={diameter / 2}
+            r={radius}
+            fill="none"
+            stroke={indicatorColor}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * 0.25}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${diameter / 2} ${diameter / 2})`}
+            data-indeterminate-arc=""
+          />
+        )}
         {!isIndeterminate && fraction > 0 && (
           <circle
             cx={diameter / 2}

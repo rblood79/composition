@@ -198,7 +198,8 @@ function buttonDefinition(
       ...(typeof values.fontWeight === "number"
         ? { fontWeight: values.fontWeight }
         : {}),
-      minWidth: values.minWidth,
+      // (A size without a floor writes none — the Button rule has no minWidth since 2026-10-14.)
+      ...(values.minWidth !== undefined ? { minWidth: values.minWidth } : {}),
       paddingX: values.paddingX,
       paddingY: values.paddingY,
       gap: values.gap,

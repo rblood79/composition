@@ -1213,10 +1213,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // fontWeight 500 (사용자 결정 2026-09-29 — 버튼 500 · 링크 400): 생성 CSS 는 sizes.fontWeight 만
     //   `font-weight` 로 내보내고 (variant.textWeight 는 Canvas 전용 채널), Canvas 는 textWeight 미선언 시
     //   500 이라 두 소비자가 같은 값이 된다. 안의 Text/Label 자식은 Button 척도를 받았다 (옛 propagationRegistry — 2026-10-05 삭제).
-    // minWidth (Spectrum 식별성 하한 채택 2026-08-20): ceil(2.25 × border-box height),
-    //   height = lineHeight + 2·paddingY + 2·borderWidth (xs 20 / sm 22 / md 30 / lg 42 / xl 54).
-    //   짧은 라벨("OK" 등) 버튼의 식별 가능 형태 보장 — Spectrum Button "min-width = 2.25× height".
-    //   DOM 은 generate-css `min-width` emit, Skia 는 implicitStyles 주입 → 엔진 min_width clamp.
+    // minWidth 없음 (사용자 결정 2026-10-14): 2026-08-20 에 넣었던 Spectrum 1 의 "min-width =
+    //   2.25 × height" 하한 (XS 45 · S 50 · M 68 · L 95 · XL 122) 을 뺐다 — 설치 S2 1.8.1 `Button.tsx`
+    //   에는 min-width 가 없고, paddingX 가 짧은 라벨의 모양을 지킨다. 두 consumer 가 같이 읽던 값이라
+    //   생성 CSS `min-width` 와 Canvas `styleOf` 의 min_width 가 함께 사라진다.
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
@@ -1225,7 +1225,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        minWidth: 45,
         iconSize: 14,
         paddingX: 4,
         paddingY: 1,
@@ -1239,7 +1238,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        minWidth: 50,
         iconSize: 16,
         paddingX: 8,
         paddingY: 2,
@@ -1253,7 +1251,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        minWidth: 68,
         iconSize: 18,
         paddingX: 12,
         paddingY: 4,
@@ -1267,7 +1264,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        minWidth: 95,
         iconSize: 24,
         paddingX: 16,
         paddingY: 8,
@@ -1281,7 +1277,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         borderWidth: "{border.width.thin}",
         height: 0,
-        minWidth: 122,
         iconSize: 28,
         paddingX: 24,
         paddingY: 12,

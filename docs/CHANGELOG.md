@@ -53,6 +53,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 패널이 이미 판별한 컴포넌트 타입을 재사용해 일반 컴포넌트 선택 시 불필요한 graph 조회를 추가하지 않는다.
   - 같은 Prefix 경로의 NumberField·ComboBox·ColorField와 Undo/Redo·Prefix 제거/교체·문서 재로드도 검증한다.
 
+## [Canvas Button 글자가 변 padding 을 따른다] - 2026-10-14
+
+### Fixed
+
+- **Button 의 padding 을 네 변 모두 4 로 쓰면 Canvas 에서 글자가 버튼 밖으로 나가던 것.** Preview (CSS) 는 정상이었다.
+  - **Why:** Canvas 의 Button 글자 그리기가 rule 의 `paddingX` (M 12) 만 읽어, 상자는 변 padding 으로 줄었는데 (100.7px) 글자는 12px 안쪽에서 24px 좁은 폭 (76.7 < 글자 90.7) 으로 놓여 줄이 넘쳤다. 배치 · DOM 이 쓰는 상자 모델 (`catalogBoxModel` — paddingLeft > paddingX > padding) 을 읽도록 고쳤다.
+  - 회귀 테스트 `buttonPaddingText.test.tsx` (원복 RED) · live `button-padding-live.mjs` (글자 inset 4 · 폭 92.7 · 양쪽 상자 100.7).
+- **같은 패턴 — Text · Label · Heading · Paragraph (Canvas 글자 binding) 도 작성 padding · border 를 무시하고 글자를 상자 모서리 (inset 0) 에 그렸다.** Preview 는 padding 안쪽에 그린다. 이제 상자 모델의 변 padding + border 만큼 들여쓴다 (`textLeafPadding.test.tsx` 5 · live `text-padding-live.mjs`: padding-left 24 + border 2 → 양쪽 글자 inset 26).
+
+## [Button 최소 폭 하한 제거] - 2026-10-14
+
+### Changed
+
+- **Button 의 size 별 `min-width` (XS 45 · S 50 · M 68 · L 95 · XL 122) 를 뺐다** — 짧은 라벨 ("OK") 버튼이 padding + 글자 폭으로 좁아진다 (M: 68 → 45). 설치된 S2 1.8.1 `Button` 에는 min-width 가 없고, 2026-08-20 에 넣은 값은 Spectrum 1 의 "2.25 × height" 였다 (사용자 결정). Canvas 와 Preview 가 같은 rule 을 읽으므로 양쪽이 같이 줄어든다.
+
+## [Button Pending — 대기 중 표시] - 2026-10-14
+
+### Added
+
+- **Button 의 Pending (`isPending`) 이 양쪽에 보인다.** S2 1.8 `Button` 과 같은 모양 — 글자 · 아이콘은 자리를 지킨 채 숨고, 가운데에 끝없는 진행 원 (S2 size S 선 2px · 버튼 size 별 지름 S 14 · M 18 · L 20 · XL 24) 이 버튼 글자색으로 뜬다. Preview 는 S2 처럼 1초 뒤에 (짧은 대기가 깜빡이지 않도록), Canvas 는 저작 화면이라 바로. RAC 는 전처럼 누름을 막고 `data-pending` · `aria-disabled` 를 단다.
+  - **Why:** 2026-09-29 부터 미뤄 둔 항목 (ADR-248 완료 후). 그전에는 DOM binding 이 `isPending` 을 넘기지도 않았고, Canvas 는 아무것도 그리지 않았다.
+  - 두 consumer 가 `buttonPending.ts` 하나 (지연 · 지름 · 선 · 투명도 · 이름) 를 읽는다. 이름은 S2 `button.pending` ("Pending").
+- 단독 ProgressCircle 의 `isIndeterminate` 도 이제 DOM 이 270° 호를 그린다 — Skia `value_fill_arc` 와 같은 호. 전에는 track 만 그려 Canvas 와 갈렸다.
+
 ## [D2 — binding prop 을 설치된 S2 1.8.1 과 대조] - 2026-10-14
 
 ### Changed

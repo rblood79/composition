@@ -38,7 +38,6 @@
   line-height: var(--text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
   --icon-gap: 8px;
@@ -144,7 +143,6 @@
   line-height: var(--text-2xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 45px;
   gap: 4px;
   --icon-size: 14px;
   --icon-gap: 4px;
@@ -157,7 +155,6 @@
   line-height: var(--text-xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 50px;
   gap: 6px;
   --icon-size: 16px;
   --icon-gap: 6px;
@@ -170,7 +167,6 @@
   line-height: var(--text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 68px;
   gap: 8px;
   --icon-size: 18px;
   --icon-gap: 8px;
@@ -183,7 +179,6 @@
   line-height: var(--text-base--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 95px;
   gap: 10px;
   --icon-size: 24px;
   --icon-gap: 10px;
@@ -196,7 +191,6 @@
   line-height: var(--text-lg--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
-  min-width: 122px;
   gap: 12px;
   --icon-size: 28px;
   --icon-gap: 12px;

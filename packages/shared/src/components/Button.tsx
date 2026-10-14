@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import {
   Button as RACButton,
@@ -8,6 +8,37 @@ import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ButtonVariant, ComponentSize, StaticColor } from "../types";
 import { Skeleton } from "./Skeleton";
+import { ProgressCircle } from "./ProgressCircle";
+import {
+  CATALOG_BUTTON_PENDING_DELAY_MS,
+  CATALOG_BUTTON_PENDING_LABELS,
+  catalogButtonPendingIndicator,
+} from "../catalog/document/buttonPending";
+
+/**
+ * S2 `usePendingState` (`Button.tsx`): the pending circle shows a second after `isPending` turns on
+ * — a short pending state does not flash it — and goes at once when it turns off.
+ */
+export function usePendingState(isPending: boolean): boolean {
+  const [isProgressVisible, setIsProgressVisible] = useState(false);
+  useEffect(() => {
+    if (!isPending) {
+      setIsProgressVisible(false);
+      return;
+    }
+    const timeout = setTimeout(
+      () => setIsProgressVisible(true),
+      CATALOG_BUTTON_PENDING_DELAY_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [isPending]);
+  return isProgressVisible;
+}
+
+/** RAC Button's render-function argument (its render props with `defaultChildren`). */
+type PendingRenderProps = Parameters<
+  Extract<RACButtonProps["children"], (...args: never[]) => unknown>
+>[0];
 
 export interface ButtonProps extends RACButtonProps {
   variant?: ButtonVariant;
@@ -44,6 +75,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const { focusProps, isFocusVisible } = useFocusRing();
     const quiet =
       (restProps as Record<string, unknown>)["data-quiet"] === "true";
+    // S2 Button `isPending` (`buttonPending.ts`): the content stays laid out but hidden, the
+    // indeterminate circle sits at the centre in the button's text color — after S2's delay. RAC
+    // marks the element (`data-pending` · `aria-disabled`) and blocks the press.
+    const isPending = props.isPending === true;
+    const isProgressVisible = usePendingState(isPending);
+    const pendingIndicator = isPending
+      ? catalogButtonPendingIndicator(size)
+      : undefined;
 
     return (
       <RACButton
@@ -66,7 +105,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             : "react-aria-Button button-base";
           return cls ? `${base} ${cls}` : base;
         })}
-        style={style}
+        style={pendingIndicator ? { position: "relative", ...style } : style}
       >
         {isLoading ? (
           <>
@@ -77,6 +116,42 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             />
             <span className="sr-only">{loadingLabel}</span>
           </>
+        ) : pendingIndicator ? (
+          // (RAC children may be a render function — called with RAC's render props, as RAC does.)
+          (renderProps: PendingRenderProps) => (
+            <>
+              <span
+                data-pending-content=""
+                style={{
+                  display: "contents",
+                  visibility: isProgressVisible ? "hidden" : undefined,
+                }}
+              >
+                {typeof children === "function"
+                  ? children(renderProps)
+                  : children}
+              </span>
+            <span
+              data-pending-indicator=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                visibility: isProgressVisible ? "visible" : "hidden",
+              }}
+            >
+              <ProgressCircle
+                isIndeterminate
+                aria-label={CATALOG_BUTTON_PENDING_LABELS.en}
+                diameter={pendingIndicator.diameter}
+                strokeWidth={pendingIndicator.strokeWidth}
+                indicatorColor="currentColor"
+                trackColor={`color-mix(in srgb, currentColor ${Math.round(pendingIndicator.trackAlpha * 100)}%, transparent)`}
+              />
+            </span>
+            </>
+          )
         ) : (
           children
         )}

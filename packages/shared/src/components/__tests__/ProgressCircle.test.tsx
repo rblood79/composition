@@ -83,11 +83,15 @@ describe("ProgressCircle — value 비례 호 + indeterminate", () => {
     expect(html).toContain(`stroke-dashoffset="${offset}"`);
   });
 
-  it("isIndeterminate → indicator circle 없음 (CSS 애니메이션, fallback 없이 정적 track)", () => {
+  it("isIndeterminate → 270° 정적 indicator 호 (Skia value_fill_arc 와 같은 호 — 2026-10-14 Button pending)", () => {
+    // 전에는 track 만 그려 Skia (270° 호) 와 갈렸다 — CSS 애니메이션은 없었다.
     const html = renderToStaticMarkup(
       <ProgressCircle value={50} isIndeterminate />,
     );
-    expect(html).not.toContain("stroke-dasharray");
+    expect(html).toContain("data-indeterminate-arc");
+    const radius = (32 - 3) / 2;
+    const circ = 2 * Math.PI * radius;
+    expect(html).toContain(`stroke-dashoffset="${circ * 0.25}"`);
     // aria-valuenow 없음 (indeterminate)
     expect(html).not.toContain("aria-valuenow");
   });

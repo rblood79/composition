@@ -1472,6 +1472,9 @@ function buttonElement(
       // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
       // parent's context, so a default `false` would undo a field's disabled stepper.
       ...(buttonDisabled(node) ? { isDisabled: true } : {}),
+      // (S2 `isPending` — the shared Button hides its content and shows the pending circle,
+      //  `buttonPending.ts`; RAC marks the element and blocks the press.)
+      ...(node.props.isPending === true ? { isPending: true } : {}),
       ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
       // RAC's named slot of the parent this Button belongs to (a NumberField's steppers) —
       // ADR-256 Decision 4: the slot the context resolves to (`null` = detached).

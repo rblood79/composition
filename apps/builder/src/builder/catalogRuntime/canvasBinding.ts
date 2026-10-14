@@ -78,6 +78,10 @@ import {
   catalogTextMetrics,
 } from "./boxModel";
 import { catalogRowSampleHidden } from "./rowSample";
+import {
+  catalogButtonPending,
+  catalogButtonPendingIndicator,
+} from "../../../../../packages/shared/src/catalog/document/buttonPending";
 
 /**
  * ADR-248 Canvas binding: resolved catalog inputs → existing CanvasKit render commands.
@@ -135,6 +139,28 @@ function assertSupportedVisual(node: CatalogConsumerNode): void {
   for (const key of Object.keys(node.visual))
     if (!supportedVisualKeys.has(key))
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
+}
+
+/**
+ * A text leaf's inset from its box edge: the box model's padding sides plus the border
+ * (`catalogBoxModel` — an authored side over `paddingX` · `paddingY` over `padding`).
+ */
+function textInset(node: CatalogConsumerNode): {
+  readonly top: number;
+  readonly right: number;
+  readonly left: number;
+} {
+  const px = (value: unknown) =>
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value ?? 0)) || 0;
+  const box = catalogBoxModel(node);
+  const border = px(box.borderWidth);
+  return {
+    top: border + px(box.padding?.top),
+    right: border + px(box.padding?.right),
+    left: border + px(box.padding?.left),
+  };
 }
 
 function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
@@ -447,6 +473,7 @@ const bindings: Readonly<Record<string, Binding>> = {
   text: (node, rect, parent, wraps, suffix = "") => {
     const metrics = catalogTextMetrics(node, parent);
     const fontSize = metrics.fontSize;
+    const inset = textInset(node);
     const layoutWhiteSpace =
       wraps &&
       (!CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "") ||
@@ -509,9 +536,13 @@ const bindings: Readonly<Record<string, Binding>> = {
           ? { lineHeight: fontSize * metrics.lineHeight }
           : {}),
         color: rgba(metrics.color),
-        paddingLeft: 0,
-        paddingTop: 0,
-        maxWidth: rect.width,
+        // The text sits inside the box model's padding sides (and the border) — the sides the
+        // layout (`styleOf`) and the DOM use. **Why (2026-10-14)**: inset 0 over the whole box drew a
+        // padded Text's glyphs at the box edge while the Preview's sat `padding-left` in (the Button
+        // label spill's sibling pattern).
+        paddingLeft: inset.left,
+        paddingTop: inset.top,
+        maxWidth: Math.max(0, rect.width - inset.left - inset.right),
         // The layout's wrap decision: a leaf it kept on one line paints unwrapped; an authored
         // non-normal white-space (nowrap / pre …) is painted as declared.
         whiteSpace:
@@ -527,17 +558,34 @@ const bindings: Readonly<Record<string, Binding>> = {
     const painted = withQuietOwnerBox(node, rect, (own) =>
       bindings.text(own, rect, parent),
     );
-    const paddingX = Number(node.visual.paddingX ?? 0);
+    // The label's inset is the box model's sides (`catalogBoxModel` — an authored `paddingLeft` ·
+    // `paddingRight` over the rule's `paddingX`), the sides the layout and the DOM use. **Why
+    // (2026-10-14)**: reading `visual.paddingX` alone left a 12px inset and a 24px-narrower
+    // `maxWidth` on a button whose document padding was 4 — the label wrapped past the box.
+    const { left: paddingLeft, right: paddingRight } = textInset(node);
+    // S2 Button `isPending` (`buttonPending.ts`): the label stays laid out but is not shown, the
+    // indeterminate circle sits at the centre in the label's color — the DOM's shared Button draws
+    // the same after S2's delay; the Canvas shows the pending state at once.
+    const pending = catalogButtonPending("Button", node.props);
     return {
       ...painted,
       text: {
         ...painted.text!,
+        ...(pending ? { content: "" } : {}),
         align: "center",
         autoCenter: true,
         verticalAlign: "middle",
-        paddingLeft: paddingX,
-        maxWidth: Math.max(0, rect.width - 2 * paddingX),
+        paddingLeft,
+        maxWidth: Math.max(0, rect.width - paddingLeft - paddingRight),
       },
+      ...(pending
+        ? {
+            children: [
+              ...(painted.children ?? []),
+              ...pendingCircleData(node, rect, painted.text!.color),
+            ],
+          }
+        : {}),
     };
   },
   heading: (node, rect, parent, wraps) =>
@@ -555,6 +603,52 @@ const bindings: Readonly<Record<string, Binding>> = {
   selectvalue: (node, rect, parent, wraps) =>
     bindings.text(node, rect, parent, wraps),
 };
+
+/**
+ * S2 Button `isPending`'s indeterminate circle as the button's internal children (`buttonPending.ts`
+ * — the same two arcs the DOM's shared ProgressCircle draws): the track in the label's color at
+ * S2's overlay alpha, the 270° indicator in the label's color, centred on the button box.
+ */
+function pendingCircleData(
+  node: CatalogConsumerNode,
+  rect: Rect,
+  color: Float32Array,
+): SkiaNodeData[] {
+  const { diameter, strokeWidth, trackAlpha } = catalogButtonPendingIndicator(
+    node.props.size,
+  );
+  const radius = diameter / 2 - strokeWidth / 2;
+  const arc = (
+    startAngle: number,
+    sweepAngle: number,
+    alpha: number,
+    strokeCap: "butt" | "round",
+  ): SkiaNodeData => ({
+    type: "box",
+    x: (rect.width - diameter) / 2,
+    y: (rect.height - diameter) / 2,
+    width: diameter,
+    height: diameter,
+    visible: true,
+    box: { fillColor: Float32Array.of(0, 0, 0, 0), borderRadius: 0 },
+    arc: {
+      cx: diameter / 2,
+      cy: diameter / 2,
+      radius,
+      startAngle,
+      sweepAngle,
+      strokeColor: Float32Array.of(
+        color[0],
+        color[1],
+        color[2],
+        color[3] * alpha,
+      ),
+      strokeWidth,
+      strokeCap,
+    },
+  });
+  return [arc(0, 360, trackAlpha, "butt"), arc(-90, 270, 1, "round")];
+}
 
 /** Binding ids with a product Canvas binding (census and consumers read this, not a copy). */
 export const CATALOG_CANVAS_BINDING_IDS: ReadonlySet<string> = new Set(
@@ -964,6 +1058,7 @@ function withComposedText(
     node,
     root.canvasInputs.get(node.parentId),
   );
+  const pending = catalogButtonPending(root.typeOf(node), node.props);
   const text = bindings.text(
     {
       ...node,
@@ -999,7 +1094,7 @@ function withComposedText(
       text: {
         ...text.text!,
         color: data.text.color,
-        content: part.text.content,
+        content: pending ? "" : part.text.content,
         paddingLeft: rect.x + (offset?.x ?? 0),
         paddingTop: rect.y + (offset?.y ?? 0),
         autoCenter: false,
@@ -1007,7 +1102,7 @@ function withComposedText(
     };
   return {
     ...data,
-    children: [...(data.children ?? []), text],
+    children: [...(data.children ?? []), ...(!pending ? [text] : [])],
   };
 }
 
@@ -1323,6 +1418,7 @@ function bindInColorMode(
       registerSkiaNode(
         node.id,
         node.hidden ||
+          node.derivedProps?._pendingHidden === true ||
           catalogRowSampleHidden(root, node) ||
           root.tagRowCollapsed(node.id)
           ? hiddenNode(node, rect)
@@ -1867,6 +1963,7 @@ function bindInColorMode(
         registerSkiaNode(
           id,
           node.hidden ||
+            node.derivedProps?._pendingHidden === true ||
             catalogRowSampleHidden(root, node) ||
             root.tagRowCollapsed(node.id)
             ? hiddenNode(node, rect)
