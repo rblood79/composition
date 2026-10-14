@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 버튼 기본 너비 — flex column 전환] - 2026-10-14
+
+### Fixed
+
+- **Body를 block에서 flex column으로 바꿔도 Button·IconButton·ToggleButton이 기본 `fit-content` 너비를 유지한다.**
+  - **Why:** CSS와 Canvas가 읽는 루트 스타일 복사본이 달라 Canvas 입력에서 기본 너비가 누락됐다.
+  - Button·ToggleButton의 루트 스타일 정의를 공유하고 Button도 공용 typed box 변환을 거친다. 기존 문서에 너비를 다시 지정할 필요가 없다.
+  - 회귀 검증: 다섯 버튼·그룹의 block → column, Undo/Redo, 문서 재로드, 명시적 너비 우선 적용.
+
 ## [Canvas 배치 즉시 반영 — margin·border·Table 열 갱신] - 2026-10-14
 
 ### Fixed

@@ -43,6 +43,16 @@ const FIELD_PREFIX_SIZES = {
   XL: prefixSize("text-lg", 8),
 } as const;
 
+// Button and ToggleButton have one root box for CSS generation and Canvas typed definitions.
+// Keeping separate copies dropped fit-content in Canvas when the parent became a flex column.
+const BUTTON_ROOT_BOX = {
+  display: "inline-flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "fit-content",
+} as const;
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
@@ -1094,12 +1104,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
     //   justifyContent (ADR-253): 생성 sheet 는 내용을 가운데에 둔다 (`structure.containerStyles`) —
     //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 IconButton) 의 Canvas 자식도 같다.
-    containerStyles: {
-      display: "inline-flex",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    containerStyles: BUTTON_ROOT_BOX,
     variants: {
       accent: {
         fill: {
@@ -1286,12 +1291,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "button",
       element: "button",
-      containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "fit-content",
-      },
+      containerStyles: BUTTON_ROOT_BOX,
       states: {
         hover: {},
         pressed: {
@@ -12910,11 +12910,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // top-level containerStyles — Button 과 같은 발산 이력 (종전 Skia `INLINE_BLOCK_TAGS`("togglebutton")
     //   → block, 2026-06-27; 그 목록은 ADR-923 Phase 5 에서 삭제). display 는 DOM 과 같은 `inline-flex`
     //   (ADR-923 Phase 5 — Button 과 같은 사유, Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
-    containerStyles: {
-      display: "inline-flex",
-      flexDirection: "row",
-      alignItems: "center",
-    },
+    containerStyles: BUTTON_ROOT_BOX,
     variants: {
       default: {
         fill: {
@@ -13012,12 +13008,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "button",
       element: "button",
-      containerStyles: {
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "fit-content",
-      },
+      containerStyles: BUTTON_ROOT_BOX,
       states: {
         hover: {},
         pressed: {

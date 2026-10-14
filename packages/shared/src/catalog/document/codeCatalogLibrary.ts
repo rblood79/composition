@@ -325,7 +325,7 @@ function buttonDefinition(
       fillStyle: ["fill", "outline"],
     },
     visual: {},
-    layout: rule.containerStyles,
+    // withRuleBox splits the shared root box into typed layout and visual values.
     propVisualRules: { variant: variants, size: sizes },
     conditionalRules: [
       ...conditionalRules,

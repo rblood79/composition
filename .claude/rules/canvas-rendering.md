@@ -24,6 +24,8 @@ paths:
 
 2개 렌더링 타겟 (CSS/Skia)의 catalog 정의·origin template → CSS·DOM·Skia consumer → editor 경로를 함께 확인하고 `/cross-check`로 검증한다. 구조·상태 조립은 [RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다. 동일 패턴은 관련 소비자를 검색하되 요청 범위만 수정한다.
 
+- 같은 루트 상자는 CSS `structure.containerStyles`와 Canvas `containerStyles` 정의를 공유하고 typed box 변환을 거친다. **Why:** Button·ToggleButton의 Canvas 복사본에서 `width: fit-content`가 빠져 flex column에서 342px로 늘어났으며, CSS는 각각 약 68px·115px를 유지했다. trigger와 popover처럼 서로 다른 상자는 합치지 않는다.
+
 ## 1. Skia 단일 렌더러 핵심 (ADR-900)
 
 - ADR-900 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
