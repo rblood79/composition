@@ -266,7 +266,7 @@ H5 수리안은 **main에 미연결 새 모듈을 추가한 뒤 제품 진입점
 - 폐기: mirror/hydrate 계열, 파생 위치·preview 계열, legacy placement 모델, 타입 없는 writer (`updateNodeExtension` 등), `db.events/actions` fan-out, 미사용 menu item 액션. undo/redo 는 coordinator 기능.
 - 검증: family 마다 resolved 관계 판정 (ops 대조 아님) · forward/inverse 왕복 · 실패 원자성 · 전체 검증기 대조 · 조작당 history 1개 · 무작위 500단계 전체 undo · `commands/` 의 전체 순회 사용 0. G0 활성 자손 13경로마다 명령 1 + 구 oracle 표본 1. 약 129 이름 coverage manifest "미분류 0".
 
-**사용자 판정 (2026-09-30, AskUserQuestion)**: ① Undo/Redo = **프로젝트 단일 스택** (페이지 간 공유, theme·page·interaction 편집 포함, 새로고침 후 비움 — 구 페이지별 IDB 저장 제거). ② 선택 요소로 컴포넌트 만들기 = **template 은 Components 로, 원래 자리엔 인스턴스** (구 "그 자리 origin" 은 definition 의 template 소유와 동시 소유가 되어 불가).
+**사용자 판정 (2026-09-30, AskUserQuestion)**: ① Undo/Redo = **프로젝트 단일 스택** (페이지 간 공유, theme·page·interaction 편집 포함, 새로고침 후 비움 — 구 페이지별 IDB 저장 제거). ② 선택 요소로 컴포넌트 만들기 = **template 은 Components 로, 원래 자리엔 인스턴스** (구 "그 자리 origin" 은 definition 의 template 소유와 동시 소유가 되어 불가). **2026-10-14 개정 제안**: [ADR-260](../260-component-origin-in-place.md) — 「정의 → template」 edge 를 참조로 바꿔 「그 자리 origin」 (pen.dev · Figma 모델) 으로 되돌린다 (사용자 confirm 10-14).
 
 **4b 진행 (2026-09-30, 커밋 순)** — 모두 제품 entry 미연결. 명령은 shared 순수 함수이고, Builder 는 `compositionRoot.execute` 로만 실행한다:
 
