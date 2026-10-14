@@ -3,6 +3,7 @@ import type {
   ComponentProperty,
   ComponentPropertyTarget,
   DefinitionEntry,
+  DefinitionId,
   DescendantOverride,
   EntryId,
   NodeEntry,
@@ -344,6 +345,38 @@ export const removeComponentProperty =
       definition.properties.filter((item) => item.key !== input.key),
     );
     return { label: input.label ?? "Delete property", ops: draft.ops() };
+  };
+
+/**
+ * ADR-261 Phase 5 — an instance property's preferred components (Figma preferred values): offered
+ * first when an instance picks its value. A suggestion, not a limit.
+ */
+export const setComponentPropertyPreferred =
+  (
+    input: ComponentPropertyInput & {
+      key: string;
+      preferred: readonly DefinitionId[];
+    },
+  ): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const definition = definitionOf(draft, input.definitionId);
+    const property = definition.properties?.find(
+      (item) => item.key === input.key,
+    );
+    if (property?.kind !== "instance")
+      return fail("PROPERTY_NOT_FOUND", input.key);
+    const preferred = [...new Set(input.preferred)];
+    writeProperties(
+      draft,
+      definition,
+      definition.properties!.map((item) => {
+        if (item.key !== input.key) return item;
+        const { preferred: _old, ...rest } = item;
+        return preferred.length ? { ...rest, preferred } : rest;
+      }),
+    );
+    return { label: input.label ?? "Preferred components", ops: draft.ops() };
   };
 
 /** Every property of a component on the given node (an origin node's Design panel). */

@@ -17,6 +17,8 @@ import { applyCatalogTransaction } from "../../transactions/transaction";
 import type { CatalogCommand } from "../compose";
 import {
   addComponentProperty,
+  setInstanceProperty,
+  stageOver,
   copyNodes,
   createComponent,
   detachInstances,
@@ -439,12 +441,21 @@ describe("ADR-248 Phase 4b random command sequence", () => {
         const target = pickOne(inOrigin);
         if (!target) return undefined;
         const text = target.definitionId === "lib:definition:text";
+        // (Phase 5: an instance swap property on a layer below the root.)
+        const kind = text
+          ? "text"
+          : target.id !== definition.templateRootId && random() < 0.4
+            ? "instance"
+            : "boolean";
         return addComponentProperty({
           definitionId: definition.id,
           key: `p${++next}`,
           name: `P${next}`,
-          kind: text ? "text" : "boolean",
-          target: text ? { id: target.id, prop: "children" } : { id: target.id },
+          kind,
+          target:
+            kind === "text"
+              ? { id: target.id, prop: "children" }
+              : { id: target.id },
         });
       },
       propertyValue: () => {
@@ -459,8 +470,10 @@ describe("ADR-248 Phase 4b random command sequence", () => {
         );
         if (!instance) return undefined;
         const property = pickOne(
-          (graph.getEntry(instance.definitionId) as DefinitionEntry)
-            .properties ?? [],
+          (
+            (graph.getEntry(instance.definitionId) as DefinitionEntry)
+              .properties ?? []
+          ).filter((item) => item.kind !== "instance"),
         );
         return property
           ? setFields({
@@ -473,6 +486,83 @@ describe("ADR-248 Phase 4b random command sequence", () => {
               },
             })
           : undefined;
+      },
+      // ADR-261 Phase 5: an instance's value for an instance swap property (or the default) — a
+      // component with an instance but no such property yet gets one in the same step.
+      instanceValue: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const instance = pickOne(
+          ownedNodes().filter((entry) => {
+            const definition = graph.getEntry(entry.definitionId);
+            return (
+              definition?.kind === "definition" &&
+              definition.usage !== "layout" &&
+              !!definition.templateRootId
+            );
+          }),
+        );
+        if (!instance) return undefined;
+        const definition = graph.getEntry(
+          instance.definitionId,
+        ) as DefinitionEntry;
+        let property = pickOne(
+          (definition.properties ?? []).filter(
+            (item) => item.kind === "instance",
+          ),
+        );
+        let add: CatalogCommand | undefined;
+        if (!property) {
+          const below: NodeEntry[] = [];
+          const stack = [definition.templateRootId as string];
+          while (stack.length) {
+            const entry = graph.getEntry(stack.pop()!);
+            if (entry?.kind !== "node") continue;
+            if (entry.id !== definition.templateRootId) below.push(entry);
+            stack.push(...ownedChildren(entry));
+          }
+          const target = pickOne(
+            below.filter(
+              (entry) =>
+                !definition.properties?.some(
+                  (item) =>
+                    item.kind === "text" &&
+                    item.targets.some((other) => other.id === entry.id),
+                ),
+            ),
+          );
+          if (!target) return undefined;
+          const key = `p${++next}`;
+          property = { key, name: key, kind: "instance", targets: [{ id: target.id }] };
+          add = addComponentProperty({
+            definitionId: definition.id,
+            key,
+            name: key,
+            kind: "instance",
+            target: { id: target.id },
+          });
+        }
+        const definitionId = pickOne([
+          null,
+          "lib:definition:badge",
+          "lib:definition:text",
+          ...project.definitionIds,
+        ]);
+        const set = setInstanceProperty({
+          ownerId: instance.id,
+          instances: [instance.id],
+          key: property.key,
+          definitionId: (definitionId ?? null) as DefinitionId | null,
+          newId,
+        });
+        if (!add) return set;
+        const first = add;
+        return (reader) => {
+          const stage = stageOver(reader);
+          const made = first(stage);
+          stage.apply(made.ops);
+          const value = set(stage);
+          return { label: value.label, ops: [...made.ops, ...value.ops] };
+        };
       },
       rename: () => {
         const target = pickOne(ownedNodes());

@@ -386,6 +386,7 @@ const koKR: TranslationKeys = {
     swapRelated: "관련",
     swapLocal: "로컬",
     swapLibrary: "라이브러리",
+    swapPreferred: "추천",
     swapped:
       "{name} 으로 교체 — 유지 {kept} · 버림 {dropped} · 밖으로 {movedOut}",
     systemOriginLocked: "라이브러리 컴포넌트는 분리할 수 없습니다",
@@ -908,6 +909,13 @@ const koKR: TranslationKeys = {
     componentPropertyActions: "{name} 동작",
     componentPropertyDetach: "이 레이어에서 떼기",
     componentPropertyDelete: "속성 삭제",
+    componentPropertyKindInstance: "인스턴스 교체",
+    componentPropertyInstance: "인스턴스 교체 속성",
+    componentPropertyPreferred: "{name} 추천 컴포넌트",
+    componentPropertyPreferredAdd: "추천 추가",
+    componentPropertyPreferredRemove: "{name} 추천 제거",
+    instancePropertyReset: "원본 컴포넌트로 되돌렸습니다",
+    instancePropertyResetAction: "{name} 원본으로 되돌리기",
     slotStatus: "상태",
     slotInactive: "비활성",
     slotRecommendations: "추천 {count}개",
@@ -2555,6 +2563,7 @@ const enUS: TranslationKeys = {
     swapRelated: "Related",
     swapLocal: "Local",
     swapLibrary: "Library",
+    swapPreferred: "Preferred",
     swapped:
       "Swapped to {name} — kept {kept} · dropped {dropped} · moved out {movedOut}",
     systemOriginLocked: "Library components can't be detached",
@@ -3075,6 +3084,13 @@ const enUS: TranslationKeys = {
     componentPropertyActions: "{name} actions",
     componentPropertyDetach: "Detach from layer",
     componentPropertyDelete: "Delete property",
+    componentPropertyKindInstance: "Instance swap",
+    componentPropertyInstance: "Instance swap property",
+    componentPropertyPreferred: "{name} preferred",
+    componentPropertyPreferredAdd: "Add preferred",
+    componentPropertyPreferredRemove: "Remove {name} from preferred",
+    instancePropertyReset: "Back to the origin's component",
+    instancePropertyResetAction: "Reset {name}",
     slotStatus: "Status",
     slotInactive: "Inactive",
     slotRecommendations: "{count} recommendations",
@@ -5463,6 +5479,12 @@ const formattedMessages: Record<
       `레이어 ${String(args?.count ?? 0)}`,
     "propertiesPanel.componentPropertyActions": (args) =>
       `${String(args?.name ?? "")} 동작`,
+    "propertiesPanel.componentPropertyPreferred": (args) =>
+      `${String(args?.name ?? "")} 추천 컴포넌트`,
+    "propertiesPanel.componentPropertyPreferredRemove": (args) =>
+      `${String(args?.name ?? "")} 추천 제거`,
+    "propertiesPanel.instancePropertyResetAction": (args) =>
+      `${String(args?.name ?? "")} 원본으로 되돌리기`,
     "propertiesPanel.stateVariantOf": (args) =>
       `${String(args?.name ?? "")} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다`,
     "history.entryThemeAdd": (args) => `테마 추가: ${String(args?.name ?? "")}`,
@@ -5987,6 +6009,12 @@ const formattedMessages: Record<
         : `${String(args?.count ?? 0)} layers`,
     "propertiesPanel.componentPropertyActions": (args) =>
       `${String(args?.name ?? "")} actions`,
+    "propertiesPanel.componentPropertyPreferred": (args) =>
+      `${String(args?.name ?? "")} preferred`,
+    "propertiesPanel.componentPropertyPreferredRemove": (args) =>
+      `Remove ${String(args?.name ?? "")} from preferred`,
+    "propertiesPanel.instancePropertyResetAction": (args) =>
+      `Reset ${String(args?.name ?? "")}`,
     "propertiesPanel.stateVariantOf": (args) =>
       `State variant of ${String(args?.name ?? "")} — edit only the background · color · border · opacity used in this state`,
     "history.entryThemeAdd": (args) => `Add theme: ${String(args?.name ?? "")}`,

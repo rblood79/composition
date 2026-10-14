@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-261 Phase 5 — instance 교체 속성 (instance swap property)] - 2026-10-15
+
+### Added
+
+- **instance 교체 속성** ([ADR-261](adr/261-component-api-swap-slot-suggestions-properties.md) Phase 5, Figma instance swap property). 사용자 컴포넌트 원본 안의 중첩 instance 레이어 (예: Card 안의 Star 아이콘) 를 고르면 「Component properties」 섹션에 **인스턴스 교체 속성** 버튼이 생긴다. 만든 속성에는 **추천 컴포넌트** (Figma preferred values) 를 붙일 수 있다 — 제한이 아니라 목록 맨 위 안내다. instance 를 고르면 Component 절에 속성 이름과 지금 컴포넌트 칩이 나오고, 누르면 검색 목록이 열린다 (추천 → 같은 종류 → Local · Library, 지금 값은 빠지고 원본의 기본 컴포넌트는 들어간다). 고르면 그 instance 에서만 그 자리가 다른 컴포넌트로 바뀌고 원본은 그대로다. 그 자리에서 바꿔 둔 것 (안쪽 글자 · slot 내용 · 인터랙션 · 조건부 표시의 상태 기준) 은 Swap instance 처럼 **같은 이름 자리**로 옮겨지고, 결과는 알림 「유지 · 버림 · 밖으로」 + Undo 로 보인다. 칩 옆 되돌리기 버튼 (또는 Overrides 목록의 「Icon → Heart」 행) 은 원본 컴포넌트로 되돌린다. 같은 레이어의 표시 속성은 바뀐 컴포넌트에도 적용되고, instance 에서 그 자리를 직접 보이거나 숨긴 값이 먼저다. 원본 안에 놓인 instance 가 그 자리에 자기 값을 둔 경우 바깥 instance 에서 다른 값을 고르는 것은 지원하지 않는다 (알림으로 거부).
+  - 값은 instance 의 그 자리 `replace` override 이고 (바뀐 자리 = instance 가 소유한 새 instance 노드), 따로 저장하지 않는다. 그래서 고른 컴포넌트 원본을 고치면 instance 에 반영되고, 복사 · 붙여넣기 · detach · 순환 검사 · Layers · 선택이 기존 경로 그대로다.
+  - 위치: `packages/shared/src/catalog/commands/instanceProperty.ts` (`setInstanceProperty` · `resetReplacement` · `instancePropertyValue`) · `commands/{swap,compose,structure,properties}.ts` · `document/{types,validation,graph,componentProperties}.ts` · `resolution/resolver.ts` · `apps/builder/src/builder/catalogRuntime/{componentProperties,editContract,swapInstance}.ts` · `panels/properties/catalog/{CatalogInstancePropertiesSection,CatalogComponentPropertiesSection,CatalogComponentSection,CatalogSwapPicker}.tsx`.
+
+### Fixed
+
+- **원본 레이어를 지우면 그 자리를 바꿔 둔 instance 때문에 삭제가 거부될 수 있던 경로** — 지운 자리의 `replace` override 만 지우고 그 노드를 남겨 소유자 없는 노드가 됐다 (`UNOWNED_NODE`). 이제 지운 자리에 서 있던 노드도 같이 지운다. 추천 컴포넌트를 해체하면 추천 목록에서도 빠진다.
+  - **Why**: `removeWithReferrers` 가 주소가 끊긴 override 만 걸러 냈다 — `replace` 의 노드는 그 override 가 유일한 소유 edge 다.
+  - 위치: `packages/shared/src/catalog/commands/structure.ts`.
+
+### Tests
+
+- shared `commands/__tests__/instanceProperty.test.ts` 18 · `randomUndo.test.ts` 에 instance 값 행동 (속성이 없으면 같은 step 에 만듦) · builder `catalogRuntime/__tests__/adr261InstanceProperty.test.ts` 2 · 원복 RED 11/11 + 판독 수리 검증 5/5 (표시 속성 복사 · 직접 표시 우선 · 바깥 값 거부 · 경로 중간 slot 내용) · live `apps/builder/scripts/adr261-instance-property-live.mjs` 15/15 (Compare Mode).
+
 ## [ADR-261 Phase 4 — 사용자 컴포넌트 속성 (text · boolean)] - 2026-10-15
 
 ### Added

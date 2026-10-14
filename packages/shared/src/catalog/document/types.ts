@@ -649,13 +649,20 @@ export interface DefinitionEntry {
    */
   properties?: readonly ComponentProperty[];
 }
-/** ADR-261 Decision 4 — the kinds of a user component's property (Phase 4: text · boolean). */
-export type ComponentPropertyKind = "text" | "boolean";
+/**
+ * ADR-261 Decision 4 — the kinds of a user component's property (Phase 4: text · boolean; Phase 5:
+ * instance — Figma's instance swap).
+ */
+export type ComponentPropertyKind = "text" | "boolean" | "instance";
 export const COMPONENT_PROPERTY_KINDS: readonly ComponentPropertyKind[] = [
   "text",
   "boolean",
+  "instance",
 ];
-/** One origin node a property drives: a text property writes its `prop`, a boolean its `enabled`. */
+/**
+ * One origin node a property drives: a text property writes its `prop`, a boolean its `enabled`,
+ * an instance property swaps the nested instance (the instance's `replace` override there).
+ */
 export interface ComponentPropertyTarget {
   id: NodeId;
   /** The text prop (text kind only — a string prop the target accepts). */
@@ -668,6 +675,11 @@ export interface ComponentProperty {
   kind: ComponentPropertyKind;
   /** Nodes of the component's origin subtree it drives (one property may drive several). */
   targets: readonly ComponentPropertyTarget[];
+  /**
+   * Instance kind: the components offered first when an instance picks its value (Figma's
+   * preferred values — a suggestion, not a limit).
+   */
+  preferred?: readonly DefinitionId[];
 }
 export interface DefinitionOverrideEntry {
   kind: "definitionOverride";

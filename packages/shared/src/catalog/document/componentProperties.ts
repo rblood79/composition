@@ -7,10 +7,11 @@ import type {
 /**
  * ADR-261 Decision 4 — a user component's properties as its instance contract: each key takes the
  * value type of its kind (text → `string`, boolean → `boolean`). The definition stores no
- * `accepts` for them — the property table is the one source.
+ * `accepts` for them — the property table is the one source. An instance property is not a root
+ * prop: its value is the instance's `replace` override at the nested instance (Phase 5).
  */
 export const COMPONENT_PROPERTY_VALUE_TYPE: Readonly<
-  Record<ComponentPropertyKind, ValueType>
+  Partial<Record<ComponentPropertyKind, ValueType>>
 > = {
   text: "string",
   boolean: "boolean",
@@ -21,10 +22,10 @@ export function componentPropertyAccepts(
 ): Readonly<Record<string, ValueType>> {
   if (!properties?.length) return EMPTY;
   return Object.fromEntries(
-    properties.map((property) => [
-      property.key,
-      COMPONENT_PROPERTY_VALUE_TYPE[property.kind],
-    ]),
+    properties.flatMap((property) => {
+      const type = COMPONENT_PROPERTY_VALUE_TYPE[property.kind];
+      return type ? [[property.key, type]] : [];
+    }),
   );
 }
 const EMPTY: Readonly<Record<string, ValueType>> = Object.freeze({});
@@ -56,6 +57,7 @@ export function componentPropertyWrites(
 ): Map<string, ComponentPropertyWrite> {
   const writes = new Map<string, ComponentPropertyWrite>();
   for (const property of properties ?? []) {
+    if (property.kind === "instance") continue;
     const value = valueOf(property.key);
     if (typeof value !== (property.kind === "text" ? "string" : "boolean"))
       continue;

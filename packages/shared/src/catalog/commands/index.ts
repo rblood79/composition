@@ -4,6 +4,7 @@
  */
 export {
   composeCommands,
+  stageOver,
   type CatalogCommand,
   type CatalogCommandPlan,
 } from "./compose";
@@ -27,6 +28,14 @@ export {
   type SwapInstanceReport,
 } from "./swap";
 export {
+  instancePropertyPositions,
+  instancePropertyValue,
+  planInstanceProperty,
+  resetReplacement,
+  setInstanceProperty,
+  type InstancePropertyInput,
+} from "./instanceProperty";
+export {
   renameNode,
   resetDescendant,
   setFields,
@@ -43,6 +52,7 @@ export {
   detachComponentProperty,
   removeComponentProperty,
   renameComponentProperty,
+  setComponentPropertyPreferred,
 } from "./properties";
 export {
   createComponent,

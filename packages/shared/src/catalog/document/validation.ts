@@ -344,7 +344,7 @@ function componentProperties(value: unknown, at: string): void {
   for (const [index, raw] of value.entries()) {
     const path = `${at}[${index}]`;
     const property = object(raw, path);
-    exact(property, ["key", "name", "kind", "targets"], path);
+    exact(property, ["key", "name", "kind", "targets", "preferred"], path);
     const key = string(property.key, `${path}.key`);
     if (!COMPONENT_PROPERTY_KEY.test(key))
       invalid("INVALID_PROPERTY_KEY", `${path}.key`);
@@ -369,6 +369,25 @@ function componentProperties(value: unknown, at: string): void {
       const drives = `${property.kind}\u0000${nodeId}\u0000${target.prop ?? ""}`;
       if (driven.has(drives)) invalid("PROPERTY_TARGET_TAKEN", targetAt);
       driven.add(drives);
+    }
+    // ADR-261 Phase 5: an instance property's preferred components (Figma preferred values).
+    if (property.preferred !== undefined) {
+      if (property.kind !== "instance")
+        invalid("PROPERTY_PREFERRED_INSTANCE_ONLY", `${path}.preferred`);
+      if (!Array.isArray(property.preferred))
+        invalid("ARRAY_REQUIRED", `${path}.preferred`);
+      const seen = new Set<string>();
+      for (const [preferredIndex, value] of property.preferred.entries()) {
+        const preferredAt = `${path}.preferred[${preferredIndex}]`;
+        if (
+          typeof value !== "string" ||
+          (!value.startsWith("project:definition:") &&
+            !value.startsWith("lib:definition:"))
+        )
+          invalid("DEFINITION_ID_REQUIRED", preferredAt);
+        if (seen.has(value)) invalid("DUPLICATE_PREFERRED", preferredAt);
+        seen.add(value);
+      }
     }
   }
 }

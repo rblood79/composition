@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
@@ -29,68 +29,61 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import "./CatalogSwapPicker.css";
 
 const ComponentIcon = ACTION_ICONS.component;
-const GROUPS = ["related", "local", "library"] as const;
+const GROUPS = ["preferred", "related", "local", "library"] as const;
 const GROUP_LABEL = {
+  preferred: "componentAction.swapPreferred",
   related: "componentAction.swapRelated",
   local: "componentAction.swapLocal",
   library: "componentAction.swapLibrary",
 } as const;
 
 /**
- * ADR-261 Decision 2 — the instance's component name opens Swap instance (Figma's Instance menu):
- * a searchable list of every component, the related ones (same root type) first — user decision 3.
- * The Canvas menu's 「Swap instance…」 opens the same list (`requestCatalogSwap`).
+ * A searchable list of components in groups (Swap instance's — ADR-261 Decision 2, and an
+ * instance swap property's — Phase 5): the trigger is the caller's, the list is read when it
+ * opens.
  */
-export const CatalogSwapPicker = memo(function CatalogSwapPicker({
-  nodeId,
-  name,
-  onSwap,
+export const CatalogComponentPicker = memo(function CatalogComponentPicker({
+  label,
+  triggerClassName,
+  children,
+  candidates: readCandidates,
+  onPick,
+  open,
+  onOpenChange,
+  dataRole,
 }: {
-  nodeId: NodeId;
-  name: string;
-  onSwap: (definitionId: DefinitionId) => void;
+  /** The trigger's accessible name and the list's. */
+  label: string;
+  triggerClassName: string;
+  dataRole?: string;
+  children: ReactNode;
+  candidates: () => CatalogSwapCandidate[];
+  onPick: (definitionId: DefinitionId) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useI18n();
-  const workspace = useCatalogWorkspace();
-  const [open, setOpen] = useState(() => takeCatalogSwapRequest(nodeId));
-  useEffect(
-    () =>
-      subscribeCatalogSwapRequest((requested) => {
-        if (requested === nodeId && takeCatalogSwapRequest(nodeId))
-          setOpen(true);
-      }),
-    [nodeId],
-  );
-  // Read when it opens (the list is the project's components and the palette's).
   const candidates = useMemo<CatalogSwapCandidate[]>(
-    () => (open ? catalogSwapCandidates(workspace.runtime.graph, nodeId) : []),
-    [open, workspace, nodeId],
+    () => (open ? readCandidates() : []),
+    // (Read when it opens: the list is the project's components and the palette's.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [open],
   );
   const { contains } = useFilter({ sensitivity: "base" });
   return (
-    <DialogTrigger isOpen={open} onOpenChange={setOpen}>
+    <DialogTrigger isOpen={open} onOpenChange={onOpenChange}>
       <RACButton
-        className="component-semantics-identity component-swap-trigger"
-        data-role="instance"
-        aria-label={`${t("componentAction.swapInstance")}: ${name}`}
+        className={triggerClassName}
+        data-role={dataRole}
+        aria-label={label}
       >
-        <ComponentIcon aria-hidden="true" size={14} />
-        <span className="component-semantics-identity-name" title={name}>
-          {name}
-        </span>
-        <span className="component-semantics-identity-role">
-          {t("properties.instance")}
-        </span>
-        <ChevronDown aria-hidden="true" size={12} />
+        {children}
       </RACButton>
       <Popover
         className="react-aria-Popover property-select-popover component-swap-popover"
         placement="bottom start"
       >
-        <Dialog
-          className="component-swap-dialog"
-          aria-label={t("componentAction.swapInstance")}
-        >
+        <Dialog className="component-swap-dialog" aria-label={label}>
           <Autocomplete filter={contains}>
             <SearchField
               className="react-aria-SearchField component-swap-search"
@@ -101,11 +94,11 @@ export const CatalogSwapPicker = memo(function CatalogSwapPicker({
             </SearchField>
             <ListBox
               className="react-aria-ListBox component-swap-list"
-              aria-label={t("componentAction.swapInstance")}
+              aria-label={label}
               selectionMode="none"
               onAction={(key) => {
-                setOpen(false);
-                onSwap(String(key) as DefinitionId);
+                onOpenChange(false);
+                onPick(String(key) as DefinitionId);
               }}
             >
               {GROUPS.map((group) => {
@@ -135,5 +128,52 @@ export const CatalogSwapPicker = memo(function CatalogSwapPicker({
         </Dialog>
       </Popover>
     </DialogTrigger>
+  );
+});
+
+/**
+ * ADR-261 Decision 2 — the instance's component name opens Swap instance (Figma's Instance menu):
+ * a searchable list of every component, the related ones (same root type) first — user decision 3.
+ * The Canvas menu's 「Swap instance…」 opens the same list (`requestCatalogSwap`).
+ */
+export const CatalogSwapPicker = memo(function CatalogSwapPicker({
+  nodeId,
+  name,
+  onSwap,
+}: {
+  nodeId: NodeId;
+  name: string;
+  onSwap: (definitionId: DefinitionId) => void;
+}) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const [open, setOpen] = useState(() => takeCatalogSwapRequest(nodeId));
+  useEffect(
+    () =>
+      subscribeCatalogSwapRequest((requested) => {
+        if (requested === nodeId && takeCatalogSwapRequest(nodeId))
+          setOpen(true);
+      }),
+    [nodeId],
+  );
+  return (
+    <CatalogComponentPicker
+      label={`${t("componentAction.swapInstance")}: ${name}`}
+      triggerClassName="component-semantics-identity component-swap-trigger"
+      dataRole="instance"
+      candidates={() => catalogSwapCandidates(workspace.runtime.graph, nodeId)}
+      onPick={onSwap}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <ComponentIcon aria-hidden="true" size={14} />
+      <span className="component-semantics-identity-name" title={name}>
+        {name}
+      </span>
+      <span className="component-semantics-identity-role">
+        {t("properties.instance")}
+      </span>
+      <ChevronDown aria-hidden="true" size={12} />
+    </CatalogComponentPicker>
   );
 });

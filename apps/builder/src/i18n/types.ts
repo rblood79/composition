@@ -227,6 +227,7 @@ export interface TranslationKeys {
     swapRelated: string;
     swapLocal: string;
     swapLibrary: string;
+    swapPreferred: string;
     swapped: string;
     systemOriginLocked: string;
   };
@@ -728,6 +729,13 @@ export interface TranslationKeys {
     componentPropertyActions: string;
     componentPropertyDetach: string;
     componentPropertyDelete: string;
+    componentPropertyKindInstance: string;
+    componentPropertyInstance: string;
+    componentPropertyPreferred: string;
+    componentPropertyPreferredAdd: string;
+    componentPropertyPreferredRemove: string;
+    instancePropertyReset: string;
+    instancePropertyResetAction: string;
     slotStatus: string;
     slotInactive: string;
     slotRecommendations: string;

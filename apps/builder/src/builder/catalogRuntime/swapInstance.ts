@@ -22,8 +22,11 @@ import { catalogPaletteDefinitionId } from "./paletteInsert";
 export interface CatalogSwapCandidate {
   definitionId: DefinitionId;
   label: string;
-  /** `related` = the same root type; `local` = a project component; `library` = a built-in one. */
-  group: "related" | "local" | "library";
+  /**
+   * `related` = the same root type; `local` = a project component; `library` = a built-in one;
+   * `preferred` = an instance swap property's preferred component (ADR-261 Phase 5).
+   */
+  group: "preferred" | "related" | "local" | "library";
 }
 
 const typeOf = (graph: CatalogReader, id: string): string | undefined => {
@@ -95,7 +98,7 @@ export function catalogSwapCandidates(
     if (graph.library.definitions.has(definitionId))
       add(definitionId, item.label, "library");
   }
-  const order = { related: 0, local: 1, library: 2 } as const;
+  const order = { preferred: 0, related: 1, local: 2, library: 3 } as const;
   return candidates.sort((a, b) => order[a.group] - order[b.group]);
 }
 

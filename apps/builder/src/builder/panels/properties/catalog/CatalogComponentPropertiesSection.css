@@ -14,3 +14,20 @@
 .actions-component-property {
   align-self: end;
 }
+
+/* ADR-261 Phase 5 — an instance swap property on an instance: the component chip (a picker) and,
+   once changed, its reset (the row's icon column). */
+.instance-property-row {
+  grid-template-columns: 1fr var(--control-size);
+  grid-template-areas: "field icon";
+}
+
+.instance-property-field {
+  grid-area: field;
+  min-width: 0;
+}
+
+.actions-instance-property {
+  grid-area: icon;
+  align-self: end;
+}

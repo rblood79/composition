@@ -978,8 +978,26 @@ export function removeWithReferrers(
         removedRelated.push(referrerId);
         queue.push(referrerId);
       } else if (entry.kind === "definition") {
-        // ADR-261 Decision 4: a removed origin node leaves the properties that drove it.
-        pruneComponentPropertyTargets(draft, entry, (_property, target) =>
+        // ADR-261 Decision 4: a removed origin node leaves the properties that drove it; a removed
+        // component leaves the preferred lists that named it (Phase 5).
+        const current = draft.read(entry.id) as typeof entry;
+        const preferredGone = current.properties?.some((property) =>
+          property.preferred?.some((id) => draft.removed(id)),
+        );
+        const pruned = preferredGone
+          ? {
+              ...current,
+              properties: current.properties!.map((property) => {
+                const preferred = property.preferred?.filter(
+                  (id) => !draft.removed(id),
+                );
+                const { preferred: _old, ...rest } = property;
+                return preferred?.length ? { ...rest, preferred } : rest;
+              }),
+            }
+          : current;
+        if (preferredGone) draft.write(pruned);
+        pruneComponentPropertyTargets(draft, pruned, (_property, target) =>
           draft.removed(target.id),
         );
       } else if (entry.kind === "node") {
@@ -991,6 +1009,14 @@ export function removeWithReferrers(
               slot: undefined,
             } as CatalogEntry).some((ref) => draft.removed(ref)),
         );
+        // ADR-261 Phase 5: a replacement standing in a removed position goes with it (an instance
+        // property's value when its origin node is deleted).
+        for (const item of entry.descendantOverrides)
+          if (item.kind === "replace" && !kept.includes(item)) {
+            const gone = subtree(draft, item.replacementId);
+            for (const removedId of gone) draft.remove(removedId);
+            queue.push(...gone);
+          }
         // ADR-261 Decision 3: a removed component leaves the slots that suggested it.
         const suggested = entry.slot?.suggested?.filter(
           (id) => !draft.removed(id),

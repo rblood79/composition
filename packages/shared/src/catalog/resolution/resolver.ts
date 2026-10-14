@@ -1576,6 +1576,20 @@ export function resolveCatalogNode(
           "DANGLING_CHILD",
           change.replacementId,
         );
+      // ADR-261 Phase 5: a visibility property of the enclosing instance still shows or hides
+      // its nested instance once swapped (Figma: 「Show icon」 + 「Icon」 on one layer) — under the
+      // instance's own show / hide (the node's `enabled`, as a direct write wins on a template
+      // position; review H1). A property-driven swap keeps no copied value (`instanceProperty.ts`).
+      const shown = propertyScopes
+        .get(scopeKey(instancePath))
+        ?.get(templateId)?.enabled;
+      // (With neither, the position's origin value: a hidden origin layer stays hidden.)
+      if (
+        (replacement.enabled ??
+          shown ??
+          ("kind" in template ? template.enabled : undefined)) === false
+      )
+        return undefined;
       if (innerPlace)
         return projectTemplate(
           owner,

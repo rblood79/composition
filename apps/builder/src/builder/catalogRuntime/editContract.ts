@@ -206,7 +206,8 @@ function catalogComponentPropertyFields(
       ? owner.descendantOverrides
           .filter(
             (item) =>
-              item.kind === "fillSlot" && item.address.instances.length === 1,
+              // (Phase 5: a swapped nested instance — its replacement — is the instance's own too.)
+              item.kind !== "patch" && item.address.instances.length === 1,
           )
           .map((item) => item.address.templatePath.at(-1)!)
       : [],
@@ -220,7 +221,9 @@ function catalogComponentPropertyFields(
       if (cut.has(cursor as never)) return false;
     return true;
   };
-  return properties.map((property) => {
+  // (Phase 5: an instance swap property is no root prop — its own section picks the component.)
+  return properties.flatMap((property): ResolvedField[] => {
+    if (property.kind === "instance") return [];
     const reading = readModel.propSource(target, property.key);
     const [first] = property.targets;
     const origin = graph.getEntry(first.id);
@@ -230,7 +233,7 @@ function catalogComponentPropertyFields(
             .value
         : origin?.kind !== "node" || origin.enabled !== false;
     const isOverridden = reading.own !== undefined;
-    return {
+    return [{
       key: property.key,
       kind: property.kind === "text" ? "string" : "boolean",
       label: property.name,
@@ -243,7 +246,7 @@ function catalogComponentPropertyFields(
       ...(property.targets.some((item) => reachable(item.id))
         ? {}
         : { editorHidden: true }),
-    };
+    }];
   });
 }
 

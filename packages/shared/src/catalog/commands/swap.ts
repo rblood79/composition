@@ -146,6 +146,23 @@ function templatePaths(
   return { root, keyOf, atKey, parentOf, definitionOf, slotOf };
 }
 
+/**
+ * ADR-261 Phase 5 — where a replacement (a `replace` override's node — an instance property's
+ * swapped nested instance) stands: its owner and the position it takes.
+ */
+export function replacementPlace(
+  draft: CommandDraft,
+  id: NodeId,
+): { ownerId: NodeId; address: InstanceAddress } | undefined {
+  const ownerId = draft.reader.ownerOf(id);
+  const owner = ownerId ? draft.read(ownerId) : undefined;
+  if (owner?.kind !== "node") return undefined;
+  const found = owner.descendantOverrides.find(
+    (item) => item.kind === "replace" && item.replacementId === id,
+  );
+  return found && { ownerId: owner.id, address: found.address };
+}
+
 const pathTo = (paths: TemplatePaths, id: TemplateId): TemplateId[] => {
   const path = [id];
   for (let at = paths.parentOf.get(id); at; at = paths.parentOf.get(at))
@@ -172,10 +189,25 @@ export function planSwapInstance(
   if (!target) fail("DANGLING_DEFINITION", input.definitionId);
   if ((target as DefinitionEntry).usage === "layout")
     fail("NOT_A_COMPONENT", input.definitionId);
-  // Where it stands decides nothing here, but a template root or a replacement is not swapped.
   // The new component must stand where the node stands (the insert's nesting check — review h2:
-  // a ListBox item swapped to a Button).
-  assertNestable(draft, locate(draft, input.id).parent, [input.definitionId]);
+  // a ListBox item swapped to a Button). A template root is not swapped; a replacement (Phase 5 —
+  // an instance property's value) stands in its position, under that position's parent.
+  const replaced = replacementPlace(draft, input.id);
+  if (!replaced)
+    assertNestable(draft, locate(draft, input.id).parent, [input.definitionId]);
+  else if (replaced.address.templatePath.length > 1)
+    assertNestable(
+      draft,
+      {
+        kind: "descendant",
+        ownerId: replaced.ownerId,
+        address: {
+          instances: replaced.address.instances,
+          templatePath: replaced.address.templatePath.slice(0, -1),
+        },
+      },
+      [input.definitionId],
+    );
 
   const before = templatePaths(reader, node.definitionId);
   const after = templatePaths(reader, input.definitionId);
@@ -295,12 +327,22 @@ export function planSwapInstance(
     );
   };
 
-  /** Content an override owned, moved out right after `owner` (user decision 1). */
+  /**
+   * Content an override owned, moved out right after `owner` (user decision 1) — after the
+   * instance a replacement stands in (Phase 5: a replacement has no place of its own).
+   */
   const moveOut = (owner: NodeId, ids: readonly NodeId[]) => {
     if (!ids.length) return;
-    const at = locate(draft, owner);
+    let anchor = owner;
+    for (
+      let place = replacementPlace(draft, anchor);
+      place;
+      place = replacementPlace(draft, anchor)
+    )
+      anchor = place.ownerId;
+    const at = locate(draft, anchor);
     const list = [...(childList(draft, at.parent) ?? [])];
-    const index = list.indexOf(owner);
+    const index = list.indexOf(anchor);
     list.splice(index + 1, 0, ...ids);
     setChildList(draft, at.parent, list);
     report.movedOut += ids.length;

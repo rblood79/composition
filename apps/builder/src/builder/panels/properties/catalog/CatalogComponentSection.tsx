@@ -7,6 +7,7 @@ import type {
   DefinitionId,
   EditTarget,
   InstanceAddress,
+  NodeId,
   VisualField,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -26,7 +27,10 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
+import {
+  resetReplacement,
+  setFields,
+} from "../../../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import { useToastStore } from "../../../stores/toast";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -35,6 +39,8 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { catalogSwapPlan } from "../../../catalogRuntime/swapInstance";
 import { CatalogSwapPicker } from "./CatalogSwapPicker";
+import { CatalogInstancePropertiesRows } from "./CatalogInstancePropertiesSection";
+import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
 
 const ComponentIcon = ACTION_ICONS.component;
 
@@ -44,7 +50,9 @@ interface OverrideRow {
   /** The row's React key — a template position's path, since two positions can share a label. */
   id: string;
   key: string;
-  field: (typeof PATCH_FIELDS)[number];
+  /** `replace` = a swapped nested instance (ADR-261 Phase 5 — its reset folds it back). */
+  field: (typeof PATCH_FIELDS)[number] | "replace";
+  replacementId?: NodeId;
   /** The field key; at a template position, `position.key` (its node's name, else its type). */
   label: string;
   target: EditTarget;
@@ -116,9 +124,21 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     const node = graph.getEntry(nodeId);
     if (node?.kind !== "node") return "[]";
     return JSON.stringify(
-      node.descendantOverrides.flatMap((item) => {
-        if (item.kind === "replace") return [];
+      node.descendantOverrides.flatMap((item): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
         const at = templateLabel(graph, item.address.templatePath.at(-1));
+        if (item.kind === "replace") {
+          const shown = graph.getEntry(item.replacementId);
+          return [
+            {
+              id: `replace:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`,
+              key: "",
+              field: "replace" as const,
+              replacementId: item.replacementId,
+              label: `${at} → ${shown?.kind === "node" ? catalogComponentLabel(graph, shown.definitionId) : ""}`,
+              address: item.address,
+            },
+          ];
+        }
         return PATCH_FIELDS.flatMap((field) =>
           Object.keys(item[field] ?? {}).map((key) => ({
             id: `${field}:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}:${key}`,
@@ -233,9 +253,11 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     [graph, nodeId, run, t, workspace],
   );
   const reset = useCallback(
-    ({ key, field, label, target }: OverrideRow) => {
+    ({ key, field, label, target, replacementId }: OverrideRow) => {
       const command =
-        field === "props"
+        field === "replace"
+          ? resetReplacement({ id: replacementId! })
+          : field === "props"
           ? catalogPropertiesPatchCommand(
               graph,
               [target],
@@ -386,6 +408,8 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           )}
         </div>
       </div>
+      {/* ADR-261 Phase 5: the instance's swap properties (a nested instance's component). */}
+      {instanceOf && <CatalogInstancePropertiesRows target={target} />}
       {rows.length > 0 && (
         <fieldset className="properties-aria component-semantics-overrides">
           <legend className="fieldset-legend">

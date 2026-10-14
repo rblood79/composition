@@ -40,3 +40,33 @@ export function composeCommands(
   }
   return { label, ops, ...(selectAfter.length ? { selectAfter } : {}) };
 }
+
+/**
+ * A stage over any reader (the committed graph, or a stage a composed command reads): a command
+ * that runs several planners in order (ADR-261 Phase 5 — copy a position, then swap it) applies
+ * each one's operations here so the next plans against them.
+ */
+export function stageOver(reader: CatalogReader): CatalogStage {
+  if (reader instanceof CatalogStage || !("isViewEntry" in reader)) {
+    const base = reader as CatalogReader & { isViewEntry?: (id: string) => boolean };
+    return new CatalogStage({
+      get projectId() {
+        return reader.projectId;
+      },
+      get revision() {
+        return reader.revision;
+      },
+      get library() {
+        return reader.library;
+      },
+      getEntry: (id: string) => reader.getEntry(id),
+      ownerOf: (id: string) => reader.ownerOf(id),
+      referrersOf: (id: string) => reader.referrersOf(id),
+      instancesOf: (id: string) => reader.instancesOf(id),
+      definitionOfTemplateRoot: (id: string) =>
+        reader.definitionOfTemplateRoot(id),
+      isViewEntry: (id: string) => base.isViewEntry?.(id) ?? false,
+    } as unknown as CatalogGraph);
+  }
+  return new CatalogStage(reader as CatalogGraph);
+}

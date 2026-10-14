@@ -115,8 +115,12 @@ export function referencedIds(entry: CatalogEntry): string[] {
   }
   // ADR-261 Decision 4: the origin nodes a component's properties drive.
   if (entry.kind === "definition")
-    for (const property of entry.properties ?? [])
+    for (const property of entry.properties ?? []) {
       for (const target of property.targets) ids.push(target.id);
+      // (Phase 5: an instance property's preferred project components.)
+      for (const id of property.preferred ?? [])
+        if (id.startsWith("project:")) ids.push(id);
+    }
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
@@ -159,17 +163,28 @@ function validateComponentProperties(
   const root = rootId ? get(rootId) : undefined;
   const rootAccepts =
     root?.kind === "node" ? contractOf(root.definitionId)?.accepts : undefined;
+  // (Phase 5: a swapped nested instance is a new node — a text property cannot reach it there.)
+  const swapped = new Set(
+    (definition.properties ?? [])
+      .filter((property) => property.kind === "instance")
+      .flatMap((property) => property.targets.map((target) => target.id)),
+  );
   for (const property of definition.properties ?? []) {
     if (rootAccepts && property.key in rootAccepts)
       throw new CatalogValidationError("PROPERTY_KEY_TAKEN", property.key);
+    for (const id of property.preferred ?? [])
+      if (!contractOf(id as DefinitionId))
+        throw new CatalogValidationError("DANGLING_DEFINITION", id);
     for (const target of property.targets) {
       const node = get(target.id);
       if (node?.kind !== "node")
         throw new CatalogValidationError("DANGLING_PROPERTY_TARGET", target.id);
       if (!inOrigin.has(target.id))
         throw new CatalogValidationError("PROPERTY_TARGET_OUTSIDE", target.id);
-      if (property.kind === "boolean" && target.id === rootId)
+      if (property.kind !== "text" && target.id === rootId)
         throw new CatalogValidationError("PROPERTY_TARGET_ROOT", target.id);
+      if (property.kind === "text" && swapped.has(target.id))
+        throw new CatalogValidationError("PROPERTY_TARGET_SWAPPED", target.id);
       // (A nested instance's own property is not a target: exposing nested instances' properties
       // is out of scope — review m2: deleting that inner property left the outer one invalid.)
       if (

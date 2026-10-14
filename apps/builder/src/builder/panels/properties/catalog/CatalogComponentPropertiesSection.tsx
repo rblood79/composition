@@ -1,6 +1,6 @@
 import { memo, useCallback, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Unlink } from "lucide-react";
+import { Minus, Unlink } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
   ComponentPropertyKind,
@@ -15,6 +15,8 @@ import {
   type CatalogPropertyView,
 } from "../../../catalogRuntime/componentProperties";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import { catalogSlotSuggestionChoices } from "../../../catalogRuntime/slots";
+import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
@@ -54,11 +56,13 @@ export const CatalogComponentPropertiesSection = memo(
     });
     if (!viewKey) return null;
     const view = JSON.parse(viewKey) as CatalogPropertyView;
-    const { origin, rows, textProp, canBoolean } = view;
+    const { origin, rows, textProp, canBoolean, canInstance } = view;
     const kindLabel = (kind: ComponentPropertyKind) =>
       kind === "text"
         ? t("propertiesPanel.componentPropertyKindText")
-        : t("propertiesPanel.componentPropertyKindBoolean");
+        : kind === "instance"
+          ? t("propertiesPanel.componentPropertyKindInstance")
+          : t("propertiesPanel.componentPropertyKindBoolean");
     // (An unnamed layer names its property after what it is — Text, Icon …)
     const layerName = () => {
       const node = graph.getEntry(nodeId);
@@ -70,13 +74,13 @@ export const CatalogComponentPropertiesSection = memo(
         catalogPropertyCommands.create(
           origin,
           kind,
-          kind === "text"
-            ? layerName()
-            : `${t("propertiesPanel.componentPropertyShow")} ${layerName()}`,
+          kind === "boolean"
+            ? `${t("propertiesPanel.componentPropertyShow")} ${layerName()}`
+            : layerName(),
           kind === "text" ? { id: nodeId, prop: textProp } : { id: nodeId },
         ),
       );
-    const applyOptions = (["text", "boolean"] as const).flatMap((kind) =>
+    const applyOptions = (["text", "boolean", "instance"] as const).flatMap((kind) =>
       view.applicable[kind].map((item) => ({
         value: `${kind}:${item.key}`,
         label: `${item.name} (${kindLabel(kind)})`,
@@ -149,7 +153,22 @@ export const CatalogComponentPropertiesSection = memo(
             </div>
           </div>
         ))}
-        {(textProp || canBoolean) && (
+        {/* ADR-261 Phase 5 — an instance property's preferred components (Figma preferred
+            values): offered first when an instance picks; a suggestion, not a limit. */}
+        {rows
+          .filter((row) => row.kind === "instance")
+          .map((row) => (
+            <CatalogPreferredComponents
+              key={`preferred:${row.key}`}
+              nodeId={nodeId}
+              name={row.name}
+              preferred={row.preferred ?? []}
+              onChange={(preferred) =>
+                run(catalogPropertyCommands.preferred(origin, row.key, preferred))
+              }
+            />
+          ))}
+        {(textProp || canBoolean || canInstance) && (
           <div className="fieldset-row">
             <div className="component-semantics-strip">
               {textProp && (
@@ -168,6 +187,15 @@ export const CatalogComponentPropertiesSection = memo(
                 >
                   <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
                   {t("propertiesPanel.componentPropertyBoolean")}
+                </RACButton>
+              )}
+              {canInstance && (
+                <RACButton
+                  className="control-button"
+                  onPress={() => create("instance")}
+                >
+                  <ACTION_ICONS.add aria-hidden="true" size={iconProps.size} />
+                  {t("propertiesPanel.componentPropertyInstance")}
                 </RACButton>
               )}
             </div>
@@ -194,3 +222,80 @@ export const CatalogComponentPropertiesSection = memo(
     );
   },
 );
+
+/**
+ * One instance property's preferred components (the slot suggestions' list — Decision 3's
+ * markup): each removable, and an add list (the project's components and the built-in origins).
+ */
+function CatalogPreferredComponents({
+  nodeId,
+  name,
+  preferred,
+  onChange,
+}: {
+  nodeId: NodeId;
+  name: string;
+  preferred: readonly string[];
+  onChange: (preferred: string[]) => void;
+}) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const graph = workspace.runtime.graph;
+  const choices = catalogSlotSuggestionChoices(graph, nodeId).filter(
+    (choice) => !preferred.includes(choice.definitionId),
+  );
+  return (
+    <>
+      <fieldset className="properties-aria slot-suggestions">
+        <legend className="fieldset-legend">
+          {t("propertiesPanel.componentPropertyPreferred", { name })}
+        </legend>
+        {preferred.map((id) => {
+          const label = catalogComponentLabel(graph, id);
+          return (
+            <div key={id} className="list-row">
+              <div className="list-row__body">
+                <span className="list-row__label">{label}</span>
+              </div>
+              <div className="list-row__actions">
+                <button
+                  type="button"
+                  className="list-row__action"
+                  aria-label={t(
+                    "propertiesPanel.componentPropertyPreferredRemove",
+                    { name: label },
+                  )}
+                  onClick={() =>
+                    onChange(preferred.filter((item) => item !== id))
+                  }
+                >
+                  <Minus size={12} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </fieldset>
+      {choices.length > 0 && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("propertiesPanel.componentPropertyPreferredAdd")}
+            value=""
+            options={[
+              {
+                value: "",
+                label: `${t("propertiesPanel.componentPropertyPreferredAdd")}…`,
+              },
+              ...choices.map((choice) => ({
+                value: choice.definitionId,
+                label: choice.label,
+              })),
+            ]}
+            translateOptions={false}
+            onChange={(value) => value && onChange([...preferred, value])}
+          />
+        </div>
+      )}
+    </>
+  );
+}
