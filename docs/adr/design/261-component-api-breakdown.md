@@ -1,6 +1,6 @@
 # ADR-261 design breakdown — 컴포넌트 API (교체 · slot 추천 · 속성 · drop 부모)
 
-> 본문: [../261-component-api-swap-slot-suggestions-properties.md](../261-component-api-swap-slot-suggestions-properties.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../completed/261-component-api-swap-slot-suggestions-properties.md](../completed/261-component-api-swap-slot-suggestions-properties.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -140,6 +140,7 @@
 - live 스크립트 `apps/builder/scripts/adr261-component-api-live.mjs` (ADR-260 live 스크립트 2개의 패턴).
 - Compare Mode 로 속성 값 Canvas = Preview.
 - 문서: 본문 Live Exercise · README · CHANGELOG · 메모리 `project-origin-instance-slot-reference-pen-figma`.
+- **완료 (2026-10-15)**: Phase 별 live 스크립트 5 (`adr261-drop-parent-live.mjs` · `adr261-swap-live.mjs` · `adr261-properties-live.mjs` · `adr261-instance-property-live.mjs` · `adr261-bound-props-live.mjs`) 로 나눠 실행 — 하나로 합치지 않음. G5 사용자 확인 「직접확인했다」 직전 보고 1 수리 (`ba7d6021c` — 사용자 컴포넌트 instance 의 template 바인딩 prop 증분 미반영, probe 65 → 0). Implemented · `completed/` 이동.
 
 ## 8. 기록
 

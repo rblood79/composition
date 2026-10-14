@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted — 2026-10-15
+Implemented — 2026-10-15 (Phase 0 ~ 6 · G0 ~ G5 종결 — main `871357986` · `e09a78030` · `b4e64d41f` · `79b881192` · `108306c71` · `ba7d6021c`, pre-push perf ratchet pass (등급 A 초과 0) · 사용자 G5 「직접확인했다」 · 아래 Live Exercise). Accepted — 2026-10-15
 
-- **Accepted 근거 (2026-10-15)**: 사용자 `/execute-adr 261` 호출 + [리뷰 기록](reviews/261.md) Round 2 — pending 0 · HIGH 전부 fixed (Round 2 h1 은 r2 수리, 확인은 Phase 2 G2).
+> **Phase 6 종료 · Implemented (2026-10-15)** — G5 사용자 Builder 확인 「직접확인했다」. 확인 직전 사용자 보고 1 (Create component 로 만든 컴포넌트의 instance 에서 일부 속성이 바뀌지 않거나 다른 조작 뒤에야 반영) 을 같은 날 수리 (`ba7d6021c` — Canvas 증분 step 이 template 바인딩 판정을 노드 자신의 정의로만 해 사용자 컴포넌트 정의 `accepts: {}` 에 막힘 → record 가 접은 층의 정의 전부로 판정, 팔레트 전 항목 probe 65 → 0 경로). G4: type-check 6/6 · shared 1693 · builder catalogRuntime 2198 · ratchet 등급 A 초과 0. LOW deferred (별도 수리): Disclosure `size` → 제목 Text fontSize 증분 미반영 (원본에서도 재현 — part rule 도달 범위) · ratchet B 경고 6 (비차단).
+
+- **Accepted 근거 (2026-10-15)**: 사용자 `/execute-adr 261` 호출 + [리뷰 기록](../reviews/261.md) Round 2 — pending 0 · HIGH 전부 fixed (Round 2 h1 은 r2 수리, 확인은 Phase 2 G2).
 - **사용자 결정 답 (2026-10-15 AskUserQuestion)**: 1 = 바로 뒤 형제로 꺼냄 · 2 = 거부 (slot 에만) · 3 = 전체 검색 + 맨 위 「관련」 · 4 = text · boolean 먼저 (instance 교체 속성은 Phase 5) · 5 = 허용 · 6 = 지우고 알림에 셈 — 6건 모두 답.
 
 > **Phase 0 · 1 완료 (2026-10-15)** — G0: live 재현 RED 3 (instance slot 자식의 ArrowDown · ⌘V 가 원본 slot 노드에 씀 · layout page 내용의 ArrowDown 이 layout template 에 씀), 주소 보유 필드 4종 · `replace` 지원 표 · oracle 표 (breakdown §1). G1: Canvas drop · Alt 복제 · 절대 배치 복제 · Layers drop 은 record 의 EditTarget (`catalogInsertParent` — 소유 노드 · slot 선언 자리 = instance `fillSlot`, 프로젝트 컴포넌트 · layout instance 는 루트 slot 만), 선택 뒤 붙여넣기 · z-order · 화살표 순서는 노드가 놓인 자리 (`catalogParentOfNode`). 원본에서 투영된 자리는 옮기지 않는다. unit 9 (원복 RED 전량) · builder 279 파일 · type-check 6 · live 5/5 (drag · ⌘V · ArrowDown · layout) · perf ratchet 등급 A 초과 0 (작업 트리 측정 `--judge`). 판독 1회 HIGH 1 · MEDIUM 1 (instance 루트가 비-slot drop 을 받음 · Layers 의 빈 slot index) → 수리 검증 RED 2/2 — 닫힘.
@@ -17,14 +19,14 @@ Accepted — 2026-10-15
 
 > **Phase 5 완료 (2026-10-15)** — instance 교체 속성 (Figma instance swap property): `ComponentPropertyKind` 에 `instance` · 속성의 `preferred?` (Figma preferred values — 제한 아님). 값 = instance 의 그 자리 `replace` override (`commands/instanceProperty.ts` `setInstanceProperty`) — 처음 고르면 그 자리를 소유 노드로 복사 (`createMaterializer` — instance 의 그 자리 쓰기 · 안쪽 override · slot 내용이 따라감) 하고 Phase 2 `planSwapInstance` 로 고른 컴포넌트에 맞춘다 (같은 stage 위 — `stageOver`). 기본값 = 원본 컴포넌트로 다시 교체 + instance 의 override 로 되접기. 주소 (interaction · `showWhen` · 원본 안 instance 를 지나는 다른 instance 주소 · 그 경로 중간의 slot 내용) 는 같은 step 에 옮긴다. 검증: instance 대상은 루트 아님 · text 속성과 같은 레이어 금지 (`PROPERTY_TARGET_SWAPPED`) · preferred 는 instance 종류만 · 존재 (`DANGLING_DEFINITION`) · 참조 색인. 값은 루트 prop 이 아니다 (계약 밖). resolver 는 바뀐 자리에도 같은 레이어의 표시 속성을 적용한다 (instance 의 직접 표시 · 숨김이 먼저). 원본 레이어 삭제 · 추천 컴포넌트 해체 정리. Builder: 원본 레이어 「인스턴스 교체 속성」 · 추천 목록, instance Component 절의 속성 picker (추천 → 관련 → Local · Library, 지금 값 제외) · 되돌리기 · Overrides 목록 교체 행 (`resetReplacement`). G3: shared 18 · builder 2 · 무작위 하니스 (instance 값 — 속성 없으면 같은 step 에 만듦) · 원복 RED 11 · live 15/15 (Compare Mode — Canvas record = Preview DOM, 원본 무변경, reset · undo · 새로고침) · ratchet 등급 A 초과 0 · initial JS gzip 1,332,540 B. 판독 1회 HIGH 1 · MEDIUM 2 (표시 속성 값이 교체 노드에 복사돼 되돌리기 뒤 patch 로 남고 직접 쓰기보다 앞섬 / 바깥 instance 가 원본 안 instance 자신의 쓰기를 잃음 / 경로 중간 slot 내용 주소가 안 따라와 `TEMPLATE_STEP_NOT_OWNED`) → 복사 노드엔 instance 의 직접 표시만 · resolver 순서 = 직접 → 속성 → 원본 / 그 경우 `PROPERTY_VALUE_INHERITED` 로 거부 / 경로에 교체 노드를 끼우고 뺌 — 수리 검증 원복 RED 5/5, 닫힘. LOW deferred: 한 속성의 대상 둘이 겹칠 때 (B 가 A 의 slot 내용 안) 두 번째 교체가 닿지 않을 수 있음 (미실행 가설) · 바깥 instance 값이 원본 안 instance 의 자기 쓰기 위에 겹치는 경우는 거부 (범위 밖) · Phase 2 Swap 이 숨긴 slot 항목을 page 루트로 꺼내는 경우 하니스 resolve 가 `NODE_DISABLED` (seed 8, HEAD 에서도 재현).
 
-> **Codex 착수 완료 검토 (2026-10-15, 사용자 요청)** — HIGH 0 · MEDIUM 4 (실행 재현) 모두 수리: 교체 레이어 detach 시 표시 속성 숨김 소실 · 부모와 slot 자식을 같은 교체 속성 대상으로 둠 (→ `PROPERTY_TARGET_NESTED` 로 거부) · 교체 값이 있는 원본 레이어를 원본 밖으로 이동 시 거부 (→ 그 자리를 지나는 instance override 정리) · Swap 이름 경로 구분자 충돌 (→ 단계 배열 키). 수리 검증 원복 RED 4/4. 상세: [breakdown §8](design/261-component-api-breakdown.md) · [리뷰 기록](reviews/261.md).
+> **Codex 착수 완료 검토 (2026-10-15, 사용자 요청)** — HIGH 0 · MEDIUM 4 (실행 재현) 모두 수리: 교체 레이어 detach 시 표시 속성 숨김 소실 · 부모와 slot 자식을 같은 교체 속성 대상으로 둠 (→ `PROPERTY_TARGET_NESTED` 로 거부) · 교체 값이 있는 원본 레이어를 원본 밖으로 이동 시 거부 (→ 그 자리를 지나는 instance override 정리) · Swap 이름 경로 구분자 충돌 (→ 단계 배열 키). 수리 검증 원복 RED 4/4. 상세: [breakdown §8](../design/261-component-api-breakdown.md) · [리뷰 기록](../reviews/261.md).
 
 - 사용자 요청: `/create-adr` (2026-10-15) — 「ADR-260 후속 A — 컴포넌트 API (instance 교체 · slot 추천 · 사용자 컴포넌트 속성 · drag/paste slot 채우기 · Phase 0 의심 확인)」.
 - 방향을 정한 사용자 원문: 「origin - instance, slot 은 pen.dev 와 pigma(Figma) 참조 모델이다」 (2026-10-14) · 「260 종료 후 설계」 (2026-10-14, ADR-260 후속 4 기능). 동작 판단이 갈리면 「pen.dev / Figma 에 같은 기능이 있다면 그 방식으로」 (2026-10-14, ADR-260 결정 4 · 5 답).
-- **분리 confirm (결정 지점 ①, 2026-10-15 AskUserQuestion 답)**: 후속 4 기능을 ADR 2개로 — 이 ADR (컴포넌트 API: instance 교체 → slot 추천 → 사용자 컴포넌트 속성) 과 [ADR-262](262-instance-override-push-and-reset-all.md) (override 정리: 원본에 반영 · Reset all changes). 근거는 직교성이다 — Figma 의 instance swap 속성 = 교체 명령 + preferred values (= pen.dev slot 추천) 라 셋이 묶이고, 반영 · 되돌리기는 override 만 다룬다. 같은 답에서 추가 범위 3건을 모두 포함: drag · paste 로 slot 채우기 · ADR-260 Phase 0 의심 1건 확인 (이 ADR), Reset all changes (ADR-262).
+- **분리 confirm (결정 지점 ①, 2026-10-15 AskUserQuestion 답)**: 후속 4 기능을 ADR 2개로 — 이 ADR (컴포넌트 API: instance 교체 → slot 추천 → 사용자 컴포넌트 속성) 과 [ADR-262](../262-instance-override-push-and-reset-all.md) (override 정리: 원본에 반영 · Reset all changes). 근거는 직교성이다 — Figma 의 instance swap 속성 = 교체 명령 + preferred values (= pen.dev slot 추천) 라 셋이 묶이고, 반영 · 되돌리기는 override 만 다룬다. 같은 답에서 추가 범위 3건을 모두 포함: drag · paste 로 slot 채우기 · ADR-260 Phase 0 의심 1건 확인 (이 ADR), Reset all changes (ADR-262).
 - 사용자가 이미 답한 확인 항목: 기본 (library) 원본의 slot 은 코드가 정한 그대로 — 편집 가능한 slot 지정은 사용자 컴포넌트 전용 (2026-10-14) · 놓은 instance 의 slot 내용은 instance 의 것 (2026-10-14) · 옛 문서 전환 코드 금지 (2026-10-14, 개발 단계).
-- **Codex 설계 리뷰 Round 1 (2026-10-15)**: HIGH 4 · MEDIUM 1 — 모두 실행 재현 (h3 · h4 는 기반 경로 실행). 같은 날 r1 에서 설계를 고쳤다. h1 화살표 순서가 원본 자식을 instance 로 빼 옴 → Decision 1 출발지 판정. h2 교체가 interaction · 바깥 override 주소를 끊음 → Decision 2 주소 보유자 재매핑 · 사용자 결정 6. h3 · h4 instance 속성을 resolver 에서만 바꾸면 의존성 · 자리 열거가 옛 정의 → Decision 4 `replace` 소유 노드. m1 다른 프로젝트 붙여넣기의 추천 → 대상에 없는 추천 제거. **Codex 수리 검증 Round 2 (같은 날)**: h1 · h3 · h4 · m1 닫힘 (실행 확인 — `replace` 직접 · 중첩의 투영 · 자리 열거 · 주소 · 편집 · detach · 영향 추적 · snapshot). h2 는 `showWhen` 상태 소유자 주소가 목록에서 빠져 남았다. r2 에서 Decision 2 의 대상을 「template 자리를 가리키는 모든 주소 필드 (Phase 0 전수)」 로 넓히고 `showWhen` 을 넣었다. 판독 상한에 닿아, 이 수리의 확인은 Phase 2 G2 가 맡는다. 상세: [리뷰 기록](reviews/261.md).
-- 범위 밖: variant (Figma component set) · 라이브러리 간 공유 · 원본에 반영과 Reset all changes ([ADR-262](262-instance-override-push-and-reset-all.md)) · 중첩 instance 의 속성 노출 (Figma 「expose nested instances」).
+- **Codex 설계 리뷰 Round 1 (2026-10-15)**: HIGH 4 · MEDIUM 1 — 모두 실행 재현 (h3 · h4 는 기반 경로 실행). 같은 날 r1 에서 설계를 고쳤다. h1 화살표 순서가 원본 자식을 instance 로 빼 옴 → Decision 1 출발지 판정. h2 교체가 interaction · 바깥 override 주소를 끊음 → Decision 2 주소 보유자 재매핑 · 사용자 결정 6. h3 · h4 instance 속성을 resolver 에서만 바꾸면 의존성 · 자리 열거가 옛 정의 → Decision 4 `replace` 소유 노드. m1 다른 프로젝트 붙여넣기의 추천 → 대상에 없는 추천 제거. **Codex 수리 검증 Round 2 (같은 날)**: h1 · h3 · h4 · m1 닫힘 (실행 확인 — `replace` 직접 · 중첩의 투영 · 자리 열거 · 주소 · 편집 · detach · 영향 추적 · snapshot). h2 는 `showWhen` 상태 소유자 주소가 목록에서 빠져 남았다. r2 에서 Decision 2 의 대상을 「template 자리를 가리키는 모든 주소 필드 (Phase 0 전수)」 로 넓히고 `showWhen` 을 넣었다. 판독 상한에 닿아, 이 수리의 확인은 Phase 2 G2 가 맡는다. 상세: [리뷰 기록](../reviews/261.md).
+- 범위 밖: variant (Figma component set) · 라이브러리 간 공유 · 원본에 반영과 Reset all changes ([ADR-262](../262-instance-override-push-and-reset-all.md)) · 중첩 instance 의 속성 노출 (Figma 「expose nested instances」).
 
 ## Context
 
@@ -254,7 +256,7 @@ Accepted — 2026-10-15
 5. 기본 원본 instance (Button ↔ IconButton) 교체 허용 — (기본안) 허용 / 사용자 컴포넌트끼리만.
 6. 교체에서 못 맞춘 주소 보유자 — interaction · 바깥 override · `showWhen` 상태 소유자 (리뷰 h2) — (기본안) 지우고 결과 알림에 셈 (override 와 같게) / 교체를 거부한다.
 
-> 구현 상세: [261-component-api-breakdown.md](design/261-component-api-breakdown.md)
+> 구현 상세: [261-component-api-breakdown.md](../design/261-component-api-breakdown.md)
 
 ## Risks
 
@@ -282,6 +284,12 @@ Accepted — 2026-10-15
 | G3   | Phase 4·5 | 속성: Canvas resolved record = Preview DOM 값 (text · boolean · instance, Compare Mode live) · 원본은 자기 값 · Preview DOM 루트에 속성 키 attribute 0 · detach 가 값을 굳힘 · 대상 삭제 정리.                                                                                    | 투영 지점을 resolver 한 곳으로 좁힌다  |
 | G4   | 각 Phase  | type-check · shared · builder 스위트 (기존 제외 `resolveContainerStylesFallback`) · pre-push perf ratchet 등급 A 통과 (초과면 원인 수리, 한도 올리기 금지) · initial 번들 상한 안.                                                                                                | 원인 수리                              |
 | G5   | 종료      | 사용자 Builder 확인 (Implemented 조건).                                                                                                                                                                                                                                           | 보고 결함 수리 후 재확인               |
+
+### Live Exercise
+
+- 2026-10-15 실행자 (headed Chrome, Playwright, 저장된 인증 세션 · dev 5173) — Phase 1 `apps/builder/scripts/adr261-drop-parent-live.mjs` 5/5 (instance slot 에 drag · ⌘V 로 채움 · slot 안 ArrowDown · layout page 내용 이동 — 원본 · layout template 무변경). Phase 2 · 3 `adr261-swap-live.mjs` 10/10 (Component 절 이름 칩 · Canvas 오른쪽 클릭 「Swap instance」 · 알림 유지 · 버림 · 밖으로 · undo) + slot 추천 4/4 (추천 추가 → 저장 · instance 의 추천 버튼 · 눌러 채움 · 원본 무변경). Phase 4 `adr261-properties-live.mjs` 14/14 (Compare Mode — 속성 값 Canvas record = Preview DOM · 원본 무변경 · DOM 루트에 속성 attribute 0 · 인라인 편집 · undo · detach). Phase 5 `adr261-instance-property-live.mjs` 16 검사 통과 (원본 레이어 「Instance swap property」 · 추천 Heart · instance picker 추천 맨 위 · 현재 값 제외 · Canvas = Preview DOM · reset · undo · 새로고침) — 직접 테스트에서 233px 패널의 버튼 잘림 1 수리 (`79b881192`).
+- 2026-10-15 사용자 보고 「create 한 컴포넌트의 instance 컴포넌트의 프러퍼티중 일부는 변경이 안되고 일부는 변경후 화면의 상태 변경이 일어나야 반영」 → 수리 (`ba7d6021c`) 뒤 실행자 live `adr261-bound-props-live.mjs` **8/8 · page error 0**: TextField 를 Create component → 복제 instance 의 Design 패널에 Label · Placeholder · Description 입력 직후 Canvas record 와 Preview DOM 이 같은 값 (다른 조작 없이) · undo 2 · Checkbox instance 글자 · 원본 무변경.
+- 2026-10-15 **G5 사용자 확인 「직접확인했다」** (Builder).
 
 ## Consequences
 
