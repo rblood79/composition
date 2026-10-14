@@ -18,7 +18,6 @@ import { componentPropertiesOf } from "../../../../../../../packages/shared/src/
 import {
   catalogComponentCommands,
   catalogComponentState,
-  catalogOverrideCleanupTarget,
 } from "../../../catalogRuntime/componentActions";
 import {
   confirmCatalogDetach,
@@ -202,17 +201,13 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const rootTarget: EditTarget = target;
   // The instance's writes at its template positions (the old list's `path.field` rows) and its
   // root's whole · state · breakpoint overrides (ADR-262 — every kind a Reset reaches).
-  const rootExtraKey = useSyncExternalStore(subscribe, () => {
-    if (!instanceOf || !nodeId) return "[]";
+  // (One graph read per step — the ADR-246 selection ratchet counts `getEntry`.)
+  const overrideKey = useSyncExternalStore(subscribe, () => {
+    if (!instanceOf || !nodeId) return "[[],[]]";
     const node = graph.getEntry(nodeId);
-    if (node?.kind !== "node") return "[]";
-    return JSON.stringify(extraRows(node, "", "root", t));
-  });
-  const patchKey = useSyncExternalStore(subscribe, () => {
-    if (!instanceOf || !nodeId) return "[]";
-    const node = graph.getEntry(nodeId);
-    if (node?.kind !== "node") return "[]";
-    return JSON.stringify(
+    if (node?.kind !== "node") return "[[],[]]";
+    return JSON.stringify([
+      extraRows(node, "", "root", t),
       node.descendantOverrides.flatMap((item): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
         const at = templateLabel(graph, item.address.templatePath.at(-1));
         const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
@@ -245,17 +240,18 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           })),
         ];
       }),
-    );
+    ]);
   });
-  // ADR-262: push · reset all act on the selected instance itself (not a position inside one).
-  const cleanup = useSyncExternalStore(subscribe, () =>
-    JSON.stringify(
-      catalogOverrideCleanupTarget(graph, target, definitionView) ?? null,
-    ),
-  );
-  const cleanupTarget = JSON.parse(cleanup) as ReturnType<
-    typeof catalogOverrideCleanupTarget
-  > | null;
+  const [rootExtraRows, patchRows] = JSON.parse(overrideKey) as [
+    RowSeed[],
+    (Omit<OverrideRow, "target"> & { address: InstanceAddress })[],
+  ];
+  // ADR-262: push · reset all act on the selected instance itself (not a position inside one) —
+  // the same test as `catalogOverrideCleanupTarget`, from the state already read above.
+  const cleanupTarget =
+    instanceOf && !originOf && nodeId
+      ? { id: nodeId, name: instanceOf.name }
+      : undefined;
   // ADR-261 Decision 4: a component property's value reads as the property's name.
   const propertyNames = new Map(
     (instanceOf?.definitionId.startsWith("project:")
@@ -281,15 +277,11 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           label: key,
           target: rootTarget,
         })),
-        ...(JSON.parse(rootExtraKey) as RowSeed[]).map((row) => ({
+        ...rootExtraRows.map((row) => ({
           ...row,
           target: rootTarget,
         })),
-        ...(
-          JSON.parse(patchKey) as (Omit<OverrideRow, "target"> & {
-            address: InstanceAddress;
-          })[]
-        ).map(({ address, ...row }) => ({
+        ...patchRows.map(({ address, ...row }) => ({
           ...row,
           target: {
             kind: "descendant",

@@ -517,6 +517,8 @@ export function catalogCanvasMenuItems(
   // take it), reset all (toast + undo). The instance itself only, as the Component section.
   if (origin && single && !ownOrigin) {
     const instanceId = ids[0];
+    // (Trusted: an owned instance is never refused, and planning the push per menu build —
+    // the action bar builds it on every selection — reads the origin's nodes: ADR-246 ratchet.)
     component.push(
       ...action(
         "push-changes",
@@ -526,6 +528,7 @@ export function catalogCanvasMenuItems(
         ACTION_ICONS.pushChanges,
         false,
         (execute) => void confirmCatalogPush(host.graph, instanceId, execute),
+        true,
       ),
       ...action(
         "reset-all-changes",
@@ -533,6 +536,9 @@ export function catalogCanvasMenuItems(
         catalogComponentCommands.resetAll(instanceId),
         undefined,
         ACTION_ICONS.reset,
+        false,
+        undefined,
+        true,
       ),
     );
   }
