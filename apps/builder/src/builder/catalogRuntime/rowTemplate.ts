@@ -94,25 +94,72 @@ export function catalogRowTemplateId(
   return undefined;
 }
 
-/** The bound owner whose row template the target is (or is inside); undefined otherwise. */
+/**
+ * The bound owner whose row template the target is (or is inside); undefined otherwise. The
+ * Design panel asks this per field of a selection, so the answer is kept per graph revision (the
+ * owner-chain walk cost a `getEntry` · `ownerOf` per ancestor per field — ADR-246 ratchet).
+ */
 export function catalogRowTemplateOwner(
   reader: CatalogReader,
   target: EditTarget,
 ): NodeId | undefined {
+  const key =
+    target.kind === "node"
+      ? target.id
+      : `${target.ownerId}|${target.address.instances.join("/")}|${target.address.templatePath.join("/")}`;
+  const revision = (reader as { revision?: unknown }).revision;
+  const memo =
+    typeof revision === "number" ? rowTemplateOwners.get(reader) : undefined;
+  if (memo && memo.revision === revision && memo.answers.has(key))
+    return memo.answers.get(key);
+  const answer = rowTemplateOwnerOf(reader, target);
+  if (typeof revision === "number") {
+    const next =
+      memo && memo.revision === revision
+        ? memo
+        : { revision, answers: new Map<string, NodeId | undefined>() };
+    next.answers.set(key, answer);
+    rowTemplateOwners.set(reader, next);
+  }
+  return answer;
+}
+const rowTemplateOwners = new WeakMap<
+  object,
+  { revision: number; answers: Map<string, NodeId | undefined> }
+>();
+
+function rowTemplateOwnerOf(
+  reader: CatalogReader,
+  target: EditTarget,
+): NodeId | undefined {
   // An owned row template (or a node in it, or a position of its own template): its bound owner
-  // is an ancestor whose row template is on the target's owner chain.
+  // is an ancestor whose row template is on the target's owner chain. Only a bound ancestor has a
+  // row template, so the chain is read once and only bound ones are asked.
   const chain: string[] = [];
+  const bound: NodeId[] = [];
   for (
     let id: string | undefined =
       target.kind === "node" ? target.id : target.ownerId;
-    id && reader.getEntry(id)?.kind === "node";
+    id;
     id = reader.ownerOf(id)
   ) {
-    const rowTemplate = catalogRowTemplateId(reader, id as NodeId);
-    if (rowTemplate && chain.includes(rowTemplate)) return id as NodeId;
+    const entry = reader.getEntry(id);
+    if (entry?.kind !== "node") break;
+    if (entry.binding) bound.push(id as NodeId);
     chain.push(id);
   }
+  for (const id of bound) {
+    const rowTemplate = catalogRowTemplateId(reader, id);
+    if (
+      rowTemplate &&
+      chain.includes(rowTemplate) &&
+      chain.indexOf(rowTemplate) < chain.indexOf(id)
+    )
+      return id;
+  }
   if (target.kind !== "descendant") return undefined;
+  const owner = reader.getEntry(target.ownerId);
+  if (owner?.kind !== "node" || !owner.binding) return undefined;
   const rowTemplate = catalogRowTemplateId(reader, target.ownerId);
   if (!rowTemplate) return undefined;
   // (The row template itself, a position below it, or one inside its own composite template.)
