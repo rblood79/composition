@@ -3,7 +3,7 @@ import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { act } from "react";
+import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -11,6 +11,7 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   EntryId,
@@ -22,6 +23,11 @@ import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import {
+  catalogEditContract,
+  catalogPropBaseValue,
+  catalogPropertiesPatchCommand,
+} from "../editContract";
+import {
   catalogFieldPrefix,
   catalogFieldPrefixCommand,
   type CatalogFieldPrefixKind,
@@ -30,6 +36,7 @@ import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import { WorkspaceContext, useCatalogEditContract } from "../react.runtime";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -86,6 +93,7 @@ async function open(
   type: string,
   label: string,
   extra: Record<string, unknown> = {},
+  measure = false,
 ) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -101,6 +109,15 @@ async function open(
       engine: await nodeLayoutEngine(),
       viewport: { width: 1200, height: 800 },
       autosaveSchedule: () => {},
+      ...(measure
+        ? {
+            textMeasure: (text: string) => ({
+              width: text.length * 8,
+              minWidth: text.length * 8,
+              height: 20,
+            }),
+          }
+        : {}),
     },
   );
   workspace.execute(
@@ -216,6 +233,271 @@ function paintOf(root: Awaited<ReturnType<typeof open>>["root"], id: string) {
 }
 
 describe("ADR-259 Phase 2 — field prefix", () => {
+  for (const size of ["S", "M", "L", "XL"])
+    for (const labelPosition of ["top", "side"])
+      it(`TextArea ${size} ${labelPosition}: prefix follows the first input line as rows change`, async () => {
+        const { workspace, setPrefix, root, recordOf, render } = await open(
+          "TextArea",
+          `first-line-${size}-${labelPosition}`,
+          { size, labelPosition, rows: 3 },
+          true,
+        );
+        setPrefix("text");
+        const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+        for (const rows of [3, 6, 2]) {
+          workspace.execute(
+            setFields({
+              targets: [{ kind: "node", id: ROOT }],
+              props: { rows: { kind: "set", value: rows } },
+            }),
+          );
+          const input = recordOf("Input")[0]!;
+          const prefix = recordOf("Text").find(
+            (r) => r.props.slot === "prefix",
+          )!;
+          const boxes = root.getGeometry([input.id, prefix.id]);
+          expect(boxes.get(prefix.id)!.y).toBe(boxes.get(input.id)!.y);
+          const data = getSkiaNode(input.id)!;
+          const text =
+            data.text ?? data.children?.find((child) => child.text)?.text;
+          expect(text).toBeDefined();
+          expect(text!.paddingTop ?? 0).toBe(0);
+        }
+        canvas.dispose();
+        const { host, done } = await render();
+        const prefix = host.querySelector('[slot="prefix"]')!;
+        expect((prefix.parentElement as HTMLElement).style.alignItems).toBe(
+          "flex-start",
+        );
+        await done();
+      });
+
+  for (const kind of ["none", "text", "icon"] as const)
+    it(`TextArea ${kind}: the side-label CSS selector reaches the actual control structure`, async () => {
+      const { setPrefix, root, recordOf, render } = await open(
+        "TextArea",
+        `side-css-${kind}`,
+        { labelPosition: "side" },
+        true,
+      );
+      if (kind === "none") setPrefix("text");
+      setPrefix(kind);
+      const label = recordOf("Label")[0]!;
+      const input = recordOf("Input")[0]!;
+      const group =
+        kind === "none" ? undefined : root.canvasInputs.get(input.parentId!);
+      const boxes = root.getGeometry([
+        label.id,
+        input.id,
+        ...(group ? [group.id] : []),
+      ]);
+      const inputY =
+        boxes.get(input.id)!.y + (group ? boxes.get(group.id)!.y : 5);
+      expect(boxes.get(label.id)!.y).toBe(inputY);
+      const { host, done } = await render();
+      const variants = COMPONENT_RULES_TABLE.TextField.structure!.composition!
+        .containerVariants as {
+        "label-position": {
+          side: {
+            nested: Array<{ selector: string; styles: Record<string, string> }>;
+          };
+        };
+      };
+      const rule = variants["label-position"].side.nested.find(
+        (entry) => entry.styles["margin-top"],
+      )!;
+      expect(
+        host
+          .querySelector("label")!
+          .matches(rule.selector.replace(/^>\s*/, "")),
+      ).toBe(true);
+      await done();
+    });
+
+  for (const type of ["TextField", "TextArea"]) {
+    it(`${type}: the inspector follows edits and undo of the materialized label`, async () => {
+      const { workspace, setPrefix, recordOf } = await open(
+        type,
+        `${type}-inspector`,
+      );
+      setPrefix("text");
+      const target = { kind: "node" as const, id: ROOT };
+      function Probe() {
+        const contract = useCatalogEditContract(target);
+        return createElement(
+          "output",
+          null,
+          String(contract.fields.find((f) => f.key === "label")?.currentValue),
+        );
+      }
+      (
+        globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+      ).IS_REACT_ACT_ENVIRONMENT = true;
+      const host = document.body.appendChild(document.createElement("div"));
+      const reactRoot = createRoot(host);
+      await act(async () =>
+        reactRoot.render(
+          createElement(
+            WorkspaceContext.Provider,
+            { value: workspace },
+            createElement(Probe),
+          ),
+        ),
+      );
+      expect(host.textContent).toBe("Price");
+      await act(async () => {
+        workspace.execute(
+          setFields({
+            targets: [workspace.itemOfRecord(recordOf("Label")[0]!.id)!.target],
+            props: { children: { kind: "set", value: "Direct part edit" } },
+          }),
+        );
+      });
+      expect(host.textContent).toBe("Direct part edit");
+      await act(async () => {
+        workspace.undo();
+      });
+      expect(host.textContent).toBe("Price");
+      await act(async () => reactRoot.unmount());
+      host.remove();
+    });
+  }
+  for (const type of FIELDS) {
+    it(`${type}: editing prefix text immediately moves the input`, async () => {
+      const { workspace, setPrefix, root, recordOf } = await open(
+        type,
+        `${type}-edit-prefix`,
+        {},
+        true,
+      );
+      setPrefix("text");
+      const prefix = recordOf("Text").find((r) => r.props.slot === "prefix")!;
+      const input = recordOf("Input")[0]!;
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      for (const text of ["USD amount", "$"]) {
+        workspace.execute(
+          setFields({
+            targets: [workspace.itemOfRecord(prefix.id)!.target],
+            props: { children: { kind: "set", value: text } },
+          }),
+        );
+        const geometry = root.getGeometry([prefix.id, input.id]);
+        const prefixBox = geometry.get(prefix.id)!;
+        expect(geometry.get(input.id)!.x).toBeGreaterThanOrEqual(
+          prefixBox.x + prefixBox.width,
+        );
+        canvas.update();
+        const paintedInput = canvas.stream.boundsMap.get(input.id)!;
+        const paintedPrefix = canvas.stream.boundsMap.get(prefix.id)!;
+        expect(paintedInput.x - paintedPrefix.x).toBeCloseTo(
+          geometry.get(input.id)!.x - prefixBox.x,
+          5,
+        );
+        expect(paintedInput.width).toBeCloseTo(
+          geometry.get(input.id)!.width,
+          5,
+        );
+      }
+      canvas.dispose();
+    });
+
+    it(`${type}: field property edits still reach materialized parts after prefix insertion`, async () => {
+      const { workspace, setPrefix, recordOf, render } = await open(
+        type,
+        `${type}-edit-parts`,
+      );
+      setPrefix("text");
+      const before = {
+        label: recordOf("Label")[0]!.props.children,
+        placeholder: recordOf("Input")[0]!.props.placeholder,
+      };
+      const command = catalogPropertiesPatchCommand(
+        workspace.runtime.graph,
+        [{ kind: "node", id: ROOT }],
+        { label: "Updated label", placeholder: "Updated placeholder" },
+        (key) => recordOf(type)[0]!.props[key],
+        new Set(),
+      );
+      workspace.execute(command!);
+      expect(recordOf("Label")[0]!.props.children).toBe("Updated label");
+      expect(recordOf("Input")[0]!.props.placeholder).toBe(
+        "Updated placeholder",
+      );
+      const { host, done } = await render();
+      expect(host.querySelector("label")!.textContent).toContain(
+        "Updated label",
+      );
+      expect(
+        host.querySelector("input, textarea")!.getAttribute("placeholder"),
+      ).toBe("Updated placeholder");
+      await done();
+      workspace.undo();
+      expect(recordOf("Label")[0]!.props.children).toBe(before.label);
+      expect(recordOf("Input")[0]!.props.placeholder).toBe(before.placeholder);
+      workspace.redo();
+      expect(recordOf("Label")[0]!.props.children).toBe("Updated label");
+      expect(recordOf("Input")[0]!.props.placeholder).toBe(
+        "Updated placeholder",
+      );
+      const target = { kind: "node" as const, id: ROOT };
+      workspace.execute(
+        catalogPropertiesPatchCommand(
+          workspace.runtime.graph,
+          [target],
+          { label: undefined, placeholder: undefined },
+          () => true,
+          new Set(),
+        )!,
+      );
+      expect(recordOf("Label")[0]!.props.children).toBe(
+        catalogPropBaseValue(workspace.runtime.graph, target, "label"),
+      );
+      expect(recordOf("Input")[0]!.props.placeholder).toBe(
+        catalogPropBaseValue(workspace.runtime.graph, target, "placeholder"),
+      );
+      workspace.undo();
+      setPrefix("none");
+      expect(recordOf("Input")[0]!.props.placeholder).toBe(
+        "Updated placeholder",
+      );
+      setPrefix("icon");
+      const reloaded = new CatalogWorkspace(
+        new CatalogGraph(
+          workspace.runtime.graph.exportDocument(),
+          workspace.runtime.graph.library,
+        ),
+        new CatalogStorage(
+          indexedDB,
+          `field-content-reload-${type}-${Math.random()}`,
+        ),
+        {
+          engine: await nodeLayoutEngine(),
+          viewport: { width: 1200, height: 800 },
+          autosaveSchedule: () => {},
+        },
+      );
+      const parts = [...reloaded.root.canvasInputs.values()];
+      expect(
+        parts.find((r) => reloaded.root.typeOf(r) === "Label")!.props.children,
+      ).toBe("Updated label");
+      expect(
+        parts.find((r) => reloaded.root.typeOf(r) === "Input")!.props
+          .placeholder,
+      ).toBe("Updated placeholder");
+      const contract = catalogEditContract(
+        reloaded.runtime.graph,
+        reloaded.readModel,
+        target,
+      );
+      expect(
+        contract.fields.find((field) => field.key === "label")!.currentValue,
+      ).toBe("Updated label");
+      expect(
+        contract.fields.find((field) => field.key === "placeholder")!
+          .currentValue,
+      ).toBe("Updated placeholder");
+    });
+  }
   // (A failed DOM case leaves its host behind — its ids would answer the next case's lookups.)
   afterEach(() => {
     document.body.innerHTML = "";
@@ -261,7 +543,13 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         expect(prefixEl, "prefix element").not.toBeNull();
         const box = prefixEl.parentElement!;
         if (process.env.ADR259_DUMP)
-          console.log("DOM", prefixEl.getAttribute("style"), "|BOX|", box.getAttribute("style"), box.className);
+          console.log(
+            "DOM",
+            prefixEl.getAttribute("style"),
+            "|BOX|",
+            box.getAttribute("style"),
+            box.className,
+          );
         expect({
           labelledBy: labelledByShape(control, { label, prefix: prefixEl }),
           prefixFirstInGroup: box.firstElementChild === prefixEl,
@@ -273,9 +561,10 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         });
         if (kind === "text") expect(nameOf(control)).toBe(oracle.name);
         expect(prefixEl.getAttribute("slot")).toBe("prefix");
-        expect((control as HTMLElement).style.maxWidth, "in-box input max").toBe(
-          "none",
-        );
+        expect(
+          (control as HTMLElement).style.maxWidth,
+          "in-box input max",
+        ).toBe("none");
         if (type === "NumberField")
           for (const stepper of box.querySelectorAll<HTMLElement>(
             ":scope > button",
@@ -378,7 +667,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         );
         const inputBefore = recordOf("Input")[0];
         const before = paintOf(root, inputBefore.id);
-        const beforeBox = root.getGeometry([inputBefore.id]).get(inputBefore.id)!;
+        const beforeBox = root
+          .getGeometry([inputBefore.id])
+          .get(inputBefore.id)!;
         setPrefix("text");
         const prefix = recordOf("Text").find((r) => r.props.slot === "prefix")!;
         const group = root.canvasInputs.get(prefix.parentId!)!;
@@ -419,7 +710,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         const prefixBox = root.getGeometry([prefix.id]).get(prefix.id)!;
         const inputBox = root.getGeometry([input.id]).get(input.id)!;
         expect(prefixBox.x).toBeGreaterThan(0);
-        expect(inputBox.x).toBeGreaterThanOrEqual(prefixBox.x + prefixBox.width);
+        expect(inputBox.x).toBeGreaterThanOrEqual(
+          prefixBox.x + prefixBox.width,
+        );
         if (type === "NumberField")
           // Its steppers lay their border down, the box's inner height, at its end.
           for (const [index, stepper] of recordOf("Button").entries()) {
@@ -438,7 +731,9 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           const button = recordOf("Button")[0];
           const buttonBox = root.getGeometry([button.id]).get(button.id)!;
           expect(button.parentId).toBe(group.id);
-          expect(buttonBox.x + buttonBox.width).toBeLessThan(groupBox.width - 1);
+          expect(buttonBox.x + buttonBox.width).toBeLessThan(
+            groupBox.width - 1,
+          );
         } else if (type !== "NumberField")
           // The Input fills the row to the box's border (a ColorField's keeps no maximum there).
           expect(inputBox.x + inputBox.width).toBe(groupBox.width - 1);
@@ -473,9 +768,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
       const text = recordOf("Text").find((r) => r.props.slot === "prefix")!;
       // The muted color (S2 `gray-600` — `--fg-muted`), the same on both consumers.
       expect(text.visual.color).toBe(icon.visual.color);
-      expect(text.visual.color).not.toBe(
-        recordOf("Input")[0].visual.color,
-      );
+      expect(text.visual.color).not.toBe(recordOf("Input")[0].visual.color);
       const second = await render();
       const textEl = second.host.querySelector<HTMLElement>(
         `[data-catalog-id="${text.id}"]`,
@@ -501,7 +794,10 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         setFields({
           targets: [workspace.positionOfRecord(field.id)!.target],
           props: Object.fromEntries(
-            Object.entries(props).map(([k, v]) => [k, { kind: "set", value: v }]),
+            Object.entries(props).map(([k, v]) => [
+              k,
+              { kind: "set", value: v },
+            ]),
           ),
         }),
       );
@@ -510,7 +806,10 @@ describe("ADR-259 Phase 2 — field prefix", () => {
     expect(paintOf(root, group().id).stroke?.[0]).toBeGreaterThan(0.9);
     edit({ isInvalid: false, isQuiet: true });
     expect(group().derivedProps?.isQuiet).toBe(true);
-    expect(paintOf(root, group().id)).toMatchObject({ fill: null, radius: "0" });
+    expect(paintOf(root, group().id)).toMatchObject({
+      fill: null,
+      radius: "0",
+    });
   });
 
   it("a field without a prefix keeps its Input box (no FieldBox style)", async () => {
@@ -523,7 +822,10 @@ describe("ADR-259 Phase 2 — field prefix", () => {
           root.getGeometry([group.id]).get(group.id),
           `${type} Group`,
         ).toBeDefined();
-      expect(paintOf(root, input.id).stroke, `${type} Input stroke`).not.toBeNull();
+      expect(
+        paintOf(root, input.id).stroke,
+        `${type} Input stroke`,
+      ).not.toBeNull();
     }
   });
 });

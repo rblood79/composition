@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **TextArea의 Prefix를 placeholder의 첫 줄에 정렬하고, Prefix가 있는 Side Label의 Canvas·CSS 위치를 일치시킨다.**
+  - 여러 줄 입력의 FieldBox는 위쪽 정렬을 사용한다. Side Label의 첫 줄 정렬 규칙은 입력을 감싼 Prefix Group도 인식한다.
+  - Canvas의 글자 그리기 경로에도 Input의 위쪽 여백 0을 전달해 기본 여백이 다시 붙지 않도록 한다.
+  - S/M/L/XL 크기와 Top/Side, Rows 변경, Prefix None/Text/Icon 경로를 회귀 검증한다.
 - **TextField·TextArea의 Prefix Text 변경 직후 Input이 이동하고, Label·Placeholder 편집이 Canvas와 Preview에 반영된다.**
   - 파생 flex Group을 block으로 판단하던 Canvas 형제 갱신·줄바꿈 범위를 실제 엔진 입력으로 판정한다.
   - 구조 편집으로 독립 노드가 된 Label·Input·Description·FieldError의 Content 편집과 Reset을 실제 부품에도 같은 명령으로 적용한다. 패널은 부품 값을 읽고 직접 편집·Undo를 구독한다.

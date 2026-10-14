@@ -102,7 +102,7 @@
   justify-content: var(--form-label-align, start);
 }
 
-.react-aria-TextField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel):has(~ .react-aria-TextArea) {
+.react-aria-TextField[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel):has(~ .react-aria-TextArea, ~ .react-aria-FieldBox > .react-aria-TextArea) {
   align-self: start;
   margin-top: var(--tf-side-label-offset);
 }

@@ -83,11 +83,19 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   item 내부 간격을 같은 속성으로 섞지 않는다.
 - 신규 binding은 노드 style을 자기 DOM 요소에 전달한다. RAC가 요소를 만들지 않거나
   부모가 소유하는 부품은 해당 계약에 따라 처리하고, 별도 상자를 임의 생성하지 않는다.
+- TextArea의 Prefix는 공통 FieldBox에서 첫 입력 줄에 정렬하고, Side Label 선택자는 Prefix Group 안의 입력도 인식한다.
+  **Why (2026-10-14)**: 한 줄용 center를 쓰면 rows=3에서 Prefix가 placeholder보다 20px 아래에 놓인다.
+  직접 형제 textarea만 찾는 CSS는 Prefix Group 삽입 후 매칭되지 않아 Side Label이 Canvas보다 22.5px 아래에 놓였다.
+  Canvas 검증은 상자 좌표와 글자 내부 여백을 함께 본다. **Why (2026-10-14)**: Prefix Input의 paddingTop=0이
+  rule paint에서 누락되어 상자가 일치해도 placeholder에 기본 size 여백(S/M/L/XL: 2/4/8/12px)이 다시 붙었다.
 - 노드 트리의 자식 배치는 엔진이 계산한다. 삭제된 `calculateContentHeight` 분기나
   컴포넌트별 spec·옛 renderer 등록표를 재생성하지 않는다.
 - 검증은 변경된 spacing/typed field를 기본값과 다르게 설정해 DOM·Canvas·레이아웃에
   도달하는지 확인한다. 인접 runtime/spacing 검사와 `/cross-check`를 사용한다.
 - Canvas 증분 갱신은 엔진에 적용된 입력 snapshot (`getAppliedLayoutInput`) 전체를 비교한다.
+  형제 배치·줄바꿈 범위의 display/position 판정도 같은 입력을 읽는다.
+  **Why (2026-10-14)**: Prefix Group은 기본 block에서 파생 flex로 바뀐다. 기본 상자로
+  판정하면 Prefix 텍스트 폭이 바뀌어도 Input의 Canvas 좌표가 남아 placeholder와 겹친다.
   자신의 크기가 그대로여도 margin·grid placement는 형제를 이동시키므로 부모 배치를 검사한다.
   **Why (2026-10-14)**: box model·layout만 비교하면 한쪽 border와 Table의 파생 열 정보가
   빠지고, 크기 변경만 따라가면 margin·grid 배치 뒤 형제가 과거 좌표에 남는다 (9개 재현).

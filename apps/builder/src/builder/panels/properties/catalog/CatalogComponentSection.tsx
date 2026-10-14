@@ -19,7 +19,7 @@ import {
   confirmCatalogDetach,
   confirmCatalogDissolve,
 } from "../../../catalogRuntime/componentConfirm";
-import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContract";
+import { catalogPropertiesPatchCommand } from "../../../catalogRuntime/editContract";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import {
   useCatalogOwnFields,
@@ -189,10 +189,12 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     ({ key, field, label, target }: OverrideRow) => {
       const command =
         field === "props"
-          ? catalogSemanticPatchCommand(
+          ? catalogPropertiesPatchCommand(
+              graph,
               [target],
               { [key]: undefined },
               () => true,
+              new Set(),
             )
           : setFields({
               targets: [target],
@@ -211,7 +213,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
             },
           });
     },
-    [run, t, workspace],
+    [graph, run, t, workspace],
   );
 
   return (

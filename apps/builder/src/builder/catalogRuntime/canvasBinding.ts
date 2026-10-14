@@ -1541,7 +1541,6 @@ function bindInColorMode(
         id: string,
         parent: CatalogConsumerNode,
       ): boolean => {
-        const child = catalogBoxModel(input(id)!);
         const before = JSON.parse(boundLayoutInputs.get(id) ?? "{}") as Record<
           string,
           unknown
@@ -1549,13 +1548,16 @@ function bindInColorMode(
         const after = JSON.parse(
           root.getAppliedLayoutInput(id) ?? "{}",
         ) as Record<string, unknown>;
+        const parentStyle = JSON.parse(
+          root.getAppliedLayoutInput(parent.id) ?? "{}",
+        ) as Record<string, unknown>;
         // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
         // the caller) no sibling reads its size, in any parent display.
         if (before.position === "absolute" && after.position === "absolute")
           return true;
         return (
-          catalogBoxModel(parent).display === "block" &&
-          !child.display.startsWith("inline") &&
+          parentStyle.display === "block" &&
+          !String(after.display ?? "").startsWith("inline") &&
           before.display === after.display &&
           before.position === after.position &&
           before.marginTop === after.marginTop &&

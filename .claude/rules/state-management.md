@@ -87,6 +87,11 @@ paths:
 
 ## 7. Styles · Properties 패널 입력
 
+- 구조 편집으로 template 부품이 owned node가 된 field의 Content 패널은 실제 부품 값을 읽고,
+  부모의 의미 속성 편집·Reset과 부품 쓰기를 한 명령으로 적용한다. **Why (2026-10-14)**:
+  Prefix 추가 시 고정된 Label·Input을 둔 채 부모 label/placeholder만 바꾸면 패널과 두 renderer가
+  달라진다. 부품 직접 편집과 Undo도 패널 구독 대상에 포함한다.
+
 - **Why (2026-10-12 lint 수리)**: 렌더 중 ref를 갱신하면 아직 commit되지 않은 렌더의 콜백이 네이티브 이벤트 경로로 유출될 수 있다. 렌더가 소비하는 입력·헤더 스냅샷은 state 또는 외부 구독으로 읽고, 최신 이벤트 콜백은 commit에서 연결한다. 이전 consumer의 cleanup은 새 consumer를 끊지 않아야 한다.
 
 - `PropertyUnitInput`: focus 때 선택 id 를 ref 로 잡고 blur 때 비교 — 다르면 onChange 를 건너뛴다. **Why**: mousedown → blur 순서라 blur 시점에 이미 새 요소가 선택돼 있다.

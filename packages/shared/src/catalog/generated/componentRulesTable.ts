@@ -6362,11 +6362,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "caret-color": "var(--fg)",
               },
             },
-          "&[data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])": {
-            styles: {
-              "border-color": "var(--border-hover)",
+          "&[data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])":
+            {
+              styles: {
+                "border-color": "var(--border-hover)",
+              },
             },
-          },
           "&:is([data-focused], [data-focus-within])": {
             styles: {
               outline: "2px solid var(--accent)",
@@ -6905,7 +6906,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "var(--fg)",
                 padding: "var(--spacing-xs) var(--spacing-lg)",
                 background: "var(--bg-overlay)",
-                "border-block": "var(--border-width-hairline) solid var(--border)",
+                "border-block":
+                  "var(--border-width-hairline) solid var(--border)",
               },
             },
           },
@@ -7001,7 +7003,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 padding:
                   "var(--spacing-xs) var(--spacing-lg) var(--spacing-xs) calc(var(--spacing-xl) + var(--spacing-xs))",
                 background: "var(--bg-overlay)",
-                "border-block": "var(--border-width-hairline) solid var(--border)",
+                "border-block":
+                  "var(--border-width-hairline) solid var(--border)",
               },
             },
           },
@@ -12548,7 +12551,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 },
                 {
                   // (a TextArea: the label at the textarea's first line, not its middle)
-                  selector: "> .react-aria-Label:has(~ .react-aria-TextArea)",
+                  selector:
+                    "> .react-aria-Label:has(~ .react-aria-TextArea, ~ .react-aria-FieldBox > .react-aria-TextArea)",
                   styles: {
                     "align-self": "start",
                     "margin-top": "var(--tf-side-label-offset)",

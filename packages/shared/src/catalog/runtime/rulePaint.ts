@@ -61,6 +61,8 @@ const GEOMETRY_STYLE_KEYS: Readonly<Record<string, string>> = {
   borderWidth: "borderWidth",
   fontSize: "fontSize",
   fontWeight: "fontWeight",
+  // Top-aligned text uses this inset in buildCatalogShapes (including a prefix Input's zero).
+  paddingTop: "paddingTop",
 };
 
 /**

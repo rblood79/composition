@@ -19,6 +19,7 @@ import type { CatalogPosition } from "../../../../../packages/shared/src/catalog
 import type { CatalogSaveStatus } from "./autosave";
 
 import { catalogEditContract } from "./editContract";
+import { catalogOwnedFieldContent } from "./fieldContent";
 
 import type { CatalogComponentSummary } from "./readModel";
 
@@ -134,13 +135,23 @@ export function useCatalogEditContract(
 ): EditContract {
   const { runtime, readModel } = useCatalogWorkspace();
   const key = target ? targetKey(target) : "";
-  const cache = useRef<{ key: string; contract: EditContract }>(undefined);
+  const cache = useRef<{
+    key: string;
+    contract: EditContract;
+    dependencies: ReadonlySet<string>;
+  }>(undefined);
   const subscribe = useCallback(
     (notify: () => void) =>
       runtime.subscribeSteps(({ result, invalidatedIds }) => {
         if (!target) return;
         const owner = target.kind === "node" ? target.id : target.ownerId;
-        if (!result.changedIds.has(owner) && !invalidatedIds.includes(owner))
+        if (
+          !result.changedIds.has(owner) &&
+          !invalidatedIds.includes(owner) &&
+          ![...(cache.current?.dependencies ?? [])].some(
+            (id) => result.changedIds.has(id) || invalidatedIds.includes(id),
+          )
+        )
           return;
         cache.current = undefined;
         notify();
@@ -152,12 +163,18 @@ export function useCatalogEditContract(
     if (!target) return EMPTY_CONTRACT;
     if (cache.current?.key !== key) {
       let contract = EMPTY_CONTRACT;
+      const dependencies = new Set<string>();
       try {
         contract = catalogEditContract(runtime.graph, readModel, target);
+        for (const { target: part } of catalogOwnedFieldContent(
+          runtime.graph,
+          target,
+        ).values())
+          dependencies.add(part.kind === "node" ? part.id : part.ownerId);
       } catch {
         // The target is gone (removed in this step): the selection follows on its own.
       }
-      cache.current = { key, contract };
+      cache.current = { key, contract, dependencies };
     }
     return cache.current.contract;
   });

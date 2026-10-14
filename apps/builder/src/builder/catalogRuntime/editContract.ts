@@ -32,6 +32,7 @@ import type {
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
 import { RULE_TYPE_PROP_CONTRACTS } from "../../../../../packages/shared/src/catalog/document/itemLinks";
+import { catalogOwnedFieldContent } from "./fieldContent";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
 import {
   catalogBindingRef,
@@ -109,6 +110,7 @@ export function catalogEditContract(
   const type = definitionTypeName(graph, definitionId);
   const rule = resolveComponentRule(type);
   const node = { type };
+  const ownedContent = catalogOwnedFieldContent(graph, target);
   const fields: ResolvedField[] = Object.entries(
     catalogSemanticContracts(definitionId, type),
   ).map(([key, contract]) => {
@@ -130,8 +132,14 @@ export function catalogEditContract(
       };
     }
     const reading = readModel.propSource(target, key);
-    const isOverridden = reading.own !== undefined;
     const baseValue = reading.inherited.value ?? contract.default;
+    const part = ownedContent.get(key);
+    const value = part
+      ? readPropSource(graph, part.target, part.key).value
+      : reading.value;
+    const isOverridden = part
+      ? JSON.stringify(value) !== JSON.stringify(baseValue)
+      : reading.own !== undefined;
     return {
       key,
       kind: contract.kind,
@@ -140,7 +148,7 @@ export function catalogEditContract(
       origin: "semantic",
       isOverridden,
       baseValue,
-      currentValue: isOverridden ? reading.value : baseValue,
+      currentValue: isOverridden ? value : baseValue,
       min: contract.min,
       max: contract.max,
       step: contract.step,
@@ -362,6 +370,30 @@ export function catalogPropertiesPatchCommand(
       catalogPropBaseValue(graph, target, key),
     );
   if (propCommand) commands.push(propCommand);
+  // Prefix/wrapper edits materialize the template parts. Keep this panel's semantic edit atomic
+  // with the actual content writes, including resets and already-saved materialized fields.
+  for (const target of targets) {
+    const parts = catalogOwnedFieldContent(graph, target);
+    for (const [key, value] of Object.entries(props)) {
+      const part = parts.get(key);
+      if (!part) continue;
+      const next =
+        value === undefined ? catalogPropBaseValue(graph, target, key) : value;
+      if (
+        JSON.stringify(readPropSource(graph, part.target, part.key).value) ===
+        JSON.stringify(next)
+      )
+        continue;
+      commands.push(
+        setFields({
+          targets: [part.target],
+          props: {
+            [part.key]: { kind: "set", value: (next ?? "") as AuthoredValue },
+          },
+        }),
+      );
+    }
+  }
   if (commands.length < 2) return commands[0];
   return () => composeCommands(graph, "Edit properties", commands);
 }

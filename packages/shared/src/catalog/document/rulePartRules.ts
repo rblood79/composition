@@ -1220,9 +1220,7 @@ function fieldPrefixPartRules(parentType: string): CompiledPartRule[] {
   return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
     const text = Object.entries(composition?.sizeSelectors?.[size] ?? {}).find(
       ([selector, block]) =>
-        isPrefix(selector) &&
-        selector.includes("Text") &&
-        block["font-size"],
+        isPrefix(selector) && selector.includes("Text") && block["font-size"],
     )?.[1];
     const fontSize = tokenNumber(text?.["font-size"]);
     const lineRatio = tokenNumber(text?.["line-height"]);
@@ -1359,6 +1357,7 @@ function compositionVariables(
  */
 const SIBLING_CONTROL_TYPES: Readonly<Record<string, string>> = {
   ".react-aria-TextArea": "TextArea",
+  ".react-aria-FieldBox > .react-aria-TextArea": "TextArea",
 };
 /** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
 const LABEL_ALIGN_AXIS = {
@@ -1570,7 +1569,14 @@ function containerVariantPartRules(
         const sibling = /^(.*):has\(~\s*([^)]+)\)$/.exec(
           entry.selector.trim().replace(/^>\s*/, ""),
         );
-        if (sibling && SIBLING_CONTROL_TYPES[sibling[2].trim()] !== parentType)
+        if (
+          sibling &&
+          !sibling[2]
+            .split(/,\s*~\s*/)
+            .some(
+              (control) => SIBLING_CONTROL_TYPES[control.trim()] === parentType,
+            )
+        )
           continue;
         const selector = sibling
           ? sibling[1]
@@ -1929,7 +1935,9 @@ function withPartAliases(
     // (The row is a box: the Label's text values — alignment, font, color — stay the Label's; the
     // sheet's reach the text in the row by inheritance.)
     const visual = Object.fromEntries(
-      Object.entries(part.visual).filter(([key]) => !LABEL_TEXT_VISUAL.has(key)),
+      Object.entries(part.visual).filter(
+        ([key]) => !LABEL_TEXT_VISUAL.has(key),
+      ),
     );
     if (!Object.keys(part.layout).length && !Object.keys(visual).length)
       return [part];

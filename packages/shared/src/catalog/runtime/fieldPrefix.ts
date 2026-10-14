@@ -139,16 +139,20 @@ function inputBox(size: unknown) {
  * Input's text stops where it did and a ComboBox's button keeps its place over that room —
  * `buttonOverlayInset`), and —
  * one-line fields — the Input box's height with the row centred in it. A TextArea keeps the
- * vertical padding (its `<textarea>` is the rows box less it).
+ * vertical padding (its `<textarea>` is the rows box less it), with the prefix at the first line.
  */
 /**
  * A ComboBox's button sits over its Input's end room by a negative start margin past its own width
  * (`--combo-btn-offset` − `--combo-btn-size`, md 26 − 22 = 4): in a prefix box the Input fills
  * that overlap, so the box keeps it as end padding — the button stays inset as without a prefix.
  */
-function buttonOverlayInset(fieldType: string | undefined, size: unknown): number {
+function buttonOverlayInset(
+  fieldType: string | undefined,
+  size: unknown,
+): number {
   if (fieldType !== "ComboBox") return 0;
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).ComboBox;
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .ComboBox;
   const delegation = (
     rule.structure?.composition as
       | {
@@ -173,7 +177,7 @@ export function catalogFieldBoxStyle(
 ): {
   display: "flex";
   flexDirection: "row";
-  alignItems: "center";
+  alignItems: "center" | "flex-start";
   width: "100%";
   height?: number;
   paddingTop: number;
@@ -187,7 +191,7 @@ export function catalogFieldBoxStyle(
   return {
     display: "flex",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: multiline ? "flex-start" : "center",
     width: "100%",
     ...(multiline ? {} : { height: box.height }),
     paddingTop: multiline ? box.paddingY : 0,
@@ -237,7 +241,11 @@ export function catalogFieldBoxStepperStyle(size: unknown): {
   radius: 0;
 } {
   const box = inputBox(size);
-  return { height: box.height - 2 * box.borderWidth, borderWidth: 0, radius: 0 };
+  return {
+    height: box.height - 2 * box.borderWidth,
+    borderWidth: 0,
+    radius: 0,
+  };
 }
 
 /**

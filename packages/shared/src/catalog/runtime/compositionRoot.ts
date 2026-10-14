@@ -2797,12 +2797,18 @@ export class CatalogCompositionRoot {
         !!after &&
         before.width === after.width &&
         before.height === after.height;
-      const box = catalogBoxModel(record);
+      const box = JSON.parse(this.layout.getAppliedStyle(id) ?? "{}") as Record<
+        string,
+        unknown
+      >;
+      const parentStyle = JSON.parse(
+        this.layout.getAppliedStyle(parentId!) ?? "{}",
+      ) as Record<string, unknown>;
       const siblingsFixed =
         parentFixed &&
-        (!!box.position ||
-          (catalogBoxModel(parent).display === "block" &&
-            !box.display.startsWith("inline")));
+        (box.position === "absolute" ||
+          (parentStyle.display === "block" &&
+            !String(box.display ?? "").startsWith("inline")));
       visit(siblingsFixed ? id : parentId!);
     }
     return scope;
