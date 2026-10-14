@@ -102,7 +102,10 @@ check("0 instance 기본 = Title · ★ (Canvas = DOM)", JSON.stringify(await dr
 await select(ids.icon);
 await wait(700);
 const swapButton = panel().getByRole("button", { name: /^(Instance swap property|인스턴스 교체 속성)$/ });
-check("1a 원본의 중첩 instance 레이어에 「Instance swap property」", await swapButton.isVisible().catch(() => false));
+const panelBox = await panel().boundingBox();
+const buttonBox = await swapButton.boundingBox().catch(() => null);
+check("1a 원본의 중첩 instance 레이어에 「Instance swap property」 (패널 안에 다 보임)", (await swapButton.isVisible().catch(() => false)) && !!buttonBox && !!panelBox && buttonBox.x + buttonBox.width <= panelBox.x + panelBox.width, { buttonBox, panelBox });
+await page.screenshot({ path: `${OUT}/1-buttons.png` });
 await swapButton.click();
 await wait(400);
 await continueImpact();
@@ -160,7 +163,13 @@ check("5 Reset → override 0 · Title · ★ (Canvas = DOM)", instance.descenda
 // 6 — undo: Heart again.
 await exec(`(cat) => cat.workspace.undo()`);
 await wait(800);
-check("6 undo → ♥", JSON.stringify((await drawn()).canvas) === JSON.stringify(["Title", "♥"]), await drawn());
+check("6 undo → ♥ (Canvas = DOM)", JSON.stringify(await drawn()) === JSON.stringify({ canvas: ["Title", "♥"], dom: ["Title", "♥"] }), await drawn());
+await exec(`(cat) => cat.workspace.redo()`);
+await wait(800);
+check("6b redo → ★ (Canvas = DOM)", JSON.stringify(await drawn()) === JSON.stringify({ canvas: ["Title", "★"], dom: ["Title", "★"] }), await drawn());
+await exec(`(cat) => cat.workspace.undo()`);
+await wait(800);
+check("6c undo again → ♥ (Canvas = DOM) · 탭 visible", JSON.stringify(await drawn()) === JSON.stringify({ canvas: ["Title", "♥"], dom: ["Title", "♥"] }) && (await page.evaluate(() => document.visibilityState)) === "visible", { drawn: await drawn(), vis: await page.evaluate(() => document.visibilityState) });
 
 // 7 — reload: the swap is saved.
 await wait(1500);

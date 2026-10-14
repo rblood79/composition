@@ -662,6 +662,8 @@
     .component-semantics-strip {
       grid-column: 1 / -1;
       display: flex;
+      /* (ADR-261 Phase 5: three property buttons do not fit the 233px panel — they wrap.) */
+      flex-wrap: wrap;
       align-items: center;
       gap: var(--spacing-sm);
       min-width: 0;
