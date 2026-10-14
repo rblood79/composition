@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-261 Phase 4 — 사용자 컴포넌트 속성 (text · boolean)] - 2026-10-15
+
+### Added
+
+- **컴포넌트 속성** ([ADR-261](adr/261-component-api-swap-slot-suggestions-properties.md) Phase 4, Figma component properties). 사용자 컴포넌트 원본의 레이어를 고르면 Design 패널 「Component properties」 섹션에서 **텍스트 속성** (그 레이어의 글자) · **표시 속성** (그 레이어를 보이기 · 숨기기 — 원본 루트 제외) 을 만들거나 기존 속성을 적용한다. 원본 루트를 고르면 모든 속성이 보이고 이름을 바꾸거나 지운다. instance 를 고르면 Property 탭 Content 맨 앞에 속성 필드가 나온다 — 텍스트는 입력, 표시는 「Show」 칩. 기본값은 원본 레이어의 지금 값이라 원본을 고치면 기본값도 바뀐다. 값은 Canvas 와 Preview 가 같이 그리고, instance 안 그 레이어를 Canvas 에서 더블클릭해 고치면 속성 값이 바뀐다. detach 하면 값이 사본에 남는다. 레이어를 지우거나 원본 밖으로 옮기거나 (원본 안 instance 를) 글자가 없는 컴포넌트로 교체하면 그 속성에서 빠지고, 속성을 지우면 모든 instance 의 값도 지워진다 (한 번의 undo 로 되돌린다).
+  - 위치: `packages/shared/src/catalog/document/{types,componentProperties,validation,graph,library}.ts` · `resolution/{resolver,fieldSource}.ts` · `commands/{properties,structure,materialize}.ts` · `runtime/compositionRoot.ts` · `apps/builder/src/builder/catalogRuntime/{componentProperties,editContract}.ts` · `panels/properties/catalog/CatalogComponentPropertiesSection.tsx` · `workspace/canvas/catalog/CatalogTextEditor.tsx`.
+
+### Tests
+
+- shared `commands/__tests__/componentProperties.test.ts` 14 · `randomUndo.test.ts` 에 속성 만들기 · 값 쓰기 · builder `catalogRuntime/__tests__/adr261Properties.test.ts` 4 · 원복 RED 14 · live `apps/builder/scripts/adr261-properties-live.mjs` 14/14 (Compare Mode).
+
 ## [ADR-261 Phase 2 · 3 — instance 교체 · slot 추천] - 2026-10-15
 
 ### Added

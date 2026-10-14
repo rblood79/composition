@@ -32,6 +32,11 @@ import {
   overridesAt,
 } from "./templateOwners";
 import { CatalogGraph } from "../document/graph";
+import {
+  componentPropertiesOf,
+  componentPropertyWrites,
+  type ComponentPropertyWrite,
+} from "../document/componentProperties";
 import { catalogCalendarDurationFits } from "../document/valueType";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import {
@@ -822,6 +827,35 @@ export function resolveCatalogNode(
     return bindings;
   };
   /**
+   * ADR-261 Decision 4 — what a user component's properties write in one unfolding of its
+   * template: keyed by that projection's instance path (the composite position's), then by the
+   * origin node a property drives. The composite position sets it from its own resolved props (an
+   * instance's value, or an outer instance's patch on a nested one); no value = the node's own.
+   */
+  const propertyScopes = new Map<string, Map<string, ComponentPropertyWrite>>();
+  const scopeKey = (path: readonly string[]) => path.join("\u0001");
+  const scopeProperties = (
+    path: readonly string[],
+    definitionId: DefinitionId,
+    props: Props,
+  ): void => {
+    const properties = componentPropertiesOf(lookupDefinition(definitionId));
+    if (!properties) return;
+    const writes = componentPropertyWrites(properties, (key) => props[key]);
+    if (writes.size) propertyScopes.set(scopeKey(path), writes);
+    else propertyScopes.delete(scopeKey(path));
+  };
+  /** A composite's authored root keys without its property keys (not its template root's props). */
+  const withoutPropertyKeys = (
+    definitionId: DefinitionId,
+    keys: readonly string[],
+  ): readonly string[] => {
+    const properties = componentPropertiesOf(lookupDefinition(definitionId));
+    if (!properties) return keys;
+    const own = new Set(properties.map((property) => property.key));
+    return keys.filter((key) => !own.has(key));
+  };
+  /**
    * An owner's `size` set on the child it propagates to (`CATALOG_SIZE_PROPAGATION` — RSP context:
    * a group's size reaches its items, an item's its label). The owner wins over the child's own
    * value, like the old `override: true` propagation; a size the child does not offer stays out.
@@ -1202,7 +1236,8 @@ export function resolveCatalogNode(
       definition.mode === "composite" &&
       definition.templateRootId &&
       (!selection || selection.include(definition.templateRootId, instancePath))
-    )
+    ) {
+      scopeProperties(instancePath, node.definitionId, props);
       push(
         children,
         projectTableRows(
@@ -1214,9 +1249,12 @@ export function resolveCatalogNode(
             { ...self, collapsed: true },
             templateBindings(node.definitionId, props),
             instanceRoot(
-              ownedRowing?.rowStart
-                ? [...Object.keys(node.props), "id"]
-                : Object.keys(node.props),
+              withoutPropertyKeys(
+                node.definitionId,
+                ownedRowing?.rowStart
+                  ? [...Object.keys(node.props), "id"]
+                  : Object.keys(node.props),
+              ),
               props,
               [
                 ...Object.keys(node.visual),
@@ -1252,6 +1290,7 @@ export function resolveCatalogNode(
           `${instancePath.join("/")}::${node.id}`,
         ),
       );
+    }
     for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
       node.children) {
       const childPath = [...instancePath, childId];
@@ -1556,9 +1595,15 @@ export function resolveCatalogNode(
       patches && sameIds(patches.instances, instancePath)
         ? patches.patches.find((item) => sameIds(item.templatePath, path))
         : undefined;
+    // (ADR-261 Decision 4: what the enclosing instance's properties write on this origin node —
+    // under the instance's direct write at this position, over the node's own.)
+    const propertyWrite = propertyScopes
+      .get(scopeKey(instancePath))
+      ?.get(templateId);
     const enabled =
       layeredPatch?.enabled ??
       libraryPatch?.enabled ??
+      propertyWrite?.enabled ??
       template.enabled ??
       true;
     if (!enabled) return undefined;
@@ -1588,6 +1633,7 @@ export function resolveCatalogNode(
     if (bindings)
       for (const key of Object.keys(template.props))
         if (key in props) props[key] = bindTemplateValue(props[key], bindings);
+    if (propertyWrite?.props) Object.assign(props, propertyWrite.props);
     // The origin this root belongs to (ADR-253): its project override is the origin's own style,
     // so every instance draws it — over the root's template values, under the instance's.
     // (Its prop defaults are the origin's accepted keys: they reach the template as bindings.)
@@ -1897,7 +1943,8 @@ export function resolveCatalogNode(
       if (
         !selection ||
         selection.include(definition.templateRootId, nestedPath)
-      )
+      ) {
+        scopeProperties(nestedPath, template.definitionId, props);
         push(
           children,
           projectTemplate(
@@ -1910,7 +1957,7 @@ export function resolveCatalogNode(
             withDisplayState(
               displayState,
               instanceRoot(
-                [
+                withoutPropertyKeys(template.definitionId, [
                   ...Object.keys(template.props),
                   ...Object.keys(patch?.props ?? {}),
                   // What the instance above authored for this root goes on to the root it
@@ -1918,7 +1965,7 @@ export function resolveCatalogNode(
                   // component's instance set Orientation and its group stayed vertical).
                   ...Object.keys(root?.props ?? {}),
                   ...(rowing?.rowStart ? ["id"] : []),
-                ],
+                ]),
                 props,
                 [
                   // What this position got from above goes on to the root it collapses into.
@@ -1954,6 +2001,7 @@ export function resolveCatalogNode(
                 : undefined,
           ),
         );
+      }
     }
     // A composite position's own children are drawn inside the root it collapses into (ADR-253:
     // a field's stepper is an instance of the Button origin that holds its glyph): that root's

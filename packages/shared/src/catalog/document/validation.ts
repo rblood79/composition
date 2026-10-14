@@ -7,6 +7,7 @@ import {
   CATALOG_PRESENT_WHEN,
   CATALOG_STATE_KEYS,
   CATALOG_TOAST_PLACEMENTS,
+  COMPONENT_PROPERTY_KINDS,
   type CatalogStateKey,
   type CatalogToastPlacement,
   type CatalogPresentWhen,
@@ -328,6 +329,48 @@ function id(value: unknown, prefix: string, at: string): string {
   if (!idPattern.test(text) || !text.startsWith(prefix))
     invalid("INVALID_ID", at);
   return text;
+}
+/** A component property key: a prop name (the `{key}` binding grammar). */
+export const COMPONENT_PROPERTY_KEY = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+/**
+ * ADR-261 Decision 4 — the shape of a component's properties: unique keys, a kind, one or more
+ * unique targets (a text target names its prop; a boolean target none). Each origin node · text
+ * prop is driven by at most one property (the graph checks the targets exist in the origin).
+ */
+function componentProperties(value: unknown, at: string): void {
+  if (!Array.isArray(value)) invalid("ARRAY_REQUIRED", at);
+  const keys = new Set<string>();
+  const driven = new Set<string>();
+  for (const [index, raw] of value.entries()) {
+    const path = `${at}[${index}]`;
+    const property = object(raw, path);
+    exact(property, ["key", "name", "kind", "targets"], path);
+    const key = string(property.key, `${path}.key`);
+    if (!COMPONENT_PROPERTY_KEY.test(key))
+      invalid("INVALID_PROPERTY_KEY", `${path}.key`);
+    if (keys.has(key)) invalid("DUPLICATE_PROPERTY_KEY", `${path}.key`);
+    keys.add(key);
+    string(property.name, `${path}.name`);
+    if (!COMPONENT_PROPERTY_KINDS.includes(property.kind as never))
+      invalid("INVALID_PROPERTY_KIND", `${path}.kind`);
+    if (!Array.isArray(property.targets) || property.targets.length === 0)
+      invalid("PROPERTY_TARGETS_REQUIRED", `${path}.targets`);
+    for (const [targetIndex, rawTarget] of property.targets.entries()) {
+      const targetAt = `${path}.targets[${targetIndex}]`;
+      const target = object(rawTarget, targetAt);
+      exact(target, ["id", "prop"], targetAt);
+      const nodeId = id(target.id, "project:node:", `${targetAt}.id`);
+      if (property.kind === "text") {
+        const prop = string(target.prop, `${targetAt}.prop`);
+        if (!COMPONENT_PROPERTY_KEY.test(prop))
+          invalid("INVALID_PROPERTY_KEY", `${targetAt}.prop`);
+      } else if (target.prop !== undefined)
+        invalid("PROPERTY_PROP_TEXT_ONLY", `${targetAt}.prop`);
+      const drives = `${property.kind}\u0000${nodeId}\u0000${target.prop ?? ""}`;
+      if (driven.has(drives)) invalid("PROPERTY_TARGET_TAKEN", targetAt);
+      driven.add(drives);
+    }
+  }
 }
 function list(value: unknown, prefix: string, at: string): string[] {
   if (!Array.isArray(value)) invalid("ARRAY_REQUIRED", at);
@@ -1057,6 +1100,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "templateRootId",
           "usage",
           "originRef",
+          "properties",
         ],
         "entry",
       );
@@ -1089,6 +1133,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           invalid("INVALID_ORIGIN_REF", "entry.originRef");
         if (item.usage === "layout" || item.templateRootId === undefined)
           invalid("ORIGIN_REF_NOT_COMPONENT", "entry.originRef");
+      }
+      if (item.properties !== undefined) {
+        // ADR-261 Decision 4: a component's properties (a composite component, not a layout).
+        if (item.mode !== "composite" || item.usage === "layout")
+          invalid("PROPERTIES_NOT_COMPONENT", "entry.properties");
+        componentProperties(item.properties, "entry.properties");
       }
       break;
     case "definitionOverride":

@@ -717,6 +717,17 @@ export interface TranslationKeys {
     slotSection: string;
     slotSuggested: string;
     slotSuggestAdd: string;
+    componentProperties: string;
+    componentPropertyKindText: string;
+    componentPropertyKindBoolean: string;
+    componentPropertyLayers: string;
+    componentPropertyText: string;
+    componentPropertyBoolean: string;
+    componentPropertyShow: string;
+    componentPropertyApply: string;
+    componentPropertyActions: string;
+    componentPropertyDetach: string;
+    componentPropertyDelete: string;
     slotStatus: string;
     slotInactive: string;
     slotRecommendations: string;

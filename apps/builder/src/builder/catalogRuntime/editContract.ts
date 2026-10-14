@@ -32,6 +32,7 @@ import type {
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
 import { RULE_TYPE_PROP_CONTRACTS } from "../../../../../packages/shared/src/catalog/document/itemLinks";
+import { componentPropertiesOf } from "../../../../../packages/shared/src/catalog/document/componentProperties";
 import { catalogOwnedFieldContent } from "./fieldContent";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
 import {
@@ -158,7 +159,109 @@ export function catalogEditContract(
       editorHidden: contract.editorHidden,
     };
   });
-  return { type, fields };
+  const contract: EditContract = {
+    type,
+    fields: [
+      ...catalogComponentPropertyFields(graph, readModel, target, definitionId),
+      ...fields,
+    ],
+  };
+  if (definitionId.startsWith("project:"))
+    PROPERTY_DEPENDENCIES.set(
+      contract,
+      catalogComponentPropertyDependencies(graph, definitionId),
+    );
+  return contract;
+}
+
+/** ADR-261 Decision 4: what a contract's property fields read besides the target (by contract). */
+const PROPERTY_DEPENDENCIES = new WeakMap<EditContract, readonly string[]>();
+export function catalogEditContractDependencies(
+  contract: EditContract,
+): readonly string[] {
+  return PROPERTY_DEPENDENCIES.get(contract) ?? [];
+}
+
+/**
+ * ADR-261 Decision 4 — a user component instance's property fields (Figma's instance properties):
+ * text → a text field, boolean → a switch, labelled with the property's name, first in Content.
+ * The base value is what the origin node shows (the default — nothing stored); the instance's own
+ * write is the override.
+ */
+function catalogComponentPropertyFields(
+  graph: CatalogReader,
+  readModel: Pick<CatalogReadModel, "propSource">,
+  target: EditTarget,
+  definitionId: DefinitionId,
+): ResolvedField[] {
+  if (!definitionId.startsWith("project:")) return [];
+  const properties = componentPropertiesOf(graph.getEntry(definitionId));
+  if (!properties) return [];
+  // (Review m3: the instance's own child list at a position — its first structural edit made the
+  // template children there its own copies, values kept — leaves the property no layer below it.
+  // pen.dev: what is in the slot is the instance's. Its field is not offered then.)
+  const owner = target.kind === "node" ? graph.getEntry(target.id) : undefined;
+  const cut = new Set(
+    owner?.kind === "node"
+      ? owner.descendantOverrides
+          .filter(
+            (item) =>
+              item.kind === "fillSlot" && item.address.instances.length === 1,
+          )
+          .map((item) => item.address.templatePath.at(-1)!)
+      : [],
+  );
+  const reachable = (id: string) => {
+    for (
+      let cursor = graph.ownerOf(id);
+      cursor && cut.size;
+      cursor = graph.ownerOf(cursor)
+    )
+      if (cut.has(cursor as never)) return false;
+    return true;
+  };
+  return properties.map((property) => {
+    const reading = readModel.propSource(target, property.key);
+    const [first] = property.targets;
+    const origin = graph.getEntry(first.id);
+    const baseValue =
+      property.kind === "text"
+        ? readPropSource(graph, { kind: "node", id: first.id }, first.prop!)
+            .value
+        : origin?.kind !== "node" || origin.enabled !== false;
+    const isOverridden = reading.own !== undefined;
+    return {
+      key: property.key,
+      kind: property.kind === "text" ? "string" : "boolean",
+      label: property.name,
+      section: "content",
+      origin: "semantic",
+      isOverridden,
+      // (A nested instance's value from its origin's template shows as its base.)
+      baseValue: reading.inherited.value ?? baseValue,
+      currentValue: reading.value ?? baseValue,
+      ...(property.targets.some((item) => reachable(item.id))
+        ? {}
+        : { editorHidden: true }),
+    };
+  });
+}
+
+/**
+ * ADR-261 Decision 4: the entries a component instance's property fields read besides the
+ * target — its definition (the property list) and the driven origin nodes (the defaults).
+ */
+function catalogComponentPropertyDependencies(
+  graph: CatalogReader,
+  definitionId: DefinitionId,
+): string[] {
+  const properties = componentPropertiesOf(graph.getEntry(definitionId));
+  return [
+    definitionId,
+    ...(properties ?? []).flatMap((property) =>
+      property.targets.map((item) => item.id),
+    ),
+  ];
 }
 
 /**

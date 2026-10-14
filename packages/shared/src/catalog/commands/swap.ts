@@ -14,6 +14,7 @@ import type {
 } from "../document/types";
 import { nodeOwnedChildren } from "../resolution/templateOwners";
 import type { CatalogCommand, CatalogCommandPlan } from "./compose";
+import { pruneComponentPropertyTargets } from "./properties";
 import { catalogColorControlPropsError } from "../document/colorValue";
 import { catalogPropValueFits } from "../document/valueType";
 import {
@@ -387,6 +388,21 @@ export function planSwapInstance(
     descendantOverrides: own.overrides,
   });
   leaving.push([input.id, own.out]);
+  // ADR-261 Phase 4 (review m1): a text property of an enclosing component driving this node's
+  // text keeps it only if the new component takes that prop as text; otherwise the node leaves the
+  // property (counted as dropped — as an override with no place).
+  for (const referrer of reader.referrersOf(input.id)) {
+    const definition = draft.read(referrer);
+    if (definition?.kind !== "definition") continue;
+    pruneComponentPropertyTargets(draft, definition, (property, target) => {
+      const drop =
+        property.kind === "text" &&
+        target.id === input.id &&
+        contract.accepts[target.prop!] !== "string";
+      if (drop) report.dropped++;
+      return drop;
+    });
+  }
   // Slot content the new slot does not take (its nesting rules) moves out too (user decision 1 —
   // review h2: ListBox items in a GridList's `Items`).
   const placed = draft.node(input.id);

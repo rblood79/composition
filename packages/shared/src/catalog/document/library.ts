@@ -1,5 +1,9 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits, scalarFitsType } from "./valueType";
+import {
+  componentPropertiesOf,
+  componentPropertyAccepts,
+} from "./componentProperties";
 import type {
   CatalogLibrary,
   InteractionEntry,
@@ -167,7 +171,12 @@ export function instanceContract<
     new Set([...visiting, root.definitionId]),
   );
   return {
-    accepts: { ...rootContract.accepts, ...definition.accepts },
+    // (ADR-261 Decision 4: a user component's properties are keys of its contract too.)
+    accepts: {
+      ...rootContract.accepts,
+      ...definition.accepts,
+      ...componentPropertyAccepts(componentPropertiesOf(definition)),
+    },
     propChoices: {
       ...Object.fromEntries(
         Object.entries(rootContract.propChoices ?? {}).filter(

@@ -14,6 +14,7 @@ import {
 } from "../../../catalogRuntime/canvasText";
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
 import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
+import { catalogPropertyTextTarget } from "../../../catalogRuntime/componentProperties";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
 import { subscribeCanvasFrames } from "../skia/frameScheduler";
@@ -73,7 +74,17 @@ function TextField({
     return {
       record,
       key,
-      bound: binding && target ? { target, prop: binding.prop } : undefined,
+      bound:
+        binding && target
+          ? { target, prop: binding.prop }
+          : // ADR-261 Decision 4: a component's text property — the edit sets the instance's value.
+            key
+            ? catalogPropertyTextTarget(
+                workspace.runtime.graph,
+                item.target,
+                key,
+              )
+            : undefined,
       // (A bound text shows the prop's value: the position draws it as resolved.)
       text: key && record ? catalogTextOf(record, key) : "",
     };

@@ -28,6 +28,7 @@ import {
   migrateCatalogTableColumns,
 } from "./s2PropAlignment";
 import { assertCatalogLibrary, instanceContract } from "./library";
+import { componentPropertiesOf } from "./componentProperties";
 import { catalogChildKind } from "../nesting/nestingRules";
 
 export interface GraphIndexes {
@@ -112,6 +113,10 @@ export function referencedIds(entry: CatalogEntry): string[] {
     for (const id of entry.slot?.suggested ?? [])
       if (id.startsWith("project:")) ids.push(id);
   }
+  // ADR-261 Decision 4: the origin nodes a component's properties drive.
+  if (entry.kind === "definition")
+    for (const property of entry.properties ?? [])
+      for (const target of property.targets) ids.push(target.id);
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
@@ -127,6 +132,66 @@ export function referencedIds(entry: CatalogEntry): string[] {
   if (entry.kind === "theme") ids.push(...entry.tokenIds);
   if (entry.kind === "page" && entry.parentId) ids.push(entry.parentId);
   return ids;
+}
+/**
+ * ADR-261 Decision 4 — a component's properties against the graph: every target is a node of the
+ * component's origin subtree (the template root and what it owns, slot contents included); a text
+ * target's prop is a string its contract takes; a boolean does not drive the root (it would hide
+ * the whole instance); a key is not a prop the instance already takes from its root.
+ */
+function validateComponentProperties(
+  definition: DefinitionEntry,
+  get: (id: string) => CatalogEntry | undefined,
+  contractOf: (
+    definitionId: DefinitionId,
+  ) => Pick<LibraryDefinition, "accepts"> | undefined,
+): void {
+  const rootId = definition.templateRootId;
+  const inOrigin = new Set<string>();
+  const queue = rootId ? [rootId] : [];
+  while (queue.length) {
+    const id = queue.pop()!;
+    if (inOrigin.has(id)) continue;
+    inOrigin.add(id);
+    const entry = get(id);
+    if (entry?.kind === "node") queue.push(...ownedChildren(entry));
+  }
+  const root = rootId ? get(rootId) : undefined;
+  const rootAccepts =
+    root?.kind === "node" ? contractOf(root.definitionId)?.accepts : undefined;
+  for (const property of definition.properties ?? []) {
+    if (rootAccepts && property.key in rootAccepts)
+      throw new CatalogValidationError("PROPERTY_KEY_TAKEN", property.key);
+    for (const target of property.targets) {
+      const node = get(target.id);
+      if (node?.kind !== "node")
+        throw new CatalogValidationError("DANGLING_PROPERTY_TARGET", target.id);
+      if (!inOrigin.has(target.id))
+        throw new CatalogValidationError("PROPERTY_TARGET_OUTSIDE", target.id);
+      if (property.kind === "boolean" && target.id === rootId)
+        throw new CatalogValidationError("PROPERTY_TARGET_ROOT", target.id);
+      // (A nested instance's own property is not a target: exposing nested instances' properties
+      // is out of scope — review m2: deleting that inner property left the outer one invalid.)
+      if (
+        property.kind === "text" &&
+        componentPropertiesOf(get(node.definitionId))?.some(
+          (inner) => inner.key === target.prop,
+        )
+      )
+        throw new CatalogValidationError(
+          "PROPERTY_TARGET_NESTED_PROPERTY",
+          `${target.id}.${target.prop}`,
+        );
+      if (
+        property.kind === "text" &&
+        contractOf(node.definitionId)?.accepts[target.prop!] !== "string"
+      )
+        throw new CatalogValidationError(
+          "PROPERTY_PROP_NOT_TEXT",
+          `${target.id}.${target.prop}`,
+        );
+    }
+  }
 }
 function edgesOf(entry: CatalogEntry): Edge[] {
   const edges: Edge[] = [];
@@ -939,6 +1004,11 @@ export class CatalogGraph {
         this.validateTokenFields(entry.defaults, entry.accepts, get, entry.id);
         this.validateTokenFields(entry.visual, undefined, get, entry.id);
         this.validateStateTokenRules(entry.stateRules, get, entry.id);
+        if (entry.properties?.length)
+          validateComponentProperties(entry, get, (definitionId) => {
+            const found = lookupDefinition(definitionId);
+            return found ? contractOf(found) : undefined;
+          });
       }
     }
     if (entry.kind === "interaction") {

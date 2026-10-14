@@ -10,6 +10,7 @@ import type {
   VisualField,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { componentPropertiesOf } from "../../../../../../../packages/shared/src/catalog/document/componentProperties";
 import {
   catalogComponentCommands,
   catalogComponentState,
@@ -130,13 +131,22 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       }),
     );
   });
+  // ADR-261 Decision 4: a component property's value reads as the property's name.
+  const propertyNames = new Map(
+    (instanceOf?.definitionId.startsWith("project:")
+      ? (componentPropertiesOf(
+          graph.getEntry(instanceOf.definitionId as DefinitionId),
+        ) ?? [])
+      : []
+    ).map((property) => [property.key, property.name]),
+  );
   const rows: OverrideRow[] = listsOwn
     ? [
         ...Object.keys(own.props).map((key) => ({
           id: `props:${key}`,
           key,
           field: "props" as const,
-          label: key,
+          label: propertyNames.get(key) ?? key,
           target: rootTarget,
         })),
         ...Object.keys(own.visual).map((key) => ({

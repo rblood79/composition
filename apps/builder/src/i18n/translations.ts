@@ -897,6 +897,17 @@ const koKR: TranslationKeys = {
     slotSection: "슬롯",
     slotSuggested: "추천 컴포넌트",
     slotSuggestAdd: "추천 추가",
+    componentProperties: "컴포넌트 속성",
+    componentPropertyKindText: "텍스트",
+    componentPropertyKindBoolean: "불리언",
+    componentPropertyLayers: "레이어 {count}",
+    componentPropertyText: "텍스트 속성",
+    componentPropertyBoolean: "표시 속성",
+    componentPropertyShow: "표시",
+    componentPropertyApply: "기존 속성 적용",
+    componentPropertyActions: "{name} 동작",
+    componentPropertyDetach: "이 레이어에서 떼기",
+    componentPropertyDelete: "속성 삭제",
     slotStatus: "상태",
     slotInactive: "비활성",
     slotRecommendations: "추천 {count}개",
@@ -3053,6 +3064,17 @@ const enUS: TranslationKeys = {
     slotSection: "Slot",
     slotSuggested: "Suggested components",
     slotSuggestAdd: "Add suggestion",
+    componentProperties: "Component properties",
+    componentPropertyKindText: "Text",
+    componentPropertyKindBoolean: "Boolean",
+    componentPropertyLayers: "{count} layers",
+    componentPropertyText: "Text property",
+    componentPropertyBoolean: "Visibility property",
+    componentPropertyShow: "Show",
+    componentPropertyApply: "Apply property",
+    componentPropertyActions: "{name} actions",
+    componentPropertyDetach: "Detach from layer",
+    componentPropertyDelete: "Delete property",
     slotStatus: "Status",
     slotInactive: "Inactive",
     slotRecommendations: "{count} recommendations",
@@ -5437,6 +5459,10 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override 해제됨`,
     "componentAction.swapped": (args) =>
       `${String(args?.name ?? "")} 으로 교체 — 유지 ${String(args?.kept ?? 0)} · 버림 ${String(args?.dropped ?? 0)} · 밖으로 ${String(args?.movedOut ?? 0)}`,
+    "propertiesPanel.componentPropertyLayers": (args) =>
+      `레이어 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.componentPropertyActions": (args) =>
+      `${String(args?.name ?? "")} 동작`,
     "propertiesPanel.stateVariantOf": (args) =>
       `${String(args?.name ?? "")} 의 상태 변형 — 이 상태일 때의 배경 · 색 · 테두리 · 투명도만 편집한다`,
     "history.entryThemeAdd": (args) => `테마 추가: ${String(args?.name ?? "")}`,
@@ -5955,6 +5981,12 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override cleared`,
     "componentAction.swapped": (args) =>
       `Swapped to ${String(args?.name ?? "")} — kept ${String(args?.kept ?? 0)} · dropped ${String(args?.dropped ?? 0)} · moved out ${String(args?.movedOut ?? 0)}`,
+    "propertiesPanel.componentPropertyLayers": (args) =>
+      Number(args?.count ?? 0) === 1
+        ? "1 layer"
+        : `${String(args?.count ?? 0)} layers`,
+    "propertiesPanel.componentPropertyActions": (args) =>
+      `${String(args?.name ?? "")} actions`,
     "propertiesPanel.stateVariantOf": (args) =>
       `State variant of ${String(args?.name ?? "")} — edit only the background · color · border · opacity used in this state`,
     "history.entryThemeAdd": (args) => `Add theme: ${String(args?.name ?? "")}`,

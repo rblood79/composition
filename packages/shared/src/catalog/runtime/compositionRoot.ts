@@ -51,6 +51,7 @@ import type {
 } from "../resolution/resolver";
 import type { CatalogCommand, CatalogCommandPlan } from "../commands/compose";
 import { CatalogValidationError } from "../document/validation";
+import { componentPropertiesOf } from "../document/componentProperties";
 import type {
   CatalogOperation,
   CatalogTransactionResult,
@@ -4437,6 +4438,15 @@ export class CatalogCompositionRoot {
     };
   }
 
+  /** ADR-261 Decision 4: whether a prop write is a project component property's value. */
+  private writesComponentProperty(op: { id: string; key: string }): boolean {
+    const node = this.runtime.graph.getEntry(op.id);
+    if (node?.kind !== "node" || !node.definitionId.startsWith("project:"))
+      return false;
+    return !!componentPropertiesOf(
+      this.runtime.graph.getEntry(node.definitionId),
+    )?.some((property) => property.key === op.key);
+  }
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
     const ownedStructure = this.planOwnedRemovalOrOrder(result);
     if (ownedStructure) return ownedStructure;
@@ -4444,8 +4454,10 @@ export class CatalogCompositionRoot {
       (op) =>
         // Per-breakpoint display decides which records exist (a presence change).
         (op.kind === "setNodeField" && op.field !== "visibility") ||
+        // (ADR-261 Decision 4: a component property's value draws on the instance's driven
+        // positions — their text, or whether they exist — not on the instance's own record.)
+        (op.kind === "patchNodeProp" && !this.writesComponentProperty(op)) ||
         [
-          "patchNodeProp",
           "patchNodeVisual",
           "patchNodeSizing",
           "patchNodeLayout",

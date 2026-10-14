@@ -48,6 +48,10 @@ import {
   type NewId,
 } from "./materialize";
 import {
+  pruneComponentPropertyTargets,
+  pruneMovedPropertyTargets,
+} from "./properties";
+import {
   dropTableColumnTemplateCells,
   tableAlignedIn,
   tableColumnCells,
@@ -865,6 +869,7 @@ export const moveNodes =
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
     for (const order of columnOrders) order.follow();
+    pruneMovedPropertyTargets(draft, roots);
     assertRequiredPartsKept(draft, roots);
     assertTablesAligned(draft, [
       ...roots,
@@ -972,6 +977,11 @@ export function removeWithReferrers(
         draft.remove(referrerId);
         removedRelated.push(referrerId);
         queue.push(referrerId);
+      } else if (entry.kind === "definition") {
+        // ADR-261 Decision 4: a removed origin node leaves the properties that drove it.
+        pruneComponentPropertyTargets(draft, entry, (_property, target) =>
+          draft.removed(target.id),
+        );
       } else if (entry.kind === "node") {
         const kept = entry.descendantOverrides.filter(
           (item) =>

@@ -37,6 +37,14 @@ export {
   setWholeField,
 } from "./fields";
 export {
+  addComponentProperty,
+  applyComponentProperty,
+  componentPropertiesOn,
+  detachComponentProperty,
+  removeComponentProperty,
+  renameComponentProperty,
+} from "./properties";
+export {
   createComponent,
   detachInstances,
   dissolveComponent,

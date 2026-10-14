@@ -73,6 +73,8 @@ import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../../../../../../packages/sh
 import { CATALOG_PREFIX_FIELDS } from "../../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 
 import { CatalogComponentSection } from "./CatalogComponentSection";
+import { CatalogComponentPropertiesSection } from "./CatalogComponentPropertiesSection";
+import { catalogHasProjectComponents } from "../../../catalogRuntime/componentProperties";
 
 import { CATALOG_FIELD_VALUE_SOURCE } from "./catalogFieldValueSource";
 
@@ -159,6 +161,17 @@ export function CatalogPropertiesBody({
           key={`component:${targetKey(first.target)}`}
           target={first.target}
         />
+        {/* ADR-261 Decision 4: a user component's properties, on a node of its origin (only a
+            project that has components mounts it — no graph walk per selection otherwise). */}
+        {first.target.kind === "node" &&
+          !originSample &&
+          catalogHasProjectComponents(graph) && (
+            <CatalogComponentPropertiesSection
+              key={`properties:${first.target.id}`}
+              nodeId={first.target.id}
+              identity={first.identity}
+            />
+          )}
         {/* The Components page: only a sample's root props and styles are its origin's project
             defaults (user decision: root only) — no node attributes, state or slot. */}
         {!originSample && (

@@ -18,7 +18,10 @@ import type { CatalogPosition } from "../../../../../packages/shared/src/catalog
 
 import type { CatalogSaveStatus } from "./autosave";
 
-import { catalogEditContract } from "./editContract";
+import {
+  catalogEditContract,
+  catalogEditContractDependencies,
+} from "./editContract";
 import { catalogOwnedFieldContent } from "./fieldContent";
 
 import type { CatalogComponentSummary } from "./readModel";
@@ -172,6 +175,8 @@ export function useCatalogEditContract(
           contract.type,
         ).values())
           dependencies.add(part.kind === "node" ? part.id : part.ownerId);
+        for (const id of catalogEditContractDependencies(contract))
+          dependencies.add(id);
       } catch {
         // The target is gone (removed in this step): the selection follows on its own.
       }

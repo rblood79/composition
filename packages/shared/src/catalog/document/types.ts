@@ -642,6 +642,32 @@ export interface DefinitionEntry {
    * origin was deleted and the definition owns the subtree as a hidden template ("Restore origin").
    */
   originRef?: boolean;
+  /**
+   * ADR-261 Decision 4 — the component's properties (Figma component properties): values an
+   * instance writes under `key` on its root, projected onto the origin nodes they drive. The
+   * default is the target's own value (nothing stored). User components only.
+   */
+  properties?: readonly ComponentProperty[];
+}
+/** ADR-261 Decision 4 — the kinds of a user component's property (Phase 4: text · boolean). */
+export type ComponentPropertyKind = "text" | "boolean";
+export const COMPONENT_PROPERTY_KINDS: readonly ComponentPropertyKind[] = [
+  "text",
+  "boolean",
+];
+/** One origin node a property drives: a text property writes its `prop`, a boolean its `enabled`. */
+export interface ComponentPropertyTarget {
+  id: NodeId;
+  /** The text prop (text kind only — a string prop the target accepts). */
+  prop?: string;
+}
+export interface ComponentProperty {
+  /** Stable prop key an instance writes on its root (generated; the name can change). */
+  key: string;
+  name: string;
+  kind: ComponentPropertyKind;
+  /** Nodes of the component's origin subtree it drives (one property may drive several). */
+  targets: readonly ComponentPropertyTarget[];
 }
 export interface DefinitionOverrideEntry {
   kind: "definitionOverride";

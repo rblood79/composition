@@ -16,6 +16,7 @@ import { resolveCatalogNode } from "../../resolution/resolver";
 import { applyCatalogTransaction } from "../../transactions/transaction";
 import type { CatalogCommand } from "../compose";
 import {
+  addComponentProperty,
   copyNodes,
   createComponent,
   detachInstances,
@@ -416,6 +417,60 @@ describe("ADR-248 Phase 4b random command sequence", () => {
           ? swapInstance({
               id: target.id,
               definitionId: definitionId as DefinitionId,
+            })
+          : undefined;
+      },
+      // ADR-261 Phase 4: a property on a node of a component origin (text on a text node, else
+      // boolean), and an instance's value for one.
+      property: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const definition = graph.getEntry(
+          pickOne(project.definitionIds) ?? "",
+        ) as DefinitionEntry | undefined;
+        if (!definition?.templateRootId) return undefined;
+        const inOrigin: NodeEntry[] = [];
+        const stack = [definition.templateRootId as string];
+        while (stack.length) {
+          const entry = graph.getEntry(stack.pop()!);
+          if (entry?.kind !== "node") continue;
+          inOrigin.push(entry);
+          stack.push(...ownedChildren(entry));
+        }
+        const target = pickOne(inOrigin);
+        if (!target) return undefined;
+        const text = target.definitionId === "lib:definition:text";
+        return addComponentProperty({
+          definitionId: definition.id,
+          key: `p${++next}`,
+          name: `P${next}`,
+          kind: text ? "text" : "boolean",
+          target: text ? { id: target.id, prop: "children" } : { id: target.id },
+        });
+      },
+      propertyValue: () => {
+        const instance = pickOne(
+          ownedNodes().filter((entry) => {
+            const definition = graph.getEntry(entry.definitionId);
+            return (
+              definition?.kind === "definition" &&
+              !!definition.properties?.length
+            );
+          }),
+        );
+        if (!instance) return undefined;
+        const property = pickOne(
+          (graph.getEntry(instance.definitionId) as DefinitionEntry)
+            .properties ?? [],
+        );
+        return property
+          ? setFields({
+              targets: [{ kind: "node", id: instance.id }],
+              props: {
+                [property.key]: {
+                  kind: "set",
+                  value: property.kind === "text" ? `V${next}` : random() < 0.5,
+                },
+              },
             })
           : undefined;
       },

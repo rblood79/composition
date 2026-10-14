@@ -13,6 +13,10 @@ import {
   overridesAt,
 } from "../resolution/templateOwners";
 import { descendantPatchOf } from "../document/types";
+import {
+  componentPropertiesOf,
+  componentPropertyWrites,
+} from "../document/componentProperties";
 import type {
   CatalogReader,
   DefinitionEntry,
@@ -271,6 +275,38 @@ export function createMaterializer(
     owner.descendantOverrides.find((item) =>
       sameAddress(item.address, address),
     );
+  // ADR-261 Decision 4: the copies keep what the instance's component properties show there — the
+  // values of the composite position whose template this is (the owner's, or a nested instance's
+  // own values under the owner's patch at it).
+  const propertyWrites = (() => {
+    const step = instances[instances.length - 1];
+    const scope =
+      instances.length === 1 ? owner : (draft.read(step) as NodeEntry | undefined);
+    if (scope?.kind !== "node" || !scope.definitionId.startsWith("project:"))
+      return undefined;
+    const properties = componentPropertiesOf(draft.read(scope.definitionId));
+    if (!properties) return undefined;
+    const values: PropWrites = { ...scope.props };
+    if (instances.length > 1)
+      Object.assign(
+        values,
+        descendantPatchOf(
+          owner.descendantOverrides.find(
+            (item) =>
+              item.address.templatePath[item.address.templatePath.length - 1] ===
+                step &&
+              sameAddress(
+                { instances: item.address.instances, templatePath: [] },
+                { instances: instances.slice(0, -1) as never, templatePath: [] },
+              ),
+          ),
+        )?.props,
+      );
+    return componentPropertyWrites(properties, (key) => {
+      const write = values[key];
+      return write?.kind === "set" ? write.value : undefined;
+    });
+  })();
 
   /** Rewrite the instance addresses in the conditions of the subtrees of `childIds`. */
   const remapAddresses = (
@@ -389,6 +425,16 @@ export function createMaterializer(
           : {}),
         ...(libraryPatch.enabled !== undefined
           ? { enabled: libraryPatch.enabled }
+          : {}),
+      });
+    const propertyWrite = propertyWrites?.get(templateId);
+    if (propertyWrite)
+      entry = applyPatch(entry, {
+        ...(propertyWrite.props
+          ? { props: sets(propertyWrite.props) as PropWrites }
+          : {}),
+        ...(propertyWrite.enabled !== undefined
+          ? { enabled: propertyWrite.enabled }
           : {}),
       });
     // This template node's own library patches reach into its composite template: they become

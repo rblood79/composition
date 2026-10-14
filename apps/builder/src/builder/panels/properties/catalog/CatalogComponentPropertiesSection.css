@@ -1,0 +1,16 @@
+/* ADR-261 Decision 4 — a component property row: its name (editable) and its row menu.
+   The base 3-column template assumes two fields; one field + the menu takes two columns. */
+.component-property-row {
+  grid-template-columns: 1fr var(--control-size);
+  grid-template-areas: "name icon";
+}
+
+.component-property-name {
+  grid-area: name;
+  min-width: 0;
+}
+
+/* The menu sits on the control row, not the legend (as the chart rows). */
+.actions-component-property {
+  align-self: end;
+}

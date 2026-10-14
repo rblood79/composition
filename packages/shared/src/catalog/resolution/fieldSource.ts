@@ -12,6 +12,7 @@ import type {
   WriteValue,
 } from "../document/types";
 import { descendantPatchOf } from "../document/types";
+import { componentPropertiesOf } from "../document/componentProperties";
 import { CatalogValidationError } from "../document/validation";
 import { nodeOwnedChildren, overridesAt } from "./templateOwners";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
@@ -34,6 +35,8 @@ import {
 export type PropSource =
   | "own"
   | "instance"
+  // (ADR-261 Decision 4 — the enclosing instance's component property driving this origin node.)
+  | "property"
   | "state"
   // (The nearest Form's value — S2 Form context, `formContext.ts`.)
   | "form"
@@ -274,6 +277,54 @@ function enclosingAddress(
   return { instances: outer, templatePath };
 }
 
+/**
+ * ADR-261 Decision 4 — the value a text property of the enclosing component writes on this origin
+ * node's `key` (the resolver's property scope): the composite position's own value — the owner's
+ * root write, or a nested instance's value under the owner's patch at it.
+ */
+function propertyLayer(
+  reader: CatalogReader,
+  owner: NodeEntry,
+  instances: readonly (NodeId | TemplateId)[],
+  templateId: TemplateId,
+  key: string,
+): PropLayer | undefined {
+  const step = instances[instances.length - 1];
+  const scope =
+    instances.length === 1
+      ? owner
+      : step.startsWith("project:")
+        ? reader.getEntry(step)
+        : undefined;
+  if (scope?.kind !== "node" || !scope.definitionId.startsWith("project:"))
+    return undefined;
+  const property = componentPropertiesOf(
+    reader.getEntry(scope.definitionId),
+  )?.find(
+    (item) =>
+      item.kind === "text" &&
+      item.targets.some(
+        (target) => target.id === templateId && target.prop === key,
+      ),
+  );
+  if (!property) return undefined;
+  let write = scope.props[property.key];
+  if (instances.length > 1) {
+    const outer = instances.slice(0, -1);
+    const patched = descendantPatchOf(
+      owner.descendantOverrides.find(
+        (item) =>
+          item.address.templatePath[item.address.templatePath.length - 1] ===
+            step && sameIds(item.address.instances, outer),
+      ),
+    )?.props?.[property.key];
+    if (patched) write = patched;
+  }
+  return write?.kind === "set" && typeof write.value === "string"
+    ? { source: "property", value: write.value }
+    : undefined;
+}
+
 function propLayers(
   reader: CatalogReader,
   target: EditTarget,
@@ -321,6 +372,14 @@ function propLayers(
     else if (patched?.kind === "mask")
       layers.push({ source, value: undefined });
   }
+  const property = propertyLayer(
+    reader,
+    owner,
+    instances,
+    templatePath[templatePath.length - 1],
+    key,
+  );
+  if (property) layers.push(property);
   // A composite root: the instance's value for it (the owner node, or the enclosing position's
   // own patch and template value) and the enclosing position's display state.
   let enclosingState: TemplateRecord["displayState"];
