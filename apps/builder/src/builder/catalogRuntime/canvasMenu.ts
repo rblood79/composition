@@ -151,8 +151,14 @@ export function catalogCanvasMenuItems(
     destructive = false,
     /** Runs the step after a confirmation (detach · dissolve); absent = at once. */
     confirmThen?: (execute: () => void) => void,
+    /**
+     * `true`: the command is not planned here to see whether it would be refused — for one that
+     * cannot be (Create component on an owned node), the dry-run per menu build was the cost
+     * (ADR-246 ratchet: the action bar builds the menu on every selection).
+     */
+    trusted = false,
   ): ContextMenuItem[] =>
-    allowed(id, command)
+    trusted || allowed(id, command)
       ? [
           {
             kind: "action",
@@ -532,6 +538,9 @@ export function catalogCanvasMenuItems(
         catalogComponentCommands.create(ids[0], name, host.newId),
         "toggleComponentOrigin",
         ACTION_ICONS.createComponent,
+        false,
+        undefined,
+        true,
       ),
     );
   }
