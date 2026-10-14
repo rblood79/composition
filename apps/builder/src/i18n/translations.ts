@@ -390,6 +390,10 @@ const koKR: TranslationKeys = {
     swapped:
       "{name} 으로 교체 — 유지 {kept} · 버림 {dropped} · 밖으로 {movedOut}",
     systemOriginLocked: "라이브러리 컴포넌트는 분리할 수 없습니다",
+    pushChanges: "원본에 반영",
+    resetAllChanges: "전부 되돌리기",
+    pushed: "{name} 원본에 반영됨",
+    resetAllDone: "재정의를 전부 되돌렸습니다",
   },
   operation: {
     bodyLocked: "페이지 body 에는 이 작업을 할 수 없습니다",
@@ -892,6 +896,10 @@ const koKR: TranslationKeys = {
     presetApplied: "적용됨",
     overridesLegend: "재정의",
     originDefaultsLegend: "프로젝트 기본값",
+    overrideHidden: "숨김",
+    overrideFill: "채움",
+    overrideFillSizing: "채움 크기",
+    overrideVisibility: "표시 여부",
     attributes: "속성",
     classNamePlaceholder: "예: hero-title",
     ariaLabelPlaceholder: "예: 업로드 진행률",
@@ -2567,6 +2575,10 @@ const enUS: TranslationKeys = {
     swapped:
       "Swapped to {name} — kept {kept} · dropped {dropped} · moved out {movedOut}",
     systemOriginLocked: "Library components can't be detached",
+    pushChanges: "Push changes to component",
+    resetAllChanges: "Reset all changes",
+    pushed: "Pushed to {name}",
+    resetAllDone: "All changes reset",
   },
   operation: {
     bodyLocked: "This can't be done to the page body",
@@ -3066,6 +3078,10 @@ const enUS: TranslationKeys = {
     slotFooterCount: "{count} slots",
     presetApplied: "Applied",
     overridesLegend: "Overrides",
+    overrideHidden: "Hidden",
+    overrideFill: "Fill",
+    overrideFillSizing: "Fill sizing",
+    overrideVisibility: "Visibility",
     originDefaultsLegend: "Project defaults",
     attributes: "Attributes",
     classNamePlaceholder: "e.g. hero-title",
@@ -5475,6 +5491,8 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override 해제됨`,
     "componentAction.swapped": (args) =>
       `${String(args?.name ?? "")} 으로 교체 — 유지 ${String(args?.kept ?? 0)} · 버림 ${String(args?.dropped ?? 0)} · 밖으로 ${String(args?.movedOut ?? 0)}`,
+    "componentAction.pushed": (args) =>
+      `${String(args?.name ?? "")} 원본에 반영됨`,
     "propertiesPanel.componentPropertyLayers": (args) =>
       `레이어 ${String(args?.count ?? 0)}`,
     "propertiesPanel.componentPropertyActions": (args) =>
@@ -6003,6 +6021,8 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override cleared`,
     "componentAction.swapped": (args) =>
       `Swapped to ${String(args?.name ?? "")} — kept ${String(args?.kept ?? 0)} · dropped ${String(args?.dropped ?? 0)} · moved out ${String(args?.movedOut ?? 0)}`,
+    "componentAction.pushed": (args) =>
+      `Pushed to ${String(args?.name ?? "")}`,
     "propertiesPanel.componentPropertyLayers": (args) =>
       Number(args?.count ?? 0) === 1
         ? "1 layer"

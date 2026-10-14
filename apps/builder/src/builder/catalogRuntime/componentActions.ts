@@ -2,6 +2,8 @@ import {
   createComponent,
   detachInstances,
   dissolveComponent,
+  pushInstanceOverrides,
+  resetInstance,
   restoreOrigin,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
@@ -211,4 +213,35 @@ export const catalogComponentCommands = {
     }),
   restore: (instanceId: NodeId): CatalogCommand =>
     restoreOrigin({ instanceId }),
+  /** ADR-262: the instance's overrides onto its component's origin (Figma 「Push changes」). */
+  push: (id: NodeId, newId: NewId): CatalogCommand =>
+    pushInstanceOverrides({ id, newId }),
+  /** ADR-262: every override of the instance gone (Figma 「Reset all changes」). */
+  resetAll: (id: NodeId): CatalogCommand => resetInstance({ id }),
 };
+
+/**
+ * ADR-262: the instance the override clean-up (push · reset all) acts on — the selected owned
+ * instance itself (Figma: 「select the instance itself, not a specific layer within it」); a
+ * position inside an instance, an origin, or any other node offers neither. Returns the instance
+ * and the other instances a push reaches (the confirmation's count).
+ */
+export function catalogOverrideCleanupTarget(
+  graph: CatalogReader,
+  selected: NodeId | EditTarget,
+  definitionView?: string,
+): { id: NodeId; name: string; otherInstanceIds: NodeId[] } | undefined {
+  const target = asTarget(selected);
+  if (target.kind !== "node") return undefined;
+  const { instanceOf, originOf } = catalogComponentState(
+    graph,
+    target,
+    definitionView,
+  );
+  if (!instanceOf || originOf) return undefined;
+  return {
+    id: target.id,
+    name: instanceOf.name,
+    otherInstanceIds: instanceOf.instanceIds.filter((id) => id !== target.id),
+  };
+}

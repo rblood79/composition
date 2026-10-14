@@ -2,14 +2,17 @@
 
 ## Status
 
-Proposed — 2026-10-15
+Accepted — 2026-10-15 (Proposed 2026-10-15)
 
+- **Accepted 근거 (2026-10-15)**: 사용자 `/execute-adr 262` 호출 + [리뷰 기록](reviews/262.md) 최신 round (Round 2) 의 이슈 전부 `fixed` · pending 0 · HIGH 전부 fixed. 사용자 결정 1~4 는 닿는 Phase 에서 묻는다.
 - 사용자 요청: `/create-adr` (2026-10-15) — 「ADR-260 후속 B — override 정리 (원본에 반영 · Reset all changes)」.
 - 방향을 정한 사용자 원문: 「origin - instance, slot 은 pen.dev 와 pigma(Figma) 참조 모델이다」 (2026-10-14) · 「260 종료 후 설계」 (2026-10-14). 동작 판단이 갈리면 「pen.dev / Figma 에 같은 기능이 있다면 그 방식으로」 (2026-10-14).
 - **분리 confirm (결정 지점 ①, 2026-10-15 AskUserQuestion 답)**: 후속 4 기능을 ADR 2개로 — [ADR-261](261-component-api-swap-slot-suggestions-properties.md) (컴포넌트 API) 과 이 ADR (override 정리). 같은 답에서 「Reset all changes 포함」 을 골랐다. 2026-10-14 「Restore origin 은 그대로 · Reset all changes 는 우선 그냥 놔둬」 를 이 답이 범위 안으로 옮긴다.
 - 사용자가 이미 답한 확인 항목: 놓은 instance 의 slot 내용은 instance 의 것 (2026-10-14) · Restore origin = Figma 「Restore main component」 (지운 원본 되살리기) 그대로 (2026-10-14) · 기본 원본은 루트만 편집 — 프로젝트 기본값 (2026-10-01 · 10-05) · 옛 문서 전환 코드 금지 (2026-10-14).
 - **Codex 설계 리뷰 Round 1 (2026-10-15)**: HIGH 2 · MEDIUM 1 — 모두 실행 재현이 있었고, 같은 날 r1 에서 설계를 고쳤다. h1 반영이 투영 순서를 뒤집음 (원본 층 · 통째 교체 축) → Decision 1 쓰기 규칙 · 현재 6. h2 루트 own 필드 누락 (`fills` · `stateRules` · `responsive` …) → Decision 1 · 2 범위. m1 비교 계약 (표시 결과 · 제외 필드 · 독립 기준 = 손계산 표) → 제약 · Gates. 수리 검증 (Round 2) 대기. 상세: [리뷰 기록](reviews/262.md).
 - **Codex 수리 검증 Round 2 (2026-10-15)**: h2 · m1 닫힘. h1 은 같은 종류의 결함이 남았다 (instance tablet 을 같은 층으로 옮기면 원본 mobile 이 이김 — 세 원본 모양에서 실행 재현). r2 에서 쓰기 규칙을 「키별 breakpoint 마다 결과값 맞추기」 로 바꿨다. 판독 상한 (설계 판독 1 + 수리 검증 1) 에 닿았다 — 이 수리의 확인은 Phase 1 G1 (손계산 표 + 원복 RED) 이 맡는다.
+- **사용자 결정 1~4 확정 (2026-10-15 AskUserQuestion, `/execute-adr 262` Phase 0 뒤)**: 1 기본 원본 = 루트 `props` · `visual` 만 프로젝트 기본값으로 · 2 slot 내용 반영하지 않음 · 3 Reset all 은 루트 `sizing` · `layout` 을 남긴다 (반영도 옮기지 않음 — Figma 앱의 「Reset size」 가 별도 항목) · 4 다른 instance 1개 이상이면 「N개 영향」 확인. 전부 기본안.
+- **Phase 0 · 1 · 2 완료 (2026-10-15, `/execute-adr 262`)**: Phase 0 전수 표 (19 행 · 손계산 칸 · Figma 확인) → Phase 1 shared `pushInstanceOverrides` · `resetInstance` · `resetOverrideField` (G1 · G2 — 세 원본 모양 × 전수 표 칸 19 테스트 · 원복 RED 4/4 · 무작위 500 단계) → Phase 2 Builder (G3 live 13/13 · G4 type-check · 스위트). 설계에서 바뀐 것: 맞추기는 작성값 cascade (토큰 보존) · 중첩 자리는 `layerPatchFields` 병합 · Reset all 이 ADR-261 교체 (`replace`) 도 되접음 (G2 요구) · 반영 사전 확인을 원본 편집 감시자 키에 등록 (live 결함). 남은 것: **G5 사용자 Builder 확인** → Implemented. 상세: [breakdown §1 ~ §3 결과](design/262-instance-override-push-and-reset-all-breakdown.md).
 - 범위 밖: 교체 · 추천 · 속성 ([ADR-261](261-component-api-swap-slot-suggestions-properties.md) — 속성 값의 반영은 261 Phase 4 뒤 이 ADR 에 행을 더한다) · variant · 라이브러리 공유.
 
 ## Context
@@ -163,6 +166,11 @@ Proposed — 2026-10-15
 | G3   | Phase 2  | live (headed Chrome): Component 절 「Push changes to component」 · 「Reset all changes」 · Canvas 메뉴 · 확인 대화상자 · 토스트 undo · 자리별 목록에 숨김 · fills 행 · 다른 instance 반영 확인 · Compare Mode Canvas = Preview.                                                                                                                                                      | 경로 수리                     |
 | G4   | 각 Phase | type-check · shared · builder 스위트 (기존 제외 `resolveContainerStylesFallback`) · pre-push perf ratchet 등급 A 통과 (초과면 원인 수리) · 번들 상한 안.                                                                                                                                                                                                                             | 원인 수리                     |
 | G5   | 종료     | 사용자 Builder 확인 (Implemented 조건).                                                                                                                                                                                                                                                                                                                                              | 보고 결함 수리 후 재확인      |
+
+### Live Exercise
+
+- 2026-10-15 (실행자, headed Chrome · dev 5173 · Compare Mode · `apps/builder/scripts/adr262-override-push-reset-live.mjs`, 13/13 PASS): Frame > Text 「Card」 컴포넌트 + instance I · J. I 에 Text 색 빨강 (자리 patch) · 루트 opacity 0.5 · 루트 fills → Design 패널 Component 절 Overrides 목록에 `opacity` · `Fill` · `Text.color` 행 → 「Push changes to component」 → 「N개 instance 영향」 대화상자 (다른 instance J 1) → 원본 T.visual.color · F.visual.opacity · F.fills 에 쓰이고 I 는 비며, I 의 Text 는 그대로 빨강 (Canvas record `#ff0000` = Preview DOM `rgb(255, 0, 0)`) · J 도 빨강 (Canvas = Preview) → 토스트 undo 로 원상 → 「Reset all changes」 → I override 0 · Text 색 원본 (Canvas = Preview) · 대화상자 없음 → 토스트 undo → Canvas 오른쪽 클릭 메뉴에 두 항목 · 메뉴 Reset all 동작 → 자리 숨김의 「Text.Hidden」 행. console · page error 0.
+- 사용자 confirm (G5): 대기.
 
 ## Consequences
 

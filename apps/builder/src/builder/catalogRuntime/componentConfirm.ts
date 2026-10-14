@@ -65,6 +65,23 @@ export async function confirmCatalogDetach(
   return confirmed;
 }
 
+/**
+ * The component edits a graph's user already confirmed (`[definitionId, instanceIds]`): the
+ * origin-edit watcher asks once per key, and a push confirmed up front (ADR-262) registers its key
+ * so the step it then runs is not asked about again.
+ */
+const confirmedEdits = new WeakMap<object, Set<string>>();
+function confirmedKeys(graph: CatalogReader): Set<string> {
+  let keys = confirmedEdits.get(graph);
+  if (!keys) {
+    keys = new Set();
+    confirmedEdits.set(graph, keys);
+  }
+  return keys;
+}
+const impactKey = (graph: CatalogReader, definitionId: string) =>
+  JSON.stringify([definitionId, [...graph.instancesOf(definitionId)]]);
+
 function impactRequest(
   graph: CatalogReader,
   definitionId: string,
@@ -92,6 +109,39 @@ export async function confirmCatalogDissolve(
   const confirmed = request ? await confirm.impact(request) : true;
   if (confirmed) run();
   return confirmed;
+}
+
+/**
+ * ADR-262 (user decision 4): push an instance's overrides after the user confirms when other
+ * instances take them — the origin edit's 「will affect N instances」 dialog, counting the others;
+ * with no other instance the step runs at once.
+ */
+export async function confirmCatalogPush(
+  graph: CatalogReader,
+  instanceId: NodeId,
+  run: () => void,
+  confirm: CatalogComponentConfirm = CATALOG_COMPONENT_CONFIRM,
+): Promise<boolean> {
+  const node = graph.getEntry(instanceId);
+  if (node?.kind !== "node") return false;
+  const startedAt = performance.now();
+  const others = [...graph.instancesOf(node.definitionId)].filter(
+    (id) => id !== instanceId,
+  );
+  const confirmed = others.length
+    ? await confirm.impact({
+        countDurationMs: performance.now() - startedAt,
+        impactedInstanceIds: others,
+        instanceCount: others.length,
+        originId: node.definitionId,
+        originLabel: definitionName(graph, node.definitionId),
+      })
+    : true;
+  if (!confirmed) return false;
+  // (The push edits the origin: the watcher below would ask again — this answer covers it.)
+  confirmedKeys(graph).add(impactKey(graph, node.definitionId));
+  run();
+  return true;
 }
 
 /** The step changed a node under `definitionId`'s template (its owner chain reaches it). */
@@ -155,7 +205,7 @@ export function watchCatalogComponentEdits(
   workspace: CatalogWorkspace,
   confirm: CatalogComponentConfirm = CATALOG_COMPONENT_CONFIRM,
 ): () => void {
-  const confirmed = new Set<string>();
+  const confirmed = confirmedKeys(workspace.runtime.graph);
   let pending = false;
   return workspace.subscribeExecute((result) => {
     // Steps while the dialog is open share its answer.
@@ -180,7 +230,7 @@ export function watchCatalogComponentEdits(
     if (!edited) return;
     const request = impactRequest(graph, edited);
     if (!request) return;
-    const key = JSON.stringify([edited, request.impactedInstanceIds]);
+    const key = impactKey(graph, edited);
     if (confirmed.has(key)) return;
     const depth = workspace.runtime.historyDepth.undo - 1;
     pending = true;

@@ -230,6 +230,10 @@ export interface TranslationKeys {
     swapPreferred: string;
     swapped: string;
     systemOriginLocked: string;
+    pushChanges: string;
+    resetAllChanges: string;
+    pushed: string;
+    resetAllDone: string;
   };
   operation: {
     bodyLocked: string;
@@ -712,6 +716,10 @@ export interface TranslationKeys {
     presetApplied: string;
     overridesLegend: string;
     originDefaultsLegend: string;
+    overrideHidden: string;
+    overrideFill: string;
+    overrideFillSizing: string;
+    overrideVisibility: string;
     attributes: string;
     classNamePlaceholder: string;
     ariaLabelPlaceholder: string;

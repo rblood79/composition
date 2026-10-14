@@ -30,8 +30,10 @@ import {
   insertNodes,
   moveNodes,
   pasteNodes,
+  pushInstanceOverrides,
   removeTargets,
   renameNode,
+  resetInstance,
   restoreOrigin,
   setFields,
   setWholeField,
@@ -124,6 +126,15 @@ describe("ADR-248 Phase 4b random command sequence", () => {
         id: entry.id,
       })),
     ];
+    /** Instances of a composite: a project component or a library one (Panel · Picker · Badge). */
+    const composites = () =>
+      ownedNodes().filter(
+        (entry) =>
+          entry.definitionId.startsWith("project:definition:") ||
+          ["lib:definition:panel", "lib:definition:picker", "lib:definition:badge"].includes(
+            entry.definitionId,
+          ),
+      );
     const pickers = () =>
       ownedNodes().filter((entry) => typeOf(entry) === "lib:definition:picker");
     const listPosition = (ownerId: NodeId): NodeParent => ({
@@ -563,6 +574,17 @@ describe("ADR-248 Phase 4b random command sequence", () => {
           const value = set(stage);
           return { label: value.label, ops: [...made.ops, ...value.ops] };
         };
+      },
+      // ADR-262: push an instance's overrides onto its component's origin · reset them all.
+      push: () => {
+        const target = pickOne(composites());
+        return target
+          ? pushInstanceOverrides({ id: target.id, newId })
+          : undefined;
+      },
+      resetAll: () => {
+        const target = pickOne(composites());
+        return target ? resetInstance({ id: target.id }) : undefined;
       },
       rename: () => {
         const target = pickOne(ownedNodes());

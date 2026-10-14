@@ -41,6 +41,7 @@ import {
   catalogComponentState,
 } from "./componentActions";
 import {
+  confirmCatalogPush,
   confirmCatalogDetach,
   confirmCatalogDissolve,
 } from "./componentConfirm";
@@ -511,6 +512,29 @@ export function catalogCanvasMenuItems(
       icon: ACTION_ICONS.swapInstance,
       run: () => swap(ids[0]),
     });
+  }
+  // ADR-262: the instance's override clean-up — push onto the origin (asks when other instances
+  // take it), reset all (toast + undo). The instance itself only, as the Component section.
+  if (origin && single && !ownOrigin) {
+    const instanceId = ids[0];
+    component.push(
+      ...action(
+        "push-changes",
+        "componentAction.pushChanges",
+        catalogComponentCommands.push(instanceId, host.newId),
+        undefined,
+        ACTION_ICONS.pushChanges,
+        false,
+        (execute) => void confirmCatalogPush(host.graph, instanceId, execute),
+      ),
+      ...action(
+        "reset-all-changes",
+        "componentAction.resetAllChanges",
+        catalogComponentCommands.resetAll(instanceId),
+        undefined,
+        ACTION_ICONS.reset,
+      ),
+    );
   }
   // ADR-260 Decision 6: the component's origin was deleted — put it back beside this instance.
   if (origin?.restorable)

@@ -7,7 +7,10 @@ import type {
   DefinitionId,
   EditTarget,
   InstanceAddress,
+  NodeEntry,
   NodeId,
+  ResponsiveBreakpointName,
+  StateName,
   VisualField,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -15,10 +18,12 @@ import { componentPropertiesOf } from "../../../../../../../packages/shared/src/
 import {
   catalogComponentCommands,
   catalogComponentState,
+  catalogOverrideCleanupTarget,
 } from "../../../catalogRuntime/componentActions";
 import {
   confirmCatalogDetach,
   confirmCatalogDissolve,
+  confirmCatalogPush,
 } from "../../../catalogRuntime/componentConfirm";
 import { catalogPropertiesPatchCommand } from "../../../catalogRuntime/editContract";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
@@ -28,8 +33,10 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import {
+  resetOverrideField,
   resetReplacement,
   setFields,
+  type ResetOverrideFieldInput,
 } from "../../../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import { useToastStore } from "../../../stores/toast";
@@ -46,16 +53,91 @@ const ComponentIcon = ACTION_ICONS.component;
 
 /** The fields an instance's template-position patch writes (each key a resettable row). */
 const PATCH_FIELDS = ["props", "visual", "sizing", "layout"] as const;
+/** The whole-value override kinds (ADR-262 Phase 2 — one row each: Figma lists every change). */
+const WHOLE_FIELDS = ["fills", "fillSizing", "visibility"] as const;
 interface OverrideRow {
   /** The row's React key — a template position's path, since two positions can share a label. */
   id: string;
   key: string;
-  /** `replace` = a swapped nested instance (ADR-261 Phase 5 — its reset folds it back). */
-  field: (typeof PATCH_FIELDS)[number] | "replace";
+  /**
+   * `replace` = a swapped nested instance (ADR-261 Phase 5 — its reset folds it back); `enabled`
+   * = a hidden position; `stateRules` · `responsive` rows carry their state · breakpoint.
+   */
+  field:
+    | (typeof PATCH_FIELDS)[number]
+    | (typeof WHOLE_FIELDS)[number]
+    | "replace"
+    | "enabled"
+    | "stateRules"
+    | "responsive";
+  state?: StateName;
+  breakpoint?: ResponsiveBreakpointName;
   replacementId?: NodeId;
   /** The field key; at a template position, `position.key` (its node's name, else its type). */
   label: string;
   target: EditTarget;
+}
+type RowSeed = Omit<OverrideRow, "target" | "label"> & { label: string };
+/** The rows of one override holder's whole · state · breakpoint fields (`prefix` = the position). */
+function extraRows(
+  fields: Pick<
+    NodeEntry,
+    "fills" | "fillSizing" | "visibility" | "stateRules" | "responsive"
+  > & { enabled?: boolean },
+  prefix: string,
+  id: string,
+  t: (key: string) => string,
+): RowSeed[] {
+  const rows: RowSeed[] = [];
+  if (fields.enabled === false)
+    rows.push({
+      id: `enabled:${id}`,
+      key: "enabled",
+      field: "enabled",
+      label: `${prefix}${t("propertiesPanel.overrideHidden")}`,
+    });
+  const names = {
+    fills: t("propertiesPanel.overrideFill"),
+    fillSizing: t("propertiesPanel.overrideFillSizing"),
+    visibility: t("propertiesPanel.overrideVisibility"),
+  };
+  for (const field of WHOLE_FIELDS)
+    if (fields[field])
+      rows.push({
+        id: `${field}:${id}`,
+        key: field,
+        field,
+        label: `${prefix}${names[field]}`,
+      });
+  for (const [state, writes] of Object.entries(fields.stateRules ?? {}))
+    for (const key of Object.keys(writes ?? {}))
+      rows.push({
+        id: `state:${id}:${state}:${key}`,
+        key,
+        field: "stateRules",
+        state: state as StateName,
+        label: `${prefix}${state}.${key}`,
+      });
+  for (const [name, layer] of Object.entries(fields.responsive ?? {})) {
+    const breakpoint = name as ResponsiveBreakpointName;
+    for (const key of Object.keys(layer?.visual ?? {}))
+      rows.push({
+        id: `layer:${id}:${name}:${key}`,
+        key,
+        field: "responsive",
+        breakpoint,
+        label: `${prefix}${name}.${key}`,
+      });
+    if (layer?.fillSizing)
+      rows.push({
+        id: `layer:${id}:${name}:fillSizing`,
+        key: "",
+        field: "responsive",
+        breakpoint,
+        label: `${prefix}${name}.${names.fillSizing}`,
+      });
+  }
+  return rows;
 }
 
 function templateLabel(graph: CatalogReader, id: string | undefined): string {
@@ -118,7 +200,14 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
   const listsOwn = !!instanceOf || (!!originOf && !originOf.project);
   const rootTarget: EditTarget = target;
-  // The instance's writes at its template positions (the old list's `path.field` rows).
+  // The instance's writes at its template positions (the old list's `path.field` rows) and its
+  // root's whole · state · breakpoint overrides (ADR-262 — every kind a Reset reaches).
+  const rootExtraKey = useSyncExternalStore(subscribe, () => {
+    if (!instanceOf || !nodeId) return "[]";
+    const node = graph.getEntry(nodeId);
+    if (node?.kind !== "node") return "[]";
+    return JSON.stringify(extraRows(node, "", "root", t));
+  });
   const patchKey = useSyncExternalStore(subscribe, () => {
     if (!instanceOf || !nodeId) return "[]";
     const node = graph.getEntry(nodeId);
@@ -126,6 +215,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     return JSON.stringify(
       node.descendantOverrides.flatMap((item): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
         const at = templateLabel(graph, item.address.templatePath.at(-1));
+        const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
         if (item.kind === "replace") {
           const shown = graph.getEntry(item.replacementId);
           return [
@@ -139,18 +229,33 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
             },
           ];
         }
-        return PATCH_FIELDS.flatMap((field) =>
-          Object.keys(item[field] ?? {}).map((key) => ({
-            id: `${field}:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}:${key}`,
-            key,
-            field,
-            label: `${at}.${key}`,
+        return [
+          ...PATCH_FIELDS.flatMap((field) =>
+            Object.keys(item[field] ?? {}).map((key) => ({
+              id: `${field}:${positionId}:${key}`,
+              key,
+              field,
+              label: `${at}.${key}`,
+              address: item.address,
+            })),
+          ),
+          ...extraRows(item, `${at}.`, positionId, t).map((row) => ({
+            ...row,
             address: item.address,
           })),
-        );
+        ];
       }),
     );
   });
+  // ADR-262: push · reset all act on the selected instance itself (not a position inside one).
+  const cleanup = useSyncExternalStore(subscribe, () =>
+    JSON.stringify(
+      catalogOverrideCleanupTarget(graph, target, definitionView) ?? null,
+    ),
+  );
+  const cleanupTarget = JSON.parse(cleanup) as ReturnType<
+    typeof catalogOverrideCleanupTarget
+  > | null;
   // ADR-261 Decision 4: a component property's value reads as the property's name.
   const propertyNames = new Map(
     (instanceOf?.definitionId.startsWith("project:")
@@ -174,6 +279,10 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           key,
           field: "visual" as const,
           label: key,
+          target: rootTarget,
+        })),
+        ...(JSON.parse(rootExtraKey) as RowSeed[]).map((row) => ({
+          ...row,
           target: rootTarget,
         })),
         ...(
@@ -252,11 +361,57 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     },
     [graph, nodeId, run, t, workspace],
   );
+  // ADR-262 (user decision 4): push asks when other instances take it; reset all is a toast + undo.
+  const pushChanges = useCallback(() => {
+    if (!cleanupTarget) return;
+    const { id, name } = cleanupTarget;
+    void confirmCatalogPush(graph, id, () => {
+      if (!run(catalogComponentCommands.push(id, workspace.newId))) return;
+      useToastStore
+        .getState()
+        .showToast("info", t("componentAction.pushed", { name }), {
+          bypassCooldown: true,
+          action: { label: t("errors.undo"), onClick: () => workspace.undo() },
+        });
+    });
+  }, [cleanupTarget, graph, run, t, workspace]);
+  const resetAll = useCallback(() => {
+    if (!cleanupTarget) return;
+    if (!run(catalogComponentCommands.resetAll(cleanupTarget.id))) return;
+    useToastStore
+      .getState()
+      .showToast("info", t("componentAction.resetAllDone"), {
+        bypassCooldown: true,
+        action: { label: t("errors.undo"), onClick: () => workspace.undo() },
+      });
+  }, [cleanupTarget, run, t, workspace]);
   const reset = useCallback(
-    ({ key, field, label, target, replacementId }: OverrideRow) => {
+    ({
+      key,
+      field,
+      label,
+      target,
+      replacementId,
+      state,
+      breakpoint,
+    }: OverrideRow) => {
       const command =
         field === "replace"
           ? resetReplacement({ id: replacementId! })
+          : field === "enabled" ||
+              field === "fills" ||
+              field === "fillSizing" ||
+              field === "visibility" ||
+              field === "stateRules" ||
+              field === "responsive"
+            ? resetOverrideField({
+                target,
+                field,
+                ...(state ? { state } : {}),
+                ...(breakpoint ? { breakpoint } : {}),
+                ...(key ? { key } : {}),
+                label: "Reset override",
+              } as ResetOverrideFieldInput)
           : field === "props"
           ? catalogPropertiesPatchCommand(
               graph,
@@ -417,6 +572,23 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               ? t("propertiesPanel.overridesLegend")
               : t("propertiesPanel.originDefaultsLegend")}
           </legend>
+          {/* ADR-262: the whole list at once — reset all (Figma 「Reset all changes」) · push onto
+              the origin (Figma 「Push changes to main component」). */}
+          {cleanupTarget && (
+            <div className="component-semantics-strip component-semantics-cleanup">
+              <RACButton className="control-button" onPress={resetAll}>
+                <ACTION_ICONS.reset aria-hidden="true" size={iconProps.size} />
+                {t("componentAction.resetAllChanges")}
+              </RACButton>
+              <RACButton className="control-button" onPress={pushChanges}>
+                <ACTION_ICONS.pushChanges
+                  aria-hidden="true"
+                  size={iconProps.size}
+                />
+                {t("componentAction.pushChanges")}
+              </RACButton>
+            </div>
+          )}
           <div className="react-aria-Group component-semantics-field-list">
             {rows.map((row) => (
               <button

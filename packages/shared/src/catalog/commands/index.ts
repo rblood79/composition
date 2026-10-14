@@ -55,6 +55,12 @@ export {
   setComponentPropertyPreferred,
 } from "./properties";
 export {
+  pushInstanceOverrides,
+  resetInstance,
+  resetOverrideField,
+  type ResetOverrideFieldInput,
+} from "./instanceOverrides";
+export {
   createComponent,
   detachInstances,
   dissolveComponent,

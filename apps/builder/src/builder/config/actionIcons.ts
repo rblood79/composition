@@ -8,8 +8,7 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
-  RefreshCcwDot,
-  Replace,
+  ArrowUpToLine,
   ClipboardPaste,
   Component,
   Copy,
@@ -20,6 +19,8 @@ import {
   Group,
   Magnet,
   Plus,
+  RefreshCcwDot,
+  Replace,
   RotateCcw,
   RulerDimensionLine,
   Trash2,
@@ -144,6 +145,8 @@ export const ACTION_ICONS = {
   restoreOrigin: RefreshCcwDot,
   /** ADR-261: show another component in the instance's place (Figma 「Swap instance」). */
   swapInstance: Replace,
+  /** ADR-262: the instance's overrides onto its origin (Figma 「Push changes to main component」). */
+  pushChanges: ArrowUpToLine,
 
   // ── 정렬·분배 ─────────────────────────────────────────
   /** 정렬 서브메뉴 자신을 가리키는 대표 아이콘 */
