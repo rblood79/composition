@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 배치 즉시 반영 — margin·border·Table 열 갱신] - 2026-10-14
+
+### Fixed
+
+- **margin·grid 배치, 한쪽 border, Table/TableView 열 너비 변경이 Canvas에 즉시 반영된다.**
+  - **Why:** 일부 typed field만 비교해 border longhand·파생 열 입력을 놓쳤고, 요소 크기가 유지되면 형제 위치 검사도 생략했다.
+  - 엔진에 전달된 입력 snapshot 전체를 비교하고, 크기가 같아도 부모·형제 배치 영향을 검사한다. 기존 직렬화 결과를 재사용하므로 텍스트를 다시 측정하지 않는다.
+  - 회귀 검증: border·block/flex margin·grid placement·Table/TableView 열 변경과 preview 취소·Undo/Redo, 기존 paint-only·absolute 요소 및 5k 형제 국소 갱신 검사.
+
+## [Body 간격 즉시 반영 — Canvas layout longhand 갱신] - 2026-10-14
+
+### Fixed
+
+- **flex Body의 Design → Layout → Gap 변경이 즉시 표시된다.**
+  - **Why:** `rowGap`·`columnGap`은 레이아웃 엔진에 전달됐지만 Canvas 갱신 판정이 box model만 비교해, Body 크기가 그대로일 때 자식 좌표 갱신을 건너뛰었다.
+  - record의 `layout` 변경도 비교해 해당 subtree의 기하와 그리기 명령을 갱신한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+  - 회귀 검증: 세로·가로 flex Body의 gap preview·commit·Undo/Redo에서 엔진과 Skia 좌표 일치, 기존 증분 갱신·국소 기하 조회 검사.
+
 ## [Design 패널 — 효과 없는 칸 제거 · 부모가 정하는 칸 숨김 · 칩 제목 "Options" 제거] - 2026-10-14
 
 ### Removed

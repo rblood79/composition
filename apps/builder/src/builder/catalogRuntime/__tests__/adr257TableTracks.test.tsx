@@ -23,6 +23,8 @@ import { catalogItemInsertChoices } from "../itemInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import { CatalogCanvasScene } from "../canvasScene";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 const id = (name: string) => `project:node:${name}` as NodeId;
@@ -253,10 +255,12 @@ describe("ADR-257 Table column tracks", () => {
     // and Rows on RAC's column widths (the static tracks until RAC has measured).
     expect(html).toMatch(/<div[^>]*class="react-aria-TableView"/);
     expect(html).toMatch(/<table[^>]*data-node-table=""/);
-    const tracks = "var\\(--table-resized-tracks, 90px minmax\\(75px, 1fr\\)\\)";
+    const tracks =
+      "var\\(--table-resized-tracks, 90px minmax\\(75px, 1fr\\)\\)";
     expect(
-      html.match(new RegExp(`display:grid;grid-template-columns:${tracks}`, "g"))
-        ?.length,
+      html.match(
+        new RegExp(`display:grid;grid-template-columns:${tracks}`, "g"),
+      )?.length,
     ).toBe(2);
     expect(html).toMatch(new RegExp(`--table-column-tracks:${tracks}`));
     const [head, r1] = columnBoxes(workspace, [
@@ -286,9 +290,8 @@ describe("ADR-257 Table column tracks", () => {
 
 describe("ADR-257 load-time conversion and Styles routing (사용자 결정 2)", () => {
   it("a Column's Styles width → its width prop; a Cell's is dropped; a numeric string → number", async () => {
-    const { createCatalogGraph } = await import(
-      "../../../../../../packages/shared/src/catalog/document/graph"
-    );
+    const { createCatalogGraph } =
+      await import("../../../../../../packages/shared/src/catalog/document/graph");
     const library = await buildCodeCatalogLibrary();
     const document = newCatalogProjectDocument({
       projectId: "project:project:adr257-load" as const,
@@ -330,9 +333,8 @@ describe("ADR-257 load-time conversion and Styles routing (사용자 결정 2)",
   });
 
   it("the Styles width of a Column parses as an S2 column width", async () => {
-    const { catalogColumnStyleValue } = await import(
-      "../../panels/styles/catalog/catalogStylesHost"
-    );
+    const { catalogColumnStyleValue } =
+      await import("../../panels/styles/catalog/catalogStylesHost");
     expect(catalogColumnStyleValue("120px", false)).toBe(120);
     expect(catalogColumnStyleValue("120", false)).toBe(120);
     expect(catalogColumnStyleValue("2fr", false)).toBe("2fr");
@@ -341,4 +343,57 @@ describe("ADR-257 load-time conversion and Styles routing (사용자 결정 2)",
     expect(catalogColumnStyleValue("2fr", true)).toBeNull();
     expect(catalogColumnStyleValue("fit-content", false)).toBeNull();
   });
+});
+
+describe("Table derived tracks Canvas invalidation", () => {
+  it.each(["Table", "TableView"] as const)(
+    "%s updates body cells on column width edit and history",
+    async (type) => {
+      const workspace = await openTable(type, [
+        { width: 120 },
+        { width: 160 },
+        { width: 200 },
+      ]);
+      const scene = new CatalogCanvasScene(workspace.root);
+      const ids = ["c0", "c1", "r1d0", "r1d1", "r2d0", "r2d1"].map(
+        (name) => recordOf(workspace, name).id,
+      );
+      const check = (width: number) => {
+        scene.sync();
+        expect(getSkiaNode(ids[0])!.width).toBe(width);
+        expect(getSkiaNode(ids[2])!.width).toBe(width);
+        for (const id of ids) {
+          const rect = workspace.root.getGeometry([id]).get(id)!;
+          const node = getSkiaNode(id)!;
+          expect({
+            x: node.x,
+            y: node.y,
+            width: node.width,
+            height: node.height,
+          }).toEqual({
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          });
+        }
+      };
+      try {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: id("c0") }],
+            props: { width: { kind: "set", value: 220 } },
+          }),
+        );
+        check(220);
+        workspace.undo();
+        check(120);
+        workspace.redo();
+        check(220);
+      } finally {
+        scene.dispose();
+        workspace.dispose();
+      }
+    },
+  );
 });

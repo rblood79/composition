@@ -14,6 +14,7 @@ import {
   updatePage,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { createCatalogStylesHost } from "../../panels/styles/catalog/catalogStylesHost";
 import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
 import { catalogNewPageCommand } from "../pageTree";
@@ -68,6 +69,74 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-2 Canvas scene", () => {
+  it.each([
+    { direction: "column", property: "rowGap", axis: "y", extent: 20 },
+    { direction: "row", property: "columnGap", axis: "x", extent: 40 },
+  ] as const)(
+    "a fixed-size flex Body redraws children immediately after $property edits",
+    async ({ direction, property, axis, extent }) => {
+      const { workspace, scene } = await open();
+      const entries = ["gap-a", "gap-b"].map((name): NodeEntry => ({
+        ...text(name, ""),
+        definitionId: "lib:definition:type-frame",
+        props: {},
+        sizing: {
+          width: { kind: "set", value: 40 },
+          height: { kind: "set", value: 20 },
+        },
+      }));
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: BODY }],
+          layout: {
+            display: { kind: "set", value: "flex" },
+            flexDirection: { kind: "set", value: direction },
+            [property]: { kind: "set", value: "8px" },
+          },
+        }),
+      );
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries,
+          rootIds: entries.map((entry) => entry.id),
+          newId: allocator(),
+        }),
+      );
+      scene.sync();
+      const [body] = workspace.root.recordsOfSource(BODY);
+      const [second] = workspace.root.recordsOfSource(entries[1].id);
+      const bodyBox = workspace.root.getGeometry([body]).get(body);
+      const assertGap = (gap: number) => {
+        expect(workspace.root.getGeometry([body]).get(body)).toEqual(bodyBox);
+        expect(workspace.root.getGeometry([second]).get(second)?.[axis]).toBe(
+          extent + gap,
+        );
+        expect(getSkiaNode(second)?.[axis]).toBe(extent + gap);
+      };
+      assertGap(8);
+      workspace.selectRecords([body]);
+      const host = createCatalogStylesHost(workspace);
+      const revision = workspace.runtime.graph.revision;
+      host.previewStyle(property, "16px");
+      expect(scene.sync().kind).toBe("patched");
+      expect(workspace.runtime.graph.revision).toBe(revision);
+      assertGap(16);
+
+      host.updateStyle(property, "32px");
+      expect(scene.sync().kind).toBe("patched");
+      assertGap(32);
+      workspace.undo();
+      expect(scene.sync().kind).toBe("patched");
+      assertGap(8);
+      workspace.redo();
+      expect(scene.sync().kind).toBe("patched");
+      assertGap(32);
+      scene.dispose();
+      workspace.dispose();
+    },
+  );
+
   it("draws the page body, patches a leaf edit, patches structure and rebinds page roots, follows undo", async () => {
     const { workspace, scene } = await open();
     expect(scene.pageRootIds).toEqual(workspace.root.recordsOfSource(BODY));

@@ -1508,6 +1508,10 @@ export class CatalogCompositionRoot {
     const record = this.records.get(id);
     return record ? this.styleFor(record) : undefined;
   }
+  /** Settled engine input for incremental consumers, including derived layout and rewrap. */
+  getAppliedLayoutInput(id: string): string | undefined {
+    return this.layout.getAppliedStyle(id);
+  }
   /** Scoped, computed engine results for independent consumer verification. */
   /** Rects relative to each record's parent record (a wrapper part's offset folded in). */
   getGeometry(ids: Iterable<string>): ReadonlyMap<string, LayoutResult> {

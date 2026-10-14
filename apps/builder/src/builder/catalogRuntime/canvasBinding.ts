@@ -1443,10 +1443,12 @@ function bindInColorMode(
       { syncSpatialIndexSnapshot: true, publishBoundsSnapshot: true },
     );
     const bound = new Map<string, CatalogConsumerNode>();
+    const boundLayoutInputs = new Map<string, string | undefined>();
     const dirty = new Set<string>();
     const unsubscribe = new Map<string, () => void>();
     for (const node of root.canvasInputs.values()) {
       bound.set(node.id, node);
+      boundLayoutInputs.set(node.id, root.getAppliedLayoutInput(node.id));
       unsubscribe.set(
         node.id,
         root.subscribeCanvas(node.id, () => dirty.add(node.id)),
@@ -1532,26 +1534,39 @@ function bindInColorMode(
        * y of the preceding siblings' heights and margins. A sibling's width enters only the
        * container's shrink-to-fit width — that rect is compared first. So when the container is
        * `display: block` with an unchanged rect, the changed child is an in-flow block-level box
-       * (not an atomic inline in a line box, not absolute) and its height is unchanged, no
-       * sibling rect can change. Catalog nodes carry no margin keys, so margins stay 0.
+       * (not an atomic inline in a line box, not absolute) and its height is unchanged, siblings
+       * stay fixed only when its flow participation and vertical margins also stay unchanged.
        */
       const blockFlowSiblingsFixed = (
         id: string,
         parent: CatalogConsumerNode,
       ): boolean => {
         const child = catalogBoxModel(input(id)!);
+        const before = JSON.parse(boundLayoutInputs.get(id) ?? "{}") as Record<
+          string,
+          unknown
+        >;
+        const after = JSON.parse(
+          root.getAppliedLayoutInput(id) ?? "{}",
+        ) as Record<string, unknown>;
         // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
         // the caller) no sibling reads its size, in any parent display.
-        if (child.position) return true;
+        if (before.position === "absolute" && after.position === "absolute")
+          return true;
         return (
           catalogBoxModel(parent).display === "block" &&
           !child.display.startsWith("inline") &&
-          changedRects.get(id)!.height === layoutMap.get(id)!.height
+          before.display === after.display &&
+          before.position === after.position &&
+          before.marginTop === after.marginTop &&
+          before.marginBottom === after.marginBottom &&
+          (changedRects.get(id) ?? layoutMap.get(id))?.height ===
+            layoutMap.get(id)?.height
         );
       };
       /**
        * Geometry region of a layout edit: the seed's own box and descendants, then — while the
-       * box on the ancestor path changed size — its parent and (unless block flow proves them
+       * box on the ancestor path changed — its parent and (unless block flow proves them
        * fixed) its siblings. The region root is the
        * lowest node whose subtree holds every changed rect; its parent's render context is kept.
        */
@@ -1560,11 +1575,18 @@ function bindInColorMode(
         descend(seed);
         let regionRoot = seed;
         let cursor = seed;
-        while (sizeChanged(cursor)) {
+        // An item's margin/placement can move siblings without resizing the item itself.
+        // Always inspect the seed's parent; stop above it once geometry is unchanged.
+        while (cursor === seed || changedRects.has(cursor)) {
           const parentId = input(cursor)!.parentId;
           const parent = input(parentId);
-          if (!parent) return rebind(cursor, "geometry-reaches-scene-root");
-          const parentChanged = compare([parentId]).length > 0;
+          if (!parent) {
+            if (changedRects.has(cursor))
+              return rebind(cursor, "geometry-reaches-scene-root");
+            break;
+          }
+          compare([parentId]);
+          const parentChanged = changedRects.has(parentId);
           if (parentChanged) regionRoot = parentId;
           if (parentChanged || !blockFlowSiblingsFixed(cursor, parent)) {
             const siblings = parent.children.filter((id) => id !== cursor);
@@ -1674,6 +1696,7 @@ function bindInColorMode(
           childrenMap.delete(id);
           layoutMap.delete(id);
           bound.delete(id);
+          boundLayoutInputs.delete(id);
           ranges.delete(id);
           scrollbars.delete(id);
           reconciled.add(id);
@@ -1698,9 +1721,10 @@ function bindInColorMode(
         if (node.bindingId === "slot") return rebind(id, "slot");
         reRegister.add(id);
         bound.set(id, node);
+        // Use the engine's complete, already measured input, including visual longhands and
+        // derived Table tracks. Fixed container geometry does not imply fixed child geometry.
         const layoutInput =
-          JSON.stringify(catalogBoxModel(node)) !==
-          JSON.stringify(catalogBoxModel(before));
+          boundLayoutInputs.get(id) !== root.getAppliedLayoutInput(id);
         if (!layoutInput && !compare([id]).length) {
           patchRoots.add(id);
           continue;
@@ -1802,6 +1826,10 @@ function bindInColorMode(
           return rebind(id, `splice-rejected:${patch.reason ?? "unknown"}`);
         const span = replacement.subtreeSpans.get(id)!;
         commandWrites += span.end - span.start;
+      }
+      for (const id of new Set([...dirty, ...reconciled])) {
+        if (input(id))
+          boundLayoutInputs.set(id, root.getAppliedLayoutInput(id));
       }
       dirty.clear();
       return {

@@ -84,6 +84,11 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   컴포넌트별 spec·옛 renderer 등록표를 재생성하지 않는다.
 - 검증은 변경된 spacing/typed field를 기본값과 다르게 설정해 DOM·Canvas·레이아웃에
   도달하는지 확인한다. 인접 runtime/spacing 검사와 `/cross-check`를 사용한다.
+- Canvas 증분 갱신은 엔진에 적용된 입력 snapshot (`getAppliedLayoutInput`) 전체를 비교한다.
+  자신의 크기가 그대로여도 margin·grid placement는 형제를 이동시키므로 부모 배치를 검사한다.
+  **Why (2026-10-14)**: box model·layout만 비교하면 한쪽 border와 Table의 파생 열 정보가
+  빠지고, 크기 변경만 따라가면 margin·grid 배치 뒤 형제가 과거 좌표에 남는다 (9개 재현).
+  입력 snapshot은 엔진의 기존 직렬화 결과를 재사용해 텍스트 재측정 없이 읽는다.
 
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 

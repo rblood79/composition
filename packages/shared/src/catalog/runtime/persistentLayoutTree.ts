@@ -107,6 +107,11 @@ export class PersistentLayoutTree {
     return this.engine.isAvailable();
   }
 
+  /** Immutable snapshot of the input last sent to the engine; no remeasurement. */
+  getAppliedStyle(elementId: string): string | undefined {
+    return this._lastJsonMap.get(elementId);
+  }
+
   // ─── 초기 트리 구축 ─────────────────────────────────────────────────
 
   /**
