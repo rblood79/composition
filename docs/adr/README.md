@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-15 ADR-261 · 262 Codex 리뷰 Round 1 · 2**: 261 — Round 1 HIGH 4 · MEDIUM 1 (화살표 순서가 원본 자식을 instance 로 빼 옴 · 교체가 interaction 주소를 끊음 · instance 속성을 resolver 에서만 바꾸면 의존성 · 자리 열거가 옛 정의 · 다른 프로젝트 붙여넣기의 추천) → r1 (출발지도 EditTarget · 주소 보유자 재매핑 · instance 속성 = `replace` 소유 노드 · 없는 추천 제거). Round 2 — 4 닫힘 · h2 잔존 (`showWhen` 상태 소유자 주소) → r2. 262 — Round 1 HIGH 2 · MEDIUM 1 (반영이 투영 순서를 뒤집음 · 루트 own 필드 누락 · 비교 계약) → r1. Round 2 — 2 닫힘 · h1 잔존 (instance 층이 원본의 모든 층 뒤) → r2 쓰기 규칙 = 키별 breakpoint 마다 결과값 맞추기. 판독 상한 도달 — r2 수리의 확인은 각 Phase 게이트 (261 G2 · 262 G1). 기록: [reviews/261](reviews/261.md) · [reviews/262](reviews/262.md).
+>
+> **2026-10-15 ADR-261 · 262 Proposed** (사용자 `/create-adr` 두 번 — ADR-260 후속을 직교성으로 둘로 나눔, AskUserQuestion 「2개 (권장)」 · 추가 범위 3건 포함): **261** 컴포넌트 API — instance 교체 → slot 추천 → 사용자 컴포넌트 속성 (text · boolean · instance) + drag · paste 로 slot 채우기. 실측: ADR-260 Phase 0 의심이 코드상 확정 — Canvas drop · 「선택 뒤 붙여넣기」 · z-order · 화살표 순서가 부모를 record `sourceId` 로 잡아 instance 안 자리면 **원본 노드 · layout template 에 쓴다** (지금 main 결함, HIGH). 채택: 부모 = EditTarget (팔레트와 같은 길 — 결함 수리와 slot 채우기가 한 수리) · 교체 = Figma 대로 이름 경로 유일 매칭 · 속성 = Figma 대로 정의의 속성 표가 원본 레이어를 가리키고 기본값은 원본 노드 값 (library `"{key}"` 방식은 page 원본이 바인딩 문자를 그려 기각). 사용자 결정 5. **262** override 정리 — 원본에 반영 (Figma Push changes to main: instance 자신만 · 중첩 주소는 원본의 중첩 instance 로 한 단계 줄여) · Reset all changes (slot 내용 유지 — `resetDescendant` 규칙). 반영 불변식 (반영 instance resolved record 불변) · 되돌리기 불변식 (= 새 instance) 이 게이트. 사용자 결정 4. 열림 5 (Proposed 3 · 부분 2), 합계 287. breakdown: [design/261](design/261-component-api-breakdown.md) · [design/262](design/262-instance-override-push-and-reset-all-breakdown.md).
+>
 > **2026-10-14 ADR-260 Implemented** (main `010f3a2b5` · `af29d12e8`): Create component 뒤 노드가 그 자리에서 ORIGIN. 사용자 G5 「확인했다」 + 보고 결함 2 (사용자 컴포넌트 instance 의 속성 미적용 · 「+」 없음) 같은 날 수리. 후속 요청: Navigator Components 탭 = 「Library」 · 「Local」 두 page — Local 은 Create component 로 만든 컴포넌트를 한 page 에 (카드 = 원본 노드 자체 · Layers body > 원본 행 · 삭제). pre-push ratchet 등급 A 초과 1 (선택 `ownerOf` — slot 선언 판정의 이중 걷기) 수리 뒤 pass. live 33/33 + 14/14. 열림 −1, 완료 +1 (열림 3, 합계 285).
 >
 > **2026-10-14 ADR-260 Accepted + Phase 0 ~ 3 완료** (`/execute-adr 260`): Create component 뒤 노드가 그 자리에서 ORIGIN — 정의가 원본을 참조 (`DefinitionEntry.originRef`, `template` 역색인 `definitionOfTemplateRoot`) · 옛 문서 · layout 의 소유 template 그대로 (전환 0). 명령: create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard 출처 · 정의 · token snapshot. 지금 모델에도 있던 결함 3 수리 — template 노드 override 투영 (Decision 11) · 순환 걷기 (12) · 다른 프로젝트 붙여넣기 (13). Builder: ORIGIN on page · Go to component = page · Restore origin · 원본 편집 확인 대화상자. G0 ~ G4 통과 (shared 1641 · builder 5762 · live 33/33 · 번들 상한 안) · perf ratchet 은 커밋 뒤 pre-push · **G5 사용자 확인 대기**. 열림 2 (Accepted 1 · Proposed 1), 합계 287.
@@ -281,6 +285,16 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [261](261-component-api-swap-slot-suggestions-properties.md) — 컴포넌트 API: instance 교체 · slot 추천 · 사용자 컴포넌트 속성 (pen.dev · Figma)
+
+- **상태**: Proposed — 2026-10-15 (ADR-260 후속 A · 분리 confirm 10-15)
+- **규모**: Phase 0 live 재현 (instance 안 drop → 원본 쓰기 · layout page) + Phase 1 drop · 붙여넣기 · 순서 · Layers 부모 = EditTarget (지금 결함 수리 + drag · paste slot 채우기) → 2 `swapInstance` → 3 `slot.suggested` → 4 속성 text · boolean (`DefinitionEntry.properties`) → 5 instance 교체 속성. 사용자 결정 5 (못 맞춘 slot 내용 · slot 아닌 자리 drop · 교체 후보 · 속성 순서 · 기본 원본 교체). breakdown: [design/261](design/261-component-api-breakdown.md)
+
+#### [262](262-instance-override-push-and-reset-all.md) — instance override 정리: 원본에 반영 · 전부 되돌리기 (Figma)
+
+- **상태**: Proposed — 2026-10-15 (ADR-260 후속 B · 분리 confirm 10-15)
+- **규모**: shared 명령 2 (`pushInstanceOverrides` · `resetInstance`) + Component 절 · Canvas 메뉴 + 자리별 Reset 목록 누락 종류 (숨김 · fills …). 사용자 결정 4 (기본 원본 반영 · slot 내용 · Reset 의 크기 · 반영 확인). 261 Phase 4 뒤 속성 값 반영 행. breakdown: [design/262](design/262-instance-override-push-and-reset-all-breakdown.md)
+
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -302,17 +316,19 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-10-07 재산정
+### 권장 착수 순서 — 2026-10-15 재산정
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                   |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+|  1   | [261](261-component-api-swap-slot-suggestions-properties.md)                                   | Proposed — 리뷰 · `/execute-adr` 는 사용자 지시              | Phase 1 이 지금 main 결함 (instance 안 drop → 원본 쓰기) 수리 · 사용자 결정 5 |
+|  2   | [262](262-instance-override-push-and-reset-all.md)                                             | Proposed — 리뷰 · `/execute-adr` 는 사용자 지시              | 261 과 직교 (속성 값 반영 행만 261 Phase 4 뒤) · 사용자 결정 4                |
+|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)     |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                        |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                   |
 
 ---
 
