@@ -664,7 +664,14 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
       insertNodes({
         parent: { kind: "node", id: BODY },
         entries: [
-          node("form2", "lib:definition:type-Form"),
+          // Smaller than the frame it is dragged over (the size rule would skip a larger one).
+          {
+            ...node("form2", "lib:definition:type-Form"),
+            sizing: {
+              width: { kind: "set", value: 100 },
+              height: { kind: "set", value: 40 },
+            },
+          },
           node("form1", "lib:definition:type-Form", [id("inner")]),
           {
             ...node("inner", "lib:definition:type-frame"),
@@ -820,5 +827,155 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
     gestures.finish();
     expect(children("list")).toContain(id("d"));
     expect(placementOf("d")).toBeUndefined();
+  });
+});
+
+/**
+ * 2026-10-15 Canvas drop 규칙 (사용자 결정 — Figma 기준): grid 는 커서에 가장 가까운 칸 사이로,
+ * absolute 형제는 흐름 순서에 끼지 않고, 끄는 객체가 부모보다 크면 넣지 않으며 (⌘ 로 우회),
+ * Control drag 는 놓은 자리에 absolute 로 둔다.
+ */
+describe("Canvas drop rules (Figma)", () => {
+  const placementOf = (workspace: CatalogWorkspace, name: string) => {
+    const entry = workspace.runtime.graph.getEntry(id(name));
+    return entry?.kind === "node" ? entry.placement : undefined;
+  };
+
+  it("a grid container drops between the cells nearest the cursor (row-major), with a vertical line", async () => {
+    const { workspace, scene, gestures, record, box, center, children } =
+      await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        layout: {
+          display: { kind: "set", value: "grid" },
+          gridTemplateColumns: { kind: "set", value: "1fr 1fr" },
+        },
+      }),
+    );
+    scene.sync();
+    // a · b on the first row, c below a.
+    expect(box("b").y).toBe(box("a").y);
+    expect(box("c").y).toBeGreaterThan(box("a").y);
+    workspace.selectRecords([record("c")]);
+    const [cx, cy] = center("c");
+    const a = box("a");
+    gestures.beginMove(cx, cy, record("c"));
+    // Right of a's centre on its row: between a and b.
+    gestures.update(a.x + a.width * 0.75, a.y + a.height / 2, 1);
+    const line = gestures.preview()!.line!;
+    expect(line.width).toBe(0);
+    expect(line.x).toBeGreaterThanOrEqual(a.x + a.width);
+    expect(line.x).toBeLessThanOrEqual(box("b").x);
+    gestures.finish();
+    expect(children("list")).toEqual([id("a"), id("c"), id("b")]);
+  });
+
+  it("absolute siblings take no flow slot: the line follows the flow children", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.execute(
+      setWholeField({
+        targets: [{ kind: "node", id: id("b") }],
+        field: "placement",
+        value: { kind: "absolute", x: 0, y: 300 },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("c")]);
+    const [cx, cy] = center("c");
+    const a = box("a");
+    gestures.beginMove(cx, cy, record("c"));
+    gestures.update(a.x + 4, a.y + a.height * 0.75, 1);
+    const line = gestures.preview()!.line!;
+    expect(line.height).toBe(0);
+    // After a (its bottom edge), not at b's box 300 px below.
+    expect(line.y).toBeCloseTo(a.y + a.height, 0);
+  });
+
+  it("an object larger than a container does not enter it; ⌘ bypasses the size rule", async () => {
+    const { workspace, scene, gestures, record, box, center, children } =
+      await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: {
+          width: { kind: "set", value: 60 },
+          height: { kind: "set", value: 60 },
+        },
+      }),
+    );
+    scene.sync();
+    expect(box("a").width).toBeGreaterThan(60);
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const target = box("box");
+    const over = [target.x + 5, target.y + 50] as const;
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(...over, 1);
+    expect(gestures.preview()?.container).not.toEqual(target);
+    gestures.cancel();
+
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(...over, 1, { bypassSize: true });
+    expect(gestures.preview()?.container).toEqual(target);
+    gestures.finish();
+    expect(children("box")).toContain(id("a"));
+  });
+
+  it("Control drag places the node absolutely where it is dropped (front of the container, one step)", async () => {
+    const { workspace, scene, gestures, record, box, center, children } =
+      await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: {
+          width: { kind: "set", value: 400 },
+          height: { kind: "set", value: 200 },
+        },
+      }),
+    );
+    // Narrower than the frame (the size rule lets it in).
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        sizing: { width: { kind: "set", value: 120 } },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const start = box("a");
+    const target = box("box");
+    const point = [target.x + 30, target.y + 120] as const;
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(...point, 1, { absolute: true });
+    expect(gestures.preview()?.line).toBeUndefined();
+    expect(gestures.preview()?.container).toEqual(target);
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(children("box").at(-1)).toBe(id("a"));
+    expect(placementOf(workspace, "a")).toEqual({
+      kind: "absolute",
+      x: Math.round(start.x + point[0] - ax - target.x),
+      y: Math.round(start.y + point[1] - ay - target.y),
+    });
+
+    // Over its own parent: it stays there, placed at the offset.
+    workspace.undo();
+    scene.sync();
+    workspace.selectRecords([record("b")]);
+    const [bx, by] = center("b");
+    const bStart = box("b");
+    const list = box("list");
+    gestures.beginMove(bx, by, record("b"));
+    gestures.update(bx + 20, by + 10, 1, { absolute: true });
+    gestures.finish();
+    expect(children("list")).toEqual([id("a"), id("c"), id("b")]);
+    expect(placementOf(workspace, "b")).toEqual({
+      kind: "absolute",
+      x: Math.round(bStart.x + 20 - list.x),
+      y: Math.round(bStart.y + 10 - list.y),
+    });
   });
 });

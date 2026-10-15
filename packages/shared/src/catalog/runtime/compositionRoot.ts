@@ -3503,6 +3503,12 @@ export class CatalogCompositionRoot {
     // rect, which a parent of the same size would not reach — ADR-256 후속 12 live.)
     if (!old || frameMoved || plan.styleChanged || !sameRecord(old, record))
       notices.push({ id, record });
+    // A child turning absolute (or back) makes its DOM parent its containing block (or not):
+    // the parent's record is the same, so its listeners hear it here (2026-10-15).
+    if (old && old.placement?.kind !== record.placement?.kind) {
+      const parent = this.records.get(record.parentId);
+      if (parent) notices.push({ id: parent.id, record: parent });
+    }
   }
 
   private applyRemoval(id: string, rootId: NodeId, notices: Notice[]): void {

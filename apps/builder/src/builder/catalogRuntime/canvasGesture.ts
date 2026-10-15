@@ -10,6 +10,7 @@ import {
   moveNodes,
   pasteNodes,
   setFields,
+  setFillSizing,
   setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
@@ -28,6 +29,7 @@ import type {
   NodeParent,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { parseAspectRatio } from "../utils/aspectRatio";
+import { catalogBoxModel } from "./boxModel";
 import { catalogInsertParent } from "./insertParent";
 import {
   resolveResizeRequest,
@@ -206,6 +208,10 @@ type Gesture =
       drop?: CatalogDropTarget;
       /** Alt held at the press: the release drops copies (the originals stay). */
       copy: boolean;
+      /** ⌘ held (Figma): a container smaller than the dragged box takes it too. */
+      bypassSize?: boolean;
+      /** Control held (Figma Ignore auto layout · Framer ⌃ drag): the drop places it absolutely. */
+      placeAbsolute?: boolean;
       /** The nesting rules refused the container under the pointer and every ancestor. */
       refusal?: NestingViolation;
       snap?: SnapContext;
@@ -561,6 +567,10 @@ export class CatalogCanvasGestures {
       axisLock?: boolean;
       /** Snap to other boxes and manual guides (the host's setting; ⌘/Ctrl turns it off). */
       snap?: boolean;
+      /** ⌘ held: skip the size rule (a container smaller than the dragged box takes it). */
+      bypassSize?: boolean;
+      /** Control held: a flow drag drops the nodes absolutely at the dropped position. */
+      absolute?: boolean;
     } = {},
   ): boolean {
     const gesture = this.gesture;
@@ -629,9 +639,14 @@ export class CatalogCanvasGestures {
     gesture.dy = dy;
     // An absolutely placed element snaps (a flow drag reorders; the old Canvas never snapped it).
     if (gesture.absolute) this.snap(gesture, zoom, !!options.snap);
+    gesture.bypassSize = !!options.bypassSize;
+    gesture.placeAbsolute =
+      !gesture.absolute && !gesture.copy && !!options.absolute;
     gesture.drop = gesture.absolute
       ? this.absoluteReparent(x, y, gesture)
       : this.dropTarget(x, y, gesture);
+    if (gesture.placeAbsolute && gesture.drop)
+      gesture.drop = { ...gesture.drop, keepsAbsolute: true };
     return true;
   }
 
@@ -997,6 +1012,7 @@ export class CatalogCanvasGestures {
       });
     }
     if (gesture.absolute) return this.absoluteMoveCommand(gesture);
+    if (gesture.placeAbsolute) return this.placeAbsoluteCommand(gesture);
     const drop = gesture.drop;
     if (!drop) return undefined;
     if (gesture.copy) {
@@ -1024,6 +1040,58 @@ export class CatalogCanvasGestures {
       index: drop.index,
       newId: this.host.newId,
     });
+  }
+
+  /**
+   * Control drag of flow nodes (Figma Ignore auto layout · Framer ⌃ drag): the nodes go to the front
+   * of the drop container (the end of its children, as the Position toggle) and keep where they
+   * were dropped as their placement (from its padding box); a fill axis becomes its drawn px. One
+   * step.
+   */
+  private placeAbsoluteCommand(
+    gesture: Extract<Gesture, { kind: "move" }>,
+  ): CatalogCommand | undefined {
+    const { records, graph, newId } = this.host;
+    const drop = gesture.drop;
+    const container = drop && records.get(drop.container);
+    const frame = drop && this.host.bounds(drop.container);
+    if (!drop || !container || !frame) return undefined;
+    const border = catalogBoxModel(container).borderWidth;
+    const inset = typeof border === "number" ? border : 0;
+    const commands: CatalogCommand[] = [];
+    const trailing = container.children.slice(-gesture.records.length);
+    if (!gesture.records.every((record, index) => trailing[index] === record))
+      commands.push(moveNodes({ ids: gesture.ids, parent: drop.parent, newId }));
+    gesture.records.forEach((record, index) => {
+      const box = this.host.bounds(record);
+      const id = gesture.ids[index];
+      if (!box || !id) return;
+      commands.push(
+        setWholeField({
+          targets: [{ kind: "node", id }],
+          field: "placement",
+          value: {
+            kind: "absolute",
+            x: Math.round(box.x + gesture.dx - frame.x - inset),
+            y: Math.round(box.y + gesture.dy - frame.y - inset),
+          },
+        }),
+      );
+      const entry = graph.getEntry(id);
+      const fill = entry?.kind === "node" ? entry.fillSizing : undefined;
+      for (const axis of ["width", "height"] as const) {
+        if (!fill?.[axis]) continue;
+        commands.push(
+          setFillSizing({ targets: [{ kind: "node", id }], axis, value: undefined }),
+          setFields({
+            targets: [{ kind: "node", id }],
+            sizing: { [axis]: { kind: "set", value: Math.round(box[axis]) } },
+          }),
+        );
+      }
+    });
+    return () =>
+      composeCommands(graph as CatalogGraph, "Absolute position", commands);
   }
 
   /**
@@ -1265,11 +1333,26 @@ export class CatalogCanvasGestures {
       const parent = target && catalogInsertParent(graph, target);
       if (!parent) continue;
       if (!this.structural(record)) continue;
+      // Figma: an object larger than a container (either side) does not enter it — ⌘ bypasses.
+      // Its own parent always takes it back (a reorder).
+      if (
+        !gesture.bypassSize &&
+        record.id !== records.get(gesture.leader)?.parentId
+      ) {
+        const frame = this.host.bounds(record.id);
+        if (
+          frame &&
+          (gesture.startBox.width > frame.width ||
+            gesture.startBox.height > frame.height)
+        )
+          continue;
+      }
       // Past a refused container the nodes go to the end of the accepting ancestor (the old
       // Canvas's nearest droppable ancestor).
-      const index = refused
-        ? this.flowChildren(record, excluded).length
-        : this.insertionIndex(record, excluded, x, y);
+      const slot = refused
+        ? this.flowEntries(record, excluded).length
+        : this.flowSlot(record, excluded, x, y);
+      const index = this.documentIndex(record, excluded, slot);
       try {
         // The command's own checks (nesting, not into itself) decide whether the drop is allowed.
         moveNodes({
@@ -1295,7 +1378,7 @@ export class CatalogCanvasGestures {
         container: record.id,
         parent,
         index,
-        line: this.insertionLine(record, excluded, index),
+        line: this.insertionLine(record, excluded, slot),
         ...(refused ? { relocated: refused } : {}),
       };
     }
@@ -1303,64 +1386,134 @@ export class CatalogCanvasGestures {
     return undefined;
   }
 
-  private horizontal(container: CatalogConsumerNode): boolean {
-    const { display, flexDirection } = container.layout;
-    return (
-      (display === "flex" || display === "inline-flex") &&
-      !String(flexDirection ?? "row").startsWith("column")
-    );
+  /**
+   * The flow axis of a container: a grid (and wrapped rows) is two-dimensional — Figma's grid drop
+   * between the cells nearest the cursor.
+   */
+  private flowKind(
+    container: CatalogConsumerNode,
+  ): "row" | "column" | "grid" {
+    const { display, flexDirection, flexWrap } = container.layout;
+    if (display === "grid" || display === "inline-grid") return "grid";
+    const flex = display === "flex" || display === "inline-flex";
+    const row = flex && !String(flexDirection ?? "row").startsWith("column");
+    if (row && String(flexWrap ?? "nowrap").startsWith("wrap")) return "grid";
+    return row ? "row" : "column";
   }
 
-  private flowChildren(
+  /** The children that take a flow slot (not the dragged, not absolutely placed), with their boxes. */
+  private flowEntries(
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
-  ) {
-    return container.children
-      .filter((id) => !dragged.has(id))
-      .map((id) => this.host.bounds(id))
-      .filter((box): box is BoundingBox => !!box);
+  ): { id: string; box: BoundingBox }[] {
+    const records = this.host.records;
+    return container.children.flatMap((id) => {
+      const child = records.get(id);
+      if (
+        dragged.has(id) ||
+        !child ||
+        child.placement?.kind === "absolute" ||
+        child.layout.position === "absolute"
+      )
+        return [];
+      const box = this.host.bounds(id);
+      return box ? [{ id, box }] : [];
+    });
   }
 
-  private insertionIndex(
+  /** The slot among the flow children the point drops into. */
+  private flowSlot(
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
     x: number,
     y: number,
   ): number {
-    const horizontal = this.horizontal(container);
-    let index = 0;
-    for (const box of this.flowChildren(container, dragged))
-      if (horizontal ? box.x + box.width / 2 < x : box.y + box.height / 2 < y)
-        index++;
-    return index;
+    const entries = this.flowEntries(container, dragged);
+    const kind = this.flowKind(container);
+    if (kind !== "grid") {
+      let slot = 0;
+      for (const { box } of entries)
+        if (
+          kind === "row"
+            ? box.x + box.width / 2 < x
+            : box.y + box.height / 2 < y
+        )
+          slot++;
+      return slot;
+    }
+    // Figma grid: between the cell objects nearest the cursor, in their (row-major) order.
+    let nearest = -1;
+    let best = Infinity;
+    entries.forEach(({ box }, index) => {
+      const dx = Math.max(box.x - x, 0, x - (box.x + box.width));
+      const dy = Math.max(box.y - y, 0, y - (box.y + box.height));
+      const distance = Math.hypot(dx, dy);
+      if (distance < best) {
+        best = distance;
+        nearest = index;
+      }
+    });
+    if (nearest < 0) return 0;
+    const box = entries[nearest]!.box;
+    const sameRow = y >= box.y && y <= box.y + box.height;
+    const after = sameRow
+      ? x > box.x + box.width / 2
+      : y > box.y + box.height / 2;
+    return nearest + (after ? 1 : 0);
   }
 
+  /** A flow slot as the index among the container's children the move writes (the dragged out). */
+  private documentIndex(
+    container: CatalogConsumerNode,
+    dragged: ReadonlySet<string>,
+    slot: number,
+  ): number {
+    const rest = container.children.filter((id) => !dragged.has(id));
+    const entries = this.flowEntries(container, dragged);
+    if (slot < entries.length) return rest.indexOf(entries[slot]!.id);
+    const last = entries.at(-1);
+    return last ? rest.indexOf(last.id) + 1 : rest.length;
+  }
+
+  /**
+   * The insertion line of a slot: halfway across the gap between the flow neighbours (the old
+   * Canvas's gap-centred line), at the edge when there is one neighbour; vertical in a grid row.
+   */
   private insertionLine(
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
-    index: number,
+    slot: number,
   ): BoundingBox {
-    const horizontal = this.horizontal(container);
-    const boxes = this.flowChildren(container, dragged);
+    const kind = this.flowKind(container);
+    const boxes = this.flowEntries(container, dragged).map(({ box }) => box);
     const frame = this.host.bounds(container.id)!;
+    const vertical = kind !== "column";
     if (!boxes.length)
-      return horizontal
+      return vertical
         ? { x: frame.x, y: frame.y, width: 0, height: frame.height }
         : { x: frame.x, y: frame.y, width: frame.width, height: 0 };
-    const after = index >= boxes.length;
-    const box = boxes[Math.min(index, boxes.length - 1)];
-    return horizontal
-      ? {
-          x: after ? box.x + box.width : box.x,
-          y: box.y,
-          width: 0,
-          height: box.height,
-        }
-      : {
-          x: box.x,
-          y: after ? box.y + box.height : box.y,
-          width: box.width,
-          height: 0,
-        };
+    const prev = boxes[slot - 1];
+    const next = boxes[slot];
+    const overlaps = (a: BoundingBox, b: BoundingBox) =>
+      vertical
+        ? a.y < b.y + b.height && b.y < a.y + a.height
+        : a.x < b.x + b.width && b.x < a.x + a.width;
+    const neighbours = prev && next && overlaps(prev, next);
+    if (vertical) {
+      const box = next ?? prev!;
+      const x = neighbours
+        ? (prev.x + prev.width + next.x) / 2
+        : next
+          ? next.x
+          : prev!.x + prev!.width;
+      return { x, y: box.y, width: 0, height: box.height };
+    }
+    const box = next ?? prev!;
+    const y = neighbours
+      ? (prev.y + prev.height + next.y) / 2
+      : next
+        ? next.y
+        : prev!.y + prev!.height;
+    return { x: box.x, y, width: box.width, height: 0 };
   }
 }

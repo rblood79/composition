@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas drop 규칙 — grid · 크기 · ⌘ · Control (Figma 기준)] - 2026-10-15
+
+### Added
+
+- **Control drag 로 놓은 자리에 absolute 로 두기 (Mac)** — flow 컨테이너 안팎으로 끌다가 Control 을 누르면 놓은 위치를 그 컨테이너 기준 absolute 좌표로 둔다 (컨테이너의 맨 앞 · fill 축은 그려진 px). Figma 의 Ignore auto layout · Framer 의 ⌃ drag 와 같은 키 · 같은 뜻.
+- **끄는 객체가 컨테이너보다 크면 그 안에 넣지 않음 · ⌘ (Windows Ctrl) 로 우회** — 어느 한 변이라도 크면 그 컨테이너를 건너 조상에 놓인다 (Figma). 원래 부모 안 순서 바꾸기는 그대로.
+
+### Fixed
+
+- **grid 컨테이너에 놓을 때 위치가 세로 목록처럼 정해지던 문제** — 이제 커서에 가장 가까운 칸 객체 사이 (행 우선 순서) 로 들어가고 삽입선이 칸 사이 세로선으로 그려진다 (Figma). 가로 줄바꿈 flex 도 같다.
+  - **Why**: drop 판정이 flex row 만 가로로 보고 grid 는 세로 목록으로 셌다 (ADR-248 전환 때 옛 판정기를 단순 판정으로 바꾸며 생김).
+- **absolute 형제가 삽입 위치 · 선을 끌어가던 문제** — absolute 로 놓인 형제는 흐름 순서에 끼지 않는다. 삽입선은 형제 사이 간격의 가운데에 그린다.
+- **absolute 자식을 둔 frame · Group 등의 Preview 위치가 Canvas 와 다르던 문제** — DOM 부모에 위치 기준 (`position: relative`) 이 없어 자식이 page body 기준으로 놓였다. 이제 absolute 자식을 둔 구조 컨테이너는 위치 기준이 되고, 자식의 absolute 여부가 바뀌면 부모도 다시 그린다.
+  - **Why**: 레이아웃 엔진은 absolute 자식을 늘 부모 기준으로 놓는데 DOM 부모만 위치 기준이 아니었다 (Position 토글로도 재현).
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`flowSlot` · `flowEntries` · `documentIndex` · `insertionLine` · 크기 규칙 · `placeAbsoluteCommand`) · `workspace/canvas/catalog/CatalogCanvas.tsx` (⌘ · Control 전달) · `packages/shared/src/catalog/runtime/domBinding.runtime.ts` (`containingBlock`) · `compositionRoot.ts` (부모 알림). 검증: `phase4eCanvasGesture.test.ts` 새 4건 · `absoluteChildContainingBlock.test.tsx` (모두 수정 전 RED) · shared 1713 · builder 5807 통과 (`resolveContainerStylesFallback` togglebuttongroup 1건은 기존 실패) · type-check · live `apps/builder/scripts/canvas-dnd-drop-rules-live.mjs` 6/6 (실제 마우스 · 키: grid [A,C,B] · W→S 거부 · ⌘ 로 들어감 · Control drop placement 70,90 · Compare Mode Preview DOM offset 70,90 = Canvas · 부모 relative).
+
 ## [Border 미리보기가 다른 축을 기본값으로 바꾸던 문제] - 2026-10-15
 
 ### Fixed

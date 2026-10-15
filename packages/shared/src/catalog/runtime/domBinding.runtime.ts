@@ -38,6 +38,7 @@ import { Icon } from "../../components/Icon";
 import { Slot } from "../../components/Slot";
 
 import { isBodyType } from "../../domain/predicates";
+import { containerTypeSet } from "../../domain/componentTraits";
 import {
   getIconData,
   tokenToCSSVar,
@@ -2645,7 +2646,30 @@ function authoredStyle(
       left: node.placement.x,
       top: node.placement.y,
     });
+  else containingBlock(root, node, style);
   return style;
+}
+
+const STRUCTURAL_TYPES = containerTypeSet("structural", { lowercase: true });
+
+/**
+ * A structural container holding an absolutely placed child is its containing block, as the layout
+ * engine places it (from the parent) — otherwise the DOM measures it from the nearest positioned
+ * ancestor (the page body) and the Preview drifts from the Canvas (2026-10-15).
+ */
+function containingBlock(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+): void {
+  if (
+    !style.position &&
+    STRUCTURAL_TYPES.has(catalogTypeName(root, node).toLowerCase()) &&
+    node.children.some(
+      (id) => root.domInputs.get(id)?.placement?.kind === "absolute",
+    )
+  )
+    style.position = "relative";
 }
 
 export interface CatalogDomNodeProps {
@@ -3052,6 +3076,8 @@ export function renderNode(
         ...(stepper !== node ? { borderWidth: 0 } : {}),
       }
     : undefined;
+  if (bound && node.placement?.kind !== "absolute")
+    containingBlock(root, node, bound);
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text

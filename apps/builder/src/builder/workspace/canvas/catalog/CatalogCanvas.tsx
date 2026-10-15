@@ -164,6 +164,10 @@ const sameFrames = (
     );
   });
 
+
+const IS_MAC =
+  typeof navigator !== "undefined" && navigator.platform.includes("Mac");
+
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
   /** The first frame reached the screen (boot readiness). */
@@ -1150,6 +1154,10 @@ export function CatalogCanvas({
           snap:
             useBuilderUiStore.getState().snapToObjects &&
             !(event.metaKey || event.ctrlKey),
+          // Figma: ⌘ (Ctrl elsewhere) lets a larger object into a smaller container; Control on
+          // a Mac drops a flow node absolutely (Ignore auto layout · Framer ⌃ drag).
+          bypassSize: IS_MAC ? event.metaKey : event.ctrlKey,
+          absolute: IS_MAC && event.ctrlKey,
         })
       ) {
         deferredSelect = undefined;
