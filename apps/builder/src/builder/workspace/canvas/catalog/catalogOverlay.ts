@@ -340,6 +340,10 @@ export function catalogOverlayNode(
         for (const box of gesture.highlights ?? [])
           renderHoverHighlight(ck, canvas, box, zoom);
         if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
+        // A grid drop target (Figma): every cell outlined; an append fills its empty cell.
+        for (const cell of gesture.cells ?? [])
+          renderHoverHighlight(ck, canvas, cell, zoom);
+        if (gesture.cell) renderLasso(ck, canvas, gesture.cell, zoom);
         // The container the drop goes into (another one than the dragged's own): its frame, as
         // thick as the line (Figma).
         if (gesture.container)

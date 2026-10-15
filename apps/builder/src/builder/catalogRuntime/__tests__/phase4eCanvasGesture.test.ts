@@ -873,6 +873,48 @@ describe("Canvas drop rules (Figma)", () => {
     expect(children("list")).toEqual([id("a"), id("c"), id("b")]);
   });
 
+  it("a grid target (Figma): every cell outlined; an append from outside fills the empty cell; a row start's line sits mid-padding", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        layout: {
+          display: { kind: "set", value: "grid" },
+          gridTemplateColumns: { kind: "set", value: "1fr 1fr" },
+        },
+        visual: {
+          paddingLeft: { kind: "set", value: 40 },
+          gap: { kind: "set", value: 30 },
+        },
+      }),
+    );
+    scene.sync();
+    const list = box("list");
+    const a = box("a");
+    const b = box("b");
+    const c = box("c");
+    // d (in box) into the grid's empty cell beside c: the cell is filled, no line.
+    workspace.selectRecords([record("d")]);
+    const [dx, dy] = center("d");
+    gestures.beginMove(dx, dy, record("d"));
+    // ⌘: the text d is as wide as the page (the size rule would keep it out).
+    gestures.update(b.x + b.width / 2, c.y + c.height / 2, 1, { bypassSize: true });
+    const preview = gestures.preview()!;
+    expect(preview.cells).toHaveLength(4);
+    expect(preview.cell).toEqual({ x: b.x, y: c.y, width: b.width, height: c.height });
+    expect(preview.line).toBeUndefined();
+    // Over a's left half: before a — mid-padding, as tall as the cell.
+    gestures.update(a.x + 2, a.y + a.height / 2, 1, { bypassSize: true });
+    expect(gestures.preview()!.cell).toBeUndefined();
+    expect(gestures.preview()!.line).toEqual({
+      x: (list.x + a.x) / 2,
+      y: a.y,
+      width: 0,
+      height: a.height,
+    });
+    gestures.cancel();
+  });
+
   it("absolute siblings take no flow slot: the line follows the flow children", async () => {
     const { workspace, scene, gestures, record, box, center } = await open();
     workspace.execute(

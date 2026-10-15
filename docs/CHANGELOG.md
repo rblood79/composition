@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 로 끌 때 칸 윤곽 · 빈 칸 채움 — Figma 실측 기준] - 2026-10-15
+
+### Changed
+
+- **grid 컨테이너 위로 끄는 동안 모든 칸(빈 칸 포함)의 윤곽을 그린다.** 칸 크기는 열 템플릿(px · fr · % · `repeat(n, …)`)에서 구하고, 내용 크기 열(`auto` 등)만 그 열 항목의 상자를 쓴다. 행은 그 행 항목들에서, 항목 없는 행은 앞 행의 높이.
+- **마지막 항목 뒤로(빈 칸으로) 들어갈 때는 삽입선 대신 들어갈 빈 칸을 채워 보인다.** 포인터가 빈 칸 위에 있으면 그 칸으로 들어간다 (앞쪽의 가까운 항목 사이로 끼지 않는다).
+- **채워진 칸 사이는 세로 삽입선** — 같은 행 두 칸 사이 = gap 가운데, 행 시작 = padding 가운데, 행 끝 = 다음 열이 있으면 gap 가운데 · 마지막 열이면 padding 가운데. 앞 · 뒤는 칸이 아니라 항목 자신의 가운데로 가른다.
+  - **Why**: grid 는 칸 사이 선만 그려 빈 칸으로 들어갈 때 위치가 보이지 않았고, 빈 칸 위에 놓아도 가장 가까운 항목 사이로 끼었다. Figma (grid auto-layout, padding 40 · 열 gap 30, 실제 마우스) 실측: 끄는 동안 모든 칸 윤곽 · 칸 사이 = gap 가운데 세로선 (칸 높이) · 첫 칸 앞 = padding 가운데 · 마지막 항목 뒤 = 다음 빈 칸 채움.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (새 — 칸 기하, overlay 전용 · 레이아웃 입력 아님) · `canvasGesture.ts` (`gridDrop` · `gridCellsOf` · grid `flowSlot` · grid 삽입선) · `workspace/canvas/catalog/catalogOverlay.ts`. 검증: `canvasGridCells.test.ts` 5 · `phase4eCanvasGesture.test.ts` 27 (새 1) · catalogRuntime + canvas 3122 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `canvas-dnd-drop-rules-live.mjs` 7/7 (새 1b — 빈 칸 위 = 칸 윤곽 4 + 칸 채움 · 선 없음, A 왼쪽 = 선) · `canvas-dnd-presentation-live.mjs` 7/7.
+
 ## [삽입선이 drop 대상의 gap · padding 을 따른다 — Figma 실측 기준] - 2026-10-15
 
 ### Fixed

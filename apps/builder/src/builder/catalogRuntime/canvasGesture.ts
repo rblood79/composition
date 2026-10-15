@@ -73,6 +73,7 @@ import {
   type SnapGuide,
   type SnapGuideLines,
 } from "../workspace/canvas/interaction/snapGuides";
+import { gridCells, lengthPx } from "./canvasGridCells";
 import {
   resolveDragDistanceGuides,
   type MeasureGuide,
@@ -182,6 +183,10 @@ export interface CatalogDropTarget {
   readonly relocated?: NestingViolation;
   /** An absolute drag leaving for a page body: the nodes stay absolute there (no line). */
   readonly keepsAbsolute?: true;
+  /** A grid container: every cell (outlined while dragging over it, Figma). */
+  readonly cells?: readonly BoundingBox[];
+  /** A grid append into an empty cell: that cell (filled instead of a line, Figma). */
+  readonly cell?: BoundingBox;
 }
 
 /** A move as the Canvas draws it (`dragPresentation`). */
@@ -323,6 +328,9 @@ export interface CatalogGesturePreview {
   /** The other dragged boxes (selected pages, absolutely placed nodes) at the same offset. */
   readonly ghosts?: readonly BoundingBox[];
   readonly line?: BoundingBox;
+  /** A grid drop target's cells (outlined) and the empty cell an append fills. */
+  readonly cells?: readonly BoundingBox[];
+  readonly cell?: BoundingBox;
   /**
    * A reorder in its own row / column: the siblings reflow (`dragPresentation`) and the opened
    * slot shows the drop — no line, no container frame. Into another container the siblings stay
@@ -829,7 +837,14 @@ export class CatalogCanvasGestures {
       ghosts,
       ...guides,
       ...moving,
-      ...(gesture.drop.keepsAbsolute ? {} : { line: gesture.drop.line }),
+      ...(gesture.drop.keepsAbsolute
+        ? {}
+        : gesture.drop.cell
+          ? { cell: gesture.drop.cell }
+          : { line: gesture.drop.line }),
+      ...(gesture.drop.cells && !gesture.drop.keepsAbsolute
+        ? { cells: gesture.drop.cells }
+        : {}),
       ...(this.reflows(gesture)
         ? { reflow: true }
         : { container: this.host.bounds(gesture.drop.container) }),
@@ -1554,7 +1569,8 @@ export class CatalogCanvasGestures {
         index,
         slot,
         axis: this.flowKind(record),
-        line: this.insertionLine(record, excluded, slot, gesture.startBox),
+        line: this.insertionLine(record, excluded, slot, gesture.startBox, y),
+        ...this.gridDrop(record, excluded, slot, gesture.startBox),
         ...(refused ? { relocated: refused } : {}),
       };
     }
@@ -1617,7 +1633,30 @@ export class CatalogCanvasGestures {
           slot++;
       return slot;
     }
-    // Figma grid: between the cell objects nearest the cursor, in their (row-major) order.
+    // A grid (Figma): the cell under the pointer (else the nearest) — an empty one appends, an
+    // item's cell drops before or after that item by which side of its centre the pointer is.
+    const cells = this.gridCellsOf(container, 0);
+    if (cells.length) {
+      const all = this.flowEntries(container, new Set());
+      let index = 0;
+      let best = Infinity;
+      cells.forEach((cell, i) => {
+        const dx = Math.max(cell.x - x, 0, x - (cell.x + cell.width));
+        const dy = Math.max(cell.y - y, 0, y - (cell.y + cell.height));
+        const distance = Math.hypot(dx, dy);
+        if (distance < best) {
+          best = distance;
+          index = i;
+        }
+      });
+      if (index >= all.length) return entries.length;
+      const before = all.slice(0, index).filter(({ id }) => !dragged.has(id)).length;
+      const item = all[index]!;
+      if (dragged.has(item.id)) return before;
+      // Before or after the item by its own centre (the object, as Figma — not the cell's).
+      return before + (x > item.box.x + item.box.width / 2 ? 1 : 0);
+    }
+    // A wrapped row: between the boxes nearest the cursor, in their order.
     let nearest = -1;
     let best = Infinity;
     entries.forEach(({ box }, index) => {
@@ -1660,6 +1699,7 @@ export class CatalogCanvasGestures {
     dragged: ReadonlySet<string>,
     slot: number,
     draggedBox: BoundingBox,
+    pointerY: number,
   ): BoundingBox {
     const kind = this.flowKind(container);
     const boxes = this.flowEntries(container, dragged).map(({ box }) => box);
@@ -1698,18 +1738,80 @@ export class CatalogCanvasGestures {
             height: 0,
           };
     }
+    // A grid (Figma): a vertical line as tall as the cell — mid-gap between two cells of a row,
+    // mid-padding at a row's start or end; the pointer's row decides an index at a row break.
     const prev = boxes[slot - 1];
     const next = boxes[slot];
-    const overlaps = (a: BoundingBox, b: BoundingBox) =>
+    const inRow = (box: BoundingBox | undefined) =>
+      !!box && pointerY >= box.y && pointerY <= box.y + box.height;
+    const sameRow = (a: BoundingBox, b: BoundingBox) =>
       a.y < b.y + b.height && b.y < a.y + a.height;
-    const neighbours = prev && next && overlaps(prev, next);
-    const box = next ?? prev!;
-    const x = neighbours
-      ? (prev.x + prev.width + next.x) / 2
-      : next
-        ? next.x
-        : prev!.x + prev!.width;
-    return { x, y: box.y, width: 0, height: box.height };
+    const right = frame.x + frame.width;
+    if (prev && next && sameRow(prev, next))
+      return {
+        x: (prev.x + prev.width + next.x) / 2,
+        y: next.y,
+        width: 0,
+        height: next.height,
+      };
+    if (prev && (!next || inRow(prev) || !inRow(next))) {
+      const gap = this.flowGap(container, "row", boxes);
+      const end = prev.x + prev.width;
+      // Another column to its right: mid-gap; the last column: mid-padding.
+      const x =
+        end + gap < content.x + content.width
+          ? end + gap / 2
+          : (end + right) / 2;
+      return { x, y: prev.y, width: 0, height: prev.height };
+    }
+    return {
+      x: (frame.x + next!.x) / 2,
+      y: next!.y,
+      width: 0,
+      height: next!.height,
+    };
+  }
+
+  /**
+   * A grid drop target (`display: grid`, not a wrapped row): its cells, and — for an append into a
+   * cell no item takes now — that cell (Figma fills it instead of drawing a line).
+   */
+  private gridDrop(
+    container: CatalogConsumerNode,
+    dragged: ReadonlySet<string>,
+    slot: number,
+    draggedBox: BoundingBox,
+  ): { cells?: readonly BoundingBox[]; cell?: BoundingBox } {
+    const cells = this.gridCellsOf(container, draggedBox.height);
+    if (!cells.length) return {};
+    const all = this.flowEntries(container, new Set());
+    const placed = this.flowEntries(container, dragged).length;
+    // The append's cell, when no item is drawn in it now (from another container: past the last).
+    const cell =
+      slot === placed && placed >= all.length ? cells[placed] : undefined;
+    return { cells, ...(cell ? { cell } : {}) };
+  }
+
+  /** A `display: grid` container's cells (`gridCells`); none for any other container. */
+  private gridCellsOf(
+    container: CatalogConsumerNode,
+    fallbackHeight: number,
+  ): BoundingBox[] {
+    const display = container.layout.display;
+    if (display !== "grid" && display !== "inline-grid") return [];
+    const frame = this.host.bounds(container.id);
+    if (!frame) return [];
+    const items = this.flowEntries(container, new Set()).map(({ box }) => box);
+    const gap = lengthPx(catalogBoxModel(container).gap) ?? 0;
+    return gridCells({
+      content: this.contentBox(container, frame),
+      columns: container.layout.gridTemplateColumns as string | undefined,
+      columnGap: lengthPx(container.layout.columnGap) ?? gap,
+      rowGap: lengthPx(container.layout.rowGap) ?? gap,
+      items,
+      count: items.length,
+      fallbackHeight,
+    });
   }
 
   /** A container's content box (inside its border and padding). */
@@ -1741,15 +1843,10 @@ export class CatalogCanvasGestures {
     kind: "row" | "column" | "grid",
     boxes: readonly BoundingBox[],
   ): number {
-    const px = (value: unknown) =>
-      typeof value === "number"
-        ? value
-        : typeof value === "string" && /^-?\d+(\.\d+)?(px)?$/.test(value.trim())
-          ? parseFloat(value)
-          : undefined;
     const authored =
-      px(kind === "column" ? container.layout.rowGap : container.layout.columnGap) ??
-      px(catalogBoxModel(container).gap);
+      lengthPx(
+        kind === "column" ? container.layout.rowGap : container.layout.columnGap,
+      ) ?? lengthPx(catalogBoxModel(container).gap);
     if (authored !== undefined) return Math.max(0, authored);
     if (boxes.length < 2) return 0;
     const [a, b] = boxes as [BoundingBox, BoundingBox];

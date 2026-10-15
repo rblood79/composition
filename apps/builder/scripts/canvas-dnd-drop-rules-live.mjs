@@ -150,6 +150,34 @@ await wait(300);
 await drag(await pointOf(ids.C), await pointOf(ids.A, 0.8, 0.5));
 check("1 grid — C 를 A 오른쪽 절반에 → [A, C, B]", JSON.stringify(await children(ids.G)) === JSON.stringify([ids.A, ids.C, ids.B]), await children(ids.G));
 
+// 1b — grid (Figma 실측): over the empty cell beside B every cell is outlined and that cell fills
+// (no line); over A's left half a line before A. Released where it started (no move).
+await select(ids.W);
+await wait(300);
+{
+  const from = await pointOf(ids.W);
+  // After 1: [A, C, B] — A · C on the first row, B below A; the cell beside B is empty.
+  const emptyCell = { x: (await pointOf(ids.C)).x, y: (await pointOf(ids.B)).y };
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) {
+    await page.mouse.move(from.x + ((emptyCell.x - from.x) * i) / 12, from.y + ((emptyCell.y - from.y) * i) / 12);
+    await wait(16);
+  }
+  await wait(200);
+  await page.screenshot({ path: `${OUT}/1b-grid-cell.png` });
+  const atCell = await exec(`(cat) => { const p = cat.canvas.drag(); return p && { cells: p.cells?.length, cell: !!p.cell, line: !!p.line }; }`);
+  const aLeft = await pointOf(ids.A, 0.1, 0.5);
+  await page.mouse.move(aLeft.x, aLeft.y, { steps: 6 });
+  await wait(200);
+  await page.screenshot({ path: `${OUT}/1b-grid-line.png` });
+  const atA = await exec(`(cat) => { const p = cat.canvas.drag(); return p && { cell: !!p.cell, line: p.line }; }`);
+  await page.mouse.move(from.x, from.y, { steps: 6 });
+  await page.mouse.up();
+  await wait(400);
+  check("1b grid — 빈 칸 = 칸 윤곽 4 + 그 칸 채움 (선 없음) · A 왼쪽 = 선", atCell?.cells === 4 && atCell.cell && !atCell.line && atA && !atA.cell && atA.line?.width === 0, { atCell, atA, G: await children(ids.G), W: await exec(`(cat, id) => cat.workspace.runtime.graph.ownerOf?.(id) ?? null`, ids.W) });
+}
+
 // 2 — size rule: W (300 wide) over S (60) stays out; ⌘ lets it in.
 await select(ids.W);
 await wait(300);
