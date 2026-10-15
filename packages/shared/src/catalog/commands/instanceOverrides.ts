@@ -531,13 +531,21 @@ export const resetInstance =
     const stage = stageOver(reader);
     const ops: CatalogCommandPlan["ops"][number][] = [];
     // Swaps first (ADR-261 Phase 5): each folds back into the instance's overrides, which the
-    // field reset below then drops.
-    for (const override of instance.descendantOverrides)
-      if (override.kind === "replace") {
-        const planned = resetReplacement({ id: override.replacementId })(stage);
-        stage.apply(planned.ops);
-        ops.push(...planned.ops);
-      }
+    // field reset below then drops. A fold-back hands the replacement's own swaps to the instance
+    // (`lowerPosition`), so the list is read again until no swap is left (review Round 3 m1).
+    const folded = new Set<NodeId>();
+    for (;;) {
+      const swap = (
+        stage.getEntry(input.id) as NodeEntry
+      ).descendantOverrides.find(
+        (item) => item.kind === "replace" && !folded.has(item.replacementId),
+      );
+      if (swap?.kind !== "replace") break;
+      folded.add(swap.replacementId);
+      const planned = resetReplacement({ id: swap.replacementId })(stage);
+      stage.apply(planned.ops);
+      ops.push(...planned.ops);
+    }
     const draft = new CommandDraft(stage);
     const current = draft.node(input.id);
     draft.write({
@@ -563,8 +571,13 @@ export interface ResetOverrideFieldInput {
   /** `stateRules`: the state; `responsive`: the breakpoint layer. */
   state?: StateName;
   breakpoint?: ResponsiveBreakpointName;
-  /** `stateRules`: the visual key; `responsive`: the visual key (absent = the layer's fill sizing). */
+  /** `stateRules`: the visual key; `responsive`: the `axis` key (absent = the layer's fill sizing). */
   key?: string;
+  /**
+   * `responsive`: the layer field the key is in (default `visual`). A position's `sizing` ·
+   * `layout` layers are its overrides; the root's are its placement and stay (review Round 3 m2).
+   */
+  axis?: Axis;
   label?: string;
 }
 
@@ -600,10 +613,11 @@ export const resetOverrideField =
         >;
         const layer = { ...responsive[name] } as Record<string, unknown>;
         if (input.key) {
-          const visual = { ...(layer.visual as Writes | undefined) };
-          delete visual[input.key];
-          if (Object.keys(visual).length) layer.visual = visual;
-          else delete layer.visual;
+          const axis = input.axis ?? "visual";
+          const writes = { ...(layer[axis] as Writes | undefined) };
+          delete writes[input.key];
+          if (Object.keys(writes).length) layer[axis] = writes;
+          else delete layer[axis];
         } else delete layer.fillSizing;
         if (Object.keys(layer).length)
           responsive[name] = layer as NodeResponsiveLayer;

@@ -17,7 +17,16 @@ import { setFields } from "../fields";
 import { pushInstanceOverrides, resetInstance } from "../instanceOverrides";
 import { setInstanceProperty } from "../instanceProperty";
 import { addComponentProperty } from "../properties";
-import { allocator, code, graphOf, node, run, snapshot, undo } from "./fixture";
+import {
+  allocator,
+  code,
+  graphOf,
+  node,
+  run,
+  snapshot,
+  text,
+  undo,
+} from "./fixture";
 
 /**
  * ADR-262 G1 · G2 — the push and reset invariants over the Phase 0 table (breakdown §1): every
@@ -611,6 +620,84 @@ describe("ADR-262 G2 — reset all changes", () => {
     run(graph, resetInstance({ id: I }));
     expect((graph.getEntry(I) as NodeEntry).descendantOverrides).toEqual([]);
     expect(displays(graph, I)).toEqual(fresh);
+  });
+
+  it("folds a swap the outer fold-back exposes (review Round 3 m1)", () => {
+    // Card.icon Star → Heart, then Heart's Glyph A → B: the inner swap lives on the outer
+    // replacement until the outer folds back, then it is the instance's own — one reset drops both.
+    const id = (name: string) => `project:node:${name}` as NodeId;
+    const def = (name: string, root: string) =>
+      definition(`project:definition:${name}` as DefinitionEntry["id"], name, id(root), {
+        originRef: true,
+      });
+    const graph = graphOf(
+      [
+        text("a", "A"),
+        text("b", "B"),
+        node("star", "lib:definition:section", { children: [id("sGlyph")] }),
+        node("sGlyph", "project:definition:A", { name: "Glyph" }),
+        node("heart", "lib:definition:section", { children: [id("hGlyph")] }),
+        node("hGlyph", "project:definition:A", { name: "Glyph" }),
+        node("card", "lib:definition:section", { children: [id("icon")] }),
+        node("icon", "project:definition:Star"),
+        node("ci", "project:definition:Card"),
+        node("cj", "project:definition:Card"),
+      ],
+      ["a", "b", "star", "heart", "card", "ci", "cj"],
+      [
+        def("A", "a"),
+        def("B", "b"),
+        def("Star", "star"),
+        def("Heart", "heart"),
+        def("Card", "card"),
+      ],
+    );
+    for (const [name, target, key] of [
+      ["Card", "icon", "icon"],
+      ["Heart", "hGlyph", "glyph"],
+      ["Star", "sGlyph", "glyph"],
+    ] as const)
+      run(
+        graph,
+        addComponentProperty({
+          definitionId: `project:definition:${name}`,
+          key,
+          name: key,
+          kind: "instance",
+          target: { id: id(target) },
+        }),
+      );
+    const newId = allocator();
+    const fresh = displays(graph, id("cj"));
+    run(
+      graph,
+      setInstanceProperty({
+        ownerId: id("ci"),
+        instances: [id("ci")],
+        key: "icon",
+        definitionId: "project:definition:Heart",
+        newId,
+      }),
+    );
+    const outer = (graph.getEntry(id("ci")) as NodeEntry).descendantOverrides[0];
+    if (outer?.kind !== "replace") throw new Error("outer swap missing");
+    run(
+      graph,
+      setInstanceProperty({
+        ownerId: outer.replacementId,
+        instances: [outer.replacementId],
+        key: "glyph",
+        definitionId: "project:definition:B",
+        newId,
+      }),
+    );
+    expect(JSON.stringify(displays(graph, id("ci")))).toContain('"B"');
+    const start = snapshot(graph);
+    const { result } = run(graph, resetInstance({ id: id("ci") }));
+    expect((graph.getEntry(id("ci")) as NodeEntry).descendantOverrides).toEqual([]);
+    expect(displays(graph, id("ci"))).toEqual(fresh);
+    undo(graph, result.inverse);
+    expect(snapshot(graph)).toBe(start);
   });
 
   it("refuses a node that is no instance", () => {

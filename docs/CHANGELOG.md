@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-262 리뷰 Round 3 수리 — 중첩 교체 Reset all · 자식 breakpoint 크기 · 배치 행] - 2026-10-15
+
+### Fixed
+
+- **Reset all changes 뒤에도 안쪽 교체가 남던 문제** — 바깥 instance 를 교체하고 그 안의 instance 도 교체한 뒤 Reset all 하면 바깥만 돌아오고 Canvas · Preview 가 안쪽 교체 값을 계속 보였다. 이제 한 번의 Reset all (한 step) 이 되접으며 드러나는 안쪽 교체까지 되돌린다.
+  - **Why**: 시작 시점의 교체 목록만 돌았다 — 바깥을 되접으면 그 교체 노드가 갖던 안쪽 교체가 instance 의 목록으로 옮겨 오는데, 마지막 정리는 교체를 남긴다.
+- **자식의 breakpoint 크기 · 배치만 바꾸면 Overrides 목록과 Push · Reset 버튼이 사라지던 문제** — 자식의 tablet `width` · `display` 같은 변경이 이제 `Text.tablet.width` 처럼 행으로 보이고 행마다 Reset 된다. 루트의 breakpoint 크기 · 배치는 놓은 자리라 전처럼 목록 · Reset all 밖이다 (ADR-262 결정 3).
+- 위치: `packages/shared/src/catalog/commands/instanceOverrides.ts` (`resetInstance` · `resetOverrideField` `axis`) · `apps/builder/src/builder/panels/properties/catalog/CatalogComponentSection.tsx`. 리뷰: [262 Round 3](adr/reviews/262.md).
+
 ## [ADR-262 Implemented — instance override 정리 (원본에 반영 · 전부 되돌리기)] - 2026-10-15
 
 ### Changed

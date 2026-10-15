@@ -315,6 +315,72 @@ describe("ADR-248 4e-8 instance override rows", () => {
     origin.unmount();
   });
 
+  // ADR-262 review Round 3 m2 — a position's breakpoint sizing · layout is its override (only the
+  // root's are placement): rows, the push · reset buttons, and one reset per row.
+  it("lists a position's breakpoint sizing and layout writes; each row resets its key", async () => {
+    const workspace = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node("project:node:tile", "lib:definition:type-frame", [
+            "project:node:caption",
+          ]),
+          node("project:node:caption", "lib:definition:text"),
+        ],
+        rootIds: ["project:node:tile"] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(
+        "project:node:tile" as NodeId,
+        "Tile",
+        workspace.newId,
+      ),
+    );
+    const graph = workspace.runtime.graph;
+    const instance = workspace.execute(
+      duplicateNodes({
+        ids: ["project:node:tile" as NodeId],
+        newId: workspace.newId,
+      }),
+    ).plan.selectAfter![0]!;
+    const record = workspace.root.recordsOfSource(instance)[0]!;
+    const child = workspace.root.domInputs.get(record)!.children[0]!;
+    const target = workspace.itemOfRecord(child)!.target;
+    workspace.execute(
+      setFields({
+        targets: [target],
+        breakpoint: "tablet",
+        sizing: { width: { kind: "set", value: 240 } },
+        layout: { display: { kind: "set", value: "flex" } },
+      }),
+    );
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogComponentSection
+            target={{ kind: "node", id: instance as NodeId }}
+          />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    expect(view.getByRole("button", { name: /Text\.tablet\.width/ })).toBeTruthy();
+    expect(view.getByRole("button", { name: /Text\.tablet\.display/ })).toBeTruthy();
+    expect(view.getByRole("button", { name: /Push changes/ })).toBeTruthy();
+    expect(view.getByRole("button", { name: /Reset all changes/ })).toBeTruthy();
+    fireEvent.click(view.getByRole("button", { name: /Text\.tablet\.width/ }));
+    const layer = () => {
+      const patch = (graph.getEntry(instance) as NodeEntry).descendantOverrides[0];
+      return patch?.kind === "patch" ? patch.responsive?.tablet : undefined;
+    };
+    expect(layer()).toEqual({ layout: { display: { kind: "set", value: "flex" } } });
+    fireEvent.click(view.getByRole("button", { name: /Text\.tablet\.display/ }));
+    expect((graph.getEntry(instance) as NodeEntry).descendantOverrides).toEqual([]);
+    view.unmount();
+  });
+
   // 2026-10-05 감사 LOW — 이름이 같은 template 위치 둘 (Text · Text) 의 write 는 행 key 가 갈린다.
   it("two template positions with the same label list as distinct rows (no key collision)", async () => {
     const workspace = await open();

@@ -71,13 +71,19 @@ interface OverrideRow {
     | "responsive";
   state?: StateName;
   breakpoint?: ResponsiveBreakpointName;
+  /** `responsive`: the layer field the key is in (absent = `visual`). */
+  axis?: "sizing" | "layout";
   replacementId?: NodeId;
   /** The field key; at a template position, `position.key` (its node's name, else its type). */
   label: string;
   target: EditTarget;
 }
 type RowSeed = Omit<OverrideRow, "target" | "label"> & { label: string };
-/** The rows of one override holder's whole · state · breakpoint fields (`prefix` = the position). */
+/**
+ * The rows of one override holder's whole · state · breakpoint fields (`prefix` = the position).
+ * A position's breakpoint `sizing` · `layout` are overrides too; the root's are its placement,
+ * which reset keeps (ADR-262 decision 3), so they list only at a position (review Round 3 m2).
+ */
 function extraRows(
   fields: Pick<
     NodeEntry,
@@ -86,6 +92,7 @@ function extraRows(
   prefix: string,
   id: string,
   t: (key: string) => string,
+  placementIsOverride = false,
 ): RowSeed[] {
   const rows: RowSeed[] = [];
   if (fields.enabled === false)
@@ -127,6 +134,17 @@ function extraRows(
         breakpoint,
         label: `${prefix}${name}.${key}`,
       });
+    if (placementIsOverride)
+      for (const axis of ["sizing", "layout"] as const)
+        for (const key of Object.keys(layer?.[axis] ?? {}))
+          rows.push({
+            id: `layer:${id}:${name}:${axis}:${key}`,
+            key,
+            field: "responsive",
+            breakpoint,
+            axis,
+            label: `${prefix}${name}.${key}`,
+          });
     if (layer?.fillSizing)
       rows.push({
         id: `layer:${id}:${name}:fillSizing`,
@@ -234,7 +252,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               address: item.address,
             })),
           ),
-          ...extraRows(item, `${at}.`, positionId, t).map((row) => ({
+          ...extraRows(item, `${at}.`, positionId, t, true).map((row) => ({
             ...row,
             address: item.address,
           })),
@@ -386,6 +404,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
       replacementId,
       state,
       breakpoint,
+      axis,
     }: OverrideRow) => {
       const command =
         field === "replace"
@@ -401,6 +420,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 field,
                 ...(state ? { state } : {}),
                 ...(breakpoint ? { breakpoint } : {}),
+                ...(axis ? { axis } : {}),
                 ...(key ? { key } : {}),
                 label: "Reset override",
               } as ResetOverrideFieldInput)
