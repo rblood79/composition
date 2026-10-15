@@ -66,7 +66,6 @@ The `references/` directory contains detailed documentation organized as follows
 - [Link](components/Link.md): Links allow users to navigate to a different location.
 - [LinkButton](components/LinkButton.md): A LinkButton combines the functionality of a link with the appearance of a button. Useful for allowing users to navigate to another page.
 - [ListView](components/ListView.md): A ListView displays a list of interactive items, and allows a user to navigate, select, or perform actions on them. (S2 v1.2.0 신규; v1.4.0 drag and drop 지원)
-- [mcp](components/mcp.md)
 - [Menu](components/Menu.md): Menus display a list of actions or options that a user can choose.
 - [Meter](components/Meter.md): Meters are visual representations of a quantity or an achievement.
 - [NumberField](components/NumberField.md): NumberFields allow users to input number values with a keyboard or increment/decrement with step buttons.

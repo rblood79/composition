@@ -49,7 +49,6 @@ The `references/` directory contains detailed documentation organized as follows
 - [Group](components/Group.md): A group represents a set of related UI controls, and supports interactive states for styling.
 - [Link](components/Link.md): A link allows a user to navigate to another page or resource within a web page
 - [ListBox](components/ListBox.md): A listbox displays a list of options and allows a user to select one or more of them.
-- [mcp](components/mcp.md)
 - [Menu](components/Menu.md): A menu displays a list of actions or options that a user can choose.
 - [Meter](components/Meter.md): A meter represents a quantity within a known range, or a fractional value.
 - [Modal](components/Modal.md): A modal is an overlay element which blocks interaction with elements outside it.
