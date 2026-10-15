@@ -451,6 +451,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Divider: "properties.divider",
   Truncate: "properties.truncate",
   "Column span": "properties.columnSpan",
+  "Row span": "properties.rowSpan",
   "Min width": "properties.minWidth",
   "Max width": "properties.maxWidth",
   Title: "properties.title",

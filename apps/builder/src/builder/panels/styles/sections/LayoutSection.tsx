@@ -2,7 +2,8 @@
  * LayoutSection - Layout 스타일 편집 섹션
  *
  * Display (grid · row · column, 선택 없음 = block), Alignment, Gap 편집 — grid 면 Alignment 자리에
- * Columns · Rows, Wrap · Gap 자리에 Gap X · Gap Y (2026-10-15 사용자 결정).
+ * Columns · Rows, Wrap · Gap 자리에 Gap X · Gap Y (2026-10-15 사용자 결정). grid 의 자식이면 차지할
+ * 칸 수 (열 병합 · 행 병합 — `grid-column-end` · `grid-row-end` 의 `span n`, 2026-10-16 사용자 요청).
  * 4방향 확장 모드: direction-alignment-grid 스타일 패턴 사용
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
@@ -51,6 +52,7 @@ import {
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
 import { useStylesSelectedId } from "../stylesHost";
+import { useParentDisplay } from "../hooks/useTransformAuxiliary";
 
 /** Track count presets of the Columns · Rows combo (`repeat(n, 1fr)`). */
 const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
@@ -118,6 +120,63 @@ const GridTrackField = memo(function GridTrackField({
   );
 });
 
+/** `span n` → `"n"`; one track (none · `auto` · `span 1`) → `""`; another line stays as text. */
+function gridSpanCount(end: string): string | null {
+  const value = end.trim();
+  if (!value || value === "auto") return "";
+  const span = /^span\s+(\d+)$/.exec(value);
+  if (!span) return null;
+  return span[1] === "1" ? "" : span[1]!;
+}
+
+/** A typed count n > 1 becomes `span n`; 1 or empty removes the span (one track). */
+function gridSpanOf(input: string): string {
+  const value = input.trim();
+  const count = Number(value);
+  if (!value || count === 1) return "";
+  return Number.isInteger(count) && count > 1 ? `span ${count}` : value;
+}
+
+/** Column span · Row span of a grid child: a count combo (1 – 6), empty = one track. */
+const GridSpanField = memo(function GridSpanField({
+  label,
+  className,
+  value,
+  onCommit,
+}: {
+  label: string;
+  className: string;
+  value: string;
+  onCommit: (end: string) => void;
+}) {
+  const count = gridSpanCount(value);
+  if (count === null)
+    return (
+      <PropertyInput
+        label={label}
+        className={className}
+        value={value}
+        onChange={(next) => onCommit(gridSpanOf(next))}
+      />
+    );
+  return (
+    <PropertyUnitInput
+      label={label}
+      className={className}
+      value={count}
+      units={[]}
+      allowKeywords={false}
+      allowEmptyReset
+      preserveEmptyValueOnUnitChange
+      placeholder="1"
+      presets={GRID_TRACK_PRESETS}
+      onChange={(next) => onCommit(gridSpanOf(next))}
+      min={1}
+      max={24}
+    />
+  );
+});
+
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const localize = useSemanticLabel();
 
@@ -147,6 +206,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     useElementStyleContext(selectedId).type,
   );
   const styleValues = useLayoutValues(selectedId);
+  const parentDisplay = useParentDisplay(selectedId);
+  const inGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
   const flexAlignmentKeys = useFlexAlignmentKeys(selectedId);
   const flexDistributionAxis = useFlexDistributionAxis(selectedId);
@@ -470,6 +531,23 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
           </>
         )}
       </div>
+
+      {inGrid ? (
+        <div className="fieldset-row grid-item-span">
+          <GridSpanField
+            label="Column span"
+            className="grid-column-span"
+            value={styleValues.gridColumnEnd}
+            onCommit={(end) => updateStyles({ gridColumnEnd: end })}
+          />
+          <GridSpanField
+            label="Row span"
+            className="grid-row-span"
+            value={styleValues.gridRowEnd}
+            onCommit={(end) => updateStyles({ gridRowEnd: end })}
+          />
+        </div>
+      ) : null}
 
       {/* Padding · Margin 은 Spacing 절 (박스 모델) 로 — SpacingSection (panel-ui 01) */}
     </>

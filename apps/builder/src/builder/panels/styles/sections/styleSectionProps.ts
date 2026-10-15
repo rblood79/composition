@@ -60,6 +60,8 @@ export const LAYOUT_PROPS = [
   "columnGap",
   "gridTemplateColumns",
   "gridTemplateRows",
+  "gridColumnEnd",
+  "gridRowEnd",
   "padding",
   "paddingTop",
   "paddingRight",

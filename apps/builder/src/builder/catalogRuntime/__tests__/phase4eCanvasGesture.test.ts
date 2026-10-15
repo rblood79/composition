@@ -915,6 +915,149 @@ describe("Canvas drop rules (Figma)", () => {
     gestures.cancel();
   });
 
+  /**
+   * 2026-10-16 사용자 요청 「빈 칸에 놓기도 Figma 처럼 — 순차적이지 않게 빈칸을 건너 배치, 2칸도
+   * 지정」: an empty cell pins the node there (`gridColumnStart` · `gridRowStart`), the siblings the
+   * move would shift stay pinned where they are, a spanning node takes its cells.
+   */
+  const gridOf = async (
+    layout: Record<string, string> = {},
+    extra: Parameters<typeof setFields>[0]["layout"] = {},
+  ) => {
+    const opened = await open();
+    opened.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        layout: {
+          display: { kind: "set", value: "grid" },
+          gridTemplateColumns: { kind: "set", value: "repeat(3, 1fr)" },
+          gridTemplateRows: { kind: "set", value: "repeat(3, 1fr)" },
+          ...Object.fromEntries(
+            Object.entries(layout).map(([key, value]) => [
+              key,
+              { kind: "set", value },
+            ]),
+          ),
+          ...extra,
+        },
+        sizing: {
+          width: { kind: "set", value: 600 },
+          height: { kind: "set", value: 300 },
+        },
+      }),
+    );
+    opened.scene.sync();
+    return opened;
+  };
+  const linesOf = (workspace: CatalogWorkspace, name: string) => {
+    const entry = workspace.runtime.graph.getEntry(id(name));
+    const layout = entry?.kind === "node" ? entry.layout : undefined;
+    const value = (write: unknown) =>
+      (write as { value?: string } | undefined)?.value;
+    return [
+      value(layout?.gridColumnStart),
+      value(layout?.gridRowStart),
+      value(layout?.gridColumnEnd),
+      value(layout?.gridRowEnd),
+    ];
+  };
+
+  it("an empty cell past others (not the next one): the node is pinned there, the siblings stay", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf();
+    const list = box("list");
+    const b = box("b");
+    const c = box("c");
+    // a · b · c fill the first row; a goes to the last column of the third row.
+    expect(b.y).toBe(box("a").y);
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    gestures.beginMove(ax, ay, record("a"));
+    const target = { x: c.x + c.width / 2, y: list.y + list.height - 20 };
+    gestures.update(target.x, target.y, 1);
+    const preview = gestures.preview()!;
+    expect(preview.cells).toHaveLength(9);
+    expect(preview.cell).toEqual(preview.cells![8]);
+    expect(preview.line).toBeUndefined();
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    scene.sync();
+    expect(linesOf(workspace, "a").slice(0, 2)).toEqual(["3", "3"]);
+    // b · c would close up to the first columns: pinned where they were.
+    expect(linesOf(workspace, "b").slice(0, 2)).toEqual(["2", "1"]);
+    expect(linesOf(workspace, "c").slice(0, 2)).toEqual(["3", "1"]);
+    // The engine places them so: a in the bottom-right cell, b · c unmoved, the first cell empty.
+    expect(box("b")).toEqual(b);
+    expect(box("c")).toEqual(c);
+    expect(box("a").x).toBe(c.x);
+    expect(box("a").y).toBeGreaterThan(list.y + list.height / 2);
+    // Back over another item's left half: a joins the order before it (unpinned).
+    const [bx, by] = center("b");
+    workspace.selectRecords([record("a")]);
+    const [ax2, ay2] = center("a");
+    gestures.beginMove(ax2, ay2, record("a"));
+    gestures.update(box("b").x + 2, by, 1);
+    expect(gestures.preview()!.cell).toBeUndefined();
+    expect(bx).toBeGreaterThan(0);
+    gestures.finish();
+    expect(linesOf(workspace, "a").slice(0, 2)).toEqual([undefined, undefined]);
+  });
+
+  it("a node spanning two columns takes an empty cell only where both are free, and keeps its span", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        layout: { gridColumnEnd: { kind: "set", value: "span 2" } },
+      }),
+    );
+    scene.sync();
+    const list = box("list");
+    // a spans the first two columns, b the third, c the next row.
+    expect(box("a").width).toBeGreaterThan(box("b").width * 1.5);
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    gestures.beginMove(ax, ay, record("a"));
+    // The last column of the bottom row: two columns do not fit there — the cell is not offered.
+    const cellWidth = box("b").width;
+    gestures.update(list.x + list.width - 10, list.y + list.height - 20, 1);
+    const right = gestures.preview()!.cell;
+    expect(right?.x ?? 0).toBeLessThan(list.x + list.width - cellWidth * 1.5);
+    // The bottom row's first column: both columns, one span-wide cell.
+    gestures.update(list.x + 20, list.y + list.height - 20, 1);
+    const cell = gestures.preview()!.cell!;
+    expect(cell.width).toBeGreaterThan(cellWidth * 1.5);
+    gestures.finish();
+    scene.sync();
+    expect(linesOf(workspace, "a")).toEqual(["1", "3", "span 2", undefined]);
+    expect(box("a").y).toBeGreaterThan(list.y + list.height / 2);
+    expect(box("a").width).toBeGreaterThan(cellWidth * 1.5);
+  });
+
+  it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf();
+    const list = box("list");
+    workspace.selectRecords([record("b")]);
+    const [bx, by] = center("b");
+    gestures.beginMove(bx, by, record("b"), { copy: true });
+    gestures.update(list.x + 20, list.y + list.height - 20, 1);
+    expect(gestures.preview()!.cell).toBeDefined();
+    gestures.finish();
+    scene.sync();
+    const entry = workspace.runtime.graph.getEntry(id("list"));
+    const kids = entry?.kind === "node" ? entry.children : [];
+    expect(kids).toHaveLength(4);
+    const copy = kids.find((kid) => ![id("a"), id("b"), id("c")].includes(kid))!;
+    const copyEntry = workspace.runtime.graph.getEntry(copy);
+    const layout = copyEntry?.kind === "node" ? copyEntry.layout : undefined;
+    expect(
+      [layout?.gridColumnStart, layout?.gridRowStart].map(
+        (write) => (write as { value?: string } | undefined)?.value,
+      ),
+    ).toEqual(["1", "3"]);
+    expect(linesOf(workspace, "b").slice(0, 2)).toEqual([undefined, undefined]);
+  });
+
   it("absolute siblings take no flow slot: the line follows the flow children", async () => {
     const { workspace, scene, gestures, record, box, center } = await open();
     workspace.execute(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gridCells, lengthPx } from "./canvasGridCells";
+import { gridCells, gridLayout, gridPlacement, lengthPx } from "./canvasGridCells";
 
 const content = { x: 40, y: 40, width: 330, height: 400 };
 
@@ -17,7 +17,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 30,
       rowGap: 20,
       items,
-      count: 4,
       fallbackHeight: 40,
     });
     expect(cells).toHaveLength(6);
@@ -37,7 +36,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 30,
       rowGap: 20,
       items,
-      count: 2,
       fallbackHeight: 40,
     });
     expect(cells[2]).toEqual({ x: 40, y: 110, width: 150, height: 50 });
@@ -50,7 +48,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 0,
       rowGap: 0,
       items: [{ x: 0, y: 0, width: 100, height: 60 }],
-      count: 1,
       fallbackHeight: 40,
     });
     // The item's own column too: the track, not the 100 wide item.
@@ -62,7 +59,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 0,
       rowGap: 0,
       items: [{ x: 0, y: 0, width: 100, height: 60 }],
-      count: 1,
       fallbackHeight: 40,
     });
     expect(auto[0]).toEqual({ x: 0, y: 0, width: 100, height: 60 });
@@ -75,7 +71,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 30,
       rowGap: 0,
       items: [],
-      count: 0,
       fallbackHeight: 40,
     });
     // An empty grid's one auto row stretches over the content (400 tall), as CSS.
@@ -92,7 +87,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
         { x: 40, y: 40, width: 100, height: 30 },
         { x: 150, y: 40, width: 100, height: 30 },
       ],
-      count: 2,
       fallbackHeight: 40,
     });
     expect(fallback[2]).toEqual({ x: 40, y: 80, width: 100, height: 30 });
@@ -110,7 +104,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
         { x: 240, y: 0, width: 60, height: 40 },
         { x: 0, y: 105, width: 60, height: 40 },
       ],
-      count: 4,
       fallbackHeight: 40,
       appendRow: false,
     });
@@ -128,7 +121,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
         { x: 0, y: 0, width: 150, height: 50 },
         { x: 150, y: 0, width: 150, height: 50 },
       ],
-      count: 2,
       fallbackHeight: 40,
       appendRow: false,
     };
@@ -144,7 +136,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       columnGap: 0,
       rowGap: 0,
       items: [],
-      count: 0,
       fallbackHeight: 0,
       appendRow: false,
     });
@@ -164,7 +155,6 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
         { x: 100, y: 0, width: 100, height: 40 },
         { x: 0, y: 150, width: 100, height: 40 },
       ],
-      count: 3,
       fallbackHeight: 0,
       appendRow: false,
     });
@@ -179,5 +169,55 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       lengthPx("10%"),
       lengthPx("normal"),
     ]).toEqual([12, 12, 8, undefined, undefined]);
+  });
+});
+
+describe("gridPlacement — CSS grid placement of pinned, auto and spanning items", () => {
+  const at = (cells: { row: number; column: number }[]) =>
+    cells.map(({ row, column }) => `${row}:${column}`);
+
+  it("pinned items first; auto items fill around them in order (sparse)", () => {
+    const { cells } = gridPlacement(
+      [undefined, { column: "3", row: "3" }, undefined, { column: "1", row: "1" }],
+      3,
+    );
+    // The first auto item skips the pinned first cell; the pinned one stays in the corner.
+    expect(at(cells)).toEqual(["0:1", "2:2", "0:2", "0:0"]);
+  });
+
+  it("a span takes its cells; an auto span wraps to a row where it fits", () => {
+    const { cells } = gridPlacement(
+      [undefined, undefined, { columnEnd: "span 2" }, { rowEnd: "span 2" }],
+      3,
+    );
+    expect(cells[2]).toEqual({ row: 1, column: 0, rowSpan: 1, columnSpan: 2 });
+    // Sparse: the cursor never goes back — the empty first-row cell stays empty (CSS).
+    expect(cells[3]).toEqual({ row: 1, column: 2, rowSpan: 2, columnSpan: 1 });
+  });
+
+  it("a row-locked item takes that row's first free column", () => {
+    const { cells } = gridPlacement([{ row: "2" }, { row: "2" }], 3);
+    expect(at(cells)).toEqual(["1:0", "1:1"]);
+  });
+});
+
+describe("gridLayout — occupancy", () => {
+  it("a spanning item is in each of its cells; the cells past it stay empty", () => {
+    const layout = gridLayout({
+      content: { x: 0, y: 0, width: 300, height: 200 },
+      columns: "repeat(3, 1fr)",
+      columnGap: 0,
+      rowGap: 0,
+      items: [
+        { x: 0, y: 0, width: 200, height: 100 },
+        { x: 0, y: 100, width: 100, height: 100 },
+      ],
+      lines: [{ columnEnd: "span 2" }, { column: "1", row: "2" }],
+      fallbackHeight: 40,
+      rows: "repeat(2, 1fr)",
+      appendRow: false,
+    });
+    expect(layout.occupant).toEqual([0, 0, -1, 1, -1, -1]);
+    expect(layout.cells[4]).toEqual({ x: 100, y: 100, width: 100, height: 100 });
   });
 });

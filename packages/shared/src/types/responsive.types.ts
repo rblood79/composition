@@ -141,6 +141,8 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
   "columnGap",
   "gridTemplateColumns",
   "gridTemplateRows",
+  "gridColumnEnd",
+  "gridRowEnd",
   "padding",
   "paddingTop",
   "paddingRight",
@@ -196,11 +198,10 @@ export const PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS: ReadonlySet<string> =
   new Set([
     // 컨테이너 트랙 정의 — Columns · Rows 는 2026-10-15 부터 Layout 섹션이 편집 (SECTION_EDITABLE)
     "gridTemplateAreas",
-    // 슬롯 배치 line (숫자 line 병기 — layout-engine.md §"Grid area 이름 해석")
+    // 슬롯 배치 line (숫자 line 병기 — layout-engine.md §"Grid area 이름 해석") · Canvas 빈 칸 drop 의
+    // 칸 고정. 칸 수 (`span n` end line) 는 2026-10-16 부터 Layout 섹션이 편집 (SECTION_EDITABLE)
     "gridColumnStart",
-    "gridColumnEnd",
     "gridRowStart",
-    "gridRowEnd",
   ]);
 
 /**

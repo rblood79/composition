@@ -138,13 +138,16 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
       name: "level",
       origin: "semantic",
     } as never);
-    // (Plus the grid tracks, 2026-10-15 — the Layout section edits Columns · Rows, after `columnGap`.)
+    // (Plus the grid tracks, 2026-10-15 — the Layout section edits Columns · Rows, after `columnGap`;
+    // and a grid child's spans, 2026-10-16.)
     const gap = props.findIndex((prop) => prop.name === "columnGap");
     props.splice(
       gap + 1,
       0,
       { kind: "css", name: "gridTemplateColumns", origin: "style" } as never,
       { kind: "css", name: "gridTemplateRows", origin: "style" } as never,
+      { kind: "css", name: "gridColumnEnd", origin: "style" } as never,
+      { kind: "css", name: "gridRowEnd", origin: "style" } as never,
     );
     expect(heading).toEqual({
       ...before,

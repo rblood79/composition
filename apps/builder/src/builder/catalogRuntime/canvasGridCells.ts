@@ -7,8 +7,9 @@
  * tracks the CSS way (common cases): px · % fixed, `fr` shares the free space, a content-sized track
  * (`auto` …) takes its largest item and — with no `fr` track — an equal share of the free space
  * (the default `normal` content alignment stretches auto tracks). Rows past the row template are
- * implicit `auto` rows. A column template we cannot count (`auto-fill` …) falls back to the
- * columns the items show.
+ * implicit `auto` rows. Items sit where CSS places them: their authored lines (`gridPlacement`),
+ * else auto-placed around those. A column template we cannot count (`auto-fill` …) falls back to
+ * the columns and rows the items show.
  */
 import { parseGridTemplate } from "../../../../../packages/shared/src/catalog/runtime/gridStyleAdapter";
 
@@ -101,58 +102,214 @@ function sizeTracks(
 }
 
 /**
- * The grid's cells, row-major. `items` are the drawn boxes of the flow children in document order
- * (an auto-placed grid without spans); `count` of them are placed. With `appendRow` (a drag) one
- * more implicit row follows when the grid is full — where an appended node goes.
+ * An item's authored grid lines (CSS `grid-column-start` · `-end` · `grid-row-start` · `-end`): a
+ * 1-based start line, and a span (`span n` on the end line, or on the start line).
  */
-export function gridCells(input: {
+export interface GridItemLines {
+  column?: unknown;
+  row?: unknown;
+  columnEnd?: unknown;
+  rowEnd?: unknown;
+}
+
+/** A positive line number as a 0-based track; `auto`, `span n`, negative or none → undefined. */
+function lineTrack(value: unknown): number | undefined {
+  const text = typeof value === "number" ? String(value) : value;
+  if (typeof text !== "string" || !/^\d+$/.test(text.trim())) return undefined;
+  const line = Number(text);
+  return line >= 1 ? line - 1 : undefined;
+}
+
+/** `span n` → n; anything else → undefined. */
+export function lineSpan(value: unknown): number | undefined {
+  const match = typeof value === "string" ? /^span\s+(\d+)$/.exec(value.trim()) : null;
+  const span = match ? Number(match[1]) : NaN;
+  return span >= 1 ? span : undefined;
+}
+
+/** An item's cell area: its top-left track and how many tracks it spans each way. */
+export interface GridArea {
+  row: number;
+  column: number;
+  rowSpan: number;
+  columnSpan: number;
+}
+
+/**
+ * The area (0-based row and column, spans) of each item — CSS grid placement, row flow, sparse:
+ * items with both start lines first, then those locked to a row, then the rest in order with the
+ * auto-placement cursor (an item with a column only goes down that column from the cursor). A
+ * span wider than the columns is clamped to them; a line past the columns makes implicit columns:
+ * `columns` is the count with them.
+ */
+export function gridPlacement(
+  lines: readonly (GridItemLines | undefined)[],
+  columnCount: number,
+): { cells: GridArea[]; columns: number } {
+  let columns = Math.max(1, columnCount);
+  const taken = new Set<string>();
+  const cells: GridArea[] = [];
+  const items = lines.map((item) => {
+    const column = lineTrack(item?.column);
+    const row = lineTrack(item?.row);
+    return {
+      row,
+      column,
+      rowSpan: lineSpan(item?.rowEnd) ?? lineSpan(item?.row) ?? 1,
+      columnSpan: Math.min(
+        lineSpan(item?.columnEnd) ?? lineSpan(item?.column) ?? 1,
+        column === undefined ? columns : Infinity,
+      ),
+    };
+  });
+  const fits = (
+    row: number,
+    column: number,
+    rowSpan: number,
+    columnSpan: number,
+  ) => {
+    for (let r = row; r < row + rowSpan; r++)
+      for (let c = column; c < column + columnSpan; c++)
+        if (taken.has(`${r}:${c}`)) return false;
+    return true;
+  };
+  const take = (index: number, area: GridArea) => {
+    cells[index] = area;
+    for (let r = area.row; r < area.row + area.rowSpan; r++)
+      for (let c = area.column; c < area.column + area.columnSpan; c++)
+        taken.add(`${r}:${c}`);
+    columns = Math.max(columns, area.column + area.columnSpan);
+  };
+  items.forEach((item, index) => {
+    if (item.row !== undefined && item.column !== undefined)
+      take(index, { ...item, row: item.row, column: item.column });
+  });
+  items.forEach((item, index) => {
+    if (item.row === undefined || item.column !== undefined) return;
+    let at = 0;
+    while (!fits(item.row, at, item.rowSpan, item.columnSpan)) at++;
+    take(index, { ...item, row: item.row, column: at });
+  });
+  let cursorRow = 0;
+  let cursorColumn = 0;
+  items.forEach((item, index) => {
+    if (item.row !== undefined) return;
+    const { rowSpan, columnSpan } = item;
+    if (item.column !== undefined) {
+      if (item.column < cursorColumn) cursorRow++;
+      while (!fits(cursorRow, item.column, rowSpan, columnSpan)) cursorRow++;
+      take(index, { row: cursorRow, column: item.column, rowSpan, columnSpan });
+      cursorColumn = item.column + columnSpan;
+      return;
+    }
+    for (;;) {
+      if (cursorColumn + columnSpan > columns) {
+        cursorRow++;
+        cursorColumn = 0;
+      }
+      if (fits(cursorRow, cursorColumn, rowSpan, columnSpan)) break;
+      cursorColumn++;
+    }
+    take(index, { row: cursorRow, column: cursorColumn, rowSpan, columnSpan });
+    cursorColumn += columnSpan;
+  });
+  return { cells, columns };
+}
+
+/** A grid as the overlay reads it: its cells (row-major) and which item takes each one. */
+export interface GridLayout {
+  cells: GridBox[];
+  /** Columns per row of `cells`. */
+  columns: number;
+  /** Per cell: the index of the item in it (a spanning item is in each of its cells), else -1. */
+  occupant: number[];
+  /** Per item: its area. */
+  areas: GridArea[];
+}
+
+/**
+ * The grid's cells, row-major. `items` are the drawn boxes of the flow children in document order;
+ * `lines` their authored grid lines and spans (none: auto-placed, one cell). With
+ * `appendRow` (a drag) one more implicit row follows when no cell is empty — where an appended node
+ * goes.
+ */
+export function gridLayout(input: {
   content: GridBox;
   columns: string | undefined;
   columnGap: number;
   rowGap: number;
   items: readonly GridBox[];
-  count: number;
+  lines?: readonly (GridItemLines | undefined)[];
   fallbackHeight: number;
   /** The row template: its tracks are cells even without items. */
   rows?: string;
   /** One more row for an append (a drag) — off for showing the grid as it is (selection). */
   appendRow?: boolean;
-}): GridBox[] {
+}): GridLayout {
   const { content, columnGap, rowGap, items } = input;
   const columnTokens = expandTracks(input.columns);
   let columns: { start: number; size: number }[];
+  let placed: GridArea[];
   if (columnTokens?.length) {
-    const cols = columnTokens.length;
-    const widths = columnTokens.map((_, column) =>
+    const placement = gridPlacement(
+      items.map((_, index) => input.lines?.[index]),
+      columnTokens.length,
+    );
+    placed = placement.cells;
+    const tokens = Array.from(
+      { length: placement.columns },
+      (_, column) => columnTokens[column],
+    );
+    // A spanning item does not size a track (its tracks come from the others).
+    const widths = tokens.map((_, column) =>
       Math.max(
         0,
-        ...items.filter((_, i) => i % cols === column).map((box) => box.width),
+        ...items
+          .filter(
+            (_, i) => placed[i]!.column === column && placed[i]!.columnSpan === 1,
+          )
+          .map((box) => box.width),
       ),
     );
     columns = sizeTracks(
-      columnTokens.map((token) => trackKind(token, content.width)),
+      tokens.map((token) => trackKind(token, content.width)),
       widths,
       content.width,
       columnGap,
     ).map((track) => ({ start: content.x + track.start, size: track.size }));
   } else {
-    // No template we can count: the columns the items show.
+    // No template we can count: the columns and rows the items show.
     const xs = [...new Set(items.map((box) => Math.round(box.x)))].sort(
+      (a, b) => a - b,
+    );
+    const ys = [...new Set(items.map((box) => Math.round(box.y)))].sort(
       (a, b) => a - b,
     );
     columns = xs.map((x) => {
       const box = items.find((item) => Math.round(item.x) === x)!;
       return { start: box.x, size: box.width };
     });
+    placed = items.map((box) => ({
+      row: ys.indexOf(Math.round(box.y)),
+      column: xs.indexOf(Math.round(box.x)),
+      rowSpan: 1,
+      columnSpan: 1,
+    }));
   }
-  if (!columns.length) return [];
+  if (!columns.length) return { cells: [], columns: 0, occupant: [], areas: [] };
   const cols = columns.length;
   const rowTokens = expandTracks(input.rows) ?? [];
-  const rowCount = Math.max(Math.ceil(input.count / cols), rowTokens.length, 1);
+  const rowCount = Math.max(
+    Math.max(0, ...placed.map((cell) => cell.row + cell.rowSpan)),
+    rowTokens.length,
+    1,
+  );
   const heights = Array.from({ length: rowCount }, (_, row) =>
     Math.max(
       0,
-      ...items.slice(row * cols, row * cols + cols).map((box) => box.height),
+      ...items
+        .filter((_, i) => placed[i]!.row === row && placed[i]!.rowSpan === 1)
+        .map((box) => box.height),
     ),
   );
   const rows = sizeTracks(
@@ -163,14 +320,21 @@ export function gridCells(input: {
     content.height,
     rowGap,
   ).map((track) => ({ start: content.y + track.start, size: track.size }));
-  if (input.appendRow !== false && input.count >= rowCount * cols) {
+  const occupant = new Array<number>(rowCount * cols).fill(-1);
+  placed.forEach((area, index) => {
+    for (let r = area.row; r < area.row + area.rowSpan; r++)
+      for (let c = area.column; c < Math.min(cols, area.column + area.columnSpan); c++)
+        occupant[r * cols + c] = index;
+  });
+  if (input.appendRow !== false && !occupant.includes(-1)) {
     const last = rows[rows.length - 1]!;
     rows.push({
       start: last.start + last.size + rowGap,
       size: last.size || input.fallbackHeight,
     });
+    occupant.push(...new Array<number>(cols).fill(-1));
   }
-  return rows.flatMap((row) =>
+  const cells = rows.flatMap((row) =>
     columns.map((column) => ({
       x: column.start,
       y: row.start,
@@ -178,4 +342,10 @@ export function gridCells(input: {
       height: row.size,
     })),
   );
+  return { cells, columns: cols, occupant, areas: placed };
+}
+
+/** {@link gridLayout}'s cells (auto-placed items unless `lines` says otherwise). */
+export function gridCells(input: Parameters<typeof gridLayout>[0]): GridBox[] {
+  return gridLayout(input).cells;
 }

@@ -14,6 +14,9 @@ export interface LayoutStyleValues {
   rowGap: string;
   gridTemplateColumns: string;
   gridTemplateRows: string;
+  /** A grid child's span (`span n` on the end line — empty: one track). */
+  gridColumnEnd: string;
+  gridRowEnd: string;
   flexWrap: string;
   padding: string;
   paddingTop: string;
@@ -98,6 +101,12 @@ export function useLayoutValues(id: string | null): LayoutStyleValues | null {
         numToPx(e.gridTemplateRows),
         "",
       ),
+      gridColumnEnd: firstDefined(
+        s.gridColumnEnd,
+        numToPx(e.gridColumnEnd),
+        "",
+      ),
+      gridRowEnd: firstDefined(s.gridRowEnd, numToPx(e.gridRowEnd), ""),
       flexWrap,
       // ADR-082 P1-2: 실효 4-way 가 균일하면 shorthand 에 반영 (collapsed 모드 UX)
       padding: firstDefined(

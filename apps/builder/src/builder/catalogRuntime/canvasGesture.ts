@@ -15,6 +15,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
   composeCommands,
+  stageOver,
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
@@ -25,6 +26,7 @@ import type {
   BreakpointName,
   CatalogReader,
   DefinitionId,
+  EditTarget,
   NodeId,
   NodeParent,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -73,7 +75,15 @@ import {
   type SnapGuide,
   type SnapGuideLines,
 } from "../workspace/canvas/interaction/snapGuides";
-import { gridCells, lengthPx } from "./canvasGridCells";
+import {
+  gridLayout,
+  gridPlacement,
+  lengthPx,
+  lineSpan,
+  type GridArea,
+  type GridItemLines,
+  type GridLayout,
+} from "./canvasGridCells";
 import {
   resolveDragDistanceGuides,
   type MeasureGuide,
@@ -185,8 +195,12 @@ export interface CatalogDropTarget {
   readonly keepsAbsolute?: true;
   /** A grid container: every cell (outlined while dragging over it, Figma). */
   readonly cells?: readonly BoundingBox[];
-  /** A grid append into an empty cell: that cell (filled instead of a line, Figma). */
+  /** A drop into an empty grid cell: that cell (filled instead of a line, Figma). */
   readonly cell?: BoundingBox;
+  /** That cell's row and column (0-based): the drop pins the nodes there (Figma). */
+  readonly gridCell?: { readonly row: number; readonly column: number };
+  /** Over the dragged item's own grid cell: the drop changes nothing. */
+  readonly stays?: true;
 }
 
 /** A move as the Canvas draws it (`dragPresentation`). */
@@ -1204,31 +1218,64 @@ export class CatalogCanvasGestures {
     if (gesture.placeAbsolute) return this.placeAbsoluteCommand(gesture);
     const drop = gesture.drop;
     if (!drop) return undefined;
-    if (gesture.copy) {
-      const ids = gesture.ids;
-      const newId = this.host.newId;
-      return (reader) =>
-        pasteNodes({
-          clipboard: copyNodes(reader, ids),
+    if (gesture.copy) return this.copyCommand(gesture.ids, gesture.records, drop);
+    if (drop.stays) return undefined;
+    const leader = this.host.records.get(gesture.leader)!;
+    const lines = this.gridLineCommands(gesture.ids, gesture.records, drop);
+    const commands: CatalogCommand[] = [];
+    if (
+      gesture.ids.length !== 1 ||
+      leader.parentId !== drop.container ||
+      this.siblingIndex(drop.container, gesture.records) !== drop.index
+    )
+      commands.push(
+        moveNodes({
+          ids: gesture.ids,
           parent: drop.parent,
           index: drop.index,
-          newId,
-          label: "Duplicate",
-        })(reader);
-    }
-    const leader = this.host.records.get(gesture.leader)!;
-    if (
-      gesture.ids.length === 1 &&
-      leader.parentId === drop.container &&
-      this.siblingIndex(drop.container, gesture.records) === drop.index
-    )
-      return undefined;
-    return moveNodes({
-      ids: gesture.ids,
-      parent: drop.parent,
-      index: drop.index,
-      newId: this.host.newId,
-    });
+          newId: this.host.newId,
+        }),
+      );
+    if (!commands.length && !lines.length) return undefined;
+    if (!lines.length) return commands[0];
+    const graph = this.host.graph as CatalogGraph;
+    return () => composeCommands(graph, "Move", [...commands, ...lines]);
+  }
+
+  /**
+   * Alt drop: copies at the drop, selected; into an empty grid cell the copies are pinned there
+   * (their ids come from the paste).
+   */
+  private copyCommand(
+    ids: readonly NodeId[],
+    records: readonly string[],
+    drop: CatalogDropTarget,
+  ): CatalogCommand {
+    const newId = this.host.newId;
+    const place = drop.gridCell && drop.cell;
+    return (reader) => {
+      const paste = pasteNodes({
+        clipboard: copyNodes(reader, ids),
+        parent: drop.parent,
+        index: drop.index,
+        newId,
+        label: "Duplicate",
+      });
+      if (!place) return paste(reader);
+      const stage = stageOver(reader);
+      const plan = paste(stage);
+      stage.apply(plan.ops);
+      const copies = plan.selectAfter ?? [];
+      // The copies take the originals' spans.
+      const lines = this.gridLineCommands(copies, records, drop);
+      const ops = [...plan.ops];
+      for (const command of lines) {
+        const next = command(stage);
+        stage.apply(next.ops);
+        ops.push(...next.ops);
+      }
+      return { ...plan, ops };
+    };
   }
 
   /**
@@ -1322,17 +1369,7 @@ export class CatalogCanvasGestures {
       y: Math.round(item.top + gesture.dy),
     });
     if (gesture.copy) {
-      if (drop) {
-        const ids = gesture.ids;
-        return (reader) =>
-          pasteNodes({
-            clipboard: copyNodes(reader, ids),
-            parent: drop.parent,
-            index: drop.index,
-            newId,
-            label: "Duplicate",
-          })(reader);
-      }
+      if (drop) return this.copyCommand(gesture.ids, gesture.records, drop);
       return this.absoluteCopy(gesture.absolutes, offset);
     }
     const commands: CatalogCommand[] = [];
@@ -1343,17 +1380,27 @@ export class CatalogCanvasGestures {
           )
         : [],
     );
-    if (drop && leaving.size)
+    if (drop && leaving.size) {
+      const moved = gesture.records.flatMap((record, index) =>
+        leaving.has(record) ? [index] : [],
+      );
       commands.push(
         moveNodes({
-          ids: gesture.ids.filter((_, index) =>
-            leaving.has(gesture.records[index]!),
-          ),
+          ids: moved.map((index) => gesture.ids[index]!),
           parent: drop.parent,
           index: drop.index,
           newId,
         }),
       );
+      if (drop.gridCell)
+        commands.push(
+          ...this.gridLineCommands(
+            moved.map((index) => gesture.ids[index]!),
+            moved.map((index) => gesture.records[index]!),
+            drop,
+          ),
+        );
+    }
     const container = drop ? this.host.bounds(drop.container) : undefined;
     for (const item of gesture.absolutes) {
       let placement: ReturnType<typeof offset> | undefined = offset(item);
@@ -1538,9 +1585,12 @@ export class CatalogCanvasGestures {
       }
       // Past a refused container the nodes go to the end of the accepting ancestor (the old
       // Canvas's nearest droppable ancestor).
+      const grid = refused
+        ? undefined
+        : this.gridTarget(record, excluded, x, y, gesture);
       const slot = refused
         ? this.flowEntries(record, excluded).length
-        : this.flowSlot(record, excluded, x, y);
+        : (grid?.slot ?? this.flowSlot(record, excluded, x, y));
       const index = this.documentIndex(record, excluded, slot);
       try {
         // The command's own checks (nesting, not into itself) decide whether the drop is allowed.
@@ -1570,7 +1620,9 @@ export class CatalogCanvasGestures {
         slot,
         axis: this.flowKind(record),
         line: this.insertionLine(record, excluded, slot, gesture.startBox, y),
-        ...this.gridDrop(record, excluded, slot, gesture.startBox),
+        ...(grid?.cells ? { cells: grid.cells } : {}),
+        ...(grid?.cell ? { cell: grid.cell, gridCell: grid.gridCell } : {}),
+        ...(grid?.stays ? { stays: true as const } : {}),
         ...(refused ? { relocated: refused } : {}),
       };
     }
@@ -1632,29 +1684,6 @@ export class CatalogCanvasGestures {
         )
           slot++;
       return slot;
-    }
-    // A grid (Figma): the cell under the pointer (else the nearest) — an empty one appends, an
-    // item's cell drops before or after that item by which side of its centre the pointer is.
-    const cells = this.gridCellsOf(container, 0);
-    if (cells.length) {
-      const all = this.flowEntries(container, new Set());
-      let index = 0;
-      let best = Infinity;
-      cells.forEach((cell, i) => {
-        const dx = Math.max(cell.x - x, 0, x - (cell.x + cell.width));
-        const dy = Math.max(cell.y - y, 0, y - (cell.y + cell.height));
-        const distance = Math.hypot(dx, dy);
-        if (distance < best) {
-          best = distance;
-          index = i;
-        }
-      });
-      if (index >= all.length) return entries.length;
-      const before = all.slice(0, index).filter(({ id }) => !dragged.has(id)).length;
-      const item = all[index]!;
-      if (dragged.has(item.id)) return before;
-      // Before or after the item by its own centre (the object, as Figma — not the cell's).
-      return before + (x > item.box.x + item.box.width / 2 ? 1 : 0);
     }
     // A wrapped row: between the boxes nearest the cursor, in their order.
     let nearest = -1;
@@ -1773,23 +1802,106 @@ export class CatalogCanvasGestures {
   }
 
   /**
-   * A grid drop target (`display: grid`, not a wrapped row): its cells, and — for an append into a
-   * cell no item takes now — that cell (Figma fills it instead of drawing a line).
+   * A grid drop target (`display: grid`, not a wrapped row — Figma): every cell, and the cell under
+   * the pointer (else the nearest). An empty one takes the nodes there (pinned, in reading order
+   * among the children); an item's cell drops before or after that item by which side of its own
+   * centre the pointer is (the object, as Figma — not the cell); the dragged item's own cell stays.
    */
-  private gridDrop(
+  private gridTarget(
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
-    slot: number,
-    draggedBox: BoundingBox,
-  ): { cells?: readonly BoundingBox[]; cell?: BoundingBox } {
-    const cells = this.gridCellsOf(container, draggedBox.height);
-    if (!cells.length) return {};
+    x: number,
+    y: number,
+    gesture: Extract<Gesture, { kind: "move" }>,
+  ):
+    | {
+        slot: number;
+        cells: readonly BoundingBox[];
+        cell?: BoundingBox;
+        gridCell?: { row: number; column: number };
+        stays?: true;
+      }
+    | undefined {
+    const layout = this.gridLayoutOf(container, gesture.startBox.height);
+    if (!layout?.cells.length) return undefined;
+    const { cells, occupant, columns } = layout;
     const all = this.flowEntries(container, new Set());
-    const placed = this.flowEntries(container, dragged).length;
-    // The append's cell, when no item is drawn in it now (from another container: past the last).
-    const cell =
-      slot === placed && placed >= all.length ? cells[placed] : undefined;
-    return { cells, ...(cell ? { cell } : {}) };
+    // The leader's span: an empty cell takes it only where all its cells are free.
+    const lines = this.gridLines(gesture.leader);
+    const rowSpan = lineSpan(lines.rowEnd) ?? lineSpan(lines.row) ?? 1;
+    const columnSpan = Math.min(
+      lineSpan(lines.columnEnd) ?? lineSpan(lines.column) ?? 1,
+      columns,
+    );
+    const free = (cell: number) => {
+      const at = occupant[cell];
+      return at === undefined || at < 0 || dragged.has(all[at]!.id);
+    };
+    const fits = (cell: number) => {
+      const row = Math.floor(cell / columns);
+      const column = cell % columns;
+      if (column + columnSpan > columns) return false;
+      for (let r = row; r < row + rowSpan; r++)
+        for (let c = column; c < column + columnSpan; c++)
+          if (!free(r * columns + c)) return false;
+      return true;
+    };
+    let index = -1;
+    let best = Infinity;
+    cells.forEach((cell, i) => {
+      if (occupant[i]! < 0 && !fits(i)) return;
+      const dx = Math.max(cell.x - x, 0, x - (cell.x + cell.width));
+      const dy = Math.max(cell.y - y, 0, y - (cell.y + cell.height));
+      const distance = Math.hypot(dx, dy);
+      if (distance < best) {
+        best = distance;
+        index = i;
+      }
+    });
+    if (index < 0) return { slot: this.flowEntries(container, dragged).length, cells };
+    const item = occupant[index]!;
+    if (item < 0) {
+      const row = Math.floor(index / columns);
+      const column = index % columns;
+      // Reading order: after every other item whose area starts in an earlier cell.
+      const slot = all.filter(({ id }, at) => {
+        const area = layout.areas[at];
+        return (
+          !dragged.has(id) &&
+          !!area &&
+          area.row * columns + area.column < index
+        );
+      }).length;
+      // The span's cells (those drawn — an implicit row past the last is the first cell's height).
+      const first = cells[index]!;
+      const last =
+        cells[(row + rowSpan - 1) * columns + column + columnSpan - 1] ??
+        cells[row * columns + column + columnSpan - 1] ??
+        first;
+      const bottom =
+        last.y + last.height +
+        (cells[(row + rowSpan - 1) * columns] ? 0 : (rowSpan - 1) * first.height);
+      return {
+        slot,
+        cells,
+        cell: {
+          x: first.x,
+          y: first.y,
+          width: last.x + last.width - first.x,
+          height: Math.max(first.height, bottom - first.y),
+        },
+        gridCell: { row, column },
+      };
+    }
+    const before = all
+      .slice(0, item)
+      .filter(({ id }) => !dragged.has(id)).length;
+    const entry = all[item]!;
+    if (dragged.has(entry.id)) return { slot: before, cells, stays: true };
+    return {
+      slot: before + (x > entry.box.x + entry.box.width / 2 ? 1 : 0),
+      cells,
+    };
   }
 
   /**
@@ -1798,32 +1910,191 @@ export class CatalogCanvasGestures {
    */
   gridCellsOfRecord(record: string): BoundingBox[] {
     const container = this.host.records.get(record);
-    return container ? this.gridCellsOf(container, 0, false) : [];
+    return (container && this.gridLayoutOf(container, 0, false)?.cells) ?? [];
   }
 
-  /** A `display: grid` container's cells (`gridCells`); none for any other container. */
-  private gridCellsOf(
+  /** A flow child's authored grid lines (the record's resolved layout). */
+  private gridLines(id: string): GridItemLines {
+    const layout = this.host.records.get(id)?.layout;
+    return {
+      column: layout?.gridColumnStart,
+      row: layout?.gridRowStart,
+      columnEnd: layout?.gridColumnEnd,
+      rowEnd: layout?.gridRowEnd,
+    };
+  }
+
+  /** A `display: grid` container's cells (`gridLayout`); none for any other container. */
+  private gridLayoutOf(
     container: CatalogConsumerNode,
     fallbackHeight: number,
     appendRow = true,
-  ): BoundingBox[] {
+  ): GridLayout | undefined {
     const display = container.layout.display;
-    if (display !== "grid" && display !== "inline-grid") return [];
+    if (display !== "grid" && display !== "inline-grid") return undefined;
     const frame = this.host.bounds(container.id);
-    if (!frame) return [];
-    const items = this.flowEntries(container, new Set()).map(({ box }) => box);
+    if (!frame) return undefined;
+    const entries = this.flowEntries(container, new Set());
     const gap = lengthPx(catalogBoxModel(container).gap) ?? 0;
-    return gridCells({
+    return gridLayout({
       content: this.contentBox(container, frame),
       columns: container.layout.gridTemplateColumns as string | undefined,
       columnGap: lengthPx(container.layout.columnGap) ?? gap,
       rowGap: lengthPx(container.layout.rowGap) ?? gap,
-      items,
-      count: items.length,
+      items: entries.map(({ box }) => box),
+      lines: entries.map(({ id }) => this.gridLines(id)),
       fallbackHeight,
       rows: container.layout.gridTemplateRows as string | undefined,
       appendRow,
     });
+  }
+
+  /**
+   * The grid lines a drop writes (Figma — a grid child keeps its cell). Into an empty cell: the
+   * nodes are pinned there (more nodes: the next empty cells in reading order), and an auto-placed
+   * sibling the move would shift is pinned where it is — the others stay, the source cell stays
+   * empty. Any other drop of a pinned node unpins it (it joins the order it was dropped at).
+   */
+  private gridLineCommands(
+    ids: readonly NodeId[],
+    records: readonly string[],
+    drop: CatalogDropTarget,
+  ): CatalogCommand[] {
+    const breakpoint = this.host.breakpoint();
+    const write = (
+      target: EditTarget,
+      column: string | undefined,
+      row: string | undefined,
+    ) =>
+      setFields({
+        targets: [target],
+        breakpoint,
+        layout: {
+          gridColumnStart:
+            column !== undefined
+              ? { kind: "set", value: column }
+              : breakpoint === "desktop"
+                ? { kind: "remove" }
+                : { kind: "set", value: "auto" },
+          gridRowStart:
+            row !== undefined
+              ? { kind: "set", value: row }
+              : breakpoint === "desktop"
+                ? { kind: "remove" }
+                : { kind: "set", value: "auto" },
+        },
+      });
+    const pinned = (record: string) => {
+      const lines = this.gridLines(record);
+      return [lines.column, lines.row].some((line) =>
+        /^\d+$/.test(String(line ?? "").trim()),
+      );
+    };
+    const target = drop.gridCell;
+    const container = this.host.records.get(drop.container);
+    const layout = target && container && this.gridLayoutOf(container, 0);
+    if (!target || !layout)
+      return records.flatMap((record, index) =>
+        pinned(record)
+          ? [write({ kind: "node", id: ids[index]! }, undefined, undefined)]
+          : [],
+      );
+    const dragged = new Set(records);
+    const entries = this.flowEntries(container, new Set());
+    const lines = entries.map(({ id }) => this.gridLines(id));
+    const before = gridPlacement(lines, layout.columns).cells;
+    const columns = layout.columns;
+    // The dragged nodes: the target cell, then the next cells where each one's span fits among
+    // the cells no sibling takes (reading order).
+    const taken = new Set<string>();
+    const cover = (area: GridArea) => {
+      for (let r = area.row; r < area.row + area.rowSpan; r++)
+        for (let c = area.column; c < area.column + area.columnSpan; c++)
+          taken.add(`${r}:${c}`);
+    };
+    entries.forEach(({ id }, at) => {
+      if (!dragged.has(id)) cover(before[at]!);
+    });
+    const placed: GridArea[] = [];
+    const draggedLines = records.map((record) => this.gridLines(record));
+    let cell = target.row * columns + target.column;
+    for (const item of draggedLines) {
+      const rowSpan = lineSpan(item.rowEnd) ?? lineSpan(item.row) ?? 1;
+      const columnSpan = Math.min(
+        lineSpan(item.columnEnd) ?? lineSpan(item.column) ?? 1,
+        columns,
+      );
+      for (; ; cell++) {
+        const area = {
+          row: Math.floor(cell / columns),
+          column: cell % columns,
+          rowSpan,
+          columnSpan,
+        };
+        if (area.column + columnSpan > columns) continue;
+        let free = true;
+        for (let r = area.row; free && r < area.row + rowSpan; r++)
+          for (let c = area.column; c < area.column + columnSpan; c++)
+            if (taken.has(`${r}:${c}`)) free = false;
+        if (!free) continue;
+        placed.push(area);
+        cover(area);
+        cell += columnSpan;
+        break;
+      }
+    }
+    const at1 = (area: GridArea) => ({
+      column: String(area.column + 1),
+      row: String(area.row + 1),
+    });
+    // Siblings the move would shift: pinned where they are, until none moves.
+    const rest = entries
+      .map(({ id }, at) => ({ id, at }))
+      .filter(({ id }) => !dragged.has(id));
+    const pins = new Set<number>();
+    for (;;) {
+      const next = gridPlacement(
+        [
+          ...rest.map(({ at }) =>
+            pins.has(at) ? { ...lines[at], ...at1(before[at]!) } : lines[at],
+          ),
+          ...placed.map((area, index) => ({
+            ...draggedLines[index],
+            ...at1(area),
+          })),
+        ],
+        columns,
+      ).cells;
+      const moved = rest.filter(
+        ({ at }, index) =>
+          !pins.has(at) &&
+          (next[index]!.row !== before[at]!.row ||
+            next[index]!.column !== before[at]!.column),
+      );
+      if (!moved.length) break;
+      for (const { at } of moved) pins.add(at);
+    }
+    return [
+      ...records.map((_, index) =>
+        write(
+          { kind: "node", id: ids[index]! },
+          String(placed[index]!.column + 1),
+          String(placed[index]!.row + 1),
+        ),
+      ),
+      ...[...pins].flatMap((at) => {
+        const target = this.host.itemOfRecord(entries[at]!.id)?.target;
+        return target
+          ? [
+              write(
+                target,
+                String(before[at]!.column + 1),
+                String(before[at]!.row + 1),
+              ),
+            ]
+          : [];
+      }),
+    ];
   }
 
   /** A container's content box (inside its border and padding). */

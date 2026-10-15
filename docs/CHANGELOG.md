@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 빈 칸에 놓기 · 칸 병합 — Figma 기준] - 2026-10-16
+
+### Added
+
+- **grid 의 빈 칸 어디에나 놓을 수 있다 — 순서대로가 아니라 칸을 건너뛰어도 그 칸에 남는다.** 끄는 요소를 빈 칸에 놓으면 그 칸 번호를 `gridColumnStart` · `gridRowStart` 로 저장한다 (활성 breakpoint 층). 그 이동 때문에 자리가 밀릴 형제는 지금 칸에 함께 고정해 제자리에 두고, 원래 칸은 빈 채로 남는다 (Figma — grid 자식은 자기 칸을 가진다). 여러 개를 끌면 그 칸부터 읽는 순서로 다음 빈 칸에 차례로, Alt 복제도 같은 칸에 놓인다. 문서 순서 (DOM · Layers) 는 칸의 읽는 순서를 따른다.
+- 채워진 칸 위에 놓으면 지금처럼 그 항목 앞 · 뒤에 끼운다 (삽입선) — 고정돼 있던 요소는 고정을 풀고 그 순서로 들어간다. 다른 컨테이너로 옮겨도 고정은 지운다. 자기 칸 위에 놓으면 아무것도 바꾸지 않는다.
+- **grid 의 자식을 고르면 Layout 섹션에 열 병합 · 행 병합 칸이 나온다** — 차지할 칸 수 (1 – 6 프리셋, n > 1 → `grid-column-end` · `grid-row-end` 의 `span n`, 1 이나 비우면 제거). Canvas 의 칸 표시 · drop 판정도 병합을 읽는다: 여러 칸을 차지하는 요소는 그 칸이 모두 비어 있는 자리에만 놓이고, 놓을 자리의 표시도 그 칸들을 합친 넓이다.
+  - **Why**: 빈 칸 drop 은 「마지막 항목 바로 뒤 칸」 만 가능했고 (자동 배치 순서), 칸을 건너뛴 배치와 두 칸 차지를 지정할 방법이 없었다 (사용자 요청). 노드 layout 에는 칸 번호 · 병합 필드가 이미 있고 레이아웃 엔진 · Preview CSS 도 읽었으나, Canvas 의 칸 계산은 항목을 문서 순서로 한 칸씩 채운다고 가정했다.
+- 칸 계산은 CSS grid 배치 (row 흐름 · sparse) 를 따른다 — 칸 번호를 가진 항목 먼저, 행만 가진 항목, 나머지는 자동 배치 커서로 (병합 포함). 레이아웃 엔진 배치와 같은지 테스트가 실제 엔진으로 확인한다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`gridPlacement` · `gridLayout`) · `canvasGesture.ts` (`gridTarget` · `gridLineCommands` · `copyCommand`) · `panels/styles/sections/LayoutSection.tsx` (`GridSpanField`) · `packages/shared/src/types/responsive.types.ts` (`gridColumnEnd` · `gridRowEnd` → 패널 편집 집합). i18n: 「Row span」 = 행 병합 (열 병합은 기존 키). 검증: 새 테스트 7 (drop 3 — 비순차 빈 칸 · 형제 고정 · 병합 · 복제, 배치 4) · 형제 고정 원복 RED · builder 5839 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `grid-cell-placement-live.mjs` 6/6 (실제 마우스 drag · 패널 입력 · Preview DOM 위치 · 폭 = Canvas) · `canvas-dnd-drop-rules-live` 7/7 · `canvas-dnd-presentation-live` 7/7 · `layout-display-grid-live` 8/8.
+- 남은 것: grid 밖으로 끌어낸 요소의 원래 칸 뒤 형제는 지금처럼 당겨진다 (고정은 빈 칸 drop 에서만) · 병합을 Canvas 핸들 drag 로 늘리는 것 (Figma 의 칸 스냅 리사이즈) 은 없다.
+
 ## [grid 칸 윤곽이 열 · 행에 고르게 나뉜다 — 빈 행이 위로 쏠리던 것] - 2026-10-15
 
 ### Fixed
