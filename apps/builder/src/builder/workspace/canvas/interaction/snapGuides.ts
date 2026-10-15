@@ -87,6 +87,41 @@ export interface SnapSpacingGuide {
 
 export type SnapGuide = SnapLineGuide | SnapSpacingGuide;
 
+/**
+ * 흐름 drag 의 중심선 (2026-10-15 사용자 결정 — 표시만, 흡착 없음): 끄는 박스의 중심이
+ * 놓일 컨테이너의 중심과 임계 (scene px) 안에서 맞으면 그 축의 중심선을 컨테이너에 걸쳐 그린다.
+ */
+export function resolveCentreGuides(
+  moving: Omit<SnapCandidateRect, "id">,
+  container: Omit<SnapCandidateRect, "id">,
+  threshold: number,
+): SnapLineGuide[] {
+  const guides: SnapLineGuide[] = [];
+  const movingX = moving.x + moving.width / 2;
+  const movingY = moving.y + moving.height / 2;
+  const centerX = container.x + container.width / 2;
+  const centerY = container.y + container.height / 2;
+  if (Math.abs(movingX - centerX) <= threshold)
+    guides.push({
+      kind: "line",
+      axis: "x",
+      position: centerX,
+      start: container.y,
+      end: container.y + container.height,
+      markers: [movingY, centerY],
+    });
+  if (Math.abs(movingY - centerY) <= threshold)
+    guides.push({
+      kind: "line",
+      axis: "y",
+      position: centerY,
+      start: container.x,
+      end: container.x + container.width,
+      markers: [movingX, centerX],
+    });
+  return guides;
+}
+
 export interface SnappedPositionResult {
   position: { x: number; y: number };
   guides: SnapGuide[];

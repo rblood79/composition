@@ -117,3 +117,75 @@ export function resolveMeasureGuides(
   }
   return guides;
 }
+
+/**
+ * drag 중 거리 (2026-10-15 사용자 결정 — 키 없이 자동, ⌥ 는 복제): absolute 로 놓이는 박스의
+ * 네 변이 그 방향의 가장 가까운 장애물까지 잰다 — 마주 보는 형제 (직교 축이 겹치는 것) 가
+ * 있으면 그 형제, 없으면 부모의 안쪽 가장자리.
+ */
+export function resolveDragDistanceGuides(
+  moving: MeasureRect,
+  parent: MeasureRect | undefined,
+  siblings: readonly MeasureRect[],
+): MeasureGuide[] {
+  const guides: MeasureGuide[] = [];
+  const right = moving.x + moving.width;
+  const bottom = moving.y + moving.height;
+  const centerX = moving.x + moving.width / 2;
+  const centerY = moving.y + moving.height / 2;
+  const overlap = (lo: number, hi: number, otherLo: number, otherHi: number) => {
+    const a = Math.max(lo, otherLo);
+    const b = Math.min(hi, otherHi);
+    return b > a ? (a + b) / 2 : undefined;
+  };
+  // 한 방향: 가장 가까운 형제 (edge, cross) — 없으면 undefined
+  const nearest = (
+    pick: (s: MeasureRect) => { edge: number; cross: number | undefined } | undefined,
+    closer: (a: number, b: number) => boolean,
+  ) => {
+    let best: { edge: number; cross: number } | undefined;
+    for (const sibling of siblings) {
+      const hit = pick(sibling);
+      if (hit?.cross === undefined) continue;
+      if (!best || closer(hit.edge, best.edge))
+        best = { edge: hit.edge, cross: hit.cross };
+    }
+    return best;
+  };
+  const yCross = (s: MeasureRect) => overlap(moving.y, bottom, s.y, s.y + s.height);
+  const xCross = (s: MeasureRect) => overlap(moving.x, right, s.x, s.x + s.width);
+
+  const toRight = nearest(
+    (s) => (s.x >= right ? { edge: s.x, cross: yCross(s) } : undefined),
+    (a, b) => a < b,
+  );
+  if (toRight) push(guides, "x", right, toRight.edge, toRight.cross);
+  else if (parent && parent.x + parent.width >= right)
+    push(guides, "x", right, parent.x + parent.width, centerY);
+
+  const toLeft = nearest(
+    (s) => (s.x + s.width <= moving.x ? { edge: s.x + s.width, cross: yCross(s) } : undefined),
+    (a, b) => a > b,
+  );
+  if (toLeft) push(guides, "x", toLeft.edge, moving.x, toLeft.cross);
+  else if (parent && parent.x <= moving.x)
+    push(guides, "x", parent.x, moving.x, centerY);
+
+  const below = nearest(
+    (s) => (s.y >= bottom ? { edge: s.y, cross: xCross(s) } : undefined),
+    (a, b) => a < b,
+  );
+  if (below) push(guides, "y", bottom, below.edge, below.cross);
+  else if (parent && parent.y + parent.height >= bottom)
+    push(guides, "y", bottom, parent.y + parent.height, centerX);
+
+  const above = nearest(
+    (s) => (s.y + s.height <= moving.y ? { edge: s.y + s.height, cross: xCross(s) } : undefined),
+    (a, b) => a > b,
+  );
+  if (above) push(guides, "y", above.edge, moving.y, above.cross);
+  else if (parent && parent.y <= moving.y)
+    push(guides, "y", parent.y, moving.y, centerX);
+
+  return guides;
+}

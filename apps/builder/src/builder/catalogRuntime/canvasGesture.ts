@@ -67,11 +67,16 @@ import type { CatalogSelectionItem } from "./session";
 
 import {
   SNAP_THRESHOLD_SCREEN_PX,
+  resolveCentreGuides,
   resolveSnappedPosition,
   type SnapCandidateRect,
   type SnapGuide,
   type SnapGuideLines,
 } from "../workspace/canvas/interaction/snapGuides";
+import {
+  resolveDragDistanceGuides,
+  type MeasureGuide,
+} from "../workspace/canvas/interaction/measureGuides";
 
 /** Screen px a press must travel before it becomes a drag (the old Builder's threshold). */
 export const CATALOG_DRAG_THRESHOLD_PX = 3;
@@ -232,6 +237,8 @@ type Gesture =
       refusal?: NestingViolation;
       snap?: SnapContext;
       snapGuides?: readonly SnapGuide[];
+      /** The zoom of the last update (the centre line's threshold is screen px). */
+      zoom: number;
     }
   | {
       kind: "spacing";
@@ -327,8 +334,10 @@ export interface CatalogGesturePreview {
     readonly bands: readonly SpacingBand[];
     readonly active: SpacingActiveTarget;
   };
-  /** Alignment lines and equal spacing the dragged box snapped to. */
+  /** Alignment lines and equal spacing the dragged box snapped to (a flow drag: the centre line). */
   readonly snapGuides?: readonly SnapGuide[];
+  /** An absolute drop: the distances to the nearest sibling or parent edge on each side. */
+  readonly distances?: readonly MeasureGuide[];
 }
 
 /**
@@ -431,6 +440,7 @@ export class CatalogCanvasGestures {
       ) as NodeId[],
       records: moving.map((item) => item.identity),
       startBox,
+      zoom: 1,
       ...(placement?.kind === "absolute"
         ? { absolute: { left: placement.x, top: placement.y } }
         : {}),
@@ -657,6 +667,7 @@ export class CatalogCanvasGestures {
     }
     gesture.dx = dx;
     gesture.dy = dy;
+    gesture.zoom = zoom;
     // An absolutely placed element snaps (a flow drag reorders; the old Canvas never snapped it).
     if (gesture.absolute) this.snap(gesture, zoom, !!options.snap);
     gesture.bypassSize = !!options.bypassSize;
@@ -805,15 +816,51 @@ export class CatalogCanvasGestures {
             }))
         : [];
     const moving = gesture.copy ? {} : { moving: gesture.records };
-    if (!gesture.drop)
-      return { ghost, ghosts, snapGuides: gesture.snapGuides, ...moving };
+    const guides = this.dragGuides(gesture, ghost);
+    if (!gesture.drop) return { ghost, ghosts, ...guides, ...moving };
     return {
       ghost,
       ghosts,
+      ...guides,
       ...moving,
       ...(gesture.drop.keepsAbsolute ? {} : { line: gesture.drop.line }),
       ...(this.reflows(gesture) ? { reflow: true } : {}),
       container: this.host.bounds(gesture.drop.container),
+    };
+  }
+
+  /**
+   * The guides of a move (2026-10-15 사용자 결정 — no key: Alt starts a copy). An absolute drop
+   * measures each side to the nearest sibling or the container's edge (with the snap lines); a flow
+   * drop shows the container's centre line when the dragged box's centre meets it (no snap).
+   */
+  private dragGuides(
+    gesture: Extract<Gesture, { kind: "move" }>,
+    ghost: BoundingBox,
+  ): Pick<CatalogGesturePreview, "snapGuides" | "distances"> {
+    const drop = gesture.drop;
+    const container =
+      drop?.container ?? this.host.records.get(gesture.leader)?.parentId;
+    const box = container ? this.host.bounds(container) : undefined;
+    if (!container || !box) return {};
+    if (drop ? drop.keepsAbsolute : gesture.absolute) {
+      const moving = new Set(gesture.records);
+      const siblings = (this.host.records.get(container)?.children ?? [])
+        .filter((id) => !moving.has(id))
+        .map((id) => this.host.bounds(id))
+        .filter((sibling): sibling is BoundingBox => !!sibling);
+      return {
+        snapGuides: gesture.snapGuides,
+        distances: resolveDragDistanceGuides(ghost, box, siblings),
+      };
+    }
+    if (!drop) return {};
+    return {
+      snapGuides: resolveCentreGuides(
+        ghost,
+        box,
+        SNAP_THRESHOLD_SCREEN_PX / Math.max(gesture.zoom, 0.001),
+      ),
     };
   }
 

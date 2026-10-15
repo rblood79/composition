@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  resolveCentreGuides,
   resolveSnappedPosition,
   type SnapCandidateRect,
   type SnapGuide,
@@ -504,5 +505,19 @@ describe("resolveSnappedPosition — 수동 가이드 라인 (ADR-181)", () => {
         y: [],
       }),
     );
+  });
+});
+
+describe("resolveCentreGuides — 흐름 drag 중심선 (표시만)", () => {
+  const container = { x: 0, y: 0, width: 400, height: 200 };
+  it("가로 중심이 임계 안이면 세로 중심선 하나", () => {
+    const guides = resolveCentreGuides({ x: 152, y: 10, width: 100, height: 40 }, container, 5);
+    expect(guides).toEqual([
+      { kind: "line", axis: "x", position: 200, start: 0, end: 200, markers: [30, 100] },
+    ]);
+  });
+  it("두 축 모두 맞으면 둘, 임계 밖이면 없음", () => {
+    expect(resolveCentreGuides({ x: 150, y: 80, width: 100, height: 40 }, container, 5)).toHaveLength(2);
+    expect(resolveCentreGuides({ x: 160, y: 10, width: 100, height: 40 }, container, 5)).toEqual([]);
   });
 });

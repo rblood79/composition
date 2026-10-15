@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { resolveMeasureGuides, type MeasureRect } from "./measureGuides";
+import {
+  resolveDragDistanceGuides,
+  resolveMeasureGuides,
+  type MeasureRect,
+} from "./measureGuides";
 
 function rect(x: number, y: number, width = 100, height = 200): MeasureRect {
   return { x, y, width, height };
@@ -81,5 +85,33 @@ describe("resolveMeasureGuides", () => {
     // sel right == target left
     const guides = resolveMeasureGuides(rect(0, 0), rect(100, 0));
     expect(guides).toHaveLength(0);
+  });
+});
+
+describe("resolveDragDistanceGuides — drag 중 거리 (형제 우선, 없으면 부모 가장자리)", () => {
+  const parent = { x: 0, y: 0, width: 600, height: 400 };
+  it("형제가 없으면 부모 네 가장자리까지", () => {
+    const guides = resolveDragDistanceGuides({ x: 100, y: 50, width: 80, height: 40 }, parent, []);
+    expect(guides.map((g) => [g.axis, g.start, g.end, g.value])).toEqual([
+      ["x", 180, 600, 420],
+      ["x", 0, 100, 100],
+      ["y", 90, 400, 310],
+      ["y", 0, 50, 50],
+    ]);
+  });
+  it("마주 보는 형제가 있으면 그 방향은 가장 가까운 형제까지 (직교 축 겹침 중앙)", () => {
+    const moving = { x: 100, y: 50, width: 80, height: 40 };
+    const near = { x: 250, y: 60, width: 50, height: 100 };
+    const far = { x: 400, y: 50, width: 50, height: 40 };
+    const offAxis = { x: 200, y: 300, width: 50, height: 50 }; // y 겹침 없음 → 오른쪽 후보 아님
+    const guides = resolveDragDistanceGuides(moving, parent, [far, near, offAxis]);
+    const right = guides.find((g) => g.axis === "x" && g.start === 180)!;
+    expect([right.end, right.value, right.cross]).toEqual([250, 70, 75]);
+    // 아래쪽은 offAxis (x 겹침 없음 → 부모 가장자리)
+    const down = guides.find((g) => g.axis === "y" && g.start === 90)!;
+    expect(down.end).toBe(400);
+  });
+  it("부모가 없으면 형제만", () => {
+    expect(resolveDragDistanceGuides({ x: 0, y: 0, width: 10, height: 10 }, undefined, [])).toEqual([]);
   });
 });

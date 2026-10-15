@@ -355,6 +355,14 @@ export function catalogOverlayNode(
             zoom,
             inputs.fontMgr(),
           );
+        if (gesture.distances?.length)
+          renderMeasureGuides(
+            ck,
+            canvas,
+            gesture.distances,
+            zoom,
+            inputs.fontMgr(),
+          );
         if (gesture.spacing)
           renderSpacingOverlay(ck, canvas, {
             bands: gesture.spacing.bands,

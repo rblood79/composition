@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [drag 중 거리 · 중심선 자동 표시 — absolute 거리 · 흐름 중심선] - 2026-10-15
+
+### Added
+
+- **absolute 로 놓이는 요소를 끄는 동안 네 변의 거리를 숫자와 함께 자동으로 그린다** — 각 방향에서 마주 보는 가장 가까운 형제까지, 없으면 부모 가장자리까지. 기존 정렬선 · 중심선 · 등간격 흡착과 함께 보인다. Control drag 로 다른 컨테이너에 absolute 로 넣을 때도 그 컨테이너 기준으로 그린다.
+- **흐름(row · column · grid) 요소를 끌 때 끄는 요소의 중심이 놓일 컨테이너의 중심과 맞으면 중심선을 그린다** — 표시만 하고 흡착하지 않는다 (임계 5 화면 px). 형제가 비키며 놓일 자리를 보여 주므로 거리는 그리지 않는다.
+  - **Why**: 거리 측정 (⌥ + hover) 과 복제 (⌥ + drag) 가 같은 키라 끄는 중에는 거리를 볼 방법이 없었다 (사용자 지적). 끄는 동안은 키 없이 자동으로 보여 주고, ⌥ 는 정지 상태 측정 · 복제에만 쓴다 (사용자 결정).
+- 위치: `apps/builder/src/builder/workspace/canvas/interaction/measureGuides.ts` (`resolveDragDistanceGuides`) · `snapGuides.ts` (`resolveCentreGuides`) · `catalogRuntime/canvasGesture.ts` (`dragGuides` → preview `distances` · `snapGuides`) · `workspace/canvas/catalog/catalogOverlay.ts`. 검증: 단위 `measureGuides.test.ts` +3 · `snapGuides.test.ts` +2 · `phase4eCanvasGesture.test.ts` +2 · type-check · live `apps/builder/scripts/canvas-dnd-guides-live.mjs` 5/5 (headed Chrome · 실제 마우스: absolute drag 중 거리선 · 숫자 4개 (형제 160 · 부모 160 · 71 · 179) · 흐름 drag 중심 일치 시 중심선 · 벗어나면 0 · ⌥ hover 정지 측정 유지).
+
 ## [drag 중 실제 요소 표현 · 형제 비킴 (Figma · Pen.dev)] - 2026-10-15
 
 ### Changed

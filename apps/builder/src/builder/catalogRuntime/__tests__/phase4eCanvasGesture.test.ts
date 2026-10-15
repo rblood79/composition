@@ -1047,3 +1047,76 @@ describe("drag presentation — the dragged element and its siblings' reflow", (
     expect(gestures.dragPresentation()!.siblings.size).toBe(0);
   });
 });
+
+/**
+ * 2026-10-15 drag 중 거리 · 중심선 (사용자 결정 — 키 없이 자동, ⌥ 는 정지 측정 · 복제): absolute 로
+ * 놓이는 drag 는 네 변에서 가장 가까운 형제 · 부모 가장자리까지의 거리, 흐름 drag 는 끄는 요소의
+ * 중심이 놓일 컨테이너의 중심과 맞을 때 중심선 (표시만 — 흡착 없음).
+ */
+describe("drag guides — distances (absolute) and the centre line (flow)", () => {
+  it("an absolute drag measures each side to its parent's edge", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: {
+          width: { kind: "set", value: 400 },
+          height: { kind: "set", value: 200 },
+        },
+      }),
+    );
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("d") }],
+        sizing: { width: { kind: "set", value: 80 } },
+      }),
+    );
+    workspace.execute(
+      setWholeField({
+        targets: [{ kind: "node", id: id("d") }],
+        field: "placement",
+        value: { kind: "absolute", x: 10, y: 12 },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("d")]);
+    const parent = box("box");
+    const [x, y] = center("d");
+    gestures.beginMove(x, y, record("d"));
+    gestures.update(x + 30, y + 20, 1);
+    const ghost = gestures.preview()!.ghost!;
+    const distances = gestures.preview()!.distances!;
+    expect(distances.map((g) => [g.axis, g.start, g.end])).toEqual([
+      ["x", ghost.x + ghost.width, parent.x + parent.width],
+      ["x", parent.x, ghost.x],
+      ["y", ghost.y + ghost.height, parent.y + parent.height],
+      ["y", parent.y, ghost.y],
+    ]);
+    expect(distances[1]!.value).toBe(40);
+    gestures.cancel();
+  });
+
+  it("a flow drag shows the container's centre line only while the centres meet (no snap)", async () => {
+    const { workspace, gestures, record, box, center } = await open();
+    workspace.selectRecords([record("a")]);
+    const list = box("list");
+    const a = box("a");
+    // a sits left in the column: move it so its centre is 2 px off the list's centre.
+    const [ax, ay] = center("a");
+    const toCentre = list.x + list.width / 2 - (a.x + a.width / 2);
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(ax + toCentre + 2, ay + 10, 1);
+    const line = gestures.preview()?.snapGuides?.find(
+      (g) => g.kind === "line" && g.axis === "x",
+    );
+    expect(line).toMatchObject({ position: list.x + list.width / 2 });
+    // Shown, not snapped: the ghost keeps the raw offset.
+    expect(gestures.preview()!.ghost!.x).toBe(a.x + toCentre + 2);
+    gestures.update(ax + toCentre + 40, ay + 10, 1);
+    expect(
+      gestures.preview()?.snapGuides?.some((g) => g.kind === "line" && g.axis === "x"),
+    ).toBe(false);
+    expect(gestures.preview()?.distances).toBeUndefined();
+    gestures.cancel();
+  });
+});
