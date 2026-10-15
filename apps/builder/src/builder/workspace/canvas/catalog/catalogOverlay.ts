@@ -72,6 +72,8 @@ export interface CatalogOverlayInputs {
   gesture?: () => CatalogGesturePreview | undefined;
   /** A grid container's cells (none for other records): outlined while it is selected or hovered. */
   gridCells?: (identity: string) => readonly BoundingBox[];
+  /** A record's parent record: a selected grid item shows its grid's cells too (Figma). */
+  parentOf?: (identity: string) => string | undefined;
   /**
    * Declared slots of the definition edit view (editor chrome, not document paint): each slot's
    * box, hatched while it holds nothing.
@@ -330,9 +332,15 @@ export function catalogOverlayNode(
         withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
-      // A grid selected or hovered (Figma): its cells, dashed — a drag draws the target's own.
+      // A grid selected or hovered, or a selected item's grid (Figma): its cells, dashed — a drag
+      // draws the target's own.
       if (inputs.gridCells && !inputs.gesture?.()) {
-        const grids = new Set(state.selection.map((item) => item.identity));
+        const grids = new Set<string>();
+        for (const { identity } of state.selection) {
+          grids.add(identity);
+          const parent = inputs.parentOf?.(identity);
+          if (parent) grids.add(parent);
+        }
         if (hoverId) grids.add(hoverId);
         for (const id of grids) {
           const cells = inputs.gridCells(id);
@@ -356,6 +364,17 @@ export function catalogOverlayNode(
         for (const box of gesture.highlights ?? [])
           renderHoverHighlight(ck, canvas, box, zoom);
         if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
+        // A resized grid child: its grid's cells, dashed as while selected (Figma).
+        if (gesture.gridGuides?.length)
+          withOccluders(
+            ck,
+            canvas,
+            occludersOf(state.selection[0]?.identity),
+            () => {
+              for (const cell of gesture.gridGuides ?? [])
+                renderHoverHighlight(ck, canvas, cell, zoom, true);
+            },
+          );
         // A grid drop target (Figma): every cell outlined; an append fills its empty cell.
         for (const cell of gesture.cells ?? [])
           renderHoverHighlight(ck, canvas, cell, zoom);
@@ -366,7 +385,9 @@ export function catalogOverlayNode(
           renderSelectionBox(ck, canvas, gesture.container, zoom / 2);
         // The element itself is drawn at the pointer (`moving`): its ghost is the selection
         // outline, not the translucent box that stands in for it (a copy, a page).
-        const ghostOf = gesture.moving?.length ? renderSelectionBox : renderLasso;
+        const ghostOf = gesture.moving?.length
+          ? renderSelectionBox
+          : renderLasso;
         if (gesture.ghost) ghostOf(ck, canvas, gesture.ghost, zoom);
         for (const box of gesture.ghosts ?? []) ghostOf(ck, canvas, box, zoom);
         if (gesture.snapGuides?.length)

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 자식을 선택 · 크기 조절해도 부모 grid 칸 가이드가 보인다 — Figma] - 2026-10-16
+
+### Fixed
+
+- **grid 안 요소를 선택하거나 크기 핸들로 끄는 동안에도 부모 grid 의 칸 점선이 보인다** (Figma 와 같음). 종전엔 grid 자신을 선택 · hover 할 때만 칸이 보였고, 자식을 고르거나 그 크기를 끌기 시작하면 사라졌다 (사용자 보고).
+- Why: overlay 가 칸을 선택 · hover 된 record 자신에게만 그렸고, drag 중에는 그 단계를 건너뛰고 drag 미리보기만 그렸다 — resize 미리보기에는 칸이 없었다.
+- 수정: 선택 record 의 직속 부모도 칸 대상에 넣고 (`parentOf`), resize 미리보기가 부모 grid 의 칸 (`gridGuides`) 을 실어 같은 점선으로 그린다. 손자 선택 · 자식 hover 는 대상 아님.
+- 위치: `apps/builder/src/builder/workspace/canvas/catalog/{catalogOverlay.ts,CatalogCanvas.tsx}` · `apps/builder/src/builder/catalogRuntime/canvasGesture.ts`. 검증: 테스트 2 (수정 빼면 RED) · canvas catalog · catalogRuntime 2,270 통과 · type-check · live headed Playwright (3×3 grid — 자식 선택 시 칸 9 · 손자 · grid 밖 형제 선택 시 0 · 자식 모서리 핸들 resize 중 칸 9, 캡처 확인 · 페이지 오류 0).
+
 ## [요소가 많은 페이지에서 끌기가 멈추던 것 — 등간격 스냅 탐색] - 2026-10-16
 
 ### Fixed

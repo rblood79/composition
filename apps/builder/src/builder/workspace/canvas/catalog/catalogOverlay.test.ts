@@ -199,6 +199,43 @@ describe("Builder 전용 Page 기본 테두리", () => {
     node.dispose();
   });
 
+  it("grid 의 자식을 선택해도 부모 grid 의 칸 가이드를 그린다 (Figma)", () => {
+    const input = inputs();
+    const base = input.session();
+    const { ck, canvas } = surface();
+    const cells = [
+      { x: 0, y: 0, width: 5, height: 5 },
+      { x: 5, y: 0, width: 5, height: 5 },
+    ];
+    input.pageBorders = undefined;
+    input.gridCells = (id) => (id === "a" ? cells : []);
+    input.parentOf = (id) => (id === "b" ? "a" : undefined);
+    input.session = () => ({ ...base, selection: [item("b")] });
+    const node = catalogOverlayNode(ck, input);
+    node.renderSkia(canvas, viewport);
+    for (const cell of cells)
+      expect(renderHoverHighlight).toHaveBeenCalledWith(
+        ck,
+        canvas,
+        cell,
+        2,
+        true,
+      );
+    // A resize drag of the child keeps them (the gesture carries its grid's cells).
+    vi.clearAllMocks();
+    input.gesture = () => ({ gridGuides: cells });
+    node.renderSkia(canvas, viewport);
+    for (const cell of cells)
+      expect(renderHoverHighlight).toHaveBeenCalledWith(
+        ck,
+        canvas,
+        cell,
+        2,
+        true,
+      );
+    node.dispose();
+  });
+
   it("테마·줌이 바뀌어도 Paint 1개를 재사용하고 Canvas 종료 때 해제한다", () => {
     const input = inputs();
     const { ck, canvas, paint, Paint } = surface();

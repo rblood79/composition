@@ -445,6 +445,8 @@ export function CatalogCanvas({
         }
         return cells;
       },
+      parentOf: (identity) =>
+        workspace.root.canvasInputs.get(identity)?.parentId,
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       slots: () =>
         catalogSlotMarks(

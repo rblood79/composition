@@ -348,6 +348,8 @@ export interface CatalogGesturePreview {
   /** A grid drop target's cells (outlined) and the empty cell an append fills. */
   readonly cells?: readonly BoundingBox[];
   readonly cell?: BoundingBox;
+  /** A resize: the resized element's grid's cells (dashed, as while it is selected — Figma). */
+  readonly gridGuides?: readonly BoundingBox[];
   /**
    * A reorder in its own row / column: the siblings reflow (`dragPresentation`) and the opened
    * slot shows the drop — no line, no container frame. Into another container the siblings stay
@@ -778,7 +780,8 @@ export class CatalogCanvasGestures {
       for (const line of lines)
         if (
           Math.abs(line - value) <= threshold &&
-          (best === undefined || Math.abs(line - value) < Math.abs(best - value))
+          (best === undefined ||
+            Math.abs(line - value) < Math.abs(best - value))
         )
           best = line;
       return best;
@@ -892,7 +895,12 @@ export class CatalogCanvasGestures {
       const y = gesture.handle.includes("top")
         ? box.y + box.height - height
         : box.y;
-      return { ghost: { x, y, width, height } };
+      const parentId = this.host.records.get(gesture.item.identity)?.parentId;
+      const gridGuides = parentId ? this.gridCellsOfRecord(parentId) : [];
+      return {
+        ghost: { x, y, width, height },
+        ...(gridGuides.length ? { gridGuides } : {}),
+      };
     }
     const ghost = {
       ...gesture.startBox,
@@ -978,7 +986,8 @@ export class CatalogCanvasGestures {
     const gesture = this.gesture;
     if (gesture?.kind !== "move" || !gesture.active) return undefined;
     const siblings = new Map<string, { dx: number; dy: number }>();
-    if (!gesture.copy && !gesture.absolute) this.reflowSiblings(gesture, siblings);
+    if (!gesture.copy && !gesture.absolute)
+      this.reflowSiblings(gesture, siblings);
     const drop = gesture.drop;
     return {
       records: gesture.copy ? [] : [...gesture.records],
@@ -1041,7 +1050,11 @@ export class CatalogCanvasGestures {
     const size = (box: BoundingBox) => (row ? box.width : box.height);
     const all = this.flowEntries(container, new Set());
     if (!all.length) return;
-    const gap = this.flowGap(container, kind, all.map(({ box }) => box));
+    const gap = this.flowGap(
+      container,
+      kind,
+      all.map(({ box }) => box),
+    );
     const moving = all.filter(({ id }) => dragged.has(id));
     const rest = all.filter(({ id }) => !dragged.has(id));
     const hole =
@@ -1054,7 +1067,8 @@ export class CatalogCanvasGestures {
               ? [...dragged].reduce(
                   (sum, id) => sum + size(this.host.bounds(id) ?? EMPTY_BOX),
                   0,
-                ) + gap * (dragged.size - 1)
+                ) +
+                gap * (dragged.size - 1)
               : 0) + gap;
     let cursor = start(all[0]!.box);
     rest.forEach(({ id, box }, index) => {
@@ -1287,7 +1301,8 @@ export class CatalogCanvasGestures {
     if (gesture.placeAbsolute) return this.placeAbsoluteCommand(gesture);
     const drop = gesture.drop;
     if (!drop) return undefined;
-    if (gesture.copy) return this.copyCommand(gesture.ids, gesture.records, drop);
+    if (gesture.copy)
+      return this.copyCommand(gesture.ids, gesture.records, drop);
     if (drop.stays) return undefined;
     const leader = this.host.records.get(gesture.leader)!;
     const lines = this.gridLineCommands(gesture.ids, gesture.records, drop);
@@ -1366,7 +1381,9 @@ export class CatalogCanvasGestures {
     const commands: CatalogCommand[] = [];
     const trailing = container.children.slice(-gesture.records.length);
     if (!gesture.records.every((record, index) => trailing[index] === record))
-      commands.push(moveNodes({ ids: gesture.ids, parent: drop.parent, newId }));
+      commands.push(
+        moveNodes({ ids: gesture.ids, parent: drop.parent, newId }),
+      );
     gesture.records.forEach((record, index) => {
       const box = this.host.bounds(record);
       const id = gesture.ids[index];
@@ -1387,7 +1404,11 @@ export class CatalogCanvasGestures {
       for (const axis of ["width", "height"] as const) {
         if (!fill?.[axis]) continue;
         commands.push(
-          setFillSizing({ targets: [{ kind: "node", id }], axis, value: undefined }),
+          setFillSizing({
+            targets: [{ kind: "node", id }],
+            axis,
+            value: undefined,
+          }),
           setFields({
             targets: [{ kind: "node", id }],
             sizing: { [axis]: { kind: "set", value: Math.round(box[axis]) } },
@@ -1703,9 +1724,7 @@ export class CatalogCanvasGestures {
    * The flow axis of a container: a grid (and wrapped rows) is two-dimensional — Figma's grid drop
    * between the cells nearest the cursor.
    */
-  private flowKind(
-    container: CatalogConsumerNode,
-  ): "row" | "column" | "grid" {
+  private flowKind(container: CatalogConsumerNode): "row" | "column" | "grid" {
     const { display, flexDirection, flexWrap } = container.layout;
     if (display === "grid" || display === "inline-grid") return "grid";
     const flex = display === "flex" || display === "inline-flex";
@@ -1934,7 +1953,8 @@ export class CatalogCanvasGestures {
         index = i;
       }
     });
-    if (index < 0) return { slot: this.flowEntries(container, dragged).length, cells };
+    if (index < 0)
+      return { slot: this.flowEntries(container, dragged).length, cells };
     const item = occupant[index]!;
     if (item < 0) {
       const row = Math.floor(index / columns);
@@ -1944,9 +1964,7 @@ export class CatalogCanvasGestures {
       const slot = all.filter(({ id }, at) => {
         const area = layout.areas[at];
         return (
-          !dragged.has(id) &&
-          !!area &&
-          area.row * columns + area.column < index
+          !dragged.has(id) && !!area && area.row * columns + area.column < index
         );
       }).length;
       // The span's cells (those drawn — an implicit row past the last is the first cell's height).
@@ -1956,8 +1974,11 @@ export class CatalogCanvasGestures {
         cells[row * columns + column + columnSpan - 1] ??
         first;
       const bottom =
-        last.y + last.height +
-        (cells[(row + rowSpan - 1) * columns] ? 0 : (rowSpan - 1) * first.height);
+        last.y +
+        last.height +
+        (cells[(row + rowSpan - 1) * columns]
+          ? 0
+          : (rowSpan - 1) * first.height);
       return {
         slot,
         cells,
@@ -2058,7 +2079,10 @@ export class CatalogCanvasGestures {
         columnSpan,
         lineSpan(lines.columnEnd) ?? lineSpan(lines.column) ?? 1,
       );
-      rowSpan = Math.max(rowSpan, lineSpan(lines.rowEnd) ?? lineSpan(lines.row) ?? 1);
+      rowSpan = Math.max(
+        rowSpan,
+        lineSpan(lines.rowEnd) ?? lineSpan(lines.row) ?? 1,
+      );
     }
     return { columnSpan: Math.min(columnSpan, layout.columns), rowSpan };
   }
@@ -2077,7 +2101,9 @@ export class CatalogCanvasGestures {
   ): CatalogCommand[] {
     const breakpoint = this.host.breakpoint();
     const clear: WriteValue<string> =
-      breakpoint === "desktop" ? { kind: "remove" } : { kind: "set", value: "auto" };
+      breakpoint === "desktop"
+        ? { kind: "remove" }
+        : { kind: "set", value: "auto" };
     const has = (value: unknown) => String(value ?? "").trim() !== "";
     /** Starts: a cell (1-based) or `null` = unpin; spans: the cells taken (1 = none). */
     const write = (
@@ -2122,7 +2148,9 @@ export class CatalogCanvasGestures {
         if (!container || !layout) {
           // Out of a grid: no cell, no span.
           const lines = this.gridLines(record);
-          return [lines.column, lines.row, lines.columnEnd, lines.rowEnd].some(has)
+          return [lines.column, lines.row, lines.columnEnd, lines.rowEnd].some(
+            has,
+          )
             ? write(node, record, null, { columnSpan: 1, rowSpan: 1 })
             : [];
         }
@@ -2209,10 +2237,15 @@ export class CatalogCanvasGestures {
     }
     return [
       ...records.flatMap((record, index) =>
-        write({ kind: "node", id: ids[index]! }, record, {
-          column: placed[index]!.column + 1,
-          row: placed[index]!.row + 1,
-        }, placed[index]),
+        write(
+          { kind: "node", id: ids[index]! },
+          record,
+          {
+            column: placed[index]!.column + 1,
+            row: placed[index]!.row + 1,
+          },
+          placed[index],
+        ),
       ),
       ...[...pins].flatMap((at) => {
         const node = this.host.itemOfRecord(entries[at]!.id)?.target;
@@ -2257,12 +2290,16 @@ export class CatalogCanvasGestures {
   ): number {
     const authored =
       lengthPx(
-        kind === "column" ? container.layout.rowGap : container.layout.columnGap,
+        kind === "column"
+          ? container.layout.rowGap
+          : container.layout.columnGap,
       ) ?? lengthPx(catalogBoxModel(container).gap);
     if (authored !== undefined) return Math.max(0, authored);
     if (boxes.length < 2) return 0;
     const [a, b] = boxes as [BoundingBox, BoundingBox];
-    return Math.max(0, kind === "column" ? b.y - a.y - a.height : b.x - a.x - a.width);
+    return Math.max(
+      0,
+      kind === "column" ? b.y - a.y - a.height : b.x - a.x - a.width,
+    );
   }
-
 }

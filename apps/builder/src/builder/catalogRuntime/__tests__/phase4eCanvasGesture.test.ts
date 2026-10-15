@@ -898,10 +898,17 @@ describe("Canvas drop rules (Figma)", () => {
     const [dx, dy] = center("d");
     gestures.beginMove(dx, dy, record("d"));
     // ⌘: the text d is as wide as the page (the size rule would keep it out).
-    gestures.update(b.x + b.width / 2, c.y + c.height / 2, 1, { bypassSize: true });
+    gestures.update(b.x + b.width / 2, c.y + c.height / 2, 1, {
+      bypassSize: true,
+    });
     const preview = gestures.preview()!;
     expect(preview.cells).toHaveLength(4);
-    expect(preview.cell).toEqual({ x: b.x, y: c.y, width: b.width, height: c.height });
+    expect(preview.cell).toEqual({
+      x: b.x,
+      y: c.y,
+      width: b.width,
+      height: c.height,
+    });
     expect(preview.line).toBeUndefined();
     // Over a's left half: before a — mid-padding, as tall as the cell.
     gestures.update(a.x + 2, a.y + a.height / 2, 1, { bypassSize: true });
@@ -931,7 +938,10 @@ describe("Canvas drop rules (Figma)", () => {
         layout: {
           display: { kind: "set", value: "grid" },
           // The Layout section's tracks (2026-10-16): they share the grid size, an item never grows them.
-          gridTemplateColumns: { kind: "set", value: "repeat(3, minmax(0, 1fr))" },
+          gridTemplateColumns: {
+            kind: "set",
+            value: "repeat(3, minmax(0, 1fr))",
+          },
           gridTemplateRows: { kind: "set", value: "repeat(3, minmax(0, 1fr))" },
           ...Object.fromEntries(
             Object.entries(layout).map(([key, value]) => [
@@ -1084,9 +1094,17 @@ describe("Canvas drop rules (Figma)", () => {
     const edge = { x: a.x + a.width, y: a.y + a.height / 2 };
     expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
     gestures.update(a.x + 400, edge.y, 1);
+    // 2026-10-16 사용자 보고 「크기 조절 드래그 시작하면 안 보인다」: the parent grid's cells stay
+    // outlined while its child resizes (Figma).
+    expect(gestures.preview()?.gridGuides).toEqual(cellsBefore);
     gestures.finish();
     scene.sync();
-    expect(linesOf(workspace, "a")).toEqual([undefined, undefined, undefined, undefined]);
+    expect(linesOf(workspace, "a")).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
     expect(box("a").width).toBe(400);
     expect(gestures.gridCellsOfRecord(record("list"))).toEqual(cellsBefore);
     expect(box("b")).toEqual(b);
@@ -1106,7 +1124,12 @@ describe("Canvas drop rules (Figma)", () => {
     gestures.finish();
     scene.sync();
     expect(box("a").height).toBe(200);
-    expect(linesOf(workspace, "a")).toEqual([undefined, undefined, undefined, undefined]);
+    expect(linesOf(workspace, "a")).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
     // Far from a line: no snap.
     workspace.selectRecords([record("a")]);
     const tall = box("a");
@@ -1147,7 +1170,9 @@ describe("Canvas drop rules (Figma)", () => {
     gestures.finish();
     scene.sync();
     expect(linesOf(workspace, "d")).toEqual(["2", "2", undefined, "span 2"]);
-    expect(box("d").y + box("d").height).toBeLessThanOrEqual(list.y + list.height);
+    expect(box("d").y + box("d").height).toBeLessThanOrEqual(
+      list.y + list.height,
+    );
     expect(box("list").height).toBe(list.height);
   });
 
@@ -1164,7 +1189,9 @@ describe("Canvas drop rules (Figma)", () => {
     const entry = workspace.runtime.graph.getEntry(id("list"));
     const kids = entry?.kind === "node" ? entry.children : [];
     expect(kids).toHaveLength(4);
-    const copy = kids.find((kid) => ![id("a"), id("b"), id("c")].includes(kid))!;
+    const copy = kids.find(
+      (kid) => ![id("a"), id("b"), id("c")].includes(kid),
+    )!;
     const copyEntry = workspace.runtime.graph.getEntry(copy);
     const layout = copyEntry?.kind === "node" ? copyEntry.layout : undefined;
     expect(
@@ -1375,7 +1402,12 @@ describe("drag presentation — the dragged element and its siblings' reflow", (
     };
     gestures.beginMove(ax, ay, record("a"));
     // Before d: half the gap above it, from the content start, the dragged width long.
-    expect(line(d.y + 2)).toEqual({ x: frame.x + 24, y: d.y - 15, width: 120, height: 0 });
+    expect(line(d.y + 2)).toEqual({
+      x: frame.x + 24,
+      y: d.y - 15,
+      width: 120,
+      height: 0,
+    });
     // Between d and e: the middle of the gap.
     expect(line(e.y + 2).y).toBe(d.y + d.height + 15);
     // After e: half the gap below it.
@@ -1506,15 +1538,17 @@ describe("drag guides — distances (absolute) and the centre line (flow)", () =
     const toCentre = list.x + list.width / 2 - (a.x + a.width / 2);
     gestures.beginMove(ax, ay, record("a"));
     gestures.update(ax + toCentre + 2, ay + 10, 1);
-    const line = gestures.preview()?.snapGuides?.find(
-      (g) => g.kind === "line" && g.axis === "x",
-    );
+    const line = gestures
+      .preview()
+      ?.snapGuides?.find((g) => g.kind === "line" && g.axis === "x");
     expect(line).toMatchObject({ position: list.x + list.width / 2 });
     // Shown, not snapped: the ghost keeps the raw offset.
     expect(gestures.preview()!.ghost!.x).toBe(a.x + toCentre + 2);
     gestures.update(ax + toCentre + 40, ay + 10, 1);
     expect(
-      gestures.preview()?.snapGuides?.some((g) => g.kind === "line" && g.axis === "x"),
+      gestures
+        .preview()
+        ?.snapGuides?.some((g) => g.kind === "line" && g.axis === "x"),
     ).toBe(false);
     expect(gestures.preview()?.distances).toBeUndefined();
     gestures.cancel();
