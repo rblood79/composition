@@ -18,7 +18,8 @@
 //
 // Element ids are catalog node ids without the `project:node:` prefix (`perf-seed-3`); page ids are
 // catalog page ids. The `fields` fixture places palette field instances the same way. Other
-// fixture kinds (refs, forms …) are old-app only and throw here.
+// fixture kinds (refs, forms …) are old-app only and throw here. `nested-flex` inserts a flow
+// tree through `insertTree` (catalog only).
 export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
   let real;
   let facade;
@@ -107,6 +108,24 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
           entries: [{ kind: "node", id: bodyId, definitionId: "lib:definition:type-body", name: "Body", children: [], props: {}, visual: {}, sizing: {}, descendantOverrides: [] }],
         }));
         syncBodies();
+      },
+      // nested-flex fixture: a flow tree (no absolute placement) — specs carry the catalog field
+      // groups directly (layout = CSS text, visual gap/padding = px numbers, sizing = px).
+      insertTree(parentId, specs) {
+        const valueWrites = (obj) => Object.fromEntries(Object.entries(obj ?? {}).map(([k, v]) => [k, set(v)]));
+        const entries = specs.map((n) => ({
+          kind: "node", id: NODE + n.id,
+          definitionId: h.palette.catalogPaletteDefinitionId(graph().library, n.type),
+          children: (n.children ?? []).map((c) => NODE + c),
+          props: n.text !== undefined ? { children: set(n.text) } : {},
+          visual: valueWrites(n.visual), sizing: valueWrites(n.sizing),
+          ...(n.layout ? { layout: valueWrites(n.layout) } : {}),
+          descendantOverrides: [],
+        }));
+        const roots = specs.filter((n) => n.root).map((n) => NODE + n.id);
+        ws().execute(cmd().insertNodes({ parent: { kind: "node", id: NODE + parentId }, entries, rootIds: roots, newId: ws().newId, label: "Seed" }));
+        ws().session.clearSelection();
+        for (const n of specs) if (n.track) add({ id: n.id, type: n.type, page_id: ws().session.getSnapshot().pageId, parent_id: null, props: { style: {} } });
       },
       undo() { ws().undo(); },
       redo() { ws().redo(); },

@@ -183,6 +183,7 @@ export function parseArgs(argv) {
       "taggroups",
       "taggroup-refs",
       "fields",
+      "nested-flex",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
@@ -494,6 +495,65 @@ export async function seedDocument(
       const yieldTask = () => new Promise((r) => setTimeout(r, 0));
       performance.clearMeasures();
       performance.clearMarks();
+      if (fixtureKind === "nested-flex") {
+        // 중첩 flow 문서 (2026-10-15): root(flex column) > section(flex row wrap, 카드 10) >
+        // card(flex column, w 320) > 머리 행(Text 제목 · 배지) · 칩 행(wrap, 칩 6 > Text) ·
+        // 바닥 행(space-between) — 카드당 20 노드, 깊이 6, 제목은 줄바꿈되는 길이. absolute 0 —
+        // 레이아웃 엔진 · 텍스트 측정 · rewrap 이 매 편집에 걸리는 형태. seedIds = 카드.
+        const cards = Math.max(1, Math.round(seedCount / 20));
+        const cardIds = Array.from({ length: cards }, (_, i) => `perf-seed-c${i}`);
+        if (!store.getState().elementsMap.has("perf-seed-root")) {
+          const specs = [];
+          const sections = Math.ceil(cards / 10);
+          specs.push({
+            id: "perf-seed-root", type: "frame", root: true,
+            children: Array.from({ length: sections }, (_, k) => `perf-seed-s${k}`),
+            layout: { display: "flex", flexDirection: "column" },
+            visual: { gap: 24, padding: 24 }, sizing: { width: 1400 },
+          });
+          for (let k = 0; k < sections; k += 1)
+            specs.push({
+              id: `perf-seed-s${k}`, type: "frame",
+              children: cardIds.slice(k * 10, k * 10 + 10),
+              layout: { display: "flex", flexDirection: "row", flexWrap: "wrap" },
+              visual: { gap: 16 },
+            });
+          for (let i = 0; i < cards; i += 1) {
+            const c = `perf-seed-c${i}`;
+            const chips = Array.from({ length: 6 }, (_, j) => `${c}-b${j}`);
+            specs.push(
+              { id: c, type: "frame", track: true,
+                children: [`${c}-h`, `${c}-b`, `${c}-f`],
+                layout: { display: "flex", flexDirection: "column" },
+                visual: { gap: 8, padding: 12, backgroundColor: "#eef3ff" }, sizing: { width: 320 } },
+              { id: `${c}-h`, type: "frame", children: [`${c}-ht`, `${c}-hb`],
+                layout: { display: "flex", flexDirection: "row", alignItems: "center" }, visual: { gap: 6 } },
+              { id: `${c}-ht`, type: "Text", text: `Card ${i} title with several words that wrap inside the header row` },
+              { id: `${c}-hb`, type: "Text", text: `#${i}` },
+              { id: `${c}-b`, type: "frame", children: chips,
+                layout: { display: "flex", flexDirection: "row", flexWrap: "wrap" }, visual: { gap: 6 } },
+              ...chips.flatMap((chip, j) => [
+                { id: chip, type: "frame", children: [`${chip}-t`],
+                  layout: { display: "flex", flexDirection: "row" },
+                  visual: { padding: 4, backgroundColor: "#dbe7ff" } },
+                { id: `${chip}-t`, type: "Text", text: `tag ${i}-${j}` },
+              ]),
+              { id: `${c}-f`, type: "frame", children: [`${c}-fl`, `${c}-fr`],
+                layout: { display: "flex", flexDirection: "row", justifyContent: "space-between" } },
+              { id: `${c}-fl`, type: "Text", text: "Updated" },
+              { id: `${c}-fr`, type: "Text", text: `${i % 60} min ago` },
+            );
+          }
+          store.getState().insertTree(body.id, specs);
+          await yieldTask();
+        }
+        return {
+          seedIds: cardIds,
+          nodeCount: 1 + Math.ceil(cards / 10) + cards * 20,
+          pageIds: store.getState().pages.map((p) => p.id),
+          homePageId: pageId,
+        };
+      }
       for (let i = 0; i < seedCount; i += 1) {
         const id = `perf-seed-${i}`;
         ids.push(id);
@@ -2296,10 +2356,18 @@ async function setupPointerClass(page, cls, seed) {
           .elementFromPoint(p.x, p.y)
           ?.closest('[data-canvas-container="true"]'),
       );
+    const sceneBox = (source) => {
+      const r = w.root.recordsOfSource(source)[0];
+      const b = r && h.canvas.boundsOf(r);
+      return b ? { x: b.x, y: b.y, width: b.width, height: b.height } : null;
+    };
     return {
       camera,
       box,
       target,
+      targetBounds: sceneBox(targetSource),
+      // nested-flex: 카드 제목 Text — 줄바꿈되면 한 줄 높이보다 크다.
+      titleBounds: sceneBox(`${targetSource}-ht`),
       targetOnCanvas: target ? surfaceAt(target) : false,
       marqueeStart,
       marqueeOnCanvas: surfaceAt(marqueeStart),
@@ -2451,6 +2519,8 @@ async function runFrameLane(page, cdp, seed, options) {
         camera: pointer.camera,
         start: pointer.start,
         box: pointer.box,
+        targetBounds: pointer.targetBounds,
+        titleBounds: pointer.titleBounds,
         cleanup: await cleanupPointerClass(page, cls, pointer),
       };
     if (rec.profile) results[cls].profile = rec.profile;
