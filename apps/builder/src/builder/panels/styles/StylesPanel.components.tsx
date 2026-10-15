@@ -59,6 +59,8 @@ import {
 
 import { useStylesSelection } from "./StylesPanel.runtime";
 
+import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
+
 // 절 순서 Layout → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막
 const LayoutGroupSections = memo(function LayoutGroupSections() {
   return (
@@ -134,6 +136,24 @@ export const StylesTabBody = memo(function StylesTabBody({
         description={t("styles.delegatedSubpartDescription", {
           type: selectedElement.type,
           parent: selectedSubpartOwnerType ?? "",
+        })}
+      />
+    );
+  }
+
+  // A node RAC renders without an element (MenuTrigger …) has no box: its layout · style · text
+  // reach no consumer. Its breakpoint visibility (Screen) hides its children, so that view stays.
+  if (
+    view !== "screen" &&
+    selectedElement &&
+    catalogElementlessType(selectedElement.type)
+  ) {
+    return (
+      <EmptyState
+        icon={<PaintRoller size={32} />}
+        message={t("styles.elementlessMessage")}
+        description={t("styles.elementlessDescription", {
+          type: selectedElement.type,
         })}
       />
     );

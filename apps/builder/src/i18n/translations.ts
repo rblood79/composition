@@ -1615,6 +1615,9 @@ const koKR: TranslationKeys = {
     delegatedSubpartMessage: "부모에서 그리는 요소입니다",
     delegatedSubpartDescription:
       "{type} 의 스타일은 {parent} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.",
+    elementlessMessage: "화면에 상자가 없는 요소입니다",
+    elementlessDescription:
+      "{type} 은 자기 요소 없이 안의 요소만 그립니다. 스타일은 안의 요소 (Button 등) 를 선택해 편집하세요.",
     property: "속성",
     propertyHint: "컴포넌트 설정",
     layout: "레이아웃",
@@ -3803,6 +3806,9 @@ const enUS: TranslationKeys = {
     delegatedSubpartMessage: "Styled by the parent",
     delegatedSubpartDescription:
       "{type} takes its style from the design rules of {parent}. Values set here reach neither the canvas nor Preview.",
+    elementlessMessage: "This element has no box",
+    elementlessDescription:
+      "{type} renders no element of its own, only the elements inside it. Select one of them (a Button …) to edit its style.",
     property: "Property",
     propertyHint: "Component settings",
     layout: "Layout",
@@ -5802,6 +5808,8 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 으로 편집하세요.`,
     "styles.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} 의 스타일은 ${String(args?.parent ?? "")} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.`,
+    "styles.elementlessDescription": (args) =>
+      `${String(args?.type ?? "")} 은 자기 요소 없이 안의 요소만 그립니다. 스타일은 안의 요소 (Button 등) 를 선택해 편집하세요.`,
     "propertiesPanel.emptyDescription": (args) =>
       `'${String(args?.type ?? "")}' 컴포넌트의 편집 계약이 비어 있습니다.`,
     "propertiesPanel.confirmDeleteSelection": (args) =>
@@ -6338,6 +6346,8 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties instead.`,
     "styles.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} takes its style from the design rules of ${String(args?.parent ?? "")}. Values set here reach neither the canvas nor Preview.`,
+    "styles.elementlessDescription": (args) =>
+      `${String(args?.type ?? "")} renders no element of its own, only the elements inside it. Select one of them (a Button …) to edit its style.`,
     "propertiesPanel.emptyDescription": (args) =>
       `The editing contract for '${String(args?.type ?? "")}' is empty.`,
     "propertiesPanel.confirmDeleteSelection": (args) =>

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [요소 없는 노드의 Style 탭 — MenuTrigger 등은 안내만] - 2026-10-15
+
+### Fixed
+
+- **Menu 의 Button 을 Canvas 에서 클릭해 Radius · Border 를 바꿔도 반영되지 않던 문제** — 한 번 클릭은 instance 인 MenuTrigger 를 고르는데, MenuTrigger 는 RAC 처럼 자기 요소가 없어 (DOM 은 자식만, Canvas 는 `display: contents`) 그 Style 값이 어디에도 그려지지 않았다. 슬라이더 드래그 중의 미리보기만 보이고 놓으면 사라졌다. 이제 요소가 없는 노드 (MenuTrigger · DialogTrigger · TooltipTrigger · ContextualHelp · Autocomplete) 를 고르면 Design 패널 Layout · Style · Text 탭이 「화면에 상자가 없는 요소입니다 — 안의 요소를 선택해 편집하세요」 안내를 낸다. Screen 탭 (breakpoint 숨김) 은 자식 전체에 효과가 있어 남는다. Button 은 더블클릭 또는 Layers 로 골라 편집한다 (그 편집은 Canvas · Preview 에 반영 — live 확인).
+  - **Why**: Design 패널이 노드에 상자가 있는지 보지 않고 모든 노드에 같은 Style 필드를 냈다.
+- 위치: `packages/shared/src/catalog/runtime/elementless.ts` (`catalogElementlessType` — rule 루트 `display: contents` 에서 파생) · `apps/builder/src/builder/panels/styles/StylesPanel.components.tsx` (`StylesTabBody`) · i18n `styles.elementless*`. 검증: `elementlessNodeStyles.test.tsx` (수정 전 RED · 원복 RED) · live: Canvas 클릭 → 패널 「MenuTrigger」 Style · Layout 탭 안내, Screen 탭 유지 · 더블클릭 → 「Button」 Radius 14 · Width 3 이 record · Canvas 에 반영.
+
 ## [Select · ComboBox 목록 팝오버 padding 제거 — RAC · S2 레퍼런스] - 2026-10-15
 
 ### Fixed

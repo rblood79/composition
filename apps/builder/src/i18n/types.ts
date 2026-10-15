@@ -1513,6 +1513,8 @@ export interface TranslationKeys {
     view: string;
     delegatedSubpartMessage: string;
     delegatedSubpartDescription: string;
+    elementlessMessage: string;
+    elementlessDescription: string;
     property: string;
     propertyHint: string;
     layout: string;
