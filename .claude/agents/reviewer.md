@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Reviews code quality, checks convention compliance against SKILL.md rules, and performs PR reviews for composition. Use when the user asks for code review, rule compliance checking, or pull request analysis.
+description: Reviews code quality and checks convention compliance against SKILL.md rules for composition. Use when the user asks for a code review of a diff or commit, or for rule compliance checking.
 model: opus
 color: yellow
 tools:

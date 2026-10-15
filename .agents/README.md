@@ -29,7 +29,7 @@
 명시적 포맷과 자동 hook은 `.prettierignore`를 공유하며 typed 원본 라이브러리와 생성 CSS를
 제외합니다. 원본은 변경 노드의 기존 표기를 유지하고 CSS는 생성 명령으로 갱신합니다.
 다른 작업자의 변경이 있으면 자신의 파일만 `codex:format -- <파일들>`로 처리하고, guard 및 변경에 해당하는
-typecheck·registration·catalog·engine/text-axis 검사만 실행합니다.
+typecheck·registration·catalog·engine(cargo test) 검사만 실행합니다.
 명령 상세는 `pnpm run codex:harness -- help`를 참조합니다.
 
 ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면

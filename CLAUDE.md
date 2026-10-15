@@ -29,15 +29,15 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 ## SSOT 체인 정본 — 3-Domain 분할
 
-**D1 DOM/접근성** (설치된 `react-aria-components` 패키지 절대 권위 — catalog 버전 고정) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — Frame/Group/Slot 포함, ADR-248). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
+**D1 DOM/접근성** (설치된 `react-aria-components` 패키지 절대 권위 — catalog 버전 고정) / **D2 Props/API** (S2 `@react-spectrum/s2` 1.8.1 고정 → design-data → v3 → composition 확장 (출처는 `d2Provenance.ts`) — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — Frame/Group/Slot 포함, ADR-248). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
 
 정본 규칙 (상시 로드): [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md). 공식 결정: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의).
 
 ## 성능 기준
 
-|           Canvas/Skia cadence           | 초기 로드 | 번들 (초기) |
-| :-------------------------------------: | :-------: | :---------: |
-| native refresh target, 60Hz floor (p95) |   < 3초   |   < 500KB   |
+|           Canvas/Skia cadence           | 초기 로드 | 번들 (초기, gzip)                                                                                                                      |
+| :-------------------------------------: | :-------: | :------------------------------------------------------------------------------------------------------------------------------------- |
+| native refresh target, 60Hz floor (p95) |   < 3초   | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (Builder ≤ 1,421,000 / Preview ≤ 623,000 B, 만료 2026-10-25) — `adr201-bundle-gate.mjs` |
 
 `60fps` 는 60Hz 환경의 호환성 최소선이며 성능 목표 상한이 아니다. 판정은 display refresh cadence 와 frame time p50/p95/p99 우선, FPS 는 파생 지표.
 
@@ -73,7 +73,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ### 대규모 작업 phase 분할 — 단일 거대 출력 금지
 
-다수 파일 일괄 수정 / 전체 리팩토링 / 장문 문서 일괄 생성은 **phase 단위로 분할**하고 각 phase 종료 시 commit 가능 상태를 유지한다 — 응답 1개 = phase 1개, tool call 도 파일·단계 단위. tool call 이 직렬화 실패로 반환되면 같은 호출 재시도 금지 — 더 작은 단위로 쪼갠다. (Why: 세션 손실 주범 = tool-call 직렬화 실패 + output token limit — 메모리 `reference-insights-session-loss-diagnosis`)
+다수 파일 일괄 수정 / 전체 리팩토링 / 장문 문서 일괄 생성은 **phase 단위로 분할**하고 각 phase 종료 시 commit 가능 상태를 유지한다. (Why: 메모리 `reference-insights-session-loss-diagnosis`)
 
 ### 마크다운 표 편집 — 다중 Edit 대신 블록 단위 Write
 
@@ -81,7 +81,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 상태 변경 파이프라인
 
-`명령 → workspace.execute → 검증·commit → Canvas·DOM consumer → 저장 대기열 → History → 구독자 → Autosave (microtask) → Preview delta` — 순서 필수 보존 (ADR-248 catalog runtime). 요소 순서는 `NodeEntry.children` · `PageEntry.children` 이 SSOT 이고 `order_num` 은 옛 레코드 로드 때 지운다. 상세: `.claude/rules/state-management.md`
+`명령 → workspace.execute → 검증·commit → Canvas·DOM consumer → 저장 대기열 → History → 구독자 → Autosave (microtask) → Preview delta` — 순서 필수 보존 (ADR-248 catalog runtime). 요소 순서는 `NodeEntry.children` · `PageEntry.children` 이 SSOT 이고 문서 노드에 `order_num` 필드는 없다. 상세: `.claude/rules/state-management.md`
 
 ## CHANGELOG 관리
 
@@ -97,18 +97,18 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 참조 체계
 
-| 용도             | 경로                                                                           | 설명                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| 코드 패턴/규칙   | [SKILL.md](.claude/skills/composition-patterns/SKILL.md)                       | 전체 규칙 인덱스 (CRITICAL/HIGH/MEDIUM)                                                                       |
-| 도메인 규칙      | [.claude/rules/](.claude/rules/)                                               | Glob-scoped — 해당 파일 작업 시 자동 로드                                                                     |
-| Agent 가이드     | [.claude/agents/](.claude/agents/)                                             | reviewer, debugger — 얇은 persona (도구 제한·모델·격리만). 절차·체크리스트는 skills (review / fix / evaluate) |
-| ADR 현황         | [docs/adr/README.md](docs/adr/README.md)                                       | 전체 ADR 현황 대시보드                                                                                        |
-| ADR 규칙         | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                   | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 (`docs/adr/**` 자동 로드)                           |
-| 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                 |
-| 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)   |
-| CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                |
-| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                        |
-| 디자인 캔버스    | [docs/design/](docs/design/)                                                   | 디자인 산출물 — 새 캔버스는 `docs/design/<주제>/` 에만. 저장소 루트에 `design/`·`.design*/` 생성 금지         |
+| 용도             | 경로                                                                           | 설명                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 코드 패턴/규칙   | [SKILL.md](.claude/skills/composition-patterns/SKILL.md)                       | 전체 규칙 인덱스 (CRITICAL/HIGH/MEDIUM)                                                                                 |
+| 도메인 규칙      | [.claude/rules/](.claude/rules/)                                               | Glob-scoped — 해당 파일 작업 시 자동 로드                                                                               |
+| Agent 가이드     | [.claude/agents/](.claude/agents/)                                             | reviewer, debugger — 얇은 persona (도구 제한·모델·skill preload 만). 절차·체크리스트는 skills (review / fix / evaluate) |
+| ADR 현황         | [docs/adr/README.md](docs/adr/README.md)                                       | 전체 ADR 현황 대시보드                                                                                                  |
+| ADR 규칙         | [.claude/rules/adr-writing.md](.claude/rules/adr-writing.md)                   | Risk-First 템플릿, 위험 평가, 금지 패턴, 반복 패턴 선차단 (`docs/adr/**` 자동 로드)                                     |
+| 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                           |
+| 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)             |
+| CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                          |
+| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                                  |
+| 디자인 캔버스    | [docs/design/](docs/design/)                                                   | 디자인 산출물 — 새 캔버스는 `docs/design/<주제>/` 에만. 저장소 루트에 `design/`·`.design*/` 생성 금지                   |
 
 ## 마이그레이션/리네임/삭제 작업 원칙
 

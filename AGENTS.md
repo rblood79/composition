@@ -24,7 +24,7 @@ Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진
 
 - 문서 runtime SSOT는 `CatalogGraph`(`packages/shared/src/catalog/document/graph.ts`)입니다.
   변경은 catalog 명령 → `workspace.execute` 로만 하고 (ADR-248), derived view를 쓰기 원본으로
-  삼지 않습니다. `CompositionDocument`는 export·옛 입력 형식으로만 남았습니다.
+  삼지 않습니다.
 - DOM·접근성은 React Aria, Props는 Spectrum 참조와 custom 계약,
   시각은 catalog + theme/tokens가 담당합니다. Canvas와 Preview는 대등한 소비자입니다.
 - Builder와 Preview iframe은 격리합니다. 동기화는 origin을 검증하는
