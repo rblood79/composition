@@ -95,6 +95,37 @@ test("하향만 기록 — --update 는 올리지 않는다 · 새 지표는 B �
   assert.equal(next.seeds[60].select.B.reactRenderMeasures, 5900);
 });
 
+test("올리기 뒤 --update 로 낮추면 그 올리기는 끝난다 — 낮춘 값이 상한", () => {
+  const path = "seeds.60.select.A.perfLabels.render.frame";
+  const raised = applyRaise(
+    ratchet(),
+    {
+      path,
+      to: 70,
+      approvedBy: "사용자",
+      reason: "fixture",
+      expires: "2026-12-01",
+    },
+    "2026-10-01",
+  );
+  const today = "2026-10-15";
+  const next = applyUpdate(
+    raised,
+    judge(raised, measure({ "perfLabels.render.frame": 50 }), { today }),
+    { today },
+  );
+  assert.equal(next.raises[0].supersededOn, today);
+  const again = judge(next, measure({ "perfLabels.render.frame": 50 }), {
+    today,
+  });
+  assert.deepEqual(again.lowerable, []);
+  assert.equal(
+    judge(next, measure({ "perfLabels.render.frame": 55 }), { today }).overA
+      .length,
+    1,
+  );
+});
+
 test("올리기는 승인 필드 전부 필요 · 만료 뒤 원래 상한으로 판정", () => {
   assert.throws(() =>
     applyRaise(ratchet(), {

@@ -16,6 +16,7 @@
  *
  * 상한은 내려가기만 한다 (HC3): `--update` 는 낮아진 값과 새 지표만 기록한다. 올리기는
  * `--raise` 로만, 승인자 · 사유 · 만료일이 모두 있어야 하며 만료 뒤에는 원래 상한으로 판정한다.
+ * 올린 경로를 `--update` 가 낮추면 그 올리기는 끝난다 (`supersededOn`) — 낮춘 값이 상한이다.
  *
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --run [--sha <push sha>]      # pre-push 가 부른다
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --judge <seed>=<frame.json> … # 이미 잰 결과로 판정만
@@ -137,12 +138,17 @@ export function bLimit(base, ratchet) {
   return Math.max(Math.ceil(base * band), base + minSlack);
 }
 
-/** 만료 전 승인된 올리기 반영 — 경로 `seeds.<seed>.<cls>.<A|B>.<key>` */
+/** 만료 전 · 하향으로 끝나지 않은 올리기 반영 — 경로 `seeds.<seed>.<cls>.<A|B>.<key>` */
 export function effectiveCeiling(ratchet, seed, cls, grade, key, today) {
   const base = ratchet.seeds?.[seed]?.[cls]?.[grade]?.[key];
   const path = `seeds.${seed}.${cls}.${grade}.${key}`;
   const raise = (ratchet.raises ?? [])
-    .filter((r) => r.path === path && (!r.expires || today <= r.expires))
+    .filter(
+      (r) =>
+        r.path === path &&
+        !r.supersededOn &&
+        (!r.expires || today <= r.expires),
+    )
     .at(-1);
   return raise ? raise.to : base;
 }
@@ -221,7 +227,11 @@ export function decide(first, second = null) {
   return "unmeasurable";
 }
 
-/** 하향만 반영한 새 ratchet. 새 지표는 해당 등급을 알 수 없으므로 B 로 추가한다. */
+/**
+ * 하향만 반영한 새 ratchet. 새 지표는 해당 등급을 알 수 없으므로 B 로 추가한다.
+ * 하향 판정은 올리기를 반영한 상한 기준이므로, 낮춘 경로의 올리기는 끝낸다 — 남겨 두면
+ * 상한이 계속 올린 값이라 같은 하향이 매번 다시 보고되고 낮춘 기준값은 쓰이지 않는다.
+ */
 export function applyUpdate(
   ratchet,
   verdict,
@@ -231,6 +241,9 @@ export function applyUpdate(
   for (const { path, value } of verdict.lowerable) {
     const [, seed, cls, grade, ...rest] = path.split(".");
     next.seeds[seed][cls][grade][rest.join(".")] = value;
+    for (const raise of next.raises ?? [])
+      if (raise.path === path && !raise.supersededOn)
+        raise.supersededOn = today;
   }
   for (const { path, value } of verdict.newKeys) {
     const [, seed, cls, , ...rest] = path.split(".");
