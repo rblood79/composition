@@ -8117,6 +8117,28 @@ mod tests {
         assert_eq!(t.get_layout(h[1]).y, 200.0, "1fr 행은 100 씩");
     }
 
+    /// 2026-10-16 사용자 보고 「grid 안 요소의 width · height 를 크게 늘리면 내부 격자가 grid 의 정해 둔
+    /// 크기를 벗어난다」 — `1fr` 은 `minmax(auto, 1fr)` 라 큰 아이템에 맞춰 늘어난다 (Chrome 도 같다).
+    /// 패널이 쓰는 `minmax(0, 1fr)` 는 grid 크기만 나눈다: 360 · 3열 · 폭 600 아이템 → 120 씩 (아이템은
+    /// 칸을 넘친다), 행도 같다.
+    #[test]
+    fn minmax_zero_fr_tracks_keep_the_grid_size() {
+        let (t, h) = solve(
+            r#"[
+                {"style":{"width":"600px","height":"500px"},"children":[]},
+                {"style":{"height":"40px"},"children":[]},
+                {"style":{"height":"40px","gridColumnStart":"1","gridRowStart":"3"},"children":[]},
+                {"style":{"display":"grid","gridTemplateColumns":["repeat(3, minmax(0, 1fr))"],"gridTemplateRows":["repeat(3, minmax(0, 1fr))"],"width":"360px","height":"300px"},"children":[0,1,2]}
+            ]"#,
+            3, 360.0, 300.0,
+        );
+        assert_eq!(t.get_layout(h[1]).x, 120.0, "열 120 씩");
+        assert_eq!(t.get_layout(h[1]).width, 120.0);
+        assert_eq!(t.get_layout(h[2]).y, 200.0, "행 100 씩");
+        assert_eq!(t.get_layout(h[3]).width, 360.0);
+        assert_eq!(t.get_layout(h[3]).height, 300.0);
+    }
+
     /// 2026-09-18 — padded 컨테이너의 intrinsic 키워드 폭이 **flex item / grid item** 일 때
     /// (실측 `catalogComponentBox` Tooltip: flex row 부모 안 `width:fit-content` + padding 10 →
     /// 엔진 80 / Chrome 60 · grid 부모는 40). block 부모만 60 으로 맞았다.

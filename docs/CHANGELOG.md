@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 안 요소를 크게 늘려도 칸 · grid 크기는 그대로 — Figma 기준] - 2026-10-16
+
+### Fixed
+
+- **grid 안 요소의 width · height 를 크게 늘려도 내부 칸이 grid 의 정해 둔 크기를 벗어나지 않는다** — 요소만 커져 칸을 넘친다 (사용자 보고 · Figma 는 요소만 늘어나고 grid 는 그대로).
+  - **원인**: Layout 섹션의 Columns · Rows 가 `repeat(n, 1fr)` 를 썼다. CSS 의 단독 `1fr` 은 `minmax(auto, 1fr)` — 최소가 안 요소의 크기라, 요소가 커지면 칸이 따라 커져 격자가 grid 밖으로 나갔다 (Canvas 엔진 · Chrome 모두 같은 결과 — 엔진 결함 아님).
+  - 이제 개수 n 은 `repeat(n, minmax(0, 1fr))` (칸이 grid 크기만 나눈다). Display 의 Grid 를 켤 때의 2열도 같다. Canvas 의 칸 윤곽도 `minmax(0, …)` 트랙은 요소 크기로 늘리지 않는다.
+  - 이전에 만든 `repeat(n, 1fr)` grid 는 그대로 두고 (옛 문서 전환 코드 없음 — 사용자 지시), Columns · Rows 칸이 그 값을 글자로 보여 준다. 개수를 다시 넣으면 새 형식으로 바뀐다.
+- 위치: `apps/builder/src/builder/panels/styles/utils/gridTracks.ts` (새 — `gridTrackTemplate` · `gridTrackCount` · `gridTemplateOf`) · `sections/LayoutSection.tsx` · `hooks/useStyleActions.ts` · `catalogRuntime/canvasGridCells.ts` (`zeroMin`). 검증: Rust `minmax_zero_fr_tracks_keep_the_grid_size` (360 · 3열 · 600×500 아이템 → 120 · 100 유지) · `gridTracks.test.ts` · 칸 윤곽 테스트 1 · builder 5844 통과 (togglebuttongroup 기존 1건) · type-check · live `layout-display-grid-live.mjs` 9/9 (새 2d — 패널로 만든 3×3 grid 의 A 를 600 × 300 으로: 칸 9 · grid 400 × 200 · B 자리 그대로, 캡처로 A 만 grid 밖으로 넘침 확인 · Preview DOM 위치 = Canvas).
+
 ## [grid — 두 칸 크기 요소는 칸을 늘리지 않고 두 칸을 차지한다] - 2026-10-16
 
 ### Fixed

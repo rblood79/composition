@@ -73,8 +73,8 @@ const rowsField = page.getByRole("combobox", { name: /^(Rows|행 수)$/ });
 const gapX = page.getByRole("combobox", { name: /^(Gap X|가로 간격)$/ });
 const gapY = page.getByRole("combobox", { name: /^(Gap Y|세로 간격)$/ });
 check(
-  "1 Grid → display grid · repeat(2, 1fr) · Columns 2 · Columns/Rows/Gap X/Gap Y 칸 · Alignment·Wrap 없음",
-  doc.layout.display === "grid" && doc.layout.gridTemplateColumns === "repeat(2, 1fr)" &&
+  "1 Grid → display grid · repeat(2, minmax(0, 1fr)) · Columns 2 · Columns/Rows/Gap X/Gap Y 칸 · Alignment·Wrap 없음",
+  doc.layout.display === "grid" && doc.layout.gridTemplateColumns === "repeat(2, minmax(0, 1fr))" &&
     (await columnsField.inputValue()) === "2" && (await rowsField.isVisible()) && (await gapX.isVisible()) && (await gapY.isVisible()) &&
     (await page.locator('[aria-label="Flex alignment"], [aria-label="Flex 정렬"]').count()) === 0 &&
     (await page.locator('[aria-label="Flex wrap"], [aria-label="Flex 줄바꿈"]').count()) === 0,
@@ -101,8 +101,8 @@ await type(gapY, "10");
 doc = await layoutOf();
 const boxes = await exec(`(cat, ids) => Object.fromEntries(["A", "B", "C", "D"].map((k) => [k, cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(ids[k])[0])]))`, ids);
 check(
-  "2 문서 = repeat(3, 1fr) · columnGap 20 · rowGap 10 · Canvas 3열 (B · C 는 A 와 같은 행 · 열 폭 120 + 20, D 는 늘어난 둘째 행)",
-  doc.layout.gridTemplateColumns === "repeat(3, 1fr)" && Number(String(doc.layout.columnGap ?? "").replace("px", "")) === 20 &&
+  "2 문서 = repeat(3, minmax(0, 1fr)) · columnGap 20 · rowGap 10 · Canvas 3열 (B · C 는 A 와 같은 행 · 열 폭 120 + 20, D 는 늘어난 둘째 행)",
+  doc.layout.gridTemplateColumns === "repeat(3, minmax(0, 1fr))" && Number(String(doc.layout.columnGap ?? "").replace("px", "")) === 20 &&
     Number(String(doc.layout.rowGap ?? "").replace("px", "")) === 10 &&
     boxes.B.y === boxes.A.y && boxes.C.y === boxes.A.y && // two auto rows stretch over the 200 tall grid (align-content normal): (200 − 10) / 2 + 10
     boxes.D.y === boxes.A.y + (200 - 10) / 2 + 10 &&
@@ -146,6 +146,25 @@ await wait(400);
     cells.length === 9 && cells.every((c) => Math.abs(c.height - 60) < 0.5) &&
       Math.abs(last.y + last.height - (g.y + g.height)) < 0.5,
     { cells: cells.map((c) => [c.x, c.y, c.width, c.height]), g },
+  );
+}
+
+// 2d — 사용자 보고 (2026-10-16): grid 안 요소의 width · height 를 크게 늘려도 칸 · grid 크기는 그대로
+// (Figma — 요소만 커진다). A 를 600 × 300 으로 → 칸 폭 120 · grid 400 × 200 유지 · B 자리 그대로.
+{
+  const cellsBefore = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => [c.x, c.y, c.width, c.height])`, ids.G);
+  const before = await exec(`(cat, ids) => ["G", "B"].map((k) => cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(ids[k])[0]))`, ids);
+  await exec(`(cat, id) => cat.workspace.execute(cat.commands.setFields({ targets: [{ kind: "node", id }],
+    sizing: { width: { kind: "set", value: 600 }, height: { kind: "set", value: 300 } } }))`, ids.A);
+  await wait(600);
+  const cellsAfter = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => [c.x, c.y, c.width, c.height])`, ids.G);
+  const after = await exec(`(cat, ids) => ["G", "B", "A"].map((k) => cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(ids[k])[0]))`, ids);
+  await page.screenshot({ path: `${OUT}/2d-big-item.png` });
+  check(
+    "2d A 를 600 × 300 으로 → 칸 · grid 크기 그대로 (A 만 커져 칸을 넘친다)",
+    JSON.stringify(cellsAfter) === JSON.stringify(cellsBefore) &&
+      JSON.stringify(after.slice(0, 2)) === JSON.stringify(before) && after[2].width === 600,
+    { cellsBefore, cellsAfter, before, after },
   );
 }
 

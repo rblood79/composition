@@ -54,36 +54,14 @@ import {
 } from "../../../presentation/useSpacingSession";
 import { useStylesSelectedId } from "../stylesHost";
 import { useParentDisplay } from "../hooks/useTransformAuxiliary";
+import { gridTemplateOf, gridTrackCount } from "../utils/gridTracks";
 
-/** Track count presets of the Columns · Rows combo (`repeat(n, 1fr)`). */
+/** Track count presets of the Columns · Rows combo (`repeat(n, minmax(0, 1fr))`). */
 const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
   id: String(count),
   label: String(count),
   value: String(count),
 }));
-
-/**
- * The count of a `repeat(n, 1fr)` / `1fr 1fr …` template (`""` when empty); null for any other
- * template — the field then shows it as text and keeps it.
- */
-function gridTrackCount(template: string): string | null {
-  const value = template.trim();
-  if (!value) return "";
-  const repeat = /^repeat\(\s*(\d+)\s*,\s*1fr\s*\)$/.exec(value);
-  if (repeat) return repeat[1]!;
-  const tokens = value.split(/\s+/);
-  return tokens.every((token) => token === "1fr") ? String(tokens.length) : null;
-}
-
-/** A typed count becomes `repeat(n, 1fr)`; empty removes the template; other text is kept. */
-function gridTemplateOf(input: string): string {
-  const value = input.trim();
-  if (!value) return "";
-  const count = Number(value);
-  return Number.isInteger(count) && count > 0
-    ? `repeat(${count}, 1fr)`
-    : value;
-}
 
 /** Columns · Rows: a count combo like Gap (1 – 6 presets); a custom template stays text. */
 const GridTrackField = memo(function GridTrackField({

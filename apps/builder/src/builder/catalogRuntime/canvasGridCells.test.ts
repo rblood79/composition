@@ -221,3 +221,20 @@ describe("gridLayout — occupancy", () => {
     expect(layout.cells[4]).toEqual({ x: 100, y: 100, width: 100, height: 100 });
   });
 });
+
+describe("gridCells — minmax(0, 1fr) tracks keep the grid size", () => {
+  it("a big item does not grow its minmax(0, 1fr) track (the Layout section's Columns · Rows)", () => {
+    const cells = gridCells({
+      content: { x: 0, y: 0, width: 360, height: 300 },
+      columns: "repeat(3, minmax(0, 1fr))",
+      columnGap: 0,
+      rowGap: 0,
+      items: [{ x: 0, y: 0, width: 600, height: 500 }],
+      fallbackHeight: 40,
+      rows: "repeat(3, minmax(0, 1fr))",
+      appendRow: false,
+    });
+    expect(cells.map((cell) => cell.width)).toEqual(new Array(9).fill(120));
+    expect(cells.map((cell) => cell.height)).toEqual(new Array(9).fill(100));
+  });
+});

@@ -110,7 +110,7 @@ describe("useStyleActions", () => {
       justifyContent: "",
       alignItems: "",
       flexWrap: "",
-      gridTemplateColumns: "repeat(2, 1fr)",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     });
     act(() => {
       result.current.handleFlexDirection(undefined);

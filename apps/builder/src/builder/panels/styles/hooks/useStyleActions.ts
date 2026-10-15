@@ -12,6 +12,7 @@
 import { useCallback } from "react";
 import { useStylesHost, type StylesHost } from "../stylesHost";
 import { useCopyPaste } from "../../../hooks/useCopyPaste";
+import { gridTrackTemplate } from "../utils/gridTracks";
 import {
   isFillDerivedStyleProp,
   sanitizeFillDerivedStylePatch,
@@ -199,7 +200,8 @@ export function useStyleActions() {
           gap: "",
         });
       } else if (next === "grid") {
-        // grid: flex 축 · 정렬 · 줄바꿈은 패널에서 숨으므로 지운다. 열이 없으면 2열로 시작.
+        // grid: flex 축 · 정렬 · 줄바꿈은 패널에서 숨으므로 지운다. 열이 없으면 2열로 시작
+        // (칸이 grid 크기만 나누는 minmax(0, 1fr) — `gridTracks.ts`).
         const columns = (selected.style as Record<string, unknown> | undefined)
           ?.gridTemplateColumns;
         host.updateStyles({
@@ -208,7 +210,7 @@ export function useStyleActions() {
           justifyContent: "",
           alignItems: "",
           flexWrap: "",
-          ...(columns ? {} : { gridTemplateColumns: "repeat(2, 1fr)" }),
+          ...(columns ? {} : { gridTemplateColumns: gridTrackTemplate(2) }),
         });
       } else {
         host.updateFlexStyles({ flexDirection: next });

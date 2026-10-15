@@ -48,18 +48,22 @@ function expandTracks(template: string | undefined): string[] | undefined {
 interface TrackKind {
   fixed?: number;
   fr?: number;
+  /** `minmax(0, …)`: an item does not grow the track (its minimum is 0, not the content). */
+  zeroMin?: boolean;
 }
 
 /** A template token's sizing: px · % fixed, `fr` (also a `minmax(…, fr)` max), else content. */
 function trackKind(token: string | undefined, length: number): TrackKind {
   if (!token) return {};
-  const max = /^minmax\(\s*[^,]+,\s*(.+)\)$/.exec(token)?.[1]?.trim() ?? token;
+  const minmax = /^minmax\(\s*([^,]+),\s*(.+)\)$/.exec(token);
+  const max = minmax?.[2]?.trim() ?? token;
+  const zeroMin = !!minmax && lengthPx(minmax[1]!.trim()) === 0;
   const px = lengthPx(max);
   if (px !== undefined) return { fixed: px };
   const percent = /^(\d+(\.\d+)?)%$/.exec(max);
   if (percent) return { fixed: (length * Number(percent[1])) / 100 };
   const flex = /^(\d+(\.\d+)?)fr$/.exec(max);
-  if (flex) return { fr: Number(flex[1]) };
+  if (flex) return { fr: Number(flex[1]), ...(zeroMin ? { zeroMin } : {}) };
   return {};
 }
 
@@ -82,7 +86,7 @@ function sizeTracks(
     kinds.forEach((kind, index) => {
       if (kind.fr)
         sizes[index] = Math.max(
-          content[index] ?? 0,
+          kind.zeroMin ? 0 : (content[index] ?? 0),
           (free * kind.fr) / totalFr,
         );
     });
