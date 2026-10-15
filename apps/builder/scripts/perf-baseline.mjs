@@ -23,6 +23,9 @@
 //        (hover · drag · marquee = 실포인터 — catalog Builder 전용, zoom 1 고정 카메라)
 //     [--pages N] (시드 페이지 수, 기본 2 — ADR-221 G2 는 22)
 //     [--zoom Z] (시드 뒤 초기 줌 0.1~5 — DEV 훅 __composition_APPLY_VIEWPORT__, 22 페이지 전부 뷰포트 안 = 0.1)
+//     [--serve-dist <dir>] [--dist-port 4190] (production 레인 — `pnpm perf:build-dist` 산출물을
+//        정적 서버로 띄워 BUILDER_URL 대신 잰다. React DEV 부담 없는 값 · 프로필 이름은 sourcemap
+//        으로 복원 (profile.topResolved) · head 는 빌드한 commit. perfDist.mjs)
 //     [--call-counts] (CDP precise coverage 로 부류당 V8 함수 호출 수 — 결정적 카운트. 커버리지가
 //        최적화를 막아 wall-clock 이 부풀므로 이 run 의 gap/taskMs 는 비교 인용 금지)
 //
@@ -37,6 +40,12 @@
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOG_STORE_FACADE_SCRIPT } from "./perfCatalogFacade.mjs";
+import {
+  createFrameResolver,
+  readDistBuild,
+  resolveProfiles,
+  serveHarnessDist,
+} from "./perfDist.mjs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
@@ -71,6 +80,8 @@ const DEFAULTS = {
   cpuThrottle: 1,
   cpuTimeDomain: "timeTicks",
   buildId: null,
+  serveDist: null,
+  distPort: 4190,
   fixtureKind: "mixed",
   pages: 2,
   zoom: null,
@@ -121,6 +132,8 @@ export function parseArgs(argv) {
     else if (value === "--cpu-throttle") options.cpuThrottle = Number(next);
     else if (value === "--cpu-time-domain") options.cpuTimeDomain = next;
     else if (value === "--build-id") options.buildId = next;
+    else if (value === "--serve-dist") options.serveDist = resolve(next);
+    else if (value === "--dist-port") options.distPort = Number(next);
     else if (value === "--fixture-kind") options.fixtureKind = next;
     else if (value === "--pages") options.pages = Number(next);
     else if (value === "--zoom") options.zoom = Number(next);
@@ -2629,9 +2642,11 @@ function renderProfiles(results) {
       "| self-time 상위 | % |",
       "| --- | ---: |",
     );
-    for (const t of r.profile.top) lines.push(`| ${t.frame} | ${t.pct} |`);
+    for (const t of r.profile.topResolved ?? r.profile.top)
+      lines.push(`| ${t.frame} | ${t.pct} |`);
     lines.push("| **앱 코드 (src/) 상위** | |");
-    for (const t of r.profile.app) lines.push(`| ${t.frame} | ${t.pct} |`);
+    for (const t of r.profile.appResolved ?? r.profile.app)
+      lines.push(`| ${t.frame} | ${t.pct} |`);
   }
   return lines.join("\n");
 }
@@ -2776,6 +2791,16 @@ async function runColdEntries(browser, options, storageState) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   mkdirSync(options.out, { recursive: true });
+  const distServer = options.serveDist
+    ? await serveHarnessDist(options.serveDist, options.distPort)
+    : null;
+  const distBuild = options.serveDist ? readDistBuild(options.serveDist) : null;
+  if (distServer) {
+    options.baseUrl = distServer.url;
+    process.stderr.write(
+      `[dist] ${options.serveDist} · head ${distBuild.head?.slice(0, 9) ?? "?"} · ${distServer.url}\n`,
+    );
+  }
   const storageState = loadStorageState(
     options.storageState,
     new URL(options.baseUrl).origin,
@@ -2914,17 +2939,27 @@ async function main() {
           }));
       });
       const results = await runFrameLane(page, cdp, seed, options);
+      if (distBuild) {
+        environment.build = "production-harness";
+        environment.dist = distBuild;
+        resolveProfiles(results, createFrameResolver(options.serveDist));
+      }
       const report = {
         lane: "frame",
-        head: execFileSync("git", ["rev-parse", "HEAD"], {
-          encoding: "utf8",
-        }).trim(),
-        dirtyFiles: execFileSync("git", ["diff", "--name-only"], {
-          encoding: "utf8",
-        })
-          .trim()
-          .split("\n")
-          .filter(Boolean),
+        // dist 레인은 측정한 코드 = 빌드한 commit (작업 트리가 아니다).
+        head:
+          distBuild?.head ??
+          execFileSync("git", ["rev-parse", "HEAD"], {
+            encoding: "utf8",
+          }).trim(),
+        dirtyFiles:
+          distBuild?.dirtyFiles ??
+          execFileSync("git", ["diff", "--name-only"], {
+            encoding: "utf8",
+          })
+            .trim()
+            .split("\n")
+            .filter(Boolean),
         environment,
         fixture: {
           kind: "current-page-element-projection",
@@ -3036,6 +3071,7 @@ async function main() {
     );
   } finally {
     await browser.close();
+    await distServer?.close();
   }
 }
 

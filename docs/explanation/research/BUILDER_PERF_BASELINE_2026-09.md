@@ -96,7 +96,7 @@ LayerTree에서만 RAC `Virtualizer + ListLayout`을 항상 사용하고, Proper
 
 ### 3-3. self-time 귀속 (`--profile`, JS Self-Profiling 1ms, 600 요소)
 
-샘플 1ms, 3초. "idle" 은 스택 없는 샘플 비율 (JS 가 안 도는 시간). dev 빌드라 React DEV 오버헤드 (`logComponentRender` · `runWithFiberInDEV` · `validateProperty` · `warnUnknownProperties` · `addObjectDiffToProperties`) 가 busy 의 15~20% 를 차지한다 — prod 절대값은 `--serve-dist` (adr187 방식) 로 다시 재야 한다.
+샘플 1ms, 3초. "idle" 은 스택 없는 샘플 비율 (JS 가 안 도는 시간). dev 빌드라 React DEV 오버헤드 (`logComponentRender` · `runWithFiberInDEV` · `validateProperty` · `warnUnknownProperties` · `addObjectDiffToProperties`) 가 busy 의 15~20% 를 차지한다 — prod 값은 `pnpm perf:build-dist` (harness 빌드 + sourcemap) 뒤 `pnpm perf:baseline -- --lane frame --serve-dist /private/tmp/perf-baseline-dist` 로 잰다 (2026-10-16 — 서버 헤더는 dev 와 같고, 축소된 프로필 이름은 `profile.topResolved` 로 복원된다. `perfDist.mjs`).
 
 | 부류          | JS idle | self-time 상위 (앱 코드)                                                                                                               | 읽기                                                                                                                                   |
 | ------------- | ------: | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |

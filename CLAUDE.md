@@ -16,7 +16,7 @@ pnpm -F @composition/builder test:parity            # browser vitest · 시각 �
 pnpm codex:preflight                                # guard + format + typecheck + registration gate
 pnpm docs:stale-symbols [--all]                     # 규칙·skill·agent 문서가 소스에 없는 심볼을 현재 것처럼 인용하면 exit 1 (--docs · --memory 는 보고만) — 삭제·개명 커밋 뒤 실행
 pnpm gate:perf-ratchet                              # 결정적 카운트 ratchet (ADR-246) — pre-push 가 성능 경로 push 에서 자동 실행 · 탈출구 SKIP_PERF_RATCHET=1
-pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 · frame 은 --fixed-inputs [--call-counts] 로 결정적 카운트 (ratchet 후보, 문서 §8) · apps/builder/scripts 하니스는 BUILDER_URL=http://localhost:5174 로 대상 서버 지정 (기본 5173) (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
+pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 · frame 은 --fixed-inputs [--call-counts] 로 결정적 카운트 (ratchet 후보, 문서 §8) · apps/builder/scripts 하니스는 BUILDER_URL=http://localhost:5174 로 대상 서버 지정 (기본 5173) · production 값은 `pnpm perf:build-dist` 뒤 `--serve-dist /private/tmp/perf-baseline-dist` (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 ```
 
 env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
