@@ -13,6 +13,7 @@ Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은
 - [fix](fix/SKILL.md): 버그 원인 분석과 수리
 - [review](review/SKILL.md): 코드 리뷰
 - [evaluate](evaluate/SKILL.md): 실행 중인 Builder 검증
+- [verify](verify/SKILL.md): 커밋 전 동작 확인 — type-check 뒤 영향 영역 live 1회 (cross-check · evaluate 로 분기)
 - [review-adr](review-adr/SKILL.md): ADR 문서 리뷰
 - [create-adr](create-adr/SKILL.md): user-only, 사용자가 새 ADR 작성을 요청할 때
 - [execute-adr](execute-adr/SKILL.md): user-only, 사용자가 ADR 실행 범위를 지정할 때
