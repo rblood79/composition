@@ -1118,6 +1118,39 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("a").height).toBe(150);
   });
 
+  // 2026-10-16 사용자 보고 「배치는 되지만 1칸 이상 그려지지 않음」: a node two rows tall over the last
+  // row took it and hung below the grid (a 0-high implicit row) — it goes where both rows are in.
+  it("a node two rows tall is offered only cells whose rows are all inside the grid", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf();
+    const list = box("list");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("d") }],
+        sizing: {
+          width: { kind: "set", value: 100 },
+          height: { kind: "set", value: 200 },
+        },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("d")]);
+    const [dx, dy] = center("d");
+    gestures.beginMove(dx, dy, record("d"));
+    // Over the last row's middle cell.
+    gestures.update(list.x + 300, list.y + 250, 1);
+    expect(gestures.preview()!.cell).toEqual({
+      x: list.x + 200,
+      y: list.y + 100,
+      width: 200,
+      height: 200,
+    });
+    gestures.finish();
+    scene.sync();
+    expect(linesOf(workspace, "d")).toEqual(["2", "2", undefined, "span 2"]);
+    expect(box("d").y + box("d").height).toBeLessThanOrEqual(list.y + list.height);
+    expect(box("list").height).toBe(list.height);
+  });
+
   it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {
     const { workspace, scene, gestures, record, box, center } = await gridOf();
     const list = box("list");

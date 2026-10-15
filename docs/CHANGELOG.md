@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid — 여러 행 크기 요소는 행이 모두 grid 안인 칸에만 놓인다] - 2026-10-16
+
+### Fixed
+
+- **두 행 크기 요소를 마지막 행 위로 끌면, 두 행이 모두 grid 안인 자리 (한 행 위) 에 놓인다.** 종전엔 마지막 행에 놓여 둘째 행분이 높이 0 의 암묵 행이 되고 요소가 grid 아래로 넘쳤다 — 그 부분에는 칸도 그려지지 않았다 (사용자 보고 「다시 grid 내에 배치는 되지만 1칸 이상 그려지지 않음」, 실제 Chrome 재현: 2×2 요소를 셋째 행에 → 행 4 높이 0). 빈 칸 판정에서 그려진 행 밖은 비어 있지 않은 것으로 본다 (끝까지 찬 grid 에 붙는 덧붙임 행은 그대로 쓸 수 있다).
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`gridTarget` 의 `free`). 검증: 테스트 1 (수정 빼면 RED) · catalogRuntime · workspace 통과 (togglebuttongroup 기존 1건) · type-check · live `grid-span-fit-live.mjs` 3/3 (새 — 모서리 핸들로 240 × 200 snap 뒤 마지막 행 위로: 둘째 · 셋째 행 자리 · grid 300 그대로, 캡처 확인) · `grid-cell-placement-live` 9/9 · `canvas-dnd-drop-rules-live` 7/7.
+
 ## [grid 안 요소의 크기 핸들이 칸 경계에 snap 한다] - 2026-10-16
 
 ### Added

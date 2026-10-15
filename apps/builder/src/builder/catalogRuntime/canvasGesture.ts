@@ -1905,9 +1905,12 @@ export class CatalogCanvasGestures {
         Math.floor(cell / columns),
         gesture.startBox,
       );
+    // A cell past the drawn rows is not free: a node taller than the rows left would hang below
+    // the grid in a 0-high implicit row (2026-10-16 사용자 보고 「배치는 되지만 1칸 이상 그려지지
+    // 않음」 — a 2-row node dropped on the last row).
     const free = (cell: number) => {
       const at = occupant[cell];
-      return at === undefined || at < 0 || dragged.has(all[at]!.id);
+      return at !== undefined && (at < 0 || dragged.has(all[at]!.id));
     };
     const fits = (cell: number) => {
       const row = Math.floor(cell / columns);
