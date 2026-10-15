@@ -97,6 +97,29 @@ describe("useStyleActions", () => {
   // 전부 렌더 SSOT 가 동일한 catalog containerVariants(label-position.side flex-row)라
   // 동형. ButtonGroup 은 SSOT 가 정반대(style.flexDirection)라 제외, Form 은 labelPosition
   // 이 자식 상속 hint(그룹 root derive 아님)라 제외.
+  // Display 토글 (2026-10-15 사용자 결정): grid · row · column, 선택을 비우면 block.
+  it("Display grid → display grid + 2열 (flex 축 · 정렬 · 줄바꿈 제거), 선택 비움 → block", async () => {
+    const { updateSelectedStyles } = await setup([{ id: "el1" }], "el1");
+    const { result } = actions();
+    act(() => {
+      result.current.handleFlexDirection("grid");
+    });
+    expect(updateSelectedStyles).toHaveBeenLastCalledWith({
+      display: "grid",
+      flexDirection: "",
+      justifyContent: "",
+      alignItems: "",
+      flexWrap: "",
+      gridTemplateColumns: "repeat(2, 1fr)",
+    });
+    act(() => {
+      result.current.handleFlexDirection(undefined);
+    });
+    expect(updateSelectedStyles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ display: "block" }),
+    );
+  });
+
   describe("handleFlexDirection — 그룹 축 prop derive 컨테이너 동기화", () => {
     function setupSelection(type: string) {
       return setup([{ id: "el1", type }], "el1");
@@ -105,6 +128,18 @@ describe("useStyleActions", () => {
     // 소문자로 넘기면 derive 정규화 누락 회귀를 못 잡으므로 실표기 사용.
     const setupToggleButtonGroupSelection = () =>
       setupSelection("ToggleButtonGroup");
+
+    it("grid · 선택 비움은 무시 — 방향 prop 컨테이너는 row · column 뿐", async () => {
+      const { updateSelectedStyles, updateSelectedProperty } =
+        await setupToggleButtonGroupSelection();
+      const { result } = actions();
+      act(() => {
+        result.current.handleFlexDirection("grid");
+        result.current.handleFlexDirection(undefined);
+      });
+      expect(updateSelectedProperty).not.toHaveBeenCalled();
+      expect(updateSelectedStyles).not.toHaveBeenCalled();
+    });
 
     it("column → orientation:vertical 로 번역, style 미기록", async () => {
       const { updateSelectedStyles, updateSelectedProperty } =

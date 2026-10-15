@@ -30,6 +30,14 @@
           grid-area: flex-direction;
         }
 
+        /* grid: Columns · Rows stacked in the alignment cell (2026-10-15) */
+        .grid-tracks {
+          display: flex;
+          flex-direction: column;
+          gap: var(--spacing-sm);
+          min-width: 0;
+        }
+
         .flex-alignment {
           grid-area: flex-alignment;
 

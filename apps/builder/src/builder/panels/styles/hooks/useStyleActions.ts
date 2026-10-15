@@ -25,7 +25,7 @@ import {
 const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
 
 /** Direction 토글이 보내는 값 — 그 밖 (빈 선택) 은 쓰지 않는다. */
-const DIRECTION_VALUES = new Set(["block", "row", "column"]);
+const DIRECTION_VALUES = new Set(["block", "grid", "row", "column"]);
 
 /**
  * 방향 토글이 prop 번역 전에 남긴 인라인 방향 키 — `flexDirection`, 그리고 토글이 쓰는 `display`
@@ -164,13 +164,16 @@ export function useStyleActions() {
    * 도달하지 않지만, 방어적으로 row 쪽 흡수. 대상 정본: orientationDrivenTags.
    */
   const handleFlexDirection = useCallback(
-    (value: string) => {
-      // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
-      //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
-      if (!DIRECTION_VALUES.has(value)) return;
+    (value: string | undefined) => {
+      // Display 토글 (2026-10-15 사용자 결정): grid · row · column 세 버튼, 선택을 비우면 block.
+      const next = value ?? "block";
+      if (!DIRECTION_VALUES.has(next)) return;
       const selected = host.readSelectedTarget();
       const drivenProp = resolveDirectionDrivenProp(selected.type);
       if (drivenProp) {
+        // 방향이 prop 인 컨테이너는 row · column 뿐 — 빈 선택 (선택된 버튼 재클릭) · grid 는 무시.
+        //   prop 번역은 column 외를 side / horizontal 로 흡수하므로 걸러야 top 이 side 로 뒤집히지 않는다.
+        if (value === undefined || next === "grid") return;
         const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
         const stale = staleDirectionKeys(selected.style);
         if (stale.length) {
@@ -185,7 +188,7 @@ export function useStyleActions() {
         host.updateProperty(drivenProp, drivenValue);
         return;
       }
-      if (value === "block") {
+      if (next === "block") {
         // display: block으로 전환, flex 관련 속성 제거
         host.updateStyles({
           display: "block",
@@ -195,8 +198,20 @@ export function useStyleActions() {
           flexWrap: "",
           gap: "",
         });
-      } else if (value === "row" || value === "column") {
-        host.updateFlexStyles({ flexDirection: value });
+      } else if (next === "grid") {
+        // grid: flex 축 · 정렬 · 줄바꿈은 패널에서 숨으므로 지운다. 열이 없으면 2열로 시작.
+        const columns = (selected.style as Record<string, unknown> | undefined)
+          ?.gridTemplateColumns;
+        host.updateStyles({
+          display: "grid",
+          flexDirection: "",
+          justifyContent: "",
+          alignItems: "",
+          flexWrap: "",
+          ...(columns ? {} : { gridTemplateColumns: "repeat(2, 1fr)" }),
+        });
+      } else {
+        host.updateFlexStyles({ flexDirection: next });
       }
     },
     [host],

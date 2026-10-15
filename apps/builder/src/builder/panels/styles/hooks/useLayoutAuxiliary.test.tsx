@@ -148,10 +148,17 @@ function setElement(
 describe("useFlexDirectionKeys", () => {
   beforeEach(() => setElement("e", {}));
 
-  it("returns ['block'] when display is not flex", () => {
+  // Display 토글 (2026-10-15): grid · row · column — block 은 아무것도 선택되지 않은 상태.
+  it("returns [] (nothing selected) when display is block", () => {
     setElement("e", { display: "block" });
     const { result } = renderHook(() => useFlexDirectionKeys("e"));
-    expect(result.current).toEqual(["block"]);
+    expect(result.current).toEqual([]);
+  });
+
+  it("returns ['grid'] when display is grid", () => {
+    setElement("e", { display: "grid" });
+    const { result } = renderHook(() => useFlexDirectionKeys("e"));
+    expect(result.current).toEqual(["grid"]);
   });
 
   it("returns ['row'] when flex + row", () => {
@@ -178,14 +185,14 @@ describe("useFlexDirectionKeys", () => {
     ]);
   });
 
-  it("inline-block / inline-grid 는 flex 가 아니다 (음성)", () => {
+  it("inline-block 은 선택 없음 · inline-grid 는 grid (flexDirection 무시)", () => {
     setElement("e", { display: "inline-block", flexDirection: "column" });
-    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
-      "block",
-    ]);
+    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual(
+      [],
+    );
     setElement("e", { display: "inline-grid", flexDirection: "column" });
     expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
-      "block",
+      "grid",
     ]);
   });
 });
@@ -444,10 +451,10 @@ describe("useLayoutAlignmentDisabled — grid 컨테이너", () => {
 });
 
 describe("useLayoutAuxiliary — ADR-108 P3 variant-aware fallback", () => {
-  it("variant display=grid 이면 Direction 토글은 block 상태", () => {
+  it("variant display=grid 이면 Display 토글은 grid 상태", () => {
     setElement("e", {}, "VariantGridSpec", { labelPosition: "side" });
     const { result } = renderHook(() => useFlexDirectionKeys("e"));
-    expect(result.current).toEqual(["block"]);
+    expect(result.current).toEqual(["grid"]);
   });
 
   it("variant flex-direction/align/justify 를 Alignment 토글에 반영", () => {

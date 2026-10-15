@@ -107,7 +107,9 @@ export function useFlexDirectionKeys(id: string | null): string[] {
     // 그룹 축 prop 컨테이너는 display 와 무관하게 그 prop 을 보인다 — ProgressBar · Meter · Slider 의
     //   top 은 grid 라, display 로 판정하면 disable 된 block 이 선택돼 보였다.
     if (directionDriven) return [flexDirection === "column" ? "column" : "row"];
-    if (!isFlexDisplay(display)) return ["block"];
+    // Display 토글: grid · row · column, 아무것도 선택되지 않음 = block.
+    if (isGridDisplay(display)) return ["grid"];
+    if (!isFlexDisplay(display)) return [];
     if (flexDirection === "column") return ["column"];
     return ["row"];
   }, [display, flexDirection, directionDriven]);

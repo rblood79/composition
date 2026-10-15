@@ -139,6 +139,8 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
   "gap",
   "rowGap",
   "columnGap",
+  "gridTemplateColumns",
+  "gridTemplateRows",
   "padding",
   "paddingTop",
   "paddingRight",
@@ -175,8 +177,9 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
  * ADR-154 는 eligible 집합을 "Style 패널이 편집하는 키 전수" 와 정확히 일치시켰다. 이는
  * breakpoint override 의 **write 주체가 Style 패널 하나뿐** 이라는 당시 조건의 부산물이다.
  * Frame preset 이 두 번째 write 주체가 되면서 "편집 UI 가 있는가" 와 "breakpoint 별로
- * 달라져야 하는가" 가 분리됐다 — grid 트랙은 편집 UI 가 없지만 mobile 에서 반드시 달라져야
- * 한다(사이드바 250px 고정이 390px 뷰포트에서 콘텐츠를 140px 로 만든다).
+ * 달라져야 하는가" 가 분리됐다 — grid 영역 · 슬롯 line 은 편집 UI 가 없지만 mobile 에서 반드시
+ * 달라져야 한다(사이드바 250px 고정이 390px 뷰포트에서 콘텐츠를 140px 로 만든다). 트랙 수
+ * (Columns · Rows) 는 2026-10-15 부터 Layout 섹션이 편집해 SECTION_EDITABLE 쪽이다.
  *
  * 이 집합의 키는 `ResponsiveSection` 의 "Add override" picker 에 노출되지 않는다 — picker 는
  * eligible 집합을 순회하지 않고 자체 목록을 쓴다(`ResponsiveSection.tsx`). 즉 사용자가 이
@@ -191,9 +194,7 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
  */
 export const PRESET_AUTHORED_RESPONSIVE_STYLE_PROPS: ReadonlySet<string> =
   new Set([
-    // 컨테이너 트랙 정의
-    "gridTemplateColumns",
-    "gridTemplateRows",
+    // 컨테이너 트랙 정의 — Columns · Rows 는 2026-10-15 부터 Layout 섹션이 편집 (SECTION_EDITABLE)
     "gridTemplateAreas",
     // 슬롯 배치 line (숫자 line 병기 — layout-engine.md §"Grid area 이름 해석")
     "gridColumnStart",

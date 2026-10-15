@@ -66,6 +66,8 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   "gap",
   "rowGap",
   "columnGap",
+  "gridTemplateColumns",
+  "gridTemplateRows",
   "padding",
   "paddingTop",
   "paddingRight",

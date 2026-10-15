@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 Layout — Display 에 grid 추가 · grid 의 Columns · Rows · Gap X · Gap Y] - 2026-10-15
+
+### Changed
+
+- **Layout 섹션의 「Direction」 이 「Display」 로 바뀌고 버튼이 grid · row · column 세 개가 된다.** 선택을 모두 끄면 block 이다 (block 버튼은 없어졌다). 방향이 속성으로 정해지는 컴포넌트 (ToggleButtonGroup · Toolbar · RadioGroup · CheckboxGroup …) 는 지금처럼 row · column 만 고를 수 있다 — grid 는 비활성, 선택 비움은 무시.
+- **grid 를 켜면 display grid + 2열 (`repeat(2, 1fr)`, 열이 이미 있으면 그대로) 로 시작한다.** flex 의 방향 · 정렬 · 줄바꿈 값은 지운다.
+- **grid 일 때 Alignment 자리에 Columns · Rows, Wrap 자리에 Gap X, Gap 자리에 Gap Y 가 나온다.** Columns · Rows 는 Gap 과 같은 콤보 (1 – 6 프리셋, 숫자 n → `repeat(n, 1fr)`, 비우면 제거 — Rows 는 `auto`). `200px 1fr` 처럼 개수로 나타낼 수 없는 값은 글자 그대로 보이고 덮어쓰지 않는다. Gap X · Gap Y 는 `columnGap` · `rowGap`. Space 는 grid 에서 지금처럼 비활성 (Masonry 는 엔진 미지원이라 보류 — 사용자 결정).
+  - **Why**: 패널에 grid 를 켤 방법이 없었고, grid 요소를 고르면 Alignment · Space · Wrap 이 비활성으로만 보였다 (사용자 지적).
+- 위치: `apps/builder/src/builder/panels/styles/sections/LayoutSection.tsx` · `hooks/useStyleActions.ts` (`handleFlexDirection` — grid · 빈 선택 = block) · `hooks/useLayoutAuxiliary.ts` (`useFlexDirectionKeys` — grid · 선택 없음) · `hooks/useLayoutValues.ts` · `components/styles/inspector-layout.css` · `i18n` (Display · Columns · Gap X · Gap Y) · `packages/shared/src/types/responsive.types.ts` (grid 트랙 2 키를 패널 편집 집합으로 이동 — breakpoint override 그대로 허용). 검증: panels + components + i18n 1323 통과 (새 3 · 고친 3) · shared types 12 · type-check · live `apps/builder/scripts/layout-display-grid-live.mjs` 5/5 (headed Chrome 실제 패널 클릭 · 입력: Grid → grid · 2열 · 칸 4종 / Columns 3 · Gap X 20 · Gap Y 10 → Canvas 3열 · 열 간격 20 / Preview DOM 자식 위치 = Canvas / Grid 다시 누름 → block).
+
 ## [grid 로 끌 때 칸 윤곽 · 빈 칸 채움 — Figma 실측 기준] - 2026-10-15
 
 ### Changed

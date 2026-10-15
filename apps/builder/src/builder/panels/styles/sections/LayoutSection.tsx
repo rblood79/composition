@@ -1,7 +1,8 @@
 /**
  * LayoutSection - Layout 스타일 편집 섹션
  *
- * Flex direction, Alignment, Gap, Padding, Margin 편집
+ * Display (grid · row · column, 선택 없음 = block), Alignment, Gap 편집 — grid 면 Alignment 자리에
+ * Columns · Rows, Wrap · Gap 자리에 Gap X · Gap Y (2026-10-15 사용자 결정).
  * 4방향 확장 모드: direction-alignment-grid 스타일 패턴 사용
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
@@ -9,6 +10,7 @@
 import { memo } from "react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { PropertyInput } from "../../../components/property/PropertyInput";
 import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,
@@ -23,7 +25,7 @@ import {
   GalleryHorizontal,
   LayoutArrowDown,
   LayoutArrowRight,
-  Square,
+  LayoutGrid,
   TextWrap,
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -49,6 +51,72 @@ import {
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
 import { useStylesSelectedId } from "../stylesHost";
+
+/** Track count presets of the Columns · Rows combo (`repeat(n, 1fr)`). */
+const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
+  id: String(count),
+  label: String(count),
+  value: String(count),
+}));
+
+/**
+ * The count of a `repeat(n, 1fr)` / `1fr 1fr …` template (`""` when empty); null for any other
+ * template — the field then shows it as text and keeps it.
+ */
+function gridTrackCount(template: string): string | null {
+  const value = template.trim();
+  if (!value) return "";
+  const repeat = /^repeat\(\s*(\d+)\s*,\s*1fr\s*\)$/.exec(value);
+  if (repeat) return repeat[1]!;
+  const tokens = value.split(/\s+/);
+  return tokens.every((token) => token === "1fr") ? String(tokens.length) : null;
+}
+
+/** A typed count becomes `repeat(n, 1fr)`; empty removes the template; other text is kept. */
+function gridTemplateOf(input: string): string {
+  const value = input.trim();
+  if (!value) return "";
+  const count = Number(value);
+  return Number.isInteger(count) && count > 0
+    ? `repeat(${count}, 1fr)`
+    : value;
+}
+
+/** Columns · Rows: a count combo like Gap (1 – 6 presets); a custom template stays text. */
+const GridTrackField = memo(function GridTrackField({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  onCommit: (template: string) => void;
+}) {
+  const count = gridTrackCount(value);
+  if (count === null)
+    return (
+      <PropertyInput
+        label={label}
+        value={value}
+        onChange={(next) => onCommit(gridTemplateOf(next))}
+      />
+    );
+  return (
+    <PropertyUnitInput
+      label={label}
+      value={count}
+      units={[]}
+      allowKeywords={false}
+      allowEmptyReset
+      preserveEmptyValueOnUnitChange
+      placeholder="auto"
+      presets={GRID_TRACK_PRESETS}
+      onChange={(next) => onCommit(gridTemplateOf(next))}
+      min={1}
+      max={24}
+    />
+  );
+});
 
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const localize = useSemanticLabel();
@@ -116,27 +184,36 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   };
 
   if (!styleValues) return null;
+  const isGrid = flexDirectionKeys[0] === "grid";
+  const commitGap = (property: "rowGap" | "columnGap", value: string) => {
+    if (!commitLayoutPresentation(property, value))
+      updateStyleImmediate(property, value);
+  };
+  const previewGap = (property: "rowGap" | "columnGap", value: string) => {
+    if (!previewLayoutPresentation(property, value))
+      updateStylePreview(property, value);
+  };
 
   return (
     <>
       <div className="layout-direction">
         <div className="direction-controls flex-direction">
-          <legend className="fieldset-legend">{localize("Direction")}</legend>
+          <legend className="fieldset-legend">{localize("Display")}</legend>
+          {/* grid · row · column — 선택을 모두 끄면 block. 방향이 prop 인 컨테이너는 row · column 만 */}
           <ToggleButtonGroup
-            aria-label={localize("Flex direction")}
+            aria-label={localize("Display")}
             indicator
             selectedKeys={flexDirectionKeys}
             onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string;
-              handleFlexDirection(value);
+              handleFlexDirection(Array.from(keys)[0] as string | undefined);
             }}
           >
             <ToggleButton
-              id="block"
-              aria-label={localize("Block")}
+              id="grid"
+              aria-label={localize("Grid")}
               isDisabled={isDirectionDriven}
             >
-              <Square
+              <LayoutGrid
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -158,78 +235,97 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
-        <div className="direction-alignment-grid flex-alignment">
-          <legend className="fieldset-legend">{localize("Alignment")}</legend>
-          {/* Space 가 켜지면 (space-*) 주축이 분산 — 그리드는 점 → 막대 (data-distributed)
-              가 되고 클릭은 교차축만 쓴다 (panel-ui 01, 2026-09-14) */}
-          <ToggleButtonGroup
-            aria-label={localize("Flex alignment")}
-            isDisabled={isAlignmentDisabled}
-            indicator
-            selectionMode="single"
-            selectedKeys={flexAlignmentKeys}
-            data-distributed={flexDistributionAxis ?? undefined}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string;
-              if (value) {
-                // 🚀 Phase 3: styleValues에서 직접 값 사용
-                // 라벨 위치 컨테이너의 방향은 prop 이 정한다 — Direction 표시와 같은 값으로 축을 매핑.
-                handleFlexAlignment(
-                  value,
-                  isDirectionDriven
-                    ? flexDirectionKeys[0]
-                    : styleValues.flexDirection,
-                  { preserveMainAxis: flexDistributionAxis !== null },
-                );
-              } else if (flexDistributionAxis !== null) {
-                updateStyles({ alignItems: "" });
-              } else {
-                // 활성화된 토글 재클릭 → alignment 스타일 제거
-                updateStyles({ alignItems: "", justifyContent: "" });
+        {isGrid ? (
+          <div className="flex-alignment grid-tracks">
+            <GridTrackField
+              label="Columns"
+              value={styleValues.gridTemplateColumns}
+              onCommit={(template) =>
+                updateStyles({ gridTemplateColumns: template })
               }
-            }}
-          >
-            <ToggleButton id="leftTop" aria-label={localize("Top left")}>
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="centerTop" aria-label={localize("Top center")}>
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="rightTop" aria-label={localize("Top right")}>
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="leftCenter" aria-label={localize("Middle left")}>
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton
-              id="centerCenter"
-              aria-label={localize("Middle center")}
+            />
+            <GridTrackField
+              label="Rows"
+              value={styleValues.gridTemplateRows}
+              onCommit={(template) =>
+                updateStyles({ gridTemplateRows: template })
+              }
+            />
+          </div>
+        ) : (
+          <div className="direction-alignment-grid flex-alignment">
+            <legend className="fieldset-legend">{localize("Alignment")}</legend>
+            {/* Space 가 켜지면 (space-*) 주축이 분산 — 그리드는 점 → 막대 (data-distributed)
+                가 되고 클릭은 교차축만 쓴다 (panel-ui 01, 2026-09-14) */}
+            <ToggleButtonGroup
+              aria-label={localize("Flex alignment")}
+              isDisabled={isAlignmentDisabled}
+              indicator
+              selectionMode="single"
+              selectedKeys={flexAlignmentKeys}
+              data-distributed={flexDistributionAxis ?? undefined}
+              onSelectionChange={(keys) => {
+                const value = Array.from(keys)[0] as string;
+                if (value) {
+                  // 🚀 Phase 3: styleValues에서 직접 값 사용
+                  // 라벨 위치 컨테이너의 방향은 prop 이 정한다 — Direction 표시와 같은 값으로 축을 매핑.
+                  handleFlexAlignment(
+                    value,
+                    isDirectionDriven
+                      ? flexDirectionKeys[0]
+                      : styleValues.flexDirection,
+                    { preserveMainAxis: flexDistributionAxis !== null },
+                  );
+                } else if (flexDistributionAxis !== null) {
+                  updateStyles({ alignItems: "" });
+                } else {
+                  // 활성화된 토글 재클릭 → alignment 스타일 제거
+                  updateStyles({ alignItems: "", justifyContent: "" });
+                }
+              }}
             >
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton
-              id="rightCenter"
-              aria-label={localize("Middle right")}
-            >
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton id="leftBottom" aria-label={localize("Bottom left")}>
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton
-              id="centerBottom"
-              aria-label={localize("Bottom center")}
-            >
-              <span className="alignment-dot" />
-            </ToggleButton>
-            <ToggleButton
-              id="rightBottom"
-              aria-label={localize("Bottom right")}
-            >
-              <span className="alignment-dot" />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </div>
+              <ToggleButton id="leftTop" aria-label={localize("Top left")}>
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton id="centerTop" aria-label={localize("Top center")}>
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton id="rightTop" aria-label={localize("Top right")}>
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton id="leftCenter" aria-label={localize("Middle left")}>
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton
+                id="centerCenter"
+                aria-label={localize("Middle center")}
+              >
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton
+                id="rightCenter"
+                aria-label={localize("Middle right")}
+              >
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton id="leftBottom" aria-label={localize("Bottom left")}>
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton
+                id="centerBottom"
+                aria-label={localize("Bottom center")}
+              >
+                <span className="alignment-dot" />
+              </ToggleButton>
+              <ToggleButton
+                id="rightBottom"
+                aria-label={localize("Bottom right")}
+              >
+                <span className="alignment-dot" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </div>
+        )}
         {/* 아이콘 칸은 비운다 — 종전 LayoutGrid 버튼은 onPress 없는 dead surface 였다 */}
         <div className="fieldset-actions" />
         <div className="justify-control justify-content">
@@ -282,66 +378,97 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
-        <div className="justify-control flex-wrap">
-          <legend className="fieldset-legend">{localize("Wrap")}</legend>
-          <ToggleButtonGroup
-            aria-label={localize("Flex wrap")}
-            isDisabled={isAlignmentDisabled}
-            indicator
-            selectionMode="single"
-            selectedKeys={flexWrapKeys}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string;
-              if (value) {
-                handleFlexWrap(value);
-              } else {
-                // 활성화된 토글 재클릭 → flexWrap 스타일 제거
-                updateStyles({ flexWrap: "" });
-              }
-            }}
-          >
-            <ToggleButton id="wrap" aria-label={localize("Wrap lines")}>
-              <TextWrap
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ToggleButton>
-            <ToggleButton
-              id="wrap-reverse"
-              aria-label={localize("Wrap reverse")}
-            >
-              <CornerDownLeft
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ToggleButton>
-            <ToggleButton id="nowrap" aria-label={localize("No wrap")}>
-              <ArrowRightToLine
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-        {/* legend 「Gap」 + 값 + ▾ 토큰 preset 메뉴 (XS · 4 …, 2026-09-15 사용자 판정 — px 단위 하나뿐인
-            메뉴보다 spacing 토큰이 쓸모 있다). preset 은 px 로 풀어 commit — store 가 gap 을 px
-            숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
-        <PropertyUnitInput
-          label="Gap"
-          className={`displayGap${sessionGap !== null ? " property-unit-input--session-active" : ""}`}
-          value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
-          units={["px"]}
-          presets={SPACING_PRESET_OPTIONS}
-          allowKeywords={false}
-          isDisabled={sessionGap !== null}
-          onChange={handleSpacingCommit}
-          onDrag={handleSpacingPreview}
-          min={0}
-          max={500}
-        />
+        {isGrid ? (
+          <>
+            <PropertyUnitInput
+              label="Gap X"
+              className="flex-wrap"
+              value={styleValues.columnGap}
+              units={["px"]}
+              presets={SPACING_PRESET_OPTIONS}
+              allowKeywords={false}
+              onChange={(value) => commitGap("columnGap", value)}
+              onDrag={(value) => previewGap("columnGap", value)}
+              min={0}
+              max={500}
+            />
+            <PropertyUnitInput
+              label="Gap Y"
+              className="displayGap"
+              value={styleValues.rowGap}
+              units={["px"]}
+              presets={SPACING_PRESET_OPTIONS}
+              allowKeywords={false}
+              onChange={(value) => commitGap("rowGap", value)}
+              onDrag={(value) => previewGap("rowGap", value)}
+              min={0}
+              max={500}
+            />
+          </>
+        ) : (
+          <>
+            <div className="justify-control flex-wrap">
+              <legend className="fieldset-legend">{localize("Wrap")}</legend>
+              <ToggleButtonGroup
+                aria-label={localize("Flex wrap")}
+                isDisabled={isAlignmentDisabled}
+                indicator
+                selectionMode="single"
+                selectedKeys={flexWrapKeys}
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0] as string;
+                  if (value) {
+                    handleFlexWrap(value);
+                  } else {
+                    // 활성화된 토글 재클릭 → flexWrap 스타일 제거
+                    updateStyles({ flexWrap: "" });
+                  }
+                }}
+              >
+                <ToggleButton id="wrap" aria-label={localize("Wrap lines")}>
+                  <TextWrap
+                    color={iconProps.color}
+                    size={iconProps.size}
+                    strokeWidth={iconProps.strokeWidth}
+                  />
+                </ToggleButton>
+                <ToggleButton
+                  id="wrap-reverse"
+                  aria-label={localize("Wrap reverse")}
+                >
+                  <CornerDownLeft
+                    color={iconProps.color}
+                    size={iconProps.size}
+                    strokeWidth={iconProps.strokeWidth}
+                  />
+                </ToggleButton>
+                <ToggleButton id="nowrap" aria-label={localize("No wrap")}>
+                  <ArrowRightToLine
+                    color={iconProps.color}
+                    size={iconProps.size}
+                    strokeWidth={iconProps.strokeWidth}
+                  />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </div>
+            {/* legend 「Gap」 + 값 + ▾ 토큰 preset 메뉴 (XS · 4 …, 2026-09-15 사용자 판정 — px 단위 하나뿐인
+                메뉴보다 spacing 토큰이 쓸모 있다). preset 은 px 로 풀어 commit — store 가 gap 을 px
+                숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
+            <PropertyUnitInput
+              label="Gap"
+              className={`displayGap${sessionGap !== null ? " property-unit-input--session-active" : ""}`}
+              value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
+              units={["px"]}
+              presets={SPACING_PRESET_OPTIONS}
+              allowKeywords={false}
+              isDisabled={sessionGap !== null}
+              onChange={handleSpacingCommit}
+              onDrag={handleSpacingPreview}
+              min={0}
+              max={500}
+            />
+          </>
+        )}
       </div>
 
       {/* Padding · Margin 은 Spacing 절 (박스 모델) 로 — SpacingSection (panel-ui 01) */}

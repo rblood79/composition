@@ -9,6 +9,11 @@ export interface LayoutStyleValues {
   alignItems: string;
   justifyContent: string;
   gap: string;
+  /** grid: Gap X · Gap Y (longhand, 없으면 `gap`). */
+  columnGap: string;
+  rowGap: string;
+  gridTemplateColumns: string;
+  gridTemplateRows: string;
   flexWrap: string;
   padding: string;
   paddingTop: string;
@@ -76,6 +81,22 @@ export function useLayoutValues(id: string | null): LayoutStyleValues | null {
         axisGap ?? s.rowGap ?? s.columnGap ?? s.gap,
         numToPx(axisEffectiveGap ?? e.rowGap ?? e.columnGap ?? e.gap),
         "0px",
+      ),
+      columnGap: firstDefined(
+        s.columnGap ?? s.gap,
+        numToPx(e.columnGap ?? e.gap),
+        "0px",
+      ),
+      rowGap: firstDefined(s.rowGap ?? s.gap, numToPx(e.rowGap ?? e.gap), "0px"),
+      gridTemplateColumns: firstDefined(
+        s.gridTemplateColumns,
+        numToPx(e.gridTemplateColumns),
+        "",
+      ),
+      gridTemplateRows: firstDefined(
+        s.gridTemplateRows,
+        numToPx(e.gridTemplateRows),
+        "",
       ),
       flexWrap,
       // ADR-082 P1-2: 실효 4-way 가 균일하면 shorthand 에 반영 (collapsed 모드 UX)
