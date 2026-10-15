@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
   "generatedAt": "2026-10-15",
-  "head": "cc95228e90bd77cbaad8d5d83d4d5ef370d3de39",
+  "head": "23aacad0cd808b4ec8b4b140b728440d0a2839e9",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -133,7 +133,8 @@
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 4960,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs": 2056,
           "v8.fn.src/catalog/runtime/boxModel.ts#length": 1296,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 1053
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 1053,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 930
         }
       },
       "page-switch": {
@@ -261,7 +262,7 @@
           "cdp.LayoutCount": 3,
           "cdp.RecalcStyleCount": 224,
           "domMutations.childList": 0,
-          "reactRenderMeasures": 236,
+          "reactRenderMeasures": 223,
           "v8.app": 1003021
         }
       }

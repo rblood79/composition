@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [요소가 많은 페이지에서 끌기가 멈추던 것 — 등간격 스냅 탐색] - 2026-10-16
+
+### Fixed
+
+- **같은 열 · 행에 요소가 수백 개 있는 페이지에서 요소를 끌어도 화면이 멈추지 않는다.** 종전엔 평평한 5,000 요소 격자 (같은 열 ≈ 830) 에서 포인터를 움직일 때마다 수백 ms 가 걸렸다 — production 빌드 측정 drag 프레임 간격 p95 750 ms · 50 ms 넘는 작업 188 회 (75 s). 원인: 등간격 스냅의 sequence 탐색이 이웃 쌍마다 다른 이웃을 전부 다시 훑었다 (O(r³)). 이웃을 위치 순으로 정렬하고 접미사마다 끝이 가장 앞인 세 개를 미리 구해, 쌍 사이가 비었는지를 바로 판정한다. 흡착 위치 · 가이드 · 같은 거리일 때 어느 제안이 이기는지는 종전과 같다.
+- 위치: `apps/builder/src/builder/workspace/canvas/interaction/snapGuides.ts` (`resolveSequenceSpacing`). 검증: 수정 전 구현을 옮긴 오라클과 무작위 4,000 건 동치 (흡착 사례 1,000 건 이상 · 변이 4 종 — 동률 순서 2 · 쌍 제외 · 오차 경계 — 모두 RED) · 같은 열 2,000 개 판정 2,449 ms → 200 ms 안 (수정 전 RED) · canvas · catalogRuntime 3,139 통과 (togglebuttongroup 기존 1건) · type-check · production 빌드 재측정 평평 5,000 drag p95 750 → 19 ms · 끊김 32.5 → 0.5 % · 50 ms 넘는 작업 0 (중첩 flex 5,000 은 p95 21 그대로) · live `canvas-spacing-snap-live.mjs` 4/4 (새 — B 뒤 같은 간격 자리로 흡착 · 간격 40 가이드 · ⌘ 대조군 283).
+
 ## [배포 빌드에서 패널 · 툴바 모양이 무너지던 것 — cascade layer 순서] - 2026-10-16
 
 ### Fixed

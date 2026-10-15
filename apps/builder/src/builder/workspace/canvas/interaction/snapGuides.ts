@@ -388,7 +388,8 @@ function considerSpacingProposal(
  *   B 뒤 / A 앞에 같은 g 로 배치되는 지점. 쌍 사이 간격 안에 다른 이웃이
  *   포함되어 있으면 인접이 아니므로 제외.
  */
-function resolveAxisSpacingSnap(
+/** @internal 테스트 (`snapSpacing.test.ts`) 가 수정 전 구현과 동치를 대조한다 */
+export function resolveAxisSpacingSnap(
   axis: "x" | "y",
   rawMin: number,
   movingLen: number,
@@ -446,35 +447,127 @@ function resolveAxisSpacingSnap(
   }
 
   // ── sequence — 인접 쌍의 간격 리듬 연장 ──
-  for (let i = 0; i < row.length; i++) {
-    for (let j = 0; j < row.length; j++) {
-      if (i === j) continue;
-      const a = row[i];
-      const b = row[j];
-      const gap = b.lo - a.hi;
-      if (gap < 0) continue;
-      // 쌍 사이 간격에 포함된 다른 이웃이 있으면 인접 아님 (간격을 걸쳐
-      // 덮는 rect — 예: 컨테이너 — 는 리듬을 깨지 않으므로 포함 판정만)
-      let blocked = false;
-      for (let k = 0; k < row.length; k++) {
-        if (k === i || k === j) continue;
-        const c = row[k];
-        if (c.lo >= a.hi - LINE_MATCH_EPS && c.hi <= b.lo + LINE_MATCH_EPS) {
-          blocked = true;
-          break;
-        }
-      }
-      if (blocked) continue;
+  return resolveSequenceSpacing(row, rawMin, movingLen, threshold, best);
+}
 
+/**
+ * sequence 탐색. 쌍 (a, b) 는 `b.lo - a.hi ≥ 0` 이고, 그 사이 구간 [a.hi − EPS, b.lo + EPS] 에
+ * 통째로 들어가는 다른 이웃이 없을 때 인접이다.
+ *
+ * 쌍마다 모든 이웃을 다시 훑으면 O(r³) — 같은 열 형제 830 개에서 한 번에 수백 ms 였다
+ * (2026-10-15 평평한 5,000 시드 drag p95 750 ms). 대신 이웃을 lo 순으로 정렬해 두고, 접미사마다
+ * hi 가 가장 작은 세 개를 미리 구한다. "구간에 들어가는 다른 이웃이 있는가" 는 `lo ≥ a.hi − EPS`
+ * 인 접미사에서 a · b 를 뺀 최소 hi 가 `b.lo + EPS` 이하인가와 같다. a 하나에 대해 b 는 lo 순으로
+ * 보며, a 를 뺀 두 번째로 작은 hi 가 `b.lo + EPS` 이하가 되면 그 뒤의 b 는 전부 막힌다 (둘 중
+ * 하나는 b 가 아니다).
+ *
+ * 결과는 종전과 같다: 제안 · 임계 판정이 같고, 같은 거리면 종전 순회 순서 (between → a 의 행 순서
+ * → b 의 행 순서 → 뒤 배치 → 앞 배치) 에서 먼저 나온 제안이 이긴다 (`snapSpacing.test.ts` 동치).
+ */
+function resolveSequenceSpacing(
+  row: readonly AxisProjection[],
+  rawMin: number,
+  movingLen: number,
+  threshold: number,
+  between: AxisSpacingSnap | null,
+): AxisSpacingSnap | null {
+  const n = row.length;
+  const order: number[] = [];
+  for (let i = 0; i < n; i++) order.push(i);
+  const byLo = (p: number, q: number) => row[p].lo - row[q].lo || p - q;
+  order.sort(byLo);
+  // suffix[3p .. 3p+2] = order[p..] 중 hi 가 작은 세 행 번호 (-1 = 없음)
+  const suffix = new Int32Array(3 * (n + 1)).fill(-1);
+  for (let pos = n - 1; pos >= 0; pos--) {
+    const idx = order[pos];
+    const hi = row[idx].hi;
+    let a = suffix[3 * pos + 3];
+    let b = suffix[3 * pos + 4];
+    let c = suffix[3 * pos + 5];
+    if (a < 0 || hi < row[a].hi) {
+      c = b;
+      b = a;
+      a = idx;
+    } else if (b < 0 || hi < row[b].hi) {
+      c = b;
+      b = idx;
+    } else if (c < 0 || hi < row[c].hi) {
+      c = idx;
+    }
+    suffix[3 * pos] = a;
+    suffix[3 * pos + 1] = b;
+    suffix[3 * pos + 2] = c;
+  }
+  /** lo 가 bound 이상인 첫 위치 */
+  const firstAtLeast = (bound: number) => {
+    let lo = 0;
+    let hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (row[order[mid]].lo >= bound) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
+  };
+
+  let best = between;
+  // 종전 순회 순서의 위치 — between 은 모든 sequence 제안보다 앞이다
+  let bestI = -1;
+  let bestJ = -1;
+  let bestKind = 0;
+  /** 이 제안이 지금 best 를 이기는가 — 이기면 위치를 기록한다 (객체는 호출부가 만든다) */
+  const wins = (i: number, j: number, kind: 0 | 1, delta: number) => {
+    const distance = Math.abs(delta);
+    if (distance > threshold) return false;
+    if (best) {
+      const bestDistance = Math.abs(best.delta);
+      if (distance > bestDistance) return false;
+      if (
+        distance === bestDistance &&
+        (bestI < 0 ||
+          bestI < i ||
+          (bestI === i && (bestJ < j || (bestJ === j && bestKind <= kind))))
+      )
+        return false;
+    }
+    bestI = i;
+    bestJ = j;
+    bestKind = kind;
+    return true;
+  };
+
+  for (let i = 0; i < n; i++) {
+    const a = row[i];
+    const blockFrom = firstAtLeast(a.hi - LINE_MATCH_EPS);
+    // a 를 뺀 접미사의 hi 최소 두 행
+    let m1 = -1;
+    let m2 = -1;
+    let m3 = -1;
+    for (let t = 0; t < 3; t++) {
+      const idx = suffix[3 * blockFrom + t];
+      if (idx < 0 || idx === i) continue;
+      if (m1 < 0) m1 = idx;
+      else if (m2 < 0) m2 = idx;
+      else m3 = idx;
+    }
+    for (let pos = firstAtLeast(a.hi); pos < n; pos++) {
+      const j = order[pos];
+      const b = row[j];
+      const limit = b.lo + LINE_MATCH_EPS;
+      if (m2 >= 0 && row[m2].hi <= limit) break;
+      if (j === i) continue;
+      const blocker = m1 !== j ? m1 : m2 >= 0 ? m2 : m3;
+      if (blocker >= 0 && row[blocker].hi <= limit) continue;
+
+      const gap = b.lo - a.hi;
       const neighborOrtho = [
         { lo: a.orthoLo, hi: a.orthoHi },
         { lo: b.orthoLo, hi: b.orthoHi },
       ];
       // B 뒤 배치: A | B | moving
       const afterTarget = b.hi + gap;
-      best = considerSpacingProposal(
-        best,
-        {
+      if (wins(i, j, 0, afterTarget - rawMin))
+        best = {
           delta: afterTarget - rawMin,
           value: gap,
           segments: [
@@ -482,14 +575,11 @@ function resolveAxisSpacingSnap(
             { start: b.hi, end: afterTarget },
           ],
           neighborOrtho,
-        },
-        threshold,
-      );
+        };
       // A 앞 배치: moving | A | B
       const beforeTarget = a.lo - gap - movingLen;
-      best = considerSpacingProposal(
-        best,
-        {
+      if (wins(i, j, 1, beforeTarget - rawMin))
+        best = {
           delta: beforeTarget - rawMin,
           value: gap,
           segments: [
@@ -497,12 +587,9 @@ function resolveAxisSpacingSnap(
             { start: a.hi, end: b.lo },
           ],
           neighborOrtho,
-        },
-        threshold,
-      );
+        };
     }
   }
-
   return best;
 }
 
