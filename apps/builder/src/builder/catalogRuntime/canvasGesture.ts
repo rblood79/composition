@@ -167,6 +167,10 @@ export interface CatalogDropTarget {
   /** Where the nodes go: an owned node, or an instance's slot position (its `fillSlot`). */
   readonly parent: NodeParent;
   readonly index: number;
+  /** The slot among the container's flow children (the dragged out) — the reflow's opened slot. */
+  readonly slot: number;
+  /** The container's flow: a row or a column reflows its siblings, a grid shows the line. */
+  readonly axis: "row" | "column" | "grid";
   /** The insertion line (scene coordinates; zero width or height). */
   readonly line: BoundingBox;
   /** The container under the pointer refused the nodes: this is its nearest accepting ancestor. */
@@ -174,6 +178,18 @@ export interface CatalogDropTarget {
   /** An absolute drag leaving for a page body: the nodes stay absolute there (no line). */
   readonly keepsAbsolute?: true;
 }
+
+/** A move as the Canvas draws it (`dragPresentation`). */
+export interface CatalogDragPresentation {
+  /** The dragged records, drawn at the pointer offset (none for a copy). */
+  readonly records: readonly string[];
+  readonly dx: number;
+  readonly dy: number;
+  /** The siblings' target offsets (the reflow around the drop). */
+  readonly siblings: ReadonlyMap<string, { dx: number; dy: number }>;
+}
+
+const EMPTY_BOX: BoundingBox = { x: 0, y: 0, width: 0, height: 0 };
 
 /** An absolutely placed node in a move: its authored placement (it moves by the offset). */
 interface MovingAbsolute {
@@ -298,6 +314,10 @@ export interface CatalogGesturePreview {
   /** The other dragged boxes (selected pages, absolutely placed nodes) at the same offset. */
   readonly ghosts?: readonly BoundingBox[];
   readonly line?: BoundingBox;
+  /** The siblings reflow around the drop (`dragPresentation`): the opened slot shows it, no line. */
+  readonly reflow?: boolean;
+  /** Records drawn at the pointer offset: their selection boxes stay off their old place. */
+  readonly moving?: readonly string[];
   readonly container?: BoundingBox;
   /** Marquee: the rectangle and the boxes it would select. */
   readonly marquee?: BoundingBox;
@@ -784,13 +804,110 @@ export class CatalogCanvasGestures {
               y: box.y + gesture.dy,
             }))
         : [];
-    if (!gesture.drop) return { ghost, ghosts, snapGuides: gesture.snapGuides };
+    const moving = gesture.copy ? {} : { moving: gesture.records };
+    if (!gesture.drop)
+      return { ghost, ghosts, snapGuides: gesture.snapGuides, ...moving };
     return {
       ghost,
       ghosts,
+      ...moving,
       ...(gesture.drop.keepsAbsolute ? {} : { line: gesture.drop.line }),
+      ...(this.reflows(gesture) ? { reflow: true } : {}),
       container: this.host.bounds(gesture.drop.container),
     };
+  }
+
+  /**
+   * The drag as the Canvas draws it (Figma · Pen.dev): the dragged records at the pointer offset
+   * (none for a copy — the originals stay) and the siblings' target offsets of a flow drop — the
+   * source closes up behind the dragged, the target opens its slot. A grid keeps its line.
+   */
+  dragPresentation(): CatalogDragPresentation | undefined {
+    const gesture = this.gesture;
+    if (gesture?.kind !== "move" || !gesture.active) return undefined;
+    const siblings = new Map<string, { dx: number; dy: number }>();
+    if (!gesture.copy && !gesture.absolute) this.reflowSiblings(gesture, siblings);
+    return {
+      records: gesture.copy ? [] : [...gesture.records],
+      dx: gesture.dx,
+      dy: gesture.dy,
+      siblings,
+    };
+  }
+
+  private reflows(gesture: Extract<Gesture, { kind: "move" }>): boolean {
+    const drop = gesture.drop;
+    return (
+      !!drop &&
+      !gesture.copy &&
+      !gesture.absolute &&
+      !drop.keepsAbsolute &&
+      drop.axis !== "grid"
+    );
+  }
+
+  private reflowSiblings(
+    gesture: Extract<Gesture, { kind: "move" }>,
+    out: Map<string, { dx: number; dy: number }>,
+  ): void {
+    const records = this.host.records;
+    const drop = gesture.drop;
+    if (!drop) return;
+    const dragged = new Set(gesture.records);
+    const source = records.get(records.get(gesture.leader)?.parentId ?? "");
+    const target = records.get(drop.container);
+    const sameFlow = source?.id === drop.container && !drop.keepsAbsolute;
+    // The source closes up behind the dragged (it leaves that flow).
+    if (source && !sameFlow && this.flowKind(source) !== "grid")
+      this.layoutFlow(source, dragged, undefined, out);
+    // The target (the source too, for a reorder) opens the slot.
+    if (target && this.reflows(gesture))
+      this.layoutFlow(target, dragged, drop.slot, out);
+  }
+
+  /**
+   * Lay a row / column flow out again along its axis (the measured gap between its first boxes):
+   * the dragged out, and — with `slot` — a hole of the dragged boxes' size at that slot. Each
+   * child's offset from where it is drawn goes into `out`.
+   */
+  private layoutFlow(
+    container: CatalogConsumerNode,
+    dragged: ReadonlySet<string>,
+    slot: number | undefined,
+    out: Map<string, { dx: number; dy: number }>,
+  ): void {
+    const kind = this.flowKind(container);
+    if (kind === "grid") return;
+    const row = kind === "row";
+    const start = (box: BoundingBox) => (row ? box.x : box.y);
+    const size = (box: BoundingBox) => (row ? box.width : box.height);
+    const all = this.flowEntries(container, new Set());
+    if (!all.length) return;
+    const gap =
+      all.length > 1
+        ? Math.max(0, start(all[1]!.box) - start(all[0]!.box) - size(all[0]!.box))
+        : 0;
+    const moving = all.filter(({ id }) => dragged.has(id));
+    const rest = all.filter(({ id }) => !dragged.has(id));
+    const hole =
+      slot === undefined
+        ? 0
+        : (moving.length
+            ? moving.reduce((sum, { box }) => sum + size(box), 0) +
+              gap * (moving.length - 1)
+            : dragged.size
+              ? [...dragged].reduce(
+                  (sum, id) => sum + size(this.host.bounds(id) ?? EMPTY_BOX),
+                  0,
+                ) + gap * (dragged.size - 1)
+              : 0) + gap;
+    let cursor = start(all[0]!.box);
+    rest.forEach(({ id, box }, index) => {
+      if (index === slot) cursor += hole;
+      const delta = cursor - start(box);
+      if (delta) out.set(id, row ? { dx: delta, dy: 0 } : { dx: 0, dy: delta });
+      cursor += size(box) + gap;
+    });
   }
 
   /**
@@ -1378,6 +1495,8 @@ export class CatalogCanvasGestures {
         container: record.id,
         parent,
         index,
+        slot,
+        axis: this.flowKind(record),
         line: this.insertionLine(record, excluded, slot),
         ...(refused ? { relocated: refused } : {}),
       };

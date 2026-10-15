@@ -979,3 +979,71 @@ describe("Canvas drop rules (Figma)", () => {
     });
   });
 });
+
+/**
+ * 2026-10-15 drag 중 표현 (사용자: Figma · Pen.dev — 끄는 요소의 실제 모습 · 형제가 비킨다): 흐름
+ * 컨테이너 안팎으로 끄는 동안 형제의 목표 offset — 빠진 자리를 메우고 끼울 자리를 연다.
+ */
+describe("drag presentation — the dragged element and its siblings' reflow", () => {
+  it("a reorder in a column: the dragged follows the pointer, the siblings close up and open its slot", async () => {
+    const { workspace, gestures, record, box, center } = await open();
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const a = box("a");
+    const c = box("c");
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(ax, c.y + c.height - 1, 1);
+    const view = gestures.dragPresentation()!;
+    expect(view.records).toEqual([record("a")]);
+    expect(view.dy).toBe(c.y + c.height - 1 - ay);
+    // a goes after c: b and c move up by a's height (no gap here).
+    expect(view.siblings.get(record("b"))).toEqual({ dx: 0, dy: -a.height });
+    expect(view.siblings.get(record("c"))).toEqual({ dx: 0, dy: -a.height });
+    // The opened slot shows the drop: no insertion line over a reflowed flow.
+    expect(gestures.preview()?.reflow).toBe(true);
+  });
+
+  it("into another container: the source closes up, the target opens the slot", async () => {
+    const { workspace, gestures, record, box, center } = await open();
+    workspace.selectRecords([record("b")]);
+    const [bx, by] = center("b");
+    const b = box("b");
+    const d = box("d");
+    gestures.beginMove(bx, by, record("b"));
+    gestures.update(d.x + 4, d.y + 2, 1);
+    const view = gestures.dragPresentation()!;
+    expect(view.siblings.get(record("a"))).toBeUndefined();
+    expect(view.siblings.get(record("c"))).toEqual({ dx: 0, dy: -b.height });
+    expect(view.siblings.get(record("d"))?.dy).toBe(b.height);
+  });
+
+  it("Alt (copy): the original stays — no element offset, no reflow; a grid keeps its line", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const c = box("c");
+    gestures.beginMove(ax, ay, record("a"), { copy: true });
+    gestures.update(ax, c.y + c.height - 1, 1);
+    expect(gestures.dragPresentation()).toMatchObject({ records: [] });
+    expect(gestures.dragPresentation()!.siblings.size).toBe(0);
+    gestures.cancel();
+
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        layout: {
+          display: { kind: "set", value: "grid" },
+          gridTemplateColumns: { kind: "set", value: "1fr 1fr" },
+        },
+      }),
+    );
+    scene.sync();
+    const [cx, cy] = center("c");
+    const a = box("a");
+    workspace.selectRecords([record("c")]);
+    gestures.beginMove(cx, cy, record("c"));
+    gestures.update(a.x + a.width * 0.75, a.y + a.height / 2, 1);
+    expect(gestures.preview()?.reflow).toBeFalsy();
+    expect(gestures.dragPresentation()!.siblings.size).toBe(0);
+  });
+});

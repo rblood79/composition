@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [drag 중 실제 요소 표현 · 형제 비킴 (Figma · Pen.dev)] - 2026-10-15
+
+### Changed
+
+- **Canvas 에서 요소를 끄는 동안 테두리 상자 대신 요소 자체가 포인터를 따라 그려진다** — 다른 요소 위 · 부모의 잘림 밖에도 그린다 (맨 위 층). 원래 자리의 선택 상자는 숨고, 끄는 요소에는 선택 테두리가 따라간다. Alt 복제는 원본이 제자리에 남으므로 전처럼 반투명 상자.
+- **row · column 흐름 안팎으로 끄면 형제가 비킨다** — 빠진 자리를 메우고 놓일 자리를 연다 (약 120 ms 에 걸쳐 부드럽게). 열린 자리가 위치를 보여 주므로 이때는 삽입선을 그리지 않는다. grid 는 칸 사이 삽입선을 그대로 쓴다. Framer 처럼 원래 자리를 비워 두는 방식은 따르지 않는다 (사용자 결정).
+  - **Why**: ADR-248 전환 (2026-10-02) 에서 옛 drag 표현 (끄는 요소 그림 · 형제 보간 · 삽입 표시) 을 지우고 테두리 ghost 로 대체했다. 렌더러의 offset 자리 (`setDragVisualOffset` · `setDragSiblingOffsets`) 는 남아 있었으나 부르는 곳이 없었다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`dragPresentation` · `layoutFlow`) · `workspace/canvas/catalog/CatalogCanvas.tsx` (drag 시작 · 끝에 맨 위 층 재구성, 프레임마다 offset 반영) · `catalogDragReflow.ts` (보간) · `catalogOverlay.ts`. 검증: `phase4eCanvasGesture.test.ts` 새 3건 (형제 목표 offset · 다른 컨테이너 · Alt · grid) · builder 5810 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `apps/builder/scripts/canvas-dnd-presentation-live.mjs` 3회 연속 4/4 (headed Chrome · 실제 마우스: drag 중 포인터 자리 픽셀 = A 의 빨강 · A 원래 자리 = 올라온 B 의 파랑 · 놓은 뒤 [B, C, A]). 수정 직후 첫 실행 1회에 A 가 엉뚱한 자리에 그려진 적이 있으나 이후 4회 재현되지 않음 (HMR 중이었던 것으로 추정 — 미확정).
+
 ## [Canvas drop 규칙 — grid · 크기 · ⌘ · Control (Figma 기준)] - 2026-10-15
 
 ### Added

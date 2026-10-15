@@ -328,7 +328,9 @@ export function catalogOverlayNode(
         withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
+      const moving = new Set(inputs.gesture?.()?.moving ?? []);
       for (const item of state.selection) {
+        if (moving.has(item.identity)) continue;
         const box = bounds.get(item.identity);
         if (box)
           renderSelectionBox(ck, canvas, box, zoom, roleOf(item.identity));
@@ -340,9 +342,11 @@ export function catalogOverlayNode(
         if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
         if (gesture.container)
           renderHoverHighlight(ck, canvas, gesture.container, zoom);
-        if (gesture.ghost) renderLasso(ck, canvas, gesture.ghost, zoom);
-        for (const box of gesture.ghosts ?? [])
-          renderLasso(ck, canvas, box, zoom);
+        // The element itself is drawn at the pointer (`moving`): its ghost is the selection
+        // outline, not the translucent box that stands in for it (a copy, a page).
+        const ghostOf = gesture.moving?.length ? renderSelectionBox : renderLasso;
+        if (gesture.ghost) ghostOf(ck, canvas, gesture.ghost, zoom);
+        for (const box of gesture.ghosts ?? []) ghostOf(ck, canvas, box, zoom);
         if (gesture.snapGuides?.length)
           renderSnapGuides(
             ck,
@@ -360,7 +364,7 @@ export function catalogOverlayNode(
             zoom,
             fontMgr: inputs.fontMgr(),
           });
-        if (gesture.line)
+        if (gesture.line && !gesture.reflow)
           renderSelectionBox(ck, canvas, gesture.line, zoom / 2);
         return;
       }

@@ -88,6 +88,13 @@ import {
 import { registerImageLoadCallback } from "../skia/imageCache";
 import { getCanvasKit } from "../skia/initCanvasKit";
 import { setEditingElementId } from "../skia/nodeRendererState";
+import {
+  getDragSiblingOffsetRevision,
+  getDragVisualOffsetRevision,
+  setDragSiblingOffsets,
+  setDragVisualOffset,
+} from "../skia/nodeRendererTree";
+import { CatalogDragReflow } from "./catalogDragReflow";
 import { SkiaRenderer } from "../skia/SkiaRenderer";
 import { setupThemeWatcher } from "../skia/themeWatcher";
 import { getRegistryVersion, getSkiaNode } from "../skia/useSkiaNode";
@@ -519,6 +526,12 @@ export function CatalogCanvas({
     renderer.setOverlayNode(overlay);
     // The overlay follows the session and the scene's boxes (its own version, no content redraw).
     let overlayVersion = 0;
+    // The drag presentation (Figma · Pen.dev): the dragged records drawn on top at the pointer
+    // offset (one id set per drag — `setDragVisualOffset` compares it by reference) and the
+    // siblings' eased reflow.
+    let dragRecords: ReadonlySet<string> | undefined;
+    const dragReflow = new CatalogDragReflow();
+    let drawnDragRevision = "";
     const invalidateOverlay = () => {
       overlayVersion += 1;
       scheduler.invalidate();
@@ -729,6 +742,17 @@ export function CatalogCanvas({
       if (!running || contextLost) return;
       syncScene();
       syncAutoColumns();
+      // A drag's presentation (the dragged at the pointer, the siblings easing aside) is drawn at
+      // execution from the offsets — the content redraws when they change.
+      if (dragRecords) {
+        if (dragReflow.tick(performance.now())) scheduler.invalidate();
+        setDragSiblingOffsets(dragReflow.offsets());
+      }
+      const dragRevision = `${getDragVisualOffsetRevision()}:${getDragSiblingOffsetRevision()}`;
+      if (dragRevision !== drawnDragRevision) {
+        drawnDragRevision = dragRevision;
+        renderer.invalidateContent();
+      }
       const zoom = Math.max(viewportState.zoom, 0.001);
       const camera = { zoom, panX: viewportState.x, panY: viewportState.y };
       // DOM overlays (page headers) place themselves from the camera this frame draws.
@@ -1144,6 +1168,36 @@ export function CatalogCanvas({
       }
       invalidateOverlay();
     };
+    const showDrag = () => {
+      const view = gestures.dragPresentation();
+      if (!view) return;
+      if (!dragRecords) {
+        if (!view.records.length && !view.siblings.size) return;
+        dragRecords = new Set(view.records);
+        setDragVisualOffset(dragRecords, view.dx, view.dy, true);
+        // The dragged subtree moves to the stream's top layer (drawn over everything, unclipped).
+        try {
+          scene.refresh();
+        } catch (error) {
+          callbacks.current.onError?.(error);
+        }
+      } else setDragVisualOffset(dragRecords, view.dx, view.dy, true);
+      dragReflow.setTargets(view.siblings);
+      scheduler.invalidate();
+    };
+    const endDrag = () => {
+      if (!dragRecords) return;
+      dragRecords = undefined;
+      dragReflow.clear();
+      setDragSiblingOffsets(null);
+      setDragVisualOffset(null, 0, 0, true);
+      try {
+        scene.refresh();
+      } catch (error) {
+        callbacks.current.onError?.(error);
+      }
+      scheduler.invalidate();
+    };
     const onWindowPointerMove = (event: PointerEvent) => {
       if (event.pointerId !== pressPointer || !gestures.pending) return;
       const { x, y } = scenePoint(event);
@@ -1162,12 +1216,14 @@ export function CatalogCanvas({
       ) {
         deferredSelect = undefined;
         picking.leave();
+        showDrag();
         invalidateOverlay();
       }
     };
     const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerId === pressPointer) {
         pressPointer = undefined;
+        endDrag();
         if (event.type === "pointercancel") gestures.cancel();
         else if (gestures.pending) {
           try {
@@ -1266,6 +1322,7 @@ export function CatalogCanvas({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isEditableTarget(event.target)) return;
       if (gestures.pending) {
+        endDrag();
         gestures.cancel();
         deferredSelect = undefined;
         invalidateOverlay();
