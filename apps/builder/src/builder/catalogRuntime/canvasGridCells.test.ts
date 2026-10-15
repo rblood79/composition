@@ -78,9 +78,10 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       count: 0,
       fallbackHeight: 40,
     });
+    // An empty grid's one auto row stretches over the content (400 tall), as CSS.
     expect(cells).toEqual([
-      { x: 40, y: 40, width: 100, height: 40 },
-      { x: 170, y: 40, width: 200, height: 40 },
+      { x: 40, y: 40, width: 100, height: 400 },
+      { x: 170, y: 40, width: 200, height: 400 },
     ]);
     const fallback = gridCells({
       content: { ...content, height: 30 },
@@ -133,6 +134,41 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
     };
     expect(gridCells(base)).toHaveLength(2);
     expect(gridCells({ ...base, rows: "repeat(3, 1fr)" })).toHaveLength(6);
+  });
+
+  it("user report (2026-10-15): an empty grid's 3 × 3 template spreads over the box — not piled at the top", () => {
+    const cells = gridCells({
+      content: { x: 0, y: 0, width: 300, height: 300 },
+      columns: "repeat(3, 1fr)",
+      rows: "repeat(3, 1fr)",
+      columnGap: 0,
+      rowGap: 0,
+      items: [],
+      count: 0,
+      fallbackHeight: 0,
+      appendRow: false,
+    });
+    expect(cells.map((cell) => [cell.x, cell.y, cell.width, cell.height])).toEqual([
+      [0, 0, 100, 100], [100, 0, 100, 100], [200, 0, 100, 100],
+      [0, 100, 100, 100], [100, 100, 100, 100], [200, 100, 100, 100],
+      [0, 200, 100, 100], [100, 200, 100, 100], [200, 200, 100, 100],
+    ]);
+    // Auto rows (no row template) with 2 items in 2 columns and a 3rd row: equal shares.
+    const auto = gridCells({
+      content: { x: 0, y: 0, width: 200, height: 300 },
+      columns: "1fr 1fr",
+      columnGap: 0,
+      rowGap: 0,
+      items: [
+        { x: 0, y: 0, width: 100, height: 40 },
+        { x: 100, y: 0, width: 100, height: 40 },
+        { x: 0, y: 150, width: 100, height: 40 },
+      ],
+      count: 3,
+      fallbackHeight: 0,
+      appendRow: false,
+    });
+    expect(auto.map((cell) => cell.height)).toEqual([150, 150, 150, 150]);
   });
 
   it("lengthPx reads numbers and px strings only", () => {

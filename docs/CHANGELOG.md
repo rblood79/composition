@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 칸 윤곽이 열 · 행에 고르게 나뉜다 — 빈 행이 위로 쏠리던 것] - 2026-10-15
+
+### Fixed
+
+- **grid 의 칸 윤곽이 열 · 행 트랙에 고르게 나뉜다.** 항목이 없는 행(빈 grid · Rows 템플릿의 빈 행)이 앞 행 높이, 선택 표시에서는 0 으로 잡혀 칸 선이 grid 위쪽에 겹쳐 그려졌다 (사용자 보고). 이제 두 축 모두 CSS 트랙 크기 규칙(흔한 경우)으로 계산한다 — px · % 고정, `fr` 은 남는 공간을 비율로, `auto` 는 가장 큰 항목 + (`fr` 트랙이 없으면) 남는 공간의 같은 몫. 템플릿 밖의 행은 암묵 `auto` 행.
+- overlay 가 선택 · hover 한 grid 의 칸을 매 프레임 다시 구하지 않는다 — scene 이 바뀔 때까지 레코드별로 둔다. **Why**: 매 프레임 레코드 조회가 성능 게이트 (ADR-246) 의 select 카운트 `workspace.ts#get root` 를 1797 → 1887 로 올려 push 를 막았다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`sizeTracks` · `trackKind`) · `workspace/canvas/catalog/CatalogCanvas.tsx` (`cellsVersion` 캐시 · dev handle `canvas.gridCells`). 검증: `canvasGridCells.test.ts` 8 (새 — 빈 3×3 · auto 행 균등) · builder 5832 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `layout-display-grid-live.mjs` 8/8 (새 2c — Rows 3 → 칸 9 · 행 60 · 마지막 행이 grid 아래 끝, 캡처로 3×3 확인) · `canvas-dnd-drop-rules-live.mjs` 7/7.
+
 ## [grid 를 선택 · hover 하면 칸 윤곽 — Figma 기준] - 2026-10-15
 
 ### Added

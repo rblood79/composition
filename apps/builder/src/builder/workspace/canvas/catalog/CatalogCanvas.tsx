@@ -416,7 +416,18 @@ export function CatalogCanvas({
       zoom: () => Math.max(viewportState.zoom, 0.001),
       fontMgr,
       gesture: () => gestures.preview(),
-      gridCells: (identity) => gestures.gridCellsOfRecord(identity),
+      gridCells: (identity) => {
+        if (gridCellsCacheVersion !== cellsVersion) {
+          gridCellsCache.clear();
+          gridCellsCacheVersion = cellsVersion;
+        }
+        let cells = gridCellsCache.get(identity);
+        if (!cells) {
+          cells = gestures.gridCellsOfRecord(identity);
+          gridCellsCache.set(identity, cells);
+        }
+        return cells;
+      },
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       slots: () =>
         catalogSlotMarks(
@@ -528,6 +539,14 @@ export function CatalogCanvas({
     renderer.setOverlayNode(overlay);
     // The overlay follows the session and the scene's boxes (its own version, no content redraw).
     let overlayVersion = 0;
+    // The drawn scene's version (not the overlay's — hover · selection do not move a box): the grid
+    // cells the overlay outlines are kept per record until the scene changes.
+    let cellsVersion = 0;
+    const gridCellsCache = new Map<
+      string,
+      ReturnType<typeof gestures.gridCellsOfRecord>
+    >();
+    let gridCellsCacheVersion = -1;
     // The drag presentation (Figma · Pen.dev): the dragged records drawn on top at the pointer
     // offset (one id set per drag — `setDragVisualOffset` compares it by reference) and the
     // siblings' eased reflow.
@@ -683,6 +702,7 @@ export function CatalogCanvas({
           sceneStale = false;
           renderer.invalidateContent();
           overlayVersion += 1;
+          cellsVersion += 1;
         } catch (error) {
           callbacks.current.onError?.(error);
         }
@@ -694,6 +714,7 @@ export function CatalogCanvas({
           if (!sceneStale && scene.reorder().kind !== "unchanged") {
             renderer.invalidateContent();
             overlayVersion += 1;
+            cellsVersion += 1;
           }
         } catch (error) {
           callbacks.current.onError?.(error);
@@ -706,6 +727,7 @@ export function CatalogCanvas({
         if (synced.kind !== "unchanged") {
           renderer.invalidateContent();
           overlayVersion += 1;
+          cellsVersion += 1;
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
         // and a rename changes no drawn record: the headers follow, a moved frame binds again.
@@ -713,6 +735,7 @@ export function CatalogCanvas({
           scene.refresh();
           renderer.invalidateContent();
           overlayVersion += 1;
+          cellsVersion += 1;
         }
       } catch (error) {
         callbacks.current.onError?.(error);
@@ -735,6 +758,7 @@ export function CatalogCanvas({
         scene.refresh();
         renderer.invalidateContent();
         overlayVersion += 1;
+        cellsVersion += 1;
         publishHeaders();
       } catch (error) {
         callbacks.current.onError?.(error);
@@ -800,6 +824,7 @@ export function CatalogCanvas({
       sceneStale = true;
       // A step may change only document state the overlay reads (a binding's badge).
       overlayVersion += 1;
+      cellsVersion += 1;
       scheduler.invalidate();
     });
     // The old Canvas's wheel routing: one selected scroll/auto box with somewhere to scroll takes
@@ -909,6 +934,8 @@ export function CatalogCanvas({
         camera: () => ({ ...viewportState }),
         // The drag in progress as the overlay draws it (live drag-and-drop checks).
         drag: () => gestures.preview(),
+        // A grid's cells as the overlay outlines them while selected (live checks).
+        gridCells: (identity: string) => gestures.gridCellsOfRecord(identity),
         // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
         setCamera: (next: { scale: number; x: number; y: number }) =>
           void import("../viewport/viewportActions").then((actions) =>

@@ -132,6 +132,23 @@ await page.screenshot({ path: `${OUT}/2-grid-3col.png` });
   check("2b 선택된 grid = 칸 윤곽 (빈 칸 경계에 파랑 점선 화소)", blue > 10, { blue });
 }
 
+// 2c — 사용자 보고 (2026-10-15): Rows 3 → the selected grid's cells spread over its height
+// (3 rows × (200 − 2 × 10) / 3 = 60), not piled at the top.
+await type(rowsField, "3");
+await wait(400);
+{
+  const cells = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0])`, ids.G);
+  const g = await exec(`(cat, id) => cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(id)[0])`, ids.G);
+  const last = cells.at(-1);
+  await page.screenshot({ path: `${OUT}/2c-rows-3.png` });
+  check(
+    "2c Rows 3 → 칸 9 · 행 높이 60 · 마지막 행이 grid 아래 끝까지 (위쪽에 쏠리지 않음)",
+    cells.length === 9 && cells.every((c) => Math.abs(c.height - 60) < 0.5) &&
+      Math.abs(last.y + last.height - (g.y + g.height)) < 0.5,
+    { cells: cells.map((c) => [c.x, c.y, c.width, c.height]), g },
+  );
+}
+
 // 3 — Preview DOM (Compare Mode): child offsets = Canvas.
 const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();
