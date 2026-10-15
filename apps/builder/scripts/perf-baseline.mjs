@@ -2349,13 +2349,17 @@ async function setupPointerClass(page, cls, seed) {
     while (box.right > box.left && !onCanvas(box.right, midY)) box.right -= 8;
     const t = h.canvas.boundsOf(w.root.recordsOfSource(targetSource)[0]);
     const target = t ? toClient(t.x + t.width / 2, t.y + t.height / 2) : null;
-    const marqueeStart = { x: tl.x - 15, y: tl.y + 15 };
     const surfaceAt = (p) =>
       Boolean(
         document
           .elementFromPoint(p.x, p.y)
           ?.closest('[data-canvas-container="true"]'),
       );
+    // 본문 왼쪽 위 바깥에서 시작한다. 그 점을 플로팅 패널이 덮으면 (prod 빌드의 패널 위치)
+    // 같은 x 에서 아래로 내려 캔버스가 받는 첫 점을 쓴다 — 덮이지 않으면 기존 점 그대로.
+    const marqueeStart = { x: tl.x - 15, y: tl.y + 15 };
+    while (!surfaceAt(marqueeStart) && marqueeStart.y < box.bottom - 40)
+      marqueeStart.y += 8;
     const sceneBox = (source) => {
       const r = w.root.recordsOfSource(source)[0];
       const b = r && h.canvas.boundsOf(r);
@@ -2371,6 +2375,10 @@ async function setupPointerClass(page, cls, seed) {
       targetOnCanvas: target ? surfaceAt(target) : false,
       marqueeStart,
       marqueeOnCanvas: surfaceAt(marqueeStart),
+      marqueeHit: (() => {
+        const el = document.elementFromPoint(marqueeStart.x, marqueeStart.y);
+        return el ? `${el.tagName}.${el.className}#${el.id}[${el.getAttribute("data-testid") ?? ""}] < ${el.parentElement?.className ?? ""}` : null;
+      })(),
       selection: w.session.getSnapshot().selection.map((s) => s.target.id),
       targetEntry: JSON.stringify(w.runtime.graph.getEntry(targetSource)),
     };
