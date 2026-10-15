@@ -7,7 +7,7 @@ tags: [domain, history, undo-redo]
 
 사용자 편집은 모두 히스토리에 남습니다. 기록은 호출자가 아니라 runtime step 이 합니다 — 호출자는 명령을 올바른 단위로 만들기만 합니다.
 
-> **정본**: [state-management.md §3 핵심 규칙](../../../rules/state-management.md) (히스토리 의도 필수 · 프로젝트당 한 스택 · `recordExternal`). 옛 `historyManager` (`addEntry` / `addDiffEntry` / `addBatchDiffEntry`) · hot/cold IndexedDB 히스토리 · `historyActions.ts` canonical events + legacy fallback 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
+> **정본**: [state-management.md §3 핵심 규칙](../../../rules/state-management.md) (히스토리 의도 필수 · 프로젝트당 한 스택 · `recordExternal`). 옛 이름 (ADR-248 Phase 4 삭제) 은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 구조
 

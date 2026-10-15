@@ -48,14 +48,14 @@ COMPONENT_RULES_TABLE      packages/shared/src/catalog/generated/componentRulesT
   → resolveSkiaVisualRule() / ruleVariantToVisual()
                              apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts
   → buildCatalogShapes(visual, props, size, state, textDecoration)
-                             packages/rendering/src/renderers/buildCatalogShapes.ts:110
+                             packages/rendering/src/renderers/buildCatalogShapes.ts
   (+ binding.skiaPrimitive draw module → composeCatalogShapes(base, prepend, append))
-  → specShapesToSkia()       apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts:144
+  → specShapesToSkia()       apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts
   → SkiaNodeData → nodeRenderers
 ```
 
 - **buildCatalogShapes** 는 모든 frame 이 공유하는 **보편 box+text** (bg roundRect + border + text)만 그립니다. 색/크기는 `visual.fill`(ADR-908 `FillTokenSpec`) + `sizes[size]` + `props.style` 우선 오버라이드에서 읽습니다. 패키지 경계(`specs ← shared`)상 rule 테이블은 builder(`catalogRuntime/ruleShapes.ts` → `ruleVariantToVisual`)가 해소하여 `visual` 인자로 주입합니다.
-- **비-DOM-trivial primitive**(원/선/아이콘/arc 등)는 `PrimitiveBinding.skiaPrimitive` 키(`packages/shared/src/catalog/types.ts:111`) → `packages/rendering/src/renderers/skiaPrimitives.ts` 의 `SKIA_PRIMITIVES` draw module 이 담당. 합성 모드: `replace` / `prepend`(base 아래 레이어) / `append`(base 위 레이어). draw fn 이 `null` 반환 = "이 props 에는 미적용" → generic box+text fallback.
+- **비-DOM-trivial primitive**(원/선/아이콘/arc 등)는 `PrimitiveBinding.skiaPrimitive` 키(`packages/shared/src/catalog/types.ts`) → `packages/rendering/src/renderers/skiaPrimitives.ts` 의 `SKIA_PRIMITIVES` draw module 이 담당. 합성 모드: `replace` / `prepend`(base 아래 레이어) / `append`(base 위 레이어). draw fn 이 `null` 반환 = "이 props 에는 미적용" → generic box+text fallback.
 
 ### 금지 — 컴포넌트 식별 분기 인라인
 
@@ -88,7 +88,7 @@ Frame · Group · Slot 의 spec 파일과 `packages/specs` 는 ADR-248 (`ddc5fc6
 // ❌ 금지 — legacy background 필드는 타입에서 삭제됨 (compile error)
 const bg = state === "hover" ? variant.backgroundHover : variant.background;
 
-// ✅ 단일 진입점 — packages/rendering/src/utils/fillTokens.ts:26
+// ✅ 단일 진입점 — packages/rendering/src/utils/fillTokens.ts
 import { resolveFillTokens } from "../utils/fillTokens";
 const fill = resolveFillTokens(variant); // → variant.fill (FillTokenSpec)
 const bg =
@@ -99,7 +99,7 @@ const bg =
       : fill.default.base; // hover/pressed 는 optional → base fallback 필수
 ```
 
-buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비합니다 — `fillStyle` prop(`outline`/`subtle`) × state 2축 + `isSelected`/`isEmphasized` 직교축. indicator 는 `resolveIndicatorFill(im)` (fillTokens.ts:33).
+buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비합니다 — `fillStyle` prop(`outline`/`subtle`) × state 2축 + `isSelected`/`isEmphasized` 직교축. indicator 는 `resolveIndicatorFill(im)` (fillTokens.ts).
 
 ## 5. specShapeConverter 생존 규칙
 
@@ -121,12 +121,6 @@ buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비
 
 - `rearrangeShapesForColumn()` (`apps/builder/src/builder/workspace/canvas/skia/specBuildHelpers.ts`) — Checkbox/Radio/Switch 류 indicator↔label 수직 재배치 helper. 유일한 호출처였던 `buildSpecNodeData.ts` 삭제 뒤 production 호출자 0 — catalog 경로의 column 배치는 rule `orientation` · part rule 이 정한다
 - 레이아웃 결과 폭/높이가 필요한 shape(우측 역산 배치 등)는 `_containerWidth`/`_containerHeight` props 주입 — `BOX_SIZE_TYPES` (`apps/builder/src/builder/catalogRuntime/ruleShapes.ts`). 상세: [spec-container-dimension-injection](spec-container-dimension-injection.md)
-
-## 삭제된 지침 — 참조/부활 금지
-
-- 컴포넌트별 spec shapes 지침 (Card/Slider/Select/ComboBox/Tabs/TagGroup 등) — 해당 spec 파일은 ADR-912 로 전부 삭제됨. 시각 수정은 catalog rule + skiaPrimitives 에서
-- `_hasLabelChild` / `SELF_PADDING_TAGS` / `DropflowBlockEngine` / `isYogaSizedContainer` — 심볼 0건 (grep 확증 2026-07-07)
-- `ElementSprite.tsx` / `Pixi*.tsx` (PixiButton 등) — ADR-900 으로 물리 삭제 (역사적 주석만 잔존)
 
 ## 참조
 

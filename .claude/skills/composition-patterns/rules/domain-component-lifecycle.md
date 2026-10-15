@@ -7,7 +7,7 @@ tags: [domain, component, lifecycle]
 
 컴포넌트 생성 / 수정 / 이동 / 삭제의 생명주기를 정의합니다. 모든 단계는 catalog 명령 하나이고, 이후 순서는 runtime 이 소유합니다 ([domain-async-pipeline.md](domain-async-pipeline.md) · [state-management.md §2](../../../rules/state-management.md)).
 
-> 옛 factory 계층 (`ComponentDefinition` · `createElementsFromDefinition` · `createAddComplexElementAction` · `executeRemoval` 3레이어) 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다. `apps/builder/src/builder/factories/` 에는 `constants.ts` · `creationStyleDefaults.ts` 만 남았습니다.
+> 옛 이름은 ADR-248 Phase 4 (2026-10-03) 에서 삭제 — 목록은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 단계별 명령
 

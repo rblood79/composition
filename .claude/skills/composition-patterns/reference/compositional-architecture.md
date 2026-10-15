@@ -2,7 +2,7 @@
 
 > **정본 분리**: 원칙은 `.claude/rules/` 가 정본이다 — 3-Domain 분할은 [ssot-hierarchy.md](../../../rules/ssot-hierarchy.md), `_hasChildren` 3-branch / container pipeline 은 [canvas-rendering.md](../../../rules/canvas-rendering.md) §2.5/§2.6, 문서 · 명령 · 편집 파이프라인은 [state-management.md](../../../rules/state-management.md). 본 문서는 **구현 상세와 파일 경로**만 다룬다.
 >
-> **역사적 맥락**: 컴포넌트별 `*.spec.ts` + ElementSprite/PixiJS 체계는 ADR-100 · ADR-912 로 소멸했다. ADR-248 Phase 4 (2026-10-03) 에서 factory 계층 (`factories/definitions/*.ts` · `ComponentFactory.ts` · `useElementCreator` · `entryUniverse.ts`) 과 Skia 진입점 `buildSpecNodeData.ts` 도 삭제됐다. `factories/` 에는 `constants.ts` · `creationStyleDefaults.ts` 만 남았다.
+> **역사적 맥락**: 컴포넌트별 `*.spec.ts` + ElementSprite/PixiJS 체계는 ADR-100 · ADR-912 로 소멸했다. ADR-248 Phase 4 (2026-10-03) 에서 factory 계층 (`factories/definitions/*.ts` · `ComponentFactory.ts` · `useElementCreator` · `entryUniverse.ts`) 과 Skia 진입점 `buildSpecNodeData.ts` 도 삭제됐다. `factories/` 에는 `constants.ts` 만 남았다.
 
 ## 1. 3층 구조 — 합성 컴포넌트가 구성되는 방식
 

@@ -17,7 +17,7 @@
 | [react-spectrum](react-spectrum/SKILL.md)             | Spectrum Props 레퍼런스                                                                                                                 | "spectrum", "S2 props"                   | D2 props 설계                        | 모델·사용자 / Codex 동일                                                                          |
 | [execute-adr](execute-adr/SKILL.md)                   | ADR phase 자율 실행                                                                                                                     | "ADR 실행", "execute adr", "Phase 실행"  | ADR 다단계 자동 실행                 | 사용자 전용 — Claude `/execute-adr` 직접 입력 (모델 자동 호출 비활성) / Codex 사용자 명시 요청 시 |
 | [review](review/SKILL.md)                             | 완료 직전 코드 리뷰 — 계약 체크리스트 대조, 메인 세션 실행                                                                              | "리뷰", "검토", "review"                 | 완료 선언 직전                       | 모델·사용자 / Codex 동일                                                                          |
-| [fix](fix/SKILL.md)                                   | 버그 수정 파이프라인 — root-cause 4단계 → cross-check → live exercise                                                                   | "버그", "고쳐", "fix"                    | 버그 보고 시                         | 모델·사용자 / Codex 동일                                                                          |
+| [fix](fix/SKILL.md)                                   | 버그 수정 파이프라인 — root cause 추적 → 수정 → 회귀 검증 (시각 변경은 cross-check)                                                     | "버그", "고쳐", "fix"                    | 버그 보고 시                         | 모델·사용자 / Codex 동일                                                                          |
 | [evaluate](evaluate/SKILL.md)                         | 런타임 검증 — 실제 브라우저 PASS/FAIL, 메인 세션 실행                                                                                   | "실제로 되는지", "live 검증", "evaluate" | 사용자-가시 변경 완료 전             | 모델·사용자 / Codex 동일                                                                          |
 | [verify](verify/SKILL.md)                             | 커밋 전 동작 확인 — type-check → 영향 영역 live 1회 (cross-check · evaluate 로 분기). 번들 `/verify` 대체, 2.1.286+ 커밋 직전 자동 안내 | "커밋 전 확인", "verify"                 | 커밋 직전 (docs · tests 만이면 생략) | 모델·사용자 / Codex 동일                                                                          |
 
@@ -40,28 +40,6 @@
 <!-- usage-stats-begin -->
 <!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
 
-## 📊 최근 30일 사용 빈도 (갱신: 2026-08-18)
-
-### Skills
-
-| Skill                | 호출 수 |
-| -------------------- | ------: |
-| create-adr           |      18 |
-| review-adr           |       8 |
-| new-adr              |       6 |
-| execute-adr          |       6 |
-| cross-check          |       3 |
-| fix                  |       2 |
-| composition-patterns |       2 |
-
-### Agents
-
-| Agent             | 호출 수 |
-| ----------------- | ------: |
-| general-purpose   |      27 |
-| Explore           |      18 |
-| reviewer          |      12 |
-| debugger          |       7 |
-| claude-code-guide |       1 |
+(비어 있음 — 필요하면 `.claude/hooks/update-index.sh 30` 으로 생성)
 
 <!-- usage-stats-end -->

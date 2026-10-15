@@ -3,13 +3,13 @@
 모든 컴포넌트는 catalog 경로다. Frame/Group/Slot도 spec 예외가 없다. rule이 없는
 타입은 현재 definition·binding과 부품 소유 계약을 확인하며 spec 경로를 새로 만들지 않는다.
 
-| 레이어         | 확인 위치                                                                                                                   | 확인 사항                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Catalog        | `packages/shared/src/catalog/componentCatalog.ts` · `bindings/` · `generated/componentRulesTable.ts`                        | accepts/defaults, variants/sizes, rule·primitive 참조         |
-| 정의·원본·생성 | `catalog/document/codeCatalogLibrary.ts` · `generated/reusableOriginLibrary.ts` · Builder `catalogRuntime/paletteInsert.ts` | definition 선택, template 자식 순서, slot 채움, 초기값        |
-| CSS            | `packages/shared/src/components/styles/` · `styles/generated/`                                                              | catalog CSS 생성값, data-variant/data-size/state 선택자       |
-| Canvas         | Builder `catalogRuntime/canvasBinding.ts` · `ruleShapes.ts`, shared `catalog/runtime/rulePaint.ts` · `compositionRoot.ts`   | 자식 소유, rule shape, layout 입력, 텍스트 측정, dirty 재평가 |
-| DOM            | `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · `delegatedDom.runtime.ts`                                     | 노드 순서, RAC context, style/props 전달, 상태 frame          |
+| 레이어         | 확인 위치                                                                                                                                    | 확인 사항                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Catalog        | `packages/shared/src/catalog/componentCatalog.ts` · `bindings/` · `generated/componentRulesTable.ts`                                         | accepts/defaults, variants/sizes, rule·primitive 참조         |
+| 정의·원본·생성 | `catalog/document/codeCatalogLibrary.ts` · `catalog/document/generated/reusableOriginLibrary.ts` · Builder `catalogRuntime/paletteInsert.ts` | definition 선택, template 자식 순서, slot 채움, 초기값        |
+| CSS            | `packages/shared/src/components/styles/` · `styles/generated/`                                                                               | catalog CSS 생성값, data-variant/data-size/state 선택자       |
+| Canvas         | Builder `catalogRuntime/canvasBinding.ts` · `ruleShapes.ts`, shared `catalog/runtime/rulePaint.ts` · `compositionRoot.ts`                    | 자식 소유, rule shape, layout 입력, 텍스트 측정, dirty 재평가 |
+| DOM            | `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · `delegatedDom.runtime.ts`                                                      | 노드 순서, RAC context, style/props 전달, 상태 frame          |
 
 위 표의 `catalog/`는 `packages/shared/src/catalog/` 기준이다. Builder의 `catalogRuntime/`
 재수출 파일만 보고 구현을 확인했다고 판단하지 않는다.

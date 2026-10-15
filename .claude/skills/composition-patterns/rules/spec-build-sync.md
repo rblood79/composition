@@ -5,7 +5,7 @@ impactDescription: generated CSS 미재생성 시 Preview/Publish DOM 이 옛 ru
 tags: [catalog, build, monorepo, generated-css]
 ---
 
-`packages/specs` 패키지와 tsup `dist/` 빌드는 ADR-248 (2026-10-04, `ddc5fc603`) 에서 삭제됐다. `@composition/rendering` · `@composition/shared` 는 **소스를 직접 export** 한다 (`packages/rendering/package.json` `exports` → `./src/*`) — dist 재빌드 단계는 없다. 남은 build-time 산출물은 **generated CSS 하나**다.
+`@composition/rendering` · `@composition/shared` 는 **소스를 직접 export** 한다 (옛 `packages/specs` · tsup `dist/` 는 [\_sections.md §ADR-248 이전 이름](_sections.md)) (`packages/rendering/package.json` `exports` → `./src/*`) — dist 재빌드 단계는 없다. 남은 build-time 산출물은 **generated CSS 하나**다.
 
 ## Incorrect
 

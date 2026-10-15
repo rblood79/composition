@@ -11,13 +11,18 @@ CSS 클래스명은 `react-aria-*` prefix를 사용합니다.
 
 ```css
 /* ❌ prefix 없는 클래스명 */
-.Button { }
-.ComboBox { }
-.TextField { }
+.Button {
+}
+.ComboBox {
+}
+.TextField {
+}
 
 /* ❌ 임의의 prefix */
-.my-Button { }
-.custom-ComboBox { }
+.my-Button {
+}
+.custom-ComboBox {
+}
 ```
 
 ```tsx
@@ -29,27 +34,23 @@ CSS 클래스명은 `react-aria-*` prefix를 사용합니다.
 
 ```css
 /* ✅ react-aria-* prefix 사용 */
-.react-aria-Button { }
-.react-aria-Button.primary { }
-.react-aria-Button.outline { }
+.react-aria-Button {
+}
+.react-aria-Button.primary {
+}
+.react-aria-Button.outline {
+}
 
-.react-aria-ComboBox { }
-.react-aria-TextField { }
-.react-aria-ToggleButton { }
+.react-aria-ComboBox {
+}
+.react-aria-TextField {
+}
+.react-aria-ToggleButton {
+}
 ```
 
 ```tsx
 // ✅ prefix 포함된 className
 <Button className="react-aria-Button primary" />
 <ComboBox className="react-aria-ComboBox" />
-```
-
-```tsx
-// ✅ tv()와 함께 사용
-const button = tv({
-  base: 'react-aria-Button',  // prefix 포함
-  variants: {
-    variant: { primary: 'primary' }
-  }
-});
 ```

@@ -8,7 +8,7 @@ tags: [style, tailwind, css]
 .tsx 파일에서 inline Tailwind 클래스 사용을 금지합니다.
 semantic classes + @layer + CSS 토큰 변수를 사용하세요.
 
-> **Note**: Tailwind v4에서는 `@apply` 사용이 금지됩니다.
+> `@apply` 를 쓰지 않는다 — 시각 값은 catalog rule 이 생성한 CSS 가 정본이라 utility 합성이 끼면 SSOT 밖 값이 생긴다 ([ssot-hierarchy.md](../../../rules/ssot-hierarchy.md) D3).
 
 ## Incorrect
 
@@ -24,7 +24,7 @@ semantic classes + @layer + CSS 토큰 변수를 사용하세요.
 ```
 
 ```css
-/* ❌ @apply 사용 금지 (Tailwind v4) */
+/* ❌ @apply — utility 합성은 catalog 생성 CSS 밖 값 */
 .react-aria-Button {
   @apply font-medium rounded-lg;
 }

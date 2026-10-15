@@ -64,11 +64,6 @@ CSS Button 은 명시적 `line-height: var(--text-*--line-height)` 를 쓴다. C
 - [ ] 레이아웃 · 렌더 쪽에 같은 값을 하드코딩한 곳이 남아 있지 않은지 grep
 - [ ] Skia ↔ CSS 시각 결과 확인 — `/cross-check`
 
-## 삭제된 심볼 — 참조 금지
-
-- 2026-07-07 grep 확증: `UI_COMPONENT_DEFAULT_BORDER_RADIUS` / `INLINE_FORM_HEIGHTS` / `INLINE_FORM_INDICATOR_WIDTHS` / `ElementSprite.tsx` / `Pixi*.tsx`
-- 2026-10-05 삭제: `BUTTON_SIZE_CONFIG` / `TOGGLEBUTTON_SIZE_CONFIG` / `deriveSizeConfig` / `ruleSizesToSizeSpecMap` / `getButtonSizeConfig` / `estimateTextHeight` / `calculateContentHeight` (builder `engines/utils.ts`)
-
 ## 참조
 
 - `packages/shared/src/catalog/generated/componentRulesTable.ts` — 수치/색상 정본

@@ -76,7 +76,7 @@ resolveToken("{color.accent}", "dark"); // → "#3b82f6" (blue-500)
 resolveToken("{radius.md}"); // → 6
 resolveToken("{typography.text-md}"); // → 16
 
-// CSS 변수로 변환 (tokenToCSSVar — tokenResolver.ts:178)
+// CSS 변수로 변환 (tokenToCSSVar — tokenResolver.ts)
 tokenToCSSVar("{color.accent}"); // → "var(--accent)"
 tokenToCSSVar("{color.on-accent}"); // → "var(--fg-on-accent)"
 tokenToCSSVar("{color.neutral}"); // → "var(--fg)"

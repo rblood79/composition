@@ -7,7 +7,7 @@ tags: [domain, performance, indexing]
 
 요소 조회는 graph · record 의 Map 인덱스로 합니다. 명령과 패널은 문서를 스캔하지 않습니다.
 
-> 옛 `ElementsState { elements, elementsMap, childrenMap, pageIndex }` · `_rebuildIndexes` · `getElementById` / `getPageElementsFromIndex` 와 선택 3종 (`selectedElementId` / `selectedElementIds` / `selectedElementIdsSet`) 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다. `useStore` · `elementsMap` · `childrenMap` 를 새로 만들지 않습니다 ([state-management.md §1](../../../rules/state-management.md)).
+> 옛 이름은 ADR-248 Phase 4 (2026-10-03) 에서 삭제 — 목록은 [\_sections.md §ADR-248 이전 이름](_sections.md). `useStore` · `elementsMap` · `childrenMap` 를 새로 만들지 않습니다 ([state-management.md §1](../../../rules/state-management.md)).
 
 ## 인덱스 구조
 

@@ -7,7 +7,7 @@ tags: [spec, catalog, rendering, skia, layout, dimension, pattern]
 
 shape 생성기 (`buildCatalogShapes` / `skiaPrimitives` draw module) 가 **레이아웃 엔진 (자체 Rust WASM, ADR-916) 이 계산한 실제 containerWidth/Height** 를 필요로 할 때, `_containerWidth` / `_containerHeight` props 를 주입하는 패턴입니다.
 
-> 2026-10-04 개정: 주입 위치가 옛 `skia/buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` (Phase 4e-9-8 삭제) 에서 catalog rule 실행기 `catalogRuntime/ruleShapes.ts` `BOX_SIZE_TYPES` 로 옮겨졌습니다. 이름 `CONTAINER_DIMENSION_TAGS` 는 specs · shared 의 주석에만 남아 있습니다.
+> 주입 위치는 catalog rule 실행기 `catalogRuntime/ruleShapes.ts` `BOX_SIZE_TYPES` 다. 옛 이름 `CONTAINER_DIMENSION_TAGS` 는 shared · rendering 의 주석에만 남아 있다 ([\_sections.md §ADR-248 이전 이름](_sections.md)).
 
 ## 문제
 
@@ -26,7 +26,7 @@ shape 생성기는 props/size 만 받으며, 레이아웃 엔진이 계산한 �
 
 ### 1단계: `BOX_SIZE_TYPES` 등록
 
-`apps/builder/src/builder/catalogRuntime/ruleShapes.ts` 의 `BOX_SIZE_TYPES` Set 에 해당 type 을 추가합니다 (현행: Avatar, Tag, Breadcrumbs, Tabs, TabList, Tab, Toast, ProgressBar(Track), Meter(Track), TextField, TextArea, Input, Select, SelectTrigger, ComboBox, SearchField, NumberField, GridList, Image, Slider(Track), ListBox, ColorField, Skeleton, IllustratedMessage, TagList, CalendarHeader, DateInput, Chart).
+`apps/builder/src/builder/catalogRuntime/ruleShapes.ts` 의 `BOX_SIZE_TYPES` Set 에 해당 type 을 추가합니다 (현행 목록은 그 Set 을 읽는다 — 지침에 복제하지 않는다).
 
 ### 2단계: rule 실행기가 자동 주입
 

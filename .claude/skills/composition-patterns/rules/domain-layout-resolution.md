@@ -7,7 +7,7 @@ tags: [domain, layout, page, projection]
 
 Page 와 재사용 레이아웃의 합성 규칙을 정의합니다.
 
-> **정본**: [canvas-rendering.md §9 · §9.5](../../../rules/canvas-rendering.md) (렌더 identity ↔ 편집 대상 분리 · 해석은 한 곳). 본 문서는 구현 위치 지도입니다. 옛 Frame (`FrameNode reusable:true` + `type:"ref"` + `descendants[path].children`) · page-frame projection (`::page-frame::` projected id · `renderNodesMap` / `interactionNodesMap` / `sceneNodesMap` · `resolveCanonicalMoveTarget`) 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
+> **정본**: [canvas-rendering.md §9 · §9.5](../../../rules/canvas-rendering.md) (렌더 identity ↔ 편집 대상 분리 · 해석은 한 곳). 본 문서는 구현 위치 지도입니다. 옛 이름 (ADR-248 Phase 4 삭제) 은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 체계
 

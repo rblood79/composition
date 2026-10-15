@@ -14,7 +14,6 @@
 | 8    | `postmessage-` | HIGH~CRITICAL | PostMessage 통신 규칙                                                          |
 | 9    | `inspector-`   | HIGH          | 패널 (Inspector) 편집 · 히스토리 연동 규칙                                     |
 | 10   | `perf-`        | MEDIUM        | 성능 최적화 규칙                                                               |
-| 11   | `test-`        | MEDIUM        | 테스트 규칙 (현재 파일 없음 — Storybook 미사용)                                |
 | 12   | `arch-`        | HIGH          | 참조 구현 위치                                                                 |
 
 > **Note**: 위 표는 섹션별 기본 영향도입니다.
@@ -23,3 +22,19 @@
 > - `domain-*` → 비즈니스 로직 오류 = 기능 결함
 > - `validation-*` → 안정성/보안 직결
 > - `postmessage-origin-verify` → CRITICAL (보안)
+
+## ADR-248 이전 이름
+
+ADR-248 Phase 4 (2026-10-03 · 04) 에서 store 와 함께 삭제된 이름 — 어느 규칙 파일에서도 현재 것으로 인용하지 않는다. 각 파일은 이 표를 링크만 한다.
+
+| 규칙 파일                               | 삭제된 이름                                                                                                                                                                                                                         |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain-async-pipeline.md`              | canonical-first 6단계 (canonical merge → history → `set()` + layoutVersion → `_rebuildIndexes` → persist → `UPDATE_CANONICAL_DOCUMENT`)                                                                                             |
+| `domain-history-integration.md`         | `historyManager` (`addEntry` / `addDiffEntry` / `addBatchDiffEntry`) · hot/cold IndexedDB 히스토리 · `historyActions.ts` canonical events + legacy fallback                                                                         |
+| `domain-o1-lookup.md`                   | `ElementsState { elements, elementsMap, childrenMap, pageIndex }` · `_rebuildIndexes` · `getElementById` / `getPageElementsFromIndex` · 선택 3종 (`selectedElementId` / `selectedElementIds` / `selectedElementIdsSet`)             |
+| `inspector-history-sync.md`             | `inspectorActions.ts` store 액션 · `historyManager.addEntry()` 직접 호출 · `updateSelectedPropertiesWithChildren`                                                                                                                   |
+| `domain-component-lifecycle.md`         | factory 계층 (`ComponentDefinition` · `createElementsFromDefinition` · `createAddComplexElementAction` · `executeRemoval`) — `factories/` 에는 `constants.ts` 만                                                                    |
+| `domain-layout-resolution.md`           | Frame (`FrameNode reusable:true` + `type:"ref"` + `descendants[path].children`) · page-frame projection (`::page-frame::` projected id · `renderNodesMap` / `interactionNodesMap` / `sceneNodesMap` · `resolveCanonicalMoveTarget`) |
+| `domain-structure-change-audit.md`      | 소비자 factory · `treeUtils` · `preview/App.tsx` · `BuilderCanvas`                                                                                                                                                                  |
+| `spec-container-dimension-injection.md` | `skia/buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` → `ruleShapes.ts` `BOX_SIZE_TYPES`                                                                                                                                           |
+| `spec-build-sync.md`                    | `packages/specs` 패키지 · tsup `dist/` 빌드 (`ddc5fc603`)                                                                                                                                                                           |

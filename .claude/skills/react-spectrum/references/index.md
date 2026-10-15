@@ -1,10 +1,10 @@
 # React Spectrum 공식 Props API
 
-react-spectrum.adobe.com 공식 문서 기반의 컴포넌트 Props 레퍼런스.
-S2 패키지 소스가 아닌 **공식 문서 Props 테이블**이 단일 소스.
+react-spectrum.adobe.com 공식 문서 기반의 컴포넌트 Props 레퍼런스 (읽기용 스냅샷).
+D2 정본은 설치된 `@react-spectrum/s2` 1.8.1 의 TypeScript 타입이다 (ssot-hierarchy.md §D2) — 이 문서와 다르면 설치본이 이긴다.
 
 > **주의**: Props 목록은 S2 명시 props + React Aria 상속 props 모두 포함.
-> 로컬 references가 공식 문서와 다를 경우, `WebFetch react-spectrum.adobe.com/react-spectrum/{Component}.html`로 최신 확인.
+> 설치본과 다른 항목은 `d2S2Alignment.static.test.ts` 가 잡는다; 공식 문서 확인은 `WebFetch react-spectrum.adobe.com/react-spectrum/{Component}.html`.
 
 ## Documentation Structure
 

@@ -7,7 +7,7 @@ tags: [domain, async, pipeline]
 
 요소 변경은 catalog 명령 하나로 들어가고, 이후 순서는 runtime 이 소유합니다.
 
-> **정본**: [state-management.md §2 편집 파이프라인](../../../rules/state-management.md) (CRITICAL). 본 문서는 호출자 쪽 규칙만 둡니다. 옛 canonical-first 6단계 (canonical merge → history → `set()` + layoutVersion → `_rebuildIndexes` → persist → `UPDATE_CANONICAL_DOCUMENT`) 는 ADR-248 Phase 4 (2026-10-03) 에서 store 와 함께 삭제됐습니다.
+> **정본**: [state-management.md §2 편집 파이프라인](../../../rules/state-management.md) (CRITICAL). 본 문서는 호출자 쪽 규칙만 둡니다. 옛 이름 (ADR-248 Phase 4 삭제) 은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 파이프라인 요지
 

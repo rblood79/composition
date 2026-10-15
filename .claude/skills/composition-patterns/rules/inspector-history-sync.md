@@ -7,7 +7,7 @@ tags: [inspector, history, state]
 
 Design 패널 (Properties · Styles) 의 편집은 catalog 명령 하나로 실행되고, 히스토리는 runtime step 이 기록합니다. 공통 히스토리 계약: [domain-history-integration.md](domain-history-integration.md).
 
-> **실패턴**: composition 은 Command **클래스** 패턴 (`UpdatePropertyCommand` / `executeCommand`) 을 쓰지 않습니다. 명령은 함수형 `CatalogCommand = (reader) => CatalogCommandPlan` (`packages/shared/src/catalog/commands/compose.ts`) 입니다. 옛 `inspectorActions.ts` store 액션 · `historyManager.addEntry()` 직접 호출 · `updateSelectedPropertiesWithChildren` 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
+> **실패턴**: composition 은 Command **클래스** 패턴 (`UpdatePropertyCommand` / `executeCommand`) 을 쓰지 않습니다. 명령은 함수형 `CatalogCommand = (reader) => CatalogCommandPlan` (`packages/shared/src/catalog/commands/compose.ts`) 입니다. 옛 이름 (ADR-248 Phase 4 삭제) 은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 경로
 

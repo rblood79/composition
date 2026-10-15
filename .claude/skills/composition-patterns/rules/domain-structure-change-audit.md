@@ -7,7 +7,7 @@ tags: [domain, element, structure, audit]
 
 컴포넌트 구조 (정의 템플릿의 parent-child 관계) 를 바꿀 때 (래퍼 추가 / 제거, 중간 노드 삽입, 자식 재배치 등) 반드시 수행해야 하는 **소비자 영향도 감사 (Consumer Audit)** 절차를 정의합니다.
 
-> 2026-10-04 개정: 사고 당시의 소비자 (factory · `treeUtils` · `preview/App.tsx` · `BuilderCanvas`) 는 ADR-248 Phase 4 에서 삭제됐습니다. **원칙 (작업량 = 소비자 수 × 수정 복잡도) 은 그대로**이고, 체크리스트를 catalog runtime 소비자로 바꿨습니다.
+> 원칙 (작업량 = 소비자 수 × 수정 복잡도) 은 소비자 집합과 무관하다 — 체크리스트는 catalog runtime 소비자 기준. 사고 당시 소비자 이름은 [\_sections.md §ADR-248 이전 이름](_sections.md).
 
 ## 배경: Tabs 구조 변경 사고 (2026-02-25)
 

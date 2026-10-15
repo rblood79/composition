@@ -22,7 +22,7 @@ ProjectEntry
 ```
 
 - **식별자**: 노드는 `definitionId` 를 갖고, 타입명은 `definitionTypeName` (`commands/context.ts`) 이 정의에서 유도합니다. 옛 `type` · `parent_id` · `page_id` 필드는 문서 노드에 없습니다.
-- **순서**: `NodeEntry.children` · `PageEntry.children` · `ProjectEntry.pageIds` 배열이 정본입니다. `order_num` 은 옛 레코드를 로드할 때 지웁니다 (`lib/db/indexedDB/adapter.ts` `deleteLegacyOrderFields`).
+- **순서**: `NodeEntry.children` · `PageEntry.children` · `ProjectEntry.pageIds` 배열이 정본입니다. 문서 노드에 `order_num` 필드는 없습니다.
 - **소유**: 부모는 필드가 아니라 graph 인덱스로 찾습니다 — `graph.ownerOf(id)`.
 - **생성 위치**: 새 페이지 (`catalogRuntime/pageTree.ts`) · 새 프로젝트 (`catalogRuntime/project.ts`) 는 body 노드 하나를 함께 만듭니다. 레이아웃이 적용된 페이지의 내용 slot 은 `layoutContentSlotPath` (`commands/project.ts`) 가 고릅니다.
 

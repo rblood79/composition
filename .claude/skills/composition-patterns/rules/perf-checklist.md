@@ -9,21 +9,6 @@ tags: [performance, checklist, optimization]
 
 ## 렌더링 체크리스트
 
-### React 컴포넌트
-
-- [ ] **React.memo**: 순수 컴포넌트에 적용 검토
-- [ ] **useMemo**: 비용이 큰 계산에 적용
-- [ ] **useCallback**: 자식에 전달하는 콜백에 적용
-- [ ] **Key 안정성**: 리스트 key가 안정적인 ID 사용
-
-```typescript
-// ✅ 안정적인 key
-{elements.map(el => <Item key={el.id} />)}
-
-// ❌ 불안정한 key
-{elements.map((el, index) => <Item key={index} />)}
-```
-
 ### 리스트 가상화
 
 - [ ] **100+ 항목**: `@tanstack/react-virtual` 검토 (builder 의존성에 있는 가상화 라이브러리는 이것 하나)
@@ -92,32 +77,15 @@ const entry = entries.find((e) => e.id === id); // → graph.getEntry(id)
 - [ ] **requestAnimationFrame**: setInterval 대신 사용
 - [ ] **display refresh cadence**: 60Hz 환경의 최소선과 frame time p50/p95/p99를 모니터링
 
-## 메모리 체크리스트
-
-- [ ] **이벤트 리스너**: 정리(cleanup) 확인
-- [ ] **구독 해제**: useEffect cleanup
-- [ ] **큰 객체**: 사용 후 참조 해제
-
-```typescript
-useEffect(() => {
-  const handler = () => {
-    /* ... */
-  };
-  window.addEventListener("resize", handler);
-
-  return () => window.removeEventListener("resize", handler); // ✅ cleanup
-}, []);
-```
-
 ## 성능 기준
 
-| 영역        | 기준                                       | 측정 방법                            |
-| ----------- | ------------------------------------------ | ------------------------------------ |
-| Canvas/Skia | native refresh target, 60Hz 환경 p95 floor | Chrome trace: frame time p50/p95/p99 |
-| 초기 로드   | < 3초                                      | Chrome DevTools Performance          |
-| 번들 (초기) | < 500KB                                    | 빌드 산출물 크기 (ADR-201 상한)      |
-| 인터랙션    | < 100ms                                    | Chrome DevTools                      |
-| 메모리      | 안정적                                     | Performance Monitor                  |
+| 영역        | 기준                                                         | 측정 방법                            |
+| ----------- | ------------------------------------------------------------ | ------------------------------------ |
+| Canvas/Skia | native refresh target, 60Hz 환경 p95 floor                   | Chrome trace: frame time p50/p95/p99 |
+| 초기 로드   | < 3초                                                        | Chrome DevTools Performance          |
+| 번들 (초기) | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (만료일 포함) | `adr201-bundle-gate.mjs`             |
+| 인터랙션    | < 100ms                                                      | Chrome DevTools                      |
+| 메모리      | 안정적                                                       | Performance Monitor                  |
 
 60fps는 60Hz 환경의 호환성 최소선이며 목표 상한이 아니다. 측정하지 않은
 절대 FPS 주장은 하지 않는다.
@@ -137,9 +105,7 @@ Chrome DevTools → Performance 탭
 
 ## 참조
 
-> 이 체크리스트는 아래 개별 규칙의 **통합 진입점**입니다.
-> Opus 4.8 이후 세대(Claude 5 계열 포함)에서 범용 패턴(barrel import, Promise.all, 동적 import)은
-> 자연스럽게 준수되므로, 도메인 특화 항목(Canvas/Skia, catalog graph · record Map 조회)에 집중하세요.
+> 이 체크리스트는 아래 개별 규칙의 **통합 진입점**입니다 — 도메인 특화 항목 (Canvas/Skia, catalog graph · record Map 조회) 이 핵심입니다.
 
 - `perf-barrel-imports.md` - Barrel import 상세 (범용 — 레퍼런스용)
 - `perf-promise-all.md` - 병렬 처리 상세 (범용 — 레퍼런스용)
