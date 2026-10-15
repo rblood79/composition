@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-16 ADR-263 Proposed**: 그리기 명령 패치·실행 비용 축소 (사용자 `/create-adr 그리기 명령 패치·실행 비용 축소` — Canvas 성능 계획 2단계). 실측 (production 레인 10-15 ~ 16): 중첩 5k 편집 p99 30 ms · drop 4.3 %, 상위 `executeCommandRange` 11.5 % · `catalogScrollRange` 4.1 % · patch 계열, 줌 `executeCommandRange` 10.1 %. 코드 사실: ADR-189 damage 부분 재기록의 provider 가 ADR-248 옛 소스 삭제 (`d58bb8b61`) 에서 빠져 편집 · drag 프레임이 전체 스트림을 다시 실행 · 명령 접근마다 piece-table Proxy trap · 컬링된 서브트리를 명령 하나씩 건너뜀 · 편집마다 스크롤 조상 범위 전체 DFS. 채택 대안 A (끊긴 배선 복구 + 상수 비용 제거, Phase 0 카운트로 레버 선정) — B retained picture 층 · C 타일 캐시 · D Rust 이관 기각 (D 는 4단계 판정). 사용자 결정 2건 (평평 5k 줌 꼬리의 소속 · 닫는 조건 미달 시 처리). 열림 2 (Proposed 2), 합계 286 — 직전 표의 열림 2 는 245 하나뿐이던 것을 바로잡음.
+>
 > **2026-10-15 ADR-262 Implemented** (main `b0e1972c2` · `b5216f10e` · `00c4c0220`): 사용자 G5 「확인했어 Implemented 로 올려」 — Builder 에서 「Push changes to component」 가 origin 컴포넌트에 반영됨을 직접 확인. 원본에 반영 · 전부 되돌리기 · Overrides 목록 전 종류 (live 13/13 · shared 19 · 원복 RED 4/4). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 285).
 >
 > **2026-10-15 ADR-261 Implemented** (main `871357986` · `e09a78030` · `b4e64d41f` · `79b881192` · `108306c71` · `ba7d6021c`): 사용자 G5 「직접확인했다」. 확인 직전 보고 1 (Create component 로 만든 컴포넌트의 instance 에서 일부 속성이 안 바뀌거나 다른 조작 뒤에야 반영 — 증분 step 의 template 바인딩 판정) 같은 날 수리 · live 8/8. LOW deferred: Disclosure `size` → 제목 글자 크기 증분 (원본에서도 재현). 열림 −1, 완료 +1 (열림 2 — Proposed 2, 합계 285).
@@ -284,7 +286,7 @@
 | ├ Proposed                    |       2 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **285** |
+| **합계**                      | **286** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -298,6 +300,11 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
+
+#### [263](263-render-command-patch-execute-cost.md) — 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계)
+
+- **상태**: Proposed — 2026-10-16 (리뷰 [reviews/263](reviews/263.md) round 1 HIGH 2 · MEDIUM 2 반영 → round 2 수리 검증 통과, LOW 1 deferred — 전제 확정)
+- **규모**: Phase 0 측정 분해 (content 프레임 사유 · 방문 명령 · Proxy 접근 · record ↔ flush · drag patch 호출자) → P1 Proxy 없는 명령 순회 → P2 컬링 서브트리 점프 → P3 damage 부분 재기록 재연결 (scene · drag) → P4 스크롤 범위 증분 → P5 patch 중복 순회 (Phase 0 결과에 따라) → 종결 측정. 닫는 조건: production 중첩 5k 편집 p99 ≤ 20 ms · drop < 1 %, 줌 p99 ≤ 20 ms, 평평 5k drag p99 ≤ 20 ms 유지. 사용자 결정 2건. breakdown: [design/263](design/263-render-command-patch-execute-cost-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -320,17 +327,18 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-10-15 재산정
+### 권장 착수 순서 — 2026-10-16 재산정
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                       |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+|  1   | [263](263-render-command-patch-execute-cost.md)                                                | Phase 0 측정 분해부터 (production 레인 · 카운트 RED)         | 사용자 결정 2건 (평평 5k 줌 꼬리 소속 · 미달 시 처리) — 착수는 `/execute-adr 263` |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)         |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                            |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                       |
 
 ---
 
