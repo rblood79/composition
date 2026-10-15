@@ -1029,6 +1029,58 @@ describe("drag presentation — the dragged element and its siblings' reflow", (
     expect(gestures.preview()!.container).toBeUndefined();
   });
 
+  it("the line (Figma): inside the padding, as long as the dragged box; half a gap before the first child, mid-gap between, half a gap after the last", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        layout: {
+          display: { kind: "set", value: "flex" },
+          flexDirection: { kind: "set", value: "column" },
+        },
+        visual: {
+          paddingTop: { kind: "set", value: 40 },
+          paddingLeft: { kind: "set", value: 24 },
+          gap: { kind: "set", value: 30 },
+        },
+      }),
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: id("box") },
+        entries: [text("e")],
+        rootIds: [id("e")],
+        newId: allocator(),
+      }),
+    );
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        sizing: { width: { kind: "set", value: 120 } },
+      }),
+    );
+    scene.sync();
+    const frame = box("box");
+    const d = box("d");
+    const e = box("e");
+    expect(d.y).toBe(frame.y + 40);
+    expect(e.y - (d.y + d.height)).toBe(30);
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const line = (y: number) => {
+      gestures.update(d.x + 4, y, 1);
+      return gestures.preview()!.line!;
+    };
+    gestures.beginMove(ax, ay, record("a"));
+    // Before d: half the gap above it, from the content start, the dragged width long.
+    expect(line(d.y + 2)).toEqual({ x: frame.x + 24, y: d.y - 15, width: 120, height: 0 });
+    // Between d and e: the middle of the gap.
+    expect(line(e.y + 2).y).toBe(d.y + d.height + 15);
+    // After e: half the gap below it.
+    expect(line(e.y + e.height - 2).y).toBe(e.y + e.height + 15);
+    gestures.cancel();
+  });
+
   it("an empty container: the line at its content start, inside the padding", async () => {
     const { workspace, scene, gestures, record, box, center } = await open();
     workspace.execute(

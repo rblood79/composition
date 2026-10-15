@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [삽입선이 drop 대상의 gap · padding 을 따른다 — Figma 실측 기준] - 2026-10-15
+
+### Fixed
+
+- **drop 대상에 gap · padding 이 있으면 삽입선이 그 값을 무시하던 것.** 이제 삽입선은 padding 안쪽(내용 시작)에서 시작하고, 길이는 끄는 요소의 폭(세로 흐름) · 높이(가로 흐름)다. 흐름 방향으로는 첫 자식 앞 = gap 의 절반 위, 자식 사이 = gap 가운데, 마지막 자식 뒤 = gap 의 절반 아래에 그린다. 들어갈 컨테이너의 테두리도 삽입선과 같은 굵기(2px)로 그린다.
+  - **Why**: 삽입선이 첫 · 마지막 자식의 가장자리에 붙고 자식 폭만큼만 그려져 padding · gap 이 있는 컨테이너에서 어디로 들어가는지 어긋나 보였다(사용자 지적). 같은 컨테이너 안 재정렬의 형제 비킴도 gap 을 앞 두 자식 사이를 재서 구해, 자식이 하나뿐이면 gap 0 으로 자리를 열었다 — 이제 작성한 gap(축 longhand 우선)을 읽는다. Figma 실측(padding 40 · gap 30 세로 auto-layout, 실제 마우스): 첫 자식 15px 위 · gap 가운데 · 선 시작 = padding 안쪽 · 선 길이 = 끄는 요소 폭.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`insertionLine` · `contentBox` · `flowGap` · `layoutFlow`) · `workspace/canvas/catalog/catalogOverlay.ts`. 검증: `phase4eCanvasGesture.test.ts` 26 (새 1 — padding 40 · gap 30 의 세 자리) · catalogRuntime + canvas 3116 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `canvas-dnd-presentation-live.mjs` 7/7 (padding 24 · gap 20 컨테이너로 끄는 중 선 x = padding 안쪽 · y = D 끝 + 10 · 폭 = 끄는 B 폭).
+
 ## [다른 컨테이너로 끌 때 삽입선 · 컨테이너 테두리 — Figma · pen.dev 실측 기준] - 2026-10-15
 
 ### Changed

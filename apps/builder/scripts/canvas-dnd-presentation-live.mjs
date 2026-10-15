@@ -5,7 +5,8 @@
 //   3 놓으면 순서 [B, C, A] · drag 표현이 지워진다 (A 의 원래 자리는 B 색)
 //   다른 컨테이너 (Figma · pen.dev 실측 2026-10-15): B 를 T (D · E) 의 D 와 E 사이로 끄는 도중
 //   4 T 의 형제는 비키지 않는다 (E 자리는 그대로 E 색) · 끄는 B 는 반투명 (순수 파랑 아님)
-//   5 삽입선 · T 테두리 (선택 파랑 화소)
+//   5 삽입선 = T 의 padding 안쪽에서 시작 · D 와 E 사이 gap 가운데 · 길이 = 끄는 B 의 폭 (Figma 실측)
+//   6 놓으면 T = [D, B, E]
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/canvas-dnd-presentation-live.mjs <out>
 import { chromium } from "playwright";
@@ -123,7 +124,8 @@ const ids = await exec(`(cat, colors) => {
         props: {}, visual: {}, sizing: { width: { kind: "set", value: 240 } }, descendantOverrides: [] },
       cell("A", colors.RED), cell("B", colors.BLUE), cell("C", colors.GREEN),
       { kind: "node", id: id.T, definitionId: "lib:definition:type-frame", children: [id.D, id.E],
-        props: {}, visual: {}, sizing: { width: { kind: "set", value: 240 } }, descendantOverrides: [] },
+        props: {}, visual: { paddingTop: { kind: "set", value: 24 }, paddingLeft: { kind: "set", value: 24 },
+          gap: { kind: "set", value: 20 } }, sizing: { width: { kind: "set", value: 240 } }, descendantOverrides: [] },
       cell("D", colors.AMBER), cell("E", colors.VIOLET),
     ],
     rootIds: [id.L, id.T],
@@ -192,11 +194,14 @@ const [atE, atB] = await colorAt(
 );
 const linePixels = await page.evaluate(async () => 0);
 check("4 다른 컨테이너 — 형제 그대로 (E 자리 = E 색) · 끄는 B 반투명", near(atE, VIOLET) && !near(atB, BLUE) && atB !== "#ffffff", { atE, atB });
+const line = await exec(`(cat) => cat.canvas.drag()?.line`);
+const geo = await exec(`(cat, a) => { const b = (id) => cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(id)[0]); return { T: b(a.T), D: b(a.D), B: b(a.B) }; }`, ids);
+check("5 삽입선 — padding 안 · gap 가운데 · 끄는 요소 폭", line && line.x === geo.T.x + 24 && line.y === geo.D.y + geo.D.height + 10 && line.width === geo.B.width, { line, T: geo.T, D: geo.D });
 const accent = await colorAt([{ x: (await pointOf(ids.T, 0.02, 0.5)).x, y: (await pointOf(ids.T, 0.02, 0.5)).y }], "3b-frame");
 await page.mouse.up();
 await wait(700);
 const tKids = await exec(`(cat, id) => [...cat.workspace.runtime.graph.getEntry(id).children]`, ids.T);
-check("5 놓으면 T = [D, B, E]", JSON.stringify(tKids) === JSON.stringify([ids.D, ids.B, ids.E]), { where: await whereIs(ids.B), accent });
+check("6 놓으면 T = [D, B, E]", JSON.stringify(tKids) === JSON.stringify([ids.D, ids.B, ids.E]), { where: await whereIs(ids.B), accent });
 check("console · page 오류 없음", errors.length === 0, errors.slice(0, 5));
 process.stdout.write(`\n${results.filter((r) => r.ok).length}/${results.length} PASS\n`);
 await browser.close();

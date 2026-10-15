@@ -943,10 +943,7 @@ export class CatalogCanvasGestures {
     const size = (box: BoundingBox) => (row ? box.width : box.height);
     const all = this.flowEntries(container, new Set());
     if (!all.length) return;
-    const gap =
-      all.length > 1
-        ? Math.max(0, start(all[1]!.box) - start(all[0]!.box) - size(all[0]!.box))
-        : 0;
+    const gap = this.flowGap(container, kind, all.map(({ box }) => box));
     const moving = all.filter(({ id }) => dragged.has(id));
     const rest = all.filter(({ id }) => !dragged.has(id));
     const hole =
@@ -1557,7 +1554,7 @@ export class CatalogCanvasGestures {
         index,
         slot,
         axis: this.flowKind(record),
-        line: this.insertionLine(record, excluded, slot),
+        line: this.insertionLine(record, excluded, slot, gesture.startBox),
         ...(refused ? { relocated: refused } : {}),
       };
     }
@@ -1662,56 +1659,101 @@ export class CatalogCanvasGestures {
     container: CatalogConsumerNode,
     dragged: ReadonlySet<string>,
     slot: number,
+    draggedBox: BoundingBox,
   ): BoundingBox {
     const kind = this.flowKind(container);
     const boxes = this.flowEntries(container, dragged).map(({ box }) => box);
     const frame = this.host.bounds(container.id)!;
+    const content = this.contentBox(container, frame);
     const vertical = kind !== "column";
-    if (!boxes.length) {
-      // An empty container: the line at its content start (inside the padding, as Figma).
-      const model = catalogBoxModel(container);
-      const n = (value: unknown) => (typeof value === "number" ? value : 0);
-      const border = n(model.borderWidth);
-      const top = border + n(model.padding?.top);
-      const left = border + n(model.padding?.left);
-      const right = border + n(model.padding?.right);
-      const bottom = border + n(model.padding?.bottom);
+    if (kind !== "grid" || !boxes.length) {
+      // Figma (measured 2026-10-15, padding 40 · gap 30): the line starts at the content start
+      // (inside the padding) and is as long as the dragged box; along the flow it sits half a gap
+      // before the first child, in the middle of a gap, half a gap after the last — at the content
+      // start in an empty container.
+      const gap = boxes.length ? this.flowGap(container, kind, boxes) : 0;
+      const start = (box: BoundingBox) => (vertical ? box.x : box.y);
+      const end = (box: BoundingBox) =>
+        vertical ? box.x + box.width : box.y + box.height;
+      const prev = boxes[slot - 1];
+      const next = boxes[slot];
+      const at = !boxes.length
+        ? start(content)
+        : prev && next
+          ? (end(prev) + start(next)) / 2
+          : next
+            ? start(next) - gap / 2
+            : end(prev!) + gap / 2;
       return vertical
         ? {
-            x: frame.x + left,
-            y: frame.y + top,
+            x: at,
+            y: content.y,
             width: 0,
-            height: Math.max(0, frame.height - top - bottom),
+            height: Math.min(draggedBox.height, content.height),
           }
         : {
-            x: frame.x + left,
-            y: frame.y + top,
-            width: Math.max(0, frame.width - left - right),
+            x: content.x,
+            y: at,
+            width: Math.min(draggedBox.width, content.width),
             height: 0,
           };
     }
     const prev = boxes[slot - 1];
     const next = boxes[slot];
     const overlaps = (a: BoundingBox, b: BoundingBox) =>
-      vertical
-        ? a.y < b.y + b.height && b.y < a.y + a.height
-        : a.x < b.x + b.width && b.x < a.x + a.width;
+      a.y < b.y + b.height && b.y < a.y + a.height;
     const neighbours = prev && next && overlaps(prev, next);
-    if (vertical) {
-      const box = next ?? prev!;
-      const x = neighbours
-        ? (prev.x + prev.width + next.x) / 2
-        : next
-          ? next.x
-          : prev!.x + prev!.width;
-      return { x, y: box.y, width: 0, height: box.height };
-    }
     const box = next ?? prev!;
-    const y = neighbours
-      ? (prev.y + prev.height + next.y) / 2
+    const x = neighbours
+      ? (prev.x + prev.width + next.x) / 2
       : next
-        ? next.y
-        : prev!.y + prev!.height;
-    return { x: box.x, y, width: box.width, height: 0 };
+        ? next.x
+        : prev!.x + prev!.width;
+    return { x, y: box.y, width: 0, height: box.height };
   }
+
+  /** A container's content box (inside its border and padding). */
+  private contentBox(
+    container: CatalogConsumerNode,
+    frame: BoundingBox,
+  ): BoundingBox {
+    const model = catalogBoxModel(container);
+    const n = (value: unknown) => (typeof value === "number" ? value : 0);
+    const border = n(model.borderWidth);
+    const top = border + n(model.padding?.top);
+    const left = border + n(model.padding?.left);
+    const right = border + n(model.padding?.right);
+    const bottom = border + n(model.padding?.bottom);
+    return {
+      x: frame.x + left,
+      y: frame.y + top,
+      width: Math.max(0, frame.width - left - right),
+      height: Math.max(0, frame.height - top - bottom),
+    };
+  }
+
+  /**
+   * The gap along a row / column flow: the authored one (the axis longhand over `gap`, as the
+   * layout input reads them), else the space measured between its first two boxes.
+   */
+  private flowGap(
+    container: CatalogConsumerNode,
+    kind: "row" | "column" | "grid",
+    boxes: readonly BoundingBox[],
+  ): number {
+    const px = (value: unknown) =>
+      typeof value === "number"
+        ? value
+        : typeof value === "string" && /^-?\d+(\.\d+)?(px)?$/.test(value.trim())
+          ? parseFloat(value)
+          : undefined;
+    const authored =
+      px(kind === "column" ? container.layout.rowGap : container.layout.columnGap) ??
+      px(catalogBoxModel(container).gap);
+    if (authored !== undefined) return Math.max(0, authored);
+    if (boxes.length < 2) return 0;
+    const [a, b] = boxes as [BoundingBox, BoundingBox];
+    return Math.max(0, kind === "column" ? b.y - a.y - a.height : b.x - a.x - a.width);
+  }
+
 }
