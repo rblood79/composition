@@ -27,7 +27,7 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 
 ## ADR Fork / 분리 결정 시 전제·관점 점검
 
-> 용어 주의: 과거 "framing/발의/land" 표현을 한국어 대체어("관점·전제·문제 정의 / 작성·제안 / 반영·적용·추가·커밋")로 통일한다. 규칙 본문 자체가 금지 어휘 source 가 되지 않게 유지. 대체 매핑 정본: `CLAUDE.md` §"응답·문서 어휘 규칙".
+> 어휘: `~/.claude/CLAUDE.md` §"응답·문서 어휘 규칙" 을 따른다.
 
 > **배경**: 2026-04-26~28 ADR-111/112 사례 — 선행 ADR (ADR-903 P4) 의 전제를 자동 승계하여 응용 ADR (ADR-111 frame preset) 을 base ADR (ADR-112 component 추상) 의 선행 ADR 로 잘못 분류. 24+ commits / sub-phase α/β/γ/δ/θ 진행 후 codex 3차 review 에서야 reverse 정정. 본 절차는 동일 손실 재발 차단 contract.
 
@@ -40,7 +40,7 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 
 ### 사용자 explicit confirm 의무 (M2 — 2026-05-11 추가)
 
-4 질문 통과 후 ADR 본문 작성 직전, **claude 가 AskUserQuestion 으로 사용자 명시 confirm 요청 의무**. ADR 본문에 4 질문 lock-in 만으로 confirm 자동 처리 금지 (ADR-127 우회 패턴: 본문 self-lock-in 으로 사용자 confirm 단계 skip). confirm 받은 적 없으면 fork 차단 — 현 ADR scope 안 흡수 (옵션 1) 또는 직후 phase 흡수 (옵션 2). 본 규칙 근거: `~/.claude/plans/adr-123-124-125-126-sunny-crescent.md` M2.
+4 질문 통과 후 ADR 본문 작성 직전, **claude 가 AskUserQuestion 으로 사용자 명시 confirm 요청 의무**. ADR 본문에 4 질문 lock-in 만으로 confirm 자동 처리 금지 (ADR-127 우회 패턴: 본문 self-lock-in 으로 사용자 confirm 단계 skip). confirm 받은 적 없으면 fork 차단 — 현 ADR scope 안 흡수 (옵션 1) 또는 직후 phase 흡수 (옵션 2). 정본: [premise-decision-points.md](premise-decision-points.md).
 
 **종결 계약 연계 (2026-07-11)**: 이미 사용자 confirm 기록이 있는 fork 결정 (CLAUDE.md §전제·관점 의문 처리 — 전제 확정 종결 계약 성립) 은 재질문 금지. 기록이 confirm 의 지속 형태이며, 세션 경계로 소멸하지 않는다.
 

@@ -18,7 +18,7 @@ paths:
 ## 표준 구조 정본 (DOM 계층)
 
 ```
-.panel-wrapper[data-panel]              ← 시스템이 래핑 (PanelContainer.tsx). 패널 식별자
+.panel-wrapper[data-panel]              ← 시스템이 래핑 (layout/PanelWorkspace.tsx). 패널 식별자
 └ .panel                                 ← 패널 root (고정 클래스)
   ├ PanelHeader → .panel-icon / .panel-title / .panel-actions
   └ .panel-contents                      ← 스크롤 영역 (복수형)
@@ -40,7 +40,7 @@ paths:
 
 - 패널 root 는 `.panel` **고정**. 패널별 root 클래스 신설 금지 — 패널 식별은 시스템이 래핑하는 `.panel-wrapper[data-panel]` 선택자 사용.
 - 스크롤 영역은 `.panel-contents` 단일. 변형(`*-content` 단수, `*-contents` 병기)은 보조 클래스로만 (`.panel-contents.history-contents` 형태).
-- 섹션은 `Section` 컴포넌트 경유만 (`.section` 직접 마크업 금지). collapse/reset/lazy/badge/actions 는 Section 이 담당 (memory: domain-section-component).
+- 섹션은 `Section` 컴포넌트 경유만 (`.section` 직접 마크업 금지). collapse/reset/lazy/badge/actions 는 Section 이 담당.
 - `.section-content` 는 **항상 1열 세로 스택** (flex column + gap). 가로 배치는 `.fieldset-row` 한 겹 아래에서만 — `.section-content` 자체를 grid 로 잡는 패턴은 신규 금지.
 - **section header 에 아이콘 금지** — 아이콘은 패널 식별 장치(`.panel-icon`, 좌측 rail 아이콘과 짝)이고, 섹션 타이틀은 한 패널 안에서 이미 유일해 변별력이 없다. 두 층에 다 달면 계층 신호가 무너진다. `Section` 은 `icon` prop 자체를 갖지 않으며 `sectionHeaderIcon.static.test.ts` 가 집행한다.
   - **왜 "빼는" 통일인가 (실측 2026-08-30)**: 아이콘 사용 섹션은 54개 중 9개(17%)뿐이었고, 나머지 45개의 큰 몫이 catalog 파생 섹션(`GenericFieldRenderer`/`CatalogInspectorFields` 가 `field.section` 문자열로 생성)이라 **아이콘을 넘길 채널이 없다** — 채우는 통일은 catalog 계약에 icon 축 신설(D2/D3 확장)이 전제다. 같은 Properties 패널 한 화면에 아이콘 섹션(Component/Attributes)과 무아이콘 섹션(Content/Appearance/State)이 함께 뜨던 것이 제거 동기.
@@ -57,10 +57,10 @@ paths:
   - **Why (2026-08-30 통일)**: DataTable 4개 바가 `<div>`+`<button>`+`.active` 수동 구현이라 `role="tab"`·`aria-selected`·화살표 키·focus 링이 전부 없었고, 선택 상태를 `--accent` 채움으로 그려 뷰 전환 탭이 패널에서 가장 강한 요소가 됐다. hover 배경(`--bg-raised`)이 바 배경과 같아 보이지도 않았다. Monitor 는 마크업만 RAC 이고 CSS 가 자체 계열이었다. 셋 다 공용으로 흡수 — 선택은 표면(`--bg-overlay` + `--shadow-sm`), accent 채움은 primary 액션·값 선택 축에 남긴다.
 - **분류된 팔레트는 탭이 아니라 카테고리당 `Section`** — 고르는 대상이 카테고리로 묶여 있으면 `Section` 을 카테고리 수만큼 쌓는다 (ComponentList 가 정본, DataTableCreator preset 이 추종). 탭 줄로 만들면 패널 기본 폭(387px)에 라벨 5개가 안 들어가 가로 스크롤이 생기고 뒤쪽 카테고리가 상시 숨는다. 패널 탭 슬롯은 **패널 전체 뷰를 가르는 축 하나**만 차지한다 — 그 아래 필터·분류를 같은 모양의 두 번째 바로 쌓으면 두 축이 같은 무게로 읽힌다.
 
-- **라벨 액션 버튼은 `.control-button` 하나** — add / create / cancel / generate 처럼 **라벨을 가진 액션**은 전부 이 클래스이고 무게는 `data-variant` 로만 가른다: 무지정(중립 — 취소·보조 포함) / `primary`(accent 채움, 확정) / `add`(전폭 점선, 목록 끝 어포던스). 정의처는 panel-system.css 하나이며 높이는 `--inspector-control-size`(28px) — 패널의 필드·탭 줄과 같은 격자다. 축이 다른 것은 대상이 아니다: 아이콘 전용은 `.iconButton` / `ActionIconButton`, 패널 헤더 슬롯은 `.panel-actions`, 캔버스 오버레이는 `contextual-action-bar-*`, 여러 줄로 감기는 제안 카드(`.ai-suggestion`)와 테마 미리보기 안의 표본(`.mini-preview__button`)은 빌더 chrome 이 아니다. 집행: `controlButton.static.test.ts`.
+- **라벨 액션 버튼은 `.control-button` 하나** — add / create / cancel / generate 처럼 **라벨을 가진 액션**은 전부 이 클래스이고 무게는 `data-variant` 로만 가른다: 무지정(중립 — 취소·보조 포함) / `primary`(accent 채움, 확정) / `add`(전폭 점선, 목록 끝 어포던스). 정의처는 panel-system.css 하나이며 높이는 `--control-size`(28px) — 패널의 필드·탭 줄과 같은 격자다. 축이 다른 것은 대상이 아니다: 아이콘 전용은 `.iconButton` / `ActionIconButton`, 패널 헤더 슬롯은 `.panel-actions`, 캔버스 오버레이는 `contextual-action-bar-*`, 여러 줄로 감기는 제안 카드(`.ai-suggestion`)와 테마 미리보기 안의 표본(`.mini-preview__button`)은 빌더 chrome 이 아니다. 집행: `controlButton.static.test.ts`.
   - **Why (2026-08-30 통일)**: 라벨 액션 버튼이 25개 클래스 / 47개 호출부에서 각자 chrome 을 정의해 높이가 22·26·28·32·34·36·38px 로 갈렸다. 같은 "추가" 액션 6종의 배경 4·radius 2·글자 2·글자색 3이 전부 달랐고, `focus-visible` 은 29개 중 24개(83%)에 아예 없어 키보드로는 위치가 보이지 않았다. 어법(표면+테두리 / 점선 추가 / accent 확정) 자체는 이미 공유하고 있었으므로 새 언어를 만들지 않고, 유일하게 상태 4종을 갖췄던 `.control-button` 을 승격했다. 리터럴 이탈(`6px`/`13px`/`7px 12px`/`11px`/`white`)과 **정의된 적 없는 `--accent-fg`** 도 이때 정리했다 — `EditingSemanticsImpactDialog` 는 fallback 이 없어 `color` 선언 자체가 무효였다.
 
-  - **같은 액션 줄 안의 아이콘 전용 보조 버튼은 예외** — 라벨 버튼과 나란히 서는 보조 액션(Component 섹션의 Detach instance)은 `.iconButton` 이 아니라 같은 `.control-button` 에 조상 스코프 override 로 폭만 정사각(`--inspector-control-size`)으로 좁힌다. `.iconButton` 은 base 정의가 없고 맥락별로 chrome 을 각자 주는 클래스라, 한 줄 안에서 테두리·표면이 갈린다. `.iconButton` 이 맞는 자리는 축이 따로 있는 곳(패널 헤더, 섹션 헤더, 목록 행 액션)이다.
+  - **같은 액션 줄 안의 아이콘 전용 보조 버튼은 예외** — 라벨 버튼과 나란히 서는 보조 액션(Component 섹션의 Detach instance)은 `.iconButton` 이 아니라 같은 `.control-button` 에 조상 스코프 override 로 폭만 정사각(`--control-size`)으로 좁힌다. `.iconButton` 은 base 정의가 없고 맥락별로 chrome 을 각자 주는 클래스라, 한 줄 안에서 테두리·표면이 갈린다. `.iconButton` 이 맞는 자리는 축이 따로 있는 곳(패널 헤더, 섹션 헤더, 목록 행 액션)이다.
 
 - **목록 행의 보조 액션 2개 이상은 `PropertyRowMenu`** (`components/property/`) — `.fieldset-row` 의 `.fieldset-actions` 칸에 `⋮` 트리거 하나 + RAC Menu (Move Up / Move Down / Reset / Remove …). 인스펙터 행 템플릿의 아이콘 칸은 `--control-size` 하나라 버튼을 나란히 두면 필드가 폭을 잃는다 (233px 패널: 필드 2 + 아이콘 3 = 필드당 49px). 유니코드 화살표·`×` 를 버튼 라벨로 쓰지 않는다 (Chart 시리즈·값 필드 행, 2026-09-11).
 - **필드 상태 문구는 필드 안 `slot="description"`** (`PropertySelect.afterControl`) — 값·데이터에 반응하는 메시지 (disabled 사유 · 초과 · 누락) 만. 정적 설명 문단 (`<p class="…-hint">`) 은 섹션에 두지 않는다 — legend 뒤 help 어포던스는 후속 (i18n 키는 유지).
@@ -94,7 +94,7 @@ paths:
 - **패널 전용 CSS**: 해당 패널 디렉터리에 co-locate. 단 구조 클래스 **base 정의** 금지, 고유 클래스만 (정적 가드 `reservedPrefix.static.test.ts` — 인프라 allowlist 밖 CSS 에서 `panel-*`/`section-*`/`fieldset-*`/`tab-*` base 정의 0건 단언). 패널 밖 CSS(`Workspace.css` 등) 차용 금지.
 - **구조 클래스가 정말 공용이면 rename 이 아니라 승격**: 여러 패널이 같은 역할로 쓰면 panel-system.css top-level 로 올린다 (`.section-divider` 사례). 한 패널 전용이면 도메인 접두로 rename 한다 (`.panel-tabs` → `.datatable-tabs` 사례).
 - **Tailwind 유틸 인라인 금지** (기존 CRITICAL 규칙): 시맨틱 클래스 + 토큰으로 대체. builder 패널 컨텍스트에서 `--fg-muted`≡`--color-gray-500`, `--fg-disabled`≡`--color-gray-400`, `--negative`≡`--color-red-500`, `--informative`≡`--color-blue-500`, `--spacing-lg`≡16px(`p-4`), `--spacing-sm`≡8px(`ml-2`) 이므로 light mode diff 0 로 치환 가능하다. **`--spacing-{1..6}` / `--text-md` 는 미정의 토큰** — 쓰면 선언 자체가 무효가 된다 (구 `TableEditor.css` 의 `padding: var(--spacing-4)` 가 0 으로 죽어 있던 사례). 실존 스케일은 `xs/sm/md/lg/xl/2xl`.
-- **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 컬럼 템플릿 SSOT 는 `--inspector-row-columns` 토큰 (`.section` 정의, ADR-163 Phase 4-b — 구 9회 재선언 단일화). 각 섹션 wrapper 는 `grid-template-columns: var(--inspector-row-columns)` + 고유 `grid-template-areas` 조합. 리터럴 `1fr 1fr var(--inspector-control-size)` 신규 재선언 금지. `.fieldset-row`(신규 패널 표준, §4)도 이 토큰 사용.
+- **섹션별 grid 배치**: inspector-layout.css 의 `.section { &[data-section-id="…"] .section-content {…} }` 패턴 (조상 `.section` 먼저 → live). 인스펙터 3열 컬럼 템플릿 SSOT 는 `--inspector-row-columns` 토큰 (`.section` 정의, ADR-163 Phase 4-b — 구 9회 재선언 단일화). 각 섹션 wrapper 는 `grid-template-columns: var(--inspector-row-columns)` + 고유 `grid-template-areas` 조합. 리터럴 `1fr 1fr var(--control-size)` 신규 재선언 금지. `.fieldset-row`(신규 패널 표준, §4)도 이 토큰 사용.
 - 공용 위젯(`.iconButton`, `.empty-state`, `.panel-tabs`)은 단일 파일 1회 정의로 통합.
 
 ## 4. 상관관계 계약 (클래스 간 필수 쌍/위치)
@@ -126,7 +126,6 @@ paths:
 - **같은 화면 그룹 안에서 두 항목이 같은 그림이면 그 열은 정보가 0이다** — 한 토글 그룹 / 한 탭 줄 / 한 섹션의 필드들은 서로 다른 그림이어야 한다. 뜻이 맞아도 변별이 없으면 부적합이다 (2026-08-30 전수조사 실측: Typography 4필드 전부 `Type`, justify 3옵션 중 2개가 `AlignHorizontalSpaceAround`, API 탭 body/response 둘 다 `FileJson`, radial gradient 4필드가 `MoveHorizontal`/`MoveVertical` 2개). 반대로 **상호 배타적인 분기**(linear/radial gradient, 접힘/펼침 모드)나 **같은 뜻의 반복**(메모리 지표 4장)은 같은 그림이 맞다.
 - **패널 정체 아이콘은 rail ↔ 패널 헤더가 같아야 하고, 그 패널 안의 행 아이콘과 달라야 한다** — 옆 패널의 모든 행에 깔린 그림을 rail 에 쓰면 식별 장치가 아니다 (같은 실측: Navigator rail `File` = LayerTree 잎 노드, Components rail `Box` = LayerTree 요소 노드). 다른 패널의 정체 아이콘을 빌려 쓰는 것도 같은 이유로 금지 — 헤더 메뉴의 Monitor 항목이 `Monitor`(같은 헤더의 desktop breakpoint), Monitor 패널의 History 카드가 `Activity`(패널 자신) 였다.
 
-- **필드 아이콘은 `config/propertyFieldIcons.ts` 3단 파생** — 컴포넌트 스코프 표 (`COMPONENT_KEY_ICONS`) → 공유 key 표 (`PROP_KEY_ICONS`, 2개+ 컴포넌트 공유 key) → kind 기본. 단일 컴포넌트 전용 key 라도 **그 컴포넌트 한 화면의 같은 섹션에 같은 kind 필드가 2개 이상**이면 컴포넌트 표에 등재한다 — kind 기본이 같은 그림을 반복해 열의 정보가 0 이 된다 (2026-09-11 Chart: Show Axis/Grid/Legend/Dots 전부 `ToggleLeft`). `PropertiesPanel` 이 `componentType` 을 넘겨야 표가 읽힌다. 집행: `propertyFieldIcons.static.test.ts` (표의 key 실재 · 같은 섹션 안 같은 그림 0).
 - 판정 기준은 **"같은 그림" 이 아니라 "같은 액션"**. 심볼만 겹치는 것은 `INTENTIONAL_DIVERGENCE` 에 사유와 함께 등재한다 — TypographySection 의 정렬 6종은 `textAlign` **스타일 값**, `PropertyNumberInput` 의 `Plus` 는 `Minus` 와 짝인 **스테퍼 증가**, 랜딩(`App.tsx`)의 아이콘은 액션 없는 장식.
 
 집행: `actionIcons.static.test.ts` 3조항 — ① 등재 심볼의 registry 밖 직접 import 0건 ② 등재 항목별 소비처 ≥1 ③ **금지 변종 0건** (`Trash`/`Ruler`/`CirclePlus`/`PlusCircle` — 정본이 다른 그림을 쓰는 액션의 대체 심볼. ①은 registry 가 import 하는 심볼만 보므로 고쳐 놓은 발산의 **재도입**은 ③이 맡는다).

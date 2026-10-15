@@ -1,5 +1,5 @@
 ---
-description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-900 PixiJS 제거 완료)
+description: Canvas/Skia 렌더링 관련 파일 작업 시 적용
 paths:
   - "apps/builder/src/builder/workspace/canvas/**"
   - "**/nodeRenderers*"
@@ -27,11 +27,9 @@ paths:
 - 같은 루트 상자는 CSS `structure.containerStyles`와 Canvas `containerStyles` 정의를 공유하고 typed box 변환을 거친다. **Why:** Button·ToggleButton의 Canvas 복사본에서 `width: fit-content`가 빠져 flex column에서 342px로 늘어났으며, CSS는 각각 약 68px·115px를 유지했다. trigger와 popover처럼 서로 다른 상자는 합치지 않는다.
 - 콘텐츠 높이를 유지하는 버튼 루트는 `height: fit-content`를 선언하고 CSS size 축의 `auto`로 덮거나 typed box에서 숫자만 남기지 않는다. **Why:** row Frame 400px에서 기본 버튼이 양쪽 renderer 모두 400px로 stretch됐고, ButtonGroup은 별도 DOM 경로에서 catalog 높이 전달도 누락됐다.
 
-## 1. Skia 단일 렌더러 핵심 (ADR-900)
+## 1. Skia 단일 렌더러 (ADR-900)
 
-- ADR-900 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
-- DirectContainer 패턴: 엔진 계산 결과(x/y/w/h)로 직접 배치. **Why**: @pixi/layout 및 PixiJS 모두 제거 (ADR-900)
-- CanvasKit `heightMultiplier`에 `halfLeading: true` 필수. **Why**: CSS line-height 상하 균등 분배
+- Skia 가 화면 + 이벤트 (EventBoundary) 를 통합 처리하고, 엔진 계산 결과 (x/y/w/h) 로 직접 배치한다. 다른 렌더러 · 레이아웃 층을 끼우지 않는다.
 
 ## 2. Component Spec 규칙
 
@@ -41,23 +39,17 @@ paths:
 - Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
 - Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (`catalogRuntime/ruleShapes.ts`). `BOX_SIZE_TYPES` Set 등록 필수 (옛 `buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` — Phase 4e-9-8 삭제). **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
-## 2.5.5. Fill Spec Schema SSOT (ADR-908 Implemented 2026-04-24)
+## 2.5.5. Fill token consumer 계약 (ADR-908 Implemented 2026-04-24)
 
-VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* 는 `FillTokenSpec` (fillStyle × state 2축) + `FillStateTokens` 로 **단일 소스 통합**. legacy `background / backgroundHover / backgroundPressed / backgroundAlpha / selectedBackground* / emphasizedSelectedBackground / outlineBackground / subtleBackground` 필드는 전수 삭제됨.
+VariantSpec 의 배경 계열 필드 + IndicatorModeSpec 의 background\* 는 `FillTokenSpec` (fillStyle × state 2축) + `FillStateTokens` 하나로 통합돼 있다. legacy `background / backgroundHover / backgroundPressed / backgroundAlpha / selectedBackground* / emphasizedSelectedBackground / outlineBackground / subtleBackground` 필드는 없다.
 
 ### Fill token 구조
 
 타입 정의는 소스가 정본 — `packages/rendering/src/types/spec.types.ts` 의 `FillStateTokens` (state 축: `base` 필수, 나머지 선택) / `FillTokenSpec` (fillStyle 축: `default` 필수, `outline`/`subtle` 은 `Partial`, `alpha` 0-1). 여기에 복사본을 두지 않는다 (drift 방지).
 
-### Spec 작성 규약
-
-- 모든 `variants[name]` 은 `fill: { default: { base, hover?, pressed?, ... } }` 선언 필수 — `fill` 은 VariantSpec 에서 required.
-- IndicatorModeSpec 은 `fill: { base, pressed? }` (selection indicator 는 `pressed` 만 emit 됨, `base` 는 컨테이너 `background: transparent` 하드코딩 탓 dead).
-- 비-background 색상 (`text / border / textHover / borderHover / selectedText / outlineText / subtleText / selectedBorder / emphasizedSelectedText / emphasizedSelectedBorder`) 는 VariantSpec 직접 필드 유지 — fill preset 언어로의 확장은 후속 ADR 판정.
-
 ### Consumer 규약
 
-- spec 내부 `render.shapes()` 및 외부 5 consumer (`CSSGenerator / ReactRenderer / variantColors / stateEffect / validate-specs`) 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근. **Why**: 단일 진입점 유지 + 향후 merge/override 확장 포인트 보존
+- `packages/rendering` 의 consumer (`renderers/CSSGenerator.ts` · `variantColors.ts` · `skiaPrimitives.ts` 등 `VariantSpec` 을 읽는 모든 곳) 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근. **Why**: 단일 진입점 유지 + 향후 merge/override 확장 포인트 보존
 - `variant.background` / `variant.backgroundHover` 등 직접 property access **금지** (타입상 존재 안 함, compile error).
 - hover / pressed 는 optional 이므로 consumer 에서 fallback 필요: `fill.default.hover ?? fill.default.base` 패턴.
 
@@ -105,6 +97,15 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   빠지고, 크기 변경만 따라가면 margin·grid 배치 뒤 형제가 과거 좌표에 남는다 (9개 재현).
   입력 snapshot은 엔진의 기존 직렬화 결과를 재사용해 텍스트 재측정 없이 읽는다.
 
+- 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산한다.
+  **Why (2026-10-14)**: ToggleButton에 Icon을 추가하면 Label이 사라졌고, 고정 폭 버튼의 Label 편집은 Icon 좌표를 남겼다. 부품 입력도 증분 비교하며, 텍스트 부품은 자기 폭으로 줄바꿈하고 autoCenter로 부모 폭을 덮지 않는다.
+- 자기 타이포그래피를 Reset할 때도 현재 부모 체인에서 inheritedText를 다시 해석한다.
+  **Why (2026-10-14)**: Body를 Inter→Arial로 바꾼 뒤 Text의 Menlo를 Reset하면 상속 값이 비었지만, 재로드는 Arial이었다. 일곱 상속 키의 Reset/Undo/Redo를 fresh root와 비교한다.
+- 상속 Reset 검증은 해당 DOM 요소가 상속하는 키와 자체 CSS 기본값을 구분한다.
+  **Why (2026-10-14)**: Body 자간 4px에서 Text는 Reset 직후 DOM·Canvas 모두 4px였지만, 네이티브 ToggleButton은 normal을 복원한다. 텍스트를 담는 Body의 속성을 소비자가 거절하거나 ToggleButton 경계를 건너 상속하면 양쪽 결과가 달라진다.
+- Icon DOM wrapper의 기본 width·height는 공통 glyph 크기를 쓰되 저작 치수를 보존한다.
+  **Why (2026-10-14)**: fontSize만 전달하면 SVG는 XS 16px·XL 48px인데 wrapper는 24px로 남았다. 특정 부모의 height:auto 선택자로 우회하지 않는다.
+
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 
 컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem`은 Plain에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
@@ -133,8 +134,9 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 3. 텍스트 측정 동기화
 
-측정은 두 곳이다 (2026-10-04 개정). **레이아웃 측정** (엔진에 주는 텍스트 크기) 은 `catalogRuntime/textMeasure.ts` `catalogTextMeasure` — CanvasKit 이 준비되면 페인트와 같은 paragraph 로 재고 (기본 font feature 가 advance 를 바꾸므로), 준비 전에만 Canvas 2D (`utils/textMeasure.ts`) 로 잰다. **페인트 줄바꿈 hint** 는 `nodeRendererText.ts` 가 Canvas 2D 로 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 렌더에 강제한다 (ADR-051) — `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 는 hint 없이 CanvasKit paragraph 그대로. 두 기준이 다르므로 줄 수 발산은 둘을 나란히 대조한다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스. (`CanvasKitTextMeasurer` 클래스는 2026-04-07 배선이 끊긴 채 남아 있다가 2026-09-20 삭제)
+측정은 두 곳이다 (2026-10-04 개정). **레이아웃 측정** (엔진에 주는 텍스트 크기) 은 `catalogRuntime/textMeasure.ts` `catalogTextMeasure` — CanvasKit 이 준비되면 페인트와 같은 paragraph 로 재고 (기본 font feature 가 advance 를 바꾸므로), 준비 전에만 Canvas 2D (`utils/textMeasure.ts`) 로 잰다. **페인트 줄바꿈 hint** 는 `nodeRendererText.ts` 가 Canvas 2D 로 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 렌더에 강제한다 (ADR-051) — `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 는 hint 없이 CanvasKit paragraph 그대로. 두 기준이 다르므로 줄 수 발산은 둘을 나란히 대조한다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스.
 
+- CanvasKit `heightMultiplier`에 `halfLeading: true` 필수. **Why**: CSS line-height 상하 균등 분배
 - fontFamilies: 측정기와 렌더러가 **동일한 배열** 사용. CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑. **Why**: font 설정 불일치 → 텍스트 줄바꿈 위치 어긋남
 - strutStyle: `heightMultiplier > 0` 시 `forceStrutHeight: true` — 측정기/렌더러 양쪽 동일 적용
 - 측정 font: 텍스트 leaf 의 text · font 는 `textLeaf` (`compositionRoot.ts`) 가 catalog resolved record (`node.visual` · `catalogTextTypography`) 에서 읽는다 — 렌더와 같은 값. 옛 `extractSpecTextStyle` 은 2026-10-05 삭제
@@ -146,9 +148,9 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 4. Spec-CSS 경계
 
-- 모든 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 만든다 (Frame/Group/Slot 포함). 옛 `CSSGenerator` · `skipCSSGeneration` spec 선언은 ADR-248 에서 삭제됐다
+- 모든 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 `renderers/CSSGenerator.ts` 로 만든다 (Frame/Group/Slot 포함). 옛 spec 의 `skipCSSGeneration` 선언은 ADR-248 에서 삭제됐다
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
-- Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
+- Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로 하나로 렌더링한다. **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
 - Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제
 
@@ -159,6 +161,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - Dark Mode Token: adaptive 배경(`{color.neutral}`) → 텍스트에 `{color.base}` (not `{color.white}`). **Why**: dark mode에서 반전
 - Skia color-mix: `mixWithBlackSrgb()` 사용 (oklch 근사 금지). **Why**: srgb 혼합과 수학적으로 다른 결과
 - Necessity Indicator: CSS `renderNecessityIndicator` 와 catalog Canvas (`styleOf` 측정 `labelSuffix` · Skia 렌더) 가 같은 표시를 그린다
+- ToggleButton의 기본 Icon은 owner 텍스트 색상을 상속하고, owner 변경의 derived dependents에 포함한다. 명시한 Icon 색상은 보존한다.
+  **Why (2026-10-14)**: 강조된 선택 버튼의 글자는 흰색인데 Icon은 기본 fg로 남았다. DOM Icon의 자체 fg보다 color:inherit를 우선하고 SVG는 currentColor를 쓴다. Canvas는 같은 catalog owner paint를 읽으며, 기본값과 같은 명시 색상도 저작 선택으로 판정한다.
 
 ## 6. 레이아웃 통합
 
@@ -178,7 +182,6 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 7. 금지 패턴 종합
 
-- ❌ TEXT_TAGS에 "Label" 재추가 (이중 렌더링)
 - ❌ Label factory에 `width/height: "fit-content"` 누락 (레이아웃 엔진 auto 와 다름)
 - ❌ Label generated CSS 부활 (부모 CSS 변수 상속 깨짐)
 - ❌ CSS `var(--text-md)` 사용 (미정의 → `var(--text-base)` 사용)
@@ -199,7 +202,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 8. Overflow Scroll 가이드라인 동기화
 
-> **2026-08-14**: 구 Tree 경로 (`buildTreeBoundsMap` — PixiJS 씬 그래프 DFS fallback) 는 ADR-900 완결 후 도달 불가로 남았다가 제거됨. 렌더/bounds 산출은 Command Stream 단일 경로. `scrollState.scrollVersion` 카운터는 마지막 판독자(tree 경로 bounds 캐시)가 사라져 기록-전용으로 남았다가 제거됨 — 스크롤 무효화는 registryVersion 경유.
+렌더/bounds 산출은 Command Stream 단일 경로다. 스크롤 무효화는 registryVersion 경유.
 
 - `renderCommands.ts` (Command Stream 경로): `visitElement`에서 자식 boundsMap 좌표에 부모 `scrollOffset` 차감 필수. **Why**: boundsMap은 절대 좌표 → 렌더링의 `canvas.translate`와 동기화 필요
 - `executeRenderCommands` AABB 컬링 (`translateStack`): `CMD_CHILDREN_BEGIN` 의 scroll translate 를 컬링 절대좌표 스택에도 반영 필수 (`scrollDeltaStack` push → `CMD_CHILDREN_END` 복원). **Why**: 미반영 시 스크롤로 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링 — hover outline (boundsMap 경로) 만 보이고 본체 미렌더 (2026-07-16 수정)
@@ -215,6 +218,8 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - **identity 는 렌더 키, 문서 키가 아니다**: 해석된 노드의 `identity` = `instancePath` + `sourceId` (`packages/shared/src/catalog/resolution/positions.ts` `CatalogPosition`). composition root 레코드 · Canvas 명령 · overlay 가 이 키를 쓴다. 문서 · IndexedDB · 히스토리에는 저장하지 않는다.
 - **편집은 `EditTarget` 으로**: 같은 position 의 `target` (소유 노드 또는 instance address 가 붙은 template position) 이 명령의 대상이다. identity 문자열을 쪼개 문서 id 로 쓰지 않는다. 이동 · 삽입은 `moveNodes` 등 catalog 명령 하나로 간다.
 - **Canvas 무효화**: 전역 `sceneVersion` 카운터는 없다. `canvasBinding.ts` 가 `root.subscribeCanvas` dirty → rect diff 로 바뀐 subtree 만 다시 만든다 ([layout-engine.md](layout-engine.md) 「레이아웃 재계산 경로」 6단계).
+- 증분 step 에서 「이 instance 의 template 이 바뀐 prop 을 묶는가」 는 노드 자신의 정의만이 아니라 record 가 접은 층 (`collapsedSourceIds`) 의 정의 전부로 판정한다 (`compositionRoot.ts` `bindingDependents`).
+  **Why (2026-10-15)**: Create component 로 만든 TextField 컴포넌트의 instance 는 정의가 `accepts: {}` 라 Label · Description · placeholder 쓰기가 Canvas · Preview 에 다음 구조 변경 뒤에야 반영됐다 (사용자 보고). `{label}` 을 묶는 composite 는 원본 (lib 컴포넌트 instance) 의 정의이고, record 는 그 층을 접어 가장 안쪽 primitive 정의를 든다.
 
 ## 9.5 페이지 레이아웃 적용 — 해석은 한 곳, consumer 는 둘 (2026-10-04 개정)
 
@@ -238,19 +243,3 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)
 - [SPEC_CSS_BOUNDARY.md](../../docs/legacy/SPEC_CSS_BOUNDARY.md)
-
-- 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산한다.
-  **Why (2026-10-14)**: ToggleButton에 Icon을 추가하면 Label이 사라졌고, 고정 폭 버튼의 Label 편집은 Icon 좌표를 남겼다. 부품 입력도 증분 비교하며, 텍스트 부품은 자기 폭으로 줄바꿈하고 autoCenter로 부모 폭을 덮지 않는다.
-- 자기 타이포그래피를 Reset할 때도 현재 부모 체인에서 inheritedText를 다시 해석한다.
-  **Why (2026-10-14)**: Body를 Inter→Arial로 바꾼 뒤 Text의 Menlo를 Reset하면 상속 값이 비었지만, 재로드는 Arial이었다. 일곱 상속 키의 Reset/Undo/Redo를 fresh root와 비교한다.
-- Icon DOM wrapper의 기본 width·height는 공통 glyph 크기를 쓰되 저작 치수를 보존한다.
-  **Why (2026-10-14)**: fontSize만 전달하면 SVG는 XS 16px·XL 48px인데 wrapper는 24px로 남았다. 특정 부모의 height:auto 선택자로 우회하지 않는다.
-
-- 상속 Reset 검증은 해당 DOM 요소가 상속하는 키와 자체 CSS 기본값을 구분한다.
-  **Why (2026-10-14)**: Body 자간 4px에서 Text는 Reset 직후 DOM·Canvas 모두 4px였지만, 네이티브 ToggleButton은 normal을 복원한다. 텍스트를 담는 Body의 속성을 소비자가 거절하거나 ToggleButton 경계를 건너 상속하면 양쪽 결과가 달라진다.
-
-- ToggleButton의 기본 Icon은 owner 텍스트 색상을 상속하고, owner 변경의 derived dependents에 포함한다. 명시한 Icon 색상은 보존한다.
-  **Why (2026-10-14)**: 강조된 선택 버튼의 글자는 흰색인데 Icon은 기본 fg로 남았다. DOM Icon의 자체 fg보다 color:inherit를 우선하고 SVG는 currentColor를 쓴다. Canvas는 같은 catalog owner paint를 읽으며, 기본값과 같은 명시 색상도 저작 선택으로 판정한다.
-
-- 증분 step 에서 「이 instance 의 template 이 바뀐 prop 을 묶는가」 는 노드 자신의 정의만이 아니라 record 가 접은 층 (`collapsedSourceIds`) 의 정의 전부로 판정한다 (`compositionRoot.ts` `bindingDependents`).
-  **Why (2026-10-15)**: Create component 로 만든 TextField 컴포넌트의 instance 는 정의가 `accepts: {}` 라 Label · Description · placeholder 쓰기가 Canvas · Preview 에 다음 구조 변경 뒤에야 반영됐다 (사용자 보고). `{label}` 을 묶는 composite 는 원본 (lib 컴포넌트 instance) 의 정의이고, record 는 그 층을 접어 가장 안쪽 primitive 정의를 든다.

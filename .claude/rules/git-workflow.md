@@ -31,7 +31,7 @@ PR 패턴이 일으키는 실제 손실:
 2. **연쇄 commit 흐름 단절** — fix #1 → fix #2 → closure 가 매 단계 머지 대기로 끊김. 같은 conversation 연속 작업도 모두 차단
 3. **hook 자동화 가치 무력화** — Stop hook (type-check) / PostToolUse (auto-format) 가 절약하는 시간보다 PR 머지 대기 시간이 압도적
 4. **세션 컨텍스트 비용 누적** — PR 머지 대기 동안 다음 step 진행 불가 → 재진입 시 재로드
-5. **gh CLI 부재** → 자동 PR 생성 불가 → URL 만 출력 → 사용자가 브라우저 띄워 manual 처리
+5. **`gh` 가 있어도 PR 생성에 쓰지 않는다** — PR 은 어느 경로로 만들어도 사용자 브라우저 머지 대기를 만든다 (§1 의 `gh pr create` 금지와 같은 이유)
 
 PR 패턴은 "안전" 이 아니라 **사용자 워크플로우 강제 차단**.
 

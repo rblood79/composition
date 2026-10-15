@@ -23,7 +23,7 @@ paths:
 | 상태                                                  | 정본                                                                                                     | 읽기                                                                                                         |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | 문서 (페이지 · 노드 · 정의 · interaction · 상태 변수) | `CatalogGraph` (`packages/shared/src/catalog/document/graph.ts`) — `CatalogRuntime` (`controller.ts`) 안 | `graph.getEntry` · `ownerOf` · `CatalogReadModel` (`readModel.ts`) · `useCatalog*` hook (`react.runtime.ts`) |
-| 요소 순서                                             | `NodeEntry.children` · `PageEntry.children` 배열 (ADR-118), 페이지 순서는 `ProjectEntry.pageIds`         | 같은 배열. `order_num` 은 없다 (옛 프로젝트 로드 때 걷어냄)                                                  |
+| 요소 순서                                             | `NodeEntry.children` · `PageEntry.children` 배열 (ADR-118), 페이지 순서는 `ProjectEntry.pageIds`         | 같은 배열. 문서 노드에 `order_num` 필드는 없다                                                               |
 | 선택 · hover · 편집 맥락 · breakpoint                 | `CatalogSession` (`session.ts`) — step 마다 `reconcile()` 로 사라진 대상을 뺀다                          | `useCatalogSession`                                                                                          |
 | 히스토리                                              | 프로젝트당 스택 하나 (`ProjectSession.undo/redo` — `controller.ts`)                                      | `CatalogHistoryStore` (`history.ts`, History 패널)                                                           |
 | 저장                                                  | IndexedDB `composition-catalog-projects-v1` (`storage.ts`) — `CatalogAutosave` (`autosave.ts`)           | —                                                                                                            |
@@ -85,7 +85,6 @@ paths:
 ## 6. Interaction (ADR-131 의 events / actions 를 대체)
 
 - 문서 정본은 `InteractionEntry { kind:"interaction", ownerId, trigger, action }` (`ProjectEntry.interactionIds`) — interaction 이 자기 소유 노드를 가리킨다 (노드가 `props.onPress: "ev1"` 로 가리키지 않는다). 편집은 `catalogRuntime/interactions.ts` 의 명령.
-- `CompositionDocument.events` / `actions` 타입은 export · 옛 입력 형식으로만 남는다 — Builder 정본이 아니다.
 
 ## 7. Styles · Properties 패널 입력
 
