@@ -171,6 +171,9 @@ const sameFrames = (
     );
   });
 
+/** A record that is not a grid: no cells to outline. */
+const NO_CELLS: readonly never[] = [];
+
 const IS_MAC =
   typeof navigator !== "undefined" && navigator.platform.includes("Mac");
 /** The dragged element's opacity over another container than its own (Figma draws it faded). */
@@ -419,8 +422,20 @@ export function CatalogCanvas({
       gridCells: (identity) => {
         if (gridCellsCacheVersion !== cellsVersion) {
           gridCellsCache.clear();
+          gridRecords = undefined;
           gridCellsCacheVersion = cellsVersion;
         }
+        // The grid containers, gathered once per scene: a selected or hovered non-grid record
+        // reads nothing (the overlay asks every frame).
+        if (!gridRecords) {
+          gridRecords = new Set();
+          for (const [id, record] of workspace.root.domInputs) {
+            const display = record.layout.display;
+            if (display === "grid" || display === "inline-grid")
+              gridRecords.add(id);
+          }
+        }
+        if (!gridRecords.has(identity)) return NO_CELLS;
         let cells = gridCellsCache.get(identity);
         if (!cells) {
           cells = gestures.gridCellsOfRecord(identity);
@@ -547,6 +562,7 @@ export function CatalogCanvas({
       ReturnType<typeof gestures.gridCellsOfRecord>
     >();
     let gridCellsCacheVersion = -1;
+    let gridRecords: Set<string> | undefined;
     // The drag presentation (Figma · Pen.dev): the dragged records drawn on top at the pointer
     // offset (one id set per drag — `setDragVisualOffset` compares it by reference) and the
     // siblings' eased reflow.
