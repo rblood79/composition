@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select · ComboBox 목록 팝오버 padding 제거 — RAC · S2 레퍼런스] - 2026-10-15
+
+### Fixed
+
+- **Select · ComboBox 의 목록 팝오버에 Popover 자체 padding 이 붙던 문제** — Preview · publish 에서 팝오버 padding 16px (size M) 위에 목록 padding 4px 가 더해져 항목이 팝오버 테두리에서 21px 안쪽에 있었다. 이제 팝오버 padding 0 이고 목록 padding 4px 만 안쪽 여백이다.
+  - **Why**: 레퍼런스는 picker 팝오버의 padding 을 지운다 — RAC starter `.select-popover[data-trigger='Select']` · `.combobox-popover[data-trigger='ComboBox']` `padding: 0` (Menu · Submenu 도 0), S2 1.8.1 Picker · ComboBox `<Popover padding="none">` (목록 쪽 Virtualizer padding 8). catalog 는 Menu 만 0 이었고 Select · ComboBox 는 Popover 의 size padding 을 그대로 받았다.
+  - DatePicker · DateRangePicker 는 그대로다 — RAC 는 기본 Popover padding 8px 을 두고, S2 는 팝오버 padding none 대신 안쪽 상자에 16 / 24 를 준다 (달력 둘레 여백 유지).
+  - Builder 자체 picker (패널 드롭다운) 는 같은 생성 sheet 를 싣지만 `data-catalog-id` 가 없어 바뀌지 않는다.
+- 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (Select · ComboBox `externalStyles` — `.react-aria-Popover[data-trigger=…][data-catalog-id]`) → 생성 `Select.css` · `ComboBox.css`. Canvas 는 닫힌 목록을 그리지 않아 해당 없음. 검증: live Preview 에서 팝오버를 열어 computed padding 16px → 0px, 목록 inset 17 → 1 (테두리 1px) · DatePicker · DateRangePicker 16px 유지.
+
 ## [CheckboxGroup 안 Checkbox — Name · Value 복원] - 2026-10-15
 
 ### Fixed

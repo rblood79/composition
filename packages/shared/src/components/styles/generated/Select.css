@@ -137,6 +137,10 @@
   display: none;
 }
 
+.react-aria-Popover[data-trigger="Select"][data-catalog-id] {
+  padding: 0;
+}
+
 .react-aria-Popover[data-trigger="Select"] {
   min-width: var(--trigger-width);
   max-height: 300px;

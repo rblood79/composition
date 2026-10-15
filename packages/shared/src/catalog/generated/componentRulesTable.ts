@@ -3129,6 +3129,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         externalStyles: [
           {
+            // The reference's picker popover has no padding of its own (RAC `.combobox-popover`
+            //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
+            //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
+            //   Builder's own pickers, which load this sheet too (`builder-components.css`).
+            selector: '.react-aria-Popover[data-trigger="ComboBox"][data-catalog-id]',
+            styles: { padding: "0" },
+          },
+          {
             selector: '.react-aria-Popover[data-trigger="ComboBox"]',
             styles: {
               width: "var(--trigger-width)",
@@ -9744,6 +9752,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         externalStyles: [
+          {
+            // The reference's picker popover has no padding of its own (RAC `.select-popover`
+            //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
+            //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
+            //   Builder's own pickers, which load this sheet too (`builder-components.css`).
+            selector: '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
+            styles: { padding: "0" },
+          },
           {
             selector: '.react-aria-Popover[data-trigger="Select"]',
             styles: {
