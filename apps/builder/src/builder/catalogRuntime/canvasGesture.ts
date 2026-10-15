@@ -681,7 +681,7 @@ export class CatalogCanvasGestures {
       return true;
     }
     if (gesture.kind === "resize") {
-      gesture.request = resolveResizeRequest({
+      const request = resolveResizeRequest({
         handle: gesture.handle,
         startBounds: gesture.startBox,
         dx,
@@ -689,6 +689,10 @@ export class CatalogCanvasGestures {
         lock: gesture.lock,
         position: gesture.position ?? null,
       });
+      gesture.request =
+        gesture.lock || options.snap === false
+          ? request
+          : this.snapResizeToCells(gesture, request, zoom);
       this.showReflow(gesture);
       return true;
     }
@@ -743,6 +747,68 @@ export class CatalogCanvasGestures {
     gesture.dy = snapped.position.y - box.y;
     gesture.snapGuides = snapped.guides;
   }
+  /**
+   * A grid child's handle resize snaps its moving edges to the grid's cell lines (Figma — the
+   * cells are snap targets; 2026-10-16 사용자 보고 「세로 2칸은 snap 이 안 된다」 — a resize had no
+   * snap at all, a column edge only met a sibling's edge by chance). Only the size changes; the
+   * span stays (사용자 결정 — the node grows over the cells).
+   */
+  private snapResizeToCells(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+    request: Extract<Gesture, { kind: "resize" }>["request"],
+    zoom: number,
+  ): Extract<Gesture, { kind: "resize" }>["request"] {
+    const records = this.host.records;
+    const record = records.get(gesture.item.identity);
+    const parent = record && records.get(record.parentId);
+    if (
+      !record ||
+      !parent ||
+      record.placement?.kind === "absolute" ||
+      record.layout.position === "absolute"
+    )
+      return request;
+    const cells = this.gridLayoutOf(parent, 0, false)?.cells;
+    if (!cells?.length) return request;
+    const xs = cells.flatMap((cell) => [cell.x, cell.x + cell.width]);
+    const ys = cells.flatMap((cell) => [cell.y, cell.y + cell.height]);
+    const threshold = SNAP_THRESHOLD_SCREEN_PX / Math.max(zoom, 0.001);
+    const near = (value: number, lines: readonly number[]) => {
+      let best: number | undefined;
+      for (const line of lines)
+        if (
+          Math.abs(line - value) <= threshold &&
+          (best === undefined || Math.abs(line - value) < Math.abs(best - value))
+        )
+          best = line;
+      return best;
+    };
+    const box = gesture.startBox;
+    const { handle } = gesture;
+    const out = { ...request };
+    if (out.width !== undefined) {
+      if (handle.includes("right")) {
+        const line = near(box.x + out.width, xs);
+        if (line !== undefined && line > box.x) out.width = line - box.x;
+      } else if (handle.includes("left")) {
+        const right = box.x + box.width;
+        const line = near(right - out.width, xs);
+        if (line !== undefined && line < right) out.width = right - line;
+      }
+    }
+    if (out.height !== undefined) {
+      if (handle.includes("bottom")) {
+        const line = near(box.y + out.height, ys);
+        if (line !== undefined && line > box.y) out.height = line - box.y;
+      } else if (handle.includes("top")) {
+        const bottom = box.y + box.height;
+        const line = near(bottom - out.height, ys);
+        if (line !== undefined && line < bottom) out.height = bottom - line;
+      }
+    }
+    return out;
+  }
+
   private snapContext(
     gesture: Extract<Gesture, { kind: "move" | "page" }>,
   ): SnapContext {

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 안 요소의 크기 핸들이 칸 경계에 snap 한다] - 2026-10-16
+
+### Added
+
+- **grid 안 요소를 크기 핸들로 늘리고 줄일 때, 움직이는 가장자리가 칸 경계선 (가로 · 세로) 에 붙는다** (임계 = 다른 snap 과 같은 화면 px). 크기만 바뀌고 차지하는 칸 수 (span) 는 그대로다. 비율 잠금 · Snap 설정 끔 · ⌘/Ctrl 은 snap 하지 않는다.
+  - **Why**: 사용자 보고 「세로 2칸은 snap 이 안 된다」. 크기 조절에는 snap 이 아예 없었다 — 가로는 옆 요소 가장자리가 마침 칸 경계에 있어 맞아 보였을 뿐이다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`snapResizeToCells`). 검증: 테스트 1 (아래 가장자리 197 → 200 · 150 은 그대로) · catalogRuntime · workspace · type-check · live `grid-cell-placement-live.mjs` 9/9 (새 7 — 실제 모서리 핸들을 두 행 경계 3px 앞까지: 높이 200 · span 없음 · Preview DOM = Canvas).
+
 ## [grid 안 요소를 핸들로 늘리면 요소만 커진다 — span 자동 계산 제거] - 2026-10-16
 
 ### Changed

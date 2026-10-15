@@ -1092,6 +1092,32 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("b")).toEqual(b);
   });
 
+  // 2026-10-16 사용자 보고 「세로 2칸은 snap 이 안 된다」: a grid child's resize snaps its moving edge
+  // to the cell lines (both axes) — the size only, no span.
+  it("resizing a grid child snaps its edge to the cell lines — two rows tall, no span", async () => {
+    const { workspace, scene, gestures, record, box } = await gridOf();
+    workspace.selectRecords([record("a")]);
+    const a = box("a");
+    expect(a.y).toBe(box("list").y);
+    const edge = { x: a.x + a.width / 2, y: a.y + a.height };
+    expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
+    // 3 px short of the second row's bottom (rows 100): it snaps to 200.
+    gestures.update(edge.x, a.y + 197, 1);
+    gestures.finish();
+    scene.sync();
+    expect(box("a").height).toBe(200);
+    expect(linesOf(workspace, "a")).toEqual([undefined, undefined, undefined, undefined]);
+    // Far from a line: no snap.
+    workspace.selectRecords([record("a")]);
+    const tall = box("a");
+    const edge2 = { x: tall.x + tall.width / 2, y: tall.y + tall.height };
+    expect(gestures.beginResize(edge2.x, edge2.y, 1)).toBe(true);
+    gestures.update(edge2.x, tall.y + 150, 1);
+    gestures.finish();
+    scene.sync();
+    expect(box("a").height).toBe(150);
+  });
+
   it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {
     const { workspace, scene, gestures, record, box, center } = await gridOf();
     const list = box("list");
