@@ -23,6 +23,15 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/fix-visibility.sh"
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/precompact-snapshot.sh"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -53,11 +62,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-files.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-files.sh",
+            "onFailure": "block"
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/derived-adr-block.sh"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/derived-adr-block.sh",
+            "onFailure": "block"
           }
         ]
       },
@@ -67,17 +78,20 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-branch-pr.sh",
-            "if": "Bash(git *)"
+            "if": "Bash(git *)",
+            "onFailure": "block"
           },
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-branch-pr.sh",
-            "if": "Bash(gh *)"
+            "if": "Bash(gh *)",
+            "onFailure": "block"
           },
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-commit-vocabulary.sh",
-            "if": "Bash(git *)"
+            "if": "Bash(git *)",
+            "onFailure": "block"
           }
         ]
       }
@@ -93,16 +107,6 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-format.sh"
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/precompact-snapshot.sh"
           }
         ]
       }

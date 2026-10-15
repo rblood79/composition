@@ -1,11 +1,16 @@
 #!/bin/bash
-# PreCompact Context Snapshot — 컨텍스트 압축 직전 핵심 정보 재주입
+# Compact Context Snapshot — 컨텍스트 압축 직후 핵심 정보 재주입
 # 변경된 파일 패턴에 맞는 규칙만 동적 주입 (Context Engineering: Just-in-time)
+#
+# 등록: settings.json SessionStart (matcher "compact"). 2026-10-15 전까지 PreCompact 에
+# 걸려 있었는데, PreCompact 의 plain stdout 은 debug 로그에만 가고 모델 컨텍스트에 닿지 않는다
+# (hooks 문서 — stdout 이 컨텍스트로 들어가는 이벤트는 UserPromptSubmit · UserPromptExpansion ·
+# SessionStart · PostModelSwitch 뿐). 압축 뒤 SessionStart(compact) 의 stdout 이 정확히 그 자리다.
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 RULES_DIR="$PROJECT_DIR/rules"
 
-echo "=== PreCompact Context Snapshot ==="
+echo "=== Compact Context Snapshot ==="
 echo ""
 echo "## Project: composition NoCode Builder"
 echo "## Pipeline: 명령→workspace.execute→commit→consumer→save queue→History→listeners→Autosave→Preview delta (ADR-248)"

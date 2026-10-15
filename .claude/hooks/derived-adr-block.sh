@@ -8,7 +8,7 @@
 # 동작:
 #   1. tool_input.file_path 가 docs/adr/<숫자>-...md 신규 파일 패턴인지 확인
 #   2. transcript_path 에서 직전 사용자 메시지 (userType=external, content=string) 추출
-#   3. 직전 5개 사용자 메시지에 ADR 발의 의도 키워드 ("ADR" / "create-adr") 매칭
+#   3. 직전 8개 사용자 메시지에 ADR 작성 의도 키워드 ("ADR" / "create-adr") 매칭
 #   4. evidence 없으면 permissionDecision: deny + 안내
 #
 # 예외:

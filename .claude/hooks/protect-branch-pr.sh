@@ -16,7 +16,7 @@
 #      - `git push -u origin <branch>` (단 origin main 외)
 #      - `git push origin <branch>` (단 origin main 외)
 #      - `gh pr create ...`
-#   2. transcript_path 에서 직전 5개 사용자 메시지 추출
+#   2. transcript_path 에서 직전 8개 사용자 메시지 추출
 #   3. 사용자 명시 PR/branch 발의 표현 grep — 미발견 시 deny
 #
 # 통과 표현 (case-insensitive):
@@ -140,7 +140,7 @@ REASON_TEXT=$(cat <<INNER_EOF
 자동 branch/PR 명령 차단: $TRIGGERED
 명령: $COMMAND
 
-직전 5개 사용자 메시지에 PR/branch 명시 발의 표현이 없습니다.
+직전 8개 사용자 메시지에 PR/branch 를 명시한 요청 표현이 없습니다.
 필요 키워드 (case-insensitive):
   - 한국어: "PR 생성/만들/머지" / "branch 분기/분리/생성" / "feature branch" / "워크트리 push"
   - 영어: "create PR" / "make PR" / "merge PR" / "new branch" / "feature branch"

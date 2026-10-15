@@ -4,6 +4,7 @@ set -euo pipefail
 
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
 drift_block=""
+CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 CHANGELOG_PATH="$CLAUDE_PROJECT_DIR/docs/CHANGELOG.md"
 if [ -f "$CHANGELOG_PATH" ]; then
   last_date=$(grep -m1 -oE '^## \[.*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}' "$CHANGELOG_PATH" 2>/dev/null \

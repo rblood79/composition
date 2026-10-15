@@ -153,8 +153,8 @@ if [ ! -f "$CSS_FLAG" ] && [ ! -f "$SPEC_FLAG" ]; then pass; else fail "flag 가
 printf '\n== session-start.sh · precompact-snapshot.sh · type-check-gate.sh ==\n'
 case_start "session-start → 세션 경고 블록 출력 (로스터는 2026-09-09 제거)"
 run_hook session-start.sh '{"hook_event_name":"SessionStart"}'; assert_contains '<composition-session-warnings>'
-case_start "precompact-snapshot → 스냅샷 헤더 출력"
-run_hook precompact-snapshot.sh '{"hook_event_name":"PreCompact"}'; assert_contains '=== PreCompact Context Snapshot ==='
+case_start "precompact-snapshot (SessionStart compact) → 스냅샷 헤더 출력"
+run_hook precompact-snapshot.sh '{"hook_event_name":"SessionStart","source":"compact"}'; assert_contains '=== Compact Context Snapshot ==='
 case_start "type-check-gate 재진입 가드 (STOP_HOOK_ACTIVE=true) → 통과"
 run_hook type-check-gate.sh '{"hook_event_name":"Stop"}' STOP_HOOK_ACTIVE=true; assert_allow
 

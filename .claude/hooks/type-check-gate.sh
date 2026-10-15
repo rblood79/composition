@@ -2,7 +2,11 @@
 # Stop Hook: Type Check Gate (asyncRewake 모드)
 # agent가 응답 완료 시 백그라운드로 pnpm type-check 실행.
 # settings.json 에서 asyncRewake:true 로 등록됨 → exit 2 시 모델 재호출(논블로킹).
-# 성공(exit 0)이면 사용자 흐름을 막지 않음. stdout 이 재호출 system-reminder 로 전달됨.
+# 성공(exit 0)이면 사용자 흐름을 막지 않음. 재호출 system-reminder 에는 stderr 가, stderr 가
+# 비어 있으면 stdout 이 실린다 (hooks 문서 asyncRewake) — 이 스크립트는 stderr 를 쓰지 않으므로
+# 아래 echo (stdout) 가 그대로 전달된다.
+# 재진입: 재호출 뒤의 Stop 에는 stdin `stop_hook_active: true` 가 오지만 일부러 보지 않는다 —
+# 수정 뒤 type-check 를 다시 재야 하기 때문. 무한 반복은 Claude Code 의 연속 8회 상한이 막는다.
 #
 # 사전 단계: spec-rebuild-flag.sh 가 생성한 .claude/.spec-rebuild-pending flag 확인 →
 #   있으면 pnpm build:specs 1회 실행 후 flag 삭제. 다중 편집 debounce.
@@ -113,7 +117,7 @@ fi
 # type-check 실행
 export STOP_HOOK_ACTIVE=true
 if ! TYPE_CHECK_OUTPUT=$(pnpm type-check 2>&1); then
-  # asyncRewake: exit 2 로 모델 재호출 (stdout 이 system-reminder 로 전달)
+  # asyncRewake: exit 2 로 모델 재호출 (stderr 비어 있으므로 stdout 이 system-reminder 로 전달)
   echo "type-check 실패. 아래 에러를 수정하세요:
 
 $(echo "$TYPE_CHECK_OUTPUT" | tail -30)"
