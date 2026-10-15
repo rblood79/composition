@@ -429,15 +429,7 @@ export function CatalogCanvas({
         // The grid containers, gathered once per document step / root: a selected or hovered
         // non-grid record reads nothing (the overlay asks every frame; a selection moves the scene
         // version but not the document — ADR-246 select count).
-        if (!gridRecords) {
-          gridRecords = new Set();
-          for (const [id, record] of sceneRoot.domInputs) {
-            const display = record.layout.display;
-            if (display === "grid" || display === "inline-grid")
-              gridRecords.add(id);
-          }
-        }
-        if (!gridRecords.has(identity)) return NO_CELLS;
+        if (!gridRecordSet().has(identity)) return NO_CELLS;
         let cells = gridCellsCache.get(identity);
         if (!cells) {
           cells = gestures.gridCellsOfRecord(identity);
@@ -445,8 +437,13 @@ export function CatalogCanvas({
         }
         return cells;
       },
-      parentOf: (identity) =>
-        workspace.root.canvasInputs.get(identity)?.parentId,
+      // Only a grid parent (none on a page without grids: no record read per frame — ADR-246).
+      parentOf: (identity) => {
+        const grids = gridRecordSet();
+        if (!grids.size) return undefined;
+        const parent = sceneRoot.canvasInputs.get(identity)?.parentId;
+        return parent && grids.has(parent) ? parent : undefined;
+      },
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       slots: () =>
         catalogSlotMarks(
@@ -567,6 +564,17 @@ export function CatalogCanvas({
     >();
     let gridCellsCacheVersion = -1;
     let gridRecords: Set<string> | undefined;
+    const gridRecordSet = () => {
+      if (!gridRecords) {
+        gridRecords = new Set();
+        for (const [id, record] of sceneRoot.domInputs) {
+          const display = record.layout.display;
+          if (display === "grid" || display === "inline-grid")
+            gridRecords.add(id);
+        }
+      }
+      return gridRecords;
+    };
     // The drag presentation (Figma · Pen.dev): the dragged records drawn on top at the pointer
     // offset (one id set per drag — `setDragVisualOffset` compares it by reference) and the
     // siblings' eased reflow.
