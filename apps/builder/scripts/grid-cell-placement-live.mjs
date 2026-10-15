@@ -1,9 +1,10 @@
 // 2026-10-16 grid 칸 배치 live (사용자 요청 「빈 칸에 놓기도 Figma 처럼 — 순차적이지 않게 빈칸을 건너
 // 다음칸에 배치, 2칸도 지정」): 실제 마우스 · 패널 입력으로
 //   1 A 를 둘째 행 첫 칸 (빈 칸) 에 → A 가 그 칸에 고정 · B · C 는 제자리 (고정) · 첫 칸은 빈 채로
-//   2 Layout 의 열 병합 2 → A 가 두 칸 폭 (span 2)
-//   3 C 를 셋째 행 둘째 칸에 (첫 칸을 건너뛰고) → 그 칸에 고정
-//   4 Preview DOM (Compare Mode) 의 A · B · C 위치 · 크기 = Canvas
+//   2 Layout 의 가로 칸 수 2 → A 가 두 칸 폭 (span 2)
+//   3 C 를 셋째 행 셋째 칸에 (앞 두 칸을 건너뛰고) → 그 칸에 고정
+//   5 폭 240 (두 칸) W 를 밖에서 셋째 행 첫 칸에 → W 가 두 칸 차지 (span 2) · 칸 폭 그대로
+//   4 Preview DOM (Compare Mode) 의 A · B · C · W 위치 · 크기 = Canvas
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/grid-cell-placement-live.mjs <out>
 import { chromium } from "playwright";
@@ -113,7 +114,7 @@ const ids = await exec(`(cat) => {
   const ws = cat.workspace, c = cat.commands, g = ws.runtime.graph;
   const body = g.getEntry(ws.session.getSnapshot().pageId).children[0];
   const id = {};
-  for (const name of ["G", "A", "B", "C"]) id[name] = ws.newId("node");
+  for (const name of ["G", "A", "B", "C", "W"]) id[name] = ws.newId("node");
   const frame = (name, children, color, sizing) => ({
     kind: "node", id: id[name], definitionId: "lib:definition:type-frame", children, props: {},
     visual: { backgroundColor: { kind: "set", value: color } }, sizing, descendantOverrides: [],
@@ -126,8 +127,9 @@ const ids = await exec(`(cat) => {
       frame("A", [], "#f87171", { height: { kind: "set", value: 60 } }),
       frame("B", [], "#60a5fa", { height: { kind: "set", value: 60 } }),
       frame("C", [], "#34d399", { height: { kind: "set", value: 60 } }),
+      frame("W", [], "#a78bfa", { width: { kind: "set", value: 240 }, height: { kind: "set", value: 60 } }),
     ],
-    rootIds: [id.G],
+    rootIds: [id.G, id.W],
     newId: ws.newId,
   }));
   ws.execute(c.setFields({ targets: [{ kind: "node", id: id.G }], layout: {
@@ -159,7 +161,7 @@ check(
 );
 await page.screenshot({ path: `${OUT}/1-a-pinned.png` });
 
-// 2 — Layout 열 병합 2 → A spans two columns.
+// 2 — Layout 가로 칸 수 2 → A spans two columns.
 await select(ids.A, ids.G);
 await wait(400);
 if (!(await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().isVisible().catch(() => false))) {
@@ -169,9 +171,9 @@ if (!(await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().i
 }
 await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().click().catch(() => {});
 await wait(500);
-const span = page.getByRole("combobox", { name: /^(Column span|열 병합)$/ });
-check("2a grid 자식 선택 → 열 병합 · 행 병합 칸", (await span.isVisible()) &&
-  (await page.getByRole("combobox", { name: /^(Row span|행 병합)$/ }).isVisible()));
+const span = page.getByRole("combobox", { name: /^(Span X|가로 칸 수)$/ });
+check("2a grid 자식 선택 → 가로 칸 수 · 세로 칸 수 칸", (await span.isVisible()) &&
+  (await page.getByRole("combobox", { name: /^(Span Y|세로 칸 수)$/ }).isVisible()));
 await span.click();
 await span.fill("2");
 await span.press("Enter");
@@ -180,7 +182,7 @@ now = await boxes(ids);
 const l2 = await lines(ids.A);
 await page.screenshot({ path: `${OUT}/2-a-span.png` });
 check(
-  "2b 열 병합 2 → gridColumnEnd span 2 · A 폭 = 두 칸 (240)",
+  "2b 가로 칸 수 2 → gridColumnEnd span 2 · A 폭 = 두 칸 (240)",
   l2[2] === "span 2" && Math.abs(now.A.width - 240) < 0.5 && now.A.x === G.x,
   { l2, A: now.A },
 );
@@ -188,16 +190,34 @@ check(
 // 3 — C into the third row's second cell (skipping the first).
 await select(ids.C, ids.G);
 await wait(300);
-const p3 = await drag(await pointOf(ids.C), await pointOf(ids.G, 0.5, 5 / 6));
+const p3 = await drag(await pointOf(ids.C), await pointOf(ids.G, 5 / 6, 5 / 6));
 now = await boxes(ids);
 const l3 = await lines(ids.C);
 check(
-  "3 C → 셋째 행 둘째 칸 (첫 칸 건너뜀): 고정 (2, 3) · 그 칸 위치",
-  p3?.cell && JSON.stringify(l3.slice(0, 2)) === '["2","3"]' &&
-    Math.abs(now.C.x - (G.x + 120)) < 0.5 && Math.abs(now.C.y - (G.y + 200)) < 0.5,
+  "3 C → 셋째 행 셋째 칸 (앞 두 칸 건너뜀): 고정 (3, 3) · 그 칸 위치",
+  p3?.cell && JSON.stringify(l3.slice(0, 2)) === '["3","3"]' &&
+    Math.abs(now.C.x - (G.x + 240)) < 0.5 && Math.abs(now.C.y - (G.y + 200)) < 0.5,
   { p3, l3, C: now.C },
 );
 await page.screenshot({ path: `${OUT}/3-c-skip.png` });
+
+// 5 — 사용자 지적 (2026-10-16): 두 칸 크기 요소를 놓으면 칸이 늘지 않고 요소가 두 칸을 차지.
+//     W (폭 240 고정) 를 G 밖에서 셋째 행 첫 칸에 → span 2 · 열 폭 120 그대로 · W 는 두 칸 자리.
+const cellsBefore = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => c.width)`, ids.G);
+await select(ids.W);
+await wait(300);
+const p5 = await drag(await pointOf(ids.W), await pointOf(ids.G, 1 / 12, 5 / 6));
+now = await boxes(ids);
+const l5 = await lines(ids.W);
+const cellsAfter = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => c.width)`, ids.G);
+check(
+  "5 폭 240 W → 셋째 행 첫 칸: 두 칸 자리 표시 · span 2 · 칸 폭 그대로 (120) · B 자리 그대로",
+  p5?.cell?.width === 240 && JSON.stringify(l5.slice(0, 3)) === '["1","3","span 2"]' &&
+    JSON.stringify(cellsAfter) === JSON.stringify(cellsBefore) &&
+    now.W.x === G.x && Math.abs(now.W.y - (G.y + 200)) < 0.5 && now.B.x === start.B.x,
+  { p5, l5, cellsBefore, cellsAfter, W: now.W },
+);
+await page.screenshot({ path: `${OUT}/5-wide-span.png` });
 
 // 4 — Preview DOM (Compare Mode) = Canvas.
 const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
@@ -210,12 +230,12 @@ const geo = await exec(`(cat, ids) => {
   const g = el(ids.G), cg = cat.canvas.boundsOf(rec(ids.G));
   if (!g) return null;
   const s = g.width / cg.width;
-  return ["A", "B", "C"].map((k) => { const d = el(ids[k]), c = cat.canvas.boundsOf(rec(ids[k]));
+  return ["A", "B", "C", "W"].map((k) => { const d = el(ids[k]), c = cat.canvas.boundsOf(rec(ids[k]));
     return { k, dom: [(d.left - g.left) / s, (d.top - g.top) / s, d.width / s], canvas: [c.x - cg.x, c.y - cg.y, c.width] }; });
 }`, ids);
 await page.screenshot({ path: `${OUT}/4-compare.png` });
 check(
-  "4 Preview DOM 위치 · 폭 = Canvas (A · B · C)",
+  "4 Preview DOM 위치 · 폭 = Canvas (A · B · C · W)",
   geo && geo.every((g) => g.dom.every((v, i) => Math.abs(v - g.canvas[i]) <= 1)),
   geo,
 );

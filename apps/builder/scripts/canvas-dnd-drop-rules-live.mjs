@@ -152,10 +152,12 @@ check("1 grid — C 를 A 오른쪽 절반에 → [A, C, B]", JSON.stringify(awa
 
 // 1b — grid (Figma 실측): over the empty cell beside B every cell is outlined and that cell fills
 // (no line); over A's left half a line before A. Released where it started (no move).
-await select(ids.W);
+// S (60 — one cell): W (300 fixed) covers two 180 cells since 2026-10-16 (it takes two cells, the
+// cells keep their size), so the one empty cell beside B does not take it.
+await select(ids.S);
 await wait(300);
 {
-  const from = await pointOf(ids.W);
+  const from = await pointOf(ids.S);
   // After 1: [A, C, B] — A · C on the first row, B below A; the cell beside B is empty.
   const emptyCell = { x: (await pointOf(ids.C)).x, y: (await pointOf(ids.B)).y };
   await page.mouse.move(from.x, from.y);
@@ -175,7 +177,7 @@ await wait(300);
   await page.mouse.move(from.x, from.y, { steps: 6 });
   await page.mouse.up();
   await wait(400);
-  check("1b grid — 빈 칸 = 칸 윤곽 4 + 그 칸 채움 (선 없음) · A 왼쪽 = 선", atCell?.cells === 4 && atCell.cell && !atCell.line && atA && !atA.cell && atA.line?.width === 0, { atCell, atA, G: await children(ids.G), W: await exec(`(cat, id) => cat.workspace.runtime.graph.ownerOf?.(id) ?? null`, ids.W) });
+  check("1b grid — 빈 칸 = 칸 윤곽 4 + 그 칸 채움 (선 없음) · A 왼쪽 = 선", atCell?.cells === 4 && atCell.cell && !atCell.line && atA && !atA.cell && atA.line?.width === 0, { atCell, atA, G: await children(ids.G), S: await exec(`(cat, id) => cat.workspace.runtime.graph.ownerOf?.(id) ?? null`, ids.S) });
 }
 
 // 2 — size rule: W (300 wide) over S (60) stays out; ⌘ lets it in.

@@ -27,8 +27,10 @@ import type {
   CatalogReader,
   DefinitionId,
   EditTarget,
+  LayoutField,
   NodeId,
   NodeParent,
+  WriteValue,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { parseAspectRatio } from "../utils/aspectRatio";
 import { catalogBoxModel } from "./boxModel";
@@ -76,6 +78,7 @@ import {
   type SnapGuideLines,
 } from "../workspace/canvas/interaction/snapGuides";
 import {
+  coveredSpan,
   gridLayout,
   gridPlacement,
   lengthPx,
@@ -1181,7 +1184,7 @@ export class CatalogCanvasGestures {
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);
-      const size =
+      let size: CatalogCommand =
         wheel !== undefined
           ? setFields({
               targets: [gesture.item.target],
@@ -1201,6 +1204,13 @@ export class CatalogCanvasGestures {
               },
               label: "Resize",
             });
+      // A grid child takes the cells its new size covers (Figma — the cells keep their size).
+      const spans = this.resizeSpanCommands(gesture, width, height);
+      if (spans.length) {
+        const sized = size;
+        const graph = this.host.graph as CatalogGraph;
+        size = () => composeCommands(graph, "Resize", [sized, ...spans]);
+      }
       const start = gesture.position;
       if (!start || (left === undefined && top === undefined)) return size;
       // A left/top handle of an absolutely placed node also moves it (the opposite edge stays).
@@ -1826,13 +1836,16 @@ export class CatalogCanvasGestures {
     if (!layout?.cells.length) return undefined;
     const { cells, occupant, columns } = layout;
     const all = this.flowEntries(container, new Set());
-    // The leader's span: an empty cell takes it only where all its cells are free.
-    const lines = this.gridLines(gesture.leader);
-    const rowSpan = lineSpan(lines.rowEnd) ?? lineSpan(lines.row) ?? 1;
-    const columnSpan = Math.min(
-      lineSpan(lines.columnEnd) ?? lineSpan(lines.column) ?? 1,
-      columns,
-    );
+    // The leader takes the cells its size covers: an empty cell is offered only where all are free.
+    const spanAt = (cell: number) =>
+      this.itemSpan(
+        gesture.leader,
+        container,
+        layout,
+        cell % columns,
+        Math.floor(cell / columns),
+        gesture.startBox,
+      );
     const free = (cell: number) => {
       const at = occupant[cell];
       return at === undefined || at < 0 || dragged.has(all[at]!.id);
@@ -1840,6 +1853,7 @@ export class CatalogCanvasGestures {
     const fits = (cell: number) => {
       const row = Math.floor(cell / columns);
       const column = cell % columns;
+      const { columnSpan, rowSpan } = spanAt(cell);
       if (column + columnSpan > columns) return false;
       for (let r = row; r < row + rowSpan; r++)
         for (let c = column; c < column + columnSpan; c++)
@@ -1863,6 +1877,7 @@ export class CatalogCanvasGestures {
     if (item < 0) {
       const row = Math.floor(index / columns);
       const column = index % columns;
+      const { columnSpan, rowSpan } = spanAt(index);
       // Reading order: after every other item whose area starts in an earlier cell.
       const slot = all.filter(({ id }, at) => {
         const area = layout.areas[at];
@@ -1950,10 +1965,101 @@ export class CatalogCanvasGestures {
   }
 
   /**
-   * The grid lines a drop writes (Figma — a grid child keeps its cell). Into an empty cell: the
-   * nodes are pinned there (more nodes: the next empty cells in reading order), and an auto-placed
-   * sibling the move would shift is pinned where it is — the others stay, the source cell stays
-   * empty. Any other drop of a pinned node unpins it (it joins the order it was dropped at).
+   * A grid child's span after a handle resize: the cells the new size covers from where it starts
+   * (Figma — resizing over cells spans them; a `1fr` track would grow to the item instead).
+   */
+  private resizeSpanCommands(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+    width: number | undefined,
+    height: number | undefined,
+  ): CatalogCommand[] {
+    const records = this.host.records;
+    const record = records.get(gesture.item.identity);
+    const container = record && records.get(record.parentId);
+    const layout = container && this.gridLayoutOf(container, 0, false);
+    const box = record && this.host.bounds(record.id);
+    if (!record || !container || !layout || !box) return [];
+    const index = this.flowEntries(container, new Set()).findIndex(
+      ({ id }) => id === record.id,
+    );
+    const area = layout.areas[index];
+    if (!area) return [];
+    const { tracks } = layout;
+    const columnSpan = Math.min(
+      coveredSpan(tracks.columns, area.column, tracks.columnGap, width ?? box.width),
+      layout.columns - area.column,
+    );
+    const rowSpan = coveredSpan(
+      tracks.rows,
+      area.row,
+      tracks.rowGap,
+      height ?? box.height,
+    );
+    const breakpoint = this.host.breakpoint();
+    const clear: WriteValue<string> =
+      breakpoint === "desktop" ? { kind: "remove" } : { kind: "set", value: "auto" };
+    const lines = this.gridLines(record.id);
+    const layoutWrites: Partial<Record<LayoutField, WriteValue<string>>> = {};
+    const end = (span: number, current: number, had: unknown) =>
+      span === current
+        ? undefined
+        : span > 1
+          ? ({ kind: "set", value: `span ${span}` } as const)
+          : String(had ?? "").trim()
+            ? clear
+            : undefined;
+    const column = end(columnSpan, area.columnSpan, lines.columnEnd);
+    const row = end(rowSpan, area.rowSpan, lines.rowEnd);
+    if (column) layoutWrites.gridColumnEnd = column;
+    if (row) layoutWrites.gridRowEnd = row;
+    return Object.keys(layoutWrites).length
+      ? [setFields({ targets: [gesture.item.target], breakpoint, layout: layoutWrites })]
+      : [];
+  }
+
+  /**
+   * The cells a grid item takes from (`column`, `row`) — Figma: as many as its fixed size covers
+   * (the cells keep their size; a CSS `1fr` track would grow to the item instead). In its own grid
+   * an item keeps a wider authored span (a hugging item in a wider area).
+   */
+  private itemSpan(
+    record: string,
+    container: CatalogConsumerNode,
+    layout: GridLayout,
+    column: number,
+    row: number,
+    box: BoundingBox | undefined = this.host.bounds(record),
+  ): { columnSpan: number; rowSpan: number } {
+    const { tracks } = layout;
+    // Only a fixed size says how many cells: a fill or hugging axis follows its cell.
+    const node = this.host.records.get(record);
+    const fixed = (axis: "width" | "height") =>
+      typeof node?.sizing?.[axis] === "number" && !node.fillSizing?.[axis];
+    let columnSpan =
+      box && fixed("width")
+        ? coveredSpan(tracks.columns, column, tracks.columnGap, box.width)
+        : 1;
+    let rowSpan =
+      box && fixed("height")
+        ? coveredSpan(tracks.rows, row, tracks.rowGap, box.height)
+        : 1;
+    if (this.host.records.get(record)?.parentId === container.id) {
+      const lines = this.gridLines(record);
+      columnSpan = Math.max(
+        columnSpan,
+        lineSpan(lines.columnEnd) ?? lineSpan(lines.column) ?? 1,
+      );
+      rowSpan = Math.max(rowSpan, lineSpan(lines.rowEnd) ?? lineSpan(lines.row) ?? 1);
+    }
+    return { columnSpan: Math.min(columnSpan, layout.columns), rowSpan };
+  }
+
+  /**
+   * The grid lines a drop writes (Figma — a grid child keeps its cell and takes the cells its size
+   * covers). Into an empty cell: the nodes are pinned there (more nodes: the next empty cells in
+   * reading order), and an auto-placed sibling the move would shift is pinned where it is — the
+   * others stay, the source cell stays empty. Any other drop into a grid unpins a pinned node (it
+   * joins the order it was dropped at) and sets its span; out of a grid its lines go.
    */
   private gridLineCommands(
     ids: readonly NodeId[],
@@ -1961,44 +2067,63 @@ export class CatalogCanvasGestures {
     drop: CatalogDropTarget,
   ): CatalogCommand[] {
     const breakpoint = this.host.breakpoint();
+    const clear: WriteValue<string> =
+      breakpoint === "desktop" ? { kind: "remove" } : { kind: "set", value: "auto" };
+    const has = (value: unknown) => String(value ?? "").trim() !== "";
+    /** Starts: a cell (1-based) or `null` = unpin; spans: the cells taken (1 = none). */
     const write = (
       target: EditTarget,
-      column: string | undefined,
-      row: string | undefined,
-    ) =>
-      setFields({
-        targets: [target],
-        breakpoint,
-        layout: {
-          gridColumnStart:
-            column !== undefined
-              ? { kind: "set", value: column }
-              : breakpoint === "desktop"
-                ? { kind: "remove" }
-                : { kind: "set", value: "auto" },
-          gridRowStart:
-            row !== undefined
-              ? { kind: "set", value: row }
-              : breakpoint === "desktop"
-                ? { kind: "remove" }
-                : { kind: "set", value: "auto" },
-        },
-      });
-    const pinned = (record: string) => {
-      const lines = this.gridLines(record);
-      return [lines.column, lines.row].some((line) =>
-        /^\d+$/.test(String(line ?? "").trim()),
-      );
+      record: string | undefined,
+      starts: { column: number; row: number } | null | undefined,
+      spans?: { columnSpan: number; rowSpan: number },
+    ) => {
+      const lines = record ? this.gridLines(record) : {};
+      const layout: Partial<Record<LayoutField, WriteValue<string>>> = {};
+      if (starts)
+        Object.assign(layout, {
+          gridColumnStart: { kind: "set", value: String(starts.column) },
+          gridRowStart: { kind: "set", value: String(starts.row) },
+        });
+      else if (starts === null) {
+        if (has(lines.column)) layout.gridColumnStart = clear;
+        if (has(lines.row)) layout.gridRowStart = clear;
+      }
+      if (spans) {
+        const end = (span: number, had: unknown) =>
+          span > 1
+            ? ({ kind: "set", value: `span ${span}` } as const)
+            : has(had)
+              ? clear
+              : undefined;
+        const column = end(spans.columnSpan, lines.columnEnd);
+        const row = end(spans.rowSpan, lines.rowEnd);
+        if (column) layout.gridColumnEnd = column;
+        if (row) layout.gridRowEnd = row;
+      }
+      return Object.keys(layout).length
+        ? [setFields({ targets: [target], breakpoint, layout })]
+        : [];
     };
-    const target = drop.gridCell;
     const container = this.host.records.get(drop.container);
-    const layout = target && container && this.gridLayoutOf(container, 0);
-    if (!target || !layout)
-      return records.flatMap((record, index) =>
-        pinned(record)
-          ? [write({ kind: "node", id: ids[index]! }, undefined, undefined)]
-          : [],
-      );
+    const layout = container && this.gridLayoutOf(container, 0);
+    const target = drop.gridCell;
+    if (!target || !container || !layout)
+      return records.flatMap((record, index) => {
+        const node: EditTarget = { kind: "node", id: ids[index]! };
+        if (!container || !layout) {
+          // Out of a grid: no cell, no span.
+          const lines = this.gridLines(record);
+          return [lines.column, lines.row, lines.columnEnd, lines.rowEnd].some(has)
+            ? write(node, record, null, { columnSpan: 1, rowSpan: 1 })
+            : [];
+        }
+        return write(
+          node,
+          record,
+          null,
+          this.itemSpan(record, container, layout, 0, 0),
+        );
+      });
     const dragged = new Set(records);
     const entries = this.flowEntries(container, new Set());
     const lines = entries.map(({ id }) => this.gridLines(id));
@@ -2016,27 +2141,25 @@ export class CatalogCanvasGestures {
       if (!dragged.has(id)) cover(before[at]!);
     });
     const placed: GridArea[] = [];
-    const draggedLines = records.map((record) => this.gridLines(record));
     let cell = target.row * columns + target.column;
-    for (const item of draggedLines) {
-      const rowSpan = lineSpan(item.rowEnd) ?? lineSpan(item.row) ?? 1;
-      const columnSpan = Math.min(
-        lineSpan(item.columnEnd) ?? lineSpan(item.column) ?? 1,
-        columns,
-      );
+    for (const record of records) {
       for (; ; cell++) {
-        const area = {
-          row: Math.floor(cell / columns),
-          column: cell % columns,
-          rowSpan,
-          columnSpan,
-        };
-        if (area.column + columnSpan > columns) continue;
+        const row = Math.floor(cell / columns);
+        const column = cell % columns;
+        const { columnSpan, rowSpan } = this.itemSpan(
+          record,
+          container,
+          layout,
+          column,
+          row,
+        );
+        if (column + columnSpan > columns) continue;
         let free = true;
-        for (let r = area.row; free && r < area.row + rowSpan; r++)
-          for (let c = area.column; c < area.column + columnSpan; c++)
+        for (let r = row; free && r < row + rowSpan; r++)
+          for (let c = column; c < column + columnSpan; c++)
             if (taken.has(`${r}:${c}`)) free = false;
         if (!free) continue;
+        const area = { row, column, rowSpan, columnSpan };
         placed.push(area);
         cover(area);
         cell += columnSpan;
@@ -2046,6 +2169,10 @@ export class CatalogCanvasGestures {
     const at1 = (area: GridArea) => ({
       column: String(area.column + 1),
       row: String(area.row + 1),
+    });
+    const spanLines = (area: GridArea) => ({
+      columnEnd: area.columnSpan > 1 ? `span ${area.columnSpan}` : undefined,
+      rowEnd: area.rowSpan > 1 ? `span ${area.rowSpan}` : undefined,
     });
     // Siblings the move would shift: pinned where they are, until none moves.
     const rest = entries
@@ -2058,10 +2185,7 @@ export class CatalogCanvasGestures {
           ...rest.map(({ at }) =>
             pins.has(at) ? { ...lines[at], ...at1(before[at]!) } : lines[at],
           ),
-          ...placed.map((area, index) => ({
-            ...draggedLines[index],
-            ...at1(area),
-          })),
+          ...placed.map((area) => ({ ...at1(area), ...spanLines(area) })),
         ],
         columns,
       ).cells;
@@ -2075,23 +2199,19 @@ export class CatalogCanvasGestures {
       for (const { at } of moved) pins.add(at);
     }
     return [
-      ...records.map((_, index) =>
-        write(
-          { kind: "node", id: ids[index]! },
-          String(placed[index]!.column + 1),
-          String(placed[index]!.row + 1),
-        ),
+      ...records.flatMap((record, index) =>
+        write({ kind: "node", id: ids[index]! }, record, {
+          column: placed[index]!.column + 1,
+          row: placed[index]!.row + 1,
+        }, placed[index]),
       ),
       ...[...pins].flatMap((at) => {
-        const target = this.host.itemOfRecord(entries[at]!.id)?.target;
-        return target
-          ? [
-              write(
-                target,
-                String(before[at]!.column + 1),
-                String(before[at]!.row + 1),
-              ),
-            ]
+        const node = this.host.itemOfRecord(entries[at]!.id)?.target;
+        return node
+          ? write(node, undefined, {
+              column: before[at]!.column + 1,
+              row: before[at]!.row + 1,
+            })
           : [];
       }),
     ];

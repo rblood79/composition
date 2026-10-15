@@ -11,13 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid — 두 칸 크기 요소는 칸을 늘리지 않고 두 칸을 차지한다] - 2026-10-16
+
+### Fixed
+
+- **grid 에 두 칸 크기의 요소를 놓거나 그 크기로 늘리면, 칸이 넓어지지 않고 요소가 두 칸을 차지한다** (사용자 지적 — Figma 는 칸을 합치지 않고 요소가 2칸 자리를 차지한다; 지금은 grid 칸이 늘어났다).
+  - 놓을 때: 고정 크기 축(px)이 덮는 칸 수만큼 `span n` (`grid-column-end` · `grid-row-end`) 을 저장하고, 놓을 자리 표시도 그 칸들을 합친 넓이다. 그 칸들이 모두 비어 있는 자리만 빈 칸 drop 대상이 된다. 채우기 · 내용 맞춤 축은 칸을 따르므로 1칸. 같은 grid 안에서 옮기면 작성한 span 보다 줄이지 않는다.
+  - 핸들로 크기를 바꿀 때: 새 크기가 덮는 칸 수로 span 을 맞춘다 (줄이면 줄어든다).
+  - **엔진**: 여러 트랙을 걸친 아이템의 기여를 시작 트랙 하나에 통째로 넣고 있었다 — `repeat(3, 1fr)` 600 grid 에서 폭 400 · `span 2` 아이템이 첫 열을 400, 나머지를 100 · 100 으로 만들었다 (Chrome 200 · 200 · 200). 정해진 축의 열 · 행 기여를 CSS-GRID-1 §12.5.1 대로 고쳤다 — `fr` 트랙을 지나는 걸친 아이템은 기여하지 않고, 그 밖은 걸친 트랙 + gap 보다 모자란 만큼만 균등 분배 (`spread_spanning_contributions`). 그래서 패널에서 가로 칸 수 2 를 준 넓은 요소도 Canvas 와 Preview 가 같다.
+- Layout 섹션의 칸 수 이름을 「열 병합 · 행 병합」 에서 **「가로 칸 수 · 세로 칸 수」 (Span X · Span Y)** 로 바꿨다 — 칸을 합치는 것이 아니라 요소가 차지하는 칸 수다.
+- 위치: `packages/engine/src/tree.rs` (`solve_grid` 열 · 행 기여 · `spread_spanning_contributions`) · `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`coveredSpan` · `GridLayout.tracks`) · `canvasGesture.ts` (`itemSpan` · `resizeSpanCommands` · `gridLineCommands` 의 span 쓰기) · `panels/styles/sections/LayoutSection.tsx`. 검증: Rust 457 (새 `spanning_item_does_not_grow_its_start_track` — 수정 빼면 RED) · drop · 크기 조절 새 테스트 2 (span 계산 빼면 각각 RED) · builder 5841 통과 (togglebuttongroup 기존 1건) · parity 811 · type-check · live `grid-cell-placement-live.mjs` 7/7 (새 5 — 폭 240 요소를 밖에서 셋째 행 첫 칸에: 두 칸 자리 표시 · `span 2` · 칸 폭 120 그대로 · Preview DOM = Canvas) · `layout-display-grid-live` 8/8 · `canvas-dnd-drop-rules-live` 7/7 (1b 는 한 칸 크기 S 로 — 폭 300 W 는 이제 180 칸 두 개를 차지해 한 칸짜리 빈 자리에 들어가지 않는다).
+
 ## [grid 빈 칸에 놓기 · 칸 병합 — Figma 기준] - 2026-10-16
 
 ### Added
 
 - **grid 의 빈 칸 어디에나 놓을 수 있다 — 순서대로가 아니라 칸을 건너뛰어도 그 칸에 남는다.** 끄는 요소를 빈 칸에 놓으면 그 칸 번호를 `gridColumnStart` · `gridRowStart` 로 저장한다 (활성 breakpoint 층). 그 이동 때문에 자리가 밀릴 형제는 지금 칸에 함께 고정해 제자리에 두고, 원래 칸은 빈 채로 남는다 (Figma — grid 자식은 자기 칸을 가진다). 여러 개를 끌면 그 칸부터 읽는 순서로 다음 빈 칸에 차례로, Alt 복제도 같은 칸에 놓인다. 문서 순서 (DOM · Layers) 는 칸의 읽는 순서를 따른다.
 - 채워진 칸 위에 놓으면 지금처럼 그 항목 앞 · 뒤에 끼운다 (삽입선) — 고정돼 있던 요소는 고정을 풀고 그 순서로 들어간다. 다른 컨테이너로 옮겨도 고정은 지운다. 자기 칸 위에 놓으면 아무것도 바꾸지 않는다.
-- **grid 의 자식을 고르면 Layout 섹션에 열 병합 · 행 병합 칸이 나온다** — 차지할 칸 수 (1 – 6 프리셋, n > 1 → `grid-column-end` · `grid-row-end` 의 `span n`, 1 이나 비우면 제거). Canvas 의 칸 표시 · drop 판정도 병합을 읽는다: 여러 칸을 차지하는 요소는 그 칸이 모두 비어 있는 자리에만 놓이고, 놓을 자리의 표시도 그 칸들을 합친 넓이다.
+- **grid 의 자식을 고르면 Layout 섹션에 열 병합 · 행 병합 칸이 나온다** (같은 날 「가로 칸 수 · 세로 칸 수」 로 이름을 바꿨다 — 위 엔트리) — 차지할 칸 수 (1 – 6 프리셋, n > 1 → `grid-column-end` · `grid-row-end` 의 `span n`, 1 이나 비우면 제거). Canvas 의 칸 표시 · drop 판정도 병합을 읽는다: 여러 칸을 차지하는 요소는 그 칸이 모두 비어 있는 자리에만 놓이고, 놓을 자리의 표시도 그 칸들을 합친 넓이다.
   - **Why**: 빈 칸 drop 은 「마지막 항목 바로 뒤 칸」 만 가능했고 (자동 배치 순서), 칸을 건너뛴 배치와 두 칸 차지를 지정할 방법이 없었다 (사용자 요청). 노드 layout 에는 칸 번호 · 병합 필드가 이미 있고 레이아웃 엔진 · Preview CSS 도 읽었으나, Canvas 의 칸 계산은 항목을 문서 순서로 한 칸씩 채운다고 가정했다.
 - 칸 계산은 CSS grid 배치 (row 흐름 · sparse) 를 따른다 — 칸 번호를 가진 항목 먼저, 행만 가진 항목, 나머지는 자동 배치 커서로 (병합 포함). 레이아웃 엔진 배치와 같은지 테스트가 실제 엔진으로 확인한다.
 - 위치: `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`gridPlacement` · `gridLayout`) · `canvasGesture.ts` (`gridTarget` · `gridLineCommands` · `copyCommand`) · `panels/styles/sections/LayoutSection.tsx` (`GridSpanField`) · `packages/shared/src/types/responsive.types.ts` (`gridColumnEnd` · `gridRowEnd` → 패널 편집 집합). i18n: 「Row span」 = 행 병합 (열 병합은 기존 키). 검증: 새 테스트 7 (drop 3 — 비순차 빈 칸 · 형제 고정 · 병합 · 복제, 배치 4) · 형제 고정 원복 RED · builder 5839 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `grid-cell-placement-live.mjs` 6/6 (실제 마우스 drag · 패널 입력 · Preview DOM 위치 · 폭 = Canvas) · `canvas-dnd-drop-rules-live` 7/7 · `canvas-dnd-presentation-live` 7/7 · `layout-display-grid-live` 8/8.

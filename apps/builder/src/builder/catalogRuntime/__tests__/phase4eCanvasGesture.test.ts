@@ -1034,6 +1034,63 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("a").width).toBeGreaterThan(cellWidth * 1.5);
   });
 
+  /**
+   * 2026-10-16 사용자 지적 「Figma — 2칸만큼 드래그해도 grid 2칸이 병합되는 것은 아니다, 드랍한 요소가
+   * 2칸만큼 공간을 차지하는 것. 현재는 grid 칸이 늘어난다」: an item two cells wide takes two
+   * cells (`span 2`); the cells keep their size (a `1fr` track grew to the item before).
+   */
+  it("a node two cells wide dropped into a cell takes two cells — the cells keep their size", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf();
+    const list = box("list");
+    const cellsBefore = gestures.gridCellsOfRecord(record("list"));
+    expect(cellsBefore[0]!.width).toBe(200);
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("d") }],
+        sizing: { width: { kind: "set", value: 400 } },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("d")]);
+    const [dx, dy] = center("d");
+    gestures.beginMove(dx, dy, record("d"));
+    gestures.update(list.x + 20, list.y + list.height - 20, 1);
+    // The cell shown is the two cells it takes.
+    expect(gestures.preview()!.cell).toEqual({
+      x: list.x,
+      y: list.y + 200,
+      width: 400,
+      height: 100,
+    });
+    gestures.finish();
+    scene.sync();
+    expect(linesOf(workspace, "d")).toEqual(["1", "3", "span 2", undefined]);
+    const cellsAfter = gestures.gridCellsOfRecord(record("list"));
+    expect(cellsAfter.map((cell) => cell.width)).toEqual(
+      cellsBefore.map((cell) => cell.width),
+    );
+    expect(box("d")).toMatchObject({ x: list.x, y: list.y + 200, width: 400 });
+  });
+
+  it("resizing a grid child over two cells spans them — the cells keep their size", async () => {
+    const { workspace, scene, gestures, record, box } = await gridOf();
+    const cellsBefore = gestures.gridCellsOfRecord(record("list"));
+    workspace.selectRecords([record("a")]);
+    const a = box("a");
+    const edge = { x: a.x + a.width, y: a.y + a.height / 2 };
+    expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
+    gestures.update(a.x + 400, edge.y, 1);
+    gestures.finish();
+    scene.sync();
+    expect(linesOf(workspace, "a")[2]).toBe("span 2");
+    expect(
+      gestures.gridCellsOfRecord(record("list")).map((cell) => cell.width),
+    ).toEqual(cellsBefore.map((cell) => cell.width));
+    expect(box("a").width).toBe(400);
+    // b moves past a's two cells (auto-placed).
+    expect(box("b").x).toBe(box("list").x + 400);
+  });
+
   it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {
     const { workspace, scene, gestures, record, box, center } = await gridOf();
     const list = box("list");

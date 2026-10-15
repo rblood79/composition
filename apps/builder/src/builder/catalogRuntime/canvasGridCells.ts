@@ -225,6 +225,38 @@ export interface GridLayout {
   occupant: number[];
   /** Per item: its area. */
   areas: GridArea[];
+  /** The tracks (sizes, and whether the template fixes them — px · % · `fr` — or content does). */
+  tracks: GridTracks;
+}
+
+export interface GridTracks {
+  columns: { size: number; definite: boolean }[];
+  rows: { size: number; definite: boolean }[];
+  columnGap: number;
+  rowGap: number;
+}
+
+/**
+ * How many tracks from `start` an item of `length` takes (Figma — a dropped or resized item takes
+ * the cells its size covers; the cells keep their size): the fewest whose span reaches the length.
+ * A content-sized start track grows with the item instead (one track). Past the last track the
+ * last size repeats (implicit tracks).
+ */
+export function coveredSpan(
+  tracks: readonly { size: number; definite: boolean }[],
+  start: number,
+  gap: number,
+  length: number,
+): number {
+  const first = tracks[start] ?? tracks[tracks.length - 1];
+  if (!first?.definite || first.size <= 0) return 1;
+  let total = 0;
+  for (let n = 1; n <= 64; n++) {
+    const track = tracks[start + n - 1] ?? tracks[tracks.length - 1]!;
+    total += track.size + (n > 1 ? gap : 0);
+    if (total >= length - 0.5) return n;
+  }
+  return 64;
 }
 
 /**
@@ -250,6 +282,7 @@ export function gridLayout(input: {
   const columnTokens = expandTracks(input.columns);
   let columns: { start: number; size: number }[];
   let placed: GridArea[];
+  let columnDefinite: boolean[] = [];
   if (columnTokens?.length) {
     const placement = gridPlacement(
       items.map((_, index) => input.lines?.[index]),
@@ -271,6 +304,10 @@ export function gridLayout(input: {
           .map((box) => box.width),
       ),
     );
+    columnDefinite = tokens.map((token) => {
+      const kind = trackKind(token, content.width);
+      return kind.fixed !== undefined || kind.fr !== undefined;
+    });
     columns = sizeTracks(
       tokens.map((token) => trackKind(token, content.width)),
       widths,
@@ -296,7 +333,14 @@ export function gridLayout(input: {
       columnSpan: 1,
     }));
   }
-  if (!columns.length) return { cells: [], columns: 0, occupant: [], areas: [] };
+  if (!columns.length)
+    return {
+      cells: [],
+      columns: 0,
+      occupant: [],
+      areas: [],
+      tracks: { columns: [], rows: [], columnGap, rowGap },
+    };
   const cols = columns.length;
   const rowTokens = expandTracks(input.rows) ?? [];
   const rowCount = Math.max(
@@ -312,10 +356,11 @@ export function gridLayout(input: {
         .map((box) => box.height),
     ),
   );
+  const rowKinds = Array.from({ length: rowCount }, (_, row) =>
+    trackKind(rowTokens[row], content.height),
+  );
   const rows = sizeTracks(
-    Array.from({ length: rowCount }, (_, row) =>
-      trackKind(rowTokens[row], content.height),
-    ),
+    rowKinds,
     heights,
     content.height,
     rowGap,
@@ -342,7 +387,22 @@ export function gridLayout(input: {
       height: row.size,
     })),
   );
-  return { cells, columns: cols, occupant, areas: placed };
+  const tracks: GridTracks = {
+    columns: columns.map((column, index) => ({
+      size: column.size,
+      definite: columnDefinite[index] ?? false,
+    })),
+    rows: rows.map((row, index) => {
+      const kind = rowKinds[index];
+      return {
+        size: row.size,
+        definite: !!kind && (kind.fixed !== undefined || kind.fr !== undefined),
+      };
+    }),
+    columnGap,
+    rowGap,
+  };
+  return { cells, columns: cols, occupant, areas: placed, tracks };
 }
 
 /** {@link gridLayout}'s cells (auto-placed items unless `lines` says otherwise). */

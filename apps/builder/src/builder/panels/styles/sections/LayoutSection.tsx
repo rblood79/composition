@@ -2,8 +2,9 @@
  * LayoutSection - Layout 스타일 편집 섹션
  *
  * Display (grid · row · column, 선택 없음 = block), Alignment, Gap 편집 — grid 면 Alignment 자리에
- * Columns · Rows, Wrap · Gap 자리에 Gap X · Gap Y (2026-10-15 사용자 결정). grid 의 자식이면 차지할
- * 칸 수 (열 병합 · 행 병합 — `grid-column-end` · `grid-row-end` 의 `span n`, 2026-10-16 사용자 요청).
+ * Columns · Rows, Wrap · Gap 자리에 Gap X · Gap Y (2026-10-15 사용자 결정). grid 의 자식이면 그 요소가
+ * 차지하는 칸 수 (Span X · Span Y — `grid-column-end` · `grid-row-end` 의 `span n`, 2026-10-16 사용자
+ * 요청). 칸을 합치지 않는다 — 칸은 그대로이고 요소가 여러 칸의 자리를 차지한다 (Figma).
  * 4방향 확장 모드: direction-alignment-grid 스타일 패턴 사용
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
@@ -137,7 +138,7 @@ function gridSpanOf(input: string): string {
   return Number.isInteger(count) && count > 1 ? `span ${count}` : value;
 }
 
-/** Column span · Row span of a grid child: a count combo (1 – 6), empty = one track. */
+/** Span X · Span Y of a grid child (the cells it takes): a count combo (1 – 6), empty = one. */
 const GridSpanField = memo(function GridSpanField({
   label,
   className,
@@ -535,13 +536,13 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       {inGrid ? (
         <div className="fieldset-row grid-item-span">
           <GridSpanField
-            label="Column span"
+            label="Span X"
             className="grid-column-span"
             value={styleValues.gridColumnEnd}
             onCommit={(end) => updateStyles({ gridColumnEnd: end })}
           />
           <GridSpanField
-            label="Row span"
+            label="Span Y"
             className="grid-row-span"
             value={styleValues.gridRowEnd}
             onCommit={(end) => updateStyles({ gridRowEnd: end })}

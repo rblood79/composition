@@ -4561,19 +4561,28 @@ impl LayoutTree {
             // 트랙별 (min-content, max-content) 기여 — 그 열 자식들의 최댓값.
             let mut col_min: Vec<f32> = vec![0.0; col_tokens.len()];
             let mut col_max: Vec<f32> = vec![0.0; col_tokens.len()];
+            // 여러 열을 걸친 아이템은 시작 열 하나의 기여가 아니다 (§12.5.1) — 아래에서 따로.
+            let mut col_spanning_min: Vec<(usize, usize, f32)> = Vec::new();
+            let mut col_spanning_max: Vec<(usize, usize, f32)> = Vec::new();
             for (i, &c) in children.iter().enumerate() {
                 let col = placed_cells.get(i).map(|p| p.1).unwrap_or(i % col_count);
+                let col_span = placed_cells.get(i).map_or(1, |p| p.3.max(1));
                 let fixed_max = col_tokens
                     .get(col)
                     .and_then(|t| track_fixed_max(t, container_w));
                 let (mn, mx, solved_with_container) =
                     self.col_contribution(c, container_w, container_h, fixed_max);
                 measured_with_container |= solved_with_container;
-                if col < col_min.len() {
+                if col_span > 1 {
+                    col_spanning_min.push((col, col_span, mn));
+                    col_spanning_max.push((col, col_span, mx));
+                } else if col < col_min.len() {
                     col_min[col] = col_min[col].max(mn);
                     col_max[col] = col_max[col].max(mx);
                 }
             }
+            spread_spanning_contributions(&col_tokens, &mut col_min, &col_spanning_min, col_gap);
+            spread_spanning_contributions(&col_tokens, &mut col_max, &col_spanning_max, col_gap);
             col_auto_idx = col_tokens
                 .iter()
                 .enumerate()
@@ -4722,10 +4731,10 @@ impl LayoutTree {
                 // (2026-09-20). 블록 축 `%` margin 은 area 폭 기준 — 열이 먼저 서서 순환이 아니다
                 // (Chrome 2열 400 + `margin:5%` → 10 · 트랙 60).
                 let ch = ch + self.child_block_margin(c, area_w);
-                if row < row_intrinsic.len() {
+                let span = placed_cells.get(i).map_or(1, |p| p.2.max(1));
+                if span == 1 && row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
-                let span = placed_cells.get(i).map_or(1, |p| p.2.max(1));
                 if span > 1 {
                     row_spanning.push((row, span, ch));
                 } else if row < row_single.len() {
@@ -4760,7 +4769,9 @@ impl LayoutTree {
                 .join(" ")
         } else {
             // definite 축 — content 기반 토큰만 측정값으로 해소, px/fr/% 는 원본 유지
-            // (그 뒤 §12.8 stretch 가 auto 트랙에 여유를 분배한다).
+            // (그 뒤 §12.8 stretch 가 auto 트랙에 여유를 분배한다). 여러 행을 걸친 아이템은
+            // 시작 행 하나의 기여가 아니다 (§12.5.1).
+            spread_spanning_contributions(&row_tokens, &mut row_intrinsic, &row_spanning, row_gap);
             row_tokens
                 .iter()
                 .enumerate()
@@ -5986,6 +5997,47 @@ fn grid_intrinsic_track_sizes(
             None => limit[i],
         })
         .collect()
+}
+
+/// 여러 트랙을 걸친 아이템의 기여 — **정해진 축** (CSS-GRID-1 §12.5.1). `sizes` 는 한 트랙
+/// 아이템만의 기여다. fr 트랙을 지나는 아이템은 기여하지 않는다 (§12.5 step 3 — fr 크기는
+/// 여유 공간이 정한다). 지나지 않으면 걸친 트랙 + gap 보다 큰 만큼을 걸친 트랙에 균등 분배.
+///
+/// **Why (2026-10-16 사용자 보고 「grid 칸이 늘어난다」)**: 걸친 아이템을 시작 트랙 하나의
+/// 기여로 넣어, `repeat(3, 1fr)` 600 grid 에서 폭 400 · `span 2` 아이템의 첫 열이 400 · 나머지
+/// 100 / 100 이 됐다 (Chrome 200 · 200 · 200).
+fn spread_spanning_contributions(
+    tokens: &[String],
+    sizes: &mut [f32],
+    spanning: &[(usize, usize, f32)],
+    gap: f32,
+) {
+    let n = sizes.len();
+    let flex = |i: usize| {
+        tokens.get(i).is_some_and(|t| match split_track_sizing(t).1 {
+            SizingFn::Definite(d) => parse_fr(&d).is_some(),
+            _ => false,
+        })
+    };
+    let mut plain: Vec<&(usize, usize, f32)> = spanning
+        .iter()
+        .filter(|(s, span, _)| !((*s).min(n)..(s + span).min(n)).any(flex))
+        .collect();
+    plain.sort_by_key(|(_, span, _)| *span);
+    for &&(start, span, contribution) in &plain {
+        let range = start.min(n)..(start + span).min(n);
+        let count = range.len();
+        if count == 0 {
+            continue;
+        }
+        let have: f32 = sizes[range.clone()].iter().sum::<f32>() + gap * (count as f32 - 1.0);
+        let extra = contribution - have;
+        if extra > 0.0 {
+            for i in range {
+                sizes[i] += extra / count as f32;
+            }
+        }
+    }
 }
 
 /// 여러 트랙을 걸친 아이템의 기여 (CSS-GRID-1 §12.5.1 · §12.7.1) — 미결정 축의 트랙 크기에.
@@ -8026,6 +8078,43 @@ mod tests {
             assert_eq!(t.get_layout(h[3]).height, 30.0, "{height}: row contains the trigger");
             assert_eq!(t.get_layout(h[0]).y, 5.0, "{height}: label centered in the row");
         }
+    }
+
+    /// 2026-10-16 사용자 보고 「grid 칸이 늘어난다」 — 걸친 아이템은 시작 트랙 하나의 기여가 아니다
+    /// (§12.5.1). `repeat(3, 1fr)` 600 · 폭 400 `span 2` 아이템: Chrome 200 · 200 · 200 (종전 엔진
+    /// 400 · 100 · 100). `auto` 트랙만 걸치면 모자란 만큼을 나눈다 (`auto auto` · 40 / 0 + 걸친
+    /// 200 → 120 / 80). 행도 같다 (`repeat(3, 1fr)` 300 높이 · 높이 250 `span 2` → 100 씩).
+    #[test]
+    fn spanning_item_does_not_grow_its_start_track() {
+        let (t, h) = solve(
+            r#"[
+                {"style":{"width":"400px","height":"40px","gridColumnStart":"1","gridColumnEnd":"span 2"},"children":[]},
+                {"style":{"height":"40px"},"children":[]},
+                {"style":{"display":"grid","gridTemplateColumns":["repeat(3, 1fr)"],"width":"600px"},"children":[0,1]}
+            ]"#,
+            2, 600.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).x, 400.0, "1fr 열은 200 씩 — 다음 아이템은 400 에서");
+        assert_eq!(t.get_layout(h[1]).width, 200.0);
+        let (t, h) = solve(
+            r#"[
+                {"style":{"width":"200px","height":"40px","gridColumnStart":"1","gridColumnEnd":"span 2"},"children":[]},
+                {"style":{"width":"40px","height":"40px","gridColumnStart":"1","gridRowStart":"2"},"children":[]},
+                {"style":{"height":"40px","gridColumnStart":"2","gridRowStart":"2"},"children":[]},
+                {"style":{"display":"grid","gridTemplateColumns":["auto","auto"],"justifyContent":"start","width":"600px"},"children":[0,1,2]}
+            ]"#,
+            3, 600.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[2]).x, 120.0, "auto auto — 40 / 0 + 걸친 200 → 모자란 160 을 나눠 120 / 80");
+        let (t, h) = solve(
+            r#"[
+                {"style":{"width":"40px","height":"250px","gridRowStart":"1","gridRowEnd":"span 2"},"children":[]},
+                {"style":{"width":"40px","gridColumnStart":"2","gridRowStart":"3"},"children":[]},
+                {"style":{"display":"grid","gridTemplateColumns":["1fr","1fr"],"gridTemplateRows":["repeat(3, 1fr)"],"width":"200px","height":"300px"},"children":[0,1]}
+            ]"#,
+            2, 200.0, 300.0,
+        );
+        assert_eq!(t.get_layout(h[1]).y, 200.0, "1fr 행은 100 씩");
     }
 
     /// 2026-09-18 — padded 컨테이너의 intrinsic 키워드 폭이 **flex item / grid item** 일 때
