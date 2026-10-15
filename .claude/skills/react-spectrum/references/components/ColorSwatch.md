@@ -1,133 +1,89 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ColorSwatch.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ColorSwatch
 
 A ColorSwatch displays a preview of a selected color.
 
-Added in version 3.35.0.
+```tsx
+import {ColorSwatch} from '@react-spectrum/s2/ColorSwatch';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<ColorSwatch />
 ```
 
-```jsx
-import { ColorSwatch } from "@adobe/react-spectrum";
+## Value
+
+A ColorSwatch displays a color value passed via the `color` prop. The value can be a string or `Color` object. When no color is provided or the color is transparent, a red slash will be displayed.
+
+```tsx
+import {ColorSwatch} from '@react-spectrum/s2/ColorSwatch';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<div className={style({display: 'flex', gap: 12, alignItems: 'center'})}>
+  <ColorSwatch color="#ff6600" />
+  <ColorSwatch color="rgb(255, 0, 255)" />
+  <ColorSwatch color="hsl(120, 100%, 42%)" />
+  <ColorSwatch color="rgba(0, 150, 255, 0.5)" />
+  <ColorSwatch />
+</div>
 ```
 
-## Basic Usage
+## Custom sizing
 
-```jsx
-<ColorSwatch color="#f00" />
+ColorSwatch can be resized using the `styles` prop.
+
+```tsx
+import {ColorSwatch} from '@react-spectrum/s2/ColorSwatch';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<ColorSwatch
+  color="#10b981"
+  styles={style({width: 80, height: 40})} />
 ```
 
-## Color Value Display
+## Accessibility
 
-```jsx
-import { ColorSlider, parseColor } from "@adobe/react-spectrum";
+By default, ColorSwatch includes a localized color description for screen reader users (e.g. "dark vibrant blue"). Use the `colorName` prop to override this. Set an `aria-label` to provide additional context. In this example, a screen reader will announce "Fire truck red, Background color".
 
-function Example() {
-  let [color, setColor] = React.useState(parseColor("hsl(0, 100%, 50%)"));
-  return (
-    <Flex direction="column" gap="size-100">
-      <ColorSlider value={color} onChange={setColor} channel="hue" />
-      <ColorSwatch color={color} />
-    </Flex>
-  );
-}
-```
+```tsx
+import {ColorSwatch} from '@react-spectrum/s2/ColorSwatch';
 
-## Transparency Handling
-
-Fully transparent colors display with a red diagonal slash. Partially transparent colors show a checkerboard pattern background.
-
-```jsx
-function Example() {
-  let [color, setColor] = React.useState(parseColor("hsla(0, 100%, 50%, 0)"));
-  return (
-    <Flex direction="column" gap="size-100">
-      <ColorSlider value={color} onChange={setColor} channel="alpha" />
-      <ColorSwatch color={color} />
-    </Flex>
-  );
-}
-```
-
-## Accessible Labeling
-
-```jsx
 <ColorSwatch
   color="#f00"
   aria-label="Background color"
-  colorName="Fire truck red"
-/>
+  colorName="Fire truck red" />
 ```
 
-ColorSwatch provides automatic localized color descriptions for screen readers (e.g., "dark vibrant blue"). Override with the `colorName` prop for custom names like Pantone colors.
+## API
 
-## Size Variations
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `color` | `string | Color | undefined` | — | The color value to display in the swatch. |
+| `colorName` | `string | undefined` | — | A localized accessible name for the color. By default, a description is generated from the color value, but this can be overridden if you have a more specific color name (e.g. Pantone colors). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `rounding` | `"default" | "full" | "none" | undefined` | 'default' | The corner rounding of the ColorSwatch. |
+| `size` | `"L" | "M" | "S" | "XS" | undefined` | 'M' | The size of the ColorSwatch. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-```jsx
-<Flex gap="size-100">
-  <ColorSwatch color="#ff0" size="XS" />
-  <ColorSwatch color="#ff0" size="S" />
-  <ColorSwatch color="#ff0" size="M" />
-  <ColorSwatch color="#ff0" size="L" />
-</Flex>
-```
+## Related Types
 
-## Rounding Options
+### Color
 
-```jsx
-<Flex gap="size-100">
-  <ColorSwatch color="#0ff" rounding="none" />
-  <ColorSwatch color="#0ff" rounding="default" />
-  <ColorSwatch color="#0ff" rounding="full" />
-</Flex>
-```
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-## Props API
-
-### Core Props
-
-| Name        | Type                            | Default     | Description                                                          |
-| ----------- | ------------------------------- | ----------- | -------------------------------------------------------------------- |
-| `color`     | `string \| Color`               | --          | Color value to display (string or Color object)                      |
-| `colorName` | `string`                        | --          | Accessible name for the color (overrides auto-generated description) |
-| `size`      | `'XS' \| 'S' \| 'M' \| 'L'`     | `"M"`       | Swatch size                                                          |
-| `rounding`  | `'default' \| 'none' \| 'full'` | `"default"` | Corner rounding style                                                |
-
-### Accessibility Props
-
-| Name               | Type     | Description                              |
-| ------------------ | -------- | ---------------------------------------- |
-| `id`               | `string` | Unique element identifier                |
-| `aria-label`       | `string` | Accessible label for the element         |
-| `aria-labelledby`  | `string` | ID reference(s) for labeling element     |
-| `aria-describedby` | `string` | ID reference(s) for description          |
-| `aria-details`     | `string` | ID reference(s) for detailed description |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                         |
-| ------------------ | --------------- | ----------------------------------- |
-| `UNSAFE_className` | `string`        | CSS class name (use as last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (use as last resort)  |
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

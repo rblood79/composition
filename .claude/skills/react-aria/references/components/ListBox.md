@@ -25,45 +25,38 @@ import {
   ListBox as AriaListBox,
   ListBoxItem as AriaListBoxItem,
   ListBoxSection as AriaListBoxSection,
-  composeRenderProps,
-  ListBoxItemProps,
   ListBoxLoadMoreItem as AriaListBoxLoadMoreItem,
-  ListBoxLoadMoreItemProps,
-  ListBoxProps,
-  ListBoxSectionProps
-} from 'react-aria-components';
+  Header,
+  type ListBoxItemProps,
+  type ListBoxLoadMoreItemProps,
+  type ListBoxProps,
+  type ListBoxSectionProps
+} from 'react-aria-components/ListBox';
+import {composeRenderProps} from 'react-aria-components/composeRenderProps';
 import {Check} from 'lucide-react';
 import {Text} from './Content';
 import {ProgressCircle} from './ProgressCircle';
 import './ListBox.css';
 
-export function ListBox<T extends object>(
-  { children, ...props }: ListBoxProps<T>
-) {
-  return (
-    (
-      <AriaListBox {...props}>
-        {children}
-      </AriaListBox>
-    )
-  );
+export function ListBox<T>({children, ...props}: ListBoxProps<T>) {
+  return <AriaListBox {...props}>{children}</AriaListBox>;
 }
 
 export function ListBoxItem(props: ListBoxItemProps) {
-  let textValue = props.textValue || (typeof props.children === 'string' ? props.children : undefined);
+  let textValue =
+    props.textValue || (typeof props.children === 'string' ? props.children : undefined);
   return (
     <AriaListBoxItem {...props} textValue={textValue}>
-      {composeRenderProps(props.children, (children) => (
+      {composeRenderProps(props.children, children =>
         typeof children === 'string' ? <Text slot="label">{children}</Text> : children
-      ))}
+      )}
     </AriaListBoxItem>
   );
 }
 
-export function ListBoxSection<T extends object>(props: ListBoxSectionProps<T>) {
+export function ListBoxSection<T>(props: ListBoxSectionProps<T>) {
   return <AriaListBoxSection {...props} />;
 }
-
 
 export function ListBoxLoadMoreItem(props: ListBoxLoadMoreItemProps) {
   return (
@@ -73,28 +66,33 @@ export function ListBoxLoadMoreItem(props: ListBoxLoadMoreItemProps) {
   );
 }
 
-export function DropdownListBox<T extends object>(props: ListBoxProps<T>) {
-  return <AriaListBox {...props} className="dropdown-listbox" />
+export function DropdownListBox<T>(props: ListBoxProps<T>) {
+  return <AriaListBox {...props} className="dropdown-listbox" />;
 }
 
 export function DropdownItem(props: ListBoxItemProps) {
-  let textValue = props.textValue || (typeof props.children === 'string' ? props.children : undefined);
+  let textValue =
+    props.textValue || (typeof props.children === 'string' ? props.children : undefined);
   return (
     <ListBoxItem {...props} textValue={textValue} className="dropdown-item">
-      {composeRenderProps(props.children, (children, {isSelected}) => (<>
-        {isSelected && <Check />}
-        {typeof children === 'string' ? <Text slot="label">{children}</Text> : children}
-      </>))}
+      {composeRenderProps(props.children, (children, {isSelected}) => (
+        <>
+          {isSelected && <Check />}
+          {typeof children === 'string' ? <Text slot="label">{children}</Text> : children}
+        </>
+      ))}
     </ListBoxItem>
   );
 }
+
+export {Text, Header};
 
 ```
 
 ### ListBox.css
 
 ```css
-@import "./theme.css";
+@import './theme.css';
 
 .react-aria-ListBox {
   max-height: inherit;
@@ -108,7 +106,7 @@ export function DropdownItem(props: ListBoxItemProps) {
   font: var(--font-size) system-ui;
   color: var(--text-color);
 
-  &:has(.react-aria-ListBoxSection){
+  &:has(.react-aria-ListBoxSection) {
     scroll-padding: 24px;
   }
 
@@ -126,7 +124,7 @@ export function DropdownItem(props: ListBoxItemProps) {
   &[data-drop-target] {
     outline: 2px solid var(--highlight-background);
     outline-offset: -1px;
-    background: var(--highlight-overlay)
+    background: var(--highlight-overlay);
   }
 
   .react-aria-DropIndicator[data-drop-target] {
@@ -148,7 +146,9 @@ export function DropdownItem(props: ListBoxItemProps) {
     border-block: 0.5px solid var(--gray-400);
     cursor: default;
     user-select: none;
-    box-shadow: inset 0px 1px 0px white, inset 0px -4px 8px var(--gray-200);
+    box-shadow:
+      inset 0px 1px 0px white,
+      inset 0px -4px 8px var(--gray-200);
 
     @media (prefers-color-scheme: dark) {
       box-shadow: inset 0px 4px 8px var(--gray-200);
@@ -216,11 +216,11 @@ export function DropdownItem(props: ListBoxItemProps) {
     }
   }
 
-  [slot=label] {
+  [slot='label'] {
     font-weight: 500;
   }
 
-  [slot=description] {
+  [slot='description'] {
     font-size: var(--font-size-sm);
   }
 
@@ -240,15 +240,15 @@ export function DropdownItem(props: ListBoxItemProps) {
 
   &[data-drop-target] {
     outline: 2px solid var(--highlight-background);
-    background: var(--highlight-overlay)
+    background: var(--highlight-overlay);
   }
 }
 
 .react-aria-ListBox {
-  &[data-layout=stack] {
+  &[data-layout='stack'] {
     display: flex;
 
-    &[data-orientation=vertical] {
+    &[data-orientation='vertical'] {
       flex-direction: column;
       width: 250px;
       max-height: 300px;
@@ -265,7 +265,7 @@ export function DropdownItem(props: ListBoxItemProps) {
           margin-bottom: var(--spacing);
         }
 
-        [role=presentation] > & {
+        [role='presentation'] > & {
           margin: 0; /* virtualizer */
         }
 
@@ -291,7 +291,7 @@ export function DropdownItem(props: ListBoxItemProps) {
       }
     }
 
-    &[data-orientation=horizontal] {
+    &[data-orientation='horizontal'] {
       flex-direction: row;
       width: 100%;
 
@@ -330,18 +330,18 @@ export function DropdownItem(props: ListBoxItemProps) {
     }
   }
 
-  &[data-layout=grid] {
+  &[data-layout='grid'] {
     display: grid;
     gap: var(--spacing-1);
     width: fit-content;
     max-width: 100%;
     padding: var(--spacing-1);
 
-    &[data-orientation=vertical] {
+    &[data-orientation='vertical'] {
       grid-template-columns: 1fr 1fr;
     }
 
-    &[data-orientation=horizontal] {
+    &[data-orientation='horizontal'] {
       grid-auto-flow: column;
       grid-template-rows: auto auto;
       grid-template-columns: none;
@@ -380,7 +380,8 @@ export function DropdownItem(props: ListBoxItemProps) {
 }
 
 .dropdown-item {
-  padding: calc((var(--spacing-8) - 1lh) / 2) var(--spacing-3) calc((var(--spacing-8) - 1lh) / 2) var(--spacing-6);
+  padding: calc((var(--spacing-8) - 1lh) / 2) var(--spacing-3) calc((var(--spacing-8) - 1lh) / 2)
+    var(--spacing-6);
   box-sizing: border-box;
   border-radius: var(--radius);
   outline: none;
@@ -428,11 +429,11 @@ export function DropdownItem(props: ListBoxItemProps) {
     color: var(--highlight-foreground);
   }
 
-  [slot=label] {
+  [slot='label'] {
     font-weight: 500;
   }
 
-  [slot=description] {
+  [slot='description'] {
     font-size: var(--font-size-sm);
   }
 
@@ -467,29 +468,32 @@ import {ListBox, ListBoxItem} from 'tailwind-starter/ListBox';
 
 ```tsx
 'use client';
-import { Check } from 'lucide-react';
+import {Check} from 'lucide-react';
 import React from 'react';
 import {
   ListBox as AriaListBox,
   ListBoxItem as AriaListBoxItem,
-  ListBoxProps as AriaListBoxProps,
-  Collection,
-  Header,
-  ListBoxItemProps,
   ListBoxSection,
-  SectionProps,
-  composeRenderProps
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { composeTailwindRenderProps, focusRing } from './utils';
+  Header,
+  Collection,
+  type ListBoxProps as AriaListBoxProps,
+  type ListBoxItemProps,
+  type ListBoxSectionProps
+} from 'react-aria-components/ListBox';
+import {composeRenderProps} from 'react-aria-components/composeRenderProps';
+import {tv} from 'tailwind-variants';
+import {composeTailwindRenderProps, focusRing} from './utils';
 
 interface ListBoxProps<T> extends Omit<AriaListBoxProps<T>, 'layout' | 'orientation'> {}
 
-export function ListBox<T extends object>(
-  { children, ...props }: ListBoxProps<T>
-) {
+export function ListBox<T>({children, ...props}: ListBoxProps<T>) {
   return (
-    <AriaListBox {...props} className={composeTailwindRenderProps(props.className, 'outline-0 p-1 w-[200px] bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg font-sans')}>
+    <AriaListBox
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'outline-0 p-1 w-[200px] bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg font-sans'
+      )}>
       {children}
     </AriaListBox>
   );
@@ -500,7 +504,8 @@ export const itemStyles = tv({
   base: 'group relative flex items-center gap-8 cursor-default select-none py-1.5 px-2.5 rounded-md will-change-transform text-sm forced-color-adjust-none',
   variants: {
     isSelected: {
-      false: 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 pressed:bg-neutral-100 dark:hover:bg-neutral-800 dark:pressed:bg-neutral-800 -outline-offset-2',
+      false:
+        'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 pressed:bg-neutral-100 dark:hover:bg-neutral-800 dark:pressed:bg-neutral-800 -outline-offset-2',
       true: 'bg-blue-600 text-white forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] [&:has(+[data-selected])]:rounded-b-none [&+[data-selected]]:rounded-t-none -outline-offset-4 outline-white dark:outline-white forced-colors:outline-[HighlightText]'
     },
     isDisabled: {
@@ -510,13 +515,16 @@ export const itemStyles = tv({
 });
 
 export function ListBoxItem(props: ListBoxItemProps) {
-  let textValue = props.textValue || (typeof props.children === 'string' ? props.children : undefined);
+  let textValue =
+    props.textValue || (typeof props.children === 'string' ? props.children : undefined);
   return (
     <AriaListBoxItem {...props} textValue={textValue} className={itemStyles}>
-      {composeRenderProps(props.children, children => <>
-        {children}
-        <div className="absolute left-4 right-4 bottom-0 h-px bg-white/20 forced-colors:bg-[HighlightText] hidden [.group[data-selected]:has(+[data-selected])_&]:block" />
-      </>)}
+      {composeRenderProps(props.children, children => (
+        <>
+          {children}
+          <div className="absolute left-4 right-4 bottom-0 h-px bg-white/20 forced-colors:bg-[HighlightText] hidden [.group[data-selected]:has(+[data-selected])_&]:block" />
+        </>
+      ))}
     </AriaListBoxItem>
   );
 }
@@ -545,33 +553,36 @@ export const dropdownItemStyles = tv({
 });
 
 export function DropdownItem(props: ListBoxItemProps) {
-  let textValue = props.textValue || (typeof props.children === 'string' ? props.children : undefined);
+  let textValue =
+    props.textValue || (typeof props.children === 'string' ? props.children : undefined);
   return (
     <AriaListBoxItem {...props} textValue={textValue} className={dropdownItemStyles}>
-      {composeRenderProps(props.children, (children, {isSelected}) => <>
-        <span className="flex items-center flex-1 gap-2 font-normal truncate group-selected:font-semibold">
-          {children}
-        </span>
-        <span className="flex items-center w-5">
-          {isSelected && <Check className="w-4 h-4" />}
-        </span>
-      </>)}
+      {composeRenderProps(props.children, (children, {isSelected}) => (
+        <>
+          <span className="flex items-center flex-1 gap-2 font-normal truncate group-selected:font-semibold">
+            {children}
+          </span>
+          <span className="flex items-center w-5">
+            {isSelected && <Check className="w-4 h-4" />}
+          </span>
+        </>
+      ))}
     </AriaListBoxItem>
   );
 }
 
-export interface DropdownSectionProps<T> extends SectionProps<T> {
-  title?: string
-  items?: any
+export interface DropdownSectionProps<T> extends ListBoxSectionProps<T> {
+  title?: string;
+  items?: any;
 }
 
-export function DropdownSection<T extends object>(props: DropdownSectionProps<T>) {
+export function DropdownSection<T>(props: DropdownSectionProps<T>) {
   return (
     <ListBoxSection className="first:-mt-[5px] after:content-[''] after:block after:h-[5px] last:after:hidden">
-      <Header className="text-sm font-semibold text-neutral-500 dark:text-neutral-300 px-4 py-1 truncate sticky -top-[5px] -mt-px -mx-1 z-10 bg-neutral-100/60 dark:bg-neutral-700/60 backdrop-blur-md supports-[-moz-appearance:none]:bg-neutral-100 border-y border-y-neutral-200 dark:border-y-neutral-700 [&+*]:mt-1">{props.title}</Header>
-      <Collection items={props.items}>
-        {props.children}
-      </Collection>
+      <Header className="text-sm font-semibold text-neutral-500 dark:text-neutral-300 px-4 py-1 truncate sticky -top-[5px] -mt-px -mx-1 z-10 bg-neutral-100/60 dark:bg-neutral-700/60 backdrop-blur-md supports-[-moz-appearance:none]:bg-neutral-100 border-y border-y-neutral-200 dark:border-y-neutral-700 [&+*]:mt-1">
+        {props.title}
+      </Header>
+      <Collection items={props.items}>{props.children}</Collection>
     </ListBoxSection>
   );
 }
@@ -583,7 +594,7 @@ export function DropdownSection<T extends object>(props: DropdownSectionProps<T>
 `ListBox` follows the [Collection Components API](collections.md?component=ListBox), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a function to render the children.
 
 ```tsx
-import {ListBox, ListBoxItem} from 'react-aria-components';
+import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
 
 function Example() {
   let options = [
@@ -613,7 +624,7 @@ function Example() {
 Use the `"label"` and `"description"` slots to separate primary and secondary content within a `<ListBoxItem>`. This improves screen reader announcements and can also be used for styling purposes.
 
 ```tsx
-import {ListBox, ListBoxItem, Text} from 'react-aria-components';
+import {ListBox, ListBoxItem, Text} from 'vanilla-starter/ListBox';
 
 <ListBox aria-label="Permissions" selectionMode="single">
   <ListBoxItem textValue="Read">
@@ -643,7 +654,7 @@ import {ListBox, ListBoxItem, Text} from 'react-aria-components';
 Use the `<ListBoxSection>` component to group options. A `<Header>` element may also be included to label the section. Sections without a header must have an `aria-label`.
 
 ```tsx
-import {ListBox, ListBoxItem, ListBoxSection, Header} from 'react-aria-components';
+import {ListBox, ListBoxItem, ListBoxSection, Header} from 'vanilla-starter/ListBox';
 
 <ListBox aria-label="Sandwich contents" selectionMode="multiple">
   {/*- begin highlight -*/}
@@ -676,7 +687,8 @@ Use [renderEmptyState](#empty-state) to display a spinner during initial load. T
 ```tsx
 import {ListBox, ListBoxItem, ListBoxLoadMoreItem} from 'vanilla-starter/ListBox';
 import {ProgressCircle} from 'vanilla-starter/ProgressCircle';
-import {Collection, useAsyncList} from 'react-aria-components';
+import {Collection} from 'react-aria-components/Collection';
+import {useAsyncList} from 'react-aria-components/useAsyncList';
 
 interface Character {
   name: string
@@ -725,7 +737,7 @@ Use the `href` prop on a `<ListBoxItem>` to create a link.
 By default, link items in a ListBox are not selectable, and only perform navigation when the user interacts with them. However, with `selectionBehavior="replace"`, items will be selected when single clicking or pressing the <Keyboard>Space</Keyboard> key, and navigate to the link when double clicking or pressing the <Keyboard>Enter</Keyboard> key.
 
 ```tsx
-import {ListBox, ListBoxItem} from 'react-aria-components';
+import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
 
 <ListBox aria-label="Links" selectionMode="multiple">
   {/*- begin highlight -*/}
@@ -752,7 +764,7 @@ By default, links are rendered as an `<a>` element. Use the `render` prop to int
 ### Empty state
 
 ```tsx
-import {ListBox} from 'react-aria-components';
+import {ListBox} from 'vanilla-starter/ListBox';
 
 <ListBox
   aria-label="Search results"
@@ -766,8 +778,8 @@ import {ListBox} from 'react-aria-components';
 Use the `selectionMode` prop to enable single or multiple selection. The selected items can be controlled via the `selectedKeys` prop, matching the `id` prop of the items. Items can be disabled with the `isDisabled` prop. See the [selection guide](selection.md?component=ListBox) for more details.
 
 ```tsx
-import type {Selection} from 'react-aria-components';
-import {ListBox, ListBoxItem} from 'react-aria-components';
+import type {Selection} from 'react-aria-components/ListBox';
+import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
 import {useState} from 'react';
 
 function Example(props) {
@@ -800,7 +812,7 @@ function Example(props) {
 Use the `layout` and `orientation` props to create horizontal and vertical stacks and grids. This affects keyboard navigation and drag and drop behavior.
 
 ```tsx
-import {ListBox, ListBoxItem, Text} from 'react-aria-components';
+import {ListBox, ListBoxItem, Text} from 'vanilla-starter/ListBox';
 
 let planets = [
   {
@@ -866,7 +878,9 @@ let planets = [
 ListBox supports drag and drop interactions when the `dragAndDropHooks` prop is provided using the `useDragAndDrop` hook. Users can drop data on the list as a whole, on individual items, insert new items between existing ones, or reorder items. React Aria supports drag and drop via mouse, touch, keyboard, and screen reader interactions. See the [drag and drop guide](dnd.md?component=ListBox) to learn more.
 
 ```tsx
-import {ListBox, ListBoxItem, useDragAndDrop, useListData} from 'react-aria-components';
+import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
+import {useDragAndDrop} from 'react-aria-components/useDragAndDrop';
+import {useListData} from 'react-aria-components/useListData';
 
 function Example() {
   let list = useListData({
@@ -936,21 +950,21 @@ function Example() {
 | `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `autoFocus` | `boolean | FocusStrategy | undefined` | — | Whether to auto focus the listbox or an option. |
-| `children` | `React.ReactNode | ((item: T) => ReactNode)` | — | The contents of the collection. |
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
 | `className` | `ClassNameOrFunction<ListBoxRenderProps> | undefined` | 'react-aria-ListBox' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
-| `defaultSelectedKeys` | `Iterable<Key> | "all" | undefined` | — | The initial selected keys in the collection (uncontrolled). |
+| `defaultSelectedKeys` | `"all" | Iterable<Key> | undefined` | — | The initial selected keys in the collection (uncontrolled). |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
 | `dir` | `string | undefined` | — |  |
 | `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
 | `disallowEmptySelection` | `boolean | undefined` | — | Whether the collection allows empty selection. |
 | `dragAndDropHooks` | `DragAndDropHooks<NoInfer<T>> | undefined` | — | The drag and drop hooks returned by `useDragAndDrop` used to enable drag and drop behavior for the ListBox. |
-| `escapeKeyBehavior` | `"none" | "clearSelection" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the listbox or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
+| `escapeKeyBehavior` | `"clearSelection" | "none" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the listbox or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
 | `hidden` | `boolean | undefined` | — |  |
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `inert` | `boolean | undefined` | — |  |
 | `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
 | `lang` | `string | undefined` | — |  |
-| `layout` | `"stack" | "grid" | undefined` | 'stack' | Whether the items are arranged in a stack or grid. |
+| `layout` | `"grid" | "stack" | undefined` | 'stack' | Whether the items are arranged in a stack or grid. |
 | `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on an item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
 | `onAnimationEnd` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onAnimationEndCapture` | `React.AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -1021,17 +1035,17 @@ function Example() {
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `orientation` | `Orientation | undefined` | 'vertical' | The primary orientation of the items. Usually this is the direction that the collection scrolls. |
-| `render` | `DOMRenderFunction<"div", ListBoxRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", ListBoxRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `renderEmptyState` | `((props: ListBoxRenderProps) => ReactNode) | undefined` | — | Provides content to display when there are no items in the list. |
-| `selectedKeys` | `Iterable<Key> | "all" | undefined` | — | The currently selected keys in the collection (controlled). |
-| `selectionBehavior` | `SelectionBehavior | undefined` | "toggle" | How multiple selection should behave in the collection. |
+| `selectedKeys` | `"all" | Iterable<Key> | undefined` | — | The currently selected keys in the collection (controlled). |
+| `selectionBehavior` | `SelectionBehavior | undefined` | 'toggle' | How multiple selection should behave in the collection. |
 | `selectionMode` | `SelectionMode | undefined` | — | The type of selection that is allowed in the collection. |
 | `shouldFocusOnHover` | `boolean | undefined` | — | Whether options should be focused when the user hovers over them. |
 | `shouldFocusWrap` | `boolean | undefined` | — | Whether focus should wrap around when the end/start is reached. |
 | `shouldSelectOnPressUp` | `boolean | undefined` | — | Whether selection should occur on press up instead of press down. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: ListBoxRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `StyleOrFunction<ListBoxRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### ListBoxItem
 
@@ -1041,7 +1055,7 @@ function Example() {
 | `children` | `ChildrenOrFunction<ListBoxItemRenderProps>` | — | The children of the component. A function may be provided to alter the children based on component state. |
 | `className` | `ClassNameOrFunction<ListBoxItemRenderProps> | undefined` | 'react-aria-ListBoxItem' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `dir` | `string | undefined` | — |  |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
 | `hidden` | `boolean | undefined` | — |  |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
@@ -1059,7 +1073,7 @@ function Example() {
 | `onAuxClick` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onAuxClickCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onBlur` | `((e: React.FocusEvent<HTMLDivElement, Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
-| `onClick` | `((e: React.MouseEvent<FocusableElement>) => void) | undefined` | — | **Not recommended – use `onPress` instead.** `onClick` is an alias for `onPress` provided for compatibility with other libraries. `onPress` provides  additional event details for non-mouse interactions. |
+| `onClick` | `((e: React.MouseEvent<FocusableElement>) => void) | undefined` | — | **Not recommended – use `onPress` instead.** `onClick` is an alias for `onPress` provided for compatibility with other libraries. `onPress` provides additional event details for non-mouse interactions. |
 | `onClickCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onContextMenu` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onContextMenuCapture` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -1072,6 +1086,8 @@ function Example() {
 | `onHoverChange` | `((isHovering: boolean) => void) | undefined` | — | Handler that is called when the hover state changes. |
 | `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction ends. |
 | `onHoverStart` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction starts. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
 | `onLostPointerCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onLostPointerCaptureCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onMouseDown` | `React.MouseEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -1128,12 +1144,12 @@ function Example() {
 | `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
 | `referrerPolicy` | `React.HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
-| `render` | `((props: React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> | React.DetailedHTMLProps<Required<Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">> & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">, HTMLAnchorElement>, renderProps: ListBoxItemRenderProps) => React.ReactElement) | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Note: You can check if `'href' in props` in order to tell whether to render an `<a>` element. Requirements: \* You must render the expected element type (e.g. if `<a>` is expected, you cannot render a `<button>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `((props: React.DetailedHTMLProps<Required<Pick<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">> & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">, HTMLAnchorElement> | React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>, renderProps: ListBoxItemRenderProps) => React.ReactElement) | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Note: You can check if `'href' in props` in order to tell whether to render an `<a>` element. Requirements: - You must render the expected element type (e.g. if `<a>` is expected, you cannot render a   `<button>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `style` | `(React.CSSProperties | ((values: ListBoxItemRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `style` | `StyleOrFunction<ListBoxItemRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `target` | `React.HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `value` | `T | undefined` | — | The object value that this item represents. When using dynamic collections, this is set automatically. |
 
 ### ListBoxSection
@@ -1141,7 +1157,7 @@ function Example() {
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `aria-label` | `string | undefined` | — | An accessibility label for the section. |
-| `children` | `React.ReactNode | ((item: T) => React.ReactElement)` | — | Static child items or a function to render children. |
+| `children` | `((item: T) => React.ReactElement) | React.ReactNode` | — | Static child items or a function to render children. |
 | `className` | `string | undefined` | 'react-aria-ListBoxSection' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
 | `dir` | `string | undefined` | — |  |
@@ -1214,9 +1230,9 @@ function Example() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"section", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"section", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `style` | `React.CSSProperties | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `value` | `T | undefined` | — | The object value that this section represents. When using dynamic collections, this is set automatically. |
 
 ### ListBoxLoadMoreItem
@@ -1295,10 +1311,10 @@ function Example() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", undefined> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `scrollOffset` | `number | undefined` | 1 | The amount of offset from the bottom of your scrollable region that should trigger load more. Uses a percentage value relative to the scroll body's client height. Load more is then triggered when your current scroll position's distance from the bottom of the currently loaded list of items is less than or equal to the provided value. (e.g. 1 = 100% of the scroll region's height). |
 | `style` | `React.CSSProperties | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ## Related Types
 
@@ -1306,28 +1322,29 @@ function Example() {
 
 `useDragAndDrop(options: DragAndDropOptions<T>): DragAndDrop<T>`
 
-Provides the hooks required to enable drag and drop behavior for a drag and drop compatible collection component.
+Provides the hooks required to enable drag and drop behavior for a drag and drop compatible
+collection component.
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
+| `acceptedDragTypes` | `"all" | (string | symbol)[] | undefined` | 'all' | The drag types that the droppable collection accepts. If the collection accepts directories, include `DIRECTORY_DRAG_TYPE` in your array of allowed types. |
+| `dropTargetDelegate` | `DropTargetDelegate | undefined` | — | A custom delegate object that provides drop targets for pointer coordinates within the collection. |
+| `getAllowedDropOperations` | `(() => DropOperation[]) | undefined` | — | Function that returns the drop operations that are allowed for the dragged items. If not provided, all drop operations are allowed. |
+| `getDropOperation` | `((target: DropTarget, types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |
 | `getItems` | `((keys: Set<Key>, items: T[]) => DragItem[]) | undefined` | () => \[] | A function that returns the items being dragged. If not specified, we assume that the collection is not draggable. |
+| `isDisabled` | `boolean | undefined` | — | Whether the drag and drop events should be disabled. |
+| `onDragEnd` | `((e: DraggableCollectionEndEvent) => void) | undefined` | — | Handler that is called when the drag operation is ended, either as a result of a drop or a cancellation. |
+| `onDragMove` | `((e: DraggableCollectionMoveEvent) => void) | undefined` | — | Handler that is called when the drag is moved. |
+| `onDragStart` | `((e: DraggableCollectionStartEvent) => void) | undefined` | — | Handler that is called when a drag operation is started. |
+| `onDrop` | `((e: DroppableCollectionDropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on a drop target. When defined, this overrides other drop handlers such as `onInsert`, and `onItemDrop`. |
+| `onDropActivate` | `((e: DroppableCollectionActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over a drop target for a period of time. |
+| `onDropEnter` | `((e: DroppableCollectionEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters a drop target. |
+| `onDropExit` | `((e: DroppableCollectionExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits a drop target. |
+| `onInsert` | `((e: DroppableCollectionInsertDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped "between" items. |
+| `onItemDrop` | `((e: DroppableCollectionOnItemDropEvent) => void) | undefined` | — | Handler that is called when items are dropped "on" an item. |
+| `onMove` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are moved within the source collection. This handler allows dropping both on or between items, and items may be moved to a different parent item within a tree. |
+| `onReorder` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are reordered within the collection. This handler only allows dropping between items, not on items. It does not allow moving items to a different parent item within a tree. |
+| `onRootDrop` | `((e: DroppableCollectionRootDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped on the droppable collection's root. |
 | `renderDragPreview` | `((items: DragItem[]) => JSX.Element | { element: JSX.Element; x: number; y: number; }) | undefined` | — | A function that renders a drag preview, which is shown under the user's cursor while dragging. By default, a copy of the dragged element is rendered. |
 | `renderDropIndicator` | `((target: DropTarget) => JSX.Element) | undefined` | — | A function that renders a drop indicator element between two items in a collection. This should render a `<DropIndicator>` element. If this function is not provided, a default DropIndicator is provided. |
-| `dropTargetDelegate` | `DropTargetDelegate | undefined` | — | A custom delegate object that provides drop targets for pointer coordinates within the collection. |
-| `isDisabled` | `boolean | undefined` | — | Whether the drag and drop events should be disabled. |
-| `onDragStart` | `((e: DraggableCollectionStartEvent) => void) | undefined` | — | Handler that is called when a drag operation is started. |
-| `onDragMove` | `((e: DraggableCollectionMoveEvent) => void) | undefined` | — | Handler that is called when the drag is moved. |
-| `onDragEnd` | `((e: DraggableCollectionEndEvent) => void) | undefined` | — | Handler that is called when the drag operation is ended, either as a result of a drop or a cancellation. |
-| `getAllowedDropOperations` | `(() => DropOperation[]) | undefined` | — | Function that returns the drop operations that are allowed for the dragged items. If not provided, all drop operations are allowed. |
-| `acceptedDragTypes` | `"all" | (string | symbol)[] | undefined` | 'all' | The drag types that the droppable collection accepts. If the collection accepts directories, include `DIRECTORY_DRAG_TYPE` in your array of allowed types. |
-| `onInsert` | `((e: DroppableCollectionInsertDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped "between" items. |
-| `onRootDrop` | `((e: DroppableCollectionRootDropEvent) => void) | undefined` | — | Handler that is called when external items are dropped on the droppable collection's root. |
-| `onItemDrop` | `((e: DroppableCollectionOnItemDropEvent) => void) | undefined` | — | Handler that is called when items are dropped "on" an item. |
-| `onReorder` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are reordered within the collection. This handler only allows dropping between items, not on items. It does not allow moving items to a different parent item within a tree. |
-| `onMove` | `((e: DroppableCollectionReorderEvent) => void) | undefined` | — | Handler that is called when items are moved within the source collection. This handler allows dropping both on or between items, and items may be moved to a different parent item within a tree. |
 | `shouldAcceptItemDrop` | `((target: ItemDropTarget, types: DragTypes) => boolean) | undefined` | — | A function returning whether a given target in the droppable collection is a valid "on" drop target for the current drag types. |
-| `onDropEnter` | `((e: DroppableCollectionEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters a drop target. |
-| `onDropActivate` | `((e: DroppableCollectionActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over a drop target for a period of time. |
-| `onDropExit` | `((e: DroppableCollectionExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits a drop target. |
-| `onDrop` | `((e: DroppableCollectionDropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on a drop target. When defined, this overrides other drop handlers such as `onInsert`, and `onItemDrop`. |
-| `getDropOperation` | `((target: DropTarget, types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |

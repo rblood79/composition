@@ -1,206 +1,121 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/TimeField.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # TimeField
 
-TimeFields allow users to enter and edit time values using a keyboard. Each part of the time is displayed in an individually editable segment.
-
-**Added in:** 3.19.0
+TimeFields allow users to enter and edit time values using a keyboard.
+Each part of the time is displayed in an individually editable segment.
 
 ```tsx
-import { TimeField } from "@adobe/react-spectrum";
+import {TimeField} from '@react-spectrum/s2/TimeField';
+
+<TimeField />
 ```
 
-## Usage Examples
+## Value
 
-### Basic
+Use the `value` or `defaultValue` prop to set the time value, using objects in the [@internationalized/date](react-aria:internationalized/date/.md) package. `TimeField` accepts plain [Time](react-aria:internationalized/date/Time.md), [CalendarDateTime](react-aria:internationalized/date/CalendarDateTime.md), or [ZonedDateTime](react-aria:internationalized/date/ZonedDateTime.md), but only displays the time.
 
-```jsx
-<TimeField label="Event time" />
-```
-
-### Controlled / Uncontrolled
-
-```jsx
-import { Time } from "@internationalized/date";
+```tsx
+import {Time} from '@internationalized/date';
+import {TimeField} from '@react-spectrum/s2/TimeField';
+import {useState} from 'react';
 
 function Example() {
-  let [value, setValue] = React.useState(new Time(11, 45));
+  let [time, setTime] = useState<Time | null>(new Time(11, 45));
+  
   return (
-    <Flex gap="size-150" wrap>
-      <TimeField label="Time (uncontrolled)" defaultValue={new Time(11, 45)} />
-      <TimeField label="Time (controlled)" value={value} onChange={setValue} />
-    </Flex>
+    <>
+      <TimeField
+        value={time}
+        onChange={setTime} />
+      {/*- end highlight -*/}
+      <p>Selected time: {time ? time.toString() : '--'}</p>
+    </>
   );
 }
 ```
 
-### Time Zone Support
+### Format options
 
-```jsx
-import { parseZonedDateTime } from "@internationalized/date";
+The time format is automatically determined based on the user's locale. `TimeField` supports several props to control how values are displayed.
 
-<TimeField
-  label="Event time"
-  defaultValue={parseZonedDateTime("2022-11-07T00:45[America/Los_Angeles]")}
-/>;
-```
-
-### Granularity Control
-
-```jsx
-import { parseAbsoluteToLocal } from "@internationalized/date";
+```tsx
+import {parseZonedDateTime} from '@internationalized/date';
+import {TimeField} from '@react-spectrum/s2/TimeField';
 
 <TimeField
-  label="Event time"
-  granularity="second"
-  defaultValue={parseAbsoluteToLocal("2021-04-07T18:45:22Z")}
-/>;
+  
+  defaultValue={parseZonedDateTime('2025-02-03T17:45:00[America/Los_Angeles]')} />
 ```
 
-### HTML Forms
+## Forms
 
-```jsx
-<TimeField label="Meeting time" name="meetingTime" />
+Use the `name` prop to submit the selected date to the server as an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) string. Set the `isRequired`, `minValue`, or `maxValue` props to validate the value, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
+
+```tsx
+import {Time} from '@internationalized/date';
+import {TimeField} from '@react-spectrum/s2/TimeField';
+import {Form} from '@react-spectrum/s2/Form';
+import {Button} from '@react-spectrum/s2/Button';
+
+function Example(props) {
+  return (
+    <Form>
+      <TimeField
+        {...props}
+        label="Appointment time"
+        name="time"
+        
+        minValue={new Time(9)}
+        maxValue={new Time(17)}
+        validate={time => time?.minute % 15 !== 0 ? 'Appointments start every 15 minutes.' : null}
+      />
+      <Button type="submit">Submit</Button>
+    </Form>
+  );
+}
 ```
 
-### Validation
+## API
 
-```jsx
-// Required with native validation
-<Form validationBehavior="native" maxWidth="size-3000">
-  <TimeField label="Meeting time" name="time" isRequired />
-  <ButtonGroup>
-    <Button type="submit" variant="primary">Submit</Button>
-    <Button type="reset" variant="secondary">Reset</Button>
-  </ButtonGroup>
-</Form>
-
-// Min/Max values
-<TimeField
-  label="Meeting time"
-  minValue={new Time(9)}
-  maxValue={new Time(17)}
-  defaultValue={new Time(8)}
-/>
-
-// Custom validation
-<TimeField
-  label="Meeting time"
-  validate={(time) => time?.minute % 15 !== 0 ? 'Meetings start every 15 minutes.' : null}
-  defaultValue={new Time(9, 25)}
-/>
-```
-
-### Visual Options
-
-```jsx
-// Quiet style
-<TimeField label="Event time" isQuiet />
-
-// Disabled
-<TimeField label="Event time" isDisabled />
-
-// Read-only
-<TimeField label="Event time" value={new Time(11)} isReadOnly />
-
-// Label positioning
-<TimeField label="Event time" labelPosition="side" labelAlign="end" />
-
-// Hour cycle override
-<TimeField label="Appointment time" hourCycle={24} />
-
-// Hide time zone
-<TimeField
-  label="Appointment time"
-  defaultValue={parseZonedDateTime('2022-11-07T10:45[America/Los_Angeles]')}
-  hideTimeZone
-/>
-
-// Placeholder value
-<TimeField label="Appointment time" placeholderValue={new Time(9)} />
-```
-
-## Props API
-
-| Name                      | Type                                                      | Default    | Description                                         |
-| ------------------------- | --------------------------------------------------------- | ---------- | --------------------------------------------------- |
-| `label`                   | `ReactNode`                                               | --         | Field label                                         |
-| `value`                   | `TimeValue \| null`                                       | --         | Controlled value                                    |
-| `defaultValue`            | `TimeValue \| null`                                       | --         | Uncontrolled default value                          |
-| `name`                    | `string`                                                  | --         | HTML form input name                                |
-| `form`                    | `string`                                                  | --         | Associated `<form>` element ID                      |
-| `isQuiet`                 | `boolean`                                                 | `false`    | Display with quiet styling                          |
-| `hourCycle`               | `12 \| 24`                                                | --         | 12 or 24-hour format; determined by locale if unset |
-| `granularity`             | `'hour' \| 'minute' \| 'second'`                          | `'minute'` | Smallest displayable time unit                      |
-| `hideTimeZone`            | `boolean`                                                 | --         | Hide time zone abbreviation                         |
-| `shouldForceLeadingZeros` | `boolean`                                                 | --         | Always show leading zeros in hour field             |
-| `placeholderValue`        | `TimeValue`                                               | --         | Influences placeholder format; defaults to midnight |
-| `minValue`                | `TimeValue \| null`                                       | --         | Minimum allowed time                                |
-| `maxValue`                | `TimeValue \| null`                                       | --         | Maximum allowed time                                |
-| `isDisabled`              | `boolean`                                                 | --         | Disable the input                                   |
-| `isReadOnly`              | `boolean`                                                 | --         | Prevent user changes                                |
-| `isRequired`              | `boolean`                                                 | --         | Require user input before form submission           |
-| `validationBehavior`      | `'aria' \| 'native'`                                      | `'aria'`   | Use native HTML or ARIA validation                  |
-| `validationState`         | `'valid' \| 'invalid'`                                    | --         | Visual validation indicator                         |
-| `validate`                | `(value) => ValidationError \| true \| null \| undefined` | --         | Custom validation function                          |
-| `autoFocus`               | `boolean`                                                 | --         | Receive focus on render                             |
-| `description`             | `ReactNode`                                               | --         | Helper text providing hints                         |
-| `errorMessage`            | `ReactNode \| (v) => ReactNode`                           | --         | Custom error message                                |
-| `labelPosition`           | `'top' \| 'side'`                                         | `'top'`    | Label placement                                     |
-| `labelAlign`              | `'start' \| 'end'`                                        | `'start'`  | Label horizontal alignment                          |
-| `necessityIndicator`      | `'icon' \| 'label'`                                       | `'icon'`   | Show required state as icon or text                 |
-| `contextualHelp`          | `ReactNode`                                               | --         | ContextualHelp element next to label                |
-
-### Accessibility Props
-
-| Name               | Type     | Description                 |
-| ------------------ | -------- | --------------------------- |
-| `id`               | `string` | Unique element identifier   |
-| `aria-label`       | `string` | Accessible label definition |
-| `aria-labelledby`  | `string` | ID of labeling element      |
-| `aria-describedby` | `string` | ID of describing element    |
-| `aria-details`     | `string` | ID of detailed description  |
-
-### Layout/Spacing/Sizing/Positioning Props (abbreviated)
-
-Standard Responsive layout props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, etc. Standard spacing: `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`. Standard sizing: `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`. Standard positioning: `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`.
-
-### Advanced Props
-
-| Name               | Type            | Description                  |
-| ------------------ | --------------- | ---------------------------- |
-| `UNSAFE_className` | `string`        | CSS class name (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort)  |
-
-## Events
-
-| Name            | Type                                       | Description                       |
-| --------------- | ------------------------------------------ | --------------------------------- |
-| `onChange`      | `(value: MappedTimeValue \| null) => void` | Fired when time value changes     |
-| `onFocus`       | `(e: FocusEvent) => void`                  | Fired when element receives focus |
-| `onBlur`        | `(e: FocusEvent) => void`                  | Fired when element loses focus    |
-| `onFocusChange` | `(isFocused: boolean) => void`             | Fired when focus status changes   |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`               | Fired when key is pressed         |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`               | Fired when key is released        |
-
-## Related Types
-
-- **Time** -- clock time without date (hour 0-23, minute, second, millisecond)
-- **CalendarDateTime** -- date and time without time zone
-- **ZonedDateTime** -- date and time with time zone (IANA identifier + UTC offset)
-
-### Helper Functions
-
-```javascript
-parseTime("04:45:23.123");
-parseZonedDateTime("2022-11-07T00:45[America/Los_Angeles]");
-parseAbsolute("2021-11-07T07:45:00Z", "America/Los_Angeles");
-parseAbsoluteToLocal("2021-11-07T07:45:00Z");
-```
-
-## Accessibility
-
-- Provide `label` or `aria-label`
-- Each time segment is individually editable via keyboard
-- RTL layout automatic
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `T | null | undefined` | — | The default value (uncontrolled). |
+| `description` | `ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | ReactNode` | — | An error message for the field. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `granularity` | `"hour" | "minute" | "second" | undefined` | 'minute' | Determines the smallest unit that is displayed in the time picker. |
+| `hideTimeZone` | `boolean | undefined` | — | Whether to hide the time zone abbreviation. |
+| `hourCycle` | `12 | 24 | undefined` | — | Whether to display the time in 12 or 24 hour format. By default, this is determined by the user's locale. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `maxValue` | `TimeValue | null | undefined` | — | The maximum allowed time that a user may select. |
+| `minValue` | `TimeValue | null | undefined` | — | The minimum allowed time that a user may select. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((value: MappedTimeValue<T> | null) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `placeholderValue` | `T | undefined` | — | A placeholder time that influences the format of the placeholder shown when no value is selected. Defaults to 12:00 AM or 00:00 depending on the hour cycle. |
+| `shouldForceLeadingZeros` | `boolean | undefined` | — | Whether to always show leading zeros in the hour field. By default, this is determined by the user's locale. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the TimeField. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: MappedTimeValue<T>) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `T | null | undefined` | — | The current value (controlled). |

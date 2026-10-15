@@ -1,185 +1,140 @@
-<!-- Source: https://react-aria.adobe.com/Popover -->
-<!-- Note: React Spectrum v3 does not have a standalone Popover page (404). This references React Aria Components Popover. -->
-<!-- In React Spectrum v3, use DialogTrigger with type="popover" for popover dialogs. -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Popover
 
 A popover is an overlay element positioned relative to a trigger.
 
-## Import (React Aria Components)
-
-```javascript
-import { Popover, DialogTrigger, OverlayArrow } from "react-aria-components";
-```
-
-## React Spectrum v3 Usage
-
-In React Spectrum v3, popovers are created via `DialogTrigger` with `type="popover"`:
-
-```jsx
-import {
-  DialogTrigger,
-  ActionButton,
-  Dialog,
-  Heading,
-  Divider,
-  Content,
-  Text,
-} from "@adobe/react-spectrum";
-
-<DialogTrigger type="popover">
-  <ActionButton>Trigger Popover</ActionButton>
-  <Dialog>
-    <Heading>Popover</Heading>
-    <Divider />
-    <Content>
-      <Text>This is a popover.</Text>
-    </Content>
-  </Dialog>
-</DialogTrigger>;
-```
-
-## React Aria Components Usage
-
-### Basic Example
-
 ```tsx
-import { DialogTrigger } from "react-aria-components";
+import {Popover, DialogTrigger} from '@react-spectrum/s2/Popover';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
+import {Form} from '@react-spectrum/s2/Form';
+import {TextField} from '@react-spectrum/s2/TextField';
+import {Switch} from '@react-spectrum/s2/Switch';
+import {Button} from '@react-spectrum/s2/Button';
+import Feedback from '@react-spectrum/s2/icons/Feedback';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-function Example() {
+function Example(props) {
   return (
     <DialogTrigger>
-      <Button aria-label="Settings">Settings</Button>
-      <Popover>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Switch defaultSelected>Wi-Fi</Switch>
-          <Switch defaultSelected>Bluetooth</Switch>
-          <Switch>Mute</Switch>
+      <ActionButton aria-label="Feedback">
+        <Feedback />
+      </ActionButton>
+      {/*- begin focus -*/}
+      <Popover {...props}>
+        <div className={style({padding: 12})}>
+          <p className={style({font: 'body', marginTop: 0})}>How are we doing? Share your feedback here.</p>
+          <Form>
+            <TextField label="Subject" placeholder="Enter a summary" />
+            <TextField label="Description" isRequired placeholder="Enter your feedback" />
+            <Switch>Adobe can contact me for further questions concerning this feedback</Switch>
+            <Button styles={style({marginStart: 'auto'})}>Submit</Button>
+          </Form>
         </div>
       </Popover>
+      {/*- end focus -*/}
     </DialogTrigger>
   );
 }
 ```
 
-### With Arrow
+## Custom anchor
+
+To position a popover relative to a different element than its trigger, use the `triggerRef` and `isOpen` props instead of `<DialogTrigger>`. `onOpenChange` will be called when the user closes the popover.
 
 ```tsx
-function Popover({ children, showArrow, ...props }) {
-  return (
-    <AriaPopover {...props}>
-      {showArrow && (
-        <OverlayArrow>
-          <svg width={12} height={12} viewBox="0 0 12 12">
-            <path d="M0 0 L6 6 L12 0" />
-          </svg>
-        </OverlayArrow>
-      )}
-      {children}
-    </AriaPopover>
-  );
-}
-```
+import {Popover} from '@react-spectrum/s2/Popover';
+import {Button} from '@react-spectrum/s2/Button';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState, useRef} from 'react';
 
-### Custom Anchor
-
-Position a popover relative to a different element than its trigger:
-
-```tsx
 function Example() {
   let [isOpen, setOpen] = useState(false);
   let triggerRef = useRef(null);
 
   return (
-    <div>
-      <Button onPress={() => setOpen(true)}>Trigger</Button>
-      <span ref={triggerRef}>Popover will be positioned relative to me</span>
-      <Popover triggerRef={triggerRef} isOpen={isOpen} onOpenChange={setOpen}>
-        I'm over here!
+    <div className={style({display: 'flex', flexDirection: 'column', gap: 64, alignItems: 'center'})}>
+      <Button onPress={() => setOpen(!isOpen)}>
+        Open popover
+      </Button>
+      <div
+        ref={triggerRef}
+        className={style({
+          padding: 8,
+          backgroundColor: 'gray-100',
+          borderRadius: 'default',
+          font: 'ui'
+        })}>
+        Popover appears here
+      </div>
+      <Popover
+        /*- begin highlight -*/
+        triggerRef={triggerRef}
+        isOpen={isOpen}
+        onOpenChange={setOpen}>
+        {/*- end highlight -*/}
+        <div className={style({font: 'ui'})}>
+          Popover with custom trigger reference
+        </div>
       </Popover>
     </div>
   );
 }
+
+<Example />
 ```
 
-## Props API
-
-### DialogTrigger Props
-
-| Name           | Type                        | Default | Description                       |
-| -------------- | --------------------------- | ------- | --------------------------------- |
-| `children`     | `ReactNode`                 | --      | Child elements                    |
-| `defaultOpen`  | `boolean`                   | --      | Initial open state (uncontrolled) |
-| `isOpen`       | `boolean`                   | --      | Controlled open state             |
-| `onOpenChange` | `(isOpen: boolean) => void` | --      | Callback when open state changes  |
-
-### Popover Props
-
-| Name                        | Type                                     | Default         | Description                               |
-| --------------------------- | ---------------------------------------- | --------------- | ----------------------------------------- |
-| `children`                  | `ReactNode \| Function`                  | --              | Popover content                           |
-| `className`                 | `string \| Function`                     | --              | CSS class name                            |
-| `style`                     | `CSSProperties \| Function`              | --              | Inline styles                             |
-| `defaultOpen`               | `boolean`                                | --              | Initial open state                        |
-| `isOpen`                    | `boolean`                                | --              | Controlled open state                     |
-| `onOpenChange`              | `(isOpen: boolean) => void`              | --              | Open state callback                       |
-| `placement`                 | `'top' \| 'bottom' \| 'left' \| 'right'` | `'bottom'`      | Popover position relative to trigger      |
-| `offset`                    | `number`                                 | `8`             | Distance from anchor element (px)         |
-| `crossOffset`               | `number`                                 | `0`             | Cross-axis offset (px)                    |
-| `containerPadding`          | `number`                                 | `12`            | Boundary padding (px)                     |
-| `shouldFlip`                | `boolean`                                | `true`          | Auto-flip when space insufficient         |
-| `shouldUpdatePosition`      | `boolean`                                | `true`          | Auto-update position on scroll/resize     |
-| `maxHeight`                 | `number`                                 | --              | Maximum height                            |
-| `isKeyboardDismissDisabled` | `boolean`                                | `false`         | Disable Escape key closing                |
-| `isNonModal`                | `boolean`                                | --              | Allow outside interaction without closing |
-| `arrowRef`                  | `RefObject<Element \| null>`             | --              | Arrow element ref                         |
-| `arrowBoundaryOffset`       | `number`                                 | `0`             | Arrow edge boundary distance              |
-| `boundaryElement`           | `Element`                                | `document.body` | Positioning boundary element              |
-| `scrollRef`                 | `RefObject<Element \| null>`             | `overlayRef`    | Scrollable region ref                     |
-| `triggerRef`                | `RefObject<Element \| null>`             | --              | Anchor element ref (for custom anchor)    |
-| `slot`                      | `string \| null`                         | --              | Slot name                                 |
-| `dir`                       | `string`                                 | --              | Text direction                            |
-| `lang`                      | `string`                                 | --              | Language code                             |
-| `render`                    | `DOMRenderFunction<'div'>`               | --              | Custom render function                    |
-
-### OverlayArrow Props
-
-| Name        | Type                        | Default | Description                   |
-| ----------- | --------------------------- | ------- | ----------------------------- |
-| `children`  | `ReactNode \| Function`     | --      | Arrow content (typically SVG) |
-| `className` | `string \| Function`        | --      | CSS class name                |
-| `style`     | `CSSProperties \| Function` | --      | Inline styles                 |
-| `role`      | `AriaRole`                  | --      | ARIA role                     |
-| `id`        | `string`                    | --      | Element ID                    |
-
-### Event Handlers
-
-Standard React DOM event handlers are supported: mouse, touch, pointer, keyboard, focus, composition, animation, transition events.
-
-## Accessibility
-
-- Custom trigger components must use semantic HTML (e.g., `<button>`) or include an interactive ARIA role
-- Custom triggers must forward `ref` and spread all props to underlying DOM elements
-- Icon-only buttons need proper `aria-label` attributes
-- Use `<Pressable>` component to wrap non-interactive elements as triggers
-
-## State Management
-
-### Uncontrolled
+## API
 
 ```tsx
-<DialogTrigger defaultOpen={false}>
-  <Button>Open</Button>
-  <Popover>Content</Popover>
+<DialogTrigger>
+  <Button />
+  <Popover>
+    {/* ... */}
+  </Popover>
 </DialogTrigger>
 ```
 
-### Controlled
+### DialogTrigger
 
-```tsx
-const [isOpen, setIsOpen] = useState(false);
-<Popover isOpen={isOpen} onOpenChange={setIsOpen}>
-  Content
-</Popover>;
-```
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — |  |
+| `defaultOpen` | `boolean | undefined` | — | Whether the overlay is open by default (uncontrolled). |
+| `isOpen` | `boolean | undefined` | — | Whether the overlay is open by default (controlled). |
+| `onOpenChange` | `((isOpen: boolean) => void) | undefined` | — | Handler that is called when the overlay's open state changes. |
+
+### Popover
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `arrowRef` | `RefObject<Element | null> | undefined` | — | A ref for the popover arrow element. |
+| `boundaryElement` | `Element | undefined` | document.body | Element that that serves as the positioning boundary. |
+| `children` | `ChildrenOrFunction<PopoverRenderProps>` | — | The children of the component. A function may be provided to alter the children based on component state. |
+| `containerPadding` | `number | undefined` | 12 | The placement padding that should be applied between the element and its surrounding container. |
+| `crossOffset` | `number | undefined` | 0 | The additional offset applied along the cross axis between the element and its anchor element. |
+| `defaultOpen` | `boolean | undefined` | — | Whether the overlay is open by default (uncontrolled). |
+| `getTargetRect` | `((target: Element) => DOMRect | undefined) | null | undefined` | target.getBoundingClientRect() | Overrides the target element's bounding rectangle. Useful for positioning relative to a specific point such as the mouse cursor (e.g. context menus) or text selection. |
+| `hideArrow` | `boolean | undefined` | false | Whether a popover's arrow should be hidden. |
+| `isEntering` | `boolean | undefined` | — | Whether the popover is currently performing an entry animation. |
+| `isExiting` | `boolean | undefined` | — | Whether the popover is currently performing an exit animation. |
+| `isNonModal` | `boolean | undefined` | — | Whether the popover is non-modal, i.e. elements outside the popover may be interacted with by assistive technologies. Most popovers should not use this option as it may negatively impact the screen reader experience. Only use with components such as combobox, which are designed to handle this situation carefully. |
+| `isOpen` | `boolean | undefined` | — | Whether the overlay is open by default (controlled). |
+| `maxHeight` | `number | undefined` | — | The maxHeight specified for the overlay element. By default, it will take all space up to the current viewport height. |
+| `offset` | `number | undefined` | 8 | The additional offset applied along the main axis between the element and its anchor element. |
+| `onBlurWithin` | `((e: FocusEvent) => void) | undefined` | — | Handler that is called when the target element and all descendants lose focus. |
+| `onFocusWithin` | `((e: FocusEvent) => void) | undefined` | — | Handler that is called when the target element or a descendant receives focus. |
+| `onFocusWithinChange` | `((isFocusWithin: boolean) => void) | undefined` | — | Handler that is called when the the focus within state changes. |
+| `onOpenChange` | `((isOpen: boolean) => void) | undefined` | — | Handler that is called when the overlay's open state changes. |
+| `placement` | `Placement | undefined` | 'bottom' | The placement of the element with respect to its anchor element. |
+| `scrollRef` | `RefObject<Element | null> | undefined` | overlayRef | A ref for the scrollable region within the overlay. |
+| `shouldFlip` | `boolean | undefined` | true | Whether the element should flip its orientation (e.g. top to bottom or left to right) when there is insufficient room for it to render completely. |
+| `size` | `"L" | "M" | "S" | undefined` | — | The size of the Popover. If not specified, the popover fits its contents. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString | undefined` | — | The styles of the popover. |
+| `trigger` | `string | undefined` | — | The name of the component that triggered the popover. This is reflected on the element as the `data-trigger` attribute, and can be used to provide specific styles for the popover depending on which element triggered it. |
+| `triggerRef` | `RefObject<Element | null> | undefined` | — | The ref for the element which the popover positions itself with respect to. When used within a trigger component such as DialogTrigger, MenuTrigger, Select, etc., this is set automatically. It is only required when used standalone. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

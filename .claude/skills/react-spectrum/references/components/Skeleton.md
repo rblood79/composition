@@ -1,115 +1,53 @@
-<!-- Source: https://react-spectrum.adobe.com/s2/ (S2) + GitHub @react-spectrum/s2/src/Skeleton.tsx -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Skeleton
 
-A Skeleton wraps around content to render it as a placeholder with an animated loading effect.
+A Skeleton wraps around content to render it as a placeholder.
 
 ```tsx
-import { Skeleton, SkeletonCollection } from "@react-spectrum/s2";
-```
+import {Skeleton} from '@react-spectrum/s2/Skeleton';
+import {Image} from '@react-spectrum/s2/Image';
+import {Text} from '@react-spectrum/s2/Text';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import preview from 'url:./assets/preview.png';
+import Select from '@react-spectrum/s2/icons/Select';
 
-## Examples
-
-### Basic
-
-```jsx
-<Skeleton isLoading>
-  <Card>
-    <Image src="placeholder.jpg" />
-    <Heading>Card Title</Heading>
-    <Content>Card content goes here</Content>
-  </Card>
+<Skeleton>
+  <div className={style({display: 'flex', gap: 16, flexDirection: {default: 'column', sm: 'row'}})}>
+    <Image
+      src={preview}
+      width={1600}
+      height={1200}
+      styles={style({height: 160, borderRadius: 'default', flexShrink: 0, aspectRatio: '4 / 3'})} />
+    <div className={style({display: 'flex', flexDirection: 'column', gap: 16})}>
+      <Text styles={style({font: 'heading-lg'})}>Placeholder title</Text>
+      <Text styles={style({font: 'body'})}>This is placeholder content approximating the length of the real content to avoid layout shifting when the real content appears.</Text>
+      <div className={style({display: 'flex', gap: 4, alignItems: 'center'})}>
+        <Select />
+        <Text styles={style({font: 'ui'})}>Here is an icon.</Text>
+      </div>
+    </div>
+  </div>
 </Skeleton>
 ```
 
-### With Collections (SkeletonCollection)
+## Content
 
-SkeletonCollection generates placeholder content within collection components like CardView:
+Skeleton replaces text, images, and icons inside it with a placeholder shimmer effect. Use mock data within your real component to create a loading screen that accurately simulates the final layout.
 
-```jsx
-<CardView>
-  <SkeletonCollection>
-    {() => (
-      <Card>
-        <Image src="placeholder.jpg" />
-        <Heading>Loading...</Heading>
-      </Card>
-    )}
-  </SkeletonCollection>
-</CardView>
-```
+The following components are currently affected by Skeleton:
 
-## Props
+- [Image](Image.md)
+- `Text`
+- [Link](Link.md)
+- `Icon`
+- [StatusLight](StatusLight.md)
+- [Badge](Badge.md)
+- [Meter](Meter.md)
 
-### SkeletonProps
+Form components within a skeleton are also disabled.
 
-| Name        | Type        | Default | Description                        |
-| ----------- | ----------- | ------- | ---------------------------------- |
-| `children`  | `ReactNode` | --      | Content to render as placeholder   |
-| `isLoading` | `boolean`   | --      | Controls placeholder display state |
+## API
 
-### SkeletonCollectionProps
-
-| Name       | Type              | Default | Description                                   |
-| ---------- | ----------------- | ------- | --------------------------------------------- |
-| `children` | `() => ReactNode` | --      | Render function returning placeholder content |
-
-## Hooks
-
-### useIsSkeleton
-
-Returns whether the component is within a Skeleton loading context.
-
-```tsx
-import { useIsSkeleton } from "@react-spectrum/s2";
-
-function MyComponent() {
-  const isSkeleton = useIsSkeleton(); // boolean
-  // ...
-}
-```
-
-### useLoadingAnimation
-
-Manages Web Animation API for synchronized loading effects across all skeleton elements on the page.
-
-```tsx
-const animationRef = useLoadingAnimation(isAnimating);
-// Returns a ref callback for the animated element
-```
-
-### useSkeletonText
-
-Wraps text content with skeleton styling when in loading state.
-
-```tsx
-const [children, style] = useSkeletonText(children, style);
-```
-
-### useSkeletonIcon
-
-Adds default border radius to icons in skeleton mode.
-
-```tsx
-const mergedStyles = useSkeletonIcon(styles);
-```
-
-## Key Features
-
-- Uses Web Animation API for synchronized animations across multiple skeleton elements
-- Respects `prefers-reduced-motion` media query
-- Hides content visibility while maintaining layout dimensions
-- Disables form components within skeleton context (via `inert` attribute)
-- SkeletonCollection uses WeakMap cache to preserve randomized content across re-renders
-
-## Context
-
-### SkeletonContext
-
-```tsx
-import { SkeletonContext } from "@react-spectrum/s2";
-// createContext<boolean | null>(null)
-```
-
-Provides skeleton state to descendant components. When `true`, children render as animated placeholders.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — |  |
+| `isLoading` | `boolean` | — |  |

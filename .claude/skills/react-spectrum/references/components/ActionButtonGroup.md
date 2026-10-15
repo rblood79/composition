@@ -3,7 +3,7 @@
 An ActionButtonGroup is a grouping of related ActionButtons.
 
 ```tsx
-import {ActionButtonGroup, ActionButton, Text} from '@react-spectrum/s2';
+import {ActionButtonGroup, ActionButton, Text} from '@react-spectrum/s2/ActionButtonGroup';
 import Cut from '@react-spectrum/s2/icons/Cut';
 import Copy from '@react-spectrum/s2/icons/Copy';
 import Paste from '@react-spectrum/s2/icons/Paste';
@@ -41,12 +41,12 @@ import Paste from '@react-spectrum/s2/icons/Paste';
 | `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `children` | `ReactNode` | — | The children of the group. |
-| `density` | `"compact" | "regular" | undefined` | "regular" | Spacing between the buttons. |
+| `density` | `"compact" | "regular" | undefined` | 'regular' | Spacing between the buttons. |
 | `isDisabled` | `boolean | undefined` | — | Whether the group is disabled. |
 | `isJustified` | `boolean | undefined` | — | Whether the buttons should divide the container width equally. |
 | `isQuiet` | `boolean | undefined` | — | Whether the button should be displayed with a [quiet style](https://spectrum.adobe.com/page/action-button/#Quiet). |
 | `orientation` | `"horizontal" | "vertical" | undefined` | 'horizontal' | The axis the group should align with. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | "M" | Size of the buttons. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | Size of the buttons. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the ActionButtonGroup appears over a color background. |
 | `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |

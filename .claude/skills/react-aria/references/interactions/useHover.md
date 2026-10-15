@@ -5,7 +5,7 @@ across browsers and platforms, and ignores emulated mouse events on touch device
 
 ```tsx
 import React from 'react';
-import {useHover} from 'react-aria';
+import {useHover} from 'react-aria/useHover';
 
 function Example() {
   let [events, setEvents] = React.useState<string[]>([]);
@@ -69,9 +69,9 @@ function Example() {
 | Name | Type | Description |
 |------|------|-------------|
 | `isDisabled` | `boolean | undefined` | Whether the hover events should be disabled. |
-| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | Handler that is called when a hover interaction starts. |
-| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | Handler that is called when a hover interaction ends. |
 | `onHoverChange` | `((isHovering: boolean) => void) | undefined` | Handler that is called when the hover state changes. |
+| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | Handler that is called when a hover interaction ends. |
+| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | Handler that is called when a hover interaction starts. |
 
 ### HoverResult
 

@@ -1,248 +1,195 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ActionBar.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ActionBar
 
-Action bars are used for single and bulk selection patterns when a user needs to perform actions on one or more items at the same time.
+Action bars are used for single and bulk selection patterns when a user needs to perform actions
+on one or more items at the same time.
 
-The ActionBar component facilitates bulk operations on selected collection items, comprising an ActionGroup, clear button, and selection counter.
-
-**Added:** v3.27.0
-
-```tsx
-import { ActionBar, ActionBarContainer } from "@adobe/react-spectrum";
-```
-
-## Basic Usage
+## TableView example
 
 ```tsx
-import type { Selection } from "@adobe/react-spectrum";
+import {ActionBar, ActionButton} from '@react-spectrum/s2/ActionBar';
+import {TableView, TableHeader, TableBody, Column, Row, Cell} from '@react-spectrum/s2/TableView';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Copy from '@react-spectrum/s2/icons/Copy';
+import Delete from '@react-spectrum/s2/icons/Delete';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-function Example() {
-  let [selectedKeys, setSelectedKeys] = React.useState<Selection>(
-    new Set(["photoshop"]),
-  );
+let rows = [
+  {id: 1, name: 'Charizard', type: 'Fire, Flying', level: '67'},
+  {id: 2, name: 'Blastoise', type: 'Water', level: '56'},
+  {id: 3, name: 'Venusaur', type: 'Grass, Poison', level: '83'},
+  {id: 4, name: 'Pikachu', type: 'Electric', level: '100'}
+];
 
+function Example(props) {
   return (
-    <ActionBarContainer height={300} maxWidth="size-6000">
-      <ListView
-        aria-label="ListView with action bar"
-        selectionMode="multiple"
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-      >
-        <Item key="photoshop">Adobe Photoshop</Item>
-        <Item key="illustrator">Adobe Illustrator</Item>
-        <Item key="xd">Adobe XD</Item>
-      </ListView>
-      <ActionBar
-        isEmphasized
-        selectedItemCount={selectedKeys === "all" ? "all" : selectedKeys.size}
-        onAction={(key) => alert(`Performing ${key} action...`)}
-        onClearSelection={() => setSelectedKeys(new Set())}
-      >
-        <Item key="edit">
-          <Edit />
-          <Text>Edit</Text>
-        </Item>
-        <Item key="copy">
-          <Copy />
-          <Text>Copy</Text>
-        </Item>
-        <Item key="delete">
-          <Delete />
-          <Text>Delete</Text>
-        </Item>
-      </ActionBar>
-    </ActionBarContainer>
+    <TableView
+      aria-label="Table with action bar"
+      selectionMode="multiple"
+      defaultSelectedKeys={[2]}
+      styles={style({width: 'full', height: 250})}
+      renderActionBar={(selectedKeys) => (
+        /*- begin focus -*/
+        <ActionBar {...props}>
+          <ActionButton aria-label="Edit" onPress={() => alert('Edit action')}>
+            <Edit />
+          </ActionButton>
+          <ActionButton aria-label="Copy" onPress={() => alert('Copy action')}>
+            <Copy />
+          </ActionButton>
+          <ActionButton aria-label="Delete" onPress={() => alert('Delete action')}>
+            <Delete />
+          </ActionButton>
+        </ActionBar>
+        /*- end focus -*/
+      )}>
+      <TableHeader>
+        <Column key="name" isRowHeader>Name</Column>
+        <Column key="type">Type</Column>
+        <Column key="level">Level</Column>
+      </TableHeader>
+      <TableBody items={rows}>
+        {item => (
+          <Row>
+            <Cell key="name">{item.name}</Cell>
+            <Cell key="type">{item.type}</Cell>
+            <Cell key="level">{item.level}</Cell>
+          </Row>
+        )}
+      </TableBody>
+    </TableView>
   );
 }
 ```
 
-## Dynamic Items
+## ListView example
 
 ```tsx
-import type { Selection } from "@adobe/react-spectrum";
+import {ActionBar, ActionButton, Text} from '@react-spectrum/s2/ActionBar';
+import {ListView, ListViewItem} from '@react-spectrum/s2/ListView';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Copy from '@react-spectrum/s2/icons/Copy';
+import Delete from '@react-spectrum/s2/icons/Delete';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-function Example() {
-  let barItems = [
-    { key: "edit", label: "Edit" },
-    { key: "copy", label: "Copy" },
-    { key: "delete", label: "Delete" },
-  ];
+let items = [
+  {id: 1, name: 'Charizard', type: 'Fire, Flying', level: '67'},
+  {id: 2, name: 'Blastoise', type: 'Water', level: '56'},
+  {id: 3, name: 'Venusaur', type: 'Grass, Poison', level: '83'},
+  {id: 4, name: 'Pikachu', type: 'Electric', level: '100'}
+];
 
-  let [selectedKeys, setSelectedKeys] = React.useState<Selection>(
-    new Set(["photoshop"]),
-  );
-
+function Example(props) {
   return (
-    <ActionBarContainer height={300} maxWidth="size-6000">
-      <ListView
-        aria-label="ListView with action bar"
-        selectionMode="multiple"
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-      >
-        <Item key="photoshop">Adobe Photoshop</Item>
-        <Item key="illustrator">Adobe Illustrator</Item>
-        <Item key="xd">Adobe XD</Item>
-      </ListView>
-      <ActionBar
-        items={barItems}
-        selectedItemCount={selectedKeys === "all" ? "all" : selectedKeys.size}
-        onAction={(key) => alert(`Performing ${key} action...`)}
-        onClearSelection={() => setSelectedKeys(new Set())}
-        isEmphasized
-      >
-        {(item) => <Item key={item.key}>{item.label}</Item>}
-      </ActionBar>
-    </ActionBarContainer>
+    <ListView
+      aria-label="List with action bar"
+      selectionMode="multiple"
+      defaultSelectedKeys={[2]}
+      styles={style({width: 'full', height: 250})}
+      items={items}
+      renderActionBar={(selectedKeys) => (
+        /*- begin focus -*/
+        <ActionBar {...props}>
+          <ActionButton aria-label="Edit" onPress={() => alert('Edit action')}>
+            <Edit />
+          </ActionButton>
+          <ActionButton aria-label="Copy" onPress={() => alert('Copy action')}>
+            <Copy />
+          </ActionButton>
+          <ActionButton aria-label="Delete" onPress={() => alert('Delete action')}>
+            <Delete />
+          </ActionButton>
+        </ActionBar>
+        /*- end focus -*/
+      )}>
+      {item => (
+        <ListViewItem id={item.id} textValue={item.name}>
+          <Text>{item.name}</Text>
+          <Text slot="description">{item.type} • Level {item.level}</Text>
+        </ListViewItem>
+      )}
+    </ListView>
   );
 }
 ```
 
-## Events
-
-### onAction
-
-Called when the user presses any action button. The `key` from the pressed `<Item>` is passed to the callback.
+## TreeView example
 
 ```tsx
-<ActionBar onAction={(key) => alert(`Performing ${key} action...`)} />
-```
+import {ActionBar, ActionButton} from '@react-spectrum/s2/ActionBar';
+import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2/TreeView';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Copy from '@react-spectrum/s2/icons/Copy';
+import Delete from '@react-spectrum/s2/icons/Delete';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-### onClearSelection
-
-Called when the clear button in the ActionBar is pressed.
-
-```tsx
-<ActionBar onClearSelection={() => setSelectedKeys(new Set())} />
-```
-
-## TableView Integration
-
-```tsx
-import type { Selection } from "@adobe/react-spectrum";
-
-function ActionBarActions() {
-  let [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set([2]));
-  let rows = [
-    { id: 1, name: "Charizard", type: "Fire, Flying", level: "67" },
-    { id: 2, name: "Blastoise", type: "Water", level: "56" },
-    { id: 3, name: "Venusaur", type: "Grass, Poison", level: "83" },
-    { id: 4, name: "Pikachu", type: "Electric", level: "100" },
-  ];
-
+function Example(props) {
   return (
-    <ActionBarContainer height="size-5000">
-      <TableView
-        aria-label="Table with action bar"
-        selectionMode="multiple"
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-      >
-        <TableHeader>
-          <Column key="name">Name</Column>
-          <Column key="type">Type</Column>
-          <Column key="level" align="end">
-            Level
-          </Column>
-        </TableHeader>
-        <TableBody items={rows}>
-          {(item) => <Row>{(columnKey) => <Cell>{item[columnKey]}</Cell>}</Row>}
-        </TableBody>
-      </TableView>
-      <ActionBar
-        isEmphasized
-        selectedItemCount={selectedKeys === "all" ? "all" : selectedKeys.size}
-        onClearSelection={() => setSelectedKeys(new Set())}
-        onAction={(key) => alert(`Performing ${key} action...`)}
-      >
-        <Item key="edit">
-          <Edit />
-          <Text>Edit</Text>
-        </Item>
-        <Item key="delete">
-          <Delete />
-          <Text>Delete</Text>
-        </Item>
-      </ActionBar>
-    </ActionBarContainer>
+    <TreeView
+      aria-label="TreeView with action bar"
+      selectionMode="multiple"
+      defaultExpandedKeys={['documents', 'project', 'photos']}
+      defaultSelectedKeys={['budget']}
+      styles={style({width: 'full', height: 250, maxWidth: 400})}
+      renderActionBar={(selectedKeys) => (
+        /*- begin focus -*/
+        <ActionBar {...props}>
+          <ActionButton aria-label="Edit" onPress={() => alert('Edit action')}>
+            <Edit />
+          </ActionButton>
+          <ActionButton aria-label="Copy" onPress={() => alert('Copy action')}>
+            <Copy />
+          </ActionButton>
+          <ActionButton aria-label="Delete" onPress={() => alert('Delete action')}>
+            <Delete />
+          </ActionButton>
+        </ActionBar>
+        /*- end focus -*/
+      )}>
+      <TreeViewItem id="documents" textValue="Documents">
+        <TreeViewItemContent>Documents</TreeViewItemContent>
+        <TreeViewItem id="project" textValue="Project">
+          <TreeViewItemContent>Project</TreeViewItemContent>
+          <TreeViewItem id="report" textValue="Weekly Report">
+            <TreeViewItemContent>Weekly Report</TreeViewItemContent>
+          </TreeViewItem>
+          <TreeViewItem id="budget" textValue="Budget">
+            <TreeViewItemContent>Budget</TreeViewItemContent>
+          </TreeViewItem>
+        </TreeViewItem>
+      </TreeViewItem>
+      <TreeViewItem id="photos" textValue="Photos">
+        <TreeViewItemContent>Photos</TreeViewItemContent>
+        <TreeViewItem id="image-1" textValue="Image 1">
+          <TreeViewItemContent>Image 1</TreeViewItemContent>
+          </TreeViewItem>
+        <TreeViewItem id="image-2" textValue="Image 2">
+          <TreeViewItemContent>Image 2</TreeViewItemContent>
+        </TreeViewItem>
+      </TreeViewItem>
+    </TreeView>
   );
 }
 ```
 
-## Visual Options
-
-### isEmphasized
-
-Apply when the ActionBar should call attention, such as when floating in a TableView. Omit if the ActionBar should blend in.
+## API
 
 ```tsx
-<ActionBar isEmphasized selectedItemCount={selectedKeys.size} />
+<ActionBar>
+  <ActionButton />
+</ActionBar>
 ```
 
-### disabledKeys
+### ActionBar
 
-Disable individual items:
-
-```tsx
-<ActionBar
-  disabledKeys={["edit"]}
-  isEmphasized
-  selectedItemCount={selectedKeys.size}
-/>
-```
-
-## Props
-
-### ActionBarContainer Props
-
-| Name       | Type        | Default | Description                                                    |
-| ---------- | ----------- | ------- | -------------------------------------------------------------- |
-| `children` | `ReactNode` | --      | Contents including ActionBar and associated renderable content |
-
-Layout/spacing/positioning props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`, `id`, `UNSAFE_className`, `UNSAFE_style`
-
-### ActionBar Props
-
-| Name                  | Type                                                                   | Default      | Description                          |
-| --------------------- | ---------------------------------------------------------------------- | ------------ | ------------------------------------ |
-| `children`            | `ItemElement<object> \| ItemElement<object>[] \| ItemRenderer<object>` | --           | Item elements or render function     |
-| `selectedItemCount`   | `number \| 'all'`                                                      | --           | Count of selected items (hides at 0) |
-| `items`               | `Iterable<object>`                                                     | --           | Item list for dynamic rendering      |
-| `disabledKeys`        | `Iterable<Key>`                                                        | --           | Keys of disabled items               |
-| `isEmphasized`        | `boolean`                                                              | --           | Emphasized visual style              |
-| `buttonLabelBehavior` | `'show' \| 'collapse' \| 'hide'`                                       | `'collapse'` | When to hide button text             |
-| `onClearSelection`    | `() => void`                                                           | --           | Callback when clear button pressed   |
-| `onAction`            | `(key: Key) => void`                                                   | --           | Callback when action button pressed  |
-| `id`                  | `string`                                                               | --           | Unique identifier                    |
-
-Layout/spacing/positioning props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`, `UNSAFE_className`, `UNSAFE_style`
-
-### Item Props
-
-| Name             | Type                          | Description                                |
-| ---------------- | ----------------------------- | ------------------------------------------ |
-| `children`       | `ReactNode`                   | Rendered content or child items            |
-| `title`          | `ReactNode`                   | Title if children contain items            |
-| `textValue`      | `string`                      | Text representation for typeahead          |
-| `aria-label`     | `string`                      | Accessibility label                        |
-| `childItems`     | `Iterable<T>`                 | Child item objects for dynamic collections |
-| `hasChildItems`  | `boolean`                     | Whether item has children                  |
-| `href`           | `Href`                        | Link URL                                   |
-| `hrefLang`       | `string`                      | Linked URL language hint                   |
-| `target`         | `HTMLAttributeAnchorTarget`   | Link target window                         |
-| `rel`            | `string`                      | Relationship to linked resource            |
-| `download`       | `boolean \| string`           | Download link or filename                  |
-| `ping`           | `string`                      | Space-separated ping URLs                  |
-| `referrerPolicy` | `HTMLAttributeReferrerPolicy` | Referrer policy for link                   |
-| `routerOptions`  | `RouterOptions`               | Client-side router options                 |
-
-## Accessibility
-
-The contents of the ActionBar should follow the same accessibility guidelines as ActionGroup's items. A localized string for selection count and clear button `aria-label` is provided automatically.
-
-## Internationalization
-
-For right-to-left languages (e.g. Hebrew and Arabic), the layout of the ActionBar is automatically flipped. Content provided to all child items should be localized appropriately.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — | A list of ActionButtons to display. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isEmphasized` | `boolean | undefined` | — | Whether the ActionBar should be displayed with a emphasized style. |
+| `onClearSelection` | `(() => void) | undefined` | — | Handler that is called when the ActionBar clear button is pressed. |
+| `scrollRef` | `RefObject<HTMLElement | null> | undefined` | — | A ref to the scrollable element the ActionBar appears above. |
+| `selectedItemCount` | `number | "all" | undefined` | — | The number of selected items that the ActionBar is currently linked to. If 0, the ActionBar is hidden. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

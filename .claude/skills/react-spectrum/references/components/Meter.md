@@ -1,115 +1,44 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Meter.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Meter
 
-Meters are visual representations of a quantity or an achievement. Their progress is determined by user actions, rather than system actions.
+Meters are visual representations of a quantity or an achievement.
+Their progress is determined by user actions, rather than system actions.
 
-## Import
+```tsx
+import {Meter} from '@react-spectrum/s2/Meter';
 
-```javascript
-import { Meter } from "@adobe/react-spectrum";
+<Meter />
 ```
 
-## Basic Usage
+## Value
 
-```jsx
-<Meter label="Storage space" value={35} />
+By default, the `value` prop is a percentage between 0 and 100. Use the `minValue`, and `maxValue` props to set a custom value scale.
+
+```tsx
+import {Meter} from '@react-spectrum/s2';
+
+<Meter />
 ```
 
-## Custom Scale
+## API
 
-```jsx
-<Meter label="Widgets Used" minValue={50} maxValue={150} value={100} />
-```
-
-## Custom Value Formatting
-
-```jsx
-<Meter
-  label="Currency"
-  formatOptions={{ style: "currency", currency: "JPY" }}
-  value={60}
-/>
-```
-
-## Label Positioning
-
-```jsx
-<Meter label="Label" value={25} variant="warning" />
-<Meter label="Label" labelPosition="side" value={25} variant="warning" />
-<Meter label="Label" showValueLabel={false} value={25} variant="warning" />
-```
-
-## Custom Value Labels
-
-```jsx
-<Meter label="Progress" value={25} valueLabel="1 of 4" variant="warning" />
-```
-
-## Size Variants
-
-```jsx
-<Meter label="Space used" size="S" value={90} variant="critical" />
-<Meter label="Space used" size="L" value={90} variant="critical" />
-```
-
-## Visual Variants
-
-```jsx
-<Meter label="Space used" value={25} variant="informative" />
-<Meter label="Space used" value={25} variant="positive" />
-<Meter label="Space used" value={90} variant="critical" />
-<Meter label="Space used" value={70} variant="warning" />
-```
-
-## Props API
-
-### Core Props
-
-| Name       | Type                                                     | Default         | Description                |
-| ---------- | -------------------------------------------------------- | --------------- | -------------------------- |
-| `value`    | `number`                                                 | `0`             | Current value (controlled) |
-| `minValue` | `number`                                                 | `0`             | Smallest allowed value     |
-| `maxValue` | `number`                                                 | `100`           | Largest allowed value      |
-| `variant`  | `'informative' \| 'positive' \| 'warning' \| 'critical'` | `'informative'` | Visual style of the Meter  |
-| `size`     | `'S' \| 'L'`                                             | `'L'`           | Bar thickness              |
-
-### Labeling Props
-
-| Name             | Type                       | Default              | Description                                                     |
-| ---------------- | -------------------------- | -------------------- | --------------------------------------------------------------- |
-| `label`          | `ReactNode`                | --                   | Label text content                                              |
-| `labelPosition`  | `'top' \| 'side'`          | `'top'`              | Label position relative to element                              |
-| `showValueLabel` | `boolean`                  | --                   | Display value label (true by default with label, false without) |
-| `valueLabel`     | `ReactNode`                | --                   | Custom value label text (e.g., "1 of 4")                        |
-| `formatOptions`  | `Intl.NumberFormatOptions` | `{style: 'percent'}` | Value label display format                                      |
-
-### Accessibility Props
-
-| Name               | Type     | Description                |
-| ------------------ | -------- | -------------------------- |
-| `id`               | `string` | Unique identifier          |
-| `aria-label`       | `string` | Element label definition   |
-| `aria-labelledby`  | `string` | ID of labeling element     |
-| `aria-describedby` | `string` | ID of describing element   |
-| `aria-details`     | `string` | ID of detailed description |
-
-### Layout/Spacing/Sizing/Positioning Props (Responsive)
-
-All standard Spectrum layout props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-### Advanced Props
-
-| Name               | Type            | Description                      |
-| ------------------ | --------------- | -------------------------------- |
-| `UNSAFE_className` | `string`        | CSS class (last resort only)     |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort only) |
-
-## Accessibility
-
-A `label`, `aria-label`, or `aria-labelledby` prop is required depending on the visualization approach (particularly when `showValueLabel` is hidden).
-
-## Internationalization
-
-The component automatically flips layout for right-to-left languages and uses the current locale for value label formatting.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `formatOptions` | `Intl.NumberFormatOptions | undefined` | \{ style: 'percent' } | The display format of the value label. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `maxValue` | `number | undefined` | 100 | The largest value allowed for the input. |
+| `minValue` | `number | undefined` | 0 | The smallest value allowed for the input. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Meter. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the button appears over a color background. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `number | undefined` | 0 | The current value (controlled). |
+| `valueLabel` | `ReactNode` | — | The content to display as the value's label (e.g. 1 of 4). |
+| `variant` | `"informative" | "negative" | "notice" | "positive" | undefined` | 'informative' | The [visual style](https://spectrum.adobe.com/page/meter/#-Options) of the Meter. |

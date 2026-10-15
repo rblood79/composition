@@ -1,222 +1,94 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ColorArea.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ColorArea
 
-A ColorArea allows users to adjust two channels of an RGB, HSL, or HSB color value against a two-dimensional gradient background.
+A ColorArea allows users to adjust two channels of an RGB, HSL or HSB color value against a
+two-dimensional gradient background.
 
-## Installation
+```tsx
+import {ColorArea} from '@react-spectrum/s2/ColorArea';
 
-```bash
-yarn add @adobe/react-spectrum
+<ColorArea />
 ```
 
-```jsx
-import { ColorArea } from "@adobe/react-spectrum";
-```
+## Value
 
-## Basic Usage
+Use the `value` or `defaultValue` prop to set the color value, and the `xChannel` and `yChannel` props to specify which color channels to display. The value may be a string or `Color` object, parsed using the `parseColor` function.
 
-```jsx
-<ColorArea defaultValue="#7f0000" />
-```
+The `onChange` event is called as the user drags, and `onChangeEnd` is called when the thumb is released. These are always called with a `Color` object.
 
-## Controlled Component with HSL Channels
-
-```jsx
-import { parseColor } from "react-stately";
+```tsx
+import {ColorArea, parseColor} from '@react-spectrum/s2/ColorArea';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
 function Example() {
-  let [value, setValue] = React.useState(parseColor("hsl(0, 100%, 50%)"));
-  return (
-    <ColorArea
-      aria-labelledby="hsl-controlled-id"
-      value={value}
-      onChange={setValue}
-      xChannel="saturation"
-      yChannel="lightness"
-    />
-  );
-}
-```
-
-## HTML Form Integration
-
-```jsx
-<ColorArea xName="red" yName="green" />
-```
-
-## Events
-
-- **`onChange`**: Triggered continuously as the user drags the handle
-- **`onChangeEnd`**: Triggered when the user stops dragging
-
-```jsx
-function Example() {
-  let [currentValue, setCurrentValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
-  let [finalValue, setFinalValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
+  let [currentValue, setCurrentValue] = useState(parseColor('#9B80FF'));
+  let [finalValue, setFinalValue] = useState(currentValue);
 
   return (
-    <div>
+    <>
       <ColorArea
+        xChannel="red"
+        yChannel="green"
+        /*- begin highlight -*/
         value={currentValue}
         onChange={setCurrentValue}
-        onChangeEnd={setFinalValue}
-      />
-      <pre>Current value: {currentValue.toString("hsl")}</pre>
-      <pre>Final value: {finalValue.toString("hsl")}</pre>
-    </div>
+        onChangeEnd={setFinalValue} />
+        {/*- end highlight -*/}
+      <pre className={style({font: 'body'})}>
+        onChange value: {currentValue.toString('hex')}{'\n'}
+        onChangeEnd value: {finalValue.toString('hex')}
+      </pre>
+    </>
   );
 }
 ```
 
-## Labeling & Accessibility
+## API
 
-```jsx
-<ColorArea
-  aria-label="Background color"
-  defaultValue="hsl(0, 100%, 50%)"
-  xChannel="saturation"
-  yChannel="lightness"
-/>
-```
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `colorSpace` | `ColorSpace | undefined` | — | The color space that the color area operates in. The `xChannel` and `yChannel` must be in this color space. If not provided, this defaults to the color space of the `color` or `defaultColor` value. |
+| `defaultValue` | `string | Color | undefined` | — | The default value (uncontrolled). |
+| `form` | `string | undefined` | — | The `<form>` element to associate the ColorArea with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the ColorArea is disabled. |
+| `onChange` | `((value: Color) => void) | undefined` | — | Handler that is called when the value changes, as the user drags. |
+| `onChangeEnd` | `((value: Color) => void) | undefined` | — | Handler that is called when the user stops dragging. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string | Color | undefined` | — | The current value (controlled). |
+| `xChannel` | `ColorChannel | undefined` | — | Color channel for the horizontal axis. |
+| `xName` | `string | undefined` | — | The name of the x channel input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `yChannel` | `ColorChannel | undefined` | — | Color channel for the vertical axis. |
+| `yName` | `string | undefined` | — | The name of the y channel input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
 
-- **Role Description**: "2D Slider" is automatically announced to screen reader users
-- **Value Formatting**: Channel names and values are formatted by locale
-- **RTL Support**: Layout automatically flips for right-to-left languages
-- **Default Label**: Uses localized "Color Picker" label if no custom aria-label provided
+## Related Types
 
-## RGBA Color Picker Example
+### Color
 
-```jsx
-import { parseColor } from "react-stately";
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-function Example() {
-  let [color, setColor] = React.useState(parseColor("#ff00ff"));
-  let [redChannel, greenChannel, blueChannel] = color.getColorChannels();
-  return (
-    <Flex direction="column">
-      <ColorArea
-        xChannel={redChannel}
-        yChannel={greenChannel}
-        value={color}
-        onChange={setColor}
-      />
-      <ColorSlider channel={blueChannel} value={color} onChange={setColor} />
-      <ColorSlider channel="alpha" value={color} onChange={setColor} />
-    </Flex>
-  );
-}
-```
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-## HSLA Color Picker with ColorWheel
+### parseColor
 
-```jsx
-function Example() {
-  let [color, setColor] = React.useState(parseColor("hsla(0, 100%, 50%, 0.5)"));
-  let [, saturationChannel, lightnessChannel] = color.getColorChannels();
-  return (
-    <Flex direction="column">
-      <View position="relative" width="size-2400">
-        <Grid
-          position="absolute"
-          justifyContent="center"
-          alignContent="center"
-          width="100%"
-          height="100%"
-        >
-          <ColorArea
-            xChannel={saturationChannel}
-            yChannel={lightnessChannel}
-            value={color}
-            onChange={setColor}
-            size="size-1200"
-          />
-        </Grid>
-        <ColorWheel value={color} onChange={setColor} size="size-2400" />
-      </View>
-      <ColorSlider channel="alpha" value={color} onChange={setColor} />
-    </Flex>
-  );
-}
-```
+`parseColor(value: string): IColor`
 
-## Props API
-
-### Core Props
-
-| Name           | Type                      | Default | Description                                  |
-| -------------- | ------------------------- | ------- | -------------------------------------------- |
-| `size`         | `DimensionValue`          | --      | Size of the Color Area                       |
-| `xChannel`     | `ColorChannel`            | --      | Color channel for the horizontal axis        |
-| `yChannel`     | `ColorChannel`            | --      | Color channel for the vertical axis          |
-| `value`        | `Color`                   | --      | Current value (controlled)                   |
-| `defaultValue` | `Color \| string`         | --      | Default value (uncontrolled)                 |
-| `colorSpace`   | `'rgb' \| 'hsl' \| 'hsb'` | --      | Color space; defaults to value's color space |
-| `isDisabled`   | `boolean`                 | `false` | Disables the ColorArea                       |
-| `xName`        | `string`                  | --      | Name for X channel input (HTML forms)        |
-| `yName`        | `string`                  | --      | Name for Y channel input (HTML forms)        |
-| `form`         | `string`                  | --      | Associated form element ID                   |
-
-### Event Handlers
-
-| Name          | Type                     | Description                           |
-| ------------- | ------------------------ | ------------------------------------- |
-| `onChange`    | `(value: Color) => void` | Called when value changes during drag |
-| `onChangeEnd` | `(value: Color) => void` | Called when user stops dragging       |
-
-### Accessibility Props
-
-| Name               | Type     | Description                                |
-| ------------------ | -------- | ------------------------------------------ |
-| `id`               | `string` | Element's unique identifier                |
-| `aria-label`       | `string` | Defines label for element                  |
-| `aria-labelledby`  | `string` | Identifies labeling element(s)             |
-| `aria-describedby` | `string` | Identifies describing element(s)           |
-| `aria-details`     | `string` | Identifies detailed description element(s) |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`minWidth`, `maxWidth`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                 |
-| ------------------ | --------------- | --------------------------- |
-| `UNSAFE_className` | `string`        | CSS className (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort) |
-
-## Color API Methods
-
-| Method                             | Returns                                      | Description                           |
-| ---------------------------------- | -------------------------------------------- | ------------------------------------- |
-| `toFormat(format)`                 | `Color`                                      | Converts to given color format        |
-| `toString(format?)`                | `string`                                     | Converts to string (default: 'css')   |
-| `clone()`                          | `Color`                                      | Returns duplicate color               |
-| `toHexInt()`                       | `number`                                     | Converts to hex integer               |
-| `getChannelValue(channel)`         | `number`                                     | Gets numeric value for channel        |
-| `withChannelValue(channel, value)` | `Color`                                      | Sets channel value, returns new Color |
-| `getChannelRange(channel)`         | `ColorChannelRange`                          | Returns min/max/step for channel      |
-| `getChannelName(channel, locale)`  | `string`                                     | Gets localized channel name           |
-| `getColorSpace()`                  | `'rgb' \| 'hsl' \| 'hsb'`                    | Returns color space                   |
-| `getColorChannels()`               | `[ColorChannel, ColorChannel, ColorChannel]` | Returns all channel names             |
-
-**Supported Color Channels:** `'hue'`, `'saturation'`, `'brightness'`, `'lightness'`, `'red'`, `'green'`, `'blue'`, `'alpha'`
-
-**Supported Color Formats:** `'hex'`, `'hexa'`, `'rgb'`, `'rgba'`, `'hsl'`, `'hsla'`, `'hsb'`, `'hsba'`
+Parses a color from a string value. Throws an error if the string could not be parsed.

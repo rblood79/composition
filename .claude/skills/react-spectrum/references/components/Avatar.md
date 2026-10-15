@@ -1,82 +1,23 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Avatar.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Avatar
-
-## Description
 
 An avatar is a thumbnail representation of an entity, such as a user or an organization.
 
-**Version:** Added in 3.26.0
+```tsx
+import {Avatar} from '@react-spectrum/s2/Avatar';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<Avatar />
 ```
 
-```javascript
-import { Avatar } from "@adobe/react-spectrum";
-```
+## API
 
-## Usage Examples
-
-### Basic Usage
-
-```jsx
-<Avatar src="https://i.imgur.com/kJOwAdv.png" alt="default Adobe avatar" />
-```
-
-### Disabled State
-
-```jsx
-<Avatar
-  src="https://i.imgur.com/kJOwAdv.png"
-  alt="default Adobe avatar"
-  isDisabled
-/>
-```
-
-### Size Variants
-
-Avatars support predefined sizes (50, 75, 100, 200, 300, 400, 500, 600, 700) or custom pixel values:
-
-```jsx
-<Flex gap="size-100" wrap>
-  {[50, 75, 100, 200, 300, 400, 500, 600, 700].map((size) => (
-    <Avatar
-      key={size}
-      src="https://i.imgur.com/kJOwAdv.png"
-      alt="default Adobe avatar"
-      size={`avatar-size-${size}`}
-    />
-  ))}
-  <Avatar
-    src="https://i.imgur.com/kJOwAdv.png"
-    alt="avatar with custom size"
-    size={50}
-  />
-</Flex>
-```
-
-## Props API
-
-| Name               | Type                                                                                                                                                                                                          | Default             | Description                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------- |
-| `src`              | `string`                                                                                                                                                                                                      | --                  | The image URL for the avatar                  |
-| `alt`              | `string`                                                                                                                                                                                                      | `null`              | Text description of the avatar                |
-| `isDisabled`       | `boolean`                                                                                                                                                                                                     | --                  | Whether the avatar is disabled                |
-| `size`             | `'avatar-size-50' \| 'avatar-size-75' \| 'avatar-size-100' \| 'avatar-size-200' \| 'avatar-size-300' \| 'avatar-size-400' \| 'avatar-size-500' \| 'avatar-size-600' \| 'avatar-size-700' \| string \| number` | `'avatar-size-100'` | Size of the avatar affecting height and width |
-| `id`               | `string`                                                                                                                                                                                                      | --                  | Unique element identifier                     |
-| `UNSAFE_className` | `string`                                                                                                                                                                                                      | --                  | CSS class name (last resort only)             |
-| `UNSAFE_style`     | `CSSProperties`                                                                                                                                                                                               | --                  | Inline styles (last resort only)              |
-
-(layout props omitted)
-
-## Accessibility
-
-By default, avatars are decorative with an empty `alt` attribute. Standalone avatars with no surrounding context must have a custom `alt` prop defined for accessibility.
-
-## Internationalization
-
-To support multiple languages, provide a localized string to the `alt` prop for accessible descriptions.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `alt` | `string | undefined` | — | Text description of the avatar. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isOverBackground` | `boolean | undefined` | — | Whether the avatar is over a color background. |
+| `size` | `16 | 20 | 24 | 28 | 32 | 36 | 40 | 44 | 48 | 56 | 64 | 80 | 96 | 112 | (number & {}) | undefined` | 24 | The size of the avatar. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `src` | `string | undefined` | — | The image URL for the avatar. |
+| `styles` | `StylesPropWithoutWidth | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

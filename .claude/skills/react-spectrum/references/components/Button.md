@@ -1,140 +1,117 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Button.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Button
 
-## Description
+Buttons allow users to perform an action.
+They have multiple styles for various needs, and are ideal for calling attention to
+where a user needs to do something in order to move forward in a flow.
 
-Buttons allow users to perform an action or to navigate to another page. They have multiple styles for various needs, and are ideal for calling attention to where a user needs to do something in order to move forward in a flow.
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<Button />
 ```
-
-```jsx
-import { Button } from "@adobe/react-spectrum";
-```
-
-## Usage Examples
-
-### Basic
-
-```jsx
-<Button variant="accent">Save</Button>
-```
-
-### With Icon and Label
-
-```jsx
-import { Text } from "@adobe/react-spectrum";
-
-<Button variant="primary">
-  <Bell />
-  <Text>Icon + Label</Text>
-</Button>;
-```
-
-### Event Handling
-
-```jsx
-function Example() {
-  let [count, setCount] = React.useState(0);
-
-  return (
-    <Button variant="primary" onPress={() => setCount((c) => c + 1)}>
-      {count} Dogs
-    </Button>
-  );
-}
-```
-
-### Pending State
-
-```jsx
-function Example() {
-  let [isLoading, setIsLoading] = React.useState(false);
-
-  let handlePress = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-  };
-
-  return (
-    <Button variant="primary" isPending={isLoading} onPress={handlePress}>
-      Click me!
-    </Button>
-  );
-}
-```
-
-## Props API
-
-| Name                  | Type                                                                                  | Default    | Description                                                    |
-| --------------------- | ------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------- |
-| `variant`             | `'accent' \| 'primary' \| 'secondary' \| 'negative'`                                  | --         | Visual style of the button                                     |
-| `style`               | `'fill' \| 'outline'`                                                                 | --         | Background style                                               |
-| `staticColor`         | `'white' \| 'black'`                                                                  | --         | Static color for buttons over colored backgrounds              |
-| `isPending`           | `boolean`                                                                             | --         | Displays loading spinner after 1 second delay; disables events |
-| `isDisabled`          | `boolean`                                                                             | --         | Disables the button                                            |
-| `type`                | `'button' \| 'submit' \| 'reset'`                                                     | `'button'` | HTML button behavior                                           |
-| `form`                | `string`                                                                              | --         | Associates button with a `<form>` by id                        |
-| `formAction`          | `string`                                                                              | --         | URL that processes form submission                             |
-| `formEncType`         | `string`                                                                              | --         | Form data encoding method                                      |
-| `formMethod`          | `string`                                                                              | --         | HTTP method for form submission                                |
-| `formNoValidate`      | `boolean`                                                                             | --         | Skips form validation on submit                                |
-| `formTarget`          | `string`                                                                              | --         | Target window for form submission                              |
-| `name`                | `string`                                                                              | --         | Form submission name attribute                                 |
-| `value`               | `string`                                                                              | --         | Form submission value                                          |
-| `elementType`         | `ElementType \| JSXElementConstructor`                                                | `'button'` | HTML element or React component to render                      |
-| `href`                | `string`                                                                              | --         | URL for link buttons (`elementType="a"`)                       |
-| `target`              | `string`                                                                              | --         | Link target window                                             |
-| `rel`                 | `string`                                                                              | --         | Link relationship attribute                                    |
-| `children`            | `ReactNode`                                                                           | --         | Button content/label                                           |
-| `autoFocus`           | `boolean`                                                                             | --         | Receives focus on render                                       |
-| `id`                  | `string`                                                                              | --         | Unique element identifier                                      |
-| `excludeFromTabOrder` | `boolean`                                                                             | --         | Removes from keyboard tab sequence                             |
-| `preventFocusOnPress` | `boolean`                                                                             | --         | Prevents focus when pressed (use carefully)                    |
-| `aria-label`          | `string`                                                                              | --         | Accessible label (required for icon-only buttons)              |
-| `aria-labelledby`     | `string`                                                                              | --         | Element(s) that label this element                             |
-| `aria-describedby`    | `string`                                                                              | --         | Element(s) that describe this element                          |
-| `aria-details`        | `string`                                                                              | --         | Element(s) providing extended description                      |
-| `aria-disabled`       | `boolean \| 'true' \| 'false'`                                                        | --         | Indicates disabled state to assistive tech                     |
-| `aria-expanded`       | `boolean \| 'true' \| 'false'`                                                        | --         | Indicates expanded/collapsed state                             |
-| `aria-haspopup`       | `boolean \| 'menu' \| 'listbox' \| 'tree' \| 'grid' \| 'dialog' \| 'true' \| 'false'` | --         | Indicates popup availability                                   |
-| `aria-controls`       | `string`                                                                              | --         | Element(s) controlled by this element                          |
-| `aria-pressed`        | `boolean \| 'true' \| 'false' \| 'mixed'`                                             | --         | Current "pressed" state for toggle buttons                     |
-| `aria-current`        | `boolean \| 'true' \| 'false' \| 'page' \| 'step' \| 'location' \| 'date' \| 'time'`  | --         | Current item indicator                                         |
-| `UNSAFE_className`    | `string`                                                                              | --         | CSS class (use as last resort)                                 |
-| `UNSAFE_style`        | `CSSProperties`                                                                       | --         | Inline styles (use as last resort)                             |
-
-(layout props omitted)
 
 ## Events
 
-| Event           | Type                           | Description                              |
-| --------------- | ------------------------------ | ---------------------------------------- |
-| `onPress`       | `(e: PressEvent) => void`      | Fired when press is released over target |
-| `onPressStart`  | `(e: PressEvent) => void`      | Fired when press interaction begins      |
-| `onPressEnd`    | `(e: PressEvent) => void`      | Fired when press interaction ends        |
-| `onPressChange` | `(isPressed: boolean) => void` | Fired when press state changes           |
-| `onPressUp`     | `(e: PressEvent) => void`      | Fired when press releases over target    |
-| `onFocus`       | `(e: FocusEvent) => void`      | Fired when element receives focus        |
-| `onBlur`        | `(e: FocusEvent) => void`      | Fired when element loses focus           |
-| `onFocusChange` | `(isFocused: boolean) => void` | Fired when focus state changes           |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`   | Fired when key is pressed                |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`   | Fired when key is released               |
+Use the `onPress` prop to handle interactions via mouse, keyboard, and touch. The `onPressStart`, `onPressEnd`, and `onPressChange` events are also emitted as the user interacts with the button.
 
-## Visual Variants
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
+import {useState} from 'react';
 
-The component supports four main variants: **accent**, **primary**, **secondary**, and **negative**, each available in **fill** and **outline** styles. A **disabled** state is also available. For buttons over colored backgrounds, use `staticColor="white"` or `staticColor="black"`.
+function Example() {
+  let [count, setCount] = useState(0);
 
-## Accessibility
+  return (
+    /*- begin highlight -*/
+    <Button onPress={() => setCount(c => c + 1)}>
+      {/*- end highlight -*/}
+      {`${count} Edits`}
+    </Button>
+  );
+}
+```
 
-- **Visible Label Required:** All buttons must have a visible label for accessibility
-- **Icon-Only Buttons:** Must include an `aria-label` to identify the control
-- **Internationalization:** Pass localized strings to `children` or `aria-label`
-- **Keyboard Support:** Full keyboard interaction via mouse, keyboard, and touch through `onPress`
+## Pending
+
+Use the `isPending` prop to display a pending state. Pending buttons remain focusable, but are otherwise disabled. After a 1 second delay, an indeterminate spinner will be displayed in place of the button label and icon.
+
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
+import {useState} from 'react';
+
+function PendingButton() {
+  let [isPending, setPending] = useState(false);
+
+  return (
+    <Button
+      variant="primary"
+      isPending={isPending}
+      onPress={() => {
+        setPending(true);
+        setTimeout(() => {
+          setPending(false);
+        }, 5000);
+      }}>
+      Save
+    </Button>
+  );
+}
+```
+
+## API
+
+```tsx
+<Button>
+  <Icon />
+  <Text />
+</Button>
+```
+
+### Button
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-controls` | `string | undefined` | — | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
+| `aria-current` | `boolean | "true" | "false" | "date" | "location" | "page" | "step" | "time" | undefined` | — | Indicates whether this element represents the current item within a container or set of related elements. |
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-disabled` | `boolean | "true" | "false" | undefined` | — | Indicates whether the element is disabled to users of assistive technology. |
+| `aria-expanded` | `boolean | "true" | "false" | undefined` | — | Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. |
+| `aria-haspopup` | `boolean | "true" | "false" | "dialog" | "grid" | "listbox" | "menu" | "tree" | undefined` | — | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `aria-pressed` | `boolean | "true" | "false" | "mixed" | undefined` | — | Indicates the current "pressed" state of toggle buttons. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `ReactNode` | — | The content to display in the Button. |
+| `excludeFromTabOrder` | `boolean | undefined` | — | Whether to exclude the element from the sequential tab order. If true, the element will not be focusable via the keyboard by tabbing. This should be avoided except in rare scenarios where an alternative means of accessing the element or its functionality via the keyboard is available. |
+| `fillStyle` | `"fill" | "outline" | undefined` | 'fill' | The background style of the Button. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the button with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#form). |
+| `formAction` | `string | ((formData: FormData) => void | Promise<void>) | undefined` | — | The URL that processes the information submitted by the button. Overrides the action attribute of the button's form owner. |
+| `formEncType` | `string | undefined` | — | Indicates how to encode the form data that is submitted. |
+| `formMethod` | `string | undefined` | — | Indicates the HTTP method used to submit the form. |
+| `formNoValidate` | `boolean | undefined` | — | Indicates that the form is not to be validated when it is submitted. |
+| `formTarget` | `string | undefined` | — | Overrides the target attribute of the button's form owner. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the button is disabled. |
+| `isPending` | `boolean | undefined` | — | Whether the button is in a pending state. This disables press and hover events while retaining focusability, and announces the pending state to screen readers. |
+| `name` | `string | undefined` | — | Submitted as a pair with the button's value as part of the form data. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `preventFocusOnPress` | `boolean | undefined` | — | Whether to prevent focus from moving to the button when pressing it. Caution, this can make the button inaccessible and should only be used when alternative keyboard interaction is provided, such as ComboBox's MenuTrigger or a NumberField's increment/decrement control. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Button. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the Button appears over a color background. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `type` | `"button" | "reset" | "submit" | undefined` | 'button' | The behavior of the button when used in an HTML form. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string | undefined` | — | The value associated with the button's name when it's submitted with the form data. |
+| `variant` | `"accent" | "genai" | "negative" | "premium" | "primary" | "secondary" | undefined` | 'primary' | The [visual style](https://spectrum.adobe.com/page/button/#Options) of the button. |

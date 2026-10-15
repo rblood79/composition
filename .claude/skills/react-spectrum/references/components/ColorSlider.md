@@ -1,267 +1,93 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ColorSlider.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ColorSlider
 
 A ColorSlider allows users to adjust an individual channel of a color value.
 
-Added in version 3.35.0.
+```tsx
+import {ColorSlider} from '@react-spectrum/s2/ColorSlider';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<ColorSlider />
 ```
 
-```jsx
-import { ColorSlider } from "@adobe/react-spectrum";
-```
+## Value
 
-## Basic Usage
+Use the `value` or `defaultValue` prop to set the color value, and the `channel` prop to specify which color channel to display. The value may be a string or `Color` object, parsed using the `parseColor` function.
 
-```jsx
-<ColorSlider defaultValue="#7f0000" channel="red" />
-```
+The `onChange` event is called as the user drags, and `onChangeEnd` is called when the thumb is released. These are always called with a `Color` object.
 
-## Value Management
-
-### Uncontrolled
-
-```jsx
-<ColorSlider defaultValue="#7f0000" channel="red" />
-```
-
-### Controlled
-
-```jsx
-import { parseColor } from "react-stately";
+```tsx
+import {ColorSlider, parseColor} from '@react-spectrum/s2/ColorSlider';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
 function Example() {
-  let [value, setValue] = React.useState(parseColor("hsl(0, 100%, 50%)"));
-  return (
-    <ColorSlider
-      label="Hue (controlled)"
-      value={value}
-      onChange={setValue}
-      channel="hue"
-    />
-  );
-}
-```
+  let [currentValue, setCurrentValue] = useState(parseColor('hsl(50, 100%, 50%)'));
+  let [finalValue, setFinalValue] = useState(currentValue);
 
-### HTML Form Integration
-
-```jsx
-<ColorSlider defaultValue="#7f0000" channel="red" name="red" />
-```
-
-The value submits as a number between minimum and maximum for the displayed channel.
-
-## Labeling
-
-```jsx
-<Flex gap="size-300" wrap alignItems="end">
-  <ColorSlider
-    channel="saturation"
-    defaultValue="hsl(0, 100%, 50%)"
-    label={null}
-  />
-  <ColorSlider
-    channel="lightness"
-    defaultValue="hsl(0, 100%, 50%)"
-    showValueLabel={false}
-  />
-</Flex>
-```
-
-If the label is hidden, a localized channel name serves as the default `aria-label`. Channel values automatically convert to `aria-valuetext` regardless of label visibility.
-
-## Events
-
-- **`onChange`**: Triggers when the handle is dragged. Receives a Color object.
-- **`onChangeEnd`**: Triggers when the user stops dragging. Receives a Color object.
-
-```jsx
-function Example() {
-  let [currentValue, setCurrentValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
-  let [finalValue, setFinalValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
-
-  return (
-    <div>
-      <ColorSlider
-        value={currentValue}
-        channel="hue"
-        onChange={setCurrentValue}
-        onChangeEnd={setFinalValue}
-      />
-      <pre>Current value: {currentValue.toString("hsl")}</pre>
-      <pre>Final value: {finalValue.toString("hsl")}</pre>
-    </div>
-  );
-}
-```
-
-## Creating Color Pickers
-
-### RGBA Color Picker
-
-```jsx
-function Example() {
-  let [color, setColor] = React.useState(parseColor("#ff00ff"));
-  return (
-    <Flex direction="column">
-      <ColorSlider channel="red" value={color} onChange={setColor} />
-      <ColorSlider channel="green" value={color} onChange={setColor} />
-      <ColorSlider channel="blue" value={color} onChange={setColor} />
-      <ColorSlider channel="alpha" value={color} onChange={setColor} />
-    </Flex>
-  );
-}
-```
-
-### HSLA Color Picker
-
-```jsx
-function Example() {
-  let [color, setColor] = React.useState(parseColor("hsla(0, 100%, 50%, 0.5)"));
-  return (
-    <Flex direction="column">
-      <ColorSlider channel="hue" value={color} onChange={setColor} />
-      <ColorSlider channel="saturation" value={color} onChange={setColor} />
-      <ColorSlider channel="lightness" value={color} onChange={setColor} />
-      <ColorSlider channel="alpha" value={color} onChange={setColor} />
-    </Flex>
-  );
-}
-```
-
-### HSBA Color Picker
-
-```jsx
-function Example() {
-  let [color, setColor] = React.useState(parseColor("hsba(0, 100%, 50%, 0.5)"));
   return (
     <>
-      <ColorSlider channel="hue" value={color} onChange={setColor} />
-      <ColorSlider channel="saturation" value={color} onChange={setColor} />
-      <ColorSlider channel="brightness" value={color} onChange={setColor} />
-      <ColorSlider channel="alpha" value={color} onChange={setColor} />
+      <ColorSlider
+        channel="hue"
+        /*- begin highlight -*/
+        value={currentValue}
+        onChange={setCurrentValue}
+        onChangeEnd={setFinalValue} />
+        {/*- end highlight -*/}
+      <pre className={style({font: 'body'})}>
+        onChange value: {currentValue.toString('hex')}{'\n'}
+        onChangeEnd value: {finalValue.toString('hex')}
+      </pre>
     </>
   );
 }
 ```
 
-## Visual Options
+## API
 
-### Disabled
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `channel` | `ColorChannel` | — | The color channel that the slider manipulates. |
+| `colorSpace` | `ColorSpace | undefined` | — | The color space that the slider operates in. The `channel` must be in this color space. If not provided, this defaults to the color space of the `color` or `defaultColor` value. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `string | Color | undefined` | — | The default value (uncontrolled). |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the whole Slider is disabled. |
+| `label` | `string | undefined` | — |  |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `onChange` | `((value: Color) => void) | undefined` | — | Handler that is called when the value changes, as the user drags. |
+| `onChangeEnd` | `((value: Color) => void) | undefined` | — | Handler that is called when the user stops dragging. |
+| `orientation` | `Orientation | undefined` | 'horizontal' | The orientation of the Slider. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string | Color | undefined` | — | The current value (controlled). |
 
-```jsx
-<ColorSlider defaultValue="#7f0000" channel="red" isDisabled />
-```
+## Related Types
 
-### Vertical Orientation
+### Color
 
-```jsx
-<ColorSlider defaultValue="#7f0000" channel="red" orientation="vertical" />
-```
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-### Custom Size
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-```jsx
-<Flex direction="column" gap="size-300">
-  <ColorSlider
-    defaultValue="#7f0000"
-    channel="red"
-    orientation="vertical"
-    height="size-3600"
-  />
-  <ColorSlider
-    defaultValue="#7f0000"
-    channel="red"
-    width="size-3600"
-    maxWidth="100%"
-  />
-</Flex>
-```
+### parseColor
 
-### Contextual Help
+`parseColor(value: string): IColor`
 
-```jsx
-import { Content, ContextualHelp, Heading } from "@adobe/react-spectrum";
-
-<ColorSlider
-  label="Accent Color"
-  channel="hue"
-  defaultValue="hsl(120, 100%, 50%)"
-  contextualHelp={
-    <ContextualHelp>
-      <Heading>What is an accent color?</Heading>
-      <Content>
-        An accent color is the primary foreground color for your theme.
-      </Content>
-    </ContextualHelp>
-  }
-/>;
-```
-
-## Props API
-
-### Core Props
-
-| Name             | Type           | Default        | Description                                                                                                          |
-| ---------------- | -------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `channel`        | `ColorChannel` | --             | Required. The color channel the slider manipulates (hue, saturation, brightness, lightness, red, green, blue, alpha) |
-| `value`          | `Color`        | --             | Current controlled value                                                                                             |
-| `defaultValue`   | `Color`        | --             | Default uncontrolled value                                                                                           |
-| `label`          | `ReactNode`    | --             | Label content. Use `null` to hide                                                                                    |
-| `showValueLabel` | `boolean`      | --             | Whether to display the value label                                                                                   |
-| `colorSpace`     | `ColorSpace`   | --             | Color space ('rgb', 'hsl', 'hsb'). Defaults to color value's space                                                   |
-| `orientation`    | `Orientation`  | `'horizontal'` | 'horizontal' or 'vertical'                                                                                           |
-| `isDisabled`     | `boolean`      | --             | Disables the entire slider                                                                                           |
-| `name`           | `string`       | --             | Input element name for form submission                                                                               |
-| `form`           | `string`       | --             | Associated form element ID                                                                                           |
-| `contextualHelp` | `ReactNode`    | --             | ContextualHelp element next to label                                                                                 |
-
-### Events
-
-| Name          | Type                     | Description          |
-| ------------- | ------------------------ | -------------------- |
-| `onChange`    | `(value: Color) => void` | Fires while dragging |
-| `onChangeEnd` | `(value: Color) => void` | Fires when drag ends |
-
-### Accessibility Props
-
-| Name               | Type     | Description               |
-| ------------------ | -------- | ------------------------- |
-| `id`               | `string` | Unique element identifier |
-| `aria-label`       | `string` | Element label definition  |
-| `aria-labelledby`  | `string` | Labels the element        |
-| `aria-describedby` | `string` | Describes the element     |
-| `aria-details`     | `string` | Extended description      |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                               |
-| ------------------ | --------------- | ----------------------------------------- |
-| `UNSAFE_className` | `string`        | Direct CSS className (use as last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Direct inline styles (use as last resort) |
+Parses a color from a string value. Throws an error if the string could not be parsed.

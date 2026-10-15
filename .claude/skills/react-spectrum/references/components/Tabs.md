@@ -1,252 +1,348 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Tabs.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Tabs
 
-Tabs organize content into multiple sections and allow users to navigate between them. The content under the set of tabs should be related and form a coherent unit.
-
-**Added in:** 3.11.0
+Tabs organize content into multiple sections and allow users to navigate between them. The
+content under the set of tabs should be related and form a coherent unit.
 
 ```tsx
-import { Item, TabList, TabPanels, Tabs } from "@adobe/react-spectrum";
-```
+import {Tabs, TabList, Tab, TabPanel} from '@react-spectrum/s2/Tabs';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import Home from '@react-spectrum/s2/illustrations/gradient/generic2/Home';
+import Folder from '@react-spectrum/s2/illustrations/gradient/generic2/FolderOpen';
+import Search from '@react-spectrum/s2/illustrations/gradient/generic2/Search';
+import Settings from '@react-spectrum/s2/illustrations/gradient/generic1/GearSetting';
 
-## Usage Examples
-
-### Static Tabs
-
-```jsx
-<Tabs aria-label="History of Ancient Rome">
-  <TabList>
-    <Item key="FoR">Founding of Rome</Item>
-    <Item key="MaR">Monarchy and Republic</Item>
-    <Item key="Emp">Empire</Item>
+<Tabs
+  
+  styles={style({minWidth: 250})}>
+  <TabList aria-label="Tabs">
+    <Tab id="home">Home</Tab>
+    <Tab id="files">Files</Tab>
+    <Tab id="search">Search</Tab>
+    <Tab id="settings">Settings</Tab>
   </TabList>
-  <TabPanels>
-    <Item key="FoR">Arma virumque cano, Troiae qui primus ab oris.</Item>
-    <Item key="MaR">Senatus Populusque Romanus.</Item>
-    <Item key="Emp">Alea jacta est.</Item>
-  </TabPanels>
+  <TabPanel id="home">
+    <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+      <Home />
+    </div>
+  </TabPanel>
+  <TabPanel id="files">
+    <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+      <Folder />
+    </div>
+  </TabPanel>
+  <TabPanel id="search">
+    <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+      <Search />
+    </div>
+  </TabPanel>
+  <TabPanel id="settings">
+    <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+      <Settings />
+    </div>
+  </TabPanel>
 </Tabs>
 ```
 
-### Dynamic Collections
+## Content
 
-```jsx
+`TabList` follows the [Collection Components API](collections.md?component=Tabs), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a function to render the children.
+
+```tsx
+import {Tabs, TabList, Tab, TabPanel, Collection} from '@react-spectrum/s2/Tabs';
+import {ActionButtonGroup, ActionButton} from '@react-spectrum/s2/ActionButtonGroup';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
+import AddCircle from '@react-spectrum/s2/icons/AddCircle';
+import RemoveCircle from '@react-spectrum/s2/icons/RemoveCircle';
+
 function Example() {
-  let tabs = [
-    { id: 1, name: 'Founding of Rome', children: 'Arma virumque cano, Troiae qui primus ab oris.' },
-    { id: 2, name: 'Monarchy and Republic', children: 'Senatus Populusque Romanus.' },
-    { id: 3, name: 'Empire', children: 'Alea jacta est.' }
-  ];
-  type Tab = typeof tabs[0];
-  let [tabId, setTabId] = React.useState<Key>(1);
+  let [tabs, setTabs] = useState([
+    {id: 1, title: 'Tab 1', content: 'Tab body 1'},
+    {id: 2, title: 'Tab 2', content: 'Tab body 2'},
+    {id: 3, title: 'Tab 3', content: 'Tab body 3'}
+  ]);
+
+  let addTab = () => {
+    setTabs(tabs => [
+      ...tabs,
+      {
+        id: tabs.length + 1,
+        title: `Tab ${tabs.length + 1}`,
+        content: `Tab body ${tabs.length + 1}`
+      }
+    ]);
+  };
+
+  let removeTab = () => {
+    if (tabs.length > 1) {
+      setTabs(tabs => tabs.slice(0, -1));
+    }
+  };
 
   return (
-    <Tabs aria-label="History of Ancient Rome" items={tabs} onSelectionChange={setTabId}>
-      <TabList>{(item: Tab) => <Item>{item.name}</Item>}</TabList>
-      <TabPanels>{(item: Tab) => <Item>{item.children}</Item>}</TabPanels>
+    <Tabs aria-label="Tabs" styles={style({width: 'full'})}>
+      <div className={style({display: 'flex', alignItems: 'center'})}>
+        <TabList
+          items={tabs}
+          styles={style({flexShrink: 1, flexGrow: 1, flexBasis: 'auto'})}>
+          {item => <Tab>{item.title}</Tab>}
+        </TabList>
+        <ActionButtonGroup density="compact" size="S">
+          <ActionButton onPress={addTab} aria-label="Add tab">
+            <AddCircle />
+          </ActionButton>
+          <ActionButton onPress={removeTab} aria-label="Remove tab">
+            <RemoveCircle />
+          </ActionButton>
+        </ActionButtonGroup>
+      </div>
+      {/*- begin highlight -*/}
+      <Collection items={tabs}>
+        {item => <TabPanel>{item.content}</TabPanel>}
+      </Collection>
+      {/*- end highlight -*/}
     </Tabs>
-  );
+  )
 }
 ```
 
-### Tabs with Icons
+### Icons
 
-```jsx
-<Tabs aria-label="History of Ancient Rome">
+`Tag` supports icons and text as children. Text is always required, but can be hidden when the tabs are expanded using the `labelBehavior` prop.
+
+```tsx
+"use client"
+import {Tabs, TabList, Tab, TabPanel, Text} from '@react-spectrum/s2/Tabs';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Bell from '@react-spectrum/s2/icons/Bell';
+import Heart from '@react-spectrum/s2/icons/Heart';
+
+<Tabs>
   <TabList>
-    <Item key="FoR" textValue="FoR">
-      <Bookmark />
-      <Text>Founding of Rome</Text>
-    </Item>
-    <Item key="MaR" textValue="MaR">
-      <Calendar />
-      <Text>Monarchy and Republic</Text>
-    </Item>
-    <Item key="Emp" textValue="Emp">
-      <Dashboard />
-      <Text>Empire</Text>
-    </Item>
+    <Tab id="edit">
+      {/*- begin highlight -*/}
+      <Edit />
+      <Text>Edit</Text>
+      {/*- end highlight -*/}
+    </Tab>
+    <Tab id="bell">
+      <Bell />
+      <Text>Notifications</Text>
+    </Tab>
+    <Tab id="heart">
+      <Heart />
+      <Text>Likes</Text>
+    </Tab>
   </TabList>
-  <TabPanels>
-    <Item key="FoR">Arma virumque cano, Troiae qui primus ab oris.</Item>
-    <Item key="MaR">Senatus Populusque Romanus.</Item>
-    <Item key="Emp">Alea jacta est.</Item>
-  </TabPanels>
+  <TabPanel id="edit">
+    Review your edits
+  </TabPanel>
+  <TabPanel id="bell">
+    Check your notifications
+  </TabPanel>
+  <TabPanel id="heart">
+    See your likes
+  </TabPanel>
 </Tabs>
 ```
 
-### Controlled Tabs
+### Overflow behavior
 
-```jsx
+Horizontal tabs automatically collapse into a Picker when space is limited.
+
+```tsx
+import {Tabs, TabList, Tab, TabPanel} from '@react-spectrum/s2/Tabs';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<div
+  className={style({
+    width: 320,
+    maxWidth: 'full',
+    padding: 16,
+    boxSizing: 'border-box',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'gray-300',
+    borderRadius: 'default',
+    overflow: 'hidden',
+    resize: 'horizontal'
+  })}>
+  {/*- begin focus -*/}
+  <Tabs aria-label="Tabs">
+    <TabList>
+      <Tab id="home">Home</Tab>
+      <Tab id="profile">Profile</Tab>
+      <Tab id="contact">Contact</Tab>
+      <Tab id="about">About</Tab>
+    </TabList>
+    <TabPanel id="home">
+      Welcome home
+    </TabPanel>
+    <TabPanel id="profile">
+      View your profile
+    </TabPanel>
+    <TabPanel id="contact">
+      Find your contacts
+      </TabPanel>
+    <TabPanel id="about">
+      Learn more
+    </TabPanel>
+  </Tabs>
+  {/*- end focus -*/}
+</div>
+```
+
+## Selection
+
+Use the `defaultSelectedKey` or `selectedKey` prop to set the selected tab. The selected key corresponds to the `id` prop of a `<Tab>`. Tabs can be disabled with the `isDisabled` prop. See the [selection guide](selection.md?component=Tabs#single-selection) for more details.
+
+```tsx
+import {Tabs, TabList, Tab, TabPanel, type Key} from '@react-spectrum/s2/Tabs';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import Home from '@react-spectrum/s2/illustrations/gradient/generic2/Home';
+import Folder from '@react-spectrum/s2/illustrations/gradient/generic2/FolderOpen';
+import Search from '@react-spectrum/s2/illustrations/gradient/generic2/Search';
+import Settings from '@react-spectrum/s2/illustrations/gradient/generic1/GearSetting';
+import {useState} from 'react';
+
 function Example() {
-  let [tab, setTab] = React.useState<Key>(2);
-  let tabs = [
-    { id: 1, name: 'Keyboard Settings', children: 'No keyboard detected.' },
-    { id: 2, name: 'Mouse Settings', children: 'No mouse detected.' },
-    { id: 3, name: 'Gamepad Settings', children: 'No gamepad detected' }
-  ];
-  type Tab = typeof tabs[0];
-
+  let [tab, setTab] = useState<Key>("files");
   return (
-    <Tabs aria-labelledby="label-3" items={tabs} selectedKey={tab} onSelectionChange={setTab}>
-      <TabList>{(item: Tab) => <Item>{item.name}</Item>}</TabList>
-      <TabPanels>{(item: Tab) => <Item>{item.children}</Item>}</TabPanels>
-    </Tabs>
+    <div>
+      <Tabs
+        aria-label="Tabs"
+        selectedKey={tab}
+        onSelectionChange={setTab}
+      >
+        <TabList aria-label="Tabs">
+          <Tab id="home">Home</Tab>
+          <Tab id="files">Files</Tab>
+          <Tab id="search" isDisabled>Search</Tab>
+          <Tab id="settings">Settings</Tab>
+        </TabList>
+        <TabPanel id="home">
+          <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+            <Home />
+          </div>
+        </TabPanel>
+        <TabPanel id="files">
+          <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+            <Folder />
+          </div>
+        </TabPanel>
+        <TabPanel id="search">
+          <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+            <Search />
+          </div>
+        </TabPanel>
+        <TabPanel id="settings">
+          <div className={style({size: 'full', display: 'flex', alignItems: 'center', justifyContent: 'center'})}>
+            <Settings />
+          </div>
+        </TabPanel>
+      </Tabs>
+      <p>Selected tab: {tab}</p>
+    </div>
   );
 }
 ```
 
-### Manual Keyboard Activation
+## API
 
-```jsx
-<Tabs aria-label="Mesozoic time periods" items={tabs} keyboardActivation="manual">
-  <TabList>{(item: Tab) => <Item key={item.name}>{item.name}</Item>}</TabList>
-  <TabPanels>{(item: Tab) => <Item key={item.name}>{item.children}</Item>}</TabPanels>
+```tsx
+<Tabs>
+  <TabList>
+    <Tab>
+      <Icon />
+      <Text />
+    </Tab>
+  </TabList>
+  <TabPanel />
 </Tabs>
 ```
 
-### Tabs as Links with Routing
+### Tabs
 
-```jsx
-import {
-  BrowserRouter,
-  Outlet,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
-import { RouterProvider } from "@adobe/react-spectrum";
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the tabs. |
+| `defaultSelectedKey` | `Key | undefined` | — | The initial selected keys in the collection (uncontrolled). |
+| `density` | `"compact" | "regular" | undefined` | 'regular' | The amount of space between the tabs. |
+| `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the TabList is disabled. Shows that a selection exists, but is not available in that circumstance. |
+| `keyboardActivation` | `"automatic" | "manual" | undefined` | 'automatic' | Whether tabs are activated automatically on focus or manually. |
+| `labelBehavior` | `"hide" | "show" | undefined` | 'show' | Defines if the text within the tabs should be hidden and only the icon should be shown. The text is always visible when the item is collapsed into a picker. |
+| `onSelectionChange` | `((key: Key) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `orientation` | `Orientation | undefined` | 'horizontal' | The orientation of the tabs. |
+| `selectedKey` | `Key | undefined` | — | The currently selected key in the collection (controlled). |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-function AppTabs() {
-  let { pathname } = useLocation();
-  return (
-    <Tabs selectedKey={pathname}>
-      <TabList aria-label="Tabs">
-        <Item key="/" href="/">
-          Home
-        </Item>
-        <Item key="/shared" href="/shared">
-          Shared
-        </Item>
-        <Item key="/deleted" href="/deleted">
-          Deleted
-        </Item>
-      </TabList>
-      <TabPanels>
-        <Item key="/">
-          <Outlet />
-        </Item>
-        <Item key="/shared">
-          <Outlet />
-        </Item>
-        <Item key="/deleted">
-          <Outlet />
-        </Item>
-      </TabPanels>
-    </Tabs>
-  );
-}
-```
+### TabList
 
-### Visual Variants
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `children` | `((item: T) => ReactNode) | ReactNode` | — | The content to display in the tablist. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-```jsx
-// Compact density
-<Tabs aria-label="Chat log" density="compact">{/* ... */}</Tabs>
+### Tab
 
-// Quiet style
-<Tabs aria-label="Chat log" isQuiet>{/* ... */}</Tabs>
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the tab. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `Key | undefined` | — | The unique id of the tab. |
+| `isDisabled` | `boolean | undefined` | — | Whether the tab is disabled. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onHoverChange` | `((isHovering: boolean) => void) | undefined` | — | Handler that is called when the hover state changes. |
+| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction ends. |
+| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction starts. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-// Disabled keys
-<Tabs aria-label="Chat log" disabledKeys={['item2']}>{/* ... */}</Tabs>
+### TabPanel
 
-// Fully disabled
-<Tabs aria-label="Chat log" isDisabled>{/* ... */}</Tabs>
-
-// Vertical orientation
-<Tabs aria-label="Chat log" orientation="vertical">{/* ... */}</Tabs>
-```
-
-## Props API
-
-### Tabs Props
-
-| Name                 | Type                         | Default        | Description                                                              |
-| -------------------- | ---------------------------- | -------------- | ------------------------------------------------------------------------ |
-| `children`           | `ReactNode`                  | --             | Children should include `<TabList>` and `<TabPanels>` elements           |
-| `items`              | `Iterable<object>`           | --             | Item objects for each tab in dynamic collections                         |
-| `disabledKeys`       | `Iterable<Key>`              | --             | Keys of tabs that cannot be selected, focused, or interacted with        |
-| `isDisabled`         | `boolean`                    | --             | Disables all tabs                                                        |
-| `isQuiet`            | `boolean`                    | --             | Displays tabs in quiet style                                             |
-| `isEmphasized`       | `boolean`                    | --             | Displays tabs in emphasized style                                        |
-| `density`            | `'compact' \| 'regular'`     | --             | Controls spacing between tabs                                            |
-| `selectedKey`        | `Key`                        | --             | Currently selected key (controlled)                                      |
-| `defaultSelectedKey` | `Key`                        | --             | Initial selected key (uncontrolled)                                      |
-| `keyboardActivation` | `'automatic' \| 'manual'`    | `'automatic'`  | Whether selection changes automatically on focus or requires Enter/Space |
-| `orientation`        | `'horizontal' \| 'vertical'` | `'horizontal'` | Tab layout direction                                                     |
-| `onSelectionChange`  | `(key: Key) => void`         | --             | Called when selection changes                                            |
-
-### Accessibility Props
-
-| Name               | Type     | Description                                |
-| ------------------ | -------- | ------------------------------------------ |
-| `id`               | `string` | Unique element identifier                  |
-| `aria-label`       | `string` | Labels the tab group                       |
-| `aria-labelledby`  | `string` | References labeling element(s)             |
-| `aria-describedby` | `string` | References describing element(s)           |
-| `aria-details`     | `string` | References detailed description element(s) |
-
-### Layout Props (abbreviated)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (abbreviated)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (abbreviated)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (abbreviated)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                 |
-| ------------------ | --------------- | --------------------------- |
-| `UNSAFE_className` | `string`        | CSS className (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort) |
-
-### TabList Props
-
-| Name       | Type                    | Description                                           |
-| ---------- | ----------------------- | ----------------------------------------------------- |
-| `children` | `CollectionChildren<T>` | Tab items. Item keys should match `<TabPanels>` items |
-
-Inherits Layout, Spacing, Positioning, Accessibility, and Advanced props.
-
-### TabPanels Props
-
-| Name       | Type                         | Description                                              |
-| ---------- | ---------------------------- | -------------------------------------------------------- |
-| `children` | `CollectionChildren<object>` | Panel contents. Item keys should match `<TabList>` items |
-
-Inherits Layout, Spacing, Positioning, Accessibility, and Advanced props.
-
-## Events
-
-| Name                | Type                 | Description                       |
-| ------------------- | -------------------- | --------------------------------- |
-| `onSelectionChange` | `(key: Key) => void` | Called when tab selection changes |
-
-## Accessibility
-
-- Provide `aria-label` on `<Tabs>` for screen readers
-- Arrow keys navigate between tabs
-- `keyboardActivation="automatic"` switches selection on focus, `"manual"` requires Enter/Space
-- RTL languages automatically flip layout
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the tab panels. |
+| `id` | `Key | undefined` | — | The unique id of the tab. |
+| `shouldForceMount` | `boolean | undefined` | false | Whether to mount the tab panel in the DOM even when it is not currently selected. Inactive tab panels are inert and cannot be interacted with. They must be styled appropriately so this is clear to the user visually. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

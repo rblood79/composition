@@ -1,181 +1,101 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ColorSwatchPicker.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ColorSwatchPicker
 
 A ColorSwatchPicker displays a list of color swatches and allows a user to select one of them.
 
-Added in version 3.35.0.
+```tsx
+import {ColorSwatchPicker, ColorSwatch} from '@react-spectrum/s2/ColorSwatchPicker';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
-```
-
-```jsx
-import { ColorSwatchPicker } from "@adobe/react-spectrum";
-```
-
-## Basic Example
-
-```jsx
 <ColorSwatchPicker>
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-  <ColorSwatch color="#08f" />
-  <ColorSwatch color="#088" />
-  <ColorSwatch color="#008" />
+  <ColorSwatch color="#f00" />
+  <ColorSwatch color="#0f0" />
+  <ColorSwatch color="#00f" />
+  <ColorSwatch color="#ff0" />
+  <ColorSwatch color="#f0f" />
+  <ColorSwatch color="#0ff" />
 </ColorSwatchPicker>
 ```
 
-## Value Management
+## Value
 
-### Uncontrolled (Default Value)
+Use the `value` or `defaultValue` prop to set the selected color, and `onChange` to handle selection changes.  The value may be a string or `Color` object, parsed using the `parseColor` function.
 
-```jsx
-<ColorSwatchPicker defaultValue="#A00">
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-</ColorSwatchPicker>
-```
-
-### Controlled Value
-
-```jsx
-import { parseColor } from "@adobe/react-spectrum";
+```tsx
+import {ColorSwatchPicker, ColorSwatch, parseColor} from '@react-spectrum/s2/ColorSwatchPicker';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
 function Example() {
-  let [color, setColor] = React.useState(parseColor("hsl(0, 100%, 33.33%)"));
+  let [value, setValue] = useState(parseColor('#e11d48'));
+
   return (
-    <ColorSwatchPicker value={color} onChange={setColor}>
-      <ColorSwatch color="#A00" />
-      <ColorSwatch color="#f80" />
-      <ColorSwatch color="#080" />
-    </ColorSwatchPicker>
-  );
-}
-```
-
-**Note:** Color swatches within a picker must have unique colors, even across different color spaces (e.g., `#f00`, `hsl(0, 100%, 50%)`, and `hsb(0, 100%, 100%)` are considered duplicates).
-
-## Labeling
-
-Default accessibility label is "Color swatches". Override with `aria-label` or `aria-labelledby`:
-
-```jsx
-<ColorSwatchPicker aria-label="Fill color">
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-</ColorSwatchPicker>
-```
-
-## Events
-
-```jsx
-function Example() {
-  let [value, setValue] = React.useState(parseColor("#A00"));
-  return (
-    <div>
+    <>
+      {/*- begin highlight -*/}
       <ColorSwatchPicker value={value} onChange={setValue}>
-        <ColorSwatch color="#A00" />
-        <ColorSwatch color="#f80" />
-        <ColorSwatch color="#080" />
-        <ColorSwatch color="#08f" />
-        <ColorSwatch color="#088" />
-        <ColorSwatch color="#008" />
+      {/*- end highlight -*/}
+        <ColorSwatch color="#e11d48" />
+        <ColorSwatch color="#f97316" />
+        <ColorSwatch color="#eab308" />
+        <ColorSwatch color="#22c55e" />
+        <ColorSwatch color="#3b82f6" />
+        <ColorSwatch color="#8b5cf6" />
+        <ColorSwatch color="#ec4899" />
       </ColorSwatchPicker>
-      <p>Selected color: {value.toString("rgb")}</p>
-    </div>
+      <pre className={style({font: 'body'})}>Selected color: {value.toString('rgb')}</pre>
+    </>
   );
 }
 ```
 
-## Visual Options
+<InlineAlert variant="notice">
+  <Heading>Color swatches must be unique</Heading>
+  <Content>Equivalent colors in different color spaces are considered duplicates. For example, the values `#f00`, `hsl(0, 100%, 50%)`, and `hsb(0, 100%, 100%)` are all the same color. This is required for predictable selection behavior.</Content>
+</InlineAlert>
 
-### Size
+## API
 
-```jsx
-<ColorSwatchPicker size="XS">
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-  <ColorSwatch color="#08f" />
+```tsx
+<ColorSwatchPicker>
+  <ColorSwatch />
 </ColorSwatchPicker>
 ```
 
-### Density
+### ColorSwatchPicker
 
-```jsx
-<ColorSwatchPicker density="compact">
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-  <ColorSwatch color="#08f" />
-</ColorSwatchPicker>
-```
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — | The ColorSwatches within the ColorSwatchPicker. |
+| `defaultValue` | `string | Color | undefined` | — | The default value (uncontrolled). |
+| `density` | `"compact" | "regular" | "spacious" | undefined` | 'regular' | The amount of padding between the swatches. |
+| `onChange` | `((value: Color) => void) | undefined` | — | Handler that is called when the value changes. |
+| `rounding` | `"default" | "full" | "none" | undefined` | 'none' | The corner rounding of the color swatches. |
+| `size` | `"L" | "M" | "S" | "XS" | undefined` | 'M' | The size of the color swatches. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string | Color | undefined` | — | The current value (controlled). |
 
-### Rounding
+## Related Types
 
-```jsx
-<ColorSwatchPicker rounding="full">
-  <ColorSwatch color="#A00" />
-  <ColorSwatch color="#f80" />
-  <ColorSwatch color="#080" />
-  <ColorSwatch color="#08f" />
-</ColorSwatchPicker>
-```
+### Color
 
-**Note:** Only use rounded corners if the ColorSwatchPicker is displayed on a single row.
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-## Props API
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-### Core Props
+### parseColor
 
-| Name           | Type                                   | Default     | Description                              |
-| -------------- | -------------------------------------- | ----------- | ---------------------------------------- |
-| `children`     | `ReactNode`                            | --          | ColorSwatch components within the picker |
-| `value`        | `string \| Color`                      | --          | Current color (controlled)               |
-| `defaultValue` | `string \| Color`                      | --          | Initial color (uncontrolled)             |
-| `density`      | `'compact' \| 'regular' \| 'spacious'` | `"regular"` | Padding between swatches                 |
-| `size`         | `'XS' \| 'S' \| 'M' \| 'L'`            | `"M"`       | Size of color swatches                   |
-| `rounding`     | `'none' \| 'default' \| 'full'`        | `"none"`    | Corner rounding of swatches              |
+`parseColor(value: string): IColor`
 
-### Events
-
-| Name       | Type                     | Description                                 |
-| ---------- | ------------------------ | ------------------------------------------- |
-| `onChange` | `(value: Color) => void` | Handler called when color selection changes |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                       |
-| ------------------ | --------------- | --------------------------------- |
-| `UNSAFE_className` | `string`        | CSS class name (last resort only) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort only)  |
-
-## Accessibility
-
-- Default ARIA label is "Color swatches"
-- Override with `aria-label` for context-specific labeling
-- Use `aria-labelledby` to reference external labels
-- All labels should be localized
+Parses a color from a string value. Throws an error if the string could not be parsed.

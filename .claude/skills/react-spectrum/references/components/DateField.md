@@ -1,371 +1,137 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/DateField.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # DateField
 
-DateFields allow users to enter and edit date and time values using a keyboard. Each part of the date is displayed as an individually editable segment.
+DateFields allow users to enter and edit date and time values using a keyboard.
+Each part of a date value is displayed in an individually editable segment.
 
-## Installation
+```tsx
+import {DateField} from '@react-spectrum/s2/DateField';
 
-```bash
-yarn add @adobe/react-spectrum
+<DateField />
 ```
 
-```jsx
-import { DateField } from "@adobe/react-spectrum";
-```
+## Value
 
-## Basic Usage
+Use the `value` or `defaultValue` prop to set the date value, using objects in the [@internationalized/date](react-aria:internationalized/date/.md) package. This library supports parsing date strings in multiple formats, manipulation across international calendar systems, time zones, etc.
 
-```jsx
-<DateField label="Event date" />
-```
-
-## Value Management
-
-### Supported Date Types
-
-- **CalendarDate**: Date without time components (e.g., birthdays)
-- **CalendarDateTime**: Date with time, no timezone
-- **ZonedDateTime**: Date with time in a specific timezone
-
-### Controlled vs Uncontrolled
-
-```jsx
-import { parseDate } from "@internationalized/date";
+```tsx
+import {parseDate, getLocalTimeZone, CalendarDate} from '@internationalized/date';
+import {useDateFormatter} from 'react-aria/useDateFormatter';
+import {DateField} from '@react-spectrum/s2/DateField';
+import {useState} from 'react';
 
 function Example() {
-  let [value, setValue] = React.useState(parseDate("2020-02-03"));
-  return (
-    <Flex gap="size-150" wrap>
-      <DateField
-        label="Date (uncontrolled)"
-        defaultValue={parseDate("2020-02-03")}
-      />
-      <DateField label="Date (controlled)" value={value} onChange={setValue} />
-    </Flex>
-  );
-}
-```
-
-### Time Zone Support
-
-```jsx
-import { parseZonedDateTime } from "@internationalized/date";
-
-<DateField
-  label="Event date"
-  defaultValue={parseZonedDateTime("2022-11-07T00:45[America/Los_Angeles]")}
-/>;
-```
-
-### Granularity
-
-Controls the smallest displayed unit (day, hour, minute, or second):
-
-```jsx
-function Example() {
-  let [date, setDate] = React.useState(
-    parseAbsoluteToLocal("2021-04-07T18:45:22Z"),
-  );
-  return (
-    <Flex gap="size-150" wrap>
-      <DateField
-        label="Date and time"
-        granularity="second"
-        value={date}
-        onChange={setDate}
-      />
-      <DateField
-        label="Date"
-        granularity="day"
-        value={date}
-        onChange={setDate}
-      />
-    </Flex>
-  );
-}
-```
-
-### International Calendars
-
-```jsx
-import { Provider } from "@adobe/react-spectrum";
-
-function Example() {
-  let [date, setDate] = React.useState(null);
-  return (
-    <Provider locale="hi-IN-u-ca-indian">
-      <DateField label="Date" value={date} onChange={setDate} />
-    </Provider>
-  );
-}
-```
-
-### HTML Form Integration
-
-```jsx
-<DateField label="Birth date" name="birthday" />
-```
-
-Values submit as ISO 8601 formatted strings per the component's granularity.
-
-## Labeling
-
-```jsx
-<Flex gap="size-150" wrap>
-  <DateField label="Birth date" />
-  <DateField label="Birth date" isRequired necessityIndicator="icon" />
-  <DateField label="Birth date" isRequired necessityIndicator="label" />
-  <DateField label="Birth date" necessityIndicator="label" />
-</Flex>
-```
-
-## Events
-
-```jsx
-import { getLocalTimeZone } from "@internationalized/date";
-import { useDateFormatter } from "@adobe/react-spectrum";
-
-function Example() {
-  let [date, setDate] = React.useState(parseDate("1985-07-03"));
-  let formatter = useDateFormatter({ dateStyle: "full" });
+  let [date, setDate] = useState<CalendarDate | null>(parseDate('2020-02-03'));
+  let formatter = useDateFormatter({ dateStyle: 'full' });
 
   return (
     <>
-      <DateField label="Birth date" value={date} onChange={setDate} />
-      <p>
-        Selected date:{" "}
-        {date ? formatter.format(date.toDate(getLocalTimeZone())) : "--"}
-      </p>
+      <DateField
+        value={date}
+        onChange={setDate} />
+      {/*- end highlight -*/}
+      <p>Selected date: {date ? formatter.format(date.toDate(getLocalTimeZone())) : '--'}</p>
     </>
   );
 }
 ```
 
-## Validation
+### Format options
 
-### Required Field
+The date format is automatically determined based on the user's locale. `DateField` supports several props to control how values are displayed.
 
-```jsx
-import { Form, ButtonGroup, Button } from "@adobe/react-spectrum";
-
-<Form validationBehavior="native" maxWidth="size-3000">
-  <DateField label="Appointment date" name="date" isRequired />
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
-</Form>;
-```
-
-### Min/Max Values
-
-```jsx
-import { today } from "@internationalized/date";
+```tsx
+import {parseZonedDateTime} from '@internationalized/date';
+import {DateField} from '@react-spectrum/s2/DateField';
 
 <DateField
-  label="Appointment date"
-  minValue={today(getLocalTimeZone())}
-  defaultValue={parseDate("2022-02-03")}
-/>;
+  
+  defaultValue={parseZonedDateTime('2025-02-03T08:45:00[America/Los_Angeles]')} />
 ```
 
-### Custom Validation
+### International calendars
 
-```jsx
-import { isWeekend } from "@internationalized/date";
-import { useLocale } from "@adobe/react-spectrum";
+By default, `DateField` displays the value using the calendar system for the user's locale. Use `<Provider>` to override the calendar system by setting the [Unicode calendar locale extension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/calendar#adding_a_calendar_in_the_locale_string). The `onChange` event always receives a date in the same calendar as the `value` or `defaultValue` (Gregorian if no value is provided), regardless of the displayed locale.
 
-function Example() {
-  let { locale } = useLocale();
+```tsx
+import {Provider} from '@react-spectrum/s2/Provider';
+import {DateField} from '@react-spectrum/s2/DateField';
+import {parseZonedDateTime} from '@internationalized/date';
+
+<Provider>
+  <DateField defaultValue={parseZonedDateTime('2025-02-03T08:45:00[America/Los_Angeles]')} />
+</Provider>
+```
+
+## Forms
+
+Use the `name` prop to submit the selected date to the server as an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) string. Set the `isRequired`, `minValue`, or `maxValue` props to validate the value, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
+
+```tsx
+import {today, getLocalTimeZone} from '@internationalized/date';
+import {DateField} from '@react-spectrum/s2/DateField';
+import {Form} from '@react-spectrum/s2/Form';
+import {Button} from '@react-spectrum/s2/Button';
+
+function Example(props) {
   return (
-    <Form validationBehavior="native" maxWidth="size-3000">
+    <Form>
       <DateField
+        {...props}
         label="Appointment date"
-        validate={(date) =>
-          date && isWeekend(date, locale) ? "We are closed on weekends." : null
-        }
-        defaultValue={parseDate("2023-10-28")}
+        name="date"
+        
+        minValue={today(getLocalTimeZone())}
       />
+      <Button type="submit">Submit</Button>
     </Form>
   );
 }
 ```
 
-## Visual Options
+## API
 
-### Quiet Style
-
-```jsx
-<DateField label="Birth date" isQuiet />
-```
-
-### Disabled / Read-Only
-
-```jsx
-<DateField label="Birth date" isDisabled />
-<DateField label="Birth date" value={today(getLocalTimeZone())} isReadOnly />
-```
-
-### Label Positioning
-
-```jsx
-<DateField label="Birth date" labelPosition="side" labelAlign="end" />
-```
-
-### Help Text
-
-```jsx
-<Flex gap="size-100" wrap>
-  <DateField
-    label="Date"
-    defaultValue={today(getLocalTimeZone())}
-    validationState="valid"
-    description="Select a meeting date."
-  />
-  <DateField
-    label="Date"
-    validationState="invalid"
-    errorMessage="Empty input is not allowed."
-  />
-</Flex>
-```
-
-### Format Help Text
-
-```jsx
-<DateField label="Birth date" showFormatHelpText />
-```
-
-### Contextual Help
-
-```jsx
-import { Content, ContextualHelp, Heading } from "@adobe/react-spectrum";
-
-<DateField
-  label="Appointment date"
-  contextualHelp={
-    <ContextualHelp variant="info">
-      <Heading>Appointment changes</Heading>
-      <Content>Your appointment date cannot be changed once scheduled.</Content>
-    </ContextualHelp>
-  }
-/>;
-```
-
-### Placeholder Value
-
-```jsx
-import { CalendarDate } from "@internationalized/date";
-
-<DateField
-  label="Birth date"
-  placeholderValue={new CalendarDate(1980, 1, 1)}
-/>;
-```
-
-### Hour Cycle
-
-```jsx
-<DateField label="Appointment time" granularity="minute" hourCycle={24} />
-```
-
-## Props API
-
-### Core Props
-
-| Name                      | Type                                      | Default | Description                                                  |
-| ------------------------- | ----------------------------------------- | ------- | ------------------------------------------------------------ |
-| `value`                   | `DateValue \| null`                       | --      | The current controlled value                                 |
-| `defaultValue`            | `DateValue \| null`                       | --      | The initial uncontrolled value                               |
-| `minValue`                | `DateValue \| null`                       | --      | The minimum allowed date                                     |
-| `maxValue`                | `DateValue \| null`                       | --      | The maximum allowed date                                     |
-| `isDateUnavailable`       | `(date: DateValue) => boolean`            | --      | Callback to mark specific dates as unavailable               |
-| `placeholderValue`        | `DateValue \| null`                       | --      | Influences placeholder format; defaults to today at midnight |
-| `granularity`             | `'day' \| 'hour' \| 'minute' \| 'second'` | --      | Smallest displayed unit                                      |
-| `hourCycle`               | `12 \| 24`                                | --      | 12 or 24 hour format (defaults to locale)                    |
-| `hideTimeZone`            | `boolean`                                 | `false` | Hide timezone abbreviation                                   |
-| `shouldForceLeadingZeros` | `boolean`                                 | --      | Always show leading zeros (locale-dependent default)         |
-
-### Form and Labeling
-
-| Name                 | Type                                              | Default   | Description                          |
-| -------------------- | ------------------------------------------------- | --------- | ------------------------------------ |
-| `label`              | `ReactNode`                                       | --        | Visible field label                  |
-| `isRequired`         | `boolean`                                         | --        | Mark field as required               |
-| `necessityIndicator` | `'icon' \| 'label'`                               | `'icon'`  | Show requirement as icon or text     |
-| `description`        | `ReactNode`                                       | --        | Helper text below field              |
-| `errorMessage`       | `ReactNode \| (v: ValidationResult) => ReactNode` | --        | Error message when invalid           |
-| `name`               | `string`                                          | --        | HTML form field name                 |
-| `form`               | `string`                                          | --        | Associate with `<form>` by id        |
-| `isQuiet`            | `boolean`                                         | `false`   | Display with quiet styling           |
-| `showFormatHelpText` | `boolean`                                         | `false`   | Show locale date format hint         |
-| `labelPosition`      | `'top' \| 'side'`                                 | `'top'`   | Label placement relative to field    |
-| `labelAlign`         | `'start' \| 'end'`                                | `'start'` | Label horizontal alignment           |
-| `contextualHelp`     | `ReactNode`                                       | --        | ContextualHelp element next to label |
-
-### State and Interaction
-
-| Name                 | Type                                                                       | Default  | Description                        |
-| -------------------- | -------------------------------------------------------------------------- | -------- | ---------------------------------- |
-| `isDisabled`         | `boolean`                                                                  | --       | Disable the field                  |
-| `isReadOnly`         | `boolean`                                                                  | --       | Prevent edits but keep focusable   |
-| `autoFocus`          | `boolean`                                                                  | --       | Receive focus on render            |
-| `validationBehavior` | `'aria' \| 'native'`                                                       | `'aria'` | Use native HTML or ARIA validation |
-| `validate`           | `(value: MappedDateValue) => ValidationError \| true \| null \| undefined` | --       | Custom validation function         |
-| `validationState`    | `'valid' \| 'invalid'`                                                     | --       | Visual validation state            |
-
-### Events
-
-| Name            | Type                                       | Description                     |
-| --------------- | ------------------------------------------ | ------------------------------- |
-| `onChange`      | `(value: MappedDateValue \| null) => void` | Fires when date value changes   |
-| `onFocus`       | `(e: FocusEvent) => void`                  | Fires when field receives focus |
-| `onBlur`        | `(e: FocusEvent) => void`                  | Fires when field loses focus    |
-| `onFocusChange` | `(isFocused: boolean) => void`             | Fires when focus status changes |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`               | Fires when key is pressed       |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`               | Fires when key is released      |
-
-### Accessibility Props
-
-| Name               | Type     | Description                       |
-| ------------------ | -------- | --------------------------------- |
-| `id`               | `string` | Element's unique identifier       |
-| `aria-label`       | `string` | Label for screen readers          |
-| `aria-labelledby`  | `string` | Reference to labeling element     |
-| `aria-describedby` | `string` | Reference to describing element   |
-| `aria-details`     | `string` | Reference to detailed description |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                 |
-| ------------------ | --------------- | --------------------------- |
-| `UNSAFE_className` | `string`        | CSS className (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort) |
-
-## Accessibility
-
-- If no visible label is provided, use `aria-label` for screen reader support
-- For labels provided by separate elements, use `aria-labelledby`
-- The component automatically handles ARIA attributes for required/optional states and validation messages
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoComplete` | `string | undefined` | — | Describes the type of autocomplete functionality the input should provide if any. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefautocomplete). |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `T | null | undefined` | — | The default value (uncontrolled). |
+| `description` | `ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | ReactNode` | — | An error message for the field. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `granularity` | `Granularity | undefined` | — | Determines the smallest unit that is displayed in the date picker. By default, this is `"day"` for dates, and `"minute"` for times. |
+| `hideTimeZone` | `boolean | undefined` | false | Whether to hide the time zone abbreviation. |
+| `hourCycle` | `12 | 24 | undefined` | — | Whether to display the time in 12 or 24 hour format. By default, this is determined by the user's locale. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDateUnavailable` | `((date: DateValue) => boolean) | undefined` | — | Callback that is called for each date of the calendar. If it returns true, then the date is unavailable. |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `maxValue` | `DateValue | null | undefined` | — | The maximum allowed date that a user may select. |
+| `minValue` | `DateValue | null | undefined` | — | The minimum allowed date that a user may select. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((value: MappedDateValue<T> | null) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `placeholderValue` | `T | null | undefined` | — | A placeholder date that influences the format of the placeholder shown when no value is selected. Defaults to today's date at midnight. |
+| `shouldForceLeadingZeros` | `boolean | undefined` | — | Whether to always show leading zeros in the month, day, and hour fields. By default, this is determined by the user's locale. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the DateField. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: MappedDateValue<T>) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `T | null | undefined` | — | The current value (controlled). |

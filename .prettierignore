@@ -3,3 +3,6 @@ packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts
 # generator가 출력 형식을 소유한다. pnpm generate:css로 갱신한다.
 packages/shared/src/components/styles/generated/
 packages/rendering/src/icons/lucideIconData.generated.ts
+# Adobe 공식 Agent Skill 스냅샷 — 원문 형식 보존. pnpm skills:adobe-refresh 로 갱신한다.
+.claude/skills/react-aria/references/
+.claude/skills/react-spectrum/references/

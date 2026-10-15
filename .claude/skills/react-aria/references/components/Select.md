@@ -22,13 +22,13 @@ import {Select, SelectItem} from 'vanilla-starter/Select';
 ```tsx
 'use client';
 import {
-  ListBoxItemProps,
+  type ListBoxItemProps,
   Select as AriaSelect,
-  SelectProps as AriaSelectProps,
+  type SelectProps as AriaSelectProps,
   SelectValue,
-  ValidationResult,
-  ListBoxProps
-} from 'react-aria-components';
+  type ValidationResult,
+  type ListBoxProps
+} from 'react-aria-components/Select';
 import {Button} from './Button';
 import {DropdownItem, DropdownListBox} from './ListBox';
 import {ChevronDown} from 'lucide-react';
@@ -36,8 +36,10 @@ import {Popover} from './Popover';
 import {Label, FieldError, Description} from './Form';
 import './Select.css';
 
-export interface SelectProps<T extends object>
-  extends Omit<AriaSelectProps<T>, 'children'> {
+export interface SelectProps<T, M extends 'single' | 'multiple'> extends Omit<
+  AriaSelectProps<T, M>,
+  'children'
+> {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
@@ -45,32 +47,31 @@ export interface SelectProps<T extends object>
   children: React.ReactNode | ((item: T) => React.ReactNode);
 }
 
-export function Select<T extends object>(
-  { label, description, errorMessage, children, items, ...props }: SelectProps<
-    T
-  >
-) {
+export function Select<T, M extends 'single' | 'multiple' = 'single'>({
+  label,
+  description,
+  errorMessage,
+  children,
+  items,
+  ...props
+}: SelectProps<T, M>) {
   return (
-    (
-      <AriaSelect {...props}>
-        {label && <Label>{label}</Label>}
-        <Button>
-          <SelectValue />
-          <ChevronDown />
-        </Button>
-        {description && <Description>{description}</Description>}
-        <FieldError>{errorMessage}</FieldError>
-        <Popover hideArrow className="select-popover">
-          <SelectListBox items={items}>
-            {children}
-          </SelectListBox>
-        </Popover>
-      </AriaSelect>
-    )
+    <AriaSelect {...props}>
+      {label && <Label>{label}</Label>}
+      <Button>
+        <SelectValue />
+        <ChevronDown />
+      </Button>
+      {description && <Description>{description}</Description>}
+      <FieldError>{errorMessage}</FieldError>
+      <Popover hideArrow className="select-popover">
+        <SelectListBox items={items}>{children}</SelectListBox>
+      </Popover>
+    </AriaSelect>
   );
 }
 
-export function SelectListBox<T extends object>(props: ListBoxProps<T>) {
+export function SelectListBox<T>(props: ListBoxProps<T>) {
   return <DropdownListBox {...props} />;
 }
 
@@ -83,7 +84,7 @@ export function SelectItem(props: ListBoxItemProps) {
 ### Select.css
 
 ```css
-@import "./theme.css";
+@import './theme.css';
 
 .react-aria-Select {
   color: var(--text-color);
@@ -119,13 +120,13 @@ export function SelectItem(props: ListBoxItemProps) {
   }
 
   .react-aria-SelectValue {
-    [slot=description] {
+    [slot='description'] {
       display: none;
     }
   }
 }
 
-.select-popover[data-trigger=Select] {
+.select-popover[data-trigger='Select'] {
   width: var(--trigger-width);
   padding: 0;
 }
@@ -151,35 +152,39 @@ import {Select, SelectItem} from 'tailwind-starter/Select';
 
 ```tsx
 'use client';
-import { ChevronDown } from 'lucide-react';
+import {ChevronDown} from 'lucide-react';
 import React from 'react';
 import {
   Select as AriaSelect,
-  SelectProps as AriaSelectProps,
+  type SelectProps as AriaSelectProps,
   Button,
   ListBox,
-  ListBoxItemProps,
+  type ListBoxItemProps,
   SelectValue,
-  ValidationResult
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { Description, FieldError, Label } from './Field';
-import { DropdownItem, DropdownSection, DropdownSectionProps } from './ListBox';
-import { Popover } from './Popover';
-import { composeTailwindRenderProps, focusRing } from './utils';
+  type ValidationResult
+} from 'react-aria-components/Select';
+import {tv} from 'tailwind-variants';
+import {Description, FieldError, Label} from './Field';
+import {DropdownItem, DropdownSection, type DropdownSectionProps} from './ListBox';
+import {Popover} from './Popover';
+import {composeTailwindRenderProps, focusRing} from './utils';
 
 const styles = tv({
   extend: focusRing,
   base: 'flex items-center text-start gap-4 w-full font-sans border border-black/10 dark:border-white/10 cursor-default rounded-lg pl-3 pr-2 h-9 min-w-[180px] transition bg-neutral-50 dark:bg-neutral-700 [-webkit-tap-highlight-color:transparent]',
   variants: {
     isDisabled: {
-      false: 'text-neutral-800 dark:text-neutral-300 hover:bg-neutral-100 pressed:bg-neutral-200 dark:hover:bg-neutral-600 dark:pressed:bg-neutral-500 group-invalid:outline group-invalid:outline-red-600 forced-colors:group-invalid:outline-[Mark]',
+      false:
+        'text-neutral-800 dark:text-neutral-300 hover:bg-neutral-100 pressed:bg-neutral-200 dark:hover:bg-neutral-600 dark:pressed:bg-neutral-500 group-invalid:outline group-invalid:outline-red-600 forced-colors:group-invalid:outline-[Mark]',
       true: 'border-transparent dark:border-transparent text-neutral-200 dark:text-neutral-600 forced-colors:text-[GrayText] bg-neutral-100 dark:bg-neutral-800'
     }
   }
 });
 
-export interface SelectProps<T extends object> extends Omit<AriaSelectProps<T>, 'children'> {
+export interface SelectProps<T, M extends 'single' | 'multiple'> extends Omit<
+  AriaSelectProps<T, M>,
+  'children'
+> {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
@@ -187,22 +192,37 @@ export interface SelectProps<T extends object> extends Omit<AriaSelectProps<T>, 
   children: React.ReactNode | ((item: T) => React.ReactNode);
 }
 
-export function Select<T extends object>(
-  { label, description, errorMessage, children, items, ...props }: SelectProps<T>
-) {
+export function Select<T, M extends 'single' | 'multiple' = 'single'>({
+  label,
+  description,
+  errorMessage,
+  children,
+  items,
+  ...props
+}: SelectProps<T, M>) {
   return (
-    <AriaSelect {...props} className={composeTailwindRenderProps(props.className, 'group flex flex-col gap-1 relative font-sans')}>
+    <AriaSelect
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'group flex flex-col gap-1 relative font-sans'
+      )}>
       {label && <Label>{label}</Label>}
       <Button className={styles}>
         <SelectValue className="flex-1 text-sm">
           {({selectedText, defaultChildren}) => selectedText || defaultChildren}
         </SelectValue>
-        <ChevronDown aria-hidden className="w-4 h-4 text-neutral-600 dark:text-neutral-400 forced-colors:text-[ButtonText] group-disabled:text-neutral-200 dark:group-disabled:text-neutral-600 forced-colors:group-disabled:text-[GrayText]" />
+        <ChevronDown
+          aria-hidden
+          className="w-4 h-4 text-neutral-600 dark:text-neutral-400 forced-colors:text-[ButtonText] group-disabled:text-neutral-200 dark:group-disabled:text-neutral-600 forced-colors:group-disabled:text-[GrayText]"
+        />
       </Button>
       {description && <Description>{description}</Description>}
       <FieldError>{errorMessage}</FieldError>
       <Popover className="min-w-(--trigger-width)">
-        <ListBox items={items} className="outline-hidden box-border p-1 max-h-[inherit] overflow-auto [clip-path:inset(0_0_0_0_round_.75rem)]">
+        <ListBox
+          items={items}
+          className="outline-hidden box-border p-1 max-h-[inherit] overflow-auto [clip-path:inset(0_0_0_0_round_.75rem)]">
           {children}
         </ListBox>
       </Popover>
@@ -214,7 +234,7 @@ export function SelectItem(props: ListBoxItemProps) {
   return <DropdownItem {...props} />;
 }
 
-export function SelectSection<T extends object>(props: DropdownSectionProps<T>) {
+export function SelectSection<T>(props: DropdownSectionProps<T>) {
   return <DropdownSection {...props} />;
 }
 
@@ -228,7 +248,8 @@ The following example shows a dynamic collection of items, grouped into sections
 
 ```tsx
 import {Select, SelectItem} from 'vanilla-starter/Select';
-import {ListBoxSection, Collection, Header} from 'react-aria-components';
+import {ListBoxSection, Header} from 'vanilla-starter/ListBox';
+import {Collection} from 'react-aria-components/Collection';
 
 function Example() {
   /*- begin collapse -*/
@@ -276,7 +297,8 @@ function Example() {
 `Select` can include additional components as siblings of the `ListBox`. This example uses an [Autocomplete](Autocomplete.md) with a [SearchField](SearchField.md) to let the user filter the items.
 
 ```tsx
-import {Select, Label, SelectValue, Autocomplete, useFilter} from 'react-aria-components';
+import {Autocomplete, useFilter} from 'react-aria-components/Autocomplete';
+import {Select, Label, SelectValue} from 'react-aria-components/Select';
 import {Button} from 'vanilla-starter/Button';
 import {SelectListBox, SelectItem} from 'vanilla-starter/Select';
 import {Popover} from 'vanilla-starter/Popover';
@@ -321,7 +343,9 @@ function Example() {
 Use the `SelectValue` render prop function to display the selected items as a [TagGroup](TagGroup.md).
 
 ```tsx
-import {Autocomplete, Select, SelectValue, Group, useFilter} from 'react-aria-components';
+import {Autocomplete, useFilter} from 'react-aria-components/Autocomplete';
+import {Select, SelectValue} from 'react-aria-components/Select';
+import {Group} from 'react-aria-components/Group';
 import {Button} from 'vanilla-starter/Button';
 import {SelectListBox, SelectItem} from 'vanilla-starter/Select';
 import {Label} from 'vanilla-starter/Form';
@@ -525,7 +549,6 @@ import {Form} from 'vanilla-starter/Form';
 | `children` | `ChildrenOrFunction<SelectRenderProps>` | — | The children of the component. A function may be provided to alter the children based on component state. |
 | `className` | `ClassNameOrFunction<SelectRenderProps> | undefined` | 'react-aria-Select' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `defaultOpen` | `boolean | undefined` | — | Sets the default open state of the menu. |
-| `defaultSelectedKey` | `Key | undefined` | — | The initial selected key in the collection (uncontrolled). |
 | `defaultValue` | `ValueType<M> | undefined` | — | The default value (uncontrolled). |
 | `dir` | `string | undefined` | — |  |
 | `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
@@ -593,7 +616,6 @@ import {Form} from 'vanilla-starter/Form';
 | `onPointerUpCapture` | `React.PointerEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onScroll` | `React.UIEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onScrollCapture` | `React.UIEventHandler<HTMLDivElement> | undefined` | — |  |
-| `onSelectionChange` | `((key: Key | null) => void) | undefined` | — | Handler that is called when the selection changes. |
 | `onTouchCancel` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onTouchCancelCapture` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onTouchEnd` | `React.TouchEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -613,14 +635,14 @@ import {Form} from 'vanilla-starter/Form';
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `placeholder` | `string | undefined` | 'Select an item' (localized) | Temporary text that occupies the select when it is empty. |
-| `render` | `DOMRenderFunction<"div", SelectRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `selectedKey` | `Key | null | undefined` | — | The currently selected key in the collection (controlled). |
+| `render` | `DOMRenderFunction<"div", SelectRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `selectionMode` | `M | undefined` | 'single' | Whether single or multiple selection is enabled. |
+| `shouldCloseOnSelect` | `boolean | undefined` | — | Whether the Select should close when an item is selected. Defaults to true if selectionMode is single, false otherwise. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: SelectRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
-| `validate` | `((value: ValidationType<M>) => ValidationError | true | null | undefined) | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
-| `validationBehavior` | `"native" | "aria" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `style` | `StyleOrFunction<SelectRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+| `validate` | `((value: M extends "single" ? Key : Key[]) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
 | `value` | `ValueType<M> | undefined` | — | The current value (controlled). |
 
 ### SelectValue
@@ -631,7 +653,7 @@ import {Form} from 'vanilla-starter/Form';
 | `accessKey` | `string | undefined` | — |  |
 | `aria-activedescendant` | `string | undefined` | — | Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. |
 | `aria-atomic` | `(boolean | "true" | "false") | undefined` | — | Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. |
-| `aria-autocomplete` | `"none" | "inline" | "list" | "both" | undefined` | — | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
+| `aria-autocomplete` | `"both" | "inline" | "list" | "none" | undefined` | — | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
 | `aria-braillelabel` | `string | undefined` | — | Indicates an element is being modified and that assistive technologies MAY want to wait until the modifications are complete before exposing them to the user. |
 | `aria-brailleroledescription` | `string | undefined` | — | Defines a human-readable, author-localized abbreviated description for the role of an element, which is intended to be converted into Braille. |
 | `aria-busy` | `(boolean | "true" | "false") | undefined` | — |  |
@@ -641,24 +663,22 @@ import {Form} from 'vanilla-starter/Form';
 | `aria-colindextext` | `string | undefined` | — | Defines a human readable text alternative of aria-colindex. |
 | `aria-colspan` | `number | undefined` | — | Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid. |
 | `aria-controls` | `string | undefined` | — | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
-| `aria-current` | `boolean | "time" | "true" | "false" | "page" | "step" | "location" | "date" | undefined` | — | Indicates the element that represents the current item within a container or set of related elements. |
+| `aria-current` | `boolean | "true" | "false" | "date" | "location" | "page" | "step" | "time" | undefined` | — | Indicates the element that represents the current item within a container or set of related elements. |
 | `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
 | `aria-description` | `string | undefined` | — | Defines a string value that describes or annotates the current element. |
 | `aria-details` | `string | undefined` | — | Identifies the element that provides a detailed, extended description for the object. |
 | `aria-disabled` | `(boolean | "true" | "false") | undefined` | — | Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. |
-| `aria-dropeffect` | `"link" | "copy" | "move" | "none" | "execute" | "popup" | undefined` | — | Indicates what functions can be performed when a dragged object is released on the drop target. |
 | `aria-errormessage` | `string | undefined` | — | Identifies the element that provides an error message for the object. |
 | `aria-expanded` | `(boolean | "true" | "false") | undefined` | — | Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. |
 | `aria-flowto` | `string | undefined` | — | Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. |
-| `aria-grabbed` | `(boolean | "true" | "false") | undefined` | — | Indicates an element's "grabbed" state in a drag-and-drop operation. |
-| `aria-haspopup` | `boolean | "dialog" | "menu" | "grid" | "true" | "false" | "listbox" | "tree" | undefined` | — | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
+| `aria-haspopup` | `boolean | "true" | "false" | "dialog" | "grid" | "listbox" | "menu" | "tree" | undefined` | — | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
 | `aria-hidden` | `(boolean | "true" | "false") | undefined` | — | Indicates whether the element is exposed to an accessibility API. |
 | `aria-invalid` | `boolean | "true" | "false" | "grammar" | "spelling" | undefined` | — | Indicates the entered value does not conform to the format expected by the application. |
 | `aria-keyshortcuts` | `string | undefined` | — | Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element. |
 | `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `aria-level` | `number | undefined` | — | Defines the hierarchical level of an element within a structure. |
-| `aria-live` | `"off" | "assertive" | "polite" | undefined` | — | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
+| `aria-live` | `"assertive" | "off" | "polite" | undefined` | — | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
 | `aria-modal` | `(boolean | "true" | "false") | undefined` | — | Indicates whether an element is modal when displayed. |
 | `aria-multiline` | `(boolean | "true" | "false") | undefined` | — | Indicates whether a text box accepts multiple lines of input or only a single line. |
 | `aria-multiselectable` | `(boolean | "true" | "false") | undefined` | — | Indicates that the user may select more than one item from the current selectable descendants. |
@@ -668,7 +688,7 @@ import {Form} from 'vanilla-starter/Form';
 | `aria-posinset` | `number | undefined` | — | Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
 | `aria-pressed` | `boolean | "true" | "false" | "mixed" | undefined` | — | Indicates the current "pressed" state of toggle buttons. |
 | `aria-readonly` | `(boolean | "true" | "false") | undefined` | — | Indicates that the element is not editable, but is otherwise operable. |
-| `aria-relevant` | `"text" | "all" | "additions" | "additions removals" | "additions text" | "removals" | "removals additions" | "removals text" | "text additions" | "text removals" | undefined` | — | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
+| `aria-relevant` | `"additions" | "additions removals" | "additions text" | "all" | "removals" | "removals additions" | "removals text" | "text" | "text additions" | "text removals" | undefined` | — | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
 | `aria-required` | `(boolean | "true" | "false") | undefined` | — | Indicates that user input is required on the element before a form may be submitted. |
 | `aria-roledescription` | `string | undefined` | — | Defines a human-readable, author-localized description for the role of an element. |
 | `aria-rowcount` | `number | undefined` | — | Defines the total number of rows in a table, grid, or treegrid. |
@@ -677,12 +697,12 @@ import {Form} from 'vanilla-starter/Form';
 | `aria-rowspan` | `number | undefined` | — | Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid. |
 | `aria-selected` | `(boolean | "true" | "false") | undefined` | — | Indicates the current "selected" state of various widgets. |
 | `aria-setsize` | `number | undefined` | — | Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
-| `aria-sort` | `"none" | "ascending" | "descending" | "other" | undefined` | — | Indicates if items in a table or grid are sorted in ascending or descending order. |
+| `aria-sort` | `"ascending" | "descending" | "none" | "other" | undefined` | — | Indicates if items in a table or grid are sorted in ascending or descending order. |
 | `aria-valuemax` | `number | undefined` | — | Defines the maximum allowed value for a range widget. |
 | `aria-valuemin` | `number | undefined` | — | Defines the minimum allowed value for a range widget. |
 | `aria-valuenow` | `number | undefined` | — | Defines the current value for a range widget. |
 | `aria-valuetext` | `string | undefined` | — | Defines the human readable text alternative of aria-valuenow for a range widget. |
-| `autoCapitalize` | `"off" | "on" | "none" | "sentences" | "words" | "characters" | (string & {}) | undefined` | — |  |
+| `autoCapitalize` | `"characters" | "none" | "off" | "on" | "sentences" | "words" | (string & {}) | undefined` | — |  |
 | `autoCorrect` | `string | undefined` | — |  |
 | `autoFocus` | `boolean | undefined` | — |  |
 | `autoSave` | `string | undefined` | — |  |
@@ -690,21 +710,21 @@ import {Form} from 'vanilla-starter/Form';
 | `className` | `ClassNameOrFunction<SelectValueRenderProps<T>> | undefined` | 'react-aria-SelectValue' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `color` | `string | undefined` | — |  |
 | `content` | `string | undefined` | — |  |
-| `contentEditable` | `(boolean | "true" | "false") | "inherit" | "plaintext-only" | undefined` | — |  |
+| `contentEditable` | `"inherit" | "plaintext-only" | (boolean | "true" | "false") | undefined` | — |  |
 | `contextMenu` | `string | undefined` | — |  |
 | `dangerouslySetInnerHTML` | `{ __html: string | TrustedHTML; } | undefined` | — |  |
 | `datatype` | `string | undefined` | — |  |
 | `defaultChecked` | `boolean | undefined` | — |  |
-| `defaultValue` | `string | number | readonly string[] | undefined` | — |  |
+| `defaultValue` | `number | string | readonly string[] | undefined` | — |  |
 | `dir` | `string | undefined` | — |  |
 | `draggable` | `(boolean | "true" | "false") | undefined` | — |  |
-| `enterKeyHint` | `"search" | "enter" | "done" | "go" | "next" | "previous" | "send" | undefined` | — |  |
+| `enterKeyHint` | `"done" | "enter" | "go" | "next" | "previous" | "search" | "send" | undefined` | — |  |
 | `exportparts` | `string | undefined` | — |  |
 | `hidden` | `boolean | undefined` | — |  |
 | `id` | `string | undefined` | — |  |
 | `inert` | `boolean | undefined` | — |  |
 | `inlist` | `any` | — |  |
-| `inputMode` | `"search" | "text" | "none" | "tel" | "url" | "email" | "numeric" | "decimal" | undefined` | — | Hints at the type of data that might be entered by the user while editing the element or its contents |
+| `inputMode` | `"decimal" | "email" | "none" | "numeric" | "search" | "tel" | "text" | "url" | undefined` | — | Hints at the type of data that might be entered by the user while editing the element or its contents |
 | `is` | `string | undefined` | — | Specify that a standard HTML element should behave like a defined custom built-in element |
 | `itemID` | `string | undefined` | — |  |
 | `itemProp` | `string | undefined` | — |  |
@@ -786,8 +806,6 @@ import {Form} from 'vanilla-starter/Form';
 | `onInvalidCapture` | `React.FormEventHandler<HTMLElement> | undefined` | — |  |
 | `onKeyDown` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
 | `onKeyDownCapture` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
-| `onKeyPress` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
-| `onKeyPressCapture` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
 | `onKeyUp` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
 | `onKeyUpCapture` | `React.KeyboardEventHandler<HTMLElement> | undefined` | — |  |
 | `onLoad` | `React.ReactEventHandler<HTMLElement> | undefined` | — |  |
@@ -884,12 +902,12 @@ import {Form} from 'vanilla-starter/Form';
 | `part` | `string | undefined` | — |  |
 | `popover` | `"" | "auto" | "manual" | undefined` | — |  |
 | `popoverTarget` | `string | undefined` | — |  |
-| `popoverTargetAction` | `"toggle" | "show" | "hide" | undefined` | — |  |
+| `popoverTargetAction` | `"hide" | "show" | "toggle" | undefined` | — |  |
 | `prefix` | `string | undefined` | — |  |
 | `property` | `string | undefined` | — |  |
 | `radioGroup` | `string | undefined` | — |  |
 | `rel` | `string | undefined` | — |  |
-| `render` | `DOMRenderFunction<"span", SelectValueRenderProps<T>> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"span", SelectValueRenderProps<T>> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `resource` | `string | undefined` | — |  |
 | `results` | `number | undefined` | — |  |
 | `rev` | `string | undefined` | — |  |
@@ -897,12 +915,12 @@ import {Form} from 'vanilla-starter/Form';
 | `security` | `string | undefined` | — |  |
 | `slot` | `string | undefined` | — |  |
 | `spellCheck` | `(boolean | "true" | "false") | undefined` | — |  |
-| `style` | `(React.CSSProperties | ((values: SelectValueRenderProps<T> & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `style` | `StyleOrFunction<SelectValueRenderProps<T>> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `suppressContentEditableWarning` | `boolean | undefined` | — |  |
 | `suppressHydrationWarning` | `boolean | undefined` | — |  |
 | `tabIndex` | `number | undefined` | — |  |
 | `title` | `string | undefined` | — |  |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `typeof` | `string | undefined` | — |  |
 | `unselectable` | `"off" | "on" | undefined` | — |  |
 | `vocab` | `string | undefined` | — |  |

@@ -1,5 +1,7 @@
 # React Spectrum 공식 Props API
 
+전체 파일 목록 (components · guides · react-aria 사본) 은 [MANIFEST.md](MANIFEST.md) — 공식 매니페스트에서 자동 생성.
+
 react-spectrum.adobe.com 공식 문서 기반의 컴포넌트 Props 레퍼런스 (읽기용 스냅샷).
 D2 정본은 설치된 `@react-spectrum/s2` 1.8.1 의 TypeScript 타입이다 (ssot-hierarchy.md §D2) — 이 문서와 다르면 설치본이 이긴다.
 

@@ -16,8 +16,7 @@ This example shows a simple focusable element which supports copying a string wh
 ```tsx
 'use client';
 import React from 'react';
-import type {TextDropItem} from 'react-aria';
-import {useClipboard} from 'react-aria';
+import {useClipboard, type TextDropItem} from 'react-aria/useClipboard';
 import './useClipboardExample.css';
 import 'vanilla-starter/theme.css';
 
@@ -78,8 +77,7 @@ This example copies two items, each of which contains representations as plain t
 ```tsx
 'use client';
 import React from 'react';
-import type {TextDropItem} from 'react-aria';
-import {useClipboard} from 'react-aria';
+import {useClipboard, type TextDropItem} from 'react-aria/useClipboard';
 
 function Copyable() {
   let {clipboardProps} = useClipboard({
@@ -163,9 +161,9 @@ function Pasteable() {
 
 `useClipboard` allows users to paste one or more items, each of which contains data to be pasted. There are three kinds of items:
 
-* `text` – represents data inline as a string in one or more formats
-* `file` – references a file on the user's device
-* `directory` – references the contents of a directory
+- `text` – represents data inline as a string in one or more formats
+- `file` – references a file on the user's device
+- `directory` – references the contents of a directory
 
 ### Text
 
@@ -176,8 +174,7 @@ The example below works with the above `Copyable` example using a custom app-spe
 ```tsx
 'use client';
 import React from 'react';
-import type {TextDropItem} from 'react-aria';
-import {useClipboard} from 'react-aria';
+import {useClipboard, type TextDropItem} from 'react-aria/useClipboard';
 
 function Copyable() {
   let {clipboardProps} = useClipboard({
@@ -265,8 +262,7 @@ This example accepts JPEG and PNG image files, and renders them by creating a lo
 ```tsx
 'use client';
 import React from 'react';
-import {useClipboard} from 'react-aria';
-import type {FileDropItem} from 'react-aria';
+import {useClipboard, type FileDropItem} from 'react-aria/useClipboard';
 
 function Pasteable() {
   let [file, setFile] = React.useState<string | null>(null);
@@ -295,8 +291,7 @@ This example renders the file names within a dropped directory in a grid.
 ```tsx
 'use client';
 import React from 'react';
-import {useClipboard} from 'react-aria'
-import type {DirectoryDropItem} from 'react-aria';
+import {useClipboard, type DirectoryDropItem} from 'react-aria/useClipboard';
 import File from '@react-spectrum/s2/icons/File';
 import Folder from '@react-spectrum/s2/icons/Folder';
 import './useClipboardGrid.css';
@@ -348,8 +343,7 @@ If you need to temporarily disable copying and pasting, you can pass the `isDisa
 ```tsx
 'use client';
 import React from 'react';
-import type {TextDropItem} from 'react-aria';
-import {useClipboard} from 'react-aria';
+import {useClipboard, type TextDropItem} from 'react-aria/useClipboard';
 
 function Copyable() {
   let {clipboardProps} = useClipboard({
@@ -410,10 +404,10 @@ function Pasteable() {
 | Name | Type | Description |
 |------|------|-------------|
 | `getItems` | `((details: { action: "cut" | "copy"; }) => DragItem[]) | undefined` | A function that returns the items to copy. |
+| `isDisabled` | `boolean | undefined` | Whether the clipboard is disabled. |
 | `onCopy` | `(() => void) | undefined` | Handler that is called when the user triggers a copy interaction. |
 | `onCut` | `(() => void) | undefined` | Handler that is called when the user triggers a cut interaction. |
 | `onPaste` | `((items: DropItem[]) => void) | undefined` | Handler that is called when the user triggers a paste interaction. |
-| `isDisabled` | `boolean | undefined` | Whether the clipboard is disabled. |
 
 ### ClipboardResult
 
@@ -433,10 +427,10 @@ data types, and integrates with the operating system native clipboard.
 | Name | Type | Description |
 |------|------|-------------|
 | `getItems` | `((details: { action: "cut" | "copy"; }) => DragItem[]) | undefined` | A function that returns the items to copy. |
+| `isDisabled` | `boolean | undefined` | Whether the clipboard is disabled. |
 | `onCopy` | `(() => void) | undefined` | Handler that is called when the user triggers a copy interaction. |
 | `onCut` | `(() => void) | undefined` | Handler that is called when the user triggers a cut interaction. |
 | `onPaste` | `((items: DropItem[]) => void) | undefined` | Handler that is called when the user triggers a paste interaction. |
-| `isDisabled` | `boolean | undefined` | Whether the clipboard is disabled. |
 
 ### TextDropItem
 
@@ -460,8 +454,8 @@ Returns the data for the given type as a string.
 | Name | Type | Description |
 |------|------|-------------|
 | `kind` \* | `"file"` | The item kind. |
-| `type` \* | `string` | The file type (usually a mime type). |
 | `name` \* | `string` | The file name. |
+| `type` \* | `string` | The file type (usually a mime type). |
 
 ### Methods
 
@@ -484,6 +478,6 @@ Returns the contents of the file as a string.
 
 ### Methods
 
-#### `getEntries(): AsyncIterable<FileDropItem | DirectoryDropItem>`
+#### `getEntries(): AsyncIterable<DirectoryDropItem | FileDropItem>`
 
 Returns the entries contained within the directory.

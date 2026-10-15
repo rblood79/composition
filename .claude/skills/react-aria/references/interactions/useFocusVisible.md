@@ -3,7 +3,7 @@
 Manages focus visible state for the page, and subscribes individual components for updates.
 
 ```tsx
-import {useFocusVisible} from 'react-aria';
+import {useFocusVisible} from 'react-aria/useFocusVisible';
 
 function Example() {
   let {isFocusVisible} = useFocusVisible({isTextInput: true});
@@ -45,8 +45,8 @@ globally, see [useFocusRing](useFocusRing.md).
 
 | Name | Type | Description |
 |------|------|-------------|
-| `isTextInput` | `boolean | undefined` | Whether the element is a text input. |
 | `autoFocus` | `boolean | undefined` | Whether the element will be auto focused. |
+| `isTextInput` | `boolean | undefined` | Whether the element is a text input. |
 
 ### FocusVisibleResult
 

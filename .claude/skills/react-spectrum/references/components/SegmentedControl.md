@@ -1,20 +1,11 @@
-<!-- Source: https://react-spectrum.adobe.com/s2/ (S2) + GitHub @react-spectrum/s2/src/SegmentedControl.tsx -->
-<!-- Last fetched: 2026-04-05 -->
-
 # SegmentedControl
 
 A SegmentedControl is a mutually exclusive group of buttons used for view switching.
 
 ```tsx
-import { SegmentedControl, SegmentedControlItem } from "@react-spectrum/s2";
-```
+import {SegmentedControl, SegmentedControlItem} from '@react-spectrum/s2/SegmentedControl';
 
-## Examples
-
-### Basic
-
-```jsx
-<SegmentedControl aria-label="Time granularity">
+<SegmentedControl>
   <SegmentedControlItem id="day">Day</SegmentedControlItem>
   <SegmentedControlItem id="week">Week</SegmentedControlItem>
   <SegmentedControlItem id="month">Month</SegmentedControlItem>
@@ -22,69 +13,130 @@ import { SegmentedControl, SegmentedControlItem } from "@react-spectrum/s2";
 </SegmentedControl>
 ```
 
-### With Icons
+## Content
 
-```jsx
-<SegmentedControl aria-label="List organization">
-  <SegmentedControlItem id="unordered">
-    <ListBulleted />
-    <Text>Unordered</Text>
+SegmentedControlItem supports icons and text as children. When a visible label is omitted, provide an `aria-label`.
+
+## Icon + Text example
+
+```tsx
+import {SegmentedControl, SegmentedControlItem, Text} from '@react-spectrum/s2/SegmentedControl';
+import AlignLeft from '@react-spectrum/s2/icons/AlignLeft';
+import AlignCenter from '@react-spectrum/s2/icons/AlignCenter';
+import AlignRight from '@react-spectrum/s2/icons/AlignRight';
+
+<SegmentedControl aria-label="Text alignment">
+  <SegmentedControlItem id="left">
+    {/*- begin highlight -*/}
+    <AlignLeft />
+    <Text>Left</Text>
+    {/*- end highlight -*/}
   </SegmentedControlItem>
-  <SegmentedControlItem id="ordered">
-    <ListNumbered />
-    <Text>Ordered</Text>
+  <SegmentedControlItem id="center">
+    <AlignCenter />
+    <Text>Center</Text>
   </SegmentedControlItem>
-  <SegmentedControlItem id="task list">
-    <ListMultiSelect />
-    <Text>Task List</Text>
+  <SegmentedControlItem id="right">
+    <AlignRight />
+    <Text>Right</Text>
   </SegmentedControlItem>
 </SegmentedControl>
 ```
 
-### Icon Only
+## Icon only example
 
-```jsx
+```tsx
+import {SegmentedControl, SegmentedControlItem} from '@react-spectrum/s2/SegmentedControl';
+import AlignLeft from '@react-spectrum/s2/icons/AlignLeft';
+import AlignCenter from '@react-spectrum/s2/icons/AlignCenter';
+import AlignRight from '@react-spectrum/s2/icons/AlignRight';
+
 <SegmentedControl aria-label="Text alignment">
-  <SegmentedControlItem aria-label="Align bottom" id="align bottom">
-    <AlignBottom />
+  <SegmentedControlItem id="left" aria-label="Align left">
+    {/*- begin highlight -*/}
+    <AlignLeft />
+     {/*- end highlight -*/}
   </SegmentedControlItem>
-  <SegmentedControlItem aria-label="Align center" id="align center">
+  <SegmentedControlItem id="center" aria-label="Align center">
     <AlignCenter />
   </SegmentedControlItem>
-  <SegmentedControlItem aria-label="Align left" id="align left">
-    <AlignLeft />
+  <SegmentedControlItem id="right" aria-label="Align right">
+    <AlignRight />
   </SegmentedControlItem>
 </SegmentedControl>
 ```
 
-## Props
+## Selection
 
-### SegmentedControlProps
+Use the `defaultSelectedKey` or `selectedKey` prop to set the selected item. The selected key corresponds to the `id` prop of a `<SegmentedControlItem>`. Items can be disabled with the `isDisabled` prop. See the [selection guide](selection.md?component=Tabs#single-selection) for more details.
 
-| Name                 | Type                | Default | Description                                        |
-| -------------------- | ------------------- | ------- | -------------------------------------------------- |
-| `children`           | `ReactNode`         | --      | The SegmentedControlItem elements                  |
-| `isDisabled`         | `boolean`           | --      | Whether the segmented control is disabled          |
-| `isJustified`        | `boolean`           | --      | Whether items divide the container width equally   |
-| `selectedKey`        | `Key \| null`       | --      | The id of the currently selected item (controlled) |
-| `defaultSelectedKey` | `Key`               | --      | The id of the initial selected item (uncontrolled) |
-| `onSelectionChange`  | `(id: Key) => void` | --      | Handler called when selection changes              |
-| `aria-label`         | `string`            | --      | Accessibility label                                |
-| `styles`             | `StyleString`       | --      | Spectrum style overrides                           |
-| `UNSAFE_style`       | `CSSProperties`     | --      | Custom styles (last resort)                        |
-| `UNSAFE_className`   | `string`            | --      | Custom class name (last resort)                    |
+```tsx
+import {SegmentedControl, SegmentedControlItem, type Key} from '@react-spectrum/s2/SegmentedControl';
+import {useState} from 'react';
 
-### SegmentedControlItemProps
+function Example() {
+  let [selected, setSelected] = useState<Key>('month');
 
-| Name               | Type            | Default | Description                                        |
-| ------------------ | --------------- | ------- | -------------------------------------------------- |
-| `children`         | `ReactNode`     | --      | The content to display (text, icon, or both)       |
-| `id`               | `Key`           | --      | The item identifier                                |
-| `isDisabled`       | `boolean`       | --      | Whether the item is disabled                       |
-| `aria-label`       | `string`        | --      | Accessibility label (required for icon-only items) |
-| `UNSAFE_style`     | `CSSProperties` | --      | Custom styles                                      |
-| `UNSAFE_className` | `string`        | --      | Custom class name                                  |
+  return (
+    <div>
+      <SegmentedControl
+        /*- begin highlight -*/
+        selectedKey={selected}
+        onSelectionChange={setSelected}
+        /*- end highlight -*/
+        aria-label="Time granularity">
+        <SegmentedControlItem id="day">Day</SegmentedControlItem>
+        <SegmentedControlItem id="week" isDisabled>Week</SegmentedControlItem>
+        <SegmentedControlItem id="month">Month</SegmentedControlItem>
+        <SegmentedControlItem id="year">Year</SegmentedControlItem>
+      </SegmentedControl>
+      <p>Selected: {selected}</p>
+    </div>
+  );
+}
+```
 
-## Accessibility
+## API
 
-An `aria-label` is required on SegmentedControl. For icon-only items, each SegmentedControlItem also needs an `aria-label`.
+```tsx
+<SegmentedControl>
+  <SegmentedControlItem>
+    <Icon />
+    <Text />
+  </SegmentedControlItem>
+</SegmentedControl>
+```
+
+### SegmentedControl
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the segmented control. |
+| `defaultSelectedKey` | `Key | undefined` | — | The id of the initial selected item (uncontrolled). |
+| `isDisabled` | `boolean | undefined` | — | Whether the segmented control is disabled. |
+| `isJustified` | `boolean | undefined` | — | Whether the items should divide the container width equally. |
+| `onSelectionChange` | `((id: Key) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `selectedKey` | `Key | null | undefined` | — | The id of the currently selected item (controlled). |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+
+### SegmentedControlItem
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the segmented control item. |
+| `id` | `Key` | — | The id of the item, matching the value used in SegmentedControl's `selectedKey` prop. |
+| `isDisabled` | `boolean | undefined` | — | Whether the item is disabled or not. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

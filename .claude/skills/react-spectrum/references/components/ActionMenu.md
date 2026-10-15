@@ -1,303 +1,74 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ActionMenu.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ActionMenu
 
-ActionMenu combines an ActionButton with a Menu for simple "more actions" use cases. It automatically adapts to mobile devices by displaying in a tray instead of a popover.
-
-**Added:** v3.18.0
+ActionMenu combines an ActionButton with a Menu for simple "more actions" use cases.
 
 ```tsx
-import { ActionMenu } from "@adobe/react-spectrum";
-```
-
-## Basic Usage
-
-```tsx
-<ActionMenu>
-  <Item>Cut</Item>
-  <Item>Copy</Item>
-  <Item>Paste</Item>
-</ActionMenu>
-```
-
-## Content
-
-### Static Collections
-
-```tsx
-<ActionMenu>
-  <Item key="cut">Cut</Item>
-  <Item key="copy">Copy</Item>
-  <Item key="paste">Paste</Item>
-</ActionMenu>
-```
-
-### Dynamic Collections
-
-```tsx
-function Example() {
-  let items = [
-    { name: "Cut" },
-    { name: "Copy" },
-    { name: "Paste" },
-    { name: "Select All" },
-  ];
-
-  return (
-    <ActionMenu items={items}>
-      {(item) => <Item key={item.name}>{item.name}</Item>}
-    </ActionMenu>
-  );
-}
-```
-
-### Sections
-
-```tsx
-<ActionMenu>
-  <Section title="File">
-    <Item key="new">New</Item>
-    <Item key="open">Open...</Item>
-  </Section>
-  <Section title="Save">
-    <Item key="save">Save</Item>
-    <Item key="saveAs">Save As...</Item>
-  </Section>
-</ActionMenu>
-```
-
-### Dynamic Sections
-
-```tsx
-function Example() {
-  let data = [
-    {
-      name: "Reversion",
-      id: "reversion",
-      children: [
-        { id: "undo", name: "Undo" },
-        { id: "redo", name: "Redo" },
-      ],
-    },
-    {
-      name: "Clipboard",
-      id: "clipboard",
-      children: [
-        { id: "cut", name: "Cut" },
-        { id: "copy", name: "Copy" },
-        { id: "paste", name: "Paste" },
-      ],
-    },
-  ];
-
-  return (
-    <ActionMenu items={data}>
-      {(item) => (
-        <Section items={item.children} title={item.name}>
-          {(item) => <Item>{item.name}</Item>}
-        </Section>
-      )}
-    </ActionMenu>
-  );
-}
-```
-
-### Complex Items
-
-```tsx
-import { Keyboard, Text } from "@adobe/react-spectrum";
+import {ActionMenu, MenuItem, Text, Keyboard} from '@react-spectrum/s2/ActionMenu';
+import Copy from '@react-spectrum/s2/icons/Copy';
+import Cut from '@react-spectrum/s2/icons/Cut';
+import Paste from '@react-spectrum/s2/icons/Paste';
 
 <ActionMenu>
-  <Item key="cut" textValue="cut">
-    <Cut />
-    <Text>Cut</Text>
-    <Keyboard>⌘X</Keyboard>
-  </Item>
-  <Item key="copy" textValue="copy">
+  <MenuItem
+    textValue="Copy"
+    onAction={() => alert('copy')}>
     <Copy />
-    <Text>Copy</Text>
+    <Text slot="label">Copy</Text>
+    <Text slot="description">Copy the selected text</Text>
     <Keyboard>⌘C</Keyboard>
-  </Item>
-  <Item key="paste" textValue="paste">
+  </MenuItem>
+  <MenuItem
+    textValue="Cut"
+    onAction={() => alert('cut')}>
+    <Cut />
+    <Text slot="label">Cut</Text>
+    <Text slot="description">Cut the selected text</Text>
+    <Keyboard>⌘X</Keyboard>
+  </MenuItem>
+  <MenuItem
+    textValue="Paste"
+    onAction={() => alert('paste')}>
     <Paste />
-    <Text>Paste</Text>
+    <Text slot="label">Paste</Text>
+    <Text slot="description">Paste the copied text</Text>
     <Keyboard>⌘V</Keyboard>
-  </Item>
-</ActionMenu>;
+  </MenuItem>
+</ActionMenu>
 ```
 
-## Events
-
-### onAction
-
-Called when a menu item is pressed, receiving the item's key:
-
-```tsx
-function Example() {
-  let [action, setAction] = React.useState(null);
-
-  return (
-    <>
-      <ActionMenu onAction={setAction}>
-        <Item key="cut">Cut</Item>
-        <Item key="copy">Copy</Item>
-        <Item key="paste">Paste</Item>
-      </ActionMenu>
-      <p>Action: {action}</p>
-    </>
-  );
-}
-```
-
-## Links
-
-Items can function as links using the `href` property:
+## API
 
 ```tsx
 <ActionMenu>
-  <Item href="https://adobe.com/" target="_blank">
-    Adobe
-  </Item>
-  <Item href="https://apple.com/" target="_blank">
-    Apple
-  </Item>
-  <Item href="https://google.com/" target="_blank">
-    Google
-  </Item>
+  <MenuItem />
 </ActionMenu>
 ```
 
-## Visual Options
+### ActionMenu
 
-### Quiet Style
-
-```tsx
-<ActionMenu isQuiet>
-  <Item key="cut">Cut</Item>
-  <Item key="copy">Copy</Item>
-</ActionMenu>
-```
-
-### Disabled
-
-```tsx
-<ActionMenu isDisabled>
-  <Item key="cut">Cut</Item>
-  <Item key="copy">Copy</Item>
-</ActionMenu>
-```
-
-### Disabled Items
-
-```tsx
-<ActionMenu disabledKeys={["redo", "paste"]}>
-  <Item key="undo">Undo</Item>
-  <Item key="redo">Redo</Item>
-  <Item key="cut">Cut</Item>
-  <Item key="paste">Paste</Item>
-</ActionMenu>
-```
-
-### Placement
-
-```tsx
-<Flex gap="size-100">
-  <ActionMenu align="start">
-    <Item key="cut">Cut</Item>
-    <Item key="copy">Copy</Item>
-  </ActionMenu>
-  <ActionMenu align="end" direction="top" shouldFlip={false}>
-    <Item key="cut">Cut</Item>
-    <Item key="copy">Copy</Item>
-  </ActionMenu>
-</Flex>
-```
-
-### Controlled Open State
-
-```tsx
-function Example() {
-  let [open, setOpen] = React.useState(false);
-
-  return (
-    <ActionMenu isOpen={open} onOpenChange={setOpen}>
-      <Item key="cut">Cut</Item>
-      <Item key="copy">Copy</Item>
-    </ActionMenu>
-  );
-}
-```
-
-## Props
-
-| Name            | Type                                                         | Default    | Description                          |
-| --------------- | ------------------------------------------------------------ | ---------- | ------------------------------------ |
-| `children`      | `CollectionChildren<object>`                                 | --         | Collection contents                  |
-| `items`         | `Iterable<object>`                                           | --         | Item objects for dynamic collections |
-| `isDisabled`    | `boolean`                                                    | --         | Disables the button                  |
-| `isQuiet`       | `boolean`                                                    | --         | Quiet style                          |
-| `autoFocus`     | `boolean`                                                    | --         | Focus on render                      |
-| `disabledKeys`  | `Iterable<Key>`                                              | --         | Keys of disabled items               |
-| `align`         | `'start' \| 'end'`                                           | `'start'`  | Menu alignment relative to trigger   |
-| `direction`     | `'bottom' \| 'top' \| 'left' \| 'right' \| 'start' \| 'end'` | `'bottom'` | Menu opening direction               |
-| `shouldFlip`    | `boolean`                                                    | `true`     | Auto-flip when space limited         |
-| `closeOnSelect` | `boolean`                                                    | `true`     | Close after selection                |
-| `trigger`       | `'press' \| 'longPress'`                                     | `'press'`  | Activation method                    |
-| `isOpen`        | `boolean`                                                    | --         | Controlled open state                |
-| `defaultOpen`   | `boolean`                                                    | --         | Uncontrolled default open            |
-| `id`            | `string`                                                     | --         | Unique identifier                    |
-
-### Events
-
-| Name           | Type                        | Description                    |
-| -------------- | --------------------------- | ------------------------------ |
-| `onAction`     | `(key: Key) => void`        | Fired when an item is selected |
-| `onOpenChange` | `(isOpen: boolean) => void` | Fired when open state changes  |
-
-### Accessibility Props
-
-| Name               | Type     | Description                     |
-| ------------------ | -------- | ------------------------------- |
-| `aria-label`       | `string` | Element label                   |
-| `aria-labelledby`  | `string` | References labeling element     |
-| `aria-describedby` | `string` | References description element  |
-| `aria-details`     | `string` | References detailed description |
-
-Layout/spacing/positioning props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`, `UNSAFE_className`, `UNSAFE_style`
-
-### Item Props
-
-| Name             | Type                          | Description                           |
-| ---------------- | ----------------------------- | ------------------------------------- |
-| `children`       | `ReactNode`                   | Item content or child items           |
-| `title`          | `ReactNode`                   | Rendered title if children are nested |
-| `textValue`      | `string`                      | Text for typeahead and accessibility  |
-| `aria-label`     | `string`                      | Accessibility label                   |
-| `childItems`     | `Iterable<T>`                 | Child items for dynamic collections   |
-| `hasChildItems`  | `boolean`                     | Whether item has children             |
-| `href`           | `Href`                        | Link URL                              |
-| `hrefLang`       | `string`                      | Language hint for linked URL          |
-| `target`         | `HTMLAttributeAnchorTarget`   | Link target window                    |
-| `rel`            | `string`                      | Relationship to linked resource       |
-| `download`       | `boolean \| string`           | Download linked URL                   |
-| `ping`           | `string`                      | URLs to ping when followed            |
-| `referrerPolicy` | `HTMLAttributeReferrerPolicy` | Referrer policy                       |
-| `routerOptions`  | `RouterOptions`               | Client router config                  |
-
-### Section Props
-
-| Name         | Type                                                    | Description                       |
-| ------------ | ------------------------------------------------------- | --------------------------------- |
-| `children`   | `ItemElement<T> \| ItemElement<T>[] \| ItemRenderer<T>` | Static items or render function   |
-| `title`      | `ReactNode`                                             | Section header                    |
-| `aria-label` | `string`                                                | Accessibility label when no title |
-| `items`      | `Iterable<T>`                                           | Dynamic items                     |
-
-## Accessibility
-
-- Section elements without a `title` must provide an `aria-label`
-- Item `textValue` prop assists with typeahead functionality
-- Complex items with multiple Text elements require `slot="description"` on descriptions
-- Layout automatically flips for RTL languages
-- On mobile, items display in a tray instead of a popover
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"end" | "start" | undefined` | 'start' | Alignment of the menu relative to the trigger. |
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `((item: T) => ReactNode) | ReactNode` | — | The contents of the collection. |
+| `defaultOpen` | `boolean | undefined` | — | Whether the overlay is open by default (uncontrolled). |
+| `direction` | `"bottom" | "end" | "left" | "right" | "start" | "top" | undefined` | 'bottom' | Where the Menu opens relative to its trigger. |
+| `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the button is disabled. |
+| `isOpen` | `boolean | undefined` | — | Whether the overlay is open by default (controlled). |
+| `isQuiet` | `boolean | undefined` | — | Whether the button should be displayed with a [quiet style](https://spectrum.adobe.com/page/action-button/#Quiet). |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `menuSize` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Menu. |
+| `onAction` | `((key: Key, value: T) => void) | undefined` | — | Handler that is called when an item is selected. |
+| `onOpenChange` | `((isOpen: boolean) => void) | undefined` | — | Handler that is called when the overlay's open state changes. |
+| `shouldCloseOnSelect` | `boolean | undefined` | — | Whether the menu should close when the menu item is selected. |
+| `shouldFlip` | `boolean | undefined` | true | Whether the menu should automatically flip direction when space is limited. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the ActionButton. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

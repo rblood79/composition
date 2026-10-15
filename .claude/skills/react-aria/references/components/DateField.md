@@ -11,33 +11,33 @@ Each part of a date value is displayed in an individually editable segment.
 'use client';
 import {
   DateField as AriaDateField,
-  DateFieldProps as AriaDateFieldProps,
+  type DateFieldProps as AriaDateFieldProps,
   DateInput as AriaDateInput,
-  DateInputProps,
+  type DateInputProps,
   DateSegment as AriaDateSegment,
-  DateSegmentProps,
-  DateValue,
-  ValidationResult
-} from 'react-aria-components';
+  type DateSegmentProps,
+  type DateValue,
+  type ValidationResult
+} from 'react-aria-components/DateField';
 import {Label, FieldError, Description} from './Form';
 import './DateField.css';
 
-export interface DateFieldProps<T extends DateValue>
-  extends AriaDateFieldProps<T> {
+export interface DateFieldProps<T extends DateValue> extends AriaDateFieldProps<T> {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
 }
 
-export function DateField<T extends DateValue>(
-  { label, description, errorMessage, ...props }: DateFieldProps<T>
-) {
+export function DateField<T extends DateValue>({
+  label,
+  description,
+  errorMessage,
+  ...props
+}: DateFieldProps<T>) {
   return (
     <AriaDateField {...props}>
       <Label>{label}</Label>
-      <DateInput>
-        {(segment) => <DateSegment segment={segment} />}
-      </DateInput>
+      <DateInput>{segment => <DateSegment segment={segment} />}</DateInput>
       {description && <Description>{description}</Description>}
       <FieldError>{errorMessage}</FieldError>
     </AriaDateField>
@@ -57,8 +57,8 @@ export function DateInput(props: DateInputProps) {
 ### DateField.css
 
 ```css
-@import "./theme.css";
-@import "./utilities.css";
+@import './theme.css';
+@import './utilities.css';
 
 .react-aria-DateField {
   display: flex;
@@ -99,7 +99,7 @@ export function DateInput(props: DateInputProps) {
   color: var(--field-text-color);
   -webkit-tap-highlight-color: transparent;
 
-  &[data-type=literal] {
+  &[data-type='literal'] {
     padding: 0;
   }
 
@@ -141,16 +141,16 @@ export function DateInput(props: DateInputProps) {
 import React from 'react';
 import {
   DateField as AriaDateField,
-  DateFieldProps as AriaDateFieldProps,
+  type DateFieldProps as AriaDateFieldProps,
   DateInput as AriaDateInput,
-  DateInputProps,
+  type DateInputProps,
   DateSegment,
-  DateValue,
-  ValidationResult
-} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
-import { Description, FieldError, Label, fieldGroupStyles } from './Field';
-import { composeTailwindRenderProps } from './utils';
+  type DateValue,
+  type ValidationResult
+} from 'react-aria-components/DateField';
+import {tv} from 'tailwind-variants';
+import {Description, FieldError, Label, fieldGroupStyles} from './Field';
+import {composeTailwindRenderProps} from './utils';
 
 export interface DateFieldProps<T extends DateValue> extends AriaDateFieldProps<T> {
   label?: string;
@@ -158,11 +158,16 @@ export interface DateFieldProps<T extends DateValue> extends AriaDateFieldProps<
   errorMessage?: string | ((validation: ValidationResult) => string);
 }
 
-export function DateField<T extends DateValue>(
-  { label, description, errorMessage, ...props }: DateFieldProps<T>
-) {
+export function DateField<T extends DateValue>({
+  label,
+  description,
+  errorMessage,
+  ...props
+}: DateFieldProps<T>) {
   return (
-    <AriaDateField {...props} className={composeTailwindRenderProps(props.className, 'flex flex-col gap-1')}>
+    <AriaDateField
+      {...props}
+      className={composeTailwindRenderProps(props.className, 'flex flex-col gap-1')}>
       {label && <Label>{label}</Label>}
       <DateInput />
       {description && <Description>{description}</Description>}
@@ -188,8 +193,16 @@ const segmentStyles = tv({
 
 export function DateInput(props: Omit<DateInputProps, 'children'>) {
   return (
-    <AriaDateInput className={renderProps => fieldGroupStyles({...renderProps, class: 'inline min-w-[150px] px-3 h-9 text-sm leading-8.5 font-sans cursor-text disabled:cursor-default whitespace-nowrap overflow-x-auto [scrollbar-width:none]'})} {...props}>
-      {(segment) => <DateSegment segment={segment} className={segmentStyles} />}
+    <AriaDateInput
+      className={renderProps =>
+        fieldGroupStyles({
+          ...renderProps,
+          class:
+            'inline min-w-[150px] px-3 h-9 text-sm leading-8.5 font-sans cursor-text disabled:cursor-default whitespace-nowrap overflow-x-auto [scrollbar-width:none]'
+        })
+      }
+      {...props}>
+      {segment => <DateSegment segment={segment} className={segmentStyles} />}
     </AriaDateInput>
   );
 }
@@ -202,7 +215,7 @@ Use the `value` or `defaultValue` prop to set the date value, using objects in t
 
 ```tsx
 import {parseDate, getLocalTimeZone, type CalendarDate} from '@internationalized/date';
-import {useDateFormatter} from 'react-aria';
+import {useDateFormatter} from 'react-aria/useDateFormatter';
 import {DateField} from 'vanilla-starter/DateField';
 import {useState} from 'react';
 
@@ -240,7 +253,7 @@ import {DateField} from 'vanilla-starter/DateField';
 By default, `DateField` displays the value using the calendar system for the user's locale. Use `<I18nProvider>` to override the calendar system by setting the [Unicode calendar locale extension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/calendar#adding_a_calendar_in_the_locale_string). The `onChange` event always receives a date in the same calendar as the `value` or `defaultValue` (Gregorian if no value is provided), regardless of the displayed locale.
 
 ```tsx
-import {I18nProvider} from 'react-aria-components';
+import {I18nProvider} from 'react-aria-components/I18nProvider';
 import {parseZonedDateTime} from '@internationalized/date';
 import {DateField} from 'vanilla-starter/DateField';
 
@@ -384,13 +397,13 @@ import {Form} from 'vanilla-starter/Form';;
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `placeholderValue` | `T | null | undefined` | — | A placeholder date that influences the format of the placeholder shown when no value is selected. Defaults to today's date at midnight. |
-| `render` | `DOMRenderFunction<"div", DateFieldRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", DateFieldRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `shouldForceLeadingZeros` | `boolean | undefined` | — | Whether to always show leading zeros in the month, day, and hour fields. By default, this is determined by the user's locale. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: DateFieldRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
-| `validate` | `((value: MappedDateValue<T>) => ValidationError | true | null | undefined) | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
-| `validationBehavior` | `"native" | "aria" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `style` | `StyleOrFunction<DateFieldRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+| `validate` | `((value: MappedDateValue<T>) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
 | `value` | `T | null | undefined` | — | The current value (controlled). |
 
 ### DateInput
@@ -467,10 +480,10 @@ import {Form} from 'vanilla-starter/Form';;
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", DateInputRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", DateInputRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: DateInputRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `StyleOrFunction<DateInputRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ### DateSegment
 
@@ -549,7 +562,7 @@ import {Form} from 'vanilla-starter/Form';;
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLSpanElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLSpanElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLSpanElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"span", DateSegmentRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"span", DateSegmentRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `segment` | `IDateSegment` | — |  |
-| `style` | `(React.CSSProperties | ((values: DateSegmentRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `StyleOrFunction<DateSegmentRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |

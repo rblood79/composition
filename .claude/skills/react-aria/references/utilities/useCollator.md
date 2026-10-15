@@ -1,7 +1,7 @@
 # useCollator
 
-Provides localized string collation for the current locale. Automatically updates when the locale changes,
-and handles caching of the collator for performance.
+Provides localized string collation for the current locale. Automatically updates when the locale
+changes, and handles caching of the collator for performance.
 
 ## Introduction
 
@@ -18,7 +18,7 @@ This example includes two textfields and compares the values of the two fields u
 ```tsx
 'use client';
 import React from 'react';
-import {useCollator} from 'react-aria';
+import {useCollator} from 'react-aria/useCollator';
 
 function Example() {
   let [first, setFirst] = React.useState('');

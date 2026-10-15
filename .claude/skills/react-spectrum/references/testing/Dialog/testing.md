@@ -10,7 +10,7 @@ npm install @react-spectrum/test-utils --dev
 
 <InlineAlert variant="notice">
   <Heading>Requirements</Heading>
-  <Content>Please note that this library uses [@testing-library/react@16](https://www.npmjs.com/package/@testing-library/react) and [@testing-library/user-event@14](https://www.npmjs.com/package/@testing-library/user-event). This means that you need to be on React 18+ in order for these utilities to work.</Content>
+  <Content>Please note that this library uses [@testing-library/dom@10](https://www.npmjs.com/package/@testing-library/dom) and [@testing-library/user-event@14](https://www.npmjs.com/package/@testing-library/user-event). This means that you need to be on React 18+ in order for these utilities to work.</Content>
 </InlineAlert>
 
 Initialize a `User` object at the top of your test file, and use it to create a `Dialog` pattern tester in your test cases. The tester has methods that you can call within your test to query for specific subcomponents or simulate common interactions.
@@ -39,7 +39,7 @@ it('Dialog can be opened and closed', async function () {
   let button = getByRole('button');
   let dialogTester = testUtilUser.createTester('Dialog', {root: button, overlayType: 'modal'});
   await dialogTester.open();
-  let dialog = dialogTester.dialog;
+  let dialog = dialogTester.getDialog();
   expect(dialog).toBeVisible();
   await dialogTester.close();
   expect(dialog).not.toBeInTheDocument();

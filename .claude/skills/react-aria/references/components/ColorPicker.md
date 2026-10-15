@@ -9,18 +9,17 @@ It simplifies building color pickers with customizable layouts via composition.
 
 ```tsx
 'use client';
+import {Button} from 'react-aria-components/Button';
 import {
-  Button,
   ColorPicker as AriaColorPicker,
-  ColorPickerProps as AriaColorPickerProps
-} from 'react-aria-components';
+  type ColorPickerProps as AriaColorPickerProps
+} from 'react-aria-components/ColorPicker';
 import {DialogTrigger} from './Dialog';
 import {ColorSwatch} from './ColorSwatch';
 import {ColorSlider} from './ColorSlider';
 import {ColorArea} from './ColorArea';
 import {ColorField} from './ColorField';
 import {Popover} from './Popover';
-
 import './ColorPicker.css';
 
 export interface ColorPickerProps extends Omit<AriaColorPickerProps, 'children'> {
@@ -28,31 +27,25 @@ export interface ColorPickerProps extends Omit<AriaColorPickerProps, 'children'>
   children?: React.ReactNode;
 }
 
-export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
+export function ColorPicker({label, children, ...props}: ColorPickerProps) {
   return (
-    (
-      <AriaColorPicker {...props}>
-        <DialogTrigger>
-          <Button className="color-picker">
-            <ColorSwatch />
-            <span>{label}</span>
-          </Button>
-          <Popover hideArrow placement="bottom start" className="color-picker-dialog">
-            {children || (
-              <>
-                <ColorArea
-                  colorSpace="hsb"
-                  xChannel="saturation"
-                  yChannel="brightness"
-                />
-                <ColorSlider colorSpace="hsb" channel="hue" />
-                <ColorField label="Hex" />
-              </>
-            )}
-          </Popover>
-        </DialogTrigger>
-      </AriaColorPicker>
-    )
+    <AriaColorPicker {...props}>
+      <DialogTrigger>
+        <Button className="color-picker">
+          <ColorSwatch />
+          <span>{label}</span>
+        </Button>
+        <Popover hideArrow placement="bottom start" className="color-picker-dialog">
+          {children || (
+            <>
+              <ColorArea colorSpace="hsb" xChannel="saturation" yChannel="brightness" />
+              <ColorSlider colorSpace="hsb" channel="hue" />
+              <ColorField label="Hex" />
+            </>
+          )}
+        </Popover>
+      </DialogTrigger>
+    </AriaColorPicker>
   );
 }
 
@@ -61,7 +54,7 @@ export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
 ### ColorPicker.css
 
 ```css
-@import "./theme.css";
+@import './theme.css';
 
 .color-picker {
   background: none;
@@ -102,15 +95,20 @@ export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
 ```tsx
 'use client';
 import React from 'react';
-import {Button, ColorPicker as AriaColorPicker, ColorPickerProps as AriaColorPickerProps, DialogTrigger} from 'react-aria-components';
+import {Button} from 'react-aria-components/Button';
+import {
+  ColorPicker as AriaColorPicker,
+  type ColorPickerProps as AriaColorPickerProps
+} from 'react-aria-components/ColorPicker';
+import {DialogTrigger} from 'react-aria-components/Dialog';
 import {ColorSwatch} from './ColorSwatch';
 import {ColorArea} from './ColorArea';
 import {ColorSlider} from './ColorSlider';
 import {ColorField} from './ColorField';
 import {Dialog} from './Dialog';
 import {Popover} from './Popover';
-import { tv } from 'tailwind-variants';
-import { focusRing } from './utils';
+import {tv} from 'tailwind-variants';
+import {focusRing} from './utils';
 
 const buttonStyles = tv({
   extend: focusRing,
@@ -122,7 +120,7 @@ export interface ColorPickerProps extends Omit<AriaColorPickerProps, 'children'>
   children?: React.ReactNode;
 }
 
-export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
+export function ColorPicker({label, children, ...props}: ColorPickerProps) {
   return (
     <AriaColorPicker {...props}>
       <DialogTrigger>
@@ -134,11 +132,7 @@ export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
           <Dialog className="flex flex-col gap-2">
             {children || (
               <>
-                <ColorArea
-                  colorSpace="hsb"
-                  xChannel="saturation"
-                  yChannel="brightness"
-                />
+                <ColorArea colorSpace="hsb" xChannel="saturation" yChannel="brightness" />
                 <ColorSlider colorSpace="hsb" channel="hue" />
                 <ColorField label="Hex" />
               </>
@@ -157,7 +151,7 @@ export function ColorPicker({ label, children, ...props }: ColorPickerProps) {
 Use the `value` or `defaultValue` prop to set the color value. This may be a string or `Color` object, parsed using the `parseColor` function. The `onChange` event is always called with a `Color` object.
 
 ```tsx
-import {parseColor} from 'react-aria-components';
+import {parseColor} from 'react-aria-components/ColorPicker';
 import {ColorPicker} from 'vanilla-starter/ColorPicker';
 import {useState} from 'react';
 
@@ -185,8 +179,7 @@ function Example() {
 This example uses [ColorSlider](ColorSlider.md) to allow a user to adjust each channel of a color value, with a [Select](Select.md) to switch between color spaces.
 
 ```tsx
-import type {ColorSpace} from 'react-aria-components';
-import {getColorChannels} from 'react-aria-components';
+import {getColorChannels, type ColorSpace} from 'react-aria-components/ColorPicker';
 import {ColorPicker} from 'vanilla-starter/ColorPicker';
 import {ColorSlider} from 'vanilla-starter/ColorSlider';
 import {Select, SelectItem} from 'vanilla-starter/Select';
@@ -243,9 +236,8 @@ import {ColorArea} from 'vanilla-starter/ColorArea';
 This example uses [ColorField](ColorField.md) to allow a user to edit the value of each color channel as a number, along with a [Select](Select.md) to switch between color spaces.
 
 ```tsx
-import type {ColorSpace} from 'react-aria-components';
+import {getColorChannels, type ColorSpace} from 'react-aria-components/ColorPicker';
 import {ColorPicker} from 'vanilla-starter/ColorPicker';
-import {getColorChannels} from 'react-aria-components';
 import {ColorArea} from 'vanilla-starter/ColorArea';
 import {ColorSlider} from 'vanilla-starter/ColorSlider';
 import {Select, SelectItem} from 'vanilla-starter/Select';
@@ -315,67 +307,20 @@ import {ColorSwatchPicker, ColorSwatchPickerItem} from 'vanilla-starter/ColorSwa
 
 ### Color
 
-Represents a color value.
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-#### `toFormat(format: ColorFormat): Color`
-
-Converts the color to the given color format, and returns a new Color object.
-
-#### `toString(format?: ColorFormat | 'css'): string`
-
-Converts the color to a string in the given format.
-
-#### `clone(): Color`
-
-Returns a duplicate of the color value.
-
-#### `toHexInt(): number`
-
-Converts the color to hex, and returns an integer representation.
-
-#### `getChannelValue(channel: ColorChannel): number`
-
-Returns the numeric value for a given channel. Throws an error if the channel is unsupported in the current color format.
-
-#### `withChannelValue(channel: ColorChannel, value: number): Color`
-
-Sets the numeric value for a given channel, and returns a new Color object. Throws an error if the channel is unsupported in the current color format.
-
-#### `getChannelRange(channel: ColorChannel): ColorChannelRange`
-
-Returns the minimum, maximum, and step values for a given channel.
-
-#### `getChannelName(channel: ColorChannel, locale: string): string`
-
-Returns a localized color channel name for a given channel and locale, for use in visual or accessibility labels.
-
-#### `getChannelFormatOptions(channel: ColorChannel): Intl.NumberFormatOptions`
-
-Returns the number formatting options for the given channel.
-
-#### `formatChannelValue(channel: ColorChannel, locale: string): string`
-
-Formats the numeric value for a given channel for display according to the provided locale.
-
-#### `getColorSpace(): ColorSpace`
-
-Returns the color space, 'rgb', 'hsb' or 'hsl', for the current color.
-
-#### `getColorSpaceAxes(xyChannels: {xChannel?: ColorChannel, yChannel?: ColorChannel}): ColorAxes`
-
-Returns the color space axes, xChannel, yChannel, zChannel.
-
-#### `getColorChannels(): [ColorChannel, ColorChannel, ColorChannel]`
-
-Returns an array of the color channels within the current color space space.
-
-#### `getColorName(locale: string): string`
-
-Returns a localized name for the color, for use in visual or accessibility labels.
-
-#### `getHueName(locale: string): string`
-
-Returns a localized name for the hue, for use in visual or accessibility labels.
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
 ### parseColor
 

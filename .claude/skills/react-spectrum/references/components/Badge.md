@@ -1,89 +1,38 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Badge.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Badge
 
-## Description
+Badges are used for showing a small amount of color-categorized metadata, ideal for getting a
+user's attention.
 
-The Badge component displays a compact, color-categorized metadata element designed to capture user attention. It's ideal for showing status, categories, or semantic information in a visually concise manner.
+```tsx
+import {Badge} from '@react-spectrum/s2/Badge';
 
-**Version:** Added in 3.22.0
-
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<Badge />
 ```
 
-```jsx
-import { Badge } from "@adobe/react-spectrum";
+## API
+
+```tsx
+<Badge>
+  <Icon />
+  <Text />
+</Badge>
 ```
 
-## Usage Examples
+### Badge
 
-### Basic Badge
-
-```jsx
-<Badge variant="positive">Licensed</Badge>
-```
-
-### Badge with Icon and Label
-
-```jsx
-import { Text } from "@adobe/react-spectrum";
-import CheckmarkCircle from "@spectrum-icons/workflow/CheckmarkCircle";
-
-<Badge variant="positive">
-  <CheckmarkCircle aria-label="Done" />
-  <Text>Icon + Label</Text>
-</Badge>;
-```
-
-### Semantic Variants
-
-```jsx
-<Flex direction="column" gap={8}>
-  <Badge variant="positive">Approved, Complete, Success</Badge>
-  <Badge variant="info">Active, In Use, Live, Published</Badge>
-  <Badge variant="negative">Error, Alert, Rejected, Failed</Badge>
-  <Badge variant="neutral">Archived, Deleted, Paused, Draft</Badge>
-</Flex>
-```
-
-### Color-Coded Categories
-
-```jsx
-<Flex direction="column" gap={8}>
-  <Badge variant="seafoam">Seafoam</Badge>
-  <Badge variant="indigo">Indigo</Badge>
-  <Badge variant="purple">Purple</Badge>
-  <Badge variant="fuchsia">Fuchsia</Badge>
-  <Badge variant="magenta">Magenta</Badge>
-  <Badge variant="yellow">Yellow</Badge>
-</Flex>
-```
-
-## Props API
-
-| Name               | Type                                                                                                                         | Default     | Description                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------- |
-| `children`         | `ReactNode`                                                                                                                  | --          | The content to display in the badge (text, icon, or both)           |
-| `variant`          | `'neutral' \| 'info' \| 'positive' \| 'negative' \| 'indigo' \| 'yellow' \| 'magenta' \| 'fuchsia' \| 'purple' \| 'seafoam'` | `'neutral'` | Changes background color; use semantic variants for status meanings |
-| `id`               | `string`                                                                                                                     | --          | Unique element identifier                                           |
-| `aria-label`       | `string`                                                                                                                     | --          | Text label for the element                                          |
-| `aria-labelledby`  | `string`                                                                                                                     | --          | ID of labeling element(s)                                           |
-| `aria-describedby` | `string`                                                                                                                     | --          | ID of describing element(s)                                         |
-| `aria-details`     | `string`                                                                                                                     | --          | ID of detailed description element(s)                               |
-| `UNSAFE_className` | `string`                                                                                                                     | --          | Direct CSS class name (use as last resort)                          |
-| `UNSAFE_style`     | `CSSProperties`                                                                                                              | --          | Inline styles (use as last resort)                                  |
-
-(layout props omitted)
-
-## Accessibility
-
-- **Icon-only badges:** When using only an icon without visible text, provide an `aria-label` attribute to the icon for screen reader users.
-- **Icons with labels:** Labels are directly visible alongside icons for clarity.
-
-## Internationalization
-
-The component automatically supports right-to-left (RTL) languages by flipping the badge layout. Simply pass localized text as children.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `React.ReactNode` | — | The content to display in the badge. |
+| `fillStyle` | `"bold" | "outline" | "subtle" | undefined` | 'bold' | The fill of the badge. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `overflowMode` | `"truncate" | "wrap" | undefined` | 'wrap' | Sets the text behavior for the contents. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'S' | The size of the badge. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `variant` | `"accent" | "blue" | "brown" | "celery" | "chartreuse" | "cinnamon" | "cyan" | "fuchsia" | "gray" | "green" | "indigo" | "informative" | "magenta" | "negative" | "neutral" | "notice" | "orange" | "pink" | "positive" | "purple" | "red" | "seafoam" | "silver" | "turquoise" | "yellow" | undefined` | 'neutral' | The variant changes the background color of the badge. When badge has a semantic meaning, they should use the variant for semantic colors. |

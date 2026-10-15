@@ -1,69 +1,27 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Divider.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Divider
 
-Dividers bring clarity to a layout by grouping and dividing content in close proximity. They can also be used to establish rhythm and hierarchy.
-
-**Added:** v3.0.0
-
-```tsx
-import { Divider } from "@adobe/react-spectrum";
-```
-
-## Usage
-
-### Horizontal (Default)
+Dividers bring clarity to a layout by grouping and dividing content in close proximity.
+They can also be used to establish rhythm and hierarchy.
 
 ```tsx
-<Flex direction="column" gap="size-125">
-  <Text>Content above</Text>
-  <Divider />
-  <Text>Content below</Text>
-</Flex>
+import {Divider} from '@react-spectrum/s2/Divider';
+
+<Divider />
 ```
 
-### Vertical
+## API
 
-```tsx
-<Flex gap="size-125">
-  <Text>Content left</Text>
-  <Divider orientation="vertical" />
-  <Text>Content right</Text>
-</Flex>
-```
-
-### Size Variations
-
-```tsx
-<Flex direction="column" gap="size-125">
-  <Text>Content above large Divider</Text>
-  <Divider size="L" />
-  <Text>Content above medium Divider</Text>
-  <Divider size="M" />
-  <Text>Content above small Divider</Text>
-  <Divider size="S" />
-</Flex>
-```
-
-## Props
-
-### Core Props
-
-| Name          | Type                         | Default        | Description                       |
-| ------------- | ---------------------------- | -------------- | --------------------------------- |
-| `size`        | `'S' \| 'M' \| 'L'`          | `'L'`          | Controls thickness of the divider |
-| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Axis alignment                    |
-| `slot`        | `string`                     | `'divider'`    | Named slot for placement          |
-
-### Accessibility Props
-
-| Name               | Type     | Description                     |
-| ------------------ | -------- | ------------------------------- |
-| `id`               | `string` | Unique element identifier       |
-| `aria-label`       | `string` | Accessible label                |
-| `aria-labelledby`  | `string` | References labeling element     |
-| `aria-describedby` | `string` | References description element  |
-| `aria-details`     | `string` | References detailed description |
-
-Layout/spacing/positioning props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`, `UNSAFE_className`, `UNSAFE_style`
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `orientation` | `"horizontal" | "vertical" | undefined` | 'horizontal' | The orientation of the Divider. |
+| `size` | `"L" | "M" | "S" | undefined` | 'M' | How thick the Divider should be. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the Divider appears over a color background. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

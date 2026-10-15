@@ -1,199 +1,85 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/RangeSlider.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # RangeSlider
 
-RangeSliders allow users to quickly select a subset range. They should be used when the upper and lower bounds to the range are invariable.
+RangeSliders allow users to quickly select a subset range. They should be used when the upper and
+lower bounds to the range are invariable.
 
 ```tsx
-import { RangeSlider } from "@adobe/react-spectrum";
+import {RangeSlider} from '@react-spectrum/s2/RangeSlider';
+
+<RangeSlider />
 ```
 
-## Basic Usage
+## Value
 
-```jsx
-<RangeSlider label="Range" defaultValue={{ start: 12, end: 36 }} />
-```
+Use the `value` or `defaultValue` prop to set the RangeSlider's value. The value is an object with `start` and `end` properties. The `onChange` event is called as the user drags, and `onChangeEnd` is called when the thumb is released.
 
-## Value Management
+```tsx
+import {RangeSlider} from '@react-spectrum/s2/RangeSlider';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
-### Controlled vs Uncontrolled
-
-```jsx
 function Example() {
-  let [value, setValue] = React.useState({ start: 25, end: 75 });
+  let [currentValue, setCurrentValue] = useState({start: 25, end: 75});
+  let [finalValue, setFinalValue] = useState(currentValue);
+
   return (
-    <Flex gap="size-150" wrap>
+    <>
       <RangeSlider
-        label="Range (uncontrolled)"
-        defaultValue={{ start: 25, end: 75 }}
-      />
-      <RangeSlider
-        label="Range (controlled)"
-        value={value}
-        onChange={setValue}
-      />
-    </Flex>
+        label="Cookies to buy"
+        /*- begin highlight -*/
+        value={currentValue}
+        onChange={setCurrentValue}
+        onChangeEnd={setFinalValue} />
+        {/*- end highlight -*/}
+      <pre className={style({font: 'body'})}>
+        onChange value: {JSON.stringify(currentValue)}{'\n'}
+        onChangeEnd value: {JSON.stringify(finalValue)}
+      </pre>
+    </>
   );
 }
 ```
 
-### Custom Range Scale
+### Value scale
 
-```jsx
-<RangeSlider
-  label="Range"
-  minValue={50}
-  maxValue={150}
-  defaultValue={{ start: 75, end: 100 }}
-/>
+By default, slider values are percentages between 0 and 100. Use the `minValue`, `maxValue`, and `step` props to set the allowed values. Steps are calculated starting from the minimum. For example, if `minValue={2}`, and `step={3}`, the valid step values would be 2, 5, 8, 11, etc.
+
+```tsx
+import {RangeSlider} from '@react-spectrum/s2';
+
+<RangeSlider />
 ```
 
-### Value Formatting
+## API
 
-```jsx
-<RangeSlider
-  label="Price range"
-  formatOptions={{ style: "currency", currency: "JPY" }}
-  defaultValue={{ start: 75, end: 100 }}
-/>
-```
-
-### HTML Form Integration
-
-```jsx
-<RangeSlider
-  label="Range"
-  defaultValue={{ start: 12, end: 36 }}
-  startName="start"
-  endName="end"
-/>
-```
-
-## Label Positioning
-
-```jsx
-<Flex direction="column" maxWidth="size-5000" gap="size-300">
-  <RangeSlider
-    label="Jeans price range"
-    formatOptions={{ style: "currency", currency: "USD" }}
-    defaultValue={{ start: 75, end: 100 }}
-  />
-  <RangeSlider
-    label="Shoes price range"
-    labelPosition="side"
-    defaultValue={{ start: 50, end: 100 }}
-  />
-  <RangeSlider
-    label="Hats price range"
-    showValueLabel={false}
-    defaultValue={{ start: 15, end: 30 }}
-  />
-</Flex>
-```
-
-### Custom Label Formatting
-
-```jsx
-<RangeSlider
-  label="Search radius"
-  maxValue={200}
-  getValueLabel={(meters) => `${meters.start}m to ${meters.end}m away`}
-  defaultValue={{ start: 15, end: 60 }}
-/>
-```
-
-## Contextual Help
-
-```jsx
-<RangeSlider
-  label="Search radius"
-  formatOptions={{ style: "unit", unit: "mile" }}
-  defaultValue={{ start: 15, end: 60 }}
-  contextualHelp={
-    <ContextualHelp variant="info">
-      <Heading>Ranking</Heading>
-      <Content>Search results are sorted by distance.</Content>
-    </ContextualHelp>
-  }
-/>
-```
-
-## Disabled State
-
-```jsx
-<RangeSlider
-  label="Price filter"
-  defaultValue={{ start: 25, end: 50 }}
-  isDisabled
-/>
-```
-
-## Props
-
-| Name             | Type                                    | Default        | Description                          |
-| ---------------- | --------------------------------------- | -------------- | ------------------------------------ |
-| `startName`      | `string`                                | --             | Form input name for the start value  |
-| `endName`        | `string`                                | --             | Form input name for the end value    |
-| `form`           | `string`                                | --             | Associated `<form>` element ID       |
-| `formatOptions`  | `Intl.NumberFormatOptions`              | --             | Display format for value label       |
-| `labelPosition`  | `'top' \| 'side'`                       | `'top'`        | Label position relative to slider    |
-| `showValueLabel` | `boolean`                               | --             | Display/hide value label             |
-| `getValueLabel`  | `(value: RangeValue<number>) => string` | --             | Custom label formatting function     |
-| `contextualHelp` | `ReactNode`                             | --             | ContextualHelp element next to label |
-| `orientation`    | `'horizontal' \| 'vertical'`            | `'horizontal'` | Slider orientation                   |
-| `isDisabled`     | `boolean`                               | --             | Disable entire slider                |
-| `minValue`       | `number`                                | `0`            | Minimum selectable value             |
-| `maxValue`       | `number`                                | `100`          | Maximum selectable value             |
-| `step`           | `number`                                | `1`            | Increment between values             |
-| `value`          | `RangeValue<number>`                    | --             | Controlled value                     |
-| `defaultValue`   | `RangeValue<number>`                    | --             | Uncontrolled default value           |
-| `label`          | `ReactNode`                             | --             | Label content                        |
-
-### Events
-
-| Name          | Type                                  | Description                   |
-| ------------- | ------------------------------------- | ----------------------------- |
-| `onChange`    | `(value: RangeValue<number>) => void` | Fired when value changes      |
-| `onChangeEnd` | `(value: RangeValue<number>) => void` | Fired when slider is released |
-
-### Layout Props
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`
-
-### Spacing Props
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`
-
-### Sizing Props
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`
-
-### Positioning Props
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-### Accessibility Props
-
-| Name               | Type     | Description                |
-| ------------------ | -------- | -------------------------- |
-| `id`               | `string` | Unique element identifier  |
-| `aria-label`       | `string` | Accessible label string    |
-| `aria-labelledby`  | `string` | ID of labeling element     |
-| `aria-describedby` | `string` | ID of describing element   |
-| `aria-details`     | `string` | ID of detailed description |
-
-### Advanced Props
-
-| Name               | Type            | Description                       |
-| ------------------ | --------------- | --------------------------------- |
-| `UNSAFE_className` | `string`        | CSS class name (last resort only) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort only)  |
-
-## Accessibility
-
-A `label`, `aria-label`, or `aria-labelledby` prop is required depending on the visualization (i.e. depending on the `showValueLabel` prop).
-
-## Internationalization
-
-Localized strings should be passed to the `label` prop or `aria-label`. The component automatically handles RTL layout and formats value labels according to the current locale.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `RangeValue<number> | undefined` | — | The default value (uncontrolled). |
+| `endName` | `string | undefined` | — | The name of the end input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `formatOptions` | `Intl.NumberFormatOptions | undefined` | — | The display format of the value label. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the whole Slider is disabled. |
+| `isEmphasized` | `boolean | undefined` | — | Whether the Slider should be displayed with an emphasized style. |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `maxValue` | `number | undefined` | 100 | The slider's maximum value. |
+| `minValue` | `number | undefined` | 0 | The slider's minimum value. |
+| `onChange` | `((value: RangeValue<number>) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onChangeEnd` | `((value: RangeValue<number>) => void) | undefined` | — | Fired when the slider stops moving, due to being let go. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Slider. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `startName` | `string | undefined` | — | The name of the start input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `step` | `number | undefined` | 1 | The slider's step value. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `thumbStyle` | `"default" | "precise" | undefined` | 'default' | The style of the Slider's thumb. |
+| `trackStyle` | `"thick" | "thin" | undefined` | 'thin' | The style of the Slider's track. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `RangeValue<number> | undefined` | — | The current value (controlled). |

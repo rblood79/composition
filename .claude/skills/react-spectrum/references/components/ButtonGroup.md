@@ -1,29 +1,10 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ButtonGroup.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ButtonGroup
 
-## Description
+ButtonGroup handles overflow for a grouping of buttons whose actions are related to each other.
 
-ButtonGroup manages the layout and overflow behavior of related buttons. It automatically switches between horizontal and vertical orientations based on available horizontal space, making it ideal for groupings of two or more related button actions.
+```tsx
+import {ButtonGroup, Button} from '@react-spectrum/s2/ButtonGroup';
 
-**Version:** Added in 3.0.0
-
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
-```
-
-```jsx
-import { Button, ButtonGroup } from "@adobe/react-spectrum";
-```
-
-## Usage Examples
-
-### Basic
-
-```jsx
 <ButtonGroup>
   <Button variant="primary">Rate Now</Button>
   <Button variant="secondary">No, thanks</Button>
@@ -31,55 +12,57 @@ import { Button, ButtonGroup } from "@adobe/react-spectrum";
 </ButtonGroup>
 ```
 
-### Vertical Orientation
+## Overflow
 
-```jsx
-<ButtonGroup orientation="vertical">
-  <Button variant="secondary">No, thanks</Button>
-  <Button variant="secondary">Remind me later</Button>
-  <Button variant="primary">Rate Now</Button>
+When horizontal space is limited, ButtonGroup switches to a vertical layout.
+
+```tsx
+import {ButtonGroup, Button} from '@react-spectrum/s2/ButtonGroup';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<div
+  className={style({
+    width: 300,
+    maxWidth: 'full',
+    padding: 16,
+    boxSizing: 'border-box',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'gray-300',
+    borderRadius: 'default',
+    resize: 'horizontal',
+    overflow: 'hidden'
+  })}>
+  {/*- begin focus -*/}
+  <ButtonGroup>
+    <Button variant="primary">Rate Now</Button>
+    <Button variant="secondary">No, thanks</Button>
+    <Button variant="secondary">Remind me later</Button>
+  </ButtonGroup>
+  {/*- end focus -*/}
+</div>
+```
+
+## API
+
+```tsx
+<ButtonGroup>
+  <Button />
+  <LinkButton />
 </ButtonGroup>
 ```
 
-### Alignment
+### ButtonGroup
 
-```jsx
-<ButtonGroup orientation="vertical" align="end">
-  <Button variant="secondary">No, thanks</Button>
-  <Button variant="primary">Rate Now</Button>
-</ButtonGroup>
-
-<ButtonGroup orientation="vertical" align="center">
-  <Button variant="secondary">Remind me later</Button>
-  <Button variant="primary">Rate Now</Button>
-</ButtonGroup>
-```
-
-### Disabled State
-
-```jsx
-<ButtonGroup isDisabled>
-  <Button variant="secondary">No, thanks</Button>
-  <Button variant="primary">Rate Now</Button>
-</ButtonGroup>
-```
-
-## Props API
-
-| Name               | Type                           | Default        | Description                                                       |
-| ------------------ | ------------------------------ | -------------- | ----------------------------------------------------------------- |
-| `children`         | `ReactNode`                    | --             | The Button elements contained within the ButtonGroup              |
-| `isDisabled`       | `boolean`                      | --             | Disables all buttons in the group                                 |
-| `orientation`      | `'horizontal' \| 'vertical'`   | `'horizontal'` | Axis alignment; 'vertical' prevents dynamic orientation switching |
-| `align`            | `'start' \| 'end' \| 'center'` | `'start'`      | Button alignment within the group                                 |
-| `id`               | `string`                       | --             | Unique element identifier                                         |
-| `UNSAFE_className` | `string`                       | --             | Direct CSS class assignment (last resort)                         |
-| `UNSAFE_style`     | `CSSProperties`                | --             | Inline styles (last resort)                                       |
-
-(layout props omitted)
-
-## Key Behaviors
-
-- **Responsive Layout:** Automatically switches from horizontal to vertical orientation when horizontal space becomes limited
-- **Contextual Alignment:** Start-aligned by default for content flow; end-aligned within containers like dialogs or cards; center-aligned in empty states
-- **RTL Support:** Automatic alignment flipping for right-to-left languages
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the Buttons within the ButtonGroup. |
+| `children` | `ReactNode` | — | The Buttons contained within the ButtonGroup. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the Buttons in the ButtonGroup are all disabled. |
+| `orientation` | `"horizontal" | "vertical" | undefined` | 'horizontal' | The axis the ButtonGroup should align with. Setting this to 'vertical' will prevent any switching behaviors between 'vertical' and 'horizontal'. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Buttons within the ButtonGroup. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

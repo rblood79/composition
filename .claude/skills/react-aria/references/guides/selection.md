@@ -11,7 +11,7 @@ Selection is represented by a [Set](https://developer.mozilla.org/en-US/docs/Web
 ## ListBox example
 
 ```tsx
-import {type Selection} from 'react-aria-components';
+import {type Selection} from 'react-aria-components/ListBox';
 import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
 import {useState} from 'react';
 
@@ -42,8 +42,8 @@ function Example() {
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text, type Selection} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
+import {type Selection} from 'react-aria-components/GridList';
 import {useState} from 'react';
 
 export default function Example() {
@@ -80,7 +80,7 @@ function PokemonItem(props: {name: string}) {
 ## Tree example
 
 ```tsx
-import {type Selection} from 'react-aria-components';
+import {type Selection} from 'react-aria-components/Tree';
 import {Tree, TreeItem} from 'vanilla-starter/Tree';
 import {useState} from 'react';
 
@@ -115,7 +115,7 @@ function Example() {
 ## TagGroup example
 
 ```tsx
-import {type Selection} from 'react-aria-components';
+import {type Selection} from 'react-aria-components/TagGroup';
 import {TagGroup, Tag} from 'vanilla-starter/TagGroup';
 import {useState} from 'react';
 
@@ -146,7 +146,7 @@ function Example() {
 ## Table example
 
 ```tsx
-import {type Selection} from 'react-aria-components';
+import {type Selection} from 'react-aria-components/Table';
 import {Table, TableHeader, TableBody, Column, Row, Cell} from 'vanilla-starter/Table';
 import {useState} from 'react';
 
@@ -199,7 +199,7 @@ When a select all event occurs, `onSelectionChange` is called with the string `"
 and `defaultSelectedKeys` can also be set to `"all"` to programmatically select all items. The application must adjust its handling of bulk actions in this case to apply to the entire collection rather than only the keys available to it locally.
 
 ```tsx
-import {Table, TableHeader, Column, TableBody, Row, Cell, type Selection} from 'react-aria-components';
+import {Table, TableHeader, Column, TableBody, Row, Cell, type Selection} from 'react-aria-components/Table';
 import {Checkbox} from 'vanilla-starter/Checkbox';
 import {Button} from 'vanilla-starter/Button';
 import {useState} from 'react';
@@ -297,8 +297,7 @@ function Example(props) {
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
 import {useState} from 'react';
 
 function Example(props) {
@@ -338,7 +337,7 @@ function Example(props) {
 ## Tree example
 
 ```tsx
-import {type Selection} from 'react-aria-components';
+import {type Selection} from 'react-aria-components/Tree';
 import {Tree, TreeItem} from 'vanilla-starter/Tree';
 import {useState} from 'react';
 
@@ -403,8 +402,7 @@ function Example(props) {
 ## Table example
 
 ```tsx
-import {Table, TableHeader, Column, Row} from 'vanilla-starter/Table';
-import {TableBody, Cell} from 'react-aria-components';
+import {Table, TableHeader, Column, Row, TableBody, Cell} from 'vanilla-starter/Table';
 import {useState} from 'react';
 
 function Example(props) {
@@ -454,26 +452,41 @@ function Example(props) {
 
 ## Single selection
 
-In some components like [ComboBox](ComboBox.md), only single selection is supported. In this case, the singular `selectedKey` and `defaultSelectedKey` props are available instead of their plural variants. These accept a single id instead of a `Set` as their value.
+In some components like [Tabs](Tabs.md), only single selection is supported. In this case, the singular `selectedKey` and `defaultSelectedKey` props are available instead of their plural variants. These accept a single id instead of a `Set` as their value.
 
 ```tsx
-import type {Key} from 'react-aria-components';
-import {ComboBox, ComboBoxItem} from 'vanilla-starter/ComboBox';
+import type {Key} from 'react-aria-components/Tabs';
+import {Tabs, TabList, Tab, TabPanels, TabPanel} from 'vanilla-starter/Tabs';
+import Home from '@react-spectrum/s2/illustrations/gradient/generic2/Home';
+import Folder from '@react-spectrum/s2/illustrations/gradient/generic2/FolderOpen';
+import Search from '@react-spectrum/s2/illustrations/gradient/generic2/Search';
 import {useState} from 'react';
 
 function Example() {
-  let [selectedKey, setSelectedKey] = useState<Key | null>(null);
+  let [selectedKey, setSelectedKey] = useState<Key>('home');
 
   return (
     <div>
-      <ComboBox
-        label="ComboBox"
+      <Tabs
         selectedKey={selectedKey}
         onSelectionChange={setSelectedKey}>
-        <ComboBoxItem id="one">One</ComboBoxItem>
-        <ComboBoxItem id="two">Two</ComboBoxItem>
-        <ComboBoxItem id="three">Three</ComboBoxItem>
-      </ComboBox>
+        <TabList aria-label="Tabs">
+          <Tab id="home">Home</Tab>
+          <Tab id="files">Files</Tab>
+          <Tab id="search">Search</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel id="home" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <Home />
+          </TabPanel>
+          <TabPanel id="files" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <Folder />
+          </TabPanel>
+          <TabPanel id="search" style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <Search />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
       <p>selectedKey: {String(selectedKey)}</p>
     </div>
   );
@@ -490,7 +503,7 @@ Render a `<SelectionIndicator />` within each collection item to animate selecti
 
 ```tsx
 import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
-import {SelectionIndicator} from 'react-aria-components';
+import {SelectionIndicator} from 'react-aria-components/ListBox';
 import './SelectionIndicator.css';
 
 function SelectableItem({id, children}) {
@@ -519,7 +532,7 @@ function SelectableItem({id, children}) {
 | `accessKey` | `string | undefined` | — |  |
 | `aria-activedescendant` | `string | undefined` | — | Identifies the currently active element when DOM focus is on a composite widget, textbox, group, or application. |
 | `aria-atomic` | `(boolean | "true" | "false") | undefined` | — | Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute. |
-| `aria-autocomplete` | `"none" | "list" | "inline" | "both" | undefined` | — | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
+| `aria-autocomplete` | `"both" | "inline" | "list" | "none" | undefined` | — | Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be presented if they are made. |
 | `aria-braillelabel` | `string | undefined` | — | Indicates an element is being modified and that assistive technologies MAY want to wait until the modifications are complete before exposing them to the user. |
 | `aria-brailleroledescription` | `string | undefined` | — | Defines a human-readable, author-localized abbreviated description for the role of an element, which is intended to be converted into Braille. |
 | `aria-busy` | `(boolean | "true" | "false") | undefined` | — |  |
@@ -529,16 +542,14 @@ function SelectableItem({id, children}) {
 | `aria-colindextext` | `string | undefined` | — | Defines a human readable text alternative of aria-colindex. |
 | `aria-colspan` | `number | undefined` | — | Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid. |
 | `aria-controls` | `string | undefined` | — | Identifies the element (or elements) whose contents or presence are controlled by the current element. |
-| `aria-current` | `boolean | "true" | "false" | "page" | "step" | "location" | "date" | "time" | undefined` | — | Indicates the element that represents the current item within a container or set of related elements. |
+| `aria-current` | `boolean | "true" | "false" | "date" | "location" | "page" | "step" | "time" | undefined` | — | Indicates the element that represents the current item within a container or set of related elements. |
 | `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
 | `aria-description` | `string | undefined` | — | Defines a string value that describes or annotates the current element. |
 | `aria-details` | `string | undefined` | — | Identifies the element that provides a detailed, extended description for the object. |
 | `aria-disabled` | `(boolean | "true" | "false") | undefined` | — | Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable. |
-| `aria-dropeffect` | `"link" | "copy" | "move" | "none" | "execute" | "popup" | undefined` | — | Indicates what functions can be performed when a dragged object is released on the drop target. |
 | `aria-errormessage` | `string | undefined` | — | Identifies the element that provides an error message for the object. |
 | `aria-expanded` | `(boolean | "true" | "false") | undefined` | — | Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed. |
 | `aria-flowto` | `string | undefined` | — | Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion, allows assistive technology to override the general default of reading in document source order. |
-| `aria-grabbed` | `(boolean | "true" | "false") | undefined` | — | Indicates an element's "grabbed" state in a drag-and-drop operation. |
 | `aria-haspopup` | `boolean | "true" | "false" | "dialog" | "grid" | "listbox" | "menu" | "tree" | undefined` | — | Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. |
 | `aria-hidden` | `(boolean | "true" | "false") | undefined` | — | Indicates whether the element is exposed to an accessibility API. |
 | `aria-invalid` | `boolean | "true" | "false" | "grammar" | "spelling" | undefined` | — | Indicates the entered value does not conform to the format expected by the application. |
@@ -546,7 +557,7 @@ function SelectableItem({id, children}) {
 | `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `aria-level` | `number | undefined` | — | Defines the hierarchical level of an element within a structure. |
-| `aria-live` | `"off" | "assertive" | "polite" | undefined` | — | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
+| `aria-live` | `"assertive" | "off" | "polite" | undefined` | — | Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region. |
 | `aria-modal` | `(boolean | "true" | "false") | undefined` | — | Indicates whether an element is modal when displayed. |
 | `aria-multiline` | `(boolean | "true" | "false") | undefined` | — | Indicates whether a text box accepts multiple lines of input or only a single line. |
 | `aria-multiselectable` | `(boolean | "true" | "false") | undefined` | — | Indicates that the user may select more than one item from the current selectable descendants. |
@@ -556,7 +567,7 @@ function SelectableItem({id, children}) {
 | `aria-posinset` | `number | undefined` | — | Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
 | `aria-pressed` | `boolean | "true" | "false" | "mixed" | undefined` | — | Indicates the current "pressed" state of toggle buttons. |
 | `aria-readonly` | `(boolean | "true" | "false") | undefined` | — | Indicates that the element is not editable, but is otherwise operable. |
-| `aria-relevant` | `"text" | "additions" | "additions removals" | "additions text" | "all" | "removals" | "removals additions" | "removals text" | "text additions" | "text removals" | undefined` | — | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
+| `aria-relevant` | `"additions" | "additions removals" | "additions text" | "all" | "removals" | "removals additions" | "removals text" | "text" | "text additions" | "text removals" | undefined` | — | Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified. |
 | `aria-required` | `(boolean | "true" | "false") | undefined` | — | Indicates that user input is required on the element before a form may be submitted. |
 | `aria-roledescription` | `string | undefined` | — | Defines a human-readable, author-localized description for the role of an element. |
 | `aria-rowcount` | `number | undefined` | — | Defines the total number of rows in a table, grid, or treegrid. |
@@ -565,12 +576,12 @@ function SelectableItem({id, children}) {
 | `aria-rowspan` | `number | undefined` | — | Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid. |
 | `aria-selected` | `(boolean | "true" | "false") | undefined` | — | Indicates the current "selected" state of various widgets. |
 | `aria-setsize` | `number | undefined` | — | Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM. |
-| `aria-sort` | `"none" | "ascending" | "descending" | "other" | undefined` | — | Indicates if items in a table or grid are sorted in ascending or descending order. |
+| `aria-sort` | `"ascending" | "descending" | "none" | "other" | undefined` | — | Indicates if items in a table or grid are sorted in ascending or descending order. |
 | `aria-valuemax` | `number | undefined` | — | Defines the maximum allowed value for a range widget. |
 | `aria-valuemin` | `number | undefined` | — | Defines the minimum allowed value for a range widget. |
 | `aria-valuenow` | `number | undefined` | — | Defines the current value for a range widget. |
 | `aria-valuetext` | `string | undefined` | — | Defines the human readable text alternative of aria-valuenow for a range widget. |
-| `autoCapitalize` | `"off" | "none" | "on" | "sentences" | "words" | "characters" | (string & {}) | undefined` | — |  |
+| `autoCapitalize` | `"characters" | "none" | "off" | "on" | "sentences" | "words" | (string & {}) | undefined` | — |  |
 | `autoCorrect` | `string | undefined` | — |  |
 | `autoFocus` | `boolean | undefined` | — |  |
 | `autoSave` | `string | undefined` | — |  |
@@ -578,21 +589,21 @@ function SelectableItem({id, children}) {
 | `className` | `ClassNameOrFunction<SharedElementRenderProps> | undefined` | 'react-aria-SelectionIndicator' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
 | `color` | `string | undefined` | — |  |
 | `content` | `string | undefined` | — |  |
-| `contentEditable` | `(boolean | "true" | "false") | "inherit" | "plaintext-only" | undefined` | — |  |
+| `contentEditable` | `"inherit" | "plaintext-only" | (boolean | "true" | "false") | undefined` | — |  |
 | `contextMenu` | `string | undefined` | — |  |
 | `dangerouslySetInnerHTML` | `{ __html: string | TrustedHTML; } | undefined` | — |  |
 | `datatype` | `string | undefined` | — |  |
 | `defaultChecked` | `boolean | undefined` | — |  |
-| `defaultValue` | `string | number | readonly string[] | undefined` | — |  |
+| `defaultValue` | `number | string | readonly string[] | undefined` | — |  |
 | `dir` | `string | undefined` | — |  |
 | `draggable` | `(boolean | "true" | "false") | undefined` | — |  |
-| `enterKeyHint` | `"search" | "enter" | "done" | "go" | "next" | "previous" | "send" | undefined` | — |  |
+| `enterKeyHint` | `"done" | "enter" | "go" | "next" | "previous" | "search" | "send" | undefined` | — |  |
 | `exportparts` | `string | undefined` | — |  |
 | `hidden` | `boolean | undefined` | — |  |
 | `id` | `string | undefined` | — |  |
 | `inert` | `boolean | undefined` | — |  |
 | `inlist` | `any` | — |  |
-| `inputMode` | `"text" | "search" | "none" | "tel" | "url" | "email" | "numeric" | "decimal" | undefined` | — | Hints at the type of data that might be entered by the user while editing the element or its contents |
+| `inputMode` | `"decimal" | "email" | "none" | "numeric" | "search" | "tel" | "text" | "url" | undefined` | — | Hints at the type of data that might be entered by the user while editing the element or its contents |
 | `is` | `string | undefined` | — | Specify that a standard HTML element should behave like a defined custom built-in element |
 | `isSelected` | `boolean | undefined` | — | Whether the SelectionIndicator is visible. This is usually set automatically by the parent component. |
 | `itemID` | `string | undefined` | — |  |
@@ -675,8 +686,6 @@ function SelectableItem({id, children}) {
 | `onInvalidCapture` | `React.FormEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onKeyDown` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onKeyDownCapture` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
-| `onKeyPress` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
-| `onKeyPressCapture` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onKeyUp` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onKeyUpCapture` | `React.KeyboardEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onLoad` | `React.ReactEventHandler<HTMLDivElement> | undefined` | — |  |
@@ -773,12 +782,12 @@ function SelectableItem({id, children}) {
 | `part` | `string | undefined` | — |  |
 | `popover` | `"" | "auto" | "manual" | undefined` | — |  |
 | `popoverTarget` | `string | undefined` | — |  |
-| `popoverTargetAction` | `"toggle" | "show" | "hide" | undefined` | — |  |
+| `popoverTargetAction` | `"hide" | "show" | "toggle" | undefined` | — |  |
 | `prefix` | `string | undefined` | — |  |
 | `property` | `string | undefined` | — |  |
 | `radioGroup` | `string | undefined` | — |  |
 | `rel` | `string | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", SharedElementRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", SharedElementRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `resource` | `string | undefined` | — |  |
 | `results` | `number | undefined` | — |  |
 | `rev` | `string | undefined` | — |  |
@@ -786,12 +795,12 @@ function SelectableItem({id, children}) {
 | `security` | `string | undefined` | — |  |
 | `slot` | `string | undefined` | — |  |
 | `spellCheck` | `(boolean | "true" | "false") | undefined` | — |  |
-| `style` | `(React.CSSProperties | ((values: SharedElementRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `style` | `StyleOrFunction<SharedElementRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
 | `suppressContentEditableWarning` | `boolean | undefined` | — |  |
 | `suppressHydrationWarning` | `boolean | undefined` | — |  |
 | `tabIndex` | `number | undefined` | — |  |
 | `title` | `string | undefined` | — |  |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `typeof` | `string | undefined` | — |  |
 | `unselectable` | `"off" | "on" | undefined` | — |  |
 | `vocab` | `string | undefined` | — |  |
@@ -805,8 +814,7 @@ In the `"replace"` selection behavior, selection is the primary interaction. Cli
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
 
 <GridList>
   <GridListItem
@@ -902,8 +910,7 @@ In dynamic collections, it may be more convenient to use the `onAction` prop at 
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
 
 let images = [
   {
@@ -952,7 +959,7 @@ let images = [
 
 ```tsx
 import {Tree, TreeItem} from 'vanilla-starter/Tree';
-import {Collection} from 'react-aria-components';
+import {Collection} from 'react-aria-components/Collection';
 
 const files = [
   {id: 'games', name: 'Games'},
@@ -1033,8 +1040,7 @@ import {ListBox, ListBoxItem} from 'vanilla-starter/ListBox';
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
 
 <GridList>
   <GridListItem textValue="Desert Sunset">
@@ -1180,8 +1186,7 @@ const items = [
 ## GridList example
 
 ```tsx
-import {GridList, GridListItem} from 'vanilla-starter/GridList';
-import {Text} from 'react-aria-components';
+import {GridList, GridListItem, Text} from 'vanilla-starter/GridList';
 
 const items = [
   {id: 1, name: 'Charizard'},
@@ -1209,7 +1214,7 @@ const items = [
 
 ```tsx
 import {Tree, TreeItem} from 'vanilla-starter/Tree';
-import {Collection} from 'react-aria-components';
+import {Collection} from 'react-aria-components/Collection';
 
 type Pokemon = {
   id: number;

@@ -1,380 +1,135 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/CheckboxGroup.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # CheckboxGroup
 
 A CheckboxGroup allows users to select one or more items from a list of choices.
 
-## Installation
+```tsx
+import {CheckboxGroup, Checkbox} from '@react-spectrum/s2/CheckboxGroup';
 
-```bash
-yarn add @adobe/react-spectrum
-```
-
-```jsx
-import { CheckboxGroup, Checkbox } from "@adobe/react-spectrum";
-```
-
-## Basic Example
-
-```jsx
-<CheckboxGroup label="Favorite sports">
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
+<CheckboxGroup>
+  <Checkbox
+    value="product"
+    description="Get notified about new features and improvements">
+    Product Updates
+  </Checkbox>
+  <Checkbox
+    value="security"
+    description="Important notifications about your account safety">
+    Security Alerts
+  </Checkbox>
+  <Checkbox
+    value="marketing"
+    description="Receive promotions, offers, and newsletters">
+    Marketing Emails
+  </Checkbox>
 </CheckboxGroup>
 ```
 
-## Controlled vs Uncontrolled Values
+## Value
 
-```jsx
+Use the `value` or `defaultValue` prop to set the selected items, and `onChange` to handle selection changes.
+
+```tsx
+import {CheckboxGroup, Checkbox} from '@react-spectrum/s2/CheckboxGroup';
+import {useState} from 'react';
+
 function Example() {
-  let [selected, setSelected] = React.useState(["soccer", "baseball"]);
-
-  return (
-    <Flex gap="size-300">
-      <CheckboxGroup
-        label="Favorite sports (uncontrolled)"
-        defaultValue={["soccer", "baseball"]}
-      >
-        <Checkbox value="soccer">Soccer</Checkbox>
-        <Checkbox value="baseball">Baseball</Checkbox>
-        <Checkbox value="basketball">Basketball</Checkbox>
-      </CheckboxGroup>
-
-      <CheckboxGroup
-        label="Favorite sports (controlled)"
-        value={selected}
-        onChange={setSelected}
-      >
-        <Checkbox value="soccer">Soccer</Checkbox>
-        <Checkbox value="baseball">Baseball</Checkbox>
-        <Checkbox value="basketball">Basketball</Checkbox>
-      </CheckboxGroup>
-    </Flex>
-  );
-}
-```
-
-## HTML Forms Integration
-
-```jsx
-<CheckboxGroup label="Condiments" name="condiments">
-  <Checkbox value="mayo">Mayo</Checkbox>
-  <Checkbox value="mustard">Mustard</Checkbox>
-  <Checkbox value="ketchup">Ketchup</Checkbox>
-</CheckboxGroup>
-```
-
-## Labeling
-
-```jsx
-<Flex gap="size-300" wrap>
-  <CheckboxGroup label="Favorite sports">
-    <Checkbox value="soccer">Soccer</Checkbox>
-    <Checkbox value="baseball">Baseball</Checkbox>
-    <Checkbox value="basketball">Basketball</Checkbox>
-  </CheckboxGroup>
-
-  <CheckboxGroup label="Favorite sports" isRequired necessityIndicator="icon">
-    <Checkbox value="soccer">Soccer</Checkbox>
-    <Checkbox value="baseball">Baseball</Checkbox>
-    <Checkbox value="basketball">Basketball</Checkbox>
-  </CheckboxGroup>
-
-  <CheckboxGroup label="Favorite sports" isRequired necessityIndicator="label">
-    <Checkbox value="soccer">Soccer</Checkbox>
-    <Checkbox value="baseball">Baseball</Checkbox>
-    <Checkbox value="basketball">Basketball</Checkbox>
-  </CheckboxGroup>
-</Flex>
-```
-
-## Events
-
-```jsx
-function Example() {
-  let [selected, setSelected] = React.useState([]);
+  let [selected, setSelected] = useState(['soccer', 'baseball']);
 
   return (
     <>
       <CheckboxGroup
         label="Favorite sports"
+        /*- begin highlight -*/
         value={selected}
-        onChange={setSelected}
-      >
+        onChange={setSelected}>
+        {/*- end highlight -*/}
         <Checkbox value="soccer">Soccer</Checkbox>
         <Checkbox value="baseball">Baseball</Checkbox>
         <Checkbox value="basketball">Basketball</Checkbox>
       </CheckboxGroup>
-      <div>You have selected: {selected.join(", ")}</div>
+      <p>Current selection: {selected.join(', ')}</p>
     </>
   );
 }
 ```
 
-## Validation
+## Forms
 
-```jsx
-import { Form, ButtonGroup, Button } from "@adobe/react-spectrum";
+Use the `name` prop to submit the selected checkboxes to the server. Set the `isRequired` prop on the `<CheckboxGroup>` to validate the user selects at least one checkbox, or on individual checkboxes. See the [Forms](forms.md) guide to learn more.
 
-<Form validationBehavior="native">
-  <CheckboxGroup label="Sandwich condiments" name="condiments" isRequired>
+```tsx
+import {CheckboxGroup, Checkbox} from '@react-spectrum/s2/CheckboxGroup';
+import {Button} from '@react-spectrum/s2/Button';
+import {Form} from '@react-spectrum/s2/Form';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<Form>
+  <CheckboxGroup
+    label="Sandwich condiments"
+    /*- begin highlight -*/
+    name="condiments"
+    isRequired>
+    {/*- end highlight -*/}
     <Checkbox value="lettuce">Lettuce</Checkbox>
     <Checkbox value="tomato">Tomato</Checkbox>
     <Checkbox value="onion">Onion</Checkbox>
     <Checkbox value="sprouts">Sprouts</Checkbox>
   </CheckboxGroup>
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
-</Form>;
-```
-
-### Individual Checkbox Validation
-
-```jsx
-<Form validationBehavior="native">
-  <CheckboxGroup label="Agree to the following" isRequired>
-    <Checkbox value="terms" isRequired>
-      Terms and conditions
-    </Checkbox>
-    <Checkbox value="privacy" isRequired>
-      Privacy policy
-    </Checkbox>
-    <Checkbox value="cookies" isRequired>
-      Cookie policy
-    </Checkbox>
+  <CheckboxGroup label="Agree to the following" name="terms">
+    {/*- begin highlight -*/}
+    <Checkbox value="terms" isRequired>Terms and conditions</Checkbox>
+    <Checkbox value="privacy" isRequired>Privacy policy</Checkbox>
+    <Checkbox value="cookies" isRequired>Cookie policy</Checkbox>
+    {/*- end highlight -*/}
   </CheckboxGroup>
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
+  <Button type="submit" styles={style({marginTop: 8})}>Submit</Button>
 </Form>
 ```
 
-## Visual Options
+## API
 
-### Orientation
-
-```jsx
-<CheckboxGroup label="Favorite sports" orientation="horizontal">
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
+```tsx
+<CheckboxGroup>
+  <Checkbox />
 </CheckboxGroup>
 ```
 
-### Label Position and Alignment
+### CheckboxGroup
 
-```jsx
-<CheckboxGroup label="Favorite sports" labelPosition="side" labelAlign="end">
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
-</CheckboxGroup>
-```
-
-### Help Text with Description and Error Messages
-
-```jsx
-function Example() {
-  let [checked, setChecked] = React.useState(["dogs", "dragons"]);
-  let isValid =
-    checked.length === 2 &&
-    checked.includes("dogs") &&
-    checked.includes("dragons");
-
-  return (
-    <CheckboxGroup
-      label="Pets"
-      onChange={setChecked}
-      value={checked}
-      isInvalid={!isValid}
-      description="Select your pets."
-      errorMessage={
-        checked.includes("cats")
-          ? "No cats allowed."
-          : "Select only dogs and dragons."
-      }
-    >
-      <Checkbox value="dogs">Dogs</Checkbox>
-      <Checkbox value="cats">Cats</Checkbox>
-      <Checkbox value="dragons">Dragons</Checkbox>
-    </CheckboxGroup>
-  );
-}
-```
-
-### Contextual Help
-
-```jsx
-import { Content, ContextualHelp, Heading } from "@adobe/react-spectrum";
-
-<CheckboxGroup
-  label="Favorite genres"
-  contextualHelp={
-    <ContextualHelp>
-      <Heading>What does this do?</Heading>
-      <Content>
-        Your musical taste is used to train our machine learning recommendation
-        algorithm.
-      </Content>
-    </ContextualHelp>
-  }
->
-  <Checkbox value="rock">Rock</Checkbox>
-  <Checkbox value="pop">Pop</Checkbox>
-  <Checkbox value="classical">Classical</Checkbox>
-</CheckboxGroup>;
-```
-
-### Disabled
-
-```jsx
-<CheckboxGroup label="Favorite sports" isDisabled>
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
-</CheckboxGroup>
-```
-
-### Read Only
-
-```jsx
-<CheckboxGroup label="Favorite sports" defaultValue={["baseball"]} isReadOnly>
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
-</CheckboxGroup>
-```
-
-### Emphasized
-
-```jsx
-<CheckboxGroup
-  label="Favorite sports"
-  defaultValue={["soccer", "baseball"]}
-  isEmphasized
->
-  <Checkbox value="soccer">Soccer</Checkbox>
-  <Checkbox value="baseball">Baseball</Checkbox>
-  <Checkbox value="basketball">Basketball</Checkbox>
-</CheckboxGroup>
-```
-
-## Props API
-
-### CheckboxGroup Props
-
-| Name                 | Type                                                                | Default      | Description                                                                                                |
-| -------------------- | ------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------- |
-| `children`           | `ReactElement<CheckboxProps> \| ReactElement<CheckboxProps>[]`      | --           | The Checkboxes contained within the CheckboxGroup                                                          |
-| `orientation`        | `'vertical' \| 'horizontal'`                                        | `'vertical'` | The axis the checkboxes should align with                                                                  |
-| `isEmphasized`       | `boolean`                                                           | --           | By default, checkboxes are not emphasized (gray). The emphasized (blue) version provides visual prominence |
-| `value`              | `string[]`                                                          | --           | The current value (controlled)                                                                             |
-| `defaultValue`       | `string[]`                                                          | --           | The default value (uncontrolled)                                                                           |
-| `name`               | `string`                                                            | --           | The name of the input element, used when submitting an HTML form                                           |
-| `isDisabled`         | `boolean`                                                           | --           | Whether the input is disabled                                                                              |
-| `isReadOnly`         | `boolean`                                                           | --           | Whether the input can be selected but not changed by the user                                              |
-| `label`              | `ReactNode`                                                         | --           | The content to display as the label                                                                        |
-| `description`        | `ReactNode`                                                         | --           | A description for the field; provides a hint such as specific requirements                                 |
-| `errorMessage`       | `ReactNode \| (v: ValidationResult) => ReactNode`                   | --           | An error message for the field                                                                             |
-| `isRequired`         | `boolean`                                                           | --           | Whether user input is required on the input before form submission                                         |
-| `isInvalid`          | `boolean`                                                           | --           | Whether the input value is invalid                                                                         |
-| `validationBehavior` | `'aria' \| 'native'`                                                | `'aria'`     | Whether to use native HTML form validation or ARIA                                                         |
-| `validate`           | `(value: string[]) => ValidationError \| true \| null \| undefined` | --           | A function that returns an error message if a given value is invalid                                       |
-| `form`               | `string`                                                            | --           | The `<form>` element to associate the input with                                                           |
-| `labelPosition`      | `'top' \| 'side'`                                                   | `'top'`      | The label's overall position relative to the element it is labeling                                        |
-| `labelAlign`         | `'start' \| 'end'`                                                  | `'start'`    | The label's horizontal alignment relative to the element it is labeling                                    |
-| `necessityIndicator` | `'icon' \| 'label'`                                                 | `'icon'`     | Whether the required state should be shown as an icon or text                                              |
-| `contextualHelp`     | `ReactNode`                                                         | --           | A ContextualHelp element to place next to the label                                                        |
-| `showErrorIcon`      | `boolean`                                                           | --           | Whether an error icon is rendered                                                                          |
-
-### Events
-
-| Name            | Type                              | Description                                                    |
-| --------------- | --------------------------------- | -------------------------------------------------------------- |
-| `onChange`      | `(value: T) => void`              | Handler that is called when the value changes                  |
-| `onFocus`       | `(e: FocusEvent<Target>) => void` | Handler that is called when the element receives focus         |
-| `onBlur`        | `(e: FocusEvent<Target>) => void` | Handler that is called when the element loses focus            |
-| `onFocusChange` | `(isFocused: boolean) => void`    | Handler that is called when the element's focus status changes |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Accessibility Props
-
-| Name                | Type     | Description                                                             |
-| ------------------- | -------- | ----------------------------------------------------------------------- |
-| `id`                | `string` | The element's unique identifier                                         |
-| `aria-label`        | `string` | Defines a string value that labels the current element                  |
-| `aria-labelledby`   | `string` | Identifies the element(s) that labels the current element               |
-| `aria-describedby`  | `string` | Identifies the element(s) that describes the object                     |
-| `aria-details`      | `string` | Identifies the element(s) that provide a detailed, extended description |
-| `aria-errormessage` | `string` | Identifies the element that provides an error message                   |
-
-### Advanced Props
-
-| Name               | Type            | Description                                                     |
-| ------------------ | --------------- | --------------------------------------------------------------- |
-| `UNSAFE_className` | `string`        | Sets the CSS className for the element; use only as last resort |
-| `UNSAFE_style`     | `CSSProperties` | Sets inline style for the element; use only as last resort      |
-
-## Checkbox Props (Child Component)
-
-| Name                 | Type                                                               | Default  | Description                                                       |
-| -------------------- | ------------------------------------------------------------------ | -------- | ----------------------------------------------------------------- |
-| `children`           | `ReactNode`                                                        | --       | The label for the element                                         |
-| `value`              | `string`                                                           | --       | The value of the input element, used when submitting an HTML form |
-| `defaultSelected`    | `boolean`                                                          | --       | Whether the element should be selected (uncontrolled)             |
-| `isSelected`         | `boolean`                                                          | --       | Whether the element should be selected (controlled)               |
-| `isDisabled`         | `boolean`                                                          | --       | Whether the input is disabled                                     |
-| `isReadOnly`         | `boolean`                                                          | --       | Whether the input can be selected but not changed by the user     |
-| `isRequired`         | `boolean`                                                          | --       | Whether user input is required before form submission             |
-| `isInvalid`          | `boolean`                                                          | --       | Whether the input value is invalid                                |
-| `validationBehavior` | `'aria' \| 'native'`                                               | `'aria'` | Whether to use native HTML form validation or ARIA                |
-| `validate`           | `(value: boolean) => ValidationError \| true \| null \| undefined` | --       | A function that returns an error message if invalid               |
-| `autoFocus`          | `boolean`                                                          | --       | Whether the element should receive focus on render                |
-| `isIndeterminate`    | `boolean`                                                          | --       | Indeterminism is presentational only                              |
-
-### Checkbox Events
-
-| Name            | Type                              | Description                                                       |
-| --------------- | --------------------------------- | ----------------------------------------------------------------- |
-| `onChange`      | `(isSelected: boolean) => void`   | Handler that is called when the element's selection state changes |
-| `onFocus`       | `(e: FocusEvent<Target>) => void` | Handler that is called when the element receives focus            |
-| `onBlur`        | `(e: FocusEvent<Target>) => void` | Handler that is called when the element loses focus               |
-| `onFocusChange` | `(isFocused: boolean) => void`    | Handler that is called when the element's focus status changes    |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`      | Handler that is called when a key is pressed                      |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`      | Handler that is called when a key is released                     |
-
-## Accessibility
-
-- If a visible label is not specified, provide an `aria-label` attribute
-- For external labels, use `aria-labelledby` with the labeling element's id
-- Checkbox elements within a group should always have a visible label
-- For RTL languages (Hebrew, Arabic), the checkbox automatically repositions to the right
-- When `necessityIndicator` is set to `"label"`, localized "(required)" or "(optional)" text is provided automatically
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-errormessage` | `string | undefined` | — | Identifies the element that provides an error message for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The Checkboxes contained within the CheckboxGroup. |
+| `contextualHelp` | `ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultValue` | `string[] | undefined` | — | The default value (uncontrolled). |
+| `description` | `ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | ReactNode` | — | An error message for the field. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isEmphasized` | `boolean | undefined` | — | By default, checkboxes are not emphasized (gray). The emphasized (blue) version provides visual prominence. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isReadOnly` | `boolean | undefined` | — | Whether the input can be selected but not changed by the user. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `label` | `ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((value: string[]) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `orientation` | `Orientation | undefined` | 'vertical' | The axis the checkboxes should align with. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Checkboxes in the CheckboxGroup. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: string[]) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `string[] | undefined` | — | The current value (controlled). |

@@ -1,150 +1,124 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/ColorWheel.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ColorWheel
 
 A ColorWheel allows users to adjust the hue of an HSL or HSB color value on a circular track.
 
-Added in version 3.35.0.
+```tsx
+import {ColorWheel} from '@react-spectrum/s2/ColorWheel';
 
-## Installation
-
-```bash
-yarn add @adobe/react-spectrum
+<ColorWheel />
 ```
 
-```jsx
-import { ColorWheel } from "@adobe/react-spectrum";
-```
+## Value
 
-## Basic Usage
+Use the `value` or `defaultValue` prop to set the color value. The value may be a string or `Color` object, parsed using the `parseColor` function.
 
-```jsx
-<ColorWheel defaultValue="hsl(30, 100%, 50%)" />
-```
+The `onChange` event is called as the user drags, and `onChangeEnd` is called when the thumb is released. These are always called with a `Color` object.
 
-## Value Management
-
-### Uncontrolled
-
-```jsx
-<ColorWheel defaultValue="hsl(30, 100%, 50%)" />
-```
-
-### Controlled
-
-```jsx
-import { parseColor } from "react-stately";
+```tsx
+import {ColorWheel} from '@react-spectrum/s2/ColorWheel';
+import {useState} from 'react';
+import {parseColor} from '@react-stately/color';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 function Example() {
-  let [value, setValue] = React.useState(parseColor("hsl(30, 100%, 50%)"));
-  return <ColorWheel value={value} onChange={setValue} />;
+  let [currentValue, setCurrentValue] = useState(parseColor('hsl(50, 100%, 50%)'));
+  let [finalValue, setFinalValue] = useState(currentValue);
+
+  return (
+    <>
+      <ColorWheel
+        /*- begin highlight -*/
+        value={currentValue}
+        onChange={setCurrentValue}
+        onChangeEnd={setFinalValue} />
+        {/*- end highlight -*/}
+      <pre className={style({font: 'body'})}>
+        onChange value: {currentValue.toString('hex')}{'\n'}
+        onChangeEnd value: {finalValue.toString('hex')}
+      </pre>
+    </>
+  );
 }
 ```
 
-### HTML Form Integration
+{/* ## Integration
 
-```jsx
-<ColorWheel name="hue" />
-```
+ColorWheel works well alongside other color components to create complete color picking experiences.
 
-The value submits as a number between 0-360 degrees.
+```tsx render hideImports
+"use client";
+import {ColorWheel, ColorSlider, ColorSwatch} from '@react-spectrum/s2';
+import {useState} from 'react';
 
-## Events
-
-- **`onChange`**: Fires during handle dragging
-- **`onChangeEnd`**: Fires when user stops dragging
-
-```jsx
 function Example() {
-  let [currentValue, setCurrentValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
-  let [finalValue, setFinalValue] = React.useState(
-    parseColor("hsl(50, 100%, 50%)"),
-  );
+  let [color, setColor] = useState('hsl(30, 80%, 60%)');
 
   return (
-    <div>
+    <div style={{display: 'flex', gap: 20, alignItems: 'center'}}>
       <ColorWheel
-        value={currentValue}
-        onChange={setCurrentValue}
-        onChangeEnd={setFinalValue}
-      />
-      <pre>Current value: {currentValue.toString("hsl")}</pre>
-      <pre>Final value: {finalValue.toString("hsl")}</pre>
+        value={color}
+        onChange={setColor} />
+      <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+        <ColorSlider
+          label="Saturation"
+          channel="saturation"
+          value={color}
+          onChange={setColor} />
+        <ColorSlider
+          label="Lightness"
+          channel="lightness"
+          value={color}
+          onChange={setColor} />
+        <ColorSwatch color={color} size="L" />
+      </div>
     </div>
   );
 }
-```
+``` */}
 
-## Visual Options
+## API
 
-### Disabled
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `defaultValue` | `string | Color | undefined` | 'hsl(0, 100%, 50%)' | The default value (uncontrolled). |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the ColorWheel is disabled. |
+| `name` | `string | undefined` | — | The name of the input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
+| `onChange` | `((value: Color) => void) | undefined` | — | Handler that is called when the value changes, as the user drags. |
+| `onChangeEnd` | `((value: Color) => void) | undefined` | — | Handler that is called when the user stops dragging. |
+| `size` | `number | undefined` | 192 |  |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `string | Color | undefined` | — | The current value (controlled). |
 
-```jsx
-<ColorWheel isDisabled />
-```
+## Related Types
 
-### Custom Size
+### Color
 
-```jsx
-<ColorWheel size="size-1600" />
-```
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-## Props API
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-### Core Props
+### parseColor
 
-| Name           | Type              | Default               | Description                      |
-| -------------- | ----------------- | --------------------- | -------------------------------- |
-| `size`         | `DimensionValue`  | --                    | Outer diameter of the ColorWheel |
-| `isDisabled`   | `boolean`         | --                    | Disables the component           |
-| `defaultValue` | `string \| Color` | `'hsl(0, 100%, 50%)'` | Uncontrolled initial value       |
-| `value`        | `Color`           | --                    | Controlled current value         |
-| `name`         | `string`          | --                    | HTML form input name attribute   |
-| `form`         | `string`          | --                    | Associated form element ID       |
+`parseColor(value: string): IColor`
 
-### Events
-
-| Name          | Type                     | Description                             |
-| ------------- | ------------------------ | --------------------------------------- |
-| `onChange`    | `(value: Color) => void` | Handles value changes during dragging   |
-| `onChangeEnd` | `(value: Color) => void` | Handles final value when dragging stops |
-
-### Accessibility Props
-
-| Name               | Type     | Description                                |
-| ------------------ | -------- | ------------------------------------------ |
-| `id`               | `string` | Element's unique identifier                |
-| `aria-label`       | `string` | Defines a label for the element            |
-| `aria-labelledby`  | `string` | References labeling element ID             |
-| `aria-describedby` | `string` | References describing element ID           |
-| `aria-details`     | `string` | References detailed description element ID |
-
-### Layout Props (summary)
-
-`flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd` -- all `Responsive<>` typed.
-
-### Spacing Props (summary)
-
-`margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY` -- all `Responsive<DimensionValue>`.
-
-### Sizing Props (summary)
-
-`minWidth`, `maxWidth`, `minHeight`, `maxHeight` -- all `Responsive<DimensionValue>`.
-
-### Positioning Props (summary)
-
-`position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden` -- all `Responsive<>` typed.
-
-### Advanced Props
-
-| Name               | Type            | Description                             |
-| ------------------ | --------------- | --------------------------------------- |
-| `UNSAFE_className` | `string`        | Sets CSS className (use as last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Sets inline styles (use as last resort) |
-
-## Accessibility
-
-By default, ColorWheel uses a localized "hue" channel name as its `aria-label`. When providing custom labels via `aria-label` or `aria-labelledby`, ensure they are properly localized.
+Parses a color from a string value. Throws an error if the string could not be parsed.

@@ -358,6 +358,64 @@ function Example(props) {
 }
 ```
 
+## Keyboard navigation
+
+By default, TreeView uses arrow key navigation to move focus into rows. Set `keyboardNavigationBehavior="tab"` to have <Keyboard>Tab</Keyboard> move focus in and out of a row.
+Use this when rows contain interactive elements such as text fields, where arrow keys and typing in the field should not trigger grid navigation or selection.
+
+```tsx
+import {Text} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2/TreeView';
+import {TextField} from '@react-spectrum/s2/TextField';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+
+<TreeView
+  /*- begin highlight -*/
+  keyboardNavigationBehavior="tab"
+  /*- end highlight -*/
+  selectionMode="multiple"
+  defaultExpandedKeys={['documents', 'photos']}
+  aria-label="Shared files"
+  styles={style({height: 250, width: 'full', maxWidth: 400})}>
+  <TreeViewItem id="documents" textValue="Documents">
+    <TreeViewItemContent>
+      <Text>
+        <TextField styles={style({margin: 4})} aria-label="title" defaultValue="Documents" placeholder="Enter name" />
+      </Text>
+    </TreeViewItemContent>
+    <TreeViewItem id="weekly" textValue="Weekly Report.pdf">
+      <TreeViewItemContent>
+        <Text>
+          <TextField styles={style({margin: 4})} aria-label="title" defaultValue="Weekly Report.pdf" placeholder="Enter name" />
+        </Text>
+      </TreeViewItemContent>
+    </TreeViewItem>
+    <TreeViewItem id="budget" textValue="Budget.xlsx">
+      <TreeViewItemContent>
+        <Text>
+          <TextField styles={style({margin: 4})} aria-label="title" defaultValue="Budget.xlsx" placeholder="Enter name" />
+        </Text>
+      </TreeViewItemContent>
+    </TreeViewItem>
+  </TreeViewItem>
+  <TreeViewItem id="photos" textValue="Photos">
+    <TreeViewItemContent>
+      <Text>
+        <TextField styles={style({margin: 4})} aria-label="title" defaultValue="Photos" placeholder="Enter name" />
+      </Text>
+    </TreeViewItemContent>
+    <TreeViewItem id="sunset" textValue="Sunset.jpg">
+      <TreeViewItemContent>
+        <Text>
+          <TextField styles={style({margin: 4})} aria-label="title" defaultValue="Sunset.jpg" placeholder="Enter name" />
+        </Text>
+      </TreeViewItemContent>
+    </TreeViewItem>
+  </TreeViewItem>
+</TreeView>
+```
+
 ## Drag and drop
 
 TreeView supports drag and drop interactions when the `dragAndDropHooks` prop is provided using the `useDragAndDrop` hook. Users can drop data on the tree as a whole, on individual items, insert new items between existing ones, or reorder items. React Spectrum supports drag and drop via mouse, touch, keyboard, and screen reader interactions. See the [drag and drop guide](dnd.md?component=TreeView) to learn more.
@@ -483,6 +541,7 @@ function ReorderableTree() {
 | `expandedKeys` | `Iterable<Key> | undefined` | — | The currently expanded keys in the collection (controlled). |
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `keyboardNavigationBehavior` | `"arrow" | "tab" | undefined` | 'arrow' | Whether keyboard navigation to focusable elements within grid list items is via the left/right arrow keys or the tab key. |
 | `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on an item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
 | `onExpandedChange` | `((keys: Set<Key>) => any) | undefined` | — | Handler that is called when items are expanded or collapsed. |
 | `onSelectionChange` | `((keys: Selection) => void) | undefined` | — | Handler that is called when the selection changes. |
@@ -501,9 +560,11 @@ function ReorderableTree() {
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
 | `aria-label` | `string | undefined` | — | An accessibility label for this tree item. |
 | `children` | `React.ReactNode` | — | The content of the tree item along with any nested children. Supports static nested tree items or use of a Collection to dynamically render nested tree items. |
 | `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | 'row' | Whether the row or its first focusable child element should be focused when the row is focused. |
 | `hasChildItems` | `boolean | undefined` | — | Whether this item has children, even if not loaded yet. |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |

@@ -1,6 +1,6 @@
 # Styling
 
-Learn how to use the  macro to apply Spectrum tokens directly in your components with type-safe autocompletion.
+Learn how to use the `style` macro to apply Spectrum tokens directly in your components with type-safe autocompletion.
 
 ## Style macro
 
@@ -23,8 +23,8 @@ Atomic output keeps your bundle small and scales well as your app grows. Each pr
 
 Colocating styles with your component code means:
 
-* Develop more efficiently – no switching files or writing selectors.
-* Refactor with confidence – changes are isolated; deleting a component removes its styles.
+- Develop more efficiently – no switching files or writing selectors.
+- Refactor with confidence – changes are isolated; deleting a component removes its styles.
 
 <InlineAlert variant="informative">
   <Heading>Important Note</Heading>
@@ -41,46 +41,46 @@ The `styles` prop accepts a limited set of CSS properties, including layout, spa
 
 ```tsx
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
-import {Button} from '@react-spectrum/s2';
+import {Button} from '@react-spectrum/s2/Button';
 
 <Button styles={style({marginStart: 8})}>Edit</Button>
 ```
 
 ### Supported CSS properties
 
-* `margin`
-* `marginStart`
-* `marginEnd`
-* `marginTop`
-* `marginBottom`
-* `marginX`
-* `marginY`
-* `width`
-* `minWidth`
-* `maxWidth`
-* `flexGrow`
-* `flexShrink`
-* `flexBasis`
-* `justifySelf`
-* `alignSelf`
-* `order`
-* `gridArea`
-* `gridRow`
-* `gridRowStart`
-* `gridRowEnd`
-* `gridColumn`
-* `gridColumnStart`
-* `gridColumnEnd`
-* `position`
-* `zIndex`
-* `top`
-* `bottom`
-* `inset`
-* `insetX`
-* `insetY`
-* `insetStart`
-* `insetEnd`
-* `visibility`
+- `margin`
+- `marginStart`
+- `marginEnd`
+- `marginTop`
+- `marginBottom`
+- `marginX`
+- `marginY`
+- `width`
+- `minWidth`
+- `maxWidth`
+- `flexGrow`
+- `flexShrink`
+- `flexBasis`
+- `justifySelf`
+- `alignSelf`
+- `order`
+- `gridArea`
+- `gridRow`
+- `gridRowStart`
+- `gridRowEnd`
+- `gridColumn`
+- `gridColumnStart`
+- `gridColumnEnd`
+- `position`
+- `zIndex`
+- `top`
+- `bottom`
+- `inset`
+- `insetX`
+- `insetY`
+- `insetStart`
+- `insetEnd`
+- `visibility`
 
 ## Conditional styles
 
@@ -100,9 +100,9 @@ Define conditional values such as media queries, UI states (e.g. hover, press), 
 
 In the example above, the keys of the nested object now map out the "conditions" that govern the padding of the `div`. This translates to the following:
 
-* If the viewport is larger than `2560px`, the padding is `64px`.
-* Else if the viewport matches the `lg` [breakpoint](style-macro.md#conditions) (`1024px`), the padding is `32px`.
-* Otherwise, the padding is `8px`.
+- If the viewport is larger than `2560px`, the padding is `64px`.
+- Else if the viewport matches the `lg` [breakpoint](style-macro.md#conditions) (`1024px`), the padding is `32px`.
+- Otherwise, the padding is `8px`.
 
 Conditions are mutually exclusive and ordered. The macro uses CSS cascade layers so the last matching condition wins without specificity issues.
 
@@ -144,7 +144,7 @@ const styles = style({
 Runtime conditions work well with render props in React Aria Components. If you inline styles, you’ll get autocomplete for available conditions.
 
 ```tsx
-import {Checkbox} from 'react-aria-components';
+import {Checkbox} from 'react-aria-components/Checkbox';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <Checkbox
@@ -227,19 +227,21 @@ const styles = style({
 
 ### Built-in utilities
 
-Use `focusRing()` to add the standard Spectrum focus ring.
+The style macro system includes built-in utilities for common patterns like focus rings, color helpers, spacing, sizing, animations, and more. For example, use `focusRing()` to add the standard Spectrum focus ring to interactive components:
 
 ```tsx
 import {style, focusRing} from '@react-spectrum/s2/style' with {type: 'macro'};
-import {Button} from '@react-spectrum/s2';
+import {Button} from 'react-aria-components/Button';
 
 const buttonStyle = style({
   ...focusRing(),
   // ...other styles
 });
 
-<Button styles={buttonStyle}>Press me</Button>
+<Button className={buttonStyle}>Press me</Button>
 ```
+
+See the [Utilities](style-macro.md#utilities) section in the style macro reference page for a full list of available utilities and examples.
 
 ## Setting CSS variables
 
@@ -264,9 +266,9 @@ const childStyle = style({
 The `style` macro relies on CSS bundling and minification for optimal output. Without these optimizations, the generated CSS may contain duplicate rules that affect bundle size and debugging.
 Follow these best practices:
 
-* Ensure styles are extracted into a CSS bundle; do not inject at runtime with `<style>` tags.
-* Use a CSS minifier like `lightningcss` to deduplicate common rules (consider in dev for easier debugging).
-* Bundle all CSS for S2 components and style macros into a single CSS bundle rather than code splitting to avoid duplicate rules across chunks.
+- Ensure styles are extracted into a CSS bundle; do not inject at runtime with `<style>` tags.
+- Use a CSS minifier like `lightningcss` to deduplicate common rules (consider in dev for easier debugging).
+- Bundle all CSS for S2 components and style macros into a single CSS bundle rather than code splitting to avoid duplicate rules across chunks.
 
 See the [getting started guide](getting-started.md) to learn how to setup your framework or bundler.
 
@@ -285,7 +287,7 @@ CSS resets are strongly discouraged. Global CSS selectors can unintentionally af
 If you want to build custom components that follow Spectrum styling, you can use the `style` macro with [React Aria Components](react-aria:.md).
 
 ```tsx
-import {Checkbox} from 'react-aria-components';
+import {Checkbox} from 'react-aria-components/Checkbox';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <Checkbox
@@ -303,13 +305,13 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 These tools improve the developer experience when using style macros:
 
-* The [atomic-css-devtools](https://github.com/astahmer/atomic-css-devtools) extension presents an inspected element's atomic CSS rules
+- The [atomic-css-devtools](https://github.com/astahmer/atomic-css-devtools) extension presents an inspected element's atomic CSS rules
   in a non-atomic format, making it easier to scan.
 
-* This [sandbox](https://codesandbox.io/p/devbox/react-spectrum-s2-style-macro-template-h6fpsq) is preconfigured to support React Spectrum S2, React Aria Components, and
+- This [sandbox](https://codesandbox.io/p/devbox/react-spectrum-s2-style-macro-template-h6fpsq) is preconfigured to support React Spectrum S2, React Aria Components, and
   the `style` macros for quick prototyping.
 
-* See [Working with AI](ai.md) to learn how to install the MCP server or Agent Skills for your AI coding tools.
+- See [Working with AI](ai.md) to learn how to install the MCP server or Agent Skills for your AI coding tools.
 
 ## FAQ
 

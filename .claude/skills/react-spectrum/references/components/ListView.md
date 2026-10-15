@@ -352,6 +352,42 @@ function NavigationExample() {
 }
 ```
 
+## Keyboard navigation
+
+By default, ListView uses arrow key navigation to move focus into rows. Set `keyboardNavigationBehavior="tab"` to have <Keyboard>Tab</Keyboard> move focus in and out of a row.
+Use this when rows contain interactive elements such as text fields, where arrow keys and typing in the field should not trigger grid navigation or selection.
+
+```tsx
+import {ListView, ListViewItem, Text} from '@react-spectrum/s2/ListView';
+import {TextField} from '@react-spectrum/s2/TextField';
+import File from '@react-spectrum/s2/icons/File';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+let documents = [
+  {id: 'project-brief', name: 'Project brief.pdf'},
+  {id: 'quarterly-report', name: 'Quarterly report.docx'},
+  {id: 'budget', name: 'Budget.xlsx'}
+];
+
+<ListView
+  /*- begin highlight -*/
+  keyboardNavigationBehavior="tab"
+  /*- end highlight -*/
+  items={documents}
+  selectionMode="multiple"
+  aria-label="Shared files"
+  styles={style({width: 'full', maxWidth: 400, height: 320})}>
+  {item => (
+    <ListViewItem textValue={item.name}>
+      <File />
+      <Text>
+        <TextField styles={style({margin: 4})} aria-label="title" defaultValue={item.name} placeholder="Enter a name" />
+      </Text>
+    </ListViewItem>
+  )}
+</ListView>
+```
+
 ## Drag and drop
 
 ListView supports drag and drop interactions when the `dragAndDropHooks` prop is provided using the `useDragAndDrop` hook. Users can drop data on the list as a whole, on individual items, insert new items between existing ones, or reorder items. See the [drag and drop guide](dnd.md?component=ListView) to learn more.
@@ -447,6 +483,7 @@ function ReorderableList() {
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `isQuiet` | `boolean | undefined` | — | Whether the ListView should be displayed with a quiet style. |
 | `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `keyboardNavigationBehavior` | `"arrow" | "tab" | undefined` | 'arrow' | Whether keyboard navigation to focusable elements within grid list items is via the left/right arrow keys or the tab key. |
 | `loadingState` | `LoadingState | undefined` | — | The current loading state of the ListView. |
 | `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on an item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
 | `onLoadMore` | `(() => void) | undefined` | — | Handler that is called when more items should be loaded, e.g. while scrolling near the bottom. |
@@ -467,8 +504,10 @@ function ReorderableList() {
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
 | `children` | `ReactNode` | — | The contents of the item. |
 | `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | — | Whether the row or its first focusable child element should be focused when navigating to the row. Defaults to 'row'. |
 | `hasChildItems` | `boolean | undefined` | — | Whether the item has child items (renders a chevron indicator). |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |

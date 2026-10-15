@@ -3,7 +3,9 @@
 A Card summarizes an object that a user can select or navigate to.
 
 ```tsx
-import {Card, CardPreview, Image, Content, Text, ActionMenu, MenuItem, Footer, StatusLight} from '@react-spectrum/s2';
+import {Card, CardPreview, Image, Content, Text, Footer} from '@react-spectrum/s2/Card';
+import {ActionMenu, MenuItem} from '@react-spectrum/s2/ActionMenu';
+import {StatusLight} from '@react-spectrum/s2/StatusLight';
 import preview from 'url:./assets/preview.png';
 
 <Card>
@@ -33,10 +35,11 @@ Cards are flexible containers that represent objects a user can select or naviga
 
 A `AssetCard` represents an asset such as an image, video, document, or folder. The `CardPreview` can contain either an `Image` or illustration. By default, images are displayed in a square preview without cropping. Add metadata in the `Content` section using the `title` and `description` slots.
 
-## S2 example
+## Image example
 
 ```tsx
-import {AssetCard, CardPreview, Image, Content, Text, ActionMenu, MenuItem} from '@react-spectrum/s2';
+import {AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/Card';
+import {ActionMenu, MenuItem} from '@react-spectrum/s2/ActionMenu';
 
 <AssetCard>
   <CardPreview>
@@ -54,8 +57,11 @@ import {AssetCard, CardPreview, Image, Content, Text, ActionMenu, MenuItem} from
 </AssetCard>
 ```
 
+## Illustration example
+
 ```tsx
-import {AssetCard, CardPreview, Content, Text, ActionMenu, MenuItem} from '@react-spectrum/s2';
+import {AssetCard, CardPreview, Content, Text} from '@react-spectrum/s2/Card';
+import {ActionMenu, MenuItem} from '@react-spectrum/s2/ActionMenu';
 import FolderGradient from '@react-spectrum/s2/illustrations/gradient/generic2/FolderClose';
 
 <AssetCard>
@@ -79,7 +85,9 @@ import FolderGradient from '@react-spectrum/s2/illustrations/gradient/generic2/F
 A `UserCard` represents a user profile. It includes an [Avatar](Avatar.md) and a `Content` section with `title` and `description` slots, along with an optional header image and `Footer`.
 
 ```tsx
-import {UserCard, CardPreview, Image, Avatar, Content, Text, Footer, StatusLight} from '@react-spectrum/s2';
+import {UserCard, CardPreview, Image, Content, Text, Footer} from '@react-spectrum/s2/Card';
+import {Avatar} from '@react-spectrum/s2/Avatar';
+import {StatusLight} from '@react-spectrum/s2/StatusLight';
 import preview from 'url:./assets/preview.png';
 
 <UserCard>
@@ -102,7 +110,8 @@ import preview from 'url:./assets/preview.png';
 A `ProductCard` represents a product a user can take action on. It has a a thumbnail image and a `Content` section with `title` and `description` slots, a `Footer` containing a call to action, and an optional header image.
 
 ```tsx
-import {ProductCard, CardPreview, Image, Content, Text, Footer, Button} from '@react-spectrum/s2';
+import {ProductCard, CardPreview, Image, Content, Text, Footer} from '@react-spectrum/s2/Card';
+import {Button} from '@react-spectrum/s2/Button';
 import preview from 'url:./assets/preview.png';
 import logo from 'url:./assets/logo.svg';
 
@@ -126,7 +135,7 @@ import logo from 'url:./assets/logo.svg';
 A `CollectionCardPreview` displays up to 4 images in a collection of assets. When 4 images are provided, the first one is displayed as a larger hero image.
 
 ```tsx
-import {Card, CollectionCardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {Card, CollectionCardPreview, Image, Content, Text} from '@react-spectrum/s2/Card';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Folder from '@react-spectrum/s2/icons/Folder';
 
@@ -152,7 +161,9 @@ import Folder from '@react-spectrum/s2/icons/Folder';
 A card can omit its `Content` section and display only a preview to create a gallery card typically seen in a waterfall layout. Ensure that the preview image has `alt` text, and any content placed above the preview has enough contrast against the background.
 
 ```tsx
-import {Card, CardPreview, Image, Badge, Avatar} from '@react-spectrum/s2';
+import {Card, CardPreview, Image} from '@react-spectrum/s2/Card';
+import {Badge} from '@react-spectrum/s2/Badge';
+import {Avatar} from '@react-spectrum/s2/Avatar';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <Card>
@@ -188,7 +199,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 Combine the `CardPreview`, `Content`, and `Footer` components to create custom cards. Add additional elements and styles within these sections to create custom layouts as needed.
 
 ```tsx
-import {Card, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {Card, CardPreview, Image, Content, Text} from '@react-spectrum/s2/Card';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Select from '@react-spectrum/s2/icons/Select';
 
@@ -218,7 +229,8 @@ import Select from '@react-spectrum/s2/icons/Select';
 Wrap a card in a [Skeleton](Skeleton.md) to display a loading state. Placeholder text content and images are displayed in a skeleton style.
 
 ```tsx
-import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {Skeleton} from '@react-spectrum/s2/Skeleton';
+import {Card, CardPreview, Image, Content, Text} from '@react-spectrum/s2/Card';
 
 <Skeleton isLoading>
   <Card>
@@ -241,7 +253,7 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 <Card>
   <CardPreview>
     <Image /> or <Illustration />
-  </CardView>
+  </CardPreview>
   <Content>
     <Text slot="title" />
     <ActionMenu />
@@ -253,9 +265,11 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `ReactNode | ((renderProps: CardRenderProps) => ReactNode)` | — | The children of the Card. |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
+| `children` | `((renderProps: CardRenderProps) => ReactNode) | ReactNode` | — | The children of the Card. |
 | `density` | `"compact" | "regular" | "spacious" | undefined` | 'regular' | The amount of internal padding within the Card. |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | — | Whether the row or its first focusable child element should be focused when navigating to the row. Defaults to 'row'. |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
 | `id` | `Key | undefined` | — | The unique id of the item. |
@@ -270,14 +284,14 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 | `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
 | `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
 | `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 | `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 | `value` | `object | undefined` | — | The object value that this item represents. When using dynamic collections, this is set automatically. |
-| `variant` | `"primary" | "secondary" | "tertiary" | "quiet" | undefined` | 'primary' | The visual style of the Card. |
+| `variant` | `"primary" | "quiet" | "secondary" | "tertiary" | undefined` | 'primary' | The visual style of the Card. |
 
 ### AssetCard
 
@@ -296,8 +310,10 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `ReactNode | ((renderProps: CardRenderProps) => ReactNode)` | — | The children of the Card. |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
+| `children` | `((renderProps: CardRenderProps) => ReactNode) | ReactNode` | — | The children of the Card. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | — | Whether the row or its first focusable child element should be focused when navigating to the row. Defaults to 'row'. |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
 | `id` | `Key | undefined` | — | The unique id of the item. |
@@ -312,14 +328,14 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 | `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
 | `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
 | `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 | `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 | `value` | `object | undefined` | — | The object value that this item represents. When using dynamic collections, this is set automatically. |
-| `variant` | `"primary" | "secondary" | "tertiary" | "quiet" | undefined` | 'primary' | The visual style of the Card. |
+| `variant` | `"primary" | "quiet" | "secondary" | "tertiary" | undefined` | 'primary' | The visual style of the Card. |
 
 ### UserCard
 
@@ -340,8 +356,10 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `ReactNode | ((renderProps: CardRenderProps) => ReactNode)` | — | The children of the Card. |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
+| `children` | `((renderProps: CardRenderProps) => ReactNode) | ReactNode` | — | The children of the Card. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | — | Whether the row or its first focusable child element should be focused when navigating to the row. Defaults to 'row'. |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
 | `id` | `Key | undefined` | — | The unique id of the item. |
@@ -356,7 +374,7 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 | `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
 | `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
@@ -386,8 +404,10 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `children` | `ReactNode | ((renderProps: CardRenderProps) => ReactNode)` | — | The children of the Card. |
-| `download` | `string | boolean | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the row should support arrow key navigation even when the containing collection uses tab keyboard navigation. Allows users to navigate between rows with arrow keys while focus is on an interactive child element within the row. |
+| `children` | `((renderProps: CardRenderProps) => ReactNode) | ReactNode` | — | The children of the Card. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `focusMode` | `"child" | "row" | undefined` | — | Whether the row or its first focusable child element should be focused when navigating to the row. Defaults to 'row'. |
 | `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
 | `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
 | `id` | `Key | undefined` | — | The unique id of the item. |
@@ -402,7 +422,7 @@ import {Skeleton, Card, CardPreview, Image, Content, Text} from '@react-spectrum
 | `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
 | `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
 | `routerOptions` | `undefined` | — | Options for the configured client side router. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the Card. |
 | `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
 | `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |

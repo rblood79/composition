@@ -1,110 +1,65 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/DropZone.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # DropZone
 
-A drop zone is an area into which one or multiple objects can be dragged and dropped. It supports drop operations via mouse, keyboard, and touch interactions.
+A drop zone is an area into which one or multiple objects can be dragged and dropped.
 
-**Added in:** 3.35.0
+```tsx
+import {DropZone, IllustratedMessage, Heading, Content} from '@react-spectrum/s2/DropZone';
+import {ButtonGroup, Button} from '@react-spectrum/s2/ButtonGroup';
+import {FileTrigger} from '@react-spectrum/s2/FileTrigger';
+import React, {useState} from 'react';
+import CloudUpload from '@react-spectrum/s2/illustrations/gradient/generic1/CloudUpload';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-## Import
-
-```javascript
-import { DropZone } from "@adobe/react-spectrum";
-```
-
-## Basic Example
-
-```jsx
-import Upload from "@spectrum-icons/illustrations/Upload";
-
-function Example() {
-  let [isFilled, setIsFilled] = React.useState(false);
-
+function Example(props) {
+  let [content, setContent] = useState<React.ReactNode>(null);
   return (
-    <>
-      <Draggable />
-      <DropZone
-        maxWidth="size-3000"
-        isFilled={isFilled}
-        onDrop={() => setIsFilled(true)}
-      >
+    <DropZone
+      {...props}
+      styles={style({width: 320, maxWidth: '90%'})}
+      
+      isFilled={!!content}
+      // Determine whether dragged content should be accepted.
+      getDropOperation={types => (
+        ['text/plain', 'image/jpeg', 'image/png', 'image/gif'].some(t => types.has(t))
+          ? 'copy'
+          : 'cancel'
+      )}
+      onDrop={async (event) => {
+        // Find the first accepted item.
+        let item = event.items.find(item => (
+          (item.kind === 'text' && item.types.has('text/plain')) ||
+          (item.kind === 'file' && item.type.startsWith('image/'))
+        ));
+
+        if (item?.kind === 'text') {
+          let text = await item.getText('text/plain');
+          setContent(text);
+        } else if (item?.kind === 'file') {
+          let file = await item.getFile();
+          let url = URL.createObjectURL(file);
+          setContent(<img src={url} alt={item.name} className={style({maxHeight: 'full', maxWidth: 'full'})} />);
+        }
+      }}>
+      {content || (
         <IllustratedMessage>
-          <Upload />
+          <CloudUpload />
           <Heading>
-            {isFilled ? "You dropped something!" : "Drag and drop your file"}
+            Drag and drop your file
           </Heading>
-        </IllustratedMessage>
-      </DropZone>
-    </>
-  );
-}
-```
-
-## With FileTrigger and Browse Button
-
-```jsx
-import { FileTrigger } from "@adobe/react-spectrum";
-
-function Example() {
-  let [isFilled, setIsFilled] = React.useState(false);
-
-  return (
-    <DropZone
-      maxWidth="size-3000"
-      isFilled={isFilled}
-      onDrop={() => setIsFilled(true)}
-    >
-      <IllustratedMessage>
-        <Upload />
-        <Heading>
-          {isFilled ? "You dropped something!" : "Drag and drop here"}
-        </Heading>
-        <Content>
-          <FileTrigger onSelect={() => setIsFilled(true)}>
-            <Button variant="primary">Browse</Button>
-          </FileTrigger>
-        </Content>
-      </IllustratedMessage>
-    </DropZone>
-  );
-}
-```
-
-## Handling Drop Events with File Data
-
-```jsx
-function Example() {
-  let [filledSrc, setFilledSrc] = React.useState(null);
-
-  return (
-    <DropZone
-      maxWidth="size-3000"
-      isFilled={!!filledSrc}
-      onDrop={async (e) => {
-        e.items.find(async (item) => {
-          if (item.kind === "file") {
-            setFilledSrc(item.name);
-          } else if (item.kind === "text" && item.types.has("text/plain")) {
-            setFilledSrc(await item.getText("text/plain"));
-          }
-        });
-      }}
-    >
-      {filledSrc ? (
-        <Flex
-          direction="column"
-          alignItems="center"
-          justifyContent="center"
-          gap="size-100"
-        >
-          <File />
-          {filledSrc}
-        </Flex>
-      ) : (
-        <IllustratedMessage>
-          <Upload />
-          <Heading>Drag and drop here</Heading>
+          <Content>
+            Or, select a file from your computer
+          </Content>
+          <ButtonGroup>
+            <FileTrigger
+              acceptedFileTypes={['image/jpeg', 'image/png', 'image/gif']}
+              onSelect={files => {
+                if (!files) return;
+                let url = URL.createObjectURL(files[0]);
+                setContent(<img src={url} alt={files[0].name} className={style({maxHeight: 'full', maxWidth: 'full'})} />);
+              }}>
+              <Button variant="accent">Browse files</Button>
+            </FileTrigger>
+          </ButtonGroup>
         </IllustratedMessage>
       )}
     </DropZone>
@@ -112,121 +67,34 @@ function Example() {
 }
 ```
 
-## Image Drop Zone with Type Validation
+## API
 
-```jsx
-function Example() {
-  let [filledSrc, setFilledSrc] = React.useState(null);
-
-  return (
-    <DropZone
-      maxWidth="size-3000"
-      isFilled={!!filledSrc}
-      getDropOperation={(types) =>
-        types.has("image/jpeg") ? "copy" : "cancel"
-      }
-      onDrop={async (e) => {
-        e.items.find(async (item) => {
-          if (item.kind === "file" && item.type === "image/jpeg") {
-            let file = await item.getFile();
-            setFilledSrc({ type: file.type, name: file.name });
-          }
-        });
-      }}
-    >
-      <IllustratedMessage>
-        <Upload />
-        <Heading>
-          {filledSrc
-            ? `${filledSrc.type} ${filledSrc.name}`
-            : "Drag and drop here"}
-        </Heading>
-      </IllustratedMessage>
-    </DropZone>
-  );
-}
-```
-
-## Custom Replace Message
-
-```jsx
-<DropZone
-  isFilled={isFilled}
-  maxWidth="size-3000"
-  replaceMessage="This is a custom message"
-  onDrop={() => setIsFilled(true)}
->
-  <IllustratedMessage>
-    <Upload />
-    <Heading>
-      {isFilled ? "You dropped something!" : "Drag and drop here"}
-    </Heading>
-  </IllustratedMessage>
+```tsx
+<DropZone>
+  <IllustratedMessage />
 </DropZone>
 ```
 
-## Props API
+### DropZone
 
-### Core Props
-
-| Name               | Type                                                                      | Default                  | Description                                           |
-| ------------------ | ------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------- |
-| `children`         | `ReactNode`                                                               | --                       | The content to display in the drop zone               |
-| `isFilled`         | `boolean`                                                                 | `false`                  | Whether the drop zone has been filled                 |
-| `replaceMessage`   | `string`                                                                  | `"Drop file to replace"` | Custom message shown when filled and drag hovers      |
-| `getDropOperation` | `(types: DragTypes, allowedOperations: DropOperation[]) => DropOperation` | --                       | Function returning the drop operation for given types |
-
-### Event Handlers
-
-| Name             | Type                             | Description                                    |
-| ---------------- | -------------------------------- | ---------------------------------------------- |
-| `onDropEnter`    | `(e: DropEnterEvent) => void`    | Valid drag enters the drop target              |
-| `onDropMove`     | `(e: DropMoveEvent) => void`     | Valid drag moves within the drop target        |
-| `onDropActivate` | `(e: DropActivateEvent) => void` | Valid drag held over target for period of time |
-| `onDropExit`     | `(e: DropExitEvent) => void`     | Valid drag exits the drop target               |
-| `onDrop`         | `(e: DropEvent) => void`         | Valid drag is dropped on the drop target       |
-
-### Accessibility Props
-
-| Name               | Type     | Description                             |
-| ------------------ | -------- | --------------------------------------- |
-| `id`               | `string` | Unique element identifier               |
-| `aria-label`       | `string` | Label for assistive technology          |
-| `aria-labelledby`  | `string` | ID of labeling element                  |
-| `aria-describedby` | `string` | ID of describing element                |
-| `aria-details`     | `string` | ID of element with extended description |
-
-### Layout/Spacing/Sizing/Positioning Props (Responsive)
-
-All standard Spectrum layout props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `slot`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-### Advanced Props
-
-| Name               | Type            | Description                        |
-| ------------------ | --------------- | ---------------------------------- |
-| `UNSAFE_className` | `string`        | CSS className (use as last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (use as last resort) |
-
-## Drop Event Types
-
-### DropEvent
-
-| Property        | Type                                     | Description                     |
-| --------------- | ---------------------------------------- | ------------------------------- |
-| `type`          | `'drop'`                                 | Event type                      |
-| `dropOperation` | `'copy' \| 'link' \| 'move' \| 'cancel'` | Operation to perform            |
-| `items`         | `DropItem[]`                             | Array of dropped items          |
-| `x`             | `number`                                 | X coordinate relative to target |
-| `y`             | `number`                                 | Y coordinate relative to target |
-
-### Drop Item Types
-
-**TextDropItem**: `kind: 'text'`, `types: Set<string>`, `getText(type): Promise<string>`
-
-**FileDropItem**: `kind: 'file'`, `type: string` (MIME), `name: string`, `getFile(): Promise<File>`, `getText(): Promise<string>`
-
-**DirectoryDropItem**: `kind: 'directory'`, `name: string`, `getEntries(): AsyncIterable`
-
-## Accessibility
-
-A visual label should be provided to DropZone using a `Text` element with a `label` slot. If not provided, an `aria-label` or `aria-labelledby` prop must be passed to identify the visually hidden button to assistive technology.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display in the drop zone. |
+| `getDropOperation` | `((types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined` | — | A function returning the drop operation to be performed when items matching the given types are dropped on the drop target. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isFilled` | `boolean | undefined` | — | Whether the drop zone has been filled. |
+| `onDrop` | `((e: DropEvent) => void) | undefined` | — | Handler that is called when a valid drag is dropped on the drop target. |
+| `onDropActivate` | `((e: DropActivateEvent) => void) | undefined` | — | Handler that is called after a valid drag is held over the drop target for a period of time. This typically opens the item so that the user can drop within it. |
+| `onDropEnter` | `((e: DropEnterEvent) => void) | undefined` | — | Handler that is called when a valid drag enters the drop target. |
+| `onDropExit` | `((e: DropExitEvent) => void) | undefined` | — | Handler that is called when a valid drag exits the drop target. |
+| `onDropMove` | `((e: DropMoveEvent) => void) | undefined` | — | Handler that is called when a valid drag is moved within the drop target. |
+| `replaceMessage` | `string | undefined` | 'Drop file to replace' | The message to replace the default banner message that is shown when the drop zone is filled. |
+| `size` | `"L" | "M" | "S" | undefined` | 'M' | The size of the DropZone. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

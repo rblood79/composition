@@ -1,81 +1,106 @@
-<!-- Source: https://react-spectrum.adobe.com/s2/ (S2) + GitHub @react-spectrum/s2/src/ToggleButtonGroup.tsx -->
-<!-- Last fetched: 2026-04-05 -->
-
 # ToggleButtonGroup
 
 A ToggleButtonGroup is a grouping of related ToggleButtons, with single or multiple selection.
 
 ```tsx
-import { ToggleButtonGroup, ToggleButton } from "@react-spectrum/s2";
-```
+import {ToggleButtonGroup, ToggleButton, Text} from '@react-spectrum/s2/ToggleButtonGroup';
+import TextBold from '@react-spectrum/s2/icons/TextBold';
+import TextItalic from '@react-spectrum/s2/icons/TextItalic';
+import TextUnderline from '@react-spectrum/s2/icons/TextUnderline';
 
-## Examples
-
-### With Icons and Labels
-
-```jsx
 <ToggleButtonGroup>
-  <ToggleButton id={1}>
-    <Bold />
-    <Text slot="label">Bold</Text>
+  <ToggleButton id="bold">
+    <TextBold />
+    <Text>Bold</Text>
   </ToggleButton>
-  <ToggleButton id={2}>
-    <Italic />
-    <Text slot="label">Italic</Text>
+  <ToggleButton id="italic">
+    <TextItalic />
+    <Text>Italic</Text>
   </ToggleButton>
-  <ToggleButton id={3}>
-    <Underline />
-    <Text slot="label">Underline</Text>
+  <ToggleButton id="underline">
+    <TextUnderline />
+    <Text>Underline</Text>
   </ToggleButton>
 </ToggleButtonGroup>
 ```
 
-### Icon Only
+## Selection
 
-```jsx
+Use the `selectionMode` prop to enable single or multiple selection. The selected toggle buttons can be controlled via the `selectedKeys` prop, matching the `id` of each `<ToggleButton>`. Toggle buttons can be disabled with the `isDisabled` prop. See the [selection guide](selection.md?component=ToggleButtonGroup) for more details.
+
+```tsx
+import {ToggleButtonGroup, ToggleButton, type Key} from '@react-spectrum/s2/ToggleButtonGroup';
+import {useState} from 'react';
+import TextBold from '@react-spectrum/s2/icons/TextBold';
+import TextItalic from '@react-spectrum/s2/icons/TextItalic';
+import TextUnderline from '@react-spectrum/s2/icons/TextUnderline';
+import TextStrikeThrough from '@react-spectrum/s2/icons/TextStrikeThrough';
+
+function Example(props) {
+  let [selected, setSelected] = useState(new Set<Key>(['bold']));
+
+  return (
+    <>
+      <ToggleButtonGroup
+        {...props}
+        aria-label="Text style"
+        density="compact"
+        /*- begin highlight -*/
+        
+        selectedKeys={selected}
+        onSelectionChange={setSelected}>
+        {/*- end highlight -*/}
+        <ToggleButton id="bold" aria-label="Bold">
+          <TextBold />
+        </ToggleButton>
+        <ToggleButton id="italic" aria-label="Italic" isDisabled>
+          <TextItalic />
+        </ToggleButton>
+        <ToggleButton id="underline" aria-label="Underline">
+          <TextUnderline />
+        </ToggleButton>
+        <ToggleButton id="strike" aria-label="Strikethrough">
+          <TextStrikeThrough />
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <p>Current selection: {[...selected].join(', ')}</p>
+    </>
+  );
+}
+```
+
+## API
+
+```tsx
 <ToggleButtonGroup>
-  <ToggleButton id={1} aria-label="Bold">
-    <Bold />
-  </ToggleButton>
-  <ToggleButton id={2} aria-label="Italic">
-    <Italic />
-  </ToggleButton>
-  <ToggleButton id={3} aria-label="Underline">
-    <Underline />
-  </ToggleButton>
+  <ToggleButton />
 </ToggleButtonGroup>
 ```
 
-## Props
+### ToggleButtonGroup
 
-### ToggleButtonGroupProps
-
-Extends `ActionButtonGroupProps` and `RACToggleButtonGroupProps`.
-
-| Name                     | Type                                | Default        | Description                           |
-| ------------------------ | ----------------------------------- | -------------- | ------------------------------------- |
-| `children`               | `ReactNode`                         | --             | ToggleButton elements                 |
-| `isEmphasized`           | `boolean`                           | --             | Displays with emphasized visual style |
-| `density`                | `'regular'`                         | `'regular'`    | Controls spacing density              |
-| `size`                   | `'XS' \| 'S' \| 'M' \| 'L' \| 'XL'` | `'M'`          | Button group size                     |
-| `orientation`            | `'horizontal' \| 'vertical'`        | `'horizontal'` | Layout direction                      |
-| `isJustified`            | `boolean`                           | --             | Justifies button distribution         |
-| `isDisabled`             | `boolean`                           | --             | Whether the group is disabled         |
-| `selectionMode`          | `'single' \| 'multiple'`            | --             | Selection mode                        |
-| `selectedKeys`           | `Iterable<Key>`                     | --             | Selected items (controlled)           |
-| `defaultSelectedKeys`    | `Iterable<Key>`                     | --             | Initial selected items (uncontrolled) |
-| `disallowEmptySelection` | `boolean`                           | --             | Require at least one selection        |
-| `onSelectionChange`      | `(keys: Set<Key>) => void`          | --             | Handler for selection changes         |
-| `styles`                 | `StyleString`                       | --             | Spectrum style overrides              |
-| `UNSAFE_className`       | `string`                            | --             | Custom class name                     |
-| `UNSAFE_style`           | `CSSProperties`                     | --             | Custom styles                         |
-
-## Context
-
-### ToggleButtonGroupContext
-
-Provides props to child ToggleButton components for coordinated styling and behavior.
-
-## Accessibility
-
-For icon-only buttons, each ToggleButton needs an `aria-label`.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The children of the group. |
+| `defaultSelectedKeys` | `Iterable<Key> | undefined` | — | The initial selected keys in the collection (uncontrolled). |
+| `density` | `"compact" | "regular" | undefined` | 'regular' | Spacing between the buttons. |
+| `disallowEmptySelection` | `boolean | undefined` | — | Whether the collection allows empty selection. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the group is disabled. |
+| `isEmphasized` | `boolean | undefined` | — | Whether the button should be displayed with an [emphasized style](https://spectrum.adobe.com/page/action-button/#Emphasis). |
+| `isJustified` | `boolean | undefined` | — | Whether the buttons should divide the container width equally. |
+| `isQuiet` | `boolean | undefined` | — | Whether the button should be displayed with a [quiet style](https://spectrum.adobe.com/page/action-button/#Quiet). |
+| `onSelectionChange` | `((keys: Set<Key>) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `orientation` | `"horizontal" | "vertical" | undefined` | 'horizontal' | The axis the group should align with. |
+| `selectedKeys` | `Iterable<Key> | undefined` | — | The currently selected keys in the collection (controlled). |
+| `selectionMode` | `"multiple" | "single" | undefined` | 'single' | Whether single or multiple selection is enabled. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | Size of the buttons. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the ActionButtonGroup appears over a color background. |
+| `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

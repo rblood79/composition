@@ -1,6 +1,7 @@
 # NumberField
 
-A number field allows a user to enter a number, and increment or decrement the value using stepper buttons.
+A number field allows a user to enter a number, and increment or decrement the value using
+stepper buttons.
 
 ## Vanilla CSS example
 
@@ -12,9 +13,9 @@ import {
   Group,
   Input,
   NumberField as AriaNumberField,
-  NumberFieldProps as AriaNumberFieldProps,
-  ValidationResult
-} from 'react-aria-components';
+  type NumberFieldProps as AriaNumberFieldProps,
+  type ValidationResult
+} from 'react-aria-components/NumberField';
 import {Button} from './Button';
 import {Plus, Minus} from 'lucide-react';
 import {Label, FieldError, Description} from './Form';
@@ -24,25 +25,25 @@ export interface NumberFieldProps extends AriaNumberFieldProps {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
-  placeholder?: string
+  placeholder?: string;
 }
 
-export function NumberField(
-  { label, description, errorMessage, ...props }: NumberFieldProps
-) {
+export function NumberField({label, description, errorMessage, ...props}: NumberFieldProps) {
   return (
-    (
-      <AriaNumberField {...props}>
-        <Label>{label}</Label>
-        <Group>
-          <Input className="react-aria-Input inset" />
-          <Button slot="decrement" variant="secondary"><Minus /></Button>
-          <Button slot="increment" variant="secondary"><Plus /></Button>
-        </Group>
-        {description && <Description>{description}</Description>}
-        <FieldError>{errorMessage}</FieldError>
-      </AriaNumberField>
-    )
+    <AriaNumberField {...props}>
+      <Label>{label}</Label>
+      <Group>
+        <Input className="react-aria-Input inset" />
+        <Button slot="decrement" variant="secondary">
+          <Minus />
+        </Button>
+        <Button slot="increment" variant="secondary">
+          <Plus />
+        </Button>
+      </Group>
+      {description && <Description>{description}</Description>}
+      <FieldError>{errorMessage}</FieldError>
+    </AriaNumberField>
   );
 }
 
@@ -51,8 +52,8 @@ export function NumberField(
 ### NumberField.css
 
 ```css
-@import "./theme.css";
-@import "./TextField.css";
+@import './theme.css';
+@import './TextField.css';
 
 .react-aria-NumberField {
   color: var(--text-color);
@@ -92,11 +93,11 @@ export function NumberField(
     justify-content: center;
     margin-inline-start: -1px;
 
-    &[slot=decrement] {
+    &[slot='decrement'] {
       border-radius: 0;
     }
 
-    &[slot=increment] {
+    &[slot='increment'] {
       border-radius: var(--radius);
       border-start-start-radius: 0;
       border-end-start-radius: 0;
@@ -116,7 +117,7 @@ export function NumberField(
     }
   }
 
-  [slot=description] {
+  [slot='description'] {
     font-size: 12px;
   }
 }
@@ -129,44 +130,59 @@ export function NumberField(
 
 ```tsx
 'use client';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import {ChevronDown, ChevronUp} from 'lucide-react';
 import React from 'react';
 import {
   NumberField as AriaNumberField,
-  NumberFieldProps as AriaNumberFieldProps,
+  type NumberFieldProps as AriaNumberFieldProps,
   Button,
-  ButtonProps,
-  ValidationResult
-} from 'react-aria-components';
-import { Description, FieldError, FieldGroup, Input, Label, fieldBorderStyles } from './Field';
-import { composeTailwindRenderProps } from './utils';
+  type ButtonProps,
+  type ValidationResult
+} from 'react-aria-components/NumberField';
+import {Description, FieldError, FieldGroup, Input, Label, fieldBorderStyles} from './Field';
+import {composeTailwindRenderProps} from './utils';
 
 export interface NumberFieldProps extends AriaNumberFieldProps {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
-  placeholder?: string
+  placeholder?: string;
 }
 
-export function NumberField(
-  { label, description, errorMessage, placeholder, ...props }: NumberFieldProps
-) {
+export function NumberField({
+  label,
+  description,
+  errorMessage,
+  placeholder,
+  ...props
+}: NumberFieldProps) {
   return (
-    <AriaNumberField {...props} className={composeTailwindRenderProps(props.className, 'group flex flex-col gap-1 font-sans')}>
+    <AriaNumberField
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'group flex flex-col gap-1 font-sans'
+      )}>
       <Label>{label}</Label>
       <FieldGroup>
-        {renderProps => (<>
-          <Input className="w-20" placeholder={placeholder} />
-          <div className={fieldBorderStyles({...renderProps, class: 'flex flex-col border-s h-full'})}>
-            <StepperButton slot="increment">
-              <ChevronUp aria-hidden className="w-4 h-4" />
-            </StepperButton>
-            <div className={fieldBorderStyles({...renderProps, class: 'border-b'})} />
-            <StepperButton slot="decrement">
-              <ChevronDown aria-hidden className="w-4 h-4" />
-            </StepperButton>
-          </div>
-        </>)}
+        {renderProps => (
+          <>
+            <Input className="w-20" placeholder={placeholder} />
+            <div
+              className={fieldBorderStyles({
+                ...renderProps,
+                class: 'flex flex-col border-s h-full'
+              })}>
+              <StepperButton slot="increment">
+                <ChevronUp aria-hidden className="w-4 h-4" />
+              </StepperButton>
+              <div className={fieldBorderStyles({...renderProps, class: 'border-b'})} />
+              <StepperButton slot="decrement">
+                <ChevronDown aria-hidden className="w-4 h-4" />
+              </StepperButton>
+            </div>
+          </>
+        )}
       </FieldGroup>
       {description && <Description>{description}</Description>}
       <FieldError>{errorMessage}</FieldError>
@@ -175,7 +191,12 @@ export function NumberField(
 }
 
 function StepperButton(props: ButtonProps) {
-  return <Button {...props} className="flex border-0 py-0 px-0.5 flex-1 box-border cursor-default text-neutral-500 bg-transparent pressed:bg-neutral-100 group-disabled:text-neutral-200 dark:text-neutral-400 dark:pressed:bg-neutral-800 dark:group-disabled:text-neutral-600 forced-colors:group-disabled:text-[GrayText] [-webkit-tap-highlight-color:transparent]" />
+  return (
+    <Button
+      {...props}
+      className="flex border-0 py-0 px-0.5 flex-1 box-border cursor-default text-neutral-500 bg-transparent pressed:bg-neutral-100 group-disabled:text-neutral-200 dark:text-neutral-400 dark:pressed:bg-neutral-800 dark:group-disabled:text-neutral-600 forced-colors:group-disabled:text-[GrayText] [-webkit-tap-highlight-color:transparent]"
+    />
+  );
 }
 
 ```
@@ -228,7 +249,7 @@ import {VanillaNumberField} from '@react-spectrum/s2';
 By default, `NumberField` displays the value using the numbering system for the user's locale. Use `<I18nProvider>` to override the numbering system by setting the [Unicode numbering system locale extension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/numberingSystem#adding_a_numbering_system_via_the_locale_string). The Latin, Arabic, Devanagari, Bengali, and Han positional decimal numbering systems are currently supported.
 
 ```tsx
-import {I18nProvider} from 'react-aria-components';
+import {I18nProvider} from 'react-aria-components/I18nProvider';
 import {NumberField} from 'vanilla-starter/NumberField';
 
 <I18nProvider>
@@ -243,7 +264,7 @@ Use the `name` prop to submit the raw number value (not a formatted string) to t
 ```tsx
 import {NumberField} from 'vanilla-starter/NumberField';
 import {Button} from 'vanilla-starter/Button';
-import {Form} from 'vanilla-starter/Form';;
+import {Form} from 'vanilla-starter/Form';
 
 <Form>
   <NumberField label="Width" name="width" isRequired />
@@ -277,6 +298,7 @@ import {Form} from 'vanilla-starter/Form';;
 | `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
 | `children` | `ChildrenOrFunction<NumberFieldRenderProps>` | — | The children of the component. A function may be provided to alter the children based on component state. |
 | `className` | `ClassNameOrFunction<NumberFieldRenderProps> | undefined` | 'react-aria-NumberField' | The CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. A function may be provided to compute the class based on component state. |
+| `commitBehavior` | `"snap" | "validate" | undefined` | 'snap' | Controls the behavior of the number field when the user blurs the field after editing. 'snap' will clamp the value to the min/max values, and snap to the nearest step value. 'validate' will not clamp the value, and will validate that the value is within the min/max range and on a valid step. |
 | `decrementAriaLabel` | `string | undefined` | — | A custom aria-label for the decrement button. If not provided, the localized string "Decrement" is used. |
 | `defaultValue` | `number | undefined` | — | The default value (uncontrolled). |
 | `dir` | `string | undefined` | — |  |
@@ -374,11 +396,11 @@ import {Form} from 'vanilla-starter/Form';;
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", NumberFieldRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", NumberFieldRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `step` | `number | undefined` | — | The amount that the input value changes with each increment or decrement "tick". |
-| `style` | `(React.CSSProperties | ((values: NumberFieldRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
-| `validate` | `((value: number) => ValidationError | true | null | undefined) | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
-| `validationBehavior` | `"native" | "aria" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `style` | `StyleOrFunction<NumberFieldRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+| `validate` | `((value: number) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
 | `value` | `number | undefined` | — | The current value (controlled). |

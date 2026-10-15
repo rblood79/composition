@@ -1,142 +1,203 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Toast.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Toast
 
-Toasts display brief, temporary notifications of actions, errors, or other events in an application.
-
-**Version:** 3.46.2
+A ToastContainer renders the queued toasts in an application. It should be placed
+at the root of the app.
 
 ```tsx
-import { ToastContainer, ToastQueue } from "@adobe/react-spectrum";
+import {ToastContainer, ToastQueue} from '@react-spectrum/s2/Toast';
+import {ButtonGroup, Button} from '@react-spectrum/s2/ButtonGroup';
+
+function App(props) {
+  return (
+    <>
+      <ToastContainer {...props} />
+      <ButtonGroup>
+        <Button
+          onPress={() => ToastQueue.neutral('Toast available')}
+          variant="secondary">
+          Show Neutral Toast
+        </Button>
+        <Button
+          onPress={() => ToastQueue.positive('Toast is done!')}
+          variant="primary">
+          Show Positive Toast
+        </Button>
+        <Button
+          onPress={() => ToastQueue.negative('Toast is burned!')}
+          variant="negative">
+          Show Negative Toast
+        </Button>
+        <Button
+          onPress={() => ToastQueue.info('Toasting…')}
+          variant="accent">
+          Show Info Toast
+        </Button>
+      </ButtonGroup>
+    </>
+  );
+}
 ```
 
-## Usage Examples
+## Actions
 
-### Basic Setup
+Use the `actionLabel` and `onAction` options to add an action button to the toast. Set `shouldCloseOnAction` to true to close the toast when the user presses the button.
 
-Place ToastContainer at the application root:
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
+import {ToastQueue} from '@react-spectrum/s2/Toast';
 
-```jsx
-<ToastContainer />
-```
-
-Queue toasts from anywhere:
-
-```jsx
-<Button onPress={() => ToastQueue.positive("Toast is done!")} variant="primary">
-  Show toast
+<Button
+  onPress={() => ToastQueue.info('An update is available', {
+    /*- begin highlight -*/
+    actionLabel: 'Update',
+    onAction: () => alert('Updating!'),
+    shouldCloseOnAction: true
+    /*- end highlight -*/
+  })}>
+  Show actionable toast
 </Button>
 ```
 
-### Toast Types
+## Dismissal
 
-```jsx
-// Neutral
-ToastQueue.neutral("Toast available");
+Use the `timeout` option to automatically hide a toast after a delay. For accessibility, toasts have a minimum timeout of 5 seconds, and actionable toasts will not auto dismiss. Timers will pause when the user focuses or hovers over a toast.
 
-// Positive
-ToastQueue.positive("Toast is done!");
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
+import {ToastQueue} from '@react-spectrum/s2/Toast';
 
-// Negative
-ToastQueue.negative("Toast is burned!");
-
-// Info
-ToastQueue.info("Toasting...");
+<Button
+  onPress={() => ToastQueue.positive('Toast is done!', {
+    /*- begin highlight -*/
+    timeout: 5000
+    /*- end highlight -*/
+  })}>
+  Show auto-dismissing toast
+</Button>
 ```
 
-### With Action Button
+### Programmatic dismissal
 
-```jsx
-ToastQueue.info("An update is available", {
-  actionLabel: "Update",
-  onAction: () => alert("Updating!"),
-  shouldCloseOnAction: true,
-});
-```
+Use the close function returned by `ToastQueue` to programmatically dismiss a toast that is no longer relevant. The `onClose` event is triggered when a toast is dismissed, either by user action or programmatically.
 
-### Auto-Dismiss (minimum 5 seconds)
+```tsx
+import {Button, Text} from '@react-spectrum/s2/Button';
+import {ToastQueue} from '@react-spectrum/s2/Toast';
+import {useState} from 'react';
 
-```jsx
-ToastQueue.positive("Toast is done!", { timeout: 5000 });
-```
-
-### Programmatic Dismissal
-
-```jsx
 function Example() {
-  let [close, setClose] = React.useState(null);
+  let [close, setClose] = useState<(() => void) | null>(null);
 
   return (
     <Button
       onPress={() => {
+        /*- begin highlight -*/
         if (!close) {
-          let close = ToastQueue.negative("Unable to save", {
-            onClose: () => setClose(null),
+          let close = ToastQueue.negative('Unable to save', {
+            onClose: () => setClose(null)
           });
           setClose(() => close);
         } else {
           close();
         }
-      }}
-      variant="primary"
-    >
-      {close ? "Hide" : "Show"} Toast
+        /*- end highlight -*/
+      }}>
+      <Text>{close ? 'Hide Toast' : 'Show Toast'}</Text>
     </Button>
   );
 }
 ```
 
-### Placement
+## API
 
-```jsx
-<ToastContainer placement="bottom end" />
-```
+### ToastContainer
 
-Valid placements: `'top'`, `'top end'`, `'bottom'`, `'bottom end'`
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | 'Notifications' | An accessibility label for the toast region. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `dir` | `string | undefined` | — |  |
+| `hidden` | `boolean | undefined` | — |  |
+| `inert` | `boolean | undefined` | — |  |
+| `lang` | `string | undefined` | — |  |
+| `onAnimationEnd` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationEndCapture` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationIteration` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationIterationCapture` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationStart` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAnimationStartCapture` | `AnimationEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAuxClick` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onAuxClickCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onClick` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onClickCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onContextMenu` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onContextMenuCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onDoubleClick` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onDoubleClickCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onGotPointerCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onGotPointerCaptureCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onLostPointerCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onLostPointerCaptureCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseDown` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseDownCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseEnter` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseLeave` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseMove` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseMoveCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOut` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOutCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOver` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseOverCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseUp` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onMouseUpCapture` | `MouseEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerCancel` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerCancelCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerDown` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerDownCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerEnter` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerLeave` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerMove` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerMoveCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOut` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOutCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOver` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerOverCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerUp` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onPointerUpCapture` | `PointerEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onScroll` | `UIEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onScrollCapture` | `UIEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchCancel` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchCancelCapture` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchEnd` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchEndCapture` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchMove` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchMoveCapture` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchStart` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTouchStartCapture` | `TouchEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionCancel` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionCancelCapture` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionEnd` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionEndCapture` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionRun` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionRunCapture` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionStart` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onTransitionStartCapture` | `TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onWheel` | `WheelEventHandler<HTMLDivElement> | undefined` | — |  |
+| `onWheelCapture` | `WheelEventHandler<HTMLDivElement> | undefined` | — |  |
+| `placement` | `ToastPlacement | undefined` | 'bottom' | Placement of the toast container on the page. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
-## API Reference
+### ToastQueue
 
-### ToastQueue Methods
+#### Toast Options
 
-| Method                                                       | Return          | Description            |
-| ------------------------------------------------------------ | --------------- | ---------------------- |
-| `neutral(children: string, options?: SpectrumToastOptions)`  | `CloseFunction` | Queue a neutral toast  |
-| `positive(children: string, options?: SpectrumToastOptions)` | `CloseFunction` | Queue a positive toast |
-| `negative(children: string, options?: SpectrumToastOptions)` | `CloseFunction` | Queue a negative toast |
-| `info(children: string, options?: SpectrumToastOptions)`     | `CloseFunction` | Queue an info toast    |
-
-### Toast Options (SpectrumToastOptions)
-
-| Name                  | Type         | Description                                   |
-| --------------------- | ------------ | --------------------------------------------- |
-| `actionLabel`         | `string`     | Label for the action button                   |
-| `onAction`            | `() => void` | Triggered when action button is pressed       |
-| `shouldCloseOnAction` | `boolean`    | Auto-close after action performed             |
-| `onClose`             | `() => void` | Triggered when toast closes                   |
-| `timeout`             | `number`     | Auto-dismiss delay in milliseconds (min 5000) |
-| `id`                  | `string`     | Unique identifier for the element             |
-
-### ToastContainer Props
-
-| Name               | Type                                             | Default           | Description                          |
-| ------------------ | ------------------------------------------------ | ----------------- | ------------------------------------ |
-| `placement`        | `'top' \| 'top end' \| 'bottom' \| 'bottom end'` | --                | Toast position on screen             |
-| `aria-label`       | `string`                                         | `"Notifications"` | Accessibility label for toast region |
-| `aria-labelledby`  | `string`                                         | --                | Labels the current element           |
-| `aria-describedby` | `string`                                         | --                | Describes the element                |
-| `aria-details`     | `string`                                         | --                | Provides detailed description        |
-
-## Accessibility
-
-- Toasts are rendered in a landmark region labeled "Notifications"
-- Navigate to toasts using F6 (forward) or Shift+F6 (backward)
-- Focus restores when the last toast closes
-- RTL layout automatic
-
-## Testing
-
-| data-testid                 | Element       |
-| --------------------------- | ------------- |
-| `rsp-Toast-secondaryButton` | Action button |
-| `rsp-Toast-closeButton`     | Close button  |
+| Name | Type | Description |
+|------|------|-------------|
+| `actionLabel` | `string | undefined` | A label for the action button within the toast. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `onAction` | `(() => void) | undefined` | Handler that is called when the action button is pressed. |
+| `onClose` | `(() => void) | undefined` | Handler that is called when the toast is closed, either by the user or after a timeout. |
+| `shouldCloseOnAction` | `boolean | undefined` | Whether the toast should automatically close when an action is performed. |
+| `timeout` | `number | undefined` | A timeout to automatically close the toast after, in milliseconds. |

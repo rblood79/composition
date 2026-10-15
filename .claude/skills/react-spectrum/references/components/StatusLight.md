@@ -1,88 +1,28 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/StatusLight.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # StatusLight
 
-Status lights are used to color code categories and labels commonly found in data visualization. When status lights have a semantic meaning, they should use semantic variant colors.
+Status lights are used to color code categories and labels commonly found in data visualization.
+When status lights have a semantic meaning, they should use semantic variant colors.
 
-```jsx
-import { StatusLight } from "@adobe/react-spectrum";
+```tsx
+import {StatusLight} from '@react-spectrum/s2/StatusLight';
 
-<StatusLight variant="positive">Ready</StatusLight>;
+<StatusLight />
 ```
 
-## Content
+## API
 
-A visible label is provided through children content. The `variant` prop indicates the status type.
-
-```jsx
-<StatusLight variant="positive">Semantic color</StatusLight>
-<StatusLight variant="yellow">Label color</StatusLight>
-```
-
-## Semantic Variants
-
-```jsx
-<StatusLight variant="neutral">Gray: Archived, Deleted, Paused, Draft, Not Started, Ended</StatusLight>
-<StatusLight variant="positive">Green: Approved, Complete, Success, New, Purchased, Licensed</StatusLight>
-<StatusLight variant="notice">Orange: Needs Approval, Pending, Scheduled, Syncing, Indexing, Processing</StatusLight>
-<StatusLight variant="negative">Red: Error, Alert, Rejected, Failed</StatusLight>
-<StatusLight variant="info">Blue: Active, In Use, Live, Published</StatusLight>
-```
-
-## Label Color Variants
-
-Use for color-coding 8 or fewer categories in recommended order:
-
-```jsx
-<StatusLight variant="indigo">Indigo</StatusLight>
-<StatusLight variant="celery">Celery</StatusLight>
-<StatusLight variant="magenta">Magenta</StatusLight>
-<StatusLight variant="yellow">Yellow</StatusLight>
-<StatusLight variant="fuchsia">Fuchsia</StatusLight>
-<StatusLight variant="seafoam">Seafoam</StatusLight>
-<StatusLight variant="chartreuse">Chartreuse</StatusLight>
-<StatusLight variant="purple">Purple</StatusLight>
-```
-
-## Disabled
-
-```jsx
-<StatusLight variant="yellow" isDisabled>
-  Yellow
-</StatusLight>
-```
-
-## Props
-
-| Name               | Type                                                                                                                                                                 | Default | Description                                                                |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------------------------- |
-| `variant`          | `'positive' \| 'negative' \| 'notice' \| 'info' \| 'neutral' \| 'celery' \| 'chartreuse' \| 'yellow' \| 'magenta' \| 'fuchsia' \| 'purple' \| 'indigo' \| 'seafoam'` | --      | Changes the color; use semantic colors for meaningful status.              |
-| `children`         | `ReactNode`                                                                                                                                                          | --      | Label content.                                                             |
-| `isDisabled`       | `boolean`                                                                                                                                                            | --      | Disables the component visually.                                           |
-| `role`             | `'status'`                                                                                                                                                           | --      | Use when status changes at runtime for assistive technology announcements. |
-| `id`               | `string`                                                                                                                                                             | --      | Unique identifier.                                                         |
-| `aria-label`       | `string`                                                                                                                                                             | --      | Label definition.                                                          |
-| `aria-labelledby`  | `string`                                                                                                                                                             | --      | References labeling element ID.                                            |
-| `aria-describedby` | `string`                                                                                                                                                             | --      | References describing element.                                             |
-| `aria-details`     | `string`                                                                                                                                                             | --      | References detailed description.                                           |
-| `UNSAFE_className` | `string`                                                                                                                                                             | --      | Direct CSS className (last resort).                                        |
-| `UNSAFE_style`     | `CSSProperties`                                                                                                                                                      | --      | Inline styles (last resort).                                               |
-
-### Layout/Spacing/Sizing/Positioning Props (all Responsive)
-
-Layout: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`
-
-Spacing: `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`
-
-Sizing: `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`
-
-Positioning: `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-## Accessibility
-
-If no visible label exists, provide `aria-label` for accessibility. Use `aria-labelledby` when labeled by a separate element. Add `role="status"` when status changes at runtime for assistive technology announcements.
-
-## Internationalization
-
-Localized strings are set as children content. The component automatically flips for right-to-left languages.
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content to display as the label. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `role` | `"status" | undefined` | — | An accessibility role for the status light. Should be set when the status can change at runtime, and no more than one status light will update simultaneously. For cases where multiple statuses can change at the same time, use a Toast instead. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the StatusLight. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `variant` | `"brown" | "celery" | "chartreuse" | "cinnamon" | "cyan" | "fuchsia" | "indigo" | "informative" | "magenta" | "negative" | "neutral" | "notice" | "pink" | "positive" | "purple" | "seafoam" | "silver" | "turquoise" | "yellow" | undefined` | 'neutral' | The variant changes the color of the status light. When status lights have a semantic meaning, they should use the variant for semantic colors. |

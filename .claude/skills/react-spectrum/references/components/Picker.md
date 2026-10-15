@@ -1,399 +1,458 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Picker.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Picker
 
-Pickers allow users to choose a single option from a collapsible list of options when space is limited.
-
-**Added:** v3.0.0
-
-```tsx
-import { Picker, Item, Section } from "@adobe/react-spectrum";
-```
-
-## Basic Usage
+Pickers allow users to choose a single option from a collapsible list of options when space is
+limited.
 
 ```tsx
-<Picker label="Choose frequency">
-  <Item key="rarely">Rarely</Item>
-  <Item key="sometimes">Sometimes</Item>
-  <Item key="always">Always</Item>
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+
+<Picker>
+  <PickerItem>Chocolate</PickerItem>
+  <PickerItem>Mint</PickerItem>
+  <PickerItem>Strawberry</PickerItem>
+  <PickerItem>Vanilla</PickerItem>
+  <PickerItem>Chocolate Chip Cookie Dough</PickerItem>
 </Picker>
-```
-
-### Dynamic Collections
-
-```tsx
-function Example() {
-  let options = [
-    { id: 1, name: "Aardvark" },
-    { id: 2, name: "Cat" },
-    { id: 3, name: "Dog" },
-  ];
-  let [animalId, setAnimalId] = React.useState(null);
-
-  return (
-    <>
-      <Picker
-        label="Pick an animal"
-        items={options}
-        onSelectionChange={setAnimalId}
-      >
-        {(item) => <Item>{item.name}</Item>}
-      </Picker>
-      <p>Animal id: {animalId}</p>
-    </>
-  );
-}
 ```
 
 ## Content
 
-### Complex Items
-
-Items can include icons, avatars, and descriptions:
+`Picker` follows the [Collection Components API](collections.md?component=Picker), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a function to render the children.
 
 ```tsx
-<Picker label="Options">
-  <Section title="Permission">
-    <Item textValue="Read">
-      <Book size="S" />
-      <Text>Read</Text>
-      <Text slot="description">Read Only</Text>
-    </Item>
-  </Section>
-</Picker>
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+
+function Example() {
+  let options = [
+    { id: 1, name: 'Aardvark' },
+    { id: 2, name: 'Cat' },
+    { id: 3, name: 'Dog' },
+    { id: 4, name: 'Kangaroo' },
+    { id: 5, name: 'Koala' },
+    { id: 6, name: 'Penguin' },
+    { id: 7, name: 'Snake' },
+    { id: 8, name: 'Turtle' },
+    { id: 9, name: 'Wombat' }
+  ];
+
+  return (
+    /*- begin highlight -*/
+    <Picker label="Animals" items={options}>
+      {(item) => <PickerItem>{item.name}</PickerItem>}
+    </Picker>
+    /*- end highlight -*/
+  );
+}
 ```
+
+### Slots
+
+`PickerItem` supports icons, avatars, and `label` and `description` text slots.
+
+```tsx
+import {Avatar} from '@react-spectrum/s2/Avatar';
+import {Picker, PickerItem, Text} from '@react-spectrum/s2/Picker';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import Comment from '@react-spectrum/s2/icons/Comment';
+import Edit from '@react-spectrum/s2/icons/Edit';
+import UserSettings from '@react-spectrum/s2/icons/UserSettings';
+
+const users = Array.from({length: 5}, (_, i) => ({
+  id: `user${i + 1}`,
+  name: `User ${i + 1}`,
+  email: `user${i + 1}@example.com`,
+  avatar: 'https://i.imgur.com/kJOwAdv.png'
+}));
+
+<div className={style({display: 'flex', gap: 12, flexWrap: 'wrap'})}>
+  <Picker label="Permissions" defaultValue="read">
+    <PickerItem id="read" textValue="Read">
+      {/*- begin highlight -*/}
+      <Comment />
+      <Text slot="label">Read</Text>
+      <Text slot="description">Comment only</Text>
+      {/*- end highlight -*/}
+    </PickerItem>
+    <PickerItem id="write" textValue="Write">
+      <Edit />
+      <Text slot="label">Write</Text>
+      <Text slot="description">Read and write only</Text>
+    </PickerItem>
+    <PickerItem id="admin" textValue="Admin">
+      <UserSettings />
+      <Text slot="label">Admin</Text>
+      <Text slot="description">Full access</Text>
+    </PickerItem>
+  </Picker>
+  <Picker label="Share" items={users} defaultValue="user1">
+    {(item) => (
+      <PickerItem id={item.id} textValue={item.name}>
+        {/*- begin highlight -*/}
+        <Avatar slot="avatar" src={item.avatar} />
+        {/*- end highlight -*/}
+        <Text slot="label">{item.name}</Text>
+        <Text slot="description">{item.email}</Text>
+      </PickerItem>
+    )}
+  </Picker>
+</div>
+```
+
+<InlineAlert variant="notice">
+  <Heading>Accessibility</Heading>
+  <Content>Interactive elements (e.g. buttons) within picker items are not allowed. This will break keyboard and screen reader navigation. Only add textual or decorative graphics (e.g. icons) as children.</Content>
+</InlineAlert>
 
 ### Sections
 
+Use the `<PickerSection>` component to group options. A `<Header>` element, with a `<Heading>` and optional `description` slot can be included to label a section. Sections without a header must have an `aria-label`.
+
 ```tsx
-<Picker label="Pick your favorite">
-  <Section title="Animals">
-    <Item key="Aardvark">Aardvark</Item>
-    <Item key="Kangaroo">Kangaroo</Item>
-  </Section>
-  <Section title="People">
-    <Item key="Danni">Danni</Item>
-  </Section>
+import {Picker, PickerSection, PickerItem, Header, Heading, Text} from '@react-spectrum/s2/Picker';
+
+<Picker label="Ice cream flavor">
+  {/*- begin highlight -*/}
+  <PickerSection>
+    <Header>
+      <Heading>Neopolitan flavors</Heading>
+      <Text slot="description">These flavors are common</Text>
+    </Header>
+    {/*- end highlight -*/}
+    <PickerItem>Chocolate</PickerItem>
+    <PickerItem>Strawberry</PickerItem>
+    <PickerItem>Vanilla</PickerItem>
+  </PickerSection>
+  <PickerSection>
+    <Header>
+      <Heading>Others</Heading>
+      <Text slot="description">These flavors are uncommon</Text>
+    </Header>
+    <PickerItem>Matcha</PickerItem>
+    <PickerItem>Ube</PickerItem>
+    <PickerItem>Prickly pear</PickerItem>
+  </PickerSection>
 </Picker>
 ```
 
-### Asynchronous Loading
+### Asynchronous loading
+
+Use the `loadingState` and `onLoadMore` props to enable async loading and infinite scrolling.
 
 ```tsx
-import { useAsyncList } from "react-stately";
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+import {useAsyncList} from '@react-spectrum/s2/useAsyncList';
+
+interface Character {
+  name: string
+}
 
 function AsyncLoadingExample() {
-  let list = useAsyncList({
-    async load({ signal, cursor }) {
-      let res = await fetch(cursor || "https://pokeapi.co/api/v2/pokemon", {
-        signal,
-      });
+  let list = useAsyncList<Character>({
+    async load({signal, cursor}) {
+      let res = await fetch(
+        cursor || `https://pokeapi.co/api/v2/pokemon`,
+        { signal }
+      );
       let json = await res.json();
-      return { items: json.results, cursor: json.next };
-    },
+
+      return {
+        items: json.results,
+        cursor: json.next
+      };
+    }
   });
 
   return (
     <Picker
-      label="Pick a Pokemon"
+      aria-label="Pokemon"
       items={list.items}
-      isLoading={list.isLoading}
-      onLoadMore={list.loadMore}
-    >
-      {(item) => <Item key={item.name}>{item.name}</Item>}
+      /*- begin highlight -*/
+      loadingState={list.loadingState}
+      onLoadMore={list.loadMore}>
+      {/*- end highlight -*/}
+      {(item) => <PickerItem id={item.name}>{item.name}</PickerItem>}
     </Picker>
   );
 }
 ```
 
-## Selection
+### Links
 
-### Controlled
-
-```tsx
-let [animal, setAnimal] = React.useState("Bison");
-
-<Picker
-  label="Pick an animal"
-  items={options}
-  selectedKey={animal}
-  onSelectionChange={(selected) => setAnimal(selected)}
->
-  {(item) => <Item key={item.name}>{item.name}</Item>}
-</Picker>;
-```
-
-### Uncontrolled
+Use the `href` prop on a `<PickerItem>` to create a link. See the [getting started guide](getting-started.md) to learn how to integrate with your framework. Link items in a `Picker` are not selectable.
 
 ```tsx
-<Picker label="Pick an animal" items={options} defaultSelectedKey="Bison">
-  {(item) => <Item key={item.name}>{item.name}</Item>}
-</Picker>
-```
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
 
-### HTML Forms
-
-```tsx
-<Picker label="Favorite Animal" name="favoriteAnimalId">
-  <Item key="panda">Panda</Item>
-  <Item key="cat">Cat</Item>
-  <Item key="dog">Dog</Item>
-</Picker>
-```
-
-## Links
-
-Items can function as navigation links (not selectable):
-
-```tsx
 <Picker label="Project">
-  <Item href="https://example.com/" target="_blank">
-    Create new...
-  </Item>
-  <Item>Proposal</Item>
-  <Item>Budget</Item>
+  <PickerItem href="https://example.com/" target="_blank">Create new…</PickerItem>
+  <PickerItem>Proposal</PickerItem>
+  <PickerItem>Budget</PickerItem>
+  <PickerItem>Onboarding</PickerItem>
 </Picker>
 ```
 
-## Validation
+## Value
+
+Use the `defaultValue` or `value` prop to set the selected item. The value corresponds to the `id` prop of an item. When `selectionMode="multiple"`, `value` and `onChange` accept an array. Items can be disabled with the `isDisabled` prop.
 
 ```tsx
-<Form validationBehavior="native" maxWidth="size-3000">
-  <Picker label="Favorite animal" name="animal" isRequired>
-    <Item>Aardvark</Item>
-    <Item>Cat</Item>
-    <Item>Dog</Item>
-  </Picker>
-  <ButtonGroup>
-    <Button type="submit" variant="primary">
-      Submit
-    </Button>
-    <Button type="reset" variant="secondary">
-      Reset
-    </Button>
-  </ButtonGroup>
-</Form>
-```
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import {useState} from 'react';
 
-## Visual Options
+function Example(props) {
+  let [animal, setAnimal] = useState("bison");
 
-### Label Position
-
-```tsx
-<Picker label="Choose frequency" labelPosition="side" labelAlign="end">
-  <Item key="rarely">Rarely</Item>
-</Picker>
-```
-
-### Quiet Style
-
-```tsx
-<Picker label="Choose frequency" isQuiet>
-  <Item key="rarely">Rarely</Item>
-</Picker>
-```
-
-### Disabled
-
-```tsx
-<Picker label="Choose frequency" isDisabled>
-  <Item key="rarely">Rarely</Item>
-</Picker>
-```
-
-### Help Text
-
-```tsx
-<Picker
-  label="Favorite animal"
-  description="Pick your favorite animal"
-  errorMessage="Selection is required"
-  isInvalid={!isValid}
->
-  <Item>Cat</Item>
-</Picker>
-```
-
-### Custom Width / Menu Width
-
-```tsx
-<Picker label="Choose frequency" width="size-3600" maxWidth="100%">
-  <Item key="rarely">Rarely</Item>
-</Picker>
-
-<Picker label="Choose animal" menuWidth="size-6000">
-  <Item key="Emu">Emu</Item>
-</Picker>
-```
-
-### Menu Alignment and Direction
-
-```tsx
-<Picker label="Choose frequency" align="end" menuWidth="size-3000">
-  <Item key="rarely">Rarely</Item>
-</Picker>
-
-<Picker label="Choose animal" direction="top">
-  <Item key="Emu">Emu</Item>
-</Picker>
-```
-
-### Controlled Open State
-
-```tsx
-function Example() {
-  let [open, setOpen] = React.useState(false);
   return (
-    <Picker label="Frequency" isOpen={open} onOpenChange={setOpen}>
-      <Item key="rarely">Rarely</Item>
-    </Picker>
+    <div>
+      <Picker
+        {...props}
+        label="Pick an animal"
+        
+        value={animal}
+        onChange={setAnimal}
+      >
+        <PickerItem id="koala">Koala</PickerItem>
+        <PickerItem id="kangaroo">Kangaroo</PickerItem>
+        <PickerItem id="platypus" isDisabled>Platypus</PickerItem>
+        <PickerItem id="eagle">Bald Eagle</PickerItem>
+        <PickerItem id="bison">Bison</PickerItem>
+        <PickerItem id="skunk">Skunk</PickerItem>
+      </Picker>
+      <pre className={style({font: 'body'})}>Current selection: {JSON.stringify(animal)}</pre>
+    </div>
   );
 }
 ```
 
-## Props
+### Custom Render Value
 
-### Main Props
-
-| Name                  | Type                    | Default    | Description                         |
-| --------------------- | ----------------------- | ---------- | ----------------------------------- |
-| `children`            | `CollectionChildren`    | --         | Collection contents                 |
-| `items`               | `Iterable<object>`      | --         | Dynamic item objects                |
-| `label`               | `ReactNode`             | --         | Field label                         |
-| `placeholder`         | `string`                | --         | Placeholder text                    |
-| `selectedKey`         | `Key \| null`           | --         | Selected key (controlled)           |
-| `defaultSelectedKey`  | `Key \| null`           | --         | Initial selected key (uncontrolled) |
-| `isOpen`              | `boolean`               | --         | Menu open state (controlled)        |
-| `defaultOpen`         | `boolean`               | --         | Initial open state                  |
-| `isQuiet`             | `boolean`               | --         | Quiet style                         |
-| `isDisabled`          | `boolean`               | --         | Disable the input                   |
-| `isRequired`          | `boolean`               | --         | Mark as required                    |
-| `isInvalid`           | `boolean`               | --         | Mark as invalid                     |
-| `isLoading`           | `boolean`               | --         | Show loading state                  |
-| `disabledKeys`        | `Iterable<Key>`         | --         | Keys of disabled items              |
-| `autoFocus`           | `boolean`               | --         | Focus on render                     |
-| `autoComplete`        | `string`                | --         | HTML autocomplete attribute         |
-| `name`                | `string`                | --         | Form field name                     |
-| `form`                | `string`                | --         | Associated form id                  |
-| `validationBehavior`  | `'aria' \| 'native'`    | `'aria'`   | Validation mode                     |
-| `validate`            | `Function`              | --         | Custom validation function          |
-| `description`         | `ReactNode`             | --         | Field description/hint              |
-| `errorMessage`        | `ReactNode \| Function` | --         | Error message                       |
-| `labelPosition`       | `'top' \| 'side'`       | `'top'`    | Label placement                     |
-| `labelAlign`          | `'start' \| 'end'`      | `'start'`  | Label alignment                     |
-| `necessityIndicator`  | `'icon' \| 'label'`     | `'icon'`   | Required indicator style            |
-| `contextualHelp`      | `ReactNode`             | --         | Contextual help element             |
-| `align`               | `'start' \| 'end'`      | `'start'`  | Menu alignment                      |
-| `direction`           | `'bottom' \| 'top'`     | `'bottom'` | Menu direction                      |
-| `shouldFlip`          | `boolean`               | `true`     | Auto-flip when space limited        |
-| `menuWidth`           | `DimensionValue`        | --         | Menu width                          |
-| `excludeFromTabOrder` | `boolean`               | --         | Remove from tab order               |
-| `id`                  | `string`                | --         | Element ID                          |
-
-### Events
-
-| Name                | Type                           | Description                      |
-| ------------------- | ------------------------------ | -------------------------------- |
-| `onSelectionChange` | `(key: Key \| null) => void`   | Fires when selection changes     |
-| `onOpenChange`      | `(isOpen: boolean) => void`    | Fires when menu opens/closes     |
-| `onLoadMore`        | `() => any`                    | Fires when scrolling near bottom |
-| `onFocus`           | `(e: FocusEvent) => void`      | Fires on focus                   |
-| `onBlur`            | `(e: FocusEvent) => void`      | Fires on blur                    |
-| `onFocusChange`     | `(isFocused: boolean) => void` | Focus state changes              |
-| `onKeyDown`         | `(e: KeyboardEvent) => void`   | Key pressed                      |
-| `onKeyUp`           | `(e: KeyboardEvent) => void`   | Key released                     |
-
-### Accessibility Props
-
-| Name               | Type     | Description                |
-| ------------------ | -------- | -------------------------- |
-| `aria-label`       | `string` | ARIA label                 |
-| `aria-labelledby`  | `string` | ARIA label reference       |
-| `aria-describedby` | `string` | ARIA description reference |
-| `aria-details`     | `string` | ARIA details reference     |
-
-Layout/spacing/positioning props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`, `UNSAFE_className`, `UNSAFE_style`
-
-### Item Props
-
-| Name             | Type                | Description                                 |
-| ---------------- | ------------------- | ------------------------------------------- |
-| `children`       | `ReactNode`         | Item content                                |
-| `title`          | `ReactNode`         | Item title if children contains child items |
-| `textValue`      | `string`            | String for typeahead                        |
-| `aria-label`     | `string`            | ARIA label                                  |
-| `key`            | `Key`               | Unique identifier                           |
-| `href`           | `string`            | Link URL (makes item non-selectable)        |
-| `target`         | `string`            | Link target                                 |
-| `rel`            | `string`            | Link relationship                           |
-| `download`       | `boolean \| string` | Download attribute                          |
-| `ping`           | `string`            | Ping URLs                                   |
-| `referrerPolicy` | `string`            | Referrer policy                             |
-| `hrefLang`       | `string`            | Linked URL language hint                    |
-| `routerOptions`  | `object`            | Client router options                       |
-| `childItems`     | `Iterable<T>`       | Child items for dynamic collections         |
-| `hasChildItems`  | `boolean`           | Whether item has children                   |
-
-### Section Props
-
-| Name         | Type                                       | Description               |
-| ------------ | ------------------------------------------ | ------------------------- |
-| `children`   | `ItemElement \| ItemElement[] \| Function` | Static or dynamic items   |
-| `title`      | `ReactNode`                                | Section header            |
-| `aria-label` | `string`                                   | ARIA label                |
-| `items`      | `Iterable<T>`                              | Dynamic item objects      |
-| `key`        | `Key`                                      | Unique section identifier |
-
-## Testing
+Use the `renderValue` prop to provide a custom element to display selected items. The callback is given an array of the selected user-defined objects.
 
 ```tsx
-import { User } from "@react-spectrum/test-utils";
+import {AvatarGroup, Avatar} from '@react-spectrum/s2/AvatarGroup';
+import {Picker, PickerItem, Text} from '@react-spectrum/s2/Picker';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-let testUtilUser = new User({ interactionType: "mouse" });
+let users = [
+  {id: 'abraham-baker', avatar: 'https://www.untitledui.com/images/avatars/abraham-baker', name: 'Abraham Baker', email: 'abraham@example.com'},
+  {id: 'adriana-sullivan', avatar: 'https://www.untitledui.com/images/avatars/adriana-sullivan', name: 'Adriana Sullivan', email: 'adriana@example.com'},
+  {id: 'jonathan-kelly', avatar: 'https://www.untitledui.com/images/avatars/jonathan-kelly', name: 'Jonathan Kelly', email: 'jonathan@example.com'},
+  {id: 'zara-bush', avatar: 'https://www.untitledui.com/images/avatars/zara-bush', name: 'Zara Bush', email: 'zara@example.com'}
+];
 
-it("Picker can select an option", async function () {
-  let { getByTestId } = render(
-    <Provider theme={defaultTheme}>
-      <Picker data-testid="test-select">
-        <Item>Cat</Item>
+function Example() {
+  return (
+    <div>
+      <Picker
+        label="Pick users"
+        items={users}
+        selectionMode={"multiple"}
+        renderValue={(selectedItems) => (
+          <AvatarGroup aria-label="Selected users" styles={style({marginX: 4})}>
+            {selectedItems.map(item => (
+              <Avatar key={item.id} src={item.avatar} alt={item.name} />
+            ))}
+          </AvatarGroup>
+        )}
+      >
+        {(item) =>
+          <PickerItem textValue={item.name}>
+            <Avatar slot="avatar" src={item.avatar} />
+            <Text slot="label">{item.name}</Text>
+            <Text slot="description">{item.email}</Text>
+          </PickerItem>
+        }
       </Picker>
-    </Provider>,
+    </div>
   );
-
-  let selectTester = testUtilUser.createTester("Select", {
-    root: getByTestId("test-select"),
-    interactionType: "keyboard",
-  });
-
-  await selectTester.selectOption({ option: "Cat" });
-});
+}
 ```
 
-### SelectTester Properties
+## Forms
 
-| Property   | Type                  | Description                  |
-| ---------- | --------------------- | ---------------------------- |
-| `trigger`  | `HTMLElement`         | The select's trigger element |
-| `listbox`  | `HTMLElement \| null` | The select's listbox         |
-| `sections` | `HTMLElement[]`       | The select's sections        |
+Use the `name` prop to submit the `id` of the selected item to the server. Set the `isRequired` prop to validate that the user selects an option, or implement custom client or server-side validation. See the [Forms](forms.md) guide to learn more.
 
-### SelectTester Methods
+```tsx
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+import {Form} from '@react-spectrum/s2/Form';
+import {Button} from '@react-spectrum/s2/Button';
 
-| Method                     | Description                               |
-| -------------------------- | ----------------------------------------- |
-| `open(opts)`               | Opens the select menu                     |
-| `close()`                  | Closes the select menu                    |
-| `findOption(opts)`         | Returns option by index or text           |
-| `selectOption(opts)`       | Selects an option by node, text, or index |
-| `options(opts)`            | Returns all select options                |
-| `setInteractionType(type)` | Changes interaction type                  |
+function Example(props) {
+  return (
+    <Form>
+      <Picker
+        {...props}
+        label="Animal"
+        /*- begin highlight -*/
+        name="animal"
+        
+        /*- end highlight -*/
+        description="Please select an animal.">
+        <PickerItem id="aardvark">Aardvark</PickerItem>
+        <PickerItem id="cat">Cat</PickerItem>
+        <PickerItem id="dog">Dog</PickerItem>
+        <PickerItem id="kangaroo">Kangaroo</PickerItem>
+        <PickerItem id="panda">Panda</PickerItem>
+        <PickerItem id="snake">Snake</PickerItem>
+      </Picker>
+      <Button type="submit">Submit</Button>
+    </Form>
+  );
+}
+```
 
-## Accessibility
+## Popover options
 
-- Required fields display via `isRequired` and `necessityIndicator` props
-- Use `aria-label` when no visible label is provided
-- Error messages display with `validationBehavior="native"`
-- RTL layout automatically flipped
-- On mobile, renders in a tray instead of a popover
+The open state of the Picker can be controlled via the `defaultOpen` and `isOpen` props. The `align`, `direction`, `shouldFlip` and `menuWidth` props control the behavior of the popover.
+
+```tsx
+import {Picker, PickerItem} from '@react-spectrum/s2/Picker';
+import {useState} from 'react';
+
+function Example(props) {
+  let [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <p>Select is {open ? 'open' : 'closed'}</p>
+      <Picker
+        {...props}
+        label="Choose frequency"
+        /*- begin highlight -*/
+        
+        isOpen={open}
+        onOpenChange={setOpen}>
+        {/*- end highlight -*/}
+        <PickerItem id="rarely">Rarely</PickerItem>
+        <PickerItem id="sometimes">Sometimes</PickerItem>
+        <PickerItem id="always">Always</PickerItem>
+      </Picker>
+    </div>
+  );
+}
+```
+
+## API
+
+```tsx
+<Picker>
+  <PickerItem>
+    <Icon /> or <Avatar />
+    <Text slot="label" />
+    <Text slot="description" />
+  </PickerItem>
+  <PickerSection>
+    <Header>
+      <Heading />
+      <Text slot="description" />
+    </Header>
+    <PickerItem />
+  </PickerSection>
+</Picker>
+```
+
+### Picker
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"end" | "start" | undefined` | 'start' | Alignment of the menu relative to the input target. |
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoComplete` | `string | undefined` | — | Describes the type of autocomplete functionality the input should provide if any. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefautocomplete). |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `((item: T) => ReactNode) | React.ReactNode` | — | The contents of the collection. |
+| `contextualHelp` | `React.ReactNode` | — | A ContextualHelp element to place next to the label. |
+| `defaultOpen` | `boolean | undefined` | — | Sets the default open state of the menu. |
+| `defaultValue` | `ValueType<M> | undefined` | — | The default value (uncontrolled). |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `description` | `React.ReactNode` | — | A description for the field. Provides a hint such as specific requirements for what to choose. |
+| `direction` | `"bottom" | "top" | undefined` | 'bottom' | Direction the menu will render relative to the Picker. |
+| `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
+| `errorMessage` | `((v: ValidationResult) => ReactNode) | React.ReactNode` | — | An error message for the field. |
+| `excludeFromTabOrder` | `boolean | undefined` | — | Whether to exclude the element from the sequential tab order. If true, the element will not be focusable via the keyboard by tabbing. This should be avoided except in rare scenarios where an alternative means of accessing the element or its functionality via the keyboard is available. |
+| `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the input is disabled. |
+| `isInvalid` | `boolean | undefined` | — | Whether the input value is invalid. |
+| `isOpen` | `boolean | undefined` | — | Sets the open state of the menu. |
+| `isQuiet` | `boolean | undefined` | — | Whether the picker should be displayed with a quiet style. |
+| `isRequired` | `boolean | undefined` | — | Whether user input is required on the input before form submission. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `label` | `React.ReactNode` | — | The content to display as the label. |
+| `labelAlign` | `Alignment | undefined` | 'start' | The label's horizontal alignment relative to the element it is labeling. |
+| `labelPosition` | `LabelPosition | undefined` | 'top' | The label's overall position relative to the element it is labeling. |
+| `loadingState` | `LoadingState | undefined` | — | The current loading state of the Picker. |
+| `menuWidth` | `number | undefined` | — | Width of the menu. By default, matches width of the trigger. Note that the minimum width of the dropdown is always equal to the trigger's width. |
+| `name` | `string | undefined` | — | The name of the input, used when submitting an HTML form. |
+| `necessityIndicator` | `NecessityIndicator | undefined` | 'icon' | Whether the required state should be shown as an icon or text. |
+| `onBlur` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onChange` | `((value: ChangeValueType<M>) => void) | undefined` | — | Handler that is called when the value changes. |
+| `onFocus` | `((e: React.FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onLoadMore` | `(() => any) | undefined` | — | Handler that is called when more items should be loaded, e.g. while scrolling near the bottom. |
+| `onOpenChange` | `((isOpen: boolean) => void) | undefined` | — | Method that is called when the open state of the menu changes. |
+| `placeholder` | `string | undefined` | 'Select an item' (localized) | Temporary text that occupies the select when it is empty. |
+| `renderValue` | `((selectedItems: T[]) => ReactNode) | undefined` | — | Custom renderer for the picker value. Allows one to provide a custom element to render selected items. |
+| `selectionMode` | `M | undefined` | 'single' | Whether single or multiple selection is enabled. |
+| `shouldCloseOnSelect` | `boolean | undefined` | — | Whether the Select should close when an item is selected. Defaults to true if selectionMode is single, false otherwise. |
+| `shouldFlip` | `boolean | undefined` | true | Whether the element should flip its orientation (e.g. top to bottom or left to right) when there is insufficient room for it to render completely. |
+| `size` | `"L" | "M" | "S" | "XL" | undefined` | 'M' | The size of the Picker. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `validate` | `((value: M extends "single" ? Key : Key[]) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `value` | `ValueType<M> | undefined` | — | The current value (controlled). |
+
+### PickerItem
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-label` | `string | undefined` | — | An accessibility label for this item. |
+| `children` | `React.ReactNode` | — |  |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `Key | undefined` | — | The unique id of the item. |
+| `isDisabled` | `boolean | undefined` | — | Whether the item is disabled. |
+| `onAction` | `(() => void) | undefined` | — | Handler that is called when a user performs an action on the item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
+| `onBlur` | `((e: React.FocusEvent<HTMLDivElement, Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: React.FocusEvent<HTMLDivElement, Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onHoverChange` | `((isHovering: boolean) => void) | undefined` | — | Handler that is called when the hover state changes. |
+| `onHoverEnd` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction ends. |
+| `onHoverStart` | `((e: HoverEvent) => void) | undefined` | — | Handler that is called when a hover interaction starts. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `React.HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `target` | `React.HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
+| `textValue` | `string | undefined` | — | A string representation of the item's contents, used for features like typeahead. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `React.CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `value` | `object | undefined` | — | The object value that this item represents. When using dynamic collections, this is set automatically. |
+
+### PickerSection
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-label` | `string | undefined` | — | An accessibility label for the section. |
+| `children` | `((item: T) => React.ReactElement) | React.ReactNode` | — | Static child items or a function to render children. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `id` | `Key | undefined` | — | The unique id of the section. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the section. |
+| `value` | `T | undefined` | — | The object value that this section represents. When using dynamic collections, this is set automatically. |

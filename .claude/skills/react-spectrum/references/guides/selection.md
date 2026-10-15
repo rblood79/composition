@@ -11,7 +11,7 @@ Selection is represented by a [Set](https://developer.mozilla.org/en-US/docs/Web
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text, type Selection} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text, type Selection} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -73,7 +73,8 @@ function Example() {
 ## Menu example
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, ActionButton, type Selection} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem, type Selection} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -104,7 +105,7 @@ function Example() {
 ## SelectBoxGroup example
 
 ```tsx
-import {SelectBoxGroup, SelectBox, Text, type Selection} from '@react-spectrum/s2';
+import {SelectBoxGroup, SelectBox, Text, type Selection} from '@react-spectrum/s2/SelectBoxGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 import Server from '@react-spectrum/s2/illustrations/linear/Server';
@@ -145,7 +146,7 @@ function Example() {
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -194,7 +195,7 @@ function Example() {
 ## TagGroup example
 
 ```tsx
-import {TagGroup, Tag, type Selection} from '@react-spectrum/s2';
+import {TagGroup, Tag, type Selection} from '@react-spectrum/s2/TagGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -225,7 +226,7 @@ function Example() {
 ## ToggleButtonGroup example
 
 ```tsx
-import {ToggleButtonGroup, ToggleButton, Text, type Selection} from '@react-spectrum/s2';
+import {ToggleButtonGroup, ToggleButton, Text, type Selection} from '@react-spectrum/s2/ToggleButtonGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 import TextBold from '@react-spectrum/s2/icons/TextBold';
@@ -265,7 +266,7 @@ function Example() {
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent, type Selection} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent, type Selection} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -315,7 +316,8 @@ When a select all event occurs, `onSelectionChange` is called with the string `"
 and `defaultSelectedKeys` can also be set to `"all"` to programmatically select all items. The application must adjust its handling of bulk actions in this case to apply to the entire collection rather than only the keys available to it locally.
 
 ```tsx
-import {TableView, TableHeader, Column, TableBody, Row, Cell, ActionBar, ActionButton, Text, type Selection, type Key} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection, type Key} from '@react-spectrum/s2/TableView';
+import {ActionBar, ActionButton, Text} from '@react-spectrum/s2/ActionBar';
 import Delete from '@react-spectrum/s2/icons/Delete';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
@@ -386,7 +388,7 @@ ComboBox, SegmentedControl, and Tabs only support single selection and use the `
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text, type Selection} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text, type Selection} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -448,7 +450,7 @@ function Example() {
 ## ComboBox example
 
 ```tsx
-import {ComboBox, ComboBoxItem, type Key} from '@react-spectrum/s2';
+import {ComboBox, ComboBoxItem, type Key} from '@react-spectrum/s2/ComboBox';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -479,7 +481,8 @@ function Example() {
 ## Menu example
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, ActionButton, type Selection} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem, type Selection} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -510,7 +513,7 @@ function Example() {
 ## SegmentedControl example
 
 ```tsx
-import {SegmentedControl, SegmentedControlItem, type Key} from '@react-spectrum/s2';
+import {SegmentedControl, SegmentedControlItem, type Key} from '@react-spectrum/s2/SegmentedControl';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -538,7 +541,7 @@ function Example() {
 ## SelectBoxGroup example
 
 ```tsx
-import {SelectBoxGroup, SelectBox, Text, type Selection} from '@react-spectrum/s2';
+import {SelectBoxGroup, SelectBox, Text, type Selection} from '@react-spectrum/s2/SelectBoxGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 import Server from '@react-spectrum/s2/illustrations/linear/Server';
@@ -579,7 +582,7 @@ function Example() {
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, TableBody, Row, Cell, type Selection} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -624,7 +627,7 @@ function Example() {
 ## Tabs example
 
 ```tsx
-import {Tabs, TabList, Tab, TabPanel, type Key} from '@react-spectrum/s2';
+import {Tabs, TabList, Tab, TabPanel, type Key} from '@react-spectrum/s2/Tabs';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -656,7 +659,7 @@ function Example() {
 ## TagGroup example
 
 ```tsx
-import {TagGroup, Tag, type Selection} from '@react-spectrum/s2';
+import {TagGroup, Tag, type Selection} from '@react-spectrum/s2/TagGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -685,7 +688,7 @@ function Example() {
 ## ToggleButtonGroup example
 
 ```tsx
-import {ToggleButtonGroup, ToggleButton, Text, type Selection} from '@react-spectrum/s2';
+import {ToggleButtonGroup, ToggleButton, Text, type Selection} from '@react-spectrum/s2/ToggleButtonGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 import AlignLeft from '@react-spectrum/s2/icons/AlignLeft';
@@ -725,7 +728,7 @@ function Example() {
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent, type Selection} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent, type Selection} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import {useState} from 'react';
 
@@ -770,7 +773,7 @@ On touch devices, actions are the primary tap interaction. Long pressing enters 
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <CardView
@@ -822,7 +825,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <TableView
@@ -859,7 +862,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <TreeView
@@ -895,7 +898,7 @@ In dynamic collections, it may be more convenient to use the `onAction` prop at 
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 const photos = [
@@ -929,7 +932,7 @@ const photos = [
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 const files = [
@@ -965,7 +968,7 @@ const files = [
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent, Collection} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent, Collection} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 const files = [
@@ -1002,7 +1005,7 @@ An item can be disabled with the `isDisabled` prop. By default, disabled items a
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <CardView
@@ -1054,7 +1057,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 ## ComboBox example
 
 ```tsx
-import {ComboBox, ComboBoxItem} from '@react-spectrum/s2';
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
 
 <ComboBox
   label="Pokemon"
@@ -1073,7 +1076,8 @@ import {ComboBox, ComboBoxItem} from '@react-spectrum/s2';
 ## Menu example
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, ActionButton} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 
 <MenuTrigger>
   <ActionButton>Pokemon</ActionButton>
@@ -1091,7 +1095,7 @@ import {Menu, MenuTrigger, MenuItem, ActionButton} from '@react-spectrum/s2';
 ## SegmentedControl example
 
 ```tsx
-import {SegmentedControl, SegmentedControlItem} from '@react-spectrum/s2';
+import {SegmentedControl, SegmentedControlItem} from '@react-spectrum/s2/SegmentedControl';
 
 <SegmentedControl aria-label="Time granularity" defaultSelectedKey="month">
   <SegmentedControlItem id="day">Day</SegmentedControlItem>
@@ -1106,7 +1110,7 @@ import {SegmentedControl, SegmentedControlItem} from '@react-spectrum/s2';
 ## SelectBoxGroup example
 
 ```tsx
-import {SelectBoxGroup, SelectBox, Text} from '@react-spectrum/s2';
+import {SelectBoxGroup, SelectBox, Text} from '@react-spectrum/s2/SelectBoxGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Server from '@react-spectrum/s2/illustrations/linear/Server';
 import StarFilled from '@react-spectrum/s2/illustrations/linear/Star';
@@ -1138,7 +1142,7 @@ import AlertNotice from '@react-spectrum/s2/illustrations/linear/AlertNotice';
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <TableView
@@ -1180,7 +1184,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 ## Tabs example
 
 ```tsx
-import {Tabs, TabList, Tab, TabPanel} from '@react-spectrum/s2';
+import {Tabs, TabList, Tab, TabPanel} from '@react-spectrum/s2/Tabs';
 
 <Tabs aria-label="Tabs" defaultSelectedKey="files">
   <TabList>
@@ -1201,7 +1205,7 @@ import {Tabs, TabList, Tab, TabPanel} from '@react-spectrum/s2';
 ## TagGroup example
 
 ```tsx
-import {TagGroup, Tag} from '@react-spectrum/s2';
+import {TagGroup, Tag} from '@react-spectrum/s2/TagGroup';
 
 <TagGroup
   label="Pokemon"
@@ -1218,7 +1222,7 @@ import {TagGroup, Tag} from '@react-spectrum/s2';
 ## ToggleButtonGroup example
 
 ```tsx
-import {ToggleButtonGroup, ToggleButton, Text} from '@react-spectrum/s2';
+import {ToggleButtonGroup, ToggleButton, Text} from '@react-spectrum/s2/ToggleButtonGroup';
 import TextBold from '@react-spectrum/s2/icons/TextBold';
 import TextItalic from '@react-spectrum/s2/icons/TextItalic';
 import TextUnderline from '@react-spectrum/s2/icons/TextUnderline';
@@ -1248,7 +1252,7 @@ import TextUnderline from '@react-spectrum/s2/icons/TextUnderline';
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <TreeView
@@ -1293,7 +1297,7 @@ In dynamic collections, it may be more convenient to use the `disabledKeys` prop
 ## CardView example
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 const items = [
@@ -1326,7 +1330,7 @@ const items = [
 ## ComboBox example
 
 ```tsx
-import {ComboBox, ComboBoxItem} from '@react-spectrum/s2';
+import {ComboBox, ComboBoxItem} from '@react-spectrum/s2/ComboBox';
 
 const items = [
   {id: 1, name: 'Charizard'},
@@ -1348,7 +1352,8 @@ const items = [
 ## Menu example
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, ActionButton} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 
 const items = [
   {id: 1, name: 'Charizard'},
@@ -1372,7 +1377,7 @@ const items = [
 ## SelectBoxGroup example
 
 ```tsx
-import {SelectBoxGroup, SelectBox, Text} from '@react-spectrum/s2';
+import {SelectBoxGroup, SelectBox, Text} from '@react-spectrum/s2/SelectBoxGroup';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Server from '@react-spectrum/s2/illustrations/linear/Server';
 import StarFilled from '@react-spectrum/s2/illustrations/linear/Star';
@@ -1403,7 +1408,7 @@ const items = [
 ## TableView example
 
 ```tsx
-import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, Row, TableBody, Cell} from '@react-spectrum/s2/TableView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 let items = [
@@ -1438,7 +1443,7 @@ let items = [
 ## TagGroup example
 
 ```tsx
-import {TagGroup, Tag} from '@react-spectrum/s2';
+import {TagGroup, Tag} from '@react-spectrum/s2/TagGroup';
 
 const items = [
   {id: 1, name: 'Charizard'},
@@ -1459,7 +1464,7 @@ const items = [
 ## TreeView example
 
 ```tsx
-import {TreeView, TreeViewItem, TreeViewItemContent, Collection} from '@react-spectrum/s2';
+import {TreeView, TreeViewItem, TreeViewItemContent, Collection} from '@react-spectrum/s2/TreeView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 type PokemonItem = {

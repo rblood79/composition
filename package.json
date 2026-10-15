@@ -52,7 +52,8 @@
     "codex:skills:validate": "node scripts/codex/validate-skills.mjs",
     "codex:skills:test": "node --test scripts/codex/skills.test.mjs",
     "codex:skills:gate": "bash scripts/codex/skills-gate.sh",
-    "codex:workflow:test": "node --test .codex/tests/*.test.mjs"
+    "codex:workflow:test": "node --test .codex/tests/*.test.mjs",
+    "skills:adobe-refresh": "node scripts/adobe-skills-refresh.mjs"
   },
   "devDependencies": {
     "gray-matter": "^4.0.3",

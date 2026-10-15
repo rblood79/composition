@@ -1,6 +1,7 @@
 # ColorArea
 
-A color area allows users to adjust two channels of an RGB, HSL or HSB color value against a two-dimensional gradient background.
+A color area allows users to adjust two channels of an RGB, HSL or HSB color value against a
+two-dimensional gradient background.
 
 ## Vanilla CSS example
 
@@ -8,21 +9,15 @@ A color area allows users to adjust two channels of an RGB, HSL or HSB color val
 
 ```tsx
 'use client';
-import {
-  ColorArea as AriaColorArea,
-  ColorAreaProps
-} from 'react-aria-components';
-
+import {ColorArea as AriaColorArea, type ColorAreaProps} from 'react-aria-components/ColorArea';
 import {ColorThumb} from './ColorThumb';
 import './ColorArea.css';
 
 export function ColorArea(props: ColorAreaProps) {
   return (
-    (
-      <AriaColorArea {...props}>
-        <ColorThumb />
-      </AriaColorArea>
-    )
+    <AriaColorArea {...props}>
+      <ColorThumb />
+    </AriaColorArea>
   );
 }
 
@@ -31,6 +26,7 @@ export function ColorArea(props: ColorAreaProps) {
 ### ColorArea.css
 
 ```css
+@import './theme.css';
 
 .react-aria-ColorArea {
   width: 100%;
@@ -57,10 +53,10 @@ export function ColorArea(props: ColorAreaProps) {
 import React from 'react';
 import {
   ColorArea as AriaColorArea,
-  ColorAreaProps as AriaColorAreaProps
-} from 'react-aria-components';
-import { composeTailwindRenderProps } from './utils';
-import { ColorThumb } from './ColorThumb';
+  type ColorAreaProps as AriaColorAreaProps
+} from 'react-aria-components/ColorArea';
+import {composeTailwindRenderProps} from './utils';
+import {ColorThumb} from './ColorThumb';
 
 export interface ColorAreaProps extends AriaColorAreaProps {}
 
@@ -68,8 +64,11 @@ export function ColorArea(props: ColorAreaProps) {
   return (
     <AriaColorArea
       {...props}
-      className={composeTailwindRenderProps(props.className, 'w-full max-w-56 aspect-square rounded-lg bg-neutral-300 dark:bg-neutral-800 forced-colors:bg-[GrayText]')}
-      style={({ defaultStyle, isDisabled }) => ({
+      className={composeTailwindRenderProps(
+        props.className,
+        'w-full max-w-56 aspect-square rounded-lg bg-neutral-300 dark:bg-neutral-800 forced-colors:bg-[GrayText]'
+      )}
+      style={({defaultStyle, isDisabled}) => ({
         ...defaultStyle,
         background: isDisabled ? undefined : defaultStyle.background
       })}>
@@ -85,8 +84,8 @@ export function ColorArea(props: ColorAreaProps) {
 ```tsx
 'use client';
 import React from 'react';
-import {ColorThumb as AriaColorThumb, ColorThumbProps} from 'react-aria-components';
-import { tv } from 'tailwind-variants';
+import {ColorThumb as AriaColorThumb, type ColorThumbProps} from 'react-aria-components/ColorThumb';
+import {tv} from 'tailwind-variants';
 
 const thumbStyles = tv({
   base: 'w-4.5 h-4.5 top-[50%] left-[50%] rounded-full border-2 border-white box-border',
@@ -107,12 +106,13 @@ export function ColorThumb(props: ColorThumbProps) {
   return (
     <AriaColorThumb
       {...props}
-      style={({ defaultStyle, isDisabled }) => ({
+      style={({defaultStyle, isDisabled}) => ({
         ...defaultStyle,
         backgroundColor: isDisabled ? undefined : defaultStyle.backgroundColor,
-        boxShadow: '0 0 0 1px black, inset 0 0 0 1px black'}
-      )}
-      className={thumbStyles} />
+        boxShadow: '0 0 0 1px black, inset 0 0 0 1px black'
+      })}
+      className={thumbStyles}
+    />
   );
 }
 
@@ -125,7 +125,7 @@ Use the `value` or `defaultValue` prop to set the color value, and the `xChannel
 The `onChange` event is called as the user drags, and `onChangeEnd` is called when the thumb is released. These are always called with a `Color` object.
 
 ```tsx
-import {parseColor} from 'react-aria-components';
+import {parseColor} from 'react-aria-components/ColorArea';
 import {ColorArea} from 'vanilla-starter/ColorArea';
 import {useState} from 'react';
 
@@ -245,10 +245,10 @@ function Example() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", ColorAreaRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", ColorAreaRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: ColorAreaRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `style` | `StyleOrFunction<ColorAreaRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 | `value` | `string | Color | undefined` | — | The current value (controlled). |
 | `xChannel` | `ColorChannel | undefined` | — | Color channel for the horizontal axis. |
 | `xName` | `string | undefined` | — | The name of the x channel input element, used when submitting an HTML form. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#htmlattrdefname). |
@@ -332,75 +332,28 @@ function Example() {
 | `onTransitionStartCapture` | `React.TransitionEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheel` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
-| `render` | `DOMRenderFunction<"div", ColorThumbRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
-| `style` | `(React.CSSProperties | ((values: ColorThumbRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
+| `render` | `DOMRenderFunction<"div", ColorThumbRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
+| `style` | `StyleOrFunction<ColorThumbRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
 
 ## Related Types
 
 ### Color
 
-Represents a color value.
+`Color(props: IconProps & {size?: 'L' | 'S' | 'M'}): ReactNode`
 
-#### `toFormat(format: ColorFormat): Color`
-
-Converts the color to the given color format, and returns a new Color object.
-
-#### `toString(format?: ColorFormat | 'css'): string`
-
-Converts the color to a string in the given format.
-
-#### `clone(): Color`
-
-Returns a duplicate of the color value.
-
-#### `toHexInt(): number`
-
-Converts the color to hex, and returns an integer representation.
-
-#### `getChannelValue(channel: ColorChannel): number`
-
-Returns the numeric value for a given channel. Throws an error if the channel is unsupported in the current color format.
-
-#### `withChannelValue(channel: ColorChannel, value: number): Color`
-
-Sets the numeric value for a given channel, and returns a new Color object. Throws an error if the channel is unsupported in the current color format.
-
-#### `getChannelRange(channel: ColorChannel): ColorChannelRange`
-
-Returns the minimum, maximum, and step values for a given channel.
-
-#### `getChannelName(channel: ColorChannel, locale: string): string`
-
-Returns a localized color channel name for a given channel and locale, for use in visual or accessibility labels.
-
-#### `getChannelFormatOptions(channel: ColorChannel): Intl.NumberFormatOptions`
-
-Returns the number formatting options for the given channel.
-
-#### `formatChannelValue(channel: ColorChannel, locale: string): string`
-
-Formats the numeric value for a given channel for display according to the provided locale.
-
-#### `getColorSpace(): ColorSpace`
-
-Returns the color space, 'rgb', 'hsb' or 'hsl', for the current color.
-
-#### `getColorSpaceAxes(xyChannels: {xChannel?: ColorChannel, yChannel?: ColorChannel}): ColorAxes`
-
-Returns the color space axes, xChannel, yChannel, zChannel.
-
-#### `getColorChannels(): [ColorChannel, ColorChannel, ColorChannel]`
-
-Returns an array of the color channels within the current color space space.
-
-#### `getColorName(locale: string): string`
-
-Returns a localized name for the color, for use in visual or accessibility labels.
-
-#### `getHueName(locale: string): string`
-
-Returns a localized name for the hue, for use in visual or accessibility labels.
+| Name | Type | Description |
+|------|------|-------------|
+| `aria-describedby` | `string | undefined` | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-hidden` | `boolean | "true" | "false" | undefined` | — |
+| `aria-label` | `string | undefined` | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | Identifies the element (or elements) that labels the current element. |
+| `id` | `string | undefined` | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `slot` | `string | null | undefined` | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StyleString<AllowedOverrides> | undefined` | — |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
 ### parseColor
 

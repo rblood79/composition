@@ -4,6 +4,8 @@ React Aria Components is a library of unstyled, accessible UI components that yo
 
 ## Documentation Structure
 
+전체 파일 목록 (hook 문서 `components/<Name>/use<Name>.md` 포함) 은 [MANIFEST.md](MANIFEST.md) — 공식 매니페스트에서 자동 생성.
+
 The `references/` directory contains detailed documentation organized as follows:
 
 ### Guides

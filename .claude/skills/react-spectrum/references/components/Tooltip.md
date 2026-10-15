@@ -1,184 +1,120 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Tooltip.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Tooltip
 
 Display container for Tooltip content. Has a directional arrow dependent on its placement.
 
 ```tsx
-import { Tooltip, TooltipTrigger } from "@adobe/react-spectrum";
-```
+import {Tooltip, TooltipTrigger} from '@react-spectrum/s2/Tooltip';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
+import Edit from '@react-spectrum/s2/icons/Edit';
 
-## Usage Examples
-
-### Basic
-
-```jsx
 <TooltipTrigger>
-  <ActionButton aria-label="Edit Name">
-    <Edit />
-  </ActionButton>
-  <Tooltip>Change Name</Tooltip>
+  <ActionButton aria-label="Edit name"><Edit /></ActionButton>
+  <Tooltip>Edit name</Tooltip>
 </TooltipTrigger>
 ```
 
-### Immediate Appearance
+## Interactions
 
-```jsx
-<TooltipTrigger delay={0}>
-  <ActionButton aria-label="Save">
-    <Save />
-  </ActionButton>
-  <Tooltip>Saving applies your new settings right away.</Tooltip>
-</TooltipTrigger>
-```
+Tooltips appear after a "warmup" delay when hovering, or instantly on focus. Once a tooltip is displayed, other tooltips display immediately. If the user waits for the "cooldown period" before hovering another element, the warmup timer restarts.
 
-### Placement
+```tsx
+import {TooltipTrigger, Tooltip} from '@react-spectrum/s2/Tooltip';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+import Edit from '@react-spectrum/s2/icons/Edit';
+import Save from '@react-spectrum/s2/icons/SaveFloppy';
 
-```jsx
-<TooltipTrigger placement="end">
-  <ActionButton aria-label="Foo">Placement</ActionButton>
-  <Tooltip>In LTR this is on the right. In RTL this is on the left.</Tooltip>
-</TooltipTrigger>
-```
-
-### Offset and Cross Offset
-
-```jsx
-// Main axis offset
-<TooltipTrigger offset={50}>
-  <ActionButton aria-label="Offset">Offset</ActionButton>
-  <Tooltip>This will shift up.</Tooltip>
-</TooltipTrigger>
-
-// Cross axis offset
-<TooltipTrigger crossOffset={100} placement="bottom">
-  <ActionButton aria-label="Cross Offset">Cross Offset</ActionButton>
-  <Tooltip>This will shift over to the right.</Tooltip>
-</TooltipTrigger>
-```
-
-### Controlled State
-
-```jsx
-function Example() {
-  let [isOpen, setOpen] = React.useState(false);
+function Example(props) {
   return (
-    <Flex alignItems="center" gap="size-100">
-      <TooltipTrigger isOpen={isOpen} onOpenChange={setOpen}>
-        <ActionButton aria-label="Resize">
-          <Resize />
+    <div className={style({display: 'flex', gap: 8})}>
+      {/*- begin highlight -*/}
+      <TooltipTrigger {...props}>
+      {/*- end highlight -*/}
+        <ActionButton aria-label="Edit">
+          <Edit />
         </ActionButton>
-        <Tooltip>Resize text.</Tooltip>
+        <Tooltip>
+          Edit
+        </Tooltip>
       </TooltipTrigger>
-      <Text>Tooltip is {isOpen ? "showing" : "not showing"}</Text>
-    </Flex>
+      <TooltipTrigger {...props}>
+        <ActionButton aria-label="Save">
+          <Save />
+        </ActionButton>
+        <Tooltip>
+          Save
+        </Tooltip>
+      </TooltipTrigger>
+    </div>
   );
 }
 ```
 
-### Semantic Variants
+<InlineAlert
+  variant="notice"
+  UNSAFE_style={{marginTop: '2rem'}}
+>
+  <Heading>Accessibility</Heading>
+  <Content>Tooltips are not shown on touch screen interactions. Ensure that your UI is usable without tooltips, or use an alternative component such as a [Popover](Popover.md) to show information in an adjacent element.</Content>
+</InlineAlert>
 
-```jsx
-// Positive
-<TooltipTrigger>
-  <ActionButton aria-label="Approve"><ThumbUp /></ActionButton>
-  <Tooltip variant="positive" showIcon>Approve workflow.</Tooltip>
-</TooltipTrigger>
+## Non-interactive elements
 
-// Info
-<TooltipTrigger>
-  <ActionButton aria-label="Information"><Question /></ActionButton>
-  <Tooltip variant="info" showIcon>More information menu.</Tooltip>
-</TooltipTrigger>
+Tooltips must be placed on focusable elements so they are accessible to keyboard and screen reader users. Use [ContextualHelp](ContextualHelp.md) to provide context for non-interactive elements such as plain text or disabled buttons.
 
-// Negative
+```tsx
+import {Button} from '@react-spectrum/s2/Button';
+import {ContextualHelp, Heading, Content} from '@react-spectrum/s2/ContextualHelp';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+<div className={style({display: 'flex', gap: 8, alignItems: 'center'})}>
+  <Button isDisabled>Delete resource</Button>
+  {/*- begin highlight -*/}
+  <ContextualHelp variant="info">
+    <Heading>Permission required</Heading>
+    <Content>
+      Your admin must grant you permission before you can delete resources.
+    </Content>
+  </ContextualHelp>
+  {/*- end highlight -*/}
+</div>
+```
+
+## API
+
+```tsx
 <TooltipTrigger>
-  <ActionButton aria-label="Danger"><Delete /></ActionButton>
-  <Tooltip variant="negative" showIcon>Dangerous action.</Tooltip>
+  <Button />
+  <Tooltip />
 </TooltipTrigger>
 ```
 
-### Disabled Tooltip
+### TooltipTrigger
 
-```jsx
-<TooltipTrigger isDisabled>
-  <ActionButton aria-label="Danger" onPress={() => alert("pressed")}>
-    <Delete />
-  </ActionButton>
-  <Tooltip variant="negative" showIcon>
-    Dangerous action.
-  </Tooltip>
-</TooltipTrigger>
-```
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | — | The content of the tooltip. |
+| `containerPadding` | `number | undefined` | 12 | The placement padding that should be applied between the element and its surrounding container. |
+| `crossOffset` | `number | undefined` | 0 | The additional offset applied along the cross axis between the element and its anchor element. |
+| `defaultOpen` | `boolean | undefined` | — | Whether the overlay is open by default (uncontrolled). |
+| `delay` | `number | undefined` | 1500 | The delay time for the tooltip to show up. [See guidelines](https://spectrum.adobe.com/page/tooltip/#Immediate-or-delayed-appearance). |
+| `isDisabled` | `boolean | undefined` | — | Whether the tooltip should be disabled, independent from the trigger. |
+| `isOpen` | `boolean | undefined` | — | Whether the overlay is open by default (controlled). |
+| `onOpenChange` | `((isOpen: boolean) => void) | undefined` | — | Handler that is called when the overlay's open state changes. |
+| `placement` | `"bottom" | "end" | "left" | "right" | "start" | "top" | undefined` | 'top' | The placement of the element with respect to its anchor element. |
+| `shouldCloseOnPress` | `boolean | undefined` | true | Whether the tooltip should close when the trigger is pressed. |
+| `shouldFlip` | `boolean | undefined` | true | Whether the element should flip its orientation (e.g. top to bottom or left to right) when there is insufficient room for it to render completely. |
+| `trigger` | `"focus" | "hover" | undefined` | 'hover' | By default, opens for both focus and hover. Can be made to open only for focus. |
 
-## Props API
+### Tooltip
 
-### TooltipTrigger Props
-
-| Name                 | Type                           | Default   | Description                                    |
-| -------------------- | ------------------------------ | --------- | ---------------------------------------------- |
-| `children`           | `[ReactElement, ReactElement]` | --        | Two child elements: trigger and tooltip        |
-| `offset`             | `number`                       | `7`       | Additional spacing along main axis             |
-| `placement`          | `Placement`                    | `'top'`   | Position relative to trigger element           |
-| `isDisabled`         | `boolean`                      | --        | Disables tooltip independently from trigger    |
-| `delay`              | `number`                       | `1500`    | Milliseconds before tooltip appears on hover   |
-| `trigger`            | `'hover' \| 'focus'`           | `'hover'` | Interaction mode                               |
-| `shouldCloseOnPress` | `boolean`                      | `true`    | Whether tooltip closes when trigger is pressed |
-| `isOpen`             | `boolean`                      | --        | Controlled open state                          |
-| `defaultOpen`        | `boolean`                      | --        | Uncontrolled initial open state                |
-| `containerPadding`   | `number`                       | `12`      | Padding between tooltip and viewport edges     |
-| `crossOffset`        | `number`                       | `0`       | Additional spacing along cross axis            |
-| `shouldFlip`         | `boolean`                      | `true`    | Flips orientation when insufficient space      |
-| `onOpenChange`       | `(isOpen: boolean) => void`    | --        | Fires when tooltip visibility changes          |
-
-### Tooltip Props
-
-| Name        | Type                                                         | Default | Description                        |
-| ----------- | ------------------------------------------------------------ | ------- | ---------------------------------- |
-| `children`  | `ReactNode`                                                  | --      | Tooltip content                    |
-| `variant`   | `'neutral' \| 'positive' \| 'negative' \| 'info'`            | --      | Visual style variant               |
-| `placement` | `'start' \| 'end' \| 'right' \| 'left' \| 'top' \| 'bottom'` | `'top'` | Arrow direction                    |
-| `showIcon`  | `boolean`                                                    | --      | Displays semantic icon for variant |
-| `isOpen`    | `boolean`                                                    | --      | Controlled visibility state        |
-
-### Accessibility Props
-
-| Name               | Type     | Description                          |
-| ------------------ | -------- | ------------------------------------ |
-| `id`               | `string` | Unique element identifier            |
-| `aria-label`       | `string` | Element label for screen readers     |
-| `aria-labelledby`  | `string` | IDs of labeling elements             |
-| `aria-describedby` | `string` | IDs of describing elements           |
-| `aria-details`     | `string` | IDs of detailed description elements |
-
-### Layout/Spacing/Sizing/Positioning Props (abbreviated)
-
-Standard Responsive layout props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, etc. Standard spacing: `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`. Standard sizing: `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`. Standard positioning: `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`.
-
-### Advanced Props
-
-| Name               | Type            | Description                  |
-| ------------------ | --------------- | ---------------------------- |
-| `UNSAFE_className` | `string`        | CSS class name (last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Inline styles (last resort)  |
-
-### Placement Options
-
-`'top'`, `'top left'`, `'top right'`, `'top start'`, `'top end'`, `'bottom'`, `'bottom left'`, `'bottom right'`, `'bottom start'`, `'bottom end'`, `'left'`, `'left top'`, `'left bottom'`, `'start'`, `'start top'`, `'start bottom'`, `'right'`, `'right top'`, `'right bottom'`, `'end'`, `'end top'`, `'end bottom'`
-
-## Accessibility
-
-- Tooltip triggers must be focusable and hoverable
-- TooltipTrigger automatically links tooltips to triggers using ARIA attributes
-- Tooltips appear instantly on keyboard focus (no delay)
-- Only one tooltip displays at a time; warmup/cooldown period for subsequent tooltips
-- For disabled buttons or plain text, use ContextualHelp instead
-- RTL layout automatic
-
-## Timing Behavior
-
-- Default hover delay: 1500ms
-- Keyboard focus: instant (0ms)
-- Warmup/cooldown: subsequent tooltip activation is immediate for a short window after closing
-- Set `delay={0}` for immediate appearance on hover
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The content of the tooltip. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

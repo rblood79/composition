@@ -3,7 +3,7 @@
 A CardView displays a group of related objects, with support for selection and bulk actions.
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 <CardView
@@ -110,7 +110,7 @@ import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 `CardView` follows the [Collection Components API](collections.md?component=CardView), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a recursive function to render the children.
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 let images = [
@@ -387,7 +387,10 @@ for (let i = 0; images.length < 200; i++) {
 Use the `loadingState` and `onLoadMore` props to enable async loading and infinite scrolling. When loading, render a `<SkeletonCollection>` to generate placeholder content to display as skeleton cards.
 
 ```tsx
-import {CardView, Collection, SkeletonCollection, Card, CardPreview, Image, Content, Text, Avatar, useAsyncList} from '@react-spectrum/s2';
+'use client';
+import {CardView, Collection, SkeletonCollection, Card, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
+import {Avatar} from '@react-spectrum/s2/Avatar';
+import {useAsyncList} from '@react-spectrum/s2/useAsyncList';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 type Item = {
@@ -432,7 +435,7 @@ export default function Example(props) {
       {(loadingState === 'loading' || loadingState === 'loadingMore') && (
         /*- begin highlight -*/
         <SkeletonCollection>
-        {/*- end highlight -*/}
+          {/*- end highlight -*/}
           {() => (
             <PhotoCard
               item={{
@@ -485,7 +488,7 @@ function PhotoCard({item, layout}: {item: Item, layout: string}) {
 Use the `href` prop on a Card to create a link. See the [getting started guide](getting-started.md) to learn how to integrate with your framework. Link interactions vary depending on the selection behavior.  See the [selection guide](selection.md) for more details.
 
 ```tsx
-import {CardView, Card, CollectionCardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, Card, CollectionCardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Folder from '@react-spectrum/s2/icons/Folder';
 
@@ -812,7 +815,9 @@ let topics = [
 Use `renderEmptyState` to render placeholder content when the CardView is empty.
 
 ```tsx
-import {CardView, IllustratedMessage, Heading, Content} from '@react-spectrum/s2';
+'use client';
+import {CardView, Content} from '@react-spectrum/s2/CardView';
+import {IllustratedMessage, Heading} from '@react-spectrum/s2/IllustratedMessage';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import Image from '@react-spectrum/s2/illustrations/gradient/generic1/Image';
 
@@ -837,7 +842,9 @@ import Image from '@react-spectrum/s2/illustrations/gradient/generic1/Image';
 Use `selectionMode` to enable single or multiple selection, and `selectedKeys` (matching each card's `id`) to control the selected cards. Return an [ActionBar](ActionBar.md) from `renderActionBar` to handle bulk actions, and use `onAction` for row navigation. Disable cards with `isDisabled`. See the [selection guide](selection.md) for details.
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text, ActionBar, ActionButton, type Selection} from '@react-spectrum/s2';
+'use client';
+import {CardView, AssetCard, CardPreview, Image, Content, Text, type Selection} from '@react-spectrum/s2/CardView';
+import {ActionBar, ActionButton} from '@react-spectrum/s2/ActionBar';
 import Edit from '@react-spectrum/s2/icons/Edit';
 import Copy from '@react-spectrum/s2/icons/Copy';
 import Delete from '@react-spectrum/s2/icons/Delete';
@@ -957,16 +964,16 @@ function Example(props) {
 | `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
 | `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
 | `autoFocus` | `boolean | FocusStrategy | undefined` | — | Whether to auto focus the gridlist or an option. |
-| `children` | `ReactNode | ((item: T) => ReactNode)` | — | The contents of the collection. |
+| `children` | `((item: T) => ReactNode) | ReactNode` | — | The contents of the collection. |
 | `defaultSelectedKeys` | `"all" | Iterable<Key> | undefined` | — | The initial selected keys in the collection (uncontrolled). |
 | `density` | `"compact" | "regular" | "spacious" | undefined` | 'regular' | The amount of space between the cards. |
 | `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
-| `disabledBehavior` | `DisabledBehavior | undefined` | "all" | Whether `disabledKeys` applies to all interactions, or only selection. |
+| `disabledBehavior` | `DisabledBehavior | undefined` | 'all' | Whether `disabledKeys` applies to all interactions, or only selection. |
 | `disabledKeys` | `Iterable<Key> | undefined` | — | The item keys that are disabled. These items cannot be selected, focused, or otherwise interacted with. |
 | `disallowEmptySelection` | `boolean | undefined` | — | Whether the collection allows empty selection. |
 | `disallowTypeAhead` | `boolean | undefined` | false | Whether typeahead navigation is disabled. |
 | `dragAndDropHooks` | `DragAndDropHooks<NoInfer<T>> | undefined` | — | The drag and drop hooks returned by `useDragAndDrop` used to enable drag and drop behavior for the GridList. |
-| `escapeKeyBehavior` | `"none" | "clearSelection" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the grid list or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
+| `escapeKeyBehavior` | `"clearSelection" | "none" | undefined` | 'clearSelection' | Whether pressing the escape key should clear selection in the grid list or not. Most experiences should not modify this option as it eliminates a keyboard user's ability to easily clear selection. Only use if the escape key is being handled externally or should not trigger selection clearing contextually. |
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
 | `layout` | `"grid" | "waterfall" | undefined` | 'grid' | The layout of the cards. |
@@ -974,15 +981,16 @@ function Example(props) {
 | `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on an item. The exact user event depends on the collection's `selectionBehavior` prop and the interaction modality. |
 | `onLoadMore` | `(() => void) | undefined` | — | Handler that is called when more items should be loaded, e.g. while scrolling near the bottom. |
 | `onSelectionChange` | `((keys: Selection) => void) | undefined` | — | Handler that is called when the selection changes. |
+| `orientation` | `Orientation | undefined` | 'vertical' | The primary orientation of the items. Usually this is the direction that the collection scrolls. |
 | `renderActionBar` | `((selectedKeys: "all" | Set<Key>) => ReactElement) | undefined` | — | Provides the ActionBar to render when cards are selected in the CardView. |
 | `renderEmptyState` | `((props: GridListRenderProps) => ReactNode) | undefined` | — | Provides content to display when there are no items in the list. |
 | `selectedKeys` | `"all" | Iterable<Key> | undefined` | — | The currently selected keys in the collection (controlled). |
 | `selectionMode` | `SelectionMode | undefined` | — | The type of selection that is allowed in the collection. |
 | `selectionStyle` | `"checkbox" | "highlight" | undefined` | 'checkbox' | How selection should be displayed. |
 | `shouldSelectOnPressUp` | `boolean | undefined` | — | Whether selection should occur on press up instead of press down. |
-| `size` | `"S" | "M" | "L" | "XL" | "XS" | undefined` | 'M' | The size of the cards. |
+| `size` | `"L" | "M" | "S" | "XL" | "XS" | undefined` | 'M' | The size of the cards. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `styles` | `StylesPropWithHeight | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 | `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
-| `variant` | `"primary" | "secondary" | "tertiary" | "quiet" | undefined` | 'primary' | The visual style of the cards. |
+| `variant` | `"primary" | "quiet" | "secondary" | "tertiary" | undefined` | 'primary' | The visual style of the cards. |

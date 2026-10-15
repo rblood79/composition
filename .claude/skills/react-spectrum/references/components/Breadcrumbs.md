@@ -1,169 +1,131 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Breadcrumbs.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Breadcrumbs
-
-## Description
 
 Breadcrumbs show hierarchy and navigational context for a user's location within an application.
 
-## Installation
+```tsx
+import {Breadcrumbs, Breadcrumb} from '@react-spectrum/s2/Breadcrumbs';
 
-```bash
-yarn add @adobe/react-spectrum
-```
-
-```jsx
-import { Breadcrumbs, Item } from "@adobe/react-spectrum";
-```
-
-## Usage Examples
-
-### Basic Example
-
-```jsx
 <Breadcrumbs>
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-  <Item key="march 2020 assets">March 2020 Assets</Item>
+  <Breadcrumb href="#">Home</Breadcrumb>
+  <Breadcrumb href="#">React Spectrum</Breadcrumb>
+  <Breadcrumb>Breadcrumbs</Breadcrumb>
 </Breadcrumbs>
 ```
 
-### With onAction
+## Content
 
-```jsx
+`Breadcrumbs` follows the [Collection Components API](collections.md?component=Breadcrumbs), accepting both static and dynamic collections. This example shows a dynamic collection, passing a list of objects to the `items` prop, and a function to render the children. The `onAction` event is called when a user presses a breadcrumb.
+
+```tsx
+import {Breadcrumbs, Breadcrumb, type Key} from '@react-spectrum/s2/Breadcrumbs';
+import {useState} from 'react';
+
 function Example() {
-  let folders = [
-    { id: 1, label: "Home" },
-    { id: 2, label: "Trendy" },
-    { id: 3, label: "March 2020 Assets" },
-  ];
-  let [folderId, setFolderId] = React.useState(null);
+  let [breadcrumbs, setBreadcrumbs] = useState([
+    {id: 1, label: 'Home'},
+    {id: 2, label: 'Library'},
+    {id: 3, label: 'Documents'},
+    {id: 4, label: 'Annual Reports'}
+  ]);
+
+  let navigate = (id: Key) => {
+    let i = breadcrumbs.findIndex(item => item.id === id);
+    setBreadcrumbs(breadcrumbs.slice(0, i + 1));
+  };
+
   return (
-    <div>
-      <Breadcrumbs onAction={(a) => setFolderId(a)}>
-        {folders.map((f) => (
-          <Item key={f.id}>{f.label}</Item>
-        ))}
-      </Breadcrumbs>
-      <p>You pressed folder ID: {folderId}</p>
-    </div>
+    /*- begin highlight -*/
+    <Breadcrumbs items={breadcrumbs} onAction={navigate}>
+      {item => <Breadcrumb>{item.label}</Breadcrumb>}
+    </Breadcrumbs>
+    /*- end highlight -*/
   );
 }
 ```
 
-### Links
+<InlineAlert variant="notice">
+  <Heading>Accessibility</Heading>
+  <Content>When breadcrumbs are used as a main navigation element for a page, they can be placed in a [navigation landmark](https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/examples/navigation). Landmarks help assistive technology users quickly find major sections of a page. Place breadcrumbs inside a `<nav>` element with an `aria-label` to create a navigation landmark.</Content>
+</InlineAlert>
 
-```jsx
-<Breadcrumbs>
-  <Item href="#">Home</Item>
-  <Item href="#">React Spectrum</Item>
-  <Item>Breadcrumbs</Item>
-</Breadcrumbs>
-```
+### Overflow Behavior
 
-### Size Variants
+Breadcrumbs automatically collapse items into a menu when space is limited. A maximum of 4 items are shown including the root and menu button.
 
-```jsx
-<Breadcrumbs size="S">
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-</Breadcrumbs>
+```tsx
+import {Breadcrumbs, Breadcrumb} from '@react-spectrum/s2/Breadcrumbs';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
-<Breadcrumbs size="M">
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-</Breadcrumbs>
-
-<Breadcrumbs size="L">
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-</Breadcrumbs>
-```
-
-### Multiline
-
-```jsx
-<Breadcrumbs isMultiline>
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-  <Item key="march 2020 assets">March 2020 Assets</Item>
-</Breadcrumbs>
-```
-
-### Root Context
-
-```jsx
-<View overflow="hidden" width="200px">
-  <Breadcrumbs showRoot>
-    <Item key="home">Home</Item>
-    <Item key="trendy">Trendy</Item>
-    <Item key="2020 assets">March 2020 Assets</Item>
-    <Item key="winter">Winter</Item>
-    <Item key="holiday">Holiday</Item>
+<div
+  className={style({
+    width: 400,
+    maxWidth: 'full',
+    padding: 16,
+    boxSizing: 'border-box',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'gray-300',
+    borderRadius: 'default',
+    resize: 'horizontal',
+    overflow: 'hidden'
+  })}>
+  {/*- begin focus -*/}
+  <Breadcrumbs>
+    <Breadcrumb>Documents</Breadcrumb>
+    <Breadcrumb>My Shared Folder</Breadcrumb>
+    <Breadcrumb>Projects and Workflows</Breadcrumb>
+    <Breadcrumb>Annual Reports 2024</Breadcrumb>
+    <Breadcrumb>Marketing Materials</Breadcrumb>
+    <Breadcrumb>Q3 Campaign Assets</Breadcrumb>
+    <Breadcrumb>Final Deliverables</Breadcrumb>
   </Breadcrumbs>
-</View>
+  {/*- end focus -*/}
+</div>
 ```
 
-### Disabled State
+## API
 
-```jsx
-<Breadcrumbs isDisabled>
-  <Item key="home">Home</Item>
-  <Item key="trendy">Trendy</Item>
-  <Item key="march 2020 assets">March 2020 Assets</Item>
+```tsx
+<Breadcrumbs>
+  <Breadcrumb />
 </Breadcrumbs>
 ```
-
-## Props API
 
 ### Breadcrumbs
 
-| Name               | Type                           | Default | Description                           |
-| ------------------ | ------------------------------ | ------- | ------------------------------------- |
-| `children`         | `ReactElement<ItemProps<T>>[]` | --      | Breadcrumb items to display           |
-| `isDisabled`       | `boolean`                      | --      | Disables all breadcrumbs              |
-| `size`             | `'S' \| 'M' \| 'L'`            | `'L'`   | Controls spacing and layout size      |
-| `showRoot`         | `boolean`                      | --      | Always shows root item when collapsed |
-| `isMultiline`      | `boolean`                      | --      | Places last item on new line          |
-| `autoFocusCurrent` | `boolean`                      | --      | Auto-focuses last item on render      |
-| `onAction`         | `(key: Key) => void`           | --      | Called when item is pressed           |
-| `id`               | `string`                       | --      | Unique element identifier             |
-| `aria-label`       | `string`                       | --      | Accessibility label                   |
-| `aria-labelledby`  | `string`                       | --      | IDs of labeling elements              |
-| `aria-describedby` | `string`                       | --      | IDs of describing elements            |
-| `aria-details`     | `string`                       | --      | IDs providing extended description    |
-| `UNSAFE_className` | `string`                       | --      | CSS class name (use as last resort)   |
-| `UNSAFE_style`     | `CSSProperties`                | --      | Inline styles (use as last resort)    |
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `((item: T) => ReactNode) | ReactNode` | — | The children of the Breadcrumbs. |
+| `dependencies` | `readonly any[] | undefined` | — | Values that should invalidate the item cache when using dynamic collections. |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isDisabled` | `boolean | undefined` | — | Whether the breadcrumbs are disabled. |
+| `items` | `Iterable<T> | undefined` | — | Item objects in the collection. |
+| `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a breadcrumb is clicked. |
+| `size` | `"L" | "M" | undefined` | 'M' | Size of the Breadcrumbs including spacing and layout. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
 
-(layout props omitted)
+### Breadcrumb
 
-### Item Props
-
-| Name             | Type                          | Default | Description                                |
-| ---------------- | ----------------------------- | ------- | ------------------------------------------ |
-| `children`       | `ReactNode`                   | --      | Item contents                              |
-| `title`          | `ReactNode`                   | --      | Title if children contain child items      |
-| `textValue`      | `string`                      | --      | String representation for typeahead        |
-| `aria-label`     | `string`                      | --      | Accessibility label                        |
-| `childItems`     | `Iterable<T>`                 | --      | Child item objects for dynamic collections |
-| `hasChildItems`  | `boolean`                     | --      | Whether item has children                  |
-| `href`           | `Href`                        | --      | URL to link to                             |
-| `hrefLang`       | `string`                      | --      | Language hint for linked URL               |
-| `target`         | `HTMLAttributeAnchorTarget`   | --      | Target window for link                     |
-| `rel`            | `string`                      | --      | Relationship to linked resource            |
-| `download`       | `boolean \| string`           | --      | Downloads linked URL                       |
-| `ping`           | `string`                      | --      | URLs to ping when followed                 |
-| `referrerPolicy` | `HTMLAttributeReferrerPolicy` | --      | Referrer policy                            |
-| `routerOptions`  | `RouterOptions`               | --      | Client-side router options                 |
-
-## Overflow Behavior
-
-Breadcrumbs collapses items into a menu when space is limited, showing a maximum of 4 visible items including root and menu button. The last item truncates with ellipsis rather than collapsing into the menu.
-
-## Accessibility
-
-- Supports standard ARIA attributes (`aria-label`, `aria-labelledby`, `aria-describedby`, `aria-details`)
-- Items support `href` attribute for semantic link navigation
-- Works with client-side routers for proper navigation semantics
-- Keyboard navigation supported through standard breadcrumb interaction patterns
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `children` | `ReactNode` | — | The children of the breadcrumb item. |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `Key | undefined` | — | A unique id for the breadcrumb, which will be passed to `onAction` when the breadcrumb is pressed. |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |

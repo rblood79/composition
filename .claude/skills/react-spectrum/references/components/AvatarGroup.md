@@ -3,7 +3,7 @@
 An avatar group is a grouping of avatars that are related to each other.
 
 ```tsx
-import {AvatarGroup, Avatar} from '@react-spectrum/s2';
+import {AvatarGroup, Avatar} from '@react-spectrum/s2/AvatarGroup';
 
 <AvatarGroup>
   <Avatar
@@ -40,7 +40,7 @@ import {AvatarGroup, Avatar} from '@react-spectrum/s2';
 | `children` | `ReactNode` | — | Avatar children of the avatar group. |
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `label` | `string | undefined` | — | The label for the avatar group. |
-| `size` | `28 | 16 | 20 | 24 | 32 | 36 | 40 | undefined` | 24 | The size of the avatar group. |
+| `size` | `16 | 20 | 24 | 28 | 32 | 36 | 40 | undefined` | 24 | The size of the avatar group. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
 | `styles` | `StylesPropWithoutWidth | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
 | `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |

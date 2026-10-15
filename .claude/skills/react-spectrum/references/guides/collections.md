@@ -7,7 +7,8 @@ Many components display a collection of items, and provide functionality such as
 A **static collection** is a collection that does not change over time (e.g. hard coded). This is common for components like menus where the items are built into the application rather than user data.
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, ActionButton} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 
 <MenuTrigger>
   <ActionButton>Menu</ActionButton>
@@ -26,7 +27,8 @@ Sections or groups of items can be constructed by wrapping the items in a sectio
 ## Menu example
 
 ```tsx
-import {Menu, MenuTrigger, MenuItem, MenuSection, ActionButton, Header, Heading} from '@react-spectrum/s2';
+import {Menu, MenuTrigger, MenuItem, MenuSection, Header, Heading} from '@react-spectrum/s2/Menu';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 
 <MenuTrigger>
   <ActionButton>Menu</ActionButton>
@@ -55,7 +57,7 @@ import {Menu, MenuTrigger, MenuItem, MenuSection, ActionButton, Header, Heading}
 ## Picker example
 
 ```tsx
-import {Picker, PickerSection, PickerItem, Header, Heading} from '@react-spectrum/s2';
+import {Picker, PickerSection, PickerItem, Header, Heading} from '@react-spectrum/s2/Picker';
 
 <Picker label="Text style">
   {/*- begin highlight -*/}
@@ -85,7 +87,8 @@ A **dynamic collection** is a collection that is based on external data, for exa
 Use the `items` prop to provide an array of objects, and a function to render each item as the `children`. This is similar to using `array.map` to render the children, but automatically memoizes the rendering of each item to improve performance.
 
 ```tsx
-import {TagGroup, Tag, ActionButton, Text} from '@react-spectrum/s2';
+import {TagGroup, Tag, Text} from '@react-spectrum/s2/TagGroup';
+import {ActionButton} from '@react-spectrum/s2/ActionButton';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 import AddIcon from '@react-spectrum/s2/icons/Add';
 import {useState} from 'react';
@@ -157,9 +160,9 @@ let animals = [
 Dynamic collections are automatically memoized to improve performance. Rendered item elements are cached based on the object identity of the list item. If rendering an item depends on additional external state, the `dependencies` prop must be provided. This invalidates rendered elements similar to dependencies in React's `useMemo` hook.
 
 ```tsx
-import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2';
+import {CardView, AssetCard, CardPreview, Image, Content, Text} from '@react-spectrum/s2/CardView';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
-import {ToggleButtonGroup, ToggleButton} from '@react-spectrum/s2';
+import {ToggleButtonGroup, ToggleButton} from '@react-spectrum/s2/ToggleButtonGroup';
 import {useState} from 'react';
 
 const items = [
@@ -217,7 +220,7 @@ Note that adding dependencies will result in the *entire* list being invalidated
 To combine multiple sources of data, or mix static and dynamic items, use the `<Collection>` component.
 
 ```tsx
-import {Picker, PickerSection, PickerItem, Header, Heading, Collection} from '@react-spectrum/s2';
+import {Picker, PickerSection, PickerItem, Header, Heading, Collection} from '@react-spectrum/s2/Picker';
 
 let animals = [
   {id: 1, species: 'Aardvark'},
@@ -265,7 +268,8 @@ Data can be loaded asynchronously using any data fetching library. [useAsyncList
 Many components support infinite scrolling via the `loadingState` and `onLoadMore` props. These trigger loading of additional pages of items automatically as the user scrolls.
 
 ```tsx
-import {TableView, TableHeader, Column, TableBody, Row, Cell, useAsyncList} from '@react-spectrum/s2';
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {useAsyncList} from '@react-spectrum/s2/useAsyncList';
 import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
 
 interface Character {

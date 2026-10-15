@@ -1,127 +1,58 @@
-<!-- Source: https://react-spectrum.adobe.com/react-spectrum/Link.html -->
-<!-- Last fetched: 2026-04-05 -->
-
 # Link
 
-Links allow users to navigate to a different location. They can be presented inline inside a paragraph or as standalone text.
+Links allow users to navigate to a different location.
+They can be presented inline inside a paragraph or as standalone text.
 
-## Import
+```tsx
+import {Link} from '@react-spectrum/s2/Link';
 
-```javascript
-import { Link } from "@adobe/react-spectrum";
+<Link />
 ```
 
-## Basic Usage
+## Events
 
-### Link with href
+Links with an `href` will be handled by the browser, or via a [client side router](getting-started.md). Links without an `href` will be rendered as a `<span role="link">` instead of an `<a>`. Use the `onPress` event to handle user interaction.
 
-```jsx
-<Link href="https://www.imdb.com/title/tt6348138/" target="_blank">
-  The missing link.
-</Link>
+```tsx
+import {Link} from '@react-spectrum/s2/Link';
+
+<Link onPress={() => alert('Pressed link')}>Link</Link>
 ```
 
-### JavaScript-Handled Link
+## API
 
-When no `href` prop is provided, the component renders as a styled `<span>` with link semantics:
-
-```jsx
-<Link onPress={() => alert("Pressed link")}>Adobe</Link>
-```
-
-**Note:** JavaScript-handled links lack native browser features like context menus and "open in new tab."
-
-## Visual Variants
-
-### Primary (default)
-
-```jsx
-<p>
-  Would you like to <Link variant="primary">learn more</Link> about this?
-</p>
-```
-
-### Secondary
-
-```jsx
-<p>
-  Would you like to <Link variant="secondary">learn more</Link> about this?
-</p>
-```
-
-### Over Background
-
-```jsx
-<View backgroundColor="positive" padding="size-300">
-  <Link variant="overBackground">Learn more here!</Link>
-</View>
-```
-
-### Quiet
-
-```jsx
-<p>
-  Would you like to <Link isQuiet>learn more</Link> about this?
-</p>
-```
-
-## Props API
-
-### Core Props
-
-| Name             | Type                                           | Default     | Description                                           |
-| ---------------- | ---------------------------------------------- | ----------- | ----------------------------------------------------- |
-| `children`       | `ReactNode`                                    | --          | Content to display in the link                        |
-| `variant`        | `'primary' \| 'secondary' \| 'overBackground'` | `'primary'` | Visual style of the link                              |
-| `isQuiet`        | `boolean`                                      | --          | Display with quiet (underline-less) style             |
-| `autoFocus`      | `boolean`                                      | --          | Element receives focus on render                      |
-| `href`           | `Href`                                         | --          | URL to link to                                        |
-| `hrefLang`       | `string`                                       | --          | Hints at human language of linked URL                 |
-| `target`         | `HTMLAttributeAnchorTarget`                    | --          | Target window for the link                            |
-| `rel`            | `string`                                       | --          | Relationship between linked resource and current page |
-| `download`       | `boolean \| string`                            | --          | Causes browser to download linked URL                 |
-| `ping`           | `string`                                       | --          | Space-separated list of URLs to ping                  |
-| `referrerPolicy` | `HTMLAttributeReferrerPolicy`                  | --          | How much referrer info to send                        |
-| `routerOptions`  | `RouterOptions`                                | --          | Options for client-side router                        |
-
-### Events
-
-| Name            | Type                           | Description                |
-| --------------- | ------------------------------ | -------------------------- |
-| `onPress`       | `(e: PressEvent) => void`      | Press released over target |
-| `onPressStart`  | `(e: PressEvent) => void`      | Press interaction starts   |
-| `onPressEnd`    | `(e: PressEvent) => void`      | Press interaction ends     |
-| `onPressChange` | `(isPressed: boolean) => void` | Press state changes        |
-| `onPressUp`     | `(e: PressEvent) => void`      | Press releases over target |
-| `onFocus`       | `(e: FocusEvent) => void`      | Element receives focus     |
-| `onBlur`        | `(e: FocusEvent) => void`      | Element loses focus        |
-| `onFocusChange` | `(isFocused: boolean) => void` | Focus status changes       |
-| `onKeyDown`     | `(e: KeyboardEvent) => void`   | Key is pressed             |
-| `onKeyUp`       | `(e: KeyboardEvent) => void`   | Key is released            |
-
-### Accessibility Props
-
-| Name               | Type     | Description                                |
-| ------------------ | -------- | ------------------------------------------ |
-| `aria-label`       | `string` | Labels the current element                 |
-| `aria-labelledby`  | `string` | Identifies labeling element(s)             |
-| `aria-describedby` | `string` | Identifies describing element(s)           |
-| `aria-details`     | `string` | Identifies detailed description element(s) |
-
-### Layout/Spacing/Sizing/Positioning Props (Responsive)
-
-All standard Spectrum layout props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `justifySelf`, `order`, `gridArea`, `gridColumn`, `gridRow`, `gridColumnStart`, `gridColumnEnd`, `gridRowStart`, `gridRowEnd`, `margin`, `marginTop`, `marginBottom`, `marginStart`, `marginEnd`, `marginX`, `marginY`, `width`, `minWidth`, `maxWidth`, `height`, `minHeight`, `maxHeight`, `position`, `top`, `bottom`, `left`, `right`, `start`, `end`, `zIndex`, `isHidden`
-
-### Advanced Props
-
-| Name               | Type            | Description                             |
-| ------------------ | --------------- | --------------------------------------- |
-| `UNSAFE_className` | `string`        | Sets CSS className (use as last resort) |
-| `UNSAFE_style`     | `CSSProperties` | Sets inline style (use as last resort)  |
-
-## Accessibility
-
-- When `href` is omitted, the component exposes the "link" role to assistive technology
-- Provide sufficient context about link destinations for screen reader users
-- Use quiet style only when placement and context are explicit enough that underlines are unnecessary
-- Avoid quiet style within body paragraphs of text
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `aria-describedby` | `string | undefined` | — | Identifies the element (or elements) that describes the object. |
+| `aria-details` | `string | undefined` | — | Identifies the element (or elements) that provide a detailed, extended description for the object. |
+| `aria-label` | `string | undefined` | — | Defines a string value that labels the current element. |
+| `aria-labelledby` | `string | undefined` | — | Identifies the element (or elements) that labels the current element. |
+| `autoFocus` | `boolean | undefined` | — | Whether the element should receive focus on render. |
+| `children` | `ReactNode` | — |  |
+| `download` | `boolean | string | undefined` | — | Causes the browser to download the linked URL. A string may be provided to suggest a file name. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download). |
+| `href` | `string | undefined` | — | A URL to link to. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href). |
+| `hrefLang` | `string | undefined` | — | Hints at the human language of the linked URL. See[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#hreflang). |
+| `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
+| `isQuiet` | `boolean | undefined` | — | Whether the link should be displayed with a quiet style. |
+| `isStandalone` | `boolean | undefined` | — | Whether the link is on its own vs inside a longer string of text. |
+| `onBlur` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element loses focus. |
+| `onFocus` | `((e: FocusEvent<Element>) => void) | undefined` | — | Handler that is called when the element receives focus. |
+| `onFocusChange` | `((isFocused: boolean) => void) | undefined` | — | Handler that is called when the element's focus status changes. |
+| `onKeyDown` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is pressed. |
+| `onKeyUp` | `((e: KeyboardEvent) => void) | undefined` | — | Handler that is called when a key is released. |
+| `onPress` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when the press is released over the target. |
+| `onPressChange` | `((isPressed: boolean) => void) | undefined` | — | Handler that is called when the press state changes. |
+| `onPressEnd` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction ends, either over the target or when the pointer leaves the target. |
+| `onPressStart` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press interaction starts. |
+| `onPressUp` | `((e: PressEvent) => void) | undefined` | — | Handler that is called when a press is released over the target, regardless of whether it started on the target or not. |
+| `ping` | `string | undefined` | — | A space-separated list of URLs to ping when the link is followed. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#ping). |
+| `referrerPolicy` | `HTMLAttributeReferrerPolicy | undefined` | — | How much of the referrer to send when following the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#referrerpolicy). |
+| `rel` | `string | undefined` | — | The relationship between the linked resource and the current page. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel). |
+| `routerOptions` | `undefined` | — | Options for the configured client side router. |
+| `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
+| `staticColor` | `"auto" | "black" | "white" | undefined` | — | The static color style to apply. Useful when the link appears over a color background. |
+| `styles` | `StylesProp | undefined` | — | Spectrum-defined styles, returned by the `style()` macro. |
+| `target` | `HTMLAttributeAnchorTarget | undefined` | — | The target window for the link. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). |
+| `UNSAFE_className` | `UnsafeClassName | undefined` | — | Sets the CSS [className](https://developer.mozilla.org/en-US/docs/Web/API/Element/className) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `UNSAFE_style` | `CSSProperties | undefined` | — | Sets inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. Only use as a **last resort**. Use the `style` macro via the `styles` prop instead. |
+| `variant` | `"primary" | "secondary" | undefined` | 'primary' | The [visual style](https://spectrum.adobe.com/page/link/#Options) of the link. |

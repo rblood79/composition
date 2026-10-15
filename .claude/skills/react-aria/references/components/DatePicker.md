@@ -1,6 +1,7 @@
 # DatePicker
 
-A date picker combines a DateField and a Calendar popover to allow users to enter or select a date and time value.
+A date picker combines a DateField and a Calendar popover to allow users to enter or select a
+date and time value.
 
 ## Vanilla CSS example
 
@@ -10,18 +11,17 @@ A date picker combines a DateField and a Calendar popover to allow users to ente
 'use client';
 import {
   DatePicker as AriaDatePicker,
-  DatePickerProps as AriaDatePickerProps,
-  DateValue,
+  type DatePickerProps as AriaDatePickerProps,
+  type DateValue,
   Group,
-  ValidationResult
-} from 'react-aria-components';
+  type ValidationResult
+} from 'react-aria-components/DatePicker';
 import {DateInput, DateSegment} from './DateField';
 import {Label, FieldError, Description} from './Form';
 import {FieldButton} from './Form';
 import {Calendar} from './Calendar';
 import {Popover} from './Popover';
 import {ChevronDown} from 'lucide-react';
-
 import './DatePicker.css';
 
 export interface DatePickerProps<T extends DateValue> extends AriaDatePickerProps<T> {
@@ -30,17 +30,20 @@ export interface DatePickerProps<T extends DateValue> extends AriaDatePickerProp
   errorMessage?: string | ((validation: ValidationResult) => string);
 }
 
-export function DatePicker<T extends DateValue>(
-  { label, description, errorMessage, ...props }: DatePickerProps<T>
-) {
+export function DatePicker<T extends DateValue>({
+  label,
+  description,
+  errorMessage,
+  ...props
+}: DatePickerProps<T>) {
   return (
     <AriaDatePicker {...props}>
       <Label>{label}</Label>
       <Group>
-        <DateInput>
-          {(segment) => <DateSegment segment={segment} />}
-        </DateInput>
-        <FieldButton><ChevronDown /></FieldButton>
+        <DateInput>{segment => <DateSegment segment={segment} />}</DateInput>
+        <FieldButton>
+          <ChevronDown />
+        </FieldButton>
       </Group>
       {description && <Description>{description}</Description>}
       <FieldError>{errorMessage}</FieldError>
@@ -56,7 +59,7 @@ export function DatePicker<T extends DateValue>(
 ### DatePicker.css
 
 ```css
-@import "./theme.css";
+@import './theme.css';
 
 .react-aria-DatePicker {
   max-width: 100%;
@@ -66,6 +69,8 @@ export function DatePicker<T extends DateValue>(
     width: 100%;
     align-items: center;
     height: var(--spacing-8);
+    border-radius: var(--radius);
+    overflow: clip;
   }
 
   .react-aria-DateInput {
@@ -75,6 +80,10 @@ export function DatePicker<T extends DateValue>(
     overflow-x: auto;
     overflow-y: clip;
     scrollbar-width: none;
+  }
+
+  .field-Button {
+    margin-right: var(--spacing-1);
   }
 }
 
@@ -86,33 +95,40 @@ export function DatePicker<T extends DateValue>(
 
 ```tsx
 'use client';
-import { CalendarIcon } from 'lucide-react';
+import {CalendarIcon} from 'lucide-react';
 import React from 'react';
 import {
   DatePicker as AriaDatePicker,
-  DatePickerProps as AriaDatePickerProps,
-  DateValue,
-  ValidationResult
-} from 'react-aria-components';
-import { Calendar } from './Calendar';
-import { DateInput } from './DateField';
-import { Description, FieldError, FieldGroup, Label } from './Field';
-import { Popover } from './Popover';
-import { composeTailwindRenderProps } from './utils';
-import { FieldButton } from './FieldButton';
+  type DatePickerProps as AriaDatePickerProps,
+  type DateValue,
+  type ValidationResult
+} from 'react-aria-components/DatePicker';
+import {Calendar} from './Calendar';
+import {DateInput} from './DateField';
+import {Description, FieldError, FieldGroup, Label} from './Field';
+import {Popover} from './Popover';
+import {composeTailwindRenderProps} from './utils';
+import {FieldButton} from './FieldButton';
 
-export interface DatePickerProps<T extends DateValue>
-  extends AriaDatePickerProps<T> {
+export interface DatePickerProps<T extends DateValue> extends AriaDatePickerProps<T> {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
 }
 
-export function DatePicker<T extends DateValue>(
-  { label, description, errorMessage, ...props }: DatePickerProps<T>
-) {
+export function DatePicker<T extends DateValue>({
+  label,
+  description,
+  errorMessage,
+  ...props
+}: DatePickerProps<T>) {
   return (
-    <AriaDatePicker {...props} className={composeTailwindRenderProps(props.className, 'group flex flex-col gap-1 font-sans')}>
+    <AriaDatePicker
+      {...props}
+      className={composeTailwindRenderProps(
+        props.className,
+        'group flex flex-col gap-1 font-sans'
+      )}>
       {label && <Label>{label}</Label>}
       <FieldGroup className="min-w-[208px] w-auto cursor-text disabled:cursor-default">
         <DateInput className="flex-1 min-w-[150px] px-3 text-sm" />
@@ -137,7 +153,7 @@ Use the `value` or `defaultValue` prop to set the date value, using objects in t
 
 ```tsx
 import {parseDate, getLocalTimeZone, type CalendarDate} from '@internationalized/date';
-import {useDateFormatter} from 'react-aria';
+import {useDateFormatter} from 'react-aria/useDateFormatter';
 import {DatePicker} from 'vanilla-starter/DatePicker';
 import {useState} from 'react';
 
@@ -175,7 +191,7 @@ import {DatePicker} from 'vanilla-starter/DatePicker';
 By default, `DatePicker` displays the value using the calendar system for the user's locale. Use `<I18nProvider>` to override the calendar system by setting the [Unicode calendar locale extension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale/calendar#adding_a_calendar_in_the_locale_string). The `onChange` event always receives a date in the same calendar as the `value` or `defaultValue` (Gregorian if no value is provided), regardless of the displayed locale.
 
 ```tsx
-import {I18nProvider} from 'react-aria-components';
+import {I18nProvider} from 'react-aria-components/I18nProvider';
 import {parseZonedDateTime} from '@internationalized/date';
 import {DatePicker} from 'vanilla-starter/DatePicker';
 
@@ -190,10 +206,10 @@ Use the `name` prop to submit the selected date to the server as an [ISO 8601](h
 
 ```tsx
 import {isWeekend, today, getLocalTimeZone} from '@internationalized/date';
-import {useLocale} from 'react-aria-components';
+import {useLocale} from 'react-aria-components/I18nProvider';
 import {DatePicker} from 'vanilla-starter/DatePicker';
 import {Button} from 'vanilla-starter/Button';
-import {Form} from 'vanilla-starter/Form';;
+import {Form} from 'vanilla-starter/Form';
 
 function Example() {
   let {locale} = useLocale();
@@ -256,7 +272,7 @@ function Example() {
 | `defaultOpen` | `boolean | undefined` | — | Whether the overlay is open by default (uncontrolled). |
 | `defaultValue` | `T | null | undefined` | — | The default value (uncontrolled). |
 | `dir` | `string | undefined` | — |  |
-| `firstDayOfWeek` | `"sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | undefined` | — | The day that starts the week. |
+| `firstDayOfWeek` | `"fri" | "mon" | "sat" | "sun" | "thu" | "tue" | "wed" | undefined` | — | The day that starts the week. |
 | `form` | `string | undefined` | — | The `<form>` element to associate the input with. The value of this attribute must be the id of a `<form>` in the same document. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form). |
 | `granularity` | `Granularity | undefined` | — | Determines the smallest unit that is displayed in the date picker. By default, this is `"day"` for dates, and `"minute"` for times. |
 | `hidden` | `boolean | undefined` | — |  |
@@ -347,12 +363,12 @@ function Example() {
 | `onWheelCapture` | `React.WheelEventHandler<HTMLDivElement> | undefined` | — |  |
 | `pageBehavior` | `PageBehavior | undefined` | visible | Controls the behavior of paging. Pagination either works by advancing the visible page by visibleDuration (default) or one unit of visibleDuration. |
 | `placeholderValue` | `T | null | undefined` | — | A placeholder date that influences the format of the placeholder shown when no value is selected. Defaults to today's date at midnight. |
-| `render` | `DOMRenderFunction<"div", DatePickerRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: \* You must render the expected element type (e.g. if `<button>` is expected, you cannot render an `<a>`). \* Only a single root DOM element can be rendered (no fragments). \* You must pass through props and ref to the underlying DOM element, merging with your own prop as appropriate. |
+| `render` | `DOMRenderFunction<"div", DatePickerRenderProps> | undefined` | — | Overrides the default DOM element with a custom render function. This allows rendering existing components with built-in styles and behaviors such as router links, animation libraries, and pre-styled components. Requirements: - You must render the expected element type (e.g. if `<button>` is expected, you cannot render an   `<a>`). - Only a single root DOM element can be rendered (no fragments). - You must pass through props and ref to the underlying DOM element, merging with your own prop   as appropriate. |
 | `shouldCloseOnSelect` | `boolean | (() => boolean) | undefined` | true | Determines whether the date picker popover should close automatically when a date is selected. |
 | `shouldForceLeadingZeros` | `boolean | undefined` | — | Whether to always show leading zeros in the month, day, and hour fields. By default, this is determined by the user's locale. |
 | `slot` | `string | null | undefined` | — | A slot name for the component. Slots allow the component to receive props from a parent component. An explicit `null` value indicates that the local props completely override all props received from a parent. |
-| `style` | `(React.CSSProperties | ((values: DatePickerRenderProps & { defaultStyle: React.CSSProperties; }) => React.CSSProperties | undefined)) | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
-| `translate` | `"yes" | "no" | undefined` | — |  |
-| `validate` | `((value: MappedDateValue<T>) => ValidationError | true | null | undefined) | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
-| `validationBehavior` | `"native" | "aria" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
+| `style` | `StyleOrFunction<DatePickerRenderProps> | undefined` | — | The inline [style](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style) for the element. A function may be provided to compute the style based on component state. |
+| `translate` | `"no" | "yes" | undefined` | — |  |
+| `validate` | `((value: MappedDateValue<T>) => true | undefined) | ValidationError | null | undefined` | — | A function that returns an error message if a given value is invalid. Validation errors are displayed to the user when the form is submitted if `validationBehavior="native"`. For realtime validation, use the `isInvalid` prop instead. |
+| `validationBehavior` | `"aria" | "native" | undefined` | 'native' | Whether to use native HTML form validation to prevent form submission when the value is missing or invalid, or mark the field as required or invalid via ARIA. |
 | `value` | `T | null | undefined` | — | The current value (controlled). |

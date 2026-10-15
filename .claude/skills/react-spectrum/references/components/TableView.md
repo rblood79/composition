@@ -340,7 +340,6 @@ import FolderOpen from '@react-spectrum/s2/illustrations/linear/FolderOpen';
   </TableHeader>
   {/*- begin highlight -*/}
   <TableBody
-    /*- begin highlight -*/
     renderEmptyState={() => (
       <IllustratedMessage>
         <FolderOpen />
@@ -885,6 +884,48 @@ function subscribe(fn) {
 }
 ```
 
+## Keyboard navigation
+
+By default, TableView uses arrow key navigation to move focus into cells. Set `keyboardNavigationBehavior="tab"` to have <Keyboard>Tab</Keyboard> move focus in and out of a cell.
+
+```tsx
+import {TableView, TableHeader, Column, TableBody, Row, Cell} from '@react-spectrum/s2/TableView';
+import {TextField} from '@react-spectrum/s2/TextField';
+import {style} from '@react-spectrum/s2/style' with {type: 'macro'};
+
+let files = [
+  {id: 'games', name: 'Games', type: 'Folder', date: '6/7/2023'},
+  {id: 'apps', name: 'Applications', type: 'Folder', date: '4/7/2025'},
+  {id: 'report', name: '2024 Financial Report', type: 'PDF Document', date: '12/30/2024'},
+  {id: 'job', name: 'Job Posting', type: 'Text Document', date: '1/18/2025'},
+];
+
+<TableView
+  /*- begin highlight -*/
+  keyboardNavigationBehavior="tab"
+  /*- end highlight -*/
+  selectionMode="multiple"
+  aria-label="Shared files"
+  styles={style({width: 'full'})}>
+  <TableHeader>
+    <Column id="name" isRowHeader>Name</Column>
+    <Column id="type">Type</Column>
+    <Column id="date">Date Modified</Column>
+    <Column id="notes">Notes</Column>
+  </TableHeader>
+  <TableBody items={files}>
+    {item => (
+      <Row id={item.id}>
+        <Cell>{item.name}</Cell>
+        <Cell>{item.type}</Cell>
+        <Cell>{item.date}</Cell>
+        <Cell><TextField aria-label={`${item.name} notes`} placeholder="Enter notes" /></Cell>
+      </Row>
+    )}
+  </TableBody>
+</TableView>
+```
+
 ## Drag and drop
 
 Table supports drag and drop interactions when the `dragAndDropHooks` prop is provided using the `useDragAndDrop` hook. Users can drop data on the table as a whole, on individual rows, insert new rows between existing ones, or reorder rows. See the [drag and drop guide](dnd.md?component=TableView) to learn more.
@@ -1016,6 +1057,7 @@ function ReorderableTable() {
 | `expandedKeys` | `Iterable<Key> | undefined` | — | The currently expanded keys in the collection (controlled). |
 | `id` | `string | undefined` | — | The element's unique identifier. See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id). |
 | `isQuiet` | `boolean | undefined` | — | Whether the Table should be displayed with a quiet style. |
+| `keyboardNavigationBehavior` | `"arrow" | "tab" | undefined` | 'arrow' | Whether keyboard navigation to focusable elements within the cells is via the left/right arrow keys or the tab key. |
 | `loadingState` | `LoadingState | undefined` | — | The current loading state of the table. |
 | `onAction` | `((key: Key) => void) | undefined` | — | Handler that is called when a user performs an action on a row. |
 | `onExpandedChange` | `((keys: Set<Key>) => any) | undefined` | — | Handler that is called when items are expanded or collapsed. |
@@ -1051,10 +1093,12 @@ function ReorderableTable() {
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the column should support arrow key navigation even when the containing table uses tab keyboard navigation. Allows users to navigate between columns and rows with arrow keys while focus is on an interactive child element within the column header. |
 | `allowsResizing` | `boolean | undefined` | — | Whether the column allows resizing. |
 | `allowsSorting` | `boolean | undefined` | — | Whether the column allows sorting. |
 | `children` | `React.ReactNode` | — | The content to render as the column header. |
 | `defaultWidth` | `ColumnSize | null | undefined` | — | The default width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
+| `focusMode` | `"cell" | "child" | undefined` | — | Whether the column header or its first focusable child element should be focused when the column header is focused. Defaults to 'child' in arrow keyboard navigation mode and 'cell' in tab keyboard navigation mode. |
 | `id` | `Key | undefined` | — | The unique id of the column. |
 | `isRowHeader` | `boolean | undefined` | — | Whether a column is a [row header](https://www.w3.org/TR/wai-aria-1.1/#rowheader) and should be announced by assistive technology during row navigation. |
 | `maxWidth` | `ColumnStaticSize | null | undefined` | — | The maximum width of the column. This prop only applies when the `<Table>` is wrapped in a `<ResizableTableContainer>`. |
@@ -1167,8 +1211,10 @@ function ReorderableTable() {
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the cell should support arrow key navigation even when the containing table uses tab keyboard navigation. Allows users to navigate between cells and rows with arrow keys while focus is on an interactive child element within the cell. |
 | `children` | `React.ReactNode` | — | The content to render as the cell children. |
 | `colSpan` | `number | undefined` | — | Indicates how many columns the data cell spans. |
+| `focusMode` | `"cell" | "child" | undefined` | — | Whether the cell or its first focusable child element should be focused when the cell is focused. Defaults to 'child' in arrow keyboard navigation mode and 'cell' in tab keyboard navigation mode. |
 | `id` | `Key | undefined` | — | The unique id of the cell. |
 | `showDivider` | `boolean | undefined` | — | Whether the column should render a divider between it and the next column. |
 | `textValue` | `string | undefined` | — | A string representation of the cell's contents, used for features like typeahead. |
@@ -1187,8 +1233,10 @@ function ReorderableTable() {
 |------|------|---------|-------------|
 | `action` | `string | ((formData: FormData) => void | Promise<void>) | undefined` | — | The action to submit the form to. Only available in React 19+. |
 | `align` | `"center" | "end" | "start" | undefined` | 'start' | The alignment of the column's contents relative to its allotted width. |
+| `allowsArrowNavigation` | `boolean | undefined` | — | Whether the cell should support arrow key navigation even when the containing table uses tab keyboard navigation. Allows users to navigate between cells and rows with arrow keys while focus is on an interactive child element within the cell. |
 | `children` | `React.ReactNode` | — | The content to render as the cell children. |
 | `colSpan` | `number | undefined` | — | Indicates how many columns the data cell spans. |
+| `focusMode` | `"cell" | "child" | undefined` | — | Whether the cell or its first focusable child element should be focused when the cell is focused. Defaults to 'child' in arrow keyboard navigation mode and 'cell' in tab keyboard navigation mode. |
 | `id` | `Key | undefined` | — | The unique id of the cell. |
 | `isSaving` | `boolean | undefined` | — | Whether the cell is currently being saved. |
 | `onCancel` | `(() => void) | undefined` | — | Handler that is called when the user cancels the edit. |
