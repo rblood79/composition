@@ -334,11 +334,15 @@ export function catalogOverlayNode(
       if (inputs.gridCells && !inputs.gesture?.()) {
         const grids = new Set(state.selection.map((item) => item.identity));
         if (hoverId) grids.add(hoverId);
-        for (const id of grids)
-          withOccluders(ck, canvas, occludersOf(id), () => {
-            for (const cell of inputs.gridCells!(id))
-              renderHoverHighlight(ck, canvas, cell, zoom, true);
-          });
+        for (const id of grids) {
+          const cells = inputs.gridCells(id);
+          // A non-grid record has none: no page occlusion lookup either (every frame).
+          if (cells.length)
+            withOccluders(ck, canvas, occludersOf(id), () => {
+              for (const cell of cells)
+                renderHoverHighlight(ck, canvas, cell, zoom, true);
+            });
+        }
       }
       const moving = new Set(inputs.gesture?.()?.moving ?? []);
       for (const item of state.selection) {
