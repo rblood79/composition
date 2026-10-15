@@ -112,3 +112,45 @@ describe("a node without an element has no style fields", () => {
     });
   });
 });
+
+describe("an instance part's breakpoint and layout edits reach its record", () => {
+  /**
+   * The Menu's Button position is itself a Button origin instance: what the position resolves goes
+   * on to the Button's template root (the record). Its breakpoint layers' visual keys and its own
+   * layout were not passed on — a Mobile border edit and a margin were lost (2026-10-15 사용자
+   * 「MenuTrigger 내의 Button 의 border width, style, color 여전히 변경안된다」 — the toolbar was on
+   * Mobile).
+   */
+  it("Menu's Button at mobile: border width · style · color reach the record", async () => {
+    const { workspace, button, host, select } = await open();
+    select(button);
+    workspace.setBreakpoint("mobile");
+    host.updateStyles({
+      borderWidth: "3px",
+      borderStyle: "dashed",
+      borderColor: "#ff0000",
+    });
+    expect(workspace.root.domInputs.get(button)!.visual).toMatchObject({
+      borderWidth: 3,
+      borderStyle: "dashed",
+      borderColor: "#ff0000",
+    });
+    // (Desktop keeps the base value.)
+    workspace.setBreakpoint("desktop");
+    expect(workspace.root.domInputs.get(button)!.visual.borderWidth).toBe(1);
+  });
+
+  it("Menu's Button: a margin (layout) reaches the record, at desktop and at tablet", async () => {
+    const { workspace, button, host, select } = await open();
+    select(button);
+    host.updateStyles({ marginTop: "10px" });
+    expect(workspace.root.domInputs.get(button)!.layout).toMatchObject({
+      marginTop: "10px",
+    });
+    workspace.setBreakpoint("tablet");
+    host.updateStyles({ marginTop: "20px" });
+    expect(workspace.root.domInputs.get(button)!.layout).toMatchObject({
+      marginTop: "20px",
+    });
+  });
+});

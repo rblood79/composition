@@ -1987,10 +1987,16 @@ export function resolveCatalogNode(
                   ...Object.keys(originOverride?.visual ?? {}),
                   ...Object.keys(template.visual),
                   ...Object.keys(patch?.visual ?? {}),
+                  // (and its breakpoint layers' — a Mobile border on a Menu's Button was dropped
+                  // here, 2026-10-15)
+                  ...templateLayers.flatMap((layer) => Object.keys(layer.visual ?? {})),
+                  ...patchLayers.flatMap((layer) => Object.keys(layer.visual ?? {})),
                 ],
                 visual,
                 sizing,
-                authoredLayout,
+                // The position's authored layout with its path patch and their layers (the patch's
+                // margin on a Menu's Button was dropped with `authoredLayout`, 2026-10-15).
+                templateAuthored,
                 templatePaint,
                 {
                   origin: template.definitionId,

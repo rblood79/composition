@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [instance 안 원본 자리의 breakpoint · layout 편집 반영] - 2026-10-15
+
+### Fixed
+
+- **Menu 안 Button 의 Border 를 Tablet · Mobile 에서 바꾸거나 margin 을 주면 반영되지 않던 문제** — 값은 문서 (Menu instance 의 그 자리 patch) 에 저장됐는데 Canvas · Preview 는 그리지 않았다. 이제 그 breakpoint 의 border width · style · color 와 margin 등 layout 이 record 에 실린다. Menu · Select · ComboBox · DatePicker 처럼 원본 안에 다른 원본 (Button · ListBox …) 을 둔 컴포넌트의 그 부품 전부에 해당한다.
+  - **Why**: 그 자리는 안쪽 원본 (Button) 의 instance 라 해석한 값을 안쪽 원본의 루트로 넘기는데 (`instanceRoot`), 넘길 visual 키 목록에 breakpoint 층 키가 없었고 layout 은 patch 를 뺀 값을 넘겼다. desktop 의 visual 만 우연히 통과했다.
+  - 이미 저장된 값은 별도 처리 없이 다시 보인다 (읽는 쪽만 고침).
+- 위치: `packages/shared/src/catalog/resolution/resolver.ts` (중첩 원본 루트로 넘기는 visual 키 · layout). 검증: `elementlessNodeStyles.test.tsx` 2건 (수정 전 RED — mobile border · desktop / tablet margin) · shared 1713 · builder 5801 통과 (`resolveContainerStylesFallback` togglebuttongroup 1건은 수정 전 HEAD 에서도 실패 — 무관) · live: Mobile 툴바에서 Menu 의 Button Width 4 · Dashed · Color FF0000 → record · Preview `border: 4px dashed rgb(255,0,0)`.
+
 ## [요소 없는 노드의 Style 탭 — MenuTrigger 등은 안내만] - 2026-10-15
 
 ### Fixed
