@@ -672,6 +672,35 @@ export function catalogFieldHintShown(
 }
 
 /**
+ * Whether a node is absent by a value — it has no text to show — rather than by a state RAC
+ * changes (a closed overlay, an unselected panel, a valid field's error): a `presentWhen` part
+ * with empty text, a field's Description without `description`, its FieldError without
+ * `errorMessage`. Nothing renders it until the value is written, so the Layers tree leaves it out.
+ */
+export function catalogAbsentByOwnerValue(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (catalogAbsentByValue(node)) return true;
+  const type = typeOf(node);
+  if (type !== "Description" && type !== "FieldError") return false;
+  const field = catalogPartParent(node, get, typeOf);
+  if (!field) return false;
+  const fieldType = typeOf(field);
+  if (type === "FieldError")
+    return (
+      ERROR_HINT_OWNERS.has(fieldType) &&
+      !String(field.props.errorMessage ?? "")
+    );
+  return (
+    FIELD_HINT_OWNERS.has(fieldType) &&
+    !NODE_TREE_FIELDS.has(fieldType) &&
+    !String(field.props.description ?? "")
+  );
+}
+
+/**
  * ADR-256 Decision 7 — a node whose value condition (`presentWhen: "nonEmptyText"`) does not hold:
  * its final text (`String(value ?? "")`, every binding substituted — no trim) is empty and it
  * holds no child nodes. The Canvas and the DOM read this one predicate.

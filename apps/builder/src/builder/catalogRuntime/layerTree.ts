@@ -86,6 +86,11 @@ export interface CatalogLayerTreeHost {
   boundRows?(position: CatalogPosition): CatalogBoundLayerRows | undefined;
   /** Data rows changed outside the document (the bound rows are read again). */
   subscribeBoundRows?(listener: () => void): () => void;
+  /**
+   * Whether a template position is absent by its parent's empty prop (a Checkbox's Description
+   * without `description`): nothing renders it, so it has no row. Owned nodes are always listed.
+   */
+  absentByValue?(position: CatalogPosition): boolean;
 }
 
 const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
@@ -187,6 +192,11 @@ export class CatalogLayerTreeStore {
   private readonly rowSubscriptions = new Map<string, () => void>();
   /** Visible owned node rows: node id → its row identities. */
   private visibleNodes = new Map<string, string[]>();
+  /** Template rows judged by `absentByValue` and the judgment (a prop edit can flip it). */
+  private valueGated: readonly {
+    position: CatalogPosition;
+    absent: boolean;
+  }[] = [];
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribeSteps: () => void;
   private readonly unsubscribeBoundRows: () => void;
@@ -212,7 +222,17 @@ export class CatalogLayerTreeStore {
       );
       // The project components page: a row's origin can be deleted (kept by its definition) or
       // restored without its row list changing — its few rows are read again each step.
-      if (renamed || this.rowsChanged || isProjectComponentsView(this.ownerId))
+      // A parent prop edit shows or hides a value-gated part without its row list changing.
+      const gated = this.valueGated.some(
+        ({ position, absent }) =>
+          (host.absentByValue?.(position) ?? false) !== absent,
+      );
+      if (
+        renamed ||
+        gated ||
+        this.rowsChanged ||
+        isProjectComponentsView(this.ownerId)
+      )
         this.rebuild();
     });
     this.unsubscribeBoundRows =
@@ -255,7 +275,19 @@ export class CatalogLayerTreeStore {
     const previous = this.nodes;
     const nodes = new Map<string, CatalogLayerNode>();
     const visibleNodes = new Map<string, string[]>();
+    const valueGated: { position: CatalogPosition; absent: boolean }[] = [];
     const wanted = new Set<string>(["page"]);
+    // A template part absent by its parent's empty prop has no row (owned nodes stay listed).
+    const listed = (rows: readonly CatalogPosition[]) => {
+      const absentByValue = this.host.absentByValue;
+      if (!absentByValue) return rows;
+      return rows.filter((row) => {
+        if (row.target.kind === "node") return true;
+        const absent = absentByValue(row);
+        valueGated.push({ position: row, absent });
+        return !absent;
+      });
+    };
     const build = (
       position: CatalogPosition,
       parentId: string | null,
@@ -263,10 +295,11 @@ export class CatalogLayerTreeStore {
     ): CatalogLayerNode => {
       wanted.add(position.identity);
       // The Components page lists origins and their instances, not its drawn frames.
-      const rows =
+      const rows = listed(
         (isComponentsView(this.ownerId)
           ? catalogComponentsPageRows(graph, position)
-          : undefined) ?? readModel.childRows(position);
+          : undefined) ?? readModel.childRows(position),
+      );
       const bound = this.host.boundRows?.(position);
       const typeName = typeNameOf(graph, position);
       const slot = slotOf(graph, position);
@@ -376,6 +409,7 @@ export class CatalogLayerTreeStore {
     const top = rows.map((row) => build(row, null, 0));
     this.nodes = nodes;
     this.visibleNodes = visibleNodes;
+    this.valueGated = valueGated;
     this.syncSubscriptions(wanted);
     const changed =
       top.length !== this.snapshot.length ||

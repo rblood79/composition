@@ -33,6 +33,7 @@ import {
 import type { CatalogBoundLayerRows } from "./layerTree";
 import { CatalogReadModel } from "./readModel";
 import { catalogRowSampleHidden } from "./rowSample";
+import { catalogAbsentByOwnerValue } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import { CatalogHistoryStore } from "./history";
 import {
   catalogComponentsPageCards,
@@ -395,6 +396,19 @@ export class CatalogWorkspace {
    * sample draws, and how many it does not (`more` — the collection's count past the sample).
    * `undefined` = the row holds no data rows (unbound or rows unknown: the item positions list).
    */
+  /**
+   * Whether a template part is absent by its parent's empty prop (`catalogAbsentByOwnerValue` — a
+   * Checkbox's Description without `description`): no element, no box, so no Layers row.
+   */
+  rowAbsentByValue(position: CatalogPosition): boolean {
+    const root = this.currentRoot;
+    const records = root.domInputs;
+    const record = records.get(position.identity);
+    return (
+      !!record &&
+      catalogAbsentByOwnerValue(record, (id) => records.get(id), root.typeOf)
+    );
+  }
   boundRowsOf(position: CatalogPosition): CatalogBoundLayerRows | undefined {
     const root = this.currentRoot;
     const records = root.domInputs;

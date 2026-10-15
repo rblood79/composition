@@ -76,6 +76,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         // A bound collection lists the data rows the Canvas draws (4e-6-36).
         boundRows: (position) => workspace.boundRowsOf(position),
         subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
+        // A part with no value to show (an empty `{description}`) has no row.
+        absentByValue: (position) => workspace.rowAbsentByValue(position),
       },
       ownerId,
     );

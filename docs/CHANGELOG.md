@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layers — 값이 없는 field 부품 행 제외] - 2026-10-15
+
+### Fixed
+
+- **값이 없는 Description · FieldError 가 Layers 에 0×0 행으로 보이던 문제** — Checkbox 처럼 template 에 Description (`{description}`) · FieldError (`{errorMessage}`) 를 둔 field 는 prop 이 비어 있으면 Canvas · DOM 에 그려지지 않는데도 Layers 에 행이 있었다 (선택하면 X:0 · Y:0 · 0×0). 이제 부모 prop 이 빈 template 부품은 Layers 에 없고, Properties 에 값을 쓰면 그 자리에서 행이 나타난다. 글자가 빈 `presentWhen` 부품 (빈 Label 등) 도 같다.
+  - 남기는 것: 상태로 숨은 부품 (메시지는 있고 invalid 가 아닌 FieldError · 닫힌 Popover · 선택 안 된 TabPanel) 과 소유 노드 (Detach 사본 등 — 숨기면 선택 · 삭제 길이 없다).
+  - **Why**: Layers 는 template 위치를 전부 나열했고 presence 판정 (`presence.ts`) 을 읽지 않았다.
+- 위치: `packages/shared/src/catalog/runtime/presence.ts` (`catalogAbsentByOwnerValue`) · `apps/builder/src/builder/catalogRuntime/layerTree.ts` (`absentByValue` — prop 편집으로 판정이 바뀌면 다시 만든다) · `workspace.ts` (`rowAbsentByValue`). 검증: `layersValueAbsentParts.test.ts` (수정 전 RED) · live Checkbox Description · Error Message 입력 / 지우기에 행 표시가 따라옴.
+
 ## [ADR-262 리뷰 Round 3 수리 — 중첩 교체 Reset all · 자식 breakpoint 크기 · 배치 행] - 2026-10-15
 
 ### Fixed
