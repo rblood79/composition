@@ -22,6 +22,7 @@
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --judge <seed>=<frame.json> … # 이미 잰 결과로 판정만
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --init <seed>=<frame.json>,<frame.json>,… …
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --update <seed>=<frame.json> …
+ *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-class <seed>=<frame.json>,<frame.json>,…
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --raise <path> --to <n> --approved-by <who> --reason <why> --expires <YYYY-MM-DD>
  */
 import { createHash } from "node:crypto";
@@ -310,6 +311,52 @@ export function renderVerdict(verdict, { header = "", decision = null } = {}) {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
+/**
+ * 기존 seed 에 부류를 더한다 — 기존 부류의 상한은 그대로 두고 (올리지도 낮추지도 않는다) 새 부류만
+ * 반복 실행으로 A/B 를 정한다. 게이트는 한 페이지에서 부류를 차례로 돌리므로 새 부류는 기존 목록
+ * 뒤에 붙인 같은 조건으로 재야 하고, 그 실행에서 기존 부류가 A 를 넘지 않아야 한다 (붙인 부류가
+ * 앞 부류를 흔들지 않는다는 확인). `--init` 은 전체를 다시 써서 승인 없는 상향이 될 수 있다.
+ */
+export function applyAddClasses(ratchet, seed, reports, { today = isoToday() } = {}) {
+  const run = ratchet.runs?.[seed];
+  if (!run || !ratchet.seeds?.[seed])
+    throw new Error(`seed ${seed} 이 ratchet 에 없다 — --init 으로 시작`);
+  const callCounts = run.args.includes("--call-counts");
+  for (const report of reports) {
+    const o = report.options;
+    if (String(o.seedCount) !== String(seed))
+      throw new Error(`seed 불일치: 결과 ${o.seedCount} ≠ ${seed}`);
+    if (!o.fixedInputs || Boolean(o.callCounts) !== callCounts)
+      throw new Error(`조건 불일치: --fixed-inputs · --call-counts 가 seed ${seed} 기준과 같아야 한다`);
+    if (run.classes.some((cls, i) => o.classes[i] !== cls))
+      throw new Error(`기존 부류 ${run.classes.join(",")} 를 앞에 그대로 두고 뒤에 붙여 재야 한다 — ${o.classes.join(",")}`);
+    const verdict = judge(
+      { ...ratchet, seeds: { [seed]: ratchet.seeds[seed] } },
+      { [seed]: countsByClass(report) },
+      { today },
+    );
+    if (verdict.overA.length)
+      throw new Error(`기존 부류 A 초과 ${verdict.overA.map((v) => v.path).join(", ")} — 붙인 부류가 앞 부류를 바꿨거나 회귀`);
+  }
+  const added = reports[0].options.classes.slice(run.classes.length);
+  if (!added.length) throw new Error("새 부류가 없다");
+  const ceilings = buildSeedCeilings(
+    reports.map((r) => {
+      const byClass = countsByClass(r);
+      return Object.fromEntries(added.map((cls) => [cls, byClass[cls] ?? {}]));
+    }),
+  );
+  const next = structuredClone(ratchet);
+  next.runs[seed] = {
+    classes: reports[0].options.classes,
+    args: harnessArgsFrom(reports[0].options),
+  };
+  for (const cls of added) next.seeds[seed][cls] = ceilings[cls];
+  next.generatedAt = today;
+  if (reports[0].head) next.head = reports[0].head;
+  return next;
+}
+
 function parseSeedFiles(args) {
   // "60=a.json,b.json" → { "60": ["a.json","b.json"] }
   const out = {};
@@ -413,6 +460,16 @@ async function cliMain(argv) {
     );
     process.exit(verdict.overA.length ? 1 : 0);
   }
+  if (cmd === "--add-class") {
+    if (ratchet.recorderSha256 !== recorderSha)
+      throw new Error("recorder 해시 불일치 — 하니스가 바뀌었다. 기준 재설정 필요 (--init)");
+    let next = ratchet;
+    for (const [seed, files] of Object.entries(parseSeedFiles(rest)))
+      next = applyAddClasses(next, seed, files.map(readReport));
+    writeFileSync(RATCHET_PATH, JSON.stringify(next, null, 2) + "\n");
+    process.stdout.write(`[ADR-246] 부류 추가 기록 → ${RATCHET_PATH}\n`);
+    return;
+  }
   if (cmd === "--raise") {
     const get = (k) => rest[rest.indexOf(k) + 1];
     const next = applyRaise(ratchet, {
@@ -426,7 +483,9 @@ async function cliMain(argv) {
     process.stdout.write(`[ADR-246] 올리기 기록 (만료 ${get("--expires")})\n`);
     return;
   }
-  throw new Error(`명령: --run | --judge | --init | --update | --raise`);
+  throw new Error(
+    `명령: --run | --judge | --init | --update | --add-class | --raise`,
+  );
 }
 
 if (

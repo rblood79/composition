@@ -269,5 +269,6 @@ pnpm perf:baseline -- --lane frame --seed-count 60 --fixed-inputs --call-counts 
 - **어디서 재는가**: 메인 워킹트리가 push 대상과 같으면 메인 (5173 재사용 또는 5179). 다른 세션 WIP 가 있으면 push 대상 sha 를 `.cache/perf-ratchet/wt` 에 checkout 해 잰다 (재사용 시 준비 약 9초).
 - **판정**: 등급 A (반복 실행에서 정확히 같았던 값 — 파이프라인 label · 캐시 hit/miss · 함수별 V8 호출 수) 초과 → 같은 조건 재실행 → 같은 값이면 차단. 등급 B (React dev measure · layout/style recalc · rAF 경계 ±1) 는 밴드 1.05 · 여유 2, 단독 초과는 경고.
 - **상한 바꾸기**: 낮추기 `node apps/builder/scripts/perf-ratchet-gate.mjs --update 60=<frame.json> 600=<frame.json>`. 올리기는 사용자 승인 · 사유 · 만료일과 함께 `--raise` 만. 하니스 recorder 가 바뀌면 "기준 재설정 필요" 가 출력된다 (`--init`).
+- **부류 더하기** (2026-10-16): `--add-class <seed>=<a.json>,<b.json>` — 기존 부류 목록 뒤에 붙인 같은 조건으로 2회 잰 결과를 준다. 기존 부류 상한은 그대로 두고 (그 실행에서 기존 부류가 A 를 넘으면 거부), 새 부류만 두 실행에서 같은 값 = A 로 기록한다. `--init` 은 전체를 다시 써서 승인 없는 상향이 될 수 있다. 60 시드에 `drag` (실포인터, 스냅 · 명령 패치 경로) 를 이 명령으로 넣었다 — 스냅 등간격 3중 루프의 안쪽은 함수 호출이 없어 호출 수로는 O(r³) 자체를 못 잡는다 (그건 단위 테스트의 몫).
 - **탈출구**: `SKIP_PERF_RATCHET=1 git push …` — 시각 파리티 (`SKIP_VISUAL_PARITY`) 와 서로를 우회하지 않는다.
 - **한계**: 함수별 호출 수는 부류당 상위 20 함수만 등급 A 다 — 상위 밖 함수의 증가는 `v8.app` (등급 B, 경고) 로만 보인다. 카운트는 체감 oracle 이 아니다 (ADR-243 Event Timing 이 판정한다).

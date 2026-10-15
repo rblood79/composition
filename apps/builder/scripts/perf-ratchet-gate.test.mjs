@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applyAddClasses,
   applyRaise,
   applyUpdate,
   bLimit,
@@ -300,5 +301,65 @@ test("v8.fn 키는 상위 목록에 없으면 판정하지 않는다 — 0 으�
   assert.deepEqual(
     back.overA.map((o) => o.path),
     ["seeds.60.select.A.v8.fn.src/a.ts#hot"],
+  );
+});
+
+const addReport = (classes, counts, opts = {}) => ({
+  head: "abc",
+  options: {
+    seedCount: 60,
+    fixedInputs: true,
+    callCounts: false,
+    classes,
+    ...opts,
+  },
+  results: Object.fromEntries(
+    classes.map((cls) => [cls, { counts: counts[cls] ?? {} }]),
+  ),
+});
+
+test("--add-class — 기존 부류 상한은 그대로, 새 부류만 반복 실행으로 A/B 를 정한다", () => {
+  const base = ratchet();
+  base.runs[60].args = ["--lane", "frame", "--seed-count", "60", "--fixed-inputs", "--classes", "select"];
+  const select = {
+    perfLabels: { "render.frame": 50 },
+    caches: { commandStream: { misses: 0 } },
+    reactRenderMeasures: 5000,
+  };
+  const reports = [
+    addReport(["select", "drag"], { select, drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 236 } }),
+    addReport(["select", "drag"], { select, drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 226 } }),
+  ];
+  const next = applyAddClasses(base, "60", reports);
+  // 낮은 측정값이 와도 기존 상한을 바꾸지 않는다 (하향은 --update 의 일)
+  assert.deepEqual(next.seeds[60].select, base.seeds[60].select);
+  assert.deepEqual(next.seeds[60].drag, {
+    A: { "perfLabels.render.frame": 180 },
+    B: { reactRenderMeasures: 236 },
+  });
+  assert.deepEqual(next.runs[60].classes, ["select", "drag"]);
+  assert.deepEqual(next.runs[60].args, ["--lane", "frame", "--seed-count", "60", "--fixed-inputs", "--classes", "select,drag"]);
+  assert.deepEqual(base.runs[60].classes, ["select"]); // 원본 불변
+});
+
+test("--add-class — 기존 부류가 A 를 넘거나 조건 · 순서가 다르면 거부한다", () => {
+  const base = ratchet();
+  const ok = { perfLabels: { "render.frame": 60 }, caches: { commandStream: { misses: 0 } } };
+  const over = { ...ok, caches: { commandStream: { misses: 1 } } };
+  assert.throws(
+    () => applyAddClasses(base, "60", [addReport(["select", "drag"], { select: over })]),
+    /A 초과/,
+  );
+  assert.throws(
+    () => applyAddClasses(base, "60", [addReport(["drag", "select"], { select: ok })]),
+    /앞에 그대로/,
+  );
+  assert.throws(
+    () => applyAddClasses(base, "60", [addReport(["select", "drag"], { select: ok }, { seedCount: 600 })]),
+    /seed/,
+  );
+  assert.throws(
+    () => applyAddClasses(base, "60", [addReport(["select"], { select: ok })]),
+    /새 부류가 없다/,
   );
 });

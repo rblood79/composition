@@ -2,12 +2,12 @@
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
   "generatedAt": "2026-10-15",
-  "head": "538c58394cf1b4cf74807146207a99e71f15d359",
+  "head": "cc95228e90bd77cbaad8d5d83d4d5ef370d3de39",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
     "60": {
-      "classes": ["select", "edit", "page-switch", "panel-toggle"],
+      "classes": ["select", "edit", "page-switch", "panel-toggle", "drag"],
       "args": [
         "--lane",
         "frame",
@@ -16,7 +16,7 @@
         "--fixed-inputs",
         "--call-counts",
         "--classes",
-        "select,edit,page-switch,panel-toggle"
+        "select,edit,page-switch,panel-toggle,drag"
       ]
     },
     "600": {
@@ -218,6 +218,51 @@
           "domMutations.childList": 50,
           "reactRenderMeasures": 2866,
           "v8.app": 34981
+        }
+      },
+      "drag": {
+        "A": {
+          "caches.contentSurface.hits": 10,
+          "caches.contentSurface.missReasons.invalidate": 180,
+          "caches.contentSurface.misses": 180,
+          "caches.dragSubtreePicture.hits": 0,
+          "caches.dragSubtreePicture.misses": 0,
+          "caches.nodePicture.hits": 11036,
+          "caches.nodePicture.missReasons.cold": 124,
+          "caches.nodePicture.misses": 124,
+          "caches.paintPool.hits": 959,
+          "caches.paintPool.misses": 0,
+          "caches.paragraph.hits": 0,
+          "caches.paragraph.misses": 60,
+          "domMutations.attributes": 375,
+          "domMutations.characterData": 3,
+          "perfLabels.render.skia.flush.content": 180,
+          "perfLabels.render.skia.flush.main": 190,
+          "perfLabels.render.skia.overlay": 190,
+          "perfLabels.render.skia.record.content": 180,
+          "perfLabels.render.text.fontCollection": 60,
+          "perfLabels.render.text.paragraph.build": 60,
+          "perfLabels.render.text.paragraph.layout": 60,
+          "v8.fn.src/builder/catalogRuntime/canvasGesture.ts#(anonymous)": 26100,
+          "v8.fn.src/builder/catalogRuntime/canvasScene.ts#get stream": 28173,
+          "v8.fn.src/builder/workspace/canvas/catalog/CatalogCanvas.tsx#bounds": 26652,
+          "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#(anonymous)": 25665,
+          "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#overlap": 41742,
+          "v8.fn.src/builder/workspace/canvas/interaction/snapGuides.ts#(anonymous)": 55628,
+          "v8.fn.src/builder/workspace/canvas/interaction/snapGuides.ts#projectCandidate": 22560,
+          "v8.fn.src/builder/workspace/canvas/interaction/snapGuides.ts#rectLines": 44530,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandAt": 22947,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 22864,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 23309,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex": 22947,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 35402
+        },
+        "B": {
+          "cdp.LayoutCount": 3,
+          "cdp.RecalcStyleCount": 224,
+          "domMutations.childList": 0,
+          "reactRenderMeasures": 236,
+          "v8.app": 1003021
         }
       }
     },
