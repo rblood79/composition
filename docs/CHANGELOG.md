@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Border 미리보기가 다른 축을 기본값으로 바꾸던 문제] - 2026-10-15
+
+### Fixed
+
+- **Border Color 를 고르는 동안 두께가 얇아지고, Width 를 드래그하는 동안 색이 회색이 되던 문제** — 이제 미리보기 중에도 바꾸지 않은 축 (두께 · 색 · 스타일) 은 현재 값을 유지한다. 손을 놓은 뒤의 값은 전에도 맞았다.
+  - **Why**: border 한 축을 쓸 때 비어 있는 축을 기본값 (스타일 solid · 두께 1px · 색 `#d4d4d4`) 으로 채우는 짝 쓰기가, commit 은 노드의 현재 값을 보고 판단했지만 미리보기는 현재 값 없이 판단해 이미 있는 축까지 기본값으로 덮었다.
+- 위치: `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts` (`previewStyle` — 쓰기를 record 마다 그 `visual` 로). 검증: `elementlessNodeStyles.test.tsx` (수정 전 RED) · panels · catalogRuntime 3309 통과 · live (Mobile, Menu 의 Button): Width 4 · Color FF0000 뒤 Width 드래그 중 색 `#FF0000` 유지 · ColorArea 드래그 중 두께 11 유지.
+
 ## [Tablet · Mobile 에서 Styles 드래그 미리보기가 그려지지 않던 문제] - 2026-10-15
 
 ### Fixed

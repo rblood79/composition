@@ -154,3 +154,22 @@ describe("an instance part's breakpoint and layout edits reach its record", () =
     });
   });
 });
+
+describe("a border preview keeps the border's other axes", () => {
+  /**
+   * The border companion (`catalogBorderCompanionWrites`) fills an unset axis with its default —
+   * the commit read the record's values, the drag preview did not: dragging the width showed the
+   * default grey color, picking a color showed the default 1px width (2026-10-15 사용자).
+   */
+  it("width drag keeps the color; color pick keeps the width", async () => {
+    const { workspace, button, host, select } = await open();
+    select(button);
+    host.updateStyles({ borderWidth: "4px", borderColor: "#ff0000" });
+    const visual = () => workspace.root.domInputs.get(button)!.visual;
+    host.previewStyle("borderWidth", "7px");
+    expect(visual()).toMatchObject({ borderWidth: 7, borderColor: "#ff0000" });
+    host.cancelPreview?.();
+    host.previewStyle("borderColor", "#00ff00");
+    expect(visual()).toMatchObject({ borderWidth: 4, borderColor: "#00ff00" });
+  });
+});

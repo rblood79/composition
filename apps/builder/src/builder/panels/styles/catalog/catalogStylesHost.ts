@@ -607,19 +607,25 @@ export function createCatalogStylesHost(
     previewStyle(property, value) {
       const items = selection();
       endPreviews(new Set(items.map((item) => item.identity)));
-      let writes;
-      try {
-        writes = catalogStyleWritesOf(
-          { [property]: value },
-          { fontSize: fontSizeOf(workspace, items[0]?.identity) },
-        );
-      } catch {
-        return; // a value the typed field cannot hold mid-drag: the commit reports it
-      }
-      const patch = catalogStylePreviewPatch(writes);
       for (const item of items) {
         const record = workspace.root.domInputs.get(item.identity);
         if (!record) continue;
+        let writes;
+        try {
+          // (The record's own values, as the commit reads them: a border companion fills only an
+          // axis the node does not have — a width drag kept the default grey color and a color
+          // pick the default 1px width otherwise, 2026-10-15.)
+          writes = catalogStyleWritesOf(
+            { [property]: value },
+            {
+              fontSize: fontSizeOf(workspace, item.identity),
+              visual: record.visual,
+            },
+          );
+        } catch {
+          return; // a value the typed field cannot hold mid-drag: the commit reports it
+        }
+        const patch = catalogStylePreviewPatch(writes);
         // Left / Top of an absolutely placed node are its placement offsets.
         const offset =
           (property === "left" || property === "top") &&

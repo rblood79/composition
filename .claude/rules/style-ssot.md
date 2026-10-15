@@ -54,6 +54,8 @@ Styles 패널의 CSS 키는 `NodeEntry` 의 **typed field** (`visual` · `layout
 | Layout 섹션 Gap 필드          | 한 줄 flex 는 주축 longhand (row → `columnGap`, column → `rowGap`), 그 밖 (wrap · grid · block) 은 `gap` — `resolveGapAxisProperty` (ADR-222, `panels/styles/sections/LayoutSection.tsx`) |
 | Props (컴포넌트 설정)         | `catalogSemanticPatchCommand` — style 과 별개 축                                                                                                                                          |
 
+- 미리보기도 commit 과 같은 맥락으로 쓰기를 만든다 — `catalogStyleWritesOf` 에 record 의 `visual` 을 넘겨 border companion (`catalogBorderCompanionWrites`) 이 노드에 이미 있는 축을 채우지 않게 한다. **Why (2026-10-15)**: 미리보기만 `visual` 없이 만들어 Width 드래그 중 색이 기본 회색 (`#d4d4d4`) 으로, Color 고르는 중 두께가 기본 1px 로 바뀌었다 (사용자 보고).
+
 ## 3. 읽기 계약
 
 | Consumer                      | 위치                                                                                                                                                                           | 우선순위                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
