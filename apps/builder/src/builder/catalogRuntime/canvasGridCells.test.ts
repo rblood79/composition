@@ -12,7 +12,7 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       { x: 40, y: 110, width: 90, height: 60 },
     ];
     const cells = gridCells({
-      content,
+      content: { ...content, height: 130 },
       columns: "repeat(3, 1fr)",
       columnGap: 30,
       rowGap: 20,
@@ -32,7 +32,7 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       { x: 220, y: 40, width: 150, height: 50 },
     ];
     const cells = gridCells({
-      content,
+      content: { ...content, height: 50 },
       columns: "1fr 1fr",
       columnGap: 30,
       rowGap: 20,
@@ -45,7 +45,7 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
 
   it("fixed-width items in 1fr columns: the cells are the tracks, not the items; an auto column takes its item", () => {
     const cells = gridCells({
-      content: { x: 0, y: 0, width: 360, height: 200 },
+      content: { x: 0, y: 0, width: 360, height: 60 },
       columns: "1fr 1fr",
       columnGap: 0,
       rowGap: 0,
@@ -57,7 +57,7 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
     expect(cells[0]).toEqual({ x: 0, y: 0, width: 180, height: 60 });
     expect(cells[1]).toEqual({ x: 180, y: 0, width: 180, height: 60 });
     const auto = gridCells({
-      content: { x: 0, y: 0, width: 360, height: 200 },
+      content: { x: 0, y: 0, width: 360, height: 60 },
       columns: "auto 1fr",
       columnGap: 0,
       rowGap: 0,
@@ -83,7 +83,7 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       { x: 170, y: 40, width: 200, height: 40 },
     ]);
     const fallback = gridCells({
-      content,
+      content: { ...content, height: 30 },
       columns: "repeat(auto-fill, minmax(100px, 1fr))",
       columnGap: 10,
       rowGap: 10,
@@ -95,6 +95,44 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
       fallbackHeight: 40,
     });
     expect(fallback[2]).toEqual({ x: 40, y: 80, width: 100, height: 30 });
+  });
+
+  it("a taller grid stretches its auto rows: a short item's row reaches the next row, the last the content end", () => {
+    const cells = gridCells({
+      content: { x: 0, y: 0, width: 360, height: 200 },
+      columns: "repeat(3, 1fr)",
+      columnGap: 0,
+      rowGap: 10,
+      items: [
+        { x: 0, y: 0, width: 60, height: 40 },
+        { x: 120, y: 0, width: 60, height: 40 },
+        { x: 240, y: 0, width: 60, height: 40 },
+        { x: 0, y: 105, width: 60, height: 40 },
+      ],
+      count: 4,
+      fallbackHeight: 40,
+      appendRow: false,
+    });
+    expect(cells[0]).toEqual({ x: 0, y: 0, width: 120, height: 95 });
+    expect(cells[4]).toEqual({ x: 120, y: 105, width: 120, height: 95 });
+  });
+
+  it("as it is (selection): no append row; the row template's tracks show without items", () => {
+    const base = {
+      content: { x: 0, y: 0, width: 300, height: 300 },
+      columns: "1fr 1fr",
+      columnGap: 0,
+      rowGap: 0,
+      items: [
+        { x: 0, y: 0, width: 150, height: 50 },
+        { x: 150, y: 0, width: 150, height: 50 },
+      ],
+      count: 2,
+      fallbackHeight: 40,
+      appendRow: false,
+    };
+    expect(gridCells(base)).toHaveLength(2);
+    expect(gridCells({ ...base, rows: "repeat(3, 1fr)" })).toHaveLength(6);
   });
 
   it("lengthPx reads numbers and px strings only", () => {

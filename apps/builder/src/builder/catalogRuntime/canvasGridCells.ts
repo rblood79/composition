@@ -96,6 +96,10 @@ export function gridCells(input: {
   items: readonly GridBox[];
   count: number;
   fallbackHeight: number;
+  /** The row template: its tracks are cells even without items (a selected grid shows them). */
+  rows?: string;
+  /** One more row for an append (a drag) — off for showing the grid as it is (selection). */
+  appendRow?: boolean;
 }): GridBox[] {
   const { content, columnGap, rowGap, items } = input;
   const tokens = expandTracks(input.columns);
@@ -126,7 +130,11 @@ export function gridCells(input: {
       column.size = box.width;
     }
   });
-  const rowCount = Math.ceil((input.count + 1) / cols);
+  const rowCount = Math.max(
+    Math.ceil((input.count + (input.appendRow === false ? 0 : 1)) / cols),
+    expandTracks(input.rows)?.length ?? 0,
+    1,
+  );
   const rows: Track[] = [];
   for (let row = 0; row < rowCount; row++) {
     const inRow = items.slice(row * cols, row * cols + cols);
@@ -140,6 +148,21 @@ export function gridCells(input: {
         start: previous ? previous.start + previous.size + rowGap : content.y,
         size: previous?.size ?? input.fallbackHeight,
       });
+  }
+  // A row's track reaches the next row (stretched auto rows: an item may be shorter than its row);
+  // the last row with items reaches the content's end.
+  const lastWithItems = Math.ceil(items.length / cols) - 1;
+  rows.forEach((row, index) => {
+    const next = rows[index + 1];
+    if (index < lastWithItems && next)
+      row.size = Math.max(row.size, next.start - rowGap - row.start);
+    else if (index === lastWithItems)
+      row.size = Math.max(row.size, content.y + content.height - row.start);
+  });
+  // Rows after it (template or append) follow from the stretched one.
+  for (let index = lastWithItems + 1; index < rows.length; index++) {
+    const previous = rows[index - 1];
+    if (previous && index > 0) rows[index]!.start = previous.start + previous.size + rowGap;
   }
   return rows.flatMap((row) =>
     columns.map((column) => ({

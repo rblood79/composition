@@ -111,6 +111,27 @@ check(
 );
 await page.screenshot({ path: `${OUT}/2-grid-3col.png` });
 
+// 2b — the selected grid shows its cells (Figma): dashed outlines where no child covers them.
+// G is 400 × 200 with 3 columns (120 · 20 gap) and two rows; the 4th–6th cells of row 2 beyond D
+// are empty — sample the middle of the empty cell (col 2, row 2) for the outline's pixels.
+{
+  const g = await exec(`(cat, id) => { const b = cat.canvas.boundsOf(cat.workspace.root.recordsOfSource(id)[0]); const c = cat.canvas.camera();
+    const rect = document.querySelector('[data-catalog-canvas="true"]').getBoundingClientRect();
+    return { x: rect.left + c.x + b.x * c.zoom, y: rect.top + c.y + b.y * c.zoom, zoom: c.zoom }; }`, ids.G);
+  // Column 2 left edge (scene 140) at row 2 (scene y 105 … 200): a vertical dashed outline.
+  const clip = { x: g.x + 140 * g.zoom - 3, y: g.y + 110 * g.zoom, width: 6, height: 80 * g.zoom };
+  const png = await page.screenshot({ clip });
+  const blue = await page.evaluate(async (data) => {
+    const img = new Image(); img.src = `data:image/png;base64,${data}`; await img.decode();
+    const cv = new OffscreenCanvas(img.width, img.height); const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, img.width, img.height).data; let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 200 && d[i + 2] - d[i] > 25) n++;
+    return n;
+  }, png.toString("base64"));
+  await page.screenshot({ path: `${OUT}/2b-selected-cells.png` });
+  check("2b 선택된 grid = 칸 윤곽 (빈 칸 경계에 파랑 점선 화소)", blue > 10, { blue });
+}
+
 // 3 — Preview DOM (Compare Mode): child offsets = Canvas.
 const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
 if (await compare.isVisible().catch(() => false)) await compare.click();

@@ -1792,10 +1792,20 @@ export class CatalogCanvasGestures {
     return { cells, ...(cell ? { cell } : {}) };
   }
 
+  /**
+   * A grid container's cells as they are (no append row) — the overlay outlines them while the
+   * grid is selected or hovered (Figma). None for any other record.
+   */
+  gridCellsOfRecord(record: string): BoundingBox[] {
+    const container = this.host.records.get(record);
+    return container ? this.gridCellsOf(container, 0, false) : [];
+  }
+
   /** A `display: grid` container's cells (`gridCells`); none for any other container. */
   private gridCellsOf(
     container: CatalogConsumerNode,
     fallbackHeight: number,
+    appendRow = true,
   ): BoundingBox[] {
     const display = container.layout.display;
     if (display !== "grid" && display !== "inline-grid") return [];
@@ -1811,6 +1821,8 @@ export class CatalogCanvasGestures {
       items,
       count: items.length,
       fallbackHeight,
+      rows: container.layout.gridTemplateRows as string | undefined,
+      appendRow,
     });
   }
 

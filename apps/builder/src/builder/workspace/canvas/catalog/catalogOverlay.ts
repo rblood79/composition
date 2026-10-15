@@ -70,6 +70,8 @@ export interface CatalogOverlayInputs {
   fontMgr: () => FontMgr | undefined;
   /** The drag in progress (move ghost, drop line and container, or the resized box). */
   gesture?: () => CatalogGesturePreview | undefined;
+  /** A grid container's cells (none for other records): outlined while it is selected or hovered. */
+  gridCells?: (identity: string) => readonly BoundingBox[];
   /**
    * Declared slots of the definition edit view (editor chrome, not document paint): each slot's
    * box, hatched while it holds nothing.
@@ -328,6 +330,16 @@ export function catalogOverlayNode(
         withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
+      // A grid selected or hovered (Figma): its cells, dashed — a drag draws the target's own.
+      if (inputs.gridCells && !inputs.gesture?.()) {
+        const grids = new Set(state.selection.map((item) => item.identity));
+        if (hoverId) grids.add(hoverId);
+        for (const id of grids)
+          withOccluders(ck, canvas, occludersOf(id), () => {
+            for (const cell of inputs.gridCells!(id))
+              renderHoverHighlight(ck, canvas, cell, zoom, true);
+          });
+      }
       const moving = new Set(inputs.gesture?.()?.moving ?? []);
       for (const item of state.selection) {
         if (moving.has(item.identity)) continue;

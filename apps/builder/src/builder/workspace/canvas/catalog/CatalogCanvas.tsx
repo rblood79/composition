@@ -416,6 +416,7 @@ export function CatalogCanvas({
       zoom: () => Math.max(viewportState.zoom, 0.001),
       fontMgr,
       gesture: () => gestures.preview(),
+      gridCells: (identity) => gestures.gridCellsOfRecord(identity),
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       slots: () =>
         catalogSlotMarks(

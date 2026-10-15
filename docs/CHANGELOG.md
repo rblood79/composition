@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 를 선택 · hover 하면 칸 윤곽 — Figma 기준] - 2026-10-15
+
+### Added
+
+- **grid 컨테이너를 선택하거나 마우스를 올리면 모든 칸(빈 칸 포함)의 윤곽을 점선으로 그린다.** 칸은 열 템플릿 트랙과, 늘어난 행 트랙 전체(항목이 행보다 짧아도 행 끝까지 · 마지막 행은 내용 영역 끝까지)다. 행 템플릿(`gridTemplateRows`)에 항목 없는 행이 있으면 그 칸도 그린다. 끄는 동안에는 drop 대상의 칸 표시가 대신한다.
+  - **Why**: Figma 는 grid 오토레이아웃 프레임에서 칸 영역을 보여 준다 (사용자 지적 · Figma 선택 화면 캡처에서 행 경계선 확인). drag 중 칸 윤곽도 같은 계산을 써서, 키가 고정된 grid 에서 짧은 항목의 행이 항목 높이로 그려지던 것도 함께 바로잡았다.
+
+### Fixed
+
+- 앞 엔트리 (`9c35d462f`) 에서 돌리지 않은 테스트 2 묶음을 맞췄다 — Layout 의 Block 버튼이 Grid 버튼이 된 것 (`phase4eStylesDirection.test.tsx`) · AI manifest 의 css 목록에 `gridTemplateColumns` · `gridTemplateRows` 가 더해진 것 (패널이 편집하므로 AI 도 같은 키를 쓴다, `adr254HeadingOrigin.test.ts`).
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`rows` · `appendRow` · 행 늘이기) · `canvasGesture.ts` (`gridCellsOfRecord`) · `workspace/canvas/catalog/catalogOverlay.ts` · `CatalogCanvas.tsx`. 검증: builder 5831 통과 (togglebuttongroup 1건 기존 실패) · shared 1713 · type-check · live `layout-display-grid-live.mjs` 7/7 (새 2b — 선택된 3열 grid 의 빈 칸 경계에 점선 화소, 캡처로 3×2 칸 확인) · `canvas-dnd-drop-rules-live.mjs` 7/7.
+
 ## [Design 패널 Layout — Display 에 grid 추가 · grid 의 Columns · Rows · Gap X · Gap Y] - 2026-10-15
 
 ### Changed

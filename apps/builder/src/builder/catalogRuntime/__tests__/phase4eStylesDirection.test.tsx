@@ -26,7 +26,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 /**
  * ADR-248 Phase 4e: Styles' Direction offers no Block for a container whose axis is a group prop
  * (ToggleButtonGroup · Toolbar orientation, RadioGroup · CheckboxGroup label position — block has
- * no prop value). The old section decided it from the old store's elements (empty in the catalog
+ * no prop value). Since 2026-10-15 the toggle is Display (grid · row · column, none = block): such a
+ * container disables Grid (no prop value either) and keeps a row / column selected. The old section decided it from the old store's elements (empty in the catalog
  * Builder); it reads the Styles host's component type.
  */
 const BODY = "project:node:home-body" as NodeId;
@@ -37,7 +38,7 @@ afterEach(cleanup);
   () => [];
 
 describe("ADR-248 Phase 4e Styles Direction", () => {
-  it("disables Block for a direction-driven group, not for a frame", async () => {
+  it("disables Grid (and Block — no empty selection) for a direction-driven group, not for a frame", async () => {
     const workspace = new CatalogWorkspace(
       new CatalogGraph(
         newCatalogProjectDocument({
@@ -87,7 +88,7 @@ describe("ADR-248 Phase 4e Styles Direction", () => {
       );
     const blockDisabled = () =>
       screen
-        .getByRole("radio", { name: "Block" })
+        .getByRole("radio", { name: "Grid" })
         .hasAttribute("data-disabled");
 
     select(group);
@@ -156,7 +157,7 @@ describe("ADR-248 Phase 4e Styles Direction", () => {
         screen.getByRole("radio", { name }).hasAttribute("data-selected");
       const blockDisabled = () =>
         screen
-          .getByRole("radio", { name: "Block" })
+          .getByRole("radio", { name: "Grid" })
           .hasAttribute("data-disabled");
 
       act(() => workspace.selectRecords([wrapperRecord()]));
