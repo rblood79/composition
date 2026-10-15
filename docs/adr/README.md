@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-15 ADR-262 Implemented** (main `b0e1972c2` · `b5216f10e` · `00c4c0220`): 사용자 G5 「확인했어 Implemented 로 올려」 — Builder 에서 「Push changes to component」 가 origin 컴포넌트에 반영됨을 직접 확인. 원본에 반영 · 전부 되돌리기 · Overrides 목록 전 종류 (live 13/13 · shared 19 · 원복 RED 4/4). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 285).
+>
 > **2026-10-15 ADR-261 Implemented** (main `871357986` · `e09a78030` · `b4e64d41f` · `79b881192` · `108306c71` · `ba7d6021c`): 사용자 G5 「직접확인했다」. 확인 직전 보고 1 (Create component 로 만든 컴포넌트의 instance 에서 일부 속성이 안 바뀌거나 다른 조작 뒤에야 반영 — 증분 step 의 template 바인딩 판정) 같은 날 수리 · live 8/8. LOW deferred: Disclosure `size` → 제목 글자 크기 증분 (원본에서도 재현). 열림 −1, 완료 +1 (열림 2 — Proposed 2, 합계 285).
 
 > **2026-10-15 ADR-261 Phase 5 완료**: **instance 교체 속성** (Figma instance swap property) — 원본 안 중첩 instance 레이어에서 「인스턴스 교체 속성」 · 추천 컴포넌트 (preferred, 제한 아님), instance Component 절의 속성 picker (추천 먼저 · 지금 값 제외) · 되돌리기 · Overrides 목록 교체 행. 값 = 그 자리 `replace` override (그 자리를 소유 노드로 복사 → Phase 2 교체 규칙) — 주소 보유자를 같은 step 에 옮김, 표시 속성은 바뀐 자리에도. 판독 HIGH 1 · MEDIUM 2 수리 · RED 5/5. live 15/15 (Compare Mode). 다음 Phase 6 종료 (live 스크립트 · G5 사용자 확인).
@@ -297,11 +299,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [262](262-instance-override-push-and-reset-all.md) — instance override 정리: 원본에 반영 · 전부 되돌리기 (Figma)
-
-- **상태**: Accepted — 2026-10-15 (Proposed 10-15 · ADR-260 후속 B). **Phase 0 · 1 · 2 완료 · G5 사용자 Builder 확인 대기** (Push changes to component · Reset all changes · 자리별 목록 확장 · live 13/13)
-- **규모**: shared 명령 2 (`pushInstanceOverrides` · `resetInstance`) + Component 절 · Canvas 메뉴 + 자리별 Reset 목록 누락 종류 (숨김 · fills …). 사용자 결정 4 (기본 원본 반영 · slot 내용 · Reset 의 크기 · 반영 확인). 261 Phase 4 뒤 속성 값 반영 행. breakdown: [design/262](design/262-instance-override-push-and-reset-all-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -331,14 +328,13 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [262](262-instance-override-push-and-reset-all.md)                                             | Accepted — Phase 0 ~ 2 완료 (2026-10-15) · G5 대기           | 사용자 Builder 확인 → Implemented                                         |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
-## 완료 ADR (281)
+## 완료 ADR (283)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -628,6 +624,7 @@
 | [259](completed/259-s2-contextual-help-prefix-item-links.md) | S2 field 도움말 (`contextualHelp`) · 입력 앞 글자 (`prefix`) · 항목 링크 (`href` · `target` · `rel` · `hideLinkOutIcon`) — 새 type `ContextualHelp` (원본 · 팔레트 overlay) · `FieldLabel` (라벨 행, Label 자리를 잇는 별칭 하나를 생성 CSS · Canvas 가 같이 읽음) · 앞 글자 Group = Input rule 상자 (S2 `FieldGroup`) · Design 패널 Contextual Help · Prefix · 링크 7 type. 사용자 결정 3 (글리프 자동 · 독립 원본 · 사본 감수). live 13 · 51 · 106 (다크 포함) | Implemented | 2026-10-13 |
 | [260](completed/260-component-origin-in-place.md) | Create component — 선택 노드가 그 자리에서 ORIGIN (pen.dev · Figma 참조 모델) — 정의가 page 의 원본을 참조 (`originRef` · `definitionOfTemplateRoot`) · 원본 삭제 = instance 유지 + Restore origin · 복제 = instance · 해체는 원본 유지 · template 노드 override 투영 · clipboard 원본 · 정의 · token snapshot · Components 탭 Library · Local page | Implemented | 2026-10-14 |
 | [261](completed/261-component-api-swap-slot-suggestions-properties.md) | 컴포넌트 API — instance 안 drop · 붙여넣기 · 순서 부모 = EditTarget (원본 · layout template 쓰기 결함 수리) · Swap instance (이름 경로 유일 매칭 · 주소 재매핑) · slot 추천 컴포넌트 (`slot.suggested`) · 사용자 컴포넌트 속성 text · boolean · instance 교체 (`DefinitionEntry.properties` — 값 = instance 의 자리 쓰기 · `replace` override) (pen.dev · Figma) | Implemented | 2026-10-15 |
+| [262](completed/262-instance-override-push-and-reset-all.md) | instance override 정리 — 원본에 반영 (Figma Push changes to main: 직접 자리는 작성값 cascade 로 키별 breakpoint 맞추기 · 중첩 자리는 원본의 중첩 instance override 에 `layerPatchFields` 병합 · 속성 값은 대상 노드 · 기본 원본은 루트 props · visual 프로젝트 기본값 · 「N개 영향」 확인) · 전부 되돌리기 (Reset all changes: slot 내용 · 루트 크기 · 배치 유지 · 교체 되접기) · Overrides 목록 전 종류 (숨김 · Fill · 상태 · breakpoint 행, `resetOverrideField`) (Figma) | Implemented | 2026-10-15 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

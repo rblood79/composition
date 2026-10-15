@@ -1,6 +1,6 @@
 # ADR-262 design breakdown — 원본에 반영 · 전부 되돌리기
 
-> 본문: [../262-instance-override-push-and-reset-all.md](../262-instance-override-push-and-reset-all.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../completed/262-instance-override-push-and-reset-all.md](../completed/262-instance-override-push-and-reset-all.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -142,3 +142,4 @@
   - Figma · pen.dev 문서는 2026-10-15 조회.
 - 2026-10-15 Codex 설계 리뷰 Round 1 — HIGH 2 · MEDIUM 1, 셋 다 실제 `CatalogGraph` 실행 재현. 실행자 코드 대조: `resolver.ts:1725-1750` (원본 층이 instance 기본값 아래) · `templateOwners.ts:100-115` (통째 교체 축) · `types.ts:755-763` (루트 own 필드). r1 수리 — 본문 Decision 1 · 2 · 제약 · Gates, 이 문서 §1 · §2. 수리 검증 (Round 2) 대기.
 - 2026-10-15 Codex 수리 검증 Round 2 — h2 · m1 닫힘 · h1 남음 (instance tablet → 원본 tablet 이면 원본 mobile 이 이김, 세 모양 실행 재현). r2 — 쓰기 규칙을 breakpoint 마다 결과값 맞추기로 개정. 판독 상한 도달 — 확인은 Phase 1 G1.
+- 2026-10-15 **Implemented** — 사용자 G5 Builder 확인 (「Push changes to component > origin 컴퍼넌트에도 반영된다」 → 「확인했어 Implemented 로 올려」). 본문을 `completed/` 로 옮겼다. 남은 LOW: 없음 (판독 루프는 설계 Round 1 · 2 로 상한 도달 — 수리 확인은 G1 손계산 칸 · 원복 RED 가 맡았다).

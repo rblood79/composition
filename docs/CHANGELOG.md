@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-262 Implemented — instance override 정리 (원본에 반영 · 전부 되돌리기)] - 2026-10-15
+
+### Changed
+
+- **[ADR-262](adr/completed/262-instance-override-push-and-reset-all.md) Implemented** — 사용자 Builder 확인 「확인했어 Implemented 로 올려」 (G5 — 「Push changes to component」 가 origin 컴포넌트에 반영됨을 직접 확인). Phase 0 ~ 2: Push changes to component · Reset all changes · Overrides 목록 전 종류. 본문은 `docs/adr/completed/` 로 옮겼다.
+
 ## [ADR-262 Phase 0 ~ 2 — instance override 정리: 원본에 반영 · 전부 되돌리기] - 2026-10-15
 
 ### Added
@@ -18,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **원본에 반영 (Push changes to component)** — Design 패널 Component 절 Overrides 목록 위 버튼 · Canvas 오른쪽 클릭 메뉴. instance 에서 바꾼 값 (루트 props · 스타일 · fills · 상태 · breakpoint 층 · 표시 여부 · 자리별 patch · 숨김 · 사용자 컴포넌트 속성 값) 을 컴포넌트 원본에 쓰고 instance 에서 지운다 — 반영한 instance 는 그대로 보이고, 그 자리를 override 하지 않은 다른 instance 가 같이 바뀐다 (Figma 「Push changes to main component」). 다른 instance 가 1개 이상이면 「N개 instance 영향」 확인 뒤 실행 · 토스트 undo. 중첩 컴포넌트 안 자리는 원본의 중첩 instance 의 override 로 들어간다. slot 내용 · 교체 (ADR-261) · 루트 크기 · 배치는 옮기지 않는다 (사용자 결정 2 · 3). 라이브러리 컴포넌트 instance 는 루트 props · 스타일만 프로젝트 기본값으로 (결정 1).
 - **전부 되돌리기 (Reset all changes)** — 같은 두 자리. instance 의 override 를 전부 지워 같은 컴포넌트의 새 instance 처럼 보이게 한다 (교체도 되접음). slot 내용 · 놓은 자리 · 크기 · 배치는 남는다. 확인 없이 토스트 + undo.
 - **Overrides 목록이 모든 종류를 보인다** — 숨김 (`Text.Hidden`) · Fill · Fill sizing · 표시 여부 · 상태 (`hover.color`) · breakpoint 층 (`tablet.color`) 행이 루트 · 자리 양쪽에 생기고 각 행의 Reset 이 그 하나만 되돌린다 (Figma 「Figma only lists properties that have changes」).
-- 위치: shared `packages/shared/src/catalog/commands/instanceOverrides.ts` (`pushInstanceOverrides` · `resetInstance` · `resetOverrideField`) · Builder `catalogRuntime/componentActions.ts` · `componentConfirm.ts` (`confirmCatalogPush` — 반영의 사전 확인을 원본 편집 감시자의 확인 키에 등록해 두 번 묻지 않는다) · `canvasMenu.ts` · `panels/properties/catalog/CatalogComponentSection.tsx`. 검증: shared 19 (세 원본 모양 × 전수 표 · 리뷰 재현 4 · 원복 RED 4/4 · 무작위 500 단계) · Builder 3 · live `apps/builder/scripts/adr262-override-push-reset-live.mjs` 13/13 (Compare Mode Canvas = Preview). ADR: [262](adr/262-instance-override-push-and-reset-all.md) (Accepted — G5 사용자 확인 뒤 Implemented).
+- 위치: shared `packages/shared/src/catalog/commands/instanceOverrides.ts` (`pushInstanceOverrides` · `resetInstance` · `resetOverrideField`) · Builder `catalogRuntime/componentActions.ts` · `componentConfirm.ts` (`confirmCatalogPush` — 반영의 사전 확인을 원본 편집 감시자의 확인 키에 등록해 두 번 묻지 않는다) · `canvasMenu.ts` · `panels/properties/catalog/CatalogComponentSection.tsx`. 검증: shared 19 (세 원본 모양 × 전수 표 · 리뷰 재현 4 · 원복 RED 4/4 · 무작위 500 단계) · Builder 3 · live `apps/builder/scripts/adr262-override-push-reset-live.mjs` 13/13 (Compare Mode Canvas = Preview). ADR: [262](adr/completed/262-instance-override-push-and-reset-all.md).
 
 ## [ADR-261 Implemented — 컴포넌트 API (instance 교체 · slot 추천 · 사용자 컴포넌트 속성)] - 2026-10-15
 
