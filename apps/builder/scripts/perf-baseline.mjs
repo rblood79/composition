@@ -19,7 +19,8 @@
 //     [--selection-driver external-props|id-only] (기본 external-props: 기존 baseline 보존)
 //     [--save-storage-state <path>] (격리 프로젝트 IndexedDB 포함, 후속 persistent run용)
 //     [--pointer-exercise] (Skia canvas hit-test 실포인터 클릭 1회 + 선택 결과 기록)
-//     [--classes idle,pan,zoom,select,multi-select-edit,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
+//     [--classes idle,pan,zoom,select,multi-select-edit,edit,panel-resize,page-switch,panel-toggle,layers-scroll,hover,drag,marquee]
+//        (hover · drag · marquee = 실포인터 — catalog Builder 전용, zoom 1 고정 카메라)
 //     [--pages N] (시드 페이지 수, 기본 2 — ADR-221 G2 는 22)
 //     [--zoom Z] (시드 뒤 초기 줌 0.1~5 — DEV 훅 __composition_APPLY_VIEWPORT__, 22 페이지 전부 뷰포트 안 = 0.1)
 //     [--call-counts] (CDP precise coverage 로 부류당 V8 함수 호출 수 — 결정적 카운트. 커버리지가
@@ -2165,7 +2166,188 @@ export const FRAME_CLASSES = {
       await page.waitForTimeout(16);
     }
   },
+  // ── 실포인터 부류 (2026-10-15, Canvas Rust 통합 기준선) ─────────────────────────
+  // Playwright mouse → CDP Input → Canvas pointer 핸들러. store 경로가 아니라 hit-test ·
+  // gesture · snap · marquee 판정을 실제로 거친다. 카메라는 FRAME_POINTER_SETUP 이 zoom 1 ·
+  // body 좌상단 (60, 60) 으로 고정한다 — 같은 시드면 같은 좌표 열이 같은 노드 위를 지난다.
+  // move 마다 1 rAF 를 기다린다 (fixedInputs 면 이동 수 = ceil(ms / 16)).
+  hover: async (page, ctx, ms) => {
+    const { box } = ctx.pointer;
+    const cols = 24;
+    const rows = 6;
+    await pointerSteps(page, ctx, ms, (i) => {
+      const k = i % (cols * rows);
+      const row = Math.floor(k / cols);
+      const col = row % 2 ? cols - 1 - (k % cols) : k % cols; // 지그재그
+      return {
+        x: box.left + 10 + ((box.right - box.left - 20) * col) / (cols - 1),
+        y: box.top + 10 + ((box.bottom - box.top - 20) * row) / (rows - 1),
+      };
+    });
+  },
+  // 선택된 seed 를 눌러 끈다 — 가로 ±240px 삼각파 + 세로 ±45px (이웃 행 · 열 가장자리를 넘나들며
+  // snap 후보를 바꾼다). 놓은 뒤 FRAME_POINTER_CLEANUP 이 문서를 되돌린다.
+  drag: async (page, ctx, ms) => {
+    const { start } = ctx.pointer;
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await pointerSteps(page, ctx, ms, (i) => {
+      const phase = i % 160;
+      const tri = phase < 80 ? phase / 80 : (160 - phase) / 80; // 0 → 1 → 0
+      return {
+        x: start.x + 6 + tri * 240,
+        y: start.y + Math.round(Math.sin(i / 13) * 45),
+      };
+    });
+    await page.mouse.up();
+  },
+  // page 밖 (body 왼쪽) 에서 눌러 body 안으로 사각형을 키웠다 줄인다 — 교차 집합이 계속 바뀐다.
+  marquee: async (page, ctx, ms) => {
+    const { start, box } = ctx.pointer;
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await pointerSteps(page, ctx, ms, (i) => {
+      const phase = i % 120;
+      const t = 0.1 + 0.8 * (phase < 60 ? phase / 60 : (120 - phase) / 60);
+      return {
+        x: start.x + 6 + (box.right - 10 - start.x) * t,
+        y: start.y + 6 + (box.bottom - 10 - start.y) * t,
+      };
+    });
+    await page.mouse.up();
+  },
 };
+
+const POINTER_CLASSES = new Set(["hover", "drag", "marquee"]);
+
+async function pointerSteps(page, ctx, ms, pointAt) {
+  const t0 = Date.now();
+  let i = 0;
+  while (ctx.fixedInputs ? i < Math.ceil(ms / 16) : Date.now() - t0 < ms) {
+    const p = pointAt(i++);
+    await page.mouse.move(p.x, p.y);
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => resolve())),
+    );
+  }
+}
+
+// 포인터 부류의 기록 전 준비: 카메라 고정 · (drag) 대상 선택 · 화면 좌표 계산. catalog Builder
+// (`__COMPOSITION_CATALOG__.canvas`) 전용 — 옛 store 앱에는 없다.
+async function setupPointerClass(page, cls, seed) {
+  const targetSource = `project:node:${seed.seedIds[Math.min(8, seed.seedIds.length - 1)]}`;
+  await page.evaluate(() => {
+    const h = window.__COMPOSITION_CATALOG__;
+    const w = h.workspace;
+    const pageId = w.session.getSnapshot().pageId;
+    const body = w.runtime.graph.getEntry(pageId).children[0];
+    const b = h.canvas.boundsOf(w.root.recordsOfSource(body)[0]);
+    h.canvas.setCamera({ scale: 1, x: 60 - b.x, y: 60 - b.y });
+  });
+  await page.waitForFunction(() => {
+    const c = window.__COMPOSITION_CATALOG__.canvas.camera();
+    return Math.abs(c.zoom - 1) < 1e-6;
+  });
+  await page.waitForTimeout(300);
+  if (cls === "drag")
+    await page.evaluate(
+      (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+      targetSource.slice("project:node:".length),
+    );
+  await page.waitForTimeout(300);
+  const plan = await page.evaluate((targetSource) => {
+    const h = window.__COMPOSITION_CATALOG__;
+    const w = h.workspace;
+    const camera = h.canvas.camera();
+    const rect = document
+      .querySelector('[data-canvas-container="true"]')
+      .getBoundingClientRect();
+    const toClient = (x, y) => ({
+      x: rect.left + x * camera.zoom + camera.x,
+      y: rect.top + y * camera.zoom + camera.y,
+    });
+    const pageId = w.session.getSnapshot().pageId;
+    const body = w.runtime.graph.getEntry(pageId).children[0];
+    const b = h.canvas.boundsOf(w.root.recordsOfSource(body)[0]);
+    const tl = toClient(b.x, b.y);
+    const br = toClient(b.x + b.width, b.y + b.height);
+    const box = {
+      left: Math.max(tl.x, rect.left + 4),
+      top: Math.max(tl.y, rect.top + 4),
+      right: Math.min(br.x, rect.right - 4),
+      bottom: Math.min(br.y, rect.bottom - 4),
+    };
+    // 컨테이너는 패널 아래까지 덮는다 — 실제로 캔버스가 받는 구간으로 좁힌다 (세로 가운데 줄 기준).
+    const onCanvas = (x, y) =>
+      Boolean(
+        document
+          .elementFromPoint(x, y)
+          ?.closest('[data-canvas-container="true"]'),
+      );
+    const midY = (box.top + box.bottom) / 2;
+    while (box.left < box.right && !onCanvas(box.left, midY)) box.left += 8;
+    while (box.right > box.left && !onCanvas(box.right, midY)) box.right -= 8;
+    const t = h.canvas.boundsOf(w.root.recordsOfSource(targetSource)[0]);
+    const target = t ? toClient(t.x + t.width / 2, t.y + t.height / 2) : null;
+    const marqueeStart = { x: tl.x - 15, y: tl.y + 15 };
+    const surfaceAt = (p) =>
+      Boolean(
+        document
+          .elementFromPoint(p.x, p.y)
+          ?.closest('[data-canvas-container="true"]'),
+      );
+    return {
+      camera,
+      box,
+      target,
+      targetOnCanvas: target ? surfaceAt(target) : false,
+      marqueeStart,
+      marqueeOnCanvas: surfaceAt(marqueeStart),
+      selection: w.session.getSnapshot().selection.map((s) => s.target.id),
+      targetEntry: JSON.stringify(w.runtime.graph.getEntry(targetSource)),
+    };
+  }, targetSource);
+  if (cls === "drag") {
+    if (!plan.target || !plan.targetOnCanvas)
+      throw new Error(`drag target off canvas: ${JSON.stringify(plan)}`);
+    if (plan.selection[0] !== targetSource)
+      throw new Error(`drag target not selected: ${plan.selection}`);
+  }
+  if (cls === "marquee" && !plan.marqueeOnCanvas)
+    throw new Error(`marquee start off canvas: ${JSON.stringify(plan)}`);
+  return {
+    ...plan,
+    targetSource,
+    start: cls === "marquee" ? plan.marqueeStart : plan.target,
+  };
+}
+
+async function cleanupPointerClass(page, cls, pointer) {
+  const result = await page.evaluate(
+    ({ targetSource, targetEntry, cls }) => {
+      const w = window.__COMPOSITION_CATALOG__.workspace;
+      const out = {
+        selected: w.session.getSnapshot().selection.length,
+        moved: false,
+      };
+      if (cls === "drag") {
+        out.moved =
+          JSON.stringify(w.runtime.graph.getEntry(targetSource)) !==
+          targetEntry;
+        if (out.moved) w.undo();
+        out.restored =
+          JSON.stringify(w.runtime.graph.getEntry(targetSource)) ===
+          targetEntry;
+      }
+      w.session.clearSelection();
+      return out;
+    },
+    { targetSource: pointer.targetSource, targetEntry: pointer.targetEntry, cls },
+  );
+  if (cls === "drag" && result.moved && !result.restored)
+    throw new Error("drag undo did not restore the target");
+  return result;
+}
 
 async function runFrameLane(page, cdp, seed, options) {
   await page.addScriptTag({ content: RECORDER_SCRIPT });
@@ -2198,6 +2380,10 @@ async function runFrameLane(page, cdp, seed, options) {
         { timeout: 3_000 },
       )
       .catch(() => {});
+    // 포인터 부류 준비 (카메라 · 선택 · 좌표) 는 카운트 창 밖에서 한다.
+    const pointer = POINTER_CLASSES.has(cls)
+      ? await setupPointerClass(page, cls, seed)
+      : null;
     const before = await cdp.send("Performance.getMetrics");
     if (options.callCounts) {
       await cdp.send("Profiler.enable");
@@ -2218,6 +2404,7 @@ async function runFrameLane(page, cdp, seed, options) {
         ...seed,
         selectionDriver: options.selectionDriver,
         fixedInputs: options.fixedInputs,
+        pointer,
       },
       options.durationMs,
     );
@@ -2259,6 +2446,13 @@ async function runFrameLane(page, cdp, seed, options) {
     );
     if (cls === "select")
       results[cls].selectionDriver = options.selectionDriver;
+    if (pointer)
+      results[cls].pointer = {
+        camera: pointer.camera,
+        start: pointer.start,
+        box: pointer.box,
+        cleanup: await cleanupPointerClass(page, cls, pointer),
+      };
     if (rec.profile) results[cls].profile = rec.profile;
     await page.waitForTimeout(400);
   }
