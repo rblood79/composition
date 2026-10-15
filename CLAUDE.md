@@ -51,6 +51,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 ## 작업 워크플로
 
 - **복잡한 작업** (렌더링, drag-and-drop, 대규모 리팩토링): built-in `Plan` agent 로 접근 방식 탐색 후 선택 — 전제·관점 의문은 아래 §전제·관점 의문 처리 의 4개 결정 지점에서만 질문
+- **새 컴포넌트 · S2 기능 적용**: `/component-design` — RAC DOM · 동작은 `/react-aria`, S2 prop 표면은 `/react-spectrum` (로컬 공식 reference, 설치본이 정본) 으로 확인한 뒤 등록 경로 적용
 - **버그 수정**: `/fix` → `/cross-check` — 증상 수정 금지, root cause 확정 후 수정. 도메인 병인은 `.claude/rules/` 의 실측 "Why" 기록이 정본
 - **구현**: TDD (RED-GREEN-REFACTOR) 기본 — 메인 세션이 직접 (구현·테스트를 서브에이전트에 위임하면 컨텍스트만 잃는다)
 - **렌더링 수정 후**: `/cross-check` 최종 검증

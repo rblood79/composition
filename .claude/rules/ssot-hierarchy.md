@@ -19,7 +19,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 ### D1 (DOM/접근성)
 
 - **소유자**: 설치된 `react-aria-components` 패키지 — unstyled primitive 라이브러리. 버전은 `pnpm-workspace.yaml` `catalogs.default` 가 고정하고 `apps/builder` · `packages/shared` 가 소비한다
-- **정본 판정**: DOM·ARIA·동작 질문은 설치된 패키지 소스 (`node_modules/react-aria-components`) 로 답한다. 예제 코드 (RAC starter 등, 2026-09-29 저장소에서 제거) 는 권위가 없다
+- **정본 판정**: DOM·ARIA·동작 질문은 설치된 패키지 소스 (`node_modules/react-aria-components`) 로 답한다. 읽기용 문서는 `react-aria` skill (`.claude/skills/react-aria/references/` — 공식 Agent Skill 스냅샷, 설치본과 다르면 설치본). 예제 코드 (RAC starter 등, 2026-09-29 저장소에서 제거) 는 권위가 없다
 - **composition 역할**: RAC가 출력하는 DOM 구조를 **그대로 사용**. 수정/확장 금지
 - **선택 이유**: RAC가 unstyled이므로 스타일 자유도 확보 가능 (← 이것이 RAC 선택의 본질적 이유)
 - **금지 사항**:
@@ -30,7 +30,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 ### D2 (Props/API)
 
 - **정본 순서 (2026-10-09 사용자 결정 — 「S2 1.8.0 고정 우선」)**: prop 이름 · 값은 위에서부터 처음 답하는 곳을 따른다.
-  1. **S2 `@react-spectrum/s2` 1.8.1** (버전 고정 = `apps/builder/package.json` 의 설치 버전 — 올릴 때는 이 줄을 같이 고친다. 2026-10-14 전까지 1.8.0 으로 적혀 있었으나 설치본은 1.8.1 이었다). S2 는 RAC 위에 Spectrum 2 를 얹은 구현이라, 동작 · 상태 · 데이터 prop 은 RAC 이름 그대로이고 (`isSelected` · `selectedKeys` · `orientation` …) 시각 prop 은 Spectrum 축이다 (`variant` · `size` · `isEmphasized` · `fillStyle` · `staticColor` · `isQuiet` · `density`). 이 표면을 그대로 가져오면 D1 과 이름이 충돌하지 않는다.
+  1. **S2 `@react-spectrum/s2` 1.8.1** (버전 고정 = `apps/builder/package.json` 의 설치 버전 — 올릴 때는 이 줄을 같이 고친다. 2026-10-14 전까지 1.8.0 으로 적혀 있었으나 설치본은 1.8.1 이었다). S2 는 RAC 위에 Spectrum 2 를 얹은 구현이라, 동작 · 상태 · 데이터 prop 은 RAC 이름 그대로이고 (`isSelected` · `selectedKeys` · `orientation` …) 시각 prop 은 Spectrum 축이다 (`variant` · `size` · `isEmphasized` · `fillStyle` · `staticColor` · `isQuiet` · `density`). 이 표면을 그대로 가져오면 D1 과 이름이 충돌하지 않는다. 읽기용 문서는 `react-spectrum` skill (`.claude/skills/react-spectrum/references/components/` — 공식 Agent Skill 스냅샷, 타입과 다르면 설치본).
   2. S2 에 없는 컴포넌트 · 축: **spectrum-design-data** (Spectrum 디자인 정본의 컴포넌트 스키마 — design-data MCP).
   3. 거기에도 없으면 **v3 `@adobe/react-spectrum`** (Spectrum 1 구현 — RAC 가 아니라 react-aria hooks 기반이라 동작 이름이 RAC 와 다를 수 있다: v3 `selectionStyle` ↔ RAC `selectionBehavior`).
   4. 어디에도 없으면 **composition 확장** — `packages/shared/src/catalog/document/d2Provenance.ts` 에 type · key 와 출처 (`v3` · `rac` · `composition`) 를 적는다 (2026-10-14 전까지는 binding 머리말).

@@ -10,7 +10,7 @@ tags: [domain, catalog, rac, composition, state]
 구조·상태 조립을 구현하거나 검증할 때 읽는다. D1/D2/D3 권위는
 [SSOT](../../../rules/ssot-hierarchy.md), 문서 변경은 [상태 관리](../../../rules/state-management.md),
 원본 변경·저장 버전은 [구조 변경 감사](domain-structure-change-audit.md)가 정본이다.
-아래 `catalog/`는 `packages/shared/src/catalog/` 기준이다.
+아래 `catalog/`는 `packages/shared/src/catalog/` 기준이다. RAC 컴포넌트의 DOM · slot · 상태 prop 은 `react-aria` skill reference, S2 의 slot · prop 표면은 `react-spectrum` skill reference 로 확인한다.
 
 ## 노드 트리와 전환 범위
 
