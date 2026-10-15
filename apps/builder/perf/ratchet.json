@@ -1,8 +1,8 @@
 {
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
-  "generatedAt": "2026-10-08",
-  "head": "77253b581cdb3b8bfc34706353914de0b9ef63d3",
+  "generatedAt": "2026-10-15",
+  "head": "538c58394cf1b4cf74807146207a99e71f15d359",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -64,9 +64,9 @@
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 1440,
           "v8.fn.src/builder/panels/navigator/catalog/CatalogLayersSection.tsx#getKey": 1891,
           "v8.fn.src/catalog/commands/components.ts#(anonymous)": 1800,
-          "v8.fn.src/catalog/commands/context.ts#read": 1604,
+          "v8.fn.src/catalog/commands/context.ts#read": 1512,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 7080,
-          "v8.fn.src/catalog/document/graph.ts#getEntry": 6009,
+          "v8.fn.src/catalog/document/graph.ts#getEntry": 5977,
           "v8.fn.src/catalog/document/graph.ts#ownerOf": 2071,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1730
         },
@@ -80,7 +80,8 @@
           "v8.fn.src/catalog/runtime/controller.ts#current": 2504,
           "v8.fn.src/catalog/runtime/controller.ts#get graph": 1976,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 1430,
-          "v8.fn.src/catalog/document/library.ts#get": 1301
+          "v8.fn.src/catalog/document/library.ts#get": 1301,
+          "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsCompute": 1110
         }
       },
       "edit": {
@@ -105,7 +106,7 @@
           "perfLabels.render.skia.record.content": 14
         },
         "B": {
-          "cdp.LayoutCount": 20,
+          "cdp.LayoutCount": 19,
           "cdp.RecalcStyleCount": 0,
           "domMutations.attributes": 80,
           "domMutations.childList": 2,
@@ -159,7 +160,7 @@
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 577,
           "v8.fn.src/builder/components/overlay/CommandPalette.tsx#(anonymous)": 213,
           "v8.fn.src/builder/components/overlay/CommandPalette.tsx#hintKeyFor": 186,
-          "v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)": 840,
+          "v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)": 441,
           "v8.fn.src/builder/hooks/useActiveScope.ts#matchesScope": 162,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcut": 187,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcutKey": 187,
@@ -170,15 +171,16 @@
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 571
         },
         "B": {
-          "cdp.LayoutCount": 71,
-          "cdp.RecalcStyleCount": 186,
-          "domMutations.childList": 70,
+          "cdp.LayoutCount": 51,
+          "cdp.RecalcStyleCount": 170,
+          "domMutations.childList": 50,
           "reactRenderMeasures": 1745,
           "v8.app": 19124,
           "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 157,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 2480,
           "v8.fn.src/catalog/runtime/controller.ts#current": 178,
-          "v8.fn.src/catalog/runtime/controller.ts#get graph": 157
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 157,
+          "v8.fn.src/builder/catalogRuntime/layerTree.ts#(anonymous)": 300
         }
       },
       "panel-toggle": {
