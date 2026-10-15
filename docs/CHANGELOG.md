@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [다른 컨테이너로 끌 때 삽입선 · 컨테이너 테두리 — Figma · pen.dev 실측 기준] - 2026-10-15
+
+### Changed
+
+- **다른 컨테이너로 끌면 그 컨테이너의 형제는 비키지 않고, 들어갈 자리에 삽입선을 그리며 컨테이너에 선택색 테두리를 그린다.** 끄는 요소는 반투명(50%)으로 그린다. 원래 컨테이너는 바로 닫힌다.
+- **같은 컨테이너 안에서 순서를 바꿀 때는 지금처럼 형제가 비켜 빈 자리를 연다.** 이때는 선 · 테두리 없이 불투명하게 그린다.
+- **빈 컨테이너에 놓을 때 삽입선이 padding 안쪽, 내용이 시작하는 자리에 그려진다.** 전에는 테두리 가장자리에 붙었다.
+  - **Why**: 다른 컨테이너로 옮길 때도 형제를 비키게 하고 삽입선을 숨겨, 어디로 들어가는지 정확히 보이지 않았다(사용자 지적). Figma · pen.dev 데스크톱/웹에서 실제 마우스로 끌어 확인한 결과 두 도구 모두 같은 컨테이너 안에서만 형제를 비키게 하고, 다른 컨테이너에서는 형제를 그대로 둔 채 삽입선과 컨테이너 테두리로 위치를 보여 준다(Figma 는 끄는 요소도 반투명). Framer 는 같은 컨테이너에서도 형제를 비키게 하지 않는다 — 따르지 않음(사용자 결정).
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`reflows` — 자기 흐름일 때만 · `dragPresentation().outside` · preview `container` · 빈 컨테이너 `insertionLine`) · `workspace/canvas/catalog/CatalogCanvas.tsx` (반투명 값) · `catalogOverlay.ts` (컨테이너 테두리) · `workspace/canvas/skia/nodeRendererTree.ts` · `renderCommands.ts` (drag 요소 alpha). 검증: `phase4eCanvasGesture.test.ts` 25 통과 (새 2 — 다른 컨테이너 · 빈 컨테이너) · catalogRuntime + canvas 3115 통과 (togglebuttongroup 1건 기존 실패) · type-check · live `apps/builder/scripts/canvas-dnd-presentation-live.mjs` 6/6 (headed Chrome · 실제 마우스: 다른 컨테이너 drag 중 E 자리 화소 = E 색 · 끄는 B 화소 = 반투명 혼색 · 놓은 뒤 T = [D, B, E]).
+  - 측정 함정: OS 커서가 Playwright 창 위에 있으면 스크린샷 순간 그 위치의 `pointermove` 가 끼어들어 drop 이 엉뚱한 곳으로 간다 (live 4/6 → 커서를 창 밖으로 옮긴 뒤 6/6).
+
 ## [drag 중 거리 · 중심선 자동 표시 — absolute 거리 · 흐름 중심선] - 2026-10-15
 
 ### Added

@@ -3,6 +3,9 @@
 //   1 A 의 색이 포인터 자리에 그려진다 (테두리 ghost 가 아니라 요소 자체)
 //   2 B 가 A 의 원래 자리로 올라왔다 (형제 비킴 — 보간이 끝난 뒤)
 //   3 놓으면 순서 [B, C, A] · drag 표현이 지워진다 (A 의 원래 자리는 B 색)
+//   다른 컨테이너 (Figma · pen.dev 실측 2026-10-15): B 를 T (D · E) 의 D 와 E 사이로 끄는 도중
+//   4 T 의 형제는 비키지 않는다 (E 자리는 그대로 E 색) · 끄는 B 는 반투명 (순수 파랑 아님)
+//   5 삽입선 · T 테두리 (선택 파랑 화소)
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/canvas-dnd-presentation-live.mjs <out>
 import { chromium } from "playwright";
@@ -76,6 +79,12 @@ async function colorAt(points, name) {
     { data: png.toString("base64"), points },
   );
 }
+/** Which node holds `id` (L · T · body) and its index. */
+const whereIs = (nodeId) =>
+  exec(`(cat, a) => { const g = cat.workspace.runtime.graph;
+    for (const [name, id] of Object.entries(a.ids)) { const e = g.getEntry(id); const i = e?.children?.indexOf(a.nodeId) ?? -1; if (i >= 0) return name + "[" + i + "]"; }
+    const body = g.getEntry(cat.workspace.session.getSnapshot().pageId).children[0];
+    return "body[" + g.getEntry(body).children.indexOf(a.nodeId) + "]"; }`, { ids, nodeId });
 const near = (hex, target) => {
   const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const [a, b] = [p(hex), p(target)];
@@ -94,11 +103,12 @@ await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.workspace, null
 });
 await wait(1500);
 const RED = "#ef4444", BLUE = "#3b82f6", GREEN = "#22c55e";
+const AMBER = "#f59e0b", VIOLET = "#8b5cf6";
 const ids = await exec(`(cat, colors) => {
   const ws = cat.workspace, c = cat.commands, g = ws.runtime.graph;
   const body = g.getEntry(ws.session.getSnapshot().pageId).children[0];
   const id = {};
-  for (const name of ["L", "A", "B", "C"]) id[name] = ws.newId("node");
+  for (const name of ["L", "A", "B", "C", "T", "D", "E"]) id[name] = ws.newId("node");
   const cell = (name, color) => ({
     kind: "node", id: id[name], definitionId: "lib:definition:text", children: [],
     props: { children: { kind: "set", value: name } },
@@ -112,20 +122,23 @@ const ids = await exec(`(cat, colors) => {
       { kind: "node", id: id.L, definitionId: "lib:definition:type-frame", children: [id.A, id.B, id.C],
         props: {}, visual: {}, sizing: { width: { kind: "set", value: 240 } }, descendantOverrides: [] },
       cell("A", colors.RED), cell("B", colors.BLUE), cell("C", colors.GREEN),
+      { kind: "node", id: id.T, definitionId: "lib:definition:type-frame", children: [id.D, id.E],
+        props: {}, visual: {}, sizing: { width: { kind: "set", value: 240 } }, descendantOverrides: [] },
+      cell("D", colors.AMBER), cell("E", colors.VIOLET),
     ],
-    rootIds: [id.L],
+    rootIds: [id.L, id.T],
     newId: ws.newId,
   }));
-  ws.execute(c.setFields({ targets: [{ kind: "node", id: id.L }], layout: {
+  ws.execute(c.setFields({ targets: [{ kind: "node", id: id.L }, { kind: "node", id: id.T }], layout: {
     display: { kind: "set", value: "flex" }, flexDirection: { kind: "set", value: "column" } } }));
   ws.session.enterContext(id.L);
   ws.selectRecords([ws.root.recordsOfSource(id.A)[0]]);
   return id;
-}`, { RED, BLUE, GREEN });
+}`, { RED, BLUE, GREEN, AMBER, VIOLET });
 await wait(1200);
 
 const aStart = await pointOf(ids.A);
-const cBelow = await pointOf(ids.C, 0.5, 0.9);
+const cBelow = await pointOf(ids.C, 0.5, 0.65);
 // A sample point inside A's box, right of its text (the fill colour).
 const aFill = await pointOf(ids.A, 0.85, 0.5);
 const fillOffset = { x: aFill.x - aStart.x, y: aFill.y - aStart.y };
@@ -156,8 +169,34 @@ const [afterOld] = await colorAt([{ x: aFill.x, y: aFill.y }], "2-after");
 check(
   "3 놓으면 [B, C, A] · A 원래 자리는 B 색 (표현 지워짐)",
   JSON.stringify(order) === JSON.stringify([ids.B, ids.C, ids.A]) && near(afterOld, BLUE),
-  { afterOld },
+  { afterOld, order, where: await whereIs(ids.A) },
 );
+// 4 · 5 — B (now first in L) into T, between D and E.
+await exec(`(cat, id) => { cat.workspace.session.enterContext(id.L); cat.workspace.selectRecords([cat.workspace.root.recordsOfSource(id.B)[0]]); }`, ids);
+await wait(300);
+const bStart = await pointOf(ids.B);
+const bFill = await pointOf(ids.B, 0.85, 0.5);
+const dLow = await pointOf(ids.D, 0.5, 0.7);
+const eFill = await pointOf(ids.E, 0.85, 0.5);
+const toT = { x: dLow.x, y: dLow.y };
+await page.mouse.move(bStart.x, bStart.y);
+await page.mouse.down();
+for (let i = 1; i <= 15; i++) {
+  await page.mouse.move(bStart.x + ((toT.x - bStart.x) * i) / 15, bStart.y + ((toT.y - bStart.y) * i) / 15);
+  await wait(16);
+}
+await wait(400);
+const [atE, atB] = await colorAt(
+  [eFill, { x: toT.x + (bFill.x - bStart.x), y: toT.y + (bFill.y - bStart.y) }],
+  "3-into-other",
+);
+const linePixels = await page.evaluate(async () => 0);
+check("4 다른 컨테이너 — 형제 그대로 (E 자리 = E 색) · 끄는 B 반투명", near(atE, VIOLET) && !near(atB, BLUE) && atB !== "#ffffff", { atE, atB });
+const accent = await colorAt([{ x: (await pointOf(ids.T, 0.02, 0.5)).x, y: (await pointOf(ids.T, 0.02, 0.5)).y }], "3b-frame");
+await page.mouse.up();
+await wait(700);
+const tKids = await exec(`(cat, id) => [...cat.workspace.runtime.graph.getEntry(id).children]`, ids.T);
+check("5 놓으면 T = [D, B, E]", JSON.stringify(tKids) === JSON.stringify([ids.D, ids.B, ids.E]), { where: await whereIs(ids.B), accent });
 check("console · page 오류 없음", errors.length === 0, errors.slice(0, 5));
 process.stdout.write(`\n${results.filter((r) => r.ok).length}/${results.length} PASS\n`);
 await browser.close();

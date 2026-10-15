@@ -171,9 +171,10 @@ const sameFrames = (
     );
   });
 
-
 const IS_MAC =
   typeof navigator !== "undefined" && navigator.platform.includes("Mac");
+/** The dragged element's opacity over another container than its own (Figma draws it faded). */
+const DRAG_OUTSIDE_ALPHA = 0.5;
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -905,6 +906,8 @@ export function CatalogCanvas({
       handle.canvas = {
         boundsOf: (id: string) => viewState.boundsOf(id),
         camera: () => ({ ...viewportState }),
+        // The drag in progress as the overlay draws it (live drag-and-drop checks).
+        drag: () => gestures.preview(),
         // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
         setCamera: (next: { scale: number; x: number; y: number }) =>
           void import("../viewport/viewportActions").then((actions) =>
@@ -1171,17 +1174,19 @@ export function CatalogCanvas({
     const showDrag = () => {
       const view = gestures.dragPresentation();
       if (!view) return;
+      // Figma: opaque in its own container, translucent over another one.
+      const alpha = view.outside ? DRAG_OUTSIDE_ALPHA : 1;
       if (!dragRecords) {
         if (!view.records.length && !view.siblings.size) return;
         dragRecords = new Set(view.records);
-        setDragVisualOffset(dragRecords, view.dx, view.dy, true);
+        setDragVisualOffset(dragRecords, view.dx, view.dy, true, alpha);
         // The dragged subtree moves to the stream's top layer (drawn over everything, unclipped).
         try {
           scene.refresh();
         } catch (error) {
           callbacks.current.onError?.(error);
         }
-      } else setDragVisualOffset(dragRecords, view.dx, view.dy, true);
+      } else setDragVisualOffset(dragRecords, view.dx, view.dy, true, alpha);
       dragReflow.setTargets(view.siblings);
       scheduler.invalidate();
     };

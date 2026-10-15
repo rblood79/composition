@@ -177,7 +177,9 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     const preview = gestures.preview()!;
     expect(preview.ghost).toMatchObject({ width: box("a").width });
     expect(preview.line).toMatchObject({ y: c.y + c.height, height: 0 });
-    expect(preview.container).toEqual(box("list"));
+    // A reorder in its own column: the opened slot shows it — no container frame.
+    expect(preview.reflow).toBe(true);
+    expect(preview.container).toBeUndefined();
     expect(gestures.finish()).toBe(true);
     expect(children("list")).toEqual([id("b"), id("c"), id("a")]);
     expect(workspace.runtime.graph.revision).toBe(revision + 1);
@@ -1003,7 +1005,7 @@ describe("drag presentation — the dragged element and its siblings' reflow", (
     expect(gestures.preview()?.reflow).toBe(true);
   });
 
-  it("into another container: the source closes up, the target opens the slot", async () => {
+  it("into another container (Figma · pen.dev): the source closes up, the target keeps its siblings — the line and its frame show the drop, the dragged is faded", async () => {
     const { workspace, gestures, record, box, center } = await open();
     workspace.selectRecords([record("b")]);
     const [bx, by] = center("b");
@@ -1014,7 +1016,51 @@ describe("drag presentation — the dragged element and its siblings' reflow", (
     const view = gestures.dragPresentation()!;
     expect(view.siblings.get(record("a"))).toBeUndefined();
     expect(view.siblings.get(record("c"))).toEqual({ dx: 0, dy: -b.height });
-    expect(view.siblings.get(record("d"))?.dy).toBe(b.height);
+    expect(view.siblings.get(record("d"))).toBeUndefined();
+    expect(view.outside).toBe(true);
+    const preview = gestures.preview()!;
+    expect(preview.reflow).toBeFalsy();
+    expect(preview.line).toBeDefined();
+    expect(preview.container).toEqual(box("box"));
+    // Back over its own column: opaque, no frame.
+    const [ax, ay] = center("a");
+    gestures.update(ax, ay, 1);
+    expect(gestures.dragPresentation()!.outside).toBe(false);
+    expect(gestures.preview()!.container).toBeUndefined();
+  });
+
+  it("an empty container: the line at its content start, inside the padding", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("empty", "lib:definition:type-frame"),
+            // Full width (the dragged text is as wide as the page: the size rule lets it in).
+            sizing: { height: { kind: "set", value: 120 } },
+            visual: {
+              paddingTop: { kind: "set", value: 10 },
+              paddingLeft: { kind: "set", value: 16 },
+            },
+          },
+        ],
+        rootIds: [id("empty")],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("a")]);
+    const [ax, ay] = center("a");
+    const [ex, ey] = center("empty");
+    const frame = box("empty");
+    gestures.beginMove(ax, ay, record("a"));
+    gestures.update(ex, ey, 1);
+    expect(gestures.preview()!.line).toMatchObject({
+      x: frame.x + 16,
+      y: frame.y + 10,
+    });
+    gestures.cancel();
   });
 
   it("Alt (copy): the original stays — no element offset, no reflow; a grid keeps its line", async () => {

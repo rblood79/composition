@@ -21,6 +21,8 @@ interface DragVisualOffsetData {
   elementIds: ReadonlySet<string>;
   dx: number;
   dy: number;
+  /** The dragged subtree's opacity (undefined = the renderer's default). */
+  alpha?: number;
 }
 
 const G = globalThis as unknown as {
@@ -95,6 +97,7 @@ export function setDragVisualOffset(
   dx = 0,
   dy = 0,
   skipInvalidation = false,
+  alpha?: number,
 ): void {
   const prev = _get();
   const elementIds =
@@ -104,7 +107,9 @@ export function setDragVisualOffset(
         ? new Set([target])
         : target;
   G.__composition_dragVisualOffset =
-    elementIds !== null && elementIds.size > 0 ? { elementIds, dx, dy } : null;
+    elementIds !== null && elementIds.size > 0
+      ? { elementIds, dx, dy, ...(alpha === undefined ? {} : { alpha }) }
+      : null;
 
   const next = G.__composition_dragVisualOffset;
   const targetChanged =
@@ -125,7 +130,7 @@ export function setDragVisualOffset(
   const offsetChanged =
     prev !== null &&
     next !== null &&
-    (prev.dx !== next.dx || prev.dy !== next.dy);
+    (prev.dx !== next.dx || prev.dy !== next.dy || prev.alpha !== next.alpha);
   if (offsetChanged) {
     bumpDragVisualOffsetRevision();
   }

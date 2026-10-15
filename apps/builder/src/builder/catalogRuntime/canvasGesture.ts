@@ -192,6 +192,8 @@ export interface CatalogDragPresentation {
   readonly dy: number;
   /** The siblings' target offsets (the reflow around the drop). */
   readonly siblings: ReadonlyMap<string, { dx: number; dy: number }>;
+  /** Over another container than its own (Figma draws it translucent there). */
+  readonly outside: boolean;
 }
 
 const EMPTY_BOX: BoundingBox = { x: 0, y: 0, width: 0, height: 0 };
@@ -321,7 +323,11 @@ export interface CatalogGesturePreview {
   /** The other dragged boxes (selected pages, absolutely placed nodes) at the same offset. */
   readonly ghosts?: readonly BoundingBox[];
   readonly line?: BoundingBox;
-  /** The siblings reflow around the drop (`dragPresentation`): the opened slot shows it, no line. */
+  /**
+   * A reorder in its own row / column: the siblings reflow (`dragPresentation`) and the opened
+   * slot shows the drop — no line, no container frame. Into another container the siblings stay
+   * and the line and the container frame show it (Figma · pen.dev, measured 2026-10-15).
+   */
   readonly reflow?: boolean;
   /** Records drawn at the pointer offset: their selection boxes stay off their old place. */
   readonly moving?: readonly string[];
@@ -824,8 +830,9 @@ export class CatalogCanvasGestures {
       ...guides,
       ...moving,
       ...(gesture.drop.keepsAbsolute ? {} : { line: gesture.drop.line }),
-      ...(this.reflows(gesture) ? { reflow: true } : {}),
-      container: this.host.bounds(gesture.drop.container),
+      ...(this.reflows(gesture)
+        ? { reflow: true }
+        : { container: this.host.bounds(gesture.drop.container) }),
     };
   }
 
@@ -874,14 +881,19 @@ export class CatalogCanvasGestures {
     if (gesture?.kind !== "move" || !gesture.active) return undefined;
     const siblings = new Map<string, { dx: number; dy: number }>();
     if (!gesture.copy && !gesture.absolute) this.reflowSiblings(gesture, siblings);
+    const drop = gesture.drop;
     return {
       records: gesture.copy ? [] : [...gesture.records],
       dx: gesture.dx,
       dy: gesture.dy,
       siblings,
+      outside:
+        !!drop &&
+        drop.container !== this.host.records.get(gesture.leader)?.parentId,
     };
   }
 
+  /** A reorder within the dragged nodes' own row / column flow (its siblings open the slot). */
   private reflows(gesture: Extract<Gesture, { kind: "move" }>): boolean {
     const drop = gesture.drop;
     return (
@@ -889,7 +901,8 @@ export class CatalogCanvasGestures {
       !gesture.copy &&
       !gesture.absolute &&
       !drop.keepsAbsolute &&
-      drop.axis !== "grid"
+      drop.axis !== "grid" &&
+      drop.container === this.host.records.get(gesture.leader)?.parentId
     );
   }
 
@@ -907,7 +920,7 @@ export class CatalogCanvasGestures {
     // The source closes up behind the dragged (it leaves that flow).
     if (source && !sameFlow && this.flowKind(source) !== "grid")
       this.layoutFlow(source, dragged, undefined, out);
-    // The target (the source too, for a reorder) opens the slot.
+    // A reorder opens the slot in its own flow; another container keeps its siblings (the line).
     if (target && this.reflows(gesture))
       this.layoutFlow(target, dragged, drop.slot, out);
   }
@@ -1654,10 +1667,29 @@ export class CatalogCanvasGestures {
     const boxes = this.flowEntries(container, dragged).map(({ box }) => box);
     const frame = this.host.bounds(container.id)!;
     const vertical = kind !== "column";
-    if (!boxes.length)
+    if (!boxes.length) {
+      // An empty container: the line at its content start (inside the padding, as Figma).
+      const model = catalogBoxModel(container);
+      const n = (value: unknown) => (typeof value === "number" ? value : 0);
+      const border = n(model.borderWidth);
+      const top = border + n(model.padding?.top);
+      const left = border + n(model.padding?.left);
+      const right = border + n(model.padding?.right);
+      const bottom = border + n(model.padding?.bottom);
       return vertical
-        ? { x: frame.x, y: frame.y, width: 0, height: frame.height }
-        : { x: frame.x, y: frame.y, width: frame.width, height: 0 };
+        ? {
+            x: frame.x + left,
+            y: frame.y + top,
+            width: 0,
+            height: Math.max(0, frame.height - top - bottom),
+          }
+        : {
+            x: frame.x + left,
+            y: frame.y + top,
+            width: Math.max(0, frame.width - left - right),
+            height: 0,
+          };
+    }
     const prev = boxes[slot - 1];
     const next = boxes[slot];
     const overlaps = (a: BoundingBox, b: BoundingBox) =>

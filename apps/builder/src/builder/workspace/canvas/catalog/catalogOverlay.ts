@@ -340,8 +340,9 @@ export function catalogOverlayNode(
         for (const box of gesture.highlights ?? [])
           renderHoverHighlight(ck, canvas, box, zoom);
         if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
+        // The container the drop goes into (another one than the dragged's own): its frame.
         if (gesture.container)
-          renderHoverHighlight(ck, canvas, gesture.container, zoom);
+          renderSelectionBox(ck, canvas, gesture.container, zoom);
         // The element itself is drawn at the pointer (`moving`): its ghost is the selection
         // outline, not the translucent box that stands in for it (a copy, a page).
         const ghostOf = gesture.moving?.length ? renderSelectionBox : renderLasso;

@@ -2233,13 +2233,15 @@ function executeCommandRange(
         // 로 시그니처 확장 후 isFixed 요소에 canvas.translate(-cameraX, -cameraY) 적용.
         canvas.translate(cmd.x + dox, cmd.y + doy);
 
-        // A-8: 드래그 중인 요소 반투명 처리
+        // A-8: 드래그 중인 요소 반투명 처리 (alpha 1 = 불투명 — layer 없음)
+        const dragAlpha = dragOff?.alpha ?? DRAG_ELEMENT_ALPHA;
         if (
           hasDragOffset &&
+          dragAlpha < 1 &&
           (options.dragPresentationOverride?.applyAlpha ?? true)
         ) {
           const alphaPaint = acquirePooledPaint(ck);
-          alphaPaint.setAlphaf(DRAG_ELEMENT_ALPHA);
+          alphaPaint.setAlphaf(dragAlpha);
           canvas.saveLayer(alphaPaint);
           releasePooledPaint(alphaPaint);
           dragAlphaStack.push(true);
