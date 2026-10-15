@@ -764,7 +764,8 @@ export function CatalogCanvas({
       scheduler.invalidate();
     };
     // A preview from any surface (a Styles panel drag too) re-lays the scene out at the next frame.
-    const unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
+    // (The root is replaced on a breakpoint or theme switch: the subscription follows it below.)
+    let unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
       sceneStale = true;
       // A step may change only document state the overlay reads (a binding's badge).
@@ -884,6 +885,11 @@ export function CatalogCanvas({
       };
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
+      // The new root's previews re-lay the scene out too. **Why (2026-10-15)**: the subscription
+      // stayed on the first root, so after a switch to Tablet · Mobile a Styles drag drew nothing
+      // until its commit (사용자 보고 — Menu 의 Button border · fill).
+      unsubscribePreviews();
+      unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
       try {
         scene.replaceRoot(workspace.root);
         sceneStale = false;

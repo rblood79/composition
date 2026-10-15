@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tablet · Mobile 에서 Styles 드래그 미리보기가 그려지지 않던 문제] - 2026-10-15
+
+### Fixed
+
+- **breakpoint 를 Tablet · Mobile 로 바꾼 뒤 Design 패널에서 Border width · style · color · Fill 을 바꾸는 동안 Canvas 에 변화가 없고 손을 놓은 뒤에야 반영되던 문제** — 이제 드래그 · 색 선택 중에도 그려진다. 테마를 바꾼 뒤에도 같았다. 모든 요소에 해당 (보고는 Menu 의 Button).
+  - **Why**: breakpoint · 테마를 바꾸면 Canvas 가 그리는 root 가 새로 만들어지는데, 미리보기를 듣는 구독 (`subscribePreviews`) 이 처음 root 에 남아 있었다. 미리보기 값은 새 root 의 record 에 들어갔지만 장면을 다시 그리라는 신호가 오지 않았다.
+- 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (`subscribeRoot` 콜백에서 미리보기 구독을 새 root 로 옮김). 검증: live Mobile 툴바 — 수정 전 드래그 중 새 root `previewListeners` 0 · Canvas 62×30 그대로 → 수정 후 1 · 드래그 중 84×52 (Menu 의 Button) · 90×52 (단독 Button) · type-check · canvas 스위트 891 통과 (togglebuttongroup 1건은 기존 실패).
+
 ## [instance 안 원본 자리의 breakpoint · layout 편집 반영] - 2026-10-15
 
 ### Fixed

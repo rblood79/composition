@@ -218,6 +218,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - **identity 는 렌더 키, 문서 키가 아니다**: 해석된 노드의 `identity` = `instancePath` + `sourceId` (`packages/shared/src/catalog/resolution/positions.ts` `CatalogPosition`). composition root 레코드 · Canvas 명령 · overlay 가 이 키를 쓴다. 문서 · IndexedDB · 히스토리에는 저장하지 않는다.
 - **편집은 `EditTarget` 으로**: 같은 position 의 `target` (소유 노드 또는 instance address 가 붙은 template position) 이 명령의 대상이다. identity 문자열을 쪼개 문서 id 로 쓰지 않는다. 이동 · 삽입은 `moveNodes` 등 catalog 명령 하나로 간다.
 - **Canvas 무효화**: 전역 `sceneVersion` 카운터는 없다. `canvasBinding.ts` 가 `root.subscribeCanvas` dirty → rect diff 로 바뀐 subtree 만 다시 만든다 ([layout-engine.md](layout-engine.md) 「레이아웃 재계산 경로」 6단계).
+- **root 에 붙인 구독은 root 교체를 따라간다**: breakpoint · 테마를 바꾸면 workspace 가 root 를 새로 만든다 (`workspace.subscribeRoot`). Canvas 가 root 에 직접 붙인 구독 (`subscribePreviews` 등) 은 그 콜백에서 새 root 로 옮긴다 (`CatalogCanvas.tsx`). **Why (2026-10-15)**: 미리보기 구독이 처음 root 에 남아, Tablet · Mobile 에서 Styles 드래그 (border · fill) 가 commit 전까지 그려지지 않았다 (사용자 보고).
 - 증분 step 에서 「이 instance 의 template 이 바뀐 prop 을 묶는가」 는 노드 자신의 정의만이 아니라 record 가 접은 층 (`collapsedSourceIds`) 의 정의 전부로 판정한다 (`compositionRoot.ts` `bindingDependents`).
   **Why (2026-10-15)**: Create component 로 만든 TextField 컴포넌트의 instance 는 정의가 `accepts: {}` 라 Label · Description · placeholder 쓰기가 Canvas · Preview 에 다음 구조 변경 뒤에야 반영됐다 (사용자 보고). `{label}` 을 묶는 composite 는 원본 (lib 컴포넌트 instance) 의 정의이고, record 는 그 층을 접어 가장 안쪽 primitive 정의를 든다.
 
