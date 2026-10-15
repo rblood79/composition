@@ -422,11 +422,11 @@ export function CatalogCanvas({
       gridCells: (identity) => {
         if (gridCellsCacheVersion !== cellsVersion) {
           gridCellsCache.clear();
-          gridRecords = undefined;
           gridCellsCacheVersion = cellsVersion;
         }
-        // The grid containers, gathered once per scene: a selected or hovered non-grid record
-        // reads nothing (the overlay asks every frame).
+        // The grid containers, gathered once per document step / root: a selected or hovered
+        // non-grid record reads nothing (the overlay asks every frame; a selection moves the scene
+        // version but not the document — ADR-246 select count).
         if (!gridRecords) {
           gridRecords = new Set();
           for (const [id, record] of workspace.root.domInputs) {
@@ -838,6 +838,7 @@ export function CatalogCanvas({
     let unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
     const unsubscribeSteps = workspace.runtime.subscribeSteps(() => {
       sceneStale = true;
+      gridRecords = undefined;
       // A step may change only document state the overlay reads (a binding's badge).
       overlayVersion += 1;
       cellsVersion += 1;
@@ -960,6 +961,7 @@ export function CatalogCanvas({
       };
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
+      gridRecords = undefined; // another breakpoint's records (a grid only there)
       // The new root's previews re-lay the scene out too. **Why (2026-10-15)**: the subscription
       // stayed on the first root, so after a switch to Tablet · Mobile a Styles drag drew nothing
       // until its commit (사용자 보고 — Menu 의 Button border · fill).
