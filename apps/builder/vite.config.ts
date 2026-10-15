@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { copyFileSync } from "fs";
+import { copyFileSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
 import type {
@@ -18,6 +18,7 @@ import {
   STATIC_SHELL_MARKUP,
   renderStaticShellScript,
 } from "./src/staticShell/staticShell.ts";
+import { cascadeLayerOrderTag } from "./src/cascadeLayerOrder.ts";
 
 /** Builder UI i18n (`SupportedLocale`) 과 같은 en-US / ko-KR 만 RAC 문자열에 남긴다. */
 function racLocalesPlugin() {
@@ -253,6 +254,28 @@ function staticShellPlugin() {
   };
 }
 
+/**
+ * Builder index.html (빌드는 404.html 복사본도) 의 head 맨 앞에 `src/index.css` 의 cascade layer
+ * 순서 선언을 인라인으로 둔다 — production 의 공용 CSS chunk 가 main CSS 보다 먼저 레이어를
+ * 등록하는 것을 막는다 (`src/cascadeLayerOrder.ts`). preview.html 은 첫 CSS 가 자기 순서를 선언한다.
+ */
+function cascadeLayerOrderPlugin() {
+  return {
+    name: "composition-cascade-layer-order",
+    transformIndexHtml(
+      _html: string,
+      ctx: IndexHtmlTransformContext,
+    ): HtmlTagDescriptor[] {
+      if (!/(^|[\\/])index\.html$/.test(ctx.filename)) return [];
+      return [
+        cascadeLayerOrderTag(
+          readFileSync(resolve(import.meta.dirname, "src/index.css"), "utf8"),
+        ),
+      ];
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
   const buildId =
@@ -270,6 +293,7 @@ export default defineConfig(({ command }) => {
       devIdentityPlugin(),
       react(),
       staticShellPlugin(),
+      cascadeLayerOrderPlugin(),
       spaFallbackPlugin(),
       buildIdentityPlugin(buildId),
     ],

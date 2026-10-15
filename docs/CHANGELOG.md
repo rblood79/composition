@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [배포 빌드에서 패널 · 툴바 모양이 무너지던 것 — cascade layer 순서] - 2026-10-16
+
+### Fixed
+
+- **배포된 Builder 에서 패널 dock 의 여백, 상단 툴바 · 패널 rail 버튼의 크기 · 배경 · 둥근 모서리가 dev 와 같게 나온다.** 종전엔 production 빌드에서만 Navigator 가 (36,66) 에 붙고 (dev 48,48), 툴바 버튼이 높이 16 · 배경 없음 · 글자 16px 로 그려졌다. 원인: production 은 공용 CSS chunk (LoadingSpinner · overlay · EmptyState · AIPanel) 를 main CSS 보다 먼저 `<link>` 하는데, 그 chunk 의 `@layer builder-system{…}` · `@layer components{…}` 가 두 레이어를 먼저 등록해 `index.css` 의 순서 선언이 늦었다 — Tailwind 리셋 (`base`) 이 builder 스타일을 이겼다. dev 는 `index.css` 가 먼저라 드러나지 않았다. Builder `index.html` (와 `404.html`) 의 head 맨 앞에 `index.css` 의 순서 선언을 인라인으로 둔다 (목록은 `index.css` 에서 읽는다). preview.html 은 첫 CSS 가 자기 순서를 선언해 영향 없다.
+- 위치: `apps/builder/src/cascadeLayerOrder.ts` · `apps/builder/vite.config.ts` (`cascadeLayerOrderPlugin`). 검증: 단위 3 (구현 전 RED) · type-check · live — 같은 시나리오 (새 프로젝트 + Navigator · Design) 에서 dev ↔ production 빌드의 계산 스타일을 요소마다 비교해 수정 전 140 요소 → 수정 후 2 요소 (프로젝트 이름 글자 폭 — 이름에 시각이 들어감), 스크린샷 확인.
+
 ## [grid — 여러 행 크기 요소는 행이 모두 grid 안인 칸에만 놓인다] - 2026-10-16
 
 ### Fixed
