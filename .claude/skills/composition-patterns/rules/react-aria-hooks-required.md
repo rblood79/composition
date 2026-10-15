@@ -43,35 +43,24 @@ function CustomInput() {
 ## Correct
 
 ```tsx
-// ✅ React-Aria 훅 사용
-import { useButton } from "react-aria";
-
-function CustomButton({ onPress, children }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const { buttonProps } = useButton({ onPress }, ref);
-
-  return (
-    <button {...buttonProps} ref={ref}>
-      {children}
-    </button>
-  );
-}
-
-// ✅ useFocusRing 사용
-import { useFocusRing } from "react-aria";
-
-function CustomInput() {
-  const { isFocusVisible, focusProps } = useFocusRing();
-
-  return (
-    <input {...focusProps} className={isFocusVisible ? "focus-ring" : ""} />
-  );
-}
-
-// ✅ React-Aria Components 사용 (권장)
-import { Button } from "react-aria-components";
+// ✅ 설치된 react-aria-components 컴포넌트 (기본)
+import { Button, TextField, Input } from "react-aria-components";
 
 function MyButton({ onPress, children }) {
   return <Button onPress={onPress}>{children}</Button>;
+}
+
+// ✅ RAC 에 없는 동작만 react-aria 훅으로 보강 (useButton · useFocusRing 등)
+import { useFocusRing } from "react-aria";
+
+function CustomSurface() {
+  const { isFocusVisible, focusProps } = useFocusRing();
+  return (
+    <div
+      tabIndex={0}
+      {...focusProps}
+      className={isFocusVisible ? "focus-ring" : ""}
+    />
+  );
 }
 ```

@@ -108,7 +108,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 
-컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem`은 Plain에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
+컨테이너 rule 은 shared `catalog/runtime/rulePaint.ts` 의 **3-branch 로직** (Builder `catalogRuntime/rulePaint.ts` 는 재수출 소비자) 에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem`은 Plain에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
 
 ### 3분류 정의
 
@@ -193,7 +193,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - ❌ `type: "arc"` 별도 사용 (HMR 이슈 → box + arc 데이터)
 - ❌ 트랙에 circle + stroke (inset 차이 → arc 360° 사용)
 - ❌ `size.height/2`로 세로 중앙 (`containerHeight/2` 사용)
-- ❌ publishLayoutMap 타이밍 해킹, notifyLayoutChange() 강제 호출
+- ❌ 레이아웃 타이밍을 우회하려는 publishLayoutMap 해킹 · notifyLayoutChange() 강제 호출 (테마 변경 뒤 1회 호출은 css-tokens.md §Dark Mode 의 계약)
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
 - ❌ 히트한 원시 id 를 이동 대상으로 직접 전달 (session selection · 정규화된 `picking.target` 사용)
 - ❌ `calculateContentWidth`에 측정기 종류별 `+N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)

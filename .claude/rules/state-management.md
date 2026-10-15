@@ -95,7 +95,7 @@ paths:
 
 - 놓은 원본 instance 의 slot 기본 내용은 놓는 순간 소유 노드 (`fillSlot`) 다 — `insertNodes` · 컬렉션 "+" 가 `ownSlotContents` (`commands/materialize.ts`) 를 부른다. 선언된 slot 외에 항목을 담은 자리 (Menu) 와 중첩 원본 slot 의 항목 채움 (Select · ComboBox 의 ListBox) 도 같다. ListBox · GridList · TagGroup · Breadcrumbs (와 picker 의 ListBox) 는 resolver 가 첫 소유 항목을 행마다 반복하고, `{prop}` 에 묶인 slot 만 템플릿 자리로 둔다. 한 주소의 override 는 하나라서 `fillSlot` 이 그 자리의 prop · style 쓰기 (`DescendantPatchFields`) 도 담는다 — patch 를 읽는 곳은 `descendantPatchOf` 로 읽는다. **Why (2026-10-14, 같은 날 둘째)**: patch 가 `fillSlot` 을 덮어 Card Content · TabList · Menu 의 style 한 번이 `UNOWNED_NODE` 로 거부됐다. 조상 타입은 원본 이름이 아니라 루트 타입으로 읽는다 (`ancestorTypes`) — 「TreeItem/Default」 안의 TreeItem 이 컬렉션 밖으로 보여 원본의 selected 표시 상태가 선택으로 샜다. **Why (2026-10-14)**: 템플릿 자리 항목은 detach · create component · ID 가 없어 "+" 로 넣은 항목과 다른 객체였다 (사용자 「slot 호스트 전부」). 그전 resolver 는 `fillSlot` 이면 행을 버렸다 ("+" 로 항목을 넣은 bound ListBox 의 행이 사라짐).
 
-- **Why (2026-10-12 lint 수리)**: 렌더 중 ref를 갱신하면 아직 commit되지 않은 렌더의 콜백이 네이티브 이벤트 경로로 유출될 수 있다. 렌더가 소비하는 입력·헤더 스냅샷은 state 또는 외부 구독으로 읽고, 최신 이벤트 콜백은 commit에서 연결한다. 이전 consumer의 cleanup은 새 consumer를 끊지 않아야 한다.
+- 렌더 중 ref 를 갱신하지 않는다 — 렌더가 소비하는 입력·헤더 스냅샷은 state 또는 외부 구독으로 읽고, 최신 이벤트 콜백은 commit 에서 연결한다. **Why (2026-10-12 lint 수리)**: 렌더 중 ref를 갱신하면 아직 commit되지 않은 렌더의 콜백이 네이티브 이벤트 경로로 유출될 수 있다. 렌더가 소비하는 입력·헤더 스냅샷은 state 또는 외부 구독으로 읽고, 최신 이벤트 콜백은 commit에서 연결한다. 이전 consumer의 cleanup은 새 consumer를 끊지 않아야 한다.
 
 - `PropertyUnitInput`: focus 때 선택 id 를 ref 로 잡고 blur 때 비교 — 다르면 onChange 를 건너뛴다. **Why**: mousedown → blur 순서라 blur 시점에 이미 새 요소가 선택돼 있다.
 - Styles 값은 `catalogStylesHost.ts` 가 선택 record 의 typed field 를 읽어 `SelectedElement` 로 만든다 (옛 `buildSelectedElement` · `SyntheticComputedStyle` 은 없다). 편집은 `catalogSemanticPatchCommand` → `setFields` 한 step.

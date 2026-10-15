@@ -1,5 +1,5 @@
 ---
-description: CHANGELOG.md 자동 갱신 규칙 — 커밋/PR/ADR Implemented 시 의무 업데이트
+description: CHANGELOG.md 자동 갱신 규칙 — 커밋/ADR Implemented 시 의무 업데이트
 paths:
   - "docs/CHANGELOG.md"
   - "docs/CHANGELOG-*-archived.md"
@@ -15,7 +15,7 @@ paths:
 | -------------------------------------------- | ----------------------------------- | --------------------- |
 | ADR Status `Accepted → Implemented` 승격     | 해당 ADR 전체 요약                  | Implemented 승격 커밋 |
 | 사용자-가시 버그 수정 (UI/렌더/입력/저장)    | Fixed 섹션                          | 수정 커밋             |
-| 신규 컴포넌트 / 신규 prop / 신규 public API  | Added 섹션                          | 병합 커밋             |
+| 신규 컴포넌트 / 신규 prop / 신규 public API  | Added 섹션                          | 추가 커밋             |
 | 3개 이상 파일에 걸친 아키텍처 변경           | Changed 섹션                        | 최종 Phase 커밋       |
 | BREAKING CHANGE (props 제거, 토큰명 변경 등) | Breaking Changes 섹션 (최상단 bold) | 변경 커밋             |
 | 성능 회귀 수정 (FPS / 번들 / 초기 로드)      | Performance 섹션                    | 측정 반영 커밋        |

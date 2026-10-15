@@ -7,7 +7,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 ## 명령 · 환경
 
 ```bash
-pnpm install                                        # postinstall: 아이콘·팔레트·CSS 생성 (build:specs) — CanvasKit wasm 은 빌드 산출물 (ADR-244)
+pnpm install                                        # postinstall: prepare:specs (아이콘 + build:specs = 팔레트·CSS) + prepare:upload (업로드 엔진) — CanvasKit wasm 은 빌드 산출물 (ADR-244)
 pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
 pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
@@ -59,7 +59,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - **완료 직전 검증**: 아래 §완료 기준 자가 적용 + `/review` (정적) · 사용자-가시 변경은 `/evaluate` (실제 브라우저 PASS/FAIL)
 - **커밋 직전**: `/verify` — type-check 뒤 영향 영역을 builder 에서 1회 exercise (`/cross-check` · `/evaluate` 로 분기, docs · tests 만이면 생략). 프로젝트 skill 이라 Claude Code 2.1.286+ 가 커밋 전 자동 안내 — Stop hook 의 type-check 차단은 그대로
 - **단순 작업** (한 줄 수정, 설정 변경): 위 절차 스킵 가능
-- CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
+- CRITICAL/HIGH 이슈: 즉시 수정 (판정 기준은 `.claude/rules/review-loop-closure.md` §2 — MEDIUM 이하는 재현 여부로 가른다)
 - **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
 
 ### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지
@@ -134,7 +134,7 @@ CSS/Skia 두 타겟의 catalog 정의·origin template·CSS/DOM·Skia·editor �
 
 ---
 
-**마지막 지침**: 변경 뒤에는 **`/verify` (`type-check` + `/cross-check` · `/evaluate` live 1회)** 로 닫는다. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다. 진행 상황 메모는 다음 행동과 같은 메시지에 쓰고 (보고만 하고 멈추지 않는다), 파괴적 작업 — 데이터·파일 삭제 · force-push · 저장소 밖 변경 — 앞에서는 멈추고 확인한다.
+**마지막 지침**: 변경 뒤에는 **`/verify` (`type-check` + `/cross-check` · `/evaluate` live 1회)** 로 닫는다. 불확실한 부분이 아래 4개 결정 지점에 해당하면 질문을 먼저 한다. 그 외의 불확실성은 가정 대신 코드·문서 실측으로 해소한 뒤 자율 진행 + 사후 보고한다. 진행 상황 메모는 다음 행동과 같은 메시지에 쓰고, 파괴적 작업 — 데이터·파일 삭제 · force-push · 저장소 밖 변경 — 앞에서는 멈추고 확인한다.
 
 **응답·문서 어휘 규칙**: 정본은 `~/.claude/CLAUDE.md` (글로벌 — 3단계 선택 순서 + 금지/대체 표, 모든 프로젝트 적용). 커밋 메시지는 `.claude/hooks/protect-commit-vocabulary.sh` 가 검사. 항목별 사유·지적 이력: 메모리 `feedback-vocabulary-hanja-coinage-history`.
 

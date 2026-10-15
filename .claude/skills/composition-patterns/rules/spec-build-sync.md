@@ -1,5 +1,5 @@
 ---
-title: "generated CSS 동기화 (옛 @composition/specs 빌드 규칙의 후신)"
+title: "generated CSS 동기화"
 impact: CRITICAL
 impactDescription: generated CSS 미재생성 시 Preview/Publish DOM 이 옛 rule 값을 읽어 Skia/CSS 렌더링 불일치 발생
 tags: [catalog, build, monorepo, generated-css]
@@ -41,13 +41,9 @@ pnpm -F @composition/rendering validate:sync   # 생성 결과가 저장본과 �
 
 generated CSS 출력 위치: `packages/shared/src/components/styles/generated/` (`packages/rendering/scripts/generate-css.ts` 의 `OUTPUT_DIR`). generate-css 는 `getComponentRulesTable()` 로 rule 테이블을 직접 읽는다 — DOM/Skia same-source. `pnpm codex:preflight` 의 format 단계가 generated CSS 를 재포맷하면 `build:specs` 로 되돌린다 (메모리 `reference-preflight-format-rewrites-generated-files`).
 
-## 역사적 사례 (압축)
+## 역사적 사례
 
-> PixiJS/Yoga + 49~~124개 spec 시절 (v1.11~~v1.14, 2026-02) 과 tsup dist 시절의 기록이다. 해당 코드는 삭제됐지만 **"소스 수정 → 산출물 미재생성 → 소비자 구 값 참조"** 라는 실패 형태는 generated CSS 에 그대로 남아 있다.
-
-- **padding/borderWidth 불일치** (v1.11/v1.12): spec 수정 후 dist 미빌드 → layout engine(새 값) vs 렌더러(구 값) 불일치
-- **props.style 오버라이드 미반영** (v1.13): 49개 spec 일괄 수정 후 dist 미빌드 → Inspector 변경이 캔버스에 미반영
-- **배경 미렌더링** (v1.14): 배경 box `width` 에 숫자 값 유입 + dist 미빌드 → bgBox 추출 실패. 현행 규칙: 배경 box `width/height: "auto"` ([spec-shape-rendering](spec-shape-rendering.md) §1)
+> 실패 형태는 하나다 — **소스 수정 → 산출물 미재생성 → 소비자 구 값 참조** (2026-02 spec · dist 시절에 padding 불일치 · style 오버라이드 미반영 · 배경 미렌더링으로 세 번 재현). generated CSS 에 같은 형태가 남아 있다.
 
 ## 참조
 

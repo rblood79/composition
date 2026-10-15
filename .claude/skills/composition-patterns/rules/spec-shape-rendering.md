@@ -119,7 +119,7 @@ buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비
 
 ## 6. Column layout / dimension 주입
 
-- `rearrangeShapesForColumn()` (`apps/builder/src/builder/workspace/canvas/skia/specBuildHelpers.ts`) — Checkbox/Radio/Switch 류 indicator↔label 수직 재배치 helper. 유일한 호출처였던 `buildSpecNodeData.ts` 삭제 뒤 production 호출자 0 — catalog 경로의 column 배치는 rule `orientation` · part rule 이 정한다
+- catalog 경로의 column 배치 (Checkbox/Radio/Switch 류 indicator↔label) 는 rule `orientation` · part rule 이 정한다 — shape 를 사후 재배치하는 helper 를 두지 않는다 (옛 `rearrangeShapesForColumn` 은 2026-10-15 삭제)
 - 레이아웃 결과 폭/높이가 필요한 shape(우측 역산 배치 등)는 `_containerWidth`/`_containerHeight` props 주입 — `BOX_SIZE_TYPES` (`apps/builder/src/builder/catalogRuntime/ruleShapes.ts`). 상세: [spec-container-dimension-injection](spec-container-dimension-injection.md)
 
 ## 참조

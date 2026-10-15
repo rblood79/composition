@@ -85,8 +85,7 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
 
 변경 파일마다 `git log --oneline -15 -- <path>` 로 최근 fix/revert 를 보고 다음을 확인합니다.
 
-- 같은 파일 · 같은 scope 에 최근 30일 fix 가 반복되면 (세션 시작 집계: canvas · adr-248 ·
-  styles-panel 상위) 이번 변경이 그 fix 가 막은 증상을 다시 열지 않는지 봅니다. 그 fix 의
+- 같은 파일 · 같은 scope 에 최근 30일 fix 가 반복되면 (세션 시작 집계 상위 scope) 이번 변경이 그 fix 가 막은 증상을 다시 열지 않는지 봅니다. 그 fix 의
   회귀 테스트가 아직 그 행을 지키는지 (삭제 · skip 되지 않았는지) 확인합니다.
 - 변경이 `docs/adr/reviews/{NNN}.md` 의 `fixed` 이슈를 되돌리면 그 round 의 실패 재현
   방법으로 다시 확인합니다.

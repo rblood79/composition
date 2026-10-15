@@ -39,7 +39,7 @@ Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진
 
 ## 필요한 지침과 검증
 
-Skill/rule 정본은 `.claude/`, `.agents/skills`와 `.agents/rules`는 심링크입니다.
+Skill/rule 정본은 `.claude/`, `.agents/skills`·`.agents/rules`의 항목은 심링크입니다 (`INDEX.md`·`goal-lifecycle.md`만 실파일).
 현재 작업에 필요한 문서만 엽니다. Codex가 Claude의 glob 규칙을 자동 로드한다고
 가정하지 않습니다.
 

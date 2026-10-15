@@ -63,27 +63,10 @@ origin template 구조를 바꾸는 병합은 `document/types.ts`의 `LIBRARY_CO
 4. **Properties** → 자식 카운트 · 항목 추가 / 삭제
 5. **저장·재열기** → 새 버전 instance의 override·slot·상태 주체 보존, 옛 contract 프로젝트 거부
 
-## Incorrect
+## 금지
 
-```typescript
-// ❌ origin 템플릿만 고치고 소비자를 확인하지 않음
-// reusableOriginLibrary.ts 의 Tabs 템플릿만 TabList / TabPanels 래퍼로 변경
-// → GROUP_ITEM_TYPES · nestingRules · CHILD_PROP_MERGE_TYPES · DOM binding 이 옛 구조를 가정해 깨진다
-
-// ❌ 작업량을 "템플릿 1개 = 소" 로 판단
-```
-
-## Correct
-
-```typescript
-// ✅ 구조 변경 전 소비자 전수 조사
-// 1. 타입명 grep
-// 2. 8개 서브시스템 체크리스트 순회
-// 3. library contract 갱신·옛 프로젝트 거부·현재 주소 무결성 확인
-// 4. 실제 확인 (Layers → Canvas → Preview → Properties → 저장·재열기)
-
-// ✅ 작업량은 소비자 수 × 수정 복잡도로 산정
-```
+- origin 템플릿만 고치고 소비자를 확인하지 않음 — `reusableOriginLibrary.ts` 의 Tabs 템플릿만 TabList / TabPanels 래퍼로 바꾸면 `GROUP_ITEM_TYPES` · nestingRules · `CHILD_PROP_MERGE_TYPES` · DOM binding 이 옛 구조를 가정해 깨진다
+- 작업량을 "템플릿 1개 = 소" 로 판단 — 위 Step 이 규칙이다
 
 ## 참조 파일
 

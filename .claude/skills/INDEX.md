@@ -1,10 +1,10 @@
 # Skills 카탈로그 (composition)
 
-모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 2026-09-02 재편. `.claude/commands/` 는 skills 로 이관 후 2026-09-02 삭제. 목록은 시스템 프롬프트에 자동 로드). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
+모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 목록은 시스템 프롬프트에 자동 로드). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
 
 ## composition 전용 (프로젝트)
 
-> **호출 정책 (2026-08-28, 병합 순서 ②)**: `disable-model-invocation: true` 스킬 (execute-adr / create-adr) 은 모델이 자동 호출할 수 없고 사용자가 `/name` 을 직접 입력해야 실행된다 — 자율 실행 표면 최소화 (메모리 execute-adr-surface-minimization / no-derived-adr-mid-execution 과 같은 실패 클래스 차단). subagent 정책은 호스트별로 다르다: Claude = CLAUDE.md §작업 워크플로 의 완료 직전 `/review` · `/evaluate` (메인 세션에서 절차 실행 — SKILL.md 에 `context: fork` 없음, 위임은 사용자 요청 시에만 `reviewer` · `debugger` agent), Codex = AGENTS.md "사용자 명시 시에만". 정책 열 ↔ frontmatter ↔ roster 일치는 `pnpm codex:agent-catalog` 가 검사한다.
+> **호출 정책**: `disable-model-invocation: true` 스킬 (execute-adr / create-adr) 은 모델이 자동 호출할 수 없고 사용자가 `/name` 을 직접 입력해야 실행된다 — 자율 실행 표면 최소화. subagent 정책은 호스트별로 다르다: Claude = CLAUDE.md §작업 워크플로 의 완료 직전 `/review` · `/evaluate` (메인 세션에서 절차 실행 — SKILL.md 에 `context: fork` 없음, 위임은 사용자 요청 시에만 `reviewer` · `debugger` agent), Codex = AGENTS.md "사용자 명시 시에만". 정책 열 ↔ frontmatter ↔ roster 일치는 `pnpm codex:agent-catalog` 가 검사한다.
 
 | Skill                                                 | 용도                                                                                                                                    | 발동 키워드                              | 권장 시점                            | 호출 정책 (Claude / Codex)                                                                        |
 | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------- |

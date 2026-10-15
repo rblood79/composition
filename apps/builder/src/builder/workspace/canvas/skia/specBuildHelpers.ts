@@ -1,89 +1,11 @@
 /**
- * specBuildHelpers — buildSpecNodeData가 사용하는 순수 헬퍼 함수 (ADR-100 Phase 8)
- *
- * spec shape builder에서 추출한 공통 helper.
+ * specBuildHelpers — catalog Canvas 의 텍스트 shape 순수 헬퍼 (ADR-100 Phase 8 에서 추출)
  */
 
 import type { Shape, TokenRef } from "@composition/rendering";
 import { resolveToken } from "@composition/rendering";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import { DEFAULT_FONT_FAMILY } from "../../../fonts/customFonts";
-
-// ---------------------------------------------------------------------------
-// rearrangeShapesForColumn — Column layout shapes 세로 재배치
-// ---------------------------------------------------------------------------
-
-/**
- * Column layout: shapes 위치를 세로 쌓기로 재배치
- *
- * Checkbox/Radio/Switch 등에서 flexDirection: column일 때
- * indicator와 label을 수직 배치한다.
- *
- * indicator 블록의 center X = `centerX + boxSize / 2`를 고정하여
- * 모든 circle(ring, dot)이 동일한 center X를 공유하도록 변경.
- */
-export function rearrangeShapesForColumn(
-  shapes: Shape[],
-  containerWidth: number,
-  gap: number,
-): void {
-  // indicator 크기 찾기 (첫 번째 고정 크기 roundRect/rect/circle)
-  let boxSize = 0;
-  for (const shape of shapes) {
-    if (
-      (shape.type === "roundRect" || shape.type === "rect") &&
-      typeof shape.width === "number" &&
-      shape.width > 0 &&
-      shape.width !== containerWidth
-    ) {
-      boxSize = shape.width;
-      break;
-    }
-    if (shape.type === "circle" && shape.radius > 0) {
-      boxSize = shape.radius * 2;
-      break;
-    }
-  }
-  if (boxSize === 0) return;
-
-  // indicator 블록 top-left X (box 전체를 수평 중앙 배치)
-  const centerX = Math.round((containerWidth - boxSize) / 2);
-  // indicator 블록 center X: circle의 center 좌표로 사용 (모든 circle 공통)
-  const indicatorCenterX = centerX + boxSize / 2;
-
-  for (const shape of shapes) {
-    switch (shape.type) {
-      case "roundRect":
-      case "rect":
-        if (typeof shape.width === "number" && shape.width <= boxSize) {
-          shape.x = centerX;
-        }
-        break;
-      case "circle":
-        // specShapeConverter가 center → top-left 변환(x - radius)을 수행하므로
-        // shape.x에는 center X를 유지해야 한다.
-        shape.x = indicatorCenterX;
-        shape.y = boxSize / 2;
-        break;
-      case "line":
-        (shape as unknown as { x1: number; x2: number }).x1 += centerX;
-        (shape as unknown as { x1: number; x2: number }).x2 += centerX;
-        break;
-      case "text":
-        // 텍스트를 indicator 아래에 배치, 가운데 정렬
-        shape.x = 0;
-        shape.y = boxSize + gap;
-        shape.baseline = "top";
-        shape.align = "center";
-        shape.maxWidth = containerWidth;
-        break;
-      case "border":
-      case "shadow":
-        // target 참조 shape — 위치는 target을 따름
-        break;
-    }
-  }
-}
 
 // ---------------------------------------------------------------------------
 // normalizeMiddleBaselineTextLineHeight

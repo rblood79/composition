@@ -51,7 +51,7 @@ ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또�
 1. **base / 응용 분류**: 두 ADR 중 하나가 추상 (component / format / SSOT) 이고 다른 하나가 응용 (frame / page / preset 같은 구체 적용) 인가? 그렇다면 base 가 응용의 prerequisite. 본 분류를 본문 §Context 또는 §Decision 에 1줄 명시.
 2. **schema 직교성**: 두 ADR 의 schema 가 직교인가, 한쪽이 다른 쪽의 specialization 인가? specialization 쪽이 base 의 후속.
 3. **선행 ADR 전제 reverse 검증**: 선행 ADR 의 의존 방향을 그대로 옮기는 것이 fork 후에도 valid 한가? grep + 사용자 1회 confirm. 선행 ADR 의 전제 자동 승계 금지.
-4. **codex 3차 review 까지 미루지 말 것**: 1차 (표면 이슈) / 2차 (gate 정합) 후 3차에 가서야 전제 결함이 잡히는 패턴 회피. fork 시점에 위 1-3 질문 통과 후 codex 1차 진입.
+4. **판독 라운드에 전제 검증을 미루지 말 것**: 판독은 phase 당 1회 + 수리 검증 1회뿐이다 ([review-loop-closure.md](review-loop-closure.md)). fork 시점에 위 1-3 질문을 통과한 뒤 판독에 들어간다.
 
 ### sub-phase 분해 진입 차단 게이트
 

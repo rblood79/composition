@@ -1,8 +1,11 @@
 ---
 description: 웹 UI 구현과 리뷰에 적용하는 Vercel Web Interface Guidelines 기준 및 Composition 해석 경계
 paths:
-  - "apps/**/src/**/*.tsx"
-  - "apps/**/src/**/*.css"
+  - "apps/builder/src/builder/panels/**/*.tsx"
+  - "apps/builder/src/builder/panels/**/*.css"
+  - "apps/builder/src/builder/layout/**/*.tsx"
+  - "apps/builder/src/preview/**/*.tsx"
+  - "apps/publish/src/**/*.tsx"
   - "apps/**/index.html"
   - "packages/shared/src/components/**/*.tsx"
   - "packages/shared/src/components/**/*.css"

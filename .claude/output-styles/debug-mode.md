@@ -44,8 +44,6 @@ description: 디버깅 전용 모드 — root-cause 규율 강제. 증상 덮기
 - 증상 사라지면 root-cause 미확인 상태로 종료
 - 렌더링 관련 수정 후 `/cross-check` 생략
 
-## 필수 연계
+## 연계
 
-- root-cause 4단계 (재현 → 가설 → 검증 → 수정) 필수 — `.claude/rules/` 의 실측 "Why" 기록부터 조회
-- 렌더링 버그 → `cross-check` skill
-- 복잡도 높을 시 → `debugger` agent 위임
+- 절차·연계 (`/fix` → `/cross-check`, `debugger` agent 위임 조건) 는 `/fix` skill 과 CLAUDE.md §작업 워크플로가 정본 — 이 스타일은 응답 형식만 정한다

@@ -1,6 +1,6 @@
 ---
 name: component-design
-description: Composition 새 컴포넌트의 catalog·RAC 계약을 설계하거나 S2 기능을 적용할 때 사용.
+description: Composition 새 컴포넌트의 catalog·RAC 계약을 설계하거나 S2 기능을 적용할 때 사용. 기존 컴포넌트의 시각 값만 고칠 때는 cross-check.
 user-invocable: true
 ---
 
