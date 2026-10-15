@@ -105,9 +105,6 @@ Chrome DevTools → Performance 탭
 
 ## 참조
 
-> 이 체크리스트는 아래 개별 규칙의 **통합 진입점**입니다 — 도메인 특화 항목 (Canvas/Skia, catalog graph · record Map 조회) 이 핵심입니다.
+> 이 체크리스트는 성능 규칙의 **통합 진입점**입니다 — 도메인 특화 항목 (Canvas/Skia, catalog graph · record Map 조회) 이 핵심입니다.
 
-- `perf-barrel-imports.md` - Barrel import 상세 (범용 — 레퍼런스용)
-- `perf-promise-all.md` - 병렬 처리 상세 (범용 — 레퍼런스용)
-- `perf-dynamic-imports.md` - 동적 import 상세 (범용 — 레퍼런스용)
-- `perf-map-set-lookups.md` - O(1) 검색 상세 (**도메인 특화** — id → entry Map 조회 패턴)
+- 범용 패턴 (barrel import 금지 · `Promise.all` 병렬 · lazy `import()` · Map/Set O(1) 조회) 은 별도 규칙 파일 없음 — lint/tsc 와 기본 동작에 맡긴다. catalog 쪽 조회는 `graph.getEntry` · `ownerOf` 인덱스를 쓴다 ([domain-o1-lookup](domain-o1-lookup.md))
