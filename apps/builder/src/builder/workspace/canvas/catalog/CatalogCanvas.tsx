@@ -345,9 +345,11 @@ export function CatalogCanvas({
       return body ? workspace.root.recordsOfSource(body)[0] : undefined;
     };
     let scene: CatalogCanvasScene;
+    // The root the scene draws (kept for the overlay's grid lookup — no extra `workspace.root`).
+    let sceneRoot = workspace.root;
     try {
       scene = new CatalogCanvasScene(
-        workspace.root,
+        sceneRoot,
         (roots) => {
           const only = compareOnlyRoot();
           return only && roots.includes(only) ? [only] : roots;
@@ -429,7 +431,7 @@ export function CatalogCanvas({
         // version but not the document — ADR-246 select count).
         if (!gridRecords) {
           gridRecords = new Set();
-          for (const [id, record] of workspace.root.domInputs) {
+          for (const [id, record] of sceneRoot.domInputs) {
             const display = record.layout.display;
             if (display === "grid" || display === "inline-grid")
               gridRecords.add(id);
@@ -968,7 +970,8 @@ export function CatalogCanvas({
       unsubscribePreviews();
       unsubscribePreviews = workspace.root.subscribePreviews(reflowScene);
       try {
-        scene.replaceRoot(workspace.root);
+        sceneRoot = workspace.root;
+        scene.replaceRoot(sceneRoot);
         sceneStale = false;
       } catch (error) {
         callbacks.current.onError?.(error);
