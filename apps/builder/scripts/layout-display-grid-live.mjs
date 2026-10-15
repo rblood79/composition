@@ -82,6 +82,17 @@ check(
 );
 await page.screenshot({ path: `${OUT}/1-grid-panel.png` });
 
+// 1b — the Columns preset menu lists single counts (1 … 6), not 「1 · 1」.
+await page.locator('[aria-label="Columns Preset"], [aria-label="열 Preset"]').first().click().catch(async () => {
+  await columnsField.locator("xpath=ancestor::fieldset[1]").getByRole("button").last().click();
+});
+await wait(300);
+const presetTexts = await page.getByRole("option").allTextContents();
+await page.screenshot({ path: `${OUT}/1b-columns-presets.png` });
+await page.keyboard.press("Escape");
+await wait(200);
+check("1b Columns 프리셋 = 1 … 6 (단일 개수)", JSON.stringify(presetTexts) === JSON.stringify(["1", "2", "3", "4", "5", "6"]), presetTexts);
+
 // 2 — Columns 3 · Gap X 20 · Gap Y 10.
 const type = async (field, text) => { await field.click(); await field.fill(text); await field.press("Enter"); await wait(400); };
 await type(columnsField, "3");

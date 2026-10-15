@@ -770,8 +770,10 @@ export const PropertyUnitInputControl = memo(
                           textValue={preset.label}
                           aria-label={preset.label}
                         >
-                          {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기) */}
-                          {preset.value.trim() === ""
+                          {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기).
+                              이름이 곧 값이면 (Grid Columns 「3」) 하나만 — 「3 · 3」 금지 */}
+                          {preset.value.trim() === "" ||
+                          preset.label === getPresetDisplayValue(preset.value)
                             ? preset.label
                             : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
                         </ListBoxItem>

@@ -359,6 +359,26 @@ describe("PropertyUnitInput numeric editing", () => {
     },
   );
 
+  // Grid Columns · Rows (2026-10-15 사용자 지적): 이름이 곧 값인 preset 은 「3」 하나 — 「3 · 3」 아님.
+  it("preset 이름이 값과 같으면 메뉴 항목은 이름 하나만 보인다", async () => {
+    render(
+      <PropertyUnitInput
+        label="Columns"
+        value="2"
+        units={[]}
+        allowKeywords={false}
+        presets={[1, 2, 3].map((n) => ({ id: String(n), label: String(n), value: String(n) }))}
+        presetAriaLabel="Columns Preset"
+        onChange={vi.fn()}
+      />,
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Columns Preset" }));
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["1", "2", "3"]);
+  });
+
   it("preset은 trigger에 선택값을 표시하지 않고 숫자 입력값만 교체한다", async () => {
     const onChange = vi.fn();
 
