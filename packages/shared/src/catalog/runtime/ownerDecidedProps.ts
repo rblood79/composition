@@ -25,9 +25,10 @@ import {
  * - size: an owner whose `size` reaches the node (`CATALOG_SIZE_PROPAGATION` — a group's items, a
  *   field's parts, a ButtonGroup's buttons — the resolver's `applyOwnerSize` sets it over the node's).
  * - a toggle in its group (`CATALOG_TOGGLE_GROUP_OF`): its size and emphasis are the group's
- *   (`CATALOG_EMPHASIS_FROM_GROUP` — S2 `CheckboxContext`), and a Checkbox's error message, name and
- *   value are too — S2 forces a grouped Checkbox's own invalid off (the group's help text), RAC
- *   takes the group's name and the item's value is its key in the group (the DOM gives the node's).
+ *   (`CATALOG_EMPHASIS_FROM_GROUP` — S2 `CheckboxContext`), and a Checkbox's error message is too —
+ *   S2 forces a grouped Checkbox's own invalid off (the group's help text). Its name and value stay
+ *   its own: RAC's grouped item is `name: props.name || group's` and its value is its key in the
+ *   group and its form value (S2 passes both — 2026-10-15).
  * - a Select's · ComboBox's ListBox: RAC's picker owns the selection (its `ListStateContext`), so
  *   the list's selection mode and its items' Selected are the picker's.
  * - a DatePicker's · DateRangePicker's calendar (`CATALOG_PICKER_CALENDAR_PROPS` — ADR-256 Phase 9).
@@ -40,7 +41,7 @@ export interface CatalogOwnerDecidedProps {
 
 /** A grouped toggle's props besides size and emphasis (see above). */
 const GROUP_ITEM_PROPS: Readonly<Record<string, readonly string[]>> = {
-  Checkbox: ["errorMessage", "name", "value"],
+  Checkbox: ["errorMessage"],
 };
 
 const PICKER_LIST_PROPS = ["selectionMode", "disallowEmptySelection"];

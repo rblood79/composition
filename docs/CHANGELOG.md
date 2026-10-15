@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [CheckboxGroup 안 Checkbox — Name · Value 복원] - 2026-10-15
+
+### Fixed
+
+- **CheckboxGroup 안 Checkbox 의 Design 패널에 Name · Value 가 없던 문제** — 이제 단독 Checkbox 처럼 Content 절에 두 칸이 있고, 값이 Preview · publish 의 `input` 에 닿는다 (그룹 안에서 쓴 Value 가 폼 제출 값 · 그룹 선택 키, Name 을 비우면 그룹의 Name). Error Message 는 계속 그룹에서 편집한다.
+  - **Why**: 2026-10-14 「부모가 정하는 칸」 정리에서 두 칸을 「RAC 가 그룹의 name 을 쓰고 value 는 그룹 키」로 보고 숨겼고, DOM 은 그룹 안에서 value 를 노드 id 로 바꿔 넣고 name 을 버렸다 — 폼 제출 값이 내부 id 였다. 설치 RAC `useCheckboxGroupItem` 은 `name: props.name || group's` 이고 value 는 항목의 것이며, S2 1.8.1 Checkbox 도 둘을 그대로 넘긴다 (그룹 안에서 끄는 것은 `isInvalid` 하나).
+  - Value 를 비운 항목은 전처럼 노드 id 가 RAC 키다.
+- 위치: `packages/shared/src/catalog/runtime/ownerDecidedProps.ts` (`GROUP_ITEM_PROPS` — Checkbox 는 `errorMessage` 만) · `packages/shared/src/catalog/runtime/delegatedDom.runtime.ts` (`groupItemValue` — 항목 value · 그룹 `defaultValue` 가 같은 키). 검증: `groupCheckboxValueDom.test.ts` · `ownerDecidedProps.test.ts` (수정 전 RED) · live: 패널에 Name · Value 표시, Value 「apple」 입력 → Preview `input` value="apple" · name="fruits" (그룹 Name).
+
 ## [Layers — 값이 없는 field 부품 행 제외] - 2026-10-15
 
 ### Fixed

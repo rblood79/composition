@@ -19,7 +19,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 /**
  * 2026-10-14 (사용자 「모든컴퍼넌트와 컴퍼넌트 자식들 전수조사후 불필요하게 등록된 프러퍼티 제거」): the
  * props a node's owner decides where it sits are not offered on the node — a grouped Checkbox's size,
- * emphasis, error message, name and value, a field's button's size, a picker's list selection.
+ * emphasis and error message (its name · value stay its own — RAC · S2), a field's button's size, a picker's list selection.
  */
 const BODY = "project:node:home-body" as NodeId;
 
@@ -92,7 +92,7 @@ describe("props an owner decides are not the node's to edit", () => {
   it("a Checkbox in a CheckboxGroup — its group's; alone, its own", async () => {
     const { decided } = await open(["checkboxgroup", "checkbox"]);
     expect(new Set(decided(0, "Checkbox"))).toEqual(
-      new Set(["CheckboxGroup: errorMessage,isEmphasized,name,size,value"]),
+      new Set(["CheckboxGroup: errorMessage,isEmphasized,size"]),
     );
     expect(decided(1, "Checkbox")).toEqual([""]);
   });

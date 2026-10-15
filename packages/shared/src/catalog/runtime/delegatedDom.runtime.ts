@@ -933,6 +933,10 @@ const groupWatched = (
   return [...containers, ...items].map((record) => record.id);
 };
 
+/** A grouped Checkbox's RAC value: its own `value`, else its record id (RAC needs a key). */
+const groupItemValue = (box: CatalogConsumerNode): string =>
+  str(box.props.value) || box.id;
+
 /** The group a toggle's DOM input belongs to (`catalogToggleGroupOf` over the DOM inputs). */
 const domToggleGroupOf = (
   root: CatalogCompositionRoot,
@@ -1962,7 +1966,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   }),
   // ADR-256 Phase 3: the Checkbox is RAC `CheckboxField` — its children in order (the CheckboxButton,
   // a Description, a FieldError, anything the author put in). In a CheckboxGroup it is one of the
-  // group's values (its record id — the group's `defaultValue`). Phase 5f: its authored slot
+  // group's values (its `value`, else its record id — the group's `defaultValue`). Phase 5f: its authored slot
   // connects it to the RAC context it renders in — a collection item's `selection` gives it the
   // item's selection (state · name · handler), so its own state props stay out (RAC merges the
   // element's props over the context's).
@@ -1989,7 +1993,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ? {}
               : {
                   ...(inGroup
-                    ? { value: input.node.id }
+                    ? // (RAC's grouped item: its value is its key and form value, `props.name ||
+                      // group's` — S2 passes both.)
+                      {
+                        value: groupItemValue(input.node),
+                        name: opt(props.name),
+                      }
                     : {
                         defaultSelected: bool(props.isSelected),
                         name: opt(props.name),
@@ -2032,7 +2041,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
 
   // ADR-256 Phase 3: a CheckboxGroup is RAC `CheckboxGroup` — its children in order (the Label, the
   // items wrapper, a Description, a FieldError, anything the author put in). Its value is the
-  // selected items' record ids (each item is a `CheckboxField` with its record id — `checkbox`).
+  // selected items' values (each item is a `CheckboxField` with its `value`, else its record id —
+  // `checkbox`).
   checkboxgroup: {
     // (Its value is its items' `isSelected` — through any element between: Codex Round 20 H2.)
     watchesChildren: (node, root) => groupWatched(node, root, "Checkbox"),
@@ -2041,7 +2051,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const boxes = groupItems(input, "Checkbox");
       const selected = boxes
         .filter((box) => box.props.isSelected === true)
-        .map((box) => box.id);
+        .map(groupItemValue);
       const size = str(props.size) || "M";
       return createElement(
         AriaCheckboxGroup as ElementType,
