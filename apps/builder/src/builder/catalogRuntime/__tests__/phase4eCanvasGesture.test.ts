@@ -930,8 +930,9 @@ describe("Canvas drop rules (Figma)", () => {
         targets: [{ kind: "node", id: id("list") }],
         layout: {
           display: { kind: "set", value: "grid" },
-          gridTemplateColumns: { kind: "set", value: "repeat(3, 1fr)" },
-          gridTemplateRows: { kind: "set", value: "repeat(3, 1fr)" },
+          // The Layout section's tracks (2026-10-16): they share the grid size, an item never grows them.
+          gridTemplateColumns: { kind: "set", value: "repeat(3, minmax(0, 1fr))" },
+          gridTemplateRows: { kind: "set", value: "repeat(3, minmax(0, 1fr))" },
           ...Object.fromEntries(
             Object.entries(layout).map(([key, value]) => [
               key,
@@ -1072,9 +1073,12 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("d")).toMatchObject({ x: list.x, y: list.y + 200, width: 400 });
   });
 
-  it("resizing a grid child over two cells spans them — the cells keep their size", async () => {
+  // 사용자 결정 (2026-10-16 「핸들 span 계산은 빼고 요소만 늘어나게」): a handle resize only sizes the
+  // node — no span; the cells keep their size and the node overflows its cell (Figma).
+  it("resizing a grid child past its cell only grows the node — no span, the cells and siblings stay", async () => {
     const { workspace, scene, gestures, record, box } = await gridOf();
     const cellsBefore = gestures.gridCellsOfRecord(record("list"));
+    const b = box("b");
     workspace.selectRecords([record("a")]);
     const a = box("a");
     const edge = { x: a.x + a.width, y: a.y + a.height / 2 };
@@ -1082,13 +1086,10 @@ describe("Canvas drop rules (Figma)", () => {
     gestures.update(a.x + 400, edge.y, 1);
     gestures.finish();
     scene.sync();
-    expect(linesOf(workspace, "a")[2]).toBe("span 2");
-    expect(
-      gestures.gridCellsOfRecord(record("list")).map((cell) => cell.width),
-    ).toEqual(cellsBefore.map((cell) => cell.width));
+    expect(linesOf(workspace, "a")).toEqual([undefined, undefined, undefined, undefined]);
     expect(box("a").width).toBe(400);
-    // b moves past a's two cells (auto-placed).
-    expect(box("b").x).toBe(box("list").x + 400);
+    expect(gestures.gridCellsOfRecord(record("list"))).toEqual(cellsBefore);
+    expect(box("b")).toEqual(b);
   });
 
   it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {

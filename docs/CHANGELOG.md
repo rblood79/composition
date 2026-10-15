@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 안 요소를 핸들로 늘리면 요소만 커진다 — span 자동 계산 제거] - 2026-10-16
+
+### Changed
+
+- **grid 안 요소를 크기 핸들로 늘려도 차지하는 칸 수 (span) 를 바꾸지 않는다** — 요소만 커지고 칸 · 형제는 그대로다 (사용자 결정 「핸들 span 계산은 빼고 요소만 늘어나게」). 같은 날 앞 엔트리에서 넣은 「핸들로 두 칸 크기로 늘리면 두 칸 차지」 를 뺐다. 칸 수는 drop (고정 크기 요소) 과 Layout 의 가로 칸 수 · 세로 칸 수로만 바뀐다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`resizeSpanCommands` 삭제). 검증: 테스트 1 (B 대신 a 를 400 으로: span 없음 · 칸 · 형제 그대로) · catalogRuntime · workspace 통과 · type-check · live `grid-cell-placement-live.mjs` 8/8 (새 6 — 실제 모서리 핸들 drag 로 B 120 → 240: span 없음 · 칸 폭 120 그대로).
+
 ## [grid 안 요소를 크게 늘려도 칸 · grid 크기는 그대로 — Figma 기준] - 2026-10-16
 
 ### Fixed
@@ -27,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **grid 에 두 칸 크기의 요소를 놓거나 그 크기로 늘리면, 칸이 넓어지지 않고 요소가 두 칸을 차지한다** (사용자 지적 — Figma 는 칸을 합치지 않고 요소가 2칸 자리를 차지한다; 지금은 grid 칸이 늘어났다).
   - 놓을 때: 고정 크기 축(px)이 덮는 칸 수만큼 `span n` (`grid-column-end` · `grid-row-end`) 을 저장하고, 놓을 자리 표시도 그 칸들을 합친 넓이다. 그 칸들이 모두 비어 있는 자리만 빈 칸 drop 대상이 된다. 채우기 · 내용 맞춤 축은 칸을 따르므로 1칸. 같은 grid 안에서 옮기면 작성한 span 보다 줄이지 않는다.
-  - 핸들로 크기를 바꿀 때: 새 크기가 덮는 칸 수로 span 을 맞춘다 (줄이면 줄어든다).
+  - 핸들로 크기를 바꿀 때: 새 크기가 덮는 칸 수로 span 을 맞춘다 (줄이면 줄어든다). — 같은 날 뺐다 (위 엔트리, 사용자 결정).
   - **엔진**: 여러 트랙을 걸친 아이템의 기여를 시작 트랙 하나에 통째로 넣고 있었다 — `repeat(3, 1fr)` 600 grid 에서 폭 400 · `span 2` 아이템이 첫 열을 400, 나머지를 100 · 100 으로 만들었다 (Chrome 200 · 200 · 200). 정해진 축의 열 · 행 기여를 CSS-GRID-1 §12.5.1 대로 고쳤다 — `fr` 트랙을 지나는 걸친 아이템은 기여하지 않고, 그 밖은 걸친 트랙 + gap 보다 모자란 만큼만 균등 분배 (`spread_spanning_contributions`). 그래서 패널에서 가로 칸 수 2 를 준 넓은 요소도 Canvas 와 Preview 가 같다.
 - Layout 섹션의 칸 수 이름을 「열 병합 · 행 병합」 에서 **「가로 칸 수 · 세로 칸 수」 (Span X · Span Y)** 로 바꿨다 — 칸을 합치는 것이 아니라 요소가 차지하는 칸 수다.
 - 위치: `packages/engine/src/tree.rs` (`solve_grid` 열 · 행 기여 · `spread_spanning_contributions`) · `apps/builder/src/builder/catalogRuntime/canvasGridCells.ts` (`coveredSpan` · `GridLayout.tracks`) · `canvasGesture.ts` (`itemSpan` · `resizeSpanCommands` · `gridLineCommands` 의 span 쓰기) · `panels/styles/sections/LayoutSection.tsx`. 검증: Rust 457 (새 `spanning_item_does_not_grow_its_start_track` — 수정 빼면 RED) · drop · 크기 조절 새 테스트 2 (span 계산 빼면 각각 RED) · builder 5841 통과 (togglebuttongroup 기존 1건) · parity 811 · type-check · live `grid-cell-placement-live.mjs` 7/7 (새 5 — 폭 240 요소를 밖에서 셋째 행 첫 칸에: 두 칸 자리 표시 · `span 2` · 칸 폭 120 그대로 · Preview DOM = Canvas) · `layout-display-grid-live` 8/8 · `canvas-dnd-drop-rules-live` 7/7 (1b 는 한 칸 크기 S 로 — 폭 300 W 는 이제 180 칸 두 개를 차지해 한 칸짜리 빈 자리에 들어가지 않는다).

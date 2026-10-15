@@ -1184,7 +1184,7 @@ export class CatalogCanvasGestures {
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);
-      let size: CatalogCommand =
+      const size =
         wheel !== undefined
           ? setFields({
               targets: [gesture.item.target],
@@ -1204,13 +1204,6 @@ export class CatalogCanvasGestures {
               },
               label: "Resize",
             });
-      // A grid child takes the cells its new size covers (Figma — the cells keep their size).
-      const spans = this.resizeSpanCommands(gesture, width, height);
-      if (spans.length) {
-        const sized = size;
-        const graph = this.host.graph as CatalogGraph;
-        size = () => composeCommands(graph, "Resize", [sized, ...spans]);
-      }
       const start = gesture.position;
       if (!start || (left === undefined && top === undefined)) return size;
       // A left/top handle of an absolutely placed node also moves it (the opposite edge stays).
@@ -1962,59 +1955,6 @@ export class CatalogCanvasGestures {
       rows: container.layout.gridTemplateRows as string | undefined,
       appendRow,
     });
-  }
-
-  /**
-   * A grid child's span after a handle resize: the cells the new size covers from where it starts
-   * (Figma — resizing over cells spans them; a `1fr` track would grow to the item instead).
-   */
-  private resizeSpanCommands(
-    gesture: Extract<Gesture, { kind: "resize" }>,
-    width: number | undefined,
-    height: number | undefined,
-  ): CatalogCommand[] {
-    const records = this.host.records;
-    const record = records.get(gesture.item.identity);
-    const container = record && records.get(record.parentId);
-    const layout = container && this.gridLayoutOf(container, 0, false);
-    const box = record && this.host.bounds(record.id);
-    if (!record || !container || !layout || !box) return [];
-    const index = this.flowEntries(container, new Set()).findIndex(
-      ({ id }) => id === record.id,
-    );
-    const area = layout.areas[index];
-    if (!area) return [];
-    const { tracks } = layout;
-    const columnSpan = Math.min(
-      coveredSpan(tracks.columns, area.column, tracks.columnGap, width ?? box.width),
-      layout.columns - area.column,
-    );
-    const rowSpan = coveredSpan(
-      tracks.rows,
-      area.row,
-      tracks.rowGap,
-      height ?? box.height,
-    );
-    const breakpoint = this.host.breakpoint();
-    const clear: WriteValue<string> =
-      breakpoint === "desktop" ? { kind: "remove" } : { kind: "set", value: "auto" };
-    const lines = this.gridLines(record.id);
-    const layoutWrites: Partial<Record<LayoutField, WriteValue<string>>> = {};
-    const end = (span: number, current: number, had: unknown) =>
-      span === current
-        ? undefined
-        : span > 1
-          ? ({ kind: "set", value: `span ${span}` } as const)
-          : String(had ?? "").trim()
-            ? clear
-            : undefined;
-    const column = end(columnSpan, area.columnSpan, lines.columnEnd);
-    const row = end(rowSpan, area.rowSpan, lines.rowEnd);
-    if (column) layoutWrites.gridColumnEnd = column;
-    if (row) layoutWrites.gridRowEnd = row;
-    return Object.keys(layoutWrites).length
-      ? [setFields({ targets: [gesture.item.target], breakpoint, layout: layoutWrites })]
-      : [];
   }
 
   /**

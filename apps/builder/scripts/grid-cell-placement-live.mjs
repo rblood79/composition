@@ -4,6 +4,7 @@
 //   2 Layout 의 가로 칸 수 2 → A 가 두 칸 폭 (span 2)
 //   3 C 를 셋째 행 셋째 칸에 (앞 두 칸을 건너뛰고) → 그 칸에 고정
 //   5 폭 240 (두 칸) W 를 밖에서 셋째 행 첫 칸에 → W 가 두 칸 차지 (span 2) · 칸 폭 그대로
+//   6 B 의 핸들을 끌어 두 칸 폭으로 → 요소만 커진다 (span 없음 · 칸 그대로)
 //   4 Preview DOM (Compare Mode) 의 A · B · C · W 위치 · 크기 = Canvas
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/grid-cell-placement-live.mjs <out>
@@ -134,8 +135,8 @@ const ids = await exec(`(cat) => {
   }));
   ws.execute(c.setFields({ targets: [{ kind: "node", id: id.G }], layout: {
     display: { kind: "set", value: "grid" },
-    gridTemplateColumns: { kind: "set", value: "repeat(3, 1fr)" },
-    gridTemplateRows: { kind: "set", value: "repeat(3, 1fr)" } } }));
+    gridTemplateColumns: { kind: "set", value: "repeat(3, minmax(0, 1fr))" },
+    gridTemplateRows: { kind: "set", value: "repeat(3, minmax(0, 1fr))" } } }));
   return id;
 }`);
 await wait(1200);
@@ -218,6 +219,35 @@ check(
   { p5, l5, cellsBefore, cellsAfter, W: now.W },
 );
 await page.screenshot({ path: `${OUT}/5-wide-span.png` });
+
+// 6 — 사용자 결정 (2026-10-16 「핸들 span 계산은 빼고 요소만 늘어나게」): B 의 오른쪽 핸들을 끌어 넓혀도
+//     span 없음 · 칸 폭 그대로 · B 만 커져 칸을 넘친다.
+await select(ids.B, ids.G);
+await wait(400);
+{
+  const cells6 = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => c.width)`, ids.G);
+  // The bottom-right corner handle (the right edge's middle is the spacing handle's band).
+  const edge = await pointOf(ids.B, 1, 1);
+  const zoom = await exec(`(cat) => cat.canvas.camera().zoom`);
+  await page.mouse.move(edge.x, edge.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) {
+    await page.mouse.move(edge.x + (120 * zoom * i) / 10, edge.y);
+    await wait(16);
+  }
+  await page.mouse.up();
+  await wait(500);
+  now = await boxes(ids);
+  const l6 = await lines(ids.B);
+  const cellsAfter6 = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => c.width)`, ids.G);
+  await page.screenshot({ path: `${OUT}/6-b-resize.png` });
+  check(
+    "6 B 모서리 핸들로 120 → 240 → span 없음 · 칸 폭 그대로 · B 만 커짐",
+    Math.abs(now.B.width - 240) < 1 && l6[2] == null && JSON.stringify(cellsAfter6) === JSON.stringify(cells6) &&
+      now.B.x === start.B.x,
+    { l6, B: now.B, cells6, cellsAfter6 },
+  );
+}
 
 // 4 — Preview DOM (Compare Mode) = Canvas.
 const compare = page.getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true }).first();
