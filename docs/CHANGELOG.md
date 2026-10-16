@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 성능 하니스는 부류를 시작하기 전에 스크롤바 opacity 전환이 끝날 때까지 기다린다 — 앞 부류 (줌) 가 보인 스크롤바의 fade-out 이 다음 부류 창 안에서 돌아 `app-pages` 편집 스타일 재계산이 4 ↔ 14 로 갈렸다 (→ 0). 600 · nested-flex 편집의 DOM 레이아웃 수 (반복 측정 18 ~ 26 으로 흔들림) 상한도 같이 올렸고, 스크롤바 class 변경이 줄어든 14 건은 상한을 내렸다.
   - 위치: `apps/builder/scripts/perf-baseline.mjs` · `apps/builder/perf/ratchet.json`
 
+## [Size 필드 배치 정리 — Overflow와 Ratio를 한 행으로] - 2026-10-17
+
+### Changed
+
+- **Design 패널 Layout 탭의 Size에서 Overflow를 Ratio 왼쪽에 배치** — Width·Height와 같은 두 열을 사용하고, Ratio 잠금 버튼은 오른쪽 액션 열을 유지한다. Min/Max 펼침 여부와 관계없이 같은 순서로 표시한다.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/TransformSection.tsx` · `apps/builder/src/builder/components/styles/inspector-layout.css`
+
+## [Spacing 패널 구조 정리 — Margin/Padding fieldset과 연동 액션] - 2026-10-17
+
+### Changed
+
+- **Design 패널 Layout 탭의 Spacing을 Size의 Ratio 행과 같은 필드·액션 배치로 변경** — 중첩 `transform-row` 안에 `Margin/Padding` legend와 box-model을 가진 fieldset을 두고, 연동 버튼을 오른쪽 `fieldset-actions`로 이동했다. 버튼 상단은 box-model 상단에 맞춘다.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/SpacingSection.tsx` · `apps/builder/src/builder/panels/styles/components/BoxModelEditor.tsx` · `apps/builder/src/builder/components/styles/inspector-layout.css`
+
 ## [ADR-266 Implemented — 여러 page 문서의 줌 · 편집에서 그린 것을 버리지 않는다] - 2026-10-17
 
 ### Changed

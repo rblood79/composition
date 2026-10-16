@@ -1,8 +1,8 @@
 /**
  * BoxModelEditor — Spacing 절의 박스 모델 다이어그램 (panel-ui 01, 2026-09-14).
  *
- * 217 × 140 = 28 띠 × 5 (margin · padding · 중심 · padding · margin), 가로도 28 띠. 4방향
- * margin/padding 값이 제자리에 놓이고 가운데 link 가 4값을 연동한다 — 종전 「Padding 16 ▾ ·
+ * 높이는 control-size × 5, 폭은 fieldset에 맞춘다. 가로·세로 띠에 놓인 4방향
+ * margin/padding 값이 제자리에 놓이고 오른쪽 link 가 4값을 연동한다 — 종전 「Padding 16 ▾ ·
  * Margin 0 ▾」 축약값 둘로는 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다. 값 입력·커밋 계약은
  * FourWayGrid 와 같다 (local draft → blur/Enter 커밋, 빈 값은 "" = 키 삭제). link 는
  * `boxModelLink` 모듈 상태 — 캔버스 padding 드래그 (ADR-222) 도 같은 link 를 읽어 4변에
@@ -11,7 +11,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Unlink } from "lucide-react";
-import { Button } from "react-aria-components/Button";
+import { SwatchIconToggleButton } from "../../../components/ui/SwatchIconButton";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { useSemanticLabel } from "../../../../i18n";
 import { setPaddingLinked, usePaddingLinked } from "./boxModelLink";
@@ -185,28 +185,37 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   );
 
   return (
-    <div className="box-model" data-linked={linked || undefined}>
-      <span className="box-model__label box-model__label--margin">margin</span>
-      <span className="box-model__label box-model__label--padding">
-        padding
-      </span>
-      <div className="box-model__padding" />
-      <div className="box-model__center">
-        <Button
-          className="box-model__link"
+    <div className="transform-row">
+      <fieldset className="properties-aria spacing-box-model">
+        <legend className="fieldset-legend">
+          {localize("Margin")}/{localize("Padding")}
+        </legend>
+        <div className="box-model" data-linked={linked || undefined}>
+          <span className="box-model__label box-model__label--margin">
+            margin
+          </span>
+          <span className="box-model__label box-model__label--padding">
+            padding
+          </span>
+          <div className="box-model__padding" />
+          <div className="box-model__center" />
+          {SIDES.map((side) => renderInput("margin", side))}
+          {SIDES.map((side) => renderInput("padding", side))}
+        </div>
+      </fieldset>
+      <div className="fieldset-actions actions-spacing">
+        <SwatchIconToggleButton
           aria-label={localize(linked ? "Unlink sides" : "Link sides")}
-          aria-pressed={linked}
-          onPress={() => setPaddingLinked(!linked)}
+          isSelected={linked}
+          onChange={setPaddingLinked}
         >
           {linked ? (
             <Link size={iconSmall.size} strokeWidth={iconSmall.strokeWidth} />
           ) : (
             <Unlink size={iconSmall.size} strokeWidth={iconSmall.strokeWidth} />
           )}
-        </Button>
+        </SwatchIconToggleButton>
       </div>
-      {SIDES.map((side) => renderInput("margin", side))}
-      {SIDES.map((side) => renderInput("padding", side))}
     </div>
   );
 });

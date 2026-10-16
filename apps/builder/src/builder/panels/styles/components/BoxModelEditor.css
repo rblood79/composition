@@ -1,5 +1,5 @@
 /**
- * BoxModelEditor — 217 × 140, 28 띠 × 5 (panel-ui 01, 2026-09-14).
+ * BoxModelEditor — fieldset 너비 × control-size 5행 (panel-ui 01, 2026-09-14).
  * margin 띠 = 점선 · padding 띠 = 실선 (focus 색) · 중심 = muted. 값 입력은 띠 한가운데,
  * 12 tabular · 테두리 없음. 새 색 0 — 점선/실선/중심 전부 기존 토큰.
  */
@@ -34,31 +34,6 @@
     background: var(--bg-muted);
     box-shadow: var(--inset-shadow-sm);
     border-radius: var(--radius-md) 0.375rem;
-  }
-
-  .box-model__link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: var(--text-xl);
-    block-size: var(--text-xl);
-    padding: 0;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--fg-muted);
-    cursor: pointer;
-
-    &[aria-pressed="true"] {
-      color: var(--fg);
-      background: var(--bg-overlay);
-      box-shadow: var(--shadow-sm);
-    }
-
-    &[data-focus-visible] {
-      outline: 2px solid var(--focus-ring);
-      outline-offset: -2px;
-    }
   }
 
   .box-model__label {

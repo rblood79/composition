@@ -1,7 +1,7 @@
 /**
  * SpacingSection — Padding · Margin (Layout 탭, panel-ui 01, 2026-09-14).
  *
- * 박스 모델 다이어그램 하나 (BoxModelEditor — 4방향 값이 제자리에, 가운데 link 로 연동).
+ * Margin/Padding fieldset의 박스 모델과 오른쪽 연동 액션으로 구성한다.
  * 종전엔 헤더 펼침으로 8-필드 표 (FourWayGrid ×2) 폴백이 있었으나 다이어그램이 이미
  * 변별 편집이라 중복 — 2026-09-15 사용자 판정으로 제거. 종전엔 Layout 절 끝에
  * 「Padding ▾ · Margin ▾」 축약값 둘 + 펼침이라 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다.
@@ -112,14 +112,16 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
   };
 
   return (
-    <BoxModelEditor
-      padding={paddingValues}
-      margin={marginValues}
-      onPaddingChange={handlePaddingChange}
-      onMarginChange={handleMarginChange}
-      onRingChange={handleRingChange}
-      activePaddingSides={activePaddingSides}
-    />
+    <div className="transform-row">
+      <BoxModelEditor
+        padding={paddingValues}
+        margin={marginValues}
+        onPaddingChange={handlePaddingChange}
+        onMarginChange={handleMarginChange}
+        onRingChange={handleRingChange}
+        activePaddingSides={activePaddingSides}
+      />
+    </div>
   );
 });
 

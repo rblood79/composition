@@ -580,6 +580,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
             </>
           )}
           <PropertySelect
+            label="Overflow"
+            className="overflow"
+            value={styleValues.overflow}
+            options={OVERFLOW_OPTIONS}
+            onChange={(value) => updateStyleImmediate("overflow", value)}
+          />
+          <PropertySelect
             label="Ratio"
             className="aspect-ratio-select"
             value={styleValues.aspectRatio || ""}
@@ -614,14 +621,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
               {localize(RATIO_ERROR_LABELS[sizingError])}
             </p>
           )}
-          <PropertySelect
-            label="Overflow"
-            className="overflow"
-            value={styleValues.overflow}
-            options={OVERFLOW_OPTIONS}
-            onChange={(value) => updateStyleImmediate("overflow", value)}
-          />
-          <div className="fieldset-actions actions-overflow" />
         </div>
       )}
     </>
