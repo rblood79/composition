@@ -1471,6 +1471,24 @@
       "on": "2026-10-12",
       "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가로 스타일 재계산 +약 10. 3회씩 측정: 9ec831c16 213·213·216 / 3f551d195 227·225·226 / 483be93b6 223·223·226 (dev build, 실행마다 ±3)",
       "expires": "2027-04-12"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot",
+      "from": 1480,
+      "to": 1511,
+      "approvedBy": "사용자 (2026-10-16 「승인」)",
+      "on": "2026-10-16",
+      "reason": "grid 열 · 행 머리 층 (b5ae316e6 · 370bba2df · 275ce8a10) 의 선택 확인 — 열 · 행 머리가 선택 변경마다 session snapshot 을 읽는다",
+      "expires": "2026-11-16"
+    },
+    {
+      "path": "seeds.60.page-switch.A.v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot",
+      "from": 577,
+      "to": 587,
+      "approvedBy": "사용자 (2026-10-16 「승인」)",
+      "on": "2026-10-16",
+      "reason": "grid 열 · 행 머리 층 (b5ae316e6 · 370bba2df · 275ce8a10) 의 선택 확인 — 열 · 행 머리가 선택 변경마다 session snapshot 을 읽는다",
+      "expires": "2026-11-16"
     }
   ],
   "recorderChanges": [
