@@ -1,3 +1,5 @@
+import { getTextPaintOverflowEvents } from "./renderCommands";
+import { renderCounters } from "./renderCounters";
 import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CanvasKit/Skia 렌더 루프
@@ -213,6 +215,11 @@ export class SkiaRenderer {
   private contentDirty = true;
   /** commit subtree patch가 제공한 이전/이후 hit bounds 합집합. */
   private pendingDamage: BoundingBox | null = null;
+  /**
+   * full 재기록 요청이 남아 있다 (ADR-263 H2). damage 요청은 이것을 덮지 못하고, 실제 full
+   * 재기록이 끝나야 내려간다 — 무효화 상태는 clean · damage (`pendingDamage`) · full 셋이다.
+   */
+  private pendingFull = true;
   private lastRegistryVersion = -1;
   private lastOverlayVersion = -1;
   private lastScreenOverlayVersion = -1;
@@ -301,6 +308,11 @@ export class SkiaRenderer {
     this.mainCanvas = this.mainSurface.getCanvas();
 
     if (process.env.NODE_ENV === "development") {
+      // live 픽셀 대조 (ADR-263): 같은 상태를 full 로 다시 그린다.
+      const debug = ((
+        window as unknown as Record<string, unknown>
+      ).__composition_RENDER_PATH_DEBUG__ ??= {}) as Record<string, unknown>;
+      debug.forceFull = () => this.invalidateContent();
       this.devContentRenderWindowStartMs = performance.now();
       this.devFrameWindowStartMs = this.devContentRenderWindowStartMs;
       // CanvasKit 이 획득한 동일 canvas 의 webgl2 컨텍스트를 재사용한다.
@@ -351,10 +363,19 @@ export class SkiaRenderer {
     requestCanvasFrame();
     recordDamageInvalidation(damageBounds);
     if (!damageBounds) {
+      this.pendingFull = true;
       this.pendingDamage = null;
       return;
     }
-    if (!this.pendingDamage) {
+    // full 이 기다리는 동안의 damage 는 그 full 이 덮는다 — 합치지 않는다.
+    if (this.pendingFull) return;
+    // 빈 damage (다 잘려 보이지 않는 변경) 는 합집합을 원점으로 넓히지 않는다.
+    const empty = (box: BoundingBox) => box.width <= 0 || box.height <= 0;
+    if (empty(damageBounds)) {
+      this.pendingDamage ??= { ...damageBounds };
+      return;
+    }
+    if (!this.pendingDamage || empty(this.pendingDamage)) {
       this.pendingDamage = { ...damageBounds };
       return;
     }
@@ -544,6 +565,7 @@ export class SkiaRenderer {
     this.contentSurface = this.createContentSizedSurface();
     this.contentCanvas = this.contentSurface.getCanvas();
     this.contentDirty = true;
+    this.pendingFull = true;
   }
 
   /**
@@ -634,7 +656,11 @@ export class SkiaRenderer {
 
   private canRenderDamage(camera: CameraState): boolean {
     return (
+      !this.pendingFull &&
       this.pendingDamage !== null &&
+      // 보간 tick 은 damage 밖 노드의 skia data 도 바꾼다 — 그 프레임은 full.
+      !this.transitionManager?.isActive() &&
+      !this.animationEngine?.isActive() &&
       this.contentSnapshot !== null &&
       this.resolveSnapshotPolicy() === "ping-pong" &&
       this.standbySurface !== null &&
@@ -670,11 +696,41 @@ export class SkiaRenderer {
     const start = damageMetricsEnabled ? performance.now() : 0;
     const padCss = this.contentPaddingDevicePx / this.dpr;
     const safety = 1 / Math.max(camera.zoom, 0.001);
+    // ADR-263: the content surface holds only the viewport + padding — a damage beyond it has
+    // nothing to redraw there (a large patch root reaches far off screen). Clamp to the surface.
+    const zoom = Math.max(camera.zoom, 0.001);
+    const surfaceLeft = (-padCss - camera.panX) / zoom;
+    const surfaceTop = (-padCss - camera.panY) / zoom;
+    const surfaceRight = surfaceLeft + targetSurface.width() / this.dpr / zoom;
+    const surfaceBottom = surfaceTop + targetSurface.height() / this.dpr / zoom;
+    const damageLeft = Math.max(damage.x - safety, surfaceLeft);
+    const damageTop = Math.max(damage.y - safety, surfaceTop);
+    const damageRight = Math.min(
+      damage.x + damage.width + safety,
+      surfaceRight,
+    );
+    const damageBottom = Math.min(
+      damage.y + damage.height + safety,
+      surfaceBottom,
+    );
+    if (
+      damage.width <= 0 ||
+      damage.height <= 0 ||
+      damageRight <= damageLeft ||
+      damageBottom <= damageTop
+    ) {
+      // Empty (a clipped-away subtree) or entirely off the surface: the snapshot shows none of it.
+      this.pendingDamage = null;
+      this.contentDirty = false;
+      if (process.env.NODE_ENV === "development")
+        renderCounters.contentDamageRenders += 1;
+      return true;
+    }
     const sceneDamage = new DOMRect(
-      damage.x - safety,
-      damage.y - safety,
-      damage.width + safety * 2,
-      damage.height + safety * 2,
+      damageLeft,
+      damageTop,
+      damageRight - damageLeft,
+      damageBottom - damageTop,
     );
     const left =
       (sceneDamage.x * camera.zoom + camera.panX + padCss) * this.dpr;
@@ -704,6 +760,7 @@ export class SkiaRenderer {
     targetCanvas.translate(padCss, padCss);
     targetCanvas.translate(camera.panX, camera.panY);
     targetCanvas.scale(camera.zoom, camera.zoom);
+    const overflowEvents = getTextPaintOverflowEvents();
     const damageCommandCount = renderDamage.call(
       this.contentNode,
       targetCanvas,
@@ -712,6 +769,8 @@ export class SkiaRenderer {
     targetCanvas.restore();
     targetCanvas.restore();
     if (damageCommandCount === null) return false;
+    // 다시 그린 글자가 상자 밖으로 나갔다 — damage 밖은 잘렸으니 이 프레임은 full 로 (ADR-263 R1).
+    if (getTextPaintOverflowEvents() !== overflowEvents) return false;
 
     targetSurface.flush();
     oldSnapshot.delete();
@@ -730,6 +789,8 @@ export class SkiaRenderer {
     this.snapshotCamera.panY = camera.panY;
     this.pendingDamage = null;
     this.contentDirty = false;
+    if (process.env.NODE_ENV === "development")
+      renderCounters.contentDamageRenders += 1;
 
     if (damageMetricsEnabled) {
       const surfaceArea = targetSurface.width() * targetSurface.height();
@@ -774,6 +835,10 @@ export class SkiaRenderer {
     }
     if (pendingDamage && damageMetricsEnabled) {
       damageMetrics.damageFallbackCount += 1;
+    }
+    if (process.env.NODE_ENV === "development") {
+      if (pendingDamage) renderCounters.contentDamageFallbacks += 1;
+      renderCounters.contentFullRenders += 1;
     }
     this.pendingDamage = null;
     // 대기 표면이 없으면(single 정책 또는 생성 실패) content 표면에 직접 그린다
@@ -850,6 +915,7 @@ export class SkiaRenderer {
     this.snapshotCamera.panX = camera.panX;
     this.snapshotCamera.panY = camera.panY;
     this.contentDirty = false;
+    this.pendingFull = false;
 
     if (isDev) {
       recordWasmMetric("contentRenderTime", performance.now() - start);
@@ -1330,12 +1396,14 @@ export class SkiaRenderer {
 
     // Content surface는 다음 render()에서 lazy 재생성
     this.contentDirty = true;
+    this.pendingFull = true;
   }
 
   private disposeContentSurface(): void {
     this.contentSnapshot?.delete();
     this.contentSnapshot = null;
     this.pendingDamage = null;
+    this.pendingFull = true;
     this.contentSurface?.delete();
     this.contentSurface = null;
     this.contentCanvas = null;

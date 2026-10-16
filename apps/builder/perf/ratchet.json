@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
-  "generatedAt": "2026-10-15",
-  "head": "23aacad0cd808b4ec8b4b140b728440d0a2839e9",
+  "recorderSha256": "4d3da14e9769018ff18b0be827b727bd3f64a5875f60fd09981ef6de28f974d8",
+  "generatedAt": "2026-10-16",
+  "head": "bdb319d3c5fbd4637524f8b7cd2cc0c6832b7555",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -68,7 +68,25 @@
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 7080,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 5977,
           "v8.fn.src/catalog/document/graph.ts#ownerOf": 2071,
-          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1730
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1730,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 0,
+          "render.execPictureJumped": 0,
+          "render.execSkipped": 0,
+          "render.execVisited": 0,
+          "render.patchCalls": 0,
+          "render.patchScanCommands": 0,
+          "render.patchWrites": 0,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 0,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 107,
@@ -87,11 +105,11 @@
       "edit": {
         "A": {
           "caches.contentSurface.hits": 1,
-          "caches.contentSurface.missReasons.invalidate": 14,
+          "caches.contentSurface.missReasons.invalidate": 0,
           "caches.contentSurface.misses": 14,
           "caches.dragSubtreePicture.hits": 0,
           "caches.dragSubtreePicture.misses": 0,
-          "caches.nodePicture.hits": 854,
+          "caches.nodePicture.hits": 15,
           "caches.nodePicture.missReasons.cold": 14,
           "caches.nodePicture.misses": 14,
           "caches.paintPool.hits": 14,
@@ -100,10 +118,28 @@
           "caches.paragraph.misses": 0,
           "domMutations.characterData": 48,
           "layoutVersionDelta": 0,
-          "perfLabels.render.skia.flush.content": 14,
+          "perfLabels.render.skia.flush.content": 0,
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
-          "perfLabels.render.skia.record.content": 14
+          "perfLabels.render.skia.record.content": 0,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 15,
+          "render.execPictureJumped": 30,
+          "render.execSkipped": 0,
+          "render.execVisited": 105,
+          "render.patchCalls": 15,
+          "render.patchScanCommands": 90,
+          "render.patchWrites": 45,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 15,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 30
         },
         "B": {
           "cdp.LayoutCount": 19,
@@ -111,7 +147,7 @@
           "domMutations.attributes": 80,
           "domMutations.childList": 2,
           "reactRenderMeasures": 16,
-          "v8.app": 61262,
+          "v8.app": 42913,
           "v8.fn.src/builder/catalogRuntime/boxModel.ts#length": 1296,
           "v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#catalogOverflowClips": 896,
           "v8.fn.src/builder/catalogRuntime/compositionRoot.ts#(anonymous)": 4712,
@@ -124,17 +160,36 @@
           "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 882,
           "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getDragVisualOffset": 882,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandAt": 2058,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 1876,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 300,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#drawSelfSpanViaPicture": 868,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 2114,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 1020,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex": 2058,
           "v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode": 882,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 1636,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 4960,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs": 2056,
-          "v8.fn.src/catalog/runtime/boxModel.ts#length": 1296,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs": 376,
+          "v8.fn.src/catalog/runtime/boxModel.ts#length": 564,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 1053,
-          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 930
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 930,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 315,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/idMapper.ts#getStringId": 930,
+          "caches.contentSurface.missReasons.damage": 15,
+          "v8.fn.src/builder/catalogRuntime/canvasBinding.ts#childrenOf": 915,
+          "v8.fn.src/builder/catalogRuntime/canvasBinding.ts#rectOf": 915,
+          "v8.fn.src/builder/catalogRuntime/canvasBinding.ts#overflowOf": 900,
+          "v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#(anonymous)": 900,
+          "v8.fn.src/catalog/document/library.ts#get": 824,
+          "v8.fn.src/catalog/document/graph.ts#tokenRefs": 784,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 694,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 662,
+          "v8.fn.src/catalog/document/graph.ts#getDefinition": 576,
+          "v8.fn.src/catalog/resolution/resolver.ts#lookupDefinition": 560,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getDataViewMemory0": 536,
+          "v8.fn.src/catalog/document/graph.ts#freeze": 432,
+          "v8.fn.src/catalog/runtime/boxModel.ts#read": 384,
+          "v8.fn.src/catalog/runtime/boxModel.ts#text": 336,
+          "v8.fn.src/catalog/runtime/controller.ts#get projectId": 336,
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 288
         }
       },
       "page-switch": {
@@ -169,7 +224,25 @@
           "v8.fn.src/builder/panels/styles/hooks/useSectionCollapse.ts#isSectionCollapsedInState": 150,
           "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getDataViewMemory0": 160,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 695,
-          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 571
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 571,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 0,
+          "render.execPictureJumped": 0,
+          "render.execSkipped": 0,
+          "render.execVisited": 0,
+          "render.patchCalls": 0,
+          "render.patchScanCommands": 0,
+          "render.patchWrites": 0,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 0,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 51,
@@ -211,7 +284,25 @@
           "v8.fn.src/builder/layout/panelWorkspaceRuntime.ts#getLayout": 900,
           "v8.fn.src/builder/layout/usePanelWorkspaceLayoutSnapshot.ts#(anonymous)": 440,
           "v8.fn.src/builder/layout/usePanelWorkspaceLayoutSnapshot.ts#usePanelWorkspaceLayoutValue": 440,
-          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 811
+          "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 811,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 0,
+          "render.execPictureJumped": 0,
+          "render.execSkipped": 0,
+          "render.execVisited": 0,
+          "render.patchCalls": 0,
+          "render.patchScanCommands": 0,
+          "render.patchWrites": 0,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 0,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 55,
@@ -256,14 +347,35 @@
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 22864,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 23309,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex": 22947,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 35402
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 35402,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 182,
+          "render.execCalls": 180,
+          "render.execPictureJumped": 11160,
+          "render.execSkipped": 0,
+          "render.execVisited": 22804,
+          "render.patchCalls": 1,
+          "render.patchScanCommands": 6,
+          "render.patchWrites": 3,
+          "render.scrollRangeCalls": 4,
+          "render.scrollRangeVisits": 120,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 180,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 0,
+          "render.contentFullRenders": 180,
+          "render.scrollSubtreeVisits": 2
         },
         "B": {
           "cdp.LayoutCount": 3,
           "cdp.RecalcStyleCount": 224,
           "domMutations.childList": 0,
           "reactRenderMeasures": 223,
-          "v8.app": 1003021
+          "v8.app": 1003021,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 22947,
+          "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#xCross": 22032,
+          "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#yCross": 19710
         }
       }
     },
@@ -285,7 +397,25 @@
           "domMutations.characterData": 31,
           "layoutVersionDelta": 0,
           "perfLabels.render.skia.flush.main": 31,
-          "perfLabels.render.skia.overlay": 31
+          "perfLabels.render.skia.overlay": 31,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 0,
+          "render.execPictureJumped": 0,
+          "render.execSkipped": 0,
+          "render.execVisited": 0,
+          "render.patchCalls": 0,
+          "render.patchScanCommands": 0,
+          "render.patchWrites": 0,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 0,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 107,
@@ -302,12 +432,30 @@
           "caches.paintPool.misses": 0,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 0,
-          "layoutVersionDelta": 0
+          "layoutVersionDelta": 0,
+          "render.bufferProxyReads": 0,
+          "render.bufferSegmentsAtExec": 0,
+          "render.execCalls": 15,
+          "render.execPictureJumped": 30,
+          "render.execSkipped": 0,
+          "render.execVisited": 105,
+          "render.patchCalls": 15,
+          "render.patchScanCommands": 90,
+          "render.patchWrites": 45,
+          "render.scrollRangeCalls": 0,
+          "render.scrollRangeVisits": 0,
+          "render.execCulledJumped": 0,
+          "render.viewportFallbacks": 0,
+          "render.viewportSequences": 0,
+          "render.contentDamageFallbacks": 0,
+          "render.contentDamageRenders": 15,
+          "render.contentFullRenders": 0,
+          "render.scrollSubtreeVisits": 30
         },
         "B": {
-          "caches.contentSurface.missReasons.invalidate": 15,
+          "caches.contentSurface.missReasons.invalidate": 0,
           "caches.contentSurface.misses": 15,
-          "caches.nodePicture.hits": 1862,
+          "caches.nodePicture.hits": 15,
           "caches.nodePicture.missReasons.cold": 15,
           "caches.nodePicture.misses": 15,
           "caches.paintPool.hits": 30,
@@ -316,11 +464,12 @@
           "domMutations.attributes": 79,
           "domMutations.characterData": 48,
           "domMutations.childList": 0,
-          "perfLabels.render.skia.flush.content": 15,
+          "perfLabels.render.skia.flush.content": 0,
           "perfLabels.render.skia.flush.main": 16,
           "perfLabels.render.skia.overlay": 16,
-          "perfLabels.render.skia.record.content": 15,
-          "reactRenderMeasures": 16
+          "perfLabels.render.skia.record.content": 0,
+          "reactRenderMeasures": 16,
+          "caches.contentSurface.missReasons.damage": 15
         }
       }
     }
@@ -477,7 +626,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
       "on": "2026-10-04",
       "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#drawSelfSpanViaPicture",
@@ -495,7 +645,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
       "on": "2026-10-04",
       "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex",
@@ -585,7 +736,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
       "on": "2026-10-04",
       "reason": "측정마다 두 값을 오가는 지표 (seed 600 edit — 1862 ↔ 1995, 렌더 1회분 약 7%). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.B.cdp.RecalcStyleCount",
@@ -603,7 +755,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
       "on": "2026-10-04",
       "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.A.caches.contentSurface.misses",
@@ -621,7 +774,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
       "on": "2026-10-04",
       "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.A.caches.nodePicture.missReasons.cold",
@@ -657,7 +811,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
       "on": "2026-10-04",
       "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.A.perfLabels.render.skia.flush.main",
@@ -684,7 +839,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
       "on": "2026-10-04",
       "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.B.cdp.LayoutCount",
@@ -759,6 +915,14 @@
       "on": "2026-10-12",
       "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가로 스타일 재계산 +약 10. 3회씩 측정: 9ec831c16 213·213·216 / 3f551d195 227·225·226 / 483be93b6 223·223·226 (dev build, 실행마다 ±3)",
       "expires": "2027-04-12"
+    }
+  ],
+  "recorderChanges": [
+    {
+      "from": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
+      "to": "4d3da14e9769018ff18b0be827b727bd3f64a5875f60fd09981ef6de28f974d8",
+      "on": "2026-10-16",
+      "reason": "--add-keys render.*"
     }
   ]
 }

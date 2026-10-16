@@ -11,6 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-263 Implemented — 그리기 명령 패치·실행 비용 축소 종결 (측정 기록)] - 2026-10-16
+
+### Changed
+
+- **ADR-263 을 측정 기록으로 종결했다** (사용자 결정). Phase 1 ~ 5 를 합친 production 빌드 짝 측정 (수정 전 · 후, 교대 2 쌍): 중첩 flex 5,000 줌 프레임 간격 p99 26 ~ 28 → 17.6 ms · 끊김 1.7 ~ 1.9 → 0 %, 중첩 5,000 편집 p99 34 ~ 35 → 24 ~ 26 ms · 끊김 4.3 ~ 5.9 → 1.0 ~ 1.6 %, 평평 5,000 줌 28 ~ 37 → 27 ~ 28 ms, drag 는 그대로. 편집 · 평평 줌은 목표 20 ms 에 못 미쳤고, 남은 비용은 그리기 명령이 아니라 레이아웃 이동 영역이 큰 편집 (다시 끼우는 영역 크기) 과 줌마다 page grid 자동 열 수가 바뀌어 장면을 다시 묶는 것이다.
+- 실제 Builder 확인: 편집 유형 22 가지를 새 경로로 그린 화면과 같은 상태를 전체 다시 그린 화면이 픽셀 단위로 같다 (`apps/builder/scripts/adr263-render-path-live.mjs`).
+- 위치: `docs/adr/completed/263-render-command-patch-execute-cost.md` · `docs/adr/design/263-render-command-patch-execute-cost-breakdown.md` §기록.
+
+## [ADR-263 Phase 5 — 편집이 바뀌지 않은 요소의 그림을 버리지 않는다] - 2026-10-16
+
+### Changed
+
+- **편집 · drag 로 다시 끼운 영역 안에서 바뀌지 않은 요소의 기록된 그림 (노드 picture) 을 다시 쓰고, 검증은 영역을 한 번만 읽는다.** 종전엔 영역 안 모든 요소의 그림을 버려 다음 프레임에 전부 다시 기록했고, 영역을 네 번 읽었다. 그림 캐시가 이미 요소 데이터 · 크기로 바뀜을 판정하므로, 지운 요소의 그림만 푼다.
+- 개발 빌드 측정 (중첩 flex 5,000 drag 189 프레임): 그림 다시 기록 20,845 → 381 · 검증 읽기 7,462,500 → 3,731,250.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeCommandPatch.ts`. 검증: 새 시험 1 (남는 그림 유지 · 지운 그림 해제 · 한 번 읽기 — 되돌리면 RED) · canvas · catalogRuntime 통과 · type-check · ratchet 원복 RED `block` · live 22 건 0 px 차.
+
+## [ADR-263 Phase 4 — 편집마다 스크롤 상자 전체를 다시 재지 않는다] - 2026-10-16
+
+### Changed
+
+- **scroll/auto 상자 (page body 포함) 안을 편집할 때 스크롤 범위를 바뀐 요소만으로 갱신한다.** 종전엔 편집마다 스크롤 상자의 자손 전체를 훑었다 (page body 가 scroll 이면 페이지 전체). 상자가 내용의 끝 좌표를 들고 있다가 바뀐 서브트리만 다시 재고, 끝이 물러났을 수 있을 때 · 구조나 clip 이 바뀌었을 때만 전체를 다시 잰다. 범위 · 스크롤바는 같다.
+- 개발 빌드 측정 (중첩 flex 5,000): 편집 15 회의 범위 계산 방문 392,028 → 106,266, 평평 5,000 편집 75,000 → 30.
+- 위치: `apps/builder/src/builder/catalogRuntime/{canvasOverflow.ts,canvasBinding.ts}`. 검증: 새 시험 3 (무작위 2,000 건 · binding 무작위 편집 300 단계가 전체 재계산과 같음 — 규칙을 빼면 RED) · canvas · catalogRuntime 통과 · type-check · ratchet 원복 RED `block` · live (휠 스크롤 → 내용 늘림 → 늘어난 범위까지 스크롤, 화면 0 px 차).
+
+## [ADR-263 Phase 3 — 편집 · drag 가 바뀐 영역만 다시 그린다] - 2026-10-16
+
+### Changed
+
+- **Canvas 편집 · drag 프레임이 바뀐 요소의 이전 · 이후 자리만 다시 그린다.** ADR-248 에서 옛 소스를 지울 때 부분 재기록 연결이 같이 빠져, 값 하나를 바꿔도 화면 전체를 다시 그렸다. 그림자 · outline · transform 처럼 상자 밖으로 그리는 요소가 바뀌기 전이나 후에 있으면, 또는 글자가 상자 밖으로 넘쳤거나 새로 넘치면 전체를 다시 그린다 (잔상 없음). 전체 다시 그리기 요청은 뒤따른 부분 요청에 덮이지 않는다.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/{SkiaRenderer.ts,subtreeCommandPatch.ts,renderCommands.ts,nodeRendererText.ts}` · `apps/builder/src/builder/catalogRuntime/{canvasBinding.ts,canvasScene.ts}` · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx`. 검증: 새 시험 9 (그림자 제거 · 무효화 순서 — 가드를 빼면 RED) · canvas · catalogRuntime 3,159 통과 (togglebuttongroup 기존 1건) · type-check · ratchet 원복 RED `block` · live 19 건 (편집 유형마다 같은 상태의 전체 다시 그리기와 0 px 차, 가드를 빼면 그림자 잔상 1,450 px · 글자 1,118 px).
+
+## [ADR-263 Phase 2 — 줌 · 화면 갱신이 화면에 걸친 요소만 다시 그린다] - 2026-10-16
+
+### Changed
+
+- **Canvas 를 다시 그릴 때 화면 밖 요소의 그리기 명령을 지나지 않는다.** 줌 · 화면 갱신마다 문서 전체 명령을 처음부터 끝까지 훑으며 화면 밖 서브트리를 명령 하나씩 건너뛰었다. 이제 공간 색인으로 화면에 걸친 요소와 그 조상만 골라 그리고 (노드 picture 재생 유지), 고를 수 없는 장면 (그림자 · outline · transform 같은 상자 밖 paint · drag 중) 은 화면 밖 서브트리를 통째로 건너뛴다. 그려지는 결과는 같다.
+- 개발 빌드 측정 (중첩 flex 5,000): 줌 프레임의 명령 방문 930,415 → 38,998 · 재기록 p95 25.9 → 3.0 ms, 평평 5,000 줌 재기록 p95 11.9 → 2.7 ms. production 수치는 ADR-263 종결 측정에서.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCommands.ts,nodeRendererTree.ts}` · `apps/builder/src/builder/catalogRuntime/canvasScene.ts`. 검증: 새 시험 8 (방문 수 N = 600 / 5,000 같은 상수 · 그리기 순서 = 선형 — 끄면 RED) · canvas · catalogRuntime 3,159 통과 (togglebuttongroup 기존 1건) · type-check · ratchet 원복 RED `block` · live 픽셀 대조 (줌 0.5 · 1 · 2 에서 선형 full 과 0 px 차).
+
+## [ADR-263 Phase 1 — 그리기 명령 읽기가 Proxy 를 지나지 않는다] - 2026-10-16
+
+### Changed
+
+- **Canvas 그리기 명령을 읽을 때 piece-table Proxy 를 거치지 않는다.** 편집 뒤의 명령 버퍼는 segment 목록이라 명령 하나를 읽을 때마다 Proxy trap · 문자열 index 판정 · 이분 탐색을 지났다. 실행 · damage sequence · patch 검증이 지금 segment 범위를 들고 읽는다 (복사 없음). 그리는 결과는 같다.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCommands.ts,subtreeCommandPatch.ts}` · ratchet `apps/builder/perf/ratchet.json` (`render.*` 11 키 등급 A). 검증: 새 시험 3 (무작위 splice 1,000 건 동일 · Proxy 읽기 0 — 되돌리면 RED) · renderCommands · subtreeCommandPatch 40 통과 · type-check · ratchet 원복 RED (수정 전 읽기 → Proxy 읽기 0 → 2,205 · 22,947 · 25,425, 두 번 다 `block`).
+
+## [ADR-263 Phase 0 — 그리기 명령 층 카운트 · 새 카운트 ratchet 등록] - 2026-10-16
+
+### Added
+
+- **프레임 하니스가 그리기 명령 층을 센다** (`counts.render` — 명령 방문 · 컬링 소비 · picture 재생으로 건너뛴 명령 · piece-table Proxy 읽기 · segment · 스크롤 범위 방문 · patch 검증 순회 · patch 교체). dev 빌드 전용 (`skia/renderCounters.ts`), 같은 조건 2회 같은 값.
+- **ratchet `--add-keys`**: 2회 같은 값인 새 카운트를 0 포함 등급 A 상한으로 넣는다 — `--update` 는 새 지표를 B 에 넣고 0 은 빼서 회귀를 막지 못했다. 기존 상한은 바꾸지 않고, recorder 채널을 더한 경우 기존 A 를 넘지 않는 보고로만 해시를 갱신한다 (`--accept-recorder`).
+- 측정 결과 (중첩 5k): drag 는 프레임마다 preview → patch ~1만 명령 (검증 4 회 순회) → 전체 재기록 · node picture 153 개 재기록, 전체 재기록 방문의 64 ~ 99 % 가 화면 밖 서브트리를 하나씩 소비. 줌 꼬리는 GPU flush 가 아니라 JS 재기록.
+- 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCounters.ts,renderCommands.ts,subtreeCommandPatch.ts}` · `catalogRuntime/canvasOverflow.ts` · `apps/builder/scripts/{perf-baseline.mjs,perf-ratchet-gate.mjs}`. 검증: ratchet 판정 시험 18 (새 3 — 등록 키 회귀 시 `block`) · 하니스 시험 15 · type-check.
+
 ## [grid — 여러 칸 요소를 끌 때 칸 배경이 끄는 상자를 따른다] - 2026-10-16
 
 ### Fixed

@@ -154,6 +154,31 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
 export interface TextDrawPoint {
   drawX: number;
   drawY: number;
+  /**
+   * 그린 글자가 노드 상자 밖으로 나갔다 (`clipText` 가 아니면 자르지 않는다). hit bounds 밖 paint 라
+   * damage 부분 재기록이 그 영역을 모른다 (ADR-263).
+   */
+  overflows: boolean;
+}
+
+/** 1 px 넘게 상자 밖이면 넘친 것으로 본다 (안티앨리어싱 · 반올림 여유). */
+const PAINT_OVERFLOW_TOLERANCE = 1;
+
+function paragraphOverflows(
+  paragraph: Paragraph,
+  drawX: number,
+  drawY: number,
+  width: number,
+  height: number,
+): boolean {
+  const right = drawX + paragraph.getLongestLine();
+  const bottom = drawY + paragraph.getHeight();
+  return (
+    drawX < -PAINT_OVERFLOW_TOLERANCE ||
+    drawY < -PAINT_OVERFLOW_TOLERANCE ||
+    right > width + PAINT_OVERFLOW_TOLERANCE ||
+    bottom > height + PAINT_OVERFLOW_TOLERANCE
+  );
 }
 
 export function renderText(
@@ -413,7 +438,19 @@ export function renderText(
     const drawY = computeDrawY(retained.paragraph);
     const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
     drawParagraphBox(retained.paragraph, drawX, drawY);
-    return { drawX, drawY };
+    return {
+      drawX,
+      drawY,
+      overflows:
+        !(node.text?.clipText === true && !isEllipsis) &&
+        paragraphOverflows(
+          retained.paragraph,
+          drawX,
+          drawY,
+          node.width,
+          node.height,
+        ),
+    };
   }
   if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
 
@@ -787,7 +824,13 @@ export function renderText(
 
     const drawX = node.text.paddingLeft + textIndent + alignOffset;
     drawParagraphBox(paragraph, drawX, drawY);
-    return { drawX, drawY };
+    return {
+      drawX,
+      drawY,
+      overflows:
+        !(node.text?.clipText === true && !isEllipsis) &&
+        paragraphOverflows(paragraph, drawX, drawY, node.width, node.height),
+    };
   } finally {
     scope.dispose();
   }

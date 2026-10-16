@@ -23,6 +23,7 @@
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --init <seed>=<frame.json>,<frame.json>,… …
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --update <seed>=<frame.json> …
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-class <seed>=<frame.json>,<frame.json>,…
+ *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-keys <seed>=<frame.json>,<frame.json> --keys <k1,k2|접두.*> [--accept-recorder]
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --raise <path> --to <n> --approved-by <who> --reason <why> --expires <YYYY-MM-DD>
  */
 import { createHash } from "node:crypto";
@@ -317,7 +318,12 @@ export function renderVerdict(verdict, { header = "", decision = null } = {}) {
  * 뒤에 붙인 같은 조건으로 재야 하고, 그 실행에서 기존 부류가 A 를 넘지 않아야 한다 (붙인 부류가
  * 앞 부류를 흔들지 않는다는 확인). `--init` 은 전체를 다시 써서 승인 없는 상향이 될 수 있다.
  */
-export function applyAddClasses(ratchet, seed, reports, { today = isoToday() } = {}) {
+export function applyAddClasses(
+  ratchet,
+  seed,
+  reports,
+  { today = isoToday() } = {},
+) {
   const run = ratchet.runs?.[seed];
   if (!run || !ratchet.seeds?.[seed])
     throw new Error(`seed ${seed} 이 ratchet 에 없다 — --init 으로 시작`);
@@ -327,16 +333,22 @@ export function applyAddClasses(ratchet, seed, reports, { today = isoToday() } =
     if (String(o.seedCount) !== String(seed))
       throw new Error(`seed 불일치: 결과 ${o.seedCount} ≠ ${seed}`);
     if (!o.fixedInputs || Boolean(o.callCounts) !== callCounts)
-      throw new Error(`조건 불일치: --fixed-inputs · --call-counts 가 seed ${seed} 기준과 같아야 한다`);
+      throw new Error(
+        `조건 불일치: --fixed-inputs · --call-counts 가 seed ${seed} 기준과 같아야 한다`,
+      );
     if (run.classes.some((cls, i) => o.classes[i] !== cls))
-      throw new Error(`기존 부류 ${run.classes.join(",")} 를 앞에 그대로 두고 뒤에 붙여 재야 한다 — ${o.classes.join(",")}`);
+      throw new Error(
+        `기존 부류 ${run.classes.join(",")} 를 앞에 그대로 두고 뒤에 붙여 재야 한다 — ${o.classes.join(",")}`,
+      );
     const verdict = judge(
       { ...ratchet, seeds: { [seed]: ratchet.seeds[seed] } },
       { [seed]: countsByClass(report) },
       { today },
     );
     if (verdict.overA.length)
-      throw new Error(`기존 부류 A 초과 ${verdict.overA.map((v) => v.path).join(", ")} — 붙인 부류가 앞 부류를 바꿨거나 회귀`);
+      throw new Error(
+        `기존 부류 A 초과 ${verdict.overA.map((v) => v.path).join(", ")} — 붙인 부류가 앞 부류를 바꿨거나 회귀`,
+      );
   }
   const added = reports[0].options.classes.slice(run.classes.length);
   if (!added.length) throw new Error("새 부류가 없다");
@@ -354,6 +366,108 @@ export function applyAddClasses(ratchet, seed, reports, { today = isoToday() } =
   for (const cls of added) next.seeds[seed][cls] = ceilings[cls];
   next.generatedAt = today;
   if (reports[0].head) next.head = reports[0].head;
+  return next;
+}
+
+/**
+ * ADR-263 HC5 — 새 카운트를 등급 A 상한으로 등록한다 (0 포함).
+ *
+ * `--update` 는 새 지표를 B (경고만) 에 넣고 값 0 은 넣지 않아 회귀를 막지 못한다 (`judge` 의
+ * newKeys 조건 · `decide` 는 A 초과만 차단). 여기서는 같은 조건 (seed 의 부류 목록 · 하니스
+ * 인자 그대로) 으로 잰 보고 둘 이상이 **같은 값** 을 낸 키만 A 로 넣는다. 기존 A · B 상한은
+ * 바꾸지 않는다 — 이미 있는 키 · 값이 갈린 키 · 함수 순위 키 (`v8.fn.*`) 는 거부한다.
+ *
+ * 하니스 recorder 가 새 채널을 더해 해시가 바뀐 경우 (`acceptRecorder`): 모든 보고가 기존 A 를
+ * 넘지 않아야 해시를 새로 기록한다 — 더한 채널이 기존 카운트를 올리지 않았다는 확인이다.
+ *
+ * `keys` 는 평탄 키 또는 `접두.*` (그 아래 전부).
+ */
+export function applyAddKeys(
+  ratchet,
+  seed,
+  reports,
+  keys,
+  { recorderSha = null, acceptRecorder = false, today = isoToday() } = {},
+) {
+  const run = ratchet.runs?.[seed];
+  if (!run || !ratchet.seeds?.[seed])
+    throw new Error(`seed ${seed} 이 ratchet 에 없다 — --init 으로 시작`);
+  if (reports.length < 2)
+    throw new Error(
+      "같은 조건 보고가 둘 이상 있어야 한다 (등급 A = 반복 실행에서 같은 값)",
+    );
+  if (!keys.length) throw new Error("--keys 가 비었다");
+  if (keys.some((k) => k.startsWith("v8.fn.")))
+    throw new Error("v8.fn.* 은 상위 20 순위 키라 A 로 등록하지 않는다");
+  const recorderChanged =
+    recorderSha !== null && ratchet.recorderSha256 !== recorderSha;
+  if (recorderChanged && !acceptRecorder)
+    throw new Error(
+      "recorder 해시 불일치 — 채널을 더한 변경이면 --accept-recorder",
+    );
+  const args = JSON.stringify(run.args);
+  for (const report of reports) {
+    if (String(report.options?.seedCount) !== String(seed))
+      throw new Error(
+        `seed 불일치: 결과 ${report.options?.seedCount} ≠ ${seed}`,
+      );
+    if (JSON.stringify(harnessArgsFrom(report.options)) !== args)
+      throw new Error(
+        `조건 불일치: seed ${seed} 기준 인자 ${run.args.join(" ")} 로 재야 한다`,
+      );
+    const verdict = judge(
+      { ...ratchet, seeds: { [seed]: ratchet.seeds[seed] } },
+      { [seed]: countsByClass(report) },
+      { today },
+    );
+    if (verdict.overA.length)
+      throw new Error(
+        `기존 A 초과 ${verdict.overA.map((v) => v.path).join(", ")} — 기준으로 쓸 수 없는 보고`,
+      );
+  }
+  const matches = (key) =>
+    keys.some((k) =>
+      k.endsWith(".*") ? key.startsWith(k.slice(0, -1)) : key === k,
+    );
+  const byReport = reports.map(countsByClass);
+  const next = structuredClone(ratchet);
+  let added = 0;
+  for (const cls of run.classes) {
+    const grades = next.seeds[seed][cls];
+    if (!grades) continue;
+    const exact = keys.filter((k) => !k.endsWith(".*"));
+    const seen = new Set([
+      ...exact,
+      ...byReport.flatMap((r) => Object.keys(r[cls] ?? {}).filter(matches)),
+    ]);
+    for (const key of [...seen].sort()) {
+      if (key in (grades.A ?? {}) || key in (grades.B ?? {}))
+        throw new Error(
+          `이미 상한이 있는 키: seeds.${seed}.${cls}.${key} — 기존 상한은 바꾸지 않는다`,
+        );
+      const values = byReport.map((r) => r[cls]?.[key] ?? 0);
+      if (!values.every((v) => v === values[0]))
+        throw new Error(
+          `값이 갈린 키 (등급 A 아님): seeds.${seed}.${cls}.${key} ${values.join(" / ")}`,
+        );
+      grades.A[key] = values[0];
+      added += 1;
+    }
+  }
+  if (!added) throw new Error("등록할 키가 없다");
+  if (recorderChanged) {
+    next.recorderChanges = [
+      ...(next.recorderChanges ?? []),
+      {
+        from: ratchet.recorderSha256,
+        to: recorderSha,
+        on: today,
+        reason: `--add-keys ${keys.join(",")}`,
+      },
+    ];
+    next.recorderSha256 = recorderSha;
+  }
+  next.generatedAt = today;
   return next;
 }
 
@@ -462,12 +576,36 @@ async function cliMain(argv) {
   }
   if (cmd === "--add-class") {
     if (ratchet.recorderSha256 !== recorderSha)
-      throw new Error("recorder 해시 불일치 — 하니스가 바뀌었다. 기준 재설정 필요 (--init)");
+      throw new Error(
+        "recorder 해시 불일치 — 하니스가 바뀌었다. 기준 재설정 필요 (--init)",
+      );
     let next = ratchet;
     for (const [seed, files] of Object.entries(parseSeedFiles(rest)))
       next = applyAddClasses(next, seed, files.map(readReport));
     writeFileSync(RATCHET_PATH, JSON.stringify(next, null, 2) + "\n");
     process.stdout.write(`[ADR-246] 부류 추가 기록 → ${RATCHET_PATH}\n`);
+    return;
+  }
+  if (cmd === "--add-keys") {
+    const at = rest.indexOf("--keys");
+    if (at < 0)
+      throw new Error(
+        "--add-keys <seed>=<a.json>,<b.json> --keys <k1,k2|접두.*>",
+      );
+    const keys = rest[at + 1].split(",").filter(Boolean);
+    const acceptRecorder = rest.includes("--accept-recorder");
+    let next = ratchet;
+    for (const [seed, files] of Object.entries(
+      parseSeedFiles(
+        rest.filter((a) => a.includes("=") && !a.startsWith("--")),
+      ),
+    ))
+      next = applyAddKeys(next, seed, files.map(readReport), keys, {
+        recorderSha,
+        acceptRecorder,
+      });
+    writeFileSync(RATCHET_PATH, JSON.stringify(next, null, 2) + "\n");
+    process.stdout.write(`[ADR-263] 새 카운트 A 등록 → ${RATCHET_PATH}\n`);
     return;
   }
   if (cmd === "--raise") {
@@ -484,7 +622,7 @@ async function cliMain(argv) {
     return;
   }
   throw new Error(
-    `명령: --run | --judge | --init | --update | --add-class | --raise`,
+    `명령: --run | --judge | --init | --update | --add-class | --add-keys | --raise`,
   );
 }
 

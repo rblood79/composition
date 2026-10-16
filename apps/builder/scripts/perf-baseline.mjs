@@ -514,45 +514,98 @@ export async function seedDocument(
         // 바닥 행(space-between) — 카드당 20 노드, 깊이 6, 제목은 줄바꿈되는 길이. absolute 0 —
         // 레이아웃 엔진 · 텍스트 측정 · rewrap 이 매 편집에 걸리는 형태. seedIds = 카드.
         const cards = Math.max(1, Math.round(seedCount / 20));
-        const cardIds = Array.from({ length: cards }, (_, i) => `perf-seed-c${i}`);
+        const cardIds = Array.from(
+          { length: cards },
+          (_, i) => `perf-seed-c${i}`,
+        );
         if (!store.getState().elementsMap.has("perf-seed-root")) {
           const specs = [];
           const sections = Math.ceil(cards / 10);
           specs.push({
-            id: "perf-seed-root", type: "frame", root: true,
-            children: Array.from({ length: sections }, (_, k) => `perf-seed-s${k}`),
+            id: "perf-seed-root",
+            type: "frame",
+            root: true,
+            children: Array.from(
+              { length: sections },
+              (_, k) => `perf-seed-s${k}`,
+            ),
             layout: { display: "flex", flexDirection: "column" },
-            visual: { gap: 24, padding: 24 }, sizing: { width: 1400 },
+            visual: { gap: 24, padding: 24 },
+            sizing: { width: 1400 },
           });
           for (let k = 0; k < sections; k += 1)
             specs.push({
-              id: `perf-seed-s${k}`, type: "frame",
+              id: `perf-seed-s${k}`,
+              type: "frame",
               children: cardIds.slice(k * 10, k * 10 + 10),
-              layout: { display: "flex", flexDirection: "row", flexWrap: "wrap" },
+              layout: {
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+              },
               visual: { gap: 16 },
             });
           for (let i = 0; i < cards; i += 1) {
             const c = `perf-seed-c${i}`;
             const chips = Array.from({ length: 6 }, (_, j) => `${c}-b${j}`);
             specs.push(
-              { id: c, type: "frame", track: true,
+              {
+                id: c,
+                type: "frame",
+                track: true,
                 children: [`${c}-h`, `${c}-b`, `${c}-f`],
                 layout: { display: "flex", flexDirection: "column" },
-                visual: { gap: 8, padding: 12, backgroundColor: "#eef3ff" }, sizing: { width: 320 } },
-              { id: `${c}-h`, type: "frame", children: [`${c}-ht`, `${c}-hb`],
-                layout: { display: "flex", flexDirection: "row", alignItems: "center" }, visual: { gap: 6 } },
-              { id: `${c}-ht`, type: "Text", text: `Card ${i} title with several words that wrap inside the header row` },
+                visual: { gap: 8, padding: 12, backgroundColor: "#eef3ff" },
+                sizing: { width: 320 },
+              },
+              {
+                id: `${c}-h`,
+                type: "frame",
+                children: [`${c}-ht`, `${c}-hb`],
+                layout: {
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                },
+                visual: { gap: 6 },
+              },
+              {
+                id: `${c}-ht`,
+                type: "Text",
+                text: `Card ${i} title with several words that wrap inside the header row`,
+              },
               { id: `${c}-hb`, type: "Text", text: `#${i}` },
-              { id: `${c}-b`, type: "frame", children: chips,
-                layout: { display: "flex", flexDirection: "row", flexWrap: "wrap" }, visual: { gap: 6 } },
+              {
+                id: `${c}-b`,
+                type: "frame",
+                children: chips,
+                layout: {
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                },
+                visual: { gap: 6 },
+              },
               ...chips.flatMap((chip, j) => [
-                { id: chip, type: "frame", children: [`${chip}-t`],
+                {
+                  id: chip,
+                  type: "frame",
+                  children: [`${chip}-t`],
                   layout: { display: "flex", flexDirection: "row" },
-                  visual: { padding: 4, backgroundColor: "#dbe7ff" } },
+                  visual: { padding: 4, backgroundColor: "#dbe7ff" },
+                },
                 { id: `${chip}-t`, type: "Text", text: `tag ${i}-${j}` },
               ]),
-              { id: `${c}-f`, type: "frame", children: [`${c}-fl`, `${c}-fr`],
-                layout: { display: "flex", flexDirection: "row", justifyContent: "space-between" } },
+              {
+                id: `${c}-f`,
+                type: "frame",
+                children: [`${c}-fl`, `${c}-fr`],
+                layout: {
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                },
+              },
               { id: `${c}-fl`, type: "Text", text: "Updated" },
               { id: `${c}-fr`, type: "Text", text: `${i % 60} min ago` },
             );
@@ -1778,7 +1831,7 @@ export const RECORDER_SCRIPT = `(() => {
       const visibilityChanged = () => visibility.push(document.visibilityState);
       document.addEventListener?.("visibilitychange", visibilityChanged);
       window.__composition_FRAME_CAPTURE__?.reset();
-      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.();
+      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.(); window.__composition_RENDER_COUNTERS__?.reset?.();
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } lt.disconnect(); }
         document.removeEventListener?.("visibilitychange", visibilityChanged);
         document.removeEventListener?.("wheel", inputPhase, true);
@@ -1790,6 +1843,7 @@ export const RECORDER_SCRIPT = `(() => {
         const perf = window.__composition_PERF__?.snapshotAll?.() ?? [];
         const frameCapture = window.__composition_FRAME_CAPTURE__?.snapshot() ?? null;
         const caches = (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ? { ...c.missReasons } : null }));
+        const renderCounters = window.__composition_RENDER_COUNTERS__?.snapshot?.() ?? null;
         if (previousRecording !== undefined) perfApi.setRecordingEnabled(previousRecording);
         let profile = null;
         if (profiler) {
@@ -1805,7 +1859,7 @@ export const RECORDER_SCRIPT = `(() => {
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
           perf, caches, frameCapture, visibility, inputPhases, frameTimes, markers, longTaskEntries, t0,
-          domMutations, measures, layoutVersionDelta,
+          domMutations, measures, layoutVersionDelta, renderCounters,
           dpr: window.devicePixelRatio ?? null }; };
     },
     stop() { return this._stop(); },
@@ -2390,7 +2444,9 @@ async function setupPointerClass(page, cls, seed) {
       marqueeOnCanvas: surfaceAt(marqueeStart),
       marqueeHit: (() => {
         const el = document.elementFromPoint(marqueeStart.x, marqueeStart.y);
-        return el ? `${el.tagName}.${el.className}#${el.id}[${el.getAttribute("data-testid") ?? ""}] < ${el.parentElement?.className ?? ""}` : null;
+        return el
+          ? `${el.tagName}.${el.className}#${el.id}[${el.getAttribute("data-testid") ?? ""}] < ${el.parentElement?.className ?? ""}`
+          : null;
       })(),
       selection: w.session.getSnapshot().selection.map((s) => s.target.id),
       targetEntry: JSON.stringify(w.runtime.graph.getEntry(targetSource)),
@@ -2431,7 +2487,11 @@ async function cleanupPointerClass(page, cls, pointer) {
       w.session.clearSelection();
       return out;
     },
-    { targetSource: pointer.targetSource, targetEntry: pointer.targetEntry, cls },
+    {
+      targetSource: pointer.targetSource,
+      targetEntry: pointer.targetEntry,
+      cls,
+    },
   );
   if (cls === "drag" && result.moved && !result.restored)
     throw new Error("drag undo did not restore the target");
@@ -2586,6 +2646,8 @@ export function buildCounts(rec, beforeMetrics, afterMetrics, coverage) {
     reactRenderMeasures: rec.measures?.reactComponents ?? null,
     measuresTotal: rec.measures?.total ?? null,
     layoutVersionDelta: rec.layoutVersionDelta ?? null,
+    // ADR-263: 그리기 명령 층 카운트 (renderCounters.ts — dev 빌드 전용)
+    render: rec.renderCounters ?? null,
     v8: coverage,
   };
 }
@@ -2993,7 +3055,7 @@ async function main() {
           layerTreeRows:
             '.layer-tree--rac-virtualized [role="row"] count at recording stop',
           counts:
-            "결정적 카운트 (ratchet 후보). perfLabels = perfMarks reset 이후 호출 수 · caches = Skia 캐시 hit/miss · cdp = Performance.getMetrics before/after 차 (LayoutCount·RecalcStyleCount 는 renderer 누적 카운터) · domMutations = document subtree MutationObserver record 수 · reactRenderMeasures = React 19.2 dev 'Components ⚛' track measure 수 (dev 빌드 전용, 컴포넌트 렌더 1 = 1) · layoutVersionDelta = __composition_LAYOUT_DEBUG__.getSharedLayoutVersion 차 · v8 = --call-counts 일 때 CDP precise coverage 함수 호출 수 (커버리지가 최적화를 막으므로 그 run 의 wall-clock 은 인용 금지)",
+            "결정적 카운트 (ratchet 후보). perfLabels = perfMarks reset 이후 호출 수 · caches = Skia 캐시 hit/miss · cdp = Performance.getMetrics before/after 차 (LayoutCount·RecalcStyleCount 는 renderer 누적 카운터) · domMutations = document subtree MutationObserver record 수 · reactRenderMeasures = React 19.2 dev 'Components ⚛' track measure 수 (dev 빌드 전용, 컴포넌트 렌더 1 = 1) · layoutVersionDelta = __composition_LAYOUT_DEBUG__.getSharedLayoutVersion 차 · render = 그리기 명령 층 카운트 (ADR-263 renderCounters.ts — 명령 방문 · 컬링 소비 · Proxy 읽기 · segment · 스크롤 범위 방문 · patch 검증 순회, dev 빌드 전용) · v8 = --call-counts 일 때 CDP precise coverage 함수 호출 수 (커버리지가 최적화를 막으므로 그 run 의 wall-clock 은 인용 금지)",
         },
         at: new Date().toISOString(),
         chrome: browser.version(),

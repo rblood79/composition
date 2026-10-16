@@ -16,6 +16,7 @@ import {
   buildSubtreeCommandStream,
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
+import type { BoundingBox } from "../workspace/canvas/selection/types";
 import {
   registerSkiaNode,
   unregisterSkiaNode,
@@ -54,7 +55,11 @@ import {
   catalogOverflowClips,
   catalogOverflowScrolls,
   catalogScrollbar,
+  catalogScrollExtent,
   catalogScrollRange,
+  catalogSubtreeScrollExtent,
+  catalogUpdatedScrollExtent,
+  type CatalogScrollExtent,
   type CatalogOverflowTree,
 } from "./canvasOverflow";
 import {
@@ -1252,6 +1257,12 @@ export type CatalogCanvasUpdate =
       readonly subtreeNodeVisits: number;
       /** Commands spliced into the stream. */
       readonly commandWrites: number;
+      /**
+       * ADR-263 Phase 3: the scene area the splices changed (old ∪ new hit bounds of every patched
+       * subtree) — absent when a patched subtree paints outside its hit bounds before or after
+       * (a shadow, outline or transform) or nothing was spliced: the content draws in full.
+       */
+      readonly damage?: BoundingBox;
     }
   | {
       /**
@@ -1268,6 +1279,20 @@ export type CatalogCanvasUpdate =
 const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length &&
   left.every((id, index) => id === right[index]);
+const unionBox = (
+  left: BoundingBox | undefined,
+  right: BoundingBox,
+): BoundingBox => {
+  if (!left) return { ...right };
+  const x = Math.min(left.x, right.x);
+  const y = Math.min(left.y, right.y);
+  return {
+    x,
+    y,
+    width: Math.max(left.x + left.width, right.x + right.width) - x,
+    height: Math.max(left.y + left.height, right.y + right.height) - y,
+  };
+};
 const sameRect = (left: Rect | undefined, right: Rect | undefined) =>
   !!left &&
   !!right &&
@@ -1331,13 +1356,42 @@ function bindInColorMode(
     string,
     { maxScrollTop: number; maxScrollLeft: number }
   >();
+  /**
+   * ADR-263 Phase 4: each scroll/auto box's descendant extent, kept between updates — an update
+   * moves it by the changed subtrees only (`catalogUpdatedScrollExtent`) and drops it when it
+   * cannot (structure, a descendant that starts or stops clipping, the far edge receding).
+   */
+  const extents = new Map<string, CatalogScrollExtent>();
+  const extentOf = (id: string, rectOf: (id: string) => Rect | undefined) => {
+    let extent = extents.get(id);
+    if (!extent) {
+      extent = catalogScrollExtent(id, tree, rectOf);
+      extents.set(id, extent);
+    }
+    return extent;
+  };
+  /** The nearest clipping ancestor (the box whose scroll range a node's rect enters). */
+  const clippingOwnerOf = (id: string): string | undefined => {
+    let cursor = tree.parentOf(id);
+    for (let depth = 0; cursor && depth <= 32; depth += 1) {
+      if (catalogOverflowClips(tree.overflowOf(cursor))) return cursor;
+      cursor = tree.parentOf(cursor);
+    }
+    return undefined;
+  };
   /** Range, the position clamped into it, and the scrollbar of a scroll/auto box. */
   const scrollStateOf = (
     node: CatalogConsumerNode,
     rect: Rect,
     rectOf: (id: string) => Rect | undefined,
   ) => {
-    const range = catalogScrollRange(node.id, tree, rectOf, scrollEnd(node));
+    const range = catalogScrollRange(
+      node.id,
+      tree,
+      rectOf,
+      scrollEnd(node),
+      extentOf(node.id, rectOf),
+    );
     const current = offsets.get(node.id);
     const offset = {
       scrollTop: Math.min(
@@ -1887,12 +1941,14 @@ function bindInColorMode(
           boundParts.delete(id);
           ranges.delete(id);
           scrollbars.delete(id);
+          extents.delete(id);
           reconciled.add(id);
         }
         const regionRoot = geometryRegion(region);
         if (typeof regionRoot !== "string") return regionRoot;
         patchRoots.add(regionRoot);
       }
+      const clipChanged = new Set<string>();
       for (const id of dirty) {
         if (reconciled.has(id)) continue;
         const before = bound.get(id)!;
@@ -1907,6 +1963,12 @@ function bindInColorMode(
           return rebind(id, "binding");
         // Slot chrome and a child text's inherited metric are bound together with the Slot.
         if (node.bindingId === "slot") return rebind(id, "slot");
+        // A box that starts or stops clipping changes where its owner's descent stops.
+        if (
+          catalogOverflowClips(before.visual.overflow) !==
+          catalogOverflowClips(node.visual.overflow)
+        )
+          clipChanged.add(id);
         reRegister.add(id);
         bound.set(id, node);
         // Use the engine's complete, already measured input, including visual longhands and
@@ -1922,11 +1984,52 @@ function bindInColorMode(
         if (typeof region !== "string") return region;
         patchRoots.add(region);
       }
+      // ADR-263 Phase 4: the top-most changed subtrees under each scroll owner whose extent is
+      // kept, and the changed boxes' old rects (every other rect in a subtree is unchanged).
+      const extentChanges = new Map<string, string[]>();
+      const oldRects = new Map<string, Rect | undefined>();
+      for (const id of changedRects.keys()) {
+        oldRects.set(id, layoutMap.get(id));
+        const owner = clippingOwnerOf(id);
+        if (!owner || !extents.has(owner)) continue;
+        let covered = false;
+        for (let c = tree.parentOf(id); c && c !== owner; c = tree.parentOf(c))
+          if (changedRects.has(c)) covered = true;
+        if (covered) continue;
+        extentChanges.set(owner, [...(extentChanges.get(owner) ?? []), id]);
+      }
       for (const [id, rect] of changedRects) {
         // Slot chrome children are laid out from the Slot box; they are not re-derived here.
         if (input(id)!.bindingId === "slot") return rebind(id, "slot-geometry");
         layoutMap.set(id, { ...rect, elementId: id });
         reRegister.add(id);
+      }
+      for (const [owner, ids] of extentChanges) {
+        const previous = extents.get(owner)!;
+        const after = ids.map((id) =>
+          catalogSubtreeScrollExtent(owner, id, tree, (n) => layoutMap.get(n)),
+        );
+        // The old contributions matter only when the far edge may have receded.
+        const reach = (key: "right" | "bottom") =>
+          Math.max(0, ...after.map((e) => e?.[key] ?? 0));
+        const before =
+          reach("right") >= previous.right && reach("bottom") >= previous.bottom
+            ? []
+            : ids.map((id) =>
+                catalogSubtreeScrollExtent(owner, id, tree, (n) =>
+                  oldRects.has(n) ? oldRects.get(n) : layoutMap.get(n),
+                ),
+              );
+        const next = catalogUpdatedScrollExtent(previous, before, after);
+        if (next) extents.set(owner, next);
+        else extents.delete(owner);
+      }
+      // Structure (children added, removed, moved) and a descendant that starts or stops
+      // clipping change the descent itself: the owner measures it again when asked.
+      for (const id of [...regions, ...clipChanged]) {
+        extents.delete(id);
+        const owner = clippingOwnerOf(id);
+        if (owner) extents.delete(owner);
       }
       // A moved or resized box changes the scroll range of its nearest clipping ancestor: a
       // scroll/auto box draws again when its scrollbar changes (only then — a page body that
@@ -1990,6 +2093,8 @@ function bindInColorMode(
       });
       let subtreeNodeVisits = 0;
       let commandWrites = 0;
+      let damage: BoundingBox | undefined;
+      let damageComplete = roots.length > 0;
       for (const id of roots) {
         const context = stream.subtreeBuildContextByElement.get(id);
         if (!context) return rebind(id, "subtree-context");
@@ -2014,6 +2119,10 @@ function bindInColorMode(
         });
         if (!patch.applied)
           return rebind(id, `splice-rejected:${patch.reason ?? "unknown"}`);
+        // No hit bounds before or after: the subtree is clipped away entirely — nothing to redraw.
+        if (patch.unsafePaint) damageComplete = false;
+        else if (patch.damageBounds)
+          damage = unionBox(damage, patch.damageBounds);
         const span = replacement.subtreeSpans.get(id)!;
         commandWrites += span.end - span.start;
       }
@@ -2032,6 +2141,10 @@ function bindInColorMode(
         subtreeBuilds: roots.length,
         subtreeNodeVisits,
         commandWrites,
+        // An empty box = the splices changed nothing visible (the renderer draws nothing).
+        ...(damageComplete
+          ? { damage: damage ?? { x: 0, y: 0, width: 0, height: 0 } }
+          : {}),
       };
     };
     /** Whether a record is a scroll/auto box with somewhere to scroll. */
@@ -2073,6 +2186,14 @@ function bindInColorMode(
       update,
       scrollable,
       scrollBy,
+      /**
+       * Verification (ADR-263 G4): the extent a scroll/auto box keeps between updates (null when
+       * dropped — measured again when asked) next to a fresh full descent.
+       */
+      scrollExtentCheck: (id: string) => ({
+        kept: extents.get(id) ?? null,
+        fresh: catalogScrollExtent(id, tree, (n) => layoutMap.get(n)),
+      }),
       dispose: () => {
         unsubscribe.forEach((off) => off());
         registeredIds.forEach(unregisterSkiaNode);

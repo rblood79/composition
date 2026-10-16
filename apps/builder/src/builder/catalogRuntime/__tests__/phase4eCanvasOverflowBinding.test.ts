@@ -216,3 +216,94 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
     expect(hidden.scene.scrollable(hidden.record("box"))).toBe(false);
   });
 });
+
+describe("ADR-263 Phase 4 — 스크롤 범위 증분 (binding)", () => {
+  it("무작위 편집 300 회 동안 scroll 상자가 들고 있는 extent 는 매번 전체 재계산과 같다", async () => {
+    const { workspace, scene, record } = await open("auto");
+    const binding = () =>
+      (
+        scene as unknown as {
+          binding: {
+            scrollExtentCheck(id: string): {
+              kept: { right: number; bottom: number } | null;
+              fresh: { right: number; bottom: number };
+            };
+          };
+        }
+      ).binding;
+    let seed = 263;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const names: string[] = ["tall"];
+    let made = 0;
+    let kept = 0;
+    for (let step = 0; step < 300; step += 1) {
+      const pick = names[Math.floor(random() * names.length)]!;
+      const roll = random();
+      if (roll < 0.25) {
+        const name = `r${made++}`;
+        const parent = random() < 0.5 ? "box" : pick;
+        workspace.execute(
+          insertNodes({
+            parent: { kind: "node", id: id(parent) },
+            entries: [
+              sized(
+                name,
+                "lib:definition:type-frame",
+                10 + Math.floor(random() * 300),
+                10 + Math.floor(random() * 300),
+              ),
+            ],
+            rootIds: [id(name)],
+            newId: allocator(),
+          }),
+        );
+        names.push(name);
+      } else if (roll < 0.35 && names.length > 2) {
+        const index = 1 + Math.floor(random() * (names.length - 1));
+        const [gone] = names.splice(index, 1);
+        workspace.execute(
+          removeTargets({ targets: [{ kind: "node", id: id(gone!) }] }),
+        );
+        // its descendants went with it
+        for (let i = names.length - 1; i >= 0; i -= 1)
+          if (!workspace.root.recordsOfSource(id(names[i]!)).length)
+            names.splice(i, 1);
+      } else if (roll < 0.45) {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: id(pick) }],
+            visual: {
+              overflow: {
+                kind: "set",
+                value: random() < 0.5 ? "hidden" : "visible",
+              },
+            },
+          }),
+        );
+      } else {
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: id(pick) }],
+            sizing: {
+              [random() < 0.5 ? "width" : "height"]: {
+                kind: "set",
+                value: 5 + Math.floor(random() * 500),
+              },
+            },
+          }),
+        );
+      }
+      scene.sync();
+      const check = binding().scrollExtentCheck(record("box"));
+      if (check.kept) {
+        kept += 1;
+        expect([step, check.kept]).toEqual([step, check.fresh]);
+      }
+    }
+    expect(kept).toBeGreaterThan(150);
+    scene.dispose();
+  });
+});

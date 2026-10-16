@@ -2,14 +2,30 @@
 
 ## Status
 
-Proposed — 2026-10-16
+Implemented — 2026-10-16 (측정 기록으로 종결 — 사용자 결정 2 「측정 기록으로 종결」 2026-10-16)
+
+Accepted — 2026-10-16 (`/execute-adr 263` 호출 + [reviews/263.md](../reviews/263.md) Round 2 pending 0 · HIGH 전부 fixed)
+
+> **종결 (G5, 2026-10-16)**: production 짝 측정 (HEAD ↔ HEAD + 이 ADR, 교대 2 쌍) — 중첩 5k 줌 p99 26 ~ 28 → 17.6 ms · drop 0 % (HC2 충족), 중첩 5k 편집 p99 34 ~ 35 → 24 ~ 26 ms · drop 4.3 ~ 5.9 → 1.0 ~ 1.6 % (미달), 평평 5k 줌 28 ~ 37 → 27 ~ 28 ms (미달), 평평 5k drag 20 그대로. 남은 꼬리는 그리기 명령 실행이 아니다 (`executeCommandRange` 가 프로필 상위에서 빠짐): 중첩 편집은 레이아웃 이동 영역이 patch root 를 ~1만 명령으로 키우는 것, 평평 줌은 줌이 page grid 자동 열 수를 바꿔 scene 을 다시 바인드하는 것 — 대안 B · C 도 닿지 않는 자리라 사용자 결정 2 로 측정 기록 종결. 4단계 Rust trigger (「그리기 명령 > 8 ms/frame」) 재료: dev record p95 중첩 5k 줌 3.0 · 평평 2.7 ms — 미충족. 수치 · 프로필: breakdown §기록 G5.
+
+> **Phase 0 (2026-10-16)**: 그리기 명령 층 카운트 (`renderCounters.ts` → 하니스 `counts.render`) 가 등급 A (2회 같은 값) 로 잡혔고, 새 카운트의 A 등록 절차 (`--add-keys`) 와 회귀 시 `block` 시험이 생겼다. 중첩 5k drag 는 프레임마다 preview → patch (~1만 명령, 검증 4 회 순회) → full 재기록 · node picture 153 개 재기록이다. 줌 꼬리는 record (JS) 쪽이라 사용자 결정 1 의 전제가 성립하지 않는다. 표 · 레버 순서: breakdown §1 Phase 0 결과.
+
+> **Phase 1 (2026-10-16)**: 명령 읽기가 piece-table Proxy 를 지나지 않는다 (`createCommandReader` — 지금 segment 범위를 들고 벗어날 때만 이분 탐색, 복사 0). 실행 · damage sequence · picture 이미지 수집 · patch 검증이 쓴다. ratchet 에 `render.*` 11 키를 등급 A 로 등록 (seed 60 · 600, 2회 같은 값) — Proxy 읽기 상한 0. 원복 RED: 수정 전 읽기로 되돌리면 seed 60 edit 0 → 2,205 · drag 0 → 22,947 · seed 600 edit 0 → 25,425 로 두 번 다 넘어 `block`.
+
+> **Phase 2 (2026-10-16)**: full 재기록이 viewport 의 SpatialIndex 후보 + 조상 closure 만 실행한다 (`executeViewportRenderCommands` — damage 와 같은 sequence 기계, 노드 picture 는 self span 을 sequence index 로 옮겨 재생). 쓸 수 없으면 (hit bounds 밖 paint · drag · 형제 비킴 · 후보가 절반 넘음) 선형 실행이 컬링 서브트리를 끝으로 점프한다. 넓이 0 상자가 그리는 것은 hit bounds 밖 paint 로 본다. 중첩 5k (dev) 줌 방문 930k → 39k · record p95 25.9 → 3.0 ms. 원복 RED: seed 600 edit 방문 2,265 → 25,125 등 A 5 키 초과로 `block`. live: viewport 경로 = 선형 full 픽셀 0 차 (줌 0.5 · 1 · 2).
+
+> **Phase 3 (2026-10-16)**: 편집 · drag 프레임이 바뀐 영역만 다시 그린다 — scene sync 가 patch 의 이전 ∪ 이후 hit bounds 를 damage 로 내고 (`CatalogCanvasUpdate.damage`), content node 가 `renderDamageSkia` 를 다시 제공한다. 무효화는 clean · damage · full 셋이고 full 은 실제 full 재기록까지 남는다 (H2). patch 전 · 후 어느 쪽이든 hit bounds 밖 paint (그림자 · outline · transform) 가 있으면 full (H1). 글자는 `clipText` 가 아니면 상자 밖으로 그려지므로, 넘친 글자를 전 · 후로 추적해 damage 를 버리고 full 로 간다. damage 는 content surface 로 잘린다 (다 잘려 안 보이는 변경은 다시 그리지 않음). 중첩 5k (dev) 편집 15 · drag 189 프레임 전부 damage 경로. 원복 RED: damage 제공을 끄면 seed 600 edit full 0 → 15 등으로 `block`. live 19 건 (값 · 글자 · 이동 · 크기 · 형제 재배치 · 그림자 추가 · 제거 · 삭제 · 새로 넘친 글자 · 넘쳤던 글자 · padding 안 편집 뒤 blit · 잘린 요소 · 줌 3) 이 같은 상태의 선형 full 과 0 px 차, 가드를 빼면 그림자 잔상 1,450 px · 글자 1,118 px 로 RED.
+
+> **Phase 4 (2026-10-16)**: scroll/auto 상자가 자손 extent 를 편집 사이에 들고 있고, 편집은 바뀐 서브트리의 기여만으로 갱신한다 (`catalogUpdatedScrollExtent` — 먼 가장자리가 물러났을 수 있을 때만 이전 기여를 읽고, 물러났으면 다시 잰다). 구조 변경 · clip 여부가 바뀐 자손은 다시 잰다. 중첩 5k (dev) 편집 15 회의 스크롤 범위 방문 392,028 → 106,266 (전체 descent 78 → 6), drag 1,055,460 → 874,812, 평평 5k 편집 75,000 → 30. 원복 RED: extent 를 들지 않으면 seed 600 edit 전체 descent 0 → 15 등으로 `block`. 무작위 동치: 순수 함수 2,000 건 · binding 300 단계 (전체 재계산과 같음).
+
+> **Phase 5 (2026-10-16)**: patch 검증이 쪽마다 span 을 한 번만 읽고 (ID 수집 + span context 완전성), 교체 뒤에도 남는 요소의 노드 picture 를 버리지 않는다 (캐시 키가 이미 node data · 크기 — 지운 요소만 푼다). 중첩 5k (dev) drag 189 프레임: 검증 순회 7,462,500 → 3,731,250 · picture 재기록 20,845 → 381. 원복 RED: seed 60 · 600 edit 순회 90 → 135 로 `block`.
 
 - 사용자 요청: `/create-adr 그리기 명령 패치·실행 비용 축소` (2026-10-16)
 - 방향을 정한 사용자 원문: 「Canvas 코어의 Rust 통합을 최종 방향으로 삼는 것 … 레이아웃 → geometry·공간 인덱스 → 스냅·선택·컬링 → 그리기 명령 순으로」 (2026-10-15) → 측정 뒤 합의한 Canvas 성능 계획의 **2단계** (「0단계 시작」 · 「1단계 시작」 2026-10-16 으로 진행 승인).
 - 이미 정해진 것: 측정이 설계보다 먼저 (「측정부터먼저인가 설계부터가 먼저인가」 → 측정 먼저). 2단계 닫는 조건은 계획 제시 때 적은 값 — 중첩 5k 편집 p99 ≤ 20 ms · drop < 1 %, 줌 p99 ≤ 20 ms. Rust 이관 판정은 이 ADR 이 아니라 4단계 (trigger 시 새 ADR — ADR-921 은 되살리지 않는다).
-- 리뷰: [reviews/263.md](reviews/263.md) Round 1 (codex, 2026-10-16) HIGH 2 · MEDIUM 2 를 본문 · breakdown 에 반영 (HC3 · HC4 · HC5 · R1 · R2 · R6 · G0 ~ G3 개정) → Round 2 수리 검증 통과 — 네 건 closed · 신규 차단 0 · LOW 1 deferred (offset 컨테이너 자손 보강, breakdown §3 · §4). pending 0 이라 전제 확정 (premise-decision-points 종결 계약).
+- 리뷰: [reviews/263.md](../reviews/263.md) Round 1 (codex, 2026-10-16) HIGH 2 · MEDIUM 2 를 본문 · breakdown 에 반영 (HC3 · HC4 · HC5 · R1 · R2 · R6 · G0 ~ G3 개정) → Round 2 수리 검증 통과 — 네 건 closed · 신규 차단 0 · LOW 1 deferred (offset 컨테이너 자손 보강, breakdown §3 · §4). pending 0 이라 전제 확정 (premise-decision-points 종결 계약).
 
-Related: [ADR-189 커밋 레인 record 증분화](completed/189-commit-lane-incremental-record.md) (이 ADR 이 되살리는 damage 기계의 원 결정) · [ADR-153 measurement-first 렌더 최적화](completed/153-render-optimization-measurement-first-adoption.md) (node picture 캐시 · ping-pong snapshot) · [ADR-248 통합 catalog 문서](completed/248-unified-catalog-document.md) (damage provider 가 삭제된 커밋의 소속) · [ADR-246 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단)
+Related: [ADR-189 커밋 레인 record 증분화](189-commit-lane-incremental-record.md) (이 ADR 이 되살리는 damage 기계의 원 결정) · [ADR-153 measurement-first 렌더 최적화](153-render-optimization-measurement-first-adoption.md) (node picture 캐시 · ping-pong snapshot) · [ADR-248 통합 catalog 문서](248-unified-catalog-document.md) (damage provider 가 삭제된 커밋의 소속) · [ADR-246 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단)
 
 ## Context
 
@@ -100,7 +116,7 @@ D3 시각 스타일의 Builder(Skia) consumer **내부** 실행 경로다. D1 (D
 - **C**: `SkiaRenderer` 재작성이고, 지금 꼬리의 원인이 래스터인지 JS 인지도 아직 분해되지 않았다. A 뒤에도 flush · 래스터가 상위면 그때의 증거로 다시 연다.
 - **D**: 계획의 4단계가 판정한다 — 이 ADR 의 종결 측정이 그 trigger 입력이다. 지금 옮기면 JS 쪽 상수 비용을 Rust 로 이관해 원인이 가려진다.
 
-> 구현 상세: [263-render-command-patch-execute-cost-breakdown.md](design/263-render-command-patch-execute-cost-breakdown.md)
+> 구현 상세: [263-render-command-patch-execute-cost-breakdown.md](../design/263-render-command-patch-execute-cost-breakdown.md)
 
 ### 사용자 결정 2건 (execute-adr 가 해당 Phase 에서 묻는다)
 
@@ -133,7 +149,7 @@ D3 시각 스타일의 Builder(Skia) consumer **내부** 실행 경로다. D1 (D
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-16, 실행자 live (Playwright headless Chrome → dev 서버 5173, 저장된 인증 세션으로 새 프로젝트) — `apps/builder/scripts/adr263-render-path-live.mjs`. 색 상자 40 · 글자 8 · flex 묶음 · scroll 상자가 있는 page 에서 편집 유형마다 새 경로로 그린 화면을 찍고, 같은 상태를 `__composition_RENDER_PATH_DEBUG__` 로 선형 실행 · full 재기록해 다시 찍어 픽셀을 비교했다. 22/22 PASS (여러 번): viewport 공간 질의 경로 = 선형 full (줌 0.5 · 1 · 2) · 값 · 글자 길이 · 이동 · 크기 · 형제 재배치 · 삭제 · 넘침 없는 글자 상자 · 잘려 안 보이는 요소는 damage 경로에서 0 px 차 · 그림자 추가 · 제거 · 새로 넘친 글자 · 넘쳤던 글자는 full 경로로 0 px 차 (잔상 없음) · padding 안 편집 뒤 끌어온 blit · scroll 상자 휠 스크롤 → 내용 늘림 → 늘어난 범위까지 스크롤 · 페이지 오류 0. 가드 (H1 · 넘친 글자) 를 빼면 그림자 잔상 1,450 px · 글자 1,118 px 로 RED. cross-check: ADR-248 G3 하니스 78/79, 실패 1 (`paletteBaseCanvas`) 은 수정 전 HEAD 에서도 byte 동일 출력.
 
 ## Consequences
 

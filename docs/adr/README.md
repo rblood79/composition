@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-16 ADR-263 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 종결」): Phase 0 ~ 5 + G5. production 짝 (HEAD ↔ HEAD + ADR, 교대 2 쌍) — 중첩 5k 줌 p99 26 ~ 28 → 17.6 ms · drop 0 % (충족), 중첩 5k 편집 p99 34 ~ 35 → 24 ~ 26 ms · drop 4.3 ~ 5.9 → 1.0 ~ 1.6 % · 평평 5k 줌 28 ~ 37 → 27 ~ 28 ms (미달). 남은 꼬리는 그리기 명령이 아니다 — patch 영역 크기 (레이아웃 이동) · 줌의 page grid 자동 열 재바인드. 그리기 명령 record p95 (dev) 3 ms 대라 4단계 Rust trigger 미충족. live 22/22 (새 경로 = 같은 상태의 선형 full, 0 px 차). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 286).
+
+> **2026-10-16 ADR-263 Accepted · Phase 0**: `/execute-adr 263` — 그리기 명령 층 카운트 (`renderCounters.ts` → 하니스 `counts.render`, 2회 같은 값) · 새 카운트 A 등록 `--add-keys` (회귀 시 `block`, `--update` 만이면 `pass` 인 r1 M2 반례 재현). 중첩 5k drag 는 프레임마다 preview → patch ~1만 명령 (검증 4 회 순회) → full 재기록 · node picture 153 개 재기록, full 방문의 64 ~ 99 % 가 컬링 소비. 줌 꼬리는 record (JS) — 사용자 결정 1 해소.
+
 > **2026-10-16 ADR-263 Proposed**: 그리기 명령 패치·실행 비용 축소 (사용자 `/create-adr 그리기 명령 패치·실행 비용 축소` — Canvas 성능 계획 2단계). 실측 (production 레인 10-15 ~ 16): 중첩 5k 편집 p99 30 ms · drop 4.3 %, 상위 `executeCommandRange` 11.5 % · `catalogScrollRange` 4.1 % · patch 계열, 줌 `executeCommandRange` 10.1 %. 코드 사실: ADR-189 damage 부분 재기록의 provider 가 ADR-248 옛 소스 삭제 (`d58bb8b61`) 에서 빠져 편집 · drag 프레임이 전체 스트림을 다시 실행 · 명령 접근마다 piece-table Proxy trap · 컬링된 서브트리를 명령 하나씩 건너뜀 · 편집마다 스크롤 조상 범위 전체 DFS. 채택 대안 A (끊긴 배선 복구 + 상수 비용 제거, Phase 0 카운트로 레버 선정) — B retained picture 층 · C 타일 캐시 · D Rust 이관 기각 (D 는 4단계 판정). 사용자 결정 2건 (평평 5k 줌 꼬리의 소속 · 닫는 조건 미달 시 처리). 열림 2 (Proposed 2), 합계 286 — 직전 표의 열림 2 는 245 하나뿐이던 것을 바로잡음.
 >
 > **2026-10-15 ADR-262 Implemented** (main `b0e1972c2` · `b5216f10e` · `00c4c0220`): 사용자 G5 「확인했어 Implemented 로 올려」 — Builder 에서 「Push changes to component」 가 origin 컴포넌트에 반영됨을 직접 확인. 원본에 반영 · 전부 되돌리기 · Overrides 목록 전 종류 (live 13/13 · shared 19 · 원복 RED 4/4). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 285).
@@ -301,11 +305,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [263](263-render-command-patch-execute-cost.md) — 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계)
-
-- **상태**: Proposed — 2026-10-16 (리뷰 [reviews/263](reviews/263.md) round 1 HIGH 2 · MEDIUM 2 반영 → round 2 수리 검증 통과, LOW 1 deferred — 전제 확정)
-- **규모**: Phase 0 측정 분해 (content 프레임 사유 · 방문 명령 · Proxy 접근 · record ↔ flush · drag patch 호출자) → P1 Proxy 없는 명령 순회 → P2 컬링 서브트리 점프 → P3 damage 부분 재기록 재연결 (scene · drag) → P4 스크롤 범위 증분 → P5 patch 중복 순회 (Phase 0 결과에 따라) → 종결 측정. 닫는 조건: production 중첩 5k 편집 p99 ≤ 20 ms · drop < 1 %, 줌 p99 ≤ 20 ms, 평평 5k drag p99 ≤ 20 ms 유지. 사용자 결정 2건. breakdown: [design/263](design/263-render-command-patch-execute-cost-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -333,16 +332,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                       |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-|  1   | [263](263-render-command-patch-execute-cost.md)                                                | Phase 0 측정 분해부터 (production 레인 · 카운트 RED)         | 사용자 결정 2건 (평평 5k 줌 꼬리 소속 · 미달 시 처리) — 착수는 `/execute-adr 263` |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)         |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                            |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                       |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
-## 완료 ADR (283)
+## 완료 ADR (284)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -633,6 +631,7 @@
 | [260](completed/260-component-origin-in-place.md) | Create component — 선택 노드가 그 자리에서 ORIGIN (pen.dev · Figma 참조 모델) — 정의가 page 의 원본을 참조 (`originRef` · `definitionOfTemplateRoot`) · 원본 삭제 = instance 유지 + Restore origin · 복제 = instance · 해체는 원본 유지 · template 노드 override 투영 · clipboard 원본 · 정의 · token snapshot · Components 탭 Library · Local page | Implemented | 2026-10-14 |
 | [261](completed/261-component-api-swap-slot-suggestions-properties.md) | 컴포넌트 API — instance 안 drop · 붙여넣기 · 순서 부모 = EditTarget (원본 · layout template 쓰기 결함 수리) · Swap instance (이름 경로 유일 매칭 · 주소 재매핑) · slot 추천 컴포넌트 (`slot.suggested`) · 사용자 컴포넌트 속성 text · boolean · instance 교체 (`DefinitionEntry.properties` — 값 = instance 의 자리 쓰기 · `replace` override) (pen.dev · Figma) | Implemented | 2026-10-15 |
 | [262](completed/262-instance-override-push-and-reset-all.md) | instance override 정리 — 원본에 반영 (Figma Push changes to main: 직접 자리는 작성값 cascade 로 키별 breakpoint 맞추기 · 중첩 자리는 원본의 중첩 instance override 에 `layerPatchFields` 병합 · 속성 값은 대상 노드 · 기본 원본은 루트 props · visual 프로젝트 기본값 · 「N개 영향」 확인) · 전부 되돌리기 (Reset all changes: slot 내용 · 루트 크기 · 배치 유지 · 교체 되접기) · Overrides 목록 전 종류 (숨김 · Fill · 상태 · breakpoint 행, `resetOverrideField`) (Figma) | Implemented | 2026-10-15 |
+| [263](completed/263-render-command-patch-execute-cost.md) | 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계) — 명령 읽기가 piece-table Proxy 를 지나지 않음 · full 재기록은 viewport SpatialIndex 후보 + 조상만 (불가하면 컬링 서브트리 점프) · damage 부분 재기록 재연결 (무효화 clean · damage · full, 상자 밖 paint · 넘친 글자는 full) · 스크롤 범위 증분 · patch 검증 한 번 · 남는 노드 picture 유지 · ratchet `--add-keys` (새 카운트 0 포함 A). 측정 기록 종결 — 중첩 5k 줌 충족, 편집 · 평평 줌 미달 (꼬리 = patch 영역 크기 · 줌 재바인드) | Implemented | 2026-10-16 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

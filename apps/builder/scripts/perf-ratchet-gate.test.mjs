@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   applyAddClasses,
+  applyAddKeys,
   applyRaise,
   applyUpdate,
   bLimit,
   buildSeedCeilings,
+  countsByClass,
   decide,
   flattenCounts,
   judge,
@@ -320,15 +322,29 @@ const addReport = (classes, counts, opts = {}) => ({
 
 test("--add-class — 기존 부류 상한은 그대로, 새 부류만 반복 실행으로 A/B 를 정한다", () => {
   const base = ratchet();
-  base.runs[60].args = ["--lane", "frame", "--seed-count", "60", "--fixed-inputs", "--classes", "select"];
+  base.runs[60].args = [
+    "--lane",
+    "frame",
+    "--seed-count",
+    "60",
+    "--fixed-inputs",
+    "--classes",
+    "select",
+  ];
   const select = {
     perfLabels: { "render.frame": 50 },
     caches: { commandStream: { misses: 0 } },
     reactRenderMeasures: 5000,
   };
   const reports = [
-    addReport(["select", "drag"], { select, drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 236 } }),
-    addReport(["select", "drag"], { select, drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 226 } }),
+    addReport(["select", "drag"], {
+      select,
+      drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 236 },
+    }),
+    addReport(["select", "drag"], {
+      select,
+      drag: { perfLabels: { "render.frame": 180 }, reactRenderMeasures: 226 },
+    }),
   ];
   const next = applyAddClasses(base, "60", reports);
   // 낮은 측정값이 와도 기존 상한을 바꾸지 않는다 (하향은 --update 의 일)
@@ -338,28 +354,166 @@ test("--add-class — 기존 부류 상한은 그대로, 새 부류만 반복 �
     B: { reactRenderMeasures: 236 },
   });
   assert.deepEqual(next.runs[60].classes, ["select", "drag"]);
-  assert.deepEqual(next.runs[60].args, ["--lane", "frame", "--seed-count", "60", "--fixed-inputs", "--classes", "select,drag"]);
+  assert.deepEqual(next.runs[60].args, [
+    "--lane",
+    "frame",
+    "--seed-count",
+    "60",
+    "--fixed-inputs",
+    "--classes",
+    "select,drag",
+  ]);
   assert.deepEqual(base.runs[60].classes, ["select"]); // 원본 불변
 });
 
 test("--add-class — 기존 부류가 A 를 넘거나 조건 · 순서가 다르면 거부한다", () => {
   const base = ratchet();
-  const ok = { perfLabels: { "render.frame": 60 }, caches: { commandStream: { misses: 0 } } };
+  const ok = {
+    perfLabels: { "render.frame": 60 },
+    caches: { commandStream: { misses: 0 } },
+  };
   const over = { ...ok, caches: { commandStream: { misses: 1 } } };
   assert.throws(
-    () => applyAddClasses(base, "60", [addReport(["select", "drag"], { select: over })]),
+    () =>
+      applyAddClasses(base, "60", [
+        addReport(["select", "drag"], { select: over }),
+      ]),
     /A 초과/,
   );
   assert.throws(
-    () => applyAddClasses(base, "60", [addReport(["drag", "select"], { select: ok })]),
+    () =>
+      applyAddClasses(base, "60", [
+        addReport(["drag", "select"], { select: ok }),
+      ]),
     /앞에 그대로/,
   );
   assert.throws(
-    () => applyAddClasses(base, "60", [addReport(["select", "drag"], { select: ok }, { seedCount: 600 })]),
+    () =>
+      applyAddClasses(base, "60", [
+        addReport(["select", "drag"], { select: ok }, { seedCount: 600 }),
+      ]),
     /seed/,
   );
   assert.throws(
     () => applyAddClasses(base, "60", [addReport(["select"], { select: ok })]),
     /새 부류가 없다/,
   );
+});
+
+// ADR-263 HC5 — 새 카운트의 A 등록 (0 포함) 과 원복 RED 판정
+const keysBase = () => {
+  const base = ratchet();
+  base.recorderSha256 = "old";
+  base.runs[60].args = [
+    "--lane",
+    "frame",
+    "--seed-count",
+    "60",
+    "--fixed-inputs",
+    "--classes",
+    "select",
+  ];
+  return base;
+};
+const keysReport = (render) =>
+  addReport(["select"], {
+    select: {
+      perfLabels: { "render.frame": 60 },
+      caches: { commandStream: { misses: 0 } },
+      reactRenderMeasures: 5900,
+      render,
+    },
+  });
+
+test("--add-keys — 2회 같은 값을 0 포함 A 로 넣고 기존 상한은 그대로 둔다", () => {
+  const base = keysBase();
+  const render = { bufferProxyReads: 0, execVisited: 100 };
+  const next = applyAddKeys(
+    base,
+    "60",
+    [keysReport(render), keysReport(render)],
+    ["render.*"],
+    {
+      recorderSha: "old",
+    },
+  );
+  assert.equal(next.seeds[60].select.A["render.bufferProxyReads"], 0);
+  assert.equal(next.seeds[60].select.A["render.execVisited"], 100);
+  assert.equal(next.seeds[60].select.A["perfLabels.render.frame"], 60);
+  assert.deepEqual(next.seeds[60].select.B, base.seeds[60].select.B);
+  assert.equal(base.seeds[60].select.A["render.execVisited"], undefined); // 원본 불변
+
+  // 원복 RED: 0 → 5,000 · 100 → 1,000 이면 두 번 다 같은 초과 → block
+  const regressed = {
+    60: countsByClass(
+      keysReport({ bufferProxyReads: 5000, execVisited: 1000 }),
+    ),
+  };
+  const first = judge(next, regressed);
+  assert.deepEqual(first.overA.map((o) => o.path).sort(), [
+    "seeds.60.select.A.render.bufferProxyReads",
+    "seeds.60.select.A.render.execVisited",
+  ]);
+  assert.equal(decide(first, judge(next, regressed)), "block");
+  // 같은 회귀를 --update 만으로 넣었다면 통과했을 것 (M2 반례)
+  const updated = applyUpdate(
+    base,
+    judge(base, { 60: countsByClass(keysReport(render)) }),
+  );
+  assert.equal(
+    decide(judge(updated, regressed), judge(updated, regressed)),
+    "pass",
+  );
+});
+
+test("--add-keys — 값이 갈리거나 · 기존 키 · v8.fn · 조건 불일치 · 기존 A 초과면 거부한다", () => {
+  const base = keysBase();
+  const r = (v) => keysReport({ execVisited: v });
+  assert.throws(
+    () => applyAddKeys(base, "60", [r(1), r(2)], ["render.execVisited"]),
+    /갈린/,
+  );
+  assert.throws(
+    () => applyAddKeys(base, "60", [r(1)], ["render.execVisited"]),
+    /둘 이상/,
+  );
+  assert.throws(
+    () => applyAddKeys(base, "60", [r(1), r(1)], ["perfLabels.render.frame"]),
+    /이미 상한/,
+  );
+  assert.throws(
+    () => applyAddKeys(base, "60", [r(1), r(1)], ["v8.fn.src/a.ts#f"]),
+    /v8\.fn/,
+  );
+  const other = addReport(["select", "drag"], {});
+  assert.throws(
+    () => applyAddKeys(base, "60", [other, other], ["render.*"]),
+    /조건 불일치/,
+  );
+  const over = addReport(["select"], {
+    select: { perfLabels: { "render.frame": 61 }, render: { execVisited: 1 } },
+  });
+  assert.throws(
+    () => applyAddKeys(base, "60", [over, over], ["render.*"]),
+    /기존 A 초과/,
+  );
+});
+
+test("--add-keys — recorder 해시가 바뀌면 --accept-recorder 일 때만 기록한다", () => {
+  const base = keysBase();
+  const r = keysReport({ execVisited: 3 });
+  assert.throws(
+    () =>
+      applyAddKeys(base, "60", [r, r], ["render.*"], { recorderSha: "new" }),
+    /accept-recorder/,
+  );
+  const next = applyAddKeys(base, "60", [r, r], ["render.*"], {
+    recorderSha: "new",
+    acceptRecorder: true,
+    today: "2026-10-16",
+  });
+  assert.equal(next.recorderSha256, "new");
+  assert.deepEqual(next.recorderChanges, [
+    { from: "old", to: "new", on: "2026-10-16", reason: "--add-keys render.*" },
+  ]);
 });

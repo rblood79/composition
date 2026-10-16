@@ -31,7 +31,11 @@ import {
 import { getSkImage, loadSkImage } from "./imageCache";
 import { getSkiaNode } from "./useSkiaNode";
 import { linkParagraphOwner } from "./retainedParagraph";
-import { getDragVisualOffset, getSiblingOffset } from "./nodeRendererTree";
+import {
+  getDragVisualOffset,
+  getSiblingOffset,
+  hasDragSiblingOffsets,
+} from "./nodeRendererTree";
 import {
   renderBox,
   renderText,
@@ -53,6 +57,7 @@ import {
 import { toSkiaBlendMode } from "./blendModes";
 import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
+import { renderCounters, renderDebug } from "./renderCounters";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import {
   ensureNodePictureFontGeneration,
@@ -287,6 +292,11 @@ export interface RenderCommandExecutionOptions {
     dy: number;
     applyAlpha: boolean;
   };
+  /**
+   * ADR-263 Phase 2 — 컬링 · 숨김으로 건너뛰는 요소의 서브트리 끝 (stream 의 `subtreeSpans`).
+   * 있으면 그 서브트리 안 명령을 하나씩 소비하지 않고 끝으로 점프한다. 판정은 그대로다.
+   */
+  subtreeSpans?: ReadonlyMap<string, SubtreeSpan>;
 }
 
 /**
@@ -554,7 +564,11 @@ export function createSegmentedCommandBuffer(
   const buffer = new Proxy([] as RenderCommand[], {
     get(target, property, receiver) {
       if (property === "length") return state.length;
-      if (isArrayIndex(property)) return commandAt(state, Number(property));
+      if (isArrayIndex(property)) {
+        if (process.env.NODE_ENV === "development")
+          renderCounters.bufferProxyReads += 1;
+        return commandAt(state, Number(property));
+      }
       if (property === "slice") {
         return (start?: number, end?: number) =>
           commandBufferToArray(state).slice(start, end);
@@ -625,6 +639,44 @@ export function createSegmentedCommandBuffer(
   });
   commandBufferStates.set(buffer, state);
   return buffer;
+}
+
+/**
+ * ADR-263 Phase 1 — Proxy 를 지나지 않는 명령 읽기.
+ *
+ * piece-table 버퍼의 `commands[i]` 는 Proxy `get` trap → index 문자열 판정 → segment 이분
+ * 탐색을 명령마다 지난다. 실행 · 검증 루프는 거의 앞으로만 읽으므로, 지금 segment 의 범위를
+ * 들고 있다가 벗어날 때만 다시 찾는다 (복사 0 — splice 의 write ≤ k 계약 그대로). 읽는 동안
+ * 버퍼를 splice 하지 않는다는 전제다 (실행 · 검증 한 번 안에서만 쓴다). 평평한 배열은 그대로.
+ */
+export function createCommandReader(
+  commands: RenderCommand[],
+): (index: number) => RenderCommand | undefined {
+  const state = commandBufferStates.get(commands);
+  if (!state) return (index) => commands[index];
+  const { segments, starts, length } = state;
+  let segStart = 0;
+  let segEnd = 0;
+  let source: readonly RenderCommand[] = [];
+  let offset = 0;
+  return (index) => {
+    if (index < segStart || index >= segEnd) {
+      if (index < 0 || index >= length) return undefined;
+      let low = 0;
+      let high = segments.length - 1;
+      while (low < high) {
+        const middle = (low + high + 1) >> 1;
+        if (starts[middle]! <= index) low = middle;
+        else high = middle - 1;
+      }
+      const segment = segments[low]!;
+      segStart = starts[low]!;
+      segEnd = segStart + segment.end - segment.start;
+      source = segment.source;
+      offset = segment.start - segStart;
+    }
+    return source[offset + index];
+  };
 }
 
 export function isSegmentedCommandBuffer(commands: RenderCommand[]): boolean {
@@ -1570,6 +1622,19 @@ function visitElement(
   emitDrawCommands(skiaData, updatedInternalChildren, width, height, commands);
   if (commands.length > selfSpanStart) {
     selfSpans.set(elementId, { start: selfSpanStart, end: commands.length });
+    // ADR-263: 넓이 0 상자가 그리는 것 (선 · 테두리 · 넘친 글자) 은 hit bounds 밖이고 SpatialIndex
+    // 는 넓이 0 을 넣지 않는다 (`spatial_index.rs` upsert) — 공간 질의로 열거할 수 없는 paint 다.
+    if (
+      (width <= 0 || height <= 0) &&
+      commands
+        .slice(selfSpanStart)
+        .some(
+          (command) =>
+            command.type === CMD_DRAW && command.nodeType !== "container",
+        )
+    ) {
+      damageUnsafeElementIds.add(elementId);
+    }
   }
 
   // 외부 자식 (element children) → CHILDREN_BEGIN/END + 재귀
@@ -1858,6 +1923,55 @@ export interface DamageRenderCommandSequence {
   readonly commands: RenderCommand[];
   readonly candidateCount: number;
   readonly elementCount: number;
+  /**
+   * stream 의 self span 을 sequence index 로 옮겨 읽는 map (ADR-263 Phase 2). self-draw 구간이
+   * 통째로 복사된 요소만 답한다 — 노드 picture 캐시가 sequence 실행에서도 재생된다.
+   */
+  readonly selfSpans: ReadonlyMap<string, SelfSpan>;
+}
+
+/** 복사한 구간 — stream index [sourceStart, sourceStart + length) → sequence index targetStart… */
+interface CopiedCommandRange {
+  readonly sourceStart: number;
+  readonly targetStart: number;
+  readonly length: number;
+}
+
+/** stream self span 을 복사 구간으로 옮긴다. 구간 밖이거나 걸치면 없음 (direct 실행). */
+class SequenceSelfSpans extends Map<string, SelfSpan> {
+  constructor(
+    private readonly source: ReadonlyMap<string, SelfSpan>,
+    private readonly ranges: readonly CopiedCommandRange[],
+  ) {
+    super();
+  }
+
+  override get(elementId: string): SelfSpan | undefined {
+    const span = this.source.get(elementId);
+    if (!span) return undefined;
+    let low = 0;
+    let high = this.ranges.length - 1;
+    while (low <= high) {
+      const middle = (low + high) >> 1;
+      const range = this.ranges[middle]!;
+      if (span.start < range.sourceStart) high = middle - 1;
+      else if (span.start >= range.sourceStart + range.length) low = middle + 1;
+      else {
+        if (span.end > range.sourceStart + range.length) return undefined;
+        const shift = range.targetStart - range.sourceStart;
+        return { start: span.start + shift, end: span.end + shift };
+      }
+    }
+    return undefined;
+  }
+
+  override has(elementId: string): boolean {
+    return this.get(elementId) !== undefined;
+  }
+
+  override get size(): number {
+    return this.source.size;
+  }
 }
 
 function appendCommandRange(
@@ -1865,11 +1979,27 @@ function appendCommandRange(
   target: RenderCommand[],
   start: number,
   end: number,
+  ranges?: CopiedCommandRange[],
 ): boolean {
+  const targetStart = target.length;
+  const commandAtIndex = createCommandReader(source);
   for (let index = start; index < end; index += 1) {
-    const command = source[index];
+    const command = commandAtIndex(index);
     if (!command) return false;
     target.push(command);
+  }
+  if (ranges && end > start) {
+    const last = ranges.at(-1);
+    if (
+      last &&
+      last.sourceStart + last.length === start &&
+      last.targetStart + last.length === targetStart
+    )
+      ranges[ranges.length - 1] = {
+        ...last,
+        length: last.length + end - start,
+      };
+    else ranges.push({ sourceStart: start, targetStart, length: end - start });
   }
   return true;
 }
@@ -1926,6 +2056,7 @@ export function buildDamageRenderCommandSequence(
   }
 
   const commands: RenderCommand[] = [];
+  const ranges: CopiedCommandRange[] = [];
   const appendElement = (elementId: string): boolean => {
     const subtreeSpan = stream.subtreeSpans.get(elementId);
     if (!subtreeSpan) return false;
@@ -1936,6 +2067,7 @@ export function buildDamageRenderCommandSequence(
         commands,
         subtreeSpan.start,
         subtreeSpan.end,
+        ranges,
       );
     }
     if (
@@ -1953,6 +2085,7 @@ export function buildDamageRenderCommandSequence(
         commands,
         subtreeSpan.start,
         childrenSpan.start + 1,
+        ranges,
       )
     ) {
       return false;
@@ -1976,6 +2109,7 @@ export function buildDamageRenderCommandSequence(
       commands,
       childrenSpan.end - 1,
       subtreeSpan.end,
+      ranges,
     );
   };
 
@@ -1993,6 +2127,7 @@ export function buildDamageRenderCommandSequence(
     commands,
     candidateCount: candidates.size,
     elementCount: relevant.size,
+    selfSpans: new SequenceSelfSpans(stream.selfSpans, ranges),
   };
 }
 
@@ -2007,6 +2142,8 @@ export function executeDamageRenderCommands(
   pagePositionSnapshot: PagePositionPresentationSnapshot = getPagePositionPresentationSnapshot(),
 ): number | null {
   if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex()) return null;
+  // SpatialIndex 는 offset 전 상자만 안다 — drag · 형제 비킴 중에는 후보를 열거할 수 없다 (ADR-263 R2).
+  if (getDragVisualOffset() !== null || hasDragSiblingOffsets()) return null;
   const candidateIds = spatialIndex.queryRect(
     damageBounds.x,
     damageBounds.y,
@@ -2023,11 +2160,85 @@ export function executeDamageRenderCommands(
     // overflow:visible 자식만 damage와 교차하는 경우 조상에서 잘못 탈락한다.
     RECORD_BOUNDS,
     fontMgr,
-    undefined,
+    // ADR-263: 통째로 복사된 self-draw 구간은 노드 picture 로 재생한다.
+    sequence.selfSpans,
     pageRootPageIds,
     pagePositionSnapshot,
   );
   return sequence.commands.length;
+}
+
+/**
+ * ADR-263 Phase 2 — full 재기록을 viewport 의 SpatialIndex 후보 + 조상 closure 만으로 실행한다
+ * (damage 경로와 같은 sequence 기계). 방문 수는 전체 명령 수가 아니라 화면에 걸친 요소 수에
+ * 비례한다. 컬링 판정은 선형 실행과 같은 `cullingBounds` 로 한다 — 후보는 hit bounds 가 viewport
+ * 와 겹친 요소라 선형 실행이 그리는 요소의 부분집합이고, 빠지는 것은 조상 clip 에 다 잘린 요소뿐이다.
+ *
+ * false = 쓸 수 없음 → caller 가 선형 실행 (+ 서브트리 점프) 으로 그린다:
+ * SpatialIndex 없음 · hit bounds 밖 paint (`damageUnsafeElementIds`) · drag · 형제 비킴 offset
+ * (index 는 offset 전 상자만 안다) · 후보가 절반을 넘음 (선형이 더 싸다) · sequence 불가.
+ */
+export function executeViewportRenderCommands(
+  ck: CanvasKit,
+  canvas: Canvas,
+  stream: RenderCommandStream,
+  cullingBounds: DOMRect,
+  rootIds: readonly string[],
+  fontMgr?: FontMgr,
+): boolean {
+  const fallback = () => {
+    if (process.env.NODE_ENV === "development")
+      renderCounters.viewportFallbacks += 1;
+    return false;
+  };
+  if (process.env.NODE_ENV === "development" && renderDebug.linearOnly)
+    return fallback();
+  if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex())
+    return fallback();
+  if (stream.damageUnsafeElementIds.size > 0) return fallback();
+  if (getDragVisualOffset() !== null || hasDragSiblingOffsets())
+    return fallback();
+  const candidateIds = spatialIndex.queryRect(
+    cullingBounds.x,
+    cullingBounds.y,
+    cullingBounds.x + cullingBounds.width,
+    cullingBounds.y + cullingBounds.height,
+  );
+  if (candidateIds.length * 2 > stream.subtreeSpans.size) return fallback();
+  // page root 는 hit bounds 에 없을 수 있다 (조상이 없어 clip 대상 아님) — 바탕을 늘 싣는다.
+  const sequence = buildDamageRenderCommandSequence(stream, [
+    ...rootIds,
+    ...candidateIds,
+  ]);
+  if (!sequence) return fallback();
+  if (process.env.NODE_ENV === "development")
+    renderCounters.viewportSequences += 1;
+  executeRenderCommands(
+    ck,
+    canvas,
+    sequence.commands,
+    cullingBounds,
+    fontMgr,
+    sequence.selfSpans,
+  );
+  return true;
+}
+
+/**
+ * ADR-263 — 마지막으로 그렸을 때 글자가 자기 상자 밖으로 나간 요소. 노드 picture 재생은 글자를
+ * 다시 그리지 않으므로 기록 때의 상태가 남는다. damage 부분 재기록은 hit bounds 만 비우므로, 이전에
+ * 넘쳤던 요소를 바꾸는 patch 는 full 로 간다 (`subtreeCommandPatch.ts` `unsafePaint`).
+ */
+const textPaintOverflowIds = new Set<string>();
+/** 넘친 글자를 그린 횟수 — damage 재기록 중 늘면 새로 넘친 것이라 full 로 다시 그린다. */
+let textPaintOverflowEvents = 0;
+
+export function hasTextPaintOverflow(elementId: string): boolean {
+  return textPaintOverflowIds.has(elementId);
+}
+
+export function getTextPaintOverflowEvents(): number {
+  return textPaintOverflowEvents;
 }
 
 // ── executeRenderCommands ─────────────────────────────────────────────
@@ -2055,6 +2266,9 @@ export function executeRenderCommands(
   if (end <= start) return;
   if (process.env.NODE_ENV === "development") {
     addCommandCount(end - start);
+    renderCounters.execCalls += 1;
+    renderCounters.bufferSegmentsAtExec +=
+      commandBufferStates.get(commands)?.segments.length ?? 0;
   }
   const spans =
     selfSpans && selfSpans.size > 0 && isNodePictureCacheEnabled()
@@ -2132,12 +2346,32 @@ function executeCommandRange(
     apply: () => void;
   }
   const maskLayerStack: Array<MaskLayerEntry | null> = [];
+  // 이 실행에서 글자를 그린 요소 · 그중 상자 밖으로 나간 요소 (끝에서 전역 표시를 갱신).
+  let textDrawn: Set<string> | null = null;
+  let textOverflowed: Set<string> | null = null;
 
+  const countVisits = process.env.NODE_ENV === "development";
+  const commandAtIndex = createCommandReader(commands);
+  const subtreeSpans = options.subtreeSpans;
+  /**
+   * 건너뛸 요소 서브트리의 마지막 명령 index (루프의 i++ 가 그 다음으로 간다). 내부 자식 (id 없음) ·
+   * span 이 없거나 이 위치와 맞지 않거나 실행 범위를 넘으면 null — 명령을 하나씩 소비한다.
+   */
+  const subtreeEndOf = (elementId: string, at: number): number | null => {
+    if (!subtreeSpans || !elementId) return null;
+    if (countVisits && renderDebug.linearOnly) return null;
+    const span = subtreeSpans.get(elementId);
+    if (!span || span.start !== at || span.end > end) return null;
+    if (countVisits) renderCounters.execCulledJumped += span.end - 1 - at;
+    return span.end - 1;
+  };
   for (let i = start; i < end; i++) {
-    const cmd = commands[i];
+    const cmd = commandAtIndex(i)!;
+    if (countVisits) renderCounters.execVisited += 1;
 
     // 비가시 요소 스킵
     if (skipDepth > 0) {
+      if (countVisits) renderCounters.execSkipped += 1;
       if (cmd.type === CMD_ELEMENT_BEGIN) {
         skipDepth++;
       } else if (cmd.type === CMD_ELEMENT_END) {
@@ -2149,7 +2383,9 @@ function executeCommandRange(
     switch (cmd.type) {
       case CMD_ELEMENT_BEGIN: {
         if (!cmd.visible) {
-          skipDepth = 1;
+          const jumpTo = subtreeEndOf(cmd.elementId, i);
+          if (jumpTo === null) skipDepth = 1;
+          else i = jumpTo;
           continue;
         }
 
@@ -2192,7 +2428,9 @@ function executeCommandRange(
             cullTop > nodeBottom ||
             cullBottom < nodeTop
           ) {
-            skipDepth = 1;
+            const jumpTo = subtreeEndOf(cmd.elementId, i);
+            if (jumpTo === null) skipDepth = 1;
+            else i = jumpTo;
             continue;
           }
         }
@@ -2388,6 +2626,8 @@ function executeCommandRange(
               editingId,
             )
           ) {
+            if (countVisits)
+              renderCounters.execPictureJumped += span.end - 1 - i;
             i = span.end - 1; // 루프 i++ 로 구간 종료 지점에 도달
           }
         }
@@ -2412,6 +2652,12 @@ function executeCommandRange(
             ) {
               const drawn = renderText(ck, canvas, cmd.skiaData, fontMgr);
               if (drawn) {
+                const owner = elementIdStack[eidTop];
+                (textDrawn ??= new Set()).add(owner);
+                if (drawn.overflows) {
+                  (textOverflowed ??= new Set()).add(owner);
+                  textPaintOverflowEvents += 1;
+                }
                 const at = translateStack[stackTop];
                 const origin = elementOriginStack[eidTop];
                 recordTextDrawOrigin(
@@ -2527,6 +2773,11 @@ function executeCommandRange(
       }
     }
   }
+  if (textDrawn)
+    for (const owner of textDrawn) {
+      if (textOverflowed?.has(owner)) textPaintOverflowIds.add(owner);
+      else textPaintOverflowIds.delete(owner);
+    }
 }
 
 // ── 노드 Picture 캐시 record/replay (ADR-153 Phase 3) ─────────────────
@@ -2656,8 +2907,9 @@ function collectSpanImageRefs(
   span: SelfSpan,
 ): SkImage[] | null {
   let refs: SkImage[] | null = null;
+  const commandAtIndex = createCommandReader(commands);
   for (let i = span.start; i < span.end; i++) {
-    const c = commands[i];
+    const c = commandAtIndex(i)!;
     if (c.type !== CMD_DRAW) continue;
     const img = c.skiaData.image?.skImage;
     if (img) (refs ??= []).push(img);

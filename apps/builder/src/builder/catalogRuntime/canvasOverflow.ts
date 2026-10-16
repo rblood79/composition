@@ -1,4 +1,5 @@
 import type { BoundingBox } from "../workspace/canvas/selection/types";
+import { renderCounters } from "../workspace/canvas/skia/renderCounters";
 import type {
   ChildOverflowContext,
   OverflowContentInfo,
@@ -37,6 +38,8 @@ export const catalogOverflowScrolls = (overflow: unknown): boolean =>
 
 /** The same depth limit as the old descent (cycles and abnormal depth). */
 const MAX_DEPTH = 32;
+/** A changed subtree this close to the far edge may have been the one reaching it. */
+const EXTENT_TOLERANCE = 1e-3;
 /** Sub-pixel layout noise is not overflow. */
 const EPSILON = 0.5;
 
@@ -49,19 +52,43 @@ export function catalogScrollRange(
   tree: CatalogOverflowTree,
   rectOf: (id: string) => BoundingBox | undefined,
   end: { right: number; bottom: number },
+  /** The box's descendant extent when the caller holds it (`catalogScrollExtent`). */
+  extent?: CatalogScrollExtent,
 ): { maxScrollTop: number; maxScrollLeft: number } {
   const box = rectOf(id);
   if (!box) return { maxScrollTop: 0, maxScrollLeft: 0 };
+  const { right, bottom } = extent ?? catalogScrollExtent(id, tree, rectOf);
+  return {
+    maxScrollTop: Math.max(0, bottom + end.bottom - box.height),
+    maxScrollLeft: Math.max(0, right + end.right - box.width),
+  };
+}
+
+/** The far edges a scroll/auto box's descendants reach, in its own coordinates (floor 0). */
+export interface CatalogScrollExtent {
+  readonly right: number;
+  readonly bottom: number;
+}
+
+/** Descends from `start` (box-local offset · depth) the way the scroll range does. */
+function descendExtent(
+  start: { id: string; x: number; y: number; depth: number }[],
+  tree: CatalogOverflowTree,
+  rectOf: (id: string) => BoundingBox | undefined,
+  subtree = false,
+): CatalogScrollExtent {
   let maxRight = 0;
   let maxBottom = 0;
-  const stack = tree
-    .childrenOf(id)
-    .map((child) => ({ id: child, x: 0, y: 0, depth: 0 }));
+  const stack = start;
   const seen = new Set<string>();
   while (stack.length) {
     const { id: child, x, y, depth } = stack.pop()!;
     if (seen.has(child)) continue;
     seen.add(child);
+    if (process.env.NODE_ENV === "development") {
+      if (subtree) renderCounters.scrollSubtreeVisits += 1;
+      else renderCounters.scrollRangeVisits += 1;
+    }
     const rect = rectOf(child);
     if (!rect) continue;
     const left = x + rect.x;
@@ -73,10 +100,77 @@ export function catalogScrollRange(
     for (const next of tree.childrenOf(child))
       stack.push({ id: next, x: left, y: top, depth: depth + 1 });
   }
-  return {
-    maxScrollTop: Math.max(0, maxBottom + end.bottom - box.height),
-    maxScrollLeft: Math.max(0, maxRight + end.right - box.width),
+  return { right: maxRight, bottom: maxBottom };
+}
+
+/** A scroll/auto box's descendant extent — every descendant the range reads (full descent). */
+export function catalogScrollExtent(
+  id: string,
+  tree: CatalogOverflowTree,
+  rectOf: (id: string) => BoundingBox | undefined,
+): CatalogScrollExtent {
+  if (process.env.NODE_ENV === "development")
+    renderCounters.scrollRangeCalls += 1;
+  return descendExtent(
+    tree.childrenOf(id).map((child) => ({ id: child, x: 0, y: 0, depth: 0 })),
+    tree,
+    rectOf,
+  );
+}
+
+/**
+ * ADR-263 Phase 4: what one descendant's subtree adds to `ownerId`'s extent (owner coordinates) —
+ * the full descent restricted to that subtree. `ownerId` is the descendant's nearest clipping
+ * ancestor. Null = the descent does not reach it (a missing rect on the way, past the depth limit).
+ */
+export function catalogSubtreeScrollExtent(
+  ownerId: string,
+  nodeId: string,
+  tree: CatalogOverflowTree,
+  rectOf: (id: string) => BoundingBox | undefined,
+): CatalogScrollExtent | null {
+  let x = 0;
+  let y = 0;
+  let depth = 0;
+  for (
+    let cursor = tree.parentOf(nodeId);
+    cursor !== ownerId;
+    cursor = tree.parentOf(cursor)
+  ) {
+    if (cursor === undefined || depth > MAX_DEPTH) return null;
+    const rect = rectOf(cursor);
+    if (!rect) return null;
+    x += rect.x;
+    y += rect.y;
+    depth += 1;
+  }
+  if (depth > MAX_DEPTH || !rectOf(nodeId)) return null;
+  return descendExtent([{ id: nodeId, x, y, depth }], tree, rectOf, true);
+}
+
+/**
+ * ADR-263 Phase 4: a scroll/auto box's extent after some descendant subtrees changed, from the
+ * extent before and what those subtrees contributed before and after — without the full descent.
+ * Null = recompute: a changed subtree reached the old far edge on an axis and nothing reaches it
+ * any more (the edge may come back in).
+ */
+export function catalogUpdatedScrollExtent(
+  previous: CatalogScrollExtent,
+  before: readonly (CatalogScrollExtent | null)[],
+  after: readonly (CatalogScrollExtent | null)[],
+): CatalogScrollExtent | null {
+  const axis = (key: "right" | "bottom"): number | null => {
+    const reached = Math.max(0, ...after.map((e) => e?.[key] ?? 0));
+    // The tolerance counts a subtree summed in another order (float rounding) as reaching it.
+    const touched = before.some(
+      (e) => !!e && e[key] >= previous[key] - EXTENT_TOLERANCE,
+    );
+    if (touched && reached < previous[key]) return null;
+    return Math.max(previous[key], reached);
   };
+  const right = axis("right");
+  const bottom = axis("bottom");
+  return right === null || bottom === null ? null : { right, bottom };
 }
 
 const outside = (b: BoundingBox, c: BoundingBox) =>

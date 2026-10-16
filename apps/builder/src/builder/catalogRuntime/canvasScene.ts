@@ -1,7 +1,13 @@
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import { orderPagesForPaint } from "../workspace/canvas/scene/pagePaintOrder";
 import { beginImageEpoch } from "../workspace/canvas/skia/imageCache";
-import { executeRenderCommands } from "../workspace/canvas/skia/renderCommands";
+import {
+  executeDamageRenderCommands,
+  executeRenderCommands,
+  executeViewportRenderCommands,
+} from "../workspace/canvas/skia/renderCommands";
+import { renderDebug } from "../workspace/canvas/skia/renderCounters";
+import type { BoundingBox } from "../workspace/canvas/selection/types";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
   bindCatalogCanvas,
@@ -18,6 +24,16 @@ export type CatalogCanvasSceneSync =
     }
   /** The whole scene was bound again (`reason`: what the patch path does not own). */
   | { readonly kind: "rebound"; readonly reason: string };
+
+/**
+ * ADR-263 Phase 3: the content area a sync changed — a patch's old ∪ new hit bounds. Undefined
+ * (draw in full) for a rebind, or a patch that paints outside its hit bounds before or after.
+ */
+export function catalogSyncDamage(
+  sync: CatalogCanvasSceneSync,
+): BoundingBox | undefined {
+  return sync.kind === "patched" ? sync.update.damage : undefined;
+}
 
 const sameIds = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length &&
@@ -149,7 +165,11 @@ export class CatalogCanvasScene {
     return { kind: "rebound", reason };
   }
 
-  /** Renderer content: draws the current stream (a rebind replaces it; the node reads it per frame). */
+  /**
+   * Renderer content: draws the current stream (a rebind replaces it; the node reads it per frame).
+   * ADR-263 Phase 2: the viewport's SpatialIndex candidates when it can (visits follow what is on
+   * screen), else the whole stream with culled subtrees jumped over.
+   */
   contentNode(
     ck: CanvasKit,
     fontMgr: () => FontMgr | undefined,
@@ -157,6 +177,17 @@ export class CatalogCanvasScene {
     return {
       renderSkia: (canvas, bounds) => {
         const stream = this.binding.stream;
+        if (
+          executeViewportRenderCommands(
+            ck,
+            canvas,
+            stream,
+            bounds,
+            this.rootIds,
+            fontMgr(),
+          )
+        )
+          return;
         executeRenderCommands(
           ck,
           canvas,
@@ -164,8 +195,22 @@ export class CatalogCanvasScene {
           bounds,
           fontMgr(),
           stream.selfSpans,
+          undefined,
+          undefined,
+          { subtreeSpans: stream.subtreeSpans },
         );
       },
+      // Phase 3: only the damage's SpatialIndex contributors (null → the renderer draws in full).
+      renderDamageSkia: (canvas, bounds) =>
+        process.env.NODE_ENV === "development" && renderDebug.damageOff
+          ? null
+          : executeDamageRenderCommands(
+              ck,
+              canvas,
+              this.binding.stream,
+              bounds,
+              fontMgr(),
+            ),
     };
   }
 

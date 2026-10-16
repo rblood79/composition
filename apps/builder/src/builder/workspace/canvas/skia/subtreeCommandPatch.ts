@@ -1,8 +1,11 @@
 import type { PresentationTargetedLayoutPublication } from "../../../presentation/editorLayoutPublication";
+import { renderCounters } from "./renderCounters";
 import type { BoundingBox } from "../selection/types";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
 import {
+  createCommandReader,
+  hasTextPaintOverflow,
   publishPatchedCommandStreamSnapshot,
   recordCommitLanePatchFallback,
   recordCommitLanePatchWrites,
@@ -78,6 +81,12 @@ export interface CommitSubtreeCommandPatchResult {
   readonly writeCount?: number;
   /** 이전/이후 hit bounds 합집합 — content damage clip의 최소 영역. */
   readonly damageBounds?: BoundingBox;
+  /**
+   * 교체 **전 또는 후** 의 서브트리에 hit bounds 밖 paint (`damageUnsafeElementIds`) 가 있었다
+   * (ADR-263 H1). 교체 뒤에는 이전 표시가 지워져 사후 검사로는 이전 그림자 · outline 영역을 모른다
+   * — 이 patch 의 damage 는 hit bounds 로 충분하지 않으니 full 로 그린다.
+   */
+  readonly unsafePaint?: boolean;
 }
 
 function isValidRevision(value: number): boolean {
@@ -110,8 +119,9 @@ function isValidSpan(
   ) {
     return false;
   }
-  const begin = stream.commands[span.start];
-  const end = stream.commands[span.end - 1];
+  const commandAtIndex = createCommandReader(stream.commands);
+  const begin = commandAtIndex(span.start);
+  const end = commandAtIndex(span.end - 1);
   return (
     begin?.type === CMD_ELEMENT_BEGIN &&
     "elementId" in begin &&
@@ -124,8 +134,11 @@ function hasCompleteSubtreeSpanContext(
   stream: RenderCommandStream,
   span: SubtreeSpan,
 ): boolean {
+  if (process.env.NODE_ENV === "development")
+    renderCounters.patchScanCommands += span.end - span.start;
+  const commandAtIndex = createCommandReader(stream.commands);
   for (let index = span.start; index < span.end; index += 1) {
-    const command = stream.commands[index];
+    const command = commandAtIndex(index);
     if (command?.type !== CMD_ELEMENT_BEGIN || !("elementId" in command)) {
       continue;
     }
@@ -139,14 +152,43 @@ function hasCompleteSubtreeSpanContext(
   return true;
 }
 
+/**
+ * ADR-263 Phase 5 — span 을 한 번 읽어 element ID 를 모으면서 span context 완전성도 본다
+ * (`hasCompleteSubtreeSpanContext` + `getSubtreeElementIds` 두 번 순회를 하나로). 완전하지 않으면 null.
+ */
+function collectCompleteSubtreeIds(
+  stream: RenderCommandStream,
+  span: SubtreeSpan,
+): Set<string> | null {
+  if (process.env.NODE_ENV === "development")
+    renderCounters.patchScanCommands += span.end - span.start;
+  const ids = new Set<string>();
+  const commandAtIndex = createCommandReader(stream.commands);
+  for (let index = span.start; index < span.end; index += 1) {
+    const command = commandAtIndex(index);
+    if (
+      command?.type !== CMD_ELEMENT_BEGIN ||
+      !("elementId" in command) ||
+      command.elementId.length === 0
+    )
+      continue;
+    if (!stream.subtreeSpans.has(command.elementId)) return null;
+    ids.add(command.elementId);
+  }
+  return ids;
+}
+
 /** span 안에 포함된 element ID를 반환한다. subtree span은 DFS contiguous 계약을 전제로 한다. */
 export function getSubtreeElementIds(
   stream: RenderCommandStream,
   span: SubtreeSpan,
 ): Set<string> {
+  if (process.env.NODE_ENV === "development")
+    renderCounters.patchScanCommands += span.end - span.start;
   const ids = new Set<string>();
+  const commandAtIndex = createCommandReader(stream.commands);
   for (let index = span.start; index < span.end; index += 1) {
-    const command = stream.commands[index];
+    const command = commandAtIndex(index);
     if (
       command?.type === CMD_ELEMENT_BEGIN &&
       "elementId" in command &&
@@ -475,6 +517,7 @@ export function applyCommitSubtreeCommandPatch(
     return { applied: false, reason };
   };
   const { current, replacement, rootId, canonicalRevision, revision } = input;
+  if (process.env.NODE_ENV === "development") renderCounters.patchCalls += 1;
   const rootKey = input.rootKey ?? "__default__";
   const currentRootRevision =
     current.presentationRevisionByRootKey.get(rootKey) ??
@@ -496,9 +539,7 @@ export function applyCommitSubtreeCommandPatch(
   if (!currentSpan || !replacementSpan) return fail("missing-span");
   if (
     !isValidSpan(current, rootId, currentSpan) ||
-    !isValidSpan(replacement, rootId, replacementSpan) ||
-    !hasCompleteSubtreeSpanContext(current, currentSpan) ||
-    !hasCompleteSubtreeSpanContext(replacement, replacementSpan)
+    !isValidSpan(replacement, rootId, replacementSpan)
   ) {
     return fail("invalid-span");
   }
@@ -525,9 +566,17 @@ export function applyCommitSubtreeCommandPatch(
   if (!currentZ || !replacementZ || currentZ !== replacementZ) {
     return fail("z-order-changed");
   }
-  const currentIds = getSubtreeElementIds(current, currentSpan);
-  const replacementIds = getSubtreeElementIds(replacement, replacementSpan);
-  if (!currentIds.has(rootId) || !replacementIds.has(rootId)) {
+  const currentIds = collectCompleteSubtreeIds(current, currentSpan);
+  const replacementIds = collectCompleteSubtreeIds(
+    replacement,
+    replacementSpan,
+  );
+  if (
+    !currentIds ||
+    !replacementIds ||
+    !currentIds.has(rootId) ||
+    !replacementIds.has(rootId)
+  ) {
     return fail("invalid-span");
   }
   for (const elementId of currentIds) {
@@ -546,11 +595,21 @@ export function applyCommitSubtreeCommandPatch(
     currentIds,
     replacementIds,
   );
+  let unsafePaint = false;
+  for (const elementId of currentIds)
+    if (
+      current.damageUnsafeElementIds.has(elementId) ||
+      hasTextPaintOverflow(elementId)
+    )
+      unsafePaint = true;
+  for (const elementId of replacementIds)
+    if (replacement.damageUnsafeElementIds.has(elementId)) unsafePaint = true;
 
   const replacementLength = replacementSpan.end - replacementSpan.start;
   const replacementCommands: RenderCommand[] = [];
+  const replacementAt = createCommandReader(replacement.commands);
   for (let index = 0; index < replacementLength; index += 1) {
-    const command = replacement.commands[replacementSpan.start + index];
+    const command = replacementAt(replacementSpan.start + index);
     if (!command) return fail("invalid-span");
     replacementCommands.push(command);
   }
@@ -564,11 +623,15 @@ export function applyCommitSubtreeCommandPatch(
     replacementCommands,
   );
   recordCommitLanePatchWrites(replacementLength);
+  if (process.env.NODE_ENV === "development")
+    renderCounters.patchWrites += replacementLength;
 
   const oldHitIds = new Set<string>();
   for (const elementId of currentIds) {
     if (current.hitBoundsMap.has(elementId)) oldHitIds.add(elementId);
-    invalidateNodePicture(elementId);
+    // ADR-263 Phase 5: a picture stays valid while its node data and size do (the cache key
+    // `getCachedNodePicture` checks) — only a removed element's picture is released here.
+    if (!replacementIds.has(elementId)) invalidateNodePicture(elementId);
     current.selfSpans.delete(elementId);
     current.subtreeSpans.delete(elementId);
     current.childrenSpans.delete(elementId);
@@ -635,7 +698,6 @@ export function applyCommitSubtreeCommandPatch(
       current.hitBoundsMap.set(elementId, copyBounds(nextHitBounds));
       nextHitIds.add(elementId);
     }
-    invalidateNodePicture(elementId);
   }
 
   if (WASM_FLAGS.SPATIAL_INDEX) {
@@ -666,9 +728,11 @@ export function applyCommitSubtreeCommandPatch(
         applied: true,
         writeCount: replacementLength,
         damageBounds,
+        unsafePaint,
       }
     : {
         applied: true,
         writeCount: replacementLength,
+        unsafePaint,
       };
 }

@@ -23,7 +23,10 @@ import {
   CatalogCanvasPicking,
   resolveCatalogTextEditRecord,
 } from "../../../catalogRuntime/canvasPick";
-import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
+import {
+  CatalogCanvasScene,
+  catalogSyncDamage,
+} from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
 import { catalogHasOwnText } from "../../../catalogRuntime/textBinding";
 import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
@@ -756,7 +759,8 @@ export function CatalogCanvas({
       try {
         const synced = scene.sync();
         if (synced.kind !== "unchanged") {
-          renderer.invalidateContent();
+          // ADR-263 Phase 3: a patch redraws only the area it changed (a rebind draws in full).
+          renderer.invalidateContent(catalogSyncDamage(synced));
           overlayVersion += 1;
           cellsVersion += 1;
         }

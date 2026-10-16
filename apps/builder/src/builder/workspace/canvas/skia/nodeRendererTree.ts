@@ -58,6 +58,11 @@ export function getSiblingOffset(
   return G.__composition_dragSiblingOffsets?.get(elementId);
 }
 
+/** 비킨 형제가 있는가 — 공간 질의는 offset 전 hit bounds 만 알아 이 동안 쓰지 않는다 (ADR-263). */
+export function hasDragSiblingOffsets(): boolean {
+  return (G.__composition_dragSiblingOffsets?.size ?? 0) > 0;
+}
+
 /** registry와 분리된 sibling presentation 세대. SkiaCanvas가 content snapshot만 갱신한다. */
 export function getDragSiblingOffsetRevision(): number {
   return G.__composition_dragSiblingOffsetRevision ?? 0;
