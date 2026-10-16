@@ -88,3 +88,5 @@ gap p95 / p99 ms · drop % (부류당 3 초, 모든 run visibility `visible` · 
 - 합성 1만 (§2) 에서 줌이 멀쩡했던 것은 그리는 요소 · 글자 종류가 적어 상한 안에 들었기 때문으로 보인다 — 합성 격자는 이 비용을 가렸다 (measurement-validity #6 유리한 경우만 측정).
 
 원인 가설 (picture 상한 → 퇴거 → paragraph 재생성) 과 viewport 후퇴의 조건은 새 ADR 의 Phase 0 에서 카운트로 확정한다.
+
+→ **[ADR-266](../../adr/266-draw-cache-thrash-real-document-zoom-edit.md) (2026-10-17 Proposed)**. ADR 작성 때 같은 run 의 카운트를 다시 읽으니 위 가설 앞에 한 자리가 더 있다 — 줌의 자동 열 수 변경에서 ADR-264 의 page root 옮기기가 후퇴해 `rebind("page-grid")` 가 기록 21 회 중 15 회 (`rebindPageGrid` 15 · `pageGridMovedRoots` 292 · `pageGridResized` 0 · `translateCalls` 0), 재등록 (`registerSkiaNode`) 이 picture · paragraph 를 전부 버린다. 상한 thrash 는 재바인드가 없던 6 회에서도 성립한다 (hit 344). 두 몫은 ADR-266 Phase 0 이 가른다.

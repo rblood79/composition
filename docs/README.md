@@ -126,8 +126,8 @@ Properties Panel · ToggleButtonGroup
 
 외부 대조 (해당 저장소의 경로를 인용하므로 우리 경로로 바꾸지 않습니다)
 
-- [Chromium 대조 통합 — 페인트 · 레이아웃 (Claude Code) + 실행 절차 P0 ~ P15 (Codex) + 교차 검증](explanation/research/CHROMIUM_CLAUDE.md)
-- [Chromium 대조 통합 — 결함 후보 · 코드 근거 · U0~U8 실행 및 검증 계약 (Codex)](explanation/research/CHROMIUM_CODEX.md)
+- [Chromium 대조 통합 정본 — Canvas 정확도 (C01 ~ C12 · 레이아웃 51 행) · 최적화 (O1 ~ O3) · 확장 (E01 ~ E07) · 실행 U0 ~ U8 · 검증 계약 · ledger](explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) — 아래 두 원문을 서로 보완해 하나로 합친 정본
+  - 원문 (이력): [Claude Code 판정 — 페인트 · 레이아웃 + P0 ~ P15 주석](explanation/research/CHROMIUM_CLAUDE.md) · [Codex 계약 — 결함 후보 · U0~U8 · 검증 계약](explanation/research/CHROMIUM_CODEX.md)
 - [외부 패턴 대조 (fulgur · pretext)](explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md)
 - [Taffy upstream 대조](explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md)
 - [Webstudio 패턴 대조](explanation/research/WEBSTUDIO_PATTERN_DELTA_2026-09.md)

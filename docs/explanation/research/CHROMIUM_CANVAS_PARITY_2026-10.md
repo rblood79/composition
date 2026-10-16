@@ -1,0 +1,924 @@
+# Chromium 대조 통합 정본 — composition Canvas (Skia wasm) 의 정확도 · 지원 범위 · 실행 계획
+
+> **작성일**: 2026-10-17 · **Chromium 참조 revision**: `33688427bc1a316cecb28d5651ad25208ba9ab53` · **composition 기준**: 조사 `45026d1d8` → 통합 HEAD `7be0f7a00`
+> **상태**: 분석 · 계획 통합 완료. 이 문서의 구현 · 제품 gate 는 미착수. 이번 통합에서 Builder/Preview 재현 · 성능 측정은 실행하지 않았다 (코드 사실 3 건만 재확인 — §0-4).
+>
+> **통합한 문서 2 개** (같은 조사 — Claude Code 의 페인트 · 레이아웃 대조 2 편과 Codex 의 Phase 계획 1 편 — 를 서로 다른 축으로 묶은 것)
+>
+> | 원문                 | 작성        | 성격                                                                                            | 이 문서에서 가져온 것                                     |
+> | -------------------- | ----------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+> | `CHROMIUM_CLAUDE.md` | Claude Code | **판정** — Chromium 코드 인용 · 격차 51 행 함수 단위 대조 · 수요↔공급 전수 표 · Blink 포팅 지도 | §0-2 착수 순서 · §3 · §4 각 절의 코드 근거 · §6 · §7 · §8 |
+> | `CHROMIUM_CODEX.md`  | Codex       | **계약** — 지원 상태 × 증거 수준 · 교차 검증 정정 · U0 ~ U8 단계 · 검증 계약 · ledger           | §1 · §2 · §4 표의 상태 열 · §9 · §10 · §11 · §12          |
+>
+> 두 원문은 삭제하지 않고 그대로 둔다 (삭제는 사용자 명시 승인 사항). **이 문서가 정본** 이고, 원문은 작성 주체별 이력이다. 원문의 원본 3 개 (`CHROMIUM_CC_BLINK_PAINT_DELTA_2026-10.md` · `BLINK_LAYOUT_DELTA_2026-10.md` · `CHROMIUM_HTML_CSS_CANVAS_PHASE_PLAN.md`) 는 2026-10-17 삭제됨 — 이력은 커밋 `a6ce961a4`.
+>
+> **목적**: Builder Canvas (CanvasKit wasm, `apps/builder/src/builder/workspace/canvas/skia/`) + Rust 레이아웃 엔진 (`packages/engine/src/`) 이 Preview (Chrome DOM) 와 **같은 화면** 을 더 정확하고 더 싸게 그리도록, Chromium 의 어느 구조 · 알고리즘 · 상수 · 테스트를 가져올지 판정하고, 그 작업을 어떤 순서 · 검증 · 기록으로 진행할지 정한다.
+>
+> **ID 체계** (이 문서 하나로 통일 — 옛 ID 는 아래 대응표):
+>
+> - `B* · F* · G* · X*` = 레이아웃 block · flex · grid · 박스 모델 (51 행, §7)
+> - `C01 ~ C12` = 페인트 · 이미지 · 텍스트 정확도 (§4)
+> - `O1 ~ O3` = 최적화 · 검증 구조 (§5)
+> - `E01 ~ E07` = 지원 확장 (§9, 사용자 결정 대기)
+> - `U0 ~ U8` = 실행 단계 (§10) · `P0 ~ P15` = Codex 원 Phase (대응 열로만 남김) · gate 는 항상 "gate U*" 로 적는다 (grid `G*` 와 충돌 방지)
+>
+> | 옛 ID (`CHROMIUM_CLAUDE.md`)             | 이 문서                         |
+> | ---------------------------------------- | ------------------------------- |
+> | S1 그림자 sigma                          | C01 (box · text) + C02 (filter) |
+> | S2 이미지 샘플링                         | C03                             |
+> | S3 font-variant-numeric                  | C04                             |
+> | S4 합성 italic · bold                    | C05                             |
+> | S5 BoxBorderPainter                      | C06                             |
+> | S6 outline · 개별 transform · decoration | C07 · C08 · C09                 |
+> | S7 property node 분리                    | O1                              |
+> | S8 under-invalidation                    | O2                              |
+> | S9 속성 → 소비자 표                      | C12                             |
+> | S10 Worker · 타일                        | O3                              |
+> | I1 inline run 혼합 · T1 CSS table        | E01 · E02                       |
+
+---
+
+## 0. 결론
+
+### 0-1. 한 단락 요약
+
+Chromium 의 **구조** 대부분 (display list · display item 캐시 · raster invalidation · stale tile 재사용 · interest rect · bbox 컬링) 은 composition 이 **이미 같은 모양으로 갖고 있다** (§3). 가져올 가치가 있는 것은 구조가 아니라 **페인트 알고리즘 · 상수** (그림자 sigma · 이미지 샘플링 판정 · border style · 합성 italic) 와 **레이아웃 명세 절** (grid 최소 기여 · span 분배 · placement 커서 · absolute static position) 이고, 측정된 성능 꼬리에 닿는 구조는 하나 (property node 분리, O1) 뿐이다. 레이아웃에는 알고리즘이 아니라 **입력 연결 회귀** 2 건 (baseline · strut 미전송 B1 · B2, sticky · fixed 미전송 X8) 이 있어 가장 먼저 닫는다. Preview 가 Chrome 에서 돌기 때문에 **Blink paint 코드는 명세보다 정확한 정답지** 다 — paint 는 Blink 알고리즘을 옮기고, layout 은 Blink 의 분기 순서 · 상수 + Chromium WPT reftest 를 fixture 로 쓴다 (§8).
+
+통합 결론 6 가지:
+
+1. 가장 먼저 다룰 대상은 **현재 저작 가능한 기능의 입력 누락과 코드로 확인된 정확도 결함** 이다. 엔진에 필드나 함수가 있다는 사실은 production 지원을 증명하지 않는다.
+2. 기존 command stream · picture cache · damage redraw · spatial culling · event-driven rAF 를 재사용한다. 새 구조는 기존 기능으로 해결할 수 없는 계약이나 측정된 병목에 한정한다.
+3. 코드로 확정한 격차 (§4 · §7) 를 feature ledger 와 검증 gate 에 연결한다. 같은 조사를 처음부터 반복하지 않고 부족한 증거만 추가한다.
+4. 기존 기능 수리 · 지원 확장 · 성능 최적화는 별도 작업 단위다. 작은 Grid 결함의 수리가 float / table 전체 구현을 기다리지 않는다.
+5. Chromium 은 구현 참고, 표준은 의미 기준, 실제 Preview 는 제품 비교 대상이다. 브라우저 버그 · 플래그 · backend 차이를 공통 계약으로 자동 채택하지 않는다.
+6. 문서 작성은 제품 구현 · 새 ADR 작성 · 승격 · commit/push 승인을 뜻하지 않는다.
+
+### 0-2. 착수 순서
+
+**한 격차 = 한 커밋 = 원복 RED 1 + cross-check (또는 live) 1.** catalog 가 내보내지 않는 Blink 분기는 옮기지 않는다. 정확한 순서는 최소 재현과 사용자 영향으로 정하되, 작은 상수 수리 (C01) 에 전체 manifest 나 모든 하니스를 선행시키지 않는다. 증거 수준 어휘는 §1-2.
+
+| 순서 | ID                         | 작업                                                                                                                                                                   | 종류        | 증거 수준       | 검증                                                                                                                 | 단계    |
+| ---- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------- | -------------------------------------------------------------------------------------------------------------------- | ------- |
+| 0    | —                          | feature ledger 형식 확정 — 초기 행 = 이 표 + §4 · §6 · §7 격차. 기존 기준선 인용, 재측정 금지                                                                          | 기반        | —               | §12-1 ledger · §5 기준선                                                                                             | U0      |
+| 1    | B1 · B2                    | `styleOf` 가 `lineHeight` (px) · `leafBaseline` · `strutBaseline` 을 내보냄 — 옛 `f1ec24e53` · `3a1b3200d` 계산을 **현재 catalog 측정 계약으로** 다시 연결 (복사 금지) | 입력 연결   | code-confirmed  | ADR-156 차등 oracle — block frame 안 크기 다른 Button 둘 · 작은 inline 하나. 변경 → dirty → Canvas/DOM → 저장/재로드 | U2      |
+| 2    | C01 · C02                  | 그림자 sigma — box-shadow · text-shadow `radius × 0.5`, `drop-shadow()` 변환 없음 (`styleConverter.ts` 3 곳)                                                           | 결함        | code-confirmed  | `/cross-check` Card · Popover. 외부 그림자 영역 · inset · 음수 spread 까지. CHANGELOG                                | U2      |
+| 3    | X8                         | sticky 연결 — `styleOf` 전송 + 엔진 sticky (`ComputeStickyPositionConstraints` 계약) · scroll owner · containing block · paint. **fixed 는 별도 feature**              | 입력 연결   | code-confirmed  | rule 2 건 (`componentRulesTable.ts:5599 · 6903`) live + Compare Mode 스크롤                                          | U2      |
+| 4    | C03                        | 이미지 샘플링 — `ComputeInterpolationQuality` 판정 함수 이식 (일괄 linear + mip 아님) · 값별 fixture                                                                   | 결함        | code-confirmed  | 줌아웃 · 축소 이미지 cross-check. `getImageCacheSize` 로 mip 메모리                                                  | U2      |
+| 5    | C04                        | `font-variant-numeric` (+ `fontVariantCaps` · `fontFeatureSettings`) 를 측정 · 렌더 · cache key · font loading 에 연결                                                 | 결함        | code-confirmed  | DateInput Compare Mode · ADR-205 격차표 (`docs/adr/evidence/205-text-axis-gap-matrix.md`) 갱신. 실제 font 의 폭 비교 | U2      |
+| 6    | G1 · G2                    | grid 최소 기여 (`CalculateIntrinsicMinimumContribution`)                                                                                                               | 알고리즘    | source-reported | WPT `css-grid/grid-items/grid-item-min-auto-size-*` · 1fr 텍스트 말줄임                                              | U3      |
+| 7    | F4                         | flex row definite item §4.5 content 측정 복원                                                                                                                          | 알고리즘    | source-reported | ADR-204 perf 사유를 ADR-246 ratchet 카운트로 재판정. 허용치 사후 완화 금지                                           | U3      |
+| 8    | C05                        | 합성 italic · bold 1 회 대조 → 결함이면 skew −0.25 · embolden                                                                                                          | 확인 필요   | unverified      | Select placeholder Compare Mode. face 유무 · font-synthesis 정책 · Paragraph 출력 먼저                               | U3      |
+| 9    | G3 · G4 · G7 · G8          | grid span 기여 · placement 커서                                                                                                                                        | 알고리즘    | source-reported | WPT `grid-definition/grid-flexible-track-*` · `grid-items/grid-auto-placement-*`. 400 / 500 px 양쪽 고정             | U3      |
+| 10   | X3 · X4 · X1 · X2 · X5     | absolute static position · relative `%` · 음수 잉여 margin auto                                                                                                        | 알고리즘    | source-reported | WPT `css-position/static-position/*` · `position-relative-*`                                                         | U3      |
+| 11   | C06 · C07 · C08 · C09      | borderStyle 분포 → 쓰이는 style 만 BoxBorderPainter 이식 · outline-style · 개별 transform · decoration 두께                                                            | 격차        | source-reported | 쓰이는 값만. G3 하니스 `approvedDifferences` 대조                                                                    | U3      |
+| 12   | X9                         | `em · ch · ex` — `ctx_for` 에 자기 font-size · `ch` 측정                                                                                                               | 알고리즘    | source-reported | `maxWidth` 의 `ch` 측정 경로 (`compositionRoot.ts:1215-1229`) 를 `width` 로 확장                                     | U3      |
+| 13   | B4 · X10 · G16 · X6 · X7   | vertical-align 확장 · aspect-ratio 3 건                                                                                                                                | 알고리즘    | source-reported | WPT `css-inline/vertical-align-*` · `css-sizing/aspect-ratio/*`                                                      | U3      |
+| 14   | C12                        | 속성 → 소비자 표 static test (= feature ledger 의 정적 게이트)                                                                                                         | 재발 차단   | —               | "생성 CSS 가 내보내는데 Canvas 표에 없는 속성" 0 ratchet                                                             | U0 · U8 |
+| 15   | O2                         | under-invalidation dev 플래그 — 독립 fresh 기준면 (forceFull 은 content 무효화일 뿐)                                                                                   | 검증        | —               | perf 하니스 `--check-invalidation` ratchet A 0 · 오류 주입 negative test                                             | U1      |
+| 16   | —                          | 낡은 헤더 · 주석 · 규칙 문서 6 곳 정정 (§0-5)                                                                                                                          | 문서        | —               | `pnpm docs:stale-symbols`. 주석 정정은 기능 수리 증거가 아니다                                                       | —       |
+| 17   | O1                         | property node 분리 — 새 ADR (`/create-adr` 는 사용자 전용)                                                                                                             | 최적화 구조 | —               | Context = ADR-264/265 종결 카운트. Phase 0 카운트 RED. O(1) 주장 금지 (§5-1)                                         | U7      |
+| 18   | 드문 입력 · E01 ~ E07 · O3 | 레이아웃 드문 입력 · inline run 혼합 · table · float · 타일 · Worker                                                                                                   | 보류        | —               | 입력을 만들 수 있게 되는 날 WPT fixture 일괄 · 재개 조건이 카운트로 성립할 때 · 사용자 scope 결정 (§9)               | U6 · U7 |
+
+### 0-3. 권위와 수정 경계
+
+- 문서 정본은 `CatalogGraph` 다. 변경은 catalog 명령 → `workspace.execute` 로 수행한다.
+- DOM · 접근성은 React Aria (D1), Props 는 S2 → design-data → v3 → composition 확장 (D2), 시각 값은 catalog + theme/tokens (D3) 가 담당한다. Canvas 와 Preview 는 **대등한 소비자** 다 — 이 문서는 전부 D3 의 Builder consumer 내부이고 D1 · D2 · catalog 는 무변경이다.
+- paint bounds · property state · index · cache 는 파생 상태다. 저장 문서나 명령의 쓰기 원본으로 사용하지 않는다.
+- 기존 renderer 수리는 D3 consumer 내부에서 우선 해결한다. 새 HTML 요소 · DOM 구조 · public prop · 저장 키가 필요하면 D1/D2 및 schema 영향까지 해당 작업에 명시한다.
+- layout 은 Rust 엔진, 입력 직렬화는 shared `compositionRoot.ts` 가 담당한다. TS 위치 보정으로 엔진 결함을 숨기지 않는다.
+- 이미 resolve 된 catalog 경로에 별도의 범용 CSS cascade 엔진을 중복 삽입하지 않는다 (엔진 `cascade.rs` · TS `cssResolver.ts` 의 cascade · 상속 · 초기값 표는 dormant — X11 · X12).
+
+### 0-4. 통합하며 고친 것
+
+이전 통합 (`CHROMIUM_CLAUDE.md` 2026-10-17) 에서 고친 것:
+
+- 페인트 문서의 "이미지 샘플링 = 일괄 linear + mipmap" 을 고정 SHA 의 판정 사슬 이식으로 맞췄다 (§4-2).
+- 페인트 문서의 엔진 격차 `G4` · `G5` 가 레이아웃 grid `G4` · `G5` 와 겹쳐 분리했다 (지금은 E01 · E02).
+- 페인트 문서가 `leafBaseline · strut` · `fixed / sticky` 를 "구현" 으로 적은 것을 "엔진 구현 · production 미전송" 으로 고쳤다 (B1 · B2 · X8).
+
+이번 통합 (2026-10-17, 이 문서) 에서 고친 것 — **코드로 재확인한 3 건** 과 어휘 · 집계:
+
+| 쟁점                                        | 확인 결과                                                                                                                                                                                                                                | 반영                                                                                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C04 의 측정 제안 `ctx.fontVariantNumeric`   | 표준 Canvas 2D `CanvasTextDrawingStyles` 에는 `fontVariantCaps` · `fontKerning` · `fontStretch` 만 있고 numeric 축이 없다. composition 의 Canvas 2D 폴백도 `applyFontVariantCaps` (small-caps 합성) 만 쓴다 (`utils/textMeasure.ts:137`) | 제안 폐기. tnum 은 **CanvasKit Paragraph `fontFeatures`** 로 측정 · 렌더를 같이 맞추고, Canvas 2D 폴백은 폭 차이를 ledger 에 한계로 적는다 (§4-3) |
+| O2 의 oracle `forceFull`                    | `SkiaRenderer.ts:315` `debug.forceFull = () => this.invalidateContent()` — content 무효화 (full repaint) 이지 catalog / layout / command 의 fresh rebuild 가 아니다                                                                      | "full repaint ≠ full rebuild". 독립 fresh 기준면은 U1 에서 보강 (§5-2 · §10 U1)                                                                   |
+| C01 의 "3 곳"                               | `styleConverter.ts:1265 · 1821 · 2053` 에서 `/ 2.355` 확인 (box-shadow · text-shadow · filter 파서)                                                                                                                                      | 그대로. box · text 는 `× 0.5`, filter `drop-shadow()` 는 변환 없음 — 셋이 같은 상수를 받지 않는다                                                 |
+| 레이아웃 격차 집계 "36 = 흔한 12 + 드문 24" | 상세 표는 B 8 + F 11 + G 18 + X 14 = **51 행** 이고, 우선순위 12 그룹은 ID 21 개를 묶은 것이라 36 · 24 와 대응이 없다                                                                                                                    | 51 행 · 12 그룹으로만 적는다. 51 전부를 확정 버그로 세지 않는다 (§1-3)                                                                            |
+| "확정 결함" 어휘                            | 근거가 코드 대조면 화면 결과까지 증명한 것이 아니다                                                                                                                                                                                      | `code-confirmed` 로 적는다. `reproduced` · `gate-passed` 는 artifact 가 있을 때만 (§1-2)                                                          |
+| ID 체계                                     | `S1 ~ S10` (Claude) 과 `C01 ~ C12` (Codex) 가 같은 항목을 다른 알갱이로 나눴다                                                                                                                                                           | 기능 단위가 더 작은 `C01 ~ C12` 를 페인트 ID 로, 최적화 · 검증은 `O1 ~ O3` 로 통일 (머리말 대응표)                                                |
+| 실행 계획                                   | Claude 는 Codex P0 ~ P15 를 원문 그대로 두고 주석을 달았고, Codex 는 그 주석을 흡수해 U0 ~ U8 로 다시 썼다                                                                                                                               | U0 ~ U8 하나만 둔다 (§10). P 번호는 대응 열로만. 잃어버리면 안 되는 P 단계 체크 항목은 U2 ~ U5 에 영역별로 넣었다                                 |
+
+### 0-5. 낡은 문서 · 주석 (코드는 맞는데 설명이 틀린 것)
+
+- `flex.rs:25-28` 헤더 "미구현: aspect-ratio · align-self · auto margin" — 셋 다 구현됨 (슬롯 17 · 20 · 22).
+- `grid.rs:25-29` 헤더 "미구현: min-content / max-content / fit-content()" — `tree.rs:5785 · 5887` 이 해소함. `dense` 만 실제 미구현.
+- `tree.rs:4350` "auto-repeat 자체는 scope 밖" — 바로 아래 4355 에서 펼친다.
+- `tree.rs:4050-4052` "TS 는 'normal' 을 보내지 않는다" — px 도 보내지 않는다 (B1).
+- `.claude/rules/layout-engine.md` "`position: fixed` 는 absolute 근사" — 실제로는 `styleOf` 가 떨어뜨려 in-flow static.
+- 메모리 `feedback-inline-line-box-inflation-missing-leaf-baseline` — "`f1ec24e53` 이 공급한다" 는 옛 파이프라인 얘기 (2026-10-16 갱신 완료).
+
+주석 정정은 기능 수리 완료의 증거가 아니다. 줄 번호는 조사 시점의 탐색 힌트이며 symbol · 호출부를 우선 확인한다.
+
+---
+
+## 1. 범위와 판정 방법
+
+### 1-1. 세 작업 범위
+
+| 범위           | 대상                                                                                  | 기본 처리                                                          |
+| -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 현재 기능 수리 | catalog · Styles 패널 · generated CSS · 문서 상태 · 기존 import 가 실제 내보내는 값   | 최소 fixture 로 재현하고 우선 수리                                 |
+| 지원 확장      | 아직 저작 · 저장 · DOM/Canvas 표현이 연결되지 않은 HTML/CSS 기능                      | manifest 에 남기고 기능별 제품 범위와 의존성을 확정한 뒤 진행 (§9) |
+| 성능 최적화    | 정확한 동작을 유지하며 layout / binding / record / raster · 메모리 비용을 줄이는 작업 | 같은 조건의 기준선과 수정본을 비교해 채택 (§5)                     |
+
+이 저장소의 대칭 범위는 **Preview 가 실제로 내보내는 값** 이다 (ssot-hierarchy D3). 그래서 생성 CSS 0 건인 축은 "무해" 로 두되 (§6), CSS 선언이 없다는 것이 전체 제품에서 영구히 불필요하다는 뜻은 아니다 — Styles · instance override · 상태 · import 입력도 확인한다. 반대로 미래 지원표에 포함됐다는 이유만으로 현재 구현의 선행 조건이 되지 않는다.
+
+Canvas 는 **저작 surface** 다. 문서가 보유한 selected · disabled · isPending 등의 표시와, Preview 에서 발생하는 hover · pressed · focus · 시간 기반 animation 을 구분한다 (메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` · ADR-223). 기존 state preview 가 제공하는 범위는 검증하되, 모든 DOM 상호작용을 Canvas 에서 실행하는 기능은 자동으로 추가하지 않는다. 드래그 중간 preview 와 commit 의 정합은 현재 편집 기능이므로 수리 범위다.
+
+### 1-2. 지원 상태와 증거 수준 — 서로 다른 필드
+
+| 지원 상태                | 의미                                                       |
+| ------------------------ | ---------------------------------------------------------- |
+| `unverified`             | 입력 · 출력 또는 현재 지원 여부를 판정하지 못함            |
+| `planned`                | 구현할 범위를 정했으나 미구현                              |
+| `implemented-unverified` | 경로는 존재하지만 해당 조합의 제품 검증이 없음             |
+| `divergent`              | 기준과 다른 계약 또는 결과를 확인함. 증거 수준을 함께 기록 |
+| `verified`               | 명시한 환경 · fixture · 상태의 완료 gate 를 통과함         |
+| `unsupported`            | 현재 지원하지 않으며 이유와 대체 표현이 명시됨             |
+| `deferred`               | 비용 · 수요 · 의존성 때문에 보류하며 재개 조건이 명시됨    |
+
+| 증거 수준         | 의미                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| `source-reported` | 원문 분석에서 보고했으나 이번 통합에서 독립 재검증하지 않음              |
+| `code-confirmed`  | 현재 production 연결이나 분기를 직접 대조함. 화면 결과까지 증명하지 않음 |
+| `reproduced`      | 환경 · 입력 · 기대값 · 실제값을 가진 실행 artifact 가 있음               |
+| `gate-passed`     | 해당 기능의 정확도 · 수명 · 필요 성능 gate 를 통과함                     |
+
+`verified` 는 속성명 전체가 아니라 **값 · 상태 · 조합 단위** 다. 같은 알고리즘을 공유하는 단위 테스트, grep 결과, 구현 필드의 존재만으로 올리지 않는다. `partial` 한 단어 대신 미지원 값과 조합을 개별 행으로 분리한다.
+
+### 1-3. 집계 원칙
+
+레이아웃 상세 표는 **B 8 + F 11 + G 18 + X 14 = 51 행** 이다. 51 모두를 독립적인 확정 버그로 세지 않는다 — 조건부 · 미검증 · 의도적 제한 · 중복 원인을 분류하고 feature ID 기준으로 집계한다 (F6 / G12 는 같은 `row-gap %` 축 오류, B4 / X10 은 같은 vertical-align 경로). 우선순위 12 그룹 (§7-0) 은 ID 21 개를 묶은 작업군이고, 그 외 행은 §7 표의 "재현" 열 (드묾 · 낮음 · unknown · 서브픽셀) 로 가른다. 미지원 항목을 분모에서 제거해 지원률을 높이지 않으며, manifest 버전 · 분모 · 검증 환경을 함께 보고한다.
+
+### 1-4. 판정 oracle 과 방법의 한계
+
+- **oracle 은 Blink 코드가 아니라 Chrome 픽셀 (G3 하니스) · `getBoundingClientRect` (ADR-156 차등 oracle)** 이다. 코드 대조는 어디를 재야 하는지 가리키는 지도다 (measurement-validity §2 #3 — 코드끼리 서로 확인하는 oracle 금지).
+- 참조 파일 수 grep 은 상한 지표다 (메모리 `feedback-infra-exists-vs-wired-consumption-path`). "`code-confirmed`" = 소비 경로 · Blink 소스까지 확인, "확인 필요" = grep 0 또는 이름 충돌로 판정 보류.
+- Blink 최초 대조는 당시 `main` 에 대한 보고다. 고정 SHA 에서 같은 코드인지 확인하기 전까지 해당 줄 번호를 고정 revision 의 직접 증거로 표시하지 않는다. Chromium SHA 와 실제 비교 Chrome 버전 · OS · DPR · font · CanvasKit (0.42.0) · backend 는 별도로 고정한다.
+
+---
+
+## 2. 교차 검증에서 정리한 쟁점
+
+두 분석은 서로 대체하지 않는다 — Claude Code 는 **판정** (코드 인용 · 확정 격차 · 같음 확인 · 순서), Codex 는 **계약** (범위 · 증거 어휘 · 절차 · gate · ledger). 아래는 둘이 갈렸거나 한쪽이 빠뜨린 자리와 통합 판정이다.
+
+| 쟁점                                                                                                 | 통합 판정                                                                                                                                                                        | 실행에 미치는 영향                                                                                    |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| baseline · strut 가 구현돼 있으므로 지원됨                                                           | Rust 입력 · 소비는 있으나 현재 `styleOf` 의 `lineHeight` · `leafBaseline` · `strutBaseline` 공급 누락을 코드에서 확인                                                            | B1/B2 를 입력 연결 수리로 우선 처리. 실폰트 측정 · 증분 갱신까지 확인                                 |
+| fixed · sticky 가 지원됨                                                                             | `itemLayout` 이 relative/absolute 만 내보내는 것을 확인. 입력 전달만으로 sticky/fixed 전체 구현이 완성되지는 않음                                                                | X8 을 sticky 와 fixed 의 별도 feature 로 나누고 scroll owner · containing block · paint 연결 확인     |
+| Grid intrinsic / fit-content 미구현                                                                  | 레이아웃 원문은 해소 경로가 있다고 보고 (`tree.rs:5785 · 5887`). 페인트 표의 미구현 판정과 충돌                                                                                  | 헤더 · 필드 이름 대신 production 입력과 계산 분기를 기준으로 재분류 (§0-5)                            |
+| Grid areas 구현됨                                                                                    | 파서는 있으나 `tree.rs` 가 `""` 로 넘김 — NodeStyle 에 area 필드 없음                                                                                                            | parser 지원과 저작 · 저장 · engine 지원을 분리                                                        |
+| `ctx.fontVariantNumeric` 으로 측정                                                                   | 표준 Canvas 2D API 에 해당 속성이 없음 (코드 재확인 — §0-4)                                                                                                                      | 제안 폐기. Paragraph feature 계약과 fallback 측정 전략으로 해결                                       |
+| Canvas 2D 가 production 텍스트 측정의 단일 oracle                                                    | catalog 측정은 CanvasKit 준비 후 Paragraph 우선이고, paint 의 Canvas 2D 줄바꿈 hint 는 별도 경로                                                                                 | 측정 · shaping · hint · 렌더 · 편집 overlay 를 함께 대조. 줄바꿈은 여전히 Chrome 자신이 oracle (§4-8) |
+| `image-rendering: auto` 는 항상 linear + mipmap                                                      | 고정 SHA 사슬이 크기 · 배율 · 상태에 따라 분기함 (§4-2 표)                                                                                                                       | 판정 함수 이식 · 값별 fixture. 설치 CanvasKit 의 실제 API 확인                                        |
+| `forceFull` 이 독립 fresh oracle                                                                     | `invalidateContent()` — content 무효화이며 catalog / layout / command fresh build 를 보장하지 않음 (코드 재확인)                                                                 | 기존 디버그 기능을 재사용하되 독립성의 부족분을 U1 에서 보강                                          |
+| damage rect 내부 비교면 무효화 누락 검출                                                             | 너무 작은 damage 바깥의 잔상과 damage 자체가 없는 경우를 놓침                                                                                                                    | 독립 기준 surface 전체 또는 독립적으로 정한 검사 영역을 비교 (O2)                                     |
+| 기존 damage / culling 이 있으므로 paint bounds 작업 불필요                                           | unsafe → full fallback 과 실제 paint 영역 · effect 입력 추적은 다른 능력                                                                                                         | 기존 정확성 fallback 을 보존하면서 남은 범위만 기능별 확장 (U4). 측정이 먼저                          |
+| property node 만 갱신하면 이동 전체가 O(1)                                                           | 명령 재기록은 줄어도 bounds / index / hit / overlay · 자원 비용이 남음                                                                                                           | 전체 동작의 비용과 수명으로 평가 (O1)                                                                 |
+| 과거 기준선은 무조건 재사용 또는 무조건 재측정                                                       | HEAD · 관련 diff · fixture · 환경 · resource · 계측 조건이 맞는 증거만 재사용                                                                                                    | 불일치한 범위만 재측정. ADR-263 ~ 265 종결 자체를 취소하지 않음                                       |
+| 확정 격차가 없고 전부 "조사" 로 미룬다 (Codex 원 계획)                                               | 코드로 확정한 것 (sigma · nearest · numeric 미소비 · 입력 연결 회귀 2 · 알고리즘 51 행) 을 ledger **초기 행** 으로 넣어야 같은 조사를 반복하지 않는다                            | §0-2 표 + §4 · §6 · §7 이 U0 의 입력                                                                  |
+| 이미 있는 인프라를 새로 만든다 (P1 fresh 대조군 · P10/P11 bounds · 컬링)                             | `__composition_RENDER_PATH_DEBUG__` · live 스크립트 2 · G3 하니스 · ADR-156 oracle · ADR-189 damage · spatial index 컬링 · ADR-246 ratchet 이 있다. ADR-263 ~ 265 가 종결한 영역 | U1 = "있는 oracle 을 feature ID 로 묶고 독립성만 보강". U4 = 종결 기록을 Context 로 두고 남은 꼬리만  |
+| 범위가 D3 대칭보다 넓다 (table · float · multicol · video · iframe · hover · transition · animation) | **사용자가 승인한 scope 의 확장** — 결정 지점 ④                                                                                                                                  | E01 ~ E07 로 `planned` 행만 둔다 (§9). 사용자 결정 뒤 U6 에 넣는다                                    |
+| P2 cascade · custom property · layer · specificity 를 구현 대상처럼 서술                             | production 은 resolve 된 catalog 만 소비, cascade 표는 dormant (X11 · X12)                                                                                                       | "값 해석 · 단위 · 논리 속성" 으로 좁힌다. 이 축의 확정 격차는 X9 (`em` = 16 고정)                     |
+| P0 기준선 재수집 (`flat/nested 600 · 5k`)                                                            | `.agent/runs/2026-10-15-canvas-rust-baseline/` · ADR-263 ~ 265 breakdown 이 보유                                                                                                 | 인용. 조건이 다른 범위만 재측정                                                                       |
+
+Canvas 2D 의 `fontVariantCaps` 와 numeric feature 는 같은 API 표면이 아니다 — [HTML 표준의 CanvasTextDrawingStyles](https://html.spec.whatwg.org/multipage/canvas.html#canvastextdrawingstyles) 기준. 현재 catalog 측정은 `apps/builder/src/builder/catalogRuntime/textMeasure.ts`, Canvas 2D 폴백은 `workspace/canvas/utils/textMeasure.ts`, 렌더는 `nodeRendererText.ts` 를 함께 확인한다.
+
+---
+
+## 3. 이미 있는 구조 — Chromium 대응표
+
+구조가 비슷하다는 이유로 동일한 지원 범위 · 복잡도 · 정확성을 가정하지 않는다.
+
+| Chromium                                                                                                                                                           | composition 대응                                                                                            | 판정                                                                                                   | 재사용 및 보강                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `cc::DisplayItemList` / `PaintRecord` (플랫 op 목록)                                                                                                               | `renderCommands.ts` 플랫 command stream (`CMD_ELEMENT_BEGIN … END`)                                         | 동형. ADR-263 이 Proxy piece-table 비용 · 선형 skip 을 제거                                            | 명령 포맷 전면 교체보다 정확도 · 갱신 경로를 우선 검증               |
+| Blink `PaintController` display item 캐시 (client identity 로 재사용)                                                                                              | `nodePictureCache.ts` — `SkiaNodeData` identity + size 키, 위치 제외 (ADR-153 P3)                           | 동형. Blink 는 push 식 invalidation flag, composition 은 identity 교체 — 효과 같음                     | identity · resource · style 변경의 무효화 검증                       |
+| Blink subsequence caching (`SubsequenceRecorder`)                                                                                                                  | drag 중 `dragSubtreeCache` · `subtreeCommandPatch` · `subtreeTranslate`                                     | 부분 동형. 상시 서브트리 picture 는 ADR-263 대안 B 로 기각 (편집 1회 = 층 전체 재기록)                 | 기존 patch 를 유지하고 이동 · clip 비용을 계측                       |
+| raster invalidation (`RasterInvalidator`) + `DamageTracker`                                                                                                        | ADR-189 damage 경로 (`pendingDamage` · `executeDamageRenderCommands`), ADR-263 에서 catalog scene 에 재연결 | 동형. clean · damage · full 3 상태, 실패는 full 수렴 (HC4)                                             | conservative bounds 와 effect 의존성 확보 후 unsafe 범위를 줄임 (U4) |
+| 카메라 변경 시 기존 tile scale 표시 → idle 재래스터                                                                                                                | `SkiaRenderer` camera-only blit (`drawImageCubic`) + 정착 뒤 content 재렌더 (Pencil 모델)                   | 동형                                                                                                   | 카메라 정착 · DPR · zoom 정확도 검증, 타일은 조건부 (O3)             |
+| `PictureLayerTiling` interest rect                                                                                                                                 | content surface = viewport + `contentPaddingDevicePx` (`createContentSizedSurface`)                         | 동형 (타일 분할만 없음)                                                                                | —                                                                    |
+| `SkRTreeFactory` picture 재생 bbox 컬링                                                                                                                            | Rust `spatial_index` `queryRect` 로 가시 후보 + 조상 closure 만 실행                                        | 동형 (명령 생성 전에 컬링하므로 더 세밀)                                                               | hit index 와 paint index 의 역할 분리 필요 확인 (U4)                 |
+| `cc::Scheduler` BeginFrame · deadline · latency mode                                                                                                               | `frameScheduler.ts` dirty + rAF                                                                             | 단일 스레드라 성립하지 않음                                                                            | 브라우저 전체 compositor scheduler 복제는 대상 아님                  |
+| `GpuImageDecodeCache` (scale 별 decode · mip · GPU 상주)                                                                                                           | `imageCache.ts` `MakeImageFromEncoded` 원본 해상도 1 개 · sampling 미지정                                   | **격차** → C03                                                                                         | sampling 의미를 먼저 수리하고 해상도별 캐시는 비용 측정 후 (U7)      |
+| `BoxBorderPainter` · `BoxPainterBase::PaintNormalBoxShadow / PaintInsetBoxShadow`                                                                                  | `nodeRendererBorders.ts` `renderBoxShadows` · `renderInnerBoxShadows`                                       | inset 구성 (EvenOdd donut + blur + 상자 clip) 은 Blink 와 같은 방식. **sigma 와 border style 만 격차** | C01 · C06                                                            |
+| property trees (transform · clip · effect · scroll 을 draw 목록에서 분리)                                                                                          | 명령에 좌표 · clip · scroll 문맥이 구워짐 — 옮김은 `subtreeTranslate` 재기록, 문맥 변경은 patch 거부        | **격차** — 측정된 꼬리와 일치 → O1                                                                     | 측정 뒤 새 ADR                                                       |
+| WPT · reftest · under-invalidation 검사                                                                                                                            | ADR-156 차등 oracle · G3 하니스 · ADR-263/264 live 도구 · `__composition_RENDER_PATH_DEBUG__`               | 기계 있음. fresh rebuild 와 full repaint 는 다름                                                       | feature ID 와 연결하고 실제 우회 범위 · negative test 확인 (U1 · O2) |
+| LayoutNG 알고리즘 큰 틀 (margin collapse · BFC · shrink-to-fit · min/max clamp 순서 · flex 동결 기계 · grid fr 가상 크기 루프 · auto-repeat · absolute inset 해소) | Rust `block.rs` · `flex.rs` · `grid.rs` · `tree.rs`                                                         | 동형 — 세부 "같음 확인" 은 §7 각 절 끝                                                                 | 관련 회귀 테스트 보존 · 변경 조건의 반례 추가                        |
+
+`setDamageOff` · `setLinearOnly` · `forceFull` 의 각 기능을 조사해 새 하니스에 재사용하되, 공유하는 stale scene 이나 picture cache 가 있는지 별도로 확인한다. `damageUnsafeElementIds` 와 `hasTextPaintOverflow` 는 안전한 full fallback 의 근거다 — glyph · shadow · filter 의 실제 paint bounds 나 backdrop 입력 의존성을 모두 계산한다는 뜻이 아니다. `renderCommands.ts` 의 hit bounds 기반 후보 검색과 실행기 내부 컬링을 함께 검증해야 한다.
+
+---
+
+## 4. 페인트 · 이미지 · 텍스트 — C01 ~ C12
+
+> **방법**: Chromium `docs/how_cc_works.md` · `core/paint/README.md` · `box_painter_base.cc` · `box_border_painter.cc` · `shadow_data.h` · `font_platform_data.cc` · `graphics_context.cc` · `cc/paint/paint_flags.cc` 를 읽고 composition 구현 (SkiaRenderer · renderCommands · nodePictureCache · subtreeCommandPatch · subtreeTranslate · nodeRendererBorders · nodeRendererText · effects · imageCache · styleConverter) 과 대조. 아래 "현재 근거" 의 줄 번호는 조사 시점 힌트.
+
+| ID  | 대상                                    | Chromium 정답지                                                                                                                                                                                                    | 현재 근거 · 한계                                                                                                                                                                             | 증거 수준       | 작업과 검증                                                                                                                               |
+| --- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| C01 | box-shadow · text-shadow sigma          | `core/style/shadow_data.h` `BlurRadiusToStdDev` = radius × 0.5                                                                                                                                                     | `styleConverter.ts:1265 · 2053` `/ 2.355` — Chrome 보다 그림자가 약 15 % 선명. 주석의 "W3C" 인용이 틀림                                                                                      | code-confirmed  | outer / inset · 다중 shadow · spread · 모서리 · **외부 픽셀** 비교. 한 커밋                                                               |
+| C02 | filter `drop-shadow()` sigma            | filter-effects-1 셋째 값 = standard deviation 자체. Blink `core/paint/filter_effect_builder.cc` `kDropShadow` 분기로 1 회 확인                                                                                     | `styleConverter.ts:1821` 같은 `/ 2.355` — 2.355 배 선명                                                                                                                                      | code-confirmed  | C01 과 파서 의미를 분리 (같은 상수 일괄 적용 금지). 실제 filter 출력 · bounds 검증                                                        |
+| C03 | 이미지 sampling                         | `computed_style.cc` `GetInterpolationQuality` → `graphics_context.cc` `ComputeInterpolationQuality` → `graphics_context.h` `ComputeSamplingOptions` → `cc/paint/paint_flags.cc` `FilterQualityToSkSamplingOptions` | `nodeRendererImage.ts:176` `drawImageRect(img, src, dst, paint)` — sampling 인자 없음 = **항상 nearest**. 줌아웃 · 축소 이미지가 계단 · 반짝임                                               | code-confirmed  | 판정 함수 이식 (§4-2 표). auto / pixelated / crisp-edges, 축소 · 확대 · crop · DPR · zoom 별 정책 검증                                    |
+| C04 | font variant · feature                  | `platform/fonts/font_description.cc` feature 표                                                                                                                                                                    | `cssResolver.ts` 는 `fontVariant` 만 OpenType feature 로 변환. `fontVariantNumeric` · `fontVariantCaps` · `fontFeatureSettings` 참조 0. 생성 CSS `DateInput.css` 가 `tabular-nums` 를 내보냄 | code-confirmed  | catalog → 측정 → render → cache key → font loading 연결. 실제 font 의 폭 비교 (§4-3)                                                      |
+| C05 | synthetic italic · bold                 | `platform/fonts/font_platform_data.cc` `CreateSkFont` — `setEmbolden` · `setSkewX(−0.25)`                                                                                                                          | `nodeRendererText.ts` 는 `FontSlant.Italic` 을 TextStyle 로 넘길 뿐. Pretendard 는 italic face 없음 → upright 로 떨어질 수 있음. face 요청만으로 합성 여부 판정 불가                         | unverified      | face 유무 · font-synthesis 정책 · Paragraph 실제 출력 검증 후 결정 (§4-4)                                                                 |
+| C06 | border style · corner · dash            | `core/paint/box_border_painter.cc` (BSD)                                                                                                                                                                           | `nodeRendererBorders.ts` `strokeStyle: solid \| dashed \| dotted`. 변별 stroke 는 있으나 모서리 miter · 두 톤 style 없음. `cssDashPattern` 의 변 길이 맞춤 확인 필요                         | source-reported | catalog `borderStyle` 분포를 센 뒤 **쓰이는 값만** port. 폭 · 색 · alpha · miter · dash endpoint · radius 비교 (§4-5)                     |
+| C07 | outline style · offset                  | `core/paint/outline_painter.cc`                                                                                                                                                                                    | width · color · offset · radius 따라감, 항상 solid (`nodeRendererBorders.ts:756`). 생성 CSS `outline` 119 · `outline-offset` 108 은 거의 `:focus-visible`                                    | source-reported | explicit style · 음수 offset · `auto` focus ring. 상태 선택자 위주라 우선순위 낮음                                                        |
+| C08 | 개별 `translate` · `rotate` · `scale`   | `core/style/` computed transform · paint property builder                                                                                                                                                          | `parseTransform` 은 `transform` 함수만. Disclosure chevron · `[data-pressed] scale: 0.97` · ListBox check 위치가 개별 속성                                                                   | source-reported | `convertToTransform` 이 세 속성 합성 (translate → rotate → scale → transform) · origin · hit · clip                                       |
+| C09 | decoration thickness · underline offset | `core/paint/text_decoration_info.cc` · `decoration_line_painter.cc` `ComputeWavyPattern`                                                                                                                           | SkParagraph `decorationThickness: 1` (폰트 값 **배수**) ↔ Link `[data-hovered]` 1.5px (CSS 길이)                                                                                             | source-reported | `auto` → 폰트 `underlineThickness` (없으면 `font-size / 10` 의 적용 조건 검증) · `from-font` · 명시 값 · wavy · baseline · paint overflow |
+| C10 | background · clip/mask · stacking       | `background_image_geometry.cc` · `box_background_paint_context.cc` · `clip_path_clipper.cc` · `basic_shapes.cc` · `paint_layer_paint_order_iterator.cc` · `computed_style.cc` `IsStackingContext`                  | color · image · gradient · size/position/repeat · clip-path · mask 구현. `background-clip / origin / attachment / blend-mode` · `repeat: space / round` 참조 0 (생성 CSS 도 0)               | source-reported | 값별 지원표. 그림 순서 (CSS 2.1 Appendix E) · stacking context 생성 조건 1:1 대조 · 반투명 그룹 · effect 입력 · clip 조합                 |
+| C11 | object-fit/position · SVG · 대체 콘텐츠 | `core/paint/image_painter.cc` · `core/layout/layout_replaced.cc` `ComputeObjectFit`                                                                                                                                | `object-fit / object-position / image-rendering` 참조 0. Image binding 과 실제 src/dst 기하까지 확인 필요                                                                                    | unverified      | intrinsic size · ratio · crop · viewBox · fallback · 비동기 갱신 검증                                                                     |
+| C12 | 속성 → 소비자 coverage                  | `core/css/css_properties.json5` ↔ catalog typed fields · generated CSS                                                                                                                                             | C01 · C04 · C07 ~ C09 가 전부 "생성 CSS 가 내보내는데 Canvas 소비 표에 없는 속성". grep 0 이나 선언 수는 지원 여부의 단독 근거가 아님                                                        | —               | typed contract · 예외 사유 · 동적 fixture 를 연결한 static test (`archetypeDefaultCohort.static.test.ts` 와 같은 ratchet 형식)            |
+
+### 4-1. C01 · C02 그림자 sigma
+
+- **Chromium** `core/style/shadow_data.h`:
+
+  ```cpp
+  static inline float BlurRadiusToStdDev(float radius) {
+    // Per spec, sigma is exactly half the blur radius:
+    // https://www.w3.org/TR/css-backgrounds-3/#shadow-blur
+    return radius * 0.5f;
+  }
+  float BlurAsSigma() const { return BlurRadiusToStdDev(BlurValue()); }
+  ```
+
+  `box_painter_base.cc` 는 outer · inset 둘 다 `shadow.BlurAsSigma()` 를 `DrawLooperBuilder::AddShadow` 에 넘기고, inset 은 bounds 를 `3 × sigma` 만큼 넓힌다. text-shadow 도 같은 `ShadowData`.
+
+- **composition** `styleConversion/styleConverter.ts` 3 곳 (box-shadow 파서 `:1265` · text-shadow 파서 `:1821` · filter drop-shadow 파서 `:2053`) 이 `sigma = blurRadius / 2.355`. 명세는 "standard deviation equal to half the blur radius".
+- **filter `drop-shadow()`**: filter-effects-1 은 셋째 값을 **standard deviation 자체** 로 정의한다 — 변환 없이 σ = 값. box-shadow 와 입력 의미가 달라 **같은 상수를 일괄 적용하지 않는다**. 파서부터 실제 filter 생성 호출까지 추적해 값의 변환 위치를 확인한다.
+- **영향**: `box-shadow: 0 4px 12px` 에서 Canvas σ 5.1 / Preview σ 6. G3 하니스가 상자 가장자리 대역만 비교해 지금까지 잡히지 않았을 수 있다.
+- **검증**: 상수 변경 뒤 상자 가장자리만 비교하지 않는다 — 퍼진 그림자의 **외부 영역**, inset, 음수 spread, alpha, DPR · fractional 위치를 포함한다. paint bounds 를 좁히는 최적화 (U4) 와 같은 커밋에 묶지 않는다.
+
+### 4-2. C03 이미지 샘플링 · 축소 디코드
+
+- **Chromium** (고정 SHA 에서 사슬 전체 확인): `image-rendering: auto` → `ComputedStyle::GetInterpolationQuality` (`core/style/computed_style.cc:1318`) → `GetDefaultInterpolationQuality()` = **kMedium** (`platform/graphics/graphics_context_types.cc:33`, `UseLowQualityInterpolation` 플래그면 Low). 그 다음 `GraphicsContext::ComputeInterpolationQuality` (`graphics_context.cc:89-177`) 가 src/dest 크기로 **낮춘다**:
+
+  | 조건                     | 결과                        |
+  | ------------------------ | --------------------------- |
+  | src 와 dest 가 같은 크기 | None (nearest)              |
+  | 어느 한 변 ≤ 8px         | None (dest 가 비정수면 Low) |
+  | 한 축만 ≥ 3× 확대        | None                        |
+  | 양축 ≥ 3× 확대           | Low                         |
+  | 크기 차 < 2.5 %          | None                        |
+  | 로딩 중                  | Low                         |
+  | 그 외                    | Medium                      |
+
+  마지막으로 `ComputeSamplingOptions` (`graphics_context.h:482`) 가 양축 확대면 `kUpscale`, 아니면 `kUnknown` 을 붙여 `cc::PaintFlags::FilterQualityToSkSamplingOptions` 로 — Medium + Unknown/Upscale = **`(Linear, MipmapMode::kLinear)`**, Medium + Default = `(Linear, kNearest)`, Low = `(Linear, None)`, None = `(Nearest, None)`. Blink 의 enum 에는 High 가 없어 `<img>` 는 **cubic 을 쓰지 않는다**. `GpuImageDecodeCache` 는 그 뒤 cc 래스터에서 scale 별 decode · mip 을 만든다. `image-rendering: pixelated · crisp-edges` → None · `-webkit-optimize-contrast` → Low.
+
+- **composition** `nodeRendererImage.ts:176` `canvas.drawImageRect(skImage, src, dst, paint)` — 이 오버로드는 `SkSamplingOptions()` 기본값 = **nearest**.
+- **수정**: 위 판정 함수를 그대로 옮긴다. Medium 이면 `drawImageRectOptions(img, src, dst, FilterMode.Linear, MipmapMode.Linear, paint)` + 로드 시 `image.makeCopyWithDefaultMipmaps()`, Low 는 `(Linear, None)`, None 은 `(Nearest, None)`. src/dest 비교는 **CSS px 기준** — Canvas 카메라 zoom 은 DOM 에 대응이 없으므로 zoom 1 이 parity 케이스, zoom 중에는 dest 에 zoom 을 곱한 값으로 같은 규칙. `drawImageRectCubic` 은 Chrome `<img>` 경로에 없으므로 쓰지 않는다. 설치 CanvasKit 0.42.0 의 `drawImageRectOptions` · mipmap API · source rectangle constraint 를 실제 타입으로 확인한다.
+- **버전 의존**: 이 정책은 Chromium revision · backend 의존이다. 옮길 때 provenance 표 (§8-2) 에 revision 을 적고 값별 fixture 를 둔다 — 모든 입력에 같은 mipmap 정책을 넣지 않는다.
+- **메모리**: mip +33 % 는 통상 근사이고 실제 GPU / cache live-set 과 구분한다. "표시 크기 × dpr × 2 상한 decode" (`createImageBitmap(blob, { resizeWidth, resizeQuality: "high" })` → `MakeImageFromCanvasImageSource`) 는 **확정 규칙이 아니라 화질 · 재확대 · 메모리를 검증할 후보 정책** 이다 (U7). 원본 해제는 retained command · picture · snapshot 의 소유권과 사용 종료 시점을 확인한 뒤.
+
+### 4-3. C04 `font-variant-numeric` · caps · feature settings
+
+- `cssResolver.ts` 는 `fontVariant` 키만 OpenType feature (`tabular-nums → tnum` 등, `cascade.rs` 에도 같은 표) 로 바꾼다. CSS 속성 `fontVariantNumeric` · `fontVariantCaps` · `fontFeatureSettings` 는 참조 0. 생성 CSS `DateInput.css` 가 `font-variant-numeric: tabular-nums` 를 내보낸다 → Preview 는 고정폭 숫자, Canvas 는 비례폭.
+- **수정**: 세 키를 같은 feature 표로 흡수해 **CanvasKit Paragraph `fontFeatures`** (측정 · 렌더 공통) 로 전달. paragraph cache key 와 font loading 조건에도 포함한다. ADR-205 격차표 (`docs/adr/evidence/205-text-axis-gap-matrix.md`) 를 갱신한다 — 조사 문서가 인용한 생성 스크립트 `generate-text-axis-matrix.mjs` · `textAxisGate.static` 은 저장소에 없다 (제안 이름). 격차표를 정적 게이트로 만들려면 C12 와 같은 ratchet 형식으로 신설.
+- **측정 한계** (§0-4 정정): 표준 Canvas 2D 에는 `fontVariantCaps` 만 있고 numeric 축이 없다 — Canvas 2D 폴백 (`utils/textMeasure.ts` `applyFontVariantCaps`) 으로는 tnum 폭을 재현할 수 없다. catalog 측정은 CanvasKit 준비 뒤 Paragraph 우선이므로 그 경로로 맞추고, Canvas 2D 폴백이 쓰이는 조건 (CanvasKit 미준비 · 줄바꿈 hint) 에서는 폭 차이가 남을 수 있음을 ledger 에 한계로 적는다.
+- **판정 주의**: feature 전달 누락과 실제 폭 차이는 구분한다. 글꼴의 기본 숫자가 이미 고정폭이면 한 fixture 에서 차이가 없을 수도 있다 — 실제 font 로 비교한다.
+
+### 4-4. C05 합성 italic · bold
+
+- **Chromium** `platform/fonts/font_platform_data.cc` `CreateSkFont`:
+
+  ```cpp
+  font.setEmbolden(synthetic_bold_);
+  font.setSkewX(synthetic_italic_ ? -SK_Scalar1 / 4 : 0);
+  ```
+
+  합성 조건은 `font_description.cc` (요청 weight ≥ 600 인데 bold face 없음 · italic 요청인데 italic face 없음).
+
+- **composition** `nodeRendererText.ts` 는 `FontSlant.Italic` 을 TextStyle 로 넘길 뿐이다. Pretendard 는 italic face 가 없어 CanvasKit FontMgr 가 upright 를 돌려주면 그대로 upright. SkParagraph TextStyle 에는 skew 가 없다.
+- **판정 방법**: Select placeholder (`font-style`) 또는 Styles 패널 `fontStyle: italic` 1 회 Compare Mode. **face 요청만으로 합성 여부를 판정하지 않는다** — face 유무 · `font-synthesis` 정책 · Paragraph 실제 출력을 먼저 본다.
+- **결함이면**: italic 요청 + face 부재를 감지해 글리프 run 을 `canvas.skew(-0.25, 0)` 로 그리거나 paragraph 밖 `Font.setSkewX` 경로로 폴백. paragraph 전체 skew 는 글리프 합성 외에 origin · 줄 배치 · decoration · paint bounds 에도 영향을 주므로 단순 대체로 확정하지 않는다. 측정용 Paragraph 전역 캐시를 도입하지 않고, 렌더 Paragraph 의 노드 소유 · 공유 FontCollection · 지연 해제 계약 (ADR-174) 을 유지한다.
+
+### 4-5. C06 BoxBorderPainter 알고리즘
+
+- **Chromium** `core/paint/box_border_painter.cc` (BSD): 변 4 개를 `ComplexBorderInfo` 가 alpha → style 우선순위 → side 순으로 정렬하고 같은 alpha 끼리 `OpacityGroup` 으로 묶는다. `DrawDoubleBoxSide` 는 두께 `(t + 1) / 3` 로 바깥 · 안쪽 띠, `DrawRidgeOrGrooveBoxSide` 는 반분해 inset/outset 교대, `CalculateInsetOutsetColor` 는 상대 휘도로 어둡게 · 밝게 (`kBaseDarkColorLuminance 0.014443844` · `kBaseLightColorLuminance 0.83077` · `kMinimumBorderEdgeContrastRatio 1.75`). 모서리는 `ComputeMiter` 가 `kNoMiter / kSoftMiter (색 다름) / kHardMiter (double · groove · ridge · dash 불일치)` 를 고르고 hard miter 면 polygon clip. dashed · dotted 는 중심선 stroke 에 `path_length % 4 · % 6` 보정으로 양끝에 dash · dot 이 오게 하고 (`EnforceDotsAtEndpoints`), 굵은 dotted 는 zero-length dash + round cap. uniform solid 는 `FillDRRect` 한 번.
+- **composition** `nodeRendererBorders.ts`: `strokeStyle: "solid" | "dashed" | "dotted"`. 변별 stroke (`renderSidedStroke`) 는 있으나 모서리 miter · 두 톤 style 이 없다. `cssDashPattern` 이 변 길이에 dash 를 맞추는지 확인 — 단순한 균등 dash 배열과 같은 결과라고 가정하지 않는다.
+- **판정**: `COMPONENT_RULES_TABLE` 의 `borderStyle` 값 분포를 먼저 센다. 쓰이지 않는 style 은 옮기지 않는다. 변별 색이 다른 rule (Tabs indicator · Table 머리 경계) 이 있으면 모서리 1 px 대각선 차이가 난다 — G3 `approvedDifferences` 에 그런 항목이 있는지 보고 결정. 상수 · 분기는 고정 revision 의 호출부 · 단위 · 반올림과 함께 확인한다 — 값만 복사해 정합을 가정하지 않는다.
+
+### 4-6. C07 · C08 · C09 — 상태 선택자 위주의 작은 격차
+
+| ID  | 격차                                                           | 출처 (생성 CSS)                                                        | Canvas 상태                                        | 수정                                                                                                                                                                                           |
+| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C07 | `outline-style` 미소비                                         | `outline` 119 · `outline-offset` 108 (거의 `:focus-visible`)           | width · color · offset · radius 따라감, 항상 solid | `outline_painter.cc` 분기 (`auto` focus ring 2 px 이중 링 · 음수 offset) — 상태라 우선순위 낮음                                                                                                |
+| C08 | CSS Transforms 2 개별 속성 `rotate:` · `scale:` · `translate:` | Disclosure chevron · `[data-pressed] scale: 0.97` · ListBox check 위치 | `parseTransform` 은 `transform` 함수만 파싱        | `convertToTransform` 이 세 속성을 합성 (순서: translate → rotate → scale → transform) · origin · 누적 좌표 · hit · clip                                                                        |
+| C09 | `text-decoration-thickness` · `text-underline-offset`          | Link `[data-hovered]` 1.5px                                            | `decorationThickness: 1` (폰트 값 배수)            | `text_decoration_info.cc` — `auto` → 폰트 `underlineThickness` (없으면 `font-size / 10`, 적용 조건 검증), 위치 `underlinePosition` + offset. 배수로 환산해 넘김. wavy 를 같게 하려면 직접 path |
+
+### 4-7. C10 · C11 · C12
+
+- **C10 그림 순서 · stacking**: `isStackingContext` 생성 조건 표 (`position: relative` + z-index · `opacity < 1` · `transform` · `filter` · `isolation` …) 를 `computed_style.cc` `IsStackingContext` 와 1:1 대조. clip-path 의 반지름 키워드 산식 (`closest-side / farthest-side`) · polygon fill-rule · `path()` · reference box 는 `clip_path_clipper.cc` 와 fixture 1 회. ListBox `mask: url(svg)` 는 iconPath 로 그릴 것 → 확인 필요. `background-size` contain/cover · position 퍼센트는 구현, `repeat: space / round` · clip/origin 상자는 생성 CSS 0 이라 보류.
+- **C11 대체 콘텐츠**: Image binding 의 intrinsic size · aspect-ratio · object-fit 5 종 · object-position 산식 · src/dst crop · SVG viewBox · placeholder → loaded · 실패 → 재시도 · source 교체에 따른 layout · paint · cache 갱신. 비동기 완료 후 사용자 편집 없이 다시 그려지는지.
+- **C12 coverage static test**: "생성 CSS 가 내보내는 속성" ↔ "Canvas 변환기 · 렌더러 · 엔진 `NodeStyle` 소비 표" 를 typed contract 로 두고, 미소비 속성은 예외 사유 (비시각 · Preview 소속 · unsupported) 를 명시해야 통과. 이것이 feature ledger (§12-1) 의 정적 게이트다.
+
+### 4-8. 이미 Chromium 과 같은 방식 (수정 불요)
+
+- inset shadow: Blink inner path clip + hole EvenOdd + bounds 3σ ↔ composition `renderInnerBoxShadows` EvenOdd donut + `MakeBlur` + 상자 clip. sigma 만 C01. "유사" 와 픽셀 일치는 별도 증거 — spread 에 따른 corner radius `max(0, r + spread)` (= Blink `ApplySpreadToShadowShape`) 가 작은 radius · 음수 spread 에서도 같은지 fixture 로 확인.
+- 줄바꿈: Blink 는 ICU UAX #14, composition 은 Canvas 2D `measureWithCanvas2D` (Intl.Segmenter · CJK · 금칙 · keep-all · small-caps 합성) 로 **브라우저 자신을 oracle 로** 쓴다 — `line_breaker.cc` 재구현보다 정확하고 싸다. 단, 브라우저 API 로 폭을 측정한다는 이유만으로 DOM 의 line breaking 전체를 실행한 것으로 취급하지 않는다 — Canvas 2D hint 가 쓰이는 조건과 Paragraph 단독 경로를 모두 검증한다 (U3).
+- 측정과 paint 는 font family · weight/style/stretch · variation · OpenType feature · synthesis · white-space · break 정책을 공유해야 한다.
+
+---
+
+## 5. 최적화 — 측정된 꼬리와 O1 ~ O3
+
+production 꼬리 (ADR-263 ~ 265 종결 기록, 2026-10-16):
+
+| 시나리오       | p99 (ms) | 원인 (카운트로 확정)                                                                                   |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| 중첩 5k 편집   | 24 ~ 26  | Canvas binding 의 옮김 상수 비용 — 옮겨진 상자마다 `subtreeTranslate` · overflow clip 복제 · rect diff |
+| 평평 5k 줌     | 27 ~ 28  | 줌이 page grid 자동 열 수를 바꿔 `syncAutoColumns` → `scene.refresh()` 전체 재바인드                   |
+| 평평 5k select | ~29      | React · RAC Layers 행 렌더 (Canvas 밖)                                                                 |
+
+기준선 원본: `.agent/runs/2026-10-15-canvas-rust-baseline/` · ADR-263 ~ 265 breakdown · [CANVAS_RUST_DECISION_2026-10.md](CANVAS_RUST_DECISION_2026-10.md). HEAD · 관련 diff · fixture · 환경 · resource · 계측 조건이 맞는 범위는 새로 재지 않고 인용한다. 실사용 형태 문서 (`app-pages`) 의 줌 꼬리는 ADR-266 (Proposed) 이 별도로 다룬다 — 원인은 JS picture 캐시 상한 · paragraph 재생성 · viewport 후퇴이고 이 문서의 O1 과는 다른 축.
+
+### 5-1. O1 Property node 분리 (유일하게 꼬리에 닿는 구조)
+
+- **Chromium 의 통찰** (`how_cc_works.md` §property trees · Blink `PaintChunk` · `PaintPropertyTreeBuilder`): 그리기 목록은 **로컬 좌표** 로 한 번 기록하고 transform · clip · scroll · effect 는 **별도 노드 트리** 에 둔다. chunk 는 노드 id 만 가리킨다. 스크롤 · 이동 · clip 변경은 노드 값 갱신이고 목록은 손대지 않는다. 비용이 "바뀐 노드 수" 에 비례한다.
+- **composition**: `ELEMENT_BEGIN` 에 절대 좌표가 구워지고 (`retainedParagraph.ts` 주석 — "좌표가 ELEMENT_BEGIN 에서 이미 translate 됐기 때문"), 옮김은 `subtreeTranslate` 가 서브트리 명령을 다시 쓰고, clip · scroll 문맥이 바뀌면 patch 를 거부 (`clip-context-changed` · `scroll-context-changed`). node picture 캐시는 이미 **노드-로컬 기록 + replay 시 translate** 라 절반은 와 있다.
+- **설계 스케치** (ADR 대상): `ELEMENT_BEGIN` 이 `(x, y)` 대신 `transformNodeId` 를 들고 실행기가 노드 테이블에서 `(x, y, scroll offset, clip rect)` 를 읽는다. 레이아웃 이동 = 노드 테이블 갱신 + damage = 이전 ∪ 이후 bounds, 명령 재기록 0. overflow clip 도 `clipNodeId` — 스크롤 = offset 갱신 (ADR-263 #4 `catalogScrollRange` DFS 도 사라진다). patch 거부 사유 중 앞 둘은 노드 갱신으로 흡수.
+- **O(1) 주장 금지**: 명령 재기록은 줄어도 local bounds · 누적 transform · draw/hit/overlay 동기화 · index upsert · 자원 비용이 남는다. 전체 동작의 비용과 수명으로 평가하고, 비용이 pick · 다음 프레임으로 이동하지 않았는지 본다.
+- **Phase 0 카운트** (measurement-validity §5): `subtreeTranslate` 호출 수 · patch 교체 명령 수를 결정적 카운트로 잡고 중첩 5k 편집에서 RED 고정. wall-clock 은 방향만.
+- **위험**: 기술 MEDIUM (실행기 · patcher · damage 가 같은 노드 테이블을 읽어야 한다 — 불일치면 stale pixel) / 유지보수 MEDIUM / 마이그레이션 MEDIUM. ADR-263 대안 B · C · D 와 다른 축이라 그 기각 사유가 적용되지 않는다.
+- **순서**: 측정 뒤 — ADR-264/265 종결 카운트가 이미 그 측정이다. 새 ADR (`/create-adr` 는 사용자 전용) 의 Context 로 인용. 기존 성능 기록의 nested edit · zoom 재바인드 · React/RAC selection 비용은 별도 원인으로 유지한다 — property tree 가 모든 꼬리를 해결한다고 가정하지 않는다.
+
+### 5-2. O2 under-invalidation checking
+
+Blink 는 dev 빌드에서 "캐시 없이 다시 그린 결과" 와 "캐시 결과" 를 비교해 무효화 누락을 즉시 잡는다 (`platform/graphics/paint/paint_under_invalidation_checker.cc` · `raster_invalidator.cc` · `geometry_mapper.h`). composition 은 같은 oracle 을 live 스크립트 (`adr263-render-path-live.mjs`) 로만 돌린다.
+
+- **제안**: `__composition_RENDER_PATH_DEBUG__` 에 `checkUnderInvalidation` 을 더해 damage 프레임마다 standby surface 에 full 을 그리고 비교 → 불일치면 `console.error` + 카운터. perf 하니스 `--check-invalidation` 으로 ratchet A 에 0 등록. O1 의 안전망.
+- **독립성 보강 두 가지** (§0-4 · §2): (a) `forceFull` 은 `invalidateContent()` = content 무효화라 catalog / layout / command 의 fresh build 가 아니다 — 동일 authored document · resource generation 에서 fresh catalog/layout/binding/command 를 구성하는 대조군이 필요하고, full repaint 를 full rebuild 라 부르지 않는다. (b) **damage rect 안만 비교하면** 너무 작은 damage 바깥의 잔상과 damage 자체가 없는 경우를 놓친다 — 비교 기준은 수정본이 산출한 damage 에 종속되지 않고, visible surface 전체 또는 독립적으로 정한 범위를 비교하며, damage 누락으로 렌더 프레임이 없는 경우도 scene/resource 변경 후 명시 checkpoint 에서 검출한다.
+- **negative test**: stale cache · 누락 invalidation · 잘못된 bounds · 누락 후보를 주입해 각 검사가 실패하는지 확인한다. 최초로 다른 geometry · command · paint 단위를 찾는 진단 출력을 남긴다.
+- "실제 paint bounds (그림자 · filter · overflow 자식) 를 계산해 damage 에 쓴다" 는 지금의 "unsafe → full 수렴" (ADR-263 HC4) 보다 한 단계 나아간 제안이다 (U4) — ADR-263 재개 조건처럼 측정이 먼저.
+
+### 5-3. O3 보류 · 해당 없음
+
+| 후보                                                                  | 착수 근거 (재개 조건)                                                                       | 필수 확인                                                                                    | 현재 판정                                                                                                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tile raster cache (`cc/tiles`)                                        | viewport surface 이후에도 raster/flush 가 주요 병목                                         | seam · scale 전환 · 효과 경계 · GPU 메모리                                                   | 보류 — ADR-263 재개 조건 미성립. content surface 가 이미 viewport 크기. 2026-07 줌 flush 56 % 는 `makeImageSnapshot` CoW 였고 ping-pong 으로 처리 |
+| OffscreenCanvas / Worker (`ProxyMain` / `ProxyImpl`)                  | Canvas 작업이 입력을 막거나 다른 main-thread 작업이 Canvas 표시를 막는 증거가 카운트로 확인 | 메시지 · atomic publish · overlay/input 지연 · context 복구. React/RAC 자체 비용 감소와 구분 | 보류 — select 꼬리가 React 라 Canvas 를 옮겨도 그 비용은 그대로. 문서 동기화 · hit-test · 텍스트 편집 overlay 가 전부 경계를 넘는다               |
+| scale 별 이미지 자원                                                  | decode/upload · 원본 해상도 · live-set 의 비용                                              | DPR/zoom 별 품질 · eviction · mip · 자원 수명 · 재확대                                       | C03 sampling 의미 수리 뒤 측정 후 (U7)                                                                                                            |
+| Rust geometry/command planning                                        | 관련 계산과 WASM 경계 비용이 production 상위                                                | TS/Rust 동치 · 직렬화 · 소유권 · 번들 크기                                                   | 미충족 — Canvas Rust 판정 4단계 trigger 2 · 3 미충족 (CANVAS_RUST_DECISION_2026-10.md)                                                            |
+| 명령 바이너리화 (PaintOpBuffer)                                       | 기록 · 해석 · 전송의 독립적인 병목                                                          | 버전 · 검증 · 디버깅 · 전송 계약                                                             | 해당 없음 — `executeCommandRange` 가 프로필 상위에서 빠졌다 (ADR-263 G5). Rust trigger 1 ("그리기 명령 > 8 ms/frame") 과 같은 조건으로만          |
+| `cc::Scheduler` · LCD text · raster scale 휴리스틱 · viz · OOP raster | —                                                                                           | —                                                                                            | 대응물 없음. macOS Chrome 은 grayscale AA 라 글자는 이미 같다                                                                                     |
+
+조건부 최적화 미실행은 정확도 작업의 종결을 막지 않는다. 효과가 작거나 복잡성이 더 크면 근거를 남기고 보류한다.
+
+---
+
+## 6. HTML DOM · CSS2 · CSS3 화면 표시 기능 — 수요 ↔ 공급 전수 대조
+
+수요측 = 생성 CSS `packages/shared/src/components/styles/generated/*.css` 속성 분포 (괄호는 선언 수) + Styles 패널 `panels/styles/sections/styleSectionProps.ts`. 공급측 = Canvas 변환기 · Skia 렌더러 · 엔진 `NodeStyle` · 모듈 헤더 미구현 선언. "무해" = 생성 CSS 0 건 — 현재 대칭 범위 밖이지 영구 불필요가 아니다 (§1-1).
+
+### 6-1. 레이아웃 (CSS2 visual formatting · CSS3 box · flex · grid)
+
+| 영역                          | 구현                                                                                                                                                                           | 격차 (Chrome 있음 · 엔진 없음)                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| block (CSS 2.1 §8 · §9 · §10) | 세로 쌓임 · margin collapse (through-collapse · BFC 차단) · inline-block line box · `vertical-align` 4 종. leafBaseline · strut 는 **엔진 구현 · production 미전송** (B1 · B2) | **float / clear** · **writing-mode** · BFC 내부 다단 · **순수 inline text run 혼합** (E01) · list-item marker (`li` 1 건 · list-style none 이라 무해) |
+| flex (CSS-FLEXBOX-1)          | 단일 · 다중 라인 · grow/shrink · align-content · align-self · justify-self · order · aspect-ratio                                                                              | `flex-basis: content` intrinsic 자동 측정 (content_main 폴백). 헤더의 "aspect-ratio · align-self 미구현" 은 stale (필드 존재). 세부는 §7-2            |
+| grid (CSS-GRID-1)             | track sizing · repeat/minmax/span · auto-flow · auto-columns/rows                                                                                                              | subgrid · dense 역채움 · baseline · areas (파서만). 세부는 §7-3                                                                                       |
+| position · overflow           | static / relative / absolute · overflow x/y · 스크롤바 (`renderScrollbar`) · scroll offset. **sticky · fixed 는 `styleOf` 미전송 → in-flow static** (X8)                       | `overflow: clip` · `overflow-clip-margin` · `scrollbar-*` (생성 CSS 0 — 무해)                                                                         |
+| 논리 속성                     | `cascade.rs` 가 `marginInlineEnd → marginRight` 등 물리로 변환 (LTR 고정)                                                                                                      | RTL 반전 없음. `border-start-start-radius` · `border-block` (ListBox 1 건) 은 변환 표에 없음 → 확인 필요                                              |
+| 표 · 다단                     | —                                                                                                                                                                              | **CSS table layout 없음** (E02 — RAC Table 은 `<table>` DOM, 엔진은 열 트랙 근사 ADR-257) · multicol 없음 (E03)                                       |
+| 생성 content                  | —                                                                                                                                                                              | `::before / ::after` 없음 — 생성 CSS 의 `content:` 30 건은 전부 `justify-content` 오탐. 실제 `content:` 2 건 → 확인 필요                              |
+
+### 6-2. 페인트 (CSS3 backgrounds · borders · effects · transforms · masking)
+
+| 속성 (선언 수)                              | Canvas 상태                                                                                         | 판정                                                                                                                                 |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `background` (592) · gradient · 다중 레이어 | color · image · linear/radial/conic/mesh · size/position/repeat · `skia/fills.ts` (fill layer 렌더) | 구현. `background-clip / origin / attachment / blend-mode` 참조 0 — 생성 CSS 도 0 (무해). C10                                        |
+| `border-*` (78 + 150 + 52 · radius 503)     | 변별 width/color · radius 4 모서리 · solid/dashed/dotted · 안쪽 radius (`borderGeometry`)           | **격차** C06                                                                                                                         |
+| `box-shadow` (23)                           | 다중 · inset · spread · corner radius 규칙                                                          | **격차** C01                                                                                                                         |
+| `outline` (119) · `outline-offset` (108)    | width · color · offset · radius (`nodeRendererBorders.ts:756`)                                      | **격차** `outline-style` C07                                                                                                         |
+| `opacity` (112) · `mix-blend-mode`          | saveLayer alpha · `toSkiaBlendMode`                                                                 | 구현. `isolation` 참조 0 (생성 CSS 0)                                                                                                |
+| `filter` · `backdrop-filter`                | blur · drop-shadow · color-matrix 계열 · backdrop blur                                              | drop-shadow sigma C02                                                                                                                |
+| `transform` (3) · `transform-origin`        | 2D translate/rotate/scale/skew/matrix + origin                                                      | **격차** 개별 속성 C08. 3D · perspective 없음 (생성 CSS 0)                                                                           |
+| `clip-path` · `mask`                        | basic shape · path · `maskImage`                                                                    | 구현. ListBox `mask: url(svg)` 는 iconPath 로 그릴 것 → 확인 필요. 반지름 키워드 산식은 `clip_path_clipper.cc` 와 fixture 1 회 (C10) |
+| `aspect-ratio` (4) · `object-fit`           | 엔진 `aspect_ratio`                                                                                 | `object-fit / object-position / image-rendering` 참조 0 → Image 축소 규칙 확인 필요 (C03 · C11)                                      |
+| `visibility` · `z-index` · stacking context | `visible` · `zIndex` · `isStackingContext`                                                          | 구현. 생성 조건 표를 `computed_style.cc` `IsStackingContext` 와 1:1 대조 권장 (C10)                                                  |
+| `border-image`                              | —                                                                                                   | 없음 (생성 CSS 0 — 무해)                                                                                                             |
+
+### 6-3. 텍스트 (CSS Text · Fonts · Text Decoration)
+
+| 속성                                                                                          | Canvas 상태                                                               | 판정                                                    |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------- |
+| font-family / size / weight / stretch · variable axes                                         | `fontStyle: {weight, slant, width}` + `fontVariations(wght)` push         | 구현                                                    |
+| `font-style: italic`                                                                          | `FontSlant.Italic` 전달                                                   | **확인 필요** C05                                       |
+| line-height · letter/word-spacing · text-align (+justify)                                     | `heightMultiplier + halfLeading` · strut · alignOffset                    | 구현 (텍스트 노드 안). 컨테이너 line box 의 strut 는 B1 |
+| `text-decoration` (5) line · style · color                                                    | underline/overline/line-through · solid/double/dotted/dashed/wavy · color | thickness · underline-offset C09                        |
+| `text-transform` · `text-indent` · `white-space` · `word-break` · `overflow-wrap` · `hyphens` | `applyTextTransform` · Canvas2D 측정 파이프라인                           | 구현                                                    |
+| `text-overflow: ellipsis`                                                                     | `maxLines: 1 + ellipsis`                                                  | 1 줄만. `-webkit-line-clamp` 없음 (생성 CSS 0 — 무해)   |
+| `font-variant-numeric` (DateInput 1)                                                          | 참조 0                                                                    | **격차** C04                                            |
+| `text-shadow`                                                                                 | `TextShadow[]` + blur                                                     | sigma C01                                               |
+| `-webkit-text-fill-color` (1) · `caret-color` · `::placeholder` · `::selection`               | caret · selection 은 편집 overlay 영역                                    | text-fill-color 는 출처 파일 0 → 무해                   |
+| writing-mode · text-orientation · `tab-size` · `text-align-last`                              | —                                                                         | 없음 (생성 CSS 0 — 무해)                                |
+
+### 6-4. HTML 요소 · 상태
+
+- catalog 태그 17 종 (`div` 80 · `span` 5 · `section` 4 · `button` 4 · `p` 3 · `output` 3 · `nav` 3 · `kbd` 2 · `li` · `label` · `input` · `hr` · `header` · `form` · `code` · `body` · `a`) + `img` (Image) + svg 아이콘 (`iconPath`). RAC 가 unstyled 라 **native form appearance** (checkbox · radio · select · range · date · color) 재현이 필요 없다.
+- 해당 없음 (catalog 에 없음): `video` · `iframe` · `canvas` · `embed` · `ul/ol` marker · `details/summary` native marker · `dialog` backdrop → E05.
+- **상태**: `CatalogStates.css` (hover · pressed · focus-visible · disabled · selected · placeholder) 중 Canvas 는 정적 기본 상태 + 문서가 든 상태 (selected · disabled · isPending 등) 만 그린다. `:focus-visible outline` 119 · `transition` 35 · `animation` (ProgressBar indeterminate) 은 상호작용 결과라 정적 대칭 범위 밖 — Preview 로 확인 (E07).
+- 비시각 속성 (`cursor` 113 · `pointer-events` 103 · `user-select` · `touch-action` · `will-change` · `contain` · `forced-color-adjust` 109) 은 Canvas 소비 대상이 아니다 (ADR-223 "Canvas 저작 surface 에 대응 없는 DOM interaction"). C12 static test 의 예외 사유로 적는다.
+- **publish UA 시트** (X13): Preview 는 Tailwind preflight (`App.css:7-21`: `box-sizing: border-box; border: 0; margin: 0; padding: 0`) 위에 서지만, publish 는 `apps/publish/src/styles/index.css:17-24` `box-sizing` + `margin: 0` 만 리셋 — `<button>` · `<input>` · `<textarea>` · `<select>` · `<ul>` · `<fieldset>` 의 Blink `html.css` padding · border 가 생성 CSS 로 덮이지 않으면 남는다. 요소별 실제 computed style 로 확인.
+
+---
+
+## 7. 레이아웃 — Blink LayoutNG 함수 단위 대조
+
+> **방법**: 영역별 4 개 병렬 감사 (block · flex · grid · 박스 모델) 가 Blink `main` 소스를 받아 composition 소스 (Rust `packages/engine/src/{block,flex,grid,tree,display,style,cascade}.rs` + TS 직렬화 `packages/shared/src/catalog/runtime/compositionRoot.ts` `styleOf` · `itemLayout`) 와 줄 단위로 대조했고, production 재현 가능 항목은 메인 세션이 composition 쪽 file:line 을 직접 다시 열어 확인했다. Blink 파일 경로는 `third_party/blink/renderer/core/layout/` 기준 (`computed_style.cc` 는 `core/style/`, 폰트 metrics 는 `platform/fonts/`, `css_properties.json5` 는 `core/css/`, UA 시트는 `core/html/resources/`).
+> **판정 기준**: "격차" 는 양쪽 코드가 다른 결과를 내는 것. 엔진 모듈 헤더가 **미구현** 이라 선언한 것 (float · writing-mode · subgrid 등) 은 격차로 세지 않고 §7-6 에 모았다. 생성 CSS · Styles 패널이 그 입력을 만들 수 없으면 "재현 불가" 로 적었다.
+> **증거 수준**: B1 · B2 · X8 의 입력 누락은 `code-confirmed`. 그 외 행의 Chrome / 엔진 수치와 재현 판정은 별도 표시가 없으면 `source-reported` — 조사 시점의 보고이며 이번 통합에서 실행한 결과가 아니다. 표의 존재가 실제 Chrome 재현을 뜻하지 않는다.
+
+### 7-0. 큰 틀과 우선순위
+
+**수동 구현의 큰 틀 (margin collapse · BFC · shrink-to-fit · min/max clamp 순서 · flex 동결 기계 · grid fr 가상 크기 루프 · auto-repeat · absolute inset 해소) 은 Blink 와 같다.** 격차는 두 종류다.
+
+1. **입력 연결 회귀 — 엔진은 받는데 production 이 보내지 않는 입력.** `78469745d` (2026-10-05 옛 TS 파이프라인 삭제) 가 `leafBaseline` · `strutBaseline` · `lineHeight` 공급자 (`f1ec24e53` · `3a1b3200d`) 를 같이 지웠고 catalog 경로 `styleOf` 에 다시 연결되지 않았다. `position: sticky` · `fixed` 도 `styleOf` 가 떨어뜨려 in-flow static 이 된다. 알고리즘이 아니라 **연결 문제** 라 가장 먼저 닫는다 — 단, 옛 파이프라인 복사만으로 닫지 않는다. 현재 catalog 의 font family · feature · line-height 의미와 측정 결과에 맞춰 연결하고, 입력 변경 → 엔진 dirty → Canvas/DOM → 저장/재로드까지 검증한다.
+2. **알고리즘 격차 — Blink 가 명세의 한 절을 구현했고 composition 이 근사한 자리.** 51 행 중 production 에서 흔한 입력으로 드러나는 것이 아래 12 그룹 (ID 21 개), 나머지는 §7-1 ~ §7-4 표의 "재현" 열로 가른다.
+
+| 순위 | 영역  | 격차                                                                                                                         | 사용자 가시 결과                                                                                                        | 닫는 수단                                                                                                                                                                                                                                                                                                      |
+| ---- | ----- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | block | **B1 · B2** `leafBaseline · strutBaseline · lineHeight` 미전송 → 모든 atomic inline 이 바닥 정렬 · strut 0                   | block frame 안 크기 다른 Button 둘이 글자선이 아니라 바닥에 맞고, 작은 inline 하나면 frame 높이가 line-height 보다 낮다 | `styleOf` 가 세 키를 내보냄 (현재 측정 계약으로)                                                                                                                                                                                                                                                               |
+| 2    | box   | **X8** `position: sticky` 엔진 미전송 + Canvas 보정 (`isSticky · stickyTop`) 생산자 없음                                     | catalog rule 2 건 (`componentRulesTable.ts:5599 · 6903`) 과 Styles `sticky` 가 Canvas 에서 흘러간다                     | `styleOf` 전송 + 엔진 sticky (Blink `ComputeStickyPositionConstraints` 계약). fixed 는 별도 feature                                                                                                                                                                                                            |
+| 3    | grid  | **G1 · G2** 최소 기여 — 명시 `min-width: 0` 은 올리기만, scroll container 판정 없음                                          | `1fr 1fr` 열 안 긴 텍스트 + `min-width:0` / `overflow:hidden` 이 트랙을 못 줄여 넘친다                                  | `track_contribution` 에 Blink `CalculateIntrinsicMinimumContribution` 규칙                                                                                                                                                                                                                                     |
+| 4    | flex  | **F4** row definite 컨테이너 item 의 §4.5 content size suggestion 생략 (ADR-204 perf 이연)                                   | 좁은 row 에서 자식 보유 고정 폭 Button/Frame 이 min-content 아래로 줄어든다                                             | 2-b 에서 min-content 측정 복원 (perf 는 ADR-246 카운트로 재판정 · 허용치 사후 완화 금지)                                                                                                                                                                                                                       |
+| 5    | grid  | **G3 · G4** span 아이템 — fr 트랙을 지나면 기여 폐기 · 고정 트랙에도 균등 분배                                               | `span 2` 아이템이 넘치거나 (fr) 고정 px 열이 커진다                                                                     | §12.5 step 3 (flex factor 비례) + `IsContributionAppliedToSet` (intrinsic 트랙만). 2026-10-16 「grid 칸이 늘어난다」 수리의 반대 회귀 금지 — 400 / 500 px 양쪽 고정 · `1fr` 과 `minmax(0,1fr)` 구분 · span 은 cell 점유이지 track 병합 아님 · drag preview · commit · resize · guide · hit-test 계약 함께 검증 |
+| 6    | grid  | **G7 · G8** 명시 placement 커서 — step 1/2 순서 · 행별 minor 커서 · "col < cursor → 다음 행"                                 | 행만 고정한 아이템이 겹치거나 엉뚱한 열에 놓인다                                                                        | `grid_placement.cc` 의 3 단계 + `AutoPlacementCursor`                                                                                                                                                                                                                                                          |
+| 7    | box   | **X3 · X4** absolute static position — flex/grid 부모의 justify/align 무시 · 선행 형제 margin-bottom 미포함                  | inset 없는 absolute 자식이 flex center 부모에서 (0, 0) 근처에 놓인다                                                    | `HandleOutOfFlowPositionedItems` (sole item 규칙) · margin strut 가산                                                                                                                                                                                                                                          |
+| 8    | box   | **X9** `em` = 항상 16 · `ch · ex` = fontSize × 0.5 근사                                                                      | `fontSize 24` 노드 `width: 2em` → 32 (Chrome 48)                                                                        | `ctx_for` 에 자기 computed font-size 전달 · `ch` 는 "0" advance 측정                                                                                                                                                                                                                                           |
+| 9    | box   | **X1 · X2** `position: relative` `%` inset 기준 — 가로는 부모 available, 세로는 auto 높이도 definite                         | padding 큰 부모 안 `left: 50%` 가 크게 틀린다                                                                           | `relative_utils.cc` `ComputeRelativeOffset` 계약                                                                                                                                                                                                                                                               |
+| 10   | block | **B4** `vertical-align: middle` x-height 보정 없음 · **X10** `sub · super · text-top · text-bottom · <length>` 전부 baseline | middle 이 ~4 px 낮다                                                                                                    | `inline_box_state.cc` `ApplyBaselineShift` (x-height/2 · 폰트 metrics)                                                                                                                                                                                                                                         |
+| 11   | grid  | **G16** aspect-ratio 아이템 + implicit stretch 가 양축 stretch                                                               | `aspect-ratio: 2` 아이템이 셀을 다 채운다 (Chrome 은 ratio 유지)                                                        | `ComputeBlockSizeForFragmentInternal` 순서 (explicit stretch → ratio → implicit)                                                                                                                                                                                                                               |
+| 12   | box   | **X6 · X7** aspect-ratio 자동 최소 높이가 leaf 에 미적용 · min/max 전송 없음                                                 | 3 줄 Text 에 `aspect-ratio: 4` 면 글자가 잘린다 · `max-height` 가 폭으로 안 넘어간다                                    | `length_utils.cc` §5.2.1 · §5.2.2                                                                                                                                                                                                                                                                              |
+
+드문 입력 (아래 표의 "드묾 · 낮음 · unknown · 서브픽셀") 은 입력을 만들 수 있는 날 WPT fixture 로 한 번에 닫는다 — 드물다는 이유만으로 미노출로 단정하지 않고 authoring 재현 가능성으로 우선순위를 정한다. X8 fixed · X10 · G17 처럼 기존 미지원 계약과 겹친 항목은 결함 수리와 기능 확장을 분리한다.
+
+### 7-1. Block · inline-block · margin collapse · baseline (`block_layout_algorithm.cc` · `geometry/margin_strut` · `inline/inline_box_state.cc` · `inline/line_breaker.cc` · `logical_box_fragment.cc`)
+
+| #   | 축                                | composition                                                                                                                                                                                                    | Blink                                                                                                                                                                                                            | fixture                                                                                                      | 재현    |
+| --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------- |
+| B1  | strut (컨테이너 line-height 하한) | `block.rs:440-455` `strut_line_height >= 0` 일 때만 참여. production 은 `styleOf` 가 `lineHeight` 를 엔진 키로 안 내보내 (`compositionRoot.ts` — 텍스트 binding `:743` 에만) `tree.rs:4053` → -1 → **strut 0** | `inline_box_state.cc:346-353 OnBeginPlaceItems` 모든 line box 에 strut (`ComputeTextMetrics` + `CalculateLeadingSpace`, ascent 쪽 leading `Floor()` `line_utils.cc:35-44`)                                       | `display:block; line-height:24px` 안 `inline-block` 12px → Chrome 24 / 엔진 12                               | **yes** |
+| B2  | atomic inline 의 baseline         | `tree.rs:2248-2255` `leaf_baseline` 입력에서만; 생산 지점은 `layoutTypes.ts:197` 타입 선언뿐 (`78469745d` 가 `f1ec24e53` · `3a1b3200d` 공급 삭제) → `block.rs:269` bottom margin edge 폴백                     | `line_breaker.cc:3130-3133` atomic inline `kInlineBlock` baseline · `block_layout_algorithm.cc:3802-3860` 마지막 line box / block 자식 baseline 전파 · `logical_box_fragment.cc:59-63` 없을 때만 margin box 바닥 | block frame 안 size S Button (h24 · baseline ≈17) + size L (h40 · ≈27) → Chrome 글자선 정렬 / 엔진 바닥 정렬 | **yes** |
+| B3  | `line-height: normal` 값          | Canvas2D 폴백 `textMeasure.ts:438-452` `fontBoundingBoxAscent + Descent` (lineGap 없음 · 반올림 없음) · CanvasKit 경로 `paragraph.height`                                                                      | `computed_style.cc:2417-2421` → `FontMetrics::LineSpacing()` = `lroundf(ascent) + lroundf(descent) + lroundf(line_gap)` (`simple_font_data.cc:176-178`)                                                          | 자기 · 조상 모두 lineHeight 없는 Text                                                                        | unknown |
+| B4  | `vertical-align: middle`          | `block.rs:463-468 · 497-501` margin box 중심을 baseline 에 (x-height 0)                                                                                                                                        | `inline_box_state.cc:1339-1346` `(ascent − descent)/2 − xHeight/2`                                                                                                                                               | 16px 폰트 부모 안 `inline-block; height:40px; vertical-align:middle` → Chrome ≈4px 위                        | **yes** |
+| B5  | line box `text-align`             | `block.rs:191 · 288-303` 왼쪽 고정, `NodeStyle` 에 `text_align` 없음                                                                                                                                           | `inline_layout_algorithm.cc:373 · 937-963` `ApplyTextAlign`                                                                                                                                                      | block frame `textAlign:center` + inline-flex Button                                                          | unknown |
+| B6  | `white-space: nowrap` 줄바꿈 억제 | `block.rs:272` 무조건 wrap; `whiteSpace` 는 경계에서 버림 (`tree.rs:397`)                                                                                                                                      | `line_breaker.cc:1183-1188` `if (!auto_wrap_) return false`                                                                                                                                                      | width 100 nowrap frame 에 50px inline-flex 셋                                                                | unknown |
+| B7  | first vs last baseline            | `NodeLayout.baseline` 하나 = last (`tree.rs:4110-4168`), flex `align-items: baseline` 도 이 값 (`:6366`)                                                                                                       | `block_layout_algorithm.cc:3808-3810` `SetFirstBaseline` + `SetLastBaseline` 분리                                                                                                                                | flex row baseline 안 2줄 Text block                                                                          | unknown |
+| B8  | scroll container baseline clamp   | `tree.rs:4143-4155` 자식 baseline 그대로 전파                                                                                                                                                                  | `logical_box_fragment.h:49-52 · 66-69` `IsScrollContainer` 면 `clamp(0, BlockSize)`                                                                                                                              | `overflow:hidden; height:10px` 안 24px 줄                                                                    | unknown |
+
+**같음 확인** (변경 시 보존할 회귀 범위 — 함수 대조 결과이며 모든 입력 조합의 제품 검증을 뜻하지 않음): margin collapse 집합 (`margin_strut.cc:22-33` ↔ `block.rs:524-557`) · 부모-자식 top collapse 차단 (block-start border/padding · 새 FC — `block_layout_algorithm.cc:905-915` ↔ `tree.rs:3963`) · bottom 차단 (padding · 새 FC · definite block-size · min/max 바인딩 — `:1316-1377 · 1471-1483` ↔ `tree.rs:3981-3982 · 4185-4194`) · self-collapsing 판정 · 위치 (`:1497-1506 · 3134-3150` ↔ `tree.rs:4252-4258` · `block.rs:329`) · BFC 자식의 margin 은 형제 · 부모와 collapse (`:1895-1902 · 2953-3006` ↔ `block.rs:359-381`) · line box 가 margin 을 끝냄 (`inline_layout_algorithm.cc:1504-1509` ↔ `block.rs:280-286`) · atomic inline 은 margin box 로 참여 · scroll container inline-block → block-end margin edge, clip 제외 (`:3851-3857` + `physical_box_fragment.h:170-174` ↔ `tree.rs:3999-4003 · 6281-6284`) · vertical-align top/bottom (`inline_box_state.cc:1448-1458` ↔ `block.rs:461-476`) · inline-block auto 폭 = shrink-to-fit (`tree.rs:1795-1803`) · 인접 atomic inline 사이 break 기회 · quirks 무관 (`<!doctype html>`).
+
+### 7-2. Flex (`flex/flex_layout_algorithm.cc` · `line_flexer.cc` · `flex_line_breaker.cc` · `length_utils.cc`)
+
+> Blink 의 옛 `flexible_box_algorithm.cc` · `flex_item.cc` · `flex_line.cc` 는 삭제됐다 (404). §4.5 는 `FlexLayoutAlgorithm::ConstructAndAppendFlexItems` 안에 inline 돼 있고 §9.7 은 `line_flexer.cc`, §9.3 은 `flex_line_breaker.cc`.
+
+| #   | 축                                           | composition                                                                                                                                                                                                 | Blink                                                                                                                                                                            | fixture                                                                                                   | 재현                                                    |
+| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| F1  | §9.7 flex factor 합 < 1                      | `flex.rs:758-762` **매 라운드 remaining** × grow_sum, 크기 비교 없음 (shrink `:776-780` 동형)                                                                                                               | `line_flexer.cc:99-104` `fractional = initial_free_space × total_flex_factor; if (abs(fractional) < abs(free_space)) free_space = fractional` — **initial free space** · 작은 쪽 | width 100 > A `flex:.3 1 0; max-width:10px` · B `flex:.3 1 0` → Blink B 30 / 엔진 27                      | 가능 (Styles `flexGrow` 소수) · 드묾                    |
+| F2  | §8.1 main auto margin + 음수 여유            | `flex.rs:1153-1155` auto margin 하나라도 있으면 부호 무관 justify 무효                                                                                                                                      | `flex_layout_algorithm.cc:1877-1888` `main_axis_auto_margin_count && free_space > 0` 일 때만; 음수면 justify center/end 동작                                                     | width 100 `justify-content:center` > `width:300px; margin-left:auto` → Blink x −100 / 엔진 0              | 가능                                                    |
+| F3  | `align-content: space-evenly`                | `tree.rs:5610-5623` arm 없음 → 0 = stretch (`flex.rs:205-216` 상수 없음)                                                                                                                                    | `:1717-1736` `kSpaceEvenly: free / (n + 1)`                                                                                                                                      | wrap · height 200 · space-evenly · 2줄 × 50 → Blink y 33.3 / 116.7 · 엔진 줄 높이 100                     | 가능 (`layout.alignContent` 텍스트)                     |
+| F4  | §4.5 row definite item 의 content suggestion | `flex.rs:376-394` definite 주축 item 은 스칼라 (off 19) 가 있을 때만 floor; `tree.rs:3148-3151` 2-b 가 `data[off+1] != -1` 이면 min-content 측정 생략 (ADR-204 perf 이연 주석) → 자식 보유 item 자동 최소 0 | `:1027-1109` 모든 non-scroll item 에 `specified_size_suggestion` · `content_size_suggestion` 둘 다 구해 `min`                                                                    | width 200 > `div{width:200px}` ×2 각 min-content 150 → Blink 150/150 (넘침) / 엔진 100/100                | **가능** — 고정 폭 Button/Frame 이 좁은 row 에서 shrink |
+| F5  | §4.5 column definite item 범위               | `tree.rs:3225-3241` 자식 border-box 아래만 (bottom margin 제외, 주석 "보수적")                                                                                                                              | `:936-947` `IntrinsicBlockSize()` = BFC root content 높이 (마지막 자식 bottom margin 포함)                                                                                       | column height 100 > item `height:80` ⊃ `height:60; margin-bottom:30` · item 80 → Blink 80/20 · 엔진 60/40 | 가능 · 드묾                                             |
+| F6  | `row-gap` `%` 기준 축                        | `tree.rs:2901-2902` 둘 다 content **폭**                                                                                                                                                                    | `:156-160 · 186-190` row-gap 은 **block** 크기                                                                                                                                   | wrap 400×200 `row-gap:10%` → Blink 20 / 엔진 40                                                           | 어려움 (`visual.gap` 은 px) · G12 와 공통 원인          |
+| F7  | `flex-basis` intrinsic 키워드                | `tree.rs:7197-7200` `fit-content` → CONTENT(max-content), `min-content`/`max-content` → auto                                                                                                                | `:1009-1016` → `length_utils.cc:113-117` `kMinContent` = min · `kFitContent` = clamp                                                                                             | `flex-basis:min-content; flex-shrink:0` "aaa bbb" → Blink 30 / 엔진 60                                    | 가능 · 드묾                                             |
+| F8  | `justify-content: start/end/right` + reverse | `tree.rs:5502-5513` start = flex-start 로 접은 뒤 reverse 를 기하 반사                                                                                                                                      | `:1693-1704` `kStart` 는 reverse 무시 · `:228-236` column 의 `left/right` → start                                                                                                | `row-reverse; justify-content:start` → Blink x 0 / 엔진 200                                               | 가능 · 드묾                                             |
+| F9  | `last baseline`                              | `tree.rs:5528 · 5559` first 그룹으로 접음, 슬롯 21 은 first baseline 뿐                                                                                                                                     | `:376-399` `LastBaselineOrSynthesize` · `BlockSize − baseline` · `:1997-2006` minor 그룹 cross-end                                                                               | `align-items:last baseline` 2줄 + 1줄                                                                     | 가능 · 드묾                                             |
+| F10 | `%` min-size + indefinite base               | `tree.rs:5236-5243` −1 센티넬 × % → 음수 → `None` → AUTO → §4.5 켜짐                                                                                                                                        | `length_utils.cc:200-213` `kMin` 이면 base 0 → min 0 · `HasAuto()` false 라 자동 최소 없음                                                                                       | column `max-height:100px` > item ×2 content 80 `min-height:10%` → Blink 50/50 / 엔진 80/80                | 가능 · 드묾                                             |
+| F11 | 반올림                                       | f32 · `RESOLVE_EPS 0.5` (`tree.rs:3323 · 3570 · 3639`)                                                                                                                                                      | `LayoutUnit` 1/64 px · `LayoutUnitDiffuser` 나머지 흩뿌림                                                                                                                        | `flex:1` ×3 in 100 → Blink 33.328/33.344/33.328 · 엔진 33.333 ×3                                          | 서브픽셀만                                              |
+
+**같음 확인**: flex-basis 해소 순서 (명시 → width → aspect 전송 → content · `%` + indefinite → content) · §4.5 scroll container → 0 (`:423-452` ↔ `flex.rs:371-375` + `tree.rs:6273-6283`) · max-main clamp (`length_utils.cc:779-782` ↔ `flex.rs:403`) · §9.7 동결 기계 전부 (방향 · inflexible · shrink 가중 · violation · min 이 max 를 이김) · §9.3 라인 수집 (`flex_line_breaker.cc:276-285 · 413-415` ↔ `flex.rs:853-862`) · align-content (nowrap 무효 · stretch 는 여유 ≥ 0 · space-* 음수 폴백) · stretch 조건 (cross auto · 미해소 `%` 는 stretch 아님 csswg #4312 · 단일 라인 definite cross) · cross 축 auto margin · main 축 auto margin (양의 여유) · `%` main + indefinite · baseline 그룹 (first) · safe 접두 · 음수 grow/shrink → 0.
+
+### 7-3. Grid (`grid/grid_track_sizing_algorithm.cc` · `grid_layout_algorithm.cc` · `grid_placement.cc` · `grid_line_resolver.cc` · `grid_track_collection.cc` · `grid_layout_utils.cc`)
+
+| #   | 축                                             | composition                                                                                                        | Blink                                                                                                                                                                                                 | fixture                                                                                                          | 재현                                                         |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| G1  | 최소 기여 — 명시 `min-width: 0`                | `tree.rs:1356-1357` `w = w.max(mn)` 올리기만; `col_contribution` (`:1458-1461`) 은 min-content 를 base 로          | `grid_layout_utils.cc` `CalculateIntrinsicMinimumContribution`: `!min_length.HasAuto()` 면 **min-width 를 그대로 해소** (0 이면 0 + pad/border/margin)                                                | `width:200px; 1fr 1fr` · A `min-width:0` + 텍스트 min-content 150 · B 50 → Blink 100/100 / 엔진 150/50           | **yes** — 1fr 열 텍스트 말줄임 표준 패턴                     |
+| G2  | 최소 기여 — scroll container                   | `measure_intrinsic_width` (`:1687~`) 에 overflow 판정 없음                                                         | 같은 함수 `is_track_scroll_container` (`IsOverflowValueScrollableInline`) → auto min = 0                                                                                                              | 위 A 를 `overflow:hidden` 으로                                                                                   | **yes**                                                      |
+| G3  | span 아이템이 fr 트랙을 지날 때 (§12.5 step 3) | `tree.rs:6024` `.filter(!any(flex))` — 기여 자체를 버림 (정해진 축)                                                | `ResolveIntrinsicTrackSizes` 가 flex 를 지나는 아이템을 마지막에 처리 · `DistributeExtraSpaceToSets` 가 flex factor 비례로 fr base 를 키움 → `ExpandFlexibleTracks` 가 base > 몫 트랙을 inflexible 로 | 600 · `repeat(3,1fr)` · `width:500px; span 2` → Blink 250/250/100 / 엔진 200/200/200 (넘침)                      | **yes** — 2026-10-16 「grid 칸이 늘어난다」 수정이 반대 극단 |
+| G4  | span 기여를 고정 트랙에도 균등 분배            | `tree.rs:6036-6037 · 6081-6082` `sizes[i] += extra / count` px 포함 (정해진 축은 몫 증발 · 미결정 축은 px 가 커짐) | `IsContributionAppliedToSet`: intrinsic minimum 은 `HasIntrinsicMinTrackBreadth()` 세트에만 · growth limit 먼저                                                                                       | `100px auto` + span-2 300 → Blink auto 200 / 엔진 100 · rows `30px auto` + span-2 100 → Blink 30/70 / 엔진 65/35 | **yes**                                                      |
+| G5  | 역순 라인 `3 / 1`                              | `grid.rs:947` `(Some(s), Some(e)) => (Some(s), (e−s).max(1))` → 라인 3 · span 1                                    | `grid_line_resolver.cc` `if (end < start) swap`                                                                                                                                                       | `grid-column: 3 / 1` → Blink 1~2열 / 엔진 3열 1칸                                                                | **yes**                                                      |
+| G6  | 없는 라인 이름                                 | `tree.rs:5194-5200` · `grid.rs:144` → `None` → auto 배치                                                           | `LookAheadForNamedGridLine` — 명시 grid 다음 암묵 라인으로                                                                                                                                            | `[a] 1fr [b] 1fr` · `grid-column-start: zzz` → Blink 3열 / 엔진 1열                                              | yes (손 입력)                                                |
+| G7  | 배치 step 1 ↔ 2 순서 · 행별 minor 커서         | `grid.rs:1190-1205` source 순서로 양축 · 행 확정 아이템 섞음 · `first_free_col` (`:996`) 항상 1열부터              | `grid_placement.cc` `PlaceNonAutoGridItems` → `PlaceGridItemsLockedToMajorAxis` 행별 `minor_cursors`                                                                                                  | child1 `grid-row:1`, child2 `grid-row:1; grid-column:1` → Blink child1 2열 / 엔진 둘 다 1열 **겹침**             | **yes**                                                      |
+| G8  | 커서 — definite col < cursor → 다음 행         | `grid.rs:1260-1266` 규칙 없음 (`:1178` 주석은 있다고 적음)                                                         | `AutoPlacementCursor::MoveToMinorLine` `if (minor < current) ++major`                                                                                                                                 | 3열 [auto, `grid-column:3`, `grid-column:2`] → Blink 셋째 (2행,2열) / 엔진 (1행,2열)                             | **yes**                                                      |
+| G9  | content 정렬 overflow (unsafe 기본)            | `grid.rs:1318` `free <= 0.5` → start                                                                               | `ComputeFirstSetGeometry` `kSafe` 아니면 음수 허용 → center `free/2`                                                                                                                                  | 300 · `400px` · `justify-content:center` → Blink x −50 / 엔진 0                                                  | **yes**                                                      |
+| G10 | `space-between` 단일 트랙                      | `grid.rs:1328` `(free/2, 0)` center                                                                                | `if (track_count < 2 …) return` — start                                                                                                                                                               | 300 · `100px` · space-between → Blink 0 / 엔진 100                                                               | **yes**                                                      |
+| G11 | `safe …` · `left` · `right`                    | `grid.rs:1340` `_ => (0, 0)`                                                                                       | left/right → start/end · safe 는 clamp 만                                                                                                                                                             | `justify-content:right` 여유 200 → Blink 200 / 엔진 0                                                            | yes                                                          |
+| G12 | `row-gap` `%` 축                               | `tree.rs:4323` 폭 기준                                                                                             | `CalculateGutterSize` row 는 block                                                                                                                                                                    | 400×200 `row-gap:10%` → 20 / 40                                                                                  | yes (% gap) · F6 과 공통 원인                                |
+| G13 | 행 축 auto-fit collapse                        | `tree.rs:4371` 범위 버림 · `:4390` collapse 는 col 만                                                              | `GridRangeBuilder::FinalizeRanges` 양축                                                                                                                                                               | `height:300px; repeat(auto-fit,50px)` rows · 아이템 2 · `align-content:end`                                      | 드묾                                                         |
+| G14 | auto-repeat — 미결정 축 + definite min/max     | `grid.rs:287 · tree.rs:4355` 컨테이너 ≤ 0 → 1                                                                      | `CalculateAutomaticRepetitions` indefinite 면 `min_available_size`                                                                                                                                    | flex row 안 `min-width:450px; repeat(auto-fill,100px)` → Blink 5 / 엔진 1                                        | 드묾                                                         |
+| G15 | `0fr`                                          | `grid.rs:208 · tree.rs:5917` → 1fr 폴백                                                                            | factor 0 세트는 inflexible, base 그대로                                                                                                                                                               | `1fr 0fr` → Blink 300/0 / 엔진 150/150                                                                           | 드묾                                                         |
+| G16 | aspect-ratio 아이템 + implicit stretch         | `tree.rs:4905-4912 · 6581 · 6845` 양축 stretch                                                                     | `length_utils.cc` `ComputeBlockSizeForFragmentInternal`: explicit stretch → ratio → implicit stretch 순                                                                                               | cols 200 rows 300 · `aspect-ratio:2` → Blink 200×100 / 엔진 200×300                                              | **yes** (ADR-224)                                            |
+| G17 | intrinsic 0 아이템 강제 stretch                | `tree.rs:6581` `\|\| real_size <= 0`                                                                               | `AxisEdgeFromItemPosition` start 그대로 (폭 0)                                                                                                                                                        | 빈 div `justify-self:start`                                                                                      | yes — ADR-156 §Residual 의도적 폴백 (수리 전 의도 재확인)    |
+| G18 | 반올림                                         | f32 · 여유 ≤ 0.5 무시                                                                                              | `LayoutUnit` + `leftover_size` 이월                                                                                                                                                                   | fractional fr · gap · DPR 별 총합과 경계                                                                         | 서브픽셀만                                                   |
+
+**같음 확인**: fr 가상 크기 루프 (`grid.rs:455-584` ↔ `ExpandFlexibleTracks`) · 단독 `fr` = `minmax(auto, fr)` · 미결정 축 fr · auto 트랙 min/max + §6.6 clamp (Chrome 실측 4줄 일치) · §12.6 maximize · §12.8 stretch auto · auto-fill/auto-fit 개수 식 · 열 축 auto-fit collapse · 미결정 컨테이너 `%` 트랙 → auto · `%` gap 미결정 → 0 · column gap 포함 · 라인 해소 (`-1` · `span N / span M` · `auto / N` · `N / N` · 라인 0) · 명시 크기 · intrinsic 키워드가 stretch 를 이김 · auto margin safe · 셀 넘침 미절단 · 암묵 트랙 순환 · fully-auto sparse 커서 · §12.1 순서.
+
+### 7-4. 박스 모델 · 크기 · display · position (`length_utils.cc` · `absolute_utils.cc` · `relative_utils.cc` · `out_of_flow_layout_part.cc` · `layout_box_model_object.cc` · `core/css/style_adjuster.cc` · `css_properties.json5` · `core/html/resources/html.css`)
+
+> 전제: Preview 는 Tailwind preflight 위에 서므로 Blink UA 시트의 margin · padding · border 기본값은 Preview 에서 이미 0 이다. 아래 "Blink" 는 레이아웃 알고리즘을 뜻하고 UA 시트는 X13 (publish 리셋 범위) 에만 나온다.
+
+| #   | 축                                                                 | composition                                                                                                                                                                                                                                                                                        | Blink                                                                                                                                                                           | fixture                                                                                                      | 재현                                                                                                               |
+| --- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| X1  | relative `%` inset 기준 (가로)                                     | `tree.rs:2332 · 2470` `ctx_for(avail_w)` = 부모에게서 받은 available (= 조부모 content 폭)                                                                                                                                                                                                         | `relative_utils.cc:18-40` containing block (부모) content box                                                                                                                   | 부모 `width:200px; padding:50px` 가 content 1000 조상 안 · 자식 `relative; left:50%` → Chrome 50 / 엔진 ≈500 | 가능 (Styles `position` + `left`)                                                                                  |
+| X2  | relative `%` inset 기준 (세로 · auto 높이)                         | `tree.rs:2471` `ctx_for(container_h)` — 배치 끝난 `ch` 라 항상 definite                                                                                                                                                                                                                            | `:33-35` `HasPercent && size == kIndefinite → nullopt` (0)                                                                                                                      | auto 부모 (내용 400) 안 `relative; top:50%` → Chrome 0 / 엔진 200                                            | 가능                                                                                                               |
+| X3  | absolute static position — flex/grid 부모                          | `tree.rs:2568-2590` 부모 display 무관 block 근사 (`static_x = pb_start_x` · 선행 형제 누적 하단)                                                                                                                                                                                                   | `flex_layout_algorithm.cc:509-600` `HandleOutOfFlowPositionedItems` — justify/align 으로 "sole flex item" 위치, 형제 무관                                                       | flex center 400×200 + 형제 h50 + absolute 40×40 → Chrome (180, 80) / 엔진 (0, 50)                            | 가능 (Styles `absolute`, inset 없음)                                                                               |
+| X4  | absolute static position — 선행 형제 margin-bottom                 | `tree.rs:2585` border-box 하단만                                                                                                                                                                                                                                                                   | `block_layout_algorithm.cc:1696-1703` `+= margin_strut.Sum()`                                                                                                                   | 형제 `height:50; margin-bottom:30` 뒤 absolute → Chrome y 80 / 엔진 50                                       | 가능                                                                                                               |
+| X5  | absolute 양측 inset + 명시 크기 + `margin:auto` · 음수 잉여 (가로) | `tree.rs:7003-7012` 부호 무관 반분                                                                                                                                                                                                                                                                 | `absolute_utils.cc:299-313` 가로 음수면 start 0                                                                                                                                 | cb 200 · `left:0; right:0; width:300px; margin:0 auto` → Chrome x 0 / 엔진 −50                               | 가능 (`margin: 0 auto` 텍스트)                                                                                     |
+| X6  | aspect-ratio 자동 최소 높이 (§5.2.2) — leaf                        | `tree.rs:2160-2172` `floor_applies = !children.is_empty() && …` → leaf 는 content 하한 없음 (`:2232-2236`)                                                                                                                                                                                         | `length_utils.cc:845-862 · 886` 자식 유무 조건 없음 — `MinIntrinsic`                                                                                                            | Text `width:120px; aspect-ratio:4` 3줄 (content 60) → Chrome 60 / 엔진 30                                    | 가능 (Styles `aspectRatio`)                                                                                        |
+| X7  | aspect-ratio 전송 min/max (§5.2.1)                                 | 없음 — `tree.rs:2088-2095` 자기 축 min/max 만 · `:2164 · 2177` 크기만 전송                                                                                                                                                                                                                         | `length_utils.cc:695-735` `ComputeTransferredMinMaxInlineSizes/BlockSizes`                                                                                                      | block leaf `width:auto (400); aspect-ratio:2; max-height:100px` → Chrome 200×100 / 엔진 폭 400               | 가능 (`maxHeight`)                                                                                                 |
+| X8  | `position: sticky` · `fixed`                                       | `compositionRoot.ts:1265-1270` `relative` · `absolute` 만 전송 → sticky/fixed 는 in-flow static. Canvas 보정 `renderCommands.ts:1644-1700` 이 읽는 `isSticky · stickyTop` 은 **생산자 0** (`stickyResolver.ts` 타입뿐). 보정이 돌아도 top/left 만 · `containerBottom = parent.height` (border-box) | `layout_box_model_object.cc:596-690` containing block = padding box − padding (content) · sticky 요소 margin 제외 · 양쪽 inset · 공간 부족 시 `max_inset += free`               | `overflow:auto; height:200px; padding-bottom:40px` 안 `sticky; top:0` 헤더 → Preview 고정 / Canvas 흘러감    | **yes** — rule 2건 (`componentRulesTable.ts:5599 · 6903`) + Styles. fixed 는 viewport · 제품 좌표계가 별도 feature |
+| X9  | `em` · `ch` · `ex`                                                 | `tree.rs:5236-5244` `parent_size: None, root_font_size: None` → `style.rs:349-355` `em` = 16 고정 · `rem` 16 · `ch/ex` = fontSize × 0.5                                                                                                                                                            | `em` = 자기 computed font-size (font-size 만 부모) · `ch` = "0" advance · `ex` = x-height · `rem` = root                                                                        | `fontSize:24` `width:2em` → Chrome 48 / 엔진 32 · `10ch` → ≈9x / 80                                          | 가능 (`width` 텍스트 통과 — `maxWidth` 의 `ch` 만 측정)                                                            |
+| X10 | `vertical-align` 키워드 범위                                       | `tree.rs:6903-6910` top · middle · bottom 외 전부 baseline                                                                                                                                                                                                                                         | `css_properties.json5` `sub · super · text-top · text-bottom · <length> · <percentage>`                                                                                         | `vertical-align: text-bottom` / `-6px`                                                                       | 가능 (`verticalAlign` ITEM_LAYOUT) · B4 와 같은 경로                                                               |
+| X11 | 초기값 표 (`outline-color` · `border-*-color/width`)               | `cascade.rs:81-134` `borderColor #000 · borderWidth 0 · outlineColor invert`                                                                                                                                                                                                                       | `currentColor` · `3 (medium)` · `currentColor`                                                                                                                                  | `border-color: initial`                                                                                      | 낮음 — dormant 표 (production 호출 0). 호출 여부 확인 전엔 제품 결함으로 집계하지 않음                             |
+| X12 | 상속 표 누락                                                       | `cascade.rs:57-78` 17종 — `textShadow · cursor · userSelect · tabSize · direction · writingMode · hyphens · fontFeatureSettings · …` 없음                                                                                                                                                          | 전부 `inherited: true`                                                                                                                                                          | 부모 `text-shadow` 자식 Text                                                                                 | 낮음 — dormant (상속은 catalog resolver). dormant 표 확장으로 해결하지 않음                                        |
+| X13 | UA 시트 — publish 리셋 범위                                        | `apps/publish/src/styles/index.css:17-24` `box-sizing` + `margin: 0` 만 (padding · border 리셋 없음)                                                                                                                                                                                               | `html.css:876-889 button padding 1px 6px · border 2px outset` · `:488-500 input` · `:463-476 textarea` · `:1221 select` · `:320 ul padding-inline-start 40px` · `:396 fieldset` | 생성 CSS 가 padding · border 를 덮지 않는 `<button>` · `<input>` 등이 publish 에 있으면 UA 값이 남는다       | 조건부 — publish 한정, 요소별 미확인                                                                               |
+| X14 | aspect-ratio 전송값의 pad/border 하한                              | `tree.rs:2164 · 2177` 하한 없음                                                                                                                                                                                                                                                                    | `length_utils.cc:281-290` `max(border_padding, …)`                                                                                                                              | `height:20; aspect-ratio:.5; padding:0 20px` → Chrome 40 / 엔진 10                                           | 낮음                                                                                                               |
+
+**같음 확인**: min/max clamp 순서 (`min_max_sizes.h:52-54` ↔ `tree.rs:2102-2109 · 6641-6650 · 6990-6999`) · `%` 블록 크기 + 미확정 cb (`length_utils.cc:200-220` ↔ `resolve_dimension_opt`) · `%` 인라인 + 미확정 · `min-width/height: auto` = 0 (block) · `fit-content` 공식 · absolute 양측 inset + auto 크기 → stretch · clamp 순서 · 한쪽 auto margin 흡수 · over-constrained start 유지 · 양측 inset auto → static · absolute cb = padding box · relative 충돌 해소 · blockify (`style_adjuster.cc:773-777 · 251-300` ↔ `display.rs:132-139`) · BFC 원인 · box-sizing (Preview · publish 가 `*` 에 border-box · Styles 에 `boxSizing` 키 없음 → content-box 문서 불가 → 결과 동일) · `display: none · contents` · atomic inline 판정 · 초기값 (`line-height normal · white-space · overflow · position · z-index · display inline`).
+
+### 7-5. 확인하지 못한 것 — 착수 전 추가 확인
+
+- `line-height` 상속 단위 — Styles 는 px 입력을 비율로 저장 (`styleFields.ts:240-243`) 하고 DOM 에 `ratio × fontSize` px 로 낸다. Blink 는 `<length>` 는 px 상속 · 숫자는 비율 상속 (`style_builder_converter.cc:2219-2236`). Canvas 의 `inheritedText` 가 어느 쪽인지 미확인 — 부모 `line-height: 24px` + 자식 다른 fontSize fixture 로 갈린다. Styles 저장 표현과 DOM 출력까지 확인.
+- Blink `AlignBlockContent` · `ResolveInlineAutoMargins` · `ConstrainByMinMax` 본문 (block 감사가 호출 지점만 확인).
+- absolute containing block 의 조상 체인과 Blink `ContainingBlockInfo` 생성부 (sticky 의 `PhysicalPaddingBoxRect()` 사용만 확인).
+- X13 의 요소별 생성 CSS 덮음 여부 — 실제 computed style 로.
+- `flex.rs` · `grid.rs` · `tree.rs` 헤더 · 주석과 `layout-engine.md` fixed 절 (§0-5) 은 현재 코드와 대조해 정리한다.
+
+### 7-6. 엔진이 미구현을 명시한 것 (격차로 세지 않음)
+
+현재 지원 판정은 기능별 ledger 에서 정한다. 아래는 코드 헤더와 조사에서 나온 제한이며, §7-0 ~ §7-4 후보와 겹치는 항목은 실제 노출 여부로 재분류한다.
+
+- block: float · clear · writing-mode · 다단 (`block.rs:34-37`) · 순수 `inline` 혼합 (`tree.rs:6845-6849` "S4 까지") · `vertical-align` 확장 키워드 (`tree.rs:6901-6902` "capability matrix seed") · strut 실폰트 채널 "S4/Phase 5" (`block.rs:426-428`).
+- flex: `transfer_aspect_basis_from_stretch` 의 wrap 제외 (`flex.rs:634-639`) · column 방향 baseline 그룹 (`:584`) · `order` (`layout-engine.md` — `NodeEntry.children` 이 정본) · content-box (`tree.rs:6322-6329` 전역 border-box 계약) · `contain: size` · `flex-wrap: balance` (NodeStyle 부재).
+- grid: subgrid · dense 역채움 · baseline 정렬 (`grid.rs:25-29`) · 명시 grid 앞쪽 암묵 트랙 (`grid.rs:906`) · 암묵 라인 이름 · `grid-template-areas` (파서는 있으나 `tree.rs` 가 `""` 로 넘김 — NodeStyle 에 area 필드 없음) · `MAX_GRID_LINE` 10,000.
+- box: `position: fixed` viewport 기준 (`layout-engine.md:67` — 단, 실제는 absolute 근사가 아니라 in-flow static) · absolute 조상 체인 (위치 미지정 부모) · `vw/vh` = page 크기 (`set_viewport`) · table · list-item display → block 폴백 (`display.rs:71-93`).
+
+---
+
+## 8. Blink 코드를 정답지로 쓰는 포팅 지도
+
+Preview 는 Chrome 에서 돈다. 따라서 Canvas 의 목표 픽셀은 명세가 아니라 **Blink 가 그리는 것** 이고, Blink 도 `cc::PaintCanvas` 로 Skia op 를 내보내므로 paint 알고리즘은 CanvasKit 호출로 거의 1:1 로 옮겨진다. 레이아웃은 그렇지 않다 (§8-3).
+
+### 8-1. 격차 → Blink 파일 → CanvasKit 대응
+
+Blink 경로는 `third_party/blink/renderer/` 기준, `cc/` 는 Chromium 저장소 루트 기준.
+
+| ID      | Blink 정답지                                                                                                                                                                                                                                                                                                                           | 옮길 것 (보존할 알고리즘 · 확인할 조건)                                                                                                                              | CanvasKit 대응 · composition 연결                                                                                                                                                                              |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C01     | `core/style/shadow_data.h` `BlurRadiusToStdDev` · `core/paint/box_painter_base.cc` `PaintNormalBoxShadow / PaintInsetBoxShadow`                                                                                                                                                                                                        | `radius × 0.5` · outer 는 상자 clip-out 뒤 spread RRect fill · inset 은 inner clip + hole EvenOdd + bounds `3σ`                                                      | Blink `DrawLooperBuilder` 는 CanvasKit 에 없음 → `ImageFilter.MakeDropShadowOnly` 또는 `MaskFilter.MakeBlur(Normal, σ)`. `styleConverter.ts` → `nodeRendererBorders.ts:renderBoxShadows/renderInnerBoxShadows` |
+| C02     | `core/paint/filter_effect_builder.cc` drop-shadow 처리와 실제 filter 호출부                                                                                                                                                                                                                                                            | 표준편차 입력의 parser 변환 위치. box-shadow 와 같은 상수로 일괄 변환하지 않음                                                                                       | `styleConverter.ts` filter 파서 → `skia/effects.ts` 및 실제 filter consumer                                                                                                                                    |
+| C03     | `computed_style.cc:GetInterpolationQuality` · `graphics_context_types.cc:GetDefaultInterpolationQuality` · `graphics_context.cc:ComputeInterpolationQuality` · `graphics_context.h:ComputeSamplingOptions` · `cc/paint/paint_flags.cc:FilterQualityToSkSamplingOptions` · `image_painter.cc` · `layout_replaced.cc` `ComputeObjectFit` | 샘플링 판정 표 (§4-2) · src/dest 크기 · 로딩 · quality flag 연속 추적 · object-fit 5 종 · object-position 산식 · `pixelated` → nearest                               | `drawImageRectOptions(Linear, Linear)` (Medium) · `(Linear, None)` (Low) · `(Nearest, None)` · `makeCopyWithDefaultMipmaps`. cubic 금지. `nodeRendererImage.ts` · `imageCache.ts`                              |
+| C04     | `platform/fonts/font_description.cc` 와 shaping feature 전달부                                                                                                                                                                                                                                                                         | numeric/caps/feature settings 의 우선순위와 실제 font 지원                                                                                                           | Paragraph `fontFeatures`. catalog typography → `catalogRuntime/textMeasure.ts` · `nodeRendererText.ts` · paragraph key                                                                                         |
+| C05     | `platform/fonts/font_platform_data.cc:CreateSkFont` (LGPL) · `font_description.cc` 합성 조건                                                                                                                                                                                                                                           | `setSkewX(-0.25)` · `setEmbolden(true)` 의 적용 조건. face 요청과 합성 실행을 구분                                                                                   | SkParagraph TextStyle 에 skew 없음 → run 을 `canvas.skew` 로 그리거나 paragraph 밖 `Font.setSkewX` 폴백. 전체 paragraph skew 를 자동 대체로 채택하지 않음                                                      |
+| C06     | `core/paint/box_border_painter.cc` (BSD) `ComplexBorderInfo` · `DrawDoubleBoxSide` · `DrawRidgeOrGrooveBoxSide` · `CalculateInsetOutsetColor` · `ComputeMiter`                                                                                                                                                                         | 정렬 · `(t+1)/3` · 반분 교대 · 상수 3 · miter 종류 · dash `% 4 · % 6` 보정 · `EnforceDotsAtEndpoints` · uniform `FillDRRect`                                         | `drawDRRect` 있음. miter clip 은 `clipPath(polygon)`. dash 는 `PathEffect.MakeDash` + 보정 간격. `nodeRendererBorders.ts` · border geometry                                                                    |
+| C07     | `core/paint/outline_painter.cc`                                                                                                                                                                                                                                                                                                        | style 분기 · `auto` focus ring · 음수 offset · radius 와 겹침 처리                                                                                                   | 지금 `drawRRect` 하나 → 분기 추가 (border renderer 의 outline 분기)                                                                                                                                            |
+| C08     | `core/style/` computed transform · paint property builder                                                                                                                                                                                                                                                                              | 개별 translate/rotate/scale 과 transform 의 순서 · origin · 누적 좌표                                                                                                | `styleConverter.ts:convertToTransform` · command · bounds · hit · overlay                                                                                                                                      |
+| C09     | `core/paint/text_decoration_info.cc` · `decoration_line_painter.cc:ComputeWavyPattern`                                                                                                                                                                                                                                                 | `auto` → `underlineThickness` (없으면 `font-size / 10`) · `from-font` · `underlinePosition` + offset · wavy geometry                                                 | SkParagraph `decorationThickness` 는 배수 → 환산. wavy 를 같게 하려면 직접 path 와 bounds                                                                                                                      |
+| C10     | `background_image_geometry.cc` · `box_background_paint_context.cc` · `clip_path_clipper.cc` · `basic_shapes.cc` · `paint_layer_paint_order_iterator.cc` · `paint_phase.h` · `computed_style.cc:IsStackingContext`                                                                                                                      | contain/cover · percentage position · space/round repeat · clip/origin 상자 · shape reference box · fill rule · CSS 2.1 Appendix E 순서 · stacking context 생성 조건 | `skia/fills.ts` (fill layer 렌더) · clip/mask · `isStackingContext` 판정 표 1:1 대조 · render commands. space · round · clip/origin 은 생성 CSS 0 이라 보류                                                    |
+| C11     | `core/paint/image_painter.cc` · `core/layout/layout_replaced.cc`                                                                                                                                                                                                                                                                       | object-fit/position · intrinsic ratio · src/dst crop                                                                                                                 | Image binding · layout 입력 · `nodeRendererImage.ts`                                                                                                                                                           |
+| C12     | `core/css/css_properties.json5` ↔ catalog typed fields · generated CSS                                                                                                                                                                                                                                                                 | 선언 존재와 production 소비를 분리, 미지원 · 위임 예외 명시                                                                                                          | typed consumer coverage · 정적 누락 검사 · 동적 fixture                                                                                                                                                        |
+| O1      | Blink paint property builder · `PaintChunk` · `cc/trees/` property trees                                                                                                                                                                                                                                                               | 로컬 기록과 transform/clip/effect/scroll 상태 참조의 분리                                                                                                            | command patch/translate · bounds · index · renderer · hit · overlay                                                                                                                                            |
+| O2 · U4 | `platform/graphics/paint/paint_under_invalidation_checker.cc` · `raster_invalidator.cc` · `geometry_mapper.h`                                                                                                                                                                                                                          | 독립 재생 · 영역 변환 · invalidation · effect 입력 의존성                                                                                                            | 기존 render-path debug · fresh build · paint metadata · index                                                                                                                                                  |
+
+### 8-2. 포팅 규약과 절차
+
+**규약** (D2 `d2Provenance.ts` 와 같은 꼴):
+
+1. **코드가 아니라 알고리즘 · 상수를 옮긴다.** `core/paint/*` 는 BSD-3 라 인용 가능하지만 `platform/fonts/*` · `core/style/shadow_data.h` 는 **LGPL** — 본문 복사 금지, 상수 (`-0.25` · `(t+1)/3` · luminance 3 개) 와 분기 구조만 재구현. Chromium 저장소 전체를 단일 라이선스로 보지 않는다 — 파일별 license · third-party 의존성 · notice 를 확인하고 "상수와 분기만 옮기면 검토가 불필요하다" 는 규칙은 두지 않는다.
+2. **출처 표** `apps/builder/src/builder/workspace/canvas/skia/blinkProvenance.ts` (신설 예정 — 아직 없는 파일) 에 `{ feature, blinkPath, revision, portedAt, divergence }`. revision 은 Chromium commit hash 로 고정 — Blink 는 바뀐다 (2026 에 `border_shape_painter.cc` · `gap_decorations_painter.cc` 신설). 사용자 Chrome 버전 (`navigator.userAgentData`) 의 release branch 를 쓴다. feature ledger (§12-1) 가 이 표의 상위 형식이다.
+3. **판정은 Chrome 픽셀** — 통과 기준은 Blink 코드가 아니라 G3 하니스 (Canvas ↔ Preview 스크린샷) 와 ADR-156 `getBoundingClientRect`. 코드를 옮기는 것은 맞출 확률을 올리는 수단이고 증명은 픽셀 · geometry 다.
+4. **한 격차 = 한 커밋 = cross-check 1 회.** catalog 가 내보내지 않는 Blink 분기 (`border-shape` · gap decorations) 는 옮기지 않는다 — D3 대칭은 쓰이는 값의 동일성이다.
+
+**기능별 절차** (모든 기능 작업):
+
+1. **입력 고정** — 요소 · 속성 · 값 · 상태 · 단위 · 상속 · viewport · font/resource 조건을 최소 fixture 로 만든다.
+2. **원문 추적** — 고정 Chromium SHA 에서 parser/resolver → used value → layout 또는 painter → Skia 호출까지 필요한 경로를 읽는다.
+3. **반례 추출** — 인접 C++ 테스트와 WPT/reftest 중 해당 의미를 검증하는 사례를 선정하고 파일 이름 · test ID · 원본 revision 을 기록한다.
+4. **차이 분류** — 미노출 · 저장 누락 · 값 해석 오류 · layout 오류 · paint 오류 · invalidation 오류 · backend 제약.
+5. **최소 이식** — 독립 수식 · 알고리즘 · 처리 순서를 기존 TS/Rust 소유 모듈에 넣는다. Blink 전체 객체 모델을 복제하지 않는다. CanvasKit 기존 API 가 충분하면 그 API 를 연결한다.
+6. **소비 경로 연결** — authoring → catalog → resolve → layout/paint → DOM/Canvas → preview/commit/reset/history/save/load.
+7. **정확도 검증** — fixture 의 computed style · geometry · line metrics · pixels 를 적합한 기준으로 비교 + negative test.
+8. **성능 · 수명 검증** — 새 순회 · 할당 · GPU layer · cache · resource 누수가 생기지 않았는지 측정.
+9. **출처 · 지원표 갱신** — 원문과 달라진 부분 · 이유 · 테스트 · 미지원 조합을 ledger 에 기록.
+
+| 이식 방식        | 적용 조건                                | 예시                                   |
+| ---------------- | ---------------------------------------- | -------------------------------------- |
+| 직접 번역 이식   | 의존성이 작은 수식 · 기하 알고리즘       | shadow 입력 해석, border corner 분할   |
+| 계약 기반 재구현 | Blink 내부 객체 의존성이 큼              | containing block, inline fragment 처리 |
+| 기존 API 연결    | CanvasKit/엔진이 필요한 동작을 이미 제공 | sampling 옵션, shape/paragraph 기능    |
+| 테스트 이식      | 구현 구조가 달라도 출력 의미를 비교 가능 | flex/grid sizing, bidi · line breaking |
+| 명시적 대체·보류 | 공개 API 나 현재 제품 모델로 구현 불가   | native popup, 외부 iframe 내부 paint   |
+
+### 8-3. 옮기지 못하는 것 — 레이아웃은 코드가 아니라 테스트를 가져온다
+
+- **LayoutNG** (`core/layout/`) 는 `LayoutObject` · `ComputedStyle` · `ConstraintSpace` · `NGFragment` 에 묶여 함수 단위 포팅이 안 된다. inline formatting (E01 — `inline/inline_layout_algorithm.cc` · `line_breaker.cc`) 과 table (E02 — `table/table_layout_algorithm.cc`) 은 수천 줄 + HarfBuzz · ICU.
+- 대신 **Chromium 이 가진 테스트를 Rust 엔진의 oracle 로 쓴다**: `third_party/blink/web_tests/external/wpt/css/CSS2/` · `css-flexbox/` · `css-grid/` · `css-inline/` · `css-position/` · `css-sizing/` · `css-tables/` reftest 를 ADR-156 차등 oracle (실 Chrome `getBoundingClientRect`) 의 fixture 로. 엔진 헤더의 "미구현 — dual-run FAIL 이 fixture" 가 이미 이 모양이다. **번역한 fixture 통과를 원본 WPT 통과라 부르지 않는다.**
+- 줄바꿈은 지금처럼 **Chrome 자신을 런타임 oracle** 로 (Canvas 2D `measureWithCanvas2D`) — `line_breaker.cc` 를 옮기는 것보다 정확하고 싸다. `font-variant-numeric` 폭은 Canvas 2D 로 안 되므로 Paragraph feature 로 (§4-3).
+
+---
+
+## 9. 전체 지원 범위와 확장 목록 — E01 ~ E07 (사용자 결정 대기)
+
+HTML 지원은 catalog · DOM 의 의미와 Canvas 표현을 대응시키는 작업이다. Canvas 픽셀로 접근성 · 탐색 · 브라우저 스크립트 실행을 대체하지 않는다. CSS3 는 단일 규격이 아니므로 CSS Snapshot 과 모듈별 버전을 manifest 에 고정한다. 임의 웹페이지 URL 복제 · 완전한 HTML parser/JS 실행 환경 · 브라우저 전체 재구현은 이 계획의 자동 전제가 아니다.
+
+| 기능군                | 현재 수리 · 검증 (이 문서 범위)                                              | 확장 또는 범위 결정 (사용자 결정 뒤)                                                                   |
+| --------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 값 · 상속             | 단위 · percentage basis · computed/used value · currentColor · Reset         | arbitrary stylesheet parser · specificity · cascade layer · revert-layer 는 실제 import 요구가 있을 때 |
+| HTML 구조             | 현재 catalog 요소 · slot · anonymous text · default display                  | 신규 semantic element · generated wrapper                                                              |
+| Box · flow · position | block/inline-block · BFC · margin · min/max · relative/absolute · sticky     | fixed 의 제품 좌표계, float/clear · writing-mode · fragmentation                                       |
+| Flex · Grid           | F/G 후보 · intrinsic sizing · placement · span                               | subgrid · dense · baseline · 앞쪽 implicit track · areas 연결 범위                                     |
+| 텍스트 · 폰트         | baseline · line-height · feature · bidi · fallback · wrapping · 편집 overlay | rich inline · 다중 run · line clamp · 추가 decoration                                                  |
+| 배경 · 테두리         | shadow · border · outline · gradient · 다중 layer                            | border-image · 추가 repeat/origin/clip · collapsed table border                                        |
+| 이미지 · SVG          | sampling · object-fit · intrinsic ratio · load/error · viewBox               | animation image · video · 외부 canvas/iframe · 색 프로필별 정책                                        |
+| 합성                  | z-index · opacity · 2D transform · clip/mask · filter · backdrop 입력        | 3D/perspective · top layer · 추가 SVG filter · wide-gamut 출력                                         |
+| 상태 · 반응형         | 문서 상태 · breakpoint · 기존 state preview · font/image 완료                | Canvas 에서 새 상호작용 · timeline 실행, container query 등 신규 저작 기능                             |
+| 표 · 목록             | 현재 Table · list 관련 실제 DOM 과 Canvas 차이                               | 완전한 CSS table · colspan/rowspan · marker/counter                                                    |
+| 브라우저 서비스       | 기존 Preview/DOM 위임과 fallback                                             | print/speech · navigation · 권한이 필요한 embedded content 는 별도 제품 범위                           |
+
+| 확장 ID | 범위                                                | 선행 결정 · 검증                                                                                                                        | 현재 상태 |
+| ------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| E01     | mixed inline · rich text · anonymous fragment       | catalog 가 rich inline 을 실제로 내보내는지 먼저 센다 (`Text[slot]` 은 단일 run) · style run · shaping · 선택/IME · 저장 모델           | planned   |
+| E02     | CSS table · list · marker/counter                   | 기존 Table 계약 · ADR-257 과의 경계, DOM 행/셀 구조 · intrinsic sizing · border-collapse. 재현 케이스가 나올 때 WPT `css-tables` oracle | planned   |
+| E03     | float/clear · writing-mode · multicol/fragmentation | 저작 수요 · logical axis · containing block · pagination 범위                                                                           | planned   |
+| E04     | Grid 추가 기능 · fixed 완성                         | 현재 노출 여부, parser → engine 연결, viewport · scroll owner 계약                                                                      | planned   |
+| E05     | 신규 HTML 요소 · video/canvas/iframe/object/embed   | 직접 렌더 · 리소스 프레임 · DOM 위임 · 미지원 중 전략, CORS · 격리                                                                      | planned   |
+| E06     | arbitrary CSS/HTML import                           | 실제 진입 경로 · parser · cascade · validation · round-trip 범위                                                                        | planned   |
+| E07     | 신규 상호작용 · animation · 3D · 색 공간            | Canvas 와 Preview 책임 (상호작용 · 시간 축은 Preview 소속), hit geometry · resource 정책                                                | planned   |
+
+이 확장을 Phase 작업으로 배정하는 것은 **사용자가 승인한 scope 의 확장** (결정 지점 ④) 이라 사용자 결정 전에는 `planned` 행으로만 둔다. 확장 항목은 삭제하지 않고 `planned / unsupported / deferred` 와 이유를 남긴다. 기존 저작 기능에서 같은 문제가 재현되면 해당 부분은 현재 기능 수리로 옮긴다 — CSS table 전체 확장을 보류해도 현재 Table 사용자의 정확도 결함까지 보류하는 것은 아니다.
+
+---
+
+## 10. 실행 단계 — U0 ~ U8
+
+통합 단계는 **U0 ~ U8** 로 표기한다 (Codex 원 Phase P0 ~ P15 는 대응 열로만). 모든 단계는 계획 상태다. 기존 기능의 구현 · 검증 기록과 이번 단계의 착수 상태를 혼동하지 않는다. 의존성은 작업 설명이며 병렬 에이전트 실행 지시가 아니다. 실행 순서는 §0-2 를 따른다 — `U0 → U1 → …` 직렬 흐름이 아니라 **확정 격차부터**, 단계는 그 격차가 속한 곳이다.
+
+| 단계 | 결과                                                    | 원 Phase 대응              | 의존성                                                               |
+| ---- | ------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| U0   | 후보 · 지원 manifest · source ledger · 증거 재사용 판정 | P0, P2/P3 의 인벤토리      | 없음                                                                 |
+| U1   | 기존 oracle 연결과 독립성 보강                          | P1                         | U0 의 해당 fixture · 환경                                            |
+| U2   | 현재 입력 연결 누락 · 작은 페인트 결함 수리             | P2, P4/P5 일부, P7/P8 일부 | 해당 입력 계약과 U1 의 필요한 비교 경로                              |
+| U3   | 레이아웃 · 텍스트 · 합성 정확도 수리                    | P4 ~ P9 의 현재 기능       | 기능별 U2 및 관련 oracle. 다른 확장 전체 완료 불필요                 |
+| U4   | paint bounds · effect 의존성과 증분 경로 보강           | P10/P11                    | U1 독립성 및 해당 paint 의미 확정. ADR-263 ~ 265 종결 기록이 Context |
+| U5   | 상태 · 자원 · 저장 · 편집 흐름 통합                     | P12                        | 각 U2 ~ U4 작업과 함께 검증, 종합 시 재점검                          |
+| U6   | 선택한 HTML/CSS 지원 확장                               | P2 ~ P9/P12 의 확장 부분   | 사용자 scope 결정 (§9) · 기능별 제품 범위 · schema · consumer 계약   |
+| U7   | 측정 기반 property state · 자원 최적화                  | P13, 조건부 P15            | 관련 정확도 · 수명 gate 와 유효한 병목 증거                          |
+| U8   | 선택한 범위의 종결 · 지원표 · 후속 작업                 | P14                        | 완료 대상으로 선택한 작업의 gate                                     |
+
+권장 첫 묶음: U0/U1 의 필요한 부분 → B1/B2 · C01/C02 → X8 sticky · C03/C04 → G1/G2 · F4 · G3/G4/G7/G8. U4 의 부분 렌더링 활성화에는 독립 fresh oracle (U1) 이 필요하다.
+
+### U0 — 후보와 증거 고정
+
+- [ ] B/F/G/X 51 행과 C/E/O 항목을 ledger 에 등록하고 중복 · 의도적 제한 · 실제 노출 여부를 표시한다. 초기 행 = §0-2 표 + §4 · §6 · §7 격차.
+- [ ] authoring → catalog → resolver → engine/paint → DOM/Canvas 소비자를 속성 · 값 · 상태별로 적는다 (catalog typed fields · bindings · generated CSS · Styles 패널 · 상태 선택자 · import 경로에서 실제 입력 수집).
+- [ ] Chromium SHA 와 실제 Chrome 버전 · OS · DPR · font · CanvasKit/backend 를 별도로 고정한다. 최초 `main` 분석을 고정 SHA 에서 재검증한 것처럼 기록하지 않는다.
+- [ ] 기존 ADR-156 · 189 · 246 · 263 ~ 265 의 fixture · artifact · HEAD · 관련 diff · 측정 모드를 확인한다. 유효한 증거는 재사용하고 누락 · 변경된 부분만 재현한다. baseline · 목표 · 노이즈 판정을 구현 전에 정한다.
+- [ ] 문서 처리 · layout · binding · record · raster/flush · React/RAC 패널 비용을 구분한다.
+
+**gate U0:** 모든 선택 항목에 owner 모듈 · 입력 · 상태 · 증거 수준 · 의존성 · 완료 기준이 있다. 구체 결함 후보를 "추후 조사" 로 되돌려 누락시키지 않는다. 성능 기대치는 실측 · 가설을 구분하고 ADR-265 종결 기록을 현재 측정으로 대체하지 않는다.
+
+### U1 — 기존 하니스와 독립 oracle
+
+기존 자산: `__composition_RENDER_PATH_DEBUG__` (`forceFull · setDamageOff · setLinearOnly`) · `adr263-render-path-live.mjs` · `adr264-subtree-translate-live.mjs` · G3 하니스 (`approvedDifferences.ts`) · ADR-156 차등 oracle (`adr923ChromeDifferential.browser.test.ts`) · ADR-189 damage (`damageUnsafeElementIds` · `hasTextPaintOverflow`) · ADR-246 ratchet. U1 은 "만든다" 가 아니라 "있는 oracle 을 feature ID 로 묶는다" + 독립성 보강 (O2).
+
+- [ ] ADR-156 DOM geometry · G3 화면 비교 · ADR-263/264 render-path 도구를 feature ID 로 묶는다.
+- [ ] 동일 authored document · resource generation 에서 fresh catalog/layout/binding/command 를 구성한다 (`forceFull` 은 content 무효화일 뿐 — §0-4).
+- [ ] picture · surface cache, spatial 후보 제한, 실행기 AABB 컬링을 각각 우회하는지 확인한다.
+- [ ] 비교 기준은 수정본이 산출한 damage 에 종속되지 않는다 — visible surface 전체 또는 독립적으로 산출한 범위를 비교한다. damage 누락으로 렌더 프레임이 없는 경우도 scene/resource 변경 후 명시 checkpoint 에서 검출한다.
+- [ ] DOM Preview 의 computed style · rect · line metrics · screenshot 을 feature ID 와 함께 기록한다. WPT 원본 중 직접 실행한 사례와 catalog fixture 로 번역한 사례를 구분한다.
+- [ ] animation 시간 · font/image readiness · DPR · zoom 을 고정한다.
+- [ ] stale cache · 누락 invalidation · 잘못된 bounds · 누락 후보를 주입해 각 검사가 실패하는지 확인한다. 최초로 다른 geometry · command · paint 단위를 찾는 진단 출력을 남긴다.
+
+**gate U1:** 이미 있는 비교 기능과 새로 보강한 독립성을 구분해 기록한다. full repaint 만 실행한 결과를 full rebuild 라고 부르지 않는다. 같은 backend 의 결정적 비교 (픽셀 동치 목표) 와 DOM 의 AA · 폰트 · 색 공간 차이를 분리한다. 전체 화면에 넓은 tolerance 를 적용해 의미 오류를 숨기지 않는다.
+
+### U2 — 입력 연결과 작은 정확도 수리
+
+- [ ] **B1/B2** — `lineHeight` · font baseline 을 현재 측정 계약으로 전달한다. 옛 파이프라인 복사가 아니라 현재 catalog 의 font family · feature · line-height 의미에 맞춘다.
+- [ ] **X8** — sticky / fixed 를 나눠 직렬화 · scroll owner · engine · paint 소비를 추적한다. 키 전달만으로 완료 처리하지 않는다.
+- [ ] **C01/C02** — 입력 의미를 구분해 수리하고 외부 shadow 영역까지 비교한다.
+- [ ] **C03** — sampling 을 입력별로 검증한다. 해상도별 decode cache 최적화는 U7 로 둔다.
+- [ ] **C04** — font feature 의 측정 · 렌더 · 무효화 계약으로 연결한다. Canvas 2D 폴백 한계를 ledger 에 적는다.
+- [ ] **X9** — `em · ch · ex` 의 기준 전달 (값 해석 · 단위 축의 확정 격차).
+- [ ] 값 변경 · Reset · Undo/Redo · 재로드에서 수리 경로가 유지되는지 확인한다.
+
+**gate U2:** 원래 실패 fixture 가 통과하고, 원복 RED 또는 동등한 원인 분리 검증이 있다. 수정은 같은 원인과 gate 를 공유하는 범위로 묶는다. 커밋 수를 기계적으로 늘리지는 않는다. 미지원 값은 조용히 기본값으로 사라지지 않고 manifest 에 기록된다.
+
+### U3 — 레이아웃 · 텍스트 · 합성
+
+- [ ] **Grid / Flex** — G1/G2 minimum contribution · F4 content suggestion 을 실제 입력과 성능 조건 (ADR-246 카운트) 으로 수리. G3/G4 span 기여 · G7/G8 placement 순서 · 커서를 기존 성공 fixture (400 / 500 px · `1fr` vs `minmax(0,1fr)`) 와 함께 검증. 최종 layout 을 쓰는 drag/drop · resize · span · overlay · hit 소비자도 검증.
+- [ ] **Box** — X1 ~ X7 / X14 의 percentage · static position · ratio 를 기능별로 처리. relative/absolute/fixed/sticky · containing block · inset · scroll owner · overflow 검증.
+- [ ] **텍스트 · inline** — B3 ~ B8 / X10 / F9 의 line metrics · baseline · vertical-align 을 측정 · renderer · 편집 overlay 와 연결. 공백 정규화 → script/bidi segmentation → shaping/fallback → line breaking → line box 생성의 계약을 정하고, 측정과 페인트가 같은 font family · weight/style/stretch · variation · feature · synthesis 정책을 쓰게 한다. 현재 Canvas 2D break hint 와 Paragraph 경로를 값별로 비교한 뒤 통합 — hint 를 일괄 삭제하거나 단순 폭 보정으로 통과시키지 않는다. 측정용 Paragraph 전역 캐시를 도입하지 않는다.
+- [ ] **페인트** — C05 ~ C11 은 실제 노출 값부터 처리하고 radius · stacking · clip · filter 의 적용 순서를 고정. 변별 색 · 폭 · style, radius 정규화, corner 분할 · AA. transform/origin 및 개별 translate/rotate/scale 의 결합 순서 · 좌표계. 그룹 opacity · blend · filter · backdrop-filter 의 합성 단위와 입력 의존성 분리. 저장된 효과가 Preview 에도 같은 의미로 도달하는지.
+- [ ] 남은 F/G 후보는 드물다는 이유만으로 미노출로 단정하지 않는다. authoring 재현 가능성에 따라 우선순위를 정한다.
+
+**gate U3:** 선택한 기능의 full/incremental layout 이 같고 DOM geometry · text · paint 가 기준과 일치한다. 한글 · 영문 · emoji · RTL 혼합 · 긴 URL · variable font · fallback · 좁은 폭 · font loading 전후의 줄 · baseline · geometry 가 일치한다. drag preview · commit · span · selection · IME 및 관련 저장 흐름에서 회귀가 없다. layout 알고리즘을 바꿨다는 이유로 엔진 전체를 재작성하지 않는다. CanvasKit 의 foreground filter 와 backdrop filter 를 같은 기능으로 취급하지 않는다.
+
+### U4 — 실제 Paint Bounds 와 증분 갱신
+
+ADR-263 ~ 265 가 종결한 영역 (damage 경로 · spatial index 컬링 · patch · translateSubtree) 과 겹친다. 그 종결 기록을 Context 로 두고 남은 꼬리 (§5) 만 다룬다. "실제 paint bounds" 는 "unsafe → full 수렴" (ADR-263 HC4) 보다 나아간 제안 — **측정이 먼저**.
+
+- [ ] layout / hit / self paint / subtree paint bounds 를 분리한다. bounds 는 empty/known/unknown, invalidation 은 clean/partial/full 로 표현한다.
+- [ ] glyph · decoration · shadow · filter · overflow 자식의 영역과 transform · clip · effect 순서를 반영한다.
+- [ ] 변경 전/후 영역, 그룹 isolation · 순서 변경 · backdrop 입력 · mask/image 자원 의존성을 추적한다.
+- [ ] 먼저 renderer 선택을 유지한 채 metadata 를 계산 · 대조하고 정확성 확인 뒤 선택적으로 활성화한다.
+- [ ] full/subtree/self build, preview/commit patch, translate/placeRegion, 삭제 · reorder · reparent · page root · theme/breakpoint · font/image · context restore · dispose 를 연결한다.
+- [ ] hit index 와 독립된 paint 후보 · ID 수명을 정의한다. Rust index 인스턴스 재사용 가능성을 먼저 확인한다.
+- [ ] 바깥 spatial 후보 검색과 안쪽 실행기 컬링을 함께 갱신하고 조상 state · 합성 그룹 · 원래 paint 순서를 보존한다.
+- [ ] command · bounds · index · resource 가 같은 revision 을 나타내게 한다. pending full · ping-pong 동기화 · 실패 시 full · flush 뒤 해제를 유지한다.
+
+**gate U4:** fresh 결과와 동치이며 화면 밖 상자의 shadow, 부모 밖 자식, 삭제 · 투명화 · 축소 · clip 이동의 잔상/누락이 없다. unknown 을 빈 영역으로 취급하지 않는다. 정확한 bounds 가 있어도 effect closure 를 구하지 못하면 fallback 을 유지한다. hit 영역은 그림자 때문에 확대되지 않는다. 효과 포함 fixture 에서 fallback 감소와 총비용을 함께 판정한다.
+
+### U5 — 상태 · 자원 · 저장 통합
+
+Canvas 는 저작 surface 라 hover · pressed · focus-visible · transition · animation 은 Preview 소속이다 — 문서가 든 상태 (selected · disabled · isPending) 만 Canvas 가 그린다. 그 밖의 상호작용 · 시간 축은 E07 (사용자 결정 뒤).
+
+- [ ] 문서 상태 · 기존 state preview · breakpoint · theme · viewport · resource 완료의 적용 범위를 검증한다.
+- [ ] 편집 preview → commit → Reset → Undo/Redo → autosave → IndexedDB → load → session read model → Canvas/DOM 경로를 확인한다.
+- [ ] font/image 완료, source 교체 · 실패/재시도, context loss 에서 사용자 편집 없이 다시 그려지는지 확인한다.
+- [ ] 텍스트 편집 시작/종료 · focus · selection · IME 와 Canvas geometry 를 대조한다.
+- [ ] Preview iframe 은 기존 origin 검증 · postMessage 동기화를 사용한다.
+
+**gate U5:** 중간 표시 상태와 최종 저장 상태가 각각 맞고 재로드 후 같은 authored state 가 복원된다. 파생 bounds/cache 를 문서에 저장하지 않는다. 기본 상태 검증을 U5 종합 단계까지 미루지 않는다.
+
+### U6 — 선택한 지원 확장
+
+- [ ] E01 ~ E07 중 구현 범위를 기능 · 값 · 조합으로 선택하고 (사용자 결정) 미선택 항목의 이유 · 후속 조건을 남긴다.
+- [ ] 새 schema · validation · default · CSS generator · Canvas binding · DOM/RAC 영향이 있으면 함께 설계한다. 새 element 는 component-design 계약에 따라 D1/D2 · catalog · Canvas · Preview 를 함께 확장한다. (옛 문서 값 로드 전환 코드는 넣지 않는다 — 메모리 `feedback-no-document-migration-code-dev-stage`.)
+- [ ] 실제 authoring · 저장 · 로드가 가능한 fixture 로 검증한다. 엔진에만 값을 주입해 통과한 것을 제품 지원 완료라고 부르지 않는다.
+- [ ] external content 는 직접 paint · 위임 · fallback · unsupported 중 계약을 명시한다. CORS · 격리로 읽을 수 없는 콘텐츠를 읽을 수 있다고 가정하지 않는다.
+
+**gate U6:** 선택한 확장 범위의 기능 gate 를 통과한다. 부분 구현을 HTML/CSS 전체 지원으로 표현하지 않는다. 이 단계 전체는 현재 기능 수리의 공통 선행 조건이 아니다.
+
+### U7 — 측정 기반 최적화
+
+후보 · 착수 근거 · 필수 확인은 §5-3 표. O1 (property node) 는 새 ADR — Context = ADR-264/265 종결 카운트, Phase 0 카운트 RED. C03 뒤 scale 별 이미지 자원 (DPR/zoom 별 decode/upload · live-set · eviction · mip · 재확대) 은 측정 뒤.
+
+**gate U7:** 사전 목표를 충족하며 정확도 · 메모리 · 수명 · 번들 gate 를 유지한다. production A/B 로 판정. 효과가 작거나 복잡성이 더 크면 근거를 남기고 보류한다. property 노드 하나를 갱신한다는 이유만으로 전체 동작이 O(1) 이라고 주장하지 않는다. 조건부 최적화 미실행은 정확도 작업의 종결을 막지 않는다.
+
+### U8 — 범위별 종결
+
+- [ ] 선택한 기능을 verified / divergent / unsupported / deferred 등으로 정리하고 검증된 조합을 적는다.
+- [ ] Canvas↔DOM, optimized↔fresh, full layout↔incremental layout 의 세 축을 확인한다.
+- [ ] 실제 Builder 의 추가 · 편집 · drag preview · resize · scroll · zoom · 텍스트 · Undo/Redo · 저장/재열기를 영향 범위에 맞춰 확인한다.
+- [ ] 해당 로컬 gate · 성능 · 메모리 · 번들 결과와 실패 · 예외 · 미검증 범위를 보고한다.
+- [ ] 지원표 · source ledger · 출처/notice · 필요 CHANGELOG · 후속 조건을 갱신한다. C12 static test 가 ratchet 으로 남는다.
+
+**gate U8:** 정확도 완료, 성능 목표, 미지원 범위를 독립적으로 판정한다. 수치 목표 미달을 문서 상태 변경으로 통과 처리하지 않는다. ADR-263 ~ 265 의 기존 종결을 이 문서로 취소하거나 새 범위의 완료 증거로 확대하지 않는다.
+
+### 중단 · 재판정 조건
+
+- Chromium 알고리즘이 기존 catalog 계약과 충돌하면 원문 추종 전에 intended behavior 와 표준 · Preview 를 확인한다.
+- API · 저장 schema · DOM 구조 확장이 필요하면 영향 범위를 공개하고 해당 기능 작업에 포함한다. renderer 내부 수정으로 숨기지 않는다.
+- 부분 렌더링이 정확하지 않으면 그 기능의 fallback 을 유지하고 원인을 해결한다.
+- performance gate 가 미달하면 정확도 완료와 성능 미완료를 분리한다.
+- reference code 에 의존하는 외부 라이브러리 · 빌드 설정 변경은 구체 대상과 필요성을 확인한 뒤 별도 처리한다.
+- ADR 이 필요한 구조 결정 (O1 등) 은 이 문서를 근거로 작성할 수 있으나, 본 문서는 새 ADR 작성 · 승격 또는 구현 승인을 대신하지 않는다 (`/create-adr` 는 사용자 전용).
+
+---
+
+## 11. 공통 검증 계약
+
+### 11-1. 세 비교축
+
+| 비교                              | 검출 대상                                        | 한계                                                  |
+| --------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| 최적화 Canvas ↔ 독립 fresh Canvas | cache · patch · bounds · culling · resource 누락 | 같은 CSS 의미 오류는 공유할 수 있음                   |
+| Canvas ↔ DOM Preview              | layout · text · paint · 합성 차이                | OS · font · AA · 색 공간 · backend 조건 통제 필요     |
+| 구현 ↔ 표준 · Chromium/WPT 사례   | 알고리즘 의미 · edge case · 브라우저 특이 동작   | catalog 로 번역한 fixture 통과는 원본 WPT 통과가 아님 |
+
+geometry · computed/used value · line metrics · 픽셀 · 편집 결과를 함께 본다. 넓은 tolerance 로 줄바꿈 · 위치 · 잔상을 숨기지 않는다. animation time · font/image readiness · DPR · zoom 을 고정하고 기준 tolerance 를 구현 후 유리하게 넓히지 않는다. 새 결함을 G3 `approvedDifferences` 예외에 추가해 우회하지 않는다.
+
+### 11-2. 영향별 시나리오
+
+- 값: 기본/비기본 · 유효/무효 · 단위 · 상속 · Reset, standalone/group/instance/slot 내부.
+- 레이아웃: 자식 있음/없음 · definite/indefinite · nested flex/grid · span · overflow · fractional geometry.
+- 페인트: light/dark · DPR 1/2 · fractional zoom/위치 · viewport 경계 · 그림자만 보이는 요소 · clip/transform/filter 조합.
+- 합성: 그룹 opacity/blend · 배경 변경 · mask 로딩 · delete/reorder/reparent · 페이지 이동.
+- 텍스트: 한글/영문/emoji/RTL · 긴 URL · variable font · fallback · loading 전후 · 좁은 폭 · IME.
+- 자원 · 상태: font/image 완료 · 실패/재시도 · context restore · page 왕복 · Undo/Redo · 저장/재열기.
+- 편집: pointer drag 중간 상태와 commit, 텍스트 편집 · focus.
+- 규모: 평평한 문서와 nested flex/grid, 600 · 5k 및 근거가 필요한 10k.
+
+모든 작은 수정에 모든 조합을 반복하지 않는다. 수정의 의미 · 무효화 · 자원 수명에 닿는 항목을 선택하고 생략 이유를 기록한다.
+
+### 11-3. 성능
+
+- 같은 production build 조건 · fixture · resource 상태에서 기준선과 수정본을 교대로 측정한다.
+- wall-clock profile 과 결정적 call-count 계측은 별도 실행한다. flat/nested 600 · 5k 를 기본 후보로 하고 필요할 때 10k 를 추가한다. 실사용 형태는 `app-pages` (ADR-266 입력).
+- p95/p99 · dropped frames · long task 와 layout/binding/record/flush · 후보 수 · 명령 수 · index 갱신 · cache miss · 메모리를 구분한다.
+- 기존 `p99 ≤ 20 ms`, `drop < 1%` 는 같은 scenario 일 때만 승계한다. 전체 HTML/CSS 의 공통 budget 으로 확장하지 않는다.
+- cold/warm · WebGL/software 를 구분한다. JS flush 호출 시간을 실제 GPU 실행 시간으로 보고하지 않는다.
+- ratchet PASS · warning · lowerable · 예외를 별도로 기록한다. 정확도 개선과 성능 미달은 각각 보고한다. Canvas 변경으로 RAC/React 패널 비용까지 해결했다고 주장하지 않는다.
+
+### 11-4. 로컬 gate
+
+- repo root 에서 pnpm 스크립트를 사용한다. 변경 모듈의 인접 Vitest, TS 변경 시 `pnpm type-check` (Codex 쪽은 `pnpm run codex:typecheck` — 같은 gate).
+- Rust 변경 시 관련 engine test 와 `pnpm wasm:build:engine`, 필요한 차등 gate.
+- UI · 상태 · layout · paint 변경 시 foreground Builder 와 Preview 의 해당 흐름 확인 — `/verify` (`/cross-check` · `/evaluate` live 1 회). Compare Mode · Preview 는 직접 열어 확인한다.
+- 기본 완료 gate 는 `pnpm codex:preflight`. 동시 변경이 있으면 `.agents/README.md` 에 따라 소유 파일의 format check · guard 및 영향 검사만 수행한다. 포맷은 검사하고 무관한 dirty 파일을 수정하지 않는다.
+- 문서 통합 자체에는 제품 typecheck · 브라우저 실행 결과를 요구하거나 통과로 기록하지 않는다.
+- commit/push 는 사용자 요청이 있을 때 (main 직접 — `.claude/rules/git-workflow.md`).
+
+---
+
+## 12. 산출물 · 이식 기록
+
+### 12-1. Feature ledger (기능 작업별 필수 기록)
+
+```yaml
+feature_id: layout.inline.baseline
+source_candidates: [B1, B2]
+scope: current-repair # current-repair | extension | optimization
+support_status: divergent
+evidence_level: code-confirmed
+element_property_value_state: "block parent / atomic inline / mixed sizes"
+spec_module_and_section: "착수 시 고정"
+chromium_commit_path_symbol_test: "SHA / path / symbol / test ID"
+license_and_notice: "파일별 확인 (BSD-3 인용 가능 · LGPL 상수만)"
+composition_revision_and_diff: "HEAD / 관련 diff 또는 artifact"
+producer_resolver_layout_paint_dom: "각 소비 경로와 owner 모듈"
+port_strategy_and_differences: "입력 연결 / 계약 재구현 / API 연결 / 테스트 이식"
+invalidation_and_resources: "font generation / layout / paint / cache"
+fixture_and_negative_test: "최소 입력 / 원복 RED 또는 오류 주입"
+geometry_text_pixel_live_evidence: "artifact / 환경 / 판정"
+performance_memory_bundle_evidence: "기존 재사용 근거 또는 새 실측"
+known_limits_and_reopen_trigger: "미검증 조합 / 후속 조건"
+```
+
+ledger 의 파일 또는 typed registry 위치는 U0 에서 기존 체계 (`layout-css-parity-ledger.md` · `d2Provenance.ts`) 와 맞춰 정한다. `blinkProvenance.ts` (§8-2) 는 이 ledger 의 코드 쪽 하위 표다. 이 예시를 이미 존재하는 API 나 완료된 데이터로 취급하지 않는다. 지원률을 보고할 때는 분모가 되는 manifest 버전을 함께 적는다.
+
+### 12-2. 주요 수정 경계
+
+| 축                 | composition 소유 모듈                                                                                                                                       | Chromium 탐색 시작점 (`third_party/blink/renderer/` 기준)                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 입력 · 요소 · 상속 | shared catalog bindings/rules/resolution, `runtime/compositionRoot.ts` (`styleOf` · `itemLayout`), generated CSS                                            | `core/html`, `core/html/resources/`, `core/css`, `core/style`                                                                              |
+| Layout             | `packages/engine/src/{block,flex,grid,tree,display,style,cascade}.rs`, engine golden tests                                                                  | `core/layout`, `inline`, `flex`, `grid`, `table`, `length_utils` · `absolute_utils` · `relative_utils`                                     |
+| Text               | `catalogRuntime/textMeasure.ts` (CanvasKit) · `canvas/utils/textMeasure.ts` (Canvas 2D 폴백) · `nodeRendererText.ts` · `textParagraphKey.ts` · 편집 overlay | `platform/fonts`, `platform/fonts/shaping`, `core/layout/inline`, `core/paint/text_*`                                                      |
+| Paint              | `canvas/styleConversion/styleConverter.ts`, `skia/nodeRendererBorders.ts`, `nodeRendererShapes.ts`, `effects.ts`                                            | `core/paint/box_painter_base.cc` · `box_border_painter.cc` · `outline_painter.cc` · `text_decoration_info.cc` · `core/style/shadow_data.h` |
+| Image              | `nodeRendererImage.ts`, `imageCache.ts`                                                                                                                     | `core/paint/image_painter.cc`, `platform/graphics/graphics_context*`, `cc/paint`, `cc/tiles`                                               |
+| 합성 · geometry    | `effects.ts`, clip/mask, `renderCommands.ts`                                                                                                                | `core/paint/`, `platform/graphics/paint/`, `platform/graphics/compositing/`                                                                |
+| Incremental        | Canvas binding, command patch/translate, renderer, spatial index, 테스트 하니스                                                                             | `paint/geometry_mapper.*`, `raster_invalidator.*`, `paint_under_invalidation_checker.*`, property state                                    |
+| 사례 · 회귀        | 인접 Vitest · Rust test · Builder/Preview fixture                                                                                                           | 인접 `*_test.cc`, `third_party/blink/web_tests/`, 그 안의 WPT                                                                              |
+
+`graph` · transaction · 저장 형식은 renderer 개선의 기본 수정 대상이 아니다. 새 속성을 저작 · 저장할 필요가 확인된 경우에만 typed schema · validation · default 를 별도 작업으로 포함한다. DOM 구조 · API 가 바뀌는 HTML 요소 확장은 D1/D2 까지 영향을 분석하고 해당 컴포넌트 계약을 따른다.
+
+### 12-3. 테스트 · 측정 진입점
+
+아래 이름은 기존 자산 또는 조사에서 제안한 탐색 지점이다. 실행 전에 파일 · 옵션 · fixture 와 현재 production 경로의 연결을 확인한다. 존재하지 않는 경로를 통과한 테스트로 기록하지 않는다.
+
+| 검증 축        | 기존 자산 · 탐색 지점                                                                                                                                                    | 용도와 한계                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| 엔진↔DOM       | ADR-156, `adr923ChromeDifferential.browser.test.ts`                                                                                                                      | computed style · rect · baseline 의 차등 입력. 원본 WPT 실행과 번역 fixture 를 구분 |
+| Canvas↔Preview | Builder parity / G3 하니스 (`vitest.adr248-g3.browser.config.ts`), `approvedDifferences.ts`                                                                              | geometry · pixels · 승인된 차이. 새 결함을 예외에 추가해 우회하지 않음              |
+| render path    | `apps/builder/scripts/adr263-render-path-live.mjs` · `__composition_RENDER_PATH_DEBUG__`                                                                                 | linear/full 비교 · scroll · zoom. fresh scene · cache 우회 여부는 U1 에서 확인      |
+| subtree 이동   | `apps/builder/scripts/adr264-subtree-translate-live.mjs`                                                                                                                 | 이동 patch · 명령 · geometry · pixels 회귀                                          |
+| 성능 · 카운트  | ADR-246 ratchet (`pnpm gate:perf-ratchet`), ADR-263 ~ 265, `apps/builder/scripts/perf-baseline.mjs` (`--lane frame --fixed-inputs --call-counts`)                        | 동일 fixture · 환경 · 계측 모드의 기존 기준선 재사용 여부 판정                      |
+| 폰트 축        | ADR-205 격차표 `docs/adr/evidence/205-text-axis-gap-matrix.md` · `apps/builder/scripts/adr205-live-letterspacing.mjs` (생성 스크립트 · static 게이트는 없음 — 신설 후보) | 지원표 갱신 · 누락 방지. 실제 font 와 측정/paint 동치를 대신하지 않음               |
+| 속성 coverage  | `archetypeDefaultCohort.static.test.ts` (ratchet 형식 참고) → C12 신설                                                                                                   | 생성 CSS ↔ Canvas 소비 표 정적 대조                                                 |
+| WPT layout     | `third_party/blink/web_tests/external/wpt/css/` 아래 CSS2 · css-flexbox · css-grid · css-inline · css-position · css-sizing · css-tables                                 | auto minimum · spanning · placement · relative/static position · ratio 의 사례 추출 |
+
+이 문서에서 정의한 ledger · U0 ~ U8 · 후보 ID 를 실행 기록 (`pnpm agent:run` ledger · `.agent/runs/`) 의 식별자로 사용한다. 원문 두 문서의 절 번호나 표를 찾아야만 작업을 진행할 수 있는 의존성은 두지 않는다.
+
+---
+
+## 13. 참조
+
+- **Chromium 고정 소스**: [Repository snapshot][chromium] · [Blink core paint README][core-paint] · [Paint artifact · property tree · invalidation][platform-paint] · [LayoutNG inline README][inline] · [BoxPainterBase][box-painter] · [BoxBorderPainter][border-painter] · [ShadowData][shadow] · [GraphicsContext][graphics-context] · [GeometryMapper][geometry] · [RasterInvalidator][invalidation] · [PaintUnderInvalidationChecker][under-invalidation] · [cc paint][cc-paint] · [GPU image decode cache][image-cache] · [cc 동작 설명][cc-how] · [Blink layout][blink-layout] · [Blink web tests][web-tests]
+- **Chromium 파일 (페인트 · §4 · §5)**: `docs/how_cc_works.md` · `core/paint/README.md` · `core/paint/box_painter_base.cc` · `core/paint/box_border_painter.cc` · `core/paint/outline_painter.cc` · `core/paint/text_decoration_info.cc` · `core/paint/decoration_line_painter.cc` · `core/paint/image_painter.cc` · `core/paint/filter_effect_builder.cc` · `core/paint/clip_path_clipper.cc` · `core/paint/paint_layer_paint_order_iterator.cc` · `core/paint/background_image_geometry.cc` · `core/style/shadow_data.h` · `core/style/computed_style.cc` · `core/style/basic_shapes.cc` · `core/layout/layout_replaced.cc` · `platform/graphics/graphics_context.cc` · `platform/graphics/graphics_context_types.cc` · `platform/fonts/font_platform_data.cc` · `platform/fonts/font_description.cc` · `core/css/css_properties.json5` · `cc/paint/paint_flags.cc` · `cc/paint/paint_op_buffer.h` · `cc/tiles/tile_manager.h` · `cc/tiles/gpu_image_decode_cache.h`
+- **Chromium 파일 (레이아웃 · §7)**: `core/layout/block_layout_algorithm.cc` · `geometry/margin_strut.cc` · `inline/inline_box_state.cc` · `inline/inline_layout_algorithm.cc` · `inline/line_breaker.cc` · `inline/line_utils.cc` · `logical_box_fragment.cc` · `physical_box_fragment.h` · `flex/flex_layout_algorithm.cc` · `flex/line_flexer.cc` · `flex/flex_line_breaker.cc` · `grid/grid_track_sizing_algorithm.cc` · `grid/grid_layout_algorithm.cc` · `grid/grid_placement.cc` · `grid/grid_line_resolver.cc` · `grid/grid_track_collection.cc` · `grid/grid_layout_utils.cc` · `length_utils.cc` · `min_max_sizes.h` · `absolute_utils.cc` · `relative_utils.cc` · `out_of_flow_layout_part.cc` · `layout_box_model_object.cc` · `core/css/style_adjuster.cc` · `core/css/resolver/style_builder_converter.cc` · `core/html/resources/html.css` · `platform/fonts/simple_font_data.cc`
+- **명세**: [CSS 2.1][css2] · [CSS Snapshot 2025][css-snapshot] · [HTML Living Standard][html] (`CanvasTextDrawingStyles`) · css-backgrounds-3 §"Blurring Shadow Edges" (σ = blur radius / 2) · filter-effects-1 `drop-shadow()` (셋째 값 = standard deviation) · [CanvasKit 문서][canvaskit] · [CanvasKit 0.42.0 bindings][canvaskit-bindings]
+- **composition**: ADR-153 · 156 · 164 · 174 · 189 · 204 · 205 · 206 · 223 · 224 · 246 · 248 · 256 · 257 · [263](../../adr/completed/263-render-command-patch-execute-cost.md) · [264](../../adr/completed/264-moved-subtree-translate-page-grid-rebind.md) · [265](../../adr/completed/265-document-layer-edit-select-cost.md) · 266 (Proposed) · 916 · 923 · `.claude/rules/layout-engine.md` · `.claude/rules/measurement-validity.md` · `.claude/rules/ssot-hierarchy.md` · `layout-css-parity-ledger.md` · [PENCIL_RENDERING_OPTIMIZATION.md](PENCIL_RENDERING_OPTIMIZATION.md) · [CANVAS_RUST_DECISION_2026-10.md](CANVAS_RUST_DECISION_2026-10.md) · [TAFFY_UPSTREAM_DELTA_2026-09.md](TAFFY_UPSTREAM_DELTA_2026-09.md)
+- **메모리**: `project-blink-layout-delta-2026-10` · `project-render-frame-decomposition-flush-vs-js` · `project-canvas-rust-baseline-2026-10` · `project-adr263-render-path-closed-2026-10` · `project-adr264-moved-subtree-translate-closed-2026-10` · `project-adr265-document-layer-closed-2026-10` · `feedback-skia-only-channel-divergence-family-2026-09` · `feedback-cjk-line-break-space-split-premise-three-layers` · `feedback-inline-line-box-inflation-missing-leaf-baseline` · `feedback-infra-exists-vs-wired-consumption-path` · `feedback-skia-builder-not-frontend-interaction-belongs-to-preview` · `feedback-no-document-migration-code-dev-stage`
+- **원문 (이력)**: [CHROMIUM_CLAUDE.md](CHROMIUM_CLAUDE.md) · [CHROMIUM_CODEX.md](CHROMIUM_CODEX.md)
+
+[chromium]: https://github.com/chromium/chromium/tree/33688427bc1a316cecb28d5651ad25208ba9ab53
+[core-paint]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/paint/README.md
+[platform-paint]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/platform/graphics/paint/README.md
+[inline]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/layout/inline/README.md
+[box-painter]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/paint/box_painter_base.cc
+[border-painter]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/paint/box_border_painter.cc
+[shadow]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/style/shadow_data.h
+[graphics-context]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/platform/graphics/graphics_context.cc
+[geometry]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/platform/graphics/paint/geometry_mapper.h
+[invalidation]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/platform/graphics/paint/raster_invalidator.cc
+[under-invalidation]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/platform/graphics/paint/paint_under_invalidation_checker.cc
+[cc-paint]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/cc/paint/README.md
+[image-cache]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/cc/tiles/gpu_image_decode_cache.h
+[cc-how]: https://github.com/chromium/chromium/blob/33688427bc1a316cecb28d5651ad25208ba9ab53/docs/how_cc_works.md
+[blink-layout]: https://github.com/chromium/chromium/tree/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/renderer/core/layout
+[web-tests]: https://github.com/chromium/chromium/tree/33688427bc1a316cecb28d5651ad25208ba9ab53/third_party/blink/web_tests
+[css2]: https://www.w3.org/TR/CSS2/
+[css-snapshot]: https://www.w3.org/TR/css-2025/
+[html]: https://html.spec.whatwg.org/multipage/
+[canvaskit]: https://skia.org/docs/user/modules/canvaskit/
+[canvaskit-bindings]: https://github.com/google/skia/blob/canvaskit/0.42.0/modules/canvaskit/canvaskit_bindings.cpp
