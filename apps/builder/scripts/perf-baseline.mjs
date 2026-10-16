@@ -2583,10 +2583,16 @@ async function runFrameLane(page, cdp, seed, options) {
     });
     // 같은 이유: 캔버스 스크롤바는 보인 뒤 1초 timer 로 숨는다 (`CanvasScrollbar.tsx` fade). 앞 부류 끝 +
     // 위 대기가 1초 언저리라 그 class 변경 (가로 · 세로 2건) 이 창 안팎으로 갈렸다 — page-switch
-    // `domMutations.attributes` 188 ↔ 190 (같은 실측). 숨은 뒤에 시작한다.
+    // `domMutations.attributes` 188 ↔ 190 (같은 실측). 숨은 뒤에 시작한다 — class 가 빠진 뒤의 opacity
+    // 전환 (0.2초) 까지 끝난 뒤. class 만 보면 앞 부류 (줌) 가 보인 스크롤바의 fade-out 이 창 안에서 돌아
+    // `app-pages` edit `RecalcStyleCount` 가 4 ↔ 14 로 갈렸다 (2026-10-17, 스크롤바를 편집 때 켜지 않게 바꾼 뒤).
     await page
       .waitForFunction(
-        () => !document.querySelector(".canvas-scrollbar--visible"),
+        () =>
+          !document.querySelector(".canvas-scrollbar--visible") &&
+          [...document.querySelectorAll(".canvas-scrollbar")].every(
+            (bar) => bar.getAnimations().length === 0,
+          ),
         null,
         { timeout: 3_000 },
       )
