@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-16 ADR-264 Proposed**: 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (사용자 `/create-adr 2단계 후속 — 이동만 한 형제 patch 축소 + 줌 재바인드 제거` — 사용자 원문 「남은 두 꼬리 … 를 먼저 하는것이 좋지않나?」 로 3단계 · 4단계보다 앞). ADR-263 G5 미달 두 자리를 받는다 — 중첩 5k 편집 p99 24 ~ 26 ms · drop 1.0 ~ 1.6 % (조건 ≤ 20 · < 1), 평평 5k 줌 27 ~ 28 ms (≤ 20). 코드 사실: 둘 다 「자리만 옮긴 서브트리를 다시 기록한다」 — 편집은 `geometryRegion` 이 x · y 만 바뀐 형제 하나에도 patch root 를 부모로 올려 ~1만 명령을 재기록, 줌은 열 수가 바뀌면 `setAutoColumns` → `scene.refresh()` 가 scene 전체를 재바인드 (page 내용은 그대로). 채택 대안 A — `translateSubtree` 한 기계 (root 의 `ELEMENT_BEGIN` x · y + 절대 맵 Δ + hit bounds 재교차 + SpatialIndex upsert, 명령 재생성 0) 를 편집 형제와 page root 둘 다에. B (지연 절대 맵) · D (span 복사) 기각, C (줌 settle 뒤 열 수 변경) 는 사용자 결정 1 의 보조. 사용자 결정 2건 (줌 미달 시 C 보조 · 종결 미달 시 처리). 리뷰 Round 1 HIGH 2 · MEDIUM 1 (옮기기 반례 — root 문맥 · root-only damage · clip 재교차) → r1 반영 → Round 2 통과. 열림 +1 (열림 2 — Proposed 2, 합계 287). breakdown: [design/264](design/264-moved-subtree-translate-page-grid-rebind-breakdown.md).
+>
 > **2026-10-16 ADR-263 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 종결」): Phase 0 ~ 5 + G5. production 짝 (HEAD ↔ HEAD + ADR, 교대 2 쌍) — 중첩 5k 줌 p99 26 ~ 28 → 17.6 ms · drop 0 % (충족), 중첩 5k 편집 p99 34 ~ 35 → 24 ~ 26 ms · drop 4.3 ~ 5.9 → 1.0 ~ 1.6 % · 평평 5k 줌 28 ~ 37 → 27 ~ 28 ms (미달). 남은 꼬리는 그리기 명령이 아니다 — patch 영역 크기 (레이아웃 이동) · 줌의 page grid 자동 열 재바인드. 그리기 명령 record p95 (dev) 3 ms 대라 4단계 Rust trigger 미충족. live 22/22 (새 경로 = 같은 상태의 선형 full, 0 px 차). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 286).
 
 > **2026-10-16 ADR-263 Accepted · Phase 0**: `/execute-adr 263` — 그리기 명령 층 카운트 (`renderCounters.ts` → 하니스 `counts.render`, 2회 같은 값) · 새 카운트 A 등록 `--add-keys` (회귀 시 `block`, `--update` 만이면 `pass` 인 r1 M2 반례 재현). 중첩 5k drag 는 프레임마다 preview → patch ~1만 명령 (검증 4 회 순회) → full 재기록 · node picture 153 개 재기록, full 방문의 64 ~ 99 % 가 컬링 소비. 줌 꼬리는 record (JS) — 사용자 결정 1 해소.
@@ -280,8 +282,8 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     283 |
-| ├ Implemented / Complete(d)   |     236 |
+| 완료 (`completed/`)           |     284 |
+| ├ Implemented / Complete(d)   |     237 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
@@ -290,8 +292,10 @@
 | ├ Proposed                    |       2 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **286** |
+| **합계**                      | **287** |
 
+> 2026-10-16 재대조: ADR-263 Implemented (완료 +1 · 열림 −1) 와 ADR-264 Proposed (열림 +1) 반영 — 열림 2 = 245 · 264.
+>
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
 > 2026-09-22 파일 실측: `completed/` ADR 파일 253 (비-ADR 5 제외) · `adr/` 직속 ADR 6 (09-22 232 추가). 완료 내역 (Implemented/Accepted/Superseded/Deprecated) 은 09-10 대조값에 그 뒤 Implemented 5 (224~~227 · 231) 를 더한 것 — 개별 Status 재대조는 다음 정리 때.
@@ -304,6 +308,11 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
+
+#### [264](264-moved-subtree-translate-page-grid-rebind.md) — 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (Canvas 성능 2단계 후속)
+
+- **상태**: Proposed — 2026-10-16 (ADR-263 G5 미달 두 자리 — 중첩 5k 편집 · 평평 5k 줌 — 의 후속. 3단계 선택 전환과 병행 가능, 4단계 Rust 판정의 선행)
+- **규모**: Phase 0 카운트 (자리만 옮긴 형제의 patch 명령 비율 · 줌 1회당 `page-grid` 재바인드 수 · 옮기기 최소 비용) → Phase 1 `translateSubtree` 기계 + 동치 테스트 → Phase 2 편집 경로 (`geometryRegion` 분류) → Phase 3 줌 · page grid 편집 경로 (`setAutoColumns` → root 옮기기) → G4 production 짝 (HC2 = ADR-263 HC2 승계). 사용자 결정 2건 (줌 미달 시 settle 보조 · 종결 미달 시 처리). breakdown: [design/264](design/264-moved-subtree-translate-page-grid-rebind-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -334,7 +343,8 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [264](264-moved-subtree-translate-page-grid-rebind.md)                                         | Phase 0 카운트부터 (리뷰 Round 2 통과 — 전제 확정)           | 없음 — 3단계 (선택 전환) 와 병행 가능 · 4단계 Rust 판정의 선행            |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
