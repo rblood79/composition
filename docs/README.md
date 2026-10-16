@@ -127,6 +127,7 @@ Properties Panel · ToggleButtonGroup
 외부 대조 (해당 저장소의 경로를 인용하므로 우리 경로로 바꾸지 않습니다)
 
 - [Chromium 대조 통합 — 페인트 · 레이아웃 (Claude Code) + 실행 절차 P0 ~ P15 (Codex) + 교차 검증](explanation/research/CHROMIUM_CLAUDE.md)
+- [Chromium 대조 통합 — 결함 후보 · 코드 근거 · U0~U8 실행 및 검증 계약 (Codex)](explanation/research/CHROMIUM_CODEX.md)
 - [외부 패턴 대조 (fulgur · pretext)](explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md)
 - [Taffy upstream 대조](explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md)
 - [Webstudio 패턴 대조](explanation/research/WEBSTUDIO_PATTERN_DELTA_2026-09.md)
