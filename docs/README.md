@@ -114,7 +114,6 @@ Properties Panel · ToggleButtonGroup
 
 ### Architecture
 
-
 ### Research
 
 성능·기준선
@@ -126,6 +125,8 @@ Properties Panel · ToggleButtonGroup
 
 외부 대조 (해당 저장소의 경로를 인용하므로 우리 경로로 바꾸지 않습니다)
 
+- [Chromium cc · Blink paint 대조 — Canvas 도입 판정 · CSS 전수 대조 · Blink 포팅 지도](explanation/research/CHROMIUM_CC_BLINK_PAINT_DELTA_2026-10.md)
+- [Blink LayoutNG 대조 — 수동 구현 레이아웃 (block · flex · grid · 박스 모델 · position) 재점검](explanation/research/BLINK_LAYOUT_DELTA_2026-10.md)
 - [외부 패턴 대조 (fulgur · pretext)](explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md)
 - [Taffy upstream 대조](explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md)
 - [Webstudio 패턴 대조](explanation/research/WEBSTUDIO_PATTERN_DELTA_2026-09.md)
