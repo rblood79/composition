@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid — 여러 칸 요소를 끌 때 칸 배경이 끄는 상자를 따른다] - 2026-10-16
+
+### Fixed
+
+- **열 · 행 span 이 2 이상인 요소를 grid 안에서 끌면, 놓일 칸 배경이 끄는 상자 위치를 따라 끝까지 보인다.** 종전엔 1×1 은 잘 됐지만 2×1 · 2×2 는 배경이 빠지거나 한 칸 밀려 보였고, breakpoint 마다 달랐다 (사용자 보고).
+- **Why**: 놓을 칸을 포인터가 놓인 칸으로 골랐다. span 요소는 잡은 지점이 요소 왼쪽 위 칸에서 한 칸 이상 떨어져 있어 배경이 밀렸다. 원래 자리 칸 위에서는 「제자리」 로 보고 배경을 숨겼다. 오른쪽 · 아래 끝에서는 다 들어가지 않는 빈 칸이 빠지는 대신 다른 요소의 칸이 늘 후보로 남아, 그 요소 앞뒤 순서 바꾸기 (삽입선) 로 넘어갔다. 칸 크기가 breakpoint 마다 달라 이 어긋남도 달랐다.
+- 수정: 빈 칸 (끄는 요소 자신의 칸 포함) 은 「상자 안 잡은 지점이 그 칸 범위에 놓일 자리」 와 포인터의 거리로 고른다. 1칸이면 칸 가운데라서 종전과 같다. 원래 자리는 배경을 보이고 놓아도 문서를 바꾸지 않는다. 다른 요소의 칸은 포인터가 그 위에 있을 때만 순서 바꾸기다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`gridTarget`). 검증: 테스트 3 (상자 따라가기 · 원래 자리 · 끝 칸 — 수정 전 RED 3/3) · catalogRuntime · canvas catalog 2,279 통과 · type-check · live headed Playwright (4×4 grid 에서 1×1 · 2×1 · 2×2 요소를 대각선으로 41단계 끌기 — 배경 없는 단계 6 · 17 · 21 → 0, 남은 2단계는 포인터가 다른 요소 위인 순서 바꾸기. Mobile breakpoint 에서도 같은 결과).
+
 ## [Layout — grid 자식의 칸 수 라벨을 Column span · Row span 으로] - 2026-10-16
 
 ### Changed

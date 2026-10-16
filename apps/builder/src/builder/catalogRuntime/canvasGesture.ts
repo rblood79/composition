@@ -1890,10 +1890,11 @@ export class CatalogCanvasGestures {
   }
 
   /**
-   * A grid drop target (`display: grid`, not a wrapped row — Figma): every cell, and the cell under
-   * the pointer (else the nearest). An empty one takes the nodes there (pinned, in reading order
-   * among the children); an item's cell drops before or after that item by which side of its own
-   * centre the pointer is (the object, as Figma — not the cell); the dragged item's own cell stays.
+   * A grid drop target (`display: grid`, not a wrapped row — Figma): every cell, and the empty cell
+   * nearest the dragged box (its cells free, the dragged items' own counting as free). An empty one
+   * takes the nodes there (pinned, in reading order among the children; the dragged item's own
+   * start cell stays); an item's cell under the pointer drops before or after that item by which
+   * side of its own centre the pointer is (the object, as Figma — not the cell).
    */
   private gridTarget(
     container: CatalogConsumerNode,
@@ -1941,34 +1942,13 @@ export class CatalogCanvasGestures {
           if (!free(r * columns + c)) return false;
       return true;
     };
-    let index = -1;
-    let best = Infinity;
-    cells.forEach((cell, i) => {
-      if (occupant[i]! < 0 && !fits(i)) return;
-      const dx = Math.max(cell.x - x, 0, x - (cell.x + cell.width));
-      const dy = Math.max(cell.y - y, 0, y - (cell.y + cell.height));
-      const distance = Math.hypot(dx, dy);
-      if (distance < best) {
-        best = distance;
-        index = i;
-      }
-    });
-    if (index < 0)
-      return { slot: this.flowEntries(container, dragged).length, cells };
-    const item = occupant[index]!;
-    if (item < 0) {
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      const { columnSpan, rowSpan } = spanAt(index);
-      // Reading order: after every other item whose area starts in an earlier cell.
-      const slot = all.filter(({ id }, at) => {
-        const area = layout.areas[at];
-        return (
-          !dragged.has(id) && !!area && area.row * columns + area.column < index
-        );
-      }).length;
-      // The span's cells (those drawn — an implicit row past the last is the first cell's height).
-      const first = cells[index]!;
+    // The cells a drop at `cell` takes (those drawn — an implicit row past the last is the first
+    // cell's height).
+    const footprint = (cell: number): BoundingBox => {
+      const row = Math.floor(cell / columns);
+      const column = cell % columns;
+      const { columnSpan, rowSpan } = spanAt(cell);
+      const first = cells[cell]!;
       const last =
         cells[(row + rowSpan - 1) * columns + column + columnSpan - 1] ??
         cells[row * columns + column + columnSpan - 1] ??
@@ -1980,22 +1960,97 @@ export class CatalogCanvasGestures {
           ? 0
           : (rowSpan - 1) * first.height);
       return {
+        x: first.x,
+        y: first.y,
+        width: last.x + last.width - first.x,
+        height: Math.max(first.height, bottom - first.y),
+      };
+    };
+    // Where the pointer would be over a drop at `cell` (2026-10-16 사용자 보고 「col span, row span
+    // 이 1 × 1 이상일 때 일부 가이드 배경을 잘 못 찾는다」): the grab point's offset in the dragged
+    // box, kept half a cell inside the cells it takes — the cells follow the dragged box (the
+    // object, as Figma); one cell: its centre, the cell under the pointer.
+    const grab = {
+      x: gesture.startX - gesture.startBox.x,
+      y: gesture.startY - gesture.startBox.y,
+    };
+    const held = (cell: number) => {
+      const area = footprint(cell);
+      const first = cells[cell]!;
+      const within = (offset: number, size: number, extent: number) =>
+        Math.min(Math.max(offset, size / 2), extent - size / 2);
+      return {
+        x: area.x + within(grab.x, first.width, area.width),
+        y: area.y + within(grab.y, first.height, area.height),
+      };
+    };
+    const inside = (cell: BoundingBox) =>
+      x >= cell.x &&
+      x <= cell.x + cell.width &&
+      y >= cell.y &&
+      y <= cell.y + cell.height;
+    // Another item's cell under the pointer: a reorder around that item.
+    let index = cells.findIndex((cell, i) => !free(i) && inside(cell));
+    if (index < 0) {
+      // Else the empty cells (the dragged items' own count as empty) where the node fits.
+      let best = Infinity;
+      cells.forEach((_, i) => {
+        if (!free(i) || !fits(i)) return;
+        const point = held(i);
+        const distance = Math.hypot(point.x - x, point.y - y);
+        if (distance < best) {
+          best = distance;
+          index = i;
+        }
+      });
+    }
+    if (index < 0) {
+      // None fits: the item cell nearest the pointer.
+      let best = Infinity;
+      cells.forEach((cell, i) => {
+        if (free(i) || occupant[i] === undefined) return;
+        const distance = Math.hypot(
+          Math.max(cell.x - x, 0, x - (cell.x + cell.width)),
+          Math.max(cell.y - y, 0, y - (cell.y + cell.height)),
+        );
+        if (distance < best) {
+          best = distance;
+          index = i;
+        }
+      });
+    }
+    if (index < 0)
+      return { slot: this.flowEntries(container, dragged).length, cells };
+    const item = free(index) ? -1 : occupant[index]!;
+    if (item < 0) {
+      const row = Math.floor(index / columns);
+      const column = index % columns;
+      // Reading order: after every other item whose area starts in an earlier cell.
+      const slot = all.filter(({ id }, at) => {
+        const area = layout.areas[at];
+        return (
+          !dragged.has(id) && !!area && area.row * columns + area.column < index
+        );
+      }).length;
+      // The dragged item's own cells: shown, and the drop stays (no command).
+      const own = layout.areas[all.findIndex(({ id }) => id === gesture.leader)];
+      const stays =
+        dragged.has(gesture.leader) &&
+        !!own &&
+        own.row === row &&
+        own.column === column;
+      return {
         slot,
         cells,
-        cell: {
-          x: first.x,
-          y: first.y,
-          width: last.x + last.width - first.x,
-          height: Math.max(first.height, bottom - first.y),
-        },
+        cell: footprint(index),
         gridCell: { row, column },
+        ...(stays ? { stays: true as const } : {}),
       };
     }
     const before = all
       .slice(0, item)
       .filter(({ id }) => !dragged.has(id)).length;
     const entry = all[item]!;
-    if (dragged.has(entry.id)) return { slot: before, cells, stays: true };
     return {
       slot: before + (x > entry.box.x + entry.box.width / 2 ? 1 : 0),
       cells,

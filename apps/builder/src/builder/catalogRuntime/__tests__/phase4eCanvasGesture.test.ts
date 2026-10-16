@@ -1176,6 +1176,85 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("list").height).toBe(list.height);
   });
 
+  /**
+   * 2026-10-16 사용자 보고 「col span, row span 이 1 × 1 이상일 때 일부 가이드 배경을 잘 못 찾는다」:
+   * a spanning node's cell follows the dragged box (the pointer keeps the cell it grabbed inside the
+   * span), its own cells are offered like empty ones, and another item's cell takes the drop only
+   * under the pointer.
+   */
+  const spanGrid = async () => {
+    const opened = await gridOf({
+      gridTemplateRows: "repeat(4, minmax(0, 1fr))",
+    });
+    opened.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        sizing: { height: { kind: "set", value: 400 } },
+      }),
+    );
+    opened.workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        layout: {
+          gridColumnEnd: { kind: "set", value: "span 2" },
+          gridRowEnd: { kind: "set", value: "span 2" },
+        },
+      }),
+    );
+    opened.scene.sync();
+    const { workspace, gestures, record, box } = opened;
+    // a takes columns 1–2 of rows 1–2 (cells 200 × 100), b and c the third column.
+    const list = box("list");
+    expect(box("a")).toMatchObject({ x: list.x, y: list.y, width: 400 });
+    workspace.selectRecords([record("a")]);
+    // Grabbed in its second column.
+    const grab = { x: box("a").x + 200, y: box("a").y + 20 };
+    gestures.beginMove(grab.x, grab.y, record("a"));
+    return { ...opened, list, grab };
+  };
+
+  it("a spanning node's cell follows the dragged box, not the cell under the pointer", async () => {
+    const { gestures, list, grab } = await spanGrid();
+    // The box's top-left over the first column of the third row; the pointer over its second column.
+    gestures.update(grab.x + 10, grab.y + 210, 1);
+    expect(gestures.preview()!.cell).toEqual({
+      x: list.x,
+      y: list.y + 200,
+      width: 400,
+      height: 200,
+    });
+    gestures.cancel();
+  });
+
+  it("a spanning node over its own cells shows them (no command on release)", async () => {
+    const { workspace, gestures, list, grab } = await spanGrid();
+    gestures.update(grab.x + 30, grab.y + 20, 1);
+    expect(gestures.preview()!.cell).toEqual({
+      x: list.x,
+      y: list.y,
+      width: 400,
+      height: 200,
+    });
+    expect(gestures.preview()!.line).toBeUndefined();
+    const depth = workspace.runtime.historyDepth.undo;
+    gestures.finish();
+    expect(workspace.runtime.historyDepth.undo).toBe(depth);
+  });
+
+  it("near another item's cell (the pointer not on it) a spanning node keeps the empty cells it fits", async () => {
+    const { gestures, list, grab } = await spanGrid();
+    // The pointer over the third column of the third row, 5 px below c's cell.
+    gestures.update(list.x + 500, list.y + 205, 1);
+    expect(grab.x).toBe(list.x + 200);
+    expect(gestures.preview()!.cell).toEqual({
+      x: list.x + 200,
+      y: list.y + 200,
+      width: 400,
+      height: 200,
+    });
+    gestures.cancel();
+  });
+
   it("a copy (Alt) into an empty cell is pinned there; the original stays", async () => {
     const { workspace, scene, gestures, record, box, center } = await gridOf();
     const list = box("list");
