@@ -296,7 +296,9 @@ export async function measureOnce({
 }) {
   const measured = {};
   for (const [seed, run] of Object.entries(ratchet.runs)) {
-    const outDir = mkdtempSync(join(tmpdir(), `perf-ratchet-${seed}-`));
+    const outDir = mkdtempSync(
+      join(tmpdir(), `perf-ratchet-${seed.replace(/[^\w-]/g, "-")}-`),
+    );
     const report = await runHarness({
       url,
       storageState,

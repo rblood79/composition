@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-16 ADR-264 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 종결」): Phase 0 ~ 3 + G4. Canvas 편집은 region 을 위 → 아래로 처리해 seed 만 다시 기록하고 (크기가 바뀐 조상은 자기 명령만, 옮긴 서브트리는 좌표 · clip 만) 줌 · page grid 편집은 page root 를 옮긴다 — 중첩 5k 편집 patch 교체 178,875 → 1,155 명령, 평평 600 줌 재바인드 14 → 0. production 짝: 평평 5k 줌 p99 20.8 · 33.9 → 17.3 · 17.8 ms (충족), 평평 1만 줌 49.5 → 17.7, 중첩 5k drag taskMs −32 %, 중첩 5k 편집 p99 26 ~ 28 → 24 ~ 26 ms · drop 2.1 ~ 3.2 → 1.0 ~ 2.1 % (미달 — 남은 비용은 문서 · 트랜잭션 층 `graph.replace` · `commit` · `readModel.onStep`, Canvas 밖). live 13/13 (재바인드와 픽셀 · 맵 · SpatialIndex 후보 0 차) · G3 하니스 78/79 (1 건은 HEAD 와 같은 출력). 4단계 Rust trigger 미충족 그대로. 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 287).
+>
+> **2026-10-16 ADR-264 Accepted · Phase 0 닫힘**: 사용자 `/execute-adr 264` + 리뷰 Round 2 pending 0 으로 승격. Phase 0 카운트 (dev · 등급 A): 중첩 5k 편집 15 회의 patch 교체 178,875 명령 중 **자리만 옮긴 서브트리 96.3 %**, 그중 99.5 % 가 부모 크기도 바뀐 자리 (카드 → section → root 연쇄) — breakdown 초안 「부모가 바뀌면 옮기기 안 함」 은 0.5 % 만 덜어 내 설계를 대안 A 안에서 넓혔다 (경로 노드 자기 명령만 다시 기록 + 옮기기의 root 문맥은 부모가 넘김). seed + 경로 = 편집 1 회 ~95 명령. 평평 줌: content 43 프레임에 page grid 재바인드 14 · 크기 바뀐 재바인드 0 (R4 성립, page root 평행이동만) — Phase 3 은 `setAutoColumns` 반환 확장 없이 scene 이 rect 를 비교해 판정. ratchet: 새 키 11 A 등록 + seed 600 `zoom` 부류 + run `600:nested-flex` (게이트에 fixture run 키 `--add-run`) — 인위 회귀 `block`. 열림 2 (Accepted 1 · Proposed 1), 합계 287.
+>
 > **2026-10-16 ADR-264 Proposed**: 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (사용자 `/create-adr 2단계 후속 — 이동만 한 형제 patch 축소 + 줌 재바인드 제거` — 사용자 원문 「남은 두 꼬리 … 를 먼저 하는것이 좋지않나?」 로 3단계 · 4단계보다 앞). ADR-263 G5 미달 두 자리를 받는다 — 중첩 5k 편집 p99 24 ~ 26 ms · drop 1.0 ~ 1.6 % (조건 ≤ 20 · < 1), 평평 5k 줌 27 ~ 28 ms (≤ 20). 코드 사실: 둘 다 「자리만 옮긴 서브트리를 다시 기록한다」 — 편집은 `geometryRegion` 이 x · y 만 바뀐 형제 하나에도 patch root 를 부모로 올려 ~1만 명령을 재기록, 줌은 열 수가 바뀌면 `setAutoColumns` → `scene.refresh()` 가 scene 전체를 재바인드 (page 내용은 그대로). 채택 대안 A — `translateSubtree` 한 기계 (root 의 `ELEMENT_BEGIN` x · y + 절대 맵 Δ + hit bounds 재교차 + SpatialIndex upsert, 명령 재생성 0) 를 편집 형제와 page root 둘 다에. B (지연 절대 맵) · D (span 복사) 기각, C (줌 settle 뒤 열 수 변경) 는 사용자 결정 1 의 보조. 사용자 결정 2건 (줌 미달 시 C 보조 · 종결 미달 시 처리). 리뷰 Round 1 HIGH 2 · MEDIUM 1 (옮기기 반례 — root 문맥 · root-only damage · clip 재교차) → r1 반영 → Round 2 통과. 열림 +1 (열림 2 — Proposed 2, 합계 287). breakdown: [design/264](design/264-moved-subtree-translate-page-grid-rebind-breakdown.md).
 >
 > **2026-10-16 ADR-263 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 종결」): Phase 0 ~ 5 + G5. production 짝 (HEAD ↔ HEAD + ADR, 교대 2 쌍) — 중첩 5k 줌 p99 26 ~ 28 → 17.6 ms · drop 0 % (충족), 중첩 5k 편집 p99 34 ~ 35 → 24 ~ 26 ms · drop 4.3 ~ 5.9 → 1.0 ~ 1.6 % · 평평 5k 줌 28 ~ 37 → 27 ~ 28 ms (미달). 남은 꼬리는 그리기 명령이 아니다 — patch 영역 크기 (레이아웃 이동) · 줌의 page grid 자동 열 재바인드. 그리기 명령 record p95 (dev) 3 ms 대라 4단계 Rust trigger 미충족. live 22/22 (새 경로 = 같은 상태의 선형 full, 0 px 차). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 286).
@@ -282,19 +286,19 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     284 |
-| ├ Implemented / Complete(d)   |     237 |
+| 완료 (`completed/`)           |     285 |
+| ├ Implemented / Complete(d)   |     238 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       2 |
-| ├ Proposed                    |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       1 |
+| ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **287** |
 
-> 2026-10-16 재대조: ADR-263 Implemented (완료 +1 · 열림 −1) 와 ADR-264 Proposed (열림 +1) 반영 — 열림 2 = 245 · 264.
+> 2026-10-16 재대조: ADR-264 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245. 그 전: ADR-263 Implemented (완료 +1 · 열림 −1) 와 ADR-264 Proposed (열림 +1) 반영 — 열림 2 = 245 · 264.
 >
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -308,11 +312,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [264](264-moved-subtree-translate-page-grid-rebind.md) — 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (Canvas 성능 2단계 후속)
-
-- **상태**: Proposed — 2026-10-16 (ADR-263 G5 미달 두 자리 — 중첩 5k 편집 · 평평 5k 줌 — 의 후속. 3단계 선택 전환과 병행 가능, 4단계 Rust 판정의 선행)
-- **규모**: Phase 0 카운트 (자리만 옮긴 형제의 patch 명령 비율 · 줌 1회당 `page-grid` 재바인드 수 · 옮기기 최소 비용) → Phase 1 `translateSubtree` 기계 + 동치 테스트 → Phase 2 편집 경로 (`geometryRegion` 분류) → Phase 3 줌 · page grid 편집 경로 (`setAutoColumns` → root 옮기기) → G4 production 짝 (HC2 = ADR-263 HC2 승계). 사용자 결정 2건 (줌 미달 시 settle 보조 · 종결 미달 시 처리). breakdown: [design/264](design/264-moved-subtree-translate-page-grid-rebind-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -343,8 +342,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [264](264-moved-subtree-translate-page-grid-rebind.md)                                         | Phase 0 카운트부터 (리뷰 Round 2 통과 — 전제 확정)           | 없음 — 3단계 (선택 전환) 와 병행 가능 · 4단계 Rust 판정의 선행            |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
@@ -642,6 +640,7 @@
 | [261](completed/261-component-api-swap-slot-suggestions-properties.md) | 컴포넌트 API — instance 안 drop · 붙여넣기 · 순서 부모 = EditTarget (원본 · layout template 쓰기 결함 수리) · Swap instance (이름 경로 유일 매칭 · 주소 재매핑) · slot 추천 컴포넌트 (`slot.suggested`) · 사용자 컴포넌트 속성 text · boolean · instance 교체 (`DefinitionEntry.properties` — 값 = instance 의 자리 쓰기 · `replace` override) (pen.dev · Figma) | Implemented | 2026-10-15 |
 | [262](completed/262-instance-override-push-and-reset-all.md) | instance override 정리 — 원본에 반영 (Figma Push changes to main: 직접 자리는 작성값 cascade 로 키별 breakpoint 맞추기 · 중첩 자리는 원본의 중첩 instance override 에 `layerPatchFields` 병합 · 속성 값은 대상 노드 · 기본 원본은 루트 props · visual 프로젝트 기본값 · 「N개 영향」 확인) · 전부 되돌리기 (Reset all changes: slot 내용 · 루트 크기 · 배치 유지 · 교체 되접기) · Overrides 목록 전 종류 (숨김 · Fill · 상태 · breakpoint 행, `resetOverrideField`) (Figma) | Implemented | 2026-10-15 |
 | [263](completed/263-render-command-patch-execute-cost.md) | 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계) — 명령 읽기가 piece-table Proxy 를 지나지 않음 · full 재기록은 viewport SpatialIndex 후보 + 조상만 (불가하면 컬링 서브트리 점프) · damage 부분 재기록 재연결 (무효화 clean · damage · full, 상자 밖 paint · 넘친 글자는 full) · 스크롤 범위 증분 · patch 검증 한 번 · 남는 노드 picture 유지 · ratchet `--add-keys` (새 카운트 0 포함 A). 측정 기록 종결 — 중첩 5k 줌 충족, 편집 · 평평 줌 미달 (꼬리 = patch 영역 크기 · 줌 재바인드) | Implemented | 2026-10-16 |
+| [264](completed/264-moved-subtree-translate-page-grid-rebind.md) | 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (Canvas 성능 2단계 후속) — `translateSubtree` (root `ELEMENT_BEGIN` 제자리 쓰기 · 절대 맵 Δ · clip · hit 재교차 · SpatialIndex upsert) · `placeRegion` (seed 만 서브트리 재기록, 크기 바뀐 조상은 자기 명령만, 옮긴 · 문맥 바뀐 서브트리는 옮기기) · page grid 자동 열 수 · 편집은 page root 옮기기 · ratchet fixture run (`600:nested-flex`). 측정 기록 종결 — 평평 줌 충족, 중첩 편집 미달 (꼬리 = 문서 · 트랜잭션 층) | Implemented | 2026-10-16 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

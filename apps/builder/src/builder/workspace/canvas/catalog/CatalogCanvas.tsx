@@ -766,9 +766,10 @@ export function CatalogCanvas({
           cellsVersion += 1;
         }
         // A page grid edit (gap, columns, direction) moves page frames without a record delta,
-        // and a rename changes no drawn record: the headers follow, a moved frame binds again.
+        // and a rename changes no drawn record: the headers follow, a moved frame is placed
+        // (ADR-264 — it binds again only when a frame resized).
         if (publishHeaders() && synced.kind !== "rebound") {
-          scene.refresh();
+          scene.pageGridChanged();
           renderer.invalidateContent();
           overlayVersion += 1;
           cellsVersion += 1;
@@ -791,7 +792,7 @@ export function CatalogCanvas({
       );
       if (columns === undefined || !workspace.setAutoColumns(columns)) return;
       try {
-        scene.refresh();
+        scene.pageGridChanged();
         renderer.invalidateContent();
         overlayVersion += 1;
         cellsVersion += 1;
@@ -973,6 +974,18 @@ export function CatalogCanvas({
         drag: () => gestures.preview(),
         // A grid's cells as the overlay outlines them while selected (live checks).
         gridCells: (identity: string) => overlayGridCells(identity),
+        // ADR-264 oracle: the stream's boxes now, and the same state bound again from the records.
+        streamBoxes: () => ({
+          bounds: Object.fromEntries(scene.stream.boundsMap),
+          hit: Object.fromEntries(scene.stream.hitBoundsMap),
+        }),
+        // Ids the SpatialIndex hits at a scene point (picking's candidates).
+        hitAt: (x: number, y: number) => hitTestPoint(x, y),
+        rebind: () => {
+          scene.rebuild();
+          renderer.invalidateContent();
+          invalidateOverlay();
+        },
         // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
         setCamera: (next: { scale: number; x: number; y: number }) =>
           void import("../viewport/viewportActions").then((actions) =>

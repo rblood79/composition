@@ -754,6 +754,36 @@ export function replaceCommandRange(
   return replacement.length;
 }
 
+/**
+ * ADR-264 — 명령 하나를 같은 자리에서 바꾼다 (명령 수 · span 불변). piece-table 은 그 명령을 든
+ * segment 의 source 칸에 쓴다 — splice 처럼 segment 를 나누지 않아 segment 수가 늘지 않는다
+ * (cursor span map 의 해석 비용이 segment 수에 비례). source 배열은 그 버퍼만 소유한다.
+ */
+export function writeCommandAt(
+  commands: RenderCommand[],
+  index: number,
+  command: RenderCommand,
+): void {
+  const state = commandBufferStates.get(commands);
+  if (!state) {
+    commands[index] = command;
+    return;
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= state.length)
+    throw new RangeError("Invalid command buffer index");
+  let low = 0;
+  let high = state.segments.length - 1;
+  while (low < high) {
+    const middle = (low + high + 1) >> 1;
+    if (state.starts[middle]! <= index) low = middle;
+    else high = middle - 1;
+  }
+  const segment = state.segments[low]!;
+  (segment.source as RenderCommand[])[
+    segment.start + index - state.starts[low]!
+  ] = command;
+}
+
 export function getCommandBufferSpliceWriteCount(
   commands: RenderCommand[],
 ): number {
@@ -853,6 +883,49 @@ function cloneClipRect(clip: ClipRect): ClipRect {
   return clip ? { ...clip } : null;
 }
 
+/** 요소의 hit bounds — 상자를 조상 누적 clip 으로 교차한 것 (비면 null = 미등재). */
+export function hitBoundsOf(
+  bounds: BoundingBox,
+  clip: ClipRect,
+): BoundingBox | null {
+  return intersectBounds(bounds, clip);
+}
+
+/**
+ * 자식에게 넘기는 clip rect — 렌더러의 CMD_CHILDREN_BEGIN clipRect(0,0,width,height) 를 요소의
+ * 절대 좌표 (`absX` · `absY`) 로 옮겨 조상 clip 과 교차한 것. scroll translate 는 clip 적용
+ * **뒤** 라 clip 원점은 스크롤 미반영. `visitElement` 와 ADR-264 옮기기 (`subtreeTranslate.ts`)
+ * 가 같은 식을 쓴다.
+ */
+export function childClipRectOf(
+  absX: number,
+  absY: number,
+  children: {
+    readonly clipChildren: boolean;
+    readonly width: number;
+    readonly height: number;
+    readonly clipBorderInset?: number;
+  },
+  clipRect: ClipRect,
+): ClipRect {
+  if (!children.clipChildren || children.width <= 0 || children.height <= 0)
+    return clipRect;
+  const inset = children.clipBorderInset ?? 0;
+  // 조상 clip 과 교차가 비면 EMPTY_CLIP — null(=클립 없음)로 되돌리면
+  //   전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
+  return (
+    intersectBounds(
+      {
+        x: absX + inset,
+        y: absY + inset,
+        width: Math.max(0, children.width - 2 * inset),
+        height: Math.max(0, children.height - 2 * inset),
+      },
+      clipRect,
+    ) ?? EMPTY_CLIP
+  );
+}
+
 interface DeferredDragRootVisit {
   elementId: string;
   parentAbsX: number;
@@ -866,6 +939,11 @@ interface VisitOptions {
   deferredDragRoots?: DeferredDragRootVisit[];
   dragRootIds?: ReadonlySet<string> | null;
   renderAsTopLayer?: boolean;
+  /**
+   * ADR-264: 자기 명령만 기록한다 — 자식은 방문하지 않고 자식에게 넘길 문맥만 여기에 남긴다
+   * (`CHILDREN_BEGIN` · `CHILDREN_END` 는 그대로 낸다). root 호출에만 쓴다.
+   */
+  selfOnlyChildContexts?: Map<string, SubtreeBuildContext>;
 }
 
 /** 최신 boundsMap 캐시 (씬 좌표 — TextEditOverlay 위치 계산용) */
@@ -1149,6 +1227,7 @@ export function buildRenderCommandStream(
     syncSpatialIndexSnapshot?: boolean;
     publishBoundsSnapshot?: boolean;
     subtreeContext?: SubtreeBuildContext;
+    selfOnlyChildContexts?: Map<string, SubtreeBuildContext>;
   } = {},
 ): RenderCommandStream {
   const metricsBuildStart = adr189MetricsEnabled ? performance.now() : 0;
@@ -1204,7 +1283,12 @@ export function buildRenderCommandStream(
       subtreeContext?.cmdOffsetY ?? offsetY,
       subtreeContext?.parentElementId ?? null,
       subtreeContext
-        ? { renderAsTopLayer: subtreeContext.topLayerSubtree }
+        ? {
+            renderAsTopLayer: subtreeContext.topLayerSubtree,
+            ...(options.selfOnlyChildContexts
+              ? { selfOnlyChildContexts: options.selfOnlyChildContexts }
+              : {}),
+          }
         : visitOptions,
       subtreeContext?.zOrderKey ?? `${bodyId}:root`,
       subtreeContext?.scrollContextKey ?? "root-scroll-context",
@@ -1312,6 +1396,32 @@ export function buildSubtreeCommandStream(
       subtreeContext: input.context,
     },
   );
+}
+
+/**
+ * ADR-264 — 한 요소의 자기 명령만 기록한다 (`ELEMENT_BEGIN` · self draw · `CHILDREN_BEGIN` ·
+ * `CHILDREN_END` · `ELEMENT_END`, 자식 방문 0). 자식에게 넘길 문맥을 같이 돌려준다 — 크기가 바뀐
+ * 조상을 자식 재기록 없이 고치고 자식은 그 문맥으로 옮긴다.
+ */
+export function buildSelfCommandStream(input: SubtreeCommandBuildInput): {
+  stream: RenderCommandStream;
+  childContexts: Map<string, SubtreeBuildContext>;
+} {
+  const childContexts = new Map<string, SubtreeBuildContext>();
+  const stream = buildRenderCommandStream(
+    [input.rootId],
+    input.childrenMap,
+    input.layoutMap,
+    {},
+    input.revision,
+    {
+      syncSpatialIndexSnapshot: false,
+      publishBoundsSnapshot: false,
+      subtreeContext: input.context,
+      selfOnlyChildContexts: childContexts,
+    },
+  );
+  return { stream, childContexts };
 }
 
 export function getCachedCommandStreamSnapshot(): RenderCommandStream | null {
@@ -1676,24 +1786,34 @@ function visitElement(
     const scrollY = skiaData.scrollOffset?.scrollTop ?? 0;
     const childVisitOptions = options.renderAsTopLayer ? {} : options;
 
-    // 자식 clip rect: 렌더러의 CMD_CHILDREN_BEGIN clipRect(0,0,clipWidth,clipHeight)를
-    // 절대 좌표로 옮긴 것. scroll translate 는 clip 적용 **뒤** 라 clip 원점은 스크롤 미반영.
-    const childClipRect: ClipRect =
-      skiaData.clipChildren && clipWidth > 0 && clipHeight > 0
-        ? // 조상 clip 과 교차가 비면 EMPTY_CLIP — null(=클립 없음)로 되돌리면
-          //   전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
-          (intersectBounds(
-            {
-              x: absX + clipBorderInset,
-              y: absY + clipBorderInset,
-              width: Math.max(0, clipWidth - 2 * clipBorderInset),
-              height: Math.max(0, clipHeight - 2 * clipBorderInset),
-            },
-            clipRect,
-          ) ?? EMPTY_CLIP)
-        : clipRect;
+    const childClipRect = childClipRectOf(
+      absX,
+      absY,
+      {
+        clipChildren: skiaData.clipChildren ?? false,
+        width: clipWidth,
+        height: clipHeight,
+        clipBorderInset,
+      },
+      clipRect,
+    );
 
     for (const [childIndex, child] of sortedChildren.entries()) {
+      if (options.selfOnlyChildContexts) {
+        // 자식의 visitElement 가 저장할 문맥과 같은 값 (아래 호출 인자).
+        options.selfOnlyChildContexts.set(child.id, {
+          parentAbsX: absX - scrollX,
+          parentAbsY: absY - scrollY,
+          clipRect: cloneClipRect(childClipRect),
+          cmdOffsetX: 0,
+          cmdOffsetY: 0,
+          parentElementId: elementId,
+          zOrderKey: `${zOrderKey}/${childIndex}:${getChildZIndex(child)}`,
+          scrollContextKey: `${elementScrollContextKey}|scroll:${elementId}:${scrollX},${scrollY}`,
+          topLayerSubtree: isTopLayer,
+        });
+        continue;
+      }
       visitElement(
         child.id,
         absX - scrollX,

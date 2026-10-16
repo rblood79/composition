@@ -356,4 +356,51 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
     expect(scene.pageRootIds).toEqual([homeRoot, secondRoot]);
     scene.dispose();
   });
+
+  it("ADR-264: a page grid column change places the moved page roots — the stream equals a fresh bind", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const newId = allocator();
+    for (let i = 0; i < 2; i += 1) {
+      const project = graph.getEntry(graph.projectId);
+      const { command } = catalogNewPageCommand(
+        project?.kind === "project"
+          ? project.pageIds.map((id) => graph.getEntry(id) as never)
+          : [],
+        newId,
+      );
+      workspace.execute(command);
+    }
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [text("a", "Alpha"), text("b", "Beta")],
+        rootIds: ["project:node:a" as NodeId, "project:node:b" as NodeId],
+        newId,
+      }),
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    const snapshot = (stream: typeof scene.stream) => ({
+      commands: Array.from(
+        { length: stream.commands.length },
+        (_, i) => stream.commands[i],
+      ),
+      bounds: Object.fromEntries(stream.boundsMap),
+      hit: Object.fromEntries(stream.hitBoundsMap),
+      clips: Object.fromEntries(stream.clipContextByElement),
+    });
+    let changed = false;
+    for (const columns of [1, 3, 2]) {
+      if (!workspace.setAutoColumns(columns)) continue;
+      changed = true;
+      const sync = scene.pageGridChanged();
+      expect(sync.kind).toBe("placed");
+      const placed = snapshot(scene.stream);
+      const fresh = new CatalogCanvasScene(workspace.root);
+      expect(placed).toEqual(snapshot(fresh.stream));
+      fresh.dispose();
+    }
+    expect(changed).toBe(true);
+    scene.dispose();
+  });
 });

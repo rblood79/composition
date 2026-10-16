@@ -1,5 +1,5 @@
 /**
- * ADR-263 Phase 0 — 그리기 명령 층의 결정적 카운트.
+ * ADR-263 Phase 0 — 그리기 명령 층의 결정적 카운트 (ADR-264 Phase 0 — patch 분해 · 재바인드 사유).
  *
  * 프레임 하니스 (`perf-baseline.mjs` frame lane) 가 부류마다 reset → snapshot 해
  * `results.<부류>.counts.counters` 로 기록하고, ratchet (ADR-246) 이 그 값을 상한으로 막는다.
@@ -43,6 +43,44 @@ export interface RenderCounters {
   patchCalls: number;
   /** 성공한 patch 의 교체 명령 수 (patch root 서브트리 크기). */
   patchWrites: number;
+  /**
+   * ADR-264 Phase 0 — patch 교체 명령 (`patchWrites`) 의 분해. 다섯 몫의 합 = `patchWrites`.
+   * seed: record 가 바뀐 노드 (· 구조 region) 의 서브트리.
+   */
+  patchSeedCommands: number;
+  /** 바뀐 상자의 조상 경로 · 크기가 바뀐 상자의 자기 명령 (서브트리 span − 자식 서브트리 span). */
+  patchPathCommands: number;
+  /** 자리만 옮긴 서브트리 (x · y 만 다름 — 크기 · 엔진 입력 · 자손 rect 불변). */
+  patchMovedOnlyCommands: number;
+  patchMovedOnlyNodes: number;
+  /** 그중 부모 상자의 크기도 바뀐 것 (부모가 clip 하면 바깥 clip 이 같이 바뀐다). */
+  patchMovedUnderResizedCommands: number;
+  /** rect 가 그대로인 형제 서브트리 (region 이 부모로 올라가 같이 다시 기록된 것). */
+  patchUnchangedCommands: number;
+  /** x · y 만 바뀐 후보인데 엔진이 자손 rect 를 바꾼 노드 수 (R3 — 옮기기 후보에서 빠진다). */
+  patchMovedDescendantChanged: number;
+  /** 사유별 scene 재바인드 수 (`canvasScene.ts` rebind). page grid = 자동 열 수 · page grid 편집. */
+  rebindPageGrid: number;
+  rebindOther: number;
+  /** page grid 재바인드 중 page root 의 크기가 바뀐 재바인드 수 (R4 — 옮기기로 못 대신하는 것). */
+  pageGridResized: number;
+  /** page grid 재바인드에서 위치가 바뀐 page root 수. */
+  pageGridMovedRoots: number;
+  /** ADR-264 옮기기 (`subtreeTranslate.ts`) — 적용 수 · 옮긴 요소 수 · SpatialIndex upsert 수. */
+  translateCalls: number;
+  translateNodes: number;
+  translateIndexUpserts: number;
+  /** ADR-264 Phase 2 — 자기 명령만 다시 쓴 경로 노드 수 · 쓴 명령 수. */
+  pathSelfPatches: number;
+  pathSelfWrites: number;
+  /**
+   * `placeRegion` 이 계획을 접고 그 자리 서브트리를 다시 기록한 사유 — seed 의 문맥이 바뀜 ·
+   * 옮기기 불가 (`checkTranslate`) · 자기 명령 모양이 바뀜 · 자식 계획 실패.
+   */
+  placeFallbackSeedContext: number;
+  placeFallbackTranslate: number;
+  placeFallbackShape: number;
+  placeFallbackChild: number;
 }
 
 const counters: RenderCounters = {
@@ -64,6 +102,26 @@ const counters: RenderCounters = {
   patchScanCommands: 0,
   patchCalls: 0,
   patchWrites: 0,
+  patchSeedCommands: 0,
+  patchPathCommands: 0,
+  patchMovedOnlyCommands: 0,
+  patchMovedOnlyNodes: 0,
+  patchMovedUnderResizedCommands: 0,
+  patchUnchangedCommands: 0,
+  patchMovedDescendantChanged: 0,
+  rebindPageGrid: 0,
+  rebindOther: 0,
+  pageGridResized: 0,
+  pageGridMovedRoots: 0,
+  translateCalls: 0,
+  translateNodes: 0,
+  translateIndexUpserts: 0,
+  pathSelfPatches: 0,
+  pathSelfWrites: 0,
+  placeFallbackSeedContext: 0,
+  placeFallbackTranslate: 0,
+  placeFallbackShape: 0,
+  placeFallbackChild: 0,
 };
 
 /** 카운터 객체 — 호출부가 필드를 직접 더한다 (dev 게이트 안에서만). */
@@ -82,8 +140,13 @@ export function resetRenderCounters(): void {
  * live 픽셀 대조용 스위치 (dev 전용) — 같은 상태를 다른 경로로 그려 비교한다.
  * `linearOnly`: full 재기록이 viewport 공간 질의 대신 선형 실행 (컬링 점프 없음) 으로 간다.
  * `damageOff`: damage 부분 재기록 대신 full 로 그린다.
+ * `translateOff`: ADR-264 옮기기 · 경로 자기 patch 대신 region 전체를 다시 기록한다 (지금까지의 길).
  */
-export const renderDebug = { linearOnly: false, damageOff: false };
+export const renderDebug = {
+  linearOnly: false,
+  damageOff: false,
+  translateOff: false,
+};
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   const debug = ((
@@ -94,6 +157,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setDamageOff = (on: boolean) => {
     renderDebug.damageOff = on;
+  };
+  debug.setTranslateOff = (on: boolean) => {
+    renderDebug.translateOff = on;
   };
   (
     window as unknown as {

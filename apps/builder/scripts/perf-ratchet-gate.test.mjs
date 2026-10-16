@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   applyAddClasses,
   applyAddKeys,
+  applyAddRun,
   applyRaise,
   applyUpdate,
   bLimit,
@@ -12,6 +13,7 @@ import {
   decide,
   flattenCounts,
   judge,
+  runKeyOf,
 } from "./perf-ratchet-gate.mjs";
 import { revisionProblems } from "./perf-ratchet-run.mjs";
 
@@ -516,4 +518,60 @@ test("--add-keys — recorder 해시가 바뀌면 --accept-recorder 일 때만 �
   assert.deepEqual(next.recorderChanges, [
     { from: "old", to: "new", on: "2026-10-16", reason: "--add-keys render.*" },
   ]);
+});
+
+// ADR-264 — fixture 가 다른 run (중첩 문서) 을 같은 게이트에 더한다
+test("--add-run — fixture 가 run 키와 하니스 인자에 실리고, 등록한 키의 회귀는 block", () => {
+  const nested = (writes) =>
+    addReport(
+      ["edit"],
+      { edit: { render: { patchWrites: writes, patchMovedOnlyCommands: 0 } } },
+      { seedCount: 600, fixtureKind: "nested-flex" },
+    );
+  assert.equal(runKeyOf({ seedCount: 600 }), "600");
+  assert.equal(runKeyOf({ seedCount: 600, fixtureKind: "mixed" }), "600");
+  assert.equal(
+    runKeyOf({ seedCount: 600, fixtureKind: "nested-flex" }),
+    "600:nested-flex",
+  );
+  const base = ratchet();
+  const next = applyAddRun(base, "600:nested-flex", [nested(95), nested(95)], {
+    today: "2026-10-16",
+  });
+  assert.deepEqual(next.runs["600:nested-flex"].args, [
+    "--lane",
+    "frame",
+    "--seed-count",
+    "600",
+    "--fixed-inputs",
+    "--fixture-kind",
+    "nested-flex",
+    "--classes",
+    "edit",
+  ]);
+  assert.equal(next.seeds["600:nested-flex"].edit.A["render.patchWrites"], 95);
+  assert.equal(
+    next.seeds["600:nested-flex"].edit.A["render.patchMovedOnlyCommands"],
+    0,
+  );
+  // 기존 run 은 그대로
+  assert.deepEqual(next.runs[60], base.runs[60]);
+  assert.deepEqual(next.seeds[60], base.seeds[60]);
+  // 원복 RED: 등록한 키가 올라가면 decide = block
+  const verdict = judge(next, {
+    "600:nested-flex": countsByClass(nested(25623)),
+  });
+  assert.equal(decide(verdict, verdict), "block");
+  assert.throws(
+    () => applyAddRun(next, "600:nested-flex", [nested(95), nested(95)]),
+    /이미 있다/,
+  );
+  assert.throws(
+    () => applyAddRun(base, "600", [nested(95), nested(95)]),
+    /run 불일치/,
+  );
+  assert.throws(
+    () => applyAddRun(base, "600:nested-flex", [nested(95)]),
+    /둘 이상/,
+  );
 });

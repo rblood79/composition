@@ -14,8 +14,21 @@ import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEn
 import {
   buildRenderCommandStream,
   buildSubtreeCommandStream,
+  createCommandReader,
+  publishPatchedCommandStreamSnapshot,
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
+import {
+  canTranslateSubtree,
+  placeRegion,
+  translateSubtree,
+  type PlaceRegionResult,
+  type SubtreePatchOutcome,
+} from "../workspace/canvas/skia/subtreeTranslate";
+import {
+  renderCounters,
+  renderDebug,
+} from "../workspace/canvas/skia/renderCounters";
 import type { BoundingBox } from "../workspace/canvas/selection/types";
 import {
   registerSkiaNode,
@@ -1255,8 +1268,10 @@ export type CatalogCanvasUpdate =
       readonly subtreeBuilds: number;
       /** Scene nodes the subtree builds visited. */
       readonly subtreeNodeVisits: number;
-      /** Commands spliced into the stream. */
+      /** Commands spliced into the stream (and own commands of ancestors rewritten in place). */
       readonly commandWrites: number;
+      /** ADR-264: subtrees placed without being recorded again (moved, or under a new context). */
+      readonly translated: readonly string[];
       /**
        * ADR-263 Phase 3: the scene area the splices changed (old ∪ new hit bounds of every patched
        * subtree) — absent when a patched subtree paints outside its hit bounds before or after
@@ -1293,6 +1308,10 @@ const unionBox = (
     height: Math.max(left.y + left.height, right.y + right.height) - y,
   };
 };
+/** Command kinds the ADR-264 Phase 0 count walks (`renderCommands.ts` CMD_*). */
+const CMD_ELEMENT_BEGIN = 0;
+const CMD_ELEMENT_END = 4;
+
 const sameRect = (left: Rect | undefined, right: Rect | undefined) =>
   !!left &&
   !!right &&
@@ -1710,6 +1729,171 @@ function bindInColorMode(
         ]),
       );
     const boundTagRows = tagRowsState();
+    /**
+     * ADR-264 Phase 0 (dev): split the recorded commands by why they were written again — record
+     * changed (seed), ancestor path · resized box (own commands), moved-only subtree, or an
+     * unchanged sibling. Placed subtrees (Phase 2) wrote nothing and are not split. Classification only: `spans` = each element's subtree command count in
+     * the replacements, read off their commands (the span maps resolve cursors per read — that
+     * would add calls to the ratchet's call counts).
+     */
+    const countPatchRegions = (
+      roots: readonly string[],
+      spans: ReadonlyMap<string, number>,
+      seeds: readonly string[],
+      changedRects: ReadonlyMap<string, Rect>,
+      oldRects: ReadonlyMap<string, Rect | undefined>,
+    ) => {
+      const length = (id: string) => spans.get(id) ?? 0;
+      const seedSet = new Set(seeds);
+      const top = new Set(roots);
+      const onPath = new Set<string>();
+      for (const id of [...seedSet, ...changedRects.keys()])
+        for (
+          let cursor: string | undefined = id;
+          cursor && !onPath.has(cursor);
+          cursor = top.has(cursor)
+            ? undefined
+            : root.canvasInputs.get(cursor)?.parentId
+        )
+          onPath.add(cursor);
+      const resized = (id: string) => {
+        const before = oldRects.get(id);
+        const after = changedRects.get(id);
+        return (
+          !!after &&
+          (!before ||
+            before.width !== after.width ||
+            before.height !== after.height)
+        );
+      };
+      const children = (id: string) =>
+        (childrenMap.get(id) ?? []).map((child) => child.id);
+      const descendantsMoved = (id: string) => {
+        const ids: string[] = [];
+        const collect = (node: string) => {
+          for (const child of children(node)) {
+            ids.push(child);
+            collect(child);
+          }
+        };
+        collect(id);
+        if (!ids.length) return false;
+        const next = root.getGeometry(ids);
+        return ids.some(
+          (child) => !sameRect(next.get(child)!, layoutMap.get(child)),
+        );
+      };
+      const nodeCount = (id: string): number =>
+        children(id).reduce((sum, child) => sum + nodeCount(child), 1);
+      const classify = (id: string, parentResized: boolean) => {
+        const candidate =
+          !seedSet.has(id) &&
+          changedRects.has(id) &&
+          !resized(id) &&
+          boundLayoutInputs.get(id) === root.getAppliedLayoutInput(id) &&
+          boundParts.get(id) === partInput(id) &&
+          !children(id).some((child) => onPath.has(child));
+        // R3: a moved-only candidate whose descendants the engine moved (placed or recorded).
+        const descendantChanged = candidate && descendantsMoved(id);
+        if (descendantChanged) renderCounters.patchMovedDescendantChanged += 1;
+        // ADR-264 Phase 2: only recorded subtrees are split — a placed subtree wrote nothing.
+        if (!spans.has(id)) {
+          if (onPath.has(id) && !candidate)
+            for (const child of children(id)) classify(child, resized(id));
+          return;
+        }
+        if (seedSet.has(id)) {
+          renderCounters.patchSeedCommands += length(id);
+          return;
+        }
+        if (!onPath.has(id)) {
+          renderCounters.patchUnchangedCommands += length(id);
+          return;
+        }
+        if (candidate && !descendantChanged) {
+          renderCounters.patchMovedOnlyCommands += length(id);
+          renderCounters.patchMovedOnlyNodes += nodeCount(id);
+          if (parentResized)
+            renderCounters.patchMovedUnderResizedCommands += length(id);
+          return;
+        }
+        renderCounters.patchPathCommands +=
+          length(id) -
+          children(id).reduce((sum, child) => sum + length(child), 0);
+        for (const child of children(id)) classify(child, resized(id));
+      };
+      for (const id of roots) classify(id, false);
+    };
+    /** Derive a record's Skia data from its bound rect and register it. */
+    const registerNode = (id: string) => {
+      const node = root.canvasInputs.get(id)!;
+      const binding = bindings[bindingKey(node)!];
+      const rect = layoutMap.get(id)!;
+      registerSkiaNode(
+        id,
+        node.hidden ||
+          node.derivedProps?._pendingHidden === true ||
+          catalogRowSampleHidden(root, node) ||
+          root.tagRowCollapsed(node.id)
+          ? hiddenNode(node, rect)
+          : withScrollbar(
+              node,
+              paintedNodeData(
+                root,
+                node,
+                rect,
+                binding,
+                root.canvasInputs.get(node.parentId),
+              ),
+              (n) => layoutMap.get(n),
+            ),
+      );
+    };
+    /**
+     * ADR-264 Phase 3: the page grid moved page frames (auto columns at a zoom, a page grid edit)
+     * and their contents kept their layout — place each moved root's subtree instead of binding
+     * again. Null when it cannot: a pending record delta, a frame that resized, or a root that
+     * cannot be placed (the caller binds again).
+     */
+    const movePageRoots = (): string[] | null => {
+      if (dirty.size) return null;
+      const next = root.getGeometry(rootIds);
+      const moves: Array<[string, Rect]> = [];
+      for (const id of rootIds) {
+        const before = layoutMap.get(id);
+        const after = next.get(id);
+        if (!before || !after) return null;
+        if (before.width !== after.width || before.height !== after.height)
+          return null;
+        if (before.x !== after.x || before.y !== after.y)
+          moves.push([id, after]);
+      }
+      const contexts = moves.map(([id]) =>
+        stream.subtreeBuildContextByElement.get(id),
+      );
+      if (
+        moves.some(
+          ([id], index) =>
+            !contexts[index] ||
+            !canTranslateSubtree(stream, id, contexts[index]!),
+        )
+      )
+        return null;
+      moves.forEach(([id, rect], index) => {
+        translateSubtree({
+          stream,
+          rootId: id,
+          x: rect.x,
+          y: rect.y,
+          context: contexts[index]!,
+          publish: false,
+        });
+        layoutMap.set(id, { ...rect, elementId: id });
+        registerNode(id);
+      });
+      if (moves.length) publishPatchedCommandStreamSnapshot(stream);
+      return moves.map(([id]) => id);
+    };
     const update = (): CatalogCanvasUpdate => {
       let geometryQueries = 0;
       const rebind = (id: string, reason: string): CatalogCanvasUpdate => ({
@@ -1842,6 +2026,9 @@ function bindInColorMode(
       };
       const reRegister = new Set<string>();
       const patchRoots = new Set<string>();
+      /** Scroll owners whose scrollbar changed: their own commands are recorded again (ADR-264). */
+      const scrollRepaint = new Set<string>();
+      const translated: string[] = [];
       // Structure is a commit-lane subtree splice. Reconcile only the changed parents' trees;
       // unrelated pages keep their registrations, subscriptions, geometry and command spans.
       const structural = new Set<string>();
@@ -2053,36 +2240,14 @@ function bindInColorMode(
             ) {
               reRegister.add(cursor);
               patchRoots.add(cursor);
+              scrollRepaint.add(cursor);
             }
             break;
           }
           cursor = owner.parentId;
         }
       }
-      for (const id of reRegister) {
-        const node = input(id)!;
-        const binding = bindings[bindingKey(node)!];
-        const rect = layoutMap.get(id)!;
-        registerSkiaNode(
-          id,
-          node.hidden ||
-            node.derivedProps?._pendingHidden === true ||
-            catalogRowSampleHidden(root, node) ||
-            root.tagRowCollapsed(node.id)
-            ? hiddenNode(node, rect)
-            : withScrollbar(
-                node,
-                paintedNodeData(
-                  root,
-                  node,
-                  rect,
-                  binding,
-                  input(node.parentId),
-                ),
-                rectOf,
-              ),
-        );
-      }
+      for (const id of reRegister) registerNode(id);
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.
       const roots = [...patchRoots].filter((id) => {
         for (let cursor = input(id)?.parentId; cursor;) {
@@ -2095,9 +2260,14 @@ function bindInColorMode(
       let commandWrites = 0;
       let damage: BoundingBox | undefined;
       let damageComplete = roots.length > 0;
-      for (const id of roots) {
+      const replacementSpans =
+        process.env.NODE_ENV === "development"
+          ? new Map<string, number>()
+          : undefined;
+      /** Record `id`'s subtree again under its stored context (the commit-lane splice). */
+      const patchSubtree = (id: string): SubtreePatchOutcome => {
         const context = stream.subtreeBuildContextByElement.get(id);
-        if (!context) return rebind(id, "subtree-context");
+        if (!context) return { applied: false, reason: "subtree-context" };
         revision += 1;
         const replacement = buildSubtreeCommandStream({
           rootId: id,
@@ -2117,15 +2287,94 @@ function bindInColorMode(
           revision,
           canonicalRevision: stream.baseCanonicalRevision,
         });
-        if (!patch.applied)
-          return rebind(id, `splice-rejected:${patch.reason ?? "unknown"}`);
-        // No hit bounds before or after: the subtree is clipped away entirely — nothing to redraw.
-        if (patch.unsafePaint) damageComplete = false;
-        else if (patch.damageBounds)
-          damage = unionBox(damage, patch.damageBounds);
+        if (!patch.applied) return patch;
         const span = replacement.subtreeSpans.get(id)!;
         commandWrites += span.end - span.start;
+        if (replacementSpans) {
+          const at = createCommandReader(replacement.commands);
+          const open: Array<{ id: string; start: number }> = [];
+          for (let index = span.start; index < span.end; index += 1) {
+            const command = at(index)!;
+            if (command.type === CMD_ELEMENT_BEGIN)
+              open.push({ id: command.elementId, start: index });
+            else if (command.type === CMD_ELEMENT_END) {
+              const begin = open.pop()!;
+              replacementSpans.set(begin.id, index + 1 - begin.start);
+            }
+          }
+        }
+        return patch;
+      };
+      // ADR-264 Phase 2: inside each region only changed records (and structure, scrollbars) are
+      // recorded again; ancestors whose box changed record their own commands, subtrees that
+      // only moved are placed (`placeRegion`). `translateOff` (dev) keeps the whole-region splice.
+      const translateOn = !(
+        process.env.NODE_ENV === "development" && renderDebug.translateOff
+      );
+      // A scroll owner whose scrollbar changed (not its record) records only its own commands.
+      const seeds = new Set([...dirty, ...regions]);
+      const top = new Set(roots);
+      const onPath = new Set<string>();
+      for (const id of [...seeds, ...changedRects.keys(), ...scrollRepaint])
+        for (
+          let cursor: string | undefined = id;
+          cursor && !onPath.has(cursor);
+          cursor = top.has(cursor) ? undefined : input(cursor)?.parentId
+        )
+          onPath.add(cursor);
+      const resized = (id: string) => {
+        const before = oldRects.get(id);
+        const after = changedRects.get(id);
+        return (
+          !!after &&
+          (!before ||
+            before.width !== after.width ||
+            before.height !== after.height)
+        );
+      };
+      const movedOnly = (id: string) =>
+        changedRects.has(id) &&
+        !resized(id) &&
+        boundLayoutInputs.get(id) === root.getAppliedLayoutInput(id) &&
+        boundParts.get(id) === partInput(id) &&
+        !(childrenMap.get(id) ?? []).some((child) => onPath.has(child.id));
+      for (const id of roots) {
+        if (!stream.subtreeBuildContextByElement.get(id))
+          return rebind(id, "subtree-context");
+        const placed: SubtreePatchOutcome & Partial<PlaceRegionResult> =
+          translateOn
+            ? placeRegion({
+                stream,
+                rootId: id,
+                childrenMap,
+                layoutMap,
+                revision: {
+                  presentationRevision: revision + 1,
+                  baseCanonicalRevision: stream.baseCanonicalRevision,
+                },
+                isSeed: (node) => seeds.has(node),
+                onPath: (node) => onPath.has(node),
+                movedOnly,
+                patchSubtree,
+              })
+            : patchSubtree(id);
+        if (!placed.applied)
+          return rebind(id, `splice-rejected:${placed.reason ?? "unknown"}`);
+        // No hit bounds before or after: the subtree is clipped away entirely — nothing to redraw.
+        if (placed.unsafePaint) damageComplete = false;
+        else if (placed.damageBounds)
+          damage = unionBox(damage, placed.damageBounds);
+        translated.push(...(placed.translated ?? []));
+        commandWrites += placed.selfWrites ?? 0;
       }
+      if (replacementSpans)
+        countPatchRegions(
+          roots,
+          replacementSpans,
+          [...dirty, ...regions],
+          changedRects,
+          oldRects,
+        );
       for (const id of new Set([...dirty, ...reconciled])) {
         if (input(id))
           boundLayoutInputs.set(id, root.getAppliedLayoutInput(id));
@@ -2139,6 +2388,7 @@ function bindInColorMode(
         geometryQueries,
         patchRoots: roots,
         subtreeBuilds: roots.length,
+        translated,
         subtreeNodeVisits,
         commandWrites,
         // An empty box = the splices changed nothing visible (the renderer draws nothing).
@@ -2184,6 +2434,7 @@ function bindInColorMode(
       bindingIds: [...resolvedBindingIds],
       unpainted,
       update,
+      movePageRoots,
       scrollable,
       scrollBy,
       /**

@@ -6,7 +6,10 @@ import {
   executeRenderCommands,
   executeViewportRenderCommands,
 } from "../workspace/canvas/skia/renderCommands";
-import { renderDebug } from "../workspace/canvas/skia/renderCounters";
+import {
+  renderCounters,
+  renderDebug,
+} from "../workspace/canvas/skia/renderCounters";
 import type { BoundingBox } from "../workspace/canvas/selection/types";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
@@ -23,7 +26,9 @@ export type CatalogCanvasSceneSync =
       readonly update: Extract<CatalogCanvasUpdate, { status: "patched" }>;
     }
   /** The whole scene was bound again (`reason`: what the patch path does not own). */
-  | { readonly kind: "rebound"; readonly reason: string };
+  | { readonly kind: "rebound"; readonly reason: string }
+  /** ADR-264 Phase 3: page roots placed where the page grid moved them (nothing recorded again). */
+  | { readonly kind: "placed"; readonly roots: readonly string[] };
 
 /**
  * ADR-263 Phase 3: the content area a sync changed — a patch's old ∪ new hit bounds. Undefined
@@ -139,8 +144,32 @@ export class CatalogCanvasScene {
       : this.rebind("page-roots");
   }
 
-  /** Page frames moved outside a step (the page grid's auto column count): bind again. */
+  /** Live verification (ADR-264): bind again from the records — the oracle for a patched stream. */
+  rebuild(): CatalogCanvasSceneSync {
+    return this.rebind("verify");
+  }
+
+  /**
+   * Bind again outside a step — the drag layer starting or ending (its subtree moves to and from
+   * the stream's top layer).
+   */
   refresh(): CatalogCanvasSceneSync {
+    return this.rebind("page-grid");
+  }
+
+  /**
+   * ADR-264 Phase 3: the page grid moved page frames outside a step (the auto column count at a
+   * zoom, a page grid edit). Page contents keep their layout, so moved roots are placed; a frame
+   * that resized, another root set or order, or a root that cannot be placed binds again.
+   */
+  pageGridChanged(): CatalogCanvasSceneSync {
+    if (!sameIds(this.drawnRoots(), this.rootIds))
+      return this.rebind("page-roots");
+    if (!(process.env.NODE_ENV === "development" && renderDebug.translateOff)) {
+      const roots = this.binding.movePageRoots();
+      if (roots)
+        return roots.length ? { kind: "placed", roots } : { kind: "unchanged" };
+    }
     return this.rebind("page-grid");
   }
 
@@ -159,9 +188,39 @@ export class CatalogCanvasScene {
   }
 
   private rebind(reason: string): CatalogCanvasSceneSync {
+    const before =
+      process.env.NODE_ENV === "development" && reason === "page-grid"
+        ? new Map(
+            this.rootIds.map((id) => [
+              id,
+              this.binding.stream.boundsMap.get(id),
+            ]),
+          )
+        : undefined;
     this.binding.dispose();
     this.rootIds = this.drawnRoots();
     this.binding = this.bind();
+    if (process.env.NODE_ENV === "development") {
+      if (reason !== "page-grid") renderCounters.rebindOther += 1;
+      else {
+        // ADR-264 Phase 0: whether the page roots only moved (R4) — compare the bound boxes.
+        renderCounters.rebindPageGrid += 1;
+        let resized = false;
+        for (const id of this.rootIds) {
+          const old = before?.get(id);
+          const next = this.binding.stream.boundsMap.get(id);
+          if (!old || !next) {
+            resized = true;
+            continue;
+          }
+          if (old.width !== next.width || old.height !== next.height)
+            resized = true;
+          else if (old.x !== next.x || old.y !== next.y)
+            renderCounters.pageGridMovedRoots += 1;
+        }
+        if (resized) renderCounters.pageGridResized += 1;
+      }
+    }
     return { kind: "rebound", reason };
   }
 

@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-264 Implemented — 자리만 옮긴 요소는 다시 그리지 않는다 · 줌에서 page 재구성 없음 (측정 기록 종결)] - 2026-10-16
+
+### Changed
+
+- **Canvas 편집이 바뀐 요소만 다시 기록한다** — 한 요소의 크기가 바뀌면 지금까지는 위로 올라가며 크기가 바뀐 조상 아래 전부 (뒤 형제 · 뒤 section 까지) 를 다시 기록했다. 이제 바뀐 요소만 다시 기록하고, 크기가 바뀐 조상은 자기 명령만, 자리만 옮긴 형제는 좌표 · clip · hit 영역 · SpatialIndex 만 옮긴다. 중첩 flex 5,000 편집 15 회의 교체 명령 178,875 → 1,155. 스크롤 상자의 scrollbar 만 바뀐 경우도 상자 자기 명령만 다시 쓴다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts` (`translateSubtree` · `placeRegion`) · `renderCommands.ts` (`buildSelfCommandStream` · `childClipRectOf` · `hitBoundsOf` · `writeCommandAt`) · `catalogRuntime/canvasBinding.ts`
+- **줌으로 page grid 열 수가 바뀔 때 scene 을 다시 묶지 않는다** — page 내용은 그대로라 page root 만 옮긴다 (page grid gap · 열 편집도 같은 길, frame 크기가 바뀌면 지금처럼 다시 묶는다). 평평 600 줌 재바인드 14 → 0 · node picture miss 1,036 → 14.
+  - 위치: `catalogRuntime/canvasBinding.ts` (`movePageRoots`) · `canvasScene.ts` (`pageGridChanged`) · `workspace/canvas/catalog/CatalogCanvas.tsx`
+- **측정 기록으로 종결** (사용자 결정). production 빌드 짝 (수정 전 · 후): 평평 5,000 줌 프레임 간격 p99 20.8 · 33.9 → 17.3 · 17.8 ms · 끊김 0 %, 평평 10,000 줌 49.5 → 17.7 ms, 중첩 5,000 drag 메인 스레드 2.1 → 1.4 ~ 1.5 s. 중첩 5,000 편집은 p99 26 ~ 28 → 24 ~ 26 ms · 끊김 2.1 ~ 3.2 → 1.0 ~ 2.1 % 로 목표 (20 ms · 1 %) 미달 — 남은 비용은 Canvas 가 아니라 문서 · 트랜잭션 층.
+- perf ratchet 게이트가 fixture 를 run 키로 구분한다 (`600:nested-flex` — 중첩 문서 편집을 pre-push 가 잰다, `--add-run`) · seed 600 에 `zoom` 부류.
+  - 위치: `apps/builder/scripts/perf-ratchet-gate.mjs` · `perf-ratchet-run.mjs` · `apps/builder/perf/ratchet.json`
+
+### Tests
+
+- `subtreeTranslate.test.ts` — 무작위 트리 1,200 (옮기기) · 400 (부모가 넘긴 문맥) · 1,000 (`placeRegion`) 이 처음부터 기록한 명령 · span · 맵 · SpatialIndex 와 같다 · 리뷰 반례 3 · 거절 조건. `phase4eCanvasScene.test.ts` page grid 열 수 변경 = 새로 묶은 scene. `perf-ratchet-gate.test.mjs` `--add-run`.
+- live: `apps/builder/scripts/adr264-subtree-translate-live.mjs` 13/13 (편집 6 · 줌 5 · page grid 편집 — 재바인드와 픽셀 · 맵 · SpatialIndex 후보 0 차).
+
 ## [ADR-263 Implemented — 그리기 명령 패치·실행 비용 축소 종결 (측정 기록)] - 2026-10-16
 
 ### Changed

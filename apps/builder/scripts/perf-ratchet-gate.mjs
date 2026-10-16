@@ -24,6 +24,7 @@
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --update <seed>=<frame.json> …
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-class <seed>=<frame.json>,<frame.json>,…
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-keys <seed>=<frame.json>,<frame.json> --keys <k1,k2|접두.*> [--accept-recorder]
+ *   node apps/builder/scripts/perf-ratchet-gate.mjs --add-run <seed>[:<fixture>]=<frame.json>,<frame.json>,…
  *   node apps/builder/scripts/perf-ratchet-gate.mjs --raise <path> --to <n> --approved-by <who> --reason <why> --expires <YYYY-MM-DD>
  */
 import { createHash } from "node:crypto";
@@ -330,8 +331,8 @@ export function applyAddClasses(
   const callCounts = run.args.includes("--call-counts");
   for (const report of reports) {
     const o = report.options;
-    if (String(o.seedCount) !== String(seed))
-      throw new Error(`seed 불일치: 결과 ${o.seedCount} ≠ ${seed}`);
+    if (runKeyOf(o) !== String(seed))
+      throw new Error(`seed 불일치: 결과 ${runKeyOf(o)} ≠ ${seed}`);
     if (!o.fixedInputs || Boolean(o.callCounts) !== callCounts)
       throw new Error(
         `조건 불일치: --fixed-inputs · --call-counts 가 seed ${seed} 기준과 같아야 한다`,
@@ -407,9 +408,9 @@ export function applyAddKeys(
     );
   const args = JSON.stringify(run.args);
   for (const report of reports) {
-    if (String(report.options?.seedCount) !== String(seed))
+    if (runKeyOf(report.options ?? {}) !== String(seed))
       throw new Error(
-        `seed 불일치: 결과 ${report.options?.seedCount} ≠ ${seed}`,
+        `seed 불일치: 결과 ${runKeyOf(report.options ?? {})} ≠ ${seed}`,
       );
     if (JSON.stringify(harnessArgsFrom(report.options)) !== args)
       throw new Error(
@@ -471,6 +472,45 @@ export function applyAddKeys(
   return next;
 }
 
+/**
+ * ADR-264 — 새 run (시드 수 · fixture 조합) 을 더한다. 기존 run · 상한은 건드리지 않는다.
+ * 같은 조건 보고 둘 이상으로 `--init` 과 같은 A/B 를 정한다 — 키는 `runKeyOf` (보고의 조건).
+ */
+export function applyAddRun(
+  ratchet,
+  key,
+  reports,
+  { recorderSha = null, today = isoToday() } = {},
+) {
+  if (ratchet.runs?.[key] || ratchet.seeds?.[key])
+    throw new Error(
+      `run ${key} 이 이미 있다 — --add-class · --add-keys 로 더한다`,
+    );
+  if (reports.length < 2)
+    throw new Error(
+      "같은 조건 보고가 둘 이상 있어야 한다 (등급 A = 반복 실행에서 같은 값)",
+    );
+  if (recorderSha !== null && ratchet.recorderSha256 !== recorderSha)
+    throw new Error(
+      "recorder 해시 불일치 — 하니스가 바뀌었다. 기준 재설정 필요 (--init)",
+    );
+  const args = JSON.stringify(harnessArgsFrom(reports[0].options));
+  for (const report of reports) {
+    if (runKeyOf(report.options) !== key)
+      throw new Error(`run 불일치: 결과 ${runKeyOf(report.options)} ≠ ${key}`);
+    if (JSON.stringify(harnessArgsFrom(report.options)) !== args)
+      throw new Error(`조건 불일치: 보고들의 하니스 인자가 다르다`);
+  }
+  const next = structuredClone(ratchet);
+  next.runs[key] = {
+    classes: reports[0].options.classes,
+    args: harnessArgsFrom(reports[0].options),
+  };
+  next.seeds[key] = buildSeedCeilings(reports.map(countsByClass));
+  next.generatedAt = today;
+  return next;
+}
+
 function parseSeedFiles(args) {
   // "60=a.json,b.json" → { "60": ["a.json","b.json"] }
   const out = {};
@@ -485,6 +525,20 @@ function parseSeedFiles(args) {
 
 const readReport = (f) => JSON.parse(readFileSync(f, "utf8"));
 
+/** 하니스 기본 fixture — run 키 · 인자에 적지 않는다. */
+const DEFAULT_FIXTURE = "mixed";
+
+/**
+ * 결과 JSON 의 options → ratchet run 키. 기본 fixture 는 시드 수 그대로 (`600`), 다른 fixture 는
+ * `600:nested-flex` (ADR-264 — 중첩 문서에서만 보이는 비용을 같은 게이트로 잰다).
+ */
+export function runKeyOf(options) {
+  const fixture = options.fixtureKind ?? DEFAULT_FIXTURE;
+  return fixture === DEFAULT_FIXTURE
+    ? String(options.seedCount)
+    : `${options.seedCount}:${fixture}`;
+}
+
 /** 결과 JSON 의 options → 같은 조건을 재현하는 하니스 인자 (게이트가 이대로 다시 잰다). */
 export function harnessArgsFrom(options) {
   if (!options.fixedInputs)
@@ -496,6 +550,8 @@ export function harnessArgsFrom(options) {
     String(options.seedCount),
     "--fixed-inputs",
   ];
+  if ((options.fixtureKind ?? DEFAULT_FIXTURE) !== DEFAULT_FIXTURE)
+    args.push("--fixture-kind", options.fixtureKind);
   if (options.callCounts) args.push("--call-counts");
   args.push("--classes", options.classes.join(","));
   return args;
@@ -586,6 +642,14 @@ async function cliMain(argv) {
     process.stdout.write(`[ADR-246] 부류 추가 기록 → ${RATCHET_PATH}\n`);
     return;
   }
+  if (cmd === "--add-run") {
+    let next = ratchet;
+    for (const [key, files] of Object.entries(parseSeedFiles(rest)))
+      next = applyAddRun(next, key, files.map(readReport), { recorderSha });
+    writeFileSync(RATCHET_PATH, JSON.stringify(next, null, 2) + "\n");
+    process.stdout.write(`[ADR-264] run 추가 기록 → ${RATCHET_PATH}\n`);
+    return;
+  }
   if (cmd === "--add-keys") {
     const at = rest.indexOf("--keys");
     if (at < 0)
@@ -622,7 +686,7 @@ async function cliMain(argv) {
     return;
   }
   throw new Error(
-    `명령: --run | --judge | --init | --update | --add-class | --add-keys | --raise`,
+    `명령: --run | --judge | --init | --update | --add-class | --add-keys | --add-run | --raise`,
   );
 }
 

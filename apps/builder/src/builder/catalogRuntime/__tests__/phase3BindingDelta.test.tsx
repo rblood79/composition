@@ -240,6 +240,7 @@ describe("ADR-248 Phase 3 product binding leaf delta", () => {
         subtreeBuilds: 1,
         subtreeNodeVisits: 1,
         commandWrites: expect.any(Number),
+        translated: [],
         // ADR-263 Phase 3: only the edited leaf's box is redrawn.
         damage: { x: 0, y: 50000, width: 80, height: 20 },
       },
@@ -288,6 +289,7 @@ describe("ADR-248 Phase 3 product binding leaf delta", () => {
       subtreeBuilds: 1,
       subtreeNodeVisits: 1,
       commandWrites: 3,
+      translated: [],
       // ADR-263 Phase 3: old (80) ∪ new (120) box of the resized leaf.
       damage: { x: 0, y: 50000, width: 120, height: 20 },
     });

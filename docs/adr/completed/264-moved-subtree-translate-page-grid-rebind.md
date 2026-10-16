@@ -2,14 +2,26 @@
 
 ## Status
 
-Proposed — 2026-10-16
+Implemented — 2026-10-16 (Proposed · Accepted 2026-10-16) — 사용자 결정 2 「측정 기록으로 종결」
+
+- 승격 근거: 사용자 `/execute-adr 264` (2026-10-16) + [reviews/264.md](../reviews/264.md) Round 2 pending 0 · HIGH 전부 fixed.
+
+> **종결 (2026-10-16, G4 — 사용자 결정 2 「측정 기록으로 종결」)**: production 짝 (`bf7d7ff84` ↔ + 이 ADR 런타임 diff, 교대 2 쌍 · 편집은 5 쌍) — 평평 5k 줌 p99 20.8 · 33.9 → 17.3 · 17.8 ms · drop 0 % (충족), 불리 케이스 평평 1만 줌 49.5 → 17.7 ms, 중첩 5k 줌 17.6 유지, 평평 5k drag 19 ~ 21 유지, 중첩 5k drag taskMs 2,131 · 2,116 → 1,393 · 1,486 ms. 중첩 5k 편집은 p99 26 ~ 28 → 24 ~ 26 ms · drop 2.1 ~ 3.2 → 1.0 ~ 2.1 % 로 미달 — Canvas patch 교체는 178,875 → 1,155 명령으로 줄었고 남은 편집 비용은 문서 · 트랜잭션 층 (`graph.replace` · `graph.commit` · `readModel.onStep` · `compositionRoot.deliver` · `applyCatalogTransaction`) 이라 이 ADR 범위 밖 — 다음 단계 입력으로 breakdown §기록에.
+>
+> **Phase 3 닫힘 (G3)**: page grid 의 자동 열 수 (줌) · page grid 편집이 page root 를 옮긴다 (`canvasBinding.ts` `movePageRoots` · `canvasScene.ts` `pageGridChanged`) — 평평 600 줌 재바인드 14 → 0 · picture miss 1,036 → 14, 원복 `block`.
+>
+> **Phase 2 닫힘 (G2)**: region 을 위 → 아래로 — seed 만 서브트리 재기록, 크기가 바뀐 조상은 자기 명령만, 옮긴 · 문맥이 바뀐 서브트리는 옮기기 (`subtreeTranslate.ts` `placeRegion`). 중첩 600 편집 교체 25,623 → 1,155 명령, 원복 `block`, live 픽셀 · 맵 · SpatialIndex 후보 0 차.
+>
+> **Phase 1 닫힘 (G1)**: `translateSubtree` — 무작위 1,200 · 부모 문맥 400 · 리뷰 반례 3 건이 처음부터 기록한 결과와 같다, 반례를 되돌린 변이 3 개 모두 RED.
+>
+> **Phase 0 닫힘 (2026-10-16, G0)**: 중첩 5k 편집 15 회의 patch 교체 178,875 명령 = seed 1,155 + 경로 276 + 자리만 옮김 172,266 (44,736 노드 — 그중 부모 크기도 바뀐 자리 171,342) + rect 그대로인 형제 5,178. 평평 5k 줌 content 43 프레임 중 page grid 재바인드 14 — 크기 바뀐 재바인드 0 (R4 성립). 설계를 대안 A 안에서 넓혔다 — 경로 노드는 자기 명령만 다시 기록하고 옮기기의 root 문맥은 부모가 넘긴다 (부모가 바뀐 층이 옮김의 99.5 %). 새 카운트 11 · seed 600 `zoom` · run `600:nested-flex` 를 ratchet A 로 등록, 인위 회귀 `block`. 상세: breakdown §1 Phase 0 결과 · §기록.
 
 - 사용자 요청: `/create-adr 2단계 후속 — 이동만 한 형제 patch 축소 + 줌 재바인드 제거` (2026-10-16)
 - 방향을 정한 사용자 원문: 「남은 두 꼬리 (patch 영역 축소, 줌 재바인드 제거) 를 먼저 하는것이 좋지않나?」 (2026-10-16) — Canvas 성능 계획의 3단계 (선택 전환) · 4단계 (Rust 판정) 보다 앞에 둔다. 3단계는 이 ADR 과 겹치지 않아 병행할 수 있다.
 - 이미 정해진 것: 2단계 닫는 조건은 ADR-263 HC2 그대로 — 중첩 5k 편집 p99 ≤ 20 ms · drop < 1 %, 줌 p99 ≤ 20 ms (production 레인). ADR-263 은 사용자 결정 2 「측정 기록으로 종결」 로 Implemented 됐고, 이 ADR 이 그 미달 두 자리를 받는다. Rust 이관 판정은 4단계 (이 ADR 종결 뒤 재측정 — ADR-921 은 되살리지 않는다). 측정이 설계보다 먼저 (카운트 RED → 수정 → ratchet 하향, measurement-validity §5).
-- 리뷰: [reviews/264.md](reviews/264.md) Round 1 (codex, 2026-10-16) HIGH 2 · MEDIUM 1 — 옮기기 알고리즘의 반례 (root 의 부모 문맥까지 옮김 · root-only damage 가 `overflow: visible` 자식을 누락 · 저장된 clip 교차 결과의 평행이동) → r1 반영: 자손 문맥만 옮기고 root 문맥 보존 · damage = 서브트리 전 요소 합집합 · clip 은 바깥 불변 clip 에서 다시 전파 (대안 A · R1 · G1 · breakdown §2). Round 2 (codex, 2026-10-16) 수리 검증 통과 — 세 건 closed · 신규 차단 0 · pending 0 이라 전제 확정 (premise-decision-points 종결 계약).
+- 리뷰: [reviews/264.md](../reviews/264.md) Round 1 (codex, 2026-10-16) HIGH 2 · MEDIUM 1 — 옮기기 알고리즘의 반례 (root 의 부모 문맥까지 옮김 · root-only damage 가 `overflow: visible` 자식을 누락 · 저장된 clip 교차 결과의 평행이동) → r1 반영: 자손 문맥만 옮기고 root 문맥 보존 · damage = 서브트리 전 요소 합집합 · clip 은 바깥 불변 clip 에서 다시 전파 (대안 A · R1 · G1 · breakdown §2). Round 2 (codex, 2026-10-16) 수리 검증 통과 — 세 건 closed · 신규 차단 0 · pending 0 이라 전제 확정 (premise-decision-points 종결 계약).
 
-Related: [ADR-263 그리기 명령 패치·실행 비용 축소](completed/263-render-command-patch-execute-cost.md) (직전 단계 — G5 미달 두 자리의 출처) · [ADR-189 커밋 레인 record 증분화](completed/189-commit-lane-incremental-record.md) (subtree splice · damage 의 원 결정) · [ADR-232 page placement](completed/232-page-placement-as-layout-derivation.md) 후속의 `columns: "auto"` (재바인드 경로의 출처) · [ADR-246 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [ADR-916 통합 Rust 엔진](completed/916-unified-rust-engine.md) (SpatialIndex 의 소속)
+Related: [ADR-263 그리기 명령 패치·실행 비용 축소](263-render-command-patch-execute-cost.md) (직전 단계 — G5 미달 두 자리의 출처) · [ADR-189 커밋 레인 record 증분화](189-commit-lane-incremental-record.md) (subtree splice · damage 의 원 결정) · [ADR-232 page placement](232-page-placement-as-layout-derivation.md) 후속의 `columns: "auto"` (재바인드 경로의 출처) · [ADR-246 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [ADR-916 통합 Rust 엔진](916-unified-rust-engine.md) (SpatialIndex 의 소속)
 
 ## Context
 
@@ -100,7 +112,7 @@ D3 시각 스타일의 Builder (Skia) consumer **내부** 실행 경로다. D1 �
 - D 기각: 복잡도 등급이 그대로다 — region 이 커지는 원인 (형제 이동) 을 두고 복사 상수만 줄인다.
 - E 보류: 4단계.
 
-> 구현 상세: [264-moved-subtree-translate-page-grid-rebind-breakdown.md](design/264-moved-subtree-translate-page-grid-rebind-breakdown.md)
+> 구현 상세: [264-moved-subtree-translate-page-grid-rebind-breakdown.md](../design/264-moved-subtree-translate-page-grid-rebind-breakdown.md)
 
 ### 사용자 결정 2건 (execute-adr 가 해당 Phase 에서 묻는다)
 
@@ -131,7 +143,12 @@ D3 시각 스타일의 Builder (Skia) consumer **내부** 실행 경로다. D1 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-16 · 실제 builder (dev 5173, 저장된 인증 세션으로 새 프로젝트) · headless Chrome (Playwright) — `apps/builder/scripts/adr264-subtree-translate-live.mjs` · 13/13 PASS · page error 0 · console error 0. 편집마다 지금 화면 · bounds 맵 · hit 맵 · 모든 hit 중심의 SpatialIndex 후보 (picking · hover · 선택 상자가 읽는 입력) 를 같은 상태를 scene 재바인드한 것과 대조해 모두 0 차:
+
+- 편집 6: 카드 높이 (아래 행 · 같은 행이 옮겨짐 — 옮기기 5 · 경로 자기 patch 6 · patch 교체 22 명령) · 카드 폭 (줄바꿈 경계에서 x 로 옮겨짐) · clip 상자 안 띠 높이 (뒤 띠가 clip 경계를 넘어 옮겨짐) · 스크롤 상자 항목 높이 (scrollbar 변화 — owner 는 자기 명령만) · 맨 위 상자 높이 (행 6 개 전체) · undo × 5.
+- page grid 7: 줌 0.12 · 0.3 · 0.6 · 0.18 · 1 (열 수가 바뀌면 page root 를 옮김, `page-grid` 재바인드 0 · page header 위치 같음) · 줌 구간 옮기기 19 회 · page grid gap 편집.
+- live RED: 옮기기의 clip 재교차를 「저장된 교차 +Δ」 로 되돌리면 clip 경계 · 스크롤 상자 두 케이스가 hit 맵 차로 FAIL (픽셀은 같다 — picking 만 어긋나는 결함을 잡는다).
+- cross-check (ADR-248 G3 하니스, Canvas ↔ DOM): 79 중 78 통과, `paletteBaseCanvas` 1 건은 수정 전 HEAD worktree 에서도 같은 출력 (9,964 줄 중 Vite 캐시 hash 한 줄만 다름) — Canvas leg 픽셀 변경 0. Preview (DOM) 경로는 이 ADR 이 닿지 않는다.
 
 ## Consequences
 
