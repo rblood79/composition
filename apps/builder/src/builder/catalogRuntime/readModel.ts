@@ -64,7 +64,12 @@ interface CachedRead<T> {
 type ParentFields = readonly unknown[];
 const parentFields = (entry: CatalogEntry | undefined): ParentFields =>
   entry?.kind === "node"
-    ? [entry.kind, entry.definitionId, entry.children, entry.descendantOverrides]
+    ? [
+        entry.kind,
+        entry.definitionId,
+        entry.children,
+        entry.descendantOverrides,
+      ]
     : entry?.kind === "page"
       ? [entry.kind, entry.children]
       : [entry];
@@ -77,15 +82,24 @@ export interface CatalogComponentSummary {
   instanceCount: number;
 }
 
-/** A reader that records the entries a read looks up. */
-function recording(graph: CatalogReader, deps: Set<string>): CatalogReader {
+/**
+ * A reader that records the entries a read looks up — and, given `seen`, the entries themselves,
+ * so the read's dependency fields come from the lookups it already made (ADR-265).
+ */
+function recording(
+  graph: CatalogReader,
+  deps: Set<string>,
+  seen?: Map<string, CatalogEntry | undefined>,
+): CatalogReader {
   return {
     projectId: graph.projectId,
     revision: graph.revision,
     library: graph.library,
     getEntry: (id) => {
       deps.add(id);
-      return graph.getEntry(id);
+      const entry = graph.getEntry(id);
+      seen?.set(id, entry);
+      return entry;
     },
     ownerOf: (id) => {
       deps.add(id);
@@ -206,7 +220,10 @@ export class CatalogReadModel {
     return () => {
       this.stats.rows += 1;
       const deps = new Set<string>();
-      const reader = recording(this.runtime.graph, deps);
+      const seen = new Map<string, CatalogEntry | undefined>();
+      const reader = recording(this.runtime.graph, deps, seen);
+      const entryOf = (id: string) =>
+        seen.has(id) ? seen.get(id) : this.runtime.graph.getEntry(id);
       const value =
         "pageId" in parent
           ? pagePositions(reader, parent.pageId)
@@ -228,10 +245,7 @@ export class CatalogReadModel {
       for (const row of value)
         if (row.target.kind === "node") {
           deps.delete(row.target.id);
-          rowDeps.set(
-            row.target.id,
-            rowFields(this.runtime.graph.getEntry(row.target.id)),
-          );
+          rowDeps.set(row.target.id, rowFields(entryOf(row.target.id)));
         }
       // The page or owned node whose children these are: only through `parentFields`.
       const parentId =
@@ -242,10 +256,7 @@ export class CatalogReadModel {
             : undefined;
       const parentDeps = new Map<string, ParentFields>();
       if (parentId && deps.delete(parentId))
-        parentDeps.set(
-          parentId,
-          parentFields(this.runtime.graph.getEntry(parentId)),
-        );
+        parentDeps.set(parentId, parentFields(entryOf(parentId)));
       return { value, deps, rowDeps, parentDeps };
     };
   }

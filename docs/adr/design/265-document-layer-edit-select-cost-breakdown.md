@@ -166,23 +166,23 @@ body 편집은 p99 · drop 이 같이 내려갔다. HC2 · HC3 는 그대로다 
 - 사용자 결정 2 「측정 기록으로 둔다」 — 대안 C (패널 갱신 다음 프레임) 를 넣지 않는다. 사용자 결정 3 「측정 기록으로 종결」.
 - G2 production 짝 (`.cache/perf-ratchet/wt` HEAD `275ce8a10` 빌드 ↔ 같은 HEAD + 이 ADR 최종 diff — 다른 세션 WIP 4 파일 제외 · `--serve-dist` headless · `--fixed-inputs --profile` · 교대 2 쌍, 중첩 select 는 5 + 6 쌍):
 
-| 시나리오 (5k)            | 수정 전 p99 / drop               | 수정 후 p99 / drop               | taskMs 중앙값 | 판정                    |
-| ------------------------ | -------------------------------- | -------------------------------- | ------------- | ----------------------- |
-| body 편집 (평평, 불리)   | 35.5 · 32.6 ms / 5.5 · 4.1 %    | 21.8 · 24.2 ms / 0 · 1.1 %      | 533 → 394     | 개선                    |
-| 평평 select (HC3)        | 30.2 · 29.0 / 7.0 · 5.9         | 29.0 · 29.4 / 3.7 · 4.3         | 582 → 551     | drop 만 내려감 · HC3 미달 |
-| 평평 select-spread       | 28.8 · 29.8 / 4.9 · 5.9         | 28.4 · 28.6 / 5.4 · 4.3         | 571 → 514     | 방향 없음               |
-| 평평 편집                | 30.3 · 30.7 / 2.6 · 3.1         | 30.5 · 25.5 / 2.6 · 1.5         | 303 → 291     | 유지                    |
-| 평평 줌                  | 17.7 · 17.6 / 0 · 0             | 17.5 · 17.7 / 0 · 0             | 575 → 530     | 유지 (≤ 20)             |
-| 평평 drag                | 20.4 · 20.0 / 0.5 · 0.5         | 20.6 · 20.6 / 0.5 · 0.5         | 1169 → 1145   | 유지                    |
-| 중첩 카드 편집 (HC2)     | 22.2 · 22.4 / 1.1 · 0.5         | 23.1 · 27.4 / 0 · 1.6           | 313 → 287     | 방향 없음 · HC2 미달    |
-| 중첩 select              | 6 쌍 중앙 25.1 / 상위 10 평균 23.8 | 6 쌍 중앙 24.6 / 22.95          | 445 → 433     | 방향 없음 (아래)        |
-| 600 select               | 25.5 · 25.7 / 1.6 · 1.6         | 23.0 · 25.2 / 0 · 1.6           | 423 → 410     | 유지                    |
+| 시나리오 (5k)          | 수정 전 p99 / drop                 | 수정 후 p99 / drop         | taskMs 중앙값 | 판정                      |
+| ---------------------- | ---------------------------------- | -------------------------- | ------------- | ------------------------- |
+| body 편집 (평평, 불리) | 35.5 · 32.6 ms / 5.5 · 4.1 %       | 21.8 · 24.2 ms / 0 · 1.1 % | 533 → 394     | 개선                      |
+| 평평 select (HC3)      | 30.2 · 29.0 / 7.0 · 5.9            | 29.0 · 29.4 / 3.7 · 4.3    | 582 → 551     | drop 만 내려감 · HC3 미달 |
+| 평평 select-spread     | 28.8 · 29.8 / 4.9 · 5.9            | 28.4 · 28.6 / 5.4 · 4.3    | 571 → 514     | 방향 없음                 |
+| 평평 편집              | 30.3 · 30.7 / 2.6 · 3.1            | 30.5 · 25.5 / 2.6 · 1.5    | 303 → 291     | 유지                      |
+| 평평 줌                | 17.7 · 17.6 / 0 · 0                | 17.5 · 17.7 / 0 · 0        | 575 → 530     | 유지 (≤ 20)               |
+| 평평 drag              | 20.4 · 20.0 / 0.5 · 0.5            | 20.6 · 20.6 / 0.5 · 0.5    | 1169 → 1145   | 유지                      |
+| 중첩 카드 편집 (HC2)   | 22.2 · 22.4 / 1.1 · 0.5            | 23.1 · 27.4 / 0 · 1.6      | 313 → 287     | 방향 없음 · HC2 미달      |
+| 중첩 select            | 6 쌍 중앙 25.1 / 상위 10 평균 23.8 | 6 쌍 중앙 24.6 / 22.95     | 445 → 433     | 방향 없음 (아래)          |
+| 600 select             | 25.5 · 25.7 / 1.6 · 1.6            | 23.0 · 25.2 / 0 · 1.6      | 423 → 410     | 유지                      |
 
 - 중첩 select 의 첫 5 쌍은 수정 후가 5 / 5 높았다 (+2 ms). 같은 수정 전 빌드가 다음 묶음에서 taskMs 416 → 460 으로 흔들려, 같은 묶음 · 쌍 안 순서 교대로 6 쌍을 다시 쟀다 — 수정 후가 약간 낮다 (p99 중앙 24.6 ↔ 25.1 · 상위 10 gap 평균 22.95 ↔ 23.81). dev 호출 수로도 수정 후가 적다 (앱 338k → 278k · 의존성 6.214M 같음 — wt 의 HEAD dev 서버 5176 ↔ 5173). Layers 변경을 뺀 빌드도 수정 전과 구분되지 않았다. 「방향 없음 (노이즈 폭)」 으로 둔다.
 - HC2 미달의 자리: Canvas binding — 옮겨진 상자 수만큼 도는 `subtreeTranslate` (`union` · `cloneClip`) · `catalogOverflowClips` · `canvasBinding` rect diff (`sameRect` · `collect` · `childrenOf`) · `renderCommands` (Phase 0 `--call-counts`, 중첩 편집 600 → 5k 에서 6 ~ 8 배). 이 ADR 의 파일 범위 밖 (ADR-263 · 264 의 파일).
 - HC3 미달의 자리: Layers 행이 다시 그려질 때마다 RAC 내부가 형제 전체를 돈다 (dev 의존성 호출 `CollectionBuilder.getItem` 2.18M · `Tree` 1.09M · `useGridListItem` 775k / 30 선택 — RAC 소유, D1) · React DOM 커밋 · 메뉴 Group dry-run (부모 children 재구성, 선택 1 회 12.5k 호출). production 선택 프로필 상위: `commands` chunk 2 ~ 2.5 % · RAC `aria-runtime` 3 ~ 4 % · React DOM `client` 2 ~ 3 % (idle 80 ~ 84 %).
 - live: `adr265-document-layer-live.mjs` 11/11 (본문 `### Live Exercise`).
-- ratchet: seed 600 · 600:nested-flex 에 `doc.*` A (Phase 0) + 하향 (Phase 1 10 · Phase 2 4) + 새 A 3 (`replaceEdges` · `commitChildrenCloned` · `htmlIdProbes`) · 600 에 `select-spread` 부류. **seed 60 은 남김** — HEAD (`275ce8a10`, 다른 세션의 미푸시 grid 커밋 3 개) 가 이미 `session.getSnapshot` A 를 넘는다 (select 1,480 → 1,511 · page-switch 577 → 587 — wt HEAD 게이트로 확인, 이 ADR 과 무관). 그 초과가 풀린 뒤 `--add-keys 60=… --keys doc.*` · `--add-class 60 select-spread`.
+- ratchet: seed 600 · 600:nested-flex 에 `doc.*` A (Phase 0) + 하향 (Phase 1 10 · Phase 2 4) + 새 A 3 (`replaceEdges` · `commitChildrenCloned` · `htmlIdProbes`) · 600 에 `select-spread` 부류. seed 60 은 grid 커밋의 `session.getSnapshot` 올리기 (`e09acd666`) 뒤에 등록했다 — `doc.*` A · `select-spread` 부류 · 하향 10. 등록하며 찾은 회귀: 행 목록 계산이 부모 entry 를 `getEntry` 로 한 번 더 읽어 (C2 `parentFields`) seed 60 page-switch `getEntry` 가 705 → 707 (A 초과, 커밋별 실측 `c6df78b86` 705 · `929f4c8a1` 707). 계산 중 기록 reader 가 이미 읽은 entry 를 다시 쓰게 고쳐 704 (행 `rowFields` 의 재조회도 같이 빠짐) — 수정 전 보고는 704 상한에 block.
 
 ### 4단계 (Rust 판정) 입력 · 다음 자리
 
@@ -218,3 +218,4 @@ body 편집은 p99 · drop 이 같이 내려갔다. HC2 · HC3 는 그대로다 
 - 2026-10-16 **Phase 1 종결** — §2 Phase 1 결과. 레버 4 (L1 ~ L4) · G1 동치 1,200 step · 변이 4 RED · ratchet 하향 10 · 새 A 2. 사후 보고 (adr-writing — scope): 표 초안의 C9 · 상수 · C3 · C5 를 빼고 commit 안의 두 비용 (L2 · L3) 을 더했다 — Phase 0 카운트가 가리킨 자리.
 - 2026-10-16 **Phase 2 레버 완료** — §3 Phase 2 결과. C8 · C12 · C11 · C7 (z-order) · Layers 고정 · 변이 4 RED · ratchet 하향 4 · 새 A 1. 새 후보 C11 · C12 와 Layers `getKey` 는 Phase 0 의 `--call-counts` 위치 (`at`) 로 찾았다. 처음 C8 을 전체 색인으로 짜 ADR-246 G2 의 「row prefix」 테스트가 잡아 점진 채움으로 바꿨다.
 - 2026-10-16 **Implemented (측정 기록 종결)** — 사용자 결정 2 「측정 기록으로 둔다」 · 결정 3 「측정 기록으로 종결」. §4 종결 결과 · 4단계 입력. 곁가지 수리: `phase3FrameClipPair` 의 제품 파일 grep 이 모듈 옆 테스트를 제품 reader 로 세던 기존 실패 (ADR-264 `02f6cec67` 이 남김).
+- 2026-10-16 **후속 — seed 60 ratchet 등록 · 회귀 1 수리** — `e09acd666` 의 `session.getSnapshot` 올리기 뒤 seed 60 에 `doc.*` A · `select-spread` · 하향 10. 등록 측정이 L4 (`parentFields`) 의 `getEntry` 재조회로 page-switch 705 → 707 A 초과를 보여 행 목록 계산이 기록 reader 의 조회 결과를 다시 쓰게 고쳤다 (704). seed 60 B 경고 6 (`controller.current` 등) 은 `c6df78b86` 에서도 같은 값 — 이 ADR 과 무관, 그대로 둔다.
