@@ -16,7 +16,7 @@
     block-size: calc(var(--control-size) * 5);
     border: 1px dashed var(--border);
     border-radius: var(--radius-md);
-    background: var(--bg-overlay);
+    background: var(--bg-muted);
   }
 
   .box-model__padding {
