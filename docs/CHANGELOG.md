@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `resolveContainerStylesFallback` 의 ToggleButtonGroup 기대값에 `height: fit-content` — 버튼 루트 높이 계약 (`8253cf055`) 뒤 갱신되지 않았던 것. 스크롤바 보이기 회귀 테스트 `CanvasScrollbar.test.tsx`.
 - 성능 ratchet seed 60 의 등급 B 경고 6 건 상한을 올렸다 (사용자 승인 · 만료 2027-04-17) — 커밋별 측정으로 귀속: Design 패널 섹션 (`5b48f3d18` · `a083bf4ab` · `b75eb19cc` · `ef8c9e30d`) · grid 열 · 행 머리 (`b5ae316e6`) · presence helper (`c14e41a84` 외) · ADR-264 옮기기 경로 (`02f6cec67`). 모두 step · 선택당 상수 회 읽기다.
   - 위치: `apps/builder/perf/ratchet.json`
+- 성능 하니스는 부류를 시작하기 전에 스크롤바 opacity 전환이 끝날 때까지 기다린다 — 앞 부류 (줌) 가 보인 스크롤바의 fade-out 이 다음 부류 창 안에서 돌아 `app-pages` 편집 스타일 재계산이 4 ↔ 14 로 갈렸다 (→ 0). 600 · nested-flex 편집의 DOM 레이아웃 수 (반복 측정 18 ~ 26 으로 흔들림) 상한도 같이 올렸고, 스크롤바 class 변경이 줄어든 14 건은 상한을 내렸다.
+  - 위치: `apps/builder/scripts/perf-baseline.mjs` · `apps/builder/perf/ratchet.json`
 
 ## [ADR-266 Implemented — 여러 page 문서의 줌 · 편집에서 그린 것을 버리지 않는다] - 2026-10-17
 

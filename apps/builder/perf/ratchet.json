@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "e2b3bd858e9357e890d199681af819b21676bcbf406dfa6daef6565d532d95c9",
   "generatedAt": "2026-10-16",
-  "head": "55eff22ab056547360d5e936305eb4a7819a3725",
+  "head": "0293a0ba03bc5a741d998a2f66236ac4b06f37a0",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -94,7 +94,7 @@
           "caches.paintPool.misses": 1,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 0,
-          "domMutations.attributes": 243,
+          "domMutations.attributes": 183,
           "domMutations.characterData": 31,
           "layoutVersionDelta": 0,
           "perfLabels.render.skia.flush.main": 31,
@@ -391,7 +391,7 @@
         "B": {
           "cdp.LayoutCount": 19,
           "cdp.RecalcStyleCount": 0,
-          "domMutations.attributes": 80,
+          "domMutations.attributes": 48,
           "domMutations.childList": 2,
           "reactRenderMeasures": 16,
           "v8.app": 39674,
@@ -453,7 +453,7 @@
           "caches.paintPool.misses": 0,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 0,
-          "domMutations.attributes": 188,
+          "domMutations.attributes": 168,
           "domMutations.characterData": 0,
           "layoutVersionDelta": 0,
           "perfLabels.render.skia.flush.main": 10,
@@ -771,7 +771,7 @@
           "caches.paintPool.misses": 0,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 60,
-          "domMutations.attributes": 375,
+          "domMutations.attributes": 369,
           "domMutations.characterData": 3,
           "perfLabels.render.skia.flush.content": 180,
           "perfLabels.render.skia.flush.main": 190,
@@ -972,7 +972,7 @@
           "doc.steps": 0,
           "doc.themeStateComputed": 0,
           "doc.validatedEntries": 0,
-          "domMutations.attributes": 187,
+          "domMutations.attributes": 125,
           "domMutations.characterData": 12,
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
@@ -1094,7 +1094,7 @@
           "caches.paintPool.misses": 1,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 0,
-          "domMutations.attributes": 243,
+          "domMutations.attributes": 183,
           "domMutations.characterData": 31,
           "layoutVersionDelta": 0,
           "perfLabels.render.skia.flush.main": 31,
@@ -1358,7 +1358,7 @@
           "caches.paintPool.hits": 30,
           "cdp.LayoutCount": 20,
           "cdp.RecalcStyleCount": 0,
-          "domMutations.attributes": 79,
+          "domMutations.attributes": 48,
           "domMutations.characterData": 48,
           "domMutations.childList": 0,
           "perfLabels.render.skia.flush.content": 0,
@@ -1563,7 +1563,7 @@
           "doc.steps": 0,
           "doc.themeStateComputed": 0,
           "doc.validatedEntries": 0,
-          "domMutations.attributes": 169,
+          "domMutations.attributes": 107,
           "domMutations.characterData": 12,
           "perfLabels.render.skia.flush.main": 31,
           "perfLabels.render.skia.overlay": 31,
@@ -1672,7 +1672,7 @@
           "caches.paintPool.misses": 0,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 60,
-          "domMutations.attributes": 75,
+          "domMutations.attributes": 45,
           "domMutations.characterData": 45,
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
@@ -1797,7 +1797,7 @@
         },
         "B": {
           "cdp.LayoutCount": 22,
-          "cdp.RecalcStyleCount": 15,
+          "cdp.RecalcStyleCount": 0,
           "domMutations.childList": 0,
           "reactRenderMeasures": 15
         }
@@ -2002,7 +2002,7 @@
           "doc.steps": 15,
           "doc.themeStateComputed": 0,
           "doc.validatedEntries": 15,
-          "domMutations.attributes": 75,
+          "domMutations.attributes": 45,
           "domMutations.characterData": 45,
           "perfLabels.render.skia.flush.main": 15,
           "perfLabels.render.skia.overlay": 15,
@@ -2087,7 +2087,7 @@
         },
         "B": {
           "cdp.LayoutCount": 24,
-          "cdp.RecalcStyleCount": 5,
+          "cdp.RecalcStyleCount": 0,
           "domMutations.childList": 0,
           "reactRenderMeasures": 15
         }
@@ -2286,7 +2286,7 @@
           "doc.steps": 0,
           "doc.themeStateComputed": 0,
           "doc.validatedEntries": 0,
-          "domMutations.attributes": 193,
+          "domMutations.attributes": 173,
           "domMutations.characterData": 0,
           "perfLabels.render.skia.flush.main": 10,
           "perfLabels.render.skia.overlay": 10,
@@ -2386,7 +2386,8 @@
       "approvedBy": "사용자 (2026-10-04 ADR-252 G4 판정)",
       "on": "2026-10-03",
       "reason": "ADR-252 Design 패널 탭 — RAC useTabPanel 이 탭 가능한 자식 없는 tabpanel 에 tabIndex=0 을 붙였다 뗌 (빈 선택 안내 ↔ 선택 본문, D1 접근성 동작 · react-aria/dist/private/tabs/useTabPanel.mjs:24)",
-      "expires": "2027-04-04"
+      "expires": "2027-04-04",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.600.select.A.domMutations.attributes",
@@ -2395,7 +2396,8 @@
       "approvedBy": "사용자 (2026-10-04 ADR-252 G4 판정)",
       "on": "2026-10-03",
       "reason": "ADR-252 Design 패널 탭 — RAC useTabPanel 이 탭 가능한 자식 없는 tabpanel 에 tabIndex=0 을 붙였다 뗌 (빈 선택 안내 ↔ 선택 본문, D1 접근성 동작 · react-aria/dist/private/tabs/useTabPanel.mjs:24)",
-      "expires": "2027-04-04"
+      "expires": "2027-04-04",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.page-switch.A.v8.fn.src/builder/catalogRuntime/controller.ts#current",
@@ -2651,7 +2653,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
       "on": "2026-10-04",
       "reason": "측정마다 0 ~ 8 로 흔들리는 지표 (같은 코드 7회 실측 3,5,0,0,1,8,0). 529718981 의 하향 (4 → 0, 한도 2) 이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.edit.A.caches.contentSurface.missReasons.invalidate",
@@ -2764,7 +2767,8 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
       "on": "2026-10-04",
       "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
-      "expires": "2027-04-05"
+      "expires": "2027-04-05",
+      "supersededOn": "2026-10-16"
     },
     {
       "path": "seeds.60.page-switch.A.v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)",
@@ -2900,6 +2904,24 @@
       "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
       "on": "2026-10-16",
       "reason": "02f6cec67 (ADR-264 옮기기 경로의 명령 읽기 closure — 편집당 +3)",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.600.edit.B.cdp.LayoutCount",
+      "from": 20,
+      "to": 23,
+      "approvedBy": "사용자 (2026-10-17 B 경고 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "편집 3초 창의 DOM 레이아웃 수 — push 대상 반복 측정 18 ~ 23 으로 흔들림 (저장 상태 글자 · Design 패널 갱신 시각에 따라 창 안팎). 결정적 카운트 아님",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.600:nested-flex.edit.B.cdp.LayoutCount",
+      "from": 22,
+      "to": 26,
+      "approvedBy": "사용자 (2026-10-17 B 경고 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "같은 원인 — 반복 측정 22 ~ 26",
       "expires": "2027-04-17"
     }
   ],
