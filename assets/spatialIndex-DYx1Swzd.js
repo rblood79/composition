@@ -1,1 +1,0 @@
-export{i as initSpatialIndex}from"./spatialIndex-Uf87RJeh.js";
