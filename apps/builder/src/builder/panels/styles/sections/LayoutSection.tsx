@@ -52,9 +52,14 @@ import {
   readSessionSpacingValue,
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
-import { useStylesSelectedId } from "../stylesHost";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 import { useParentDisplay } from "../hooks/useTransformAuxiliary";
-import { gridTemplateOf, gridTrackCount } from "../utils/gridTracks";
+import {
+  gridTemplateOf,
+  gridTrackList,
+  gridTrackListResized,
+  gridTrackListTemplate,
+} from "../utils/gridTracks";
 
 /** Track count presets of the Columns · Rows combo (`repeat(n, minmax(0, 1fr))`). */
 const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
@@ -63,7 +68,10 @@ const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
   value: String(count),
 }));
 
-/** Columns · Rows: a count combo like Gap (1 – 6 presets); a custom template stays text. */
+/**
+ * Columns · Rows: a count combo like Gap (1 – 6 presets) — a new track is Fill, the sized ones stay;
+ * a template the track list cannot show stays text.
+ */
 const GridTrackField = memo(function GridTrackField({
   label,
   value,
@@ -71,10 +79,11 @@ const GridTrackField = memo(function GridTrackField({
 }: {
   label: string;
   value: string;
-  onCommit: (template: string) => void;
+  /** The new template and the tracks it removed (0-based — the last ones on a smaller count). */
+  onCommit: (template: string, removed?: readonly number[]) => void;
 }) {
-  const count = gridTrackCount(value);
-  if (count === null)
+  const tracks = gridTrackList(value);
+  if (tracks === null)
     return (
       <PropertyInput
         label={label}
@@ -85,14 +94,22 @@ const GridTrackField = memo(function GridTrackField({
   return (
     <PropertyUnitInput
       label={label}
-      value={count}
+      value={tracks.length ? String(tracks.length) : ""}
       units={[]}
       allowKeywords={false}
       allowEmptyReset
       preserveEmptyValueOnUnitChange
       placeholder="auto"
       presets={GRID_TRACK_PRESETS}
-      onChange={(next) => onCommit(gridTemplateOf(next))}
+      onChange={(next) => {
+        const count = Number(next.trim());
+        if (!next.trim()) onCommit("");
+        else if (Number.isInteger(count) && count > 0)
+          onCommit(
+            gridTrackListTemplate(gridTrackListResized(tracks, count)),
+            tracks.map((_, index) => index).filter((index) => index >= count),
+          );
+      }}
       min={1}
       max={24}
     />
@@ -185,6 +202,21 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     useElementStyleContext(selectedId).type,
   );
   const styleValues = useLayoutValues(selectedId);
+  const host = useStylesHost();
+  // A smaller count removes the last tracks: their items move with them (Figma — `applyGridTracks`).
+  const commitGridTracks = (
+    axis: "column" | "row",
+    template: string,
+    removed: readonly number[] = [],
+  ) => {
+    if (removed.length && host.applyGridTracks)
+      host.applyGridTracks(selectedId, axis, template, removed);
+    else
+      updateStyles({
+        [axis === "column" ? "gridTemplateColumns" : "gridTemplateRows"]:
+          template,
+      });
+  };
   const parentDisplay = useParentDisplay(selectedId);
   const inGrid = parentDisplay === "grid" || parentDisplay === "inline-grid";
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
@@ -280,15 +312,15 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             <GridTrackField
               label="Columns"
               value={styleValues.gridTemplateColumns}
-              onCommit={(template) =>
-                updateStyles({ gridTemplateColumns: template })
+              onCommit={(template, removed) =>
+                commitGridTracks("column", template, removed)
               }
             />
             <GridTrackField
               label="Rows"
               value={styleValues.gridTemplateRows}
-              onCommit={(template) =>
-                updateStyles({ gridTemplateRows: template })
+              onCommit={(template, removed) =>
+                commitGridTracks("row", template, removed)
               }
             />
           </div>

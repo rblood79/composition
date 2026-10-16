@@ -117,7 +117,7 @@ export interface GridItemLines {
 }
 
 /** A positive line number as a 0-based track; `auto`, `span n`, negative or none → undefined. */
-function lineTrack(value: unknown): number | undefined {
+export function lineTrack(value: unknown): number | undefined {
   const text = typeof value === "number" ? String(value) : value;
   if (typeof text !== "string" || !/^\d+$/.test(text.trim())) return undefined;
   const line = Number(text);

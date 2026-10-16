@@ -3,12 +3,17 @@ import {
   setFields,
   setWholeField,
 } from "../../../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  stageOver,
+  type CatalogCommand,
+} from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type {
   DefinitionId,
   EditTarget,
   EntryId,
+  LayoutField,
   NodeId,
+  WriteValue,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
 import {
@@ -29,6 +34,7 @@ import {
   catalogSemanticPatchCommand,
 } from "../../../catalogRuntime/editContract";
 import { catalogEffectiveStyle } from "../../../catalogRuntime/effectiveStyle";
+import { gridLinesAfterTrackRemoval } from "../../../catalogRuntime/gridTrackEdit";
 import {
   catalogAbsoluteCommand,
   catalogPlacementEditCommand,
@@ -773,6 +779,68 @@ export function createCatalogStylesHost(
       if (typeof command === "string") return command;
       run(() => command);
       return null;
+    },
+    applyGridTracks(selectedId, axis, template, removed) {
+      run(() => {
+        const items = selection();
+        if (items.length !== 1 || items[0].identity !== selectedId)
+          return undefined;
+        const key =
+          axis === "column" ? "gridTemplateColumns" : "gridTemplateRows";
+        const template_ = styleCommandOf({ [key]: template }, items);
+        if (!template_) return undefined;
+        const commands: CatalogCommand[] = [template_];
+        const records = workspace.root.domInputs;
+        const breakpoint = workspace.session.getSnapshot().breakpoint;
+        const clear: WriteValue<string> =
+          breakpoint === "desktop"
+            ? { kind: "remove" }
+            : { kind: "set", value: "auto" };
+        const startKey = axis === "column" ? "gridColumnStart" : "gridRowStart";
+        const endKey = axis === "column" ? "gridColumnEnd" : "gridRowEnd";
+        for (const child of removed.length
+          ? (records.get(items[0].identity)?.children ?? [])
+          : []) {
+          const record = records.get(child);
+          const item = workspace.itemOfRecord(child);
+          if (
+            !record ||
+            !item ||
+            record.placement?.kind === "absolute" ||
+            record.layout.position === "absolute"
+          )
+            continue;
+          const edit = gridLinesAfterTrackRemoval(
+            { start: record.layout[startKey], end: record.layout[endKey] },
+            removed,
+          );
+          if (!edit) continue;
+          const layout: Partial<Record<LayoutField, WriteValue<string>>> = {};
+          if (edit.start !== undefined)
+            layout[startKey] =
+              edit.start === null
+                ? clear
+                : { kind: "set", value: String(edit.start) };
+          if (edit.span !== undefined)
+            layout[endKey] =
+              edit.span === null
+                ? clear
+                : { kind: "set", value: `span ${edit.span}` };
+          commands.push(
+            setFields({ targets: [item.target], breakpoint, layout }),
+          );
+        }
+        return ((reader) => {
+          // Each write plans on the ones before it (a breakpoint layer is a whole-field put).
+          const stage = stageOver(reader);
+          const ops = commands.flatMap((command) => {
+            const plan = command(stage);
+            stage.apply(plan.ops);
+            return plan.ops;
+          });
+          return { label: "Edit grid", ops };
+        }) satisfies CatalogCommand;
+      });
     },
     readFills() {
       const first = selection()[0];

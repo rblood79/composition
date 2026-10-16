@@ -8,6 +8,7 @@ export {
   PositionSection,
 } from "./TransformSection";
 export { LayoutSection } from "./LayoutSection";
+export { GridColumnsSection, GridRowsSection } from "./GridTracksSection";
 export { SpacingSection } from "./SpacingSection";
 export { FillSection } from "./FillSection";
 export { BorderSection } from "./BorderSection";

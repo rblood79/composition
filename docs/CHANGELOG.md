@@ -66,6 +66,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 측정 결과 (중첩 5k): drag 는 프레임마다 preview → patch ~1만 명령 (검증 4 회 순회) → 전체 재기록 · node picture 153 개 재기록, 전체 재기록 방문의 64 ~ 99 % 가 화면 밖 서브트리를 하나씩 소비. 줌 꼬리는 GPU flush 가 아니라 JS 재기록.
 - 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCounters.ts,renderCommands.ts,subtreeCommandPatch.ts}` · `catalogRuntime/canvasOverflow.ts` · `apps/builder/scripts/{perf-baseline.mjs,perf-ratchet-gate.mjs}`. 검증: ratchet 판정 시험 18 (새 3 — 등록 키 회귀 시 `block`) · 하니스 시험 15 · type-check.
 
+## [grid — 열 · 행을 지우면 거기 고정된 요소가 가까운 칸으로 간다] - 2026-10-16
+
+### Fixed
+
+- **「열」 · 「행」 절의 「−」 나 Layout 의 개수를 줄여 열 · 행을 지우면, 거기 고정돼 있던 요소가 grid 밖으로 밀려나지 않는다** (Figma — 지운 열 · 행의 요소는 가까운 칸으로, 걸친 span 은 줄어든다). 지운 열 · 행 뒤에 고정된 요소는 그 수만큼 당겨지고, 걸쳐 있던 span 은 줄고, 지운 열 · 행에만 있던 요소는 그 축의 고정을 풀어 같은 행 · 열의 빈 칸으로 간다. 템플릿과 요소 쓰기는 한 번의 실행 취소 단위다.
+- **Why**: 열 · 행 제거가 템플릿만 바꿔, 지운 열 · 행 뒤에 고정된 요소가 CSS 암묵 칸 (grid 밖) 으로 넘어갔다.
+- 위치: `apps/builder/src/builder/catalogRuntime/gridTrackEdit.ts` · `apps/builder/src/builder/panels/styles/{catalog/catalogStylesHost.ts,stylesHostContext.ts,sections/GridTracksSection.tsx,sections/LayoutSection.tsx}`. 검증: 테스트 2 (줄 계산 7 경우 · host 한 단계 + undo — 요소 쓰기를 끄면 RED) · i18n · styles · components · gesture · position 694 통과 · type-check · live `grid-track-sizes-live.mjs` 4c (열 4 에 고정된 C → 열 2 제거 → 열 3, 그 칸 위치 · grid 안).
+
+## [grid — 열 · 행마다 크기를 정한다 (Fixed · Fill · Hug)] - 2026-10-16
+
+### Added
+
+- **grid 를 고르면 Design 패널 Layout 탭에 「열」 · 「행」 절이 생기고, 한 줄에 하나씩 그 열 · 행의 크기를 정한다** (Figma grid 의 track list, 사용자 지시 「열·행별 크기 설정부터 진행해」 · 「열 · 행 section 으로 나누면 되지 않나」). 단위 메뉴로 Fixed (`px`) · Fill (`fr` — grid 크기의 몫, 숫자는 가중치) · Hug (`fit` — 그 열 · 행의 가장 큰 요소) 를 고른다. 줄의 「−」 가 그 열 · 행을 지우고 절 헤더 「+」 가 끝에 Fill 하나를 붙인다. 종전엔 모든 열 · 행이 같은 크기였고, 다르게 하려면 CSS 문자열을 직접 써야 했다.
+- Layout 절의 Columns · Rows 개수를 바꾸면 크기를 정한 열 · 행은 그대로 두고, 늘어난 것만 Fill 1 로 붙는다 (종전엔 개수를 바꾸면 템플릿 전체를 같은 크기로 다시 썼다). 목록이 보여 줄 수 없는 템플릿 (`%` · `auto-fill` · 길이 최소의 `minmax` 등) 은 절 안 글자 칸 하나로 남는다.
+- 템플릿은 CSS 그대로 쓴다 (`100px minmax(0, 2fr) auto`) — Canvas 엔진 · 칸 가이드 · Preview DOM 이 같은 값을 읽는다. 아직 없음: 최소 · 최대 크기, Canvas 위 열 · 행 편집.
+- 위치: `apps/builder/src/builder/panels/styles/{sections/GridTracksSection.tsx,sections/LayoutSection.tsx,utils/gridTracks.ts,StylesPanel.components.tsx,hooks/useSectionCollapse.ts}` · `apps/builder/src/builder/components/styles/inspector-layout.css` · `apps/builder/src/i18n/{labels.ts,translations.ts,sharedActionVocabulary.static.test.ts}`. 검증: gridTracks 테스트 4 (읽기 · 쓰기 · 칸 값 · 개수 변경) · i18n · styles · components 651 통과 (같은 영어 다른 개념 Column · Row · Rows 를 동음이의어로) · type-check · live `grid-track-sizes-live.mjs` 7/7 (새 — 절 2 · 열 1 = 100px · 열 2 = 2fr · 열 3 = Hug → 칸 폭 100 / 250 / 50, 행 1 = 80px → 80 / 220, 열 수 4 → 앞 세 열 유지, 「−」 · 「+」, Preview DOM = Canvas).
+
 ## [grid — 크기 핸들을 칸 경계에 놓으면 그 칸까지 차지한다 (Figma)] - 2026-10-16
 
 ### Changed

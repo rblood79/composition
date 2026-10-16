@@ -23,6 +23,9 @@ const HOMONYMS = new Set([
   "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음)
   "Fill", // Size 메뉴의 채우기 (ADR-224 grow 가중치) ↔ 칩·버튼 fillStyle 의 채움 (면 채움)
   "Layer", // 차트 기준선의 층 (chart.referenceLayer) ↔ Layers 패널의 항목 (navigator.layer)
+  "Column", // Display 방향 토글의 세로 쌓기 (styles.layout.direction.column) ↔ grid 의 열 (styles.layout.columnTrack)
+  "Row", // Display 방향 토글의 가로 쌓기 (styles.layout.direction.row) ↔ grid 의 행 (styles.layout.rowTrack)
+  "Rows", // 행 수 (TextArea · grid 의 개수 칸, properties.rows) ↔ grid 의 「행」 절 제목 (styles.layout.gridRows)
 ]);
 
 /**

@@ -156,6 +156,18 @@
       }
     }
 
+    /* 열 · 행 절 (Figma grid track list, 2026-10-16) — 한 줄에 하나: 번호 · 크기 · 「−」 */
+    &[data-section-id="grid-columns"] .grid-track-index,
+    &[data-section-id="grid-rows"] .grid-track-index {
+      min-width: var(--spacing-md);
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      font-variant-numeric: tabular-nums;
+      color: var(--fg-muted);
+      line-height: 1;
+      text-align: center;
+    }
+
     /* Spacing 절 — 박스 모델 다이어그램 하나 (BoxModelEditor.css 가 소유). 8-필드 폴백
        (.layout-container / .four-way-grid) 은 2026-09-15 제거. */
 

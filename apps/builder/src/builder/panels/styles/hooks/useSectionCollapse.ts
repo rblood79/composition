@@ -55,6 +55,8 @@ export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
   "transform",
   "position",
   "layout",
+  "grid-columns",
+  "grid-rows",
   "spacing",
   "fill",
   "border",

@@ -49,6 +49,8 @@ import {
   BorderSection,
   EffectSection,
   FillSection,
+  GridColumnsSection,
+  GridRowsSection,
   LayoutSection,
   PositionSection,
   ResponsiveSection,
@@ -61,11 +63,13 @@ import { useStylesSelection } from "./StylesPanel.runtime";
 
 import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
 
-// 절 순서 Layout → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막
+// 절 순서 Layout → (grid 면 열 · 행) → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막
 const LayoutGroupSections = memo(function LayoutGroupSections() {
   return (
     <>
       <LayoutSection />
+      <GridColumnsSection />
+      <GridRowsSection />
       <SizeSection />
       <SpacingSection />
       <PositionSection />

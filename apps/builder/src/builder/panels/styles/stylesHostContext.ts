@@ -128,6 +128,16 @@ export interface StylesHost {
    * element is drawn; off returns it to the flow. An error code or null.
    */
   applyAbsolute(selectedId: string | null, on: boolean): RatioEditError | null;
+  /**
+   * A grid's column · row template with the tracks it removed (0-based, in the old list): the items
+   * in them move — the pinned ones past them shift back, spans across them shrink — one step.
+   */
+  applyGridTracks?(
+    selectedId: string | null,
+    axis: "column" | "row",
+    template: string,
+    removed: readonly number[],
+  ): void;
   /** The selected element's paint layers (a legacy background color as one virtual layer). */
   readFills(): FillItem[];
   /** Replace the selection's paint layers; fill-derived background CSS goes (one step). */
