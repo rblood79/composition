@@ -529,15 +529,18 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("togglebuttongroup → display:flex/alignItems/width (flexDirection 의도적 생략 — orientation 분기 담당)", () => {
+    it("togglebuttongroup → display:flex/alignItems/width/height (flexDirection 의도적 생략 — orientation 분기 담당)", () => {
       // CRITICAL byte-lock: top-level containerStyles 가 flexDirection 을 생략하므로 wrapper 출력에도
       //   flexDirection 이 없어야 함. structure.composition.layout='flex-row' leak 시 이 test FAIL.
       //   flexDirection 은 이 fallback 이 아니라 orientation prop 에서 따로 결정된다.
+      // height: fit-content — 버튼 루트는 콘텐츠 높이를 유지한다 (8253cf055, canvas-rendering §0:
+      //   row Frame 400px 에서 버튼 묶음이 400px 로 stretch 되던 것).
       const fb = resolveContainerStylesFallback("togglebuttongroup", {});
       expect(fb).toEqual({
         display: "flex",
         alignItems: "center",
         width: "fit-content",
+        height: "fit-content",
       });
       expect(fb).not.toHaveProperty("flexDirection");
     });

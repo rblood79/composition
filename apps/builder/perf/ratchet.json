@@ -2847,6 +2847,60 @@
       "on": "2026-10-16",
       "reason": "ADR-266 Phase 4 idle 미리 기록 — 줌 picture miss 14 → 0 이 hit 으로 바뀜 (조회 수 3,058 그대로)",
       "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.select.B.v8.fn.src/catalog/runtime/controller.ts#current",
+      "from": 2504,
+      "to": 2759,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "5b48f3d18 (ADR-256 Calendar) · a083bf4ab · b75eb19cc · ef8c9e30d (Design 패널 섹션이 선택마다 positionOfRecord · subscribeSteps 로 읽음) — 선택당 상수 회, 문서 크기 비례 아님",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.select.B.v8.fn.src/catalog/runtime/controller.ts#get graph",
+      "from": 1976,
+      "to": 2111,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "b75eb19cc (부모가 정하는 칸 — ownerDecidedProps) · ef8c9e30d (field 속성 sync) — 선택당 상수 회",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.select.B.v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs",
+      "from": 1430,
+      "to": 1581,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "b75eb19cc (부모가 정하는 칸) · b5ae316e6 (grid 열 · 행 머리 CatalogGridTrackLayer) — 선택당 상수 회",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 1636,
+      "to": 1749,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "b5ae316e6 (grid 열 · 행 머리) — 편집 step 당 상수 회 · 58 % 는 오버레이 catalogSlotMarks",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf",
+      "from": 1053,
+      "to": 1930,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "c14e41a84 (TagGroup 줄 계산) · ADR-256~259 presence helper — step 당 ~120 회 (호출 지점 84 × 1~4), 문서 크기 비례 아님",
+      "expires": "2027-04-17"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 315,
+      "to": 360,
+      "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
+      "on": "2026-10-16",
+      "reason": "02f6cec67 (ADR-264 옮기기 경로의 명령 읽기 closure — 편집당 +3)",
+      "expires": "2027-04-17"
     }
   ],
   "recorderChanges": [

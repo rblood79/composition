@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 스크롤바가 편집 · 선택마다 깜빡이던 것 · ratchet B 경고 귀속] - 2026-10-17
+
+### Fixed
+
+- **편집 · 선택할 때마다 Canvas 스크롤바가 1 초씩 나타나던 것** — 스크롤바는 페이지 사각형이 바뀔 수 있다는 알림 (문서 step · 선택 변경) 을 받을 때마다 보였다가 사라졌다. 이제 뷰포트가 움직일 때 (pan · zoom · 휠 스크롤 · thumb 조작) 만 보이고, 문서 · 선택 · 크기 변화는 thumb 위치 · 크기만 조용히 맞춘다.
+  - **Why**: `catalogScrollbarContent` 가 step · session 변경마다 알리고 `CanvasScrollbar` 가 모든 알림에 `--visible` 을 붙였다 (10-01 `a21b31133` 부터). 600 요소 편집 측정에서 스타일 재계산 5 회가 전부 이 fade-in 이었다 → 0.
+  - 위치: `apps/builder/src/builder/workspace/scrollbar/CanvasScrollbar.tsx`
+
+### Tests
+
+- `resolveContainerStylesFallback` 의 ToggleButtonGroup 기대값에 `height: fit-content` — 버튼 루트 높이 계약 (`8253cf055`) 뒤 갱신되지 않았던 것. 스크롤바 보이기 회귀 테스트 `CanvasScrollbar.test.tsx`.
+- 성능 ratchet seed 60 의 등급 B 경고 6 건 상한을 올렸다 (사용자 승인 · 만료 2027-04-17) — 커밋별 측정으로 귀속: Design 패널 섹션 (`5b48f3d18` · `a083bf4ab` · `b75eb19cc` · `ef8c9e30d`) · grid 열 · 행 머리 (`b5ae316e6`) · presence helper (`c14e41a84` 외) · ADR-264 옮기기 경로 (`02f6cec67`). 모두 step · 선택당 상수 회 읽기다.
+  - 위치: `apps/builder/perf/ratchet.json`
+
 ## [ADR-266 Implemented — 여러 page 문서의 줌 · 편집에서 그린 것을 버리지 않는다] - 2026-10-17
 
 ### Changed

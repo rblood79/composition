@@ -8,6 +8,10 @@
  *  1. ViewportController.addUpdateListener() — pan/zoom/setPosition (단일 소스)
  *  2. ResizeObserver(track) — 창/공통 workspace main track 리사이즈
  *  3. viewport sync store — actual Canvas-local containerSize
+ *  4. content (페이지 사각형) — 문서 step · 선택 변경
+ *
+ * 스크롤바를 잠깐 보이는 것은 뷰포트가 움직일 때 (1) 와 thumb 조작뿐이다. 나머지 소스는 thumb 만
+ * 조용히 맞춘다 — 편집 · 선택마다 스크롤바가 1 초씩 깜빡였다 (content 가 step · session 변경마다 알림).
  *
  * @since 2026-01-30
  */
@@ -111,14 +115,20 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
     // RAF throttle wrapper
     // ========================================
 
-    const scheduleUpdate = () => {
+    /** `reveal`: the viewport moved — show the scrollbar for a moment (the other sources only fit the thumb). */
+    let revealPending = false;
+    const scheduleUpdate = (reveal: boolean) => {
+      revealPending ||= reveal;
       if (rafIdRef.current) return;
       rafIdRef.current = requestAnimationFrame(() => {
         rafIdRef.current = 0;
         updateThumb();
-        showScrollbar();
+        if (revealPending) showScrollbar();
+        revealPending = false;
       });
     };
+    const revealUpdate = () => scheduleUpdate(true);
+    const quietUpdate = () => scheduleUpdate(false);
 
     // ========================================
     // 리스너 연결
@@ -127,12 +137,10 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
     // ViewportController가 단일 권한 소유자 (ADR-035 Phase 2)
     // Zustand store의 zoom/panOffset은 mirror이므로 이중 구독하지 않는다.
     const removeVCListener =
-      getViewportController().addUpdateListener(scheduleUpdate);
+      getViewportController().addUpdateListener(revealUpdate);
 
     // 소스 2: ResizeObserver (actual Canvas-local track 크기 변경)
-    const trackResizeObserver = new ResizeObserver(() => {
-      scheduleUpdate();
-    });
+    const trackResizeObserver = new ResizeObserver(quietUpdate);
     trackResizeObserver.observe(track);
 
     // 소스 3: viewport sync store (containerSize / canvasSize)
@@ -148,14 +156,14 @@ export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
       const key = `${state.containerSize.width}x${state.containerSize.height}|${state.canvasSize.width}x${state.canvasSize.height}`;
       if (key === lastSyncKey) return;
       lastSyncKey = key;
-      scheduleUpdate();
+      quietUpdate();
     });
 
     // 소스 4: 페이지 위치 (world 범위의 content 입력)
     //
     // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
     // 갱신은 rAF 로 합쳐진다.
-    const unsubPagePositions = content.subscribe(scheduleUpdate);
+    const unsubPagePositions = content.subscribe(quietUpdate);
 
     // ========================================
     // Thumb 드래그 (Pointer Capture)
