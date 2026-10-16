@@ -40,6 +40,7 @@
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOG_STORE_FACADE_SCRIPT } from "./perfCatalogFacade.mjs";
+import { seedAppPages } from "./perfAppFixture.mjs";
 import {
   createFrameResolver,
   readDistBuild,
@@ -201,6 +202,7 @@ export function parseArgs(argv) {
       "taggroup-refs",
       "fields",
       "nested-flex",
+      "app-pages",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
@@ -491,6 +493,8 @@ export async function seedDocument(
   fixtureKind,
   pageCount = 2,
 ) {
+  // 실사용 형태 22 페이지 문서 — seedCount · pageCount 를 쓰지 않는다 (perfAppFixture.mjs).
+  if (fixtureKind === "app-pages") return page.evaluate(seedAppPages);
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -2170,7 +2174,11 @@ export const FRAME_CLASSES = {
         const at = (i) => {
           const k = Math.floor(i / 3);
           const slot = i % 3;
-          return slot === 0 ? k % n : slot === 1 ? (half + k) % n : (n - 1 - (k % n) + n) % n;
+          return slot === 0
+            ? k % n
+            : slot === 1
+              ? (half + k) % n
+              : (n - 1 - (k % n) + n) % n;
         };
         const t0 = performance.now();
         let i = 0;
@@ -2982,7 +2990,7 @@ async function main() {
       options.pages,
     );
     process.stderr.write(
-      `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}\n`,
+      `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}${seed.records ? ` · nodes ${seed.nodeCount} · records ${seed.records}` : ""}\n`,
     );
     const layerTreeSetup = options.openPanels.includes("navigator")
       ? await expandLayerTreeRoot(page)
@@ -3144,7 +3152,13 @@ async function main() {
           saveStorageState: options.saveStorageState ? "(redacted)" : null,
         },
         project: project.projectUrl,
-        seed: { elements: seed.seedIds.length, pages: seed.pageIds.length },
+        seed: {
+          elements: seed.seedIds.length,
+          pages: seed.pageIds.length,
+          ...(seed.records
+            ? { nodes: seed.nodeCount, records: seed.records }
+            : {}),
+        },
         layerTreeSetup,
         pointerExercise,
         results,

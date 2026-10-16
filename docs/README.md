@@ -120,6 +120,7 @@ Properties Panel · ToggleButtonGroup
 
 - [빌더 성능 기준선 2026-09](explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 - [5K 프레임 드랍 기준선](explanation/research/BUILDER_FRAME_DROP_BASELINE_5K.md)
+- [Canvas Rust 판정 측정 (4단계)](explanation/research/CANVAS_RUST_DECISION_2026-10.md)
 - [Action Bar 벤치마크](explanation/research/ACTION_BAR_BENCHMARK.md)
 - [Frame 0 분석](explanation/research/FRAME0_ANALYSIS.md)
 
