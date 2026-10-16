@@ -410,6 +410,24 @@ export function CatalogCanvas({
       return colorIntToFloat32(cssColorToHex(css), cssColorToAlpha(css));
     };
     let pageBorderColor = readPageBorderColor();
+    // The cells the overlay outlines (cached per document step · root): the live handle reads the
+    // same function.
+    const overlayGridCells = (identity: string) => {
+      if (gridCellsCacheVersion !== cellsVersion) {
+        gridCellsCache.clear();
+        gridCellsCacheVersion = cellsVersion;
+      }
+      // The grid containers, gathered once per document step / root: a selected or hovered
+      // non-grid record reads nothing (the overlay asks every frame; a selection moves the scene
+      // version but not the document — ADR-246 select count).
+      if (!gridRecordSet().has(identity)) return NO_CELLS;
+      let cells = gridCellsCache.get(identity);
+      if (!cells) {
+        cells = gestures.gridCellsOfRecord(identity);
+        gridCellsCache.set(identity, cells);
+      }
+      return cells;
+    };
     const overlay = catalogOverlayNode(ck, {
       session: workspace.session.getSnapshot,
       bounds: () => scene.stream.boundsMap,
@@ -421,22 +439,7 @@ export function CatalogCanvas({
       zoom: () => Math.max(viewportState.zoom, 0.001),
       fontMgr,
       gesture: () => gestures.preview(),
-      gridCells: (identity) => {
-        if (gridCellsCacheVersion !== cellsVersion) {
-          gridCellsCache.clear();
-          gridCellsCacheVersion = cellsVersion;
-        }
-        // The grid containers, gathered once per document step / root: a selected or hovered
-        // non-grid record reads nothing (the overlay asks every frame; a selection moves the scene
-        // version but not the document — ADR-246 select count).
-        if (!gridRecordSet().has(identity)) return NO_CELLS;
-        let cells = gridCellsCache.get(identity);
-        if (!cells) {
-          cells = gestures.gridCellsOfRecord(identity);
-          gridCellsCache.set(identity, cells);
-        }
-        return cells;
-      },
+      gridCells: overlayGridCells,
       // Only a grid parent (none on a page without grids: no record read per frame — ADR-246).
       parentOf: (identity) => {
         const grids = gridRecordSet();
@@ -964,7 +967,7 @@ export function CatalogCanvas({
         // The drag in progress as the overlay draws it (live drag-and-drop checks).
         drag: () => gestures.preview(),
         // A grid's cells as the overlay outlines them while selected (live checks).
-        gridCells: (identity: string) => gestures.gridCellsOfRecord(identity),
+        gridCells: (identity: string) => overlayGridCells(identity),
         // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
         setCamera: (next: { scale: number; x: number; y: number }) =>
           void import("../viewport/viewportActions").then((actions) =>
@@ -974,6 +977,9 @@ export function CatalogCanvas({
     }
     const unsubscribeRoot = workspace.subscribeRoot(() => {
       gridRecords = undefined; // another breakpoint's records (a grid only there)
+      // …and their cells at this breakpoint's size. **Why (2026-10-16)**: the cache kept the last
+      // breakpoint's cells until the next step (사용자 보고 — Mobile 에서 desktop 칸 크기).
+      cellsVersion += 1;
       // The new root's previews re-lay the scene out too. **Why (2026-10-15)**: the subscription
       // stayed on the first root, so after a switch to Tablet · Mobile a Styles drag drew nothing
       // until its commit (사용자 보고 — Menu 의 Button border · fill).

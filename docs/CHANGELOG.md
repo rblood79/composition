@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid — breakpoint 를 바꾸면 칸 가이드가 새 breakpoint 크기로 그려진다] - 2026-10-16
+
+### Fixed
+
+- **body (또는 grid 요소) 를 grid 로 둔 채 breakpoint 를 바꾸면, 칸 점선이 이전 breakpoint 크기로 남던 결함을 고쳤다.** 다른 편집을 한 번 해야 바로잡혔다. grid 안 자식을 고를 때 보이는 부모 칸도 같았다 (사용자 보고).
+- **Why**: Canvas 는 칸을 문서 step 마다 캐시하는데, breakpoint 전환은 문서 step 이 아니라 root 교체라 캐시가 지워지지 않았다. live 확인 핸들은 캐시를 거치지 않아 이 결함을 잡지 못했다.
+- 수정: root 교체 때 칸 캐시를 지우고, live 핸들이 overlay 와 같은 캐시 경유 함수를 읽는다.
+- 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx`. 검증: canvas catalog 테스트 · type-check · live headed Playwright (body 2×2 grid, desktop → Mobile → desktop: 칸 폭 = body 절반 · 자식 = 칸 폭 5/5, 수정 전 3/5 실패 — Mobile 칸 960 = desktop 값).
+
 ## [grid 자식을 선택 · 크기 조절해도 부모 grid 칸 가이드가 보인다 — Figma] - 2026-10-16
 
 ### Fixed
