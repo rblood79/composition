@@ -158,21 +158,24 @@ export function CatalogGridTrackLayer({
   const [drag, setDrag] = useState<Drag | null>(null);
   const pressRef = useRef<Press | null>(null);
 
-  const read = useCallback((): Model | null => {
-    const snapshot = workspace.session.getSnapshot();
-    if (snapshot.selection.length !== 1 || snapshot.textEditing) return null;
-    const identity = snapshot.selection[0]!.identity;
-    const record = workspace.root.domInputs.get(identity);
-    if (!record || !record.parentId || record.parentId === PAGE_ROOT)
-      return null;
-    const display = record.layout.display;
-    if (display !== "grid" && display !== "inline-grid") return null;
-    const geometry = tracksOf(identity);
-    if (!geometry) return null;
-    const headers = gridTrackHeaders(record.layout, geometry);
-    if (!headers.columns.length && !headers.rows.length) return null;
-    return { identity, headers, geometry };
-  }, [tracksOf, workspace]);
+  type Snapshot = ReturnType<CatalogWorkspace["session"]["getSnapshot"]>;
+  const read = useCallback(
+    (snapshot: Snapshot): Model | null => {
+      if (snapshot.selection.length !== 1 || snapshot.textEditing) return null;
+      const identity = snapshot.selection[0]!.identity;
+      const record = workspace.root.domInputs.get(identity);
+      if (!record || !record.parentId || record.parentId === PAGE_ROOT)
+        return null;
+      const display = record.layout.display;
+      if (display !== "grid" && display !== "inline-grid") return null;
+      const geometry = tracksOf(identity);
+      if (!geometry) return null;
+      const headers = gridTrackHeaders(record.layout, geometry);
+      if (!headers.columns.length && !headers.rows.length) return null;
+      return { identity, headers, geometry };
+    },
+    [tracksOf, workspace],
+  );
 
   // Swap (Figma — 「Select two or more child objects that span the same number of cells, then
   // drag the pink circles to swap them」): a handle on each selected grid child.
@@ -189,58 +192,63 @@ export function CatalogGridTrackLayer({
     const rect = rootRef.current?.getBoundingClientRect();
     return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
   };
-  const readSwap = useCallback((): SwapModel | null => {
-    const snapshot = workspace.session.getSnapshot();
-    if (snapshot.selection.length < 2 || snapshot.textEditing) return null;
-    const records = workspace.root.domInputs;
-    const selectedIds = snapshot.selection.map((item) => item.identity);
-    const parentId = records.get(selectedIds[0]!)?.parentId;
-    const grid = parentId ? records.get(parentId) : undefined;
-    if (!grid || parentId === PAGE_ROOT) return null;
-    if (grid.layout.display !== "grid" && grid.layout.display !== "inline-grid")
-      return null;
-    const flow = grid.children.filter((child) => {
-      const record = records.get(child);
-      return (
-        !!record &&
-        record.placement?.kind !== "absolute" &&
-        record.layout.position !== "absolute"
-      );
-    });
-    const columns =
-      gridTrackList(String(grid.layout.gridTemplateColumns ?? ""))?.length ||
-      tracksOf(grid.id)?.columns.length ||
-      1;
-    const { cells } = gridPlacement(
-      flow.map((child) => {
-        const layout = records.get(child)!.layout;
-        return {
-          column: layout.gridColumnStart,
-          row: layout.gridRowStart,
-          columnEnd: layout.gridColumnEnd,
-          rowEnd: layout.gridRowEnd,
-        };
-      }),
-      columns,
-    );
-    const items: SwapItem[] = [];
-    for (const identity of selectedIds) {
-      const at = flow.indexOf(identity);
-      const box = boundsOf(identity);
-      if (at < 0 || !box) return null;
-      items.push({ identity, area: cells[at]!, box });
-    }
-    const [first] = items;
-    if (
-      !items.every(
-        (item) =>
-          item.area.columnSpan === first!.area.columnSpan &&
-          item.area.rowSpan === first!.area.rowSpan,
+  const readSwap = useCallback(
+    (snapshot: Snapshot): SwapModel | null => {
+      if (snapshot.selection.length < 2 || snapshot.textEditing) return null;
+      const records = workspace.root.domInputs;
+      const selectedIds = snapshot.selection.map((item) => item.identity);
+      const parentId = records.get(selectedIds[0]!)?.parentId;
+      const grid = parentId ? records.get(parentId) : undefined;
+      if (!grid || parentId === PAGE_ROOT) return null;
+      if (
+        grid.layout.display !== "grid" &&
+        grid.layout.display !== "inline-grid"
       )
-    )
-      return null;
-    return { grid: grid.id, items };
-  }, [boundsOf, tracksOf, workspace]);
+        return null;
+      const flow = grid.children.filter((child) => {
+        const record = records.get(child);
+        return (
+          !!record &&
+          record.placement?.kind !== "absolute" &&
+          record.layout.position !== "absolute"
+        );
+      });
+      const columns =
+        gridTrackList(String(grid.layout.gridTemplateColumns ?? ""))?.length ||
+        tracksOf(grid.id)?.columns.length ||
+        1;
+      const { cells } = gridPlacement(
+        flow.map((child) => {
+          const layout = records.get(child)!.layout;
+          return {
+            column: layout.gridColumnStart,
+            row: layout.gridRowStart,
+            columnEnd: layout.gridColumnEnd,
+            rowEnd: layout.gridRowEnd,
+          };
+        }),
+        columns,
+      );
+      const items: SwapItem[] = [];
+      for (const identity of selectedIds) {
+        const at = flow.indexOf(identity);
+        const box = boundsOf(identity);
+        if (at < 0 || !box) return null;
+        items.push({ identity, area: cells[at]!, box });
+      }
+      const [first] = items;
+      if (
+        !items.every(
+          (item) =>
+            item.area.columnSpan === first!.area.columnSpan &&
+            item.area.rowSpan === first!.area.rowSpan,
+        )
+      )
+        return null;
+      return { grid: grid.id, items };
+    },
+    [boundsOf, tracksOf, workspace],
+  );
 
   // Follow the camera, the selection and the drawn tracks (one frame callback, no own RAF).
   useEffect(() => {
@@ -250,17 +258,25 @@ export function CatalogGridTrackLayer({
       const hidden =
         useViewportSyncStore.getState().cameraGestureActive ||
         (gestureActive() && !pressRef.current);
-      if (root && root.hasAttribute("data-hidden") !== hidden)
+      // Nothing shown (no grid · no swap): no attribute write either (ADR-246 drag count).
+      const shows = !!modelRef.current || !!swapKeyRef.current;
+      if (
+        root &&
+        (shows || !hidden) &&
+        root.hasAttribute("data-hidden") !== hidden
+      )
         root.toggleAttribute("data-hidden", hidden);
       if (hidden) return;
-      const next = read();
+      // One session read per update (ADR-246 select count).
+      const snapshot = workspace.session.getSnapshot();
+      const next = read(snapshot);
       const key = next ? JSON.stringify(next) : "";
       if (key !== modelKeyRef.current) {
         modelKeyRef.current = key;
         modelRef.current = next;
         setModel(next);
       }
-      const nextSwap = readSwap();
+      const nextSwap = readSwap(snapshot);
       const swapKey = nextSwap ? JSON.stringify(nextSwap) : "";
       if (swapKey !== swapKeyRef.current) {
         swapKeyRef.current = swapKey;

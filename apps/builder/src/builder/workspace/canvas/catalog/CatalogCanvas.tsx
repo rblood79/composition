@@ -464,7 +464,7 @@ export function CatalogCanvas({
         gridTracksCache.set(identity, gestures.gridTracksOfRecord(identity));
       return gridTracksCache.get(identity);
     };
-    gestureActiveRef.current = () => !!gestures.preview();
+    gestureActiveRef.current = () => gestures.active;
     const overlay = catalogOverlayNode(ck, {
       session: workspace.session.getSnapshot,
       bounds: () => scene.stream.boundsMap,

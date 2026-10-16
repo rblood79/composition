@@ -39,7 +39,6 @@ import {
   GridColumnsSection,
   GridRowsSection,
 } from "../styles/sections/GridTracksSection";
-import { useStylesSelectedId } from "../styles/stylesHost";
 import { useGridTrackSelection } from "../../stores/gridTrackSelection";
 import { useSemanticLabel } from "../../../i18n";
 import {
@@ -74,10 +73,9 @@ export function DesignPanelView() {
   const setView = useDesignPanelView((s) => s.setView);
   const selection = useCatalogPropertiesSelection();
   const styleView = isStyleView(view);
-  const selectedId = useStylesSelectedId();
-  const trackView = useGridTrackSelection(
-    (state) => !!state.tracks && state.tracks.identity === selectedId,
-  );
+  // The Canvas layer clears the track selection when the selection changes — no session read here
+  // (ADR-246 select count).
+  const trackView = useGridTrackSelection((state) => !!state.tracks);
 
   const handleViewChange = useCallback(
     (key: React.Key) => setView(key as DesignViewId),
