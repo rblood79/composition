@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layout — grid 자식의 칸 수 라벨을 Column span · Row span 으로] - 2026-10-16
+
+### Changed
+
+- **grid 자식의 Layout 칸 수 필드 이름을 「Column span」 · 「Row span」 (한국어 「열 병합」 · 「행 병합」) 으로 바꿨다** (사용자 지시). Figma grid auto layout 과 Framer 의 이름을 따랐다. 「Column span」 은 Table Cell 의 같은 이름 번역 키를 함께 쓴다.
+- 위치: `apps/builder/src/builder/panels/styles/sections/LayoutSection.tsx` · `apps/builder/src/i18n/{labels.ts,translations.ts}` · `apps/builder/scripts/grid-cell-placement-live.mjs`. 검증: styles · i18n 테스트 448 통과 · type-check · live `grid-cell-placement-live.mjs` 9/9.
+
 ## [grid — breakpoint 를 바꾸면 칸 가이드가 새 breakpoint 크기로 그려진다] - 2026-10-16
 
 ### Fixed

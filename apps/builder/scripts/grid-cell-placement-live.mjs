@@ -1,7 +1,7 @@
 // 2026-10-16 grid 칸 배치 live (사용자 요청 「빈 칸에 놓기도 Figma 처럼 — 순차적이지 않게 빈칸을 건너
 // 다음칸에 배치, 2칸도 지정」): 실제 마우스 · 패널 입력으로
 //   1 A 를 둘째 행 첫 칸 (빈 칸) 에 → A 가 그 칸에 고정 · B · C 는 제자리 (고정) · 첫 칸은 빈 채로
-//   2 Layout 의 가로 칸 수 2 → A 가 두 칸 폭 (span 2)
+//   2 Layout 의 열 병합 2 → A 가 두 칸 폭 (span 2)
 //   3 C 를 셋째 행 셋째 칸에 (앞 두 칸을 건너뛰고) → 그 칸에 고정
 //   5 폭 240 (두 칸) W 를 밖에서 셋째 행 첫 칸에 → W 가 두 칸 차지 (span 2) · 칸 폭 그대로
 //   6 B 의 핸들을 끌어 두 칸 폭으로 → 요소만 커진다 (span 없음 · 칸 그대로)
@@ -163,7 +163,7 @@ check(
 );
 await page.screenshot({ path: `${OUT}/1-a-pinned.png` });
 
-// 2 — Layout 가로 칸 수 2 → A spans two columns.
+// 2 — Layout 열 병합 2 → A spans two columns.
 await select(ids.A, ids.G);
 await wait(400);
 if (!(await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().isVisible().catch(() => false))) {
@@ -173,9 +173,9 @@ if (!(await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().i
 }
 await page.getByRole("tab", { name: /^(Layout|레이아웃)$/ }).first().click().catch(() => {});
 await wait(500);
-const span = page.getByRole("combobox", { name: /^(Span X|가로 칸 수)$/ });
-check("2a grid 자식 선택 → 가로 칸 수 · 세로 칸 수 칸", (await span.isVisible()) &&
-  (await page.getByRole("combobox", { name: /^(Span Y|세로 칸 수)$/ }).isVisible()));
+const span = page.getByRole("combobox", { name: /^(Column span|열 병합)$/ });
+check("2a grid 자식 선택 → 열 병합 · 행 병합 칸", (await span.isVisible()) &&
+  (await page.getByRole("combobox", { name: /^(Row span|행 병합)$/ }).isVisible()));
 await span.click();
 await span.fill("2");
 await span.press("Enter");
@@ -184,7 +184,7 @@ now = await boxes(ids);
 const l2 = await lines(ids.A);
 await page.screenshot({ path: `${OUT}/2-a-span.png` });
 check(
-  "2b 가로 칸 수 2 → gridColumnEnd span 2 · A 폭 = 두 칸 (240)",
+  "2b 열 병합 2 → gridColumnEnd span 2 · A 폭 = 두 칸 (240)",
   l2[2] === "span 2" && Math.abs(now.A.width - 240) < 0.5 && now.A.x === G.x,
   { l2, A: now.A },
 );
