@@ -127,6 +127,7 @@ async function open(options: { paddingLinked?: () => boolean } = {}) {
     },
     ...(options.paddingLinked ? { paddingLinked: options.paddingLinked } : {}),
     spacingLive: (next) => live.push(next),
+    ownFields: (target) => workspace.readModel.ownFields(target),
   });
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const box = (name: string) => scene.stream.boundsMap.get(record(name))!;
@@ -1083,36 +1084,41 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("d")).toMatchObject({ x: list.x, y: list.y + 200, width: 400 });
   });
 
-  // 사용자 결정 (2026-10-16 「핸들 span 계산은 빼고 요소만 늘어나게」): a handle resize only sizes the
-  // node — no span; the cells keep their size and the node overflows its cell (Figma).
-  it("resizing a grid child past its cell only grows the node — no span, the cells and siblings stay", async () => {
+  const fillOf = (workspace: CatalogWorkspace, name: string) => {
+    const entry = workspace.runtime.graph.getEntry(id(name));
+    return entry?.kind === "node" ? entry.fillSizing : undefined;
+  };
+  const sizingOf = (workspace: CatalogWorkspace, name: string) => {
+    const entry = workspace.runtime.graph.getEntry(id(name));
+    return entry?.kind === "node" ? entry.sizing : undefined;
+  };
+
+  // 사용자 결정 (2026-10-16 「Figma 방식으로 진행해」 — 같은 날 「핸들 span 계산은 빼고 요소만
+  // 늘어나게」 를 바꿈): a handle released on a cell line takes the cells up to it (span) and fills
+  // them (Figma — the dimension becomes Fill container); the cells keep their size.
+  it("resizing a grid child onto a column line takes the cells up to it and fills them", async () => {
     const { workspace, scene, gestures, record, box } = await gridOf();
     const cellsBefore = gestures.gridCellsOfRecord(record("list"));
-    const b = box("b");
     workspace.selectRecords([record("a")]);
     const a = box("a");
     const edge = { x: a.x + a.width, y: a.y + a.height / 2 };
     expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
-    gestures.update(a.x + 400, edge.y, 1);
+    // 3 px short of the second column's end (columns 200): it snaps there.
+    gestures.update(a.x + 397, edge.y, 1);
     // 2026-10-16 사용자 보고 「크기 조절 드래그 시작하면 안 보인다」: the parent grid's cells stay
     // outlined while its child resizes (Figma).
     expect(gestures.preview()?.gridGuides).toEqual(cellsBefore);
     gestures.finish();
     scene.sync();
-    expect(linesOf(workspace, "a")).toEqual([
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    ]);
-    expect(box("a").width).toBe(400);
+    // Pinned where it is, two columns, the width filling them (no fixed width).
+    expect(linesOf(workspace, "a")).toEqual(["1", "1", "span 2", undefined]);
+    expect(fillOf(workspace, "a")?.width).toEqual({ factor: 1 });
+    expect(sizingOf(workspace, "a")?.width).toBeUndefined();
+    expect(box("a")).toMatchObject({ x: a.x, y: a.y, width: 400 });
     expect(gestures.gridCellsOfRecord(record("list"))).toEqual(cellsBefore);
-    expect(box("b")).toEqual(b);
   });
 
-  // 2026-10-16 사용자 보고 「세로 2칸은 snap 이 안 된다」: a grid child's resize snaps its moving edge
-  // to the cell lines (both axes) — the size only, no span.
-  it("resizing a grid child snaps its edge to the cell lines — two rows tall, no span", async () => {
+  it("resizing a grid child onto a row line takes the rows up to it — two rows, height filling them", async () => {
     const { workspace, scene, gestures, record, box } = await gridOf();
     workspace.selectRecords([record("a")]);
     const a = box("a");
@@ -1123,22 +1129,43 @@ describe("Canvas drop rules (Figma)", () => {
     gestures.update(edge.x, a.y + 197, 1);
     gestures.finish();
     scene.sync();
+    expect(linesOf(workspace, "a")).toEqual(["1", "1", undefined, "span 2"]);
+    expect(fillOf(workspace, "a")?.height).toEqual({ factor: 1 });
     expect(box("a").height).toBe(200);
+  });
+
+  it("a handle released off the cell lines (or with snap off) only sizes the node — no span", async () => {
+    const { workspace, scene, gestures, record, box } = await gridOf();
+    const cellsBefore = gestures.gridCellsOfRecord(record("list"));
+    const b = box("b");
+    workspace.selectRecords([record("a")]);
+    const a = box("a");
+    const edge = { x: a.x + a.width, y: a.y + a.height / 2 };
+    expect(gestures.beginResize(edge.x, edge.y, 1)).toBe(true);
+    gestures.update(a.x + 350, edge.y, 1);
+    gestures.finish();
+    scene.sync();
     expect(linesOf(workspace, "a")).toEqual([
       undefined,
       undefined,
       undefined,
       undefined,
     ]);
-    // Far from a line: no snap.
+    expect(box("a").width).toBe(350);
+    expect(fillOf(workspace, "a")?.width).toBeUndefined();
+    expect(gestures.gridCellsOfRecord(record("list"))).toEqual(cellsBefore);
+    expect(box("b")).toEqual(b);
+    // ⌘ (snap off) on a line: the size only.
     workspace.selectRecords([record("a")]);
-    const tall = box("a");
-    const edge2 = { x: tall.x + tall.width / 2, y: tall.y + tall.height };
-    expect(gestures.beginResize(edge2.x, edge2.y, 1)).toBe(true);
-    gestures.update(edge2.x, tall.y + 150, 1);
+    const wide = box("a");
+    expect(
+      gestures.beginResize(wide.x + wide.width, wide.y + wide.height / 2, 1),
+    ).toBe(true);
+    gestures.update(wide.x + 400, wide.y + wide.height / 2, 1, { snap: false });
     gestures.finish();
     scene.sync();
-    expect(box("a").height).toBe(150);
+    expect(linesOf(workspace, "a")[2]).toBeUndefined();
+    expect(box("a").width).toBe(400);
   });
 
   // 2026-10-16 사용자 보고 「배치는 되지만 1칸 이상 그려지지 않음」: a node two rows tall over the last

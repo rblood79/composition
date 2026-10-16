@@ -668,6 +668,7 @@ export function CatalogCanvas({
       // The Styles box model's padding link and the drag the panel follows (ADR-222).
       paddingLinked: getPaddingLinked,
       spacingLive: setCatalogSpacingLive,
+      ownFields: (target) => workspace.readModel.ownFields(target),
       // A drop the nesting rules refused: moved to the nearest accepting ancestor (undo = that
       // one step), or cancelled.
       notifyNesting: (notice) =>

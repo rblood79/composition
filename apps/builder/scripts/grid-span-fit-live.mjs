@@ -155,7 +155,7 @@ const zoom = await exec(`(cat) => cat.canvas.camera().zoom`);
   await page.mouse.up(); await wait(500);
 }
 const resized = await boxes(ids);
-check("0 모서리 핸들로 A → 240 × 200 (칸 경계 snap · span 없음)", resized.A.width === 240 && resized.A.height === 200 && (await lines(ids.A)).every((l) => l == null), resized.A);
+check("0 모서리 핸들로 A → 240 × 200 (칸 경계 snap · 2 × 2 칸 차지 — Figma)", resized.A.width === 240 && resized.A.height === 200 && JSON.stringify(await lines(ids.A)) === '["1","1","span 2","span 2"]', resized.A);
 await page.screenshot({ path: `${OUT}/r1-resized.png` });
 await select(ids.A, ids.G);
 await wait(300);
@@ -166,7 +166,8 @@ await page.screenshot({ path: `${OUT}/r2-dropped.png` });
 check(
   "1 두 행 크기 A 를 마지막 행 위로 → 둘째 · 셋째 행 자리 (grid 안) · span 2 × 2 · grid 크기 그대로",
   p?.cell && p.cell.y === G.y + 100 && p.cell.height === 200 &&
-    JSON.stringify(lA) === '["2","2","span 2","span 2"]' &&
+    // A 는 핸들로 (1,1) 에 고정된 2 × 2 라 B · C 가 셋째 열 — 2 × 2 가 들어갈 아래 자리는 첫 열.
+    JSON.stringify(lA) === '["1","2","span 2","span 2"]' &&
     after.A.y + after.A.height <= G.y + G.height && after.G.height === G.height,
   { p, lA, A: after.A, G: after.G },
 );

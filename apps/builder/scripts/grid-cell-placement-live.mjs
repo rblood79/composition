@@ -4,8 +4,8 @@
 //   2 Layout 의 열 병합 2 → A 가 두 칸 폭 (span 2)
 //   3 C 를 셋째 행 셋째 칸에 (앞 두 칸을 건너뛰고) → 그 칸에 고정
 //   5 폭 240 (두 칸) W 를 밖에서 셋째 행 첫 칸에 → W 가 두 칸 차지 (span 2) · 칸 폭 그대로
-//   6 B 의 핸들을 끌어 두 칸 폭으로 → 요소만 커진다 (span 없음 · 칸 그대로)
-//   7 B 의 모서리 핸들을 두 행 경계 근처까지 → 높이가 그 경계에 붙는다 (snap)
+//   6 B 의 핸들을 두 칸 경계까지 → 두 칸 차지 (span 2 · 폭 Fill · 칸 그대로) — Figma
+//   7 B 의 모서리 핸들을 두 행 경계 근처까지 → 경계에 붙어 두 행 차지 (span 2 · 높이 Fill)
 //   4 Preview DOM (Compare Mode) 의 A · B · C · W 위치 · 크기 = Canvas
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/grid-cell-placement-live.mjs <out>
@@ -221,8 +221,8 @@ check(
 );
 await page.screenshot({ path: `${OUT}/5-wide-span.png` });
 
-// 6 — 사용자 결정 (2026-10-16 「핸들 span 계산은 빼고 요소만 늘어나게」): B 의 오른쪽 핸들을 끌어 넓혀도
-//     span 없음 · 칸 폭 그대로 · B 만 커져 칸을 넘친다.
+// 6 — 사용자 결정 (2026-10-16 「Figma 방식으로 진행해」): B 의 핸들을 다음 칸 경계까지 끌면 두 칸을
+//     차지한다 (span 2 · 폭 Fill) · 칸 폭 그대로 · B 자리 그대로.
 await select(ids.B, ids.G);
 await wait(400);
 {
@@ -243,15 +243,15 @@ await wait(400);
   const cellsAfter6 = await exec(`(cat, id) => cat.canvas.gridCells(cat.workspace.root.recordsOfSource(id)[0]).map((c) => c.width)`, ids.G);
   await page.screenshot({ path: `${OUT}/6-b-resize.png` });
   check(
-    "6 B 모서리 핸들로 120 → 240 → span 없음 · 칸 폭 그대로 · B 만 커짐",
-    Math.abs(now.B.width - 240) < 1 && l6[2] == null && JSON.stringify(cellsAfter6) === JSON.stringify(cells6) &&
+    "6 B 모서리 핸들로 120 → 240 (칸 경계) → span 2 · 칸 폭 그대로 · B 자리 그대로",
+    Math.abs(now.B.width - 240) < 1 && l6[2] === "span 2" && JSON.stringify(cellsAfter6) === JSON.stringify(cells6) &&
       now.B.x === start.B.x,
     { l6, B: now.B, cells6, cellsAfter6 },
   );
 }
 
 // 7 — 사용자 보고 (2026-10-16 「세로 2칸은 snap 이 안 된다」): B 의 모서리 핸들을 둘째 행 아래 3px 앞까지 →
-//     높이가 두 행 (200) 에 붙는다 · span 없음.
+//     높이가 두 행 (200) 에 붙고 두 행을 차지한다 (span 2 · 높이 Fill).
 await select(ids.B, ids.G);
 await wait(400);
 {
@@ -271,8 +271,8 @@ await wait(400);
   const l7 = await lines(ids.B);
   await page.screenshot({ path: `${OUT}/7-b-snap-rows.png` });
   check(
-    "7 B 모서리 핸들을 197 까지 → 높이 200 (두 행 경계에 snap) · span 없음",
-    Math.abs(now.B.height - 200) < 0.5 && now.B.y === start.B.y && l7[3] == null,
+    "7 B 모서리 핸들을 197 까지 → 높이 200 (두 행 경계에 snap) · 행 span 2",
+    Math.abs(now.B.height - 200) < 0.5 && now.B.y === start.B.y && l7[3] === "span 2",
     { l7, B: now.B },
   );
 }

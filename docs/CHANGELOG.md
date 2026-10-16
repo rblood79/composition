@@ -66,6 +66,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 측정 결과 (중첩 5k): drag 는 프레임마다 preview → patch ~1만 명령 (검증 4 회 순회) → 전체 재기록 · node picture 153 개 재기록, 전체 재기록 방문의 64 ~ 99 % 가 화면 밖 서브트리를 하나씩 소비. 줌 꼬리는 GPU flush 가 아니라 JS 재기록.
 - 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCounters.ts,renderCommands.ts,subtreeCommandPatch.ts}` · `catalogRuntime/canvasOverflow.ts` · `apps/builder/scripts/{perf-baseline.mjs,perf-ratchet-gate.mjs}`. 검증: ratchet 판정 시험 18 (새 3 — 등록 키 회귀 시 `block`) · 하니스 시험 15 · type-check.
 
+## [grid — 크기 핸들을 칸 경계에 놓으면 그 칸까지 차지한다 (Figma)] - 2026-10-16
+
+### Changed
+
+- **grid 안 요소의 크기 핸들을 칸 경계에 붙여 놓으면, 그 경계까지의 칸을 차지하고 (span) 그 방향 크기가 Fill 이 된다** (Figma 와 같음, 사용자 결정 「Figma 방식으로 진행해」 — 같은 날의 「핸들 span 계산은 빼고 요소만 늘어나게」 를 바꿈). 요소는 지금 자리에 고정된다. 경계에 붙지 않은 자리에서 놓거나 ⌘ (snap 끔) 이면 종전처럼 크기만 바뀐다. 칸 크기는 그대로다.
+- **Why**: 고정 px 로 남기면 breakpoint 마다 칸 크기가 달라 desktop 의 두 칸 폭 요소가 Mobile 칸을 넘치거나 차지 칸 수가 달라졌다. Fill 은 그 breakpoint 의 칸 크기를 따른다.
+- 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts` (`snapResizeToCells` · `cellSpanCommand`) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (`ownFields`). 검증: 테스트 3 (열 경계 → span 2 · 폭 Fill · 행 경계 → 행 span 2 · 경계 밖 · ⌘ 은 크기만 — 앞 둘 수정 전 RED) · catalogRuntime · canvas catalog · styles 2,706 통과 · type-check · live `grid-cell-placement-live` 9/9 (6 · 7 기대값을 span 으로 바꿈, Preview DOM = Canvas) · `grid-span-fit-live` 3/3 · `canvas-dnd-drop-rules-live` 7/7 · body 2열 grid 에서 핸들로 두 칸 → Mobile 전환 시 폭 1920 → 390 (두 칸 그대로, 넘침 없음).
+
 ## [grid — 여러 칸 요소를 끌 때 칸 배경이 끄는 상자를 따른다] - 2026-10-16
 
 ### Fixed

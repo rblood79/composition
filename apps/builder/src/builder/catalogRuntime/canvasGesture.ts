@@ -52,6 +52,8 @@ import {
   type SpacingProperty,
 } from "../workspace/canvas/interaction/spacingTypes";
 import type { CatalogSpacingLive } from "./spacingLive";
+import { catalogSizingCommand } from "./sizing";
+import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   boxesIntersect,
   hitTestHandle,
@@ -145,6 +147,8 @@ export interface CatalogGestureHost {
   paddingLinked?(): boolean;
   /** The spacing drag the Styles panel follows (its value and sides); `null` when it ends. */
   spacingLive?(live: CatalogSpacingLive | null): void;
+  /** A node's own fields (a grid child's handle release fills its cells — `catalogSizingCommand`). */
+  ownFields?(target: EditTarget): OwnFields;
 }
 
 export type CatalogNestingNotice =
@@ -314,6 +318,8 @@ type Gesture =
       lock: ResizeRatioLockInput | null;
       active: boolean;
       request: { width?: number; height?: number; left?: number; top?: number };
+      /** The grid cell line each moving edge snapped to (scene coordinate) — a span on release. */
+      cellLines?: { x?: number; y?: number };
     };
 
 /**
@@ -691,6 +697,7 @@ export class CatalogCanvasGestures {
         lock: gesture.lock,
         position: gesture.position ?? null,
       });
+      gesture.cellLines = undefined;
       gesture.request =
         gesture.lock || options.snap === false
           ? request
@@ -752,8 +759,8 @@ export class CatalogCanvasGestures {
   /**
    * A grid child's handle resize snaps its moving edges to the grid's cell lines (Figma — the
    * cells are snap targets; 2026-10-16 사용자 보고 「세로 2칸은 snap 이 안 된다」 — a resize had no
-   * snap at all, a column edge only met a sibling's edge by chance). Only the size changes; the
-   * span stays (사용자 결정 — the node grows over the cells).
+   * snap at all, a column edge only met a sibling's edge by chance). The line an edge snapped to
+   * is kept: the release takes the cells up to it (`cellSpanCommand`).
    */
   private snapResizeToCells(
     gesture: Extract<Gesture, { kind: "resize" }>,
@@ -789,27 +796,167 @@ export class CatalogCanvasGestures {
     const box = gesture.startBox;
     const { handle } = gesture;
     const out = { ...request };
+    const lines: { x?: number; y?: number } = {};
     if (out.width !== undefined) {
       if (handle.includes("right")) {
         const line = near(box.x + out.width, xs);
-        if (line !== undefined && line > box.x) out.width = line - box.x;
+        if (line !== undefined && line > box.x) {
+          out.width = line - box.x;
+          lines.x = line;
+        }
       } else if (handle.includes("left")) {
         const right = box.x + box.width;
         const line = near(right - out.width, xs);
-        if (line !== undefined && line < right) out.width = right - line;
+        if (line !== undefined && line < right) {
+          out.width = right - line;
+          lines.x = line;
+        }
       }
     }
     if (out.height !== undefined) {
       if (handle.includes("bottom")) {
         const line = near(box.y + out.height, ys);
-        if (line !== undefined && line > box.y) out.height = line - box.y;
+        if (line !== undefined && line > box.y) {
+          out.height = line - box.y;
+          lines.y = line;
+        }
       } else if (handle.includes("top")) {
         const bottom = box.y + box.height;
         const line = near(bottom - out.height, ys);
-        if (line !== undefined && line < bottom) out.height = bottom - line;
+        if (line !== undefined && line < bottom) {
+          out.height = bottom - line;
+          lines.y = line;
+        }
       }
     }
+    if (lines.x !== undefined || lines.y !== undefined)
+      gesture.cellLines = lines;
     return out;
+  }
+
+  /**
+   * A grid child's handle released on a cell line (Figma — 사용자 결정 2026-10-16 「Figma 방식으로
+   * 진행해」): it takes the cells from its start up to that line (`span`), pinned where it is, and
+   * fills them on that axis (Fill container — the cells' size at every breakpoint, not a fixed px).
+   * An axis whose edge did not snap keeps the dragged size.
+   */
+  private cellSpanCommand(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+  ): CatalogCommand | undefined {
+    const snapped = gesture.cellLines;
+    const own = this.host.ownFields;
+    if (!snapped || !own || gesture.position) return undefined;
+    const records = this.host.records;
+    const record = records.get(gesture.item.identity);
+    const parent = record && records.get(record.parentId);
+    const layout = parent && this.gridLayoutOf(parent, 0, false);
+    if (!record || !parent || !layout) return undefined;
+    const at = this.flowEntries(parent, new Set()).findIndex(
+      ({ id }) => id === record.id,
+    );
+    const area = layout.areas[at];
+    if (!area) return undefined;
+    const { cells, columns } = layout;
+    const near = (a: number, b: number) => Math.abs(a - b) < 0.5;
+    const { handle } = gesture;
+    // The tracks the node takes on an axis: the snapped edge moves its start or its end.
+    const span = (
+      axis: "x" | "y",
+      start: number,
+      count: number,
+      tracks: number,
+      cellAt: (track: number) => BoundingBox | undefined,
+    ) => {
+      const line = snapped[axis];
+      if (line === undefined) return undefined;
+      const end = start + count - 1;
+      const size = axis === "x" ? "width" : "height";
+      const moved = handle.includes(axis === "x" ? "left" : "top");
+      for (let track = 0; track < tracks; track++) {
+        const cell = cellAt(track);
+        if (!cell) continue;
+        if (!moved && track >= start && near(cell[axis] + cell[size], line))
+          return { start, span: track - start + 1 };
+        if (moved && track <= end && near(cell[axis], line))
+          return { start: track, span: end - track + 1 };
+      }
+      return undefined;
+    };
+    const column = span("x", area.column, area.columnSpan, columns, (c) =>
+      cells[area.row * columns + c],
+    );
+    const rows = Math.ceil(cells.length / columns);
+    const row = span("y", area.row, area.rowSpan, rows, (r) =>
+      cells[r * columns + area.column],
+    );
+    if (!column && !row) return undefined;
+    const breakpoint = this.host.breakpoint();
+    const target = gesture.item.target;
+    const lines = this.gridLines(record.id);
+    const clear: WriteValue<string> =
+      breakpoint === "desktop"
+        ? { kind: "remove" }
+        : { kind: "set", value: "auto" };
+    const has = (value: unknown) => String(value ?? "").trim() !== "";
+    const end = (count: number, had: unknown): WriteValue<string> | undefined =>
+      count > 1
+        ? { kind: "set", value: `span ${count}` }
+        : has(had)
+          ? clear
+          : undefined;
+    const layoutWrites: Partial<Record<LayoutField, WriteValue<string>>> = {
+      gridColumnStart: {
+        kind: "set",
+        value: String((column?.start ?? area.column) + 1),
+      },
+      gridRowStart: { kind: "set", value: String((row?.start ?? area.row) + 1) },
+    };
+    const columnEnd = column && end(column.span, lines.columnEnd);
+    const rowEnd = row && end(row.span, lines.rowEnd);
+    if (columnEnd) layoutWrites.gridColumnEnd = columnEnd;
+    if (rowEnd) layoutWrites.gridRowEnd = rowEnd;
+    const commands: CatalogCommand[] = [];
+    for (const [axis, filled] of [
+      ["width", column],
+      ["height", row],
+    ] as const) {
+      if (filled)
+        commands.push(
+          catalogSizingCommand({
+            targets: [target],
+            own,
+            breakpoint,
+            edit: { axis, mode: "fill" },
+          }),
+        );
+    }
+    const { width, height } = gesture.request;
+    const fixed = {
+      ...(!column && width !== undefined
+        ? { width: { kind: "set" as const, value: width } }
+        : {}),
+      ...(!row && height !== undefined
+        ? { height: { kind: "set" as const, value: height } }
+        : {}),
+    };
+    commands.push(
+      setFields({
+        targets: [target],
+        breakpoint,
+        layout: layoutWrites,
+        ...(Object.keys(fixed).length ? { sizing: fixed } : {}),
+      }),
+    );
+    return (reader) => {
+      // Each write plans on the ones before it (a breakpoint fill is a whole-layer put).
+      const stage = stageOver(reader);
+      const ops = commands.flatMap((command) => {
+        const plan = command(stage);
+        stage.apply(plan.ops);
+        return plan.ops;
+      });
+      return { label: "Resize", ops };
+    };
   }
 
   private snapContext(
@@ -1264,6 +1411,8 @@ export class CatalogCanvasGestures {
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);
+      const cells = wheel === undefined ? this.cellSpanCommand(gesture) : undefined;
+      if (cells) return cells;
       const size =
         wheel !== undefined
           ? setFields({
