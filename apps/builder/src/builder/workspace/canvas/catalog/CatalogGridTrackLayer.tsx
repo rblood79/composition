@@ -159,11 +159,12 @@ export function CatalogGridTrackLayer({
   const pressRef = useRef<Press | null>(null);
 
   type Snapshot = ReturnType<CatalogWorkspace["session"]["getSnapshot"]>;
+  type CatalogRoot = CatalogWorkspace["root"];
   const read = useCallback(
-    (snapshot: Snapshot): Model | null => {
+    (snapshot: Snapshot, catalogRoot: CatalogRoot): Model | null => {
       if (snapshot.selection.length !== 1 || snapshot.textEditing) return null;
       const identity = snapshot.selection[0]!.identity;
-      const record = workspace.root.domInputs.get(identity);
+      const record = catalogRoot.domInputs.get(identity);
       if (!record || !record.parentId || record.parentId === PAGE_ROOT)
         return null;
       const display = record.layout.display;
@@ -193,9 +194,9 @@ export function CatalogGridTrackLayer({
     return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
   };
   const readSwap = useCallback(
-    (snapshot: Snapshot): SwapModel | null => {
+    (snapshot: Snapshot, catalogRoot: CatalogRoot): SwapModel | null => {
       if (snapshot.selection.length < 2 || snapshot.textEditing) return null;
-      const records = workspace.root.domInputs;
+      const records = catalogRoot.domInputs;
       const selectedIds = snapshot.selection.map((item) => item.identity);
       const parentId = records.get(selectedIds[0]!)?.parentId;
       const grid = parentId ? records.get(parentId) : undefined;
@@ -253,6 +254,12 @@ export function CatalogGridTrackLayer({
   // Follow the camera, the selection and the drawn tracks (one frame callback, no own RAF).
   useEffect(() => {
     let camera = { zoom: NaN, panX: NaN, panY: NaN };
+    // The session and the root are read when they change, not per frame (ADR-246 select count).
+    let snapshot = workspace.session.getSnapshot();
+    let catalogRoot = workspace.root;
+    const selectionKey = () =>
+      snapshot.selection.map((item) => item.identity).join("|");
+    let selected = selectionKey();
     const update = () => {
       const root = rootRef.current;
       const hidden =
@@ -267,16 +274,14 @@ export function CatalogGridTrackLayer({
       )
         root.toggleAttribute("data-hidden", hidden);
       if (hidden) return;
-      // One session read per update (ADR-246 select count).
-      const snapshot = workspace.session.getSnapshot();
-      const next = read(snapshot);
+      const next = read(snapshot, catalogRoot);
       const key = next ? JSON.stringify(next) : "";
       if (key !== modelKeyRef.current) {
         modelKeyRef.current = key;
         modelRef.current = next;
         setModel(next);
       }
-      const nextSwap = readSwap(snapshot);
+      const nextSwap = readSwap(snapshot, catalogRoot);
       const swapKey = nextSwap ? JSON.stringify(nextSwap) : "";
       if (swapKey !== swapKeyRef.current) {
         swapKeyRef.current = swapKey;
@@ -297,12 +302,29 @@ export function CatalogGridTrackLayer({
     };
     update();
     const offFrame = subscribeCanvasFramePresentation(update);
-    const offSession = workspace.session.subscribe(update);
+    // Figma (실측 2026-10-16): a selection change elsewhere (the Layers panel) ends a track · cell
+    // selection. By identity: a step re-reconciles the session (a new array, the same items) — an
+    // edit of the selected tracks keeps them.
+    const offSession = workspace.session.subscribe(() => {
+      snapshot = workspace.session.getSnapshot();
+      const key = selectionKey();
+      if (key !== selected) {
+        selected = key;
+        useGridTrackSelection.getState().clear();
+        setMenu(null);
+      }
+      update();
+    });
+    const offRoot = workspace.subscribeRoot(() => {
+      catalogRoot = workspace.root;
+      update();
+    });
     const offSteps = workspace.runtime.subscribeSteps(() => update());
     const offViewport = useViewportSyncStore.subscribe(update);
     return () => {
       offFrame();
       offSession();
+      offRoot();
       offSteps();
       offViewport();
     };
@@ -677,27 +699,11 @@ export function CatalogGridTrackLayer({
     container.addEventListener("pointermove", onMove);
     container.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerup", onRelease, true);
-    // By identity: a step re-reconciles the session (a new array, the same items) — an edit of
-    // the selected tracks keeps them.
-    const keyOf = () =>
-      workspace.session
-        .getSnapshot()
-        .selection.map((item) => item.identity)
-        .join("|");
-    let last = keyOf();
-    const offSession = workspace.session.subscribe(() => {
-      const next = keyOf();
-      if (next !== last) {
-        last = next;
-        clear();
-      }
-    });
     return () => {
       container.removeEventListener("pointerdown", onPress, true);
       container.removeEventListener("pointermove", onMove);
       container.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("pointerup", onRelease, true);
-      offSession();
     };
   }, [workspace]);
 
