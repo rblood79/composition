@@ -57,6 +57,20 @@ interface SlotHost {
 let retainedCount = 0;
 
 /**
+ * ADR-266 Phase 0 (dev 전용): 슬롯을 해제당한 텍스트의 element id — 다음 miss 가 「처음」 인지
+ * 「노드가 버려져 슬롯을 잃은 뒤」 인지 가른다. 다시 부착하면 지운다.
+ */
+const releasedElementIds = new Set<string>();
+
+export type ParagraphMissReason = "first" | "released" | "key" | "fontMgr";
+let lastMissReason: ParagraphMissReason = "first";
+
+/** 직전 `resolveRetainedParagraph` 가 undefined 를 돌려준 사유 (dev 계측 전용). */
+export function lastParagraphMissReason(): ParagraphMissReason {
+  return lastMissReason;
+}
+
+/**
  * 소유자 노드를 돌려준다 — 파생 노드면 링크된 원본, 아니면 자기 자신.
  */
 function slotOf(node: SkiaNodeData): SlotHost {
@@ -106,12 +120,13 @@ function setSlot(host: SlotHost, entry: RetainedParagraph | undefined): void {
   });
 }
 
-function disposeSlot(host: SlotHost): void {
+function disposeSlot(host: SlotHost): boolean {
   const entry = host[PARAGRAPH_SLOT];
-  if (!entry) return;
+  if (!entry) return false;
   setSlot(host, undefined);
   retainedCount--;
   scheduleWasmDisposal(entry.paragraph);
+  return true;
 }
 
 /**
@@ -125,8 +140,17 @@ export function resolveRetainedParagraph(
 ): RetainedParagraph | undefined {
   const host = slotOf(node);
   const entry = host[PARAGRAPH_SLOT];
-  if (!entry) return undefined;
+  if (!entry) {
+    if (process.env.NODE_ENV === "development")
+      lastMissReason =
+        node.elementId !== undefined && releasedElementIds.has(node.elementId)
+          ? "released"
+          : "first";
+    return undefined;
+  }
   if (entry.key === key && entry.fontMgr === fontMgr) return entry;
+  if (process.env.NODE_ENV === "development")
+    lastMissReason = entry.key !== key ? "key" : "fontMgr";
   disposeSlot(host);
   return undefined;
 }
@@ -143,6 +167,8 @@ export function retainParagraph(
   disposeSlot(host);
   setSlot(host, { paragraph, key, fontMgr, alignOffset });
   retainedCount++;
+  if (process.env.NODE_ENV === "development" && node.elementId !== undefined)
+    releasedElementIds.delete(node.elementId);
 }
 
 /**
@@ -152,11 +178,17 @@ export function retainParagraph(
  * `unregisterSkiaNode` / `clearSkiaRegistry`. 즉 "노드가 죽을 때 같이 죽는다"
  * 를 구현하는 유일한 경로다.
  */
-export function releaseParagraphsIn(node: SkiaNodeData): void {
-  disposeSlot(slotOf(node));
+export function releaseParagraphsIn(node: SkiaNodeData): number {
+  let released = 0;
+  if (disposeSlot(slotOf(node))) {
+    released = 1;
+    if (process.env.NODE_ENV === "development" && node.elementId !== undefined)
+      releasedElementIds.add(node.elementId);
+  }
   const children = node.children;
-  if (!children) return;
-  for (const child of children) releaseParagraphsIn(child);
+  if (!children) return released;
+  for (const child of children) released += releaseParagraphsIn(child);
+  return released;
 }
 
 export function getRetainedParagraphCount(): number {

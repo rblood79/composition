@@ -2556,6 +2556,12 @@ async function cleanupPointerClass(page, cls, pointer) {
 
 async function runFrameLane(page, cdp, seed, options) {
   await page.addScriptTag({ content: RECORDER_SCRIPT });
+  // ADR-266 Phase 4: idle 미리 기록은 idle 시각에 따라 창 안팎으로 갈린다 — 결정적 카운트에서는 idle 예약을
+  // 멈추고 부류마다 창 밖에서 끝까지 기록한다 (문서를 연 뒤 쉬는 시간이 지난 상태). dev 전용 훅.
+  if (options.fixedInputs)
+    await page.evaluate(() =>
+      window.__composition_RENDER_PATH_DEBUG__?.setWarmupManual?.(true),
+    );
   const results = {};
   for (const cls of options.classes) {
     const driver = FRAME_CLASSES[cls];
@@ -2589,6 +2595,10 @@ async function runFrameLane(page, cdp, seed, options) {
     const pointer = POINTER_CLASSES.has(cls)
       ? await setupPointerClass(page, cls, seed)
       : null;
+    if (options.fixedInputs)
+      await page.evaluate(() =>
+        window.__composition_RENDER_PATH_DEBUG__?.flushWarmup?.(),
+      );
     const before = await cdp.send("Performance.getMetrics");
     if (options.callCounts) {
       await cdp.send("Profiler.enable");
@@ -3002,17 +3012,19 @@ async function main() {
     }
     if (options.zoom !== null) {
       // ADR-221 G2 불리 케이스: 시드 뒤 카메라를 고정 (22 페이지 전부 뷰포트 안 = 0.1).
+      // 카메라는 catalog Canvas 의 harness 핸들 (dev · `VITE_COMPOSITION_HARNESS=1` 빌드 모두) 로 —
+      // 옛 `__composition_APPLY_VIEWPORT__` 는 ADR-248 Phase 4e-9-1 에서 지워졌다 (ADR-266 Phase 0).
       const applied = await page.evaluate(async (scale) => {
-        const apply = window.__composition_APPLY_VIEWPORT__;
-        if (!apply)
+        const canvas = window.__COMPOSITION_CATALOG__?.canvas;
+        if (!canvas?.setCamera)
           throw new Error(
-            "__composition_APPLY_VIEWPORT__ 없음 (DEV 빌드 전용 훅)",
+            "__COMPOSITION_CATALOG__.canvas.setCamera 없음 (dev 또는 harness 빌드 전용)",
           );
-        apply({ scale, x: 40, y: 80 });
+        await canvas.setCamera({ scale, x: 40, y: 80 });
         await new Promise((r) =>
           requestAnimationFrame(() => requestAnimationFrame(r)),
         );
-        return window.__composition_VIEWPORT__?.() ?? null;
+        return canvas.camera?.() ?? null;
       }, options.zoom);
       process.stderr.write(
         `[zoom] requested ${options.zoom} · applied ${JSON.stringify(applied)}\n`,

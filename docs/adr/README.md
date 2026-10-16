@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-17 ADR-266 Implemented** (측정 기록 종결 — 사용자 결정 1 「working set 동적」 · 결정 2 「idle 미리 기록」 · 결정 3 「Phase 추가」 → 재판정 「측정 기록으로 종결」): Phase 0 ~ 4 + G2. 22 페이지 실사용 형태 문서 (`app-pages`) 줌 — page grid 재바인드 50 → 0 (옮기기가 내부 그리기 wrapper 를 요소로 보지 않음) · picture 상한 = working set × 1.25 · unsafe 8 개 때문의 viewport · damage 후퇴 제거 · 옮기기 한 번 검사 · 화면 밖 picture · 글자 idle 미리 기록 (≤ 4,096 ≈ 1 MB) · 옮긴 page root picture 유지. dev 줌 picture 재기록 94,756 → 0 · 글자 70,312 → 0. production 줌 gap p95 204 ~ 225 → 16 ~ 19 ms · drop 24 ~ 26 % → 0.9 ~ 1.7 % · long task 13 ~ 17 → 0 (headed HC2 충족). 미달 (사유와 함께 기록): headless 줌 p99 24 ~ 27 · drop 1.1 ~ 1.7 % · 편집 p99 18 ~ 25 · dev 재생 p95 10.6 ~ 11.3 ms. trigger 1 재판정 — Rust 이관 근거 없음 (`CANVAS_RUST_DECISION_2026-10.md` §1). live: 사용자 프로젝트 (Chrome MCP) 줌 · 편집 → undo · 테마 → undo · Compare Mode · 페이지 전환. 열림 −1 · 완료 +1 (열림 1 — Proposed 1 (245, 사용자 보류), 합계 289).
+
 > **2026-10-17 ADR-266 Proposed**: 실사용 문서 줌 · 편집의 그리기 캐시 thrash (사용자 `/create-adr 실사용 문서 줌 · 편집의 그리기 캐시 thrash` — Canvas 성능 계획 4단계 trigger 1 이 실사용 형태 문서 `app-pages` (22 페이지 · record 5,116, 사용자 지시로 만든 문서의 하니스 복제) 줌에서 성립해 계획대로 새 ADR; ADR-921 은 되살리지 않음). 실측: production 줌 gap p95 213 ms · drop 23.5 % (headed 120Hz 221 · long task 17) · 편집 p99 40.4 · 8.7 % · dev record p95 193 ms (기준 8). 코드 사실: 줌의 자동 열 수 변경에서 ADR-264 page root 옮기기가 후퇴해 `rebind("page-grid")` 15 / 21 (`movePageRoots` null — 대기 delta · `checkTranslate` 사유, 크기 변화 0) → 재등록이 picture · paragraph 를 전부 버림 (cold 28,791 · paragraph hit 0) · picture 상한 1,024 < 기록당 ~1,370 (순차 LRU thrash, 편집 프로필 1 위 퇴거 선형 스캔) · paragraph 재생성이 Canvas 2D 측정 (줌 프로필 1 위 8 %) · viewport 공간 질의 후퇴 21 / 21 (사유 미분화). 채택 대안 A — Phase 0 이 사유별 카운터로 재바인드 / 퇴거 / 첫 기록의 몫을 가르고 (go/no-go), 옮기기 후퇴 좁히기 · 같은 내용 재등록의 picture · paragraph 인계 → 상한 정책 (HC5 힙 측정) → viewport 후퇴 순. B (타일) · C (줌 중 강등 — 사용자 가시, 보조만) · D (Rust 이관 — 비용의 자리가 아님) 기각. HC2 `app-pages` 줌 p99 ≤ 20 · < 1 %, HC3 편집 ≤ 20 · < 1 %. 사용자 결정 3 (상한 · 힙 상한 / 대안 C 보조 / 종결 미달). 리뷰 round 1 (codex, 같은 날) HIGH 1 · MEDIUM 1 → 반영 — 재바인드는 `dispose()` 가 모든 노드를 먼저 unregister 해 「등록 교체에서 인계」 가 닿지 않으므로 두 단계 교체 (`retire` → `bind` → `releaseRemaining`) 와 실제 해제 지점 계측으로 · picture 동적 상한은 새 record 수가 아니라 hit + record working set 기준 (warm 프레임 축소 → thrash 재발 반례). round 2 는 사용자 요청 시. 열림 +1 (열림 2 — Proposed 2, 합계 289). breakdown: [design/266](design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md).
 
 > **2026-10-16 ADR-265 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 둔다」 · 결정 3 「측정 기록으로 종결」): Phase 0 ~ 2 + G2. 문서 층은 편집 · 선택 모두 변경 크기 비례로 — 큰 컨테이너 편집 (post 걸음 생략 · owner edge 상쇄 생략 · commit 필드 공유 · 행 목록 부모 필드 의존) · 선택 (행 색인 · `pageFrameRects` · 자동 HTML id · z-order 판정 공유 · Layers 고정). production 짝 5k: body 편집 p99 35.5 · 32.6 → 21.8 · 24.2 ms · drop 5.5 · 4.1 → 0 · 1.1 % · 평평 select drop 7.0 · 5.9 → 3.7 · 4.3 % (p99 ~29 그대로) · 줌 · drag · 편집 · 600 select 유지. HC2 (중첩 카드 편집) 미달의 자리 = Canvas binding (옮김 · overflow · rect diff), HC3 미달의 자리 = Layers 행 렌더의 RAC 내부 · React DOM · 메뉴 Group dry-run. live 11/11. seed 60 `doc.*` 등록은 HEAD 의 다른 세션 `getSnapshot` 초과가 풀린 뒤. 열림 −1, 완료 +1 (열림 1 — Proposed 1 = 245, 합계 288).
@@ -296,18 +298,20 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     286 |
-| ├ Implemented / Complete(d)   |     239 |
+| 완료 (`completed/`)           |     287 |
+| ├ Implemented / Complete(d)   |     240 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       2 |
-| ├ Proposed                    |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       1 |
+| ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **289** |
 
+> 2026-10-17 재대조 (2): ADR-266 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245 (사용자 보류).
+>
 > 2026-10-17 재대조: ADR-266 Proposed (열림 +1) — 열림 2 = 245 (사용자 보류) · 266.
 >
 > 2026-10-16 재대조 (3): ADR-265 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245 (사용자 보류).
@@ -328,11 +332,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [266](266-draw-cache-thrash-real-document-zoom-edit.md) — 실사용 문서 줌 · 편집의 그리기 캐시 thrash (Canvas 성능 계획 4단계 — trigger 1 성립 뒤 첫 ADR)
-
-- **상태**: Proposed — 2026-10-17 (리뷰 전)
-- **규모**: Phase 0 사유별 카운터 · 몫 표 · `app-pages` ratchet run (go/no-go) → Phase 1 옮기기 후퇴 좁히기 + 같은 내용 재등록의 picture · paragraph 인계 → Phase 2 picture 상한 정책 (HC5 힙 측정, 사용자 결정 1) → Phase 3 paragraph 키 · viewport 후퇴 → 종결 (production 짝 · live · trigger 1 재판정). 사용자 결정 3 (상한 · 힙 상한 / 대안 C 보조 / 종결 미달). breakdown: [design/266](design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -361,16 +360,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                                                         | 차단 · 선행                                                                                            |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-|  1   | [266](266-draw-cache-thrash-real-document-zoom-edit.md)                                        | Proposed 2026-10-17 — 리뷰 전 (사용자가 요청하면 `/review-adr 266`). Phase 0 은 카운터 · 몫 표만이라 바로 착수 가능 | 선행 없음 (ADR-263 · 264 · 265 Implemented). 다른 세션 Canvas DnD 작업과 `CatalogCanvas.tsx` 겹침 회피 |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                   | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)         |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                 |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                  | 각 항목의 재개 조건 발생 시                                                                            |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
+| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
-## 완료 ADR (285)
+## 완료 ADR (286)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -664,6 +662,7 @@
 | [263](completed/263-render-command-patch-execute-cost.md) | 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계) — 명령 읽기가 piece-table Proxy 를 지나지 않음 · full 재기록은 viewport SpatialIndex 후보 + 조상만 (불가하면 컬링 서브트리 점프) · damage 부분 재기록 재연결 (무효화 clean · damage · full, 상자 밖 paint · 넘친 글자는 full) · 스크롤 범위 증분 · patch 검증 한 번 · 남는 노드 picture 유지 · ratchet `--add-keys` (새 카운트 0 포함 A). 측정 기록 종결 — 중첩 5k 줌 충족, 편집 · 평평 줌 미달 (꼬리 = patch 영역 크기 · 줌 재바인드) | Implemented | 2026-10-16 |
 | [264](completed/264-moved-subtree-translate-page-grid-rebind.md) | 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (Canvas 성능 2단계 후속) — `translateSubtree` (root `ELEMENT_BEGIN` 제자리 쓰기 · 절대 맵 Δ · clip · hit 재교차 · SpatialIndex upsert) · `placeRegion` (seed 만 서브트리 재기록, 크기 바뀐 조상은 자기 명령만, 옮긴 · 문맥 바뀐 서브트리는 옮기기) · page grid 자동 열 수 · 편집은 page root 옮기기 · ratchet fixture run (`600:nested-flex`). 측정 기록 종결 — 평평 줌 충족, 중첩 편집 미달 (꼬리 = 문서 · 트랜잭션 층) | Implemented | 2026-10-16 |
 | [265](completed/265-document-layer-edit-select-cost.md) | 편집 · 선택 전환의 문서 층 비용 (Canvas 성능 계획 3단계) — 문서 층 카운터 `counts.doc.*` · `select-spread` 부류 · 큰 컨테이너 편집 (post 걸음 생략 · owner edge 상쇄 · commit 필드 공유 · 행 목록 부모 필드 의존) · 선택 (행 색인 · `pageFrameRects` · 자동 HTML id · z-order 판정 공유 · Layers 고정). 측정 기록 종결 — body 편집 개선, HC2 (꼬리 = Canvas binding) · HC3 (꼬리 = RAC Layers · React) 미달 | Implemented | 2026-10-16 |
+| [266](completed/266-draw-cache-thrash-real-document-zoom-edit.md) | 실사용 문서 줌 · 편집의 그리기 캐시 thrash (Canvas 성능 계획 4단계 — trigger 1 성립 뒤) — 옮기기가 내부 그리기 wrapper 를 요소로 보지 않음 (page grid 재바인드 0) · picture 상한 = working set × 1.25 (히스테리시스 · 64 MB) · 칠할 수 있는 unsafe 만 viewport · damage sequence 에 · 옮기기 한 번 검사 · idle 미리 기록 · 옮긴 root picture 유지. production 줌 long task 13 ~ 17 → 0 · headless HC2 · HC3 미달은 측정 기록 | Implemented | 2026-10-17 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

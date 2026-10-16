@@ -287,6 +287,75 @@ describe("ADR-264 translateSubtree — 처음부터 기록한 결과와 같다",
   });
 });
 
+describe("ADR-266 내부 자식 (요소 id 없는 그리기 wrapper) 을 가진 서브트리", () => {
+  // Button 라벨 · rule shape 처럼 노드 데이터의 `children` 은 `emitInternalChildDraw` 가 elementId ""
+  // 인 ELEMENT_BEGIN 으로 감싼다 — 요소가 아니라 boundsMap 에 없다. 실사용 형태 문서 (`app-pages`)
+  // 의 page root 는 전부 이런 자손을 가져 옮기기가 늘 `invalid-span` 으로 거절됐다 (Phase 0 카운트).
+  const label = (x: number): SkiaNodeData =>
+    ({
+      type: "box",
+      x,
+      y: 4,
+      width: 30,
+      height: 10,
+      visible: true,
+      box: { fillColor: Float32Array.of(0, 0, 0, 1), borderRadius: 0 },
+      children: [
+        {
+          type: "box",
+          x: 2,
+          y: 2,
+          width: 5,
+          height: 5,
+          visible: true,
+          box: { fillColor: Float32Array.of(1, 0, 0, 1), borderRadius: 0 },
+        },
+      ],
+    }) as unknown as SkiaNodeData;
+  const specs: Spec[] = [
+    { id: "body", parent: null, layout: { x: 0, y: 0, width: 800, height: 800 } },
+    {
+      id: "card",
+      parent: "body",
+      layout: { x: 20, y: 30, width: 200, height: 120 },
+      data: { clipChildren: true },
+    },
+    {
+      id: "button",
+      parent: "card",
+      layout: { x: 10, y: 10, width: 80, height: 24 },
+      data: { children: [label(8), label(44)] },
+    },
+    {
+      id: "leaf",
+      parent: "button",
+      layout: { x: 2, y: 2, width: 10, height: 10 },
+    },
+  ];
+
+  it("옮긴 결과가 처음부터 기록한 것과 같다 (명령 · span · 맵 · SpatialIndex)", () => {
+    const before = build(specs);
+    const internal = commandsOf(before).filter(
+      (command) => command.type === 0 && command.elementId === "",
+    );
+    expect(internal.length).toBe(4);
+    const result = translateSubtree({
+      stream: before,
+      rootId: "card",
+      x: 300,
+      y: 410,
+      context: before.subtreeBuildContextByElement.get("card")!,
+    });
+    expect(result.applied).toBe(true);
+    const translatedIndex = new Map(index.entries);
+    clearSkiaRegistry();
+    const after = build(moveTo(specs, "card", 300, 410));
+    expectSameAsRebuild(before, after);
+    expect(plain(translatedIndex)).toEqual(plain(index.entries));
+    expect(before.boundsMap.has("")).toBe(false);
+  });
+});
+
 describe("ADR-264 리뷰 r1 반례", () => {
   const card = (rootY: number, data: Partial<SkiaNodeData> = {}): Spec[] => [
     {

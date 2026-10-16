@@ -57,15 +57,18 @@ import {
 import { toSkiaBlendMode } from "./blendModes";
 import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
-import { renderCounters, renderDebug } from "./renderCounters";
+import { renderCounters, renderDebug, renderScope } from "./renderCounters";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import {
   ensureNodePictureFontGeneration,
   getCachedNodePicture,
+  hasNodePicture,
   invalidateNodePicture,
   isNodePictureCacheEnabled,
   isVolatileNode,
   storeNodePicture,
+  storeWarmNodePicture,
+  takeWarmTextPaint,
 } from "./nodePictureCache";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import * as spatialIndex from "../wasm-bindings/spatialIndex";
@@ -2135,10 +2138,12 @@ function appendCommandRange(
 export function buildDamageRenderCommandSequence(
   stream: RenderCommandStream,
   candidateElementIds: readonly string[],
+  /** ADR-266: the caller put every `damageUnsafeElementIds` member in the candidates (viewport). */
+  unsafeIncluded = false,
 ): DamageRenderCommandSequence | null {
   // hit bounds 밖 paint contributor는 현재 SpatialIndex query로 완전 열거할 수 없다.
   // 정확성 우선: 별도 paint-bounds index가 생기기 전까지 full rebuild로 수렴한다.
-  if (stream.damageUnsafeElementIds.size > 0) return null;
+  if (!unsafeIncluded && stream.damageUnsafeElementIds.size > 0) return null;
 
   const candidates = new Set(candidateElementIds);
   const relevant = new Set<string>();
@@ -2252,6 +2257,29 @@ export function buildDamageRenderCommandSequence(
 }
 
 /** SpatialIndex 후보만 압축 실행한다. null은 안전한 부분 재기록 불가 → full fallback. */
+/**
+ * ADR-266 Phase 3 — hit bounds 밖으로 칠하는 요소 (`damageUnsafeElementIds`) 중 `rect` 에 칠할 수 있는 것.
+ * 칠은 조상 clip 을 넘지 못한다 (`clipContextByElement` — 렌더러의 clip 과 1:1) — clip 이 없거나 `rect` 와
+ * 겹치는 것만. SpatialIndex 는 hit bounds 만 알아 이것들을 못 찾을 수 있으므로 호출부가 후보에 더한다.
+ */
+function unsafeContributorsWithin(
+  stream: RenderCommandStream,
+  rect: { x: number; y: number; width: number; height: number },
+): string[] {
+  return [...stream.damageUnsafeElementIds].filter((id) => {
+    const clip = stream.clipContextByElement.get(id);
+    return (
+      !clip ||
+      (clip.width > 0 &&
+        clip.height > 0 &&
+        clip.x < rect.x + rect.width &&
+        rect.x < clip.x + clip.width &&
+        clip.y < rect.y + rect.height &&
+        rect.y < clip.y + clip.height)
+    );
+  });
+}
+
 export function executeDamageRenderCommands(
   ck: CanvasKit,
   canvas: Canvas,
@@ -2270,7 +2298,13 @@ export function executeDamageRenderCommands(
     damageBounds.x + damageBounds.width,
     damageBounds.y + damageBounds.height,
   );
-  const sequence = buildDamageRenderCommandSequence(stream, candidateIds);
+  // ADR-266: damage rect 에 칠할 수 있는 unsafe 를 싣는다 — 하나라도 있으면 늘 full 이던 것 (renderer 가
+  // damage rect 로 clip 하므로 밖으로 칠한 것은 남지 않는다).
+  const sequence = buildDamageRenderCommandSequence(
+    stream,
+    [...candidateIds, ...unsafeContributorsWithin(stream, damageBounds)],
+    true,
+  );
   if (!sequence) return null;
   executeRenderCommands(
     ck,
@@ -2294,9 +2328,16 @@ export function executeDamageRenderCommands(
  * 비례한다. 컬링 판정은 선형 실행과 같은 `cullingBounds` 로 한다 — 후보는 hit bounds 가 viewport
  * 와 겹친 요소라 선형 실행이 그리는 요소의 부분집합이고, 빠지는 것은 조상 clip 에 다 잘린 요소뿐이다.
  *
+ * hit bounds 밖으로 칠하는 요소 (`damageUnsafeElementIds` — 바깥 그림자 · 두꺼운 선 · 넓이 0 상자 …) 는
+ * index 가 못 찾을 수 있어 page root 처럼 싣는다 (ADR-266 Phase 3 — 전에는 하나만 있어도 문서 전체가
+ * 선형으로 갔다: 22 페이지 문서의 CheckboxIndicator 8 개). 단 칠은 조상 clip 을 넘지 못하므로
+ * (`clipContextByElement` — 렌더러의 clip 과 1:1) clip 이 화면과 겹치지 않는 것은 뺀다 — 화면 밖 page 의
+ * unsafe 요소가 조상 closure 를 끌고 들어와 렌더마다 ~1,800 명령을 걷던 것. 컬링은 선형과 같은 실행기가
+ * 하므로 그리는 것은 같다.
+ *
  * false = 쓸 수 없음 → caller 가 선형 실행 (+ 서브트리 점프) 으로 그린다:
- * SpatialIndex 없음 · hit bounds 밖 paint (`damageUnsafeElementIds`) · drag · 형제 비킴 offset
- * (index 는 offset 전 상자만 안다) · 후보가 절반을 넘음 (선형이 더 싸다) · sequence 불가.
+ * SpatialIndex 없음 · drag · 형제 비킴 offset (index 는 offset 전 상자만 안다) · 후보 (+ 늘 싣는 unsafe)
+ * 가 절반을 넘음 (선형이 더 싸다) · sequence 불가.
  */
 export function executeViewportRenderCommands(
   ck: CanvasKit,
@@ -2306,31 +2347,45 @@ export function executeViewportRenderCommands(
   rootIds: readonly string[],
   fontMgr?: FontMgr,
 ): boolean {
-  const fallback = () => {
-    if (process.env.NODE_ENV === "development")
+  const fallback = (
+    reason:
+      | "viewportFallbackLinearOnly"
+      | "viewportFallbackNoIndex"
+      | "viewportFallbackUnsafePaint"
+      | "viewportFallbackDragOffset"
+      | "viewportFallbackHalfRule"
+      | "viewportFallbackNoSequence",
+  ) => {
+    if (process.env.NODE_ENV === "development") {
       renderCounters.viewportFallbacks += 1;
+      renderCounters[reason] += 1;
+    }
     return false;
   };
   if (process.env.NODE_ENV === "development" && renderDebug.linearOnly)
-    return fallback();
+    return fallback("viewportFallbackLinearOnly");
   if (!WASM_FLAGS.SPATIAL_INDEX || !spatialIndex.getSpatialIndex())
-    return fallback();
-  if (stream.damageUnsafeElementIds.size > 0) return fallback();
+    return fallback("viewportFallbackNoIndex");
+  const unsafe = unsafeContributorsWithin(stream, cullingBounds);
+  if (unsafe.length * 2 > stream.subtreeSpans.size)
+    return fallback("viewportFallbackUnsafePaint");
   if (getDragVisualOffset() !== null || hasDragSiblingOffsets())
-    return fallback();
+    return fallback("viewportFallbackDragOffset");
   const candidateIds = spatialIndex.queryRect(
     cullingBounds.x,
     cullingBounds.y,
     cullingBounds.x + cullingBounds.width,
     cullingBounds.y + cullingBounds.height,
   );
-  if (candidateIds.length * 2 > stream.subtreeSpans.size) return fallback();
+  if ((candidateIds.length + unsafe.length) * 2 > stream.subtreeSpans.size)
+    return fallback("viewportFallbackHalfRule");
   // page root 는 hit bounds 에 없을 수 있다 (조상이 없어 clip 대상 아님) — 바탕을 늘 싣는다.
-  const sequence = buildDamageRenderCommandSequence(stream, [
-    ...rootIds,
-    ...candidateIds,
-  ]);
-  if (!sequence) return fallback();
+  const sequence = buildDamageRenderCommandSequence(
+    stream,
+    [...rootIds, ...candidateIds, ...unsafe],
+    true,
+  );
+  if (!sequence) return fallback("viewportFallbackNoSequence");
   if (process.env.NODE_ENV === "development")
     renderCounters.viewportSequences += 1;
   executeRenderCommands(
@@ -2352,6 +2407,20 @@ export function executeViewportRenderCommands(
 const textPaintOverflowIds = new Set<string>();
 /** 넘친 글자를 그린 횟수 — damage 재기록 중 늘면 새로 넘친 것이라 full 로 다시 그린다. */
 let textPaintOverflowEvents = 0;
+
+/**
+ * ADR-266 Phase 4: 미리 기록 중이면 그 기록의 글자 넘침 (owner → 넘침) — 화면에 그리지 않은 기록이라 위
+ * 표시 · 횟수에 넣지 않고 picture 에 보관했다가 첫 재생 때 반영한다 (`applyWarmTextPaint`). 바로 넣으면 화면
+ * 밖 요소의 넘침이 편집의 옮기기 · patch 를 full 로 보낸다 (`app-pages` 편집 full 0 → 9).
+ */
+let warmTextPaint: Map<string, boolean> | null = null;
+
+function applyWarmTextPaint(elementId: string, overflows: boolean): void {
+  if (overflows) {
+    textPaintOverflowIds.add(elementId);
+    textPaintOverflowEvents += 1;
+  } else textPaintOverflowIds.delete(elementId);
+}
 
 export function hasTextPaintOverflow(elementId: string): boolean {
   return textPaintOverflowIds.has(elementId);
@@ -2776,7 +2845,7 @@ function executeCommandRange(
                 (textDrawn ??= new Set()).add(owner);
                 if (drawn.overflows) {
                   (textOverflowed ??= new Set()).add(owner);
-                  textPaintOverflowEvents += 1;
+                  if (!warmTextPaint) textPaintOverflowEvents += 1;
                 }
                 const at = translateStack[stackTop];
                 const origin = elementOriginStack[eidTop];
@@ -2895,7 +2964,9 @@ function executeCommandRange(
   }
   if (textDrawn)
     for (const owner of textDrawn) {
-      if (textOverflowed?.has(owner)) textPaintOverflowIds.add(owner);
+      const overflows = textOverflowed?.has(owner) ?? false;
+      if (warmTextPaint) warmTextPaint.set(owner, overflows);
+      else if (overflows) textPaintOverflowIds.add(owner);
       else textPaintOverflowIds.delete(owner);
     }
 }
@@ -2960,7 +3031,12 @@ function drawSelfSpanViaPicture(
   if (!dataRef) return false;
 
   let picture = getCachedNodePicture(elementId, dataRef, cmd.width, cmd.height);
-  if (!picture) {
+  if (process.env.NODE_ENV === "development") countTouchedElement(!picture);
+  if (picture) {
+    // 미리 기록한 picture 의 첫 재생 — 그 글자 넘침이 이제 화면에 그려진다
+    const warmText = takeWarmTextPaint(elementId);
+    if (warmText !== undefined) applyWarmTextPaint(elementId, warmText);
+  } else {
     picture = recordSelfSpan(ck, commands, span, elementId, fontMgr);
     if (!picture) return false; // record 실패 → direct draw 폴백
     storeNodePicture(
@@ -2977,6 +3053,57 @@ function drawSelfSpanViaPicture(
   if (process.env.NODE_ENV === "development") {
     incrementDrawCall();
   }
+  return true;
+}
+
+/** ADR-266 Phase 0: content 기록 구간이 picture 로 지나간 요소 (working set) · 새로 record 한 요소. */
+function countTouchedElement(recorded: boolean): void {
+  if (renderScope.kind === "full") {
+    renderScope.touched += 1;
+    renderCounters.contentTouchedElements += 1;
+    if (recorded) renderCounters.contentRecordedElements += 1;
+  } else if (renderScope.kind === "damage")
+    renderCounters.damageTouchedElements += 1;
+}
+
+/**
+ * ADR-266 Phase 4 (사용자 결정 2): 프레임 밖에서 요소 하나의 picture 를 미리 기록한다 (`nodePictureWarmup`).
+ * 프레임의 `drawSelfSpanViaPicture` 와 같은 키 (`dataRef` · BEGIN 의 width · height) 와 같은 record 라, 그
+ * 요소가 화면에 들어오는 프레임은 재생만 한다. 편집 중 · volatile · 이미 있는 요소는 건너뛴다. true = 기록했다.
+ */
+export function warmNodePicture(
+  ck: CanvasKit,
+  stream: Pick<RenderCommandStream, "commands" | "selfSpans">,
+  elementId: string,
+  fontMgr: FontMgr,
+): boolean {
+  if (elementId === getEditingElementId() || isVolatileNode(elementId))
+    return false;
+  const span = stream.selfSpans.get(elementId);
+  const dataRef = getSkiaNode(elementId);
+  if (!span || !dataRef) return false;
+  const begin = createCommandReader(stream.commands)(span.start - 1);
+  if (begin?.type !== CMD_ELEMENT_BEGIN || begin.elementId !== elementId)
+    return false;
+  if (hasNodePicture(elementId, dataRef, begin.width, begin.height))
+    return false;
+  const textPaint = (warmTextPaint = new Map());
+  let picture: SkPicture | null;
+  try {
+    picture = recordSelfSpan(ck, stream.commands, span, elementId, fontMgr);
+  } finally {
+    warmTextPaint = null;
+  }
+  if (!picture) return false;
+  storeWarmNodePicture(
+    elementId,
+    dataRef,
+    begin.width,
+    begin.height,
+    picture,
+    collectSpanImageRefs(stream.commands, span),
+    textPaint.get(elementId),
+  );
   return true;
 }
 

@@ -22,7 +22,10 @@ import { releaseParagraphsIn } from "./retainedParagraph";
 import {
   clearNodePictureCache,
   invalidateNodePicture,
+  retargetNodePicture,
 } from "./nodePictureCache";
+import { renderCounters } from "./renderCounters";
+import { sameDrawData } from "./sameDrawData";
 
 // ============================================
 // 전역 레지스트리
@@ -34,11 +37,37 @@ const skiaNodeRegistry = new Map<string, SkiaNodeData>();
 /** 레지스트리 변경 버전 (단조 증가) */
 let registryVersion = 0;
 
+/**
+ * ADR-266 Phase 0 (dev 전용): scene 재바인드의 해제 구간. `dispose` 가 부르는 `unregisterSkiaNode`
+ * 가 버린 picture · paragraph 를 사유별로 세고, 버린 데이터를 붙들어 새 bind 의 같은 id 등록과
+ * 그리기 내용이 같은지 센다 (인계 가능량의 상한). 동작은 바꾸지 않는다 — 세기만 한다.
+ */
+let rebindRelease: {
+  pageGrid: boolean;
+  released: Map<string, SkiaNodeData>;
+} | null = null;
+
+export function beginRebindRelease(reason: string): void {
+  if (process.env.NODE_ENV !== "development") return;
+  rebindRelease = { pageGrid: reason === "page-grid", released: new Map() };
+}
+
+export function endRebindRelease(): void {
+  rebindRelease = null;
+}
+
 /** 레지스트리에 Skia 렌더 데이터 등록 */
 export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
   // 동일 참조면 스킵 (useLayoutEffect 재실행 시 중복 방지)
   const oldData = skiaNodeRegistry.get(elementId);
   if (oldData === data) return;
+  if (process.env.NODE_ENV === "development" && rebindRelease && !oldData) {
+    const released = rebindRelease.released.get(elementId);
+    if (released) {
+      renderCounters.rebindReregistered += 1;
+      if (sameDrawData(released, data)) renderCounters.rebindSameContent += 1;
+    }
+  }
 
   // 버려지는 노드가 소유하던 paragraph 를 함께 폐기한다 — "수명 = 노드 수명"
   // 계약의 집행 지점 (ADR-174 Phase 2). 실제 delete 는 프레임 flush 후.
@@ -51,15 +80,49 @@ export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
   invalidateNodePicture(elementId);
 }
 
+/**
+ * ADR-266 Phase 4: 자리만 옮긴 노드의 재등록 (page grid 옮기기 — `movePageRoots`). picture 는 노드-로컬
+ * 기록이라 위치와 무관하다 — 새 데이터가 최상위 x · y 말고 같으면 (`sameDrawData`) picture 를 새 데이터로
+ * 옮긴다. 다르면 `registerSkiaNode` 그대로 (해제 · 다시 기록). 줌의 page grid 는 프레임마다 page root 를
+ * 옮겨 (`app-pages` 17 ~ 21 개) 그 picture 를 매번 다시 기록했다.
+ */
+export function registerMovedSkiaNode(
+  elementId: string,
+  data: SkiaNodeData,
+): void {
+  const oldData = skiaNodeRegistry.get(elementId);
+  if (!oldData || oldData === data || !sameDrawData(oldData, data))
+    return registerSkiaNode(elementId, data);
+  releaseParagraphsIn(oldData);
+  skiaNodeRegistry.set(elementId, data);
+  registryVersion++;
+  requestCanvasFrame();
+  retargetNodePicture(elementId, oldData, data);
+}
+
 /** 레지스트리에서 Skia 렌더 데이터 해제 */
 export function unregisterSkiaNode(elementId: string): void {
   const data = skiaNodeRegistry.get(elementId);
-  if (data) releaseParagraphsIn(data);
+  const paragraphs = data ? releaseParagraphsIn(data) : 0;
   skiaNodeRegistry.delete(elementId);
   clearTextDrawOrigin(elementId);
   registryVersion++;
   requestCanvasFrame();
-  invalidateNodePicture(elementId);
+  const release = process.env.NODE_ENV === "development" ? rebindRelease : null;
+  const picture = invalidateNodePicture(
+    elementId,
+    release ? "released" : "invalidated",
+  );
+  if (release) {
+    if (data) release.released.set(elementId, data);
+    if (release.pageGrid) {
+      renderCounters.rebindReleasedParagraphsPageGrid += paragraphs;
+      if (picture) renderCounters.rebindReleasedPicturesPageGrid += 1;
+    } else {
+      renderCounters.rebindReleasedParagraphsOther += paragraphs;
+      if (picture) renderCounters.rebindReleasedPicturesOther += 1;
+    }
+  }
 }
 
 /** 레지스트리에서 Skia 렌더 데이터 조회 */

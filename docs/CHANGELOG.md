@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-266 Implemented — 여러 page 문서의 줌 · 편집에서 그린 것을 버리지 않는다] - 2026-10-17
+
+### Changed
+
+- **ADR-266 종결 (Implemented, 측정 기록 종결)** — 22 페이지 문서 줌의 멈춤 (long task) 은 사라졌고 headed 줌은 목표 안이다. headless 줌 (p99 24 ~ 27 ms · drop 1.1 ~ 1.7 %) · 편집 꼬리는 목표 (20 ms · 1 %) 바로 위로 남아 그 사유 (여러 작은 JS 자리 — Rust 경계 · 엔진 아님) 와 함께 기록했다. Canvas Rust 이관 판정 trigger 1 재판정: 이관 근거 없음.
+  - 위치: `docs/adr/completed/266-draw-cache-thrash-real-document-zoom-edit.md` · `docs/explanation/research/CANVAS_RUST_DECISION_2026-10.md` §1
+
+### Performance
+
+- **줌으로 page 열 수가 바뀔 때 Canvas 를 통째로 다시 묶던 것** (ADR-266 Phase 1) — page 를 자리만 옮겨야 하는데, Button 라벨처럼 요소 안에 따로 그리는 부분 (요소 id 없는 그리기 묶음) 이 있으면 옮기기가 늘 거절돼 전체를 다시 묶었고 그때 글자 paragraph 와 노드 picture 를 모두 버렸다. 그 묶음을 요소로 보지 않고 owner 와 함께 옮긴다. 합성 시험 문서에는 그런 부분이 없어 지금까지 드러나지 않았다.
+  - **Why**: `checkTranslate` 가 서브트리 안 모든 그리기 시작 명령의 id 를 상자 맵에서 찾았고, 내부 그리기 묶음의 id 는 빈 문자열이다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/subtreeTranslate.ts`
+- **picture 캐시가 한 화면보다 작아 줌마다 다시 그리던 것** (ADR-266 Phase 2, 사용자 결정 — working set 동적 상한) — 상한 1,024 가 22 페이지 문서 한 화면 (3,860 ~ 3,961 요소) 보다 작아 순서대로 그릴 때마다 직전 것을 밀어냈다. 상한이 직전 화면이 쓴 수 × 1.25 를 따르고 (줄이기는 1 초 넘게 작은 화면일 때만, 보유 64 MB 상한), 넘을 때의 퇴거는 한 번의 정렬로 (매번 1,024 개를 훑던 것 — production 편집 프로필 1 위). 3,961 개를 들고 있어도 picture 는 약 1 MB 이고 WASM 힙은 그대로였다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/nodePictureCache.ts` · `catalogRuntime/canvasScene.ts`
+- **체크 표시 하나 때문에 화면 밖까지 그리던 것** (ADR-266 Phase 3) — 바깥 그림자 · 두꺼운 선처럼 자기 상자 밖으로 칠하는 요소가 문서에 하나라도 있으면, 화면에 걸친 요소만 그리는 경로와 바뀐 영역만 다시 그리는 경로가 모두 꺼졌다 (22 페이지 문서에서는 체크 표시 8 개). 그런 요소는 조상 clip 이 화면 · 바뀐 영역과 겹칠 때 늘 같이 그린다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+- **처음 줌아웃할 때 멈칫하던 것** (ADR-266 Phase 4, 사용자 결정 — idle 미리 기록) — 화면에 처음 들어오는 요소를 그 프레임에서 처음 그려 3 프레임이 50 ~ 67 ms 걸렸다. 쉬는 시간에 화면 밖 요소를 화면 가운데에서 가까운 것부터 미리 그려 둔다 (최대 4,096 개 ≈ 1 MB, 화면 변화 없음). 줌으로 page 를 옮길 때마다 page 배경을 다시 그리던 것도 내용이 같으면 그대로 쓴다. page 옮기기는 옮길 수 있는지 한 번만 검사한다 (전에는 두 번).
+  - **Why**: picture 는 위치와 무관한 요소 자기 좌표의 기록이라 미리 그려도 같다. 옮긴 page 는 새 데이터 객체로 다시 등록돼 picture 키가 빗나갔다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodePictureWarmup,nodePictureCache,renderCommands,useSkiaNode,subtreeTranslate}.ts` · `catalogRuntime/{canvasScene,canvasBinding}.ts`
+- 사이트 · 앱 모양 22 페이지 문서 (`app-pages`) 의 dev 카운트: 줌 — 다시 묶기 50 → 0 · picture 재기록 94,756 → 0 · 글자 paragraph 재생성 70,312 → 0. 편집 — 전체 다시 그리기 9 → 0 (바뀐 영역만 15). 화면은 처음부터 다시 그린 것 (캐시 끔 · 선형 실행) 과 0 px 차 (줌 6 단계 · 편집 · undo). production (교대 2 쌍): 줌 gap p95 204 ~ 225 → 16 ~ 19 ms · drop 24 ~ 26 % → 0.9 ~ 1.7 % · long task 13 ~ 17 → 0 (headless · headed 120Hz).
+
+### Tests
+
+- **그리기 캐시의 사유별 카운터와 실사용 형태 문서 ratchet** (ADR-266 Phase 0, dev 전용) — page grid 옮기기 거절 사유 · 다시 묶기가 버린 picture · paragraph · picture 미스 (처음 · 퇴거 · 다시 묶기 · 무효화) · paragraph 미스 사유 · 화면 경로 후퇴 사유 · 기록당 그린 요소 수. 성능 ratchet 에 run `60:app-pages` 를 더했다. 하니스 `--zoom` 이 지워진 옛 dev 훅 대신 catalog Canvas 의 카메라 핸들을 쓴다 (prod 빌드에서도 동작). live 대조 `adr266-draw-cache-live.mjs`.
+- 하니스 `--fixed-inputs` 는 idle 미리 기록을 부류마다 카운트 창 밖에서 끝까지 실행한다 (idle 시각이 카운트를 흔들지 않게). 새 카운터 `translateCheckCommands` · `pictureWarmRecorded`.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{renderCounters,nodePictureCache,retainedParagraph,useSkiaNode,sameDrawData}.ts` · `catalogRuntime/{canvasScene,canvasBinding}.ts` · `apps/builder/perf/ratchet.json` · `apps/builder/scripts/{perf-baseline,adr266-draw-cache-live}.mjs`
+
 ## [grid 칸 가이드를 grid 안 요소 아래로] - 2026-10-16
 
 ### Fixed

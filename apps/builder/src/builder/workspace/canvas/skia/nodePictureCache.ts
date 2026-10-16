@@ -35,6 +35,7 @@ import {
 } from "./deferredDisposal";
 import { registerSkiaCacheDestroy } from "./disposable";
 import { registerImageEvictionListener } from "./imageCache";
+import { renderCounters } from "./renderCounters";
 
 interface NodePictureEntry {
   /** skiaNodeRegistry 등록 객체 identity — 내용 변경 감지 키 */
@@ -44,6 +45,8 @@ interface NodePictureEntry {
   picture: SkPicture;
   /** record 시점에 span 이 참조한 SkImage 들 — 퇴거 역참조용 */
   imageRefs: SkImage[] | null;
+  /** CanvasKit 추정 바이트 (`approximateBytesUsed`) — 보유량 상한 (ADR-266 HC5). */
+  bytes: number;
   /**
    * LRU 스탬프. hit 경로가 Map 을 재삽입하는 대신 이 필드만 갱신한다 —
    * hit 은 프레임마다 요소 수만큼 발생하므로 해시 테이블 구조 변경
@@ -61,8 +64,46 @@ interface DragSubtreePictureEntry {
   elementIds: ReadonlySet<string>;
 }
 
-/** GPU/WASM 메모리 보호 상한 (요소당 1 entry — LRU 퇴거) */
-const MAX_NODE_PICTURES = 1024;
+/**
+ * ADR-266 Phase 2 — 상한은 한 화면이 쓰는 picture 수 (working set) 를 따른다 (사용자 결정 1, 2026-10-17).
+ *
+ * 고정 1,024 는 22 페이지 문서 줌 한 화면 (3,860 ~ 3,961 요소) 보다 작아, 순서대로 기록하면 LRU 가 늘
+ * 직전 기록분을 밀어내 다음 기록이 전부 cold 였다 (순차 스캔 thrash). 상한 = 직전 content **full** 기록이
+ * picture 로 지나간 요소 수 (hit + record) × 1.25 — 새 record 수가 아니다 (warm 프레임은 record 0 이라
+ * 상한이 줄어 thrash 가 재발한다, 리뷰 r1 M2). damage · drag 부분 기록은 working set 을 바꾸지 않는다.
+ * 줄이기는 full 기록 60 회 (60Hz 로 1 초) 연속으로 working set 이 상한의 60 % 아래일 때만 (히스테리시스 —
+ * 3 회는 줌 제스처의 확대 쪽 몇 프레임만에 1,024 로 줄어 축소 때 전부 다시 기록했다, dev 퇴거 16,896). 기록 중에는
+ * 그 기록이 이미 지나간 수 × 1.25 아래로 퇴거하지 않는다 — 처음 큰 화면도 자기 앞부분을 밀어내지 않는다.
+ * 보유 바이트 합이 `MAX_NODE_PICTURE_BYTES` 를 넘으면 working set 과 무관하게 퇴거한다 (메모리 상한의 상한).
+ * 측정: picture 3,961 개 ≈ 0.99 MB · WASM 힙 고수위 128 MB 불변 (breakdown §기록).
+ */
+const MIN_NODE_PICTURES = 1024;
+const WORKING_SET_HEADROOM = 1.25;
+const SHRINK_RATIO = 0.6;
+const SHRINK_AFTER_RECORDS = 60;
+/** 퇴거는 한 번에 상한의 이 비율까지 — 선형 스캔 · 정렬을 store 마다 하지 않는다. */
+const EVICT_TO_RATIO = 0.9;
+export const MAX_NODE_PICTURE_BYTES = 64 * 1024 * 1024;
+/**
+ * ADR-266 Phase 4 (사용자 결정 2 「idle 미리 기록」) — 미리 기록 (`nodePictureWarmup`) 이 채우는 picture 수의
+ * 상한. `app-pages` 22 페이지 전체가 3,961 개 ≈ 0.99 MB · WASM 힙 고수위 128 MB 불변 (Phase 2 HC5 실측 —
+ * 전 페이지 줌아웃이 기록하는 양과 같다). 미리 기록이 한 번이라도 채우면 상한이 이 아래로 내려가지 않는다.
+ */
+export const MAX_WARM_NODE_PICTURES = 4096;
+
+let capacity = MIN_NODE_PICTURES;
+let lowRecords = 0;
+/** 지금 content full 기록 중인가 · 그 기록이 picture 로 지나간 요소 수. */
+let fullRecord = false;
+let touched = 0;
+let totalBytes = 0;
+/** 미리 기록이 채운 뒤의 상한 하한 (0 = 미리 기록 없음). */
+let warmFloor = 0;
+/**
+ * 미리 기록한 picture 의 글자 넘침 (아직 화면에 재생 전) — 첫 재생이 가져간다 (`takeWarmTextPaint`).
+ * entry 가 바뀌거나 사라지면 같이 지운다.
+ */
+const warmTextPaint = new Map<string, boolean>();
 
 /** elementId → entry. LRU 순서는 `entry.lastUsed` 스탬프가 보유한다. */
 const cache = new Map<string, NodePictureEntry>();
@@ -82,6 +123,20 @@ let volatileIds: ReadonlySet<string> | null = null;
 
 /** ADR-187 presentation overlay가 draw data를 in-place mutate 중인 노드 */
 let presentationVolatileIds: ReadonlySet<string> | null = null;
+
+/**
+ * ADR-266 Phase 0 (dev 전용): entry 가 왜 사라졌는가 — 다음 `cold` miss 를 사유별로 센다.
+ * `store` 가 지운다. 없으면 처음 기록이다.
+ */
+export type NodePictureLoss =
+  "evicted" | "released" | "invalidated" | "cleared";
+const lossById = new Map<string, NodePictureLoss>();
+const COLD_COUNTER = {
+  evicted: "pictureColdEvicted",
+  released: "pictureColdReleased",
+  invalidated: "pictureColdInvalidated",
+  cleared: "pictureColdCleared",
+} as const;
 
 /** 폰트 로딩으로 fontMgr 가 교체되면 record 된 글리프가 stale — 전량 폐기 기준 */
 let lastFontMgr: FontMgr | null = null;
@@ -130,8 +185,15 @@ export function getCachedNodePicture(
     return null;
   };
 
+  if (fullRecord) touched += 1;
   const entry = cache.get(elementId);
-  if (!entry) return miss("cold");
+  if (!entry) {
+    if (dev) {
+      const loss = lossById.get(elementId);
+      renderCounters[loss ? COLD_COUNTER[loss] : "pictureColdFirst"] += 1;
+    }
+    return miss("cold");
+  }
   if (entry.dataRef !== dataRef) return miss("data");
   if (entry.width !== width || entry.height !== height) return miss("size");
 
@@ -148,16 +210,22 @@ export function storeNodePicture(
   height: number,
   picture: SkPicture,
   imageRefs: SkImage[] | null,
+  /** 미리 기록은 0 — 아직 아무 프레임도 쓰지 않은 entry 는 퇴거 때 가장 먼저 나간다. */
+  lastUsed = ++useClock,
 ): void {
   invalidateNodePicture(elementId); // 기존 entry 가 있으면 Picture 해제 + 역참조 정리
+  if (process.env.NODE_ENV === "development") lossById.delete(elementId);
 
+  const bytes = picture.approximateBytesUsed();
+  totalBytes += bytes;
   cache.set(elementId, {
     dataRef,
     width,
     height,
     picture,
     imageRefs,
-    lastUsed: ++useClock,
+    bytes,
+    lastUsed,
   });
   if (imageRefs) {
     for (const img of imageRefs) {
@@ -170,8 +238,75 @@ export function storeNodePicture(
     }
   }
 
-  if (cache.size > MAX_NODE_PICTURES) evictLeastRecentlyUsed();
+  if (cache.size > effectiveCapacity() || totalBytes > MAX_NODE_PICTURE_BYTES)
+    evictLeastRecentlyUsed();
   syncMetricsSize();
+}
+
+/**
+ * ADR-266 Phase 4: 프레임 밖에서 미리 기록한 picture 저장 (`nodePictureWarmup`). 프레임이 쓰기 전까지는
+ * 퇴거 순서가 가장 앞이고, 상한을 `MAX_WARM_NODE_PICTURES` 아래로 내리지 않는다.
+ */
+export function storeWarmNodePicture(
+  elementId: string,
+  dataRef: object,
+  width: number,
+  height: number,
+  picture: SkPicture,
+  imageRefs: SkImage[] | null,
+  /** 그 기록이 글자를 그렸으면 넘쳤는가 (없으면 undefined). */
+  textOverflows?: boolean,
+): void {
+  warmFloor = MAX_WARM_NODE_PICTURES;
+  storeNodePicture(elementId, dataRef, width, height, picture, imageRefs, 0);
+  if (textOverflows !== undefined && cache.has(elementId))
+    warmTextPaint.set(elementId, textOverflows);
+}
+
+/** 미리 기록한 picture 의 첫 재생 — 보관한 글자 넘침을 꺼낸다 (한 번만). */
+export function takeWarmTextPaint(elementId: string): boolean | undefined {
+  if (warmTextPaint.size === 0) return undefined;
+  const overflows = warmTextPaint.get(elementId);
+  if (overflows !== undefined) warmTextPaint.delete(elementId);
+  return overflows;
+}
+
+/** 미리 기록을 더 할 자리가 있는가 — 수 · 바이트 (퇴거를 일으키지 않는 범위). */
+export function hasNodePictureWarmRoom(): boolean {
+  return (
+    cache.size < MAX_WARM_NODE_PICTURES &&
+    totalBytes < MAX_NODE_PICTURE_BYTES * EVICT_TO_RATIO
+  );
+}
+
+/** 지금 키로 쓸 수 있는 picture 가 있는가 — LRU · 계측을 건드리지 않는다 (미리 기록의 건너뛰기 판정). */
+export function hasNodePicture(
+  elementId: string,
+  dataRef: object,
+  width: number,
+  height: number,
+): boolean {
+  const entry = cache.get(elementId);
+  return (
+    entry !== undefined &&
+    entry.dataRef === dataRef &&
+    entry.width === width &&
+    entry.height === height
+  );
+}
+
+/**
+ * ADR-266 Phase 4: 같은 그림의 새 데이터로 picture 키를 옮긴다 (`registerMovedSkiaNode` — 자리만 옮긴 노드).
+ * entry 가 옛 데이터의 것이 아니면 버린다 (`registerSkiaNode` 와 같다).
+ */
+export function retargetNodePicture(
+  elementId: string,
+  from: object,
+  to: object,
+): void {
+  const entry = cache.get(elementId);
+  if (entry?.dataRef === from) entry.dataRef = to;
+  else invalidateNodePicture(elementId);
 }
 
 /** 동일 command stream/revision에서 기록한 drag subtree picture 조회. */
@@ -286,13 +421,22 @@ export function prepareDragSubtreePictureCache(
   }
 }
 
-/** 단일 노드 entry 폐기 (Picture 해제 + image 역참조 정리) */
-export function invalidateNodePicture(elementId: string): void {
+/**
+ * 단일 노드 entry 폐기 (Picture 해제 + image 역참조 정리). true = entry 가 있었다.
+ * `loss` 는 dev 계측 사유 (ADR-266 Phase 0) — 동작에 쓰지 않는다.
+ */
+export function invalidateNodePicture(
+  elementId: string,
+  loss: NodePictureLoss = "invalidated",
+): boolean {
   const entry = cache.get(elementId);
-  if (!entry) return;
+  if (!entry) return false;
   disposeEntry(elementId, entry);
   cache.delete(elementId);
+  warmTextPaint.delete(elementId);
+  if (process.env.NODE_ENV === "development") lossById.set(elementId, loss);
   syncMetricsSize();
+  return true;
 }
 
 /**
@@ -323,11 +467,72 @@ function invalidateNodePicturesByImage(image: SkImage): void {
  * `drawPicture` 로 제출된 Picture 의 use-after-free 가 된다. teardown 처럼
  * 프레임 밖 정리는 호출측이 drain 을 이어 부른다 (ADR-174 Phase 1).
  */
+/**
+ * ADR-266: content full 기록의 시작 · 끝 (`CatalogCanvasScene.contentNode` 의 `renderSkia`). 끝에서 그
+ * 기록의 working set 으로 상한을 맞춘다. damage 기록은 부르지 않는다.
+ */
+export function beginNodePictureFullRecord(): void {
+  fullRecord = true;
+  touched = 0;
+}
+
+export function endNodePictureFullRecord(): void {
+  if (!fullRecord) return;
+  fullRecord = false;
+  const target = Math.max(
+    MIN_NODE_PICTURES,
+    Math.ceil(touched * WORKING_SET_HEADROOM),
+  );
+  if (target >= capacity) {
+    capacity = target;
+    lowRecords = 0;
+  } else if (touched < capacity * SHRINK_RATIO) {
+    lowRecords += 1;
+    if (lowRecords >= SHRINK_AFTER_RECORDS) {
+      capacity = target;
+      lowRecords = 0;
+      if (cache.size > effectiveCapacity()) evictLeastRecentlyUsed();
+    }
+  } else lowRecords = 0;
+  touched = 0;
+  syncMetricsSize();
+}
+
+/** 상한을 처음 값으로 — 캔버스 teardown (다음 캔버스는 자기 working set 으로 다시 자란다) · 테스트. */
+export function resetNodePictureCapacity(): void {
+  capacity = MIN_NODE_PICTURES;
+  warmFloor = 0;
+  lowRecords = 0;
+  fullRecord = false;
+  touched = 0;
+}
+
+/** 지금 상한 (디버그 · 테스트). */
+export function getNodePictureCapacity(): number {
+  return capacity;
+}
+
+/** 보유 picture 의 CanvasKit 추정 바이트 합 (디버그 · 테스트). */
+export function getNodePictureBytes(): number {
+  return totalBytes;
+}
+
+/** 기록 중에는 그 기록이 지나간 요소를 밀어내지 않는다 · 미리 기록이 채운 수 아래로 내리지 않는다. */
+function effectiveCapacity(): number {
+  const base = fullRecord
+    ? Math.max(capacity, Math.ceil(touched * WORKING_SET_HEADROOM))
+    : capacity;
+  return Math.max(base, warmFloor);
+}
+
 export function clearNodePictureCache(): void {
-  for (const entry of cache.values()) {
+  for (const [id, entry] of cache) {
     scheduleWasmDisposal(entry.picture);
+    if (process.env.NODE_ENV === "development") lossById.set(id, "cleared");
   }
   cache.clear();
+  warmTextPaint.clear();
+  totalBytes = 0;
   imageIndex.clear();
   clearDragSubtreePictureCache();
   dragImageIndex.clear();
@@ -369,22 +574,24 @@ export function getNodePictureCacheSize(): number {
 // ── Internal ──────────────────────────────────────────────────────────
 
 /**
- * 상한 초과 시 `lastUsed` 최소 entry 퇴거.
- * 상한(1024) 도달은 드물어, 선형 스캔 비용이 매 hit 의 Map 재삽입보다 싸다.
+ * 상한 · 바이트 상한을 넘으면 `lastUsed` 가 오래된 것부터 상한의 90 % (바이트도 90 %) 까지 한 번에
+ * 퇴거한다. 한 번의 정렬로 여러 entry 를 내보내 store 마다 1,024 entry 를 훑던 선형 스캔 (ADR-266 C3 —
+ * production 편집 프로필 1 위) 을 없앤다. 지금 기록이 지나간 entry 는 스탬프가 가장 새로워 마지막에 간다.
  */
 function evictLeastRecentlyUsed(): void {
-  let oldestKey: string | undefined;
-  let oldestUse = Infinity;
-  for (const [id, entry] of cache) {
-    if (entry.lastUsed < oldestUse) {
-      oldestUse = entry.lastUsed;
-      oldestKey = id;
+  const countTarget = Math.floor(effectiveCapacity() * EVICT_TO_RATIO);
+  const bytesTarget = Math.floor(MAX_NODE_PICTURE_BYTES * EVICT_TO_RATIO);
+  if (cache.size <= countTarget && totalBytes <= bytesTarget) return;
+  const oldest = [...cache].sort(([, a], [, b]) => a.lastUsed - b.lastUsed);
+  const dev = process.env.NODE_ENV === "development";
+  for (const [id] of oldest) {
+    if (cache.size <= countTarget && totalBytes <= bytesTarget) break;
+    if (cache.size <= 1) break;
+    invalidateNodePicture(id, "evicted");
+    if (dev) {
+      getCacheMetrics("nodePicture").recordEviction();
+      renderCounters.pictureEvictions += 1;
     }
-  }
-  if (oldestKey === undefined) return;
-  invalidateNodePicture(oldestKey);
-  if (process.env.NODE_ENV === "development") {
-    getCacheMetrics("nodePicture").recordEviction();
   }
 }
 
@@ -397,6 +604,7 @@ function syncMetricsSize(): void {
 }
 
 function disposeEntry(elementId: string, entry: NodePictureEntry): void {
+  totalBytes -= entry.bytes;
   // 즉시 delete 금지 — walk 중 LRU 퇴거/교체가 이번 프레임에 이미 그려진
   // (아직 flush 안 된) Picture 를 파괴하면 그 노드의 self-draw 가 소실된다.
   scheduleWasmDisposal(entry.picture);
@@ -414,6 +622,7 @@ function disposeEntry(elementId: string, entry: NodePictureEntry): void {
 // teardown 은 프레임 밖이므로 pending 폐기까지 즉시 배수해 WASM 누수를 막는다.
 registerSkiaCacheDestroy("nodePictureCache", () => {
   clearNodePictureCache();
+  resetNodePictureCapacity();
   drainPendingWasmDisposals();
 });
 
@@ -435,5 +644,8 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   ).__composition_NODE_PICTURE_CACHE_DEBUG__ = {
     size: getNodePictureCacheSize,
     clear: clearNodePictureCache,
+    // ADR-266 HC5: 보유 picture 의 CanvasKit 추정 바이트 합 (WASM 힙 고수위는 예약 크기라 보유량을 못 본다).
+    bytes: getNodePictureBytes,
+    capacity: getNodePictureCapacity,
   };
 }

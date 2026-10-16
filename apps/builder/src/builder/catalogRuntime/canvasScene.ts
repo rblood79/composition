@@ -7,9 +7,20 @@ import {
   executeViewportRenderCommands,
 } from "../workspace/canvas/skia/renderCommands";
 import {
+  beginContentScope,
+  endContentScope,
   renderCounters,
   renderDebug,
 } from "../workspace/canvas/skia/renderCounters";
+import {
+  beginRebindRelease,
+  endRebindRelease,
+} from "../workspace/canvas/skia/useSkiaNode";
+import {
+  beginNodePictureFullRecord,
+  endNodePictureFullRecord,
+} from "../workspace/canvas/skia/nodePictureCache";
+import { requestNodePictureWarmup } from "../workspace/canvas/skia/nodePictureWarmup";
 import type { BoundingBox } from "../workspace/canvas/selection/types";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
@@ -197,9 +208,15 @@ export class CatalogCanvasScene {
             ]),
           )
         : undefined;
-    this.binding.dispose();
-    this.rootIds = this.drawnRoots();
-    this.binding = this.bind();
+    // ADR-266 Phase 0: count what the release drops and what the new bind registers again.
+    beginRebindRelease(reason);
+    try {
+      this.binding.dispose();
+      this.rootIds = this.drawnRoots();
+      this.binding = this.bind();
+    } finally {
+      endRebindRelease();
+    }
     if (process.env.NODE_ENV === "development") {
       if (reason !== "page-grid") renderCounters.rebindOther += 1;
       else {
@@ -236,40 +253,63 @@ export class CatalogCanvasScene {
     return {
       renderSkia: (canvas, bounds) => {
         const stream = this.binding.stream;
-        if (
-          executeViewportRenderCommands(
-            ck,
-            canvas,
-            stream,
-            bounds,
-            this.rootIds,
-            fontMgr(),
-          )
-        )
-          return;
-        executeRenderCommands(
-          ck,
-          canvas,
-          stream.commands,
-          bounds,
-          fontMgr(),
-          stream.selfSpans,
-          undefined,
-          undefined,
-          { subtreeSpans: stream.subtreeSpans },
-        );
-      },
-      // Phase 3: only the damage's SpatialIndex contributors (null → the renderer draws in full).
-      renderDamageSkia: (canvas, bounds) =>
-        process.env.NODE_ENV === "development" && renderDebug.damageOff
-          ? null
-          : executeDamageRenderCommands(
+        // ADR-266 Phase 2: the picture cache sizes itself to what a full record touches.
+        beginNodePictureFullRecord();
+        if (process.env.NODE_ENV === "development") beginContentScope("full");
+        try {
+          if (
+            executeViewportRenderCommands(
               ck,
               canvas,
-              this.binding.stream,
+              stream,
               bounds,
+              this.rootIds,
               fontMgr(),
-            ),
+            )
+          )
+            return;
+          executeRenderCommands(
+            ck,
+            canvas,
+            stream.commands,
+            bounds,
+            fontMgr(),
+            stream.selfSpans,
+            undefined,
+            undefined,
+            { subtreeSpans: stream.subtreeSpans },
+          );
+        } finally {
+          endNodePictureFullRecord();
+          if (process.env.NODE_ENV === "development") endContentScope();
+          // ADR-266 Phase 4: 화면 밖 요소는 쉬는 시간에 미리 기록한다 (처음 줌아웃의 cold 기록).
+          requestNodePictureWarmup(ck, stream, bounds, fontMgr);
+        }
+      },
+      // Phase 3: only the damage's SpatialIndex contributors (null → the renderer draws in full).
+      renderDamageSkia: (canvas, bounds) => {
+        if (process.env.NODE_ENV !== "development")
+          return executeDamageRenderCommands(
+            ck,
+            canvas,
+            this.binding.stream,
+            bounds,
+            fontMgr(),
+          );
+        if (renderDebug.damageOff) return null;
+        beginContentScope("damage");
+        try {
+          return executeDamageRenderCommands(
+            ck,
+            canvas,
+            this.binding.stream,
+            bounds,
+            fontMgr(),
+          );
+        } finally {
+          endContentScope();
+        }
+      },
     };
   }
 

@@ -240,7 +240,8 @@ describe("ADR-263 Phase 5 — patch 검증 한 번 · 살아남는 노드 pictur
       elementId: "leaf2",
     } as never);
     const current = build(["leaf", "leaf2"], 0);
-    const picture = () => ({ delete() {} }) as never;
+    const picture = () =>
+      ({ delete() {}, approximateBytesUsed: () => 0 }) as never;
     const owner = getSkiaNode("owner")!;
     const leaf = getSkiaNode("leaf")!;
     const leaf2 = getSkiaNode("leaf2")!;

@@ -16,6 +16,8 @@
 
 **결론**: trigger 1 이 실사용 형태 문서의 줌에서 성립한다 → 계획대로 새 ADR 의 몫이다 (ADR-921 은 되살리지 않는다). 다만 그 비용의 정체 (§4) 는 Rust 경계 · 엔진이 아니라 JS 그리기 층의 캐시다 — 노드 picture 캐시 상한 (1,024) 보다 많은 요소를 매 기록마다 다시 그리고, 글자 paragraph 를 매번 다시 만든다. 새 ADR 의 대안에 Rust 이관을 넣더라도, 측정은 캐시 · 후퇴 조건의 수정이 먼저임을 가리킨다. trigger 2 · 3 은 미충족. 합성 1만에서 새로 보인 엔진 비용 (§3) 은 이미 Rust 안의 알고리즘이다.
 
+**재판정 (2026-10-17 — [ADR-266](../../adr/completed/266-draw-cache-thrash-real-document-zoom-edit.md) 종결 뒤)**: 캐시 thrash (page grid 재바인드 · picture 상한 · paragraph 재생성 · viewport 후퇴 · 처음 줌아웃의 첫 기록) 를 고친 뒤 `app-pages` 줌 — dev `record.content` p50 46.6 → 4.4 ~ 4.6 · p95 193 → **10.6 ~ 11.3 ms** (picture · 글자 기록 0, 남은 것은 줌아웃 화면의 picture 재생 1,600 개 내외), production gap p95 213 → 16 ~ 19 ms · long task 13 ~ 17 → **0** (headless · headed). trigger 1 은 dev 재생 몫으로 8 ms 경계선 위에 남지만 production 에서 long task 가 사라졌고, 남은 프로필 상위는 JS 의 작은 자리 여럿 (옮기기 검사 3.9 % · 명령 실행 2.8 % · page header 배치 3.6 %, idle 68 %) 이다. JS ↔ wasm 경계 · 엔진 · CanvasKit wasm 은 상위에 없다 (각 1 % 내외) → trigger 2 · 3 미충족 그대로, **Rust 이관 ADR 을 열 근거 없음**. 다음에 trigger 1 을 다시 볼 자리는 picture 재생 수 (요소 단위 picture → 묶음 · 타일 — ADR-266 대안 B) 이고, 그것도 Rust 와 무관한 JS 그리기 층의 선택이다.
+
 ## 2. 측정 조건 · 결과
 
 - 하니스: `perf-baseline.mjs --lane frame`, 부류 zoom · edit · drag · select · select-spread · hover · marquee (부류당 3 초).
@@ -89,4 +91,4 @@ gap p95 / p99 ms · drop % (부류당 3 초, 모든 run visibility `visible` · 
 
 원인 가설 (picture 상한 → 퇴거 → paragraph 재생성) 과 viewport 후퇴의 조건은 새 ADR 의 Phase 0 에서 카운트로 확정한다.
 
-→ **[ADR-266](../../adr/266-draw-cache-thrash-real-document-zoom-edit.md) (2026-10-17 Proposed)**. ADR 작성 때 같은 run 의 카운트를 다시 읽으니 위 가설 앞에 한 자리가 더 있다 — 줌의 자동 열 수 변경에서 ADR-264 의 page root 옮기기가 후퇴해 `rebind("page-grid")` 가 기록 21 회 중 15 회 (`rebindPageGrid` 15 · `pageGridMovedRoots` 292 · `pageGridResized` 0 · `translateCalls` 0), 재등록 (`registerSkiaNode`) 이 picture · paragraph 를 전부 버린다. 상한 thrash 는 재바인드가 없던 6 회에서도 성립한다 (hit 344). 두 몫은 ADR-266 Phase 0 이 가른다.
+→ **[ADR-266](../../adr/completed/266-draw-cache-thrash-real-document-zoom-edit.md) (2026-10-17 Proposed)**. ADR 작성 때 같은 run 의 카운트를 다시 읽으니 위 가설 앞에 한 자리가 더 있다 — 줌의 자동 열 수 변경에서 ADR-264 의 page root 옮기기가 후퇴해 `rebind("page-grid")` 가 기록 21 회 중 15 회 (`rebindPageGrid` 15 · `pageGridMovedRoots` 292 · `pageGridResized` 0 · `translateCalls` 0), 재등록 (`registerSkiaNode`) 이 picture · paragraph 를 전부 버린다. 상한 thrash 는 재바인드가 없던 6 회에서도 성립한다 (hit 344). 두 몫은 ADR-266 Phase 0 이 가른다.

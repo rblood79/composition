@@ -120,10 +120,16 @@ function checkTranslate(
   )
     return { reason: "invalid-span" };
   let unsafePaint = false;
+  if (process.env.NODE_ENV === "development")
+    renderCounters.translateCheckCommands += span.end - span.start;
   for (let index = span.start; index < span.end; index += 1) {
     const command = at(index)!;
     if (command.type !== CMD_ELEMENT_BEGIN) continue;
     const id = command.elementId;
+    // ADR-266: a node's internal child draw (`emitInternalChildDraw` — a button label, a rule
+    // shape) is wrapped with an empty id. It is not an element: its commands are local to the
+    // owner and hold no bounds, so placing the owner places it.
+    if (!id) continue;
     if (stream.topLayerElementIds.has(id)) return { reason: "top-layer" };
     const scrollKey = stream.scrollContextKeyByElement.get(id) ?? "";
     if (
@@ -139,13 +145,30 @@ function checkTranslate(
   return { span, first, unsafePaint };
 }
 
-/** Whether `translateSubtree` would place this subtree (nothing is written). */
-export function canTranslateSubtree(
+/** A checked placement — `applySubtreeTranslate` writes it without scanning the subtree again. */
+export type SubtreeTranslatePlan = Exclude<
+  TranslateCheck,
+  { reason: SubtreeTranslateRejectReason }
+>;
+
+/**
+ * ADR-266 Phase 4: check once, then apply — a caller placing many roots (`movePageRoots`) checks
+ * them all before writing any and hands each check to `applySubtreeTranslate` (it scanned every
+ * root twice: once to decide, once inside `translateSubtree`).
+ */
+export function planSubtreeTranslate(
   stream: RenderCommandStream,
   rootId: string,
   context: SubtreeBuildContext,
-): boolean {
-  return !checkTranslate(stream, rootId, context).reason;
+): TranslateCheck {
+  return checkTranslate(stream, rootId, context);
+}
+
+export function applySubtreeTranslate(
+  input: TranslateSubtreeInput,
+  plan: SubtreeTranslatePlan,
+): TranslateSubtreeResult {
+  return applyTranslate(input, plan);
 }
 
 export function translateSubtree(
@@ -188,6 +211,11 @@ function applyTranslate(
     const command = at(index)!;
     if (command.type === CMD_ELEMENT_BEGIN) {
       const id = command.elementId;
+      // An internal child draw (empty id): owner-local, no maps to move. Its END pops this mark.
+      if (!id) {
+        elements.push(id);
+        continue;
+      }
       const clip = clips[clips.length - 1]!;
       const old = stream.boundsMap.get(id)!;
       const bounds = { ...old, x: old.x + dx, y: old.y + dy };

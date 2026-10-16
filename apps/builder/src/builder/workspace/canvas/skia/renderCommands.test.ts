@@ -652,7 +652,11 @@ describe("executeRenderCommands 노드 Picture 캐시 (ADR-153 Phase 3)", () => 
         } as unknown as Canvas;
       }
       finishRecordingAsPicture(): unknown {
-        return { __stubPicture: true, delete() {} };
+        return {
+          __stubPicture: true,
+          delete() {},
+          approximateBytesUsed: () => 0,
+        };
       }
       delete() {}
     }

@@ -19,18 +19,22 @@ import {
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
 import {
-  canTranslateSubtree,
+  applySubtreeTranslate,
   placeRegion,
-  translateSubtree,
+  planSubtreeTranslate,
   type PlaceRegionResult,
   type SubtreePatchOutcome,
+  type SubtreeTranslatePlan,
+  type SubtreeTranslateRejectReason,
 } from "../workspace/canvas/skia/subtreeTranslate";
 import {
   renderCounters,
   renderDebug,
 } from "../workspace/canvas/skia/renderCounters";
 import type { BoundingBox } from "../workspace/canvas/selection/types";
+
 import {
+  registerMovedSkiaNode,
   registerSkiaNode,
   unregisterSkiaNode,
 } from "../workspace/canvas/skia/useSkiaNode";
@@ -100,6 +104,19 @@ import {
   catalogButtonPending,
   catalogButtonPendingIndicator,
 } from "../../../../../packages/shared/src/catalog/document/buttonPending";
+
+/** ADR-266 Phase 0: the counter a page grid translate rejection adds to. */
+const PAGE_GRID_TRANSLATE_NULL = {
+  "subtree-context": "pageGridMoveNullSubtreeContext",
+  "top-layer": "pageGridMoveNullTopLayer",
+  "drag-offset": "pageGridMoveNullDragOffset",
+  "missing-span": "pageGridMoveNullMissingSpan",
+  "invalid-span": "pageGridMoveNullInvalidSpan",
+  "fixed-or-sticky": "pageGridMoveNullFixedOrSticky",
+} as const satisfies Record<
+  SubtreeTranslateRejectReason,
+  keyof typeof renderCounters
+>;
 
 /**
  * ADR-248 Canvas binding: resolved catalog inputs → existing CanvasKit render commands.
@@ -1825,11 +1842,12 @@ function bindInColorMode(
       for (const id of roots) classify(id, false);
     };
     /** Derive a record's Skia data from its bound rect and register it. */
-    const registerNode = (id: string) => {
+    /** `moved`: the page grid moved it (same box and content) — its picture follows (ADR-266 Phase 4). */
+    const registerNode = (id: string, moved = false) => {
       const node = root.canvasInputs.get(id)!;
       const binding = bindings[bindingKey(node)!];
       const rect = layoutMap.get(id)!;
-      registerSkiaNode(
+      (moved ? registerMovedSkiaNode : registerSkiaNode)(
         id,
         node.hidden ||
           node.derivedProps?._pendingHidden === true ||
@@ -1856,40 +1874,56 @@ function bindInColorMode(
      * cannot be placed (the caller binds again).
      */
     const movePageRoots = (): string[] | null => {
-      if (dirty.size) return null;
+      const dev = process.env.NODE_ENV === "development";
+      // ADR-266 Phase 0: why the page grid binds again instead of placing roots.
+      const nullBecause = (reason: keyof typeof renderCounters): null => {
+        if (dev) renderCounters[reason] += 1;
+        return null;
+      };
+      if (dirty.size) return nullBecause("pageGridMoveNullDirty");
       const next = root.getGeometry(rootIds);
       const moves: Array<[string, Rect]> = [];
       for (const id of rootIds) {
         const before = layoutMap.get(id);
         const after = next.get(id);
-        if (!before || !after) return null;
+        if (!before || !after) return nullBecause("pageGridMoveNullMissing");
         if (before.width !== after.width || before.height !== after.height)
-          return null;
+          return nullBecause("pageGridMoveNullResized");
         if (before.x !== after.x || before.y !== after.y)
           moves.push([id, after]);
       }
       const contexts = moves.map(([id]) =>
         stream.subtreeBuildContextByElement.get(id),
       );
-      if (
-        moves.some(
-          ([id], index) =>
-            !contexts[index] ||
-            !canTranslateSubtree(stream, id, contexts[index]!),
-        )
-      )
-        return null;
+      // ADR-266 Phase 4: check every root once before writing any, then apply those checks.
+      const plans = moves.map(([id], index) =>
+        contexts[index]
+          ? planSubtreeTranslate(stream, id, contexts[index]!)
+          : ({ reason: "subtree-context" } as const),
+      );
+      const rejected = plans.filter((plan) => plan.reason);
+      if (rejected.length) {
+        if (dev) {
+          renderCounters.pageGridMoveBlockedRoots += rejected.length;
+          renderCounters.pageGridMoveMovableRoots +=
+            plans.length - rejected.length;
+        }
+        return nullBecause(PAGE_GRID_TRANSLATE_NULL[rejected[0]!.reason!]);
+      }
       moves.forEach(([id, rect], index) => {
-        translateSubtree({
-          stream,
-          rootId: id,
-          x: rect.x,
-          y: rect.y,
-          context: contexts[index]!,
-          publish: false,
-        });
+        applySubtreeTranslate(
+          {
+            stream,
+            rootId: id,
+            x: rect.x,
+            y: rect.y,
+            context: contexts[index]!,
+            publish: false,
+          },
+          plans[index] as SubtreeTranslatePlan,
+        );
         layoutMap.set(id, { ...rect, elementId: id });
-        registerNode(id);
+        registerNode(id, true);
       });
       if (moves.length) publishPatchedCommandStreamSnapshot(stream);
       return moves.map(([id]) => id);

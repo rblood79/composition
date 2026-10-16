@@ -35,11 +35,13 @@ import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
 import { observe } from "../../../utils/perfMarks";
 import { getCacheMetrics } from "./cacheMetrics";
+import { renderCounters, renderScope } from "./renderCounters";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { getTextParagraphCacheKey } from "./textParagraphKey";
 import {
   getRetainedParagraphCount,
+  lastParagraphMissReason,
   resolveRetainedParagraph,
   retainParagraph,
 } from "./retainedParagraph";
@@ -55,6 +57,12 @@ import { resolveSingleLineGlyphTop } from "./textGlyphCentering";
 // 캐시(nodePicture/paintPool)와 같은 `__composition_CACHE_METRICS__` 채널로,
 // walk 당 draw 수와 고유 키 수(= 중복 계수, G1)는 census 로 노출한다.
 const PARAGRAPH_METRICS_DEV = process.env.NODE_ENV === "development";
+const PARAGRAPH_MISS_COUNTER = {
+  first: "paragraphMissFirst",
+  released: "paragraphMissReleased",
+  key: "paragraphMissKey",
+  fontMgr: "paragraphMissFontMgr",
+} as const;
 
 let censusActive = false;
 let censusDraws = 0;
@@ -452,7 +460,12 @@ export function renderText(
         ),
     };
   }
-  if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
+  if (PARAGRAPH_METRICS_DEV) {
+    getCacheMetrics("paragraph").recordMiss();
+    // ADR-266 Phase 0: 미스 사유 · full 기록 안에서 새로 만든 paragraph 수
+    renderCounters[PARAGRAPH_MISS_COUNTER[lastParagraphMissReason()]] += 1;
+    if (renderScope.kind === "full") renderCounters.contentRecordedText += 1;
+  }
 
   const scope = new SkiaDisposable();
   try {

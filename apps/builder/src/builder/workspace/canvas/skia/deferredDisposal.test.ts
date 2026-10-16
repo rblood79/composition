@@ -28,7 +28,10 @@ import {
 import { destroyAllSkiaCaches } from "./disposable";
 
 function makePicture(): SkPicture & { delete: ReturnType<typeof vi.fn> } {
-  return { delete: vi.fn() } as unknown as SkPicture & {
+  return {
+    delete: vi.fn(),
+    approximateBytesUsed: () => 0,
+  } as unknown as SkPicture & {
     delete: ReturnType<typeof vi.fn>;
   };
 }
@@ -67,7 +70,7 @@ describe("nodePictureCache — 폐기는 drain 시점까지 미뤄진다", () =>
   });
 
   it("상한 초과 LRU 퇴거도 delete 를 미룬다 (walk 중 use-after-free 차단)", () => {
-    const MAX = 1024; // nodePictureCache.MAX_NODE_PICTURES
+    const MAX = 1024; // nodePictureCache MIN_NODE_PICTURES (full 기록 전 상한)
     const pictures: ReturnType<typeof makePicture>[] = [];
     for (let i = 0; i <= MAX; i++) {
       const p = makePicture();
@@ -75,7 +78,8 @@ describe("nodePictureCache — 폐기는 drain 시점까지 미뤄진다", () =>
       storeNodePicture(`el-${i}`, DATA_REF, 10, 10, p, null);
     }
 
-    expect(getNodePictureCacheSize()).toBe(MAX);
+    // ADR-266: 넘으면 상한의 90 % 까지 한 번에 퇴거한다
+    expect(getNodePictureCacheSize()).toBe(Math.floor(MAX * 0.9));
     // 가장 오래된 entry 가 퇴거됐지만 delete 는 아직이다
     const evicted = pictures[0];
     expect(evicted.delete).not.toHaveBeenCalled();

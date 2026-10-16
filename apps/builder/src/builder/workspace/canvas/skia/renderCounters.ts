@@ -81,6 +81,67 @@ export interface RenderCounters {
   placeFallbackTranslate: number;
   placeFallbackShape: number;
   placeFallbackChild: number;
+  /**
+   * ADR-266 Phase 0 — `movePageRoots` 가 null 을 돌려 page grid 재바인드로 간 사유. 대기 delta ·
+   * root 상자 없음 · 크기 변화 · 옮길 수 없는 root (`checkTranslate` 사유별 — 그 호출의 첫 root).
+   */
+  pageGridMoveNullDirty: number;
+  pageGridMoveNullMissing: number;
+  pageGridMoveNullResized: number;
+  pageGridMoveNullSubtreeContext: number;
+  pageGridMoveNullTopLayer: number;
+  pageGridMoveNullDragOffset: number;
+  pageGridMoveNullMissingSpan: number;
+  pageGridMoveNullInvalidSpan: number;
+  pageGridMoveNullFixedOrSticky: number;
+  /** 그 호출에서 옮길 수 없던 root 수 (옮길 수 있던 root 수 — 「안 되는 것만」 재바인드의 몫). */
+  pageGridMoveBlockedRoots: number;
+  pageGridMoveMovableRoots: number;
+  /**
+   * 재바인드 해제 구간 (`scene.rebind` 의 `dispose`) 이 버린 picture entry · paragraph 수 — page grid
+   * 재바인드와 그 밖의 사유로 나눈다. `rebindSameContent` = 새 bind 가 같은 id 로 다시 등록한 데이터가
+   * 옛 데이터와 그리기 내용이 같은 수 (인계 가능량의 상한).
+   */
+  rebindReleasedPicturesPageGrid: number;
+  rebindReleasedPicturesOther: number;
+  rebindReleasedParagraphsPageGrid: number;
+  rebindReleasedParagraphsOther: number;
+  rebindReregistered: number;
+  rebindSameContent: number;
+  /** picture miss `cold` 의 사유 — 처음 · 퇴거 · 재바인드 해제 · 내용 교체 등 무효화 · 전량 폐기. */
+  pictureColdFirst: number;
+  pictureColdEvicted: number;
+  pictureColdReleased: number;
+  pictureColdInvalidated: number;
+  pictureColdCleared: number;
+  /** picture LRU 퇴거 수 (상한 초과). */
+  pictureEvictions: number;
+  /** ADR-266 Phase 4: idle 미리 기록이 새로 기록한 picture 수 (`nodePictureWarmup`). */
+  pictureWarmRecorded: number;
+  /** paragraph miss 사유 — 처음 · 슬롯 해제 뒤 (노드 교체 · 재바인드) · 키 다름 · fontMgr 다름. */
+  paragraphMissFirst: number;
+  paragraphMissReleased: number;
+  paragraphMissKey: number;
+  paragraphMissFontMgr: number;
+  /** viewport 공간 질의 경로가 선형으로 간 사유 (`executeViewportRenderCommands`). */
+  viewportFallbackLinearOnly: number;
+  viewportFallbackNoIndex: number;
+  viewportFallbackUnsafePaint: number;
+  viewportFallbackDragOffset: number;
+  viewportFallbackHalfRule: number;
+  viewportFallbackNoSequence: number;
+  /**
+   * content full 기록이 picture 로 지나간 요소 수 (hit + record = working set) · 그중 새로 record 한 수 ·
+   * paragraph 를 새로 만든 수 · 한 번의 full 기록에서 지나간 최대 수 (상한 1,024 대비). damage 부분
+   * 기록은 따로 센다.
+   */
+  contentTouchedElements: number;
+  contentTouchedMax: number;
+  contentRecordedElements: number;
+  contentRecordedText: number;
+  damageTouchedElements: number;
+  /** ADR-266 Phase 4 — 옮기기 검사 (`checkTranslate`) 가 훑은 명령 수. */
+  translateCheckCommands: number;
 }
 
 const counters: RenderCounters = {
@@ -122,7 +183,71 @@ const counters: RenderCounters = {
   placeFallbackTranslate: 0,
   placeFallbackShape: 0,
   placeFallbackChild: 0,
+  pageGridMoveNullDirty: 0,
+  pageGridMoveNullMissing: 0,
+  pageGridMoveNullResized: 0,
+  pageGridMoveNullSubtreeContext: 0,
+  pageGridMoveNullTopLayer: 0,
+  pageGridMoveNullDragOffset: 0,
+  pageGridMoveNullMissingSpan: 0,
+  pageGridMoveNullInvalidSpan: 0,
+  pageGridMoveNullFixedOrSticky: 0,
+  pageGridMoveBlockedRoots: 0,
+  pageGridMoveMovableRoots: 0,
+  rebindReleasedPicturesPageGrid: 0,
+  rebindReleasedPicturesOther: 0,
+  rebindReleasedParagraphsPageGrid: 0,
+  rebindReleasedParagraphsOther: 0,
+  rebindReregistered: 0,
+  rebindSameContent: 0,
+  pictureColdFirst: 0,
+  pictureColdEvicted: 0,
+  pictureColdReleased: 0,
+  pictureColdInvalidated: 0,
+  pictureColdCleared: 0,
+  pictureEvictions: 0,
+  pictureWarmRecorded: 0,
+  paragraphMissFirst: 0,
+  paragraphMissReleased: 0,
+  paragraphMissKey: 0,
+  paragraphMissFontMgr: 0,
+  viewportFallbackLinearOnly: 0,
+  viewportFallbackNoIndex: 0,
+  viewportFallbackUnsafePaint: 0,
+  viewportFallbackDragOffset: 0,
+  viewportFallbackHalfRule: 0,
+  viewportFallbackNoSequence: 0,
+  contentTouchedElements: 0,
+  contentTouchedMax: 0,
+  contentRecordedElements: 0,
+  contentRecordedText: 0,
+  damageTouchedElements: 0,
+  translateCheckCommands: 0,
 };
+
+/**
+ * ADR-266 Phase 0 — 지금 실행 중인 content 기록의 종류 (full · damage). picture · paragraph 경로가
+ * 기록당 요소 수를 이 구간에 더한다. dev 게이트 안에서만 바뀐다.
+ */
+export const renderScope: {
+  kind: "full" | "damage" | null;
+  touched: number;
+} = { kind: null, touched: 0 };
+
+export function beginContentScope(kind: "full" | "damage"): void {
+  renderScope.kind = kind;
+  renderScope.touched = 0;
+}
+
+export function endContentScope(): void {
+  if (
+    renderScope.kind === "full" &&
+    renderScope.touched > counters.contentTouchedMax
+  )
+    counters.contentTouchedMax = renderScope.touched;
+  renderScope.kind = null;
+  renderScope.touched = 0;
+}
 
 /** 카운터 객체 — 호출부가 필드를 직접 더한다 (dev 게이트 안에서만). */
 export const renderCounters: RenderCounters = counters;

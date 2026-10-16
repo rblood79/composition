@@ -2,16 +2,28 @@
 
 ## Status
 
-Proposed — 2026-10-17
+Implemented — 2026-10-17 (측정 기록 종결 — 사용자 결정 3 재판정 「측정 기록으로 종결」: headless 줌 HC2 · 편집 HC3 미달분은 사유와 함께 아래 · breakdown §기록) · Accepted — 2026-10-17 (근거: 사용자 `/execute-adr 266` 호출 + [reviews/266.md](../reviews/266.md) Round 2 pending 0 · HIGH/MEDIUM 전부 fixed)
 
 - 사용자 요청: `/create-adr 실사용 문서 줌 · 편집의 그리기 캐시 thrash` (2026-10-17)
-- 방향을 정한 사용자 원문: 「없다 모두 삭제해서 원하는 만큼의 page와 element를 만들어라」 (2026-10-17 — 07-30 실문서가 없어 사용자 프로젝트에 사이트 · 앱 모양의 22 페이지 문서를 만들고 같은 생성기를 하니스 fixture `app-pages` 로 넣었다) → 그 문서의 줌에서 Canvas 성능 계획 4단계 trigger 1 (그리기 명령 실행 > 8 ms/frame) 이 성립해 계획대로 새 ADR 로 이어진다 ([CANVAS_RUST_DECISION_2026-10.md](../explanation/research/CANVAS_RUST_DECISION_2026-10.md) §1 · §4). ADR-921 은 되살리지 않는다 (사용자 결정 2026-10-07).
+- 방향을 정한 사용자 원문: 「없다 모두 삭제해서 원하는 만큼의 page와 element를 만들어라」 (2026-10-17 — 07-30 실문서가 없어 사용자 프로젝트에 사이트 · 앱 모양의 22 페이지 문서를 만들고 같은 생성기를 하니스 fixture `app-pages` 로 넣었다) → 그 문서의 줌에서 Canvas 성능 계획 4단계 trigger 1 (그리기 명령 실행 > 8 ms/frame) 이 성립해 계획대로 새 ADR 로 이어진다 ([CANVAS_RUST_DECISION_2026-10.md](../../explanation/research/CANVAS_RUST_DECISION_2026-10.md) §1 · §4). ADR-921 은 되살리지 않는다 (사용자 결정 2026-10-07).
 - 이미 정해진 것: 측정이 설계보다 먼저 (ADR-263 · 264 · 265 와 같은 규율 — 카운트 RED → 수정 → ratchet 하향을 같은 커밋에, measurement-validity §5). wall-clock 은 production 짝만 인용한다. 측정 문서는 `app-pages` (22 페이지 · 노드 3,317 · record 5,116 — 07-30 실문서 5,069 요소 · 23 페이지와 같은 급) 이고, 사람이 만든 문서가 아니라 그 모양을 흉내 낸 생성물이다 (measurement-validity Q1 — 규모 · 형태 전용, 분포 지표로 인용하지 않는다). Rust 이관은 대안으로 두되, 측정이 가리키는 비용은 Rust 경계 · 엔진이 아니라 JS 그리기 층의 캐시 · 재바인드다 (trigger 2 · 3 미충족).
-- 리뷰: [reviews/266.md](reviews/266.md) Round 1 (codex, 2026-10-17 — 기록의 ts 는 UTC 10-16) HIGH 1 · MEDIUM 1 — H1 재바인드는 `dispose()` 가 모든 노드를 먼저 `unregisterSkiaNode` 해 picture · paragraph 를 해제한 뒤 새 bind 가 돌아, 초안의 「등록 교체 분기에서 인계 · 계측」 은 재바인드에 닿지 않는다 (실제 workspace · 엔진 · scene 반례: `scene.rebuild()` 뒤 picture 1 · paragraph 1 실제 delete) · M2 L3 의 동적 상한이 새 record 수 기준이라 warm 프레임 (record 0) 에서 상한이 1,024 로 줄어 thrash 재발 (모델 프로브: `hit 1370 / record 0 / cap 1024` → 다음 `hit 0`). → **r1 반영**: Phase 0 계측을 실제 해제 지점 (`unregisterSkiaNode`, 사유 구간) 으로 · L2 를 두 단계 교체 (`retire` → `bind` → `releaseRemaining`, 사유별 인계 허용, 실패 경로 전량 해제, 실제 scene 경로 테스트 = 리뷰 반례 RED) 로 · L3 기준을 hit + record 의 working set (full 기록만 · damage 축소 금지 · 히스테리시스 · 「같은 visible set 연속 기록 = warm 유지」 계약) 으로 (§코드 사실 C2 · 대안 A · R1 · R2 · 사용자 결정 1 · breakdown §1 ~ §3 · §기록). 구현 · 실제 Builder 픽셀 · production 수치는 UNVERIFIED (execute 의 몫). Round 2 수리 검증 결과는 아래 인용 블록에 기록.
+- 리뷰: [reviews/266.md](../reviews/266.md) Round 1 (codex, 2026-10-17 — 기록의 ts 는 UTC 10-16) HIGH 1 · MEDIUM 1 — H1 재바인드는 `dispose()` 가 모든 노드를 먼저 `unregisterSkiaNode` 해 picture · paragraph 를 해제한 뒤 새 bind 가 돌아, 초안의 「등록 교체 분기에서 인계 · 계측」 은 재바인드에 닿지 않는다 (실제 workspace · 엔진 · scene 반례: `scene.rebuild()` 뒤 picture 1 · paragraph 1 실제 delete) · M2 L3 의 동적 상한이 새 record 수 기준이라 warm 프레임 (record 0) 에서 상한이 1,024 로 줄어 thrash 재발 (모델 프로브: `hit 1370 / record 0 / cap 1024` → 다음 `hit 0`). → **r1 반영**: Phase 0 계측을 실제 해제 지점 (`unregisterSkiaNode`, 사유 구간) 으로 · L2 를 두 단계 교체 (`retire` → `bind` → `releaseRemaining`, 사유별 인계 허용, 실패 경로 전량 해제, 실제 scene 경로 테스트 = 리뷰 반례 RED) 로 · L3 기준을 hit + record 의 working set (full 기록만 · damage 축소 금지 · 히스테리시스 · 「같은 visible set 연속 기록 = warm 유지」 계약) 으로 (§코드 사실 C2 · 대안 A · R1 · R2 · 사용자 결정 1 · breakdown §1 ~ §3 · §기록). 구현 · 실제 Builder 픽셀 · production 수치는 UNVERIFIED (execute 의 몫). Round 2 수리 검증 결과는 아래 인용 블록에 기록.
 
-> **Round 2 수리 검증 (codex, 2026-10-17):** H1·M2 설계 closed, 신규 HIGH/MEDIUM 0 · pending 0 — 설계 승인 가능. 실제 binding에서 옛 자원의 도달성 및 working set 정책 모델 확인 (기존 반례 2 + 수리 검증 3, 5/5 PASS). 제품 구현·Builder 픽셀·production 성능·메모리는 UNVERIFIED. [리뷰 기록](reviews/266.md#round-2). Proposed 유지.
+> **Round 2 수리 검증 (codex, 2026-10-17):** H1·M2 설계 closed, 신규 HIGH/MEDIUM 0 · pending 0 — 설계 승인 가능. 실제 binding에서 옛 자원의 도달성 및 working set 정책 모델 확인 (기존 반례 2 + 수리 검증 3, 5/5 PASS). 제품 구현·Builder 픽셀·production 성능·메모리는 UNVERIFIED. [리뷰 기록](../reviews/266.md#round-2). Proposed 유지.
 
-Related: [ADR-263 그리기 명령 패치·실행 비용](completed/263-render-command-patch-execute-cost.md) (viewport 공간 질의 경로와 그 후퇴 조건의 출처) · [ADR-264 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거](completed/264-moved-subtree-translate-page-grid-rebind.md) (page root 옮기기 — 이 ADR 이 그 후퇴를 다룬다) · [ADR-153 측정 우선 렌더 최적화](completed/153-render-optimization-measurement-first-adoption.md) (노드 picture 캐시 · `MAX_NODE_PICTURES` 상한 · R2 WASM 메모리) · [ADR-174 paragraph retained 수명](completed/174-paragraph-retained-lifetime.md) (paragraph 는 노드 소유 · 상한 재도입 금지 · WASM 힙 2,147 MB abort 사례) · [ADR-246 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [Canvas Rust 판정 측정 (4단계)](../explanation/research/CANVAS_RUST_DECISION_2026-10.md) (이 ADR 의 입력)
+> **Phase 0 종결 (2026-10-17, go):** 사유별 카운터 38 (dev 전용 · 동작 무변경) + `app-pages` ratchet run `60:app-pages` (zoom · edit · pan · page-switch) + 기존 run 3종에 새 키 A 등록, 인위 회귀 `block` 확인. 몫 (dev `--fixed-inputs` 2 회 같은 값): `app-pages` 줌 picture cold 94,756 = 퇴거 53 % · 재바인드 해제 43 % · 처음 4 % (전 페이지 줌아웃 65 / 35 / 0) · working set 최대 3,860 ~ 3,961 (상한 1,024) · 재등록 255,800 전부 같은 그리기 내용 · paragraph miss 의 94 ~ 97 % 가 슬롯 해제 뒤 · viewport 후퇴 66 / 66 `UnsafePaint`. **전제 갱신**: `movePageRoots` null 50 / 50 은 대기 delta · 크기 변화가 아니라 `invalid-span` — 내부 자식 그리기 wrapper (`elementId: ""`) 를 `checkTranslate` 가 요소로 보고 거절했다 (합성 fixture 에 없는 입력). 하니스 `--zoom` 의 dev 훅 복구. [breakdown §기록](../design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md#기록).
+
+> **Phase 1 종결 (2026-10-17 — L1 적용 · L2 보류):** 옮기기가 내부 자식 그리기 wrapper (`elementId: ""`) 를 요소로 보지 않는다 (`subtreeTranslate.ts`). `app-pages` 줌 page grid 재바인드 50 → 0 · paragraph miss 70,312 → 2,786 · picture miss 94,756 → 82,462 (남은 cold = 퇴거). G1 live 9/9 (줌 6 단계 · 편집 · undo, 재바인드 + 캐시 off oracle 과 0 px · 맵 · 후보 동일). ratchet `60:app-pages` 를 수정 뒤 값으로 등록, L1 전 코드는 A 초과 29 로 block. L2 (재바인드 인계) 는 L1 뒤 측정 몫 0 이라 보류 (R1 위험만 남음). 다음 Phase 2 (L3 picture 상한) — 사용자 결정 1.
+
+> **Phase 2 종결 (2026-10-17 — L3, 사용자 결정 1 「working set 동적」):** picture 상한 = 직전 full 기록 working set × 1.25 (하한 1,024 · 줄이기는 60 회 연속 60 % 아래 · 바이트 합 64 MB 상한) · 퇴거는 넘을 때 90 % 까지 한 번의 정렬 (선형 스캔 제거). `app-pages` 줌 picture miss 82,462 → 4,313 (퇴거 0). HC5: picture 3,961 개 ≈ 0.99 MB · WASM 힙 고수위 128 MB 평탄 (처녀 힙 · 줌 · 팬 24 회). 고정 상한 변이 4 RED.
+
+> **Phase 3 종결 (2026-10-17 — L4):** viewport 후퇴 66/66 의 원인은 문서 전체의 unsafe 요소 8 개 (CheckboxIndicator). 칠할 수 있는 unsafe (조상 clip 이 없거나 화면 · damage rect 와 겹침) 를 viewport · damage sequence 에 늘 싣는다 — 하나라도 있으면 선형 · full 이던 것. 줌 viewport sequence 0 → 66 · 편집 full 9 → 0 (damage 15). paragraph 키는 L1 뒤 미스가 전부 처음이라 할 일 없음. G1 live 9/9 · 0 px (oracle = 재바인드 + 캐시 off + 선형). 최종 dev: 줌 picture miss 94,756 → 2,089 · paragraph 70,312 → 1,095 · 재바인드 50 → 0. ratchet `60:app-pages` + 새 키 38, Phase 0 · 1 · 2 코드는 A 초과 51 · 33 · 30 으로 block. 남은 것: G2 (production 짝 · 사용자 프로젝트 live · trigger 1 재판정).
+
+> **Phase 4 (2026-10-17 — 사용자 결정 3 「Phase 추가」 · 결정 2 「idle 미리 기록」):** Phase 3 뒤 G2 가 HC2 · HC3 미달 (줌 p99 39 ~ 42 · long task 1) 이라 남은 비용을 카운트로 고쳤다. 4-1: page grid 옮기기가 root 를 한 번만 검사 (`translateCheckCommands` 2,751,015 → 917,005). 4-2: 남은 long task 는 처음 줌아웃 때 화면에 처음 들어오는 요소의 첫 기록 (3 프레임 · picture 148 ~ 721 · 글자 118 ~ 478) 이었다 → 쉬는 시간에 화면 밖 요소의 picture · 글자를 미리 기록 (`nodePictureWarmup.ts` · 상한 4,096 ≈ 1 MB · 퇴거 없음) + 옮긴 page root 는 내용이 같으면 picture 유지. 미리 기록이 화면 밖 요소의 글자 넘침 표시를 세워 편집을 full 로 보내던 함정은 넘침을 picture 에 보관해 첫 재생에 반영하는 것으로 수리. dev: 줌 picture · 글자 기록 2,089 · 1,095 → 0 · 편집 damage 15 그대로 · live oracle 9/9 · 0 px · 원복 RED (A 초과 10 · 9 · 8 · 7). **production 짝**: 줌 long task 13 ~ 17 → **0** (headless · headed) · headed 줌 HC2 충족 (drop 0.9 ~ 1.2 %) · headless 줌 p99 24 ~ 27 · drop 1.1 ~ 1.7 % (기준 20 · 1 % 바로 위) · 편집 p99 18 ~ 25 (기준 arm 21 ~ 23, 회차 폭이 커 판정 불가). 남은 프로필은 한 자리가 지배하지 않는다 (옮기기 검사 3.9 % · 명령 실행 2.8 % · page header 배치 3.6 %, idle 68 %). [breakdown §기록](../design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md#기록).
+
+> **종결 (2026-10-17 — Implemented, 측정 기록 종결):** 사용자 결정 3 재판정 「측정 기록으로 종결」. 달성: `app-pages` 줌 production gap p95 204 ~ 225 → 16 ~ 19 ms · drop 24 ~ 26 % → 0.9 ~ 1.7 % · long task 13 ~ 17 → 0 (headless · headed), headed HC2 충족 · 팬 · 합성 run 유지 (ratchet). 미달: headless 줌 HC2 (p99 24 ~ 27 · drop 1.1 ~ 1.7 %) · 편집 HC3 (p99 18 ~ 25 — 기준 arm 과 같은 폭) · dev `record.content` p95 10.6 ~ 11.3 ms (8 ms 기준 위 — 기록 0, 재생 몫). 남은 비용은 여러 작은 자리 (옮기기 검사 · 명령 실행 · page header 배치) 이고 Rust 경계 · 엔진은 상위에 없다 → trigger 1 은 「캐시 thrash 해소 뒤 재판정: dev 재생 몫으로 경계선 위, production long task 0」 으로 [CANVAS_RUST_DECISION_2026-10.md](../../explanation/research/CANVAS_RUST_DECISION_2026-10.md) §1 에 기록, trigger 2 · 3 미충족 그대로 — Rust 이관 ADR 을 열 근거 없음. live: 사용자 프로젝트에서 줌 · 편집 · undo · 테마 · Compare Mode · 페이지 전환 (아래 Live Exercise).
+
+Related: [ADR-263 그리기 명령 패치·실행 비용](263-render-command-patch-execute-cost.md) (viewport 공간 질의 경로와 그 후퇴 조건의 출처) · [ADR-264 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거](264-moved-subtree-translate-page-grid-rebind.md) (page root 옮기기 — 이 ADR 이 그 후퇴를 다룬다) · [ADR-153 측정 우선 렌더 최적화](153-render-optimization-measurement-first-adoption.md) (노드 picture 캐시 · `MAX_NODE_PICTURES` 상한 · R2 WASM 메모리) · [ADR-174 paragraph retained 수명](174-paragraph-retained-lifetime.md) (paragraph 는 노드 소유 · 상한 재도입 금지 · WASM 힙 2,147 MB abort 사례) · [ADR-246 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [Canvas Rust 판정 측정 (4단계)](../../explanation/research/CANVAS_RUST_DECISION_2026-10.md) (이 ADR 의 입력)
 
 ## Context
 
@@ -113,7 +125,7 @@ D3 시각 스타일의 consumer 중 **Builder Skia 의 실행 경로** (재바�
 - C 기각 (단독): 비용을 줌 끝으로 미룰 뿐이고 모션 중 흐림이 사용자에게 보인다. 줌 Phase 뒤에도 HC2 미달이고 남은 비용이 기록 자체 (cold 1 회의 정당한 비용) 면 사용자 결정 2.
 - D 기각: 비용의 자리가 JS 캐시 정책 · 재바인드 · 브라우저 글자 측정이라 이관이 비용을 옮기지 못한다. trigger 1 재판정은 종결 뒤 프로필로.
 
-> 구현 상세: [266-draw-cache-thrash-real-document-zoom-edit-breakdown.md](design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md)
+> 구현 상세: [266-draw-cache-thrash-real-document-zoom-edit-breakdown.md](../design/266-draw-cache-thrash-real-document-zoom-edit-breakdown.md)
 
 ### 사용자 결정 3건 (execute-adr 가 해당 Phase 에서 묻는다)
 
@@ -142,7 +154,14 @@ D3 시각 스타일의 consumer 중 **Builder Skia 의 실행 경로** (재바�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-17 · Chrome MCP (사용자 Chrome, dev 5173 · DPR 2 · visibility visible) · 사용자 프로젝트 `/builder/9168f5be-25bb-416b-87b9-ecec2efdd8cf` (22 페이지 · 노드 3,584 — `app-pages` 생성기로 만든 사용자 문서):
+
+- **열기**: 화면을 그린 뒤 쉬는 시간에 미리 기록이 picture 3,011 개를 채워 전체 3,961 개 (1.0 MB) · CanvasKit 힙 128 MB.
+- **줌** (ctrl+휠 180 회, 줌 0.2 ↔ 4 왕복): picture · 글자 기록 **0** · page grid 재바인드 0. 프레임 gap p50 8.4 · p95 41.6 · p99 73.6 ms (dev 빌드 · DPR 2 · 확대 쪽 4 배까지 — 기록이 아닌 재생 · 래스터 몫, production 판정은 아래 G2 짝).
+- **편집 → undo**: Home 의 wrap 섹션 gap 32 → 48 (Design 패널 입력 — 카드 9 개가 옮겨짐) → ⌘Z. 배치가 원래대로 돌아오고, 같은 화면을 oracle (다시 묶기 + picture 캐시 끔 + 선형 실행) 로 다시 그린 것과 눈 대조 동일.
+- **테마**: dark 테마를 만들어 적용 (`createTheme` · activate — 테마 패널이 rail 안에 접혀 있어 명령 경로) → 화면을 oracle 과 대조 동일 → undo 로 라이트 · 테마 목록 원래대로. 테마 전환마다 picture 는 새 데이터로 다시 미리 기록됐다 (idle, 퇴거 0).
+- **Compare Mode · 페이지 전환**: Compare Mode 에서 Home → About → Home — Preview (CSS) 와 Canvas 의 내용 (수치 카드 · 카드 제목 · 본문) 이 같다. 잔상 0.
+- 끝 상태: picture 3,961 · 1.0 MB · 힙 128 MB · 퇴거 0 · 재바인드 0. 콘솔 오류 0 (추적은 Compare Mode 단계부터). 문서는 undo 로 원래대로, 카메라 · 패널 · 활성 페이지도 처음 상태로 되돌렸다.
 
 ## Consequences
 
