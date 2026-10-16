@@ -5,7 +5,12 @@
  * that axis (the flow places it in a free cell of its row · column); an auto-placed item is left
  * to the flow.
  */
-import { lineSpan, lineTrack } from "./canvasGridCells";
+import {
+  gridPlacement,
+  lineSpan,
+  lineTrack,
+  type GridItemLines,
+} from "./canvasGridCells";
 
 /** A start line (1-based) or span to write: a number sets it, `null` clears it. */
 export interface GridLinesEdit {
@@ -38,4 +43,63 @@ export function gridLinesAfterTrackRemoval(
   if (before) edit.start = track - before + 1;
   if (inside) edit.span = span - inside > 1 ? span - inside : null;
   return Object.keys(edit).length ? edit : undefined;
+}
+
+/**
+ * The track order after moving `moving` (0-based) before the old track `before` (0 … count —
+ * `count` = to the end), as `order[newIndex] = oldIndex` (Figma: dragging a track's grabber, a
+ * selection of tracks keeps its own order).
+ */
+export function gridTrackOrderAfterMove(
+  count: number,
+  moving: readonly number[],
+  before: number,
+): number[] {
+  const set = new Set(moving.filter((index) => index >= 0 && index < count));
+  const rest = Array.from({ length: count }, (_, index) => index).filter(
+    (index) => !set.has(index),
+  );
+  const at = rest.filter((index) => index < before).length;
+  const moved = [...set].sort((a, b) => a - b);
+  return [...rest.slice(0, at), ...moved, ...rest.slice(at)];
+}
+
+/**
+ * One axis of an item's lines after reordering the tracks (`order[newIndex] = oldIndex`): a pinned
+ * item goes with its start track (Figma — a track's objects move with it); its span stays.
+ * Undefined when nothing changes (an auto-placed item is left to the flow).
+ */
+export function gridLinesAfterTrackMove(
+  lines: { start?: unknown },
+  order: readonly number[],
+): GridLinesEdit | undefined {
+  const track = lineTrack(lines.start);
+  if (track === undefined) return undefined;
+  const next = order.indexOf(track);
+  return next < 0 || next === track ? undefined : { start: next + 1 };
+}
+
+/**
+ * The items a track delete removes (Figma — deleting a column · row deletes what is in it): those
+ * whose every track on a deleted axis is removed, placed as CSS places them (authored lines, else
+ * auto-placed around those — `gridPlacement`). An item that also spans a kept track stays (its
+ * span shrinks — {@link gridLinesAfterTrackRemoval}). `columnCount` is the old column count.
+ */
+export function gridItemsInRemovedTracks(
+  lines: readonly (GridItemLines | undefined)[],
+  columnCount: number,
+  removed: { column?: readonly number[]; row?: readonly number[] },
+): number[] {
+  const { cells } = gridPlacement(lines, columnCount);
+  const inside = (start: number, span: number, tracks?: readonly number[]) =>
+    !!tracks?.length &&
+    Array.from({ length: span }, (_, at) => start + at).every((track) =>
+      tracks.includes(track),
+    );
+  return cells.flatMap((area, index) =>
+    inside(area.column, area.columnSpan, removed.column) ||
+    inside(area.row, area.rowSpan, removed.row)
+      ? [index]
+      : [],
+  );
 }

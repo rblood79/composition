@@ -140,7 +140,9 @@ describe("the 열 절 「−」 (host): one step for the template and the items"
       return [value(layout.gridColumnStart), value(layout.gridColumnEnd)];
     };
     const depth = workspace.runtime.historyDepth.undo;
-    host.applyGridTracks?.(grid, "column", "repeat(3, minmax(0, 1fr))", [1]);
+    host.applyGridTracks?.(grid, [
+      { axis: "column", template: "repeat(3, minmax(0, 1fr))", removed: [1] },
+    ]);
     expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
     expect(
       (
@@ -158,5 +160,82 @@ describe("the 열 절 「−」 (host): one step for the template and the items"
     expect(box.y).toBeGreaterThanOrEqual(100);
     await workspace.undo();
     expect(layoutOf("b")).toEqual(["2", undefined]);
+
+    // The grid picker (P23) sets both axes: one step for the columns, the rows and the items.
+    const depth2 = workspace.runtime.historyDepth.undo;
+    host.applyGridTracks?.(grid, [
+      {
+        axis: "column",
+        template: "repeat(2, minmax(0, 1fr))",
+        removed: [2, 3],
+      },
+      { axis: "row", template: "minmax(0, 1fr)", removed: [1] },
+    ]);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth2 + 1);
+    const rowOf = (name: string) =>
+      (
+        (graph.getEntry(id(name)) as NodeEntry).layout?.gridRowStart as
+          { value?: string } | undefined
+      )?.value;
+    expect(layoutOf("a")).toEqual(["1", "span 2"]);
+    expect([...layoutOf("b"), rowOf("b")]).toEqual(["2", undefined, undefined]);
+    expect([...layoutOf("c"), rowOf("c")]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+
+    // A track reorder (Canvas header drag, P24): column 4 first — the pinned items follow.
+    await workspace.undo();
+    host.applyGridTracks?.(grid, [
+      {
+        axis: "column",
+        template: "repeat(4, minmax(0, 1fr))",
+        removed: [],
+        order: [3, 0, 1, 2],
+      },
+    ]);
+    expect(layoutOf("c")).toEqual(["1", undefined]);
+    expect(layoutOf("a")).toEqual(["2", "span 3"]);
+    expect(layoutOf("b")).toEqual(["3", undefined]);
+    // A track delete (Layout 「−」 · Canvas Delete — Figma): what is only in it is deleted, a span
+    // across it shrinks, the ones past it shift back.
+    await workspace.undo();
+    host.applyGridTracks?.(grid, [
+      {
+        axis: "column",
+        template: "repeat(3, minmax(0, 1fr))",
+        removed: [1],
+        deleteContents: true,
+      },
+    ]);
+    expect(graph.getEntry(id("b"))).toBeUndefined();
+    expect(layoutOf("a")).toEqual(["1", "span 2"]);
+    expect(layoutOf("c")).toEqual(["3", undefined]);
+    await workspace.undo();
+    expect(graph.getEntry(id("b"))).toBeDefined();
+    // A column to Hug (Figma): b, filling column 2, keeps its drawn width (100) as a fixed width —
+    // one step with the template; a (spans 3) and c (column 4) are not in it.
+    const depth5 = workspace.runtime.historyDepth.undo;
+    host.applyGridTracks?.(grid, [
+      {
+        axis: "column",
+        template: "minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr)",
+        removed: [],
+        hugged: [1],
+      },
+    ]);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth5 + 1);
+    const widthOf = (name: string) =>
+      (
+        (graph.getEntry(id(name)) as NodeEntry).sizing?.width as
+          { value?: number } | undefined
+      )?.value;
+    expect([widthOf("a"), widthOf("b"), widthOf("c")]).toEqual([
+      undefined,
+      100,
+      undefined,
+    ]);
+    expect(workspace.root.getGeometry([b]).get(b)!.width).toBe(100);
   });
 });

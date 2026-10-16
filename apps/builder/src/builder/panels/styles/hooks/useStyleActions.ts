@@ -200,8 +200,9 @@ export function useStyleActions() {
           gap: "",
         });
       } else if (next === "grid") {
-        // grid: flex 축 · 정렬 · 줄바꿈은 패널에서 숨으므로 지운다. 열이 없으면 2열로 시작
-        // (칸이 grid 크기만 나누는 minmax(0, 1fr) — `gridTracks.ts`).
+        // grid: flex 축 · 정렬 · 줄바꿈은 패널에서 숨으므로 지운다. 열이 없으면 Fill 2열 · 행 자동
+        // 으로 시작한다 (Figma 새 grid 의 열은 Fill — 2026-10-16 사용자 정정 「figma 는 fill 이다」.
+        // 칸이 grid 크기만 나누는 minmax(0, 1fr) — `gridTracks.ts`).
         const columns = (selected.style as Record<string, unknown> | undefined)
           ?.gridTemplateColumns;
         host.updateStyles({

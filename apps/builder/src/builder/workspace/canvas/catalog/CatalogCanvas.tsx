@@ -14,6 +14,7 @@ import {
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   CatalogCanvasGestures,
+  type CatalogGridTrackGeometry,
   type CatalogSpacingClick,
 } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
@@ -80,6 +81,8 @@ import { getPagePositionPresentationSnapshot } from "../interaction/pagePosition
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
 import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
 import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
+import { CatalogGridTrackLayer } from "./CatalogGridTrackLayer";
+import { useGridTrackSelection } from "../../../stores/gridTrackSelection";
 import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { watchContextLoss } from "../skia/createSurface";
 import { destroyAllSkiaCaches } from "../skia/disposable";
@@ -251,6 +254,20 @@ export function CatalogCanvas({
     () => {},
   );
   const guidesRef = useRef<CatalogGuideBinding | undefined>(undefined);
+  /** The grid track headers' reads (the effect's scene): a grid's tracks, and a gesture runs. */
+  const gridTracksRef = useRef<
+    ((identity: string) => CatalogGridTrackGeometry | undefined) | undefined
+  >(undefined);
+  const gestureActiveRef = useRef<() => boolean>(() => false);
+  const readGridTracks = useCallback(
+    (identity: string) => gridTracksRef.current?.(identity),
+    [],
+  );
+  const readGestureActive = useCallback(() => gestureActiveRef.current(), []);
+  const readBounds = useCallback(
+    (identity: string) => viewState.boundsOf(identity),
+    [viewState],
+  );
   const activePageId = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId ?? null,
@@ -431,6 +448,23 @@ export function CatalogCanvas({
       }
       return cells;
     };
+    // The track headers (DOM) read the same tracks, cached per drawn scene like the cells.
+    const gridTracksCache = new Map<
+      string,
+      ReturnType<typeof gestures.gridTracksOfRecord>
+    >();
+    let gridTracksCacheVersion = -1;
+    gridTracksRef.current = (identity) => {
+      if (gridTracksCacheVersion !== cellsVersion) {
+        gridTracksCache.clear();
+        gridTracksCacheVersion = cellsVersion;
+      }
+      if (!gridRecordSet().has(identity)) return undefined;
+      if (!gridTracksCache.has(identity))
+        gridTracksCache.set(identity, gestures.gridTracksOfRecord(identity));
+      return gridTracksCache.get(identity);
+    };
+    gestureActiveRef.current = () => !!gestures.preview();
     const overlay = catalogOverlayNode(ck, {
       session: workspace.session.getSnapshot,
       bounds: () => scene.stream.boundsMap,
@@ -541,6 +575,7 @@ export function CatalogCanvas({
       ai: () => useAIVisualFeedbackStore.getState(),
       radiusOf: (id) => getSkiaNode(id)?.box?.borderRadius ?? 0,
       measuring: () => measuring,
+      dashedSelection: () => useGridTrackSelection.getState().cell?.identity,
       spacing: () => {
         const owner = gestures.spacingOwner();
         if (!owner) return undefined;
@@ -885,6 +920,8 @@ export function CatalogCanvas({
       scheduler.invalidate();
     });
     const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
+    const unsubscribeGridTracks =
+      useGridTrackSelection.subscribe(invalidateOverlay);
     // Several loads in one frame bind once (2026-10-05 audit H3 — the old Canvas's subscriber went
     // with it in ADR-248 Phase 4e-9-1 and nothing drew a loaded image until another edit).
     const unsubscribeImages = registerImageLoadCallback(() => {
@@ -1566,6 +1603,7 @@ export function CatalogCanvas({
       unsubscribeRoot();
       unsubscribeData();
       unsubscribeAi();
+      unsubscribeGridTracks();
       unsubscribeImages();
       unsubscribeCompare();
       invalidateOverlayRef.current = undefined;
@@ -1666,6 +1704,12 @@ export function CatalogCanvas({
             callbacks.current.onError?.(error);
           }
         }}
+      />
+      <CatalogGridTrackLayer
+        workspace={workspace}
+        tracksOf={readGridTracks}
+        gestureActive={readGestureActive}
+        boundsOf={readBounds}
       />
       <CatalogDefinitionBar workspace={workspace} />
       <RulerOverlay

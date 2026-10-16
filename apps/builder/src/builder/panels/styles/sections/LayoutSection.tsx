@@ -9,7 +9,7 @@
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -53,6 +53,7 @@ import {
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
+import { GridSizePicker } from "./GridSizePicker";
 import { useParentDisplay } from "../hooks/useTransformAuxiliary";
 import {
   gridTemplateOf,
@@ -75,13 +76,30 @@ const GRID_TRACK_PRESETS = [1, 2, 3, 4, 5, 6].map((count) => ({
 const GridTrackField = memo(function GridTrackField({
   label,
   value,
+  auto,
   onCommit,
 }: {
   label: string;
   value: string;
+  /**
+   * Rows: 「Auto」 — no row template, the rows are the items' (Figma Rows Auto: a row comes with an
+   * item and goes when it empties — CSS implicit rows).
+   */
+  auto?: boolean;
   /** The new template and the tracks it removed (0-based — the last ones on a smaller count). */
   onCommit: (template: string, removed?: readonly number[]) => void;
 }) {
+  const localize = useSemanticLabel();
+  const presets = useMemo(
+    () =>
+      auto
+        ? [
+            { id: "auto", label: localize("Auto"), value: "auto" },
+            ...GRID_TRACK_PRESETS,
+          ]
+        : GRID_TRACK_PRESETS,
+    [auto, localize],
+  );
   const tracks = gridTrackList(value);
   if (tracks === null)
     return (
@@ -99,11 +117,12 @@ const GridTrackField = memo(function GridTrackField({
       allowKeywords={false}
       allowEmptyReset
       preserveEmptyValueOnUnitChange
-      placeholder="auto"
-      presets={GRID_TRACK_PRESETS}
+      placeholder={localize("Auto")}
+      presets={presets}
       onChange={(next) => {
         const count = Number(next.trim());
-        if (!next.trim()) onCommit("");
+        // Auto keeps the pinned items where they are (implicit rows hold them).
+        if (!next.trim() || next.trim().toLowerCase() === "auto") onCommit("");
         else if (Number.isInteger(count) && count > 0)
           onCommit(
             gridTrackListTemplate(gridTrackListResized(tracks, count)),
@@ -210,11 +229,34 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     removed: readonly number[] = [],
   ) => {
     if (removed.length && host.applyGridTracks)
-      host.applyGridTracks(selectedId, axis, template, removed);
+      host.applyGridTracks(selectedId, [{ axis, template, removed }]);
     else
       updateStyles({
         [axis === "column" ? "gridTemplateColumns" : "gridTemplateRows"]:
           template,
+      });
+  };
+  // The grid picker: both counts, the removed tracks' items moved — one step.
+  const pickGridSize = (columns: number, rows: number) => {
+    if (!styleValues) return;
+    const edits = (
+      [
+        ["column", styleValues.gridTemplateColumns, columns],
+        ["row", styleValues.gridTemplateRows, rows],
+      ] as const
+    ).map(([axis, value, count]) => {
+      const tracks = gridTrackList(value) ?? [];
+      return {
+        axis,
+        template: gridTrackListTemplate(gridTrackListResized(tracks, count)),
+        removed: tracks.map((_, index) => index).filter((index) => index >= count),
+      };
+    });
+    if (host.applyGridTracks) host.applyGridTracks(selectedId, edits);
+    else
+      updateStyles({
+        gridTemplateColumns: edits[0]!.template,
+        gridTemplateRows: edits[1]!.template,
       });
   };
   const parentDisplay = useParentDisplay(selectedId);
@@ -322,6 +364,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               onCommit={(template, removed) =>
                 commitGridTracks("row", template, removed)
               }
+              auto
             />
           </div>
         ) : (
@@ -398,8 +441,16 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButtonGroup>
           </div>
         )}
-        {/* 아이콘 칸은 비운다 — 종전 LayoutGrid 버튼은 onPress 없는 dead surface 였다 */}
-        <div className="fieldset-actions" />
+        {/* 아이콘 칸 — grid 면 「열 × 행」 격자 선택기 (Figma), 아니면 비운다 */}
+        <div className="fieldset-actions">
+          {isGrid && (
+            <GridSizePicker
+              columns={gridTrackList(styleValues.gridTemplateColumns)?.length ?? 0}
+              rows={gridTrackList(styleValues.gridTemplateRows)?.length ?? 0}
+              onPick={pickGridSize}
+            />
+          )}
+        </div>
         <div className="justify-control justify-content">
           <legend className="fieldset-legend">{localize("Space")}</legend>
           <ToggleButtonGroup

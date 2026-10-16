@@ -124,6 +124,11 @@ export interface CatalogOverlayInputs {
   overflow?: () => CatalogOverflowTree;
   /** Alt is held: measure from the selection to the hovered record (Figma's Alt-measure). */
   measuring?: () => boolean;
+  /**
+   * A selected grid with a cell selected (Figma): its selection line is dashed — the handles and
+   * size label stay (`CatalogGridTrackLayer` marks the cell).
+   */
+  dashedSelection?: () => string | undefined;
   /** Spacing handles of the selected container when no gesture runs (ADR-222). */
   spacing?: () =>
     | {
@@ -332,7 +337,7 @@ export function catalogOverlayNode(
         withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
           renderOverflowContent(ck, canvas, overflowing, zoom),
         );
-      // A grid selected or hovered, or a selected item's grid (Figma): its cells, dashed — a drag
+      // A grid selected or hovered, or a selected item's grid (Figma): its cells, solid (Figma draws no dashed cell — 사용자 2026-10-16) — a drag
       // draws the target's own.
       if (inputs.gridCells && !inputs.gesture?.()) {
         const grids = new Set<string>();
@@ -348,23 +353,31 @@ export function catalogOverlayNode(
           if (cells.length)
             withOccluders(ck, canvas, occludersOf(id), () => {
               for (const cell of cells)
-                renderHoverHighlight(ck, canvas, cell, zoom, true);
+                renderHoverHighlight(ck, canvas, cell, zoom);
             });
         }
       }
       const moving = new Set(inputs.gesture?.()?.moving ?? []);
+      const dashed = inputs.dashedSelection?.();
       for (const item of state.selection) {
         if (moving.has(item.identity)) continue;
         const box = bounds.get(item.identity);
         if (box)
-          renderSelectionBox(ck, canvas, box, zoom, roleOf(item.identity));
+          renderSelectionBox(
+            ck,
+            canvas,
+            box,
+            zoom,
+            roleOf(item.identity),
+            item.identity === dashed,
+          );
       }
       const gesture = inputs.gesture?.();
       if (gesture) {
         for (const box of gesture.highlights ?? [])
           renderHoverHighlight(ck, canvas, box, zoom);
         if (gesture.marquee) renderLasso(ck, canvas, gesture.marquee, zoom);
-        // A resized grid child: its grid's cells, dashed as while selected (Figma).
+        // A resized grid child: its grid's cells, as while selected (Figma).
         if (gesture.gridGuides?.length)
           withOccluders(
             ck,
@@ -372,7 +385,7 @@ export function catalogOverlayNode(
             occludersOf(state.selection[0]?.identity),
             () => {
               for (const cell of gesture.gridGuides ?? [])
-                renderHoverHighlight(ck, canvas, cell, zoom, true);
+                renderHoverHighlight(ck, canvas, cell, zoom);
             },
           );
         // A grid drop target (Figma): every cell outlined; an append fills its empty cell.

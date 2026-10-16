@@ -1,5 +1,5 @@
 // 2026-10-15 Canvas drop 규칙 (사용자 결정 — Figma 기준) live: 실제 마우스 · 키로
-//   1 grid — 커서에 가장 가까운 칸 사이 (C 를 A 오른쪽 절반에 → [A, C, B])
+//   1 grid — 다른 요소 칸 위 = 그 칸을 차지하고 막는 요소는 가장 가까운 빈 칸으로 (Figma, 2026-10-16 사용자 결정)
 //   2 크기 규칙 — 넓은 W 는 작은 S 에 들어가지 않는다 · ⌘ 를 누르면 들어간다
 //   3 Control drag — A 를 F 에 absolute 로 (F 의 마지막 자식 · placement) · Preview DOM 의 위치 = Canvas
 //
@@ -144,22 +144,30 @@ process.stdout.write(`fixture ${JSON.stringify(ids)}\n`);
 await wait(1200);
 await page.screenshot({ path: `${OUT}/0-fixture.png` });
 
-// 1 — grid: C onto the right half of A → between A and B.
+// 1 — grid (Figma, 2026-10-16 사용자 결정): C onto A → C takes A's cell, A goes to the nearest
+// empty cell (C's old one, below it).
+const cellOf = (id) =>
+  exec(`(cat, id) => { const l = cat.workspace.runtime.graph.getEntry(id)?.layout ?? {};
+    return [l.gridColumnStart?.value, l.gridRowStart?.value]; }`, id);
 await select(ids.C, ids.G);
 await wait(300);
 await drag(await pointOf(ids.C), await pointOf(ids.A, 0.8, 0.5));
-check("1 grid — C 를 A 오른쪽 절반에 → [A, C, B]", JSON.stringify(await children(ids.G)) === JSON.stringify([ids.A, ids.C, ids.B]), await children(ids.G));
+{
+  const c1 = await cellOf(ids.C);
+  const a1 = await cellOf(ids.A);
+  check("1 grid — C 를 A 위로 → C (1,1) · A 가장 가까운 빈 칸 (1,2)", c1.join() === "1,1" && a1.join() === "1,2", { c1, a1 });
+}
 
 // 1b — grid (Figma 실측): over the empty cell beside B every cell is outlined and that cell fills
-// (no line); over A's left half a line before A. Released where it started (no move).
+// (no line); over A its cell fills too (a drop would move A — Figma). Released where it started.
 // S (60 — one cell): W (300 fixed) covers two 180 cells since 2026-10-16 (it takes two cells, the
 // cells keep their size), so the one empty cell beside B does not take it.
 await select(ids.S);
 await wait(300);
 {
   const from = await pointOf(ids.S);
-  // After 1: [A, C, B] — A · C on the first row, B below A; the cell beside B is empty.
-  const emptyCell = { x: (await pointOf(ids.C)).x, y: (await pointOf(ids.B)).y };
+  // After 1: C · B on the first row, A below C; the cell beside A is empty.
+  const emptyCell = { x: (await pointOf(ids.B)).x, y: (await pointOf(ids.A)).y };
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
   for (let i = 1; i <= 12; i++) {
@@ -177,7 +185,7 @@ await wait(300);
   await page.mouse.move(from.x, from.y, { steps: 6 });
   await page.mouse.up();
   await wait(400);
-  check("1b grid — 빈 칸 = 칸 윤곽 4 + 그 칸 채움 (선 없음) · A 왼쪽 = 선", atCell?.cells === 4 && atCell.cell && !atCell.line && atA && !atA.cell && atA.line?.width === 0, { atCell, atA, G: await children(ids.G), S: await exec(`(cat, id) => cat.workspace.runtime.graph.ownerOf?.(id) ?? null`, ids.S) });
+  check("1b grid — 빈 칸 = 칸 윤곽 4 + 그 칸 채움 (선 없음) · A 위 = A 칸 채움 (밀어내기, 선 없음)", atCell?.cells === 4 && atCell.cell && !atCell.line && atA?.cell && !atA.line, { atCell, atA, G: await children(ids.G), S: await exec(`(cat, id) => cat.workspace.runtime.graph.ownerOf?.(id) ?? null`, ids.S) });
 }
 
 // 2 — size rule: W (300 wide) over S (60) stays out; ⌘ lets it in.

@@ -93,6 +93,10 @@ import {
   resolveDragDistanceGuides,
   type MeasureGuide,
 } from "../workspace/canvas/interaction/measureGuides";
+import {
+  gridTrackList,
+  gridTrackListTemplate,
+} from "../panels/styles/utils/gridTracks";
 
 /** Screen px a press must travel before it becomes a drag (the old Builder's threshold). */
 export const CATALOG_DRAG_THRESHOLD_PX = 3;
@@ -100,6 +104,14 @@ export const CATALOG_DRAG_THRESHOLD_PX = 3;
 const PAGE_GRID = "catalog:root";
 const STRUCTURAL = containerTypeSet("structural", { lowercase: true });
 const isNodeSource = (id: string) => id.startsWith("project:node:");
+
+/** A grid's tracks (scene) with its frame and content box — {@link CatalogCanvasGestures.gridTracksOfRecord}. */
+export type CatalogGridTrackGeometry = GridLayout["tracks"] & {
+  frame: BoundingBox;
+  content: BoundingBox;
+  /** Per cell (row-major, `columns.length` per row): whether an item takes it. */
+  occupied: boolean[];
+};
 
 /** What Canvas gestures read and write (the open `CatalogWorkspace` and its Canvas scene). */
 export interface CatalogGestureHost {
@@ -208,6 +220,11 @@ export interface CatalogDropTarget {
   readonly gridCell?: { readonly row: number; readonly column: number };
   /** Over the dragged item's own grid cell: the drop changes nothing. */
   readonly stays?: true;
+  /**
+   * The cell is taken (Figma): the dropped node goes there and the items in its way move to the
+   * nearest empty cells — new rows when none is left.
+   */
+  readonly displace?: true;
 }
 
 /** A move as the Canvas draws it (`dragPresentation`). */
@@ -1861,6 +1878,7 @@ export class CatalogCanvasGestures {
         line: this.insertionLine(record, excluded, slot, gesture.startBox, y),
         ...(grid?.cells ? { cells: grid.cells } : {}),
         ...(grid?.cell ? { cell: grid.cell, gridCell: grid.gridCell } : {}),
+        ...(grid?.displace ? { displace: true as const } : {}),
         ...(grid?.stays ? { stays: true as const } : {}),
         ...(refused ? { relocated: refused } : {}),
       };
@@ -2058,6 +2076,7 @@ export class CatalogCanvasGestures {
         cell?: BoundingBox;
         gridCell?: { row: number; column: number };
         stays?: true;
+        displace?: true;
       }
     | undefined {
     const layout = this.gridLayoutOf(container, gesture.startBox.height);
@@ -2138,6 +2157,40 @@ export class CatalogCanvasGestures {
       x <= cell.x + cell.width &&
       y >= cell.y &&
       y <= cell.y + cell.height;
+    // Another item's cell under the pointer (Figma): one node takes it there — the cell its
+    // dragged box lands on — and the items in its way move (`displace`); more nodes reorder.
+    const over = cells.findIndex((cell, i) => !free(i) && inside(cell));
+    if (over >= 0 && dragged.size === 1) {
+      let best = Infinity;
+      let at = -1;
+      cells.forEach((_, i) => {
+        const { columnSpan } = spanAt(i);
+        if ((i % columns) + columnSpan > columns) return;
+        const point = held(i);
+        const distance = Math.hypot(point.x - x, point.y - y);
+        if (distance < best) {
+          best = distance;
+          at = i;
+        }
+      });
+      if (at >= 0) {
+        const row = Math.floor(at / columns);
+        const column = at % columns;
+        const slot = all.filter(({ id }, i) => {
+          const area = layout.areas[i];
+          return (
+            !dragged.has(id) && !!area && area.row * columns + area.column < at
+          );
+        }).length;
+        return {
+          slot,
+          cells,
+          cell: footprint(at),
+          gridCell: { row, column },
+          displace: true,
+        };
+      }
+    }
     // Another item's cell under the pointer: a reorder around that item.
     let index = cells.findIndex((cell, i) => !free(i) && inside(cell));
     if (index < 0) {
@@ -2213,6 +2266,25 @@ export class CatalogCanvasGestures {
   gridCellsOfRecord(record: string): BoundingBox[] {
     const container = this.host.records.get(record);
     return (container && this.gridLayoutOf(container, 0, false)?.cells) ?? [];
+  }
+
+  /**
+   * A grid container's tracks as the overlay draws them (scene starts · sizes, gaps) and its
+   * content box — the track headers on its top · left edges (Figma). None for any other record.
+   */
+  gridTracksOfRecord(
+    record: string,
+  ): CatalogGridTrackGeometry | undefined {
+    const container = this.host.records.get(record);
+    const frame = container && this.host.bounds(record);
+    const layout = container && this.gridLayoutOf(container, 0, false);
+    if (!container || !frame || !layout) return undefined;
+    return {
+      ...layout.tracks,
+      frame,
+      content: this.contentBox(container, frame),
+      occupied: layout.occupant.map((item) => item >= 0),
+    };
   }
 
   /** A flow child's authored grid lines (the record's resolved layout). */
@@ -2407,6 +2479,79 @@ export class CatalogCanvasGestures {
         break;
       }
     }
+    // A taken cell (Figma): the node goes exactly there and the items in its way move to the
+    // nearest empty cells where they fit — past the last row (new rows) when none is left.
+    const moves = new Map<number, GridArea>();
+    if (drop.displace && records.length === 1) {
+      const spans = this.itemSpan(
+        records[0]!,
+        container,
+        layout,
+        target.column,
+        target.row,
+      );
+      const area: GridArea = {
+        row: target.row,
+        column: target.column,
+        rowSpan: spans.rowSpan,
+        columnSpan: Math.min(spans.columnSpan, columns - target.column),
+      };
+      placed.splice(0, placed.length, area);
+      const overlaps = (a: GridArea, b: GridArea) =>
+        a.row < b.row + b.rowSpan &&
+        b.row < a.row + a.rowSpan &&
+        a.column < b.column + b.columnSpan &&
+        b.column < a.column + a.columnSpan;
+      const inWay = new Set(
+        entries.flatMap(({ id }, at) =>
+          !dragged.has(id) && overlaps(before[at]!, area) ? [at] : [],
+        ),
+      );
+      taken.clear();
+      entries.forEach(({ id }, at) => {
+        if (!dragged.has(id) && !inWay.has(at)) cover(before[at]!);
+      });
+      cover(area);
+      const rows = Math.max(
+        1,
+        Math.ceil(layout.cells.length / columns),
+        ...before.map((cell) => cell.row + cell.rowSpan),
+      );
+      const fitsAt = (row: number, column: number, item: GridArea) => {
+        if (column + item.columnSpan > columns) return false;
+        for (let r = row; r < row + item.rowSpan; r++)
+          for (let c = column; c < column + item.columnSpan; c++)
+            if (taken.has(`${r}:${c}`)) return false;
+        return true;
+      };
+      for (const at of [...inWay].sort(
+        (a, b) =>
+          before[a]!.row * columns +
+          before[a]!.column -
+          (before[b]!.row * columns + before[b]!.column),
+      )) {
+        const item = before[at]!;
+        let best: GridArea | undefined;
+        let distance = Infinity;
+        // The rows there are first; then new rows below (the first cell that fits).
+        for (let row = 0; row + item.rowSpan <= rows; row++)
+          for (let column = 0; column < columns; column++) {
+            if (!fitsAt(row, column, item)) continue;
+            const d =
+              Math.abs(row - item.row) + Math.abs(column - item.column);
+            if (d < distance) {
+              distance = d;
+              best = { ...item, row, column };
+            }
+          }
+        for (let row = rows; !best && row < rows + 64; row++)
+          for (let column = 0; column < columns && !best; column++)
+            if (fitsAt(row, column, item)) best = { ...item, row, column };
+        if (!best) continue;
+        moves.set(at, best);
+        cover(best);
+      }
+    }
     const at1 = (area: GridArea) => ({
       column: String(area.column + 1),
       row: String(area.row + 1),
@@ -2423,9 +2568,13 @@ export class CatalogCanvasGestures {
     for (;;) {
       const next = gridPlacement(
         [
-          ...rest.map(({ at }) =>
-            pins.has(at) ? { ...lines[at], ...at1(before[at]!) } : lines[at],
-          ),
+          ...rest.map(({ at }) => {
+            const moved = moves.get(at);
+            if (moved) return { ...at1(moved), ...spanLines(moved) };
+            return pins.has(at)
+              ? { ...lines[at], ...at1(before[at]!) }
+              : lines[at];
+          }),
           ...placed.map((area) => ({ ...at1(area), ...spanLines(area) })),
         ],
         columns,
@@ -2433,6 +2582,7 @@ export class CatalogCanvasGestures {
       const moved = rest.filter(
         ({ at }, index) =>
           !pins.has(at) &&
+          !moves.has(at) &&
           (next[index]!.row !== before[at]!.row ||
             next[index]!.column !== before[at]!.column),
       );
@@ -2459,6 +2609,53 @@ export class CatalogCanvasGestures {
               row: before[at]!.row + 1,
             })
           : [];
+      }),
+      ...[...moves].flatMap(([at, area]) => {
+        const node = this.host.itemOfRecord(entries[at]!.id)?.target;
+        return node
+          ? write(
+              node,
+              entries[at]!.id,
+              { column: area.column + 1, row: area.row + 1 },
+              area,
+            )
+          : [];
+      }),
+      ...this.gridRowsFor(container, [...placed, ...moves.values()], breakpoint),
+    ];
+  }
+
+  /**
+   * An explicit row template too short for the areas (Figma — a displaced item makes new rows):
+   * more rows like its last one. None for an Auto (implicit) row template.
+   */
+  private gridRowsFor(
+    container: CatalogConsumerNode,
+    areas: readonly GridArea[],
+    breakpoint: ReturnType<CatalogGestureHost["breakpoint"]>,
+  ): CatalogCommand[] {
+    const rows = gridTrackList(
+      String(container.layout.gridTemplateRows ?? ""),
+    );
+    if (!rows?.length) return [];
+    const needed = Math.max(0, ...areas.map((area) => area.row + area.rowSpan));
+    if (needed <= rows.length) return [];
+    const target = this.host.itemOfRecord(container.id)?.target;
+    if (!target) return [];
+    const last = rows[rows.length - 1]!;
+    return [
+      setFields({
+        targets: [target],
+        breakpoint,
+        layout: {
+          gridTemplateRows: {
+            kind: "set",
+            value: gridTrackListTemplate([
+              ...rows,
+              ...Array.from({ length: needed - rows.length }, () => last),
+            ]),
+          },
+        },
       }),
     ];
   }

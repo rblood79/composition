@@ -21,6 +21,8 @@ import {
 } from "../stores/utils/elementDistribution";
 import { catalogCanvasMenuItems, type CatalogMenuHost } from "./canvasMenu";
 import { catalogParentOfNode } from "./insertParent";
+import { catalogGridCellPasteCommand } from "./gridCellPaste";
+import { useGridTrackSelection } from "../stores/gridTrackSelection";
 import { requestCatalogSwap } from "./swapInstance";
 import { openDesignPanel } from "../panels/design/designPanelView";
 import { catalogPageDropCommand } from "./canvasPage";
@@ -355,6 +357,31 @@ export function planCatalogShortcut(
   const planEdit = (itemId: string): CatalogShortcutPlan | undefined =>
     planMenu(itemId) ?? refusedPlan(itemId);
 
+  /** A paste into the selected grid cell (Figma — the selected grid's empty cell). */
+  const gridCellPaste = (): CatalogShortcutPlan | undefined => {
+    const cell = useGridTrackSelection.getState().cell;
+    const selection = workspace.session.getSnapshot().selection;
+    if (
+      !cell ||
+      !workspace.clipboard ||
+      selection.length !== 1 ||
+      selection[0]!.identity !== cell.identity
+    )
+      return undefined;
+    const target = workspace.itemOfRecord(cell.identity)?.target;
+    const command =
+      target &&
+      catalogGridCellPasteCommand({
+        graph: workspace.runtime.graph,
+        target,
+        clipboard: workspace.clipboard,
+        newId: host.newId,
+        breakpoint: workspace.session.getSnapshot().breakpoint,
+        cell,
+      });
+    return command ? () => host.execute(command) : undefined;
+  };
+
   switch (id) {
     case "undo":
       return workspace.runtime.historyDepth.undo > 0
@@ -379,6 +406,8 @@ export function planCatalogShortcut(
     case "paste": {
       // The in-app copy's paste: after the selection, else into the page body.
       const pasteNow = (): CatalogShortcutPlan | undefined => {
+        const intoCell = gridCellPaste();
+        if (intoCell) return intoCell;
         const paste = planMenu("paste");
         if (paste) return paste;
         if (!workspace.clipboard) return undefined;

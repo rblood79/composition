@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
+  removeTargets,
   setFields,
   setWholeField,
 } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -34,7 +35,21 @@ import {
   catalogSemanticPatchCommand,
 } from "../../../catalogRuntime/editContract";
 import { catalogEffectiveStyle } from "../../../catalogRuntime/effectiveStyle";
-import { gridLinesAfterTrackRemoval } from "../../../catalogRuntime/gridTrackEdit";
+import {
+  gridItemsInRemovedTracks,
+  gridLinesAfterTrackMove,
+  gridLinesAfterTrackRemoval,
+} from "../../../catalogRuntime/gridTrackEdit";
+import {
+  gridTrackList,
+  gridTrackListTemplate,
+  gridTrackWithLimit,
+} from "../utils/gridTracks";
+import {
+  gridLayout,
+  gridPlacement,
+  lengthPx,
+} from "../../../catalogRuntime/canvasGridCells";
 import {
   catalogAbsoluteCommand,
   catalogPlacementEditCommand,
@@ -80,7 +95,11 @@ import {
   useCatalogLayoutValue,
   useCatalogLayoutVersion,
 } from "../hooks/useLayoutValue";
-import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
+import type {
+  StylesGridTrackEdit,
+  StylesHost,
+  StylesTargetSnapshot,
+} from "../stylesHostContext";
 import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
 import { resolveElementFills } from "../utils/fillMigration";
 import { isOwnerOrientationTag } from "../utils/orientationDrivenTags";
@@ -327,6 +346,91 @@ export function createCatalogStylesHost(
     }
   };
   /** The selection's (or `subset`'s) style edit as one command (undefined = nothing to write). */
+  /**
+   * A track with no item that becomes Hug keeps its drawn size as its minimum (CSS `auto` of an
+   * empty track is 0 — it would collapse and the label read 「0 Hug」).
+   */
+  const emptyHugKeepsSize = (
+    gridId: string,
+    edits: readonly StylesGridTrackEdit[],
+  ): readonly StylesGridTrackEdit[] => {
+    if (!edits.some((edit) => edit.hugged?.length)) return edits;
+    const records = workspace.root.domInputs;
+    const grid = records.get(gridId);
+    const rect = grid && workspace.root.getGeometry([gridId]).get(gridId);
+    if (!grid || !rect) return edits;
+    const flow = grid.children.filter((child) => {
+      const record = records.get(child);
+      return (
+        !!record &&
+        record.placement?.kind !== "absolute" &&
+        record.layout.position !== "absolute"
+      );
+    });
+    const boxes = workspace.root.getGeometry(flow);
+    const model = catalogBoxModel(grid);
+    const n = (value: unknown) => (typeof value === "number" ? value : 0);
+    const border = n(model.borderWidth);
+    const left = border + n(model.padding?.left);
+    const top = border + n(model.padding?.top);
+    const gap = lengthPx(model.gap) ?? 0;
+    const layout = gridLayout({
+      content: {
+        x: rect.x + left,
+        y: rect.y + top,
+        width: Math.max(
+          0,
+          rect.width - left - border - n(model.padding?.right),
+        ),
+        height: Math.max(
+          0,
+          rect.height - top - border - n(model.padding?.bottom),
+        ),
+      },
+      columns: grid.layout.gridTemplateColumns as string | undefined,
+      rows: grid.layout.gridTemplateRows as string | undefined,
+      columnGap: lengthPx(grid.layout.columnGap) ?? gap,
+      rowGap: lengthPx(grid.layout.rowGap) ?? gap,
+      items: flow.map(
+        (child) => boxes.get(child) ?? { x: 0, y: 0, width: 0, height: 0 },
+      ),
+      lines: flow.map((child) => {
+        const itemLayout = records.get(child)!.layout;
+        return {
+          column: itemLayout.gridColumnStart,
+          row: itemLayout.gridRowStart,
+          columnEnd: itemLayout.gridColumnEnd,
+          rowEnd: itemLayout.gridRowEnd,
+        };
+      }),
+      fallbackHeight: 0,
+      appendRow: false,
+    });
+    return edits.map((edit) => {
+      if (!edit.hugged?.length) return edit;
+      const tracks = gridTrackList(edit.template);
+      const sizes =
+        edit.axis === "column" ? layout.tracks.columns : layout.tracks.rows;
+      if (!tracks) return edit;
+      let changed = false;
+      for (const index of edit.hugged) {
+        const track = tracks[index];
+        const size = sizes[index]?.size;
+        const taken = layout.areas.some((area) =>
+          edit.axis === "column"
+            ? index >= area.column && index < area.column + area.columnSpan
+            : index >= area.row && index < area.row + area.rowSpan,
+        );
+        if (!track || taken || !size || track.kind !== "hug") continue;
+        tracks[index] = gridTrackWithLimit(track, "min", Math.round(size));
+        changed = true;
+      }
+      return changed
+        ? { ...edit, template: gridTrackListTemplate(tracks) }
+        : edit;
+    });
+  };
+
   const styleCommandOf = (
     styles: Record<string, string>,
     subset?: ReturnType<typeof selection>,
@@ -780,14 +884,23 @@ export function createCatalogStylesHost(
       run(() => command);
       return null;
     },
-    applyGridTracks(selectedId, axis, template, removed) {
+    applyGridTracks(selectedId, requested) {
       run(() => {
         const items = selection();
         if (items.length !== 1 || items[0].identity !== selectedId)
           return undefined;
-        const key =
-          axis === "column" ? "gridTemplateColumns" : "gridTemplateRows";
-        const template_ = styleCommandOf({ [key]: template }, items);
+        const edits = emptyHugKeepsSize(items[0].identity, requested);
+        const template_ = styleCommandOf(
+          Object.fromEntries(
+            edits.map((edit) => [
+              edit.axis === "column"
+                ? "gridTemplateColumns"
+                : "gridTemplateRows",
+              edit.template,
+            ]),
+          ),
+          items,
+        );
         if (!template_) return undefined;
         const commands: CatalogCommand[] = [template_];
         const records = workspace.root.domInputs;
@@ -796,11 +909,46 @@ export function createCatalogStylesHost(
           breakpoint === "desktop"
             ? { kind: "remove" }
             : { kind: "set", value: "auto" };
-        const startKey = axis === "column" ? "gridColumnStart" : "gridRowStart";
-        const endKey = axis === "column" ? "gridColumnEnd" : "gridRowEnd";
-        for (const child of removed.length
+        const children = edits.some(
+          (edit) => edit.removed.length || edit.order || edit.hugged?.length,
+        )
           ? (records.get(items[0].identity)?.children ?? [])
-          : []) {
+          : [];
+        // A track delete removes the items only in it (Figma), placed as CSS places them.
+        const flow = children.filter((child) => {
+          const record = records.get(child);
+          return (
+            !!record &&
+            record.placement?.kind !== "absolute" &&
+            record.layout.position !== "absolute"
+          );
+        });
+        const deleted = new Set<string>();
+        const deletes = edits.filter((edit) => edit.deleteContents);
+        if (deletes.length) {
+          const gridLayout = records.get(items[0].identity)?.layout;
+          const columns =
+            gridTrackList(String(gridLayout?.gridTemplateColumns ?? ""))
+              ?.length ?? 1;
+          const removedOf = (axis: "column" | "row") =>
+            deletes.find((edit) => edit.axis === axis)?.removed;
+          for (const index of gridItemsInRemovedTracks(
+            flow.map((child) => {
+              const layout = records.get(child)!.layout;
+              return {
+                column: layout.gridColumnStart,
+                row: layout.gridRowStart,
+                columnEnd: layout.gridColumnEnd,
+                rowEnd: layout.gridRowEnd,
+              };
+            }),
+            columns,
+            { column: removedOf("column"), row: removedOf("row") },
+          ))
+            deleted.add(flow[index]!);
+        }
+        for (const child of children) {
+          if (deleted.has(child)) continue;
           const record = records.get(child);
           const item = workspace.itemOfRecord(child);
           if (
@@ -810,26 +958,85 @@ export function createCatalogStylesHost(
             record.layout.position === "absolute"
           )
             continue;
-          const edit = gridLinesAfterTrackRemoval(
-            { start: record.layout[startKey], end: record.layout[endKey] },
-            removed,
-          );
-          if (!edit) continue;
           const layout: Partial<Record<LayoutField, WriteValue<string>>> = {};
-          if (edit.start !== undefined)
-            layout[startKey] =
-              edit.start === null
-                ? clear
-                : { kind: "set", value: String(edit.start) };
-          if (edit.span !== undefined)
-            layout[endKey] =
-              edit.span === null
-                ? clear
-                : { kind: "set", value: `span ${edit.span}` };
-          commands.push(
-            setFields({ targets: [item.target], breakpoint, layout }),
-          );
+          for (const { axis, removed, order } of edits) {
+            const startKey =
+              axis === "column" ? "gridColumnStart" : "gridRowStart";
+            const endKey = axis === "column" ? "gridColumnEnd" : "gridRowEnd";
+            const lines = {
+              start: record.layout[startKey],
+              end: record.layout[endKey],
+            };
+            const edit = order
+              ? gridLinesAfterTrackMove(lines, order)
+              : gridLinesAfterTrackRemoval(lines, removed);
+            if (!edit) continue;
+            if (edit.start !== undefined)
+              layout[startKey] =
+                edit.start === null
+                  ? clear
+                  : { kind: "set", value: String(edit.start) };
+            if (edit.span !== undefined)
+              layout[endKey] =
+                edit.span === null
+                  ? clear
+                  : { kind: "set", value: `span ${edit.span}` };
+          }
+          if (Object.keys(layout).length)
+            commands.push(
+              setFields({ targets: [item.target], breakpoint, layout }),
+            );
         }
+        // A track that becomes Hug (Figma): its items that filled it keep their drawn size.
+        const hugs = edits.filter((edit) => edit.hugged?.length);
+        if (hugs.length) {
+          const gridLayout = records.get(items[0].identity)?.layout;
+          const columns =
+            gridTrackList(String(gridLayout?.gridTemplateColumns ?? ""))
+              ?.length ?? 1;
+          const { cells } = gridPlacement(
+            flow.map((child) => {
+              const layout = records.get(child)!.layout;
+              return {
+                column: layout.gridColumnStart,
+                row: layout.gridRowStart,
+                columnEnd: layout.gridColumnEnd,
+                rowEnd: layout.gridRowEnd,
+              };
+            }),
+            columns,
+          );
+          const geometry = workspace.root.getGeometry(flow);
+          flow.forEach((child, index) => {
+            const area = cells[index];
+            const record = records.get(child);
+            const item = workspace.itemOfRecord(child);
+            const rect = geometry.get(child);
+            if (!area || !record || !item || !rect) return;
+            const styles: Record<string, string> = {};
+            for (const { axis, hugged } of hugs) {
+              const [start, span, key, size] =
+                axis === "column"
+                  ? [area.column, area.columnSpan, "width", rect.width]
+                  : [area.row, area.rowSpan, "height", rect.height];
+              if (span !== 1 || !hugged!.includes(start)) continue;
+              if (typeof record.sizing?.[key] === "number") continue;
+              styles[key] = `${Math.round(size)}px`;
+            }
+            const command = Object.keys(styles).length
+              ? styleCommandOf(styles, [item])
+              : undefined;
+            if (command) commands.push(command);
+          });
+        }
+        const removedTargets = [...deleted].flatMap((child) => {
+          const item = workspace.itemOfRecord(child);
+          return item ? [item.target] : [];
+        });
+        if (removedTargets.length)
+          commands.push(
+            removeTargets({ targets: removedTargets, newId: workspace.newId }),
+          );
         return ((reader) => {
           // Each write plans on the ones before it (a breakpoint layer is a whole-field put).
           const stage = stageOver(reader);

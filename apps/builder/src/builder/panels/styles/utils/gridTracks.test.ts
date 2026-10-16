@@ -3,10 +3,13 @@ import {
   gridTemplateOf,
   gridTrackList,
   gridTrackListResized,
+  gridTrackLimits,
   gridTrackListTemplate,
   gridTrackOfValue,
+  gridTrackResized,
   gridTrackTemplate,
   gridTrackValue,
+  gridTrackWithLimit,
 } from "./gridTracks";
 
 describe("grid track templates (Columns · Rows)", () => {
@@ -33,7 +36,7 @@ describe("grid track list (Figma — each column · row Fixed / Fill / Hug)", ()
     expect(gridTrackList("")).toEqual([]);
     expect(gridTrackList("50% 1fr")).toBeNull();
     expect(gridTrackList("repeat(auto-fill, minmax(100px, 1fr))")).toBeNull();
-    expect(gridTrackList("minmax(100px, 1fr)")).toBeNull();
+    expect(gridTrackList("minmax(0, auto)")).toBeNull();
   });
 
   it("writes a list back — even Fill tracks as repeat, others token by token", () => {
@@ -73,5 +76,59 @@ describe("grid track list (Figma — each column · row Fixed / Fill / Hug)", ()
     expect(
       gridTrackListResized([{ kind: "fixed", px: 120 }, { kind: "hug" }], 1),
     ).toEqual([{ kind: "fixed", px: 120 }]);
+  });
+});
+
+describe("track minimum · maximum (Figma track min / max — only what CSS writes)", () => {
+  it("Fill + min · Hug + min · Hug + max round-trip; min 0 is no minimum", () => {
+    const tracks = gridTrackList(
+      "minmax(120px, 2fr) minmax(80px, auto) fit-content(240px) minmax(0, 1fr)",
+    );
+    expect(tracks).toEqual([
+      { kind: "fill", weight: 2, min: 120 },
+      { kind: "hug", min: 80 },
+      { kind: "hug", max: 240 },
+      { kind: "fill", weight: 1 },
+    ]);
+    expect(gridTrackListTemplate(tracks!)).toBe(
+      "minmax(120px, 2fr) minmax(80px, auto) fit-content(240px) minmax(0, 1fr)",
+    );
+    // A Fill with a minimum is not an even track any more.
+    expect(
+      gridTrackListTemplate([
+        { kind: "fill", weight: 1, min: 50 },
+        { kind: "fill", weight: 1 },
+      ]),
+    ).toBe("minmax(50px, 1fr) minmax(0, 1fr)");
+  });
+
+  it("a track takes only the limits CSS can write: Fixed none, Fill a min, Hug a min or a max", () => {
+    expect(gridTrackLimits({ kind: "fixed", px: 10 })).toEqual({ min: false, max: false });
+    expect(gridTrackLimits({ kind: "fill", weight: 1 })).toEqual({ min: true, max: false });
+    expect(gridTrackLimits({ kind: "hug" })).toEqual({ min: true, max: true });
+    expect(gridTrackLimits({ kind: "hug", min: 20 })).toEqual({ min: true, max: false });
+    expect(gridTrackWithLimit({ kind: "fill", weight: 1 }, "max", 300)).toEqual({
+      kind: "fill",
+      weight: 1,
+    });
+    expect(gridTrackWithLimit({ kind: "hug", min: 20 }, "min", undefined)).toEqual({
+      kind: "hug",
+    });
+    expect(gridTrackWithLimit({ kind: "hug" }, "max", 200)).toEqual({
+      kind: "hug",
+      max: 200,
+    });
+  });
+
+  it("a size edit keeps the limits the new kind takes", () => {
+    expect(
+      gridTrackResized({ kind: "fill", weight: 1, min: 40 }, { kind: "hug" }),
+    ).toEqual({ kind: "hug", min: 40 });
+    expect(
+      gridTrackResized({ kind: "hug", max: 90 }, { kind: "fill", weight: 2 }),
+    ).toEqual({ kind: "fill", weight: 2 });
+    expect(
+      gridTrackResized({ kind: "fill", weight: 1, min: 40 }, { kind: "fixed", px: 80 }),
+    ).toEqual({ kind: "fixed", px: 80 });
   });
 });

@@ -9,7 +9,10 @@ import {
   type CatalogOverlayInputs,
 } from "./catalogOverlay";
 import { renderHoverHighlight } from "../skia/hoverRenderer";
-import { renderSelectionBox } from "../skia/selectionRenderer";
+import {
+  renderSelectionBox,
+  renderTransformHandles,
+} from "../skia/selectionRenderer";
 
 vi.mock("../skia/hoverRenderer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../skia/hoverRenderer")>()),
@@ -199,6 +202,24 @@ describe("Builder 전용 Page 기본 테두리", () => {
     node.dispose();
   });
 
+  it("칸이 선택된 grid 는 선택선만 점선 — 모서리 핸들은 그대로 (Figma)", () => {
+    const input = inputs();
+    const base = input.session();
+    const { ck, canvas } = surface();
+    input.pageBorders = undefined;
+    input.session = () => ({ ...base, selection: [item("a")] });
+    input.dashedSelection = () => "a";
+    const node = catalogOverlayNode(ck, input);
+    node.renderSkia(canvas, viewport);
+    expect(vi.mocked(renderSelectionBox).mock.calls[0]?.[5]).toBe(true);
+    expect(renderTransformHandles).toHaveBeenCalledTimes(1);
+    vi.clearAllMocks();
+    input.dashedSelection = () => undefined;
+    node.renderSkia(canvas, viewport);
+    expect(vi.mocked(renderSelectionBox).mock.calls[0]?.[5]).toBe(false);
+    node.dispose();
+  });
+
   it("grid 의 자식을 선택해도 부모 grid 의 칸 가이드를 그린다 (Figma)", () => {
     const input = inputs();
     const base = input.session();
@@ -214,25 +235,15 @@ describe("Builder 전용 Page 기본 테두리", () => {
     const node = catalogOverlayNode(ck, input);
     node.renderSkia(canvas, viewport);
     for (const cell of cells)
-      expect(renderHoverHighlight).toHaveBeenCalledWith(
-        ck,
-        canvas,
-        cell,
-        2,
-        true,
-      );
+      // Solid (Figma draws no dashed cell — 사용자 2026-10-16).
+      expect(renderHoverHighlight).toHaveBeenCalledWith(ck, canvas, cell, 2);
     // A resize drag of the child keeps them (the gesture carries its grid's cells).
     vi.clearAllMocks();
     input.gesture = () => ({ gridGuides: cells });
     node.renderSkia(canvas, viewport);
     for (const cell of cells)
-      expect(renderHoverHighlight).toHaveBeenCalledWith(
-        ck,
-        canvas,
-        cell,
-        2,
-        true,
-      );
+      // Solid (Figma draws no dashed cell — 사용자 2026-10-16).
+      expect(renderHoverHighlight).toHaveBeenCalledWith(ck, canvas, cell, 2);
     node.dispose();
   });
 

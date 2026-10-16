@@ -235,6 +235,8 @@ export function renderSelectionBox(
   bounds: BoundingBox,
   zoom: number,
   semanticRole: EditingSemanticsRole | null = null,
+  /** A grid with a cell selected (Figma): its selection line goes dashed, the handles stay. */
+  dashed = false,
 ): void {
   const sw = 1 / zoom;
   strokeBoundsRect(
@@ -243,7 +245,11 @@ export function renderSelectionBox(
     bounds,
     getSemanticOverlayColor(ck, semanticRole, 1),
     sw,
-    semanticRole === "instance" ? [sw, sw * 1.8] : null,
+    dashed
+      ? [sw * 4, sw * 3]
+      : semanticRole === "instance"
+        ? [sw, sw * 1.8]
+        : null,
   );
 }
 

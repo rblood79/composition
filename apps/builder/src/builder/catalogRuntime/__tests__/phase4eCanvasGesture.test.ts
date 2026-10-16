@@ -844,9 +844,8 @@ describe("Canvas drop rules (Figma)", () => {
     return entry?.kind === "node" ? entry.placement : undefined;
   };
 
-  it("a grid container drops between the cells nearest the cursor (row-major), with a vertical line", async () => {
-    const { workspace, scene, gestures, record, box, center, children } =
-      await open();
+  it("over another item's cell (Figma, 2026-10-16 사용자 결정): the node takes it, the item in its way goes to the nearest empty cell", async () => {
+    const { workspace, scene, gestures, record, box, center } = await open();
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: id("list") }],
@@ -864,14 +863,29 @@ describe("Canvas drop rules (Figma)", () => {
     const [cx, cy] = center("c");
     const a = box("a");
     gestures.beginMove(cx, cy, record("c"));
-    // Right of a's centre on its row: between a and b.
     gestures.update(a.x + a.width * 0.75, a.y + a.height / 2, 1);
-    const line = gestures.preview()!.line!;
-    expect(line.width).toBe(0);
-    expect(line.x).toBeGreaterThanOrEqual(a.x + a.width);
-    expect(line.x).toBeLessThanOrEqual(box("b").x);
+    expect(gestures.preview()!.cell).toEqual({
+      x: a.x,
+      y: a.y,
+      width: a.width,
+      height: expect.any(Number),
+    });
+    expect(gestures.preview()!.line).toBeUndefined();
     gestures.finish();
-    expect(children("list")).toEqual([id("a"), id("c"), id("b")]);
+    scene.sync();
+    const lines = (name: string) => {
+      const entry = workspace.runtime.graph.getEntry(id(name));
+      const layout = entry?.kind === "node" ? entry.layout : undefined;
+      return [layout?.gridColumnStart, layout?.gridRowStart].map(
+        (write) => (write as { value?: string } | undefined)?.value,
+      );
+    };
+    expect(lines("c")).toEqual(["1", "1"]);
+    // a: the free cell nearest its own (c's old cell, below it).
+    expect(lines("a")).toEqual(["1", "2"]);
+    expect(box("c").x).toBe(a.x);
+    expect(box("c").y).toBe(a.y);
+    expect(box("a").y).toBeGreaterThan(box("c").y);
   });
 
   it("a grid target (Figma): every cell outlined; an append from outside fills the empty cell; a row start's line sits mid-padding", async () => {
@@ -911,15 +925,12 @@ describe("Canvas drop rules (Figma)", () => {
       height: c.height,
     });
     expect(preview.line).toBeUndefined();
-    // Over a's left half: before a — mid-padding, as tall as the cell.
+    // Over a: its cell (Figma — a goes to an empty cell on the drop), no line.
     gestures.update(a.x + 2, a.y + a.height / 2, 1, { bypassSize: true });
-    expect(gestures.preview()!.cell).toBeUndefined();
-    expect(gestures.preview()!.line).toEqual({
-      x: (list.x + a.x) / 2,
-      y: a.y,
-      width: 0,
-      height: a.height,
-    });
+    expect(gestures.preview()!.cell?.x).toBe(a.x);
+    expect(gestures.preview()!.cell?.y).toBe(a.y);
+    expect(gestures.preview()!.line).toBeUndefined();
+    expect(list.x).toBeLessThan(a.x);
     gestures.cancel();
   });
 
@@ -1003,16 +1014,45 @@ describe("Canvas drop rules (Figma)", () => {
     expect(box("c")).toEqual(c);
     expect(box("a").x).toBe(c.x);
     expect(box("a").y).toBeGreaterThan(list.y + list.height / 2);
-    // Back over another item's left half: a joins the order before it (unpinned).
-    const [bx, by] = center("b");
+    // Back over b (Figma): a takes b's cell, b goes to the nearest empty one (the first).
+    const [, by] = center("b");
     workspace.selectRecords([record("a")]);
     const [ax2, ay2] = center("a");
     gestures.beginMove(ax2, ay2, record("a"));
     gestures.update(box("b").x + 2, by, 1);
-    expect(gestures.preview()!.cell).toBeUndefined();
-    expect(bx).toBeGreaterThan(0);
+    expect(gestures.preview()!.cell).toEqual(preview.cells![1]);
     gestures.finish();
-    expect(linesOf(workspace, "a").slice(0, 2)).toEqual([undefined, undefined]);
+    expect(linesOf(workspace, "a").slice(0, 2)).toEqual(["2", "1"]);
+    expect(linesOf(workspace, "b").slice(0, 2)).toEqual(["1", "1"]);
+    expect(linesOf(workspace, "c").slice(0, 2)).toEqual(["3", "1"]);
+  });
+
+  it("a taken cell with no empty one left (Figma): the item in its way goes to a new row — the row template grows", async () => {
+    const { workspace, scene, gestures, record, box, center } = await gridOf({
+      gridTemplateRows: "minmax(0, 1fr)",
+    });
+    // a · b · c fill the one row; d (in box) is dropped on b.
+    workspace.selectRecords([record("d")]);
+    const [dx, dy] = center("d");
+    const b = box("b");
+    gestures.beginMove(dx, dy, record("d"));
+    gestures.update(b.x + b.width / 2, b.y + b.height / 2, 1, {
+      bypassSize: true,
+    });
+    expect(gestures.preview()!.cell?.x).toBe(b.x);
+    const depth = workspace.runtime.historyDepth.undo;
+    expect(gestures.finish()).toBe(true);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    scene.sync();
+    expect(linesOf(workspace, "d").slice(0, 2)).toEqual(["2", "1"]);
+    // b: the nearest cell in the new row (right below where it was).
+    expect(linesOf(workspace, "b").slice(0, 2)).toEqual(["2", "2"]);
+    const list = workspace.runtime.graph.getEntry(id("list"));
+    expect(
+      list?.kind === "node" &&
+        (list.layout?.gridTemplateRows as { value?: string }).value,
+    ).toBe("repeat(2, minmax(0, 1fr))");
+    expect(box("b").y).toBeGreaterThan(box("d").y);
   });
 
   it("a node spanning two columns takes an empty cell only where both are free, and keeps its span", async () => {

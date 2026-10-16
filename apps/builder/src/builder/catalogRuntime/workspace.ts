@@ -1,4 +1,5 @@
 import { catalogAutoHtmlIds } from "./attributes";
+import { catalogGridAutoRows } from "./gridAutoRows";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   BreakpointName,
@@ -506,12 +507,15 @@ export class CatalogWorkspace {
     // The Components page: a sample's root writes become its origin's project defaults.
     const view = this.definitionView;
     // Each element the action creates gets its author DOM id (the old `customId`) in this step.
+    // Rows 「자동」 grids close the rows the step left empty (Figma), in the same step.
     const executed = this.root.execute(
       catalogAutoHtmlIds(
         this.runtime.graph,
-        isComponentsView(view)
-          ? catalogOriginEditCommand(this.runtime.graph, command, this.newId)
-          : command,
+        catalogGridAutoRows(
+          isComponentsView(view)
+            ? catalogOriginEditCommand(this.runtime.graph, command, this.newId)
+            : command,
+        ),
       ),
     );
     this.afterStep(executed.result);

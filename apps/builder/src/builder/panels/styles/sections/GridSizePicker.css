@@ -1,0 +1,51 @@
+/**
+ * GridSizePicker — 「열 × 행」 격자 선택기 팝오버 (Figma grid, 2026-10-16).
+ * 칸 10 × 10 · 지나간 범위는 accent 로 (무채색 chrome 이라 명도로 강조 — css-tokens.md).
+ */
+
+@layer components {
+  .grid-size-picker-popover.react-aria-Popover {
+    background: var(--bg-raised);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-sm);
+  }
+
+  .grid-size-picker {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    outline: none;
+  }
+
+  .grid-size-picker-readout {
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+    text-align: center;
+  }
+
+  .grid-size-picker-cells {
+    display: grid;
+    grid-template-columns: repeat(10, 14px);
+    grid-auto-rows: 14px;
+    gap: 2px;
+  }
+
+  .grid-size-picker-cell {
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: var(--bg-muted);
+    cursor: pointer;
+
+    &[data-active] {
+      background: var(--accent);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 1px;
+    }
+  }
+}

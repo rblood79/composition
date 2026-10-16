@@ -48,23 +48,36 @@ function expandTracks(template: string | undefined): string[] | undefined {
 interface TrackKind {
   fixed?: number;
   fr?: number;
-  /** `minmax(0, …)`: an item does not grow the track (its minimum is 0, not the content). */
-  zeroMin?: boolean;
+  /**
+   * A length minimum (`minmax(120px, …)`): the track's base instead of its largest item —
+   * `minmax(0, 1fr)` is 0 (an item does not grow it).
+   */
+  floor?: number;
+  /** `fit-content(240px)`: the largest item, at most this — and it does not stretch. */
+  cap?: number;
 }
 
-/** A template token's sizing: px · % fixed, `fr` (also a `minmax(…, fr)` max), else content. */
+/**
+ * A template token's sizing: px · % fixed, `fr` (also a `minmax(…, fr)` max), `fit-content(px)`,
+ * else content (`auto`, `minmax(px, auto)` …).
+ */
 function trackKind(token: string | undefined, length: number): TrackKind {
   if (!token) return {};
+  const fit = /^fit-content\(\s*(.+)\)$/.exec(token);
+  if (fit) {
+    const cap = lengthPx(fit[1]!.trim());
+    return cap === undefined ? {} : { cap };
+  }
   const minmax = /^minmax\(\s*([^,]+),\s*(.+)\)$/.exec(token);
   const max = minmax?.[2]?.trim() ?? token;
-  const zeroMin = !!minmax && lengthPx(minmax[1]!.trim()) === 0;
+  const floor = minmax ? lengthPx(minmax[1]!.trim()) : undefined;
   const px = lengthPx(max);
   if (px !== undefined) return { fixed: px };
   const percent = /^(\d+(\.\d+)?)%$/.exec(max);
   if (percent) return { fixed: (length * Number(percent[1])) / 100 };
   const flex = /^(\d+(\.\d+)?)fr$/.exec(max);
-  if (flex) return { fr: Number(flex[1]), ...(zeroMin ? { zeroMin } : {}) };
-  return {};
+  if (flex) return { fr: Number(flex[1]), ...(floor !== undefined ? { floor } : {}) };
+  return floor !== undefined ? { floor } : {};
 }
 
 /** Track sizes along `length`; `content` = the largest item per track (0 for none). */
@@ -74,27 +87,51 @@ function sizeTracks(
   length: number,
   gap: number,
 ): { start: number; size: number }[] {
-  const sizes = kinds.map(
-    (kind, index) => kind.fixed ?? (kind.fr ? 0 : (content[index] ?? 0)),
-  );
-  const used =
-    sizes.reduce((sum, size) => sum + size, 0) +
-    gap * Math.max(0, kinds.length - 1);
-  const free = Math.max(0, length - used);
+  const base = (kind: TrackKind, index: number) =>
+    Math.max(kind.floor ?? 0, kind.floor !== undefined && kind.fr ? 0 : (content[index] ?? 0));
+  const sizes = kinds.map((kind, index) => {
+    if (kind.fixed !== undefined) return kind.fixed;
+    if (kind.fr) return 0;
+    const size = base(kind, index);
+    return kind.cap !== undefined ? Math.min(size, Math.max(kind.cap, kind.floor ?? 0)) : size;
+  });
+  const gaps = gap * Math.max(0, kinds.length - 1);
   const totalFr = kinds.reduce((sum, kind) => sum + (kind.fr ?? 0), 0);
-  if (totalFr > 0)
-    kinds.forEach((kind, index) => {
-      if (kind.fr)
-        sizes[index] = Math.max(
-          kind.zeroMin ? 0 : (content[index] ?? 0),
-          (free * kind.fr) / totalFr,
-        );
-    });
-  else {
-    const auto = kinds.filter((kind) => kind.fixed === undefined).length;
+  if (totalFr > 0) {
+    // CSS §12.7.1: an fr track whose share is under its base keeps the base, the rest re-share.
+    const flexible = new Set(kinds.flatMap((kind, index) => (kind.fr ? [index] : [])));
+    for (;;) {
+      const used = sizes.reduce(
+        (sum, size, index) => sum + (flexible.has(index) ? 0 : size),
+        gaps,
+      );
+      const pool = [...flexible].reduce((sum, index) => sum + kinds[index]!.fr!, 0);
+      const unit = Math.max(0, length - used) / (pool || 1);
+      const frozen = [...flexible].filter(
+        (index) => kinds[index]!.fr! * unit < base(kinds[index]!, index),
+      );
+      if (!frozen.length) {
+        flexible.forEach((index) => (sizes[index] = kinds[index]!.fr! * unit));
+        break;
+      }
+      frozen.forEach((index) => {
+        sizes[index] = base(kinds[index]!, index);
+        flexible.delete(index);
+      });
+    }
+  } else {
+    const free = Math.max(
+      0,
+      length - sizes.reduce((sum, size) => sum + size, 0) - gaps,
+    );
+    // The default `normal` content alignment stretches `auto`-max tracks (not fit-content).
+    const auto = kinds.filter(
+      (kind) => kind.fixed === undefined && kind.cap === undefined,
+    ).length;
     if (auto)
       kinds.forEach((kind, index) => {
-        if (kind.fixed === undefined) sizes[index]! += free / auto;
+        if (kind.fixed === undefined && kind.cap === undefined)
+          sizes[index]! += free / auto;
       });
   }
   let cursor = 0;
@@ -234,8 +271,9 @@ export interface GridLayout {
 }
 
 export interface GridTracks {
-  columns: { size: number; definite: boolean }[];
-  rows: { size: number; definite: boolean }[];
+  /** Per track: its scene start (`start`), size, and whether the template fixes the size. */
+  columns: { start: number; size: number; definite: boolean }[];
+  rows: { start: number; size: number; definite: boolean }[];
   columnGap: number;
   rowGap: number;
 }
@@ -393,12 +431,14 @@ export function gridLayout(input: {
   );
   const tracks: GridTracks = {
     columns: columns.map((column, index) => ({
+      start: column.start,
       size: column.size,
       definite: columnDefinite[index] ?? false,
     })),
     rows: rows.map((row, index) => {
       const kind = rowKinds[index];
       return {
+        start: row.start,
         size: row.size,
         definite: !!kind && (kind.fixed !== undefined || kind.fr !== undefined),
       };

@@ -49,8 +49,6 @@ import {
   BorderSection,
   EffectSection,
   FillSection,
-  GridColumnsSection,
-  GridRowsSection,
   LayoutSection,
   PositionSection,
   ResponsiveSection,
@@ -63,13 +61,13 @@ import { useStylesSelection } from "./StylesPanel.runtime";
 
 import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
 
-// 절 순서 Layout → (grid 면 열 · 행) → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막
+// 절 순서 Layout → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막.
+// grid 의 열 · 행 목록은 Layout 탭에 두지 않는다 — Canvas 에서 열 · 행을 고르면 Design 패널이 「격자」
+// 보기로 바뀐다 (Figma, 사용자 2026-10-16 — `panels/design/DesignPanel.tsx` GridTrackView).
 const LayoutGroupSections = memo(function LayoutGroupSections() {
   return (
     <>
       <LayoutSection />
-      <GridColumnsSection />
-      <GridRowsSection />
       <SizeSection />
       <SpacingSection />
       <PositionSection />

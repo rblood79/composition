@@ -7,6 +7,10 @@
  * 했다 — 탭마다 종전 패널의 규칙 (다중 선택 대상 · sub-part 안내 · 빈 선택) 을 그대로 쓴다. 탭 줄은
  * 선택 상태와 무관하게 늘 보이고, 안내는 탭 본문만 바꾼다.
  *
+ * 열 · 행 선택 중 (Canvas grid 머리 — `useGridTrackSelection`) 에는 탭 대신 「격자」 보기다 (Figma 의
+ * Grid 패널 — 2026-10-16 사용자 「남은 차이 전부 맞춰」): 열 · 행 목록에 선택한 줄을 강조하고, 닫기 ·
+ * Escape · Canvas 누름이 선택을 풀면 탭으로 돌아간다.
+ *
  * 패널 id 는 `properties` 그대로다 (레이아웃 저장 키 — panel-structure.md §2). 탭 상태는
  * `designPanelView.ts` 의 세션 store.
  *
@@ -31,6 +35,13 @@ import {
 import { CatalogStylesHostProvider } from "../styles/catalog/CatalogStylesPanel";
 import { CatalogStyleClipboardShortcuts } from "../styles/catalog/CatalogStyleClipboardShortcuts";
 import { StylesPanelTabs } from "../styles/components/StylesPanelTabs";
+import {
+  GridColumnsSection,
+  GridRowsSection,
+} from "../styles/sections/GridTracksSection";
+import { useStylesSelectedId } from "../styles/stylesHost";
+import { useGridTrackSelection } from "../../stores/gridTrackSelection";
+import { useSemanticLabel } from "../../../i18n";
 import {
   StylesHeaderActions,
   StylesTabBody,
@@ -63,6 +74,10 @@ export function DesignPanelView() {
   const setView = useDesignPanelView((s) => s.setView);
   const selection = useCatalogPropertiesSelection();
   const styleView = isStyleView(view);
+  const selectedId = useStylesSelectedId();
+  const trackView = useGridTrackSelection(
+    (state) => !!state.tracks && state.tracks.identity === selectedId,
+  );
 
   const handleViewChange = useCallback(
     (key: React.Key) => setView(key as DesignViewId),
@@ -97,34 +112,57 @@ export function DesignPanelView() {
         </>
       )}
 
-      <Tabs
-        className="panel-tabs"
-        selectedKey={view}
-        onSelectionChange={handleViewChange}
-      >
-        <div className="panel-header panel-tabrow">
-          <DesignPanelTabList styleView={styleView} />
-        </div>
+      {trackView ? (
+        <GridTrackView />
+      ) : (
+        <Tabs
+          className="panel-tabs"
+          selectedKey={view}
+          onSelectionChange={handleViewChange}
+        >
+          <div className="panel-header panel-tabrow">
+            <DesignPanelTabList styleView={styleView} />
+          </div>
 
-        {DESIGN_VIEW_IDS.map((id) => (
-          <TabPanel
-            key={id}
-            id={id}
-            className={panelContents(
-              isStyleView(id)
-                ? "styles-panel-groups"
-                : "design-property-contents",
-            )}
-          >
-            {isStyleView(id) ? (
-              <StylesTabBody view={id} />
-            ) : (
-              <CatalogPropertiesBody selection={selection} />
-            )}
-          </TabPanel>
-        ))}
-      </Tabs>
+          {DESIGN_VIEW_IDS.map((id) => (
+            <TabPanel
+              key={id}
+              id={id}
+              className={panelContents(
+                isStyleView(id)
+                  ? "styles-panel-groups"
+                  : "design-property-contents",
+              )}
+            >
+              {isStyleView(id) ? (
+                <StylesTabBody view={id} />
+              ) : (
+                <CatalogPropertiesBody selection={selection} />
+              )}
+            </TabPanel>
+          ))}
+        </Tabs>
+      )}
     </div>
+  );
+}
+
+/** 「격자」 보기 — 선택한 grid 의 열 · 행 목록 (선택한 줄 강조 — `GridTracksSection`). */
+function GridTrackView() {
+  const localize = useSemanticLabel();
+  const clear = useGridTrackSelection((state) => state.clear);
+  return (
+    <>
+      <PanelHeader
+        className="grid-track-panel-header"
+        title={localize("Grid")}
+        onClose={clear}
+      />
+      <div className={panelContents("styles-panel-groups")}>
+        <GridColumnsSection />
+        <GridRowsSection />
+      </div>
+    </>
   );
 }
 

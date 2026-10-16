@@ -11,6 +11,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 열 · 행 편집 — 최소 · 최대 크기 · 격자 선택기 · Rows 자동 · Canvas 열 · 행 머리 · 칸 선택 · Figma 동작 정렬] - 2026-10-16
+
+### Changed
+
+- **grid 동작을 Figma 에 맞췄다** (사용자 결정 「Figma 와 동일한 방향」 · 「3~6번은 Figma 에 맞춰」, Figma help 「Use the grid auto layout flow」 · Plugin API 대조).
+  - **열 · 행 삭제** (Layout 탭 「−」 · Canvas 열 · 행 머리 Delete) — 그 열 · 행에만 있던 요소도 지운다. 다른 열 · 행에 걸친 요소는 칸 수만 줄고, 뒤에 고정된 요소는 당겨진다. 격자 선택기 · 개수 칸으로 줄일 때는 종전처럼 요소를 가까운 칸으로 옮긴다 (Figma 도 같다).
+  - **막힌 칸에 놓기** — 다른 요소의 칸 위에 놓으면 (하나를 끌 때) 그 칸을 차지하고, 막던 요소는 가장 가까운 빈 칸으로 간다. 빈 칸이 없으면 새 행을 만든다 (행 템플릿이 있으면 마지막 행과 같은 행을 덧붙인다). 종전엔 순서만 바꿨다. frame 처럼 자식을 받는 요소 위는 종전대로 그 안으로 들어간다.
+  - **Rows 자동** — 행 템플릿이 없는 grid 는 요소가 없는 행을 중간 행까지 같은 step 에서 닫는다 (지우기 · 밖으로 옮기기 · 더 아래 칸에 고정 모두). breakpoint 마다 그 breakpoint 의 값으로 판단한다.
+  - **새 grid 기본값** — Display 를 grid 로 바꾸면 열 Fill 2 개 · 행 자동으로 시작한다 (Figma 와 같다 — 사용자 확인).
+  - 위치: `apps/builder/src/builder/catalogRuntime/{gridTrackEdit.ts (gridItemsInRemovedTracks),canvasGesture.ts (displace · gridRowsFor),gridAutoRows.ts,workspace.ts}` · `panels/styles/hooks/useStyleActions.ts`
+
+### Added
+
+- **열 · 행 · 칸 선택을 Figma 에 맞췄다** (Figma 실측 · 사용자 「남은 차이 전부 맞춰」).
+  - **pill 표시** — grid 를 골라도 pill 은 포인터 아래 열 · 행과 선택한 열 · 행에만 보인다 (위 · 왼쪽 가장자리 띠 포함). 키보드 focus 를 받은 pill 도 보인다.
+  - **pill 라벨 = 값** — Fill 은 `fr` 값 (`1fr` · `2fr`), Fixed 는 px (`140px` — 경계를 끄는 동안도), Hug 는 그려진 크기와 함께 (`140 Hug`).
+  - **빈 열 · 행을 Hug 로** — 요소가 없는 열 · 행은 CSS `auto` 에서 0 으로 접혀 「0 Hug」 였다. 지금 크기를 최소 크기로 남긴다 (`minmax(150px, auto)` — Layout 탭 「최소 크기」 에 보인다).
+  - **Hug 로 바꿀 때 크기 유지** — 열 · 행을 Hug 로 바꾸면 (Canvas 메뉴 · Layout 탭 「열」 · 「행」) 그 열 · 행만 차지하고 크기가 정해지지 않은 (채우던) 요소에 지금 그려진 크기를 고정으로 준다 (템플릿과 한 step). 종전엔 채우던 요소의 내용 폭이 0이라 열이 0으로 접혔다.
+  - **칸 가이드는 실선** — grid 를 고르거나 그 자식을 고를 때 · 자식 크기를 바꿀 때 그리던 칸 가이드를 점선에서 실선으로 바꿨다 (Figma — 사용자 지시). 점선은 칸 선택 중 grid 선택선뿐이다.
+  - **pill 모양** — 트랙 폭이 아니라 글자 폭 + 좌우 6 으로 트랙 가운데에 놓인다 (행은 세로로 같은 길이). 두께 22px · 글자 12px · 모서리 4 · 가장자리와 간격 8 · 선택 색 (파랑 위 흰 글자) 이 선택 상자 아래 크기 표시 (`420 × 300`) 와 같다 (사용자 지시). 상자 · 칠 · 점선 · 삽입선도 같은 파랑.
+  - **선택 표시** — 선택한 열 · 행은 전체를 한 상자 (실선) 로 두르고, 요소가 없는 칸을 칠한다 (요소 칸은 비움).
+  - **Design 패널 「격자」 보기** — 열 · 행을 고르면 패널이 열 · 행 목록으로 바뀌고 선택한 줄이 강조된다. 닫기 (X) · Escape · Canvas 누름 · 다른 선택이면 탭으로 돌아간다. 열 · 행 목록은 여기서만 연다 — Layout 탭의 「열」 · 「행」 절은 뺐다 (Figma 와 같이 Canvas 에서 열 · 행을 골라 들어간다, 사용자 지시). 메뉴 · 팝오버 안의 Escape 는 그 메뉴만 닫는다.
+  - **칸 선택** — 선택된 grid 의 빈 칸을 누르면 그 칸이 선택된다 (칸은 안쪽만 칠하고 테두리를 다시 그리지 않음 · grid 선택 유지 · grid 선택선만 점선으로 — 모서리 핸들 · 크기 표시는 그대로 · 그 칸의 열 · 행 pill). 그때 붙여넣기는 grid 안 그 칸으로 들어간다 (한 step). Delete 는 종전대로 grid 를 지운다 (Figma 도 같다). 선택 안 된 grid 의 빈 칸을 누르면 grid 만 선택된다.
+  - **선택 해제** — 열 · 행 · 칸 선택은 Canvas 의 다른 곳 (grid 빈 곳 · grid 안 요소 · 빈 Canvas) 을 누르거나, Layers 등에서 선택이 바뀌거나, Escape 를 누르면 풀린다 (grid 선택은 유지). 종전엔 같은 grid 를 다시 눌러도 열 선택이 남았다.
+  - 위치: `apps/builder/src/builder/stores/gridTrackSelection.ts` · `workspace/canvas/catalog/{CatalogGridTrackLayer.{tsx,css},catalogOverlay.ts (chromeHidden),CatalogCanvas.tsx}` · `catalogRuntime/{gridTrackHeaders.ts (gridHoverTracks · gridEmptyCellAt · gridTrackFill),gridCellPaste.ts,shortcuts.ts}` · `panels/design/DesignPanel.tsx` · `panels/styles/sections/GridTracksSection.tsx`
+
+- **같은 칸 수 요소 자리 바꾸기 (Figma)** — 같은 grid 에서 칸 수가 같은 요소를 둘 이상 고르면 가운데에 분홍 원이 나온다. 원을 다른 선택 요소 위로 끌어 놓으면 두 요소의 자리가 바뀐다 (한 step).
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogGridTrackLayer.{tsx,css}`
+
+- **Canvas 위 열 · 행 머리 (Figma grid)** — grid 를 고르면 위 가장자리에 열마다, 왼쪽 가장자리에 행마다 pill 이 나온다. pill 을 누르면 그 열 · 행이 선택되고 (⌘/Ctrl 토글 · ⇧ 범위), 선택한 pill 을 다시 누르면 Fixed · Fill · Hug · 제거 메뉴가 열린다. pill 사이 경계를 끌면 앞 열 · 행이 Fixed 로 크기가 바뀌고 (끄는 동안 미리보기, 놓을 때 한 step), pill 을 끌면 선택한 열 · 행이 옮겨지며 거기 고정된 요소가 따라간다. Delete · Backspace 는 grid 가 아니라 선택한 열 · 행을 지운다 (Layout 탭 「−」 와 같은 명령).
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogGridTrackLayer.{tsx,css}` · `apps/builder/src/builder/catalogRuntime/gridTrackHeaders.ts` · `gridTrackEdit.ts` (`gridTrackOrderAfterMove` · `gridLinesAfterTrackMove`) · `canvasGesture.ts` (`gridTracksOfRecord`)
+- **열 · 행 최소 · 최대 크기** — Layout 탭 「열」 · 「행」 절의 행 메뉴 (⋮) 에 「최소 크기 추가」 · 「최대 크기 추가」. CSS 가 쓸 수 있는 조합만: Fill + 최소 = `minmax(120px, 1fr)` · Hug + 최소 = `minmax(120px, auto)` · Hug + 최대 = `fit-content(240px)`. Fill 의 최대 · Hug 의 최소와 최대 동시 지정 · Fixed 는 메뉴 항목이 비활성. Canvas 칸 가이드도 최소 · 최대를 따른다.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/gridTracks.ts` · `sections/GridTracksSection.tsx` · `catalogRuntime/canvasGridCells.ts`
+- **격자 선택기** — Layout 절 Columns · Rows 옆 버튼 → 10 × 10 칸에서 열 × 행을 고른다 (지나가면 범위 표시, 키보드 화살표 · Enter). 줄인 열 · 행의 요소는 가까운 칸으로, 열 · 행 변경과 요소 정리가 한 step.
+  - 위치: `apps/builder/src/builder/panels/styles/sections/GridSizePicker.{tsx,css}` · `LayoutSection.tsx`
+- **Rows 「자동」** — Rows 칸 목록에 「자동」: 행 템플릿을 비워 행이 요소를 따라 생긴다 (CSS 암묵 행). 고정 위치는 지우지 않는다.
+
+### Changed
+
+- Styles host `applyGridTracks` 가 여러 축의 편집 (`{ axis, template, removed, order? }[]`) 을 한 step 으로 받는다 — 격자 선택기 (열 + 행) · Canvas 열 · 행 이동 (`order`) 이 같은 경로.
+  - 위치: `apps/builder/src/builder/panels/styles/{stylesHostContext.ts,catalog/catalogStylesHost.ts}`
+
+### Tests
+
+- `gridTrackHeaders.test.ts` (머리 위치 · 선택 · 삽입 위치 · 경계 크기 · 이동 순서) · `gridTracks.test.ts` 최소 · 최대 3 · `canvasGridCells.test.ts` 최소 · 최대 칸 1 · `gridTrackRemoval.test.ts` 두 축 한 step · 열 이동 시 요소 따라감 (이동 경로를 끄면 RED).
+- `gridAutoRows.test.ts` 3 (빈 행 닫기를 끄면 RED) · `phase4eCanvasGesture.test.ts` 막힌 칸 밀어내기 · 새 행 · `gridTrackRemoval.test.ts` 열 삭제 시 요소 삭제 · `gridTrackHeaders.test.ts` 삭제 대상 판정.
+- `gridTrackHeaders.test.ts` pill 표시 · 빈 칸 판정 · 선택 칠 · `gridCellPaste.test.ts` (칸 고정을 빼면 RED).
+- live: `apps/builder/scripts/grid-cell-selection-live.mjs` 7/7 (포인터 근처 pill · 빈 칸 칠 · 점선 · 「격자」 보기 · 닫기 · 칸 선택 · 칸 붙여넣기 · 칸 선택 중 Delete) · `grid-figma-align-live.mjs` 6/6 (새 grid Fill · 밀어내기 + 새 행 · Rows 자동 · 자리 바꾸기) · `grid-track-headers-live.mjs` 8/8 (선택 해제 포함) · `grid-track-sizes-live.mjs` 13/13 · `canvas-dnd-drop-rules-live.mjs` 7/7 (1 · 1b 를 밀어내기로 갱신) · `grid-cell-placement-live.mjs` 9/9 · `grid-span-fit-live.mjs` 3/3.
+
 ## [ADR-264 Implemented — 자리만 옮긴 요소는 다시 그리지 않는다 · 줌에서 page 재구성 없음 (측정 기록 종결)] - 2026-10-16
 
 ### Changed

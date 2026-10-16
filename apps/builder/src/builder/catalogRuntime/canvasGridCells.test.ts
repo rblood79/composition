@@ -161,6 +161,34 @@ describe("gridCells — the cells a grid drag outlines (Figma)", () => {
     expect(auto.map((cell) => cell.height)).toEqual([150, 150, 150, 150]);
   });
 
+  it("track min · max (2026-10-16): a Fill keeps its minimum, a Hug minimum floors it, fit-content caps it and does not stretch", () => {
+    const columns = (template: string, items: { width: number }[] = []) =>
+      gridLayout({
+        content: { x: 0, y: 0, width: 300, height: 100 },
+        columns: template,
+        columnGap: 0,
+        rowGap: 0,
+        items: items.map((item, index) => ({
+          x: index * 10,
+          y: 0,
+          width: item.width,
+          height: 10,
+        })),
+        fallbackHeight: 10,
+        appendRow: false,
+      }).tracks.columns.map((track) => track.size);
+    // 3 even shares are 100 — a 160 minimum keeps 160, the others share the rest (70 · 70).
+    expect(columns("minmax(160px, 1fr) minmax(0, 1fr) minmax(0, 1fr)")).toEqual([
+      160, 70, 70,
+    ]);
+    // Hug minimum 120 over a 40 item, beside a fixed 100: 120 + the stretch of the free 80 → 200.
+    expect(columns("minmax(120px, auto) 100px", [{ width: 40 }])).toEqual([200, 100]);
+    // fit-content(60px) over a 90 item: 60, and the free space goes to the auto track only.
+    expect(
+      columns("fit-content(60px) auto", [{ width: 90 }, { width: 20 }]),
+    ).toEqual([60, 240]);
+  });
+
   it("lengthPx reads numbers and px strings only", () => {
     expect([
       lengthPx(12),

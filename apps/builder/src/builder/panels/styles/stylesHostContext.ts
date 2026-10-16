@@ -82,6 +82,27 @@ export type StylesLayoutKey = "width" | "height" | "x" | "y";
  * commands read the current state when they run. The catalog Styles panel (ADR-248 Phase 4e-4d)
  * provides the catalog workspace; there is no default (4e-7 removed the old store host).
  */
+/** One axis of a {@link StylesHost.applyGridTracks} edit. */
+export interface StylesGridTrackEdit {
+  axis: "column" | "row";
+  template: string;
+  removed: readonly number[];
+  /** A reorder (`order[newIndex] = oldIndex`): the pinned items go with their tracks. */
+  order?: readonly number[];
+  /**
+   * A track delete (Figma — the Layout 「−」, the Canvas header's Delete): the items only in the
+   * removed tracks are deleted. Without it (a smaller count, the grid picker) they move to the
+   * nearest cells.
+   */
+  deleteContents?: boolean;
+  /**
+   * Tracks that become Hug (Figma — a hugging track cannot be filled): the items only in one of
+   * them whose size along the axis is not fixed get their drawn size as a fixed size, so the
+   * track keeps its size (one step with the template).
+   */
+  hugged?: readonly number[];
+}
+
 export interface StylesHost {
   useSelectedId(): string | null;
   /** The selected id now (a field's blur compares it with the id it was focused on). */
@@ -129,14 +150,13 @@ export interface StylesHost {
    */
   applyAbsolute(selectedId: string | null, on: boolean): RatioEditError | null;
   /**
-   * A grid's column · row template with the tracks it removed (0-based, in the old list): the items
-   * in them move — the pinned ones past them shift back, spans across them shrink — one step.
+   * A grid's column · row templates with the tracks each removed (0-based, in the old list): the
+   * items in them move — the pinned ones past them shift back, spans across them shrink — one step
+   * for all the edits (the grid picker sets both axes).
    */
   applyGridTracks?(
     selectedId: string | null,
-    axis: "column" | "row",
-    template: string,
-    removed: readonly number[],
+    edits: readonly StylesGridTrackEdit[],
   ): void;
   /** The selected element's paint layers (a legacy background color as one virtual layer). */
   readFills(): FillItem[];

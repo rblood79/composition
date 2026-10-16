@@ -1,0 +1,256 @@
+/**
+ * CatalogGridTrackLayer — 선택한 grid 의 열 · 행 머리 (Figma grid, 2026-10-16).
+ * 자리는 scene 값 (--s · --l · --line · --f* · --c*) × 카메라 (--zoom · --pan-*) 로 CSS 가 계산한다.
+ * pill 은 포인터 아래 · 선택한 열 · 행에만 보인다 (`data-visible` — 키보드 focus 도 보이게).
+ * pill 의 두께 · 글자 · 모서리 · 선택색은 선택 상자 아래 size info (Skia `renderDimensionLabels`) 와 같다
+ * (2026-10-16 사용자 지시): 두께 22 = 줄 16 + 위아래 3 (`selectionOverlayGeometry.ts`) · 글자 12px · 모서리
+ * 4 · 좌우 6 · 가장자리와 간격 8 · 선택 = 선택 chrome 의 파랑 (`--focus-ring` = blue-400, Skia
+ * `OVERLAY_BLUE` 와 같은 값 — `overlayBlueUnification.static.test.ts`) 위 흰 글자.
+ */
+
+@layer components {
+  .catalog-grid-track-layer {
+    --zoom: 1;
+    --pan-x: 0px;
+    --pan-y: 0px;
+    /* size info 와 같은 두께 (16 + 3 × 2) · 가장자리에서 8 떨어짐 */
+    --track-strip: 22px;
+    --track-offset: calc(var(--track-strip) + 8px);
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    overflow: hidden;
+    pointer-events: none;
+
+    &[data-hidden] {
+      display: none;
+    }
+  }
+
+  .grid-track-pill {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    padding-inline: 6px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 4px;
+    background: var(--bg-muted);
+    color: var(--fg-muted);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    white-space: nowrap;
+    cursor: grab;
+    pointer-events: none;
+    opacity: 0;
+    touch-action: none;
+    user-select: none;
+
+    &[data-visible],
+    &:focus-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &:hover {
+      background: var(--bg-emphasis);
+      color: var(--fg);
+    }
+
+    &[data-selected] {
+      background: var(--focus-ring);
+      color: var(--color-white);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 1px;
+    }
+  }
+
+  .grid-track-pill-label {
+    overflow: hidden;
+    text-overflow: clip;
+  }
+
+  .grid-track-axis[data-axis="column"] {
+    .grid-track-pill {
+      /* 글자 폭 + 좌우 6 (size info 와 같은 상자) — 트랙 가운데 */
+      left: calc((var(--s) + var(--l) / 2) * var(--zoom) * 1px + var(--pan-x));
+      width: max-content;
+      transform: translateX(-50%);
+      top: calc(
+        var(--fy) * var(--zoom) * 1px + var(--pan-y) - var(--track-offset)
+      );
+      height: var(--track-strip);
+    }
+
+    .grid-track-boundary {
+      left: calc(var(--line) * var(--zoom) * 1px + var(--pan-x) - 4px);
+      width: 8px;
+      top: calc(
+        var(--fy) * var(--zoom) * 1px + var(--pan-y) - var(--track-offset)
+      );
+      height: var(--track-strip);
+      cursor: col-resize;
+
+      &::after {
+        inset: 0 3px;
+      }
+    }
+
+
+    .grid-track-box {
+      left: calc(var(--s) * var(--zoom) * 1px + var(--pan-x));
+      width: calc(var(--l) * var(--zoom) * 1px);
+      top: calc(var(--cy) * var(--zoom) * 1px + var(--pan-y));
+      height: calc(var(--ch) * var(--zoom) * 1px);
+    }
+
+    .grid-track-insertion {
+      left: calc(var(--line) * var(--zoom) * 1px + var(--pan-x) - 1px);
+      width: 2px;
+      top: calc(
+        var(--fy) * var(--zoom) * 1px + var(--pan-y) - var(--track-offset)
+      );
+      height: calc(var(--fh) * var(--zoom) * 1px + var(--track-offset));
+    }
+  }
+
+  .grid-track-axis[data-axis="row"] {
+    .grid-track-pill {
+      top: calc((var(--s) + var(--l) / 2) * var(--zoom) * 1px + var(--pan-y));
+      height: max-content;
+      left: calc(
+        var(--fx) * var(--zoom) * 1px + var(--pan-x) - var(--track-offset)
+      );
+      width: var(--track-strip);
+      writing-mode: vertical-rl;
+      transform: translateY(-50%) rotate(180deg);
+    }
+
+    .grid-track-boundary {
+      top: calc(var(--line) * var(--zoom) * 1px + var(--pan-y) - 4px);
+      height: 8px;
+      left: calc(
+        var(--fx) * var(--zoom) * 1px + var(--pan-x) - var(--track-offset)
+      );
+      width: var(--track-strip);
+      cursor: row-resize;
+
+      &::after {
+        inset: 3px 0;
+      }
+    }
+
+
+    .grid-track-box {
+      top: calc(var(--s) * var(--zoom) * 1px + var(--pan-y));
+      height: calc(var(--l) * var(--zoom) * 1px);
+      left: calc(var(--cx) * var(--zoom) * 1px + var(--pan-x));
+      width: calc(var(--cw) * var(--zoom) * 1px);
+    }
+
+    .grid-track-insertion {
+      top: calc(var(--line) * var(--zoom) * 1px + var(--pan-y) - 1px);
+      height: 2px;
+      left: calc(
+        var(--fx) * var(--zoom) * 1px + var(--pan-x) - var(--track-offset)
+      );
+      width: calc(var(--fw) * var(--zoom) * 1px + var(--track-offset));
+    }
+  }
+
+  .grid-track-boundary {
+    position: absolute;
+    pointer-events: none;
+    touch-action: none;
+
+    &[data-visible],
+    &[data-active] {
+      pointer-events: auto;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      border-radius: 1px;
+      background: transparent;
+    }
+
+    &:hover::after,
+    &[data-active]::after {
+      background: var(--focus-ring);
+    }
+  }
+
+  /* 선택한 열 · 행의 빈 칸 · 선택한 칸 (Figma — 칠만, 테두리를 다시 그리지 않는다) — scene 상자 (--bx · --by · --bw · --bh) */
+  .grid-track-fill {
+    position: absolute;
+    left: calc(var(--bx) * var(--zoom) * 1px + var(--pan-x));
+    top: calc(var(--by) * var(--zoom) * 1px + var(--pan-y));
+    width: calc(var(--bw) * var(--zoom) * 1px);
+    height: calc(var(--bh) * var(--zoom) * 1px);
+    background: color-mix(in srgb, var(--focus-ring) 14%, transparent);
+    pointer-events: none;
+  }
+
+  /* 선택한 열 · 행 전체를 한 상자로 (Figma) — 칠은 빈 칸만 (.grid-track-fill) */
+  .grid-track-box {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--focus-ring);
+    pointer-events: none;
+  }
+
+
+  .grid-track-insertion {
+    position: absolute;
+    background: var(--focus-ring);
+    pointer-events: none;
+  }
+
+  /* 같은 칸 수 요소 교환 (Figma 의 분홍 원) — 선택한 grid 자식 가운데 */
+  .grid-swap-handle {
+    position: absolute;
+    left: calc(var(--bx) * var(--zoom) * 1px + var(--pan-x) - 7px);
+    top: calc(var(--by) * var(--zoom) * 1px + var(--pan-y) - 7px);
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border: 2px solid var(--bg-overlay);
+    border-radius: 50%;
+    background: var(--hue-pink);
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+
+    &[data-dragging] {
+      opacity: 0.4;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 1px;
+    }
+  }
+
+  .grid-swap-ghost {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: var(--hue-pink);
+    pointer-events: none;
+  }
+}

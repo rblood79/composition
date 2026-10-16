@@ -17,7 +17,9 @@ export function gridTemplateOf(input: string): string {
   const value = input.trim();
   if (!value) return "";
   const count = Number(value);
-  return Number.isInteger(count) && count > 0 ? gridTrackTemplate(count) : value;
+  return Number.isInteger(count) && count > 0
+    ? gridTrackTemplate(count)
+    : value;
 }
 
 /**
@@ -27,8 +29,16 @@ export function gridTemplateOf(input: string): string {
  */
 export type GridTrack =
   | { kind: "fixed"; px: number }
-  | { kind: "fill"; weight: number }
-  | { kind: "hug" };
+  | { kind: "fill"; weight: number; min?: number }
+  | { kind: "hug"; min?: number; max?: number };
+
+/**
+ * Track minimum · maximum (Figma track min / max — 2026-10-16 사용자 「1,2,3 한번에 진행」), only
+ * the ones CSS can write: Fill + min = `minmax(120px, 1fr)` · Hug + min = `minmax(120px, auto)` ·
+ * Hug + max = `fit-content(240px)`. A Fill maximum and a Hug minimum *and* maximum have no CSS
+ * track (`minmax()` takes no `fit-content()`), Fixed has none.
+ */
+export type GridTrackLimit = "min" | "max";
 
 const NUMBER = String.raw`\d+(?:\.\d+)?`;
 
@@ -36,12 +46,22 @@ function trackOfToken(token: string): GridTrack | null {
   const value = token.trim();
   const px = new RegExp(`^(${NUMBER})(?:px)?$`).exec(value);
   if (px) return { kind: "fixed", px: Number(px[1]) };
-  const fill =
-    new RegExp(`^minmax\\(\\s*0(?:px)?\\s*,\\s*(${NUMBER})fr\\s*\\)$`).exec(
-      value,
-    ) ?? new RegExp(`^(${NUMBER})fr$`).exec(value);
+  const fill = new RegExp(`^(${NUMBER})fr$`).exec(value);
   if (fill) return { kind: "fill", weight: Number(fill[1]) };
   if (value === "auto") return { kind: "hug" };
+  const minmax = new RegExp(
+    `^minmax\\(\\s*(${NUMBER})(?:px)?\\s*,\\s*(?:(${NUMBER})fr|(auto))\\s*\\)$`,
+  ).exec(value);
+  if (minmax) {
+    const min = Number(minmax[1]);
+    const limit = min > 0 ? { min } : {};
+    if (minmax[3]) return min > 0 ? { kind: "hug", min } : null;
+    return { kind: "fill", weight: Number(minmax[2]), ...limit };
+  }
+  const fit = new RegExp(`^fit-content\\(\\s*(${NUMBER})px\\s*\\)$`).exec(
+    value,
+  );
+  if (fit) return { kind: "hug", max: Number(fit[1]) };
   return null;
 }
 
@@ -86,14 +106,21 @@ export function gridTrackList(template: string): GridTrack[] | null {
 
 function trackToken(track: GridTrack): string {
   if (track.kind === "fixed") return `${track.px}px`;
-  if (track.kind === "hug") return "auto";
-  return `minmax(0, ${track.weight}fr)`;
+  if (track.kind === "hug") {
+    if (track.min) return `minmax(${track.min}px, auto)`;
+    return track.max ? `fit-content(${track.max}px)` : "auto";
+  }
+  return `minmax(${track.min ? `${track.min}px` : 0}, ${track.weight}fr)`;
 }
 
 /** The template of a track list — even Fill tracks stay `repeat(n, minmax(0, 1fr))`. */
 export function gridTrackListTemplate(tracks: readonly GridTrack[]): string {
   if (!tracks.length) return "";
-  if (tracks.every((track) => track.kind === "fill" && track.weight === 1))
+  if (
+    tracks.every(
+      (track) => track.kind === "fill" && track.weight === 1 && !track.min,
+    )
+  )
     return gridTrackTemplate(tracks.length);
   return tracks.map(trackToken).join(" ");
 }
@@ -125,4 +152,41 @@ export function gridTrackListResized(
   const out = tracks.slice(0, count);
   while (out.length < count) out.push({ kind: "fill", weight: 1 });
   return out;
+}
+
+/** The limits a track can take now (see {@link GridTrackLimit}): a Hug takes a min *or* a max. */
+export function gridTrackLimits(
+  track: GridTrack,
+): Record<GridTrackLimit, boolean> {
+  if (track.kind === "fixed") return { min: false, max: false };
+  if (track.kind === "fill") return { min: true, max: false };
+  return { min: !track.max, max: !track.min };
+}
+
+/** `track` with its `limit` set to `px` (undefined · 0: none); a limit it cannot take is ignored. */
+export function gridTrackWithLimit(
+  track: GridTrack,
+  limit: GridTrackLimit,
+  px: number | undefined,
+): GridTrack {
+  const { [limit]: _old, ...rest } = track as GridTrack & {
+    min?: number;
+    max?: number;
+  };
+  if (!px || px <= 0) return rest as GridTrack;
+  if (!gridTrackLimits(rest as GridTrack)[limit]) return track;
+  return { ...rest, [limit]: px } as GridTrack;
+}
+
+/** A size edit (`next`, from the field) keeps the limits the new kind can take. */
+export function gridTrackResized(
+  previous: GridTrack,
+  next: GridTrack,
+): GridTrack {
+  let track = next;
+  for (const limit of ["min", "max"] as const) {
+    const px = (previous as { min?: number; max?: number })[limit];
+    if (px) track = gridTrackWithLimit(track, limit, px);
+  }
+  return track;
 }
