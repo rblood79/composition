@@ -8,7 +8,7 @@
 //   7 (Figma 실측 10-16) 열 선택은 grid 안 다른 곳을 누르거나 · Escape · 자식을 누르면 풀린다 (grid 선택은 유지)
 //   node apps/builder/scripts/grid-track-headers-live.mjs <out-dir>
 import { chromium } from "playwright";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const OUT = process.argv[2];
 mkdirSync(OUT, { recursive: true });
@@ -36,6 +36,13 @@ const check = (name, ok, detail) => {
   );
 };
 const wait = (ms) => page.waitForTimeout(ms);
+// A shot taken mid-drag: Playwright's page.screenshot brings the page to front in headed Chrome,
+// which takes the pill's pointer capture (lostpointercapture) — the release then misses it.
+const cdp = await page.context().newCDPSession(page);
+const dragShot = async (path) => {
+  const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
+  writeFileSync(path, Buffer.from(data, "base64"));
+};
 const exec = (source, arg) =>
   page.evaluate(
     ({ source, arg }) =>
@@ -132,9 +139,15 @@ const depth = () => exec(`(cat) => cat.workspace.runtime.historyDepth.undo`);
 const pill = (axis, n) =>
   page.getByRole("button", { name: new RegExp(`^(${axis === "column" ? "Column|열" : "Row|행"}) ${n} · `) });
 // A header shows near the pointer only (Figma — P31): point at it, then press.
+// The pointer comes from inside the grid: a single jump onto a hidden pill lands on the page
+// header under it (the header strip), which the layer's hover does not hear.
 const pressPill = async (axis, n, options) => {
   const box = await pill(axis, n).boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(axis === "column" ? cx : cx + 40, axis === "column" ? cy + 40 : cy);
+  await wait(80);
+  await page.mouse.move(cx, cy);
   await wait(80);
   await pill(axis, n).click(options);
 };
@@ -191,7 +204,7 @@ for (let i = 1; i <= 6; i++) {
   await page.mouse.move(bx + i * 10, by);
   await wait(40);
 }
-await page.screenshot({ path: `${OUT}/3-resize.png` });
+await dragShot(`${OUT}/3-resize.png`);
 await page.mouse.up();
 await wait(700);
 const resized = await template("gridTemplateColumns");
@@ -213,7 +226,7 @@ for (let i = 1; i <= steps; i++) {
   await page.mouse.move(p3.x + p3.width / 2 + ((p1.x + 4 - (p3.x + p3.width / 2)) * i) / steps, p3.y + p3.height / 2);
   await wait(40);
 }
-await page.screenshot({ path: `${OUT}/4-move.png` });
+await dragShot(`${OUT}/4-move.png`);
 await page.mouse.up();
 await wait(700);
 const moved = await template("gridTemplateColumns");

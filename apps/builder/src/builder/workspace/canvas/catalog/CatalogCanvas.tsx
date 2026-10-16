@@ -484,6 +484,9 @@ export function CatalogCanvas({
         const parent = sceneRoot.canvasInputs.get(identity)?.parentId;
         return parent && grids.has(parent) ? parent : undefined;
       },
+      // Asked only for a grid whose cells are drawn.
+      childrenOf: (identity) =>
+        sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
       slots: () =>
         catalogSlotMarks(

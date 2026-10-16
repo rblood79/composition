@@ -74,6 +74,8 @@ export interface CatalogOverlayInputs {
   gridCells?: (identity: string) => readonly BoundingBox[];
   /** A record's parent record: a selected grid item shows its grid's cells too (Figma). */
   parentOf?: (identity: string) => string | undefined;
+  /** A grid's child records: its cell lines go under them (the elements paint over the grid). */
+  childrenOf?: (identity: string) => readonly string[];
   /**
    * Declared slots of the definition edit view (editor chrome, not document paint): each slot's
    * box, hatched while it holds nothing.
@@ -248,6 +250,20 @@ export function catalogOverlayNode(
       }
       const occludersOf = (identity: string | undefined) =>
         identity ? inputs.occluders?.(identity) : undefined;
+      // A grid's cell lines sit under its elements (사용자 2026-10-16 「가이드 라인이 요소 위에」):
+      // the pages above it and its children's visible boxes are cut out.
+      const gridOccludersOf = (grid: string | undefined) => {
+        const pages = occludersOf(grid);
+        const children = grid ? inputs.childrenOf?.(grid) : undefined;
+        if (!children?.length) return pages;
+        const hits = inputs.hitBounds?.() ?? bounds;
+        const rects = [...(pages ?? [])];
+        for (const child of children) {
+          const box = hits.get(child);
+          if (box) rects.push(box);
+        }
+        return rects;
+      };
       const pages = !state.definitionView ? inputs.pageBorders?.() : undefined;
       if (pages && pageBorderPaint) {
         pageBorderPaint.setColor(pages.color);
@@ -351,7 +367,7 @@ export function catalogOverlayNode(
           const cells = inputs.gridCells(id);
           // A non-grid record has none: no page occlusion lookup either (every frame).
           if (cells.length)
-            withOccluders(ck, canvas, occludersOf(id), () => {
+            withOccluders(ck, canvas, gridOccludersOf(id), () => {
               for (const cell of cells)
                 renderHoverHighlight(ck, canvas, cell, zoom);
             });
@@ -382,7 +398,10 @@ export function catalogOverlayNode(
           withOccluders(
             ck,
             canvas,
-            occludersOf(state.selection[0]?.identity),
+            gridOccludersOf(
+              state.selection[0] &&
+                inputs.parentOf?.(state.selection[0].identity),
+            ),
             () => {
               for (const cell of gesture.gridGuides ?? [])
                 renderHoverHighlight(ck, canvas, cell, zoom);

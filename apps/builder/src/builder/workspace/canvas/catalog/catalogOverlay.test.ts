@@ -231,12 +231,21 @@ describe("Builder 전용 Page 기본 테두리", () => {
     input.pageBorders = undefined;
     input.gridCells = (id) => (id === "a" ? cells : []);
     input.parentOf = (id) => (id === "b" ? "a" : undefined);
+    input.childrenOf = (id) => (id === "a" ? ["b"] : []);
     input.session = () => ({ ...base, selection: [item("b")] });
     const node = catalogOverlayNode(ck, input);
     node.renderSkia(canvas, viewport);
     for (const cell of cells)
       // Solid (Figma draws no dashed cell — 사용자 2026-10-16).
       expect(renderHoverHighlight).toHaveBeenCalledWith(ck, canvas, cell, 2);
+    // Under the grid's elements (사용자 2026-10-16): the child's box is cut out before the lines.
+    const cut = vi
+      .mocked(canvas.clipRect)
+      .mock.calls.findIndex(([rect]) => `${rect}` === "30,20,10,10");
+    expect(cut).toBeGreaterThanOrEqual(0);
+    expect(
+      vi.mocked(canvas.clipRect).mock.invocationCallOrder[cut],
+    ).toBeLessThan(vi.mocked(renderHoverHighlight).mock.invocationCallOrder[0]!);
     // A resize drag of the child keeps them (the gesture carries its grid's cells).
     vi.clearAllMocks();
     input.gesture = () => ({ gridGuides: cells });

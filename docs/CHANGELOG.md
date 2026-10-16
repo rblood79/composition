@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [grid 칸 가이드를 grid 안 요소 아래로] - 2026-10-16
+
+### Fixed
+
+- **grid 칸 가이드가 grid 안 요소 위에 그려지던 것** — grid 를 고르거나 · 그 자식을 고르거나 · 자식 크기를 바꿀 때 그리는 칸 선이 grid 에 놓인 요소를 가로질렀다. 칸 선은 overlay 라 장면 위에 그려졌다. 지금은 grid 자식의 보이는 상자를 잘라 내고 그려, 요소가 칸 선 위에 있다 (Figma 와 같다). 투명한 자식 (글자 등) 이 칸을 채우면 그 상자 안의 칸 선도 보이지 않는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/{catalogOverlay.ts (gridOccludersOf),CatalogCanvas.tsx (childrenOf)}`
+
 ## [grid 열 · 행 편집 — 최소 · 최대 크기 · 격자 선택기 · Rows 자동 · Canvas 열 · 행 머리 · 칸 선택 · Figma 동작 정렬] - 2026-10-16
 
 ### Changed
