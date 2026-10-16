@@ -1,3 +1,4 @@
+import { docCounters } from "./docCounters";
 import { catalogAutoHtmlIds } from "./attributes";
 import { catalogGridAutoRows } from "./gridAutoRows";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
@@ -100,6 +101,39 @@ function touchesTheme(
   return false;
 }
 
+/**
+ * A row list's rows by identity (the first row of an identity, as a search finds it), kept per
+ * list and filled only as far as a lookup needs (ADR-265 C8). The read model keeps a row list until
+ * a step changes it and never mutates it; a new list gets a new index. A record's lookup ran a
+ * linear search per level each time — the overlay looks the selection up on every paint, so a pick
+ * among 5k siblings searched them ~13 times; a pick near the front still reads only the front.
+ */
+const rowIndexes = new WeakMap<
+  readonly CatalogPosition[],
+  { positions: Map<string, CatalogPosition>; next: number }
+>();
+function rowOf(
+  rows: readonly CatalogPosition[],
+  identity: string,
+): CatalogPosition | undefined {
+  let index = rowIndexes.get(rows);
+  if (!index) {
+    index = { positions: new Map(), next: 0 };
+    rowIndexes.set(rows, index);
+  }
+  const found = index.positions.get(identity);
+  if (found) return found;
+  while (index.next < rows.length) {
+    const row = rows[index.next++]!;
+    if (process.env.NODE_ENV === "development")
+      docCounters.selectSiblingCompares += 1;
+    const key = row.identity;
+    if (!index.positions.has(key)) index.positions.set(key, row);
+    if (key === identity) return row;
+  }
+  return undefined;
+}
+
 /** A Canvas/DOM record that stands for a document element (not a page frame or synthetic root). */
 const isElementRecord = (sourceId: string) =>
   sourceId.startsWith("project:node:") || sourceId.startsWith("lib:template:");
@@ -173,6 +207,8 @@ export class CatalogWorkspace {
   }
   /** Install the graph's theme when it changed; true = the root must be rebuilt. */
   private applyTheme(): boolean {
+    if (process.env.NODE_ENV === "development" && this.options.theme)
+      docCounters.themeStateComputed += 1;
     const state = this.options.theme?.(this.runtime.graph);
     if (!state || state.key === this.themeKey) return false;
     this.themeKey = state.key;
@@ -202,6 +238,7 @@ export class CatalogWorkspace {
   private componentsHeights: ReadonlyMap<string, number> | undefined;
   /** A new composition root over the same runtime (the layout engine starts empty). */
   private replaceRoot(breakpoint: BreakpointName): void {
+    if (process.env.NODE_ENV === "development") docCounters.rootReplaced += 1;
     this.options.engine.clear();
     this.currentRoot = this.createRoot(breakpoint);
     this.session.setBreakpoint(breakpoint);
@@ -228,12 +265,13 @@ export class CatalogWorkspace {
       this.rebuildThemed();
     // The project components page lists the project's components: one made, renamed, dissolved
     // or deleted (an undo too) lays the page out again.
-    else if (
-      isProjectComponentsView(this.definitionView) &&
-      this.projectComponentsKey !==
-        JSON.stringify(catalogProjectComponents(this.runtime.graph))
-    )
-      this.openComponentsView(this.definitionView);
+    else if (isProjectComponentsView(this.definitionView)) {
+      const key = JSON.stringify(catalogProjectComponents(this.runtime.graph));
+      if (process.env.NODE_ENV === "development")
+        docCounters.componentsKeyBytes += key.length;
+      if (this.projectComponentsKey !== key)
+        this.openComponentsView(this.definitionView);
+    }
   }
   /** The components the project components page was laid out with. */
   private projectComponentsKey: string | undefined;
@@ -618,17 +656,6 @@ export class CatalogWorkspace {
    * the row one level at a time (reads only the entries on the way).
    */
   positionOfRecord(recordId: string): CatalogPosition | undefined {
-    return this.findPositionOfRecord(recordId, (rows, identity) =>
-      rows.find((row) => row.identity === identity),
-    );
-  }
-  private findPositionOfRecord(
-    recordId: string,
-    findRow: (
-      rows: readonly CatalogPosition[],
-      identity: string,
-    ) => CatalogPosition | undefined,
-  ): CatalogPosition | undefined {
     // A data row's records are its row template position's.
     const chain = this.recordChain(recordId).map(catalogRowTemplateIdentity);
     const owner = this.ownerOfRecord(recordId);
@@ -639,7 +666,7 @@ export class CatalogWorkspace {
         : this.readModel.pageRows(owner as EntryId<"page">);
     let position: CatalogPosition | undefined;
     for (const id of chain) {
-      position = findRow(rows, id);
+      position = rowOf(rows, id);
       if (!position) return undefined;
       rows = this.readModel.childRows(position);
     }
@@ -667,33 +694,8 @@ export class CatalogWorkspace {
     options?: { additive?: boolean },
   ): void {
     const items: CatalogSelectionItem[] = [];
-    // Share sibling lookup only within this selection batch. The read model owns
-    // the row arrays and their invalidation; a later selection reads them anew.
-    const indexes = new Map<
-      readonly CatalogPosition[],
-      { positions: Map<string, CatalogPosition>; next: number }
-    >();
-    const findRow = (rows: readonly CatalogPosition[], identity: string) => {
-      if (recordIds.length === 1)
-        return rows.find((row) => row.identity === identity);
-      let index = indexes.get(rows);
-      if (!index) {
-        index = { positions: new Map(), next: 0 };
-        indexes.set(rows, index);
-      }
-      const found = index.positions.get(identity);
-      if (found) return found;
-      // Scan only as far as needed, so a small selection need not index all siblings.
-      while (index.next < rows.length) {
-        const row = rows[index.next++]!;
-        const key = row.identity;
-        if (!index.positions.has(key)) index.positions.set(key, row);
-        if (key === identity) return row;
-      }
-      return undefined;
-    };
     for (const identity of recordIds) {
-      const position = this.findPositionOfRecord(identity, findRow);
+      const position = this.positionOfRecord(identity);
       if (position) items.push({ target: position.target, identity });
     }
     this.selectItems(items, options);

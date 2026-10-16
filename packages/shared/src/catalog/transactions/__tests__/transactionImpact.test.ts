@@ -288,7 +288,7 @@ describe("ADR-248 Phase 4a-2 transaction impact", () => {
       ]),
     );
     expect(result.impact.structural).toBe(true);
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(2);
     // Reads scale with the edited owner's child list, not with the graph (≈5,020 entries).
     expect(graph.metrics.transactionEntryReads).toBeLessThan(200);
   });

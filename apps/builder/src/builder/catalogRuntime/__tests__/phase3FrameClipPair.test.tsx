@@ -324,6 +324,9 @@ it("preserves the HEAD product box clip, pixel, and hit boundary", async () => {
           "apps/builder/src",
           "packages",
           ":!**/__tests__/**",
+          // (A test beside its module — `subtreeTranslate.test.ts` — is not a product reader.)
+          ":!**/*.test.ts",
+          ":!**/*.test.tsx",
         ],
         { cwd: repo, encoding: "utf8" },
       )

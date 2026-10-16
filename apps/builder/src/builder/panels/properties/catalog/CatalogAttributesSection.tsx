@@ -9,6 +9,7 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   catalogHtmlIdBase,
   catalogHtmlIdCommand,
+  catalogAutomaticHtmlId,
   catalogUniqueHtmlId,
 } from "../../../catalogRuntime/attributes";
 import { setNodeAttribute } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -56,10 +57,11 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
   const automaticHtmlId = useSyncExternalStore(subscribeSteps, () => {
     const entry = nodeId ? graph.getEntry(nodeId) : undefined;
     return entry?.kind === "node"
-      ? catalogUniqueHtmlId(
+      ? catalogAutomaticHtmlId(
           graph,
           catalogHtmlIdBase(graph, entry),
           nodeId as NodeId,
+          entry.metadata?.htmlId,
         )
       : "";
   });

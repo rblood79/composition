@@ -18,6 +18,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **grid 칸 가이드가 grid 안 요소 위에 그려지던 것** — grid 를 고르거나 · 그 자식을 고르거나 · 자식 크기를 바꿀 때 그리는 칸 선이 grid 에 놓인 요소를 가로질렀다. 칸 선은 overlay 라 장면 위에 그려졌다. 지금은 grid 자식의 보이는 상자를 잘라 내고 그려, 요소가 칸 선 위에 있다 (Figma 와 같다). 투명한 자식 (글자 등) 이 칸을 채우면 그 상자 안의 칸 선도 보이지 않는다.
   - 위치: `apps/builder/src/builder/workspace/canvas/catalog/{catalogOverlay.ts (gridOccludersOf),CatalogCanvas.tsx (childrenOf)}`
 
+## [ADR-265 Implemented — 선택 전환의 문서 층 비용 · 측정 기록 종결] - 2026-10-16
+
+### Performance
+
+- **많은 형제 사이에서 고르기** (ADR-265 Phase 2) — 선택 1 회가 형제 수에 비례하던 문서 층의 일 다섯 가지를 덜어 냈다 (평평 5k 선택 30 회, dev 호출 수 3.45M → 1.22M). 결과는 같다 — 무작위 대조 (행 위치 1,200 step · 메뉴 1,000 선택 · 자동 id 5,000 표).
+  - 선택한 요소의 Layers 행 찾기: 행 목록마다 identity 색인을 두고 필요한 만큼만 앞에서부터 채운다. overlay 가 페인트마다 선택을 다시 찾아, 5k 형제 사이 선택 1 회가 형제를 ~13 번 훑었다 (976,175 → 5,001 비교). 앞쪽을 고르면 여전히 앞부분만 읽는다.
+  - page 사각형 (`pageFrameRects`): page 마다 member 전체 대신 root 의 record 에서 찾는다.
+  - Design 패널 ID 칸의 자동 id: 첫 빈 번호를 문서 revision · 종류마다 한 번만 센다 (`text_1, text_2 …` 를 렌더마다 처음부터 셌다).
+  - 메뉴 · 액션 바의 z-order 네 항목: 같은 형제 안 재배치는 위치와 무관하게 허용 · 거절되므로 계획 하나로 판정한다 (항목마다 5k 형제 목록을 복사했다). RAC Table 의 Column 은 위치를 따라 셀을 옮겨 항목마다 계획한다.
+  - Layers: 항목 key 함수를 고정하고, 펼친 행 집합은 내용이 같으면 같은 객체로 둔다 (렌더마다 5,000 행을 다시 색인했다).
+  - 위치: `apps/builder/src/builder/catalogRuntime/{workspace.ts,attributes.ts,canvasMenu.ts}` · `packages/shared/src/catalog/{runtime/compositionRoot.ts,commands/structure.ts (reorderReadsIndex)}` · `apps/builder/src/builder/panels/{navigator/catalog/CatalogLayersSection.tsx,properties/catalog/CatalogAttributesSection.tsx}`
+
+### Changed
+
+- **ADR-265 측정 기록 종결** (사용자 결정 2 「측정 기록으로 둔다」 · 결정 3 「측정 기록으로 종결」). production 짝 (5k): body 편집 p99 35.5 · 32.6 → 21.8 · 24.2 ms · drop 5.5 · 4.1 → 0 · 1.1 % · 평평 선택 drop 7.0 · 5.9 → 3.7 · 4.3 % (p99 ~29 ms 그대로) · 줌 · drag · 편집 · 600 선택 유지. 닫는 조건 중 중첩 카드 편집 (꼬리 = Canvas binding 의 옮김 · overflow · rect diff) 과 평평 선택 (꼬리 = Layers 행 렌더의 RAC 내부 · React DOM · 메뉴 Group 계획) 은 미달로 기록 — 선택 즉시 패널이 같은 프레임에 갱신되는 동작은 그대로다.
+
+### Tests
+
+- `adr265DocLayerEquivalence.test.ts` 에 행 위치 · 메뉴 z-order 대조, `adr265AutomaticHtmlId.test.ts` (자동 id = 탐색의 답). 레버 변이 4 개 RED. live `apps/builder/scripts/adr265-document-layer-live.mjs` 11/11. ratchet seed 600 하향 4 · 새 A `htmlIdProbes`.
+
+## [ADR-265 Phase 1 — 큰 컨테이너 편집이 문서 크기만큼 일하지 않는다] - 2026-10-16
+
+### Performance
+
+- **body 처럼 자식이 많은 요소의 스타일 · 글자 편집** — 편집 1 회가 자식 수에 비례하던 일 네 가지를 덜어 냈다 (5k 자식 body 편집 15 회 실측). 결과는 같다 — 문서 · 색인 · 무효화 id · Layers 행 목록이 수정 전과 같은지 무작위 1,200 step 으로 확인.
+  - 무효화 걸음: commit 뒤 걸음은 시드가 같고 색인이 그대로면 앞 걸음과 같으므로 건너뛴다 (150,060 → 75,030 방문). Preview iframe 의 delta 수신도 같다.
+  - `graph.replace`: 자식 목록이 그대로인 entry 의 owner edge 를 열거하지 않는다 — old · new 에 같이 들어가 상쇄되던 것 (150,030 → 30).
+  - commit: 이전 record 와 공유하는 (freeze 된) 필드를 다시 복제하지 않는다 — 스타일 편집마다 children 배열을 `structuredClone` 했다 (75,000 → 0).
+  - Layers 행 목록 read: 부모의 행 관련 필드 (정의 · children · descendantOverrides) 에만 의존 — 부모의 스타일 편집은 행 목록을 다시 만들지도, 5,000 행을 `JSON.stringify` 로 두 번 비교하지도 않는다 (편집 1 회 1.5 MB → 0).
+  - **Why**: 편집 비용의 본체 (commit · transaction · deliver) 는 변경 크기 비례였지만, 그 안의 분기가 바뀐 entry 의 자식 목록 크기 (body 는 문서 전체) 만큼 돌았다. 노드 하나의 폭 편집 (하니스 HC2 시나리오) 은 원래 상수다 — 그 꼬리는 Canvas binding 쪽 (Phase 0).
+  - 위치: `packages/shared/src/catalog/{runtime/controller.ts,preview/receiver.ts,document/graph.ts}` · `apps/builder/src/builder/catalogRuntime/readModel.ts`
+
+### Tests
+
+- `adr265DocLayerEquivalence.test.ts` (무작위 1,200 step 동치 — 수정 전 공식 · 새로 만든 graph · 새 read model 이 oracle) · `adr265CommitSharing.test.ts`. 레버 변이 4 개 RED. ratchet `doc.*` 하향 10 · 새 A 2.
+- `phase3FrameClipPair` 의 제품 파일 grep 이 모듈 옆 테스트 파일을 제품 reader 로 세던 실패를 고쳤다 (`*.test.ts(x)` 제외).
+
+## [ADR-265 Phase 0 — 문서 층 카운터 · 편집 · 선택의 문서 크기 기울기] - 2026-10-16
+
+### Added
+
+- **문서 층 결정적 카운트** (`counts.doc.*` 35 개 — dev 빌드 전용, 사용자 가시 변경 없음). graph (`collectAffectedIds` 방문 · 서브트리 · `replace` edge) · transaction (staged · 검증 · ops 복제 길이) · runtime step (무효화 id · 저장 JSON 길이) · composition root (resolver · 레이아웃 입력 · 전체 그래프 step · member 복사 · `stateReaders` · `overrideDependents` · deliver) · read model (stale · 재계산 · 비교 직렬화 길이) · workspace (테마 · root 교체 · Components key) · Layers (rebuild · 행 · gated · 이름 재판정) · 선택 형제 비교 · 메뉴 dry-run · 편집 계약 `includes`. 카운터는 `packages/shared/src/catalog/docCounters.ts`, 하니스는 `__composition_DOC_COUNTERS__` 로 읽는다.
+- **하니스** (`perf-baseline.mjs`): 부류 `select-spread` — 앞 · 중간 · 끝을 같은 비율로 고르는 결정적 선택열 30 회를 Canvas 클릭 경로 (`selectRecords`) 로 (기존 `select` 는 규모와 무관하게 처음 30 개라 형제 선형 탐색이 상수로 보였다). 옵션 `--edit-target body` (page body 편집 — 서브트리 확장 최대). 커버리지 상위 함수에 위치 (`at` · `url`) 를 붙여 익명 함수를 찾는다 (진단용).
+- ratchet: seed 600 · 600:nested-flex 에 `doc.*` A 등록, 600 에 `select-spread` 부류.
+
+### Changed
+
+- `GraphMetrics.transactionEntriesTraversed` 를 배선했다 (stage 의 owner 탐색 + commit 교체 루프가 돈 entry 수 — leaf 편집 1). 0 을 단언하던 테스트 7 곳이 실측값을 단언한다. 아무도 늘리지 않던 `transactionEntryTableClones` 는 지웠다 (transaction 경로에 table 복사 지점이 없다 — 전체 export 감시는 `exportDocument` stub 테스트가 한다).
+
+### 측정 결과 (600 → 5k, 상세 breakdown §1)
+
+- 중첩 카드 폭 편집 (ADR-263 · 264 의 HC2 시나리오): 문서 층 카운트가 상수. 규모와 함께 느는 호출은 Canvas binding (`subtreeTranslate` · overflow clip · rect diff).
+- body 편집: 서브트리 확장 18,060 → 150,060 · page 행 read 비교 직렬화 2.7 → 23 MB.
+- 선택: 형제 비교 118,175 → 976,175 (overlay 가 페인트마다 위치 조회) · `pageFrameRects` member 탐색 · 자동 HTML id 탐색 · dry-run 안 children filter · Layers RAC `getKey` 가 비례.
+
 ## [grid 열 · 행 편집 — 최소 · 최대 크기 · 격자 선택기 · Rows 자동 · Canvas 열 · 행 머리 · 칸 선택 · Figma 동작 정렬] - 2026-10-16
 
 ### Changed

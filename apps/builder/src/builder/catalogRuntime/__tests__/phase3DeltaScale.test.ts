@@ -128,8 +128,8 @@ describe("ADR-248 Phase 3 single-root leaf delta cost", () => {
         stringify.mockRestore();
         graph.exportDocument = exportDocument;
       }
-      expect(graph.metrics.transactionEntriesTraversed).toBe(0);
-      expect(graph.metrics.transactionEntryTableClones).toBe(0);
+      // ADR-265: one staged record at every document size (a full export is stubbed above).
+      expect(graph.metrics.transactionEntriesTraversed).toBe(1);
       expect(graph.metrics.transactionRecordReplacements).toBe(1);
       expect(fullSerializations).toBe(0);
       expect(recordSerializations).toBeLessThanOrEqual(3);

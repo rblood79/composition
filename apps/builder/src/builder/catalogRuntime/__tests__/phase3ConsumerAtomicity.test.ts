@@ -467,7 +467,7 @@ describe("ADR-248 Phase 3 consumer error atomicity (G2)", () => {
     const s = await scene("leaf");
     const builds = s.engine.calls.buildTreeBatch;
     s.edit("wide"); // measured width 8 → 32: one style update
-    expect(s.runtime.graph.metrics.transactionEntryTableClones).toBe(0);
+    expect(s.runtime.graph.metrics.transactionEntriesTraversed).toBe(1);
     expect(s.root.metrics).toMatchObject({
       layoutInputVisits: 1,
       resolverVisits: 2,

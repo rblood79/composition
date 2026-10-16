@@ -47,6 +47,7 @@ const ALWAYS_B = [
 const EXCLUDED = [
   /^measuresTotal$/,
   /^v8\.topApp/,
+  /^v8\.topDeps/,
   /^v8\.total$/,
   /^v8\.deps$/,
   // The GPU profiler's rAF `tick` runs once per frame: its call count is the frames the run

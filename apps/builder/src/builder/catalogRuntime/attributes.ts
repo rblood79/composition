@@ -1,3 +1,4 @@
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { setHtmlId } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
@@ -36,8 +37,54 @@ export function catalogUniqueHtmlId(
   const stem = base.replace(/_\d+$/, "");
   for (let n = 1; ; n++) {
     const candidate = `${stem}_${n}`;
+    if (process.env.NODE_ENV === "development") docCounters.htmlIdProbes += 1;
     if (!catalogHtmlIdTaken(index, candidate, self)) return candidate;
   }
+}
+
+/** Per graph and revision: each stem's first number no node uses. */
+const firstFree = new WeakMap<
+  CatalogHtmlIdIndex,
+  { revision: number; stems: Map<string, number> }
+>();
+/**
+ * `catalogUniqueHtmlId` for the ID field's empty value (what the check would assign), counted once
+ * per graph revision and stem (ADR-265 C11): the field re-reads it on every render and step, and a
+ * search from `_1` walks every taken number (5k Text elements — 2.5k probes per selection). The
+ * answer is the first number no node uses, or the number only `self` holds when it is smaller (a
+ * node's own id is free for it) — the search's answer.
+ */
+export function catalogAutomaticHtmlId(
+  index: CatalogHtmlIdIndex & { readonly revision: number },
+  base: string,
+  self: NodeId,
+  ownHtmlId: string | undefined,
+): string {
+  const stem = base.replace(/_\d+$/, "");
+  let cache = firstFree.get(index);
+  if (cache?.revision !== index.revision) {
+    cache = { revision: index.revision, stems: new Map() };
+    firstFree.set(index, cache);
+  }
+  let free = cache.stems.get(stem);
+  if (free === undefined) {
+    free = 1;
+    for (; ; free++) {
+      if (process.env.NODE_ENV === "development") docCounters.htmlIdProbes += 1;
+      if (!index.nodesWithHtmlId(`${stem}_${free}`).size) break;
+    }
+    cache.stems.set(stem, free);
+  }
+  const own =
+    ownHtmlId?.startsWith(`${stem}_`) &&
+    /^[1-9]\d*$/.test(ownHtmlId.slice(stem.length + 1))
+      ? Number(ownHtmlId.slice(stem.length + 1))
+      : undefined;
+  return own !== undefined &&
+    own < free &&
+    !catalogHtmlIdTaken(index, ownHtmlId!, self)
+    ? ownHtmlId!
+    : `${stem}_${free}`;
 }
 
 /**

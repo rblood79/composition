@@ -1,3 +1,4 @@
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import type { EditContract } from "@composition/shared";
 
 import {
@@ -148,11 +149,16 @@ export function useCatalogEditContract(
       runtime.subscribeSteps(({ result, invalidatedIds }) => {
         if (!target) return;
         const owner = target.kind === "node" ? target.id : target.ownerId;
+        const invalidated = (id: string) => {
+          if (process.env.NODE_ENV === "development")
+            docCounters.editContractIncludes += invalidatedIds.length;
+          return invalidatedIds.includes(id);
+        };
         if (
           !result.changedIds.has(owner) &&
-          !invalidatedIds.includes(owner) &&
+          !invalidated(owner) &&
           ![...(cache.current?.dependencies ?? [])].some(
-            (id) => result.changedIds.has(id) || invalidatedIds.includes(id),
+            (id) => result.changedIds.has(id) || invalidated(id),
           )
         )
           return;

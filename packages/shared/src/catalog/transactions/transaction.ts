@@ -1,3 +1,4 @@
+import { docCounters } from "../docCounters";
 import type {
   CatalogEntry,
   CatalogLibrary,
@@ -353,9 +354,11 @@ export class CatalogStage implements CatalogReader {
   }
   /** Owner after the staged records: a staged record that claims `id`, else the committed owner. */
   ownerOf(id: string): string | undefined {
-    for (const [ownerId, entry] of this.staged)
+    for (const [ownerId, entry] of this.staged) {
+      this.metrics.transactionEntriesTraversed++;
       if (entry && (ownedChildren(entry) as string[]).includes(id))
         return ownerId;
+    }
     const owner = this.graph.ownerOf(id);
     return owner !== undefined && this.staged.has(owner) ? undefined : owner;
   }
@@ -667,8 +670,11 @@ export function applyCatalogTransaction(
   const stage = new CatalogStage(graph).apply(request.ops);
   const { staged, before, inverse, metrics, get } = stage;
   const structural = stage.structural;
+  const counting = process.env.NODE_ENV === "development";
+  if (counting) docCounters.stagedEntries += staged.size;
   for (const [id, entry] of staged) {
     if (entry !== null) {
+      if (counting) docCounters.validatedEntries += 1;
       validateCatalogEntry(entry);
       graph.validateEntryReferences(entry, get);
     }
@@ -683,6 +689,7 @@ export function applyCatalogTransaction(
     if (owner) ownerBefore.set(id, owner);
   }
   const forward = structuredClone(request.ops);
+  if (counting) docCounters.opsCloneBytes += JSON.stringify(forward).length;
   graph.commit(
     staged,
     request.history.kind === "record" ? request.history.label : null,

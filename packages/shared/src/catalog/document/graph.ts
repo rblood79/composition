@@ -28,6 +28,7 @@ import {
   migrateCatalogTableColumns,
 } from "./s2PropAlignment";
 import { assertCatalogLibrary, instanceContract } from "./library";
+import { docCounters } from "../docCounters";
 import { componentPropertiesOf } from "./componentProperties";
 import { catalogChildKind } from "../nesting/nestingRules";
 
@@ -40,10 +41,14 @@ export interface GraphIndexes {
 }
 export interface GraphMetrics {
   transactionEntryReads: number;
+  /**
+   * Entries the transaction iterated beyond its direct reads (ADR-265 Phase 0 — this field was
+   * declared and asserted 0 but never incremented): the stage's owner scans over the staged
+   * records and the commit's swap loop. O(changed entries) — never the document.
+   */
   transactionEntriesTraversed: number;
   transactionRecordReplacements: number;
   transactionIndexEdgesUpdated: number;
-  transactionEntryTableClones: number;
 }
 export interface CatalogHistoryRecord {
   label: string;
@@ -223,7 +228,7 @@ function validateComponentProperties(
       if (swapped.has(cursor))
         throw new CatalogValidationError("PROPERTY_TARGET_NESTED", id);
 }
-function edgesOf(entry: CatalogEntry): Edge[] {
+function edgesOf(entry: CatalogEntry, withOwner = true): Edge[] {
   const edges: Edge[] = [];
   if (entry.kind === "node") {
     edges.push({
@@ -244,8 +249,9 @@ function edgesOf(entry: CatalogEntry): Edge[] {
         target: entry.id,
       });
   }
-  for (const child of ownedChildren(entry))
-    edges.push({ type: "owner", key: entry.id, target: child });
+  if (withOwner)
+    for (const child of ownedChildren(entry))
+      edges.push({ type: "owner", key: entry.id, target: child });
   if (entry.kind === "definition" && entry.templateRootId)
     edges.push({
       type: "template",
@@ -292,15 +298,55 @@ function remove(index: MutableIndex, key: string, target: string): void {
   targets.delete(target);
   if (targets.size === 0) index.delete(key);
 }
-function ownedRecord<T>(value: T): T {
-  const copy = structuredClone(value);
-  const freeze = (item: unknown): void => {
-    if (!item || typeof item !== "object" || Object.isFrozen(item)) return;
-    for (const child of Object.values(item)) freeze(child);
-    Object.freeze(item);
-  };
-  freeze(copy);
-  return copy;
+function deepFreeze(item: unknown): void {
+  if (!item || typeof item !== "object" || Object.isFrozen(item)) return;
+  for (const child of Object.values(item)) deepFreeze(child);
+  Object.freeze(item);
+}
+/**
+ * A frozen copy the caller cannot change. A field the staged record shares with the committed
+ * record it replaces (`previous` — frozen all the way down) is kept, not copied (ADR-265: a style
+ * edit of a 5k-child body copied its child list on every commit).
+ */
+function ownedRecord<T>(value: T, previous?: T): T {
+  if (
+    !previous ||
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !Object.isFrozen(previous)
+  ) {
+    const copy = structuredClone(value);
+    deepFreeze(copy);
+    return copy;
+  }
+  const kept = previous as Record<string, unknown>;
+  const copy: Record<string, unknown> = {};
+  for (const [key, field] of Object.entries(value))
+    copy[key] =
+      field !== null && typeof field === "object" && field === kept[key]
+        ? field
+        : structuredClone(field);
+  deepFreeze(copy);
+  return copy as T;
+}
+/** Two id lists hold the same ids in the same order. */
+function sameIdList(a: readonly string[], b: readonly string[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+/** Two records of one entry own the same children (their owner edges are the same). */
+function sameOwnedChildren(a: CatalogEntry, b: CatalogEntry): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "node" && b.kind === "node")
+    return a.descendantOverrides === b.descendantOverrides
+      ? sameIdList(a.children, b.children)
+      : sameIdList(ownedChildren(a), ownedChildren(b));
+  if (a.kind === "page" && b.kind === "page")
+    return sameIdList(a.children, b.children);
+  return sameIdList(ownedChildren(a), ownedChildren(b));
 }
 
 /** One private mutable table with atomic commits; no product singleton or subscription. */
@@ -341,7 +387,6 @@ export class CatalogGraph {
     transactionEntriesTraversed: 0,
     transactionRecordReplacements: 0,
     transactionIndexEdgesUpdated: 0,
-    transactionEntryTableClones: 0,
   };
   readonly projectId: EntryId<"project">;
   readonly library: CatalogLibrary;
@@ -469,14 +514,28 @@ export class CatalogGraph {
   ): void {
     // Materialize caller-owned records before the first index or history mutation.
     const prepared = new Map<string, CatalogEntry | null>();
-    for (const [id, entry] of staged)
-      prepared.set(id, entry === null ? null : ownedRecord(entry));
+    for (const [id, entry] of staged) {
+      if (
+        process.env.NODE_ENV === "development" &&
+        entry &&
+        "children" in entry &&
+        Array.isArray(entry.children) &&
+        (this.table.get(id) as { children?: unknown } | undefined)
+          ?.children !== entry.children
+      )
+        docCounters.commitChildrenCloned += entry.children.length;
+      prepared.set(
+        id,
+        entry === null ? null : ownedRecord(entry, this.table.get(id)),
+      );
+    }
     const previous = new Map<string, CatalogEntry | null>();
     for (const id of staged.keys())
       previous.set(id, this.table.get(id) ?? null);
     const newlyDirty = [...staged.keys()].filter((id) => !this.dirty.has(id));
     const previousMetrics = this.lastMetrics;
     metrics.transactionIndexEdgesUpdated += this.replace(prepared);
+    metrics.transactionEntriesTraversed += prepared.size;
     metrics.transactionRecordReplacements = staged.size;
     this.currentRevision++;
     if (label !== null)
@@ -523,14 +582,30 @@ export class CatalogGraph {
     let edgesUpdated = 0;
     const oldEdges = new Map<string, Edge>();
     const nextEdges = new Map<string, Edge>();
+    let enumerated = 0;
+    // An entry that owns the same children before and after keeps its owner edges: they would be
+    // listed on both sides and cancel (ADR-265 — a body's 5k owner edges, twice, per style edit).
+    const sameOwner = new Set<string>();
+    for (const [id, entry] of next) {
+      const old = this.table.get(id);
+      if (old && entry && sameOwnedChildren(old, entry)) sameOwner.add(id);
+    }
     for (const id of next.keys()) {
       const entry = this.table.get(id);
       if (entry)
-        for (const edge of edgesOf(entry)) oldEdges.set(edgeKey(edge), edge);
+        for (const edge of edgesOf(entry, !sameOwner.has(id))) {
+          enumerated++;
+          oldEdges.set(edgeKey(edge), edge);
+        }
     }
-    for (const entry of next.values())
+    for (const [id, entry] of next)
       if (entry)
-        for (const edge of edgesOf(entry)) nextEdges.set(edgeKey(edge), edge);
+        for (const edge of edgesOf(entry, !sameOwner.has(id))) {
+          enumerated++;
+          nextEdges.set(edgeKey(edge), edge);
+        }
+    if (process.env.NODE_ENV === "development")
+      docCounters.replaceEdges += enumerated;
     for (const [key, edge] of oldEdges)
       if (!nextEdges.has(key)) {
         this.removeEdge(edge);
@@ -1281,6 +1356,8 @@ export class CatalogGraph {
         const walk = (nodeId: NodeId, seen: Set<NodeId>): void => {
           if (seen.has(nodeId)) return;
           seen.add(nodeId);
+          if (process.env.NODE_ENV === "development")
+            docCounters.definitionCycleChecks += 1;
           const node = get(nodeId) as NodeEntry | undefined;
           if (!node) return;
           if (node.definitionId.startsWith("project:definition:"))
@@ -1316,8 +1393,12 @@ export class CatalogGraph {
   collectAffectedIds(changedIds: readonly string[]): ReadonlySet<string> {
     const affected = new Set<string>();
     const queue = changedIds.map((id) => ({ id, expandChildren: true }));
-    while (queue.length) {
-      const { id, expandChildren } = queue.shift()!;
+    const counting = process.env.NODE_ENV === "development";
+    if (counting) docCounters.affectedCalls += 1;
+    // A read pointer, not `shift()` (ADR-265 C1 — a container's subtree queues thousands).
+    for (let head = 0; head < queue.length; head++) {
+      const { id, expandChildren } = queue[head]!;
+      if (counting) docCounters.affectedVisited += 1;
       if (affected.has(id)) continue;
       affected.add(id);
       for (const index of [
@@ -1333,8 +1414,10 @@ export class CatalogGraph {
             queue.push({ id: next, expandChildren: false });
       if (expandChildren)
         for (const next of this.ownerIndex.get(id) ?? [])
-          if (!affected.has(next))
+          if (!affected.has(next)) {
+            if (counting) docCounters.affectedSubtree += 1;
             queue.push({ id: next, expandChildren: true });
+          }
       const overrideTarget = this.overrideTarget.get(
         id as EntryId<"definitionOverride">,
       );
@@ -1344,6 +1427,7 @@ export class CatalogGraph {
       if (owner && !affected.has(owner))
         queue.push({ id: owner, expandChildren: false });
     }
+    if (counting) docCounters.affectedResult += affected.size;
     return affected;
   }
   /** Explicit cold path for export, never used by leaf mutation. */
@@ -1364,7 +1448,6 @@ export class CatalogGraph {
       transactionEntriesTraversed: 0,
       transactionRecordReplacements: 0,
       transactionIndexEdgesUpdated: 0,
-      transactionEntryTableClones: 0,
     };
   }
 }

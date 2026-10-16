@@ -153,7 +153,15 @@ export class CatalogPreviewReceiver {
       const before = graph.collectAffectedIds(touched);
       // (A delta whose every id was made and removed in between changes nothing here.)
       if (ops.length) this.apply(graph, ops);
-      invalidated = new Set([...before, ...graph.collectAffectedIds(touched)]);
+      // ADR-265 (C1): no index changed (no edge, no definition override) = the same walk — as
+      // the Builder runtime's step.
+      const sameWalk =
+        !ops.length ||
+        (graph.metrics.transactionIndexEdgesUpdated === 0 &&
+          !touched.some((id) => id.startsWith("project:definitionOverride:")));
+      invalidated = sameWalk
+        ? new Set(before)
+        : new Set([...before, ...graph.collectAffectedIds(touched)]);
     } catch (error) {
       this.requestOnce();
       return { kind: "rejected", error };

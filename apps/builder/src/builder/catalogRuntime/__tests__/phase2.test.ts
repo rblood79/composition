@@ -352,8 +352,8 @@ describe("ADR-248 Phase 2 independent runtime / G2", () => {
     expect(changed).toBe(1);
     expect(unrelated).toBe(0);
     expect(graph.metrics).toMatchObject({
-      transactionEntriesTraversed: 0,
-      transactionEntryTableClones: 0,
+      // ADR-265: the swap loop over the one staged record (a full export is stubbed above).
+      transactionEntriesTraversed: 1,
       transactionRecordReplacements: 1,
     });
     expect(runtime.pendingCount).toBe(1);

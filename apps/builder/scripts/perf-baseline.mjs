@@ -83,6 +83,7 @@ const DEFAULTS = {
   serveDist: null,
   distPort: 4190,
   fixtureKind: "mixed",
+  editTarget: "seed",
   pages: 2,
   zoom: null,
   fixedInputs: false,
@@ -135,6 +136,9 @@ export function parseArgs(argv) {
     else if (value === "--serve-dist") options.serveDist = resolve(next);
     else if (value === "--dist-port") options.distPort = Number(next);
     else if (value === "--fixture-kind") options.fixtureKind = next;
+    // ADR-265 불리 케이스: edit 부류의 대상 — seed (기본, seedIds[1] 폭) | body (page body 배경 —
+    //   서브트리 확장이 문서 전체인 편집)
+    else if (value === "--edit-target") options.editTarget = next;
     else if (value === "--pages") options.pages = Number(next);
     else if (value === "--zoom") options.zoom = Number(next);
     else if (value === "--cold-entries") options.coldEntries = Number(next);
@@ -1831,7 +1835,7 @@ export const RECORDER_SCRIPT = `(() => {
       const visibilityChanged = () => visibility.push(document.visibilityState);
       document.addEventListener?.("visibilitychange", visibilityChanged);
       window.__composition_FRAME_CAPTURE__?.reset();
-      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.(); window.__composition_RENDER_COUNTERS__?.reset?.();
+      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.(); window.__composition_RENDER_COUNTERS__?.reset?.(); window.__composition_DOC_COUNTERS__?.reset?.();
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } lt.disconnect(); }
         document.removeEventListener?.("visibilitychange", visibilityChanged);
         document.removeEventListener?.("wheel", inputPhase, true);
@@ -1844,6 +1848,7 @@ export const RECORDER_SCRIPT = `(() => {
         const frameCapture = window.__composition_FRAME_CAPTURE__?.snapshot() ?? null;
         const caches = (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ? { ...c.missReasons } : null }));
         const renderCounters = window.__composition_RENDER_COUNTERS__?.snapshot?.() ?? null;
+        const docCounters = window.__composition_DOC_COUNTERS__?.snapshot?.() ?? null;
         if (previousRecording !== undefined) perfApi.setRecordingEnabled(previousRecording);
         let profile = null;
         if (profiler) {
@@ -1859,7 +1864,7 @@ export const RECORDER_SCRIPT = `(() => {
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
           perf, caches, frameCapture, visibility, inputPhases, frameTimes, markers, longTaskEntries, t0,
-          domMutations, measures, layoutVersionDelta, renderCounters,
+          domMutations, measures, layoutVersionDelta, renderCounters, docCounters,
           dpr: window.devicePixelRatio ?? null }; };
     },
     stop() { return this._stop(); },
@@ -2152,6 +2157,33 @@ export const FRAME_CLASSES = {
         fixedInputs: ctx.fixedInputs,
       },
     ),
+  // ADR-265 (리뷰 r1 M2): 규모와 함께 움직이는 선택열 — 앞 · 중간 · 끝을 같은 비율로 방문하는 결정적
+  //   인덱스 열 [0, ⌊N/2⌋, N−1, 1, ⌊N/2⌋+1, N−2, …] 을 100ms 마다. `select` 는 규모와 무관하게 처음
+  //   30 개만 골라 형제 선형 탐색을 기울기 0 으로 보인다. 선택은 Canvas 클릭 경로 (`selectRecords` —
+  //   record → Layers 행 위치) 로 간다 — `select` 의 store 경로 (`session.select`) 는 그 탐색을 안 지난다.
+  "select-spread": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ids, ms, fixedInputs }) => {
+        const store = window.__composition_STORE__;
+        const n = ids.length;
+        const half = Math.floor(n / 2);
+        const at = (i) => {
+          const k = Math.floor(i / 3);
+          const slot = i % 3;
+          return slot === 0 ? k % n : slot === 1 ? (half + k) % n : (n - 1 - (k % n) + n) % n;
+        };
+        const t0 = performance.now();
+        let i = 0;
+        while (
+          fixedInputs ? i < Math.ceil(ms / 100) : performance.now() - t0 < ms
+        ) {
+          store.getState().pickElement(ids[at(i++)]);
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        store.getState().setSelectedElement(null);
+      },
+      { ids: ctx.seedIds, ms, fixedInputs: ctx.fixedInputs },
+    ),
   // ADR-228 G4 Q2 (codex round 3 m5): 다중 선택 + 편집 — 20개를 한 번에 선택한 채 그중 하나를
   //   5회/s 편집 (선택 overlay 20개 + 실체화가 매 프레임 걸리는 불리 조작). 선택 집합은 1초마다
   //   다음 20개로 옮긴다.
@@ -2189,8 +2221,16 @@ export const FRAME_CLASSES = {
   // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
   edit: (page, ctx, ms) =>
     page.evaluate(
-      async ({ id, ms, fixedInputs }) => {
+      async ({ seedId, ms, fixedInputs, editTarget }) => {
         const store = window.__composition_STORE__;
+        const body = editTarget === "body";
+        const pageId = store.getState().currentPageId;
+        const id = body
+          ? store
+              .getState()
+              .elements.find((e) => e.type === "body" && e.page_id === pageId)
+              ?.id
+          : seedId;
         const el = store.getState().elements.find((e) => e.id === id);
         const base = el?.props?.style ?? {};
         const t0 = performance.now();
@@ -2198,9 +2238,12 @@ export const FRAME_CLASSES = {
         while (
           fixedInputs ? i < Math.ceil(ms / 200) : performance.now() - t0 < ms
         ) {
+          const k = i++ % 5;
           await store.getState().updateElementProps(id, {
             ...el.props,
-            style: { ...base, width: `${160 + (i++ % 5) * 4}px` },
+            style: body
+              ? { ...base, backgroundColor: `#f${k}f${k}f${k}` }
+              : { ...base, width: `${160 + k * 4}px` },
           });
           await new Promise((r) => setTimeout(r, 200));
         }
@@ -2208,7 +2251,12 @@ export const FRAME_CLASSES = {
           .getState()
           .updateElementProps(id, { ...el.props, style: base });
       },
-      { id: ctx.seedIds[1], ms, fixedInputs: ctx.fixedInputs },
+      {
+        seedId: ctx.seedIds[1],
+        ms,
+        fixedInputs: ctx.fixedInputs,
+        editTarget: ctx.editTarget,
+      },
     ),
   // 패널 리사이즈: 첫 세로 splitter 를 ±60px 왕복 (실 포인터)
   "panel-resize": async (page, ctx, ms) => {
@@ -2553,6 +2601,7 @@ async function runFrameLane(page, cdp, seed, options) {
         ...seed,
         selectionDriver: options.selectionDriver,
         fixedInputs: options.fixedInputs,
+        editTarget: options.editTarget,
         pointer,
       },
       options.durationMs,
@@ -2595,6 +2644,8 @@ async function runFrameLane(page, cdp, seed, options) {
     );
     if (cls === "select")
       results[cls].selectionDriver = options.selectionDriver;
+    if (cls === "edit" && options.editTarget !== "seed")
+      results[cls].editTarget = options.editTarget;
     if (pointer)
       results[cls].pointer = {
         camera: pointer.camera,
@@ -2648,6 +2699,8 @@ export function buildCounts(rec, beforeMetrics, afterMetrics, coverage) {
     layoutVersionDelta: rec.layoutVersionDelta ?? null,
     // ADR-263: 그리기 명령 층 카운트 (renderCounters.ts — dev 빌드 전용)
     render: rec.renderCounters ?? null,
+    // ADR-265: 문서 층 카운트 (catalog/docCounters.ts — dev 빌드 전용)
+    doc: rec.docCounters ?? null,
     v8: coverage,
   };
 }
@@ -2658,6 +2711,7 @@ export function summarizeCoverage(payload) {
   let app = 0;
   let deps = 0;
   const perFn = [];
+  const depFn = [];
   for (const script of payload.result ?? []) {
     const url = String(script.url ?? "");
     const short = url
@@ -2673,12 +2727,36 @@ export function summarizeCoverage(payload) {
       total += n;
       if (isApp) {
         app += n;
-        perFn.push({ fn: fn.functionName || "(anonymous)", file: short, n });
-      } else if (isDep) deps += n;
+        // `at`: the function's offset in the served (transformed) module — names an anonymous one
+        // (ADR-265 Phase 0 — diagnosis only; `topApp` is not a ratchet key).
+        perFn.push({
+          fn: fn.functionName || "(anonymous)",
+          file: short,
+          n,
+          at: fn.ranges?.[0]?.startOffset ?? null,
+          url: url.replace(/[?].*$/, ""),
+        });
+      } else if (isDep) {
+        deps += n;
+        depFn.push({
+          fn: fn.functionName || "(anonymous)",
+          file: short,
+          n,
+          at: fn.ranges?.[0]?.startOffset ?? null,
+        });
+      }
     }
   }
   perFn.sort((x, y) => y.n - x.n);
-  return { total, app, deps, topApp: perFn.slice(0, 20) };
+  depFn.sort((x, y) => y.n - x.n);
+  // `topDeps`: diagnosis only (ADR-265 — which library calls a selection makes), not a ratchet key.
+  return {
+    total,
+    app,
+    deps,
+    topApp: perFn.slice(0, 20),
+    topDeps: depFn.slice(0, 15),
+  };
 }
 
 export function summarizeTaskMetrics(before, after) {

@@ -18,6 +18,7 @@ export {
   moveNodes,
   pasteNodes,
   removeTargets,
+  reorderReadsIndex,
   ungroupNodes,
   type CatalogClipboard,
 } from "./structure";

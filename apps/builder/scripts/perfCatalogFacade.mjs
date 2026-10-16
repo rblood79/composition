@@ -10,6 +10,7 @@
 //                                               when the harness seeds; kept current by the facade's
 //                                               own edits — no whole-graph read while measuring)
 //   setSelectedElement(s) · selectedElementId → session selection
+//   pickElement                               → workspace.selectRecords (the Canvas click path)
 //   updateElementProps                        → setFields (style width/height/backgroundColor/
 //                                               fontSize, `children` text)
 //   addComplexElement (mixed Text/frame)      → insertNodes (absolute placement)
@@ -85,6 +86,8 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
       get selectedElementIds() { return ws().session.getSnapshot().selection.flatMap((s) => (s.target.kind === "node" ? [s.target.id.slice(NODE.length)] : [])); },
       setSelectedElement(id) { select(id ? [id] : []); },
       setSelectedElements(ids) { select(ids ?? []); },
+      // ADR-265: the Canvas click path — a drawn record to its Layers row (\`selectRecords\`).
+      pickElement(id) { ws().selectRecords([ws().root.recordsOfSource(NODE + id)[0]]); },
       activatePage(id) { ws().session.setPage(id); },
       async updateElementProps(id, props) {
         const w = writesOf(props);

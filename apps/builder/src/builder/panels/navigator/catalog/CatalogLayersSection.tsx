@@ -47,6 +47,9 @@ import { useToastStore } from "../../../stores/toast";
 const LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
 const EMPTY: readonly CatalogLayerNode[] = [];
 const noSubscription = () => () => {};
+// Stable item accessors (ADR-265): a new function each render made `TreeBase` re-index every row.
+const layerKey = (node: CatalogLayerNode) => node.id;
+const layerText = (node: CatalogLayerNode) => node.name;
 const noSnapshot = () => EMPTY;
 
 /**
@@ -108,12 +111,18 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         parents.add(record.id);
     return parents;
   }, [selectedIds, workspace]);
-  const expandedKeys = useMemo(() => {
+  // The expanded rows as one value: a selection among siblings gives the same rows, and a new Set
+  // made RAC re-flatten the whole expanded tree (ADR-265 — 5k rows per selection).
+  const expandedList = useMemo(() => {
     const merged = new Set(userExpanded);
     for (const key of autoExpanded)
       if (!userCollapsed.has(key)) merged.add(key);
-    return merged;
+    return JSON.stringify([...merged]);
   }, [autoExpanded, userCollapsed, userExpanded]);
+  const expandedKeys = useMemo(
+    () => new Set<Key>(JSON.parse(expandedList) as Key[]),
+    [expandedList],
+  );
   useLayoutEffect(() => {
     tree?.setExpanded(new Set([...expandedKeys].map(String)));
   }, [expandedKeys, tree]);
@@ -329,8 +338,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         <TreeBase<CatalogLayerNode>
           aria-label="Layers"
           items={items as CatalogLayerNode[]}
-          getKey={(node) => node.id}
-          getTextValue={(node) => node.name}
+          getKey={layerKey}
+          getTextValue={layerText}
           renderContent={renderContent}
           selectedKeys={selectedKeys}
           selectionMode="multiple"

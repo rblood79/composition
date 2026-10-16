@@ -1,3 +1,4 @@
+import { docCounters } from "../docCounters";
 import { catalogColorPartLayout } from "./colorControlParts";
 import type { CatalogTableSortSource } from "./tableSort";
 import {
@@ -1778,6 +1779,8 @@ export class CatalogCompositionRoot {
   /** Records whose written props hold a template (`names`: only those reading one of them). */
   private stateReaders(names?: ReadonlySet<string>): string[] {
     const ids: string[] = [];
+    if (process.env.NODE_ENV === "development")
+      docCounters.stateReadersScanned += this.records.size;
     for (const [id, record] of this.records)
       if (
         record.templateProps &&
@@ -1970,6 +1973,8 @@ export class CatalogCompositionRoot {
     const had = map.has(key);
     const value = map.get(key);
     const saved = value instanceof Set ? (new Set(value) as V) : value;
+    if (process.env.NODE_ENV === "development" && value instanceof Set)
+      docCounters.rootMembersCopied += value.size;
     this.undoLog.push(() => {
       if (had) map.set(key, saved as V);
       else map.delete(key);
@@ -3337,7 +3342,9 @@ export class CatalogCompositionRoot {
     >();
     for (const rootId of this.rootIds) {
       const pageId = this.rootPage.get(rootId);
-      const member = [...(this.rootMembers.get(rootId) ?? [])].find(
+      // The root's top record is one of its source's records (as `pageRootRecords` finds it) —
+      // not a search of every member of the page (ADR-265 C12: 5k members, per call).
+      const member = this.recordsOfSource(rootId).find(
         (id) => this.records.get(id)?.parentId === "catalog:root",
       );
       const rect = member ? this.getGeometry([member]).get(member) : undefined;
@@ -3680,6 +3687,8 @@ export class CatalogCompositionRoot {
       return entry?.kind === "node" ? entry.definitionId : undefined;
     };
     const dependents: string[] = [];
+    if (process.env.NODE_ENV === "development")
+      docCounters.overrideDependentsScanned += this.records.size;
     for (const record of this.records.values())
       if (
         targets.has(record.definitionId) ||
@@ -4837,6 +4846,15 @@ export class CatalogCompositionRoot {
       canvasInputUpdates: canvas,
       domInputUpdates: dom,
     };
+    if (process.env.NODE_ENV === "development") {
+      docCounters.rootResolverVisits += plan.metrics.resolverVisits;
+      docCounters.rootLayoutInputVisits += plan.metrics.layoutInputVisits;
+      if (plan.metrics.traversedWholeInputGraph)
+        docCounters.rootWholeGraphSteps += 1;
+      docCounters.deliverNotices += notices.length;
+      docCounters.deliverCanvas += canvas;
+      docCounters.deliverDom += dom;
+    }
     return errors;
   }
 }

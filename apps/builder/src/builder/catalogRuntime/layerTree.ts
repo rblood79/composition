@@ -1,3 +1,4 @@
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { isBodyType } from "@composition/shared";
 import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
@@ -210,8 +211,10 @@ export class CatalogLayerTreeStore {
   ) {
     // Constructed after the read model: its step listener has recomputed the row lists by now.
     this.unsubscribeSteps = host.subscribeSteps(({ result }) => {
+      const counting = process.env.NODE_ENV === "development";
       const renamed = [...result.changedIds].some((id) =>
         (this.visibleNodes.get(id) ?? []).some((identity) => {
+          if (counting) docCounters.layersRenameChecked += 1;
           const node = this.nodes.get(identity);
           return (
             node &&
@@ -223,10 +226,10 @@ export class CatalogLayerTreeStore {
       // The project components page: a row's origin can be deleted (kept by its definition) or
       // restored without its row list changing — its few rows are read again each step.
       // A parent prop edit shows or hides a value-gated part without its row list changing.
-      const gated = this.valueGated.some(
-        ({ position, absent }) =>
-          (host.absentByValue?.(position) ?? false) !== absent,
-      );
+      const gated = this.valueGated.some(({ position, absent }) => {
+        if (counting) docCounters.layersGatedChecked += 1;
+        return (host.absentByValue?.(position) ?? false) !== absent;
+      });
       if (
         renamed ||
         gated ||
@@ -270,6 +273,8 @@ export class CatalogLayerTreeStore {
 
   private rebuild(): void {
     if (this.disposed) return;
+    const counting = process.env.NODE_ENV === "development";
+    if (counting) docCounters.layersRebuilds += 1;
     this.rowsChanged = false;
     const { readModel, graph } = this.host;
     const previous = this.nodes;
@@ -293,6 +298,7 @@ export class CatalogLayerTreeStore {
       parentId: string | null,
       depth: number,
     ): CatalogLayerNode => {
+      if (counting) docCounters.layersRowsBuilt += 1;
       wanted.add(position.identity);
       // The Components page lists origins and their instances, not its drawn frames.
       const rows = listed(

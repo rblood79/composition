@@ -1,3 +1,4 @@
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import type {
   CatalogEntry,
   CatalogReader,
@@ -43,9 +44,32 @@ interface CachedRead<T> {
   deps: Set<string>;
   /** Listed owned nodes: recompute only when these fields changed. */
   rowDeps?: Map<string, string>;
+  /** The listing's parent (a page or an owned node): recompute only when these fields changed. */
+  parentDeps?: Map<string, ParentFields>;
   listeners: Set<Listener<T>>;
-  compute: () => { value: T; deps: Set<string>; rowDeps?: Map<string, string> };
+  compute: () => {
+    value: T;
+    deps: Set<string>;
+    rowDeps?: Map<string, string>;
+    parentDeps?: Map<string, ParentFields>;
+  };
 }
+/**
+ * The fields a row listing reads of its parent (ADR-265 C2): a node's definition (its template's
+ * rows), children and descendant overrides (replacements, slot contents, switched-off parts); a
+ * page's children. Compared by identity — a commit keeps a field it did not change (`ownedRecord`)
+ * — so a style edit of a 5k-child body recomputes no row list. A field rebuilt with the same
+ * content recomputes it (correct, only slower).
+ */
+type ParentFields = readonly unknown[];
+const parentFields = (entry: CatalogEntry | undefined): ParentFields =>
+  entry?.kind === "node"
+    ? [entry.kind, entry.definitionId, entry.children, entry.descendantOverrides]
+    : entry?.kind === "page"
+      ? [entry.kind, entry.children]
+      : [entry];
+const sameParentFields = (a: ParentFields | undefined, b: ParentFields) =>
+  !!a && a.length === b.length && a.every((field, i) => field === b[i]);
 export interface CatalogComponentSummary {
   definitionId: EntryId<"definition">;
   name: string;
@@ -90,8 +114,13 @@ const targetKey = (target: EditTarget) =>
   target.kind === "node"
     ? target.id
     : `${target.ownerId}|${target.address.instances.join("/")}|${target.address.templatePath.join("/")}`;
-const same = (a: unknown, b: unknown) =>
-  Object.is(a, b) || JSON.stringify(a) === JSON.stringify(b);
+const same = (a: unknown, b: unknown) => {
+  if (Object.is(a, b)) return true;
+  const left = JSON.stringify(a);
+  if (process.env.NODE_ENV === "development")
+    docCounters.readCompareBytes += left?.length ?? 0;
+  return left === JSON.stringify(b);
+};
 
 /** Whose rows: a page's top level, the definition edit view's, or one row's children. */
 export type CatalogRowsParent =
@@ -104,6 +133,7 @@ export class CatalogReadModel {
   /** Reverse indexes: entry id → reads depending on it (whole entry / row fields / index). */
   private readonly byDep = new Map<string, Set<string>>();
   private readonly byRow = new Map<string, Set<string>>();
+  private readonly byParent = new Map<string, Set<string>>();
   private readonly byIndex = new Set<string>();
   private readonly unsubscribe: () => void;
   /** Reads computed (first read or recompute), by kind — the cost contract's counter. */
@@ -117,6 +147,7 @@ export class CatalogReadModel {
     this.reads.clear();
     this.byDep.clear();
     this.byRow.clear();
+    this.byParent.clear();
     this.byIndex.clear();
   }
 
@@ -140,12 +171,16 @@ export class CatalogReadModel {
       else this.add(this.byDep, dep, key);
     for (const id of cached.rowDeps?.keys() ?? [])
       this.add(this.byRow, id, key);
+    for (const id of cached.parentDeps?.keys() ?? [])
+      this.add(this.byParent, id, key);
   }
   private unindex(key: string, cached: CachedRead<unknown>): void {
     this.byIndex.delete(key);
     for (const dep of cached.deps) this.byDep.get(dep)?.delete(key);
     for (const id of cached.rowDeps?.keys() ?? [])
       this.byRow.get(id)?.delete(key);
+    for (const id of cached.parentDeps?.keys() ?? [])
+      this.byParent.get(id)?.delete(key);
   }
   private add(map: Map<string, Set<string>>, id: string, key: string): void {
     let keys = map.get(id);
@@ -198,7 +233,20 @@ export class CatalogReadModel {
             rowFields(this.runtime.graph.getEntry(row.target.id)),
           );
         }
-      return { value, deps, rowDeps };
+      // The page or owned node whose children these are: only through `parentFields`.
+      const parentId =
+        "pageId" in parent
+          ? parent.pageId
+          : "position" in parent && !parent.position.scope
+            ? parent.position.sourceId
+            : undefined;
+      const parentDeps = new Map<string, ParentFields>();
+      if (parentId && deps.delete(parentId))
+        parentDeps.set(
+          parentId,
+          parentFields(this.runtime.graph.getEntry(parentId)),
+        );
+      return { value, deps, rowDeps, parentDeps };
     };
   }
   private rowsKey(parent: CatalogRowsParent) {
@@ -460,6 +508,14 @@ export class CatalogReadModel {
         )
           stale.add(key);
       }
+      for (const key of this.byParent.get(id) ?? [])
+        if (
+          !sameParentFields(
+            this.reads.get(key)?.parentDeps?.get(id),
+            parentFields(this.runtime.graph.getEntry(id)),
+          )
+        )
+          stale.add(key);
     }
     // A derived view entry (the Components page) follows any change it may derive from.
     if (changed.size)
@@ -467,6 +523,11 @@ export class CatalogReadModel {
         for (const key of this.byDep.get(id) ?? []) stale.add(key);
     // Index reads (instances, referrers) follow any change (their records are few).
     if (changed.size) for (const key of this.byIndex) stale.add(key);
+    const counting = process.env.NODE_ENV === "development";
+    if (counting) {
+      docCounters.readStale += stale.size;
+      if (changed.size) docCounters.readStaleByIndex += this.byIndex.size;
+    }
     for (const key of stale) {
       const cached = this.reads.get(key);
       if (!cached) continue;
@@ -476,6 +537,7 @@ export class CatalogReadModel {
         continue;
       }
       let next: ReturnType<typeof cached.compute>;
+      if (counting) docCounters.readRecomputed += 1;
       try {
         next = cached.compute();
       } catch {
@@ -486,6 +548,7 @@ export class CatalogReadModel {
       const differs = !same(next.value, cached.value);
       cached.deps = next.deps;
       cached.rowDeps = next.rowDeps;
+      cached.parentDeps = next.parentDeps;
       this.index(key, cached);
       if (differs) {
         cached.value = next.value;

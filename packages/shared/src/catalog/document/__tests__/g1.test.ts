@@ -283,8 +283,8 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     expect([...first.removedIds]).toEqual([]);
     expect(first.revision).toBe(1);
     expect(graph.metrics).toMatchObject({
-      transactionEntriesTraversed: 0,
-      transactionEntryTableClones: 0,
+      // ADR-265: the swap loop over the one staged record — never the document.
+      transactionEntriesTraversed: 1,
       transactionRecordReplacements: 1,
     });
     expect(graph.history).toHaveLength(1);
@@ -292,7 +292,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     expect(
       resolveCatalogNode(graph, "project:node:cardA").visual.backgroundColor,
     ).toBeUndefined();
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(1);
     expect(
       Object.hasOwn(
         (graph.getEntry("project:node:cardA") as NodeEntry).visual,
@@ -967,7 +967,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
       },
     ]);
     expect(result.revision).toBe(1);
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(1);
     graph.exportDocument = exported;
     failureCode(
       () =>
@@ -1329,7 +1329,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
         .visual.color,
     ).toBe("black");
     request(graph, reset.inverse);
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(1);
     expect(
       resolveCatalogNode(graph, "project:node:cardA").children[0].children[0]
         .visual.color,
@@ -1569,7 +1569,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     ).toBe(true);
     expect(graph.indexes.definitionToInstances).toEqual(beforeDefinition);
     expect(graph.indexes.ownerToChildren).toEqual(beforeOwner);
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(1);
     request(graph, [
       {
         kind: "setNodeBinding",
@@ -1581,7 +1581,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
       graph.indexes.collectionToBindings.get("data:collection:one"),
     ).toEqual(new Set(["project:node:cardA"]));
     expect(graph.indexes.definitionToInstances).toEqual(beforeDefinition);
-    expect(graph.metrics.transactionEntriesTraversed).toBe(0);
+    expect(graph.metrics.transactionEntriesTraversed).toBe(1);
   });
 
   it("leaves graph, indexes, history, revision and dirty set untouched after a later invalid op", () => {

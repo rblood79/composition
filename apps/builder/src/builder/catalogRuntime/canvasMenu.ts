@@ -1,3 +1,4 @@
+import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { Maximize, Percent } from "lucide-react";
 import {
   copyNodes,
@@ -6,6 +7,7 @@ import {
   moveNodes,
   pasteNodes,
   removeTargets,
+  reorderReadsIndex,
   ungroupNodes,
   type CatalogClipboard,
 } from "../../../../../packages/shared/src/catalog/commands";
@@ -139,10 +141,13 @@ export function catalogCanvasMenuItems(
   point?: { x: number; y: number },
 ): ContextMenuItem[] {
   const allowed = (id: string, command: CatalogCommand) => {
+    const counting = process.env.NODE_ENV === "development";
+    if (counting) docCounters.menuDryRuns += 1;
     try {
       command(host.graph);
       return true;
     } catch (error) {
+      if (counting) docCounters.menuRefusals += 1;
       host.noteRefusal?.(id, error);
       return false;
     }
@@ -353,44 +358,74 @@ export function catalogCanvasMenuItems(
         newId: host.newId,
         label: "Reorder",
       });
+    // ADR-265 (C7): a reorder among the same siblings is refused or not whatever the index — no
+    // check of `moveNodes` reads it (into itself, nesting, required parts, state owners, aligned
+    // tables) — so one plan decides all four items (each plan copied the 5k sibling list). A RAC
+    // Table column takes its cells along by index: its items are each planned.
+    const column = reorderReadsIndex(host.graph, ids[0]!);
+    let verdict: { allowed: true } | { allowed: false; error: unknown } | null =
+      null;
+    const shared = (itemId: string, command: CatalogCommand) => {
+      if (column) return allowed(itemId, command);
+      if (!verdict) {
+        if (process.env.NODE_ENV === "development") docCounters.menuDryRuns += 1;
+        try {
+          command(host.graph);
+          verdict = { allowed: true };
+        } catch (error) {
+          if (process.env.NODE_ENV === "development")
+            docCounters.menuRefusals += 1;
+          verdict = { allowed: false, error };
+        }
+      }
+      if (!verdict.allowed) host.noteRefusal?.(itemId, verdict.error);
+      return verdict.allowed;
+    };
+    const reorderItem = (
+      itemId: string,
+      labelKey: string,
+      to: number,
+      shortcutId: ShortcutId,
+    ): ContextMenuItem[] => {
+      const command = reorder(to);
+      return shared(itemId, command)
+        ? action(itemId, labelKey, command, shortcutId, undefined, false, undefined, true)
+        : [];
+    };
     const order: ContextMenuItem[] = [];
     if (index < siblings) {
       order.push(
-        ...action(
+        ...reorderItem(
           "bring-to-front",
           "contextMenu.bringToFront",
-          reorder(siblings),
+          siblings,
           "bringToFront",
-          undefined,
         ),
       );
       order.push(
-        ...action(
+        ...reorderItem(
           "bring-forward",
           "contextMenu.bringForward",
-          reorder(index + 1),
+          index + 1,
           "bringForward",
-          undefined,
         ),
       );
     }
     if (index > 0) {
       order.push(
-        ...action(
+        ...reorderItem(
           "send-backward",
           "contextMenu.sendBackward",
-          reorder(index - 1),
+          index - 1,
           "sendBackward",
-          undefined,
         ),
       );
       order.push(
-        ...action(
+        ...reorderItem(
           "send-to-back",
           "contextMenu.sendToBack",
-          reorder(0),
+          0,
           "sendToBack",
-          undefined,
         ),
       );
     }

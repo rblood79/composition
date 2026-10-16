@@ -829,6 +829,16 @@ export interface MoveNodesInput {
   newId: NewId;
   label?: string;
 }
+/**
+ * Whether `moveNodes` of this node reads the target index beyond placing it (ADR-265 C7): a RAC
+ * Table column takes its cells along by index (`tableColumnOrder`). Otherwise a reorder among the
+ * same siblings is refused or not whatever the index — the Canvas menu plans one for all four
+ * z-order items.
+ */
+export function reorderReadsIndex(reader: CatalogReader, id: NodeId): boolean {
+  return holdsRacTable(reader) && revisionType(reader, id) === "Column";
+}
+
 /** Move (or reorder) nodes; nodes under another moved node travel with it. */
 export const moveNodes =
   (input: MoveNodesInput): CatalogCommand =>

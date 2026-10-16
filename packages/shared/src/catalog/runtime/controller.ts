@@ -1,3 +1,4 @@
+import { docCounters } from "../docCounters";
 import { CatalogGraph } from "../document/graph";
 import type {
   CatalogDocument,
@@ -539,9 +540,10 @@ export class CatalogRuntime {
     record: (result: CatalogTransactionResult) => void,
     mode: "record" | "sync" = "record",
   ): CatalogTransactionResult {
-    const preAffected = session.graph.collectAffectedIds(
+    const targets = new Set<string>(
       ops.map((op) => (op.kind === "put" ? op.entry.id : op.id)),
     );
+    const preAffected = session.graph.collectAffectedIds([...targets]);
     const result = applyCatalogTransaction(session.graph, {
       projectId: session.graph.projectId,
       expectedRevision,
@@ -551,15 +553,29 @@ export class CatalogRuntime {
           ? { kind: "record", label }
           : { kind: "skip", reason: "sync" },
     });
-    const invalidatedIds = [
-      ...new Set([
-        ...preAffected,
-        ...session.graph.collectAffectedIds([
-          ...result.changedIds,
-          ...result.removedIds,
-        ]),
-      ]),
-    ];
+    const seeds = [...result.changedIds, ...result.removedIds];
+    // ADR-265 (C1): the walk reads only the graph's indexes from its seeds. Same seeds and no index
+    // changed (no edge, no definition override — `overrideTarget` is not an edge) = the same set,
+    // so the post-commit walk is skipped (a container's whole subtree was walked twice per step).
+    const sameWalk =
+      seeds.length === targets.size &&
+      seeds.every(
+        (id) =>
+          targets.has(id) && !id.startsWith("project:definitionOverride:"),
+      ) &&
+      session.graph.metrics.transactionIndexEdgesUpdated === 0;
+    const invalidatedIds = sameWalk
+      ? [...preAffected]
+      : [
+          ...new Set([
+            ...preAffected,
+            ...session.graph.collectAffectedIds(seeds),
+          ]),
+        ];
+    if (process.env.NODE_ENV === "development") {
+      docCounters.steps += 1;
+      docCounters.stepInvalidated += invalidatedIds.length;
+    }
     let deliver: (() => readonly unknown[]) | void;
     try {
       deliver = consumer?.({ result, invalidatedIds });
@@ -572,6 +588,9 @@ export class CatalogRuntime {
         const entry = session.graph.getEntry(id) as CatalogEntry;
         return { id, json: JSON.stringify(entry) };
       });
+      if (process.env.NODE_ENV === "development")
+        for (const { json } of changed)
+          docCounters.persistStringifyBytes += json.length;
       session.pending.push({
         projectId: session.graph.projectId,
         expectedDurableRevision: result.revision - 1,

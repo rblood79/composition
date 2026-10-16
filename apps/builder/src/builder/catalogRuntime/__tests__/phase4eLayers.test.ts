@@ -143,8 +143,9 @@ describe("ADR-248 Phase 4e-4 Layers tree", () => {
         props: { children: { kind: "set", value: "Edited" } },
       }),
     );
-    // Only the edited leaf's own (empty) child list is read again — not its siblings' list.
-    expect(workspace.readModel.stats.rows).toBe(rows + 1);
+    // No row list is read again — not its siblings' list, nor the leaf's own (ADR-265: a list
+    // follows its parent's children · definition · overrides, not its props).
+    expect(workspace.readModel.stats.rows).toBe(rows);
     expect(notified).toBe(0);
     expect(tree.getSnapshot()).toBe(before);
 

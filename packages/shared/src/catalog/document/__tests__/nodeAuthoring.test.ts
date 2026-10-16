@@ -338,7 +338,7 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
     expect(after.visibility).toEqual({ mobile: false });
     expect([...result.changedIds]).toEqual(["project:node:box"]);
     // Leaf patches stay on the leaf path: no whole-graph validation.
-    expect(g.metrics.transactionEntriesTraversed).toBe(0);
+    expect(g.metrics.transactionEntriesTraversed).toBe(1);
 
     applyCatalogTransaction(g, {
       projectId: "project:project:p",

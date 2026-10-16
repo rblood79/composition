@@ -149,6 +149,14 @@
 
 ## 현황
 
+> **2026-10-16 ADR-265 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 둔다」 · 결정 3 「측정 기록으로 종결」): Phase 0 ~ 2 + G2. 문서 층은 편집 · 선택 모두 변경 크기 비례로 — 큰 컨테이너 편집 (post 걸음 생략 · owner edge 상쇄 생략 · commit 필드 공유 · 행 목록 부모 필드 의존) · 선택 (행 색인 · `pageFrameRects` · 자동 HTML id · z-order 판정 공유 · Layers 고정). production 짝 5k: body 편집 p99 35.5 · 32.6 → 21.8 · 24.2 ms · drop 5.5 · 4.1 → 0 · 1.1 % · 평평 select drop 7.0 · 5.9 → 3.7 · 4.3 % (p99 ~29 그대로) · 줌 · drag · 편집 · 600 select 유지. HC2 (중첩 카드 편집) 미달의 자리 = Canvas binding (옮김 · overflow · rect diff), HC3 미달의 자리 = Layers 행 렌더의 RAC 내부 · React DOM · 메뉴 Group dry-run. live 11/11. seed 60 `doc.*` 등록은 HEAD 의 다른 세션 `getSnapshot` 초과가 풀린 뒤. 열림 −1, 완료 +1 (열림 1 — Proposed 1 = 245, 합계 288).
+
+> **2026-10-16 ADR-265 Phase 1 닫힘**: 편집 레버 4 — post-commit 걸음 생략 (시드 같고 색인 그대로일 때) · `graph.replace` 의 같은 owner edge 열거 생략 · commit 이 이전 record 와 공유하는 필드를 다시 복제하지 않음 · 행 목록 read 가 부모의 행 관련 필드에만 의존. body 편집 5k: edge 열거 150,030 → 30 · children 복제 75,000 → 0 · 행 재계산 · 비교 직렬화 → 0 · 서브트리 걸음 절반. G1 동치 1,200 step · 변이 4 RED · ratchet 하향 10. HC2 시나리오의 문서 층 몫은 원래 상수 (Phase 0).
+
+> **2026-10-16 ADR-265 Accepted · Phase 0 닫힘 (go)**: 사용자 `/execute-adr 265` + 리뷰 Round 2 pending 0 으로 승격. 문서 층 카운터 `counts.doc.*` 35 개 (shared `catalog/docCounters.ts`) · 새 부류 `select-spread` (Canvas 클릭 경로) · 불리 옵션 `--edit-target body`. 기울기 (600 → 5k): HC2 시나리오 (중첩 카드 폭 편집) 는 **문서 층 카운트가 상수** — 규모와 함께 느는 호출은 Canvas binding (`subtreeTranslate` · overflow clip · rect diff, 범위 밖). body 편집 (서브트리 확장 18k → 150k · 행 read 비교 2.7 → 23 MB) 과 선택 (형제 비교 118k → 976k · `pageFrameRects` 93k → 775k · 자동 HTML id 탐색 · dry-run children filter · Layers RAC `getKey`) 은 비례 → Phase 1 · 2. `GraphMetrics.transactionEntriesTraversed` 배선 · `transactionEntryTableClones` 삭제 (셀 지점 없음). ratchet `doc.*` A 등록 (600 · 600:nested-flex) · 인위 회귀 block 확인. 열림 2, 합계 288.
+
+> **2026-10-16 ADR-265 Proposed**: 편집 · 선택 전환의 문서 층 비용 — 문서 크기에 비례하는 자리를 변경 크기 비례로 (Canvas 성능 계획 3단계, 사용자 `/create-adr 3단계 — …`; ADR-264 가 Canvas 밖으로 넘긴 편집 꼬리와 선택 전환을 한 ADR 로 — 같은 층. ADR-245 는 사용자 「미뤄졌다」). 실측: 중첩 5k 편집 p99 24 ~ 26 ms · drop 1 ~ 2 % (HC2 미달, 상위 `graph.replace` 6.5 % · `graph.commit` 4.4 % · `readModel.onStep` 3.3 % · `compositionRoot.deliver` 3.3 % — dev) · production 평평 5k select p99 32.4 ms · drop 6.4 % (상위는 RAC · React DOM 패널, `render.*` 0). 코드 대조: 이 층의 본체 (`commit` · `applyCatalogTransaction` · `step` · `onStep` · `deliver`) 는 **이미 변경 비례** 이고, 문서 (· 보이는 것) 크기에 비례하는 것은 분기 10 개 — `collectAffectedIds` 서브트리 확장 (`shift` O(n²)) · `byIndex` read 매 step 재계산 + `JSON.stringify` 비교 · page/project 변경의 full-root `flatten` · `stateReaders` · `overrideDependents` 전수 · 테마 `replaceRoot` · Layers `setExpanded` → `rebuild()` 전체 · 선택마다 명령 dry-run (`structure.ts` 7,080 호출 / 30 선택) · `findPositionOfRecord` 형제 선형 · `invalidatedIds.includes`. 문서 층 전용 카운터 없음 (`GraphMetrics` 죽은 필드 2 — 0 단언 테스트 4 개가 무검증). 대안 A 채택 — Phase 0 이 카운터를 등록하고 600 · 5k 기울기 표로 go/no-go, 몫 순서로 레버. B (불변 구조 공유 재설계) · C (패널 갱신 다음 프레임 — 사용자 가시) · D (Rust, 4단계) 기각 · 보류. HC3 평평 5k select ≤ 20 ms · < 1 %. 사용자 결정 3 (기울기 0 · 패널 비용 · 종결 미달). 리뷰 round 1 (codex, 같은 날) HIGH 0 · MEDIUM 2 → 반영 — C7 특성 키 메모 제거 (Group 은 부모 identity 동일을 본다) · 선택 측정은 규모와 함께 움직이는 `select-spread` (지금 드라이버는 처음 30 개만 — 형제 선형 find 가 기울기 0 으로 보임). round 2 수리 검증 통과 (`select-spread` 비교 수 600 → 9,065 · 5k → 75,065, pending 0) → 전제 확정, `/execute-adr 265` 가능. 열림 2 (Proposed 2), 합계 288.
+>
 > **2026-10-16 ADR-264 Implemented** (측정 기록 종결 — 사용자 결정 2 「측정 기록으로 종결」): Phase 0 ~ 3 + G4. Canvas 편집은 region 을 위 → 아래로 처리해 seed 만 다시 기록하고 (크기가 바뀐 조상은 자기 명령만, 옮긴 서브트리는 좌표 · clip 만) 줌 · page grid 편집은 page root 를 옮긴다 — 중첩 5k 편집 patch 교체 178,875 → 1,155 명령, 평평 600 줌 재바인드 14 → 0. production 짝: 평평 5k 줌 p99 20.8 · 33.9 → 17.3 · 17.8 ms (충족), 평평 1만 줌 49.5 → 17.7, 중첩 5k drag taskMs −32 %, 중첩 5k 편집 p99 26 ~ 28 → 24 ~ 26 ms · drop 2.1 ~ 3.2 → 1.0 ~ 2.1 % (미달 — 남은 비용은 문서 · 트랜잭션 층 `graph.replace` · `commit` · `readModel.onStep`, Canvas 밖). live 13/13 (재바인드와 픽셀 · 맵 · SpatialIndex 후보 0 차) · G3 하니스 78/79 (1 건은 HEAD 와 같은 출력). 4단계 Rust trigger 미충족 그대로. 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 287).
 >
 > **2026-10-16 ADR-264 Accepted · Phase 0 닫힘**: 사용자 `/execute-adr 264` + 리뷰 Round 2 pending 0 으로 승격. Phase 0 카운트 (dev · 등급 A): 중첩 5k 편집 15 회의 patch 교체 178,875 명령 중 **자리만 옮긴 서브트리 96.3 %**, 그중 99.5 % 가 부모 크기도 바뀐 자리 (카드 → section → root 연쇄) — breakdown 초안 「부모가 바뀌면 옮기기 안 함」 은 0.5 % 만 덜어 내 설계를 대안 A 안에서 넓혔다 (경로 노드 자기 명령만 다시 기록 + 옮기기의 root 문맥은 부모가 넘김). seed + 경로 = 편집 1 회 ~95 명령. 평평 줌: content 43 프레임에 page grid 재바인드 14 · 크기 바뀐 재바인드 0 (R4 성립, page root 평행이동만) — Phase 3 은 `setAutoColumns` 반환 확장 없이 scene 이 rect 를 비교해 판정. ratchet: 새 키 11 A 등록 + seed 600 `zoom` 부류 + run `600:nested-flex` (게이트에 fixture run 키 `--add-run`) — 인위 회귀 `block`. 열림 2 (Accepted 1 · Proposed 1), 합계 287.
@@ -286,8 +294,8 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     285 |
-| ├ Implemented / Complete(d)   |     238 |
+| 완료 (`completed/`)           |     286 |
+| ├ Implemented / Complete(d)   |     239 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
@@ -296,8 +304,12 @@
 | ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **287** |
+| **합계**                      | **288** |
 
+> 2026-10-16 재대조 (3): ADR-265 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245 (사용자 보류).
+>
+> 2026-10-16 재대조 (2): ADR-265 Proposed (열림 +1) — 열림 2 = 245 (사용자 보류) · 265. 완료 표 행 수 285 를 헤더에 맞췄다 (284 로 적혀 있었다).
+>
 > 2026-10-16 재대조: ADR-264 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245. 그 전: ADR-263 Implemented (완료 +1 · 열림 −1) 와 ADR-264 Proposed (열림 +1) 반영 — 열림 2 = 245 · 264.
 >
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
@@ -340,15 +352,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                                                             | 차단 · 선행                                                                                           |
+| :--: | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                       | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)        |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                 | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                      | 각 항목의 재개 조건 발생 시                                                                           |
 
 ---
 
-## 완료 ADR (284)
+## 완료 ADR (285)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -641,6 +653,7 @@
 | [262](completed/262-instance-override-push-and-reset-all.md) | instance override 정리 — 원본에 반영 (Figma Push changes to main: 직접 자리는 작성값 cascade 로 키별 breakpoint 맞추기 · 중첩 자리는 원본의 중첩 instance override 에 `layerPatchFields` 병합 · 속성 값은 대상 노드 · 기본 원본은 루트 props · visual 프로젝트 기본값 · 「N개 영향」 확인) · 전부 되돌리기 (Reset all changes: slot 내용 · 루트 크기 · 배치 유지 · 교체 되접기) · Overrides 목록 전 종류 (숨김 · Fill · 상태 · breakpoint 행, `resetOverrideField`) (Figma) | Implemented | 2026-10-15 |
 | [263](completed/263-render-command-patch-execute-cost.md) | 그리기 명령 패치·실행 비용 축소 (Canvas 성능 계획 2단계) — 명령 읽기가 piece-table Proxy 를 지나지 않음 · full 재기록은 viewport SpatialIndex 후보 + 조상만 (불가하면 컬링 서브트리 점프) · damage 부분 재기록 재연결 (무효화 clean · damage · full, 상자 밖 paint · 넘친 글자는 full) · 스크롤 범위 증분 · patch 검증 한 번 · 남는 노드 picture 유지 · ratchet `--add-keys` (새 카운트 0 포함 A). 측정 기록 종결 — 중첩 5k 줌 충족, 편집 · 평평 줌 미달 (꼬리 = patch 영역 크기 · 줌 재바인드) | Implemented | 2026-10-16 |
 | [264](completed/264-moved-subtree-translate-page-grid-rebind.md) | 이동만 한 서브트리의 patch 축소 · 줌 page grid 재바인드 제거 (Canvas 성능 2단계 후속) — `translateSubtree` (root `ELEMENT_BEGIN` 제자리 쓰기 · 절대 맵 Δ · clip · hit 재교차 · SpatialIndex upsert) · `placeRegion` (seed 만 서브트리 재기록, 크기 바뀐 조상은 자기 명령만, 옮긴 · 문맥 바뀐 서브트리는 옮기기) · page grid 자동 열 수 · 편집은 page root 옮기기 · ratchet fixture run (`600:nested-flex`). 측정 기록 종결 — 평평 줌 충족, 중첩 편집 미달 (꼬리 = 문서 · 트랜잭션 층) | Implemented | 2026-10-16 |
+| [265](completed/265-document-layer-edit-select-cost.md) | 편집 · 선택 전환의 문서 층 비용 (Canvas 성능 계획 3단계) — 문서 층 카운터 `counts.doc.*` · `select-spread` 부류 · 큰 컨테이너 편집 (post 걸음 생략 · owner edge 상쇄 · commit 필드 공유 · 행 목록 부모 필드 의존) · 선택 (행 색인 · `pageFrameRects` · 자동 HTML id · z-order 판정 공유 · Layers 고정). 측정 기록 종결 — body 편집 개선, HC2 (꼬리 = Canvas binding) · HC3 (꼬리 = RAC Layers · React) 미달 | Implemented | 2026-10-16 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 
