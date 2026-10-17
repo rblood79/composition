@@ -8,6 +8,9 @@ vi.mock("./createSurface", () => ({
     makeSurface() {
       return { getCanvas: () => ({}) };
     }
+    getBackend() {
+      return "gpu";
+    }
   },
 }));
 const camera = { zoom: 1, panX: 0, panY: 0 };

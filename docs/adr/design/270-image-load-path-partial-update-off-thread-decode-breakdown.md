@@ -172,3 +172,40 @@
 **검증** (`skia/__tests__/adr270NaturalSize.test.ts` 16 건 — 원본 치수의 절반짜리 bitmap 을 주는 테스트 전용 fixture, 기대값은 CSS object-fit 손계산): object-fit 4 × (원본 가로 > 상자 · 세로 > 상자 · 둘 다 작음) 12 · 로드 전 placeholder 1 · Image fill cover 의 bitmap 끝 모서리 → 원본 치수로 계산한 자리 1 · background `auto` 가 원본 크기로 깔림 1 · 같은 치수면 행렬이 옛 값 그대로 1. **원복 RED**: (a) content rect 를 bitmap 치수로 → 12 RED (b) `inBitmapSpace` 배율 생략 → 2 RED (d) background 배치를 bitmap 치수로 → 1 RED. (c) Image fill 배치를 bitmap 치수로 → GREEN — fill · fit · stretch 는 배율 불변이라 bitmap 치수로 일관되게 계산해도 결과가 같다 (동등 변이 — 원본 치수가 결과를 바꾸는 곳은 object-fit `none` 과 background `auto` · px 크기). 회귀: `workspace/canvas` + `catalogRuntime` + `panels/styles` 459 파일 3,722 PASS · type-check PASS.
 
 **G1-a 재실행** (`adr270-image-load-live.mjs`): 3/3 PASS · 콘솔 오류 0. Phase 1 스크린샷과 비교 (상단 제목 띠 60 px 제외): 이미지가 있는 장면 (줌 1 · 롤백 플래그) 0 px. 줌 0.3 장면은 552 px 차 — 같은 코드 두 실행끼리도 같은 영역 (목록 아이콘 글리프, 756 ~ 1005 × 325 ~ 383) 이 674 px 다르다 → fixture 의 줌 0.3 아이콘 그리기 흔들림이고 Phase 2 와 무관 (각 실행 안의 oracle 대조는 0 px).
+
+### Phase 3a — 2026-10-18 (G1-b · G1-d · G2 · G3 통과 — 종결 · 3b 생략)
+
+**착수 조건**: ADR-273 Phase 2 종결 · push (`bd5051f98`) — 화면 GL context 를 `CanvasSurfaceOwner` 가 소유 (resize 재사용 · 소실 abandon · 복원 때 옛 핸들 삭제 뒤 새 context · 한도 384 MiB).
+
+**inventory 보강 2 건** (코드 · live 실측 — 본 breakdown 안에서 흡수, M3):
+
+1. **`MakeLazyImageFromTextureSource` 는 GL context 에 묶이지 않는다** (R8 의 전제 반증). canvaskit 0.42.0 `bin/canvaskit.js` 의 구현은 `Image._makeFromGenerator(info, { makeTexture, freeSrc })` 다 — `makeTexture` 는 **그 순간의 현재 GL context** (`H`) 에 `createTexture` + `texImage2D(source)` 를 하고, source (ImageBitmap) 는 closure 가 쥔다 (`freeSrc` 는 VideoFrame 만 `close()`). d.ts 도 「This image can be re-used across multiple surfaces」. 그래서 소실 → 복원 (소유자가 새 GrDirectContext 를 만든다) 뒤 같은 SkImage 를 그리면 새 context 에 다시 올라간다. live ③: 22 장 로드 뒤 `loseContext()` → `restoreContext()` — **요청 0 · 완료 0 · 소실 전 화면과 0 px** · contexts 1 → 2 · 콘솔 오류 0. → 설계의 소실 처리 (`clearImageCache` · `suspendImageLoading` · `rebind("context-restored")` · 카운터 `rebindContextRestored`) 는 **도입하지 않았다** — 이미지 전부를 다시 받는 비용만 남는다. G2 ⑧ (「복원 뒤 DRAW `image.bitmap` 이 새 핸들」) 은 전제 (옛 핸들 무효) 가 성립하지 않아 live ③ 이 그 자리를 갖는다 (가설 1 + 반증 1 — 반증 GREEN). 옛 텍스처의 해제 콜백 (`_setTextureCleanup.deleteTexture(ctx, tex)`) 은 `za[ctx]` 를 읽는데, 소유자가 GrDirectContext 를 `deleteContext` **보다 먼저** 지우므로 그 시점에 context 기록이 남아 있다 (ADR-273 Phase 2 의 순서).
+2. **premultiply 하면 옛 디코더와 픽셀이 다르다** (R6 옵션 재검토 — G1 실패 시 대안 그대로). Skia 코덱은 RGBA PNG 를 **unpremul** 이미지로 올리고 Decal 가장자리 · 반투명 픽셀을 그 값으로 보간한다. 첫 구현 (`premultiplyAlpha: "premultiply"` · `alphaType: Premul` · `srcIsPremul: true`) 은 줌 0.3 에서 1,307 px 차 — 상자 가장자리 줄 (Decal 경계, 최대 32 단계: 옛 경로는 투명 검정과 unpremul 로 섞여 어두운 줄, 새 경로는 없음) · 반투명 이미지 안 1 단계. `premultiplyAlpha: "none"` · `Unpremul` · `false` 로 바꾸자 **0 px**. 옛 경로의 어두운 가장자리 줄은 지금도 있는 Skia ↔ DOM 차 후보다 (DOM 은 premultiplied 합성) — Phase 3a 는 HC1 (픽셀 동일) 을 지키고 이 줄은 건드리지 않았다. 별도 확인 대상으로 남긴다.
+
+**구현** (`imageCache.ts` `fetchAndDecode`):
+
+- `response.blob()` → `createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "default" })` (브라우저 코덱 — 메인 밖).
+- **GPU surface**: `ck.MakeLazyImageFromTextureSource(bitmap, { width, height, RGBA_8888, Unpremul, SRGB }, false)` — `close()` 하지 않는다 (다음 context 의 업로드가 같은 source 를 읽는다 · SkImage 와 함께 GC). 카운터 `imageTextureImages`.
+- **SW surface**: `ck.MakeImageFromCanvasImageSource(bitmap)` (2D canvas 에 그린 뒤 readback) → `bitmap.close()`. 카운터 `imageSwFallbacks` · `imageReadbackBytes`.
+- surface 종류는 `SkiaRenderer` 가 surface 를 만들 때마다 (생성 · resize · 복원) `setImageBackend(owner.getBackend())` 로 알린다 (`CanvasSurfaceOwner.getBackend()` 신규). 알리기 전 (null) · `createImageBitmap` 없음 (jsdom) · dev `__composition_RENDER_PATH_DEBUG__.setImageDecoderLegacy(true)` 면 옛 `MakeImageFromEncoded` — live 의 디코더 arm.
+- **완료 처리 상한 (B) 은 도입하지 않았다**: 붙들지 않은 로드 (live ①) 에서 완료가 한 프레임에 11 ~ 22 장 몰리지만 (`imageLoadedPerFrameMax`) 그 구간 long task **0** (dev headless · 3 회). N 을 정할 근거가 없다 — G4 production 짝의 로드 중 표시 간격으로 다시 본다 (넘으면 그때 상한).
+- GPU → SW 전환 (이미 만든 texture-backed 이미지가 SW canvas 에 남는 조합) 은 도달하지 않는다: GL context 가 한 번 붙은 canvas 는 2D context 를 주지 않아 SW surface 도 만들 수 없다 (`createSurface.ts` 소유자 주석 — 그 뒤의 폴백은 throw). SW 는 처음부터 WebGL 이 없는 환경뿐이고, 그때는 처음부터 readback 경로다.
+
+**G2 unit** (`skia/__tests__/adr270BrowserDecoder.test.ts` 4 건 + `adr273RendererContext.test.ts` 1 건): GPU → texture-backed 1 · `MakeImageFromEncoded` 0 · 옵션 (`none` · `unpremul` · `false`) · `close` 0 / SW → readback 1 · `close` 1 / backend 모름 · `createImageBitmap` 없음 · 옛 디코더 플래그 → `MakeImageFromEncoded` 3 / `createImageBitmap` reject → null · 캐시에 남지 않고 다음 조회가 다시 요청 / renderer 가 생성 · 복원마다 backend 를 알림 (복원이 SW 면 sw). **원복 RED 5/5**: (a) 브라우저 코덱 경로 제거 → 3 RED (b) GPU 경로에서 `close` → 2 RED (c) premultiply → 1 RED (+ live ② 1,307 px) (d) resize 의 backend 통지 제거 → 1 RED (e) SW 경로 `close` 생략 → 1 RED.
+
+**G1 live** (`apps/builder/scripts/adr270-image-decoder-live.mjs` — headless Chrome · dev 5173 · DPR 1 · `app-pages` 22 페이지 · Image 상자 67 · PNG 22 장 fill · fit · stretch, 같은 바이트를 arm 마다 다른 URL 로): ① 새 디코더 — `MakeImageFromEncoded` 0 · texture 22 · SW 0 · readback 0 · 완료 22 · `rebindOther` 0 / ② 옛 디코더 (`MakeImageFromEncoded` 22) ↔ 새 디코더 — 줌 1 Home (hero 2,048²) · 줌 0.3 (반투명 4 종 포함) **0 px** (위쪽 page 제목 띠 60 px 제외 — 경계 줄이 같은 코드끼리도 흔들린다, Phase 2 기록) / ③ 소실 → 복원 (위 inventory 1). **3/3 PASS × 4 회 (마지막은 `TRACE=1`) · 콘솔 오류 0**.
+
+**G3 ratchet** (dev 5173 작업 트리 · Phase 0 과 같은 조건 · `--judge`, 2 회): 이미지 run 의 `imageEncodedDecodeCalls` 22 → **0** (`load-edit` · `load-same-frame` · `load-zoom` · asset `load-edit` — 하향 가능) · `imageTextureImages` 22 (= 이미지 수, 산식 상한) · `imageReadbackBytes` 0 · `imageSwFallbacks` 0 (새 지표). **`load-zoom` A 초과 17 키** — 두 회 같은 값 (pre-push 판정이면 차단):
+
+| 키 (`load-zoom`)             |    상한 | 옛 디코더 (같은 작업 트리, 2 회) | 새 디코더 (5 회) |
+| ---------------------------- | ------: | -------------------------------: | ---------------: |
+| `render.contentFullRenders`  |      85 |                          84 · 83 |           86 × 5 |
+| `caches.contentSurface.hits` |      68 |                          69 · 70 |           67 × 5 |
+| `render.execVisited`         | 179,509 |                                — |          180,012 |
+
+- 원인 = **완료가 오는 프레임이 줌 입력에 대해 밀린다** — 코덱이 메인 밖 (`createImageBitmap` 비동기) 이라 하니스의 「풀기 → 완료 대기」 가 옛 경로보다 늦게 끝나고, 8 프레임마다의 완료가 다른 줌 프레임과 겹친다 → coverage-refresh full 1 ~ 3 회 더 (`contentSurface.misses` 85 → 86). 일의 양은 거의 같다 (`execVisited` +0.3 % · `nodePicture.hits` +0.2 %). 옛 디코더 arm 은 이 run 의 원래 흔들림 (Phase 1 · 2 push 판정 unmeasurable — 84 · 85 · 86) 을 그대로 보이고, 새 디코더는 오히려 고정이다.
+- `edit` 의 `v8.fn controller.ts#current` 18,501 → 18,502 는 1 회만 (흔들림).
+- 이 키들은 새 디코더에서도 흔들린다 (full 실행 3 회 86 · 86 · 85, `load-zoom` 만 3 회 86) — 옛 디코더 (83 · 84) 보다 1 ~ 2 위로 옮겨 간 같은 흔들림.
+- **처리 (사용자 승인 2026-10-18 「--raise 17 키」)**: `--raise` A 17 키 → 새 디코더 값 (content full 86 등 · 만료 2027-04-18) → `--add-keys render.imageTextureImages,render.imageSwFallbacks,render.imageReadbackBytes` (A — 산식 상한: 텍스처 = 이미지 수 22 · 0 · 0, 두 시드) → `--update` 하향 6 (`imageEncodedDecodeCalls` 22 → 0 × 4 · `load-same-frame` `LayoutCount` B 30 → 27 · …). 판정: 이미지 run 3 회 · asset 2 회 — A 초과는 run 1 의 `edit` `controller.ts#current` +1 하나 (1 회만 · 재실행이면 unmeasurable).
+
+**사용자 결정 1 답 (2026-10-18): 3b 생략** — 조건 (3a 뒤 메인에 코덱 · 리사이즈가 남음) 이 성립하지 않는다. 자료 (`TRACE=1` · Chrome trace 의 decode 이벤트를 스레드별로): 새 경로 22 장 = `Decode Image` 22 건 14 ms — 전부 `ThreadPoolForegroundWorker`, `CrRendererMain` **0**. 리사이즈 옵션은 쓰지 않는다. 옛 경로는 trace 이벤트 0 (코덱이 WASM 안 — 첫 그리기 프레임의 메인 스레드). 메인에 남는 것은 텍스처 업로드 (`texImage2D`, 첫 그리기) 뿐이고 Worker 로 옮길 수 없다 (GL context 는 메인 소유).

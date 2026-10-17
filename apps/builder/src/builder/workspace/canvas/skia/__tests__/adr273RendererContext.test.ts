@@ -7,6 +7,8 @@ import type { CanvasKit } from "canvaskit-wasm";
  */
 const owner = {
   awaiting: false,
+  backend: "gpu" as "gpu" | "sw",
+  getBackend: () => owner.backend,
   makeSurface: vi.fn(),
   contextLost: vi.fn(() => {
     owner.awaiting = true;
@@ -38,6 +40,12 @@ vi.mock("../createSurface", () => ({
   },
 }));
 
+const setImageBackend = vi.fn();
+vi.mock("../imageCache", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../imageCache")>()),
+  setImageBackend: (backend: "gpu" | "sw" | null) => setImageBackend(backend),
+}));
+
 const { SkiaRenderer } = await import("../SkiaRenderer");
 
 describe("ADR-273 Phase 2 — renderer 의 소실 · 복원", () => {
@@ -64,5 +72,19 @@ describe("ADR-273 Phase 2 — renderer 의 소실 · 복원", () => {
     renderer.dispose();
     expect(owner.dispose).toHaveBeenCalledTimes(1);
     expect(surfaces[2]!.deleted).toBe(true);
+  });
+
+  it("ADR-270 Phase 3a — surface 를 만들 때마다 이미지 캐시에 surface 종류를 알린다 (복원이 SW 로 끝나면 sw)", () => {
+    setImageBackend.mockClear();
+    owner.backend = "gpu";
+    const el = { getContext: () => null } as unknown as HTMLCanvasElement;
+    const renderer = new SkiaRenderer({} as CanvasKit, el, 1);
+    expect(setImageBackend).toHaveBeenLastCalledWith("gpu");
+    renderer.contextLost();
+    owner.backend = "sw";
+    renderer.contextRestored(el);
+    expect(setImageBackend).toHaveBeenLastCalledWith("sw");
+    expect(setImageBackend).toHaveBeenCalledTimes(2);
+    renderer.dispose();
   });
 });

@@ -132,6 +132,11 @@ export class CanvasSurfaceOwner {
     return this.awaitingRestore;
   }
 
+  /** 마지막 `makeSurface()` 의 surface 종류 — 이미지 캐시가 texture-backed 이미지를 만들지 정한다. */
+  getBackend(): SurfaceBackend {
+    return this.backend;
+  }
+
   getGrContext(): GrDirectContext | null {
     return this.abandoned ? null : this.grContext;
   }

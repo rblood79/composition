@@ -55,7 +55,7 @@ import {
   setVolatileNodeIds,
   getNodePictureCacheSize,
 } from "./nodePictureCache";
-import { getImageCacheSize } from "./imageCache";
+import { getImageCacheSize, setImageBackend } from "./imageCache";
 import type { BoundingBox } from "../selection/types";
 
 interface DamageMetricsSnapshot {
@@ -314,6 +314,7 @@ export class SkiaRenderer {
     );
     this.mainSurface = this.surfaceOwner.makeSurface();
     this.mainCanvas = this.mainSurface.getCanvas();
+    setImageBackend(this.surfaceOwner.getBackend());
 
     if (process.env.NODE_ENV === "development") {
       // live 픽셀 대조 (ADR-263): 같은 상태를 full 로 다시 그린다.
@@ -1408,6 +1409,7 @@ export class SkiaRenderer {
     this.mainSurface.delete();
     this.mainSurface = this.surfaceOwner.makeSurface(htmlCanvas);
     this.mainCanvas = this.mainSurface.getCanvas();
+    setImageBackend(this.surfaceOwner.getBackend());
 
     // Content surface는 다음 render()에서 lazy 재생성
     this.contentDirty = true;

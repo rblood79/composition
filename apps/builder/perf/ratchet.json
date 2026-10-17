@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
   "generatedAt": "2026-10-17",
-  "head": "93b4b538139c6aaaef2f3c3d1b011c2496992f95",
+  "head": "bd5051f98e78f4f59d23f71af0c32226d8796ba7",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -3226,7 +3226,7 @@
           "render.execSkipped": 160,
           "render.execVisited": 2852,
           "render.imageCompletions": 22,
-          "render.imageEncodedDecodeCalls": 22,
+          "render.imageEncodedDecodeCalls": 0,
           "render.imageLoadedPerFrameMax": 1,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
@@ -3326,7 +3326,10 @@
           "v8.fn.src/renderers/utils/tokenResolver.ts#resolveToken": 286970,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 22,
-          "render.imageSeedOwners": 67
+          "render.imageSeedOwners": 67,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 22
         },
         "B": {
           "cdp.LayoutCount": 49,
@@ -3428,7 +3431,7 @@
           "render.execSkipped": 160,
           "render.execVisited": 4050,
           "render.imageCompletions": 22,
-          "render.imageEncodedDecodeCalls": 22,
+          "render.imageEncodedDecodeCalls": 0,
           "render.imageLoadedPerFrameMax": 1,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
@@ -3528,10 +3531,13 @@
           "v8.fn.src/renderers/utils/tokenResolver.ts#resolveToken": 286858,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 22,
-          "render.imageSeedOwners": 67
+          "render.imageSeedOwners": 67,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 22
         },
         "B": {
-          "cdp.LayoutCount": 30,
+          "cdp.LayoutCount": 27,
           "cdp.RecalcStyleCount": 0,
           "domMutations.childList": 0,
           "reactRenderMeasures": 22,
@@ -3633,7 +3639,7 @@
           "render.execSkipped": 26827,
           "render.execVisited": 179509,
           "render.imageCompletions": 22,
-          "render.imageEncodedDecodeCalls": 22,
+          "render.imageEncodedDecodeCalls": 0,
           "render.imageLoadedPerFrameMax": 1,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
@@ -3730,7 +3736,10 @@
           "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 678385,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 22,
-          "render.imageSeedOwners": 67
+          "render.imageSeedOwners": 67,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 22
         },
         "B": {
           "cdp.LayoutCount": 401,
@@ -3940,7 +3949,10 @@
           "v8.fn.src/catalog/document/graph.ts#getEntry": 782530,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 0,
-          "render.imageSeedOwners": 0
+          "render.imageSeedOwners": 0,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 0
         },
         "B": {
           "cdp.LayoutCount": 492,
@@ -4124,7 +4136,10 @@
           "v8.fn.src/catalog/runtime/controller.ts#view": 16140,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 0,
-          "render.imageSeedOwners": 0
+          "render.imageSeedOwners": 0,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 0
         },
         "B": {
           "cdp.LayoutCount": 21,
@@ -4216,7 +4231,7 @@
           "render.execSkipped": 320,
           "render.execVisited": 3496,
           "render.imageCompletions": 22,
-          "render.imageEncodedDecodeCalls": 22,
+          "render.imageEncodedDecodeCalls": 0,
           "render.imageLoadedPerFrameMax": 1,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
@@ -4316,7 +4331,10 @@
           "v8.fn.src/renderers/utils/tokenResolver.ts#resolveToken": 288230,
           "render.imagePatchFallbackRebind": 0,
           "render.imagePatchSyncs": 22,
-          "render.imageSeedOwners": 67
+          "render.imageSeedOwners": 67,
+          "render.imageReadbackBytes": 0,
+          "render.imageSwFallbacks": 0,
+          "render.imageTextureImages": 22
         },
         "B": {
           "cdp.LayoutCount": 90,
@@ -5129,7 +5147,8 @@
       "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 1 승인)",
       "on": "2026-10-17",
       "reason": "ADR-270 Phase 1 — 이미지 완료 = scene 재바인드 → 소유 요소 seed splice (재바인드 22 → 0 · 해제 picture 5,284 → 0 · 하향 154 키). patch · damage · picture hit 가 늘고, load-same-frame 은 재바인드가 흡수하던 편집 22 회가 patch 로 처리된다 (r1 H3).",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-17"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.caches.nodePicture.hits",
@@ -5300,6 +5319,159 @@
       "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 1 승인)",
       "on": "2026-10-17",
       "reason": "ADR-270 Phase 1 — 이미지 완료 = scene 재바인드 → 소유 요소 seed splice (재바인드 22 → 0 · 해제 picture 5,284 → 0 · 하향 154 키). patch · damage · picture hit 가 늘고, load-same-frame 은 재바인드가 흡수하던 편집 22 회가 patch 로 처리된다 (r1 H3).",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.missReasons.coverage-refresh",
+      "from": 13,
+      "to": 14,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.misses",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.nodePicture.hits",
+      "from": 23138,
+      "to": 45939,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.paintPool.hits",
+      "from": 741,
+      "to": 744,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.flush.content",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.record.content",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentFullRenders",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentTouchedElements",
+      "from": 45846,
+      "to": 45959,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execCalls",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execPictureJumped",
+      "from": 80829,
+      "to": 80942,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execSkipped",
+      "from": 26827,
+      "to": 26903,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execVisited",
+      "from": 179509,
+      "to": 180012,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.propertyNodeReads",
+      "from": 223122,
+      "to": 223125,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.viewportSequences",
+      "from": 85,
+      "to": 86,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 1179893,
+      "to": 1180965,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 485960,
+      "to": 487218,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode",
+      "from": 268181,
+      "to": 268294,
+      "approvedBy": "사용자 (2026-10-18 ADR-270 Phase 3a 「--raise 17 키」)",
+      "on": "2026-10-17",
+      "reason": "ADR-270 Phase 3a — 코덱이 메인 밖 (createImageBitmap) 이라 load-zoom 의 완료가 줌 프레임에 대해 밀림 (content full 85→86 · 옛 디코더 84·83 / 새 86×5 · execVisited +0.3%)",
       "expires": "2027-04-18"
     }
   ],

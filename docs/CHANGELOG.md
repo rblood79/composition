@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 이미지를 브라우저 코덱으로 디코딩 (메인 스레드 밖) — ADR-270 Phase 3a] - 2026-10-18
+
+### Changed
+
+- **Canvas 이미지 디코딩 위치** (ADR-270 Phase 3a, Canvas) — 이미지를 CanvasKit 의 WASM 코덱 (`MakeImageFromEncoded` — 첫 그리기 프레임 안에서 메인 스레드가 디코딩) 대신 브라우저 코덱 `createImageBitmap` (메인 밖 — Preview 의 `<img>` 와 같은 조건) 으로 디코딩하고, GPU 화면에서는 texture-backed 이미지 (`MakeLazyImageFromTextureSource`) 로 그린다. WebGL 이 없는 환경 (SW surface) 은 readback 경로. 화면 결과는 같다 (옛 디코더와 0 px — 반투명 · 2,048² 포함, unpremul 로 고정).
+  - GPU context 소실 → 복원 뒤에도 이미지를 다시 받지 않고 그대로 다시 그린다 (texture 를 그리는 context 에 다시 올린다 — 실측 요청 0 · 0 px).
+  - 실측: 이미지 22 장 `MakeImageFromEncoded` 22 → 0 · trace 의 `Decode Image` 22 건 전부 worker 스레드 (메인 0). Worker 단계 (3b) 는 생략 (사용자 결정).
+  - dev: `__composition_RENDER_PATH_DEBUG__.setImageDecoderLegacy(true)` (옛 디코더 — 픽셀 대조용) · 카운터 `imageTextureImages` · `imageSwFallbacks` · `imageReadbackBytes`. ratchet: 이미지 run 에 새 A 키 3 · `load-zoom` A 17 키 올리기 (사용자 승인 — 완료가 오는 프레임이 줌 입력에 대해 밀림, 만료 2027-04-18).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{imageCache,SkiaRenderer,createSurface,renderCounters}.ts` · 시험 `skia/__tests__/adr270BrowserDecoder.test.ts` · `adr273RendererContext.test.ts` · 하니스 `apps/builder/scripts/adr270-image-decoder-live.mjs` · `apps/builder/perf/ratchet.json`
+
 ## [Canvas GL context 를 한 번 만들어 계속 쓴다 · GPU 캐시 한도 384 MiB — ADR-273 Phase 2] - 2026-10-18
 
 ### Changed

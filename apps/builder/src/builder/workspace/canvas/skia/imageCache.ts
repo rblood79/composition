@@ -2,7 +2,8 @@
  * CanvasKit 이미지 캐시
  *
  * URL → CanvasKit Image(SkImage) 변환 및 캐싱을 담당한다.
- * fontManager.ts 패턴을 따르며, 이미지를 fetch → ArrayBuffer → MakeImageFromEncoded로 로딩한다.
+ * fontManager.ts 패턴을 따르며, 이미지를 fetch → 브라우저 코덱 (`createImageBitmap`) → texture-backed
+ * SkImage 로 로딩한다 (ADR-270 Phase 3a — SW surface 는 readback, 옛 경로는 `MakeImageFromEncoded`).
  *
  * - refCount 기반 참조 관리
  * - LRU 퇴거 정책 (MAX_CACHE_SIZE 초과 시 최소 참조 엔트리 제거)
@@ -24,7 +25,7 @@ import {
   scheduleWasmDisposal,
 } from "./deferredDisposal";
 import { resolveAssetUrlAsync } from "@composition/shared";
-import { renderCounters } from "./renderCounters";
+import { renderCounters, renderDebug } from "./renderCounters";
 
 // ============================================
 // 재렌더 트리거 콜백 레지스트리
@@ -484,11 +485,9 @@ async function fetchAndDecode(url: string): Promise<SkImage | null> {
       return null;
     }
 
-    const buffer = await response.arrayBuffer();
-    const data = new Uint8Array(buffer);
-    const image = ck.MakeImageFromEncoded(data);
-    if (process.env.NODE_ENV === "development")
-      renderCounters.imageEncodedDecodeCalls += 1;
+    const image = usesBrowserDecoder()
+      ? await decodeWithBrowser(ck, await response.blob())
+      : decodeEncoded(ck, new Uint8Array(await response.arrayBuffer()));
 
     if (!image) {
       console.warn(`[imageCache] Decode failed: ${url}`);
@@ -499,5 +498,79 @@ async function fetchAndDecode(url: string): Promise<SkImage | null> {
   } catch (e) {
     console.warn(`[imageCache] Load error: ${url}`, e);
     return null;
+  }
+}
+
+/**
+ * ADR-270 Phase 3a: 화면 surface 의 종류 — 브라우저 코덱 결과를 어느 SkImage 로 만들지 정한다.
+ * `SkiaRenderer` 가 surface 를 만들 때마다 알린다. 알리기 전 (null) 에는 옛 디코더를 쓴다.
+ */
+let imageBackend: "gpu" | "sw" | null = null;
+
+export function setImageBackend(backend: "gpu" | "sw" | null): void {
+  imageBackend = backend;
+}
+
+function usesBrowserDecoder(): boolean {
+  if (process.env.NODE_ENV === "development" && renderDebug.imageDecoderLegacy)
+    return false;
+  return imageBackend !== null && typeof createImageBitmap === "function";
+}
+
+/** 옛 디코더 — WASM 코덱, 지연 디코딩이라 첫 그리기 프레임 안에서 메인 스레드가 디코딩한다. */
+function decodeEncoded(ck: CanvasKit, data: Uint8Array): SkImage | null {
+  if (process.env.NODE_ENV === "development")
+    renderCounters.imageEncodedDecodeCalls += 1;
+  return ck.MakeImageFromEncoded(data);
+}
+
+/**
+ * 브라우저 코덱 (`createImageBitmap` — 메인 밖 디코딩, Preview 의 `<img>` 와 같은 조건).
+ *
+ * - GPU surface: `MakeLazyImageFromTextureSource` — texture-backed. 텍스처는 **그리는 GL context 에서**
+ *   만든다 (CanvasKit 의 generator 가 source 를 쥐고 context 마다 `texImage2D`) — 그래서 context 소실 ·
+ *   복원 (ADR-273 소유자가 새 GrDirectContext 를 만든다) 뒤에도 같은 SkImage 가 새 context 에 다시 올라간다.
+ *   ImageBitmap 은 generator 가 쥐고 (`freeSrc` 는 VideoFrame 만 닫는다) SkImage 와 함께 GC 된다 —
+ *   `close()` 를 부르면 다음 context 의 업로드가 빈 source 를 읽는다.
+ * - SW surface: texture 가 없다 — 2D canvas 에 그린 뒤 readback (`MakeImageFromCanvasImageSource`) 하고
+ *   bitmap 을 닫는다.
+ *
+ * 옵션은 `MakeImageFromEncoded` 와 같은 픽셀이 되게 고정한다 (R6 — live 0 px): **unpremul** 로 둔다. Skia 코덱은
+ * RGBA PNG 를 unpremul 이미지로 올리고 Decal 가장자리 · 반투명 픽셀의 보간을 그 값으로 한다 — premultiply 한
+ * bitmap 은 줌 0.3 에서 상자 가장자리 줄이 최대 32 단계 · 반투명 이미지 안이 1 단계 달랐다 (2026-10-18).
+ * 색 공간 변환은 기본 (sRGB 로 — Skia 의 color-managed 디코딩과 같다).
+ */
+async function decodeWithBrowser(
+  ck: CanvasKit,
+  blob: Blob,
+): Promise<SkImage | null> {
+  const bitmap = await createImageBitmap(blob, {
+    premultiplyAlpha: "none",
+    colorSpaceConversion: "default",
+  });
+  const { width, height } = bitmap;
+  if (imageBackend === "gpu") {
+    if (process.env.NODE_ENV === "development")
+      renderCounters.imageTextureImages += 1;
+    return ck.MakeLazyImageFromTextureSource(
+      bitmap,
+      {
+        width,
+        height,
+        colorType: ck.ColorType.RGBA_8888,
+        alphaType: ck.AlphaType.Unpremul,
+        colorSpace: ck.ColorSpace.SRGB,
+      },
+      false,
+    );
+  }
+  try {
+    if (process.env.NODE_ENV === "development") {
+      renderCounters.imageSwFallbacks += 1;
+      renderCounters.imageReadbackBytes += width * height * 4;
+    }
+    return ck.MakeImageFromCanvasImageSource(bitmap);
+  } finally {
+    bitmap.close();
   }
 }
