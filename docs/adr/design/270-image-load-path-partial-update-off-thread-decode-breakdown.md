@@ -1,6 +1,6 @@
 # ADR-270 design breakdown — 이미지 로드 경로 (완료 → 소유 요소 splice · 치수 분리 · 메인 밖 디코딩)
 
-> 본문: [../270-image-load-path-partial-update-off-thread-decode.md](../270-image-load-path-partial-update-off-thread-decode.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 와 `.agent/runs/` 는 로컬 전용이라 실측 결론은 여기 §기록에 둔다. 코드 인용은 HEAD `94c9a0d52`. Round 1 (codex, 2026-10-17) 반영 — Phase 1 이 「재등록 + damage」 에서 「dirty seed → splice」 로, Phase 3a 의 API 와 비용 모델, Phase 0 의 카운터 등급이 바뀌었다.
+> 본문: [../completed/270-image-load-path-partial-update-off-thread-decode.md](../completed/270-image-load-path-partial-update-off-thread-decode.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 와 `.agent/runs/` 는 로컬 전용이라 실측 결론은 여기 §기록에 둔다. 코드 인용은 HEAD `94c9a0d52`. Round 1 (codex, 2026-10-17) 반영 — Phase 1 이 「재등록 + damage」 에서 「dirty seed → splice」 로, Phase 3a 의 API 와 비용 모델, Phase 0 의 카운터 등급이 바뀌었다.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -234,3 +234,10 @@
 **HC6** (`adr209-bundle-closure.mjs` × 4 → `adr201-bundle-gate.mjs`, 하니스 없는 `vite build --manifest` — 기준 = 같은 worktree `93b4b5381` 패치 없음 · HEAD = 작업 트리): **pass**. Builder initial gzip 1,366,543 → 1,368,669 B (+2,126 ≤ +4,096 · 상한 1,421,000, 같은 범위의 ADR-273 Phase 2 포함) · Preview 300,677 → 300,677 (Δ 0) · upload · AIPanel · runCommand lazy 유지. 3b 가 없어 Worker chunk 검사는 해당 없다.
 
 **다음**: G5 live (Implemented 승격 — 사용자 프로젝트에서 이미지 10+ 페이지 진입).
+
+### G5 — 2026-10-18 (live 통과 · Implemented)
+
+사용자 프로젝트 「123」 (Chrome MCP · 사용자 Chrome · dev 5173 · DPR 2 · visible) — 시나리오 · 수치 · 되돌림 경위는 본문 `### Live Exercise` 가 정본이다. 요약: Image 66 개 · 10 페이지 (fetch 를 붙들어 느린 네트워크 재현) → 한 장씩 완료 9 (한 프레임 1 장 · 상자 5,299 개 0 차 · 재바인드 0) · 편집 뒤 완료와 같은 task 편집 모두 남음 (gap 40 · 56) · page 전환 같은 task 완료 · `WEBGL_lose_context` 소실 → 복원 뒤 재요청 0 · `asset:` 업로드 fill · ⌘Z 2 회로 원래대로.
+
+- **확인 창**: 컴포넌트 원본 안 Image (3 개) 를 같이 고치면 「Component impact」 확인이 뜬다 (ADR-248 4e 의 원본 첫 편집 확인 — 정상). 확인 대상에서 원본 안 노드를 뺐다 (`definitionOfTemplateRoot` 조상 사슬).
+- **하니스 사고 (LOW, 제품 경로 아님)**: dev 핸들 `canvas.setCamera` 에 `scale` 없이 부르면 (`setPosition(x, y, undefined)`) React root 가 내려간다. 사용자 입력으로는 생기지 않는 값이라 수리하지 않았다 — 하니스 쪽에서 `{ x, y, scale }` 을 지킨다.

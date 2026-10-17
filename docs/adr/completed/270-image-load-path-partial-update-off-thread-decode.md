@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](reviews/270.md) Round 2 pending 0 · CRITICAL/HIGH 전부 fixed). 이전: Proposed — 2026-10-17 (리뷰 [reviews/270.md](reviews/270.md) Round 1 — codex, HIGH 3 · MEDIUM 2 → 같은 날 전부 반영. Round 2 수리 검증 — 5 건 closed · 신규 HIGH 1 (context 복원 뒤 재획득 없음) → 같은 날 반영 (R8 · G1-d · G2 ⑧). 판독 상한 도달 — 종결은 실행자 선언)
+Implemented — 2026-10-18 (G0 ~ G5 통과 · 3b 생략 — 사용자 결정 1. G5 = 사용자 프로젝트 live, 아래 `### Live Exercise`). 이전: Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](../reviews/270.md) Round 2 pending 0 · CRITICAL/HIGH 전부 fixed). 이전: Proposed — 2026-10-17 (리뷰 [reviews/270.md](../reviews/270.md) Round 1 — codex, HIGH 3 · MEDIUM 2 → 같은 날 전부 반영. Round 2 수리 검증 — 5 건 closed · 신규 HIGH 1 (context 복원 뒤 재획득 없음) → 같은 날 반영 (R8 · G1-d · G2 ⑧). 판독 상한 도달 — 종결은 실행자 선언)
 
 > **Phase 0 종결 (2026-10-18, G0 통과 · go)**: 이미지 fixture 두 변형 (`app-pages-images` 정적 URL 붙들기 · `-asset` 업로드 ref) · 부류 3 (`load-edit` · `load-same-frame` · `load-zoom`) · dev 카운터 6 — 2 회 동일, ratchet run 2 등록. 실측: 완료 1 = 재바인드 1, 매번 picture ~240 · paragraph ~178 해제 (줌 중 ~1,145 · ~825) · 같은 프레임 편집 22 회가 patch 0 (재바인드가 흡수 — H3). inventory 보강: Image 노드에 `src` 없음 (사진은 Fill 의 Image 층) · fill miss 는 node data 에서 층이 빠짐 → 소유 맵은 「node data 를 만드는 동안 조회된 URL」. 상세 breakdown §7.
 
@@ -14,7 +14,9 @@ Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](review
 
 > **G4 통과 (2026-10-18 — production 짝 · HC4 ③ · HC6)**: 기준 = ADR-270 이전 `93b4b5381` (Phase 0 — 동작 변경 0) worktree 빌드 ↔ HEAD `be810d8b3` 빌드, `--serve-dist` headless 60Hz · DPR 1 · `--fixed-inputs` · 교대 2 쌍 (기준 → HEAD → HEAD → 기준) · 페이지 오류 0 / 16. 이미지 로드 중 표시 간격 p99 — `load-edit` 33.4 → **16.8 ms** (25 ms 초과 프레임 22 · 22 → 0 · 0, 이미지 수와 같은 22), `load-same-frame` 33.4 → 16.8 (22 · 23 → 0 · 0), `load-zoom` 100 → 16.8 (38 · 39 → 2 · 1) · long task (`load-zoom`) 8 · 9 개 (811 · 865 ms) → 0 · 로드 창 main thread taskMs `load-edit` 2,857 · 2,775 → 253 · 235 ms. `app-pages` 줌 · 편집 · 중첩 5k 편집은 표시 간격 p99 16.8 · 초과 0 · long task 0 으로 양쪽 같고 taskMs 는 노이즈 폭 안 → **회귀 0**. 「프레임당 이미지 처리 ms」 는 하니스에 그 지표가 없어 로드 창 main thread taskMs 로 기록했다. 완료 처리 상한 (B) — 로드 중 long task 0 · 초과 프레임 0 ~ 2 라 **도입하지 않음 확정**. HC6 `adr201-bundle-gate.mjs` 수동 실행 pass — Builder initial gzip 1,366,543 → 1,368,669 B (+2,126 ≤ 4,096, 같은 범위의 ADR-273 Phase 2 포함) · Preview Δ 0 · lazy 조건 전부 유지. 기준 빌드에는 ADR-273 Phase 2 가 없지만 초과 프레임 수가 이미지 수 (22) 와 같아 개선은 디코딩 이동에 귀속된다. 하니스 변경: `__composition_IMAGE_DEBUG__` 를 production 하니스 빌드 (`VITE_COMPOSITION_HARNESS=1`) 에도 열었다 — 일반 빌드는 분기를 버린다, 기준 빌드에도 같은 패치를 얹어 쟀다. 다음: G5 live. 상세 breakdown §7.
 
-> 수리 검증 [Round 2](reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED.
+> **G5 통과 · Implemented (2026-10-18)**: 사용자 프로젝트 「123」 (Chrome MCP) — Image 66 개 · 10 페이지에서 순서대로 완료 (상자 5,299 개 0 차 · 재바인드 0) · 편집 중 · 같은 task 편집이 남음 · page 전환 중 완료 · context 소실 → 복원 뒤 재요청 0 · `asset:` · undo. 상세 `### Live Exercise`.
+
+> 수리 검증 [Round 2](../reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED.
 
 - 실행 중 사용자 답 (2026-10-17): 결정 2 (fixture 출처) = **둘 다 한 변형씩** (`app-pages-images` · `app-pages-images-asset`). 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272** — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」 (ADR-273 결정 3 의 답). Phase 3a 는 ADR-273 Phase 2 완료 뒤에만 착수한다.
 - 사용자 요청: `/create-adr` (2026-10-17) — Pen.dev 1.2.18 ↔ composition HEAD `94c9a0d52` 비교 분석 (`.agent/runs/2026-10-17-pen-deep-comparison/comparison.json`, local-only) 의 도입 후보 중 **확정 4 건의 첫째**. 나머지 셋 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산) 과 조건부 4 건 (자산 수요 2단계 · 합성 캐시 · analytic shadow · 로컬 좌표) 은 이 ADR 이 다루지 않는다.
@@ -126,7 +128,7 @@ Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](review
 2. **이미지 fixture 의 출처** — 생성 PNG 를 `asset:` ref (IndexedDB) 로 넣을지, 하니스 `page.route` 정적 URL 로 둘지. 기본은 **둘 다 한 변형씩** (`app-pages-images` · `app-pages-images-asset`).
 3. **종결 미달** — HC4 ③ wall-clock 참고 목표 (로드 중 편집 p99 ≤ 20 ms · drop < 1 %) 미달 시 측정 기록으로 종결할지, Phase 를 더할지.
 
-> 구현 상세: [270-image-load-path-partial-update-off-thread-decode-breakdown.md](design/270-image-load-path-partial-update-off-thread-decode-breakdown.md)
+> 구현 상세: [270-image-load-path-partial-update-off-thread-decode-breakdown.md](../design/270-image-load-path-partial-update-off-thread-decode-breakdown.md)
 
 ## Risks
 
@@ -154,7 +156,17 @@ Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](review
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-18 · Chrome MCP (사용자 Chrome, dev 5173 · DPR 2 · visibility visible) · 사용자 프로젝트 「123」 `/builder/9168f5be-25bb-416b-87b9-ecec2efdd8cf` (22 페이지 · 상자 5,299 · Image 노드 69 개가 11 페이지에) — G5 통과:
+
+- **준비**: 페이지에서 PNG 11 장을 만들었다 (256 ~ 2,048² · 다섯에 하나 반투명 → `blob:` URL). `fetch` 를 감싸 그 URL 들의 응답을 붙들었다 (느린 네트워크 재현). Image 66 개 · **10 페이지** 에 image fill 을 붙였다 (fill · fit · stretch 섞음 — 한 history 단계). 컴포넌트 원본 안의 Image 3 개 (Components 페이지 2 · Shop 의 원본 frame 1) 는 뺐다. 처음 시도에 이것들이 들어가 앱의 「Component impact」 확인 창이 떴고 (원본 첫 편집 확인 — 정상 동작), Cancel 이 편집 전체를 되돌렸다.
+- **순서대로 완료**: 붙든 9 장을 한 장씩 풀었다 — 완료 9 · 한 프레임에 1 장 · texture 이미지 9 · 재바인드 카운터 0 · 상자 5,299 개 위치 · 크기 **0 차** · 선택 (Home 섹션) 유지 · 그 구간 프레임 간격 최대 9.2 ms. 화면은 placeholder 회색 상자에서 번호가 찍힌 그림으로 바뀌었다 (Home · About 스크린샷).
+- **편집 중 완료 (편집이 남는다)**: ① Home 이미지를 새 URL A 로 바꿔 붙든 채 hero 섹션 gap 24 → 40 → A 를 풀었다. 완료 뒤에도 gap 40 이고 자식 y 는 487 → 503 그대로 남았다. ② B 로 바꾸고 **완료 통지와 같은 task** 에서 gap 40 → 56 을 실행했다. 완료 뒤 문서 gap 56 · 자식 y 519 · 화면에 B 이미지와 내려간 버튼.
+- **page 전환 중 완료**: Blog 이미지 18 개를 C 로 바꿔 붙들고, 활성 페이지를 Home → Blog 로 바꾼 같은 task 에서 풀었다 — 완료 1 · seed 소유자 18 · patch 1 · texture 1 · 재바인드 0.
+- **context 소실 → 복원**: `WEBGL_lose_context` (WebGL2) `loseContext` → `restoreContext` — 이벤트 lost 1 · restored 1, GrContext 생성 2 · 삭제 1 · live 1 · backend gpu, 이미지 **재요청 0** (fetch 10 → 10) · 캐시 10 장 그대로 · 화면에 이미지가 다시 그려졌다 (R8 반증과 같은 결과).
+- **`asset:` 이미지**: Fill 패널과 같은 writer (`assets.storeUploadedFile`) 로 800×600 PNG 를 올려 About Image 에 `asset:sha256-…` fill (fit) → 완료 1 · texture 1 · 반투명 겹침까지 그려졌다.
+- **undo**: 키보드 ⌘Z 2 회 — asset fill → 앞 단계 이미지 → fill 전 (placeholder). 문서에 이 확인의 흔적 0 (`g5-` · `blob:` · 자산 ref 0, Image 의 `fills` 키 0, hero gap 24 — 「Saved」). 올린 자산은 미참조라 자산 GC 가 정리한다 (유예 7 일).
+- **하니스 사고 1 건 (제품 경로 아님)**: 카메라를 옮기려고 dev 핸들 `canvas.setCamera` 에 `scale` 대신 `zoom` 을 넘겨 (scale undefined) React root 가 내려가 빈 화면이 됐다. 콘솔 오류 0. 새로고침 뒤 history 는 세션 범위라 비어 있었다. 그때 문서에 남은 fill 66 · gap 56 은 한 명령 (`fills` 지우기 + gap 24) 으로 되돌렸다. 새로고침한 문서의 죽은 `blob:` fill 은 로드 실패 → placeholder (캐시 0 · 대기 0 · 오류 0) — 실패 경로도 함께 확인된 셈이다. 끝에 breakpoint (Mobile) · 카메라 (100 %) 를 처음 상태로 되돌렸다.
+- 「흔들림」 판정은 수치 (상자 0 차 · 선택 유지) 와 스크린샷까지다 — 눈 판정은 사용자 몫으로 남긴다.
 
 ## Consequences
 

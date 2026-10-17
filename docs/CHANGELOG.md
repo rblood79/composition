@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지가 많은 페이지의 로드 중 끊김 · 편집 유실 제거 — ADR-270 Implemented] - 2026-10-18
+
+### Changed
+
+- **Canvas 이미지 로드 경로** (ADR-270, Canvas — Phase 0 ~ 3a 의 마무리) — 이미지가 도착하면 그 이미지를 쓰는 요소만 다시 그린다 (전에는 장면 전체를 다시 묶어 picture 수천 개를 버렸다). 이미지 도착과 같은 순간의 편집도 사라지지 않는다. 디코딩은 메인 스레드 밖 (Phase 3a). 사용자 프로젝트에서 확인한 것: 10 페이지 · 이미지 66 개가 하나씩 도착해도 다른 요소의 위치 · 선택이 그대로, 편집 중 · 페이지 전환 중 도착, GPU context 가 끊겼다 돌아와도 이미지를 다시 받지 않음, 업로드 이미지 (`asset:`), 되돌리기.
+  - 위치: ADR 본문 `docs/adr/completed/270-image-load-path-partial-update-off-thread-decode.md` (`### Live Exercise`) · 하니스 핸들 `__composition_IMAGE_DEBUG__` 는 production 측정 빌드 (`VITE_COMPOSITION_HARNESS=1`) 에도 열린다 (일반 빌드 제외).
+
 ## [Canvas 이미지를 브라우저 코덱으로 디코딩 (메인 스레드 밖) — ADR-270 Phase 3a] - 2026-10-18
 
 ### Changed
