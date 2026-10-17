@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [축소 화면 글자 단순화는 넣지 않음 — ADR-271 측정 기록 종결] - 2026-10-18
+
+### Performance
+
+- **ADR-271 축소 개요 LOD — 측정 기록으로 종결** (사용자 결정, 사용자-가시 변경 없음). 크게 축소한 화면 (줌 0.1 근처) 에서 작은 요소를 건너뛰고 작은 글자를 줄 상자로 그리면 빨라지는지 쟀다.
+  - 건너뛸 요소: 0.5 px 이하로 그려지는 요소가 합성 문서 0.1 % · 사용자 프로젝트 (22 페이지) 0 개 → 넣지 않음 (사용자 결정).
+  - 글자 줄 상자: 구현하고 같은 run 을 켬 · 끔으로 번갈아 쟀다. 래스터 시간은 같고, 배율 띠 경계를 지날 때마다 글자 요소를 다시 기록해 줌 main thread 시간이 +12 ~ 16 % 늘었다. 이득이 없어 코드를 되돌렸다.
+  - 남긴 것: 개발 빌드 전용 투영 크기 분포 카운터 · 하니스 부류 `zoom-ladder` · ratchet 줌 run 2 개 (`60:app-pages@zoom0.1` · `@zoom0.25`). 축소 화면의 남은 비용은 요소별 그림 재생 수다.
+  - 본문: `docs/adr/completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md`
+
 ## [고해상도 화면에서 Canvas 화면 버퍼 메모리 축소 — ADR-273 Implemented] - 2026-10-18
 
 ### Performance

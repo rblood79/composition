@@ -4,7 +4,7 @@
 
 Proposed — 2026-10-17 (리뷰 [reviews/272.md](reviews/272.md) Round 1 — codex, MEDIUM 1 → 같은 날 반영: 미리 기록 후보의 k 제한 앞에 적격성 선별 (유효 picture · 편집 · volatile 제외, `rootIds` 포함) · `false` 시 보충. Round 2 — claude 수리 검증 (같은 날): HIGH 0 · LOW 1 (부분 선택이 나머지 후보를 보존해야 보충이 성립) → 반영, 설계 판독 종결 — pending 0)
 
-- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **셋째**. 첫째 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 넷째 [ADR-273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 「로컬 좌표 · 지연 합성」 (ADR-269 후속) 은 이 ADR 뒤에도 자손 맵 갱신이 지배적일 때 별도 ADR — 여기서 다루지 않는다.
+- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **셋째**. 첫째 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 넷째 [ADR-273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 「로컬 좌표 · 지연 합성」 (ADR-269 후속) 은 이 ADR 뒤에도 자손 맵 갱신이 지배적일 때 별도 ADR — 여기서 다루지 않는다.
 - 방향을 정한 사용자 원문: 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」. 등급: 「두 전략의 결과 집합이 같으면 싼 쪽을 고른다」 · 「idle 시간에 묶이는 기록의 후보를 전부 정렬하는 것은 낭비」 는 **A**, 전환점 셀 수 · 후보 반경 · 큐 크기는 **B**. 비교 분석도 이 항목을 「코드에서 도출되는 확장성 위험이며 실측 회귀 아님」 으로 적었다 — 그래서 Phase 0 은 **많은 페이지 fixture** 로 비용이 어디서 나는지 먼저 가른다 (레버 선택은 카운트가 한다).
 - 사용자가 이미 답한 것: 측정은 게이트. Pen 의 처리도 전부 화면 내 요소 수에 비례하지는 않는다 — 가져오는 것은 **「수요에 따라 자원 작업 범위를 제한하는 원칙」** 뿐.
 - 리뷰는 사용자가 요청할 때 `/review-adr 272` → `reviews/272.md`.

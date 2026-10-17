@@ -2,9 +2,13 @@
 
 ## Status
 
-Proposed — 2026-10-17 (리뷰 [reviews/271.md](reviews/271.md) Round 1 — codex, HIGH 2 · MEDIUM 2 → 같은 날 반영: tier → **band 상한 기준 요소 상태** (H1) · 서브트리 unsafe 요약 전파 (H2) · 미리 기록 차례 키에 band (M3) · `harnessArgsFrom` 이 `--zoom` 직렬화 (M4). Round 2 — claude 수리 검증 (같은 날): HIGH 0 · MEDIUM 2 (breakdown Phase 2 에 남은 `fontSize × zoom` 실배율 분기 · 글자 넘침은 기록 때 정해지는데 서브트리 요약의 갱신 지점이 없음) · LOW 1 (「band 전환 때 2 벌 공존」 전제 — 캐시는 id 당 entry 1 개) → 반영, 설계 판독 종결 — pending 0)
+Implemented — 2026-10-18 (**측정 기록으로 종결** — 사용자 결정 3 「측정 기록 종결」: 글자 줄 상자는 줌 0.1 에서 이득 0 · 줌 taskMs +12 ~ 16 % → Phase 1 · 2 코드를 되돌리고 Phase 0 계측만 남긴다. 아래 Phase 1 · 2 블록). 이전: Accepted — 2026-10-18 (사용자 `/execute-adr 271` — [reviews/271.md](../reviews/271.md) Round 2 pending 0 · CRITICAL/HIGH 0). 이전: Proposed — 2026-10-17 (리뷰 [reviews/271.md](../reviews/271.md) Round 1 — codex, HIGH 2 · MEDIUM 2 → 같은 날 반영: tier → **band 상한 기준 요소 상태** (H1) · 서브트리 unsafe 요약 전파 (H2) · 미리 기록 차례 키에 band (M3) · `harnessArgsFrom` 이 `--zoom` 직렬화 (M4). Round 2 — claude 수리 검증 (같은 날): HIGH 0 · MEDIUM 2 (breakdown Phase 2 에 남은 `fontSize × zoom` 실배율 분기 · 글자 넘침은 기록 때 정해지는데 서브트리 요약의 갱신 지점이 없음) · LOW 1 (「band 전환 때 2 벌 공존」 전제 — 캐시는 id 당 entry 1 개) → 반영, 설계 판독 종결 — pending 0)
 
-- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **둘째**. 첫째는 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) (이미지 로드 경로), 셋째 [ADR-272](272-bounded-spatial-query-and-warmup-work-range.md), 넷째 [ADR-273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 4 건 (자산 수요 2단계 · 페이지 합성 캐시 · analytic shadow · 로컬 좌표) 은 다루지 않는다.
+> **Phase 0 종결 2026-10-18** (G0 · go — 글자만): 하니스 `zoom-ladder` · dev 카운터 `lodProj*` · `lodText*` (picture 재생 지점의 투영 크기 · 글자 투영 크기 5 구간) · ratchet run `60:app-pages@zoom0.1` · `@zoom0.25` (`runKeyOf` · `harnessArgsFrom` 이 `--zoom` 을 싣는다 — r1 M4). 고정 입력 2 회 같은 값. 몫: **0.5 px 이하 요소 — 합성 0.0 ~ 0.1 % · 사용자 프로젝트 「123」 0 / 1,589 (줌 0.1)** → 생략 레버 몫 0. **2 px 이하 글자 — 합성 32 ~ 37 % · 「123」 97 % (줌 0.1) · 5 % (0.15) · 0 (0.25 이상)** → 글자 레버만 몫이 있다 (줌 ≤ ~0.14). **범위 변경 (사용자 2026-10-18 「생략 빼고 글자만」)**: Phase 1 의 생략 판정 · 서브트리 요약 (r1 H2 · r2 M2) 을 넣지 않는다 — Phase 1 은 배율 · band 전달만, Phase 2 글자 줄 상자. R1 (생략이 넘침을 숨김) 은 대상이 사라져 해당 없음. 상세: breakdown §6 Phase 0.
+
+> **Phase 1 · 2 측정 뒤 되돌림 2026-10-18** (G1 · A/B → 사용자 결정 3 「측정 기록 종결」): 프레임 band (상한 0.125 · 0.16 · 0.2 · 0.25, 히스테리시스 ±5 %) 를 content · damage · idle 미리 기록 · picture 키에 같은 값으로 주고, `fontSize × band 상한 < 2 px` 글자를 줄마다 글자색 상자로 그리는 구현을 마쳤다 (unit 8 · 원복 RED 5/5). G1 live (headless, DPR 1): 줌 0.2 이상 0 px · 0.1 ~ 0.15 차이 픽셀 0.09 ~ 0.38 % (결정 1 제안 오차 안), 알파 0.5 는 회색 작은 글자를 진하게 만든다. **dev A/B (`--zoom 0.1`, LOD 켬 ↔ 끔 교대)**: 줌 taskMs +12 ~ 16 % · content 기록 합 385 / 251 ms — band 경계를 지날 때마다 글자 요소 재기록 (`lodTierChanges` 38 · lod miss 9,369, 끔은 miss 0), `zoom-ladder` +10 ~ 20 %, 빠른 팬은 카운트 · flush 같음 (이득 0). 글리프 래스터는 원래 비용이 작아 줄 상자로 줄일 몫이 없다 (flush 합 같음). → Phase 1 · 2 코드 (`lodBand.ts` · 줄 상자 · picture 키 band · 미리 기록 band · `setLodOff` · `adr271-lod-live.mjs` · 하니스 `--lod-off`) 되돌림. 결정 1 · 2 는 대상이 없어졌다. 남긴 것: Phase 0 dev 카운터 · `zoom-ladder` · ratchet `@zoom` 키와 두 run. 남은 꼬리 = `drawPicture` 재생 수 (대안 C 의 몫 — C 등급, 측정 뒤 별도 ADR). 상세: breakdown §6 Phase 1 · 2.
+
+- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **둘째**. 첫째는 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) (이미지 로드 경로), 셋째 [ADR-272](../272-bounded-spatial-query-and-warmup-work-range.md), 넷째 [ADR-273](273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 4 건 (자산 수요 2단계 · 페이지 합성 캐시 · analytic shadow · 로컬 좌표) 은 다루지 않는다.
 - 방향을 정한 사용자 원문 (ADR-270 과 같은 대화): 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」. 등급: 「안 보이는 것은 안 그린다」 는 **A** (코드 근거), 임계값 (0.5 px · 2 px) · 히스테리시스 폭 · 허용 오차는 **B** (게이트가 정한다). Pen 의 수치는 참고값이지 목표가 아니다.
 - 사용자가 이미 답한 것: 측정은 착수 조건이 아니라 게이트. 「D3 대칭 = 시각 결과 동일」 은 이 ADR 에서 **허용 오차를 사용자 결정으로** 둔다 (아래 결정 1) — 0.5 px 상자도 antialias 로 픽셀에 흔적을 남기므로 0 px 차를 주장할 수 없다.
 - 리뷰는 사용자가 요청할 때 `/review-adr 271` → `reviews/271.md`.
@@ -92,7 +96,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/271.md](reviews/271.md) Round 1 — cod
 2. **줄 상자의 모양** — 글자색 단색 (알파 = 밀도 근사 B) vs 줄 높이의 절반 두께. 기본은 단색 · 줄 높이 × 0.6 (Pen 은 줄별 직사각형).
 3. **종결 미달** — HC3 목표 (`--zoom 0.1` picture 재생 ↓ 30 % 이상 — 참고) 미달 시 측정 기록 종결 또는 대안 C 로.
 
-> 구현 상세: [271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md](design/271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md)
+> 구현 상세: [271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md](../design/271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md)
 
 ## Risks
 
@@ -120,7 +124,9 @@ Proposed — 2026-10-17 (리뷰 [reviews/271.md](reviews/271.md) Round 1 — cod
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+- **2026-10-18 Phase 0 — 사용자 프로젝트 「123」 (22 페이지, Chrome MCP · DPR 2 · visible)**: 줌 0.1 · 0.15 · 0.25 · 0.5 · 1 에서 `forceFull` 1 회씩 투영 크기 분포를 읽었다 — 줌 0.1 재생 1,589 · 0.5 px 이하 요소 0 · 2 px 이하 글자 1,171 / 1,204. 측정 뒤 원래 카메라로 복원, 콘솔 오류 0.
+- **2026-10-18 Phase 1 · 2 (되돌린 구현) — headless Playwright (`adr271-lod-live.mjs`, DPR 1, `app-pages`)**: 줌 사다리 7 배율에서 LOD ↔ `setLodOff` content 스크린샷 비교 — 0.2 이상 0 px (4/4) · 0.1 ~ 0.15 차이 0.09 ~ 0.38 % · 알파 · 높이 후보 4 개 비교. 같은 형태의 dev A/B (`perf-baseline` 교대 3 쌍 + 팬 2 쌍) 가 결정 3 의 근거.
+- **최종 상태 (Phase 0 계측만, 동작 변경 0)**: 되돌린 뒤 type-check 0 · canvas · catalogRuntime 412 파일 3,312 PASS · ratchet `60:app-pages@zoom0.1` · `@zoom0.25` 재등록 (아래 breakdown).
 
 ## Consequences
 

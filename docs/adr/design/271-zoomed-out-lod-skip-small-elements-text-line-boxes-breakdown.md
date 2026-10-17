@@ -1,6 +1,6 @@
 # ADR-271 design breakdown — 축소 개요 LOD (생략 · 줄 상자)
 
-> 본문: [../271-zoomed-out-lod-skip-small-elements-text-line-boxes.md](../271-zoomed-out-lod-skip-small-elements-text-line-boxes.md). 이 문서가 Phase · 파일 · 검증의 정본이다. 실측 결론은 §기록에. 코드 인용은 HEAD `94c9a0d52`.
+> 본문: [../completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md](../completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md). 이 문서가 Phase · 파일 · 검증의 정본이다. 실측 결론은 §기록에. 코드 인용은 HEAD `94c9a0d52`.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -17,6 +17,8 @@
 - **go/no-go**: 임계 아래 (≤ 0.5 px) 요소 + 2 px 미만 글자가 `--zoom 0.1` 에서 전체의 5 % 미만이면 레버의 몫이 없다 → 사용자 결정 3. 5-질문 답을 §기록에.
 
 ## 2. Phase 1 — 배율 입력 · 생략 (G1 · G2 · G3)
+
+> **2026-10-18 범위 변경 (사용자 「생략 빼고 글자만」 — §6 Phase 0)**: 이 절의 **생략** · 서브트리 요약 · unit (a) ~ (c) · (g) 는 구현하지 않는다 (Phase 0 몫 0). 남는 것: 배율 전달 · `resolveLodBand` · damage 동일 band · unit (d) (e) (f).
 
 - **배율 전달** (`SkiaRenderer.ts:762` 근처 · `canvasScene.ts` `contentNode` · `renderCommands.ts:2420`): renderer 가 프레임마다 `lod = { zoom: camera.zoom, band: resolveLodBand(camera.zoom, prevBand) }` 를 정해 content full · viewport · damage 실행 옵션에 같은 객체를 넘긴다. `resolveLodBand` 는 히스테리시스 (B, 제안 ±10 %) 를 가진 순수 함수 (unit).
 - **생략** (`renderCommands.ts:2556 ~ 2561` `CMD_ELEMENT_BEGIN`, `!cmd.visible` jump 바로 뒤): `zoom < Z_full` 일 때만 — `projected = max(cmd.width, cmd.height) × zoom`; `projected < T_skip` 이고 stream 의 **서브트리 요약** `lodSubtree.get(id)` 가 `{ unsafe: false, hitUnion }` 이며 `hitUnion` 의 투영도 `< T_skip` 이면 `subtreeEndOf` 로 jump. 요약은 stream build (`visitElement` 가 자식 재귀를 끝낸 자리 — `renderCommands.ts:1803 ~ 1831`) 와 splice (`applyCommitSubtreeCommandPatch` — 조상 체인 재계산) 에서 만든다: `unsafe` = 자손 (document 자식 포함) 중 하나라도 `damageUnsafeElementIds` (`:1606 ~ 1609` 는 요소 자신만 넣는다) · `textPaintOverflowIds` · 글자 범위 미확정 (`hasTextPaintOverflow` 미판정) — damage 경로가 요소마다 검사하는 조건 (`subtreeCommandPatch.ts:593 ~ 601`) 을 조상에 전파한 것. `boundsMap` (레이아웃 상자) · `getSubtreeDamageBounds` (hit 합집합) 는 paint 범위가 아니므로 단독으로 쓰지 않는다 (r1 H2). **갱신 지점** (r2 M2): 글자 넘침은 build 때 모른다 — `textPaintOverflowIds` 는 모듈 집합 (`renderCommands.ts:2385`) 이고 기록 끝 (`:2956`) · 미리 기록 반영 `applyWarmTextPaint` (`:2398`) 에서만 바뀐다. 요약을 `{ unsafeStatic, undeterminedText, overflowText, hitUnion }` 로 두고, 그 두 지점에서 owner 의 조상 체인 (`subtreeBuildContextByElement.get(id).parentElementId` — `:810`) 을 따라 `undeterminedText` (−1) · `overflowText` (±1) 를 갱신한다. 생략은 `unsafeStatic = false ∧ undeterminedText = 0 ∧ overflowText = 0 ∧ 투영 < T_skip` 일 때만 — 갱신 없이는 글자를 가진 모든 서브트리가 영원히 미확정이라 생략 0 (HC3 의 몫이 사라진다). 카운터 `lodSkippedElements` · `lodSkipBlockedUnsafe`. drag 서브트리 · 편집 중 노드 (`editingId`) · export 호출 (`options.lod` 없음) 은 분기 자체가 없다.
@@ -50,4 +52,52 @@
 
 ## 6. 기록
 
-(Phase 0 분포 · 카운트 · 5-질문 · go/no-go · 사용자 결정 1 ~ 3 답)
+### Phase 0 — 투영 크기 분포 · 기준 카운트 (2026-10-18, 사용자 `/execute-adr 271` — G0 통과 · go (글자만))
+
+**구현 (dev 전용 · 동작 변경 0)**: `renderCounters.ts` `lodProjLe0_5 · Le1 · Le2 · Le4 · Gt4` (요소 투영 최대 변 `max(w, h) × zoom`) · `lodTextLe0_5 … Gt4` (self span 안 글자 `fontSize × zoom`) — content **full** 기록이 picture 로 지나간 요소 (`drawSelfSpanViaPicture`, LOD 가 건너뛸 바로 그 단위) 에서 센다 (`countLodShare`). 배율은 `SkiaRenderer` 가 full 기록 직전 `renderScope.zoom` 에 준다. 하니스 부류 `zoom-ladder` (`setCamera` 로 0.1 → 0.15 → 0.25 → 0.5 → 1 → 0.5 → 0.25 → 0.15 왕복, 단계마다 8 tick). ratchet: `runKeyOf` 가 `--zoom` 을 `@zoom<z>` 로 (DPR 앞) · `harnessArgsFrom` 이 `--zoom` 을 직렬화 — unit 「저장 args → `parseArgs` → 같은 배율 · 같은 run 키」 (r1 M4. 계획의 `perf-ratchet-run.mjs` 대조 unit 은 게이트가 저장 args 를 하니스에 그대로 넘기므로 `parseArgs` 왕복으로 갈음). unit `adr271LodShare.test.ts` 3 (구간 경계 · 글자/요소 분리 · 배율 배선) · gate · 하니스 node 테스트 36 PASS · type-check 0.
+
+**측정** (`--fixed-inputs`, headless 60Hz · 1440 × 900 · DPR 1 · dev 5173, 2 회 — 카운트 같음, 다른 것은 B 인 `cdp.RecalcStyleCount` 하나):
+
+| 조건 (부류)                            | picture 재생 (`nodePicture.hits`) | `execVisited` | 요소 투영 ≤ 0.5 / ≤ 1 / ≤ 2 / ≤ 4 / > 4 | 글자 투영 ≤ 0.5 / ≤ 1 / ≤ 2 / ≤ 4 / > 4 | 2 px 이하 글자 |
+| -------------------------------------- | --------------------------------- | ------------- | --------------------------------------- | --------------------------------------- | -------------- |
+| `app-pages` `--zoom 0.1` `zoom`        | 52,977                            | 215,527       | 30 / 0 / 189 / 3,716 / 49,042           | 0 / 0 / 12,093 / 23,142 / 2,796         | 31.8 %         |
+| `app-pages` `--zoom 0.1` `zoom-ladder` | 16,324                            | 64,999        | 6 / 0 / 180 / 1,312 / 14,826            | 0 / 0 / 3,954 / 6,535 / 1,209           | 33.8 %         |
+| `app-pages` `--zoom 0.25` `zoom`       | 48,952                            | 190,303       | 14 / 0 / 222 / 3,317 / 45,399           | 0 / 0 / 12,161 / 18,802 / 4,556         | 34.2 %         |
+| `app-pages` 기본 배율 `zoom`           | 44,909                            | 174,183       | 14 / 0 / 222 / 3,286 / 41,387           | 0 / 0 / 12,161 / 16,333 / 4,158         | 37.2 %         |
+
+(`zoom` 부류는 휠 ±30 왕복이라 시작 배율에서 더 축소 · 확대한다 — 분포는 그 왕복 전체 합.)
+
+**5-질문**: Q1 `app-pages` 는 합성 — 분포 인용 금지 (규칙) → **사용자 프로젝트 「123」 (22 페이지, Chrome MCP · DPR 2 · visible, 같은 카운터 · `forceFull` 1 회 · 카메라 (40, 80) — 측정 뒤 원래 카메라로 복원)** 로 대조: 줌 0.1 — 재생 1,589 · 요소 투영 0 / 0 / 46 / 198 / 1,345 · 글자 0 / 0 / **1,171** / 33 / 0 (2 px 이하 97 %) · 0.15 — 요소 ≤ 2 px 0 · 글자 2 px 이하 42 / 871 (5 %) · 0.25 · 0.5 · 1 — 둘 다 0. Q2 불리 = 임계 바로 위 배율 (0.15) 의 몫이 급감 — 기록. Q3 대조군 = 같은 run 의 LOD off (Phase 1 이후). Q4 배율 배선 unit (정적) · 「123」 측정의 `cam` = 요청 배율. Q5 분포의 oracle = 사용자 문서 (외부).
+
+**go/no-go**: 0.5 px 이하 요소는 두 문서 모두 5 % 미만 (0.1 % · 0) → **생략 레버는 no-go**. 2 px 이하 글자는 줌 0.1 에서 32 % (합성) · 97 % (사용자) → **글자 레버 go** (줌 ≤ ~0.14 구간 한정 — 14 px 글자의 2 px 경계 = 0.143). 범위 변경 = 결정 지점 ④ → **사용자 답 (2026-10-18) 「생략 빼고 글자만」**: Phase 1 = 배율 · band 를 content · damage · 미리 기록에 같은 값으로 전달 (R2 · R7 · R8 유지), 생략 판정 · `lodSubtree` 요약 (r1 H2 · r2 M2) · 카운터 `lodSkipped*` 는 넣지 않는다. Phase 2 그대로.
+
+**ratchet**: run `60:app-pages@zoom0.1` (`zoom` · `zoom-ladder` — A 184 · 183 / B 4) · `@zoom0.25` (`zoom` — A 184 / B 4) 를 `--add-run` 으로 등록 · `--judge` 초과 0. 기존 run 에는 `lodProj*` · `lodText*` 가 새 키로 들어온다 (경고만).
+
+### Phase 1 · 2 — band 전달 · 글자 줄 상자 (2026-10-18 — 구현 · 측정 뒤 되돌림, 사용자 결정 3 「측정 기록 종결」)
+
+**구현했던 것 (되돌림 — 커밋하지 않았다)**: `skia/lodBand.ts` — band 상한 `[0.125, 0.16, 0.2, 0.25]` · 히스테리시스 ±5 % · 줄 상자 판정 `fontSize × band 상한 < 2 px` (r1 H1 — 실배율이 아니라 band 상한). renderer 가 프레임마다 band 하나를 정하고 (`updateLodBand` → `setFrameLodBand`) scene 이 content · viewport · damage · idle 미리 기록에 같은 값을 넘겼다 (R2 · R7 · r1 M3 — 차례 키에 band). picture 키 성분은 self span 에 줄 상자 글자가 있을 때만 band, 아니면 full. `drawParagraphBox` 가 줄마다 (`getLineMetrics`) 글자색 × 알파 0.5 · 줄 높이 × 0.6 상자를 그렸다. 옵션 없는 실행 (export · drag 서브트리) = full (R5). unit 8 · 원복 RED 5/5 · canvas · catalogRuntime 413 파일 3,320 PASS · type-check 0.
+
+**G1 live** (headless Playwright, DPR 1, `app-pages`, LOD ↔ `setLodOff` content 스크린샷):
+
+| 배율                 | 차이 픽셀            | 비고                                                                 |
+| -------------------- | -------------------- | -------------------------------------------------------------------- |
+| 0.2 · 0.25 · 0.5 · 1 | 0 px                 | 줄 상자가 될 글자 없음 (0.25 는 히스테리시스로 band 4 가 남아도 0)   |
+| 0.1 · 0.12 · 0.15    | 0.29 · 0.38 · 0.09 % | 대부분 채널 차 32 초과 (글리프 ↔ 상자 모양 차) · 평균 밝기 −48 ~ −67 |
+
+알파 · 높이 후보 (줌 0.1): 0.35 / 0.6 → 밝기 −28 · 0.5 / 0.4 → −30 · 0.5 / 0.8 → −55 · 0.65 / 0.6 → −68. 기본안 0.5 는 회색 작은 글자를 진하게 만든다.
+
+**A/B** (dev 5173, headless 60Hz · 1440 × 900 · DPR 1, `--fixed-inputs --zoom 0.1`, 하니스 `--lod-off` 로 같은 run 을 끔 — 교대):
+
+| 부류 (쌍)            | taskMs 켬 / 끔                | content 기록 합 · p95 켬 / 끔  | flush 합 켬 / 끔  | 카운트 차 (켬)                                              |
+| -------------------- | ----------------------------- | ------------------------------ | ----------------- | ----------------------------------------------------------- |
+| `zoom` (3 쌍)        | 1,184 ~ 1,224 / 1,054 ~ 1,075 | 385 · 15.9 / 251 · 10.1 ms     | 76 ~ 79 / 75 ~ 77 | `lodTierChanges` 38 · lod miss 9,369 (끔 0) · 줄 상자 5,081 |
+| `zoom-ladder` (3 쌍) | 354 ~ 393 / 294 ~ 337         | 115 ~ 120 · 14.9 / 67 · 6.6 ms | 25 / 25           | 경계 통과 11 · lod miss 3,515                               |
+| `pan` 빠른 팬 (2 쌍) | 433 ~ 452 / 419 ~ 432         | 65 · 6.4 / 62 · 6.4 ms         | 15 ~ 16 / 16 ~ 17 | 없음                                                        |
+
+표시 간격 p99 는 전부 16.8 ms, long task 0.
+
+**판정**: 이득 0 · 비용만. 래스터 (flush) 는 켬 · 끔이 같다 — 글리프 그리기가 원래 싸서 줄 상자로 줄일 몫이 없다. 기록은 band 경계를 지날 때마다 화면 안 글자 요소를 다시 기록한다 — ADR-266 이 없앤 「줌 중 재기록」 이 경계 수만큼 돌아온다. band 를 하나로 줄여도 재기록 횟수만 줄 뿐 이득은 0. HC3 의 참고 목표 (재생 ↓ 30 %) 는 생략 레버의 몫이었고 생략은 Phase 0 에서 빠졌다.
+
+**사용자 결정 3 (2026-10-18) 「측정 기록 종결」**: Phase 1 · 2 코드 (`lodBand.ts` · 줄 상자 · picture 키 · 미리 기록 band · dev `setLodOff` · `setLodTextBoxStyle` · 카운터 `lodTextBoxes` · `lodTierChanges` · `adr271-lod-live.mjs` · 하니스 `--lod-off`) 를 되돌렸다. 결정 1 (허용 오차) · 2 (줄 상자 모양) 는 대상이 없어졌다. 남긴 것: Phase 0 dev 카운터 (`countLodShare` — 명령 reader 로 읽어 `bufferProxyReads` 를 올리지 않는다) · `zoom-ladder` · ratchet `@zoom` 키. 되돌린 뒤 ratchet run `60:app-pages@zoom0.1` (`zoom` A 184 · `zoom-ladder` A 183) · `@zoom0.25` (`zoom` A 184) 를 다시 재서 등록 — 값은 Phase 0 표와 같다 · `--judge` 초과 0. type-check 0 · canvas · catalogRuntime 412 파일 3,312 PASS.
+
+**남은 꼬리**: 줌 0.1 에서 `drawPicture` 재생 수 (`zoom` 52,977 / 기록 68 ≈ 780 / 기록) — 대안 C (페이지 · 그룹 합성 캐시) 의 몫. C 등급이라 fixture 측정 뒤 별도 ADR (사용자가 열 때).

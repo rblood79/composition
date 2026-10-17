@@ -215,6 +215,22 @@ export interface RenderCounters {
   panDeviceGt128: number;
   panDeviceMax: number;
   surfaceBytesMax: number;
+  /**
+   * ADR-271 Phase 0 — 축소 LOD 의 몫. content **full** 기록이 picture 로 지나간 요소 (`drawSelfSpanViaPicture`)
+   * 의 투영 최대 변 (`max(w, h) × zoom`, CSS px) 분포 · 그 self span 안 글자의 투영 글자 크기
+   * (`fontSize × zoom`) 분포 — 구간 ≤ 0.5 · ≤ 1 · ≤ 2 · ≤ 4 · 그 이상. 생략 · 줄 상자 임계를 가설이 아니라
+   * 분포로 정한다. 배율은 renderer 가 full 기록 직전에 `renderScope.zoom` 으로 준다.
+   */
+  lodProjLe0_5: number;
+  lodProjLe1: number;
+  lodProjLe2: number;
+  lodProjLe4: number;
+  lodProjGt4: number;
+  lodTextLe0_5: number;
+  lodTextLe1: number;
+  lodTextLe2: number;
+  lodTextLe4: number;
+  lodTextGt4: number;
 }
 
 const counters: RenderCounters = {
@@ -333,6 +349,16 @@ const counters: RenderCounters = {
   panDeviceGt128: 0,
   panDeviceMax: 0,
   surfaceBytesMax: 0,
+  lodProjLe0_5: 0,
+  lodProjLe1: 0,
+  lodProjLe2: 0,
+  lodProjLe4: 0,
+  lodProjGt4: 0,
+  lodTextLe0_5: 0,
+  lodTextLe1: 0,
+  lodTextLe2: 0,
+  lodTextLe4: 0,
+  lodTextGt4: 0,
 };
 
 /**
@@ -342,7 +368,27 @@ const counters: RenderCounters = {
 export const renderScope: {
   kind: "full" | "damage" | null;
   touched: number;
-} = { kind: null, touched: 0 };
+  /** ADR-271 Phase 0: 이번 content 기록의 카메라 배율 (0 = 모름 — 분포를 세지 않는다). */
+  zoom: number;
+} = { kind: null, touched: 0, zoom: 0 };
+
+/** ADR-271 Phase 0: 투영 크기 (CSS px) → 분포 구간 하나에 더한다. */
+export function countLodProjected(px: number): void {
+  if (px <= 0.5) counters.lodProjLe0_5 += 1;
+  else if (px <= 1) counters.lodProjLe1 += 1;
+  else if (px <= 2) counters.lodProjLe2 += 1;
+  else if (px <= 4) counters.lodProjLe4 += 1;
+  else counters.lodProjGt4 += 1;
+}
+
+/** ADR-271 Phase 0: 투영 글자 크기 (CSS px) → 분포 구간 하나에 더한다. */
+export function countLodText(px: number): void {
+  if (px <= 0.5) counters.lodTextLe0_5 += 1;
+  else if (px <= 1) counters.lodTextLe1 += 1;
+  else if (px <= 2) counters.lodTextLe2 += 1;
+  else if (px <= 4) counters.lodTextLe4 += 1;
+  else counters.lodTextGt4 += 1;
+}
 
 export function beginContentScope(kind: "full" | "damage"): void {
   renderScope.kind = kind;

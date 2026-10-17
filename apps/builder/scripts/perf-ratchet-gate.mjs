@@ -543,7 +543,9 @@ export function runKeyOf(options) {
     fixture === DEFAULT_FIXTURE
       ? String(options.seedCount)
       : `${options.seedCount}:${fixture}`;
-  return (options.dpr ?? 1) === 1 ? base : `${base}@dpr${options.dpr}`;
+  // ADR-271: 시작 배율을 고정한 run (`--zoom`) 은 다른 기준이다 — 기본 배율 run 과 합치지 않는다.
+  const zoomed = options.zoom == null ? base : `${base}@zoom${options.zoom}`;
+  return (options.dpr ?? 1) === 1 ? zoomed : `${zoomed}@dpr${options.dpr}`;
 }
 
 /** 결과 JSON 의 options → 같은 조건을 재현하는 하니스 인자 (게이트가 이대로 다시 잰다). */
@@ -561,6 +563,7 @@ export function harnessArgsFrom(options) {
     args.push("--fixture-kind", options.fixtureKind);
   if (options.callCounts) args.push("--call-counts");
   if ((options.dpr ?? 1) !== 1) args.push("--dpr", String(options.dpr));
+  if (options.zoom != null) args.push("--zoom", String(options.zoom));
   args.push("--classes", options.classes.join(","));
   return args;
 }

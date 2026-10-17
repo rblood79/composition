@@ -2303,6 +2303,40 @@ export const FRAME_CLASSES = {
       "return { deltaY: (Math.floor(i / 12) % 2 ? 30 : -30), ctrlKey: true };",
       ctx.fixedInputs,
     ),
+  // ADR-271 Phase 0: 배율 사다리 왕복 — 0.1 → 0.15 → 0.25 → 0.5 → 1 → 0.5 → 0.25 → 0.15 → … 를 단계마다
+  // 8 tick 씩 (`setCamera` — 정확한 배율).
+  "zoom-ladder": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ms, fixedInputs }) => {
+        const canvas = window.__COMPOSITION_CATALOG__?.canvas;
+        if (!canvas?.setCamera)
+          throw new Error(
+            "zoom-ladder: __COMPOSITION_CATALOG__.canvas.setCamera 없음 (dev 또는 harness 빌드 전용)",
+          );
+        const steps = [0.1, 0.15, 0.25, 0.5, 1, 0.5, 0.25, 0.15];
+        const hold = 8;
+        const ticks = Math.round((ms * 60) / 1000);
+        const t0 = performance.now();
+        for (
+          let i = 0;
+          fixedInputs ? i < ticks : performance.now() - t0 < ms;
+          i += 1
+        ) {
+          if (i % hold === 0)
+            canvas.setCamera({
+              scale: steps[Math.floor(i / hold) % steps.length],
+              x: 40,
+              y: 80,
+            });
+          await new Promise((r) =>
+            requestAnimationFrame(() =>
+              fixedInputs ? requestAnimationFrame(() => r()) : r(),
+            ),
+          );
+        }
+      },
+      { ms, fixedInputs: ctx.fixedInputs },
+    ),
   // 선택 전환 (store 경로 — hit-test 는 안 거친다): 100ms 마다 다음 요소
   select: (page, ctx, ms) =>
     page.evaluate(

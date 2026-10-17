@@ -1,5 +1,5 @@
 import { getTextPaintOverflowEvents } from "./renderCommands";
-import { renderCounters } from "./renderCounters";
+import { renderCounters, renderScope } from "./renderCounters";
 import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CanvasKit/Skia 렌더 루프
@@ -966,6 +966,8 @@ export class SkiaRenderer {
     targetCanvas.scale(camera.zoom, camera.zoom);
     // ADR-153 Phase 1-e: 씬 재기록 (WASM CPU) 구간 분해 라벨
     const recordBegin = isDev ? markBegin() : 0;
+    // ADR-271 Phase 0: 이 기록의 배율 — 투영 크기 분포 카운터가 읽는다.
+    if (isDev) renderScope.zoom = camera.zoom;
     this.contentNode.renderSkia(targetCanvas, paddedBounds);
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_RECORD_CONTENT, recordBegin);

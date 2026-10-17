@@ -653,3 +653,39 @@ test("--add-run — fixture 가 run 키와 하니스 인자에 실리고, 등록
     /둘 이상/,
   );
 });
+
+test("ADR-271: --zoom 은 run 키 · 저장 args 에 실리고 재실행 인자가 같은 키를 낸다 (r1 M4)", async () => {
+  const { parseArgs } = await import("./perf-baseline.mjs");
+  assert.equal(
+    runKeyOf({ seedCount: 60, fixtureKind: "app-pages", zoom: null }),
+    "60:app-pages",
+  );
+  assert.equal(
+    runKeyOf({ seedCount: 60, fixtureKind: "app-pages", zoom: 0.1 }),
+    "60:app-pages@zoom0.1",
+  );
+  assert.equal(
+    runKeyOf({ seedCount: 60, fixtureKind: "app-pages", zoom: 0.25, dpr: 2 }),
+    "60:app-pages@zoom0.25@dpr2",
+  );
+  const options = {
+    seedCount: 60,
+    fixtureKind: "app-pages",
+    zoom: 0.1,
+    fixedInputs: true,
+    classes: ["zoom", "zoom-ladder"],
+  };
+  const args = harnessArgsFrom(options);
+  assert.deepEqual(
+    args.slice(args.indexOf("--zoom"), args.indexOf("--zoom") + 2),
+    ["--zoom", "0.1"],
+  );
+  // 게이트가 저장 args 로 다시 잴 때 하니스가 받는 options — 같은 배율 · 같은 키
+  const rerun = parseArgs(args);
+  assert.equal(rerun.zoom, 0.1);
+  assert.equal(runKeyOf(rerun), runKeyOf(options));
+  assert.equal(
+    runKeyOf(parseArgs(harnessArgsFrom({ ...options, zoom: null }))),
+    "60:app-pages",
+  );
+});

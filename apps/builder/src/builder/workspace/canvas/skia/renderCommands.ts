@@ -58,7 +58,13 @@ import {
 import { toSkiaBlendMode } from "./blendModes";
 import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
-import { renderCounters, renderDebug, renderScope } from "./renderCounters";
+import {
+  countLodProjected,
+  countLodText,
+  renderCounters,
+  renderDebug,
+  renderScope,
+} from "./renderCounters";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import {
   ensureNodePictureFontGeneration,
@@ -3018,7 +3024,10 @@ function drawSelfSpanViaPicture(
   if (!dataRef) return false;
 
   let picture = getCachedNodePicture(elementId, dataRef, cmd.width, cmd.height);
-  if (process.env.NODE_ENV === "development") countTouchedElement(!picture);
+  if (process.env.NODE_ENV === "development") {
+    countTouchedElement(!picture);
+    countLodShare(commands, span, cmd);
+  }
   if (picture) {
     // 미리 기록한 picture 의 첫 재생 — 그 글자 넘침이 이제 화면에 그려진다
     const warmText = takeWarmTextPaint(elementId);
@@ -3041,6 +3050,27 @@ function drawSelfSpanViaPicture(
     incrementDrawCall();
   }
   return true;
+}
+
+/**
+ * ADR-271 Phase 0 (dev): full 기록이 picture 로 지나간 요소의 투영 크기 · 그 self span 안 글자의 투영
+ * 글자 크기 분포. 배율을 모르면 (`renderScope.zoom` 0) 세지 않는다.
+ */
+function countLodShare(
+  commands: RenderCommand[],
+  span: SelfSpan,
+  cmd: ElementBeginCmd,
+): void {
+  const zoom = renderScope.zoom;
+  if (renderScope.kind !== "full" || !(zoom > 0)) return;
+  countLodProjected(Math.max(cmd.width, cmd.height) * zoom);
+  // reader — 명령 버퍼 Proxy 의 인덱스 읽기는 `bufferProxyReads` (등급 A) 를 올린다
+  const at = createCommandReader(commands);
+  for (let k = span.start; k < span.end; k += 1) {
+    const c = at(k);
+    if (c?.type === CMD_DRAW && c.skiaData.text)
+      countLodText(c.skiaData.text.fontSize * zoom);
+  }
 }
 
 /** ADR-266 Phase 0: content 기록 구간이 picture 로 지나간 요소 (working set) · 새로 record 한 요소. */
