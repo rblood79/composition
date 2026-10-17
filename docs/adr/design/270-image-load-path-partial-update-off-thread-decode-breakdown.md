@@ -130,3 +130,32 @@
 **5-질문**: Q1 합성물 (생성 PNG · `app-pages` 복제 아님 — 규모 전용: 이미지 수 · 바이트 · 완료 분산) / Q2 불리 = `load-edit` · `load-same-frame` · `load-zoom` (완료가 여러 프레임 · 같은 프레임 편집 · 줌 중) / Q3 대조군 = 같은 fixture 의 HEAD worktree 빌드 (G4) — Phase 0 은 기준선이라 수정 전 값 그 자체 / Q4 콜백 → `imagesStale` → `scene.imageLoaded()` → 재바인드가 실제 배선됨 (카운트 22 = 22, 스크린샷) / Q5 Phase 1 oracle = `setImagePartialOff` 전체 재바인드 픽셀 · 옛 디코더 픽셀 · object-fit 손계산.
 
 **go/no-go**: go (카운트 2 회 동일).
+
+### Phase 1 — 2026-10-18 (G1-a · G2 · G3 통과 — 종결)
+
+**구현** (설계에서 바뀐 곳 3 — 모두 같은 계약을 더 좁게 지킨다):
+
+- **소유 맵 = node data 를 만드는 동안 조회한 URL** (Phase 0 inventory 2 의 결론 그대로): `imageCache.ts` `readImagesOf(build)` 가 `getSkImage` 조회를 모으고, `canvasBinding.ts` `registerOwned` 가 bind 순회 · `registerNode` (patch · page root 옮기기) 두 자리에서 `imageOwners: Map<url, Set<record>>` · 역맵을 고친다. 지우는 자리 = splice 의 옛 서브트리 (`ownImages(id, ∅)`), 나머지는 binding 수명 (dispose · page 전환은 binding 째 버린다). 내부 자식 · owner-drawn part 는 그 record 의 node data 안에서 만들어져 자동으로 그 record 소유다. shape `image.src` 보존은 Phase 2 (치수 분리) 로 넘긴다 — 소유 판정에 쓰지 않는다.
+- **완료 URL 은 scene 이 모은다**: 콜백 `(url) => scene.imageLoaded(url)` + `sceneStale = true` (`CatalogCanvas.tsx`). `scene.sync()` 가 `binding.seedImageOwners(urls)` (살아 있는 record 만 — 같은 프레임에 지워진 소유자는 부모 구조 변경이 처리) 뒤 기존 `update()` 를 돌린다. **아무 재바인드나 대기 URL 을 지운다** (새 bind 는 캐시에서 다 읽는다) — 그래서 drag 중 보관 (`sync({ holdImages })`) 은 drag 끝의 `refresh()` 가 자연히 처리한다. `scene.imageLoaded()` 의 재바인드 · `renderer.invalidateContent()` (full) 는 삭제 — damage 는 `catalogSyncDamage` 합집합.
+- **mask 귀속은 불필요**: node data 의 `maskImage` 를 채우는 생산자가 0 이다 (`nodeRendererTypes.ts:174` 선언 · `renderCommands.ts:1700` 복사뿐). **텍스트 편집 중 보관도 넣지 않았다** — 편집 중인 record 의 patch 는 다른 step 의 patch 와 같은 길이고 (`setEditingElementId` 는 id 로 picture 를 건너뛸 뿐), 실패 시나리오가 없다.
+- 플래그 `__composition_RENDER_PATH_DEBUG__.setImagePartialOff(true)` (dev) = 옛 경로 (`rebind("image-loaded")`). 카운터 A 3 (`imageSeedOwners` · `imagePatchSyncs` · `imagePatchFallbackRebind`). `imagePatchCommandWrites` 는 두지 않았다 — 같은 update 의 편집 쓰기와 가를 수 없고, `patchSeedCommands` 가 seed 쪽을 이미 센다.
+
+**G2 unit** (`catalogRuntime/__tests__/adr270ImageLoadSplice.test.ts` — 실제 `CatalogWorkspace` + 엔진 + scene, 이미지 캐시는 실제 모듈 + 가짜 저장소, 9 건): ① 완료 → 소유 record 만 `rebound` · `patchRoots`, DRAW (stream 복사본) 에 이미지, 다른 record node data 동일 ② 같은 프레임 다른 요소 fill 편집 + 완료 → 둘 다, `boundsMap` · `hitBoundsMap` · DRAW = `rebuild()` ③ 같은 프레임 소유 요소 삭제 + 완료 → seed 0 · 맵에서 빠짐 ④ 같은 프레임 요소 스크롤 + 완료 → `propertyChanged` + 이미지 + 상자 = `rebuild()` ⑤ 같은 URL 두 요소 → 둘 다 ⑥ 완료 뒤 sync 전 재바인드 → 그 bind 가 읽고 대기 0 ⑦ 아무도 조회하지 않은 URL → unchanged · drag 보관 → 다음 sync 에 seed · fill 교체 → 맵이 새 URL 로. **원복 RED 6**: (a) `getSkImage` 조회 기록 제거 → ① ② ④ ⑤ · drag · fill 교체 RED (b) seed 안 함 → ① ② ④ ⑤ · drag (c) 삭제 시 맵 정리 제거 → ③ (d) **dirty 대신 `registerNode` 만** (r1 H1 반례) → ① ② ④ ⑤ · drag — DRAW 가 안 바뀐다 (e) 재바인드가 대기 URL 을 안 지움 → ⑥ (f) `holdImages` 무시 → drag. 변이 (d) 첫 실행은 무한 루프였다 — 순회 중인 소유 Set 을 `registerNode` 가 지우고 다시 넣어 같은 원소를 또 방문 → `seedImageOwners` 는 복사본을 순회한다. 회귀: `workspace/canvas` + `catalogRuntime` 405 파일 3,272 PASS · type-check PASS.
+
+**G3 카운트** (dev 5173 작업 트리 · Phase 0 과 같은 조건 · 2 회 동일):
+
+| run · 부류               | image-loaded 재바인드 | 해제 picture | 해제 paragraph | seed 소유자 | patch (전 → 후) | full 기록 (전 → 후) |
+| ------------------------ | --------------------: | -----------: | -------------: | ----------: | --------------: | ------------------: |
+| images `load-edit`       |                22 → 0 |    5,284 → 0 |      3,924 → 0 |          67 |         22 → 89 |              22 → 2 |
+| images `load-same-frame` |                22 → 0 |    5,284 → 0 |      3,923 → 0 |          67 |      **0 → 89** |              22 → 2 |
+| images `load-zoom`       |                22 → 0 |   25,196 → 0 |     18,147 → 0 |          67 |          0 → 67 |             86 → 85 |
+| images `zoom` · `edit`   |                     0 |            0 |              0 |           0 |   0 · 15 (불변) |       67 · 0 (불변) |
+| images-asset `load-edit` |                22 → 0 |    5,281 → 0 |      3,924 → 0 |          67 |        89 → 156 |              24 → 4 |
+
+- `imagePatchSyncs` 22 · `imagePatchFallbackRebind` 0 (모든 완료가 splice 로 끝남) · `imageCompletions` 22 · `MakeImageFromEncoded` 22 (Phase 3 몫).
+- **비용 교환**: 재바인드가 하던 일 (picture 5,284 · paragraph 3,924 해제 → 다시 기록) 이 소유 요소 67 개의 seed splice (명령 509 쓰기) 로 바뀌었다. 그래서 A 키 46 개가 Phase 0 상한을 넘는다 — `patchCalls` · `patchSeedCommands` · `patchWrites` · `patchScanCommands` · `contentDamageRenders` · `nodePicture.hits` · `pictureColdInvalidated` 등. `load-same-frame` 의 편집 쪽 키 (`translate*` · `pathSelf*` · `scrollSubtreeVisits` · `propertyNodeReads`) 가 0 에서 오르는 것은 **흡수됐던 편집 22 회가 이제 patch 로 처리된 것** (r1 H3 의 해소 — Phase 0 기준선 값 0 이 결함의 산물). 하향 가능 154 키 · 새 지표 58.
+- ratchet (사용자 승인 2026-10-18 「승인한다 raise 진행하고」): `--raise` A 46 (만료 2027-04-18) → `--add-keys render.imageSeedOwners,render.imagePatchSyncs,render.imagePatchFallbackRebind` (A — fallback 상한 0) → `--update` 하향 154 · 새 지표 50. 판정 A · B 초과 0.
+
+**G1-a live** (`apps/builder/scripts/adr270-image-load-live.mjs` — headless Chrome · dev 5173 · `app-pages` 22 페이지 · Image 상자 67 · PNG 22 장 fill · fit · stretch 순환 · 하니스가 한 장씩 풂, oracle = 같은 상태를 다시 묶고 picture 캐시 · viewport 질의 끔): 1 줌 0.3 완료 22 — `rebindOther` 0 · seed 67 · splice 22 · 0 px · 상자 맵 · SpatialIndex 후보 동일 / 2 줌 1 (Home hero 2,048² 반투명 섞임) **완료 통지 task 안의 편집 22** — 편집이 남고 (문서 폭 = 마지막 편집 164) · patch 89 · 0 px / 3 `setImagePartialOff` — 완료마다 `image-loaded` 재바인드 22 · seed 0 · 0 px. **3/3 PASS · 콘솔 오류 0**. 스크린샷으로 hero 상자의 2,048² 그라데이션 + 격자 확인.
+
+- 남은 G1-a 배치 (clip 상자 안 · sticky 헤더 아래 · 반경 상자 · `object-fit: none`) 는 이 fixture 에 없다 — 다음 live (G5 사용자 프로젝트) 와 Phase 2 손계산이 object-fit 을 덮는다.

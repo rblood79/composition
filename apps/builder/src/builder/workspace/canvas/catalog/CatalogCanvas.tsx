@@ -753,8 +753,6 @@ export function CatalogCanvas({
     let presented = false;
     let contextLost = false;
     let sceneStale = false;
-    // An image a record draws finished loading: its node data was built with the placeholder.
-    let imagesStale = false;
     // ADR-270 Phase 0 (dev): the loads one frame takes (`imageLoadedPerFrameMax`).
     let imagesLoadedInFrame = 0;
     /** Publish the page header frames; true = a frame moved or resized. */
@@ -771,22 +769,10 @@ export function CatalogCanvas({
     };
     let orderStale = false;
     const syncScene = () => {
-      if (imagesStale) {
-        imagesStale = false;
-        if (process.env.NODE_ENV === "development") {
-          if (imagesLoadedInFrame > renderCounters.imageLoadedPerFrameMax)
-            renderCounters.imageLoadedPerFrameMax = imagesLoadedInFrame;
-          imagesLoadedInFrame = 0;
-        }
-        try {
-          scene.imageLoaded();
-          sceneStale = false;
-          renderer.invalidateContent();
-          overlayVersion += 1;
-          cellsVersion += 1;
-        } catch (error) {
-          callbacks.current.onError?.(error);
-        }
+      if (process.env.NODE_ENV === "development" && imagesLoadedInFrame) {
+        if (imagesLoadedInFrame > renderCounters.imageLoadedPerFrameMax)
+          renderCounters.imageLoadedPerFrameMax = imagesLoadedInFrame;
+        imagesLoadedInFrame = 0;
       }
       if (orderStale) {
         orderStale = false;
@@ -804,7 +790,8 @@ export function CatalogCanvas({
       if (!sceneStale) return;
       sceneStale = false;
       try {
-        const synced = scene.sync();
+        // A drag's top layer rejects a splice: loaded images wait for its end (which binds again).
+        const synced = scene.sync({ holdImages: dragRecords !== undefined });
         if (synced.kind !== "unchanged") {
           // ADR-263 Phase 3: a patch redraws only the area it changed (a rebind draws in full).
           renderer.invalidateContent(catalogSyncDamage(synced));
@@ -933,10 +920,12 @@ export function CatalogCanvas({
     const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
     const unsubscribeGridTracks =
       useGridTrackSelection.subscribe(invalidateOverlay);
-    // Several loads in one frame bind once (2026-10-05 audit H3 — the old Canvas's subscriber went
-    // with it in ADR-248 Phase 4e-9-1 and nothing drew a loaded image until another edit).
-    const unsubscribeImages = registerImageLoadCallback(() => {
-      imagesStale = true;
+    // ADR-270 Phase 1: a loaded image records again only the records that look it up, in the next
+    // frame's sync with any other change (a rebind would drop every picture and paragraph, and
+    // used to absorb a same-frame edit — 2026-10-05 audit H3 drew nothing until another edit).
+    const unsubscribeImages = registerImageLoadCallback((url) => {
+      scene.imageLoaded(url);
+      sceneStale = true;
       if (process.env.NODE_ENV === "development") imagesLoadedInFrame += 1;
       scheduler.invalidate();
     });

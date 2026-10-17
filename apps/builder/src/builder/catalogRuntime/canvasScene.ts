@@ -67,6 +67,8 @@ export class CatalogCanvasScene {
   private rootIds: string[];
   /** Scroll positions of scroll/auto boxes: they outlive a rebind (an edit keeps the position). */
   private readonly scrollOffsets: CatalogScrollOffsets = new Map();
+  /** ADR-270 Phase 1: images finished loading since the last sync (their owners record again). */
+  private readonly loadedImages = new Set<string>();
 
   constructor(
     private root: CatalogCompositionRoot,
@@ -128,6 +130,11 @@ export class CatalogCanvasScene {
     return this.binding.scrollBy(id, deltaX, deltaY);
   }
 
+  /** Verification (ADR-270): the records that looked up an image URL. */
+  imageOwnersOf(url: string): readonly string[] {
+    return this.binding.imageOwnersOf(url);
+  }
+
   get stream() {
     return this.binding.stream;
   }
@@ -135,10 +142,33 @@ export class CatalogCanvasScene {
     return this.rootIds;
   }
 
-  sync(): CatalogCanvasSceneSync {
+  /**
+   * `holdImages`: loaded images wait (a drag in progress — its top layer rejects a splice, and the
+   * drag's end binds again, reading them).
+   */
+  sync(options: { holdImages?: boolean } = {}): CatalogCanvasSceneSync {
+    const dev = process.env.NODE_ENV === "development";
+    if (
+      this.loadedImages.size &&
+      !options.holdImages &&
+      dev &&
+      renderDebug.imagePartialOff
+    )
+      return this.rebind("image-loaded");
     if (!sameIds(this.drawnRoots(), this.rootIds))
       return this.rebind("page-roots");
+    let seeded = 0;
+    if (this.loadedImages.size && !options.holdImages) {
+      seeded = this.binding.seedImageOwners(this.loadedImages);
+      this.loadedImages.clear();
+      if (dev) renderCounters.imageSeedOwners += seeded;
+    }
     const update = this.binding.update();
+    if (dev && seeded) {
+      if (update.status === "rebind-required")
+        renderCounters.imagePatchFallbackRebind += 1;
+      else renderCounters.imagePatchSyncs += 1;
+    }
     if (update.status === "rebind-required") return this.rebind(update.reason);
     // ADR-269 (r1 H2): a scroll records nothing but draws again — `propertyChanged` is a change.
     return update.rebound.length ||
@@ -188,11 +218,12 @@ export class CatalogCanvasScene {
   }
 
   /**
-   * An image a record draws finished loading: the node data read the image cache at bind time
-   * (a miss draws the placeholder) and the records did not change, so bind again.
+   * ADR-270 Phase 1: an image a record draws finished loading. The records that looked it up
+   * (the node data read the cache at bind time — a miss drew the placeholder) are seeded at the
+   * next `sync()`, in the same update as the frame's other changes (no rebind).
    */
-  imageLoaded(): CatalogCanvasSceneSync {
-    return this.rebind("image-loaded");
+  imageLoaded(url: string): void {
+    this.loadedImages.add(url);
   }
 
   /** Draw another root of the same runtime (a breakpoint switch). */
@@ -217,6 +248,8 @@ export class CatalogCanvasScene {
       this.binding.dispose();
       this.rootIds = this.drawnRoots();
       this.binding = this.bind();
+      // A full bind reads every image from the cache: nothing is left to seed.
+      this.loadedImages.clear();
     } finally {
       endRebindRelease();
     }

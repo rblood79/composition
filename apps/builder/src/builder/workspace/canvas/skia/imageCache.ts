@@ -31,27 +31,50 @@ import { renderCounters } from "./renderCounters";
 // ============================================
 
 /**
- * 이미지 로딩 완료 시 호출할 콜백 목록.
- * specShapeConverter에서 loadSkImage()를 호출한 후 Canvas를 재렌더하려면
- * SkiaOverlay가 이 콜백을 등록해야 한다.
+ * 이미지 로딩 완료 시 호출할 콜백 목록 — 인자는 완료한 이미지의 캐시 키 (URL · `asset:` ref 그대로).
+ * Canvas 는 그 URL 을 조회한 요소만 다시 기록한다 (ADR-270 Phase 1 — `readImagesOf`).
  */
-const loadCallbacks = new Set<() => void>();
+const loadCallbacks = new Set<(url: string) => void>();
 
 /**
- * 이미지 로딩 완료 시 호출할 재렌더 콜백을 등록한다.
+ * 이미지 로딩 완료 시 호출할 콜백을 등록한다.
  * @returns 등록 해제 함수
  */
-export function registerImageLoadCallback(cb: () => void): () => void {
+export function registerImageLoadCallback(
+  cb: (url: string) => void,
+): () => void {
   loadCallbacks.add(cb);
   return () => {
     loadCallbacks.delete(cb);
   };
 }
 
-/** 등록된 모든 재렌더 콜백을 호출한다 */
-function notifyImageLoaded(): void {
+/** 등록된 모든 콜백을 호출한다 */
+function notifyImageLoaded(url: string): void {
   for (const cb of loadCallbacks) {
-    cb();
+    cb(url);
+  }
+}
+
+// ============================================
+// 조회 기록 (ADR-270 Phase 1)
+// ============================================
+
+/** `readImagesOf` 안에서 `getSkImage` 가 조회한 URL (hit · miss 모두). */
+let imageReads: Set<string> | undefined;
+
+/**
+ * `build` 가 조회한 이미지 URL 을 함께 돌려준다 — node data 를 만드는 동안의 조회가 그 요소의 이미지다.
+ * miss 인 fill 층은 node data 에서 빠지므로 (`imageFillItemToSkia` → null) 결과에서 URL 을 복구할 수 없다.
+ */
+export function readImagesOf<T>(build: () => T): [T, ReadonlySet<string>] {
+  const outer = imageReads;
+  const reads = new Set<string>();
+  imageReads = reads;
+  try {
+    return [build(), reads];
+  } finally {
+    imageReads = outer;
   }
 }
 
@@ -287,7 +310,7 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
       // 이미지 로딩 완료 → Canvas 재렌더 트리거 (specShapeConverter 연동)
       if (process.env.NODE_ENV === "development")
         renderCounters.imageCompletions += 1;
-      notifyImageLoaded();
+      notifyImageLoaded(url);
     }
     return image;
   } catch {
@@ -301,6 +324,7 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
  * 로딩이 완료된 이미지만 반환한다.
  */
 export function getSkImage(url: string): SkImage | null {
+  imageReads?.add(url);
   const entry = cache.get(url);
   if (entry) {
     entry.lastAccess = performance.now();

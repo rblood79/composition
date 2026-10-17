@@ -37,6 +37,7 @@ import {
   deleteScrollNode,
   setScrollNode,
 } from "../workspace/canvas/skia/propertyNodes";
+import { readImagesOf } from "../workspace/canvas/skia/imageCache";
 
 import {
   getSkiaNode,
@@ -1391,6 +1392,41 @@ function bindInColorMode(
   const childrenMap = new Map<string, CanvasSceneNode[]>();
   const layoutMap = new Map<string, ComputedLayout>();
   const registeredIds = new Set<string>();
+  /**
+   * ADR-270 Phase 1: image URL → the records whose node data looked it up (hit or miss — a miss
+   * drops the fill layer, so the data alone cannot name it), and each record's URLs. A finished
+   * load seeds those records (`seedImageOwners`); internal children and owner-drawn parts are
+   * built with their record, so their images are its own.
+   */
+  const imageOwners = new Map<string, Set<string>>();
+  const ownedImages = new Map<string, readonly string[]>();
+  const ownImages = (id: string, urls: ReadonlySet<string>) => {
+    for (const url of ownedImages.get(id) ?? []) {
+      const owners = imageOwners.get(url);
+      owners?.delete(id);
+      if (owners && !owners.size) imageOwners.delete(url);
+    }
+    if (!urls.size) {
+      ownedImages.delete(id);
+      return;
+    }
+    ownedImages.set(id, [...urls]);
+    for (const url of urls) {
+      let owners = imageOwners.get(url);
+      if (!owners) imageOwners.set(url, (owners = new Set()));
+      owners.add(id);
+    }
+  };
+  /** Register a record's node data, keeping the images it looked up. */
+  const registerOwned = (
+    id: string,
+    build: () => SkiaNodeData,
+    register: (id: string, data: SkiaNodeData) => void = registerSkiaNode,
+  ) => {
+    const [data, urls] = readImagesOf(build);
+    register(id, data);
+    ownImages(id, urls);
+  };
   const unpainted: Array<{ id: string; reason: string }> = [];
   const resolvedBindingIds = new Set<string>();
   const tree: CatalogOverflowTree = {
@@ -1561,12 +1597,11 @@ function bindInColorMode(
         layoutId: node.id,
       } as CanvasSceneNode);
       layoutMap.set(node.id, { ...rect, elementId: node.id });
-      registerSkiaNode(
-        node.id,
+      registerOwned(node.id, () =>
         node.hidden ||
-          node.derivedProps?._pendingHidden === true ||
-          catalogRowSampleHidden(root, node) ||
-          root.tagRowCollapsed(node.id)
+        node.derivedProps?._pendingHidden === true ||
+        catalogRowSampleHidden(root, node) ||
+        root.tagRowCollapsed(node.id)
           ? hiddenScrollBox(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
@@ -1917,27 +1952,29 @@ function bindInColorMode(
       const node = root.canvasInputs.get(id)!;
       const binding = bindings[bindingKey(node)!];
       const rect = layoutMap.get(id)!;
-      (moved ? registerMovedSkiaNode : registerSkiaNode)(
+      registerOwned(
         id,
-        node.hidden ||
+        () =>
+          node.hidden ||
           node.derivedProps?._pendingHidden === true ||
           catalogRowSampleHidden(root, node) ||
           root.tagRowCollapsed(node.id)
-          ? hiddenScrollBox(node, rect)
-          : withSticky(
-              node,
-              withScrollbar(
+            ? hiddenScrollBox(node, rect)
+            : withSticky(
                 node,
-                paintedNodeData(
-                  root,
+                withScrollbar(
                   node,
-                  rect,
-                  binding,
-                  root.canvasInputs.get(node.parentId),
+                  paintedNodeData(
+                    root,
+                    node,
+                    rect,
+                    binding,
+                    root.canvasInputs.get(node.parentId),
+                  ),
+                  (n) => layoutMap.get(n),
                 ),
-                (n) => layoutMap.get(n),
               ),
-            ),
+        moved ? registerMovedSkiaNode : registerSkiaNode,
       );
     };
     /**
@@ -2226,6 +2263,7 @@ function bindInColorMode(
           unsubscribe.get(id)?.();
           unsubscribe.delete(id);
           unregisterSkiaNode(id);
+          ownImages(id, new Set());
           registeredIds.delete(id);
           sceneNodes.delete(id);
           childrenMap.delete(id);
@@ -2645,6 +2683,24 @@ function bindInColorMode(
       dirty.add(id);
       return true;
     };
+    /**
+     * ADR-270 Phase 1: images finished loading — the live records that looked them up are dirty, so
+     * the next `update()` derives their node data again (a cache hit now) and splices their
+     * subtrees with the frame's other changes. Returns how many records were seeded.
+     */
+    const seedImageOwners = (urls: Iterable<string>): number => {
+      let seeded = 0;
+      for (const url of urls)
+        // A copy: registering a record again rewrites its entries.
+        for (const id of [...(imageOwners.get(url) ?? [])]) {
+          // A record removed in the same frame goes with its parent's structure change.
+          if (!bound.has(id) || !root.canvasInputs.has(id) || dirty.has(id))
+            continue;
+          dirty.add(id);
+          seeded += 1;
+        }
+      return seeded;
+    };
     return {
       stream,
       bindingIds: [...resolvedBindingIds],
@@ -2653,6 +2709,11 @@ function bindInColorMode(
       movePageRoots,
       scrollable,
       scrollBy,
+      seedImageOwners,
+      /** Verification (ADR-270): the records that looked up an image URL. */
+      imageOwnersOf: (url: string): readonly string[] => [
+        ...(imageOwners.get(url) ?? []),
+      ],
       /**
        * Verification (ADR-263 G4): the extent a scroll/auto box keeps between updates (null when
        * dropped — measured again when asked) next to a fresh full descent.

@@ -6,6 +6,8 @@ Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](review
 
 > **Phase 0 종결 (2026-10-18, G0 통과 · go)**: 이미지 fixture 두 변형 (`app-pages-images` 정적 URL 붙들기 · `-asset` 업로드 ref) · 부류 3 (`load-edit` · `load-same-frame` · `load-zoom`) · dev 카운터 6 — 2 회 동일, ratchet run 2 등록. 실측: 완료 1 = 재바인드 1, 매번 picture ~240 · paragraph ~178 해제 (줌 중 ~1,145 · ~825) · 같은 프레임 편집 22 회가 patch 0 (재바인드가 흡수 — H3). inventory 보강: Image 노드에 `src` 없음 (사진은 Fill 의 Image 층) · fill miss 는 node data 에서 층이 빠짐 → 소유 맵은 「node data 를 만드는 동안 조회된 URL」. 상세 breakdown §7.
 
+> **Phase 1 구현 · 검증 (2026-10-18 — G1-a · G2 · G3 통과, 종결)**: 완료 = 소유 record dirty seed → 같은 `update()` 의 splice. 소유 맵은 node data 를 만드는 동안의 `getSkImage` 조회 (`readImagesOf`), 완료 URL 은 scene 이 모으고 재바인드가 지운다 (drag 중 보관은 drag 끝 재바인드가 처리). 실측 (2 회 동일): image-loaded 재바인드 22 → 0 · 해제 picture 5,284 → 0 (줌 중 25,196 → 0) · `load-same-frame` patch 0 → 89 (흡수됐던 편집이 처리됨) · full 기록 22 → 2. 비용 교환으로 patch · damage A 키 46 개를 올렸다 (사용자 승인 2026-10-18 · 만료 2027-04-18) · 하향 154. unit 9 + 원복 RED 6 (r1 H1 반례 포함) · live 3/3 (0 px · 완료 task 안 편집 보존 · 롤백 플래그). mask 생산자 0 · 텍스트 편집 보관 불필요 · `image.src` 보존은 Phase 2 로. 상세 breakdown §7.
+
 > 수리 검증 [Round 2](reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED.
 
 - 실행 중 사용자 답 (2026-10-17): 결정 2 (fixture 출처) = **둘 다 한 변형씩** (`app-pages-images` · `app-pages-images-asset`). 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272** — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」 (ADR-273 결정 3 의 답). Phase 3a 는 ADR-273 Phase 2 완료 뒤에만 착수한다.

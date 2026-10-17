@@ -137,10 +137,11 @@ export async function installPerfImageRoutes(page) {
 
 /**
  * 문서의 Image 노드에 image fill 을 준다 (한 transaction · history skip 아님 — 시드의 다른 삽입과 같은
- * 기록 경로). `urls[i % urls.length]`. 반환: 노드 id 순서 (문서 순서).
+ * 기록 경로). `urls[i % urls.length]` · `modes[i % modes.length]` (live 대조는 fill · fit · stretch 를
+ * 섞는다). 반환: 노드 id 순서 (문서 순서).
  */
-export function assignPerfImageFills(page, urls) {
-  return page.evaluate((urls) => {
+export function assignPerfImageFills(page, urls, modes = ["fill"]) {
+  return page.evaluate(({ urls, modes }) => {
     const h = window.__COMPOSITION_CATALOG__;
     const ws = h.workspace;
     const graph = ws.runtime.graph;
@@ -166,7 +167,7 @@ export function assignPerfImageFills(page, urls) {
         blendMode: "normal",
         kind: "image",
         url,
-        mode: "fill",
+        mode: modes[i % modes.length],
       },
     ];
     ws.execute(() =>
@@ -184,7 +185,7 @@ export function assignPerfImageFills(page, urls) {
     );
     ws.session.clearSelection();
     return ids;
-  }, urls);
+  }, { urls, modes });
 }
 
 /** `asset:` 변형 — 세대 `gen` 의 PNG 22 장을 Fill 패널의 업로드 writer 로 저장하고 ref 를 돌려준다. */

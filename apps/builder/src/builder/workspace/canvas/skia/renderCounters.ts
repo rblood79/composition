@@ -177,6 +177,13 @@ export interface RenderCounters {
   imageEncodedDecodeCalls: number;
   imageCompletions: number;
   imageLoadedPerFrameMax: number;
+  /**
+   * ADR-270 Phase 1 — 완료 = 소유 요소 seed. sync 에 넘긴 소유 요소 수 · seed 를 담은 sync 가 patch 로
+   * 끝난 수 · 재바인드로 끝난 수 (splice 거부 · page root 변경 — 사유는 `rebind*` 쪽에).
+   */
+  imageSeedOwners: number;
+  imagePatchSyncs: number;
+  imagePatchFallbackRebind: number;
 }
 
 const counters: RenderCounters = {
@@ -276,6 +283,9 @@ const counters: RenderCounters = {
   imageEncodedDecodeCalls: 0,
   imageCompletions: 0,
   imageLoadedPerFrameMax: 0,
+  imageSeedOwners: 0,
+  imagePatchSyncs: 0,
+  imagePatchFallbackRebind: 0,
 };
 
 /**
@@ -320,12 +330,14 @@ export function resetRenderCounters(): void {
  * `damageOff`: damage 부분 재기록 대신 full 로 그린다.
  * `translateOff`: ADR-264 옮기기 · 경로 자기 patch 대신 region 전체를 다시 기록한다 (지금까지의 길).
  * `propertyNodesOff`: ADR-269 스크롤이 자손 맵 Δ 대신 소유자 서브트리를 다시 기록한다 (지금까지의 길).
+ * `imagePartialOff`: ADR-270 이미지 완료가 소유 요소 splice 대신 scene 전체를 다시 묶는다 (지금까지의 길).
  */
 export const renderDebug = {
   linearOnly: false,
   damageOff: false,
   translateOff: false,
   propertyNodesOff: false,
+  imagePartialOff: false,
 };
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -343,6 +355,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setPropertyNodesOff = (on: boolean) => {
     renderDebug.propertyNodesOff = on;
+  };
+  debug.setImagePartialOff = (on: boolean) => {
+    renderDebug.imagePartialOff = on;
   };
   (
     window as unknown as {

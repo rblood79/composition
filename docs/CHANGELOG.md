@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지가 로드돼도 Canvas 전체를 다시 묶지 않는다 — ADR-270 Phase 1] - 2026-10-18
+
+### Changed
+
+- **이미지 로드 완료 처리** (ADR-270 Phase 1, Canvas) — 이미지 (Fill 의 Image 층 · background-image · Avatar) 한 장이 로드되면 scene 전체를 다시 묶던 것을, 그 이미지를 조회한 요소만 다음 프레임의 증분 갱신 (splice) 으로 다시 그리게 바꿨다. 같은 프레임의 다른 편집은 같은 갱신에서 처리된다 (전에는 재바인드가 그 편집의 patch 를 흡수했다).
+  - 실측 (`app-pages-images` 22 페이지 · Image 상자 67 · 22 장): image-loaded 재바인드 22 → 0 · 버린 picture 5,284 → 0 · paragraph 3,924 → 0 (줌 중 25,196 · 18,147 → 0) · full 기록 22 → 2.
+  - live: 다시 묶은 oracle 과 0 px · 완료 통지 task 안의 편집 22 회가 남음 · dev 플래그 `__composition_RENDER_PATH_DEBUG__.setImagePartialOff(true)` 가 옛 경로.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/imageCache.ts` (`readImagesOf` · 콜백 URL) · `catalogRuntime/{canvasBinding,canvasScene}.ts` (`imageOwners` · `seedImageOwners`) · `workspace/canvas/catalog/CatalogCanvas.tsx` · 시험 `catalogRuntime/__tests__/adr270ImageLoadSplice.test.ts` · live `apps/builder/scripts/adr270-image-load-live.mjs`
+
 ## [이미지 로드 경로 측정 기준선 — ADR-270 Phase 0] - 2026-10-18
 
 ### Added
