@@ -57,7 +57,7 @@
 
 > r1 M4 반영. 비용은 네 가지로 가른다 — **코덱** (디코딩) · **readback + WASM 복사** · **텍스처 생성** · 통지 처리. 지금 (`MakeImageFromEncoded`) 은 코덱이 **첫 그리기 프레임** 안에서 메인에 든다 (F3). 3a 는 코덱을 브라우저 (메인 밖) 로, 텍스처 생성은 첫 그리기에 남긴다 (lazy) — 0 이 아니라 **자리가 바뀐다**.
 
-- **착수 조건 (사용자 2026-10-17 — ADR-273 결정 3)**: [ADR-273](../273-canvas-memory-budget-overscan-device-px-resource-cache.md) Phase 2 (GrContext 핸들 소유자 `createSurface.ts` · resize 는 산 context 만 재사용 · 소실 때 abandon → delete → `deleteContext` · 명시 한도) 가 닫힌 뒤. texture-backed 이미지는 처음부터 그 한도 · 수명 아래 들어간다. 진행 순서: 270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272.
+- **착수 조건 (사용자 2026-10-17 — ADR-273 결정 3)**: [ADR-273](../completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md) Phase 2 (GrContext 핸들 소유자 `createSurface.ts` · resize 는 산 context 만 재사용 · 소실 때 abandon → delete → `deleteContext` · 명시 한도) 가 닫힌 뒤. texture-backed 이미지는 처음부터 그 한도 · 수명 아래 들어간다. 진행 순서: 270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272.
 - **3a** (`imageCache.ts:411 ~ 440` `fetchAndDecode`):
   - `response.blob()` → `createImageBitmap(blob, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" })` (R6 옵션 고정).
   - **GPU surface** (`createSurface.ts:29` `MakeWebGLCanvasSurface` 성공 — headless SwiftShader 포함): `ck.MakeLazyImageFromTextureSource(bitmap, { width, height, colorType: RGBA_8888, alphaType: Premul }, /* srcIsPremul */ true)` — texture-backed, **CanvasKit 이 bitmap 소유권을 가져간다 → `close()` 를 부르지 않는다** (R8). 카운터 `imageTextureImages`.

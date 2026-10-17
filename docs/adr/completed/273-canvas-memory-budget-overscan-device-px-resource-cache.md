@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-10-18 (사용자 「ADR-273 Phase 2 진행해」 — [reviews/273.md](reviews/273.md) r1 pending 0 · CRITICAL/HIGH 0. 진행 순서는 사용자 결정 3 의 답: 270 Phase 0 ~ 2 → **이 ADR Phase 2** → 270 Phase 3a 이후 → 이 ADR 나머지)
+Implemented — 2026-10-18 (G0 ~ G5 통과 — G5 = 사용자 확인 「G5 확인했다 문제 없음, Implemented 진행해」, 아래 `### Live Exercise`). 이전: Accepted — 2026-10-18 (사용자 「ADR-273 Phase 2 진행해」 — [reviews/273.md](../reviews/273.md) r1 pending 0 · CRITICAL/HIGH 0. 진행 순서는 사용자 결정 3 의 답: 270 Phase 0 ~ 2 → **이 ADR Phase 2** → 270 Phase 3a 이후 → 이 ADR 나머지)
+
+> **G5 통과 · Implemented (2026-10-18)**: 사용자가 DPR 2 화면의 자기 프로젝트에서 빠른 팬 · 줌 · 이미지 페이지를 확인 — 끊김 · 가장자리 빈 영역 증가 없음 (「G5 확인했다 문제 없음」). 상세 `### Live Exercise`.
 
 > **G4 통과 2026-10-18** (production 짝 · 교대 2 쌍 · 28 run 오류 0) — 기준 `2a78ca7ad` ↔ HEAD `83ed0be8f`: DPR 1 · 2 의 `app-pages` 팬 · 빠른 팬 · 2560 × 1440 빠른 팬 · 줌 · 편집 · 중첩 5k 편집에서 표시 간격 p99 · long task 회귀 0. DPR 2 headed 팬 (Playwright · 실제 GPU 120Hz · CPU 4× — 사용자 Chrome 은 dev 서버라 production 짝 불가) p99 9.3 ms 양쪽 같음. 대가는 빠른 팬 taskMs +3 ~ 10 % (재기록 증가) 뿐. 상세: breakdown §7 G4. 다음: G5 (사용자 판정).
 
@@ -12,9 +14,9 @@ Accepted — 2026-10-18 (사용자 「ADR-273 Phase 2 진행해」 — [reviews/
 
 > **Phase 2 종결 2026-10-18** (G1 · G2 통과 · G3 ratchet) — 화면 GL context · GrDirectContext 를 `createSurface.ts` `CanvasSurfaceOwner` 가 소유한다. resize 는 산 context 를 재사용하고 (옛 코드는 resize · 복원마다 핸들 + GrDirectContext 를 하나씩 쌓았다), 소실은 abandon · 복원은 옛 핸들을 먼저 지운 뒤 새로 만든다 (R5). 한도 384 MiB (사용자 결정 2 — 실측 기본 256 MiB · DPR 2 고수위 251 MiB). live 12/12 (DPR 1 · 2 — 옛 경로 ↔ 소유 context 0 px · 소실 → 복원 backend GPU · GL context 1). 원복 RED 5/5. 상세: breakdown §7 Phase 2.
 
-Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — claude, MEDIUM 2 · LOW 1 → 같은 날 반영: Skia 기본 한도를 Phase 0 이 실측 — 사용자 결정 2 의 기준값 · HC4 90 % 규칙은 여유 규칙 (M1) · GrContext 핸들 수명 — 지금은 resize · 복원마다 새 context, Phase 2 는 산 context 만 재사용 · 소실 때 폐기 · 옛 핸들 삭제 (M2, R5 → HIGH) · breakdown 인용 (L3). 수리 검증 round 는 사용자 요청 시)
+Proposed — 2026-10-17 (리뷰 [reviews/273.md](../reviews/273.md) Round 1 — claude, MEDIUM 2 · LOW 1 → 같은 날 반영: Skia 기본 한도를 Phase 0 이 실측 — 사용자 결정 2 의 기준값 · HC4 90 % 규칙은 여유 규칙 (M1) · GrContext 핸들 수명 — 지금은 resize · 복원마다 새 context, Phase 2 는 산 context 만 재사용 · 소실 때 폐기 · 옛 핸들 삭제 (M2, R5 → HIGH) · breakdown 인용 (L3). 수리 검증 round 는 사용자 요청 시)
 
-- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **넷째**. 첫째 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 셋째 [ADR-272](272-bounded-spatial-query-and-warmup-work-range.md).
+- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **넷째**. 첫째 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](../271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 셋째 [ADR-272](../272-bounded-spatial-query-and-warmup-work-range.md).
 - 방향을 정한 사용자 원문: 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」. 등급: 「overscan 은 device px 로 센다」 · 「GPU 캐시 한도를 코드가 명시한다」 · 「자원별 예산을 한 곳에」 는 구조 (**A**), 여백 상한 · 캐시 한도 바이트 · 자원별 값은 **B** (게이트가 정한다). 팬 방향 · 속도에 따른 비대칭 여백은 C (측정 뒤).
 - 사용자가 이미 답한 것: 측정은 게이트. ADR-266 사용자 결정 1 (picture 상한 = working set 동적 · 바이트 64 MB) 은 유지 — 이 ADR 은 그 값을 **예산 표의 한 행**으로 옮길 뿐 바꾸지 않는다.
 - 리뷰는 사용자가 요청할 때 `/review-adr 273` → `reviews/273.md`.
@@ -105,7 +107,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — cla
 3. **ADR-270 과의 순서** — Phase 2 (context 소유) 를 ADR-270 Phase 3a 보다 먼저 두어 texture-backed 이미지가 처음부터 명시 한도 아래 들어가게 할지 (추천), 아니면 독립 진행할지.
    - **답 (사용자 2026-10-17)**: 추천 순서 확정 — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」. 진행 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272**. ADR-270 Phase 3a 의 선행 조건이 이 ADR 의 Phase 2 (GrContext 소유 · 수명 · 명시 한도) 완료다 (270 breakdown §4 착수 조건).
 
-> 구현 상세: [273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md](design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md)
+> 구현 상세: [273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md](../design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md)
 
 ## Risks
 
@@ -130,7 +132,12 @@ Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — cla
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-18 — G5 통과:
+
+- **사용자 confirm (G5)**: 사용자가 자기 Chrome (DPR 2) 에서 자기 프로젝트를 빠르게 팬 · 줌 인 · 아웃 · 이미지가 많은 페이지 진입 — 끊김 · 여백 이탈 때 가장자리가 잠깐 비는 영역이 전보다 늘지 않았다고 판정 (「G5 확인했다 문제 없음, Implemented 진행해」).
+- **headed DPR 2 팬 (G4, Playwright `--headed` · 실제 GPU 120Hz · CPU 4×)**: production 기준 `2a78ca7ad` ↔ HEAD `83ed0be8f` 교대 2 쌍 — 보통 · 빠른 팬 표시 간격 p99 9.3 ms 양쪽 같음 · 25 ms 초과 0 · long task 0 · 오류 0.
+- **dev builder (Phase 1 · 3, headless Chrome)**: `adr273-memory-live.mjs` 새 ↔ 옛 여백 스크린샷 11/12 0 px + 정해진 차이 1 (DPR 2 줌 0.3 글자 한 줄 1 device px — 비정수 배율의 원점 반올림) · 여백 안 팬 합성 · 여백 밖 팬 뒤 0 px. 보유량 표 `__composition_MEMORY_BUDGET__.holdings()` DPR 1 · 2 · 이미지 22 장 장면에서 surface 바이트 = 규격 산식 · 이미지 행 = 이미지 캐시 통계. 콘솔 오류 0.
+- **Phase 2 (같은 날, Chrome headless)**: 옛 `MakeWebGLCanvasSurface` ↔ 소유 context 0 px (DPR 1 · 2) · `WEBGL_lose_context` 소실 → 복원 뒤 backend GPU · GL context 1.
 
 ## Consequences
 

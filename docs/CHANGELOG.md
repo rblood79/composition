@@ -11,7 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [고해상도 화면에서 Canvas 화면 버퍼 메모리 축소 — ADR-273 Phase 0 · 1 · 3] - 2026-10-18
+## [고해상도 화면에서 Canvas 화면 버퍼 메모리 축소 — ADR-273 Implemented] - 2026-10-18
+
+### Performance
+
+- **ADR-273 Canvas 메모리 예산 종결** (G0 ~ G5) — 아래 Phase 0 · 1 · 3 과 앞선 Phase 2 (GrContext 소유 · 한도 384 MiB) 를 묶는다.
+  - production 짝 (기준 `2a78ca7ad` ↔ `83ed0be8f`, 교대 2 쌍 · 28 run): DPR 1 · 2 의 팬 · 빠른 팬 · 2560 × 1440 · 줌 · 편집 · 중첩 5k 편집에서 표시 간격 p99 · long task 회귀 0. headed DPR 2 팬 (실제 GPU 120Hz · CPU 4×) p99 9.3 ms 양쪽 같음. 대가는 빠른 팬의 main thread 시간 +3 ~ 10 %.
+  - 사용자 확인 (DPR 2 · 자기 프로젝트): 빠른 팬 · 줌 · 이미지 페이지에서 끊김 · 가장자리 빈 영역 증가 없음.
+  - 본문: `docs/adr/completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md`
+
+## [고해상도 화면에서 Canvas 화면 버퍼 메모리 축소 — ADR-273 Phase 0 · 1 · 3 상세] - 2026-10-18
 
 ### Performance
 

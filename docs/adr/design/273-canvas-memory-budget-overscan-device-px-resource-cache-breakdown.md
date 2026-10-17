@@ -1,6 +1,6 @@
 # ADR-273 design breakdown — Canvas 메모리 예산 (device px 여백 · GrContext 한도 · 자원별 예산 표)
 
-> 본문: [../273-canvas-memory-budget-overscan-device-px-resource-cache.md](../273-canvas-memory-budget-overscan-device-px-resource-cache.md). 이 문서가 Phase · 파일 · 검증의 정본이다. 실측 결론은 §기록에. 코드 인용은 HEAD `94c9a0d52`.
+> 본문: [../completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md](../completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 이 문서가 Phase · 파일 · 검증의 정본이다. 실측 결론은 §기록에. 코드 인용은 HEAD `94c9a0d52`.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -190,3 +190,7 @@
 - **production 번들**: dev 전용 보유량 표 (`__composition_MEMORY_BUDGET__` · `registerRendererMemorySource` · `getNodePictureEffectiveCapacity`) 는 HEAD 빌드 산출물에 없다 (분기 제거 확인).
 
 **다음**: G5 — 사용자 프로젝트에서 DPR 2 빠른 팬 · 줌 · 이미지 페이지의 끊김 · 가장자리 빈 영역 판정 (사용자).
+
+### G5 — 사용자 판정 (2026-10-18 — 통과 · Implemented)
+
+사용자가 자기 Chrome (DPR 2) 에서 자기 프로젝트를 빠르게 팬 · 줌 인 · 아웃 · 이미지가 많은 페이지 진입 — 끊김 · 여백 이탈 때 가장자리가 잠깐 비는 영역이 전보다 늘지 않았다: 「G5 확인했다 문제 없음, Implemented 진행해」. 본문 `completed/` 이동 · `### Live Exercise` 기재.
