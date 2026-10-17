@@ -3026,7 +3026,7 @@ function drawSelfSpanViaPicture(
   let picture = getCachedNodePicture(elementId, dataRef, cmd.width, cmd.height);
   if (process.env.NODE_ENV === "development") {
     countTouchedElement(!picture);
-    countLodShare(commands, span, cmd);
+    countLodShare(dataRef, cmd);
   }
   if (picture) {
     // 미리 기록한 picture 의 첫 재생 — 그 글자 넘침이 이제 화면에 그려진다
@@ -3054,23 +3054,20 @@ function drawSelfSpanViaPicture(
 
 /**
  * ADR-271 Phase 0 (dev): full 기록이 picture 로 지나간 요소의 투영 크기 · 그 self span 안 글자의 투영
- * 글자 크기 분포. 배율을 모르면 (`renderScope.zoom` 0) 세지 않는다.
+ * 글자 크기 분포. 배율을 모르면 (`renderScope.zoom` 0) 세지 않는다. 글자는 명령이 아니라 노드 데이터
+ * (요소 + 내부 자식 — self span 의 DRAW 와 같은 집합) 에서 읽는다 — 명령 reader 는 call-count ratchet
+ * (`createCommandReader` · `segments`, 등급 A) 를 올린다.
  */
-function countLodShare(
-  commands: RenderCommand[],
-  span: SelfSpan,
-  cmd: ElementBeginCmd,
-): void {
+function countLodShare(dataRef: SkiaNodeData, cmd: ElementBeginCmd): void {
   const zoom = renderScope.zoom;
   if (renderScope.kind !== "full" || !(zoom > 0)) return;
   countLodProjected(Math.max(cmd.width, cmd.height) * zoom);
-  // reader — 명령 버퍼 Proxy 의 인덱스 읽기는 `bufferProxyReads` (등급 A) 를 올린다
-  const at = createCommandReader(commands);
-  for (let k = span.start; k < span.end; k += 1) {
-    const c = at(k);
-    if (c?.type === CMD_DRAW && c.skiaData.text)
-      countLodText(c.skiaData.text.fontSize * zoom);
-  }
+  const visit = (node: SkiaNodeData): void => {
+    if (node.type !== "container" && node.text)
+      countLodText(node.text.fontSize * zoom);
+    if (node.children) for (const child of node.children) visit(child);
+  };
+  visit(dataRef);
 }
 
 /** ADR-266 Phase 0: content 기록 구간이 picture 로 지나간 요소 (working set) · 새로 record 한 요소. */
