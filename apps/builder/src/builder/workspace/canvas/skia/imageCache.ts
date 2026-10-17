@@ -389,18 +389,22 @@ export function getImageCacheSize(): number {
 // 통합 해제 경로 등록 (ADR-153 Phase 2) — 캔버스 teardown 시 SkImage 전량 명시 해제
 registerSkiaCacheDestroy("imageCache", clearImageCache);
 
-// ADR-270 Phase 0 (dev 전용): 하니스가 완료 순서를 정한다 — 다음 완료 통지를 기다리고 (`onLoaded`),
-// 캐시 크기를 기록한다 (`stats`). 동작은 바꾸지 않는다.
-if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
-  (window as unknown as Record<string, unknown>).__composition_IMAGE_DEBUG__ =
-    {
-      onLoaded: registerImageLoadCallback,
-      stats: () => ({
-        images: cache.size,
-        estimatedBytes,
-        pending: pending.size,
-      }),
-    };
+// ADR-270 Phase 0 (dev, 또는 G4 production 짝용 하니스 빌드 `VITE_COMPOSITION_HARNESS=1` — 일반 빌드는
+// 이 분기를 버린다): 하니스가 완료 순서를 정한다 — 다음 완료 통지를 기다리고 (`onLoaded`), 캐시 크기를
+// 기록한다 (`stats`). 동작은 바꾸지 않는다.
+if (
+  (process.env.NODE_ENV === "development" ||
+    import.meta.env.VITE_COMPOSITION_HARNESS === "1") &&
+  typeof window !== "undefined"
+) {
+  (window as unknown as Record<string, unknown>).__composition_IMAGE_DEBUG__ = {
+    onLoaded: registerImageLoadCallback,
+    stats: () => ({
+      images: cache.size,
+      estimatedBytes,
+      pending: pending.size,
+    }),
+  };
 }
 
 // ============================================

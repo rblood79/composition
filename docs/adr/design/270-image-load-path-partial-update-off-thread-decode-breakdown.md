@@ -209,3 +209,28 @@
 - **처리 (사용자 승인 2026-10-18 「--raise 17 키」)**: `--raise` A 17 키 → 새 디코더 값 (content full 86 등 · 만료 2027-04-18) → `--add-keys render.imageTextureImages,render.imageSwFallbacks,render.imageReadbackBytes` (A — 산식 상한: 텍스처 = 이미지 수 22 · 0 · 0, 두 시드) → `--update` 하향 6 (`imageEncodedDecodeCalls` 22 → 0 × 4 · `load-same-frame` `LayoutCount` B 30 → 27 · …). 판정: 이미지 run 3 회 · asset 2 회 — A 초과는 run 1 의 `edit` `controller.ts#current` +1 하나 (1 회만 · 재실행이면 unmeasurable).
 
 **사용자 결정 1 답 (2026-10-18): 3b 생략** — 조건 (3a 뒤 메인에 코덱 · 리사이즈가 남음) 이 성립하지 않는다. 자료 (`TRACE=1` · Chrome trace 의 decode 이벤트를 스레드별로): 새 경로 22 장 = `Decode Image` 22 건 14 ms — 전부 `ThreadPoolForegroundWorker`, `CrRendererMain` **0**. 리사이즈 옵션은 쓰지 않는다. 옛 경로는 trace 이벤트 0 (코덱이 WASM 안 — 첫 그리기 프레임의 메인 스레드). 메인에 남는 것은 텍스처 업로드 (`texImage2D`, 첫 그리기) 뿐이고 Worker 로 옮길 수 없다 (GL context 는 메인 소유).
+
+### G4 — 2026-10-18 (production 짝 통과 · HC6 통과)
+
+**조건**: 기준 = `.cache/perf-ratchet/wt` 를 `prepareWorktree(93b4b5381)` (Phase 0 — 이미지 fixture · 카운터만, 동작 변경 0) 로 맞춘 worktree 의 `perf:build-dist` → `/private/tmp/adr270-base-dist` · HEAD = `be810d8b3` 작업 트리 빌드 → `/private/tmp/adr270-head-dist`. 두 빌드 모두 `VITE_COMPOSITION_HARNESS=1`. `--serve-dist` · headless 60Hz · 1440×900 · DPR 1 · `--fixed-inputs` (`--call-counts` 없음 — wall-clock 을 부풀린다) · 교대 2 쌍 (기준 → HEAD → HEAD → 기준) · 페이지 오류 0 / 16 · console 오류 0. 시나리오는 §5 그대로이고, 중첩은 ADR 본문 G4 의 「중첩 5k」 를 따라 `--seed-count 5000 --fixture-kind nested-flex` (카드 250 × 20 노드) 로 쟀다.
+
+**하니스 변경 (동작 변경 0)**: 이미지 부류는 `__composition_IMAGE_DEBUG__` (완료 통지 · `stats`) 로 완료 순서를 정한다. 이 핸들이 dev 전용이라 첫 실행에서 production 이미지 4 회가 `waitImagesSettled` timeout 으로 멈췄다. 그래서 `imageCache.ts` 의 조건을 `NODE_ENV === "development" || VITE_COMPOSITION_HARNESS === "1"` 로 넓혔고 (`CatalogCanvas.tsx` · `CatalogBuilderCore.tsx` 의 하니스 핸들과 같은 관용구 — 일반 빌드는 분기를 버린다), 같은 패치를 기준 worktree 에도 얹어 두 빌드를 다시 만들었다. 번들 게이트 빌드 전에는 기준 worktree 의 패치를 되돌렸다.
+
+| 시나리오 (부류)          | 표시 간격 p99 (ms) 기준 / HEAD | 25 ms 초과 프레임 기준 / HEAD | long task 기준 / HEAD     | main thread taskMs 기준 / HEAD |
+| ------------------------ | ------------------------------ | ----------------------------- | ------------------------- | ------------------------------ |
+| 이미지 `load-edit`       | 33.4 · 33.4 / 16.8 · 16.8      | 22 · 22 / 0 · 0               | 2 (111 ms) · 0 / 0 · 0    | 2,857 · 2,775 / 253 · 235      |
+| 이미지 `load-same-frame` | 33.4 · 33.4 / 16.8 · 16.8      | 22 · 23 / 0 · 0               | 0 · 0 / 0 · 0             | 2,149 · 2,142 / 211 · 195      |
+| 이미지 `load-zoom`       | 100 · 100 / 16.8 · 16.8        | 38 · 39 / 2 · 1               | 8 (811) · 9 (865) / 0 · 0 | 4,087 · 4,099 / 1,131 · 1,122  |
+| `app-pages` 줌           | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0                 | 0 / 0                     | 1,032 · 1,021 / 1,026 · 1,024  |
+| `app-pages` 편집         | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0                 | 0 / 0                     | 127 · 109 / 109 · 122          |
+| 중첩 5k 편집             | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0                 | 0 / 0                     | 174 · 168 / 171 · 172          |
+
+- **회귀 0**: 이미지가 없는 세 시나리오는 표시 간격 · long task 가 양쪽 같고 taskMs 차는 쌍 안 흔들림 (편집 109 ~ 127) 보다 작다.
+- **이미지 로드**: 기준은 이미지 한 장마다 프레임 하나가 두 배 (33.4 ms) 로 늘어난다 — 초과 프레임 22 = 이미지 22 장. WASM 코덱이 첫 그리기 프레임 안에서 메인 스레드를 쓰기 때문이다 (로드 창 taskMs 의 차 2,600 ms ÷ 22 ≈ 118 ms / 장 — headless SwiftShader 조건). HEAD 는 초과 0 이다. 줌 중 로드는 long task 8 ~ 9 개 → 0.
+- **귀속**: 기준 빌드에는 ADR-273 Phase 2 (`bd5051f98`) 도 없다. 그러나 초과 프레임 수가 이미지 수와 같고, 이미지가 없는 시나리오는 양쪽이 같으므로 개선은 디코딩 이동 (Phase 3a) 에 귀속된다.
+- **「프레임당 이미지 처리 ms」 (HC4 ③ 기록 항목)**: 하니스에 그 지표가 없다 (`imageProcessFrameMs` 는 어떤 코드에도 없다 — §5 의 이름만). 로드 창 main thread taskMs 와 초과 프레임 수로 대신 기록했다.
+- **완료 처리 상한 (B)** — Phase 3a 에서 G4 로 넘긴 판단: production 로드 중 long task 0 · 초과 프레임 0 ~ 2 (줌 중) 라 상한을 둘 근거가 없다 → **도입하지 않음 확정**.
+
+**HC6** (`adr209-bundle-closure.mjs` × 4 → `adr201-bundle-gate.mjs`, 하니스 없는 `vite build --manifest` — 기준 = 같은 worktree `93b4b5381` 패치 없음 · HEAD = 작업 트리): **pass**. Builder initial gzip 1,366,543 → 1,368,669 B (+2,126 ≤ +4,096 · 상한 1,421,000, 같은 범위의 ADR-273 Phase 2 포함) · Preview 300,677 → 300,677 (Δ 0) · upload · AIPanel · runCommand lazy 유지. 3b 가 없어 Worker chunk 검사는 해당 없다.
+
+**다음**: G5 live (Implemented 승격 — 사용자 프로젝트에서 이미지 10+ 페이지 진입).
