@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas GL context 를 한 번 만들어 계속 쓴다 · GPU 캐시 한도 384 MiB — ADR-273 Phase 2] - 2026-10-18
+
+### Changed
+
+- **화면 GL context 소유** (ADR-273 Phase 2, Canvas) — 창 크기를 바꿀 때마다 (그리고 GPU context 복원 때) CanvasKit 이 새 GL context · GrDirectContext 를 만들고 옛 것을 지우지 않던 것을, 처음 만든 context 를 계속 쓰고 소실 · 복원 때만 옛 것을 지운 뒤 새로 만들도록 바꿨다. 텍스처 · 글자 atlas 가 창 크기 변경 뒤에도 남는다.
+  - GPU resource cache 한도를 코드에 명시: 384 MiB (사용자 결정 — 실측 Skia 기본 256 MiB 에서 고해상도 화면 (DPR 2) 사용 고수위 251 MiB 가 한도의 90 % 를 넘었다).
+  - live (DPR 1 · 2): 옛 경로 ↔ 새 경로 같은 장면 0 px (반투명 이미지 · 글자) · 창 크기 6 회 뒤 GL context 1 · `WEBGL_lose_context` 소실 → 복원 뒤 GPU 로 다시 그림. dev: `__composition_RENDER_PATH_DEBUG__.gpuContext()` · `setLegacySurface(true)` (옛 경로).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{createSurface,canvasMemoryBudget,SkiaRenderer,renderCounters}.ts` · `workspace/canvas/catalog/CatalogCanvas.tsx` (소실 · 복원 콜백) · 시험 `skia/__tests__/adr273{SurfaceOwner,RendererContext}.test.ts` · 하니스 `apps/builder/scripts/adr273-gpu-context-live.mjs`.
+
 ## [이미지 원본 치수와 그릴 bitmap 분리 — ADR-270 Phase 2] - 2026-10-18
 
 ### Changed

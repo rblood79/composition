@@ -76,6 +76,9 @@ describe("WebGL 컨텍스트 손실 — 단일 소유자 계약", () => {
     expect(src).toContain("setSurfaceLost(true)");
     expect(src).toContain("setSurfaceLost(false)");
     expect(src).toContain("isContextLost={surfaceLost}");
+    // ADR-273 Phase 2: 소실은 GrDirectContext 를 abandon 하고, 복원은 새 context 위에 surface 를 다시 만든다.
+    expect(src).toContain("renderer.contextLost()");
+    expect(src).toContain("renderer.contextRestored(canvas)");
   });
 
   it("DOM 조회로 캔버스를 찾아 리스너를 거는 경로가 없다", () => {

@@ -2,6 +2,10 @@
 
 ## Status
 
+Accepted — 2026-10-18 (사용자 「ADR-273 Phase 2 진행해」 — [reviews/273.md](reviews/273.md) r1 pending 0 · CRITICAL/HIGH 0. 진행 순서는 사용자 결정 3 의 답: 270 Phase 0 ~ 2 → **이 ADR Phase 2** → 270 Phase 3a 이후 → 이 ADR 나머지)
+
+> **Phase 2 종결 2026-10-18** (G1 · G2 통과 · G3 ratchet) — 화면 GL context · GrDirectContext 를 `createSurface.ts` `CanvasSurfaceOwner` 가 소유한다. resize 는 산 context 를 재사용하고 (옛 코드는 resize · 복원마다 핸들 + GrDirectContext 를 하나씩 쌓았다), 소실은 abandon · 복원은 옛 핸들을 먼저 지운 뒤 새로 만든다 (R5). 한도 384 MiB (사용자 결정 2 — 실측 기본 256 MiB · DPR 2 고수위 251 MiB). live 12/12 (DPR 1 · 2 — 옛 경로 ↔ 소유 context 0 px · 소실 → 복원 backend GPU · GL context 1). 원복 RED 5/5. 상세: breakdown §7 Phase 2.
+
 Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — claude, MEDIUM 2 · LOW 1 → 같은 날 반영: Skia 기본 한도를 Phase 0 이 실측 — 사용자 결정 2 의 기준값 · HC4 90 % 규칙은 여유 규칙 (M1) · GrContext 핸들 수명 — 지금은 resize · 복원마다 새 context, Phase 2 는 산 context 만 재사용 · 소실 때 폐기 · 옛 핸들 삭제 (M2, R5 → HIGH) · breakdown 인용 (L3). 수리 검증 round 는 사용자 요청 시)
 
 - 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **넷째**. 첫째 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 셋째 [ADR-272](272-bounded-spatial-query-and-warmup-work-range.md).
@@ -90,6 +94,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — cla
 
 1. **여백 상한 값** — `PAD_DEVICE_MAX` (제안 768 device px) 또는 「DPR 과 무관하게 512 device」 (Pen 값). Phase 0 의 팬 속도 p95 · 여백 이탈 수를 보고 정한다.
 2. **GrContext 한도 값** — 제안 256 MiB (이미지 예산 128 + 여유). Phase 0 의 `getResourceCacheUsageBytes` 고수위 (이미지 fixture) 와 **Skia 기본 한도 실측값** (Phase 0 이 scratch context 로 `getResourceCacheLimitBytes()` 를 읽는다 — Skia 소스의 `GrResourceCache` 기본은 96 MiB 로 알려져 있으나 이 빌드 (0.42.0) 에서는 미확인, r1 M1) 을 보고 정한다. 기본보다 **올리는** 결정이면 R3 의 방향은 thrash 가 아니라 보유 증가 쪽이다.
+   - **답 (사용자 2026-10-18)**: 「384 MiB」. 실측 (Phase 2 가 소유한 context 의 setter 전 값 · 이미지 fixture 줌 0.3 ~ 2): **기본 한도 256 MiB** (96 MiB 아님) · 사용 고수위 DPR 1 111 MiB · DPR 2 251 MiB → 기본에서는 DPR 2 가 90 % 를 11 프레임 넘는다 (HC4 미달), 384 에서는 0. 올린 128 MiB 는 ADR-270 Phase 3a 의 텍스처 이미지 몫 — R3 은 보유 증가 쪽. 또 canvaskit 0.42.0 의 JS 래퍼 `getResourceCacheLimitBytes` · `…UsageBytes` 는 값을 `return` 하지 않아 늘 `undefined` 다 (F5 의 손잡이) — 원 메서드 `_get…Bytes` 로 읽는다.
 3. **ADR-270 과의 순서** — Phase 2 (context 소유) 를 ADR-270 Phase 3a 보다 먼저 두어 texture-backed 이미지가 처음부터 명시 한도 아래 들어가게 할지 (추천), 아니면 독립 진행할지.
    - **답 (사용자 2026-10-17)**: 추천 순서 확정 — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」. 진행 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272**. ADR-270 Phase 3a 의 선행 조건이 이 ADR 의 Phase 2 (GrContext 소유 · 수명 · 명시 한도) 완료다 (270 breakdown §4 착수 조건).
 

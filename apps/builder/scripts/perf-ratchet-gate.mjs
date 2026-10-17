@@ -46,6 +46,9 @@ const ALWAYS_B = [
 /** 판정에서 뺀다 — 카운트가 아니거나 (게이지 · 진단) run 마다 의미가 달라지는 값. */
 const EXCLUDED = [
   /^measuresTotal$/,
+  // ADR-273: GrDirectContext 캐시 사용 바이트의 고수위 — 횟수가 아니라 게이지라 run 마다 수십 KB 흔들린다
+  // (166,000,132 ↔ 165,946,884 같은 코드). 판정은 `render.grCacheNearLimitFrames` (A) 가 맡는다.
+  /^render\.grCacheUsageMax$/,
   /^v8\.topApp/,
   /^v8\.topDeps/,
   /^v8\.total$/,

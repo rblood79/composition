@@ -2180,7 +2180,10 @@
           "render.scrollDeltaIndexUpserts": 0,
           "render.scrollDeltaMapWrites": 0,
           "render.scrollDeltaNodes": 0,
-          "render.scrollDeltaRerecords": 0
+          "render.scrollDeltaRerecords": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0,
+          "render.grCacheNearLimitFrames": 0
         },
         "B": {
           "cdp.LayoutCount": 498,
@@ -2336,7 +2339,10 @@
           "render.scrollDeltaIndexUpserts": 0,
           "render.scrollDeltaMapWrites": 0,
           "render.scrollDeltaNodes": 0,
-          "render.scrollDeltaRerecords": 0
+          "render.scrollDeltaRerecords": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0,
+          "render.grCacheNearLimitFrames": 0
         },
         "B": {
           "cdp.LayoutCount": 24,
@@ -2494,7 +2500,10 @@
           "render.scrollDeltaIndexUpserts": 0,
           "render.scrollDeltaMapWrites": 0,
           "render.scrollDeltaNodes": 0,
-          "render.scrollDeltaRerecords": 0
+          "render.scrollDeltaRerecords": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0,
+          "render.grCacheNearLimitFrames": 0
         },
         "B": {
           "cdp.LayoutCount": 1,
@@ -2648,7 +2657,10 @@
           "render.scrollDeltaIndexUpserts": 0,
           "render.scrollDeltaMapWrites": 0,
           "render.scrollDeltaNodes": 0,
-          "render.scrollDeltaRerecords": 0
+          "render.scrollDeltaRerecords": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0,
+          "render.grCacheNearLimitFrames": 0
         },
         "B": {
           "cdp.LayoutCount": 51,

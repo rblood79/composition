@@ -4,7 +4,11 @@ import { SkiaRenderer } from "./SkiaRenderer";
 import type { TransitionManager } from "./transitionManager";
 
 vi.mock("./createSurface", () => ({
-  createGPUSurface: () => ({ getCanvas: () => ({}) }),
+  CanvasSurfaceOwner: class {
+    makeSurface() {
+      return { getCanvas: () => ({}) };
+    }
+  },
 }));
 const camera = { zoom: 1, panX: 0, panY: 0 };
 

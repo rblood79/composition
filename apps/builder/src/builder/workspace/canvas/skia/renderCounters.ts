@@ -184,6 +184,15 @@ export interface RenderCounters {
   imageSeedOwners: number;
   imagePatchSyncs: number;
   imagePatchFallbackRebind: number;
+  /**
+   * ADR-273 Phase 2 — GL context 소유 (`createSurface.ts` `CanvasSurfaceOwner`). 만든 · 지운 GL 핸들 수
+   * (산 context 는 resize 에서 재사용 — 늘어나는 것은 첫 생성 · 복원뿐) · 프레임 끝 GrDirectContext 캐시
+   * 사용 바이트 고수위 · 사용량이 한도의 90 % 를 넘은 프레임 수 (HC4 여유 규칙).
+   */
+  gpuContextsCreated: number;
+  gpuContextsDeleted: number;
+  grCacheUsageMax: number;
+  grCacheNearLimitFrames: number;
 }
 
 const counters: RenderCounters = {
@@ -286,6 +295,10 @@ const counters: RenderCounters = {
   imageSeedOwners: 0,
   imagePatchSyncs: 0,
   imagePatchFallbackRebind: 0,
+  gpuContextsCreated: 0,
+  gpuContextsDeleted: 0,
+  grCacheUsageMax: 0,
+  grCacheNearLimitFrames: 0,
 };
 
 /**
@@ -331,6 +344,8 @@ export function resetRenderCounters(): void {
  * `translateOff`: ADR-264 옮기기 · 경로 자기 patch 대신 region 전체를 다시 기록한다 (지금까지의 길).
  * `propertyNodesOff`: ADR-269 스크롤이 자손 맵 Δ 대신 소유자 서브트리를 다시 기록한다 (지금까지의 길).
  * `imagePartialOff`: ADR-270 이미지 완료가 소유 요소 splice 대신 scene 전체를 다시 묶는다 (지금까지의 길).
+ * `legacySurface`: ADR-273 화면 surface 를 `MakeWebGLCanvasSurface` 로 만든다 (호출마다 새 context — 지금까지의 길).
+ *   다음 resize 부터 적용된다.
  */
 export const renderDebug = {
   linearOnly: false,
@@ -338,6 +353,7 @@ export const renderDebug = {
   translateOff: false,
   propertyNodesOff: false,
   imagePartialOff: false,
+  legacySurface: false,
 };
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -358,6 +374,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setImagePartialOff = (on: boolean) => {
     renderDebug.imagePartialOff = on;
+  };
+  debug.setLegacySurface = (on: boolean) => {
+    renderDebug.legacySurface = on;
   };
   (
     window as unknown as {

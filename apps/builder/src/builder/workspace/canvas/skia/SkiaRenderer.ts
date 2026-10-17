@@ -24,7 +24,8 @@ import type {
   CameraState,
   OpacityEffect,
 } from "./types";
-import { createGPUSurface } from "./createSurface";
+import { CanvasSurfaceOwner } from "./createSurface";
+import { GR_CACHE_LIMIT_BYTES } from "./canvasMemoryBudget";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
@@ -179,6 +180,8 @@ export class SkiaRenderer {
   private overlayNode: SkiaRenderable | null = null;
   private disposed = false;
   private dpr: number;
+  /** 화면 canvas 의 GL context · GrDirectContext 소유자 (ADR-273 Phase 2) — resize 는 산 context 를 재사용한다. */
+  private readonly surfaceOwner: CanvasSurfaceOwner;
 
   /** Content Surface 패딩 (CSS px) — camera-only blit 가장자리 아티팩트 방지 */
   private readonly contentPaddingCssPx = 512;
@@ -304,7 +307,12 @@ export class SkiaRenderer {
     this.contentPaddingDevicePx = Math.round(
       this.contentPaddingCssPx * this.dpr,
     );
-    this.mainSurface = createGPUSurface(ck, htmlCanvas);
+    this.surfaceOwner = new CanvasSurfaceOwner(
+      ck,
+      htmlCanvas,
+      GR_CACHE_LIMIT_BYTES,
+    );
+    this.mainSurface = this.surfaceOwner.makeSurface();
     this.mainCanvas = this.mainSurface.getCanvas();
 
     if (process.env.NODE_ENV === "development") {
@@ -313,6 +321,8 @@ export class SkiaRenderer {
         window as unknown as Record<string, unknown>
       ).__composition_RENDER_PATH_DEBUG__ ??= {}) as Record<string, unknown>;
       debug.forceFull = () => this.invalidateContent();
+      // ADR-273: 소유한 GL context 의 핸들 수 · 캐시 한도 · 사용 바이트.
+      debug.gpuContext = () => this.surfaceOwner.stats();
       this.devContentRenderWindowStartMs = performance.now();
       this.devFrameWindowStartMs = this.devContentRenderWindowStartMs;
       // CanvasKit 이 획득한 동일 canvas 의 webgl2 컨텍스트를 재사용한다.
@@ -1038,6 +1048,7 @@ export class SkiaRenderer {
     this.mainSurface.flush();
     recordMainSubmission();
     if (isDev) {
+      this.surfaceOwner.sampleUsage();
       markEnd(PERF_LABEL.RENDER_SKIA_FLUSH_MAIN, flushMainBegin);
     }
   }
@@ -1317,6 +1328,7 @@ export class SkiaRenderer {
     recordMainSubmission();
 
     if (process.env.NODE_ENV === "development") {
+      this.surfaceOwner.sampleUsage();
       recordWasmMetric("skiaFrameTime", performance.now() - start);
     }
     return true;
@@ -1385,13 +1397,16 @@ export class SkiaRenderer {
     this.contentPaddingDevicePx = Math.round(
       this.contentPaddingCssPx * this.dpr,
     );
+    // 소실 중 (복원 전) 의 크기 변경은 surface 를 두고 복원의 resize 에 맡긴다 — 소실된 GL 위에 새 context 를
+    // 만들지 않는다. 그리기는 scheduler 가 멈춰 있다.
+    if (this.surfaceOwner.isAwaitingRestore()) return;
 
     // Content surface 정리
     this.disposeContentSurface();
 
-    // Main surface 재생성
+    // Main surface 재생성 — 옛 surface 를 먼저 지우고 (소실된 context 면 그 뒤 소유자가 context 를 지운다)
     this.mainSurface.delete();
-    this.mainSurface = createGPUSurface(this.ck, htmlCanvas);
+    this.mainSurface = this.surfaceOwner.makeSurface(htmlCanvas);
     this.mainCanvas = this.mainSurface.getCanvas();
 
     // Content surface는 다음 render()에서 lazy 재생성
@@ -1411,6 +1426,20 @@ export class SkiaRenderer {
     this.standbySurface = null;
     this.standbyCanvas = null;
     this.standbyContentSynchronized = false;
+  }
+
+  /**
+   * `webglcontextlost` — GrDirectContext 를 abandon 한다 (GL 호출 없이 자원 포기). 다음 `resize`
+   * (복원 콜백) 가 옛 surface · context 를 지우고 새 context 를 만든다.
+   */
+  contextLost(): void {
+    this.surfaceOwner.contextLost();
+  }
+
+  /** `webglcontextrestored` — 새 context 위에 surface 를 다시 만든다. */
+  contextRestored(htmlCanvas: HTMLCanvasElement): void {
+    this.surfaceOwner.contextRestored();
+    this.resize(htmlCanvas);
   }
 
   /** 내부 Canvas 인스턴스 (직접 그리기용) */
@@ -1439,5 +1468,7 @@ export class SkiaRenderer {
     if (!this.mainSurface.isDeleted()) this.mainSurface.delete();
     // 마지막 프레임이 미뤄 둔 폐기가 남아 있을 수 있다 — 프레임 밖이므로 즉시 배수
     drainPendingWasmDisposals();
+    // GrDirectContext 는 그 위의 surface · 이미지가 다 지워진 뒤에 지운다.
+    this.surfaceOwner.dispose();
   }
 }

@@ -1543,13 +1543,14 @@ export function CatalogCanvas({
       canvas,
       () => {
         contextLost = true;
+        renderer.contextLost();
         updatePaused();
         setSurfaceLost(true);
       },
       () => {
         contextLost = false;
         setSurfaceLost(false);
-        renderer.resize(canvas);
+        renderer.contextRestored(canvas);
         renderer.invalidateContent();
         renderer.clearFrame();
         updatePaused();
