@@ -95,6 +95,7 @@ Chromium 의 **구조** 대부분 (display list · display item 캐시 · raster
 - 페인트 문서의 "이미지 샘플링 = 일괄 linear + mipmap" 을 크기 판정 사슬 이식으로 고쳤다 — **이 정정이 틀렸다**. 래스터 `<img>` 는 lazy decode 분기로 크기 판정을 건너뛴다 (2026-10-17 리뷰 · 원본 확인, 아래 표 · §4-2).
 - 페인트 문서의 엔진 격차 `G4` · `G5` 가 레이아웃 grid `G4` · `G5` 와 겹쳐 분리했다 (지금은 E01 · E02).
 - 페인트 문서가 `leafBaseline · strut` · `fixed / sticky` 를 "구현" 으로 적은 것을 "엔진 구현 · production 미전송" 으로 고쳤다 (B1 · B2 · X8).
+- (2026-10-17 ADR-269 작성) §5-1 의 「옮김은 서브트리 명령을 다시 쓴다」 를 코드로 정정했다 — `applyTranslate` 는 root `ELEMENT_BEGIN` 한 줄 + 자손 전부의 절대 맵 · 문맥 값을 다시 쓴다 (명령은 byte 그대로). 격차의 자리는 명령이 아니라 맵 · 검사 · patch 거부 · 스크롤 소유자 재기록이다.
 
 이번 통합 (2026-10-17, 이 문서) 에서 고친 것 — **코드로 재확인한 3 건** 과 어휘 · 집계:
 
@@ -369,12 +370,12 @@ production 꼬리 (ADR-263 ~ 265 종결 기록, 2026-10-16):
 ### 5-1. O1 Property node 분리 (유일하게 꼬리에 닿는 구조)
 
 - **Chromium 의 통찰** (`how_cc_works.md` §property trees · Blink `PaintChunk` · `PaintPropertyTreeBuilder`): 그리기 목록은 **로컬 좌표** 로 한 번 기록하고 transform · clip · scroll · effect 는 **별도 노드 트리** 에 둔다. Blink chunk 는 `PropertyTreeState` (transform · clip · effect 노드 참조, `paint_chunk.h:35-39`) 를, cc layer 는 노드 id 를 가진다. 스크롤 · 이동 · clip 변경은 노드 값 갱신이고 목록은 손대지 않는다. 비용이 "바뀐 노드 수" 에 비례한다.
-- **composition**: `ELEMENT_BEGIN` 에 절대 좌표가 구워지고 (`retainedParagraph.ts` 주석 — "좌표가 ELEMENT_BEGIN 에서 이미 translate 됐기 때문"), 옮김은 `subtreeTranslate` 가 서브트리 명령을 다시 쓰고, clip · scroll 문맥이 바뀌면 patch 를 거부 (`clip-context-changed` · `scroll-context-changed`). node picture 캐시는 이미 **노드-로컬 기록 + replay 시 translate** 라 절반은 와 있다.
+- **composition**: `ELEMENT_BEGIN` 에 절대 좌표가 구워지고 (`retainedParagraph.ts` 주석 — "좌표가 ELEMENT_BEGIN 에서 이미 translate 됐기 때문"), 옮김은 `subtreeTranslate` 가 root 의 `ELEMENT_BEGIN` 한 줄만 고치되 서브트리 **모든 요소의 절대 맵 · 문맥 값** (`boundsMap` · `clipContextByElement` · `subtreeBuildContextByElement` · `hitBoundsMap`) 을 다시 쓰고 그 앞 검사가 서브트리 명령 전부를 훑으며 (2026-10-17 ADR-269 작성 때 코드로 정정 — 명령 재기록이 아니라 맵 재기록), 요소 스크롤은 소유자 서브트리를 통째로 다시 기록하고 (`canvasBinding.ts` `scrollBy` → dirty seed), clip · scroll 문맥이 바뀌면 patch 를 거부 (`clip-context-changed` · `scroll-context-changed`). node picture 캐시는 이미 **노드-로컬 기록 + replay 시 translate** 라 절반은 와 있다.
 - **설계 스케치** (ADR 대상): `ELEMENT_BEGIN` 이 `(x, y)` 대신 `transformNodeId` 를 들고 실행기가 노드 테이블에서 `(x, y, scroll offset, clip rect)` 를 읽는다. 레이아웃 이동 = 노드 테이블 갱신 + damage = 이전 ∪ 이후 bounds, 명령 재기록 0. overflow clip 도 `clipNodeId` — 스크롤 = offset 갱신 (ADR-263 #4 `catalogScrollRange` DFS 도 사라진다). patch 거부 사유 중 앞 둘은 노드 갱신으로 흡수.
 - **O(1) 주장 금지**: 명령 재기록은 줄어도 local bounds · 누적 transform · draw/hit/overlay 동기화 · index upsert · 자원 비용이 남는다. 전체 동작의 비용과 수명으로 평가하고, 비용이 pick · 다음 프레임으로 이동하지 않았는지 본다.
 - **Phase 0 카운트** (measurement-validity §5): `subtreeTranslate` 호출 수 · patch 교체 명령 수를 결정적 카운트로 잡고 중첩 5k 편집에서 RED 고정. wall-clock 은 방향만.
 - **위험**: 기술 MEDIUM (실행기 · patcher · damage 가 같은 노드 테이블을 읽어야 한다 — 불일치면 stale pixel) / 유지보수 MEDIUM / 마이그레이션 MEDIUM. ADR-263 대안 B · C · D 와 다른 축이라 그 기각 사유가 적용되지 않는다.
-- **순서**: 측정 뒤 — ADR-264/265 종결 카운트가 이미 그 측정이다. 새 ADR (`/create-adr` 는 사용자 전용) 의 Context 로 인용. 기존 성능 기록의 nested edit · zoom 재바인드 · React/RAC selection 비용은 별도 원인으로 유지한다 — property tree 가 모든 꼬리를 해결한다고 가정하지 않는다.
+- **순서**: 측정 뒤 — ADR-264/265 종결 카운트가 이미 그 측정이다. **[ADR-269](../../adr/269-render-command-property-node-separation.md) (Proposed 2026-10-17)** 가 이 항목의 ADR 이다 — Phase 0 카운트 → scroll 노드 → clip 노드 → transform 노드 (사용자 결정). 기존 성능 기록의 nested edit · zoom 재바인드 · React/RAC selection 비용은 별도 원인으로 유지한다 — property tree 가 모든 꼬리를 해결한다고 가정하지 않는다.
 
 ### 5-2. O2 under-invalidation checking
 
