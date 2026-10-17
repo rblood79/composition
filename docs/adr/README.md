@@ -149,6 +149,14 @@
 
 ## 현황
 
+> **2026-10-17 ADR-271 · 272 · 273 Proposed** (사용자 `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` — Pen.dev 비교 확정 4 건의 둘째 ~ 넷째, ADR-270 과 같은 A/B/C 등급 기준 · 측정은 게이트):
+>
+> - **[271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) 축소 개요 LOD** — 코드 사실: 배율은 실행 층 밖 (`SkiaRenderer.ts:762` `scale`) 이라 `executeRenderCommands` 가 zoom 을 모름 · 생략은 viewport 밖뿐 (`renderCommands.ts:2556`) · 요소마다 `drawPicture` 1 회 · picture 키에 배율 없음 · 실측 `60:app-pages` 줌 `nodePicture.hits` 44,909 (ADR-266 꼬리 = 재생 1,600 / 프레임). 채택 A — 실행 옵션 `lod` · 투영 < T_skip (B, 0.5 px 제안) 이고 unsafe 아님 · 서브트리 paint bounds 도 작으면 jump (키 없음) · 글자는 **band (이산 배율 띠) 상한** 기준 `fontSize × bandUpper` < T_text (2 px) 면 줄 상자 (picture 키에 band — 리뷰 r1 H1) · 서브트리 unsafe 요약 전파 (H2) · 히스테리시스 · content · damage · 미리 기록 같은 band (M3) · export · drag · 편집 중 `full`. B (zoom 연속 키 — thrash 재발) · C (합성 캐시 — C 등급) · D (저해상도 surface — 전 화면 흐림) 기각. **0 px 를 주장하지 않는다** — 허용 오차는 사용자 결정 1 (제안 채널 ≤ 3/255 · ≤ 0.5 % · 배율 ≤ 0.5). 사용자 결정 3 (오차 · 줄 상자 모양 · 종결 미달). G0 ~ G5. breakdown: [design/271](design/271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md).
+> - **[272](272-bounded-spatial-query-and-warmup-work-range.md) 작업 범위 제한** — 코드 사실: Rust grid 256 질의가 사각형의 **모든 셀** 순회 (`spatial_index.rs:194`) · half rule 은 질의 뒤 · 줌 0.1 = ~7,400 셀 (overscan 여백 포함, 줌 1 의 ~90 배 — 여백 값은 ADR-273 과 의존) · `upsert` 도 셀 수 비례 (`app-pages` 줌 `translateNodes` 222,268) · 미리 기록은 전체 stream 순회 + 전부 정렬 · 차례 키에 카메라 없음 · Rust 셀 방문 카운터 없음 · 많은 페이지 fixture 없음. 채택 A — Phase 0 `many-pages` (사용자 결정 1: 100 · 300) + Rust `query_stats` → Phase 1 셀 수 > K × 항목 수면 선형 AABB (결과 집합 동일, Rust 안) → Phase 2 후보 = 넓힌 viewport 질의 · k 제한 선택 · 카메라 큰 셀 키 → Phase 3 큰 항목 버킷 (사용자 결정 2 뒤). B (R-tree) · C (배율별 셀 재구축) · D (page 2 단계 인덱스) 기각. HC 결과 집합 동일 · 카운트 먼저 · 비용 이동 금지 · wasm 표면 추가 3 종 한정. G0 ~ G5. breakdown: [design/272](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md).
+> - **[273](273-canvas-memory-budget-overscan-device-px-resource-cache.md) Canvas 메모리 예산** — 코드 사실: 여백 512 **CSS** px × dpr · ping-pong 2 장 (산식 1440×900 DPR 2 = 72.3 MiB × 2, Pen 512 device = 42.1) · `MakeWebGLCanvasSurface` 가 context 를 숨겨 `setResourceCacheLimitBytes` 호출 0 · 자원별 상한이 다섯 자리에 흩어짐 (picture 64 MiB 동적 · warm 4,096 · image soft 128 MiB · paragraph 없음 · surface 없음) · GPU 실사용량은 못 읽음. 채택 A — Phase 0 인벤토리 표 + `contentRedraws` · 팬 속도 분포 (사용자 headed 1 회) → Phase 1 여백 `min(512 × dpr, PAD_DEVICE_MAX)` (사용자 결정 1, 768 제안 — DPR 1 무변화) → Phase 2 `GetWebGLContext` + `MakeWebGLContext` (`MakeGrContext` 는 deprecated) + `MakeOnScreenGLSurface` 로 context 소유 · 한도 명시 (결정 2, 256 MiB 제안) · ADR-270 R8 소실 · 복원과 같은 핸들 (결정 3 — 273 Phase 2 를 270 Phase 3a 앞에 추천) → Phase 3 `canvasMemoryBudget.ts` 한 곳 (값 불변 · 전역 LRU 없음). B (전역 예산 — ADR-174 금지) · C (여백 0) · D (그대로 — ADR-270 텍스처와 따로 놈) 기각. G0 ~ G5 (G4 에 DPR 2 headed 팬). breakdown: [design/273](design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md).
+>
+> 열림 +3 (열림 5 — Proposed 5 = 245 · 270 · 271 · 272 · 273, 합계 295). 같은 날 리뷰: 271 · 272 는 Round 1 (codex) + Round 2 (claude 수리 검증, HIGH 0) 으로 설계 판독 종결, 273 은 Round 1 (claude) MEDIUM 2 · LOW 1 반영 — 셋 다 pending 0.
+>
 > **2026-10-17 ADR-270 Proposed**: 이미지 로드 경로 — 완료 시 해당 노드만 갱신 · 원본 치수 ↔ 표시 bitmap 분리 · 메인 스레드 밖 디코딩 (사용자 `/create-adr` — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 첫째. 사용자 원문 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」 → A 등급 (결과 동일 · 일만 적음 — 코드 근거로 착수, 측정은 게이트) · B 등급 (구조는 지금, 값은 게이트) · C 등급 (측정 선행) 기준 합의). 코드 사실: 이미지는 bind 때 동기 조회 · miss 는 placeholder (`specShapeConverter.ts:1195`) → 메인 스레드 `MakeImageFromEncoded` (`imageCache.ts:432`) → 완료 통지 → **scene 전체 `rebind("image-loaded")`** (`canvasScene.ts:195` — 프레임마다 끝나는 이미지 N 개 = 재바인드 N 회, 무관한 picture · paragraph 전부 해제 · ADR-266 L2 인계는 미구현) · 역참조는 퇴거 방향 (`nodePictureCache.ts:446`) 만 · `getImageNaturalDimensions` 소비자 0 (자연 치수의 유일한 소비 = object-fit) · **하니스 `app-pages` 의 Image 는 src 없음 — 이미지 로드가 측정에 들어온 적이 없다** · CanvasKit `MakeImageFromCanvasImageSource` 로 `createImageBitmap` 결과를 올릴 수 있다. 채택 대안 A — Phase 0 이미지 fixture 2 변형 (`app-pages-images` · `-asset`) + 카운트 → Phase 1 node data 에 `src` 보존 + URL → 소유 요소 맵 + **완료 = binding dirty seed → `scene.sync()` splice** (DRAW 교체 · 같은 프레임 편집 보존 · 재바인드 0) → Phase 2 치수 분리 (`naturalWidth/Height` ≠ `bitmap`) → Phase 3a `createImageBitmap` + GPU `MakeLazyImageFromTextureSource` (texture-backed · SW 폴백 readback) · 3b Worker 는 사용자 결정 1. **리뷰 Round 1 (codex, 같은 날) HIGH 3 · MEDIUM 2 → 전부 반영** (DRAW 는 파생 복사본이라 재등록만으로 안 바뀜 · 미로딩 node data 에 src 없음 · `sceneStale` 선지움 · `MakeImageFromCanvasImageSource` 는 readback · 새 작업 카운트는 Phase 0 이내가 아니라 fixture 산식 상한 + ms 는 ratchet 밖) — 초안 경로는 대안 B2 로 기록 · 기각. **Round 2 수리 검증** — 5 건 closed · 신규 HIGH 1 (texture-backed 도입 뒤 context 복원이 이미지를 다시 받지 않음 — 복원은 surface 만 재생성) → 복원 시 `rebind("context-restored")` 1 회 + 소실 중 요청 억제로 반영. 판독 상한 도달 · pending 0 → 설계 전제 확정 (실행자 종결 선언). B (ADR-266 인계 — 재바인드 N 회 잔존) · C (디코딩만 — 3a 로 흡수) · D (Pen 자산 관리자 전체 — C 등급, 측정 0) · E (debounce) 기각. HC: 픽셀 동일 (object-fit 5 · 배치 5 · 반투명) · 카운트 먼저 (image-loaded 재바인드 0 · 메인 디코딩 0) · wall-clock 방향만 · **비용 이동 금지 (업로드가 메인에 남는다 — 센다)** · D3 대칭 · initial 번들 · 수명 계약 (ADR-153 R2 · 174 · 235) 유지. 사용자 결정 3 (3b Worker 진입 · fixture 출처 · 종결 미달). G0 ~ G5. 열림 +1 (열림 2 — Proposed 2 = 245 · 270, 합계 292). breakdown: [design/270](design/270-image-load-path-partial-update-off-thread-decode-breakdown.md).
 >
 > **2026-10-17 ADR-269 Implemented** (Phase 0 · 1 — Phase 2 는 사용자 확인으로 생략, Phase 3 은 결정 1 · 종결은 결정 3 「측정 기록으로 종결」, 같은 날): 사용자 `/execute-adr 269` + 리뷰 Round 2 pending 0 → Accepted, 결정 2 = `scroll` 부류 신설. Phase 0 **go** — 새 fixture `scroll-boxes` 휠 188 회가 명령 575,844 개 재기록 · 소유자 picture 무효 94, 옮기기 검사 스캔 917,005 재현, 문맥 거부 재바인드는 전 run 0 (그래서 clip 노드는 생략). Phase 1 — scroll 위치를 property node 테이블로 (명령 · node data 에서 삭제), 실행기 열린 프레임 스택 · scrollbar 는 테이블에서, 스크롤 = 테이블 갱신 + 자손 맵 Δ + `propertyChanged` 발행, 옮기기 검사는 자식 색인. **스크롤 재기록 → 0 · picture miss → 0 · `translateCheckCommands` → 0** (맵 Δ · 색인 walk 비용은 남음 — O(1) 아님). G1 무작위 1,200 · 반례 11 · 원복 RED 6/7 + ratchet A 초과 13 · live 8/8 (0 px). G3 production 짝: 스크롤 5k main thread 3,385 → 1,942 ms · 표시 간격 p99 16.8 전부 · long task 0 (회귀 0, HC2 참고 목표는 콜백 기준 미달 — 결정 3) · 중첩 5k 편집 taskMs +3 % (원인 미확정). G4 사용자 프로젝트 「123」 (22 페이지) page body 휠 재기록 574 → 0 · 5,116 요소 맵 · `hitAt` 0 차. 열림 −1, 완료 +1 (열림 1 = 245).
@@ -318,12 +326,14 @@
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       2 |
-| ├ Proposed                    |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       5 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **292** |
+| **합계**                      | **295** |
 
+> 2026-10-17 재대조 (6): ADR-271 · 272 · 273 Proposed (열림 +3) — 열림 5 = 245 (사용자 보류) · 270 · 271 · 272 · 273.
+>
 > 2026-10-17 재대조 (5): ADR-270 Proposed (열림 +1) — 열림 2 = 245 (사용자 보류) · 270.
 >
 > 2026-10-17 재대조 (4): ADR-269 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245 (사용자 보류).
@@ -358,6 +368,21 @@
 - **상태**: Proposed — 2026-10-17 (사용자 `/create-adr`, A 등급 — 코드 근거로 착수 · 측정은 게이트). 리뷰 [reviews/270.md](reviews/270.md) Round 1 HIGH 3 · MEDIUM 2 · Round 2 HIGH 1 전부 반영 (pending 0 — 판독 상한 도달, 설계 전제 확정)
 - **규모**: Phase 0 이미지 fixture 2 변형 + 카운트 (G0) → Phase 1 URL → 노드 역참조 · 완료 시 해당 노드만 (G1 · G2 · G3) → Phase 2 치수 분리 → Phase 3a `createImageBitmap` · 3b Worker (사용자 결정 1). 사용자 결정 3 (3b 진입 · fixture 출처 · 종결 미달). breakdown: [design/270](design/270-image-load-path-partial-update-off-thread-decode-breakdown.md)
 
+#### [271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) — 축소 개요 LOD — 투영 크기 임계 아래 요소 생략 · 글자를 줄 상자로 (Pen.dev 비교 도입 2/4)
+
+- **상태**: Proposed — 2026-10-17 (사용자 `/create-adr`, A 구조 + B 임계값). 리뷰 [reviews/271.md](reviews/271.md) Round 1 (codex) HIGH 2 · MEDIUM 2 · Round 2 (claude 수리 검증) MEDIUM 2 · LOW 1 전부 반영 (pending 0 — 설계 판독 종결)
+- **규모**: Phase 0 투영 크기 분포 · `zoom-ladder` (G0) → Phase 1 배율 입력 · 생략 → Phase 2 글자 줄 상자 (picture 키 band). 사용자 결정 3 (허용 오차 · 줄 상자 모양 · 종결 미달). breakdown: [design/271](design/271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md)
+
+#### [272](272-bounded-spatial-query-and-warmup-work-range.md) — 작업 범위 제한 — 공간 질의 셀 상한 전략 전환 · 사전 기록 bounded · 카메라 추종 (Pen.dev 비교 도입 3/4)
+
+- **상태**: Proposed — 2026-10-17 (사용자 `/create-adr`). 리뷰 [reviews/272.md](reviews/272.md) Round 1 (codex) MEDIUM 1 · Round 2 (claude 수리 검증) LOW 1 반영 (pending 0 — 설계 판독 종결)
+- **규모**: Phase 0 `many-pages` fixture + Rust `query_stats` (G0, 레버는 몫 표가 고른다) → Phase 1 질의 전략 전환 → Phase 2 미리 기록 bounded · 카메라 추종 → Phase 3 큰 항목 버킷 (조건부). 사용자 결정 3 (fixture 규모 · Phase 3 진입 · 종결 미달). breakdown: [design/272](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md)
+
+#### [273](273-canvas-memory-budget-overscan-device-px-resource-cache.md) — Canvas 메모리 예산 — overscan 을 device px 로 · GrContext resource cache 명시 · 자원별 예산 표 (Pen.dev 비교 도입 4/4)
+
+- **상태**: Proposed — 2026-10-17 (사용자 `/create-adr`). 리뷰 [reviews/273.md](reviews/273.md) Round 1 (claude) MEDIUM 2 · LOW 1 반영 (pending 0) — Skia 기본 한도 실측 · GrContext 핸들 수명 (R5 HIGH)
+- **규모**: Phase 0 인벤토리 · 팬 속도 분포 (G0) → Phase 1 device px 여백 → Phase 2 context 소유 · 한도 명시 (ADR-270 R8 과 같은 핸들) → Phase 3 `canvasMemoryBudget.ts`. 사용자 결정 3 (여백 상한 · 한도 값 · ADR-270 과의 순서). breakdown: [design/273](design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md)
+
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -385,12 +410,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                                                                        | 차단 · 선행                                                                                    |
-| :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [270](270-image-load-path-partial-update-off-thread-decode.md)                                 | Proposed 2026-10-17 — 리뷰 Round 1 · 2 반영 (pending 0 · 전제 확정 — `/execute-adr 270` 착수 가능). Pen.dev 비교 확정 4 건의 첫째 (뒤: 축소 개요 LOD · 작업 범위 제한 · 메모리 예산 — 아직 미작성) | 선행 없음. 사용자 결정 3 (3b Worker 진입 · fixture 출처 · 종결 미달) 은 execute 때             |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                                                                  | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                                                                            | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                                                                 | 각 항목의 재개 조건 발생 시                                                                    |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                          | 차단 · 선행                                                                                    |
+| :--: | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  1   | [270](270-image-load-path-partial-update-off-thread-decode.md)                                 | Proposed 2026-10-17 — 리뷰 Round 1 · 2 반영 (pending 0 · 전제 확정 — `/execute-adr 270` 착수 가능). Pen.dev 비교 확정 4 건의 첫째                    | 선행 없음. 사용자 결정 3 (3b Worker 진입 · fixture 출처 · 종결 미달) 은 execute 때             |
+|  2   | [273](273-canvas-memory-budget-overscan-device-px-resource-cache.md)                           | Proposed 2026-10-17 — 리뷰 Round 1 반영 (pending 0). 270 Phase 3a (texture-backed) 앞에 Phase 2 (context 소유 · 한도) 를 두는 것을 추천 (273 결정 3) | 사용자 결정 3 (여백 상한 · 한도 값 · 순서) 은 execute 때                                       |
+|  3   | [271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md)                               | Proposed 2026-10-17 — 리뷰 Round 1 · 2 반영 (pending 0 · 전제 확정). ADR-266 꼬리 (picture 재생 1,600 / 프레임) 의 첫 레버                           | 사용자 결정 3 (허용 오차 · 줄 상자 · 종결 미달) 은 execute 때                                  |
+|  4   | [272](272-bounded-spatial-query-and-warmup-work-range.md)                                      | Proposed 2026-10-17 — 리뷰 Round 1 · 2 반영 (pending 0 · 전제 확정). Phase 0 `many-pages` 몫 표가 레버를 고른다 (코드 도출 위험 · 실측 회귀 아님)    | 사용자 결정 3 (fixture 규모 · Phase 3 · 종결 미달) 은 execute 때                               |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                    | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                              | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                   | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
