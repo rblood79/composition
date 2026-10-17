@@ -59,7 +59,7 @@
   "devDependencies": {
     "gray-matter": "^4.0.3",
     "prettier": "^3.9.6",
-    "turbo": "^2.10.11"
+    "turbo": "^2.11.9"
   },
   "packageManager": "pnpm@10.26.2",
   "pnpm": {
