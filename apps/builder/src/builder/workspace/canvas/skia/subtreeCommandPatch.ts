@@ -41,7 +41,6 @@ export type CommitSubtreePatchRejectReason =
   | "invalid-span"
   | "top-layer"
   | "clip-context-changed"
-  | "scroll-context-changed"
   | "z-order-changed"
   | "bounds-missing"
   | "write-budget-exceeded";
@@ -411,6 +410,7 @@ export function applySubtreeCommandPatch(
     current.scrollContextKeyByElement.delete(elementId);
     current.subtreeBuildContextByElement.delete(elementId);
     current.topLayerElementIds.delete(elementId);
+    current.childElementIds.delete(elementId);
     current.boundsMap.delete(elementId);
     current.hitBoundsMap.delete(elementId);
   }
@@ -462,6 +462,8 @@ export function applySubtreeCommandPatch(
     if (replacement.topLayerElementIds.has(elementId)) {
       current.topLayerElementIds.add(elementId);
     }
+    const nextChildren = replacement.childElementIds.get(elementId);
+    if (nextChildren) current.childElementIds.set(elementId, nextChildren);
     const nextBounds = replacement.boundsMap.get(elementId);
     if (nextBounds) current.boundsMap.set(elementId, copyBounds(nextBounds));
     const nextHitBounds = replacement.hitBoundsMap.get(elementId);
@@ -552,15 +554,8 @@ export function applyCommitSubtreeCommandPatch(
   ) {
     return fail("clip-context-changed");
   }
-  const currentScroll = current.scrollContextKeyByElement.get(rootId);
-  const replacementScroll = replacement.scrollContextKeyByElement.get(rootId);
-  if (
-    !currentScroll ||
-    !replacementScroll ||
-    currentScroll !== replacementScroll
-  ) {
-    return fail("scroll-context-changed");
-  }
+  // (ADR-269 Phase 1: no scroll context check — a scroll position is the owner's property node,
+  // not part of the stored context, so a replacement under it cannot disagree with the stream.)
   const currentZ = current.zOrderKeyByElement.get(rootId);
   const replacementZ = replacement.zOrderKeyByElement.get(rootId);
   if (!currentZ || !replacementZ || currentZ !== replacementZ) {
@@ -641,6 +636,7 @@ export function applyCommitSubtreeCommandPatch(
     current.scrollContextKeyByElement.delete(elementId);
     current.subtreeBuildContextByElement.delete(elementId);
     current.topLayerElementIds.delete(elementId);
+    current.childElementIds.delete(elementId);
     current.boundsMap.delete(elementId);
     current.hitBoundsMap.delete(elementId);
   }
@@ -691,6 +687,8 @@ export function applyCommitSubtreeCommandPatch(
     if (replacement.topLayerElementIds.has(elementId)) {
       current.topLayerElementIds.add(elementId);
     }
+    const nextChildren = replacement.childElementIds.get(elementId);
+    if (nextChildren) current.childElementIds.set(elementId, nextChildren);
     const nextBounds = replacement.boundsMap.get(elementId);
     if (nextBounds) current.boundsMap.set(elementId, copyBounds(nextBounds));
     const nextHitBounds = replacement.hitBoundsMap.get(elementId);

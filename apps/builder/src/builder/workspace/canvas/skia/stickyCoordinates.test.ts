@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
+import { setScrollNode } from "./propertyNodes";
 import {
   buildRenderCommandStream,
   buildSelfCommandStream,
@@ -64,8 +65,8 @@ function setup(scrollTop: number) {
     width: 300,
     height: 200,
     clipChildren: true,
-    ...(scrollTop ? { scrollOffset: { scrollTop, scrollLeft: 0 } } : {}),
   });
+  if (scrollTop) setScrollNode("list", { scrollTop, scrollLeft: 0 });
   register("section", { width: 300, height: 400 });
   register("header", {
     width: 300,

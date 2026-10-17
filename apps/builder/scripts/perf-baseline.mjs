@@ -204,6 +204,7 @@ export function parseArgs(argv) {
       "nested-flex",
       "app-pages",
       "sticky-lists",
+      "scroll-boxes",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
@@ -559,6 +560,103 @@ export async function seedDocument(
         return {
           seedIds: listIds,
           nodeCount: 1 + lists * 4,
+          pageIds: store.getState().pages.map((p) => p.id),
+          homePageId: pageId,
+        };
+      }
+      if (fixtureKind === "scroll-boxes") {
+        // ADR-269 (사용자 결정 2, 2026-10-17): 요소 스크롤 부류 `scroll` 의 대상. 한 줄에
+        // (a) overflow:auto frame (720×360) > 카드 (flex column · 제목 Text · 칩 4 > Text) — 넘쳐 스크롤,
+        // (b) 단독 ListBox (240×300) > 항목. 규모는 seedCount — 카드 seedCount/20 · 항목 seedCount/2.
+        // seedIds = [스크롤 상자, ListBox] — `scroll` 드라이버가 차례로 선택해 휠을 굴린다.
+        const cards = Math.max(4, Math.round(seedCount / 20));
+        const items = Math.max(20, Math.round(seedCount / 2));
+        const boxId = "perf-seed-sa";
+        const listId = "perf-seed-sl";
+        if (!store.getState().elementsMap.has("perf-seed-root")) {
+          const cardIds = Array.from(
+            { length: cards },
+            (_, i) => `${boxId}-c${i}`,
+          );
+          const itemIds = Array.from(
+            { length: items },
+            (_, i) => `${listId}-i${i}`,
+          );
+          const specs = [
+            {
+              id: "perf-seed-root",
+              type: "frame",
+              root: true,
+              children: [boxId, listId],
+              layout: {
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+              },
+              visual: { gap: 24, padding: 24 },
+            },
+            {
+              id: boxId,
+              type: "frame",
+              track: true,
+              children: cardIds,
+              layout: { display: "flex", flexDirection: "column" },
+              visual: { gap: 12, padding: 12, overflow: "auto" },
+              sizing: { width: 720, height: 360 },
+            },
+          ];
+          for (const c of cardIds) {
+            const chips = [0, 1, 2, 3].map((j) => `${c}-b${j}`);
+            specs.push(
+              {
+                id: c,
+                type: "frame",
+                children: [`${c}-t`, `${c}-b`],
+                layout: { display: "flex", flexDirection: "column" },
+                visual: { gap: 6, padding: 10, backgroundColor: "#eef3ff" },
+              },
+              { id: `${c}-t`, type: "Text", text: `Scroll card ${c}` },
+              {
+                id: `${c}-b`,
+                type: "frame",
+                children: chips,
+                layout: { display: "flex", flexDirection: "row" },
+                visual: { gap: 6 },
+              },
+              ...chips.flatMap((chip, j) => [
+                {
+                  id: chip,
+                  type: "frame",
+                  children: [`${chip}-t`],
+                  layout: { display: "flex", flexDirection: "row" },
+                  visual: { padding: 4, backgroundColor: "#dbe7ff" },
+                },
+                { id: `${chip}-t`, type: "Text", text: `tag ${j}` },
+              ]),
+            );
+          }
+          specs.push(
+            {
+              id: listId,
+              type: "ListBox",
+              definitionId: "lib:definition:type-ListBox",
+              track: true,
+              children: itemIds,
+              sizing: { width: 240, height: 300 },
+            },
+            ...itemIds.map((id) => ({
+              id,
+              type: "ListBoxItem",
+              definitionId:
+                "lib:definition:origin-component-listbox-item-default",
+            })),
+          );
+          store.getState().insertTree(body.id, specs);
+          await yieldTask();
+        }
+        return {
+          seedIds: [boxId, listId],
+          nodeCount: 3 + cards * 11 + items,
           pageIds: store.getState().pages.map((p) => p.id),
           homePageId: pageId,
         };
@@ -2447,9 +2545,42 @@ export const FRAME_CLASSES = {
     });
     await page.mouse.up();
   },
+  // ADR-269 (사용자 결정 2, 2026-10-17): 요소 스크롤 — seedIds 의 scroll/auto 상자 (`scroll-boxes`
+  // fixture) 를 차례로 선택하고 캔버스 위에서 휠을 굴린다. 선택된 스크롤 상자가 휠을 받는다
+  // (`CatalogCanvas` wheel route → `scene.scrollBy`). 상자마다 이동 수의 절반 · 20 번마다 방향을
+  // 바꾼다 (±40). 휠마다 1 rAF (다음 프레임의 sync 가 그 오프셋을 그린다).
+  scroll: async (page, ctx, ms) => {
+    const { box, scrollTargets } = ctx.pointer;
+    await page.mouse.move(
+      (box.left + box.right) / 2,
+      (box.top + box.bottom) / 2,
+    );
+    const total = Math.ceil(ms / 16);
+    const t0 = Date.now();
+    for (let k = 0; k < scrollTargets.length; k += 1) {
+      await page.evaluate(
+        (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+        scrollTargets[k],
+      );
+      const share = Math.ceil(total / scrollTargets.length);
+      for (
+        let i = 0;
+        ctx.fixedInputs
+          ? i < share
+          : Date.now() - t0 < (ms * (k + 1)) / scrollTargets.length;
+        i += 1
+      ) {
+        await page.mouse.wheel(0, (Math.floor(i / 20) % 2 ? -1 : 1) * 40);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => resolve())),
+        );
+      }
+    }
+  },
 };
 
-const POINTER_CLASSES = new Set(["hover", "drag", "marquee"]);
+const POINTER_CLASSES = new Set(["hover", "drag", "marquee", "scroll"]);
 
 async function pointerSteps(page, ctx, ms, pointAt) {
   const t0 = Date.now();
@@ -2564,8 +2695,30 @@ async function setupPointerClass(page, cls, seed) {
   }
   if (cls === "marquee" && !plan.marqueeOnCanvas)
     throw new Error(`marquee start off canvas: ${JSON.stringify(plan)}`);
+  // ADR-269: 휠을 받을 상자 — 넘쳐 스크롤할 곳이 있어야 한다 (없으면 휠이 카메라를 옮긴다).
+  let scrollTargets = [];
+  if (cls === "scroll") {
+    const unscrollable = await page.evaluate((ids) => {
+      const h = window.__COMPOSITION_CATALOG__;
+      return ids.filter((id) => {
+        const record = h.workspace.root.recordsOfSource(
+          `project:node:${id}`,
+        )[0];
+        // (A build before ADR-269 has no `scrollable` handle — then only the record is checked.)
+        return (
+          !record ||
+          (typeof h.canvas.scrollable === "function" &&
+            !h.canvas.scrollable(record))
+        );
+      });
+    }, seed.seedIds);
+    if (unscrollable.length)
+      throw new Error(`scroll targets not scrollable: ${unscrollable}`);
+    scrollTargets = seed.seedIds;
+  }
   return {
     ...plan,
+    scrollTargets,
     targetSource,
     start: cls === "marquee" ? plan.marqueeStart : plan.target,
   };

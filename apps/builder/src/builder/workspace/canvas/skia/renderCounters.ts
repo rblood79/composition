@@ -142,6 +142,30 @@ export interface RenderCounters {
   damageTouchedElements: number;
   /** ADR-266 Phase 4 — 옮기기 검사 (`checkTranslate`) 가 훑은 명령 수. */
   translateCheckCommands: number;
+  /**
+   * ADR-269 Phase 0 — 요소 스크롤이 다시 기록한 명령 수 (스크롤된 상자를 덮는 patch root 의 쓰기) ·
+   * 그 patch 를 낸 update 수.
+   */
+  scrollRecordCommands: number;
+  scrollRecordCalls: number;
+  /** `splice-rejected:<reason>` 재바인드를 사유별로 — clip 문맥 · scroll 문맥 · 그 밖. */
+  rebindSpliceRejectedClipContext: number;
+  rebindSpliceRejectedScrollContext: number;
+  rebindSpliceRejectedOther: number;
+  /** 옮기기가 쓴 맵 항목 수 (bounds · clipContext · buildContext · hit — 요소당 3 ~ 4) + root 명령 1. */
+  translateMapWrites: number;
+  /** 실행기 · damage · 검사가 property node 테이블을 읽은 횟수 (ADR-269 Phase 1 부터 — HC4). */
+  propertyNodeReads: number;
+  /**
+   * ADR-269 Phase 1 — 스크롤이 자손 맵을 옮긴 비용 (`applyScrollDelta` — 옮기기와 같은 기계): 적용 수 ·
+   * 옮긴 요소 수 · 맵 쓰기 수 · SpatialIndex upsert 수. 그리고 sticky 처럼 옮길 수 없어 다시 기록한
+   * 자식 서브트리 수.
+   */
+  scrollDeltaCalls: number;
+  scrollDeltaNodes: number;
+  scrollDeltaMapWrites: number;
+  scrollDeltaIndexUpserts: number;
+  scrollDeltaRerecords: number;
 }
 
 const counters: RenderCounters = {
@@ -223,6 +247,18 @@ const counters: RenderCounters = {
   contentRecordedText: 0,
   damageTouchedElements: 0,
   translateCheckCommands: 0,
+  scrollRecordCommands: 0,
+  scrollRecordCalls: 0,
+  rebindSpliceRejectedClipContext: 0,
+  rebindSpliceRejectedScrollContext: 0,
+  rebindSpliceRejectedOther: 0,
+  translateMapWrites: 0,
+  propertyNodeReads: 0,
+  scrollDeltaCalls: 0,
+  scrollDeltaNodes: 0,
+  scrollDeltaMapWrites: 0,
+  scrollDeltaIndexUpserts: 0,
+  scrollDeltaRerecords: 0,
 };
 
 /**
@@ -266,11 +302,13 @@ export function resetRenderCounters(): void {
  * `linearOnly`: full 재기록이 viewport 공간 질의 대신 선형 실행 (컬링 점프 없음) 으로 간다.
  * `damageOff`: damage 부분 재기록 대신 full 로 그린다.
  * `translateOff`: ADR-264 옮기기 · 경로 자기 patch 대신 region 전체를 다시 기록한다 (지금까지의 길).
+ * `propertyNodesOff`: ADR-269 스크롤이 자손 맵 Δ 대신 소유자 서브트리를 다시 기록한다 (지금까지의 길).
  */
 export const renderDebug = {
   linearOnly: false,
   damageOff: false,
   translateOff: false,
+  propertyNodesOff: false,
 };
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -285,6 +323,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setTranslateOff = (on: boolean) => {
     renderDebug.translateOff = on;
+  };
+  debug.setPropertyNodesOff = (on: boolean) => {
+    renderDebug.propertyNodesOff = on;
   };
   (
     window as unknown as {

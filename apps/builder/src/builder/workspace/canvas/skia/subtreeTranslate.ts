@@ -47,6 +47,11 @@ export interface TranslateSubtreeInput {
   readonly context: SubtreeBuildContext;
   /** Publish the bounds snapshot (default) — a batch of moves publishes once at the end. */
   readonly publish?: boolean;
+  /**
+   * ADR-269: the root's command already holds its parent-relative place (a scroll moves only the
+   * parent's absolute position) — write no command, move the maps.
+   */
+  readonly keepCommand?: boolean;
 }
 
 export interface TranslateSubtreeResult {
@@ -121,33 +126,37 @@ function checkTranslate(
   )
     return { reason: "invalid-span" };
   let unsafePaint = false;
-  /** Elements met so far in the span — a sticky box's scroll container comes before it. */
+  /** Elements met so far — a sticky box's scroll container comes before it (pre-order). */
   const inside = new Set<string>();
-  if (process.env.NODE_ENV === "development")
-    renderCounters.translateCheckCommands += span.end - span.start;
-  for (let index = span.start; index < span.end; index += 1) {
-    const command = at(index)!;
-    if (command.type !== CMD_ELEMENT_BEGIN) continue;
-    const id = command.elementId;
-    // ADR-266: a node's internal child draw (`emitInternalChildDraw` — a button label, a rule
-    // shape) is wrapped with an empty id. It is not an element: its commands are local to the
-    // owner and hold no bounds, so placing the owner places it.
-    if (!id) continue;
+  // ADR-269 Phase 1: walk the subtree's elements by the stream's child index, not its commands
+  // (an internal child draw — empty id, owner-local, no bounds — is no element and is not in it).
+  const pending = [rootId];
+  let visited = 0;
+  while (pending.length) {
+    const id = pending.pop()!;
+    visited += 1;
     if (stream.topLayerElementIds.has(id)) return { reason: "top-layer" };
+    const node = getSkiaNode(id);
     const scrollKey = stream.scrollContextKeyByElement.get(id) ?? "";
-    if (command.isFixed || scrollKey.includes("|self:fixed"))
+    if (node?.isFixed || scrollKey.includes("|self:fixed"))
       return { reason: "fixed-or-sticky" };
     // ADR-267 (user decision 3 (c)): a sticky box moves with the subtree when its scroll container
     // moves with it (its offset is relative to that container); placed alone — its container
     // outside the subtree, or the page root — its offset changes, so it is drawn again.
-    const sticky = getSkiaNode(id)?.sticky;
+    const sticky = node?.sticky;
     if (sticky && !(sticky.owner !== null && inside.has(sticky.owner)))
       return { reason: "fixed-or-sticky" };
     inside.add(id);
     if (!stream.boundsMap.has(id)) return { reason: "invalid-span" };
     if (stream.damageUnsafeElementIds.has(id) || hasTextPaintOverflow(id))
       unsafePaint = true;
+    const children = stream.childElementIds.get(id);
+    if (children)
+      for (let index = children.length - 1; index >= 0; index -= 1)
+        pending.push(children[index]!);
   }
+  if (process.env.NODE_ENV === "development")
+    renderCounters.propertyNodeReads += visited;
   return { span, first, unsafePaint };
 }
 
@@ -189,6 +198,8 @@ export function translateSubtree(
 function applyTranslate(
   input: TranslateSubtreeInput,
   check: Exclude<TranslateCheck, { reason: SubtreeTranslateRejectReason }>,
+  /** ADR-269: whose cost this is — a layout move, or a scroll moving its owner's children. */
+  cost: "translate" | "scroll" = "translate",
 ): TranslateSubtreeResult {
   const { stream, rootId, context } = input;
   const { first, unsafePaint } = check;
@@ -198,11 +209,12 @@ function applyTranslate(
   const oldRoot = stream.boundsMap.get(rootId)!;
   const dx = context.parentAbsX + input.x - oldRoot.x;
   const dy = context.parentAbsY + input.y - oldRoot.y;
-  writeCommandAt(stream.commands, span.start, {
-    ...first,
-    x: input.x + context.cmdOffsetX,
-    y: input.y + context.cmdOffsetY,
-  });
+  if (!input.keepCommand)
+    writeCommandAt(stream.commands, span.start, {
+      ...first,
+      x: input.x + context.cmdOffsetX,
+      y: input.y + context.cmdOffsetY,
+    });
   stream.subtreeBuildContextByElement.set(rootId, {
     ...context,
     clipRect: cloneClip(context.clipRect),
@@ -211,6 +223,8 @@ function applyTranslate(
   let damage: BoundingBox | undefined;
   let nodes = 0;
   let indexUpserts = 0;
+  // ADR-269 Phase 0: the root's command and stored context, then 3 ~ 4 map entries per element.
+  let mapWrites = input.keepCommand ? 1 : 2;
   const elements: string[] = [];
   const clips: ClipRect[] = [context.clipRect];
   for (let index = span.start; index < span.end; index += 1) {
@@ -230,15 +244,18 @@ function applyTranslate(
       damage = union(union(damage, oldHit), hit);
       stream.boundsMap.set(id, bounds);
       stream.clipContextByElement.set(id, cloneClip(clip));
+      mapWrites += 3;
       if (id !== rootId) {
         const stored = stream.subtreeBuildContextByElement.get(id);
-        if (stored)
+        if (stored) {
           stream.subtreeBuildContextByElement.set(id, {
             ...stored,
             parentAbsX: stored.parentAbsX + dx,
             parentAbsY: stored.parentAbsY + dy,
             clipRect: cloneClip(clip),
           });
+          mapWrites += 1;
+        }
       }
       if (hit) stream.hitBoundsMap.set(id, { ...hit });
       else stream.hitBoundsMap.delete(id);
@@ -261,9 +278,17 @@ function applyTranslate(
   }
   if (input.publish !== false) publishPatchedCommandStreamSnapshot(stream);
   if (process.env.NODE_ENV === "development") {
-    renderCounters.translateCalls += 1;
-    renderCounters.translateNodes += nodes;
-    renderCounters.translateIndexUpserts += indexUpserts;
+    if (cost === "scroll") {
+      renderCounters.scrollDeltaCalls += 1;
+      renderCounters.scrollDeltaNodes += nodes;
+      renderCounters.scrollDeltaIndexUpserts += indexUpserts;
+      renderCounters.scrollDeltaMapWrites += mapWrites;
+    } else {
+      renderCounters.translateCalls += 1;
+      renderCounters.translateNodes += nodes;
+      renderCounters.translateIndexUpserts += indexUpserts;
+      renderCounters.translateMapWrites += mapWrites;
+    }
   }
   return {
     applied: true,
@@ -271,6 +296,93 @@ function applyTranslate(
     unsafePaint,
     nodes,
     indexUpserts,
+  };
+}
+
+export interface ScrollDeltaInput {
+  readonly stream: RenderCommandStream;
+  /** The scroll/auto box that scrolled (its children move, its own box does not). */
+  readonly ownerId: string;
+  /** How far its children move — the old scroll position minus the new one. */
+  readonly dx: number;
+  readonly dy: number;
+  /** The children's parent-relative rects (the bound layout). */
+  readonly layoutMap: ReadonlyMap<string, ComputedLayout>;
+}
+
+export interface ScrollDeltaResult {
+  /** Old ∪ new hit bounds of every moved element; none = nothing hit. */
+  readonly damageBounds?: BoundingBox;
+  readonly unsafePaint: boolean;
+  /**
+   * Children that cannot move with the scroll (a sticky box placed by this owner's position):
+   * their stored context now holds the new position — the caller records them again.
+   */
+  readonly rerecord: readonly string[];
+}
+
+/**
+ * ADR-269 Phase 1 — a scroll/auto box scrolled: its children's commands stay (they are relative to
+ * the owner, and the executor reads the owner's position from the property node table); their
+ * absolute maps move by the delta — the same placement `translateSubtree` does (O(descendants),
+ * not O(1)). The owner's subtree is not recorded again. Null when the scroll cannot be placed so
+ * (a drag offset, a child in the top layer or without a stored context): the caller records the
+ * owner's subtree again.
+ */
+export function applyScrollDelta(
+  input: ScrollDeltaInput,
+): ScrollDeltaResult | null {
+  const { stream, ownerId, dx, dy } = input;
+  if (getDragVisualOffset() || hasDragSiblingOffsets()) return null;
+  const plans: Array<{
+    move: TranslateSubtreeInput;
+    check: SubtreeTranslatePlan;
+  }> = [];
+  const rerecord: Array<{ id: string; context: SubtreeBuildContext }> = [];
+  for (const child of stream.childElementIds.get(ownerId) ?? []) {
+    const stored = stream.subtreeBuildContextByElement.get(child);
+    const layout = input.layoutMap.get(child);
+    if (!stored || !layout) return null;
+    const context: SubtreeBuildContext = {
+      ...stored,
+      parentAbsX: stored.parentAbsX + dx,
+      parentAbsY: stored.parentAbsY + dy,
+      clipRect: cloneClip(stored.clipRect),
+    };
+    const check = checkTranslate(stream, child, context);
+    if (check.reason === "fixed-or-sticky")
+      rerecord.push({ id: child, context });
+    else if (check.reason) return null;
+    else
+      plans.push({
+        move: {
+          stream,
+          rootId: child,
+          x: layout.x,
+          y: layout.y,
+          context,
+          publish: false,
+          keepCommand: true,
+        },
+        check,
+      });
+  }
+  let damage: BoundingBox | undefined;
+  let unsafePaint = false;
+  for (const { move, check } of plans) {
+    const result = applyTranslate(move, check, "scroll");
+    damage = union(damage, result.damageBounds);
+    if (result.unsafePaint) unsafePaint = true;
+  }
+  for (const { id, context } of rerecord)
+    stream.subtreeBuildContextByElement.set(id, context);
+  if (plans.length) publishPatchedCommandStreamSnapshot(stream);
+  if (process.env.NODE_ENV === "development")
+    renderCounters.scrollDeltaRerecords += rerecord.length;
+  return {
+    ...(damage ? { damageBounds: damage } : {}),
+    unsafePaint,
+    rerecord: rerecord.map(({ id }) => id),
   };
 }
 

@@ -1,6 +1,7 @@
 import type { CanvasKit, Canvas, Path } from "canvaskit-wasm";
 import { buildPath } from "./buildPath";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import type { ScrollbarGeometry } from "./propertyNodes";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { getCacheMetrics } from "./cacheMetrics";
 import { resolveCssCornerRadii } from "../styleConversion/borderGeometry";
@@ -513,10 +514,18 @@ export function renderPath(
   if (translated) canvas.restore();
 }
 
+/**
+ * A scroll/auto box's scrollbar in its own coordinates (`width` × `height` = the box). ADR-269: the
+ * executor draws it at `CHILDREN_END` from the property node table (`propertyNodes.ts`).
+ */
 export function renderScrollbar(
   ck: CanvasKit,
   canvas: Canvas,
-  node: SkiaNodeData,
+  node: {
+    readonly width: number;
+    readonly height: number;
+    readonly scrollbar?: ScrollbarGeometry;
+  },
 ): void {
   if (!node.scrollbar) return;
 

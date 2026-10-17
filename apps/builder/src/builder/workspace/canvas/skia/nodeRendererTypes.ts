@@ -177,11 +177,6 @@ export interface SkiaNodeData {
   clipChildren?: boolean;
   /** Opt-in child clip inset. Existing Builder node builders leave this unset. */
   clipBorderInset?: number;
-  scrollOffset?: { scrollTop: number; scrollLeft: number };
-  scrollbar?: {
-    vertical?: { trackHeight: number; thumbHeight: number; thumbY: number };
-    horizontal?: { trackWidth: number; thumbWidth: number; thumbX: number };
-  };
   contentMinHeight?: number;
   zIndex?: number;
   isStackingContext?: boolean;

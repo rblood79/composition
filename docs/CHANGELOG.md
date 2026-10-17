@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [요소 스크롤이 소유자 서브트리를 다시 기록하지 않는다 — ADR-269 Implemented] - 2026-10-17
+
+### Performance
+
+- **overflow scroll · auto 상자의 휠 스크롤** (ADR-269 Phase 1) — 스크롤 위치를 그리기 명령 · node data 에 굽지 않고 property node 테이블 (`skia/propertyNodes.ts`) 에 둔다. 스크롤은 테이블 한 칸 + 자손 맵 Δ (옮기기와 같은 기계) 로 끝나고, 소유자 서브트리를 다시 기록하지 않는다. 하니스 `600:scroll-boxes` 휠 188 회: 다시 기록한 명령 **575,844 → 0** · patch 검증 스캔 1,151,688 → 0 · 소유자 picture 무효화 94 → 0. 남는 비용은 자손 수에 비례하는 맵 Δ (`scrollDeltaNodes` 143,820) 다 — 체감 속도 (p99 · drop) 는 종결 때 production 짝으로 잰다.
+  - production 짝 (HEAD 빌드 ↔ 수정 빌드, 교대 2 쌍): 요소 스크롤 5k main thread **3,385 · 3,360 → 1,942 · 1,976 ms**, 화면 표시 간격 p99 16.8 · long task 0 (회귀 없음). 실사용 22 페이지 문서의 page body 휠 1 회 재기록 574 → 0. 중첩 5k 편집은 main thread +3 % (387 → 399 ms, 원인 미확정 — 표시 지표는 같음).
+  - sticky 머리를 담은 자식 (ListBox 섹션) 은 스크롤 위치에 따라 놓이므로 그 자식만 다시 기록한다.
+  - 같은 프레임의 문서 편집과 스크롤은 한 번에 그린다 (`CatalogCanvasUpdate.propertyChanged` · damage 합집합, unsafe 칠이면 full).
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{propertyNodes,renderCommands,subtreeTranslate,subtreeCommandPatch}.ts` · `apps/builder/src/builder/catalogRuntime/{canvasBinding,canvasScene}.ts`
+- **옮기기 검사가 서브트리 명령을 훑지 않는다** (ADR-269 Phase 1) — 기록 때 만든 자식 색인 (`childElementIds`) 으로 판정. `translateCheckCommands` `app-pages` 줌 917,005 → 0 · 편집 9,231 → 0 · 중첩 5k 편집 20,310 → 0 (대신 요소 수만큼 색인을 읽는다 — 223,086).
+
+### Changed
+
+- **`CHILDREN_END` 는 자기 `CHILDREN_BEGIN` 이 연 것만 닫는다** (ADR-269 r1 H1) — 실행기의 열린 프레임 스택 (clip · scroll) 으로 닫고, scrollbar 는 테이블의 현재 위치에서 그린다. 짝이 어긋난 실행은 production 밖에서 멈춘다. `buildBoxNodeData` 의 생산자 없던 scroll 입력과 `SkiaNodeData.scrollOffset` · `scrollbar` 는 삭제했다.
+- commit lane patch 의 `scroll-context-changed` 거부를 없앴다 — 스크롤 위치가 저장 문맥에 없으므로 스크롤된 조상 아래 편집도 patch 로 들어간다.
+
+### Added
+
+- **성능 하니스 요소 스크롤 부류** (ADR-269 사용자 결정 2) — `--fixture-kind scroll-boxes` (overflow:auto frame > 카드 · ListBox > 항목) + `--classes scroll` (스크롤 상자를 선택하고 캔버스 위 실제 휠). ratchet run `600:scroll-boxes` 등록. 새 카운터: `scrollRecordCommands` · `scrollRecordCalls` · `rebindSpliceRejected{ClipContext,ScrollContext,Other}` · `translateMapWrites` · `propertyNodeReads` · `scrollDelta{Calls,Nodes,MapWrites,IndexUpserts,Rerecords}`. dev 스위치 `__composition_RENDER_PATH_DEBUG__.setPropertyNodesOff` (옛 길 대조).
+  - 위치: `apps/builder/scripts/perf-baseline.mjs` · `apps/builder/perf/ratchet.json` · `apps/builder/scripts/adr269-property-nodes-live.mjs`
+
+### Tests
+
+- 무작위 트리 1,200 스크롤 동치 (명령 불변 · 맵 · SpatialIndex = 처음부터 기록) · 스크롤 + 옮김 · r1 H1 반례 4 (기록 뒤 0 ↔ 150 · 중첩 · thumb · 짝 assert) · r1 H2 반례 7 (실제 `CatalogCanvasScene.sync` — 발행 · 합산 · 편집 동시 · full 우선 · off 스위치 · sticky ListBox). 원복 RED 6/7. live 8/8 (화면 0 px · 맵 · `hitAt` = 재바인드, 스크롤 뒤 클릭 선택).
+
 ## [좁은 row 의 고정 폭 Frame 이 Canvas 에서도 글자 폭에서 멈춘다 — ADR-268 Implemented] - 2026-10-17
 
 ### Fixed

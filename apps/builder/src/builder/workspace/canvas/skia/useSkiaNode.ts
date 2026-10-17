@@ -26,6 +26,7 @@ import {
 } from "./nodePictureCache";
 import { renderCounters } from "./renderCounters";
 import { sameDrawData } from "./sameDrawData";
+import { resetPropertyNodes } from "./propertyNodes";
 
 // ============================================
 // 전역 레지스트리
@@ -143,6 +144,8 @@ export function getSkiaRegistrySize(): number {
 export function clearSkiaRegistry(): void {
   for (const data of skiaNodeRegistry.values()) releaseParagraphsIn(data);
   skiaNodeRegistry.clear();
+  // ADR-269: the property node table is keyed by the same elements — it goes with them.
+  resetPropertyNodes();
   clearTextDrawOrigin();
   registryVersion++;
   requestCanvasFrame();

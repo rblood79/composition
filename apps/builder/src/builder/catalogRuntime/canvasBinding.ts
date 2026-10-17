@@ -19,6 +19,7 @@ import {
 } from "../workspace/canvas/skia/renderCommands";
 import { applyCommitSubtreeCommandPatch } from "../workspace/canvas/skia/subtreeCommandPatch";
 import {
+  applyScrollDelta,
   applySubtreeTranslate,
   placeRegion,
   planSubtreeTranslate,
@@ -32,8 +33,13 @@ import {
   renderDebug,
 } from "../workspace/canvas/skia/renderCounters";
 import type { BoundingBox } from "../workspace/canvas/selection/types";
+import {
+  deleteScrollNode,
+  setScrollNode,
+} from "../workspace/canvas/skia/propertyNodes";
 
 import {
+  getSkiaNode,
   registerMovedSkiaNode,
   registerSkiaNode,
   unregisterSkiaNode,
@@ -77,6 +83,7 @@ import {
   catalogScrollRange,
   catalogSubtreeScrollExtent,
   catalogUpdatedScrollExtent,
+  type CatalogScrollbar,
   type CatalogScrollExtent,
   type CatalogOverflowTree,
 } from "./canvasOverflow";
@@ -1291,6 +1298,11 @@ export type CatalogCanvasUpdate =
       /** ADR-264: subtrees placed without being recorded again (moved, or under a new context). */
       readonly translated: readonly string[];
       /**
+       * ADR-269 (r1 H2): owners whose property node changed (a scroll position) since the last
+       * update — nothing recorded again, the area still draws again.
+       */
+      readonly propertyChanged: readonly string[];
+      /**
        * ADR-263 Phase 3: the scene area the splices changed (old ∪ new hit bounds of every patched
        * subtree) — absent when a patched subtree paints outside its hit bounds before or after
        * (a shadow, outline or transform) or nothing was spliced: the content draws in full.
@@ -1389,6 +1401,8 @@ function bindInColorMode(
   /** The scrollbar each scroll/auto box was registered with (an update compares against it). */
   const scrollbars = new Map<string, string>();
   const offsets: CatalogScrollOffsets = context.scrollOffsets ?? new Map();
+  /** ADR-269 Phase 0 (dev): boxes scrolled since the last update — their patch writes are counted. */
+  const scrolled = new Set<string>();
   const ranges = new Map<
     string,
     { maxScrollTop: number; maxScrollLeft: number }
@@ -1446,6 +1460,22 @@ function bindInColorMode(
       bar: catalogScrollbar(rect.width, rect.height, range, offset),
     };
   };
+  /** A hidden box draws no children: it keeps no scroll position in the table (ADR-269). */
+  const hiddenScrollBox = (node: CatalogConsumerNode, rect: Rect) => {
+    deleteScrollNode(node.id);
+    return hiddenNode(node, rect);
+  };
+  const scrollNodeOf = (
+    box: { width: number; height: number },
+    offset: { scrollTop: number; scrollLeft: number },
+    bar: CatalogScrollbar | undefined,
+  ) => ({
+    scrollTop: offset.scrollTop,
+    scrollLeft: offset.scrollLeft,
+    ...(bar
+      ? { bar: { width: box.width, height: box.height, scrollbar: bar } }
+      : {}),
+  });
   const withScrollbar = (
     node: CatalogConsumerNode,
     data: SkiaNodeData,
@@ -1458,28 +1488,31 @@ function bindInColorMode(
     ) {
       scrollbars.delete(node.id);
       ranges.delete(node.id);
+      deleteScrollNode(node.id);
       return data;
     }
     const { range, offset, bar } = scrollStateOf(node, data, rectOf);
     ranges.set(node.id, range);
-    scrollbars.set(node.id, JSON.stringify(bar ?? null));
+    // ADR-269: the registration key is the range — the thumb follows the position (the table), so
+    // an edit after a scroll does not record the owner again for its moved thumb.
+    scrollbars.set(node.id, JSON.stringify(range));
     const scrolled = offset.scrollTop !== 0 || offset.scrollLeft !== 0;
     if (scrolled) offsets.set(node.id, offset);
     else offsets.delete(node.id);
-    return {
-      ...data,
-      ...(bar ? { scrollbar: bar } : {}),
-      // The children move by the position (renderCommands translates them and their boxes).
-      ...(scrolled ? { scrollOffset: offset } : {}),
-    };
+    // The children move by the position and the scrollbar draws from it: the property node, not
+    // the node data (its picture stays across a scroll).
+    setScrollNode(node.id, scrollNodeOf(data, offset, bar));
+    return data;
   };
   /**
    * ADR-267: each sticky record's engine constraints (its scroll container as a record id) — the
    * render moves it by that container's scroll position. Re-read every update: a sibling's or the
    * container's change moves the limits without the sticky box's own rect changing.
    */
-  let stickyOf: ReadonlyMap<string, StickyConstraints<string | null>> =
-    new Map();
+  let stickyOf: ReadonlyMap<
+    string,
+    StickyConstraints<string | null>
+  > = new Map();
   const withSticky = (node: CatalogConsumerNode, data: SkiaNodeData) => {
     const sticky = stickyOf.get(node.id);
     if (!sticky) return data;
@@ -1534,7 +1567,7 @@ function bindInColorMode(
           node.derivedProps?._pendingHidden === true ||
           catalogRowSampleHidden(root, node) ||
           root.tagRowCollapsed(node.id)
-          ? hiddenNode(node, rect)
+          ? hiddenScrollBox(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
             : withSticky(
@@ -1745,6 +1778,17 @@ function bindInColorMode(
       return parts?.length ? JSON.stringify(parts) : undefined;
     };
     const dirty = new Set<string>();
+    /**
+     * ADR-269 (r1 H2): scroll owners placed since the last update (their children's maps moved,
+     * nothing recorded) and the area that changed — `update()` hands them on once.
+     */
+    const pendingProperty = {
+      owners: new Set<string>(),
+      damage: undefined as BoundingBox | undefined,
+      full: false,
+    };
+    /** Children a scroll could not place (a sticky box): recorded again at the next update. */
+    const scrollSeeds = new Set<string>();
     const unsubscribe = new Map<string, () => void>();
     for (const node of root.canvasInputs.values()) {
       bound.set(node.id, node);
@@ -1879,7 +1923,7 @@ function bindInColorMode(
           node.derivedProps?._pendingHidden === true ||
           catalogRowSampleHidden(root, node) ||
           root.tagRowCollapsed(node.id)
-          ? hiddenNode(node, rect)
+          ? hiddenScrollBox(node, rect)
           : withSticky(
               node,
               withScrollbar(
@@ -2191,6 +2235,7 @@ function bindInColorMode(
           boundParts.delete(id);
           ranges.delete(id);
           scrollbars.delete(id);
+          deleteScrollNode(id);
           extents.delete(id);
           reconciled.add(id);
         }
@@ -2297,8 +2342,7 @@ function bindInColorMode(
               !reRegister.has(cursor) &&
               catalogOverflowScrolls(owner.visual.overflow) &&
               JSON.stringify(
-                scrollStateOf(owner, layoutMap.get(cursor)!, rectOf).bar ??
-                  null,
+                scrollStateOf(owner, layoutMap.get(cursor)!, rectOf).range,
               ) !== scrollbars.get(cursor)
             ) {
               reRegister.add(cursor);
@@ -2329,6 +2373,12 @@ function bindInColorMode(
         stickyOf = next;
       }
       for (const id of reRegister) registerNode(id);
+      // ADR-269: a child a scroll could not place records again where its context now puts it.
+      const scrollRecorded = new Set(
+        [...scrollSeeds].filter((id) => input(id) && layoutMap.has(id)),
+      );
+      scrollSeeds.clear();
+      for (const id of scrollRecorded) patchRoots.add(id);
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.
       const roots = [...patchRoots].filter((id) => {
         for (let cursor = input(id)?.parentId; cursor;) {
@@ -2339,8 +2389,15 @@ function bindInColorMode(
       });
       let subtreeNodeVisits = 0;
       let commandWrites = 0;
-      let damage: BoundingBox | undefined;
-      let damageComplete = roots.length > 0;
+      // ADR-269 (r1 H2): the scrolls since the last update — nothing recorded, the area draws.
+      const propertyChanged = [...pendingProperty.owners];
+      let damage: BoundingBox | undefined = pendingProperty.damage;
+      let damageComplete =
+        (roots.length > 0 || propertyChanged.length > 0) &&
+        !pendingProperty.full;
+      pendingProperty.owners.clear();
+      pendingProperty.damage = undefined;
+      pendingProperty.full = false;
       const replacementSpans =
         process.env.NODE_ENV === "development"
           ? new Map<string, number>()
@@ -2393,7 +2450,12 @@ function bindInColorMode(
         process.env.NODE_ENV === "development" && renderDebug.translateOff
       );
       // A scroll owner whose scrollbar changed (not its record) records only its own commands.
-      const seeds = new Set([...dirty, ...regions, ...stickyChanged]);
+      const seeds = new Set([
+        ...dirty,
+        ...regions,
+        ...stickyChanged,
+        ...scrollRecorded,
+      ]);
       const top = new Set(roots);
       const onPath = new Set<string>();
       for (const id of [...seeds, ...changedRects.keys(), ...scrollRepaint])
@@ -2419,9 +2481,18 @@ function bindInColorMode(
         boundLayoutInputs.get(id) === root.getAppliedLayoutInput(id) &&
         boundParts.get(id) === partInput(id) &&
         !(childrenMap.get(id) ?? []).some((child) => onPath.has(child.id));
+      // ADR-269 Phase 0: the writes of patch roots that cover a scrolled box (dev count).
+      let scrollWrites = 0;
+      const coversScrolled = (root: string) => {
+        for (const id of scrolled)
+          for (let c: string | undefined = id; c; c = input(c)?.parentId)
+            if (c === root) return true;
+        return false;
+      };
       for (const id of roots) {
         if (!stream.subtreeBuildContextByElement.get(id))
           return rebind(id, "subtree-context");
+        const writesBefore = commandWrites;
         const placed: SubtreePatchOutcome & Partial<PlaceRegionResult> =
           translateOn
             ? placeRegion({
@@ -2447,6 +2518,15 @@ function bindInColorMode(
           damage = unionBox(damage, placed.damageBounds);
         translated.push(...(placed.translated ?? []));
         commandWrites += placed.selfWrites ?? 0;
+        if (scrolled.size && (scrollRecorded.has(id) || coversScrolled(id)))
+          scrollWrites += commandWrites - writesBefore;
+      }
+      if (process.env.NODE_ENV === "development" && scrolled.size) {
+        if (scrollWrites) {
+          renderCounters.scrollRecordCalls += 1;
+          renderCounters.scrollRecordCommands += scrollWrites;
+        }
+        scrolled.clear();
       }
       if (replacementSpans)
         countPatchRegions(
@@ -2470,6 +2550,7 @@ function bindInColorMode(
         patchRoots: roots,
         subtreeBuilds: roots.length,
         translated,
+        propertyChanged,
         subtreeNodeVisits,
         commandWrites,
         // An empty box = the splices changed nothing visible (the renderer draws nothing).
@@ -2484,8 +2565,54 @@ function bindInColorMode(
       return !!range && (range.maxScrollTop > 0 || range.maxScrollLeft > 0);
     };
     /**
+     * ADR-269 Phase 1: place a scroll — the owner's property node takes the new position (the
+     * executor reads it; the scrollbar follows it), the children's maps move by the delta
+     * (`applyScrollDelta`), and the change waits in `pendingProperty` for the next update. Nothing
+     * is recorded but the children a scroll cannot place (sticky). False = cannot (the caller
+     * records the owner's subtree again).
+     */
+    const placeScroll = (
+      id: string,
+      before: { scrollTop: number; scrollLeft: number },
+      after: { scrollTop: number; scrollLeft: number },
+      range: { maxScrollTop: number; maxScrollLeft: number },
+    ): boolean => {
+      const data = getSkiaNode(id);
+      if (!data || !stream.subtreeBuildContextByElement.has(id)) return false;
+      const result = applyScrollDelta({
+        stream,
+        ownerId: id,
+        dx: before.scrollLeft - after.scrollLeft,
+        dy: before.scrollTop - after.scrollTop,
+        layoutMap,
+      });
+      if (!result) return false;
+      setScrollNode(
+        id,
+        scrollNodeOf(
+          data,
+          after,
+          catalogScrollbar(data.width, data.height, range, after),
+        ),
+      );
+      for (const child of result.rerecord) scrollSeeds.add(child);
+      pendingProperty.owners.add(id);
+      // The owner's box holds its scrollbar and its children's old and new places (they are
+      // clipped to it) — unless one paints outside its hit area.
+      if (result.unsafePaint) pendingProperty.full = true;
+      const hit = stream.hitBoundsMap.get(id);
+      if (hit) pendingProperty.damage = unionBox(pendingProperty.damage, hit);
+      if (result.damageBounds)
+        pendingProperty.damage = unionBox(
+          pendingProperty.damage,
+          result.damageBounds,
+        );
+      return true;
+    };
+    /**
      * Scroll a box by a wheel delta (clamped to its range). A change redraws the box at the next
-     * `update` (the patch path: its subtree, with the moved children's boxes); false = no change.
+     * `update` — placed (ADR-269), or its subtree recorded again when it cannot be placed or the
+     * dev switch `propertyNodesOff` asks for the old way; false = no change.
      */
     const scrollBy = (id: string, deltaX: number, deltaY: number) => {
       const range = ranges.get(id);
@@ -2507,6 +2634,14 @@ function bindInColorMode(
       )
         return false;
       offsets.set(id, next);
+      if (process.env.NODE_ENV === "development") scrolled.add(id);
+      if (
+        !(
+          process.env.NODE_ENV === "development" && renderDebug.propertyNodesOff
+        ) &&
+        placeScroll(id, current, next, range)
+      )
+        return true;
       dirty.add(id);
       return true;
     };
@@ -2529,6 +2664,7 @@ function bindInColorMode(
       dispose: () => {
         unsubscribe.forEach((off) => off());
         registeredIds.forEach(unregisterSkiaNode);
+        ranges.forEach((_, id) => deleteScrollNode(id));
       },
     };
   } catch (error) {

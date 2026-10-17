@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
+import { setScrollNode } from "./propertyNodes";
 import { setDragVisualOffset } from "./nodeRendererTree";
 import {
   buildRenderCommandStream,
@@ -203,8 +204,8 @@ describe("applySubtreeCommandPatch", () => {
       width: 800,
       height: 600,
       clipChildren: true,
-      scrollOffset: { scrollTop: 100, scrollLeft: 0 },
     });
+    setScrollNode(body.id, { scrollTop: 100, scrollLeft: 0 });
     registerNode(sticky.id, {
       width: 100,
       height: 40,
@@ -252,21 +253,15 @@ describe("applySubtreeCommandPatch", () => {
     );
   });
 
-  it("ancestor scroll context가 달라지면 stale subtree patch를 거부한다", () => {
+  // ADR-269 Phase 1: a scroll position is the owner's property node, not the stored context — a
+  // subtree recorded after a scroll patches in (the old key carried the position and rejected it).
+  it("조상 scroll 위치가 바뀐 뒤 기록한 subtree 도 patch 하고 맵은 그 위치를 따른다", () => {
     const body = makeElement("scroll-context-body", { type: "body" });
     const leaf = makeElement("scroll-context-leaf", { parent_id: body.id });
-    registerNode(body.id, {
-      width: 800,
-      height: 600,
-      scrollOffset: { scrollTop: 100, scrollLeft: 0 },
-    });
+    registerNode(body.id, { width: 800, height: 600 });
     registerNode(leaf.id, { width: 100, height: 40 });
     const build = (scrollTop: number, revision: number) => {
-      registerNode(body.id, {
-        width: 800,
-        height: 600,
-        scrollOffset: { scrollTop, scrollLeft: 0 },
-      });
+      setScrollNode(body.id, { scrollTop, scrollLeft: 0 });
       return buildRenderCommandStream(
         [body.id],
         new Map([[body.id, [leaf]]]),
@@ -290,8 +285,9 @@ describe("applySubtreeCommandPatch", () => {
         rootId: leaf.id,
         publication: publication(1),
         canonicalRevision: 0,
-      }),
-    ).toEqual({ applied: false, reason: "scroll-context-changed" });
+      }).applied,
+    ).toBe(true);
+    expect(current.boundsMap.get(leaf.id)?.y).toBe(0);
   });
 
   it("기존 hit entry를 먼저 제거해 clip-out ghost hit를 남기지 않는다", () => {

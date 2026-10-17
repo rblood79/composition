@@ -1021,6 +1021,8 @@ export function CatalogCanvas({
         }),
         // Ids the SpatialIndex hits at a scene point (picking's candidates).
         hitAt: (x: number, y: number) => hitTestPoint(x, y),
+        // ADR-269: whether a record is a scroll/auto box with somewhere to scroll (the wheel target).
+        scrollable: (identity: string) => scene.scrollable(identity),
         rebind: () => {
           scene.rebuild();
           renderer.invalidateContent();

@@ -15,7 +15,9 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
-import { CatalogCanvasScene } from "../canvasScene";
+import { scrollNodeOf } from "../../workspace/canvas/skia/propertyNodes";
+import { CatalogCanvasScene, catalogSyncDamage } from "../canvasScene";
+import { renderDebug } from "../../workspace/canvas/skia/renderCounters";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -89,17 +91,15 @@ async function open(overflow: string) {
   return { workspace, scene, record };
 }
 
-/** The box's children-end command, which draws its scrollbar (only that command carries one). */
-const childrenEnd = (
-  scene: CatalogCanvasScene,
-  record: string,
-): { scrollbar?: unknown } | undefined =>
-  (
-    scene.stream.commands as unknown as Array<{
-      scrollbarNode?: { elementId: string };
-      scrollbar?: unknown;
-    }>
-  ).find((cmd) => cmd.scrollbarNode?.elementId === record);
+/**
+ * ADR-269: the scrollbar the executor draws at the box's children end — the box's property node,
+ * not its node data or a command.
+ */
+const scrollbarOf = (record: string) => scrollNodeOf(record)?.bar?.scrollbar;
+const scrollOffsetOf = (record: string) => {
+  const node = scrollNodeOf(record);
+  return node && { scrollTop: node.scrollTop, scrollLeft: node.scrollLeft };
+};
 
 describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
   it("removing overflowing content inside a fixed inner box refreshes the scroll ancestor without a scene rebind", async () => {
@@ -121,13 +121,12 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
       }),
     );
     scene.sync();
-    expect(getSkiaNode(record("box"))?.scrollbar).toBeDefined();
+    expect(scrollbarOf(record("box"))).toBeDefined();
     workspace.execute(
       removeTargets({ targets: [{ kind: "node", id: id("tall") }] }),
     );
     expect(scene.sync().kind).toBe("patched");
-    expect(getSkiaNode(record("box"))?.scrollbar).toBeUndefined();
-    expect(childrenEnd(scene, record("box"))).toBeUndefined();
+    expect(scrollbarOf(record("box"))).toBeUndefined();
     scene.dispose();
   });
   it("clips for clip / scroll / auto as for hidden, and not for visible", async () => {
@@ -151,15 +150,14 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
   it("gives a scroll/auto box the scrollbar of its overflowing content, and redraws it on a range edit", async () => {
     const { workspace, scene, record } = await open("auto");
     // 300 px of content in a 100 px box: thumb = 100 / 300 of the track.
-    expect(getSkiaNode(record("box"))?.scrollbar).toEqual({
+    expect(scrollbarOf(record("box"))).toEqual({
       vertical: {
         trackHeight: 100,
         thumbHeight: expect.closeTo(100 / 3, 6),
         thumbY: 0,
       },
     });
-    expect(childrenEnd(scene, record("box"))?.scrollbar).toBeDefined();
-    expect(getSkiaNode(record("box"))?.scrollbar?.horizontal).toBeUndefined();
+    expect(scrollbarOf(record("box"))?.horizontal).toBeUndefined();
     // The child shrinks inside the box: no scrollbar (the box itself did not change).
     workspace.execute(
       setFields({
@@ -168,11 +166,10 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
       }),
     );
     scene.sync();
-    expect(getSkiaNode(record("box"))?.scrollbar).toBeUndefined();
-    expect(childrenEnd(scene, record("box"))).toBeUndefined();
+    expect(scrollbarOf(record("box"))).toBeUndefined();
     // hidden clips but does not scroll.
     const hidden = await open("hidden");
-    expect(getSkiaNode(hidden.record("box"))?.scrollbar).toBeUndefined();
+    expect(scrollbarOf(hidden.record("box"))).toBeUndefined();
   });
 
   it("scrolls a scroll/auto box by the wheel: children and scrollbar move, clamped, kept across a rebind", async () => {
@@ -185,21 +182,21 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
     // Range = 300 − 100 = 200; a wheel past the end stops at it.
     expect(scene.scrollBy(box, 0, 150)).toBe(true);
     scene.sync();
-    expect(getSkiaNode(box)?.scrollOffset).toEqual({
+    expect(scrollOffsetOf(box)).toEqual({
       scrollTop: 150,
       scrollLeft: 0,
     });
     expect(tallTop()).toBe(before - 150);
-    expect(getSkiaNode(box)?.scrollbar?.vertical?.thumbY).toBeCloseTo(
+    expect(scrollbarOf(box)?.vertical?.thumbY).toBeCloseTo(
       (150 / 200) * (100 - 100 / 3),
     );
     expect(scene.scrollBy(box, 0, 500)).toBe(true);
     scene.sync();
-    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(200);
+    expect(scrollOffsetOf(box)?.scrollTop).toBe(200);
     expect(scene.scrollBy(box, 0, 10)).toBe(false);
     // A rebind keeps the position.
     scene.refresh();
-    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(200);
+    expect(scrollOffsetOf(box)?.scrollTop).toBe(200);
     expect(tallTop()).toBe(before - 200);
     // The content shrinks: the position is clamped into the new range (300 → 150: range 50).
     workspace.execute(
@@ -209,7 +206,7 @@ describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
       }),
     );
     scene.sync();
-    expect(getSkiaNode(box)?.scrollOffset?.scrollTop).toBe(50);
+    expect(scrollOffsetOf(box)?.scrollTop).toBe(50);
     expect(tallTop()).toBe(before - 50);
     // hidden clips but does not scroll.
     const hidden = await open("hidden");
@@ -304,6 +301,193 @@ describe("ADR-263 Phase 4 — 스크롤 범위 증분 (binding)", () => {
       }
     }
     expect(kept).toBeGreaterThan(150);
+    scene.dispose();
+  });
+});
+
+// ADR-269 Phase 1 (r1 H2): a scroll writes no command, yet the scene must report it through
+// `sync()` — the Canvas invalidates content · overlay · cells only for a sync that is not
+// `unchanged` (`CatalogCanvas.tsx` reads `synced.kind` and `catalogSyncDamage`).
+describe("ADR-269 Phase 1 — 스크롤은 명령을 쓰지 않고 sync 로 발행한다", () => {
+  const commandsOf = (scene: CatalogCanvasScene) =>
+    Array.from(
+      { length: scene.stream.commands.length },
+      (_, i) => scene.stream.commands[i],
+    );
+  const plain = <T>(map: ReadonlyMap<string, T>) =>
+    Object.fromEntries([...map].sort(([a], [b]) => a.localeCompare(b)));
+  /** The stream's maps and commands — compared with a fresh bind of the same state. */
+  const snapshot = (scene: CatalogCanvasScene) => ({
+    commands: commandsOf(scene),
+    bounds: plain(scene.stream.boundsMap),
+    hit: plain(scene.stream.hitBoundsMap),
+    clip: plain(scene.stream.clipContextByElement),
+  });
+
+  it("스크롤만: sync 가 patched · propertyChanged · damage, 명령 0, 다음 sync 는 unchanged", async () => {
+    const { scene, record } = await open("auto");
+    const box = record("box");
+    const before = commandsOf(scene);
+    expect(scene.scrollBy(box, 0, 50)).toBe(true);
+    const synced = scene.sync();
+    expect(synced.kind).toBe("patched");
+    if (synced.kind !== "patched") throw new Error("unreachable");
+    expect(synced.update.propertyChanged).toEqual([box]);
+    expect(synced.update.patchRoots).toEqual([]);
+    expect(synced.update.commandWrites).toBe(0);
+    // The owner's box (its scrollbar and children) draws again — a part, not in full.
+    expect(catalogSyncDamage(synced)).toEqual(
+      scene.stream.hitBoundsMap.get(box),
+    );
+    expect(commandsOf(scene)).toEqual(before);
+    expect(scene.sync().kind).toBe("unchanged");
+    scene.dispose();
+  });
+
+  it("한 프레임의 wheel 3 회는 update 1 회에 합산된다 · 결과는 같은 상태를 처음부터 묶은 것과 같다", async () => {
+    const { scene, record } = await open("auto");
+    const box = record("box");
+    for (const delta of [30, 40, 25]) scene.scrollBy(box, 0, delta);
+    const synced = scene.sync();
+    if (synced.kind !== "patched") throw new Error(synced.kind);
+    expect(synced.update.propertyChanged).toEqual([box]);
+    expect(scrollOffsetOf(box)?.scrollTop).toBe(95);
+    const placed = snapshot(scene);
+    scene.rebuild();
+    expect(placed).toEqual(snapshot(scene));
+    scene.dispose();
+  });
+
+  it("같은 프레임의 문서 편집 + 스크롤: 둘 다 반영되고 이중 적용이 없다", async () => {
+    const { workspace, scene, record } = await open("auto");
+    const box = record("box");
+    scene.scrollBy(box, 0, 60);
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("tall") }],
+        sizing: { width: { kind: "set", value: 120 } },
+      }),
+    );
+    const synced = scene.sync();
+    if (synced.kind !== "patched") throw new Error(synced.kind);
+    expect(synced.update.propertyChanged).toEqual([box]);
+    expect(synced.update.patchRoots.length).toBeGreaterThan(0);
+    expect(scene.stream.boundsMap.get(record("tall"))?.width).toBe(120);
+    const placed = snapshot(scene);
+    scene.rebuild();
+    expect(placed).toEqual(snapshot(scene));
+    scene.dispose();
+  });
+
+  it("자식이 hit 영역 밖으로 칠하면 full 이 우선한다 (damage 없음)", async () => {
+    const { workspace, scene, record } = await open("auto");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("tall") }],
+        visual: { transform: { kind: "set", value: "rotate(5deg)" } },
+      }),
+    );
+    scene.sync();
+    expect(scene.stream.damageUnsafeElementIds.has(record("tall"))).toBe(true);
+    scene.scrollBy(record("box"), 0, 40);
+    const synced = scene.sync();
+    expect(synced.kind).toBe("patched");
+    expect(catalogSyncDamage(synced)).toBeUndefined();
+    scene.dispose();
+  });
+
+  it("off 스위치 (옛 길 — 소유자 서브트리 재기록) 와 같은 결과", async () => {
+    const placedRun = await open("auto");
+    const recordedRun = await open("auto");
+    const scrollEach = (run: typeof placedRun) => {
+      for (const delta of [70, -20, 90]) {
+        run.scene.scrollBy(run.record("box"), 0, delta);
+        run.scene.sync();
+      }
+      return snapshot(run.scene);
+    };
+    const placed = scrollEach(placedRun);
+    renderDebug.propertyNodesOff = true;
+    try {
+      const recorded = scrollEach(recordedRun);
+      // Same document, two workspaces: compare by record position, not by id.
+      expect(Object.values(placed.bounds)).toEqual(
+        Object.values(recorded.bounds),
+      );
+      expect(Object.values(placed.hit)).toEqual(Object.values(recorded.hit));
+    } finally {
+      renderDebug.propertyNodesOff = false;
+    }
+    placedRun.scene.dispose();
+    recordedRun.scene.dispose();
+  });
+
+  it("스크롤 뒤 무관한 편집은 소유자를 다시 기록하지 않는다 (scrollbar 판정 키 = 범위)", async () => {
+    const { workspace, scene, record } = await open("auto");
+    const box = record("box");
+    scene.scrollBy(box, 0, 80);
+    scene.sync();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        sizing: { width: { kind: "set", value: 210 } },
+      }),
+    );
+    const synced = scene.sync();
+    if (synced.kind !== "patched") throw new Error(synced.kind);
+    expect(synced.update.rebound).not.toContain(box);
+    expect(scrollOffsetOf(box)?.scrollTop).toBe(80);
+    scene.dispose();
+  });
+
+  it("sticky 머리가 있는 ListBox: 머리를 담은 자식만 다시 기록하고 나머지는 옮긴다 · 결과는 처음부터 묶은 것과 같다", async () => {
+    const { workspace, scene, record } = await open("visible");
+    const list = id("sticky-list");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...sized(
+              "sticky-list",
+              "lib:definition:type-ListBox",
+              220,
+              200,
+              [0, 1, 2].map((k) => id(`sticky-section-${k}`)),
+            ),
+          },
+          ...[0, 1, 2].map((k): NodeEntry => ({
+            kind: "node",
+            id: id(`sticky-section-${k}`),
+            definitionId:
+              "lib:definition:origin-component-listbox-section" as NodeEntry["definitionId"],
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          })),
+        ],
+        rootIds: [list],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    const owner = record("sticky-list");
+    expect(scene.scrollable(owner)).toBe(true);
+    expect(scene.scrollBy(owner, 0, 60)).toBe(true);
+    const synced = scene.sync();
+    if (synced.kind !== "patched") throw new Error(synced.kind);
+    expect(synced.update.propertyChanged).toEqual([owner]);
+    // The sections hold the sticky headers (placed by this owner's position): recorded again.
+    const stickyIds = [...scene.stream.boundsMap.keys()].filter(
+      (record) => getSkiaNode(record)?.sticky?.owner === owner,
+    );
+    expect(stickyIds.length).toBeGreaterThan(0);
+    expect(synced.update.patchRoots.length).toBeGreaterThan(0);
+    const placed = snapshot(scene);
+    scene.rebuild();
+    expect(placed).toEqual(snapshot(scene));
     scene.dispose();
   });
 });

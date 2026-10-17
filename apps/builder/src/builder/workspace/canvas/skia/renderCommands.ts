@@ -30,6 +30,7 @@ import {
 } from "./nodeRendererMask";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { getSkiaNode } from "./useSkiaNode";
+import { scrollNodeOf, scrollOffsetOf } from "./propertyNodes";
 import { linkParagraphOwner } from "./retainedParagraph";
 import {
   getDragVisualOffset,
@@ -253,21 +254,26 @@ interface DrawCmd {
 
 interface ChildrenBeginCmd {
   type: typeof CMD_CHILDREN_BEGIN;
+  /**
+   * ADR-269: the element whose children follow — the executor reads its scroll position from the
+   * property node table (`propertyNodes.ts`), not from the command.
+   */
+  ownerId: string;
   clipChildren: boolean;
   width: number;
   height: number;
   /** CSS overflow clips descendants at the inner edge of an authored uniform border. */
   clipBorderInset?: number;
-  scrollOffset?: { scrollTop: number; scrollLeft: number };
 }
 
+/**
+ * ADR-269 (r1 H1): closes what its `CHILDREN_BEGIN` opened — the executor's frame stack holds it
+ * (clip · scroll), so the end never reads a state recorded or looked up apart from the begin.
+ */
 interface ChildrenEndCmd {
   type: typeof CMD_CHILDREN_END;
-  clipChildren: boolean;
-  hasClip: boolean;
-  hasScrollOffset: boolean;
-  scrollbar?: SkiaNodeData["scrollbar"];
-  scrollbarNode?: SkiaNodeData;
+  /** The owner's scrollbar is drawn here from the property node table. */
+  ownerId: string;
 }
 
 interface ElementEndCmd {
@@ -826,6 +832,11 @@ export interface RenderCommandStream {
   subtreeBuildContextByElement: Map<string, SubtreeBuildContext>;
   /** drag/fixed 재배치 layer에 포함된 element 집합 */
   topLayerElementIds: Set<string>;
+  /**
+   * ADR-269: elementId → 그 자리에 기록된 자식 요소 id (그린 순서). 명령을 훑지 않고 서브트리 요소를
+   * 열거한다 (옮기기 검사 `checkTranslate`). 자식 없는 요소는 등재하지 않는다.
+   */
+  childElementIds: Map<string, readonly string[]>;
   boundsMap: Map<string, BoundingBox>;
   /**
    * 클립 인지 히트 영역 — `boundsMap` 을 조상 clip rect 로 교차한 결과.
@@ -1245,6 +1256,7 @@ export function buildRenderCommandStream(
   const scrollContextKeyByElement = new Map<string, string>();
   const subtreeBuildContextByElement = new Map<string, SubtreeBuildContext>();
   const topLayerElementIds = new Set<string>();
+  const childElementIds = new Map<string, readonly string[]>();
   const boundsMap = new Map<string, BoundingBox>();
   const hitBoundsMap = new Map<string, BoundingBox>();
   const presentationRevisionByRootKey = new Map(
@@ -1277,6 +1289,7 @@ export function buildRenderCommandStream(
       scrollContextKeyByElement,
       subtreeBuildContextByElement,
       topLayerElementIds,
+      childElementIds,
       boundsMap,
       hitBoundsMap,
       subtreeContext?.clipRect ?? null,
@@ -1316,6 +1329,7 @@ export function buildRenderCommandStream(
       scrollContextKeyByElement,
       subtreeBuildContextByElement,
       topLayerElementIds,
+      childElementIds,
       boundsMap,
       hitBoundsMap,
       null,
@@ -1372,6 +1386,7 @@ export function buildRenderCommandStream(
     scrollContextKeyByElement,
     subtreeBuildContextByElement,
     topLayerElementIds,
+    childElementIds,
     boundsMap,
     hitBoundsMap,
     presentationRevision: revision.presentationRevision,
@@ -1559,6 +1574,7 @@ function visitElement(
   scrollContextKeyByElement: Map<string, string>,
   subtreeBuildContextByElement: Map<string, SubtreeBuildContext>,
   topLayerElementIds: Set<string>,
+  childElementIds: Map<string, readonly string[]>,
   boundsMap: Map<string, BoundingBox>,
   hitBoundsMap: Map<string, BoundingBox>,
   clipRect: ClipRect,
@@ -1634,12 +1650,13 @@ function visitElement(
   // on the engine's constraints). The moved place is the box's place for every spatial output —
   // the paint, its bounds and hit area, and its children's context (clip · parent position) — so
   // the header drawn stuck is the one hovered, selected and clicked, with its labels on it.
+  // (ADR-269: the container's position is its property node — `propertyNodes.ts`.)
   const stickyDelta = skiaData.sticky
     ? resolveStickyOffset(
         skiaData.sticky,
-        (skiaData.sticky.owner
-          ? getSkiaNode(skiaData.sticky.owner)?.scrollOffset
-          : undefined) ?? { scrollTop: 0, scrollLeft: 0 },
+        skiaData.sticky.owner
+          ? scrollOffsetOf(skiaData.sticky.owner)
+          : { scrollTop: 0, scrollLeft: 0 },
       )
     : undefined;
   const placedX = relX + (stickyDelta?.dx ?? 0);
@@ -1734,19 +1751,23 @@ function visitElement(
     const childrenStart = commands.length;
     commands.push({
       type: CMD_CHILDREN_BEGIN,
+      ownerId: elementId,
       clipChildren: skiaData.clipChildren ?? false,
       width: clipWidth,
       height: clipHeight,
       ...(clipBorderInset > 0 ? { clipBorderInset } : {}),
-      scrollOffset: skiaData.scrollOffset,
     });
 
     // z-index 정렬: skiaNodeRegistry에서 각 자식의 zIndex 조회
     const sortedChildren = sortChildElementsByZIndex(childElements);
 
     // boundsMap에 scroll offset 반영: 자식의 절대 좌표에서 부모의 스크롤량 차감
-    const scrollX = skiaData.scrollOffset?.scrollLeft ?? 0;
-    const scrollY = skiaData.scrollOffset?.scrollTop ?? 0;
+    // (ADR-269: 스크롤 위치는 property node — 명령 · node data 에 굽지 않는다)
+    const { scrollLeft: scrollX, scrollTop: scrollY } =
+      scrollOffsetOf(elementId);
+    // ADR-269: scroll 문맥 키는 구조만 (어느 조상이 스크롤 상자인가) — 위치를 넣으면 스크롤마다
+    // 자손의 저장 문맥이 낡는다.
+    const childScrollContextKey = `${elementScrollContextKey}|scroll:${elementId}`;
     const childVisitOptions = options.renderAsTopLayer ? {} : options;
 
     const childClipRect = childClipRectOf(
@@ -1761,6 +1782,8 @@ function visitElement(
       clipRect,
     );
 
+    /** ADR-269: the children recorded here, in drawn order (the stream's child index). */
+    const recorded: string[] = [];
     for (const [childIndex, child] of sortedChildren.entries()) {
       if (options.selfOnlyChildContexts) {
         // 자식의 visitElement 가 저장할 문맥과 같은 값 (아래 호출 인자).
@@ -1772,7 +1795,7 @@ function visitElement(
           cmdOffsetY: 0,
           parentElementId: elementId,
           zOrderKey: `${zOrderKey}/${childIndex}:${getChildZIndex(child)}`,
-          scrollContextKey: `${elementScrollContextKey}|scroll:${elementId}:${scrollX},${scrollY}`,
+          scrollContextKey: childScrollContextKey,
           topLayerSubtree: isTopLayer,
         });
         continue;
@@ -1791,6 +1814,7 @@ function visitElement(
         scrollContextKeyByElement,
         subtreeBuildContextByElement,
         topLayerElementIds,
+        childElementIds,
         boundsMap,
         hitBoundsMap,
         childClipRect,
@@ -1801,23 +1825,15 @@ function visitElement(
         elementId,
         childVisitOptions,
         `${zOrderKey}/${childIndex}:${getChildZIndex(child)}`,
-        `${elementScrollContextKey}|scroll:${elementId}:${scrollX},${scrollY}`,
+        childScrollContextKey,
         isTopLayer,
       );
+      if (subtreeSpans.has(child.id)) recorded.push(child.id);
     }
+    // 자기 명령만 기록 (`selfOnlyChildContexts`) 이면 자식이 이 stream 에 없다 — 색인도 없다.
+    if (recorded.length) childElementIds.set(elementId, recorded);
 
-    commands.push({
-      type: CMD_CHILDREN_END,
-      clipChildren: skiaData.clipChildren ?? false,
-      hasClip: !!(skiaData.clipChildren && clipWidth > 0 && clipHeight > 0),
-      hasScrollOffset: !!(
-        skiaData.scrollOffset &&
-        (skiaData.scrollOffset.scrollTop !== 0 ||
-          skiaData.scrollOffset.scrollLeft !== 0)
-      ),
-      scrollbar: skiaData.scrollbar,
-      scrollbarNode: skiaData.scrollbar ? skiaData : undefined,
-    });
+    commands.push({ type: CMD_CHILDREN_END, ownerId: elementId });
     childrenSpans.set(elementId, {
       start: childrenStart,
       end: commands.length,
@@ -2487,8 +2503,12 @@ function executeCommandRange(
   // 드래그 반투명 레이어 추적 스택 (ELEMENT_BEGIN/END 쌍 대응)
   const dragAlphaStack: boolean[] = [];
 
-  // CHILDREN_BEGIN/END 스크롤 오프셋 스택 (컬링 절대좌표를 canvas.translate와 동기화)
-  const scrollDeltaStack: Array<{ dx: number; dy: number }> = [];
+  // ADR-269 (r1 H1): CHILDREN_BEGIN 이 실제로 연 것 (clip save · scroll translate) — CHILDREN_END 는
+  // 이것만 닫는다. 스크롤 오프셋은 컬링 절대좌표 (translateStack) 복원에도 쓴다.
+  const childrenFrameStack: Array<{
+    clip: boolean;
+    scroll: { dx: number; dy: number } | null;
+  }> = [];
 
   // mask-image 레이어 스택: 요소별 마스크 정보 저장
   // ELEMENT_BEGIN에서 mask 있으면 push, ELEMENT_END에서 pop 후 합성
@@ -2841,7 +2861,8 @@ function executeCommandRange(
       }
 
       case CMD_CHILDREN_BEGIN: {
-        if (cmd.clipChildren && cmd.width > 0 && cmd.height > 0) {
+        const clip = cmd.clipChildren && cmd.width > 0 && cmd.height > 0;
+        if (clip) {
           canvas.save();
           const inset = cmd.clipBorderInset ?? 0;
           const clipRect = ck.LTRBRect(
@@ -2853,49 +2874,49 @@ function executeCommandRange(
           canvas.clipRect(clipRect, ck.ClipOp.Intersect, true);
         }
 
-        if (
-          cmd.scrollOffset &&
-          (cmd.scrollOffset.scrollTop !== 0 ||
-            cmd.scrollOffset.scrollLeft !== 0)
-        ) {
+        const scroll = scrollNodeOf(cmd.ownerId);
+        if (countVisits && scroll) renderCounters.propertyNodeReads += 1;
+        let scrolled: { dx: number; dy: number } | null = null;
+        if (scroll && (scroll.scrollTop !== 0 || scroll.scrollLeft !== 0)) {
           canvas.save();
-          canvas.translate(
-            -cmd.scrollOffset.scrollLeft,
-            -cmd.scrollOffset.scrollTop,
-          );
+          canvas.translate(-scroll.scrollLeft, -scroll.scrollTop);
           // 컬링용 절대좌표 스택에도 동일 스크롤 반영 — 미반영 시 스크롤로
           // 뷰포트에 들어온 자식이 스크롤 전 좌표로 판정되어 오컬링된다.
           const top = translateStack[stackTop];
           translateStack[stackTop] = {
-            x: top.x - cmd.scrollOffset.scrollLeft,
-            y: top.y - cmd.scrollOffset.scrollTop,
+            x: top.x - scroll.scrollLeft,
+            y: top.y - scroll.scrollTop,
           };
-          scrollDeltaStack.push({
-            dx: cmd.scrollOffset.scrollLeft,
-            dy: cmd.scrollOffset.scrollTop,
-          });
+          scrolled = { dx: scroll.scrollLeft, dy: scroll.scrollTop };
         }
+        childrenFrameStack.push({ clip, scroll: scrolled });
         break;
       }
 
       case CMD_CHILDREN_END: {
-        if (cmd.hasScrollOffset) {
+        const frame = childrenFrameStack.pop();
+        if (!frame) {
+          // A range runs whole subtree spans (culling and pictures jump over BEGIN … END pairs).
+          if (process.env.NODE_ENV !== "production")
+            throw new Error(
+              `CHILDREN_END without its CHILDREN_BEGIN (${cmd.ownerId}) at ${i}`,
+            );
+          break;
+        }
+        if (frame.scroll) {
           canvas.restore();
-          const delta = scrollDeltaStack.pop();
-          if (delta) {
-            const top = translateStack[stackTop];
-            translateStack[stackTop] = {
-              x: top.x + delta.dx,
-              y: top.y + delta.dy,
-            };
-          }
+          const top = translateStack[stackTop];
+          translateStack[stackTop] = {
+            x: top.x + frame.scroll.dx,
+            y: top.y + frame.scroll.dy,
+          };
         }
 
-        if (cmd.scrollbar && cmd.scrollbarNode) {
-          renderScrollbar(ck, canvas, cmd.scrollbarNode);
-        }
+        // ADR-269: the thumb is the table's (offset · range now), not the one at record time.
+        const bar = scrollNodeOf(cmd.ownerId)?.bar;
+        if (bar) renderScrollbar(ck, canvas, bar);
 
-        if (cmd.hasClip) {
+        if (frame.clip) {
           canvas.restore();
         }
         break;
@@ -2924,6 +2945,10 @@ function executeCommandRange(
       }
     }
   }
+  if (childrenFrameStack.length && process.env.NODE_ENV !== "production")
+    throw new Error(
+      `CHILDREN_BEGIN without its CHILDREN_END (${childrenFrameStack.length} open)`,
+    );
   if (textDrawn)
     for (const owner of textDrawn) {
       const overflows = textOverflowed?.has(owner) ?? false;

@@ -43,7 +43,7 @@ paths:
 - **Why (2026-07-24 실측)**: slot 해치가 자기 bounds 로만 `clipRect` 를 걸어서 원본 박스를 넘기면 조상 클립을 전혀 받지 않았다. page body(`overflow:auto`, 390x844) 를 스크롤해 프레임 밖으로 나간 ListBox 해치가 프레임 상단 경계 **위로 66px** 캔버스 배경에 그려졌다. 같은 요소의 히트 영역은 이미 클립돼 있어 **"보이는데 클릭은 안 되는"** 비대칭이 됐다.
 
 - clip rect 계약은 렌더러와 **1:1 미러**: `CMD_CHILDREN_BEGIN` 이 `clipChildren` 일 때 `(0,0,clipWidth,clipHeight)` 로 클립하므로, 절대 좌표 clip rect = `(absX, absY, clipWidth, clipHeight)`. **자기 자신은 클립되지 않고 자식만** 클립된다.
-- scroll translate 는 clip **뒤**에 적용되므로 clip rect 원점에는 `scrollOffset` 을 반영하지 않는다 (자식 절대 좌표에는 이미 차감돼 있음).
+- scroll translate 는 clip **뒤**에 적용되므로 clip rect 원점에는 스크롤 위치 (property node — `propertyNodes.ts`) 를 반영하지 않는다 (자식 절대 좌표에는 이미 차감돼 있음).
 - 교차 결과가 비면 `hitBoundsMap` 에 **미등재** = 히트 불가. 조상 clip 이 완전히 비면 서브트리에 `EMPTY_CLIP`(크기 0)을 전파한다 — `null`(=클립 없음)로 되돌리면 전부 잘린 서브트리가 오히려 무제한 히트 가능해진다.
 - drag top-layer 재방문(`renderAsTopLayer`)은 clip save/restore **밖**에서 그려지므로 clip 미적용(`clipRect = null`)으로 재방문한다.
 - **Why (2026-07-24)**: `boundsMap` 만으로 SpatialIndex 를 채우면 화면에 없는 영역이 히트된다. 실측 — ListBox 인스턴스 `maxHeight:300 + overflow:auto` 에서 owner 아래 10px(local y=310) 클릭 시 body 대신 ListBox 가 선택. page body(`overflow:auto`, 844) 아래로 밀려난 형제도 프레임 밖 빈 캔버스에서 선택됨. 컨테이너 전반 공통 결함이라 컴포넌트별 우회가 아니라 bounds 생성 지점에서 차단.

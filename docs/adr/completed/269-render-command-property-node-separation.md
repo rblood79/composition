@@ -2,16 +2,22 @@
 
 ## Status
 
-Proposed — 2026-10-17
+Implemented — 2026-10-17 (Phase 0 · 1. Phase 2 는 사용자 확인으로 생략 — 측정 기록, Phase 3 은 사용자 결정 1 「측정 기록으로 종결」, 종결은 사용자 결정 3 「측정 기록으로 종결」)
+
+- Accepted — 2026-10-17 (사용자 `/execute-adr 269` + [reviews/269.md](../reviews/269.md) Round 2 pending 0 · HIGH 전부 fixed). 사용자 결정 2 = **`scroll` 부류 신설 승인** (2026-10-17).
+
+> **종결 (2026-10-17):** G3 production 짝 (기준 = HEAD `cb0558f04` worktree 빌드 ↔ 수정 = 작업 트리 빌드, `--serve-dist` headless 60Hz · DPR 1 · `--fixed-inputs`, 교대 2 쌍, 페이지 오류 0 / 12): **요소 스크롤 5k main thread 3,385 · 3,360 → 1,942 · 1,976 ms** · `app-pages` 줌 1,456 · 1,474 → 1,438 · 1,497 · 편집 324 · 310 → 313 · 290 · 중첩 5k 편집 387 · 388 → 399 · 398 (+3 %, 원인 미확정). 화면 표시 간격 (RAF timestamp) p99 은 전부 16.8 (25 ms 초과 0 ~ 1 회 — 기준과 같거나 적음) · long task 0 — **회귀 0**. 하니스 콜백 p99 23 ~ 27 · drop 은 기준과 같은 폭이고 (스크롤 drop 2.7 → 12.9 % 는 콜백 박자 — 표시 간격 초과는 1 → 0), ADR-263 HC2 참고 목표 미달 → 사용자 결정 3 = 측정 기록으로 종결. Phase 2 (clip 노드) 는 Phase 0 에서 clip 문맥 거부 재바인드가 전 run 0 이라 사용자 확인으로 생략, Phase 3 (transform 노드) 은 옮김 명령 쓰기가 root 1 줄 (줌 977 회) 뿐이라 결정 1 로 미진입. G4 live 는 아래.
 
 - 사용자 요청: `/create-adr 그리기 명령에서 transform · clip · scroll 문맥을 property node 로 분리 (O1) — ELEMENT_BEGIN 이 (x,y) 대신 transformNodeId · 레이아웃 이동 = 노드 테이블 갱신 · ADR-264/265 종결 카운트가 Context · O(1) 주장 금지 (Canvas 성능 계획 5단계) -- ADR-269로 생성` (2026-10-17)
-- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 가 ADR 이 필요하다고 적은 확정 3 건 (X8 = [ADR-267](completed/267-sticky-fixed-position-canvas-engine.md) · F4 = [ADR-268](completed/268-flex-row-definite-content-size-suggestion.md) · **O1**) 의 셋째. 번호 269 는 사용자 지정.
-- 이미 정해진 것 (요청 원문 · 정본 §5-1): **O(1) 주장 금지** — 명령 재기록이 줄어도 절대 맵 · 누적 transform · draw/hit/overlay 동기화 · SpatialIndex upsert 비용은 남는다. 전체 동작의 비용으로 평가하고 비용이 pick · 다음 프레임으로 옮겨 가지 않았는지 본다. **측정이 설계보다 먼저** (ADR-263 ~ 266 과 같은 규율 — 카운트 RED → 수정 → ratchet 하향을 같은 커밋에, measurement-validity §5). Context 의 측정은 ADR-264 · 265 · 266 종결 카운트를 인용하고 조건이 같은 범위는 다시 재지 않는다. wall-clock 은 production 짝만 인용한다. Rust 이관은 대안으로 두되 trigger 2 · 3 미충족 (ADR-266 종결 · [CANVAS_RUST_DECISION_2026-10.md](../explanation/research/CANVAS_RUST_DECISION_2026-10.md) §1 재판정) 이라 고르지 않는다. 기존 성능 기록의 nested edit · zoom 재바인드 · React/RAC selection 비용은 별도 원인으로 유지한다 — property node 가 모든 꼬리를 해결한다고 가정하지 않는다.
-- 리뷰: [reviews/269.md](reviews/269.md) Round 1 HIGH 2 → Round 2 설계 수리 검증.
+- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 가 ADR 이 필요하다고 적은 확정 3 건 (X8 = [ADR-267](267-sticky-fixed-position-canvas-engine.md) · F4 = [ADR-268](268-flex-row-definite-content-size-suggestion.md) · **O1**) 의 셋째. 번호 269 는 사용자 지정.
+- 이미 정해진 것 (요청 원문 · 정본 §5-1): **O(1) 주장 금지** — 명령 재기록이 줄어도 절대 맵 · 누적 transform · draw/hit/overlay 동기화 · SpatialIndex upsert 비용은 남는다. 전체 동작의 비용으로 평가하고 비용이 pick · 다음 프레임으로 옮겨 가지 않았는지 본다. **측정이 설계보다 먼저** (ADR-263 ~ 266 과 같은 규율 — 카운트 RED → 수정 → ratchet 하향을 같은 커밋에, measurement-validity §5). Context 의 측정은 ADR-264 · 265 · 266 종결 카운트를 인용하고 조건이 같은 범위는 다시 재지 않는다. wall-clock 은 production 짝만 인용한다. Rust 이관은 대안으로 두되 trigger 2 · 3 미충족 (ADR-266 종결 · [CANVAS_RUST_DECISION_2026-10.md](../../explanation/research/CANVAS_RUST_DECISION_2026-10.md) §1 재판정) 이라 고르지 않는다. 기존 성능 기록의 nested edit · zoom 재바인드 · React/RAC selection 비용은 별도 원인으로 유지한다 — property node 가 모든 꼬리를 해결한다고 가정하지 않는다.
+- 리뷰: [reviews/269.md](../reviews/269.md) Round 1 HIGH 2 → Round 2 설계 수리 검증.
 
-> **Round 2 수리 검증 (codex, 2026-10-17):** H1·H2 설계 closed, 신규 HIGH/MEDIUM 0 · pending 0 — 설계 승인 가능. 종료 프레임·scrollbar 파생 및 property 변경 발행 계약을 현행 소비 경로와 대조하고 수리 모델·조건식 프로브 13/13 PASS. 제품 구현·Builder/Preview 픽셀·production 성능·ratchet 집행은 UNVERIFIED. [리뷰 기록](reviews/269.md#round-2). Proposed 유지.
+> **Phase 0 · 1 (2026-10-17):** Phase 0 **go** — 새 부류 `scroll` (fixture `scroll-boxes`, 사용자 결정 2) 에서 휠 188 회가 명령 575,844 개를 다시 기록 (1 회 3,063) · `patchScanCommands` 1,151,688 · 소유자 picture 무효 94, `translateCheckCommands` 917,005 (`app-pages` 줌) 재현, 문맥 거부 재바인드는 전 run 0. Phase 1 — scroll 위치를 property node 테이블 (`skia/propertyNodes.ts`) 로 옮기고 명령 · node data 에서 지움, 실행기는 열린 프레임 스택으로 닫고 scrollbar 는 테이블에서, 스크롤 = 테이블 갱신 + 자손 맵 Δ (`applyScrollDelta`) + `propertyChanged` 발행 (r1 H2), 옮기기 검사는 자식 색인 walk. 결과: **스크롤 재기록 575,844 → 0 · `patchScanCommands` → 0 · picture miss 94 → 0 · `translateCheckCommands` → 0 (5 run)**, 남는 비용은 맵 Δ (`scrollDeltaNodes` 143,820 · 맵 쓰기 575,280 — O(1) 아님) 와 색인 walk (`propertyNodeReads`). 기존 A 키 증가 0 (HC4). G1: 무작위 1,200 스크롤 동치 · r1 H1 4 · H2 7 반례 · 원복 RED 6/7 (GREEN 1 은 결함 아님) · unit 5,985 실패 0. live 8/8 (0 px · 맵 · `hitAt` = rebind, 대조군 off 8/8). 상세: [breakdown §기록](../design/269-render-command-property-node-separation-breakdown.md#기록).
 
-Related: [ADR-263 그리기 명령 패치·실행 비용](completed/263-render-command-patch-execute-cost.md) (명령 스트림 · damage · 컬링의 현재 모양 — 대안 B · C · D 의 기각은 이 ADR 과 다른 축) · [ADR-264 이동만 한 서브트리의 patch 축소](completed/264-moved-subtree-translate-page-grid-rebind.md) (`translateSubtree` — 이 ADR 이 그 남은 상수 비용을 받는다 · 대안 B 「지연 절대 맵」 의 기각 사유는 여기서도 유효) · [ADR-265 문서 층 비용](completed/265-document-layer-edit-select-cost.md) (HC2 꼬리 = Canvas binding 옮김 상수 비용이라는 카운트) · [ADR-266 그리기 캐시 thrash](completed/266-draw-cache-thrash-real-document-zoom-edit.md) (종결 뒤 남은 프로필 — 옮기기 검사 3.9 % · 명령 실행 2.8 % · page header 3.6 %) · [ADR-189 커밋 레인 record 증분화](completed/189-commit-lane-incremental-record.md) (명령이 부모 기준 좌표인 이유 · subtree splice · damage 의 원 결정) · [ADR-153 측정 우선 렌더 최적화](completed/153-render-optimization-measurement-first-adoption.md) (노드 picture 캐시 — 위치가 키에 없다) · [ADR-267 sticky · fixed](completed/267-sticky-fixed-position-canvas-engine.md) (렌더가 scroll container 오프셋으로 clamp — 이 ADR 의 scroll 노드가 그 입력 하나가 된다) · [ADR-246 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [Chromium 대조 정본](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §3 property trees 행 · §5 · §5-1 O1
+> **Round 2 수리 검증 (codex, 2026-10-17):** H1·H2 설계 closed, 신규 HIGH/MEDIUM 0 · pending 0 — 설계 승인 가능. 종료 프레임·scrollbar 파생 및 property 변경 발행 계약을 현행 소비 경로와 대조하고 수리 모델·조건식 프로브 13/13 PASS. 제품 구현·Builder/Preview 픽셀·production 성능·ratchet 집행은 UNVERIFIED. [리뷰 기록](../reviews/269.md#round-2). Proposed 유지.
+
+Related: [ADR-263 그리기 명령 패치·실행 비용](263-render-command-patch-execute-cost.md) (명령 스트림 · damage · 컬링의 현재 모양 — 대안 B · C · D 의 기각은 이 ADR 과 다른 축) · [ADR-264 이동만 한 서브트리의 patch 축소](264-moved-subtree-translate-page-grid-rebind.md) (`translateSubtree` — 이 ADR 이 그 남은 상수 비용을 받는다 · 대안 B 「지연 절대 맵」 의 기각 사유는 여기서도 유효) · [ADR-265 문서 층 비용](265-document-layer-edit-select-cost.md) (HC2 꼬리 = Canvas binding 옮김 상수 비용이라는 카운트) · [ADR-266 그리기 캐시 thrash](266-draw-cache-thrash-real-document-zoom-edit.md) (종결 뒤 남은 프로필 — 옮기기 검사 3.9 % · 명령 실행 2.8 % · page header 3.6 %) · [ADR-189 커밋 레인 record 증분화](189-commit-lane-incremental-record.md) (명령이 부모 기준 좌표인 이유 · subtree splice · damage 의 원 결정) · [ADR-153 측정 우선 렌더 최적화](153-render-optimization-measurement-first-adoption.md) (노드 picture 캐시 — 위치가 키에 없다) · [ADR-267 sticky · fixed](267-sticky-fixed-position-canvas-engine.md) (렌더가 scroll container 오프셋으로 clamp — 이 ADR 의 scroll 노드가 그 입력 하나가 된다) · [ADR-246 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (집행 수단) · [Chromium 대조 정본](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §3 property trees 행 · §5 · §5-1 O1
 
 ## Context
 
@@ -111,7 +117,7 @@ ADR-266 은 「한 자리가 지배하지 않는다」 고 종결했다. 이 ADR
 - D 기각: ADR-264 와 같은 사유, 바뀐 사실 없음.
 - E 범위 밖: 4단계 재판정이 근거 없음으로 끝났다.
 
-> 구현 상세: [269-render-command-property-node-separation-breakdown.md](design/269-render-command-property-node-separation-breakdown.md)
+> 구현 상세: [269-render-command-property-node-separation-breakdown.md](../design/269-render-command-property-node-separation-breakdown.md)
 
 ### 사용자 결정 3건
 
@@ -144,7 +150,12 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G4 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+2026-10-17 — 두 갈래.
+
+1. **사용자 프로젝트 「123」 (22 페이지 · record 5,116 · 스크롤 상자 27 — 대부분 page body overflow auto), 사용자 Chrome (Chrome MCP · visible · DPR 2 · dev 5173)**: 「Contact」 page body (1920×1080) 를 선택하고 실제 휠 3 칸 → 다시 기록한 명령 **0** · 자손 맵 Δ 155 · picture 무효화 0, 5,116 요소 전부의 bounds · hit · hit 중심 `hitAt` 후보가 `rebind()` oracle 과 **0 차**. 같은 조작을 옛 길 (`setPropertyNodesOff(true)`) 로 하면 휠 1 회에 **574** 개 재기록 · picture 무효 1 (결과는 키별 0 차). 스크롤된 페이지 안 frame padding 편집 → 0 차 (patch 6 명령) · undo → 0 차. 콘솔 오류 0. 문서는 undo 로 원래대로.
+2. **`adr269-property-nodes-live.mjs`** (headless Chrome · dev 5173 · 새 프로젝트): 스크롤 상자 (안에 clip 상자 · 중첩 스크롤 상자) · sticky 머리 ListBox · 뒤 형제 — 실제 휠마다 화면 픽셀 · bounds · hit · `hitAt` 을 `rebind()` 와 비교 **8/8 PASS (0 px)**: 휠 ×3 · 끝까지 · 중첩 안쪽만 · sticky (섹션 6 재기록) · 스크롤된 상자 안 편집 · undo · 위로 · 스크롤 뒤 보이는 항목 클릭 → 그 항목 선택. 옛 길 대조군 8/8 (재기록 189 · 63 · 40 · 190).
+
+3. **Compare Mode (사용자 지시 「compare mode에서 확인해」, 2026-10-17)** — 「123」 Contact 페이지 · Compare Mode + 현재 페이지만, 사용자 Chrome: Canvas 쪽에서 body 를 실제 휠 2 칸 → Canvas 스크롤 200 (자손 155 개 전부 정확히 200 이동 · 재기록 0 · 맵 Δ 155) → Preview 문서를 같은 200 으로 스크롤해 `data-catalog-id` 가 같은 요소 **121 개** 대조: 이동량 차이 0 · 스크롤 뒤 위치 차이 세로 0 · 가로 최대 0.04 px. 끝까지 휠 → Canvas 범위 끝 276 = Preview `scrollTop` 끝 276, 그 위치에서도 121 개 세로 0 · 가로 0.04 px. 콘솔 오류 0. 확인 뒤 Skia Only 로 되돌렸다.
 
 ## Consequences
 

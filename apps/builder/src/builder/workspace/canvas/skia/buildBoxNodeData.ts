@@ -45,58 +45,10 @@ import type { EffectStyle } from "./types";
 // Types
 // ---------------------------------------------------------------------------
 
-export interface ScrollNodeState {
-  scrollTop: number;
-  scrollLeft: number;
-  maxScrollTop: number;
-  maxScrollLeft: number;
-}
-
 interface BoxBuildInput {
   element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
-  scrollState?: ScrollNodeState | null;
   theme?: "light" | "dark";
-}
-
-/**
- * overflow: scroll/auto 컨테이너의 scrollOffset + scrollbar(thumb 기하) 산출.
- *
- * box 경로(아래)와 spec 경로(buildSpecNodeData)가 같은 계약을 공유한다 —
- * 종전엔 두 파일이 "동일 계약" 주석으로만 묶인 verbatim 사본이라 한쪽만
- * 조정될 수 있었다. renderCommands 가 scrollOffset 으로 자식 좌표를 이동하고
- * scrollbar 를 그린다. min thumb 20px.
- */
-export function buildScrollNodeFields(
-  width: number,
-  height: number,
-  scrollState: ScrollNodeState,
-): {
-  scrollOffset: { scrollTop: number; scrollLeft: number };
-  scrollbar?: NonNullable<SkiaNodeData["scrollbar"]>;
-} {
-  const scrollOffset = {
-    scrollTop: scrollState.scrollTop,
-    scrollLeft: scrollState.scrollLeft,
-  };
-  const sb: NonNullable<SkiaNodeData["scrollbar"]> = {};
-  if (scrollState.maxScrollTop > 0) {
-    const contentH = height + scrollState.maxScrollTop;
-    const thumbH = Math.max(20, (height / contentH) * height);
-    const thumbY =
-      (scrollState.scrollTop / scrollState.maxScrollTop) * (height - thumbH);
-    sb.vertical = { trackHeight: height, thumbHeight: thumbH, thumbY };
-  }
-  if (scrollState.maxScrollLeft > 0) {
-    const contentW = width + scrollState.maxScrollLeft;
-    const thumbW = Math.max(20, (width / contentW) * width);
-    const thumbX =
-      (scrollState.scrollLeft / scrollState.maxScrollLeft) * (width - thumbW);
-    sb.horizontal = { trackWidth: width, thumbWidth: thumbW, thumbX };
-  }
-  return Object.keys(sb).length > 0
-    ? { scrollOffset, scrollbar: sb }
-    : { scrollOffset };
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +56,7 @@ export function buildScrollNodeFields(
 // ---------------------------------------------------------------------------
 
 export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
-  const { element, layout, scrollState, theme = "light" } = input;
+  const { element, layout, theme = "light" } = input;
 
   // ADR-902 후속: body 는 BodySpec (TAG_SPEC_MAP 등록) 이 담당 → isSpecPath=true
   // → buildSpecNodeData 경로로 진입하여 이 함수에 body 가 도달하지 않는다.
@@ -281,13 +233,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     overflow === "scroll" ||
     overflow === "auto";
 
-  // Scroll — spec 경로(buildSpecNodeData)와 공유 helper (동일 계약)
-  const scrollFields =
-    scrollState && (overflow === "scroll" || overflow === "auto")
-      ? buildScrollNodeFields(w, h, scrollState)
-      : undefined;
-  const scrollOffset = scrollFields?.scrollOffset;
-  const scrollbar = scrollFields?.scrollbar;
+  // (ADR-269: a scroll box's position and scrollbar are its property node — `propertyNodes.ts`.)
 
   // Clip path
   const clipPath =
@@ -376,8 +322,6 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     height: h,
     visible: true,
     ...(clipChildren ? { clipChildren: true } : {}),
-    ...(scrollOffset ? { scrollOffset } : {}),
-    ...(scrollbar ? { scrollbar } : {}),
     ...(skiaEffects.effects ? { effects: skiaEffects.effects } : {}),
     ...(presentationShadowTargets && presentationShadowTargets.length > 0
       ? { presentationShadowTargets }

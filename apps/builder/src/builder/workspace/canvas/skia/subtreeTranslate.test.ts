@@ -8,6 +8,7 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { SkiaNodeData } from "./nodeRenderers";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
+import { setScrollNode } from "./propertyNodes";
 import { setDragSiblingOffsets } from "./nodeRendererTree";
 
 /** SpatialIndex 대역 — full build 의 snapshot 과 옮기기의 upsert · remove 를 같은 맵에. */
@@ -36,7 +37,12 @@ vi.mock("../wasm-bindings/spatialIndex", async (importOriginal) => {
 
 const { buildRenderCommandStream, buildSubtreeCommandStream } =
   await import("./renderCommands");
-const { translateSubtree, placeRegion } = await import("./subtreeTranslate");
+const {
+  translateSubtree,
+  placeRegion,
+  applyScrollDelta,
+  planSubtreeTranslate,
+} = await import("./subtreeTranslate");
 const { applyCommitSubtreeCommandPatch } =
   await import("./subtreeCommandPatch");
 type Stream = ReturnType<typeof buildRenderCommandStream>;
@@ -46,6 +52,8 @@ interface Spec {
   parent: string | null;
   layout: { x: number; y: number; width: number; height: number };
   data?: Partial<SkiaNodeData>;
+  /** ADR-269: a scroll/auto box's position (its property node). */
+  scroll?: { scrollTop: number; scrollLeft: number };
 }
 
 function register(spec: Spec) {
@@ -59,6 +67,7 @@ function register(spec: Spec) {
     height: spec.layout.height,
     ...spec.data,
   } as SkiaNodeData);
+  if (spec.scroll) setScrollNode(spec.id, spec.scroll);
 }
 
 function build(specs: readonly Spec[]): Stream {
@@ -164,23 +173,18 @@ function randomTree(seed: number): Spec[] {
           width: next() < 0.08 ? 0 : int(10, 300),
           height: next() < 0.08 ? 0 : int(10, 300),
         },
-        data: {
-          ...(clips
-            ? {
-                clipChildren: true,
-                ...(next() < 0.4 ? { clipBorderInset: int(1, 6) } : {}),
-                ...(next() < 0.4
-                  ? {
-                      scrollOffset: {
-                        scrollTop: int(0, 80),
-                        scrollLeft: int(0, 40),
-                      },
-                    }
-                  : {}),
-              }
-            : {}),
-          ...(next() < 0.08 ? { visible: false } : {}),
-        },
+        ...(() => {
+          const data: Partial<SkiaNodeData> = {};
+          let scroll: Spec["scroll"];
+          if (clips) {
+            data.clipChildren = true;
+            if (next() < 0.4) data.clipBorderInset = int(1, 6);
+            if (next() < 0.4)
+              scroll = { scrollTop: int(0, 80), scrollLeft: int(0, 40) };
+          }
+          if (next() < 0.08) data.visible = false;
+          return { data, ...(scroll ? { scroll } : {}) };
+        })(),
       });
       grow(id, depth + 1);
     }
@@ -559,9 +563,7 @@ describe("ADR-264 옮길 수 없는 모양은 쓰기 전에 거절한다", () =>
     expect(stream.damageUnsafeElementIds.has("c")).toBe(false);
     clearSkiaRegistry();
     // container outside the moved subtree: drawn again.
-    expect(attempt(build(base(sticky("body")))).reason).toBe(
-      "fixed-or-sticky",
-    );
+    expect(attempt(build(base(sticky("body")))).reason).toBe("fixed-or-sticky");
   });
 
   it("drag 의 형제 비킴 중", () => {
@@ -721,5 +723,184 @@ describe("ADR-264 placeRegion — 경로 자기 patch + 옮기기 = 처음부터
     // 대부분은 seed 만 다시 기록한다 (경로 문맥이 바뀐 seed 는 가까운 조상에서 다시 기록).
     expect(selfPatched).toBeGreaterThan(fellBack);
     expect(translatedTotal).toBeGreaterThan(500);
+  });
+});
+
+describe("ADR-269 Phase 1 — 스크롤 (applyScrollDelta) 뒤 결과가 같은 위치로 처음부터 기록한 것과 같다", () => {
+  const layoutOf = (specs: readonly Spec[]) =>
+    new Map(
+      specs.map((spec) => [spec.id, { ...spec.layout } as ComputedLayout]),
+    );
+  /** The scroll a spec list gives its scroll owners (the table the stream was recorded with). */
+  const withScroll = (
+    specs: readonly Spec[],
+    id: string,
+    scroll: { scrollTop: number; scrollLeft: number },
+  ) => specs.map((spec) => (spec.id === id ? { ...spec, scroll } : spec));
+
+  it("무작위 트리 1,200 건: 상자 하나를 세 번 스크롤한 뒤 명령 · span · 맵 · SpatialIndex 가 같고 명령 쓰기 0", () => {
+    let scrolled = 0;
+    for (let seed = 1; seed <= 1200; seed += 1) {
+      const specs = randomTree(seed);
+      const owners = specs.filter((spec) =>
+        specs.some((child) => child.parent === spec.id),
+      );
+      if (!owners.length) continue;
+      const pickAt = random(seed * 6151);
+      const owner = owners[Math.floor(pickAt() * owners.length)]!;
+      const stream = build(specs);
+      const recorded = commandsOf(stream);
+      const layout = layoutOf(specs);
+      const ids = subtreeIds(specs, owner.id).filter((id) => id !== owner.id);
+      const oldHits = new Map(
+        ids.map((id) => [id, stream.hitBoundsMap.get(id)]),
+      );
+      let offset = owner.scroll ?? { scrollTop: 0, scrollLeft: 0 };
+      let damage:
+        { x: number; y: number; width: number; height: number } | undefined;
+      for (let step = 0; step < 3; step += 1) {
+        const next = {
+          scrollTop: Math.floor(pickAt() * 120),
+          scrollLeft: Math.floor(pickAt() * 60),
+        };
+        setScrollNode(owner.id, next);
+        const result = applyScrollDelta({
+          stream,
+          ownerId: owner.id,
+          dx: offset.scrollLeft - next.scrollLeft,
+          dy: offset.scrollTop - next.scrollTop,
+          layoutMap: layout,
+        });
+        expect(result, `seed ${seed}`).not.toBeNull();
+        expect(result!.rerecord).toEqual([]);
+        if (result!.damageBounds)
+          damage = damage
+            ? {
+                x: Math.min(damage.x, result!.damageBounds.x),
+                y: Math.min(damage.y, result!.damageBounds.y),
+                width:
+                  Math.max(
+                    damage.x + damage.width,
+                    result!.damageBounds.x + result!.damageBounds.width,
+                  ) - Math.min(damage.x, result!.damageBounds.x),
+                height:
+                  Math.max(
+                    damage.y + damage.height,
+                    result!.damageBounds.y + result!.damageBounds.height,
+                  ) - Math.min(damage.y, result!.damageBounds.y),
+              }
+            : { ...result!.damageBounds };
+        offset = next;
+      }
+      // The commands were not written (the owner's position is its property node).
+      expect(commandsOf(stream)).toEqual(recorded);
+      const scrolledIndex = new Map(index.entries);
+      clearSkiaRegistry();
+      const rebuilt = build(withScroll(specs, owner.id, offset));
+      expectSameAsRebuild(stream, rebuilt);
+      expect(plain(scrolledIndex), `seed ${seed} index`).toEqual(
+        plain(index.entries),
+      );
+      for (const id of ids) {
+        expect(contains(damage, oldHits.get(id))).toBe(true);
+        expect(contains(damage, rebuilt.hitBoundsMap.get(id))).toBe(true);
+      }
+      scrolled += 1;
+      clearSkiaRegistry();
+    }
+    expect(scrolled).toBeGreaterThanOrEqual(900);
+  });
+
+  it("스크롤 + 옮김: 스크롤된 상자 안 서브트리를 옮겨도 같다 (저장 문맥이 스크롤을 따라왔다)", () => {
+    for (let seed = 1; seed <= 300; seed += 1) {
+      const specs = randomTree(seed);
+      const owner = specs.find(
+        (spec) =>
+          spec.parent &&
+          specs.some(
+            (child) =>
+              child.parent === spec.id &&
+              specs.some((grand) => grand.parent === child.id),
+          ),
+      );
+      if (!owner) continue;
+      const child = specs.find((spec) => spec.parent === owner.id)!;
+      const stream = build(specs);
+      const before = owner.scroll ?? { scrollTop: 0, scrollLeft: 0 };
+      const after = { scrollTop: before.scrollTop + 37, scrollLeft: 0 };
+      setScrollNode(owner.id, after);
+      expect(
+        applyScrollDelta({
+          stream,
+          ownerId: owner.id,
+          dx: before.scrollLeft,
+          dy: before.scrollTop - after.scrollTop,
+          layoutMap: layoutOf(specs),
+        }),
+      ).not.toBeNull();
+      const moved = translateSubtree({
+        stream,
+        rootId: child.id,
+        x: child.layout.x + 25,
+        y: child.layout.y - 15,
+        context: stream.subtreeBuildContextByElement.get(child.id)!,
+      });
+      expect(moved.applied).toBe(true);
+      clearSkiaRegistry();
+      expectSameAsRebuild(
+        stream,
+        build(
+          moveTo(
+            withScroll(specs, owner.id, after),
+            child.id,
+            child.layout.x + 25,
+            child.layout.y - 15,
+          ),
+        ),
+      );
+      clearSkiaRegistry();
+    }
+  });
+
+  it("drag offset 중에는 놓지 않는다 (null — 호출부가 소유자를 다시 기록)", () => {
+    const specs = randomTree(3);
+    const owner = specs.find((spec) =>
+      specs.some((child) => child.parent === spec.id),
+    )!;
+    const stream = build(specs);
+    setDragSiblingOffsets(new Map([[owner.id, { dx: 4, dy: 0 }]]));
+    expect(
+      applyScrollDelta({
+        stream,
+        ownerId: owner.id,
+        dx: 0,
+        dy: -10,
+        layoutMap: layoutOf(specs),
+      }),
+    ).toBeNull();
+  });
+
+  it("옮기기 검사는 명령을 훑지 않고 자식 색인으로 같은 판정을 낸다", () => {
+    for (let seed = 1; seed <= 300; seed += 1) {
+      const specs = randomTree(seed);
+      const stream = build(specs);
+      for (const spec of specs.slice(1)) {
+        const context = stream.subtreeBuildContextByElement.get(spec.id);
+        if (!context) continue;
+        const plan = planSubtreeTranslate(stream, spec.id, context);
+        expect(plan.reason, `seed ${seed} ${spec.id}`).toBeUndefined();
+      }
+      // Every recorded element is reachable from the root by the index (the walk misses none).
+      const reached = new Set<string>();
+      const walk = (id: string) => {
+        reached.add(id);
+        for (const child of stream.childElementIds.get(id) ?? []) walk(child);
+      };
+      walk("body");
+      expect([...reached].sort()).toEqual(
+        [...stream.subtreeSpans.keys()].sort(),
+      );
+      clearSkiaRegistry();
+    }
   });
 });

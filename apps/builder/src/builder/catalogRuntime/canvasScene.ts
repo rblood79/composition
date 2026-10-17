@@ -140,7 +140,10 @@ export class CatalogCanvasScene {
       return this.rebind("page-roots");
     const update = this.binding.update();
     if (update.status === "rebind-required") return this.rebind(update.reason);
-    return update.rebound.length || update.patchRoots.length
+    // ADR-269 (r1 H2): a scroll records nothing but draws again — `propertyChanged` is a change.
+    return update.rebound.length ||
+      update.patchRoots.length ||
+      update.propertyChanged.length
       ? { kind: "patched", update }
       : { kind: "unchanged" };
   }
@@ -218,6 +221,13 @@ export class CatalogCanvasScene {
       endRebindRelease();
     }
     if (process.env.NODE_ENV === "development") {
+      // ADR-269 Phase 0: a rejected splice by its reason (the context a patch could not keep).
+      if (reason === "splice-rejected:clip-context-changed")
+        renderCounters.rebindSpliceRejectedClipContext += 1;
+      else if (reason === "splice-rejected:scroll-context-changed")
+        renderCounters.rebindSpliceRejectedScrollContext += 1;
+      else if (reason.startsWith("splice-rejected:"))
+        renderCounters.rebindSpliceRejectedOther += 1;
       if (reason !== "page-grid") renderCounters.rebindOther += 1;
       else {
         // ADR-264 Phase 0: whether the page roots only moved (R4) — compare the bound boxes.
