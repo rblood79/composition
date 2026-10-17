@@ -75,22 +75,22 @@
 
 **코드 사실 보강 (canvaskit 0.42.0 `bin/canvaskit.js` 실측)**:
 
-| # | 사실 | 결과 |
-| --- | --- | --- |
-| P2-1 | `MakeWebGLCanvasSurface(canvas)` = `GetWebGLContext(canvas, 옵션 없음)` → `MakeWebGLContext(handle)` → `MakeOnScreenGLSurface(gr, canvas.width, canvas.height, null)`. GL 기본값: alpha · depth · stencil 8 · antialias 0 · premultipliedAlpha · preserveDrawingBuffer 0 · WebGL2 우선 | 새 경로가 같은 호출 · 같은 기본값을 쓴다 (R2 — 픽셀 0 px 로 확인) |
-| P2-2 | `GetWebGLContext` 는 호출마다 emscripten 핸들을 하나 새로 등록한다 (같은 GL 객체). 옛 코드는 첫 생성 · resize · 복원마다 핸들 + GrDirectContext 를 하나씩 쌓고 지우지 않았다 | 산 context 재사용 · 복원 때만 새로 · 옛 핸들 삭제 |
-| P2-3 | `deleteContext(h)` 는 canvas 에 붙은 **최신** context 기록 (`canvas.GLctxObject`) 을 지운다 | 옛 핸들을 새 핸들보다 **먼저** 지운다 (unit 순서 고정) |
-| P2-4 | JS 래퍼 `GrDirectContext.prototype.getResourceCacheLimitBytes` · `…UsageBytes` 는 context 를 현재로 맞춘 뒤 embind 결과를 `return` 하지 않는다 — 늘 `undefined` | 래퍼 호출 뒤 원 메서드 `_get…Bytes` 로 읽는다 (`readCacheBytes`) |
-| P2-5 | **Skia 기본 한도 = 256 MiB** (리뷰 때 짐작한 96 MiB 아님 — r1 M1 의 기준값) | 결정 2 의 기준 |
-| P2-6 | 옛 `MakeWebGLCanvasSurface` 는 onscreen surface 가 null 이면 canvas DOM 노드를 복제본으로 **바꾼 뒤** SW surface 를 만들었고, GL context 를 못 얻으면 throw 했다 — `createGPUSurface` 의 SW 폴백 줄은 닿지 않았다 | 새 경로: GL context 를 못 얻으면 (WebGL 미지원) SW 폴백 · GL 은 얻었는데 surface 가 null 이면 오류 (GL 이 붙은 canvas 에는 2D context 가 없다) |
+| #    | 사실                                                                                                                                                                                                                                                                                   | 결과                                                                                                                                           |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-1 | `MakeWebGLCanvasSurface(canvas)` = `GetWebGLContext(canvas, 옵션 없음)` → `MakeWebGLContext(handle)` → `MakeOnScreenGLSurface(gr, canvas.width, canvas.height, null)`. GL 기본값: alpha · depth · stencil 8 · antialias 0 · premultipliedAlpha · preserveDrawingBuffer 0 · WebGL2 우선 | 새 경로가 같은 호출 · 같은 기본값을 쓴다 (R2 — 픽셀 0 px 로 확인)                                                                              |
+| P2-2 | `GetWebGLContext` 는 호출마다 emscripten 핸들을 하나 새로 등록한다 (같은 GL 객체). 옛 코드는 첫 생성 · resize · 복원마다 핸들 + GrDirectContext 를 하나씩 쌓고 지우지 않았다                                                                                                           | 산 context 재사용 · 복원 때만 새로 · 옛 핸들 삭제                                                                                              |
+| P2-3 | `deleteContext(h)` 는 canvas 에 붙은 **최신** context 기록 (`canvas.GLctxObject`) 을 지운다                                                                                                                                                                                            | 옛 핸들을 새 핸들보다 **먼저** 지운다 (unit 순서 고정)                                                                                         |
+| P2-4 | JS 래퍼 `GrDirectContext.prototype.getResourceCacheLimitBytes` · `…UsageBytes` 는 context 를 현재로 맞춘 뒤 embind 결과를 `return` 하지 않는다 — 늘 `undefined`                                                                                                                        | 래퍼 호출 뒤 원 메서드 `_get…Bytes` 로 읽는다 (`readCacheBytes`)                                                                               |
+| P2-5 | **Skia 기본 한도 = 256 MiB** (리뷰 때 짐작한 96 MiB 아님 — r1 M1 의 기준값)                                                                                                                                                                                                            | 결정 2 의 기준                                                                                                                                 |
+| P2-6 | 옛 `MakeWebGLCanvasSurface` 는 onscreen surface 가 null 이면 canvas DOM 노드를 복제본으로 **바꾼 뒤** SW surface 를 만들었고, GL context 를 못 얻으면 throw 했다 — `createGPUSurface` 의 SW 폴백 줄은 닿지 않았다                                                                      | 새 경로: GL context 를 못 얻으면 (WebGL 미지원) SW 폴백 · GL 은 얻었는데 surface 가 null 이면 오류 (GL 이 붙은 canvas 에는 2D context 가 없다) |
 
 **사용자 결정 2 (2026-10-18)**: 「384 MiB (Recommended)」. 근거 실측 (`adr273-gpu-context-live.mjs`, `app-pages` + 이미지 22 장 fill · fit · stretch, 줌 0.3 ~ 2 순회, headless Chrome):
 
-| | DPR 1 | DPR 2 |
-| --- | ---: | ---: |
-| 사용 고수위 | 111.2 MiB | 251.4 MiB (그중 content surface 두 장 ≈ 145 MiB) |
-| 90 % 초과 프레임 — 한도 256 (기본) | 0 | **11** |
-| 90 % 초과 프레임 — 한도 384 | 0 | 0 |
+|                                    |     DPR 1 |                                            DPR 2 |
+| ---------------------------------- | --------: | -----------------------------------------------: |
+| 사용 고수위                        | 111.2 MiB | 251.4 MiB (그중 content surface 두 장 ≈ 145 MiB) |
+| 90 % 초과 프레임 — 한도 256 (기본) |         0 |                                           **11** |
+| 90 % 초과 프레임 — 한도 384        |         0 |                                                0 |
 
 올린 128 MiB 는 ADR-270 Phase 3a 의 텍스처 이미지 몫이다. R3 의 방향은 thrash 가 아니라 보유 증가 쪽 (Skia 는 넘을 때만 퇴거).
 
@@ -104,3 +104,66 @@
 
 **G3 ratchet** (`--fixed-inputs` 2 회, 2026-10-18): 새 카운터 `render.gpuContextsCreated` · `gpuContextsDeleted` · `grCacheNearLimitFrames` 는 두 시드 · 모든 부류에서 0 (같은 값) — `60:app-pages` 4 부류 (zoom · edit · pan · page-switch) 에 **A 0** 으로 등록 (`--add-keys`). `render.grCacheUsageMax` 는 게이지 (run 사이 166,000,132 ↔ 165,946,884 — load-zoom) 라 게이트 판정에서 뺐다 (`perf-ratchet-gate.mjs` `EXCLUDED`). 하니스 고수위 (DPR 1 headless): `app-pages` 48 MiB · `app-pages-images` load-zoom 158 MiB — 한도 384 의 41 %.
 `60:app-pages-images` 등록은 **보류**: 그 시드의 `load-zoom` 이 이 변경 전부터 run 마다 content full 기록 84 · 85 · 86 으로 갈려 (Phase 1 · 2 push 판정 `unmeasurable` 과 같은 값 — execVisited 179,509 → 180,012) 게이트 도구가 「기존 A 초과 — 기준으로 쓸 수 없는 보고」 로 `--add-keys` 를 거부했다. 도구 안전장치를 우회하지 않았다 — load-zoom 흔들리는 키를 B 로 옮길지는 사용자 결정 (task-state next) 이고, 그 뒤 이미지 시드에 같은 세 키를 넣는다. 이미지 fixture 의 HC4 근거는 live ① (DPR 2 · 한도 384 에서 90 % 초과 0) 과 이 2 회 (0) 다.
+
+### Phase 0 — 인벤토리 · 카운트 (2026-10-18, 사용자 「273 나머지 착수 시작해」)
+
+순서는 사용자 결정 3 의 답 (270 Phase 3a 이후 → **273 나머지**). GrContext 항목 (기본 한도 256 MiB · 고수위 · 생성 수) 은 Phase 2 기록에 있다.
+
+**인벤토리 표 (HEAD `2a78ca7ad`)**:
+
+| 자원                       | 상한 (Phase 0 시점)                    | 자리                                           | 보유량 손잡이                                                                         |
+| -------------------------- | -------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| content surface × 2 · main | 없음 — 규격 = main + 512 CSS × dpr × 2 | `SkiaRenderer.ts` `createContentSizedSurface`  | 새 카운터 `render.surfaceBytesMax` (규격 × 4 B, 프레임 끝 고수위 — GPU 실사용량 아님) |
+| GrContext resource cache   | 384 MiB (Phase 2)                      | `canvasMemoryBudget.ts` `GR_CACHE_LIMIT_BYTES` | `render.grCacheUsageMax` (게이지 — 판정 제외) · `grCacheNearLimitFrames`              |
+| picture                    | working set × 1.25 (≥ 1,024) · 64 MiB  | `nodePictureCache.ts:80 · 86`                  | `__composition_NODE_PICTURE_CACHE_DEBUG__.bytes`                                      |
+| 미리 기록                  | 4,096                                  | `nodePictureCache.ts:92`                       | 같은 핸들                                                                             |
+| image                      | 100 개 · soft 128 MiB                  | `imageCache.ts:123 · 125`                      | `getImageCacheMemory`                                                                 |
+| paragraph                  | 없음 (수명 = 노드, ADR-174)            | `retainedParagraph.ts:194`                     | `getRetainedParagraphCount`                                                           |
+| wasm 힙                    | —                                      | —                                              | `HEAPU8.byteLength` (예약 고수위 — 보유량 아님)                                       |
+
+**계측 (dev 전용 · 기본 동작 변경 0)**: `renderCounters` 에 `contentRedrawsOutOfPad` (분류 사유 `coverage-refresh` — 팬이 스냅샷 밖으로 나가 그 프레임에서 다시 기록) · `panFrames` 와 프레임당 이동 거리 (device px, 축별 큰 쪽) 분포 `panDeviceLe16 · Le32 · Le64 · Le128 · Gt128 · Max` · `surfaceBytesMax`. dev 스위치 `__composition_RENDER_PATH_DEBUG__.setContentPadDeviceMax(n | null)` · `contentPadDevicePx()`. 하니스 `perf-baseline.mjs` `--dpr` · `--viewport WxH` · `--pan-speed fast` (휠 24 → 96 CSS px) · `--content-pad-max` (dev 스위치를 부른다).
+
+**측정 (headless Chrome · `--fixed-inputs` · 팬 부류 = 좌우 왕복 960 CSS px · 휠 1 회 / 2 프레임)**:
+
+| 문서 · 화면 · DPR                  |  여백 (device px) | 여백 이탈 재기록 (보통 / 빠름) |                surface 합 |       기록 p95 |  표시 간격 p99 |
+| ---------------------------------- | ----------------: | -----------------------------: | ------------------------: | -------------: | -------------: |
+| `app-pages` 1440 × 900 · 1         |               512 |                         4 / 27 |                  41.1 MiB |   1.0 / 0.9 ms | 17.4 / 17.5 ms |
+| `app-pages` 1440 × 900 · 2         |     1,024 (옛 식) |                         4 / 27 |                 164.5 MiB |         0.9 ms | 17.6 ~ 17.7 ms |
+| 같음                               |               768 |                         — / 35 |                 132.2 MiB |         0.7 ms |        17.7 ms |
+| 같음                               |               512 |                         — / 58 |                 103.9 MiB |         0.8 ms |        17.7 ms |
+| `app-pages` 2560 × 1440 · 2        | 1,024 / 768 / 512 |              4 / 9 / 13 (보통) | 325.8 / 280.5 / 239.3 MiB |         0.8 ms | 17.5 ~ 17.7 ms |
+| `600:nested-flex` 1440 × 900 · 2   | 1,024 / 768 / 512 |              4 / 9 / 13 (보통) | 164.5 / 132.2 / 103.9 MiB | 1.9 / 2 / 2 ms | 17.5 ~ 17.7 ms |
+| `app-pages-images` 2560 × 1440 · 2 |       1,024 / 768 |                   4 / 9 (보통) |         325.8 / 280.5 MiB |   0.8 / 0.7 ms | 17.6 / 17.7 ms |
+
+- 팬 속도 (하니스): 보통 = 프레임당 24 CSS px (DPR 1 24 · DPR 2 48 device), 빠름 = 96 CSS px (DPR 2 192 device). 모든 팬 프레임이 한 칸에 몰린다 — 하니스 팬은 일정 속도라 분포가 아니라 한 점이다 (Q1).
+- 여백 이탈은 화면이 비는 것이 아니다 — `classifyFrame` 이 이탈을 그 프레임 안에서 content 재기록으로 돌린다 (`coverage-refresh`). 여백 값은 **메모리 ↔ 재기록 빈도**의 교환이고 재기록 수 ≈ 팬 거리 / 여백 (CSS).
+- 2560 × 1440 · DPR 2 는 이미지가 없어도 GrContext 사용 330 MiB = 한도 384 의 86 % (HC4 90 % 여유 규칙에 근접).
+- 측정 함정: 같은 run 에서 여백을 바꾸면 GrContext 사용량이 줄지 않는다 (330 MiB 그대로) — 지운 surface 의 텍스처가 퇴거 대기 (purgeable) 자원으로 캐시에 남는다. GPU 캐시 수치는 부팅부터 같은 여백으로 잰다.
+
+**5-질문**: Q1 합성 `app-pages` (규모 전용) — 사용자 Chrome headed 팬 1 회는 **미측정** (사용자 지시 「headless 데이터로 결정 1 진행해」 2026-10-18 — 기록기를 476 초 켜 두었으나 팬 0 건). Q2 불리 = DPR 2 · 2560 × 1440 · 빠른 팬 · 중첩 600 · 이미지. Q3 같은 run 의 dev 스위치로 옛 여백 arm. Q4 `contentPadDevicePx()` 로 실제 여백 확인 · 하니스 `[content-pad]` 로그. Q5 oracle = 규격 산식 손계산 (live ① 이 일치 확인) + 픽셀 (live ② ~ ④).
+
+**go/no-go**: §1 의 기준 「여백 이탈 0」 은 전제가 틀렸다 — 팬 부류 (960 CSS px 왕복) 는 지금 여백 (512 CSS) 에서도 이탈 4 회이고, 이탈 수는 거리 / 여백에 비례한다 (속도와 무관하게 생긴다). 판정은 이탈 1 회의 비용으로 했다: 기록 p95 ≤ 2 ms · 표시 간격 p99 · long task 불변 → go, 값은 사용자 결정 1.
+
+**사용자 결정 1 (2026-10-18)**: 「768 device px (Recommended)」 — 후보 768 · 512 (Pen) · 지금 유지 중에서 위 표를 보고 선택.
+
+### Phase 1 — 여백을 device px 로 (2026-10-18)
+
+**구현**: `canvasMemoryBudget.ts` 에 `CONTENT_PAD_CSS_PX = 512` · `CONTENT_PAD_DEVICE_MAX = 768` · `contentPaddingDevicePx(dpr, max)` = `round(min(512 × dpr, 768))`. `SkiaRenderer` 의 두 대입 (생성 · `resize`) 이 이 helper 를 지난다 (dev 스위치 `setContentPadDeviceMax(Infinity)` = 옛 식). DPR 1 → 512 (무변화) · 1.25 → 640 · 1.5 이상 → 768. ratchet 도구: `runKeyOf` 가 DPR ≠ 1 이면 `@dpr2` 를 붙이고 `harnessArgsFrom` 이 `--dpr` 를 싣는다. ADR-272 F3 의존: 272 는 Proposed 로 `spatialCellsVisited` 기준값이 아직 없어 재측정할 것이 없다 (272 Phase 0 이 이 여백으로 잰다 — DPR 1 은 무변화).
+
+**G2 unit**: `adr273ContentPad.test.ts` 4 (값 · DPR 별 산식 · dev 대조 · renderer 대입이 helper 를 지남). **원복 RED 2/2**: (a) helper 를 `round(512 × dpr)` 로 → 2 RED (b) `resize` 대입을 `round(512 × this.dpr)` 로 → 1 RED. skia 스위트 57 파일 · 330 PASS · type-check 0.
+
+**G3 ratchet**: 새 run `60:app-pages@dpr2` (`--dpr 2 --classes pan,zoom`) 를 `--add-run` 으로 등록 — 2 회 같은 값 (A). DPR 2 기준: `surfaceBytesMax` 138,590,208 (132.2 MiB — 옛 172,439,552) · 팬 이탈 4 → 9 · 줌 이탈 8 → 15 · 줌 `execVisited` 173,861 → 166,072 (여백이 줄어 컬링 범위가 좁다). 원복 RED: 옛 여백 보고 (`--content-pad-max Infinity`) 를 판정하면 A 초과 11 → 차단 (`surfaceBytesMax` 132.2 → 164.4 MiB 등). 기존 DPR 1 run 은 변화 없음 (전량 ratchet 은 아래).
+
+**G1 live** (`adr273-memory-live.mjs`, headless Chrome 1600 × 1000 · 이미지 22 장, 2026-10-18): **11/12** · 콘솔 오류 0 —
+① 여백 DPR 1 512 · DPR 2 768 · surface 바이트 = 규격 산식 (DPR 2 152.2 MiB — 옛 산식 186.5) ② 같은 장면 새 ↔ 옛 여백: DPR 1 세 장면 0 px · DPR 2 줌 1 글자 · 줌 2 이미지 0 px ③ 여백 안 팬 (cleanup 재기록 전 합성) 0 px ④ 여백 밖 팬 1,200 CSS px 뒤 0 px (이탈 DPR 1 2 = 2 · DPR 2 3 > 2).
+**정해진 차이 1 (DPR 2 줌 0.3 · 이미지 장면)**: 글자 한 줄 (카드 넷의 같은 줄) 이 1 device px 아래로 그려진다 — 2,501 px. 원인 판정 근거: 대조군 (같은 여백 다시 그리기) 0 px — 결정적 · `linearOnly` (컬링 점프 없음) · picture 캐시 비움에도 같은 2,501 → 실행 경로 · 캐시 무관 · 카메라를 0.01 CSS px 옮기면 15 px / 2,844 px 로 바뀜 → 반올림 경계에 걸린 줄 · 여백 1,023 · 1,000 · 800 은 옛 결과와 0 px, 769 · 768 만 갈림 (원점 값의 문턱) · 옛 여백만으로도 카메라를 2 device px 옮기면 그 장면의 183 행이 바뀐다 (device 배율 0.6 에서 원점 평행 이동이 래스터를 바꾼다). 결론: 여백 의미의 차이가 아니라 비정수 배율에서 content 원점 (+768 vs +1,024) 이 바뀐 반올림 차이 — 옛 코드의 팬 위치 변화와 같은 부류. 줌 1 · 2 · 팬 합성은 0 px.
+
+### Phase 3 — 자원별 예산 표 한 곳 (2026-10-18, 사용자 「Phase 3 착수해」)
+
+**구현 (동작 변경 0)**: `canvasMemoryBudget.ts` 가 표의 정본 — `GR_CACHE_LIMIT_BYTES` 384 MiB · `CONTENT_PAD_CSS_PX` 512 · `CONTENT_PAD_DEVICE_MAX` 768 · `MAX_NODE_PICTURE_BYTES` 64 MiB · `MAX_WARM_NODE_PICTURES` 4,096 · `IMAGE_CACHE_MAX_ENTRIES` 100 (옛 `imageCache.ts` 모듈 내부 `MAX_CACHE_SIZE`) · `IMAGE_CACHE_BYTE_BUDGET` 128 MiB. `nodePictureCache.ts` · `imageCache.ts` 는 표에서 import 하고 기존 export (`MAX_NODE_PICTURE_BYTES` · `MAX_WARM_NODE_PICTURES` · `IMAGE_CACHE_BYTE_BUDGET`) 를 다시 낸다 — 기존 import 경로 그대로. working set 산식 상수 (`MIN_NODE_PICTURES` · 1.25 · 0.6 · 60) 는 상한이 아니라 산식의 일부라 `nodePictureCache.ts` 에 둔다 (R4).
+
+**보유량 표**: `canvasMemoryHoldings.ts` `readMemoryHoldings()` — 캐시 모듈을 import 하므로 예산 표와 나눴다 (캐시 모듈 → 예산 표 방향이라 한 파일이면 순환). 행: `surfaces` (main + content + standby w × h × 4 · 여백 · 상한) · `gpuCache` (사용 · 한도) · `nodePicture` (개수 · 바이트 · 적용 상한 `capacity` (미리 기록 하한 포함 — `getNodePictureEffectiveCapacity` 신설) · `workingSetCapacity` · 바이트 상한 · 미리 기록 상한) · `image` (개수 · 추정 바이트 · 개수 상한 · 바이트 상한) · `paragraph` (개수 — 수명 = 노드, 상한 없음). surface · GPU 행은 renderer 가 dev 에서 `registerRendererMemorySource` 로 등록 (`dispose` 가 해제 — 자기 등록만 지운다). 자원을 가로지르는 퇴거는 두지 않았다 (ADR-174). 출구: dev 전역 `__composition_MEMORY_BUDGET__.holdings()` · 하니스 `perf-baseline.mjs` 부류마다 `results[cls].memory`. 계획의 `caches.memory` 대신 부류 결과 옆에 둔 이유: `counts` 아래는 ratchet 이 전부 평탄 키로 판정하는데 보유량은 횟수가 아니라 게이지다 (ADR-270 Phase 0 `images` 와 같은 자리 · recorder 스크립트 무변경 → ratchet 해시 그대로).
+
+**G2 unit**: `adr273MemoryBudget.test.ts` 6 (표 값 스냅샷 = 옛 상수 · 캐시 모듈 export = 표 값 · 캐시 모듈에 상한 정의 없음 · 보유량 키 집합 · renderer 등록 · 해제 · 먼저 등록한 renderer 의 해제가 나중 것을 안 지움). `imageCache.test.ts` 의 복사 상수 100 은 표에서 읽는다. ADR-266 계약 (`nodePictureCapacity` · `nodePictureWarmup`) 재통과 — skia 58 파일 · 336 PASS · type-check 0 · 하니스 · gate node 테스트 35 PASS. **원복 RED 2/2**: (a) `imageCache.ts` 에 `MAX_CACHE_SIZE = 100` 재정의 → 1 RED (b) 표의 미리 기록 상한 4,096 → 2,048 → 1 RED.
+
+**live (dev builder, 하니스 `--fixed-inputs --fixture-kind app-pages`, 2026-10-18)**: 부류 끝의 표 — DPR 1 팬 · 줌: surface 43,109,888 B (41.1 MiB) · 여백 512 · GPU 사용 47.6 ~ 50.4 MB / 한도 402,653,184 · picture 3,961 개 · 1.04 MB · paragraph 2,937. DPR 2: surface 138,590,208 B (132.2 MiB — Phase 1 의 `surfaceBytesMax` 와 같음) · 여백 768 · GPU 143 ~ 146 MB. 이미지 장면 (`app-pages-images`, DPR 2 줌): 이미지 22 개 · 67,895,296 B — 같은 부류의 `__composition_IMAGE_DEBUG__.stats()` 와 같음 · picture 적용 상한 4,096 (미리 기록) · working set 2,007. 콘솔 오류 0.

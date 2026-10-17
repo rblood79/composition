@@ -19,6 +19,10 @@ import {
   initCanvasKit,
   isCanvasKitInitialized,
 } from "./initCanvasKit";
+import {
+  IMAGE_CACHE_BYTE_BUDGET,
+  IMAGE_CACHE_MAX_ENTRIES as MAX_CACHE_SIZE,
+} from "./canvasMemoryBudget";
 import { registerSkiaCacheDestroy } from "./disposable";
 import {
   drainPendingWasmDisposals,
@@ -119,10 +123,8 @@ function destroyCachedImage(image: SkImage): void {
   scheduleWasmDisposal(image);
 }
 
-/** GPU 메모리 보호를 위한 캐시 상한 (엔트리 수) */
-const MAX_CACHE_SIZE = 100;
-/** RGBA 디코딩 바이트 추정 상한. GPU 전체 사용량이나 강제 live-set 상한은 아니다. */
-export const IMAGE_CACHE_BYTE_BUDGET = 128 * 1024 * 1024;
+// 엔트리 수 · 바이트 상한은 예산 표 (`canvasMemoryBudget.ts`, ADR-273) — 기존 import 경로를 위해 다시 낸다.
+export { IMAGE_CACHE_BYTE_BUDGET };
 let estimatedBytes = 0;
 
 export function getImageCacheMemory() {

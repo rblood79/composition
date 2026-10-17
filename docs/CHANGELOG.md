@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [고해상도 화면에서 Canvas 화면 버퍼 메모리 축소 — ADR-273 Phase 0 · 1 · 3] - 2026-10-18
+
+### Performance
+
+- **Canvas content 여백을 device px 로 자름** (ADR-273 Phase 1, Canvas) — 팬을 그림 복사만으로 처리하려고 화면 밖에 그려 두는 여백이 `512 CSS px × DPR` 이라 DPR 2 화면에서는 가로 · 세로 각 1,024 device px 였다. 이를 `min(512 × DPR, 768)` 로 바꿨다 (사용자 결정). DPR 1 화면은 그대로다.
+  - 화면 버퍼 두 장 + 화면의 합 (규격 산식, DPR 2): 1440 × 900 창 164.5 → 132.2 MiB · 2560 × 1440 창 325.8 → 280.5 MiB.
+  - 대가: 팬이 여백 밖으로 나갈 때의 다시 그리기가 늘어난다 (headless `app-pages` 960 CSS px 왕복 팬 4 → 9 회). 그 프레임 안에서 다시 그려 화면이 비지는 않고, 1 회 기록 p95 0.7 ~ 2 ms · 표시 간격 p99 · long task 는 그대로였다.
+  - 화면 결과: 옛 여백과 0 px (DPR 1 전부 · DPR 2 줌 1 · 2 · 팬 합성). DPR 2 줌 0.3 한 장면에서 글자 한 줄이 1 device px 아래로 그려진다 — 비정수 배율에서 그리기 원점이 바뀐 반올림 차이로, 지금도 팬 위치에 따라 생기는 것과 같은 종류다.
+  - Phase 0 측정 도구 (dev): 카운터 `contentRedrawsOutOfPad` · `panFrames` · `panDevice*` · `surfaceBytesMax` · `__composition_RENDER_PATH_DEBUG__.setContentPadDeviceMax(n)` (`Infinity` = 옛 여백) · 하니스 `perf-baseline.mjs --dpr · --viewport WxH · --pan-speed fast · --content-pad-max`. ratchet 새 run `60:app-pages@dpr2` (팬 · 줌 — 옛 여백이면 차단).
+- **Canvas 메모리 예산 표 한 곳** (ADR-273 Phase 3, 동작 변경 0) — 여백 · GPU 캐시 한도 · picture 바이트 (64 MiB) · 미리 기록 (4,096) · 이미지 개수 (100) · 바이트 (128 MiB) 상한을 `canvasMemoryBudget.ts` 로 모았다 (값 그대로). dev 에서 `__composition_MEMORY_BUDGET__.holdings()` 가 자원별 지금 보유량을 상한과 나란히 보여 주고, 하니스는 부류마다 `memory` 로 기록한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{canvasMemoryBudget,canvasMemoryHoldings,nodePictureCache,imageCache,SkiaRenderer,renderCounters}.ts` · 시험 `skia/__tests__/{adr273ContentPad,adr273MemoryBudget}.test.ts` · 하니스 `apps/builder/scripts/{perf-baseline,perf-ratchet-gate,adr273-memory-live}.mjs` · `apps/builder/perf/ratchet.json`
+
 ## [이미지가 많은 페이지의 로드 중 끊김 · 편집 유실 제거 — ADR-270 Implemented] - 2026-10-18
 
 ### Changed

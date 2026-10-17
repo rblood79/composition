@@ -65,11 +65,12 @@ const {
 } = await import("./imageCache");
 const { drainPendingWasmDisposals, getPendingWasmDisposalCount } =
   await import("./deferredDisposal");
+const { IMAGE_CACHE_MAX_ENTRIES } = await import("./canvasMemoryBudget");
 const { clearNodePictureCache, storeDragSubtreePicture } =
   await import("./nodePictureCache");
 
-/** MAX_CACHE_SIZE (모듈 내부 상수) 와 같은 값 */
-const MAX_CACHE_SIZE = 100;
+/** 엔트리 수 상한 — 예산 표 (`canvasMemoryBudget.ts`, ADR-273) */
+const MAX_CACHE_SIZE = IMAGE_CACHE_MAX_ENTRIES;
 
 async function loadUrls(count: number, offset = 0): Promise<void> {
   for (let i = offset; i < offset + count; i++) {

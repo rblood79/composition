@@ -25,7 +25,11 @@ import type {
   OpacityEffect,
 } from "./types";
 import { CanvasSurfaceOwner } from "./createSurface";
-import { GR_CACHE_LIMIT_BYTES } from "./canvasMemoryBudget";
+import { registerRendererMemorySource } from "./canvasMemoryHoldings";
+import {
+  GR_CACHE_LIMIT_BYTES,
+  contentPaddingDevicePx,
+} from "./canvasMemoryBudget";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
@@ -183,10 +187,18 @@ export class SkiaRenderer {
   /** 화면 canvas 의 GL context · GrDirectContext 소유자 (ADR-273 Phase 2) — resize 는 산 context 를 재사용한다. */
   private readonly surfaceOwner: CanvasSurfaceOwner;
 
-  /** Content Surface 패딩 (CSS px) — camera-only blit 가장자리 아티팩트 방지 */
-  private readonly contentPaddingCssPx = 512;
-  /** DPR 반영된 패딩 (device px) */
+  /**
+   * Content Surface 패딩 (device px) — camera-only blit 가장자리 아티팩트 방지. `512 CSS × dpr` 를
+   * device 상한 `CONTENT_PAD_DEVICE_MAX` 로 자른다 (ADR-273 Phase 1).
+   */
   private contentPaddingDevicePx = 0;
+  /**
+   * dev 전용 — 여백 상한을 바꿔 보는 스위치 (`Infinity` = 옛 `512 CSS × dpr`). null 이면 기본 상한.
+   * production 에서는 늘 null 이다.
+   */
+  private devContentPadDeviceMax: number | null = null;
+  /** ADR-273 Phase 3 (dev): 보유량 표 등록 해제. */
+  private devUnregisterMemorySource: (() => void) | null = null;
 
   /**
    * Snapshot(blit) 리샘플링 정책
@@ -304,9 +316,7 @@ export class SkiaRenderer {
   constructor(ck: CanvasKit, htmlCanvas: HTMLCanvasElement, dpr?: number) {
     this.ck = ck;
     this.dpr = dpr ?? (window.devicePixelRatio || 1);
-    this.contentPaddingDevicePx = Math.round(
-      this.contentPaddingCssPx * this.dpr,
-    );
+    this.contentPaddingDevicePx = this.resolveContentPaddingDevicePx();
     this.surfaceOwner = new CanvasSurfaceOwner(
       ck,
       htmlCanvas,
@@ -324,6 +334,26 @@ export class SkiaRenderer {
       debug.forceFull = () => this.invalidateContent();
       // ADR-273: 소유한 GL context 의 핸들 수 · 캐시 한도 · 사용 바이트.
       debug.gpuContext = () => this.surfaceOwner.stats();
+      // ADR-273: 여백 상한 (device px, null = 기본 · Infinity = 옛 식) — content surface 를 다시 만든다.
+      debug.setContentPadDeviceMax = (max: number | null) => {
+        this.devContentPadDeviceMax = max;
+        this.contentPaddingDevicePx = this.resolveContentPaddingDevicePx();
+        this.disposeContentSurface();
+        this.contentDirty = true;
+        requestCanvasFrame();
+        return this.contentPaddingDevicePx;
+      };
+      debug.contentPadDevicePx = () => this.contentPaddingDevicePx;
+      // ADR-273 Phase 3: 보유량 표 (`__composition_MEMORY_BUDGET__.holdings()`) 의 surface · GPU 캐시 행.
+      this.devUnregisterMemorySource = registerRendererMemorySource(() => {
+        const gpu = this.surfaceOwner.stats();
+        return {
+          surfaceBytes: this.surfaceBytes(),
+          contentPadDevicePx: this.contentPaddingDevicePx,
+          gpuUsageBytes: gpu.usageBytes,
+          gpuLimitBytes: gpu.limitBytes,
+        };
+      });
       this.devContentRenderWindowStartMs = performance.now();
       this.devFrameWindowStartMs = this.devContentRenderWindowStartMs;
       // CanvasKit 이 획득한 동일 canvas 의 webgl2 컨텍스트를 재사용한다.
@@ -531,6 +561,55 @@ export class SkiaRenderer {
       this.cleanupTimer = null;
     }
     this.needsCleanupRender = false;
+  }
+
+  private resolveContentPaddingDevicePx(): number {
+    return this.devContentPadDeviceMax == null
+      ? contentPaddingDevicePx(this.dpr)
+      : contentPaddingDevicePx(this.dpr, this.devContentPadDeviceMax);
+  }
+
+  /**
+   * ADR-273 Phase 0 (dev 전용) — 여백 이탈 재기록 · 팬 이동 거리 분포 · surface 바이트 고수위.
+   * `lastCamera` 가 갱신되기 전 (분류 직후) 에 부른다.
+   */
+  private countContentPadDevMetrics(
+    camera: CameraState,
+    reason: string | null,
+  ): void {
+    if (reason === "coverage-refresh")
+      renderCounters.contentRedrawsOutOfPad += 1;
+    if (camera.zoom === this.lastCamera.zoom) {
+      const moved =
+        Math.max(
+          Math.abs(camera.panX - this.lastCamera.panX),
+          Math.abs(camera.panY - this.lastCamera.panY),
+        ) * this.dpr;
+      if (moved > 0) {
+        renderCounters.panFrames += 1;
+        if (moved <= 16) renderCounters.panDeviceLe16 += 1;
+        else if (moved <= 32) renderCounters.panDeviceLe32 += 1;
+        else if (moved <= 64) renderCounters.panDeviceLe64 += 1;
+        else if (moved <= 128) renderCounters.panDeviceLe128 += 1;
+        else renderCounters.panDeviceGt128 += 1;
+        if (moved > renderCounters.panDeviceMax)
+          renderCounters.panDeviceMax = Math.round(moved);
+      }
+    }
+    const bytes = this.surfaceBytes();
+    if (bytes > renderCounters.surfaceBytesMax)
+      renderCounters.surfaceBytesMax = bytes;
+  }
+
+  /** main + content + standby surface 의 바이트 (w × h × 4 산식, ADR-273). */
+  private surfaceBytes(): number {
+    const bytesOf = (surface: Surface | null): number =>
+      surface ? surface.width() * surface.height() * 4 : 0;
+    return (
+      bytesOf(this.mainSurface) +
+      bytesOf(this.contentSurface) +
+      bytesOf(this.standbySurface)
+    );
   }
 
   private canBlitWithCameraTransform(camera: CameraState): boolean {
@@ -1227,6 +1306,7 @@ export class SkiaRenderer {
 
     // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
     if (process.env.NODE_ENV === "development") {
+      this.countContentPadDevMetrics(camera, frameReason);
       if (frameType === "content" || frameType === "full") {
         const renderReason = this.canRenderDamage(camera)
           ? "damage"
@@ -1395,9 +1475,7 @@ export class SkiaRenderer {
 
     // DPR 갱신 — 외부 모니터 이동 등으로 변경될 수 있음 (I-H4)
     this.dpr = window.devicePixelRatio || 1;
-    this.contentPaddingDevicePx = Math.round(
-      this.contentPaddingCssPx * this.dpr,
-    );
+    this.contentPaddingDevicePx = this.resolveContentPaddingDevicePx();
     // 소실 중 (복원 전) 의 크기 변경은 surface 를 두고 복원의 resize 에 맡긴다 — 소실된 GL 위에 새 context 를
     // 만들지 않는다. 그리기는 scheduler 가 멈춰 있다.
     if (this.surfaceOwner.isAwaitingRestore()) return;
@@ -1464,6 +1542,8 @@ export class SkiaRenderer {
     }
     this.gpuTimer?.dispose();
     this.unregisterFrameCapture();
+    this.devUnregisterMemorySource?.();
+    this.devUnregisterMemorySource = null;
     this.gpuTimer = null;
     this.disposeContentSurface();
     // resize 가 옛 surface 를 지운 뒤 새 surface 생성에 실패했으면 이미 지워져 있다 (감사 L12).

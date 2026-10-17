@@ -534,13 +534,16 @@ const DEFAULT_FIXTURE = "mixed";
 
 /**
  * 결과 JSON 의 options → ratchet run 키. 기본 fixture 는 시드 수 그대로 (`600`), 다른 fixture 는
- * `600:nested-flex` (ADR-264 — 중첩 문서에서만 보이는 비용을 같은 게이트로 잰다).
+ * `600:nested-flex` (ADR-264 — 중첩 문서에서만 보이는 비용을 같은 게이트로 잰다). DPR 1 이 아니면
+ * `@dpr2` 를 붙인다 (ADR-273 — device px 여백 · surface 바이트는 DPR 2 에서만 갈린다).
  */
 export function runKeyOf(options) {
   const fixture = options.fixtureKind ?? DEFAULT_FIXTURE;
-  return fixture === DEFAULT_FIXTURE
-    ? String(options.seedCount)
-    : `${options.seedCount}:${fixture}`;
+  const base =
+    fixture === DEFAULT_FIXTURE
+      ? String(options.seedCount)
+      : `${options.seedCount}:${fixture}`;
+  return (options.dpr ?? 1) === 1 ? base : `${base}@dpr${options.dpr}`;
 }
 
 /** 결과 JSON 의 options → 같은 조건을 재현하는 하니스 인자 (게이트가 이대로 다시 잰다). */
@@ -557,6 +560,7 @@ export function harnessArgsFrom(options) {
   if ((options.fixtureKind ?? DEFAULT_FIXTURE) !== DEFAULT_FIXTURE)
     args.push("--fixture-kind", options.fixtureKind);
   if (options.callCounts) args.push("--call-counts");
+  if ((options.dpr ?? 1) !== 1) args.push("--dpr", String(options.dpr));
   args.push("--classes", options.classes.join(","));
   return args;
 }

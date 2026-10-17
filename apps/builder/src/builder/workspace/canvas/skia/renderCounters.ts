@@ -201,6 +201,20 @@ export interface RenderCounters {
   gpuContextsDeleted: number;
   grCacheUsageMax: number;
   grCacheNearLimitFrames: number;
+  /**
+   * ADR-273 Phase 0 — content 여백. 팬이 스냅샷 (main + 여백 × 2) 밖으로 나가 content 를 다시 기록한 수
+   * (`coverage-refresh`) · 줌을 바꾸지 않은 카메라 이동 프레임 수와 그 프레임의 이동 거리 (device px, 축별
+   * 큰 쪽) 분포 · 최대 · 프레임 끝 화면 · content surface 바이트 고수위 (규격 × 4 B — GPU 실사용량이 아니다).
+   */
+  contentRedrawsOutOfPad: number;
+  panFrames: number;
+  panDeviceLe16: number;
+  panDeviceLe32: number;
+  panDeviceLe64: number;
+  panDeviceLe128: number;
+  panDeviceGt128: number;
+  panDeviceMax: number;
+  surfaceBytesMax: number;
 }
 
 const counters: RenderCounters = {
@@ -310,6 +324,15 @@ const counters: RenderCounters = {
   gpuContextsDeleted: 0,
   grCacheUsageMax: 0,
   grCacheNearLimitFrames: 0,
+  contentRedrawsOutOfPad: 0,
+  panFrames: 0,
+  panDeviceLe16: 0,
+  panDeviceLe32: 0,
+  panDeviceLe64: 0,
+  panDeviceLe128: 0,
+  panDeviceGt128: 0,
+  panDeviceMax: 0,
+  surfaceBytesMax: 0,
 };
 
 /**

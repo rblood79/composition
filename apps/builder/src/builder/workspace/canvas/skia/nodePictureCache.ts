@@ -33,6 +33,10 @@ import {
   drainPendingWasmDisposals,
   scheduleWasmDisposal,
 } from "./deferredDisposal";
+import {
+  MAX_NODE_PICTURE_BYTES,
+  MAX_WARM_NODE_PICTURES,
+} from "./canvasMemoryBudget";
 import { registerSkiaCacheDestroy } from "./disposable";
 import { registerImageEvictionListener } from "./imageCache";
 import { renderCounters } from "./renderCounters";
@@ -83,13 +87,8 @@ const SHRINK_RATIO = 0.6;
 const SHRINK_AFTER_RECORDS = 60;
 /** 퇴거는 한 번에 상한의 이 비율까지 — 선형 스캔 · 정렬을 store 마다 하지 않는다. */
 const EVICT_TO_RATIO = 0.9;
-export const MAX_NODE_PICTURE_BYTES = 64 * 1024 * 1024;
-/**
- * ADR-266 Phase 4 (사용자 결정 2 「idle 미리 기록」) — 미리 기록 (`nodePictureWarmup`) 이 채우는 picture 수의
- * 상한. `app-pages` 22 페이지 전체가 3,961 개 ≈ 0.99 MB · WASM 힙 고수위 128 MB 불변 (Phase 2 HC5 실측 —
- * 전 페이지 줌아웃이 기록하는 양과 같다). 미리 기록이 한 번이라도 채우면 상한이 이 아래로 내려가지 않는다.
- */
-export const MAX_WARM_NODE_PICTURES = 4096;
+// 바이트 상한 · 미리 기록 상한은 예산 표 (`canvasMemoryBudget.ts`, ADR-273) — 기존 import 경로를 위해 다시 낸다.
+export { MAX_NODE_PICTURE_BYTES, MAX_WARM_NODE_PICTURES };
 
 let capacity = MIN_NODE_PICTURES;
 let lowRecords = 0;
@@ -518,6 +517,11 @@ export function getNodePictureBytes(): number {
 }
 
 /** 기록 중에는 그 기록이 지나간 요소를 밀어내지 않는다 · 미리 기록이 채운 수 아래로 내리지 않는다. */
+/** 지금 적용되는 개수 상한 — working set 상한 · 기록 중 하한 · 미리 기록 하한 중 큰 값 (ADR-273 보유량 표). */
+export function getNodePictureEffectiveCapacity(): number {
+  return effectiveCapacity();
+}
+
 function effectiveCapacity(): number {
   const base = fullRecord
     ? Math.max(capacity, Math.ceil(touched * WORKING_SET_HEADROOM))

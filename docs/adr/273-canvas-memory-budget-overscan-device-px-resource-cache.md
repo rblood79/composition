@@ -4,6 +4,10 @@
 
 Accepted — 2026-10-18 (사용자 「ADR-273 Phase 2 진행해」 — [reviews/273.md](reviews/273.md) r1 pending 0 · CRITICAL/HIGH 0. 진행 순서는 사용자 결정 3 의 답: 270 Phase 0 ~ 2 → **이 ADR Phase 2** → 270 Phase 3a 이후 → 이 ADR 나머지)
 
+> **Phase 3 종결 2026-10-18** (G2) — 자원별 상한을 `canvasMemoryBudget.ts` 한 곳으로 모았다 (값 불변 — picture 바이트 64 MiB · 미리 기록 4,096 · 이미지 100 개 · 128 MiB 를 여백 · GPU 캐시 한도 옆에). 캐시 모듈은 표에서 import 하고 기존 export 는 다시 낸다. 보유량 표 `readMemoryHoldings()` (`canvasMemoryHoldings.ts` — 캐시 모듈을 import 하므로 순환을 피해 나눔) 가 surface · GPU 캐시 · picture · 이미지 · paragraph 행을 상한과 나란히 돌려준다 → dev 전역 `__composition_MEMORY_BUDGET__` · 하니스 부류마다 `memory` (게이지 — ratchet 키 아님). 자원을 가로지르는 퇴거는 없다 (ADR-174). unit 6 · 원복 RED 2/2 · ADR-266 상한 unit 재통과. 상세: breakdown §7 Phase 3.
+
+> **Phase 0 · 1 종결 2026-10-18** (사용자 「273 나머지 착수 시작해」 · G0 · G1 · G2 · G3) — Phase 0: 인벤토리 표 · dev 카운터 (여백 이탈 재기록 · 팬 이동 분포 · surface 바이트) · 하니스 `--dpr` · `--viewport` · `--pan-speed`. 여백 이탈은 화면이 비는 것이 아니라 그 프레임의 재기록이라 여백 값은 메모리 ↔ 재기록 빈도의 교환 (이탈 1 회 기록 p95 ≤ 2 ms · p99 불변). 사용자 Chrome headed 팬은 미측정 (사용자 지시 「headless 데이터로 결정 1 진행해」). Phase 1: 여백 = `min(512 CSS × dpr, 768)` (사용자 결정 1) — DPR 1 무변화 · DPR 2 surface 합 164.5 → 132.2 MiB (1440 × 900) · 325.8 → 280.5 MiB (2560 × 1440) · 보통 팬 재기록 4 → 9. ratchet `60:app-pages@dpr2` (원복 RED 차단) · unit 원복 RED 2/2 · live 11/12 + 정해진 차이 1 (DPR 2 줌 0.3 의 글자 한 줄 1 device px — 비정수 배율에서 content 원점 반올림, 옛 코드의 팬 위치 변화와 같은 부류). 상세: breakdown §7 Phase 0 · Phase 1.
+
 > **Phase 2 종결 2026-10-18** (G1 · G2 통과 · G3 ratchet) — 화면 GL context · GrDirectContext 를 `createSurface.ts` `CanvasSurfaceOwner` 가 소유한다. resize 는 산 context 를 재사용하고 (옛 코드는 resize · 복원마다 핸들 + GrDirectContext 를 하나씩 쌓았다), 소실은 abandon · 복원은 옛 핸들을 먼저 지운 뒤 새로 만든다 (R5). 한도 384 MiB (사용자 결정 2 — 실측 기본 256 MiB · DPR 2 고수위 251 MiB). live 12/12 (DPR 1 · 2 — 옛 경로 ↔ 소유 context 0 px · 소실 → 복원 backend GPU · GL context 1). 원복 RED 5/5. 상세: breakdown §7 Phase 2.
 
 Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — claude, MEDIUM 2 · LOW 1 → 같은 날 반영: Skia 기본 한도를 Phase 0 이 실측 — 사용자 결정 2 의 기준값 · HC4 90 % 규칙은 여유 규칙 (M1) · GrContext 핸들 수명 — 지금은 resize · 복원마다 새 context, Phase 2 는 산 context 만 재사용 · 소실 때 폐기 · 옛 핸들 삭제 (M2, R5 → HIGH) · breakdown 인용 (L3). 수리 검증 round 는 사용자 요청 시)
@@ -93,6 +97,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — cla
 **사용자 결정 N 건**:
 
 1. **여백 상한 값** — `PAD_DEVICE_MAX` (제안 768 device px) 또는 「DPR 과 무관하게 512 device」 (Pen 값). Phase 0 의 팬 속도 p95 · 여백 이탈 수를 보고 정한다.
+   - **답 (사용자 2026-10-18)**: 「768 device px (Recommended)」 — 후보 768 · 512 · 지금 유지를 Phase 0 headless 표 (DPR 2 surface 합 · 이탈 재기록 수 · 재기록 비용) 로 비교한 뒤. 상수 `CONTENT_PAD_DEVICE_MAX` (`canvasMemoryBudget.ts`).
 2. **GrContext 한도 값** — 제안 256 MiB (이미지 예산 128 + 여유). Phase 0 의 `getResourceCacheUsageBytes` 고수위 (이미지 fixture) 와 **Skia 기본 한도 실측값** (Phase 0 이 scratch context 로 `getResourceCacheLimitBytes()` 를 읽는다 — Skia 소스의 `GrResourceCache` 기본은 96 MiB 로 알려져 있으나 이 빌드 (0.42.0) 에서는 미확인, r1 M1) 을 보고 정한다. 기본보다 **올리는** 결정이면 R3 의 방향은 thrash 가 아니라 보유 증가 쪽이다.
    - **답 (사용자 2026-10-18)**: 「384 MiB」. 실측 (Phase 2 가 소유한 context 의 setter 전 값 · 이미지 fixture 줌 0.3 ~ 2): **기본 한도 256 MiB** (96 MiB 아님) · 사용 고수위 DPR 1 111 MiB · DPR 2 251 MiB → 기본에서는 DPR 2 가 90 % 를 11 프레임 넘는다 (HC4 미달), 384 에서는 0. 올린 128 MiB 는 ADR-270 Phase 3a 의 텍스처 이미지 몫 — R3 은 보유 증가 쪽. 또 canvaskit 0.42.0 의 JS 래퍼 `getResourceCacheLimitBytes` · `…UsageBytes` 는 값을 `return` 하지 않아 늘 `undefined` 다 (F5 의 손잡이) — 원 메서드 `_get…Bytes` 로 읽는다.
 3. **ADR-270 과의 순서** — Phase 2 (context 소유) 를 ADR-270 Phase 3a 보다 먼저 두어 texture-backed 이미지가 처음부터 명시 한도 아래 들어가게 할지 (추천), 아니면 독립 진행할지.

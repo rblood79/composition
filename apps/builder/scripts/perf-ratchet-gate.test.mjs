@@ -14,6 +14,7 @@ import {
   flattenCounts,
   judge,
   runKeyOf,
+  harnessArgsFrom,
 } from "./perf-ratchet-gate.mjs";
 import { revisionProblems } from "./perf-ratchet-run.mjs";
 
@@ -582,6 +583,34 @@ test("--add-run — fixture 가 run 키와 하니스 인자에 실리고, 등록
   assert.equal(
     runKeyOf({ seedCount: 600, fixtureKind: "nested-flex" }),
     "600:nested-flex",
+  );
+  // ADR-273: DPR 1 이 아니면 키 · 인자에 DPR 을 싣는다
+  assert.equal(runKeyOf({ seedCount: 60, dpr: 1 }), "60");
+  assert.equal(
+    runKeyOf({ seedCount: 60, fixtureKind: "app-pages", dpr: 2 }),
+    "60:app-pages@dpr2",
+  );
+  assert.deepEqual(
+    harnessArgsFrom({
+      seedCount: 60,
+      fixtureKind: "app-pages",
+      dpr: 2,
+      fixedInputs: true,
+      classes: ["pan", "zoom"],
+    }),
+    [
+      "--lane",
+      "frame",
+      "--seed-count",
+      "60",
+      "--fixed-inputs",
+      "--fixture-kind",
+      "app-pages",
+      "--dpr",
+      "2",
+      "--classes",
+      "pan,zoom",
+    ],
   );
   const base = ratchet();
   const next = applyAddRun(base, "600:nested-flex", [nested(95), nested(95)], {

@@ -98,6 +98,12 @@ const DEFAULTS = {
   callCounts: false,
   coldEntries: 0,
   selectionDriver: "external-props",
+  // ADR-273 Phase 0: DPR · viewport · 팬 속도 (normal = 휠 24 CSS px, fast = 96)
+  dpr: 1,
+  viewport: { width: 1440, height: 900 },
+  panSpeed: "normal",
+  // ADR-273 Phase 0: content 여백 상한 후보 (device px, dev 빌드 전용 — null = 지금 식)
+  contentPadMax: null,
   classes: [
     "idle",
     "pan",
@@ -151,6 +157,13 @@ export function parseArgs(argv) {
     else if (value === "--zoom") options.zoom = Number(next);
     else if (value === "--cold-entries") options.coldEntries = Number(next);
     else if (value === "--classes") options.classes = next.split(",");
+    else if (value === "--dpr") options.dpr = Number(next);
+    else if (value === "--viewport") {
+      const [width, height] = next.split("x").map(Number);
+      options.viewport = { width, height };
+    } else if (value === "--pan-speed") options.panSpeed = next;
+    else if (value === "--content-pad-max")
+      options.contentPadMax = Number(next);
     else if (value === "--profile") {
       options.profile = true;
       continue;
@@ -395,11 +408,12 @@ export async function createInstrumentedContext(
     onPageError = null,
     // ADR-219 G4 — HC4 는 DPR 2 를 고정한다 (기본 1: 기존 기준선 보존)
     deviceScaleFactor = 1,
+    viewport = { width: 1440, height: 900 },
   } = {},
 ) {
   const context = await browser.newContext({
     storageState,
-    viewport: { width: 1440, height: 900 },
+    viewport,
     deviceScaleFactor,
   });
   // ADR-248: the catalog Builder has no element store — the facade maps the harness's store calls
@@ -2278,7 +2292,7 @@ export const FRAME_CLASSES = {
     wheelBurst(
       page,
       ms,
-      "return { deltaX: (Math.floor(i / 40) % 2 ? -1 : 1) * 24, deltaY: 0 };",
+      `return { deltaX: (Math.floor(i / 40) % 2 ? -1 : 1) * ${ctx.panSpeed === "fast" ? 96 : 24}, deltaY: 0 };`,
       ctx.fixedInputs,
     ),
   // 줌 오실레이션 ±30 (baseline 5K 와 같은 자극)
@@ -2989,6 +3003,18 @@ async function runFrameLane(page, cdp, seed, options) {
     await page.evaluate(() =>
       window.__composition_RENDER_PATH_DEBUG__?.setWarmupManual?.(true),
     );
+  if (options.contentPadMax != null) {
+    const pad = await page.evaluate(
+      (max) =>
+        window.__composition_RENDER_PATH_DEBUG__?.setContentPadDeviceMax?.(
+          max,
+        ) ?? null,
+      options.contentPadMax,
+    );
+    if (pad == null)
+      throw new Error("--content-pad-max: dev 빌드의 renderer 핸들 없음");
+    process.stderr.write(`[content-pad] ${pad} device px\n`);
+  }
   const results = {};
   for (const cls of options.classes) {
     const driver = FRAME_CLASSES[cls];
@@ -3056,6 +3082,7 @@ async function runFrameLane(page, cdp, seed, options) {
         selectionDriver: options.selectionDriver,
         fixedInputs: options.fixedInputs,
         editTarget: options.editTarget,
+        panSpeed: options.panSpeed,
         pointer,
         imageLoad,
       },
@@ -3111,6 +3138,10 @@ async function runFrameLane(page, cdp, seed, options) {
         cleanup: await cleanupPointerClass(page, cls, pointer),
       };
     if (rec.profile) results[cls].profile = rec.profile;
+    // ADR-273 Phase 3: 자원별 보유량 표 (게이지 — 기록만, ratchet 키 아님. dev 빌드 전용).
+    results[cls].memory = await page.evaluate(
+      () => window.__composition_MEMORY_BUDGET__?.holdings?.() ?? null,
+    );
     // ADR-270 Phase 0: the image cache after the class (gauge — recorded, not ratcheted).
     if (imageFixture.kind)
       results[cls].images = await page.evaluate(
@@ -3426,6 +3457,8 @@ async function main() {
       gpuTimer: options.gpuTimer,
       initScript: PROBE_SCRIPT,
       onPageError: (e) => process.stderr.write(`[pageerror] ${e}\n`),
+      deviceScaleFactor: options.dpr,
+      viewport: options.viewport,
     });
     const { context, page, cdp } = instrumented;
     pageErrors = instrumented.pageErrors;
