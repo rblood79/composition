@@ -167,3 +167,26 @@
 **G2 unit**: `adr273MemoryBudget.test.ts` 6 (표 값 스냅샷 = 옛 상수 · 캐시 모듈 export = 표 값 · 캐시 모듈에 상한 정의 없음 · 보유량 키 집합 · renderer 등록 · 해제 · 먼저 등록한 renderer 의 해제가 나중 것을 안 지움). `imageCache.test.ts` 의 복사 상수 100 은 표에서 읽는다. ADR-266 계약 (`nodePictureCapacity` · `nodePictureWarmup`) 재통과 — skia 58 파일 · 336 PASS · type-check 0 · 하니스 · gate node 테스트 35 PASS. **원복 RED 2/2**: (a) `imageCache.ts` 에 `MAX_CACHE_SIZE = 100` 재정의 → 1 RED (b) 표의 미리 기록 상한 4,096 → 2,048 → 1 RED.
 
 **live (dev builder, 하니스 `--fixed-inputs --fixture-kind app-pages`, 2026-10-18)**: 부류 끝의 표 — DPR 1 팬 · 줌: surface 43,109,888 B (41.1 MiB) · 여백 512 · GPU 사용 47.6 ~ 50.4 MB / 한도 402,653,184 · picture 3,961 개 · 1.04 MB · paragraph 2,937. DPR 2: surface 138,590,208 B (132.2 MiB — Phase 1 의 `surfaceBytesMax` 와 같음) · 여백 768 · GPU 143 ~ 146 MB. 이미지 장면 (`app-pages-images`, DPR 2 줌): 이미지 22 개 · 67,895,296 B — 같은 부류의 `__composition_IMAGE_DEBUG__.stats()` 와 같음 · picture 적용 상한 4,096 (미리 기록) · working set 2,007. 콘솔 오류 0.
+
+### G4 — production 짝 (2026-10-18, 사용자 「G4 진행해」 — 통과)
+
+**조건**: 기준 = `2a78ca7ad` (Phase 2 까지 — 여백 512 CSS × dpr) 를 `.cache/perf-ratchet/wt` 에서 `perf:build-dist` → `/private/tmp/adr273-base-dist` · HEAD = `83ed0be8f` (여백 768 · 예산 표) → `/private/tmp/adr273-head-dist`. 두 빌드 모두 `VITE_COMPOSITION_HARNESS=1`. 하니스는 HEAD 의 `perf-baseline.mjs --lane frame --fixed-inputs --serve-dist` 하나로 두 빌드를 잰다 · 교대 2 쌍 (기준 → HEAD → HEAD → 기준) · 페이지 · console 오류 0 / 28 run. headless 는 60Hz · 1440 × 900 (2560 × 1440 은 표기). **DPR 2 headed 팬**: 계획의 「사용자 Chrome headed」 대신 Playwright `--headed` (실제 GPU · 화면 120Hz · `--cpu-throttle 4` = 사용자 Chrome 조건) — 사용자 Chrome 은 dev 서버라 production 기준 ↔ HEAD 짝을 만들 수 없다. 사용자 손 확인은 G5.
+
+| 시나리오 (부류)                      | 표시 간격 p99 (ms) 기준 / HEAD | 25 ms 초과 기준 / HEAD | long task | main thread taskMs 기준 / HEAD |
+| ------------------------------------ | ------------------------------ | ---------------------- | --------- | ------------------------------ |
+| DPR 2 `app-pages` 팬                 | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0          | 0         | 377 · 361 / 370 · 367          |
+| DPR 2 줌                             | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 1 · 0          | 0         | 1,013 · 1,053 / 989 · 996      |
+| DPR 2 편집                           | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0          | 0         | 110 · 119 / 107 · 107          |
+| DPR 2 빠른 팬                        | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0          | 0         | 335 · 297 / 355 · 328          |
+| DPR 2 2560 × 1440 빠른 팬            | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0          | 0         | 318 · 291 / 329 · 324          |
+| DPR 1 팬 · 줌 · 편집                 | 16.8 전부                      | 0 전부                 | 0         | 358 · 360 / 363 · 359 (팬)     |
+| 중첩 5k 편집 (DPR 1)                 | 16.8 · 16.8 / 16.8 · 16.8      | 0 · 0 / 0 · 0          | 0         | 168 · 165 / 165 · 164          |
+| **headed DPR 2 팬 (120Hz · CPU 4×)** | 9.4 · 9.3 / 9.3 · 9.3          | 0 · 0 / 0 · 0          | 0         | 1,214 · 1,219 / 1,242 · 1,300  |
+| **headed DPR 2 빠른 팬**             | 9.3 · 10.3 / 9.3 · 9.3         | 0 · 0 / 0 · 0          | 0         | 1,089 · 1,085 / 1,117 · 1,155  |
+
+- **회귀 0**: 표시 간격 p99 · long task 가 모든 시나리오에서 양쪽 같다 (headed 120Hz 포함). DPR 1 은 taskMs 도 쌍 안 흔들림 안이다 (여백 무변화).
+- **DPR 2 줌 HEAD 1 run 의 초과 1 프레임 (33.3 ms)**: 네 run 모두 같은 시점 (~19.7 초 — 줌 끝 정리 렌더) 에 콜백이 12 ~ 17 ms 늦었고 그 run 에서만 16.7 ms 를 넘었다. 다른 HEAD run 은 0 — 경계의 흔들림이지 여백 탓의 재현이 아니다.
+- **빠른 팬 taskMs** HEAD +4 ~ 10 % (headless) · +3 ~ 6 % (headed): 여백 이탈 재기록 증가 (Phase 0 예측 27 → 35) 의 비용이다. 표시 간격 · long task 에는 나타나지 않는다 — R1 (HIGH) 의 「팬 끊김」 은 발생하지 않았다.
+- **production 번들**: dev 전용 보유량 표 (`__composition_MEMORY_BUDGET__` · `registerRendererMemorySource` · `getNodePictureEffectiveCapacity`) 는 HEAD 빌드 산출물에 없다 (분기 제거 확인).
+
+**다음**: G5 — 사용자 프로젝트에서 DPR 2 빠른 팬 · 줌 · 이미지 페이지의 끊김 · 가장자리 빈 영역 판정 (사용자).
