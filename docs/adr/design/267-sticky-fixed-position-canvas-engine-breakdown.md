@@ -24,19 +24,37 @@
 
 ### 1-a 전송 — rule · 노드 값이 엔진까지
 
-- `packages/shared/src/catalog/document/ruleDefinition.ts:191-192` `typedCanvasBox` — `position` 에 `sticky` 통과 (주석 삭제). inset 4 (`top · left · right · bottom` → `insetTop…`) 도 layout 으로.
-- `packages/shared/src/catalog/document/rulePartRules.ts:500` — 부품 rule 경로 같은 처리.
-- `packages/shared/src/catalog/runtime/compositionRoot.ts:1258-1270` `itemLayout` — `position: sticky` 전송 (저작 노드는 스키마상 아직 올 수 없음 — rule 값 경로만 실효).
-- 원복 RED: `typedCanvasBox` 가 다시 떨어뜨리면 1-c 의 fixture RED.
+입력 2개는 Canvas 에 닿는 길이 서로 다르다 (리뷰 Round 1 H1 — 2026-10-17 코드 대조):
+
+| 입력               | 값이 있는 곳                                                                                                                                                                               | 지금 Canvas 에 닿는 길                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 1-a 에서 고칠 곳                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `Header` rule 루트 | `containerStyles.position: "sticky"` (:5599, inset 없음)                                                                                                                                   | `typedCanvasBox` (`ruleDefinition.ts:191-192`) — `relative` 만 남긴다                                                                                                                                                                                                                                                                                                                                                                                                                | `typedCanvasBox` 에 `sticky` 통과. inset 이 없으니 constraints 는 「없음」 (1-b) — 변화 0 이 기대값 |
+| ListBox 섹션 헤더  | `rootSelectors["&:not(.react-aria-Popover *)"].nested[".react-aria-ListBoxSection .react-aria-Header"]` (:6844-6904 — `position: sticky` · `top: calc(-1 * var(--border-width-hairline))`) | **part compiler 로는 닿지 않는다.** `compileRulePartRules` (`rulePartRules.ts:1717-1760`) 는 archetype · `staticSelectors` · `sizeSelectors` · delegation 만 모으고 `rootSelectors.nested` 를 읽지 않는다. `parseSimple` (:244-254) 도 자손 조합 선택자를 받지 않는다. Canvas 의 섹션 헤더 모양은 손으로 옮긴 part rule `manualBoxRules.ts` `ListBox` (:333-376 — `childType: "Header"` · `via: "ListBoxSection"` · `layout: { display: "block" }`) 이 준다 — position · top 이 없다 | 아래                                                                                                |
+
+- **ListBox 섹션 헤더 — 값은 table 에서 읽는다**: `manualBoxRules.ts` `ListBox` 의 Header part `layout` 에 `position` · `insetTop` 을 **손으로 적지 않고** rule 의 nested 블록에서 읽는다 (선례: `catalogListItemFlexShrink` `rulePartRules.ts:705-731` — 같은 `&:not(.react-aria-Popover *)` 블록을 읽는다). 값 해석: `top` 의 `calc(-1 * var(--border-width-hairline))` → `-resolveToken("{border.width.hairline}")` px (이 파일이 이미 `hairline` 을 같은 토큰으로 푼다 :346). 해석 못 하는 inset (`calc` 다른 형태 · `%`) 은 「없음」 이 아니라 **throw 하는 unit** 으로 막는다 — 조용히 0 으로 떨어지면 Header rule 과 같은 「붙지 않음」 으로 보여 RED 가 GREEN 으로 가려진다.
+- **Popover 조건**: nested 블록은 `:not(.react-aria-Popover *)` 아래라 단독 ListBox 에만 해당한다. picker 의 ListBox (Popover 안) 는 Canvas 가 닫힌 목록을 그리지 않으므로 (`presence.ts` `TRIGGER_OVERLAY_CHILDREN`) 도달 0 이지만, part rule 이 Popover 안 ListBox 에도 붙는 경우가 있으면 (Phase 0 inventory 에서 `manualBoxRule("ListBox")` 소비 자리 grep) sticky 를 Popover 밖 조건에만 싣는다.
+- **검증기 — 라이브러리 rule 과 노드 저작을 나눈다 (리뷰 Round 2 H1)**: `validation.ts:195` `layoutValueChoices.position` (`static · relative · absolute`) 하나를 두 검증 함수가 같이 쓴다. 그대로 두면 위 값이 resolver 에 닿기 전에 `buildCodeCatalogLibrary` → `buildCatalogLibrary` (`library.ts:209-214`) → `validateLibraryDefinition` 에서 `INVALID_LAYOUT_VALUE` (`library.definition.partRules[0].layout.position` · 루트 Header 는 `library.definition.layout.position`) 로 **코드 라이브러리 생성 자체가 실패**해 Builder 가 프로젝트를 열지 못한다 (`catalogRuntime/library.ts:10`). 호출 자리 실측 (2026-10-17):
+
+  | 검증 함수             | 호출 자리                                                                                                                                                                                                            | 입력 출처                                                                                                                                       | Phase 1 의 `position`                        |
+  | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+  | `layoutValues` (:599) | `validateLibraryDefinition` 의 `library.definition.layout` (:1575) · `ruleOutput` (:841 → partRules · rules :1591 · :1620) · `validateLibraryTemplate` 의 `library.template.layout` (:1743) · template patch (:1775) | 코드 catalog 뿐 — 호출자는 `buildCatalogLibrary` 하나 (`codeCatalogLibrary.ts:737` · fixture). 문서 · IndexedDB · 내보낸 파일에 저장되지 않는다 | `+ sticky`                                   |
+  | `layoutWrites` (:608) | `entry.layout` (:1224) · responsive layer (:792) · descendant patch · `fillSlot` (:893)                                                                                                                              | 문서 (사용자 저작)                                                                                                                              | 그대로 (`sticky` · `fixed` 거부 — 결정 1 전) |
+
+  그래서 `layoutValueChoices` 를 둘로 나눈다 — 저작용 (지금 값) 과 라이브러리 rule 용 (저작용 + `position: sticky`). `fixed` 는 어느 쪽에도 넣지 않는다 (Phase 2). 문서 스키마 · `LIBRARY_CONTRACT_VERSION` 은 바뀌지 않는다 — 저장되는 쪽 (`layoutWrites`) 의 허용 집합이 같고, 라이브러리는 세션마다 코드에서 다시 만든다. unit (`validation` 스위트): ① 라이브러리 definition · part rule 의 `position: sticky` + `insetTop: "-0.5px"` 통과 · ② `entry.layout` · responsive layer · descendant patch 의 `position: sticky` 는 여전히 `INVALID_LAYOUT_VALUE` · ③ 라이브러리 rule 의 `position: fixed` 거부.
+
+- `rulePartRules.ts:500` — part rule 의 `position` 필터에 `sticky` 통과 · inset 4 (`top · right · bottom · left` → `insetTop…`) 를 layout 으로 (일반 경로 — staticSelectors 로 오는 향후 입력용).
+- `packages/shared/src/catalog/runtime/compositionRoot.ts:1258-1270` `itemLayout` — `position: sticky` + inset 전송 (저작 노드는 스키마상 아직 올 수 없음 — rule · part rule 값 경로만 실효).
+- **RED 는 end-to-end 로**: 필터 unit 만으로 닫지 않는다. 실제 `buildCodeCatalogLibrary()` (검증 포함) 로 만든 라이브러리 위에서 단독 ListBox > ListBoxSection > Header 문서를 실제 catalog → resolver → `styleOf` 로 돌려 Header 의 엔진 입력에 `position: "sticky"` 와 **수치 `insetTop` (−hairline px)** 이 도착하는지 단언 (`packages/shared/src/catalog/runtime/__tests__/` — 기존 `compositionRoot` 스위트 형식). 반례 대조: nested 블록의 `top` 을 메모리에서 바꾸면 엔진 입력도 바뀐다 (리뷰가 쓴 「바꿔도 출력 동일」 프로브의 반대 방향).
+- 원복 RED: ① `typedCanvasBox` 가 다시 떨어뜨림 → Header rule 단언 RED · ② manual Header part 가 nested 블록을 안 읽음 → 위 end-to-end 단언 RED + 1-c 의 「중간」 fixture RED · ③ 라이브러리 rule 용 선택지에서 `sticky` 를 빼면 `buildCodeCatalogLibrary` 가 `INVALID_LAYOUT_VALUE` 로 실패 (end-to-end 단언 RED) · ④ 저작용 선택지에 `sticky` 를 넣으면 unit ② RED.
 
 ### 1-b 엔진 — constraints (Blink `ComputeStickyPositionConstraints` 계약)
 
 - `packages/engine/src/tree.rs` — sticky 상자는 in-flow 그대로 (레이아웃 결과 불변). 레이아웃 뒤 sticky 노드마다:
-  - **scroll container**: 가장 가까운 조상 중 overflow 가 스크롤인 것 (`catalogOverflowScrolls` 와 같은 판정 — `auto · scroll`), 없으면 page root.
+  - **scroll container**: 가장 가까운 조상 중 **CSS scroll container** 인 것 — `overflow` 한 축이라도 `hidden · scroll · auto` (`clip` · `visible` 제외, [CSS Overflow 3 §valdef-overflow-hidden](https://www.w3.org/TR/css-overflow-3/#valdef-overflow-hidden)). 판정은 엔진의 기존 단일 술어 `is_scroll_container` (`tree.rs:6264-6282`) 를 그대로 쓴다 — **`catalogOverflowScrolls` (`canvasOverflow.ts:36-37`, `auto · scroll` 만) 를 쓰지 않는다**: 그것은 Canvas 의 사용자 스크롤 UI (스크롤바 · wheel) 판정이고 sticky 기준 조상 판정이 아니다 (리뷰 Round 1 M3 — Chrome 155 실측: outer `auto` scrollTop 100 > section `hidden` > sticky Header 는 y=−100, 즉 hidden section 이 owner 라 outer 와 함께 흘러간다. `visible` · `clip` 대조군은 y=0). 없으면 page root. owner id 를 geometry 에 실어 TS 는 재판정하지 않는다 (R2). `hidden` owner 는 Canvas 에서 스크롤 오프셋이 늘 0 이라 보정 0 — 이것이 Chrome 결과와 같다.
   - **sticky container (containing block)** 기준 영역: scroll container 자신이면 scrollable overflow rect (`:591-593`), 아니면 padding box (`:595`) → 그 상자의 padding 을 뺌 (`:610-611`).
   - sticky 요소 margin 제외 (`:612-625`) · 4 inset (auto 는 「없음」 — 전부 auto 면 constraints 자체 없음) · static rect.
   - 출력: geometry 의 **선택 필드** (sticky 노드만). 길이 · 순서 기존 불변 (R1).
-- Rust unit test: 정본 X8 fixture 「`overflow:auto; height:200px; padding-bottom:40px` 안 `sticky; top:0` 헤더」 + margin · 양쪽 inset · inset 없음 · scroll container = containing block.
+- Rust unit test: 정본 X8 fixture 「`overflow:auto; height:200px; padding-bottom:40px` 안 `sticky; top:0` 헤더」 + margin · 양쪽 inset · inset 없음 · scroll container = containing block · **`auto` 바깥 > `hidden` 안 경계 (owner = hidden 쪽)** · `clip` 경계 (owner = 바깥 `auto`).
 - 원복 RED: constraints 를 비우면 1-c fixture RED.
 
 ### 1-c 소비 — binding · renderCommands · stickyResolver
@@ -44,9 +62,15 @@
 - `apps/builder/src/builder/catalogRuntime/canvasBinding.ts:1455-1476` — geometry 의 sticky constraints 를 `SkiaNodeData.sticky` 로 (기존 `isSticky · stickyTop · stickyLeft` 는 이 구조로 교체 — `nodeRendererTypes.ts:187-194`).
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts:1647-1700` — 오프셋은 **가장 가까운 scroll container** 의 현재 `scrollOffsets` (자기 `skiaData.scrollOffset` 아님). clamp 는 Blink: 양쪽 inset · 공간 부족 시 `max_inset += free` (`:686-695`) · inset 없음 = 보정 0.
 - `apps/builder/src/builder/workspace/canvas/layout/stickyResolver.ts` — 입력을 constraints 구조로 바꾸고 양 축 · 양쪽 inset 지원. 헤더의 「ADR-100 Phase 3」 → 「ADR-267」.
+- **좌표 계약 — sticky delta 는 그리기만이 아니라 공간 문맥 전체에 (리뷰 Round 1 H2)**: 지금 `visitElement` 는 `boundsMap` · `hitBoundsMap` 을 정적 좌표로 먼저 기록하고 (`renderCommands.ts:1633-1644`) 그 뒤에 `renderRelX/Y` 만 보정하며 (:1647-1700), 자식의 `parentAbs` · `childClipRectOf` · `selfOnlyChildContexts` 도 보정 전 `absX/Y` 를 쓴다 (:1790-1837). 그대로 살리면 scrollTop 100 에서 헤더는 화면 y=0 에 그려지는데 bounds 는 y=−100, hit 는 clip 밖이라 미등재 — 보이는 헤더를 클릭 · 선택할 수 없고 자손 label 도 y=−96 에 남는다 (리뷰 소비자 함수 반례). 그래서:
+  1. sticky delta (`dx · dy` = Blink clamp 결과 − 정적 위치) 를 **bounds 기록보다 먼저** 한 번 계산하고, `stickyAbsX/Y = absX/Y + dx/dy` 하나를 이 요소의 모든 공간 출력에 쓴다 — `boundsMap` · `hitBoundsMap` (`intersectBounds(stickyBounds, clipRect)` — 조상 clip 은 그대로, sticky 는 scroll owner 의 clip 을 벗어나지 않는다) · `renderRelX/Y`.
+  2. 자식 문맥도 같은 좌표에서: `childClipRectOf(stickyAbsX, stickyAbsY, …)` · 자식 `parentAbs = stickyAbs − scroll` · `selfOnlyChildContexts` · `subtreeBuildContextByElement` 에 저장하는 값도 같은 식. **전체 · 서브트리 · self 재빌드 세 경로가 같은 값을 저장 · 소비**하는지 단언한다 (self 재빌드가 캐시된 정적 문맥을 꺼내 쓰면 자손만 원위치로 돌아간다).
+  3. 캐시 키: delta 는 scroll owner 의 오프셋 함수다. owner 는 sticky 요소의 조상이므로 `scrollContextKey` 사슬 (`|scroll:${id}:${x},${y}`) 이 이미 owner 오프셋을 포함한다 — Phase 0 에서 owner ≠ 직계 부모인 fixture 로 키가 실제로 바뀌는지 확인 (안 바뀌면 키에 owner 오프셋을 추가).
+  4. 오버레이 · hit 소비자 (`SpatialIndex` 는 `hitBoundsMap` 을 받는다 — 리뷰 근거) 는 고치지 않는다 — 입력 map 이 맞으면 따라온다. full repaint · unsafe 분류 유지로는 이 문제가 풀리지 않는다 (좌표의 문제지 무효화의 문제가 아니다).
 - `subtreeTranslate.ts:138-140` 거부 · `hasSparseDamageUnsafePaint` (:1887-1892) 분류는 **유지** (사용자 결정 3 전).
-- browser vitest (ADR-156 oracle) fixture ≥ 5: 스크롤 0 · 중간 · 끝 (containing block 하단에 걸림) · padding-bottom 컨테이너 · margin 있는 sticky · inset 없음 (`Header` rule — 변화 0) · 양쪽 inset 공간 부족. 각 ≤ 1 px.
-- 원복 RED: 조상 오프셋 → 자기 오프셋으로 되돌리면 「중간」 fixture RED.
+- unit (`renderCommands` 스위트 — 리뷰 반례 형식 그대로 production emitter 입력으로): scrollTop 100 · `top: 0` 헤더 → paint y · `boundsMap` y · `hitBoundsMap` y 가 모두 0 (scroll owner 화면 좌표 기준), 자손 label 의 bounds · hit 도 같은 delta · 전체 / self 재빌드 결과 동일.
+- browser vitest (ADR-156 oracle) fixture ≥ 6: 스크롤 0 · 중간 · 끝 (containing block 하단에 걸림) · padding-bottom 컨테이너 · margin 있는 sticky · inset 없음 (`Header` rule — 변화 0) · 양쪽 inset 공간 부족 · **`auto` > `hidden` 경계 (헤더가 바깥과 함께 흐름)**. 각 ≤ 1 px.
+- 원복 RED: ① 조상 오프셋 → 자기 오프셋으로 되돌리면 「중간」 fixture RED · ② bounds 기록을 delta 앞으로 되돌리면 위 unit 의 bounds · hit 단언 RED · ③ owner 판정을 `catalogOverflowScrolls` 로 바꾸면 hidden 경계 fixture RED.
 
 ### 1-d 문서 · 상태
 
@@ -54,13 +78,13 @@
 - `packages/engine/src/tree.rs:2517` 주석 · `stickyResolver.ts` 헤더 정정 (R6).
 - 정본 `CHROMIUM_CANVAS_PARITY_2026-10.md` X8 (§0-2 행 3 · §7-0 표 · §7-4) — sticky `code-confirmed` → `gate-passed`, fixed 는 사용자 결정 1 전 `planned`.
 - `docs/adr/README.md` · CHANGELOG (사용자-가시: Compare Mode 섹션 헤더 일치).
-- G2 live (Chrome MCP) 기록 → 본문 `### Live Exercise`.
+- G2 live (Chrome MCP) 기록 → 본문 `### Live Exercise` — 위치 비교에 더해 **붙은 헤더를 Canvas 에서 클릭해 선택되는지 · 선택 오버레이가 그려진 헤더와 겹치는지** 를 같이 적는다 (H2).
 
 ## 4. Phase 2 — fixed (사용자 결정 1 · 2 뒤에만)
 
 - 진입 조건: 결정 1 = 저작 허용. 불허면 이 Phase 는 「ADR-164 의도적 미지원 유지」 로 종결하고 정본 X8 fixed = `unsupported` (사유: 입력 0).
 - 허용 시:
-  - `packages/shared/src/catalog/document/validation.ts:195` — `position` 에 `sticky · fixed` 허용. `LIBRARY_CONTRACT_VERSION` 올림 여부는 결정 1 에 포함 (변환 코드 없음 — 개발 단계).
+  - `packages/shared/src/catalog/document/validation.ts` 의 **저작용** 선택지 (`layoutWrites` — Phase 1 에서 라이브러리 rule 용과 나눈 쪽) 에 `sticky · fixed` 허용, 라이브러리 rule 용에 `fixed` 추가. `LIBRARY_CONTRACT_VERSION` 올림 여부는 결정 1 에 포함 (변환 코드 없음 — 개발 단계).
   - Design 패널 `TransformSection.tsx:333 · 426` — position 선택지 확장 (Design 패널 섹션 = prop 뜻 하나 규칙 — 메모리 `feedback-design-panel-section-by-prop-meaning`).
   - `itemLayout` — `fixed` 전송. 엔진 `is_out_of_flow` (:6949) 는 이미 fixed 포함 — containing block 을 page root (viewport = `set_viewport`) 로 (결정 2 = page frame 기준).
   - 렌더: `topLayerElementIds` (`renderCommands.ts:1615`) 경로 유지 · 오프셋 보정은 page frame 기준이라 스크롤 무관 (Canvas 는 page 를 스크롤하지 않음).
@@ -74,16 +98,16 @@
 
 ## 6. 파일 변경표 (추정 — Phase 0 에서 확정)
 
-| 영역        | 파일                                                                                                    | 변경                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 전송        | `ruleDefinition.ts` · `rulePartRules.ts` · `compositionRoot.ts` (`itemLayout`)                          | sticky · inset 통과                      |
-| 엔진        | `packages/engine/src/tree.rs` (+ 테스트)                                                                | constraints 계산 · geometry 선택 필드    |
-| 소비        | `canvasBinding.ts` · `nodeRendererTypes.ts` · `renderCommands.ts` · `stickyResolver.ts`                 | constraints 소비 · scroll container 오프셋 · Blink clamp |
-| 테스트      | `apps/builder/tests/parity/stickyPosition.browser.test.ts` (신설) · ratchet run 1                       | ADR-156 oracle fixture ≥ 5 · 카운트       |
-| 문서        | `layout-engine.md` · `CHROMIUM_CANVAS_PARITY_2026-10.md` · `docs/adr/README.md` · CHANGELOG             | 상태 · 틀린 설명 정정                    |
-| Phase 2 만  | `validation.ts` · `TransformSection.tsx` · `itemLayout` (fixed) · `tree.rs` (containing block = page)   | 사용자 결정 1 · 2 뒤                     |
+| 영역       | 파일                                                                                                                                                                                             | 변경                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| 전송       | `ruleDefinition.ts` · `rulePartRules.ts` · `manualBoxRules.ts` (ListBox Header part — nested 블록 읽기) · `validation.ts` (라이브러리 rule 용 선택지 분리) · `compositionRoot.ts` (`itemLayout`) | sticky · inset 통과 · ListBox nested 값 도달 · 저작 검증은 그대로                            |
+| 엔진       | `packages/engine/src/tree.rs` (+ 테스트)                                                                                                                                                         | constraints 계산 (owner = `is_scroll_container`) · geometry 선택 필드                        |
+| 소비       | `canvasBinding.ts` · `nodeRendererTypes.ts` · `renderCommands.ts` · `stickyResolver.ts`                                                                                                          | constraints 소비 · scroll owner 오프셋 · Blink clamp · bounds · hit · 자식 문맥에 같은 delta |
+| 테스트     | `apps/builder/tests/parity/stickyPosition.browser.test.ts` (신설) · catalog end-to-end 전송 unit · `renderCommands` 좌표 unit · ratchet run 1                                                    | ADR-156 oracle fixture ≥ 6 · 카운트                                                          |
+| 문서       | `layout-engine.md` · `CHROMIUM_CANVAS_PARITY_2026-10.md` · `docs/adr/README.md` · CHANGELOG                                                                                                      | 상태 · 틀린 설명 정정                                                                        |
+| Phase 2 만 | `validation.ts` (저작용 선택지) · `TransformSection.tsx` · `itemLayout` (fixed) · `tree.rs` (containing block = page)                                                                            | 사용자 결정 1 · 2 뒤                                                                         |
 
-추정 12 파일 (Phase 2 제외 9). 실측이 1.5 배를 넘으면 이 표를 Phase 0 보강 커밋으로 고친다 (fork 사유 아님 — adr-writing M3).
+추정 13 파일 (Phase 2 제외 11 — 리뷰 Round 1 H1 로 `manualBoxRules.ts`, Round 2 H1 로 `validation.ts` 가 Phase 1 에 추가). 실측이 1.5 배를 넘으면 이 표를 Phase 0 보강 커밋으로 고친다 (fork 사유 아님 — adr-writing M3).
 
 ## 기록
 
