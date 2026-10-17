@@ -8,6 +8,8 @@ Implemented — 2026-10-17 (Accepted 같은 날 — 사용자 `/execute-adr 268`
 >
 > **Phase 1 종결 2026-10-17** — 1-a 서브트리 세대 캐시 (`intrinsic_content_w` · `subtree_gen` — mutation 진입점의 조기 종료 없는 조상 walk, 측정 pass 는 안 씀) · `measure_intrinsic_content_width` (자기 width · `intrinsic_w` 저장 · 복원) · 1-b 지연 floor `flex_layout_with_definite_floor` (커널 호출 4곳) + 판정 `flex::definite_item_floor_may_bind`. G1: cargo 480 PASS · ADR-188 `2N` 불변 · 원복 RED 2 (helper 우회 → F4 fixture 4 RED · 세대 키 → 전역 키 → ADR-188 N=50 100 → 198) · R1 fixture (자손 편집 · 형제 HIT · dirty 아래 두 번 편집 · 재부모화 옛/새 · 측정 뒤 width · `intrinsic_w` · 조상 세대 불변). G2: seed 5 · 17 class 2회 — 기존 A 초과 0 · `engine.*` = Phase 0 값 그대로 · `--raise` 0 · parity 829/830 (실패 1 = `adr248CatalogGeometryDelta` case 2 `subtreeNodeVisits` 4 기대 / 1 — HEAD 엔진으로도 같은 값, ADR-264 옮기기 뒤 낡은 기대값 — 이 ADR 범위 밖) · F4 fixture 4 ≤ 1 px. G3 live 아래. reach 재계수: 후보 14 는 그대로 측정되나 폭이 바뀐 item 0 (내용 min-content 가 이미 결과 폭 아래).
 
+> **Phase 1 후속 수리 (2026-10-17):** 리뷰 Round 3 LOW의 viewport 의존 캐시를 `max(subtree_gen, viewport_gen)` 키로 보완했다. viewport 변경 시 기존 intrinsic 측정 세대도 갱신하며, 동일 viewport·형제 편집 HIT와 ADR-188 `2N`은 유지한다. 상세: [breakdown 후속 기록](../design/268-flex-row-definite-content-size-suggestion-breakdown.md#기록).
+
 - 사용자 요청: `/create-adr flex row definite item 의 §4.5 content size suggestion 복원 (F4) — ADR-204 perf 이연을 ADR-246 ratchet 카운트로 재판정 · 허용치 사후 완화 금지` (2026-10-17)
 - 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 의 51 행 가운데 ADR 이 필요한 확정 3 건 (X8 sticky · fixed = [ADR-267](267-sticky-fixed-position-canvas-engine.md) / **F4** / O1) 의 두 번째.
 - 이미 정해진 것 (요청 원문 · 정본 §0-2 행 7 · ADR-204 Phase 4 판정): **허용치 사후 완화 금지** — ADR-188 G0 방문 수 단언 (`2N`) 과 ADR-246 ratchet 상한은 이 ADR 이 올리지 않는다. 구현이 그 안에 들어가지 못하면 구현을 바꾸거나 이연을 유지한다. oracle 은 Blink 코드가 아니라 Chrome `getBoundingClientRect` (ADR-156 차등 oracle) 다. Blink 인용은 고정 SHA `33688427bc1a316cecb28d5651ad25208ba9ab53` 원본을 직접 읽은 것 (code-confirmed), composition 쪽 수치 (Blink 150/150 vs 엔진 100/100) 는 아직 source-reported — Phase 0 이 재현한다.
@@ -141,6 +143,8 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 - 결과 9/9 PASS · console error 0: 처음 Button 161.3 / 133.4 · Frame 100 / 100, 편집 뒤 Button 200 / 133.4 · **Frame 129.6 / 70.4** — 전부 Canvas = Preview.
 - RED arm (helper 의 2 · 3 단계 우회 빌드로 같은 스크립트): 편집 뒤 Frame 만 **FAIL** — Canvas 100 / 100 · Preview 129.6 / 70.4 (Paragraph 도 100 vs 129.6 / 70.4). 소스 · wasm 복원 확인.
 - 발견: **Button 은 이 ADR 대상이 아니다** — 엔진 입력에서 자식 없는 텍스트 leaf (`contentMinWidth` 135.3 · 107.4 스칼라) 라 ADR-165 경로로 이미 floor 가 걸려 있었다 (RED arm 에서도 PASS). 본문 Context · G3 의 「고정 폭 Button」 은 자식 보유 컨테이너 item (Frame · 부품 노드를 가진 composite) 으로 읽는다.
+
+- **Phase 1 후속 수리 커밋 전 확인 (2026-10-17)**: headed Chrome · visible · DPR 1 · Compare Mode에서 row 200 안 고정 폭 Frame 둘과 Paragraph를 생성하고 자손 글자를 길게 편집 → Undo. 각 상태의 Frame·Paragraph 4개씩 총 12개 상자가 Preview DOM rect와 1px 이내로 일치했고 unmatched 0·콘솔 오류 0이었다. viewport API 반례 자체는 Rust·WASM·Chromium 차등 fixture로 검증했다.
 
 ## Consequences
 

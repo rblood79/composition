@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
-import { type ParityCase, runParityCase } from "./harness";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
+import { type ParityCase, domLeg, runParityCase, TOL } from "./harness";
 
 /**
  * ADR-164 G1 — §4.5 automatic minimum size 차등 fixture (raw style 직행)
@@ -333,6 +334,59 @@ describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {
   for (const c of CASES) {
     it(c.name, () => {
       expect(runParityCase(c)).toEqual([]);
+    });
+  }
+
+  for (const unit of ["vw", "vh"] as const) {
+    it(`ADR-268: viewport 변경 뒤 ${unit} 자손의 content floor 가 Chrome 과 같다`, () => {
+      const nodes: ParityCase["nodes"] = [
+        { label: "g0", style: { width: `50${unit}`, height: "20px" } },
+        {
+          label: "c0",
+          style: { width: "200px", height: "20px" },
+          children: [0],
+        },
+        { label: "g1", style: { width: `50${unit}`, height: "20px" } },
+        {
+          label: "c1",
+          style: { width: "200px", height: "20px" },
+          children: [2],
+        },
+        {
+          label: "root",
+          style: { display: "flex", width: "200px", height: "40px" },
+          children: [1, 3],
+        },
+      ];
+      const engine = new EngineLayout();
+      try {
+        engine.setViewport(300, 300);
+        const handles = engine.buildTreeBatch(
+          JSON.stringify(
+            nodes.map((node) => ({
+              style: node.style,
+              children: node.children ?? [],
+            })),
+          ),
+        );
+        engine.computeLayout(handles[4], 200, 40);
+        expect(engine.getLayoutsBatch(handles).get(handles[1])!.width).toBe(
+          150,
+        );
+
+        // 문서 입력은 그대로 두고, 현재 Chrome viewport 로 환경만 바꾼다.
+        engine.setViewport(window.innerWidth, window.innerHeight);
+        engine.computeLayout(handles[4], 200, 40);
+        const actual = engine.getLayoutsBatch(handles);
+        const expected = domLeg(nodes, 200);
+        for (const index of [1, 3]) {
+          expect(
+            Math.abs(actual.get(handles[index])!.width - expected[index].w),
+          ).toBeLessThanOrEqual(TOL);
+        }
+      } finally {
+        engine.dispose();
+      }
     });
   }
 });

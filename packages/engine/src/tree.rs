@@ -565,10 +565,12 @@ struct TreeNode {
     /// pass 사이에 일어나므로, 한 pass 안에서는 캐시가 온전히 유효하다 — 지수 폭발이
     /// 실제로 발생하는 구간이 거기다.
     intrinsic_w: Option<(u64, f32, f32)>,
-    /// ADR-268 — **자기 `width` 를 auto 로 둔** 폭 축 intrinsic `(subtree_gen, min, max)` (content-box).
+    /// ADR-268 — **자기 `width` 를 auto 로 둔** 폭 축 intrinsic
+    /// `(max(subtree_gen, viewport_gen), min, max)` (content-box).
     /// `intrinsic_w` 와 뜻이 다르다 (그쪽은 자기 폭 포함 — grid 기여가 소비). row definite item 의
     /// §4.5 content size suggestion 전용이고, 키는 전역 `mutation_gen` 이 아니라 이 노드의
-    /// `subtree_gen` 이다 — 형제 · 다른 서브트리 편집은 HIT 를 깨지 않는다 (ADR-188 `2N`).
+    /// `subtree_gen` 과 viewport 환경 세대의 최신값이다 — 형제 · 다른 서브트리 편집은 HIT 를
+    /// 깨지 않되, vw/vh 기준이 바뀌면 다시 잰다 (ADR-188 `2N`).
     intrinsic_content_w: Option<(u64, f32, f32)>,
     /// ADR-268 — 이 노드 서브트리 (자신 포함) 의 마지막 mutation 세대. mutation 진입점
     /// (`propagate_dirty` · `remove_node` · 재부모화 · `alloc_handle`) 만 쓴다 — 측정 pass 의
@@ -633,8 +635,11 @@ pub struct LayoutTree {
     /// 풀리는데, 엔진은 상수 1920 을 써 Canvas 만 달랐다 (390 breakpoint 에서 195 vs 960,
     /// 2026-09-19). Builder 가 `set_viewport` 로 page 크기를 넘기면 두 leg 가 같은 기준.
     viewport: Option<(f32, f32)>,
+    /// viewport 가 마지막으로 바뀐 `mutation_gen`. 문서 서브트리 세대와 같은 시간축을 써서
+    /// content intrinsic 키를 둘의 max 로 판정한다 — viewport 변경 때 노드 순회 없이 무효화.
+    viewport_gen: u64,
     /// 트리 mutation 카운터 — intrinsic 측정 캐시 유효성 판정 (ADR-169 Phase 1).
-    /// 노드 생성/스타일·자식 변경/제거/clear 마다 증가.
+    /// 노드 생성/스타일·자식 변경/제거/clear · viewport 변경마다 증가.
     mutation_gen: u64,
     /// min/max 크기에 intrinsic 키워드를 쓰는 노드 수. 0 인 일반 문서는 측정 순회를 건너뛴다.
     intrinsic_size_constraint_count: usize,
@@ -1822,7 +1827,8 @@ impl LayoutTree {
     /// item 의 §4.5 content size suggestion 이 소비한다 (`flex_layout_with_definite_floor`).
     ///
     /// 측정 방법은 `measure_intrinsic_width` 와 같다 (센티넬 available 의 가상 solve 2회). 다른 것은
-    /// 둘이다. (1) 캐시 키가 이 노드의 `subtree_gen` — 서브트리 밖 편집은 HIT. (2) 자기 `width` 를
+    /// 둘이다. (1) 캐시 키가 `max(subtree_gen, viewport_gen)` — 서브트리 밖 편집은 HIT,
+    /// viewport 기준 변화는 MISS. (2) 자기 `width` 를
     /// 잠시 비운다. `with_measure_pass` 의 스냅샷은 `NodeStyle` 을 담지 않으므로 저장 · 복원은 여기서
     /// 직접 한다 (`measure_intrinsic_height` 선례). `update_style` 은 쓰지 않는다 — 세대를 올려 자기
     /// 캐시를 스스로 무효화한다. `min-width` 는 후보 조건상 auto 이고 `max-width` 는 남겨 solve 의
@@ -1830,7 +1836,7 @@ impl LayoutTree {
     /// 꺼내 두고 되돌린다.
     fn measure_intrinsic_content_width(&mut self, handle: usize) -> Option<(f32, f32)> {
         let node = self.get(handle)?;
-        let gen = node.subtree_gen;
+        let gen = node.subtree_gen.max(self.viewport_gen);
         if let Some((g, min_w, max_w)) = node.intrinsic_content_w {
             if g == gen {
                 return Some((min_w, max_w));
@@ -5400,11 +5406,15 @@ impl LayoutTree {
     }
 
     /// vw/vh 기준 viewport 설정 (border-box page 크기). 값이 바뀌면 다음
-    /// `compute_layout` 이 증분 skip 을 무효화하도록 `last_compute` 를 지운다.
+    /// `compute_layout` 의 증분 skip 과 viewport 의존 intrinsic 캐시를 무효화한다.
     pub fn set_viewport(&mut self, width: f32, height: f32) {
         let next = Some((width, height));
         if self.viewport != next {
             self.viewport = next;
+            // 기존 intrinsic_w 는 전역 세대, content intrinsic 은 서브트리/환경 세대를 본다.
+            // 문서 mutation 이 없어도 50vw/50vh 자손의 측정값이 바뀐다 (ADR-268 LOW 수리).
+            self.mutation_gen += 1;
+            self.viewport_gen = self.mutation_gen;
             self.last_compute = None;
         }
     }
@@ -12330,6 +12340,71 @@ mod tests {
         tree.reset_counters();
         assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
         assert_eq!(tree.counters()[1], 0, "형제 서브트리 편집은 HIT");
+    }
+
+    /// ADR-268 LOW 수리 — 문서 mutation 없이 viewport 단위 자손의 content floor 가 바뀐다.
+    /// 같은 최종 상태를 fresh build 한 결과와 같아야 한다 (증가 · 감소, vw · vh 양쪽).
+    #[test]
+    fn intrinsic_content_cache_tracks_viewport_without_subtree_mutations() {
+        for unit in ["vw", "vh"] {
+            let json = format!(r#"[
+                {{"style":{{"width":"50{unit}","height":"20px"}},"children":[]}},
+                {{"style":{{"width":"200px","height":"20px"}},"children":[0]}},
+                {{"style":{{"width":"50{unit}","height":"20px"}},"children":[]}},
+                {{"style":{{"width":"200px","height":"20px"}},"children":[2]}},
+                {{"style":{{"display":"flex","width":"200px","height":"40px"}},"children":[1,3]}}
+            ]"#);
+            let mut tree = LayoutTree::new();
+            let h = tree.build_tree_batch(&json).unwrap();
+            let subtree_gens = [h[1], h[3]].map(|id| tree.get(id).unwrap().subtree_gen);
+            for size in [300.0, 600.0, 240.0, 300.0] {
+                let (w, ht) = if unit == "vw" { (size, 800.0) } else { (800.0, size) };
+                tree.set_viewport(w, ht);
+                tree.compute_layout(h[4], 200.0, 40.0);
+
+                let mut fresh = LayoutTree::new();
+                fresh.set_viewport(w, ht);
+                let fh = fresh.build_tree_batch(&json).unwrap();
+                fresh.compute_layout(fh[4], 200.0, 40.0);
+                for i in [1, 3] {
+                    assert_eq!(tree.get_layout(h[i]), fresh.get_layout(fh[i]), "{unit} {size}");
+                    assert_eq!(tree.get_layout(h[i]).width, (size * 0.5).min(200.0));
+                }
+                assert_eq!(
+                    [h[1], h[3]].map(|id| tree.get(id).unwrap().subtree_gen),
+                    subtree_gens,
+                    "viewport 변경은 문서 서브트리 mutation 이 아니다",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn intrinsic_content_cache_keeps_hits_when_viewport_unchanged() {
+        let (mut tree, _, a, _, _, _) = adr268_tree();
+        tree.set_viewport(300.0, 800.0);
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
+        let mutation_gen = tree.mutation_gen;
+        let subtree_gen = tree.get(a).unwrap().subtree_gen;
+        tree.reset_counters();
+        tree.set_viewport(300.0, 800.0);
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
+        assert_eq!(tree.counters(), [0, 0], "같은 viewport 재설정은 HIT");
+        assert_eq!(tree.mutation_gen, mutation_gen);
+        assert_eq!(tree.get(a).unwrap().subtree_gen, subtree_gen);
+    }
+
+    /// content 측정 안에서 소비하는 기존 intrinsic_w 도 viewport 의존값을 캐시할 수 있다.
+    #[test]
+    fn intrinsic_width_cache_tracks_viewport() {
+        let mut tree = LayoutTree::new();
+        tree.set_viewport(300.0, 800.0);
+        let leaf = tree.create_node(serde_json::from_str(r#"{"width":"50vw","height":"20px"}"#).unwrap());
+        let parent = tree.create_node(serde_json::from_str(r#"{"display":"flex"}"#).unwrap());
+        tree.set_children(parent, vec![leaf]);
+        assert_eq!(tree.measure_intrinsic_width(parent), Some((150.0, 150.0)));
+        tree.set_viewport(600.0, 800.0);
+        assert_eq!(tree.measure_intrinsic_width(parent), Some((300.0, 300.0)));
     }
 
     #[test]

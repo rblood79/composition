@@ -107,3 +107,10 @@
 - **G3** live 9/9 (본문 `### Live Exercise`) + RED arm (helper 우회 빌드 — 편집 뒤 Frame Canvas 100/100 · Preview 129.6/70.4 FAIL). Button 은 엔진에서 텍스트 leaf (`contentMinWidth` 스칼라) 라 이미 floor 가 있었다 — 이 ADR 의 대상은 자식 보유 컨테이너 item.
 - **G4**: 정본 F4 `gate-passed` (§0-2 행 7 · §7-0 행 4 · §7-2) + §11-3 엔진 카운트 한 줄 · `tree.rs` 이연 주석 · `flex.rs` floor 절 주석 · `layout-engine.md` 색인 행 5 · 6 · ADR-204 Phase 4 이연 확정 1 에 「ADR-268 로 닫힘」 · README · CHANGELOG.
 - 파일 (문서 제외): 계획 10 → 실제 9 — `engineWasm.ts` 타입이 늘고 `useSkiaNode.ts` · `layoutBridge.ts` 는 손대지 않았다 (카운트 노출은 `engine.ts` 한 곳).
+
+### 2026-10-17 — Phase 1 후속: viewport 환경 변경 캐시 수리
+
+- 구현 판독 Round 3 LOW: 기존 엔진에 `setViewport(300,800)` → row 200 안 width 200 item 둘 (각 자식 `50vw`) → `setViewport(600,800)` 하면 item 폭이 150에 남고 fresh 엔진은 200이었다. 현재 Builder의 breakpoint 교체는 엔진을 비워 production 차단 이슈로 올리지 않았으나, 엔진의 환경 의존 캐시 계약을 수리했다.
+- 설계 보완: 자기 폭 제외 슬롯의 키를 `max(subtree_gen, viewport_gen)`으로 판정한다. 두 세대는 같은 `mutation_gen` 시간축을 사용한다. viewport 변경 때만 전역 측정 세대와 `viewport_gen`을 올려 기존 `intrinsic_w`도 무효화한다. 서브트리 세대는 그대로여서 형제 편집 HIT와 ADR-188 `2N`을 유지한다. setter에서 노드를 순회하지 않으며 측정 pass는 세대를 바꾸지 않는다.
+- 회귀: 문서 mutation 없는 viewport 증가·감소의 `vw`·`vh` item 배치 = fresh build, 동일 viewport 재설정 HIT, 기존 intrinsic 폭 캐시의 viewport 추종. Rust에서 수리 전 두 테스트 RED를 확인했다.
+- 검증: Rust 524/524 (unit 483 · 부가 41), 재빌드 WASM 반례 1/1 (`first 150 · warm 200 = fresh 200`), Chromium 42/42 (새 vw/vh 차등 포함), typecheck PASS. ratchet 상한 변경 없음. [리뷰 Round 4](../reviews/268.md#round-4) l1 fixed. 실제 Builder UI·production 성능·번들·전체 ratchet은 재실행하지 않았다.

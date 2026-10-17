@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - live (Chrome MCP): zoom 35% 에서 Preview 상자 pane 기준 x 254.72 · 너비 672 (=1920×0.35) = Canvas Page 3 와 일치, Tablet 40% 에서 iframe 내부 768×1024.
   - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx` · `apps/builder/src/builder/workspace/Workspace.css`
 
+## [viewport 변경 뒤 flex 내용 최소 폭 캐시 갱신 — ADR-268 Phase 1 후속 수리] - 2026-10-17
+
+### Fixed
+
+- **같은 엔진의 viewport를 바꾼 뒤 고정 폭 flex item이 이전 내용 최소 폭에 남는 문제** (ADR-268 Phase 1 후속, 리뷰 LOW):
+  - **Why:** `50vw`·`50vh` 자손은 문서 mutation 없이 크기가 바뀌지만 content intrinsic 캐시는 서브트리 세대만 확인했다.
+  - 수정: 캐시 키에 viewport 변경 세대를 반영하고 기존 intrinsic 캐시도 함께 무효화한다. 같은 viewport 재설정과 형제 편집의 HIT, ADR-188 `2N` 기준은 유지한다.
+  - 위치: `packages/engine/src/tree.rs`
+
 ## [요소 스크롤이 소유자 서브트리를 다시 기록하지 않는다 — ADR-269 Implemented] - 2026-10-17
 
 ### Performance
