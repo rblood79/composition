@@ -1,7 +1,10 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
-import { useCatalogSession } from "../../../catalogRuntime/react";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
+import {
+  getViewportPresentationSnapshot,
+  subscribeViewportPresentation,
+} from "../viewport/viewportPresentation";
 import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
@@ -23,6 +26,64 @@ function previewCollections() {
 }
 
 const PREVIEW_PANE_ID = "workspace-compare-panel-css";
+
+/**
+ * Place the Preview box where the Canvas draws the open page: the page frame's size
+ * (`root.pageFrameRects` — it grows with the content) at the Canvas camera (`screen = world ×
+ * scale + (x, y)`, in the pane). Without a page frame (a definition edit view) the breakpoint
+ * viewport at the world origin. Written on the elements, not through React: a pan publishes the
+ * camera every frame.
+ */
+function followCatalogPageFrame(
+  workspace: CatalogWorkspace,
+  box: HTMLElement,
+): () => void {
+  const place = () => {
+    const { pageId, breakpoint } = workspace.session.getSnapshot();
+    const rect =
+      (pageId ? workspace.root.pageFrameRects().get(pageId) : undefined) ??
+      { x: 0, y: 0, ...CANVAS_VIEWPORT[breakpoint] };
+    const camera = getViewportPresentationSnapshot();
+    const width = `${rect.width}px`;
+    const height = `${rect.height}px`;
+    const transform = `translate(${camera.x + rect.x * camera.scale}px, ${
+      camera.y + rect.y * camera.scale
+    }px) scale(${camera.scale})`;
+    if (box.style.width !== width) box.style.width = width;
+    if (box.style.height !== height) box.style.height = height;
+    if (box.style.transform !== transform) box.style.transform = transform;
+  };
+  place();
+  // A zoom can move the page grid (`columns: "auto"`) in the Canvas frame after the camera.
+  let frame = 0;
+  const placeAfterCanvas = () => {
+    place();
+    if (!frame)
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        place();
+      });
+  };
+  let offPreviews = workspace.root.subscribePreviews(place);
+  const offRoot = workspace.subscribeRoot(() => {
+    offPreviews();
+    offPreviews = workspace.root.subscribePreviews(place);
+    place();
+  });
+  const offSession = workspace.session.subscribe(place);
+  const offSteps = workspace.runtime.subscribeSteps(() => place());
+  const offRows = workspace.subscribeRows(place);
+  const offCamera = subscribeViewportPresentation(placeAfterCanvas);
+  return () => {
+    if (frame) cancelAnimationFrame(frame);
+    offPreviews();
+    offRoot();
+    offSession();
+    offSteps();
+    offRows();
+    offCamera();
+  };
+}
 
 /**
  * ADR-248 4e-6: the Preview iframe of the open catalog project (`preview.html?catalog=1`). The
@@ -117,12 +178,14 @@ export function CatalogPreviewFrame({
       workspace.detachPreview();
     };
   }, [workspace]);
-  // Canvas와 같은 breakpoint viewport로 렌더한다. 패널 크기를 쓰면 iframe의
-  // 가로·세로 기준이 달라진다. 프레임보다 작은 패널은 두 축 모두 스크롤한다.
-  const breakpoint = useCatalogSession((state) => state.breakpoint);
-  const { width, height } = CANVAS_VIEWPORT[breakpoint];
+  // Canvas 가 열린 page 를 그리는 자리 · 크기 · zoom 그대로 Preview 를 놓는다 (pane 기준).
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(
+    () => followCatalogPageFrame(workspace, boxRef.current!),
+    [workspace],
+  );
   return (
-    <div className="catalog-preview-frame" style={{ width, height }}>
+    <div ref={boxRef} className="catalog-preview-frame">
       <iframe
         ref={frameRef}
         id="previewFrame"

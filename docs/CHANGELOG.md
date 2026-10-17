@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Compare Mode Preview 가 Canvas 의 page 자리 · 크기 · zoom 을 따른다] - 2026-10-17
+
+### Changed
+
+- **Compare Mode 의 CSS 쪽 Preview (`#previewFrame`)** — 폭 · 높이가 100% (뒤에 breakpoint 고정값) 였던 것을 Canvas 가 열린 page 를 그리는 page frame 크기 (`root.pageFrameRects` — 내용으로 늘어난 높이 포함) 로 맞추고, Canvas 카메라 (`화면 = page 좌표 × zoom + 카메라 이동`) 를 `translate(…) scale(zoom)` 으로 따라 pane 안의 같은 자리에 놓는다. pan · zoom · page 전환 · breakpoint 전환 · 편집 · 데이터 행 · 드래그 미리보기를 따라가며, pan 은 매 프레임이라 React 재렌더 없이 style 을 직접 쓴다. page frame 이 없는 정의 편집 화면은 breakpoint viewport 를 쓴다.
+  - live (Chrome MCP): zoom 35% 에서 Preview 상자 pane 기준 x 254.72 · 너비 672 (=1920×0.35) = Canvas Page 3 와 일치, Tablet 40% 에서 iframe 내부 768×1024.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx` · `apps/builder/src/builder/workspace/Workspace.css`
+
 ## [요소 스크롤이 소유자 서브트리를 다시 기록하지 않는다 — ADR-269 Implemented] - 2026-10-17
 
 ### Performance
