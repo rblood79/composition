@@ -229,5 +229,34 @@ describe("ADR-248 typed layout, conditional and part rules", () => {
       "DANGLING_DEFINITION",
     );
     reject({ ...parent, visual: { paddingX: -1 } }, "VISUAL_VALUE_RANGE");
+    // ADR-267: `fixed` is no rule layout value (Phase 2 — user decision 1).
+    reject(
+      { ...parent, layout: { position: "fixed" } },
+      "INVALID_LAYOUT_VALUE",
+    );
+  });
+
+  it("ADR-267: a code catalog rule places a box sticky (definition and part rule layout)", () => {
+    const sticky = library([
+      { ...parent, layout: { display: "flex", position: "sticky" } },
+      part,
+      composite,
+    ]);
+    expect(sticky.definitions.get(parent.id)?.layout?.position).toBe("sticky");
+    expect(() =>
+      library([
+        {
+          ...parent,
+          partRules: [
+            {
+              child: { definitionId: "lib:definition:part" },
+              layout: { position: "sticky", insetTop: "-0.5px" },
+            },
+          ],
+        },
+        part,
+        composite,
+      ]),
+    ).not.toThrow();
   });
 });

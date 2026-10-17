@@ -1,3 +1,4 @@
+import type { StickyConstraints } from "../../../../../../../packages/shared/src/catalog/runtime/engineTypes";
 import type {
   EmbindEnumEntity,
   Image as SkImage,
@@ -184,14 +185,13 @@ export interface SkiaNodeData {
   contentMinHeight?: number;
   zIndex?: number;
   isStackingContext?: boolean;
-  /** CSS position: sticky — visitElement에서 post-layout 좌표 보정 */
-  isSticky?: boolean;
-  /** CSS position: fixed — viewport 기준 고정 */
+  /**
+   * ADR-267 — CSS `position: sticky` constraints from the engine (the scroll container as a record
+   * id): `visitElement` moves the box by that container's scroll position (`resolveStickyOffset`).
+   */
+  sticky?: StickyConstraints<string | null>;
+  /** CSS position: fixed — top layer (no producer before ADR-267 Phase 2). */
   isFixed?: boolean;
-  /** sticky top 값 (px) */
-  stickyTop?: number;
-  /** sticky left 값 (px) */
-  stickyLeft?: number;
   children?: SkiaNodeData[];
 }
 

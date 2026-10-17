@@ -18,6 +18,7 @@ import {
   type SubtreeBuildContext,
 } from "./renderCommands";
 import { renderCounters } from "./renderCounters";
+import { getSkiaNode } from "./useSkiaNode";
 
 const CMD_ELEMENT_BEGIN = 0;
 const CMD_CHILDREN_BEGIN = 2;
@@ -120,6 +121,8 @@ function checkTranslate(
   )
     return { reason: "invalid-span" };
   let unsafePaint = false;
+  /** Elements met so far in the span — a sticky box's scroll container comes before it. */
+  const inside = new Set<string>();
   if (process.env.NODE_ENV === "development")
     renderCounters.translateCheckCommands += span.end - span.start;
   for (let index = span.start; index < span.end; index += 1) {
@@ -132,12 +135,15 @@ function checkTranslate(
     if (!id) continue;
     if (stream.topLayerElementIds.has(id)) return { reason: "top-layer" };
     const scrollKey = stream.scrollContextKeyByElement.get(id) ?? "";
-    if (
-      command.isFixed ||
-      scrollKey.includes("|self:fixed") ||
-      scrollKey.includes("|self:sticky")
-    )
+    if (command.isFixed || scrollKey.includes("|self:fixed"))
       return { reason: "fixed-or-sticky" };
+    // ADR-267 (user decision 3 (c)): a sticky box moves with the subtree when its scroll container
+    // moves with it (its offset is relative to that container); placed alone — its container
+    // outside the subtree, or the page root — its offset changes, so it is drawn again.
+    const sticky = getSkiaNode(id)?.sticky;
+    if (sticky && !(sticky.owner !== null && inside.has(sticky.owner)))
+      return { reason: "fixed-or-sticky" };
+    inside.add(id);
     if (!stream.boundsMap.has(id)) return { reason: "invalid-span" };
     if (stream.damageUnsafeElementIds.has(id) || hasTextPaintOverflow(id))
       unsafePaint = true;

@@ -157,6 +157,27 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
     ).toBe("ACCEPTED");
   });
 
+  it("ADR-267: an authored node layout is not sticky (the document schema — user decision 1)", () => {
+    for (const position of ["sticky", "fixed"]) {
+      expect(
+        code(() =>
+          validateCatalogEntry(node("a", { layout: { position: set(position) } })),
+        ),
+      ).toBe("INVALID_LAYOUT_VALUE");
+      expect(
+        code(() =>
+          validateCatalogEntry(
+            node("b", {
+              responsive: {
+                mobile: { layout: { position: set(position) } },
+              } as NodeEntry["responsive"],
+            }),
+          ),
+        ),
+      ).toBe("INVALID_LAYOUT_VALUE");
+    }
+  });
+
   it("rejects unknown keys, invalid values and a desktop responsive layer", () => {
     expect(
       code(() =>

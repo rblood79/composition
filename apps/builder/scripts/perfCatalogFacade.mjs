@@ -118,7 +118,7 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
         const valueWrites = (obj) => Object.fromEntries(Object.entries(obj ?? {}).map(([k, v]) => [k, set(v)]));
         const entries = specs.map((n) => ({
           kind: "node", id: NODE + n.id,
-          definitionId: h.palette.catalogPaletteDefinitionId(graph().library, n.type),
+          definitionId: n.definitionId ?? h.palette.catalogPaletteDefinitionId(graph().library, n.type),
           children: (n.children ?? []).map((c) => NODE + c),
           props: n.text !== undefined ? { children: set(n.text) } : {},
           visual: valueWrites(n.visual), sizing: valueWrites(n.sizing),

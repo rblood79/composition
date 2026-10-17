@@ -203,6 +203,7 @@ export function parseArgs(argv) {
       "fields",
       "nested-flex",
       "app-pages",
+      "sticky-lists",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
@@ -516,6 +517,52 @@ export async function seedDocument(
       const yieldTask = () => new Promise((r) => setTimeout(r, 0));
       performance.clearMeasures();
       performance.clearMarks();
+      if (fixtureKind === "sticky-lists") {
+        // ADR-267 (2026-10-17): 단독 ListBox (높이 200 — 넘쳐 스크롤) > 섹션 3 > Header (sticky
+        // 섹션 헤더 — ListBox rule 의 nested 블록) + 항목 2. 목록 6 개를 한 줄에. sticky 노드가
+        // unsafe 분류라 편집 · 옮기기가 full · 거부로 가는 비용 (R4) 을 센다. seedIds = 목록.
+        const lists = Math.max(2, Math.round(seedCount / 10));
+        const listIds = Array.from(
+          { length: lists },
+          (_, i) => `perf-seed-l${i}`,
+        );
+        if (!store.getState().elementsMap.has("perf-seed-root")) {
+          const specs = [
+            {
+              id: "perf-seed-root",
+              type: "frame",
+              root: true,
+              children: listIds,
+              layout: { display: "flex", flexDirection: "row" },
+              visual: { gap: 24, padding: 24 },
+            },
+          ];
+          for (let i = 0; i < lists; i += 1)
+            specs.push(
+              {
+                id: listIds[i],
+                type: "ListBox",
+                definitionId: "lib:definition:type-ListBox",
+                track: true,
+                children: [0, 1, 2].map((k) => `${listIds[i]}-s${k}`),
+                sizing: { width: 220, height: 200 },
+              },
+              ...[0, 1, 2].map((k) => ({
+                id: `${listIds[i]}-s${k}`,
+                type: "ListBoxSection",
+                definitionId: "lib:definition:origin-component-listbox-section",
+              })),
+            );
+          store.getState().insertTree(body.id, specs);
+          await yieldTask();
+        }
+        return {
+          seedIds: listIds,
+          nodeCount: 1 + lists * 4,
+          pageIds: store.getState().pages.map((p) => p.id),
+          homePageId: pageId,
+        };
+      }
       if (fixtureKind === "nested-flex") {
         // 중첩 flow 문서 (2026-10-15): root(flex column) > section(flex row wrap, 카드 10) >
         // card(flex column, w 320) > 머리 행(Text 제목 · 배지) · 칩 행(wrap, 칩 6 > Text) ·

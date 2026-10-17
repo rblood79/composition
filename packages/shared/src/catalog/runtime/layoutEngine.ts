@@ -1,4 +1,8 @@
-import type { EngineTraceNode, LayoutResult } from "./engineTypes";
+import type {
+  EngineTraceNode,
+  LayoutResult,
+  StickyConstraints,
+} from "./engineTypes";
 
 export interface LayoutEngineAPI {
   isAvailable(): boolean;
@@ -20,6 +24,12 @@ export interface LayoutEngineAPI {
   setViewport(width: number, height: number): void;
   computeLayout(root: number, availW: number, availH: number): void;
   getLayoutsBatch(handles: number[]): Map<number, LayoutResult>;
+
+  /**
+   * ADR-267 — a `position: sticky` node's constraints after `computeLayout` (null: not sticky, or
+   * every inset auto). optional: a fake engine computes none (the box does not stick).
+   */
+  getStickyConstraints?(handle: number): StickyConstraints | null;
 
   // ── 상태 ──
   clear(): void;

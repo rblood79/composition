@@ -1,86 +1,59 @@
 /**
- * Position Sticky Resolver (ADR-100 Phase 3)
+ * Position sticky offset (ADR-267).
  *
- * 엔진 레이아웃 결과에 post-layout 보정 적용.
- * Chrome Blink 기법: 3단계 상태 전환 (normal → stuck → limit)
+ * The engine lays a sticky box out in flow and gives its constraints (`StickyConstraints` —
+ * Blink `ComputeStickyPositionConstraints`); this is Blink's `ComputeStickyOffset`: at the scroll
+ * container's scroll position, how far the box moves from its static position so that it stays
+ * inside the scrollport by its insets without leaving its containing block. The right / bottom
+ * pull comes first and the left / top one is added to it (Blink's order — left and top win).
+ * An `auto` inset (null) does not pull: a box whose insets are all auto does not move.
  */
 
-export interface StickyInput {
-  /** 레이아웃 결과 y 좌표 */
-  elementY: number;
-  /** CSS top 값 (px) */
-  stickyTop: number;
-  /** 현재 스크롤 오프셋 */
-  scrollOffset: number;
-  /** sticky 제한 컨테이너 상단 y */
-  containerTop: number;
-  /** sticky 제한 컨테이너 하단 y */
-  containerBottom: number;
-  /** 요소 높이 */
-  elementHeight: number;
+import type { StickyConstraints } from "../../../../../../../packages/shared/src/catalog/runtime/engineTypes";
+
+export interface StickyScroll {
+  scrollTop: number;
+  scrollLeft: number;
 }
 
-/**
- * sticky 요소의 보정된 y 좌표를 계산.
- *
- * 3단계 상태:
- * 1. Normal — 아직 스크롤되지 않음 → 원래 y
- * 2. Stuck  — 뷰포트 top에 고정 → scrollOffset + stickyTop
- * 3. Limit  — 부모 하단에 도달 → containerBottom - elementHeight
- */
-export function resolveStickyY(input: StickyInput): number {
-  const { elementY, stickyTop, scrollOffset, containerBottom, elementHeight } =
-    input;
-
-  const viewportTop = scrollOffset + stickyTop;
-
-  // Normal: 아직 고정 위치에 도달하지 않음
-  if (elementY >= viewportTop) return elementY;
-
-  // Stuck: 뷰포트 top에 고정
-  const stuckY = viewportTop;
-
-  // Limit: 부모 하단을 벗어나지 않음
-  const maxY = containerBottom - elementHeight;
-  return Math.min(stuckY, maxY);
-}
-
-export interface StickyInputX {
-  /** 레이아웃 결과 x 좌표 */
-  elementX: number;
-  /** CSS left 값 (px) */
-  stickyLeft: number;
-  /** 현재 수평 스크롤 오프셋 */
-  scrollOffset: number;
-  /** sticky 제한 컨테이너 좌측 x */
-  containerLeft: number;
-  /** sticky 제한 컨테이너 우측 x */
-  containerRight: number;
-  /** 요소 너비 */
-  elementWidth: number;
-}
-
-/**
- * sticky 요소의 보정된 x 좌표를 계산 (수평 스크롤용).
- *
- * 3단계 상태:
- * 1. Normal — 아직 스크롤되지 않음 → 원래 x
- * 2. Stuck  — 뷰포트 left에 고정 → scrollOffset + stickyLeft
- * 3. Limit  — 부모 우측에 도달 → containerRight - elementWidth
- */
-export function resolveStickyX(input: StickyInputX): number {
-  const { elementX, stickyLeft, scrollOffset, containerRight, elementWidth } =
-    input;
-
-  const viewportLeft = scrollOffset + stickyLeft;
-
-  // Normal: 아직 고정 위치에 도달하지 않음
-  if (elementX >= viewportLeft) return elementX;
-
-  // Stuck: 뷰포트 left에 고정
-  const stuckX = viewportLeft;
-
-  // Limit: 부모 우측을 벗어나지 않음
-  const maxX = containerRight - elementWidth;
-  return Math.min(stuckX, maxX);
+export function resolveStickyOffset(
+  constraints: StickyConstraints<unknown>,
+  scroll: StickyScroll = { scrollTop: 0, scrollLeft: 0 },
+): { dx: number; dy: number } {
+  const view = constraints.constrainingRect;
+  const box = constraints.stickyRect;
+  const block = constraints.containingBlockRect;
+  const viewX = view.x + scroll.scrollLeft;
+  const viewY = view.y + scroll.scrollTop;
+  let dx = 0;
+  let dy = 0;
+  if (constraints.right !== null) {
+    const limit = viewX + view.width - constraints.right;
+    dx += Math.max(
+      Math.min(0, limit - (box.x + box.width)),
+      Math.min(0, block.x - box.x),
+    );
+  }
+  if (constraints.left !== null) {
+    const limit = viewX + constraints.left;
+    dx += Math.min(
+      Math.max(0, limit - box.x),
+      Math.max(0, block.x + block.width - (box.x + box.width)),
+    );
+  }
+  if (constraints.bottom !== null) {
+    const limit = viewY + view.height - constraints.bottom;
+    dy += Math.max(
+      Math.min(0, limit - (box.y + box.height)),
+      Math.min(0, block.y - box.y),
+    );
+  }
+  if (constraints.top !== null) {
+    const limit = viewY + constraints.top;
+    dy += Math.min(
+      Math.max(0, limit - box.y),
+      Math.max(0, block.y + block.height - (box.y + box.height)),
+    );
+  }
+  return { dx, dy };
 }

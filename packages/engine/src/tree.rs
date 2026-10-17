@@ -443,6 +443,29 @@ struct BatchNodeInput {
     children: Vec<usize>,
 }
 
+/// ADR-267 — sticky constraints 의 사각형 (scroll container border-box 원점, 스크롤 0).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StickyRect {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+/// ADR-267 — `LayoutTree::sticky_constraints` 결과. inset `None` = auto.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StickyConstraints {
+    /// 가장 가까운 scroll container handle. `None` = root (viewport — Canvas 는 스크롤하지 않음).
+    pub owner: Option<usize>,
+    pub constraining: StickyRect,
+    pub sticky: StickyRect,
+    pub containing: StickyRect,
+    pub top: Option<f32>,
+    pub right: Option<f32>,
+    pub bottom: Option<f32>,
+    pub left: Option<f32>,
+}
+
 /// 계산된 레이아웃 결과 (taffy_bridge.rs `LayoutOutput` 대응, content-box 위치/크기).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NodeLayout {
@@ -2514,10 +2537,9 @@ impl LayoutTree {
     ///   SliderFill 을 frame 으로 감싸면 positioned ancestor 2단). `position: static` 을 명시한
     ///   부모에 한해 조상 체인을 탄다 (catalog 가 부품을 감싼 layout frame 에만 싣는다 —
     ///   `catalogStaticPartFrame`). 위치 미지정 부모는 종전대로 직계 부모 (노드 `placement` 좌표).
-    /// - **`fixed` 의 viewport 기준**: absolute 로 근사 — 상류 TS 도 fixed→absolute
-    ///   로 보낸다 (catalog `styleOf` 는 위치 상자를 absolute + inset 로만 싣는다. 렌더 층의 sticky/fixed
-    ///   좌표 보정은 별도 경로 — renderCommands.ts). 재개 조건 = 캔버스 viewport
-    ///   (=page frame) 기준 fixed 실사용 등장.
+    /// - **`fixed` 의 viewport 기준**: 미지원 — 여기선 absolute 처럼 놓지만 입력이 없다 (catalog
+    ///   `styleOf` 는 fixed 를 보내지 않고 저작 검증이 거부한다 — ADR-267 사용자 결정 1, 2026-10-17).
+    ///   sticky 는 in-flow 배치 + `sticky_constraints` (ADR-267).
     fn place_absolute_children(
         &mut self,
         handle: usize,
@@ -5404,6 +5426,209 @@ impl LayoutTree {
     /// 단일 노드 레이아웃 조회 (진단/테스트용).
     pub fn get_layout(&self, handle: usize) -> NodeLayout {
         self.get(handle).map(|n| n.layout).unwrap_or(NodeLayout::ZERO)
+    }
+
+    /// ADR-267 — `position: sticky` 상자의 constraints (Blink
+    /// `LayoutBoxModelObject::ComputeStickyPositionConstraints`, SHA 33688427 :548-718).
+    /// `compute_layout` 뒤에 읽는다 — 배치 결과와 style 의 함수라 레이아웃 경로를 건드리지 않는다
+    /// (sticky 상자는 in-flow 그대로, `get_layouts_batch` 출력 불변).
+    ///
+    /// - scroll container: 가장 가까운 `is_scroll_container` 조상 (`hidden · scroll · auto`, `clip`
+    ///   제외). 없으면 root — viewport 를 scrollport 로 쓴다 (`set_viewport`).
+    /// - 좌표: scroll container border-box 원점, 스크롤 0. constraining rect = scrollport − padding.
+    /// - containing block = 부모. 부모가 scroll container 자신이면 scrollable overflow rect
+    ///   (padding box ∪ 자손 extent + 끝 padding — Canvas 스크롤 범위와 같은 extent), 아니면 padding
+    ///   box. 둘 다 그 상자의 padding 을 빼고 (:610-611) sticky 상자의 margin 을 뺀다 (:612-625).
+    /// - inset: auto 는 None. 넷 다 None 이면 constraints 없음 (붙지 않는다). 한 축 양쪽이 있고
+    ///   scrollport 가 모자라면 끝 inset (right · bottom) 을 줄인다 (:686-695).
+    ///
+    /// 미지원: sticky 안의 sticky (Blink 의 조상 sticky offset) — catalog 입력에 없다.
+    pub fn sticky_constraints(&self, handle: usize) -> Option<StickyConstraints> {
+        let node = self.get(handle)?;
+        if node.style.position.as_deref().map(str::trim) != Some("sticky") {
+            return None;
+        }
+        if node.style.display.as_deref().map(str::trim) == Some("none") {
+            return None;
+        }
+        let parent = node.parent?;
+        // 조상 체인 — scroll container 를 찾으며 sticky 상자의 그 원점 기준 위치를 누적한다.
+        let mut offset = (node.layout.x, node.layout.y);
+        let mut owner = None;
+        let mut cursor = Some(parent);
+        let mut top = parent;
+        while let Some(h) = cursor {
+            let n = self.get(h)?;
+            if is_scroll_container(&n.style) {
+                owner = Some(h);
+                break;
+            }
+            offset.0 += n.layout.x;
+            offset.1 += n.layout.y;
+            top = h;
+            cursor = n.parent;
+        }
+        // owner 가 없으면 root (가장 바깥 조상) 원점 — root 자신의 x/y 는 위에서 더했으니 뺀다.
+        let origin = owner.unwrap_or(top);
+        if owner.is_none() {
+            let root = self.get(top)?;
+            offset.0 -= root.layout.x;
+            offset.1 -= root.layout.y;
+        }
+        let origin_node = self.get(origin)?;
+        let ctx = self.ctx_for(origin_node.layout.width);
+        let constraining = match owner {
+            Some(_) => {
+                let s = &origin_node.style;
+                let l = origin_node.layout;
+                let x = pad_border_start(s, &ctx, true);
+                let y = pad_border_start(s, &ctx, false);
+                StickyRect {
+                    x,
+                    y,
+                    width: (l.width - x - pad_border_end(s, &ctx, true)).max(0.0),
+                    height: (l.height - y - pad_border_end(s, &ctx, false)).max(0.0),
+                }
+            }
+            None => {
+                let (w, h) = self.viewport.unwrap_or((1920.0, 1080.0));
+                StickyRect { x: 0.0, y: 0.0, width: w, height: h }
+            }
+        };
+        let sticky = StickyRect {
+            x: offset.0,
+            y: offset.1,
+            width: node.layout.width,
+            height: node.layout.height,
+        };
+        // containing block (= 부모) 의 그 원점 기준 위치.
+        let parent_node = self.get(parent)?;
+        let parent_at = (offset.0 - node.layout.x, offset.1 - node.layout.y);
+        let ps = &parent_node.style;
+        let pl = parent_node.layout;
+        let pctx = self.ctx_for(pl.width);
+        let border = |v: Option<&str>| resolve_dimension(v, &pctx);
+        let padding = |v: Option<&str>| resolve_dimension(v, &pctx);
+        let (bl, bt, br, bb) = (
+            border(ps.border_left.as_deref()),
+            border(ps.border_top.as_deref()),
+            border(ps.border_right.as_deref()),
+            border(ps.border_bottom.as_deref()),
+        );
+        let (pl_, pt, pr, pb) = (
+            padding(ps.padding_left.as_deref()),
+            padding(ps.padding_top.as_deref()),
+            padding(ps.padding_right.as_deref()),
+            padding(ps.padding_bottom.as_deref()),
+        );
+        let (mut right, mut bottom) = if owner == Some(parent) {
+            // scrollable overflow rect — 자손 extent (border box, 스스로 clip 하는 상자에서 멈춤)
+            // 에 끝 padding 을 더한 것과 padding box 중 큰 쪽.
+            let (ex, ey) = self.scroll_extent(parent);
+            ((pl.width - br).max(ex + pr), (pl.height - bb).max(ey + pb))
+        } else {
+            (pl.width - br, pl.height - bb)
+        };
+        right += parent_at.0;
+        bottom += parent_at.1;
+        let sctx = self.ctx_for(pl.width);
+        let margin = |v: Option<&str>| resolve_signed(v, &sctx);
+        let s = &node.style;
+        let left = parent_at.0 + bl + pl_ + margin(s.margin_left.as_deref());
+        let top_edge = parent_at.1 + bt + pt + margin(s.margin_top.as_deref());
+        right -= pr + margin(s.margin_right.as_deref());
+        bottom -= pb + margin(s.margin_bottom.as_deref());
+        let containing = StickyRect {
+            x: left,
+            y: top_edge,
+            width: (right - left).max(0.0),
+            height: (bottom - top_edge).max(0.0),
+        };
+        let hctx = self.ctx_for(constraining.width);
+        let vctx = self.ctx_for(constraining.height);
+        let inset_left = resolve_inset(s.inset_left.as_deref(), &hctx);
+        let mut inset_right = resolve_inset(s.inset_right.as_deref(), &hctx);
+        let inset_top = resolve_inset(s.inset_top.as_deref(), &vctx);
+        let mut inset_bottom = resolve_inset(s.inset_bottom.as_deref(), &vctx);
+        if inset_left.is_none() && inset_right.is_none() && inset_top.is_none() && inset_bottom.is_none() {
+            return None;
+        }
+        // 한 축 양쪽 inset 인데 scrollport 가 모자라면 끝 inset 을 줄인다 (음수 가능).
+        if let (Some(l), Some(r)) = (inset_left, inset_right) {
+            let free = constraining.width - l - r - sticky.width;
+            if free < 0.0 {
+                inset_right = Some(r + free);
+            }
+        }
+        if let (Some(t), Some(b)) = (inset_top, inset_bottom) {
+            let free = constraining.height - t - b - sticky.height;
+            if free < 0.0 {
+                inset_bottom = Some(b + free);
+            }
+        }
+        Some(StickyConstraints {
+            owner,
+            constraining,
+            sticky,
+            containing,
+            top: inset_top,
+            right: inset_right,
+            bottom: inset_bottom,
+            left: inset_left,
+        })
+    }
+
+    /// scroll container 의 자손 extent (border box 의 먼 가장자리, 그 상자 원점 기준) — Canvas
+    /// `catalogScrollExtent` 와 같은 내려가기: 스스로 clip 하는 (`visible` 이 아닌 overflow) 상자에서
+    /// 멈춘다.
+    fn scroll_extent(&self, handle: usize) -> (f32, f32) {
+        let mut right = 0.0f32;
+        let mut bottom = 0.0f32;
+        let mut stack: Vec<(usize, f32, f32, usize)> = self
+            .get(handle)
+            .map(|n| n.children.iter().map(|&c| (c, 0.0, 0.0, 0)).collect())
+            .unwrap_or_default();
+        while let Some((h, x, y, depth)) = stack.pop() {
+            let Some(n) = self.get(h) else { continue };
+            let left = x + n.layout.x;
+            let top = y + n.layout.y;
+            right = right.max(left + n.layout.width);
+            bottom = bottom.max(top + n.layout.height);
+            let clips = [n.style.overflow_x.as_deref(), n.style.overflow_y.as_deref()]
+                .iter()
+                .any(|v| matches!(v.map(str::trim), Some(o) if !o.is_empty() && o != "visible"));
+            if depth >= 32 || clips {
+                continue;
+            }
+            for &c in &n.children {
+                stack.push((c, left, top, depth + 1));
+            }
+        }
+        (right, bottom)
+    }
+
+    /// `sticky_constraints` JSON (wasm 경계) — 없으면 `null`. (`serde_json::json!` 대신 `format!` —
+    /// 매크로가 wasm 을 18 KB 키웠다.)
+    pub fn sticky_constraints_json(&self, handle: usize) -> String {
+        let Some(c) = self.sticky_constraints(handle) else {
+            return "null".to_string();
+        };
+        let rect = |r: &StickyRect| {
+            format!(r#"{{"x":{},"y":{},"width":{},"height":{}}}"#, r.x, r.y, r.width, r.height)
+        };
+        let inset = |v: Option<f32>| v.map_or_else(|| "null".to_string(), |v| v.to_string());
+        let owner = c.owner.map_or_else(|| "null".to_string(), |h| h.to_string());
+        format!(
+            r#"{{"owner":{},"constrainingRect":{},"stickyRect":{},"containingBlockRect":{},"top":{},"right":{},"bottom":{},"left":{}}}"#,
+            owner,
+            rect(&c.constraining),
+            rect(&c.sticky),
+            rect(&c.containing),
+            inset(c.top),
+            inset(c.right),
+            inset(c.bottom),
+            inset(c.left),
+        )
     }
 }
 
@@ -10784,6 +11009,141 @@ mod tests {
         assert_eq!(fill.height, 8.0, "track 의 100%");
         assert!((fill.x - 20.0).abs() < 0.01, "track 기준 50 → frame 기준 20: {}", fill.x);
         assert_eq!(fill.y, 0.0);
+    }
+
+    /// ADR-267 — sticky constraints (Blink `ComputeStickyPositionConstraints`). 정본 X8 fixture:
+    /// `overflow:auto; height:200px; padding-bottom:40px` 안 `sticky; top:0` 헤더 (h20) + 400 —
+    /// scroll container 가 containing block 이라 scrollable overflow (extent 420) 가 기준 영역이고,
+    /// constraining rect 는 scrollport − padding (높이 160).
+    #[test]
+    fn sticky_constraints_scroll_container_is_containing_block() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"0px","height":"20px"},"children":[]},
+            {"style":{"display":"block","height":"400px"},"children":[]},
+            {"style":{"display":"block","overflowX":"auto","overflowY":"auto","height":"200px","paddingBottom":"40px"},"children":[0,1]},
+            {"style":{"display":"block","width":"300px"},"children":[2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 300.0, -1.0);
+        let c = tree.sticky_constraints(h[0]).expect("sticky + top");
+        assert_eq!(c.owner, Some(h[2]));
+        assert_eq!(c.constraining, StickyRect { x: 0.0, y: 0.0, width: 300.0, height: 160.0 });
+        assert_eq!(c.sticky, StickyRect { x: 0.0, y: 0.0, width: 300.0, height: 20.0 });
+        assert_eq!(c.containing, StickyRect { x: 0.0, y: 0.0, width: 300.0, height: 420.0 });
+        assert_eq!((c.top, c.right, c.bottom, c.left), (Some(0.0), None, None, None));
+        // sticky 가 아닌 노드 · 레이아웃 출력은 그대로.
+        assert!(tree.sticky_constraints(h[1]).is_none());
+        assert_eq!(tree.get_layout(h[1]).y, 20.0);
+    }
+
+    /// wasm 경계 JSON 은 parse 되고 inset auto 는 null.
+    #[test]
+    fn sticky_constraints_json_round_trips() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"-0.5px","height":"20px"},"children":[]},
+            {"style":{"display":"block","overflowY":"auto","height":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, -1.0);
+        let v: serde_json::Value = serde_json::from_str(&tree.sticky_constraints_json(h[0])).unwrap();
+        assert_eq!(v["owner"], serde_json::json!(h[1]));
+        assert_eq!(v["top"].as_f64(), Some(-0.5));
+        assert!(v["bottom"].is_null());
+        assert_eq!(v["stickyRect"]["height"].as_f64(), Some(20.0));
+        assert_eq!(tree.sticky_constraints_json(h[1]), "null");
+    }
+
+    /// containing block 이 scroll container 가 아니면 그 padding box − padding, 그리고 sticky 상자의
+    /// margin 을 뺀다. padding 은 scroll container 의 scrollport 에서도 빠진다.
+    #[test]
+    fn sticky_constraints_section_padding_and_margin() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"4px","height":"20px","marginBottom":"10px","marginLeft":"2px"},"children":[]},
+            {"style":{"display":"block","height":"300px"},"children":[]},
+            {"style":{"display":"block","paddingTop":"6px","paddingBottom":"8px","borderTop":"1px"},"children":[0,1]},
+            {"style":{"display":"block","overflowY":"auto","height":"200px","paddingTop":"5px","paddingLeft":"3px"},"children":[2]},
+            {"style":{"display":"block","width":"300px"},"children":[3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, -1.0);
+        let c = tree.sticky_constraints(h[0]).unwrap();
+        assert_eq!(c.owner, Some(h[3]));
+        assert_eq!(c.constraining, StickyRect { x: 3.0, y: 5.0, width: 297.0, height: 195.0 });
+        // section: owner 기준 (3, 5), 높이 1 + 6 + 20 + 10 + 300 + 8 = 345.
+        assert_eq!(c.sticky, StickyRect { x: 5.0, y: 12.0, width: 295.0, height: 20.0 });
+        assert_eq!(c.containing.x, 3.0 + 2.0);
+        assert_eq!(c.containing.y, 5.0 + 1.0 + 6.0);
+        assert_eq!(c.containing.y + c.containing.height, 5.0 + 345.0 - 8.0 - 10.0);
+    }
+
+    /// inset 이 전부 auto 면 붙지 않는다 (Header rule 루트 — `position: sticky` 만).
+    #[test]
+    fn sticky_constraints_none_without_insets() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","height":"20px"},"children":[]},
+            {"style":{"display":"block","overflowY":"auto","height":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, -1.0);
+        assert!(tree.sticky_constraints(h[0]).is_none());
+    }
+
+    /// 한 축 양쪽 inset 인데 scrollport 가 모자라면 끝 inset 을 줄인다 — 160 − 150 − 150 − 20 = −160
+    /// → bottom = −10.
+    #[test]
+    fn sticky_constraints_both_insets_reduce_the_end_inset() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"150px","insetBottom":"150px","height":"20px"},"children":[]},
+            {"style":{"display":"block","overflowY":"auto","height":"160px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, -1.0);
+        let c = tree.sticky_constraints(h[0]).unwrap();
+        assert_eq!((c.top, c.bottom), (Some(150.0), Some(-10.0)));
+    }
+
+    /// owner 는 CSS scroll container — `auto` 바깥 > `hidden` 안이면 hidden (Chrome 155: hidden section 이
+    /// owner 라 바깥과 함께 흐른다), `clip` 은 scroll container 가 아니라 바깥 `auto`.
+    #[test]
+    fn sticky_constraints_owner_hidden_vs_clip() {
+        for (inner, owner_index) in [("hidden", 2usize), ("clip", 3usize)] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"block","position":"sticky","insetTop":"0px","height":"20px"}},"children":[]}},
+                {{"style":{{"display":"block","height":"300px"}},"children":[]}},
+                {{"style":{{"display":"block","overflowX":"{inner}","overflowY":"{inner}"}},"children":[0,1]}},
+                {{"style":{{"display":"block","overflowY":"auto","height":"200px"}},"children":[2]}}
+            ]"#
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[3], 300.0, -1.0);
+            let c = tree.sticky_constraints(h[0]).unwrap();
+            assert_eq!(c.owner, Some(h[owner_index]), "{inner}");
+        }
+    }
+
+    /// scroll container 가 없으면 root 가 기준이고 constraining rect 는 viewport.
+    #[test]
+    fn sticky_constraints_without_scroll_container_uses_the_viewport() {
+        let mut tree = LayoutTree::new();
+        tree.set_viewport(390.0, 844.0);
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"0px","height":"20px"},"children":[]},
+            {"style":{"display":"block","paddingTop":"30px"},"children":[0]},
+            {"style":{"display":"block","width":"390px"},"children":[1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 390.0, -1.0);
+        let c = tree.sticky_constraints(h[0]).unwrap();
+        assert_eq!(c.owner, None);
+        assert_eq!(c.constraining, StickyRect { x: 0.0, y: 0.0, width: 390.0, height: 844.0 });
+        assert_eq!(c.sticky.y, 30.0);
     }
 
     /// 부모가 `static` 을 명시하지 않으면 (위치 미지정) 종전대로 직계 부모가 containing block 이다

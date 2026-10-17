@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox 섹션 헤더가 Canvas 에서도 붙는다 — ADR-267 position sticky Implemented] - 2026-10-17
+
+### Fixed
+
+- **단독 ListBox 를 스크롤하면 Preview 는 섹션 헤더가 위에 붙고 Canvas 는 흘러가던 것** (ADR-267 Phase 1) — 이제 Canvas 도 붙고, Compare Mode 에서 두 화면 위치가 같다 (스크롤 40 · 82 에서 헤더 y 4 · 55.5 · 146.5 / −13.5 · 13.5 · 104.5 일치). 붙은 헤더는 클릭으로 선택되고 선택 오버레이가 그려진 자리에 겹치며, 아래 항목보다 위에 그려진다 (rule 의 `z-index: 2`).
+  - **Why**: catalog rule 의 `position: sticky` 가 `typedCanvasBox` · `itemLayout` 에서 떨어졌고 (ListBox 섹션 헤더 값은 nested 블록이라 part rule 에도 닿지 않음), Canvas 보정 코드는 2026-10-02 (ADR-248) 뒤 생산자가 없었다 — 있었어도 자기 스크롤 오프셋 · 부모 border-box · inset 없음을 0 으로 읽어 Blink 와 달랐다.
+  - 위치: `packages/shared/src/catalog/document/{ruleDefinition,rulePartRules,validation}.ts` · `packages/shared/src/catalog/runtime/{presence,compositionRoot,persistentLayoutTree}.ts` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` · `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+
+### Added
+
+- **엔진 sticky constraints** (ADR-267) — `LayoutTree::sticky_constraints` (Blink `ComputeStickyPositionConstraints`: 가장 가까운 scroll container — `hidden · scroll · auto`, `clip` 제외 · 기준 영역 = 부모 padding box 또는 scrollable overflow − padding − sticky margin · 4 inset · 양쪽 inset 공간 부족 시 끝 inset 축소). wasm `getStickyConstraints` 로 sticky 노드만 조회 — geometry batch 는 그대로라 sticky 없는 문서는 엔진 호출 0. Canvas 는 owner 의 스크롤로 `resolveStickyOffset` (Blink `ComputeStickyOffset`) 한 delta 를 paint · bounds · hit · 자식 문맥에 같이 쓴다.
+  - 위치: `packages/engine/src/{tree,wasm}.rs` · `apps/builder/src/builder/workspace/canvas/layout/stickyResolver.ts`
+
+### Changed
+
+- **검증기 분리** (ADR-267) — 코드 catalog 라이브러리 rule (`layoutValues`) 만 `position: sticky` 를 받고, 노드 저작 (`layoutWrites`) 은 그대로 `static · relative · absolute` (사용자 결정 1 「허용 안 함」 — `fixed` · `sticky` 저작 없음, `LIBRARY_CONTRACT_VERSION` 41 그대로). fixed 는 ADR-164 의도적 미지원 유지.
+- **sticky 는 damage-unsafe 가 아니다** (ADR-267 사용자 결정 3 (c)) — bounds 가 그려진 자리가 되어 sparse damage 로 그린다. 서브트리 옮기기는 sticky 의 scroll container 가 같이 옮겨질 때만 한다.
+
+### Performance
+
+- `60:sticky-lists` (단독 ListBox 6 × 섹션 3) 편집: unsafe 로 두면 `contentFullRenders` 0 → 15 · `translateCalls` 60 → 0 이던 것을 결정 3 (c) 로 HEAD 와 같게 (full 0 · translate 60). Builder initial JS gzip +873 B (1,365,666 ≤ 1,421,000) · 엔진 wasm +6,931 B.
+
+### Tests
+
+- Chrome 차등 oracle `apps/builder/tests/parity/stickyPosition.browser.test.ts` (13 fixture — 스크롤 0 · 중간 · 끝 · padding-bottom · margin · inset 없음 · 양쪽 inset · bottom · `auto` > `hidden` · `auto` > `clip` · 높이 없음 · 자손 · 가로) · Rust `sticky_constraints_*` 7 · 끝-끝 전송 `adr267StickyTransport.test.ts` (실제 `buildCodeCatalogLibrary`) · 좌표 계약 `stickyCoordinates.test.ts` (전체 · 서브트리 · self 재빌드) · 검증 unit 3 · 옮기기 unit. 원복 RED 13/13.
+- 성능 하니스 `--fixture-kind sticky-lists` 와 ratchet run `60:sticky-lists` (edit · select) 등록.
+  - 위치: `apps/builder/scripts/{perf-baseline,perfCatalogFacade}.mjs` · `apps/builder/perf/ratchet.json`
+
+### Documentation
+
+- ADR-267 Implemented (`docs/adr/completed/267-sticky-fixed-position-canvas-engine.md`) · Chromium 대조 정본 X8 sticky `gate-passed` · fixed `unsupported` · `.claude/rules/layout-engine.md` 의 「fixed = absolute 근사」 를 「입력 없음 (in-flow static) · sticky = 엔진 constraints」 로 정정.
+
 ## [Canvas 스크롤바가 편집 · 선택마다 깜빡이던 것 · ratchet B 경고 귀속] - 2026-10-17
 
 ### Fixed

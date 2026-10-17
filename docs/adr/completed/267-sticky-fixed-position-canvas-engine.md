@@ -2,14 +2,21 @@
 
 ## Status
 
-Proposed — 2026-10-17
+Implemented — 2026-10-17 (Phase 0 · 1 · 3. Phase 2 fixed 는 사용자 결정 1 「허용 안 함」 으로 ADR-164 의도적 미지원 유지 종결)
+
+> **Implemented 2026-10-17**: 사용자 `/execute-adr 267` + 리뷰 [reviews/267.md](../reviews/267.md) Round 3 이슈 0 (pending 0) → Accepted, 같은 날 종결.
+>
+> - **Phase 0**: Chrome 차등 oracle (`stickyPosition.browser.test.ts`, 13 fixture) RED 9 / GREEN 4 (GREEN 은 붙지 않는 케이스 — 스크롤 0 · inset 없음 · hidden 경계 · 높이 없음). 입력 전수 = 본문 §입력 전수 그대로 (rule 2 · 수동 시트 2 · fixed 0). geometry batch 출력은 바꾸지 않았다 — constraints 는 별도 API (`getStickyConstraints`) 라 단언 자리 (R1) 0.
+> - **Phase 1**: 전송 (`typedCanvasBox` · part rule 필터 · `itemLayout` · ListBox 섹션 헤더는 resolver 파생 값 `_stickyInset*` · `_stickyZIndex` — `catalogListItemFlexShrink` 선례) · 검증기 분리 (`libraryLayoutValueChoices`) · 엔진 `sticky_constraints` (owner = `is_scroll_container`) · Canvas 소비 (`SkiaNodeData.sticky` · `resolveStickyOffset` · delta 를 bounds 기록 전에 계산해 paint · bounds · hit · 자식 문맥에 같이). oracle 13/13 ≤ 1 px · 원복 RED 13/13 (ratchet 판정 포함).
+> - **사용자 결정 3 = (c)** (2026-10-17): sticky 를 unsafe 에서 뺌 · 옮기기 거부는 「scroll owner 가 옮기는 서브트리 밖」 일 때만. `60:sticky-lists` edit 의 `contentFullRenders` 0 → 15 (unsafe 유지 시) → **0** (HEAD 와 같음), ratchet run 등록.
+> - **사용자 결정 1 = 허용 안 함** (2026-10-17): 저작 스키마 · `LIBRARY_CONTRACT_VERSION` 41 그대로, 정본 X8 fixed = `unsupported`. 결정 2 는 해당 없음.
 
 - 사용자 요청: `/create-adr position sticky · fixed 를 Canvas 와 엔진에 연결 — styleOf 미전송 복원 · scroll container 기준 영역 (Blink ScrollableOverflowRect) · fixed 는 viewport 기준 별도 phase` (2026-10-17)
-- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 의 51 행 가운데 ADR 이 필요한 확정 3 건 (X8 sticky · fixed / F4 / O1) 의 첫 번째. 나머지 행은 정본 §0-2 의 「한 격차 = 한 커밋」 규약대로 ADR 없이 닫는다.
+- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 의 51 행 가운데 ADR 이 필요한 확정 3 건 (X8 sticky · fixed / F4 / O1) 의 첫 번째. 나머지 행은 정본 §0-2 의 「한 격차 = 한 커밋」 규약대로 ADR 없이 닫는다.
 - 이미 정해진 것 (정본 §0-2 · §7-4 X8 · 전수 원본 대조 2026-10-17): sticky 와 fixed 는 **별도 feature** 로 나눈다 (sticky 는 in-flow + 스크롤 보정, fixed 는 out-of-flow + viewport 좌표계). 입력 전달만으로 완료 처리하지 않는다 — 직렬화 · scroll owner · 엔진 · paint 소비를 끝까지 추적한다. oracle 은 Blink 코드가 아니라 Chrome 의 `getBoundingClientRect` (ADR-156 차등 oracle) 와 Compare Mode 픽셀이다. Blink 인용은 고정 SHA `33688427bc1a316cecb28d5651ad25208ba9ab53` 원본을 직접 읽은 것 (code-confirmed).
 - 리뷰: 사용자 요청 시 `review-adr` → `reviews/267.md`.
 
-Related: [ADR-164 엔진 TS 보정 흡수](completed/164-engine-ts-compensation-absorption.md) (fixed 를 absolute 로 근사한 「의도적 미지원」 과 그 재개 조건 — 이 ADR 이 그 재개 여부를 판정한다) · [ADR-156 엔진 CSS parity 차등 oracle](completed/156-engine-css-parity-alignment-margin.md) (판정 수단) · [ADR-248 통합 catalog 문서](completed/248-unified-catalog-document.md) (옛 sticky 생산자가 삭제된 자리) · [ADR-246 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (성능 집행 수단) · [ADR-266 그리기 캐시 thrash](completed/266-draw-cache-thrash-real-document-zoom-edit.md) (unsafe 요소를 viewport · damage 에 싣는 현재 경로 — sticky 노드가 그 경로를 탄다) · [Chromium 대조 정본](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §0-2 행 3 · §7-4 X8 · U2
+Related: [ADR-164 엔진 TS 보정 흡수](164-engine-ts-compensation-absorption.md) (fixed 를 absolute 로 근사한 「의도적 미지원」 과 그 재개 조건 — 이 ADR 이 그 재개 여부를 판정한다) · [ADR-156 엔진 CSS parity 차등 oracle](156-engine-css-parity-alignment-margin.md) (판정 수단) · [ADR-248 통합 catalog 문서](248-unified-catalog-document.md) (옛 sticky 생산자가 삭제된 자리) · [ADR-246 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (성능 집행 수단) · [ADR-266 그리기 캐시 thrash](266-draw-cache-thrash-real-document-zoom-edit.md) (unsafe 요소를 viewport · damage 에 싣는 현재 경로 — sticky 노드가 그 경로를 탄다) · [Chromium 대조 정본](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §0-2 행 3 · §7-4 X8 · U2
 
 ## Context
 
@@ -108,7 +115,7 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 2. **fixed 의 Canvas 좌표계** (결정 1 이 허용일 때만): Canvas 는 저작 surface 라 화면 viewport 가 아니라 **page frame** (= Preview 스크롤 0 의 viewport) 기준으로 그린다 (권고 — 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview`). 다른 선택: page 가 viewport 높이로 잘리는 모드에서만 fixed 표시.
 3. **성능 미달 시**: sticky 노드는 unsafe 분류라 full repaint · 옮기기 거부를 늘릴 수 있다. Phase 0 기준선 대비 sticky fixture 의 full 카운트가 늘면 — (a) 정밀 paint bounds (정본 U4) 를 선행, (b) 측정 기록으로 종결, (c) sticky 를 unsafe 에서 빼고 damage 를 scroll container 로 확장. 권고 (c).
 
-> 구현 상세: [267-sticky-fixed-position-canvas-engine-breakdown.md](design/267-sticky-fixed-position-canvas-engine-breakdown.md)
+> 구현 상세: [267-sticky-fixed-position-canvas-engine-breakdown.md](../design/267-sticky-fixed-position-canvas-engine-breakdown.md)
 
 ## Risks
 
@@ -139,7 +146,15 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G2 의 Compare Mode 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+2026-10-17 · Chrome MCP (실제 Builder `localhost:5173`, 로컬 프로젝트 `adr267-sticky`) — G2 통과.
+
+- 문서: 단독 ListBox (240 × 200) > ListBoxSection 3 (각 Header + 항목 2). 엔진 constraints: 헤더 3 모두 owner = ListBox · `top` −0.5.
+- Compare Mode 위치: 스크롤 40 — Canvas 헤더 y (목록 기준) 4 · 55.5 · 146.5 / Preview `getBoundingClientRect` 4 · 55.5 · 146.5 (첫 헤더가 정적 −35.5 대신 위에 붙음). 스크롤 82 (끝) — 둘 다 −13.5 · 13.5 · 104.5 (첫 헤더가 섹션 끝에 밀려 올라감).
+- 그리기 순서: 첫 시도에서 Canvas 는 뒤따르는 「Item 1」 글자가 붙은 헤더 위에 겹쳤다 (Preview 는 헤더가 위 — rule 의 `z-index: 2`). `_stickyZIndex` 연결 뒤 Canvas 도 헤더가 위.
+- 클릭 · 선택: 붙은 헤더를 Canvas 에서 double-click 2 회 (목록 → 섹션 → 헤더) → 선택 = Header, bounds y 4 (정적 −35.5 아님), hit-test 최상단 = 헤더 (아래 항목보다 위), 선택 오버레이 231 × 27 이 그려진 헤더와 겹침.
+- 스크롤 잔상: 결정 3 (c) 적용 (damage 경로) 뒤 휠 7 · 9 · 11 · 13 · 30 · 12 · −25 · −6 에서 옛 헤더 픽셀 없음.
+- 판독 수리 뒤 재확인 (`/verify`): 밀린 헤더 상태 (스크롤 82, y −13.5) 에서 섹션 1 항목 높이를 60 으로 바꾸자 헤더가 즉시 다시 그려져 붙음 (y 4) · Compare Mode 스크롤 70 에서 Canvas 4 · 53.5 · 144.5 / Preview 4 · 53.5 · 144.5 · 커진 항목이 겹친 자리에서 클릭하면 Header 가 선택됨.
+- `Header` rule 단독 (inset 없음): constraints 없음 (unit · oracle 「inset 없음」) — 변화 0.
 
 ## Consequences
 

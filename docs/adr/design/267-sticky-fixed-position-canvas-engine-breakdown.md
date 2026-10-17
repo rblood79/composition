@@ -1,6 +1,6 @@
 # ADR-267 design breakdown — position sticky · fixed 의 Canvas 지원
 
-> 본문: [ADR-267](../267-sticky-fixed-position-canvas-engine.md). 이 문서는 구현 상세 (phase · 파일 · 체크리스트 · fixture) 와 Phase 0 inventory 의 결론을 둔다. 수치는 측정 뒤 여기에 적는다 — 본문에는 옮기지 않는다.
+> 본문: [ADR-267](../completed/267-sticky-fixed-position-canvas-engine.md). 이 문서는 구현 상세 (phase · 파일 · 체크리스트 · fixture) 와 Phase 0 inventory 의 결론을 둔다. 수치는 측정 뒤 여기에 적는다 — 본문에는 옮기지 않는다.
 
 ## 1. 전제 lock-in
 
@@ -11,12 +11,12 @@
 
 ## 2. Phase 0 — inventory · RED · 기준선 (동작 변경 0)
 
-- [ ] **입력 전수 표**: `componentRulesTable.ts` 의 `position: "sticky"` (현재 2 — `Header` :5599 inset 없음 · `ListBox` 섹션 헤더 :6903 `top`) · 수동 시트 (`Table.css:176` `.react-aria-Sticky` · `GridList.css:103`) · `Table.runtime.tsx:104 sticky?` · 생성 CSS `position: fixed` (overlay archetype `CSSGenerator.ts:154` → Modal · Popover, 수동 `overlays.css:5` · `Toast.css:24`). 각각 Canvas 도달 여부 · 범위 안/밖 표기.
-- [ ] **RED fixture**: 단독 ListBox (높이 저작 · `overflow: auto` · 섹션 2 · 항목 충분) 를 Preview 와 Canvas 에서 같은 양 스크롤 → 섹션 헤더 y 가 다름. ADR-156 oracle 형식 (`apps/builder/tests/parity/stickyPosition.browser.test.ts` 신설) 으로 RED 를 기록.
-- [ ] **입력 0 동일성 단언**: sticky 입력이 없는 fixture (기존 parity 스위트 + G3 하니스 78/79) 의 엔진 geometry 와 명령 스트림을 Phase 1 전후 바이트 비교할 수단 (기존 `engineCssParity` · G3 하니스 재사용 — 새 하니스 만들지 않음).
-- [ ] **단언 자리 목록**: geometry 출력 길이 · 순서를 단언하는 테스트 (`apps/builder/tests/parity/*` · `packages/engine/src/tree.rs` 테스트 · `apps/builder/src/builder/catalogRuntime/__tests__/*`) 를 grep 으로 세어 R1 범위 확정.
-- [ ] **unsafe 카운트 기준선**: RED fixture 문서의 `renderCounters` (`fullRepaint` 계열 · `pageGridMoveNullFixedOrSticky`) 를 `--fixed-inputs` 2 회 같은 값으로 기록.
-- [ ] **go/no-go**: RED 가 재현되면 go. 재현되지 않으면 정본 X8 재판정 → ADR Deprecated.
+- [x] **입력 전수 표**: `componentRulesTable.ts` 의 `position: "sticky"` (현재 2 — `Header` :5599 inset 없음 · `ListBox` 섹션 헤더 :6903 `top`) · 수동 시트 (`Table.css:176` `.react-aria-Sticky` · `GridList.css:103`) · `Table.runtime.tsx:104 sticky?` · 생성 CSS `position: fixed` (overlay archetype `CSSGenerator.ts:154` → Modal · Popover, 수동 `overlays.css:5` · `Toast.css:24`). 각각 Canvas 도달 여부 · 범위 안/밖 표기.
+- [x] **RED fixture**: 단독 ListBox (높이 저작 · `overflow: auto` · 섹션 2 · 항목 충분) 를 Preview 와 Canvas 에서 같은 양 스크롤 → 섹션 헤더 y 가 다름. ADR-156 oracle 형식 (`apps/builder/tests/parity/stickyPosition.browser.test.ts` 신설) 으로 RED 를 기록.
+- [x] **입력 0 동일성 단언**: sticky 입력이 없는 fixture (기존 parity 스위트 + G3 하니스 78/79) 의 엔진 geometry 와 명령 스트림을 Phase 1 전후 바이트 비교할 수단 (기존 `engineCssParity` · G3 하니스 재사용 — 새 하니스 만들지 않음).
+- [x] **단언 자리 목록**: geometry 출력 길이 · 순서를 단언하는 테스트 (`apps/builder/tests/parity/*` · `packages/engine/src/tree.rs` 테스트 · `apps/builder/src/builder/catalogRuntime/__tests__/*`) 를 grep 으로 세어 R1 범위 확정.
+- [x] **unsafe 카운트 기준선**: RED fixture 문서의 `renderCounters` (`fullRepaint` 계열 · `pageGridMoveNullFixedOrSticky`) 를 `--fixed-inputs` 2 회 같은 값으로 기록.
+- [x] **go/no-go**: RED 가 재현되면 go. 재현되지 않으면 정본 X8 재판정 → ADR Deprecated.
 
 ## 3. Phase 1 — sticky (대안 A)
 
@@ -111,4 +111,36 @@
 
 ## 기록
 
-(Phase 별 수치 · go/no-go · 사용자 결정 결과를 여기에.)
+### 2026-10-17 — Phase 0 · 1 · 2 · 3 종결 (사용자 `/execute-adr 267`)
+
+**Phase 0 (go)**
+
+- 입력 전수: 본문 §입력 전수와 같다 — rule 2 (`Header` 루트 inset 없음 · ListBox 섹션 헤더 `top`) · 수동 시트 2 (Table · GridList, 범위 밖) · fixed 0.
+- RED: `apps/builder/tests/parity/stickyPosition.browser.test.ts` (Chrome 차등 oracle, 13 fixture) — 구현 전 RED 9 / GREEN 4 (스크롤 0 · inset 없음 · `auto` > `hidden` 경계 · 높이 없음 — 원래 움직이지 않는 케이스).
+- 단언 자리 (R1): **0** — constraints 를 geometry batch (`get_layouts_batch` 5 값) 에 싣지 않고 별도 API (`LayoutTree::sticky_constraints` → wasm `getStickyConstraints`, sticky 노드만 조회 — `PersistentLayoutTree` 의 `stickyIds`) 로 냈다. 「geometry 의 선택 필드」 를 이 형태로 구현 — 입력 0 문서는 엔진 호출 0 · 바이트 동일이 구조로 성립.
+- 기준선 (R4): 기존 ratchet 시드 (60 · 600 · nested-flex · app-pages) 에 섹션 헤더가 없어 perf 하니스에 `--fixture-kind sticky-lists` (단독 ListBox 높이 200 × 섹션 3, 목록 6) 를 추가하고 HEAD worktree (5174) 와 비교.
+
+**Phase 1**
+
+- 전송: `typedCanvasBox` · part rule 필터 (`rulePartRules.ts`) · `itemLayout` 이 `sticky` 를 통과. **ListBox 섹션 헤더는 manual part 가 아니라 resolver 파생 값** (`presence.ts` `catalogListSectionHeaderInsets` → `_stickyInset*` · `_stickyZIndex`, `styleOf` `stickyInsets`) 으로 실었다 — breakdown 이 선례로 든 `catalogListItemFlexShrink` 가 이 경로이고, Popover 조건 (`:not(.react-aria-Popover *)`) 을 조상 판정으로 가를 수 있다. 값은 table nested 블록에서 읽고 (`catalogListSectionHeaderSticky`), 해석 못 하는 inset 은 `CATALOG_STICKY_INSET_UNRESOLVED` throw.
+- 검증기: `libraryLayoutValueChoices` (라이브러리 rule — `+ sticky`) · 저작 `layoutWrites` 그대로. `LIBRARY_CONTRACT_VERSION` 41 그대로.
+- 엔진: `sticky_constraints` (owner = `is_scroll_container`, 없으면 root + viewport) · Rust unit 7 (X8 fixture · 섹션 padding/margin · inset 없음 · 양쪽 inset 축소 · hidden vs clip · viewport · JSON 왕복).
+- 소비: `SkiaNodeData.sticky` (옛 `isSticky · stickyTop · stickyLeft` 삭제) · `resolveStickyOffset` (Blink `ComputeStickyOffset`) · `visitElement` 가 delta 를 bounds 기록 전에 계산 — paint · `boundsMap` · `hitBoundsMap` · 자식 `parentAbs` · `selfOnlyChildContexts` 가 같은 좌표 (`stickyCoordinates.test.ts` — 전체 · 서브트리 · self 재빌드 동일). 스크롤 owner 가 스크롤하면 `scrollBy` → owner dirty → 서브트리 재기록 (constraints 변화는 update 마다 다시 읽어 바뀐 sticky 만 재등록).
+- **live 에서 찾은 것 — 그리기 순서**: Canvas 는 형제 순서대로 그려 붙은 헤더 위에 뒤 항목 글자가 겹쳤다 (Preview 는 rule 의 `z-index: 2`). nested 블록의 `z-index` 를 `_stickyZIndex` → `SkiaNodeData.zIndex` 로 (저작 z-index 우선).
+- fixed: `renderCommands` 의 옛 fixed 좌표 보정 (`stickyTop ?? 0` 근사) 은 생산자 0 이라 함께 지웠다 — `isFixed` 는 top layer 판정만 남는다.
+- oracle 13/13 ≤ 1 px. 원복 RED 13/13 — 전송 4 (`typedCanvasBox` · nested 미독 · 라이브러리 선택지 · `itemLayout`) · 저작 선택지 1 · 소비 3 (자기 오프셋 · 정적 bounds · 정적 자식 문맥) · 엔진 2 (constraints 비움 → oracle 9 RED · owner 를 auto/scroll 로 축소 → hidden 경계 RED) · z-index 1 · ratchet 1 (아래).
+
+**사용자 결정 (2026-10-17)**
+
+- 결정 3 = **(c)**: unsafe 유지 상태의 `60:sticky-lists` edit — `contentFullRenders` 0 → 15 · `contentDamageRenders` 15 → 0 · `translateCalls` 60 → 0 · `patchWrites` 1,425 → 7,125 (select 변화 0). bounds = 그려진 자리가 되어 unsafe 사유 (hit bounds 밖 paint) 가 사라졌으므로 `hasSparseDamageUnsafePaint` 에서 sticky 를 빼고, `subtreeTranslate` 는 「sticky 의 owner 가 옮기는 서브트리 안」 이면 옮긴다 (밖 · page root 면 거부). 결과: HEAD 와 render 카운트 동일 (차이는 B 등급 `cdp.LayoutCount` ±1 · 제외 키뿐). ratchet `60:sticky-lists` (edit · select) 등록 — (c) 이전 측정값을 `--judge` 하면 A 초과 26 으로 차단.
+- 결정 1 = **허용 안 함**: Phase 2 는 ADR-164 의도적 미지원 유지로 종결, 정본 X8 fixed = `unsupported`. 결정 2 해당 없음.
+
+**G3 · 수치**
+
+- 회귀: cargo 465 + golden/tree_golden 등 전부 · shared 1,717 · builder unit 5,962 (skip 4) · parity 823/824 — 실패 1 (`adr248CatalogGeometryDelta` case 2 `subtreeNodeVisits` 4 기대 · 1 실제) 은 **HEAD `7c982da37` worktree 에서도 같은 값으로 실패** (ADR-264 뒤 갱신되지 않은 기대값 — 이 ADR 과 무관, 범위 밖).
+- 번들: Builder initial JS gzip 1,364,793 → 1,365,666 B (+873, 상한 1,421,000). 엔진 wasm 436,446 → 443,377 B (+6,931 · gzip +2,379 — 첫 구현의 `serde_json::json!` 은 +18 KB 라 `format!` 으로 바꿈).
+- 기존 ratchet run (60 · 600 · nested-flex · app-pages) 은 push 때 pre-push 게이트가 커밋 기준으로 잰다 (dirty 트리는 HEAD 를 재므로 여기서 판정하지 않았다).
+
+**판독 (reviewer 1 회 + 수리 검증 1 회 — 종결)**: MEDIUM 1 (production 재현) — constraints 만 바뀐 sticky (섹션이 커져 밀린 헤더의 한계가 바뀜) 를 `reRegister` · `patchRoots` 에만 넣어, production 의 `placeRegion` (`seeds` · `onPath` 밖은 기록 0) 이 옛 자리를 남겼다 (dev `translateOff` 에선 안 보임). `stickyChanged` 를 `seeds` 에 넣어 수리 — binding unit (patched stream = fresh bind) 이 수리 전 RED (−1.5 에 남음) · 뒤 GREEN. LOW (스크롤마다 inset 없는 Header 까지 wasm 조회 · owner 역색인을 매번 재구성) 도 같이: 추적을 inset 있는 sticky 로 한정 · `elementIdByHandle` 유지. 수리 뒤 `60:sticky-lists` 판정 통과 (HEAD 와 render 카운트 동일). HIGH 0 → 닫힘.
+
+**사후 보고 (adr-writing — scope 1.5 배)**: 추정 11 파일 → 제품 17 (전송 5 · 엔진 경계 7 — `engineTypes` · `layoutEngine` · `persistentLayoutTree` · `tree.rs` · `wasm.rs` · `engine.ts` · `engineWasm.ts` · 소비 5 — `subtreeTranslate.ts` 는 결정 3 (c)) + 테스트 7 + 하니스 2 (`perf-baseline.mjs` · `perfCatalogFacade.mjs`) + `ratchet.json`. 늘어난 몫은 별도 API 경계 (geometry 필드 대신) · 결정 3 (c) · 하니스 fixture. 범위 밖으로 남김: Table `.react-aria-Sticky` (E02) · GridList · sticky 안의 sticky (catalog 입력 없음).

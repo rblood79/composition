@@ -25,7 +25,10 @@ import {
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
-import { catalogListItemFlexShrink } from "../document/rulePartRules";
+import {
+  catalogListItemFlexShrink,
+  catalogListSectionHeaderSticky,
+} from "../document/rulePartRules";
 import {
   type CatalogCalendarModelInput,
   catalogCalendarGrid,
@@ -1780,7 +1783,42 @@ export function catalogDerivedProps(
   const colored = staticText ? { ...placed, staticColor: staticText } : placed;
   // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks.)
   const tracks = catalogTableRowTracks(node, get, typeOf);
-  return tracks ? { ...colored, _tableTracks: tracks } : colored;
+  const tracked = tracks ? { ...colored, _tableTracks: tracks } : colored;
+  // (ADR-267: a standalone list's section header sticks — the ListBox rule's section header.)
+  const sticky = catalogListSectionHeaderInsets(node, get, typeOf);
+  return sticky ? { ...tracked, ...sticky } : tracked;
+}
+
+/**
+ * ADR-267 — a standalone ListBox's section header (`ListBox > ListBoxSection > Header`, not in a
+ * Popover — the rule block's `:not(.react-aria-Popover *)`) is sticky: its insets
+ * (`catalogListSectionHeaderSticky`) as `_stickyInsetTop` …, which `styleOf` sends with
+ * `position: sticky`, and its paint order as `_stickyZIndex` (the Canvas sorts it over its items). Undefined for other nodes and for a picker's list.
+ */
+function catalogListSectionHeaderInsets(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Readonly<Record<string, number>> | undefined {
+  if (typeOf(node) !== "Header") return undefined;
+  const section = get(node.parentId);
+  if (!section || typeOf(section) !== "ListBoxSection") return undefined;
+  const list = get(section.parentId);
+  if (!list || typeOf(list) !== "ListBox") return undefined;
+  for (let up = get(list.parentId); up; up = get(up.parentId))
+    if (typeOf(up) === "Popover") return undefined;
+  const sticky = catalogListSectionHeaderSticky();
+  if (!sticky) return undefined;
+  return {
+    ...Object.fromEntries(
+      Object.entries(sticky.insets).map(([key, px]) => [
+        `_sticky${key[0].toUpperCase()}${key.slice(1)}`,
+        px,
+      ]),
+    ),
+    // (The header paints over the items it is stuck on — the block's `z-index`.)
+    ...(sticky.zIndex !== undefined ? { _stickyZIndex: sticky.zIndex } : {}),
+  };
 }
 
 /**

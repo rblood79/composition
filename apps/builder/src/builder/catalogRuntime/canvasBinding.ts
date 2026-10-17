@@ -39,6 +39,7 @@ import {
   unregisterSkiaNode,
 } from "../workspace/canvas/skia/useSkiaNode";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
+import type { StickyConstraints } from "../../../../../packages/shared/src/catalog/runtime/engineTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
 import {
@@ -1472,8 +1473,30 @@ function bindInColorMode(
       ...(scrolled ? { scrollOffset: offset } : {}),
     };
   };
+  /**
+   * ADR-267: each sticky record's engine constraints (its scroll container as a record id) — the
+   * render moves it by that container's scroll position. Re-read every update: a sibling's or the
+   * container's change moves the limits without the sticky box's own rect changing.
+   */
+  let stickyOf: ReadonlyMap<string, StickyConstraints<string | null>> =
+    new Map();
+  const withSticky = (node: CatalogConsumerNode, data: SkiaNodeData) => {
+    const sticky = stickyOf.get(node.id);
+    if (!sticky) return data;
+    // A stuck header paints over the items under it (the rule's `z-index` — the DOM's positioned
+    // paint order); an authored z-index wins.
+    const zIndex = node.derivedProps?._stickyZIndex;
+    return {
+      ...data,
+      sticky,
+      ...(data.zIndex === undefined && typeof zIndex === "number"
+        ? { zIndex }
+        : {}),
+    };
+  };
   try {
     const geometry = root.getGeometry(root.canvasInputs.keys());
+    stickyOf = root.getStickyConstraints();
     for (const node of root.canvasInputs.values()) {
       const bindingId = bindingKey(node);
       const binding = bindingId ? bindings[bindingId] : undefined;
@@ -1514,10 +1537,13 @@ function bindInColorMode(
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
-            : withScrollbar(
+            : withSticky(
                 node,
-                paintedNodeData(root, node, rect, binding, parent),
-                (id) => geometry.get(id),
+                withScrollbar(
+                  node,
+                  paintedNodeData(root, node, rect, binding, parent),
+                  (id) => geometry.get(id),
+                ),
               ),
       );
       registeredIds.add(node.id);
@@ -1854,16 +1880,19 @@ function bindInColorMode(
           catalogRowSampleHidden(root, node) ||
           root.tagRowCollapsed(node.id)
           ? hiddenNode(node, rect)
-          : withScrollbar(
+          : withSticky(
               node,
-              paintedNodeData(
-                root,
+              withScrollbar(
                 node,
-                rect,
-                binding,
-                root.canvasInputs.get(node.parentId),
+                paintedNodeData(
+                  root,
+                  node,
+                  rect,
+                  binding,
+                  root.canvasInputs.get(node.parentId),
+                ),
+                (n) => layoutMap.get(n),
               ),
-              (n) => layoutMap.get(n),
             ),
       );
     };
@@ -2281,6 +2310,24 @@ function bindInColorMode(
           cursor = owner.parentId;
         }
       }
+      // ADR-267: a sticky box whose constraints changed (its section grew, an item moved the
+      // containing block's end) draws again though its own rect did not change — a seed of the
+      // placement below, or it would keep its old place (`placeRegion` records nothing off the
+      // seed paths).
+      const stickyChanged = new Set<string>();
+      const nextSticky = root.getStickyConstraints();
+      if (stickyOf.size || nextSticky.size) {
+        const next = nextSticky;
+        for (const id of new Set([...stickyOf.keys(), ...next.keys()])) {
+          if (!input(id) || !layoutMap.has(id)) continue;
+          if (JSON.stringify(stickyOf.get(id)) === JSON.stringify(next.get(id)))
+            continue;
+          reRegister.add(id);
+          patchRoots.add(id);
+          stickyChanged.add(id);
+        }
+        stickyOf = next;
+      }
       for (const id of reRegister) registerNode(id);
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.
       const roots = [...patchRoots].filter((id) => {
@@ -2346,7 +2393,7 @@ function bindInColorMode(
         process.env.NODE_ENV === "development" && renderDebug.translateOff
       );
       // A scroll owner whose scrollbar changed (not its record) records only its own commands.
-      const seeds = new Set([...dirty, ...regions]);
+      const seeds = new Set([...dirty, ...regions, ...stickyChanged]);
       const top = new Set(roots);
       const onPath = new Set<string>();
       for (const id of [...seeds, ...changedRects.keys(), ...scrollRepaint])

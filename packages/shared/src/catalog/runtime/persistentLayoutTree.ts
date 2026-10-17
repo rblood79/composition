@@ -25,7 +25,11 @@
  */
 
 import type { LayoutEngineAPI } from "./layoutEngine";
-import type { EngineTraceNode, LayoutResult } from "./engineTypes";
+import type {
+  EngineTraceNode,
+  LayoutResult,
+  StickyConstraints,
+} from "./engineTypes";
 import type { EngineNodeHandle } from "./layoutTypes";
 import { encodeBatchBinary } from "./binaryProtocol";
 import type { BinaryBatchInput } from "./binaryProtocol";
@@ -82,6 +86,27 @@ export class PersistentLayoutTree {
    * 자식 구조 변경 여부를 O(1)로 감지한다.
    */
   private childrenHashMap = new Map<string, string>();
+
+  /**
+   * ADR-267 — the elements whose applied style is `position: sticky`: the only ones whose
+   * constraints are read (`getStickyConstraints`), so a document without one asks the engine for
+   * none.
+   */
+  private stickyIds = new Set<string>();
+  /** handle → elementId for the sticky boxes' scroll containers (kept with `handleMap`). */
+  private elementIdByHandle = new Map<EngineNodeHandle, string>();
+  /** A sticky box with an inset (one with none does not stick — the engine gives no constraints). */
+  private trackSticky(elementId: string, style: Record<string, unknown>) {
+    if (
+      style.position === "sticky" &&
+      (style.insetTop !== undefined ||
+        style.insetRight !== undefined ||
+        style.insetBottom !== undefined ||
+        style.insetLeft !== undefined)
+    )
+      this.stickyIds.add(elementId);
+    else this.stickyIds.delete(elementId);
+  }
 
   /**
    * @param engine - (테스트용) 주입할 레이아웃 엔진. 생략 시
@@ -163,11 +188,15 @@ export class PersistentLayoutTree {
     this.handleMap.clear();
     this.childrenHashMap.clear();
     this._lastJsonMap.clear();
+    this.stickyIds.clear();
+    this.elementIdByHandle.clear();
 
     for (let i = 0; i < batch.length; i++) {
       const node = batch[i];
       this.handleMap.set(node.elementId, handles[i]);
+      this.elementIdByHandle.set(handles[i], node.elementId);
       this._lastJsonMap.set(node.elementId, JSON.stringify(node.style));
+      this.trackSticky(node.elementId, node.style);
 
       // childrenHashMap: filteredChildIds 기준 (implicit style 적용 후 실제 자식)
       const childIds = filteredChildIds.get(node.elementId);
@@ -231,6 +260,7 @@ export class PersistentLayoutTree {
     // normalizeStyle() 이중 변환을 방지하기 위해 updateStyleRaw() 사용
     this.engine.updateStyleRaw(handle, json);
     this._lastJsonMap.set(elementId, json);
+    this.trackSticky(elementId, styleRecord);
     return true;
   }
 
@@ -297,7 +327,9 @@ export class PersistentLayoutTree {
     // normalizeStyle() 이중 변환 방지를 위해 createNodeRaw() 사용
     const handle = this.engine.createNodeRaw(json);
     this.handleMap.set(elementId, handle);
+    this.elementIdByHandle.set(handle, elementId);
     this._lastJsonMap.set(elementId, json);
+    this.trackSticky(elementId, styleRecord);
     // childrenHashMap은 updateChildren() 호출 시 설정
     return handle;
   }
@@ -321,6 +353,9 @@ export class PersistentLayoutTree {
       this.handleMap.delete(elementId);
       this._lastJsonMap.delete(elementId);
       this.childrenHashMap.delete(elementId);
+      this.stickyIds.delete(elementId);
+      if (this.elementIdByHandle.get(handle) === elementId)
+        this.elementIdByHandle.delete(handle);
     }
   }
 
@@ -402,6 +437,29 @@ export class PersistentLayoutTree {
     return result;
   }
 
+  /**
+   * ADR-267 — the sticky elements' constraints after `computeLayout` (element id → constraints,
+   * the scroll container mapped to its element id; null owner = none — the page root). Elements
+   * whose insets are all `auto` are absent (they do not stick).
+   */
+  getStickyConstraints(): Map<string, StickyConstraints<string | null>> {
+    const out = new Map<string, StickyConstraints<string | null>>();
+    if (this.stickyIds.size === 0 || !this.engine.getStickyConstraints)
+      return out;
+    for (const elementId of this.stickyIds) {
+      const handle = this.handleMap.get(elementId);
+      if (handle === undefined) continue;
+      const constraints = this.engine.getStickyConstraints(handle);
+      if (!constraints) continue;
+      const owner =
+        constraints.owner === null
+          ? null
+          : (this.elementIdByHandle.get(constraints.owner) ?? null);
+      out.set(elementId, { ...constraints, owner });
+    }
+    return out;
+  }
+
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────
 
   /**
@@ -451,5 +509,7 @@ export class PersistentLayoutTree {
     this.handleMap.clear();
     this._lastJsonMap.clear();
     this.childrenHashMap.clear();
+    this.stickyIds.clear();
+    this.elementIdByHandle.clear();
   }
 }

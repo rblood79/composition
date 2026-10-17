@@ -33,11 +33,13 @@ import type {
   LayoutResult,
   LayoutNodeHandle,
   EngineTraceNode,
+  StickyConstraints,
 } from "../../../../../../../packages/shared/src/catalog/runtime/engineTypes";
 export type {
   LayoutResult,
   LayoutNodeHandle,
   EngineTraceNode,
+  StickyConstraints,
 } from "../../../../../../../packages/shared/src/catalog/runtime/engineTypes";
 
 /**
@@ -224,6 +226,15 @@ export class EngineLayout {
       throw new Error("EngineLayout: WASM engine not initialized");
     const flat = this.engine.getLayoutsBatch(new Uint32Array(handles));
     return flatToLayoutMap(handles, flat);
+  }
+
+  /** ADR-267 — a sticky node's constraints after `computeLayout` (null: not sticky, or no inset). */
+  getStickyConstraints(handle: LayoutNodeHandle): StickyConstraints | null {
+    if (!this.engine)
+      throw new Error("EngineLayout: WASM engine not initialized");
+    return JSON.parse(
+      this.engine.getStickyConstraints(handle),
+    ) as StickyConstraints | null;
   }
 
   // ── 판정 트레이스 (ADR-183 — 디버그 채널) ────────────────────────────

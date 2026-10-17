@@ -497,7 +497,9 @@ function compileDeclarations(
         layout[`margin${key[7].toUpperCase()}${key.slice(8)}` as LayoutField] =
           `${px}px`;
     } else if (key === "position") {
-      if (value === "relative" || value === "static") layout.position = value;
+      // (`sticky`: in flow — the engine gives its constraints, ADR-267.)
+      if (value === "relative" || value === "static" || value === "sticky")
+        layout.position = value;
     } else if (key === "grid-area") {
       Object.assign(layout, areaLines(ownerAreas, value) ?? {});
     } else if (key === "grid-row" || key === "grid-column") {
@@ -730,6 +732,66 @@ export function catalogListItemFlexShrink(
     ]?.["flex-shrink"];
   return shrink === undefined ? undefined : Number(shrink);
 }
+/**
+ * ADR-267 — a standalone ListBox's section header is sticky (the ListBox rule's
+ * `&:not(.react-aria-Popover *)` block, `.react-aria-ListBoxSection .react-aria-Header` —
+ * `position: sticky · top: calc(-1 * hairline)`): its insets in px (`insetTop` …), read from the
+ * table like `catalogListItemFlexShrink` — and its `z-index` (the header paints over the items it is
+ * stuck on). Undefined when the block declares no sticky. An inset the
+ * Canvas cannot resolve throws — a dropped one would read as `auto` (the header would not stick,
+ * the Preview's would: the RED hidden as GREEN).
+ */
+export function catalogListSectionHeaderSticky():
+  | {
+      insets: Partial<
+        Record<"insetTop" | "insetRight" | "insetBottom" | "insetLeft", number>
+      >;
+      zIndex?: number;
+    }
+  | undefined {
+  const composition = (
+    COMPONENT_RULES_TABLE as Record<
+      string,
+      { structure?: { composition?: unknown } }
+    >
+  ).ListBox?.structure?.composition as
+    | {
+        rootSelectors?: Record<
+          string,
+          { nested?: Record<string, Record<string, string>> }
+        >;
+      }
+    | undefined;
+  const block =
+    composition?.rootSelectors?.["&:not(.react-aria-Popover *)"]?.nested?.[
+      ".react-aria-ListBoxSection .react-aria-Header"
+    ];
+  if (block?.position !== "sticky") return undefined;
+  const out: Partial<
+    Record<"insetTop" | "insetRight" | "insetBottom" | "insetLeft", number>
+  > = {};
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    const value = block[side];
+    if (value === undefined || value.trim() === "auto") continue;
+    // `calc(<factor> * <length>)` (the hairline's negative) or a length.
+    const scaled = /^calc\(\s*(-?\d+(?:\.\d+)?)\s*\*\s*(.+)\)$/.exec(
+      value.trim(),
+    );
+    const px = scaled
+      ? (() => {
+          const length = lengthPx(scaled[2]);
+          return length === undefined ? undefined : Number(scaled[1]) * length;
+        })()
+      : lengthPx(value);
+    if (px === undefined)
+      throw new Error(`CATALOG_STICKY_INSET_UNRESOLVED:ListBox:${side}:${value}`);
+    out[`inset${side[0].toUpperCase()}${side.slice(1)}` as keyof typeof out] =
+      px;
+  }
+  const zIndex = Number(block["z-index"]);
+  return Number.isInteger(zIndex) ? { insets: out, zIndex } : { insets: out };
+}
+
 /**
  * Inline padding of a DateInput's RAC date segments (the DateInput rule's `.react-aria-DateSegment`
  * bridge, `padding: 0 2px` — ADR-253: one definition for every date field): editable segments

@@ -313,7 +313,11 @@ describe("ADR-266 내부 자식 (요소 id 없는 그리기 wrapper) 을 가진 
       ],
     }) as unknown as SkiaNodeData;
   const specs: Spec[] = [
-    { id: "body", parent: null, layout: { x: 0, y: 0, width: 800, height: 800 } },
+    {
+      id: "body",
+      parent: null,
+      layout: { x: 0, y: 0, width: 800, height: 800 },
+    },
     {
       id: "card",
       parent: "body",
@@ -513,7 +517,49 @@ describe("ADR-264 옮길 수 없는 모양은 쓰기 전에 거절한다", () =>
     // fixed 는 build 가 top layer 집합에 넣는다.
     expect(attempt(build(base({ isFixed: true }))).reason).toBe("top-layer");
     clearSkiaRegistry();
-    expect(attempt(build(base({ isSticky: true }))).reason).toBe(
+    expect(
+      attempt(
+        build(
+          base({
+            sticky: {
+              owner: null,
+              constrainingRect: { x: 0, y: 0, width: 800, height: 600 },
+              stickyRect: { x: 0, y: 0, width: 100, height: 40 },
+              containingBlockRect: { x: 0, y: 0, width: 800, height: 600 },
+              top: 0,
+              right: null,
+              bottom: null,
+              left: null,
+            },
+          }),
+        ),
+      ).reason,
+    ).toBe("fixed-or-sticky");
+  });
+
+  it("ADR-267: sticky 는 scroll container 가 같이 옮겨질 때만 옮긴다", () => {
+    const sticky = (owner: string | null) => ({
+      sticky: {
+        owner,
+        constrainingRect: { x: 0, y: 0, width: 100, height: 30 },
+        stickyRect: { x: 0, y: 0, width: 50, height: 20 },
+        containingBlockRect: { x: 0, y: 0, width: 100, height: 30 },
+        top: 0,
+        right: null,
+        bottom: null,
+        left: null,
+      },
+    });
+    // container = the moved root "r": its offset relative to "r" is unchanged.
+    const stream = build(base(sticky("r")));
+    const before = stream.boundsMap.get("c")!.y;
+    const result = attempt(stream);
+    expect(result.applied).toBe(true);
+    expect(stream.boundsMap.get("c")!.y).toBe(before + 40);
+    expect(stream.damageUnsafeElementIds.has("c")).toBe(false);
+    clearSkiaRegistry();
+    // container outside the moved subtree: drawn again.
+    expect(attempt(build(base(sticky("body")))).reason).toBe(
       "fixed-or-sticky",
     );
   });

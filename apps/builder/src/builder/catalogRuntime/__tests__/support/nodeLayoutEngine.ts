@@ -17,6 +17,7 @@ type RawLayout = {
   setViewport(width: number, height: number): void;
   computeLayout(handle: number, width: number, height: number): void;
   getLayout(handle: number): string;
+  getStickyConstraints(handle: number): string;
   clear(): void;
   nodeCount(): number;
 };
@@ -72,6 +73,8 @@ export async function nodeLayoutEngine(): Promise<LayoutEngineAPI> {
       new Map(
         handles.map((handle) => [handle, JSON.parse(raw.getLayout(handle))]),
       ),
+    getStickyConstraints: (handle) =>
+      JSON.parse(raw.getStickyConstraints(handle)),
     clear: () => raw.clear(),
     nodeCount: () => raw.nodeCount(),
   };

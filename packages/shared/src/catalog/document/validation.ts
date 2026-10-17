@@ -596,9 +596,22 @@ function stateRules(value: unknown, at: string): void {
     writes(rule, `${at}.${key}`, visualFields);
   }
 }
+/**
+ * ADR-267 — the code catalog's rule layout (library definitions · part rules · templates: built
+ * from the code each session, never stored) also places a box `sticky` (the Header rule · a
+ * standalone ListBox's section header). Authored node layout (`layoutWrites`) does not — that is
+ * the document schema (ADR-267 user decision 1).
+ */
+const libraryLayoutValueChoices: Readonly<
+  Record<LayoutField, (value: string) => boolean>
+> = {
+  ...layoutValueChoices,
+  position: keyword("static", "relative", "absolute", "sticky"),
+};
+/** Code catalog rule layout values (library only — see `libraryLayoutValueChoices`). */
 function layoutValues(value: unknown, at: string): void {
   for (const [key, item] of Object.entries(object(value, at))) {
-    const accepts = layoutValueChoices[key as LayoutField];
+    const accepts = libraryLayoutValueChoices[key as LayoutField];
     if (!accepts) invalid("UNKNOWN_FIELD", `${at}.${key}`);
     if (typeof item !== "string" || !accepts(item))
       invalid("INVALID_LAYOUT_VALUE", `${at}.${key}`);

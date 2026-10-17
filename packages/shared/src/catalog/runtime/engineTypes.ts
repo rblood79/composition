@@ -11,6 +11,36 @@ export interface LayoutResult {
   baseline?: number;
 }
 
+/** A rect in a sticky box's scroll container's border-box coordinates (unscrolled). */
+export interface StickyRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * ADR-267 — a `position: sticky` box's constraints, the engine's (Blink
+ * `ComputeStickyPositionConstraints`): the rects in its nearest scroll container's border-box
+ * coordinates at scroll 0, and the insets that are not `auto` (null = auto; all null = the box
+ * does not stick). The offset at a scroll position is the renderer's (`resolveStickyOffset`).
+ * `Owner` is the scroll container — the engine's handle, the record id after the layout tree maps
+ * it — and null when there is none (the page root: the viewport, which the Canvas does not scroll).
+ */
+export interface StickyConstraints<Owner = number | null> {
+  owner: Owner;
+  /** The scroll container's scrollport less its padding. */
+  constrainingRect: StickyRect;
+  /** The sticky box's border box at its static position. */
+  stickyRect: StickyRect;
+  /** Its containing block's content box (the scrollable overflow when it is the scroll container) less the sticky box's margins. */
+  containingBlockRect: StickyRect;
+  top: number | null;
+  right: number | null;
+  bottom: number | null;
+  left: number | null;
+}
+
 /** Opaque handle to a layout node. */
 export type LayoutNodeHandle = number;
 

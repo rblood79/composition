@@ -188,8 +188,9 @@ export function typedCanvasBox(
   for (const [key, value] of Object.entries(box)) {
     if (BOX_LAYOUT_KEYS.has(key)) layout[key] = String(value);
     else if (key === "position") {
-      // `sticky` has no layout-engine equivalent; the box stays in flow.
-      if (value === "relative") layout.position = "relative";
+      // `sticky` stays in flow; the engine gives its constraints (ADR-267 — the renderer moves
+      // it by its scroll container's position).
+      if (value === "relative" || value === "sticky") layout.position = value;
     } else if (key === "flex") {
       if (value === "1" || value === 1) {
         layout.flexGrow = "1";

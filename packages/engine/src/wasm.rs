@@ -215,6 +215,13 @@ impl LayoutEngine {
         )
     }
 
+    /// ADR-267 — `position: sticky` 노드의 constraints JSON (`tree::sticky_constraints_json`),
+    /// sticky 가 아니거나 inset 이 전부 auto 면 `null`. `computeLayout` 뒤에 부른다.
+    #[wasm_bindgen(js_name = getStickyConstraints)]
+    pub fn get_sticky_constraints(&self, handle: usize) -> String {
+        self.tree.sticky_constraints_json(handle)
+    }
+
     // ── 판정 트레이스 (ADR-183 Phase 2 — 디버그 채널) ──
 
     /// 트레이스 게이트 토글. enable 시에만 sink 를 할당하고 disable 은 즉시

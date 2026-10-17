@@ -79,7 +79,7 @@ import {
   type PersistentBatchNode,
 } from "./persistentLayoutTree";
 import type { LayoutEngineAPI } from "./layoutEngine";
-import type { LayoutResult } from "./engineTypes";
+import type { LayoutResult, StickyConstraints } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
 import { catalogCellSpan, catalogTableTrackDependents } from "./tableTracks";
 import {
@@ -1144,6 +1144,9 @@ function styleOf(
     ...(typeof node.derivedProps?._itemShrink === "number"
       ? { flexShrink: node.derivedProps._itemShrink }
       : {}),
+    // (A standalone list's section header — the ListBox rule's sticky block, ADR-267; authored
+    // insets win.)
+    ...stickyInsets(node),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
     ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
@@ -1268,7 +1271,27 @@ function itemLayout(node: CatalogConsumerNode): Record<string, unknown> {
     out.position = "relative";
   if (node.layout.position === "absolute" && !node.placement)
     out.position = "absolute";
+  // ADR-267: a sticky box stays in flow; the engine gives its constraints from the insets.
+  if (node.layout.position === "sticky" && !node.placement)
+    out.position = "sticky";
   return out;
+}
+
+/** ADR-267 — the resolver's sticky section header insets (`_stickyInsetTop` …), as engine input. */
+function stickyInsets(node: CatalogConsumerNode): Record<string, string> {
+  const derived = node.derivedProps;
+  if (!derived || node.placement) return {};
+  const out: Record<string, string> = {};
+  for (const key of [
+    "insetTop",
+    "insetRight",
+    "insetBottom",
+    "insetLeft",
+  ] as const) {
+    const px = derived[`_sticky${key[0].toUpperCase()}${key.slice(1)}`];
+    if (typeof px === "number") out[key] = `${px}px`;
+  }
+  return Object.keys(out).length ? { position: "sticky", ...out } : {};
 }
 /** The record with its `hidden` judged again (`catalogHiddenAtRest`) against `get`. */
 function withHidden(
@@ -1586,6 +1609,15 @@ export class CatalogCompositionRoot {
         out.set(id, { ...rect, x: rect.x + part.x, y: rect.y + part.y });
     }
     return out;
+  }
+
+  /**
+   * ADR-267 — the sticky records' constraints (record id → constraints in their scroll
+   * container's coordinates, the container as a record id — null: the page root). The Canvas moves
+   * each by its container's scroll position (`resolveStickyOffset`).
+   */
+  getStickyConstraints(): ReadonlyMap<string, StickyConstraints<string | null>> {
+    return this.layout.getStickyConstraints();
   }
 
   subscribeCanvas(

@@ -208,8 +208,18 @@ describe("applySubtreeCommandPatch", () => {
     registerNode(sticky.id, {
       width: 100,
       height: 40,
-      isSticky: true,
-      stickyTop: 10,
+      // ADR-267: stuck 10 below the body's scrollport top — at y 200 · 240 under scroll 100 it
+      // stays in place (100 + 10 < 200).
+      sticky: {
+        owner: body.id,
+        constrainingRect: { x: 0, y: 0, width: 800, height: 600 },
+        stickyRect: { x: 20, y: 200, width: 100, height: 40 },
+        containingBlockRect: { x: 0, y: 0, width: 800, height: 2000 },
+        top: 10,
+        right: null,
+        bottom: null,
+        left: null,
+      },
     });
 
     const build = (y: number, revision: number) =>
