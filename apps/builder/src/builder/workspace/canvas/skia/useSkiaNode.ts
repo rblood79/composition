@@ -45,12 +45,18 @@ let registryVersion = 0;
  */
 let rebindRelease: {
   pageGrid: boolean;
+  /** ADR-270 Phase 0 — `image-loaded` 사유 (그 몫을 따로 센다 — `Other` 합계에도 남는다). */
+  imageLoaded: boolean;
   released: Map<string, SkiaNodeData>;
 } | null = null;
 
 export function beginRebindRelease(reason: string): void {
   if (process.env.NODE_ENV !== "development") return;
-  rebindRelease = { pageGrid: reason === "page-grid", released: new Map() };
+  rebindRelease = {
+    pageGrid: reason === "page-grid",
+    imageLoaded: reason === "image-loaded",
+    released: new Map(),
+  };
 }
 
 export function endRebindRelease(): void {
@@ -122,6 +128,10 @@ export function unregisterSkiaNode(elementId: string): void {
     } else {
       renderCounters.rebindReleasedParagraphsOther += paragraphs;
       if (picture) renderCounters.rebindReleasedPicturesOther += 1;
+      if (release.imageLoaded) {
+        renderCounters.rebindReleasedParagraphsImageLoaded += paragraphs;
+        if (picture) renderCounters.rebindReleasedPicturesImageLoaded += 1;
+      }
     }
   }
 }

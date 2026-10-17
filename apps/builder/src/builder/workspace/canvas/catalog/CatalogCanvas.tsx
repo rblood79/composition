@@ -92,6 +92,7 @@ import {
   subscribeCanvasFrames,
 } from "../skia/frameScheduler";
 import { registerImageLoadCallback } from "../skia/imageCache";
+import { renderCounters } from "../skia/renderCounters";
 import { getCanvasKit } from "../skia/initCanvasKit";
 import { setEditingElementId } from "../skia/nodeRendererState";
 import {
@@ -754,6 +755,8 @@ export function CatalogCanvas({
     let sceneStale = false;
     // An image a record draws finished loading: its node data was built with the placeholder.
     let imagesStale = false;
+    // ADR-270 Phase 0 (dev): the loads one frame takes (`imageLoadedPerFrameMax`).
+    let imagesLoadedInFrame = 0;
     /** Publish the page header frames; true = a frame moved or resized. */
     const publishHeaders = (): boolean => {
       const frames = catalogHeaderFrames(workspace, compareOnlyPage());
@@ -770,6 +773,11 @@ export function CatalogCanvas({
     const syncScene = () => {
       if (imagesStale) {
         imagesStale = false;
+        if (process.env.NODE_ENV === "development") {
+          if (imagesLoadedInFrame > renderCounters.imageLoadedPerFrameMax)
+            renderCounters.imageLoadedPerFrameMax = imagesLoadedInFrame;
+          imagesLoadedInFrame = 0;
+        }
         try {
           scene.imageLoaded();
           sceneStale = false;
@@ -929,6 +937,7 @@ export function CatalogCanvas({
     // with it in ADR-248 Phase 4e-9-1 and nothing drew a loaded image until another edit).
     const unsubscribeImages = registerImageLoadCallback(() => {
       imagesStale = true;
+      if (process.env.NODE_ENV === "development") imagesLoadedInFrame += 1;
       scheduler.invalidate();
     });
     // The compare filter (or the page it shows) changed: the drawn page roots follow next frame.

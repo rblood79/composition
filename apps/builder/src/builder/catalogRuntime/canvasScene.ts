@@ -229,6 +229,8 @@ export class CatalogCanvasScene {
       else if (reason.startsWith("splice-rejected:"))
         renderCounters.rebindSpliceRejectedOther += 1;
       if (reason !== "page-grid") renderCounters.rebindOther += 1;
+      // ADR-270 Phase 0: an image finished loading (part of `rebindOther`).
+      if (reason === "image-loaded") renderCounters.rebindImageLoaded += 1;
       else {
         // ADR-264 Phase 0: whether the page roots only moved (R4) — compare the bound boxes.
         renderCounters.rebindPageGrid += 1;

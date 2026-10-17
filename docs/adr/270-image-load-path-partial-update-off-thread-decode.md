@@ -2,10 +2,13 @@
 
 ## Status
 
-Proposed — 2026-10-17 (리뷰 [reviews/270.md](reviews/270.md) Round 1 — codex, HIGH 3 · MEDIUM 2 → 같은 날 전부 반영. Round 2 수리 검증 — 5 건 closed · 신규 HIGH 1 (context 복원 뒤 재획득 없음) → 같은 날 반영 (R8 · G1-d · G2 ⑧). 판독 상한 도달 — 종결은 실행자 선언)
+Accepted — 2026-10-17 (사용자 `/execute-adr 270` · [reviews/270.md](reviews/270.md) Round 2 pending 0 · CRITICAL/HIGH 전부 fixed). 이전: Proposed — 2026-10-17 (리뷰 [reviews/270.md](reviews/270.md) Round 1 — codex, HIGH 3 · MEDIUM 2 → 같은 날 전부 반영. Round 2 수리 검증 — 5 건 closed · 신규 HIGH 1 (context 복원 뒤 재획득 없음) → 같은 날 반영 (R8 · G1-d · G2 ⑧). 판독 상한 도달 — 종결은 실행자 선언)
+
+> **Phase 0 종결 (2026-10-18, G0 통과 · go)**: 이미지 fixture 두 변형 (`app-pages-images` 정적 URL 붙들기 · `-asset` 업로드 ref) · 부류 3 (`load-edit` · `load-same-frame` · `load-zoom`) · dev 카운터 6 — 2 회 동일, ratchet run 2 등록. 실측: 완료 1 = 재바인드 1, 매번 picture ~240 · paragraph ~178 해제 (줌 중 ~1,145 · ~825) · 같은 프레임 편집 22 회가 patch 0 (재바인드가 흡수 — H3). inventory 보강: Image 노드에 `src` 없음 (사진은 Fill 의 Image 층) · fill miss 는 node data 에서 층이 빠짐 → 소유 맵은 「node data 를 만드는 동안 조회된 URL」. 상세 breakdown §7.
 
 > 수리 검증 [Round 2](reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED.
 
+- 실행 중 사용자 답 (2026-10-17): 결정 2 (fixture 출처) = **둘 다 한 변형씩** (`app-pages-images` · `app-pages-images-asset`). 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272** — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」 (ADR-273 결정 3 의 답). Phase 3a 는 ADR-273 Phase 2 완료 뒤에만 착수한다.
 - 사용자 요청: `/create-adr` (2026-10-17) — Pen.dev 1.2.18 ↔ composition HEAD `94c9a0d52` 비교 분석 (`.agent/runs/2026-10-17-pen-deep-comparison/comparison.json`, local-only) 의 도입 후보 중 **확정 4 건의 첫째**. 나머지 셋 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산) 과 조건부 4 건 (자산 수요 2단계 · 합성 캐시 · analytic shadow · 로컬 좌표) 은 이 ADR 이 다루지 않는다.
 - 방향을 정한 사용자 원문: 「pen.dev의 패턴은 … 이미 코드에서부터 근거로 도입하는것이 맞지않나? 이게 측정을 먼저 한다는게 맞는건지 의문이다」 → 「반드시 측정이필요한 곳과 아닌곳이 있지않나」 → 「분석 문서에서 adr설계가 몇개가 나오나」 (2026-10-17). 합의한 기준: **A 등급** (결과 동일 · 일은 모든 입력에서 엄격히 적음 — 코드 근거로 착수, 측정은 게이트) · **B 등급** (구조는 지금, 임계값은 게이트가) · **C 등급** (이득이 워크로드에 달려 측정 선행). 이 ADR 은 A (완료 → 부분 갱신 · 치수 분리 · 디코딩 이동) 와 B (프레임당 완료 처리 수 · 동시 로딩 수) 만 담고, C (base/detail 2단계 · 소비자별 수요 · GPU 업로드 큐) 는 Phase 0 의 이미지 fixture 측정 뒤 별도 ADR 후보로 남긴다.
 - 사용자가 이미 답한 것: 측정은 착수 조건이 아니라 게이트 (ratchet 카운트 + 원복 RED). Pen 의 정책값 (base ≤ 512 px · detail ≤ 4,096 · 동시 5 · 업로드 ~5 ms) 은 복사하지 않는다 — 우리 값은 게이트가 정한다.

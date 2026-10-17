@@ -166,6 +166,17 @@ export interface RenderCounters {
   scrollDeltaMapWrites: number;
   scrollDeltaIndexUpserts: number;
   scrollDeltaRerecords: number;
+  /**
+   * ADR-270 Phase 0 — 이미지 로드 경로. `image-loaded` 사유의 재바인드 수 (`rebindOther` 에도 들어 있다)
+   * · 그 재바인드가 버린 picture · paragraph (`rebindReleased*Other` 에도 들어 있다) · `MakeImageFromEncoded`
+   * 호출 수 · 완료 통지 수 (캐시 등록 = 이미지 처리 1 회) · 한 프레임에 처리한 완료 수의 최대.
+   */
+  rebindImageLoaded: number;
+  rebindReleasedPicturesImageLoaded: number;
+  rebindReleasedParagraphsImageLoaded: number;
+  imageEncodedDecodeCalls: number;
+  imageCompletions: number;
+  imageLoadedPerFrameMax: number;
 }
 
 const counters: RenderCounters = {
@@ -259,6 +270,12 @@ const counters: RenderCounters = {
   scrollDeltaMapWrites: 0,
   scrollDeltaIndexUpserts: 0,
   scrollDeltaRerecords: 0,
+  rebindImageLoaded: 0,
+  rebindReleasedPicturesImageLoaded: 0,
+  rebindReleasedParagraphsImageLoaded: 0,
+  imageEncodedDecodeCalls: 0,
+  imageCompletions: 0,
+  imageLoadedPerFrameMax: 0,
 };
 
 /**

@@ -24,6 +24,7 @@ import {
   scheduleWasmDisposal,
 } from "./deferredDisposal";
 import { resolveAssetUrlAsync } from "@composition/shared";
+import { renderCounters } from "./renderCounters";
 
 // ============================================
 // 재렌더 트리거 콜백 레지스트리
@@ -284,6 +285,8 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
         height: image.height(),
       });
       // 이미지 로딩 완료 → Canvas 재렌더 트리거 (specShapeConverter 연동)
+      if (process.env.NODE_ENV === "development")
+        renderCounters.imageCompletions += 1;
       notifyImageLoaded();
     }
     return image;
@@ -344,6 +347,20 @@ export function getImageCacheSize(): number {
 
 // 통합 해제 경로 등록 (ADR-153 Phase 2) — 캔버스 teardown 시 SkImage 전량 명시 해제
 registerSkiaCacheDestroy("imageCache", clearImageCache);
+
+// ADR-270 Phase 0 (dev 전용): 하니스가 완료 순서를 정한다 — 다음 완료 통지를 기다리고 (`onLoaded`),
+// 캐시 크기를 기록한다 (`stats`). 동작은 바꾸지 않는다.
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__composition_IMAGE_DEBUG__ =
+    {
+      onLoaded: registerImageLoadCallback,
+      stats: () => ({
+        images: cache.size,
+        estimatedBytes,
+        pending: pending.size,
+      }),
+    };
+}
 
 // ============================================
 // Internal
@@ -430,6 +447,8 @@ async function fetchAndDecode(url: string): Promise<SkImage | null> {
     const buffer = await response.arrayBuffer();
     const data = new Uint8Array(buffer);
     const image = ck.MakeImageFromEncoded(data);
+    if (process.env.NODE_ENV === "development")
+      renderCounters.imageEncodedDecodeCalls += 1;
 
     if (!image) {
       console.warn(`[imageCache] Decode failed: ${url}`);

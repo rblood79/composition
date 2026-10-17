@@ -57,6 +57,7 @@
 
 > r1 M4 반영. 비용은 네 가지로 가른다 — **코덱** (디코딩) · **readback + WASM 복사** · **텍스처 생성** · 통지 처리. 지금 (`MakeImageFromEncoded`) 은 코덱이 **첫 그리기 프레임** 안에서 메인에 든다 (F3). 3a 는 코덱을 브라우저 (메인 밖) 로, 텍스처 생성은 첫 그리기에 남긴다 (lazy) — 0 이 아니라 **자리가 바뀐다**.
 
+- **착수 조건 (사용자 2026-10-17 — ADR-273 결정 3)**: [ADR-273](../273-canvas-memory-budget-overscan-device-px-resource-cache.md) Phase 2 (GrContext 핸들 소유자 `createSurface.ts` · resize 는 산 context 만 재사용 · 소실 때 abandon → delete → `deleteContext` · 명시 한도) 가 닫힌 뒤. texture-backed 이미지는 처음부터 그 한도 · 수명 아래 들어간다. 진행 순서: 270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272.
 - **3a** (`imageCache.ts:411 ~ 440` `fetchAndDecode`):
   - `response.blob()` → `createImageBitmap(blob, { premultiplyAlpha: "premultiply", colorSpaceConversion: "default" })` (R6 옵션 고정).
   - **GPU surface** (`createSurface.ts:29` `MakeWebGLCanvasSurface` 성공 — headless SwiftShader 포함): `ck.MakeLazyImageFromTextureSource(bitmap, { width, height, colorType: RGBA_8888, alphaType: Premul }, /* srcIsPremul */ true)` — texture-backed, **CanvasKit 이 bitmap 소유권을 가져간다 → `close()` 를 부르지 않는다** (R8). 카운터 `imageTextureImages`.
@@ -95,4 +96,37 @@
 
 ## 7. 기록
 
-(Phase 0 결과 — 측정 조건 · 카운트 표 (A · B · ms 구분) · 5-질문 답 · go/no-go · 사용자 결정 답)
+### Phase 0 — 2026-10-18 (G0 통과 · go)
+
+**사용자 결정 2 답** (2026-10-17): 둘 다 한 변형씩 — `app-pages-images` (정적 URL · `page.route` 붙들기) · `app-pages-images-asset` (`asset:` ref — Fill 패널 업로드 writer `storeUploadedFile`).
+
+**inventory 보강 2 건** (추정 vs 실측 — 본 breakdown 안에서 흡수, M3):
+
+1. **Image 노드에는 `src` 가 없다** — DOM 은 `<img alt="">` (`domBinding.runtime.ts:2082 ~ 2090`), Canvas 는 rule 의 placeholder 상자 (`ruleShapes.ts` `BOX_SIZE_TYPES` 의 `Image`). 사용자가 사진을 넣는 길은 **Fill 패널의 Image 층** (`NodeEntry.fills` 의 `kind: "image"` — `catalogRuntime/authoredPaintCanvas.ts:69 ~ 95` → `buildBoxNodeData` → `fillToSkia.ts:315 ~ 330` `imageFillItemToSkia`) · `visual.backgroundImage` (`fillToSkia.ts:390 ~ 404` `cssBgImageToSkia`) · Avatar `src` (`skiaPrimitives.ts:2443 · 2593` → `specShapeConverter.ts:1195`) · mask (`renderCommands.ts:2732 ~ 2776` — **그리기 때** 조회) 넷이다. F7 의 「`P("Image")` 에 `src` 를 준다」 는 불가능 — fixture 는 Image 상자 67 개에 image fill 22 종 (같은 URL 3 ~ 4 상자) 을 준다.
+2. **fill 이미지가 miss 이면 node data 에 그 층이 없다** — `imageFillItemToSkia` 가 `null` 을 돌려 `box.fill` 에서 빠진다 (URL 도 함께 사라진다). 그래서 Phase 1 의 URL → 소유 요소 맵은 「node data 의 `image.src`」 만으로는 fill 소유자를 놓친다 → **node data 를 만드는 동안 조회된 URL 을 그 요소 소유로 기록** (`registerNode` 범위 — bind `canvasBinding.ts:1564` · patch `:1920`, `getSkImage` · `loadSkImage` 호출이 범위 안 요소에 귀속). shape `image.src` 보존 (Phase 2 치수 분리의 자리) 은 그대로 둔다. mask 는 그리기 때 조회라 이 범위 밖 — Phase 1 에서 picture 기록 중 조회를 같은 맵에 귀속한다.
+
+**하니스** (`apps/builder/scripts/perfImageFixture.mjs` 신규 · `perf-baseline.mjs`): PNG 22 종 결정적 생성 (256 · 512 · 1,024 · 2,048² — 2,048² 2 장, 다섯에 하나 반투명) · 정적 URL 은 `page.route` 가 붙들고 in-page 드라이버가 `__perfReleaseImage()` 로 한 장씩 푼다 · `asset:` 은 blob URL 이라 붙들 수 없어 드라이버가 상자의 fill 을 한 장씩 새 세대 ref 로 바꾼다 (놓기와 같은 길). 부류 `load-edit` (완료 → 4 프레임 → 편집 → 2 프레임) · `load-same-frame` (완료 통지 task 안에서 다른 노드 편집) · `load-zoom` (줌 휠 매 프레임 · 8 프레임마다 완료 하나). 이미지 부류 준비 (새 세대 · 붙들기 22) 는 창 밖. dev 훅 `__composition_IMAGE_DEBUG__` (`onLoaded` · `stats`) · facade `__COMPOSITION_CATALOG__.assets` (dev · harness 빌드).
+
+**카운터** (`renderCounters.ts` — dev 전용, A): `rebindImageLoaded` (`rebindOther` 의 일부) · `rebindReleasedPicturesImageLoaded` · `rebindReleasedParagraphsImageLoaded` (`*Other` 의 일부) · `imageEncodedDecodeCalls` · `imageCompletions` · `imageLoadedPerFrameMax`. B 키 (`imageTextureImages` · `imageReadbackBytes` · `imageSwFallbacks`) 는 Phase 3 커밋에서.
+
+**측정 조건**: dev 5173 (작업 트리) · headless Chrome (`channel: chrome`) · DPR 1 · `--fixed-inputs --call-counts` · 같은 옵션 2 회. 문서 = `app-pages` 22 페이지 (노드 3,317 · record 5,116) + Image 상자 67.
+
+| run · 부류               | image-loaded 재바인드 | 해제 picture | 해제 paragraph | `MakeImageFromEncoded` | 완료 | 프레임당 최대 | patch | full 기록 |
+| ------------------------ | --------------------: | -----------: | -------------: | ---------------------: | ---: | ------------: | ----: | --------: |
+| images `load-edit`       |                    22 |        5,284 |          3,924 |                     22 |   22 |             1 |    22 |        22 |
+| images `load-same-frame` |                    22 |        5,284 |          3,923 |                     22 |   22 |             1 | **0** |        22 |
+| images `load-zoom`       |                    22 |       25,196 |         18,147 |                     22 |   22 |             1 |     0 |        86 |
+| images `zoom` (로드 뒤)  |                     0 |            0 |              0 |                      0 |    0 |             0 |     0 |        67 |
+| images `edit` (로드 뒤)  |                     0 |            0 |              0 |                      0 |    0 |             0 |    15 |         0 |
+| images-asset `load-edit` |                    22 |        5,281 |          3,924 |                     22 |   22 |             1 |    89 |        24 |
+
+2 회 값 동일 (위 키 전부 — 등급 A). ratchet `--add-run 60:app-pages-images` (5 부류) · `60:app-pages-images-asset` (1 부류) — 이미지 키는 A.
+
+- **F4 실측**: 완료 1 = 재바인드 1 — 이미지와 무관한 picture **~240** · paragraph **~178** 를 매번 버린다 (줌 중이면 ~1,145 · ~825).
+- **HC2 불리 케이스 실측** (`load-same-frame`): 같은 task 의 편집 22 회가 **patch 0** — 재바인드가 `sceneStale` 을 지워 편집을 흡수했다 (r1 H3 의 현상). Phase 1 이 seed 로 바꾸면 이 부류의 patch 가 편집 수만큼 생긴다 (G2 ②).
+- 이미지 캐시 (게이지, ratchet 밖): 한 세대 22 장 = 67.9 MB · 이전 세대가 남은 이미지 부류 뒤 42 장 = **130.5 MB > 128 MiB 예산** (`IMAGE_CACHE_BYTE_BUDGET` — 참조 중이라 퇴거 0, 경고만). ADR-273 Phase 0 의 입력.
+- 소비 경로 (Q4): 스크린샷 1 장 — 22 장 로드 뒤 Home hero 상자에 2,048² 그라데이션, Pricing 상자 8 개에 같은 URL 이 그려짐 (`image-probe.mjs`, scratchpad).
+
+**5-질문**: Q1 합성물 (생성 PNG · `app-pages` 복제 아님 — 규모 전용: 이미지 수 · 바이트 · 완료 분산) / Q2 불리 = `load-edit` · `load-same-frame` · `load-zoom` (완료가 여러 프레임 · 같은 프레임 편집 · 줌 중) / Q3 대조군 = 같은 fixture 의 HEAD worktree 빌드 (G4) — Phase 0 은 기준선이라 수정 전 값 그 자체 / Q4 콜백 → `imagesStale` → `scene.imageLoaded()` → 재바인드가 실제 배선됨 (카운트 22 = 22, 스크린샷) / Q5 Phase 1 oracle = `setImagePartialOff` 전체 재바인드 픽셀 · 옛 디코더 픽셀 · object-fit 손계산.
+
+**go/no-go**: go (카운트 2 회 동일).

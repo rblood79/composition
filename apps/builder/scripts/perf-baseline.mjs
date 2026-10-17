@@ -42,6 +42,13 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOG_STORE_FACADE_SCRIPT } from "./perfCatalogFacade.mjs";
 import { seedAppPages } from "./perfAppFixture.mjs";
 import {
+  PERF_IMAGE_COUNT,
+  assignPerfImageFills,
+  installPerfImageRoutes,
+  perfImageUrl,
+  storePerfImageAssets,
+} from "./perfImageFixture.mjs";
+import {
   createFrameResolver,
   readDistBuild,
   resolveProfiles,
@@ -203,6 +210,10 @@ export function parseArgs(argv) {
       "fields",
       "nested-flex",
       "app-pages",
+      // ADR-270 Phase 0: the same 22 pages with an image fill on every Image box — static URLs the
+      //   harness holds (`page.route`) · `asset:` refs uploaded through the Fill panel's writer.
+      "app-pages-images",
+      "app-pages-images-asset",
       "sticky-lists",
       "scroll-boxes",
     ].includes(options.fixtureKind)
@@ -496,7 +507,7 @@ export async function seedDocument(
   pageCount = 2,
 ) {
   // 실사용 형태 22 페이지 문서 — seedCount · pageCount 를 쓰지 않는다 (perfAppFixture.mjs).
-  if (fixtureKind === "app-pages") return page.evaluate(seedAppPages);
+  if (fixtureKind.startsWith("app-pages")) return page.evaluate(seedAppPages);
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -2578,7 +2589,222 @@ export const FRAME_CLASSES = {
       }
     }
   },
+  // ADR-270 Phase 0 — 이미지 완료가 여러 프레임에 걸칠 때 (`app-pages-images*` 전용). 완료 순서는
+  //   드라이버가 정한다 (정적 URL = 붙든 응답을 한 장씩 풀기, `asset:` = Image 상자의 fill 을 한 장씩
+  //   새 ref 로) — 등급 A. edit: 완료 → 4 프레임 → 편집 → 2 프레임 · same-frame: 완료 통지 안에서 같은
+  //   task 로 다른 노드 편집 (같은 RAF 전 — HC2 의 불리 케이스) · zoom: 줌 휠을 프레임마다 보내며 8 프레임마다
+  //   완료 하나.
+  "load-edit": (page, ctx) => runImageLoadDriver(page, ctx, "edit"),
+  "load-same-frame": (page, ctx) => runImageLoadDriver(page, ctx, "same-frame"),
+  "load-zoom": (page, ctx) => runImageLoadDriver(page, ctx, "zoom"),
 };
+
+const IMAGE_LOAD_CLASSES = new Set([
+  "load-edit",
+  "load-same-frame",
+  "load-zoom",
+]);
+
+/** ADR-270 Phase 0: 이미지 fixture 상태 — 세대 · Image 노드 id (문서 순서) · 정적 URL 의 붙들기. */
+const imageFixture = { kind: null, gen: 0, ids: [], routes: null };
+
+const imageFixtureKind = (fixtureKind) =>
+  fixtureKind === "app-pages-images"
+    ? "static"
+    : fixtureKind === "app-pages-images-asset"
+      ? "asset"
+      : null;
+
+async function waitImagesSettled(page, expected) {
+  await page.waitForFunction(
+    (expected) => {
+      const s = window.__composition_IMAGE_DEBUG__?.stats?.();
+      return s && s.pending === 0 && s.images >= expected;
+    },
+    expected,
+    { timeout: 60_000 },
+  );
+  await page.evaluate(
+    () =>
+      new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      ),
+  );
+}
+
+/** 시드 뒤 (창 밖): 세대 0 이미지를 Image 상자에 주고 전부 로드한다 — 이미지 부류가 아닌 부류는 로드된 상태를 잰다. */
+async function prepareImageFixture(page, options) {
+  const kind = imageFixtureKind(options.fixtureKind);
+  if (!kind) return null;
+  imageFixture.kind = kind;
+  imageFixture.gen = 0;
+  const urls =
+    kind === "static"
+      ? Array.from({ length: PERF_IMAGE_COUNT }, (_, k) => perfImageUrl(k, 0))
+      : await storePerfImageAssets(page, 0);
+  imageFixture.ids = await assignPerfImageFills(page, urls);
+  if (kind === "static") {
+    const deadline = Date.now() + 30_000;
+    while (imageFixture.routes.held() < PERF_IMAGE_COUNT) {
+      if (Date.now() > deadline)
+        throw new Error(
+          `이미지 요청 ${imageFixture.routes.held()} / ${PERF_IMAGE_COUNT}`,
+        );
+      await page.waitForTimeout(50);
+    }
+    await imageFixture.routes.releaseAll();
+  }
+  await waitImagesSettled(page, PERF_IMAGE_COUNT);
+  return { kind, imageNodes: imageFixture.ids.length };
+}
+
+/**
+ * 이미지 부류의 준비 (창 밖): 새 세대. 정적 URL 은 fill 을 새 URL 로 바꾸고 22 요청이 붙들릴 때까지,
+ * `asset:` 은 새 세대 PNG 를 저장만 한다 (fill 교체는 창 안 — 놓기와 같은 길).
+ */
+async function setupImageLoadClass(page) {
+  if (!imageFixture.kind)
+    throw new Error("load-* 부류는 app-pages-images 계열 fixture 전용");
+  imageFixture.gen += 1;
+  const gen = imageFixture.gen;
+  if (imageFixture.kind === "static") {
+    await assignPerfImageFills(
+      page,
+      Array.from({ length: PERF_IMAGE_COUNT }, (_, k) => perfImageUrl(k, gen)),
+    );
+    const deadline = Date.now() + 30_000;
+    while (imageFixture.routes.held() < PERF_IMAGE_COUNT) {
+      if (Date.now() > deadline)
+        throw new Error(
+          `이미지 요청 ${imageFixture.routes.held()} / ${PERF_IMAGE_COUNT}`,
+        );
+      await page.waitForTimeout(50);
+    }
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => r())),
+        ),
+    );
+    return { kind: "static", refs: null, ids: imageFixture.ids };
+  }
+  return {
+    kind: "asset",
+    refs: await storePerfImageAssets(page, gen),
+    ids: imageFixture.ids,
+  };
+}
+
+function runImageLoadDriver(page, ctx, mode) {
+  if (!ctx.imageLoad) throw new Error("이미지 부류 준비 없음");
+  return page.evaluate(
+    async ({ kind, refs, ids, count, seedId, mode }) => {
+      const store = window.__composition_STORE__;
+      const dbg = window.__composition_IMAGE_DEBUG__;
+      const h = window.__COMPOSITION_CATALOG__;
+      const raf = (n) =>
+        new Promise((r) => {
+          const step = (i) =>
+            i ? requestAnimationFrame(() => step(i - 1)) : r();
+          step(n);
+        });
+      const el = store.getState().elements.find((e) => e.id === seedId);
+      const base = el?.props?.style ?? {};
+      const edit = (k) =>
+        store.getState().updateElementProps(seedId, {
+          ...el.props,
+          style: { ...base, width: `${160 + (k % 5) * 4}px` },
+        });
+      const start = async (k) => {
+        if (kind === "static") return window.__perfReleaseImage();
+        const graph = h.workspace.runtime.graph;
+        h.workspace.execute(() =>
+          h.commands.composeCommands(
+            graph,
+            "Image fill",
+            ids
+              .filter((_, i) => i % count === k)
+              .map((id, j) =>
+                h.commands.setWholeField({
+                  targets: [{ kind: "node", id }],
+                  field: "fills",
+                  value: [
+                    {
+                      id: `perf-image-fill-${k}-${j}`,
+                      enabled: true,
+                      opacity: 1,
+                      blendMode: "normal",
+                      kind: "image",
+                      url: refs[k],
+                      mode: "fill",
+                    },
+                  ],
+                }),
+              ),
+          ),
+        );
+        h.workspace.session.clearSelection();
+      };
+      let loaded = 0;
+      let onLoaded = null;
+      const off = dbg.onLoaded(() => {
+        loaded += 1;
+        onLoaded?.();
+      });
+      try {
+        if (mode === "zoom") {
+          const canvas = document.querySelector(
+            '[data-testid="skia-canvas-unified"]',
+          );
+          const r = canvas.getBoundingClientRect();
+          for (let i = 0; i < count * 8; i += 1) {
+            canvas.dispatchEvent(
+              new WheelEvent("wheel", {
+                clientX: r.left + r.width / 2,
+                clientY: r.top + r.height / 2,
+                bubbles: true,
+                cancelable: true,
+                deltaY: Math.floor(i / 12) % 2 ? 30 : -30,
+                ctrlKey: true,
+              }),
+            );
+            if (i % 8 === 0) await start(i / 8);
+            await raf(1);
+          }
+          while (loaded < count) await raf(1);
+        } else {
+          for (let k = 0; k < count; k += 1) {
+            const before = loaded;
+            // same-frame: the edit runs in the completion's task — before the frame that takes it.
+            onLoaded = mode === "same-frame" ? () => edit(k) : null;
+            await start(k);
+            while (loaded === before) await raf(1);
+            onLoaded = null;
+            await raf(4);
+            if (mode === "edit") {
+              edit(k);
+              await raf(2);
+            }
+          }
+        }
+      } finally {
+        off();
+      }
+      await store
+        .getState()
+        .updateElementProps(seedId, { ...el.props, style: base });
+      return { loaded };
+    },
+    {
+      kind: ctx.imageLoad.kind,
+      refs: ctx.imageLoad.refs,
+      ids: ctx.imageLoad.ids,
+      count: PERF_IMAGE_COUNT,
+      seedId: ctx.seedIds[1],
+      mode,
+    },
+  );
+}
 
 const POINTER_CLASSES = new Set(["hover", "drag", "marquee", "scroll"]);
 
@@ -2802,6 +3028,9 @@ async function runFrameLane(page, cdp, seed, options) {
     const pointer = POINTER_CLASSES.has(cls)
       ? await setupPointerClass(page, cls, seed)
       : null;
+    const imageLoad = IMAGE_LOAD_CLASSES.has(cls)
+      ? await setupImageLoadClass(page)
+      : null;
     if (options.fixedInputs)
       await page.evaluate(() =>
         window.__composition_RENDER_PATH_DEBUG__?.flushWarmup?.(),
@@ -2828,6 +3057,7 @@ async function runFrameLane(page, cdp, seed, options) {
         fixedInputs: options.fixedInputs,
         editTarget: options.editTarget,
         pointer,
+        imageLoad,
       },
       options.durationMs,
     );
@@ -2881,6 +3111,11 @@ async function runFrameLane(page, cdp, seed, options) {
         cleanup: await cleanupPointerClass(page, cls, pointer),
       };
     if (rec.profile) results[cls].profile = rec.profile;
+    // ADR-270 Phase 0: the image cache after the class (gauge — recorded, not ratcheted).
+    if (imageFixture.kind)
+      results[cls].images = await page.evaluate(
+        () => window.__composition_IMAGE_DEBUG__?.stats?.() ?? null,
+      );
     await page.waitForTimeout(400);
   }
   return results;
@@ -3203,6 +3438,8 @@ async function main() {
       : await createIsolatedProject(page, options.baseUrl);
     process.stderr.write(`[boot] ${project.projectUrl}\n`);
     await openPanels(page, options.openPanels);
+    if (imageFixtureKind(options.fixtureKind) === "static")
+      imageFixture.routes = await installPerfImageRoutes(page);
     const seed = await seedDocument(
       page,
       options.seedCount,
@@ -3212,6 +3449,11 @@ async function main() {
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}${seed.records ? ` · nodes ${seed.nodeCount} · records ${seed.records}` : ""}\n`,
     );
+    const images = await prepareImageFixture(page, options);
+    if (images)
+      process.stderr.write(
+        `[images] ${images.kind} · ${PERF_IMAGE_COUNT} images on ${images.imageNodes} Image boxes\n`,
+      );
     const layerTreeSetup = options.openPanels.includes("navigator")
       ? await expandLayerTreeRoot(page)
       : null;

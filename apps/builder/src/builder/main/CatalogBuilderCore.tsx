@@ -258,6 +258,8 @@ export function CatalogBuilderCore() {
             commands:
               await import("../../../../../packages/shared/src/catalog/commands"),
             palette: await import("../catalogRuntime/paletteInsert"),
+            // ADR-270 Phase 0: the `asset:` image fixture uploads through the Fill panel's writer.
+            assets: await import("../../lib/assets/assetWriter"),
           };
       // The cleanup may have disposed `opened` during the awaits above.
       if (cancelled) return;

@@ -91,6 +91,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/273.md](reviews/273.md) Round 1 — cla
 1. **여백 상한 값** — `PAD_DEVICE_MAX` (제안 768 device px) 또는 「DPR 과 무관하게 512 device」 (Pen 값). Phase 0 의 팬 속도 p95 · 여백 이탈 수를 보고 정한다.
 2. **GrContext 한도 값** — 제안 256 MiB (이미지 예산 128 + 여유). Phase 0 의 `getResourceCacheUsageBytes` 고수위 (이미지 fixture) 와 **Skia 기본 한도 실측값** (Phase 0 이 scratch context 로 `getResourceCacheLimitBytes()` 를 읽는다 — Skia 소스의 `GrResourceCache` 기본은 96 MiB 로 알려져 있으나 이 빌드 (0.42.0) 에서는 미확인, r1 M1) 을 보고 정한다. 기본보다 **올리는** 결정이면 R3 의 방향은 thrash 가 아니라 보유 증가 쪽이다.
 3. **ADR-270 과의 순서** — Phase 2 (context 소유) 를 ADR-270 Phase 3a 보다 먼저 두어 texture-backed 이미지가 처음부터 명시 한도 아래 들어가게 할지 (추천), 아니면 독립 진행할지.
+   - **답 (사용자 2026-10-17)**: 추천 순서 확정 — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」. 진행 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272**. ADR-270 Phase 3a 의 선행 조건이 이 ADR 의 Phase 2 (GrContext 소유 · 수명 · 명시 한도) 완료다 (270 breakdown §4 착수 조건).
 
 > 구현 상세: [273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md](design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md)
 

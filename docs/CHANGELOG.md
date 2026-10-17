@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지 로드 경로 측정 기준선 — ADR-270 Phase 0] - 2026-10-18
+
+### Added
+
+- **이미지 fixture 와 부류** (ADR-270 Phase 0, 성능 하니스) — `app-pages` 22 페이지의 Image 상자 67 개에 image fill 22 종 (`--fixture-kind app-pages-images` 정적 URL · `app-pages-images-asset` 업로드 `asset:` ref). 완료 순서는 하니스가 정한다 (`page.route` 붙들기 · 한 장씩 풀기). 부류 `load-edit` · `load-same-frame` · `load-zoom`. dev 카운터 6 (`rebindImageLoaded` · 그 사유의 picture · paragraph 해제 · `imageEncodedDecodeCalls` · `imageCompletions` · `imageLoadedPerFrameMax`) — ratchet run `60:app-pages-images` · `60:app-pages-images-asset`.
+  - 실측: 이미지 1 장 완료 = scene 재바인드 1 회 — 매번 picture ~240 · paragraph ~178 를 버린다 (줌 중 ~1,145 · ~825). 같은 프레임의 다른 노드 편집 22 회는 patch 0 (재바인드에 흡수).
+  - 동작 변경 0 (dev 카운터 · harness 핸들만).
+  - 위치: `apps/builder/scripts/{perfImageFixture,perf-baseline}.mjs` · `apps/builder/src/builder/workspace/canvas/skia/{renderCounters,imageCache,useSkiaNode}.ts` · `catalogRuntime/canvasScene.ts` · `canvas/catalog/CatalogCanvas.tsx` · `apps/builder/perf/ratchet.json`
+
 ## [Compare Mode Preview 가 Canvas 의 page 자리 · 크기 · zoom 을 따른다] - 2026-10-17
 
 ### Changed
