@@ -7,7 +7,7 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
  * renderImage — 로드된 이미지 경로의 배경 fill 계약 (2026-08-14 fix)
  *
  * DOM oracle: `.react-aria-Image` 배경(사용자 지정 또는 muted 기본)은 이미지 **뒤**에
- * 항상 그려진다. 구 Skia 는 skImage 로드 경로에서 `drawImageRect` 만 호출해 배경이
+ * 항상 그려진다. 구 Skia 는 bitmap 로드 경로에서 `drawImageRect` 만 호출해 배경이
  * 통째로 빠졌다 (object-fit contain/none 여백·투명 PNG 에서 가시 발산).
  *
  * 계약: box.fillColor alpha > 0 이면 drawImageRect **전에** 배경 rect, alpha 0
@@ -111,11 +111,14 @@ function makeLoadedNode(
     visible: true,
     box: { fillColor, borderRadius: 0 },
     image: {
-      skImage: {
+      src: "img.png",
+      bitmap: {
         width: () => 40,
         height: () => 40,
         isDeleted: () => deleted,
-      } as unknown as NonNullable<SkiaNodeData["image"]>["skImage"],
+      } as unknown as NonNullable<SkiaNodeData["image"]>["bitmap"],
+      naturalWidth: 40,
+      naturalHeight: 40,
       contentX: 50,
       contentY: 10,
       contentWidth: 80,
@@ -158,7 +161,7 @@ describe("renderImage — 로드 경로 배경 fill", () => {
   it("폐기된 SkImage 핸들이면 그리지 않고 placeholder 로 떨어진다", () => {
     const fill = Float32Array.of(1, 0, 0, 1);
     const node = makeLoadedNode(fill, true);
-    (node.image as NonNullable<SkiaNodeData["image"]>).skImage!.width =
+    (node.image as NonNullable<SkiaNodeData["image"]>).bitmap!.width =
       (): number => {
         throw new Error("Cannot pass deleted object as a pointer");
       };

@@ -20,7 +20,11 @@ import {
   resolveToken,
   hexStringToNumber,
 } from "@composition/rendering";
-import { getSkImage, loadSkImage } from "./imageCache";
+import {
+  getSkImage,
+  imageNaturalSizeOf,
+  loadSkImage,
+} from "./imageCache";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import {
   DEFAULT_FONT_FAMILY,
@@ -1192,21 +1196,24 @@ export function specShapesToSkia(
         const imgRadius = resolveRadius(shape.radius, theme);
 
         // 동기 캐시 조회 — 캐시 미스 시 비동기 로딩 트리거
-        const skImage = shape.src ? getSkImage(shape.src) : null;
-        if (shape.src && !skImage) {
+        const bitmap = shape.src ? getSkImage(shape.src) : null;
+        if (shape.src && !bitmap) {
           loadSkImage(shape.src);
         }
 
-        // 이미지 콘텐츠 영역 계산 (object-fit)
+        // 이미지 콘텐츠 영역 계산 (object-fit) — 원본 치수로 (그릴 bitmap 의 크기가 아니다, ADR-270 Phase 2).
+        // 로드 전에는 상자 크기 (placeholder).
         const fit = shape.fit ?? "cover";
-        const intrinsicW = skImage ? skImage.width() : imgW;
-        const intrinsicH = skImage ? skImage.height() : imgH;
+        const natural =
+          shape.src && bitmap
+            ? imageNaturalSizeOf(shape.src, bitmap)
+            : { width: imgW, height: imgH };
         const content = computeImageFit(
           fit,
           imgW,
           imgH,
-          intrinsicW,
-          intrinsicH,
+          natural.width,
+          natural.height,
         );
 
         const imgNode: SkiaNodeData = {
@@ -1221,7 +1228,10 @@ export function specShapesToSkia(
             borderRadius: imgRadius,
           },
           image: {
-            skImage,
+            src: shape.src ?? "",
+            bitmap,
+            naturalWidth: natural.width,
+            naturalHeight: natural.height,
             contentX: content.x,
             contentY: content.y,
             contentWidth: content.w,

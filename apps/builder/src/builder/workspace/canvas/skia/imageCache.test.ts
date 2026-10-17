@@ -4,7 +4,7 @@ import type { Image as SkImage, SkPicture } from "canvaskit-wasm";
 /**
  * imageCache LRU 퇴거 계약.
  *
- * SkImage 는 `SkiaNodeData.image.skImage` 에 **핸들로 저장**돼 다음 프레임에도
+ * SkImage 는 `SkiaNodeData.image.bitmap` 에 **핸들로 저장**돼 다음 프레임에도
  * 그려진다 (buildImageNodeData / specShapeConverter). 그래서 캐시 상한은
  * "미참조 풀" 에 대한 정책이어야 하고, 참조 중인 이미지를 강제 퇴거하면
  * 삭제된 핸들에 `.width()` 를 부르는 순간 WASM 이 크래시한다.

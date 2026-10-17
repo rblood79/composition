@@ -162,7 +162,7 @@ function isPinned(entry: CacheEntry): boolean {
 }
 
 // ============================================
-// 이미지 자연 치수 캐시 (레이아웃 엔진용)
+// 이미지 자연 치수 캐시 (object-fit · fill 배치용)
 // ============================================
 
 export interface ImageNaturalDimensions {
@@ -181,9 +181,9 @@ const dimensionsCache: Map<string, ImageNaturalDimensions> =
     new Map<string, ImageNaturalDimensions>());
 
 /**
- * 이미지의 자연 치수를 동기적으로 조회한다.
- * 레이아웃 엔진에서 fit-content/auto 사이징에 사용.
- * dimensionsCache에 없으면 CanvasKit cache에서 복구 시도.
+ * 이미지의 자연 치수를 동기적으로 조회한다 — 디코딩 결과에서 1 회 기록된 원본 크기.
+ * 소비자는 그리기 배치 (object-fit content rect · image fill 행렬) 다 — 레이아웃 엔진은 읽지 않는다
+ * (Image 상자 크기는 저작 값). dimensionsCache 에 없으면 CanvasKit cache 에서 복구 시도.
  */
 export function getImageNaturalDimensions(
   url: string,
@@ -200,6 +200,22 @@ export function getImageNaturalDimensions(
   }
 
   return null;
+}
+
+/**
+ * ADR-270 Phase 2: 그리기 배치가 읽는 원본 치수 — 그릴 bitmap 의 크기와 따로다 (지금은 같다).
+ * `bitmap` 은 그 URL 의 캐시 hit.
+ */
+export function imageNaturalSizeOf(
+  url: string,
+  bitmap: SkImage,
+): ImageNaturalDimensions {
+  return (
+    getImageNaturalDimensions(url) ?? {
+      width: bitmap.width(),
+      height: bitmap.height(),
+    }
+  );
 }
 
 /** URL → CanvasKit Image 캐시 */
@@ -400,7 +416,7 @@ let lastOverflowWarnSize = 0;
  * **참조 중인 엔트리는 퇴거하지 않는다.** 캐시 상한은 미참조
  * 풀에 대한 정책이지 살아 있는 작업 집합에 대한 것이 아니다. 구 구현은
  * 후보가 없으면 가장 오래된 엔트리를 강제 퇴거했는데, SkImage 는
- * `SkiaNodeData.image.skImage` 에 **핸들로 저장**돼 다음 프레임에도 그려진다
+ * `SkiaNodeData.image.bitmap` 에 **핸들로 저장**돼 다음 프레임에도 그려진다
  * (buildImageNodeData / specShapeConverter). 삭제된 핸들에 `.width()` 를 부르는
  * 순간 WASM 이 크래시한다 — 서로 다른 이미지 100개를 넘긴 문서에서 새 이미지를
  * 로드할 때마다 재현된다.

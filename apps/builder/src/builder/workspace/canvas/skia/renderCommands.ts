@@ -3145,7 +3145,7 @@ function collectSpanImageRefs(
   for (let i = span.start; i < span.end; i++) {
     const c = commandAtIndex(i)!;
     if (c.type !== CMD_DRAW) continue;
-    const img = c.skiaData.image?.skImage;
+    const img = c.skiaData.image?.bitmap;
     if (img) (refs ??= []).push(img);
   }
   return refs;

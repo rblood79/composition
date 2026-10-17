@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지 원본 치수와 그릴 bitmap 분리 — ADR-270 Phase 2] - 2026-10-18
+
+### Changed
+
+- **Canvas 이미지 배치의 기준** (ADR-270 Phase 2, 동작 변경 0) — 이미지 node data 가 원본 치수 (`naturalWidth/Height` — object-fit content rect) 와 그릴 bitmap (source rect) 을 따로 든다 (`skImage` → `bitmap` · `src` 로드 전후 보존). Image fill · background-image 행렬도 원본 치수로 계산한 뒤 bitmap 좌표로 옮긴다. 지금은 두 치수가 같아 화면 변화 없음 — 뒤에 축소 디코딩이 들어와도 배치가 흔들리지 않을 자리.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{nodeRendererTypes,specShapeConverter,nodeRendererImage,imageCache,renderCommands}.ts` · `panels/styles/utils/fillToSkia.ts` · 시험 `skia/__tests__/adr270NaturalSize.test.ts`
+
 ## [이미지가 로드돼도 Canvas 전체를 다시 묶지 않는다 — ADR-270 Phase 1] - 2026-10-18
 
 ### Changed

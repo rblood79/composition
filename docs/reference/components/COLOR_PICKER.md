@@ -844,7 +844,7 @@ style.mixBlendMode
 - **렌더**: `imageFillItemToSkia()` (`utils/fillToSkia.ts:312`) → `box.fill` (`buildBoxNodeData.ts:166-187`) → `applyFill` `"image"` case (`skia/fills.ts:173-205`, `SkImage.makeShaderOptions`).
 - opacity 는 팝오버 공통 `ScrubInput` 으로 조절된다. blendMode 는 §5.3 대로 저장만 되고 렌더에 반영되지 않는다.
 
-> `skia/nodeRendererImage.ts` 는 이 경로와 무관하다 — 그쪽은 `<img>` 요소 타입(`node.image.skImage`)을 그리는 별도 렌더러다.
+> `skia/nodeRendererImage.ts` 는 이 경로와 무관하다 — 그쪽은 `<img>` 요소 타입(`node.image.bitmap`)을 그리는 별도 렌더러다.
 
 ### 6.2 메쉬 그래디언트 — 편집 UI 구현, 렌더는 2×2 근사
 

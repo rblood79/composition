@@ -29,6 +29,7 @@ import type {
 } from "../../../workspace/canvas/skia/types";
 import {
   getSkImage,
+  imageNaturalSizeOf,
   loadSkImage,
 } from "../../../workspace/canvas/skia/imageCache";
 import {
@@ -309,6 +310,32 @@ function parseBgPosition(
 }
 
 /**
+ * ADR-270 Phase 2: a fill's matrix is laid out in the image's natural size (object-fit · background
+ * size read it); the shader samples the bitmap. Map bitmap pixels to natural ones first (`M · S`,
+ * S = natural / bitmap) — the identity while the decoded bitmap is the natural size.
+ */
+function inBitmapSpace(
+  matrix: Float32Array,
+  natural: { width: number; height: number },
+  bitmap: { width(): number; height(): number },
+): Float32Array {
+  const sx = natural.width / bitmap.width();
+  const sy = natural.height / bitmap.height();
+  if (sx === 1 && sy === 1) return matrix;
+  return Float32Array.of(
+    matrix[0]! * sx,
+    matrix[1]! * sy,
+    matrix[2]!,
+    matrix[3]! * sx,
+    matrix[4]! * sy,
+    matrix[5]!,
+    matrix[6]! * sx,
+    matrix[7]! * sy,
+    matrix[8]!,
+  );
+}
+
+/**
  * ImageFillItem → Skia ImageFill 변환
  * Phase 4: imageCache에서 동기 조회 (캐시 미스 시 비동기 로딩 트리거)
  */
@@ -329,9 +356,10 @@ function imageFillItemToSkia(
 
   const ck = getCanvasKit();
 
-  // mode → 변환 매트릭스 계산
-  const imgWidth = skImage.width();
-  const imgHeight = skImage.height();
+  // mode → 변환 매트릭스 계산 (원본 치수 공간 — 그릴 bitmap 의 크기가 아니다)
+  const natural = imageNaturalSizeOf(item.url, skImage);
+  const imgWidth = natural.width;
+  const imgHeight = natural.height;
   let matrix: Float32Array | undefined;
 
   if (item.mode === "stretch") {
@@ -370,7 +398,7 @@ function imageFillItemToSkia(
     tileModeY: ck.TileMode.Decal,
     tileMode: ck.TileMode.Decal,
     sampling: ck.FilterMode.Linear,
-    matrix,
+    matrix: matrix && inBitmapSpace(matrix, natural, skImage),
   };
 }
 
@@ -404,8 +432,9 @@ export function cssBgImageToSkia(
   }
 
   const ck = getCanvasKit();
-  const imgW = skImage.width();
-  const imgH = skImage.height();
+  const natural = imageNaturalSizeOf(url, skImage);
+  const imgW = natural.width;
+  const imgH = natural.height;
 
   // 1. background-size → 렌더 크기 계산
   const [targetW, targetH] = parseBgSize(bgSize, width, height, imgW, imgH);
@@ -445,7 +474,7 @@ export function cssBgImageToSkia(
     tileModeY: tileMode.y,
     tileMode: tileMode.x, // 하위 호환 fallback
     sampling: ck.FilterMode.Linear,
-    matrix,
+    matrix: inBitmapSpace(matrix, natural, skImage),
   };
 }
 

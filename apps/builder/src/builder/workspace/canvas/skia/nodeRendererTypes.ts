@@ -116,8 +116,17 @@ export interface SkiaNodeData {
     /** G4: CSS text-shadow 목록 (shadow-first 2-pass 렌더링) */
     textShadows?: TextShadow[];
   };
+  /**
+   * ADR-270 Phase 2: the image's own size (`naturalWidth/Height` — object-fit reads it) is apart from
+   * the drawn `bitmap` (its pixels — the source rect). They are equal today; a smaller decoded bitmap
+   * changes the source rect only, not the content rect. Before the load: no bitmap, natural = box.
+   */
   image?: {
-    skImage: SkImage | null;
+    /** The image cache key (a URL or an `asset:` ref) — kept before and after the load. */
+    src: string;
+    bitmap: SkImage | null;
+    naturalWidth: number;
+    naturalHeight: number;
     contentX: number;
     contentY: number;
     contentWidth: number;

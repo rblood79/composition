@@ -159,3 +159,16 @@
 **G1-a live** (`apps/builder/scripts/adr270-image-load-live.mjs` — headless Chrome · dev 5173 · `app-pages` 22 페이지 · Image 상자 67 · PNG 22 장 fill · fit · stretch 순환 · 하니스가 한 장씩 풂, oracle = 같은 상태를 다시 묶고 picture 캐시 · viewport 질의 끔): 1 줌 0.3 완료 22 — `rebindOther` 0 · seed 67 · splice 22 · 0 px · 상자 맵 · SpatialIndex 후보 동일 / 2 줌 1 (Home hero 2,048² 반투명 섞임) **완료 통지 task 안의 편집 22** — 편집이 남고 (문서 폭 = 마지막 편집 164) · patch 89 · 0 px / 3 `setImagePartialOff` — 완료마다 `image-loaded` 재바인드 22 · seed 0 · 0 px. **3/3 PASS · 콘솔 오류 0**. 스크린샷으로 hero 상자의 2,048² 그라데이션 + 격자 확인.
 
 - 남은 G1-a 배치 (clip 상자 안 · sticky 헤더 아래 · 반경 상자 · `object-fit: none`) 는 이 fixture 에 없다 — 다음 live (G5 사용자 프로젝트) 와 Phase 2 손계산이 object-fit 을 덮는다.
+
+### Phase 2 — 2026-10-18 (G1-c 통과 · 동작 변경 0)
+
+**구현**:
+
+- `SkiaNodeData.image` = `{ src, bitmap, naturalWidth, naturalHeight, content… }` (`skImage` → `bitmap` 개명 — 소비처 `nodeRendererImage.ts` · `renderCommands.ts` `collectSpanImageRefs` · 테스트 2). `specShapeConverter.ts` 는 object-fit content rect 를 `imageCache.ts` `imageNaturalSizeOf(src, bitmap)` (= `dimensionsCache`, 없으면 bitmap 치수) 로 계산하고, 그리기 source rect 는 `bitmap.width()` (`nodeRendererImage.ts`). 로드 전은 그대로 — bitmap null · 원본 치수 = 상자 (placeholder). `src` 는 로드 전후 모두 남는다.
+- **fill 도 같은 분리** (`fillToSkia.ts`): Fill 의 Image 층 (`imageFillItemToSkia`) · background-image (`cssBgImageToSkia`) 의 행렬을 원본 치수 공간에서 계산한 뒤 `inBitmapSpace` 가 `M · S` (S = 원본 / bitmap) 로 bitmap 좌표에 맞춘다 — 두 치수가 같으면 같은 `Float32Array` 를 돌려준다 (값 변경 0). `types.ts` `ImageFill` 은 바꾸지 않았다 — shader 소비자 (`fills.ts`) 는 행렬만 읽는다.
+- `getImageNaturalDimensions` 주석: 「레이아웃 엔진용」 → 소비자 = 그리기 배치 (object-fit · fill 행렬). 레이아웃 엔진은 읽지 않는다.
+- object-fit 은 catalog `ImageShape.fit` 의 4 종 (`contain · cover · fill · none`) — `scale-down` 은 타입에 없다 (HC1 의 「5 종」 중 하나는 대상 없음).
+
+**검증** (`skia/__tests__/adr270NaturalSize.test.ts` 16 건 — 원본 치수의 절반짜리 bitmap 을 주는 테스트 전용 fixture, 기대값은 CSS object-fit 손계산): object-fit 4 × (원본 가로 > 상자 · 세로 > 상자 · 둘 다 작음) 12 · 로드 전 placeholder 1 · Image fill cover 의 bitmap 끝 모서리 → 원본 치수로 계산한 자리 1 · background `auto` 가 원본 크기로 깔림 1 · 같은 치수면 행렬이 옛 값 그대로 1. **원복 RED**: (a) content rect 를 bitmap 치수로 → 12 RED (b) `inBitmapSpace` 배율 생략 → 2 RED (d) background 배치를 bitmap 치수로 → 1 RED. (c) Image fill 배치를 bitmap 치수로 → GREEN — fill · fit · stretch 는 배율 불변이라 bitmap 치수로 일관되게 계산해도 결과가 같다 (동등 변이 — 원본 치수가 결과를 바꾸는 곳은 object-fit `none` 과 background `auto` · px 크기). 회귀: `workspace/canvas` + `catalogRuntime` + `panels/styles` 459 파일 3,722 PASS · type-check PASS.
+
+**G1-a 재실행** (`adr270-image-load-live.mjs`): 3/3 PASS · 콘솔 오류 0. Phase 1 스크린샷과 비교 (상단 제목 띠 60 px 제외): 이미지가 있는 장면 (줌 1 · 롤백 플래그) 0 px. 줌 0.3 장면은 552 px 차 — 같은 코드 두 실행끼리도 같은 영역 (목록 아이콘 글리프, 756 ~ 1005 × 325 ~ 383) 이 674 px 다르다 → fixture 의 줌 0.3 아이콘 그리기 흔들림이고 Phase 2 와 무관 (각 실행 안의 oracle 대조는 0 px).

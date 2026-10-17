@@ -51,7 +51,7 @@ export function renderImage(
     //   소유하지 않은 채 핸들만 싣는다 — 그 사이 퇴거되면 여기서 폐기된 핸들을
     //   만난다. `.width()` 호출이 WASM 크래시라 그리기 전에 확인하고 placeholder
     //   로 떨어진다 (다음 sync 에서 재로드).
-    if (!node.image?.skImage || node.image.skImage.isDeleted()) {
+    if (!node.image?.bitmap || node.image.bitmap.isDeleted()) {
       if (node.box) {
         const placeholderPaint = acquireScopedPaint(scope, ck);
         placeholderPaint.setAntiAlias(true);
@@ -160,11 +160,12 @@ export function renderImage(
     const paint = acquireScopedPaint(scope, ck);
     paint.setAntiAlias(true);
 
+    // The source rect is the bitmap's pixels; the content rect came from the natural size.
     const srcRect = ck.LTRBRect(
       0,
       0,
-      node.image.skImage.width(),
-      node.image.skImage.height(),
+      node.image.bitmap.width(),
+      node.image.bitmap.height(),
     );
     const dstRect = ck.LTRBRect(
       node.image.contentX,
@@ -173,7 +174,7 @@ export function renderImage(
       node.image.contentY + node.image.contentHeight,
     );
 
-    canvas.drawImageRect(node.image.skImage, srcRect, dstRect, paint);
+    canvas.drawImageRect(node.image.bitmap, srcRect, dstRect, paint);
 
     if (needsOverflowClip) canvas.restore();
     if (hasRadius) canvas.restore();

@@ -246,7 +246,7 @@ describe("sameDrawData", () => {
     const withImage = (handle: object) =>
       ({
         ...textNode("i"),
-        image: { skImage: handle },
+        image: { bitmap: handle },
       }) as unknown as SkiaNodeData;
     expect(sameDrawData(withImage(image), withImage(image))).toBe(true);
     expect(sameDrawData(withImage(image), withImage(new Handle()))).toBe(false);
