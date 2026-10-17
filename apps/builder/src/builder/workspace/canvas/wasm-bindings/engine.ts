@@ -87,6 +87,7 @@ export class EngineLayout {
 
     try {
       this.engine = new mod.LayoutEngine();
+      if (import.meta.env.DEV) liveEngines.add(new WeakRef(this));
     } catch (err) {
       this.initFailed = true;
       if (import.meta.env.DEV) {
@@ -274,11 +275,85 @@ export class EngineLayout {
     return this.engine.nodeCount();
   }
 
+  // ── 결정적 카운트 (ADR-268 — 디버그 채널, ratchet `engine.*`) ─────────
+
+  /** `solve_node` 진입 수 · intrinsic 측정 MISS 수. 엔진 미준비면 0. */
+  getCounters(): EngineCounters {
+    if (!this.engine) return { solveVisits: 0, intrinsicMeasureMiss: 0 };
+    return {
+      solveVisits: this.engine.solveVisits(),
+      intrinsicMeasureMiss: this.engine.intrinsicMeasureMiss(),
+    };
+  }
+
+  resetCounters(): void {
+    this.engine?.resetCounters();
+  }
+
   /** WASM 엔진 인스턴스 해제. dispose 시 호출. */
   dispose(): void {
     if (this.engine) {
+      if (import.meta.env.DEV) retireEngineCounters(this.getCounters());
       this.engine.free();
       this.engine = null;
     }
   }
 }
+
+/** ADR-268 — 엔진 결정적 카운트 (ADR-246 ratchet `engine.solveVisits` · `engine.intrinsicMeasureMiss`). */
+export interface EngineCounters {
+  solveVisits: number;
+  intrinsicMeasureMiss: number;
+}
+
+// dev 빌드에서만 살아 있는 엔진을 모은다 — 엔진은 `PersistentLayoutTree` 안에서 만들어져
+// 하니스가 인스턴스를 잡을 수 없다. WeakRef 라 수명은 바꾸지 않는다.
+const liveEngines = new Set<WeakRef<EngineLayout>>();
+
+// 측정 구간 안에서 해제된 엔진의 카운트 — 해제가 비용을 지우지 않게 합에 남긴다.
+const retired: EngineCounters = { solveVisits: 0, intrinsicMeasureMiss: 0 };
+
+function retireEngineCounters(c: EngineCounters): void {
+  retired.solveVisits += c.solveVisits;
+  retired.intrinsicMeasureMiss += c.intrinsicMeasureMiss;
+}
+
+function eachLiveEngine(visit: (engine: EngineLayout) => void): void {
+  for (const ref of liveEngines) {
+    const engine = ref.deref();
+    if (engine) visit(engine);
+    else liveEngines.delete(ref);
+  }
+}
+
+/** 살아 있는 엔진 전부의 카운트 합 (dev 전용 — production 은 항상 0). */
+export function snapshotEngineCounters(): EngineCounters {
+  const total: EngineCounters = { ...retired };
+  eachLiveEngine((engine) => {
+    const c = engine.getCounters();
+    total.solveVisits += c.solveVisits;
+    total.intrinsicMeasureMiss += c.intrinsicMeasureMiss;
+  });
+  return total;
+}
+
+export function resetEngineCounters(): void {
+  retired.solveVisits = 0;
+  retired.intrinsicMeasureMiss = 0;
+  eachLiveEngine((engine) => engine.resetCounters());
+}
+
+// 프레임 하니스 (`perf-baseline.mjs`) 가 부류마다 reset → snapshot 해 `counts.engine` 으로 싣는다
+// (ADR-265 `__composition_DOC_COUNTERS__` 와 같은 형태).
+if (import.meta.env.DEV && typeof window !== "undefined")
+  (
+    window as unknown as {
+      __composition_ENGINE_COUNTERS__?: {
+        snapshot: typeof snapshotEngineCounters;
+        reset: typeof resetEngineCounters;
+      };
+    }
+  ).__composition_ENGINE_COUNTERS__ = {
+    snapshot: snapshotEngineCounters,
+    reset: resetEngineCounters,
+  };

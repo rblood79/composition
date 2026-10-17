@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-17 ADR-268 Implemented** (Phase 0 · 1 / G0 ~ G4, 같은 날): 사용자 `/execute-adr 268` (리뷰 Round 2 pending 0 → Accepted). row definite 컨테이너 item 의 §4.5 content size suggestion — 서브트리 세대 캐시 (`intrinsic_content_w` · `subtree_gen`) + 커널 결과 기반 지연 floor (`flex_layout_with_definite_floor` — floor 없는 결과 < specified 인 item 만). F4 oracle 4 ≤ 1 px (전 100/100 · 0 → 150) · ADR-188 `2N` 불변 · 원복 RED 2 · ratchet 엔진 카운트 `engine.solveVisits` · `engine.intrinsicMeasureMiss` 34 키 0 포함 A 등록 → Phase 1 값 = Phase 0 값 · 기존 A 변동 0. live 9/9 (Frame 글자 편집 뒤 Canvas = Preview · RED arm 100 vs 129.6). Button 은 텍스트 leaf 스칼라라 원래 정합 (대상 아님). reach: app-pages 후보 14 · 화면 변화 0. 열림 2 (245 · 269).
+
 > **2026-10-17 ADR-267 Implemented** (Phase 0 · 1 · 3 — Phase 2 fixed 는 사용자 결정 1 「허용 안 함」 으로 ADR-164 의도적 미지원 유지 종결): 사용자 `/execute-adr 267` + 리뷰 Round 3 이슈 0 → Accepted, 같은 날 종결. sticky 가 rule → resolver → `styleOf` → 엔진까지 간다 (`typedCanvasBox` · part rule · `itemLayout` · ListBox 섹션 헤더는 resolver 파생 값 · 검증기는 라이브러리 rule 용만 `sticky`). 엔진 `sticky_constraints` (Blink `ComputeStickyPositionConstraints` — owner = `is_scroll_container`, 별도 API 라 geometry batch 불변) · Canvas 는 owner 스크롤로 `resolveStickyOffset` 한 delta 를 paint · bounds · hit · 자식 문맥에 같이 쓴다. Chrome oracle 13/13 ≤ 1 px · 원복 RED 13/13 · Compare Mode live (스크롤 40 · 82 위치 일치, 붙은 헤더 클릭 선택 · 오버레이 겹침) — live 에서 그리기 순서 차이 (rule `z-index: 2`) 를 찾아 같이 고침. 사용자 결정 3 = (c): sticky 를 unsafe 에서 빼고 옮기기 거부를 owner 밖일 때만 → `60:sticky-lists` edit `contentFullRenders` 15 → 0 (HEAD 와 같음), ratchet run 등록. 번들 +873 B (상한 안). parity 1 실패 (`adr248CatalogGeometryDelta` case 2) 는 HEAD 에서도 같은 값 — 무관. 열림 −1, 완료 +1 (열림 3 — Proposed 3 = 245 · 268 · 269, 합계 292).
 >
 > **2026-10-17 ADR-269 Proposed**: 그리기 명령의 transform · clip · scroll 문맥을 property node 로 분리 (사용자 `/create-adr 그리기 명령에서 transform · clip · scroll 문맥을 property node 로 분리 (O1) — … -- ADR-269로 생성` — Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §3 property trees 행 · §5-1 O1 의 ADR 화, 확정 3 건 중 셋째 · Canvas 성능 계획 5단계). 실측 (ADR-264 ~ 266 종결 카운트 인용): `60:app-pages` 줌 `translateNodes` 222,268 · `translateCheckCommands` 917,005 · `600:nested-flex` 편집 `translateNodes` 5,280 · `scrollSubtreeVisits` 9,780 · ADR-266 종결 prod 줌 프로필 옮기기 검사 3.9 % · damage 1.4 % (idle 67.7 %). 코드 사실: 위치는 `ELEMENT_BEGIN` (`renderCommands.ts:1711`) · 스크롤은 `CHILDREN_BEGIN` (`:1781`) · clip 은 둘 다에 구워져 — 옮김은 root 1 줄 + 서브트리 **모든 요소의 맵 4 ~ 5 개** 갱신 (`subtreeTranslate.ts:183 ~`, 정본 §5-1 「명령을 다시 쓴다」 는 정정) · `checkTranslate` 가 서브트리 명령 전부를 훑음 · 요소 스크롤은 소유자 서브트리를 통째로 재기록 (`canvasBinding.ts:2443` `scrollBy` → dirty seed) · clip · scroll 문맥 변경은 patch 거부 → scene 전체 재바인드 (`subtreeCommandPatch.ts:340 ~ :360` · `canvasBinding.ts:2395`) · 하니스에 요소 스크롤 부류 없음. 채택 대안 A — property node 테이블을 단계적으로: Phase 0 카운트 (go/no-go) → Phase 1 scroll 노드 + 옮기기 검사 색인화 → Phase 2 clip 노드 → Phase 3 transform 노드 (사용자 결정 1). 절대 맵은 유지 + 테이블 파생 (ADR-264 대안 B 기각 사유 그대로 · **O(1) 주장 금지**). B (scroll 만) · C (상수만) 는 Phase 1 에 흡수, D (지연 맵) · E (Rust — trigger 2 · 3 미충족) 기각. HC: 픽셀 · 맵 동일 · 카운트 먼저 · wall-clock 은 회귀 0 만 · 비용 이동 금지 (hover · pan · pick) · D3 대칭. 사용자 결정 3 (Phase 3 진입 · 요소 스크롤 하니스 부류 신설 · 종결 미달). G0 ~ G4. 선행: ADR-267 Phase 1 (sticky clamp 의 scroll 입력 한 소스). 열림 +1 (열림 4 — Proposed 4 = 245 · 267 · 268 · 269, 합계 292). breakdown: [design/269](design/269-render-command-property-node-separation-breakdown.md).
@@ -306,18 +308,20 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     287 |
-| ├ Implemented / Complete(d)   |     240 |
+| 완료 (`completed/`)           |     289 |
+| ├ Implemented / Complete(d)   |     242 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       1 |
-| ├ Proposed                    |       1 |
+| 열려 있는 것 (`adr/*.md`)     |       2 |
+| ├ Proposed                    |       2 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **289** |
+| **합계**                      | **291** |
 
+> 2026-10-17 재대조 (3): ADR-268 Implemented (완료 +1) — 열림 2 = 245 (사용자 보류) · 269. ADR-267 Implemented · 269 Proposed 뒤 표가 갱신되지 않아 완료 287 · 열림 1 로 적혀 있던 것을 실측 (완료 표 행 289 · `adr/` 직속 ADR 245 · 269) 에 맞췄다 (267 · 268 = Implemented +2).
+>
 > 2026-10-17 재대조 (2): ADR-266 Implemented (완료 +1 · 열림 −1) — 열림 1 = 245 (사용자 보류).
 >
 > 2026-10-17 재대조: ADR-266 Proposed (열림 +1) — 열림 2 = 245 (사용자 보류) · 266.
@@ -340,11 +344,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [268](268-flex-row-definite-content-size-suggestion.md) — flex row definite item 의 min-content 측정 복원 — ADR-204 가 성능으로 미룬 §4.5 content size suggestion 을 ratchet 카운트로 재판정
-
-- **상태**: Proposed — 2026-10-17 (리뷰 전)
-- **규모**: Phase 0 (RED fixture · 엔진 카운트 2종 wasm export → ratchet 등급 판정 · reach 계수 · ADR-188 2N 확인, 동작 변경 0) → Phase 1 커밋 3 (서브트리 세대 캐시 · 2-b writer 조건 · ratchet/live) + 문서 → 종결. 추정 9 파일 (TS 는 카운터 읽기만 — `styleOf` 변경 0). 허용치 사후 완화 금지 (ADR-188 `2N` · ratchet 상한 · Phase 0 값). 사용자 결정 2 (엔진 카운트의 ratchet 편입 범위 · reach 0 일 때 진행 규칙). breakdown: [design/268](design/268-flex-row-definite-content-size-suggestion-breakdown.md)
 
 #### [269](269-render-command-property-node-separation.md) — 그리기 명령의 transform · clip · scroll 문맥을 property node 로 분리 — 이동 · 스크롤에서 명령 재기록 0 (Canvas 성능 계획 5단계)
 
@@ -378,17 +377,16 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                                                 | 차단 · 선행                                                                                                                                                                       |
-| :--: | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [268](268-flex-row-definite-content-size-suggestion.md)                                        | **Proposed 2026-10-17** — Phase 0 (RED fixture · 엔진 카운트 export) 부터 착수 가능 (리뷰는 사용자 요청 시) | 선행 없음 · 정본 §0-2 순서상 C03/C04 뒤 (X8 = ADR-267 Implemented 10-17) · G2 초과 시 대안 E Deferred (상한 불변)                                                                 |
-|  2   | [269](269-render-command-property-node-separation.md)                                          | **Proposed 2026-10-17** — Phase 0 (카운터 · ratchet 등록 · go/no-go) 부터 착수 가능 (리뷰는 사용자 요청 시) | 선행 ADR-267 충족 (10-17 Implemented — sticky clamp 의 scroll 입력 = owner `scrollOffset` 한 소스) · Phase 3 은 사용자 결정 1 · 사용자 결정 2 (요소 스크롤 부류) 전엔 기존 run 만 |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                           | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                    |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                     | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                            |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                          | 각 항목의 재개 조건 발생 시                                                                                                                                                       |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                                                 | 차단 · 선행                                                                                                                                                                                                                                           |
+| :--: | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | [269](269-render-command-property-node-separation.md)                                          | **Proposed 2026-10-17** — Phase 0 (카운터 · ratchet 등록 · go/no-go) 부터 착수 가능 (리뷰는 사용자 요청 시) | 선행 ADR-267 충족 · ADR-268 Implemented 10-17 (엔진 카운트 `engine.*` ratchet 등록됨) (10-17 Implemented — sticky clamp 의 scroll 입력 = owner `scrollOffset` 한 소스) · Phase 3 은 사용자 결정 1 · 사용자 결정 2 (요소 스크롤 부류) 전엔 기존 run 만 |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                           | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                                                                                        |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                     | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                                                                                |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                          | 각 항목의 재개 조건 발생 시                                                                                                                                                                                                                           |
 
 ---
 
-## 완료 ADR (287)
+## 완료 ADR (289)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -684,6 +682,7 @@
 | [265](completed/265-document-layer-edit-select-cost.md) | 편집 · 선택 전환의 문서 층 비용 (Canvas 성능 계획 3단계) — 문서 층 카운터 `counts.doc.*` · `select-spread` 부류 · 큰 컨테이너 편집 (post 걸음 생략 · owner edge 상쇄 · commit 필드 공유 · 행 목록 부모 필드 의존) · 선택 (행 색인 · `pageFrameRects` · 자동 HTML id · z-order 판정 공유 · Layers 고정). 측정 기록 종결 — body 편집 개선, HC2 (꼬리 = Canvas binding) · HC3 (꼬리 = RAC Layers · React) 미달 | Implemented | 2026-10-16 |
 | [266](completed/266-draw-cache-thrash-real-document-zoom-edit.md) | 실사용 문서 줌 · 편집의 그리기 캐시 thrash (Canvas 성능 계획 4단계 — trigger 1 성립 뒤) — 옮기기가 내부 그리기 wrapper 를 요소로 보지 않음 (page grid 재바인드 0) · picture 상한 = working set × 1.25 (히스테리시스 · 64 MB) · 칠할 수 있는 unsafe 만 viewport · damage sequence 에 · 옮기기 한 번 검사 · idle 미리 기록 · 옮긴 root picture 유지. production 줌 long task 13 ~ 17 → 0 · headless HC2 · HC3 미달은 측정 기록 | Implemented | 2026-10-17 |
 | [267](completed/267-sticky-fixed-position-canvas-engine.md) | position sticky · fixed 의 Canvas 지원 — sticky 전송 (rule · resolver · `styleOf`) · 엔진 `sticky_constraints` (Blink 계약, owner = scroll container) · Canvas delta 를 paint · bounds · hit · 자식 문맥에 · sticky 를 unsafe 에서 뺌 (결정 3 (c)). fixed 는 미지원 유지 (결정 1) | Implemented | 2026-10-17 |
+| [268](completed/268-flex-row-definite-content-size-suggestion.md) | flex row definite item 의 min-content 측정 복원 (F4 — ADR-204 이연을 ratchet 카운트로 재판정) — 서브트리 세대 캐시 (`intrinsic_content_w` · `subtree_gen`) + 커널 결과 기반 지연 floor (floor 없는 결과 < specified 인 item 만). ADR-188 `2N` · ratchet 상한 불변 · 엔진 카운트 `engine.*` 34 키 0 포함 A 등록 | Implemented | 2026-10-17 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

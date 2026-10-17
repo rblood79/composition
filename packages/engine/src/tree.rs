@@ -565,6 +565,15 @@ struct TreeNode {
     /// pass 사이에 일어나므로, 한 pass 안에서는 캐시가 온전히 유효하다 — 지수 폭발이
     /// 실제로 발생하는 구간이 거기다.
     intrinsic_w: Option<(u64, f32, f32)>,
+    /// ADR-268 — **자기 `width` 를 auto 로 둔** 폭 축 intrinsic `(subtree_gen, min, max)` (content-box).
+    /// `intrinsic_w` 와 뜻이 다르다 (그쪽은 자기 폭 포함 — grid 기여가 소비). row definite item 의
+    /// §4.5 content size suggestion 전용이고, 키는 전역 `mutation_gen` 이 아니라 이 노드의
+    /// `subtree_gen` 이다 — 형제 · 다른 서브트리 편집은 HIT 를 깨지 않는다 (ADR-188 `2N`).
+    intrinsic_content_w: Option<(u64, f32, f32)>,
+    /// ADR-268 — 이 노드 서브트리 (자신 포함) 의 마지막 mutation 세대. mutation 진입점
+    /// (`propagate_dirty` · `remove_node` · 재부모화 · `alloc_handle`) 만 쓴다 — 측정 pass 의
+    /// `mark_subtree_dirty` 는 쓰지 않는다 (쓰면 측정마다 조상 캐시가 MISS).
+    subtree_gen: u64,
     /// 저장된 `layout` 이 계산될 때 받은 available `(avail_w, avail_h)`.
     ///
     /// 증분 skip 의 **두 번째 키**다. dirty 만으로는 재부모화를 못 잡는다 — 옮겨온
@@ -648,6 +657,11 @@ pub struct LayoutTree {
     /// production layout behavior.
     #[cfg(test)]
     skip_walk_visits: Cell<usize>,
+    /// ADR-268 Phase 0 — 엔진 결정적 카운트 (ADR-246 ratchet `engine.solveVisits` ·
+    /// `engine.intrinsicMeasureMiss`). `solve_node` 진입 수와 intrinsic 측정 MISS 수 —
+    /// 누적이고 `reset_counters` 로만 0 이 된다 (`clear` 와 무관).
+    solve_visits: u32,
+    intrinsic_measure_miss: u32,
 }
 
 impl LayoutTree {
@@ -771,8 +785,10 @@ impl LayoutTree {
     // ── handle 관리 (taffy_bridge.rs alloc_handle/resolve 대응) ──
 
     /// 노드를 저장하고 handle 을 발급 (free_list 우선 재활용).
-    fn alloc_handle(&mut self, node: TreeNode) -> usize {
+    fn alloc_handle(&mut self, mut node: TreeNode) -> usize {
         self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
+        // ADR-268 — 새 노드 자신. 부모 체인은 붙일 때의 `propagate_dirty` 가 쓴다.
+        node.subtree_gen = self.mutation_gen;
         if has_intrinsic_size_constraint(&node.style) {
             self.intrinsic_size_constraint_count += 1;
         }
@@ -811,6 +827,8 @@ impl LayoutTree {
             escaped_mb: block::MarginSet::ZERO,
             self_collapsing: false,
             intrinsic_w: None,
+            intrinsic_content_w: None,
+            subtree_gen: 0,
             last_avail: None,
             last_solved: None,
             definite_h: None,
@@ -851,9 +869,20 @@ impl LayoutTree {
     /// 새 자식들의 parent 를 이 노드로 설정한다(조상 전파 경로 확보). 자식 집합
     /// 변경은 컨테이너 재배치를 유발하므로 taffy 처럼 조상까지 dirty 전파.
     pub fn set_children(&mut self, handle: usize, children: Vec<usize>) {
+        let mut old_parents = Vec::new();
         for &c in &children {
             if let Some(child) = self.get_mut(c) {
+                if let Some(old) = child.parent.filter(|&p| p != handle) {
+                    old_parents.push(old);
+                }
                 child.parent = Some(handle);
+            }
+        }
+        // ADR-268 — 재부모화는 옛 부모 체인의 서브트리도 바뀐다 (새 체인은 아래 propagate_dirty).
+        if !old_parents.is_empty() {
+            self.mutation_gen += 1;
+            for old in old_parents {
+                self.stamp_subtree_gen(old);
             }
         }
         if let Some(node) = self.get_mut(handle) {
@@ -867,12 +896,31 @@ impl LayoutTree {
         self.propagate_dirty(handle);
     }
 
+    /// ADR-268 — `handle` 부터 root 까지 `subtree_gen = mutation_gen` (조기 종료 없음).
+    fn stamp_subtree_gen(&mut self, handle: usize) {
+        let gen = self.mutation_gen;
+        let mut cur = Some(handle);
+        let mut guard = self.nodes.len() + 1;
+        while let Some(h) = cur {
+            if guard == 0 {
+                break; // 순환 방지 안전판
+            }
+            guard -= 1;
+            let Some(node) = self.get_mut(h) else { break };
+            node.subtree_gen = gen;
+            cur = node.parent;
+        }
+    }
+
     /// `handle` 부터 root 까지 조상 체인을 dirty 로 마킹.
     ///
     /// taffy 의 "dirty 를 조상까지 자동 전파" 계약(taffy_bridge.rs:890-893) 이식.
     /// 순환(비정상 트리)에서도 무한 루프를 막기 위해 방문 노드 수를 노드 총수로 상한.
     fn propagate_dirty(&mut self, handle: usize) {
         self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
+        // ADR-268 — 서브트리 세대는 아래 dirty 루프 (`already_dirty` 에서 조기 종료) 와 따로,
+        // 끝까지 올라가며 쓴다. 이미 dirty 인 중간 노드 위 조상이 옛 세대로 남으면 stale HIT.
+        self.stamp_subtree_gen(handle);
         let mut cur = Some(handle);
         let mut guard = self.nodes.len() + 1;
         while let Some(h) = cur {
@@ -919,6 +967,9 @@ impl LayoutTree {
                 self.intrinsic_size_constraint_count -= 1;
             }
             self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
+            if let Some(parent) = self.get(handle).and_then(|n| n.parent) {
+                self.stamp_subtree_gen(parent); // ADR-268 — 옛 부모 체인
+            }
             self.nodes[handle] = None;
             self.free_list.push(handle);
             self.last_compute = None;
@@ -933,6 +984,17 @@ impl LayoutTree {
         self.intrinsic_size_constraint_count = 0;
         // handle 이 0 부터 재발급되므로 stale skip 방지 위해 무효화.
         self.last_compute = None;
+    }
+
+    /// ADR-268 — 결정적 카운트 `[solve_visits, intrinsic_measure_miss]`.
+    pub fn counters(&self) -> [u32; 2] {
+        [self.solve_visits, self.intrinsic_measure_miss]
+    }
+
+    /// ADR-268 — 결정적 카운트를 0 으로 (하니스가 조작 직전에 부른다).
+    pub fn reset_counters(&mut self) {
+        self.solve_visits = 0;
+        self.intrinsic_measure_miss = 0;
     }
 
     /// strict 입력 모드 토글 (기본 false).
@@ -1026,6 +1088,8 @@ impl LayoutTree {
                 escaped_mb: block::MarginSet::ZERO,
                 self_collapsing: false,
                 intrinsic_w: None,
+                intrinsic_content_w: None,
+                subtree_gen: 0,
                 last_avail: None,
                 last_solved: None,
                 definite_h: None,
@@ -1724,6 +1788,7 @@ impl LayoutTree {
                 return Some((min_w, max_w));
             }
         }
+        self.intrinsic_measure_miss = self.intrinsic_measure_miss.wrapping_add(1);
         // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다 (R5 — trace 태그는
         // `with_measure_pass` 가 건다).
         let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
@@ -1751,6 +1816,96 @@ impl LayoutTree {
             });
         }
         Some(result)
+    }
+
+    /// ADR-268 — 자기 `width` 를 auto 로 둔 폭 축 intrinsic `(min, max)` (content-box). row definite
+    /// item 의 §4.5 content size suggestion 이 소비한다 (`flex_layout_with_definite_floor`).
+    ///
+    /// 측정 방법은 `measure_intrinsic_width` 와 같다 (센티넬 available 의 가상 solve 2회). 다른 것은
+    /// 둘이다. (1) 캐시 키가 이 노드의 `subtree_gen` — 서브트리 밖 편집은 HIT. (2) 자기 `width` 를
+    /// 잠시 비운다. `with_measure_pass` 의 스냅샷은 `NodeStyle` 을 담지 않으므로 저장 · 복원은 여기서
+    /// 직접 한다 (`measure_intrinsic_height` 선례). `update_style` 은 쓰지 않는다 — 세대를 올려 자기
+    /// 캐시를 스스로 무효화한다. `min-width` 는 후보 조건상 auto 이고 `max-width` 는 남겨 solve 의
+    /// clamp 가 §4.5 「확정 max 로 clamp」 를 그대로 한다. 자기 `intrinsic_w` (자기 폭 포함 뜻) 도
+    /// 꺼내 두고 되돌린다.
+    fn measure_intrinsic_content_width(&mut self, handle: usize) -> Option<(f32, f32)> {
+        let node = self.get(handle)?;
+        let gen = node.subtree_gen;
+        if let Some((g, min_w, max_w)) = node.intrinsic_content_w {
+            if g == gen {
+                return Some((min_w, max_w));
+            }
+        }
+        let saved_width = node.style.width.clone();
+        let saved_intrinsic_w = node.intrinsic_w;
+        if let Some(node) = self.get_mut(handle) {
+            node.style.width = None;
+            node.intrinsic_w = None;
+        }
+        self.intrinsic_measure_miss = self.intrinsic_measure_miss.wrapping_add(1);
+        let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
+            tree.mark_subtree_dirty(handle);
+            let (min_w, _) = tree.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            tree.mark_subtree_dirty(handle);
+            let (max_w, _) = tree.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            (min_w, max_w)
+        });
+        let result = (min_w.min(max_w), max_w);
+        if let Some(node) = self.get_mut(handle) {
+            node.style.width = saved_width;
+            node.intrinsic_w = saved_intrinsic_w;
+            node.intrinsic_content_w = Some((gen, result.0, result.1));
+        }
+        Some(result)
+    }
+
+    /// ADR-268 1-b — 커널을 돌리고, row definite 컨테이너 item 중 **§4.5 floor 가 결과를 바꿀 수 있는**
+    /// 것 (`flex::definite_item_floor_may_bind` — floor 없는 결과 main < specified) 만 재서 슬롯 19 에
+    /// 넣고 다시 돌린다. 흔한 경우 (후보 없음) 는 커널 1회 · 추가 solve 0 이다.
+    ///
+    /// 판정을 커널 결과 위에 두는 이유: 1) 단계는 nowrap row 의 auto 컨테이너 item 을 (0, 0) 으로
+    /// 미루고 실제 크기는 2-b 가 넣으므로, 그 합으로 미리 고르면 뒤에 오는 auto 형제를 0 으로 본다
+    /// (리뷰 Round 1 H1 — `(f-sib)`). 행이 안 줄어도 `flex-basis: 0` 의 hypothetical clamp 가 auto
+    /// min 을 쓴다 (`(f-basis0)`). floor 는 올라가기만 하고 item 마다 한 번만 재므로 item 수 안에서
+    /// 끝난다 — 한 item 이 floor 에 걸리면 줄어든 여유가 형제로 넘어가 형제가 새로 후보가 될 수 있다.
+    fn flex_layout_with_definite_floor(
+        &mut self,
+        children: &[usize],
+        data: &mut [f32],
+        floor_measured: &mut [bool],
+        is_row: bool,
+        kernel: impl Fn(&[f32]) -> Box<[f32]>,
+    ) -> Box<[f32]> {
+        let mut out = kernel(data);
+        if !is_row {
+            return out;
+        }
+        loop {
+            let mut floored = false;
+            for (i, &c) in children.iter().enumerate() {
+                if floor_measured[i] || !flex::definite_item_floor_may_bind(data, &out, i, is_row) {
+                    continue;
+                }
+                floor_measured[i] = true;
+                let Some(n) = self.get(c) else { continue };
+                if n.children.is_empty()
+                    || n.style.content_min_width.is_some()
+                    || !n.style.width.as_deref().is_some_and(|w| w.trim().ends_with("px"))
+                {
+                    continue; // 자식 없는 상자 · 텍스트 leaf (ADR-165 스칼라) · px 아닌 폭은 대상 아님
+                }
+                let Some((min_w, _)) = self.measure_intrinsic_content_width(c) else { continue };
+                if min_w > 0.0 {
+                    data[i * flex::FLEX_FIELD_COUNT + 19] = min_w; // content-box (2-b 와 같은 공간)
+                    floored = true;
+                }
+                // min-content 0 이면 floor = min(specified, 0) = 0 — 결과가 그대로라 다시 돌리지 않는다.
+            }
+            if !floored {
+                return out;
+            }
+            out = kernel(data);
+        }
     }
 
     /// 측정 모드에서 **자식**을 푸는 진입점 (ADR-169 Phase 4 / G4).
@@ -1851,6 +2006,7 @@ impl LayoutTree {
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
     /// 반환: (content_width, content_height) — 부모 intrinsic 도출용.
     fn solve_node(&mut self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
+        self.solve_visits = self.solve_visits.wrapping_add(1);
         // ADR-206: definite 입력은 **skip 판정보다 먼저** 거둔다 — skip 이 HIT 해도 남겨두면
         // 다음 무관한 호출 (측정 pass 등) 에 새어 들어간다.
         let definite_h_in = self.get_mut(handle).and_then(|n| n.definite_h.take());
@@ -3168,11 +3324,11 @@ impl LayoutTree {
             for (i, &c) in children.iter().enumerate() {
                 let off = i * flex::FLEX_FIELD_COUNT;
                 if data[off + 1] != -1.0 {
-                    // main 명시 — content 슬롯 미소비. ADR-204 Phase 1 은 row definite 컨테이너의
-                    // content min-content 측정(자기 폭을 비운 가상 solve 2회)을 시도했으나
-                    // shrink 행에서 방문 수가 2N→4N 으로 늘어 ADR-188 G0 기준선을 깬다 —
-                    // 별도 perf 판정으로 이연 (evidence/204-phase1). 그동안 row definite 는
-                    // 스칼라(off 19) 보유 leaf 에서만 §4.5 specified 절이 동작한다.
+                    // main 명시 — 여기서 재지 않는다. row definite 컨테이너의 §4.5 content 제안은
+                    // ADR-268 — 2-b 가 아니라 커널 결과 기반 지연 floor
+                    // (`flex_layout_with_definite_floor`) 가 서브트리 세대 캐시
+                    // (`measure_intrinsic_content_width`) 로 floor 가 결과를 바꿀 수 있는 item 만 잰다.
+                    // (ADR-204 Phase 1 은 여기서 전부 재 shrink 행 방문 수가 2N→4N 이었다.)
                     continue;
                 }
                 let is_container_item = self
@@ -3300,18 +3456,20 @@ impl LayoutTree {
             }
         }
 
-        let mut out = flex::flex_layout(
-            &data,
-            avail_main,
-            avail_cross,
-            direction,
-            justify,
-            align_items,
-            align_content,
-            wrap,
-            gap_main,
-            gap_cross,
-            cross_definite,
+        // ADR-268 — row definite item 의 §4.5 floor 는 2-b 가 아니라 커널 결과로 판정한다 (2-b 의
+        // `continue` 그대로). item 마다 한 번만 재고, 아래 3.5 · 3.6 · 3.7 재실행도 같은 기록을 쓴다.
+        let mut floor_measured = vec![false; children.len()];
+        let mut out = self.flex_layout_with_definite_floor(
+            children,
+            &mut data,
+            &mut floor_measured,
+            is_row,
+            |d| {
+                flex::flex_layout(
+                    d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
+                    gap_main, gap_cross, cross_definite,
+                )
+            },
         );
 
         // 3.5 ↔ 3.6 순환 (2026-09-17): 3.6 이 컨테이너 auto main 을 min/max 로 clamp 해 **used main
@@ -3513,18 +3671,17 @@ impl LayoutTree {
             }
 
             if changed {
-                out = flex::flex_layout(
-                    &data,
-                    avail_main,
-                    avail_cross,
-                    direction,
-                    justify,
-                    align_items,
-                    align_content,
-                    wrap,
-                    gap_main,
-                    gap_cross,
-                    cross_definite,
+                out = self.flex_layout_with_definite_floor(
+                    children,
+                    &mut data,
+                    &mut floor_measured,
+                    is_row,
+                    |d| {
+                        flex::flex_layout(
+                            d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
+                            gap_main, gap_cross, cross_definite,
+                        )
+                    },
                 );
             }
         }
@@ -3592,18 +3749,17 @@ impl LayoutTree {
                 if (used - base_main).abs() > 0.5 {
                     avail_main = used;
                     main_clamp_changed = true;
-                    out = flex::flex_layout(
-                        &data,
-                        avail_main,
-                        avail_cross,
-                        direction,
-                        justify,
-                        align_items,
-                        align_content,
-                        wrap,
-                        gap_main,
-                        gap_cross,
-                        cross_definite,
+                    out = self.flex_layout_with_definite_floor(
+                        children,
+                        &mut data,
+                        &mut floor_measured,
+                        is_row,
+                        |d| {
+                            flex::flex_layout(
+                                d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
+                                gap_main, gap_cross, cross_definite,
+                            )
+                        },
                     );
                 }
             }
@@ -3661,18 +3817,17 @@ impl LayoutTree {
                 if (used - content_cross).abs() > 0.5 {
                     avail_cross = used;
                     cross_definite = true;
-                    out = flex::flex_layout(
-                        &data,
-                        avail_main,
-                        avail_cross,
-                        direction,
-                        justify,
-                        align_items,
-                        align_content,
-                        wrap,
-                        gap_main,
-                        gap_cross,
-                        cross_definite,
+                    out = self.flex_layout_with_definite_floor(
+                        children,
+                        &mut data,
+                        &mut floor_measured,
+                        is_row,
+                        |d| {
+                            flex::flex_layout(
+                                d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
+                                gap_main, gap_cross, cross_definite,
+                            )
+                        },
                     );
                 }
             }
@@ -12080,6 +12235,313 @@ mod tests {
                 "ADR-188 G0 engine_skip_walk n={node_count} visits={} median_ns={median_ns} p95_ns={p95_ns}",
                 visits[visits.len() / 2]
             );
+        }
+    }
+
+    /// ADR-268 Phase 0 — 결정적 카운트: `solve_node` 진입 · intrinsic 측정 MISS 를 세고,
+    /// `reset_counters` 뒤 mutation 없는 재계산은 root 진입 1 뿐, 자손 편집은 MISS 를 다시 낸다.
+    #[test]
+    fn adr268_engine_counters_count_solve_visits_and_measure_miss() {
+        let mut tree = LayoutTree::new();
+        let leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let auto_item = tree.create_node(NodeStyle::default());
+        tree.set_children(auto_item, vec![leaf]);
+        let root = tree.create_node(flex_row_fixed(200.0, 40.0));
+        tree.set_children(root, vec![auto_item]);
+
+        tree.compute_layout(root, 200.0, 40.0);
+        let [visits, miss] = tree.counters();
+        assert!(visits > 0, "첫 계산은 solve 진입을 센다");
+        assert!(miss >= 1, "nowrap row 의 auto 컨테이너 item 은 측정 MISS 1 이상: {miss}");
+
+        tree.reset_counters();
+        assert_eq!(tree.counters(), [0, 0]);
+        tree.compute_layout(root, 200.0, 40.0);
+        assert_eq!(
+            tree.counters(),
+            [1, 0],
+            "mutation 없는 재계산은 root 진입 1 (skip HIT) · 측정 0"
+        );
+
+        tree.update_style(leaf, px_leaf(160.0, 20.0));
+        tree.compute_layout(root, 200.0, 40.0);
+        let [visits, miss] = tree.counters();
+        assert!(visits > 0 && miss >= 1, "자손 편집 뒤 재측정: {visits} {miss}");
+    }
+
+    // ── ADR-268 1-a: 서브트리 세대 캐시 (자기 폭 제외 슬롯) ──
+
+    fn adr268_box(width: f32) -> NodeStyle {
+        serde_json::from_str(&format!(r#"{{"display":"flex","width":"{width}px","height":"20px"}}"#))
+            .unwrap()
+    }
+
+    /// row 300 > [A(w200) > leaf(w150)] + [B(w200) > leaf(w150)] — (tree, root, a, a_leaf, b, b_leaf).
+    fn adr268_tree() -> (LayoutTree, usize, usize, usize, usize, usize) {
+        let mut tree = LayoutTree::new();
+        let a_leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let a = tree.create_node(adr268_box(200.0));
+        tree.set_children(a, vec![a_leaf]);
+        let b_leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let b = tree.create_node(adr268_box(200.0));
+        tree.set_children(b, vec![b_leaf]);
+        let root = tree.create_node(flex_row_fixed(300.0, 40.0));
+        tree.set_children(root, vec![a, b]);
+        tree.compute_layout(root, 300.0, 40.0);
+        (tree, root, a, a_leaf, b, b_leaf)
+    }
+
+    #[test]
+    fn intrinsic_content_measure_restores_style_and_caches() {
+        let (mut tree, root, a, _, _, _) = adr268_tree();
+        let mut fresh = adr268_tree().0;
+        fresh.compute_layout(root, 300.0, 40.0);
+        let intrinsic_w = tree.get(a).unwrap().intrinsic_w;
+        let gen = tree.mutation_gen;
+        let root_gen = tree.get(root).unwrap().subtree_gen;
+
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
+        let node = tree.get(a).unwrap();
+        assert_eq!(node.style.width.as_deref(), Some("200px"), "자기 width 복원");
+        assert_eq!(node.intrinsic_w, intrinsic_w, "자기 폭 포함 캐시 복원");
+        assert_eq!(tree.mutation_gen, gen, "측정은 mutation 이 아니다");
+        assert_eq!(tree.get(root).unwrap().subtree_gen, root_gen);
+
+        tree.reset_counters();
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
+        assert_eq!(tree.counters(), [0, 0], "HIT 는 방문 0 · MISS 0");
+
+        // 측정 뒤 배치는 측정 없이 푼 배치와 같다 (옛 layout · dirty 복원)
+        tree.mark_dirty(root);
+        fresh.mark_dirty(root);
+        tree.compute_layout(root, 300.0, 40.0);
+        fresh.compute_layout(root, 300.0, 40.0);
+        for h in 0..tree.nodes.len() {
+            assert_eq!(tree.get_layout(h), fresh.get_layout(h), "handle {h}");
+        }
+    }
+
+    #[test]
+    fn intrinsic_content_cache_hits_when_sibling_changes() {
+        let (mut tree, root, a, _, _, b_leaf) = adr268_tree();
+        tree.measure_intrinsic_content_width(a);
+        tree.update_style(b_leaf, px_leaf(180.0, 20.0));
+        tree.compute_layout(root, 300.0, 40.0);
+        tree.reset_counters();
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((150.0, 150.0)));
+        assert_eq!(tree.counters()[1], 0, "형제 서브트리 편집은 HIT");
+    }
+
+    #[test]
+    fn intrinsic_content_cache_misses_when_descendant_changes() {
+        let (mut tree, _, a, a_leaf, _, _) = adr268_tree();
+        tree.measure_intrinsic_content_width(a);
+        tree.update_style(a_leaf, px_leaf(170.0, 20.0));
+        tree.reset_counters();
+        assert_eq!(tree.measure_intrinsic_content_width(a), Some((170.0, 170.0)));
+        assert_eq!(tree.counters()[1], 1, "자손 편집은 MISS");
+    }
+
+    /// compute 없이 같은 서브트리를 두 번 편집 — 두 번째는 `propagate_dirty` 의 dirty 루프가
+    /// 조기 종료한다. 세대 walk 가 그 루프에 얹혀 있으면 A 는 첫 편집 세대로 남아 stale HIT.
+    #[test]
+    fn intrinsic_content_cache_misses_after_two_edits_under_dirty_node() {
+        let (mut tree, _, a, a_leaf, _, _) = adr268_tree();
+        let inner = tree.create_node(adr268_box(160.0));
+        let deep = tree.create_node(px_leaf(150.0, 20.0));
+        tree.set_children(inner, vec![deep]);
+        tree.set_children(a, vec![a_leaf, inner]);
+        tree.update_style(deep, px_leaf(155.0, 20.0)); // inner · a 가 dirty
+        // flex row 의 min-content = item 기여의 합 (150 + inner 의 definite 160)
+        assert_eq!(tree.measure_intrinsic_content_width(a).map(|r| r.0), Some(310.0));
+        let first = tree.get(a).unwrap().intrinsic_content_w.unwrap().0;
+        tree.update_style(deep, px_leaf(190.0, 20.0)); // deep 은 이미 dirty → dirty 루프 조기 종료
+        tree.measure_intrinsic_content_width(a).unwrap();
+        let second = tree.get(a).unwrap().intrinsic_content_w.unwrap().0;
+        assert!(second > first, "두 번째 편집도 MISS (세대 {first} → {second})");
+    }
+
+    #[test]
+    fn intrinsic_content_cache_misses_on_reparent() {
+        let (mut tree, root, a, a_leaf, b, b_leaf) = adr268_tree();
+        tree.measure_intrinsic_content_width(a);
+        tree.measure_intrinsic_content_width(b);
+        // a 의 leaf 를 b 로 옮긴다 — 옛 부모 (a) 와 새 부모 (b) 둘 다 MISS
+        tree.set_children(a, vec![]);
+        tree.set_children(b, vec![b_leaf, a_leaf]);
+        let _ = root; // compute 하면 지연 floor 가 b 를 먼저 잰다 — 캐시만 본다
+        tree.reset_counters();
+        // flex row 의 min-content = item 기여의 합 (150 + 150)
+        assert_eq!(tree.measure_intrinsic_content_width(b).map(|r| r.0), Some(300.0));
+        assert_eq!(tree.counters()[1], 1, "새 부모 MISS");
+        // 옛 부모는 자식을 잃었으므로 0 이어야 한다
+        let a_only = tree.measure_intrinsic_content_width(a);
+        assert_eq!(a_only, Some((0.0, 0.0)), "옛 부모도 다시 잰다");
+        assert_eq!(tree.counters()[1], 2);
+    }
+
+    /// 자식만 옮기고 옛 부모의 children 은 그대로 둔 재부모화 — set_children 이 옛 부모 체인을 쓴다.
+    #[test]
+    fn intrinsic_content_cache_misses_on_reparent_old_parent_chain() {
+        let (mut tree, _, a, a_leaf, b, b_leaf) = adr268_tree();
+        tree.measure_intrinsic_content_width(a);
+        let gen_before = tree.get(a).unwrap().subtree_gen;
+        tree.set_children(b, vec![b_leaf, a_leaf]);
+        assert!(tree.get(a).unwrap().subtree_gen > gen_before, "옛 부모 세대 갱신");
+    }
+
+    #[test]
+    fn measure_does_not_bump_ancestor_subtree_gen() {
+        let (mut tree, root, a, _, b, _) = adr268_tree();
+        let gens = |t: &LayoutTree| [root, a, b].map(|h| t.get(h).unwrap().subtree_gen);
+        let before = gens(&tree);
+        tree.measure_intrinsic_content_width(a);
+        tree.measure_intrinsic_width(b);
+        assert_eq!(gens(&tree), before);
+    }
+
+    // ── ADR-268 1-b: 커널 결과 기반 지연 floor ──
+
+    fn adr268_item(width: f32, extra: &str) -> NodeStyle {
+        serde_json::from_str(&format!(r#"{{"width":"{width}px","height":"20px"{extra}}}"#)).unwrap()
+    }
+
+    fn adr268_row(width: f32) -> NodeStyle {
+        flex_row_fixed(width, 40.0)
+    }
+
+    /// 정본 F4 — row 200 > definite 200 ×2 · 각 min-content 150 → Chrome 150/150 (넘침).
+    #[test]
+    fn adr268_row_definite_items_floor_at_content_min() {
+        let mut tree = LayoutTree::new();
+        let g0 = tree.create_node(px_leaf(150.0, 20.0));
+        let c0 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c0, vec![g0]);
+        let g1 = tree.create_node(px_leaf(150.0, 20.0));
+        let c1 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c1, vec![g1]);
+        let root = tree.create_node(adr268_row(200.0));
+        tree.set_children(root, vec![c0, c1]);
+        tree.compute_layout(root, 200.0, 40.0);
+        assert_eq!(tree.get_layout(c0).width, 150.0);
+        assert_eq!(tree.get_layout(c1).width, 150.0);
+        assert_eq!(tree.get_layout(c1).x, 150.0);
+    }
+
+    /// (f-sib) — 뒤에 오는 auto 형제 B 는 1) 단계에서 (0, 0). 행 합 pre-scan 이면 A 를 건너뛴다.
+    #[test]
+    fn adr268_definite_item_floors_before_later_auto_sibling() {
+        let mut tree = LayoutTree::new();
+        let ga = tree.create_node(px_leaf(150.0, 20.0));
+        let a = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(a, vec![ga]);
+        let gb = tree.create_node(px_leaf(200.0, 20.0));
+        let b = tree.create_node(serde_json::from_str(r#"{"height":"20px"}"#).unwrap());
+        tree.set_children(b, vec![gb]);
+        let root = tree.create_node(adr268_row(300.0));
+        tree.set_children(root, vec![a, b]);
+        tree.compute_layout(root, 300.0, 40.0);
+        assert_eq!(tree.get_layout(a).width, 150.0);
+        assert_eq!(tree.get_layout(b).width, 200.0);
+        assert_eq!(tree.get_layout(b).x, 150.0);
+    }
+
+    /// (f-basis0) — 행이 안 줄어도 §9.2 hypothetical clamp 가 auto min 을 쓴다. shrink 0 · 1.
+    #[test]
+    fn adr268_basis_zero_definite_item_uses_auto_minimum() {
+        for shrink in [0, 1] {
+            let mut tree = LayoutTree::new();
+            let g = tree.create_node(px_leaf(150.0, 20.0));
+            let c = tree.create_node(adr268_item(
+                200.0,
+                &format!(r#","flexBasis":"0px","flexGrow":0,"flexShrink":{shrink}"#),
+            ));
+            tree.set_children(c, vec![g]);
+            let root = tree.create_node(adr268_row(500.0));
+            tree.set_children(root, vec![c]);
+            tree.compute_layout(root, 500.0, 40.0);
+            assert_eq!(tree.get_layout(c).width, 150.0, "shrink {shrink}");
+        }
+    }
+
+    /// 형제 연쇄 — A 가 floor 에 걸리면 줄어든 여유가 B 로 가 B 가 새로 specified 아래로 간다.
+    /// row 300 > A(w200, 내용 190) + B(w200, 내용 120): floor 없는 결과 150/150 → A 만 후보 →
+    /// A 190 → B 110 < 120 → B 도 측정 → 120. 남는 -10 은 넘침 (Chrome 190/120).
+    #[test]
+    fn adr268_floor_on_one_item_cascades_to_sibling() {
+        let mut tree = LayoutTree::new();
+        let ga = tree.create_node(px_leaf(190.0, 20.0));
+        let a = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(a, vec![ga]);
+        let gb = tree.create_node(px_leaf(120.0, 20.0));
+        let b = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(b, vec![gb]);
+        let root = tree.create_node(adr268_row(300.0));
+        tree.set_children(root, vec![a, b]);
+        tree.compute_layout(root, 300.0, 40.0);
+        assert_eq!(tree.get_layout(a).width, 190.0);
+        assert_eq!(tree.get_layout(b).width, 120.0);
+    }
+
+    /// 커널 결과 ≥ specified 인 행은 측정하지 않는다 (흔한 경우 — 추가 solve 0).
+    #[test]
+    fn adr268_fitting_row_measures_nothing() {
+        let mut tree = LayoutTree::new();
+        let g0 = tree.create_node(px_leaf(150.0, 20.0));
+        let c0 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c0, vec![g0]);
+        let g1 = tree.create_node(px_leaf(150.0, 20.0));
+        let c1 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c1, vec![g1]);
+        let root = tree.create_node(adr268_row(500.0));
+        tree.set_children(root, vec![c0, c1]);
+        tree.compute_layout(root, 500.0, 40.0);
+        assert_eq!(tree.counters()[1], 0, "후보 없음 → 측정 MISS 0");
+        assert_eq!(tree.get_layout(c0).width, 200.0);
+        assert!(tree.get(c0).unwrap().intrinsic_content_w.is_none());
+    }
+
+    /// 자손 편집 뒤 floor 가 새 내용을 따라온다 (R1 — stale HIT 이면 옛 150 에 머문다).
+    #[test]
+    fn adr268_floor_follows_descendant_edit() {
+        let mut tree = LayoutTree::new();
+        let g0 = tree.create_node(px_leaf(150.0, 20.0));
+        let c0 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c0, vec![g0]);
+        let g1 = tree.create_node(px_leaf(150.0, 20.0));
+        let c1 = tree.create_node(adr268_item(200.0, ""));
+        tree.set_children(c1, vec![g1]);
+        let root = tree.create_node(adr268_row(200.0));
+        tree.set_children(root, vec![c0, c1]);
+        tree.compute_layout(root, 200.0, 40.0);
+        tree.update_style(g0, px_leaf(170.0, 20.0));
+        tree.compute_layout(root, 200.0, 40.0);
+        assert_eq!(tree.get_layout(c0).width, 170.0);
+        assert_eq!(tree.get_layout(c1).width, 150.0);
+        // 형제 편집은 c1 의 측정 캐시를 깨지 않는다
+        tree.reset_counters();
+        tree.update_style(g0, px_leaf(160.0, 20.0));
+        tree.compute_layout(root, 200.0, 40.0);
+        assert_eq!(tree.counters()[1], 1, "c0 만 MISS · c1 HIT");
+        assert_eq!(tree.get_layout(c0).width, 160.0);
+    }
+
+    /// `overflow: hidden` (scroll container) · 명시 `min-width` · 텍스트 스칼라 item 은 후보가 아니다.
+    #[test]
+    fn adr268_non_candidates_keep_free_shrink() {
+        for extra in [r#","overflowX":"hidden""#, r#","minWidth":"0px""#] {
+            let mut tree = LayoutTree::new();
+            let g0 = tree.create_node(px_leaf(150.0, 20.0));
+            let c0 = tree.create_node(adr268_item(200.0, extra));
+            tree.set_children(c0, vec![g0]);
+            let g1 = tree.create_node(px_leaf(150.0, 20.0));
+            let c1 = tree.create_node(adr268_item(200.0, extra));
+            tree.set_children(c1, vec![g1]);
+            let root = tree.create_node(adr268_row(200.0));
+            tree.set_children(root, vec![c0, c1]);
+            tree.compute_layout(root, 200.0, 40.0);
+            assert_eq!(tree.get_layout(c0).width, 100.0, "{extra}");
+            assert_eq!(tree.counters()[1], 0, "{extra}");
         }
     }
 

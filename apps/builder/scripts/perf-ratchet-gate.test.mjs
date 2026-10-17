@@ -468,6 +468,55 @@ test("--add-keys — 2회 같은 값을 0 포함 A 로 넣고 기존 상한은 �
   );
 });
 
+// ADR-268 G0 (b) — 엔진 카운트를 0 포함 A 로 등록하면 +1 이 차단이다 (`--update` 면 0 키는 판정 밖)
+test("--add-keys — engine.* 0 포함 A 등록 뒤 +1 보고는 block", () => {
+  const base = keysBase();
+  const engineReport = (engine) =>
+    addReport(["select"], {
+      select: {
+        perfLabels: { "render.frame": 60 },
+        caches: { commandStream: { misses: 0 } },
+        reactRenderMeasures: 5900,
+        engine,
+      },
+    });
+  const at = { solveVisits: 12, intrinsicMeasureMiss: 0 };
+  const next = applyAddKeys(
+    base,
+    "60",
+    [engineReport(at), engineReport(at)],
+    ["engine.solveVisits", "engine.intrinsicMeasureMiss"],
+    { recorderSha: "old" },
+  );
+  assert.equal(next.seeds[60].select.A["engine.solveVisits"], 12);
+  assert.equal(next.seeds[60].select.A["engine.intrinsicMeasureMiss"], 0);
+  for (const over of [
+    { solveVisits: 13, intrinsicMeasureMiss: 0 },
+    { solveVisits: 12, intrinsicMeasureMiss: 1 },
+  ]) {
+    const regressed = { 60: countsByClass(engineReport(over)) };
+    assert.equal(
+      decide(judge(next, regressed), judge(next, regressed)),
+      "block",
+      JSON.stringify(over),
+    );
+  }
+  // --update 로 넣었다면: 0 키는 newKeys 에서 빠져 등록되지 않고 +1 은 통과한다
+  const updated = applyUpdate(
+    base,
+    judge(base, { 60: countsByClass(engineReport(at)) }),
+  );
+  const regressed = {
+    60: countsByClass(
+      engineReport({ solveVisits: 12, intrinsicMeasureMiss: 1 }),
+    ),
+  };
+  assert.equal(
+    decide(judge(updated, regressed), judge(updated, regressed)),
+    "pass",
+  );
+});
+
 test("--add-keys — 값이 갈리거나 · 기존 키 · v8.fn · 조건 불일치 · 기존 A 초과면 거부한다", () => {
   const base = keysBase();
   const r = (v) => keysReport({ execVisited: v });

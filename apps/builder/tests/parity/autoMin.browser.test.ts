@@ -195,6 +195,119 @@ const E_GRID_NOOP: ParityCase = {
   ],
 };
 
+// ADR-268 F4 — row definite 컨테이너 item 의 §4.5 content size suggestion.
+//     auto min = min(specified 200, content 150) = 150 → Chrome 은 150 에서 멈추고 넘친다.
+//     ADR-268 전 엔진은 2-b 가 definite item 을 재지 않아 floor 가 없었다 (100/100). 지금은 커널
+//     결과 기반 지연 floor (`flex_layout_with_definite_floor`) 가 잰다.
+const F_ROW_DEFINITE_FLOOR: ParityCase = {
+  name: "f: row definite container items floor at min-content 150 (overflow)",
+  availW: 200,
+  availH: -1,
+  nodes: [
+    { label: "g0", style: { width: "150px", height: "20px" } },
+    { label: "c0", style: { width: "200px", height: "20px" }, children: [0] },
+    { label: "g1", style: { width: "150px", height: "20px" } },
+    { label: "c1", style: { width: "200px", height: "20px" }, children: [2] },
+    {
+      label: "root",
+      style: { display: "flex", width: "200px", height: "40px" },
+      children: [1, 3],
+    },
+  ],
+};
+
+// (f-auto) 대조군 — 같은 자식 · item 폭 auto. auto 컨테이너는 2-b 가 이미 재므로 현행 정합.
+const F_AUTO_CONTROL: ParityCase = {
+  name: "f-auto: row auto container items (control, already floored)",
+  availW: 200,
+  availH: -1,
+  nodes: [
+    { label: "g0", style: { width: "150px", height: "20px" } },
+    { label: "c0", style: { height: "20px" }, children: [0] },
+    { label: "g1", style: { width: "150px", height: "20px" } },
+    { label: "c1", style: { height: "20px" }, children: [2] },
+    {
+      label: "root",
+      style: { display: "flex", width: "200px", height: "40px" },
+      children: [1, 3],
+    },
+  ],
+};
+
+// (f-scroll) 대조군 — 같은 definite item 이 scroll container 면 auto min = 0 (현행 정합).
+const F_SCROLL_CONTROL: ParityCase = {
+  name: "f-scroll: row definite overflow:auto items shrink to 100 (control)",
+  availW: 200,
+  availH: -1,
+  nodes: [
+    { label: "g0", style: { width: "150px", height: "20px" } },
+    {
+      label: "c0",
+      style: { width: "200px", height: "20px", overflowX: "auto" },
+      children: [0],
+    },
+    { label: "g1", style: { width: "150px", height: "20px" } },
+    {
+      label: "c1",
+      style: { width: "200px", height: "20px", overflowX: "auto" },
+      children: [2],
+    },
+    {
+      label: "root",
+      style: { display: "flex", width: "200px", height: "40px" },
+      children: [1, 3],
+    },
+  ],
+};
+
+// (f-sib) 판정 반례 (리뷰 Round 1 H1) — 뒤에 오는 auto 형제 B 의 intrinsic 은 1) 단계에서
+//     0 이라 「행 합 < 컨테이너」 pre-scan 은 A 를 건너뛴다. Chrome A=150 · B=200.
+const F_SIB_LATER_AUTO: ParityCase = {
+  name: "f-sib: definite A floors at 150 before later auto sibling B (200)",
+  availW: 300,
+  availH: -1,
+  nodes: [
+    { label: "ga", style: { width: "150px", height: "20px" } },
+    { label: "a", style: { width: "200px", height: "20px" }, children: [0] },
+    { label: "gb", style: { width: "200px", height: "20px" } },
+    { label: "b", style: { height: "20px" }, children: [2] },
+    {
+      label: "root",
+      style: { display: "flex", width: "300px", height: "40px" },
+      children: [1, 3],
+    },
+  ],
+};
+
+// (f-basis0) 판정 반례 — 행이 줄지 않아도 §9.2 hypothetical clamp 가 auto min 을 쓴다.
+//     basis 0 · grow 0 → hypothetical = max(0, auto min 150) = 150. shrink 0 · 1 둘 다.
+function fBasis0(flexShrink: number): ParityCase {
+  return {
+    name: `f-basis0: width 200 · basis 0 · grow 0 · shrink ${flexShrink} → 150`,
+    availW: 500,
+    availH: -1,
+    nodes: [
+      { label: "g", style: { width: "150px", height: "20px" } },
+      {
+        label: "c",
+        style: {
+          width: "200px",
+          height: "20px",
+          flexBasis: "0px",
+          flexGrow: 0,
+          flexShrink,
+        },
+        children: [0],
+      },
+      {
+        label: "root",
+        style: { display: "flex", width: "500px", height: "40px" },
+        children: [1],
+      },
+    ],
+  };
+}
+
 const CASES: ParityCase[] = [
   A_SCROLL_SHRINK,
   A2_HIDDEN_SHRINK,
@@ -204,6 +317,12 @@ const CASES: ParityCase[] = [
   D2_COLUMN_CONTENT_FLOOR,
   D3_ROW_CONTENT_FLOOR,
   E_GRID_NOOP,
+  F_ROW_DEFINITE_FLOOR,
+  F_SIB_LATER_AUTO,
+  fBasis0(0),
+  fBasis0(1),
+  F_AUTO_CONTROL,
+  F_SCROLL_CONTROL,
 ];
 
 describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {

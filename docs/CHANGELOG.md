@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [좁은 row 의 고정 폭 Frame 이 Canvas 에서도 글자 폭에서 멈춘다 — ADR-268 Implemented] - 2026-10-17
+
+### Fixed
+
+- **flex row 안 `width` 고정 Frame (자식 보유 컨테이너) 이 Canvas 에서만 내용 폭 아래로 줄어들던 것** (ADR-268 — 정본 F4) — 이제 Canvas 도 Preview (Chrome) 처럼 내용의 min-content 에서 멈추고 부모 밖으로 넘친다. row 200 안 `width: 200` Frame 둘 · 각 내용 150 → Canvas 100/100 이던 것이 150/150. 뒤에 auto 폭 형제가 오는 행 · `flex-basis: 0` (행이 안 줄어도) 도 같다. live: 글자를 「QuarterlyRevenue」 로 바꾼 뒤 Canvas 129.6 / 70.4 = Preview (전에는 Canvas 100 / 100).
+  - **Why**: CSS Flexbox §4.5 의 automatic minimum = min(지정 폭, 내용 min-content). 엔진은 지정 폭이 있는 컨테이너 item 의 내용을 재지 않았다 — ADR-204 가 전부 재면 레이아웃 방문 수가 2N → 4N 이 된다고 미뤘다.
+  - 이번에는 floor 없이 푼 결과가 지정 폭보다 작은 item 만 재고 (커널 결과 기반 지연 floor), 측정을 서브트리 세대로 캐시해 형제 · 다른 서브트리 편집에서는 다시 재지 않는다. ADR-188 방문 수 `2N` 과 ratchet 상한은 그대로다.
+  - Button 은 엔진에서 텍스트 leaf (글자 폭 스칼라) 라 원래 정합이었다 — 바뀌지 않는다.
+  - 위치: `packages/engine/src/{tree,flex}.rs`
+
+### Added
+
+- **엔진 결정적 카운트 ratchet** (ADR-268) — `solve_node` 진입 수 · intrinsic 측정 MISS 수를 wasm (`solveVisits()` · `intrinsicMeasureMiss()` · `resetCounters()`) → `window.__composition_ENGINE_COUNTERS__` (dev) → 프레임 하니스 `counts.engine.*` 로 싣고, ratchet 의 등록 seed 5 개 · 17 class 에 0 포함 등급 A 로 등록 (34 키). 엔진 변경이 이 두 값을 +1 만 늘려도 pre-push 가 막는다 (`recorderSha256` 변경 1).
+  - 위치: `packages/engine/src/wasm.rs` · `apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts` · `apps/builder/scripts/perf-baseline.mjs` · `apps/builder/perf/ratchet.json`
+
 ## [ListBox 섹션 헤더가 Canvas 에서도 붙는다 — ADR-267 position sticky Implemented] - 2026-10-17
 
 ### Fixed

@@ -1886,7 +1886,7 @@ export const RECORDER_SCRIPT = `(() => {
       const visibilityChanged = () => visibility.push(document.visibilityState);
       document.addEventListener?.("visibilitychange", visibilityChanged);
       window.__composition_FRAME_CAPTURE__?.reset();
-      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.(); window.__composition_RENDER_COUNTERS__?.reset?.(); window.__composition_DOC_COUNTERS__?.reset?.();
+      window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.(); window.__composition_RENDER_COUNTERS__?.reset?.(); window.__composition_DOC_COUNTERS__?.reset?.(); window.__composition_ENGINE_COUNTERS__?.reset?.();
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } lt.disconnect(); }
         document.removeEventListener?.("visibilitychange", visibilityChanged);
         document.removeEventListener?.("wheel", inputPhase, true);
@@ -1900,6 +1900,7 @@ export const RECORDER_SCRIPT = `(() => {
         const caches = (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ? { ...c.missReasons } : null }));
         const renderCounters = window.__composition_RENDER_COUNTERS__?.snapshot?.() ?? null;
         const docCounters = window.__composition_DOC_COUNTERS__?.snapshot?.() ?? null;
+        const engineCounters = window.__composition_ENGINE_COUNTERS__?.snapshot?.() ?? null;
         if (previousRecording !== undefined) perfApi.setRecordingEnabled(previousRecording);
         let profile = null;
         if (profiler) {
@@ -1915,7 +1916,7 @@ export const RECORDER_SCRIPT = `(() => {
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
           perf, caches, frameCapture, visibility, inputPhases, frameTimes, markers, longTaskEntries, t0,
-          domMutations, measures, layoutVersionDelta, renderCounters, docCounters,
+          domMutations, measures, layoutVersionDelta, renderCounters, docCounters, engineCounters,
           dpr: window.devicePixelRatio ?? null }; };
     },
     stop() { return this._stop(); },
@@ -2772,6 +2773,9 @@ export function buildCounts(rec, beforeMetrics, afterMetrics, coverage) {
     render: rec.renderCounters ?? null,
     // ADR-265: 문서 층 카운트 (catalog/docCounters.ts — dev 빌드 전용)
     doc: rec.docCounters ?? null,
+    // ADR-268: 엔진 결정적 카운트 (wasm-bindings/engine.ts — dev 빌드 전용). 엔진을 안 부른
+    // 부류도 0 으로 싣는다 (키 부재 ≠ 0 — ratchet 은 `engine.*` 를 0 포함 등급 A 로 본다)
+    engine: rec.engineCounters ?? null,
     v8: coverage,
   };
 }
@@ -3206,7 +3210,7 @@ async function main() {
           layerTreeRows:
             '.layer-tree--rac-virtualized [role="row"] count at recording stop',
           counts:
-            "결정적 카운트 (ratchet 후보). perfLabels = perfMarks reset 이후 호출 수 · caches = Skia 캐시 hit/miss · cdp = Performance.getMetrics before/after 차 (LayoutCount·RecalcStyleCount 는 renderer 누적 카운터) · domMutations = document subtree MutationObserver record 수 · reactRenderMeasures = React 19.2 dev 'Components ⚛' track measure 수 (dev 빌드 전용, 컴포넌트 렌더 1 = 1) · layoutVersionDelta = __composition_LAYOUT_DEBUG__.getSharedLayoutVersion 차 · render = 그리기 명령 층 카운트 (ADR-263 renderCounters.ts — 명령 방문 · 컬링 소비 · Proxy 읽기 · segment · 스크롤 범위 방문 · patch 검증 순회, dev 빌드 전용) · v8 = --call-counts 일 때 CDP precise coverage 함수 호출 수 (커버리지가 최적화를 막으므로 그 run 의 wall-clock 은 인용 금지)",
+            "결정적 카운트 (ratchet 후보). perfLabels = perfMarks reset 이후 호출 수 · caches = Skia 캐시 hit/miss · cdp = Performance.getMetrics before/after 차 (LayoutCount·RecalcStyleCount 는 renderer 누적 카운터) · domMutations = document subtree MutationObserver record 수 · reactRenderMeasures = React 19.2 dev 'Components ⚛' track measure 수 (dev 빌드 전용, 컴포넌트 렌더 1 = 1) · layoutVersionDelta = __composition_LAYOUT_DEBUG__.getSharedLayoutVersion 차 · render = 그리기 명령 층 카운트 (ADR-263 renderCounters.ts — 명령 방문 · 컬링 소비 · Proxy 읽기 · segment · 스크롤 범위 방문 · patch 검증 순회, dev 빌드 전용) · engine = 엔진 결정적 카운트 (ADR-268 — solveVisits = solve_node 진입 · intrinsicMeasureMiss = intrinsic 측정 MISS, dev 빌드 전용) · v8 = --call-counts 일 때 CDP precise coverage 함수 호출 수 (커버리지가 최적화를 막으므로 그 run 의 wall-clock 은 인용 금지)",
         },
         at: new Date().toISOString(),
         chrome: browser.version(),

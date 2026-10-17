@@ -48,6 +48,10 @@ export interface RawEngineLayout {
   getLayoutTrace(handle: number): string;
   clear(): void;
   nodeCount(): number;
+  /** ADR-268 — 결정적 카운트 (`solve_node` 진입 · intrinsic 측정 MISS). */
+  solveVisits(): number;
+  intrinsicMeasureMiss(): number;
+  resetCounters(): void;
   free(): void;
 }
 

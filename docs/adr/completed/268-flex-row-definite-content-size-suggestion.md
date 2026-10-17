@@ -2,14 +2,18 @@
 
 ## Status
 
-Proposed — 2026-10-17
+Implemented — 2026-10-17 (Accepted 같은 날 — 사용자 `/execute-adr 268` 호출 + [reviews/268.md](../reviews/268.md) Round 2 pending 0 · HIGH 전부 fixed)
+
+> **Phase 0 종결 2026-10-17 (go)** — G0 (a) RED 재현: (f) Chrome 150/150 · 엔진 100/100 · (f-sib) 150 · 100 · (f-basis0) shrink 0 · 1 둘 다 150 · 0, 대조군 2 정합. (b) 엔진 카운트 `solveVisits` · `intrinsicMeasureMiss` wasm export (스칼라 getter 둘 — slice 반환은 glue 가 기존 A 키 `getDataViewMemory0` 를 180 → 182 로 올려 바꿈) → `counts.engine.*`. seed 가 ADR-267 로 5 개 (17 class) — 2회 전부 같은 값 (등급 A) · `--add-keys --accept-recorder` 로 34 키 0 포함 A, 기존 값 변동 0 · +1 보고 block 판정 테스트. (c) reach: `app-pages` row 안 definite 컨테이너 item 245 중 후보 (floor 없는 결과 < specified) 14 · 팔레트 77 기본 상태 0 · 사용자 문서 미계수. (d) ADR-188 `2N` PASS. (e) 동작 변경 0. 상세: breakdown §기록.
+>
+> **Phase 1 종결 2026-10-17** — 1-a 서브트리 세대 캐시 (`intrinsic_content_w` · `subtree_gen` — mutation 진입점의 조기 종료 없는 조상 walk, 측정 pass 는 안 씀) · `measure_intrinsic_content_width` (자기 width · `intrinsic_w` 저장 · 복원) · 1-b 지연 floor `flex_layout_with_definite_floor` (커널 호출 4곳) + 판정 `flex::definite_item_floor_may_bind`. G1: cargo 480 PASS · ADR-188 `2N` 불변 · 원복 RED 2 (helper 우회 → F4 fixture 4 RED · 세대 키 → 전역 키 → ADR-188 N=50 100 → 198) · R1 fixture (자손 편집 · 형제 HIT · dirty 아래 두 번 편집 · 재부모화 옛/새 · 측정 뒤 width · `intrinsic_w` · 조상 세대 불변). G2: seed 5 · 17 class 2회 — 기존 A 초과 0 · `engine.*` = Phase 0 값 그대로 · `--raise` 0 · parity 829/830 (실패 1 = `adr248CatalogGeometryDelta` case 2 `subtreeNodeVisits` 4 기대 / 1 — HEAD 엔진으로도 같은 값, ADR-264 옮기기 뒤 낡은 기대값 — 이 ADR 범위 밖) · F4 fixture 4 ≤ 1 px. G3 live 아래. reach 재계수: 후보 14 는 그대로 측정되나 폭이 바뀐 item 0 (내용 min-content 가 이미 결과 폭 아래).
 
 - 사용자 요청: `/create-adr flex row definite item 의 §4.5 content size suggestion 복원 (F4) — ADR-204 perf 이연을 ADR-246 ratchet 카운트로 재판정 · 허용치 사후 완화 금지` (2026-10-17)
-- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 의 51 행 가운데 ADR 이 필요한 확정 3 건 (X8 sticky · fixed = [ADR-267](completed/267-sticky-fixed-position-canvas-engine.md) / **F4** / O1) 의 두 번째.
+- 방향을 정한 사용자 원문: 「CHROMIUM_CANVAS_PARITY_2026-10.md 이 항목들은 설계문서로 다시 작성해야하나」 → 「전체 작성해야하는 ADR은 몇개가 되지」 → 「확정3개 create-adr 제목 모두 정해줘」 (2026-10-17). Chromium 대조 정본 [CHROMIUM_CANVAS_PARITY_2026-10.md](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) 의 51 행 가운데 ADR 이 필요한 확정 3 건 (X8 sticky · fixed = [ADR-267](267-sticky-fixed-position-canvas-engine.md) / **F4** / O1) 의 두 번째.
 - 이미 정해진 것 (요청 원문 · 정본 §0-2 행 7 · ADR-204 Phase 4 판정): **허용치 사후 완화 금지** — ADR-188 G0 방문 수 단언 (`2N`) 과 ADR-246 ratchet 상한은 이 ADR 이 올리지 않는다. 구현이 그 안에 들어가지 못하면 구현을 바꾸거나 이연을 유지한다. oracle 은 Blink 코드가 아니라 Chrome `getBoundingClientRect` (ADR-156 차등 oracle) 다. Blink 인용은 고정 SHA `33688427bc1a316cecb28d5651ad25208ba9ab53` 원본을 직접 읽은 것 (code-confirmed), composition 쪽 수치 (Blink 150/150 vs 엔진 100/100) 는 아직 source-reported — Phase 0 이 재현한다.
-- 리뷰: [reviews/268.md](reviews/268.md) Round 1 (2026-10-17, codex) — HIGH 3 (H1 측정 판정 · H2 임시 width 복원 · H3 ratchet 등록 방식). 2026-10-17 본문 · breakdown 수리 — 대안 A 의 판정을 「shrink 행 pre-scan」 에서 「floor 없이 푼 커널 결과가 specified size suggestion 아래인 item」 으로, 측정 helper 의 width 저장 · 복원을 helper 소유로, ratchet 등록을 `--add-keys` (0 포함 등급 A) 로 바꿨다. **Round 2 (2026-10-17) 수리 검증 통과 — H1 · H2 · H3 closed, 신규 HIGH/MEDIUM 0, pending 0. 설계 리뷰 종결** (전제 확정 — 재개 조건 외 재질문 없음). 제품 gate (wasm 카운터 · seed 4 측정 · ADR-188 2N · parity · live) 는 Phase 0 이후 실행.
+- 리뷰: [reviews/268.md](../reviews/268.md) Round 1 (2026-10-17, codex) — HIGH 3 (H1 측정 판정 · H2 임시 width 복원 · H3 ratchet 등록 방식). 2026-10-17 본문 · breakdown 수리 — 대안 A 의 판정을 「shrink 행 pre-scan」 에서 「floor 없이 푼 커널 결과가 specified size suggestion 아래인 item」 으로, 측정 helper 의 width 저장 · 복원을 helper 소유로, ratchet 등록을 `--add-keys` (0 포함 등급 A) 로 바꿨다. **Round 2 (2026-10-17) 수리 검증 통과 — H1 · H2 · H3 closed, 신규 HIGH/MEDIUM 0, pending 0. 설계 리뷰 종결** (전제 확정 — 재개 조건 외 재질문 없음). 제품 gate (wasm 카운터 · seed 4 측정 · ADR-188 2N · parity · live) 는 Phase 0 이후 실행.
 
-Related: [ADR-204 가상화 collection 의 min-content floor](completed/204-virtualized-collection-min-content-floor.md) (이연 결정의 원문 — Phase 1 evidence §1-2 · Phase 4 「ADR-188 기준선을 4N 으로 갱신하지 않는다 · 재개 경로는 서브트리 세대 캐시」) · [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](completed/188-targeted-layout-and-skia-subtree-patching.md) (방문 수 기준선 G0 — `tree.rs` `adr188_g0_engine_skip_walk_baseline`) · [ADR-246 결정적 카운트 ratchet](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) (성능 판정 수단 — 상한은 내려가기만, 올리기는 승인 + 만료일) · [ADR-169 측정 채널 경계](completed/169-container-intrinsic-sizing-propagation.md) (폰트 측정은 TS · 구조 집계는 엔진 — 이 ADR 이 TS 공급 대안을 기각하는 근거) · [ADR-156 엔진 CSS parity 차등 oracle](completed/156-engine-css-parity-alignment-margin.md) (판정 수단) · [Chromium 대조 정본](../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §0-2 행 7 · §7-0 행 4 · §7-2 F4 · U3
+Related: [ADR-204 가상화 collection 의 min-content floor](204-virtualized-collection-min-content-floor.md) (이연 결정의 원문 — Phase 1 evidence §1-2 · Phase 4 「ADR-188 기준선을 4N 으로 갱신하지 않는다 · 재개 경로는 서브트리 세대 캐시」) · [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md) (방문 수 기준선 G0 — `tree.rs` `adr188_g0_engine_skip_walk_baseline`) · [ADR-246 결정적 카운트 ratchet](246-deterministic-count-ratchet-and-begin-frame-harness.md) (성능 판정 수단 — 상한은 내려가기만, 올리기는 승인 + 만료일) · [ADR-169 측정 채널 경계](169-container-intrinsic-sizing-propagation.md) (폰트 측정은 TS · 구조 집계는 엔진 — 이 ADR 이 TS 공급 대안을 기각하는 근거) · [ADR-156 엔진 CSS parity 차등 oracle](156-engine-css-parity-alignment-margin.md) (판정 수단) · [Chromium 대조 정본](../../explanation/research/CHROMIUM_CANVAS_PARITY_2026-10.md) §0-2 행 7 · §7-0 행 4 · §7-2 F4 · U3
 
 ## Context
 
@@ -102,7 +106,7 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 1. **엔진 카운트 ratchet 편입의 커밋 시점**: 범위는 정해져 있다 — `--add-keys` 는 그 seed 의 등록 class 전부에 넣는다 (`perf-ratchet-gate.mjs` `applyAddKeys` 가 `run.classes` 를 돈다 · Round 1 H3 — 종전 「edit · select 한정」 선택지는 지원 방식이 아니라 뺐다. 엔진이 안 도는 class 는 A = 0 이 되어 오히려 더 좁은 상한이다). 편입은 recorder 변경 (`perf-baseline.mjs`) 이라 `recorderSha256` 이 바뀌고 ratchet 이 「기준 재설정 필요」 를 낸다 (ADR-246 R5) — 기존 키의 값은 바뀌지 않으므로 재설정은 새 키 추가로 끝난다. 다른 세션의 push 와 겹치면 그 세션의 ratchet 결과가 「재설정 필요」 로 뜬다 — 커밋 시점을 사용자가 고른다.
 2. **reach 0 일 때의 진행**: Phase 0 계수 (app-pages 22 페이지 · 팔레트 64 트리 · 사용자 문서) 가 「floor 없는 커널 결과가 specified 아래인 row 안 definite 폭 · 자식 보유 · non-scrollable item」 0 이면 — (a) 비용이 등급 A 변동 0 이면 정합 가치로 진행 (권고), (b) 비용 > 0 이면 대안 E 로 Deferred 종결, (c) 비용과 무관하게 진행. 권고 (a)/(b) 규칙.
 
-> 구현 상세: [268-flex-row-definite-content-size-suggestion-breakdown.md](design/268-flex-row-definite-content-size-suggestion-breakdown.md)
+> 구현 상세: [268-flex-row-definite-content-size-suggestion-breakdown.md](../design/268-flex-row-definite-content-size-suggestion-breakdown.md)
 
 ## Risks
 
@@ -131,7 +135,12 @@ execute-adr 가 해당 항목에 닿을 때 묻는다 — 지금 질문하지 �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G3 의 Compare Mode 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+2026-10-17 · headed Chrome (Playwright, `adr256-g5/harness.mjs` — 저장된 인증 세션 · 새 프로젝트 · Compare Mode on) · dev 5173 · 실행자 확인 (사용자 confirm 아님).
+
+- 시나리오: Home body 에 row frame (`width: 200` · flex row) 둘 — (1) `width: 200` Button 둘 (「Subscribe newsletter」 · 「Download report」) (2) `width: 200` Frame 둘, 각 Paragraph 하나 (「Quarterly」 · 「Analytics」). Canvas geometry (`root.getGeometry`) ↔ Preview DOM rect (부모 상대, ±1 px) 를 자손까지 비교. 이어 글자 편집 (Button 1 → 「Subscribe to the weekly newsletter」 · Paragraph 1 → 「QuarterlyRevenue」 — 자손 편집) 뒤 다시 비교.
+- 결과 9/9 PASS · console error 0: 처음 Button 161.3 / 133.4 · Frame 100 / 100, 편집 뒤 Button 200 / 133.4 · **Frame 129.6 / 70.4** — 전부 Canvas = Preview.
+- RED arm (helper 의 2 · 3 단계 우회 빌드로 같은 스크립트): 편집 뒤 Frame 만 **FAIL** — Canvas 100 / 100 · Preview 129.6 / 70.4 (Paragraph 도 100 vs 129.6 / 70.4). 소스 · wasm 복원 확인.
+- 발견: **Button 은 이 ADR 대상이 아니다** — 엔진 입력에서 자식 없는 텍스트 leaf (`contentMinWidth` 135.3 · 107.4 스칼라) 라 ADR-165 경로로 이미 floor 가 걸려 있었다 (RED arm 에서도 PASS). 본문 Context · G3 의 「고정 폭 Button」 은 자식 보유 컨테이너 item (Frame · 부품 노드를 가진 composite) 으로 읽는다.
 
 ## Consequences
 

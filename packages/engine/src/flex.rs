@@ -349,6 +349,29 @@ pub fn resolve_auto_min_main(data: &[f32], i: usize, is_row: bool) -> (f32, Opti
     )
 }
 
+/// ADR-268 — row definite item 의 §4.5 floor 가 **이 커널 결과를 바꿀 수 있는가**.
+///
+/// auto min = min(specified size suggestion, content size suggestion) ≤ specified 이므로, floor 없이
+/// 푼 결과 main 이 specified (확정 max 로 clamp) 이상이면 floor 는 결과를 못 바꾼다 — 측정을 건너뛰어도
+/// Chrome 과 같다. 결과가 작으면 (shrink 로 줄었든 · `flex-basis: 0` 의 hypothetical 이 작든) 잰다.
+/// 조건 판정은 `auto_min_main_from_parts` 와 같은 자리 (커널 쪽) 가 소유한다 — `data` 의 main · max
+/// 는 content-box, `out` 의 main 은 border-box 라 `pad_border_main` (off 7) 을 더해 비교한다.
+/// 구조 조건 (자식 보유 · 텍스트 스칼라 없음 · px 폭) 은 트리를 아는 호출부가 본다.
+pub fn definite_item_floor_may_bind(data: &[f32], out: &[f32], i: usize, is_row: bool) -> bool {
+    if !is_row {
+        return false; // column definite 는 2-c 가 1차 배치에서 바로 채운다
+    }
+    let off = i * FLEX_FIELD_COUNT;
+    let main = data[off + 1];
+    let main_definite = main != AUTO && main != CONTENT;
+    if !main_definite || data[off + 9] != AUTO || data[off + 18] != 0.0 || data[off + 19] > 0.0 {
+        return false;
+    }
+    let max_main = data[off + 10];
+    let specified = if max_main != AUTO { main.min(max_main) } else { main };
+    out[i * 4 + 2] < specified + data[off + 7] - 0.5
+}
+
 /// 위 함수의 본체 — **커널은 이미 읽은 값을 그대로 넘긴다**.
 ///
 /// 배열 접근을 다시 하는 래퍼를 `parse_item` 이 부르면 아이템당 6 load 가 중복되고,
@@ -383,7 +406,8 @@ fn auto_min_main_from_parts(
     // shrink 하지 못한다 (golden `flex_column_shrink` 100/100, 기존 계약
     // `width_definite_item_keeps_free_shrink`). 그래서 definite 는 **정확 스칼라가 있을 때만**
     // 절이 동작하고, 스칼라 공급은 writer (tree.rs — leaf 는 ADR-165 폭 측정, 컨테이너·가상화
-    // collection 은 ADR-204 Phase 1/2) 가 책임진다. `is_row` 는 트레이스 대칭을 위해 받는다.
+    // collection 은 ADR-204 Phase 1/2 · row definite 컨테이너는 ADR-268 지연 floor —
+    // `definite_item_floor_may_bind`) 가 책임진다. `is_row` 는 트레이스 대칭을 위해 받는다.
     let _ = is_row;
     let (suggestion, source) = if content_min_main > 0.0 {
         (content_min_main, FloorSource::ContentMinScalar)

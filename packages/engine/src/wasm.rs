@@ -254,6 +254,25 @@ impl LayoutEngine {
         self.tree.clear();
     }
 
+    /// ADR-268 — 결정적 카운트 (ADR-246 ratchet `engine.*`). 스칼라 반환 둘로 둔다 — slice 반환은
+    /// wasm-bindgen glue 가 `getDataViewMemory0` 로 읽어 측정 창의 기존 등급 A 호출 수를 바꾼다
+    /// (Phase 0 실측: `60 page-switch` 180 → 182).
+    #[wasm_bindgen(js_name = solveVisits)]
+    pub fn solve_visits(&self) -> u32 {
+        self.tree.counters()[0]
+    }
+
+    #[wasm_bindgen(js_name = intrinsicMeasureMiss)]
+    pub fn intrinsic_measure_miss(&self) -> u32 {
+        self.tree.counters()[1]
+    }
+
+    /// ADR-268 — 결정적 카운트를 0 으로.
+    #[wasm_bindgen(js_name = resetCounters)]
+    pub fn reset_counters(&mut self) {
+        self.tree.reset_counters();
+    }
+
     /// 살아있는 노드 수.
     #[wasm_bindgen(js_name = nodeCount)]
     pub fn node_count(&self) -> usize {

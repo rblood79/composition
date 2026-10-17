@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "recorderSha256": "e2b3bd858e9357e890d199681af819b21676bcbf406dfa6daef6565d532d95c9",
+  "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
   "generatedAt": "2026-10-17",
   "head": "0293a0ba03bc5a741d998a2f66236ac4b06f37a0",
   "band": 1.05,
@@ -248,7 +248,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 107,
@@ -403,7 +405,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 976
         },
         "B": {
           "cdp.LayoutCount": 19,
@@ -606,7 +610,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 51,
@@ -764,7 +770,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 55,
@@ -925,7 +933,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 65
         },
         "B": {
           "cdp.LayoutCount": 3,
@@ -1086,7 +1096,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 108,
@@ -1231,7 +1243,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 107,
@@ -1364,7 +1378,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 9076
         },
         "B": {
           "caches.contentSurface.missReasons.invalidate": 0,
@@ -1524,7 +1540,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 42
+          "render.translateCheckCommands": 42,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 250
         },
         "B": {
           "cdp.LayoutCount": 473,
@@ -1664,7 +1682,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 0
+          "render.translateCheckCommands": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 136,
@@ -1810,7 +1830,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.pictureWarmRecorded": 0,
-          "render.translateCheckCommands": 20310
+          "render.translateCheckCommands": 20310,
+          "engine.intrinsicMeasureMiss": 90,
+          "engine.solveVisits": 1284
         },
         "B": {
           "cdp.LayoutCount": 22,
@@ -1958,7 +1980,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 66
+          "render.viewportSequences": 66,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 2250
         },
         "B": {
           "cdp.LayoutCount": 498,
@@ -2100,7 +2124,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 0
+          "render.viewportSequences": 0,
+          "engine.intrinsicMeasureMiss": 192,
+          "engine.solveVisits": 14448
         },
         "B": {
           "cdp.LayoutCount": 24,
@@ -2244,7 +2270,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 4
+          "render.viewportSequences": 4,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 1,
@@ -2384,7 +2412,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 0
+          "render.viewportSequences": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 51,
@@ -2531,7 +2561,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 0
+          "render.viewportSequences": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 690
         },
         "B": {
           "cdp.LayoutCount": 23,
@@ -2672,7 +2704,9 @@
           "render.viewportFallbackNoSequence": 0,
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
-          "render.viewportSequences": 0
+          "render.viewportSequences": 0,
+          "engine.intrinsicMeasureMiss": 0,
+          "engine.solveVisits": 0
         },
         "B": {
           "cdp.LayoutCount": 184,
@@ -3242,6 +3276,12 @@
       "to": "e2b3bd858e9357e890d199681af819b21676bcbf406dfa6daef6565d532d95c9",
       "on": "2026-10-16",
       "reason": "--add-keys doc.*"
+    },
+    {
+      "from": "e2b3bd858e9357e890d199681af819b21676bcbf406dfa6daef6565d532d95c9",
+      "to": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
+      "on": "2026-10-17",
+      "reason": "--add-keys engine.solveVisits,engine.intrinsicMeasureMiss"
     }
   ]
 }
