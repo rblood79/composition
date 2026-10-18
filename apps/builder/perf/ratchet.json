@@ -7948,6 +7948,150 @@
       "on": "2026-10-18",
       "reason": "ADR-274 — 줌이 열 수를 바꾸지 않아 전체 무효화가 사라지고 surface 갱신이 coverage · zoom 사유로 옮겨 감",
       "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.missReasons.coverage-refresh",
+      "from": 27,
+      "to": 28,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.misses",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.nodePicture.hits",
+      "from": 8975,
+      "to": 9212,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.paintPool.hits",
+      "from": 250,
+      "to": 256,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.flush.content",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.record.content",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentFullRenders",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentTouchedElements",
+      "from": 8993,
+      "to": 9230,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execCalls",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execPictureJumped",
+      "from": 12053,
+      "to": 12395,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execSkipped",
+      "from": 5066,
+      "to": 5170,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execVisited",
+      "from": 37337,
+      "to": 38278,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.propertyNodeReads",
+      "from": 232,
+      "to": 238,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.viewportSequences",
+      "from": 63,
+      "to": 64,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 50444,
+      "to": 51727,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 98416,
+      "to": 100934,
+      "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
+      "on": "2026-10-18",
+      "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
+      "expires": "2027-04-18"
     }
   ],
   "recorderChanges": [
