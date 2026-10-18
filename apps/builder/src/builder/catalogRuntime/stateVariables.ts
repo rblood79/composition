@@ -197,25 +197,75 @@ export function catalogNodeStateSources(
   graph: CatalogVariableReader,
   nodeId: NodeId,
 ): CatalogStateSource[] {
+  // (The Design panel reads this on every render of a selection — ADR-246 ratchet: once per node
+  // and revision, the type first and once per definition, so a node without RAC states costs one
+  // entry read.)
+  const last = lastSources;
+  if (
+    last &&
+    last.graph === graph &&
+    last.revision === graph.revision &&
+    last.nodeId === nodeId
+  )
+    return last.result;
+  const result = nodeStateSources(graph, nodeId);
+  lastSources = { graph, revision: graph.revision, nodeId, result };
+  return result;
+}
+
+let lastSources:
+  | {
+      graph: CatalogVariableReader;
+      revision: number;
+      nodeId: NodeId;
+      result: CatalogStateSource[];
+    }
+  | undefined;
+
+function nodeStateSources(
+  graph: CatalogVariableReader,
+  nodeId: NodeId,
+): CatalogStateSource[] {
   const node = graph.getEntry(nodeId);
-  if (node?.kind !== "node" || !catalogNodePage(graph, nodeId)) return [];
-  let type: string;
-  try {
-    type = definitionTypeName(graph, node.definitionId as DefinitionId);
-  } catch {
-    return [];
-  }
+  if (node?.kind !== "node") return [];
+  const sources = implicitSourcesOf(graph, node.definitionId as DefinitionId);
+  if (!sources.length || !catalogNodePage(graph, nodeId)) return [];
   const named = new Map<string, StateVariableEntry>();
   for (const id of graph.referrersOf(nodeId)) {
     const entry = graph.getEntry(id);
     if (entry?.kind === "stateVariable" && entry.source?.nodeId === nodeId)
       named.set(entry.source.prop, entry);
   }
-  return resolveImplicitStateSources(type).map((source) => ({
+  return sources.map((source) => ({
     prop: source.prop,
     type: source.type,
     ...(named.has(source.prop) ? { variable: named.get(source.prop)! } : {}),
   }));
+}
+
+/** A definition's RAC states, per library (a definition's root type does not change). */
+const sourcesByDefinition = new WeakMap<
+  object,
+  Map<string, ReturnType<typeof resolveImplicitStateSources>>
+>();
+function implicitSourcesOf(
+  graph: CatalogVariableReader,
+  definitionId: DefinitionId,
+): ReturnType<typeof resolveImplicitStateSources> {
+  let cache = sourcesByDefinition.get(graph.library);
+  if (!cache) sourcesByDefinition.set(graph.library, (cache = new Map()));
+  let sources = cache.get(definitionId);
+  if (!sources) {
+    try {
+      sources = resolveImplicitStateSources(
+        definitionTypeName(graph, definitionId),
+      );
+    } catch {
+      sources = [];
+    }
+    cache.set(definitionId, sources);
+  }
+  return sources;
 }
 
 /** A named RAC state's value as a stored default (keys as strings; a number else 0). */
