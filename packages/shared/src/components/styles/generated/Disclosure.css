@@ -16,6 +16,7 @@
     border-bottom: 1px solid var(--border);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
   display: block;
 
   /* Default size */
@@ -148,7 +149,8 @@
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-pressed] {
     background: var(--bg-muted);
-    scale: 0.97;
+    transform: none;
+    scale: none;
   }
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-focus-visible] {

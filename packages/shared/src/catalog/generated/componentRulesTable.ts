@@ -3133,7 +3133,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
             //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
             //   Builder's own pickers, which load this sheet too (`builder-components.css`).
-            selector: '.react-aria-Popover[data-trigger="ComboBox"][data-catalog-id]',
+            selector:
+              '.react-aria-Popover[data-trigger="ComboBox"][data-catalog-id]',
             styles: { padding: "0" },
           },
           {
@@ -4414,10 +4415,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Disclosure: {
     defaultSize: "M",
-    // ADR-151 Phase 6 정정 (2026-07-16): B22 가 추가했던 containerStyles.width="100%" 철회 —
-    //   generated Disclosure.css 에는 base width 규칙이 없다 (width:100% 는 DisclosureHeader
-    //   의 것 — B22 전제 착오). DOM 정본 = flex 부모에서 fit-content (실측 168.2 vs Skia
-    //   강제 350 역방향 발산). block 부모 정합은 §5.5 IFC 주입이 담당 (390=390 유지).
     variants: {},
     // 테두리 (S2 1.8.0 Disclosure, 2026-10-10 사용자 결정 「S2 처럼 기본 Disclosure 에 위아래 테두리」): 위 · 아래
     //   1px (`composition.containerStyles` 의 `border-top` · `border-bottom`, S2 `gray-200`), quiet 와
@@ -4462,6 +4459,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       element: "div",
       containerStyles: {
         display: "block",
+        width: "100%",
       },
       states: {
         hover: {},
@@ -4633,7 +4631,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-Button[slot='trigger'][data-pressed]": {
             background: "var(--bg-muted)",
-            scale: "0.97",
+            // 공통 Button의 pressed transform도 해제해 Disclosure 헤더 크기를 유지한다.
+            transform: "none",
+            scale: "none",
           },
           ".react-aria-Button[slot='trigger'][data-focus-visible]": {
             outline: "var(--focus-ring-width) solid var(--focus-ring)",
@@ -4678,9 +4678,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DisclosureGroup: {
     defaultVariant: "default",
     defaultSize: "M",
-    // ADR-151 Phase 6 정정 (2026-07-16): B22 의 containerStyles.width="100%" 철회 —
-    //   generated DisclosureGroup.css 에 base width 규칙 없음 (Disclosure 동형 착오).
-    //   DOM 정본 = flex 부모에서 fit-content (실측 106.9 vs Skia 강제 350 역방향 발산).
     variants: {
       default: {
         fill: {
@@ -4739,6 +4736,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         layout: "flex-column",
         containerStyles: {
+          width: "100%",
           "font-size": "var(--text-base)",
           "border-radius": "var(--radius-md)",
           overflow: "hidden",
@@ -9757,7 +9755,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   `padding: 0` · S2 `<Popover padding="none">`): the list's padding is the inset. It
             //   beats the Popover size's padding (`[data-size]`); `[data-catalog-id]` keeps it off the
             //   Builder's own pickers, which load this sheet too (`builder-components.css`).
-            selector: '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
+            selector:
+              '.react-aria-Popover[data-trigger="Select"][data-catalog-id]',
             styles: { padding: "0" },
           },
           {
