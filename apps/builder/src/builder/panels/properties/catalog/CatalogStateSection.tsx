@@ -13,9 +13,13 @@ import type {
   NodeId,
   StateVariableEntry,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
+import { catalogStateSourceValue } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import {
   CATALOG_VARIABLE_TYPES,
   catalogAncestorVariables,
+  catalogNodePage,
+  catalogNodeStateSources,
+  type CatalogStateSource,
   catalogNextVariableName,
   catalogOwnVariables,
   catalogParseVariableValue,
@@ -44,6 +48,8 @@ const TYPE_OPTIONS = CATALOG_VARIABLE_TYPES.map((type) => ({
 
 interface StateView {
   isPage: boolean;
+  /** The node's RAC states (named or not) — the old implicit state. */
+  sources: CatalogStateSource[];
   own: StateVariableEntry[];
   ancestors: { variable: StateVariableEntry; owner: string }[];
   usage: Record<string, number>;
@@ -53,8 +59,9 @@ interface StateView {
  * ADR-248 Phase 4e-4: the State section over the catalog document — a node's variables (a page
  * body's are its page's): add, rename (unique on the visibility chain — refused with a message,
  * never written), type (the default resets), default, delete (the confirmation counts the
- * interactions that set it; they go with it). Each edit is one step. The catalog document has
- * scalar variables only, and no implicit (RAC prop) state.
+ * interactions that set it; they go with it). Each edit is one step. A node's RAC states (the
+ * old implicit state — Tabs' selected key, a Switch's selection …) take a name and become read-only
+ * variables of its page that follow the component at run time.
  */
 export const CatalogStateSection = memo(function CatalogStateSection({
   nodeId,
@@ -86,8 +93,12 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     const own = catalogOwnVariables(graph, owner);
     return JSON.stringify({
       isPage: owner !== nodeId,
+      sources: owner === nodeId ? catalogNodeStateSources(graph, nodeId) : [],
       own,
-      ancestors: catalogAncestorVariables(graph, owner).map((variable) => ({
+      // (The states this node named show in its implicit group, not again as its page's.)
+      ancestors: catalogAncestorVariables(graph, owner)
+        .filter((variable) => variable.source?.nodeId !== nodeId)
+        .map((variable) => ({
         variable,
         owner: ownerLabel(variable.ownerId),
       })),
@@ -167,7 +178,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
         return setError(variable.id, t("propertiesPanel.stateNameInvalid"));
       const conflict = catalogVariableNameConflict(
         graph,
-        owner,
+        variable.ownerId,
         name,
         variable.id,
       );
@@ -182,7 +193,45 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       setError(variable.id, null);
       run(catalogVariableCommands.rename(variable, name));
     },
-    [current, graph, owner, ownerLabel, run, setError, t],
+    [current, graph, ownerLabel, run, setError, t],
+  );
+
+  // Naming a RAC state: a variable of the node's page, its default the component's value now.
+  const nameSource = useCallback(
+    (source: CatalogStateSource, raw: string) => {
+      const errorId = `source:${source.prop}`;
+      const name = raw.trim();
+      if (!name) return setError(errorId, null);
+      const pageId = catalogNodePage(graph, nodeId);
+      if (!pageId) return;
+      if (!NAME_PATTERN.test(name))
+        return setError(errorId, t("propertiesPanel.stateNameInvalid"));
+      const conflict = catalogVariableNameConflict(graph, pageId, name);
+      if (conflict)
+        return setError(
+          errorId,
+          t("propertiesPanel.stateNameConflict", {
+            name,
+            owner: ownerLabel(conflict.ownerId),
+          }),
+        );
+      setError(errorId, null);
+      const recordId = workspace.root.recordsOfSource(nodeId)[0];
+      const record = recordId ? workspace.root.domInputs.get(recordId) : undefined;
+      run(
+        catalogVariableCommands.nameSource(
+          pageId,
+          nodeId,
+          source,
+          record
+            ? catalogStateSourceValue(workspace.root, record, source.prop)
+            : undefined,
+          name,
+          workspace.newId,
+        ),
+      );
+    },
+    [graph, nodeId, ownerLabel, run, setError, t, workspace],
   );
 
   const changeType = useCallback(
@@ -222,6 +271,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
 
   const renderRow = (variable: StateVariableEntry) => {
     const expanded = expandedId === variable.id;
+    const source = variable.source;
     const usages = view.usage[variable.id] ?? 0;
     const error = errors[variable.id];
     return (
@@ -250,7 +300,9 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               {variable.name}
             </span>
             <span className="list-row__meta state-def-meta">
-              {variable.valueType}
+              {source
+                ? `${source.prop} · ${ownerLabel(source.nodeId)}`
+                : variable.valueType}
             </span>
             {usages > 0 && (
               <span className="list-row__meta state-def-usage">
@@ -278,6 +330,8 @@ export const CatalogStateSection = memo(function CatalogStateSection({
                 onChange={(value) => rename(variable.id, value)}
               />
             </div>
+            {/* (A named RAC state follows its component: no type or default of its own.) */}
+            {!source && (
             <div className="fieldset-row">
               <PropertySelect
                 label={t("propertiesPanel.stateType")}
@@ -307,6 +361,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
                 />
               )}
             </div>
+            )}
           </div>
         )}
         {error && (
@@ -324,6 +379,62 @@ export const CatalogStateSection = memo(function CatalogStateSection({
         title={t("propertiesPanel.stateSection")}
         badge={<span className="state-section-count">{view.own.length}</span>}
       >
+        {view.sources.length > 0 && (
+          <fieldset
+            className="properties-aria state-group"
+            data-group="implicit"
+          >
+            <legend className="fieldset-legend">
+              {t("propertiesPanel.stateImplicitTitle")}
+              <span className="state-group-meta">
+                {t("propertiesPanel.stateImplicitRac")}
+              </span>
+            </legend>
+            {view.sources.map((source) => {
+              if (source.variable) return renderRow(source.variable);
+              const errorId = `source:${source.prop}`;
+              // An unnamed RAC state: [prop · type] [name input].
+              return (
+                <div
+                  key={source.prop}
+                  className="state-def state-def--unnamed"
+                  data-implicit={source.prop}
+                >
+                  <div className="list-row state-def-summary">
+                    <div className="list-row__body">
+                      <span className="list-row__label state-def-name state-def-name--prop">
+                        {source.prop}
+                      </span>
+                      <span className="list-row__meta state-def-meta">
+                        {source.type}
+                      </span>
+                    </div>
+                    <div className="list-row__actions state-def-name-group">
+                      <input
+                        type="text"
+                        className="list-row__input state-def-name-input"
+                        placeholder={t("propertiesPanel.stateNamePlaceholder")}
+                        aria-label={`${t("propertiesPanel.stateNamePlaceholder")} ${source.prop}`}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter")
+                            nameSource(source, event.currentTarget.value);
+                        }}
+                        onBlur={(event) =>
+                          nameSource(source, event.currentTarget.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  {errors[errorId] && (
+                    <p className="state-def-error" role="alert">
+                      {errors[errorId]}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </fieldset>
+        )}
         <fieldset className="properties-aria state-group" data-group="explicit">
           <legend className="fieldset-legend">
             {t(

@@ -5,8 +5,15 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  normalizeImplicitStateValue,
+  resolveImplicitStateSources,
+} from "../../../../../packages/shared/src/state/implicitState";
+import type { VariableDefType } from "../../../../../packages/shared/src/state/variable.types";
 import type {
   CatalogReader,
+  DefinitionId,
   EntryId,
   NodeId,
   Scalar,
@@ -165,7 +172,69 @@ export function catalogParseVariableValue(
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** The page a node is on (a named RAC state's owner); none for a component's template. */
+export function catalogNodePage(
+  graph: CatalogVariableReader,
+  nodeId: NodeId,
+): EntryId<"page"> | undefined {
+  for (let id = graph.ownerOf(nodeId); id; id = graph.ownerOf(id))
+    if (graph.getEntry(id)?.kind === "page") return id as EntryId<"page">;
+  return undefined;
+}
+
+/** A RAC state a node can name (the old implicit state), and the variable that names it. */
+export interface CatalogStateSource {
+  prop: string;
+  type: VariableDefType;
+  variable?: StateVariableEntry;
+}
+
 /**
+ * The RAC states a node's component has (Tabs' selected key, a collection's selected keys, a
+ * Switch's selection …) with the variables naming them — none off a page.
+ */
+export function catalogNodeStateSources(
+  graph: CatalogVariableReader,
+  nodeId: NodeId,
+): CatalogStateSource[] {
+  const node = graph.getEntry(nodeId);
+  if (node?.kind !== "node" || !catalogNodePage(graph, nodeId)) return [];
+  let type: string;
+  try {
+    type = definitionTypeName(graph, node.definitionId as DefinitionId);
+  } catch {
+    return [];
+  }
+  const named = new Map<string, StateVariableEntry>();
+  for (const id of graph.referrersOf(nodeId)) {
+    const entry = graph.getEntry(id);
+    if (entry?.kind === "stateVariable" && entry.source?.nodeId === nodeId)
+      named.set(entry.source.prop, entry);
+  }
+  return resolveImplicitStateSources(type).map((source) => ({
+    prop: source.prop,
+    type: source.type,
+    ...(named.has(source.prop) ? { variable: named.get(source.prop)! } : {}),
+  }));
+}
+
+/** A named RAC state's value as a stored default (keys as strings; a number else 0). */
+function sourceDefault(
+  type: VariableDefType,
+  raw: unknown,
+): Scalar | readonly string[] {
+  // (RAC's selection is a Set — the observer's conversion, `normalizeImplicitStateValue`.)
+  const value = normalizeImplicitStateValue(type, raw);
+  if (type === "array")
+    return Array.isArray(value) ? value.map(String) : [];
+  if (type === "number")
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  if (type === "boolean") return value === true;
+  return value === undefined || value === null ? "" : String(value);
+}
+
+/**
+ * ADR-248 Phase 4e-4: the State section's commands/**
  * ADR-248 Phase 4e-4: the State section's commands — each one history step. Changing the type
  * resets the default to the new type's empty value; delete also removes the interactions that set
  * the variable.
@@ -204,6 +273,33 @@ export const catalogVariableCommands = {
     updateRecord({
       entry: { ...variable, defaultValue: value },
       label: "Edit variable",
+    }),
+  /**
+   * Name a node's RAC state (the old implicit state): a variable of the node's page that follows
+   * the state at run time, read only; its default is the component's value now.
+   */
+  nameSource: (
+    pageId: EntryId<"page">,
+    nodeId: NodeId,
+    source: Pick<CatalogStateSource, "prop" | "type">,
+    value: unknown,
+    name: string,
+    newId: NewId,
+  ): CatalogCommand =>
+    addRecord({
+      entry: {
+        kind: "stateVariable",
+        id: newId("stateVariable") as EntryId<"stateVariable">,
+        ownerId: pageId,
+        name,
+        valueType:
+          source.type === "array"
+            ? "string[]"
+            : (source.type as CatalogVariableType),
+        defaultValue: sourceDefault(source.type, value),
+        source: { nodeId, prop: source.prop },
+      },
+      label: "Name state",
     }),
   remove: (variableId: EntryId<"stateVariable">): CatalogCommand =>
     removeRecords({ ids: [variableId], label: "Delete variable" }),

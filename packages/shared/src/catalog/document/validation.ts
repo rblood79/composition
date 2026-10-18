@@ -1379,7 +1379,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
     case "stateVariable": {
       exact(
         item,
-        ["kind", "id", "ownerId", "name", "valueType", "defaultValue"],
+        ["kind", "id", "ownerId", "name", "valueType", "defaultValue", "source"],
         "entry",
       );
       const owner = id(item.ownerId, "", "entry.ownerId");
@@ -1389,6 +1389,23 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       )
         invalid("INVALID_OWNER", "entry.ownerId");
       string(item.name, "entry.name");
+      if (item.source !== undefined) {
+        // A named RAC state: page-owned, observing a node; keys are its one array kind.
+        const source = object(item.source, "entry.source");
+        exact(source, ["nodeId", "prop"], "entry.source");
+        id(source.nodeId, "project:node:", "entry.source.nodeId");
+        string(source.prop, "entry.source.prop");
+        if (!owner.startsWith("project:page:"))
+          invalid("INVALID_OWNER", "entry.ownerId");
+        if (item.valueType === "string[]") {
+          if (
+            !Array.isArray(item.defaultValue) ||
+            item.defaultValue.some((key: unknown) => typeof key !== "string")
+          )
+            invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
+          break;
+        }
+      }
       if (!scalarValueTypes.has(item.valueType as ValueType))
         invalid("INVALID_VALUE_TYPE", "entry.valueType");
       scalar(item.defaultValue, "entry.defaultValue");

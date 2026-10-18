@@ -137,7 +137,11 @@ export function referencedIds(entry: CatalogEntry): string[] {
     )
       ids.push(entry.action.variableId);
   }
-  if (entry.kind === "stateVariable") ids.push(entry.ownerId);
+  if (entry.kind === "stateVariable") {
+    ids.push(entry.ownerId);
+    // A named RAC state goes with its node (removed with it, never left observing nothing).
+    if (entry.source) ids.push(entry.source.nodeId);
+  }
   if (entry.kind === "theme") ids.push(...entry.tokenIds);
   if (entry.kind === "page" && entry.parentId) ids.push(entry.parentId);
   return ids;

@@ -181,6 +181,7 @@ export const duplicatePage =
       }
     }
     const roots: NodeId[] = [];
+    const copies = new Map<NodeId, NodeId>();
     for (const rootId of page.children) {
       const clone = cloneNodeSubgraph(
         {
@@ -188,7 +189,11 @@ export const duplicatePage =
           referrersOf: (id) => reader.referrersOf(id),
         },
         rootId,
-        () => input.newId("node"),
+        (old) => {
+          const id = input.newId("node");
+          copies.set(old, id);
+          return id;
+        },
         (old) =>
           old.startsWith("project:stateVariable:")
             ? input.newId("stateVariable")
@@ -215,6 +220,13 @@ export const duplicatePage =
       }
       roots.push(clone.rootId);
     }
+    // A named RAC state observes the copy of its node (one outside the page is not copied).
+    for (const [index, entry] of [...related.entries()].reverse())
+      if (entry.kind === "stateVariable" && entry.source) {
+        const nodeId = copies.get(entry.source.nodeId);
+        if (nodeId) related[index] = { ...entry, source: { ...entry.source, nodeId } };
+        else related.splice(index, 1);
+      }
     const { id: _id, ...fields } = page;
     draft.create({
       ...structuredClone(fields),

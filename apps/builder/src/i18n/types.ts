@@ -306,6 +306,7 @@ export interface TranslationKeys {
       editTypography: string;
       addVariable: string;
       renameVariable: string;
+      nameState: string;
       editVariable: string;
       deleteVariable: string;
       moveVariableToPage: string;

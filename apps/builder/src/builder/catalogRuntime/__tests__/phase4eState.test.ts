@@ -8,11 +8,18 @@ import type {
   NodeId,
   StateVariableEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  addRecord,
+  duplicatePage,
+  insertNodes,
+  removeTargets,
+} from "../../../../../../packages/shared/src/catalog/commands";
+import { catalogVisibleVariables } from "../interactions";
 import { newCatalogProjectDocument } from "../project";
 import {
   catalogAncestorVariables,
   catalogNextVariableName,
+  catalogNodeStateSources,
   catalogOwnVariables,
   catalogParseVariableValue,
   catalogVariableCommands,
@@ -135,5 +142,110 @@ describe("ADR-248 Phase 4e-4 State section", () => {
     expect(catalogOwnVariables(graph, id("outer"))).toEqual([]);
     workspace.undo();
     expect(current()).toEqual(variable);
+  });
+
+  // The old implicit state (user 2026-10-19): a node's RAC state takes a name and becomes a
+  // read-only variable of its page, following its node.
+  it("a named RAC state is a page variable that follows its node: listed, unsettable, removed and copied with it", async () => {
+    const { workspace, graph } = await open();
+    const tabs = id("tabs");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          { ...node("tabs"), definitionId: "lib:definition:type-ListBox" },
+        ],
+        rootIds: [tabs],
+        newId: workspace.newId,
+      }),
+    );
+    // A frame has none; a ListBox has its selected keys.
+    expect(catalogNodeStateSources(graph, id("side"))).toEqual([]);
+    const [source] = catalogNodeStateSources(graph, tabs);
+    expect(source).toEqual({ prop: "selectedKeys", type: "array" });
+    workspace.execute(
+      catalogVariableCommands.nameSource(
+        PAGE,
+        tabs,
+        source!,
+        new Set(["a"]),
+        "picked",
+        workspace.newId,
+      ),
+    );
+    const [named] = catalogNodeStateSources(graph, tabs);
+    expect(named!.variable).toMatchObject({
+      ownerId: PAGE,
+      name: "picked",
+      valueType: "string[]",
+      defaultValue: ["a"],
+      source: { nodeId: tabs, prop: "selectedKeys" },
+    });
+    // Read anywhere on its page (the page's variables), never set by a rule.
+    expect(catalogOwnVariables(graph, PAGE).map((item) => item.name)).toContain(
+      "picked",
+    );
+    expect(
+      catalogVisibleVariables(graph, id("side")).map((item) => item.name),
+    ).not.toContain("picked");
+    // The name is unique on the page's chain.
+    expect(catalogVariableNameConflict(graph, PAGE, "picked")?.id).toBe(
+      named!.variable!.id,
+    );
+
+    // A copy of the page observes the copy of its node.
+    workspace.execute(
+      duplicatePage({
+        id: PAGE,
+        route: "/copy",
+        name: "Copy",
+        newId: workspace.newId,
+      }),
+    );
+    const project = graph.getEntry(graph.projectId);
+    const copies = (
+      project?.kind === "project" ? project.stateVariableIds : []
+    )
+      .map((variableId) => graph.getEntry(variableId) as StateVariableEntry)
+      .filter((item) => item.source && item.ownerId !== PAGE);
+    expect(copies).toHaveLength(1);
+    expect(copies[0]!.source!.nodeId).not.toBe(tabs);
+    expect(graph.ownerOf(copies[0]!.source!.nodeId)).toBeTruthy();
+    workspace.undo();
+
+    // Removing the node removes the state it named (no variable observing nothing).
+    workspace.execute(
+      removeTargets({
+        targets: [{ kind: "node", id: tabs }],
+        newId: workspace.newId,
+      }),
+    );
+    expect(graph.getEntry(named!.variable!.id)).toBeUndefined();
+    workspace.undo();
+    expect(graph.getEntry(named!.variable!.id)).toBeDefined();
+
+    // The document refuses a named state owned by a node, and keys that are not strings.
+    const refusal = (entry: Partial<StateVariableEntry>) => {
+      try {
+        workspace.execute(
+          addRecord({
+            entry: {
+              ...named!.variable!,
+              id: workspace.newId("stateVariable") as EntryId<"stateVariable">,
+              name: "other",
+              ...entry,
+            } as StateVariableEntry,
+          }),
+        );
+      } catch (error) {
+        return (error as { code?: string }).code;
+      }
+      return "written";
+    };
+    expect(refusal({ ownerId: id("side") })).toBe("INVALID_OWNER");
+    expect(refusal({ defaultValue: [1] as never })).toBe("DEFAULT_VALUE_TYPE");
+    expect(
+      refusal({ source: undefined, valueType: "string[]", defaultValue: [] }),
+    ).toBe("INVALID_VALUE_TYPE");
   });
 });

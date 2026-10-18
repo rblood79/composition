@@ -30,7 +30,7 @@ import {
 
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
 
-import { catalogStateFrame } from "./stateFrames";
+import { catalogForwardHandlers, catalogStateFrame } from "./stateFrames";
 
 import {
   AuthoredDomAttributes,
@@ -70,18 +70,22 @@ export function SelfToggleButton({
   defaultSelected,
   isDisabled,
   render,
+  ...handlers
 }: {
   ownerId: string;
   defaultSelected: boolean;
   isDisabled: boolean;
   render: (selection: Record<string, unknown>) => ReactElement;
-}): ReactElement {
+} & Record<string, unknown>): ReactElement {
   const [isSelected, setSelected] = useState(defaultSelected);
   return catalogStateFrame(
     ownerId,
     ownerId,
     { isSelected, isDisabled },
-    render({ isSelected, onChange: setSelected }),
+    catalogForwardHandlers(
+      render({ isSelected, onChange: setSelected }),
+      handlers,
+    ),
   );
 }
 
@@ -95,12 +99,13 @@ export function GroupToggleFrame({
   isSelected,
   isDisabled,
   children,
+  ...handlers
 }: {
   ownerId: string;
   isSelected: boolean;
   isDisabled: boolean;
   children: ReactElement;
-}): ReactElement {
+} & Record<string, unknown>): ReactElement {
   const group = useContext(ToggleGroupStateContext);
   return catalogStateFrame(
     ownerId,
@@ -109,7 +114,7 @@ export function GroupToggleFrame({
       isSelected: group ? group.selectedKeys.has(ownerId) : isSelected,
       isDisabled: isDisabled || !!group?.isDisabled,
     },
-    children,
+    catalogForwardHandlers(children, handlers),
   );
 }
 

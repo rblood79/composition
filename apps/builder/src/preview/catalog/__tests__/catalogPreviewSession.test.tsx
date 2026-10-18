@@ -45,7 +45,12 @@ import {
   catalogBoundRows,
   catalogCollectionId,
 } from "../../../builder/catalogRuntime/dataBinding";
-import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
+import {
+  catalogPaletteDefinitionId,
+  catalogPaletteInsertCommand,
+} from "../../../builder/catalogRuntime/paletteInsert";
+import { catalogNodeStateSources } from "../../../builder/catalogRuntime/stateVariables";
+import { catalogStateSourceValue } from "../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import {
   useCollectionDataServices,
   type CollectionDataSource,
@@ -553,6 +558,179 @@ describe("ADR-248 4e-6 Preview entry", () => {
     anchor.remove();
     runtime.dispose();
     view.unmount();
+  });
+
+  // The old implicit state (user 2026-10-19 — "이름만 붙이면 RAC 상태를 따라가는 변수"): a named RAC
+  // state is a page variable that follows the component in the Preview, observed only.
+  it("state: a named RAC state follows its component in the Preview and reads anywhere on the page", async () => {
+    const { workspace, session, channel } = await open();
+    const graph = workspace.runtime.graph;
+    const insert = (type: string) => {
+      workspace.session.select([]);
+      workspace.execute(
+        catalogPaletteInsertCommand(
+          {
+            graph,
+            records: workspace.root.domInputs,
+            selection: () => [],
+            itemOfRecord: (identity) => workspace.itemOfRecord(identity),
+            pageContent: () => ({ kind: "node", id: BODY }),
+            newId: workspace.newId,
+          },
+          type,
+        )!,
+      );
+      const [item] = workspace.session.getSnapshot().selection;
+      return (item!.target as { id: NodeId }).id;
+    };
+    const named: string[] = [];
+    const nameAll = (nodeId: NodeId, prefix: string) => {
+      for (const source of catalogNodeStateSources(graph, nodeId)) {
+        const record = workspace.root.domInputs.get(
+          workspace.root.recordsOfSource(nodeId)[0]!,
+        )!;
+        const name = `${prefix}_${source.prop}`;
+        workspace.execute(
+          catalogVariableCommands.nameSource(
+            HOME,
+            nodeId,
+            source,
+            catalogStateSourceValue(workspace.root, record, source.prop),
+            name,
+            workspace.newId,
+          ),
+        );
+        named.push(name);
+      }
+    };
+    nameAll(insert("Switch"), "sw");
+    nameAll(insert("Tabs"), "tabs");
+    nameAll(insert("ListBox"), "list");
+    nameAll(insert("Checkbox"), "cb");
+    nameAll(insert("ToggleButton"), "tb");
+    nameAll(insert("Disclosure"), "dis");
+    nameAll(insert("Slider"), "sl");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: "project:node:readout",
+            definitionId: "lib:definition:text",
+            children: [],
+            props: {
+              children: {
+                kind: "set",
+                value: named.map((name) => `${name}={{ ${name} }};`).join(" "),
+              },
+            },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: ["project:node:readout" as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    expect(named).toEqual([
+      "sw_isSelected",
+      "tabs_selectedKey",
+      "list_selectedKeys",
+      "cb_isSelected",
+      "tb_isSelected",
+      "dis_isExpanded",
+      "sl_value",
+    ]);
+    // (jsdom has no Web Animations: RAC's SelectionIndicator reads them when it moves.)
+    (
+      Element.prototype as { getAnimations?: () => Animation[] }
+    ).getAnimations ??= () => [];
+    const runtime = catalogPreviewRuntime(session, { show: () => {} });
+    const view = render(
+      <CatalogPreviewView session={session} runtime={runtime} />,
+    );
+    act(() => channel.onReady());
+    const readout = () =>
+      view.container.querySelector('[data-catalog-id*="readout"]')
+        ?.textContent ??
+      [...view.container.querySelectorAll("*")]
+        .map((element) => element.textContent ?? "")
+        .find((text) => text.startsWith("sw_isSelected=")) ??
+      "";
+    const value = (name: string) =>
+      new RegExp(`${name}=([^;]*);`).exec(readout())?.[1];
+    // The defaults: the component's values when named (the Builder Canvas shows these).
+    const stored = (name: string) => {
+      const project = graph.getEntry(graph.projectId);
+      for (const id of project?.kind === "project" ? project.stateVariableIds : []) {
+        const entry = graph.getEntry(id);
+        if (entry?.kind === "stateVariable" && entry.name === name)
+          return entry.defaultValue;
+      }
+      throw new Error(name);
+    };
+    const switchOn = stored("sw_isSelected") === true;
+    const checkOn = stored("cb_isSelected") === true;
+    expect(value("sw_isSelected")).toBe(String(switchOn));
+    expect(value("cb_isSelected")).toBe(String(checkOn));
+    const firstTab = value("tabs_selectedKey");
+    expect(firstTab).toBeTruthy();
+    expect(value("list_selectedKeys")).toBe("[]");
+
+    act(() => {
+      fireEvent.click(view.getByRole("switch"));
+    });
+    expect(value("sw_isSelected")).toBe(String(!switchOn));
+    act(() => {
+      fireEvent.click(view.getByRole("checkbox"));
+    });
+    expect(value("cb_isSelected")).toBe(String(!checkOn));
+    const tabs = view.getAllByRole("tab");
+    act(() => {
+      fireEvent.mouseDown(tabs[1]!);
+      fireEvent.mouseUp(tabs[1]!);
+      fireEvent.click(tabs[1]!);
+    });
+    expect(value("tabs_selectedKey")).not.toBe(firstTab);
+    const option = view.getAllByRole("option")[0]!;
+    act(() => {
+      fireEvent.mouseDown(option);
+      fireEvent.mouseUp(option);
+      fireEvent.click(option);
+    });
+    expect(value("list_selectedKeys")).toMatch(/^\["[^"]+"\]$/);
+    // A ToggleButton and a Disclosure wrap their RAC element (a state frame): the observer (and an
+    // interaction rule) reaches it through the wrapper.
+    const toggleOn = stored("tb_isSelected") === true;
+    expect(value("tb_isSelected")).toBe(String(toggleOn));
+    act(() => {
+      fireEvent.click(view.getByRole("button", { name: /toggle/i }));
+    });
+    expect(value("tb_isSelected")).toBe(String(!toggleOn));
+    expect(value("dis_isExpanded")).toBe("true");
+    const trigger = view.container.querySelector(
+      ".react-aria-Disclosure button",
+    )!;
+    act(() => {
+      fireEvent.click(trigger);
+    });
+    expect(value("dis_isExpanded")).toBe("false");
+    expect(value("sl_value")).toBe(String(stored("sl_value")));
+    const thumb = view.container.querySelector(
+      '.react-aria-Slider input[type="range"]',
+    )!;
+    act(() => {
+      fireEvent.change(thumb, { target: { value: "80" } });
+    });
+    expect(value("sl_value")).toBe("80");
+    // The document holds no value: the Builder's readout keeps the defaults.
+    expect(
+      workspace.root.domInputs.get(
+        workspace.root.recordsOfSource("project:node:readout")[0]!,
+      )?.props.children,
+    ).toContain(`sw_isSelected=${switchOn};`);
   });
 
   it("state: `{{ }}` shows runtime values; setState writes element (per owner record), page (reset on entry) and project variables", async () => {

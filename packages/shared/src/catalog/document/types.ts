@@ -837,7 +837,15 @@ export interface StateVariableEntry {
   ownerId: EntryId<"page"> | NodeId;
   name: string;
   valueType: ValueType;
-  defaultValue: Scalar;
+  /** A `source` variable's array kind (selected · expanded keys) holds the keys. */
+  defaultValue: Scalar | readonly string[];
+  /**
+   * A named RAC state (the old implicit state): the variable follows this node's RAC state prop at
+   * run time (Preview · publish observe the RAC event — never a controlled prop, D1) and is read
+   * only. Its owner is the node's page (`{{ name }}` reads it anywhere on the page); its default
+   * is the component's value when it was named.
+   */
+  source?: { nodeId: NodeId; prop: string };
 }
 export interface InteractionEntry {
   kind: "interaction";

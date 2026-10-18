@@ -272,6 +272,54 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
   });
 
+  it("the State section names a RAC state: a read-only page variable with the component's value", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const { container } = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogStateSection nodeId={id("list")} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const group = () =>
+      container.querySelector('[data-group="implicit"]') as HTMLElement;
+    expect(within(group()).getByText("selectedKeys")).toBeTruthy();
+    const input = within(group()).getByLabelText(
+      "Name it selectedKeys",
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "1bad" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(within(group()).getByRole("alert")).toBeTruthy();
+    const revision = graph.revision;
+    fireEvent.change(input, { target: { value: "picked" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(graph.revision).toBe(revision + 1);
+    const variable = catalogOwnVariables(
+      graph,
+      "project:page:home" as EntryId<"page">,
+    ).find((item) => item.name === "picked");
+    expect(variable).toMatchObject({
+      valueType: "string[]",
+      source: { nodeId: id("list"), prop: "selectedKeys" },
+    });
+    // Named: a row with the name and its source; no type or default to edit.
+    expect(group().querySelector(".state-def-name")?.textContent).toBe(
+      "picked",
+    );
+    await act(async () => {
+      fireEvent.click(within(group()).getByLabelText("picked"));
+    });
+    expect(group().querySelectorAll(".state-def-editor input")).toHaveLength(1);
+    expect(within(group()).queryByText("Type")).toBeNull();
+    // Not listed again as the page's (visible from ancestors).
+    expect(container.querySelector('[data-group="ancestors"]')).toBeNull();
+  });
+
   it("the page section refuses a malformed route with a message and writes a valid one", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;

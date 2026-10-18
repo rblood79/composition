@@ -103,6 +103,7 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   "Edit typography": ["editTypography", "theme"],
   "Add variable": ["addVariable", "variable"],
   "Rename variable": ["renameVariable", "variable"],
+  "Name state": ["nameState", "variable"],
   "Edit variable": ["editVariable", "variable"],
   "Delete variable": ["deleteVariable", "variable"],
   "Move variable to page": ["moveVariableToPage", "variable"],

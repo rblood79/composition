@@ -5,6 +5,12 @@ import {
   type InteractionIndex,
   type InteractionRule,
 } from "@composition/shared";
+import {
+  composeEventHandlers,
+  normalizeImplicitStateValue,
+  resolveImplicitStateSources,
+} from "../../state/implicitState";
+import type { VariableDefType } from "../../state/variable.types";
 import { definitionTypeName } from "../commands/context";
 import type { CatalogGraph } from "../document/graph";
 import type {
@@ -116,6 +122,50 @@ export function catalogPreviewRules(
     }
   }
   return rules;
+}
+
+/** A named RAC state observed on a record: its variable, the RAC event and the value kind. */
+interface CatalogStateMirror {
+  variableId: string;
+  event: string;
+  type: VariableDefType;
+}
+
+/**
+ * The named RAC states a record's node has (the old implicit state): each follows the RAC event
+ * its component fires for that state prop — observed only, never a controlled prop (D1).
+ */
+function mirrorsOf(
+  graph: CatalogGraph,
+  root: CatalogCompositionRoot,
+  recordId: string,
+): CatalogStateMirror[] {
+  const record = root.domInputs.get(recordId);
+  if (!record) return [];
+  let type: string;
+  try {
+    type = definitionTypeName(graph, record.definitionId as DefinitionId);
+  } catch {
+    return [];
+  }
+  const sources = resolveImplicitStateSources(type);
+  if (!sources.length) return [];
+  const mirrors: CatalogStateMirror[] = [];
+  for (const sourceId of [record.sourceId, ...(record.collapsedSourceIds ?? [])])
+    for (const referrerId of graph.referrersOf(sourceId)) {
+      const entry = graph.getEntry(referrerId);
+      if (entry?.kind !== "stateVariable" || entry.source?.nodeId !== sourceId)
+        continue;
+      const prop = entry.source.prop;
+      const source = sources.find((item) => item.prop === prop);
+      if (source)
+        mirrors.push({
+          variableId: entry.id,
+          event: source.event,
+          type: source.type,
+        });
+    }
+  return mirrors;
 }
 
 /**
@@ -235,6 +285,18 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         rule.elementId,
         `${signatures.get(rule.elementId) ?? ""}|${rule.id}:${rule.trigger}:${JSON.stringify(rule.action)}`,
       );
+    // A named RAC state adds an observer to its node's records: naming one re-renders them too.
+    const project = graph?.getEntry(graph.projectId);
+    if (graph && root && project?.kind === "project")
+      for (const variableId of project.stateVariableIds) {
+        const entry = graph.getEntry(variableId);
+        if (entry?.kind !== "stateVariable" || !entry.source) continue;
+        for (const id of root.recordsOfSource(entry.source.nodeId))
+          signatures.set(
+            id,
+            `${signatures.get(id) ?? ""}|${entry.id}<-${entry.source.prop}`,
+          );
+      }
     const changed = new Set<string>();
     for (const [id, signature] of signatures)
       if (this.signatures.get(id) !== signature) changed.add(id);
@@ -253,7 +315,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   }
   handlersOf(id: string) {
     const ownerRecord = this.options.ownerRecord;
-    return createElementHandlers(
+    const rules = createElementHandlers(
       id,
       this.index,
       this.deps,
@@ -266,6 +328,33 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         instanceKeyFor: (ownerId) => ownerRecord?.(id, ownerId) ?? ownerId,
       },
     );
+    const graph = this.options.graph();
+    const root = this.options.root();
+    const mirrors = graph && root ? mirrorsOf(graph, root, id) : [];
+    if (!mirrors.length) return rules;
+    const observe: Record<string, (...args: unknown[]) => void> = {};
+    for (const mirror of mirrors) {
+      const write = (raw: unknown) => {
+        const outcome = this.deps.writeState?.({
+          variableId: mirror.variableId,
+          op: "set",
+          value: normalizeImplicitStateValue(mirror.type, raw),
+        });
+        if (outcome && !outcome.ok)
+          console.warn(
+            `[state] ${mirror.variableId} 관찰 실패 — ${outcome.reason ?? "failed"}`,
+          );
+      };
+      const previous = observe[mirror.event];
+      observe[mirror.event] = previous
+        ? (raw) => {
+            previous(raw);
+            write(raw);
+          }
+        : (raw) => write(raw);
+    }
+    // The observer runs first: a rule on the same event reads the new value.
+    return composeEventHandlers(rules, observe);
   }
   /**
    * A record's runtime props: a capability's patch and the component's own state (a Disclosure or

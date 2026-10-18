@@ -2847,6 +2847,48 @@ function tabsModel(
   );
 }
 
+/**
+ * A named RAC state's value as the component starts — the same model the uncontrolled RAC
+ * component is given here (Tabs' key, a collection's Selected items, the Slider's snapped value,
+ * a RadioGroup's Selected Radio …): the variable's default when the state is named.
+ */
+export function catalogStateSourceValue(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  prop: string,
+): unknown {
+  const props = node.props;
+  const type = catalogTypeName(root, node);
+  switch (prop) {
+    case "selectedKey":
+      return str(tabsModel(root, node).selectedKey);
+    case "selectedKeys":
+      return catalogCollectionSelectedKeys(root, node);
+    case "expandedKeys":
+      return Array.isArray(props.defaultExpandedKeys)
+        ? props.defaultExpandedKeys.map(String)
+        : [];
+    case "isExpanded":
+      return Boolean(props.isExpanded ?? true);
+    case "isSelected":
+      return Boolean(props.isSelected);
+    case "value": {
+      if (type === "Slider") return catalogSliderRange(node).value;
+      const selected = catalogToggleGroupItems(
+        node,
+        "Radio",
+        domGet(root),
+        (record) => catalogTypeName(root, record),
+      ).items.find((radio) => radio.props.isSelected === true);
+      return selected?.props.value !== undefined
+        ? String(selected.props.value)
+        : str(props.value);
+    }
+    default:
+      return props[prop];
+  }
+}
+
 export const CATALOG_DELEGATED_DOM: Readonly<
   Record<string, DelegatedDomBinding>
 > = DELEGATED;

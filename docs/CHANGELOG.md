@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [DisclosureGroup 기본 너비 — catalog width 100%] - 2026-10-19
+
+### Changed
+
+- **DisclosureGroup 기본 너비를 `100%`로 설정**:
+  - catalog 컨테이너 스타일에 너비를 명시해 Canvas와 Preview가 부모 너비를 채우도록 한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+## [Disclosure 누름 효과 — scale 제거] - 2026-10-19
+
+### Fixed
+
+- **Disclosure 헤더를 눌러도 크기가 줄어들지 않도록 수정**:
+  - **Why**: trigger의 `scale: 0.97`과 공통 Button의 pressed `transform: scale(0.95)`가 함께 적용됐다.
+  - catalog의 Disclosure trigger pressed 규칙에서 `scale`과 `transform`을 해제한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
+## [RAC 상태에 이름 붙이기 — 옛 암묵 상태 복원 · ToggleButton · Disclosure 이벤트 전달 수리] - 2026-10-19
+
+ADR-248 이전 앱과 비교한 7 (암묵 상태) 의 추천안이다 (사용자 2026-10-19 「이 추천대로 진행」). 직접 만드는 변수는 그대로 두고, 컴포넌트가 이미 가진 RAC 상태에 이름만 붙이면 따라가는 변수를 다시 넣는다.
+
+### Added
+
+- **State 섹션의 「Implicit state」**:
+  - Tabs 의 `selectedKey`, ListBox · GridList · TagGroup · Tree 의 `selectedKeys`, Tree 의 `expandedKeys`, Switch · Checkbox · ToggleButton 의 `isSelected`, RadioGroup · Slider 의 `value`, Disclosure 의 `isExpanded` 가 줄로 나온다. 이름을 넣고 Enter 를 누르면 그 page 의 변수가 된다 (한 step).
+  - 변수는 page 어디서나 `{{ 이름 }}` 으로 읽는다. Preview · publish 에서는 RAC 이벤트 (`onChange` · `onSelectionChange` · `onExpandedChange`) 를 관찰해 값을 따라간다. 제어 prop 은 주입하지 않는다 (D1).
+  - 읽기 전용이다. setState 대상 목록에 나오지 않고 type · 기본값 칸이 없다. 기본값은 이름 붙일 때의 컴포넌트 값이고, Builder Canvas 는 이 값을 보인다.
+  - 요소를 지우면 그 변수도 지워진다. page 를 복제하면 사본 요소를 관찰한다.
+  - **Why**: ADR-248 전환 때 「scalar 변수 3종만」 으로 빠졌다 (breakdown 4e-4c-2d). 그 뒤로 선택 키 · Slider 값은 변수에 담을 수 없었고, 같은 일을 하려면 변수 · interaction 을 8~9단계로 만들어야 했다.
+  - 위치: `packages/shared/src/catalog/document/types.ts` (`StateVariableEntry.source`) · `validation.ts` · `graph.ts` · `commands/project.ts` · `runtime/catalogPreviewInteractions.ts` · `runtime/delegatedDom.runtime.ts` (`catalogStateSourceValue`) · `apps/builder/src/builder/catalogRuntime/stateVariables.ts` · `CatalogStateSection.tsx`
+
+### Fixed
+
+- **ToggleButton · Disclosure 에 건 interaction 이 Preview 에서 실행된다**:
+  - 두 컴포넌트의 상태 frame 감싸개가 받은 이벤트 handler 를 버려, `onChange` · `onExpandedChange` 규칙이 실행되지 않았다. 감싸개가 handler 를 안쪽 RAC 요소에 넘긴다.
+  - **Why**: Preview 는 binding 이 돌려준 맨 바깥 요소에 handler 를 붙인다. ToggleButton (`SelfToggleButton` · `GroupToggleFrame`) 과 Disclosure (`CatalogStateFrame`) 는 맨 바깥이 RAC 요소가 아니었다.
+  - 위치: `packages/shared/src/catalog/runtime/stateFrames.runtime.ts` (`catalogForwardHandlers`) · `stateFrames.components.tsx` · `delegatedDom.components.tsx`
+
 ## [ADR-248 이전 동작 비교 후속 — Move to slot · 부모 변경 시 Route 갱신] - 2026-10-19
 
 ADR-248 이전 앱과 지금 방식을 비교한 6 (slot 배정) · 8 (page route) 의 추천안이다 (사용자 2026-10-19 「이 추천대로 진행」). slot 배정은 지금의 끌어 넣기를 유지하고 메뉴만 더한다. route 는 저장값을 유지하고, 계층과 어긋나면 갱신을 제안한다.

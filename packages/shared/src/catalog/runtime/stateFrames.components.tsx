@@ -1,11 +1,13 @@
 import {
   createElement,
+  isValidElement,
   useContext,
   type ReactElement,
   type ReactNode,
 } from "react";
 
 import {
+  catalogForwardHandlers,
   CatalogDomStateCondition,
   CatalogStateFrameContext,
 } from "./stateFrames.runtime";
@@ -14,16 +16,20 @@ export function CatalogStateFrame({
   ownerId,
   values,
   children,
+  ...handlers
 }: {
   ownerId: string;
   values: Readonly<Record<string, unknown>>;
   children?: ReactNode;
-}): ReactElement {
+} & Record<string, unknown>): ReactElement {
   const parent = useContext(CatalogStateFrameContext);
   return createElement(
     CatalogStateFrameContext.Provider,
     { value: { ownerId, values, parent } },
-    children,
+    // (The handlers the binding's top element got go to the RAC element it frames.)
+    isValidElement(children)
+      ? catalogForwardHandlers(children, handlers)
+      : children,
   );
 }
 

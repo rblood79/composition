@@ -153,7 +153,7 @@ export interface CatalogVisibleVariable {
 
 /**
  * The variables a setState rule on the owner can set: its own, then its ancestors' (nearest first),
- * then the project variables (the data store's scalar ones, H1).
+ * then the project variables (the data store's scalar ones, H1). Named RAC states are left out.
  */
 export function catalogVisibleVariables(
   graph: CatalogVariableReader,
@@ -161,7 +161,10 @@ export function catalogVisibleVariables(
   projectVariables: readonly { id: string; name: string; type: string }[] = [],
 ): CatalogVisibleVariable[] {
   return [
-    ...catalogVisibleVariableEntries(graph, ownerId).map((variable) => ({
+    // (A named RAC state follows its component and is read only — no rule sets it.)
+    ...catalogVisibleVariableEntries(graph, ownerId)
+      .filter((variable) => !variable.source)
+      .map((variable) => ({
       id: variable.id,
       name: variable.name,
       type: variable.valueType as CatalogVariableType,
