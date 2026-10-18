@@ -93,7 +93,17 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     const own = catalogOwnVariables(graph, owner);
     return JSON.stringify({
       isPage: owner !== nodeId,
-      sources: owner === nodeId ? catalogNodeStateSources(graph, nodeId) : [],
+      sources:
+        owner === nodeId
+          ? catalogNodeStateSources(
+              graph,
+              nodeId,
+              // (The drawn record's definition — no document read per selection, ADR-246.)
+              workspace.root.domInputs.get(
+                workspace.root.recordsOfSource(nodeId)[0] ?? "",
+              )?.definitionId,
+            )
+          : [],
       own,
       // (The states this node named show in its implicit group, not again as its page's.)
       ancestors: catalogAncestorVariables(graph, owner)
