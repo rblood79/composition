@@ -30,7 +30,10 @@ import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
 
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 
-import { resolvePageHeaderLod } from "./pageHeaderGeometry";
+import {
+  activePageHeaderFrames,
+  resolvePageHeaderLod,
+} from "./pageHeaderGeometry";
 
 import "./PageHeaderLayer.css";
 
@@ -58,10 +61,15 @@ export function PageHeaderLayer({
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const settled = useSettledHeaderInput(frames);
 
+  // Only the active page shows its header (pages' headers would sit over the page above at a
+  // small gap); a component sample's or definition's frame keeps its own. (The frames carry
+  // whether they are pages: no graph read on a page switch.)
   const ordered = useMemo(
     () =>
       orderPagesForPaint(
-        settled.frames.filter((frame) => Boolean(frame.title)),
+        activePageHeaderFrames(settled.frames, currentPageId).filter((frame) =>
+          Boolean(frame.title),
+        ),
         currentPageId,
       ),
     [settled.frames, currentPageId],

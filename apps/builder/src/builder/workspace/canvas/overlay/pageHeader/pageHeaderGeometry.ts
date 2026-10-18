@@ -46,9 +46,10 @@ export type PageHeaderFrame = Pick<
  * 헤더를 나타나도록」 — 헤더가 화면 고정 높이라 gap 이 작으면 위 페이지에 겹친다). 페이지가 아닌
  * frame (Components 의 원본 · 정의 편집 view 의 정의) 의 헤더는 그대로 둔다.
  */
-export function activePageHeaderFrames<
-  T extends Pick<PageHeaderFrame, "id" | "isPage">,
->(frames: readonly T[], activePageId: string | null): T[] {
+export function activePageHeaderFrames(
+  frames: readonly PageHeaderFrame[],
+  activePageId: string | null,
+): PageHeaderFrame[] {
   return frames.filter((frame) => !frame.isPage || frame.id === activePageId);
 }
 

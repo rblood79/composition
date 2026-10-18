@@ -78,10 +78,7 @@ import {
 } from "../interaction/nestingToast";
 import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import { resolveSpacingCursor } from "../interaction/spacingGeometry";
-import {
-  activePageHeaderFrames,
-  type PageHeaderFrame,
-} from "../overlay/pageHeader/pageHeaderGeometry";
+import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
 import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
 import { CatalogGridTrackLayer } from "./CatalogGridTrackLayer";
 import { useGridTrackSelection } from "../../../stores/gridTrackSelection";
@@ -159,7 +156,7 @@ function catalogHeaderFrames(
         id,
         title: entry.name,
         ...rect,
-        ...(entry.kind === "page" ? { isPage: true } : {}),
+        isPage: entry.kind === "page",
       });
     else if (isLibraryOrigin(id))
       frames.push({ id, title: catalogDefinitionTitle(graph, id), ...rect });
@@ -278,13 +275,6 @@ export function CatalogCanvas({
   const activePageId = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId ?? null,
-  );
-  // Only the active page shows its header (pages' headers would sit over the page above at a
-  // small gap); a component sample's or definition's frame keeps its own.
-  // (The frames carry whether they are pages: no graph read on a page switch.)
-  const shownHeaderFrames = useMemo(
-    () => activePageHeaderFrames(headerFrames, activePageId),
-    [headerFrames, activePageId],
   );
   const hasSelection = useSyncExternalStore(
     workspace.session.subscribe,
@@ -1677,7 +1667,7 @@ export function CatalogCanvas({
       />
       <DotBackground />
       <PageHeaderLayer
-        frames={shownHeaderFrames}
+        frames={headerFrames}
         activePageId={activePageId}
         hasSelection={hasSelection}
         onHeaderPointerDown={(pageId, event) =>
