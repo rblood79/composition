@@ -57,4 +57,76 @@
 
 ## 7. 기록
 
-(Phase 0 몫 표 · 5-질문 · go/no-go · 사용자 결정 1 ~ 3 답)
+### 7-1. Phase 0 (2026-10-18) — 몫 표 · go/no-go
+
+조건: dev · headless Chrome · DPR 1 · 여백 512 CSS (device 512 px) · `--fixed-inputs` · 부류 `zoom` · `pan` · `page-jump` · `edit`. 사용자 결정 1 = 「100 · 300 × 간격 기본 · ×4」. 시드: 100 페이지 = 노드 14,589 · hit 항목 8,633 · world 1,920 × 115,920 (자동 열 — 시드 줌 1 에서 한 열). 300 페이지 = 노드 43,869 · 항목 25,786.
+
+**계획과 다른 점**: ADR 은 줌 0.05 를 적었지만 빌더 최소 줌이 0.1 이다 (`ViewportController` minZoom · 하니스 `--zoom` 검증 0.1 ~ 5). 0.1 을 전체 보기 최악 경우로 쓴다. G3 의 「줌 0.05」 도 0.1 로 읽는다.
+
+**재현 (등급 A)**: 같은 조건 2 회 (`many-pages` 100 기본 · ×4 간격, `app-pages`) 의 `spatial*` · `translateNodes` · `warmAfter.*` 가 전부 같다.
+
+**단가** (`scripts/adr272-spatial-unit-cost.mjs` — 같은 브라우저 · 같은 engine wasm · 실제 hit bounds 를 새 `SpatialIndex(256)` 에 넣어 잼. CPU 프로필은 engine wasm 함수 이름이 지워져 질의 · upsert 를 가르지 못한다):
+
+| 줌   | 셀 / 질의 | 항목 / 질의 | 결과 / 질의 | µs / 질의 |
+| ---- | --------- | ----------- | ----------- | --------- |
+| 0.1  | 7,469     | 3,318       | 843         | 90        |
+| 0.25 | 1,209     | 1,234       | 291         | 23.5      |
+| 1    | 99        | 337         | 62          | 6.5       |
+
+upsert 1 회 0.29 µs (평균 7.7 셀 · 셀당 38 ns). 단가는 페이지 수 · 간격과 무관 (300 페이지 · ×4 도 같은 값 ± 10 %).
+
+**몫 표** (횟수 × 단가 ÷ 부류 main-thread taskMs, 줌 0.1):
+
+| 비용                          | many-pages 100                                 | many-pages 300                       | app-pages (22)                      | 판정                            |
+| ----------------------------- | ---------------------------------------------- | ------------------------------------ | ----------------------------------- | ------------------------------- |
+| 질의 셀 + 항목 (줌 부류)      | 68 질의 · 128,599 셀 ≤ 6.1 ms / 2,702 ms = **≤ 0.23 %** (×4 간격 89 질의 ≤ 8 ms · 0.28 %) | 같은 68 질의 · 128,599 셀 → **≤ 0.07 %** | 68 질의 · 같은 셀 · ≤ 0.6 % | 1 % 미만 → **Phase 1 no-go**    |
+| 질의 (page-jump · pan · edit) | 20 · 4 · 15 질의, 셀 198 · 42 · 132           | 같은 크기                            | 같은 크기                           | 0 %                              |
+| 후보 수집 + 정렬 (편집 뒤 1 차례) | 21,746 훑음 · 17,457 정렬 · 9.1 ms / 편집 197 ms = **4.6 %** · **기록 0** | 66,075 · 53,120 · **27.8 ms** / 522 ms = **5.3 %** · 기록 0 | 4,939 · 3,961 · 6 ms · 기록 15 | **Phase 2 go**                   |
+| upsert 셀 (줌 부류)           | 3,595,741 셀 × 38 ns ≈ 137 ms = **5.1 %**     | 10,930,147 셀 ≈ 430 ms = 4.9 %      | 716,374 셀 ≈ 27 ms = 2.6 %          | 큰 항목 0 개 → 버킷이 줄일 몫 0 |
+
+- **질의는 문서 크기와 무관하다.** 셀 수는 viewport 넓이 (줌 0.1 = 7,469 셀) 로 정해지고 100 · 300 페이지에서 같다. 줌 0.1 에서 셀 7,469 < 항목 8,633 이라 Phase 1 의 전환 조건 (`cells > K × items`, K = 1) 은 `many-pages` 100 에서 성립조차 하지 않는다 — 성립하는 것은 항목이 적은 문서 (그때는 질의가 원래 싸다).
+- **미리 기록 준비는 문서 크기에 비례하고 대부분 헛일이다.** 캐시가 `MAX_WARM_NODE_PICTURES` · 바이트 상한에 차 있으면 (`hasNodePictureWarmRoom()` false) 전량 훑고 정렬한 뒤 1 개도 기록하지 않는다. stream revision 이 바뀔 때마다 (편집마다) 다시 세운다. `warmupOrder` 는 deadline 으로 나뉘지 않아 300 페이지에서 idle 콜백 하나가 27.8 ms 를 막는다 (다음 입력 지연). 카메라만 바뀐 부류 (`zoom` · `pan` · `page-jump`) 뒤에는 차례를 다시 세우지 않는다 (F6 실측 — 셋 다 `warmAfter` 0): 먼 페이지로 점프해도 옛 화면 중심 순서가 남는다.
+- **upsert 는 큰 항목 때문이 아니다.** cells-per-item 분포: ≤ 1 셀 2,963 · ≤ 4 4,255 · ≤ 16 1,065 · ≤ 64 350 · **> 64 0** (최대 48). 줌 upsert 는 auto-columns 재배치가 page root 와 **모든 자손**을 옮기는 것 (`translateNodes` 116 만 · 셀 3.1 / 노드) 이다. Phase 3 버킷 (M = 64) 은 대상이 0 이다. 줄이려면 자손 좌표를 page root 기준으로 두는 것 (ADR-264/269 의 조건부 「로컬 좌표」, C 등급) — 이 ADR 밖.
+- **줌 비용의 본체는 Rust 가 아니다.** 프로필 상위는 `checkTranslate` 4.8 % · `applyTranslate` 2.2 % (JS 재배치), idle 66.7 %. 줌 표시 간격 p99 52.9 ms (100) · 123.8 ms (300) — HC3 참고 목표 (p99 ≤ 20 ms) 는 이 ADR 의 레버로 닿지 않는다 (사용자 결정 3 은 종결 때).
+- **범위 밖 관찰**: `pan` taskMs 가 문서 크기에 비례한다 (721 → 3,198 ms, 질의 셀 42 로 같음). 공간 · 미리 기록 카운트는 같고 `execVisited` (프레임당 page root 수) · GC 횟수 (17 → 36) · 할당 (64 → 107 MB/s) 만 는다. 원인 미확인 — 기록만.
+
+**5-질문 답**:
+
+- Q1 대표성: `many-pages` 는 `app-pages` 생성기로 페이지 수 · 간격만 키운 규모 전용 합성물이다. 결론 (질의 몫 · 큰 항목 0) 은 분포 (페이지당 22 종 화면) 에 걸려 있다 — 사용자 프로젝트에서 G5 로 확인한다.
+- Q2 불리 경우: 줌 0.1 (최소) · 먼 페이지 점프 (가장 먼 frame 으로 카메라 이동 뒤 팬 3) · 300 페이지 · 간격 ×4 를 다 쟀다.
+- Q3 측정 대상: 작업 트리 dev 서버 (5173) · engine wasm 은 `pnpm wasm:build:engine` 로 같은 소스에서 빌드.
+- Q4 계측이 실제 경로에 꽂혔는가: Rust 카운터는 `query_rect_internal` (viewport · damage · hit 사각형 질의 공통) · `upsert` · `remove_from_cells` 안에 있다. `page-jump` 에서 질의 20 · 결과 424, `edit` 에서 upsert 셀 2,738 이 잡혀 두 경로 모두 실렸다.
+- Q5 oracle: 단가는 앱 인덱스와 별개인 새 인덱스로 같은 hit bounds 를 잰 값이다 (다른 경로). 몫은 「횟수 (등급 A) × 단가」 이고 단가는 wall-clock 이라 방향 · 크기 판단에만 쓴다.
+
+**go/no-go**: Phase 1 **no-go** (질의 몫 ≤ 0.3 % — 1 % 미만, 전환 조건도 성립하지 않음). Phase 2 **go** (편집 뒤 준비 4.6 ~ 5.3 % · 기록 0 · 문서 크기 비례). Phase 3 은 사용자 결정 2 — 글자 조건 (upsert 몫 > 질의 몫) 은 성립하지만 버킷 대상이 0 개다.
+
+**ratchet**: run `60:many-pages100@zoom0.1` (부류 `zoom` · `pan` · `page-jump` · `edit`). `warmAfter.*` 를 `counts.warmAfter` 로 옮겨 ratchet 이 본다 (시간은 `warmAfterMs` — 판정 밖).
+
+### 7-2. Phase 2 (2026-10-18) — 미리 기록 bounded · 카메라 추종
+
+구현 (`skia/nodePictureWarmup.ts` · `renderCommands.ts` `isNodePictureWarmable` · `nodePictureCache.ts` `getNodePictureWarmRoom` · `SkiaRenderer.ts` 배율 전달 · `canvasScene.ts` `rootIds` 전달):
+
+- **자리 0 → 차례 생략**: 남은 자리 (`MAX_WARM_NODE_PICTURES − 캐시 수`, 바이트 자리 없으면 0) 가 0 이면 후보를 모으지 않는다.
+- **후보** = page root ∪ 공간 질의 결과 (self span · 안 보이는 조상 없음). 그 뒤 기록할 수 있는 것만 남기고 (`isNodePictureWarmable` — `warmNodePicture` 가 기록 없이 `false` 를 낼 조건과 같은 함수) 가까운 k 개 (k = 남은 자리) 만 quickselect 뒤 정렬, 나머지는 정렬 없이 뒤에 둔다 (기록이 `false` 면 보충 — r1 M1 · r2 L1).
+- **카메라 칸**: 차례 키 = stream · revision · 화면 가운데를 (후보 사각형 ÷ 4) 칸으로 양자화한 값. 팬 · 줌 뒤 정착 full 기록 (`scheduleCleanupRender` — 이미 있는 경로) 이 `requestNodePictureWarmup` 을 부르므로 새 호출 지점은 없다.
+- 롤백 `renderDebug.warmupBoundedOff` · 후퇴 카운터 `warmCandidatesLinear`.
+
+**계획과 다른 점 (추정 vs 실측)**:
+
+1. **반경 r**: ADR 의 제안 「viewport × 2」 대신 **최소 줌 (0.1) 의 culling 넓이 × 2** (`warmupRect` — culling 넓이가 배율에 반비례하므로 배율 · 문서 크기와 무관한 world 넓이). 「viewport × 2」 는 줌 1 → 0.1 에서 넓이가 100 배라 ADR-266 의 「처음 줌아웃 프레임은 재생만」 을 깬다.
+2. **전체 순회 보충**: 사각형만으로는 `app-pages` 줌 부류의 줌 프레임 안 기록이 0 → 380 (A 초과 — `contentRecordedElements` · `pictureColdFirst` · 글자 224). 원인은 줌아웃의 auto-columns 재배치 — 지금 배치에서 먼 페이지가 화면에 온다 (picture 는 위치 무관이라 미리 기록이 그것을 덮는다). 그래서 **사각형 안 기록 가능 후보 < 남은 자리면 stream 전체로 보충**하고, 질의 결과 수가 이미 자리보다 적으면 사각형 선별을 건너뛴다 (두 번 훑지 않음). 줌아웃 보장은 자리가 있는 동안 전체 순회가 지킨다 — bounded 의 이득은 「자리 0」 과 「사각형이 자리를 채움」 경우에 있다.
+3. **stats getter 를 스칼라로** (`take_query_stat(i)`): 배열 반환이 glue 의 `getDataViewMemory0` 을 불러 `60` page-switch 함수 호출 수 ratchet A 를 올렸다 (180 → 184 — 하니스 snapshot · reset 의 호출).
+4. **ratchet 도구 결함**: `--update` · `--raise` 가 경로를 `.` 으로 잘라 `@zoom0.1` seed 에서 깨졌다 (ADR-271 run 부터 잠복). `parseRatchetPath` — 가장 긴 seed 키 접두.
+
+**결과** (dev · `--fixed-inputs`, 편집 뒤 미리 기록 한 차례 `warmAfter`):
+
+| fixture             | 훑음            | 정렬           | 기록      | 시간          |
+| ------------------- | --------------- | -------------- | --------- | ------------- |
+| many-pages 100      | 21,746 → **0**  | 17,457 → **0** | 0 → 0     | 9.1 → 0.1 ms  |
+| app-pages (22)      | 4,939 → 6,425   | 3,961 → **15** | 15 → 15   | 6.2 → 4.8 ms  |
+
+- `app-pages` 의 훑은 수 증가: 질의 결과 (~1,486) ≥ 자리라 사각형을 선별했고, 기록 가능한 것이 자리보다 적어 전체로 보충했다 (대부분 이미 유효). 시간은 정렬 축소로 준다.
+- 300 페이지도 캐시가 차 있어 자리 0 (Phase 0 의 27.8 ms 가 같은 경로로 생략).
+- ratchet (A 초과 0, 8 run): 하향 `60:many-pages100@zoom0.1.edit` `warmAfter.warmCandidatesScanned` 21,746 → 0 · `Sorted` 17,457 → 0. `60:app-pages` 에 `warmAfter.*` · `render.spatial*` · `render.warm*` A 등록 (2 회 같은 값). 기록 수 (`pictureWarmRecorded`) 는 Phase 0 이내 (15 · 0).
+- 흔들림 (이 변경과 무관 — DOM 을 만지지 않는다): `zoom` 부류 `domMutations.attributes` ±4 (`60:app-pages` 4,711 ↔ 4,715 · `600` 2,811 ↔ 2,815), `60:app-pages-images` load-zoom `contentSurface.hits` 66 ~ 68 (miss 와 합은 같음 — 이미지 로드 시각). 게이트의 재실행 (HC2) 이 「측정 불가」 로 가른다. B 경고 `60` drag `v8.app` +8 % (경고만).
+- unit 19 (`nodePictureWarmup.test.ts`) · 원복 RED 6: 전체 순회 · 카메라 키 제거 · 적격성 선별 제거 · 자리 0 생략 제거 · 보충 제거 · 질의 수 생략 제거 → 각각 RED. ratchet 도구 unit 1 · 원복 RED 2 (`.` 분할 · 가장 짧은 접두).

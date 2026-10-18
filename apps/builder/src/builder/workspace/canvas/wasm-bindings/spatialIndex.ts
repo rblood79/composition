@@ -9,6 +9,10 @@
 
 import { idMapper } from "./idMapper";
 import { getEngineWasm, type RawSpatialIndex } from "./engineWasm";
+import {
+  registerCounterSource,
+  renderCounters,
+} from "../skia/renderCounters";
 
 const SPATIAL_CELL_SIZE = 256;
 
@@ -36,6 +40,20 @@ export function initSpatialIndex(): void {
   }
 
   spatialIndex = new wasm.SpatialIndex(SPATIAL_CELL_SIZE);
+  if (process.env.NODE_ENV === "development")
+    registerCounterSource(drainSpatialStats);
+}
+
+/** ADR-272 Phase 0 — Rust 질의 · 갱신 작업량을 render 카운터로 옮긴다 (하니스 snapshot · reset 때). */
+function drainSpatialStats(): void {
+  // 산출물이 getter 이전 것이면 (wasm 재빌드 전) 세지 않는다.
+  const index = spatialIndex;
+  if (typeof index?.take_query_stat !== "function") return;
+  renderCounters.spatialQueries += index.take_query_stat(0);
+  renderCounters.spatialCellsVisited += index.take_query_stat(1);
+  renderCounters.spatialItemsVisited += index.take_query_stat(2);
+  renderCounters.spatialResults += index.take_query_stat(3);
+  renderCounters.spatialUpsertCells += index.take_query_stat(4);
 }
 
 /** 요소 삽입/갱신 (씬 좌표) */

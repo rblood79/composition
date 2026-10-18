@@ -79,6 +79,8 @@ export interface RawSpatialIndex {
   remove(id: number): void;
   clear(): void;
   count(): number;
+  /** ADR-272 Phase 0 — `[queries, cellsVisited, itemsVisited, results, upsertCells]` 를 읽고 0 으로. */
+  take_query_stat(i: number): number;
   free(): void;
 }
 

@@ -278,6 +278,11 @@ export function hasNodePictureWarmRoom(): boolean {
   );
 }
 
+/** ADR-272 Phase 2: 미리 기록에 남은 자리 (개수) — 바이트 자리가 없으면 0. 차례의 k 제한 선택이 쓴다. */
+export function getNodePictureWarmRoom(): number {
+  return hasNodePictureWarmRoom() ? MAX_WARM_NODE_PICTURES - cache.size : 0;
+}
+
 /** 지금 키로 쓸 수 있는 picture 가 있는가 — LRU · 계측을 건드리지 않는다 (미리 기록의 건너뛰기 판정). */
 export function hasNodePicture(
   elementId: string,

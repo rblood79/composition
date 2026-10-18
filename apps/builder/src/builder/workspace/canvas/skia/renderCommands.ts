@@ -3091,16 +3091,9 @@ export function warmNodePicture(
   elementId: string,
   fontMgr: FontMgr,
 ): boolean {
-  if (elementId === getEditingElementId() || isVolatileNode(elementId))
-    return false;
-  const span = stream.selfSpans.get(elementId);
-  const dataRef = getSkiaNode(elementId);
-  if (!span || !dataRef) return false;
-  const begin = createCommandReader(stream.commands)(span.start - 1);
-  if (begin?.type !== CMD_ELEMENT_BEGIN || begin.elementId !== elementId)
-    return false;
-  if (hasNodePicture(elementId, dataRef, begin.width, begin.height))
-    return false;
+  const target = warmTarget(stream, elementId);
+  if (!target) return false;
+  const { span, dataRef, begin } = target;
   const textPaint = (warmTextPaint = new Map());
   let picture: SkPicture | null;
   try {
@@ -3119,6 +3112,34 @@ export function warmNodePicture(
     textPaint.get(elementId),
   );
   return true;
+}
+
+/**
+ * ADR-272 Phase 2: 미리 기록할 수 있는가 — `warmNodePicture` 가 기록 없이 `false` 를 돌려줄 조건 (편집 중 ·
+ * volatile · span 없음 · 지금 키로 유효한 picture) 을 미리 본다. 차례가 남은 자리 k 개를 고르기 **전에** 뺀다.
+ */
+export function isNodePictureWarmable(
+  stream: Pick<RenderCommandStream, "commands" | "selfSpans">,
+  elementId: string,
+): boolean {
+  return warmTarget(stream, elementId) !== null;
+}
+
+function warmTarget(
+  stream: Pick<RenderCommandStream, "commands" | "selfSpans">,
+  elementId: string,
+) {
+  if (elementId === getEditingElementId() || isVolatileNode(elementId))
+    return null;
+  const span = stream.selfSpans.get(elementId);
+  const dataRef = getSkiaNode(elementId);
+  if (!span || !dataRef) return null;
+  const begin = createCommandReader(stream.commands)(span.start - 1);
+  if (begin?.type !== CMD_ELEMENT_BEGIN || begin.elementId !== elementId)
+    return null;
+  if (hasNodePicture(elementId, dataRef, begin.width, begin.height))
+    return null;
+  return { span, dataRef, begin };
 }
 
 /** self-draw 구간을 노드-로컬 좌표로 record 한다. 실패 시 null (direct 폴백). */

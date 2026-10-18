@@ -239,6 +239,21 @@ export function decide(first, second = null) {
  * 하향 판정은 올리기를 반영한 상한 기준이므로, 낮춘 경로의 올리기는 끝낸다 — 남겨 두면
  * 상한이 계속 올린 값이라 같은 하향이 매번 다시 보고되고 낮춘 기준값은 쓰이지 않는다.
  */
+/**
+ * `seeds.<seed>.<부류>.<등급>.<지표>` → 조각. seed 키에 `.` 이 들어갈 수 있어 (`60:app-pages@zoom0.1`) `.` 으로
+ * 자르지 않고 ratchet 의 seed 키 중 가장 긴 접두로 고른다 (ADR-272 — `--update` 가 `@zoom0.1` run 에서 깨졌다).
+ */
+export function parseRatchetPath(ratchet, path) {
+  const seed = Object.keys(ratchet.seeds ?? {})
+    .filter((s) => path.startsWith(`seeds.${s}.`))
+    .sort((a, b) => b.length - a.length)[0];
+  if (seed === undefined) return null;
+  const [cls, grade, ...rest] = path
+    .slice(`seeds.${seed}.`.length)
+    .split(".");
+  return { seed, cls, grade, key: rest.join(".") };
+}
+
 export function applyUpdate(
   ratchet,
   verdict,
@@ -246,15 +261,15 @@ export function applyUpdate(
 ) {
   const next = structuredClone(ratchet);
   for (const { path, value } of verdict.lowerable) {
-    const [, seed, cls, grade, ...rest] = path.split(".");
-    next.seeds[seed][cls][grade][rest.join(".")] = value;
+    const { seed, cls, grade, key } = parseRatchetPath(next, path);
+    next.seeds[seed][cls][grade][key] = value;
     for (const raise of next.raises ?? [])
       if (raise.path === path && !raise.supersededOn)
         raise.supersededOn = today;
   }
   for (const { path, value } of verdict.newKeys) {
-    const [, seed, cls, , ...rest] = path.split(".");
-    next.seeds[seed][cls].B[rest.join(".")] = value;
+    const { seed, cls, key } = parseRatchetPath(next, path);
+    next.seeds[seed][cls].B[key] = value;
   }
   next.generatedAt = today;
   if (head) next.head = head;
@@ -270,8 +285,10 @@ export function applyRaise(
     throw new Error(
       "올리기는 --raise <path> --to <n> --approved-by --reason --expires 가 모두 있어야 한다 (HC3)",
     );
-  const [, seed, cls, grade, ...rest] = path.split(".");
-  const from = ratchet.seeds?.[seed]?.[cls]?.[grade]?.[rest.join(".")];
+  const parsed = parseRatchetPath(ratchet, path);
+  const from = parsed
+    ? ratchet.seeds[parsed.seed]?.[parsed.cls]?.[parsed.grade]?.[parsed.key]
+    : null;
   if (from == null) throw new Error(`없는 경로: ${path}`);
   if (to <= from)
     throw new Error(`올리기가 아니다 (${from} → ${to}) — 낮추기는 --update`);
@@ -539,10 +556,15 @@ const DEFAULT_FIXTURE = "mixed";
  */
 export function runKeyOf(options) {
   const fixture = options.fixtureKind ?? DEFAULT_FIXTURE;
+  // ADR-272: `many-pages` 는 페이지 수 · grid 간격이 문서를 정한다 — 키에 싣는다 (간격 기본 80 은 생략).
+  const sized =
+    fixture === "many-pages"
+      ? `${fixture}${options.pages}${options.gridGap == null ? "" : `@gap${options.gridGap}`}`
+      : fixture;
   const base =
     fixture === DEFAULT_FIXTURE
       ? String(options.seedCount)
-      : `${options.seedCount}:${fixture}`;
+      : `${options.seedCount}:${sized}`;
   // ADR-271: 시작 배율을 고정한 run (`--zoom`) 은 다른 기준이다 — 기본 배율 run 과 합치지 않는다.
   const zoomed = options.zoom == null ? base : `${base}@zoom${options.zoom}`;
   return (options.dpr ?? 1) === 1 ? zoomed : `${zoomed}@dpr${options.dpr}`;
@@ -561,6 +583,11 @@ export function harnessArgsFrom(options) {
   ];
   if ((options.fixtureKind ?? DEFAULT_FIXTURE) !== DEFAULT_FIXTURE)
     args.push("--fixture-kind", options.fixtureKind);
+  if (options.fixtureKind === "many-pages") {
+    args.push("--pages", String(options.pages));
+    if (options.gridGap != null)
+      args.push("--grid-gap", String(options.gridGap));
+  }
   if (options.callCounts) args.push("--call-counts");
   if ((options.dpr ?? 1) !== 1) args.push("--dpr", String(options.dpr));
   if (options.zoom != null) args.push("--zoom", String(options.zoom));

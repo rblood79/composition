@@ -346,7 +346,20 @@ test("--pages N 은 N 페이지를 시드하고 두 번째 페이지 선택은 �
   // 시드 루프가 pageCount 까지 채우고, k=2 의 위치가 종전 (1200, 0) 과 같은 격자식이다.
   assert.match(source, /while \(pages\.length < pageCount\)/);
   assert.match(source, /\{ x: col \* 1200, y: row \* 1100 \}/);
-  assert.match(source, /options\.fixtureKind,\n\s*options\.pages,\n\s*\);/);
+  assert.match(
+    source,
+    /options\.fixtureKind,\n\s*options\.pages,\n\s*options\.gridGap \?\? undefined,\n\s*\);/,
+  );
+  // ADR-272: grid 간격은 many-pages 전용
+  assert.equal(parseArgs([]).gridGap, null);
+  assert.equal(
+    parseArgs(["--fixture-kind", "many-pages", "--pages", "100", "--grid-gap", "320"]).gridGap,
+    320,
+  );
+  assert.throws(
+    () => parseArgs(["--fixture-kind", "many-pages", "--grid-gap", "-1"]),
+    /grid-gap/,
+  );
   // `pages`/`page-switch` 는 여전히 home 이 아닌 첫 페이지를 고른다 (회귀 0).
   assert.match(
     source,

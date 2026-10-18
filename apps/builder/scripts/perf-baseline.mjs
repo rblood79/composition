@@ -93,6 +93,7 @@ const DEFAULTS = {
   fixtureKind: "mixed",
   editTarget: "seed",
   pages: 2,
+  gridGap: null,
   zoom: null,
   fixedInputs: false,
   callCounts: false,
@@ -154,6 +155,7 @@ export function parseArgs(argv) {
     //   서브트리 확장이 문서 전체인 편집)
     else if (value === "--edit-target") options.editTarget = next;
     else if (value === "--pages") options.pages = Number(next);
+    else if (value === "--grid-gap") options.gridGap = Number(next);
     else if (value === "--zoom") options.zoom = Number(next);
     else if (value === "--cold-entries") options.coldEntries = Number(next);
     else if (value === "--classes") options.classes = next.split(",");
@@ -229,11 +231,20 @@ export function parseArgs(argv) {
       "app-pages-images-asset",
       "sticky-lists",
       "scroll-boxes",
+      // ADR-272 Phase 0: `app-pages` 생성기로 `--pages N` 장 · `--grid-gap G` (기본 80) — 규모 전용.
+      "many-pages",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
   if (!Number.isInteger(options.pages) || options.pages < 2)
     throw new Error("pages 는 2 이상 정수");
+  if (
+    options.gridGap !== null &&
+    !(Number.isFinite(options.gridGap) && options.gridGap >= 0)
+  )
+    throw new Error("grid-gap 은 0 이상");
+  if (options.gridGap !== null && options.fixtureKind !== "many-pages")
+    throw new Error("grid-gap 은 many-pages 전용");
   if (
     options.zoom !== null &&
     !(Number.isFinite(options.zoom) && options.zoom >= 0.1 && options.zoom <= 5)
@@ -519,9 +530,13 @@ export async function seedDocument(
   seedCount,
   fixtureKind,
   pageCount = 2,
+  gridGap = undefined,
 ) {
   // 실사용 형태 22 페이지 문서 — seedCount · pageCount 를 쓰지 않는다 (perfAppFixture.mjs).
   if (fixtureKind.startsWith("app-pages")) return page.evaluate(seedAppPages);
+  // ADR-272 Phase 0: 같은 생성기로 페이지 수 · grid 간격만 키운다 (규모 전용).
+  if (fixtureKind === "many-pages")
+    return page.evaluate(seedAppPages, { pages: pageCount, gap: gridGap });
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -2493,6 +2508,52 @@ export const FRAME_CLASSES = {
     await page.mouse.move(x0, y0);
     await page.mouse.up();
   },
+  // ADR-272 Phase 0: 먼 페이지로 점프 (Pages 트리 선택과 같은 `revealPage` 의 끝 카메라 — `--fixed-inputs`
+  // 는 애니메이션 시각이 카운트를 흔들지 않게 끝 자리로 `setCamera`) → 그 주변 팬 3 회 → 홈으로 돌아와 같은
+  // 팬 — 캐시 · 미리 기록 차례에 불리한 경우 (Q2). 먼 페이지 = 홈 frame 에서 가장 먼 page frame.
+  "page-jump": async (page, ctx, ms) => {
+    const jump = (toFar) =>
+      page.evaluate(
+        async ({ toFar, fixedInputs }) => {
+          const h = window.__COMPOSITION_CATALOG__;
+          const ws = h.workspace;
+          const rects = ws.root.pageFrameRects();
+          const ids = [...rects.keys()];
+          const home = rects.get(ids[0]);
+          const dist = (r) =>
+            Math.hypot(r.x - home.x, r.y - home.y);
+          const target = toFar
+            ? ids.reduce((a, b) => (dist(rects.get(b)) > dist(rects.get(a)) ? b : a))
+            : ids[0];
+          const frame = rects.get(target);
+          ws.session.setPage(target);
+          if (fixedInputs) {
+            const zoom = h.canvas.camera().zoom;
+            const el = document.querySelector('[data-testid="skia-canvas-unified"]');
+            const { width, height } = el.getBoundingClientRect();
+            await h.canvas.setCamera({
+              scale: zoom,
+              x: width / 2 - (frame.x + frame.width / 2) * zoom,
+              y: height / 2 - (frame.y + frame.height / 2) * zoom,
+            });
+          } else ws.revealPage(target);
+          await new Promise((r) => setTimeout(r, fixedInputs ? 0 : 400));
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        },
+        { toFar, fixedInputs: ctx.fixedInputs },
+      );
+    const panMs = Math.max(250, Math.round(ms / 8));
+    for (const toFar of [true, false]) {
+      await jump(toFar);
+      for (let k = 0; k < 3; k += 1)
+        await wheelBurst(
+          page,
+          panMs,
+          `return { deltaX: ${k % 2 ? -1 : 1} * 96, deltaY: ${k === 1 ? 48 : 0} };`,
+          ctx.fixedInputs,
+        );
+    }
+  },
   "page-switch": (page, ctx, ms) =>
     page.evaluate(
       async ({ pageIds, home, ms, fixedInputs }) => {
@@ -3146,6 +3207,28 @@ async function runFrameLane(page, cdp, seed, options) {
       await cdp.send("Profiler.disable");
     }
     const after = await cdp.send("Performance.getMetrics");
+    // ADR-272 Phase 0: 이 부류가 남긴 카메라 · stream 으로 idle 미리 기록 한 차례 — 창 밖 (manual) 이라
+    // 부류 카운트에 안 들어가므로 차례 준비 카운트를 `counts.warmAfter` (ratchet 대상) 로, 시간은
+    // `warmAfterMs` (wall-clock — 판정 밖) 로 따로 남긴다.
+    const warmAfter = options.fixedInputs
+      ? await page.evaluate(() => {
+          const counters = window.__composition_RENDER_COUNTERS__;
+          const debug = window.__composition_RENDER_PATH_DEBUG__;
+          if (!counters || !debug?.flushWarmup) return null;
+          counters.reset();
+          const t0 = performance.now();
+          debug.flushWarmup();
+          const ms = performance.now() - t0;
+          const c = counters.snapshot();
+          return {
+            ms: +ms.toFixed(1),
+            warmCandidatesScanned: c.warmCandidatesScanned,
+            warmCandidatesSorted: c.warmCandidatesSorted,
+            warmPassRebuilt: c.warmPassRebuilt,
+            pictureWarmRecorded: c.pictureWarmRecorded,
+          };
+        })
+      : null;
     results[cls] = summarizeRecording(rec);
     results[cls].raw = rec;
     results[cls].counts = buildCounts(
@@ -3154,6 +3237,11 @@ async function runFrameLane(page, cdp, seed, options) {
       after.metrics,
       coverage,
     );
+    if (warmAfter) {
+      const { ms, ...warmCounts } = warmAfter;
+      results[cls].warmAfterMs = ms;
+      results[cls].counts.warmAfter = warmCounts;
+    }
     results[cls].mainThread = summarizeTaskMetrics(
       before.metrics,
       after.metrics,
@@ -3512,6 +3600,7 @@ async function main() {
       options.seedCount,
       options.fixtureKind,
       options.pages,
+      options.gridGap ?? undefined,
     );
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}${seed.records ? ` · nodes ${seed.nodeCount} · records ${seed.records}` : ""}\n`,

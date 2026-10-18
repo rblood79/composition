@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
 
@@ -16,6 +17,27 @@ pub struct SpatialIndex {
     element_cells: HashMap<u32, Vec<i64>>,
     /// element_id → [x, y, width, height] cached bounds
     bounds: HashMap<u32, [f32; 4]>,
+    /// ADR-272 Phase 0 — 결정적 카운트 (질의는 `&self` 라 Cell). `take_query_stat` 이 읽고 0 으로.
+    stats: QueryStats,
+}
+
+#[derive(Default)]
+struct QueryStats {
+    /// 사각형 질의 수 (`query_viewport` · `query_rect`).
+    queries: Cell<u64>,
+    /// 사각형 질의가 지난 셀 좌표 수 (빈 셀 포함).
+    cells_visited: Cell<u64>,
+    /// 셀 안 항목 방문 수 (dedup 전).
+    items_visited: Cell<u64>,
+    /// 질의 결과 수.
+    results: Cell<u64>,
+    /// `upsert` · `remove` 가 지운 옛 셀 + 넣은 새 셀 수.
+    upsert_cells: Cell<u64>,
+}
+
+#[inline]
+fn bump(c: &Cell<u64>, n: u64) {
+    c.set(c.get() + n);
 }
 
 /// Encode grid cell coordinates into a single i64 key.
@@ -52,7 +74,25 @@ impl SpatialIndex {
             cells: HashMap::new(),
             element_cells: HashMap::new(),
             bounds: HashMap::new(),
+            stats: QueryStats::default(),
         }
+    }
+
+    /// ADR-272 Phase 0 — 누적 하나 (`i`: 0 queries · 1 cellsVisited · 2 itemsVisited · 3 results · 4 upsertCells)
+    /// 를 돌려주고 0 으로. 하니스 (dev) 만 부른다 — production 은 정수 증가 비용만 남는다. 배열이 아니라
+    /// 스칼라인 것은 배열 반환이 glue 의 메모리 view 읽기 (`getDataViewMemory0`) 를 불러 하니스의 함수 호출 수
+    /// ratchet 에 잡히기 때문이다 (`60` page-switch 180 → 184).
+    pub fn take_query_stat(&self, i: u32) -> f64 {
+        let s = &self.stats;
+        let cell = match i {
+            0 => &s.queries,
+            1 => &s.cells_visited,
+            2 => &s.items_visited,
+            3 => &s.results,
+            4 => &s.upsert_cells,
+            _ => return 0.0,
+        };
+        cell.replace(0) as f64
     }
 
     /// Insert or update an element's bounds in the index.
@@ -70,6 +110,7 @@ impl SpatialIndex {
         let cell_keys = self.compute_cells(x, y, w, h);
 
         // Insert into cells
+        bump(&self.stats.upsert_cells, cell_keys.len() as u64);
         for &ck in &cell_keys {
             self.cells.entry(ck).or_default().push(id);
         }
@@ -178,6 +219,7 @@ impl SpatialIndex {
     /// Remove element from all cells it occupies (does not remove from element_cells/bounds).
     fn remove_from_cells(&mut self, id: u32) {
         if let Some(cell_keys) = self.element_cells.get(&id) {
+            bump(&self.stats.upsert_cells, cell_keys.len() as u64);
             for &ck in cell_keys {
                 if let Some(ids) = self.cells.get_mut(&ck) {
                     ids.retain(|&eid| eid != id);
@@ -206,11 +248,18 @@ impl SpatialIndex {
 
         let mut seen = HashSet::new();
         let mut result = Vec::new();
+        let stats = &self.stats;
+        bump(&stats.queries, 1);
+        bump(
+            &stats.cells_visited,
+            (max_cx as i64 - min_cx as i64 + 1) as u64 * (max_cy as i64 - min_cy as i64 + 1) as u64,
+        );
 
         for cx in min_cx..=max_cx {
             for cy in min_cy..=max_cy {
                 let ck = cell_key(cx, cy);
                 if let Some(ids) = self.cells.get(&ck) {
+                    bump(&stats.items_visited, ids.len() as u64);
                     for &id in ids {
                         if seen.insert(id) {
                             // AABB verification to remove false positives
@@ -228,6 +277,7 @@ impl SpatialIndex {
             }
         }
 
+        bump(&stats.results, result.len() as u64);
         result.into_boxed_slice()
     }
 }
@@ -390,5 +440,30 @@ mod tests {
 
         let idx = SpatialIndex::new(-10.0);
         assert_eq!(idx.cell_size, 256.0);
+    }
+
+    /// ADR-272 Phase 0 — 질의는 덮은 셀 좌표 전부 (빈 셀 포함) · 셀 안 항목 (dedup 전) · 결과를 센다.
+    /// upsert 는 옛 셀 + 새 셀. take 는 읽고 0 으로.
+    #[test]
+    fn test_query_stats() {
+        let mut idx = SpatialIndex::new(256.0);
+        // 셀 (0,0) 하나 · 셀 (0..=1, 0) 둘
+        idx.upsert(1, 10.0, 10.0, 50.0, 50.0);
+        idx.upsert(2, 200.0, 10.0, 100.0, 50.0);
+        let take = |idx: &SpatialIndex| -> Vec<f64> { (0..5).map(|i| idx.take_query_stat(i)).collect() };
+        assert_eq!(take(&idx), [0.0, 0.0, 0.0, 0.0, 3.0]);
+        // 옛 셀 2 지움 + 새 셀 1 넣음
+        idx.upsert(2, 300.0, 10.0, 100.0, 50.0);
+        assert_eq!(idx.take_query_stat(4), 3.0);
+        // 질의 (0,0)~(1,1) = 셀 4 · 항목 방문 2 (셀 (0,0) 의 1 · 셀 (1,0) 의 2) · 결과 2
+        let r = idx.query_rect(0.0, 0.0, 350.0, 300.0);
+        assert_eq!(r.len(), 2);
+        assert_eq!(take(&idx), [1.0, 4.0, 2.0, 2.0, 0.0]);
+        // 빈 질의는 세지 않는다 · 점 질의도 세지 않는다
+        idx.query_rect(10.0, 10.0, 10.0, 10.0);
+        idx.query_point(20.0, 20.0);
+        assert_eq!(take(&idx), [0.0, 0.0, 0.0, 0.0, 0.0]);
+        idx.remove(1);
+        assert_eq!(idx.take_query_stat(4), 1.0);
     }
 }

@@ -328,7 +328,8 @@ export class CatalogCanvasScene {
           endNodePictureFullRecord();
           if (process.env.NODE_ENV === "development") endContentScope();
           // ADR-266 Phase 4: 화면 밖 요소는 쉬는 시간에 미리 기록한다 (처음 줌아웃의 cold 기록).
-          requestNodePictureWarmup(ck, stream, bounds, fontMgr);
+          // ADR-272 Phase 2: 후보는 page root ∪ 화면 주변의 공간 질의 결과.
+          requestNodePictureWarmup(ck, stream, bounds, fontMgr, this.rootIds);
         }
       },
       // Phase 3: only the damage's SpatialIndex contributors (null → the renderer draws in full).

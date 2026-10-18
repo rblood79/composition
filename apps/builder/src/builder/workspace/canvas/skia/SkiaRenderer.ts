@@ -1,5 +1,6 @@
 import { getTextPaintOverflowEvents } from "./renderCommands";
 import { renderCounters, renderScope } from "./renderCounters";
+import { setNodePictureWarmupZoom } from "./nodePictureWarmup";
 import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CanvasKit/Skia 렌더 루프
@@ -968,6 +969,8 @@ export class SkiaRenderer {
     const recordBegin = isDev ? markBegin() : 0;
     // ADR-271 Phase 0: 이 기록의 배율 — 투영 크기 분포 카운터가 읽는다.
     if (isDev) renderScope.zoom = camera.zoom;
+    // ADR-272 Phase 2: 미리 기록의 후보 사각형 · 카메라 칸이 이 배율을 쓴다.
+    setNodePictureWarmupZoom(camera.zoom);
     this.contentNode.renderSkia(targetCanvas, paddedBounds);
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_RECORD_CONTENT, recordBegin);

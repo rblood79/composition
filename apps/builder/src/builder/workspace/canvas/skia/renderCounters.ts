@@ -231,6 +231,24 @@ export interface RenderCounters {
   lodTextLe2: number;
   lodTextLe4: number;
   lodTextGt4: number;
+  /**
+   * ADR-272 Phase 0 — Rust 공간 인덱스의 작업량 (`take_query_stat` — snapshot · reset 때 읽는다).
+   * 사각형 질의 수 · 덮은 셀 좌표 수 (빈 셀 포함) · 셀 안 항목 방문 (dedup 전) · 결과 수 ·
+   * upsert/remove 가 지우고 넣은 셀 수.
+   */
+  spatialQueries: number;
+  spatialCellsVisited: number;
+  spatialItemsVisited: number;
+  spatialResults: number;
+  spatialUpsertCells: number;
+  /**
+   * ADR-272 — idle 미리 기록 차례 준비: 본 후보 (공간 질의 결과 + page root, 후퇴 때는 훑은 요소 시작 명령) ·
+   * 정렬한 수 (≤ 남은 자리) · 차례 재구성 수 · stream 전체 순회로 후퇴한 차례 수.
+   */
+  warmCandidatesScanned: number;
+  warmCandidatesSorted: number;
+  warmPassRebuilt: number;
+  warmCandidatesLinear: number;
 }
 
 const counters: RenderCounters = {
@@ -359,7 +377,26 @@ const counters: RenderCounters = {
   lodTextLe2: 0,
   lodTextLe4: 0,
   lodTextGt4: 0,
+  spatialQueries: 0,
+  spatialCellsVisited: 0,
+  spatialItemsVisited: 0,
+  spatialResults: 0,
+  spatialUpsertCells: 0,
+  warmCandidatesScanned: 0,
+  warmCandidatesSorted: 0,
+  warmPassRebuilt: 0,
+  warmCandidatesLinear: 0,
 };
+
+/**
+ * ADR-272 Phase 0 — 카운터 밖 (wasm) 에 쌓이는 수를 snapshot · reset 직전에 `counters` 로 옮기는 함수.
+ * 호출 지점마다 wasm 을 건너지 않으려고 하니스가 읽을 때만 모은다.
+ */
+const counterSources: Array<() => void> = [];
+
+export function registerCounterSource(drain: () => void): void {
+  if (!counterSources.includes(drain)) counterSources.push(drain);
+}
 
 /**
  * ADR-266 Phase 0 — 지금 실행 중인 content 기록의 종류 (full · damage). picture · paragraph 경로가
@@ -409,10 +446,12 @@ export function endContentScope(): void {
 export const renderCounters: RenderCounters = counters;
 
 export function snapshotRenderCounters(): RenderCounters {
+  for (const drain of counterSources) drain();
   return { ...counters };
 }
 
 export function resetRenderCounters(): void {
+  for (const drain of counterSources) drain();
   for (const key of Object.keys(counters) as Array<keyof RenderCounters>)
     counters[key] = 0;
 }
@@ -437,6 +476,8 @@ export const renderDebug = {
   imagePartialOff: false,
   imageDecoderLegacy: false,
   legacySurface: false,
+  /** ADR-272 Phase 2 롤백: 미리 기록 후보를 공간 질의 대신 stream 전체 순회로 모은다. */
+  warmupBoundedOff: false,
 };
 
 if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
@@ -463,6 +504,9 @@ if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   };
   debug.setLegacySurface = (on: boolean) => {
     renderDebug.legacySurface = on;
+  };
+  debug.setWarmupBoundedOff = (on: boolean) => {
+    renderDebug.warmupBoundedOff = on;
   };
   (
     window as unknown as {

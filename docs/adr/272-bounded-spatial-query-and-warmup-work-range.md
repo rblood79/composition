@@ -2,6 +2,12 @@
 
 ## Status
 
+Accepted — 2026-10-18 (사용자 `/execute-adr 272` · 리뷰 [reviews/272.md](reviews/272.md) Round 2 pending 0 · CRITICAL/HIGH 0). 사용자 결정 1 (2026-10-18): **「100 · 300 × 간격 기본 · ×4」** — ratchet run 은 100, 300 은 몫 표 · 상한 확인용.
+
+> **Phase 0 종결 (2026-10-18)** — 몫 표 ([breakdown §7-1](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md#7-1-phase-0-2026-10-18--몫-표--gono-go)). 질의 셀 + 항목 ≤ 0.3 % (문서 크기와 무관 — viewport 넓이로 정해진다) → **Phase 1 no-go**. 편집 뒤 미리 기록 준비 4.6 ~ 5.3 % · 캐시가 차 있으면 기록 0 (전량 훑고 정렬만) → **Phase 2 go**. 64 셀 넘는 항목 0 (최대 48) — 사용자 결정 2 (2026-10-18): **「생략」** (줌 upsert 는 자손 옮기기 몫 — 「로컬 좌표」 후보). 빌더 최소 줌이 0.1 이라 0.05 대신 0.1 을 잰다. ratchet run `60:many-pages100@zoom0.1` (`counts.warmAfter` 포함).
+
+> **Phase 2 종결 (2026-10-18)** — [breakdown §7-2](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md). 미리 기록 자리 0 이면 차례 생략 · 후보 = page root ∪ 공간 질의 (최소 줌 culling × 2) · 기록 가능한 후보 중 가까운 k (남은 자리) 개만 정렬 · 카메라 칸 키. 사각형이 자리를 못 채우면 전체 순회로 보충 (줌아웃 auto-columns 재배치 — 사각형만이면 `app-pages` 줌 프레임 기록 0 → 380). many-pages 100 편집 뒤 준비 21,746 훑음 · 17,457 정렬 · 9.1 ms → 0 · 0 · 0.1 ms, `app-pages` 정렬 3,961 → 15. ratchet 하향 · A 초과 0. 남은 것: G4 (production 짝) · G5 (live).
+
 Proposed — 2026-10-17 (리뷰 [reviews/272.md](reviews/272.md) Round 1 — codex, MEDIUM 1 → 같은 날 반영: 미리 기록 후보의 k 제한 앞에 적격성 선별 (유효 picture · 편집 · volatile 제외, `rootIds` 포함) · `false` 시 보충. Round 2 — claude 수리 검증 (같은 날): HIGH 0 · LOW 1 (부분 선택이 나머지 후보를 보존해야 보충이 성립) → 반영, 설계 판독 종결 — pending 0)
 
 - 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **셋째**. 첫째 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 넷째 [ADR-273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 「로컬 좌표 · 지연 합성」 (ADR-269 후속) 은 이 ADR 뒤에도 자손 맵 갱신이 지배적일 때 별도 ADR — 여기서 다루지 않는다.

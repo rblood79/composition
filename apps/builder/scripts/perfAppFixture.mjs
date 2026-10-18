@@ -10,7 +10,13 @@
 // facade `insertTree` (요소 등록 — 편집 · 선택 드라이버가 찾는다), 페이지는 facade `appendPageShell`.
 // seedIds = Home 의 hero · feature 카드 · nav 링크 · 인용 · 가격 카드 (`track`) — [1] 은 feature 카드 (편집:
 // wrap 줄의 폭 → 형제 재배치), [8] 은 nav 행의 첫 링크 (drag — 고정 카메라 화면 안, 메뉴 순서 바꾸기).
-export async function seedAppPages() {
+//
+// ADR-272 Phase 0 `many-pages`: `{ pages, gap }` 를 주면 같은 21 페이지 목록을 돌려 `pages` 장까지 늘리고
+// (두 바퀴째부터 이름 · route 에 차례 번호), 페이지 grid 간격을 `gap` 으로 둔다 — 규모 전용 합성물 (Q1).
+// 인자가 없으면 지금 그대로 22 페이지 (`app-pages` 의 ratchet run 이 이 문서를 잰다).
+export async function seedAppPages(options) {
+  const pageTotal = options?.pages ?? 22;
+  const pageGap = options?.gap;
   const store = window.__composition_STORE__;
   const h = window.__COMPOSITION_CATALOG__;
   const ws = h.workspace;
@@ -691,16 +697,22 @@ export async function seedAppPages() {
     // Home 의 카드가 seedIds 가 되도록 Home 먼저 (track 순서 = Home 문서 순서).
     build(homeBody.id, PAGES.home());
     tracking = false;
-    LIST.forEach(([key, name, route], i) => {
+    for (let i = 0; i < pageTotal - 1; i += 1) {
+      const [key, name, route] = LIST[i % LIST.length];
+      const lap = Math.floor(i / LIST.length);
       const bodyId = `perf-app-body-${i}`;
-      store
-        .getState()
-        .appendPageShell(
-          { id: `perf-app-page-${i}`, slug: route, title: name },
-          { id: bodyId },
-        );
+      store.getState().appendPageShell(
+        {
+          id: `perf-app-page-${i}`,
+          slug: lap ? `${route}-${lap + 1}` : route,
+          title: lap ? `${name} ${lap + 1}` : name,
+        },
+        { id: bodyId },
+      );
       build(bodyId, PAGES[key]());
-    });
+    }
+    if (pageGap !== undefined)
+      ws.execute(h.commands.setPageLayoutSettings({ pageLayout: { gap: pageGap } }));
     store.getState().activatePage(homePageId);
   }
   await new Promise((r) => setTimeout(r, 0));

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지가 많은 문서에서 편집 뒤 쉬는 시간 작업 축소 — ADR-272 Phase 0 · 2] - 2026-10-18
+
+### Performance
+
+- **ADR-272 작업 범위 제한 — Phase 0 측정 · Phase 2 미리 기록 후보 제한** (사용자-가시 변경 없음 — 화면 결과 같음).
+  - Phase 0: 페이지 100 · 300 개 문서 (`many-pages` fixture) 에서 공간 질의 · 미리 기록 준비 · 인덱스 갱신의 몫을 쟀다. 질의는 화면 넓이로 정해져 프레임 비용의 0.3 % 이하라 바꾸지 않았다. 큰 항목 버킷은 대상 (64 셀 넘는 항목) 이 0 개라 생략했다 (사용자 결정).
+  - Phase 2: 편집할 때마다 쉬는 시간에 문서 전체 요소를 훑고 정렬하던 미리 기록 준비를, 캐시에 자리가 없으면 건너뛰고 자리가 있으면 화면 주변 후보 중 가까운 것만 정렬한다. 먼 페이지로 옮기면 그 주변부터 다시 기록한다. 페이지 100 개 문서의 편집 뒤 준비 9.1 → 0.1 ms (300 개는 28 ms 가 같이 빠짐), 22 페이지 문서의 정렬 3,961 → 15 개.
+  - 처음 줌아웃 때 프레임 안 기록 0 은 그대로다 — 줌아웃은 페이지 배치를 바꾸므로 화면 주변으로 자리를 못 채우면 문서 전체로 보충한다.
+  - 하니스: `--fixture-kind many-pages --pages N --grid-gap G` · 부류 `page-jump` · Rust 공간 인덱스 작업량 카운터 (`render.spatial*`) · 미리 기록 준비 카운트 (`counts.warmAfter`) · ratchet run `60:many-pages100@zoom0.1`. ratchet `--update` 가 `@zoom0.1` 처럼 `.` 이 든 run 에서 깨지던 결함을 고쳤다.
+  - 본문: `docs/adr/272-bounded-spatial-query-and-warmup-work-range.md`
+
 ## [축소 화면 글자 단순화는 넣지 않음 — ADR-271 측정 기록 종결] - 2026-10-18
 
 ### Performance

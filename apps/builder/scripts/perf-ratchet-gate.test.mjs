@@ -689,3 +689,71 @@ test("ADR-271: --zoom 은 run 키 · 저장 args 에 실리고 재실행 인자�
     "60:app-pages",
   );
 });
+
+test("ADR-272: many-pages 는 페이지 수 · grid 간격이 run 키 · 저장 args 에 실린다", async () => {
+  const { parseArgs } = await import("./perf-baseline.mjs");
+  const options = {
+    seedCount: 60,
+    fixtureKind: "many-pages",
+    pages: 100,
+    gridGap: null,
+    zoom: 0.1,
+    fixedInputs: true,
+    classes: ["zoom"],
+  };
+  assert.equal(runKeyOf(options), "60:many-pages100@zoom0.1");
+  assert.equal(
+    runKeyOf({ ...options, pages: 300, gridGap: 320 }),
+    "60:many-pages300@gap320@zoom0.1",
+  );
+  for (const variant of [options, { ...options, pages: 300, gridGap: 320 }]) {
+    const rerun = parseArgs(harnessArgsFrom(variant));
+    assert.equal(runKeyOf(rerun), runKeyOf(variant));
+  }
+  // 다른 fixture 는 키가 그대로 (기존 run 보존)
+  assert.equal(
+    runKeyOf({ seedCount: 60, fixtureKind: "app-pages", pages: 2 }),
+    "60:app-pages",
+  );
+  assert.throws(
+    () => parseArgs(["--fixture-kind", "app-pages", "--grid-gap", "320"]),
+    /many-pages 전용/,
+  );
+});
+
+test("ADR-272: seed 키에 . 이 있어도 (@zoom0.1) --update · --raise 가 경로를 바르게 가른다", () => {
+  const r = {
+    seeds: {
+      60: { zoom: { A: { "render.x": 9 }, B: {} } },
+      // 다른 seed 의 접두 — 가장 긴 seed 키를 골라야 한다
+      "60:app-pages@zoom0": { zoom: { A: { "render.x": 9 }, B: {} } },
+      "60:app-pages@zoom0.1": {
+        zoom: { A: { "render.x": 9, "warmAfter.a.b": 5 }, B: {} },
+      },
+    },
+    raises: [],
+  };
+  const verdict = judge(r, {
+    60: { zoom: { "render.x": 9 } },
+    "60:app-pages@zoom0": { zoom: { "render.x": 9 } },
+    "60:app-pages@zoom0.1": {
+      zoom: { "render.x": 7, "warmAfter.a.b": 5, "render.y": 3 },
+    },
+  });
+  const next = applyUpdate(r, verdict, { today: "2026-10-18" });
+  assert.equal(next.seeds["60:app-pages@zoom0.1"].zoom.A["render.x"], 7);
+  assert.equal(next.seeds["60:app-pages@zoom0.1"].zoom.B["render.y"], 3);
+  assert.equal(next.seeds[60].zoom.A["render.x"], 9);
+  const raised = applyRaise(
+    r,
+    {
+      path: "seeds.60:app-pages@zoom0.1.zoom.A.warmAfter.a.b",
+      to: 6,
+      approvedBy: "u",
+      reason: "t",
+      expires: "2026-11-01",
+    },
+    "2026-10-18",
+  );
+  assert.equal(raised.raises[0].from, 5);
+});
