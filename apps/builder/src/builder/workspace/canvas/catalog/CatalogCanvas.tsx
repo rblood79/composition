@@ -276,15 +276,17 @@ export function CatalogCanvas({
   );
   // Only the active page shows its header (pages' headers would sit over the page above at a
   // small gap); a component sample's or definition's frame keeps its own.
-  const shownHeaderFrames = useMemo(
-    () =>
-      activePageHeaderFrames(
-        headerFrames,
-        activePageId,
-        (id) => workspace.runtime.graph.getEntry(id)?.kind === "page",
-      ),
-    [headerFrames, activePageId, workspace],
-  );
+  const shownHeaderFrames = useMemo(() => {
+    // One project read, not one entry read per frame (page switch runs this).
+    const graph = workspace.runtime.graph;
+    const project = graph.getEntry(graph.projectId);
+    const pageIds = new Set<string>(
+      project?.kind === "project" ? project.pageIds : [],
+    );
+    return activePageHeaderFrames(headerFrames, activePageId, (id) =>
+      pageIds.has(id),
+    );
+  }, [headerFrames, activePageId, workspace]);
   const hasSelection = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().selection.length > 0,
