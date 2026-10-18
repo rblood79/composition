@@ -20,6 +20,7 @@ import { DataUsageSourceContext } from "../../panels/datatable/usage/dataUsageSo
 import { QuickConnectHostContext } from "../../panels/datatable/usage/quickConnectHost";
 import { DesignPanel } from "../../panels/design/DesignPanel";
 import { useDesignPanelView } from "../../panels/design/designPanelView";
+import { CatalogAttributesSection } from "../../panels/properties/catalog/CatalogAttributesSection";
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
 import { CatalogSlotSection } from "../../panels/properties/catalog/CatalogSlotSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
@@ -112,6 +113,49 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect("command" in set("a", "hero")).toBe(true);
     set("a", "");
     expect(graph.getEntry(id("a"))).not.toHaveProperty("metadata.htmlId");
+  });
+
+  // The old ID field (idValidation · PropertyCustomId): an HTML id starts with a letter and holds
+  // letters, digits, hyphens and underscores — a malformed or taken id shows a message under the
+  // field and keeps the stored id.
+  it("the ID field refuses a malformed or taken id under the field and keeps the stored one", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const [item] = workspace.itemsOfNode(id("b"), 1);
+    workspace.session.select([item!]);
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogAttributesSection
+            target={item!.target}
+            identity={item!.identity}
+          />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const field = () =>
+      screen.getByRole("group", { name: "ID" }).querySelector("input")!;
+    const commit = async (value: string) => {
+      fireEvent.change(field(), { target: { value } });
+      await act(async () => {
+        fireEvent.keyDown(field(), { key: "Enter" });
+      });
+    };
+    const stored = () =>
+      (graph.getEntry(id("b")) as NodeEntry).metadata?.htmlId;
+    expect(stored()).toBe("text_2");
+    for (const bad of ["1abc", "a b", "a.b", "제목"]) {
+      await commit(bad);
+      expect([bad, stored()]).toEqual([bad, "text_2"]);
+      expect(screen.getByRole("alert").textContent).toMatch(/start with a letter/);
+      expect(field().value).toBe("text_2");
+    }
+    await commit("text_1");
+    expect(stored()).toBe("text_2");
+    expect(screen.getByRole("alert").textContent).toMatch(/text_1/);
+    await commit("hero-1_a");
+    expect(stored()).toBe("hero-1_a");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("a collection offers no items manager — its items are child nodes or its data binding", async () => {

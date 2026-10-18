@@ -26,6 +26,29 @@ describe("ADR-248 Phase 4e catalog History labels", () => {
         ]);
   });
 
+  // Every command's default label (`label ?? "…"`) is a History entry a user sees; one missing from
+  // the table shows in English with the edit icon (2026-10-18: Swap · Push · Reset override …).
+  it("every command default label is localized", () => {
+    const defaults = new Set<string>();
+    const sources = import.meta.glob<string>(
+      [
+        "../../../../../../packages/shared/src/catalog/commands/**/*.ts",
+        "../../catalogRuntime/dataHistory.ts",
+        "!**/*.test.ts",
+      ],
+      { query: "?raw", import: "default", eager: true },
+    );
+    for (const source of Object.values(sources))
+      for (const match of source.matchAll(/label \?\? "([^"]+)"/g))
+        defaults.add(match[1]);
+    expect(defaults.size).toBeGreaterThan(40);
+    const t = (key: string) => key;
+    const unlocalized = [...defaults].filter(
+      (label) => catalogHistoryEntryView(label, t).text === label,
+    );
+    expect(unlocalized).toEqual([]);
+  });
+
   it("localizes known and AI labels; an unknown label (a data change) stays as written", () => {
     const t = (key: string, params?: Record<string, string | number>) =>
       `${key}${params ? JSON.stringify(params) : ""}`;

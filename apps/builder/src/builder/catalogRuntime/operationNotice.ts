@@ -16,7 +16,6 @@ import {
 } from "../workspace/canvas/interaction/nestingToast";
 
 const REASON_KEY: Record<string, string> = {
-  GROUP_PARENTS_DIFFER: "operation.groupParentsDiffer",
   UNGROUP_INSTANCE: "operation.ungroupInstance",
   TEMPLATE_ROOT_FIXED: "operation.templateAnchorLocked",
   REPLACEMENT_NOT_MOVABLE: "operation.templateAnchorLocked",

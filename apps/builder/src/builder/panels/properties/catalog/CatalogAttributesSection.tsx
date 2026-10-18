@@ -1,4 +1,4 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Fingerprint } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
@@ -9,6 +9,7 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   catalogHtmlIdBase,
   catalogHtmlIdCommand,
+  catalogHtmlIdWellFormed,
   catalogAutomaticHtmlId,
   catalogUniqueHtmlId,
 } from "../../../catalogRuntime/attributes";
@@ -81,18 +82,30 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
     },
     [nodeId, run],
   );
+  // A refused id shows under the field and the field shows the stored id again (the old ID
+  // field); the message belongs to the element it was typed for.
+  const [idError, setIdError] = useState<{ node: string; message: string }>();
+  const [idField, setIdField] = useState(0);
   const handleHtmlId = useCallback(
     (value: string) => {
-      if (!nodeId || value.trim() === htmlId) return;
-      const edit = catalogHtmlIdCommand(graph, nodeId, value);
-      if ("refused" in edit) {
-        globalToast.error(t("propertiesPanel.idTaken", { id: value.trim() }));
-        return;
-      }
+      if (!nodeId) return;
+      const next = value.trim();
+      const refuse = (message: string) => {
+        setIdError({ node: nodeId, message });
+        setIdField((n) => n + 1);
+      };
+      if (next && !catalogHtmlIdWellFormed(next))
+        return refuse(t("propertiesPanel.idInvalid"));
+      if (next === htmlId) return setIdError(undefined);
+      const edit = catalogHtmlIdCommand(graph, nodeId, next);
+      if ("refused" in edit)
+        return refuse(t("propertiesPanel.idTaken", { id: next }));
+      setIdError(undefined);
       run(edit.command);
     },
     [graph, htmlId, nodeId, run, t],
   );
+  const idMessage = idError?.node === nodeId ? idError?.message : undefined;
   const handleCheckId = useCallback(() => {
     if (!nodeId) return;
     const undo = () => workspace.undo();
@@ -137,10 +150,18 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
       {nodeId && (
         <div className="fieldset-row" data-wide="true">
           <PropertyInput
+            key={idField}
             label="ID"
             value={htmlId}
             onChange={handleHtmlId}
             placeholder={automaticHtmlId}
+            afterControl={
+              idMessage ? (
+                <span slot="description" role="alert">
+                  {idMessage}
+                </span>
+              ) : undefined
+            }
           />
           <div className="fieldset-actions">
             <ActionTooltipTrigger tooltip={t("propertiesPanel.idCheckUnique")}>

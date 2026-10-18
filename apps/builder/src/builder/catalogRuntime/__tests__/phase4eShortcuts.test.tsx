@@ -147,6 +147,32 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(children("list")).toHaveLength(3);
   });
 
+  // The old paste (resolvePasteTargetParentId · nearest-ancestor): into the selected element, at
+  // its end; an element that cannot hold the copy (a Text) passes it to its parent, after itself.
+  it("paste goes into the selected container; a leaf passes it to its parent after itself", async () => {
+    const { workspace, record, children, selected } = await open();
+    workspace.selectRecords([record("a")]);
+    runCatalogShortcut(workspace, "copy");
+    workspace.selectRecords([record("list")]);
+    expect(runCatalogShortcut(workspace, "paste")).toBe(true);
+    const pasted = children("list")[3]!;
+    expect(children("list")).toEqual([id("a"), id("b"), id("c"), pasted]);
+    expect(children("home-body")).toEqual([id("list")]);
+    expect(selected()).toEqual([pasted]);
+
+    workspace.selectRecords([record("b")]);
+    expect(runCatalogShortcut(workspace, "paste")).toBe(true);
+    expect(children("list")).toHaveLength(5);
+    expect(children("list")[2]).not.toBe(id("c"));
+    expect(children("list")[1]).toBe(id("b"));
+    // …with the old relocation notice: where it went instead.
+    const relocated = useToastStore
+      .getState()
+      .toasts.find((t) => t.messageKey?.includes("Relocated"));
+    expect(relocated?.messageParams).toMatchObject({ child: "Text" });
+    useToastStore.setState({ toasts: [] });
+  });
+
   it("paste without a selection goes into the page body; nothing copied or selected = no step", async () => {
     const { workspace, record, children, steps } = await open();
     workspace.session.clearSelection();
@@ -173,7 +199,7 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(runCatalogShortcut(workspace, "delete")).toBe(true);
     expect(toasts()).toContain("operation.bodyLocked");
     expect(children(BODY)).toHaveLength(1);
-    // Elements under different parents cannot be grouped.
+    // Elements under different parents group at the first one's place (the old Pencil-style group).
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
@@ -184,7 +210,11 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     );
     workspace.selectRecords([record("a"), record("d")]);
     expect(runCatalogShortcut(workspace, "group")).toBe(true);
-    expect(toasts()).toContain("operation.groupParentsDiffer");
+    const group = children("list")[0]!;
+    expect(children("list")).toEqual([group, id("b"), id("c")]);
+    expect(children(group)).toEqual([id("a"), id("d")]);
+    expect(children(BODY)).toEqual([id("list")]);
+    workspace.undo();
     expect(children("list")).toEqual([id("a"), id("b"), id("c")]);
 
     // Palette: a Text cannot hold a Button, so it goes to the Text's parent (the frame) — with

@@ -1682,8 +1682,10 @@ export interface GroupNodesInput {
   label?: string;
 }
 /**
- * Wrap sibling nodes in a new group node at the first one's position, keeping their order. The
- * caller supplies the group record (its definition and any geometry the product computes).
+ * Wrap nodes in a new group node. Siblings: at the first one's position, keeping their order.
+ * Under different parents (the old Pencil-style group, user decision): at the first selected one's
+ * parent and position, the others moved in after it in selection order. The caller supplies the
+ * group record (its definition and any geometry the product computes).
  */
 export const groupNodes =
   (input: GroupNodesInput): CatalogCommand =>
@@ -1696,12 +1698,24 @@ export const groupNodes =
     const located = roots.map((id) => ({ id, ...locate(draft, id) }));
     const parent = located[0].parent;
     const key = (item: NodeParent) => JSON.stringify(item);
-    if (located.some((item) => key(item.parent) !== key(parent)))
-      fail("GROUP_PARENTS_DIFFER", roots[0]);
+    const siblings = located.every((item) => key(item.parent) === key(parent));
     assertNestable(draft, parent, [input.group.definitionId]);
+    // The members leave their other parents first (a different parent keeps its own order).
+    if (!siblings)
+      for (const item of located)
+        if (key(item.parent) !== key(parent))
+          setChildList(
+            draft,
+            item.parent,
+            (childList(draft, item.parent) ?? []).filter((id) => id !== item.id),
+          );
     const list = childList(draft, parent) ?? [];
-    const members = list.filter((id) => roots.includes(id));
-    const at = Math.min(...located.map((item) => item.index));
+    const members = siblings
+      ? list.filter((id) => roots.includes(id))
+      : [...roots];
+    const at = siblings
+      ? Math.min(...located.map((item) => item.index))
+      : located[0].index;
     // (The members sit under the group and the group's parent chain: a member that needs an owner —
     // a TabList in Tabs, ADR-256 Phase 5e-2 — finds it above the group.)
     assertNestableUnder(

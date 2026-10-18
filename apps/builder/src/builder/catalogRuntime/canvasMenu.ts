@@ -78,6 +78,11 @@ export interface CatalogMenuHost {
    * user why nothing happened, as the old `notifyOperationRejected` did).
    */
   noteRefusal?(itemId: string, error: unknown): void;
+  /**
+   * A paste the selected element refused went to `parent` instead: the old relocation notice
+   * (with undo) when the refusal is a nesting rule.
+   */
+  notePasteRelocated?(refusal: unknown, parent: NodeParent): void;
   /** A scene point as a placement inside a record (its padding-box origin) — "Paste here". */
   pointIn?(
     identity: string,
@@ -316,13 +321,29 @@ export function catalogCanvasMenuItems(
     run: () => host.clipboard.set(copyNodes(host.graph, ids)),
   };
   items.push(copy);
-  // Paste after the last selected element, in its parent.
+  // Paste into the last selected element, at its end (the old paste — the palette's rule); one that
+  // cannot hold the copy passes it to its parent, after itself, with the old relocation notice.
   const last = host.records.get(elements[elements.length - 1].identity)!;
   const parent = host.records.get(last.parentId);
   // ADR-261: where the node lives — inside an instance, its slot (`fillSlot`), never the origin's
   // or the layout's template node the parent record was projected from.
   const into = catalogParentOfNode(host.graph, ids[ids.length - 1]);
-  if (parent && into) {
+  const inside = pasteInto({ kind: "node", id: ids[ids.length - 1] });
+  let refusedInside: unknown;
+  if (inside)
+    try {
+      if (process.env.NODE_ENV === "development") docCounters.menuDryRuns += 1;
+      inside(host.graph);
+    } catch (error) {
+      if (process.env.NODE_ENV === "development")
+        docCounters.menuRefusals += 1;
+      refusedInside = error;
+    }
+  if (inside && refusedInside === undefined)
+    items.push(
+      ...action("paste", "contextMenu.paste", inside, "paste", ACTION_ICONS.paste),
+    );
+  else if (parent && into) {
     const at = parent.children.indexOf(last.id) + 1;
     const paste = pasteInto(into, at);
     if (paste)
@@ -333,6 +354,16 @@ export function catalogCanvasMenuItems(
           paste,
           "paste",
           ACTION_ICONS.paste,
+        ).map((item) =>
+          item.kind === "action" && refusedInside !== undefined
+            ? {
+                ...item,
+                run: () => {
+                  void item.run();
+                  host.notePasteRelocated?.(refusedInside, into);
+                },
+              }
+            : item,
         ),
       );
   }

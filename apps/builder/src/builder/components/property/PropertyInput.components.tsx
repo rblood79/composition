@@ -212,6 +212,7 @@ export const PropertyInputControl = memo(
         icon={icon}
         labelMode={labelMode}
         suffixLabel={suffixLabel}
+        afterControl={afterControl}
         className={
           stateNames && stateNames.length > 0
             ? `${className ?? ""} property-input-with-suggest`.trim()
@@ -258,7 +259,6 @@ export const PropertyInputControl = memo(
           />
         )}
         {suggestionList}
-        {afterControl}
       </PropertyFieldset>
     );
   },

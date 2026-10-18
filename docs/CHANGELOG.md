@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-248 이전 동작 복원 — 붙여넣기 · 그룹 · 글자 편집 · Layout 열기 · ID 검사 · History 라벨] - 2026-10-19
+
+ADR-248 이전 앱 (`a32159bc4`) 과 비교해 찾은 기록 없는 회귀 중 사용자가 「이전 동작으로」 고른 6건이다 (2026-10-18). 범위 선택 (marquee) 은 지금 동작을 유지한다.
+
+### Fixed
+
+- **⌘V 가 선택한 요소 안으로 들어간다**:
+  - Frame 을 고르고 붙여넣으면 그 안 끝에 들어간다. 받을 수 없는 요소 (Text 등) 를 고르면 그 부모의 선택 바로 뒤에 들어가고, 옮겨졌다는 안내와 되돌리기가 뜬다.
+  - **Why**: Canvas 메뉴로 옮길 때 붙여넣기가 「선택의 부모 안, 선택 뒤」 한 가지만 남아 옛 `resolvePasteTargetParentId` (선택 요소 안 → 못 들어가면 가까운 조상) 를 잃었다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasMenu.ts` · `shortcuts.ts`
+- **⌘G 로 부모가 다른 요소도 묶는다**:
+  - 첫 선택 요소의 부모 · 자리에 frame 이 생기고 나머지가 선택 순서대로 옮겨 들어간다. 다른 page 의 요소도 같다.
+  - **Why**: `groupNodes` 가 같은 부모만 받아 `GROUP_PARENTS_DIFFER` 로 거부했다. 옛 앱의 Pencil 방식 결정 (`elementGrouping.ts`) 이 빠졌다.
+  - 위치: `packages/shared/src/catalog/commands/structure.ts`
+- **글자 편집 중 Canvas 가 따라 바뀐다**:
+  - 입력하는 동안 내용에 맞춰지는 글자 상자가 커지고 형제가 밀린다. 문서 쓰기와 히스토리는 확정할 때 한 번이고, 바뀐 것 없이 끝내면 원래 글자로 돌아간다.
+  - **Why**: 새 편집기가 편집창 높이만 늘리고 레이아웃은 확정 뒤에만 바꿨다. 옛 `silentUpdateTextProp` 의 실시간 반영이 빠졌다. 지금은 Styles 드래그와 같은 `previewRecord` 를 쓰고, 미리보기에 글자 (`props`) 축을 더했다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogTextEditor.tsx` · `packages/shared/src/catalog/runtime/compositionRoot.ts`
+- **Layouts 탭에서 layout 을 열거나 추가하면 그 body 가 선택된다**:
+  - Layers 의 Body 행과 Design 패널의 Layout Preset · Slots 가 바로 열린다.
+  - **Why**: 정의 편집 화면에 들어가면 선택이 비워지는데, 옛 `LayoutsTab.selectLayoutBody` 가 하던 body 선택이 옮겨지지 않았다. page 쪽 같은 결함은 바로 아래 엔트리에서 고쳤다.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogDefinitionsSection.tsx`
+- **ID 칸의 형식 검사**:
+  - 영문자로 시작하고 영문자 · 숫자 · `-` · `_` 만 받는다. 틀리거나 다른 요소가 쓰는 ID 는 칸 아래에 이유를 보여 주고 저장된 값을 되돌린다 (중복도 toast 가 아니라 칸 아래).
+  - **Why**: catalog 이관 뒤에는 중복만 막아 `1abc` · `a.b` 같은 ID 가 저장됐다. 옛 `isValidHtmlId` 가 빠졌다.
+  - 함께 고친 것: `PropertyInput` 이 칸 아래 문구 (`afterControl`) 를 입력 상자 안에 넣고 있었다. 이제 `PropertyFieldset` 의 칸 아래 자리에 둔다 (숫자 형식 칸의 오류 문구도 같은 자리로).
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogAttributesSection.tsx` · `catalogRuntime/attributes.ts` · `components/property/PropertyInput.components.tsx`
+- **History 라벨 16종 번역**:
+  - Swap instance · Push changes · Reset override · Restore origin · 속성 만들기/적용/해제/이름 · Show when · Edit data 등이 영어 원문과 기본 아이콘으로 보이던 것을 고쳤다.
+  - 게이트: 모든 명령의 기본 라벨 (`label ?? "…"`) 이 표에 있는지 테스트가 확인한다.
+  - 위치: `apps/builder/src/builder/panels/history/catalogHistoryLabels.ts`
+
 ## [Pages 에서 page 를 고르면 body 가 선택된다 — Navigator 선택 회귀 수리] - 2026-10-18
 
 ### Fixed

@@ -88,6 +88,14 @@ export function catalogAutomaticHtmlId(
 }
 
 /**
+ * An author DOM id's form (the old ID field's `isValidHtmlId`): a letter first, then letters,
+ * digits, hyphens and underscores — a valid HTML id, CSS `#id` and interaction target.
+ */
+export function catalogHtmlIdWellFormed(htmlId: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9_-]*$/.test(htmlId);
+}
+
+/**
  * ADR-248 Phase 4e-4: an author DOM id edit as one command, or the reason it is refused (another
  * node uses it — ids stay unique so interactions can target them). An empty id removes it.
  */

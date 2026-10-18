@@ -592,15 +592,27 @@ describe("ADR-248 Phase 4b structure commands", () => {
       "project:node:b",
       "project:node:c",
     ]);
-    expect(
-      code(() =>
-        groupNodes({
-          ids: ["project:node:a", "project:node:d"],
-          group: node("g2", "lib:definition:section"),
-          newId,
-        })(graph),
-      ),
-    ).toBe("GROUP_PARENTS_DIFFER");
+    // Under different parents (the old Pencil-style group): the group takes the first selected
+    // one's place, the others move in after it, in selection order.
+    const across = run(
+      graph,
+      groupNodes({
+        ids: ["project:node:a", "project:node:d"],
+        group: node("g2", "lib:definition:section"),
+        newId,
+      }),
+    );
+    expect(children(graph, "project:node:box")).toEqual([
+      "project:node:g2",
+      "project:node:g",
+    ]);
+    expect(children(graph, "project:node:g2")).toEqual([
+      "project:node:a",
+      "project:node:d",
+    ]);
+    expect(children(graph, "project:node:other")).toEqual([]);
+    undo(graph, across.result.inverse);
+    expect(children(graph, "project:node:other")).toEqual(["project:node:d"]);
     const ungrouped = run(
       graph,
       ungroupNodes({ ids: ["project:node:g"], newId }),

@@ -243,7 +243,6 @@ export interface TranslationKeys {
     tableCellsAligned: string;
     instanceChildLocked: string;
     notAllowed: string;
-    groupParentsDiffer: string;
     ungroupInstance: string;
   };
   history: {
@@ -353,6 +352,22 @@ export interface TranslationKeys {
       removeOverride: string;
       show: string;
       hide: string;
+      editColumnSpan: string;
+      showWhen: string;
+      createProperty: string;
+      applyProperty: string;
+      detachProperty: string;
+      renameProperty: string;
+      deleteProperty: string;
+      preferredComponents: string;
+      pushChanges: string;
+      resetAllChanges: string;
+      resetOverride: string;
+      resetSwap: string;
+      restoreOrigin: string;
+      setInstanceProperty: string;
+      swapInstance: string;
+      editData: string;
       aiEdit: string;
       aiDelete: string;
       aiInteraction: string;
@@ -692,6 +707,7 @@ export interface TranslationKeys {
     idCheckUnique: string;
     idUnique: string;
     idTaken: string;
+    idInvalid: string;
     idDeduped: string;
     idAssigned: string;
     resetField: string;

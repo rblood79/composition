@@ -5,7 +5,12 @@ import {
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogBoxModel } from "./boxModel";
-import { notifyBodyLocked, notifyOperationRefused } from "./operationNotice";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  notifyBodyLocked,
+  notifyInsertRelocated,
+  notifyOperationRefused,
+} from "./operationNotice";
 import {
   readCatalogClipboardFromSystem,
   writeCatalogClipboardToSystem,
@@ -75,6 +80,18 @@ export function catalogMenuHost(
       } catch (error) {
         onError(error);
       }
+    },
+    notePasteRelocated: (refusal, parent) => {
+      const graph = workspace.runtime.graph;
+      const entry =
+        parent.kind === "node" ? graph.getEntry(parent.id) : undefined;
+      notifyInsertRelocated(
+        refusal,
+        entry?.kind === "node"
+          ? definitionTypeName(graph, entry.definitionId)
+          : "",
+        () => workspace.undo(),
+      );
     },
     newId: workspace.newId,
     clipboard: {
