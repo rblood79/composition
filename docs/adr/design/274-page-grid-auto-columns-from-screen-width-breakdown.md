@@ -81,7 +81,7 @@
 **Phase 1 (파생)**
 - `resolvePageLayout(layout, tier, screenWidth)` 가 tier 의 gap · 트랙 폭으로 열 수를 직접 낸다. `resolveAutoColumns` 의 식은 그대로이고, 입력만 (보이는 폭, zoom) → (모니터 폭, 기준 배율) 이다. 모니터 폭이 없으면 `lastAutoColumns` 를 쓴다.
 - root `screenWidth` 옵션과 `setScreenWidth` 가 들어왔다. 열 수가 그대로면 레이아웃을 돌지 않는다. workspace 는 새 root 에 현재 모니터 폭을 넘기고, `CatalogBuilderCore` 는 첫 root 에 `window.screen.width` 를 준다. Canvas 의 `syncScreenWidth` 는 `window.screen.width` 정수 비교 하나다.
-- 지운 것: `catalogAutoColumns` · `setAutoColumns` · Canvas 의 zoom · rail inset 입력. `readCanvasRailInset` (`viewport/canvasChromeInset.ts`) 은 production 소비자가 0 이 됐다. 파일 삭제는 별도 승인 대상이라 남겨 두었다.
+- 지운 것: `catalogAutoColumns` · `setAutoColumns` · Canvas 의 zoom · rail inset 입력. `readCanvasRailInset` (`viewport/canvasChromeInset.ts`) 은 production 소비자가 0 이 되어, 사용자 승인 (2026-10-18 「쓰는 곳이 없어진 readCanvasRailInset 파일삭제」) 으로 파일과 테스트를 지웠다.
 - 사용자 결정 1 (breakpoint 공통): `breakpoints.*` 에 `autoFitZoom` 을 두지 않는다. 검증은 10 ~ 100 밖을 `INVALID_AUTO_FIT_ZOOM` 으로 거부하고, 명령은 경계값으로 맞춰 쓴다.
 - unit:
   - 손계산 표 §2 의 7 행 × 3 tier
