@@ -149,6 +149,41 @@ describe("ADR-248 4e Navigator tabs", () => {
     workspace.dispose();
   });
 
+  it("choosing a page selects its body (Layers row · Canvas page frame)", async () => {
+    const { workspace } = await open();
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogNavigatorPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const bodyOf = (pageId: string) => {
+      const page = workspace.runtime.graph.getEntry(pageId);
+      return page?.kind === "page" ? page.children[0] : undefined;
+    };
+    const selected = () =>
+      workspace.session.getSnapshot().selection.map((item) => item.identity);
+    const pages = () => within(screen.getByRole("treegrid", { name: "Pages" }));
+
+    // A new page opens with its body selected.
+    fireEvent.click(screen.getByLabelText("Add Page"));
+    const added = workspace.session.getSnapshot().pageId!;
+    expect(added).not.toBe("project:page:home");
+    expect(selected()).toEqual(
+      workspace.itemsOfNode(bodyOf(added)!, 1).map((item) => item.identity),
+    );
+
+    // Choosing another page in the tree selects that page's body.
+    fireEvent.click(pages().getByText("Home"));
+    expect(workspace.session.getSnapshot().pageId).toBe("project:page:home");
+    expect(selected()).toEqual(
+      workspace.itemsOfNode(BODY, 1).map((item) => item.identity),
+    );
+    expect(selected()).toHaveLength(1);
+    workspace.dispose();
+  });
+
   it("Layers lists only what the selected tab is about", async () => {
     const { workspace, component } = await open();
     render(

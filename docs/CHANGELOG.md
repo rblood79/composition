@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Pages 에서 page 를 고르면 body 가 선택된다 — Navigator 선택 회귀 수리] - 2026-10-18
+
+### Fixed
+
+- **Navigator Pages 탭에서 page 를 골라도 Layers · Canvas 에 선택이 없던 문제** (사용자 보고):
+  - page 를 열면 선택이 비어 Layers 의 Body 행도, Canvas 의 page 프레임 선택 표시도 없었다.
+  - **Why**: ADR-248 Phase 4e-4a 로 Pages 를 catalog workspace 로 옮길 때 `openPage` 가 page 열기 (`session.setPage` — 선택을 비운다) 와 화면 이동만 남기고, 옛 `PagesSection` 의 body 선택 (`activatePage(page, body)`) 을 빠뜨렸다.
+  - 수정: page 선택 · 추가 · 삭제 뒤 인접 page 열기 · 같은 page 다시 누르기 모두 그 page 의 body 를 선택한다 — Canvas 페이지 헤더 누르기와 같은 선택.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogPagesSection.tsx`
+
 ## [Page Layout — Horizontal 폭 0 수리 · 페이지 헤더는 활성 페이지만] - 2026-10-18
 
 ### Changed

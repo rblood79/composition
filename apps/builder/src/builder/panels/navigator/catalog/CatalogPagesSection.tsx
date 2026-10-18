@@ -81,10 +81,15 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
     setPageQuery("");
   }, []);
 
+  // Opening a page selects its body — the page's selection (Layers row · Canvas page frame), as a
+  // page header press does. After the reveal: leaving a definition view replaces the root.
   const openPage = useCallback(
     (id: EntryId<"page">) => {
       workspace.session.setPage(id);
       workspace.revealPage(id);
+      const page = workspace.runtime.graph.getEntry(id);
+      const body = page?.kind === "page" ? page.children[0] : undefined;
+      if (body) workspace.session.select(workspace.itemsOfNode(body, 1));
     },
     [workspace],
   );
@@ -120,13 +125,11 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
   const handleSettings = useCallback(
     (page: CatalogTreePage) => {
       selectPage(page);
-      const body = entries.find((entry) => entry.id === page.id)?.children[0];
-      if (body) workspace.session.select(workspace.itemsOfNode(body, 1));
       openDesignPanel("property");
       // The Design panel's Property tab: its State section (the page's variables) opens and comes into view.
       useStateSectionFocus.getState().requestFocus(page.id);
     },
-    [entries, selectPage, workspace],
+    [selectPage],
   );
 
   const handleSelectionChange = useCallback(
