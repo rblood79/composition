@@ -154,8 +154,8 @@ export class CatalogWorkspace {
   readonly history: CatalogHistoryStore;
   private preview: CatalogPreviewChannel | undefined;
   private themeKey: string | undefined;
-  /** `columns: "auto"`: the column count the visible Canvas fits (kept across root switches). */
-  private autoColumns: number | undefined;
+  /** `columns: "auto"`: the monitor width the page grid's column count derives from (ADR-274). */
+  private screenWidth: number | undefined;
   private colorMode: "light" | "dark" | undefined;
 
   constructor(
@@ -164,6 +164,7 @@ export class CatalogWorkspace {
     private readonly options: CatalogWorkspaceOptions,
   ) {
     this.runtime = new CatalogRuntime(graph, storage);
+    this.screenWidth = options.root?.screenWidth;
     this.applyTheme();
     this.currentRoot = this.createRoot(options.root?.breakpoint ?? "desktop");
     this.session = new CatalogSession(this.runtime, {
@@ -198,7 +199,9 @@ export class CatalogWorkspace {
       {
         pageFrames: true,
         ...options.root,
-        ...(this.autoColumns ? { autoColumns: this.autoColumns } : {}),
+        // A new root derives its own tier's columns from the same monitor width (ADR-274 F5 —
+        //   one layout per breakpoint switch, no carried-over count to correct next frame).
+        ...(this.screenWidth ? { screenWidth: this.screenWidth } : {}),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
         ...(this.definitionView ? { definitionView: this.definitionView } : {}),
         breakpoint,
@@ -385,12 +388,12 @@ export class CatalogWorkspace {
     this.replaceRoot(this.currentRoot.breakpoint);
   }
   /**
-   * The page grid's `columns: "auto"` count (the Canvas computes it from its visible width and
-   * zoom — `catalogAutoColumns`). True = page frames moved (the Canvas binds its scene again).
+   * The monitor width (`screen.width`) the page grid's `columns: "auto"` derives from — the
+   * camera zoom is not an input (ADR-274). True = page frames moved (the Canvas places them).
    */
-  setAutoColumns(columns: number): boolean {
-    this.autoColumns = columns;
-    return this.currentRoot.setAutoColumns(columns);
+  setScreenWidth(width: number): boolean {
+    this.screenWidth = width;
+    return this.currentRoot.setScreenWidth(width);
   }
   subscribeRoot(listener: () => void): () => void {
     this.rootListeners.add(listener);

@@ -230,6 +230,9 @@ export function CatalogBuilderCore() {
         root: {
           // The breakpoint the Builder last showed (a Builder-wide choice, like the old app).
           breakpoint: readRememberedBreakpoint(),
+          // ADR-274: `columns: "auto"` derives from the monitor width — the first layout already
+          //   has it (the Canvas's frame check then changes nothing).
+          screenWidth: window.screen.width,
           // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
           rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
           rows: (binding, kind) =>

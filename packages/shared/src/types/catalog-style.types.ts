@@ -702,13 +702,13 @@ export interface PageLayoutSettingsDocument {
   /**
    * `direction:"auto"` 의 열 수 (≥ 1). **기본 `"auto"`** (필드 부재 = auto, 2026-09-23).
    *
-   * `"auto"` 는 **보이는 캔버스 폭에 들어가는 만큼** 을 쓴다 (zoom · 창 크기 파생, 2026-09-23
-   * 사용자 요청). ADR-232 는 이것을 기본 모델로 삼는 안 (대안 D) 을 기각했고 — zoom 마다 칸이
-   * 바뀌면 위치가 문서 상태가 아니라 뷰 상태가 된다 — 여기서는 **명시적으로 고른 모드** 다.
-   * 파생 입력은 zoom 이 아니라 그 zoom 에서 나온 **정수 열 수** 라 zoom 이 흔들려도 정수가
-   * 그대로면 재파생이 없다.
+   * `"auto"` 는 **기준 배율 (`autoFitZoom`) 로 줌아웃했을 때 모니터 한 폭에 들어가는 만큼** 을
+   * 쓴다 (ADR-274 — 모니터 폭 · 페이지 폭 · gap · 기준 배율 파생). 현재 zoom · 창 크기는 입력이
+   * 아니라서 확대 · 축소 · 패널 토글이 배치를 바꾸지 않는다 (ADR-232 대안 D 기각 사유와 같은 방향).
    */
   columns?: number | "auto";
+  /** `columns: "auto"` 의 기준 배율 (%, 10 ~ 100). 부재 = 40. breakpoint 공통 (ADR-274). */
+  autoFitZoom?: number;
   /** `gap` · `columns` 의 tier override — cascade 는 `getResponsiveValueWithCascade` 와 같다. */
   responsive?: {
     gap?: ResponsiveValue<number>;

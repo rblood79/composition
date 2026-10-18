@@ -965,7 +965,11 @@ function columns(value: unknown, at: string): void {
 }
 function pageLayout(value: unknown, at: string): void {
   const layout = object(value, at);
-  exact(layout, ["direction", "gap", "columns", "breakpoints"], at);
+  exact(
+    layout,
+    ["direction", "gap", "columns", "autoFitZoom", "breakpoints"],
+    at,
+  );
   if (
     layout.direction !== undefined &&
     !["auto", "vertical", "horizontal"].includes(layout.direction as string)
@@ -973,6 +977,15 @@ function pageLayout(value: unknown, at: string): void {
     invalid("INVALID_PAGE_DIRECTION", `${at}.direction`);
   if (layout.gap !== undefined) nonnegative(layout.gap, `${at}.gap`);
   if (layout.columns !== undefined) columns(layout.columns, `${at}.columns`);
+  // ADR-274: the auto columns' fit zoom (%) — the Settings range 10 ~ 100 (user decision 2).
+  if (
+    layout.autoFitZoom !== undefined &&
+    (typeof layout.autoFitZoom !== "number" ||
+      !Number.isFinite(layout.autoFitZoom) ||
+      layout.autoFitZoom < 10 ||
+      layout.autoFitZoom > 100)
+  )
+    invalid("INVALID_AUTO_FIT_ZOOM", `${at}.autoFitZoom`);
   if (layout.breakpoints !== undefined)
     for (const [tier, raw] of Object.entries(
       object(layout.breakpoints, `${at}.breakpoints`),

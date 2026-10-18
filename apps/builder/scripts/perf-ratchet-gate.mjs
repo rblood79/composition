@@ -566,13 +566,21 @@ export function runKeyOf(options) {
     fixture === "many-pages"
       ? `${fixture}${options.pages}${options.gridGap == null ? "" : `@gap${options.gridGap}`}`
       : fixture;
+  // ADR-274: 열 수를 고정한 run (`--page-columns`) 은 auto 문서와 다른 배치다 — 키를 가른다.
+  const laid =
+    options.pageColumns == null ? sized : `${sized}@cols${options.pageColumns}`;
   const base =
     fixture === DEFAULT_FIXTURE
       ? String(options.seedCount)
-      : `${options.seedCount}:${sized}`;
+      : `${options.seedCount}:${laid}`;
   // ADR-271: 시작 배율을 고정한 run (`--zoom`) 은 다른 기준이다 — 기본 배율 run 과 합치지 않는다.
   const zoomed = options.zoom == null ? base : `${base}@zoom${options.zoom}`;
-  return (options.dpr ?? 1) === 1 ? zoomed : `${zoomed}@dpr${options.dpr}`;
+  // ADR-274: 모니터 크기를 고정한 run (`--screen`) 은 auto 열 수가 다르다.
+  const screened =
+    options.screen == null
+      ? zoomed
+      : `${zoomed}@screen${options.screen.width}x${options.screen.height}`;
+  return (options.dpr ?? 1) === 1 ? screened : `${screened}@dpr${options.dpr}`;
 }
 
 /** 결과 JSON 의 options → 같은 조건을 재현하는 하니스 인자 (게이트가 이대로 다시 잰다). */
@@ -593,9 +601,13 @@ export function harnessArgsFrom(options) {
     if (options.gridGap != null)
       args.push("--grid-gap", String(options.gridGap));
   }
+  if (options.pageColumns != null)
+    args.push("--page-columns", String(options.pageColumns));
   if (options.callCounts) args.push("--call-counts");
   if ((options.dpr ?? 1) !== 1) args.push("--dpr", String(options.dpr));
   if (options.zoom != null) args.push("--zoom", String(options.zoom));
+  if (options.screen != null)
+    args.push("--screen", `${options.screen.width}x${options.screen.height}`);
   args.push("--classes", options.classes.join(","));
   return args;
 }

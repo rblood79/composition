@@ -93,7 +93,7 @@ export function derivePagePositions(
   const layout = resolvePageLayout(
     input.pageLayout,
     input.activeBreakpoint,
-    input.autoColumns,
+    input.screenWidth,
   );
   if (shouldReadStoredPositions(input, layout)) {
     return readLegacyPositions(input, layout);
@@ -177,7 +177,7 @@ export function buildPagePlacementMemoKey(
   const layout = resolvePageLayout(
     input.pageLayout,
     input.activeBreakpoint,
-    input.autoColumns,
+    input.screenWidth,
   );
   const sizes = input.pages
     .map((page) => {

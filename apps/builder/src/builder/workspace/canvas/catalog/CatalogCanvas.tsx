@@ -41,7 +41,6 @@ import {
   catalogGuideSnapLines,
   catalogGuidesByPage,
 } from "../../../catalogRuntime/pageGuides";
-import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
 import {
   catalogRowRemainderBox,
   catalogRowRemainders,
@@ -115,7 +114,6 @@ import {
 } from "../styleConversion/styleConverter";
 import { ViewportControlBridge } from "../viewport";
 import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
-import { readCanvasRailInset } from "../viewport/canvasChromeInset";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
@@ -811,19 +809,12 @@ export function CatalogCanvas({
         callbacks.current.onError?.(error);
       }
     };
-    // `columns: "auto"`: the page grid fits the visible width (without the panel rails) at this
-    // zoom; a changed count moves the page frames, so the scene binds again.
-    let railInset: number | undefined;
-    const syncAutoColumns = () => {
-      const { containerSize } = useViewportSyncStore.getState();
-      if (!containerSize.width) return;
-      railInset ??= readCanvasRailInset();
-      const columns = catalogAutoColumns(
-        workspace.root,
-        containerSize.width - railInset,
-        Math.max(viewportState.zoom, 0.001),
-      );
-      if (columns === undefined || !workspace.setAutoColumns(columns)) return;
+    // `columns: "auto"`: the page grid derives from the monitor width at the grid's fit zoom
+    // (ADR-274) — the camera zoom and the panel rails are not inputs, so zooming never moves a
+    // page. Only a window moved to another monitor changes this integer; the frames then move.
+    const syncScreenWidth = () => {
+      const width = window.screen.width;
+      if (!width || !workspace.setScreenWidth(width)) return;
       try {
         scene.pageGridChanged();
         renderer.invalidateContent();
@@ -837,7 +828,7 @@ export function CatalogCanvas({
     const renderFrame = () => {
       if (!running || contextLost) return;
       syncScene();
-      syncAutoColumns();
+      syncScreenWidth();
       // A drag's presentation (the dragged at the pointer, the siblings easing aside) is drawn at
       // execution from the offsets — the content redraws when they change.
       if (dragRecords) {
@@ -1559,7 +1550,6 @@ export function CatalogCanvas({
     const refit = () => {
       dpr = window.devicePixelRatio || 1;
       fit();
-      railInset = undefined;
       renderer.resize(canvas);
       renderer.invalidateContent();
       renderer.clearFrame();

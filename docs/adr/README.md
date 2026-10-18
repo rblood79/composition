@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-18 ADR-274 Implemented** (사용자 `/execute-adr 274`, Phase 0 ~ 3 / G0 ~ G5 같은 날) — 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율. 줌은 입력이 아니라서 확대 · 축소가 배치를 바꾸지 않는다. 열 수는 root `pageLayout()` 안에서 tier 의 gap · 트랙 폭으로 계산하므로 breakpoint 전환 · gap · 배율 편집의 두 번째 패스가 없다. Settings 열 수 칸: `%` = Auto (기준 배율), 단위 없음 = Fixed 개수. 사용자 결정: 배율 breakpoint 공통 · 범위 10 ~ 100 % · ratchet A 49 키 `--raise` (줌 갱신 사유 이동 · 시작 배치 변경). 줌 `translateCalls` 977 ~ 5,170 → 0. production 짝: 페이지 100 개 문서 줌 taskMs 2,497 → 870 · p99 49.9 → 17.6 ms · long task 4 → 0, 22 페이지 문서 줌 1,009 → 541. breakpoint 전환 · gap 편집 · 페이지 전환 · 편집은 회귀 0. live (사용자 프로젝트) 6 시나리오 PASS. live 에서 단위 입력의 빈 단위 대체 결함을 찾아 고쳤다. 열림 −1, 완료 +1 (열림 1 — Proposed 1 (245), 합계 296).
+
+> **2026-10-18 ADR-274 Proposed 추가** (사용자 `/create-adr`) — 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율 (기본 40 %). 지금 식은 입력에 zoom 이 있다. 그래서 확대하면 배치가 바뀌고 (사용자 지적 「zoom 40%일때 … 확대를 했는데 auto로 인해 배치가 달라져 버린다」), 정수가 바뀔 때마다 모든 page root 서브트리를 옮기고 전체를 재기록한다. 실측 (dev headless, auto ↔ 6 열 고정): many-pages 100 줌 `translateCalls` 5,170 → 0 · taskMs ~2,700 → ~1,415 · long task 8 → 0. 채택 대안 A: 줌은 입력에서 빠지고 gap 은 장면 좌표다. 열 수는 root 파생 안에서 계산하므로 breakpoint 전환 · gap 편집의 두 번째 레이아웃 패스도 없어진다. Settings 는 Auto = % · Fixed = 개수 (tier override 유지). 기각: 줌 끝 갱신 · 히스테리시스 (배치가 여전히 줌에 따라 바뀜) · 화면 px gap + 로컬 좌표 (사용자가 A 선택) · Canvas 영역 폭 (패널 토글 재배치). 사용자 결정 3 (기준 배율 tier override · 범위 · ratchet 상향). 열림 +1 (열림 2 — Proposed 2 (245 · 274), 합계 296).
+
 > **2026-10-18 ADR-272 Implemented** (G0 · G2 ~ G5 · Phase 1 no-go · Phase 3 생략) — G5 Chrome MCP live: 사용자 프로젝트 「123」 전체 보기 · 먼 페이지 점프 · 팬 · 선택 · marquee · 드래그 → ⌘Z 에서 빈 자리 · 늦게 그려지는 요소 0 · 콘솔 오류 0. 사용자 결정 3 = 「Implemented 로 종결」 — 참고 목표 (many-pages 줌 p99 ≤ 20 ms) 미달은 기록: 줌 본체는 JS 페이지 grid 재배치 (조건부 「로컬 좌표」 후보). 본문 `completed/` 로 이동. Pen.dev 비교 확정 4 건 종결 (270 · 271 · 272 · 273). 열림 −1, 완료 +1 (열림 1 — Proposed 1 (245), 합계 295).
 
 > **2026-10-18 ADR-272 G4 통과** (사용자 「진행」) — production 짝 (기준 `aaa2625e0` ↔ HEAD `90291a18a`, 교대 2 쌍 · 12 run): many-pages 100 줌 0.1 · 팬 · 먼 페이지 점프 · 편집 · `app-pages` 줌 · 편집 · 팬 · 페이지 전환 · 중첩 5k 편집 표시 간격 p99 · long task 회귀 0 · taskMs 쌍 차는 재측정으로 흔들림. many-pages 줌 p99 ~49 ms 기준과 같음 (참고 목표 20 ms 는 사용자 결정 3). 다음: G5. 열림 · 합계 변화 없음.
@@ -426,15 +430,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                       | 차단 · 선행                                                                                    |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                 | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
+| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
-## 완료 ADR (294)
+## 완료 ADR (295)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -735,6 +739,7 @@
 | [270](completed/270-image-load-path-partial-update-off-thread-decode.md) | 이미지 로드 경로 (Pen.dev 비교 도입 1/4) — 완료 = 소유 요소 dirty seed splice (image-loaded 재바인드 22 → 0 · 같은 프레임 편집이 남음) · 원본 치수 ↔ 그릴 bitmap 분리 · 디코딩 = 브라우저 코덱 `createImageBitmap` (메인 밖) → texture-backed (unpremul — 옛 디코더와 0 px) · lazy texture 는 context 복원 뒤 다시 올라감 (R8 반증 — 재요청 0) · 3b Worker 생략 (사용자 결정 1). production 이미지 로드 중 표시 간격 p99 33.4 → 16.8 ms | Implemented | 2026-10-18 |
 | [273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md) | Canvas 메모리 예산 (Pen.dev 비교 도입 4/4) — content 여백 = `min(512 CSS × dpr, 768)` (사용자 결정 1 — DPR 2 surface 합 164.5 → 132.2 MiB · 보통 팬 재기록 4 → 9) · 화면 GL context · GrDirectContext 를 `createSurface.ts` 가 소유 (resize 재사용 · 소실 abandon · 복원 재생성) · resource cache 한도 384 MiB (사용자 결정 2) · 자원별 상한 `canvasMemoryBudget.ts` 한 곳 + 보유량 표 `readMemoryHoldings()` (전역 퇴거 없음 — ADR-174). production 짝 회귀 0 · headed DPR 2 팬 p99 같음 | Implemented | 2026-10-18 |
 | [271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) | 축소 개요 LOD (Pen.dev 비교 도입 2/4) — **측정 기록 종결**: 0.5 px 이하 요소 몫 0 (사용자 프로젝트 0 / 1,589 — 생략 미도입, 사용자 결정) · 글자 줄 상자는 구현 뒤 dev A/B 에서 래스터 같음 · band 경계 재기록으로 줌 taskMs +12 ~ 16 % → 되돌림 (사용자 결정 3). 남긴 것: `zoom-ladder` · ratchet `@zoom` run 2 (dev 투영 크기 분포 카운터는 2026-10-18 보완에서 삭제). 남은 꼬리 = `drawPicture` 재생 수 (대안 C) | Implemented | 2026-10-18 |
+| [274](completed/274-page-grid-auto-columns-from-screen-width.md) | 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율 (기본 40 %) — 줌이 배치를 바꾸지 않는다 (줌 `translateCalls` → 0) · 열 수는 root 파생 안 (breakpoint 전환 · gap 편집 두 번째 패스 제거) · Settings `%` = Auto · 단위 없음 = Fixed · 배율 breakpoint 공통 · 10 ~ 100 % · production 짝 줌 taskMs 2,497 → 870 · ratchet A 49 키 상향 (사용자 결정 3) | Implemented | 2026-10-18 |
 | [272](completed/272-bounded-spatial-query-and-warmup-work-range.md) | 작업 범위 제한 (Pen.dev 비교 도입 3/4) — Phase 0 몫 표 (`many-pages` 100 · 300): 질의 ≤ 0.3 % → 전략 전환 no-go · 64 셀 넘는 항목 0 → 큰 항목 버킷 생략 (사용자 결정 2) · Phase 2 미리 기록: 자리 0 이면 생략 · 후보 = page root ∪ 공간 질의 · 가까운 k 개만 정렬 · 카메라 칸 · 자리를 못 채우면 전체 보충 (편집 뒤 준비 9.1 → 0.1 ms) · 참고 목표 미달은 기록 (사용자 결정 3) | Implemented | 2026-10-18 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)

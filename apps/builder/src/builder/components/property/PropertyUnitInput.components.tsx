@@ -81,10 +81,12 @@ export const PropertyUnitInputControl = memo(
     const parsed = useMemo(() => parseUnitValue(value), [value]);
     const numericValue = parsed.numericValue;
     // 단위 해석: parsed.unit이 비어있고 숫자가 있으면 units 목록에서 첫 번째 비키워드 단위로 폴백
-    // (e.g., borderWidth: "1" → unit="" → "px" 폴백)
+    // (e.g., borderWidth: "1" → unit="" → "px" 폴백). 목록에 `""` 가 있으면 빈 단위도 고를 수 있는
+    // 단위다 — 폴백하지 않는다 (ADR-274 Settings 열 수: `""` = 개수, `%` = 기준 배율. 폴백하면
+    // 개수 `10` 이 `10%` 로 보이고 다음 입력이 배율로 commit 된다).
     const resolvedUnit =
       parsed.unit ||
-      (parsed.numericValue !== null
+      (parsed.numericValue !== null && !units.includes("")
         ? defaultUnit ||
           units.find((u) => u !== "" && !KEYWORDS.includes(u)) ||
           ""

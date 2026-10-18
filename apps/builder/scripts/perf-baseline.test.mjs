@@ -348,8 +348,31 @@ test("--pages N 은 N 페이지를 시드하고 두 번째 페이지 선택은 �
   assert.match(source, /\{ x: col \* 1200, y: row \* 1100 \}/);
   assert.match(
     source,
-    /options\.fixtureKind,\n\s*options\.pages,\n\s*options\.gridGap \?\? undefined,\n\s*\);/,
+    /options\.fixtureKind,\n\s*options\.pages,\n\s*options\.gridGap \?\? undefined,\n\s*options\.pageColumns \?\? undefined,\n\s*\);/,
   );
+  // ADR-274: 열 수 고정은 1 ~ 24 정수 (문서 상한) · app-pages · many-pages 전용
+  assert.equal(parseArgs([]).pageColumns, null);
+  assert.equal(
+    parseArgs(["--fixture-kind", "app-pages", "--page-columns", "6"]).pageColumns,
+    6,
+  );
+  for (const bad of ["0", "2.5", "25"])
+    assert.throws(
+      () => parseArgs(["--fixture-kind", "many-pages", "--page-columns", bad]),
+      /page-columns 는 1 ~ 24/,
+    );
+  assert.throws(
+    () => parseArgs(["--page-columns", "6"]),
+    /app-pages · many-pages 전용/,
+  );
+  // ADR-274: 모니터 크기 (auto 열 수의 입력) — 기본 null = Playwright 기본 (viewport)
+  assert.equal(parseArgs([]).screen, null);
+  assert.deepEqual(parseArgs(["--screen", "2560x1440"]).screen, {
+    width: 2560,
+    height: 1440,
+  });
+  for (const bad of ["2560", "0x900", "2560.5x1440"])
+    assert.throws(() => parseArgs(["--screen", bad]), /screen 은 WxH/);
   // ADR-272: grid 간격은 many-pages 전용
   assert.equal(parseArgs([]).gridGap, null);
   assert.equal(

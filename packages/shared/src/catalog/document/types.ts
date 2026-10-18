@@ -375,6 +375,8 @@ export interface PageLayoutDeclaration {
   direction?: "auto" | "vertical" | "horizontal";
   gap?: number;
   columns?: number | "auto";
+  /** `columns: "auto"` 의 기준 배율 (%, 10 ~ 100) — breakpoint 공통. 부재 = 40 (ADR-274). */
+  autoFitZoom?: number;
   breakpoints?: Partial<
     Record<BreakpointName, { gap?: number; columns?: number | "auto" }>
   >;

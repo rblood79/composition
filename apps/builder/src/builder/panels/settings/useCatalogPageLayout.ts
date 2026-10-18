@@ -50,5 +50,9 @@ export function useCatalogPageLayout(): {
     [workspace],
   );
   if (!workspace) return null;
-  return { view: catalogPageLayoutView(layout, breakpoint), change };
+  // The monitor width the Canvas derives auto columns from (ADR-274) — the drawn count.
+  return {
+    view: catalogPageLayoutView(layout, breakpoint, window.screen.width),
+    change,
+  };
 }

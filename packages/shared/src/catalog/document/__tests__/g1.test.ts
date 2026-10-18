@@ -1134,6 +1134,27 @@ describe("ADR-248 G1 isolated catalog graph", () => {
           ]),
         "NONNEGATIVE_NUMBER_REQUIRED",
       );
+      // ADR-274: the auto columns' fit zoom (%) is stored within the Settings range 10 ~ 100.
+      request(graph, [
+        {
+          kind: "put",
+          entry: { ...root, pageLayout: { columns: "auto", autoFitZoom: 40 } },
+        },
+      ]);
+      expect(
+        (graph.getEntry(root.id) as typeof root).pageLayout?.autoFitZoom,
+      ).toBe(40);
+      for (const autoFitZoom of [5, 101, Number.NaN])
+        failureCode(
+          () =>
+            request(graph, [
+              {
+                kind: "put",
+                entry: { ...root, pageLayout: { autoFitZoom } },
+              },
+            ]),
+          "INVALID_AUTO_FIT_ZOOM",
+        );
     },
   );
 

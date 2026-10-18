@@ -28,6 +28,10 @@ import { PanelContents } from "../../components/panel/PanelContents";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
+import {
+  catalogPageColumnsChange,
+  catalogPageColumnsFieldValue,
+} from "../../catalogRuntime/pageLayoutSettings";
 import { useCatalogPageLayout } from "./useCatalogPageLayout";
 import { useCatalogToastPlacement } from "./useCatalogToastPlacement";
 import type { CatalogToastPlacement } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -52,8 +56,10 @@ function SettingsContent() {
   const catalogLayout = useCatalogPageLayout();
   const layoutView = catalogLayout?.view;
   const effectiveDirection = layoutView?.direction ?? "horizontal";
-  // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
-  const columnsFieldValue = layoutView ? String(layoutView.columns) : "";
+  // ADR-274: Auto = 기준 배율 (`40%`), Fixed = 개수 (`3`) — 같은 칸의 단위가 모드다.
+  const columnsFieldValue = layoutView
+    ? catalogPageColumnsFieldValue(layoutView)
+    : "";
 
   // S2 ToastContainer placement — the open project's app (Preview · Publish) toast region. S2's
   // one value (`top` · `top end` · `bottom` · `bottom end`) is two fields here, as S2's Toast reads
@@ -134,14 +140,9 @@ function SettingsContent() {
   };
 
   const handlePageColumnsChange = (value: string) => {
-    // ADR-232 후속 (2026-09-23) — "auto" = 보이는 캔버스 폭에 들어가는 만큼.
-    if (value.trim().toLowerCase() === "auto") {
-      catalogLayout?.change({ kind: "columns", columns: "auto" });
-      return;
-    }
-    const next = Number.parseInt(value, 10);
-    if (!Number.isFinite(next) || next < 1) return;
-    catalogLayout?.change({ kind: "columns", columns: next });
+    if (!layoutView) return;
+    const change = catalogPageColumnsChange(layoutView, value);
+    if (change) catalogLayout?.change(change);
   };
 
   return (
@@ -205,11 +206,14 @@ function SettingsContent() {
               <PropertyUnitInput
                 label={t("settings.pageColumns")}
                 value={columnsFieldValue}
+                // 개수 1 ~ 24 · 배율 10 ~ 100 % (사용자 결정 2) — 한 칸이라 넓은 쪽으로 받고
+                //   단위별 범위는 명령이 맞춘다 (`catalogPageColumnsChange`).
                 min={1}
-                max={24}
+                max={100}
                 onChange={handlePageColumnsChange}
-                // "auto" 는 단위 목록의 항목이자 타이핑으로도 받는 키워드다 (2026-09-23).
-                units={["", "auto"]}
+                // `%` = Auto (이 배율로 줌아웃하면 모니터 한 폭에 들어가는 만큼 — ADR-274), 단위
+                //   없음 = Fixed 개수. `auto` 를 쳐도 Auto 다.
+                units={["", "%"]}
                 unitSuffix
                 allowKeywords
               />

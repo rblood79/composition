@@ -390,8 +390,9 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
       clips: Object.fromEntries(stream.clipContextByElement),
     });
     let changed = false;
-    for (const columns of [1, 3, 2]) {
-      if (!workspace.setAutoColumns(columns)) continue;
+    // ADR-274: monitor widths of 1 · 3 · 2 Desktop columns at 40 %.
+    for (const screenWidth of [1440, 2560, 1920]) {
+      if (!workspace.setScreenWidth(screenWidth)) continue;
       changed = true;
       const sync = scene.pageGridChanged();
       expect(sync.kind).toBe("placed");

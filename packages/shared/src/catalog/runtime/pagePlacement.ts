@@ -51,6 +51,14 @@ export const DEFAULT_PAGE_LAYOUT_GAP = 80;
 export const DEFAULT_PAGE_LAYOUT_COLUMNS = 3;
 /** Settings 입력 상한과 같은 값 — auto 도 이 위로는 가지 않는다. */
 export const MAX_PAGE_LAYOUT_COLUMNS = 24;
+/**
+ * `columns: "auto"` 의 기준 배율 (%) — 이 배율로 줌아웃했을 때 모니터 한 폭에 들어가는 만큼이
+ * 열 수다 (ADR-274 사용자 확정 2026-10-18 「Auto 의 기본 40%」). 범위는 빌더 최소 줌 0.1 ~ 1
+ * (사용자 결정 2). breakpoint 공통이다 (사용자 결정 1).
+ */
+export const DEFAULT_PAGE_LAYOUT_AUTO_FIT_ZOOM = 40;
+export const MIN_PAGE_LAYOUT_AUTO_FIT_ZOOM = 10;
+export const MAX_PAGE_LAYOUT_AUTO_FIT_ZOOM = 100;
 export const DEFAULT_PAGE_LAYOUT_DIRECTION: PageLayoutDirection = "auto";
 
 export interface PagePlacementSize {
@@ -81,10 +89,10 @@ export interface DerivePagePositionsInput {
     Record<string, Partial<Record<BreakpointName, PagePositionPoint>>>
   >;
   /**
-   * `columns: "auto"` 일 때 쓸 정수 열 수 — 호출자가 보이는 캔버스 폭과 zoom 에서 계산한다
-   * (`resolveAutoColumns`). 정수로 받는 이유는 메모 키가 zoom 연속값을 타지 않게 하기 위함.
+   * `columns: "auto"` 의 입력 — 모니터 폭 (CSS px, `screen.width`). 열 수는 이 폭 · 기준 배율 ·
+   * 트랙 폭 · gap 에서 나온다 (ADR-274 — zoom 은 입력이 아니다).
    */
-  autoColumns?: number;
+  screenWidth?: number;
 }
 
 /** 활성 tier 로 해석된 컨테이너 설정. */
@@ -92,8 +100,10 @@ export interface ResolvedPageLayout {
   direction: PageLayoutDirection;
   gap: number;
   columns: number;
-  /** 열 수가 설정값이 아니라 보이는 캔버스 폭에서 나왔는가 (`columns: "auto"`). */
+  /** 열 수가 설정값이 아니라 모니터 폭에서 나왔는가 (`columns: "auto"`). */
   columnsAuto: boolean;
+  /** auto 의 기준 배율 (%) — breakpoint 공통 (ADR-274). */
+  autoFitZoom: number;
   /** 열 track 폭 = 그 breakpoint 의 페이지 폭 (저장하지 않고 파생 시 계산). */
   trackWidth: number;
   placementModel: PagePlacementModel | null;
@@ -106,22 +116,22 @@ function normalizeDirection(value: unknown): PageLayoutDirection {
 }
 
 /**
- * 보이는 캔버스 폭에 들어가는 열 수 (2026-09-23 사용자 요청 — `columns: "auto"`).
- *
- * 입력은 **정수 하나** 로 끝난다: 호출자가 이 값을 파생 입력으로 넘기므로 zoom 이 연속으로
- * 흔들려도 정수가 그대로면 메모 키가 같아 엔진을 부르지 않는다 (「가장 적은 비용」).
+ * `columns: "auto"` 의 열 수 — 기준 배율로 줌아웃했을 때 모니터 한 폭에 들어가는 개수
+ * (ADR-274). 입력에 현재 zoom 은 없다: 확대 · 축소가 페이지 배치를 바꾸지 않는다 (사용자 지적
+ * 2026-10-18 「확대를 했는데 auto로 인해 배치가 달라져 버린다」). gap 은 장면 좌표다.
  */
 export function resolveAutoColumns(
-  viewportWidth: number,
-  zoom: number,
+  screenWidth: number,
+  fitZoom: number,
   trackWidth: number,
   gap: number,
 ): number {
-  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+  if (!Number.isFinite(screenWidth) || screenWidth <= 0) {
     return DEFAULT_PAGE_LAYOUT_COLUMNS;
   }
-  if (!Number.isFinite(zoom) || zoom <= 0) return DEFAULT_PAGE_LAYOUT_COLUMNS;
-  const sceneWidth = viewportWidth / zoom;
+  if (!Number.isFinite(fitZoom) || fitZoom <= 0)
+    return DEFAULT_PAGE_LAYOUT_COLUMNS;
+  const sceneWidth = screenWidth / fitZoom;
   const stride = trackWidth + gap;
   if (stride <= 0) return DEFAULT_PAGE_LAYOUT_COLUMNS;
   // 마지막 열 뒤의 gap 은 필요 없다 → (폭 + gap) / stride.
@@ -130,9 +140,9 @@ export function resolveAutoColumns(
 }
 
 /**
- * 직전 파생이 쓴 auto 열 수. 편집 경로 (`pagePlacementCommit` 의 점 → 칸 판정) 는 화면에
- * 보이는 격자와 **같은 열 수** 를 써야 하는데 뷰포트를 직접 읽지 않는다 — 파생이 방금 쓴
- * 값을 그대로 물려준다. 파생이 한 번도 안 돌았으면 기본값.
+ * 직전 파생이 쓴 auto 열 수. 모니터 폭 없이 부르는 호출자 (scene 파생 테스트) 는 화면에 보이는
+ * 격자와 **같은 열 수** 를 써야 한다 — 파생이 방금 쓴 값을 그대로 물려준다. 파생이 한 번도 안
+ * 돌았으면 기본값. Canvas 편집 경로는 root 의 `pageLayout()` 이 모니터 폭을 넘긴다.
  */
 let lastAutoColumns = DEFAULT_PAGE_LAYOUT_COLUMNS;
 
@@ -151,16 +161,27 @@ function normalizeNumber(
     : fallback;
 }
 
+/** 기준 배율 (%) — 범위 밖은 경계값, 숫자가 아니면 기본 40. */
+export function normalizeAutoFitZoom(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value))
+    return DEFAULT_PAGE_LAYOUT_AUTO_FIT_ZOOM;
+  return Math.min(
+    MAX_PAGE_LAYOUT_AUTO_FIT_ZOOM,
+    Math.max(MIN_PAGE_LAYOUT_AUTO_FIT_ZOOM, value),
+  );
+}
+
 /**
- * 활성 tier 의 컨테이너 설정. `gap` · `columns` 만 tier override 대상이고 `direction` 은
- * breakpoint 공통이다 — `gridAutoFlow` 가 responsive eligible 이 아니기 때문 (F11).
+ * 활성 tier 의 컨테이너 설정. `gap` · `columns` 만 tier override 대상이고 `direction` 과
+ * auto 기준 배율은 breakpoint 공통이다 — `gridAutoFlow` 가 responsive eligible 이 아니기 때문
+ * (F11), 배율은 값 하나로 tier 마다 열 수가 갈리는 것이 목적이라서 (ADR-274 사용자 결정 1).
  * cascade 는 style override 와 같은 함수 (`getResponsiveValueWithCascade`) 를 쓴다.
  */
 export function resolvePageLayout(
   pageLayout: PageLayoutSettingsDocument | undefined,
   activeBreakpoint: BreakpointName,
-  /** `columns: "auto"` 일 때 쓸 정수 열 수 (호출자가 뷰포트에서 계산). 없으면 직전 파생값. */
-  autoColumns?: number,
+  /** `columns: "auto"` 의 모니터 폭 (CSS px). 없으면 직전 파생값. */
+  screenWidth?: number,
 ): ResolvedPageLayout {
   const baseGap = normalizeNumber(pageLayout?.gap, DEFAULT_PAGE_LAYOUT_GAP, 0);
   const gap = normalizeNumber(
@@ -177,21 +198,22 @@ export function resolvePageLayout(
     activeBreakpoint,
     pageLayout?.columns,
   );
-  // 기본값이 `auto` 다 (사용자 판정 2026-09-23) — 문서에 열 수가 없으면 화면에 들어가는
-  //   만큼 쓴다. 숫자를 명시한 문서만 고정이다. `DEFAULT_PAGE_LAYOUT_COLUMNS` 는 이제
-  //   "뷰포트를 아직 못 읽었을 때의 정수 fallback" 으로만 남는다.
+  // 기본값이 `auto` 다 (사용자 판정 2026-09-23) — 문서에 열 수가 없으면 모니터 폭에서 쓴다.
+  //   숫자를 명시한 문서만 고정이다. `DEFAULT_PAGE_LAYOUT_COLUMNS` 는 "모니터 폭을 아직 못
+  //   읽었을 때의 정수 fallback" 으로만 남는다.
   const columnsAuto = rawColumns === "auto" || rawColumns === undefined;
+  const autoFitZoom = normalizeAutoFitZoom(pageLayout?.autoFitZoom);
+  const trackWidth = CANVAS_VIEWPORT[activeBreakpoint].width;
   let columns: number;
   if (columnsAuto) {
-    columns = Math.min(
-      MAX_PAGE_LAYOUT_COLUMNS,
-      Math.max(
-        1,
-        Math.round(
-          normalizeNumber(autoColumns ?? lastAutoColumns, lastAutoColumns, 1),
-        ),
-      ),
-    );
+    // 열 수는 tier 의 트랙 폭 · gap 과 같은 자리에서 나온다 — breakpoint 전환 · gap · 배율 편집이
+    //   레이아웃 한 번에 들어간다 (ADR-274 F5 · F6 의 두 번째 패스 제거).
+    columns =
+      typeof screenWidth === "number" &&
+      Number.isFinite(screenWidth) &&
+      screenWidth > 0
+        ? resolveAutoColumns(screenWidth, autoFitZoom / 100, trackWidth, gap)
+        : lastAutoColumns;
     lastAutoColumns = columns;
   } else {
     columns = Math.min(
@@ -207,7 +229,8 @@ export function resolvePageLayout(
     gap,
     columns,
     columnsAuto,
-    trackWidth: CANVAS_VIEWPORT[activeBreakpoint].width,
+    autoFitZoom,
+    trackWidth,
     placementModel: pageLayout?.placementModel ?? null,
   };
 }

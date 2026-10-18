@@ -196,22 +196,26 @@ describe("ADR-248 Phase 4a-4 page frames", () => {
     }
   });
 
-  it("moves page frames when the host's auto column count changes", async () => {
+  it("moves page frames when the monitor width changes the auto column count (ADR-274)", async () => {
     const root = await scene(
       [page("home"), page("about")],
       [body("homeBody"), body("aboutBody")],
       { pageLayout: { direction: "auto", gap: 80 } },
     );
-    expect(root.setAutoColumns(1)).toBe(true);
+    // 1440 · 40 % → 1 column (Desktop 1920).
+    root.setScreenWidth(1440);
     expect(root.pageFrameRects().get("project:page:about")).toMatchObject({
       x: 0,
       y: 1160,
     });
-    expect(root.setAutoColumns(2)).toBe(true);
+    // 1920 · 40 % → 2 columns.
+    expect(root.setScreenWidth(1920)).toBe(true);
     expect(root.pageFrameRects().get("project:page:about")).toMatchObject({
       x: 2000,
       y: 0,
     });
-    expect(root.setAutoColumns(2)).toBe(false);
+    expect(root.setScreenWidth(1920)).toBe(false);
+    // 2000 still fits 2 columns: no layout.
+    expect(root.setScreenWidth(2000)).toBe(false);
   });
 });

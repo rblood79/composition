@@ -17,6 +17,8 @@
 export async function seedAppPages(options) {
   const pageTotal = options?.pages ?? 22;
   const pageGap = options?.gap;
+  // 페이지 grid 열 수 고정 (없으면 문서 기본 `auto`).
+  const pageColumns = options?.columns;
   const store = window.__composition_STORE__;
   const h = window.__COMPOSITION_CATALOG__;
   const ws = h.workspace;
@@ -711,8 +713,15 @@ export async function seedAppPages(options) {
       );
       build(bodyId, PAGES[key]());
     }
-    if (pageGap !== undefined)
-      ws.execute(h.commands.setPageLayoutSettings({ pageLayout: { gap: pageGap } }));
+    if (pageGap !== undefined || pageColumns !== undefined)
+      ws.execute(
+        h.commands.setPageLayoutSettings({
+          pageLayout: {
+            ...(pageGap !== undefined ? { gap: pageGap } : {}),
+            ...(pageColumns !== undefined ? { columns: pageColumns } : {}),
+          },
+        }),
+      );
     store.getState().activatePage(homePageId);
   }
   await new Promise((r) => setTimeout(r, 0));

@@ -82,6 +82,23 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledWith("1234px");
   });
 
+  it("an explicit empty unit in the list is the unit of a unitless value (ADR-274 Settings columns)", () => {
+    const onChange = vi.fn();
+    render(
+      <PropertyUnitInput
+        label="Columns"
+        value="10"
+        units={["", "%"]}
+        onChange={onChange}
+      />,
+    );
+    const input = screen.getByRole("combobox", { name: "Columns" });
+    fireEvent.change(input, { target: { value: "2" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    // Not `2%` — `%` is another mode of this field, not a fallback for "no unit".
+    expect(onChange).toHaveBeenCalledWith("2");
+  });
+
   it("keeps the local draft when the parent rerenders with an unchanged value", () => {
     // parsed 는 value 에 memo 된 파생값이라 부모 재렌더만으로는 sync effect 가 다시 돌면 안 된다.
     const onChange = vi.fn();

@@ -726,6 +726,36 @@ test("ADR-272: many-pages 는 페이지 수 · grid 간격이 run 키 · 저장 
   );
 });
 
+test("ADR-274: 열 수 고정 run 은 run 키 · 저장 args 가 auto run 과 갈린다", async () => {
+  const { parseArgs } = await import("./perf-baseline.mjs");
+  const many = {
+    seedCount: 60,
+    fixtureKind: "many-pages",
+    pages: 100,
+    gridGap: null,
+    pageColumns: 6,
+    zoom: 0.1,
+    fixedInputs: true,
+    classes: ["zoom"],
+  };
+  const app = { ...many, fixtureKind: "app-pages", zoom: null };
+  assert.equal(runKeyOf(many), "60:many-pages100@cols6@zoom0.1");
+  assert.equal(runKeyOf(app), "60:app-pages@cols6");
+  assert.equal(
+    runKeyOf({ ...many, pageColumns: null }),
+    "60:many-pages100@zoom0.1",
+  );
+  for (const variant of [many, app]) {
+    const rerun = parseArgs(harnessArgsFrom(variant));
+    assert.equal(rerun.pageColumns, 6);
+    assert.equal(runKeyOf(rerun), runKeyOf(variant));
+  }
+  // 모니터 크기 run 도 키 · 재현 인자가 갈린다.
+  const wide = { ...many, pageColumns: null, screen: { width: 2560, height: 1440 } };
+  assert.equal(runKeyOf(wide), "60:many-pages100@zoom0.1@screen2560x1440");
+  assert.equal(runKeyOf(parseArgs(harnessArgsFrom(wide))), runKeyOf(wide));
+});
+
 test("ADR-272: seed 키에 . 이 있어도 (@zoom0.1) --update · --raise 가 경로를 바르게 가른다", () => {
   const r = {
     seeds: {

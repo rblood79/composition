@@ -94,6 +94,7 @@ const DEFAULTS = {
   editTarget: "seed",
   pages: 2,
   gridGap: null,
+  pageColumns: null,
   zoom: null,
   fixedInputs: false,
   callCounts: false,
@@ -102,6 +103,8 @@ const DEFAULTS = {
   // ADR-273 Phase 0: DPR · viewport · 팬 속도 (normal = 휠 24 CSS px, fast = 96)
   dpr: 1,
   viewport: { width: 1440, height: 900 },
+  // ADR-274: 모니터 크기 (`window.screen`) — auto 열 수의 입력. null = Playwright 기본 (= viewport)
+  screen: null,
   panSpeed: "normal",
   // ADR-273 Phase 0: content 여백 상한 후보 (device px, dev 빌드 전용 — null = 지금 식)
   contentPadMax: null,
@@ -156,6 +159,8 @@ export function parseArgs(argv) {
     else if (value === "--edit-target") options.editTarget = next;
     else if (value === "--pages") options.pages = Number(next);
     else if (value === "--grid-gap") options.gridGap = Number(next);
+    // 페이지 grid 열 수 고정 (기본 = 문서 기본 `auto` — 보이는 폭 · 배율로 정해진다). auto ↔ 고정 대조용.
+    else if (value === "--page-columns") options.pageColumns = Number(next);
     else if (value === "--zoom") options.zoom = Number(next);
     else if (value === "--cold-entries") options.coldEntries = Number(next);
     else if (value === "--classes") options.classes = next.split(",");
@@ -163,6 +168,9 @@ export function parseArgs(argv) {
     else if (value === "--viewport") {
       const [width, height] = next.split("x").map(Number);
       options.viewport = { width, height };
+    } else if (value === "--screen") {
+      const [width, height] = next.split("x").map(Number);
+      options.screen = { width, height };
     } else if (value === "--pan-speed") options.panSpeed = next;
     else if (value === "--content-pad-max")
       options.contentPadMax = Number(next);
@@ -245,6 +253,34 @@ export function parseArgs(argv) {
     throw new Error("grid-gap 은 0 이상");
   if (options.gridGap !== null && options.fixtureKind !== "many-pages")
     throw new Error("grid-gap 은 many-pages 전용");
+  if (
+    options.pageColumns !== null &&
+    !(
+      Number.isInteger(options.pageColumns) &&
+      options.pageColumns >= 1 &&
+      options.pageColumns <= 24
+    )
+  )
+    // 문서는 24 열에서 자른다 (`MAX_PAGE_LAYOUT_COLUMNS`) — 넘는 값은 기록과 배치가 갈린다.
+    throw new Error("page-columns 는 1 ~ 24 정수");
+  if (
+    options.pageColumns !== null &&
+    !(
+      options.fixtureKind === "many-pages" ||
+      options.fixtureKind.startsWith("app-pages")
+    )
+  )
+    throw new Error("page-columns 는 app-pages · many-pages 전용");
+  if (
+    options.screen !== null &&
+    !(
+      Number.isInteger(options.screen.width) &&
+      Number.isInteger(options.screen.height) &&
+      options.screen.width > 0 &&
+      options.screen.height > 0
+    )
+  )
+    throw new Error("screen 은 WxH 양의 정수");
   if (
     options.zoom !== null &&
     !(Number.isFinite(options.zoom) && options.zoom >= 0.1 && options.zoom <= 5)
@@ -420,12 +456,14 @@ export async function createInstrumentedContext(
     // ADR-219 G4 — HC4 는 DPR 2 를 고정한다 (기본 1: 기존 기준선 보존)
     deviceScaleFactor = 1,
     viewport = { width: 1440, height: 900 },
+    screen = null,
   } = {},
 ) {
   const context = await browser.newContext({
     storageState,
     viewport,
     deviceScaleFactor,
+    ...(screen ? { screen } : {}),
   });
   // ADR-248: the catalog Builder has no element store — the facade maps the harness's store calls
   // onto catalog commands (inert when the old app assigns its real store).
@@ -531,12 +569,18 @@ export async function seedDocument(
   fixtureKind,
   pageCount = 2,
   gridGap = undefined,
+  pageColumns = undefined,
 ) {
   // 실사용 형태 22 페이지 문서 — seedCount · pageCount 를 쓰지 않는다 (perfAppFixture.mjs).
-  if (fixtureKind.startsWith("app-pages")) return page.evaluate(seedAppPages);
+  if (fixtureKind.startsWith("app-pages"))
+    return page.evaluate(seedAppPages, { columns: pageColumns });
   // ADR-272 Phase 0: 같은 생성기로 페이지 수 · grid 간격만 키운다 (규모 전용).
   if (fixtureKind === "many-pages")
-    return page.evaluate(seedAppPages, { pages: pageCount, gap: gridGap });
+    return page.evaluate(seedAppPages, {
+      pages: pageCount,
+      gap: gridGap,
+      columns: pageColumns,
+    });
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -2577,6 +2621,52 @@ export const FRAME_CLASSES = {
         fixedInputs: ctx.fixedInputs,
       },
     ),
+  // ADR-274 G3 불리 케이스: breakpoint 전환 (root 를 새로 만든다 — desktop → tablet → mobile 순환)
+  "breakpoint-switch": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ms, fixedInputs }) => {
+        const { workspace } = window.__COMPOSITION_CATALOG__;
+        const order = ["tablet", "mobile", "desktop"];
+        const t0 = performance.now();
+        let i = 0;
+        while (
+          fixedInputs ? i < Math.ceil(ms / 400) : performance.now() - t0 < ms
+        ) {
+          workspace.setBreakpoint(order[i++ % order.length]);
+          await new Promise((r) => setTimeout(r, 400));
+        }
+        workspace.setBreakpoint("desktop");
+      },
+      { ms, fixedInputs: ctx.fixedInputs },
+    ),
+  // ADR-274 G3 불리 케이스: Settings 의 페이지 gap 편집 (80 ↔ 160 — 한 step 마다 page grid 재배치)
+  "grid-gap-edit": (page, ctx, ms) =>
+    page.evaluate(
+      async ({ ms, fixedInputs }) => {
+        const { workspace, commands } = window.__COMPOSITION_CATALOG__;
+        const original = workspace.readModel.pageLayout();
+        const t0 = performance.now();
+        let i = 0;
+        while (
+          fixedInputs ? i < Math.ceil(ms / 300) : performance.now() - t0 < ms
+        ) {
+          workspace.execute(
+            commands.setPageLayoutSettings({
+              pageLayout: { ...original, gap: i++ % 2 ? 80 : 160 },
+              label: "Page layout",
+            }),
+          );
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        workspace.execute(
+          commands.setPageLayoutSettings({
+            pageLayout: original,
+            label: "Page layout",
+          }),
+        );
+      },
+      { ms, fixedInputs: ctx.fixedInputs },
+    ),
   "panel-toggle": async (page, ctx, ms) => {
     const buttons = page.locator(".panel-toggle-rail button[aria-pressed]");
     const n = await buttons.count();
@@ -3581,6 +3671,7 @@ async function main() {
       onPageError: (e) => process.stderr.write(`[pageerror] ${e}\n`),
       deviceScaleFactor: options.dpr,
       viewport: options.viewport,
+      screen: options.screen,
     });
     const { context, page, cdp } = instrumented;
     pageErrors = instrumented.pageErrors;
@@ -3601,6 +3692,7 @@ async function main() {
       options.fixtureKind,
       options.pages,
       options.gridGap ?? undefined,
+      options.pageColumns ?? undefined,
     );
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}${seed.records ? ` · nodes ${seed.nodeCount} · records ${seed.records}` : ""}\n`,
@@ -3667,6 +3759,7 @@ async function main() {
       const environment = await page.evaluate(() => ({
         visibility: document.visibilityState,
         viewport: { width: innerWidth, height: innerHeight },
+        screen: { width: screen.width, height: screen.height },
         dpr: devicePixelRatio,
         canvases: [...document.querySelectorAll("canvas")].map((c) => ({
           width: c.width,

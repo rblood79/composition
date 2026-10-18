@@ -5,25 +5,36 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPanel } from "./SettingsPanel";
 
-const { changeLayoutMock, sendDarkModeMock, setThemeModeMock, setUiScaleMock } =
-  vi.hoisted(() => ({
-    changeLayoutMock: vi.fn(),
-    sendDarkModeMock: vi.fn(),
-    setThemeModeMock: vi.fn(),
-    setUiScaleMock: vi.fn(),
-  }));
+const {
+  changeLayoutMock,
+  layoutView,
+  sendDarkModeMock,
+  setThemeModeMock,
+  setUiScaleMock,
+} = vi.hoisted(() => ({
+  changeLayoutMock: vi.fn(),
+  layoutView: {
+    current: {} as Record<string, unknown>,
+  },
+  sendDarkModeMock: vi.fn(),
+  setThemeModeMock: vi.fn(),
+  setUiScaleMock: vi.fn(),
+}));
+const FIXED_VIEW = {
+  direction: "auto",
+  gap: 80,
+  columns: 3,
+  autoFitZoom: 40,
+  columnCount: 3,
+  tierOverrideAvailable: false,
+  hasTierOverride: false,
+};
 
 // ADR-248 4e-7: the page grid is the open catalog project's `pageLayout` (the hook over the
 // workspace — its command is `phase4ePageLayout` tests'); here the panel's reads and writes.
 vi.mock("./useCatalogPageLayout", () => ({
   useCatalogPageLayout: () => ({
-    view: {
-      direction: "auto",
-      gap: 80,
-      columns: 3,
-      tierOverrideAvailable: false,
-      hasTierOverride: false,
-    },
+    view: layoutView.current,
     change: changeLayoutMock,
   }),
 }));
@@ -161,6 +172,7 @@ vi.mock("../../../stores/uiStore", () => {
 
 describe("SettingsPanel page layout synchronization", () => {
   beforeEach(() => {
+    layoutView.current = FIXED_VIEW;
     changeLayoutMock.mockReset();
     sendDarkModeMock.mockReset();
     setThemeModeMock.mockReset();
@@ -193,14 +205,45 @@ describe("SettingsPanel page layout synchronization", () => {
     expect(changeLayoutMock).toHaveBeenCalledWith({ kind: "gap", gap: 40 });
   });
 
-  it("auto 배치는 열 수 (auto 키워드 포함) 를 쓴다", () => {
+  it("열 수 칸 — Fixed 는 개수, `%` 는 Auto 의 기준 배율 (ADR-274)", () => {
     render(<SettingsPanel />);
     const columns = screen.getByLabelText("settings.pageColumns");
     expect((columns as HTMLInputElement).value).toBe("3");
-    fireEvent.change(columns, { target: { value: "auto" } });
-    expect(changeLayoutMock).toHaveBeenCalledWith({
-      kind: "columns",
+    expect(columns.parentElement?.getAttribute("data-units")).toBe(",%");
+    const typed = (value: string) => {
+      changeLayoutMock.mockReset();
+      fireEvent.change(columns, { target: { value } });
+      return changeLayoutMock.mock.calls[0]?.[0];
+    };
+    // `auto` 를 치면 저장된 배율 (부재 = 40) 의 Auto.
+    expect(typed("auto")).toEqual({ kind: "autoFitZoom", percent: 40 });
+    expect(typed("5")).toEqual({ kind: "columns", columns: 5 });
+    expect(typed("30")).toEqual({ kind: "columns", columns: 24 });
+    // 단위 메뉴로 `%` 를 고르면 지금 숫자 (개수 3) 가 실려 온다 — 개수가 아니라 Auto 로 읽는다.
+    expect(typed("3%")).toEqual({ kind: "autoFitZoom", percent: 40 });
+    expect(typed("60%")).toEqual({ kind: "autoFitZoom", percent: 60 });
+    expect(typed("0")).toBeUndefined();
+  });
+
+  it("Auto 는 `40%` 로 보이고, 단위를 빼면 지금 그려진 열 수로 고정한다", () => {
+    layoutView.current = {
+      ...FIXED_VIEW,
       columns: "auto",
+      autoFitZoom: 40,
+      columnCount: 7,
+    };
+    render(<SettingsPanel />);
+    const columns = screen.getByLabelText("settings.pageColumns");
+    expect((columns as HTMLInputElement).value).toBe("40%");
+    fireEvent.change(columns, { target: { value: "50%" } });
+    expect(changeLayoutMock).toHaveBeenLastCalledWith({
+      kind: "autoFitZoom",
+      percent: 50,
+    });
+    fireEvent.change(columns, { target: { value: "40" } });
+    expect(changeLayoutMock).toHaveBeenLastCalledWith({
+      kind: "columns",
+      columns: 7,
     });
   });
 

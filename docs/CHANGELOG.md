@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [확대 · 축소가 페이지 배치를 바꾸지 않는다 — ADR-274 Implemented] - 2026-10-18
+
+### Changed
+
+- **페이지 grid 열 수 Auto = 모니터 폭 · 기준 배율** (ADR-274, 사용자 요청 「확대를 했는데 auto로 인해 배치가 달라져 버린다」): Auto 열 수는 이제 기준 배율 (기본 40 %) 로 줌아웃했을 때 모니터 한 폭에 들어가는 페이지 수다. 현재 줌 · 창 크기 · 패널 열림은 입력이 아니므로, 확대 · 축소 · 휠 줌을 해도 페이지가 제자리에 있다. gap 은 장면 좌표 그대로다. 2560 모니터 · gap 80 · 40 % 이면 Desktop 3 · Tablet 7 · Mobile 13 열이다.
+- **Settings 열 수 칸**: 단위 `%` = Auto (값 = 기준 배율, 10 ~ 100 %, 모든 breakpoint 공통), 단위 없음 = Fixed 개수 (1 ~ 24, breakpoint 별 「This breakpoint only」 그대로). `auto` 를 치면 Auto 가 된다. 단위 메뉴로 Auto → Fixed 를 고르면 지금 그려진 열 수로 고정된다.
+- 기존 auto 문서는 처음 열 때 배치가 바뀔 수 있다 (모니터 기준으로 다시 정해짐). 이관 코드는 없다 — 배율이 없으면 40 % 다.
+
+### Performance
+
+- 줌 중 페이지 옮기기 · 전체 재기록이 없어졌다. production 짝 (교대 2 쌍): 페이지 100 개 문서 줌 main thread 2,497 → 870 ms · 표시 간격 p99 49.9 → 17.6 ms · long task 4 → 0, 22 페이지 문서 줌 1,009 → 541 ms. breakpoint 전환 · gap 편집 · 페이지 전환 · 편집은 회귀 0.
+- breakpoint 전환 · gap · 배율 편집은 한 번의 레이아웃으로 끝난다 (다음 프레임의 열 수 보정 패스 제거).
+- 성능 ratchet: 줌 run 의 A 키 49 개를 사용자 승인으로 올렸다 (갱신 사유가 전체 무효화에서 coverage · zoom 갱신으로 옮겨 감 · headless 1440 의 시작 배치 변경). 내려간 261 개는 같이 기록했다.
+
+### Fixed
+
+- 단위 목록에 빈 단위 (`""`) 가 있는 입력에서 단위 없는 값이 첫 단위 (`%`) 로 보이고, 다음 입력이 그 단위로 저장되던 문제 (ADR-274 live 에서 발견 — 현재 그런 칸은 Settings 열 수 하나).
+
 ## [ADR-270 ~ 273 보완 — 번들 상한 재승인 · GPU 캐시 재확인 · 측정 정리] - 2026-10-18
 
 ### Changed

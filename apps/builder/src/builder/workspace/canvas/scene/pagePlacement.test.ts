@@ -21,6 +21,7 @@ import {
   derivePagePositions,
   derivePagePositionsMemo,
   __resetAutoColumns,
+  DEFAULT_PAGE_LAYOUT_AUTO_FIT_ZOOM,
   DEFAULT_PAGE_LAYOUT_COLUMNS,
   getPagePlacementDerivationCount,
   MAX_PAGE_LAYOUT_COLUMNS,
@@ -769,23 +770,22 @@ describe("고정 칸은 격자를 넓히지 못한다 (열 수 설정이 정본)
 });
 
 /**
- * ADR-232 후속 (2026-09-23 사용자 요청) — `columns: "auto"`.
+ * ADR-232 후속 (2026-09-23 사용자 요청) — `columns: "auto"`, 입력은 ADR-274 (2026-10-18) 로 바뀌었다.
  *
- * ADR 은 컨테이너 폭을 뷰포트에 묶는 안 (대안 D) 을 **기본 모델로는** 기각했다 (zoom 마다 칸이
- * 바뀌면 위치가 뷰 상태가 된다). 여기서는 사용자가 명시적으로 고르는 모드이고, 파생 입력은
- * zoom 이 아니라 그 zoom 에서 나온 **정수 열 수** 라 메모가 연속값을 타지 않는다.
+ * 열 수 = 기준 배율 (기본 40 %) 로 줌아웃했을 때 **모니터 한 폭** 에 들어가는 개수. 현재 zoom 은
+ * 입력이 아니다 — 확대 · 축소가 페이지 배치를 바꾸지 않는다 (사용자 지적 「확대를 했는데 auto로
+ * 인해 배치가 달라져 버린다」). gap 은 장면 좌표다 (사용자 확정 대안 A).
  */
-describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
+describe('columns: "auto" — 모니터 폭 · 기준 배율에서 열 수 (ADR-274)', () => {
   const W = TIER.desktop.width;
 
-  it("열 수 = 보이는 scene 폭에 들어가는 개수 (마지막 열 뒤 gap 은 제외)", () => {
-    // zoom 1 에 정확히 2열 (2×1920 + 80)
+  it("열 수 = 모니터 폭 / 기준 배율 에 들어가는 개수 (마지막 열 뒤 gap 은 제외)", () => {
+    // 배율 1 에 정확히 2열 (2×1920 + 80)
     expect(resolveAutoColumns(2 * W + GAP, 1, W, GAP)).toBe(2);
     // 1px 모자라면 1열
     expect(resolveAutoColumns(2 * W + GAP - 1, 1, W, GAP)).toBe(1);
-    // zoom 0.5 → 보이는 scene 폭이 2배 (3920 → 7840 = 3열 분 7760 은 되고 4열 분 7920 은 모자람)
+    // 배율 0.5 → 장면 폭이 2배 (3920 → 7840 = 3열 분 7760 은 되고 4열 분 7920 은 모자람)
     expect(resolveAutoColumns(2 * W + GAP, 0.5, W, GAP)).toBe(3);
-    expect(resolveAutoColumns(4 * W + 3 * GAP, 1, W, GAP)).toBe(4);
   });
 
   it("최소 1 · 최대 24 로 묶이고 비정상 입력은 기본값", () => {
@@ -797,20 +797,54 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
     );
   });
 
-  it("resolvePageLayout 이 auto 를 호출자가 준 정수로 해석한다", () => {
-    const layout = resolvePageLayout(
-      { direction: "auto", gap: GAP, columns: "auto" },
-      "desktop",
-      5,
+  // G1 oracle — 손계산 표 (breakdown §2). floor((모니터 / 배율 + gap) / (페이지 폭 + gap)), 1 ~ 24.
+  const HAND: Array<[number, number, number, [number, number, number]]> = [
+    [1440, 40, 80, [1, 4, 7]],
+    [1920, 40, 80, [2, 5, 10]],
+    [2560, 40, 80, [3, 7, 13]],
+    [2560, 50, 80, [2, 6, 11]],
+    [2560, 50, 0, [2, 6, 13]],
+    [2560, 50, 320, [2, 5, 7]],
+    [2560, 10, 80, [12, 24, 24]],
+  ];
+  it.each(HAND)(
+    "손계산 — 모니터 %i · 배율 %i %% · gap %i → Desktop · Tablet · Mobile %j",
+    (screen, zoom, gap, expected) => {
+      const settings = {
+        direction: "auto" as const,
+        gap,
+        ...(zoom === 40 ? {} : { autoFitZoom: zoom }),
+      };
+      const got = (["desktop", "tablet", "mobile"] as const).map(
+        (tier) => resolvePageLayout(settings, tier, screen).columns,
+      );
+      expect(got).toEqual(expected);
+    },
+  );
+
+  it("기준 배율은 부재 = 40 · 범위 10 ~ 100 (사용자 결정 2) 로 묶인다", () => {
+    expect(resolvePageLayout({ gap: GAP }, "desktop", 2560).autoFitZoom).toBe(
+      DEFAULT_PAGE_LAYOUT_AUTO_FIT_ZOOM,
     );
-    expect(layout.columnsAuto).toBe(true);
-    expect(layout.columns).toBe(5);
-    const fixed = resolvePageLayout(
-      { direction: "auto", gap: GAP, columns: 3 },
-      "desktop",
-    );
-    expect(fixed.columnsAuto).toBe(false);
-    expect(fixed.columns).toBe(3);
+    expect(
+      resolvePageLayout({ gap: GAP, autoFitZoom: 5 }, "mobile", 2560).columns,
+    ).toBe(resolvePageLayout({ gap: GAP, autoFitZoom: 10 }, "mobile", 2560).columns);
+    expect(
+      resolvePageLayout({ gap: GAP, autoFitZoom: 250 }, "mobile", 2560)
+        .autoFitZoom,
+    ).toBe(100);
+  });
+
+  it("tier 의 gap override 가 그 tier 의 열 수에 들어간다 (같은 파생 자리)", () => {
+    const settings = {
+      gap: GAP,
+      responsive: { gap: { mobile: 320 } },
+    };
+    expect(resolvePageLayout(settings, "tablet", 2560).columns).toBe(7);
+    expect(
+      resolvePageLayout({ ...settings, autoFitZoom: 50 }, "mobile", 2560)
+        .columns,
+    ).toBe(7);
   });
 
   it("auto 로 파생한 배치 = 같은 열 수를 숫자로 준 배치", () => {
@@ -820,7 +854,7 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
       pageSizes: sizes,
       pageLayout: { direction: "auto", gap: GAP, columns: "auto" },
       activeBreakpoint: "desktop",
-      autoColumns: 2,
+      screenWidth: 1920,
     });
     const fixed = derivePagePositions({
       pages: pagesOf(5),
@@ -831,8 +865,8 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
     expect(asMap(auto!)).toEqual(asMap(fixed!));
   });
 
-  it("정수가 그대로면 엔진을 다시 부르지 않는다 (zoom 연속 변화 비용 0)", () => {
-    const input = (autoColumns: number) => ({
+  it("모니터 폭이 같은 열 수를 내면 엔진을 다시 부르지 않는다", () => {
+    const input = (screenWidth: number) => ({
       pages: pagesOf(4),
       pageSizes: uniformSizes(4, "desktop"),
       pageLayout: {
@@ -841,15 +875,15 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
         columns: "auto" as const,
       },
       activeBreakpoint: "desktop" as BreakpointName,
-      autoColumns,
+      screenWidth,
     });
     resetPagePlacementDerivationCount();
-    derivePagePositionsMemo(input(3));
+    derivePagePositionsMemo(input(2560));
     expect(getPagePlacementDerivationCount()).toBe(1);
-    derivePagePositionsMemo(input(3));
-    derivePagePositionsMemo(input(3));
+    // 2560 · 2600 둘 다 3 열 — 키가 같다.
+    derivePagePositionsMemo(input(2600));
     expect(getPagePlacementDerivationCount()).toBe(1);
-    derivePagePositionsMemo(input(2));
+    derivePagePositionsMemo(input(1920));
     expect(getPagePlacementDerivationCount()).toBe(2);
   });
 
@@ -857,27 +891,29 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
     const implicit = resolvePageLayout(
       { direction: "auto", gap: GAP },
       "desktop",
-      5,
+      2560,
     );
     expect(implicit.columnsAuto).toBe(true);
-    expect(implicit.columns).toBe(5);
+    expect(implicit.columns).toBe(3);
     // 숫자를 명시한 문서는 그대로 고정 — 기본값 변경이 기존 설정을 덮지 않는다.
     const explicit = resolvePageLayout(
-      { direction: "auto", gap: GAP, columns: 3 },
+      { direction: "auto", gap: GAP, columns: 4 },
       "desktop",
-      5,
+      2560,
     );
     expect(explicit.columnsAuto).toBe(false);
-    expect(explicit.columns).toBe(3);
+    expect(explicit.columns).toBe(4);
   });
 
-  it("뷰포트를 아직 못 읽었으면 기본 정수로 떨어진다", () => {
+  it("모니터 폭을 아직 못 읽었으면 직전 파생값 · 처음이면 기본 정수", () => {
     __resetAutoColumns();
-    const layout = resolvePageLayout(
-      { direction: "auto", gap: GAP },
-      "desktop",
+    const settings = { direction: "auto" as const, gap: GAP };
+    expect(resolvePageLayout(settings, "desktop").columns).toBe(
+      DEFAULT_PAGE_LAYOUT_COLUMNS,
     );
-    expect(layout.columns).toBe(DEFAULT_PAGE_LAYOUT_COLUMNS);
+    resolvePageLayout(settings, "mobile", 2560);
+    expect(resolvePageLayout(settings, "mobile").columns).toBe(13);
+    __resetAutoColumns();
   });
 
   it("tier override 도 auto 를 쓴다 (mobile 만 auto)", () => {
@@ -887,9 +923,9 @@ describe('columns: "auto" — 보이는 캔버스 폭에서 열 수', () => {
       columns: 3,
       responsive: { columns: { mobile: "auto" as const } },
     };
-    expect(resolvePageLayout(layout, "desktop", 7).columns).toBe(3);
-    expect(resolvePageLayout(layout, "desktop", 7).columnsAuto).toBe(false);
-    expect(resolvePageLayout(layout, "mobile", 7).columns).toBe(7);
-    expect(resolvePageLayout(layout, "mobile", 7).columnsAuto).toBe(true);
+    expect(resolvePageLayout(layout, "desktop", 2560).columns).toBe(3);
+    expect(resolvePageLayout(layout, "desktop", 2560).columnsAuto).toBe(false);
+    expect(resolvePageLayout(layout, "mobile", 2560).columns).toBe(13);
+    expect(resolvePageLayout(layout, "mobile", 2560).columnsAuto).toBe(true);
   });
 });

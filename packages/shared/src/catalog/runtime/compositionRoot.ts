@@ -601,8 +601,11 @@ export interface CatalogRootOptions {
   breakpoint?: BreakpointName;
   /** Product layout: pages as frames on the page container grid (ADR-232). */
   pageFrames?: boolean;
-  /** `columns: "auto"`: the integer column count the visible canvas fits (host-computed). */
-  autoColumns?: number;
+  /**
+   * `columns: "auto"`: the monitor width (CSS px, `screen.width`) the column count derives from
+   * with the page grid's fit zoom (ADR-274 — the camera zoom is not an input).
+   */
+  screenWidth?: number;
   /** Theme color mode the Canvas resolves theme variables in (the DOM's `data-theme` scope). */
   colorMode?: "light" | "dark";
   /** Data rows of bound collections (the data store); absent = template items only. */
@@ -643,6 +646,9 @@ export function catalogPageLayoutSettings(
     ...(layout.direction ? { direction: layout.direction } : {}),
     ...(layout.gap !== undefined ? { gap: layout.gap } : {}),
     ...(layout.columns !== undefined ? { columns: layout.columns } : {}),
+    ...(layout.autoFitZoom !== undefined
+      ? { autoFitZoom: layout.autoFitZoom }
+      : {}),
     responsive: { gap, columns },
     placementModel: "derived",
   };
@@ -1408,7 +1414,7 @@ export class CatalogCompositionRoot {
   readonly breakpoint: BreakpointName;
   /** Product layout: each page a frame on the ADR-232 page container grid. */
   private readonly pageFrames: boolean;
-  private autoColumns: number | undefined;
+  private screenWidth: number | undefined;
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
@@ -1515,7 +1521,7 @@ export class CatalogCompositionRoot {
   ) {
     this.breakpoint = options.breakpoint ?? "desktop";
     this.pageFrames = options.pageFrames === true;
-    this.autoColumns = options.autoColumns;
+    this.screenWidth = options.screenWidth;
     this.colorMode = options.colorMode ?? "light";
     this.rows = options.rows;
     this.tableSort = options.tableSort;
@@ -3218,7 +3224,7 @@ export class CatalogCompositionRoot {
     return resolvePageLayout(
       catalogPageLayoutSettings(layout),
       this.breakpoint,
-      this.autoColumns,
+      this.screenWidth,
     );
   }
   /**
@@ -3272,14 +3278,20 @@ export class CatalogCompositionRoot {
     return out;
   }
   /**
-   * `columns: "auto"` follows the visible canvas: the host passes the new integer column count.
-   * Only the page container's tracks change; the page frames move and their contents keep their
-   * layout. Returns whether any page frame moved (the Canvas host rebinds the page shells).
+   * `columns: "auto"` follows the monitor (a window moved to another screen): the host passes
+   * the new `screen.width`. Nothing is laid out unless the derived column count changed; then
+   * only the page container's tracks change, the page frames move and their contents keep their
+   * layout. Returns whether any page frame moved (the Canvas host places the page shells).
    */
-  setAutoColumns(columns: number): boolean {
-    if (!this.pageFrames || columns === this.autoColumns) return false;
+  setScreenWidth(width: number): boolean {
+    if (!this.pageFrames || width === this.screenWidth) return false;
+    const before = this.pageLayout().columns;
+    this.screenWidth = width;
+    if (this.pageLayout().columns === before) return false;
+    return this.relayoutPageGrid();
+  }
+  private relayoutPageGrid(): boolean {
     const before = this.pageFrameRects();
-    this.autoColumns = columns;
     this.layout.updateNodeStyle("catalog:root", this.rootStyle());
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     const after = this.pageFrameRects();

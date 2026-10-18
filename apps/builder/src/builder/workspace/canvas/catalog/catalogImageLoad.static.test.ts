@@ -34,7 +34,7 @@ describe("CatalogCanvas — 이미지 로드 완료 구독", () => {
     expect(callback).toContain("scheduler.invalidate()");
     const frame = source.slice(
       source.indexOf("const syncScene = () => {"),
-      source.indexOf("const syncAutoColumns"),
+      source.indexOf("const syncScreenWidth"),
     );
     expect(frame).not.toContain("scene.imageLoaded(");
     expect(frame).toMatch(/scene\.sync\(\{ holdImages: dragRecords !== undefined \}\)/);
