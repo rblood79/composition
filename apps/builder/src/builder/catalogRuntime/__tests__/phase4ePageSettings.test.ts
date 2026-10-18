@@ -20,6 +20,8 @@ import {
   catalogGeneratedRoute,
   catalogPageRouteEdit,
   catalogParentPageOptions,
+  catalogResolvedRoute,
+  catalogRouteFollowEdit,
   catalogSettingsPage,
 } from "../pageSettings";
 import { catalogComponentCommands } from "../componentActions";
@@ -160,6 +162,45 @@ describe("ADR-248 Phase 4e-4 page section", () => {
     if (!("command" in edit)) throw new Error("refused");
     workspace.execute(edit.command);
     expect(graph.getEntry(HOME)).toMatchObject({ route: "/start" });
+  });
+
+  // The old derived URL followed the parent; the stored route stays (stable URLs), and a parent
+  // change offers to bring it — and the routes under it — in line in one step (user 2026-10-19).
+  it("a moved page's route follows its new parent with its children in one step", async () => {
+    const { workspace, graph, pages, addPage } = await open();
+    const page = (name: string) => `project:page:${name}` as EntryId<"page">;
+    addPage("docs", "/docs");
+    addPage("guide", "/guide");
+    addPage("intro", "/guide/intro", page("guide"));
+    addPage("custom", "/elsewhere", page("guide"));
+    expect(catalogResolvedRoute(pages(), page("intro"))).toBe("/guide/intro");
+    expect(catalogResolvedRoute(pages(), HOME)).toBe(undefined);
+    expect(catalogRouteFollowEdit(pages(), [page("intro")])).toBe(undefined);
+
+    workspace.execute(catalogPageCommands.parent(page("guide"), page("docs")));
+    expect(catalogResolvedRoute(pages(), page("guide"))).toBe("/docs/guide");
+    const edit = catalogRouteFollowEdit(pages(), [page("guide")]);
+    if (!edit || !("command" in edit)) throw new Error("no follow edit");
+    const steps = workspace.runtime.historyDepth.undo;
+    workspace.execute(edit.command);
+    const route = (name: string) =>
+      (graph.getEntry(page(name)) as PageEntry).route;
+    expect([route("guide"), route("intro"), route("custom")]).toEqual([
+      "/docs/guide",
+      "/docs/guide/intro",
+      "/elsewhere",
+    ]);
+    expect(workspace.runtime.historyDepth.undo).toBe(steps + 1);
+    workspace.undo();
+    expect([route("guide"), route("intro")]).toEqual(["/guide", "/guide/intro"]);
+
+    // Back to the root: the page keeps its own segment; a route another page has is refused.
+    workspace.execute(catalogPageCommands.parent(page("intro"), undefined));
+    expect(catalogResolvedRoute(pages(), page("intro"))).toBe("/intro");
+    addPage("taken", "/intro");
+    expect(catalogRouteFollowEdit(pages(), [page("intro")])).toEqual({
+      refused: "ROUTE_TAKEN",
+    });
   });
 
   it("a layout wraps the page's content and removing it puts the content back; the body keeps its page", async () => {

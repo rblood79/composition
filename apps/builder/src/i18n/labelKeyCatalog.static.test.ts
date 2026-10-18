@@ -27,7 +27,8 @@ const LABEL_NAMESPACES = [
 const FROZEN_KEY_COUNTS: Partial<
   Record<(typeof LABEL_NAMESPACES)[number], number>
 > = {
-  contextMenu: 25,
+  // 2026-10-19 — moveToSlot ("Move to slot ▸", 옛 Target Slot 복원)
+  contextMenu: 26,
   command: 71,
   // ADR-252 — scopePanelStyles 제거 (scope panel:styles 가 Design 패널의 panel:properties 로)
   commandPalette: 25,

@@ -1,5 +1,5 @@
 import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
-import { Maximize, Percent } from "lucide-react";
+import { LayoutPanelTop, Maximize, Percent } from "lucide-react";
 import {
   copyNodes,
   duplicateNodes,
@@ -49,7 +49,10 @@ import {
 } from "./componentConfirm";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogParentOfNode } from "./insertParent";
-import { catalogPageContentTarget } from "./pageSettings";
+import {
+  catalogMoveToSlotItems,
+  catalogPageContentTarget,
+} from "./pageSettings";
 import type { CatalogDefinitionViewId, CatalogSelectionItem } from "./session";
 
 const PAGE_GRID = "catalog:root";
@@ -498,6 +501,21 @@ export function catalogCanvasMenuItems(
         )
       : []),
   ];
+  // "Move to slot ▸": a page with a layout — the slots the selection is not in (the old Target Slot).
+  const slots =
+    surface === "action-bar"
+      ? []
+      : catalogMoveToSlotItems(host.graph, ids, host.newId).flatMap((slot) =>
+          action(`move-to-slot:${slot.path}`, slot.name, slot.command, undefined, undefined),
+        );
+  if (slots.length)
+    structure.push({
+      kind: "submenu",
+      id: "move-to-slot",
+      labelKey: "contextMenu.moveToSlot",
+      icon: LayoutPanelTop,
+      items: slots,
+    });
   if (structure.length)
     items.push({ kind: "separator", id: "structure-separator" }, ...structure);
 

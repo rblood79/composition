@@ -1,6 +1,6 @@
 import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { CircleAlert, Layout, WandSparkles, X } from "lucide-react";
+import { CircleAlert, Layout, RefreshCw, WandSparkles, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
@@ -12,6 +12,8 @@ import {
   catalogPageLayouts,
   catalogPageRouteEdit,
   catalogParentPageOptions,
+  catalogResolvedRoute,
+  catalogRouteFollowEdit,
   type CatalogRouteRefusal,
 } from "../../../catalogRuntime/pageSettings";
 import {
@@ -42,7 +44,9 @@ const ROUTE_MESSAGES: Record<CatalogRouteRefusal, string> = {
  * ADR-248 Phase 4e-4: the page section over the catalog document (the old PageBody editors) — a
  * page root edits its page: the reusable layout it uses (applied or removed — the content stays),
  * its parent page (nested route; never itself or a descendant) and its route (refused with a
- * message when malformed or taken). Each edit is one step.
+ * message when malformed or taken). Each edit is one step. A route out of line with the parent
+ * shows the route the parent gives (the old "Resolved URL") with one step that brings it — and
+ * the routes under it — along; the stored route never changes on its own (stable URLs).
  */
 export const CatalogPageSection = memo(function CatalogPageSection({
   pageId,
@@ -72,6 +76,8 @@ export const CatalogPageSection = memo(function CatalogPageSection({
     slots: ReturnType<typeof catalogPageLayoutSlots>;
   };
   const [routeError, setRouteError] = useState<string | null>(null);
+  // A root page has no parent to follow; offer it only right after it left one.
+  const [leftParent, setLeftParent] = useState<string | null>(null);
 
   const changeLayout = useCallback(
     (value: string) => {
@@ -104,6 +110,7 @@ export const CatalogPageSection = memo(function CatalogPageSection({
     (value: string) => {
       const entry = graph.getEntry(pageId);
       if (entry?.kind !== "page" || (entry.parentId ?? "") === value) return;
+      setLeftParent(value ? null : pageId);
       run(
         catalogPageCommands.parent(
           pageId,
@@ -130,7 +137,20 @@ export const CatalogPageSection = memo(function CatalogPageSection({
     [graph, pageId, run, workspace],
   );
 
+  const followRoute = useCallback(() => {
+    const edit = catalogRouteFollowEdit(workspace.readModel.pages(), [pageId]);
+    if (!edit) return;
+    if ("refused" in edit) return setRouteError(ROUTE_MESSAGES[edit.refused]);
+    setRouteError(null);
+    run(edit.command);
+  }, [pageId, run, workspace]);
+
   if (!page) return null;
+  const resolvedRoute = catalogResolvedRoute(pages, pageId);
+  const routeOutOfLine =
+    resolvedRoute !== undefined &&
+    resolvedRoute !== page.route &&
+    (page.parentId !== undefined || leftParent === pageId);
   const currentLayout = layouts.find((layout) => layout.id === current);
   const layoutOptions = [
     { value: "", label: translateKey(t, "properties.noLayout", "No Layout") },
@@ -242,6 +262,32 @@ export const CatalogPageSection = memo(function CatalogPageSection({
             </SwatchIconButton>
           </div>
         </div>
+        {routeOutOfLine && (
+          <>
+            <div className="fieldset-row" data-wide="true">
+              <fieldset className="properties-aria page-resolved-url">
+                <legend className="fieldset-legend">
+                  {translateKey(t, "properties.resolvedUrl", "Resolved URL")}
+                </legend>
+                <div className="react-aria-control react-aria-Group">
+                  <code className="page-resolved-url-value">
+                    {resolvedRoute}
+                  </code>
+                </div>
+              </fieldset>
+            </div>
+            <RACButton className="control-button" onPress={followRoute}>
+              <RefreshCw aria-hidden="true" size={iconEditProps.size} />
+              <span>
+                {translateKey(
+                  t,
+                  "properties.updateRoute",
+                  "Update route (incl. children)",
+                )}
+              </span>
+            </RACButton>
+          </>
+        )}
         {routeError && (
           <div className="page-slug-error" role="alert">
             <CircleAlert size={iconSmall.size} />

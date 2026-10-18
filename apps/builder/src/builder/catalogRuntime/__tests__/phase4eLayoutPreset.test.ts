@@ -15,7 +15,13 @@ import {
   catalogLayoutSlots,
 } from "../layoutPreset";
 import { catalogNewLayoutCommand } from "../layouts";
-import { catalogPageCommands, catalogPageLayoutSlots } from "../pageSettings";
+import {
+  catalogMoveToSlotItems,
+  catalogPageCommands,
+  catalogPageContentTarget,
+  catalogPageLayoutSlots,
+} from "../pageSettings";
+import { catalogParentOfNode } from "../insertParent";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -217,5 +223,76 @@ describe("ADR-248 Phase 4e-6-37 Layout Preset", () => {
     expect(instance.descendantOverrides).toMatchObject([
       { kind: "fillSlot", childIds: [] },
     ]);
+  });
+
+  // The old per-element Target Slot, as a move (user 2026-10-19 — "Move to slot ▸").
+  it("Move to slot lists the layout's other slots and moves the selection to one in a step", async () => {
+    const { workspace, graph, apply } = await open();
+    apply("holy-grail");
+    const project = graph.getEntry(graph.projectId);
+    if (project?.kind !== "project") throw new Error("project");
+    const [pageId] = project.pageIds;
+    const body = (graph.getEntry(pageId!) as unknown as { children: NodeId[] })
+      .children[0]!;
+    workspace.execute(
+      catalogPageCommands.layout(
+        pageId!,
+        project.definitionIds[0] as never,
+        workspace.newId,
+      ),
+    );
+    const content = catalogPageContentTarget(graph, body);
+    if (content?.kind !== "descendant") throw new Error("content slot");
+    const card = "project:node:card" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: {
+          kind: "descendant",
+          ownerId: content.ownerId,
+          address: content.address,
+        },
+        entries: [
+          {
+            kind: "node",
+            id: card,
+            definitionId: "lib:definition:type-frame",
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [card],
+        newId: workspace.newId,
+      }),
+    );
+    const names = () =>
+      catalogMoveToSlotItems(graph, [card], workspace.newId).map(
+        (item) => item.name,
+      );
+    expect(names()).toEqual(["header", "sidebar", "aside", "footer"]);
+    const depth = workspace.runtime.historyDepth.undo;
+    workspace.execute(
+      catalogMoveToSlotItems(graph, [card], workspace.newId).find(
+        (item) => item.name === "header",
+      )!.command,
+    );
+    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    const header = catalogPageLayoutSlots(graph, pageId!)!.slots.find(
+      (slot) => slot.name === "header",
+    )!;
+    expect(catalogParentOfNode(graph, card)).toMatchObject({
+      kind: "descendant",
+      ownerId: body,
+      address: { templatePath: header.path },
+    });
+    expect(names()).toEqual(["sidebar", "content", "aside", "footer"]);
+    // The layout instance itself, and a page without a layout, offer nothing.
+    expect(catalogMoveToSlotItems(graph, [body], workspace.newId)).toEqual([]);
+    workspace.undo();
+    workspace.undo();
+    workspace.undo();
+    expect(catalogMoveToSlotItems(graph, [body], workspace.newId)).toEqual([]);
   });
 });

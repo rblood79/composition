@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  createPage,
   duplicateNodes,
   insertNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
@@ -28,6 +29,7 @@ import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogButtonChildCommands } from "../buttonChildren";
 import { catalogComponentCommands } from "../componentActions";
 import { catalogEditContract } from "../editContract";
+import { catalogPageCommands } from "../pageSettings";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogWorkspaceProvider } from "../react";
 import {
@@ -300,6 +302,54 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     expect(graph.getEntry(page)).toMatchObject({ route: "/about" });
     expect(within(container).queryByRole("alert")).toBeNull();
+  });
+
+  it("the page section shows the route a new parent gives and brings it along in one step", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const page = (name: string) => `project:page:${name}` as EntryId<"page">;
+    for (const [name, route, parentId] of [
+      ["docs", "/docs"],
+      ["guide", "/guide"],
+      ["intro", "/guide/intro", "guide"],
+    ] as const)
+      workspace.execute(
+        createPage({
+          page: {
+            kind: "page",
+            id: page(name),
+            route,
+            name,
+            children: [],
+            ...(parentId ? { parentId: page(parentId) } : {}),
+          },
+        }),
+      );
+    const { container } = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogPageSection pageId={page("guide")} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const update = () =>
+      screen.queryByRole("button", { name: "Update route (incl. children)" });
+    // In line (a root page): nothing to offer.
+    expect(update()).toBeNull();
+    act(() => workspace.execute(catalogPageCommands.parent(page("guide"), page("docs"))));
+    expect(container.querySelector(".page-resolved-url-value")?.textContent).toBe(
+      "/docs/guide",
+    );
+    // The stored route stays until the user takes the offer.
+    expect(graph.getEntry(page("guide"))).toMatchObject({ route: "/guide" });
+    await act(async () => {
+      fireEvent.click(update()!);
+    });
+    expect(graph.getEntry(page("guide"))).toMatchObject({ route: "/docs/guide" });
+    expect(graph.getEntry(page("intro"))).toMatchObject({
+      route: "/docs/guide/intro",
+    });
+    expect(update()).toBeNull();
   });
 
   it("a Button shows the Icon picker; with an icon its label is the Text child's field only", async () => {

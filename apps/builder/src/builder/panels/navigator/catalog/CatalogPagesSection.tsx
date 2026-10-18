@@ -36,8 +36,15 @@ import type { PageTreeNode } from "../tree/PageTree/types";
 import { isValidPageDrop } from "../tree/PageTree/validation";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
 import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
+import { catalogRouteFollowEdit } from "../../../catalogRuntime/pageSettings";
+import { useToastStore } from "../../../stores/toast";
 
 const AddIcon = ACTION_ICONS.add;
+
+const notifyRouteTaken = () =>
+  useToastStore.getState().showToast("error", "properties.routeTaken", {
+    messageKey: "properties.routeTaken",
+  });
 type Node = PageTreeNode<CatalogTreePage>;
 
 /**
@@ -165,9 +172,34 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
         String(payload.target.key),
         payload.target.dropPosition,
       );
-      if (command) run(command);
+      if (!command || !run(command)) return;
+      // A page that changed parent keeps its route (stable URLs); offer to bring it along.
+      const parents = new Map(entries.map((page) => [page.id, page.parentId]));
+      const moved = workspace.readModel
+        .pages()
+        .filter(
+          (page) =>
+            payload.keys.has(page.id) && parents.get(page.id) !== page.parentId,
+        )
+        .map((page) => page.id);
+      if (!catalogRouteFollowEdit(workspace.readModel.pages(), moved)) return;
+      useToastStore.getState().showToast("info", "properties.routeOutOfDate", {
+        messageKey: "properties.routeOutOfDate",
+        action: {
+          label: "Update route (incl. children)",
+          labelKey: "properties.updateRoute",
+          onClick: () => {
+            const edit = catalogRouteFollowEdit(
+              workspace.readModel.pages(),
+              moved,
+            );
+            if (edit && "command" in edit) run(edit.command);
+            else if (edit) notifyRouteTaken();
+          },
+        },
+      });
     },
-    [entries, run],
+    [entries, run, workspace],
   );
   const renderContent = useCallback(
     (node: Node, state: TreeItemState) => (

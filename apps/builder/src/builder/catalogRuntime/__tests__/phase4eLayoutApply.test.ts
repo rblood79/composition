@@ -189,6 +189,48 @@ describe("ADR-248 4e layout applied to a page", () => {
     workspace.dispose();
   });
 
+  it("the Canvas menu moves the selected content to another slot (Move to slot ▸)", async () => {
+    const { workspace, layoutId, pageId } = await open();
+    workspace.execute(
+      catalogPageCommands.layout(pageId, layoutId, workspace.newId),
+    );
+    workspace.selectRecords(workspace.root.recordsOfSource(CONTENT));
+    const host = catalogMenuHost(workspace);
+    const record = workspace.root.recordsOfSource(CONTENT)[0];
+    const submenu = catalogCanvasMenuItems(host, "canvas-element", record).find(
+      (item) => item.kind === "submenu" && item.id === "move-to-slot",
+    );
+    if (submenu?.kind !== "submenu") throw new Error("no Move to slot");
+    expect(submenu.items.map((item) => item.kind === "action" && item.labelKey)).toEqual([
+      "header",
+      "sidebar",
+      "aside",
+      "footer",
+    ]);
+    const footer = submenu.items.at(-1)!;
+    if (footer.kind === "action") footer.run();
+    const fills = body(workspace).descendantOverrides.flatMap((item) =>
+      item.kind === "fillSlot"
+        ? [
+            [
+              (graphOf(workspace).getEntry(item.address.templatePath.at(-1)!) as NodeEntry)
+                .slot?.name,
+              item.childIds,
+            ],
+          ]
+        : [],
+    );
+    expect(fills).toContainEqual(["footer", [CONTENT]]);
+    expect(fills).toContainEqual(["content", []]);
+    // The action bar does not carry it.
+    expect(
+      catalogCanvasMenuItems(host, "action-bar", record).some(
+        (item) => item.id === "move-to-slot",
+      ),
+    ).toBe(false);
+    workspace.dispose();
+  });
+
   it("removing the layout gives the page body its content back", async () => {
     const { workspace, layoutId, pageId } = await open();
     workspace.execute(

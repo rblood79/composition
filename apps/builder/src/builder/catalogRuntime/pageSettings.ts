@@ -1,15 +1,18 @@
 import {
   applyLayout,
   layoutContentSlotPath,
+  moveNodes,
   updatePage,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { generateSlugFromTitle } from "../../utils/slugValidator";
+import { catalogParentOfNode } from "./insertParent";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
   EditTarget,
   EntryId,
+  InstanceAddress,
   NodeId,
   PageEntry,
   TemplateId,
@@ -145,6 +148,59 @@ export function catalogPageLayoutSlots(
   };
 }
 
+/**
+ * "Move to slot ▸" (the old per-element Target Slot, as a move): the slots of the layout the nodes'
+ * page uses, each with the command that moves the nodes to its end (one step). The slot holding
+ * all of them now is left out; empty when the nodes are not on one page with a layout.
+ */
+export function catalogMoveToSlotItems(
+  graph: CatalogPageReader,
+  ids: readonly NodeId[],
+  newId: NewId,
+): { name: string; path: string; command: CatalogCommand }[] {
+  const pageOf = (id: string) => {
+    for (let at = graph.ownerOf(id); at; at = graph.ownerOf(at))
+      if (graph.getEntry(at)?.kind === "page") return at as EntryId<"page">;
+    return undefined;
+  };
+  const pageId = ids.length ? pageOf(ids[0]) : undefined;
+  if (!pageId || ids.some((id) => pageOf(id) !== pageId)) return [];
+  const layout = catalogPageLayoutSlots(graph, pageId);
+  const body = (graph.getEntry(pageId) as PageEntry).children[0];
+  if (!layout || !body || ids.includes(body)) return [];
+  // The slot a node is in: the layout instance's slot that holds it or an ancestor of it.
+  const slotOf = (id: NodeId) => {
+    for (let at: NodeId | undefined = id, hops = 0; at && hops < 64; hops++) {
+      const parent = catalogParentOfNode(graph, at);
+      if (parent?.kind === "descendant" && parent.ownerId === body)
+        return parent.address.templatePath.join();
+      at = parent?.kind === "node" ? parent.id : undefined;
+    }
+    return undefined;
+  };
+  const current = ids.map(slotOf);
+  return layout.slots.flatMap((slot) => {
+    const path = slot.path.join();
+    if (current.every((at) => at === path)) return [];
+    const address = {
+      instances: [body],
+      templatePath: slot.path,
+    } as unknown as InstanceAddress;
+    return [
+      {
+        name: slot.name,
+        path,
+        command: moveNodes({
+          ids,
+          parent: { kind: "descendant", ownerId: body, address },
+          newId,
+          label: "Move to slot",
+        }),
+      },
+    ];
+  });
+}
+
 function depthOf(
   byId: ReadonlyMap<string, PageEntry>,
   page: PageEntry,
@@ -225,6 +281,88 @@ export function catalogGeneratedRoute(
     ? pages.find((entry) => entry.id === page.parentId)
     : undefined;
   return `${parent && parent.route !== "/" ? parent.route : ""}/${slug}`;
+}
+
+/** The resolved route over a route table (`catalogResolvedRoute` · a follow edit in progress). */
+function resolvedRouteIn(
+  pages: readonly PageEntry[],
+  routes: ReadonlyMap<string, string>,
+  pageId: EntryId<"page">,
+): string | undefined {
+  const page = pages.find((entry) => entry.id === pageId);
+  const route = page && routes.get(page.id);
+  if (!page || !route || route === "/") return undefined;
+  const parent = page.parentId ? routes.get(page.parentId) : undefined;
+  return `${parent && parent !== "/" ? parent : ""}/${route.split("/").at(-1)}`;
+}
+
+/**
+ * The route a page has under its parent (the old Slug field's "Resolved URL"): the parent's route,
+ * then the page's own last segment. `undefined` for the root route `/`, which follows nothing.
+ */
+export function catalogResolvedRoute(
+  pages: readonly PageEntry[],
+  pageId: EntryId<"page">,
+): string | undefined {
+  return resolvedRouteIn(
+    pages,
+    new Map(pages.map((page) => [page.id, page.route])),
+    pageId,
+  );
+}
+
+/**
+ * Bring pages' routes in line with their parents as one command (one step): each page gets its
+ * resolved route, and its descendants whose routes sit under its old route move along (the old
+ * derived URL followed a parent). Refused when a new route is another page's; `undefined` when
+ * every route already follows.
+ */
+export function catalogRouteFollowEdit(
+  pages: readonly PageEntry[],
+  pageIds: readonly EntryId<"page">[],
+): { command: CatalogCommand } | { refused: "ROUTE_TAKEN" } | undefined {
+  const routes = new Map(pages.map((page) => [page.id as string, page.route]));
+  const parentOf = new Map(pages.map((page) => [page.id, page.parentId]));
+  const within = (id: EntryId<"page">, ancestor: EntryId<"page">) => {
+    for (
+      let at = parentOf.get(id), hops = 0;
+      at && hops <= pages.length;
+      at = parentOf.get(at), hops++
+    )
+      if (at === ancestor) return true;
+    return false;
+  };
+  const changed = new Set<EntryId<"page">>();
+  for (const pageId of pageIds) {
+    const from = routes.get(pageId);
+    const to = resolvedRouteIn(pages, routes, pageId);
+    if (!from || !to || to === from) continue;
+    for (const page of pages) {
+      const route = routes.get(page.id)!;
+      if (
+        page.id === pageId ||
+        (within(page.id, pageId) && route.startsWith(`${from}/`))
+      ) {
+        routes.set(page.id, `${to}${route.slice(from.length)}`);
+        changed.add(page.id);
+      }
+    }
+  }
+  if (!changed.size) return undefined;
+  for (const id of changed)
+    if (
+      pages.some((page) => page.id !== id && routes.get(page.id) === routes.get(id))
+    )
+      return { refused: "ROUTE_TAKEN" };
+  const commands = [...changed].map((id) =>
+    updatePage({ id, fields: { route: routes.get(id)! } }),
+  );
+  return {
+    command: (reader) => ({
+      label: "Update route",
+      ops: commands.flatMap((command) => command(reader).ops),
+    }),
+  };
 }
 
 /**

@@ -100,6 +100,7 @@ export interface TranslationKeys {
     duplicate: string;
     group: string;
     ungroup: string;
+    moveToSlot: string;
     align: string;
     delete: string;
     zoomToFit: string;
@@ -267,6 +268,7 @@ export interface TranslationKeys {
       edit: string;
       editItems: string;
       move: string;
+      moveToSlot: string;
       delete: string;
       duplicate: string;
       paste: string;
@@ -286,6 +288,7 @@ export interface TranslationKeys {
       renamePage: string;
       pageRoute: string;
       parentPage: string;
+      updateRoute: string;
       pageLayout: string;
       toastPlacement: string;
       addLayout: string;

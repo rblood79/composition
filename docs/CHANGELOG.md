@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-248 이전 동작 비교 후속 — Move to slot · 부모 변경 시 Route 갱신] - 2026-10-19
+
+ADR-248 이전 앱과 지금 방식을 비교한 6 (slot 배정) · 8 (page route) 의 추천안이다 (사용자 2026-10-19 「이 추천대로 진행」). slot 배정은 지금의 끌어 넣기를 유지하고 메뉴만 더한다. route 는 저장값을 유지하고, 계층과 어긋나면 갱신을 제안한다.
+
+### Added
+
+- **Canvas 메뉴 「Move to slot ▸」**:
+  - layout 을 쓰는 page 의 요소를 우클릭하면, 지금 들어 있는 slot 을 뺀 나머지 slot 이 나온다. 고르면 그 slot 끝으로 옮긴다 (한 step).
+  - **Why**: 옛 앱의 요소별 「Target Slot」 셀렉트는 `slot_name` 사본을 따로 저장해 실제 위치와 어긋날 수 있었다. 지금은 위치가 문서 구조라 셀렉트 대신 이동 명령 하나로 같은 일을 한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/pageSettings.ts` (`catalogMoveToSlotItems`) · `canvasMenu.ts`
+- **부모를 바꾸면 Route 갱신을 제안한다**:
+  - Page 섹션: route 가 부모에서 계산한 경로와 다르면 「Resolved URL」 과 「Update route (incl. children)」 버튼이 나온다. 누르면 그 page 와, 그 route 아래에 있던 하위 page 의 route 가 한 step 에 함께 바뀐다. 다른 page 가 쓰는 route 가 되면 거부하고 이유를 보인다.
+  - Pages 트리에서 끌어 부모를 바꾸면 같은 제안이 toast 버튼으로 뜬다.
+  - route 는 스스로 바뀌지 않는다. 배포 URL 이 안정적이어야 하고, navigate 링크는 page id 로 이어져 끊기지 않는다.
+  - **Why**: 지금은 부모를 바꿔도 route 가 그대로라 계층과 URL 이 조용히 어긋났다. 옛 앱은 URL 을 부모에서 자동 계산했지만, 부모 변경이 URL 을 몰래 바꿔 손으로 쓴 링크를 깨뜨렸다.
+  - 위치: `pageSettings.ts` (`catalogResolvedRoute` · `catalogRouteFollowEdit`) · `CatalogPageSection.tsx` · `CatalogPagesSection.tsx`
+
+## [Disclosure 기본 너비 — catalog width 100%] - 2026-10-19
+
+### Changed
+
+- **Disclosure 기본 너비를 `100%`로 설정**:
+  - catalog 루트 스타일에 너비를 명시해 Canvas와 Preview가 부모 너비를 채우도록 한다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts`
+
 ## [ADR-248 이전 동작 복원 — 붙여넣기 · 그룹 · 글자 편집 · Layout 열기 · ID 검사 · History 라벨] - 2026-10-19
 
 ADR-248 이전 앱 (`a32159bc4`) 과 비교해 찾은 기록 없는 회귀 중 사용자가 「이전 동작으로」 고른 6건이다 (2026-10-18). 범위 선택 (marquee) 은 지금 동작을 유지한다.
