@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Page Layout — Horizontal 폭 0 수리 · 페이지 헤더는 활성 페이지만] - 2026-10-18
+
+### Changed
+
+- **페이지 헤더는 활성 페이지 하나에만 보인다** (사용자 지시 「헤더는 선택된 page에서만 헤더를 나타나도록」): 헤더는 화면 높이 36px 고정이라 gap 이 작거나 줌아웃하면 위 페이지에 걸쳤다. 다른 페이지는 Pages 패널 · 페이지 body 클릭으로 고르면 그 페이지의 헤더가 나온다. Components 원본 · 정의 편집 화면의 헤더 (페이지가 아닌 frame) 는 그대로다.
+
+### Fixed
+
+- **Page Layout Horizontal 전환 시 페이지가 세로 선으로 접혀 보이던 문제** (사용자 보고 「Horizontal, vertical 전환시에 정상적으로 나오지않는다」): 페이지 body 의 저작 폭 `100%` 를 Horizontal 격자의 `auto` 열 트랙 기준으로 풀어 폭이 0 이 됐다 (Auto · Vertical 은 고정 폭 트랙이라 정상). 페이지 root 의 `%` 폭은 이제 breakpoint viewport 폭 (Preview iframe 과 같은 기준) 으로 푼다 — Desktop 1920 · Tablet 768 · Mobile 390, `50%` 는 그 절반.
+
 ## [확대 · 축소가 페이지 배치를 바꾸지 않는다 — ADR-274 Implemented] - 2026-10-18
 
 ### Changed

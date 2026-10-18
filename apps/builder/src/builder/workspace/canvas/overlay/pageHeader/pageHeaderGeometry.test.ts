@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activePageHeaderFrames,
   PAGE_HEADER_COMPACT_MAX_WIDTH,
   resolvePageHeaderLod,
   headerClipPath,
@@ -175,5 +176,26 @@ describe("resolvePageHeaderLod — 헤더 폭 티어 (ADR-226 Decision 2)", () =
     expect(resolvePageHeaderLod(768 * 0.1)).toBe("compact");
     expect(resolvePageHeaderLod(390 * 0.1)).toBe("compact");
     expect(resolvePageHeaderLod(390 * 0.3)).toBe("full");
+  });
+});
+
+describe("activePageHeaderFrames — 페이지 헤더는 활성 페이지 하나만", () => {
+  const frames = [
+    { id: "page:a", x: 0, y: 0, width: 390, height: 844 },
+    { id: "page:b", x: 470, y: 0, width: 390, height: 844 },
+    { id: "definition:card", x: 0, y: 900, width: 200, height: 100 },
+  ];
+  const isPage = (id: string) => id.startsWith("page:");
+
+  it("활성 페이지 헤더만 남기고, 페이지가 아닌 frame (컴포넌트 · 정의) 헤더는 그대로 둔다", () => {
+    expect(
+      activePageHeaderFrames(frames, "page:b", isPage).map((f) => f.id),
+    ).toEqual(["page:b", "definition:card"]);
+  });
+
+  it("활성 페이지가 없으면 페이지 헤더는 0", () => {
+    expect(
+      activePageHeaderFrames(frames, null, isPage).map((f) => f.id),
+    ).toEqual(["definition:card"]);
   });
 });

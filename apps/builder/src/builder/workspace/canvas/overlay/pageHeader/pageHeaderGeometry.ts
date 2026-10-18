@@ -38,6 +38,19 @@ export type PageHeaderFrame = Pick<
   "id" | "title" | "x" | "y" | "width" | "height"
 >;
 
+/**
+ * 그릴 헤더 — 페이지 헤더는 활성 페이지 하나만 (사용자 지시 2026-10-18 「헤더는 선택된 page에서만
+ * 헤더를 나타나도록」 — 헤더가 화면 고정 높이라 gap 이 작으면 위 페이지에 겹친다). 페이지가 아닌
+ * frame (Components 의 원본 · 정의 편집 view 의 정의) 의 헤더는 그대로 둔다.
+ */
+export function activePageHeaderFrames<T extends Pick<PageHeaderFrame, "id">>(
+  frames: readonly T[],
+  activePageId: string | null,
+  isPage: (id: string) => boolean,
+): T[] {
+  return frames.filter((frame) => !isPage(frame.id) || frame.id === activePageId);
+}
+
 /** 헤더 배치 카메라 — Skia 블리팅 `CameraState` 와 같은 값 */
 export type HeaderCamera = CameraState;
 
