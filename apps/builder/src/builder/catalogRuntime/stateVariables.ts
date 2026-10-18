@@ -196,8 +196,8 @@ export interface CatalogStateSource {
 export function catalogNodeStateSources(
   graph: CatalogVariableReader,
   nodeId: NodeId,
-  /** The node's definition when the caller has it (a drawn record's) — no document read. */
-  definitionId?: string,
+  /** The node's component type when the caller has it (its edit contract's) — no document read. */
+  type?: string,
 ): CatalogStateSource[] {
   // (The Design panel reads this on every render of a selection — ADR-246 ratchet: once per node
   // and revision, the type first and once per definition, so a node without RAC states costs one
@@ -210,7 +210,7 @@ export function catalogNodeStateSources(
     last.nodeId === nodeId
   )
     return last.result;
-  const result = nodeStateSources(graph, nodeId, definitionId);
+  const result = nodeStateSources(graph, nodeId, type);
   lastSources = { graph, revision: graph.revision, nodeId, result };
   return result;
 }
@@ -227,15 +227,15 @@ let lastSources:
 function nodeStateSources(
   graph: CatalogVariableReader,
   nodeId: NodeId,
-  definitionId: string | undefined,
+  type: string | undefined,
 ): CatalogStateSource[] {
-  let definition = definitionId;
-  if (!definition) {
+  let sources: ReturnType<typeof resolveImplicitStateSources>;
+  if (type !== undefined) sources = resolveImplicitStateSources(type);
+  else {
     const node = graph.getEntry(nodeId);
     if (node?.kind !== "node") return [];
-    definition = node.definitionId;
+    sources = implicitSourcesOf(graph, node.definitionId as DefinitionId);
   }
-  const sources = implicitSourcesOf(graph, definition as DefinitionId);
   if (!sources.length || !catalogNodePage(graph, nodeId)) return [];
   const named = new Map<string, StateVariableEntry>();
   for (const id of graph.referrersOf(nodeId)) {

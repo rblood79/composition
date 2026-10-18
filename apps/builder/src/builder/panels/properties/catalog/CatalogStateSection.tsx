@@ -65,8 +65,11 @@ interface StateView {
  */
 export const CatalogStateSection = memo(function CatalogStateSection({
   nodeId,
+  type,
 }: {
   nodeId: NodeId;
+  /** The node's component type (its edit contract's): which RAC states it can name. */
+  type?: string;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
@@ -95,14 +98,8 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       isPage: owner !== nodeId,
       sources:
         owner === nodeId
-          ? catalogNodeStateSources(
-              graph,
-              nodeId,
-              // (The drawn record's definition — no document read per selection, ADR-246.)
-              workspace.root.domInputs.get(
-                workspace.root.recordsOfSource(nodeId)[0] ?? "",
-              )?.definitionId,
-            )
+          ? // (The contract's type — no document read per selection, ADR-246.)
+            catalogNodeStateSources(graph, nodeId, type)
           : [],
       own,
       // (The states this node named show in its implicit group, not again as its page's.)

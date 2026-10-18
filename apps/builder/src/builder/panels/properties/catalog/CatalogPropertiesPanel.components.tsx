@@ -197,6 +197,7 @@ export function CatalogPropertiesBody({
           <CatalogStateSection
             key={`state:${first.target.id}`}
             nodeId={first.target.id}
+            type={contract.type}
           />
         )}
         {!originSample && (
