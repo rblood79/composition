@@ -111,6 +111,19 @@ export const CatalogDefinitionsSection = memo(
       [definitionView],
     );
 
+    // Opening a layout selects its body — the layout's selection (Layers row · Canvas frame ·
+    // the Design panel's preset and slots), as opening a page does. After the view: it replaces
+    // the root.
+    const openLayout = useCallback(
+      (id: CatalogDefinitionViewId) => {
+        workspace.showDefinition(id);
+        const entry = graph.getEntry(id);
+        const body =
+          entry?.kind === "definition" ? entry.templateRootId : undefined;
+        if (body) workspace.session.select(workspace.itemsOfNode(body, 1));
+      },
+      [graph, workspace],
+    );
     const addLayout = useCallback(() => {
       const plan = run(
         catalogNewLayoutCommand(
@@ -121,8 +134,8 @@ export const CatalogDefinitionsSection = memo(
       const created = catalogDefinitionList(graph, "layout").find(
         (item) => !items.some((known) => known.id === item.id),
       );
-      if (plan !== undefined && created) workspace.showDefinition(created.id);
-    }, [graph, items, run, t, workspace]);
+      if (plan !== undefined && created) openLayout(created.id);
+    }, [graph, items, openLayout, run, t]);
     const removeLayout = useCallback(
       (item: DefinitionNode) =>
         run(
@@ -135,10 +148,9 @@ export const CatalogDefinitionsSection = memo(
     const handleSelectionChange = useCallback(
       (keys: Set<Key>) => {
         const [key] = keys;
-        if (key)
-          workspace.showDefinition(String(key) as CatalogDefinitionViewId);
+        if (key) openLayout(String(key) as CatalogDefinitionViewId);
       },
-      [workspace],
+      [openLayout],
     );
     const renderContent = useCallback(
       (item: DefinitionNode, state: TreeItemState) => (

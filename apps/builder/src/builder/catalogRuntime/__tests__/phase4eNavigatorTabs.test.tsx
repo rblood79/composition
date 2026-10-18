@@ -184,6 +184,38 @@ describe("ADR-248 4e Navigator tabs", () => {
     workspace.dispose();
   });
 
+  it("opening or adding a layout selects its body", async () => {
+    const { workspace, graph, layout } = await open();
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogNavigatorPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    const bodyOf = (id: string) => {
+      const entry = graph.getEntry(id);
+      return entry?.kind === "definition" ? entry.templateRootId : undefined;
+    };
+    const selected = () =>
+      workspace.session.getSnapshot().selection.map((item) => item.identity);
+    fireEvent.click(screen.getByRole("tab", { name: "Layouts" }));
+    fireEvent.click(within(screen.getByRole("tabpanel")).getByText("Shell"));
+    expect(workspace.session.getSnapshot().definitionView).toBe(layout.id);
+    expect(selected()).toEqual(
+      workspace.itemsOfNode(bodyOf(layout.id)!, 1).map((item) => item.identity),
+    );
+    expect(selected()).toHaveLength(1);
+
+    fireEvent.click(screen.getByLabelText("Add Layout"));
+    const added = workspace.session.getSnapshot().definitionView!;
+    expect(added).not.toBe(layout.id);
+    expect(selected()).toEqual(
+      workspace.itemsOfNode(bodyOf(added)!, 1).map((item) => item.identity),
+    );
+    workspace.dispose();
+  });
+
   it("Layers lists only what the selected tab is about", async () => {
     const { workspace, component } = await open();
     render(
