@@ -2,15 +2,19 @@
 
 ## Status
 
-Accepted — 2026-10-18 (사용자 `/execute-adr 272` · 리뷰 [reviews/272.md](reviews/272.md) Round 2 pending 0 · CRITICAL/HIGH 0). 사용자 결정 1 (2026-10-18): **「100 · 300 × 간격 기본 · ×4」** — ratchet run 은 100, 300 은 몫 표 · 상한 확인용.
+Implemented — 2026-10-18 (G0 · G2 ~ G5 통과 · Phase 1 no-go · Phase 3 생략 — 사용자 결정 3 (2026-10-18): **「Implemented 로 종결」** — HC3 참고 목표 (many-pages 줌 p99 ≤ 20 ms) 미달은 기록으로 남긴다: 줌 비용의 본체는 이 ADR 의 레버가 아니라 JS 페이지 grid 재배치 (자손 옮기기, 조건부 「로컬 좌표」 후보). G5 = Chrome MCP live, 아래 `### Live Exercise`). 이전: Accepted — 2026-10-18 (사용자 `/execute-adr 272` · 리뷰 [reviews/272.md](../reviews/272.md) Round 2 pending 0 · CRITICAL/HIGH 0). 사용자 결정 1 (2026-10-18): **「100 · 300 × 간격 기본 · ×4」** — ratchet run 은 100, 300 은 몫 표 · 상한 확인용.
 
-> **Phase 0 종결 (2026-10-18)** — 몫 표 ([breakdown §7-1](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md#7-1-phase-0-2026-10-18--몫-표--gono-go)). 질의 셀 + 항목 ≤ 0.3 % (문서 크기와 무관 — viewport 넓이로 정해진다) → **Phase 1 no-go**. 편집 뒤 미리 기록 준비 4.6 ~ 5.3 % · 캐시가 차 있으면 기록 0 (전량 훑고 정렬만) → **Phase 2 go**. 64 셀 넘는 항목 0 (최대 48) — 사용자 결정 2 (2026-10-18): **「생략」** (줌 upsert 는 자손 옮기기 몫 — 「로컬 좌표」 후보). 빌더 최소 줌이 0.1 이라 0.05 대신 0.1 을 잰다. ratchet run `60:many-pages100@zoom0.1` (`counts.warmAfter` 포함).
+> **Phase 0 종결 (2026-10-18)** — 몫 표 ([breakdown §7-1](../design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md#7-1-phase-0-2026-10-18--몫-표--gono-go)). 질의 셀 + 항목 ≤ 0.3 % (문서 크기와 무관 — viewport 넓이로 정해진다) → **Phase 1 no-go**. 편집 뒤 미리 기록 준비 4.6 ~ 5.3 % · 캐시가 차 있으면 기록 0 (전량 훑고 정렬만) → **Phase 2 go**. 64 셀 넘는 항목 0 (최대 48) — 사용자 결정 2 (2026-10-18): **「생략」** (줌 upsert 는 자손 옮기기 몫 — 「로컬 좌표」 후보). 빌더 최소 줌이 0.1 이라 0.05 대신 0.1 을 잰다. ratchet run `60:many-pages100@zoom0.1` (`counts.warmAfter` 포함).
 
-> **Phase 2 종결 (2026-10-18)** — [breakdown §7-2](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md). 미리 기록 자리 0 이면 차례 생략 · 후보 = page root ∪ 공간 질의 (최소 줌 culling × 2) · 기록 가능한 후보 중 가까운 k (남은 자리) 개만 정렬 · 카메라 칸 키. 사각형이 자리를 못 채우면 전체 순회로 보충 (줌아웃 auto-columns 재배치 — 사각형만이면 `app-pages` 줌 프레임 기록 0 → 380). many-pages 100 편집 뒤 준비 21,746 훑음 · 17,457 정렬 · 9.1 ms → 0 · 0 · 0.1 ms, `app-pages` 정렬 3,961 → 15. ratchet 하향 · A 초과 0. 남은 것: G4 (production 짝) · G5 (live).
+> **Phase 2 종결 (2026-10-18)** — [breakdown §7-2](../design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md). 미리 기록 자리 0 이면 차례 생략 · 후보 = page root ∪ 공간 질의 (최소 줌 culling × 2) · 기록 가능한 후보 중 가까운 k (남은 자리) 개만 정렬 · 카메라 칸 키. 사각형이 자리를 못 채우면 전체 순회로 보충 (줌아웃 auto-columns 재배치 — 사각형만이면 `app-pages` 줌 프레임 기록 0 → 380). many-pages 100 편집 뒤 준비 21,746 훑음 · 17,457 정렬 · 9.1 ms → 0 · 0 · 0.1 ms, `app-pages` 정렬 3,961 → 15. ratchet 하향 · A 초과 0. 남은 것: G4 (production 짝) · G5 (live).
 
-Proposed — 2026-10-17 (리뷰 [reviews/272.md](reviews/272.md) Round 1 — codex, MEDIUM 1 → 같은 날 반영: 미리 기록 후보의 k 제한 앞에 적격성 선별 (유효 picture · 편집 · volatile 제외, `rootIds` 포함) · `false` 시 보충. Round 2 — claude 수리 검증 (같은 날): HIGH 0 · LOW 1 (부분 선택이 나머지 후보를 보존해야 보충이 성립) → 반영, 설계 판독 종결 — pending 0)
+> **G4 통과 (2026-10-18)** — production 짝 (기준 `aaa2625e0` ↔ HEAD `90291a18a`, 교대 2 쌍 · 12 run 오류 0): many-pages 100 줌 0.1 · 팬 · 먼 페이지 점프 · 편집 · `app-pages` 줌 · 편집 · 팬 · 페이지 전환 · 중첩 5k 편집에서 표시 간격 p99 · long task 회귀 0. taskMs 쌍 차는 재측정으로 흔들림 확인. many-pages 줌 p99 ~49 ms 는 기준과 같다 (참고 목표 20 ms 미달 — 줌 본체는 JS 재배치, 사용자 결정 3). 상세 [breakdown §7-3](../design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md). 다음: G5 (사용자 프로젝트 live).
 
-- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **셋째**. 첫째 [ADR-270](completed/270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 넷째 [ADR-273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 「로컬 좌표 · 지연 합성」 (ADR-269 후속) 은 이 ADR 뒤에도 자손 맵 갱신이 지배적일 때 별도 ADR — 여기서 다루지 않는다.
+> **G5 통과 · Implemented (2026-10-18)** — Chrome MCP live (사용자 프로젝트 「123」 22 페이지): 전체 보기 · 먼 페이지 점프 · 팬 · 선택 · marquee · 드래그 → ⌘Z 에서 빈 자리 · 늦게 그려지는 요소 0 · 콘솔 오류 0. 사용자 결정 3 = 「Implemented 로 종결」. 상세 `### Live Exercise` · [breakdown §7-4](../design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md).
+
+Proposed — 2026-10-17 (리뷰 [reviews/272.md](../reviews/272.md) Round 1 — codex, MEDIUM 1 → 같은 날 반영: 미리 기록 후보의 k 제한 앞에 적격성 선별 (유효 picture · 편집 · volatile 제외, `rootIds` 포함) · `false` 시 보충. Round 2 — claude 수리 검증 (같은 날): HIGH 0 · LOW 1 (부분 선택이 나머지 후보를 보존해야 보충이 성립) → 반영, 설계 판독 종결 — pending 0)
+
+- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **셋째**. 첫째 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 넷째 [ADR-273](273-canvas-memory-budget-overscan-device-px-resource-cache.md). 조건부 「로컬 좌표 · 지연 합성」 (ADR-269 후속) 은 이 ADR 뒤에도 자손 맵 갱신이 지배적일 때 별도 ADR — 여기서 다루지 않는다.
 - 방향을 정한 사용자 원문: 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」. 등급: 「두 전략의 결과 집합이 같으면 싼 쪽을 고른다」 · 「idle 시간에 묶이는 기록의 후보를 전부 정렬하는 것은 낭비」 는 **A**, 전환점 셀 수 · 후보 반경 · 큐 크기는 **B**. 비교 분석도 이 항목을 「코드에서 도출되는 확장성 위험이며 실측 회귀 아님」 으로 적었다 — 그래서 Phase 0 은 **많은 페이지 fixture** 로 비용이 어디서 나는지 먼저 가른다 (레버 선택은 카운트가 한다).
 - 사용자가 이미 답한 것: 측정은 게이트. Pen 의 처리도 전부 화면 내 요소 수에 비례하지는 않는다 — 가져오는 것은 **「수요에 따라 자원 작업 범위를 제한하는 원칙」** 뿐.
 - 리뷰는 사용자가 요청할 때 `/review-adr 272` → `reviews/272.md`.
@@ -99,7 +103,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/272.md](reviews/272.md) Round 1 — cod
 2. **Phase 3 진입** — Phase 0 의 upsert 셀 방문 몫이 질의 몫보다 클 때만. 작으면 생략.
 3. **종결 미달** — HC3 참고 목표 (`many-pages` 줌 표시 간격 p99 ≤ 20 ms) 미달 시 측정 기록 종결 또는 대안 B · D 로 (별도 ADR).
 
-> 구현 상세: [272-bounded-spatial-query-and-warmup-work-range-breakdown.md](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md)
+> 구현 상세: [272-bounded-spatial-query-and-warmup-work-range-breakdown.md](../design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md)
 
 ## Risks
 
@@ -125,6 +129,18 @@ Proposed — 2026-10-17 (리뷰 [reviews/272.md](reviews/272.md) Round 1 — cod
 ### Live Exercise
 
 (Implemented 승격 시 기재)
+
+### Live Exercise
+
+2026-10-18 — G5 통과 (Chrome MCP · dev 5173 · HEAD `90291a18a` · 사용자 프로젝트 「123」 22 페이지 · hit 상자 3,676):
+
+- **전체 보기 (줌 10 %)**: 22 페이지 전부 그려짐 — 빈 자리 · 늦게 그려지는 요소 0.
+- **먼 페이지 점프 (줌 68 %, 홈 → Page 25 `revealPage`)**: 도착 화면 완전. 미리 기록 차례 재구성 2 (카메라 칸 변경) · 캐시가 차 있어 후보 0 (자리 0 생략) · 프레임 안 기록 0.
+- **팬**: 페이지 영역 빈 자리 0 (문서 끝 밖은 실제 페이지 0 개 — JS 로 확인).
+- **선택 · marquee**: 클릭 선택 (hit) 정상 · 빈 캔버스에서 시작한 marquee 가 목록 행을 덮어 여러 요소 선택.
+- **드래그 → ⌘Z**: 순서 변경 뒤 되돌리기로 hit 상자 3,676 개 전부 드래그 전과 같음. 편집 뒤 미리 기록 2 차례 (전체 보충 2 · idle 기록 4,180).
+- 콘솔 오류 0.
+- **G4 (production 짝, headless)**: 기준 `aaa2625e0` ↔ HEAD `90291a18a` 교대 2 쌍 12 run — 표시 간격 p99 · long task 회귀 0 · 오류 0 (breakdown §7-3).
 
 ## Consequences
 

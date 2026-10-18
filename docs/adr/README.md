@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-18 ADR-272 Implemented** (G0 · G2 ~ G5 · Phase 1 no-go · Phase 3 생략) — G5 Chrome MCP live: 사용자 프로젝트 「123」 전체 보기 · 먼 페이지 점프 · 팬 · 선택 · marquee · 드래그 → ⌘Z 에서 빈 자리 · 늦게 그려지는 요소 0 · 콘솔 오류 0. 사용자 결정 3 = 「Implemented 로 종결」 — 참고 목표 (many-pages 줌 p99 ≤ 20 ms) 미달은 기록: 줌 본체는 JS 페이지 grid 재배치 (조건부 「로컬 좌표」 후보). 본문 `completed/` 로 이동. Pen.dev 비교 확정 4 건 종결 (270 · 271 · 272 · 273). 열림 −1, 완료 +1 (열림 1 — Proposed 1 (245), 합계 295).
+
+> **2026-10-18 ADR-272 G4 통과** (사용자 「진행」) — production 짝 (기준 `aaa2625e0` ↔ HEAD `90291a18a`, 교대 2 쌍 · 12 run): many-pages 100 줌 0.1 · 팬 · 먼 페이지 점프 · 편집 · `app-pages` 줌 · 편집 · 팬 · 페이지 전환 · 중첩 5k 편집 표시 간격 p99 · long task 회귀 0 · taskMs 쌍 차는 재측정으로 흔들림. many-pages 줌 p99 ~49 ms 기준과 같음 (참고 목표 20 ms 는 사용자 결정 3). 다음: G5. 열림 · 합계 변화 없음.
+
 > **2026-10-18 ADR-272 Accepted · Phase 0 · 2 종결 · Phase 1 no-go · Phase 3 생략** (사용자 `/execute-adr 272` — 리뷰 r2 pending 0) — Phase 0 몫 표 (`many-pages` 100 · 300 × 간격 기본 · ×4 — 사용자 결정 1): 질의 셀 + 항목 ≤ 0.3 % (화면 넓이로 정해져 문서 크기와 무관) → Phase 1 no-go · 64 셀 넘는 항목 0 → Phase 3 생략 (사용자 결정 2) · 편집 뒤 미리 기록 준비 4.6 ~ 5.3 % 에 기록 0 → Phase 2. Phase 2: 자리 0 이면 차례 생략 · 후보 = page root ∪ 공간 질의 (최소 줌 culling × 2) · 가까운 k 개만 정렬 · 카메라 칸 키 · 사각형이 자리를 못 채우면 전체 순회 보충 (줌아웃 auto-columns 재배치). many-pages 100 편집 뒤 9.1 → 0.1 ms · `app-pages` 정렬 3,961 → 15. ratchet run `60:many-pages100@zoom0.1` · 하향 · `--update` 의 `@zoom0.1` seed 경로 결함 수리. 다음: G4 · G5. 열림 · 합계 변화 없음 (Proposed −1 · Accepted +1).
 
 > **2026-10-18 ADR-271 Implemented — 측정 기록으로 종결** (사용자 결정 3 「측정 기록 종결」) — Phase 1 · 2 (프레임 band · 글자 줄 상자) 를 구현하고 dev A/B (`--zoom 0.1`, 켬 ↔ 끔 교대) 로 쟀다: 래스터 (flush) 같음 · 이득 0, band 경계마다 글자 요소 재기록 (`lodTierChanges` 38 · lod miss 9,369) 으로 줌 taskMs +12 ~ 16 % · `zoom-ladder` +10 ~ 20 % · 빠른 팬 차 없음. G1 live 는 0.2 이상 0 px · 0.1 ~ 0.15 차이 0.09 ~ 0.38 %. → Phase 1 · 2 코드 되돌림 (결정 1 · 2 대상 없음). 남긴 것: Phase 0 dev 카운터 · `zoom-ladder` · ratchet `@zoom` 키 · run `60:app-pages@zoom0.1` · `@zoom0.25` (재등록). 남은 꼬리 = `drawPicture` 재생 수 (대안 C — C 등급, 측정 뒤 별도 ADR). 본문 `completed/` 로 이동. 열림 −1, 완료 +1 (열림 2 — Proposed 2 (245 · 272), 합계 295).
@@ -180,7 +184,7 @@
 > **2026-10-17 ADR-271 · 272 · 273 Proposed** (사용자 `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` — Pen.dev 비교 확정 4 건의 둘째 ~ 넷째, ADR-270 과 같은 A/B/C 등급 기준 · 측정은 게이트):
 >
 > - **[271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) 축소 개요 LOD** — 코드 사실: 배율은 실행 층 밖 (`SkiaRenderer.ts:762` `scale`) 이라 `executeRenderCommands` 가 zoom 을 모름 · 생략은 viewport 밖뿐 (`renderCommands.ts:2556`) · 요소마다 `drawPicture` 1 회 · picture 키에 배율 없음 · 실측 `60:app-pages` 줌 `nodePicture.hits` 44,909 (ADR-266 꼬리 = 재생 1,600 / 프레임). 채택 A — 실행 옵션 `lod` · 투영 < T_skip (B, 0.5 px 제안) 이고 unsafe 아님 · 서브트리 paint bounds 도 작으면 jump (키 없음) · 글자는 **band (이산 배율 띠) 상한** 기준 `fontSize × bandUpper` < T_text (2 px) 면 줄 상자 (picture 키에 band — 리뷰 r1 H1) · 서브트리 unsafe 요약 전파 (H2) · 히스테리시스 · content · damage · 미리 기록 같은 band (M3) · export · drag · 편집 중 `full`. B (zoom 연속 키 — thrash 재발) · C (합성 캐시 — C 등급) · D (저해상도 surface — 전 화면 흐림) 기각. **0 px 를 주장하지 않는다** — 허용 오차는 사용자 결정 1 (제안 채널 ≤ 3/255 · ≤ 0.5 % · 배율 ≤ 0.5). 사용자 결정 3 (오차 · 줄 상자 모양 · 종결 미달). G0 ~ G5. breakdown: [design/271](design/271-zoomed-out-lod-skip-small-elements-text-line-boxes-breakdown.md).
-> - **[272](272-bounded-spatial-query-and-warmup-work-range.md) 작업 범위 제한** — 코드 사실: Rust grid 256 질의가 사각형의 **모든 셀** 순회 (`spatial_index.rs:194`) · half rule 은 질의 뒤 · 줌 0.1 = ~7,400 셀 (overscan 여백 포함, 줌 1 의 ~90 배 — 여백 값은 ADR-273 과 의존) · `upsert` 도 셀 수 비례 (`app-pages` 줌 `translateNodes` 222,268) · 미리 기록은 전체 stream 순회 + 전부 정렬 · 차례 키에 카메라 없음 · Rust 셀 방문 카운터 없음 · 많은 페이지 fixture 없음. 채택 A — Phase 0 `many-pages` (사용자 결정 1: 100 · 300) + Rust `query_stats` → Phase 1 셀 수 > K × 항목 수면 선형 AABB (결과 집합 동일, Rust 안) → Phase 2 후보 = 넓힌 viewport 질의 · k 제한 선택 · 카메라 큰 셀 키 → Phase 3 큰 항목 버킷 (사용자 결정 2 뒤). B (R-tree) · C (배율별 셀 재구축) · D (page 2 단계 인덱스) 기각. HC 결과 집합 동일 · 카운트 먼저 · 비용 이동 금지 · wasm 표면 추가 3 종 한정. G0 ~ G5. breakdown: [design/272](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md).
+> - **[272](completed/272-bounded-spatial-query-and-warmup-work-range.md) 작업 범위 제한** — 코드 사실: Rust grid 256 질의가 사각형의 **모든 셀** 순회 (`spatial_index.rs:194`) · half rule 은 질의 뒤 · 줌 0.1 = ~7,400 셀 (overscan 여백 포함, 줌 1 의 ~90 배 — 여백 값은 ADR-273 과 의존) · `upsert` 도 셀 수 비례 (`app-pages` 줌 `translateNodes` 222,268) · 미리 기록은 전체 stream 순회 + 전부 정렬 · 차례 키에 카메라 없음 · Rust 셀 방문 카운터 없음 · 많은 페이지 fixture 없음. 채택 A — Phase 0 `many-pages` (사용자 결정 1: 100 · 300) + Rust `query_stats` → Phase 1 셀 수 > K × 항목 수면 선형 AABB (결과 집합 동일, Rust 안) → Phase 2 후보 = 넓힌 viewport 질의 · k 제한 선택 · 카메라 큰 셀 키 → Phase 3 큰 항목 버킷 (사용자 결정 2 뒤). B (R-tree) · C (배율별 셀 재구축) · D (page 2 단계 인덱스) 기각. HC 결과 집합 동일 · 카운트 먼저 · 비용 이동 금지 · wasm 표면 추가 3 종 한정. G0 ~ G5. breakdown: [design/272](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md).
 > - **[273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md) Canvas 메모리 예산** — 코드 사실: 여백 512 **CSS** px × dpr · ping-pong 2 장 (산식 1440×900 DPR 2 = 72.3 MiB × 2, Pen 512 device = 42.1) · `MakeWebGLCanvasSurface` 가 context 를 숨겨 `setResourceCacheLimitBytes` 호출 0 · 자원별 상한이 다섯 자리에 흩어짐 (picture 64 MiB 동적 · warm 4,096 · image soft 128 MiB · paragraph 없음 · surface 없음) · GPU 실사용량은 못 읽음. 채택 A — Phase 0 인벤토리 표 + `contentRedraws` · 팬 속도 분포 (사용자 headed 1 회) → Phase 1 여백 `min(512 × dpr, PAD_DEVICE_MAX)` (사용자 결정 1, 768 제안 — DPR 1 무변화) → Phase 2 `GetWebGLContext` + `MakeWebGLContext` (`MakeGrContext` 는 deprecated) + `MakeOnScreenGLSurface` 로 context 소유 · 한도 명시 (결정 2, 256 MiB 제안) · ADR-270 R8 소실 · 복원과 같은 핸들 (결정 3 — 273 Phase 2 를 270 Phase 3a 앞에 추천) → Phase 3 `canvasMemoryBudget.ts` 한 곳 (값 불변 · 전역 LRU 없음). B (전역 예산 — ADR-174 금지) · C (여백 0) · D (그대로 — ADR-270 텍스처와 따로 놈) 기각. G0 ~ G5 (G4 에 DPR 2 headed 팬). breakdown: [design/273](design/273-canvas-memory-budget-overscan-device-px-resource-cache-breakdown.md).
 >
 > 열림 +3 (열림 5 — Proposed 5 = 245 · 270 · 271 · 272 · 273, 합계 295). 같은 날 리뷰: 271 · 272 는 Round 1 (codex) + Round 2 (claude 수리 검증, HIGH 0) 으로 설계 판독 종결, 273 은 Round 1 (claude) MEDIUM 2 · LOW 1 반영 — 셋 다 pending 0.
@@ -348,18 +352,20 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     293 |
-| ├ Implemented / Complete(d)   |     246 |
+| 완료 (`completed/`)           |     294 |
+| ├ Implemented / Complete(d)   |     247 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       2 |
-| ├ Proposed                    |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       1 |
+| ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **295** |
 
+> 2026-10-18 재대조 (8): ADR-272 Implemented (열림 −1, 완료 +1) — 열림 1 = 245 (사용자 보류).
+>
 > 2026-10-18 재대조 (7): ADR-270 · 273 · 271 Implemented (열림 −3, 완료 +3) — 열림 2 = 245 (사용자 보류) · 272.
 >
 > 2026-10-17 재대조 (6): ADR-271 · 272 · 273 Proposed (열림 +3) — 열림 5 = 245 (사용자 보류) · 270 · 271 · 272 · 273.
@@ -393,11 +399,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [272](272-bounded-spatial-query-and-warmup-work-range.md) — 작업 범위 제한 — 공간 질의 셀 상한 전략 전환 · 사전 기록 bounded · 카메라 추종 (Pen.dev 비교 도입 3/4)
-
-- **상태**: Accepted — 2026-10-18 (`/execute-adr 272`). Phase 0 · 2 종결 · Phase 1 no-go (질의 몫 ≤ 0.3 %) · Phase 3 생략 (사용자 결정 2 — 64 셀 넘는 항목 0). 남은 것: G4 (production 짝) · G5 (live). 리뷰 [reviews/272.md](reviews/272.md) Round 1 · 2 (pending 0)
-- **규모**: Phase 0 `many-pages` fixture + Rust `query_stats` (G0, 레버는 몫 표가 고른다) → Phase 1 질의 전략 전환 → Phase 2 미리 기록 bounded · 카메라 추종 → Phase 3 큰 항목 버킷 (조건부). 사용자 결정 3 (fixture 규모 · Phase 3 진입 · 종결 미달). breakdown: [design/272](design/272-bounded-spatial-query-and-warmup-work-range-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -427,14 +428,13 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [272](272-bounded-spatial-query-and-warmup-work-range.md)                                      | Accepted 2026-10-18 — Phase 0 · 2 종결 · Phase 1 no-go · Phase 3 생략. 남은 것 G4 · G5 | 사용자 결정 3 (종결 미달 — 줌 p99 ≤ 20 ms 참고 목표, 줌 본체는 JS 재배치) 은 종결 때 |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)                                                                 | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
-## 완료 ADR (293)
+## 완료 ADR (294)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -735,6 +735,7 @@
 | [270](completed/270-image-load-path-partial-update-off-thread-decode.md) | 이미지 로드 경로 (Pen.dev 비교 도입 1/4) — 완료 = 소유 요소 dirty seed splice (image-loaded 재바인드 22 → 0 · 같은 프레임 편집이 남음) · 원본 치수 ↔ 그릴 bitmap 분리 · 디코딩 = 브라우저 코덱 `createImageBitmap` (메인 밖) → texture-backed (unpremul — 옛 디코더와 0 px) · lazy texture 는 context 복원 뒤 다시 올라감 (R8 반증 — 재요청 0) · 3b Worker 생략 (사용자 결정 1). production 이미지 로드 중 표시 간격 p99 33.4 → 16.8 ms | Implemented | 2026-10-18 |
 | [273](completed/273-canvas-memory-budget-overscan-device-px-resource-cache.md) | Canvas 메모리 예산 (Pen.dev 비교 도입 4/4) — content 여백 = `min(512 CSS × dpr, 768)` (사용자 결정 1 — DPR 2 surface 합 164.5 → 132.2 MiB · 보통 팬 재기록 4 → 9) · 화면 GL context · GrDirectContext 를 `createSurface.ts` 가 소유 (resize 재사용 · 소실 abandon · 복원 재생성) · resource cache 한도 384 MiB (사용자 결정 2) · 자원별 상한 `canvasMemoryBudget.ts` 한 곳 + 보유량 표 `readMemoryHoldings()` (전역 퇴거 없음 — ADR-174). production 짝 회귀 0 · headed DPR 2 팬 p99 같음 | Implemented | 2026-10-18 |
 | [271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) | 축소 개요 LOD (Pen.dev 비교 도입 2/4) — **측정 기록 종결**: 0.5 px 이하 요소 몫 0 (사용자 프로젝트 0 / 1,589 — 생략 미도입, 사용자 결정) · 글자 줄 상자는 구현 뒤 dev A/B 에서 래스터 같음 · band 경계 재기록으로 줌 taskMs +12 ~ 16 % → 되돌림 (사용자 결정 3). 남긴 것: dev 투영 크기 분포 카운터 · `zoom-ladder` · ratchet `@zoom` run 2. 남은 꼬리 = `drawPicture` 재생 수 (대안 C) | Implemented | 2026-10-18 |
+| [272](completed/272-bounded-spatial-query-and-warmup-work-range.md) | 작업 범위 제한 (Pen.dev 비교 도입 3/4) — Phase 0 몫 표 (`many-pages` 100 · 300): 질의 ≤ 0.3 % → 전략 전환 no-go · 64 셀 넘는 항목 0 → 큰 항목 버킷 생략 (사용자 결정 2) · Phase 2 미리 기록: 자리 0 이면 생략 · 후보 = page root ∪ 공간 질의 · 가까운 k 개만 정렬 · 카메라 칸 · 자리를 못 채우면 전체 보충 (편집 뒤 준비 9.1 → 0.1 ms) · 참고 목표 미달은 기록 (사용자 결정 3) | Implemented | 2026-10-18 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

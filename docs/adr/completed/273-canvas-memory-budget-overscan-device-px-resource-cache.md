@@ -16,7 +16,7 @@ Implemented — 2026-10-18 (G0 ~ G5 통과 — G5 = 사용자 확인 「G5 확�
 
 Proposed — 2026-10-17 (리뷰 [reviews/273.md](../reviews/273.md) Round 1 — claude, MEDIUM 2 · LOW 1 → 같은 날 반영: Skia 기본 한도를 Phase 0 이 실측 — 사용자 결정 2 의 기준값 · HC4 90 % 규칙은 여유 규칙 (M1) · GrContext 핸들 수명 — 지금은 resize · 복원마다 새 context, Phase 2 는 산 context 만 재사용 · 소실 때 폐기 · 옛 핸들 삭제 (M2, R5 → HIGH) · breakdown 인용 (L3). 수리 검증 round 는 사용자 요청 시)
 
-- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **넷째**. 첫째 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 셋째 [ADR-272](../272-bounded-spatial-query-and-warmup-work-range.md).
+- 사용자 요청: `/create-adr 남은 확정 3건 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산)` (2026-10-17) — Pen.dev 1.2.18 ↔ HEAD `94c9a0d52` 비교 분석의 확정 4 건 중 **넷째**. 첫째 [ADR-270](270-image-load-path-partial-update-off-thread-decode.md) · 둘째 [ADR-271](271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) · 셋째 [ADR-272](272-bounded-spatial-query-and-warmup-work-range.md).
 - 방향을 정한 사용자 원문: 「pen.dev의 패턴은 … 코드에서부터 근거로 도입하는것이 맞지않나」 · 「반드시 측정이필요한 곳과 아닌곳이 있지않나」. 등급: 「overscan 은 device px 로 센다」 · 「GPU 캐시 한도를 코드가 명시한다」 · 「자원별 예산을 한 곳에」 는 구조 (**A**), 여백 상한 · 캐시 한도 바이트 · 자원별 값은 **B** (게이트가 정한다). 팬 방향 · 속도에 따른 비대칭 여백은 C (측정 뒤).
 - 사용자가 이미 답한 것: 측정은 게이트. ADR-266 사용자 결정 1 (picture 상한 = working set 동적 · 바이트 64 MB) 은 유지 — 이 ADR 은 그 값을 **예산 표의 한 행**으로 옮길 뿐 바꾸지 않는다.
 - 리뷰는 사용자가 요청할 때 `/review-adr 273` → `reviews/273.md`.

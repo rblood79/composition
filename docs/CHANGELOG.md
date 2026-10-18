@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [작업 범위 제한 종결 — ADR-272 Implemented] - 2026-10-18
+
+### Performance
+
+- **ADR-272 작업 범위 제한 종결** (G0 · G2 ~ G5) — 아래 Phase 0 · 2 를 묶는다. 사용자-가시 변경 없음 (화면 결과 같음).
+  - production 짝 (기준 `aaa2625e0` ↔ `90291a18a`, 교대 2 쌍 · 12 run): 페이지 100 개 문서의 줌 · 팬 · 먼 페이지 이동 · 편집, 22 페이지 문서의 줌 · 편집 · 팬 · 페이지 전환, 중첩 5k 편집에서 표시 간격 p99 · long task 회귀 0.
+  - live (사용자 프로젝트 22 페이지): 전체 보기 · 먼 페이지 이동 · 팬 · 선택 · 범위 선택 · 드래그 뒤 되돌리기에서 빈 자리 · 늦게 그려지는 요소 0.
+  - 페이지 100 개 문서의 줌 표시 간격 p99 는 ~49 ms 로 그대로다 — 줌 비용의 본체는 페이지 배치를 다시 계산해 자손을 옮기는 JS 쪽이라 이 작업의 범위 밖이다 (사용자 결정 「Implemented 로 종결」).
+  - 본문: `docs/adr/completed/272-bounded-spatial-query-and-warmup-work-range.md`
+
 ## [페이지가 많은 문서에서 편집 뒤 쉬는 시간 작업 축소 — ADR-272 Phase 0 · 2] - 2026-10-18
 
 ### Performance
@@ -20,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Phase 2: 편집할 때마다 쉬는 시간에 문서 전체 요소를 훑고 정렬하던 미리 기록 준비를, 캐시에 자리가 없으면 건너뛰고 자리가 있으면 화면 주변 후보 중 가까운 것만 정렬한다. 먼 페이지로 옮기면 그 주변부터 다시 기록한다. 페이지 100 개 문서의 편집 뒤 준비 9.1 → 0.1 ms (300 개는 28 ms 가 같이 빠짐), 22 페이지 문서의 정렬 3,961 → 15 개.
   - 처음 줌아웃 때 프레임 안 기록 0 은 그대로다 — 줌아웃은 페이지 배치를 바꾸므로 화면 주변으로 자리를 못 채우면 문서 전체로 보충한다.
   - 하니스: `--fixture-kind many-pages --pages N --grid-gap G` · 부류 `page-jump` · Rust 공간 인덱스 작업량 카운터 (`render.spatial*`) · 미리 기록 준비 카운트 (`counts.warmAfter`) · ratchet run `60:many-pages100@zoom0.1`. ratchet `--update` 가 `@zoom0.1` 처럼 `.` 이 든 run 에서 깨지던 결함을 고쳤다.
-  - 본문: `docs/adr/272-bounded-spatial-query-and-warmup-work-range.md`
+  - 본문: `docs/adr/completed/272-bounded-spatial-query-and-warmup-work-range.md`
 
 ## [축소 화면 글자 단순화는 넣지 않음 — ADR-271 측정 기록 종결] - 2026-10-18
 
