@@ -7,7 +7,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { createPage } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  createPage,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import {
   catalogPageLayoutCommand,
   catalogPageLayoutView,
@@ -80,7 +83,8 @@ async function open(screenWidth?: number) {
   const edit = (
     breakpoint: "desktop" | "tablet",
     change: Parameters<typeof catalogPageLayoutCommand>[2],
-  ) => workspace.execute(catalogPageLayoutCommand(layout(), breakpoint, change));
+  ) =>
+    workspace.execute(catalogPageLayoutCommand(layout(), breakpoint, change));
   const rows = () =>
     new Set([...workspace.root.pageFrameRects().values()].map((r) => r.y)).size;
   const columns = () =>
@@ -107,7 +111,9 @@ describe("ADR-248 4e page grid settings", () => {
     expect(workspace.runtime.historyLabels.undo.at(-1)).toBe("Page layout");
     edit("tablet", { kind: "tierOverride", enabled: true });
     expect(layout()?.breakpoints).toEqual({ tablet: { gap: 120, columns: 3 } });
-    expect(catalogPageLayoutView(layout(), "tablet").hasTierOverride).toBe(true);
+    expect(catalogPageLayoutView(layout(), "tablet").hasTierOverride).toBe(
+      true,
+    );
     edit("tablet", { kind: "columns", columns: "auto" });
     expect(layout()).toEqual({
       gap: 120,
@@ -177,6 +183,37 @@ describe("ADR-248 4e page grid settings", () => {
     workspace.undo();
     expect(layout()).toBeUndefined();
     expect(workspace.root.pageLayout().columns).toBe(2);
+  });
+
+  it("horizontal and vertical keep the page frame width when the body is 100 % wide", async () => {
+    // A body's `width: 100%` is the breakpoint viewport (the Preview's iframe), not the page
+    // grid track: horizontal's `auto` column has no width to resolve it against (live: 0 wide).
+    const { workspace, edit } = await open(1920);
+    const widths = () =>
+      [...workspace.root.pageFrameRects().values()].map((r) => r.width);
+    const xs = () =>
+      [...workspace.root.pageFrameRects().values()].map((r) => r.x);
+    for (const id of ["two", "three"])
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: `project:node:${id}-body` as NodeId }],
+          visual: { width: { kind: "set" as const, value: "50%" } },
+        }),
+      );
+    edit("desktop", { kind: "direction", direction: "horizontal" });
+    expect(widths()).toEqual([1920, 960, 960]);
+    expect(xs()).toEqual([0, 2000, 3040]);
+    edit("desktop", { kind: "direction", direction: "vertical" });
+    expect(widths()).toEqual([1920, 960, 960]);
+    expect(xs()).toEqual([0, 0, 0]);
+    // The row gap is the gap, like the column gap — the fit zoom does not change it
+    // (user 2026-10-18 「세로gap을 가로 gap 처럼 배율에 상관없이 고정」).
+    const ys = () =>
+      [...workspace.root.pageFrameRects().values()].map((r) => r.y);
+    expect(ys()).toEqual([0, 1080 + 80, 2 * (1080 + 80)]);
+    edit("desktop", { kind: "autoFitZoom", percent: 10 });
+    edit("desktop", { kind: "direction", direction: "vertical" });
+    expect(ys()).toEqual([0, 1080 + 80, 2 * (1080 + 80)]);
   });
 
   it("the fit zoom is breakpoint-wide and clamps to 10 ~ 100 % (user decisions 1 · 2)", async () => {

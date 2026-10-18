@@ -630,6 +630,17 @@ export interface CatalogRootOptions {
    */
   definitionView?: CatalogDefinitionViewId;
 }
+/** A page root's percentage width at the breakpoint viewport width (`"50%"` → `"960px"`). */
+function viewportPercentWidth(
+  value: unknown,
+  viewportWidth: number,
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = /^\s*(-?\d+(?:\.\d+)?)%\s*$/.exec(value);
+  return match
+    ? `${(Number(match[1]) / 100) * viewportWidth}px`
+    : undefined;
+}
 /** The graph's page container declaration in the old placement derivation's input shape. */
 export function catalogPageLayoutSettings(
   layout: PageLayoutDeclaration | undefined,
@@ -3257,6 +3268,15 @@ export class CatalogCompositionRoot {
     const out: Record<string, unknown> = {};
     if (record.sizing.width == null && record.visual.width == null)
       out.width = `${tier.width}px`;
+    else {
+      // A page root's `%` width is of the breakpoint viewport (the Preview's iframe), not of the
+      // page grid track: horizontal's `auto` column has no width to resolve it against (0 wide).
+      const percent = viewportPercentWidth(
+        record.sizing.width ?? record.visual.width,
+        tier.width,
+      );
+      if (percent !== undefined) out.width = percent;
+    }
     if (record.sizing.height == null && record.visual.height == null)
       out.height = `${tier.height}px`;
     if (page?.kind !== "page" || !page.placement) return out;
