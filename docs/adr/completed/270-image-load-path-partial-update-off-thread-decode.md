@@ -16,7 +16,7 @@ Implemented — 2026-10-18 (G0 ~ G5 통과 · 3b 생략 — 사용자 결정 1. 
 
 > **G5 통과 · Implemented (2026-10-18)**: 사용자 프로젝트 「123」 (Chrome MCP) — Image 66 개 · 10 페이지에서 순서대로 완료 (상자 5,299 개 0 차 · 재바인드 0) · 편집 중 · 같은 task 편집이 남음 · page 전환 중 완료 · context 소실 → 복원 뒤 재요청 0 · `asset:` · undo. 상세 `### Live Exercise`.
 
-> 수리 검증 [Round 2](../reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED.
+> 수리 검증 [Round 2](../reviews/270.md#round-2--2026-10-17-reviewer-codex): 기존 5건은 설계 fixed 확인. 새 R8의 context 복원 후 이미지 재획득 경로는 HIGH 1 open으로 설계 승인 보류. 제품 구현·실제 context 복원은 UNVERIFIED. (당시 기록 — 이후 Phase 3a 에서 R8 전제가 반증됐다: texture-backed lazy 이미지는 context 복원 뒤 다시 올라가 재요청 0 · G5 live 확인. 이 HIGH 는 처리 불필요로 닫혔다.)
 
 - 실행 중 사용자 답 (2026-10-17): 결정 2 (fixture 출처) = **둘 다 한 변형씩** (`app-pages-images` · `app-pages-images-asset`). 순서 = **270 Phase 0 ~ 2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272** — 「추천대로 하면 실제 진행은 270 Phase 0~2 → 273 Phase 2 → 270 Phase 3a 이후 → 273 나머지 → 271 → 272 가 된다. 270 Phase 3a 가 GPU texture 를 쓰기 때문에, 그 앞에서 GrContext 수명과 한도를 먼저 정리 가될수있게」 (ADR-273 결정 3 의 답). Phase 3a 는 ADR-273 Phase 2 완료 뒤에만 착수한다.
 - 사용자 요청: `/create-adr` (2026-10-17) — Pen.dev 1.2.18 ↔ composition HEAD `94c9a0d52` 비교 분석 (`.agent/runs/2026-10-17-pen-deep-comparison/comparison.json`, local-only) 의 도입 후보 중 **확정 4 건의 첫째**. 나머지 셋 (축소 개요 LOD · 작업 범위 제한 · 메모리 예산) 과 조건부 4 건 (자산 수요 2단계 · 합성 캐시 · analytic shadow · 로컬 좌표) 은 이 ADR 이 다루지 않는다.
@@ -55,12 +55,12 @@ Implemented — 2026-10-18 (G0 ~ G5 통과 · 3b 생략 — 사용자 결정 1. 
 
 ### Hard constraints
 
-- **HC1 픽셀 동일**: 이미지 로드가 끝난 뒤 새 경로의 픽셀이 같은 상태의 전체 재바인드 (`rebind` + 캐시 끔) 와 0 px 차 — object-fit 결과 (cover · contain · fill · none · scale-down) 포함. 로드 **전** placeholder 픽셀도 지금과 같다. **디코더 arm 을 따로 둔다** (r1 M4): 같은 노드를 옛 `MakeImageFromEncoded` 경로 ↔ 새 디코더 경로로 그려 0 px 차 (반투명 PNG 포함) — `setImagePartialOff` 는 splice 만 끄므로 디코더 회귀를 못 본다.
+- **HC1 픽셀 동일**: 이미지 로드가 끝난 뒤 새 경로의 픽셀이 같은 상태의 전체 재바인드 (`rebind` + 캐시 끔) 와 0 px 차 — object-fit 결과 (cover · contain · fill · none · scale-down) 포함 — 실제 catalog `ImageShape.fit` 은 4 종 (`scale-down` 없음, breakdown §기록). 로드 **전** placeholder 픽셀도 지금과 같다. **디코더 arm 을 따로 둔다** (r1 M4): 같은 노드를 옛 `MakeImageFromEncoded` 경로 ↔ 새 디코더 경로로 그려 0 px 차 (반투명 PNG 포함) — `setImagePartialOff` 는 splice 만 끄므로 디코더 회귀를 못 본다.
 - **HC2 상태 보존** (r1 H3): 이미지 완료는 문서 · property dirty 를 **소비한 것으로 치지 않는다**. 같은 프레임에 도착한 편집 · 삭제 · 스크롤 · 이미지 완료의 최종 상태가 fresh bind 와 같다 (G2 가 명령 · 맵 · 픽셀로 대조).
 - **HC3 카운트 먼저**: Phase 0 이 이미지 fixture 변형에서 아래 지표를 등급 A 로 고정하고, 수정과 같은 커밋에서 ratchet 상한이 내려간다 (ADR-246 · `--add-keys`). 목표: **image-loaded 재바인드 0 · 그 사유로 해제되는 picture · paragraph 0 · `MakeImageFromEncoded` 호출 0** (Phase 3a 뒤).
 - **HC4 비용 이동 금지 — 세 집행 경로** (r1 M5): ① **A 결정적 카운트** (before/after 에서 같은 일을 센다 — 코덱 호출 수 · 이미지 처리 횟수 · splice 명령 쓰기 수 · hover · pan · pick 카운트) 는 ratchet. ② **B 예산** (Phase 0 에 없던 새 작업 — readback 바이트 · WASM 복사 바이트 · 텍스처 생성 수 · 프레임당 완료 처리 수) 은 Phase 0 **이내가 아니라** fixture 로 계산되는 명시 상한 (이미지당 1 회 · 프레임당 N 개) — 결정적이므로 ratchet A 로 등록하되 상한은 fixture 산식. ③ **wall-clock** (프레임당 이미지 처리 ms) 은 A 로 고정하지 않는다 — G4 production 짝에서 방향만. 기존 0 을 조용히 올리지 않는다.
 - **HC5 D3 대칭 · 문서 형식 변경 0**: Skia 전용 시각 효과 0 · 문서 · 저장 schema · `asset:` ref · 캐시 키 변경 0.
-- **HC6 initial 번들 상한**: Worker 를 두면 lazy chunk 로만 — Builder initial gzip ≤ 1,421,000 B (ADR-201 재승인, 만료 2026-10-25). `adr201-bundle-gate.mjs` 는 pre-push 가 아니라 **G4 에서 수동 실행** 한다 (`.githooks/pre-push` 는 ADR-246 ratchet 만 돈다 — r1 확인).
+- **HC6 initial 번들 상한**: Worker 를 두면 lazy chunk 로만 — Builder initial gzip ≤ 1,421,000 B (ADR-201 재승인, 만료 2026-10-25 — 2026-10-18 재승인으로 ≤ 1,390,000 · 만료 2026-11-25). `adr201-bundle-gate.mjs` 는 pre-push 가 아니라 **G4 에서 수동 실행** 한다 (`.githooks/pre-push` 는 ADR-246 ratchet 만 돈다 — r1 확인).
 - **HC7 수명 계약 유지**: ADR-153 R2 (해제 순서 Picture → Image · `destroyCachedImage` 단일 경로 · 지연 큐) · ADR-174 (paragraph 수명 = 노드 수명) · `cacheGeneration` in-flight 무효화 (I-H5) · `asset:` 해석 (ADR-235) · ADR-263/264 splice 계약 (`applyCommitSubtreeCommandPatch`) 은 손대지 않는다. 역참조는 캐시 핸들이 아니라 **node data 의 `src`** 에서 만든다 (F2b).
 
 ### Soft constraints

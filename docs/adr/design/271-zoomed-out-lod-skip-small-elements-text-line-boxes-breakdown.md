@@ -98,6 +98,16 @@
 
 **판정**: 이득 0 · 비용만. 래스터 (flush) 는 켬 · 끔이 같다 — 글리프 그리기가 원래 싸서 줄 상자로 줄일 몫이 없다. 기록은 band 경계를 지날 때마다 화면 안 글자 요소를 다시 기록한다 — ADR-266 이 없앤 「줌 중 재기록」 이 경계 수만큼 돌아온다. band 를 하나로 줄여도 재기록 횟수만 줄 뿐 이득은 0. HC3 의 참고 목표 (재생 ↓ 30 %) 는 생략 레버의 몫이었고 생략은 Phase 0 에서 빠졌다.
 
-**사용자 결정 3 (2026-10-18) 「측정 기록 종결」**: Phase 1 · 2 코드 (`lodBand.ts` · 줄 상자 · picture 키 · 미리 기록 band · dev `setLodOff` · `setLodTextBoxStyle` · 카운터 `lodTextBoxes` · `lodTierChanges` · `adr271-lod-live.mjs` · 하니스 `--lod-off`) 를 되돌렸다. 결정 1 (허용 오차) · 2 (줄 상자 모양) 는 대상이 없어졌다. 남긴 것: Phase 0 dev 카운터 (`countLodShare` — 명령 reader 로 읽어 `bufferProxyReads` 를 올리지 않는다) · `zoom-ladder` · ratchet `@zoom` 키. 되돌린 뒤 ratchet run `60:app-pages@zoom0.1` (`zoom` A 184 · `zoom-ladder` A 183) · `@zoom0.25` (`zoom` A 184) 를 다시 재서 등록 — 값은 Phase 0 표와 같다 · `--judge` 초과 0. type-check 0 · canvas · catalogRuntime 412 파일 3,312 PASS.
+**사용자 결정 3 (2026-10-18) 「측정 기록 종결」**: Phase 1 · 2 코드 (`lodBand.ts` · 줄 상자 · picture 키 · 미리 기록 band · dev `setLodOff` · `setLodTextBoxStyle` · 카운터 `lodTextBoxes` · `lodTierChanges` · `adr271-lod-live.mjs` · 하니스 `--lod-off`) 를 되돌렸다. 결정 1 (허용 오차) · 2 (줄 상자 모양) 는 대상이 없어졌다. 남긴 것: Phase 0 dev 카운터 (`countLodShare` — 처음에는 명령 reader 로 읽었으나 call-count ratchet `createCommandReader` · `segments` A 를 올려 `aaa2625e0` 에서 노드 데이터 (요소 + 내부 자식) 를 읽게 바꿨다. 2026-10-18 보완에서 삭제 — 아래 §후속) · `zoom-ladder` · ratchet `@zoom` 키. 되돌린 뒤 ratchet run `60:app-pages@zoom0.1` (`zoom` A 184 · `zoom-ladder` A 183) · `@zoom0.25` (`zoom` A 184) 를 다시 재서 등록 — 값은 Phase 0 표와 같다 · `--judge` 초과 0. type-check 0 · canvas · catalogRuntime 412 파일 3,312 PASS.
 
 **남은 꼬리**: 줌 0.1 에서 `drawPicture` 재생 수 (`zoom` 52,977 / 기록 68 ≈ 780 / 기록) — 대안 C (페이지 · 그룹 합성 캐시) 의 몫. C 등급이라 fixture 측정 뒤 별도 ADR (사용자가 열 때).
+
+## 후속 (2026-10-18, ADR-270 ~ 273 보완 ④) — Phase 0 dev 카운터 삭제
+
+종결 뒤 읽는 곳이 없어 Phase 0 dev 카운터를 지웠다 (사용자 「권장순서 대로 진행해」 · 테스트 파일 삭제 승인 「삭제해도 된다 진행해」).
+
+- 코드: `renderCommands.ts` `countLodShare` 와 호출 · `renderCounters.ts` `lodProjLe0_5 … lodProjGt4` · `lodTextLe0_5 … lodTextGt4` · `countLodProjected` · `countLodText` · `renderScope.zoom` · `SkiaRenderer.ts` 의 dev 배율 전달. ADR-272 의 `setNodePictureWarmupZoom(camera.zoom)` 은 그대로다.
+- 테스트: `__tests__/adr271LodShare.test.ts` 삭제.
+- ratchet: 7 run (`60` · `600` · `60:app-pages` · `@dpr2` · `@zoom0.1` · `@zoom0.25` · `60:many-pages100@zoom0.1`) 의 `render.lodProj*` · `render.lodText*` 94 키를 뺐다 — `ratchet.json` `retired` 에 기록. 남은 HEAD 측정으로 다시 판정하면 A 초과 0.
+- 남는 것: 하니스 부류 `zoom-ladder` · ratchet `@zoom` 키와 두 run.
+- 본문 HC3 · 대안 A · G1 의 `setLodOff` 와 위 Phase 0 · 1 · 2 기록의 카운터 이름은 되돌리거나 지운 코드의 기록이다.

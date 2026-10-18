@@ -67,7 +67,7 @@
 
 ## 7. 기록
 
-(Phase 0 인벤토리 표 · 팬 속도 분포 · 카운트 · 5-질문 · go/no-go · 사용자 결정 1 ~ 3 답)
+실행 순서대로 적었다 (사용자 결정 3 의 순서 — Phase 2 → 0 → 1 → 3 → G4 → G5). 종결 뒤 후속은 맨 아래 「후속」.
 
 ### Phase 2 — context 소유 · 수명 · 한도 (2026-10-18, 사용자 「ADR-273 Phase 2 진행해」)
 
@@ -194,3 +194,18 @@
 ### G5 — 사용자 판정 (2026-10-18 — 통과 · Implemented)
 
 사용자가 자기 Chrome (DPR 2) 에서 자기 프로젝트를 빠르게 팬 · 줌 인 · 아웃 · 이미지가 많은 페이지 진입 — 끊김 · 여백 이탈 때 가장자리가 잠깐 비는 영역이 전보다 늘지 않았다: 「G5 확인했다 문제 없음, Implemented 진행해」. 본문 `completed/` 이동 · `### Live Exercise` 기재.
+
+### 후속 (2026-10-18, ADR-270 ~ 273 보완 ②) — 이미지 texture 뒤 GPU 캐시 한도 재확인
+
+한도 384 MiB 는 이미지가 CPU raster 일 때 정했고, 그 뒤 ADR-270 Phase 3a 가 이미지를 GPU texture 로 올렸다. 그래서 이미지 fixture 를 가장 큰 조건에서 다시 쟀다 (dev · headless · `--fixed-inputs` · DPR 2 · 2560 × 1440 · HEAD `87294fcc3`):
+
+| run                                  | GPU 캐시 사용 고수위 | 90 % 근처 프레임 | 비고                                                     |
+| ------------------------------------ | -------------------- | ---------------- | -------------------------------------------------------- |
+| `app-pages-images` load-zoom · 줌 · 팬 | 306.9 MiB (80 %)     | 0                | 이미지 44 장 · 이미지 캐시 추정 136 MB (예산 128 MiB 초과) · surface 280.5 MiB |
+| `app-pages-images` 줌 0.1 (전부 화면 안) | 287.5 MiB (75 %)     | 0                |                                                          |
+| `app-pages-images` 빠른 팬             | 302.6 MiB (79 %)     | 0                |                                                          |
+| `app-pages` (이미지 없음)              | 302.7 MiB (79 %)     | 0                | 대조                                                     |
+
+- 결론: 이미지 texture 가 더한 몫은 고수위 기준 ~4 MiB — 한도는 충분하다. 우려 (90 % 초과) 는 나타나지 않았다.
+- ratchet: `60:app-pages-images` 5 부류에 `render.grCacheNearLimitFrames` · `render.gpuContextsCreated` · `render.gpuContextsDeleted` A 등록 (값 0). 등록을 막던 흔들림 지표 (`load-zoom` `caches.contentSurface.hits`) 는 B 로 옮겼다 (`ratchet.json` `regrades`).
+

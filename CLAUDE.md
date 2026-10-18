@@ -37,7 +37,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 |           Canvas/Skia cadence           | 초기 로드 | 번들 (초기, gzip)                                                                                                                      |
 | :-------------------------------------: | :-------: | :------------------------------------------------------------------------------------------------------------------------------------- |
-| native refresh target, 60Hz floor (p95) |   < 3초   | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (Builder ≤ 1,421,000 / Preview ≤ 623,000 B, 만료 2026-10-25) — `adr201-bundle-gate.mjs` |
+| native refresh target, 60Hz floor (p95) |   < 3초   | ADR-201 §initial 번들 상한 재승인 절의 현재 값 (Builder ≤ 1,390,000 / Preview ≤ 320,000 B, 만료 2026-11-25) — `adr201-bundle-gate.mjs` |
 
 `60fps` 는 60Hz 환경의 호환성 최소선이며 성능 목표 상한이 아니다. 판정은 display refresh cadence 와 frame time p50/p95/p99 우선, FPS 는 파생 지표.
 

@@ -50,7 +50,7 @@ Proposed — 2026-10-17 (리뷰 [reviews/272.md](../reviews/272.md) Round 1 — 
 - **HC3 wall-clock 방향만**: production 짝에서 `many-pages` 줌 · 먼 페이지 이동 · `app-pages` 줌 · 편집 회귀 0.
 - **HC4 비용 이동 금지**: 전략 전환의 판정 (셀 수 산식 1 회) 과 bounded 후보 수집이 줌 1 편집 · hover · pan 의 카운트를 올리지 않는다. 미리 기록의 카메라 추종이 **프레임 안**에 들어오지 않는다 (idle 에서만).
 - **HC5 D3 대칭 · 문서 형식 변경 0**: 픽셀 · 히트 · 맵 불변 (HC1). Skia 전용 시각 효과 0.
-- **HC6 wasm 표면 한정**: 질의 · hit-test 의 반환 형식 · 결과 집합 불변 (전략은 Rust 안에서 고른다). wasm-bindgen 표면 추가는 **세 가지로 한정** — 전환 비율 (생성자 인자 또는 setter, 지금 `new(cell_size)` `spatial_index.rs:48` · JS `initSpatialIndex()` `spatialIndex.ts:29` 가 인자 없음) · `take_query_stats()` dev getter · Phase 3 의 큰 항목 임계 (같은 setter). `pnpm wasm:build:engine` 산출물 재생성과 `init.ts:35` 호출부 변경이 Phase 1 커밋에 포함된다.
+- **HC6 wasm 표면 한정**: 질의 · hit-test 의 반환 형식 · 결과 집합 불변 (전략은 Rust 안에서 고른다). wasm-bindgen 표면 추가는 **세 가지로 한정** — 전환 비율 (생성자 인자 또는 setter, 지금 `new(cell_size)` `spatial_index.rs:48` · JS `initSpatialIndex()` `spatialIndex.ts:29` 가 인자 없음) · `take_query_stats()` dev getter (실행 뒤 스칼라 `take_query_stat(i)` — 배열 반환이 glue `getDataViewMemory0` 을 불러 call-count ratchet 을 올렸다, breakdown §7-2) · Phase 3 의 큰 항목 임계 (같은 setter). `pnpm wasm:build:engine` 산출물 재생성과 `init.ts:35` 호출부 변경이 Phase 1 커밋에 포함된다.
 
 ### Soft constraints
 

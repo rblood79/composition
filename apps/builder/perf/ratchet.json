@@ -1151,8 +1151,6 @@
           "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#yCross": 19710,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 14744,
           "render.surfaceBytesMax": 43109888,
-          "render.lodProjGt4": 11160,
-          "render.lodTextGt4": 5400,
           "render.spatialQueries": 1,
           "render.spatialCellsVisited": 99,
           "render.spatialItemsVisited": 186,
@@ -1677,7 +1675,6 @@
           "caches.paintPool.misses": 0,
           "caches.paragraph.hits": 0,
           "caches.paragraph.misses": 0,
-          "domMutations.attributes": 2811,
           "domMutations.characterData": 0,
           "perfLabels.input.viewport.wheel-zoom": 180,
           "perfLabels.render.skia.flush.content": 43,
@@ -1822,15 +1819,12 @@
           "reactRenderMeasures": 98,
           "render.contentRedrawsOutOfPad": 15,
           "render.surfaceBytesMax": 43109888,
-          "render.lodProjGt4": 3058,
-          "render.lodTextLe2": 252,
-          "render.lodTextLe4": 216,
-          "render.lodTextGt4": 980,
           "render.spatialQueries": 43,
           "render.spatialCellsVisited": 53876,
           "render.spatialItemsVisited": 9974,
           "render.spatialResults": 3058,
-          "render.spatialUpsertCells": 1190
+          "render.spatialUpsertCells": 1190,
+          "domMutations.attributes": 2811
         }
       },
       "select-spread": {
@@ -2203,7 +2197,6 @@
           "doc.steps": 0,
           "doc.themeStateComputed": 0,
           "doc.validatedEntries": 0,
-          "domMutations.attributes": 4711,
           "domMutations.characterData": 0,
           "perfLabels.input.viewport.wheel-zoom": 180,
           "perfLabels.render.skia.flush.content": 66,
@@ -2319,18 +2312,12 @@
           "reactRenderMeasures": 350,
           "render.contentRedrawsOutOfPad": 8,
           "render.surfaceBytesMax": 43109888,
-          "render.lodProjLe0_5": 14,
-          "render.lodProjLe2": 222,
-          "render.lodProjLe4": 3286,
-          "render.lodProjGt4": 41387,
-          "render.lodTextLe2": 12161,
-          "render.lodTextLe4": 16333,
-          "render.lodTextGt4": 4158,
           "render.spatialQueries": 66,
           "render.spatialCellsVisited": 125874,
           "render.spatialItemsVisited": 223856,
           "render.spatialResults": 53840,
-          "render.spatialUpsertCells": 675238
+          "render.spatialUpsertCells": 675238,
+          "domMutations.attributes": 4711
         }
       },
       "edit": {
@@ -2674,8 +2661,6 @@
           "render.panDeviceLe32": 179,
           "render.panDeviceMax": 24,
           "render.surfaceBytesMax": 43109888,
-          "render.lodProjGt4": 32,
-          "render.lodTextGt4": 16,
           "render.spatialQueries": 4,
           "render.spatialCellsVisited": 36,
           "render.spatialItemsVisited": 276,
@@ -3506,7 +3491,10 @@
           "render.imageSeedOwners": 67,
           "render.imageReadbackBytes": 0,
           "render.imageSwFallbacks": 0,
-          "render.imageTextureImages": 22
+          "render.imageTextureImages": 22,
+          "render.grCacheNearLimitFrames": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0
         },
         "B": {
           "cdp.LayoutCount": 49,
@@ -3711,7 +3699,10 @@
           "render.imageSeedOwners": 67,
           "render.imageReadbackBytes": 0,
           "render.imageSwFallbacks": 0,
-          "render.imageTextureImages": 22
+          "render.imageTextureImages": 22,
+          "render.grCacheNearLimitFrames": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0
         },
         "B": {
           "cdp.LayoutCount": 27,
@@ -3737,7 +3728,6 @@
       },
       "load-zoom": {
         "A": {
-          "caches.contentSurface.hits": 67,
           "caches.contentSurface.missReasons.coverage-refresh": 13,
           "caches.contentSurface.missReasons.invalidate": 65,
           "caches.contentSurface.missReasons.zoom-refresh": 7,
@@ -3916,7 +3906,10 @@
           "render.imageSeedOwners": 67,
           "render.imageReadbackBytes": 0,
           "render.imageSwFallbacks": 0,
-          "render.imageTextureImages": 22
+          "render.imageTextureImages": 22,
+          "render.grCacheNearLimitFrames": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0
         },
         "B": {
           "cdp.LayoutCount": 401,
@@ -3942,7 +3935,8 @@
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange": 85523,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#childClipRectOf": 71910,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendElement": 61864,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#has": 60021
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#has": 60021,
+          "caches.contentSurface.hits": 67
         }
       },
       "zoom": {
@@ -4129,7 +4123,10 @@
           "render.imageSeedOwners": 0,
           "render.imageReadbackBytes": 0,
           "render.imageSwFallbacks": 0,
-          "render.imageTextureImages": 0
+          "render.imageTextureImages": 0,
+          "render.grCacheNearLimitFrames": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0
         },
         "B": {
           "cdp.LayoutCount": 492,
@@ -4316,7 +4313,10 @@
           "render.imageSeedOwners": 0,
           "render.imageReadbackBytes": 0,
           "render.imageSwFallbacks": 0,
-          "render.imageTextureImages": 0
+          "render.imageTextureImages": 0,
+          "render.grCacheNearLimitFrames": 0,
+          "render.gpuContextsCreated": 0,
+          "render.gpuContextsDeleted": 0
         },
         "B": {
           "cdp.LayoutCount": 21,
@@ -4715,8 +4715,6 @@
           "cdp.RecalcStyleCount": 538,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0,
-          "render.lodProjGt4": 468,
-          "render.lodTextGt4": 353,
           "render.spatialQueries": 9,
           "render.spatialCellsVisited": 1240,
           "render.spatialItemsVisited": 3095,
@@ -4905,13 +4903,6 @@
           "domMutations.attributes": 4729,
           "domMutations.childList": 0,
           "reactRenderMeasures": 350,
-          "render.lodProjLe0_5": 14,
-          "render.lodProjLe2": 222,
-          "render.lodProjLe4": 3220,
-          "render.lodProjGt4": 38479,
-          "render.lodTextLe2": 12135,
-          "render.lodTextLe4": 14055,
-          "render.lodTextGt4": 4156,
           "render.spatialQueries": 73,
           "render.spatialCellsVisited": 100107,
           "render.spatialItemsVisited": 210226,
@@ -5011,16 +5002,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 49042,
-          "render.lodProjLe0_5": 30,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 189,
-          "render.lodProjLe4": 3716,
-          "render.lodTextGt4": 2796,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 12093,
-          "render.lodTextLe4": 23142,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -5209,16 +5190,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 14826,
-          "render.lodProjLe0_5": 6,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 180,
-          "render.lodProjLe4": 1312,
-          "render.lodTextGt4": 1209,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 3954,
-          "render.lodTextLe4": 6535,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -5410,16 +5381,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 45399,
-          "render.lodProjLe0_5": 14,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 222,
-          "render.lodProjLe4": 3317,
-          "render.lodTextGt4": 4556,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 12161,
-          "render.lodTextLe4": 18802,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -5611,16 +5572,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 80926,
-          "render.lodProjLe0_5": 44,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 553,
-          "render.lodProjLe4": 8167,
-          "render.lodTextGt4": 3155,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 31326,
-          "render.lodTextLe4": 30029,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -5815,16 +5766,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 0,
-          "render.lodProjLe0_5": 0,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 0,
-          "render.lodProjLe4": 0,
-          "render.lodTextGt4": 0,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 0,
-          "render.lodTextLe4": 0,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -6023,16 +5964,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 286,
-          "render.lodProjLe0_5": 0,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 0,
-          "render.lodProjLe4": 0,
-          "render.lodTextGt4": 131,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 0,
-          "render.lodTextLe4": 0,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -6225,16 +6156,6 @@
           "render.imageSeedOwners": 0,
           "render.imageSwFallbacks": 0,
           "render.imageTextureImages": 0,
-          "render.lodProjGt4": 0,
-          "render.lodProjLe0_5": 0,
-          "render.lodProjLe1": 0,
-          "render.lodProjLe2": 0,
-          "render.lodProjLe4": 0,
-          "render.lodTextGt4": 0,
-          "render.lodTextLe0_5": 0,
-          "render.lodTextLe1": 0,
-          "render.lodTextLe2": 0,
-          "render.lodTextLe4": 0,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -7478,6 +7399,50 @@
       "to": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
       "on": "2026-10-17",
       "reason": "--add-keys engine.solveVisits,engine.intrinsicMeasureMiss"
+    }
+  ],
+  "regrades": [
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.hits",
+      "to": "B",
+      "value": 67,
+      "on": "2026-10-18",
+      "approvedBy": "사용자 (2026-10-18 「권장순서 대로 진행해」 — ④ A 등급 흔들림 지표 재분류)",
+      "reason": "이미지 완료 시각에 따라 content full 기록이 85 ↔ 86 으로 흔들려 hits 가 66 ~ 68 (같은 코드 · miss 와 합은 같음) — push 재실행 · 「측정 불가」 와 --add-keys 거부의 원인"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.domMutations.attributes",
+      "to": "B",
+      "value": 4711,
+      "on": "2026-10-18",
+      "approvedBy": "사용자 (2026-10-18 「권장순서 대로 진행해」 — ④ A 등급 흔들림 지표 재분류)",
+      "reason": "같은 코드 2 회 4,711 ↔ 4,715 (줌 표시 갱신 시각) — DOM 변경 수는 rAF 경계 흔들림 지표"
+    },
+    {
+      "path": "seeds.600.zoom.A.domMutations.attributes",
+      "to": "B",
+      "value": 2811,
+      "on": "2026-10-18",
+      "approvedBy": "사용자 (2026-10-18 「권장순서 대로 진행해」 — ④ A 등급 흔들림 지표 재분류)",
+      "reason": "같은 코드 2 회 2,811 ↔ 2,815 (줌 표시 갱신 시각)"
+    }
+  ],
+  "retired": [
+    {
+      "keys": "render.lodProj* · render.lodText*",
+      "count": 94,
+      "runs": [
+        "60",
+        "600",
+        "60:app-pages",
+        "60:app-pages@dpr2",
+        "60:app-pages@zoom0.1",
+        "60:app-pages@zoom0.25",
+        "60:many-pages100@zoom0.1"
+      ],
+      "on": "2026-10-18",
+      "approvedBy": "사용자 (2026-10-18 「권장순서 대로 진행해」 · 테스트 파일 삭제 「삭제해도 된다 진행해」 — ④ 271 dev 카운터 정리)",
+      "reason": "ADR-271 Phase 0 의 투영 크기 분포 dev 카운터 (countLodShare) 를 지웠다 — 측정 기록 종결 뒤 읽는 곳이 없다. 세는 코드가 없으므로 키도 뺀다"
     }
   ]
 }

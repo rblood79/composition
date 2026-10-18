@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-270 ~ 273 보완 — 번들 상한 재승인 · GPU 캐시 재확인 · 측정 정리] - 2026-10-18
+
+### Changed
+
+- **initial 번들 상한 재승인** (ADR-201, 사용자 결정 「실측에 맞춰 낮추고 연장」): Builder ≤ 1,390,000 · Preview ≤ 320,000 B (JS gzip), 만료 2026-11-25. 실측 1,369,697 / 300,677. 판정기 self-test 가 상한 상수에서 값을 끌어오고, 낮춘 상한을 넘으면 막는 경우 2 개를 더했다.
+- **GPU 캐시 한도 재확인** (ADR-273 후속, 사용자-가시 변경 없음): DPR 2 · 2560 × 1440 · 이미지 44 장에서 사용 고수위 306.9 MiB (한도 384 MiB 의 80 %) · 90 % 근처 프레임 0 — 한도를 그대로 둔다. 이미지 fixture 5 부류에 한도 근처 프레임 수 · GPU context 생성 · 삭제 수를 ratchet A 키 (0) 로 등록했다.
+- **성능 ratchet 정리**: 같은 코드에서 값이 흔들리던 A 키 3 개 (이미지 줌의 `contentSurface.hits` · 줌 부류의 `domMutations.attributes` 2) 를 B 로 옮기고 `regrades` 에 기록했다. `--keys` 에 「접두.*」 가 아닌 패턴을 주면 거부한다 (전에는 글자 그대로 0 키로 들어갔다). ADR-271 의 개발 빌드 전용 투영 크기 분포 카운터와 그 ratchet 키 94 개를 지웠다 (`retired`).
+- 문서: ADR-270 · 271 · 272 · 273 본문 · breakdown 을 지금 코드와 맞췄다.
+
 ## [작업 범위 제한 종결 — ADR-272 Implemented] - 2026-10-18
 
 ### Performance

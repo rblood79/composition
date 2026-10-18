@@ -15,9 +15,9 @@
  *      ADR-201 후속) 가 builder·preview initial closure 밖
  *   ② 등록 8지점 + renderer shell 의 initial Δ 가 201 허용치 안 (Builder ≤ +4,096 · Preview ≤ +3,584 —
  *      2026-09-17 실측 +3,875 / +3,507 을 올림한 값, 등록 구조상 Δ 0 은 불가)
- *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,421,000 / Preview ≤ 623,000 B gzip —
- *      2026-09-26 ADR-235 재승인, 09-25 값 1,415,000 / 622,000 대체,
- *      만료 2026-10-25 — 2026-09-25 재승인, 09-17 값 1,328,315 / 601,346 대체). `APPROVED` 는 사용자 재승인
+ *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,390,000 / Preview ≤ 320,000 B gzip —
+ *      2026-10-18 재승인 (실측 1,369,697 / 300,677 + 약 20 KB), 09-26 ADR-235 값 1,421,000 / 623,000 대체,
+ *      만료 2026-11-25). `APPROVED` 는 사용자 재승인
  *      기록 (2026-09-25 true) — 실행자가 임의로 켜지 않는다.
  *   ④ 202 lazy 조건 (AIPanel · runCommand) 보존 · before/after 각각 같은 revision
  *   sameLockfile 은 검사하지 않는다 — 201 은 workspace package 를 추가하므로 lockfile 이 달라지는 것이
@@ -25,10 +25,10 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-export const APPROVED = true; // 2026-09-26 사용자 재승인 (ADR-235, 09-25 값 대체) — ADR-201 §initial 번들 상한 재승인 절
-export const BUILDER_CEILING = 1_421_000;
-export const PREVIEW_CEILING = 623_000;
-export const CEILING_EXPIRES = "2026-10-25";
+export const APPROVED = true; // 2026-10-18 사용자 재승인 (실측에 맞춰 낮춤 · 연장, 09-26 값 대체) — ADR-201 §initial 번들 상한 재승인 절
+export const BUILDER_CEILING = 1_390_000;
+export const PREVIEW_CEILING = 320_000;
+export const CEILING_EXPIRES = "2026-11-25";
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;
 const UPLOAD_ENGINE_KEY = /packages\/upload-engine\/dist\//;
@@ -160,13 +160,19 @@ export function selfTest() {
     [COMMAND_ENTRY]: { file: "assets/runCommand-x.js" },
   };
   const initial = ["assets/index-x.js"];
+  // 상한 · 만료는 상수에서 — 재승인으로 값이 바뀌어도 음성 fixture 가 같은 경계를 본다.
+  const builderAfter = BUILDER_CEILING - 1_000;
+  const previewAfter = PREVIEW_CEILING - 1_000;
+  const builderBefore = builderAfter - 3_875;
+  const dayAfterExpiry = new Date(`${CEILING_EXPIRES}T00:00:00Z`);
+  dayAfterExpiry.setUTCDate(dayAfterExpiry.getUTCDate() + 1);
   const base = {
-    beforeBuilder: closure(1_324_440, initial),
-    beforePreview: closure(597_839, initial),
-    afterBuilder: closure(1_328_315, initial),
-    afterPreview: closure(601_346, initial),
+    beforeBuilder: closure(builderBefore, initial),
+    beforePreview: closure(previewAfter - 3_507, initial),
+    afterBuilder: closure(builderAfter, initial),
+    afterPreview: closure(previewAfter, initial),
     manifest,
-    today: "2026-09-17",
+    today: CEILING_EXPIRES,
   };
   const results = {
     approvedPasses: judge({ ...base, approved: true }).pass === true,
@@ -175,13 +181,13 @@ export function selfTest() {
       judge({
         ...base,
         approved: true,
-        afterBuilder: closure(1_328_315, [...initial, "assets/react-x.js"]),
+        afterBuilder: closure(builderAfter, [...initial, "assets/react-x.js"]),
       }).checks.uploadEngineLazy === false,
     activeInInitialFails:
       judge({
         ...base,
         approved: true,
-        afterPreview: closure(601_346, [
+        afterPreview: closure(previewAfter, [
           ...initial,
           "assets/FileUploadActive-x.js",
         ]),
@@ -190,7 +196,7 @@ export function selfTest() {
       judge({
         ...base,
         approved: true,
-        afterBuilder: closure(1_328_315, [
+        afterBuilder: closure(builderAfter, [
           ...initial,
           "assets/FileUploadActive-components-x.js",
         ]),
@@ -199,7 +205,7 @@ export function selfTest() {
       judge({
         ...base,
         approved: true,
-        afterPreview: closure(601_346, [
+        afterPreview: closure(previewAfter, [
           ...initial,
           "assets/FileUploadActive-runtime-x.js",
         ]),
@@ -208,11 +214,29 @@ export function selfTest() {
       judge({
         ...base,
         approved: true,
-        afterBuilder: closure(1_324_440 + BUILDER_DELTA_LIMIT + 1, initial),
+        afterBuilder: closure(builderBefore + BUILDER_DELTA_LIMIT + 1, initial),
       }).checks.builderDelta === false,
     expiredFails:
-      judge({ ...base, approved: true, today: "2026-10-26" }).checks
-        .budgetCurrent === false,
+      judge({
+        ...base,
+        approved: true,
+        today: dayAfterExpiry.toISOString().slice(0, 10),
+      }).checks.budgetCurrent === false,
+    // 새 상한 (낮춘 값) 을 넘으면 막는다
+    builderAbsoluteOverFails:
+      judge({
+        ...base,
+        approved: true,
+        beforeBuilder: closure(BUILDER_CEILING - 2_000, initial),
+        afterBuilder: closure(BUILDER_CEILING + 1, initial),
+      }).checks.builderAbsolute === false,
+    previewAbsoluteOverFails:
+      judge({
+        ...base,
+        approved: true,
+        beforePreview: closure(PREVIEW_CEILING - 2_000, initial),
+        afterPreview: closure(PREVIEW_CEILING + 1, initial),
+      }).checks.previewAbsolute === false,
   };
   return { results, pass: Object.values(results).every(Boolean) };
 }

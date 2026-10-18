@@ -12,7 +12,7 @@
 ## 1. Phase 0 — `many-pages` fixture · Rust 카운터 · 몫 표 (G0)
 
 - **fixture** (`perfAppFixture.mjs` 생성기 재사용 · `perf-baseline.mjs` `--fixture-kind many-pages --pages N --grid-gap G`): 사용자 결정 1 (제안 100 · 300 페이지, 간격 기본 · ×4). 부류: `zoom` 을 `--zoom 0.05 · 0.25 · 1` 로, 새 부류 **`page-jump`** (Layers 의 먼 페이지로 점프 → 팬 3 회 — 캐시에 불리), 기존 `pan` · `edit`.
-- **Rust 카운터** (`spatial_index.rs`, `cfg` 가 아니라 런타임 필드 — 비용은 정수 증가 4 개): `query_stats { cells_visited, items_visited, results, upsert_cells }` 누적 + `take_query_stats()` 리셋 getter. `wasm-bindings/spatialIndex.ts` 가 dev 에서 읽어 `renderCounters.spatialCellsVisited` · `spatialItemsVisited` · `spatialResults` · `spatialUpsertCells` 로. production 빌드에서는 getter 를 부르지 않는다 (증가 비용만 남음 — HC4 측정에 포함).
+- **Rust 카운터** (`spatial_index.rs`, `cfg` 가 아니라 런타임 필드 — 비용은 정수 증가 4 개): `query_stats { cells_visited, items_visited, results, upsert_cells }` 누적 + `take_query_stats()` 리셋 getter (실행 뒤 `take_query_stat(i)` 스칼라 — §7-2). `wasm-bindings/spatialIndex.ts` 가 dev 에서 읽어 `renderCounters.spatialCellsVisited` · `spatialItemsVisited` · `spatialResults` · `spatialUpsertCells` 로. production 빌드에서는 getter 를 부르지 않는다 (증가 비용만 남음 — HC4 측정에 포함).
 - **미리 기록 카운터** (`nodePictureWarmup.ts:153 ~ 178`): `warmCandidatesScanned` (stream 순회로 본 ELEMENT_BEGIN 수) · `warmCandidatesSorted` (정렬 입력 크기) · `warmPassRebuilt` (차례 재구성 수).
 - **몫 표**: `many-pages` 줌 0.05 · 0.25 · 1, `page-jump`, `app-pages` 줌 — 다섯 비용 (질의 셀 · 항목 · 후보 수집 · 정렬 · upsert 셀) 의 수와 `--call-counts` 상위 함수에서의 자리.
 - **ratchet**: `--add-run 60:many-pages=<a>,<b>` · `--add-keys … --keys render.spatial*,render.warm*`.

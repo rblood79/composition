@@ -419,6 +419,11 @@ export function applyAddKeys(
       "같은 조건 보고가 둘 이상 있어야 한다 (등급 A = 반복 실행에서 같은 값)",
     );
   if (!keys.length) throw new Error("--keys 가 비었다");
+  // 접두 패턴은 `접두.*` 뿐 — 정확한 이름은 보고에 없어도 0 으로 등록되므로 `gpuContexts*` 같은 글자가
+  // 그대로 키가 된다 (ADR-273 후속 2026-10-18).
+  const badPattern = keys.find((k) => k.includes("*") && !/^[^*]+\.\*$/.test(k));
+  if (badPattern)
+    throw new Error(`--keys 패턴은 「접두.*」 만 된다: ${badPattern}`);
   if (keys.some((k) => k.startsWith("v8.fn.")))
     throw new Error("v8.fn.* 은 상위 20 순위 키라 A 로 등록하지 않는다");
   const recorderChanged =

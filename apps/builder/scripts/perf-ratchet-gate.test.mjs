@@ -529,6 +529,11 @@ test("--add-keys — 값이 갈리거나 · 기존 키 · v8.fn · 조건 불일
     () => applyAddKeys(base, "60", [r(1)], ["render.execVisited"]),
     /둘 이상/,
   );
+  // 접두 패턴은 「접두.*」 뿐 — `gpuContexts*` 는 글자 그대로 0 키가 되던 것 (ADR-273 후속)
+  assert.throws(
+    () => applyAddKeys(base, "60", [r(1), r(1)], ["render.execVisit*"]),
+    /접두\.\*/,
+  );
   assert.throws(
     () => applyAddKeys(base, "60", [r(1), r(1)], ["perfLabels.render.frame"]),
     /이미 상한/,
