@@ -120,6 +120,45 @@ describe("ADR-248 Phase 4e-3b inline text editing", () => {
     expect(visual()).not.toHaveProperty("whiteSpace");
   });
 
+  // The old editor's live layout (useTextEdit `silentUpdateTextProp`): typing shows the text on the
+  // record and lays it out (a hugging box grows, siblings move) with no document write; leaving the
+  // field commits it as one step, or puts the record's own text back when nothing changed.
+  it("typing lays the text out live without a document write; ending the edit commits or restores it", async () => {
+    const { workspace, record, field, text } = await open();
+    const shown = () =>
+      (workspace.root.domInputs.get(record)?.props as Record<string, unknown>)
+        .children;
+    const revision = workspace.runtime.graph.revision;
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    act(() => {
+      fireEvent.change(field()!, { target: { value: "Hello there" } });
+    });
+    expect(shown()).toBe("Hello there");
+    expect(workspace.runtime.graph.revision).toBe(revision);
+    expect(text()).toEqual({ kind: "set", value: "Hello" });
+    // Typed back to the stored text: Escape writes nothing and the record shows its own text.
+    act(() => {
+      fireEvent.change(field()!, { target: { value: "Hello" } });
+    });
+    act(() => {
+      fireEvent.keyDown(field()!, { key: "Escape" });
+    });
+    expect(workspace.runtime.graph.revision).toBe(revision);
+    expect(shown()).toBe("Hello");
+
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    act(() => {
+      fireEvent.change(field()!, { target: { value: "Bye" } });
+    });
+    act(() => {
+      fireEvent.blur(field()!);
+    });
+    expect(workspace.runtime.graph.revision).toBe(revision + 1);
+    expect(shown()).toBe("Bye");
+    workspace.undo();
+    expect(shown()).toBe("Hello");
+  });
+
   /**
    * The field is the text's box: one line tall when the text is one line (a textarea's own default
    * is two rows — its height then overshot the box), growing with the typed lines.

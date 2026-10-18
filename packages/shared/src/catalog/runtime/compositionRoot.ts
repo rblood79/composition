@@ -198,6 +198,8 @@ export interface CatalogRecordPreview {
   readonly fills?: CatalogConsumerNode["fills"];
   /** Visual keys the commit removes (a Fill replaces fill-derived background CSS). */
   readonly omitVisual?: readonly string[];
+  /** Props shown over the record's (an inline text edit's typed text — measured and wrapped). */
+  readonly props?: Readonly<Record<string, unknown>>;
 }
 
 export interface CatalogConsumerNode {
@@ -3355,6 +3357,11 @@ export class CatalogCompositionRoot {
             : base.layout,
           placement: patch.placement ?? base.placement,
           ...(patch.fills ? { fills: patch.fills } : {}),
+          ...(patch.props
+            ? {
+                props: { ...base.props, ...patch.props } as typeof base.props,
+              }
+            : {}),
         }
       : base;
     if (patch) this.previews.set(id, { base, shown });

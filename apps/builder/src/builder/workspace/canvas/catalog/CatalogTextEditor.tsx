@@ -134,9 +134,27 @@ function TextField({
     [],
   );
 
+  /**
+   * The typed text on the record, laid out live (the old editor's `silentUpdateTextProp`): a
+   * hugging box grows and its siblings move while typing; no document write, no history.
+   */
+  const previewing = useRef(false);
+  const preview = (text: string) => {
+    if (!start.key) return;
+    previewing.current = text !== start.text;
+    workspace.root.previewRecord(
+      item.identity,
+      previewing.current ? { props: { [start.key]: text } } : undefined,
+    );
+  };
   /** One command when the text changed. */
   const save = () => {
     if (committed.current) return;
+    // The record's own text back first; the command then lays out the committed text.
+    if (previewing.current) {
+      previewing.current = false;
+      workspace.root.previewRecord(item.identity);
+    }
     const command =
       start.key &&
       (start.bound
@@ -247,6 +265,7 @@ function TextField({
       spellCheck={false}
       onChange={(event) => {
         draft.current = event.target.value;
+        preview(draft.current);
         // Measure the text alone: a field already taller would report its own height.
         const field = event.target;
         const height = field.style.height;
