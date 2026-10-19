@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Grid 끌기 미리보기가 놓은 뒤 남는 문제 수정] - 2026-10-19
+
+### Fixed
+
+- **확정 · 취소 뒤 같은 프레임에 예약돼 있던 Styles 미리보기가 다시 걸리지 않는다**:
+  - 섹션이 다음 프레임에 미루어 둔 미리보기 (`useOptimizedStyleActions`) 는 그 사이 확정이나 취소가 있었으면 버린다 — host 가 끌기 끝마다 세는 `previewEpoch` 로 판정한다. 전에는 마지막 이동과 놓기가 한 프레임에 오면 놓은 뒤 미리보기가 다시 걸려 Canvas 만 옛 값 (취소한 색 등) 을 보였다.
+  - 끌기 도중 섹션이 사라지면 (선택 · 탭 변경) 걸어 둔 미리보기를 해제한다.
+- **확정 없이 끝난 끌기의 값이 다음 끌기에 섞이지 않는다**: host 는 Canvas 에 아직 미리보기가 걸린 record 의 기록만 이어받는다 (`root.previewing`). 전에는 같은 색으로 놓은 뒤 undo 하고 Opacity 를 끌면 지난 값이 Canvas 에 다시 나타났다.
+- **여러 요소를 고른 미리보기에서 한 요소의 값이 담기지 않아도 나머지 요소는 계속 따라온다** (`continue`).
+- **Grid 열 · 행 경계를 빠르게 튕겨도 크기가 확정된다**: 놓을 때 아직 그려지지 않은 상태 대신 끌기가 보여 준 크기를 읽는다. 끌기 중 grid 선택이 풀려도 미리보기를 해제한다. 전에는 한 프레임 안의 튕김이 버려졌다 (live: 150px 열 +40 → 고치기 전 확정 0회, 고친 뒤 1회).
+- 위치: `panels/styles/catalog/catalogStylesHost.ts` · `panels/styles/hooks/useOptimizedStyleActions.ts` · `workspace/canvas/catalog/CatalogGridTrackLayer.tsx` · `packages/shared/src/catalog/runtime/compositionRoot.ts` (`previewing`)
+
 ## [Switch 누름 중 thumb 돌출 수정] - 2026-10-19
 
 ### Fixed

@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { renderHook } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { createElement, type ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -12,12 +12,19 @@ import type {
 import {
   duplicateNodes,
   insertNodes,
+  setFields,
+  type CatalogCommand,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
   createDefaultColorFill,
   type FillItem,
 } from "../../../types/builder/fill.types";
 import { createCatalogStylesHost } from "../../panels/styles/catalog/catalogStylesHost";
+import { useOptimizedStyleActions } from "../../panels/styles/hooks/useOptimizedStyleActions";
+import {
+  StylesHostContext,
+  type StylesHost,
+} from "../../panels/styles/stylesHost";
 import { useToastStore } from "../../stores/toast";
 import { catalogComponentCommands } from "../componentActions";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -279,4 +286,102 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
     });
   });
 
+
+  it("a gesture that ended without a commit leaves nothing for the next one to carry over", async () => {
+    const { workspace, host, record } = await open();
+    const shown = () => workspace.root.domInputs.get(record)!;
+    host.updateStyle("width", "100px");
+    // A drag that let go without committing (a picker released on the value it started from).
+    host.previewStyle("paddingTop", "10px");
+    expect(shown().visual.paddingTop).toBe(10);
+    // Another edit replaces the record: its preview is gone.
+    workspace.undo();
+    expect(shown().visual.paddingTop).toBe(undefined);
+    // The next drag shows its own key only — not the old gesture's padding.
+    host.previewStyle("opacity", "0.5");
+    expect(shown().visual.opacity).toBe(0.5);
+    expect(shown().visual.paddingTop).toBe(undefined);
+  });
+
+  it("a section's preview still waiting for its frame does not come back after a commit or a cancel; a section that goes mid-drag ends its preview", async () => {
+    const { workspace, host, record } = await open();
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+      frames.push(callback),
+    );
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      frames[id - 1] = () => {};
+    });
+    const flush = () => frames.splice(0).forEach((callback) => callback(0));
+    const width = () =>
+      Math.round(workspace.root.getGeometry([record]).get(record)!.width);
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(StylesHostContext.Provider, {
+        value: host as StylesHost,
+        children,
+      });
+    try {
+      host.updateStyle("width", "100px");
+      const section = renderHook(() => useOptimizedStyleActions(), { wrapper });
+      // The last move and the release land in one frame: the commit runs first.
+      section.result.current.updateStylePreview("width", "150px");
+      host.updateStyle("width", "120px");
+      flush();
+      expect(width()).toBe(120);
+
+      // A cancelled drag (Escape) with its last move still waiting.
+      section.result.current.updateStylePreview("width", "180px");
+      host.cancelPreview!();
+      flush();
+      expect(width()).toBe(120);
+
+      // The section goes (another selection, another tab) while its drag is on the Canvas.
+      section.result.current.updateStylePreview("width", "200px");
+      flush();
+      expect(width()).toBe(200);
+      section.unmount();
+      expect(width()).toBe(120);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("a commit that lands the previewed value replaces the record, so ending the drag after the commit keeps it", async () => {
+    const { workspace, host, record } = await open();
+    const width = () =>
+      Math.round(workspace.root.getGeometry([record]).get(record)!.width);
+    host.updateStyle("width", "100px");
+    host.previewStyle("width", "150px");
+    expect(width()).toBe(150);
+    // The same width with a sibling in one step: the parent's region is drawn again and the box's
+    // new record equals the previewed one.
+    const sibling: NodeEntry = {
+      kind: "node",
+      id: "project:node:sibling" as NodeId,
+      definitionId: "lib:definition:type-frame",
+      children: [],
+      props: {},
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    };
+    const both: CatalogCommand = (reader) => {
+      const widen = setFields({
+        targets: [{ kind: "node", id: BOX }],
+        sizing: { width: { kind: "set", value: 150 } },
+      })(reader);
+      const insert = insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [sibling],
+        rootIds: [sibling.id],
+        newId: workspace.newId,
+      })(reader);
+      return { ...insert, ops: [...widen.ops, ...insert.ops] };
+    };
+    workspace.execute(both);
+    expect(workspace.root.previewing(record)).toBe(false);
+    // The Styles order: the release commits, then the drag ends.
+    host.cancelPreview!();
+    expect(width()).toBe(150);
+  });
 });

@@ -117,6 +117,8 @@ interface Press {
   size?: number;
   boundary?: boolean;
   dragging?: boolean;
+  /** The size a boundary drag shows (the release commits it — the `drag` state may lag a frame). */
+  px?: number;
 }
 
 const headersOf = (headers: GridTrackHeaders, axis: GridTrackAxis) =>
@@ -500,6 +502,7 @@ export function CatalogGridTrackLayer({
     const headers = headersOf(model.headers, current.axis);
     if (current.boundary) {
       const px = Math.max(1, (current.size ?? 0) + delta / cameraNow().zoom);
+      current.px = px;
       host.previewStyle(
         AXIS[current.axis].key,
         gridTrackListTemplate(gridTrackResizedTo(headers, current.index, px)),
@@ -534,17 +537,22 @@ export function CatalogGridTrackLayer({
     pressRef.current = null;
     const ended = drag;
     setDrag(null);
-    if (!model) return;
-    const headers = headersOf(model.headers, current.axis);
+    // A boundary drag ends its preview even when the grid is gone (another selection mid-drag).
     if (current.boundary) {
-      if (ended?.kind === "resize")
+      if (model && current.px !== undefined)
         commitTracks(
           current.axis,
-          gridTrackResizedTo(headers, current.index, ended.px),
+          gridTrackResizedTo(
+            headersOf(model.headers, current.axis),
+            current.index,
+            current.px,
+          ),
         );
       else host.cancelPreview?.();
       return;
     }
+    if (!model) return;
+    const headers = headersOf(model.headers, current.axis);
     if (!current.dragging) {
       press(current.axis, current.index, event.currentTarget, current);
       return;

@@ -314,10 +314,15 @@ export function createCatalogStylesHost(
     });
   };
   /**
-   * What a drag previews per record (keys of successive previews add up); an edit or another
-   * selection puts the records' own values back.
+   * What a drag previews per record (keys of successive previews add up while the preview is on
+   * the record — a step that planned it, or a gesture let go without a commit, starts afresh); an
+   * edit or another selection puts the records' own values back.
    */
   const previewed = new Map<string, CatalogRecordPreview>();
+  const heldPreview = (id: string): CatalogRecordPreview | undefined =>
+    workspace.root.previewing(id) ? previewed.get(id) : undefined;
+  /** Counts the ends of drags (a commit, a cancel): a preview waiting for its frame is stale. */
+  let previewEpoch = 0;
   const endPreviews = (keep?: ReadonlySet<string>) => {
     for (const id of [...previewed.keys()]) {
       if (keep?.has(id)) continue;
@@ -342,6 +347,7 @@ export function createCatalogStylesHost(
             : String(error),
         );
     } finally {
+      previewEpoch += 1;
       endPreviews();
     }
   };
@@ -733,7 +739,7 @@ export function createCatalogStylesHost(
             },
           );
         } catch {
-          return; // a value the typed field cannot hold mid-drag: the commit reports it
+          continue; // a value the typed field cannot hold mid-drag: the commit reports it
         }
         const patch = catalogStylePreviewPatch(writes);
         // Left / Top of an absolutely placed node are its placement offsets.
@@ -750,7 +756,7 @@ export function createCatalogStylesHost(
               }
             : undefined;
         if (!placement && !Object.keys(patch).length) continue;
-        const held = previewed.get(item.identity) ?? {};
+        const held = heldPreview(item.identity) ?? {};
         const next: CatalogRecordPreview = {
           ...held,
           visual: { ...held.visual, ...patch.visual },
@@ -1097,7 +1103,7 @@ export function createCatalogStylesHost(
             ? fills
             : replayFillEdit(before, fills, fillsOf(item.target));
         const preview: CatalogRecordPreview = {
-          ...previewed.get(item.identity),
+          ...heldPreview(item.identity),
           fills: next.length ? catalogFillLayers(next) : [],
           omitVisual: FILL_DERIVED_STYLE_PROPS,
         };
@@ -1105,7 +1111,11 @@ export function createCatalogStylesHost(
         workspace.root.previewRecord(item.identity, preview);
       });
     },
-    cancelPreview: () => endPreviews(),
+    cancelPreview() {
+      previewEpoch += 1;
+      endPreviews();
+    },
+    previewEpoch: () => previewEpoch,
     resetFills() {
       run(() => {
         const targets = selection()

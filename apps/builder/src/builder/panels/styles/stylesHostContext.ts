@@ -174,6 +174,11 @@ export interface StylesHost {
    * the old store (its presentation sessions cancel themselves).
    */
   cancelPreview?(): void;
+  /**
+   * Counts the ends of drags (each commit, each `cancelPreview`): a preview a section scheduled
+   * before the count moved is stale and is not shown. Absent = the old store.
+   */
+  previewEpoch?(): number;
   /** Which of `properties` (CSS keys) the selection authors at the active breakpoint. */
   useDirtyStyleProps(properties: readonly string[]): string[];
   /** Reset `properties` on the selection (only what is authored; nothing = no step). */

@@ -3397,6 +3397,11 @@ export class CatalogCompositionRoot {
     }
     return errors;
   }
+  /** Whether a preview is on the record (a step that replaced the record since ended it). */
+  previewing(id: string): boolean {
+    const held = this.previews.get(id);
+    return !!held && this.records.get(id) === held.shown;
+  }
   /** Hear every `previewRecord` (a preview from any surface: a Canvas gesture, a Styles drag). */
   subscribePreviews(listener: () => void): () => void {
     this.previewListeners.add(listener);

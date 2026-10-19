@@ -94,13 +94,24 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
   const pendingUpdateRef = useRef<{ property: string; value: string } | null>(
     null,
   );
-  const pendingPreviewRef = useRef<{ property: string; value: string } | null>(
-    null,
-  );
+  const pendingPreviewRef = useRef<{
+    property: string;
+    value: string;
+    epoch: number | undefined;
+  } | null>(null);
+  /** The drag count (`host.previewEpoch`) when this section last showed a preview. */
+  const shownEpochRef = useRef<number | null>(null);
 
-  // 정리
+  // 정리 — a section that goes mid-drag (another selection, another tab) gets no release: it puts
+  // the records' own values back if its preview is still on.
   useEffect(() => {
     return () => {
+      if (
+        shownEpochRef.current !== null &&
+        shownEpochRef.current === host.previewEpoch?.()
+      )
+        host.cancelPreview?.();
+      shownEpochRef.current = null;
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
@@ -186,13 +197,20 @@ export function useOptimizedStyleActions(): OptimizedStyleActionsResult {
       if (isFillDerivedStyleProp(property)) {
         return;
       }
-      pendingPreviewRef.current = { property, value };
+      pendingPreviewRef.current = {
+        property,
+        value,
+        epoch: host.previewEpoch?.(),
+      };
 
       if (previewRafIdRef.current === null) {
         previewRafIdRef.current = requestAnimationFrame(() => {
           const pending = pendingPreviewRef.current;
-          if (pending) {
+          // (A commit or a cancel since the move ended the drag: the move is stale.)
+          if (pending && pending.epoch === host.previewEpoch?.()) {
             host.previewStyle(pending.property, pending.value);
+            if (pending.epoch !== undefined)
+              shownEpochRef.current = pending.epoch;
           }
           previewRafIdRef.current = null;
           pendingPreviewRef.current = null;
