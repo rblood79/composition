@@ -8093,6 +8093,51 @@
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
       "expires": "2027-04-18"
+    },
+    {
+      "path": "seeds.600.zoom.B.render.contentRedrawsOutOfPad",
+      "from": 15,
+      "to": 28,
+      "approvedBy": "사용자 (2026-10-19 「둘 다 진행해」)",
+      "on": "2026-10-19",
+      "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동 (surface miss 합계 66 → 49). 커밋별 측정: 674304ad0 = 기록값, 4b858ae55 ~ 3b43ccbe1 = 이 값 (결정적)",
+      "expires": "2027-04-19"
+    },
+    {
+      "path": "seeds.600.zoom.B.render.spatialQueries",
+      "from": 43,
+      "to": 49,
+      "approvedBy": "사용자 (2026-10-19 「둘 다 진행해」)",
+      "on": "2026-10-19",
+      "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동 (surface miss 합계 66 → 49). 커밋별 측정: 674304ad0 = 기록값, 4b858ae55 ~ 3b43ccbe1 = 이 값 (결정적)",
+      "expires": "2027-04-19"
+    },
+    {
+      "path": "seeds.600.zoom.B.render.spatialCellsVisited",
+      "from": 53876,
+      "to": 56995,
+      "approvedBy": "사용자 (2026-10-19 「둘 다 진행해」)",
+      "on": "2026-10-19",
+      "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동 (surface miss 합계 66 → 49). 커밋별 측정: 674304ad0 = 기록값, 4b858ae55 ~ 3b43ccbe1 = 이 값 (결정적)",
+      "expires": "2027-04-19"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.B.render.contentRedrawsOutOfPad",
+      "from": 8,
+      "to": 28,
+      "approvedBy": "사용자 (2026-10-19 「둘 다 진행해」)",
+      "on": "2026-10-19",
+      "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동 (surface miss 합계 66 → 49). 커밋별 측정: 674304ad0 = 기록값, 4b858ae55 ~ 3b43ccbe1 = 이 값 (결정적)",
+      "expires": "2027-04-19"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.B.caches.contentSurface.hits",
+      "from": 67,
+      "to": 89,
+      "approvedBy": "사용자 (2026-10-19 「둘 다 진행해」)",
+      "on": "2026-10-19",
+      "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동 (surface miss 합계 66 → 49). 커밋별 측정: 674304ad0 = 기록값, 4b858ae55 ~ 3b43ccbe1 = 이 값 (결정적)",
+      "expires": "2027-04-19"
     }
   ],
   "recorderChanges": [
