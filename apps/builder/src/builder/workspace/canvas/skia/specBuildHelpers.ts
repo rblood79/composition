@@ -3,7 +3,7 @@
  */
 
 import type { Shape, TokenRef } from "@composition/rendering";
-import { resolveToken } from "@composition/rendering";
+import { resolveToken, snapBorderWidth } from "@composition/rendering";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import { DEFAULT_FONT_FAMILY } from "../../../fonts/customFonts";
 
@@ -79,8 +79,10 @@ export function measureSpecTextMinHeight(
   // CSS border-box 보정: border shape에서 borderWidth 추출
   const borderShape = shapes.find((s) => s.type === "border");
   const bgBorderWidth = borderShape
-    ? (((borderShape as unknown as Record<string, unknown>)
-        .borderWidth as number) ?? 0)
+    ? snapBorderWidth(
+        ((borderShape as unknown as Record<string, unknown>)
+          .borderWidth as number) ?? 0,
+      )
     : 0;
 
   for (const shape of shapes) {

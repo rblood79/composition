@@ -88,7 +88,9 @@ use crate::block;
 use crate::display::{self, Display, InnerDisplay};
 use crate::flex;
 use crate::grid;
-use crate::style::{resolve_css_size_value, CssValueContext, FIT_CONTENT, MAX_CONTENT, MIN_CONTENT};
+use crate::style::{
+    resolve_css_size_value, snap_line_width, CssValueContext, FIT_CONTENT, MAX_CONTENT, MIN_CONTENT,
+};
 use crate::trace::{Axis, ClampBound, SkipReason, TraceEvent, TraceSink, TracedEvent, TrackStage};
 
 /// indefinite available 센티넬 (음수). `%` 크기는 indefinite containing block 에 대해
@@ -654,6 +656,9 @@ pub struct LayoutTree {
     /// 경로 (0 = 미지정) 그대로다. ADR-248 새 runtime 만 켠다 (Phase 3 은 기존 앱 출력 불변 —
     /// breakdown §임시 코드). Phase 4 전환에서 기본값으로 올린다.
     definite_zero_height: bool,
+    /// border 폭 snap 기준 device pixel ratio (`set_device_pixel_ratio`). `None` 이면 snap 없음 —
+    /// 하니스 · 테스트 기본. Builder 는 창의 `devicePixelRatio` 를 넘긴다.
+    device_pixel_ratio: Option<f32>,
     /// ADR-183 — 판정 트레이스 sink. `None` 이 기본이고, 그때 계측 지점의 비용은
     /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
     /// 포인터 하나만큼만 키우기 위함.
@@ -1019,6 +1024,18 @@ impl LayoutTree {
     pub fn set_definite_zero_height(&mut self, enabled: bool) {
         if self.definite_zero_height != enabled {
             self.definite_zero_height = enabled;
+            self.last_compute = None;
+        }
+    }
+
+    /// border 폭 snap 기준 device pixel ratio — 값이 바뀌면 다음 `compute_layout` 이 전 서브트리를
+    /// 다시 푼다 (viewport 와 같은 환경 세대 — 측정 캐시도 무효).
+    pub fn set_device_pixel_ratio(&mut self, dpr: Option<f32>) {
+        let next = dpr.filter(|s| s.is_finite() && *s > 0.0);
+        if self.device_pixel_ratio != next {
+            self.device_pixel_ratio = next;
+            self.mutation_gen += 1;
+            self.viewport_gen = self.mutation_gen;
             self.last_compute = None;
         }
     }
@@ -2734,12 +2751,12 @@ impl LayoutTree {
         // static position 은 흐름 부모의 content 원점 (containing block 좌표로 옮겨 쓴다).
         let pb_start_x = pad_border_start(&flow_style, &parent_ctx, true) + shift.0;
         let pb_start_y = pad_border_start(&flow_style, &parent_ctx, false) + shift.1;
-        let border_start_x = resolve_dimension(style.border_left.as_deref(), &parent_ctx);
-        let border_start_y = resolve_dimension(style.border_top.as_deref(), &parent_ctx);
+        let border_start_x = resolve_border(style.border_left.as_deref(), &parent_ctx);
+        let border_start_y = resolve_border(style.border_top.as_deref(), &parent_ctx);
         let border_total_x =
-            border_start_x + resolve_dimension(style.border_right.as_deref(), &parent_ctx);
+            border_start_x + resolve_border(style.border_right.as_deref(), &parent_ctx);
         let border_total_y =
-            border_start_y + resolve_dimension(style.border_bottom.as_deref(), &parent_ctx);
+            border_start_y + resolve_border(style.border_bottom.as_deref(), &parent_ctx);
         // container_w/h = border-box (호출부 계약).
         let cb_w = (container_w - border_total_x).max(0.0);
         let cb_h = (container_h - border_total_y).max(0.0);
@@ -5409,6 +5426,7 @@ impl LayoutTree {
             viewport_width: self.viewport.map(|v| v.0),
             viewport_height: self.viewport.map(|v| v.1),
             root_font_size: None,
+            device_pixel_ratio: self.device_pixel_ratio,
         }
     }
 
@@ -6607,8 +6625,14 @@ fn axis_pad_border(style: &NodeStyle, ctx: &CssValueContext, is_main_horizontal:
     };
     resolve_dimension(a, ctx)
         + resolve_dimension(b, ctx)
-        + resolve_dimension(ba, ctx)
-        + resolve_dimension(bb, ctx)
+        + resolve_border(ba, ctx)
+        + resolve_border(bb, ctx)
+}
+
+/// border 폭 — 길이를 풀고 device px 로 snap 한다 (`snap_line_width`, Blink `ClampLineWidth`).
+/// border 를 읽는 곳은 전부 이 함수를 거친다 (padding 은 snap 하지 않는다).
+fn resolve_border(value: Option<&str>, ctx: &CssValueContext) -> f32 {
+    snap_line_width(resolve_dimension(value, ctx), ctx.device_pixel_ratio)
 }
 
 /// 좌표 offset 용 — padding+border 의 시작 성분 (horizontal → left, 아니면 top).
@@ -6620,7 +6644,7 @@ fn pad_border_start(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) 
     } else {
         (style.padding_top.as_deref(), style.border_top.as_deref())
     };
-    resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
+    resolve_dimension(p, ctx) + resolve_border(b, ctx)
 }
 
 /// pad_border 의 **끝** 성분 (horizontal → right, 아니면 bottom). 마진 상쇄 차단
@@ -6631,7 +6655,7 @@ fn pad_border_end(style: &NodeStyle, ctx: &CssValueContext, horizontal: bool) ->
     } else {
         (style.padding_bottom.as_deref(), style.border_bottom.as_deref())
     };
-    resolve_dimension(p, ctx) + resolve_dimension(b, ctx)
+    resolve_dimension(p, ctx) + resolve_border(b, ctx)
 }
 
 /// overflow 한 축의 값이 **scrollable value** (scroll/auto/hidden — css-overflow-3 §3.1
@@ -11225,6 +11249,30 @@ mod tests {
         assert_eq!(c.containing.x, 3.0 + 2.0);
         assert_eq!(c.containing.y, 5.0 + 1.0 + 6.0);
         assert_eq!(c.containing.y + c.containing.height, 5.0 + 345.0 - 8.0 - 10.0);
+    }
+
+    /// border 폭 snap (Blink `ClampLineWidth`) — ListBox Header 모양 (border-block 0.5 · padding 4 ·
+    /// 글자 18): DPR 1 은 Chrome 처럼 높이 28 (border 1 씩), DPR 2 는 27 (0.5 = 1 device px), 기준이
+    /// 없으면 27. DPR 만 바꿔도 다음 계산이 다시 푼다 (자식 y 도 border 를 따라간다).
+    #[test]
+    fn border_widths_snap_to_device_pixels() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","contentHeight":18},"children":[]},
+            {"style":{"display":"block","borderTop":"0.5px","borderBottom":"0.5px","paddingTop":"4px","paddingBottom":"4px"},"children":[0]},
+            {"style":{"display":"block","width":"200px"},"children":[1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 200.0, -1.0);
+        assert_eq!(tree.get_layout(h[1]).height, 27.0, "기준 없음");
+        tree.set_device_pixel_ratio(Some(1.0));
+        tree.compute_layout(h[2], 200.0, -1.0);
+        assert_eq!(tree.get_layout(h[1]).height, 28.0, "DPR 1");
+        assert_eq!(tree.get_layout(h[0]).y, 5.0, "자식 = border 1 + padding 4");
+        tree.set_device_pixel_ratio(Some(2.0));
+        tree.compute_layout(h[2], 200.0, -1.0);
+        assert_eq!(tree.get_layout(h[1]).height, 27.0, "DPR 2");
+        assert_eq!(tree.get_layout(h[0]).y, 4.5);
     }
 
     /// `%` 기준 — Chrome (`stickyPosition.browser.test.ts` `%` 3 케이스) 과 같은 값. 부모 padding 은

@@ -157,6 +157,8 @@ export class CatalogWorkspace {
   /** `columns: "auto"`: the monitor width the page grid's column count derives from (ADR-274). */
   private screenWidth: number | undefined;
   private colorMode: "light" | "dark" | undefined;
+  /** The display's pixel ratio the engine snaps border widths to (`setDevicePixelRatio`). */
+  private devicePixelRatio: number | undefined;
 
   constructor(
     graph: CatalogGraph,
@@ -165,6 +167,7 @@ export class CatalogWorkspace {
   ) {
     this.runtime = new CatalogRuntime(graph, storage);
     this.screenWidth = options.root?.screenWidth;
+    this.devicePixelRatio = options.root?.devicePixelRatio;
     this.applyTheme();
     this.currentRoot = this.createRoot(options.root?.breakpoint ?? "desktop");
     this.session = new CatalogSession(this.runtime, {
@@ -203,6 +206,9 @@ export class CatalogWorkspace {
         //   one layout per breakpoint switch, no carried-over count to correct next frame).
         ...(this.screenWidth ? { screenWidth: this.screenWidth } : {}),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
+        ...(this.devicePixelRatio
+          ? { devicePixelRatio: this.devicePixelRatio }
+          : {}),
         ...(this.definitionView ? { definitionView: this.definitionView } : {}),
         breakpoint,
       },
@@ -394,6 +400,17 @@ export class CatalogWorkspace {
   setScreenWidth(width: number): boolean {
     this.screenWidth = width;
     return this.currentRoot.setScreenWidth(width);
+  }
+  /**
+   * The display's pixel ratio changed (the window moved to another display, or the browser zoom):
+   * the engine snaps border widths to device pixels, so every box is laid out again — a new root,
+   * as after a font change. True = replaced.
+   */
+  setDevicePixelRatio(dpr: number): boolean {
+    if (!(dpr > 0) || dpr === this.devicePixelRatio) return false;
+    this.devicePixelRatio = dpr;
+    this.replaceRoot(this.currentRoot.breakpoint);
+    return true;
   }
   subscribeRoot(listener: () => void): () => void {
     this.rootListeners.add(listener);

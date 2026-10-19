@@ -15,7 +15,12 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3 (`skiaPrimitive`)
  */
 
-import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
+import {
+  parseBorderWidth,
+  parsePxValue,
+  parseShadow,
+  snapBorderWidth,
+} from "../primitives";
 import {
   fontFamily,
   getTextLineHeight,
@@ -1016,7 +1021,9 @@ const listBoxItem: SkiaPrimitiveDrawFn = ({
   // `.react-aria-ListBoxItem:not(:last-child)::after`: 0.5px of `--border-color`, the row less
   // `--spacing-6` wide from its padding edge, hidden on a selected item). `_lastItem` is the
   // resolver's (`catalogListItemEdges`) — absent outside a standalone ListBox.
-  const separator = resolveBorderWidthPx("{border.width.hairline}" as TokenRef);
+  const separator = snapBorderWidth(
+    resolveBorderWidthPx("{border.width.hairline}" as TokenRef),
+  );
   if (props._lastItem === false && !props.isSelected) {
     shapes.push({
       id: "separator",

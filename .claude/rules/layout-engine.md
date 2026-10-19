@@ -118,6 +118,8 @@ paths:
 
 삭제된 TS 전처리 규칙 (기록만 — production 코드 없음, 부활 금지): grid 자식 스칼라 게이트 `isGridChild` · `coerceGridTrack` · `enrichAvailWidth` (옛 행 22) · `needsWidth` TEXT_LEAF_TAGS 절 (옛 행 27) · root containing block 되돌림 `resolveRootContainingBlock` · `calculateFullTreeLayout` DFS (옛 행 34). 같은 원칙 (텍스트 leaf 스칼라는 부모 display 와 무관 · root 폭은 containing block) 은 `styleOf` 가 엔진에 넘기는 입력으로 유지된다 — 전문은 [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md).
 
+- **border 폭 = device pixel snap (2026-10-19)**: 엔진이 border 를 읽는 곳은 전부 `resolve_border` (→ `style.rs` `snap_line_width`, Blink `ClampLineWidth`: device px 로 0 < w < 1 → 1, 아니면 floor) 를 거친다. 기준 비율은 `set_device_pixel_ratio` (root 옵션 `devicePixelRatio` — Builder 창의 값, 바뀌면 `workspace.setDevicePixelRatio` 가 새 root) 이고 미설정이면 snap 없음 (하니스 · Preview root). Canvas 그리기는 같은 규칙의 `snapBorderWidth` (`packages/rendering` `primitives/border.ts`) — 새 border 소비자 (stroke · inset) 는 둘 중 하나를 거친다. **Why**: hairline 0.5px 를 DPR 1 Chrome 은 1px 로 배치·그리는데 엔진은 0.5 로 두어 ListBox Header 가 Canvas 27 / Preview 28. oracle `borderWidthSnap.browser.test.ts` · Rust `border_widths_snap_to_device_pixels`.
+
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 엔진이 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.

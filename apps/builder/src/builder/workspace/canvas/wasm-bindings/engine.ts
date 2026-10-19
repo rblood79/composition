@@ -145,6 +145,12 @@ export class EngineLayout {
     this.engine.setDefiniteZeroHeight(enabled);
   }
 
+  /** border 폭 snap 기준 device pixel ratio (Blink `ClampLineWidth` — 엔진 `snap_line_width`). */
+  setDevicePixelRatio(dpr: number): void {
+    if (!this.engine) return;
+    this.engine.setDevicePixelRatio(dpr);
+  }
+
   /**
    * batch payload 에서 엔진이 읽지 않는 키를 진단한다 — `[{index, keys}]`.
    *

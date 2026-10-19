@@ -4,6 +4,7 @@ import {
   getIconData,
   getSkiaPrimitiveMode,
   resolveToken,
+  snapBorderWidth,
   type TokenRef,
 } from "@composition/rendering";
 import {
@@ -199,7 +200,7 @@ function textInset(node: CatalogConsumerNode): {
       ? value
       : Number.parseFloat(String(value ?? 0)) || 0;
   const box = catalogBoxModel(node);
-  const border = px(box.borderWidth);
+  const border = snapBorderWidth(px(box.borderWidth));
   return {
     top: border + px(box.padding?.top),
     right: border + px(box.padding?.right),
@@ -209,9 +210,10 @@ function textInset(node: CatalogConsumerNode): {
 
 function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
   assertSupportedVisual(node);
-  const strokeWidth = Number(node.visual.borderWidth ?? 0);
-  if (!Number.isFinite(strokeWidth) || strokeWidth < 0)
+  const authoredWidth = Number(node.visual.borderWidth ?? 0);
+  if (!Number.isFinite(authoredWidth) || authoredWidth < 0)
     throw new Error(`CATALOG_CANVAS_STROKE_UNSUPPORTED:${node.id}`);
+  const strokeWidth = snapBorderWidth(authoredWidth);
   if (strokeWidth > 0 && node.visual.borderColor === undefined)
     throw new Error(`CATALOG_CANVAS_STROKE_COLOR_REQUIRED:${node.id}`);
   const fillAlpha = Number(node.visual.fillAlpha ?? 1);
@@ -273,7 +275,7 @@ export function catalogQuietOwnerPaint(
     quiet["border-bottom"] ?? "",
   );
   if (!border) throw new Error(`CATALOG_QUIET_BORDER_UNSUPPORTED:${node.id}`);
-  const width = Number(border[1]);
+  const width = snapBorderWidth(Number(border[1]));
   const { borderColor: _borderColor, ...visual } = node.visual;
   return {
     visual: {
@@ -399,7 +401,7 @@ const glyph: Binding = (node, rect) => {
   const column = box.flexDirection?.startsWith("column") ?? false;
   const reverse = box.flexDirection?.endsWith("reverse") ?? false;
   const length = (value: unknown) => Number.parseFloat(String(value ?? 0)) || 0;
-  const border = length(box.borderWidth);
+  const border = snapBorderWidth(length(box.borderWidth));
   const left = length(box.padding?.left) + border;
   const right = length(box.padding?.right) + border;
   const top = length(box.padding?.top) + border;
@@ -1191,7 +1193,7 @@ function withOverflowClip(
   data: SkiaNodeData,
 ): SkiaNodeData {
   if (!data.visible || !catalogOverflowClips(node.visual.overflow)) return data;
-  const stroke = data.box?.strokeWidth ?? 0;
+  const stroke = snapBorderWidth(data.box?.strokeWidth ?? 0);
   return {
     ...data,
     clipChildren: true,
@@ -1209,7 +1211,7 @@ function scrollEnd(node: CatalogConsumerNode): {
   const model = catalogBoxModel(node);
   const px = (value: unknown) =>
     typeof value === "number" && Number.isFinite(value) ? value : 0;
-  const border = px(model.borderWidth);
+  const border = snapBorderWidth(px(model.borderWidth));
   return {
     right: px(model.padding?.right) + border,
     bottom: px(model.padding?.bottom) + border,

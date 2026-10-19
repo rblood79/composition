@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas border 폭 device pixel snap] - 2026-10-19
+
+### Fixed
+
+- **Canvas 가 border 폭을 Chrome 처럼 device pixel 로 맞춘다** (Blink `ClampLineWidth` — device px 로 0 < w < 1 은 1, 아니면 floor):
+  - 레이아웃: 엔진이 border 를 읽는 모든 곳 (`resolve_border` → `snap_line_width`) 이 builder 창의 `devicePixelRatio` 로 snap 한다. 전에는 hairline 0.5px 를 DPR 1 에서 0.5 로 배치해 ListBox Header 가 Canvas 27 / Preview 28, 섹션마다 1px 씩 어긋났다 (live: 스크롤 0 의 헤더 위치 4.5 · 123.5 · 214.5 → 5 · 125 · 217, Preview 와 같음). DPR 1.25 · 1.5 같은 소수 배율에서는 1px border 도 1 device px 로 줄어든다.
+  - 그리기: 박스 stroke (`renderBox`) · 변 border · 항목 구분선 · quiet 밑줄과 글자 · 아이콘 · clip · 스크롤 inset 이 같은 폭을 쓴다 (`snapBorderWidth`).
+  - 창이 다른 디스플레이로 옮겨지거나 확대 배율이 바뀌면 새 root 로 다시 배치한다 (`workspace.setDevicePixelRatio`).
+  - 위치: `packages/engine/src/{style,tree,wasm}.rs` · `packages/rendering/src/primitives/border.ts` · `catalogRuntime/{canvasBinding,ruleShapes,workspace}.ts` · `workspace/canvas/skia/{nodeRendererBorders,specShapeConverter,specBuildHelpers}.ts` · `CatalogCanvas.tsx` · `CatalogBuilderCore.tsx`
+
 ## [Styles · Grid 끌기 미리보기가 놓은 뒤 남는 문제 수정] - 2026-10-19
 
 ### Fixed

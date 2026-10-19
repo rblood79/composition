@@ -183,6 +183,12 @@ impl LayoutEngine {
         self.tree.set_viewport(width, height);
     }
 
+    /// border 폭 snap 기준 device pixel ratio (Blink `ClampLineWidth`). 0 이하 · NaN 은 snap 없음.
+    #[wasm_bindgen(js_name = setDevicePixelRatio)]
+    pub fn set_device_pixel_ratio(&mut self, dpr: f32) {
+        self.tree.set_device_pixel_ratio(Some(dpr));
+    }
+
     /// `root` 를 뿌리로 트리 레이아웃 계산.
     #[wasm_bindgen(js_name = computeLayout)]
     pub fn compute_layout(&mut self, root: usize, avail_w: f32, avail_h: f32) {

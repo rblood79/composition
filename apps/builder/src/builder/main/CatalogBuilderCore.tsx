@@ -1,4 +1,5 @@
 import { COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT } from "@composition/shared";
+import { setBorderSnapRatio } from "@composition/rendering";
 import { Button } from "@composition/shared/components";
 import {
   useCallback,
@@ -219,6 +220,8 @@ export function CatalogBuilderCore() {
       if (cancelled) return;
       // The rest is the Canvas's first frame (the overlay goes when it is drawn).
       stage(90, "document");
+      const snapRatio = window.devicePixelRatio || 1;
+      setBorderSnapRatio(snapRatio);
       opened = new CatalogWorkspace(graph, storage, {
         engine: createLayoutEngine(),
         viewport: CANVAS_VIEWPORT.desktop,
@@ -233,6 +236,9 @@ export function CatalogBuilderCore() {
           // ADR-274: `columns: "auto"` derives from the monitor width — the first layout already
           //   has it (the Canvas's frame check then changes nothing).
           screenWidth: window.screen.width,
+          // Border widths snap to the display's device pixels, as the Preview's (`ClampLineWidth`) —
+          //   the engine lays them out at this ratio and the Canvas draws them at it.
+          devicePixelRatio: snapRatio,
           // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
           rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
           rows: (binding, kind) =>

@@ -5,6 +5,7 @@ import {
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
   resolveToken,
+  snapBorderWidth,
   type Shape,
   type SizeSpec,
   type TokenRef,
@@ -175,8 +176,9 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const borderColor = state?.borderColor ?? quiet["border-color"];
   // (The underline is the bottom side: a state's bottom longhand, else its shorthand, else the
   // quiet rule's — read through the one border-geometry helper, ADR-219.)
-  const width = resolveBorderGeometry(state, { borderWidth: Number(border[1]) })
-    .widths[2];
+  const width = snapBorderWidth(
+    resolveBorderGeometry(state, { borderWidth: Number(border[1]) }).widths[2],
+  );
   const color = cssVarColor(
     state?.borderColor ?? quiet["border-bottom-color"] ?? border[2],
     theme,
@@ -248,7 +250,7 @@ function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
     typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
   // An icon's x is in the padding box (the shape converter shifts it past the border — the DOM
   // glyph is placed from the padding box too): the padding box width less the own right padding.
-  const border = px(box.borderWidth);
+  const border = snapBorderWidth(px(box.borderWidth));
   const ownRight = px(box.padding?.right) + border * 2;
   const color =
     catalogRuleTextColor(input) ??
@@ -287,7 +289,7 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
   const px = (value: unknown) =>
     typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
   // (An icon's x · y are in the padding box — the shape converter shifts them past the border.)
-  const border = px(box.borderWidth);
+  const border = snapBorderWidth(px(box.borderWidth));
   const ownRight = px(box.padding?.right) + border * 2;
   const color = icon.color.startsWith("{")
     ? (resolveToken(icon.color as TokenRef, input.theme ?? "light") as string)
@@ -436,7 +438,7 @@ export function catalogDateInputPaintProps(
   return {
     ...(typeof radius === "number" ? { _boxRadius: radius } : {}),
     ...(typeof borderWidth === "number"
-      ? { _boxBorderWidth: borderWidth }
+      ? { _boxBorderWidth: snapBorderWidth(borderWidth) }
       : {}),
     _segmentRuns: paint.runs,
     ...(fill ? { _segmentPlaceholderFill: fill } : {}),

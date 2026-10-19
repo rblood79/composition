@@ -55,6 +55,8 @@ pub struct CssValueContext {
     pub viewport_height: Option<f32>,
     /// rem 기준 (기본 16)
     pub root_font_size: Option<f32>,
+    /// border 폭 snap 기준 device pixel ratio — `None` 이면 snap 하지 않는다 (`snap_line_width`).
+    pub device_pixel_ratio: Option<f32>,
 }
 
 /// CSS `font` shorthand 파싱 결과 (cssValueParser.ts `ParsedFont` 대응).
@@ -92,6 +94,22 @@ impl CssValueContext {
     pub(crate) fn vh(&self) -> f32 {
         self.viewport_height.unwrap_or(DEFAULT_VIEWPORT_HEIGHT)
     }
+}
+
+/// border 폭의 used 값 — Blink `StyleBuilderConverter::ClampLineWidth` (style_builder_converter.cc
+/// :1970): device px 로 0 < w < 1 이면 1, 아니면 floor. `dpr` 이 `None` 이면 그대로 (snap 기준 없음).
+///
+/// **Why**: hairline 0.5px border 를 Chrome 은 DPR 1 에서 1px 로 그리고 배치한다 — 엔진이 0.5 로
+/// 두면 ListBox Header 가 Canvas 27 / Preview 28 로 섹션마다 1px 씩 어긋났다 (2026-10-19).
+pub fn snap_line_width(css_px: f32, dpr: Option<f32>) -> f32 {
+    let Some(scale) = dpr.filter(|s| s.is_finite() && *s > 0.0) else {
+        return css_px;
+    };
+    let device = css_px * scale;
+    if device > 0.0 && device < 1.0 {
+        return 1.0 / scale;
+    }
+    device.max(0.0).floor() / scale
 }
 
 /// CSS `font` shorthand 를 개별 font 속성으로 분해 (cssValueParser.ts `parseFontShorthand`).
@@ -787,6 +805,22 @@ mod tests {
         };
         // rem → rootFs(10)*3 = 30 (em 이면 parentFs(100)*3 = 300)
         assert_eq!(resolve_css_size_value("3rem", &c), Some(30.0));
+    }
+
+    #[test]
+    fn snap_line_width_follows_blink_clamp_line_width() {
+        // DPR 1: 0 < w < 1 → 1, 아니면 floor.
+        for (w, want) in [(0.5, 1.0), (0.01, 1.0), (1.0, 1.0), (1.5, 1.0), (2.7, 2.0), (0.0, 0.0)] {
+            assert_eq!(snap_line_width(w, Some(1.0)), want, "dpr 1 · {w}");
+        }
+        // DPR 2: device px 로 snap — 0.5 = 1 device px 그대로, 0.3 은 1 device px (0.5), 1.25 → 1.
+        for (w, want) in [(0.5, 0.5), (0.3, 0.5), (1.25, 1.0), (1.0, 1.0)] {
+            assert_eq!(snap_line_width(w, Some(2.0)), want, "dpr 2 · {w}");
+        }
+        // DPR 1.5: 0.5 → 0.75 device → 1 device = 2/3 css.
+        assert!((snap_line_width(0.5, Some(1.5)) - 1.0 / 1.5).abs() < 1e-6);
+        // 기준 없음 = 그대로.
+        assert_eq!(snap_line_width(0.5, None), 0.5);
     }
 
     #[test]

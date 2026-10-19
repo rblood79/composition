@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { setBorderSnapRatio } from "@composition/rendering";
 import {
   renameDefinition,
   updatePage,
@@ -327,6 +328,9 @@ export function CatalogCanvas({
     if (!canvas || !containerEl) return;
     const ck = getCanvasKit();
     let dpr = window.devicePixelRatio || 1;
+    // The Canvas draws border widths snapped to this ratio, as the engine lays them out
+    // (`snapBorderWidth` — the root was built with the same ratio, `CatalogBuilderCore`).
+    setBorderSnapRatio(dpr);
     const fit = () => {
       const rect = containerEl.getBoundingClientRect();
       canvas.width = Math.floor(rect.width * dpr);
@@ -1554,6 +1558,10 @@ export function CatalogCanvas({
     );
     const refit = () => {
       dpr = window.devicePixelRatio || 1;
+      // Border widths snap to device pixels (the engine's `ClampLineWidth`): a new ratio lays the
+      // document out again in a new root (its listeners rebuild the scene).
+      setBorderSnapRatio(dpr);
+      workspace.setDevicePixelRatio(dpr);
       fit();
       renderer.resize(canvas);
       renderer.invalidateContent();

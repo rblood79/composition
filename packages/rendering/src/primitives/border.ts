@@ -31,3 +31,29 @@ export const DEFAULT_BORDER_WIDTH_TOKEN: TokenRef = "{border.width.thin}";
 export function getBorderWidthToken(name: keyof BorderWidthTokens): number {
   return borderWidth[name];
 }
+
+/**
+ * The device pixel ratio the Canvas snaps border widths to — the window the Builder draws in
+ * (`setBorderSnapRatio`, the same ratio the layout engine snaps with). Unset = no snap (a realm
+ * that never sets it — the Preview iframe, publish, tests — keeps the authored width).
+ */
+let borderSnapRatio: number | undefined;
+
+export function setBorderSnapRatio(dpr: number | undefined): void {
+  borderSnapRatio =
+    dpr !== undefined && Number.isFinite(dpr) && dpr > 0 ? dpr : undefined;
+}
+
+/**
+ * A border width's used value — Blink `StyleBuilderConverter::ClampLineWidth`
+ * (style_builder_converter.cc:1970): in device px, 0 < w < 1 → 1, else floor. The layout engine
+ * snaps the same way (`snap_line_width`), so the drawn border fills the box the engine laid out
+ * (a 0.5px hairline is 1px at DPR 1 — the Preview's width). Idempotent.
+ */
+export function snapBorderWidth(px: number): number {
+  const ratio = borderSnapRatio;
+  if (ratio === undefined || !(px > 0)) return px;
+  const device = px * ratio;
+  // (1e-6: a width already snapped at a fractional ratio reads back a hair under its integer.)
+  return Math.max(1, Math.floor(device + 1e-6)) / ratio;
+}

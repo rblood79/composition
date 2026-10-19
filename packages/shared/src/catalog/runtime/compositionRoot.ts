@@ -610,6 +610,11 @@ export interface CatalogRootOptions {
   screenWidth?: number;
   /** Theme color mode the Canvas resolves theme variables in (the DOM's `data-theme` scope). */
   colorMode?: "light" | "dark";
+  /**
+   * The display's device pixel ratio the engine snaps border widths to (Blink `ClampLineWidth` —
+   * a 0.5px hairline lays out and draws 1px at DPR 1, as the Preview beside it). Absent = no snap.
+   */
+  devicePixelRatio?: number;
   /** Data rows of bound collections (the data store); absent = template items only. */
   rows?: CatalogRowSource;
   /** ADR-257 Phase 4 — the Preview's sort of a bound Table (runtime state); absent = none. */
@@ -1544,6 +1549,8 @@ export class CatalogCompositionRoot {
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
+    if (options.devicePixelRatio)
+      engine.setDevicePixelRatio?.(options.devicePixelRatio);
     this.layout = new PersistentLayoutTree(engine);
     this.currentMetrics = this.emptyMetrics(runtime.graph.revision);
     this.loadInitial();

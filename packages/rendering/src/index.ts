@@ -150,6 +150,8 @@ export {
   borderWidth,
   DEFAULT_BORDER_WIDTH_TOKEN,
   getBorderWidthToken,
+  setBorderSnapRatio,
+  snapBorderWidth,
   lightShadows,
   darkShadows,
   getShadowToken,

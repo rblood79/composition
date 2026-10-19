@@ -7,7 +7,7 @@
 
 import { cssDashPattern } from "./nodeRendererShapes";
 import type { Shape, ColorValue } from "@composition/rendering";
-import { getIconData } from "@composition/rendering";
+import { getIconData, snapBorderWidth } from "@composition/rendering";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
@@ -613,7 +613,7 @@ export function specShapesToSkia(
           const strokeColor = colorValueToFloat32(shape.color, theme);
           // Skip fully transparent borders (alpha === 0) — matches CSS behavior
           if (strokeColor[3] === 0) break;
-          const bw = shape.borderWidth;
+          const bw = snapBorderWidth(shape.borderWidth);
           const tw =
             targetNode?.width ??
             (shape.width === "auto"
@@ -753,11 +753,11 @@ export function specShapesToSkia(
           // If the target is the background box
           if (targetNode.box === bgBox && bgBox) {
             bgBox.strokeColor = strokeColor;
-            bgBox.strokeWidth = shape.borderWidth;
+            bgBox.strokeWidth = snapBorderWidth(shape.borderWidth);
             bgBox.strokeStyle = shape.style ?? "solid";
           } else if (targetNode.box) {
             targetNode.box.strokeColor = strokeColor;
-            targetNode.box.strokeWidth = shape.borderWidth;
+            targetNode.box.strokeWidth = snapBorderWidth(shape.borderWidth);
             targetNode.box.strokeStyle = shape.style ?? "solid";
           }
         } else {
@@ -789,7 +789,7 @@ export function specShapesToSkia(
               fillColor: TRANSPARENT,
               borderRadius: br,
               strokeColor,
-              strokeWidth: shape.borderWidth,
+              strokeWidth: snapBorderWidth(shape.borderWidth),
               strokeStyle: shape.style ?? "solid",
             },
           });

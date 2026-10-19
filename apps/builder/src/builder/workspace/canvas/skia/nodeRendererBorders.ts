@@ -1,5 +1,6 @@
 import type { CanvasKit, Canvas, Paint } from "canvaskit-wasm";
 import { colord } from "colord";
+import { snapBorderWidth } from "@composition/rendering";
 import { buildPath } from "./buildPath";
 import { applyFill } from "./fills";
 import { SkiaDisposable } from "./disposable";
@@ -690,11 +691,16 @@ export function renderBox(
       node.box.strokeWidth &&
       node.box.strokeColor[3] > 0
     ) {
-      const sw = node.box.strokeWidth;
+      // Border widths are device-pixel snapped (`snapBorderWidth` — the engine laid the box out
+      // with the same widths), whichever path built the stroke.
+      const sw = snapBorderWidth(node.box.strokeWidth);
       const strokeStyle = node.box.strokeStyle;
       paint.setShader(null);
 
-      const sided = node.box.strokeWidths;
+      const sidedWidths = node.box.strokeWidths;
+      const sided = sidedWidths
+        ? (sidedWidths.map(snapBorderWidth) as unknown as typeof sidedWidths)
+        : undefined;
       if (sided) {
         // ADR-219 — 비균일 폭. 균일 노드는 이 분기에 들어오지 않는다 (HC1).
         if (strokeStyle === "dashed" || strokeStyle === "dotted") {
