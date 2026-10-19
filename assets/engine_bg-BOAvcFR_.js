@@ -1,0 +1,1 @@
+var e=`/composition/assets/engine_bg-V16XbHkU.wasm`;export{e as t};

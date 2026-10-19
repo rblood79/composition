@@ -1,0 +1,1 @@
+export{i as initSpatialIndex}from"./spatialIndex-DDjYNoU5.js";
