@@ -88,7 +88,10 @@ import {
   catalogCurrentTextWeight,
   catalogCalendarGridSize,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
-import { resolveTextSourceText } from "@composition/rendering";
+import {
+  resolveTextSourceText,
+  snapBorderWidthAt,
+} from "@composition/rendering";
 import { applyTextTransform } from "./textTransform";
 import {
   catalogAspectRatio,
@@ -644,9 +647,7 @@ function viewportPercentWidth(
 ): string | undefined {
   if (typeof value !== "string") return undefined;
   const match = /^\s*(-?\d+(?:\.\d+)?)%\s*$/.exec(value);
-  return match
-    ? `${(Number(match[1]) / 100) * viewportWidth}px`
-    : undefined;
+  return match ? `${(Number(match[1]) / 100) * viewportWidth}px` : undefined;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
 export function catalogPageLayoutSettings(
@@ -1519,6 +1520,8 @@ export class CatalogCompositionRoot {
     Set<(node: CatalogConsumerNode | undefined) => void>
   >();
   private currentMetrics: CatalogRootMetrics;
+  /** The ratio the engine snaps border widths at (`CatalogRootOptions.devicePixelRatio`). */
+  private readonly devicePixelRatio: number | undefined;
   /** Set while a plan is applied: undo steps for every map mutation, replayed if the apply fails. */
   private undoLog: (() => void)[] | undefined;
   private layoutTouched = false;
@@ -1549,6 +1552,7 @@ export class CatalogCompositionRoot {
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
+    this.devicePixelRatio = options.devicePixelRatio;
     if (options.devicePixelRatio)
       engine.setDevicePixelRatio?.(options.devicePixelRatio);
     this.layout = new PersistentLayoutTree(engine);
@@ -1642,7 +1646,10 @@ export class CatalogCompositionRoot {
    * container's coordinates, the container as a record id — null: the page root). The Canvas moves
    * each by its container's scroll position (`resolveStickyOffset`).
    */
-  getStickyConstraints(): ReadonlyMap<string, StickyConstraints<string | null>> {
+  getStickyConstraints(): ReadonlyMap<
+    string,
+    StickyConstraints<string | null>
+  > {
     return this.layout.getStickyConstraints();
   }
 
@@ -2557,12 +2564,39 @@ export class CatalogCompositionRoot {
     const box = catalogBoxModel(record);
     const num = (value: CatalogLength | undefined) =>
       typeof value === "number" ? value : 0;
-    const left = num(box.padding?.left) + num(box.borderWidth);
+    const left = num(box.padding?.left) + this.usedBorder(record.id).left;
     return {
       runs: runs.map((run) => ({ ...run, x: run.x + left })),
       placeholder: segmentText.ownerType
         ? catalogDateSegmentPlaceholderPaint()
         : {},
+    };
+  }
+  /**
+   * The border the engine laid the record out with: each side of its applied input (`styleFor` —
+   * a side width, a field box, a Disclosure's own), device-pixel snapped as the engine snaps it
+   * (Blink `ComputeBordersInternal`). Text and content widths are measured inside this.
+   */
+  private usedBorder(id: string): {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  } {
+    const applied = this.layout.getAppliedStyle(id);
+    const style = applied
+      ? (JSON.parse(applied) as Record<string, unknown>)
+      : {};
+    const side = (key: string) =>
+      snapBorderWidthAt(
+        Number.parseFloat(String(style[key] ?? 0)) || 0,
+        this.devicePixelRatio,
+      );
+    return {
+      top: side("borderTop"),
+      right: side("borderRight"),
+      bottom: side("borderBottom"),
+      left: side("borderLeft"),
     };
   }
   private dropZoneContentWidth(
@@ -2572,11 +2606,13 @@ export class CatalogCompositionRoot {
     const box = catalogBoxModel(record);
     const num = (value: CatalogLength | undefined) =>
       typeof value === "number" ? value : 0;
+    const border = this.usedBorder(record.id);
     return (
       borderBoxWidth -
       num(box.padding?.left) -
       num(box.padding?.right) -
-      2 * num(box.borderWidth)
+      border.left -
+      border.right
     );
   }
   textKeptOnOneLine(id: string): boolean {
@@ -2944,11 +2980,13 @@ export class CatalogCompositionRoot {
         const box = catalogBoxModel(record);
         const num = (value: CatalogLength | undefined) =>
           typeof value === "number" ? value : 0;
+        const border = this.usedBorder(id);
         const contentWidth =
           rect.width -
           num(box.padding?.left) -
           num(box.padding?.right) -
-          2 * num(box.borderWidth);
+          border.left -
+          border.right;
         const single = this.textMeasure(leaf.text, leaf.font);
         // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
         // overflows on its own line instead of splitting. Lines are broken at no less than the

@@ -74,6 +74,7 @@ export {
   getBorderWidthToken,
   setBorderSnapRatio,
   snapBorderWidth,
+  snapBorderWidthAt,
 } from "./border";
 
 // Shadows

@@ -152,6 +152,7 @@ export {
   getBorderWidthToken,
   setBorderSnapRatio,
   snapBorderWidth,
+  snapBorderWidthAt,
   lightShadows,
   darkShadows,
   getShadowToken,

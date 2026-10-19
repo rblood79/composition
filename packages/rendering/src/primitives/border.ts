@@ -51,8 +51,15 @@ export function setBorderSnapRatio(dpr: number | undefined): void {
  * (a 0.5px hairline is 1px at DPR 1 — the Preview's width). Idempotent.
  */
 export function snapBorderWidth(px: number): number {
-  const ratio = borderSnapRatio;
-  if (ratio === undefined || !(px > 0)) return px;
+  return snapBorderWidthAt(px, borderSnapRatio);
+}
+
+/** `snapBorderWidth` at a given ratio (a composition root's own — the one its engine snaps at). */
+export function snapBorderWidthAt(
+  px: number,
+  ratio: number | undefined,
+): number {
+  if (ratio === undefined || !(ratio > 0) || !(px > 0)) return px;
   const device = px * ratio;
   // (1e-6: a width already snapped at a fractional ratio reads back a hair under its integer.)
   return Math.max(1, Math.floor(device + 1e-6)) / ratio;

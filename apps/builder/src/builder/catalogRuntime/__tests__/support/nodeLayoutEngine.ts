@@ -15,6 +15,7 @@ type RawLayout = {
   markDirty(handle: number): boolean;
   removeNode(handle: number): boolean;
   setViewport(width: number, height: number): void;
+  setDevicePixelRatio(dpr: number): void;
   computeLayout(handle: number, width: number, height: number): void;
   getLayout(handle: number): string;
   getStickyConstraints(handle: number): string;
@@ -67,6 +68,7 @@ export async function nodeLayoutEngine(): Promise<LayoutEngineAPI> {
     markDirty: (handle) => raw.markDirty(handle),
     removeNode: (handle) => raw.removeNode(handle),
     setViewport: (width, height) => raw.setViewport(width, height),
+    setDevicePixelRatio: (dpr) => raw.setDevicePixelRatio(dpr),
     computeLayout: (handle, width, height) =>
       raw.computeLayout(handle, width, height),
     getLayoutsBatch: (handles) =>
