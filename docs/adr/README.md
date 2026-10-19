@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-19 ADR-275 Proposed 추가** (사용자 `/create-adr 혼합방식 으로 position 설계`) — Position 절을 Figma 규칙 (pin 4 변 + 가운데 십자선 · 축은 비지 않음) + Framer 칸 배치 (변 옆 T · R · B · L 칸 · 빈 칸 입력 = 그 변으로 바꿈) 로. 실측: 저장 형식이 `placement {x, y}` (px) 하나라 오른쪽 · 아래 기준 · 늘이기 · 가운데 · `%` · breakpoint 별 위치가 저장되지 않고, 패널은 `%` 를 보여 주지만 쓰기는 거부한다. 노드 placement 소비자 src 17 · test 6. 엔진은 absolute 의 `fit-content` 를 명시 크기로 보지 않아 Hug 상자의 가운데가 늘어난다 (`tree.rs` `resolve_dimension_opt` 센티넬). 채택 A (사용자 선택): 저작 absolute = `layout.position` + `inset*` 통일 · `placement` 삭제 · 가운데 = 양쪽 inset + margin auto (사용자 선택) · 엔진 수리 먼저. 기각: placement 넓히기 (경로 둘 유지) · 제약 필드 저장 (ADR-026 기각 사유) · translate 가운데 (paint-only 라 상자 어긋남). 사용자 결정 3 같은 날 확정 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 = Figma · Framer 방식 · relative Right/Bottom 비활성). 열림 +1 (열림 2 — Proposed 2 (245 · 275), 합계 297).
+
 > **2026-10-18 ADR-274 Implemented** (사용자 `/execute-adr 274`, Phase 0 ~ 3 / G0 ~ G5 같은 날) — 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율. 줌은 입력이 아니라서 확대 · 축소가 배치를 바꾸지 않는다. 열 수는 root `pageLayout()` 안에서 tier 의 gap · 트랙 폭으로 계산하므로 breakpoint 전환 · gap · 배율 편집의 두 번째 패스가 없다. Settings 열 수 칸: `%` = Auto (기준 배율), 단위 없음 = Fixed 개수. 사용자 결정: 배율 breakpoint 공통 · 범위 10 ~ 100 % · ratchet A 49 키 `--raise` (줌 갱신 사유 이동 · 시작 배치 변경). 줌 `translateCalls` 977 ~ 5,170 → 0. production 짝: 페이지 100 개 문서 줌 taskMs 2,497 → 870 · p99 49.9 → 17.6 ms · long task 4 → 0, 22 페이지 문서 줌 1,009 → 541. breakpoint 전환 · gap 편집 · 페이지 전환 · 편집은 회귀 0. live (사용자 프로젝트) 6 시나리오 PASS. live 에서 단위 입력의 빈 단위 대체 결함을 찾아 고쳤다. 열림 −1, 완료 +1 (열림 1 — Proposed 1 (245), 합계 296).
 
 > **2026-10-18 ADR-274 Proposed 추가** (사용자 `/create-adr`) — 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율 (기본 40 %). 지금 식은 입력에 zoom 이 있다. 그래서 확대하면 배치가 바뀌고 (사용자 지적 「zoom 40%일때 … 확대를 했는데 auto로 인해 배치가 달라져 버린다」), 정수가 바뀔 때마다 모든 page root 서브트리를 옮기고 전체를 재기록한다. 실측 (dev headless, auto ↔ 6 열 고정): many-pages 100 줌 `translateCalls` 5,170 → 0 · taskMs ~2,700 → ~1,415 · long task 8 → 0. 채택 대안 A: 줌은 입력에서 빠지고 gap 은 장면 좌표다. 열 수는 root 파생 안에서 계산하므로 breakpoint 전환 · gap 편집의 두 번째 레이아웃 패스도 없어진다. Settings 는 Auto = % · Fixed = 개수 (tier override 유지). 기각: 줌 끝 갱신 · 히스테리시스 (배치가 여전히 줌에 따라 바뀜) · 화면 px gap + 로컬 좌표 (사용자가 A 선택) · Canvas 영역 폭 (패널 토글 재배치). 사용자 결정 3 (기준 배율 tier override · 범위 · ratchet 상향). 열림 +1 (열림 2 — Proposed 2 (245 · 274), 합계 296).
@@ -403,6 +405,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [275](275-position-section-figma-rules-framer-fields-layout-insets.md) — Position 절: Figma 규칙 + Framer 칸 배치, 저장은 layout inset
+
+- **상태**: Proposed — 2026-10-19
+- **규모**: Phase 0 소비자 목록 · Chrome oracle → Phase 1 엔진 (absolute intrinsic 키워드 크기) → Phase 2 `placement` 삭제 · 공용 술어 · 저장 통일 → Phase 3 Canvas drag 가 제약 유지 → Phase 4 패널 (pin 상자 · 변 옆 칸 · 빠른 버튼 · 결과 문장) → Phase 5 live · `/cross-check` · ratchet. 사용자 결정 3 확정 2026-10-19 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 · relative Right/Bottom 비활성). breakdown: [design/275](design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
+
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -424,7 +431,7 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-10-17 재산정
+### 권장 착수 순서 — 2026-10-19 재산정
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
@@ -432,6 +439,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Proposed 2026-10-19 — 리뷰 전                                                     | 사용자 결정 3 확정 (10-19) · Phase 1 엔진 수리가 패널 가운데 쓰기의 선행                       |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
