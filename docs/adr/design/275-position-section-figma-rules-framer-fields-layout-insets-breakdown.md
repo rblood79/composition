@@ -16,27 +16,29 @@
   - Figma 중심 UX + Framer 칸 배치
   - 빈 칸 입력 = 그 변으로 바꿈
   - 저장 = layout inset 통일
-  - 가운데 = 양쪽 inset + margin auto
+  - 가운데 = 양쪽 inset + `justifySelf` / `alignSelf: unsafe center` (A4 — 사용자 결정 4 「figma,framer 처럼 가운데」 로 처음의 margin auto 를 대체)
 
 ## 2. 제약 대응 표 (G3 oracle — 손계산)
 
 containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding box 기준):
 
-| 패널 제약                | 저장 (가로)                                                     | 기대 x · 폭            |
-| ------------------------ | --------------------------------------------------------------- | ---------------------- |
-| Left 24                  | `insetLeft: 24px`                                               | 24 · 100               |
-| Right 24                 | `insetRight: 24px`                                              | 276 · 100              |
-| Left 24 + Right 24       | `insetLeft: 24px` · `insetRight: 24px` · 폭 auto                | 24 · 352               |
-| Center 0                 | `insetLeft: 0px` · `insetRight: 0px` · `marginLeft/Right: auto` | 150 · 100              |
-| Center +20               | `insetLeft: 20px` · `insetRight: -20px` · margin auto           | 170 · 100              |
-| Left 10 %                | `insetLeft: 10%`                                                | 40 · 100               |
-| Center 0 · Hug (내용 60) | 위 Center + `width: fit-content`                                | 170 · 60 (F10 수리 뒤) |
+| 패널 제약                                                          | 저장 (가로)                                                            | 기대 x · 폭                                      |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| Left 24                                                            | `insetLeft: 24px`                                                      | 24 · 100                                         |
+| Right 24                                                           | `insetRight: 24px`                                                     | 276 · 100                                        |
+| Left 24 + Right 24                                                 | `insetLeft: 24px` · `insetRight: 24px` · 폭 auto                       | 24 · 352                                         |
+| Center 0                                                           | `insetLeft: 0px` · `insetRight: 0px` · `justifySelf: unsafe center`    | 150 · 100                                        |
+| Center +20                                                         | `insetLeft: 20px` · `insetRight: -20px` · `justifySelf: unsafe center` | 170 · 100                                        |
+| Left 10 %                                                          | `insetLeft: 10%`                                                       | 40 · 100                                         |
+| Center 0 · Hug (내용 60)                                           | 위 Center (폭 auto — 자기 정렬이 fit-content 로 푼다)                  | 170 · 60                                         |
+| Center 0 · Hug (내용 60) · 자식 padding 12 · border 2 (리뷰 r1 H2) | 위와 같음                                                              | 156 · 88 (border-box = 60 + 24 + 4)              |
+| Center 0 · 부모 W = 100 · 자식 w = 200 (리뷰 r1 H1 · 결정 4)       | Center 0                                                               | x = −50 (넘쳐도 가운데 — `unsafe`) · 세로도 같음 |
 
-세로는 같은 표를 `top · bottom · height` 로 읽는다.
+세로는 같은 표를 `top · bottom · height` · `alignSelf` 로 읽는다.
 
 **읽기 규칙** (저장 → 패널):
 
-1. 양쪽 margin `auto` ∧ 양쪽 inset ∧ `left = −right` → Center (offset = left)
+1. `justifySelf` (세로 `alignSelf`) = `unsafe center` ∧ 양쪽 inset ∧ `left = −right` → Center (offset = left)
 2. 양쪽 inset → Left+Right
 3. right 만 → Right
 4. 그 외 → Left (inset 없으면 0)
@@ -45,7 +47,8 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 
 ### Phase 0 — inventory freeze · oracle (G0)
 
-- 본문 F1 ~ F12 의 경로 · 줄을 다시 grep 한다.
+- 본문 F1 ~ F16 의 경로 · 줄을 다시 grep 한다.
+- **A4 go/no-go (G0, 측정 선행 C 등급)**: 브라우저 fixture 로 Chrome · WebKit 에서 absolute + 양쪽 inset + `justify-self` / `align-self: unsafe center` 를 잰다. 경우 = 넘침 (부모 < 자식) · Hug (폭 auto) · 오프셋 ±20 · 부모 display block / flex / grid. 둘 다 가운데면 go. 하나라도 다르면 no-go → 본문 A5 대체안 (Fixed 폭 `calc(50% − w/2 + o)` · Hug 는 A1) 으로 §2 표 · Phase 1 · 2 를 고치고 사용자에게 보고한다.
 - 노드 placement 소비자 목록을 고정한다. 아래 표가 작성일 실측이며, 늘면 이 표를 보강한다 (M3).
 
 | 묶음        | 파일                                                                                                                                                                                                                   |
@@ -55,25 +58,44 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 | runtime     | `runtime/compositionRoot.ts` (`itemLayout` · `styleOf` · record 비교) · `runtime/domBinding.runtime.ts` · `runtime/boxModel.ts` · `runtime/presence.ts`                                                                |
 | Builder     | `catalogRuntime/position.ts` · `canvasGesture.ts` · `canvasSpacing.ts` · `gridAutoRows.ts` · `effectiveStyle.ts` · `panels/styles/catalog/catalogStylesHost.ts` · `workspace/canvas/catalog/CatalogGridTrackLayer.tsx` |
 
-- oracle fixture 를 쓴다 (`apps/builder/tests/parity/` browser): 위 §2 표 7 행 × 가로 · 세로. 입력 차원 = padding 12 · border 2 · `%` · `max-width` · 음수 오프셋.
-- Rust 테스트 초안: `absolute_fit_content_margin_auto_centers` (RED 예상 — F10).
+- **소비자마다 술어를 배정한다** (리뷰 r1 M1). 작성일 기준 초안이며, Phase 0 에서 줄마다 확인해 고정한다.
 
-### Phase 1 — 엔진: intrinsic 키워드 크기 = 명시 크기 (G1)
+| 쓰는 곳                                                                                                                                                                                                   | 술어                                          | 이유                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `canvasGesture.ts` beginMove (`:482-505`) · absolute drag (`:1333`)                                                                                                                                       | 저작 위치 (`isAuthoredAbsolute`)              | rule 부품 이동 거부를 유지 — 바깥 흐름 ∧ 저작 아님이면 `false`                                                                                               |
+| `catalogStylesHost.ts:748` (Left · Top = 위치 오프셋) · `position.ts`                                                                                                                                     | 저작 위치                                     | Position 절 편집 대상                                                                                                                                        |
+| `commands/structure.ts` 붙여넣기 · `commands/components.ts`                                                                                                                                               | 저작 위치                                     | 저작 inset 을 옮겨 적는다                                                                                                                                    |
+| `canvasSpacing.ts:57` · `gridAutoRows.ts:76` · `CatalogGridTrackLayer.tsx:215` · `canvasGesture.ts:793` (grid snap) · `:1914` (형제 비킴) · `catalogStylesHost.ts:372` · `:928` · `:963` (grid 흐름 자식) | 바깥 흐름 (`isOutOfFlow`)                     | 흐름에서 빠지는 상자는 rule 부품이어도 빠진다. 이 자리들은 지금도 `placement absolute ∨ layout.position absolute` 라 resolved 판정 하나로 바꿔도 동작이 같다 |
+| `boxModel.ts` · `domBinding.runtime.ts` · `compositionRoot.ts` · `presence.ts`                                                                                                                            | 해당 없음 — 술어 대신 layout 값 그대로 직렬화 | 위치 경로가 하나가 되므로 분기 자체를 지운다                                                                                                                 |
 
-| 파일                          | 변경                                                                                                                                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/engine/src/tree.rs` | `place_absolute_children` 의 `has_w` · `has_h` 가 `fit-content` · `min-content` · `max-content` 도 크기로 본다. 그 축의 used 크기는 기존 키워드 해소 (`width_intrinsic_keyword`) 를 쓴다 |
+흐름 표면은 작성일 실측으로 전부 `placement absolute ∨ layout.position absolute` 를 같이 본다 — `isOutOfFlow` 로 바꿔도 동작이 같다. 단 `gridAutoRows.ts:76` 은 breakpoint 별 값 (`layoutValue(node, breakpoint, "position")`) 을 읽으므로 `isOutOfFlow` 도 breakpoint 인자를 받는다. Phase 0 에서 줄마다 다시 확인한다.
+
+- oracle fixture 를 쓴다 (`apps/builder/tests/parity/` browser): 위 §2 표 9 행 × 가로 · 세로. 입력 차원 = **자식 자체의** padding 12 · border 2 · 부모 padding · `%` · `max-width` · 음수 오프셋 · 부모 < 자식 · breakpoint 축소 (부모 폭이 자식 아래로).
+- Rust 테스트 초안 (RED 예상): `absolute_fit_content_margin_auto_centers` (F10) · `absolute_fit_content_padded_center_keeps_border_box` (F14) · `absolute_margin_auto_negative_free_inline_starts` (F13).
+
+### Phase 1 — 엔진: absolute 의 키워드 크기 · 음수 여유 (G1)
+
+> 사용자 결정 4 확정 (넘쳐도 가운데 → A4). G0 go 일 때의 내용이다.
+
+| 파일                                                            | 변경                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/engine/src/tree.rs` `place_absolute_children` (A4)    | absolute 자기 정렬: 양쪽 inset ∧ `justify-self` (가로) · `align-self` (세로) 가 `normal` · `stretch` · `auto` 아님 → auto 크기는 fit-content (기존 shrink-to-fit 경로 `absolute_shrink_to_fit_width` 재사용), 위치는 inset 영역 안 정렬. `unsafe center` = 음수 여유도 반. `styleOf` 는 `alignSelf` · `justifySelf` 를 이미 item 필드로 보낸다 (`compositionRoot.ts:1267-1268`) — absolute 노드에도 가는지 Phase 0 에서 확인 |
+| `packages/engine/src/tree.rs` `place_absolute_children`         | 판정 둘을 나눈다 (리뷰 r1 H2). ① `size_fixed_w/h` = 명시 길이 ∨ `fit-content` · `min-content` · `max-content` — `resolve_abs_axis` 의 `has_explicit_size` 와 `stretch_w` · `stretch_h` (`:2899-2915`) 에만 쓴다. ② 기존 `has_w/h` (명시 길이) — padding · border 가산 · leaf layout 읽기 (`:2838-2851`) 는 그대로 이 판정을 쓴다. 키워드 크기의 solve 반환은 content-box 라서 ② 의 가산을 거쳐 border-box 가 된다            |
+| `packages/engine/src/tree.rs` `resolve_abs_axis` (`:7459-7469`) | 양쪽 margin auto · 음수 여유: 가로 축은 시작 margin 0 (LTR), 세로 축은 같은 값으로 나눈다 (리뷰 r1 H1). 축 구분 인자를 하나 더한다                                                                                                                                                                                                                                                                                           |
 
 - 테스트:
-  - Rust: Center × fit-content · max-content
-  - 늘이기 회귀: auto 는 계속 늘어나야 한다
-  - oracle browser 0 px
-  - 수리 원복 시 RED
+  - Rust: A4 Center × Fixed · Hug (auto) · fit-content · max-content, **자식 padding 12 · border 2** (88 · x 156), 넘침 (x −50 · 세로도), 오프셋 ±20 · margin auto 음수 여유 가로 · 세로 (F13)
+  - 회귀: auto 는 계속 늘어나야 한다 · 명시 길이 Center (`absolute_margin_auto_centers`) · 기존 shrink-to-fit (`absolute_auto_width_*`) 그대로
+  - oracle browser 0 px (Chrome 이 정한 축별 넘침 결과를 기준으로)
+  - 수리 원복 시 RED (판정 하나로 합친 변이 → F14 케이스 RED)
 - `pnpm wasm:build:engine` 뒤 parity 를 다시 돌린다.
 
 ### Phase 2 — 저장 통일 (G2)
 
-- **공용 술어** `isAuthoredOutOfFlow(node)` 를 둔다 (`layout.position === "absolute"`, shared `catalog/runtime`). 소비자의 `placement?.kind === "absolute"` 를 전부 이것으로 바꾼다.
+- **술어 둘** 을 둔다 (shared `catalog/runtime`, 리뷰 r1 M1):
+  - `isOutOfFlow(node)` = resolved `layout.position === "absolute"`
+  - `isAuthoredAbsolute(node)` = `authoredLayout?.position === "absolute"` (`resolver.ts:1339` — base + breakpoint 층의 저작 값)
+  - 소비자의 `placement?.kind === "absolute"` 를 Phase 0 배정표대로 바꾼다.
 - **compositionRoot**:
   - `itemLayout` 의 `!node.placement` 조건과 placement → inset 변환 (`:1085`) 을 지운다.
   - inset · margin 은 기존 `styleOf` 직렬화 (`px()`) 를 그대로 탄다.
@@ -83,8 +105,10 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 - **문서 · 명령**:
   - `NodePlacement` 타입 · `NodeEntry.placement` · 검증 `:1272` · `setNodePlacement` op 을 지운다.
   - 붙여넣기 · 컴포넌트 명령은 layout 쓰기로 바꾼다.
+- **검증**: 노드 layout 의 `justifySelf` · `alignSelf` 가 `unsafe center` 를 받는다 (`validation.ts:160` 키워드 목록 확장 — 이 두 키만, 다른 정렬 키 불변). DOM 은 layout 값을 그대로 CSS 로 낸다.
 - **사용자 결정 1** 적용: `LIBRARY_CONTRACT_VERSION` 41 → 42 (옛 개발용 프로젝트 전부 거부).
 - **정적 게이트**: `nodePlacementRemoved.static.test.ts` — src 의 `NodePlacement` · `node.placement` · `setNodePlacement` 0.
+- **unit** (리뷰 r1 M1): ListBoxItem 안 Icon (`slot=icon`, rule absolute) beginMove = `false` 유지 · 저작 absolute frame beginMove = `true` · rule 부품은 Position 절 편집 대상 아님.
 
 ### Phase 3 — Canvas 조작
 
