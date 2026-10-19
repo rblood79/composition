@@ -85,11 +85,11 @@ impl CssValueContext {
         self.parent_size.unwrap_or(DEFAULT_ROOT_FONT_SIZE)
     }
     #[inline]
-    fn vw(&self) -> f32 {
+    pub(crate) fn vw(&self) -> f32 {
         self.viewport_width.unwrap_or(DEFAULT_VIEWPORT_WIDTH)
     }
     #[inline]
-    fn vh(&self) -> f32 {
+    pub(crate) fn vh(&self) -> f32 {
         self.viewport_height.unwrap_or(DEFAULT_VIEWPORT_HEIGHT)
     }
 }

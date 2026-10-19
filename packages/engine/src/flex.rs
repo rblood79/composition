@@ -356,11 +356,9 @@ pub fn resolve_auto_min_main(data: &[f32], i: usize, is_row: bool) -> (f32, Opti
 /// Chrome 과 같다. 결과가 작으면 (shrink 로 줄었든 · `flex-basis: 0` 의 hypothetical 이 작든) 잰다.
 /// 조건 판정은 `auto_min_main_from_parts` 와 같은 자리 (커널 쪽) 가 소유한다 — `data` 의 main · max
 /// 는 content-box, `out` 의 main 은 border-box 라 `pad_border_main` (off 7) 을 더해 비교한다.
-/// 구조 조건 (자식 보유 · 텍스트 스칼라 없음 · px 폭) 은 트리를 아는 호출부가 본다.
-pub fn definite_item_floor_may_bind(data: &[f32], out: &[f32], i: usize, is_row: bool) -> bool {
-    if !is_row {
-        return false; // column definite 는 2-c 가 1차 배치에서 바로 채운다
-    }
+/// 구조 조건 (자식 보유 · 텍스트 스칼라 없음 · px 폭) 은 트리를 아는 호출부가 본다. **row 전용** — column
+/// definite 는 2-c 가 1차 배치에서 바로 채우므로 호출부가 row 에서만 부른다.
+pub fn definite_item_floor_may_bind(data: &[f32], out: &[f32], i: usize) -> bool {
     let off = i * FLEX_FIELD_COUNT;
     let main = data[off + 1];
     let main_definite = main != AUTO && main != CONTENT;

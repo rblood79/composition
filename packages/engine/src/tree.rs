@@ -1793,20 +1793,7 @@ impl LayoutTree {
                 return Some((min_w, max_w));
             }
         }
-        self.intrinsic_measure_miss = self.intrinsic_measure_miss.wrapping_add(1);
-        // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다 (R5 — trace 태그는
-        // `with_measure_pass` 가 건다).
-        let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
-            // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
-            // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
-            tree.mark_subtree_dirty(handle);
-            let (min_w, _) = tree.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
-            tree.mark_subtree_dirty(handle);
-            let (max_w, _) = tree.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
-            (min_w, max_w)
-        });
-        // min ≤ max 불변식 — 집계 근사라 역전이 원리상 가능하다(§9.9.3 미구현, R4).
-        let result = (min_w.min(max_w), max_w);
+        let result = self.solve_min_max_content(handle);
         if let Some(node) = self.get_mut(handle) {
             node.intrinsic_w = Some((gen, result.0, result.1));
         }
@@ -1821,6 +1808,25 @@ impl LayoutTree {
             });
         }
         Some(result)
+    }
+
+    /// 폭 축 intrinsic 측정 본체 — 센티넬 available 의 가상 solve 2회 (MISS 1회로 센다).
+    /// 캐시 · trace 는 호출부 (`measure_intrinsic_width` · `measure_intrinsic_content_width`) 몫이다.
+    fn solve_min_max_content(&mut self, handle: usize) -> (f32, f32) {
+        self.intrinsic_measure_miss = self.intrinsic_measure_miss.wrapping_add(1);
+        // 이 아래 두 번의 solve 는 **센티넬 available 로 도는 가상 solve** 다 (R5 — trace 태그는
+        // `with_measure_pass` 가 건다).
+        let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
+            // 측정 전 dirty 강제 — clean 서브트리면 `solve_node` 가 저장된 layout 을
+            // 그대로 돌려줘 측정이 아니라 **직전 배치 결과**를 읽게 된다.
+            tree.mark_subtree_dirty(handle);
+            let (min_w, _) = tree.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            tree.mark_subtree_dirty(handle);
+            let (max_w, _) = tree.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
+            (min_w, max_w)
+        });
+        // min ≤ max 불변식 — 집계 근사라 역전이 원리상 가능하다(§9.9.3 미구현, R4).
+        (min_w.min(max_w), max_w)
     }
 
     /// ADR-268 — 자기 `width` 를 auto 로 둔 폭 축 intrinsic `(min, max)` (content-box). row definite
@@ -1842,21 +1848,10 @@ impl LayoutTree {
                 return Some((min_w, max_w));
             }
         }
-        let saved_width = node.style.width.clone();
-        let saved_intrinsic_w = node.intrinsic_w;
-        if let Some(node) = self.get_mut(handle) {
-            node.style.width = None;
-            node.intrinsic_w = None;
-        }
-        self.intrinsic_measure_miss = self.intrinsic_measure_miss.wrapping_add(1);
-        let (min_w, max_w) = self.with_measure_pass(handle, |tree| {
-            tree.mark_subtree_dirty(handle);
-            let (min_w, _) = tree.solve_node(handle, MIN_CONTENT_AVAIL, INDEFINITE_AVAIL);
-            tree.mark_subtree_dirty(handle);
-            let (max_w, _) = tree.solve_node(handle, MAX_CONTENT_AVAIL, INDEFINITE_AVAIL);
-            (min_w, max_w)
-        });
-        let result = (min_w.min(max_w), max_w);
+        let node = self.get_mut(handle)?;
+        let saved_width = node.style.width.take();
+        let saved_intrinsic_w = node.intrinsic_w.take();
+        let result = self.solve_min_max_content(handle);
         if let Some(node) = self.get_mut(handle) {
             node.style.width = saved_width;
             node.intrinsic_w = saved_intrinsic_w;
@@ -1880,7 +1875,7 @@ impl LayoutTree {
         data: &mut [f32],
         floor_measured: &mut [bool],
         is_row: bool,
-        kernel: impl Fn(&[f32]) -> Box<[f32]>,
+        kernel: &dyn Fn(&[f32]) -> Box<[f32]>,
     ) -> Box<[f32]> {
         let mut out = kernel(data);
         if !is_row {
@@ -1889,7 +1884,7 @@ impl LayoutTree {
         loop {
             let mut floored = false;
             for (i, &c) in children.iter().enumerate() {
-                if floor_measured[i] || !flex::definite_item_floor_may_bind(data, &out, i, is_row) {
+                if floor_measured[i] || !flex::definite_item_floor_may_bind(data, &out, i) {
                     continue;
                 }
                 floor_measured[i] = true;
@@ -3464,18 +3459,20 @@ impl LayoutTree {
 
         // ADR-268 — row definite item 의 §4.5 floor 는 2-b 가 아니라 커널 결과로 판정한다 (2-b 의
         // `continue` 그대로). item 마다 한 번만 재고, 아래 3.5 · 3.6 · 3.7 재실행도 같은 기록을 쓴다.
-        let mut floor_measured = vec![false; children.len()];
+        let mut floor_measured = if is_row { vec![false; children.len()] } else { Vec::new() };
+        // 커널 호출 — 재실행마다 바뀌는 것은 available 두 축과 cross 확정 여부뿐이다.
+        let kernel = move |d: &[f32], avail_main, avail_cross, cross_definite| {
+            flex::flex_layout(
+                d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap, gap_main,
+                gap_cross, cross_definite,
+            )
+        };
         let mut out = self.flex_layout_with_definite_floor(
             children,
             &mut data,
             &mut floor_measured,
             is_row,
-            |d| {
-                flex::flex_layout(
-                    d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
-                    gap_main, gap_cross, cross_definite,
-                )
-            },
+            &|d| kernel(d, avail_main, avail_cross, cross_definite),
         );
 
         // 3.5 ↔ 3.6 순환 (2026-09-17): 3.6 이 컨테이너 auto main 을 min/max 로 clamp 해 **used main
@@ -3682,12 +3679,7 @@ impl LayoutTree {
                     &mut data,
                     &mut floor_measured,
                     is_row,
-                    |d| {
-                        flex::flex_layout(
-                            d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
-                            gap_main, gap_cross, cross_definite,
-                        )
-                    },
+                    &|d| kernel(d, avail_main, avail_cross, cross_definite),
                 );
             }
         }
@@ -3760,12 +3752,7 @@ impl LayoutTree {
                         &mut data,
                         &mut floor_measured,
                         is_row,
-                        |d| {
-                            flex::flex_layout(
-                                d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
-                                gap_main, gap_cross, cross_definite,
-                            )
-                        },
+                        &|d| kernel(d, avail_main, avail_cross, cross_definite),
                     );
                 }
             }
@@ -3828,12 +3815,7 @@ impl LayoutTree {
                         &mut data,
                         &mut floor_measured,
                         is_row,
-                        |d| {
-                            flex::flex_layout(
-                                d, avail_main, avail_cross, direction, justify, align_items, align_content, wrap,
-                                gap_main, gap_cross, cross_definite,
-                            )
-                        },
+                        &|d| kernel(d, avail_main, avail_cross, cross_definite),
                     );
                 }
             }
@@ -5621,29 +5603,24 @@ impl LayoutTree {
         let mut offset = (node.layout.x, node.layout.y);
         let mut owner = None;
         let mut cursor = Some(parent);
-        let mut top = parent;
         while let Some(h) = cursor {
             let n = self.get(h)?;
             if is_scroll_container(&n.style) {
                 owner = Some(h);
                 break;
             }
+            // owner 가 없으면 root (가장 바깥 조상) 원점 — root 자신의 x/y 는 더하지 않는다.
+            if n.parent.is_none() {
+                break;
+            }
             offset.0 += n.layout.x;
             offset.1 += n.layout.y;
-            top = h;
             cursor = n.parent;
         }
-        // owner 가 없으면 root (가장 바깥 조상) 원점 — root 자신의 x/y 는 위에서 더했으니 뺀다.
-        let origin = owner.unwrap_or(top);
-        if owner.is_none() {
-            let root = self.get(top)?;
-            offset.0 -= root.layout.x;
-            offset.1 -= root.layout.y;
-        }
-        let origin_node = self.get(origin)?;
-        let ctx = self.ctx_for(origin_node.layout.width);
         let constraining = match owner {
-            Some(_) => {
+            Some(o) => {
+                let origin_node = self.get(o)?;
+                let ctx = self.ctx_for(origin_node.layout.width);
                 let s = &origin_node.style;
                 let l = origin_node.layout;
                 let x = pad_border_start(s, &ctx, true);
@@ -5656,8 +5633,8 @@ impl LayoutTree {
                 }
             }
             None => {
-                let (w, h) = self.viewport.unwrap_or((1920.0, 1080.0));
-                StickyRect { x: 0.0, y: 0.0, width: w, height: h }
+                let c = self.ctx_for(0.0);
+                StickyRect { x: 0.0, y: 0.0, width: c.vw(), height: c.vh() }
             }
         };
         let sticky = StickyRect {
@@ -5666,26 +5643,26 @@ impl LayoutTree {
             width: node.layout.width,
             height: node.layout.height,
         };
+        // inset 이 전부 auto 면 붙지 않는다 — 아래 containing block (부모 scroll extent 순회 포함) 전에 끝낸다.
+        let s = &node.style;
+        let hctx = self.ctx_for(constraining.width);
+        let vctx = self.ctx_for(constraining.height);
+        let inset_left = resolve_inset(s.inset_left.as_deref(), &hctx);
+        let mut inset_right = resolve_inset(s.inset_right.as_deref(), &hctx);
+        let inset_top = resolve_inset(s.inset_top.as_deref(), &vctx);
+        let mut inset_bottom = resolve_inset(s.inset_bottom.as_deref(), &vctx);
+        if inset_left.is_none() && inset_right.is_none() && inset_top.is_none() && inset_bottom.is_none() {
+            return None;
+        }
         // containing block (= 부모) 의 그 원점 기준 위치.
         let parent_node = self.get(parent)?;
         let parent_at = (offset.0 - node.layout.x, offset.1 - node.layout.y);
         let ps = &parent_node.style;
         let pl = parent_node.layout;
         let pctx = self.ctx_for(pl.width);
-        let border = |v: Option<&str>| resolve_dimension(v, &pctx);
-        let padding = |v: Option<&str>| resolve_dimension(v, &pctx);
-        let (bl, bt, br, bb) = (
-            border(ps.border_left.as_deref()),
-            border(ps.border_top.as_deref()),
-            border(ps.border_right.as_deref()),
-            border(ps.border_bottom.as_deref()),
-        );
-        let (pl_, pt, pr, pb) = (
-            padding(ps.padding_left.as_deref()),
-            padding(ps.padding_top.as_deref()),
-            padding(ps.padding_right.as_deref()),
-            padding(ps.padding_bottom.as_deref()),
-        );
+        let dim = |v: Option<&str>| resolve_dimension(v, &pctx);
+        let (br, bb) = (dim(ps.border_right.as_deref()), dim(ps.border_bottom.as_deref()));
+        let (pr, pb) = (dim(ps.padding_right.as_deref()), dim(ps.padding_bottom.as_deref()));
         let (mut right, mut bottom) = if owner == Some(parent) {
             // scrollable overflow rect — 자손 extent (border box, 스스로 clip 하는 상자에서 멈춤)
             // 에 끝 padding 을 더한 것과 padding box 중 큰 쪽.
@@ -5696,11 +5673,9 @@ impl LayoutTree {
         };
         right += parent_at.0;
         bottom += parent_at.1;
-        let sctx = self.ctx_for(pl.width);
-        let margin = |v: Option<&str>| resolve_signed(v, &sctx);
-        let s = &node.style;
-        let left = parent_at.0 + bl + pl_ + margin(s.margin_left.as_deref());
-        let top_edge = parent_at.1 + bt + pt + margin(s.margin_top.as_deref());
+        let margin = |v: Option<&str>| resolve_signed(v, &pctx);
+        let left = parent_at.0 + pad_border_start(ps, &pctx, true) + margin(s.margin_left.as_deref());
+        let top_edge = parent_at.1 + pad_border_start(ps, &pctx, false) + margin(s.margin_top.as_deref());
         right -= pr + margin(s.margin_right.as_deref());
         bottom -= pb + margin(s.margin_bottom.as_deref());
         let containing = StickyRect {
@@ -5709,15 +5684,6 @@ impl LayoutTree {
             width: (right - left).max(0.0),
             height: (bottom - top_edge).max(0.0),
         };
-        let hctx = self.ctx_for(constraining.width);
-        let vctx = self.ctx_for(constraining.height);
-        let inset_left = resolve_inset(s.inset_left.as_deref(), &hctx);
-        let mut inset_right = resolve_inset(s.inset_right.as_deref(), &hctx);
-        let inset_top = resolve_inset(s.inset_top.as_deref(), &vctx);
-        let mut inset_bottom = resolve_inset(s.inset_bottom.as_deref(), &vctx);
-        if inset_left.is_none() && inset_right.is_none() && inset_top.is_none() && inset_bottom.is_none() {
-            return None;
-        }
         // 한 축 양쪽 inset 인데 scrollport 가 모자라면 끝 inset 을 줄인다 (음수 가능).
         if let (Some(l), Some(r)) = (inset_left, inset_right) {
             let free = constraining.width - l - r - sticky.width;
