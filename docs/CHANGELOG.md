@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Switch 누름 중 thumb 돌출 수정] - 2026-10-19
+
+### Fixed
+
+- **선택된 Switch를 누를 때 thumb가 오른쪽 트랙 밖으로 벗어나는 현상 수정**:
+  - 눌림의 `scale: 1.2 1`은 유지한다. 이동을 독립 `translate`로 분리하고 선택 시 오른쪽, 해제 시 왼쪽 끝을 확대 기준으로 사용해 트랙 안쪽으로만 늘어나도록 한다.
+  - XL thumb를 트랙의 세로 중앙에 정렬해 위아래 간격을 3px로 맞춘다. 기존 block 배치는 위 2px·아래 4px로 1px 위로 치우쳤다.
+  - XL 선택 상태의 오른쪽 여백과 해제 상태의 왼쪽 여백도 3px로 맞춘다. XL 이동량을 thumb 너비 24px 대신 트랙 너비·높이 차이 22px로 계산하고 눌림 확대 중에도 끝 여백을 유지한다.
+  - 위치: `packages/shared/src/components/styles/Switch.css`
+
 ## [DisclosureGroup 기본 너비 — catalog width 100%] - 2026-10-19
 
 ### Changed

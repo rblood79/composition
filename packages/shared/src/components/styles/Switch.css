@@ -38,6 +38,8 @@
     padding: var(--spacing) 0;
 
     .indicator {
+      display: flex;
+      align-items: center;
       width: var(--text-4xl);
       height: var(--text-xl);
       border-radius: var(--text-xl);
@@ -53,18 +55,18 @@
         border-radius: var(--text-lg);
         margin: 0px;
         background: var(--bg-muted);
+        /* 이동은 translate, 확대는 scale로 분리해 이동 거리까지 확대되지 않게 한다. */
+        transform-origin: left center;
         transition: all 200ms;
       }
     }
 
     &[data-pressed] .indicator,
-
     & .react-aria-SwitchButton[data-pressed] .indicator {
       border-color: var(--border-hover);
 
       &:before {
         background: var(--bg-emphasis);
-        /* ADR-140 C2: thumb 비균일 press-scale 신축 (transition: all 이 scale 포함) */
         scale: 1.2 1;
       }
     }
@@ -76,12 +78,12 @@
 
         &:before {
           background: var(--switch-thumb-color);
-          transform: translateX(100%);
+          translate: 100% 0;
+          transform-origin: right center;
         }
       }
 
       &[data-pressed] .indicator,
-
       & .react-aria-SwitchButton[data-pressed] .indicator {
         border-color: color-mix(in srgb, var(--switch-color) 75%, black);
         background: color-mix(in srgb, var(--switch-color) 75%, black);
@@ -89,7 +91,6 @@
     }
 
     &[data-focus-visible] .indicator,
-
     & .react-aria-SwitchButton[data-focus-visible] .indicator {
       outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
@@ -179,8 +180,14 @@
         width: var(--text-2xl);
         height: var(--text-2xl);
         border-radius: var(--text-2xl);
-        margin: 0px;
+        /* (트랙 높이 - thumb 높이) / 2에서 border 2px을 뺀 내부 여백. */
+        margin: 0 calc((var(--text-3xl) - var(--text-2xl)) / 2 - 2px);
       }
+    }
+
+    &[data-selected] .indicator:before {
+      /* 끝 여백이 상하와 같으면 이동량은 트랙 너비 - 트랙 높이. */
+      translate: calc(var(--text-5xl) + 4px - var(--text-3xl)) 0;
     }
   }
 }

@@ -150,6 +150,9 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 - 모든 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 `renderers/CSSGenerator.ts` 로 만든다 (Frame/Group/Slot 포함). 옛 spec 의 `skipCSSGeneration` 선언은 ADR-248 에서 삭제됐다
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
+- Switch thumb의 의도된 눌림 확대 `scale: 1.2 1`은 유지하고 이동은 독립 `translate`로 분리한다. 확대 기준은 선택 시 오른쪽, 해제 시 왼쪽 끝이다. **Why (2026-10-19)**: `scale: 1.2 1`과 `transform: translateX(100%)`를 함께 쓰면 이동량까지 확대돼 M thumb가 오른쪽으로 2.8px 돌출했다 (실제 Preview 재현). 바깥 끝을 고정하면 트랙 안쪽으로만 늘어난다.
+- Switch indicator는 thumb를 세로 중앙에 배치한다. **Why (2026-10-19)**: XL 트랙 30px·thumb 24px에 border 2px만으로 배치하면 위 2px·아래 4px가 되어 Canvas의 중앙 배치보다 1px 위로 치우친다.
+- Switch XL의 좌우 끝 여백도 `(trackHeight - thumbSize) / 2`로 잡고 이동량은 `trackWidth - trackHeight`로 계산한다. **Why (2026-10-19)**: XL의 `translate: 100%`는 24px이어서 세로 중앙 정렬 뒤에도 오른쪽 여백이 2px로 남았다. Canvas의 offset 3px에 맞추려면 시작 여백 3px·이동량 22px이 필요하다.
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로 하나로 렌더링한다. **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
 - Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제
