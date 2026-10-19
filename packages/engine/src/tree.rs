@@ -5412,6 +5412,12 @@ impl LayoutTree {
         }
     }
 
+    /// 배치가 이 노드 자신의 padding · border `%` 를 푼 기준 — `solve_*` 의
+    /// `parent_ctx = ctx_for(avail_w)` 와 같은 available (`last_avail`). 배치 전이면 자기 폭.
+    fn used_box_ctx(&self, n: &TreeNode) -> CssValueContext {
+        self.ctx_for(n.last_avail.map_or(n.layout.width, |(w, _)| w))
+    }
+
     /// 노드 명시 크기(width/height) 해결. auto/미설정/음수 센티넬은 0.
     ///
     /// 반환값은 border-box (specified 그대로) — leaf 최종 layout 크기. px/percent
@@ -5588,6 +5594,8 @@ impl LayoutTree {
     ///   box. 둘 다 그 상자의 padding 을 빼고 (:610-611) sticky 상자의 margin 을 뺀다 (:612-625).
     /// - inset: auto 는 None. 넷 다 None 이면 constraints 없음 (붙지 않는다). 한 축 양쪽이 있고
     ///   scrollport 가 모자라면 끝 inset (right · bottom) 을 줄인다 (:686-695).
+    /// - `%`: scroll container · 부모의 padding 은 배치가 쓴 used 값 (`used_box_ctx` — Blink
+    ///   `PaddingOutsets`), sticky 상자의 margin 은 부모 content 폭 기준 (:618 `ContentLogicalWidth`).
     ///
     /// 미지원: sticky 안의 sticky (Blink 의 조상 sticky offset) — catalog 입력에 없다.
     pub fn sticky_constraints(&self, handle: usize) -> Option<StickyConstraints> {
@@ -5596,6 +5604,15 @@ impl LayoutTree {
             return None;
         }
         if node.style.display.as_deref().map(str::trim) == Some("none") {
+            return None;
+        }
+        // inset 이 전부 auto 면 붙지 않는다 — 조상 순회 전에 끝낸다 (값 해석은 constraining 폭이
+        // 필요하지만 auto 판정은 문자열만 본다).
+        let is_auto = |v: &Option<String>| {
+            v.as_deref().map(str::trim).is_none_or(|v| v.is_empty() || v.eq_ignore_ascii_case("auto"))
+        };
+        let st = &node.style;
+        if [&st.inset_left, &st.inset_right, &st.inset_top, &st.inset_bottom].into_iter().all(is_auto) {
             return None;
         }
         let parent = node.parent?;
@@ -5620,7 +5637,7 @@ impl LayoutTree {
         let constraining = match owner {
             Some(o) => {
                 let origin_node = self.get(o)?;
-                let ctx = self.ctx_for(origin_node.layout.width);
+                let ctx = self.used_box_ctx(origin_node);
                 let s = &origin_node.style;
                 let l = origin_node.layout;
                 let x = pad_border_start(s, &ctx, true);
@@ -5643,7 +5660,6 @@ impl LayoutTree {
             width: node.layout.width,
             height: node.layout.height,
         };
-        // inset 이 전부 auto 면 붙지 않는다 — 아래 containing block (부모 scroll extent 순회 포함) 전에 끝낸다.
         let s = &node.style;
         let hctx = self.ctx_for(constraining.width);
         let vctx = self.ctx_for(constraining.height);
@@ -5659,25 +5675,26 @@ impl LayoutTree {
         let parent_at = (offset.0 - node.layout.x, offset.1 - node.layout.y);
         let ps = &parent_node.style;
         let pl = parent_node.layout;
-        let pctx = self.ctx_for(pl.width);
-        let dim = |v: Option<&str>| resolve_dimension(v, &pctx);
-        let (br, bb) = (dim(ps.border_right.as_deref()), dim(ps.border_bottom.as_deref()));
-        let (pr, pb) = (dim(ps.padding_right.as_deref()), dim(ps.padding_bottom.as_deref()));
+        // 부모 padding 은 배치가 쓴 used 값 (Blink `PaddingOutsets` :611).
+        let pctx = self.used_box_ctx(parent_node);
+        let (pb_left, pb_top) = (pad_border_start(ps, &pctx, true), pad_border_start(ps, &pctx, false));
+        let (pb_right, pb_bottom) = (pad_border_end(ps, &pctx, true), pad_border_end(ps, &pctx, false));
         let (mut right, mut bottom) = if owner == Some(parent) {
-            // scrollable overflow rect — 자손 extent (border box, 스스로 clip 하는 상자에서 멈춤)
-            // 에 끝 padding 을 더한 것과 padding box 중 큰 쪽.
+            // scrollable overflow rect − padding — 자손 extent (border box, 스스로 clip 하는 상자에서
+            // 멈춤) 와 content box 끝 중 큰 쪽.
             let (ex, ey) = self.scroll_extent(parent);
-            ((pl.width - br).max(ex + pr), (pl.height - bb).max(ey + pb))
+            ((pl.width - pb_right).max(ex), (pl.height - pb_bottom).max(ey))
         } else {
-            (pl.width - br, pl.height - bb)
+            (pl.width - pb_right, pl.height - pb_bottom)
         };
-        right += parent_at.0;
-        bottom += parent_at.1;
-        let margin = |v: Option<&str>| resolve_signed(v, &pctx);
-        let left = parent_at.0 + pad_border_start(ps, &pctx, true) + margin(s.margin_left.as_deref());
-        let top_edge = parent_at.1 + pad_border_start(ps, &pctx, false) + margin(s.margin_top.as_deref());
-        right -= pr + margin(s.margin_right.as_deref());
-        bottom -= pb + margin(s.margin_bottom.as_deref());
+        // sticky margin 의 % 는 부모 content 폭 기준 — 두 축 모두 (Blink :618
+        // `sticky_container->ContentLogicalWidth()`).
+        let mctx = self.ctx_for((pl.width - pb_left - pb_right).max(0.0));
+        let margin = |v: Option<&str>| resolve_signed(v, &mctx);
+        let left = parent_at.0 + pb_left + margin(s.margin_left.as_deref());
+        let top_edge = parent_at.1 + pb_top + margin(s.margin_top.as_deref());
+        right += parent_at.0 - margin(s.margin_right.as_deref());
+        bottom += parent_at.1 - margin(s.margin_bottom.as_deref());
         let containing = StickyRect {
             x: left,
             y: top_edge,
@@ -11208,6 +11225,35 @@ mod tests {
         assert_eq!(c.containing.x, 3.0 + 2.0);
         assert_eq!(c.containing.y, 5.0 + 1.0 + 6.0);
         assert_eq!(c.containing.y + c.containing.height, 5.0 + 345.0 - 8.0 - 10.0);
+    }
+
+    /// `%` 기준 — Chrome (`stickyPosition.browser.test.ts` `%` 3 케이스) 과 같은 값. 부모 padding 은
+    /// 부모의 containing block 폭, scroll container padding 도 그 containing block 폭, sticky margin 은
+    /// 부모 content 폭이다. 종전엔 셋 다 그 상자 자신의 (border-box) 폭으로 풀어 10 씩 어긋났다.
+    #[test]
+    fn sticky_constraints_percent_bases_follow_layout() {
+        // scroll container 200 (root 300 안) · padding-top 10% → 30. section 200 안 padding 0 50
+        // (content 100) · padding-bottom 10% → 20 (scroll container content 200 의 10%). sticky margin-bottom
+        // 10% → 10 (section content 100 의 10%).
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"sticky","insetTop":"0px","height":"20px","marginBottom":"10%"},"children":[]},
+            {"style":{"display":"block","height":"300px"},"children":[]},
+            {"style":{"display":"block","paddingLeft":"50px","paddingRight":"50px","paddingBottom":"10%"},"children":[0,1]},
+            {"style":{"display":"block","overflowY":"auto","width":"200px","height":"200px","paddingTop":"10%"},"children":[2]},
+            {"style":{"display":"block","width":"300px"},"children":[3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 300.0, -1.0);
+        assert_eq!(tree.get_layout(h[3]).width, 200.0);
+        assert_eq!(tree.get_layout(h[2]).y, 30.0, "배치: scroll container padding-top 30");
+        let c = tree.sticky_constraints(h[0]).unwrap();
+        assert_eq!(c.constraining, StickyRect { x: 0.0, y: 30.0, width: 200.0, height: 170.0 });
+        // section 높이 20 + 10 + 300 + 20 = 350, owner 기준 y 30.
+        assert_eq!(tree.get_layout(h[2]).height, 350.0);
+        assert_eq!(c.containing.x, 50.0);
+        assert_eq!(c.containing.width, 100.0);
+        assert_eq!(c.containing.y + c.containing.height, 30.0 + 350.0 - 20.0 - 10.0);
     }
 
     /// inset 이 전부 auto 면 붙지 않는다 (Header rule 루트 — `position: sticky` 만).

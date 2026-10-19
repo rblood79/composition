@@ -413,6 +413,62 @@ const CASES: StickyCase[] = [
     scroll: { scroller: { left: 90 } },
     check: ["lead"],
   },
+  // `%` 기준 — Blink 는 배치가 쓴 used padding (`PaddingOutsets`) 과 containing block 의
+  // `ContentLogicalWidth` 기준 sticky margin 을 쓴다 (`ComputeStickyPositionConstraints`).
+  {
+    name: "% margin — 부모 content 폭 기준 (padding 있는 섹션)",
+    availW: 300,
+    nodes: flatten(
+      page([
+        scroller({}, [
+          sectionSpec(
+            "s1",
+            { ...sticky({ top: 0 }), marginBottom: "10%" },
+            300,
+            { paddingLeft: "50px", paddingRight: "50px" },
+          ),
+          { label: "after", style: { height: "300px" } },
+        ]),
+      ]),
+    ),
+    scroll: { scroller: { top: 330 } },
+    check: ["s1-header"],
+  },
+  {
+    name: "% padding 섹션 — 섹션의 containing block 폭 기준",
+    availW: 300,
+    nodes: flatten(
+      page([
+        scroller({}, [
+          sectionSpec("s1", sticky({ top: 0 }), 300, {
+            width: "200px",
+            paddingBottom: "10%",
+          }),
+          { label: "after", style: { height: "300px" } },
+        ]),
+      ]),
+    ),
+    scroll: { scroller: { top: 330 } },
+    check: ["s1-header"],
+  },
+  {
+    name: "% padding scroll container — scrollport 의 containing block 폭 기준",
+    availW: 300,
+    nodes: flatten(
+      page([
+        scroller({ width: "200px", paddingTop: "10%" }, [
+          { label: "pad", style: { height: "40px" } },
+          {
+            label: "header",
+            style: { height: "20px", ...sticky({ top: 0 }) },
+          },
+          { label: "fill", style: { height: "400px" } },
+        ]),
+      ]),
+    ),
+    scroll: { scroller: { top: 100 } },
+    check: ["header"],
+  },
 ];
 
 describe("ADR-267 G1 — sticky Chrome 차등 oracle", () => {
