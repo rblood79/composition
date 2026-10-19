@@ -2901,6 +2901,34 @@ impl LayoutTree {
                 mb_auto, sy,
             );
 
+            // 늘이기 (양측 inset · auto 축) 로 상자가 solve 결과와 달라졌으면, 늘어난 크기를 고정한 채
+            //   상자를 다시 푼다 — in-flow 자식이 그 크기 안에 배치된다 (Blink `out_of_flow_layout_part.cc`
+            //   — 늘인 크기를 고정 available 로 자식 배치). 종전엔 absolute 자식만 다시 놓아 in-flow 자식은
+            //   늘이기 전 (containing block 폭 · 내용 높이) 결과가 남았다 (Chromium 재대조 B-NEW-1 — `left ·
+            //   right` 10 안 `width:100%` 자식 200 / Chrome 180). 고정은 이 solve 동안의 명시 크기 (border-box)
+            //   로 하고 원래 style 로 되돌린다 — 다음 pass 의 증분 skip 은 같은 크기를 돌려준다.
+            let stretch_w = !has_w && (nw - w).abs() > 0.01;
+            let stretch_h = !has_h && (nh - h).abs() > 0.01;
+            let stretched = stretch_w || stretch_h;
+            if child_is_container && stretched {
+                if let Some(original) = self.get(c).map(|n| n.style.clone()) {
+                    if let Some(n) = self.get_mut(c) {
+                        if stretch_w {
+                            n.style.width = Some(format!("{nw}px"));
+                        }
+                        if stretch_h {
+                            n.style.height = Some(format!("{nh}px"));
+                        }
+                    }
+                    self.mark_subtree_dirty(c);
+                    self.solve_node(c, cb_w, cb_h);
+                    if let Some(n) = self.get_mut(c) {
+                        n.style = original;
+                        // (자기 폭을 포함하는 측정 캐시는 고정 크기로 잰 값일 수 있다.)
+                        n.intrinsic_w = None;
+                    }
+                }
+            }
             if let Some(n) = self.get_mut(c) {
                 // out-of-flow: baseline 은 부모 전파에 참여하지 않지만 자식 자신의
                 // 값(자기 solve 기록)은 보존한다 (ADR-923 Phase 2).
@@ -2909,11 +2937,9 @@ impl LayoutTree {
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
-            // 늘이기 (양측 inset · auto 축) 로 상자가 solve 결과와 달라졌으면, 그 상자가 자기 absolute
-            //   자식의 containing block 이다 (CSS 2 §10.1 — used size 뒤). solve 는 늘이기 전 크기로 그들을
-            //   놓았다 (absolute 자식만 가진 auto 높이 상자 = 0 → 손자 `height: 100%` 0). 종전 결함:
-            //   ADR-256 Phase 7 판독 M1 (react-aria Slider 예제의 `.track` 안 SliderFill).
-            let stretched = (!has_w && (nw - w).abs() > 0.01) || (!has_h && (nh - h).abs() > 0.01);
+            // 늘어난 상자는 자기 absolute 자식의 containing block 이기도 하다 (CSS 2 §10.1 — used size
+            //   뒤). 위 재-solve 가 놓았지만, 위치 미지정 자손 체인 (static 부모) 까지 다시 놓는다.
+            //   종전 결함: ADR-256 Phase 7 판독 M1 (react-aria Slider 예제의 `.track` 안 SliderFill).
             if child_is_container && stretched {
                 let grand: Vec<usize> = self
                     .get(c)
@@ -11355,6 +11381,38 @@ mod tests {
         let h = auto.build_tree_batch(&json.replace(r#","minHeight":"50%""#, "")).unwrap();
         auto.compute_layout(h[3], 200.0, -1.0);
         assert_eq!(auto.get_layout(h[1]).height, 300.0);
+    }
+
+    /// 양쪽 inset 으로 늘어난 absolute 상자는 **늘어난 크기로** in-flow 자식을 배치한다 (Blink
+    /// `out_of_flow_layout_part.cc` — 늘인 크기를 고정 available 로 자식 배치). 종전엔 늘이기 전
+    /// (containing block 폭 · 내용 높이) 으로 푼 자식이 남았다 (Chromium 재대조 B-NEW-1).
+    #[test]
+    fn stretched_absolute_lays_out_in_flow_children_in_the_stretched_box() {
+        // 가로: left 10 · right 10 in 200 → 180, 자식 width:100% = 180.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","width":"100%","height":"10px"},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"10px","insetRight":"10px","insetTop":"0px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 200.0, 100.0);
+        assert_eq!(tree.get_layout(h[1]).width, 180.0);
+        assert_eq!(tree.get_layout(h[0]).width, 180.0, "100% of the stretched box");
+        // 세로: top 0 · bottom 0 in 100 → 100, column flex center 의 자식 h20 은 y 40.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","justifyContent":"center","position":"absolute","insetTop":"0px","insetBottom":"0px","width":"50px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[1]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[2], 200.0, 100.0);
+        assert_eq!(tree.get_layout(h[1]).height, 100.0);
+        assert_eq!(tree.get_layout(h[0]).y, 40.0, "centred in the stretched 100");
+        // 다시 계산해도 (증분 skip) 같은 결과.
+        tree.compute_layout(h[2], 200.0, 100.0);
+        assert_eq!(tree.get_layout(h[0]).y, 40.0);
     }
 
     /// `%` 폭 컨테이너는 intrinsic 측정에서 auto 기여다 (Blink `length_utils.cc` — 풀 수 없는 `%`
