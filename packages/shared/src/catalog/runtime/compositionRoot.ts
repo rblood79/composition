@@ -1556,6 +1556,10 @@ export class CatalogCompositionRoot {
     if (options.devicePixelRatio)
       engine.setDevicePixelRatio?.(options.devicePixelRatio);
     this.layout = new PersistentLayoutTree(engine);
+    // `vw` · `vh` are of the breakpoint's page — the viewport the Preview iframe shows (Blink
+    // `CSSToLengthConversionData::ViewportSize`). Unset, the engine used 1920×1080 on every
+    // breakpoint (the old pipeline's call went with `78469745d` — `50vw` was 960 on a 390 page).
+    this.layout.setViewport(viewport.width, viewport.height);
     this.currentMetrics = this.emptyMetrics(runtime.graph.revision);
     this.loadInitial();
   }
