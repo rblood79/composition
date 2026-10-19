@@ -1,1 +1,0 @@
-var e=`/composition/assets/engine_bg-CPlkVM8o.wasm`;export{e as t};
