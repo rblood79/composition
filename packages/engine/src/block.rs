@@ -187,6 +187,17 @@ pub fn block_layout_with_strut(
     // 4/5 는 음수 성분. pos = 값 − neg)
     let mut out = vec![0.0f32; child_count * OUT_FIELDS + 6];
 
+    // 줄바꿈 한계 — 음수 available 은 측정 센티넬이다 (`tree.rs`). min-content 는 기회마다 줄바꿈
+    //   (Blink `InlineNode` `kMinContent` → available 0), max-content · indefinite 는 줄바꿈 없음
+    //   (`kMaxContent` → `LayoutUnit::Max()`). 종전엔 −3 을 그대로 비교해 max-content 측정에서도
+    //   둘째 항목부터 늘 새 줄이었다 (Chromium 재대조 C-NEW-1).
+    let line_limit = if available_width >= 0.0 {
+        available_width
+    } else if available_width == crate::tree::MIN_CONTENT_AVAIL {
+        0.0
+    } else {
+        f32::INFINITY
+    };
     let mut current_y: f32 = 0.0;
     let mut current_x: f32 = 0.0;
     // margin chain 3종은 adjoining **집합** (r10m2 — `MarginSet` doc).
@@ -269,7 +280,7 @@ pub fn block_layout_with_strut(
             let baseline = if baseline >= 0.0 { baseline } else { child_h + m_bottom };
 
             // Line wrap check
-            if current_x + total_width > available_width && current_x > 0.0 {
+            if current_x + total_width > line_limit && current_x > 0.0 {
                 let m = flush_line_box(&line_items, current_y, &mut out, strut_line_height, strut_ascent);
                 last_line_baseline = current_y + m.baseline;
                 current_y += m.height;

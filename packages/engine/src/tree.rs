@@ -108,7 +108,7 @@ const INDEFINITE_AVAIL: f32 = -1.0;
 /// **성립 근거**: available 소비 지점의 가드가 전부 `avail >= 0.0` 형태고 `INDEFINITE_AVAIL`
 /// 과의 **등가 비교가 0건**이다. 따라서 새 음수 값은 기존 indefinite 경로를 그대로 타고,
 /// 모드 판정이 필요한 지점(leaf intrinsic 해석)에서만 추가로 읽힌다.
-const MIN_CONTENT_AVAIL: f32 = -2.0;
+pub(crate) const MIN_CONTENT_AVAIL: f32 = -2.0;
 const MAX_CONTENT_AVAIL: f32 = -3.0;
 
 /// available 센티넬이 지시하는 intrinsic 측정 모드. 평범한 indefinite/definite 는 `None`.
@@ -1982,7 +1982,8 @@ impl LayoutTree {
             ),
             None => return self.solve_child_intrinsic_aware(c, sw, sh),
         };
-        if sw >= 0.0 && atomic && w_auto && has_children {
+        // 텍스트 leaf (측정 스칼라) 도 같은 fit — Blink inline-level `kFitContent` (C-NEW-8).
+        if sw >= 0.0 && atomic && w_auto && (has_children || cstyle.content_max_width.is_some()) {
             if let Some((min_w, max_w)) = self.measure_intrinsic_width(c) {
                 let ctx = self.ctx_for(sw);
                 let pbh = axis_pad_border(&cstyle, &ctx, true);
@@ -5419,10 +5420,14 @@ impl LayoutTree {
     }
 
     /// % 기준 컨텍스트 (container_size = avail) + vw/vh 기준 viewport.
+    ///
+    /// 음수 available (indefinite · intrinsic 측정 센티넬) 은 `%` 기준이 없다 — `%` 는 풀리지 않고
+    /// (None) auto 로 간다 (Blink: 풀 수 없는 `%` = `kIndefiniteSize`). 종전엔 센티넬을 그대로
+    /// 기준으로 써 `100% × −3 = −3` 이 `MIN_CONTENT` 키워드 상수와 같아졌다 (Chromium 재대조 C-NEW-2).
     fn ctx_for(&self, avail: f32) -> CssValueContext {
         CssValueContext {
             parent_size: None,
-            container_size: Some(avail),
+            container_size: (avail >= 0.0).then_some(avail),
             viewport_width: self.viewport.map(|v| v.0),
             viewport_height: self.viewport.map(|v| v.1),
             root_font_size: None,
@@ -6843,7 +6848,7 @@ fn write_flex_item(
     data[off + 8] = pad_border_cross;
     // min/max 도 축별 ctx (E6) — main(column=minHeight/maxHeight)은 main_ctx, cross(row=
     // minHeight/maxHeight)는 cross_ctx. 폭 축(minWidth 등)은 두 ctx 모두 폭 기준이라 무변경.
-    data[off + 9] = resolve_dimension_opt(min_main_str(cstyle, is_row), main_ctx)
+    data[off + 9] = resolve_min_dimension(min_main_str(cstyle, is_row), main_ctx)
         .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
     data[off + 10] = resolve_dimension_opt(max_main_str(cstyle, is_row), main_ctx)
         .map(|v| spec_to_content(v, pad_border_main)).unwrap_or(-1.0);
@@ -7329,6 +7334,21 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
     }
     match resolve_css_size_value(trimmed, ctx) {
         Some(n) if n >= 0.0 => Some(n),
+        _ => None,
+    }
+}
+
+/// min-width · min-height — 미지정 · `auto` 는 None (automatic minimum, §4.5). 값이 있는데 풀 수
+/// 없는 `%` (indefinite 기준) 는 **0** 이다 — Blink `length_utils.cc:203-212` (kMin 의 `%` 기준
+/// 크기 0). computed 값이 auto 가 아니라 automatic minimum 대상도 아니다 (Chromium 재대조 F10).
+fn resolve_min_dimension(value: Option<&str>, ctx: &CssValueContext) -> Option<f32> {
+    let trimmed = value?.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("auto") {
+        return None;
+    }
+    match resolve_css_size_value(trimmed, ctx) {
+        Some(n) if n >= 0.0 => Some(n),
+        None if trimmed.contains('%') => Some(0.0),
         _ => None,
     }
 }
@@ -11249,6 +11269,111 @@ mod tests {
         assert_eq!(c.containing.x, 3.0 + 2.0);
         assert_eq!(c.containing.y, 5.0 + 1.0 + 6.0);
         assert_eq!(c.containing.y + c.containing.height, 5.0 + 345.0 - 8.0 - 10.0);
+    }
+
+    /// max-content 측정에서 inline-level 자식은 한 줄에 선다 (Blink `InlineNode` — `kMaxContent` 의
+    /// available 은 `LayoutUnit::Max()`, `kMinContent` 는 0). 종전엔 측정 센티넬 (−3) 이 줄바꿈 판정에
+    /// 그대로 들어가 둘째 항목부터 늘 새 줄이었다 (Chromium 재대조 C-NEW-1 — block 50×60).
+    #[test]
+    fn max_content_measure_keeps_inline_items_on_one_line() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"inline-block","width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"block"},"children":[0,1,2]},
+            {"style":{"display":"flex","width":"400px","alignItems":"flex-start"},"children":[3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 400.0, -1.0);
+        let block = tree.get_layout(h[3]);
+        assert_eq!((block.width, block.height), (150.0, 20.0));
+        let xs: Vec<(f32, f32)> = h[..3].iter().map(|&c| (tree.get_layout(c).x, tree.get_layout(c).y)).collect();
+        assert_eq!(xs, vec![(0.0, 0.0), (50.0, 0.0), (100.0, 0.0)]);
+        // min-content 는 항목마다 한 줄 (가장 넓은 항목 = 50): 좁은 flex 안 shrink.
+        let mut narrow = LayoutTree::new();
+        let h = narrow.build_tree_batch(json).unwrap();
+        narrow.compute_layout(h[4], 400.0, -1.0);
+        assert!(narrow.get_layout(h[3]).width <= 150.0);
+    }
+
+    /// inline-level 텍스트 leaf 도 shrink-to-fit 이다 — `min(max-content, max(min-content, 가용))`
+    /// (Blink `length_utils.cc` inline-level `kFitContent`). 종전엔 자식 있는 상자에만 걸려 leaf 는
+    /// max-content 한 줄로 부모 밖까지 나갔다 (Chromium 재대조 C-NEW-8 — 300 / Chrome 100).
+    #[test]
+    fn inline_level_text_leaf_shrinks_to_fit() {
+        for display in ["inline-block", "inline-flex"] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"{display}","contentMinWidth":40,"contentMaxWidth":300,"contentHeight":20}},"children":[]}},
+                {{"style":{{"display":"block","width":"100px"}},"children":[0]}}
+            ]"#
+            );
+            let h = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(h[1], 100.0, -1.0);
+            assert_eq!(tree.get_layout(h[0]).width, 100.0, "{display}");
+        }
+        // padding 은 가용에서 빠진다 (border-box 100 = 내용 80 + 20).
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","paddingLeft":"10px","paddingRight":"10px","contentMinWidth":40,"contentMaxWidth":300,"contentHeight":20},"children":[]},
+            {"style":{"display":"block","width":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 100.0, -1.0);
+        assert_eq!(tree.get_layout(h[0]).width, 100.0, "padded");
+        // 가용이 max-content 보다 넓으면 max-content, min-content 보다 좁으면 min-content.
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"inline-block","contentMinWidth":40,"contentMaxWidth":60,"contentHeight":20},"children":[]},
+            {"style":{"display":"block","width":"100px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 100.0, -1.0);
+        assert_eq!(tree.get_layout(h[0]).width, 60.0);
+    }
+
+    /// 풀 수 없는 `%` min-height (indefinite 기준) 는 0 이지 auto 가 아니다 — automatic minimum
+    /// (§4.5 내용 하한) 이 켜지지 않는다 (Blink `length_utils.cc:203-212` — kMin 의 `%` 기준 0).
+    /// 종전엔 None → AUTO 로 접혀 내용 300 아래로 줄지 않았다 (Chromium 재대조 F10 · A-NEW-4).
+    #[test]
+    fn unresolvable_percent_min_height_is_zero_not_auto() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","height":"300px"},"children":[]},
+            {"style":{"display":"block","minHeight":"50%"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","maxHeight":"100px"},"children":[1]},
+            {"style":{"display":"block","width":"200px"},"children":[2]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[3], 200.0, -1.0);
+        assert_eq!(tree.get_layout(h[2]).height, 100.0);
+        assert_eq!(tree.get_layout(h[1]).height, 100.0, "item shrinks to the container (min 0)");
+        // 대조군: min-height 미지정 (auto) 은 내용 하한 300.
+        let mut auto = LayoutTree::new();
+        let h = auto.build_tree_batch(&json.replace(r#","minHeight":"50%""#, "")).unwrap();
+        auto.compute_layout(h[3], 200.0, -1.0);
+        assert_eq!(auto.get_layout(h[1]).height, 300.0);
+    }
+
+    /// `%` 폭 컨테이너는 intrinsic 측정에서 auto 기여다 (Blink `length_utils.cc` — 풀 수 없는 `%`
+    /// 는 kIndefiniteSize → content). 종전엔 `width_intrinsic_keyword` 가 `%` 를 측정 센티넬로 푼
+    /// 숫자를 키워드 상수와 비교해 `100% × −3 = −3 = MIN_CONTENT` 로 오인했다 (C-NEW-2).
+    #[test]
+    fn percent_width_container_is_not_an_intrinsic_keyword_in_measure() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","contentMinWidth":30,"contentMaxWidth":60,"contentHeight":20},"children":[]},
+            {"style":{"display":"block","contentMinWidth":30,"contentMaxWidth":60,"contentHeight":20},"children":[]},
+            {"style":{"display":"flex","width":"100%"},"children":[0,1]},
+            {"style":{"display":"block"},"children":[2]},
+            {"style":{"display":"flex","width":"400px","alignItems":"flex-start"},"children":[3]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[4], 400.0, -1.0);
+        assert_eq!(tree.get_layout(h[3]).width, 120.0, "block = max-content of the row (60 + 60)");
+        assert_eq!((tree.get_layout(h[0]).width, tree.get_layout(h[1]).width), (60.0, 60.0));
     }
 
     /// border 폭 snap (Blink `ClampLineWidth`) — ListBox Header 모양 (border-block 0.5 · padding 4 ·
