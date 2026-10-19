@@ -602,7 +602,7 @@ Blink 는 런타임 플래그 `PaintUnderInvalidationChecking` (기본 off — `
 | ID                                                                                   | 새 상태                     | 근거                                                                                                                                                                                                        |
 | ------------------------------------------------------------------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | X8                                                                                   | 닫힘                        | ADR-267 (`sticky_constraints` · `resolveStickyOffset`) + `006b0ea71` (`%` 기준). 남은 꼬리 = B-NEW-6 · B-NEW-8                                                                                              |
-| F4                                                                                   | px 폭 한정 닫힘             | ADR-268 지연 floor 가 `width` 가 `px` 인 컨테이너 item 만 잰다 (`tree.rs` `flex_layout_with_definite_floor` — `ends_with("px")`) → D-NEW-1                                                                  |
+| F4                                                                                   | 닫힘 (D-NEW-1 수리 뒤)      | ADR-268 지연 floor 가 해소되는 길이 전부를 잰다 — 키워드 폭만 제외 (`tree.rs` `flex_layout_with_definite_floor`)                                                                                            |
 | G15                                                                                  | 닫힘 (엔진 실행)            | `1fr 0fr` 300/0 · `1fr 0fr 1fr` 150/0/150 · 내용 있는 0fr 250/50 이 Blink 계약과 같다. 0→1 폴백 코드 (`grid.rs:206-208` · `tree.rs` `split_track_sizing` 부근) 는 남아 있으나 결과에 안 나온다              |
 | §7-5 line-height 상속 단위                                                           | 같음                        | DOM · Canvas 모두 비율 상속 (`domBinding.runtime.ts` · `compositionRoot.ts` `inheritedLineHeight`). Styles 의 px 입력이 편집 시점 font-size 기준 비율로 저장되는 것은 두 consumer 공통 (저작 의도와는 다름) |
 | X3                                                                                   | 열림 — 엔진 값 정정         | flex center 400×200 + 형제 50×50 + absolute 40×40: 엔진 지금 (0, 125) (정본 기록 (0, 50) 은 낡음), Chrome (180, 80)                                                                                         |
@@ -637,6 +637,18 @@ Blink 는 런타임 플래그 `PaintUnderInvalidationChecking` (기본 off — `
 | C-NEW-8     | 텍스트 leaf 가 inline-block · inline-flex 일 때 shrink-to-fit 이 없다                                                         | `length_utils.cc:555-569` `kFitContent`                                                          | inline-block fit 이 `has_children` 상자만                                                                                   | block 100 > inline-block leaf (40/300) → 100 / 300                                             |
 | D-NEW-1     | ADR-268 floor 가 px 폭만 — `%` · `vw` · `rem` · `calc()` 폭 item 은 min-content 아래로 준다                                   | `flex_layout_algorithm.cc:1065-1072` 해소되는 길이 전부                                          | `flex_layout_with_definite_floor` `ends_with("px")`                                                                         | row 200 > `width:100%` ×2 (자식 150) → 150/150 / 100/100                                       |
 | D-NEW-2     | aspect-ratio definite item 의 content size suggestion — 전송값이 빠지거나 내용 min 을 버린다                                  | `flex_layout_algorithm.cc:1149-1154` · `block_node.cc:1031-1040`                                 | floor 측정이 자식 없는 상자 제외 · 전송값만                                                                                 | row 100 > 빈 `100×80 ratio 1` ×2 → 80/80 / 50/50                                               |
+
+**수리 현황 (2026-10-19, 권장 순서 1 ~ 5)** — 각 항목은 Rust 실패 테스트 → 수리 → Chrome oracle → builder live (Canvas / Preview) 순으로 닫았다.
+
+| 순서 | ID                    | 커밋        | Chrome oracle                                               | live (Canvas / Preview)                |
+| ---- | --------------------- | ----------- | ----------------------------------------------------------- | -------------------------------------- |
+| 1    | A-NEW-2               | `c0d06c678` | `rewrapUsedBorder.test.ts` (unit)                           | 내용 폭 162 / 162                      |
+| 2    | A-NEW-1               | `567d8ff39` | `viewportUnits.test.ts` (unit)                              | mobile `50vw` 195 / 195                |
+| 3    | C-NEW-1 · 2 · 8 · F10 | `7bc834e92` | `measureSentinel.browser.test.ts` 4                         | flex row 안 block 의 Button 2 개 한 줄 |
+| 4    | B-NEW-1               | `463ccc83c` | `absoluteStretch.browser.test.ts`                           | `width: 100%` 자식 180 / 180           |
+| 5    | D-NEW-1               | 이 커밋     | `autoMin.browser.test.ts` `f-unit` 3 (`%` · `rem` · `calc`) | row 200 > `width: 100%` ×2 → 150 / 150 |
+
+A-NEW-4 는 F10 과 같은 뿌리라 3 에서 같이 닫혔다 (`resolve_min_dimension`).
 
 **새 격차 — 확인 못 함 · 환경 의존 · 도달 불가**: B-NEW-7 (비구조 부모 아래 absolute — DOM 은 STRUCTURAL 타입에만 `relative`, 엔진은 늘 직계 부모, 도달 미확인) · B-NEW-8 (classic scrollbar 폭을 sticky constraining · 레이아웃이 빼지 않음 — macOS 오버레이는 0) · A-8 (border-style 만 저작 → Chrome `medium` 3px · 엔진 0, `authoredStyle` 경로 여부 미확인) · B-NEW-9 · A 의 `%` padding/row-gap 기준 (입력이 px 뿐 — 도달 불가).
 

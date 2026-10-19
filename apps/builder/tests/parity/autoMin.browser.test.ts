@@ -309,6 +309,27 @@ function fBasis0(flexShrink: number): ParityCase {
   };
 }
 
+// D-NEW-1 (Chromium 재대조 2026-10-19) — floor 는 해소되는 길이 전부. `width` 가 px 가 아니어도
+//     200 으로 풀리면 F4 와 같다 (Chrome 150/150). vw 는 하니스 viewport 가 고정이 아니라 Rust 가 덮는다.
+function fUnit(width: string): ParityCase {
+  return {
+    name: `f-unit: row definite \`width: ${width}\` items floor at 150`,
+    availW: 200,
+    availH: -1,
+    nodes: [
+      { label: "g0", style: { width: "150px", height: "20px" } },
+      { label: "c0", style: { width, height: "20px" }, children: [0] },
+      { label: "g1", style: { width: "150px", height: "20px" } },
+      { label: "c1", style: { width, height: "20px" }, children: [2] },
+      {
+        label: "root",
+        style: { display: "flex", width: "200px", height: "40px" },
+        children: [1, 3],
+      },
+    ],
+  };
+}
+
 const CASES: ParityCase[] = [
   A_SCROLL_SHRINK,
   A2_HIDDEN_SHRINK,
@@ -324,6 +345,9 @@ const CASES: ParityCase[] = [
   fBasis0(1),
   F_AUTO_CONTROL,
   F_SCROLL_CONTROL,
+  fUnit("100%"),
+  fUnit("12.5rem"),
+  fUnit("calc(100% - 0px)"),
 ];
 
 describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {

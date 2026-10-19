@@ -1908,9 +1908,13 @@ impl LayoutTree {
                 let Some(n) = self.get(c) else { continue };
                 if n.children.is_empty()
                     || n.style.content_min_width.is_some()
-                    || !n.style.width.as_deref().is_some_and(|w| w.trim().ends_with("px"))
+                    || size_is_intrinsic_keyword(n.style.width.as_deref())
                 {
-                    continue; // 자식 없는 상자 · 텍스트 leaf (ADR-165 스칼라) · px 아닌 폭은 대상 아님
+                    // 자식 없는 상자 · 텍스트 leaf (ADR-165 스칼라) · 키워드 폭 (ADR-268 R5) 은 대상 아님.
+                    // 길이 단위는 묻지 않는다 — `%` · `vw` · `rem` · `calc()` 도 definite main 이면
+                    // floor 를 받는다 (D-NEW-1, Blink `flex_layout_algorithm.cc` specified size
+                    // suggestion). 풀리지 않는 폭 (auto · indefinite `%`) 은 판정이 이미 거른다.
+                    continue;
                 }
                 let Some((min_w, _)) = self.measure_intrinsic_content_width(c) else { continue };
                 if min_w > 0.0 {
@@ -12744,6 +12748,32 @@ mod tests {
         assert_eq!(tree.get_layout(c0).width, 150.0);
         assert_eq!(tree.get_layout(c1).width, 150.0);
         assert_eq!(tree.get_layout(c1).x, 150.0);
+    }
+
+    /// D-NEW-1 (Chromium 재대조 2026-10-19) — floor 는 px 만이 아니라 해소되는 길이 전부
+    /// (Blink `flex_layout_algorithm.cc` 의 specified size suggestion 은 단위를 묻지 않는다).
+    /// row 200 > `width: W` ×2 (W = 200 으로 풀림) · 각 min-content 150 → Chrome 150/150.
+    #[test]
+    fn adr268_floor_applies_to_every_resolvable_width_unit() {
+        for width in ["100%", "50vw", "12.5rem", "calc(100% - 0px)"] {
+            let mut tree = LayoutTree::new();
+            tree.set_viewport(400.0, 800.0);
+            let item = || -> NodeStyle {
+                serde_json::from_str(&format!(r#"{{"width":"{width}","height":"20px"}}"#)).unwrap()
+            };
+            let g0 = tree.create_node(px_leaf(150.0, 20.0));
+            let c0 = tree.create_node(item());
+            tree.set_children(c0, vec![g0]);
+            let g1 = tree.create_node(px_leaf(150.0, 20.0));
+            let c1 = tree.create_node(item());
+            tree.set_children(c1, vec![g1]);
+            let root = tree.create_node(adr268_row(200.0));
+            tree.set_children(root, vec![c0, c1]);
+            tree.compute_layout(root, 200.0, 40.0);
+            assert_eq!(tree.get_layout(c0).width, 150.0, "{width}");
+            assert_eq!(tree.get_layout(c1).width, 150.0, "{width}");
+            assert_eq!(tree.get_layout(c1).x, 150.0, "{width}");
+        }
     }
 
     /// (f-sib) — 뒤에 오는 auto 형제 B 는 1) 단계에서 (0, 0). 행 합 pre-scan 이면 A 를 건너뛴다.

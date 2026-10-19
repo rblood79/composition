@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chromium 재대조 엔진 격차 5 건 수정] - 2026-10-19
+
+### Fixed
+
+- **Canvas 레이아웃이 Chrome 과 갈리던 5 경우를 맞췄다** (재대조 기록 `CHROMIUM_CANVAS_PARITY_2026-10.md` §7-7, 항목마다 Chrome 비교 테스트):
+  - **변별 border 를 가진 글자 줄바꿈 폭** (A-NEW-2): 줄바꿈 다시 재기가 엔진이 실제로 쓴 변별 · snap border 를 뺀다 (`usedBorder`). 전에는 한 변 border 를 무시해 줄 수가 달랐다 (live 내용 폭 162 / 162).
+  - **`vw` · `vh` 단위** (A-NEW-1): breakpoint 페이지 크기로 푼다. 전에는 엔진 viewport 가 비어 있었다 (live mobile `50vw` → 195 / 195).
+  - **측정용 내부 값이 일반 계산에 섞이던 문제** (C-NEW-1 · 2 · 8 · F10): max-content 측정에서 inline 항목이 한 줄에 서고, `width: 100%` 컨테이너가 측정 중 크기 키워드로 읽히지 않으며, inline-block 글자 leaf 가 shrink-to-fit 폭을 받고, 풀 수 없는 `%` min-height 가 0 이 된다 (live flex row 안 block 의 Button 2 개 한 줄).
+  - **양쪽 inset 으로 늘어난 absolute 상자의 일반 자식** (B-NEW-1): 늘어난 크기로 자식을 배치한다 (live `width: 100%` 자식 180 / 180).
+  - **flex row 의 고정 폭 컨테이너 항목 최소 크기** (D-NEW-1): ADR-268 의 내용 최소 폭 보정이 px 뿐 아니라 `%` · `vw` · `rem` · `calc()` 폭에도 적용된다. 전에는 `width: 100%` 항목 둘이 200 행에서 내용 150 아래 100 / 100 으로 줄었다 (live Canvas · Preview 150 / 150).
+  - 위치: `packages/engine/src/{tree,block,style,wasm}.rs` · `packages/shared/src/catalog/runtime/compositionRoot.ts`
+
 ## [Canvas border 폭 device pixel snap] - 2026-10-19
 
 ### Fixed
