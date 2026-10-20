@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Button 을 더블클릭하면 편집 상자가 버튼 전체가 아니라 라벨 글자 줄 위에 놓인다** (사용자 보고 2026-10-20 「텍스트 위치에서 편집되지 않고 버튼 영역 전체에서 된다」): 편집 상자는 Skia 가 글자를 그리는 content 상자 — padding 안 · `verticalAlign: middle` 이면 상자 세로 중앙의 글자 줄 · 글자 노드의 정렬 (center) · 글꼴 (크기 · 굵기 · 줄 높이 · 글꼴 이름) — 를 따른다 (`resolveTextEditBox`). 글자 노드가 없으면 종전대로 요소 상자. Skia 가 한 줄로 그리는 nowrap 글자 (Button 라벨) 는 편집 중에도 줄을 바꾸지 않고 (`white-space: pre`) 입력 글자만큼 폭이 늘어난다 — 종전엔 옛 폭에서 줄이 바뀌어 상자 높이가 두 줄로 굳었다. live: Button 68 × 30 의 라벨 42 × 20 위에서 편집 · 입력 중 폭 71 → 107 · 높이 20 유지 · 확정 뒤 Label 반영.
+  - 후속 (같은 날, 사용자 보고 「absolute 로 옮기거나 부모 padding 을 바꾸면 편집 위치가 글자와 다르다」): 글자 노드가 요소 루트 자체일 때 (`bindings.text` 는 layout rect 의 x · y 를 담는다) 그 x · y 를 더해 옮긴 거리가 두 번 더해졌다. 루트의 x · y 는 빼고 자손 노드의 요소 안 오프셋만 더한다. live: Left 120 · Top 80 absolute Button 의 라벨 위에서 편집.
   - 위치: `workspace/canvas/skia/textDrawOrigin.ts` · `workspace/canvas/catalog/CatalogTextEditor.tsx`
 
 ## [ADR-275 Phase 7 — Position Fixed 허용] - 2026-10-20

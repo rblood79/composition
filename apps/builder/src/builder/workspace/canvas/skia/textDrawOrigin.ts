@@ -35,6 +35,35 @@ function findTextNode(node: SkiaNodeData | undefined): SkiaNodeData | null {
   return null;
 }
 
+/**
+ * The text node under an element with its offset inside the element. The element's root node
+ * carries its own `x` · `y` (the layout rect, parent-relative — `canvasBinding` `box(node, rect)`),
+ * which is not an offset inside the element; only descendant nodes' `x` · `y` are (drawn inside the
+ * element's translate, `emitInternalChildDraw`). **Why (2026-10-20)**: adding the root's `x` · `y`
+ * put a moved Button's edit field at twice its position (user: absolute x/y · parent padding).
+ */
+function findTextNodeOffset(
+  node: SkiaNodeData | undefined,
+): { node: SkiaNodeData; x: number; y: number } | null {
+  if (!node) return null;
+  if (node.text) return { node, x: 0, y: 0 };
+  const visit = (
+    parent: SkiaNodeData,
+    x: number,
+    y: number,
+  ): { node: SkiaNodeData; x: number; y: number } | null => {
+    for (const child of parent.children ?? []) {
+      const cx = x + child.x;
+      const cy = y + child.y;
+      if (child.text) return { node: child, x: cx, y: cy };
+      const found = visit(child, cx, cy);
+      if (found) return found;
+    }
+    return null;
+  };
+  return visit(node, 0, 0);
+}
+
 export function resolveTextGlyphOrigin(
   elementId: string,
 ): TextGlyphOrigin | null {
@@ -134,9 +163,10 @@ export interface TextEditBox {
 }
 
 export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
-  const node = findTextNode(getSkiaNode(elementId) ?? undefined);
+  const found = findTextNodeOffset(getSkiaNode(elementId) ?? undefined);
+  const node = found?.node;
   const text = node?.text;
-  if (!node || !text) return undefined;
+  if (!found || !node || !text) return undefined;
   const paragraph = peekRetainedParagraph(node);
   // D3 — pre-wrap 은 Skia 가 상자보다 최대 1px 넓게 layout 한다: 같은 자리에서 줄을 바꾸도록 그만큼.
   const wrapWidthExtra =
@@ -173,8 +203,8 @@ export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
             }
           : { y: text.paddingTop, height: contentHeight };
   return {
-    x: node.x + text.paddingLeft,
-    y: node.y + vertical.y,
+    x: found.x + text.paddingLeft,
+    y: found.y + vertical.y,
     width: Math.max(1, text.maxWidth + wrapWidthExtra),
     height: Math.max(1, vertical.height),
     align: typeof text.align === "string" ? text.align : undefined,

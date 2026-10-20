@@ -222,6 +222,44 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
     }
   });
 
+  it("루트 글자 노드의 x · y (부모 기준 layout rect) 는 더하지 않는다 — 옮긴 Button", async () => {
+    const { workspace, record, field } = await open();
+    const item = workspace.itemOfRecord(record)!;
+    const { registerSkiaNode, unregisterSkiaNode } =
+      await import("../../skia/useSkiaNode");
+    // `canvasBinding.ts` `bindings.text` = `box(node, rect)` + text: the root node itself holds
+    // the text, and its x · y are the layout rect (absolute x 100 / y 50 — the user's report).
+    registerSkiaNode(item.identity, {
+      type: "text",
+      x: 100,
+      y: 50,
+      width: 200,
+      height: 40,
+      visible: true,
+      text: {
+        content: "Button",
+        fontFamilies: ["Pretendard"],
+        fontSize: 14,
+        color: new Float32Array([0, 0, 0, 1]),
+        align: "center",
+        lineHeight: 20,
+        paddingLeft: 12,
+        paddingTop: 5,
+        maxWidth: 176,
+        verticalAlign: "middle",
+        whiteSpace: "nowrap",
+      },
+    });
+    try {
+      act(() => workspace.session.startTextEdit(item));
+      const style = field()!.style;
+      // box (10, 20) + paddingLeft 12 · (40 − 20) / 2 — not + (100, 50).
+      expect([style.left, style.top]).toEqual(["22px", "30px"]);
+    } finally {
+      unregisterSkiaNode(item.identity);
+    }
+  });
+
   it("Skia 글자 노드가 없으면 요소 상자 그대로다", async () => {
     const { workspace, record, field } = await open();
     act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
