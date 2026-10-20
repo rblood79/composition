@@ -2,7 +2,7 @@
 /**
  * ADR-257 Phase 1 — a Table's columns are its header row's and every Row's shared grid tracks:
  * a Column's S2 width moves its whole column (the header cell and every Cell), on the Canvas
- * (`styleOf` → the real engine) and in the DOM (`catalogDomStyle` · the TableView parts), right
+ * (`styleOf` → the real engine) and in the DOM (`catalogDomStyle` · the Table parts), right
  * after the edit (no reload — R1), after undo · redo and after a column is inserted.
  */
 import "fake-indexeddb/auto";
@@ -50,10 +50,7 @@ const node = (
     descendantOverrides: [],
   }) as NodeEntry;
 
-async function openTable(
-  type: "Table" | "TableView",
-  columns: Record<string, unknown>[],
-) {
+async function openTable(type: "Table", columns: Record<string, unknown>[]) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -246,31 +243,6 @@ describe("ADR-257 Table column tracks", () => {
     );
   });
 
-  it("TableView: the header row · Rows are grids on the same tracks (DOM parts and Canvas)", async () => {
-    const workspace = await openTable("TableView", [{ width: 90 }, {}]);
-    const html = renderToStaticMarkup(
-      renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
-    );
-    // ADR-257 Phase 5: S2's TableView — RAC's Table in RAC's resizable container, its header row
-    // and Rows on RAC's column widths (the static tracks until RAC has measured).
-    expect(html).toMatch(/<div[^>]*class="react-aria-TableView"/);
-    expect(html).toMatch(/<table[^>]*data-node-table=""/);
-    const tracks =
-      "var\\(--table-resized-tracks, 90px minmax\\(75px, 1fr\\)\\)";
-    expect(
-      html.match(
-        new RegExp(`display:grid;grid-template-columns:${tracks}`, "g"),
-      )?.length,
-    ).toBe(2);
-    expect(html).toMatch(new RegExp(`--table-column-tracks:${tracks}`));
-    const [head, r1] = columnBoxes(workspace, [
-      ["c0", "c1"],
-      ["r1d0", "r1d1"],
-    ]);
-    expect(head![0]![1]).toBe(90);
-    expect(r1).toEqual(head);
-  });
-
   it("the selection column (a Column with Checkbox[slot=selection]) is S2's 40px track", async () => {
     const workspace = await openTable("Table", [{}, {}]);
     workspace.execute(
@@ -346,7 +318,7 @@ describe("ADR-257 load-time conversion and Styles routing (사용자 결정 2)",
 });
 
 describe("Table derived tracks Canvas invalidation", () => {
-  it.each(["Table", "TableView"] as const)(
+  it.each(["Table"] as const)(
     "%s updates body cells on column width edit and history",
     async (type) => {
       const workspace = await openTable(type, [

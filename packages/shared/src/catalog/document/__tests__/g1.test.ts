@@ -73,7 +73,9 @@ describe("ADR-248 G1 isolated catalog graph", () => {
       insetTop: "10%",
     });
     request(graph, first.inverse);
-    expect(resolveCatalogNode(graph, id).authoredLayout?.position).toBeUndefined();
+    expect(
+      resolveCatalogNode(graph, id).authoredLayout?.position,
+    ).toBeUndefined();
     const revision = graph.revision;
     failureCode(
       () =>
@@ -88,7 +90,10 @@ describe("ADR-248 G1 isolated catalog graph", () => {
         request(graph, [
           {
             kind: "put",
-            entry: { ...node, placement: { kind: "absolute", x: 1, y: 2 } } as NodeEntry,
+            entry: {
+              ...node,
+              placement: { kind: "absolute", x: 1, y: 2 },
+            } as NodeEntry,
           },
         ]),
       "UNKNOWN_FIELD",
@@ -423,7 +428,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 43,
+          contractVersion: 44,
           revision: "bad",
           definitions: [
             {
@@ -447,7 +452,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 43,
+          contractVersion: 44,
           revision: "bad",
           definitions: [],
           templates: [],
@@ -1416,7 +1421,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 43,
+          contractVersion: 44,
           revision: "cycle",
           bindingIds: [],
           actionOpCodes: [],
@@ -1481,7 +1486,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("applies compatible immutable library revision changes without project snapshots", () => {
     const { document, library } = createG1Fixture();
     const updated = buildCatalogLibrary({
-      contractVersion: 43,
+      contractVersion: 44,
       revision: "g1-fixture-v2",
       definitions: [...library.definitions.values()],
       templates: [...library.templates.values()],
@@ -1757,7 +1762,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("fans out one Tree and Slider definition override to both instances", () => {
     const { document, library } = createG1Fixture();
     const extended = buildCatalogLibrary({
-      contractVersion: 43,
+      contractVersion: 44,
       revision: "g1-tree-slider",
       definitions: [
         ...library.definitions.values(),

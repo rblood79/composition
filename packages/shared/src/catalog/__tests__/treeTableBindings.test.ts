@@ -15,7 +15,7 @@ import { toRacProps } from "../outputs/toRacProps";
  * **Table — Skia generic 발효 (ADR-912 단계 4 C1 2026-06-03)**: 2D grid 를 Table 2D projection
  *   (RowsGroup → Row[i] → Cell[i][j])으로 Skia 렌더. shell 은 buildCatalogShapes.
  * **단계 5 step 1 (2026-06-04)**: skiaLegacy 필드 제거 → DOM·Skia 게이트 모두 Tree/Table 포함.
- * TableView 는 inventory §2-1 primitive 에 없음(LayoutRenderer 전용) → catalog 미등록.
+ * (옛 둘째 표 type 은 inventory §2-1 primitive 에 없었고, ADR-277 에서 Table 로 통합됐다.)
  */
 
 const TREE_TABLE_TYPES = ["Tree", "Table"] as const;
@@ -60,17 +60,10 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     }
   });
 
-  // ADR-912 R7 G1-b (2026-06-15): TableView container shell catalog cutover — 구 isQuiet boolean
-  //   분기를 S2 정본 variant(default/quiet)로 흡수해 catalog 등록. internal/div shell + variant 별
-  //   border. 시각 source = COMPONENT_RULES_TABLE.TableView, Skia generic box shell.
-  it("TableView 는 catalog 등록 (R7 G1-b cutover) — internal source, cutover catalog", () => {
-    const entry = getCatalogEntry("TableView");
-    expect(entry).toBeDefined();
-    expect(entry?.kind).toBe("primitive");
-    if (entry?.kind === "primitive") {
-      expect(entry.cutover).toBe("catalog");
-      expect(entry.binding.source.kind).toBe("internal");
-    }
+  // ADR-277 (2026-10-21): 표는 Table 하나 — 옛 둘째 표 type 은 catalog · binding · rule 에서 사라졌다.
+  it("옛 둘째 표 type (S2 이름) 은 catalog 에 없다 — Table 하나 (ADR-277)", () => {
+    expect(getCatalogEntry("TableView")).toBeUndefined();
+    expect(getCatalogEntry("Table")?.kind).toBe("primitive");
   });
 
   it("toRacProps: dataBinding(kind:binding) 통과 + size data-* 라우팅", () => {

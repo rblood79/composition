@@ -11,7 +11,7 @@ import type { ComponentSpec, SizeSpec, VariantSpec } from "../../types";
  *
  * DOM interaction 이 필요한 entry 는 `composition.rootSelectors["&"]` 로 명시한다 (Card · Tab).
  * 여기서는 production `buildVirtualSpecs` 동형으로 실제 catalog rule → virtual spec 을 합성해
- * 확인한다. `DEFAULT_BASE_STYLES` 를 버튼 어법으로 되돌리면 Toolbar/TableView 케이스가 RED,
+ * 확인한다. `DEFAULT_BASE_STYLES` 를 버튼 어법으로 되돌리면 Toolbar/Disclosure 케이스가 RED,
  * Card/Tab 의 rootSelectors 를 지우면 각 interaction 케이스가 RED 다.
  */
 
@@ -82,8 +82,8 @@ const BUTTON_VOCABULARY = [
 ];
 
 describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
-  it("Toolbar · TableView · Disclosure root 블록에 버튼 어법 · justify-content:center 가 없다", () => {
-    for (const name of ["Toolbar", "TableView", "Disclosure"]) {
+  it("Toolbar · Disclosure root 블록에 버튼 어법 · justify-content:center 가 없다", () => {
+    for (const name of ["Toolbar", "Disclosure"]) {
       const root = rootBlock(cssFor(name), name);
       expect(root, name).toMatch(/archetype: default/);
       expect(root, name).toMatch(/display:\s*block/);

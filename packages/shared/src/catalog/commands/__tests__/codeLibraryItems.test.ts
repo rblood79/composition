@@ -123,19 +123,27 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
           entries: [node(`column-${spec.key}`, ORIGIN("table-column"))],
           rootId: id(`column-${spec.key}`),
         }),
+        // (ADR-277: the origin's starter Row gets a cell too — its id is a node id, not a name.)
         buildCell: (rowId) => ({
-          entries: [node(`cell-${rowId}`, TYPE("Cell"))],
-          rootId: id(`cell-${rowId}`),
+          entries: [node(`cell-${rowId.split(":").at(-1)}`, TYPE("Cell"))],
+          rootId: id(`cell-${rowId.split(":").at(-1)}`),
         }),
         newId: allocator(),
       }),
     );
+    // ADR-277: the Table origin's header carries the starter Columns (Name · Type · Status, keys
+    // from their names); the new one is the fourth.
     expect(
       ofType(graph, table, "Column").map((column) => [
         column.props.key,
         column.props.children,
       ]),
-    ).toEqual([["column1", "Column 1"]]);
+    ).toEqual([
+      [undefined, "Name"],
+      [undefined, "Type"],
+      [undefined, "Status"],
+      ["column4", "Column 4"],
+    ]);
   });
 
   it("a new selected Radio clears the radios a `selected` state origin shows", () => {

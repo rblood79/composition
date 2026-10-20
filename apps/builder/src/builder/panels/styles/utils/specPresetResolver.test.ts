@@ -497,13 +497,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(layout.alignItems).toBe("center");
     });
 
-    it("TableView + 자식 layout 은 catalog rule 에서 공급", () => {
-      expect(resolveSpecPreset("TableView", undefined)).toMatchObject({
+    it("Table 자식 layout 은 catalog rule 에서 공급 (ADR-277 — 표는 Table 하나)", () => {
+      expect(resolveSpecPreset("Table", undefined)).toMatchObject({
         width: "100%",
-      });
-      expect(resolveLayoutSpecPreset("TableView", undefined)).toMatchObject({
-        display: "flex",
-        flexDirection: "column",
       });
       expect(resolveLayoutSpecPreset("TableHeader", undefined)).toMatchObject({
         display: "flex",

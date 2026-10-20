@@ -104,11 +104,8 @@ describe("owner '+' — a Tabs · TagGroup adds its items in its list", () => {
   );
 });
 
-describe("owner '+' — a Table · TableView adds columns and rows", () => {
-  it.each([
-    ["table", "Table"],
-    ["tableview", "TableView"],
-  ])(
+describe("owner '+' — a Table adds columns and rows", () => {
+  it.each([["table", "Table"]])(
     "%s: the owner offers Insert Column (TableHeader) and Insert Row (TableBody)",
     async (origin, owner) => {
       const { workspace, of, choices } = await open(origin);

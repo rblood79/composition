@@ -102,8 +102,9 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
 > = componentContractMap("owners");
 
 // (ADR-256 Phase 11: the unconverted-family limit table (`UNCONVERTED_FAMILY_LIMITS`) is gone — every
-//  family draws its node tree. Its last rows: ColorSwatchPicker · TableView are RAC collections
-//  (`componentTraits` items), Pagination · Toast · ColorPicker draw their children in order.)
+//  family draws its node tree. Its last rows: ColorSwatchPicker · the S2-named table were RAC
+//  collections (`componentTraits` items), Pagination · Toast · ColorPicker draw their children in
+//  order. ADR-277: the table is one type, Table.)
 
 /** 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다. */
 export type CatalogChildKind =
@@ -243,7 +244,6 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "Disclosure",
   "Tree",
   "Table",
-  "TableView",
   "Calendar",
   "RangeCalendar",
   "TagGroup",

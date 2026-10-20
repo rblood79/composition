@@ -39,7 +39,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * starter Column is `Column > Group[role=presentation].column-name > children`; G0 inventory
  * `Column > Group > …`). The Column origin is `Column > Group[role=presentation] > Text`, the Text
  * bound to the origin's `children` (the column's name — what Insert Column, the Properties "Text"
- * and the data columns read). A TableView keeps plain Columns (its own S2 grid).
+ * and the data columns read). The palette Table's starter columns (ADR-277 — Name · Type · Status)
+ * are instances of the same Column origin (their name in the Group too).
  */
 const BODY = "project:node:home-body" as NodeId;
 const OWNER = "project:node:table" as NodeId;
@@ -139,7 +140,8 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     insert("Column");
     insert("Row");
     // RAC Table with the starter Column's name group (the starter's `.column-header` div is its
-    // look — here the Column's own rule).
+    // look — here the Column's own rule). ADR-277: the palette Table starts with three columns.
+    const names = ["Name", "Type", "Status", "Column 4", "Column 5"];
     const view = render(
       createElement(
         Table,
@@ -147,7 +149,7 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
         createElement(
           TableHeader,
           null,
-          ...["Column 1", "Column 2"].map((name, index) =>
+          ...names.map((name, index) =>
             createElement(
               Column,
               { key: name, isRowHeader: index === 0 },
@@ -165,8 +167,7 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
           createElement(
             Row,
             null,
-            createElement(Cell, null, "Cell"),
-            createElement(Cell, null, "Cell"),
+            ...names.map((name) => createElement(Cell, { key: name }, "Cell")),
           ),
         ),
       ),
@@ -174,10 +175,9 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     cleanups.push(() => view.unmount());
     const reference = view.container.querySelector("[role=grid]")!;
     expect(headers(draw())).toEqual(headers(reference));
-    expect(headers(reference)).toEqual([
-      'columnheader > presentation "Column 1"',
-      'columnheader > presentation "Column 2"',
-    ]);
+    expect(headers(reference)).toEqual(
+      names.map((name) => `columnheader > presentation "${name}"`),
+    );
   });
 
   it("the name is the Column's `children` (Insert Column, the Properties 'Text', the data columns)", async () => {
@@ -189,14 +189,15 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     workspace.execute(
       setFields({
         targets: [workspace.positionOfRecord(first!.id)!.target],
-        props: { children: set("Name") },
+        props: { children: set("Title") },
       }),
     );
+    const expected = ["Title", "Type", "Status", "Column 4", "Column 5"];
     expect(
       [...draw().querySelectorAll("[role=columnheader]")].map(
         (header) => header.textContent,
       ),
-    ).toEqual(["Name", "Column 2"]);
+    ).toEqual(expected);
     // The Canvas text is the name Text's; the data columns read the same label.
     expect(
       ofType("Column").map(
@@ -205,13 +206,13 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
             root.canvasInputs.get(column.children[0]!)!.children[0]!,
           )!.props.children,
       ),
-    ).toEqual(["Name", "Column 2"]);
+    ).toEqual(expected);
     expect(
       tableHeaderColumns(
         workspace.runtime.graph,
         workspace.positionOfRecord(part("TableHeader").id)!.target,
       ).map((column) => column.label),
-    ).toEqual(["Name", "Column 2"]);
+    ).toEqual(expected);
     expect(record(OWNER)).toBeDefined();
   });
 
@@ -229,7 +230,8 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     expect(texts(getSkiaNode(column!.id))).toEqual([]);
     // (A text leaf is its own text node.)
     const text = getSkiaNode(name.id);
-    expect(text?.text?.content).toBe("Column 1");
+    // (ADR-277: the first Column is the starter's "Name".)
+    expect(text?.text?.content).toBe("Name");
     expect(String(text?.text?.fontWeight)).toBe("600");
     const span = draw().querySelector(
       "[role=columnheader] [role=presentation] > *",
@@ -237,14 +239,20 @@ describe("ADR-256 Phase 6h — the Column's name in a Group", () => {
     expect(span.style.fontWeight).toBe("600");
   });
 
-  it("a TableView keeps plain Columns (its own grid — no name group)", async () => {
-    const { ofType } = await open("lib:definition:origin-component-tableview");
+  it("the palette Table's starter columns are Column origin instances (ADR-277 — their name in the Group)", async () => {
+    const { root, ofType } = await open();
     const columns = ofType("Column");
     expect(columns.map((column) => column.props.children)).toEqual([
       "Name",
       "Type",
       "Status",
     ]);
-    expect(columns.every((column) => column.children.length === 0)).toBe(true);
+    for (const column of columns) {
+      const group = root.canvasInputs.get(column.children[0]!)!;
+      expect(root.typeOf(group)).toBe("Group");
+      expect(root.canvasInputs.get(group.children[0]!)!.props.children).toBe(
+        column.props.children,
+      );
+    }
   });
 });

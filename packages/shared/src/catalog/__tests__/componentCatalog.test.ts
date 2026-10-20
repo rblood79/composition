@@ -171,11 +171,11 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Footer",
         // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover.
         "Card",
-        // ADR-912 R7 G1-a/b (2026-06-15): container shell 3종 catalog cutover (AvatarGroup/
-        //   CardView 빈 셸 동형 + TableView isQuiet→variant:quiet 흡수). Skia generic box shell.
+        // ADR-912 R7 G1-a/b (2026-06-15): container shell catalog cutover (AvatarGroup/
+        //   CardView 빈 셸 동형). Skia generic box shell. (셋째 — S2 이름의 둘째 표 type — 는
+        //   ADR-277 에서 Table 로 통합, 2026-10-21.)
         "AvatarGroup",
         "CardView",
-        "TableView",
         // ADR-912 R7 G1-c (2026-06-15): Pagination 컨테이너 catalog cutover. factory 자식 Button×5
         //   자동생성 → _hasChildren=true → standalone 버튼군 dead, box shell 만 live (R7 G1 동형).
         "Pagination",
@@ -183,9 +183,9 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         //   (Cancel/Save) 자동생성 → _hasChildren=true → standalone box 분기 dead, 투명 box shell 만
         //   live (Pagination/AvatarGroup 동형). variant default 전부 transparent.
         "ButtonGroup",
-        // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
-        //   생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994 에서 Skia scene node
-        //   가 null 로 버려져 헤더/행/텍스트가 Skia 미렌더(Preview 는 renderTableView 직접 div). 등록으로
+        // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 이 생성하는
+        //   canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994 에서 Skia scene node
+        //   가 null 로 버려져 헤더/행/텍스트가 Skia 미렌더(Preview 는 옛 표 renderer 직접 div). 등록으로
         //   isCatalogCutover → buildCatalogShapes box+text. PALETTE_ORDER 미포함(단독 배치 불가).
         "TableHeader",
         "TableBody",

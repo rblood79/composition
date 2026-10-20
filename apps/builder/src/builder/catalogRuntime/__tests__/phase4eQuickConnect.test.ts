@@ -142,8 +142,13 @@ describe("ADR-248 Phase 4e-4e quick connect (catalog)", () => {
     });
     const plan = host.planColumns(target)!;
     expect(plan.instance).toBe(true);
-    // The Table origin's header starts without columns (they come from the schema).
-    expect(plan.existing).toEqual([]);
+    // ADR-277: the Table origin's header starts with the starter columns (Name · Type · Status —
+    // their keys read nothing from a schema, so the first connect replaces them).
+    expect(plan.existing.map((column) => column.key)).toEqual([
+      "name",
+      "type",
+      "status",
+    ]);
     expect(host.planColumns(host.capture(identity(LIST))!)).toBeNull();
     expect(host.precheck(target, ROUTE)).toEqual({ ok: true });
     expect(host.precheck(target, "other")).toEqual({

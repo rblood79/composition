@@ -326,11 +326,6 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TabPanels: { owners: ["Tabs"] },
   TabPanel: { owners: ["Tabs"] },
   Table: { container: "collection", children: ["TableHeader", "TableBody"] },
-  // ADR-256 Phase 11: S2 TableView is a RAC Table in a ResizableTableContainer — the same items.
-  TableView: {
-    container: "collection",
-    children: ["TableHeader", "TableBody"],
-  },
   TableHeader: {
     container: "collection",
     families: ["tableItemHost"],

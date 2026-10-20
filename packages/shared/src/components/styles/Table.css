@@ -116,12 +116,9 @@
     forced-color-adjust: none;
   }
 
-  /* The resizer in either RAC container — a resizable Table's, a TableView's (S2 wraps every
-     TableView, Phase 5). */
-  :is(
-      .react-aria-ResizableTableContainer[data-node-table-container],
-      .react-aria-TableView
-    ) {
+  /* The resizer in RAC's container — a resizable Table's (ADR-257 Phase 4; ADR-277 — the table is
+     one type). */
+  .react-aria-ResizableTableContainer[data-node-table-container] {
     .react-aria-Column {
       position: relative;
     }

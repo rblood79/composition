@@ -882,7 +882,7 @@ export function catalogPresenceScope(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) === "DisclosureGroup") return node;
   // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
-  if (typeOf(node) === "Table" || typeOf(node) === "TableView") return node;
+  if (typeOf(node) === "Table") return node;
   // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
   if (PROGRESS_VALUES[typeOf(node)]) return node;
   // Which crumb is current (its separator hidden) follows the Breadcrumbs' crumb list.
@@ -914,7 +914,7 @@ export function catalogPresenceDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  if (typeOf(scope) === "Table" || typeOf(scope) === "TableView")
+  if (typeOf(scope) === "Table")
     return catalogTableSelectionParts(scope, get, typeOf);
   const valueType = PROGRESS_VALUES[typeOf(scope)];
   if (valueType)
@@ -1315,7 +1315,7 @@ function sortableTableColumn(
     !!header &&
     typeOf(header) === "TableHeader" &&
     !!table &&
-    (typeOf(table) === "Table" || typeOf(table) === "TableView")
+    typeOf(table) === "Table"
   );
 }
 

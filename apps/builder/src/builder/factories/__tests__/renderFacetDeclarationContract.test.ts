@@ -74,8 +74,8 @@ import {
 // internal 31 → 32 (2026-09-17): ADR-201 fileupload 추가.
 // ADR-256 Phase 3 (2026-10-08): + Radio (RAC RadioField > RadioButton 노드 트리).
 // (ADR-256 Phase 8e: − disclosurecontent.)
-// internal 33 → 32 (2026-10-10): ADR-257 Phase 5 tableview 제거 — TableView 는 S2 처럼 RAC Table
-//   (`domRegistry` `CatalogTableView`) 이고 부품은 Table 과 같은 ruleDom 경로로 그린다.
+// internal 33 → 32 (2026-10-10): ADR-257 Phase 5 tableview 제거 — 옛 둘째 표 type 은 S2 처럼 RAC Table
+//   위에 있었고 부품은 Table 과 같은 ruleDom 경로로 그렸다 (ADR-277 에서 type 자체를 Table 로 통합).
 // internal 32 → 31 (2026-10-11): ADR-256 Phase 10 — cardheader · cardcontent · cardfooter 제거,
 //   S2 Content · Footer (s2content · s2footer) 추가.
 const INVENTORY = { delegatingInternal: 31, delegatingRac: 16 } as const;

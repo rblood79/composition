@@ -1081,16 +1081,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-tree"
   },
   {
-    "id": "lib:definition:origin-component-tableview",
-    "name": "TableView",
-    "mode": "composite",
-    "accepts": {},
-    "defaults": {},
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-tableview"
-  },
-  {
     "id": "lib:definition:origin-component-chart",
     "name": "Chart",
     "mode": "composite",
@@ -5328,8 +5318,39 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "name": "Columns",
       "required": false
     },
-    "children": [],
+    "children": [
+      "lib:template:component-table__1_1",
+      "lib:template:component-table__1_2",
+      "lib:template:component-table__1_3"
+    ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__1_1",
+    "definitionId": "lib:definition:origin-component-table-column",
+    "children": [],
+    "props": {
+      "children": "Name"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__1_2",
+    "definitionId": "lib:definition:origin-component-table-column",
+    "children": [],
+    "props": {
+      "children": "Type"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__1_3",
+    "definitionId": "lib:definition:origin-component-table-column",
+    "children": [],
+    "props": {
+      "children": "Status"
+    },
     "visual": {}
   },
   {
@@ -5339,8 +5360,48 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "name": "Rows",
       "required": false
     },
-    "children": [],
+    "children": [
+      "lib:template:component-table__2_1"
+    ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1",
+    "definitionId": "lib:definition:origin-component-table-row",
+    "children": [
+      "lib:template:component-table__2_1_1",
+      "lib:template:component-table__2_1_2",
+      "lib:template:component-table__2_1_3"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1_1",
+    "definitionId": "lib:definition:type-Cell",
+    "children": [],
+    "props": {
+      "children": "Item 1"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1_2",
+    "definitionId": "lib:definition:type-Cell",
+    "children": [],
+    "props": {
+      "children": "File"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table__2_1_3",
+    "definitionId": "lib:definition:type-Cell",
+    "children": [],
+    "props": {
+      "children": "Active"
+    },
     "visual": {}
   },
   {
@@ -5423,112 +5484,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
         }
       }
     ]
-  },
-  {
-    "id": "lib:template:component-tableview",
-    "definitionId": "lib:definition:type-TableView",
-    "children": [
-      "lib:template:component-tableview__1",
-      "lib:template:component-tableview__2"
-    ],
-    "props": {
-      "variant": "default",
-      "density": "regular"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__1",
-    "definitionId": "lib:definition:type-TableHeader",
-    "slot": {
-      "name": "Columns",
-      "required": false
-    },
-    "children": [
-      "lib:template:component-tableview__1_1",
-      "lib:template:component-tableview__1_2",
-      "lib:template:component-tableview__1_3"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__1_1",
-    "definitionId": "lib:definition:type-Column",
-    "children": [],
-    "props": {
-      "children": "Name"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__1_2",
-    "definitionId": "lib:definition:type-Column",
-    "children": [],
-    "props": {
-      "children": "Type"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__1_3",
-    "definitionId": "lib:definition:type-Column",
-    "children": [],
-    "props": {
-      "children": "Status"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__2",
-    "definitionId": "lib:definition:type-TableBody",
-    "slot": {
-      "name": "Rows",
-      "required": false
-    },
-    "children": [
-      "lib:template:component-tableview__2_1"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__2_1",
-    "definitionId": "lib:definition:origin-component-table-row",
-    "children": [
-      "lib:template:component-tableview__2_1_1",
-      "lib:template:component-tableview__2_1_2",
-      "lib:template:component-tableview__2_1_3"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__2_1_1",
-    "definitionId": "lib:definition:type-Cell",
-    "children": [],
-    "props": {
-      "children": "Item 1"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__2_1_2",
-    "definitionId": "lib:definition:type-Cell",
-    "children": [],
-    "props": {
-      "children": "File"
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-tableview__2_1_3",
-    "definitionId": "lib:definition:type-Cell",
-    "children": [],
-    "props": {
-      "children": "Active"
-    },
-    "visual": {}
   },
   {
     "id": "lib:template:component-chart",

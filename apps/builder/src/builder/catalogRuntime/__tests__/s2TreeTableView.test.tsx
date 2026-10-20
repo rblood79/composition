@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
  * S2 강조 축 전환 3 (2026-10-10 — 조사 §4.2 B): Tree `variant`(accent) → `isEmphasized`
- * (design-data Tree view — S2 TreeView 에 없는 축), TableView `variant`(quiet) → `isQuiet`
- * (2026-06-15 흡수의 역전환). 내부 variant 는 resolver 파생 운반 값, 옛 문서는 로드 시 1회
- * 전환 (`migrateCatalogEntriesS2`).
+ * (design-data Tree view — S2 TreeView 에 없는 축). 내부 variant 는 resolver 파생 운반 값, 옛
+ * 문서는 로드 시 1회 전환 (`migrateCatalogEntriesS2`). (옛 둘째 표 type 의 quiet 전환 케이스는
+ * ADR-277 에서 type 과 같이 삭제 — Table 은 `isQuiet` 를 `containerVariants.quiet` 로 그린다.)
  */
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
@@ -33,7 +33,7 @@ async function open(type: string, props: Record<string, unknown>) {
     new CatalogGraph(
       newCatalogProjectDocument({
         projectId: "project:project:tree-tv" as const,
-        name: "Tree TableView",
+        name: "Tree emphasized",
       }),
       library,
     ),
@@ -76,7 +76,7 @@ async function open(type: string, props: Record<string, unknown>) {
   return { library, record, html };
 }
 
-describe("S2 Tree isEmphasized · TableView isQuiet", () => {
+describe("S2 Tree isEmphasized", () => {
   it("the Design panel offers the booleans and hides the variant carriers", async () => {
     const library = await buildCodeCatalogLibrary();
     const tree = catalogSemanticContracts(
@@ -88,14 +88,6 @@ describe("S2 Tree isEmphasized · TableView isQuiet", () => {
     expect(tree.isEmphasized).toMatchObject({ kind: "boolean" });
     expect(tree.isEmphasized.editorHidden).not.toBe(true);
     expect(tree.variant).toMatchObject({ editorHidden: true });
-    const tableView = catalogSemanticContracts(
-      catalogPaletteDefinitionId(library, "TableView") as Parameters<
-        typeof catalogSemanticContracts
-      >[0],
-      "TableView",
-    );
-    expect(tableView.isQuiet).toMatchObject({ kind: "boolean" });
-    expect(tableView.variant).toMatchObject({ editorHidden: true });
   });
 
   it("an emphasized Tree derives the rule's emphasized variant (the renamed accent)", async () => {
@@ -105,15 +97,7 @@ describe("S2 Tree isEmphasized · TableView isQuiet", () => {
     expect(plain.record.props.variant).toBe("default");
   });
 
-  it("a quiet TableView derives the quiet variant — data-variant in the DOM", async () => {
-    const { record, html } = await open("TableView", { isQuiet: true });
-    expect(record.props.variant).toBe("quiet");
-    expect(html).toContain('data-variant="quiet"');
-    const plain = await open("TableView", {});
-    expect(plain.html).toContain('data-variant="default"');
-  });
-
-  it("load migration: Tree accent → isEmphasized, TableView quiet → isQuiet", async () => {
+  it("load migration: Tree accent → isEmphasized", async () => {
     const library = await buildCodeCatalogLibrary();
     const entry = (id: string, type: string, variant: string) =>
       ({
@@ -128,15 +112,11 @@ describe("S2 Tree isEmphasized · TableView isQuiet", () => {
       }) as NodeEntry;
     const entries: Record<string, CatalogEntry> = {
       a: entry("a", "Tree", "accent"),
-      b: entry("b", "TableView", "quiet"),
-      c: entry("c", "TableView", "default"),
+      c: entry("c", "Tree", "default"),
     };
     expect(migrateCatalogEntriesS2(entries, library)).toBe(true);
     expect((entries.a as NodeEntry).props).toEqual({
       isEmphasized: { kind: "set", value: true },
-    });
-    expect((entries.b as NodeEntry).props).toEqual({
-      isQuiet: { kind: "set", value: true },
     });
     expect((entries.c as NodeEntry).props).toEqual({});
   });

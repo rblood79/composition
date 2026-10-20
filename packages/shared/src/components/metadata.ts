@@ -1136,17 +1136,6 @@ export const componentMetadata: ComponentMeta[] = [
       supportedEvents: ["onSelectionChange", "onAction"],
     },
   },
-  {
-    type: "TableView",
-    label: "Table View",
-    category: "Collections",
-    icon: "",
-    inspector: {
-      hasCustomEditor: false,
-      dataBindingType: null,
-      supportedEvents: ["onSelectionChange", "onSortChange", "onAction"],
-    },
-  },
 
   // Collections (Data)
   {

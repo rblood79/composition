@@ -287,7 +287,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // 2026-10-12 S2 정렬 F 묶음: − S2 · RAC · v3 어디에도 없는 variant 34 (ProgressBar · Fill ·
     //   Track 2 each, Table 2, Separator 6, Section 5, ColorPicker 2, 13 types × accent/quiet 1)
     //   8,136 → 6,912 (−1,224 = 34 × 36). diffs 0 유지.
-    expect(compared).toBe(6_912);
+    // ADR-277 (2026-10-21): − 옛 둘째 표 type 의 default · quiet (표는 Table 하나) 6,912 → 6,840
+    //   (−72 = 2 × 36). diffs 0 유지.
+    expect(compared).toBe(6_840);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

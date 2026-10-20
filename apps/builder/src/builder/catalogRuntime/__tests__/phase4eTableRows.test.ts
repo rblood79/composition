@@ -98,7 +98,8 @@ async function open(rowCount = 2) {
         { key: "email", label: "Email" },
         { key: "tags", label: "Tags" },
       ],
-      replace: false,
+      // ADR-277: the palette Table carries starter columns — the connect replaces them.
+      replace: true,
       buildColumn: () => {
         const id = workspace.newId("node") as NodeId;
         return {
@@ -200,7 +201,8 @@ describe("ADR-248 4e bound Table rows", () => {
     expect(bodyRows(workspace)).toEqual([["Zed", "zed@x.io", ""]]);
     setRows(undefined);
     workspace.refreshRows(["users"]);
-    expect(bodyRows(workspace)).toEqual([]);
+    // (ADR-277: the template's starter Row — its cells rebuilt empty by the replace — shows.)
+    expect(bodyRows(workspace)).toEqual([["", "", ""]]);
     workspace.dispose();
   });
 

@@ -553,9 +553,10 @@ export const insertGroupItem =
         ) ?? fail("NO_ITEMS_WRAPPER", groupType))
       : (rootSlot ?? { kind: "node", id: host.id });
     const containerChildren = wrapperType
-      ? (childList(draft, container)?.map(
-          (id): NodeParent => ({ kind: "node", id }),
-        ) ??
+      ? (childList(draft, container)?.map((id): NodeParent => ({
+          kind: "node",
+          id,
+        })) ??
         (wrapperRow
           ? positionRows(reader, wrapperRow).map(parentOfTarget)
           : childPositions(draft, container)))
@@ -735,10 +736,10 @@ function columnKey(
   return `column${index + 1}`;
 }
 /**
- * Tables whose header and body hold the column and row nodes: S2 `TableView` and RAC `Table` (ADR-256
- * Phase 5i — RAC throws when a row's cell count differs from the column count).
+ * Tables whose header and body hold the column and row nodes: RAC `Table` (ADR-256 Phase 5i — RAC
+ * throws when a row's cell count differs from the column count; ADR-277 — the table is one type).
  */
-const TABLE_OWNERS: ReadonlySet<string> = new Set(["TableView", "Table"]);
+const TABLE_OWNERS: ReadonlySet<string> = new Set(["Table"]);
 function tableBodyOf(
   draft: CommandDraft,
   header: NodeParent,
@@ -912,7 +913,7 @@ const TABLE_BREAKPOINTS: readonly BreakpointName[] = [
  * ADR-256 Phase 5i-3 — whether a RAC Table is aligned (G0 ⑨: RAC throws when a row's cell count
  * differs from the column count): at every breakpoint, each shown row shows as many cells as the
  * header shows columns (`enabled` · `visibility` — Round 12), read from `draft` (a command's
- * result). Undefined for any node that is not a RAC Table (a TableView draws its own grid).
+ * result). Undefined for any node that is not a RAC Table.
  */
 export function tableAlignedIn(
   draft: CommandDraft,
@@ -1224,8 +1225,8 @@ export function tableHeaderColumns(
 /**
  * Add columns to a TableHeader (owned, or an instance's header position). Without `columns`, one
  * `column<n>` / "Column <n>" whose key no sibling uses; `replace` drops the current columns (quick
- * connect reconnect). In a TableView whose rows each have one cell per column, every row gets a
- * cell per new column.
+ * connect reconnect). In a Table whose rows each have one cell per column, every row gets a cell
+ * per new column; with `replace`, every row's cells are built again — one per new column (ADR-277).
  */
 export const insertTableColumns =
   (input: {
@@ -1291,26 +1292,49 @@ export const insertTableColumns =
       ...(childList(draft, input.header) ?? []),
       ...columnIds,
     ]);
-    const body = input.replace ? undefined : tableBodyOf(draft, input.header);
+    const body = tableBodyOf(draft, input.header);
     if (body) {
       const rows = ensureChildList(draft, body, input.newId);
-      // (A reusable row's cells are its template's, then its own — Round 12; a new cell is its own.)
-      const aligned = rows.every(
-        (row) =>
-          spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
-          current.length,
-      );
-      if (rows.length && aligned)
+      if (input.replace) {
+        // ADR-277 Decision 2 (R2): the static rows follow the new columns — each row's own cells
+        // go and it gets one empty cell per new column, so the Table stays aligned (RAC throws on a
+        // row whose cell count differs from the column count — ADR-256 Phase 5i G0 ⑨) once its
+        // binding is removed and the rows show again.
         for (const rowId of rows) {
+          const row = draft.node(rowId);
+          const ownCells = row.children;
+          draft.write({ ...row, children: [] });
+          removeWithReferrers(
+            draft,
+            ownCells.flatMap((id) => subtree(draft, id)),
+          );
           const cells = specs.map(() => input.buildCell(rowId));
           for (const cell of cells)
             for (const entry of cell.entries) draft.create(entry);
-          const row = draft.node(rowId);
           draft.write({
-            ...row,
-            children: [...row.children, ...cells.map((cell) => cell.rootId)],
+            ...draft.node(rowId),
+            children: cells.map((cell) => cell.rootId),
           });
         }
+      } else {
+        // (A reusable row's cells are its template's, then its own — Round 12; a new cell is its own.)
+        const aligned = rows.every(
+          (row) =>
+            spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
+            current.length,
+        );
+        if (rows.length && aligned)
+          for (const rowId of rows) {
+            const cells = specs.map(() => input.buildCell(rowId));
+            for (const cell of cells)
+              for (const entry of cell.entries) draft.create(entry);
+            const row = draft.node(rowId);
+            draft.write({
+              ...row,
+              children: [...row.children, ...cells.map((cell) => cell.rootId)],
+            });
+          }
+      }
     }
     return {
       label: input.label ?? "Add column",

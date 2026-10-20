@@ -346,7 +346,6 @@ const COLLECTION_KEY_ACCEPTS: Readonly<
   TagGroup: SELECTION_KEYS,
   Menu: SELECTION_KEYS,
   Table: SELECTION_KEYS,
-  TableView: SELECTION_KEYS,
   Tree: {
     ...SELECTION_KEYS,
     expandedKeys: "string[]",

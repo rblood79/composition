@@ -103,7 +103,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너. factory 가 자식 Button×2(Cancel/Save) 자동
   //   생성 → 런타임 항상 _hasChildren=true → spec render.shapes standalone box 분기 dead, 자식 Button
-  //   self-draw (AvatarGroup/CardView/TableView/Pagination 동형). variant default 전부 transparent →
+  //   self-draw (AvatarGroup/CardView/Pagination 동형). variant default 전부 transparent →
   //   buildCatalogShapes 투명 generic box shell. 시각 source = COMPONENT_RULES_TABLE.ButtonGroup.
   //   layout(flex/gap)은 factory props.style SSOT(ADR-907 Layer B). generate-css virtual = size별 gap
   //   제거(factory SSOT) + 빈 hover/pressed transparent 블록 noise 제거(AvatarGroup 동형, 시각 손실 0).
@@ -251,7 +251,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너. factory 가 자식 Button×5(←/1/2/3/→) 자동
   //   생성 → 런타임 항상 _hasChildren=true → spec render.shapes standalone 버튼군 dead, 컨테이너
   //   box(flex row)만 live → buildCatalogShapes generic box shell 로 시각 대칭(AvatarGroup/CardView/
-  //   TableView 동형). staticSelectors 7개(.pagination-controls / .react-aria-Button[data-current])는
+  //   표 동형). staticSelectors 7개(.pagination-controls / .react-aria-Button[data-current])는
   //   generate-css TEXT_LEAF_META.composition 으로 전달 → CSSGenerator emit(Link rootSelectors 선례).
   primitiveEntry("Pagination", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
@@ -449,14 +449,14 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     icon: "Image",
   }),
   // ADR-912 R7 G1-a/b (2026-06-15): container shell 3종 catalog cutover (AvatarGroup/CardView/
-  //   TableView). 각 spec(skipCSSGeneration:false → 자체 generated/{X}.css)을 generate-css virtual
+  //   옛 둘째 표 type). 각 spec(skipCSSGeneration:false → 자체 generated/{X}.css)을 generate-css virtual
   //   로 DOM CSS source 이전(R7 G1-a/b) 후 catalog 등록 — Skia 시각도 spec.render.shapes →
   //   buildCatalogShapes generic box shell 로 이전(isCatalogCutover 게이트 활성). 시각 source =
   //   COMPONENT_RULES_TABLE.{X}. layout 은 factory props.style SSOT(ADR-907 Layer B). DOM 은 전용
-  //   rendererMap(renderAvatarGroup/renderCardView/renderTableView) 유지 — INTERNAL_RENDERERS 미등록
+  //   rendererMap(renderAvatarGroup/renderCardView/옛 표 renderer) 유지 — INTERNAL_RENDERERS 미등록
   //   + cutoverTypes 미포함 → generic 전환 아님(전용 렌더러 inline style 이 DOM 시각, generated CSS
   //   보조). catalog entry 는 Skia 게이트 활성 + palette source 목적. Card 본체(R6) 동형.
-  //   TableView 는 isQuiet boolean → variant:quiet 흡수(S2 정본 variant 모델, D2 BC 사용자 승인).
+  //   옛 둘째 표 type 은 isQuiet boolean → variant:quiet 흡수(S2 정본 variant 모델, D2 BC 사용자 승인 — ADR-277 로 삭제).
   primitiveEntry("AvatarGroup", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "avatar group",
@@ -466,11 +466,6 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     category: "layout",
     label: "card view",
     icon: "LayoutGrid",
-  }),
-  primitiveEntry("TableView", "primitives", FAMILY_1_CUTOVER, {
-    category: "layout",
-    label: "table view",
-    icon: "Table",
   }),
   // ADR-209: canonical primitive 는 하나, 저작 진입점만 6종으로 분리.
   primitiveEntry("Chart", "primitives", FAMILY_1_CUTOVER, {
@@ -482,15 +477,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "chart",
     icon: "BarChart3",
   }),
-  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
-  //   생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994(!spec &&
+  // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25 — 당시의 둘째 표 type factory,
+  //   ADR-277 에서 Table 로 통합): Table 이 생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994(!spec &&
   //   !isCatalogCutover → return null)에서 Skia scene node 가 통째로 버려져 헤더/행/텍스트가 Skia 에
-  //   안 그려졌다(Preview 는 renderTableView 가 직접 div 렌더 → CSS↔Skia 비대칭). 등록으로
+  //   안 그려졌다(Preview 는 옛 표 renderer 가 직접 div 렌더 → CSS↔Skia 비대칭). 등록으로
   //   isCatalogCutover → buildCatalogShapesOrPrimitive(box+text), resolveSkiaRule(COMPONENT_RULES_TABLE)
   //   시각값(Column/Cell padding 8px / Column fontWeight 600) + buildCatalogShapes text 분기
-  //   (props.children → text shape)로 Skia 렌더. DOM 은 renderTableView self-compose(독립 노드 0)라
-  //   변화 0. **PALETTE_ORDER 미포함**(TableView factory 전용 자식, 단독 배치 불가 — TableCell/TableRow
-  //   동형). factory creator 없음(TableView definition 이 자식 생성) → placeable 집합 외 → 불변식 B
+  //   (props.children → text shape)로 Skia 렌더. DOM 은 옛 표 renderer self-compose(독립 노드 0)라
+  //   변화 0. **PALETTE_ORDER 미포함**(Table 전용 자식, 단독 배치 불가 — TableCell/TableRow
+  //   동형). factory creator 없음(Table definition 이 자식 생성) → placeable 집합 외 → 불변식 B
   //   (rendererMap/getDefaultProps) 대상 아님.
   primitiveEntry("TableHeader", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
@@ -1018,7 +1013,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
  * (canvasSceneNode appendTableRowProjection → TableRow/TableCell.spec.render.shapes)로 이전.
  * 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} + border {color.border})가 렌더.
  * 사용자 결정 "행 단위 셀 노드"(RowsGroup→Row[i]→Cell[i][j]) — cell 단위 hit-test + window 가상화.
- * TableView 는 inventory §2-1 primitive 49 에 없음(LayoutRenderer 전용 layout helper) → 제외.
+ * (옛 둘째 표 type 은 inventory §2-1 primitive 49 에 없었다 — ADR-277 에서 Table 로 통합.)
  */
 const FAMILY_5_CUTOVER: CutoverState = "catalog";
 
@@ -1159,7 +1154,7 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // Toast — ADR-912 R7 G1-c 순수 box-shell catalog cutover (2026-06-15): factory(createToastDefinition)가
   //   Heading + Description 자식 자동 생성 → 런타임 항상 _hasChildren=true → 컨테이너 box(bg+border)만
-  //   live(standalone 메시지 text dead). AvatarGroup/CardView/TableView/Pagination box-shell 동형. 구 spec
+  //   live(standalone 메시지 text dead). AvatarGroup/CardView/Pagination box-shell 동형. 구 spec
   //   좌측 accent bar(rect 3px)는 RAC 공식 Toast(react-aria.adobe.com/Toast — accent bar 없음) 미준수
   //   변형이라 제거(사용자 결정 2026-06-15) → skiaPrimitive 없는 순수 box shell. DOM=dedicated
   //   renderToast(<div role="alert">) + 자식. palette 미노출(imperative 알림 — paletteItems 비포함)이나
@@ -1435,7 +1430,6 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "GridList",
   "Tree",
   "TagGroup",
-  "TableView",
   // charts
   "Chart",
   // dateTime

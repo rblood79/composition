@@ -199,11 +199,6 @@ const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
     label: "button group",
     icon: "GroupIcon",
   },
-  TableView: {
-    category: "collections",
-    label: "table view",
-    icon: "TableProperties",
-  },
 };
 
 /**
@@ -289,9 +284,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Tree", source: "catalog" },
   { type: "TagGroup", source: "catalog" },
   { type: "Section", source: "catalog" },
-  { type: "TableView", source: "overlay" },
-  // ADR-194 (2026-09-08): 차트. catalog 등록 컴포넌트라 source="catalog"
-  //   (TableView 는 catalog 미등록 7 중 하나라 overlay).
+  // ADR-194 (2026-09-08): 차트. catalog 등록 컴포넌트라 source="catalog".
+  // (ADR-277, 2026-10-21: 「table view」 overlay 항목은 「table」 로 통합 — 표는 하나.)
   { type: "Chart", source: "catalog" },
   { type: "Calendar", source: "catalog" },
   { type: "DatePicker", source: "catalog" },

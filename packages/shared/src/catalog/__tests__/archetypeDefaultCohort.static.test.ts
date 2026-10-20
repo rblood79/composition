@@ -22,7 +22,6 @@ const PINNED_DEFAULT_WITHOUT_LAYOUT = [
   "GridListItem",
   "Pagination",
   "Tab",
-  "TableView",
   "Toolbar",
 ] as const;
 
@@ -62,7 +61,7 @@ describe("ADR-223 G4 — archetype 미지정 cohort ratchet", () => {
       cursor: "pointer",
       "user-select": "none",
     });
-    for (const key of ["Card", "Tab", "Pagination", "Toolbar", "TableView"]) {
+    for (const key of ["Card", "Tab", "Pagination", "Toolbar"]) {
       const cs = COMPONENT_RULES_TABLE[key].structure?.containerStyles as
         Record<string, unknown> | undefined;
       expect(cs?.cursor, key).toBeUndefined();

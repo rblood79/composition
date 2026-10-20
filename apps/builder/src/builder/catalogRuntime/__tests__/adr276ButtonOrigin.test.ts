@@ -87,7 +87,8 @@ async function open() {
 
 describe("ADR-276 Button origin template", () => {
   it("raises the library contract (an older document is refused, not converted)", () => {
-    expect(LIBRARY_CONTRACT_VERSION).toBe(43);
+    // (43 at the time; ADR-277 raised it to 44 — the Table origin's starter, 2026-10-21.)
+    expect(LIBRARY_CONTRACT_VERSION).toBeGreaterThanOrEqual(43);
   });
 
   it("is the IconButton template: Icon{icon} + Text{label}, no own children string", () => {

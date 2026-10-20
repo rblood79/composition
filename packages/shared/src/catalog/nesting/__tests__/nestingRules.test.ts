@@ -103,10 +103,8 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(
       canNest("CheckboxButton", "Label", ["CheckboxButton", "Checkbox"]),
     ).toBe(true);
-    expect(canNest("TableView", "Button")).toBe(false);
-    expect(canNest("Row", "Cell", ["Row", "TableBody", "TableView"])).toBe(
-      true,
-    );
+    expect(canNest("Table", "Button")).toBe(false);
+    expect(canNest("Row", "Cell", ["Row", "TableBody", "Table"])).toBe(true);
     // TreeItem 은 하위 항목 + 행 내용 TreeItemContent (ADR-256 Phase 5h — 레퍼런스), 내용은 자유
     expect(canNest("TreeItem", "TreeItem", ["TreeItem", "Tree"])).toBe(true);
     expect(canNest("TreeItem", "TreeItemContent", ["TreeItem", "Tree"])).toBe(

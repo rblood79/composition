@@ -49,7 +49,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `component-daterangepicker__popover`, `hideArrow`) — `DatePicker > Label + Group(DateInput +
  * Button) + Description + FieldError + Popover > Calendar`. 23 — ADR-256 Phase 6h: a Column's
  * name sits in a RAC `Group` (`Column > Group[role=presentation] > Text {children}` — the
- * reference's `.column-name`); a TableView's columns are plain Columns (its own grid).
+ * reference's `.column-name`); the palette Table's starter columns are plain Columns.
  * 24 — ADR-256 Phase 7a: a ProgressBar's value text binds RAC's `{valueText}`
  * (`component-progressbar__2`) and its track holds a `ProgressBarFill` (`__3_1`, width
  * `{percentage}%`); its Label carries `presentWhen`. 25 — ADR-256 Phase 7b: a Meter the same
@@ -114,9 +114,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `{icon}` draws nothing) and the nested Button positions of other origins carry their words as
  * `label`; the IconButton origin is gone. A 42 document (an own `children` Button, an IconButton
  * instance) is refused (사용자 결정 2026-10-20).
+ * 44 — ADR-277: the table is one type — the TableView origin · template are gone and the Table
+ * origin's template carries the starter (`component-table__1_1..3` Columns Name · Type · Status,
+ * `__2_1` a table-row instance with three Cells). A 43 document (a TableView instance, a Table
+ * whose template had no starter) is refused (사용자 결정 2026-10-21).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 43 as const;
+export const LIBRARY_CONTRACT_VERSION = 44 as const;
 
 export type EntryKind =
   | "project"

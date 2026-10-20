@@ -53,14 +53,15 @@ describe("density 채널 — catalog SSOT", () => {
 });
 
 /**
- * TableView density (2026-08-21) — Spectrum `table.item.padding × density`.
+ * Table density (2026-08-21) — Spectrum `table.item.padding × density`.
  *
  * Spectrum 은 행 높이를 size 축이 정하고(`table-row-height-*` 은 density 무관 — 구
  * `-regular` 접미사 토큰은 deprecated) density 는 **item 내부 여백**만 바꾼다. 그래서
- * 채널이 TableView 가 아니라 소비 주체인 Column/Cell 에 산다 — TableView 는 density
- * **값**만 자손에 위임한다 (DOM: renderTableViewSubtree — Skia 쪽 옛 applyImplicitStyles 는 2026-10-05 삭제).
+ * 채널이 Table 이 아니라 소비 주체인 Column/Cell 에 산다 — Table 은 density
+ * **값**만 자손에 위임한다 (`CATALOG_DENSITY_PROPAGATION_OWNER`). (옛 둘째 표 type 은 ADR-277 에서
+ * Table 로 통합 — 2026-10-21.)
  */
-describe("density 채널 — TableView(Column/Cell)", () => {
+describe("density 채널 — Table(Column/Cell)", () => {
   it("Column/Cell 이 같은 축·같은 값을 갖는다 — 한 행 안에서 header/body 여백이 갈리면 안 된다", () => {
     for (const key of ["compact", "regular", "spacious"] as const) {
       expect(resolveCatalogDensityField("Column", key, "paddingY")).toBe(
@@ -104,12 +105,11 @@ describe("density 채널 — TableView(Column/Cell)", () => {
     }
   });
 
-  it("TableView 자신에는 densities 를 두지 않는다 — 두면 자기 padding 으로 CSS emit 된다", () => {
-    // TableView 는 `structure` 보유라 virtual spec → generated CSS 가 나온다. 여기에
-    // densities 를 두면 generate-css 가 containerVariants.density 로 합성해 컨테이너
+  it("Table 자신에는 densities 를 두지 않는다 — 두면 자기 padding 으로 CSS emit 된다", () => {
+    // Table 에 densities 를 두면 generate-css 가 containerVariants.density 로 합성해 컨테이너
     // 자신의 padding-top/bottom 을 emit 하는데, 바꿔야 할 대상은 자손 Column/Cell 이다.
-    expect(COMPONENT_RULES_TABLE.TableView?.densities).toBeUndefined();
-    expect(COMPONENT_RULES_TABLE.TableView?.structure).toBeDefined();
+    expect(COMPONENT_RULES_TABLE.Table?.densities).toBeUndefined();
+    expect(COMPONENT_RULES_TABLE.TableView).toBeUndefined();
     // 반대로 Column/Cell 은 structure 미보유 → CSS emit 없음(DOM 은 인라인이 정본).
     expect(COMPONENT_RULES_TABLE.Column?.structure).toBeUndefined();
     expect(COMPONENT_RULES_TABLE.Cell?.structure).toBeUndefined();

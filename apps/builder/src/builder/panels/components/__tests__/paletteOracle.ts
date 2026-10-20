@@ -368,12 +368,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Square",
   },
   {
-    type: "TableView",
-    category: "collections",
-    label: "table view",
-    icon: "TableProperties",
-  },
-  {
     type: "chart-area",
     category: "charts",
     label: "Area Chart",

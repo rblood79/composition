@@ -366,9 +366,12 @@ describe("ADR-248 4e library origin view", () => {
     // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
     // part) is not a collection: no Item line.
     const combo = cards.find((candidate) => candidate.name === "ComboBox")!;
-    expect(combo.children.slice(1).map(nodeOf).map((row) => row.name)).not.toContain(
-      "Item",
-    );
+    expect(
+      combo.children
+        .slice(1)
+        .map(nodeOf)
+        .map((row) => row.name),
+    ).not.toContain("Item");
     // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
     expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
       "◆ GridList",
@@ -383,7 +386,9 @@ describe("ADR-248 4e library origin view", () => {
     const itemSample = sampleOf(itemOriginCell!);
     expect(itemSample.id).toBe(originSampleId(ITEM_ORIGIN));
     expect(itemSample.definitionId).toBe(ITEM_ORIGIN);
-    expect(catalogComponentState(graph, itemSample.id, COMPONENTS_VIEW)).toMatchObject({
+    expect(
+      catalogComponentState(graph, itemSample.id, COMPONENTS_VIEW),
+    ).toMatchObject({
       originOf: { definitionId: ITEM_ORIGIN },
     });
     // (Its label filled in as the instances' — the origin's `{label}` alone draws nothing.)
@@ -399,7 +404,8 @@ describe("ADR-248 4e library origin view", () => {
     // Every page node stands in one place (no item origin's sample is drawn twice).
     const placed = new Map<string, number>();
     const visit = (id: string) => {
-      for (const child of (graph.getEntry(id) as NodeEntry | undefined)?.children ?? []) {
+      for (const child of (graph.getEntry(id) as NodeEntry | undefined)
+        ?.children ?? []) {
         placed.set(child, (placed.get(child) ?? 0) + 1);
         visit(child);
       }
@@ -408,7 +414,9 @@ describe("ADR-248 4e library origin view", () => {
     expect([...placed].filter(([, count]) => count > 1)).toEqual([]);
     expect(placed.get(originSampleId(ITEM_ORIGIN))).toBe(1);
     // An item origin with a card of its own (a ButtonGroup's Button) is not drawn again.
-    const buttonGroup = cards.find((candidate) => candidate.name === "ButtonGroup");
+    const buttonGroup = cards.find(
+      (candidate) => candidate.name === "ButtonGroup",
+    );
     if (buttonGroup) {
       const groupRows = buttonGroup.children.slice(1).map(nodeOf);
       const itemRow = groupRows.find((row) => row.name === "Item");
@@ -881,7 +889,10 @@ describe("ADR-248 4e library origin view", () => {
       [true, "origin"],
       [true, "origin"],
     ]);
-    expect(tableMarks.every((mark) => mark.box.height >= 40)).toBe(true);
+    // ADR-277: the Table origin's header · body hold the starter (3 Columns · a Row) — laid out
+    // but not drawn, so each slot keeps its contents' size (no 40px box of its own any more).
+    expect(tableMarks.every((mark) => mark.box.height > 0)).toBe(true);
+    expect(tableMarks.every((mark) => mark.box.width > 0)).toBe(true);
     // A collection whose root holds its items is itself the slot: the origin's root is hatched
     // as empty — what it holds is laid out but not drawn; the instance beside it is not marked.
     const listOrigin = recordOf(originSampleId(lib("listbox")));

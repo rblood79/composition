@@ -5,17 +5,17 @@ import {
 } from "../document/itemLinks";
 
 /**
- * Row — Table/TableView 데이터 행 컨테이너 (자식 Cell×N flex row).
+ * Row — Table 데이터 행 컨테이너 (자식 Cell×N flex row).
  *
- * **노드**: TableView origin template (`reusableOriginLibrary.ts`) 은 TableBody 아래 Row(자식
- *   Cell×N)를 노드로 두고, Table 의 행은 Row 원본 (`component-table-row`) 의 instance 다.
+ * **노드**: Table origin template (`reusableOriginLibrary.ts`) 은 TableBody 아래 Row 원본
+ *   (`component-table-row`) 의 instance 하나 (자식 Cell×3 — starter, ADR-277) 를 두고, "+" 로 넣는
+ *   행도 같은 원본의 instance 다.
  *   PALETTE_ORDER 미포함(Table 가족 전용 자식).
  *
  * **Canvas**: `COMPONENT_RULES_TABLE.Row`(containerStyles flex row, variant transparent) → shell
  *   box(자식 Cell 이 내용 담당). children/text 미보유 → shell-only.
  *
- * **DOM**: Table · TableView 안에서 `INTERNAL_RENDERERS.row` (RAC `Row`, ADR-256 Phase 5i)
- *   (ADR-257 Phase 5 — S2 TableView 처럼 RAC Table).
+ * **DOM**: Table 안에서 `INTERNAL_RENDERERS.row` (RAC `Row`, ADR-256 Phase 5i).
  *
  * D1: RAC `Row`.
  * D2: 편집 surface 최소(컨테이너 — 자식 Cell 이 내용).

@@ -1701,7 +1701,6 @@ export interface TranslationKeys {
     tagGroup: string;
     menu: string;
     section: string;
-    tableView: string;
     // Date & Time
     calendar: string;
     datePicker: string;

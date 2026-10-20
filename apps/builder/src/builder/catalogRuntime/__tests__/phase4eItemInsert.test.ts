@@ -220,21 +220,27 @@ describe("ADR-248 4e item insert ('+')", () => {
         const border = 0.5;
         expect(box(items[0]).x - listBox.x).toBeCloseTo(border + 4);
         expect(box(items[0]).y - listBox.y).toBeCloseTo(border + 4);
-        expect(box(items[0]).width).toBeCloseTo(listBox.width - 2 * (border + 4));
+        expect(box(items[0]).width).toBeCloseTo(
+          listBox.width - 2 * (border + 4),
+        );
         // (Items touch — the list's padding holds them off its border; each at least 32 high.)
-        expect(box(items[1]).y).toBeCloseTo(box(items[0]).y + box(items[0]).height);
+        expect(box(items[1]).y).toBeCloseTo(
+          box(items[0]).y + box(items[0]).height,
+        );
         expect(box(items[0]).height).toBeGreaterThanOrEqual(32);
         // No item margins (사용자 2026-10-13): the first section starts right under the list's
         // last item.
         const lastItem = items.at(-1)!;
-        expect(box(sections[0]).y - (box(lastItem).y + box(lastItem).height)).toBeCloseTo(0);
+        expect(
+          box(sections[0]).y - (box(lastItem).y + box(lastItem).height),
+        ).toBeCloseTo(0);
         expect(items.map((record) => record.derivedProps?._lastItem)).toEqual(
           items.map(() => false),
         );
         // In a section: the last item with no line under it.
-        expect(inSection.map((record) => record.derivedProps?._lastItem)).toEqual(
-          inSection.map((_, index) => index === inSection.length - 1),
-        );
+        expect(
+          inSection.map((record) => record.derivedProps?._lastItem),
+        ).toEqual(inSection.map((_, index) => index === inSection.length - 1));
         // (Section children stand in the section's box.) Its last item at the section's end; the
         // next section starts right there (no margin between sections).
         const sectionLast = inSection.at(-1)!;
@@ -413,15 +419,17 @@ describe("ADR-248 4e item insert ('+')", () => {
     ).toEqual(["Row"]);
     add(workspace, "TableBody", "Row");
     const rows = recordOf(workspace, "TableBody").children;
-    expect(rows).toHaveLength(1);
-    expect(workspace.root.domInputs.get(rows[0]!)!.children).toHaveLength(
-      columns + 1,
-    );
+    // (ADR-277: the starter Row and the new one — each with a cell per column.)
+    expect(rows).toHaveLength(2);
+    for (const row of rows)
+      expect(workspace.root.domInputs.get(row)!.children).toHaveLength(
+        columns + 1,
+      );
     workspace.dispose();
   });
 
-  it("a TableView body adds a row with a cell per column; a new column gives every row a cell", async () => {
-    const workspace = await open("TableView");
+  it("a Table body adds a row with a cell per column; a new column gives every row a cell", async () => {
+    const workspace = await open("Table");
     const columns = childTypes(workspace, "TableHeader").length;
     const rows = childTypes(workspace, "TableBody").length;
     add(workspace, "TableBody", "Row");

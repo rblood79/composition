@@ -58,7 +58,7 @@ const NAMES = [
   ["ColorSwatchPicker", {}],
   ["ColorSwatchPickerItem", { color: "string" }],
   ["ColorSwatch", { color: "string" }],
-  ["TableView", {}],
+  ["Table", {}],
   ["TableHeader", {}],
   ["Column", { key: "string", children: "string" }],
   ["TableBody", {}],
@@ -67,7 +67,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 43,
+    contractVersion: 44,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -151,7 +151,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 43,
+    libraryContractVersion: 44,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -431,7 +431,7 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
   it("adds table columns with a cell per row, replaces columns, and adds aligned rows", () => {
     const graph = graphOf(
       [
-        node("view", "TableView", ["header", "body"]),
+        node("view", "Table", ["header", "body"]),
         node("header", "TableHeader", ["c1"]),
         node("c1", "Column", [], { key: "name", children: "Name" }),
         node("body", "TableBody", ["row1"]),
@@ -504,15 +504,37 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
     );
     expect(childProps(graph, "project:node:header", "key")).toEqual(["email"]);
     expect(graph.getEntry("project:node:c1")).toBeUndefined();
-    // Replacing columns leaves rows with two cells for one column: rows no longer align.
+    // ADR-277 (R2): replacing columns rebuilds every row's cells — one empty cell per new column
+    // (the old cells go), so the rows stay aligned and a new row still fits. (Before: the rows
+    // kept two cells for one column and the next row insert failed TABLE_ROWS_NOT_ALIGNED.)
+    expect(graph.getEntry("project:node:cell1")).toBeUndefined();
+    for (const rowId of (graph.getEntry("project:node:body") as NodeEntry)
+      .children) {
+      const cells = (graph.getEntry(rowId) as NodeEntry).children;
+      expect(cells).toHaveLength(1);
+      expect(childProps(graph, rowId, "children")).toEqual([""]);
+    }
+    run(
+      graph,
+      insertTableRow({
+        body: { kind: "node", id: "project:node:body" },
+        buildRow: (count) => {
+          expect(count).toBe(1);
+          const cells = Array.from({ length: count }, () =>
+            node(`rc${++n}`, "Cell", [], { children: "" }),
+          );
+          const row = node(
+            `r${++n}`,
+            "Row",
+            cells.map((cell) => cell.id.slice(13)),
+          );
+          return { entries: [row, ...cells], rootId: row.id };
+        },
+        newId,
+      }),
+    );
     expect(
-      code(() =>
-        insertTableRow({
-          body: { kind: "node", id: "project:node:body" },
-          buildRow: () => ({ entries: [], rootId: "project:node:none" }),
-          newId,
-        })(graph),
-      ),
-    ).toBe("TABLE_ROWS_NOT_ALIGNED");
+      (graph.getEntry("project:node:body") as NodeEntry).children,
+    ).toHaveLength(3);
   });
 });

@@ -1898,19 +1898,18 @@ function ruleDom(
   const domGet = (recordId: string) => root.domInputs.get(recordId);
   const domType = (entry: CatalogConsumerNode) => catalogTypeName(root, entry);
   const operationsTable =
-    type === "Table" || type === "TableView"
+    type === "Table"
       ? node
       : type === "Column"
         ? domGet(domGet(node.parentId)?.parentId ?? "")
         : type === "TableHeader" || type === "Row"
           ? catalogTrackTableOf(node, domGet, domType)
           : undefined;
-  // (A TableView is always in RAC's container — S2, Phase 5.)
+  // (ADR-277: the table is one type — only a Table with a resizing Column is in RAC's container.)
   const resizable =
     !!operationsTable &&
-    (domType(operationsTable) === "TableView" ||
-      (domType(operationsTable) === "Table" &&
-        catalogTableResizable(operationsTable, domGet, domType)));
+    domType(operationsTable) === "Table" &&
+    catalogTableResizable(operationsTable, domGet, domType);
   let style = {
     ...authoredStyle(root, node),
     ...catalogTableTrackStyle(node, resizable),
@@ -2166,7 +2165,7 @@ function ruleDom(
   // document width is RAC's `defaultWidth` there) — a document change of a width builds the Table
   // again (the widths a drag left are runtime state: they give way to the document's edit).
   const widthKey =
-    resizable && (lower === "table" || lower === "tableview")
+    resizable && lower === "table"
       ? tableColumnWidthKey(root, node)
       : undefined;
   // A collection item's RAC id is its key (`resolveStaticItemKey`); RAC refuses an item whose id
@@ -2182,9 +2181,7 @@ function ruleDom(
   // A Table's rows set Selected start RAC's selection (2026-10-13 — its `defaultSelectedKeys`, which
   // RAC keeps from the first render: a changed set builds the Table again).
   const tableSelected =
-    lower === "table" || lower === "tableview"
-      ? catalogCollectionSelectedKeys(root, node)
-      : undefined;
+    lower === "table" ? catalogCollectionSelectedKeys(root, node) : undefined;
   const ownKey =
     itemKey !== undefined && itemKey !== node.id
       ? `${node.id}#${itemKey}`
@@ -2234,7 +2231,7 @@ function ruleDom(
         : {}),
       // ADR-257 Phase 4: RAC sorts through the Table (`onSortChange`) — the Preview's runtime
       // state (사용자 결정 4); a Column's resizing needs the Table in RAC's container.
-      ...(lower === "table" || lower === "tableview"
+      ...(lower === "table"
         ? {
             sortDescriptor: catalogTableSortOf(node.props.sortDescriptor),
             ...(context.runtime?.setRuntimeProps
@@ -2788,7 +2785,7 @@ export function withRuntime(
   return cloneElement(element, patch);
 }
 
-/** A Table's · TableView's Columns' document widths (their ids and S2 width props). */
+/** A Table's Columns' document widths (their ids and S2 width props). */
 function tableColumnIds(
   root: CatalogCompositionRoot,
   table: CatalogConsumerNode,

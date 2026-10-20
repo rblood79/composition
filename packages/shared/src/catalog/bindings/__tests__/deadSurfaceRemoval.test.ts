@@ -10,7 +10,6 @@ import { getPrimitiveBinding } from "../index";
  *   wrapper(Link.tsx)의 아이콘 합성이 안 탔다. 외부 링크는 RAC `target`/`rel` 로 표현.
  * - Form.autoFocus/restoreFocus: RAC FormProps 에 없음. raw RAC.Form 이 무시.
  * - Breadcrumbs.showRoot/isMultiline: RSP v3 개념이나 미구현 (소비처 0).
- * - TableView.allowsResizingColumns: 소비처 0.
  * - CardView.columns: renderCardView 는 gap 만 읽는다. S2 CardView 에도 columns 축 없음.
  * - ListBox/GridList/Tree/TagGroup.isDisabled (컬렉션 전체): RAC/RSP 컬렉션은 `disabledKeys`·항목별
  *   isDisabled 만 둔다. wrapper 가 안 읽고 Skia 항목 투영에도 부모 상태가 없어 두 leg 모두 dead 였다.
@@ -23,7 +22,6 @@ import { getPrimitiveBinding } from "../index";
 const REMOVED: Record<string, readonly string[]> = {
   Link: ["isExternal", "showExternalIcon"],
   Form: ["autoFocus", "restoreFocus"],
-  TableView: ["allowsResizingColumns"],
   ListBox: ["isDisabled", "items"],
   GridList: ["isDisabled", "items"],
   Tree: ["isDisabled"],
@@ -101,7 +99,7 @@ describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
     expect(getPrimitiveBinding("CardView")!.props.accepts).toHaveProperty(
       "selectionMode",
     );
-    expect(getPrimitiveBinding("TableView")!.props.accepts).toHaveProperty(
+    expect(getPrimitiveBinding("Table")!.props.accepts).toHaveProperty(
       "overflowMode",
     );
   });

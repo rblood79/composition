@@ -452,8 +452,7 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
       workspace.execute(
         setFields({
           targets: [
-            workspace.positionOfRecord(record(`project:node:r${r}`).id)!
-              .target,
+            workspace.positionOfRecord(record(`project:node:r${r}`).id)!.target,
           ],
           props: { isSelected: set(true) },
         }),
@@ -693,14 +692,16 @@ describe("ADR-256 Phase 5i-3 — Column count = Cell count", () => {
         newId: workspace.newId,
       }),
     );
-    expect(of("Cell")).toHaveLength(2);
+    // ADR-277: the palette Table starts with 3 columns and a 3-cell row — 5 columns × 2 rows.
+    expect(of("Column")).toHaveLength(5);
+    expect(of("Cell")).toHaveLength(10);
     workspace.execute(
       removeTargets({
         targets: [workspace.positionOfRecord(of("Column")[0]!.id)!.target],
       }),
     );
-    expect(of("Column")).toHaveLength(1);
-    expect(of("Cell")).toHaveLength(1);
+    expect(of("Column")).toHaveLength(4);
+    expect(of("Cell")).toHaveLength(8);
     expect(
       refusal(() =>
         workspace.execute(

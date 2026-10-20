@@ -15,9 +15,8 @@ export const COLLECTION_ITEM_OWNERS: Readonly<
   ListBoxItem: { owners: ["ListBox"], through: ["ListBoxSection"] },
   GridListItem: { owners: ["GridList"], through: ["GridListSection"] },
   TreeItem: { owners: ["Tree"], through: ["TreeItem"] },
-  // ADR-256 Phase 5i-2: a RAC Table's row (its selection checkbox shows the row's selection) — an
-  // S2 TableView's too (RAC's Table inside, ADR-257 Phase 5).
-  Row: { owners: ["Table", "TableView"], through: ["TableBody"] },
+  // ADR-256 Phase 5i-2: a RAC Table's row (its selection checkbox shows the row's selection).
+  Row: { owners: ["Table"], through: ["TableBody"] },
   // (A submenu's item — in its SubmenuTrigger — is not one of the Menu's selectable items.)
   MenuItem: { owners: ["Menu"], through: ["MenuSection"] },
   // ADR-256 Phase 10: an S2 CardView's Card (its RAC GridListItem).

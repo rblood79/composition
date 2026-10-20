@@ -4113,7 +4113,7 @@ export class CatalogCompositionRoot {
         };
         visit(record.children);
       }
-      // ADR-257 Phase 3 — a Table's · TableView's `overflowMode` reaches the Columns · Cells in
+      // ADR-257 Phase 3 — a Table's `overflowMode` reaches the Columns · Cells in
       // it, a GridList's its items (`CATALOG_OVERFLOW_MODE_OWNERS` — the resolver's
       // `applyOwnerOverflowMode`): they resolve again with it.
       if (

@@ -28,7 +28,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * ADR-256 G1 — the slot section's insert list is the position's children kind (ADR-256 Decision 4),
  * checked like the insert: re-runs the F3 probe (each slot of each built-in origin) and requires
  * that every listed choice goes in, and that a position taking items lists only its items.
- * (Before: every slot listed the same 5 primitives; Tabs · Table · TableView · CheckboxGroup ·
+ * (Before: every slot listed the same 5 primitives; Tabs · Table · CheckboxGroup ·
  * RadioGroup · TagGroup refused all 5 — `NESTING_NOT_ALLOWED`.)
  */
 const PROJECT = "project:project:adr256-slots" as EntryId<"project">;
@@ -71,7 +71,6 @@ async function open() {
 const ORIGINS = [
   "tabs",
   "table",
-  "tableview",
   "checkboxgroup",
   "radiogroup",
   "taggroup",
@@ -151,7 +150,11 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
     expect(report).toEqual([]);
     // ADR-256 Phase 10: the Card takes the S2 structure — its Content holds its title · description
     // Text nodes (no binding to the card's props), so every slot position opens (F3 closed).
-    expect(empty).toEqual([]);
+    // ADR-277: the palette Table starts aligned (3 starter columns · a 3-cell row) — a plain slot
+    // fill of a Column or a Row would break the cell-per-column rule (ADR-256 Phase 5i), so its
+    // header · body slots list nothing; the owner's Insert Column · Insert Row (`itemInsert`,
+    // `ownerItemInsert.test.ts`) is their way in.
+    expect(empty).toEqual(["table TableHeader", "table TableBody"]);
   });
 
   // ADR-256 F4 — the slot on an origin's root (ListBox · Toolbar · Form …) fills from the instance.

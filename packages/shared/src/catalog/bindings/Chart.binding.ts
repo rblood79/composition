@@ -4,7 +4,7 @@ import type { PrimitiveBinding } from "../types";
  * Chart — 데이터 시각화 leaf (ADR-194).
  *
  * **D1 = internal source**: RAC 에 chart primitive 가 없다. `kind:"internal"` 탈출구는
- *   TableView(@tanstack/react-table)·Icon(Lucide) 선례와 같은 자리다. ARIA 부여처가
+ *   옛 표 컨테이너(@tanstack/react-table)·Icon(Lucide) 선례와 같은 자리다. ARIA 부여처가
  *   없으므로 `staticAttrs.role = "img"` 로 D1 을 데이터로 메운다 (InlineAlert 선례 —
  *   본 ADR 의 유일한 ARIA 수동 작성 1건).
  *

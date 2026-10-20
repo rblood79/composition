@@ -67,7 +67,7 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
  * 통과했다 — RAC primitive 는 이 prop 을 모르므로 DOM 에 누출되거나 무시되고, `data-quiet` 이
  * 없어 CSS 도 미적용이었다(`labelPosition`/`staticColor` 와 같은 결함 축). 실질 피해는
  * **TextArea 하나** — isQuiet 을 선언한 15 binding 중 13개는 전용 컴포넌트(delegating renderer)가
- * 직접 emit 하고 그 경로는 본 projector 를 타지 않으며, TableView 는 `variant:"quiet"` 로 흡수했다.
+ * 직접 emit 하고 그 경로는 본 projector 를 타지 않으며, 옛 둘째 표 type 은 `variant:"quiet"` 로 흡수했었다 (ADR-277 로 삭제).
  */
 const DATA_ATTR_BOOLEAN_KEYS: ReadonlyMap<string, string> = new Map([
   ["isQuiet", "data-quiet"],

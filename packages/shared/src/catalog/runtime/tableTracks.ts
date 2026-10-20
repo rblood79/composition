@@ -116,7 +116,7 @@ export function catalogTableColumnTracks(
   return columns.map((column) => catalogColumnTrack(column).track).join(" ");
 }
 
-// ── Records: the shared track list of a Table · TableView's rows ─────────────
+// ── Records: the shared track list of a Table's rows ─────────────────────────
 
 /** The record shape the track derivation reads (a structural subset of `CatalogConsumerNode`). */
 interface TrackRecord {
@@ -128,7 +128,7 @@ interface TrackRecord {
 type TrackLookup<T extends TrackRecord> = (id: string) => T | undefined;
 type TrackTypeOf<T extends TrackRecord> = (node: T) => string;
 
-const TRACK_TABLE_TYPES: ReadonlySet<string> = new Set(["Table", "TableView"]);
+const TRACK_TABLE_TYPES: ReadonlySet<string> = new Set(["Table"]);
 
 function recordChildren<T extends TrackRecord>(
   node: T,
@@ -140,7 +140,7 @@ function recordChildren<T extends TrackRecord>(
   });
 }
 
-/** The Table · TableView whose header row · Row this is (Row → TableBody → Table). */
+/** The Table whose header row · Row this is (Row → TableBody → Table). */
 export function catalogTrackTableOf<T extends TrackRecord>(
   node: T,
   get: TrackLookup<T>,
@@ -188,7 +188,7 @@ function isSelectionColumn<T extends TrackRecord>(
 
 /**
  * The track list a Table's header row · Row lays out on (`display: grid` — Canvas `styleOf`, DOM
- * `catalogDomStyle` · the TableView parts). Undefined for any other record or a Table without
+ * `catalogDomStyle` · the Table parts). Undefined for any other record or a Table without
  * Columns.
  */
 export function catalogTableRowTracks<T extends TrackRecord>(
@@ -213,7 +213,7 @@ export function catalogTableRowTracks<T extends TrackRecord>(
 }
 
 /**
- * Records whose tracks read `owner` (`catalogDerivedPropsDependents`): a Table · TableView, its
+ * Records whose tracks read `owner` (`catalogDerivedPropsDependents`): a Table, its
  * header (its Columns), a Column (its width props) or a checkbox in a Column (the selection
  * column) reaches the header row and every Row of its Table.
  */
@@ -269,13 +269,11 @@ export function catalogTableSelectionPartHidden<T extends TrackRecord>(
   const row = get(node.parentId);
   const table = row ? catalogTrackTableOf(row, get, typeOf) : undefined;
   return (
-    !!table &&
-    highlightSelection(table) &&
-    isSelectionColumn(node, get, typeOf)
+    !!table && highlightSelection(table) && isSelectionColumn(node, get, typeOf)
   );
 }
 
-/** The selection Columns · Cells of a Table · TableView (`catalogTableSelectionPartHidden`). */
+/** The selection Columns · Cells of a Table (`catalogTableSelectionPartHidden`). */
 export function catalogTableSelectionParts<T extends TrackRecord>(
   table: T,
   get: TrackLookup<T>,

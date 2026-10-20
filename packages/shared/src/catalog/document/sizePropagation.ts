@@ -180,7 +180,7 @@ export const CATALOG_SIZE_STEP: Readonly<
 
 /**
  * S2 density context (2026-10-10): the owner type whose `density` reaches this part type — a
- * Table's spaces its Columns · Cells (S2 TableView density: one value rows every cell). Read by
+ * Table's spaces its Columns · Cells (S2 table density: one value rows every cell). Read by
  * the resolver (`applyOwnerDensity`) so both consumers see one resolved value; the parts carry
  * no editable density of their own (`editorHidden`).
  */
@@ -202,7 +202,7 @@ export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
 export const CATALOG_OVERFLOW_MODE_OWNERS: Readonly<
   Record<string, readonly string[]>
 > = {
-  Column: ["Table", "TableView"],
-  Cell: ["Table", "TableView"],
+  Column: ["Table"],
+  Cell: ["Table"],
   GridListItem: ["GridList"],
 };

@@ -146,12 +146,11 @@ const PICKER_LIST: Readonly<Record<string, readonly string[]>> = {
   MenuTrigger: ["Menu"],
   // (2026-10-09 사용자 「Tabs 의 경우 컴퍼넌트 상단 프러퍼티에 "+" 가 없고 tablist 에 slot "+" 가 있다」:
   // a Tabs adds its Tabs — with their TabPanels — in its TabList, a TagGroup its Tags in its
-  // TagList, as a CheckboxGroup adds in its items wrapper; 「Table 도 같은 방식으로」: a Table ·
-  // TableView its columns in its TableHeader and its rows in its TableBody.)
+  // TagList, as a CheckboxGroup adds in its items wrapper; 「Table 도 같은 방식으로」: a Table its
+  // columns in its TableHeader and its rows in its TableBody.)
   Tabs: ["TabList"],
   TagGroup: ["TagList"],
   Table: ["TableHeader", "TableBody"],
-  TableView: ["TableHeader", "TableBody"],
 };
 
 export function catalogItemInsertChoices(

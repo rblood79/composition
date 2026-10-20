@@ -13,7 +13,6 @@ const ALWAYS_NEEDS_NAME: ReadonlySet<string> = new Set([
   "ListBox",
   "GridList",
   "Table",
-  "TableView",
   "Tree",
   "Tabs",
   "Toolbar",

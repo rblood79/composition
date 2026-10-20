@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-10-20
+Accepted — 2026-10-21 (Proposed 2026-10-20)
+
+- 승격 근거: 사용자 `/execute-adr 277` 호출 (2026-10-21) + [reviews/277.md](reviews/277.md) Round 2 가 pending 0 · HIGH 전부 fixed (실행자 설계 종결 2026-10-20). Phase 0 인벤토리 (2026-10-21, main `66428e7ad`): 소스 46 + 생성 `TableView.css` 1 = 47 · 테스트 26 — breakdown §2 와 같다 (1.5× 미만). `renderFacetDeclaration.ts` 의 `tableview` 는 주석 3줄뿐 (facet 선언 행 없음) · seed · fixture · Components 페이지의 TableView 0 · `resolveTableColumnKey` 규칙 (key → children 소문자 → id → `colN`) 확인 · Quick Connect 경로 (`resolveColumnMode` 호출자 1 = `catalogQuickConnectHost.ts` execute · `QuickConnectTarget.binding` = `bindingSnapshot` 객체) 확인.
+- **Phase 1 종결 (2026-10-21)**: 구현 + G1 통과 — type-check 0 · `docs:stale-symbols` 0 · 새 단위 `adr277TableOrigin` 7 GREEN (starter 열 3 · 행 1 / 바운드 = 투영 행만 / 첫 연결 `replace` → `title` · `price` 칸 값 / 재연결 `preserve` + 스위치 / `replace` 뒤 정적 Row Cell = 열 수 · 해제 뒤 정렬 / TableView 심볼 0 / contract 44 · 43 문서 `UNSUPPORTED_LIBRARY_CONTRACT`) · 영향 테스트 37 파일 갱신 · 패키지 스위트 GREEN (사전 실패 제외 — breakdown §5). 통상 판단 1 (사후 보고): starter Column 은 Table 의 Column origin instance (이름 Group 포함, ADR-256 6h) — breakdown §5. 다음 Phase 2 (G2) · 3 (G3).
+- **Phase 2 · 3 종결 (2026-10-21)**: G2 parity — starter Table 6 칸 · 바운드 Table 270 칸 Canvas = Preview 차 ≤ 0.01 px, density compact 행 높이 33 양쪽, 상자 390 × 402 양쪽 (`### Live Exercise`). G3 live 전 항목 통과 (팔레트 1 · starter · 첫 연결 교체 · 해제 정렬 · 재연결 보존 + 스위치 · quiet · density · highlight · resizer · 정렬 · 43 거부 · 런타임 오류 0). 남은 것: Phase 4 커밋 (사용자 요청) → G4 (pre-push ratchet · 번들) → G5 사용자 확인 → Implemented.
 
 - 사용자 요청: `/create-adr Table + TableView 통합` (2026-10-20)
 - 방향을 정한 사용자 원문 (2026-10-20): 「Table + TableView 통합」 — 전 세션의 팔레트 전수 조사 (origin 정의 146 · 팔레트 70 · binding 151 을 D1 루트 기준으로 대조, 통합 후보 A-1) 결론 「Table + TableView (팔레트 2 → 1): 둘 다 `CatalogTable` · `CatalogTableView` 가 RAC `Table` + `ResizableTableContainer` 를 그림. S2 는 TableView 하나뿐」 을 사용자가 그대로 채택했다. 같은 조사의 후속 후보 (TextField + TextArea · Description · FieldButton) 는 이 ADR 밖이다.
@@ -94,6 +98,8 @@ Proposed — 2026-10-20
 
 ### 사용자 결정 3건 (execute-adr 가 닿을 때 묻는다)
 
+> **확정 (2026-10-21, 사용자 AskUserQuestion 응답)**: 1 = (a) Table · 2 = (a) starter 열 3 · 행 1 · 3 = (a) 첫 연결은 교체. 셋 다 권고안 그대로 — 아래 Decision 1 ~ 7 · R1 · R2 · G1 · G3 은 이 전제로 적혀 있어 수정 없음.
+
 1. **남는 이름** — (a) Table (RAC 이름 · GridList/ToggleButtonGroup/Tree 선례 · `react-aria-Table` class 와 일치, 팔레트 라벨 「table」) / (b) TableView (S2 이름 — 대안 C, 기술 H). 권고 (a). 전 세션 조사가 (b) 로 적었으나 그 조사는 코드의 이름 결합 (Context 표) 을 세지 않았다.
 2. **팔레트 Table 의 starter** — (a) TableView 의 열 3 · 행 1 을 Table origin template 에 넣는다 (놓는 순간 표가 보인다, 바인딩하면 투영 행으로 교체) / (b) 지금처럼 빈 header · body (데이터 바인딩 전용 — 빈 표는 400 px 상자만 보인다) / (c) Chart 처럼 `creationVariants` 로 팔레트 카드 둘 (「table」 빈 표 · 「table view」 starter, type 은 Table 하나). 권고 (a) — (c) 는 사용자가 지우려는 「표 둘」 모습을 팔레트에 남긴다.
 3. **starter 열의 첫 연결** (Round 1 h1) — (a) binding 이 없던 Table 의 첫 Quick Connect 는 열을 schema 로 교체한다 (starter · 사용자가 고친 열 모두 — `DataTableCreator` 가 교체될 열 key 를 실행 전에 보인다), 재연결은 지금처럼 보존 기본 + 교체 스위치 / (b) 첫 연결도 보존 기본 — 사용자가 「교체」 스위치를 켜야 schema 열이 들어간다 (기본값으로 연결하면 칸이 빈 채 남는다) / (c) starter 열에 표지 (template 자리인 동안만 교체, 사용자가 열을 하나라도 고치면 보존). 권고 (a) — (c) 는 「고쳤다」 판정 (key · 라벨 · 자식) 이 한 줄로 정해지지 않는다.
@@ -124,7 +130,17 @@ Proposed — 2026-10-20
 
 ### Live Exercise
 
-(Implemented 승격 시 기재.)
+2026-10-21, Chrome MCP (dev 5173 · 같은 checkout 의 HMR 빌드, 새 프로젝트 `adr277-live`, 기본 viewport 110 % · Compare Mode CSS | Canvas, 측정은 JS 로 `window.__COMPOSITION_CATALOG__.workspace` 의 Canvas geometry 와 `#previewFrame` DOM `getBoundingClientRect` 를 같은 상태에서 대조):
+
+- **팔레트**: 「table」 하나 (82 항목 중 `/table/i` 는 1) — 「table view」 없음. 라이브러리 contract 44.
+- **놓기 (G3)**: Table 1 → 해석 트리 `Table > TableHeader > Column(Name · Type · Status — 각자 `Group > Text`, Column origin instance) + TableBody > Row > Cell(Item 1 · File · Active)`, 상자 390 × 402. **parity (G2)**: Compare Mode 에서 머리글 칸 3 · 행 칸 3 의 x · 폭 · 높이가 Canvas = Preview (최대 차 0.01 px — 129.33 / 41 · 40), 트랙 `minmax(75px, 1fr) × 3`, Preview DOM 은 `table.react-aria-Table` 이 body 바로 아래 (조절 열 없음 → container 없음), 상자 390 × 402 양쪽 같음.
+- **첫 연결 (Round 1 h1 · 사용자 결정 3)**: Table 선택 → Design 패널 Data 「New table」 → Creator 연결 모드 (「The new table will be connected to Table.」) · 안내 `data-column-mode="replace"` 「First connection — the 3 existing columns (name, type, status) are replaced by the schema's.」 · 교체 스위치 없음 → preset Products → 「Create & connect」 → binding 생성, 열 18 (`id` · `title` · … · `createdAt` — starter 열 0), 투영 행 14 (fixed 400 window), 칸 값 = 행 값 (Canvas record = Preview DOM, 첫 행 `1 · Handmade Leather Speaker · … · 286.41 …`). 빈 칸은 데이터가 빈 것뿐 (brand 15 % 공란 2 · `dimensions` 객체 열 14) — key 불일치 빈 칸 0. **parity**: 15 줄 · 270 칸 Canvas = Preview 최대 차 0 px, 상자 390 × 402 양쪽.
+- **해제**: `catalogBindingCommand(…, undefined)` → binding 없음 · 정적 Row 1 복귀 (Cell 18 — `replace` 가 다시 만든 빈 칸, `tableAlignedIn` 참) · Preview `columnheader` 18 · 행 1 × 칸 18 · 오류 0 (R2 해소).
+- **재연결**: undo 로 binding 복귀 → 「New table」 → 안내 「18 existing columns are kept and matched by key.」 + 스위치 「Replace columns with the new schema」 (첫 연결이 아니라 보존 기본) → Cancel.
+- **Quiet · Density · Selection Style**: `isQuiet · density compact · selectionStyle highlight · selectionMode multiple` → 행 높이 41 → 33 Canvas = Preview, Preview `data-quiet="true"` · `data-selection-style="highlight"` · `aria-multiselectable` · 선택 checkbox 열 0. quiet (조절 열 없음) 는 Preview 테두리 투명 · radius 0 · 배경 투명, Canvas 도 바깥 테두리 없음 (스크린샷). 조절 열이 있는 Table 은 RAC container 상자가 테두리 1 px 를 그대로 그리고 quiet 는 radius 만 0 — ADR-257 Phase 4 의 기존 동작 (이 ADR 의 변경 아님, 아래 Negative 에 기록).
+- **Allow Resizing · Sorting (Column 0)**: Preview 가 `react-aria-ResizableTableContainer` 안으로, `.react-aria-ColumnResizer` 1 · `--table-resized-tracks` 75px × 18. 머리글 누름 1회 → `aria-sort="ascending"` (id 는 이미 오름차순), 2회 → `descending` · 첫 칸 `20 · 19 · 18 · 17` — Canvas 는 문서 순서 `1 · 2 · 3 · 4` · 히스토리 +0 (Preview 실행 상태).
+- **옛 contract 거부 (R4)**: 같은 문서를 IndexedDB 에 head `libraryContractVersion: 43` 으로 복제해 열기 → 「This project uses the previous format and cannot be opened in this Builder.」 (`UNSUPPORTED_PROJECT_FORMAT`, workspace 없음) — 복제본은 지웠다. 콘솔 오류는 그 거부 로그 1건뿐, `__composition_RUNTIME_ERRORS__` 는 전 과정 0.
+- 보지 않은 것: Components 페이지 (origin view) 의 Table 카드 — 단위 (`phase4eOriginView`: header · body slot 은 starter 의 크기, 빈 slot hatch) 로만 확인. G5 (사용자 확인) 전.
 
 ## Consequences
 
@@ -138,4 +154,5 @@ Proposed — 2026-10-20
 
 - contract 증가 — 개발용 프로젝트를 다시 만든다.
 - 옛 TableView 의 모습 (fill layer-1 · height auto · 늘 container) 은 없어진다 — Table 모양 (fill base · fixed 400 기본 · 조절 열 때만 container) 하나. 높이는 `heightMode` 로 auto 를 고를 수 있다.
+- 조절 열이 있는 quiet Table 은 RAC container 상자의 테두리 1 px 가 남는다 (quiet 는 radius 만 0) — ADR-257 Phase 4 부터의 동작으로 이 ADR 이 바꾸지 않았다 (live 관찰 2026-10-21, 후속 판단).
 - 영향 파일: `reusableOriginLibrary.ts` (TableView 정의 · template 12 · Table template +7) · `document/types.ts` (contract) · `TableView.binding.ts` (삭제) · `bindings/index.ts` · `componentCatalog.ts` · `componentRulesTable.ts` · `generated/TableView.css` (삭제) · `index.css` · `domRegistry.components.tsx` · `domRegistry.runtime.ts` · `domBinding.runtime.ts` · `tableTracks.ts` · `presence.ts` · `collections.ts` · `sizePropagation.ts` · `collectionItems.ts` · `s2PropAlignment.ts` · `componentTraits.ts` · `nestingRules.ts` · `requiredParts.ts` · `ruleDefinition.ts` · `paletteItems.ts` · `itemInsert.ts` · `ariaLabelNeed.ts` · `factories/constants.ts` · `unified.types.ts` · `metadata.ts` · `composition-vocabulary.ts` · i18n 2 · `Table.css` (선택자 1) · 주석 14 파일 · 테스트 26 (breakdown §2).

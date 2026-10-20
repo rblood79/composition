@@ -66,9 +66,7 @@ import {
   interpolateFieldTemplate,
 } from "../../collections/fieldTemplate";
 import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
-import {
-  resolveTableColumnKey,
-} from "../../collections/resolveCollectionItems";
+import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
 import { tableBinding } from "../bindings/Table.binding";
 import {
@@ -908,7 +906,7 @@ export function resolveCatalogNode(
   };
   /**
    * S2 density context (2026-10-10): a Table's `density` reaches the Columns · Cells in it
-   * (`CATALOG_DENSITY_PROPAGATION_OWNER` — S2 TableView density rows every cell). The owner wins:
+   * (`CATALOG_DENSITY_PROPAGATION_OWNER` — S2 table density rows every cell). The owner wins:
    * the parts carry no editable density (`editorHidden`), so nothing authored competes.
    */
   const applyOwnerDensity = (
@@ -926,7 +924,7 @@ export function resolveCatalogNode(
     if (typeof density === "string") props.density = density;
   };
   /**
-   * ADR-257 Phase 3 — S2 `overflowMode`: the nearest Table · TableView's value reaches its
+   * ADR-257 Phase 3 — S2 `overflowMode`: the nearest Table's value reaches its
    * Columns · Cells, a GridList's its items (`CATALOG_OVERFLOW_MODE_OWNERS`) — the parts have no
    * editor for it.
    */
@@ -939,10 +937,7 @@ export function resolveCatalogNode(
     const owners = CATALOG_OVERFLOW_MODE_OWNERS[definition.name];
     if (!owners || definition.accepts.overflowMode !== "string") return;
     let owner = structuralParent(parent);
-    while (
-      owner &&
-      !owners.includes(lookupDefinition(owner.definitionId).name)
-    )
+    while (owner && !owners.includes(lookupDefinition(owner.definitionId).name))
       owner = structuralParent(owner.parent);
     const mode = owner?.props.overflowMode;
     if (typeof mode === "string") props.overflowMode = mode;
@@ -1390,7 +1385,11 @@ export function resolveCatalogNode(
       sort && columns.find((column) => column.id === sort.column)?.key;
     const ordered =
       sort && sortKey !== undefined
-        ? catalogTableSorted(rowSet, sort.direction, (row) => row.values[sortKey])
+        ? catalogTableSorted(
+            rowSet,
+            sort.direction,
+            (row) => row.values[sortKey],
+          )
         : rowSet;
     const heightMode =
       projected.props.heightMode ??
@@ -1985,8 +1984,12 @@ export function resolveCatalogNode(
                   ...Object.keys(patch?.visual ?? {}),
                   // (and its breakpoint layers' — a Mobile border on a Menu's Button was dropped
                   // here, 2026-10-15)
-                  ...templateLayers.flatMap((layer) => Object.keys(layer.visual ?? {})),
-                  ...patchLayers.flatMap((layer) => Object.keys(layer.visual ?? {})),
+                  ...templateLayers.flatMap((layer) =>
+                    Object.keys(layer.visual ?? {}),
+                  ),
+                  ...patchLayers.flatMap((layer) =>
+                    Object.keys(layer.visual ?? {}),
+                  ),
                 ],
                 visual,
                 sizing,

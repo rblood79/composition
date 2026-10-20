@@ -35,13 +35,30 @@ export function unmatchedColumnKeys(
 
 export type QuickConnectColumnMode = "none" | "create" | "preserve" | "replace";
 
+/**
+ * How the Table's columns meet the new schema. ADR-277 Decision 2 (사용자 결정 3): a Table that
+ * has no binding yet (its columns are the palette starter's — Name · Type · Status — or ones the
+ * author drew) takes the schema's columns on its first connect (`replace`); a bound Table's
+ * reconnect keeps its columns (`preserve`) unless the author asks for the replacement. `hasBinding`
+ * is the Table's actual `DataBindingRef` (`target.binding.props` — the snapshot envelope is always
+ * an object, Round 2 h1).
+ */
 export function resolveColumnMode(
   plan: TableColumnPlan | null,
   replaceColumns: boolean,
+  hasBinding: boolean,
 ): QuickConnectColumnMode {
   if (!plan) return "none";
   if (plan.existing.length === 0) return "create";
+  if (!hasBinding) return "replace";
   return replaceColumns ? "replace" : "preserve";
+}
+
+/** Whether a Quick Connect target already holds a data binding (its first connect is a replace). */
+export function targetHasBinding(
+  target: Pick<QuickConnectTarget, "binding">,
+): boolean {
+  return target.binding.props != null;
 }
 
 export interface ExecuteQuickConnectInput {

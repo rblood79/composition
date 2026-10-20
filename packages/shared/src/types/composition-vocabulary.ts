@@ -129,7 +129,6 @@ export type ComponentTag =
   | "SwitchIndicator"
   | "Tab"
   | "Table"
-  | "TableView"
   | "TabList"
   | "TabPanel"
   | "TabPanels"

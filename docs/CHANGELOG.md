@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-277 — Table · TableView 통합 — 표는 하나] - 2026-10-21
+
+### Removed
+
+- **팔레트 「table view」 (TableView type) 삭제** (ADR-277 Phase 1, 사용자 결정 2026-10-21 「Table 로 통합 · starter 넣음 · 첫 연결은 교체」): S2 이름의 둘째 표 type 은 origin 정의 · template · binding · rule (`COMPONENT_RULES_TABLE.TableView`) · 생성 `TableView.css` · DOM 렌더러 (`CatalogTableView`) · 카탈로그 entry · Properties 메타 · i18n 라벨 · 로드 전환 (`s2PropAlignment`) 을 전부 지웠다. `"Table" || "TableView"` 쌍 14 자리 (열 트랙 · 선택 부품 · 정렬 · 리사이즈 · density · overflowMode · 항목 소유 · 중첩 · 필수 부품 · "+" 목록 · 이름 필요 집합) 는 Table 하나. RAC 에는 `Table` 하나, S2 에는 `TableView` 하나뿐이고 이 저장소의 Table 은 이미 S2 TableView 의 prop 축을 다 받고 있었다 (`d2S2Alignment` 가 Table ↔ S2 TableView 로 대조 — 그대로).
+
+### Changed
+
+- **팔레트 「table」 을 놓으면 열 3 (Name · Type · Status) · 행 1 (Item 1 · File · Active) 이 보인다** — 옛 TableView 의 starter 를 Table origin template 이 받았다 (전에는 빈 400 px 상자). 데이터를 묶으면 TableBody 의 정적 행은 투영 행으로 바뀐다 (지금 규칙).
+- **첫 Quick Connect 는 열을 schema 로 교체한다**: binding 이 없던 Table 의 첫 연결은 starter 열 (key `name` · `type` · `status` — schema 와 맞지 않아 칸이 빈다) 을 schema 열로 바꾸고, Data 패널이 교체될 열 key 를 실행 전에 안내한다. 이미 묶인 Table 의 재연결은 지금처럼 보존 기본 + 「새 스키마로 컬럼 교체」 스위치. 판정은 Table 의 실제 binding (`target.binding.props`).
+- **열 교체 (`replace`) 가 정적 Row 의 Cell 을 새 열 수만큼 다시 만든다** — 전에는 header 만 바꿔 바인딩을 해제하면 Cell 3 ↔ Column N 이 어긋나 RAC 가 던졌다 (ADR-256 Phase 5i G0 ⑨).
+- 옛 TableView 의 모습 (fill layer-1 · height auto · 늘 RAC container · radius md) 은 없다 — Table 모양 (fill base · 기본 fixed 400 · 조절 열 있을 때만 container) 하나. 높이는 `heightMode: auto` 로.
+- **옛 문서 거부**: `LIBRARY_CONTRACT_VERSION` 43 → 44 — TableView instance · starter 없는 Table 이 든 개발용 프로젝트는 열리지 않는다 (변환 없음, 사용자 지시 2026-10-14). 개발용 프로젝트는 다시 만든다.
+- 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/document/types.ts` · `catalog/bindings/{index.ts, TableView.binding.ts 삭제}` · `catalog/componentCatalog.ts` · `catalog/generated/componentRulesTable.ts` · `components/styles/{index.css, Table.css, generated/TableView.css 삭제}` · `catalog/runtime/{domRegistry.components.tsx, domRegistry.runtime.ts, domBinding.runtime.ts, tableTracks.ts, presence.ts}` · `catalog/commands/collections.ts` · `catalog/document/{s2PropAlignment, sizePropagation, collectionItems, ruleDefinition}.ts` · `domain/componentTraits.ts` · `catalog/nesting/{nestingRules, requiredParts}.ts` · `panels/datatable/{utils/quickConnectPlan.ts, usage/catalogQuickConnectHost.ts, editors/DataTableCreator.tsx}` · `panels/components/paletteItems.ts` · `catalogRuntime/itemInsert.ts` · `panels/properties/ariaLabelNeed.ts` · `factories/constants.ts` · `types/builder/unified.types.ts` · `components/metadata.ts` · `types/composition-vocabulary.ts` · i18n. 테스트: `adr277TableOrigin` 7 (starter · 투영 행 · 첫 연결 교체 · 재연결 보존 · replace 정렬 · 심볼 0 · contract 44) · 영향 37 파일. live (Chrome MCP, `adr277-live`): Canvas = Preview 270 칸 ≤ 0.01 px · 첫 연결 교체 열 18 · 해제 뒤 정적 행 정렬 · 재연결 보존 + 스위치 · quiet · highlight · resizer · 정렬 · 43 문서 거부 · 런타임 오류 0 (ADR-277 `### Live Exercise`).
+
 ## [Canvas 중첩 선택 — Ctrl 재선택] - 2026-10-21
 
 ### Fixed

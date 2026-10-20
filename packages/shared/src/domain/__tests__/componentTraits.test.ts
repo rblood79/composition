@@ -253,8 +253,6 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "TagList",
         "TabList",
         "Table",
-        // ADR-256 Phase 11: S2 TableView = RAC Table (its limit row gone).
-        "TableView",
         "TableHeader",
         "TableBody",
         "Row",
@@ -289,7 +287,6 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Breadcrumbs: ["Breadcrumb"],
       TabList: ["Tab"],
       Table: ["TableHeader", "TableBody"],
-      TableView: ["TableHeader", "TableBody"],
       TableHeader: ["Column"],
       TableBody: ["Row"],
       Row: ["Cell"],

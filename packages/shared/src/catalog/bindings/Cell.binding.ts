@@ -1,14 +1,14 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * Cell — TableView 데이터 셀 leaf (셀 텍스트 1개).
+ * Cell — Table 데이터 셀 leaf (셀 텍스트 1개).
  *
- * **ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25)**: Cell 은 TableView origin
+ * **ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25)**: Cell 은 Table origin
  *   template 의 Row 아래 자식 노드다 (props.children = 셀값). Canvas 는 `COMPONENT_RULES_TABLE.Cell`
  *   (containerStyles flex:1+padding 8px) 의 box + `props.children` text 로 셀 텍스트를 그린다. Column
  *   동형(Cell 은 fontWeight 미지정 = 400 base).
  *
- * **DOM**: Table · TableView 안에서 `INTERNAL_RENDERERS.cell` (RAC `Cell`) (ADR-257 Phase 5 — S2 TableView 처럼 RAC Table).
+ * **DOM**: Table 안에서 `INTERNAL_RENDERERS.cell` (RAC `Cell`).
  *
  * D1: RAC `Cell`.
  * D2: children(셀 텍스트) + size.

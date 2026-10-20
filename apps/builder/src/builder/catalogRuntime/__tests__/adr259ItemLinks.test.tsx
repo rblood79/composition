@@ -61,7 +61,7 @@ const OWNER: Record<string, string> = {
   Tag: "TagGroup",
   TreeItem: "Tree",
   GridListItem: "GridList",
-  Row: "TableView",
+  Row: "Table",
   MenuItem: "Menu",
 };
 
@@ -150,7 +150,8 @@ describe("ADR-259 Phase 1 — item links", () => {
       const { root, of, edit, render } = await open(ownerType, type);
       // (A top item: a nested TreeItem is closed.)
       const item = of(type).find(
-        (record) => root.typeOf(root.canvasInputs.get(record.parentId)!) !== type,
+        (record) =>
+          root.typeOf(root.canvasInputs.get(record.parentId)!) !== type,
       )!;
       expect(item, `${ownerType} holds a ${type}`).toBeDefined();
       edit(item.id, LINK);
@@ -210,7 +211,9 @@ describe("ADR-259 Phase 1 — item links", () => {
       const glyphs = async () => {
         const { host, done } = await render(owner.id);
         const el = host.querySelector(`[data-catalog-id="${item.id}"]`)!;
-        const count = el.querySelectorAll(":scope > .link-out svg, :scope > [role=gridcell] > .link-out svg").length;
+        const count = el.querySelectorAll(
+          ":scope > .link-out svg, :scope > [role=gridcell] > .link-out svg",
+        ).length;
         await done();
         return count;
       };

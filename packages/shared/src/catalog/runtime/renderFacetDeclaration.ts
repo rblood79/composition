@@ -54,8 +54,9 @@ export interface RenderFacetDelegation {
  * delegating render 위임 declaration (internal 29 + rac 12).
  *   2026-06-24: Card 패밀리 5(card/cardpreview/cardheader/cardcontent/cardfooter) 추가 — Preview
  *   canonical 경로에서 self-compose 자식 슬롯 보강 누락(Skia↔Preview 비대칭) 해소.
- *   2026-06-25: tableview 추가 — TableView 자식(Header/Body/Column/Row/Cell) 미렌더 해소(동일 비대칭).
- *   2026-06-27: buttongroup 추가 — ButtonGroup 자식 Button×2 미렌더 해소(동일 비대칭, tableview 동형).
+ *   2026-06-25: tableview 추가 — 옛 둘째 표 type 의 자식(Header/Body/Column/Row/Cell) 미렌더 해소(동일 비대칭;
+ *   ADR-257 Phase 5 에서 facet 제거, ADR-277 에서 type 자체를 Table 로 통합).
+ *   2026-06-27: buttongroup 추가 — ButtonGroup 자식 Button×2 미렌더 해소(동일 비대칭, 옛 tableview 동형).
  *   2026-06-27: avatargroup/cardview/pagination 추가 — grep 전수 감사로 ButtonGroup 동형 누락 3건 적발.
  *     factory 가 자식(Avatar×3 / Card×3 / Button×5)을 생성하고 render{Type} 가 childrenByParent 로
  *     렌더하는 self-compose 인데 binding renderer="div" + 미등록 → 자식 통째 미렌더(동일 비대칭).

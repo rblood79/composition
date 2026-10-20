@@ -63,11 +63,7 @@ import {
   TableHeader as RacTableHeader,
 } from "react-aria-components/Table";
 
-import {
-  CatalogKeyboard,
-  CatalogTable,
-  CatalogTableView,
-} from "./domRegistry.components";
+import { CatalogKeyboard, CatalogTable } from "./domRegistry.components";
 import {
   deriveDelegatingInternalRenderers,
   deriveDelegatingRacRenderers,
@@ -130,8 +126,6 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-256 Phase 5i: RAC Table from its node tree (the reference's `Table > TableHeader > Column`,
   // `TableBody > Row > Cell`); a bound Table's rows are its projected records (`catalogBoundRows`).
   table: CatalogTable,
-  // ADR-257 Phase 5: the TableView is RAC's Table in RAC's resizable container (S2).
-  tableview: CatalogTableView,
   tableheader: RacTableHeader,
   column: RacColumn,
   tablebody: RacTableBody,

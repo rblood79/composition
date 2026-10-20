@@ -10,7 +10,7 @@ const AddIcon = ACTION_ICONS.add;
 
 /**
  * ADR-248 4e: the old slot section's item "+" (same rows and classes) — a list frame, a group, a
- * TableHeader or a TableView's TableBody lists the item types it takes; "+" adds one (one history
+ * TableHeader or a Table's TableBody lists the item types it takes; "+" adds one (one history
  * step, the new item selected). Elements that hold no items show nothing.
  */
 export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
@@ -25,7 +25,7 @@ export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
     () => workspace.positionOfRecord(identity),
     [identity, workspace],
   );
-  // The choices follow the host's rows (a TableView's row alignment, a sibling's shape).
+  // The choices follow the host's rows (a Table's row alignment, a sibling's shape).
   const [revision, refresh] = useReducer((value: number) => value + 1, 0);
   useEffect(
     () =>

@@ -27,6 +27,7 @@ import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { QuickConnectTarget } from "../types/editorTypes";
 import {
   resolveColumnMode,
+  targetHasBinding,
   type TableColumnPlan,
 } from "../utils/quickConnectPlan";
 import type { QuickConnectHost } from "./quickConnectHost";
@@ -149,7 +150,11 @@ export function createCatalogQuickConnectHost(
         const recheck = host.precheck(target, projectId);
         if (!recheck.ok) throw new Error(`QUICK_CONNECT_${recheck.reason}`);
         const position = header(target);
-        const mode = resolveColumnMode(plan(target), replaceColumns);
+        const mode = resolveColumnMode(
+          plan(target),
+          replaceColumns,
+          targetHasBinding(target),
+        );
         const commands: CatalogCommand[] = [];
         if (position && (mode === "create" || mode === "replace"))
           commands.push(

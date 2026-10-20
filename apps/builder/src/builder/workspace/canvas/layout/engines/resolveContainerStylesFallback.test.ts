@@ -545,10 +545,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).not.toHaveProperty("flexDirection");
     });
 
-    it("tableview 자식 layout 은 catalog rule fallback 으로 공급", () => {
-      expect(resolveContainerStylesFallback("tableview", {})).toMatchObject({
-        display: "flex",
-        flexDirection: "column",
+    it("table 자식 layout 은 catalog rule fallback 으로 공급 (ADR-277 — 표는 Table 하나)", () => {
+      expect(resolveContainerStylesFallback("table", {})).toMatchObject({
         width: "100%",
       });
       expect(resolveContainerStylesFallback("tableheader", {})).toMatchObject({

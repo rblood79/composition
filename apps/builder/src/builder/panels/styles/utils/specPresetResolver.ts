@@ -266,7 +266,7 @@ function resolveToNumber(value: unknown): number | undefined {
  *
  * top-level `containerStyles` 는 타입이 `Record<string, string>` 이라 숫자를 담을 수 없어
  * box-model 값이 px 문자열로 저장된다 (`borderWidth:"1px"` — Calendar/ListBox/RangeCalendar/
- * TableView/Tree 5종). TokenRef·CSS var 만 해석하면 이 5종의 border baseline 이 통째로 비어
+ * Tree 와 옛 둘째 표 type, ADR-277 로 4종). TokenRef·CSS var 만 해석하면 이 border baseline 이 통째로 비어
  * 패널이 false dirty 를 낸다.
  *
  * **transform 축에는 쓰지 않는다** — 거기서는 `maxHeight:"300px"` 처럼 px 문자열이 그대로

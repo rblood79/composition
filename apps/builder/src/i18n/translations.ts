@@ -1814,6 +1814,8 @@ const koKR: TranslationKeys = {
     connectReadBackFailed:
       "연결 결과를 확인하지 못했습니다. 대상 요소의 Data 행을 확인하세요.",
     connectColumnsKept: "기존 컬럼 {count}개는 그대로 두고 key 로 대응합니다.",
+    connectColumnsReplacedFirst:
+      "첫 연결입니다 — 기존 컬럼 {count}개 ({keys}) 를 새 스키마의 컬럼으로 교체합니다.",
     connectColumnsUnmatched: "새 스키마에 없는 컬럼: {keys}",
     connectReplaceColumns: "새 스키마로 컬럼 교체",
     gridAddRow: "행 추가",
@@ -2160,7 +2162,6 @@ const koKR: TranslationKeys = {
     tagGroup: "태그 그룹",
     menu: "메뉴",
     section: "섹션",
-    tableView: "테이블 뷰",
     calendar: "캘린더",
     datePicker: "날짜 선택",
     dateRangePicker: "날짜 범위 선택",
@@ -4028,6 +4029,8 @@ const enUS: TranslationKeys = {
     connectReadBackFailed:
       "Could not confirm the connection. Check the target's Data row.",
     connectColumnsKept: "{count} existing columns are kept and matched by key.",
+    connectColumnsReplacedFirst:
+      "First connection — the {count} existing columns ({keys}) are replaced by the schema's.",
     connectColumnsUnmatched: "Columns missing from the new schema: {keys}",
     connectReplaceColumns: "Replace columns with the new schema",
     gridAddRow: "Add row",
@@ -4377,7 +4380,6 @@ const enUS: TranslationKeys = {
     tagGroup: "Tag Group",
     menu: "Menu",
     section: "Section",
-    tableView: "Table View",
     calendar: "Calendar",
     datePicker: "Date Picker",
     dateRangePicker: "Date Range Picker",
@@ -5719,6 +5721,8 @@ const formattedMessages: Record<
       `테이블 "${String(args?.name ?? "")}" 을(를) 만들어 ${String(args?.target ?? "")} 에 연결했습니다.`,
     "datatable.connectColumnsKept": (args) =>
       `기존 컬럼 ${String(args?.count ?? 0)}개는 그대로 두고 key 로 대응합니다.`,
+    "datatable.connectColumnsReplacedFirst": (args) =>
+      `첫 연결입니다 — 기존 컬럼 ${String(args?.count ?? 0)}개 (${String(args?.keys ?? "")}) 를 새 스키마의 컬럼으로 교체합니다.`,
     "datatable.connectColumnsUnmatched": (args) =>
       `새 스키마에 없는 컬럼: ${String(args?.keys ?? "")}`,
     "datatable.gridDeleteRows": (args) =>
@@ -6253,6 +6257,8 @@ const formattedMessages: Record<
       `Created table "${String(args?.name ?? "")}" and connected it to ${String(args?.target ?? "")}.`,
     "datatable.connectColumnsKept": (args) =>
       `${String(args?.count ?? 0)} existing columns are kept and matched by key.`,
+    "datatable.connectColumnsReplacedFirst": (args) =>
+      `First connection — the ${String(args?.count ?? 0)} existing columns (${String(args?.keys ?? "")}) are replaced by the schema's.`,
     "datatable.connectColumnsUnmatched": (args) =>
       `Columns missing from the new schema: ${String(args?.keys ?? "")}`,
     "datatable.gridDeleteRows": (args) =>

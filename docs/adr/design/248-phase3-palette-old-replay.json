@@ -258,10 +258,7 @@
             "maxWidth": "768px",
             "rowGap": "4px",
             "columnGap": "12px",
-            "gridTemplateColumns": [
-              "1fr",
-              "auto"
-            ],
+            "gridTemplateColumns": ["1fr", "auto"],
             "position": "absolute",
             "insetTop": "30px",
             "insetLeft": "30px"
@@ -3938,10 +3935,7 @@
             "height": "130px",
             "rowGap": "4px",
             "columnGap": "16px",
-            "gridTemplateColumns": [
-              "1fr",
-              "auto"
-            ],
+            "gridTemplateColumns": ["1fr", "auto"],
             "position": "absolute",
             "insetTop": "30px",
             "insetLeft": "30px"
@@ -4081,10 +4075,7 @@
             "height": "130px",
             "rowGap": "4px",
             "columnGap": "12px",
-            "gridTemplateColumns": [
-              "1fr",
-              "auto"
-            ],
+            "gridTemplateColumns": ["1fr", "auto"],
             "position": "absolute",
             "insetTop": "30px",
             "insetLeft": "30px"
@@ -4369,10 +4360,7 @@
             "maxWidth": "768px",
             "rowGap": "4px",
             "columnGap": "12px",
-            "gridTemplateColumns": [
-              "1fr",
-              "auto"
-            ]
+            "gridTemplateColumns": ["1fr", "auto"]
           }
         },
         {
@@ -4465,10 +4453,7 @@
             "maxWidth": "768px",
             "rowGap": "4px",
             "columnGap": "12px",
-            "gridTemplateColumns": [
-              "1fr",
-              "auto"
-            ]
+            "gridTemplateColumns": ["1fr", "auto"]
           }
         },
         {
@@ -5230,10 +5215,7 @@
             "height": "130px",
             "rowGap": "12px",
             "columnGap": "12px",
-            "gridTemplateColumns": [
-              "minmax(0, 1fr)",
-              "minmax(0, 1fr)"
-            ],
+            "gridTemplateColumns": ["minmax(0, 1fr)", "minmax(0, 1fr)"],
             "position": "absolute",
             "insetTop": "30px",
             "insetLeft": "30px"
@@ -5909,228 +5891,6 @@
             "insetLeft": "30px",
             "columnGap": "12px",
             "rowGap": "12px"
-          }
-        }
-      ]
-    },
-    {
-      "type": "TableView",
-      "frozenPngMatch": true,
-      "pngSha256": "b12e6df803a4a71a1c25e8cd08bff7ebc4eda2053dc6d71c8241cf1cf7970262",
-      "frozenPngSha256": "b12e6df803a4a71a1c25e8cd08bff7ebc4eda2053dc6d71c8241cf1cf7970262",
-      "elementType": "ref",
-      "componentName": "TableView",
-      "ref": "component-tableview",
-      "camera": {
-        "zoom": 0.675,
-        "pan": {
-          "x": 72,
-          "y": 85.5
-        },
-        "canvasRect": {
-          "x": 0,
-          "y": 0,
-          "width": 1440,
-          "height": 900
-        }
-      },
-      "nodes": [
-        {
-          "path": "",
-          "parent": null,
-          "rect": {
-            "x": 30,
-            "y": 30,
-            "width": 220,
-            "height": 130
-          },
-          "engineInput": {
-            "display": "flex",
-            "position": "absolute",
-            "flexDirection": "column",
-            "alignItems": "stretch",
-            "width": "220px",
-            "height": "130px",
-            "borderTop": "1px",
-            "borderRight": "1px",
-            "borderBottom": "1px",
-            "borderLeft": "1px",
-            "insetTop": "30px",
-            "insetLeft": "30px"
-          }
-        },
-        {
-          "path": "component-tableview__1",
-          "parent": "",
-          "rect": {
-            "x": 31,
-            "y": 31,
-            "width": 218,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "flex",
-            "flexDirection": "row"
-          }
-        },
-        {
-          "path": "component-tableview__1/component-tableview__1_1",
-          "parent": "component-tableview__1",
-          "rect": {
-            "x": 31,
-            "y": 31,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "43px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
-          }
-        },
-        {
-          "path": "component-tableview__1/component-tableview__1_2",
-          "parent": "component-tableview__1",
-          "rect": {
-            "x": 103.66667175292969,
-            "y": 31,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "36px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
-          }
-        },
-        {
-          "path": "component-tableview__1/component-tableview__1_3",
-          "parent": "component-tableview__1",
-          "rect": {
-            "x": 176.33334350585938,
-            "y": 31,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "46px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
-          }
-        },
-        {
-          "path": "component-tableview__2",
-          "parent": "",
-          "rect": {
-            "x": 31,
-            "y": 71,
-            "width": 218,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "flex",
-            "flexDirection": "column"
-          }
-        },
-        {
-          "path": "component-tableview__2/component-tableview__2_1",
-          "parent": "component-tableview__2",
-          "rect": {
-            "x": 31,
-            "y": 71,
-            "width": 218,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "flex",
-            "flexDirection": "row"
-          }
-        },
-        {
-          "path": "component-tableview__2/component-tableview__2_1/component-tableview__2_1_1",
-          "parent": "component-tableview__2/component-tableview__2_1",
-          "rect": {
-            "x": 31,
-            "y": 71,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "43px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
-          }
-        },
-        {
-          "path": "component-tableview__2/component-tableview__2_1/component-tableview__2_1_2",
-          "parent": "component-tableview__2/component-tableview__2_1",
-          "rect": {
-            "x": 103.66667175292969,
-            "y": 71,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "25px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
-          }
-        },
-        {
-          "path": "component-tableview__2/component-tableview__2_1/component-tableview__2_1_3",
-          "parent": "component-tableview__2/component-tableview__2_1",
-          "rect": {
-            "x": 176.33334350585938,
-            "y": 71,
-            "width": 72.66667175292969,
-            "height": 40
-          },
-          "engineInput": {
-            "display": "block",
-            "height": "40px",
-            "minWidth": "45px",
-            "paddingTop": "8px",
-            "paddingRight": "8px",
-            "paddingBottom": "8px",
-            "paddingLeft": "8px",
-            "flexGrow": 1,
-            "flexShrink": 1,
-            "flexBasis": "0%"
           }
         }
       ]

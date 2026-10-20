@@ -55,12 +55,15 @@ async function open() {
   });
   const frame = node("project:node:frame", "lib:definition:type-frame", {
     layout: absoluteLayout(20, 30),
-    sizing: { width: { kind: "set", value: 40 }, height: { kind: "set", value: 20 } },
+    sizing: {
+      width: { kind: "set", value: 40 },
+      height: { kind: "set", value: 20 },
+    },
   });
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 43,
+    libraryContractVersion: 44,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -105,7 +108,9 @@ describe("ADR-275 position predicates", () => {
   it("a rule-placed part is out of flow but not authored; an authored absolute box is both", async () => {
     const root = await open();
     const recordOf = (source: string) =>
-      [...root.domInputs.values()].find((record) => record.sourceId === source)!;
+      [...root.domInputs.values()].find(
+        (record) => record.sourceId === source,
+      )!;
     const icon = recordOf("project:node:icon");
     expect(icon.layout.position).toBe("absolute");
     expect(catalogIsOutOfFlow(icon)).toBe(true);

@@ -127,10 +127,9 @@ import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
-import { tableViewBinding } from "./TableView.binding";
-// ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25):
+// ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25):
 //   Table 가족의 자식 노드 5종. Canvas 는 rule box+text. DOM 은 RAC Table 안에서 INTERNAL_RENDERERS
-//   (RAC 부품), TableView 안에서 delegatedDom `tableview` 의 div. PALETTE 비노출.
+//   (RAC 부품). PALETTE 비노출. (ADR-277, 2026-10-21: 둘째 표 type 은 Table 로 통합했다.)
 import { columnBinding } from "./Column.binding";
 import { cellBinding } from "./Cell.binding";
 import { rowBinding } from "./Row.binding";
@@ -266,7 +265,6 @@ export * from "./SliderFill.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
-export * from "./TableView.binding";
 export * from "./Column.binding";
 export * from "./Cell.binding";
 export * from "./Row.binding";
@@ -359,7 +357,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Nav: navBinding,
   // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너 (internal source, generic box shell). origin
   //   template 의 자식 Button×5 노드 → 런타임 항상 _hasChildren=true → standalone 버튼군 dead, 컨테이너
-  //   box(flex row)만 live (AvatarGroup/CardView/TableView 동형). staticSelectors 7개는 generate-css
+  //   box(flex row)만 live (AvatarGroup/CardView 동형). staticSelectors 7개는 generate-css
   //   TEXT_LEAF_META.composition 으로 전달(Link rootSelectors 선례). variant/size accepts.
   Pagination: paginationBinding,
   // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너 (internal source, 투명 generic shell). origin
@@ -510,13 +508,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Tree: treeBinding,
   TreeItem: treeItemBinding,
   Table: tableBinding,
-  // ADR-912 R7 G1-b (2026-06-15): 강화 Table 컨테이너 (S2 variant default/quiet — 구 isQuiet
-  //   boolean 흡수). internal/div shell + variant 별 border, layout 은 origin template 의 layout · visual.
-  TableView: tableViewBinding,
-  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
+  // ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
   //   5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell). Canvas 는 rule box+text.
-  //   DOM 은 RAC Table 안에서 INTERNAL_RENDERERS (RAC 부품), TableView 안에서 delegatedDom
-  //   `tableview` 의 div. PALETTE_ORDER 미포함(단독 배치 불가).
+  //   DOM 은 RAC Table 안에서 INTERNAL_RENDERERS (RAC 부품). PALETTE_ORDER 미포함(단독 배치 불가).
+  //   (ADR-277, 2026-10-21: S2 이름의 둘째 표 type 은 Table 로 통합 — 그 binding 은 삭제.)
   TableHeader: tableHeaderBinding,
   TableBody: tableBodyBinding,
   Column: columnBinding,

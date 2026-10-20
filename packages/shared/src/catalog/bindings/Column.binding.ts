@@ -1,15 +1,14 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * Column — TableView 헤더 셀 leaf (헤더 텍스트 1개).
+ * Column — Table 헤더 셀 leaf (헤더 텍스트 1개).
  *
- * **ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25)**: Column 은 TableView origin
+ * **ADR-912 catalog cutover (Table 자식 트리 Skia 대칭, 2026-06-25)**: Column 은 Table origin
  *   template 의 TableHeader 아래 자식 노드다 (props.children = 컬럼명). Canvas 는
  *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.M.fontWeight 600) 의
  *   box + `props.children` text 로 헤더 텍스트를 그린다.
  *
- * **DOM**: Table · TableView 안에서 RAC `Column` (ADR-257 Phase 5 — S2 TableView 처럼 RAC Table). PALETTE_ORDER 미포함
- *   (단독 배치 불가).
+ * **DOM**: Table 안에서 RAC `Column`. PALETTE_ORDER 미포함 (단독 배치 불가).
  *
  * D1: RAC `Column`.
  * D2: children(컬럼 헤더 텍스트) + isRowHeader + size.
@@ -18,7 +17,7 @@ import type { PrimitiveBinding } from "../types";
  *     Skia generic(box+text) ↔ DOM div 시각 대칭.
  *
  * **ADR-256 Phase 5i**: RAC Table (catalog `Table`) 안에서는 DOM 이 RAC `Column` 이다 (`domRegistry`
- *   `column` — 노드 트리 그리기). `isRowHeader` (RAC · RSP TableView 의 prop) — 그 열의 칸이 행의 이름이다.
+ *   `column` — 노드 트리 그리기). `isRowHeader` (RAC · S2 표의 prop) — 그 열의 칸이 행의 이름이다.
  *   RAC 는 row header 열이 하나도 없으면 throw 하므로, 지정이 없으면 첫 열이 row header 다 (`ruleDom`).
  */
 export const columnBinding: PrimitiveBinding = {

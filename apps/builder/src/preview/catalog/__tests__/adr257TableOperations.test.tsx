@@ -131,13 +131,12 @@ async function open(
 
 function authoredTable(
   columnProps: Record<string, unknown>,
-  type: "Table" | "TableView" = "Table",
   tableProps: Record<string, unknown> = {},
 ) {
   const values = ["b10", "a", "b9", "C"];
   return () => [
-    node("t", type, ["th", "tb"], {
-      ...(type === "Table" ? { heightMode: "auto" } : {}),
+    node("t", "Table", ["th", "tb"], {
+      heightMode: "auto",
       ...tableProps,
     }),
     node("th", "TableHeader", ["c0", "c1"]),
@@ -256,7 +255,9 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     // and allows sorting.
     const root = workspace.root;
     const ofType = (type: string) =>
-      [...root.domInputs.values()].filter((record) => root.typeOf(record) === type);
+      [...root.domInputs.values()].filter(
+        (record) => root.typeOf(record) === type,
+      );
     workspace.execute(
       catalogItemInsertChoices(
         {
@@ -341,30 +342,11 @@ describe("ADR-257 Phase 4b — Preview column resizing (S2 Column allowsResizing
   });
 });
 
-describe("ADR-257 Phase 5 — TableView on RAC's Table (S2 TableView.tsx)", () => {
-  it("is RAC's Table in RAC's resizable container (always — S2), its box the TableView rule's", async () => {
-    const { view } = await open(authoredTable({}, "TableView"));
-    const shell = view.container.querySelector(
-      ".react-aria-TableView",
-    ) as HTMLElement;
-    expect(shell).not.toBeNull();
-    expect(shell.getAttribute("data-variant")).toBe("default");
-    const table = shell.querySelector(":scope > table[data-node-table]");
-    expect(table?.getAttribute("role")).toBe("grid");
-    // (RAC's widths are the rows' tracks — jsdom measures 0: 120 and the fr column's 75 floor.)
-    expect(
-      (table as HTMLElement).style.getPropertyValue("--table-resized-tracks"),
-    ).toBe("120px 75px");
-    expect(view.container.querySelectorAll("[role='columnheader']").length).toBe(
-      2,
-    );
-    expect(firstCells(view.container)).toEqual(["b10", "a", "b9", "C"]);
-    // No resizer until a Column allows resizing.
-    expect(view.container.querySelector(".react-aria-ColumnResizer")).toBeNull();
-  });
-
+describe("ADR-257 Phase 5 · ADR-277 — the resizable Table in RAC's container", () => {
   it("a Builder edit of a Column width reaches RAC's widths (its container starts from them)", async () => {
-    const { view, workspace, flush } = await open(authoredTable({}, "TableView"));
+    const { view, workspace, flush } = await open(
+      authoredTable({ allowsResizing: true }),
+    );
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: id("c0") }],
@@ -378,35 +360,5 @@ describe("ADR-257 Phase 5 — TableView on RAC's Table (S2 TableView.tsx)", () =
     expect(table.style.getPropertyValue("--table-resized-tracks")).toBe(
       "150px 75px",
     );
-  });
-
-  it("selects rows (RAC selection — none before), sorts and resizes like a Table", async () => {
-    const { view, workspace } = await open(
-      authoredTable(
-        { allowsSorting: true, allowsResizing: true },
-        "TableView",
-        { selectionMode: "single" },
-      ),
-    );
-    const history = workspace.history.getSnapshot().labels.length;
-    const rows = () => [
-      ...view.container.querySelectorAll("tbody [role='row']"),
-    ] as HTMLElement[];
-    act(() => {
-      fireEvent.click(rows()[1]!.querySelector("[role='rowheader']")!);
-    });
-    expect(rows()[1]!.getAttribute("aria-selected")).toBe("true");
-    act(() => {
-      fireEvent.click(header(view.container, "Name"));
-    });
-    expect(firstCells(view.container)).toEqual(["a", "b9", "b10", "C"]);
-    expect(header(view.container, "Name").getAttribute("aria-sort")).toBe(
-      "ascending",
-    );
-    expect(
-      header(view.container, "Name").querySelector(".react-aria-ColumnResizer"),
-    ).not.toBeNull();
-    // Runtime state only — the document did not move.
-    expect(workspace.history.getSnapshot().labels.length).toBe(history);
   });
 });

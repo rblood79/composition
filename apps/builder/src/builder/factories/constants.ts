@@ -85,7 +85,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "Meter",
   // Phase 4: Advanced Components (ADR-030)
   "CardView",
-  "TableView",
   // S2 확장
   "Nav",
   "Navigation",

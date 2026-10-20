@@ -22,8 +22,6 @@ export const CATALOG_BOOLEAN_VARIANTS: Readonly<
   Switch: { prop: "isEmphasized", variant: "emphasized" },
   Radio: { prop: "isEmphasized", variant: "emphasized" },
   Tree: { prop: "isEmphasized", variant: "emphasized" },
-  // 2026-06-15 의 역전환: isQuiet boolean → variant "quiet" 흡수를 S2 표면 (isQuiet) 으로 되돌린다.
-  TableView: { prop: "isQuiet", variant: "quiet" },
   // (Its GridList's — `CATALOG_GROUP_TURNS_ON`.)
   GridListItem: { prop: "isQuiet", variant: "quiet" },
 };
@@ -77,12 +75,6 @@ const accentOf: PropValueMigration = (value) => {
 
 const dropOf: PropValueMigration = () => DROP;
 
-/** TableView 의 옛 quiet 변형 — S2 의 isQuiet. */
-const quietOf: PropValueMigration = (value) => {
-  if (value === "quiet") return { isQuiet: true };
-  return DROP;
-};
-
 /** 값 개명 — 표에 있는 값은 새 이름으로, 없는 값은 그대로 둔다 (rename 전환). */
 const renameOf =
   (
@@ -127,7 +119,10 @@ const UNUSED_PROPS = {
   GridListItem: { children: dropOf },
   Tag: { children: dropOf },
   Card: { accentColor: dropOf },
-} as const satisfies Record<string, Readonly<Record<string, PropValueMigration>>>;
+} as const satisfies Record<
+  string,
+  Readonly<Record<string, PropValueMigration>>
+>;
 
 /**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
@@ -147,7 +142,6 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   Radio: { variant: dropOf },
   Form: { variant: dropOf },
   Tree: { variant: accentOf },
-  TableView: { variant: quietOf },
   // 값 변경 (조사 §4.2 C — 2026-10-10): Meter 계열 warning/critical → notice/negative,
   // InlineAlert info → informative, Tooltip 은 design-data 집합 (neutral · informative ·
   // negative — positive 는 삭제 → 기본 neutral), CardView 의 옛 default 는 삭제 → 기본 primary.
@@ -354,8 +348,10 @@ export function migrateCatalogTableColumns(
         }
       }
     for (const key of COLUMN_WIDTH_KEYS) {
-      const fromSizing = sizing[key] as { kind?: string; value?: unknown } | undefined;
-      const fromVisual = visual[key] as { kind?: string; value?: unknown } | undefined;
+      const fromSizing = sizing[key] as
+        { kind?: string; value?: unknown } | undefined;
+      const fromVisual = visual[key] as
+        { kind?: string; value?: unknown } | undefined;
       if (!fromSizing && !fromVisual) continue;
       delete sizing[key];
       delete visual[key];

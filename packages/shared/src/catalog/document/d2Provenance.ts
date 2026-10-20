@@ -94,7 +94,8 @@ export const CATALOG_D2_PROVENANCE: Readonly<
   SearchField: { isQuiet: "v3" },
   Slider: { showValueLabel: "v3" },
   StatusLight: { isDisabled: "v3" },
-  // (The RAC Table takes S2 TableView's axes; the height axes are composition's.)
+  // (The RAC Table takes S2's table axes — `d2S2Alignment` reads it against S2's table type; the
+  // height axes are composition's. ADR-277: the table is one type.)
   Table: { heightMode: "composition", height: "composition" },
   // (S2 removes by `onRemove` being set — composition's boolean shows the remove button.)
   TagGroup: { allowsRemoving: "composition" },

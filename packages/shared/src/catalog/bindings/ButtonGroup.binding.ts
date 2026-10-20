@@ -6,7 +6,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **ADR-912 R7 G1-c (container shell catalog cutover, 2026-06-15)**:
  *   DOM CSS · Skia 시각 모두 `COMPONENT_RULES_TABLE.ButtonGroup`(variant default transparent + sizes
- *   height/radius) 이 정본이다. AvatarGroup/CardView/TableView/Pagination(R7 G1-a/b/c) shell 과 동형.
+ *   height/radius) 이 정본이다. AvatarGroup/CardView/Pagination(R7 G1-a/b/c) shell 과 동형.
  *
  * **시각 = 투명 generic shell(자식 Button 이 내용 렌더)**: variant default fill/border 가 전부
  *   transparent 라 Canvas 는 투명 box 를 그리고 자식 Button 노드가 시각을 담당한다. container

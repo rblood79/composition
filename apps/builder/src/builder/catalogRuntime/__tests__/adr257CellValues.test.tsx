@@ -58,7 +58,7 @@ afterEach(() => {
 });
 
 async function openTable(
-  type: "Table" | "TableView",
+  type: "Table",
   tableProps: Record<string, unknown> = {},
   options: { selection?: boolean } = {},
 ) {
@@ -231,18 +231,6 @@ describe("ADR-257 Phase 3 — Table overflowMode (S2 default truncate)", () => {
     workspace.undo();
     expect(recordOf(workspace, "r1c0").visual.whiteSpace).toBe("nowrap");
   });
-
-  it("TableView: the parts carry the same values (wrap · align · divider)", async () => {
-    const workspace = await openTable("TableView", { overflowMode: "wrap" });
-    set(workspace, "r1c1", { align: "end", showDivider: true });
-    const html = dom(workspace);
-    const long = styleOf(html, workspace, "r1c0");
-    expect(long).toContain("white-space:normal");
-    const short = styleOf(html, workspace, "r1c1");
-    expect(short).toContain("text-align:right");
-    expect(short).toMatch(/border-right-width:1px/);
-    expect(recordOf(workspace, "r1c0").visual.whiteSpace).toBe("normal");
-  });
 });
 
 describe("ADR-257 Phase 3 — Table selectionStyle (S2 default checkbox)", () => {
@@ -281,22 +269,6 @@ describe("ADR-257 Phase 3 — Table selectionStyle (S2 default checkbox)", () =>
     expect(recordOf(workspace, "cs").hidden).toBeUndefined();
     expect(recordOf(workspace, "r1").derivedProps?._tableTracks).toBe(
       "40px 120px minmax(75px, 1fr)",
-    );
-  });
-
-  it("TableView highlight: its selection parts are not drawn either", async () => {
-    const workspace = await openTable(
-      "TableView",
-      { selectionStyle: "highlight" },
-      { selection: true },
-    );
-    expect(recordOf(workspace, "cs").hidden).toBe(true);
-    const html = dom(workspace);
-    expect(html).not.toContain(
-      `data-catalog-id="${recordOf(workspace, "r1cs").id}"`,
-    );
-    expect(recordOf(workspace, "r1").derivedProps?._tableTracks).toBe(
-      "120px minmax(75px, 1fr)",
     );
   });
 });

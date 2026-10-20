@@ -24,7 +24,7 @@ import type { CatalogWorkspace } from "./workspace";
  * Selected are one choice written both ways (each panel shows it).
  *
  * One value: Tabs · RadioGroup always (RAC single-value state), a ToggleButtonGroup · ListBox ·
- * GridList · Tree · Table · TableView · Menu · TagGroup · CardView while its `selectionMode` is
+ * GridList · Tree · Table · Menu · TagGroup · CardView while its `selectionMode` is
  * single. A multiple selection keeps every item's own choice.
  */
 

@@ -11298,7 +11298,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       M: {
         fontWeight: 600,
-        // fontSize/lineHeight: CSS Preview(renderTableViewSubtree generic div)는 fontSize 미명시 →
+        // fontSize/lineHeight: CSS Preview(옛 표 subtree generic div)는 fontSize 미명시 →
         //   부모 body 상속 16px + line-height normal 24px. Skia 셀 height(calculateContentHeight)와
         //   텍스트 크기를 CSS 와 일치시키려면 catalog 가 동일 값을 명시해야 한다(미명시 시 Skia
         //   기본 14 + estimateTextHeight≈16 → 행 height 32 vs CSS 40 발산). 양쪽 모두 catalog 파생
@@ -11321,10 +11321,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   모델. Spectrum 은 행 높이를 size 축이 정하고 density 는 **item 내부 여백**만 바꾼다
     //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
     //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
-    //   여기 산다 — TableView 는 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
+    //   여기 산다 — Table 은 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
     //   행 높이 = lineHeight 24 + paddingY×2 → compact 32 / regular 40 / spacious 48.
     //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
-    //   emit 도 없다(DOM 은 renderTableViewSubtree 인라인이 정본) → CSS diff 0.
+    //   emit 도 없다(DOM 은 옛 표 subtree 인라인이 정본이었다) → CSS diff 0.
     defaultDensity: "regular",
     densities: {
       compact: { paddingY: 4 },
@@ -11649,67 +11649,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "block",
         width: "100%",
-      },
-    },
-  },
-  TableView: {
-    defaultVariant: "default",
-    defaultSize: "M",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      quiet: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-        },
-      },
-    },
-    sizes: {
-      M: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: "auto",
-      },
-    },
-    // ADR-151 후속 (2026-07-17): alignItems stretch — CSS 채널 재배선(react-aria-TableView
-    //   클래스 부착)으로 archetype default base 의 align-items:center 가 살아나 자식
-    //   header/row 가 fit-content 로 수축(161/146 vs 350)·셀 줄바꿈. Skia(엔진 flex 기본
-    //   stretch)와 대칭 위해 양 채널 명시. borderWidth 1 은 layout 채널 전용 — DOM 은
-    //   variant border 1px(border-box +2)인데 엔진이 미합산해 dh 2 잔존(B8 Table 동형).
-    containerStyles: {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-      alignItems: "stretch",
-      borderWidth: "{border.width.thin}",
-    },
-    structure: {
-      archetype: "default",
-      element: "div",
-      containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        alignItems: "stretch",
       },
     },
   },

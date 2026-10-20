@@ -83,6 +83,7 @@ import { useQuickConnectHost } from "../usage/quickConnectHost";
 import { columnsToSchema, detectColumns } from "../utils/columnDetector";
 import { parsePastedRows } from "../utils/pasteRows";
 import {
+  targetHasBinding,
   unmatchedColumnKeys,
   type QuickConnectPrecheck,
 } from "../utils/quickConnectPlan";
@@ -258,8 +259,11 @@ export function DataTableCreator({
   const [aiDescription, setAiDescription] = useState("");
   // 처리 중 중복 실행 차단 (연속 클릭) — 저장 await 동안 버튼을 잠근다
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // ADR-013 §4 — Table 재연결: 기존 컬럼은 보존이 기본, 전면 교체는 명시적 선택
+  // ADR-013 §4 — Table 재연결: 기존 컬럼은 보존이 기본, 전면 교체는 명시적 선택.
+  // ADR-277 (사용자 결정 3): binding 이 없던 Table 의 첫 연결은 열을 schema 로 교체한다 — 스위치
+  //   대신 안내만 (starter 열 Name · Type · Status 의 key 는 schema 와 맞지 않아 칸이 빈다).
   const [replaceColumns, setReplaceColumns] = useState(false);
+  const firstConnect = connect != null && !targetHasBinding(connect);
   const quickConnect = useQuickConnectHost();
   const columnPlan = useMemo(
     () => (connect ? quickConnect.planColumns(connect) : null),
@@ -535,33 +539,53 @@ export function DataTableCreator({
               {t("connectTarget", { name: connect.elementLabel })}
             </p>
           )}
-          {/* Table 재연결 — 기존 컬럼 보존 (기본) · 새 schema 와 어긋나는 key 표시 · 교체는 명시적 */}
-          {connect && columnPlan && columnPlan.existing.length > 0 && (
-            <>
-              <p className="creator-form-hint" role="note" data-column-plan>
-                {t("connectColumnsKept", {
+          {/* Table 첫 연결 (ADR-277) — 기존 열 (starter) 은 schema 열로 교체된다: 안내만 */}
+          {connect &&
+            columnPlan &&
+            columnPlan.existing.length > 0 &&
+            firstConnect && (
+              <p
+                className="creator-form-hint"
+                role="note"
+                data-column-plan
+                data-column-mode="replace"
+              >
+                {t("connectColumnsReplacedFirst", {
                   count: columnPlan.existing.length,
+                  keys: columnPlan.existing.map((c) => c.key).join(", "),
                 })}
-                {draftSchemaForPlan &&
-                  unmatchedColumnKeys(columnPlan, draftSchemaForPlan).length >
-                    0 &&
-                  ` ${t("connectColumnsUnmatched", {
-                    keys: unmatchedColumnKeys(
-                      columnPlan,
-                      draftSchemaForPlan,
-                    ).join(", "),
-                  })}`}
               </p>
-              <PropertyCheckbox
-                label={localize(
-                  "connectReplaceColumns",
-                  "Replace columns with the new schema",
-                )}
-                isSelected={replaceColumns}
-                onChange={setReplaceColumns}
-              />
-            </>
-          )}
+            )}
+          {/* Table 재연결 — 기존 컬럼 보존 (기본) · 새 schema 와 어긋나는 key 표시 · 교체는 명시적 */}
+          {connect &&
+            columnPlan &&
+            columnPlan.existing.length > 0 &&
+            !firstConnect && (
+              <>
+                <p className="creator-form-hint" role="note" data-column-plan>
+                  {t("connectColumnsKept", {
+                    count: columnPlan.existing.length,
+                  })}
+                  {draftSchemaForPlan &&
+                    unmatchedColumnKeys(columnPlan, draftSchemaForPlan).length >
+                      0 &&
+                    ` ${t("connectColumnsUnmatched", {
+                      keys: unmatchedColumnKeys(
+                        columnPlan,
+                        draftSchemaForPlan,
+                      ).join(", "),
+                    })}`}
+                </p>
+                <PropertyCheckbox
+                  label={localize(
+                    "connectReplaceColumns",
+                    "Replace columns with the new schema",
+                  )}
+                  isSelected={replaceColumns}
+                  onChange={setReplaceColumns}
+                />
+              </>
+            )}
           {/* legend 「Start from」 + 방법 격자 (panel-ui 19 — 대조 B12); 이름은 legend 가 준다 */}
           <fieldset className="properties-aria creator-start-from">
             <legend className="fieldset-legend">

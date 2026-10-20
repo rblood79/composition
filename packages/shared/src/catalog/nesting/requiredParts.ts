@@ -49,7 +49,6 @@ export const RAC_REQUIRED_PARTS: Readonly<
   // ADR-256 후속 4: RAC MenuTrigger — its Button and its Popover (the Menu inside).
   MenuTrigger: [["Button"], ["Popover"]],
   Table: [["TableHeader"]],
-  TableView: [["TableHeader"]],
 };
 
 /** Every part type some owner needs (a subtree without one needs no ancestor read). */
