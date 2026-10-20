@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-20 ADR-276 Proposed 추가** (사용자 `/create-adr button 글자 Text 자식 통합 · IconButton 통합`) — Button 에 글자 모델이 둘 (자체 `children` 문자열 · Text 자식) 이라 사용자가 본 결함 3건이 그 경계에서 난다는 실측: Canvas `bindings.button` 이 익명 글자를 center 고정으로 그려 정렬 미적용 · `setIcon` 의 `children` remove 가 instance override 만 지워 template 기본 라벨이 다시 드러나 글자 중복 · IconButton `icon` prop 은 `defaults.icon = "star"` 라 「없음」 이 없어 삭제 불가. 채택 B (사용자 제안): 팔레트 Button origin 을 IconButton template 그대로 (`Button > Icon{icon} + Text{label}`) 로, 「없음」 은 생략 규칙 (`defaults.icon` 없음 → 빈 `{icon}` 숨김 · Text `presentWhen: "nonEmptyText"`), 아이콘 · 글자는 instance `icon` · `label` prop, Canvas 는 자식 노드 경로 (Layout 정렬 = DOM), IconButton 은 Button 에 통합 (S2 에 IconButton 없음 · icon-only = ActionButton 규칙). 기각: A 두 모델 유지 + 개별 수리 (원인 잔존) · C 자체 문자열 하나 + `icon` prop (ADR-256 · 142 반대 방향). 사용자 결정 3 (IconButton 남김 방식 · icon-only 표현 · Icon 기본 위치). 스키마 변경 0 · contract +1 (구조 변경 계약 Step 3 — 옛 개발용 프로젝트 거부, 변환 0). **같은 날 리뷰 Round 1** (codex) HIGH 3 → 수리: 중첩 Button 27 + ToggleButton 7 자리의 `children` → `label` 이관 (h1) · Icon 도 template 자리라 owned 순서 문제 없음 (h2) · 「옛 문서 그대로」 선택지 삭제 (h3). **Round 2** h1 ~ h3 설계 해소 확인 + 신규 HIGH 1 (h4 — Pagination `← 1 2 3 →` · Menu · Popover · Tooltip trigger 를 글자 없는 호스트로 잘못 분류) → 같은 날 수리: 자리별 실제 `children` 값 표 (breakdown §2b) · 값 그대로 이관 · 원복 RED 둘. 다음 검증 round 는 사용자 판단. 열림 +1 (열림 3 — Proposed 2 (245 · 276) · Accepted 1 (275), 합계 298).
+
 > **2026-10-20 ADR-275 Phase 7 종결 (사용자 결정 6 — fixed 허용)** — 노드 `layout.position: fixed` 저작 허용 (contract 42 그대로). viewport = page body 영역 (원점 + breakpoint 화면 크기, 스크롤 0). 엔진 viewport 배치 패스 · Canvas 는 page 층에서 그리고 page 스크롤을 되돌림 · 패널 Fixed 버튼 (Absolute 의 pin · 칸). Chrome oracle 5 · live Canvas = Preview (스크롤 300 뒤에도 같은 자리). 진행 중 결함 1 수리 (breakpoint Left+Right 폭 `mask` 거부). ADR-267 결정 1 · 2 가 이것으로 닫힘. 열림 · 합계 변화 없음.
 
 > **2026-10-20 ADR-275 Phase 6 종결 (사용자 결정 5 — sticky 허용)** — 노드 `layout.position: sticky` 저작 허용 (ADR-267 결정 1 을 sticky 에 한해 뒤집음, contract 42 그대로). Position 절 Sticky 버튼 활성 (네 칸 = 붙는 거리) · DOM `position: sticky` · Canvas positioned layer (z-index 없는 sticky 는 흐름 형제 위). live 에서 결함 1 수리 (sticky · z-index 로 바뀐 상자의 그리기 순서가 재기록되지 않음). Canvas = Preview (스크롤 150). Fixed 는 그대로 막힘. 열림 · 합계 변화 없음.
@@ -420,6 +422,11 @@
 - **상태**: Accepted — Phase 0 ~ 4 · 6 (sticky) · 7 (fixed) 종결 · Phase 5 live 통과 (2026-10-20) — G5 · G6 대기
 - **규모**: Phase 0 소비자 목록 · Chrome oracle → Phase 1 엔진 (absolute intrinsic 키워드 크기) → Phase 2 `placement` 삭제 · 공용 술어 · 저장 통일 → Phase 3 Canvas drag 가 제약 유지 → Phase 4 패널 (pin 상자 · 변 옆 칸 · Fill · 결과 문장 — 사용자 결정 7 · 8 로 Center 버튼 제거 · 도식 = Alignment 크기) → Phase 5 live · `/cross-check` · ratchet. 사용자 결정 3 확정 2026-10-19 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 · relative Right/Bottom 비활성) · 사용자 결정 4 확정 (넘쳐도 가운데 → `unsafe center` 자기 정렬, Phase 0 go/no-go). breakdown: [design/275](design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
 
+#### [276](276-button-text-child-iconbutton-merge.md) — Button 글자를 Text 자식으로 통합 · IconButton 통합
+
+- **상태**: Proposed — 2026-10-20 (리뷰 미실시)
+- **규모**: Phase 0 인벤토리 (중첩 Button 27 + ToggleButton 7 자리의 `children` → `label` 표 §2b · 자체 `children` 읽기 지점 · IconButton 참조) + 사용자 결정 3 → Phase 1 origin template (`Button > Icon{icon} + Text{label}` + 생략 규칙 · 호스트 `label` 쓰기 · contract +1 · ToggleButton 같음) · Canvas 익명 글자 분기 삭제 → Phase 2 Properties (`accepts` 의 `label` · `icon` 칸 하나 · 자식 명령 3 삭제) · 소비자 → Phase 3 IconButton 통합 · live → Phase 4 문서. G0 ~ G5. 리뷰 Round 1 HIGH 3 · Round 2 HIGH 1 (h4) 수리 (2026-10-20), 다음 검증 round 는 사용자 판단. breakdown: [design/276](design/276-button-text-child-iconbutton-merge-breakdown.md)
+
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -447,12 +454,13 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
-| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                      | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                       |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                           |
+| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                      | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                              |
+|  2   | [276](276-button-text-child-iconbutton-merge.md)                                               | Proposed 2026-10-20 — 리뷰 Round 1 HIGH 3 · Round 2 HIGH 1 수리                   | 수리 검증 (`review-adr`) → Phase 0 인벤토리 + 사용자 결정 3 (IconButton 남김 · icon-only · Icon 위치) |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)        |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                           |
 
 ---
 
