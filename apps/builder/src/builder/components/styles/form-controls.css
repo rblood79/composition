@@ -654,7 +654,7 @@
     }
 
     /* ADR-222: 캔버스 spacing 핸들이 이 필드의 값을 편집 중 — 캔버스 배지와 같은 파랑으로
-       동기 강조 (BoxModelEditor 의 [data-active] 와 같은 어법). isDisabled 로 잠긴 동안만. */
+       동기 강조. isDisabled 로 잠긴 동안만. */
     .property-unit-input--session-active .react-aria-Input {
       color: var(--focus-ring);
       font-weight: 600;

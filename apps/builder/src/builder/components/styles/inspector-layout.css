@@ -186,9 +186,6 @@
       }
     }
 
-    /* Spacing 절 — 박스 모델 다이어그램 하나 (BoxModelEditor.css 가 소유). 8-필드 폴백
-       (.layout-container / .four-way-grid) 은 2026-09-15 제거. */
-
     &[data-section-id="transform"] .section-content {
       display: flex;
       flex-direction: column;
