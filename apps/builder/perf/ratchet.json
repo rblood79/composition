@@ -8138,6 +8138,87 @@
       "on": "2026-10-19",
       "reason": "ADR-274 (4b858ae55) 줌이 페이지 배치를 바꾸지 않아 줌 갱신 사유가 invalidate → coverage · zoom refresh 로 이동. 커밋별 측정: 674304ad0 = 67, 4b858ae55 ~ 3b43ccbe1 = 89 (aff419313 = 90) · 같은 코드 재측정 88 ~ 90 (이미지 완료 시각 흔들림 — 2026-10-18 B 재분류 사유, 한도 94 안)",
       "expires": "2027-04-19"
+    },
+    {
+      "path": "seeds.60.edit.A.doc.persistStringifyBytes",
+      "from": 6384,
+      "to": 7872,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.600.edit.A.doc.persistStringifyBytes",
+      "from": 6384,
+      "to": 7872,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.drag.A.doc.opsCloneBytes",
+      "from": 109,
+      "to": 232,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.drag.A.doc.persistStringifyBytes",
+      "from": 384,
+      "to": 477,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.drag.A.doc.readCompareBytes",
+      "from": 528,
+      "to": 609,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.drag.A.v8.fn.src/builder/catalogRuntime/canvasScene.ts#get stream",
+      "from": 28173,
+      "to": 28175,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.drag.A.v8.fn.src/builder/workspace/canvas/catalog/CatalogCanvas.tsx#bounds",
+      "from": 26652,
+      "to": 26654,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/workspace.ts#get root",
+      "from": 1916,
+      "to": 1946,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs",
+      "from": 1793,
+      "to": 1823,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
+      "expires": "2027-04-20"
     }
   ],
   "recorderChanges": [
