@@ -160,6 +160,15 @@ export interface TextEditBox {
   /** px — 없으면 글꼴 기본 (`normal`). */
   lineHeight?: number;
   whiteSpace?: string;
+  /** The drawn text's color as CSS (a Button's white label — the record's own `color` is the box's). */
+  color?: string;
+}
+
+function cssColorOf(color: Float32Array | undefined): string | undefined {
+  if (!color || color.length < 3) return undefined;
+  const channel = (value: number) => Math.round(Math.min(1, Math.max(0, value)) * 255);
+  const alpha = color.length > 3 ? Math.min(1, Math.max(0, color[3]!)) : 1;
+  return `rgba(${channel(color[0]!)}, ${channel(color[1]!)}, ${channel(color[2]!)}, ${alpha})`;
 }
 
 export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
@@ -213,5 +222,6 @@ export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
     fontFamilies: text.fontFamilies,
     lineHeight: text.lineHeight,
     whiteSpace: text.whiteSpace,
+    color: cssColorOf(text.presentationColor ?? text.color),
   };
 }

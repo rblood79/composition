@@ -281,7 +281,9 @@ function TextField({
     lineHeight,
     fontWeight,
     fontFamily,
-    color: typeof visual.color === "string" ? visual.color : undefined,
+    color:
+      text?.color ??
+      (typeof visual.color === "string" ? visual.color : undefined),
     textAlign,
   };
   return (

@@ -194,7 +194,7 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
             content: "Button",
             fontFamilies: ["Pretendard"],
             fontSize: 14,
-            color: new Float32Array([0, 0, 0, 1]),
+            color: new Float32Array([1, 1, 1, 1]),
             align: "center",
             lineHeight: 20,
             paddingLeft: 12,
@@ -217,6 +217,8 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
       ]);
       // Laid out on one line like Skia's nowrap — a typed line break stays visible.
       expect(style.whiteSpace).toBe("pre");
+      // The drawn label's color (white on the primary button), not the record's box color.
+      expect(style.color).toBe("rgb(255, 255, 255)");
     } finally {
       unregisterSkiaNode(item.identity);
     }
