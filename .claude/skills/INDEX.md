@@ -1,6 +1,6 @@
 # Skills 카탈로그 (composition)
 
-모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 목록은 시스템 프롬프트에 자동 로드). 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
+모든 skill 은 자연어 발동 + `/name` 직접 호출이 가능하다 (절차는 skill, persona 는 agent — 목록은 시스템 프롬프트에 자동 로드).
 
 ## composition 전용 (프로젝트)
 
@@ -36,10 +36,3 @@
 | 격리 작업 공간     | worktree — `.claude/rules/git-workflow.md` §3                               |
 | 2+ 독립 작업 병렬  | CLAUDE.md §병렬 워크플로 (Boris 패턴)                                       |
 | 머지 전 정리       | `.claude/rules/git-workflow.md` (main 직접 push, web PR 금지)               |
-
-<!-- usage-stats-begin -->
-<!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
-
-(비어 있음 — 필요하면 `.claude/hooks/update-index.sh 30` 으로 생성)
-
-<!-- usage-stats-end -->
