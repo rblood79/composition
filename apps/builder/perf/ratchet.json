@@ -8219,6 +8219,15 @@
       "on": "2026-10-20",
       "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
       "expires": "2027-04-20"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/workspace.ts#get root",
+      "from": 1766,
+      "to": 1796,
+      "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
+      "on": "2026-10-20",
+      "reason": "ADR-275 — 정렬 준비 (prepareCatalogArrange) 가 선택마다 readModel 대신 root.domInputs 조회. 같은 run 의 select readModel#read 1710 → 1680 (−30) 과 같은 수 — select-spread 와 같은 원인 (1526e969a)",
+      "expires": "2027-04-20"
     }
   ],
   "recorderChanges": [
