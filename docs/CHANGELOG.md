@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 글자 편집 — Button 라벨 자리] - 2026-10-20
+
+### Fixed
+
+- **Button 을 더블클릭하면 편집 상자가 버튼 전체가 아니라 라벨 글자 줄 위에 놓인다** (사용자 보고 2026-10-20 「텍스트 위치에서 편집되지 않고 버튼 영역 전체에서 된다」): 편집 상자는 Skia 가 글자를 그리는 content 상자 — padding 안 · `verticalAlign: middle` 이면 상자 세로 중앙의 글자 줄 · 글자 노드의 정렬 (center) · 글꼴 (크기 · 굵기 · 줄 높이 · 글꼴 이름) — 를 따른다 (`resolveTextEditBox`). 글자 노드가 없으면 종전대로 요소 상자. Skia 가 한 줄로 그리는 nowrap 글자 (Button 라벨) 는 편집 중에도 줄을 바꾸지 않고 (`white-space: pre`) 입력 글자만큼 폭이 늘어난다 — 종전엔 옛 폭에서 줄이 바뀌어 상자 높이가 두 줄로 굳었다. live: Button 68 × 30 의 라벨 42 × 20 위에서 편집 · 입력 중 폭 71 → 107 · 높이 20 유지 · 확정 뒤 Label 반영.
+  - 위치: `workspace/canvas/skia/textDrawOrigin.ts` · `workspace/canvas/catalog/CatalogTextEditor.tsx`
+
 ## [ADR-275 Phase 7 — Position Fixed 허용] - 2026-10-20
 
 ### Added

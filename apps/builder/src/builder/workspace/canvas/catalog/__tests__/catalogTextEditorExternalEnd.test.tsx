@@ -108,3 +108,129 @@ describe("CatalogTextEditor — 외부 종료 · 프레임 구독", () => {
     expect(subscriptions.count - before).toBe(0);
   });
 });
+
+/**
+ * 2026-10-20 사용자 보고 — "button 컴포넌트 더블클릭으로 편집 시 텍스트 위치에서 편집되지 않고 버튼
+ * 영역 전체에서 된다". 편집 상자는 요소 상자가 아니라 Skia 가 글자를 그린 content 상자 (padding
+ * 안 · 글자 줄 높이 · 정렬 · 글꼴) 에 놓인다.
+ */
+describe("CatalogTextEditor — 글자 상자 배치", () => {
+  it("Skia 글자 노드의 padding · 정렬 · 글꼴을 따라 편집 상자를 놓는다", async () => {
+    const { workspace, record, field } = await open();
+    const item = workspace.itemOfRecord(record)!;
+    const { registerSkiaNode, unregisterSkiaNode } =
+      await import("../../skia/useSkiaNode");
+    registerSkiaNode(item.identity, {
+      type: "box",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 40,
+      visible: true,
+      children: [
+        {
+          type: "text",
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 40,
+          visible: true,
+          text: {
+            content: "Hello",
+            fontFamilies: ["Pretendard"],
+            fontSize: 14,
+            fontWeight: 700,
+            color: new Float32Array([0, 0, 0, 1]),
+            align: "center",
+            lineHeight: 18,
+            paddingLeft: 16,
+            paddingTop: 11,
+            paddingBottom: 11,
+            maxWidth: 168,
+          },
+        },
+      ],
+    });
+    try {
+      act(() => workspace.session.startTextEdit(item));
+      const style = field()!.style;
+      expect([style.left, style.top, style.width, style.height]).toEqual([
+        "26px",
+        "31px",
+        "168px",
+        "18px",
+      ]);
+      expect(style.textAlign).toBe("center");
+      expect(style.fontSize).toBe("14px");
+      expect(style.fontWeight).toBe("700");
+      expect(style.lineHeight).toBe("18px");
+    } finally {
+      unregisterSkiaNode(item.identity);
+    }
+  });
+
+  it("verticalAlign middle (Button) 은 글자 줄을 상자 세로 중앙에 둔다", async () => {
+    const { workspace, record, field } = await open();
+    const item = workspace.itemOfRecord(record)!;
+    const { registerSkiaNode, unregisterSkiaNode } =
+      await import("../../skia/useSkiaNode");
+    // `canvasBinding.ts` `bindings.button`: paddingTop = box inset, no paddingBottom, middle.
+    registerSkiaNode(item.identity, {
+      type: "box",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 40,
+      visible: true,
+      children: [
+        {
+          type: "text",
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 40,
+          visible: true,
+          text: {
+            content: "Button",
+            fontFamilies: ["Pretendard"],
+            fontSize: 14,
+            color: new Float32Array([0, 0, 0, 1]),
+            align: "center",
+            lineHeight: 20,
+            paddingLeft: 12,
+            paddingTop: 5,
+            maxWidth: 176,
+            verticalAlign: "middle",
+            whiteSpace: "nowrap",
+          },
+        },
+      ],
+    });
+    try {
+      act(() => workspace.session.startTextEdit(item));
+      const style = field()!.style;
+      expect([style.left, style.top, style.width, style.height]).toEqual([
+        "22px",
+        "30px",
+        "176px",
+        "20px",
+      ]);
+      // Laid out on one line like Skia's nowrap — a typed line break stays visible.
+      expect(style.whiteSpace).toBe("pre");
+    } finally {
+      unregisterSkiaNode(item.identity);
+    }
+  });
+
+  it("Skia 글자 노드가 없으면 요소 상자 그대로다", async () => {
+    const { workspace, record, field } = await open();
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    const style = field()!.style;
+    expect([style.left, style.top, style.width, style.height]).toEqual([
+      "10px",
+      "20px",
+      "200px",
+      "40px",
+    ]);
+  });
+});

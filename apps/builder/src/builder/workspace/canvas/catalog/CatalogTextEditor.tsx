@@ -18,6 +18,7 @@ import { catalogPropertyTextTarget } from "../../../catalogRuntime/componentProp
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
 import { subscribeCanvasFrames } from "../skia/frameScheduler";
+import { resolveTextEditBox, type TextEditBox } from "../skia/textDrawOrigin";
 import { viewportState } from "../viewport/viewportState";
 
 export interface CatalogTextEditorProps {
@@ -93,11 +94,15 @@ function TextField({
   const committed = useRef(false);
   /** The typed text — still readable when the field unmounts (the edit ended elsewhere). */
   const draft = useRef(start.text);
+  // The field sits on the record's text box — the content box Skia draws the text in (a Button's
+  // label inside its padding, one line high), not the whole element (user 2026-10-20). Without a
+  // Skia text node (not drawn yet) the element box stands in.
   const place = () => {
     const box = boundsOf(item.identity);
     return box
       ? {
           box,
+          text: resolveTextEditBox(item.identity),
           x: viewportState.x,
           y: viewportState.y,
           zoom: viewportState.zoom,
@@ -105,8 +110,12 @@ function TextField({
       : undefined;
   };
   const [placement, setPlacement] = useState(place);
-  /** The typed text's own height (scene px) — the field grows past the box as lines are added. */
-  const [contentHeight, setContentHeight] = useState(0);
+  /**
+   * The typed text's own size (scene px) — the field grows past the box as lines are added, and
+   * past its width while an unwrapped (nowrap) text is typed: the hugging box follows a frame
+   * later, and wrapping at the old width would stack the lines (user 2026-10-20, Button label).
+   */
+  const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
   const placeRef = useRef(place);
   useLayoutEffect(() => {
     placeRef.current = place;
@@ -126,7 +135,8 @@ function TextField({
             current.box.x === next.box.x &&
             current.box.y === next.box.y &&
             current.box.width === next.box.width &&
-            current.box.height === next.box.height
+            current.box.height === next.box.height &&
+            sameTextBox(current.text, next.text)
             ? current
             : next;
         }),
@@ -207,23 +217,55 @@ function TextField({
 
   if (!start.record || !start.key || !placement) return null;
   const visual = start.record.visual as Readonly<Record<string, unknown>>;
-  const fontSize = Number(visual.fontSize) > 0 ? Number(visual.fontSize) : 16;
-  const lineHeight =
-    typeof visual.lineHeight === "number"
+  const { box, text, x, y, zoom } = placement;
+  const fontSize =
+    text?.fontSize ??
+    (Number(visual.fontSize) > 0 ? Number(visual.fontSize) : 16);
+  const lineHeight = text
+    ? text.lineHeight !== undefined
+      ? `${text.lineHeight}px`
+      : "normal"
+    : typeof visual.lineHeight === "number"
       ? visual.lineHeight > 4
         ? `${visual.lineHeight}px`
         : visual.lineHeight
       : typeof visual.lineHeight === "string"
         ? visual.lineHeight
         : "normal";
-  const { box, x, y, zoom } = placement;
+  const fontWeight = text
+    ? text.fontWeight
+    : typeof visual.fontWeight === "number" ||
+        typeof visual.fontWeight === "string"
+      ? visual.fontWeight
+      : undefined;
+  const fontFamily = text
+    ? text.fontFamilies.join(", ")
+    : typeof visual.fontFamily === "string"
+      ? visual.fontFamily
+      : undefined;
+  const textAlign =
+    text?.align ??
+    (typeof visual.textAlign === "string"
+      ? (visual.textAlign as CSSProperties["textAlign"])
+      : undefined);
+  const area = text
+    ? {
+        x: box.x + text.x,
+        y: box.y + text.y,
+        width: text.width,
+        height: text.height,
+      }
+    : box;
+  // Skia lays a nowrap / pre text out on one line (`nodeRendererText`): the field does the same —
+  // `pre` keeps a typed line break visible (the commit lifts `nowrap` to `pre` for it).
+  const unwrapped = text?.whiteSpace === "nowrap" || text?.whiteSpace === "pre";
   const style: CSSProperties = {
     position: "absolute",
-    left: x + box.x * zoom,
-    top: y + box.y * zoom,
-    width: Math.max(box.width, 24),
+    left: x + area.x * zoom,
+    top: y + area.y * zoom,
+    width: Math.max(area.width, unwrapped ? contentSize.width : 0, 24),
     // The text's box, one line for one line (a textarea's default is two rows).
-    height: Math.max(box.height, contentHeight),
+    height: Math.max(area.height, contentSize.height),
     transform: `scale(${zoom})`,
     transformOrigin: "0 0",
     zIndex: 3,
@@ -234,21 +276,13 @@ function TextField({
     background: "transparent",
     resize: "none",
     overflow: "hidden",
-    whiteSpace: "pre-wrap",
+    whiteSpace: unwrapped ? "pre" : "pre-wrap",
     fontSize,
     lineHeight,
-    fontWeight:
-      typeof visual.fontWeight === "number" ||
-      typeof visual.fontWeight === "string"
-        ? visual.fontWeight
-        : undefined,
-    fontFamily:
-      typeof visual.fontFamily === "string" ? visual.fontFamily : undefined,
+    fontWeight,
+    fontFamily,
     color: typeof visual.color === "string" ? visual.color : undefined,
-    textAlign:
-      typeof visual.textAlign === "string"
-        ? (visual.textAlign as CSSProperties["textAlign"])
-        : undefined,
+    textAlign,
   };
   return (
     <textarea
@@ -262,13 +296,18 @@ function TextField({
       onChange={(event) => {
         draft.current = event.target.value;
         preview(draft.current);
-        // Measure the text alone: a field already taller would report its own height.
+        // Measure the text alone: a field already taller (wider) would report its own size.
         const field = event.target;
-        const height = field.style.height;
+        const { height, width } = field.style;
         field.style.height = "0px";
-        const next = field.scrollHeight;
+        if (unwrapped) field.style.width = "0px";
+        const next = {
+          height: field.scrollHeight,
+          width: unwrapped ? field.scrollWidth : 0,
+        };
         field.style.height = height;
-        setContentHeight(next);
+        field.style.width = width;
+        setContentSize(next);
       }}
       onBlur={commit}
       onKeyDown={(event) => {
@@ -282,5 +321,22 @@ function TextField({
         }
       }}
     />
+  );
+}
+
+function sameTextBox(
+  a: TextEditBox | undefined,
+  b: TextEditBox | undefined,
+): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.align === b.align &&
+    a.fontSize === b.fontSize &&
+    a.fontWeight === b.fontWeight &&
+    a.lineHeight === b.lineHeight
   );
 }

@@ -111,3 +111,77 @@ export function resolveTextNodeDebug(elementId: string): Record<
   };
 }
 
+
+/**
+ * 2026-10-20 — 인라인 편집 상자가 놓일 자리: Skia 가 요소의 글자를 그리는 content 상자 (element-local
+ * scene px) 와 그 글꼴. Button 처럼 글자가 padding 안 한 줄에 놓이는 요소는 상자 전체가 아니라 그 줄
+ * 자리에서 편집한다 (사용자 보고 — "버튼 영역 전체에서 된다"). `specShapeConverter` 가 중앙 배치를
+ * `paddingTop` · `paddingBottom` 으로 굳히므로 (text block 높이 = 상자 − 둘) 마지막 프레임 상태 없이
+ * 기하만으로 같은 자리다. 글자 노드가 없으면 undefined — 호출자가 요소 상자를 쓴다.
+ */
+export interface TextEditBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  align?: "left" | "center" | "right";
+  fontSize: number;
+  fontWeight?: number;
+  fontFamilies: readonly string[];
+  /** px — 없으면 글꼴 기본 (`normal`). */
+  lineHeight?: number;
+  whiteSpace?: string;
+}
+
+export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
+  const node = findTextNode(getSkiaNode(elementId) ?? undefined);
+  const text = node?.text;
+  if (!node || !text) return undefined;
+  const paragraph = peekRetainedParagraph(node);
+  // D3 — pre-wrap 은 Skia 가 상자보다 최대 1px 넓게 layout 한다: 같은 자리에서 줄을 바꾸도록 그만큼.
+  const wrapWidthExtra =
+    paragraph && text.whiteSpace === "pre-wrap"
+      ? Math.max(0, paragraph.getMaxWidth() - text.maxWidth)
+      : 0;
+  const explicitBottom =
+    typeof text.paddingBottom === "number" && text.paddingBottom >= 0;
+  const paddingBottom = explicitBottom ? text.paddingBottom! : 0;
+  // The text block's height: the paragraph Skia holds (drawn once), else the line height (the
+  // field's own line box is the same height — a Button's label while it is being typed).
+  const textHeight = paragraph
+    ? paragraph.getHeight()
+    : (text.lineHeight ?? Math.round(text.fontSize * 1.2));
+  // The same vertical placement as `nodeRendererText` `computeDrawY`: middle / bottom centre the
+  // text block in the whole box; an explicit bottom padding centres it in the content box; else the
+  // text starts at the top padding.
+  const contentHeight = Math.max(
+    1,
+    node.height - text.paddingTop - paddingBottom,
+  );
+  const vertical =
+    text.verticalAlign === "middle"
+      ? { y: (node.height - textHeight) / 2, height: textHeight }
+      : text.verticalAlign === "bottom"
+        ? { y: node.height - textHeight, height: textHeight }
+        : explicitBottom &&
+            (!text.verticalAlign || text.verticalAlign === "baseline")
+          ? {
+              y:
+                text.paddingTop +
+                Math.max(0, (contentHeight - textHeight) / 2),
+              height: Math.min(contentHeight, textHeight),
+            }
+          : { y: text.paddingTop, height: contentHeight };
+  return {
+    x: node.x + text.paddingLeft,
+    y: node.y + vertical.y,
+    width: Math.max(1, text.maxWidth + wrapWidthExtra),
+    height: Math.max(1, vertical.height),
+    align: typeof text.align === "string" ? text.align : undefined,
+    fontSize: text.fontSize,
+    fontWeight: text.fontWeight,
+    fontFamilies: text.fontFamilies,
+    lineHeight: text.lineHeight,
+    whiteSpace: text.whiteSpace,
+  };
+}
