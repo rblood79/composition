@@ -171,6 +171,23 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
     expect(selected()).toEqual([]);
   });
 
+  it("a new press keeps a selected nested child and Ctrl targets the deepest hit", async () => {
+    const { picking, record, center, selected } = await open();
+    const [lx, ly] = center("leaf");
+
+    picking.click(lx, ly, { deep: true });
+    expect(picking.targetKeepingSelection(lx, ly, false)?.id).toBe(
+      record("leaf"),
+    );
+    expect(selected()).toEqual([record("leaf")]);
+
+    picking.click(lx, ly);
+    expect(selected()).toEqual([record("frame")]);
+    expect(picking.targetKeepingSelection(lx, ly, true)?.id).toBe(
+      record("leaf"),
+    );
+  });
+
   it("a click outside the entered context leaves it and selects at the page level", async () => {
     const { workspace, picking, center, selected } = await open();
     const [lx, ly] = center("leaf");

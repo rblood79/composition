@@ -1193,7 +1193,9 @@ export function CatalogCanvas({
       lastPoint = { x, y };
       pressPointer = event.pointerId;
       deferredSelect = undefined;
+      const deep = event.metaKey || event.ctrlKey;
       if (
+        !deep &&
         gestures.beginSpacing(x, y, zoomNow(), {
           alt: event.altKey,
           shift: event.shiftKey,
@@ -1204,6 +1206,7 @@ export function CatalogCanvas({
         return;
       }
       if (
+        !deep &&
         !isComponentsView(workspace.root.definitionView) &&
         gestures.beginResize(x, y, zoomNow())
       ) {
@@ -1212,8 +1215,7 @@ export function CatalogCanvas({
         return;
       }
       const additive = event.shiftKey;
-      const deep = event.metaKey || event.ctrlKey;
-      const target = picking.target(x, y, deep);
+      const target = picking.targetKeepingSelection(x, y, deep);
       const selectionItems = workspace.session.getSnapshot().selection;
       const selected = selectionItems.some(
         (item) => item.identity === target?.id,
@@ -1424,7 +1426,12 @@ export function CatalogCanvas({
           catalogTextKey,
         );
       const editText = (targetId: string, picked: string) => {
-        const id = resolveCatalogTextEditRecord(records, picked, targetId, hasText);
+        const id = resolveCatalogTextEditRecord(
+          records,
+          picked,
+          targetId,
+          hasText,
+        );
         const item = id && workspace.itemOfRecord(id);
         if (!item) return false;
         if (id !== targetId) workspace.selectRecords([id]);
@@ -1482,7 +1489,11 @@ export function CatalogCanvas({
       if (gestures.pending) return;
       syncScene();
       const { x, y } = scenePoint(event);
-      const target = picking.target(x, y, false);
+      const target = picking.targetKeepingSelection(
+        x,
+        y,
+        event.metaKey || event.ctrlKey,
+      );
       const record = target && workspace.root.domInputs.get(target.id);
       const onElement = !!record && record.parentId !== "catalog:root";
       if (
@@ -1490,8 +1501,10 @@ export function CatalogCanvas({
         !workspace.session
           .getSnapshot()
           .selection.some((item) => item.identity === target!.id)
-      )
-        picking.click(x, y);
+      ) {
+        if (target!.leaveContext) workspace.session.exitContext();
+        workspace.selectRecords([target!.id]);
+      }
       const surface = onElement ? "canvas-element" : "canvas-empty";
       const items = catalogCanvasMenuItems(
         menuHost(),

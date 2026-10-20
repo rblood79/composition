@@ -30,7 +30,9 @@ const isNodeSource = (sourceId: string) => sourceId.startsWith("project:node:");
  * instance) — its own record identity (2026-10-13 사용자 「listboxitem 은 group … 더블클릭으로
  * child 에 접근」). `undefined` = not a container the Canvas can enter.
  */
-export function catalogContextOf(record: CatalogPickRecord): string | undefined {
+export function catalogContextOf(
+  record: CatalogPickRecord,
+): string | undefined {
   if (isNodeSource(record.sourceId)) return record.sourceId;
   return record.sourceId.startsWith("lib:template:") ? record.id : undefined;
 }
@@ -146,7 +148,8 @@ export function resolveCatalogTextEditRecord(
     // ADR-276: a Button · ToggleButton's words are its Text{label} child — a double click on the
     // box edits that child (as the old own-label button edited in place).
     const target = records.get(targetId);
-    return target?.bindingId === "button" || target?.bindingId === "togglebutton"
+    return target?.bindingId === "button" ||
+      target?.bindingId === "togglebutton"
       ? target.children?.find((id) => hasText(id))
       : undefined;
   }
@@ -254,6 +257,28 @@ export class CatalogCanvasPicking {
     if (inside) return { id: inside, leaveContext: false };
     const outside = resolveCatalogClickRecord(records, picked, undefined);
     return outside ? { id: outside, leaveContext: true } : undefined;
+  }
+
+  /** Keep a selected descendant under the pointer for a new press or context menu. */
+  targetKeepingSelection(
+    x: number,
+    y: number,
+    deep: boolean,
+  ): { id: string; leaveContext: boolean } | undefined {
+    if (deep) return this.target(x, y, true);
+    const picked = this.pick(x, y);
+    const selected = new Set(
+      this.host.session.getSnapshot().selection.map((item) => item.identity),
+    );
+    for (
+      let record = picked && this.host.records.get(picked);
+      record;
+      record = this.host.records.get(record.parentId)
+    ) {
+      if (selected.has(record.id))
+        return { id: record.id, leaveContext: false };
+    }
+    return this.target(x, y, false);
   }
 
   click(

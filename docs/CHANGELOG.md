@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 중첩 선택 — Ctrl 재선택] - 2026-10-21
+
+### Fixed
+
+- Ctrl/⌘로 중첩 child를 고를 때 이미 선택된 요소의 간격·크기 핸들이 선택을 가로채지 않는다. 이후 같은 child를 일반 클릭하거나 컨텍스트 메뉴를 열어도 상위 요소로 선택이 돌아가지 않는다. Ctrl/⌘를 누른 경우에는 가장 깊은 대상을 사용한다.
+
 ## [ADR-276 — Button 글자를 Text 자식으로 · IconButton 통합] - 2026-10-20
 
 ### Changed
