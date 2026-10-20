@@ -275,7 +275,7 @@ else
   fail "hooks:selftest — claude:hooks:selftest와 codex:hooks:selftest를 모두 실행해야 함"
 fi
 
-REF_CORPUS=$(cat .claude/settings.json .codex/hooks.json CLAUDE.md AGENTS.md .agents/README.md package.json .claude/hooks/*.sh .codex/hooks/*.sh 2>/dev/null; [ -f CLAUDE.local.md ] && cat CLAUDE.local.md)
+REF_CORPUS=$(cat .claude/settings.json .codex/hooks.json CLAUDE.md AGENTS.md .agents/README.md package.json .claude/hooks/*.sh .codex/hooks/*.sh 2>/dev/null; if [ -f CLAUDE.local.md ]; then cat CLAUDE.local.md; fi) # CLAUDE.local.md 는 gitignore (e72055b03) — 없으면 `&&` 가 set -e 로 스크립트를 끊었다
 for h in .claude/hooks/*.sh; do
   b=$(basename "$h")
   case "$b" in *.test.sh) continue ;; esac
