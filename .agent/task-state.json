@@ -1,0 +1,27 @@
+{
+  "parallelSession": {
+    "task": "ADR-248 이후 Canvas 성능 저하 조사",
+    "phase": "review_report",
+    "status": "code_review_complete_live_measurement_unavailable",
+    "head": "66428e7ad",
+    "scope": "분석 및 검증; 제품 코드 변경 없음",
+    "findings": [
+      "현재 Chrome Builder 탭 확인",
+      "Apple Events JavaScript 비활성화 및 저장된 하니스 인증 세션 부재로 현재 탭 내부 계측 불가",
+      "증분 갱신 인접 14개 검사 통과: 5k 구조 검사의 5초 timeout 후 해당 파일을 30초 한도로 재실행",
+      "현재 구조 편집은 변경 부모의 이전/새 서브트리를 순회하며 geometry를 조회",
+      "ActionBar는 graph revision마다 메뉴 모델을 다시 만들고 명령 허용 여부를 dry-run",
+      "현재 브라우저의 ADR-248 이전 대비 성능 회귀는 미판정",
+      "preflight: guard/format PASS, TS/registration skip, agent-catalog 단계 exit 1",
+      "조사 도중 나타난 ADR-277 및 TableView 관련 다른 작업자의 변경 보존"
+    ],
+    "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
+  },
+  "goal": "(비어 있음 — ADR-277 종결, archives/task-state-2026-10.json)",
+  "phase": "idle",
+  "next": [],
+  "guard": "",
+  "stop": "",
+  "tip": "다른 세션 (Codex) 의 이전 상태는 parallelSession 키에 보존",
+  "updatedAt": "2026-10-21"
+}
