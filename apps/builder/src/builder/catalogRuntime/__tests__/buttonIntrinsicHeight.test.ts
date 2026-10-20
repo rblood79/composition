@@ -33,7 +33,6 @@ const BODY = "project:node:home-body" as NodeId;
 const CHILD = "project:node:button-height" as NodeId;
 const types = [
   "Button",
-  "IconButton",
   "ToggleButton",
   "ToggleButtonGroup",
   "ButtonGroup",
@@ -169,18 +168,7 @@ describe("button intrinsic height across Body layout changes", () => {
                 props: { size: { kind: "set", value: size } },
               }),
             );
-            if (type === "IconButton") {
-              // Its authored icon/label template metrics can exceed the type's line height.
-              workspace.execute(
-                setFields({
-                  targets: [{ kind: "node", id: BODY }],
-                  layout: { display: { kind: "set", value: "block" } },
-                }),
-              );
-              const intrinsic = height();
-              workspace.undo();
-              check(intrinsic);
-            } else check(expected);
+            check(expected);
           }
         }
       } finally {

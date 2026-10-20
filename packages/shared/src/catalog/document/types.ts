@@ -109,9 +109,14 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 42 — ADR-275 Phase 2: an authored absolute box is `layout.position: absolute` + `inset*` (the
  * node `placement` field is gone). A 41 document with a `placement` is refused (사용자 결정 1).
  * ADR-275 Phase 6 (same contract — additive): a node's `layout.position` may be `sticky`.
+ * 43 — ADR-276: the Button · ToggleButton origins are `Button > Icon{icon} + Text{label}` (the
+ * IconButton template — `component-button__icon` · `__label`, the label `presentWhen`, an unfilled
+ * `{icon}` draws nothing) and the nested Button positions of other origins carry their words as
+ * `label`; the IconButton origin is gone. A 42 document (an own `children` Button, an IconButton
+ * instance) is refused (사용자 결정 2026-10-20).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 42 as const;
+export const LIBRARY_CONTRACT_VERSION = 43 as const;
 
 export type EntryKind =
   | "project"

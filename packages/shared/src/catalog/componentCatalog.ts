@@ -1339,15 +1339,8 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     label: "form",
     icon: "GroupIcon",
   }),
-  // ADR-148 Phase 2 — 첫 신규 reusable (propsSchema 첫 소비). origin root 는 Button
-  // primitive (Button.binding 파일럿: "아이콘이 붙은 Button 은 reusable 조합 문서").
-  // RSP 대조: RSP/S2 에 IconButton 동명 컴포넌트 없음(icon-only 는 ActionButton) —
-  // 동명 primitive 충돌 없어 placeable 단일성 조치 불필요, ADR 명명 유지.
-  reusableEntry("IconButton", "primitives", "component-iconbutton", {
-    category: "buttons",
-    label: "icon button",
-    icon: "SquarePlus",
-  }),
+  // (ADR-148 Phase 2 의 IconButton reusable 은 ADR-276 에서 Button 에 통합 — 팔레트 Button origin
+  // 이 그 template (`Button > Icon{icon} + Text{label}`) 이다. S2 에 IconButton 은 없다.)
   // ADR-148 Phase 3 — factory-대체군 2종 (재판정 적격: DOM 자식 재귀 + Skia box shell +
   // 전용 escape/어댑터 없음). Toast 는 생성 진입점 0(palette 비노출 — imperative 알림 설계)
   // 으로 보류, IllustratedMessage 는 escape+어댑터 flat self-compose 로 부적격 (breakdown §3).
@@ -1380,7 +1373,7 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
  *
  * 사용자 결정 ② "origin 범위 = RAC 컴포넌트만": `PALETTE_ORDER` 66 − 내용/레이아웃 primitive 8
  * (Text · Icon · Separator · Skeleton · Image · frame · Section · Slot) − IllustratedMessage
- * (148 Phase 3 부적격) = 57 = 아래 52 + 위 손 seed 5 (Toolbar · Form · IconButton · InlineAlert · Card).
+ * (148 Phase 3 부적격) = 56 = 아래 52 + 위 손 seed 4 (Toolbar · Form · InlineAlert · Card — IconButton 은 ADR-276 에서 Button 에 통합).
  * builder `adr228Inventory.test.ts` 가 이 목록 ↔ PALETTE_ORDER − 제외 9 − 기존 5 의 일치를 강제한다.
  *
  * 등록은 **type 목록 하나** — 동명 primitive entry 의 panel 메타 (category · label · icon ·

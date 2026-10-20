@@ -92,7 +92,7 @@ function triggered(entries: NodeEntry[], rootId: string) {
         "lib:definition:origin-component-button",
         {},
         [],
-        { props: { children: label ?? set("Menu") } } as unknown as Partial<NodeEntry>,
+        { props: { label: label ?? set("Menu") } } as unknown as Partial<NodeEntry>,
       ),
       node(`${rootId}-popover`, "lib:definition:type-Popover", {}, [rootId]),
       ...entries.map((entry) =>

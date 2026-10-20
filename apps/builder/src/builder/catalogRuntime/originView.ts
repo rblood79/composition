@@ -82,7 +82,7 @@ export function catalogDefinitionTitle(
   graph: CatalogReader,
   definitionId: LibraryDefinitionId,
 ): string {
-  // The origin's own name (`IconButton`), not its template root's type (`Button`).
+  // The origin's own name (`FieldButton`), not its template root's type (`Button`).
   const name = graph.library.definitions.get(definitionId)?.name;
   if (name) return name;
   try {

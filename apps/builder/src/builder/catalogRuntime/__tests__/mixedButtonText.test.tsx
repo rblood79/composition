@@ -21,8 +21,16 @@ import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
+/**
+ * ADR-276: a Button · ToggleButton's words and glyph are its template's Text{label} · Icon{icon}
+ * positions (the IconButton template) — the records below are those positions inside the
+ * instance, found by their template source id.
+ */
 const BUTTON = "project:node:button" as NodeId;
-const ICON = "project:node:icon" as NodeId;
+const ICON = (type: string) =>
+  `lib:template:component-${type.toLowerCase()}__icon` as NodeId;
+const LABEL = (type: string) =>
+  `lib:template:component-${type.toLowerCase()}__label` as NodeId;
 const set = <T,>(value: T) => ({ kind: "set" as const, value });
 
 async function open(type: string, size: string, grouped = false) {
@@ -90,23 +98,23 @@ async function open(type: string, size: string, grouped = false) {
         kind: "node",
         id: grouped ? group : ("project:node:home-body" as NodeId),
       },
-      entries: [entry(BUTTON, type, { children: "Save", size })],
+      entries: [entry(BUTTON, type, { label: "Save", icon: "check", size })],
       rootIds: [BUTTON],
-      newId: workspace.newId,
-    }),
-  );
-  workspace.execute(
-    insertNodes({
-      parent: { kind: "node", id: BUTTON },
-      entries: [entry(ICON, "Icon", { iconName: "check", size: "XS" })],
-      rootIds: [ICON],
       newId: workspace.newId,
     }),
   );
   const root = workspace.root;
   const record = (sourceId: NodeId) =>
     [...root.canvasInputs.values()].find((item) => item.sourceId === sourceId)!;
-  return { workspace, root, record, entry };
+  // (In a group the items are ToggleButton instances with the same template positions — the
+  // records inside this instance only.)
+  const within = (sourceId: NodeId) =>
+    [...root.canvasInputs.values()].find(
+      (item) => item.sourceId === sourceId && item.instancePath.includes(BUTTON),
+    )!;
+  const icon = () => within(ICON(type));
+  const label = () => within(LABEL(type));
+  return { workspace, root, record, entry, icon, label };
 }
 
 const contents = (data: unknown): string[] => {
@@ -121,15 +129,17 @@ describe("mixed button text and document children", () => {
     for (const size of ["XS", "S", "M", "L", "XL"])
       for (const grouped of type === "ToggleButton" ? [false, true] : [false]) {
         it(`${type} ${size} grouped=${grouped}: text participates in layout and paint`, async () => {
-          const { workspace, root, record } = await open(type, size, grouped);
+          const { workspace, root, record, icon: iconOf, label } = await open(
+            type,
+            size,
+            grouped,
+          );
           const button = record(BUTTON),
-            icon = record(ICON);
+            icon = iconOf(),
+            part = label();
           const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-          const part = root.composedPartInputs
-            .get(button.id)!
-            .find((p) => p.text)!;
-          expect(part.text!.content).toBe("Save");
-          expect(contents(getSkiaNode(button.id))).toContain("Save");
+          expect(part.props.children).toBe("Save");
+          expect(contents(getSkiaNode(part.id))).toContain("Save");
           const boxes = () => root.getGeometry([button.id, icon.id, part.id]);
           const before = boxes();
           const html = renderToStaticMarkup(
@@ -153,37 +163,45 @@ describe("mixed button text and document children", () => {
           workspace.execute(
             setFields({
               targets: [workspace.itemOfRecord(button.id)!.target],
-              props: { children: { kind: "set", value: "Save document" } },
+              props: { label: { kind: "set", value: "Save document" } },
             }),
           );
           expect(canvas.update().status).not.toBe("rebind-required");
-          expect(contents(getSkiaNode(button.id))).toContain("Save document");
+          expect(contents(getSkiaNode(part.id))).toContain("Save document");
           const after = boxes();
           expect(after.get(button.id)!.width).toBe(320);
           expect(after.get(icon.id)!.x).not.toBe(fixedIconX);
           expect(getSkiaNode(icon.id)!.x).toBeCloseTo(after.get(icon.id)!.x, 3);
           workspace.undo();
           canvas.update();
-          expect(contents(getSkiaNode(button.id))).toContain("Save");
+          expect(contents(getSkiaNode(part.id))).toContain("Save");
           canvas.dispose();
         });
       }
 });
 
+// ADR-276: the glyph takes the ToggleButton's scale (the rule's `iconSize` per size — the
+// `buttonChildScaleRules` part rule), as a Button's Icon child does.
 describe("resolved Icon box in DOM", () => {
   for (const [size, expected] of [
-    ["XS", 16],
-    ["S", 18],
-    ["M", 24],
-    ["L", 36],
-    ["XL", 48],
+    ["XS", 14],
+    ["S", 16],
+    ["M", 18],
+    ["L", 24],
+    ["XL", 28],
   ] as const)
     it(size, async () => {
-      const { workspace, root, record } = await open("ToggleButton", "M", true);
-      const icon = record(ICON);
+      const { workspace, root, record, icon: iconOf } = await open(
+        "ToggleButton",
+        "M",
+        true,
+      );
+      const icon = iconOf();
+      // (In a group the item's size is the group's — `CATALOG_SIZE_PROPAGATION`.)
+      const group = root.canvasInputs.get(record(BUTTON).parentId)!;
       workspace.execute(
         setFields({
-          targets: [workspace.itemOfRecord(icon.id)!.target],
+          targets: [workspace.itemOfRecord(group.id)!.target],
           props: { size: { kind: "set", value: size } },
         }),
       );
@@ -222,19 +240,17 @@ describe("button Icon inherits text color", () => {
     ["ToggleButton", true],
   ] as const)
     it(`${type} grouped=${grouped}: default, selected and authored override`, async () => {
-      const { workspace, root, record } = await open(type, "M", grouped);
+      const { workspace, root, record, icon: iconOf, label } = await open(
+        type,
+        "M",
+        grouped,
+      );
       const owner = record(BUTTON),
-        icon = record(ICON);
+        icon = iconOf(),
+        text = label();
       const baseColor = icon.visual.color;
       const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-      const textColor = () => {
-        const data = getSkiaNode(owner.id)!;
-        return (
-          data.text?.color ??
-          data.children!.find((child) => child.text?.content === "Save")!.text!
-            .color
-        );
-      };
+      const textColor = () => getSkiaNode(text.id)!.text!.color;
       const glyphColor = () => getSkiaNode(icon.id)!.iconPath!.strokeColor;
       expect([...glyphColor()]).toEqual([...textColor()]);
       workspace.execute(
@@ -338,28 +354,22 @@ it("standalone Icon keeps its glyph box in flex row and column", async () => {
 });
 
 it("grouped mixed text wraps at its own box and unwraps after widening", async () => {
-  const { workspace, root, record } = await open("ToggleButton", "M", true);
+  const { workspace, root, record, label } = await open("ToggleButton", "M", true);
   const button = record(BUTTON);
   const target = workspace.itemOfRecord(button.id)!.target;
   workspace.execute(
     setFields({
       targets: [target],
-      props: { children: set("Toggle Button") },
+      props: { label: set("Toggle Button") },
       visual: { width: set(110) },
     }),
   );
   const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-  const part = root.composedPartInputs
-    .get(button.id)!
-    .find((item) => item.text)!;
+  const part = label();
   expect(root.textWraps(part.id)).toBe(true);
   expect(root.getGeometry([part.id]).get(part.id)!.height).toBe(40);
   expect(root.getGeometry([button.id]).get(button.id)!.height).toBe(50);
-  expect(
-    getSkiaNode(button.id)!.children!.some(
-      (item) => item.text?.whiteSpace === "normal",
-    ),
-  ).toBe(true);
+  expect(getSkiaNode(part.id)!.text?.whiteSpace).toBe("normal");
   workspace.execute(
     setFields({ targets: [target], visual: { width: set(300) } }),
   );
@@ -374,8 +384,9 @@ it("grouped mixed text wraps at its own box and unwraps after widening", async (
 });
 
 it("mixed ToggleButton paints authored typography and Reset restores native text defaults", async () => {
-  const { workspace, root, record } = await open("ToggleButton", "M", true);
+  const { workspace, root, record, label } = await open("ToggleButton", "M", true);
   const button = record(BUTTON);
+  const text = label();
   const owner = workspace.itemOfRecord(button.id)!.target;
   const body = workspace.itemOfRecord(
     root.canvasInputs.get(button.parentId)!.parentId,
@@ -395,10 +406,7 @@ it("mixed ToggleButton paints authored typography and Reset restores native text
     }),
   );
   canvas.update();
-  const painted = () =>
-    getSkiaNode(button.id)!.children!.find(
-      (item) => item.text?.content === "Save",
-    )!.text!;
+  const painted = () => getSkiaNode(text.id)!.text!;
   expect(painted().letterSpacing).toBe(2);
   expect(painted().align).toBe("right");
   expect(painted().decoration).toBeDefined();
@@ -428,9 +436,14 @@ it("mixed ToggleButton paints authored typography and Reset restores native text
 });
 
 it("group staticColor updates its ToggleButton Icon through derived dependents", async () => {
-  const { workspace, root, record } = await open("ToggleButton", "M", true);
+  const { workspace, root, record, icon: iconOf, label } = await open(
+    "ToggleButton",
+    "M",
+    true,
+  );
   const owner = record(BUTTON),
-    icon = record(ICON);
+    icon = iconOf(),
+    text = label();
   const group = root.canvasInputs.get(owner.parentId)!;
   const canvas = bindCatalogCanvas(root, root.pageRootRecords());
   for (const color of ["white", "black"]) {
@@ -441,10 +454,10 @@ it("group staticColor updates its ToggleButton Icon through derived dependents",
       }),
     );
     canvas.update();
-    const text = getSkiaNode(owner.id)!.children!.find(
-      (child) => child.text?.content === "Save",
-    )!.text!.color;
-    expect([...getSkiaNode(icon.id)!.iconPath!.strokeColor]).toEqual([...text]);
+    const painted = getSkiaNode(text.id)!.text!.color;
+    expect([...getSkiaNode(icon.id)!.iconPath!.strokeColor]).toEqual([
+      ...painted,
+    ]);
   }
   canvas.dispose();
 });

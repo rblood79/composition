@@ -71,11 +71,11 @@ async function open() {
       autosaveSchedule: () => {},
     },
   );
-  // IconButton: its origin root takes `label` (a Button's text is a template child).
+  // Button (ADR-276): its origin root takes `label` (a Button's text is a template child).
   const button = catalogBuiltinOrigins(library).find(
-    (origin) => origin.name === "IconButton",
+    (origin) => origin.name === "Button",
   )!;
-  // An IconButton placed on the page (an instance of the origin).
+  // A Button placed on the page (an instance of the origin).
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
@@ -115,7 +115,7 @@ describe("ADR-248 4e library origin view", () => {
       origins.length,
     );
     expect(origins.map((origin) => origin.name)).toEqual(
-      expect.arrayContaining(["Button", "IconButton", "TextField"]),
+      expect.arrayContaining(["Button", "ToggleButton", "TextField"]),
     );
   });
 
@@ -187,14 +187,14 @@ describe("ADR-248 4e library origin view", () => {
       "xl",
       "2xl",
     ]);
-    // IconButton: the origin, then 6 variants × (rest + 4 states).
+    // Button: the origin, then 6 variants × (rest + 4 states).
     const [originRow, ...instances] = groupOf(buttonCard).children!;
     expect(originRow!.role).toBe("origin");
-    expect(originRow!.name).toBe("IconButton");
+    expect(originRow!.name).toBe("Button");
     expect(instances.every((row) => row.role === "instance")).toBe(true);
     expect(instances.map((row) => row.name).slice(0, 2)).toEqual([
-      "IconButton / Accent / Default",
-      "IconButton / Accent / Disabled",
+      "Button / Accent / Default",
+      "Button / Accent / Disabled",
     ]);
     expect(instances.length).toBe(30);
     // The origin's own row holds only its template (not the instances again).
@@ -757,9 +757,10 @@ describe("ADR-248 4e library origin view", () => {
         if (inputOf(cursor).bindingId === "popover") return true;
       return false;
     };
+    // (ADR-276: a Button position's template `{icon}` glyph is there unfilled — hidden, no box.)
     const buttonGlyphs = (origin: string, size: string) =>
       under(recordOf(sized(origin, size)), "icon")
-        .filter((record) => !inPopover(record))
+        .filter((record) => !inPopover(record) && !inputOf(record).hidden)
         .map((record) => inputOf(record).visual.iconSize);
     for (const origin of [
       "combobox",

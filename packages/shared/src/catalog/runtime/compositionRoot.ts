@@ -304,6 +304,9 @@ export const CATALOG_INHERITED_TEXT_KEYS = [
   "whiteSpace",
   "wordBreak",
   "overflowWrap",
+  // CSS text-decoration is not inherited but propagates to in-flow descendants' text (CSS Text
+  // Decoration §1.2) — read the same way; an atomic inline box (a button) stops it.
+  "textDecoration",
 ] as const;
 /** Structural rule boxes carry typography to child text instead of painting a label. */
 export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
@@ -313,6 +316,9 @@ export const CATALOG_TEXT_STYLE_CONTAINERS: ReadonlySet<string> = new Set([
   "Slot",
   "ToggleButtonGroup",
   "ButtonGroup",
+  // ADR-276: a Button · ToggleButton's words are its Text child — its typography reaches them.
+  "Button",
+  "ToggleButton",
 ]);
 // ToggleButton's native <button> and catalog font-family own these defaults. Unlike the
 // bound Button (which explicitly forwards resolved text CSS), its rule DOM does not inherit
@@ -326,7 +332,10 @@ const TOGGLE_OWN_TEXT_DEFAULTS: ReadonlySet<string> = new Set([
   "whiteSpace",
 ]);
 const ownsTextDefault = (node: CatalogConsumerNode, key: string): boolean =>
-  node.bindingId === "togglebutton" && TOGGLE_OWN_TEXT_DEFAULTS.has(key);
+  (node.bindingId === "togglebutton" && TOGGLE_OWN_TEXT_DEFAULTS.has(key)) ||
+  // (A button is an atomic inline-level box: an ancestor's text-decoration stops at it.)
+  ((node.bindingId === "button" || node.bindingId === "togglebutton") &&
+    key === "textDecoration");
 function inheritedTextOf(
   node: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
@@ -457,9 +466,7 @@ function layoutChildrenOf(
 ): string[] {
   const wrapped = new Set(parts.flatMap((part) => part.wraps ?? []));
   const out = parts
-    .filter(
-      (part) => !part.wraps && !part.afterChildren && !wrapped.has(part.id),
-    )
+    .filter((part) => !part.wraps && !wrapped.has(part.id))
     .map((part) => part.id);
   // CSS `order` places a flex / grid item by its order, then source order (a stable sort).
   const ordered = orderOf
@@ -473,8 +480,6 @@ function layoutChildrenOf(
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
   }
-  for (const part of parts)
-    if (part.afterChildren && !wrapped.has(part.id)) out.push(part.id);
   if (chromeId) out.push(chromeId);
   return out;
 }
@@ -2351,35 +2356,9 @@ export class CatalogCompositionRoot {
       (record.bindingId !== "button" && record.bindingId !== "togglebutton")
     )
       return parts;
+    // ADR-276: a Button · ToggleButton has no words of its own (its label is a Text child) — no
+    // anonymous text part. (A grouped ToggleButton's content span stays a layout part.)
     const type = this.typeOf(record);
-    const leaf = textLeaf(
-      { ...record, children: [] },
-      type,
-      "",
-      inheritedLineHeight(record, get),
-    );
-    let textId: string | undefined;
-    if (leaf) {
-      textId = `${record.id}::part:text`;
-      const measured = this.textMeasure?.(leaf.text, leaf.font);
-      const width = measured?.exactWidth ?? measured?.width ?? 0;
-      const singleLine = catalogBindingKeepsOneLine(record) || leaf.singleLine;
-      parts.push({
-        id: textId,
-        afterChildren: type === "Button",
-        text: { content: leaf.text, font: leaf.font, singleLine },
-        style: {
-          contentMinWidth: singleLine
-            ? width
-            : Math.min(measured?.minWidth ?? width, width),
-          contentMaxWidth: width,
-          contentHeight:
-            this.wrapHeights.get(textId) ??
-            measured?.height ??
-            leaf.font.fontSize * leaf.font.lineHeight,
-        },
-      });
-    }
     if (
       type === "ToggleButton" &&
       catalogToggleGroupOf(record, get, this.typeOf)
@@ -2392,7 +2371,7 @@ export class CatalogCompositionRoot {
       const span = selectors?.[".react-aria-ToggleButton > span"];
       parts.push({
         id: `${record.id}::part:content`,
-        wraps: [...(textId ? [textId] : []), ...record.children],
+        wraps: [...record.children],
         style: {
           display: catalogBoxModel(record).display,
           alignItems: span?.["align-items"] ?? "center",
@@ -2897,42 +2876,6 @@ export class CatalogCompositionRoot {
         continue;
       }
       if (!this.textMeasure) continue;
-      // Mixed content creates anonymous flex text items in DOM. They wrap at their own
-      // assigned width, not at the owner's width (which also contains icons and gaps).
-      const parts = this.composedParts.get(id);
-      for (const part of parts ?? []) {
-        if (!part.text) continue;
-        const { content, font, singleLine } = part.text;
-        const rect = this.layout.getLayoutsForIds([part.id]).get(part.id);
-        if (!rect) continue;
-        const single = this.textMeasure(content, font);
-        const width = catalogTextBreaksWords(font)
-          ? rect.width
-          : Math.max(rect.width, single.minWidth ?? 0);
-        const next =
-          !singleLine &&
-          rect.width > 0 &&
-          width + 0.5 < (single.exactWidth ?? single.width)
-            ? this.textMeasure(content, font, width).height
-            : undefined;
-        if (next === this.wrapHeights.get(part.id)) continue;
-        this.keep(this.wrapHeights, part.id);
-        if (next === undefined) this.wrapHeights.delete(part.id);
-        else this.wrapHeights.set(part.id, next);
-        const updated = {
-          ...part,
-          style: { ...part.style, contentHeight: next ?? single.height },
-        };
-        this.keep(this.composedParts, id);
-        this.composedParts.set(
-          id,
-          this.composedParts
-            .get(id)!
-            .map((item) => (item.id === part.id ? updated : item)),
-        );
-        this.layout.updateNodeStyle(part.id, updated.style);
-        changed = true;
-      }
       // A DropZone's composed texts break at its content box (the column's stacked height).
       if (record.bindingId === "dropzone") {
         const content = catalogDropZoneContent(record, this.textMeasure);

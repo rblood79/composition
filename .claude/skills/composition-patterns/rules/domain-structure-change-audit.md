@@ -45,7 +45,7 @@ children 판정·RAC slot·필수 부품·상태 주체 주소와 값 바인딩�
 ### Step 3: 저장 버전과 문서 주소
 
 origin template 구조를 바꾸는 병합은 `document/types.ts`의 `LIBRARY_CONTRACT_VERSION`을
-올린다 (ADR-256 사용자 승인). 옛 개발용 프로젝트는 거부하며 자동 변환·dual-write를
+올린다 (ADR-256 사용자 승인 · ADR-276 43). 옛 개발용 프로젝트는 거부하며 자동 변환·dual-write를
 추가하지 않는다. 현재 숫자를 지침에 복제하지 말고 소스 상수를 읽는다.
 
 `document/validation.ts`의 `UNSUPPORTED_LIBRARY_CONTRACT`와 `runtime/storage.ts`의

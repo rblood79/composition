@@ -1413,34 +1413,39 @@ export function CatalogCanvas({
     const onDoubleClick = (event: MouseEvent) => {
       syncScene();
       const { x, y } = scenePoint(event);
-      if (!picking.doubleClick(x, y)) {
+      const records = workspace.root.domInputs;
+      // (A text a part inside draws — a field's · group's `label` on its Label — is that
+      // part's to edit, not the whole box's.)
+      const hasText = (record: string) =>
+        catalogHasOwnText(
+          workspace.runtime.graph.library,
+          records,
+          record,
+          catalogTextKey,
+        );
+      const editText = (targetId: string, picked: string) => {
+        const id = resolveCatalogTextEditRecord(records, picked, targetId, hasText);
+        const item = id && workspace.itemOfRecord(id);
+        if (!item) return false;
+        if (id !== targetId) workspace.selectRecords([id]);
+        workspace.session.startTextEdit(item);
+        return true;
+      };
+      // ADR-276: a Button · ToggleButton's words are its Text{label} child — one double click on
+      // the box edits them (as the old own-label button did), without entering the instance.
+      const target = picking.target(x, y, false);
+      const picked = picking.pick(x, y);
+      const binding = target && records.get(target.id)?.bindingId;
+      const buttonEdited =
+        !!target &&
+        !!picked &&
+        (binding === "button" || binding === "togglebutton") &&
+        editText(target.id, picked);
+      if (!buttonEdited && !picking.doubleClick(x, y)) {
         // Nothing to enter: a double click on an element with its own text edits it inline — or
         // the text under the pointer inside a container it cannot enter (a Card's title).
-        const target = picking.target(x, y, false);
-        const picked = picking.pick(x, y);
-        const records = workspace.root.domInputs;
-        const id =
-          target &&
-          picked &&
-          resolveCatalogTextEditRecord(
-            records,
-            picked,
-            target.id,
-            // (A text a part inside draws — a field's · group's `label` on its Label — is that
-            // part's to edit, not the whole box's.)
-            (record) =>
-              catalogHasOwnText(
-                workspace.runtime.graph.library,
-                records,
-                record,
-                catalogTextKey,
-              ),
-          );
-        const item = id && workspace.itemOfRecord(id);
-        if (item) {
-          if (id !== target!.id) workspace.selectRecords([id]);
-          workspace.session.startTextEdit(item);
-        }
+        const after = picking.target(x, y, false);
+        if (after && picked) editText(after.id, picked);
       }
       rehover();
     };

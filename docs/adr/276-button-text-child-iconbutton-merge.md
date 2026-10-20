@@ -2,12 +2,20 @@
 
 ## Status
 
-Proposed — 2026-10-20
+Accepted — 2026-10-20 (Proposed 같은 날)
+
+> **Accepted 근거**: 사용자 `/execute-adr 276` (2026-10-20) + `docs/adr/reviews/276.md` Round 2 — pending 0, HIGH 4 (h1 ~ h4) 전부 fixed (설계). 리뷰의 기술 PASS 는 아래 사용자 결정 3건을 대신하지 않는다 — Phase 0 끝에 묻고 여기에 적는다.
+>
+> **사용자 결정 (2026-10-20, Phase 0 끝 — AskUserQuestion)**: ① IconButton = 팔레트 제거 + origin 정의 삭제 (권고안) ② icon-only = `label` 비움 + `aria-label` (권고안) ③ Icon 기본 위치 = Text 앞, template 고정 (권고안). 이 기록이 confirm 의 지속 형태다 — 재질문 금지.
+>
+> **Phase 1 ~ 3 (G1 · G2 단위) — 2026-10-20**: origin template · definition (`accepts` label · icon + root passthrough, `defaults.icon` 없음) · 중첩 34 자리 `children` → `label` 이관 (값 그대로) · FieldButton 은 자기 Icon 자식 대신 Button 의 `{icon}` 자리 (글리프 둘 방지) · contract 43 · Canvas 익명 글자 분기 (`bindings.button` 라벨 · `partsFor` 글자 part · `withComposedText` · DOM `composedText`) 삭제 · ToggleButton 에 Button 과 같은 child scale part rule (`buttonChildScaleRules`) · ToggleButton 의 Text 자식도 글자색 소유 (`catalogToggleButtonGlyphOwner`) · Button · ToggleButton 을 `CATALOG_TEXT_STYLE_CONTAINERS` 에 (textDecoration 은 전파 키로, 버튼에서 멈춤) · template 자리의 명시 색 판정 (`catalogHasAuthoredColor` 가 override patch 도 읽음) · 더블클릭 = Text 자식 (`resolveCatalogTextEditRecord`) · Properties = `BUTTON_PROPS_SCHEMA` · `TOGGLEBUTTON_PROPS_SCHEMA` (자식 명령 3 · `CatalogButtonChildFields` 삭제) · IconButton origin 정의 5 + template 7 · 팔레트 · 카탈로그 entry 삭제 (사용자 결정 ①). 단위: `adr276ButtonOrigin.test.ts` 6 (G1 — 34 자리 글자 보존 · Text 자식 · hidden icon · label/icon 쓰기 · icon-only · 글자 없는 호스트 Text 0 · size part rule) · `mixedButtonText` 재작성 27 · 영향 테스트 20 파일 갱신. 원복 RED: 34 자리 `label` 미기재 (정적 표) · 옛 `setIcon` 경로 삭제. 수리 중 발견: 숨긴 template Icon 이 gap 을 남기지 않음 (R5 — `display: none`) · 글자 없는 중첩 Button 의 template Text 는 `label: ""` 로 노드 없음 (R1).
+>
+> **Phase 0 (G0) — 2026-10-20**: breakdown §2b 자리 표 재확인 (Button 27 · ToggleButton 7, 값 변경 0) · 자체 `children` 읽기 지점 (breakdown §6) · 익명 글자 part 는 `partsFor` 가 `bindingId` button · togglebutton 에만 만든다 (`compositionRoot.ts` 2343행) · IconButton 참조 5 파일 · 영향 테스트 18 (추정 13 의 1.4×, scope 그대로).
 
 - 사용자 요청: `/create-adr button 글자 Text 자식 통합 · IconButton 통합` (2026-10-20)
 - 방향을 정한 사용자 원문 (2026-10-20): 「button컴퍼넌트의 text를 button에서 자체적으로 렌더링하고있어서 align 적용이 되지않는문제, button의 텍스트변경후 icon 추가시 text가 추가 생성되는문제, iconbutton컴퍼넌트에서 icon프러퍼티에서 아이콘삭제가 안되는문제. 여러문제가 있다- 종합했을때 button컴퍼넌트와 iconbutton 컴퍼넌트 를 통합 - button컴퍼넌트에 text를 처음부터 넣게되면 문제가 해결되지않나?」
 - 선행 결정 (그대로 둔다): ADR-254 Decision 5 (template 이 부모 prop 에 묶은 글자는 그 prop 이 정본 — `{label}` 바인딩 편집 경로) · ADR-256 (빌더 = RAC 수준 조립, 사용자 결정 2026-10-09 「Icon div · 글자 span 유지」 · Decision 7 `presentWhen: "nonEmptyText"`) · ADR-260 (origin 은 page 의 노드) · 사용자 지시 2026-10-14 「마이그레이션 코드 금지 (개발 단계)」 · 구조 변경 계약 Step 3 (origin template 구조 변경 = `LIBRARY_CONTRACT_VERSION` 증가, ADR-256 사용자 승인 선례).
-- 리뷰: Round 1 (2026-10-20, codex) HIGH 3 → 같은 날 수리 (`docs/adr/reviews/276.md`) — h1 글자 없는 중첩 Button 의 기본 라벨 (Decision 5) · h2 template 글자 앞의 owned Icon 순서 (Decision 1 · 2 — Icon 도 template 자리) · h3 origin 삭제 + 옛 문서 유지 조합 (Decision 7 — contract 증가 고정, 「그대로 그린다」 선택지 삭제). Round 2 (같은 날, codex) 는 h1 ~ h3 설계 해소 확인 + 수리에서 생긴 신규 HIGH 1 (h4 — Pagination · Menu · Popover · Tooltip 을 글자 없는 호스트로 잘못 분류) → 같은 날 수리 (Decision 5 를 자리별 실제 `children` 값 표로). 수리 검증 round 는 사용자 판단.
+- 리뷰: Round 1 (2026-10-20, codex) HIGH 3 → 같은 날 수리 (`docs/adr/reviews/276.md`) — h1 글자 없는 중첩 Button 의 기본 라벨 (Decision 5) · h2 template 글자 앞의 owned Icon 순서 (Decision 1 · 2 — Icon 도 template 자리) · h3 origin 삭제 + 옛 문서 유지 조합 (Decision 7 — contract 증가 고정, 「그대로 그린다」 선택지 삭제). Round 2 (같은 날, codex) 는 h1 ~ h3 설계 해소 확인 + 수리에서 생긴 신규 HIGH 1 (h4 — Pagination · Menu · Popover · Tooltip 을 글자 없는 호스트로 잘못 분류) → 같은 날 수리 (Decision 5 를 자리별 실제 `children` 값 표로). 수리 검증 round 는 사용자 판단. **Phase 1 ~ 3 구현 + G3 live 2026-10-20** (아래 `### Live Exercise`) — Implemented 는 사용자 확인 (G5) 뒤.
 
 ## Context
 
@@ -118,6 +126,18 @@ S2 1.8.1 (D2 정본) 의 Button children 은 `<Icon/> <Text/>` 조립이고 Icon
 | G3   | Phase 3 뒤     | live (Chrome MCP): 팔레트 Button 더블클릭 편집 · Properties Label · Icon 설정 → 「없음」 · 정렬 변경이 Canvas · Preview 에 같이 반영 · Enter 줄바꿈 · 옛 contract 프로젝트 열기 = `UNSUPPORTED_PROJECT_FORMAT` 거부 (plain Button 문서 · IconButton 문서 둘 다 — `DANGLING_DEFINITION` 아님) · 새 프로젝트의 NumberField · Select trigger 에 글자 0 · Pagination `← 1 2 3 →` · Menu · Popover · Tooltip trigger 문구 그대로 · 콘솔 0                                                                                                                    | 결함 수리 뒤 재실행                                           |
 | G4   | 커밋 뒤        | pre-push ratchet (ADR-246) · initial 번들 (ADR-201 상한) · `pnpm codex:preflight`                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 상한 초과는 사용자 승인 + 만료일 (`--raise`)                  |
 | G5   | Implemented 전 | 사용자 확인 — Button · ToggleButton · 옛 IconButton 자리의 모습 · 팔레트 · 재생성한 개발용 프로젝트                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 지적 수리 뒤 재확인                                           |
+
+### Live Exercise
+
+2026-10-20, Chrome MCP (dev 5173, 새 프로젝트 `adr276-live`, Desktop 500 %):
+
+- 옛 contract 프로젝트 `adr275-live` (42) 열기 → 「This project uses the previous format and cannot be opened in this Builder.」 (거부, `DANGLING_DEFINITION` 아님). 사용자 프로젝트 「123」 도 같은 contract 라 재생성 대상.
+- 팔레트 Button → 68 × 30, 글자 가운데. **더블클릭 1회**에 편집 상자가 Text 자식 위 (42 × 20, left 508.55 · top 444.5, 흰 글자 14px) — 처음엔 instance 진입 (2회 더블클릭) 이라 `CatalogCanvas` 더블클릭이 Button · ToggleButton 의 Text 자식을 바로 편집하게 고쳤다. 「Saved」 입력 → 편집 중 폭 39 → 확정 뒤 66 × 30.
+- Design 패널 Property: Overrides `label` · Content Label 「Saved」 · Icon 「None」 (Children 칸 없음). Icon 「star」 → `☆ Saved` 92 × 30, Overrides `label` · `icon`, 글자 1개. Icon ✕ → 66 × 30, 글자 유지 (옛 결함 2 · 3 해소).
+- Layout: Width 150 + Alignment 왼쪽 가운데 → Canvas 글자가 왼쪽 (padding 12 + border 1). Compare Mode (CSS | Canvas) 에서 Preview DOM: button 150 × 30 · `justify-content: flex-start` · Text 상자 x 13 · `span.react-aria-Text` 1 · Icon 0 · `width: fit-content` — Canvas 와 같은 자리 (옛 결함 1 해소).
+- Enter 줄바꿈: 「Saved⏎Now」 편집 상자 40 × 40 · 버튼이 두 줄로 자람 · 확정 반영.
+- 중첩 자리 (팔레트 추가 → Preview DOM): Pagination `← · 1 · 2 · 3 · →` (span 1 씩, 폭 29 · 23 · 25 · 25 · 29) · NumberField 증감 2 (Icon 1 · span 0 · 30 px — Text 없음, gap 없음) · Tooltip trigger 「Hover me」. Canvas 도 같은 글자.
+- 콘솔 오류 0.
 
 ## Consequences
 

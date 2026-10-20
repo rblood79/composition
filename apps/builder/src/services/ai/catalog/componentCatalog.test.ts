@@ -69,19 +69,14 @@ describe("AI 카탈로그 커버리지", () => {
     }
   });
 
-  it("IconButton은 catalog 원본의 생성 필드를 광고한다", () => {
-    expect(
-      getAiCatalogEntry("IconButton")
-        ?.props.filter((p) => p.origin === "semantic")
-        .map((p) => p.name),
-    ).toEqual([
-      "label",
-      "icon",
-      "variant",
-      "size",
-      "staticColor",
-      "isDisabled",
-    ]);
+  it("Button은 catalog 원본의 생성 필드 (label · icon, ADR-276) 를 광고한다", () => {
+    const names = getAiCatalogEntry("Button")
+      ?.props.filter((p) => p.origin === "semantic")
+      .map((p) => p.name);
+    expect(names?.slice(0, 2)).toEqual(["label", "icon"]);
+    expect(names).toEqual(expect.arrayContaining(["variant", "size"]));
+    expect(names).not.toContain("children");
+    expect(getAiCatalogEntry("IconButton")).toBeUndefined();
     expect(getAiCatalogEntry("Button")?.racPrimitive).toBe("Button");
   });
 

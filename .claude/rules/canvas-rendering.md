@@ -82,7 +82,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   직접 형제 textarea만 찾는 CSS는 Prefix Group 삽입 후 매칭되지 않아 Side Label이 Canvas보다 22.5px 아래에 놓였다.
   Canvas 검증은 상자 좌표와 글자 내부 여백을 함께 본다. **Why (2026-10-14)**: Prefix Input의 paddingTop=0이
   rule paint에서 누락되어 상자가 일치해도 placeholder에 기본 size 여백(S/M/L/XL: 2/4/8/12px)이 다시 붙었다.
-- Canvas 글자 binding (`canvasBinding.ts` `bindings.text` · `bindings.button` — `textInset`) 의 글자 inset · 폭은 `catalogBoxModel` 의 변 padding + border 로 잡는다 — rule 의 `visual.paddingX` 를 직접 읽거나 inset 0 으로 두지 않는다.
+- Canvas 글자 binding (`canvasBinding.ts` `bindings.text` — `textInset`) 의 글자 inset · 폭은 `catalogBoxModel` 의 변 padding + border 로 잡는다 — rule 의 `visual.paddingX` 를 직접 읽거나 inset 0 으로 두지 않는다. **ADR-276 (2026-10-20)**: Button · ToggleButton 은 자체 글자를 그리지 않는다 — 글자는 template 의 Text{label} 자식 (`Button > Icon{icon} + Text{label}`, 옛 IconButton template) 이고 Layout 정렬을 따른다. `bindings.button` 은 상자 (+ pending 원) 만.
   **Why (2026-10-14)**: Button 에 네 변 padding 4 를 쓰면 배치 · DOM 은 상자를 줄이는데 글자만 `paddingX` 12 inset 에 24px 좁은 maxWidth 로 놓여 줄이 넘쳐 밖으로 나갔다 (사용자 Compare Mode 재현). Text · Label · Heading · Paragraph 는 inset 0 고정이라 padding-left 24 를 써도 글자가 상자 모서리에 붙었다.
 - 노드 트리의 자식 배치는 엔진이 계산한다. 삭제된 `calculateContentHeight` 분기나
   컴포넌트별 spec·옛 renderer 등록표를 재생성하지 않는다.
@@ -97,7 +97,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
   빠지고, 크기 변경만 따라가면 margin·grid 배치 뒤 형제가 과거 좌표에 남는다 (9개 재현).
   입력 snapshot은 엔진의 기존 직렬화 결과를 재사용해 텍스트 재측정 없이 읽는다.
 
-- 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산한다.
+- (ADR-276 전) 자식 노드와 자체 Label을 함께 그리는 버튼은 DOM의 익명 텍스트·group span도 엔진 부품으로 계산했다 — 2026-10-20 부터 Button · ToggleButton 에 자체 Label 이 없어 익명 글자 part 는 없다 (`partsFor` 는 그룹 ToggleButton 의 content span wrapper part 만 둔다).
   **Why (2026-10-14)**: ToggleButton에 Icon을 추가하면 Label이 사라졌고, 고정 폭 버튼의 Label 편집은 Icon 좌표를 남겼다. 부품 입력도 증분 비교하며, 텍스트 부품은 자기 폭으로 줄바꿈하고 autoCenter로 부모 폭을 덮지 않는다.
 - 자기 타이포그래피를 Reset할 때도 현재 부모 체인에서 inheritedText를 다시 해석한다.
   **Why (2026-10-14)**: Body를 Inter→Arial로 바꾼 뒤 Text의 Menlo를 Reset하면 상속 값이 비었지만, 재로드는 Arial이었다. 일곱 상속 키의 Reset/Undo/Redo를 fresh root와 비교한다.

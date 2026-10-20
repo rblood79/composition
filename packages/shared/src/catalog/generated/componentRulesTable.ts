@@ -1104,7 +1104,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   inline 이어야 block 부모 안에서 Button 2 개가 한 줄에 놓인다 (엔진 line box).
     //   gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
     //   justifyContent (ADR-253): 생성 sheet 는 내용을 가운데에 둔다 (`structure.containerStyles`) —
-    //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 IconButton) 의 Canvas 자식도 같다.
+    //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 아이콘 Button) 의 Canvas 자식도 같다.
     containerStyles: BUTTON_ROOT_BOX,
     variants: {
       accent: {

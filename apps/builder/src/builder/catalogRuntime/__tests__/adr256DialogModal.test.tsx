@@ -197,7 +197,11 @@ describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
             </div>
             <div>
               <div />
-              <Button slot="close">Close</Button>
+              <Button slot="close">
+                {/* (ADR-276: a Button's words are its Text{label} child — a plain span here: RAC's
+                    Button offers its Text context no `label` slot.) */}
+                <span slot="label">Close</span>
+              </Button>
             </div>
           </Dialog>
         </Modal>

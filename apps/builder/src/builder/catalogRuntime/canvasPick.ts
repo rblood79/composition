@@ -14,6 +14,9 @@ export interface CatalogPickRecord {
   readonly id: string;
   readonly sourceId: string;
   readonly parentId: string;
+  /** (ADR-276) The record's binding and children — a Button's double click edits its label child. */
+  readonly bindingId?: string;
+  readonly children?: readonly string[];
 }
 export type CatalogPickRecords = ReadonlyMap<string, CatalogPickRecord>;
 
@@ -139,7 +142,15 @@ export function resolveCatalogTextEditRecord(
   hasText: (id: string) => boolean,
 ): string | undefined {
   if (hasText(targetId)) return targetId;
-  if (pickedId === targetId || !hasText(pickedId)) return undefined;
+  if (pickedId === targetId) {
+    // ADR-276: a Button · ToggleButton's words are its Text{label} child — a double click on the
+    // box edits that child (as the old own-label button edited in place).
+    const target = records.get(targetId);
+    return target?.bindingId === "button" || target?.bindingId === "togglebutton"
+      ? target.children?.find((id) => hasText(id))
+      : undefined;
+  }
+  if (!hasText(pickedId)) return undefined;
   for (
     let record = records.get(pickedId);
     record;

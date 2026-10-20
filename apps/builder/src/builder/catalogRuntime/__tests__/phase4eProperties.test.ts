@@ -63,7 +63,7 @@ async function open() {
     insertNodes({
       parent: { kind: "node", id: BODY },
       entries: [
-        node("icon", "lib:definition:origin-component-iconbutton", {
+        node("icon", "lib:definition:origin-component-button", {
           label: { kind: "set", value: "Save" },
         }),
         node("field", "lib:definition:origin-component-textfield"),
@@ -92,13 +92,20 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
   it("a reusable origin instance shows its declared contract with value sources", async () => {
     const { contract, field } = await open();
     const icon = contract(on("icon"));
+    // ADR-276: the Button origin's own `label` · `icon`, then its root Button's contract (no
+    // `children` — the words are the Text child's).
     expect(icon.fields.map((item) => item.key)).toEqual([
       "label",
       "icon",
+      "slot",
       "variant",
       "size",
+      "fillStyle",
       "staticColor",
+      "type",
+      "isPending",
       "isDisabled",
+      "autoFocus",
     ]);
     expect(field(on("icon"), "label")).toMatchObject({
       origin: "semantic",
@@ -106,10 +113,9 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
       currentValue: "Save",
       baseValue: "Button",
     });
-    expect(field(on("icon"), "icon")).toMatchObject({
-      isOverridden: false,
-      currentValue: "star",
-    });
+    // (No icon default — an unfilled `{icon}` draws nothing.)
+    expect(field(on("icon"), "icon")).toMatchObject({ isOverridden: false });
+    expect(field(on("icon"), "icon").currentValue).toBeUndefined();
     // Variant and size options come from the shown type's theme rule.
     expect(field(on("icon"), "size").options?.length).toBeGreaterThan(0);
   });

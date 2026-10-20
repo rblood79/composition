@@ -103,7 +103,8 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(root().bindingId).toBe("dialogtrigger");
     const [trigger, overlay] = [child(root(), 0), child(root(), 1)];
     expect(trigger.bindingId).toBe("button");
-    expect(trigger.props.children).toBe("Open Popover");
+    // (ADR-276: the trigger's words are its Text{label} child — after the unfilled icon.)
+    expect(child(trigger, 1).props.children).toBe("Open Popover");
     expect(overlay.bindingId).toBe("popover");
     expect(overlay.hidden).toBe(true);
     expect(
@@ -118,7 +119,7 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(root().bindingId).toBe("tooltiptrigger");
     const [trigger, overlay] = [child(root(), 0), child(root(), 1)];
     expect(trigger.bindingId).toBe("button");
-    expect(trigger.props.children).toBe("Hover me");
+    expect(child(trigger, 1).props.children).toBe("Hover me");
     expect(overlay.bindingId).toBe("tooltip");
     expect(overlay.hidden).toBe(true);
     expect(child(overlay, 0).bindingId).toBe("overlayarrow");

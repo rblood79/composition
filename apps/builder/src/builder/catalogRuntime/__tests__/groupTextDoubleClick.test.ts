@@ -80,7 +80,10 @@ async function open(origin: string) {
   const label = under(top.id).find(
     (id) => workspace.root.typeOf(records.get(id)!) === "Label",
   );
-  return { top, doubleClick, label };
+  const text = under(top.id).find(
+    (id) => workspace.root.typeOf(records.get(id)!) === "Text",
+  );
+  return { top, doubleClick, label, text };
 }
 
 describe("a double click on a field's own area does not edit the text its Label part draws", () => {
@@ -96,8 +99,9 @@ describe("a double click on a field's own area does not edit the text its Label 
     expect(doubleClick(top.id), origin).toBeUndefined();
   });
 
-  it("a Button still edits the text it paints", async () => {
-    const { top, doubleClick } = await open("button");
-    expect(doubleClick(top.id)).toBe(top.id);
+  it("a Button edits its words — its Text{label} child (ADR-276)", async () => {
+    const { top, doubleClick, text } = await open("button");
+    expect(text).toBeDefined();
+    expect(doubleClick(top.id)).toBe(text);
   });
 });

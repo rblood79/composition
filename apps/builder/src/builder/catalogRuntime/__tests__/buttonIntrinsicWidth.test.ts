@@ -22,7 +22,6 @@ const BODY = "project:node:home-body" as NodeId;
 const CHILD = "project:node:button-width" as NodeId;
 const types = [
   "Button",
-  "IconButton",
   "ToggleButton",
   "ToggleButtonGroup",
   "ButtonGroup",

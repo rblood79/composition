@@ -5,6 +5,7 @@ import {
   createPage,
   duplicateNodes,
   insertNodes,
+  setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -26,7 +27,6 @@ import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageS
 import { CatalogSlotSection } from "../../panels/properties/catalog/CatalogSlotSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
-import { catalogButtonChildCommands } from "../buttonChildren";
 import { catalogComponentCommands } from "../componentActions";
 import { catalogEditContract } from "../editContract";
 import { catalogPageCommands } from "../pageSettings";
@@ -400,16 +400,18 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(update()).toBeNull();
   });
 
-  it("a Button shows the Icon picker; with an icon its label is the Text child's field only", async () => {
+  it("a Button origin instance offers Label · Icon (its own props); setting an icon keeps one Label field", async () => {
     const { workspace } = await open();
     const button = id("button");
+    // ADR-276: the palette Button is `Button > Icon{icon} + Text{label}` — its words are the
+    // instance's `label`, its glyph the `icon` prop (no child fields, no own `children`).
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
         entries: [
           {
-            ...node("button", "lib:definition:type-Button"),
-            props: { children: { kind: "set", value: "Save" } },
+            ...node("button", "lib:definition:origin-component-button"),
+            props: { label: { kind: "set", value: "Save" } },
           },
         ],
         rootIds: [button],
@@ -427,22 +429,29 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       [...container.querySelectorAll("input")].filter(
         (input) => (input as HTMLInputElement).value === "Save",
       );
+    const labelLegends = () =>
+      [...container.querySelectorAll("legend, label")].filter(
+        (label) => label.textContent === "Label",
+      );
     expect(within(container).getAllByText("Icon").length).toBeGreaterThan(0);
+    expect(labelLegends()).toHaveLength(1);
     expect(textInputs()).toHaveLength(1);
+    // No field writes the root's own `children` (the words are the Text child's `{label}`).
+    expect(
+      [...container.querySelectorAll("legend")].some(
+        (legend) => legend.textContent === "Children",
+      ),
+    ).toBe(false);
     await act(async () => {
       workspace.execute(
-        catalogButtonChildCommands.setIcon(button, "star", workspace.newId),
+        setFields({
+          targets: [{ kind: "node", id: button }],
+          props: { icon: { kind: "set", value: "star" } },
+        }),
       );
     });
-    // The Button's own label field is gone; the Text child's field (Label — design-data `label`) shows the moved label.
-    const textLegends = [...container.querySelectorAll("legend, label")].filter(
-      (label) => label.textContent === "Label",
-    );
-    expect(textLegends).toHaveLength(1);
+    expect(labelLegends()).toHaveLength(1);
     expect(textInputs()).toHaveLength(1);
-    expect(textInputs()[0].closest(".fieldset-row")?.textContent).toContain(
-      "Label",
-    );
   });
 
   it("the slot section declares a slot on a template node and restores an instance's slot content", async () => {

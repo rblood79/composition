@@ -82,7 +82,7 @@ beforeEach(async () => {
         id: "button-1",
         type: "Button",
         style: { width: "200px", color: "#00ff00" },
-        props: { children: "Save" },
+        props: { label: "Save" },
       },
     ],
     { select: "button-1" },
@@ -155,7 +155,7 @@ describe("ADR-252 Design panel", () => {
     await act(async () => {
       fireEvent.keyDown(panel, cmdAlt("c"));
     });
-    expect(JSON.parse(clipboardText)).toMatchObject({ children: "Save" });
+    expect(JSON.parse(clipboardText)).toMatchObject({ label: "Save" });
     expect(JSON.parse(clipboardText)).not.toHaveProperty("color");
 
     act(() => useDesignPanelView.setState({ view: "layout" }));
@@ -163,7 +163,7 @@ describe("ADR-252 Design panel", () => {
       fireEvent.keyDown(panel, cmdAlt("c"));
     });
     expect(JSON.parse(clipboardText)).toMatchObject({ color: "#00ff00" });
-    expect(JSON.parse(clipboardText)).not.toHaveProperty("children");
+    expect(JSON.parse(clipboardText)).not.toHaveProperty("label");
   });
 });
 

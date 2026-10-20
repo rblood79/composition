@@ -246,8 +246,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "CardView", source: "overlay" },
   { type: "Slot", source: "catalog" },
   { type: "Button", source: "catalog" },
-  // ADR-148 Phase 2 — 첫 신규 reusable (kind:"reusable" entry, REUSABLE_BY_TYPE 파생).
-  { type: "IconButton", source: "catalog" },
   { type: "ToggleButton", source: "catalog" },
   { type: "ToggleButtonGroup", source: "catalog" },
   { type: "Toolbar", source: "catalog" },

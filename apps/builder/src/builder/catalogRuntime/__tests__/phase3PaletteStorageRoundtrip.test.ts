@@ -45,7 +45,8 @@ it("roundtrips every palette type through IDB, JSON and folder", async () => {
     else unrouted.push(row.type);
   }
   expect(unrouted).toEqual([]);
-  expect(routed).toHaveLength(64);
+  // (63 — ADR-276: IconButton merged into Button.)
+  expect(routed).toHaveLength(63);
 
   for (const [index, { type, definitionId }] of routed.entries()) {
     const projectId = `project:project:palette-${index}` as const;
@@ -54,7 +55,7 @@ it("roundtrips every palette type through IDB, JSON and folder", async () => {
     const document: CatalogDocument = {
       format: "composition-catalog",
       schemaVersion: 1,
-      libraryContractVersion: 42,
+      libraryContractVersion: 43,
       revision: 0,
       projectId,
       rootId: projectId,

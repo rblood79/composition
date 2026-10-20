@@ -18,8 +18,6 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
-import { bindCatalogCanvas } from "../canvasBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -44,6 +42,22 @@ async function open() {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
+      // (ADR-276: the label is a Text child — measured like `mixedButtonText`.)
+      textMeasure: (text, font, available) => {
+        const width = (text.length * font.fontSize) / 2;
+        const minWidth = Math.max(
+          ...text.split(" ").map((word) => (word.length * font.fontSize) / 2),
+        );
+        return {
+          width,
+          exactWidth: width,
+          minWidth,
+          height:
+            font.fontSize *
+            font.lineHeight *
+            (available !== undefined && available < width - 0.5 ? 2 : 1),
+        };
+      },
     },
   );
   workspace.execute(
@@ -55,7 +69,7 @@ async function open() {
           id: BUTTON,
           definitionId: catalogPaletteDefinitionId(library, "Button"),
           children: [],
-          props: { children: set("Save changes"), size: set("M") },
+          props: { label: set("Save changes"), size: set("M") },
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -68,27 +82,28 @@ async function open() {
   const root = workspace.root;
   const record = () =>
     [...root.canvasInputs.values()].find((item) => item.sourceId === BUTTON)!;
-  const painted = () => {
-    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-    const data = getSkiaNode(record().id) as unknown as {
-      width: number;
-      text: { paddingLeft: number; maxWidth: number };
-    };
-    canvas.dispose();
-    const box = root.getGeometry([record().id]).get(record().id)!;
-    return { ...data, box };
+  // ADR-276: the label is the Button's Text{label} child — its box, not a painted inset.
+  const label = () =>
+    [...root.canvasInputs.values()].find(
+      (item) =>
+        item.sourceId === "lib:template:component-button__label" &&
+        item.instancePath.includes(BUTTON),
+    )!;
+  const boxes = () => {
+    const rects = root.getGeometry([record().id, label().id]);
+    return { box: rects.get(record().id)!, text: rects.get(label().id)! };
   };
-  return { workspace, painted };
+  return { workspace, boxes };
 }
 
 describe("Canvas Button label — the authored padding sides", () => {
   it("padding 4 on every side: the label keeps the box's inset and width (no spill)", async () => {
-    const { workspace, painted } = await open();
-    const rest = painted();
+    const { workspace, boxes } = await open();
+    const rest = boxes();
     // The rule's M padding (12) plus the 1px border until the document writes sides.
     const border = 1;
-    expect(rest.text.paddingLeft).toBe(12 + border);
-    expect(rest.text.maxWidth).toBeCloseTo(rest.box.width - 24 - border * 2, 3);
+    expect(rest.text.x - rest.box.x).toBe(12 + border);
+    expect(rest.text.width).toBeLessThanOrEqual(rest.box.width - 24 - border * 2);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: BUTTON }],
@@ -100,13 +115,13 @@ describe("Canvas Button label — the authored padding sides", () => {
         },
       }),
     );
-    const padded = painted();
+    const padded = boxes();
     // The box shrank by 16 (12 → 4 each side) and the label follows the sides the layout used.
     expect(padded.box.width).toBeCloseTo(rest.box.width - 16, 3);
-    expect(padded.text.paddingLeft).toBe(4 + border);
-    expect(padded.text.maxWidth).toBeCloseTo(
-      padded.box.width - 8 - border * 2,
-      3,
+    expect(padded.text.x - padded.box.x).toBe(4 + border);
+    expect(padded.text.width).toBeCloseTo(rest.text.width, 3);
+    expect(padded.text.x + padded.text.width).toBeLessThanOrEqual(
+      padded.box.x + padded.box.width - 4 - border,
     );
   });
 });

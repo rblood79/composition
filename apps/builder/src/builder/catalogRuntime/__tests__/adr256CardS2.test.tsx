@@ -389,7 +389,7 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     expect(slotText("title").props.children).toBe("Card Title");
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     expect(shape(host.querySelector(".react-aria-Content")!)).toBe(
-      "div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description] + button.react-aria-Button)",
+      "div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description] + button.react-aria-Button(span.react-aria-Text[slot=label]))",
     );
   });
 

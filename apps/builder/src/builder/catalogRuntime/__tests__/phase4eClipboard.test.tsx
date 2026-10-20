@@ -84,11 +84,11 @@ async function open() {
     insertNodes({
       parent: { kind: "node", id: BODY },
       entries: [
-        node("save", "lib:definition:origin-component-iconbutton", {
+        node("save", "lib:definition:origin-component-button", {
           label: { kind: "set", value: "Save" },
           isDisabled: { kind: "set", value: true },
         }),
-        node("other", "lib:definition:origin-component-iconbutton"),
+        node("other", "lib:definition:origin-component-button"),
         node("a", "lib:definition:text", {
           children: { kind: "set", value: "Hello" },
         }),

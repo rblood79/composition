@@ -208,26 +208,19 @@ function buttonDefinition(
   const conditionalRules: NonNullable<
     LibraryDefinition["conditionalRules"]
   >[number][] = [];
-  const childPartRules: PartRule[] = [];
-  // An icon Button's children take its scale (the old read-time Button → Icon / Text propagation,
-  // `buttonIconPx` / `buttonTextMetrics`): the Icon draws at the size's `iconSize`, the label Text
-  // at the Button's font size and line height — so an icon Button keeps the plain Button's height.
-  for (const [size, values] of Object.entries(rule.sizes)) {
-    if (typeof values.iconSize === "number")
-      childPartRules.push({
-        child: { definitionId: catalogTypeDefinitionId("Icon") },
-        when: { size },
-        visual: { iconSize: values.iconSize },
-      });
-    childPartRules.push({
-      child: { definitionId: catalogTypeDefinitionId("Text") },
-      when: { size },
-      visual: {
-        fontSize: sizes[size].fontSize,
-        lineHeight: sizes[size].lineHeight,
-      },
-    });
-  }
+  const childPartRules: PartRule[] = buttonChildScaleRules(
+    Object.fromEntries(
+      Object.entries(sizes).map(([size, values]) => [
+        size,
+        {
+          ...values,
+          ...(typeof rule.sizes[size]?.iconSize === "number"
+            ? { iconSize: rule.sizes[size].iconSize }
+            : {}),
+        },
+      ]),
+    ),
+  );
   // `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label)
   // { color: inherit }`: the Button's direct Icon / Text / Label children take its text color in
   // every variant, fill style and state (their own rule color is the dark `--fg`).
@@ -335,6 +328,47 @@ function buttonDefinition(
     partRules: childPartRules,
     stateRules: {},
   };
+}
+
+/**
+ * A button's Icon · Text children take its scale (the old read-time Button → Icon / Text
+ * propagation, `buttonIconPx` / `buttonTextMetrics`): the Icon draws at the size's `iconSize`, the
+ * label Text at the button's font size and line height — so an icon button keeps the plain
+ * button's height. ADR-276: the Button · ToggleButton origins hold their words as a Text{label}
+ * child, so both `buttonChildHost` types carry these (the ToggleButton's from its rule sizes).
+ */
+function buttonChildScaleRules(
+  sizes: Readonly<Record<string, VisualValues>>,
+): PartRule[] {
+  const rules: PartRule[] = [];
+  for (const [size, values] of Object.entries(sizes)) {
+    if (typeof values.iconSize === "number")
+      rules.push({
+        child: { definitionId: catalogTypeDefinitionId("Icon") },
+        when: { size },
+        visual: { iconSize: values.iconSize },
+      });
+    if (values.fontSize !== undefined)
+      rules.push({
+        child: { definitionId: catalogTypeDefinitionId("Text") },
+        when: { size },
+        visual: {
+          fontSize: values.fontSize,
+          ...(values.lineHeight !== undefined
+            ? { lineHeight: values.lineHeight }
+            : {}),
+        },
+      });
+  }
+  return rules;
+}
+
+/** ADR-276: a ToggleButton's rule definition with its Icon · Text children's scale (`buttonChildScaleRules`). */
+function withButtonChildScale(definition: LibraryDefinition): LibraryDefinition {
+  const sizes = definition.propVisualRules?.size;
+  if (!sizes) return definition;
+  const own = "partRules" in definition ? (definition.partRules ?? []) : [];
+  return { ...definition, partRules: [...own, ...buttonChildScaleRules(sizes)] };
 }
 
 /** Shared Lucide glyph contract for Icon and Illustration source registrations. */
@@ -653,11 +687,12 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
       new Map<LibraryTokenId, LibraryToken>(),
     );
   // Every other registered type: registration props contract + D3 rule (`ruleDefinition.ts`).
-  return ruleTypeDefinition(
+  const definition = ruleTypeDefinition(
     type,
     "light",
     new Map<LibraryTokenId, LibraryToken>(),
   );
+  return type === "ToggleButton" ? withButtonChildScale(definition) : definition;
 }
 
 /** Read-only code-derived definitions. Native fixture composition belongs to the test entry. */
@@ -691,7 +726,9 @@ export async function buildCodeCatalogLibrary(
           ? selectValueDefinition(theme, tokens)
           : type === "Icon" || type === "Illustration"
             ? glyphDefinition(type, theme, tokens)
-            : ruleTypeDefinition(type, theme, tokens);
+            : type === "ToggleButton"
+              ? withButtonChildScale(ruleTypeDefinition(type, theme, tokens))
+              : ruleTypeDefinition(type, theme, tokens);
     });
   const sourceDefinitions = withRuleParts(
     [

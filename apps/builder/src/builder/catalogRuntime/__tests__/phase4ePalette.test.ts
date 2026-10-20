@@ -70,10 +70,10 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
     expect(selected()).toEqual([{ kind: "node", id: frame }]);
     // The selected frame holds the next item: an instance of its reusable origin, owning only
     // the initial props that differ from the origin's defaults.
-    const icon = add("IconButton", { label: "Save", variant: "primary" });
+    const icon = add("Button", { label: "Save", variant: "primary" });
     expect(children(frame)).toEqual([icon]);
     expect(workspace.runtime.graph.getEntry(icon)).toMatchObject({
-      definitionId: "lib:definition:origin-component-iconbutton",
+      definitionId: "lib:definition:origin-component-button",
       props: { label: { kind: "set", value: "Save" } },
     });
     expect(

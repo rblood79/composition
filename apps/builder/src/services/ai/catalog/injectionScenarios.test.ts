@@ -37,7 +37,7 @@ const SCENARIOS: readonly Scenario[] = [
     request: "로그인 폼 만들어줘 — 아이디 입력창이랑 버튼",
     needs: [
       { type: "TextField", props: ["label", "isRequired"] },
-      { type: "Button", props: ["children", "variant"] },
+      { type: "Button", props: ["label", "variant"] },
     ],
   },
   {

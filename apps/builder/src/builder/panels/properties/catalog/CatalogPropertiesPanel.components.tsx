@@ -22,11 +22,6 @@ import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src
 import { useI18n } from "../../../../i18n";
 
 import {
-  catalogButtonChildren,
-  type CatalogButtonChildren,
-} from "../../../catalogRuntime/buttonChildren";
-
-import {
   catalogPropertiesPatchCommand,
   catalogTargetDefinitionId,
 } from "../../../catalogRuntime/editContract";
@@ -64,7 +59,6 @@ import { useChartPropertyExtras } from "../useChartPropertyExtras";
 
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 
-import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 
 import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
 import { CatalogFieldPrefixField } from "./CatalogFieldPrefixField";
@@ -270,22 +264,9 @@ const CatalogFields = memo(function CatalogFields({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const contract = useCatalogEditContract(targets[0]);
-  // A Button / ToggleButton's Icon · Text children (the old ButtonChildFields axis).
-  const buttonNode = targets[0]?.kind === "node" ? targets[0].id : undefined;
   const subscribeSteps = useCallback(
     (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
     [workspace],
-  );
-  const buttonKey = useSyncExternalStore(subscribeSteps, () => {
-    const state = buttonNode
-      ? catalogButtonChildren(workspace.runtime.graph, buttonNode)
-      : undefined;
-    return state ? JSON.stringify(state) : "";
-  });
-  const buttonChildren = useMemo(
-    () =>
-      buttonKey ? (JSON.parse(buttonKey) as CatalogButtonChildren) : undefined,
-    [buttonKey],
   );
   // ADR-256 Phase 9: a Calendar · RangeCalendar in a DatePicker · DateRangePicker takes the
   // picker's state, bounds, paging and first day (RAC's calendar context) — edited on the picker.
@@ -313,17 +294,6 @@ const CatalogFields = memo(function CatalogFields({
     const [owner, keys] = ownerDecidedKey.split(":");
     return { owner: owner!, keys: new Set(keys!.split(",")) };
   }, [ownerDecidedKey]);
-  // A Button's Icon · label fields — not when its origin edits the icon itself (IconButton's
-  // `icon` prop: the two would be one glyph twice).
-  const buttonChildFields =
-    !!buttonNode &&
-    !!buttonChildren &&
-    !contract.fields.some(
-      (field) => field.key === "icon" && field.kind === "icon",
-    );
-  const childrenField = contract.fields.find(
-    (field) => field.key === "children" && field.origin === "semantic",
-  );
   // A RadioGroup's Value is one of its Radios' values (any depth — the record tree).
   const radioOptionsKey = useSyncExternalStore(subscribeSteps, () =>
     contract.type === "RadioGroup"
@@ -367,13 +337,10 @@ const CatalogFields = memo(function CatalogFields({
               }
             : field,
       );
-    // A Button's label · icon fields draw together (`CatalogButtonChildFields` — label, then icon),
-    // so its own `children` field is not drawn twice.
-    return buttonChildFields
-      ? fields.filter((field) => field.key !== "children")
-      : fields;
+    // (ADR-276: a Button · ToggleButton origin's words · glyph are its `label` · `icon` props —
+    // its reusable schema, no child fields of its own.)
+    return fields;
   }, [
-    buttonChildFields,
     contract,
     ownerDecided,
     radioOptionsKey,
@@ -470,23 +437,7 @@ const CatalogFields = memo(function CatalogFields({
     semanticFields,
     contentExtras: withOwnerNotice(
       ownerNotice,
-      buttonChildFields && buttonNode && buttonChildren ? (
-        <CatalogButtonChildFields
-          nodeId={buttonNode}
-          state={buttonChildren}
-          label={childrenField?.label ?? "Label"}
-          ownText={
-            typeof childrenField?.currentValue === "string"
-              ? childrenField.currentValue
-              : undefined
-          }
-          onOwnTextChange={
-            childrenField
-              ? (value) => handleSemanticUpdate("children", value)
-              : undefined
-          }
-        />
-      ) : isCalendar ? (
+      isCalendar ? (
         <>
           {calendarPicker ? (
             <p

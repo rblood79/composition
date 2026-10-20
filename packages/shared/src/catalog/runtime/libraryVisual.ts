@@ -106,8 +106,40 @@ export function catalogHasAuthoredColor(
     [node.sourceId, ...(node.collapsedSourceIds ?? [])].some((id) => {
       const entry = root.runtime.graph.getEntry(id);
       return entry?.kind === "node" && entry.visual.color?.kind === "set";
-    })
+    }) ||
+    templatePositionWrites(root, node)?.visual?.color?.kind === "set"
   );
+}
+
+/**
+ * ADR-276 — the own writes of a template position (a Button's `__icon` · `__label`): the patch the
+ * nearest owning instance on the record's path holds at that position (`descendantOverrides`,
+ * outermost owner first — ADR-260 Decision 11). None for an owned node or an unpatched position.
+ */
+function templatePositionWrites(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): { visual?: Record<string, { kind: string }> } | undefined {
+  if (!node.sourceId.startsWith("lib:template:")) return undefined;
+  const owners = node.instancePath.filter((id) => !id.startsWith("lib:"));
+  for (let index = owners.length - 1; index >= 0; index -= 1) {
+    const owner = root.runtime.graph.getEntry(owners[index]!);
+    if (owner?.kind !== "node") continue;
+    const tail = node.instancePath.slice(
+      node.instancePath.lastIndexOf(owner.id),
+    );
+    const found = owner.descendantOverrides.find(
+      (item) =>
+        item.kind !== "replace" &&
+        item.address.templatePath[item.address.templatePath.length - 1] ===
+          node.sourceId &&
+        item.address.instances.length <= tail.length &&
+        item.address.instances.every((id, at) => id === tail[at]),
+    );
+    if (found && found.kind !== "replace")
+      return found as { visual?: Record<string, { kind: string }> };
+  }
+  return undefined;
 }
 
 /**

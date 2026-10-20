@@ -165,7 +165,13 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
     );
     expect(declared.length).toBeGreaterThan(0);
     for (const template of declared)
-      if (template.definitionId === "lib:definition:text")
+      if (
+        template.id === "lib:template:component-button__label" ||
+        template.id === "lib:template:component-togglebutton__label"
+      )
+        // ADR-276: a Button's words — no Text node while its `label` is empty (icon-only).
+        expect(template.props.slot).toBe("label");
+      else if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");
       else if (template.id === "lib:template:component-checkbox__1")

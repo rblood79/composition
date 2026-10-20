@@ -55,7 +55,7 @@ it("keeps a MenuSection hidden at rest but renders its items when the Preview me
     definitionId: "lib:definition:origin-component-button",
     children: [],
     ...blank,
-    props: { children: { kind: "set", value: "Menu" } },
+    props: { label: { kind: "set", value: "Menu" } },
   };
   const popover: NodeEntry = {
     kind: "node",

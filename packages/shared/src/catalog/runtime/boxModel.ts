@@ -156,7 +156,7 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
 
 /**
  * Authored typography of a text-painting node: its own value, else the nearest ancestor's
- * (`inheritedText`, CSS inherited properties); `textDecoration` is not inherited. The font family
+ * (`inheritedText`, CSS inherited properties — `textDecoration` propagates the same way). The font family
  * falls back to the theme's base family (the DOM root inherits it). Absent keys keep each
  * consumer's default. The Canvas paragraph, the layout measure and the DOM style read this.
  */
@@ -200,8 +200,8 @@ export function catalogTextTypography(
   }
   if (letterSpacing !== undefined)
     typography.letterSpacing = Number(letterSpacing);
-  if (node.visual.textDecoration !== undefined)
-    typography.textDecoration = String(node.visual.textDecoration);
+  const textDecoration = text("textDecoration");
+  if (textDecoration !== undefined) typography.textDecoration = textDecoration;
   if (node.visual.textOverflow !== undefined)
     typography.textOverflow = String(node.visual.textOverflow);
   return typography;

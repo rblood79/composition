@@ -149,7 +149,7 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     ).toContain("primary");
     const before = steps();
     for (const args of [
-      { type: "IconButton", props: { label: "등록", icon: "star" } },
+      { type: "Button", props: { label: "등록", icon: "star" } },
       {
         type: "InlineAlert",
         props: { title: "저장됨", description: "catalog 원본" },

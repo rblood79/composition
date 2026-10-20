@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-276 — Button 글자를 Text 자식으로 · IconButton 통합] - 2026-10-20
+
+### Changed
+
+- **팔레트 Button · ToggleButton 이 옛 IconButton 과 같은 구조 (`Button > Icon{icon} + Text{label}`) 가 됐다** (ADR-276 Phase 1 ~ 3, 사용자 제안 2026-10-20 「button 컴포넌트에 text 를 처음부터 넣으면 해결되지 않나 · IconButton 통합」): 글자는 instance 의 `label` prop (Text 자식에 묶임), 아이콘은 `icon` prop (기본값 없음 — 비우면 글리프가 숨고, Properties Icon 칸의 지우기가 「없음」). `label` 을 비우면 Text 노드가 없어 icon-only Button 이 된다 (`aria-label` 로 이름). 보고된 결함 3건의 원인이 사라진다 — Button 글자가 Layout 정렬 (start · center · end) 을 따르고 (종전 Canvas 가 center 고정 익명 글자로 그렸다), 글자를 바꾼 뒤 아이콘을 넣어도 글자가 둘이 되지 않으며 (자식 노드를 만들고 옮기던 `setIcon` · `clearIcon` 명령 삭제), 아이콘을 지울 수 있다.
+  - 중첩 Button 자리 34 (NumberField 증감 · Select trigger · SearchField 지우기 · Calendar picker · ContextualHelp · FieldButton · Toolbar · Pagination `← 1 2 3 →` · ButtonGroup `Cancel · Save` · Menu · Dialog · Popover · Tooltip trigger · ToggleButtonGroup 항목) 는 같은 template 을 받고 자기 글자를 `label` 로 그대로 둔다 (값 변경 0). FieldButton 은 자기 Icon 자식 대신 Button 의 Icon 자리에 `icon` 을 묶는다 (글리프 둘이 되지 않게).
+  - IconButton 팔레트 항목 · origin 정의 는 삭제 (S2 에 IconButton 은 없다 — 사용자 결정 ①). Button · ToggleButton 의 Properties 는 Label · Icon + root 계약 (`children` 칸 없음).
+  - ToggleButton 의 Text 자식도 버튼의 크기 (part rule) 와 글자색 (선택 · 강조 상태) 을 따른다. Button · ToggleButton 에 쓴 typography (letterSpacing · textAlign · textDecoration) 는 Text 자식에 닿는다 — text-decoration 은 CSS 처럼 자손 글자로 전파되고 버튼 (atomic inline box) 에서 멈춘다.
+  - Button 더블클릭은 Text 자식을 편집한다 (편집 상자는 2026-10-20 수정대로 글자 줄 위).
+  - **옛 문서 거부**: `LIBRARY_CONTRACT_VERSION` 42 → 43 — 자체 `children` 글자 Button · IconButton instance 가 든 개발용 프로젝트는 열리지 않는다 (변환 없음, 사용자 지시 2026-10-14 「마이그레이션 코드 금지」). 개발용 프로젝트는 다시 만든다.
+  - 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/document/{types,codeCatalogLibrary}.ts` · `catalog/runtime/{compositionRoot,presence,boxModel,libraryVisual,domBinding.runtime}.ts` · `catalogRuntime/{canvasBinding,canvasPick}.ts` · `components/reusablePropsSchemas.ts` · `panels/properties/catalog/CatalogPropertiesPanel.components.tsx` (`buttonChildren.ts` · `CatalogButtonChildFields.tsx` 삭제) · `componentCatalog.ts` · `paletteItems.ts`
+
 ## [Canvas 글자 편집 — Button 라벨 자리] - 2026-10-20
 
 ### Fixed

@@ -228,7 +228,7 @@ describe("ADR-248 Phase 4c read model", () => {
 
   it("reads what a template position authors itself, and follows its reset", async () => {
     const { model, run } = await open(
-      [node("icon", "lib:definition:origin-component-iconbutton")],
+      [node("icon", "lib:definition:origin-component-button")],
       ["icon"],
     );
     const label: EditTarget = {
@@ -237,8 +237,8 @@ describe("ADR-248 Phase 4c read model", () => {
       address: {
         instances: [id("icon")],
         templatePath: [
-          "lib:template:component-iconbutton" as TemplateId,
-          "lib:template:component-iconbutton__label" as TemplateId,
+          "lib:template:component-button" as TemplateId,
+          "lib:template:component-button__label" as TemplateId,
         ],
       },
     };

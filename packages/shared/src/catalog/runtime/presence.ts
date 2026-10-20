@@ -41,7 +41,7 @@ import {
   catalogCalendarYearFirst,
 } from "./calendarModel";
 import { racFieldHourCycle } from "../document/dateSegments";
-import type { CatalogConsumerNode, CatalogTextFont } from "./compositionRoot";
+import type { CatalogConsumerNode } from "./compositionRoot";
 import type {
   CatalogShowWhen,
   CatalogStateKey,
@@ -241,13 +241,17 @@ export function catalogPartParent(
   return parent;
 }
 
-/** ToggleButton's decorative Icon follows its text color, including selected/hover states. */
+/**
+ * ToggleButton's decorative Icon and (ADR-276) its label Text follow its text color, including
+ * selected/hover states — `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text,
+ * .react-aria-Label) { color: inherit }`.
+ */
 export function catalogToggleButtonGlyphOwner(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  if (node.bindingId !== "icon") return undefined;
+  if (node.bindingId !== "icon" && node.bindingId !== "text") return undefined;
   const parent = catalogPartParent(node, get, typeOf);
   return parent && typeOf(parent) === "ToggleButton" ? parent : undefined;
 }
@@ -1196,13 +1200,6 @@ export interface CatalogComposedPart {
    * them; absent = a leaf before the record's children.
    */
   readonly wraps?: readonly string[];
-  /** Anonymous DOM text item; Button appends it, ToggleButton prepends it. */
-  readonly afterChildren?: boolean;
-  readonly text?: {
-    readonly content: string;
-    readonly font: CatalogTextFont;
-    readonly singleLine: boolean;
-  };
 }
 
 /** `Tree.css` chevron button: `width: 20px` (content box) + `padding-left: (level − 1) × --padding`. */

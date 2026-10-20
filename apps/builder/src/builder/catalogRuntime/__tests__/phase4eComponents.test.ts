@@ -69,7 +69,7 @@ async function open() {
       entries: [
         node("card", "lib:definition:type-frame", [id("title")]),
         node("title", "lib:definition:text"),
-        node("icon", "lib:definition:origin-component-iconbutton"),
+        node("icon", "lib:definition:origin-component-button"),
       ],
       rootIds: [id("card"), id("icon")],
       newId: (kind) => `project:${kind}:k${++n}` as never,
@@ -181,7 +181,8 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       expect(entry.definitionId).toBe(
         "lib:definition:origin-component-togglebutton",
       );
-      expect(entry.props.children).toEqual({
+      // (ADR-276: a ToggleButton's words are its `label` — its Text{label} child.)
+      expect(entry.props.label).toEqual({
         kind: "set",
         value: `Toggle ${index + 1}`,
       });

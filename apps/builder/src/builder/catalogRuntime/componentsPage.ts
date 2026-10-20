@@ -759,7 +759,7 @@ export function catalogComponentsPageEntries(
     );
     const base = (...path: string[]) => part("origin", origin.id, ...path);
     // A composed origin without states (a field, a list) fills a fixed cell; a stateful one
-    // (IconButton, Checkbox) is as small as a leaf. A base part that fills its container (the
+    // (Button, Checkbox) is as small as a leaf. A base part that fills its container (the
     // Input — ADR-253) takes the same cell: a `%` width of a fit-content cell is nothing.
     const wide =
       (facets.composed || origin.category === "parts") &&

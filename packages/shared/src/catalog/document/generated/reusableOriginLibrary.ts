@@ -218,70 +218,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-form"
   },
   {
-    "id": "lib:definition:origin-component-iconbutton",
-    "name": "IconButton",
-    "mode": "composite",
-    "accepts": {
-      "label": "string",
-      "icon": "string",
-      "variant": "string",
-      "size": "string",
-      "staticColor": "string",
-      "isDisabled": "boolean"
-    },
-    "defaults": {
-      "label": "Button",
-      "icon": "star",
-      "variant": "primary",
-      "size": "M",
-      "staticColor": "auto",
-      "isDisabled": false
-    },
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-iconbutton"
-  },
-  {
-    "id": "lib:definition:origin-component-iconbutton--disabled",
-    "name": "IconButton/Disabled",
-    "mode": "composite",
-    "accepts": {},
-    "defaults": {},
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-iconbutton--disabled"
-  },
-  {
-    "id": "lib:definition:origin-component-iconbutton--hover",
-    "name": "IconButton/Hover",
-    "mode": "composite",
-    "accepts": {},
-    "defaults": {},
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-iconbutton--hover"
-  },
-  {
-    "id": "lib:definition:origin-component-iconbutton--pressed",
-    "name": "IconButton/Pressed",
-    "mode": "composite",
-    "accepts": {},
-    "defaults": {},
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-iconbutton--pressed"
-  },
-  {
-    "id": "lib:definition:origin-component-iconbutton--focus-visible",
-    "name": "IconButton/Focus",
-    "mode": "composite",
-    "accepts": {},
-    "defaults": {},
-    "visual": {},
-    "stateRules": {},
-    "templateRootId": "lib:template:component-iconbutton--focus-visible"
-  },
-  {
     "id": "lib:definition:origin-component-inline-alert",
     "name": "InlineAlert",
     "mode": "composite",
@@ -553,8 +489,27 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-button",
     "name": "Button",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "label": "string",
+      "icon": "string",
+      "variant": "string",
+      "size": "string",
+      "fillStyle": "string",
+      "staticColor": "string",
+      "type": "string",
+      "isDisabled": "boolean",
+      "isPending": "boolean"
+    },
+    "defaults": {
+      "label": "Button",
+      "variant": "primary",
+      "size": "M",
+      "fillStyle": "fill",
+      "staticColor": "auto",
+      "type": "button",
+      "isDisabled": false,
+      "isPending": false
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-button"
@@ -603,8 +558,23 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-togglebutton",
     "name": "ToggleButton",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "label": "string",
+      "icon": "string",
+      "size": "string",
+      "staticColor": "string",
+      "isEmphasized": "boolean",
+      "isQuiet": "boolean",
+      "isDisabled": "boolean"
+    },
+    "defaults": {
+      "label": "Toggle Button",
+      "size": "M",
+      "staticColor": "auto",
+      "isEmphasized": false,
+      "isQuiet": false,
+      "isDisabled": false
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-togglebutton"
@@ -2366,7 +2336,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Action 1",
+      "label": "Action 1",
       "size": "S"
     },
     "visual": {}
@@ -2376,7 +2346,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Action 2",
+      "label": "Action 2",
       "size": "S"
     },
     "visual": {}
@@ -2398,7 +2368,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Action 3",
+      "label": "Action 3",
       "size": "S"
     },
     "visual": {}
@@ -2451,81 +2421,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {}
-  },
-  {
-    "id": "lib:template:component-iconbutton",
-    "definitionId": "lib:definition:type-Button",
-    "children": [
-      "lib:template:component-iconbutton__icon",
-      "lib:template:component-iconbutton__label"
-    ],
-    "props": {
-      "variant": "primary",
-      "size": "M",
-      "staticColor": "auto",
-      "isDisabled": false
-    },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-iconbutton__icon",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "slot": "icon",
-      "iconName": "{icon}",
-      "size": "M"
-    },
-    "visual": {
-      "fontSize": 18,
-      "height": 18
-    }
-  },
-  {
-    "id": "lib:template:component-iconbutton__label",
-    "definitionId": "lib:definition:text",
-    "children": [],
-    "props": {
-      "slot": "label",
-      "children": "{label}",
-      "size": "M"
-    },
-    "visual": {
-      "fontSize": 14,
-      "lineHeight": 1.4285714285714286
-    }
-  },
-  {
-    "id": "lib:template:component-iconbutton--disabled",
-    "definitionId": "lib:definition:origin-component-iconbutton",
-    "children": [],
-    "props": {},
-    "visual": {},
-    "displayState": "disabled"
-  },
-  {
-    "id": "lib:template:component-iconbutton--hover",
-    "definitionId": "lib:definition:origin-component-iconbutton",
-    "children": [],
-    "props": {},
-    "visual": {},
-    "displayState": "hover"
-  },
-  {
-    "id": "lib:template:component-iconbutton--pressed",
-    "definitionId": "lib:definition:origin-component-iconbutton",
-    "children": [],
-    "props": {},
-    "visual": {},
-    "displayState": "pressed"
-  },
-  {
-    "id": "lib:template:component-iconbutton--focus-visible",
-    "definitionId": "lib:definition:origin-component-iconbutton",
-    "children": [],
-    "props": {},
-    "visual": {},
-    "displayState": "focusVisible"
   },
   {
     "id": "lib:template:component-inline-alert",
@@ -3140,7 +3035,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "←",
+      "label": "←",
       "variant": "secondary",
       "fillStyle": "outline",
       "size": "S"
@@ -3152,7 +3047,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "1",
+      "label": "1",
       "variant": "accent",
       "size": "S"
     },
@@ -3163,7 +3058,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "2",
+      "label": "2",
       "variant": "secondary",
       "fillStyle": "outline",
       "size": "S"
@@ -3175,7 +3070,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "3",
+      "label": "3",
       "variant": "secondary",
       "fillStyle": "outline",
       "size": "S"
@@ -3187,7 +3082,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "→",
+      "label": "→",
       "variant": "secondary",
       "fillStyle": "outline",
       "size": "S"
@@ -3383,18 +3278,43 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-button",
     "definitionId": "lib:definition:type-Button",
-    "children": [],
+    "children": [
+      "lib:template:component-button__icon",
+      "lib:template:component-button__label"
+    ],
     "props": {
       "variant": "primary",
       "size": "M",
       "fillStyle": "fill",
       "staticColor": "auto",
       "type": "button",
-      "children": "Button",
       "isDisabled": false,
       "isPending": false
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-button__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "slot": "icon",
+      "iconName": "{icon}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-button__label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "label",
+      "children": "{label}"
+    },
+    "presentWhen": "nonEmptyText",
+    "visual": {
+      "width": "fit-content"
+    }
   },
   {
     "id": "lib:template:component-button--disabled",
@@ -3431,11 +3351,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-togglebutton",
     "definitionId": "lib:definition:type-ToggleButton",
-    "children": [],
+    "children": [
+      "lib:template:component-togglebutton__icon",
+      "lib:template:component-togglebutton__label"
+    ],
     "props": {
       "size": "M",
       "staticColor": "auto",
-      "children": "Toggle Button",
       "isEmphasized": false,
       "isQuiet": false,
       "isSelected": false,
@@ -3443,6 +3365,29 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-togglebutton__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "slot": "icon",
+      "iconName": "{icon}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-togglebutton__label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "label",
+      "children": "{label}"
+    },
+    "presentWhen": "nonEmptyText",
+    "visual": {
+      "width": "fit-content"
+    }
   },
   {
     "id": "lib:template:component-togglebutton--unselected",
@@ -3507,7 +3452,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
-      "children": "Toggle 1"
+      "label": "Toggle 1"
     },
     "visual": {}
   },
@@ -3516,7 +3461,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-togglebutton",
     "children": [],
     "props": {
-      "children": "Toggle 2"
+      "label": "Toggle 2"
     },
     "visual": {}
   },
@@ -3550,7 +3495,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Cancel",
+      "label": "Cancel",
       "variant": "secondary",
       "fillStyle": "outline"
     },
@@ -3561,7 +3506,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Save",
+      "label": "Save",
       "variant": "accent"
     },
     "visual": {}
@@ -3581,7 +3526,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Menu",
+      "label": "Menu",
       "size": "{size}"
     },
     "visual": {}
@@ -3925,7 +3870,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "decrement",
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {
       "paddingX": 0,
@@ -3950,7 +3895,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "increment",
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {
       "paddingX": 0,
@@ -4081,7 +4026,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "primary",
-      "children": ""
+      "label": ""
     },
     "visual": {
       "fill": "var(--fg-muted)",
@@ -4553,7 +4498,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {}
   },
@@ -5841,7 +5786,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {}
   },
@@ -5918,7 +5863,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {}
   },
@@ -6478,7 +6423,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Open Dialog"
+      "label": "Open Dialog"
     },
     "visual": {}
   },
@@ -6572,7 +6517,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Close",
+      "label": "Close",
       "slot": "close",
       "variant": "secondary"
     },
@@ -6593,7 +6538,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Open Popover"
+      "label": "Open Popover"
     },
     "visual": {}
   },
@@ -6671,7 +6616,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": false,
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {}
   },
@@ -6775,7 +6720,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-button",
     "children": [],
     "props": {
-      "children": "Hover me"
+      "label": "Hover me"
     },
     "visual": {}
   },
@@ -6861,12 +6806,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-fieldbutton",
     "definitionId": "lib:definition:origin-component-button",
-    "children": [
-      "lib:template:component-fieldbutton__icon"
-    ],
+    "children": [],
     "props": {
       "variant": "secondary",
-      "children": ""
+      "label": ""
     },
     "visual": {
       "fill": "var(--accent-subtle)",
@@ -6876,15 +6819,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "paddingY": 0,
       "minWidth": 0
     }
-  },
-  {
-    "id": "lib:template:component-fieldbutton__icon",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {
-      "iconName": "{icon}"
-    },
-    "visual": {}
   },
   {
     "id": "lib:template:component-dateinput",

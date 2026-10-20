@@ -604,30 +604,19 @@ const bindings: Readonly<Record<string, Binding>> = {
     };
   },
   button: (node, rect, parent) => {
-    // (A quiet Select's trigger: the Select rule's quiet box — `catalogQuietOwnerPaint`.)
+    // ADR-276: a Button's words are its Text child (`Button > Icon{icon} + Text{label}`, the
+    // IconButton template) — the box draws no label of its own. (A quiet Select's trigger: the
+    // Select rule's quiet box — `catalogQuietOwnerPaint`.)
     const painted = withQuietOwnerBox(node, rect, (own) =>
       bindings.text(own, rect, parent),
     );
-    // The label's inset is the box model's sides (`catalogBoxModel` — an authored `paddingLeft` ·
-    // `paddingRight` over the rule's `paddingX`), the sides the layout and the DOM use. **Why
-    // (2026-10-14)**: reading `visual.paddingX` alone left a 12px inset and a 24px-narrower
-    // `maxWidth` on a button whose document padding was 4 — the label wrapped past the box.
-    const { left: paddingLeft, right: paddingRight } = textInset(node);
     // S2 Button `isPending` (`buttonPending.ts`): the label stays laid out but is not shown, the
     // indeterminate circle sits at the centre in the label's color — the DOM's shared Button draws
     // the same after S2's delay; the Canvas shows the pending state at once.
     const pending = catalogButtonPending("Button", node.props);
     return {
       ...painted,
-      text: {
-        ...painted.text!,
-        ...(pending ? { content: "" } : {}),
-        align: "center",
-        autoCenter: true,
-        verticalAlign: "middle",
-        paddingLeft,
-        maxWidth: Math.max(0, rect.width - paddingLeft - paddingRight),
-      },
+      text: { ...painted.text!, content: "" },
       ...(pending
         ? {
             children: [
@@ -919,13 +908,9 @@ function ruleNodeData(
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
-  const composedText = root.composedPartInputs
-    .get(node.id)
-    ?.some((part) => part.text);
   for (const key of RULE_UNPAINTED_TEXT_KEYS)
     if (
       node.visual[key] !== undefined &&
-      !composedText &&
       !(
         CATALOG_TEXT_STYLE_CONTAINERS.has(root.typeOf(node)) &&
         CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)
@@ -1056,13 +1041,10 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        withComposedText(
+        withDisclosureBorders(
           root,
           node,
-          withDisclosureBorders(
-            root,
-            node,
-            OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
+          OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
               ? ownerDrawnPartNodeData(root, node, rect)
               : binding &&
                   // (ADR-259 Phase 2: a prefix box Group draws the Input rule's box — not a Group's.)
@@ -1079,7 +1061,6 @@ function paintedNodeData(
                     root.labelSuffix(node.id),
                   )
                 : ruleNodeData(root, node, rect),
-          ),
         ),
         rect,
         root.colorMode,
@@ -1088,73 +1069,6 @@ function paintedNodeData(
   );
 }
 
-/** Paint the anonymous text at the same engine item box the DOM's mixed content occupies. */
-function withComposedText(
-  root: CatalogCompositionRoot,
-  node: CatalogConsumerNode,
-  data: SkiaNodeData,
-): SkiaNodeData {
-  const parts = root.composedPartInputs.get(node.id);
-  const part = parts?.find((item) => item.text);
-  if (!part?.text) return data;
-  const wrapper = parts?.find((item) => item.wraps?.includes(part.id));
-  const rects = root.getGeometry([part.id, ...(wrapper ? [wrapper.id] : [])]);
-  const rect = rects.get(part.id)!;
-  const offset = wrapper ? rects.get(wrapper.id) : undefined;
-  const color = node.ruleId
-    ? catalogRuleTextColor(fieldBoxShapeInput(root, node, data))
-    : node.visual.color;
-  const metrics = catalogTextMetrics(
-    node,
-    root.canvasInputs.get(node.parentId),
-  );
-  const pending = catalogButtonPending(root.typeOf(node), node.props);
-  const text = bindings.text(
-    {
-      ...node,
-      children: [],
-      bindingId: "text",
-      props: { children: part.text.content },
-      derivedProps: undefined,
-      inheritedText: undefined,
-      visual: {
-        ...part.text.font,
-        // Native button text defaults to centered, including each line of a wrapped label.
-        textAlign: node.visual.textAlign ?? "center",
-        ...(metrics.textDecoration !== undefined
-          ? { textDecoration: metrics.textDecoration }
-          : {}),
-        ...(metrics.textOverflow !== undefined
-          ? { textOverflow: metrics.textOverflow }
-          : {}),
-        ...(node.visual.overflow !== undefined
-          ? { overflow: node.visual.overflow }
-          : {}),
-        color: color ?? node.visual.color ?? "#000000",
-      },
-    },
-    { ...rect, x: rect.x + (offset?.x ?? 0), y: rect.y + (offset?.y ?? 0) },
-    undefined,
-    root.textWraps(part.id),
-  );
-  text.text = { ...text.text!, autoCenter: false };
-  if (data.text)
-    return {
-      ...data,
-      text: {
-        ...text.text!,
-        color: data.text.color,
-        content: pending ? "" : part.text.content,
-        paddingLeft: rect.x + (offset?.x ?? 0),
-        paddingTop: rect.y + (offset?.y ?? 0),
-        autoCenter: false,
-      },
-    };
-  return {
-    ...data,
-    children: [...(data.children ?? []), ...(!pending ? [text] : [])],
-  };
-}
 
 /**
  * S2 Disclosure: its top · bottom border as the box's side strokes (`catalogDisclosureBorders` —

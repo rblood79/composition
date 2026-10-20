@@ -1153,8 +1153,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           variant: "secondary",
           size: "M",
         });
-        const glyph = records.get(stepper.children[0]!)!;
-        expect(typeOf(glyph.id)).toBe("Icon");
+        // (ADR-276: the Button origin's own `{icon}` position comes first, unfilled — hidden.)
+        const glyph = stepper.children
+          .map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "Icon" && !child.hidden)!;
         expect(glyph.visual.iconSize).toBe(18);
         // (A record's box is from its parent's.)
         const icon = rect(glyph.id);
@@ -1530,10 +1532,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "lib:template:component-button",
       ]);
       expect(trigger().props).toMatchObject({ variant: "secondary" });
-      expect(parts().map((part) => typeOf(part.id))).toEqual([
-        "SelectValue",
-        "Icon",
-      ]);
+      // (ADR-276: the Button origin's own Icon{icon} · Text{label} positions come first — both
+      // hidden here: the trigger passes no `icon` and an empty `label`.)
+      expect(
+        parts()
+          .filter((part) => !part.hidden)
+          .map((part) => typeOf(part.id)),
+      ).toEqual(["SelectValue", "Icon"]);
       // Canvas: the trigger fills the field; the value fills the trigger up to the glyph, 4px
       // before it; the glyph sits 4px inside the end (사용자 2026-10-13 「M 8 → 4」; the Button's own
       // padding at the start).
@@ -1547,7 +1552,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         gap: 4,
         borderWidth: 1,
       });
-      const [value, glyph] = parts();
+      const shownParts = () => parts().filter((part) => !part.hidden);
+      const [value, glyph] = shownParts();
       expect(rect(glyph.id)).toMatchObject({
         x: width - 1 - 4 - 18,
         width: 18,
@@ -1572,10 +1578,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           props: { placeholder: set("Pick one"), iconName: set("search") },
         }),
       );
-      expect(parts()[0]!.props).toMatchObject({
+      expect(shownParts()[0]!.props).toMatchObject({
         children: "Pick one",
       });
-      expect(parts()[1]!.props.iconName).toBe("search");
+      expect(shownParts()[1]!.props.iconName).toBe("search");
       // DOM: the trigger element is the Button node's (RAC wires it as the Select's trigger); its
       // children are the value (RAC `SelectValue` — RAC writes the placeholder) and the glyph.
       const button = () => host().querySelector(".react-aria-Select > button")!;
@@ -1587,7 +1593,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         [...button().children].map((child) =>
           child.getAttribute("data-catalog-id"),
         ),
-      ).toEqual(parts().map((part) => part.id));
+      ).toEqual(shownParts().map((part) => part.id));
       const valueElement = button().querySelector(".react-aria-SelectValue")!;
       expect(valueElement.textContent).toBe("Pick one");
       expect(valueElement.hasAttribute("data-placeholder")).toBe(true);
@@ -1617,7 +1623,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       // The value's style is the node's own (the DOM draws that node): a style written on it
       // reaches the Canvas record and the DOM element. Only its text is the Select's.
-      const valueId = parts()[0]!.id;
+      const valueId = shownParts()[0]!.id;
       expect(
         catalogSubpartOwnerType(
           workspace.runtime.graph,
@@ -1647,14 +1653,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           }),
         );
       writeValueSize(20);
-      expect(parts()[0]!.visual.fontSize).toBe(20);
+      expect(shownParts()[0]!.visual.fontSize).toBe(20);
       expect(
         button()
           .querySelector(".react-aria-SelectValue")!
           .getAttribute("style"),
       ).toMatch(/font-size:\s*20px/);
       writeValueSize(undefined);
-      expect(parts()[0]!.visual.fontSize).toBe(14);
+      expect(shownParts()[0]!.visual.fontSize).toBe(14);
       // The field's size reaches the trigger, and through it the glyph; the value follows the
       // field's size.
       workspace.execute(
@@ -1668,8 +1674,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingX: 24,
         paddingRight: 16,
       });
-      expect(parts()[0]!.visual.fontSize).toBe(18);
-      expect(parts()[1]!.visual.iconSize).toBe(28);
+      expect(shownParts()[0]!.visual.fontSize).toBe(18);
+      expect(shownParts()[1]!.visual.iconSize).toBe(28);
       // The Button origin is where the trigger's shape comes from.
       workspace.execute(
         setLibraryDefault({
@@ -1695,7 +1701,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         catalogSubpartOwnerType(graph, dom, trigger().id, "all"),
       ).toBeNull();
       expect(
-        catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style"),
+        catalogSubpartOwnerType(graph, dom, shownParts()[0]!.id, "style"),
       ).toBeNull();
     },
   );
@@ -2072,7 +2078,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         radius: 9999,
         borderWidth: 0,
       });
-      expect(records.get(shown.children[0]!)!.visual.iconSize).toBe(12);
+      expect(
+        shown.children
+          .map((id) => records.get(id)!)
+          .find((child) => !child.hidden)!.visual.iconSize,
+      ).toBe(12);
       expect(parts()[1]!.props.placeholder).toBe("Find");
       // DOM: the field's own children after its Label are those nodes' elements (no container —
       // the reference); the Input is the searchbox RAC wires (its `type` is RAC's), the Button the

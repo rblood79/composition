@@ -7,10 +7,17 @@ import { getPrimitiveBinding, type PropsSchema } from "@composition/shared";
  */
 
 /**
- * IconButton 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/icon/variant/size 재사용).
- * `label`/`icon` 은 템플릿 바인딩 키, `variant`/`size` 는 root props passthrough.
+ * ADR-276 — Button 편집 계약: 팔레트 Button origin 은 `Button > Icon{icon} + Text{label}` (옛
+ * IconButton template) 이라 `label` · `icon` 은 템플릿 바인딩 키 (`icon` 은 기본값 없음 — 비우면
+ * 채워지지 않은 `{icon}` 글리프가 숨는다, `label` 을 비우면 Text 자리가 없다), 나머지는 root Button
+ * 의 binding 계약 그대로 (root props passthrough — `children` 은 없다: 글자는 Text 자식).
  */
-export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
+const buttonRootAccepts = (type: string): PropsSchema => {
+  const { children: _children, ...accepts } = (getPrimitiveBinding(type)?.props
+    .accepts ?? {}) as PropsSchema & { children?: unknown };
+  return accepts;
+};
+export const BUTTON_PROPS_SCHEMA: PropsSchema = {
   label: {
     kind: "string",
     label: "Label",
@@ -20,41 +27,24 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
   icon: {
     kind: "icon",
     label: "Icon",
-    default: "star",
     section: "content",
   },
-  variant: {
-    kind: "variant",
-    label: "Variant",
-    default: "primary",
-    section: "appearance",
+  ...buttonRootAccepts("Button"),
+};
+/** ADR-276 — ToggleButton 편집 계약: Button 과 같은 꼴 (root 는 ToggleButton binding). */
+export const TOGGLEBUTTON_PROPS_SCHEMA: PropsSchema = {
+  label: {
+    kind: "string",
+    label: "Label",
+    default: "Toggle Button",
+    section: "content",
   },
-  size: {
-    kind: "size",
-    label: "Size",
-    default: "M",
-    section: "appearance",
+  icon: {
+    kind: "icon",
+    label: "Icon",
+    section: "content",
   },
-  // design-data 감사 §2-A (2026-08-21): Button root binding 은 staticColor/isDisabled 를
-  //   기수용하나 propsSchema 미노출로 instance 편집 불가하던 결손. 둘 다 variant/size 와
-  //   같은 root props passthrough 축 (origin root Button 이 직접 소비 — R2 불변식).
-  staticColor: {
-    kind: "enum",
-    label: "Static Color",
-    default: "auto",
-    section: "appearance",
-    options: [
-      { value: "auto", label: "Auto" },
-      { value: "white", label: "White" },
-      { value: "black", label: "Black" },
-    ],
-  },
-  isDisabled: {
-    kind: "boolean",
-    label: "Disabled",
-    default: false,
-    section: "state",
-  },
+  ...buttonRootAccepts("ToggleButton"),
 };
 
 /**
@@ -238,7 +228,8 @@ export const MENU_PROPS_SCHEMA = overlayOriginSchema(
 
 /** Reusable id → its declared edit contract. */
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
-  "component-iconbutton": ICONBUTTON_PROPS_SCHEMA,
+  "component-button": BUTTON_PROPS_SCHEMA,
+  "component-togglebutton": TOGGLEBUTTON_PROPS_SCHEMA,
   "component-card": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,

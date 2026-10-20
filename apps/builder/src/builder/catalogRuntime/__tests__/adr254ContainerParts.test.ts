@@ -313,6 +313,11 @@ function expectSinceConversion(
             "<h3 class=react-aria-Heading>Dialog Title</>",
             "<h2 class=react-aria-Heading id slot=title>Dialog Title</>",
           )
+          // ADR-276: a Button's words are its Text{label} child (`span.react-aria-Text`).
+          .replace(
+            "slot=close>Close</>",
+            "slot=close><span class=react-aria-Text data-size=M slot=label>Close</></>",
+          )
       : type === "inline-alert"
         ? // ADR-256 Phase 10: S2 `InlineAlert > Heading + Content` — the description sits in a
           // Content (`div.react-aria-Content`); the template's slot names without a provider

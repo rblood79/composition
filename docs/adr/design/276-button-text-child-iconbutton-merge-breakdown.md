@@ -104,3 +104,30 @@
 - Q1 출처: 사용자 프로젝트가 아닌 팔레트 Button · 개발용 테스트 프로젝트 (adr275-live 재생성) — 규모 아닌 동작 검증이라 합성 가능.
 - Q3 대조군: G1 원복 RED (옛 `setIcon` 으로 글자 2개 · 자리 `label` 미기재로 "Button" · 글자 자리 `""` 로 문구 소실) · G2 Canvas ↔ Preview 같은 문서. 이관 전 값의 oracle 은 §2b 표가 아니라 **이관 전 커밋의 library** (`git show HEAD:…reusableOriginLibrary.ts` 의 `children`) 다.
 - Q5 oracle: Preview DOM `getBoundingClientRect` (Canvas 가 자기 자신을 채점하지 않는다) · 중첩 자리의 글자는 Preview DOM 의 `span.react-aria-Text` 수 · 텍스트.
+
+## 6. 기록
+
+### Phase 0 — 2026-10-20 (G0 통과)
+
+- **§2b 표 재확인**: `origin-component-button` 참조 28 = 정의 자신 1 + 자리 27 · `origin-component-togglebutton` 8 = 1 + 7. 자리별 `children` 값은 §2b 와 같다 (값 변경 0). `type-Button` 직접 root 9 는 composite instance 가 아니다 — 변경 0.
+- **자체 `children` 읽기 지점 (Button 에 닿는 것)**:
+  - `canvasBinding.ts` `bindings.button` (606 ~ 640) → `bindings.text` 의 `textOf(node)` (540) — 익명 글자. 삭제 대상 (Phase 1).
+  - `compositionRoot.ts` `partsFor` (2343) — `record.children.length > 0` 이고 `bindingId` 가 `button` · `togglebutton` 일 때만 자체 글자 part (`::part:text`) 를 만든다. 새 Button 은 자체 글자가 없어 part 0 — 분기 삭제 (ToggleButton 그룹의 span wrapper part 는 글자가 아니라 남긴다). `withComposedText` (`canvasBinding.ts` 1059 · 1092) · `domBinding.runtime.ts` 2601 (`composedText` 로 typography CSS 를 인라인에 두는 분기) 은 그 part 의 소비자 — Button 호출이 0 이 되면 같이 정리 (다른 type 의 `catalogComposedParts` 는 그대로).
+  - `catalogTextKey` (`canvasText.ts` 14 — `TEXT_KEYS` children · label · value) 호출 4: `CatalogCanvas.tsx` 1436 (더블클릭 대상 — `catalogHasOwnText` → `catalogTextDrawnInside` 가 「부품이 안에서 그리는 글자」 를 걸러 Text 자식으로 보낸다, `textBinding.ts` 130) · `CatalogTextEditor.tsx` 63 · `subpart.ts` 46 (ADR-254 소유자 판정 — `catalogTextBinding`) · `CatalogComponentPropertiesSection.tsx` 53. 새 Button 루트 record 의 `label` 은 Text 자식이 그리므로 `catalogTextDrawnInside` 가 true 여야 한다 — Phase 2 단위로 고정 (R2).
+  - AI write (`aiHost.ts` 113 주석 — 「원본의 label/icon 같은 저작 필드는 렌더된 Button props 에서 소비」) · clipboard (`clipboardText.ts` — 노드 직렬화, 글자 키 특정 없음) · Layers 라벨 — type 에 무관한 prop 쓰기 · 읽기라 Button 전용 분기 없음. IconButton 의 오늘 동작이 oracle (G1 단위에 AI write `label` 1건).
+- **IconButton 참조**: `componentCatalog.ts` 1346 (entry) · `paletteItems.ts` 250 · `reusablePropsSchemas.ts` 13 (`ICONBUTTON_PROPS_SCHEMA`) · `componentsPage.ts` 762 (주석) · `originView.ts` 85 (주석) · 생성 library 23 행 (정의 1 + 상태 변형 정의 4 + template 3 + 상태 변형 template 4 …).
+- **영향 테스트 18** (§4 의 13 + `AIPanel.test.tsx` · `controlSize.static.test.ts` · shared `codeCatalogLibrary.test.ts` · `positions.test.ts` · `fieldSource.test.ts` · `g0DescendantRoutes.test.ts`) — 1.4×, scope 그대로.
+- 사용자 결정 1 ~ 3: 아래 Status 기록 참조.
+
+### Phase 1 ~ 3 — 2026-10-20 (G1 · G2 단위 통과, G3 live 는 아래)
+
+- 계획과 달라진 것 (사후 보고):
+  - **FieldButton** (§2b 「글자 없음 · 자기 Icon 자식」): 그대로 두면 FieldButton 의 `icon` 이 Button 의 template `{icon}` 에도 묶여 글리프가 둘 (ComboBox · DatePicker · DateRangePicker 의 trigger). 자기 Icon 자식 (`component-fieldbutton__icon`) 을 지우고 Button 의 Icon 자리를 쓴다.
+  - **ToggleButton 의 Text 자식 크기 · 색**: Button 은 hand 정의의 child part rule 이 Text 의 fontSize · lineHeight · Icon 의 iconSize 를 size 별로 주지만 ToggleButton (generic rule 정의) 은 없어 Text 가 16px 였다 → `buttonChildScaleRules` 를 둘이 같이 쓴다. 색은 `catalogToggleButtonGlyphOwner` 가 Icon 만 소유해 Text 가 `--fg` 였다 (선택 상태 흰 글자 위에 검정) → Text 도 소유 (DOM 은 `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text …) { color: inherit }` 이 이미 그렇다).
+  - **Text 의 `width: 100%`** (Text rule containerStyles, ADR-151 B22): Button 안 Text 가 버튼을 채워 Layout 정렬이 보이지 않았다 → template `__label` 에 `width: fit-content`.
+  - **typography**: Button · ToggleButton 에 쓴 letterSpacing · textAlign · textDecoration 이 Canvas 에서 `CATALOG_CANVAS_VISUAL_UNSUPPORTED` 를 던졌다 (옛 익명 글자가 받던 값) → `CATALOG_TEXT_STYLE_CONTAINERS` 에 둘을 넣고 `textDecoration` 을 전파 키로 (CSS Text Decoration §1.2 — 버튼은 atomic inline box 라 조상의 것은 멈춘다, `ownsTextDefault`).
+  - **template 자리의 명시 색**: 「기본값과 같은 명시 Icon 색도 저작 선택」 (2026-10-14) 판정이 소유 노드의 entry 만 봐서 template Icon 자리의 override patch 를 못 봤다 → `catalogHasAuthoredColor` 가 patch 도 읽는다 (`templatePositionWrites`).
+  - **accepts**: definition `defaults` 의 키는 `accepts` 에 있어야 한다 (`PROP_NOT_ACCEPTED`) — root passthrough (variant · size · fillStyle · staticColor · type · isDisabled · isPending / ToggleButton 의 size · staticColor · isEmphasized · isQuiet · isSelected · isDisabled) 를 옛 IconButton 처럼 `accepts` + `defaults` 에 둔다 (팔레트 insert 가 기본값과 같은 초기 prop 을 버린다).
+  - **pending**: pending Button 의 Text 자식은 이미 `_pendingHidden` 경로로 숨는다 (`visible: false`) — 별도 처리 없음.
+- 영향 테스트 (실측): §4 의 13 + 7 = 20 파일 갱신 (`phase4eButtonChild.test.ts` 삭제 — 옛 자식 명령; `mixedButtonText` 재작성; `adr253FieldPartsDom` · `adr255OverlayTrigger` · `adr256{MenuNodeTree,MenuTrigger,PresentWhen,DialogModal,CardS2}` · `adr254ContainerParts` · `buttonPending` · `buttonPaddingText` · `groupTextDoubleClick` · `phase4MenuSection` · `DesignPanel` · `injectionScenarios` · `componentCatalog` · `phase4e{Palette,Properties,PropertySections,Components,OriginView,Clipboard,AiWrite}` · `phase4cReadModel` · contract 42 → 43 fixture 14). 테스트 하니스에 `textMeasure` 가 없으면 Text 자식 폭이 0 이라 (옛 익명 글자도 같았다) 기하 단언은 `mixedButtonText` 의 stub 을 쓴다.
+- 범위 밖 (ADR-276 전부터 실패): `resolveContainerStylesFallback.test.ts` 「disclosure → width fallback 없음」 — HEAD 의 Disclosure rule 에 `width: "100%"` (disclosureDefaultWidth 작업) 가 이미 있다.

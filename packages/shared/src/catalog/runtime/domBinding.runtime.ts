@@ -2598,17 +2598,13 @@ function authoredStyle(
   const carriesText = CATALOG_TEXT_STYLE_CONTAINERS.has(
     catalogTypeName(root, node),
   );
-  const composedText = root.composedPartInputs
-    .get(node.id)
-    ?.some((part) => part.text);
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     const textCss =
       TYPOGRAPHY_KEYS.has(key) &&
-      (composedText ||
-        (carriesText &&
-          CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)))
+      carriesText &&
+      CATALOG_INHERITED_TEXT_KEYS.some((inherited) => inherited === key)
         ? (value: unknown) => ({ [key]: value }) as CSSProperties
         : undefined;
     const css =

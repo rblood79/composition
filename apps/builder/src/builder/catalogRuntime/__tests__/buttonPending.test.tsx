@@ -52,6 +52,22 @@ async function open(props: Record<string, unknown>) {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
+      // (ADR-276: the label is a Text child — measured like `mixedButtonText`.)
+      textMeasure: (text, font, available) => {
+        const width = (text.length * font.fontSize) / 2;
+        const minWidth = Math.max(
+          ...text.split(" ").map((word) => (word.length * font.fontSize) / 2),
+        );
+        return {
+          width,
+          exactWidth: width,
+          minWidth,
+          height:
+            font.fontSize *
+            font.lineHeight *
+            (available !== undefined && available < width - 0.5 ? 2 : 1),
+        };
+      },
     },
   );
   const entry = (
@@ -115,7 +131,8 @@ async function open(props: Record<string, unknown>) {
   };
   const box = (sourceId: NodeId) =>
     root.getGeometry([record(sourceId).id]).get(record(sourceId).id)!;
-  return { workspace, root, record, painted, box };
+  const label = () => record("lib:template:component-button__label" as NodeId);
+  return { workspace, root, record, painted, box, label };
 }
 
 let unmount: (() => Promise<void>) | undefined;
@@ -138,8 +155,8 @@ const wait = (ms: number) =>
 
 describe("S2 Button isPending", () => {
   it("Canvas: a pending button hides its label and draws the indeterminate circle at its centre", async () => {
-    const { workspace, painted, record, box } = await open({
-      children: "Save",
+    const { workspace, painted, record, box, label } = await open({
+      label: "Save",
       size: "L",
       isPending: true,
     });
@@ -148,8 +165,13 @@ describe("S2 Button isPending", () => {
     expect(diameter).toBe(20);
     const rect = box(BUTTON);
     const pending = painted(BUTTON);
-    // No label text while pending — the box keeps the label's size.
+    // No label text while pending — the box keeps the label's size (ADR-276: the label is the
+    // Button's Text child; it draws no words while its button pends).
     expect(pending.text?.content).toBe("");
+    expect(
+      (painted(label().sourceId as NodeId) as unknown as { visible: boolean })
+        .visible,
+    ).toBe(false);
     expect(rect.width).toBeGreaterThan(diameter);
     const arcs = (pending.children ?? []).filter((child) => child.arc);
     expect(arcs.map((a) => [a.arc!.sweepAngle, a.arc!.strokeColor[3]])).toEqual(
@@ -186,7 +208,13 @@ describe("S2 Button isPending", () => {
       }),
     );
     const rest = painted(BUTTON);
-    expect(rest.text?.content).toBe("Save");
+    expect(rest.text?.content).toBe("");
+    const words = painted(label().sourceId as NodeId) as unknown as {
+      visible: boolean;
+      text?: { content: string };
+    };
+    expect(words.visible).toBe(true);
+    expect(words.text?.content).toBe("Save");
     expect((rest.children ?? []).some((child) => child.arc)).toBe(false);
     expect(record(ICON).derivedProps?._pendingHidden).toBeUndefined();
     expect(painted(ICON).visible).toBe(true);
@@ -194,7 +222,7 @@ describe("S2 Button isPending", () => {
 
   it("DOM: RAC marks the pending button; after S2's delay the content hides and the circle shows", async () => {
     const { workspace, record } = await open({
-      children: "Save",
+      label: "Save",
       size: "M",
       isPending: true,
     });
@@ -227,7 +255,7 @@ describe("S2 Button isPending", () => {
   });
 
   it("DOM: a button that is not pending renders no circle", async () => {
-    const { workspace, record } = await open({ children: "Save" });
+    const { workspace, record } = await open({ label: "Save" });
     const host = await mount(workspace, record(BUTTON).id);
     const button = host.querySelector("button")!;
     expect(button.getAttribute("data-pending")).toBeNull();

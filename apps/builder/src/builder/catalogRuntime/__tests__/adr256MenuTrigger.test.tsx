@@ -3,6 +3,7 @@ import "fake-indexeddb/auto";
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { Button } from "react-aria-components/Button";
+import { Text } from "react-aria-components/Text";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { afterEach, describe, expect, it } from "vitest";
@@ -160,7 +161,8 @@ describe("ADR-256 후속 4 — the palette Menu is MenuTrigger > Button + Popove
       createElement(
         MenuTrigger,
         null,
-        createElement(Button, null, "Menu"),
+        // (ADR-276: a Button's words are its Text{label} child.)
+        createElement(Button, null, createElement(Text, { slot: "label" }, "Menu")),
         createElement(
           Popover,
           null,
@@ -271,13 +273,13 @@ describe("ADR-256 후속 4 — a Menu in an Autocomplete is the open list (G0 ex
 });
 
 describe("ADR-256 후속 4 — an edit of the trigger reaches the Preview", () => {
-  it("the Button's label is the Button node's own", async () => {
+  it("the Button's label is the Button node's own (its `label` — ADR-276)", async () => {
     const { workspace, of, mount } = await placed();
     const button = of("Button")[0]!;
     workspace.execute(
       setFields({
         targets: [workspace.positionOfRecord(button.id)!.target],
-        props: { children: set("Actions") },
+        props: { label: set("Actions") },
       }),
     );
     const view = mount();
