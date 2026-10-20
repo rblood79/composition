@@ -322,7 +322,9 @@ function TextField({
     margin: 0,
     padding: 0,
     border: "none",
-    outline: "1px solid var(--color-primary-500, #3b82f6)",
+    // One screen pixel like the selection box (`selectionRenderer` strokes 1/zoom): the field is
+    // scaled by the zoom, so a 1px outline would be `zoom` px wide (user 2026-10-20).
+    outline: `${1 / zoom}px solid var(--color-primary-500, #3b82f6)`,
     background: "transparent",
     resize: "none",
     overflow: "hidden",

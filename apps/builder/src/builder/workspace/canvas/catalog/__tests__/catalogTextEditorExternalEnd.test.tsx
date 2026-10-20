@@ -219,6 +219,8 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
       expect(style.whiteSpace).toBe("pre");
       // The drawn label's color (white on the primary button), not the record's box color.
       expect(style.color).toBe("rgb(255, 255, 255)");
+      // One screen pixel like the selection box — the field is scaled by the zoom (zoom 1 here).
+      expect(style.outline).toContain("1px solid");
     } finally {
       unregisterSkiaNode(item.identity);
     }
