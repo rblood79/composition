@@ -107,10 +107,10 @@ describe("ADR-252 Design panel", () => {
     ]);
     expect(screen.getByRole("tab", { name: "Property" })).toBeTruthy();
     // A Styles section is not rendered on the Property tab.
-    expect(screen.queryByText("Spacing")).toBeNull();
+    expect(screen.queryByText("Position")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "Layout" }));
     expect(useDesignPanelView.getState().view).toBe("layout");
-    expect(screen.getByText("Spacing")).toBeTruthy();
+    expect(screen.getAllByText("Position").length).toBeGreaterThan(0);
   });
 
   it("the tab row stays on an empty selection — only the tab body becomes the notice", () => {

@@ -12,7 +12,6 @@ import type {
   StateName,
   NodeEntry,
   NodeId,
-  NodePlacement,
   SizingField,
   VisualField,
   WriteValue,
@@ -58,7 +57,6 @@ export type CatalogOperation =
     }
   | NodeFieldOperation
   | { kind: "setNodeBinding"; id: NodeId; binding?: DataBindingRef }
-  | { kind: "setNodePlacement"; id: NodeId; placement?: NodePlacement }
   | {
       kind: "patchDefinitionOverride";
       id: EntryId<"definitionOverride">;
@@ -415,7 +413,6 @@ export class CatalogStage implements CatalogReader {
         "patchNodeLayout",
         "setNodeField",
         "setNodeBinding",
-        "setNodePlacement",
         "patchDefinitionOverride",
         "upsertDescendant",
         "removeDescendant",
@@ -539,15 +536,6 @@ export class CatalogStage implements CatalogReader {
       if (Object.keys(next).length) entry.layout = next;
       else delete entry.layout;
       this.stage(node.id, entry as unknown as NodeEntry);
-      return;
-    }
-    if (op.kind === "setNodePlacement") {
-      this.inverse.unshift({
-        kind: "setNodePlacement",
-        id: node.id,
-        placement: node.placement,
-      });
-      this.stage(node.id, { ...node, placement: op.placement });
       return;
     }
     if (

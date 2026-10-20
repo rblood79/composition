@@ -37,8 +37,12 @@ describe("Spacing box model commit", () => {
   it("focus then blur without a change writes nothing", async () => {
     const { fixture, view } = await open();
     const revision = fixture.graph.revision;
-    for (const label of ["Padding Right", "Margin Top"]) {
-      const input = view.getByLabelText(label);
+    // The diagram's padding side and the Margin field (four sides as one value, ADR-275 결정 8 · 9).
+    const inputs = [
+      view.getByLabelText("Padding Right"),
+      view.getByRole("group", { name: "Margin" }).querySelector("input")!,
+    ];
+    for (const input of inputs) {
       fireEvent.focus(input);
       fireEvent.blur(input);
     }
@@ -56,7 +60,12 @@ describe("Spacing box model commit", () => {
     fireEvent.blur(input);
     expect(fixture.graph.revision).toBe(revision + 1);
     const visual = fixture.nodeOf("box").visual;
-    for (const key of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"] as const)
+    for (const key of [
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ] as const)
       expect(visual[key]).toEqual({ kind: "set", value: 16 });
   });
 });

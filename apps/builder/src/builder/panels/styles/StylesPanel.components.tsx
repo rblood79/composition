@@ -53,7 +53,6 @@ import {
   PositionSection,
   ResponsiveSection,
   SizeSection,
-  SpacingSection,
   TypographySection,
 } from "./sections";
 
@@ -61,7 +60,8 @@ import { useStylesSelection } from "./StylesPanel.runtime";
 
 import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
 
-// 절 순서 Layout → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막.
+// 절 순서 Layout → Size → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막. Padding 은 Layout 절
+// 안 (Figma), margin 편집 UI 는 없다 — Spacing 절 제거 (ADR-275 사용자 결정 10, 2026-10-20).
 // grid 의 열 · 행 목록은 Layout 탭에 두지 않는다 — Canvas 에서 열 · 행을 고르면 Design 패널이 「격자」
 // 보기로 바뀐다 (Figma, 사용자 2026-10-16 — `panels/design/DesignPanel.tsx` GridTrackView).
 const LayoutGroupSections = memo(function LayoutGroupSections() {
@@ -69,7 +69,6 @@ const LayoutGroupSections = memo(function LayoutGroupSections() {
     <>
       <LayoutSection />
       <SizeSection />
-      <SpacingSection />
       <PositionSection />
     </>
   );

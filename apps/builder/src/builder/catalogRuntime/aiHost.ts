@@ -40,7 +40,6 @@ import {
   catalogCreationProps,
   catalogPaletteDefinitionId,
 } from "./paletteInsert";
-import { catalogPlacementStyle } from "./position";
 import { catalogFieldsAt } from "./responsiveFields";
 import type { CatalogSelectionItem } from "./session";
 import {
@@ -104,12 +103,9 @@ function projectElements(workspace: CatalogWorkspace): AiElementRow[] {
         ? graph.getEntry(position.target.id)
         : undefined;
     const own = workspace.readModel.ownFields(position.target);
-    const style = {
-      ...catalogStyleView(catalogFieldsAt(own, breakpoint), {
-        fontSize: fontSizeOf(workspace, position.identity),
-      }),
-      ...catalogPlacementStyle(own.placement),
-    };
+    const style = catalogStyleView(catalogFieldsAt(own, breakpoint), {
+      fontSize: fontSizeOf(workspace, position.identity),
+    });
     const fills = catalogFillItems(own.fills);
     const props: Record<string, unknown> = {
       ...(records.get(position.identity)?.props ?? {}),

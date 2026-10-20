@@ -685,6 +685,7 @@ export function CatalogCanvas({
           : undefined;
       },
       pageFrames: () => workspace.root.pageFrameRects(),
+      viewport: () => workspace.root.viewport,
       guideLines: (exclude) =>
         catalogGuideSnapLines(
           catalogGuidesByPage(

@@ -518,8 +518,14 @@ describe("ADR-264 옮길 수 없는 모양은 쓰기 전에 거절한다", () =>
   };
 
   it("fixed · sticky 자손 (fixed = top layer)", () => {
-    // fixed 는 build 가 top layer 집합에 넣는다.
-    expect(attempt(build(base({ isFixed: true }))).reason).toBe("top-layer");
+    // ADR-275 Phase 7: a fixed descendant is drawn at its page's level — out of "r"'s span, so "r"
+    // moves without it (its place is the viewport's); the fixed box itself is in the top layer.
+    const stream = build(base({ isFixed: true }));
+    expect(stream.childElementIds.get("body")).toEqual(["r", "c"]);
+    const fixedBounds = stream.boundsMap.get("c");
+    expect(attempt(stream).applied).toBe(true);
+    expect(stream.boundsMap.get("c")).toEqual(fixedBounds);
+    expect(stream.topLayerElementIds.has("c")).toBe(true);
     clearSkiaRegistry();
     expect(
       attempt(

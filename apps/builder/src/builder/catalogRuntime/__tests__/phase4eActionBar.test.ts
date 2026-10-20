@@ -24,6 +24,9 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  absoluteLayout,
+} from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 Phase 4e: the Contextual Action Bar over the catalog selection — its anchor page, the
@@ -44,7 +47,7 @@ const placed = (name: string, x: number, y: number): NodeEntry => ({
     height: { kind: "set", value: 20 },
   },
   descendantOverrides: [],
-  placement: { kind: "absolute", x, y },
+  layout: absoluteLayout(x, y),
 });
 
 async function open() {
@@ -229,7 +232,7 @@ describe("ADR-248 Phase 4e catalog action bar", () => {
     let next = 0;
     const flow = (name: string): NodeEntry => ({
       ...placed(name, 0, 0),
-      placement: undefined,
+      layout: undefined,
     });
     workspace.execute(
       insertNodes({

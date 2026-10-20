@@ -340,6 +340,9 @@ export function applyScrollDelta(
   }> = [];
   const rerecord: Array<{ id: string; context: SubtreeBuildContext }> = [];
   for (const child of stream.childElementIds.get(ownerId) ?? []) {
+    // ADR-275 Phase 7: a fixed box (drawn at its page's level) does not move with the page's scroll
+    // — the executor adds the scroll back (`unscrollOwnerId`).
+    if (getSkiaNode(child)?.isFixed) continue;
     const stored = stream.subtreeBuildContextByElement.get(child);
     const layout = input.layoutMap.get(child);
     if (!stored || !layout) return null;

@@ -645,6 +645,8 @@ pub struct LayoutTree {
     mutation_gen: u64,
     /// min/max 크기에 intrinsic 키워드를 쓰는 노드 수. 0 인 일반 문서는 측정 순회를 건너뛴다.
     intrinsic_size_constraint_count: usize,
+    /// `position: fixed` 노드 수 (ADR-275 Phase 7). 0 인 일반 문서는 viewport 배치 순회를 건너뛴다.
+    fixed_count: usize,
     /// strict 입력 모드 — 켜면 `build_tree_batch` 가 미지 키를 오류로 낸다.
     ///
     /// 기본 false: production 은 미지 키를 조용히 버린다 (레이아웃 전체 실패보다 낫다).
@@ -672,6 +674,12 @@ pub struct LayoutTree {
     /// 누적이고 `reset_counters` 로만 0 이 된다 (`clear` 와 무관).
     solve_visits: u32,
     intrinsic_measure_miss: u32,
+    /// leaf 경로 (in-flow 자식 없음) 가 absolute 자식을 놓을 때 쓴 containing block — (handle,
+    /// border-box 폭, 높이, avail_w). auto 크기 leaf 는 자기 solve 에서 0 이고 used 크기는 부모가
+    /// 정한다 (block stretch · flex/grid stretch). compute 끝에 used 크기가 다르면 absolute 자식을
+    /// 그 크기로 다시 놓는다 (`resettle_leaf_absolutes`, ADR-275 — Chrome: 폭 auto block 안의
+    /// Right · Center pin 이 부모 폭 기준).
+    leaf_absolute_cbs: Vec<(usize, f32, f32, f32)>,
 }
 
 impl LayoutTree {
@@ -802,6 +810,9 @@ impl LayoutTree {
         if has_intrinsic_size_constraint(&node.style) {
             self.intrinsic_size_constraint_count += 1;
         }
+        if style_is_fixed(&node.style) {
+            self.fixed_count += 1;
+        }
         if let Some(idx) = self.free_list.pop() {
             self.nodes[idx] = Some(node);
             idx
@@ -854,12 +865,20 @@ impl LayoutTree {
     /// `mark_dirty` 를 호출하고, dirty 는 조상까지 전파된다. style 변경이 노드 크기를
     /// 바꾸면 부모 intrinsic/배치가 stale 되므로 root 까지 마킹해야 정확.
     pub fn update_style(&mut self, handle: usize, style: NodeStyle) {
-        let Some(was_constrained) = self
+        let Some((was_constrained, was_fixed)) = self
             .get(handle)
-            .map(|node| has_intrinsic_size_constraint(&node.style))
+            .map(|node| (has_intrinsic_size_constraint(&node.style), style_is_fixed(&node.style)))
         else {
             return;
         };
+        let is_fixed = style_is_fixed(&style);
+        if was_fixed != is_fixed {
+            if is_fixed {
+                self.fixed_count += 1;
+            } else {
+                self.fixed_count -= 1;
+            }
+        }
         let is_constrained = has_intrinsic_size_constraint(&style);
         if was_constrained != is_constrained {
             if is_constrained {
@@ -976,6 +995,9 @@ impl LayoutTree {
             {
                 self.intrinsic_size_constraint_count -= 1;
             }
+            if self.get(handle).is_some_and(|n| style_is_fixed(&n.style)) {
+                self.fixed_count -= 1;
+            }
             self.mutation_gen += 1; // 측정 캐시 무효화 (ADR-169)
             if let Some(parent) = self.get(handle).and_then(|n| n.parent) {
                 self.stamp_subtree_gen(parent); // ADR-268 — 옛 부모 체인
@@ -992,6 +1014,7 @@ impl LayoutTree {
         self.nodes.clear();
         self.free_list.clear();
         self.intrinsic_size_constraint_count = 0;
+        self.fixed_count = 0;
         // handle 이 0 부터 재발급되므로 stale skip 방지 위해 무효화.
         self.last_compute = None;
     }
@@ -1198,6 +1221,7 @@ impl LayoutTree {
                 clamp_width_to_constraints(&style, &ctx_w, available_width)
             }
         };
+        self.leaf_absolute_cbs.clear();
         self.solve_node(root, solve_w, available_height);
         // flex/grid 분배 뒤 폭이 달라진 컨테이너만 확정 폭으로 높이 제약을 다시 잰다.
         // 폭과 무관한 leaf 스칼라는 TS 재측정 경로가 소유한다. 무조건 반복 solve 하지 않는다.
@@ -1205,6 +1229,10 @@ impl LayoutTree {
             self.solve_node(root, solve_w, available_height);
         }
         self.fixup_root_self_size(root, available_width, available_height);
+        self.resettle_leaf_absolutes();
+        if self.fixed_count > 0 {
+            self.place_fixed_boxes(root);
+        }
         for original in intrinsic_size_constraints {
             if let Some(node) = self.get_mut(original.handle) {
                 node.style.min_width = original.min_width;
@@ -2479,6 +2507,7 @@ impl LayoutTree {
             }
             if !abs_children.is_empty() {
                 self.place_absolute_children(handle, &abs_children, w_box, h_box, avail_w);
+                self.leaf_absolute_cbs.push((handle, w_box, h_box, avail_w));
             }
             self.settle_contents_children(handle);
             self.place_static_descendant_absolutes(handle, w_box, h_box, avail_w);
@@ -2716,9 +2745,63 @@ impl LayoutTree {
     ///   SliderFill 을 frame 으로 감싸면 positioned ancestor 2단). `position: static` 을 명시한
     ///   부모에 한해 조상 체인을 탄다 (catalog 가 부품을 감싼 layout frame 에만 싣는다 —
     ///   `catalogStaticPartFrame`). 위치 미지정 부모는 종전대로 직계 부모 (노드 `placement` 좌표).
-    /// - **`fixed` 의 viewport 기준**: 미지원 — 여기선 absolute 처럼 놓지만 입력이 없다 (catalog
-    ///   `styleOf` 는 fixed 를 보내지 않고 저작 검증이 거부한다 — ADR-267 사용자 결정 1, 2026-10-17).
+    /// - **`fixed`**: 여기선 absolute 처럼 부모 기준으로 놓고, `compute_layout` 끝의
+    ///   `place_fixed_boxes` 가 page viewport 기준으로 다시 놓는다 (ADR-275 Phase 7, 2026-10-20).
     ///   sticky 는 in-flow 배치 + `sticky_constraints` (ADR-267).
+    /// 부모가 leaf 의 used 크기를 정한 뒤 (block stretch · flex/grid stretch) 그 크기가 absolute
+    /// 자식을 놓을 때 쓴 containing block 과 다르면, 자식을 used 크기로 다시 놓는다 (CSS 2 §10.1 —
+    /// containing block = used padding box). 얕은 노드부터 — 다시 놓은 상자가 자기 absolute
+    /// 자식의 containing block 이기도 하다. 같은 handle 은 마지막 기록만 본다.
+    fn resettle_leaf_absolutes(&mut self) {
+        let mut pending: Vec<(usize, f32, f32, f32)> = Vec::new();
+        for entry in std::mem::take(&mut self.leaf_absolute_cbs).into_iter().rev() {
+            if !pending.iter().any(|p| p.0 == entry.0) {
+                pending.push(entry);
+            }
+        }
+        let depth = |tree: &Self, mut h: usize| {
+            let mut d = 0usize;
+            while let Some(p) = tree.get(h).and_then(|n| n.parent) {
+                d += 1;
+                h = p;
+            }
+            d
+        };
+        pending.sort_by_key(|entry| depth(self, entry.0));
+        for (handle, cb_w, cb_h, avail_w) in pending {
+            // `position: static` 을 명시한 부모의 absolute 자식은 가장 가까운 positioned 조상이 놓는다
+            //   (`place_static_descendant_absolutes`) — 그 부모 크기로 다시 놓지 않는다.
+            let Some((w, h)) = self
+                .get(handle)
+                .filter(|n| n.style.position.as_deref().map(str::trim) != Some("static"))
+                .map(|n| (n.layout.width, n.layout.height))
+            else {
+                continue;
+            };
+            if (w - cb_w).abs() <= 0.01 && (h - cb_h).abs() <= 0.01 {
+                continue;
+            }
+            let abs: Vec<usize> = self
+                .get(handle)
+                .map(|n| n.children.clone())
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|&c| {
+                    self.get(c).is_some_and(|cn| {
+                        cn.style.display.as_deref() != Some("none")
+                            && is_out_of_flow(cn.style.position.as_deref())
+                    })
+                })
+                .collect();
+            if abs.is_empty() {
+                continue;
+            }
+            self.place_absolute_children(handle, &abs, w, h, avail_w);
+            self.place_static_descendant_absolutes(handle, w, h, avail_w);
+        }
+        self.leaf_absolute_cbs.clear();
+    }
+
     fn place_absolute_children(
         &mut self,
         handle: usize,
@@ -2727,12 +2810,14 @@ impl LayoutTree {
         container_h: f32,
         avail_w: f32,
     ) {
-        self.place_absolutes_in(handle, handle, abs_children, container_w, container_h, avail_w, (0.0, 0.0));
+        self.place_absolutes_in(handle, handle, abs_children, container_w, container_h, avail_w, (0.0, 0.0), true);
     }
 
     /// `place_absolute_children` 의 일반형 — containing block 은 `cb_owner` (border-box
     /// `container_w × container_h`), 흐름 (static position) 과 기록 좌표는 직계 부모 `flow_parent` 기준.
     /// `shift` = `flow_parent` border-box 원점의 `cb_owner` border-box 안 위치 (같으면 0).
+    /// `cb_borders` = containing block 이 `cb_owner` 의 padding box (absolute). false = `container_w ×
+    /// container_h` 그대로 `cb_owner` border-box 원점에서 (fixed 의 viewport — ADR-275 Phase 7).
     #[allow(clippy::too_many_arguments)]
     fn place_absolutes_in(
         &mut self,
@@ -2743,6 +2828,7 @@ impl LayoutTree {
         container_h: f32,
         avail_w: f32,
         shift: (f32, f32),
+        cb_borders: bool,
     ) {
         let handle = flow_parent;
         let style = self.get(cb_owner).map(|n| n.style.clone()).unwrap_or_default();
@@ -2756,12 +2842,11 @@ impl LayoutTree {
         // static position 은 흐름 부모의 content 원점 (containing block 좌표로 옮겨 쓴다).
         let pb_start_x = pad_border_start(&flow_style, &parent_ctx, true) + shift.0;
         let pb_start_y = pad_border_start(&flow_style, &parent_ctx, false) + shift.1;
-        let border_start_x = resolve_border(style.border_left.as_deref(), &parent_ctx);
-        let border_start_y = resolve_border(style.border_top.as_deref(), &parent_ctx);
-        let border_total_x =
-            border_start_x + resolve_border(style.border_right.as_deref(), &parent_ctx);
-        let border_total_y =
-            border_start_y + resolve_border(style.border_bottom.as_deref(), &parent_ctx);
+        let border = |v: Option<&str>| if cb_borders { resolve_border(v, &parent_ctx) } else { 0.0 };
+        let border_start_x = border(style.border_left.as_deref());
+        let border_start_y = border(style.border_top.as_deref());
+        let border_total_x = border_start_x + border(style.border_right.as_deref());
+        let border_total_y = border_start_y + border(style.border_bottom.as_deref());
         // container_w/h = border-box (호출부 계약).
         let cb_w = (container_w - border_total_x).max(0.0);
         let cb_h = (container_h - border_total_y).max(0.0);
@@ -2814,9 +2899,26 @@ impl LayoutTree {
             let ctx_x = self.ctx_for(cb_w);
             let ctx_y = self.ctx_for(cb_h);
 
-            // 명시 크기 유무 — auto 면 stretch(E11 ①) 대상. 명시 크기는 solve 반환 우선.
+            // 명시 크기 유무 — 명시 길이는 solve 반환 대신 스타일 값, 아니면 아래에서 border-box 로 복원.
             let has_w = resolve_dimension_opt(cstyle.width.as_deref(), &ctx_x).is_some();
             let has_h = resolve_dimension_opt(cstyle.height.as_deref(), &ctx_y).is_some();
+            // 자기 정렬 (`justify-self` 가로 · `align-self` 세로) — 양쪽 inset 일 때만 inset 영역 안에서
+            //   적용된다 (css-position-3 §4.3). 한쪽만이면 그 inset 기준 배치라 정렬이 없다.
+            let both = |a: Option<&str>, b: Option<&str>| {
+                let set = |v: Option<&str>| v.is_some_and(|s| !s.trim().eq_ignore_ascii_case("auto"));
+                set(a) && set(b)
+            };
+            let align_x = parse_abs_self_align(cstyle.justify_self.as_deref())
+                .filter(|_| both(cstyle.inset_left.as_deref(), cstyle.inset_right.as_deref()));
+            let align_y = parse_abs_self_align(cstyle.align_self.as_deref())
+                .filter(|_| both(cstyle.inset_top.as_deref(), cstyle.inset_bottom.as_deref()));
+            // 크기가 정해졌는가 — 늘이기 제외 판정 (`resolve_abs_axis` · 늘이기 재solve) 에만 쓴다.
+            //   명시 길이 ∨ 키워드 크기 (`fit-content` 는 auto 가 아니라 늘이지 않는다 — CSS 2 §10.3.7,
+            //   ADR-275 F10) ∨ stretch 아닌 자기 정렬 (auto 크기 = fit-content). padding · border 가산 /
+            //   leaf layout 읽기는 위 `has_w/h` (명시 길이) 그대로 — 키워드 크기의 solve 반환은
+            //   content-box 다 (리뷰 r1 H2 · F14).
+            let size_fixed_w = has_w || size_is_intrinsic_keyword(cstyle.width.as_deref()) || align_x.is_some();
+            let size_fixed_h = has_h || size_is_intrinsic_keyword(cstyle.height.as_deref()) || align_y.is_some();
             let ew = resolve_dimension(cstyle.width.as_deref(), &ctx_x);
             let eh = resolve_dimension(cstyle.height.as_deref(), &ctx_y);
             if ew > 0.0 {
@@ -2897,12 +2999,12 @@ impl LayoutTree {
             let min_h = resolve_dimension_opt(cstyle.min_height.as_deref(), &ctx_y);
             let max_h = resolve_dimension_opt(cstyle.max_height.as_deref(), &ctx_y);
             let (x, nw) = resolve_abs_axis(
-                border_start_x, cb_w, left, right, w, has_w, (min_w, max_w), ml, mr, ml_auto,
-                mr_auto, sx,
+                border_start_x, cb_w, left, right, w, size_fixed_w, (min_w, max_w), ml, mr, ml_auto,
+                mr_auto, sx, align_x, true,
             );
             let (y, nh) = resolve_abs_axis(
-                border_start_y, cb_h, top, bottom, h, has_h, (min_h, max_h), mt, mb, mt_auto,
-                mb_auto, sy,
+                border_start_y, cb_h, top, bottom, h, size_fixed_h, (min_h, max_h), mt, mb, mt_auto,
+                mb_auto, sy, align_y, false,
             );
 
             // 늘이기 (양측 inset · auto 축) 로 상자가 solve 결과와 달라졌으면, 늘어난 크기를 고정한 채
@@ -2911,8 +3013,8 @@ impl LayoutTree {
             //   늘이기 전 (containing block 폭 · 내용 높이) 결과가 남았다 (Chromium 재대조 B-NEW-1 — `left ·
             //   right` 10 안 `width:100%` 자식 200 / Chrome 180). 고정은 이 solve 동안의 명시 크기 (border-box)
             //   로 하고 원래 style 로 되돌린다 — 다음 pass 의 증분 skip 은 같은 크기를 돌려준다.
-            let stretch_w = !has_w && (nw - w).abs() > 0.01;
-            let stretch_h = !has_h && (nh - h).abs() > 0.01;
+            let stretch_w = !size_fixed_w && (nw - w).abs() > 0.01;
+            let stretch_h = !size_fixed_h && (nh - h).abs() > 0.01;
             let stretched = stretch_w || stretch_h;
             if child_is_container && stretched {
                 if let Some(original) = self.get(c).map(|n| n.style.clone()) {
@@ -2961,6 +3063,49 @@ impl LayoutTree {
                     self.place_absolute_children(c, &grand, nw, nh, cb_w);
                 }
                 self.place_static_descendant_absolutes(c, nw, nh, cb_w);
+            }
+        }
+    }
+
+    /// ADR-275 Phase 7 (사용자 결정 6, 2026-10-20) — `position: fixed` 상자를 viewport 기준으로 다시
+    /// 놓는다. viewport = page root (compute root 의 직계 자식 — catalog 의 `catalog:root` 아래 page
+    /// body. 직계 부모가 compute root 면 그 root) 의 border-box 원점 + `set_viewport` 크기 (없으면 page
+    /// root 크기). page 가 저작 높이로 화면보다 길어도 viewport 는 스크롤 0 의 화면 하나다 (Preview iframe).
+    /// 크기 · `%` · inset 은 viewport 기준, 기록 좌표는 종전대로 직계 부모 border-box 기준
+    /// (`place_absolutes_in` shift). 정상 배치가 끝난 뒤 돈다 — 위치가 page 안 조상 좌표의 합이라서.
+    /// 미지원: transform · filter 조상 (CSS 는 그 조상을 containing block 으로 삼는다 — 저작 입력 없음).
+    fn place_fixed_boxes(&mut self, root: usize) {
+        let tops = self.get(root).map(|n| n.children.clone()).unwrap_or_default();
+        // (node, page root, node 의 border-box 원점의 page root 안 위치)
+        let mut stack: Vec<(usize, usize, f32, f32)> = vec![(root, root, 0.0, 0.0)];
+        while let Some((node, page, off_x, off_y)) = stack.pop() {
+            let Some(n) = self.get(node) else { continue };
+            if n.style.display.as_deref() == Some("none") {
+                continue;
+            }
+            let children = n.children.clone();
+            let fixed: Vec<usize> = children
+                .iter()
+                .copied()
+                .filter(|&c| {
+                    self.get(c).is_some_and(|cn| {
+                        cn.style.display.as_deref() != Some("none") && style_is_fixed(&cn.style)
+                    })
+                })
+                .collect();
+            if !fixed.is_empty() {
+                let (vw, vh) = self.viewport.unwrap_or_else(|| {
+                    self.get(page).map(|p| (p.layout.width, p.layout.height)).unwrap_or((0.0, 0.0))
+                });
+                self.place_absolutes_in(node, page, &fixed, vw, vh, vw, (off_x, off_y), false);
+            }
+            for &c in children.iter().rev() {
+                let Some(cn) = self.get(c) else { continue };
+                if node == root && tops.contains(&c) {
+                    stack.push((c, c, 0.0, 0.0));
+                } else {
+                    stack.push((c, page, off_x + cn.layout.x, off_y + cn.layout.y));
+                }
             }
         }
     }
@@ -3020,6 +3165,7 @@ impl LayoutTree {
                     container_h,
                     avail_w,
                     (off_x, off_y),
+                    true,
                 );
             }
         }
@@ -3039,7 +3185,9 @@ impl LayoutTree {
         let set = |v: Option<&str>| v.map(|s| s.trim() != "auto").unwrap_or(false);
         let left_set = set(cstyle.inset_left.as_deref());
         let right_set = set(cstyle.inset_right.as_deref());
-        if left_set && right_set {
+        // 양쪽 inset 이면 늘이기 — 단 자기 정렬이 stretch 가 아니면 inset 영역 안의 fit-content
+        //   (css-position-3 §4.3 · ADR-275 A4).
+        if left_set && right_set && parse_abs_self_align(cstyle.justify_self.as_deref()).is_none() {
             return None;
         }
         let ctx = self.ctx_for(cb_w);
@@ -7393,6 +7541,11 @@ fn style_is_contents(style: &NodeStyle) -> bool {
     style.display.as_deref().is_some_and(|d| d.trim().eq_ignore_ascii_case("contents"))
 }
 
+/// `position: fixed` (ADR-275 Phase 7).
+fn style_is_fixed(style: &NodeStyle) -> bool {
+    style.position.as_deref().map(str::trim) == Some("fixed")
+}
+
 fn is_out_of_flow(position: Option<&str>) -> bool {
     matches!(position, Some("absolute") | Some("fixed"))
 }
@@ -7418,6 +7571,12 @@ fn style_is_positioned(position: Option<&str>) -> bool {
 /// 값이 used size 이고, stretch 가 clamp 로 바뀌면 그 축은 over-constrained 가 되어 명시 크기
 /// 분기 (margin auto 흡수 · start 우선) 를 **다시** 탄다 (§10.3.7 "재적용"). 2026-09-07
 /// Taffy 대조 B4·B4c — Chrome 100 / x150·x0, 종전 엔진 300 / 400.
+///
+/// `align` = 자기 정렬 (양쪽 inset 일 때만 `Some`) — 크기가 정해진 뒤의 여유를 inset 영역 안에서
+/// 나눈다. auto margin 이 먼저 흡수한다 (css-align-3 §8.1). 여유가 음수면 `unsafe` 만 그대로 두고,
+/// 아니면 상자를 원래 containing block 안으로 당긴다 (시작 쪽 우선 — Chrome · WebKit 실측,
+/// ADR-275 G0). `inline_axis` 는 양쪽 margin auto 의 음수 여유에만 쓴다 — 가로는 시작 margin 0
+/// (LTR · CSS 2 §10.3.7), 세로는 같은 값 (§10.6.4) (ADR-275 F13, Chrome oracle).
 #[allow(clippy::too_many_arguments)]
 fn resolve_abs_axis(
     pb_start: f32,
@@ -7432,6 +7591,8 @@ fn resolve_abs_axis(
     m_start_auto: bool,
     m_end_auto: bool,
     static_pos: f32,
+    align: Option<(AbsSelfAlign, bool)>,
+    inline_axis: bool,
 ) -> (f32, f32) {
     // max 먼저, min 이 이긴다 (CSS §5.1).
     let clamp = |v: f32| {
@@ -7459,9 +7620,25 @@ fn resolve_abs_axis(
                 // 크기 definite + 양측 inset → over-constrained. margin auto 가 잉여를 흡수.
                 let free = cb_size - s - e - size - m_start - m_end;
                 let start_margin = if m_start_auto && m_end_auto {
-                    free / 2.0 // ③ 중앙
+                    // ③ 중앙 — 가로 음수 여유는 시작 margin 0 (F13).
+                    if inline_axis && free < 0.0 { 0.0 } else { free / 2.0 }
                 } else if m_start_auto {
                     free // 끝쪽 정렬
+                } else if let (false, Some((kind, unsafe_))) = (m_end_auto, align) {
+                    // ④ 자기 정렬 — inset 영역 안 여유를 나눈다.
+                    let offset = match kind {
+                        AbsSelfAlign::Start => 0.0,
+                        AbsSelfAlign::Center => free / 2.0,
+                        AbsSelfAlign::End => free,
+                    };
+                    let aligned = s + m_start + offset;
+                    if free < 0.0 && !unsafe_ {
+                        // safe — margin box 를 containing block 안으로 (넘치면 시작 쪽).
+                        let outer = size + m_start + m_end;
+                        let box_start = (aligned - m_start).min(cb_size - outer).max(0.0);
+                        return (pb_start + box_start + m_start, size);
+                    }
+                    return (pb_start + aligned, size);
                 } else {
                     // margin-end auto 흡수, 또는 over-constrained(end 무시) → 시작쪽 정렬.
                     m_start
@@ -7473,6 +7650,35 @@ fn resolve_abs_axis(
         (None, Some(e)) => (pb_start + cb_size - e - size - m_end, size),
         (None, None) => (static_pos + m_start, size), // ② static position
     }
+}
+
+/// absolute 상자의 자기 정렬 위치 (css-align-3 §6 — inset 영역 안).
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum AbsSelfAlign {
+    Start,
+    Center,
+    End,
+}
+
+/// `justify-self` · `align-self` → (정렬, `unsafe`). `auto` · `normal` · `stretch` · 미지정은 `None`
+/// — absolute 의 `auto` 는 `normal` 이고 (css-align-3 §6.1), 크기 auto 면 늘인다. `safe` · 접두 없음은
+/// 넘칠 때 containing block 안으로 당긴다 (Chrome · WebKit — ADR-275 G0). baseline 은 대체 정렬 start.
+fn parse_abs_self_align(value: Option<&str>) -> Option<(AbsSelfAlign, bool)> {
+    let v = value?.trim().to_ascii_lowercase();
+    let (unsafe_, keyword) = match v.split_once(' ') {
+        Some(("unsafe", rest)) => (true, rest.trim()),
+        Some(("safe", rest)) => (false, rest.trim()),
+        _ => (false, v.as_str()),
+    };
+    let kind = match keyword {
+        "center" => AbsSelfAlign::Center,
+        "start" | "flex-start" | "self-start" | "left" | "top" | "baseline" | "first baseline" => {
+            AbsSelfAlign::Start
+        }
+        "end" | "flex-end" | "self-end" | "right" | "bottom" | "last baseline" => AbsSelfAlign::End,
+        _ => return None,
+    };
+    Some((kind, unsafe_))
 }
 
 /// inset(top/right/bottom/left) 해결 — **음수 허용**, auto/미지정은 None.
@@ -11620,6 +11826,125 @@ mod tests {
         let c = tree.get_layout(handles[0]);
         assert_eq!(c.x, 80.0, "margin auto 중앙 = (200 - 40)/2");
         assert_eq!(c.width, 40.0, "명시 width 보존");
+    }
+
+    /// ADR-275 A4 — 양쪽 inset + `unsafe center` 자기 정렬 (Chrome · WebKit G0 실측 · oracle
+    /// `absoluteSelfAlign.browser.test.ts`). auto 크기는 fit-content, 자식 padding · border 는
+    /// border-box 에 들어간다 (리뷰 r1 H2 — 판정 하나로 합치면 60 · x 170).
+    #[test]
+    fn absolute_unsafe_center_hug_padded_keeps_border_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"0px","insetRight":"0px","insetTop":"0px","insetBottom":"0px","justifySelf":"unsafe center","alignSelf":"unsafe center","paddingTop":"12px","paddingRight":"12px","paddingBottom":"12px","paddingLeft":"12px","borderTop":"2px","borderRight":"2px","borderBottom":"2px","borderLeft":"2px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"400px","height":"300px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let c = tree.get_layout(handles[1]);
+        assert_eq!((c.x, c.y, c.width, c.height), (156.0, 126.0, 88.0, 48.0));
+    }
+
+    /// ADR-275 사용자 결정 4 — 넘쳐도 가운데 (`unsafe`), 접두 없음은 containing block 안으로.
+    #[test]
+    fn absolute_self_align_overflow_unsafe_centers_safe_clamps() {
+        for (align, expect) in [("unsafe center", -40.0), ("center", 0.0)] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"position":"absolute","insetLeft":"10px","insetRight":"-10px","insetTop":"10px","insetBottom":"-10px","width":"200px","height":"200px","justifySelf":"{align}","alignSelf":"{align}"}},"children":[]}},
+                {{"style":{{"display":"block","position":"relative","width":"100px","height":"100px"}},"children":[0]}}
+            ]"#
+            );
+            let handles = tree.build_tree_batch(&json).unwrap();
+            tree.compute_layout(handles[1], 400.0, 400.0);
+            let c = tree.get_layout(handles[0]);
+            assert_eq!((c.x, c.y), (expect, expect), "{align}");
+        }
+    }
+
+    /// ADR-275 — 폭 auto block 부모 (in-flow 자식 없음 — leaf 경로) 의 used 폭은 부모 block 이 정한다.
+    /// absolute 자식은 그 used 폭에서 놓인다 (Chrome: Right 30 → x 310). 종전 0 기준 (x −90).
+    #[test]
+    fn absolute_child_of_auto_width_leaf_uses_the_used_width() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"position":"absolute","insetRight":"30px","insetTop":"0px","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"relative","height":"100px"},"children":[0]},
+            {"style":{"display":"block","width":"400px","height":"300px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        assert_eq!(tree.get_layout(handles[1]).width, 400.0);
+        assert_eq!(tree.get_layout(handles[0]).x, 310.0);
+    }
+
+    /// ADR-275 Phase 7 — fixed 는 page root 원점 + viewport 크기 기준 (조상 padding · border · 위치 무관),
+    /// 기록은 직계 부모 기준. page 가 viewport 보다 길어도 bottom 은 viewport 아래 끝.
+    #[test]
+    fn fixed_is_placed_in_the_page_viewport() {
+        let mut tree = LayoutTree::new();
+        tree.set_viewport(390.0, 844.0);
+        let json = r#"[
+            {"style":{"position":"fixed","insetLeft":"0px","insetRight":"0px","insetTop":"0px","height":"50px"},"children":[]},
+            {"style":{"position":"fixed","insetBottom":"0px","insetLeft":"10%","width":"50%","height":"60px"},"children":[]},
+            {"style":{"display":"block","height":"100px"},"children":[]},
+            {"style":{"position":"fixed","width":"40px","height":"40px"},"children":[]},
+            {"style":{"display":"block","position":"relative","marginTop":"100px","paddingTop":"20px","paddingLeft":"20px","borderTop":"3px","borderLeft":"3px"},"children":[0,1,2,3]},
+            {"style":{"display":"block","width":"390px","height":"2000px","paddingTop":"10px","paddingLeft":"10px","borderTop":"4px","borderLeft":"4px"},"children":[4]},
+            {"style":{"display":"flex","alignItems":"flex-start","width":"1000px","height":"2100px"},"children":[5]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[6], 1000.0, 2100.0);
+        let section = tree.get_layout(h[4]);
+        // section 의 page 안 원점: border 4 + padding 10 (+ margin 100).
+        assert_eq!((section.x, section.y), (14.0, 114.0));
+        let top = tree.get_layout(h[0]);
+        assert_eq!((top.x + section.x, top.y + section.y, top.width, top.height), (0.0, 0.0, 390.0, 50.0));
+        let bottom = tree.get_layout(h[1]);
+        assert_eq!(
+            (bottom.x + section.x, bottom.y + section.y, bottom.width),
+            (39.0, 844.0 - 60.0, 195.0)
+        );
+        // inset 없음 = static 위치 (흐름 자리 — section content 원점 + 앞 흐름 형제 100).
+        let stat = tree.get_layout(h[3]);
+        assert_eq!((stat.x, stat.y), (23.0, 123.0));
+        // 다시 계산해도 같다 (증분 skip 뒤 재배치) · position 을 지우면 흐름으로.
+        tree.compute_layout(h[6], 1000.0, 2100.0);
+        assert_eq!(tree.get_layout(h[1]).y + section.y, 784.0);
+        let mut style = tree.get(h[0]).unwrap().style.clone();
+        style.position = None;
+        tree.update_style(h[0], style);
+        assert_eq!(tree.fixed_count, 2);
+    }
+
+    /// ADR-275 F10 — `fit-content` 는 auto 가 아니라 양쪽 inset 이 늘이지 않는다 · margin auto 가 가운데.
+    #[test]
+    fn absolute_fit_content_margin_auto_centers() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","width":"60px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"0px","insetRight":"0px","insetTop":"0px","insetBottom":"0px","width":"fit-content","height":"fit-content","marginLeft":"auto","marginRight":"auto","marginTop":"auto","marginBottom":"auto"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"400px","height":"300px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let c = tree.get_layout(handles[1]);
+        assert_eq!((c.x, c.y, c.width, c.height), (170.0, 140.0, 60.0, 20.0));
+    }
+
+    /// ADR-275 F13 — 양쪽 margin auto · 음수 여유: 가로는 시작 margin 0, 세로는 반씩 (Chrome).
+    #[test]
+    fn absolute_margin_auto_negative_free_inline_starts() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetRight":"0px","insetTop":"0px","insetBottom":"0px","width":"200px","height":"200px","marginLeft":"auto","marginRight":"auto","marginTop":"auto","marginBottom":"auto"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"100px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!((c.x, c.y), (0.0, -50.0));
     }
 
     /// Taffy 대조 B4 (2026-09-07, Chrome 실측): 명시 width 가 max-width 를 넘으면 used size 는

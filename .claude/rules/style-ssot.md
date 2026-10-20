@@ -25,19 +25,19 @@ paths:
 
 Styles 패널의 CSS 키는 `NodeEntry` 의 **typed field** (`visual` · `layout` · `sizing`) 에 저장된다. 매핑의 유일한 정본은 `catalogRuntime/styleFields.ts` 의 `catalogStyleWrites` 다.
 
-| CSS 키 (편집 UI)                                                                        | 저장 field                                                                                                     |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `padding` (shorthand)                                                                   | `visual.paddingTop/Right/Bottom/Left` 로 **분해** (px 숫자)                                                    |
-| `margin` (shorthand)                                                                    | `layout.marginTop/Right/Bottom/Left` 로 **분해** (CSS 텍스트)                                                  |
-| `gap`                                                                                   | `visual.gap` **단일 field** — 분해하지 않는다. Canvas 간격 핸들도 같은 field 를 쓴다                           |
-| `rowGap` · `columnGap`                                                                  | `layout.rowGap` · `layout.columnGap` (별도 field)                                                              |
-| `fontSize` · `borderWidth` · `border*Width` · `padding*` · `letterSpacing` · `zIndex` … | `visual` 의 px 숫자                                                                                            |
-| `borderRadius` · `border*Radius`                                                        | `visual.radius` · `visual.radiusTopLeft` … (px 숫자)                                                           |
-| `display` · `flex*` · `align*` · `justify*` · `grid*` · `position` · `verticalAlign`    | `layout` (CSS 텍스트)                                                                                          |
-| `left` · `top` · `right` · `bottom`                                                     | `layout.insetLeft/Top/Right/Bottom` (절대 배치의 left/top 편집은 `catalogPlacementEditCommand` — placement 축) |
-| `width` · `height` · `min*`                                                             | px 값이면 `sizing`, 그 밖의 길이 (`100%` · `fit-content` 등) 는 `visual`                                       |
-| `maxWidth` · `maxHeight`                                                                | px 값이면 `sizing`, 그 밖은 `layout`                                                                           |
-| `lineHeight`                                                                            | `visual.lineHeight` = **글자 크기 대비 비율**                                                                  |
+| CSS 키 (편집 UI)                                                                        | 저장 field                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `padding` (shorthand)                                                                   | `visual.paddingTop/Right/Bottom/Left` 로 **분해** (px 숫자)                                                                                                                 |
+| `margin` (shorthand)                                                                    | `layout.marginTop/Right/Bottom/Left` 로 **분해** (CSS 텍스트)                                                                                                               |
+| `gap`                                                                                   | `visual.gap` **단일 field** — 분해하지 않는다. Canvas 간격 핸들도 같은 field 를 쓴다                                                                                        |
+| `rowGap` · `columnGap`                                                                  | `layout.rowGap` · `layout.columnGap` (별도 field)                                                                                                                           |
+| `fontSize` · `borderWidth` · `border*Width` · `padding*` · `letterSpacing` · `zIndex` … | `visual` 의 px 숫자                                                                                                                                                         |
+| `borderRadius` · `border*Radius`                                                        | `visual.radius` · `visual.radiusTopLeft` … (px 숫자)                                                                                                                        |
+| `display` · `flex*` · `align*` · `justify*` · `grid*` · `position` · `verticalAlign`    | `layout` (CSS 텍스트)                                                                                                                                                       |
+| `left` · `top` · `right` · `bottom`                                                     | `layout.insetLeft/Top/Right/Bottom` — 저작 absolute 의 위치도 같은 field (ADR-275, 노드 `placement` 삭제). Canvas 이동 · 정렬은 제약 (`positionConstraint.ts`) 을 지켜 쓴다 |
+| `width` · `height` · `min*`                                                             | px 값이면 `sizing`, 그 밖의 길이 (`100%` · `fit-content` 등) 는 `visual`                                                                                                    |
+| `maxWidth` · `maxHeight`                                                                | px 값이면 `sizing`, 그 밖은 `layout`                                                                                                                                        |
+| `lineHeight`                                                                            | `visual.lineHeight` = **글자 크기 대비 비율**                                                                                                                               |
 
 - shorthand 분해는 `padding` · `margin` 둘뿐이다. typed field 가 담을 수 없는 값은 `CatalogStyleValueError` 를 던지고, host 가 toast 로 보여 준다 (값을 버리거나 `props.style` 로 우회하지 않는다).
 - **Why (ADR-909 원칙 유지)**: 같은 축을 shorthand 와 longhand 두 곳에 두면 consumer 마다 우선순위가 갈려 패널 편집이 무시된다. catalog 는 축마다 field 를 하나로 정하고 (`padding` → 4변, `gap` → `visual.gap`), 그 위에 덧쓰는 longhand (`rowGap` · `columnGap`) 의 우선순위를 consumer 쪽에서 한 번 정한다 (§3).

@@ -7,6 +7,7 @@ import type { LayoutResult } from "../../workspace/canvas/wasm-bindings/engine";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { createG1Fixture } from "../../../../../../packages/shared/src/catalog/document/fixture";
 import type {
+  LayoutField,
   CatalogEntry,
   NodeEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -14,6 +15,9 @@ import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
 import { CatalogCompositionRoot } from "../compositionRoot";
 import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
+import {
+  absoluteLayout,
+} from "./absoluteLayoutFixture";
 
 class RecordingLayoutEngine implements LayoutEngineAPI {
   styles: string[] = [];
@@ -77,32 +81,34 @@ function setup() {
 }
 
 describe("ADR-248 Phase 3 isolated composition root delta seam", () => {
-  it("sends typed node placement to the layout input and only invalidates its instance", () => {
+  it("sends an authored absolute layout to the layout input and only invalidates its instance", () => {
     const { root, engine, inputId } = setup();
     const first = inputId("project:node:cardA")!;
     const second = inputId("project:node:cardB")!;
     let unrelated = 0;
     root.subscribeCanvas(second, () => unrelated++);
     root.subscribeDom(second, () => unrelated++);
-    const result = root.dispatch("move child", [
-      {
-        kind: "setNodePlacement",
-        id: "project:node:cardA",
-        placement: { kind: "absolute", x: 20, y: 150 },
-      },
-    ]);
+    const result = root.dispatch(
+      "move child",
+      Object.entries(absoluteLayout(20, 150)).map(([key, write]) => ({
+        kind: "patchNodeLayout" as const,
+        id: "project:node:cardA" as const,
+        key: key as LayoutField,
+        write: write!,
+      })),
+    );
     expect(result.changedIds).toEqual(new Set(["project:node:cardA"]));
-    expect(root.layoutInputs.get(first)?.placement).toEqual({
-      kind: "absolute",
-      x: 20,
-      y: 150,
+    expect(root.layoutInputs.get(first)?.authoredLayout).toMatchObject({
+      position: "absolute",
+      insetLeft: "20px",
+      insetTop: "150px",
     });
     expect(engine.styles.at(-1)).toContain('"insetLeft":"20px"');
     expect(engine.styles.at(-1)).toContain('"insetTop":"150px"');
     expect(root.metrics.layoutInputVisits).toBe(1);
     expect(unrelated).toBe(0);
     root.undo();
-    expect(root.layoutInputs.get(first)?.placement).toBeUndefined();
+    expect(root.layoutInputs.get(first)?.authoredLayout?.position).toBeUndefined();
     expect(unrelated).toBe(0);
   });
   it.skipIf(G0_BASELINE_ABSENT)(

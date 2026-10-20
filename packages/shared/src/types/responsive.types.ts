@@ -159,6 +159,9 @@ export const SECTION_EDITABLE_RESPONSIVE_PROPS: ReadonlySet<string> = new Set([
   "position",
   "top",
   "left",
+  // ADR-275 — the Position section edits all four insets.
+  "right",
+  "bottom",
   "flexGrow",
   "flexShrink",
   "flexBasis",

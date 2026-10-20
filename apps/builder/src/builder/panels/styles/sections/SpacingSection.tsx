@@ -8,7 +8,9 @@
  * 값 쓰기는 longhand (paddingTop …) — store 의 shorthand 분배 정책과 같은 채널.
  */
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
+import { catalogReadPositionConstraint } from "../../../catalogRuntime/positionConstraint";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
@@ -51,13 +53,36 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
     updateStyleImmediate(`margin${direction}`, value);
   };
 
-  const handleRingChange = (ring: "padding" | "margin", value: string) => {
-    updateStylesImmediate({
-      [`${ring}Top`]: value,
-      [`${ring}Right`]: value,
-      [`${ring}Bottom`]: value,
-      [`${ring}Left`]: value,
+  // ADR-275 사용자 결정 2 — an absolute box's Center axis owns its margins (Figma · Framer: a
+  // positioned box moves by its Position offset).
+  const effective = useElementStyleContext(selectedId).effective;
+  const lockedMarginSides = useMemo(() => {
+    const view = (key: string) =>
+      effective?.[key] === undefined ? undefined : String(effective[key]);
+    if (view("position") !== "absolute") return undefined;
+    const constraint = catalogReadPositionConstraint({
+      insetLeft: view("left"),
+      insetRight: view("right"),
+      insetTop: view("top"),
+      insetBottom: view("bottom"),
+      justifySelf: view("justifySelf"),
+      alignSelf: view("alignSelf"),
     });
+    const sides = new Set<BoxSide>([
+      ...(constraint.x === "center" ? (["Left", "Right"] as const) : []),
+      ...(constraint.y === "center" ? (["Top", "Bottom"] as const) : []),
+    ]);
+    return sides.size ? sides : undefined;
+  }, [effective]);
+
+  const handleRingChange = (ring: "padding" | "margin", value: string) => {
+    updateStylesImmediate(
+      Object.fromEntries(
+        (["Top", "Right", "Bottom", "Left"] as const)
+          .filter((side) => ring !== "margin" || !lockedMarginSides?.has(side))
+          .map((side) => [`${ring}${side}`, value]),
+      ),
+    );
   };
 
   if (!styleValues) return null;
@@ -120,6 +145,7 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
         onMarginChange={handleMarginChange}
         onRingChange={handleRingChange}
         activePaddingSides={activePaddingSides}
+        lockedMarginSides={lockedMarginSides}
       />
     </div>
   );

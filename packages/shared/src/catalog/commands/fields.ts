@@ -7,7 +7,6 @@ import type {
   FillSizing,
   LayoutField,
   NodeEntry,
-  NodePlacement,
   NodeResponsiveLayer,
   NodeThemeOverride,
   ResponsiveBreakpointName,
@@ -197,7 +196,6 @@ export type WholeFieldValue = {
   fillSizing: FillSizing;
   visibility: NodeEntry["visibility"];
   themeOverride: NodeThemeOverride;
-  placement: NodePlacement;
   binding: DataBindingRef;
   enabled: boolean;
 };
@@ -234,13 +232,7 @@ export const setWholeField =
       if (target.kind === "node") {
         const node = reader.getEntry(target.id);
         if (node?.kind !== "node") return fail("NODE_REQUIRED", target.id);
-        if (input.field === "placement")
-          ops.push({
-            kind: "setNodePlacement",
-            id: target.id,
-            placement: input.value as NodePlacement | undefined,
-          });
-        else if (input.field === "binding")
+        if (input.field === "binding")
           ops.push({
             kind: "setNodeBinding",
             id: target.id,

@@ -11,6 +11,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-275 Phase 7 — Position Fixed 허용] - 2026-10-20
+
+### Added
+
+- **Position 절에서 Fixed 를 고를 수 있다** (ADR-275 Phase 7 — 사용자 결정 6, ADR-267 결정 1 · 2 를 닫음):
+  - 기준 화면 (viewport) 은 page body 영역이다 — page 의 원점 + breakpoint 화면 크기 (Desktop 1920 × 1080 · Tablet 768 × 1024 · Mobile 390 × 844). page 가 저작 높이로 화면보다 길어도 스크롤 0 의 화면 하나다 (Preview iframe 과 같다).
+  - Fixed 를 누르면 상자가 그 자리 그대로 화면 기준 위치가 된다. pin 상자 · Top · Right · Bottom · Left · Fill 은 Absolute 와 같고, 결과 문장이 「In the screen」 으로 시작한다. Canvas 에서 끌어도 화면 기준으로 저장된다.
+  - Canvas 는 fixed 상자를 조상의 잘림 (overflow) · 스크롤 밖에서 그리고, page 를 스크롤해도 화면의 같은 자리에 둔다. Preview 는 CSS `position: fixed` 그대로.
+  - 저장은 `layout.position: fixed` + `inset*` (breakpoint 별). contract 42 그대로.
+  - 위치: `packages/engine/src/tree.rs` (`place_fixed_boxes`) · `catalog/document/validation.ts` · `catalog/runtime/{compositionRoot,domBinding.runtime,positioning}.ts` · `workspace/canvas/skia/{renderCommands,subtreeTranslate}.ts` · `catalogRuntime/{canvasBinding,position,canvasGesture}.ts` · `panels/styles/sections/TransformSection.tsx`
+
+### Changed
+
+- **Position 절 정리** (ADR-275 사용자 결정 7): Top · Right · Bottom · Left 칸 위 글자를 뺐다 (변은 pin 상자 둘레의 자리로 읽는다). `Center X` · `Center Y` 버튼을 뺐다 — pin 상자의 십자선과 같다. `Fill` 은 절 오른쪽 아이콘 칸 (Size 와 같은 열) 의 버튼이 됐다.
+- **Position pin 상자 = Alignment 판 크기** (ADR-275 사용자 결정 8): 4방향 도식은 Layout 의 Alignment 판 (한 열 × 84) 을 넘지 않는다. 칸이 상자를 둘러싸는 배치는 그대로, 좌우 칸이 「auto PX」 를 담도록 도식 줄이 아이콘 칸까지 쓰고 `Fill` 은 모드 줄 오른쪽 아이콘 칸으로 옮겼다.
+- **Padding 은 Layout 절 안 · Spacing 절 제거** (ADR-275 사용자 결정 9 · 10, Figma 구성): Wrap · Gap 아래 「↔ 가로 · ↕ 세로 · 펼침」 한 줄, 펼치면 「Left · Top」 / 「Right · Bottom」 두 줄 (두 변이 다르면 펼친 채 시작, 접힌 칸은 Mixed). 패널의 margin 편집 UI 는 없다 — Figma · Framer 처럼. 문서의 margin 값은 그대로 그려지고 Layout 절 reset 이 지운다.
+  - 위치: `panels/styles/sections/TransformSection.tsx` · `components/styles/inspector-layout.css`
+
+### Fixed
+
+- **Tablet · Mobile 에서 Absolute 상자의 pin 으로 Left+Right 를 만들면 아무 일도 없고 오류 토스트가 떴다**:
+  - **Why**: 늘인 축의 폭을 breakpoint 층에서 `mask` 로 지웠는데, 문서는 크기 칸의 mask 를 받지 않는다 (`SIZING_MASK_FORBIDDEN`).
+  - 수리: breakpoint 층은 `null` (auto) 로 쓴다. Desktop 은 종전대로 지운다.
+  - 위치: `catalogRuntime/position.ts`
+
+## [ADR-275 Phase 6 — Position Sticky 허용] - 2026-10-20
+
+### Added
+
+- **Position 절에서 Sticky 를 고를 수 있다** (ADR-275 Phase 6 — 사용자 결정 5, ADR-267 결정 1 을 sticky 에 한해 뒤집음):
+  - Sticky 를 누르면 상자가 흐름으로 돌아가 스크롤 컨테이너 위쪽 0 에 붙는다. 지난 Absolute 의 위치 값과 가운데 정렬은 지운다.
+  - Top · Right · Bottom · Left 칸이 각자 「스크롤할 때 붙는 거리」 다. 빈 칸은 `auto` (그 쪽으로는 붙지 않는다). pin 상자 · Center · Fill 은 쓰지 않는다.
+  - 저장은 `layout.position: sticky` + `inset*` (breakpoint 별). contract 는 42 그대로 — 받는 값이 하나 늘었을 뿐 옛 문서는 그대로 열린다.
+  - Fixed 는 계속 고를 수 없다 (Canvas 의 viewport 기준을 먼저 정해야 한다 — ADR-267 결정 2).
+  - 위치: `packages/shared/src/catalog/document/validation.ts` · `catalog/runtime/domBinding.runtime.ts` · `catalogRuntime/position.ts` · `panels/styles/sections/TransformSection.tsx`
+
+### Fixed
+
+- **Canvas 에서 붙은 sticky 상자가 스크롤된 항목 아래로 숨었다**:
+  - **Why**: z-index 없는 sticky 상자를 트리 순서로 그렸다 (CSS 는 positioned layer — 흐름 형제 위). 그리고 상자가 sticky (또는 z-index) 로 바뀌어도 그 상자만 제자리 재기록돼 형제 사이 순서가 그대로였다.
+  - 수정: 같은 z 안에서 z-index 없는 sticky 상자를 흐름 형제 뒤에 그린다 · 그리기 층이 바뀐 상자는 장면을 다시 묶는다 (Styles 의 z-index 편집도 함께 바로 반영).
+  - 위치: `workspace/canvas/skia/renderCommands.ts` (`sortChildElementsByZIndex`) · `catalogRuntime/canvasBinding.ts` (`paint-order`)
+- **Absolute 상자의 고정 변 칸을 비우면 「Selected element not found」 가 떴다** — 쓸 것이 없는 편집은 조용히 넘어간다 (`catalogPositionChangeCommand` → `null`).
+
+## [ADR-275 Phase 4 — Position 절: pin 상자 · 변 옆 칸] - 2026-10-20
+
+### Changed
+
+- **Design 패널 Position 절을 다시 짰다** (ADR-275 — Figma 규칙 + Framer 칸 배치):
+  - Relative · Absolute 를 글자 버튼으로 고른다 (Sticky · Fixed 는 보이지만 아직 고를 수 없다).
+  - 가운데 pin 상자에서 위 · 오른쪽 · 아래 · 왼쪽 변과 가로 · 세로 가운데를 고른다. 한 축의 양쪽 변을 누르면 늘어나고, 마지막 변은 풀리지 않는다. 바꿔도 상자는 그 자리에 있다.
+  - Top · Right · Bottom · Left 칸이 상자의 같은 변 옆에 있다. 고정되지 않은 칸은 점선 `auto` 이고, 값을 넣으면 그 변으로 바뀐다 (반대 변은 풀린다). 단위는 `px` · `%`.
+  - Center X · Center Y · Fill 버튼과 지금 위치 기준을 한 줄로 보여 주는 문장.
+  - Relative 에서는 Left · Top 이 제자리에서 옮기는 값이고 Right · Bottom 은 쓰지 않는다.
+- **가운데 축의 margin 은 잠긴다**: 명령이 그 축 margin 쓰기를 거부한다 (위치는 Position 에서 바꾼다 — Figma · Framer 와 같다. 패널에는 margin 칸이 없다 — 결정 10).
+- 위치: `panels/styles/sections/{TransformSection,PositionPinBox,PaddingFields}.tsx` · `components/property/PropertySegment.tsx` · `catalogRuntime/position.ts` · `components/styles/inspector-layout.css`
+
+## [ADR-275 Phase 2 · 3 — 위치를 layout inset 으로 저장 · Canvas 가 제약을 지킨다] - 2026-10-19
+
+### Changed
+
+- **절대 위치가 다른 레이아웃 값과 같은 자리에 저장된다** (ADR-275): `position: absolute` + `left · top · right · bottom` (+ 가운데는 `justify-self` / `align-self: unsafe center`). 그래서 `%` 단위 · 오른쪽 · 아래 기준 · 늘이기 · 가운데 · breakpoint 별 위치가 저장된다 — Styles 의 Left · Top 에 `10%` 를 넣으면 전에는 거부됐다.
+- **Canvas 이동이 위치 기준을 지킨다**: 오른쪽 · 아래에 고정한 상자는 끌면 그 변의 값이, 가운데 상자는 가운데에서의 거리가, 양쪽 고정 상자는 두 변이 같이 바뀐다. 크기 조절 · 정렬 · 분배 · Alt 복사 · 붙여넣기도 같다.
+
+### Fixed
+
+- **폭이나 높이가 정해지지 않은 부모 안의 absolute 상자** (in-flow 자식 없음 — 부모 block 이 폭을 채우거나 flex 가 높이를 늘인 경우): 오른쪽 · 가운데 기준이 부모의 실제 크기로 놓인다. 전에는 크기 0 기준이라 Canvas 에서 부모 왼쪽 밖으로 나갔다 (Chrome oracle). 위치: `packages/engine/src/tree.rs`
+
+### Breaking
+
+- 프로젝트 문서 형식 42 — 노드 `placement` 필드가 없어졌다. 41 이전 개발용 프로젝트는 열리지 않는다 (사용자 결정 1, 전환 코드 없음).
+- 위치: `packages/shared/src/catalog/{document,runtime,resolution,commands,transactions}` · `apps/builder/src/builder/catalogRuntime/{positionConstraint,position,canvasGesture,shortcuts,styleDirty}.ts` · `panels/styles/catalog/catalogStylesHost.ts`
+
+## [ADR-275 Phase 1 — absolute 자기 정렬 · 키워드 크기] - 2026-10-19
+
+### Fixed
+
+- **양쪽 inset 을 준 absolute 상자가 Canvas 에서도 Chrome 처럼 놓인다** (ADR-275 Phase 1 — Chrome oracle `absoluteSelfAlign` 19 / 19):
+  - `justify-self` · `align-self` 를 읽는다. stretch 가 아니면 크기 auto 는 내용 크기 (fit-content) 로 두고 inset 영역 안에 정렬한다. `unsafe center` 는 부모보다 넓어도 가운데, 접두 없는 정렬은 넘치면 부모 안으로 당긴다. 전에는 늘이거나 왼쪽에 붙였다.
+  - `width` · `height` 가 `fit-content` · `min-content` · `max-content` 면 양쪽 inset 이 늘이지 않는다 — padding · border 를 준 상자도 border-box 그대로 (88 × 48).
+  - 양쪽 `margin: auto` 인데 상자가 부모보다 크면 가로는 왼쪽 inset 에 붙고 세로는 가운데 (Chrome 과 같음). 전에는 가로도 가운데였다.
+  - 위치: `packages/engine/src/tree.rs`
+
 ## [Chromium 재대조 엔진 격차 5 건 수정] - 2026-10-19
 
 ### Fixed

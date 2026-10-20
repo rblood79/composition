@@ -73,7 +73,7 @@ function compaction(
     .filter(
       (node) =>
         node.enabled !== false &&
-        node.placement?.kind !== "absolute" &&
+        // Out of flow at this breakpoint (ADR-275 — authored or rule-placed alike).
         layoutValue(node, breakpoint, "position") !== "absolute",
     );
   if (!items.length) return undefined;

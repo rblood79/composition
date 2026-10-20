@@ -42,6 +42,9 @@ interface PropertySegmentProps {
   swatchOnly?: boolean;
   /** 값이 옵션 밖일 때 legend 뒤에 붙는 안내 (「3XL · Styles 에서 변경」). */
   outOfRangeHint?: string;
+  /** 보이지만 고를 수 없는 값 (ADR-275 Position 의 Sticky · Fixed) — 이유는 `disabledHint`. */
+  disabledValues?: readonly string[];
+  disabledHint?: string;
   className?: string;
 }
 
@@ -52,6 +55,8 @@ export const PropertySegment = memo(function PropertySegment({
   options,
   swatchOnly = false,
   outOfRangeHint,
+  disabledValues,
+  disabledHint,
   className,
 }: PropertySegmentProps) {
   const i18n = useOptionalI18n();
@@ -99,6 +104,12 @@ export const PropertySegment = memo(function PropertySegment({
               key={option.value}
               id={option.value}
               aria-label={iconMode || swatchOnly ? text : undefined}
+              isDisabled={disabledValues?.includes(option.value)}
+              aria-description={
+                disabledValues?.includes(option.value) && disabledHint
+                  ? localize(disabledHint)
+                  : undefined
+              }
             >
               {Icon ? (
                 <Icon

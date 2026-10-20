@@ -98,6 +98,8 @@ export const TRANSFORM_PROPS = [
   "position",
   "top",
   "left",
+  "right",
+  "bottom",
   "flexGrow",
   "flexShrink",
   "flexBasis",
@@ -111,7 +113,7 @@ export const TRANSFORM_PROPS = [
 ];
 
 /** Position 절 reset 범위 */
-export const POSITION_PROPS = ["position", "top", "left"];
+export const POSITION_PROPS = ["position", "top", "left", "right", "bottom"];
 
 /** Size 절 reset 범위 = TRANSFORM_PROPS − POSITION_PROPS + overflow (컨트롤이 여기 있다) */
 export const SIZE_PROPS = [

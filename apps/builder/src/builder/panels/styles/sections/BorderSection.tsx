@@ -391,26 +391,25 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       </div>
 
       {showCorners && (
-      <div className="style-border-corners">
-        {CORNER_FIELDS.map(({ prop, label, corner, index }) => (
-          <PropertyUnitInput
-            key={prop}
-            label={localize(label)}
-            className={`border-corner border-corner-${corner}`}
-            labelMode="icon"
-            icon={CORNER_ICONS[corner]}
-            units={["px", "reset"]}
-            defaultUnit="px"
-            allowEmptyReset
-            min={0}
-            max={INPUT_MAX}
-            value={`${radii[index]}px`}
-            onChange={(value) => updateStyleImmediate(prop, value)}
-          />
-        ))}
-      </div>
+        <div className="style-border-corners">
+          {CORNER_FIELDS.map(({ prop, label, corner, index }) => (
+            <PropertyUnitInput
+              key={prop}
+              label={localize(label)}
+              className={`border-corner border-corner-${corner}`}
+              labelMode="icon"
+              icon={CORNER_ICONS[corner]}
+              units={["px", "reset"]}
+              defaultUnit="px"
+              allowEmptyReset
+              min={0}
+              max={INPUT_MAX}
+              value={`${radii[index]}px`}
+              onChange={(value) => updateStyleImmediate(prop, value)}
+            />
+          ))}
+        </div>
       )}
-
     </>
   );
 });

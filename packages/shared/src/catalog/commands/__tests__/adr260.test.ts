@@ -248,17 +248,14 @@ describe("ADR-260 Decision 6 — deleting the origin keeps the instances; Restor
       ops: [
         {
           kind: "put",
-          entry: { ...instance, placement: { kind: "absolute", x: 40, y: 50 } },
+          entry: { ...instance, layout: { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "40px" }, insetTop: { kind: "set", value: "50px" } } },
         },
       ],
     }));
     run(graph, removeTargets({ targets: [{ kind: "node", id: ROOT }] }));
     run(graph, restoreOrigin({ instanceId: instance.id }));
-    expect((graph.getEntry(ROOT) as NodeEntry).placement).toEqual({
-      kind: "absolute",
-      x: 50,
-      y: 60,
-    });
+    // ADR-275: the instance's position (layout insets), shifted 10.
+    expect((graph.getEntry(ROOT) as NodeEntry).layout).toMatchObject({ position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "50px" }, insetTop: { kind: "set", value: "60px" } });
   });
 
   it("moves only the outermost origin of a deleted subtree; the inner one stays referenced", () => {

@@ -306,7 +306,12 @@ it.skipIf(G0_BASELINE_ABSENT)(
               width: { kind: "set", value: 170 },
               height: { kind: "set", value: 110 },
             },
-            placement: { kind: "absolute", x: operation.x, y: operation.y },
+            layout: {
+              // ADR-275: an authored absolute box = layout position + insets.
+              position: { kind: "set", value: "absolute" },
+              insetLeft: { kind: "set", value: `${operation.x}px` },
+              insetTop: { kind: "set", value: `${operation.y}px` },
+            },
             descendantOverrides: [],
           },
           ...childIds.map((childId, index): NodeEntry => ({

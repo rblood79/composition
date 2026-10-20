@@ -41,10 +41,11 @@ function mixedDocument(count: number): CatalogDocument {
         width: { kind: "set", value: 160 },
         height: { kind: "set", value: 60 },
       },
-      placement: {
-        kind: "absolute",
-        x: 20 + (index % 6) * 200,
-        y: 20 + Math.floor(index / 6) * 90,
+      // ADR-275: an authored absolute box = layout position + insets.
+      layout: {
+        position: { kind: "set", value: "absolute" },
+        insetLeft: { kind: "set", value: `${20 + (index % 6) * 200}px` },
+        insetTop: { kind: "set", value: `${20 + Math.floor(index / 6) * 90}px` },
       },
       descendantOverrides: [],
     };

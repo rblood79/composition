@@ -1,3 +1,7 @@
+import {
+  catalogIsAuthoredAbsolute,
+  catalogIsAuthoredPlaced,
+} from "./positioning";
 import { docCounters } from "../docCounters";
 import { catalogColorPartLayout } from "./colorControlParts";
 import type { CatalogTableSortSource } from "./tableSort";
@@ -196,7 +200,6 @@ export interface CatalogRecordPreview {
   readonly visual?: Readonly<Record<string, string | number | boolean>>;
   readonly sizing?: Readonly<Record<string, number>>;
   readonly layout?: Readonly<Record<string, string>>;
-  readonly placement?: CatalogConsumerNode["placement"];
   /** The paint layers shown instead of the record's (a Fill drag). */
   readonly fills?: CatalogConsumerNode["fills"];
   /** Visual keys the commit removes (a Fill replaces fill-derived background CSS). */
@@ -226,7 +229,6 @@ export interface CatalogConsumerNode {
   /** Author-written layout keys (`ResolvedCatalogNode.authoredLayout`): the DOM inlines these. */
   readonly authoredLayout?: ResolvedCatalogNode["authoredLayout"];
   readonly sizing: ResolvedCatalogNode["sizing"];
-  readonly placement: ResolvedCatalogNode["placement"];
   /** Authored paint layers and fill intent (ADR-248 Phase 4a); absent = definition paint. */
   readonly fills?: ResolvedCatalogNode["fills"];
   readonly fillSizing?: ResolvedCatalogNode["fillSizing"];
@@ -375,7 +377,6 @@ const boxInputsChanged = (
   !sameFields(left.sizing, right.sizing) ||
   JSON.stringify(left.fillSizing ?? null) !==
     JSON.stringify(right.fillSizing ?? null) ||
-  left.placement?.kind !== right.placement?.kind ||
   ["width", "height", "minWidth", "minHeight", "aspectRatio"].some(
     (key) => left.visual[key] !== right.visual[key],
   ) ||
@@ -1079,13 +1080,6 @@ function styleOf(
     ...(box.alignItems ? { alignItems: box.alignItems } : {}),
     ...(box.justifyContent ? { justifyContent: box.justifyContent } : {}),
     ...(box.flexWrap ? { flexWrap: box.flexWrap } : {}),
-    ...(box.position
-      ? {
-          position: "absolute",
-          insetLeft: `${box.position.x}px`,
-          insetTop: `${box.position.y}px`,
-        }
-      : {}),
     ...(box.width !== undefined
       ? { width: px(box.width) }
       : glyph !== undefined
@@ -1290,22 +1284,21 @@ function itemLayout(node: CatalogConsumerNode): Record<string, unknown> {
     if (value === undefined) continue;
     out[key] = NUMERIC_ITEM_FIELDS.has(key) ? Number(value) : value;
   }
-  // `position: relative` is the default flow box; authored absolute placement is
-  // `node.placement`, a stylesheet-placed sub-part is `position: absolute` + insets.
-  if (node.layout.position === "relative" && !node.placement)
-    out.position = "relative";
-  if (node.layout.position === "absolute" && !node.placement)
-    out.position = "absolute";
+  // `position: relative` is the default flow box; an absolute box (authored — ADR-275 — or a
+  // stylesheet-placed sub-part) is `position: absolute` + insets.
+  if (node.layout.position === "relative") out.position = "relative";
+  if (node.layout.position === "absolute") out.position = "absolute";
+  // ADR-275 Phase 7: a fixed box is placed in the page viewport (the engine's fixed pass).
+  if (node.layout.position === "fixed") out.position = "fixed";
   // ADR-267: a sticky box stays in flow; the engine gives its constraints from the insets.
-  if (node.layout.position === "sticky" && !node.placement)
-    out.position = "sticky";
+  if (node.layout.position === "sticky") out.position = "sticky";
   return out;
 }
 
 /** ADR-267 — the resolver's sticky section header insets (`_stickyInsetTop` …), as engine input. */
 function stickyInsets(node: CatalogConsumerNode): Record<string, string> {
   const derived = node.derivedProps;
-  if (!derived || node.placement) return {};
+  if (!derived || catalogIsAuthoredPlaced(node)) return {};
   const out: Record<string, string> = {};
   for (const key of [
     "insetTop",
@@ -1364,9 +1357,7 @@ function sameRecord(
     sameFields(left.visual, right.visual) &&
     sameFields(left.layout, right.layout) &&
     sameFields(left.sizing, right.sizing) &&
-    left.placement?.kind === right.placement?.kind &&
-    left.placement?.x === right.placement?.x &&
-    left.placement?.y === right.placement?.y &&
+    sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
     sameFields(left.slot ?? {}, right.slot ?? {}) &&
     left.name === right.name &&
     left.placeholder === right.placeholder &&
@@ -3068,6 +3059,7 @@ export class CatalogCompositionRoot {
       const siblingsFixed =
         parentFixed &&
         (box.position === "absolute" ||
+          box.position === "fixed" ||
           (parentStyle.display === "block" &&
             !String(box.display ?? "").startsWith("inline")));
       visit(siblingsFixed ? id : parentId!);
@@ -3138,7 +3130,6 @@ export class CatalogCompositionRoot {
       visual: target.visual,
       layout: target.layout,
       sizing: target.sizing,
-      placement: top.placement ?? target.placement,
       ...authoredFields(target),
       ...domAttributes(top, target),
       slot: top.slot ?? target.slot,
@@ -3404,7 +3395,6 @@ export class CatalogCompositionRoot {
           layout: patch.layout
             ? { ...base.layout, ...patch.layout }
             : base.layout,
-          placement: patch.placement ?? base.placement,
           ...(patch.fills ? { fills: patch.fills } : {}),
           ...(patch.props
             ? {
@@ -3637,7 +3627,10 @@ export class CatalogCompositionRoot {
       notices.push({ id, record });
     // A child turning absolute (or back) makes its DOM parent its containing block (or not):
     // the parent's record is the same, so its listeners hear it here (2026-10-15).
-    if (old && old.placement?.kind !== record.placement?.kind) {
+    if (
+      old &&
+      catalogIsAuthoredAbsolute(old) !== catalogIsAuthoredAbsolute(record)
+    ) {
       const parent = this.records.get(record.parentId);
       if (parent) notices.push({ id: parent.id, record: parent });
     }
@@ -4022,7 +4015,6 @@ export class CatalogCompositionRoot {
         visual: resolved.visual,
         layout: resolved.layout,
         sizing: resolved.sizing,
-        placement: top.placement ?? resolved.placement,
         ...(resolved.stateVisual ? { stateVisual: resolved.stateVisual } : {}),
         ...authoredFields(resolved),
         ...domAttributes(top, resolved),
@@ -4632,7 +4624,6 @@ export class CatalogCompositionRoot {
           "patchNodeVisual",
           "patchNodeSizing",
           "patchNodeLayout",
-          "setNodePlacement",
           "patchDefinitionOverride",
         ].includes(op.kind) ||
         (op.kind === "put" &&

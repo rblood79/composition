@@ -90,7 +90,7 @@ const templates: LibraryTemplateNode[] = [
 ];
 const library = (definitions = [parent, part, composite]) =>
   buildCatalogLibrary({
-    contractVersion: 41,
+    contractVersion: 42,
     revision: "typed-rules",
     bindingIds: ["field", "part"],
     actionOpCodes: [],
@@ -113,7 +113,7 @@ function graph(nodes: NodeEntry[], nested: NodeEntry[] = []) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 41,
+    libraryContractVersion: 42,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -229,9 +229,9 @@ describe("ADR-248 typed layout, conditional and part rules", () => {
       "DANGLING_DEFINITION",
     );
     reject({ ...parent, visual: { paddingX: -1 } }, "VISUAL_VALUE_RANGE");
-    // ADR-267: `fixed` is no rule layout value (Phase 2 — user decision 1).
+    // A rule layout takes the node's position keywords (ADR-275 Phase 6 · 7 — `sticky` · `fixed`).
     reject(
-      { ...parent, layout: { position: "fixed" } },
+      { ...parent, layout: { position: "float" } },
       "INVALID_LAYOUT_VALUE",
     );
   });

@@ -29,7 +29,7 @@ const frame: LibraryDefinition = {
 };
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 41,
+    contractVersion: 42,
     revision: "node-authoring",
     bindingIds: ["frame"],
     actionOpCodes: [],
@@ -52,7 +52,7 @@ function graph(nodes: NodeEntry[], roots = nodes.map((item) => item.id)) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 41,
+    libraryContractVersion: 42,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -157,13 +157,21 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
     ).toBe("ACCEPTED");
   });
 
-  it("ADR-267: an authored node layout is not sticky (the document schema — user decision 1)", () => {
-    for (const position of ["sticky", "fixed"]) {
+  it("ADR-275 Phase 6 · 7: an authored node layout may be sticky or fixed, not another keyword", () => {
+    for (const [position, result] of [
+      ["sticky", "ACCEPTED"],
+      ["fixed", "ACCEPTED"],
+      ["float", "INVALID_LAYOUT_VALUE"],
+    ] as const) {
       expect(
         code(() =>
-          validateCatalogEntry(node("a", { layout: { position: set(position) } })),
+          validateCatalogEntry(
+            node("a", {
+              layout: { position: set(position), insetTop: set("0px") },
+            }),
+          ),
         ),
-      ).toBe("INVALID_LAYOUT_VALUE");
+      ).toBe(result);
       expect(
         code(() =>
           validateCatalogEntry(
@@ -174,7 +182,7 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
             }),
           ),
         ),
-      ).toBe("INVALID_LAYOUT_VALUE");
+      ).toBe(result);
     }
   });
 

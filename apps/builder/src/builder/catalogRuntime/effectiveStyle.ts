@@ -1,6 +1,5 @@
 import { catalogBoxModel } from "./boxModel";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import { catalogPlacementStyle } from "./position";
 import { catalogStyleView } from "./styleFields";
 
 /**
@@ -49,6 +48,5 @@ export function catalogEffectiveStyle(
     if (value !== undefined) style[key] = px(value);
   }
   if (box.borderWidth !== undefined) style.borderWidth = px(box.borderWidth);
-  Object.assign(style, catalogPlacementStyle(record.placement));
   return style;
 }

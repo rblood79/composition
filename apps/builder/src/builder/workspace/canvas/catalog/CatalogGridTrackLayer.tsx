@@ -1,3 +1,4 @@
+import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
 /**
  * CatalogGridTrackLayer — 선택한 grid 의 열 · 행 머리 (Figma grid 의 canvas track 편집 —
  * 2026-10-16 사용자 「1,2,3 한번에 진행」).
@@ -210,11 +211,7 @@ export function CatalogGridTrackLayer({
         return null;
       const flow = grid.children.filter((child) => {
         const record = records.get(child);
-        return (
-          !!record &&
-          record.placement?.kind !== "absolute" &&
-          record.layout.position !== "absolute"
-        );
+        return !!record && !catalogIsOutOfFlow(record);
       });
       const columns =
         gridTrackList(String(grid.layout.gridTemplateColumns ?? ""))?.length ||

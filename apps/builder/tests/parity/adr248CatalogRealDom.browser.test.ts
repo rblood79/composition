@@ -619,7 +619,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
           },
           visual: {},
           sizing: { width: { kind: "set", value: scenario.width } },
-          placement: { kind: "absolute", ...scenario.placement },
+          layout: {
+            // ADR-275: an authored absolute box = layout position + insets.
+            position: { kind: "set", value: "absolute" },
+            insetLeft: { kind: "set", value: `${scenario.placement.x}px` },
+            insetTop: { kind: "set", value: `${scenario.placement.y}px` },
+          },
           descendantOverrides: [],
         };
         const text: NodeEntry = {
@@ -978,7 +983,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
                 width: { kind: "set", value: 130 },
                 height: { kind: "set", value: 100 },
               },
-              placement: { kind: "absolute", x: operation.x, y: operation.y },
+              layout: {
+                // ADR-275: an authored absolute box = layout position + insets.
+                position: { kind: "set", value: "absolute" },
+                insetLeft: { kind: "set", value: `${operation.x}px` },
+                insetTop: { kind: "set", value: `${operation.y}px` },
+              },
               descendantOverrides: [],
             },
             {
@@ -992,7 +1002,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
                 width: { kind: "set", value: 100 },
                 height: { kind: "set", value: 40 },
               },
-              placement: { kind: "absolute", x: 90, y: 30 },
+              layout: {
+                // ADR-275: an authored absolute box = layout position + insets.
+                position: { kind: "set", value: "absolute" },
+                insetLeft: { kind: "set", value: `${90}px` },
+                insetTop: { kind: "set", value: `${30}px` },
+              },
               descendantOverrides: [],
             },
           ];
@@ -1105,7 +1120,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
               width: { kind: "set", value: 170 },
               height: { kind: "set", value: 110 },
             },
-            placement: { kind: "absolute", x: operation.x, y: operation.y },
+            layout: {
+              // ADR-275: an authored absolute box = layout position + insets.
+              position: { kind: "set", value: "absolute" },
+              insetLeft: { kind: "set", value: `${operation.x}px` },
+              insetTop: { kind: "set", value: `${operation.y}px` },
+            },
             descendantOverrides: [],
           },
           ...children.map((childId, index): NodeEntry => ({
@@ -1248,7 +1268,12 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
           width: { kind: "set", value: operation.width! },
           height: { kind: "set", value: operation.height! },
         },
-        placement: { kind: "absolute", x: operation.x, y: operation.y },
+        layout: {
+          // ADR-275: an authored absolute box = layout position + insets.
+          position: { kind: "set", value: "absolute" },
+          insetLeft: { kind: "set", value: `${operation.x}px` },
+          insetTop: { kind: "set", value: `${operation.y}px` },
+        },
         descendantOverrides: [],
       }));
       root.dispatch("G0 insert", [

@@ -28,8 +28,16 @@
             "project:node:frame/project:node:a::project:node:a"
           ],
           "subtreeBuilds": 1,
+          "translated": [],
+          "propertyChanged": [],
           "subtreeNodeVisits": 1,
-          "commandWrites": 3
+          "commandWrites": 3,
+          "damage": {
+            "x": 0,
+            "y": 0,
+            "width": 120,
+            "height": 20
+          }
         },
         "domNodeRenders": [
           "project:node:frame/project:node:a::project:node:a"
@@ -200,8 +208,19 @@
             "project:node:frame/project:node:group::project:node:group"
           ],
           "subtreeBuilds": 1,
-          "subtreeNodeVisits": 4,
-          "commandWrites": 13
+          "translated": [
+            "project:node:frame/project:node:group/project:node:t2::project:node:t2",
+            "project:node:frame/project:node:group/project:node:t3::project:node:t3"
+          ],
+          "propertyChanged": [],
+          "subtreeNodeVisits": 1,
+          "commandWrites": 7,
+          "damage": {
+            "x": 0,
+            "y": 40,
+            "width": 600,
+            "height": 20
+          }
         },
         "domNodeRenders": [
           "project:node:frame/project:node:group/project:node:t1::project:node:t1"
@@ -374,8 +393,19 @@
             "project:node:frame::project:node:frame"
           ],
           "subtreeBuilds": 1,
-          "subtreeNodeVisits": 7,
-          "commandWrites": 24
+          "translated": [
+            "project:node:frame/project:node:b::project:node:b",
+            "project:node:frame/project:node:group::project:node:group"
+          ],
+          "propertyChanged": [],
+          "subtreeNodeVisits": 1,
+          "commandWrites": 8,
+          "damage": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 300
+          }
         },
         "domNodeRenders": [
           "project:node:frame/project:node:a::project:node:a"

@@ -40,6 +40,9 @@ import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
 import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
 import { writeEvidence } from "./support/evidence";
+import {
+  absoluteLayout,
+} from "./absoluteLayoutFixture";
 
 const require = createRequire(import.meta.url);
 const repo = resolve(process.cwd(), "../..");
@@ -474,7 +477,7 @@ it.skipIf(G0_BASELINE_ABSENT)(
                 width: { kind: "set", value: 130 },
                 height: { kind: "set", value: 100 },
               },
-              placement: { kind: "absolute", x: operation.x, y: operation.y },
+              layout: absoluteLayout(operation.x, operation.y),
               descendantOverrides: [],
             },
             {
@@ -488,7 +491,7 @@ it.skipIf(G0_BASELINE_ABSENT)(
                 width: { kind: "set", value: 100 },
                 height: { kind: "set", value: 40 },
               },
-              placement: { kind: "absolute", x: 90, y: 30 },
+              layout: absoluteLayout(90, 30),
               descendantOverrides: [],
             },
           ];

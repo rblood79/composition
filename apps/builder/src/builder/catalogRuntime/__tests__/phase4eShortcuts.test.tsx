@@ -31,6 +31,10 @@ import {
   resolveEditingSemanticsImpactConfirmation,
   subscribeEditingSemanticsImpactConfirmation,
 } from "../../utils/editingSemanticsImpactConfirmation";
+import {
+  absoluteLayout,
+  absolutePlacementOf,
+} from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 Phase 4e-5 shortcuts: the document shortcuts run the workspace's commands (the Canvas
@@ -500,7 +504,7 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     const { workspace } = await open();
     const placed = (name: string, x: number, y: number, width: number) => ({
       ...node(name, "lib:definition:type-frame"),
-      placement: { kind: "absolute" as const, x, y },
+      layout: absoluteLayout(x, y),
       sizing: {
         width: { kind: "set" as const, value: width },
         height: { kind: "set" as const, value: 20 },
@@ -520,9 +524,8 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     );
     const at = (name: string) => {
       const entry = workspace.runtime.graph.getEntry(id(name));
-      return entry?.kind === "node" && entry.placement?.kind === "absolute"
-        ? [entry.placement.x, entry.placement.y]
-        : undefined;
+      const placed = absolutePlacementOf(entry);
+      return placed ? [placed.x, placed.y] : undefined;
     };
     const select = (...names: string[]) =>
       workspace.selectRecords(

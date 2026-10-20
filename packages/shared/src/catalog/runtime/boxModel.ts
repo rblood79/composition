@@ -30,8 +30,6 @@ export interface CatalogBoxModel {
   alignItems?: string;
   justifyContent?: string;
   flexWrap?: string;
-  /** Absolute placement from the parent's padding-box origin. */
-  position?: { x: number; y: number };
   width?: CatalogLength;
   height?: CatalogLength;
   minWidth?: CatalogLength;
@@ -126,8 +124,6 @@ export function catalogBoxModel(node: CatalogConsumerNode): CatalogBoxModel {
   if (layout.alignItems) model.alignItems = layout.alignItems;
   if (layout.justifyContent) model.justifyContent = layout.justifyContent;
   if (layout.flexWrap) model.flexWrap = layout.flexWrap;
-  if (node.placement?.kind === "absolute")
-    model.position = { x: node.placement.x, y: node.placement.y };
   const width = length(node.sizing.width ?? node.visual.width);
   const height = length(node.sizing.height ?? node.visual.height);
   const minWidth = length(node.sizing.minWidth ?? node.visual.minWidth);

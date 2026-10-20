@@ -17,6 +17,10 @@ import {
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
 import { TransformSection } from "./TransformSection";
 
+// jsdom has no Web Animations (the Position mode group's selection indicator asks for them).
+(Element.prototype as { getAnimations?: () => Animation[] }).getAnimations ??=
+  () => [];
+
 /**
  * ADR-248 4e-9 C: the Transform section over the catalog Styles host — the old store's sizing ·
  * absolute · style actions are the host's (`applySizing` · `applyAbsolute` · `updateStyle`).
@@ -211,7 +215,8 @@ describe("TransformSection sizing controls", () => {
     ).not.toBeNull();
   });
 
-  it("offers only axis-relevant offset units without reset actions", async () => {
+  // ADR-275 Decision 3 — every side field takes px · % (the stored units); no reset action.
+  it("offers px · % offset units without reset actions", async () => {
     await setTestElements([
       {
         id: "button-1",
@@ -236,14 +241,21 @@ describe("TransformSection sizing controls", () => {
     renderSection();
 
     const leftGroup = screen.getByRole("group", { name: "Left" });
+    // The side is where the field sits around the pin box — no legend row.
+    for (const side of ["Top", "Right", "Bottom", "Left"])
+      expect(
+        screen
+          .getByRole("group", { name: side })
+          .querySelector("legend"),
+      ).toBeNull();
     within(leftGroup).getByRole("button", { name: /Unit$/ }).click();
 
     const leftListbox = await screen.findByRole("listbox");
     expect(
-      within(leftListbox).getByRole("option", { name: "vw" }),
+      within(leftListbox).getByRole("option", { name: "%" }),
     ).not.toBeNull();
     expect(
-      within(leftListbox).queryByRole("option", { name: "vh" }),
+      within(leftListbox).queryByRole("option", { name: "vw" }),
     ).toBeNull();
     expect(
       within(leftListbox).queryByRole("option", { name: "reset" }),
@@ -257,15 +269,17 @@ describe("TransformSection sizing controls", () => {
 
     const topListbox = await screen.findByRole("listbox");
     expect(
-      within(topListbox).getByRole("option", { name: "vh" }),
+      within(topListbox).getByRole("option", { name: "%" }),
     ).not.toBeNull();
-    expect(within(topListbox).queryByRole("option", { name: "vw" })).toBeNull();
+    expect(within(topListbox).queryByRole("option", { name: "vh" })).toBeNull();
     expect(
       within(topListbox).queryByRole("option", { name: "reset" }),
     ).toBeNull();
   });
 
-  it("disables offset editing outside absolute mode without exposing stored coordinates", async () => {
+  // ADR-275 사용자 결정 3 — in flow (Relative) Left · Top are offsets and Right · Bottom are off;
+  // insets a static box keeps (inert) are not shown as offsets.
+  it("in flow, Left · Top are offsets and Right · Bottom are off, without exposing stored coordinates", async () => {
     await setTestElements([
       {
         id: "button-1",
@@ -290,12 +304,138 @@ describe("TransformSection sizing controls", () => {
 
     const left = screen.getByRole("combobox", { name: "Left" });
     const top = screen.getByRole("combobox", { name: "Top" });
-    expect((left as HTMLInputElement).disabled).toBe(true);
-    expect((top as HTMLInputElement).disabled).toBe(true);
+    expect((left as HTMLInputElement).disabled).toBe(false);
+    expect((top as HTMLInputElement).disabled).toBe(false);
+    for (const name of ["Right", "Bottom"])
+      expect(
+        (screen.getByRole("combobox", { name }) as HTMLInputElement).disabled,
+      ).toBe(true);
     // suffix 모드의 키워드 값은 포커스 전 placeholder (muted) 로 보인다 (panel-ui 03)
     expect((left as HTMLInputElement).value).toBe("");
     expect((left as HTMLInputElement).placeholder).toBe("auto");
     expect((top as HTMLInputElement).placeholder).toBe("auto");
+  });
+
+  // ADR-275 Phase 6 (사용자 결정 2026-10-20) — Sticky is offered (Fixed is not): each side is its own
+  // stick distance (empty = auto), the pins are off, and the line says where it sticks.
+  it("Sticky: offered, four sides on their own, pins off", async () => {
+    await setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { position: "sticky", top: "0px" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "column" } },
+      } as Element,
+    ]);
+    const applyPosition = vi.spyOn(fixture.host, "applyPosition");
+    const applyAbsolute = vi.spyOn(fixture.host, "applyAbsolute");
+    renderSection();
+
+    const mode = screen.getByRole("radiogroup", { name: "Position" });
+    expect(
+      within(mode)
+        .getByRole("radio", { name: "Sticky" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    for (const name of ["Top", "Right", "Bottom", "Left"])
+      expect(
+        (screen.getByRole("combobox", { name }) as HTMLInputElement).disabled,
+      ).toBe(false);
+    expect(
+      (screen.getByRole("combobox", { name: "Top" }) as HTMLInputElement).value,
+    ).toBe("0");
+    expect(
+      (screen.getByRole("combobox", { name: "Bottom" }) as HTMLInputElement)
+        .placeholder,
+    ).toBe("auto");
+    expect(screen.getByText(/Sticks when scrolled — Top 0px/)).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Fill — all sides 0" }),
+    ).toBeNull();
+
+    const bottom = screen.getByRole("combobox", { name: "Bottom" });
+    fireEvent.change(bottom, { target: { value: "8" } });
+    fireEvent.keyDown(bottom, { key: "Enter" });
+    expect(applyPosition).toHaveBeenCalledWith(fixture.recordOf("button-1"), {
+      kind: "stickyInset",
+      side: "bottom",
+      value: "8px",
+    });
+
+    fireEvent.click(within(mode).getByRole("radio", { name: "Relative" }));
+    expect(applyAbsolute).toHaveBeenCalledWith(
+      fixture.recordOf("button-1"),
+      false,
+    );
+  });
+
+  // ADR-275 Phase 7 (사용자 결정 6) — Fixed is offered: Absolute's pins and fields, in the screen.
+  it("Fixed: offered, pins and fields as Absolute, the line says the screen", async () => {
+    await setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: { position: "fixed", right: "16px", bottom: "16px" },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "column" } },
+      } as Element,
+    ]);
+    renderSection();
+    const mode = screen.getByRole("radiogroup", { name: "Position" });
+    expect(
+      within(mode)
+        .getByRole("radio", { name: "Fixed" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    // Center is the pin box's crosshair; Fill is the action column's one icon button.
+    expect(screen.queryByRole("button", { name: "Center X" })).toBeNull();
+    expect(
+      (screen.getByRole("combobox", { name: "Right" }) as HTMLInputElement)
+        .value,
+    ).toBe("16");
+    expect(
+      screen.getByText(/^In the screen — Right 16px · Bottom 16px$/),
+    ).not.toBeNull();
+    const applyPosition = vi.spyOn(fixture.host, "applyPosition");
+    fireEvent.click(screen.getByRole("button", { name: "Fill — all sides 0" }));
+    expect(applyPosition).toHaveBeenCalledWith(fixture.recordOf("button-1"), {
+      kind: "fill",
+    });
+  });
+
+  it("pressing Fixed on a flow box asks for a fixed placement", async () => {
+    const applyAbsolute = vi.spyOn(fixture.host, "applyAbsolute");
+    renderSection();
+    const mode = screen.getByRole("radiogroup", { name: "Position" });
+    fireEvent.click(within(mode).getByRole("radio", { name: "Fixed" }));
+    expect(applyAbsolute).toHaveBeenCalledWith(
+      fixture.recordOf("button-1"),
+      true,
+      "fixed",
+    );
+  });
+
+  it("pressing Sticky on a flow box asks for the sticky change", async () => {
+    const applyPosition = vi.spyOn(fixture.host, "applyPosition");
+    renderSection();
+    const mode = screen.getByRole("radiogroup", { name: "Position" });
+    fireEvent.click(within(mode).getByRole("radio", { name: "Sticky" }));
+    expect(applyPosition).toHaveBeenCalledWith(fixture.recordOf("button-1"), {
+      kind: "sticky",
+    });
   });
 
   it("keeps unset Min/Max constraints blank instead of defaulting to zero", async () => {
@@ -415,7 +555,7 @@ describe("TransformSection sizing controls", () => {
 
     renderSection();
     act(() => {
-      screen.getByRole("button", { name: "Absolute position" }).click();
+      screen.getByRole("radio", { name: "Absolute" }).click();
     });
 
     expect(screen.getByRole("alert").textContent).toContain(
@@ -455,13 +595,14 @@ describe("TransformSection sizing controls", () => {
 
     renderSection();
 
-    const toggle = screen.getByRole("button", {
-      name: "Absolute position",
-    });
-    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(
+      screen
+        .getByRole("radio", { name: "Absolute" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
 
     act(() => {
-      toggle.click();
+      screen.getByRole("radio", { name: "Relative" }).click();
     });
 
     expect(applyAbsolute).toHaveBeenCalledWith(

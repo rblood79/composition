@@ -31,6 +31,8 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   "position",
   "top",
   "left",
+  "right",
+  "bottom",
   "flexGrow",
   "flexShrink",
   "flexBasis",

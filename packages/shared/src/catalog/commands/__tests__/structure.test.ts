@@ -316,10 +316,10 @@ describe("ADR-248 Phase 4b structure commands", () => {
     const graph = graphOf(
       [
         node("a", "lib:definition:section", {
-          placement: { kind: "absolute", x: 100, y: 50 },
+          layout: { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "100px" }, insetTop: { kind: "set", value: "50px" } },
         }),
         node("b", "lib:definition:section", {
-          placement: { kind: "absolute", x: 140, y: 90 },
+          layout: { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "140px" }, insetTop: { kind: "set", value: "90px" } },
         }),
         node("flow", "lib:definition:section"),
         node("target", "lib:definition:section"),
@@ -327,8 +327,17 @@ describe("ADR-248 Phase 4b structure commands", () => {
       ["a", "b", "flow", "target"],
     );
     const newId = allocator();
-    const placementOf = (id: string) =>
-      (graph.getEntry(id) as NodeEntry).placement;
+    // ADR-275: an authored absolute box's position is its layout insets.
+    const placementOf = (id: string) => {
+      const layout = (graph.getEntry(id) as NodeEntry).layout;
+      return layout
+        ? {
+            kind: (layout.position as { value: string }).value,
+            x: parseFloat((layout.insetLeft as { value: string }).value),
+            y: parseFloat((layout.insetTop as { value: string }).value),
+          }
+        : undefined;
+    };
     const duplicate = run(
       graph,
       duplicateNodes({

@@ -46,41 +46,54 @@ const failureCode = (action: () => unknown, code: string) => {
 };
 
 describe("ADR-248 G1 isolated catalog graph", () => {
-  it("keeps absolute child placement typed, validated and reversible", () => {
+  // ADR-275: an authored absolute box is `layout.position` + insets (+ `unsafe center`); the node
+  // `placement` field is gone and a document that still carries one is refused.
+  it("keeps an authored absolute layout typed, validated and reversible", () => {
     const graph = fixture();
     const id = "project:node:cardA";
+    const set = (value: string) => ({ kind: "set" as const, value });
     const first = request(graph, [
+      { kind: "patchNodeLayout", id, key: "position", write: set("absolute") },
+      { kind: "patchNodeLayout", id, key: "insetLeft", write: set("20px") },
+      { kind: "patchNodeLayout", id, key: "insetRight", write: set("-20px") },
       {
-        kind: "setNodePlacement",
+        kind: "patchNodeLayout",
         id,
-        placement: { kind: "absolute", x: 20, y: 150 },
+        key: "justifySelf",
+        write: set("unsafe center"),
       },
+      { kind: "patchNodeLayout", id, key: "insetTop", write: set("10%") },
     ]);
     expect(first.changedIds).toEqual(new Set([id]));
-    expect(resolveCatalogNode(graph, id).placement).toEqual({
-      kind: "absolute",
-      x: 20,
-      y: 150,
-    });
-    expect(graph.getEntry(id)).toMatchObject({
-      placement: { kind: "absolute", x: 20, y: 150 },
+    expect(resolveCatalogNode(graph, id).authoredLayout).toMatchObject({
+      position: "absolute",
+      insetLeft: "20px",
+      insetRight: "-20px",
+      justifySelf: "unsafe center",
+      insetTop: "10%",
     });
     request(graph, first.inverse);
-    expect(resolveCatalogNode(graph, id).placement).toBeUndefined();
+    expect(resolveCatalogNode(graph, id).authoredLayout?.position).toBeUndefined();
     const revision = graph.revision;
     failureCode(
       () =>
         request(graph, [
+          { kind: "patchNodeLayout", id, key: "insetLeft", write: set("left") },
+        ]),
+      "INVALID_LAYOUT_VALUE",
+    );
+    const node = graph.getEntry(id) as NodeEntry;
+    failureCode(
+      () =>
+        request(graph, [
           {
-            kind: "setNodePlacement",
-            id,
-            placement: { kind: "absolute", x: Number.NaN, y: 0 },
+            kind: "put",
+            entry: { ...node, placement: { kind: "absolute", x: 1, y: 2 } } as NodeEntry,
           },
         ]),
-      "NODE_PLACEMENT_COORDINATE",
+      "UNKNOWN_FIELD",
     );
     expect(graph.revision).toBe(revision);
-    expect(resolveCatalogNode(graph, id).placement).toBeUndefined();
   });
   it("resolves two instances independently, nested paths, patch, replace and slot", () => {
     const graph = fixture();
@@ -410,7 +423,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 41,
+          contractVersion: 42,
           revision: "bad",
           definitions: [
             {
@@ -434,7 +447,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 41,
+          contractVersion: 42,
           revision: "bad",
           definitions: [],
           templates: [],
@@ -1403,7 +1416,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 41,
+          contractVersion: 42,
           revision: "cycle",
           bindingIds: [],
           actionOpCodes: [],
@@ -1468,7 +1481,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("applies compatible immutable library revision changes without project snapshots", () => {
     const { document, library } = createG1Fixture();
     const updated = buildCatalogLibrary({
-      contractVersion: 41,
+      contractVersion: 42,
       revision: "g1-fixture-v2",
       definitions: [...library.definitions.values()],
       templates: [...library.templates.values()],
@@ -1744,7 +1757,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("fans out one Tree and Slider definition override to both instances", () => {
     const { document, library } = createG1Fixture();
     const extended = buildCatalogLibrary({
-      contractVersion: 41,
+      contractVersion: 42,
       revision: "g1-tree-slider",
       definitions: [
         ...library.definitions.values(),

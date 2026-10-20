@@ -10,7 +10,6 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   insertNodes,
-  setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -23,6 +22,9 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  placeAbsolute,
+} from "./absoluteLayoutFixture";
 
 const FRAME = "project:node:frame" as NodeId;
 const CHILD = "project:node:child" as NodeId;
@@ -88,11 +90,7 @@ describe("absolute child — the DOM parent is its containing block", () => {
       () => parentNotified++,
     );
     workspace.execute(
-      setWholeField({
-        targets: [{ kind: "node", id: CHILD }],
-        field: "placement",
-        value: { kind: "absolute", x: 12, y: 30 },
-      }),
+      placeAbsolute({ kind: "node", id: CHILD }, 12, 30),
     );
     expect(frameHtml()).toContain("position:relative");
     expect(parentNotified).toBeGreaterThan(0);

@@ -108,6 +108,7 @@ import type {
   DefinitionId,
   NodeEntry,
 } from "../../../../packages/shared/src/catalog/document/types";
+import { withoutPositionLayout } from "../../../../packages/shared/src/catalog/document/absoluteLayout";
 
 declare const __ADR248_DUMP_DOM__: string;
 declare const __ADR248_DUMP_DIR__: string;
@@ -591,7 +592,12 @@ const nodeEntry = (
         width: { kind: "set", value: 220 },
         height: { kind: "set", value: 130 },
       },
-  placement: { kind: "absolute", x: 30, y: 30 },
+  layout: {
+    // ADR-275: an authored absolute box = layout position + insets.
+    position: { kind: "set", value: "absolute" },
+    insetLeft: { kind: "set", value: `${30}px` },
+    insetTop: { kind: "set", value: `${30}px` },
+  },
   descendantOverrides: [],
 });
 
@@ -621,12 +627,16 @@ function documentFor(
         children: [subject.id],
       }
     : undefined;
-  const { placement: _placement, ...unplaced } = subject;
+  // In a host the subject is in flow (its absolute position keys go — ADR-275).
+  const unplaced: NodeEntry = {
+    ...subject,
+    layout: withoutPositionLayout(subject.layout ?? {}),
+  };
   const node: NodeEntry = hostNode ? { ...unplaced, sizing: {} } : subject;
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 41,
+    libraryContractVersion: 42,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -806,7 +816,6 @@ function inputSummary(root: CatalogCompositionRoot, id: string) {
       layout: node.layout ?? null,
       sizing: node.sizing ?? null,
       visual: node.visual,
-      placement: node.placement ?? null,
       engineInput: root.getLayoutInput(nodeId) ?? null,
     };
   };

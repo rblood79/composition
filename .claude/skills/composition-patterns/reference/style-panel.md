@@ -36,7 +36,7 @@ Design 패널 (panels/design/DesignPanel.tsx)
 
 ## 2. 값 우선순위 — 3단계
 
-1. **authored typed field** — 활성 breakpoint 레이어를 합친 값. instance 는 component (master) 값 위에 own 값을 덮는다 (`catalogStylesHost.ts` `useElementStyleContext` — `view(master)` 뒤 `view(own)`). 절대 배치는 `catalogPlacementStyle`.
+1. **authored typed field** — 활성 breakpoint 레이어를 합친 값. instance 는 component (master) 값 위에 own 값을 덮는다 (`catalogStylesHost.ts` `useElementStyleContext` — `view(master)` 뒤 `view(own)`). 절대 배치도 layout `position` · `inset*` 이라 같은 view 가 읽는다 (ADR-275 — 노드 `placement` 삭제).
 2. **catalog preset** — `specPresetResolver` 가 `COMPONENT_RULES_TABLE` entry (sizes[size], containerStyles, containerVariants) 에서 합성. TokenRef 는 `resolveToken` / `tokenToCSSVar` 로 해석.
 3. **훅 기본값** — 훅별 하드코딩 fallback.
 

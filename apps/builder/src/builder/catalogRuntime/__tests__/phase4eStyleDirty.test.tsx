@@ -16,6 +16,7 @@ import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { absolutePlacementOf } from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 Phase 4e-4d-3 Modified · reset · Responsive: a CSS key is modified when the node
@@ -122,7 +123,7 @@ describe("ADR-248 Phase 4e-4d-3 Modified · reset · Responsive", () => {
     host.resetStyles([...KEYS]);
     expect(graph.revision).toBe(revision + 1);
     expect(node().visual.paddingTop).toBe(undefined);
-    expect(node().placement).toBe(undefined);
+    expect(absolutePlacementOf(node())).toBe(undefined);
     rerender();
     expect(result.current).toEqual([]);
     host.resetStyles([...KEYS]);

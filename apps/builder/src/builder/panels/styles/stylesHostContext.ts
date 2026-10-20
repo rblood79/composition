@@ -1,6 +1,7 @@
 import { createContext } from "react";
 import type { BreakpointName } from "@composition/shared";
 import type { ElementStyleContext } from "./hooks/useElementStyleContext";
+import type { CatalogPositionChange } from "../../catalogRuntime/position";
 import type { RatioEditError } from "../../utils/ratioEditError";
 import type { FillItem } from "../../../types/builder/fill.types";
 import type { SelectedElement } from "../../inspector/types";
@@ -148,7 +149,20 @@ export interface StylesHost {
    * The Position section's absolute toggle on the selection (ADR-224 §6.1): on keeps where each
    * element is drawn; off returns it to the flow. An error code or null.
    */
-  applyAbsolute(selectedId: string | null, on: boolean): RatioEditError | null;
+  applyAbsolute(
+    selectedId: string | null,
+    on: boolean,
+    /** ADR-275 Phase 7: placed in the page viewport (`fixed`) instead of the parent. */
+    position?: "absolute" | "fixed",
+  ): RatioEditError | null;
+  /**
+   * ADR-275 — one Position section edit on the selection (pin · side value · Fill · Relative
+   * offset), as one step; the box stays where it is drawn. An error code or null.
+   */
+  applyPosition(
+    selectedId: string | null,
+    change: CatalogPositionChange,
+  ): RatioEditError | null;
   /**
    * A grid's column · row templates with the tracks each removed (0-based, in the old list): the
    * items in them move — the pinned ones past them shift back, spans across them shrink — one step

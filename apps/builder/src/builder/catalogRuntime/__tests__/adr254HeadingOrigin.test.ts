@@ -149,6 +149,13 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
       { kind: "css", name: "gridColumnEnd", origin: "style" } as never,
       { kind: "css", name: "gridRowEnd", origin: "style" } as never,
     );
+    // (Plus Right · Bottom, 2026-10-19 — ADR-275 Position section edits four insets, after `left`.)
+    props.splice(
+      props.findIndex((prop) => prop.name === "left") + 1,
+      0,
+      { kind: "css", name: "right", origin: "style" } as never,
+      { kind: "css", name: "bottom", origin: "style" } as never,
+    );
     expect(heading).toEqual({
       ...before,
       props,

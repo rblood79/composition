@@ -1,3 +1,5 @@
+import { catalogReadPositionConstraint } from "../../../catalogRuntime/positionConstraint";
+import { catalogIsOutOfFlow } from "../../../../../../../packages/shared/src/catalog/runtime/positioning";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
   removeTargets,
@@ -52,8 +54,7 @@ import {
 } from "../../../catalogRuntime/canvasGridCells";
 import {
   catalogAbsoluteCommand,
-  catalogPlacementEditCommand,
-  catalogPlacementStyle,
+  catalogPositionChangeCommand,
 } from "../../../catalogRuntime/position";
 import {
   useCatalogEditContract,
@@ -80,7 +81,6 @@ import {
   CatalogStyleValueError,
   catalogStyleView,
   catalogStyleWritesOf,
-  cssPx,
 } from "../../../catalogRuntime/styleFields";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -367,11 +367,7 @@ export function createCatalogStylesHost(
     if (!grid || !rect) return edits;
     const flow = grid.children.filter((child) => {
       const record = records.get(child);
-      return (
-        !!record &&
-        record.placement?.kind !== "absolute" &&
-        record.layout.position !== "absolute"
-      );
+      return !!record && !catalogIsOutOfFlow(record);
     });
     const boxes = workspace.root.getGeometry(flow);
     const model = catalogBoxModel(grid);
@@ -445,16 +441,32 @@ export function createCatalogStylesHost(
       const items = subset ?? selection();
       if (!items.length || !Object.keys(styles).length) return undefined;
       const targets = items.map((item) => item.target);
-      const own = (target: EditTarget) => workspace.readModel.ownFields(target);
-      // Left / Top of an absolutely placed node are its placement offsets.
-      const { left, top, ...rest } = styles;
-      const placed =
-        (left !== undefined || top !== undefined) &&
-        targets.some((target) => own(target).placement);
-      let fields = placed ? rest : styles;
+      // Left · Top · Right · Bottom are layout insets for every box (ADR-275 — an authored absolute
+      // box's position too).
+      let fields = styles;
       const commands: CatalogCommand[] = [];
-      if (placed)
-        commands.push(catalogPlacementEditCommand({ targets, own, left, top }));
+      // ADR-275 사용자 결정 2 — an absolute box's Center axis owns its margins: a margin value on
+      // that axis is refused here too (the Canvas spacing handles and style paste use this path).
+      for (const item of items) {
+        const record = workspace.root.domInputs.get(item.identity);
+        if (record?.layout.position !== "absolute") continue;
+        const constraint = catalogReadPositionConstraint(record.layout);
+        for (const [key, value] of Object.entries(styles)) {
+          if (String(value).trim() === "") continue;
+          const axis =
+            key === "marginLeft" || key === "marginRight"
+              ? "x"
+              : key === "marginTop" || key === "marginBottom"
+                ? "y"
+                : key === "margin"
+                  ? constraint.x === "center"
+                    ? "x"
+                    : "y"
+                  : undefined;
+          if (axis && constraint[axis] === "center")
+            throw new CatalogStyleValueError(key, value);
+        }
+      }
       // ADR-257 사용자 결정 2: a Column's Styles width · min · max is its S2 column width (the
       // column's track in every row of its Table), not its own box.
       if (
@@ -584,7 +596,6 @@ export function createCatalogStylesHost(
       style: {
         ...(master ? view(workspace.readModel.ownFields(master)) : {}),
         ...view(own),
-        ...catalogPlacementStyle(own.placement),
         // ADR-257: a Column's width fields show its S2 width props (what its Styles edit writes).
         ...(owned.type === "Column"
           ? Object.fromEntries(
@@ -653,7 +664,6 @@ export function createCatalogStylesHost(
               ? {
                   ...view(master),
                   ...view(own),
-                  ...(own ? catalogPlacementStyle(own.placement) : {}),
                   ...(contract.type === "ColorWheel"
                     ? colorWheelStyle(props)
                     : {}),
@@ -742,29 +752,13 @@ export function createCatalogStylesHost(
           continue; // a value the typed field cannot hold mid-drag: the commit reports it
         }
         const patch = catalogStylePreviewPatch(writes);
-        // Left / Top of an absolutely placed node are its placement offsets.
-        const offset =
-          (property === "left" || property === "top") &&
-          record.placement?.kind === "absolute"
-            ? cssPx(value)
-            : undefined;
-        const placement =
-          offset !== undefined && record.placement
-            ? {
-                ...record.placement,
-                [property === "left" ? "x" : "y"]: offset,
-              }
-            : undefined;
-        if (!placement && !Object.keys(patch).length) continue;
+        if (!Object.keys(patch).length) continue;
         const held = heldPreview(item.identity) ?? {};
         const next: CatalogRecordPreview = {
           ...held,
           visual: { ...held.visual, ...patch.visual },
           sizing: { ...held.sizing, ...patch.sizing },
           layout: { ...held.layout, ...patch.layout },
-          ...((placement ?? held.placement)
-            ? { placement: placement ?? held.placement }
-            : {}),
         };
         previewed.set(item.identity, next);
         workspace.root.previewRecord(item.identity, next);
@@ -874,13 +868,15 @@ export function createCatalogStylesHost(
       run(() => command);
       return null;
     },
-    applyAbsolute(selectedId, on) {
+    applyAbsolute(selectedId, on, position) {
       const items = selection();
       if (!items.length || items[0].identity !== selectedId)
         return "selection-changed";
       const command = catalogAbsoluteCommand({
         items,
         on,
+        ...(position ? { position } : {}),
+        breakpoint: workspace.session.getSnapshot().breakpoint,
         root: workspace.root,
         graph: workspace.runtime.graph,
         own: (target) => workspace.readModel.ownFields(target),
@@ -888,6 +884,20 @@ export function createCatalogStylesHost(
       });
       if (typeof command === "string") return command;
       run(() => command);
+      return null;
+    },
+    applyPosition(selectedId, change) {
+      const items = selection();
+      if (!items.length || items[0].identity !== selectedId)
+        return "selection-changed";
+      const command = catalogPositionChangeCommand({
+        items,
+        change,
+        breakpoint: workspace.session.getSnapshot().breakpoint,
+        root: workspace.root,
+      });
+      if (typeof command === "string") return command;
+      if (command) run(() => command);
       return null;
     },
     applyGridTracks(selectedId, requested) {
@@ -923,11 +933,7 @@ export function createCatalogStylesHost(
         // A track delete removes the items only in it (Figma), placed as CSS places them.
         const flow = children.filter((child) => {
           const record = records.get(child);
-          return (
-            !!record &&
-            record.placement?.kind !== "absolute" &&
-            record.layout.position !== "absolute"
-          );
+          return !!record && !catalogIsOutOfFlow(record);
         });
         const deleted = new Set<string>();
         const deletes = edits.filter((edit) => edit.deleteContents);
@@ -957,13 +963,7 @@ export function createCatalogStylesHost(
           if (deleted.has(child)) continue;
           const record = records.get(child);
           const item = workspace.itemOfRecord(child);
-          if (
-            !record ||
-            !item ||
-            record.placement?.kind === "absolute" ||
-            record.layout.position === "absolute"
-          )
-            continue;
+          if (!record || !item || catalogIsOutOfFlow(record)) continue;
           const layout: Partial<Record<LayoutField, WriteValue<string>>> = {};
           for (const { axis, removed, order } of edits) {
             const startKey =
@@ -1160,14 +1160,6 @@ export function createCatalogStylesHost(
                 ...(breakpoint === "desktop" ? {} : { breakpoint }),
                 ...reset.writes,
               } as Parameters<typeof setFields>[0]),
-            );
-          if (reset.placement)
-            commands.push(
-              setWholeField({
-                targets: [target],
-                field: "placement",
-                value: undefined,
-              }),
             );
         }
         if (!commands.length) return undefined;

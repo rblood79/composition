@@ -115,6 +115,10 @@ import {
   catalogButtonPendingIndicator,
 } from "../../../../../packages/shared/src/catalog/document/buttonPending";
 
+/** What places a record among its siblings' draw order (`sortChildElementsByZIndex`). */
+const paintLayerOf = (node: CatalogConsumerNode) =>
+  `${node.visual.zIndex ?? ""}|${node.layout.position === "sticky" || node.layout.position === "fixed" ? node.layout.position : ""}`;
+
 /** ADR-266 Phase 0: the counter a page grid translate rejection adds to. */
 const PAGE_GRID_TRANSLATE_NULL = {
   "subtree-context": "pageGridMoveNullSubtreeContext",
@@ -1551,7 +1555,11 @@ function bindInColorMode(
     string,
     StickyConstraints<string | null>
   > = new Map();
-  const withSticky = (node: CatalogConsumerNode, data: SkiaNodeData) => {
+  const withSticky = (node: CatalogConsumerNode, given: SkiaNodeData) => {
+    // ADR-275 Phase 7: a fixed box is drawn in its page's viewport (`renderCommands` — out of its
+    // ancestors' clips and scrolls).
+    const data =
+      node.layout.position === "fixed" ? { ...given, isFixed: true } : given;
     const sticky = stickyOf.get(node.id);
     if (!sticky) return data;
     // A stuck header paints over the items under it (the rule's `z-index` — the DOM's positioned
@@ -2122,8 +2130,9 @@ function bindInColorMode(
         ) as Record<string, unknown>;
         // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
         // the caller) no sibling reads its size, in any parent display.
-        if (before.position === "absolute" && after.position === "absolute")
-          return true;
+        const out = (style: Record<string, unknown>) =>
+          style.position === "absolute" || style.position === "fixed";
+        if (out(before) && out(after)) return true;
         return (
           parentStyle.display === "block" &&
           !String(after.display ?? "").startsWith("inline") &&
@@ -2298,6 +2307,11 @@ function bindInColorMode(
           return rebind(id, "binding");
         // Slot chrome and a child text's inherited metric are bound together with the Slot.
         if (node.bindingId === "slot") return rebind(id, "slot");
+        // A box whose paint layer changes (its z-index, or sticky — the positioned layer) moves in
+        // its siblings' draw order, which its parent records (ADR-275 Phase 6): splicing its own
+        // subtree in place would keep the old order.
+        if (paintLayerOf(before) !== paintLayerOf(node))
+          return rebind(id, "paint-order");
         // A box that starts or stops clipping changes where its owner's descent stops.
         if (
           catalogOverflowClips(before.visual.overflow) !==

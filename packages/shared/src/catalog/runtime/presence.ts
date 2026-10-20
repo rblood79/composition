@@ -280,7 +280,7 @@ export function catalogStaticPartFrame(
   typeOf: CatalogTypeOf,
 ): boolean {
   if (!PART_FRAME_TYPES.has(typeOf(node))) return false;
-  if (node.placement || node.layout.position !== undefined) return false;
+  if (node.layout.position !== undefined) return false;
   const owner = catalogPartParent(node, get, typeOf);
   return (
     !!owner &&

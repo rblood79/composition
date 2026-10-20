@@ -2,7 +2,23 @@
 
 ## Status
 
-Proposed — 2026-10-19
+Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 — pending 0 · HIGH 전부 fixed)
+
+> **Phase 0 종결 2026-10-19 (G0 go)**: A4 `unsafe center` 가 Chromium 156 · WebKit 27.2 에서 27 / 27 가운데 (부모 block · flex · grid × Fixed · Hug · Hug padding 12 · border 2 · 넘침 Fixed · 넘침 Hug · 넘침 + 오프셋 · 부모 padding · `%` 오프셋). 대조군 `safe center` 는 넘침 9 건이 x = 0 (containing block 안으로) — fixture 가 두 정렬을 구별한다. 소비자 실측 src 24 (작성일 17, 1.4 배 — 추가 7: `clone.ts` · `fillLayout.ts` · `aiHost.ts` · `shortcuts.ts` 정렬 · 분배 · `styleDirty.ts` · `domBinding` 3 줄 · `catalogStylesHost` 4 줄) — breakdown §5.
+>
+> **Phase 1 종결 2026-10-19 (G1)**: 엔진이 absolute 자기 정렬을 읽는다 (`parse_abs_self_align` · `resolve_abs_axis` ④) · 늘이기 제외 판정 (`size_fixed_*` = 명시 길이 ∨ 키워드 ∨ 자기 정렬) 과 padding · border 가산 판정 (`has_*`) 분리 · 양쪽 margin auto 음수 여유는 가로 시작 0 / 세로 반씩. Chrome oracle `absoluteSelfAlign` 19 / 19 · Rust 538 · 판정 하나로 합친 변이 → RED (60 · x 170, 리뷰 예측 그대로) · parity 868 PASS (실패 1 = `adr248CatalogGeometryDelta` case 2 `subtreeNodeVisits` — HEAD 엔진에서도 같은 실패, 이번 변경 무관).
+
+> **Phase 2 종결 2026-10-19 (G2)**: 노드 `placement` 삭제 — 타입 · 검증 · `setNodePlacement` op · 소비자 src 24 파일. 저작 absolute = `layout.position` + `inset*` (+ `unsafe center`). 술어 둘 (`runtime/positioning.ts` — `catalogIsOutOfFlow` · `catalogIsAuthoredAbsolute`). contract 41 → 42. 정적 게이트 `nodePlacementRemoved` (원복 RED) · Canvas ↔ DOM parity 8 제약 = 손계산 0 px (DOM position 직렬화 원복 → 8 RED) · rule 부품 (ListBoxItem icon) = 바깥 흐름 ∧ 저작 아님. Position 토글 Off 는 `position` 만 지우고 inset 은 남긴다 (기존 TransformSection 계약).
+>
+> **Phase 3 종결 2026-10-19**: Canvas drag · resize · 정렬 · 분배 · Alt 복사 · 붙여넣기가 제약을 지켜 inset 을 쓴다 (`catalogRuntime/positionConstraint.ts` — 읽기 §2 · 쓰기 `%` 단위 유지 · 버리는 변은 desktop remove / breakpoint mask). 늘인 축의 resize 는 폭을 쓰지 않는다. 진행 중 엔진 결함 1 발견 · 수리: in-flow 자식 없는 auto 크기 부모 (부모 block · flex 가 크기를 정함) 의 absolute 자식이 containing block 0 기준으로 놓였다 (Right 30 → x −90, Chrome 310) — `resettle_leaf_absolutes` (Chrome oracle 2 · 원복 RED 2 · Rust 1).
+
+> **Phase 4 종결 2026-10-20 (G3)**: Position 절 혼합 방식 — Relative · Absolute (Sticky · Fixed 비활성) · pin 상자 (변 4 + 가운데 2, RAC `ToggleButton`) · 변 옆 T · R · B · L 칸 (`px` · `%`, pin 안 된 칸은 점선 `auto`) · Center X · Center Y · Fill · 결과 문장. 명령 `catalogPositionChangeCommand` (바꿔도 그 자리 · 빈 칸 입력 = 그 변으로 · Left+Right 는 폭 auto, 해제 시 그린 폭 고정 · Relative 진입 때 남은 inset 정리). 가운데 축 margin 잠금 (Spacing 칸 + 명령 거부, 사용자 결정 2). unit G3 7 · 제약 20 · TransformSection 10.
+>
+> **Phase 5 live 2026-10-20 (G4)**: 실제 builder (Chrome MCP, dev 5173, 새 프로젝트 `adr275-live`) — 아래 Live Exercise. G5 (ratchet · 번들) 는 커밋 뒤 pre-push 판정 · G6 (사용자 패널 확인) 대기.
+
+> **Phase 6 종결 2026-10-20 (사용자 결정 5 — sticky 허용)**: 노드 `layout.position` 이 `sticky` 를 받는다 (검증 · contract 42 그대로 — 추가만이라 옛 문서 무변경). Position 절 Sticky 버튼 활성 — 네 칸이 각자 「스크롤할 때 붙는 거리」 (빈 칸 = auto), pin 상자 · 가운데 비활성, 진입 때 Top 0 + 지난 absolute inset · `unsafe center` 정리. DOM 은 `position: sticky` + inset, Canvas 는 ADR-267 constraints 그대로 + **positioned layer** (z-index 없는 sticky 상자는 흐름 형제 위에 그린다 — CSS 2 부록 E). live 에서 결함 1 발견 · 수리: sticky (· z-index) 로 바뀐 상자가 제자리에만 재기록돼 항목 아래 그려졌다 → 그리기 층이 바뀌면 다시 묶는다 (`paint-order`). Fixed 는 그대로 비활성 (ADR-267 결정 1 · 2). 원복 RED 6 · unit 신규 10.
+
+> **Phase 7 종결 2026-10-20 (사용자 결정 6 — fixed 허용 · viewport = page body 영역)**: 노드 `layout.position` 이 `fixed` 를 받는다 (contract 42 그대로). viewport = page root 의 border-box 원점 + breakpoint 화면 크기 (page 가 저작 높이로 길어도 스크롤 0 의 화면 하나 — Preview iframe 과 같다). 엔진은 정상 배치 뒤 fixed 상자를 viewport 기준으로 다시 놓는다 (`place_fixed_boxes` — 흐름 부모 ≠ containing block 일반형 `place_absolutes_in` 의 viewport 모드). Canvas 는 fixed 상자를 그 page 층에서 그린다 — 조상의 clip · 스크롤 밖, 그 상자를 담은 page 자식 바로 뒤 (트리 순서), page 스크롤만큼 되돌려 화면에 고정 (`unscrollOwnerId`). 패널 Fixed 버튼 활성 (Absolute 의 pin · 칸 그대로, 결과 문장 「In the screen」), 명령 · Canvas 끌기의 기준 상자 = viewport (`catalogPlacementFrame` · `viewportOf`). Chrome oracle 5 (390 × 844 iframe) · Rust 1 · 원복 RED 10. live 에서 결함 1 수리: breakpoint 층의 Left+Right 가 폭을 `mask` 로 지워 문서가 거부했다 (`SIZING_MASK_FORBIDDEN` — Absolute 에도 같던 Phase 4 결함) → `set null`.
 
 - 사용자 요청: `/create-adr 혼합방식 으로 position 설계` (2026-10-19)
 - 방향을 정한 사용자 원문 (같은 세션, 시안 캔버스 `Position 절 시안` 위에서):
@@ -156,7 +172,7 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
      - pin 안 된 칸은 점선 테두리와 `auto` 로 보인다.
      - 그 칸에 값을 넣으면 그 변으로 **바뀐다** — 반대 변은 풀린다 (사용자 결정 「Right 로 바꾸는 쪽」).
      - 늘이기는 칸이 아니라 pin 상자에서만 한다 — 양쪽 선을 누르거나 `Fill`.
-   - **빠른 버튼**: `Center X` · `Center Y` · `Fill` (네 변 0).
+   - **Fill** (네 변 0): 절 오른쪽 아이콘 칸 (Layout · Spacing 과 같은 열) 의 버튼 하나. 가운데는 pin 상자의 십자선이 한다 — 사용자 결정 7.
    - **결과 문장**: 칸 아래 한 줄로 지금 제약의 뜻을 보여 준다. 입력 중에는 입력한 뒤의 결과를 미리 보여 준다.
    - **단위**: 칸마다 `px` · `%` (F3 이 이미 받는다).
    - **relative**: Left · Top 만 오프셋으로 쓰고, Right · Bottom 칸과 pin 상자는 비활성 (결정 3).
@@ -204,6 +220,49 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
    - 그래서 가운데 표현을 A1 에서 A4 로 바꿨다 (위 「가운데 표현」 표). 처음의 「양쪽 inset + margin auto」 선택은 이 결정으로 대체됐다.
    - 결정 2 (가운데 축 margin 칸 잠금) 는 그대로 둔다. A4 는 margin 을 쓰지 않지만, margin 은 정렬되는 상자 크기에 들어가 가운데를 밀어낸다. Figma · Framer 처럼 위치는 Position 절에서만 바꾼다.
 
+### 사용자 결정 5 — 확정 2026-10-20
+
+5. **Sticky 허용** → ADR-267 사용자 결정 1 (「허용 안 함」, 2026-10-17) 을 sticky 에 한해 뒤집는다. 사용자 원문: 「sticky 허용으로 진행해」.
+   - 엔진 · Canvas 는 ADR-267 에서 이미 sticky 를 그린다 (rule 부품만 쓰던 경로). 남은 일은 검증 · DOM · 패널 · 그리기 순서였다 (Phase 6).
+   - contract 는 42 그대로다. 42 는 아직 커밋 전이고, 값 하나를 더 받는 것이라 옛 문서가 바뀌지 않는다.
+   - Fixed 는 그대로 막는다 — Canvas 의 viewport 기준 (ADR-267 결정 2) 과 엔진 구현이 먼저다.
+
+### 사용자 결정 6 — 확정 2026-10-20
+
+6. **Fixed 허용 · Canvas viewport = page body 영역** → ADR-267 사용자 결정 1 · 2 를 fixed 에 대해 정한다. 사용자 원문: 「body영역을 viewport 영역으로 봐야하지않나」 · 「진행」.
+   - viewport = page root 바깥 상자의 원점 + breakpoint 화면 크기. body 의 padding · border 와 무관하다 (CSS 의 viewport 기준).
+   - page 를 스크롤해도 움직이지 않는다 (sticky 와 다른 점).
+   - page 가 저작 높이로 화면보다 길면 viewport 는 스크롤 0 의 화면 하나다 (Preview iframe 과 같다).
+   - 미지원: transform · filter 조상 (CSS 는 그 조상을 containing block 으로 삼는다) — 저작 입력이 없다.
+
+### 사용자 결정 7 — 확정 2026-10-20
+
+7. **Position 절 정리** — 사용자 원문: 「top,left,right,bottom fieldset-legend 는 없어도 될듯」 · 「Center X · Center Y 는 빼, position section 이 layout,spacing과 다르게 영역 전체를 모두 사용중이다 우측 한칸 액션버튼 영역에 fill 을 배치하자」.
+   - 변 칸 4 의 legend 를 없앤다. 변은 pin 상자 둘레의 자리로 읽고, 접근 이름은 칸에 남긴다.
+   - `Center X` · `Center Y` 버튼을 없앤다 — pin 상자 십자선과 같은 명령이다.
+   - 절의 열은 다른 절과 같은 행 템플릿 (칸 2 열 + 아이콘 칸 1 열). `Fill` 은 아이콘 칸의 버튼 (Absolute · Fixed 일 때).
+
+### 사용자 결정 8 — 확정 2026-10-20
+
+8. **4방향 도식 크기 = Alignment 판** — 사용자 원문: 「가장 문제점이 spacing,position 의 ui 디자인이다. layout은 사용성 크기가 안정적이지만 spacing,position 은 패턴을 벗어나있다」 · 「spacing, position 도식을 유지하고 layout 의 도식은 4방향이면 Alignment 크기를 벗어 나지 않아야 일관성이 생긴다」. 배치 선택: Spacing 「왼쪽 = 네 변 한 값」 · Position 「도식 둘레 배치 유지」.
+   - 도식 크기 = 행 템플릿의 한 열 폭 × `--inspector-diagram-height` (Alignment 판 높이 84 와 같은 식).
+   - Spacing: Layout 의 「Display · Space + Alignment」 짜임 — 왼쪽 열 Padding · Margin 칸 (네 변이 같으면 그 값, 다르면 비워 두고 Mixed · 입력하면 네 변에 한 번에), 오른쪽 열 상자 도식 (변별 값 편집), 아이콘 칸 link. 잠긴 margin 변 (가운데 축, 결정 2) 은 한 값 계산과 쓰기에서 빠진다.
+   - Position: 칸이 상자를 둘러싸는 배치 그대로, 상자만 Alignment 크기. 도식 줄은 아이콘 칸까지 써서 좌우 칸이 「auto PX」 를 담고, `Fill` 은 모드 줄의 아이콘 칸.
+
+### 사용자 결정 9 — 확정 2026-10-20
+
+9. **Spacing 도식 = padding 만** — 사용자 원문: 「spacing에 도식에 외부 margin은 제거 하고 내부 padding만 남기자 크기는 Alignment 와 동일하게 간격도 동일하게」 (앞선 질문 「figma 에서 margin 은 지원하지않는건가」 · 「framer 는 margin이 있나」 — 둘 다 레이어 margin 이 없고 부모 padding · gap 으로 간격을 정한다).
+   - 도식은 Alignment 판과 같은 3 × 3 격자 (칸 xl · 간격 4 · 안 여백 2xs · 표면 · 테두리 · 그림자 동일) — 위 · 왼 · 오른 · 아래 칸에 padding 변 값, 가운데는 내용 상자 표시.
+   - margin 은 왼쪽 열 Margin 칸 (네 변 한 값) 으로만 편집한다. margin 변별 편집 칸은 없다. 가운데 축 margin 잠금 (결정 2) 은 Margin 칸이 그 변을 읽지도 쓰지도 않는 것으로 남는다.
+
+### 사용자 결정 10 — 확정 2026-10-20 (결정 8 의 Spacing 부분 · 결정 9 를 대체)
+
+10. **Padding = Layout 절 안, Figma 구성 · margin 편집 UI 제거** — 사용자 원문: 「figma의 padding 을 확인시 layout 에 위치, 기본 left-right / top-bottom / 확장버튼 · left / top / 확장버튼 · right / bottom 으로 구성된다」. 선택: 도식 「도식 제거」 · Margin 「Margin UI 제거」.
+
+- Layout 절 Wrap · Gap 아래 `PaddingFields`: 「↔ 가로 (Left · Right) · ↕ 세로 (Top · Bottom) · 펼침」, 펼치면 「Left · Top · 펼침」 / 「Right · Bottom」. 두 변이 다르면 펼친 채 시작하고, 접힌 칸은 비워 두고 Mixed. Canvas spacing 세션 (ADR-222) 이 편집 중인 변은 세션 값을 보이고 잠긴다.
+- Spacing 절 (Padding · Margin 칸 + 도식) 을 Layout 탭에서 뺐다. margin 은 패널에서 편집하지 않는다 — 문서의 값은 그대로 그려지고 Layout 절 reset 이 지운다. 가운데 축 margin 잠금 (결정 2) 은 명령 거부로 남는다.
+- Canvas padding 드래그의 4변 연동 (`boxModelLink`) 을 켜던 link 버튼이 없어져 연동은 꺼진 채다.
+
 ## Risks
 
 | ID  | 위험                                                                                                                                                                                                                             | 심각도 | 대응                                                                                                               |
@@ -242,7 +301,43 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-10-20 · Chrome MCP (dev 5173 · DPR 1 · visible 탭) · 새 프로젝트 `adr275-live` (contract 42) — Host frame 600 × 400 (border 2) 안 Box 120 × 60 · Flow 80 × 40:
+
+| 시나리오                                   | 결과                                                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Position 절 Absolute 클릭                  | 그 자리 (Left 0 · Top 0), 형제 앞으로 · history `Absolute position`                                                        |
+| pin 상자 Right 누름 (Left 고정 상자)       | Left+Right — 폭 고정 제거 · 상자 그대로 (x 2 · 폭 120)                                                                     |
+| Host 안 Box 를 Canvas 에서 끔 (Left+Right) | Left 0 → 121 · Right 476 → 355 (같은 양) · 폭 120                                                                          |
+| Center X · Center Y 버튼                   | 그 자리 (x 123) · 오프셋 −117 / −48 = 손계산 · 폭 120 다시 고정 · Spacing margin 4 칸 잠금                                 |
+| Compare Mode Preview                       | Canvas = Preview (123, 122, 120 × 60) · inline `place-self: unsafe center`                                                 |
+| 폭 800 (부모보다 넓음 — 사용자 결정 4)     | Canvas = Preview = x −217 (넘쳐도 가운데)                                                                                  |
+| 점선 Right 칸에 30 입력                    | 축이 Right 로 바뀜 (Left · `justify-self` 해제) · x 448 = 손계산 · Canvas = Preview · 가로 margin 잠금 해제                |
+| Tablet 에서 끌기 (R7)                      | tablet 층에만 기록 · base 불변 · Canvas = Preview (364, 206)                                                               |
+| Relative 클릭 · Left 15 입력               | 흐름으로 (y 42) · Right · Bottom 비활성 · `position: relative` + Left 15 만 (남은 inset 정리 — live 에서 찾아 수리) · x 17 |
+| 새로고침                                   | base · tablet 층 그대로 (저장) · 콘솔 오류 0                                                                               |
+
+Phase 6 (sticky) — 같은 프로젝트, Mobile, 스크롤 frame 280 × 200 (`overflow: scroll`, flex column) 안 머리 30 + 항목 80 × 4:
+
+| 시나리오                                | 결과                                                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Position 절 Sticky 클릭                 | mobile 층에 `position: sticky` + Top 0 · 네 칸 활성 (Top 0, 나머지 점선 auto) · 요약 「Sticks when scrolled — Top 0px」 |
+| Canvas 에서 스크롤 frame 굴림 (수리 전) | 머리 bounds 는 위에 붙었으나 항목 아래 그려져 보이지 않음 — 결함 (그리기 순서가 재기록되지 않음)                        |
+| Relative → Sticky 다시 (수리 뒤)        | 머리가 위에 붙어 항목 위에 그려짐                                                                                       |
+| 끝까지 스크롤 (150) — Canvas · Preview  | 둘 다 머리 0–30 · 초록 10 · 보라 80 · 빨강 80 · Preview `position: sticky` · `top: 0px` · 머리 top 0                    |
+| 정리                                    | 시드 frame 을 삭제 명령으로 제거 (undo 아님)                                                                            |
+
+Phase 7 (fixed) — 같은 프로젝트, Mobile (390 × 844), 높이 1500 frame 안 section (margin-top 200 · padding 20 · `overflow: hidden` · 높이 300) 안 bar (높이 50):
+
+| 시나리오                            | 결과                                                                                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Position 절 Fixed 클릭              | 그 자리 유지 — mobile 층에 `fixed` + Left 20 · Top 220 (viewport 기준 — section 위치 + padding) · 결과 문장 「In the screen」 |
+| Right · Bottom 칸에 0               | 축이 Right · Bottom 으로 · bar 가 section (y 200–500, overflow hidden) 밖 viewport 아래 (y 794) 에 그려짐                     |
+| pin Left 누름 (Left+Right, 수리 전) | 변화 없음 + 오류 토스트 — breakpoint 층의 폭 `mask` 를 문서가 거부 (결함)                                                     |
+| pin Left · Left 칸 0 (수리 뒤)      | Left+Right — 폭 390 · (0, 794, 390 × 50)                                                                                      |
+| Canvas 에서 body 300 스크롤         | section y 200 → −100 · bar 는 794 그대로 (화면 아래에 그려짐)                                                                 |
+| Compare Mode Preview                | iframe 390 × 844 · `position: fixed` · bar (0, 794, 390 × 50) · 문서 300 스크롤 뒤에도 (0, 794) — Canvas = Preview            |
+| 새로고침                            | mobile 층 그대로 · 콘솔 오류 0                                                                                                |
+| 정리                                | 시드 frame 을 삭제 명령으로 제거                                                                                              |
 
 ## Consequences
 

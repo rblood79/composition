@@ -18,6 +18,9 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  absoluteLayout,
+} from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 G5 (§6.2): a leaf edit on a large page reads geometry and measures text for the
@@ -226,7 +229,7 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
       ids.map((id) =>
         frame(id, {
           sizing: { width: set(20), height: set(20) },
-          placement: { kind: "absolute", x: 20, y: 20 },
+          layout: absoluteLayout(20, 20),
         }),
       ),
       ids,
@@ -278,11 +281,10 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
       ids.map((id, i) =>
         (i % 2 ? frame : text)(id, {
           sizing: { width: set(160), height: set(60) },
-          placement: {
-            kind: "absolute",
-            x: 20 + (i % 6) * 200,
-            y: 20 + Math.floor(i / 6) * 90,
-          },
+          layout: absoluteLayout(
+            20 + (i % 6) * 200,
+            20 + Math.floor(i / 6) * 90,
+          ),
         }),
       ),
       ids,

@@ -12,6 +12,9 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import {
+  absoluteLayout,
+} from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 4e-9 (live G3): an insert measures its new records before they are committed. A date
@@ -60,7 +63,7 @@ describe("ADR-248 4e-9 incremental date segments", () => {
         width: { kind: "set", value: 220 },
         height: { kind: "set", value: 130 },
       },
-      placement: { kind: "absolute", x: 30, y: 30 },
+      layout: absoluteLayout(30, 30),
       descendantOverrides: [],
     };
     workspace.execute(

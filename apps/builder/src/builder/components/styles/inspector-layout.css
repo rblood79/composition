@@ -11,6 +11,11 @@
     /* 인스펙터 3열 row 템플릿 SSOT (ADR-163 Phase 4-b — 구 9회 재선언 단일화).
        각 섹션 wrapper 는 이 토큰 + 고유 grid-template-areas 조합으로 배치. */
     --inspector-row-columns: 1fr 1fr var(--control-size);
+    /* 4방향 도식 (Position pin 상자) 의 높이 = Layout Alignment 판 (3 × xl 칸 + 틈 4 × 2 +
+       안 여백 2xs × 2) — 도식은 한 열 폭 × 이 높이를 넘지 않는다 (2026-10-20 사용자 결정) */
+    --inspector-diagram-height: calc(
+      3 * var(--spacing-xl) + 2 * 4px + 2 * var(--spacing-2xs)
+    );
 
     /* Styles Panel - Section-specific layouts */
     &[data-section-id="layout"] .section-content {
@@ -303,31 +308,13 @@
       }
     }
 
-    /* Spacing 절 — Ratio처럼 본문은 두 열, 연동 액션은 마지막 열에 배치한다. */
-    &[data-section-id="spacing"] .section-content {
-      > .transform-row {
-        min-width: 0;
-      }
+    /* Layout 절 Padding 줄 — Figma 구성 (ADR-275 사용자 결정 10): 「가로 · 세로 · 펼침」, 펼치면
+       「Left · Top · 펼침」 / 「Right · Bottom」. 펼침 버튼은 늘 첫 줄 아이콘 칸 */
+    &[data-section-id="layout"] .layout-padding {
+      min-width: 0;
 
-      > .transform-row > .transform-row {
-        display: grid;
-        grid-template-columns: var(--inspector-row-columns);
-        gap: var(--spacing-sm);
-
-        > * {
-          min-width: 0;
-        }
-      }
-
-      .spacing-box-model {
-        grid-column: 1 / 3;
-      }
-
-      .actions-spacing {
-        grid-area: auto;
-        grid-column: 3;
-        align-self: start;
-        margin-block-start: calc(var(--text-xs) * var(--leading-normal));
+      .actions-padding {
+        grid-area: 1 / 3;
       }
     }
 
@@ -357,6 +344,212 @@
 
       .actions-position {
         align-self: end;
+      }
+
+      /* ADR-275 — 혼합 방식: 변 옆 T · R · B · L 칸이 pin 상자의 같은 변에 붙는다
+         (Framer 칸 배치 · Figma pin 규칙). 상자 = Alignment 판 크기 (한 열 × 도식 높이) */
+      /* 열 = Layout · Spacing 과 같은 행 템플릿 — 칸은 1~2 열, 3 열은 아이콘 칸 (Fill) */
+      .position-controls {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        gap: var(--spacing-sm);
+
+        > * {
+          grid-column: 1 / 3;
+          min-width: 0;
+        }
+
+        /* 도식 줄은 아이콘 칸까지 쓴다 — 상자 (한 열 폭) 양옆 칸이 「auto PX」 를 담는 폭.
+           Fill 은 모드 줄의 아이콘 칸 */
+        > .position-grid {
+          grid-column: 1 / -1;
+        }
+
+        > .actions-position-fill {
+          grid-area: 1 / 3;
+          align-self: end;
+        }
+      }
+
+      .position-grid {
+        /* 상자 열 = 행 템플릿의 한 열 폭 (= Alignment 판 폭) — 이 줄은 3 열 전체 폭 */
+        --position-pin: calc(
+          (100% - var(--control-size) - 2 * var(--spacing-sm)) / 2
+        );
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--position-pin) minmax(0, 1fr);
+        grid-template-areas:
+          ". top ."
+          "left pin right"
+          ". bottom .";
+        align-items: center;
+        gap: var(--spacing-xs);
+
+        > .position-field--top {
+          grid-area: top;
+        }
+        > .position-field--left {
+          grid-area: left;
+        }
+        > .position-field--right {
+          grid-area: right;
+        }
+        > .position-field--bottom {
+          grid-area: bottom;
+        }
+        > .position-pin-box {
+          grid-area: pin;
+          align-self: center;
+        }
+      }
+
+      /* 모드 이름이 2 열 폭에서 잘리지 않게 — 칸 폭은 글자 폭에서 나눈다 */
+      .position-mode .react-aria-ToggleButtonGroup .react-aria-ToggleButton {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-inline: 2px;
+        font-size: var(--text-2xs, 10px);
+      }
+
+      /* pin 안 된 칸: 점선 + auto — 입력하면 그 변으로 바뀐다 */
+      /* 테두리 대신 outline — 칸 높이가 28 그대로 (border 면 30 으로 튄다) */
+      .position-field--auto .react-aria-Group {
+        outline: 1px dashed var(--border-hover, var(--border));
+        outline-offset: -1px;
+        background: transparent;
+        box-shadow: none;
+
+        &:focus-within {
+          outline: 2px solid var(--focus-ring);
+          outline-offset: 0;
+        }
+      }
+
+      .position-pin-box {
+        position: relative;
+        box-sizing: border-box;
+        width: 100%;
+        height: var(--inspector-diagram-height);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--bg-inset);
+
+        &[data-disabled] {
+          opacity: 0.5;
+        }
+      }
+
+      .position-pin-box__item {
+        position: absolute;
+        inset: 34%;
+        border: 1px solid var(--fg-muted);
+        border-radius: 2px;
+        pointer-events: none;
+      }
+
+      .position-pin {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--fg-muted);
+        cursor: pointer;
+        outline: none;
+
+        &[data-target="top"],
+        &[data-target="bottom"] {
+          left: calc(50% - 8px);
+          width: 16px;
+          height: 34%;
+        }
+        &[data-target="top"] {
+          top: 0;
+        }
+        &[data-target="bottom"] {
+          bottom: 0;
+        }
+        &[data-target="left"],
+        &[data-target="right"] {
+          top: calc(50% - 8px);
+          width: 34%;
+          height: 16px;
+        }
+        &[data-target="left"] {
+          left: 0;
+        }
+        &[data-target="right"] {
+          right: 0;
+        }
+        &[data-target="centerX"] {
+          left: calc(50% - 6px);
+          top: 34%;
+          width: 12px;
+          height: 32%;
+        }
+        &[data-target="centerY"] {
+          left: 34%;
+          top: calc(50% - 6px);
+          width: 32%;
+          height: 12px;
+        }
+
+        .position-pin__line {
+          display: block;
+          background: currentColor;
+          border-radius: 1px;
+        }
+        &[data-target="top"] .position-pin__line,
+        &[data-target="bottom"] .position-pin__line,
+        &[data-target="centerX"] .position-pin__line {
+          width: 2px;
+          height: 10px;
+        }
+        &[data-target="left"] .position-pin__line,
+        &[data-target="right"] .position-pin__line,
+        &[data-target="centerY"] .position-pin__line {
+          width: 10px;
+          height: 2px;
+        }
+        /* 안 눌린 pin 은 옅게, 눌린 pin 은 진하고 굵게 — 색만으로 구별하지 않는다 */
+        .position-pin__line {
+          opacity: 0.35;
+        }
+        &[data-hovered] .position-pin__line {
+          opacity: 0.7;
+        }
+        &[data-selected] {
+          color: var(--accent);
+        }
+        &[data-selected] .position-pin__line {
+          opacity: 1;
+        }
+        &[data-selected][data-target="top"] .position-pin__line,
+        &[data-selected][data-target="bottom"] .position-pin__line,
+        &[data-selected][data-target="centerX"] .position-pin__line {
+          width: 3px;
+        }
+        &[data-selected][data-target="left"] .position-pin__line,
+        &[data-selected][data-target="right"] .position-pin__line,
+        &[data-selected][data-target="centerY"] .position-pin__line {
+          height: 3px;
+        }
+        &[data-focus-visible] {
+          outline: 2px solid var(--focus-ring, var(--accent));
+          outline-offset: -2px;
+          border-radius: 2px;
+        }
+        &[data-disabled] {
+          cursor: default;
+        }
+      }
+
+      .position-summary {
+        margin: 0;
+        color: var(--fg-muted);
+        font-size: var(--text-xs);
+        font-variant-numeric: tabular-nums;
       }
     }
 

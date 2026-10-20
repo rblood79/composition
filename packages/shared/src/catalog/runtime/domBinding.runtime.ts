@@ -1,4 +1,8 @@
 import {
+  catalogIsAuthoredAbsolute,
+  catalogIsAuthoredPlaced,
+} from "./positioning";
+import {
   componentTypeSet,
   getPrimitiveBinding,
   OWNER_DRAWN_PART_HOSTS,
@@ -370,8 +374,10 @@ function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
     if (layout[key] === undefined && typeof node.sizing[key] === "number")
       layout[key] = `${node.sizing[key]}px`;
   if (
-    !node.placement &&
-    (authored.position === "absolute" || authored.position === "relative")
+    authored.position === "absolute" ||
+    authored.position === "relative" ||
+    authored.position === "sticky" ||
+    authored.position === "fixed"
   )
     layout.position = authored.position;
   const css = catalogLayoutCss(layout) as CSSProperties;
@@ -428,9 +434,6 @@ export function catalogDomStyle(
     ...(box.justifyContent ? { justifyContent: box.justifyContent } : {}),
     ...(box.flexWrap
       ? { flexWrap: box.flexWrap as CSSProperties["flexWrap"] }
-      : {}),
-    ...(box.position
-      ? { position: "absolute", left: box.position.x, top: box.position.y }
       : {}),
     ...(box.width !== undefined ? { width: cssLength(box.width) } : {}),
     ...(box.height !== undefined ? { height: cssLength(box.height) } : {}),
@@ -2639,14 +2642,8 @@ function authoredStyle(
       style,
       catalogAuthoredDomStyle({ visual: {}, fills: node.fills }),
     );
-  // Authored absolute placement (from the parent's padding box), as the native box bindings.
-  if (node.placement?.kind === "absolute")
-    Object.assign(style, {
-      position: "absolute",
-      left: node.placement.x,
-      top: node.placement.y,
-    });
-  else containingBlock(root, node, style);
+  // An authored absolute box's position · insets came with its authored layout (ADR-275).
+  if (!catalogIsAuthoredPlaced(node)) containingBlock(root, node, style);
   return style;
 }
 
@@ -2665,9 +2662,10 @@ function containingBlock(
   if (
     !style.position &&
     STRUCTURAL_TYPES.has(catalogTypeName(root, node).toLowerCase()) &&
-    node.children.some(
-      (id) => root.domInputs.get(id)?.placement?.kind === "absolute",
-    )
+    node.children.some((id) => {
+      const child = root.domInputs.get(id);
+      return !!child && catalogIsAuthoredAbsolute(child);
+    })
   )
     style.position = "relative";
 }
@@ -3076,7 +3074,7 @@ export function renderNode(
         ...(stepper !== node ? { borderWidth: 0 } : {}),
       }
     : undefined;
-  if (bound && node.placement?.kind !== "absolute")
+  if (bound && !catalogIsAuthoredPlaced(node))
     containingBlock(root, node, bound);
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.

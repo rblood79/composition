@@ -6,12 +6,19 @@
  */
 
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import { Lock, UnfoldVertical, Unlock } from "lucide-react";
+import { Lock, Maximize, UnfoldVertical, Unlock } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CatalogPositionChange } from "../../../catalogRuntime/position";
+import {
+  catalogNextAxisConstraint as nextAxisConstraint,
+  catalogReadPositionConstraint,
+  type CatalogAxisConstraint,
+} from "../../../catalogRuntime/positionConstraint";
+import { PositionPinBox, type PinTarget } from "./PositionPinBox";
 import { useSemanticLabel } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { LayoutFreeform } from "../../../components/icons";
 import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySegment } from "../../../components/property/PropertySegment";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import {
@@ -330,7 +337,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
 
   if (!styleValues) return null;
 
-  const isAbsolutePositioned = styleValues.position === "absolute";
   const parentContext = {
     display: parentDisplay,
     flexDirection: parentFlexDirection,
@@ -389,56 +395,22 @@ const TransformSectionContent = memo(function TransformSectionContent({
         />
       );
     return (
-      <div className="transform-row">
-        <PropertyUnitInput
-          label="Left"
-          unitSuffix
-          className="left"
-          value={isAbsolutePositioned ? styleValues.left : "auto"}
-          units={["px", "%", "vw"]}
-          preserveEmptyValueOnUnitChange
-          allowEmptyReset
-          isDisabled={!isAbsolutePositioned}
-          placeholder="auto"
-          onChange={(value) => updateStyleImmediate("left", value)}
-          onDrag={(value) => updateStylePreview("left", value)}
-          min={-9999}
-          max={9999}
-        />
-        <PropertyUnitInput
-          label="Top"
-          unitSuffix
-          className="top"
-          value={isAbsolutePositioned ? styleValues.top : "auto"}
-          units={["px", "%", "vh"]}
-          preserveEmptyValueOnUnitChange
-          allowEmptyReset
-          isDisabled={!isAbsolutePositioned}
-          placeholder="auto"
-          onChange={(value) => updateStyleImmediate("top", value)}
-          onDrag={(value) => updateStylePreview("top", value)}
-          min={-9999}
-          max={9999}
-        />
-        <div className="fieldset-actions actions-position">
-          <SwatchIconToggleButton
-            aria-label={localize("Absolute position")}
-            isSelected={styleValues.position === "absolute"}
-            onChange={handleAbsolutePositionChange}
-          >
-            <LayoutFreeform
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconToggleButton>
-        </div>
-        {sizingError && (
-          <p className="transform-ratio-error" role="alert">
-            {localize(RATIO_ERROR_LABELS[sizingError])}
-          </p>
-        )}
-      </div>
+      <PositionControls
+        effective={sizeContext.effective}
+        authoredPosition={bundle?.position.inline}
+        onMode={(mode) =>
+          mode === "sticky"
+            ? setSizingError(host.applyPosition(selectedId, { kind: "sticky" }))
+            : mode === "fixed"
+              ? setSizingError(host.applyAbsolute(selectedId, true, "fixed"))
+              : handleAbsolutePositionChange(mode === "absolute")
+        }
+        onChange={(change) =>
+          setSizingError(host.applyPosition(selectedId, change))
+        }
+        onPreview={updateStylePreview}
+        error={sizingError ? localize(RATIO_ERROR_LABELS[sizingError]) : null}
+      />
     );
   }
 
@@ -627,6 +599,234 @@ const TransformSectionContent = memo(function TransformSectionContent({
   );
 });
 
+const POSITION_MODES = [
+  { value: "relative", label: "Relative" },
+  { value: "absolute", label: "Absolute" },
+  { value: "sticky", label: "Sticky" },
+  { value: "fixed", label: "Fixed" },
+] as const;
+
+type Side = "left" | "right" | "top" | "bottom";
+const SIDE_AXIS: Record<
+  Side,
+  { axis: "x" | "y"; end: boolean; label: string }
+> = {
+  left: { axis: "x", end: false, label: "Left" },
+  right: { axis: "x", end: true, label: "Right" },
+  top: { axis: "y", end: false, label: "Top" },
+  bottom: { axis: "y", end: true, label: "Bottom" },
+};
+
+/** Whether a side holds a value under its axis' constraint (Center: the start field is the offset). */
+const sidePinned = (constraint: CatalogAxisConstraint, end: boolean) =>
+  constraint === "both" ||
+  (end
+    ? constraint === "end"
+    : constraint === "start" || constraint === "center");
+
+/**
+ * ADR-275 Decision 3 — the Position section: Figma rules (pins on four sides, a centre crosshair per
+ * axis, an axis is never empty) with Framer's fields (T · R · B · L beside the pin box's sides). An
+ * unpinned field shows `auto` (dashed) and typing in it moves the axis to that side. Relative: Left ·
+ * Top are offsets; Right · Bottom and the pins are off (사용자 결정 3). Sticky (Phase 6 — 사용자 결정
+ * 2026-10-20): each field is its own stick distance, empty = auto; the pins are off. Fixed (Phase 7 —
+ * 사용자 결정 6): Absolute's pins and fields in the page viewport (the breakpoint's screen at scroll
+ * 0). The line under the fields says what the box does.
+ */
+const PositionControls = memo(function PositionControls({
+  effective,
+  authoredPosition,
+  onMode,
+  onChange,
+  onPreview,
+  error,
+}: {
+  effective: Record<string, string | number> | undefined;
+  authoredPosition: string | number | undefined;
+  onMode: (mode: "relative" | "absolute" | "sticky" | "fixed") => void;
+  onChange: (change: CatalogPositionChange) => void;
+  onPreview: (property: string, value: string) => void;
+  error: string | null;
+}) {
+  const localize = useSemanticLabel();
+  const view = (key: string) => {
+    const value = effective?.[key];
+    return value === undefined || value === "" ? undefined : String(value);
+  };
+  // Absolute and Fixed share the pins and fields (Fixed's containing block is the viewport).
+  const fixed = authoredPosition === "fixed";
+  const absolute = authoredPosition === "absolute" || fixed;
+  // A box its component's rule places (a ListBoxItem icon) is not the author's to move (Decision 1).
+  const rulePlaced = !absolute && view("position") === "absolute";
+  const relative = view("position") === "relative";
+  const sticky = !absolute && view("position") === "sticky";
+  const constraint = catalogReadPositionConstraint({
+    insetLeft: view("left"),
+    insetRight: view("right"),
+    insetTop: view("top"),
+    insetBottom: view("bottom"),
+    justifySelf: view("justifySelf"),
+    alignSelf: view("alignSelf"),
+  });
+  const field = (side: Side) => {
+    const { axis, end, label } = SIDE_AXIS[side];
+    const pinned = absolute
+      ? sidePinned(constraint[axis], end)
+      : sticky
+        ? view(side) !== undefined && view(side) !== "auto"
+        : !end && relative;
+    const disabled = rulePlaced || (!absolute && !sticky && end);
+    const value = pinned ? (view(side) ?? "0px") : "";
+    const centerOffset = absolute && constraint[axis] === "center" && !end;
+    return (
+      <PropertyUnitInput
+        label={centerOffset ? (axis === "x" ? "Center X" : "Center Y") : label}
+        // No legend: the side is where the field sits around the pin box (the name stays the
+        // field's accessible name).
+        labelMode="icon"
+        className={`position-field position-field--${side}${pinned ? "" : " position-field--auto"}`}
+        value={value}
+        units={["px", "%"]}
+        preserveEmptyValueOnUnitChange
+        allowEmptyReset
+        isDisabled={disabled}
+        placeholder="auto"
+        onChange={(next) =>
+          onChange(
+            absolute
+              ? { kind: "inset", side, value: next }
+              : sticky
+                ? { kind: "stickyInset", side, value: next }
+                : {
+                    kind: "relative",
+                    side: side as "left" | "top",
+                    value: next,
+                  },
+          )
+        }
+        onDrag={(next) => {
+          // Live only where the drag edits one side as is (a Center offset moves both).
+          if (pinned && !centerOffset) onPreview(side, next);
+        }}
+        min={-9999}
+        max={9999}
+      />
+    );
+  };
+  const press = (target: PinTarget) => {
+    const axis =
+      target === "left" || target === "right" || target === "centerX"
+        ? "x"
+        : "y";
+    const kind =
+      target === "centerX" || target === "centerY"
+        ? "center"
+        : target === "right" || target === "bottom"
+          ? "end"
+          : "start";
+    const next = nextAxisConstraint(constraint[axis], kind);
+    if (next !== constraint[axis])
+      onChange({ kind: "constraint", axis, constraint: next });
+  };
+  const describe = (axis: "x" | "y") => {
+    const [start, end] =
+      axis === "x"
+        ? (["left", "right"] as const)
+        : (["top", "bottom"] as const);
+    const kind = constraint[axis];
+    const value = (side: Side) => view(side) ?? "0px";
+    const name = (side: Side) => localize(SIDE_AXIS[side].label);
+    if (kind === "center")
+      return `${localize(axis === "x" ? "Center X" : "Center Y")} ${value(start)}`;
+    if (kind === "both")
+      return `${name(start)} ${value(start)} ↔ ${name(end)} ${value(end)}`;
+    return kind === "end"
+      ? `${name(end)} ${value(end)}`
+      : `${name(start)} ${value(start)}`;
+  };
+  const stickySides = (["top", "right", "bottom", "left"] as const).filter(
+    (side) => view(side) !== undefined && view(side) !== "auto",
+  );
+  const mode = fixed
+    ? "fixed"
+    : absolute
+      ? "absolute"
+      : sticky
+        ? "sticky"
+        : "relative";
+  return (
+    <div className="position-controls">
+      <PropertySegment
+        label="Position"
+        className="position-mode"
+        value={mode}
+        options={POSITION_MODES}
+        disabledValues={
+          rulePlaced ? ["relative", "absolute", "sticky", "fixed"] : []
+        }
+        disabledHint="Not allowed yet"
+        onChange={(next) => {
+          if (
+            next === "absolute" ||
+            next === "relative" ||
+            next === "sticky" ||
+            next === "fixed"
+          )
+            onMode(next);
+        }}
+      />
+      <div className="position-grid" data-mode={mode}>
+        {field("top")}
+        {field("left")}
+        <PositionPinBox
+          constraint={constraint}
+          isDisabled={!absolute}
+          onPress={press}
+        />
+        {field("right")}
+        {field("bottom")}
+      </div>
+      {/* The action column (Layout · Spacing): Fill = the four sides at 0. Center is the pin box's
+          crosshair. */}
+      <div className="fieldset-actions actions-position-fill">
+        {absolute && (
+          <SwatchIconButton
+            aria-label={localize("Fill — all sides 0")}
+            onPress={() => onChange({ kind: "fill" })}
+          >
+            <Maximize
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconButton>
+        )}
+      </div>
+      <p className="position-summary" aria-live="polite">
+        {rulePlaced
+          ? localize("Placed by its component")
+          : absolute
+            ? `${fixed ? `${localize("In the screen")} — ` : ""}${describe("x")} · ${describe("y")}`
+            : sticky
+              ? stickySides.length
+                ? `${localize("Sticks when scrolled")} — ${stickySides
+                    .map(
+                      (side) =>
+                        `${localize(SIDE_AXIS[side].label)} ${view(side)}`,
+                    )
+                    .join(" · ")}`
+                : localize("No side set — it scrolls away")
+              : localize("In the flow — Left · Top move it from its place")}
+      </p>
+      {error && (
+        <p className="transform-ratio-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+});
+
 /**
  * Size 절 · Position 절 (panel-ui 01, 2026-09-14) — 탭 안 순서는 Layout → Size → Spacing →
  * Position 이라 (panel-ui 01 · 대조 B1) 두 절을 따로 export 한다. TransformSection 은 둘을
@@ -657,13 +857,16 @@ export const PositionSection = memo(function PositionSection() {
   const selectedId = useStylesSelectedId();
   // 접힘 판정은 inline position 만 — layout 실측 구독 0
   const bundle = useTransformValues(selectedId, "none");
-  const isAbsolute = bundle?.position.inline === "absolute";
+  const isAbsolute =
+    bundle?.position.inline === "absolute" ||
+    bundle?.position.inline === "sticky" ||
+    bundle?.position.inline === "fixed";
   const expandSections = useSectionCollapse((s) => s.expandSections);
   const positionCollapsed = useSectionCollapse((s) =>
     isSectionCollapsedInState(s, POSITION_SECTION_ID),
   );
 
-  // position ≠ static 이 되면 Position 절을 자동으로 펼친다 (한 번 — 사용자가 다시 접을 수 있다)
+  // absolute · sticky · fixed 가 되면 Position 절을 자동으로 펼친다 (한 번 — 사용자가 다시 접을 수 있다)
   const wasAbsoluteRef = useRef(isAbsolute);
   useEffect(() => {
     if (isAbsolute && !wasAbsoluteRef.current && positionCollapsed) {

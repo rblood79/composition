@@ -1,4 +1,9 @@
 import {
+  catalogIsAuthoredFixed,
+  catalogIsAuthoredPlaced,
+  catalogIsOutOfFlow,
+} from "../../../../../packages/shared/src/catalog/runtime/positioning";
+import {
   containerTypeSet,
   getRatioDependentAxis,
   resolveNestingViolation,
@@ -11,7 +16,6 @@ import {
   pasteNodes,
   setFields,
   setFillSizing,
-  setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
   composeCommands,
@@ -36,6 +40,11 @@ import { parseAspectRatio } from "../utils/aspectRatio";
 import { catalogBoxModel } from "./boxModel";
 import { catalogInsertParent } from "./insertParent";
 import {
+  catalogClearPositionCommands,
+  catalogPositionLayoutWrites,
+  catalogReadPositionConstraint,
+} from "./positionConstraint";
+import {
   resolveResizeRequest,
   type ResizeRatioLockInput,
 } from "../workspace/canvas/interaction/resizeGeometry";
@@ -53,7 +62,10 @@ import {
 } from "../workspace/canvas/interaction/spacingTypes";
 import type { CatalogSpacingLive } from "./spacingLive";
 import { catalogSizingCommand } from "./sizing";
-import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
+import {
+  readOwnFields,
+  type OwnFields,
+} from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   boxesIntersect,
   hitTestHandle,
@@ -161,6 +173,8 @@ export interface CatalogGestureHost {
   spacingLive?(live: CatalogSpacingLive | null): void;
   /** A node's own fields (a grid child's handle release fills its cells — `catalogSizingCommand`). */
   ownFields?(target: EditTarget): OwnFields;
+  /** The breakpoint's screen size — a fixed box's viewport (ADR-275 Phase 7). */
+  viewport?(): { width: number; height: number };
 }
 
 export type CatalogNestingNotice =
@@ -241,12 +255,16 @@ export interface CatalogDragPresentation {
 
 const EMPTY_BOX: BoundingBox = { x: 0, y: 0, width: 0, height: 0 };
 
-/** An absolutely placed node in a move: its authored placement (it moves by the offset). */
+/**
+ * An authored absolute node in a move (ADR-275): its start box and containing block (scene,
+ * padding box) and its layout — the release writes the insets of its constraint at the moved box.
+ */
 interface MovingAbsolute {
   readonly record: string;
   readonly id: NodeId;
-  readonly left: number;
-  readonly top: number;
+  readonly box: BoundingBox;
+  readonly cb: BoundingBox;
+  readonly layout: Readonly<Record<string, string>>;
 }
 
 /** A spacing handle pressed without a drag (the inline number input edits its value). */
@@ -264,8 +282,8 @@ type Gesture =
       ids: NodeId[];
       records: string[];
       startBox: BoundingBox;
-      /** The authored absolute placement of the leader (`node.placement`): it moves by offset. */
-      absolute?: { left: number; top: number };
+      /** The leader is an authored absolute box (ADR-275): it moves by offset. */
+      absolute?: true;
       /** Every absolutely placed node of the selection (the leader's included). */
       absolutes: MovingAbsolute[];
       active: boolean;
@@ -330,7 +348,10 @@ type Gesture =
       handle: HandlePosition;
       item: CatalogSelectionItem;
       startBox: BoundingBox;
+      /** An authored absolute box (ADR-275): its start offset in its containing block (`left` ·
+       * `top` — what the resize request moves) and the box's constraint inputs. */
       position?: { left: number; top: number };
+      absolute?: MovingAbsolute;
       /** A ratio with one dependent axis: the drag writes only the driving axis. */
       lock: ResizeRatioLockInput | null;
       active: boolean;
@@ -433,7 +454,10 @@ export class CatalogCanvasGestures {
     if (!handle || !item) return false;
     const startBox = this.host.bounds(item.identity)!;
     const record = this.host.records.get(item.identity)!;
-    const placement = record.placement;
+    const absolute =
+      item.target.kind === "node"
+        ? this.movingAbsolute(item.identity, item.target.id)
+        : undefined;
     this.gesture = {
       kind: "resize",
       startX: x,
@@ -442,8 +466,14 @@ export class CatalogCanvasGestures {
       item,
       startBox,
       lock: ratioLockOf(record),
-      ...(placement?.kind === "absolute" && item.target.kind === "node"
-        ? { position: { left: placement.x, top: placement.y } }
+      ...(absolute
+        ? {
+            absolute,
+            position: {
+              left: startBox.x - absolute.cb.x,
+              top: startBox.y - absolute.cb.y,
+            },
+          }
         : {}),
       active: false,
       request: {},
@@ -479,13 +509,9 @@ export class CatalogCanvasGestures {
           records.get(item.identity)?.parentId !== PAGE_GRID,
       );
     if (!moving.some((item) => item.identity === leader)) return false;
-    const placement = leaderRecord.placement;
-    // A stylesheet-placed sub-part (`position: absolute` without an authored placement) does not move.
-    if (
-      placement?.kind !== "absolute" &&
-      leaderRecord.layout.position === "absolute"
-    )
-      return false;
+    const authored = catalogIsAuthoredPlaced(leaderRecord);
+    // A stylesheet-placed sub-part (out of flow by its rule, not authored — ADR-275) does not move.
+    if (!authored && catalogIsOutOfFlow(leaderRecord)) return false;
     this.gesture = {
       kind: "move",
       startX: x,
@@ -497,21 +523,13 @@ export class CatalogCanvasGestures {
       records: moving.map((item) => item.identity),
       startBox,
       zoom: 1,
-      ...(placement?.kind === "absolute"
-        ? { absolute: { left: placement.x, top: placement.y } }
-        : {}),
+      ...(authored ? { absolute: true as const } : {}),
       absolutes: moving.flatMap((item) => {
-        const own = records.get(item.identity)?.placement;
-        return own?.kind === "absolute" && item.target.kind === "node"
-          ? [
-              {
-                record: item.identity,
-                id: item.target.id,
-                left: own.x,
-                top: own.y,
-              },
-            ]
-          : [];
+        const absolute =
+          item.target.kind === "node"
+            ? this.movingAbsolute(item.identity, item.target.id)
+            : undefined;
+        return absolute ? [absolute] : [];
       }),
       active: false,
       dx: 0,
@@ -787,13 +805,7 @@ export class CatalogCanvasGestures {
     const records = this.host.records;
     const record = records.get(gesture.item.identity);
     const parent = record && records.get(record.parentId);
-    if (
-      !record ||
-      !parent ||
-      record.placement?.kind === "absolute" ||
-      record.layout.position === "absolute"
-    )
-      return request;
+    if (!record || !parent || catalogIsOutOfFlow(record)) return request;
     const cells = this.gridLayoutOf(parent, 0, false)?.cells;
     if (!cells?.length) return request;
     const xs = cells.flatMap((cell) => [cell.x, cell.x + cell.width]);
@@ -899,12 +911,20 @@ export class CatalogCanvasGestures {
       }
       return undefined;
     };
-    const column = span("x", area.column, area.columnSpan, columns, (c) =>
-      cells[area.row * columns + c],
+    const column = span(
+      "x",
+      area.column,
+      area.columnSpan,
+      columns,
+      (c) => cells[area.row * columns + c],
     );
     const rows = Math.ceil(cells.length / columns);
-    const row = span("y", area.row, area.rowSpan, rows, (r) =>
-      cells[r * columns + area.column],
+    const row = span(
+      "y",
+      area.row,
+      area.rowSpan,
+      rows,
+      (r) => cells[r * columns + area.column],
     );
     if (!column && !row) return undefined;
     const breakpoint = this.host.breakpoint();
@@ -915,7 +935,10 @@ export class CatalogCanvasGestures {
         ? { kind: "remove" }
         : { kind: "set", value: "auto" };
     const has = (value: unknown) => String(value ?? "").trim() !== "";
-    const end = (count: number, had: unknown): WriteValue<string> | undefined =>
+    const end = (
+      count: number,
+      had: unknown,
+    ): WriteValue<string> | undefined =>
       count > 1
         ? { kind: "set", value: `span ${count}` }
         : has(had)
@@ -926,7 +949,10 @@ export class CatalogCanvasGestures {
         kind: "set",
         value: String((column?.start ?? area.column) + 1),
       },
-      gridRowStart: { kind: "set", value: String((row?.start ?? area.row) + 1) },
+      gridRowStart: {
+        kind: "set",
+        value: String((row?.start ?? area.row) + 1),
+      },
     };
     const columnEnd = column && end(column.span, lines.columnEnd);
     const rowEnd = row && end(row.span, lines.rowEnd);
@@ -1316,10 +1342,10 @@ export class CatalogCanvasGestures {
       this.host.spacingLive?.(spacingLiveOf(gesture));
       return;
     }
-    const { width, height, left, top } = gesture.request;
-    const start = gesture.position;
+    const { width, height } = gesture.request;
     // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
     const wheel = this.colorWheelSizeOf(gesture);
+    const position = this.resizePositionWrites(gesture);
     this.host.reflow(this.reflowed, {
       sizing:
         wheel !== undefined
@@ -1328,13 +1354,13 @@ export class CatalogCanvasGestures {
               ...(width !== undefined ? { width } : {}),
               ...(height !== undefined ? { height } : {}),
             },
-      ...(start && (left !== undefined || top !== undefined)
+      ...(position
         ? {
-            placement: {
-              kind: "absolute",
-              x: left ?? start.left,
-              y: top ?? start.top,
-            },
+            layout: Object.fromEntries(
+              Object.entries(position).flatMap(([key, write]) =>
+                write?.kind === "set" ? [[key, write.value]] : [],
+              ),
+            ),
           }
         : {}),
     });
@@ -1428,8 +1454,21 @@ export class CatalogCanvasGestures {
       // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
       // style) — a handle drag edits the diameter, so the track and thumb follow the box.
       const wheel = this.colorWheelSizeOf(gesture);
-      const cells = wheel === undefined ? this.cellSpanCommand(gesture) : undefined;
+      const cells =
+        wheel === undefined ? this.cellSpanCommand(gesture) : undefined;
       if (cells) return cells;
+      // ADR-275: a stretched axis (Left+Right) has no size of its own — its insets take the resize.
+      const constraint = gesture.absolute
+        ? catalogReadPositionConstraint(gesture.absolute.layout)
+        : undefined;
+      const sizing = {
+        ...(width !== undefined && constraint?.x !== "both"
+          ? { width: { kind: "set" as const, value: width } }
+          : {}),
+        ...(height !== undefined && constraint?.y !== "both"
+          ? { height: { kind: "set" as const, value: height } }
+          : {}),
+      };
       const size =
         wheel !== undefined
           ? setFields({
@@ -1437,30 +1476,31 @@ export class CatalogCanvasGestures {
               props: { size: { kind: "set", value: wheel } },
               label: "Resize",
             })
-          : setFields({
-              targets: [gesture.item.target],
-              breakpoint,
-              sizing: {
-                ...(width !== undefined
-                  ? { width: { kind: "set", value: width } }
-                  : {}),
-                ...(height !== undefined
-                  ? { height: { kind: "set", value: height } }
-                  : {}),
-              },
-              label: "Resize",
-            });
-      const start = gesture.position;
-      if (!start || (left === undefined && top === undefined)) return size;
-      // A left/top handle of an absolutely placed node also moves it (the opposite edge stays).
-      const place = setWholeField({
-        targets: [gesture.item.target],
-        field: "placement",
-        value: { kind: "absolute", x: left ?? start.left, y: top ?? start.top },
-      });
+          : Object.keys(sizing).length
+            ? setFields({
+                targets: [gesture.item.target],
+                breakpoint,
+                sizing,
+                label: "Resize",
+              })
+            : undefined;
+      // An authored absolute box keeps its constraint at the resized box (a right-pinned box's
+      // right inset follows its right handle; the opposite edge of a left/top handle stays).
+      const position =
+        left !== undefined || top !== undefined || constraint
+          ? this.resizePositionWrites(gesture)
+          : undefined;
+      const place = position
+        ? setFields({
+            targets: [gesture.item.target],
+            breakpoint,
+            layout: position,
+          })
+        : undefined;
+      if (!place) return size;
       return (reader) => ({
         label: "Resize",
-        ops: [...size(reader).ops, ...place(reader).ops],
+        ops: [...(size?.(reader).ops ?? []), ...place(reader).ops],
       });
     }
     if (gesture.absolute) return this.absoluteMoveCommand(gesture);
@@ -1554,14 +1594,23 @@ export class CatalogCanvasGestures {
       const box = this.host.bounds(record);
       const id = gesture.ids[index];
       if (!box || !id) return;
+      const layout = records.get(record)?.layout ?? {};
       commands.push(
-        setWholeField({
+        setFields({
           targets: [{ kind: "node", id }],
-          field: "placement",
-          value: {
-            kind: "absolute",
-            x: Math.round(box.x + gesture.dx - frame.x - inset),
-            y: Math.round(box.y + gesture.dy - frame.y - inset),
+          breakpoint: this.host.breakpoint(),
+          layout: {
+            position: { kind: "set", value: "absolute" },
+            ...this.positionWrites(
+              layout,
+              { ...box, x: box.x + gesture.dx, y: box.y + gesture.dy },
+              {
+                x: frame.x + inset,
+                y: frame.y + inset,
+                width: frame.width - 2 * inset,
+                height: frame.height - 2 * inset,
+              },
+            ),
           },
         }),
       );
@@ -1619,14 +1668,9 @@ export class CatalogCanvasGestures {
     const { records, newId } = this.host;
     const drop = gesture.drop;
     if (!drop && !gesture.dx && !gesture.dy) return undefined;
-    const offset = (item: MovingAbsolute) => ({
-      kind: "absolute" as const,
-      x: Math.round(item.left + gesture.dx),
-      y: Math.round(item.top + gesture.dy),
-    });
     if (gesture.copy) {
       if (drop) return this.copyCommand(gesture.ids, gesture.records, drop);
-      return this.absoluteCopy(gesture.absolutes, offset);
+      return this.absoluteCopy(gesture.absolutes, gesture.dx, gesture.dy);
     }
     const commands: CatalogCommand[] = [];
     const leaving = new Set(
@@ -1657,25 +1701,40 @@ export class CatalogCanvasGestures {
           ),
         );
     }
-    const container = drop ? this.host.bounds(drop.container) : undefined;
+    // ADR-275: each authored absolute box keeps its constraint at the moved box — in its own
+    // containing block, or the new page body's; into a flow container its position goes.
+    const container = drop ? this.containingBlockOf(drop.container) : undefined;
+    const breakpoint = this.host.breakpoint();
     for (const item of gesture.absolutes) {
-      let placement: ReturnType<typeof offset> | undefined = offset(item);
-      if (leaving.has(item.record)) {
-        const box = this.host.bounds(item.record);
-        placement =
-          drop?.keepsAbsolute && box && container
-            ? {
-                kind: "absolute",
-                x: Math.round(box.x + gesture.dx - container.x),
-                y: Math.round(box.y + gesture.dy - container.y),
-              }
-            : undefined;
+      const target = { kind: "node" as const, id: item.id };
+      const leaves = leaving.has(item.record);
+      if (leaves && !(drop?.keepsAbsolute && container)) {
+        commands.push(
+          ...catalogClearPositionCommands(
+            readOwnFields(this.host.graph, target),
+            target,
+          ),
+        );
+        continue;
       }
+      const moved = {
+        ...item.box,
+        x: item.box.x + gesture.dx,
+        y: item.box.y + gesture.dy,
+      };
       commands.push(
-        setWholeField({
-          targets: [{ kind: "node", id: item.id }],
-          field: "placement",
-          value: placement,
+        setFields({
+          targets: [target],
+          breakpoint,
+          layout: this.positionWrites(
+            item.layout,
+            moved,
+            !leaves || !container
+              ? item.cb
+              : item.layout.position === "fixed"
+                ? (this.viewportOf(drop!.container) ?? item.cb)
+                : container,
+          ),
         }),
       );
     }
@@ -1689,11 +1748,8 @@ export class CatalogCanvasGestures {
    */
   private absoluteCopy(
     items: readonly MovingAbsolute[],
-    offset: (item: MovingAbsolute) => {
-      kind: "absolute";
-      x: number;
-      y: number;
-    },
+    dx: number,
+    dy: number,
   ): CatalogCommand | undefined {
     const { records, newId } = this.host;
     const commands: CatalogCommand[] = [];
@@ -1705,28 +1761,107 @@ export class CatalogCanvasGestures {
       const parent = target && catalogInsertParent(this.host.graph, target);
       if (!record || !parentRecord || !parent) continue;
       const index = parentRecord.children.indexOf(record.id) + 1;
-      const placement = offset(item);
-      commands.push((reader) => {
-        const clipboard = copyNodes(reader, [item.id]);
-        return pasteNodes({
-          clipboard: {
-            ...clipboard,
-            entries: clipboard.entries.map((entry) =>
-              entry.id === item.id && entry.kind === "node"
-                ? { ...entry, placement }
-                : entry,
-            ),
-          },
+      // The copy's insets move by the drag (its constraint kept — `shiftAbsoluteLayout`).
+      const placement = {
+        offset: { x: Math.round(dx), y: Math.round(dy) },
+      };
+      commands.push((reader) =>
+        pasteNodes({
+          clipboard: copyNodes(reader, [item.id]),
           parent,
           index,
           newId,
+          placement,
           label: "Duplicate",
-        })(reader);
-      });
+        })(reader),
+      );
     }
     if (!commands.length) return undefined;
     const graph = this.host.graph as CatalogGraph;
     return () => composeCommands(graph, "Duplicate", commands);
+  }
+
+  /** A container's padding box (scene) — the containing block of its absolute children. */
+  private containingBlockOf(containerId: string): BoundingBox | undefined {
+    const container = this.host.records.get(containerId);
+    const box = this.host.bounds(containerId);
+    if (!container || !box) return undefined;
+    const border = catalogBoxModel(container).borderWidth;
+    const inset = typeof border === "number" ? border : 0;
+    return {
+      x: box.x + inset,
+      y: box.y + inset,
+      width: box.width - 2 * inset,
+      height: box.height - 2 * inset,
+    };
+  }
+
+  /**
+   * A fixed box's viewport (scene): its page root's origin, the breakpoint's screen size
+   * (ADR-275 Phase 7).
+   */
+  private viewportOf(identity: string): BoundingBox | undefined {
+    let page = this.host.records.get(identity);
+    while (page && page.parentId !== PAGE_GRID)
+      page = this.host.records.get(page.parentId);
+    const box = page && this.host.bounds(page.id);
+    const size = this.host.viewport?.();
+    return box && size ? { x: box.x, y: box.y, ...size } : undefined;
+  }
+
+  /** An authored absolute · fixed node's move inputs (ADR-275); undefined for any other record. */
+  private movingAbsolute(
+    identity: string,
+    id: NodeId,
+  ): MovingAbsolute | undefined {
+    const record = this.host.records.get(identity);
+    const box = this.host.bounds(identity);
+    const cb =
+      record &&
+      (catalogIsAuthoredFixed(record)
+        ? this.viewportOf(identity)
+        : this.containingBlockOf(record.parentId));
+    if (!record || !box || !cb || !catalogIsAuthoredPlaced(record))
+      return undefined;
+    return { record: identity, id, box, cb, layout: record.layout };
+  }
+
+  /** The inset writes that put a box (scene) at its place in `cb` under its constraint. */
+  private positionWrites(
+    layout: Readonly<Record<string, string>>,
+    box: BoundingBox,
+    cb: BoundingBox,
+  ) {
+    return catalogPositionLayoutWrites({
+      layout,
+      constraint: catalogReadPositionConstraint(layout),
+      box: {
+        x: box.x - cb.x,
+        y: box.y - cb.y,
+        width: box.width,
+        height: box.height,
+      },
+      cb,
+      breakpoint: this.host.breakpoint(),
+    });
+  }
+
+  /** A resize's inset writes for an authored absolute box at its resized box. */
+  private resizePositionWrites(gesture: Extract<Gesture, { kind: "resize" }>) {
+    const absolute = gesture.absolute;
+    const start = gesture.position;
+    if (!absolute || !start) return undefined;
+    const { width, height, left, top } = gesture.request;
+    return this.positionWrites(
+      absolute.layout,
+      {
+        x: absolute.cb.x + (left ?? start.left),
+        y: absolute.cb.y + (top ?? start.top),
+        width: width ?? gesture.startBox.width,
+        height: height ?? gesture.startBox.height,
+      },
+      absolute.cb,
+    );
   }
 
   /** A ColorWheel resize's diameter (its S2 `size`); undefined for any other record. */
@@ -1908,13 +2043,7 @@ export class CatalogCanvasGestures {
     const records = this.host.records;
     return container.children.flatMap((id) => {
       const child = records.get(id);
-      if (
-        dragged.has(id) ||
-        !child ||
-        child.placement?.kind === "absolute" ||
-        child.layout.position === "absolute"
-      )
-        return [];
+      if (dragged.has(id) || !child || catalogIsOutOfFlow(child)) return [];
       const box = this.host.bounds(id);
       return box ? [{ id, box }] : [];
     });
@@ -2235,7 +2364,8 @@ export class CatalogCanvasGestures {
         );
       }).length;
       // The dragged item's own cells: shown, and the drop stays (no command).
-      const own = layout.areas[all.findIndex(({ id }) => id === gesture.leader)];
+      const own =
+        layout.areas[all.findIndex(({ id }) => id === gesture.leader)];
       const stays =
         dragged.has(gesture.leader) &&
         !!own &&
@@ -2272,9 +2402,7 @@ export class CatalogCanvasGestures {
    * A grid container's tracks as the overlay draws them (scene starts · sizes, gaps) and its
    * content box — the track headers on its top · left edges (Figma). None for any other record.
    */
-  gridTracksOfRecord(
-    record: string,
-  ): CatalogGridTrackGeometry | undefined {
+  gridTracksOfRecord(record: string): CatalogGridTrackGeometry | undefined {
     const container = this.host.records.get(record);
     const frame = container && this.host.bounds(record);
     const layout = container && this.gridLayoutOf(container, 0, false);
@@ -2537,8 +2665,7 @@ export class CatalogCanvasGestures {
         for (let row = 0; row + item.rowSpan <= rows; row++)
           for (let column = 0; column < columns; column++) {
             if (!fitsAt(row, column, item)) continue;
-            const d =
-              Math.abs(row - item.row) + Math.abs(column - item.column);
+            const d = Math.abs(row - item.row) + Math.abs(column - item.column);
             if (d < distance) {
               distance = d;
               best = { ...item, row, column };
@@ -2621,7 +2748,11 @@ export class CatalogCanvasGestures {
             )
           : [];
       }),
-      ...this.gridRowsFor(container, [...placed, ...moves.values()], breakpoint),
+      ...this.gridRowsFor(
+        container,
+        [...placed, ...moves.values()],
+        breakpoint,
+      ),
     ];
   }
 
@@ -2634,9 +2765,7 @@ export class CatalogCanvasGestures {
     areas: readonly GridArea[],
     breakpoint: ReturnType<CatalogGestureHost["breakpoint"]>,
   ): CatalogCommand[] {
-    const rows = gridTrackList(
-      String(container.layout.gridTemplateRows ?? ""),
-    );
+    const rows = gridTrackList(String(container.layout.gridTemplateRows ?? ""));
     if (!rows?.length) return [];
     const needed = Math.max(0, ...areas.map((area) => area.row + area.rowSpan));
     if (needed <= rows.length) return [];

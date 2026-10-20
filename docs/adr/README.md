@@ -149,6 +149,16 @@
 
 ## 현황
 
+> **2026-10-20 ADR-275 Phase 7 종결 (사용자 결정 6 — fixed 허용)** — 노드 `layout.position: fixed` 저작 허용 (contract 42 그대로). viewport = page body 영역 (원점 + breakpoint 화면 크기, 스크롤 0). 엔진 viewport 배치 패스 · Canvas 는 page 층에서 그리고 page 스크롤을 되돌림 · 패널 Fixed 버튼 (Absolute 의 pin · 칸). Chrome oracle 5 · live Canvas = Preview (스크롤 300 뒤에도 같은 자리). 진행 중 결함 1 수리 (breakpoint Left+Right 폭 `mask` 거부). ADR-267 결정 1 · 2 가 이것으로 닫힘. 열림 · 합계 변화 없음.
+
+> **2026-10-20 ADR-275 Phase 6 종결 (사용자 결정 5 — sticky 허용)** — 노드 `layout.position: sticky` 저작 허용 (ADR-267 결정 1 을 sticky 에 한해 뒤집음, contract 42 그대로). Position 절 Sticky 버튼 활성 (네 칸 = 붙는 거리) · DOM `position: sticky` · Canvas positioned layer (z-index 없는 sticky 는 흐름 형제 위). live 에서 결함 1 수리 (sticky · z-index 로 바뀐 상자의 그리기 순서가 재기록되지 않음). Canvas = Preview (스크롤 150). Fixed 는 그대로 막힘. 열림 · 합계 변화 없음.
+
+> **2026-10-20 ADR-275 Phase 4 종결 · Phase 5 live 통과** — Position 절 혼합 방식 (Relative · Absolute · pin 상자 · 변 옆 칸 · Center X · Y · Fill · 결과 문장) · 가운데 축 margin 잠금. live (Chrome MCP) 10 시나리오 Canvas = Preview · 저장 · 콘솔 0. 남은 것: G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented. 열림 · 합계 변화 없음.
+
+> **2026-10-19 ADR-275 Phase 2 · 3 종결** — 노드 `placement` 삭제 (src 24 파일 · contract 42) · 저작 absolute = layout `position` + `inset*` · 술어 둘 (`catalogIsOutOfFlow` · `catalogIsAuthoredAbsolute`). Canvas ↔ DOM parity 8 제약 손계산 0 px. Canvas drag · resize · 정렬 · 복사 · 붙여넣기가 제약 (Left · Right · Left+Right · Center) 을 지킨다. 진행 중 엔진 결함 수리: auto 크기 부모 (부모가 크기를 정함) 의 absolute 자식이 containing block 0 기준이던 것. 다음: Phase 4 패널. 열림 · 합계 변화 없음.
+
+> **2026-10-19 ADR-275 Accepted · Phase 0 · 1 종결** (사용자 `/execute-adr 275`) — G0 go: `unsafe center` 자기 정렬이 Chromium 156 · WebKit 27.2 에서 27 / 27 가운데 (넘침 포함, 대조군 `center` 는 넘침 9 건이 0). 소비자 실측 src 24 (작성일 17). G1: 엔진이 absolute 자기 정렬을 읽고, 늘이기 제외 판정과 padding · border 가산 판정을 나눴다 · `fit-content` 는 늘이지 않는다 · 양쪽 margin auto 음수 여유는 가로 0 / 세로 반씩. Chrome oracle 19 / 19 · Rust 538 · 변이 RED. 다음: Phase 2 저장 통일. 열림 · 합계 변화 없음.
+
 > **2026-10-19 ADR-275 Proposed 추가** (사용자 `/create-adr 혼합방식 으로 position 설계`) — Position 절을 Figma 규칙 (pin 4 변 + 가운데 십자선 · 축은 비지 않음) + Framer 칸 배치 (변 옆 T · R · B · L 칸 · 빈 칸 입력 = 그 변으로 바꿈) 로. 실측: 저장 형식이 `placement {x, y}` (px) 하나라 오른쪽 · 아래 기준 · 늘이기 · 가운데 · `%` · breakpoint 별 위치가 저장되지 않고, 패널은 `%` 를 보여 주지만 쓰기는 거부한다. 노드 placement 소비자 src 17 · test 6. 엔진은 absolute 의 `fit-content` 를 명시 크기로 보지 않아 Hug 상자의 가운데가 늘어난다 (`tree.rs` `resolve_dimension_opt` 센티넬). 채택 A (사용자 선택): 저작 absolute = `layout.position` + `inset*` 통일 · `placement` 삭제 · 가운데 = 양쪽 inset + margin auto (사용자 선택) · 엔진 수리 먼저. 기각: placement 넓히기 (경로 둘 유지) · 제약 필드 저장 (ADR-026 기각 사유) · translate 가운데 (paint-only 라 상자 어긋남). 사용자 결정 3 같은 날 확정 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 = Figma · Framer 방식 · relative Right/Bottom 비활성). 리뷰 round 1 (codex — HIGH 2 · MEDIUM 1) 같은 날 반영: 엔진 stretch 제외 ↔ 상자 기준 판정 분리 · 술어 둘 (바깥 흐름 / 저작 위치) · 사용자 결정 4 「figma,framer 처럼 가운데」 → 넘쳐도 가운데, 가운데 표현을 margin auto 에서 inset + `justify-self` / `align-self: unsafe center` 로 변경 (Chrome · WebKit go/no-go 선행, 실패 시 Fixed 폭 calc 대체안). 열림 +1 (열림 2 — Proposed 2 (245 · 275), 합계 297).
 
 > **2026-10-18 ADR-274 Implemented** (사용자 `/execute-adr 274`, Phase 0 ~ 3 / G0 ~ G5 같은 날) — 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율. 줌은 입력이 아니라서 확대 · 축소가 배치를 바꾸지 않는다. 열 수는 root `pageLayout()` 안에서 tier 의 gap · 트랙 폭으로 계산하므로 breakpoint 전환 · gap · 배율 편집의 두 번째 패스가 없다. Settings 열 수 칸: `%` = Auto (기준 배율), 단위 없음 = Fixed 개수. 사용자 결정: 배율 breakpoint 공통 · 범위 10 ~ 100 % · ratchet A 49 키 `--raise` (줌 갱신 사유 이동 · 시작 배치 변경). 줌 `translateCalls` 977 ~ 5,170 → 0. production 짝: 페이지 100 개 문서 줌 taskMs 2,497 → 870 · p99 49.9 → 17.6 ms · long task 4 → 0, 22 페이지 문서 줌 1,009 → 541. breakpoint 전환 · gap 편집 · 페이지 전환 · 편집은 회귀 0. live (사용자 프로젝트) 6 시나리오 PASS. live 에서 단위 입력의 빈 단위 대체 결함을 찾아 고쳤다. 열림 −1, 완료 +1 (열림 1 — Proposed 1 (245), 합계 296).
@@ -407,8 +417,8 @@
 
 #### [275](275-position-section-figma-rules-framer-fields-layout-insets.md) — Position 절: Figma 규칙 + Framer 칸 배치, 저장은 layout inset
 
-- **상태**: Proposed — 2026-10-19
-- **규모**: Phase 0 소비자 목록 · Chrome oracle → Phase 1 엔진 (absolute intrinsic 키워드 크기) → Phase 2 `placement` 삭제 · 공용 술어 · 저장 통일 → Phase 3 Canvas drag 가 제약 유지 → Phase 4 패널 (pin 상자 · 변 옆 칸 · 빠른 버튼 · 결과 문장) → Phase 5 live · `/cross-check` · ratchet. 사용자 결정 3 확정 2026-10-19 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 · relative Right/Bottom 비활성) · 사용자 결정 4 확정 (넘쳐도 가운데 → `unsafe center` 자기 정렬, Phase 0 go/no-go). breakdown: [design/275](design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
+- **상태**: Accepted — Phase 0 ~ 4 · 6 (sticky) · 7 (fixed) 종결 · Phase 5 live 통과 (2026-10-20) — G5 · G6 대기
+- **규모**: Phase 0 소비자 목록 · Chrome oracle → Phase 1 엔진 (absolute intrinsic 키워드 크기) → Phase 2 `placement` 삭제 · 공용 술어 · 저장 통일 → Phase 3 Canvas drag 가 제약 유지 → Phase 4 패널 (pin 상자 · 변 옆 칸 · Fill · 결과 문장 — 사용자 결정 7 · 8 로 Center 버튼 제거 · 도식 = Alignment 크기) → Phase 5 live · `/cross-check` · ratchet. 사용자 결정 3 확정 2026-10-19 (contract 42 전부 거부 · 가운데 축 margin 칸 잠금 · relative Right/Bottom 비활성) · 사용자 결정 4 확정 (넘쳐도 가운데 → `unsafe center` 자기 정렬, Phase 0 go/no-go). breakdown: [design/275](design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -437,12 +447,12 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                                         |
-| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Proposed 2026-10-19 — 리뷰 전                                                     | 리뷰 r1 반영 · 수리 검증 대기 · Phase 0 A4 go/no-go (Chrome · WebKit) · Phase 1 엔진 수리가 패널 가운데 쓰기의 선행 |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                      |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                              |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                         |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
+| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                      | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                       |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 

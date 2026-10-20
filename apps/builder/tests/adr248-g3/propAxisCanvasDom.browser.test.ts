@@ -399,13 +399,18 @@ function documentFor(
     ) as NodeEntry["props"],
     visual: {},
     sizing: { width: { kind: "set", value: 420 } },
-    placement: { kind: "absolute", x: 30, y: 30 },
+    layout: {
+      // ADR-275: an authored absolute box = layout position + insets.
+      position: { kind: "set", value: "absolute" },
+      insetLeft: { kind: "set", value: `${30}px` },
+      insetTop: { kind: "set", value: `${30}px` },
+    },
     descendantOverrides: [],
   };
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 41,
+    libraryContractVersion: 42,
     revision: 0,
     projectId,
     rootId: projectId,

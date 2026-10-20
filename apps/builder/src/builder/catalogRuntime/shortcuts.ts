@@ -1,10 +1,15 @@
 import {
   moveNodes,
-  setWholeField,
+  setFields,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogBoxModel } from "./boxModel";
+import { catalogIsAuthoredAbsolute } from "../../../../../packages/shared/src/catalog/runtime/positioning";
+import {
+  catalogPositionLayoutWrites,
+  catalogReadPositionConstraint,
+} from "./positionConstraint";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
   notifyBodyLocked,
@@ -33,6 +38,7 @@ import { openDesignPanel } from "../panels/design/designPanelView";
 import { catalogPageDropCommand } from "./canvasPage";
 import { confirmCatalogDetach } from "./componentConfirm";
 import { catalogComponentCommands } from "./componentActions";
+import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogWorkspace } from "./workspace";
 
 const PAGE_GRID = "catalog:root";
@@ -189,17 +195,18 @@ export function catalogArrangeCommand(
 
 /** One menu snapshot: share geometry and id lookup across all eight arrange actions. */
 function prepareCatalogArrange(workspace: CatalogWorkspace, minimum = 2) {
+  // ADR-275: authored absolute boxes (layout `position: absolute`), each kept on its constraint.
   const placed = workspace.session.getSnapshot().selection.flatMap((item) => {
     if (item.target.kind !== "node") return [];
-    const placement = workspace.readModel.ownFields(item.target).placement;
-    return placement?.kind === "absolute"
-      ? [{ id: item.target.id, identity: item.identity, placement }]
+    const record = workspace.root.domInputs.get(item.identity);
+    return record && catalogIsAuthoredAbsolute(record)
+      ? [{ id: item.target.id, identity: item.identity, record }]
       : [];
   });
   if (placed.length < minimum) return () => undefined;
   const geometry = workspace.root.getGeometry(placed.map((p) => p.identity));
   const nodes = new Map(
-    placed.flatMap(({ id, identity, placement }) => {
+    placed.flatMap(({ id, identity }) => {
       const rect = geometry.get(identity);
       return rect
         ? [
@@ -209,8 +216,8 @@ function prepareCatalogArrange(workspace: CatalogWorkspace, minimum = 2) {
                 id,
                 props: {
                   style: {
-                    left: `${placement.x}px`,
-                    top: `${placement.y}px`,
+                    left: `${rect.x}px`,
+                    top: `${rect.y}px`,
                     width: `${rect.width}px`,
                     height: `${rect.height}px`,
                   },
@@ -222,7 +229,26 @@ function prepareCatalogArrange(workspace: CatalogWorkspace, minimum = 2) {
     }),
   );
   const ids = [...nodes.keys()];
-  const placements = new Map(placed.map((p) => [p.id, p.placement]));
+  const byId = new Map(placed.map((p) => [p.id, p]));
+  // A containing block's size matters only to a box pinned to an end, centred or in `%` — read
+  // once, and only then (a Left · Top px box needs no parent geometry).
+  let parents: ReturnType<typeof workspace.root.getGeometry> | undefined;
+  const containingSize = (record: CatalogConsumerNode) => {
+    const constraint = catalogReadPositionConstraint(record.layout);
+    const percent = Object.values(record.layout).some((v) => v.endsWith("%"));
+    if (constraint.x === "start" && constraint.y === "start" && !percent)
+      return { width: 0, height: 0 };
+    parents ??= workspace.root.getGeometry([
+      ...new Set(placed.map((p) => p.record.parentId)),
+    ]);
+    const parent = workspace.root.domInputs.get(record.parentId);
+    const rect = parents.get(record.parentId);
+    const border = parent ? catalogBoxModel(parent).borderWidth : undefined;
+    const inset = typeof border === "number" ? border : 0;
+    return rect
+      ? { width: rect.width - 2 * inset, height: rect.height - 2 * inset }
+      : { width: 0, height: 0 };
+  };
   return (id: CatalogArrangeShortcutId): CatalogCommand | undefined => {
     const rule = ARRANGE[id];
     if (placed.length < ("align" in rule ? 2 : 3)) return undefined;
@@ -232,19 +258,35 @@ function prepareCatalogArrange(workspace: CatalogWorkspace, minimum = 2) {
         : distributeElements(ids, nodes, rule.distribute);
     const px = (value: string | undefined, fallback: number) =>
       value === undefined ? fallback : Math.round(parseFloat(value));
+    const breakpoint = workspace.session.getSnapshot().breakpoint;
     const commands = updates.flatMap((update) => {
-      const from = placements.get(update.id as NodeId)!;
-      const x = px(update.style.left, from.x);
-      const y = px(update.style.top, from.y);
-      return x === from.x && y === from.y
-        ? []
-        : [
-            setWholeField({
-              targets: [{ kind: "node", id: update.id as NodeId }],
-              field: "placement",
-              value: { ...from, x, y },
-            }),
-          ];
+      const item = byId.get(update.id as NodeId)!;
+      const rect = geometry.get(item.identity)!;
+      const parent = workspace.root.domInputs.get(item.record.parentId);
+      if (!parent) return [];
+      const x = px(update.style.left, rect.x);
+      const y = px(update.style.top, rect.y);
+      if (x === Math.round(rect.x) && y === Math.round(rect.y)) return [];
+      const border = catalogBoxModel(parent).borderWidth;
+      const inset = typeof border === "number" ? border : 0;
+      return [
+        setFields({
+          targets: [{ kind: "node", id: item.id }],
+          breakpoint,
+          layout: catalogPositionLayoutWrites({
+            layout: item.record.layout,
+            constraint: catalogReadPositionConstraint(item.record.layout),
+            box: {
+              x: x - inset,
+              y: y - inset,
+              width: rect.width,
+              height: rect.height,
+            },
+            cb: containingSize(item.record),
+            breakpoint,
+          }),
+        }),
+      ];
     });
     if (!commands.length) return undefined;
     const label = "align" in rule ? "Align" : "Distribute";

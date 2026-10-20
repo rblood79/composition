@@ -28,7 +28,6 @@ const frame = (patch: Partial<CatalogConsumerNode>): CatalogConsumerNode => ({
   visual: {},
   layout: {},
   sizing: {},
-  placement: undefined,
   slot: undefined,
   name: undefined,
   regions: undefined,

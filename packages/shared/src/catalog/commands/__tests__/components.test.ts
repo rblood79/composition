@@ -128,7 +128,7 @@ describe("ADR-248 Phase 4b component commands", () => {
       [
         node("card", "lib:definition:section", {
           children: ["project:node:t"],
-          placement: { kind: "absolute", x: 10, y: 20 },
+          layout: { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "10px" }, insetTop: { kind: "set", value: "20px" } },
         }),
         text("t", "Title"),
       ],
@@ -155,9 +155,9 @@ describe("ADR-248 Phase 4b component commands", () => {
       templateRootId: "project:node:card",
       originRef: true,
     });
-    expect(
-      (graph.getEntry("project:node:card") as NodeEntry).placement,
-    ).toEqual({ kind: "absolute", x: 10, y: 20 });
+    expect((graph.getEntry("project:node:card") as NodeEntry).layout).toEqual(
+      { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "10px" }, insetTop: { kind: "set", value: "20px" } },
+    );
     expect(graph.ownerOf("project:node:card")).toBe(PAGE);
     expect(pageView(graph)).toEqual(shown);
     // An instance placed later shows the origin's content.
@@ -181,7 +181,7 @@ describe("ADR-248 Phase 4b component commands", () => {
       [
         node("card", "lib:definition:section", {
           children: ["project:node:t"],
-          placement: { kind: "absolute", x: 10, y: 20 },
+          layout: { position: { kind: "set", value: "absolute" }, insetLeft: { kind: "set", value: "10px" }, insetTop: { kind: "set", value: "20px" } },
         }),
         text("t", "Title"),
       ],

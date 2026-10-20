@@ -1,4 +1,9 @@
 import { componentTypeSet } from "../../domain/componentTraits";
+import {
+  absoluteStart,
+  layoutIsAbsolute,
+  shiftAbsoluteLayout,
+} from "../document/absoluteLayout";
 import { cloneNodeSubgraph } from "../document/clone";
 import { ownedChildren, referencedIds, tokenRefs } from "../document/graph";
 import {
@@ -14,11 +19,11 @@ import type {
   InteractionEntry,
   NodeEntry,
   NodeId,
-  NodePlacement,
   ProjectEntry,
   StateVariableEntry,
   TemplateId,
   TokenEntry,
+  LayoutWrites,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CatalogStage } from "../transactions/transaction";
@@ -1293,21 +1298,25 @@ function placeCopies(
   placement: CopyPlacement | undefined,
 ): void {
   if (!placement) return;
-  const placed = roots.filter((root) => root.placement?.kind === "absolute");
-  const first = placed[0]?.placement;
+  // ADR-275: an authored absolute copy moves by its insets and keeps its constraint.
+  const placed = roots.filter((root) => layoutIsAbsolute(root.layout));
+  const first = placed[0]?.layout;
   if (!first) return;
-  const offset =
-    "offset" in placement
-      ? placement.offset
-      : { x: placement.at.x - first.x, y: placement.at.y - first.y };
-  for (const root of placed) {
-    const current = root.placement!;
-    (root as { placement: NodePlacement }).placement = {
-      ...current,
-      x: current.x + offset.x,
-      y: current.y + offset.y,
-    };
-  }
+  // "Paste here": the first copy's start edge goes to the point. An axis pinned to its end (or
+  // centered) has no start offset without geometry — the copies keep that axis.
+  const delta = (axis: "x" | "y") => {
+    if ("offset" in placement) return placement.offset[axis];
+    const start = absoluteStart(first, axis);
+    return start === undefined ? 0 : placement.at[axis] - start;
+  };
+  const dx = delta("x");
+  const dy = delta("y");
+  for (const root of placed)
+    (root as { layout: LayoutWrites }).layout = shiftAbsoluteLayout(
+      root.layout!,
+      dx,
+      dy,
+    );
 }
 
 export interface DuplicateNodesInput {

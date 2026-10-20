@@ -30,7 +30,6 @@ export function catalogFillLayout(
       ...(box.minWidth !== undefined ? { minWidth: box.minWidth } : {}),
       ...(box.minHeight !== undefined ? { minHeight: box.minHeight } : {}),
       ...item.layout,
-      ...(item.placement ? { position: "absolute" } : {}),
       ...(item.visual.aspectRatio !== undefined
         ? { aspectRatio: item.visual.aspectRatio }
         : {}),

@@ -106,9 +106,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * ColorWheelTrack + ColorThumb` (origins `component-colorarea` · `-colorslider` · `-colorwheel`; the
  * new types ColorThumb · ColorWheelTrack). A ColorArea · ColorSlider · ColorWheel saved without
  * those parts is a 40 document (사용자 결정 1 — refused, not converted).
+ * 42 — ADR-275 Phase 2: an authored absolute box is `layout.position: absolute` + `inset*` (the
+ * node `placement` field is gone). A 41 document with a `placement` is refused (사용자 결정 1).
+ * ADR-275 Phase 6 (same contract — additive): a node's `layout.position` may be `sticky`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 41 as const;
+export const LIBRARY_CONTRACT_VERSION = 42 as const;
 
 export type EntryKind =
   | "project"
@@ -296,7 +299,8 @@ export type LayoutField =
   // `insetTop`) — a stylesheet-placed sub-part (a collection item's icon slot).
   | "insetLeft"
   | "insetTop"
-  // ADR-248 Phase 4a: node-authored absolute placement from the other two edges.
+  // ADR-275: a node-authored absolute box takes any of the four (Position section constraints); a
+  // sticky box's are its stick thresholds (Phase 6 — unset = auto, that side does not stick).
   | "insetRight"
   | "insetBottom"
   | "flexGrow"
@@ -386,12 +390,6 @@ export interface PagePlacementDeclaration {
   breakpoints: Partial<
     Record<BreakpointName, Partial<Record<PagePlacementField, string | number>>>
   >;
-}
-/** Pixel offsets from the immediate parent's padding-box origin. */
-export interface NodePlacement {
-  kind: "absolute";
-  x: number;
-  y: number;
 }
 export interface PageGuideDeclaration {
   id: string;
@@ -767,7 +765,6 @@ export interface NodeEntry {
   props: PropWrites;
   visual: VisualWrites;
   sizing: SizingWrites;
-  placement?: NodePlacement;
   stateRules?: StateRules;
   descendantOverrides: readonly DescendantOverride[];
   binding?: DataBindingRef;

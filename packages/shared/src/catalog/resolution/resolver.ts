@@ -16,7 +16,6 @@ import type {
   LibraryDescendantPatch,
   NodeEntry,
   NodeId,
-  NodePlacement,
   PropValue,
   PropWrites,
   Scalar,
@@ -93,7 +92,6 @@ export interface ResolvedCatalogNode {
    */
   authoredLayout?: Readonly<Record<string, string>>;
   sizing: Readonly<Record<string, number | null>>;
-  placement?: NodePlacement;
   /** Authored paint layers (Phase 4a); absent = the definition's fill. */
   fills?: readonly CatalogFillLayer[];
   /** ADR-224 fill intent after the breakpoint cascade. */
@@ -1335,7 +1333,6 @@ export function resolveCatalogNode(
       ...(ownStates ? { stateVisual: ownStates } : {}),
       layout,
       sizing,
-      placement: node.placement,
       ...(Object.keys(ownLayout).length ? { authoredLayout: ownLayout } : {}),
       ...authoredExtras(node, layers),
       slot: node.slot ?? inherited?.slot,
@@ -1444,7 +1441,6 @@ export function resolveCatalogNode(
         visual,
         layout,
         sizing: {},
-        placement: undefined,
         slot: undefined,
         name: undefined,
         regions: undefined,
@@ -2162,7 +2158,6 @@ export function resolveCatalogNode(
       ...(templateStates ? { stateVisual: templateStates } : {}),
       layout,
       sizing,
-      placement: "kind" in template ? template.placement : undefined,
       ...(Object.keys(templateAuthored).length
         ? { authoredLayout: templateAuthored }
         : {}),

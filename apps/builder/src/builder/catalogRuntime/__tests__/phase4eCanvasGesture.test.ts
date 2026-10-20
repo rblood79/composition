@@ -11,7 +11,6 @@ import type {
 import {
   insertNodes,
   setFields,
-  setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogCanvasGestures } from "../canvasGesture";
 import { pickTopmostRecord } from "../canvasPick";
@@ -22,6 +21,7 @@ import { CatalogWorkspace } from "../workspace";
 import type { CatalogSpacingLive } from "../spacingLive";
 import { readSessionSpacingValue } from "../../presentation/useSpacingSession";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+import { placeAbsolute, absolutePlacementOf } from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 Phase 4e-3b Canvas gestures: a drag past the threshold previews in the overlay only and
@@ -128,6 +128,7 @@ async function open(options: { paddingLinked?: () => boolean } = {}) {
     ...(options.paddingLinked ? { paddingLinked: options.paddingLinked } : {}),
     spacingLive: (next) => live.push(next),
     ownFields: (target) => workspace.readModel.ownFields(target),
+    viewport: () => workspace.root.viewport,
   });
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const box = (name: string) => scene.stream.boundsMap.get(record(name))!;
@@ -213,14 +214,17 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
   });
 
   it("an absolutely placed node moves by offset (its placement); a left/top handle moves it too", async () => {
-    const { workspace, gestures, record, center, box } = await open();
+    const { workspace, scene, gestures, record, center, box } = await open();
+    workspace.execute(placeAbsolute({ kind: "node", id: id("d") }, 10, 12));
+    // Its parent keeps a height of its own (an absolute child adds none): the drag stays over it.
     workspace.execute(
-      setWholeField({
-        targets: [{ kind: "node", id: id("d") }],
-        field: "placement",
-        value: { kind: "absolute", x: 10, y: 12 },
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: { height: { kind: "set", value: 200 } },
       }),
     );
+    // The Canvas draws the placed box before the user grabs it (the move starts from it).
+    scene.sync();
     workspace.selectRecords([record("d")]);
     const [x, y] = center("d");
     gestures.beginMove(x, y, record("d"));
@@ -229,7 +233,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     gestures.finish();
     const placement = () => {
       const entry = workspace.runtime.graph.getEntry(id("d"));
-      return entry?.kind === "node" ? entry.placement : undefined;
+      return absolutePlacementOf(entry);
     };
     expect(placement()).toEqual({ kind: "absolute", x: 40, y: 17 });
 
@@ -248,15 +252,129 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     expect(workspace.runtime.graph.revision).toBe(revision + 1);
   });
 
-  it("an absolute drag snaps to its parent's edge and to manual guides; ⌘ (snap off) moves freely", async () => {
-    const { workspace, gestures, record, center, box, guides } = await open();
+  // ADR-275 Decision 5: a drag keeps the box's constraint — a Right box moves its right inset, a
+  // Center box its offset (both insets), and a Left+Right box both sides by the same amount.
+  it.each([
+    [
+      "Right · Bottom",
+      { insetRight: "30px", insetBottom: "40px" },
+      { insetRight: "20px", insetBottom: "35px" },
+    ],
+    [
+      "Center",
+      {
+        insetLeft: "0px",
+        insetRight: "0px",
+        justifySelf: "unsafe center",
+        insetTop: "0px",
+        insetBottom: "0px",
+        alignSelf: "unsafe center",
+      },
+      {
+        insetLeft: "10px",
+        insetRight: "-10px",
+        insetTop: "5px",
+        insetBottom: "-5px",
+      },
+    ],
+    [
+      "Left+Right",
+      { insetLeft: "20px", insetRight: "20px", insetTop: "10px" },
+      { insetLeft: "30px", insetRight: "10px", insetTop: "15px" },
+    ],
+  ])(
+    "an absolute drag keeps its constraint — %s (ADR-275)",
+    async (_, layout, expected) => {
+      const { workspace, scene, gestures, record, center } = await open();
+      const set = (value: string) => ({ kind: "set" as const, value });
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: id("box") }],
+          sizing: { height: { kind: "set", value: 200 } },
+        }),
+      );
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: id("d") }],
+          layout: {
+            position: set("absolute"),
+            ...Object.fromEntries(
+              Object.entries(layout).map(([key, value]) => [key, set(value)]),
+            ),
+          },
+          // A Left+Right box stretches (width auto — Decision 4; the Text definition's is 100 %).
+          ...("insetLeft" in layout &&
+          "insetRight" in layout &&
+          !("justifySelf" in layout)
+            ? { visual: { width: set("auto") } }
+            : { sizing: { width: { kind: "set", value: 60 } } }),
+        }),
+      );
+      scene.sync();
+      workspace.selectRecords([record("d")]);
+      const [x, y] = center("d");
+      gestures.beginMove(x, y, record("d"));
+      gestures.update(x + 10, y + 5, 1);
+      gestures.finish();
+      const entry = workspace.runtime.graph.getEntry(id("d"));
+      const written = Object.fromEntries(
+        Object.entries((entry?.kind === "node" && entry.layout) || {}).map(
+          ([key, write]) => [key, write?.kind === "set" ? write.value : write],
+        ),
+      );
+      expect(written).toMatchObject(expected);
+      // The constraint's other sides are not added (a Right box gets no Left).
+      if (!("insetLeft" in layout)) expect(written.insetLeft).toBeUndefined();
+    },
+  );
+
+  // ADR-275 Phase 7: a fixed box's drag writes its insets in the page viewport (1920 × 1080), not
+  // its parent — a Right · Bottom box moves its right · bottom insets from the screen's edges.
+  it("a fixed drag keeps its constraint in the page viewport (ADR-275 Phase 7)", async () => {
+    const { workspace, scene, gestures, record, center } = await open();
+    const set = (value: string) => ({ kind: "set" as const, value });
     workspace.execute(
-      setWholeField({
+      setFields({
         targets: [{ kind: "node", id: id("d") }],
-        field: "placement",
-        value: { kind: "absolute", x: 10, y: 12 },
+        layout: {
+          position: set("fixed"),
+          insetRight: set("30px"),
+          insetBottom: set("40px"),
+        },
+        sizing: { width: { kind: "set", value: 60 } },
       }),
     );
+    scene.sync();
+    const body = scene.stream.boundsMap.get(
+      workspace.root.recordsOfSource(BODY)[0],
+    )!;
+    const placed = scene.stream.boundsMap.get(record("d"))!;
+    expect(placed.x + placed.width - body.x).toBe(1920 - 30);
+    workspace.selectRecords([record("d")]);
+    const [x, y] = center("d");
+    gestures.beginMove(x, y, record("d"));
+    gestures.update(x + 10, y + 5, 1);
+    gestures.finish();
+    const entry = workspace.runtime.graph.getEntry(id("d"));
+    const layout = entry?.kind === "node" ? entry.layout : undefined;
+    expect(layout?.insetRight).toEqual(set("20px"));
+    expect(layout?.insetBottom).toEqual(set("35px"));
+    expect(layout?.insetLeft).toBeUndefined();
+  });
+
+  it("an absolute drag snaps to its parent's edge and to manual guides; ⌘ (snap off) moves freely", async () => {
+    const { workspace, scene, gestures, record, center, box, guides } =
+      await open();
+    workspace.execute(placeAbsolute({ kind: "node", id: id("d") }, 10, 12));
+    // Its parent keeps a height of its own (an absolute child adds none): the drag stays over it.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: { height: { kind: "set", value: 200 } },
+      }),
+    );
+    // The Canvas draws the placed box before the user grabs it (the move starts from it).
+    scene.sync();
     workspace.selectRecords([record("d")]);
     const parent = box("box");
     const start = box("d");
@@ -275,7 +393,7 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     gestures.update(x + dx, y + 20, 1, { snap: true });
     gestures.finish();
     const entry = workspace.runtime.graph.getEntry(id("d"));
-    expect(entry?.kind === "node" && entry.placement).toEqual({
+    expect(absolutePlacementOf(entry)).toEqual({
       kind: "absolute",
       x: Math.round(10 + parent.x - start.x),
       y: 32,
@@ -632,13 +750,7 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
     expect(children("list")).toEqual([id("a"), id("b"), id("c")]);
 
     // Over its own box a copy still drops (next to the original): no no-op shortcut.
-    workspace.execute(
-      setWholeField({
-        targets: [{ kind: "node", id: id("d") }],
-        field: "placement",
-        value: { kind: "absolute", x: 10, y: 12 },
-      }),
-    );
+    workspace.execute(placeAbsolute({ kind: "node", id: id("d") }, 10, 12));
     workspace.selectRecords([record("d")]);
     const [dx, dy] = center("d");
     gestures.beginMove(dx, dy, record("d"), { copy: true });
@@ -647,7 +759,7 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
     const [original, duplicate] = children("box");
     const placementOf = (nodeId: NodeId | undefined) => {
       const entry = nodeId ? workspace.runtime.graph.getEntry(nodeId) : null;
-      return entry?.kind === "node" ? entry.placement : undefined;
+      return absolutePlacementOf(entry);
     };
     expect(original).toBe(id("d"));
     expect(placementOf(original)).toEqual({ kind: "absolute", x: 10, y: 12 });
@@ -762,16 +874,10 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
     const { workspace, scene, gestures, record, center, box, children } =
       await open();
     const place = (name: string, x: number, y: number) =>
-      workspace.execute(
-        setWholeField({
-          targets: [{ kind: "node", id: id(name) }],
-          field: "placement",
-          value: { kind: "absolute", x, y },
-        }),
-      );
+      workspace.execute(placeAbsolute({ kind: "node", id: id(name) }, x, y));
     const placementOf = (name: string) => {
       const entry = workspace.runtime.graph.getEntry(id(name));
-      return entry?.kind === "node" ? entry.placement : undefined;
+      return absolutePlacementOf(entry);
     };
     // The frame keeps a size of its own (an absolute child takes none).
     workspace.execute(
@@ -841,7 +947,7 @@ describe("ADR-248 4e-8 drag modifiers and nesting notices", () => {
 describe("Canvas drop rules (Figma)", () => {
   const placementOf = (workspace: CatalogWorkspace, name: string) => {
     const entry = workspace.runtime.graph.getEntry(id(name));
-    return entry?.kind === "node" ? entry.placement : undefined;
+    return absolutePlacementOf(entry);
   };
 
   it("over another item's cell (Figma, 2026-10-16 사용자 결정): the node takes it, the item in its way goes to the nearest empty cell", async () => {
@@ -1350,13 +1456,7 @@ describe("Canvas drop rules (Figma)", () => {
 
   it("absolute siblings take no flow slot: the line follows the flow children", async () => {
     const { workspace, scene, gestures, record, box, center } = await open();
-    workspace.execute(
-      setWholeField({
-        targets: [{ kind: "node", id: id("b") }],
-        field: "placement",
-        value: { kind: "absolute", x: 0, y: 300 },
-      }),
-    );
+    workspace.execute(placeAbsolute({ kind: "node", id: id("b") }, 0, 300));
     scene.sync();
     workspace.selectRecords([record("c")]);
     const [cx, cy] = center("c");
@@ -1649,13 +1749,7 @@ describe("drag guides — distances (absolute) and the centre line (flow)", () =
         sizing: { width: { kind: "set", value: 80 } },
       }),
     );
-    workspace.execute(
-      setWholeField({
-        targets: [{ kind: "node", id: id("d") }],
-        field: "placement",
-        value: { kind: "absolute", x: 10, y: 12 },
-      }),
-    );
+    workspace.execute(placeAbsolute({ kind: "node", id: id("d") }, 10, 12));
     scene.sync();
     workspace.selectRecords([record("d")]);
     const parent = box("box");

@@ -9,13 +9,14 @@ import type {
   StateVariableEntry,
   InteractionEntry,
 } from "./types";
+import { positionLayout } from "./absoluteLayout";
 import { CatalogValidationError } from "./validation";
 
 /**
  * Clones owned records only. Definition, library and external data references remain IDs.
  * `asInstance` (ADR-260 Decision 8): a node it names a definition for (a component origin) is
  * copied as an instance of that definition — a node of its own with no subtree, at the origin's
- * placement.
+ * position (its authored absolute `layout` keys — ADR-275).
  */
 export function cloneNodeSubgraph(
   graph: Pick<CatalogReader, "getEntry" | "referrersOf">,
@@ -165,8 +166,10 @@ export function cloneNodeSubgraph(
           visual: {},
           sizing: {},
           descendantOverrides: [],
-          ...(entry.placement
-            ? { placement: structuredClone(entry.placement) }
+          ...(entry.layout?.position?.kind === "set" &&
+          (entry.layout.position.value === "absolute" ||
+            entry.layout.position.value === "fixed")
+            ? { layout: positionLayout(entry.layout) }
             : {}),
         };
       return {

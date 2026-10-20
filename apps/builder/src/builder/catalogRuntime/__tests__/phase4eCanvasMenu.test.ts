@@ -23,6 +23,10 @@ import {
   resolveEditingSemanticsImpactConfirmation,
   subscribeEditingSemanticsImpactConfirmation,
 } from "../../utils/editingSemanticsImpactConfirmation";
+import {
+  absoluteLayout,
+  absolutePlacementOf,
+} from "./absoluteLayoutFixture";
 
 /**
  * ADR-248 Phase 4e-3b Canvas context menu: items over the selection are the new commands (each
@@ -202,7 +206,7 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
         width: { kind: "set", value: 40 },
         height: { kind: "set", value: 20 },
       },
-      placement: { kind: "absolute", x, y },
+      layout: absoluteLayout(x, y),
     });
     workspace.execute(
       insertNodes({
@@ -259,9 +263,7 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
     expect(workspace.runtime.historyLabels.undo.length).toBe(undo + 1);
     const xs = ["p", "q", "r"].map((name) => {
       const entry = workspace.runtime.graph.getEntry(id(name));
-      return entry?.kind === "node" && entry.placement?.kind === "absolute"
-        ? entry.placement.x
-        : null;
+      return absolutePlacementOf(entry)?.x ?? null;
     });
     expect(xs).toEqual([10, 10, 10]);
     // Without the host's arrange there is no submenu (the old flow-only menu).

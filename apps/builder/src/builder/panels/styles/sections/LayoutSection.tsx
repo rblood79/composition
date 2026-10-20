@@ -54,6 +54,7 @@ import {
 } from "../../../presentation/useSpacingSession";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 import { GridSizePicker } from "./GridSizePicker";
+import { PaddingFields } from "./PaddingFields";
 import { useParentDisplay } from "../hooks/useTransformAuxiliary";
 import {
   gridTemplateOf,
@@ -249,7 +250,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       return {
         axis,
         template: gridTrackListTemplate(gridTrackListResized(tracks, count)),
-        removed: tracks.map((_, index) => index).filter((index) => index >= count),
+        removed: tracks
+          .map((_, index) => index)
+          .filter((index) => index >= count),
       };
     });
     if (host.applyGridTracks) host.applyGridTracks(selectedId, edits);
@@ -408,7 +411,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               <ToggleButton id="rightTop" aria-label={localize("Top right")}>
                 <span className="alignment-dot" />
               </ToggleButton>
-              <ToggleButton id="leftCenter" aria-label={localize("Middle left")}>
+              <ToggleButton
+                id="leftCenter"
+                aria-label={localize("Middle left")}
+              >
                 <span className="alignment-dot" />
               </ToggleButton>
               <ToggleButton
@@ -423,7 +429,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               >
                 <span className="alignment-dot" />
               </ToggleButton>
-              <ToggleButton id="leftBottom" aria-label={localize("Bottom left")}>
+              <ToggleButton
+                id="leftBottom"
+                aria-label={localize("Bottom left")}
+              >
                 <span className="alignment-dot" />
               </ToggleButton>
               <ToggleButton
@@ -445,7 +454,9 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
         <div className="fieldset-actions">
           {isGrid && (
             <GridSizePicker
-              columns={gridTrackList(styleValues.gridTemplateColumns)?.length ?? 0}
+              columns={
+                gridTrackList(styleValues.gridTemplateColumns)?.length ?? 0
+              }
               rows={gridTrackList(styleValues.gridTemplateRows)?.length ?? 0}
               onPick={pickGridSize}
             />
@@ -611,7 +622,12 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
         </div>
       ) : null}
 
-      {/* Padding · Margin 은 Spacing 절 (박스 모델) 로 — SpacingSection (panel-ui 01) */}
+      {/* Padding — Figma 구성 (ADR-275 사용자 결정 10): 가로 · 세로 + 펼침. margin 은 패널에서 편집하지 않는다 */}
+      <PaddingFields
+        key={selectedId ?? ""}
+        values={styleValues}
+        selectedId={selectedId}
+      />
     </>
   );
 });

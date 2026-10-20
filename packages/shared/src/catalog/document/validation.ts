@@ -192,7 +192,9 @@ const layoutValueChoices: Readonly<
     "end",
   ),
   flexWrap: keyword("nowrap", "wrap", "wrap-reverse"),
-  position: keyword("static", "relative", "absolute"),
+  // ADR-275 Phase 6 · 7 (사용자 결정 5 · 6, 2026-10-20 — ADR-267 결정 1 · 2): a node sticks in its
+  // scroll container at its insets (sticky), or is placed in the page viewport (fixed).
+  position: keyword("static", "relative", "absolute", "sticky", "fixed"),
   insetLeft: (value) =>
     cssLength(value, true) || /^-?\d+(?:\.\d+)?%$/.test(value),
   insetTop: (value) =>
@@ -205,8 +207,10 @@ const layoutValueChoices: Readonly<
   flexShrink: flexFactor,
   flexBasis: (value) =>
     value === "auto" || cssLength(value) || /^\d+(?:\.\d+)?%$/.test(value),
-  alignSelf: keyword("auto", ...alignKeywords),
-  justifySelf: keyword("auto", ...alignKeywords),
+  // ADR-275: `unsafe center` = the Position section's Center (an absolute box stays centered when
+  // it is wider than its parent — css-align-3 overflow alignment).
+  alignSelf: keyword("auto", "unsafe center", ...alignKeywords),
+  justifySelf: keyword("auto", "unsafe center", ...alignKeywords),
   gridColumnStart: gridLine,
   gridColumnEnd: gridLine,
   gridRowStart: gridLine,
@@ -596,22 +600,10 @@ function stateRules(value: unknown, at: string): void {
     writes(rule, `${at}.${key}`, visualFields);
   }
 }
-/**
- * ADR-267 — the code catalog's rule layout (library definitions · part rules · templates: built
- * from the code each session, never stored) also places a box `sticky` (the Header rule · a
- * standalone ListBox's section header). Authored node layout (`layoutWrites`) does not — that is
- * the document schema (ADR-267 user decision 1).
- */
-const libraryLayoutValueChoices: Readonly<
-  Record<LayoutField, (value: string) => boolean>
-> = {
-  ...layoutValueChoices,
-  position: keyword("static", "relative", "absolute", "sticky"),
-};
-/** Code catalog rule layout values (library only — see `libraryLayoutValueChoices`). */
+/** Code catalog rule layout values (the Header rule · a standalone ListBox's section header are sticky — ADR-267). */
 function layoutValues(value: unknown, at: string): void {
   for (const [key, item] of Object.entries(object(value, at))) {
-    const accepts = libraryLayoutValueChoices[key as LayoutField];
+    const accepts = layoutValueChoices[key as LayoutField];
     if (!accepts) invalid("UNKNOWN_FIELD", `${at}.${key}`);
     if (typeof item !== "string" || !accepts(item))
       invalid("INVALID_LAYOUT_VALUE", `${at}.${key}`);
@@ -1209,7 +1201,6 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "props",
           "visual",
           "sizing",
-          "placement",
           "stateRules",
           "descendantOverrides",
           "binding",
@@ -1269,18 +1260,6 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       writes(item.props, "entry.props");
       writes(item.visual, "entry.visual", visualFields);
       writes(item.sizing, "entry.sizing", sizingFields, true);
-      if (item.placement !== undefined) {
-        const placement = object(item.placement, "entry.placement");
-        exact(placement, ["kind", "x", "y"], "entry.placement");
-        if (placement.kind !== "absolute")
-          invalid("NODE_PLACEMENT_KIND", "entry.placement.kind");
-        for (const axis of ["x", "y"])
-          if (
-            typeof placement[axis] !== "number" ||
-            !Number.isFinite(placement[axis])
-          )
-            invalid("NODE_PLACEMENT_COORDINATE", `entry.placement.${axis}`);
-      }
       if (item.stateRules !== undefined)
         stateRules(item.stateRules, "entry.stateRules");
       if (!Array.isArray(item.descendantOverrides))
@@ -1379,7 +1358,15 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
     case "stateVariable": {
       exact(
         item,
-        ["kind", "id", "ownerId", "name", "valueType", "defaultValue", "source"],
+        [
+          "kind",
+          "id",
+          "ownerId",
+          "name",
+          "valueType",
+          "defaultValue",
+          "source",
+        ],
         "entry",
       );
       const owner = id(item.ownerId, "", "entry.ownerId");

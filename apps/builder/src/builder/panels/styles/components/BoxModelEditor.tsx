@@ -1,10 +1,11 @@
 /**
- * BoxModelEditor — Spacing 절의 박스 모델 다이어그램 (panel-ui 01, 2026-09-14).
+ * BoxModelEditor — Spacing 절 (panel-ui 01, 2026-09-14 · ADR-275 사용자 결정 8 · 9, 2026-10-20).
  *
- * 높이는 control-size × 5, 폭은 fieldset에 맞춘다. 가로·세로 띠에 놓인 4방향
- * margin/padding 값이 제자리에 놓이고 오른쪽 link 가 4값을 연동한다 — 종전 「Padding 16 ▾ ·
- * Margin 0 ▾」 축약값 둘로는 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다. 값 입력·커밋 계약은
- * FourWayGrid 와 같다 (local draft → blur/Enter 커밋, 빈 값은 "" = 키 삭제). link 는
+ * Layout 의 「Display · Space + Alignment」 짜임: 왼쪽 열에 Padding · Margin 칸 (네 변 한 값,
+ * 다르면 비워 두고 Mixed — 입력하면 네 변에 한 번에), 오른쪽 열에 padding 도식, 아이콘 칸에 link.
+ * 도식은 Alignment 판과 같은 3 × 3 격자 (칸 · 간격 · 여백 동일) 에 padding 네 변만 놓는다 —
+ * 바깥 margin 고리는 없다 (Figma · Framer 처럼 도식은 안쪽 여백만, 사용자 결정 9). 변 값 입력·커밋
+ * 계약은 FourWayGrid 와 같다 (local draft → blur/Enter 커밋, 빈 값은 "" = 키 삭제). link 는
  * `boxModelLink` 모듈 상태 — 캔버스 padding 드래그 (ADR-222) 도 같은 link 를 읽어 4변에
  * 같은 값을 준다.
  */
@@ -14,6 +15,7 @@ import { Link, Unlink } from "lucide-react";
 import { SwatchIconToggleButton } from "../../../components/ui/SwatchIconButton";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { useSemanticLabel } from "../../../../i18n";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { setPaddingLinked, usePaddingLinked } from "./boxModelLink";
 import "./BoxModelEditor.css";
 import { useStylesSelectedId } from "../stylesHost";
@@ -40,6 +42,12 @@ interface BoxModelEditorProps {
    * (외부 드래그 중 local draft 가 이전 값을 다시 덮지 않도록, breakdown §4.1).
    */
   readonly activePaddingSides?: ReadonlySet<BoxSide>;
+  /**
+   * ADR-275 사용자 결정 2 — margin sides an absolute box's Center axis owns: the Margin field
+   * neither reads nor writes them (a positioned box moves by its Position offset, as in Figma ·
+   * Framer).
+   */
+  readonly lockedMarginSides?: ReadonlySet<BoxSide>;
 }
 
 const SIDES: readonly BoxSide[] = ["Top", "Right", "Bottom", "Left"];
@@ -48,28 +56,20 @@ function toDisplay(value: string): string {
   return value.replace("px", "");
 }
 
-function toCss(input: string, allowNegative: boolean): string {
-  const numeric = input.replace(allowNegative ? /[^0-9.-]/g : /[^0-9.]/g, "");
-  if (numeric === "" || numeric === "-") return "";
+function toCss(input: string): string {
+  const numeric = input.replace(/[^0-9.]/g, "");
+  if (numeric === "") return "";
   return `${numeric}px`;
 }
 
-type Draft = Record<BoxRing, Record<BoxSide, string>>;
+type Draft = Record<BoxSide, string>;
 
-function toDraft(padding: BoxSideValues, margin: BoxSideValues): Draft {
+function toDraft(padding: BoxSideValues): Draft {
   return {
-    padding: {
-      Top: toDisplay(padding.top),
-      Right: toDisplay(padding.right),
-      Bottom: toDisplay(padding.bottom),
-      Left: toDisplay(padding.left),
-    },
-    margin: {
-      Top: toDisplay(margin.top),
-      Right: toDisplay(margin.right),
-      Bottom: toDisplay(margin.bottom),
-      Left: toDisplay(margin.left),
-    },
+    Top: toDisplay(padding.top),
+    Right: toDisplay(padding.right),
+    Bottom: toDisplay(padding.bottom),
+    Left: toDisplay(padding.left),
   };
 }
 
@@ -80,10 +80,11 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   onMarginChange,
   onRingChange,
   activePaddingSides,
+  lockedMarginSides,
 }: BoxModelEditorProps) {
   const localize = useSemanticLabel();
   const selectedElementId = useStylesSelectedId();
-  const derived = useMemo(() => toDraft(padding, margin), [padding, margin]);
+  const derived = useMemo(() => toDraft(padding), [padding]);
   const [draft, setDraft] = useState<Draft>(derived);
   // link 는 캔버스 spacing 드래그도 읽는다 (4변 동일 값) — 모듈 상태 공유
   const linked = usePaddingLinked();
@@ -98,109 +99,124 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   }, [derived, selectedElementId]);
 
   const commit = useCallback(
-    (ring: BoxRing, side: BoxSide) => {
+    (side: BoxSide) => {
       if (
         focusedElementIdRef.current !== null &&
         selectedElementId !== focusedElementIdRef.current
       ) {
         return;
       }
-      const typed = draft[ring][side];
+      const typed = draft[side];
       // A blur without a change writes nothing: the shown value may be the catalog default.
       if (
         linked
-          ? SIDES.every((target) => derived[ring][target] === typed)
-          : derived[ring][side] === typed
+          ? SIDES.every((target) => derived[target] === typed)
+          : derived[side] === typed
       )
         return;
-      const css = toCss(typed, ring === "margin");
-      const write = ring === "padding" ? onPaddingChange : onMarginChange;
+      const css = toCss(typed);
       if (linked) {
-        // link 는 같은 고리 4값 연동 — 한 편집 (한 step)
-        if (onRingChange) onRingChange(ring, css);
-        else for (const target of SIDES) write(target, css);
-        setDraft((prev) => ({
-          ...prev,
-          [ring]: {
-            Top: draft[ring][side],
-            Right: draft[ring][side],
-            Bottom: draft[ring][side],
-            Left: draft[ring][side],
-          },
-        }));
+        // link 는 네 변 연동 — 한 편집 (한 step)
+        if (onRingChange) onRingChange("padding", css);
+        else for (const target of SIDES) onPaddingChange(target, css);
+        setDraft({ Top: typed, Right: typed, Bottom: typed, Left: typed });
         return;
       }
-      write(side, css);
+      onPaddingChange(side, css);
     },
-    [
-      derived,
-      draft,
-      linked,
-      onMarginChange,
-      onPaddingChange,
-      onRingChange,
-      selectedElementId,
-    ],
+    [derived, draft, linked, onPaddingChange, onRingChange, selectedElementId],
   );
 
-  const renderInput = (ring: BoxRing, side: BoxSide) => (
-    <input
-      key={`${ring}-${side}`}
-      className={`box-model__input box-model__input--${ring} box-model__input--${side.toLowerCase()}`}
-      data-active={
-        (ring === "padding" && activePaddingSides?.has(side)) || undefined
-      }
-      readOnly={ring === "padding" && activePaddingSides?.has(side)}
-      value={draft[ring][side]}
-      placeholder={ring === "margin" ? "auto" : "0"}
-      inputMode="decimal"
-      aria-label={`${localize(ring === "padding" ? "Padding" : "Margin")} ${side}`}
-      onChange={(event) => {
-        const next = event.target.value;
-        setDraft((prev) => ({
-          ...prev,
-          [ring]: { ...prev[ring], [side]: next },
-        }));
-      }}
-      onFocus={() => {
-        justSavedViaEnterRef.current = false;
-        focusedElementIdRef.current = selectedElementId ?? null;
-      }}
-      onBlur={() => {
-        if (justSavedViaEnterRef.current) {
+  const renderInput = (side: BoxSide) => {
+    const active = !!activePaddingSides?.has(side);
+    return (
+      <input
+        key={side}
+        className={`box-model__input box-model__input--${side.toLowerCase()}`}
+        data-active={active || undefined}
+        readOnly={active}
+        value={draft[side]}
+        placeholder="0"
+        inputMode="decimal"
+        aria-label={`${localize("Padding")} ${side}`}
+        onChange={(event) => {
+          const next = event.target.value;
+          setDraft((prev) => ({ ...prev, [side]: next }));
+        }}
+        onFocus={() => {
           justSavedViaEnterRef.current = false;
-          return;
+          focusedElementIdRef.current = selectedElementId ?? null;
+        }}
+        onBlur={() => {
+          if (justSavedViaEnterRef.current) {
+            justSavedViaEnterRef.current = false;
+            return;
+          }
+          commit(side);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            commit(side);
+            justSavedViaEnterRef.current = true;
+            (event.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    );
+  };
+
+  // 네 변 한 값 — 같으면 그 값, 다르면 비워 두고 Mixed. 잠긴 margin 변 (Center 축) 은 보지 않는다.
+  const ringValue = (ring: BoxRing): string => {
+    const values = ring === "padding" ? padding : margin;
+    const shown = SIDES.filter(
+      (side) => ring !== "margin" || !lockedMarginSides?.has(side),
+    ).map((side) => values[side.toLowerCase() as keyof BoxSideValues]);
+    return shown.length > 0 && shown.every((value) => value === shown[0])
+      ? shown[0]
+      : "";
+  };
+  const renderRingField = (ring: BoxRing) => {
+    const value = ringValue(ring);
+    return (
+      <PropertyUnitInput
+        label={ring === "padding" ? "Padding" : "Margin"}
+        unitSuffix
+        className={`spacing-${ring}`}
+        key={`${ring}:${selectedElementId}`}
+        value={value}
+        placeholder={value === "" ? localize("Mixed") : undefined}
+        units={["px"]}
+        defaultUnit="px"
+        // 빈 값 (Mixed) 을 0 으로 그리지 않는다 — 입력할 때까지 placeholder
+        preserveEmptyValueOnUnitChange
+        min={ring === "margin" ? -9999 : 0}
+        max={9999}
+        isDisabled={
+          ring === "margin" && lockedMarginSides?.size === SIDES.length
         }
-        commit(ring, side);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          commit(ring, side);
-          justSavedViaEnterRef.current = true;
-          (event.target as HTMLInputElement).blur();
-        }
-      }}
-    />
-  );
+        onChange={(next) => {
+          if (onRingChange) onRingChange(ring, next);
+          else
+            for (const side of SIDES)
+              (ring === "padding" ? onPaddingChange : onMarginChange)(
+                side,
+                next,
+              );
+        }}
+      />
+    );
+  };
 
   return (
-    <div className="transform-row">
+    <div className="spacing-controls">
+      {renderRingField("padding")}
+      {renderRingField("margin")}
       <fieldset className="properties-aria spacing-box-model">
-        <legend className="fieldset-legend">
-          {localize("Margin")}/{localize("Padding")}
-        </legend>
+        <legend className="fieldset-legend">{localize("Sides")}</legend>
         <div className="box-model" data-linked={linked || undefined}>
-          <span className="box-model__label box-model__label--margin">
-            margin
-          </span>
-          <span className="box-model__label box-model__label--padding">
-            padding
-          </span>
-          <div className="box-model__padding" />
-          <div className="box-model__center" />
-          {SIDES.map((side) => renderInput("margin", side))}
-          {SIDES.map((side) => renderInput("padding", side))}
+          <span className="box-model__center" aria-hidden="true" />
+          {SIDES.map(renderInput)}
         </div>
       </fieldset>
       <div className="fieldset-actions actions-spacing">

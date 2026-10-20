@@ -240,6 +240,11 @@ interface ElementBeginCmd {
   effects?: EffectStyle[];
   /** position: fixed 요소 — executeRenderCommands에서 camera 역보정 대상 */
   isFixed?: boolean;
+  /**
+   * ADR-275 Phase 7: a fixed box drawn in its page's children scope — the executor adds back that
+   * page's scroll (property node) so the box stays in the viewport while the page scrolls.
+   */
+  unscrollOwnerId?: string;
   /** CSS mask-image — 요소 전체를 offscreen에 렌더 후 mask 합성 */
   maskImage?: MaskImageStyle;
 }
@@ -958,6 +963,49 @@ interface VisitOptions {
    * (`CHILDREN_BEGIN` · `CHILDREN_END` 는 그대로 낸다). root 호출에만 쓴다.
    */
   selfOnlyChildContexts?: Map<string, SubtreeBuildContext>;
+  /** ADR-275 Phase 7: the page whose viewport the fixed boxes met below it are drawn in. */
+  fixedLayer?: FixedLayer;
+}
+
+/**
+ * ADR-275 Phase 7 — `position: fixed` boxes are drawn at their page's level: out of their ancestors'
+ * clips and scrolls (CSS — the viewport is their containing block), right after the page child that
+ * holds them (tree order), under the page's clip, with the page's scroll added back
+ * (`unscrollOwnerId`). Their place is the engine's (viewport-placed) layout from the page origin.
+ */
+interface FixedLayer {
+  readonly pageId: string;
+  readonly pageAbsX: number;
+  readonly pageAbsY: number;
+  clip: ClipRect;
+  readonly pending: Array<{ id: string; parentId: string }>;
+  parents?: Map<string, string>;
+}
+
+/** A record's border-box origin from its page's, by the layout (unscrolled). */
+function offsetInPage(
+  layer: FixedLayer,
+  id: string,
+  childrenMap: Map<string, CanvasSceneNode[]>,
+  layoutMap: ReadonlyMap<string, ComputedLayout>,
+): { x: number; y: number } {
+  if (!layer.parents) {
+    layer.parents = new Map();
+    for (const [parent, kids] of childrenMap)
+      for (const kid of kids) layer.parents.set(kid.id, parent);
+  }
+  let x = 0;
+  let y = 0;
+  for (
+    let cursor: string | undefined = id;
+    cursor && cursor !== layer.pageId;
+    cursor = layer.parents.get(cursor)
+  ) {
+    const layout = layoutMap.get(cursor);
+    x += layout?.x ?? 0;
+    y += layout?.y ?? 0;
+  }
+  return { x, y };
 }
 
 /** 최신 boundsMap 캐시 (씬 좌표 — TextEditOverlay 위치 계산용) */
@@ -1697,6 +1745,9 @@ function visitElement(
     blendMode: skiaData.blendMode,
     effects: skiaData.effects,
     isFixed: skiaData.isFixed,
+    ...(skiaData.isFixed && parentElementId && !options.renderAsTopLayer
+      ? { unscrollOwnerId: parentElementId }
+      : {}),
     maskImage: skiaData.maskImage,
   });
 
@@ -1769,6 +1820,21 @@ function visitElement(
     // 자손의 저장 문맥이 낡는다.
     const childScrollContextKey = `${elementScrollContextKey}|scroll:${elementId}`;
     const childVisitOptions = options.renderAsTopLayer ? {} : options;
+    // ADR-275 Phase 7: a page opens the layer its fixed boxes are drawn in.
+    const isPageRoot = parentElementId === null && !options.renderAsTopLayer;
+    const fixedLayer: FixedLayer | undefined = isPageRoot
+      ? {
+          pageId: elementId,
+          pageAbsX: absX,
+          pageAbsY: absY,
+          clip: null,
+          pending: [],
+        }
+      : childVisitOptions.fixedLayer;
+    const loopOptions: VisitOptions =
+      isPageRoot && fixedLayer
+        ? { ...childVisitOptions, fixedLayer }
+        : childVisitOptions;
 
     const childClipRect = childClipRectOf(
       absX,
@@ -1784,7 +1850,54 @@ function visitElement(
 
     /** ADR-269: the children recorded here, in drawn order (the stream's child index). */
     const recorded: string[] = [];
+    if (isPageRoot && fixedLayer)
+      fixedLayer.clip = cloneClipRect(childClipRect);
+    /** Draw the fixed boxes met so far at this page's level (ADR-275 Phase 7). */
+    const flushFixed = () => {
+      const layer = fixedLayer!;
+      while (layer.pending.length) {
+        const { id, parentId } = layer.pending.shift()!;
+        const at = offsetInPage(layer, parentId, childrenMap, layoutMap);
+        visitElement(
+          id,
+          layer.pageAbsX + at.x,
+          layer.pageAbsY + at.y,
+          commands,
+          selfSpans,
+          subtreeSpans,
+          childrenSpans,
+          damageUnsafeElementIds,
+          clipContextByElement,
+          zOrderKeyByElement,
+          scrollContextKeyByElement,
+          subtreeBuildContextByElement,
+          topLayerElementIds,
+          childElementIds,
+          boundsMap,
+          hitBoundsMap,
+          cloneClipRect(layer.clip),
+          childrenMap,
+          layoutMap,
+          at.x,
+          at.y,
+          layer.pageId,
+          loopOptions,
+          `${zOrderKey}/fixed:${id}`,
+          `${childScrollContextKey}|fixed`,
+          isTopLayer,
+        );
+        if (subtreeSpans.has(id)) recorded.push(id);
+      }
+    };
     for (const [childIndex, child] of sortedChildren.entries()) {
+      // A build without this box's page (a subtree · self-only record) leaves it in place: a fixed
+      // box is in the stream's top layer, so the splice is refused and the page is recorded again.
+      const childFixed = getSkiaNode(child.id)?.isFixed === true;
+      if (childFixed && fixedLayer && !options.selfOnlyChildContexts) {
+        fixedLayer.pending.push({ id: child.id, parentId: elementId });
+        if (isPageRoot) flushFixed();
+        continue;
+      }
       if (options.selfOnlyChildContexts) {
         // 자식의 visitElement 가 저장할 문맥과 같은 값 (아래 호출 인자).
         options.selfOnlyChildContexts.set(child.id, {
@@ -1823,12 +1936,13 @@ function visitElement(
         0,
         0,
         elementId,
-        childVisitOptions,
+        loopOptions,
         `${zOrderKey}/${childIndex}:${getChildZIndex(child)}`,
         childScrollContextKey,
         isTopLayer,
       );
       if (subtreeSpans.has(child.id)) recorded.push(child.id);
+      if (isPageRoot && fixedLayer?.pending.length) flushFixed();
     }
     // 자기 명령만 기록 (`selfOnlyChildContexts`) 이면 자식이 이 stream 에 없다 — 색인도 없다.
     if (recorded.length) childElementIds.set(elementId, recorded);
@@ -1892,17 +2006,27 @@ function getChildZIndex(child: CanvasSceneNode): number {
 }
 
 /**
+ * A sticky box with no z-index paints in its stacking context's positioned layer — over its in-flow
+ * siblings, wherever it is in the tree (CSS 2 Appendix E step 8 — a stuck header covers the items
+ * scrolled under it). ADR-275 Phase 6.
+ */
+function paintsInPositionedLayer(child: CanvasSceneNode): boolean {
+  const node = getSkiaNode(child.id);
+  return (!!node?.sticky || !!node?.isFixed) && node.zIndex === undefined;
+}
+
+/**
  * 자식 elements를 z-index로 정렬.
  * skiaNodeRegistry에서 zIndex를 조회한다.
  */
 function sortChildElementsByZIndex(
   children: CanvasSceneNode[],
 ): CanvasSceneNode[] {
-  // z-index가 있는 자식이 하나라도 있는지 확인
+  // z-index (또는 positioned layer 의 sticky) 가 있는 자식이 하나라도 있는지 확인
   let hasZIndex = false;
   for (const child of children) {
     const node = getSkiaNode(child.id);
-    if (node?.zIndex !== undefined) {
+    if (node?.zIndex !== undefined || node?.sticky) {
       hasZIndex = true;
       break;
     }
@@ -1913,9 +2037,11 @@ function sortChildElementsByZIndex(
     child,
     originalIndex: i,
     zIndex: getChildZIndex(child),
+    positioned: paintsInPositionedLayer(child) ? 1 : 0,
   }));
   indexed.sort((a, b) => {
     if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
+    if (a.positioned !== b.positioned) return a.positioned - b.positioned;
     return a.originalIndex - b.originalIndex;
   });
   return indexed.map((item) => item.child);
@@ -2581,10 +2707,18 @@ function executeCommandRange(
         const dragDy = options.dragPresentationOverride
           ? options.dragPresentationOverride.dy
           : (dragOff?.dy ?? 0);
+        // ADR-275 Phase 7: a fixed box stays in the viewport while its page scrolls.
+        const unscroll = cmd.unscrollOwnerId
+          ? scrollOffsetOf(cmd.unscrollOwnerId)
+          : undefined;
         const dox =
-          (hasDragOffset ? dragDx : (sibOff?.dx ?? 0)) + (pageDelta?.dx ?? 0);
+          (hasDragOffset ? dragDx : (sibOff?.dx ?? 0)) +
+          (pageDelta?.dx ?? 0) +
+          (unscroll?.scrollLeft ?? 0);
         const doy =
-          (hasDragOffset ? dragDy : (sibOff?.dy ?? 0)) + (pageDelta?.dy ?? 0);
+          (hasDragOffset ? dragDy : (sibOff?.dy ?? 0)) +
+          (pageDelta?.dy ?? 0) +
+          (unscroll?.scrollTop ?? 0);
 
         // AABB 컬링 (width/height=0 가상 컨테이너는 스킵)
         if (cmd.width > 0 || cmd.height > 0) {

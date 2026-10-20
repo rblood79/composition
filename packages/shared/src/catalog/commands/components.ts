@@ -11,6 +11,12 @@ import type {
   StateName,
   WriteValue,
 } from "../document/types";
+import {
+  layoutIsAbsolute,
+  positionLayout,
+  shiftAbsoluteLayout,
+  withoutPositionLayout,
+} from "../document/absoluteLayout";
 import type { CatalogCommand } from "./compose";
 import {
   childList,
@@ -206,21 +212,24 @@ export const restoreOrigin =
       return fail("ORIGIN_NOT_HIDDEN", instance.definitionId);
     const { parent, index } = locate(draft, input.instanceId);
     const root = draft.node(definition.templateRootId);
-    const { placement: _placement, ...rest } = root;
-    const placement = instance.placement;
+    // ADR-275: the restored origin takes the instance's position (its authored absolute layout
+    // keys), shifted; its own position keys go.
+    const base = layoutIsAbsolute(root.layout)
+      ? withoutPositionLayout(root.layout!)
+      : (root.layout ?? {});
+    const layout = layoutIsAbsolute(instance.layout)
+      ? {
+          ...base,
+          ...shiftAbsoluteLayout(
+            positionLayout(instance.layout!),
+            RESTORE_OFFSET,
+            RESTORE_OFFSET,
+          ),
+        }
+      : base;
+    const { layout: _layout, ...rest } = root;
     draft.write({ ...definition, originRef: true });
-    draft.write(
-      placement?.kind === "absolute"
-        ? {
-            ...rest,
-            placement: {
-              ...placement,
-              x: placement.x + RESTORE_OFFSET,
-              y: placement.y + RESTORE_OFFSET,
-            },
-          }
-        : rest,
-    );
+    draft.write(Object.keys(layout).length ? { ...rest, layout } : rest);
     const list = [...(childList(draft, parent) ?? [])];
     list.splice(index + 1, 0, root.id);
     setChildList(draft, parent, list);

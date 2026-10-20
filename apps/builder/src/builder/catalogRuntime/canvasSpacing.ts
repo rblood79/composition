@@ -1,3 +1,4 @@
+import { catalogIsOutOfFlow } from "../../../../../packages/shared/src/catalog/runtime/positioning";
 import {
   buildSpacingBands,
   type SpacingBand,
@@ -53,9 +54,7 @@ export function catalogSpacingBands(
     .map((id) => records.get(id))
     .filter(
       (child): child is CatalogConsumerNode =>
-        !!child &&
-        child.placement?.kind !== "absolute" &&
-        child.layout.position !== "absolute",
+        !!child && !catalogIsOutOfFlow(child),
     )
     .map((child) => bounds(child.id))
     .filter((child): child is BoundingBox => !!child);

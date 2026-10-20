@@ -129,8 +129,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       if (!values) return; // 'custom' → no-op
       // Leaving Truncate takes back the overflow: hidden it set.
       updateStyles(
-        preset !== "truncate" &&
-          styleValues?.textBehaviorPreset === "truncate"
+        preset !== "truncate" && styleValues?.textBehaviorPreset === "truncate"
           ? { ...values, overflow: "" }
           : values,
       );
