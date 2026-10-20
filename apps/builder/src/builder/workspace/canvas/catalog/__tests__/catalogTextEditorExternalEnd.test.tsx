@@ -274,3 +274,27 @@ describe("CatalogTextEditor — 글자 상자 배치", () => {
     ]);
   });
 });
+
+/**
+ * 2026-10-20 사용자 보고 — "버튼의 경우 엔터키로 줄바꿈시 버튼의 height 가 반영되지 않는다". 미리보기도
+ * 확정 (`committedWhiteSpace`) 과 같이 줄바꿈이 접히는 white-space 를 올린다 — nowrap · normal 레이아웃은
+ * `\n` 을 공백으로 접어 상자가 자라지 않았다.
+ */
+describe("CatalogTextEditor — 줄바꿈 미리보기", () => {
+  it("입력한 줄바꿈이 접히는 white-space 면 미리보기에 올린 값을 같이 보낸다", async () => {
+    const { workspace, record, field } = await open();
+    const spy = vi.spyOn(workspace.root, "previewRecord");
+    const item = workspace.itemOfRecord(record)!;
+    act(() => workspace.session.startTextEdit(item));
+    fireEvent.change(field()!, { target: { value: "Hel\nlo" } });
+    expect(spy).toHaveBeenLastCalledWith(item.identity, {
+      props: { children: "Hel\nlo" },
+      visual: { whiteSpace: "pre-wrap" },
+    });
+    fireEvent.change(field()!, { target: { value: "Hello!" } });
+    expect(spy).toHaveBeenLastCalledWith(item.identity, {
+      props: { children: "Hello!" },
+    });
+    spy.mockRestore();
+  });
+});

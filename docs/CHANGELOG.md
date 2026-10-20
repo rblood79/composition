@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 후속 (같은 날, 사용자 보고 「absolute 로 옮기거나 부모 padding 을 바꾸면 편집 위치가 글자와 다르다」): 글자 노드가 요소 루트 자체일 때 (`bindings.text` 는 layout rect 의 x · y 를 담는다) 그 x · y 를 더해 옮긴 거리가 두 번 더해졌다. 루트의 x · y 는 빼고 자손 노드의 요소 안 오프셋만 더한다. live: Left 120 · Top 80 absolute Button 의 라벨 위에서 편집.
   - 편집기 글자색은 Skia 가 그린 글자의 색 (Button · Badge · ToggleButton 의 흰 라벨) — 종전엔 record 의 `color` (상자의 것) 라 검정이었다.
   - 전수 live (2026-10-20, grid 셀에 놓여 (0,0) 이 아닌 자리): Text · Badge · Link · ToggleButton · TextField 의 Label · Checkbox 라벨 · InlineAlert 의 Heading · Description · Tag 글자 · Tab 라벨 — 모두 글자 상자 위. Input placeholder 는 종전대로 인라인 편집 대상이 아니다 (Properties 에서).
+  - 후속 2 (같은 날, 사용자 보고 「border box 가 글자 선택 상자보다 넓다 · Enter 줄바꿈 시 버튼 높이가 반영되지 않는다」): 한 줄 글자의 편집 상자는 content 상자 (Badge 의 padding 안 전체) 가 아니라 글자 폭으로 감싸고 정렬 (left · center · right) 자리에 놓는다. Enter 로 넣은 줄바꿈은 확정 때처럼 미리보기에도 white-space 를 올려 (nowrap → pre · normal → pre-wrap) 보내므로 버튼이 입력 중 두 줄로 자라고, 편집 상자는 세로 앵커 (middle) 를 지켜 그 중앙에 머문다. live: Button 68×30 → Enter 뒤 69×50 · 상자 43×40 중앙.
   - 위치: `workspace/canvas/skia/textDrawOrigin.ts` · `workspace/canvas/catalog/CatalogTextEditor.tsx`
 
 ## [ADR-275 Phase 7 — Position Fixed 허용] - 2026-10-20

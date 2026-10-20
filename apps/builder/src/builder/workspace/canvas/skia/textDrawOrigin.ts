@@ -162,6 +162,8 @@ export interface TextEditBox {
   whiteSpace?: string;
   /** The drawn text's color as CSS (a Button's white label — the record's own `color` is the box's). */
   color?: string;
+  /** How the text block sits in the box — a field that grows past one line keeps the same anchor. */
+  verticalAlign?: "top" | "middle" | "bottom" | "baseline";
 }
 
 function cssColorOf(color: Float32Array | undefined): string | undefined {
@@ -223,5 +225,6 @@ export function resolveTextEditBox(elementId: string): TextEditBox | undefined {
     lineHeight: text.lineHeight,
     whiteSpace: text.whiteSpace,
     color: cssColorOf(text.presentationColor ?? text.color),
+    verticalAlign: text.verticalAlign,
   };
 }
