@@ -13,7 +13,7 @@
 //   pickElement                               → workspace.selectRecords (the Canvas click path)
 //   updateElementProps                        → setFields (style width/height/backgroundColor/
 //                                               fontSize, `children` text)
-//   addComplexElement (mixed Text/frame)      → insertNodes (absolute placement)
+//   addComplexElement (mixed Text/frame)      → insertNodes (absolute layout insets)
 //   appendPageShell                           → createPage (+ body)
 //   undo · redo                               → workspace undo / redo
 //
@@ -72,7 +72,8 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
         kind: "node", id: NODE + el.id,
         definitionId: h.palette.catalogPaletteDefinitionId(graph().library, el.type),
         children: [], props: w.props ?? {}, visual: w.visual ?? {}, sizing: w.sizing ?? {},
-        ...(style.position === "absolute" ? { placement: { kind: "absolute", x: px(style.left) ?? 0, y: px(style.top) ?? 0 } } : {}),
+        // ADR-275: an authored absolute box is layout position + insets (node placement is gone).
+        ...(style.position === "absolute" ? { layout: { position: set("absolute"), insetLeft: set((px(style.left) ?? 0) + "px"), insetTop: set((px(style.top) ?? 0) + "px") } } : {}),
         descendantOverrides: [],
       };
     };
