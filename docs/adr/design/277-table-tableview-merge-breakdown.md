@@ -1,0 +1,131 @@
+# ADR-277 breakdown — Table · TableView 통합
+
+> 본문: [ADR-277](../277-table-tableview-merge.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다. 인벤토리 수치는 2026-10-20 grep 실측 (main `09a72805f`) 이고 Phase 0 에서 다시 센다.
+
+## 1. 전제 lock-in
+
+- **분류**: 새 결정이다. 기존 ADR 의 fork · 분리가 아니고 의존 방향 변화도 없다. ADR-256 Phase 5i · 11 (Table 부품 = 노드 트리 · TableView = RAC Table) · ADR-257 (열 트랙 · S2 표 prop · 조절 열 container · TableView 를 RAC Table 위로) · ADR-241 (바운드 행 투영) 위에서 type 하나를 지우고 origin template 하나를 바꾼다.
+- **schema**: 문서 스키마 변경 0. 바뀌는 것은 code-catalog 의 origin 정의 · template (`reusableOriginLibrary.ts`) 과 소비 집합 · 등록이다. origin 정의 삭제 + Table template 구조 변경이므로 `LIBRARY_CONTRACT_VERSION` +1 (구조 변경 계약 Step 3 — 변환 없음, 옛 개발용 프로젝트 거부; 지금 43, 구현 시 소스 상수를 읽는다).
+- **사용자 확정** (본문 Status 원문 인용): 「Table + TableView 통합」 (2026-10-20, 전 세션 조사 A-1 채택).
+- **사용자 결정 3건** (본문 §Decision) 은 Phase 0 끝에 묻는다 — 1 남는 이름 (권고 Table) · 2 팔레트 Table 의 starter (권고 TableView 의 열 3 · 행 1 을 넣음) · 3 starter 열의 첫 연결 (권고: binding 없던 Table 의 첫 Quick Connect 는 schema 열로 교체 — Round 1 h1).
+- **리뷰 Round 2 (2026-10-20, codex — 수리 검증)** 신규 HIGH 1: §2c-2 의 첫 연결 판정 `target.binding != null` 은 snapshot 객체라 늘 참 → `target.binding.props != null` 로 수정 (§2c-2 · §2g-3 · §4 e). 라운드 상한 도달 — 실행자 설계 종결 선언.
+- **리뷰 Round 1 (2026-10-20, codex)** HIGH 1 (h1 — starter 열 + Quick Connect `preserve` 기본 = 빈 칸) 을 본문 Decision 2 · 사용자 결정 3 · R1 · R2 · G1 · G3 와 이 문서 §2c-2 · §2g · §4 에 반영했다. 비차단: `generate-css.ts` 는 옛 파일을 지우지 않는다 → `TableView.css` 는 `git rm` (§2a).
+
+## 2. 참조 인벤토리 (실측 2026-10-20)
+
+소스 47 파일 (`grep -rli tableview`, 테스트 제외) · 테스트 26 파일. 분류는 「삭제 / 등록 해제 / 집합 제거 / 주석 / 재작성」.
+
+### 2a. 삭제 (파일 전체)
+
+| 파일                                                            | 내용                                                                                                                                                                         |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/catalog/bindings/TableView.binding.ts`     | `tableViewBinding` (accepts 6 · renderer `tableview`)                                                                                                                        |
+| `packages/shared/src/components/styles/generated/TableView.css` | 생성 CSS — **`git rm`** (Round 1 비차단 정정: `generate-css.ts` 104 ~ 132행은 목록의 CSS 를 쓰기만 하고 지운 rule 의 옛 파일을 지우지 않는다; `--check` 는 남은 목록만 검사) |
+
+### 2b. origin library (`reusableOriginLibrary.ts`)
+
+| 항목                                           | 지금                                                                                                                                                                                                             | 뒤                                                                                                                                                                      |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib:definition:origin-component-tableview`    | 1084행 — accepts 0 · template `component-tableview`                                                                                                                                                              | 삭제                                                                                                                                                                    |
+| `lib:template:component-tableview*`            | 5428 ~ 5533행 — 루트 (variant default · density regular) + TableHeader + Column ×3 (Name · Type · Status) + TableBody + Row (`origin-component-table-row` instance) + Cell ×3 (Item 1 · File · Active) = 노드 12 | 삭제                                                                                                                                                                    |
+| `lib:template:component-table`                 | 5311 ~ 5345행 — 루트 (selectionMode none · size S · height 400) + TableHeader[Columns] (자식 0) + TableBody[Rows] (자식 0) = 노드 3                                                                              | TableHeader 에 Column ×3 · TableBody 에 Row ×1 (table-row instance) + Cell ×3 — TableView 의 자식 9 를 옮긴다 (노드 3 → 10). 루트 props 그대로 (사용자 결정 2 (a) 전제) |
+| `lib:definition:origin-component-table`        | 1064행 — accepts 0                                                                                                                                                                                               | 그대로                                                                                                                                                                  |
+| `lib:template:component-table-column` · `-row` | 8006 ~ 8041행 — Column (name Group > Text `{children}`) · Row origin                                                                                                                                             | 그대로 (TableView template 의 Row 가 이미 이 origin 의 instance)                                                                                                        |
+
+### 2c. 등록 해제 (TableView 항목 한 덩어리 삭제)
+
+| 파일                                                             | 행                                                   | 내용                                                                                                               |
+| ---------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `packages/shared/src/catalog/bindings/index.ts`                  | 130 · 269 · 515 (+ 주석 131 ~ 133 · 516 ~ 519 · 362) | import · export · `TableView: tableViewBinding`                                                                    |
+| `packages/shared/src/catalog/componentCatalog.ts`                | 470 ~ 474 · 1438 (+ 주석 484 ~ 493)                  | `primitiveEntry("TableView", …)` · `PALETTE_REUSABLE_ORIGIN_TYPES` 의 "TableView"                                  |
+| `packages/shared/src/catalog/generated/componentRulesTable.ts`   | 11651 ~ 11710                                        | `TableView` rule (variants default/quiet · size M · containerStyles · structure)                                   |
+| `packages/shared/src/components/styles/index.css`                | 189                                                  | `@import "./generated/TableView.css"`                                                                              |
+| `packages/shared/src/catalog/runtime/domRegistry.components.tsx` | 85 ~ 128                                             | `CatalogTableView`                                                                                                 |
+| `packages/shared/src/catalog/runtime/domRegistry.runtime.ts`     | 69 · 133 ~ 134                                       | import · `tableview: CatalogTableView`                                                                             |
+| `apps/builder/src/builder/panels/components/paletteItems.ts`     | 202 ~ 206 · 292 (+ 주석 293 ~ 294)                   | overlay 항목 · `PALETTE_ORDER` 의 `{ type: "TableView", source: "overlay" }` (「catalog 미등록 7」 주석은 낡았다)  |
+| `packages/shared/src/components/metadata.ts`                     | 1139 ~ 1149                                          | `type: "TableView"` entry                                                                                          |
+| `apps/builder/src/types/builder/unified.types.ts`                | 2146 ~ 2152 · 2297                                   | `createDefaultTableViewProps` (density · isStriped · isQuiet — `isStriped` 는 S2 에 없는 죽은 기본값) · map        |
+| `apps/builder/src/builder/factories/constants.ts`                | 88                                                   | 집합의 "TableView"                                                                                                 |
+| `packages/shared/src/types/composition-vocabulary.ts`            | 132                                                  | union 의 `"TableView"`                                                                                             |
+| `apps/builder/src/i18n/translations.ts` · `types.ts`             | 2163 · 4380 · types 1                                | `tableView` 라벨                                                                                                   |
+| `packages/shared/src/catalog/document/s2PropAlignment.ts`        | 26 · 80 ~ 84 · 150                                   | `CATALOG_BOOLEAN_VARIANTS.TableView` · `quietOf` · `TableView: { variant: quietOf }` — 전환 대상 0 (contract 거부) |
+
+### 2c-2. 첫 연결 규칙 · replace 정렬 (Round 1 h1 — 동작 변경, 사용자 결정 3 (a) 전제)
+
+| 파일                                                                         | 행              | 변경                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/src/builder/panels/datatable/utils/quickConnectPlan.ts`        | 38 ~ 52         | `resolveColumnMode(plan, replaceColumns, hasBinding)` — 기존 열 0 → `create` · **binding 없음 → `replace`** · 있음 → `replaceColumns ? "replace" : "preserve"`                                                                                                                                                                                                                                                                      |
+| `apps/builder/src/builder/panels/datatable/usage/catalogQuickConnectHost.ts` | 122 ~ 162       | `resolveColumnMode(plan(target), replaceColumns, target.binding.props != null)` — **`.props` 를 본다** (Round 2 h1: `bindingSnapshot` 67 ~ 69행은 늘 `{ props: nodeOf(id)?.binding }` 객체를 돌려주므로 `target.binding != null` 은 미연결 Table 에서도 참이다; 실제 `DataBindingRef` 는 `NodeEntry.binding` = snapshot 의 `props`). precheck (114 ~ 117행) 가 snapshot 과 현재 값이 같음을 보장하므로 실행 시점의 그래프 값과 같다 |
+| `apps/builder/src/builder/panels/datatable/editors/DataTableCreator.tsx`     | 262 · 546 ~ 560 | 첫 연결이면 교체 스위치 대신 「열 3 이 schema 열로 바뀝니다」 안내 (안 맞는 key 목록은 그대로 `unmatchedColumnKeys`) · 재연결은 지금 UI                                                                                                                                                                                                                                                                                             |
+| `packages/shared/src/catalog/commands/collections.ts`                        | 1294 ~ 1313     | `insertTableColumns({ replace: true })` — TableBody 의 정적 Row 마다 옛 Cell 을 지우고 새 열 수만큼 빈 Cell (`buildCell`) 을 만든다 (지금은 `body = undefined` 로 건너뛴다). `tableAlignedIn` 이 참                                                                                                                                                                                                                                 |
+
+### 2d. 집합 제거 (`"Table" || "TableView"` 쌍에서 "TableView" 만 뺀다 — 동작 변경 0)
+
+| 파일                                                          | 행                               | 집합                                                                                                                         |
+| ------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/catalog/runtime/tableTracks.ts`          | 131                              | `TRACK_TABLE_TYPES`                                                                                                          |
+| `packages/shared/src/catalog/commands/collections.ts`         | 741                              | `TABLE_OWNERS`                                                                                                               |
+| `packages/shared/src/catalog/runtime/presence.ts`             | 885 · 917 · 1318                 | presence scope · dependents · 정렬 가능 열 판정                                                                              |
+| `packages/shared/src/catalog/runtime/domBinding.runtime.ts`   | 1901 · 1911 · 2169 · 2185 · 2237 | operations table · resizable (「TableView 는 늘 container」 분기 삭제) · widthKey · tableSelected · sort props               |
+| `packages/shared/src/catalog/document/sizePropagation.ts`     | 205 · 206                        | Column · Cell 의 density owners                                                                                              |
+| `packages/shared/src/catalog/document/collectionItems.ts`     | 20                               | Row owners                                                                                                                   |
+| `packages/shared/src/domain/componentTraits.ts`               | 329 ~ 333                        | `TableView` trait                                                                                                            |
+| `packages/shared/src/catalog/nesting/nestingRules.ts`         | 246                              | 컬렉션 집합                                                                                                                  |
+| `packages/shared/src/catalog/nesting/requiredParts.ts`        | 52                               | `TableView: [["TableHeader"]]`                                                                                               |
+| `packages/shared/src/catalog/document/ruleDefinition.ts`      | 349                              | `TableView: SELECTION_KEYS`                                                                                                  |
+| `apps/builder/src/builder/catalogRuntime/itemInsert.ts`       | 154                              | `TableView: ["TableHeader", "TableBody"]`                                                                                    |
+| `apps/builder/src/builder/panels/properties/ariaLabelNeed.ts` | 16                               | 이름이 필요한 type 집합                                                                                                      |
+| `packages/shared/src/components/styles/Table.css`             | 119 ~ 123                        | resizer 선택자 `:is(.react-aria-ResizableTableContainer[data-node-table-container], .react-aria-TableView)` → container 하나 |
+
+### 2e. 주석만 (심볼 참조 없음 — `docs:stale-symbols` 대상)
+
+`resolver.ts` 911 · 929 · `compositionRoot.ts` 4116 · `d2Provenance.ts` 97 · `toRacProps.ts` 70 · `Chart.binding.ts` 7 · `ButtonGroup.binding.ts` 9 · `TableBody.binding.ts` 6 ~ 16 · `Row.binding.ts` 8 ~ 18 · `Column.binding.ts` 4 ~ 21 · `Cell.binding.ts` 4 ~ 11 · `TableHeader.binding.ts` 6 ~ 13 · `renderFacetDeclaration.ts` 57 · 223 · 230 (Phase 0 에서 `tableview` facet 선언 행이 남아 있는지 확인) · `document/types.ts` 52 · `singleSelection.ts` 27 · `CatalogItemInsertSection.tsx` 13 · 28 · `specPresetResolver.ts` 269 · `Table.css` 860 · `.claude/rules/catalog-subparts.md` (Table 열 트랙 절).
+
+### 2f. 테스트 26
+
+| 처리                            | 파일                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TableView 케이스 삭제           | `catalogRuntime/__tests__/s2TreeTableView.test.tsx` (108 · 116행 — quiet variant 파생 · 로드 전환) · `catalog/__tests__/treeTableBindings.test.ts` (66행) · `bindings/__tests__/deadSurfaceRemoval.test.ts` · `catalog/__tests__/componentCatalog.test.ts` · `defaultContractLookup.test.ts` · `archetypeDefaultCohort.static.test.ts` · `rendering/.../CSSGenerator.archetypeDefault.test.ts` · `specPresetResolver.test.ts` · `resolveContainerStylesFallback.test.ts` |
+| TableView 케이스 → Table        | `adr257CellValues.test.tsx` · `adr257ColumnTracks.test.ts` · `adr257TableTracks.test.tsx` · `preview/catalog/__tests__/adr257TableOperations.test.tsx` · `adr256ColumnGroup.test.tsx` · `adr256SlotInsertOptions.test.ts` · `adr259ItemLinks.test.tsx` · `ownerItemInsert.test.ts` · `phase4eItemInsert.test.ts` · `commands/__tests__/collections.test.ts` · `densityChannel.test.ts`                                                                                   |
+| 집합 기대값 갱신                | `nesting/__tests__/childKind.test.ts` · `nestingRules.test.ts` · `domain/__tests__/componentTraits.test.ts` · `panels/components/__tests__/paletteOracle.ts` · `factories/__tests__/renderFacetDeclarationContract.test.ts`                                                                                                                                                                                                                                              |
+| 그대로 (대조 표의 S2 타입 이름) | `d2S2Alignment.static.test.ts` (`Table: "TableView"` — Table 의 S2 정본 타입)                                                                                                                                                                                                                                                                                                                                                                                            |
+
+### 2g. 새 단위 (G1)
+
+`apps/builder/src/builder/catalogRuntime/__tests__/adr277TableOrigin.test.ts`:
+
+1. 새 Table instance 의 해석 자식 = TableHeader(Column 3: Name · Type · Status) + TableBody(Row 1 · Cell 3) — 원복 RED: template 자식 0 이면 열 0.
+2. 데이터를 묶은 Table 의 해석 TableBody 자식 = 투영 행만 (정적 Row 없음) — 원복 RED: `projectTableRows` 의 body children 교체를 끄면 정적 행 + 투영 행.
+3. 첫 연결 (Round 1 h1): starter Table (열 key `name` · `type` · `status` — `resolveTableColumnKey` 638 ~ 649행, 글자 소문자) 에 `{title: "A", price: 10}` schema 를 Quick Connect 기본값으로 연결 → `resolveColumnMode` = `replace` → 열 = `title` · `price` · 투영 행의 칸 값 = `A` · `10` (빈 칸 0) — 원복 RED 둘: binding 유무를 안 읽으면 `preserve` → `name` · `type` · `status` 빈 칸 · 판정을 `target.binding != null` (snapshot 객체) 로 쓰면 미연결 Table 의 `{ props: undefined }` 도 참 → `preserve` → 같은 빈 칸 (Round 2 h1).
+   - 3b. 재연결: 이미 묶인 Table 에 다른 schema 를 연결 → `preserve` (열 그대로) · `replaceColumns: true` → `replace`.
+   - 3c. `replace` 뒤 정적 Row: Cell 수 = 새 열 수 (`tableAlignedIn` 참) · 바인딩 해제 뒤 해석 Row 의 Cell 수 = 열 수 — 원복 RED: 옛 replace (body 건너뜀) 는 Cell 3 ↔ 열 2.
+4. `TableView` 심볼 0: `COMPONENT_RULES_TABLE.TableView` · `bindings.TableView` · `INTERNAL_RENDERERS.tableview` · origin 정의 `origin-component-tableview` · 팔레트 entry 가 모두 undefined.
+5. contract: `LIBRARY_CONTRACT_VERSION` = 44 (소스 상수를 읽는다) · 옛 contract 문서는 `UNSUPPORTED_LIBRARY_CONTRACT`.
+6. `generated/` 디렉터리에 rule 없는 CSS 파일 0 (`TableView.css` 가 `git rm` 됐다).
+
+## 3. Phase
+
+| Phase | 내용                                                                                                                                                                                                                                                                                                                                                                                                        | Gate    |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 0     | §2 표 재확인 (grep) · seed · fixture · Components 페이지의 TableView 수 · `renderFacetDeclaration` 의 `tableview` facet · `resolveTableColumnKey` 규칙 · 사용자 결정 1 · 2 (AskUserQuestion) → 본문 Status 에 기록                                                                                                                                                                                          | G0      |
+| 1     | origin library: TableView 정의 · template 12 삭제 · Table template 에 starter 자식 9 (사용자 결정 2 (a)) · contract +1. 등록 해제 (§2c) · 첫 연결 규칙 · replace 정렬 (§2c-2) · 집합 제거 (§2d) · rule 삭제 → `pnpm build:specs` (생성 CSS 재실행) + `git rm generated/TableView.css` · `index.css` import 제거 · 주석 (§2e). 테스트 (§2f) · 새 단위 (§2g). type-check · `docs:stale-symbols` · 영향 스위트 | G1      |
+| 2     | Canvas = DOM parity — 팔레트 Table (starter) · quiet · density 3 · 조절 열 container · 바운드 Table (fixed 400 · 투영 행) — `adr248Catalog*` parity 또는 `/cross-check`                                                                                                                                                                                                                                     | G2      |
+| 3     | live (Chrome MCP, 새 프로젝트 `adr277-live`): 팔레트 「table」 하나 · 놓으면 열 3 · 행 1 · Quick Connect 로 `{title, price}` 연결 (기본값) → 열 `title` · `price` · 칸마다 실제 값 · 해제 → 정적 Row 복귀 · 재연결 교체 스위치 · Quiet · Density · Selection Style · `allowsResizing` → Preview resizer · 정렬 · 옛 contract 프로젝트 거부 · 콘솔 0                                                         | G3      |
+| 4     | 문서: CHANGELOG (Removed TableView · Changed Table starter · contract 44) · `catalog-subparts.md` · binding 주석 · README · 본문 `### Live Exercise` → 커밋 → pre-push ratchet · 번들 · `codex:preflight` → 사용자 확인 (G5) → Implemented                                                                                                                                                                  | G4 · G5 |
+
+Phase 1 은 한 커밋이다 (삭제 · 집합 제거 · 테스트가 서로 묶여 있어 나누면 중간 상태가 type-check 를 못 넘는다). 1.5× 초과는 사후 보고.
+
+## 4. 원복 RED 목록
+
+| #   | 원복                                                                                                 | 반응하는 게이트                                         |
+| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| a   | Table template 의 starter 자식 제거                                                                  | §2g-1 (열 0)                                            |
+| b   | `projectTableRows` 의 body children 교체 제거                                                        | §2g-2 (정적 행 + 투영 행)                               |
+| c   | `TRACK_TABLE_TYPES` 등 집합에 "TableView" 되돌림                                                     | `docs:stale-symbols` · §2g-4                            |
+| d   | contract 43 그대로                                                                                   | §2g-5 · G3 옛 프로젝트가 열린다 (`DANGLING_DEFINITION`) |
+| e   | `resolveColumnMode` 가 binding 유무를 안 읽음, 또는 snapshot 객체 (`target.binding != null`) 로 판정 | §2g-3 (`name` · `type` · `status` 빈 칸)                |
+| f   | `replace` 가 정적 Row 의 Cell 을 안 건드림                                                           | §2g-3c (`tableAlignedIn` 거짓)                          |
+
+## 5. 실행 기록
+
+(execute-adr 가 적는다.)
