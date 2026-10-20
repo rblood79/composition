@@ -949,6 +949,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   저작 height/minHeight 는 inline 이라 이 값을 덮는다. DOM 채널 전용 — Canvas 는 body
         //   root 를 아트보드 높이로 그린다.
         minHeight: "100%",
+        // Compare 모드의 Preview body 가 페이지 프레임 높이를 definite 로 받도록 height 100% (사용자
+        //   지시 2026-10-21 — 종전엔 sizes.M.height 0 → 생성 CSS `height: auto`). containerStyles 에
+        //   height 가 있으면 CSSGenerator 가 size 블록의 height 를 내지 않는다.
+        height: "100%",
       },
       composition: {
         rootSelectors: {},
