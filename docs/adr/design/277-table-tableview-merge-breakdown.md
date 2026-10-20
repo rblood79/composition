@@ -1,6 +1,6 @@
 # ADR-277 breakdown — Table · TableView 통합
 
-> 본문: [ADR-277](../277-table-tableview-merge.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다. 인벤토리 수치는 2026-10-20 grep 실측 (main `09a72805f`) 이고 Phase 0 에서 다시 센다.
+> 본문: [ADR-277](../completed/277-table-tableview-merge.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다. 인벤토리 수치는 2026-10-20 grep 실측 (main `09a72805f`) 이고 Phase 0 에서 다시 센다.
 
 ## 1. 전제 lock-in
 

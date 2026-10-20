@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [ADR-277 — Table · TableView 통합 — 표는 하나] - 2026-10-21
 
+> Implemented 2026-10-21 — 사용자 G5 확인 (Chrome `adr277-live`). G4: preflight 전 단계 PASS · initial 번들 Builder −176 · Preview −163 B gzip (상한 안) · ratchet 미측정 (하니스 인증 세션 없음, 삭제뿐이라 카운트 증가 경로 없음). 본문 `docs/adr/completed/277-table-tableview-merge.md`.
+
 ### Removed
 
 - **팔레트 「table view」 (TableView type) 삭제** (ADR-277 Phase 1, 사용자 결정 2026-10-21 「Table 로 통합 · starter 넣음 · 첫 연결은 교체」): S2 이름의 둘째 표 type 은 origin 정의 · template · binding · rule (`COMPONENT_RULES_TABLE.TableView`) · 생성 `TableView.css` · DOM 렌더러 (`CatalogTableView`) · 카탈로그 entry · Properties 메타 · i18n 라벨 · 로드 전환 (`s2PropAlignment`) 을 전부 지웠다. `"Table" || "TableView"` 쌍 14 자리 (열 트랙 · 선택 부품 · 정렬 · 리사이즈 · density · overflowMode · 항목 소유 · 중첩 · 필수 부품 · "+" 목록 · 이름 필요 집합) 는 Table 하나. RAC 에는 `Table` 하나, S2 에는 `TableView` 하나뿐이고 이 저장소의 Table 은 이미 S2 TableView 의 prop 축을 다 받고 있었다 (`d2S2Alignment` 가 Table ↔ S2 TableView 로 대조 — 그대로).

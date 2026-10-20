@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-21 ADR-277 Implemented (같은 날)** — Phase 4 커밋 `a3bc8eb08` (자기 파일 118 · 병렬 세션 WIP 보존) → push → G4: preflight 전 단계 PASS (agent-catalog 게이트가 `CLAUDE.local.md` 부재로 `set -e` 종료하던 결함 `d22773d91` 수리 + 드러난 고아 hook 2 삭제 `2604ec3d8` · `74f5d377e`, 사용자 승인) · initial 번들 before `66428e7ad` → after: Builder JS gzip 1,377,771 → 1,377,595 (−176) · Preview 300,750 → 300,587 (−163), ADR-201 상한 안 · ratchet 은 하니스 인증 세션 없이 미측정 (삭제뿐이라 카운트 증가 경로 없음) → G5 사용자 확인 「확인했어, Implemented 로 올려」. 열림 3 (Proposed 1 = 245 보류 · Accepted 2 = 275 · 276), 완료 296, 합계 299.
+>
 > **2026-10-21 ADR-277 Accepted → Phase 0 ~ 3 종결 (G0 ~ G3)** (사용자 `/execute-adr 277` · 사용자 결정 3건 모두 권고안 — Table · starter 열 3 행 1 · 첫 연결 교체): Phase 0 인벤토리 = 추정과 같음 (소스 47 · 테스트 26). Phase 1 — TableView type · origin · template 10 · binding · rule · 생성 CSS · DOM 렌더러 · 팔레트 · 집합 14 자리 · 로드 전환 삭제, Table template 에 starter, `resolveColumnMode(plan, replaceColumns, hasBinding)` (첫 연결 = `replace`) · `insertTableColumns replace` 의 정적 Row Cell 재정렬, contract 44. 새 단위 `adr277TableOrigin` 7 · 영향 테스트 37. Phase 2 · 3 (Chrome MCP, `adr277-live`): Canvas = Preview 270 칸 ≤ 0.01 px · 첫 연결 교체 열 18 · 해제 정렬 · 재연결 보존 · quiet · highlight · resizer · 정렬 · 43 거부 · 오류 0. 다음: 커밋 → G4 → G5 사용자 확인 → Implemented.
 >
 > **2026-10-20 ADR-277 Proposed 추가** (사용자 `/create-adr Table + TableView 통합` — 전 세션 팔레트 전수 조사 A-1 채택) — 팔레트에 표가 둘 (Table · TableView) 인데 D1 루트가 같다는 실측: 둘 다 `CatalogTable` · `CatalogTableView` 가 RAC `Table` (+ `ResizableTableContainer`) 을 그리고 부품 (TableHeader · Column · TableBody · Row · Cell) 은 같은 노드 · 같은 RAC 부품 (ADR-256 Phase 5i · ADR-257 Phase 5). 차이는 prop 표면 (TableView accepts 6 ⊂ Table accepts 9 — S2 TableView 축 5 는 이미 Table 에 있고 `d2S2Alignment` 가 Table ↔ S2 TableView 로 대조) · origin template (Table 은 열 0 · 행 0 의 데이터 바인딩 전용, TableView 는 열 3 · 행 1 starter 인데 `dataBinding` 이 없다 — 「데이터는 Table · 열은 TableView」 어긋남) · rule 둘 · CSS 둘 (수동 `Table.css` · 생성 `TableView.css`) · `"Table" || "TableView"` 쌍 14 자리뿐. 참조 소스 47 · 테스트 26. 채택 B: 표는 Table 하나 (RAC 이름 — GridList/ToggleButtonGroup/Tree 선례, `react-aria-Table` class 와 일치) — TableView 의 정의 · template 12 · binding · rule · 생성 CSS · DOM 렌더러 · 팔레트 항목 · 집합 14 자리 · 로드 전환 2 줄 삭제, 팔레트 Table origin template 이 TableView 의 starter (열 3 · 행 1) 를 받아 놓는 순간 표가 보이고 데이터를 묶으면 `projectTableRows` 가 행을 교체 (지금 규칙). Table 의 accepts 무변경. 기각: A 두 type 유지 + 기능 서로 채움 (원인 잔존) · C TableView 이름으로 통합 (`projectTableRows` · `catalogTableHeight` · `Table.css` 889줄의 Table 결합 — type 과 RAC class 가 어긋남, 기술 H). 사용자 결정 3 (남는 이름 · starter 방식 · starter 열의 첫 연결 — 권고 Table · 넣음 · 교체). 스키마 변경 0 · contract +1 (구조 변경 계약 Step 3 — 옛 개발용 프로젝트 거부, 변환 0, 저장 문서 영향 0 = ADR-257 Phase 0 집계). **같은 날 리뷰 Round 1** (codex) HIGH 1 → 수리: starter 열 (key `name` · `type` · `status`) 을 가진 Table 을 Quick Connect 기본값으로 연결하면 `resolveColumnMode` 가 `preserve` 라 schema 열이 안 들어가고 칸이 전부 빈다 (h1) → binding 없던 Table 의 첫 연결은 `replace` (사용자 결정 3) + `replace` 경로가 정적 Row 의 Cell 을 새 열 수로 재정렬 (해제 뒤 RAC 오류 방지) · G1 · G3 가 `{title, price}` 실제 칸 값을 본다. 비차단: `generate-css` 는 옛 파일을 안 지운다 → `TableView.css` 는 `git rm`. **Round 2** (수리 검증) 신규 HIGH 1 — 첫 연결 판정 `target.binding != null` 은 snapshot 객체 (`{ props }`) 라 미연결에서도 참 → `target.binding.props != null` 로 수리 · 라운드 상한 도달, 실행자 설계 종결 선언 (pending 0). 열림 4 — Proposed 2 (245 · 277) · Accepted 2 (275 · 276), 합계 299.
@@ -375,17 +377,19 @@
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
 | 완료 (`completed/`)           |     294 |
-| ├ Implemented / Complete(d)   |     247 |
+| ├ Implemented / Complete(d)   |     248 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       1 |
+| 열려 있는 것 (`adr/*.md`)     |       3 |
 | ├ Proposed                    |       1 |
-| ├ Accepted (미착수·일부 착수) |       0 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **295** |
+| **합계**                      | **299** |
 
+> 2026-10-21 재대조 (9): ADR-277 Implemented (완료 +1 · 열림 −1) — 열림 3 = 245 (사용자 보류) · 275 · 276 (둘 다 Accepted, G5 대기). 직전 표는 275 · 276 · 277 Accepted 추가가 반영되지 않아 열림 1 · 합계 295 로 적혀 있었다 — 실측 (완료 표 행 296 · `adr/` 직속 ADR 3) 에 맞췄다.
+>
 > 2026-10-18 재대조 (8): ADR-272 Implemented (열림 −1, 완료 +1) — 열림 1 = 245 (사용자 보류).
 >
 > 2026-10-18 재대조 (7): ADR-270 · 273 · 271 Implemented (열림 −3, 완료 +3) — 열림 2 = 245 (사용자 보류) · 272.
@@ -431,11 +435,6 @@
 - **상태**: Accepted — 2026-10-20 (Phase 0 ~ 3 구현 + live G3, G5 사용자 확인 대기)
 - **규모**: Phase 0 인벤토리 (중첩 Button 27 + ToggleButton 7 자리의 `children` → `label` 표 §2b · 자체 `children` 읽기 지점 · IconButton 참조) + 사용자 결정 3 → Phase 1 origin template (`Button > Icon{icon} + Text{label}` + 생략 규칙 · 호스트 `label` 쓰기 · contract +1 · ToggleButton 같음) · Canvas 익명 글자 분기 삭제 → Phase 2 Properties (`accepts` 의 `label` · `icon` 칸 하나 · 자식 명령 3 삭제) · 소비자 → Phase 3 IconButton 통합 · live → Phase 4 문서. G0 ~ G5. 리뷰 Round 1 HIGH 3 · Round 2 HIGH 1 (h4) 수리 (2026-10-20), 다음 검증 round 는 사용자 판단. breakdown: [design/276](design/276-button-text-child-iconbutton-merge-breakdown.md)
 
-#### [277](277-table-tableview-merge.md) — Table · TableView 통합 — 표는 하나 (RAC Table)
-
-- **상태**: Accepted — 2026-10-21 (Proposed 10-20 · 리뷰 Round 1 HIGH 1 · Round 2 수리 검증 신규 HIGH 1 — 같은 날 수리, pending 0, 실행자 설계 종결 선언 → `/execute-adr 277` Phase 0 ~ 3 종결 · G0 ~ G3 통과, 사용자 결정 3건 권고안 — G5 사용자 확인 대기)
-- **규모**: Phase 0 참조 전수 표 (소스 47 · 테스트 26 — 삭제 / 등록 해제 / 집합 제거 / 주석 / 재작성, breakdown §2) + 사용자 결정 3 (남는 이름 · starter 방식 · 첫 연결) → Phase 1 한 커밋 (TableView 정의 · template 10 · binding · rule · 생성 CSS · DOM 렌더러 · 팔레트 · 집합 14 자리 · 로드 전환 삭제 · Table template 에 starter 열 3 · 행 1 · 첫 연결 교체 · replace 정렬 · contract 44 · 테스트 26 · 새 단위 7) → Phase 2 parity → Phase 3 live → Phase 4 문서. G0 ~ G5. breakdown: [design/277](design/277-table-tableview-merge-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -463,18 +462,17 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                                             | 차단 · 선행                                                                                    |
-| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                            | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                       |
-|  2   | [276](276-button-text-child-iconbutton-merge.md)                                               | Accepted 2026-10-20 — Phase 0 ~ 3 구현 + live G3, G5 (사용자 확인) 대기                 | G5 사용자 확인 → Implemented                                                                   |
-|  3   | [277](277-table-tableview-merge.md)                                                            | Accepted 2026-10-21 — Phase 0 ~ 3 종결 · G0 ~ G3 통과 (contract 44, live `adr277-live`) | 커밋 → G4 (pre-push ratchet · 번들) · G5 사용자 확인 → Implemented                             |
-|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상)       | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                 | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                      | 각 항목의 재개 조건 발생 시                                                                    |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
+| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                      | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                       |
+|  2   | [276](276-button-text-child-iconbutton-merge.md)                                               | Accepted 2026-10-20 — Phase 0 ~ 3 구현 + live G3, G5 (사용자 확인) 대기           | G5 사용자 확인 → Implemented                                                                   |
+|  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
-## 완료 ADR (295)
+## 완료 ADR (296)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -777,6 +775,7 @@
 | [271](completed/271-zoomed-out-lod-skip-small-elements-text-line-boxes.md) | 축소 개요 LOD (Pen.dev 비교 도입 2/4) — **측정 기록 종결**: 0.5 px 이하 요소 몫 0 (사용자 프로젝트 0 / 1,589 — 생략 미도입, 사용자 결정) · 글자 줄 상자는 구현 뒤 dev A/B 에서 래스터 같음 · band 경계 재기록으로 줌 taskMs +12 ~ 16 % → 되돌림 (사용자 결정 3). 남긴 것: `zoom-ladder` · ratchet `@zoom` run 2 (dev 투영 크기 분포 카운터는 2026-10-18 보완에서 삭제). 남은 꼬리 = `drawPicture` 재생 수 (대안 C) | Implemented | 2026-10-18 |
 | [274](completed/274-page-grid-auto-columns-from-screen-width.md) | 페이지 grid auto 열 수 = 모니터 폭 · 기준 배율 (기본 40 %) — 줌이 배치를 바꾸지 않는다 (줌 `translateCalls` → 0) · 열 수는 root 파생 안 (breakpoint 전환 · gap 편집 두 번째 패스 제거) · Settings `%` = Auto · 단위 없음 = Fixed · 배율 breakpoint 공통 · 10 ~ 100 % · production 짝 줌 taskMs 2,497 → 870 · ratchet A 49 키 상향 (사용자 결정 3) | Implemented | 2026-10-18 |
 | [272](completed/272-bounded-spatial-query-and-warmup-work-range.md) | 작업 범위 제한 (Pen.dev 비교 도입 3/4) — Phase 0 몫 표 (`many-pages` 100 · 300): 질의 ≤ 0.3 % → 전략 전환 no-go · 64 셀 넘는 항목 0 → 큰 항목 버킷 생략 (사용자 결정 2) · Phase 2 미리 기록: 자리 0 이면 생략 · 후보 = page root ∪ 공간 질의 · 가까운 k 개만 정렬 · 카메라 칸 · 자리를 못 채우면 전체 보충 (편집 뒤 준비 9.1 → 0.1 ms) · 참고 목표 미달은 기록 (사용자 결정 3) | Implemented | 2026-10-18 |
+| [277](completed/277-table-tableview-merge.md) | Table · TableView 통합 — 표는 하나 (RAC Table) — TableView type · origin · binding · rule · 생성 CSS · DOM 렌더러 · 팔레트 삭제, `"Table" \|\| "TableView"` 집합 14 자리 제거 · Table template 에 starter (Column 3 · Row 1 · Cell 3, Column 은 origin instance) · 첫 연결 (binding 없음) 은 열 교체 + 정적 Row Cell 재구축 · contract 44 · 새 단위 7 · live Canvas = Preview ≤ 0.01 px (270 칸) · 번들 Builder −176 · Preview −163 B gzip | Implemented | 2026-10-21 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 
