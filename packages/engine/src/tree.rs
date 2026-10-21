@@ -983,9 +983,14 @@ impl LayoutTree {
 
     /// 노드 제거 + handle 을 free_list 로 반환(재활용 대상).
     ///
-    /// 트리 구조 변경이므로 `last_compute` 를 무효화한다 — 이어지는 compute_layout
-    /// 이 동일 (root, avail) 로 stale skip 하는 것을 방지. (제거된 handle 이 재활용돼
-    /// 다른 노드가 되면 handle 기반 skip 판정이 오염되므로.)
+    /// 부모의 `set_children` 이 조상 체인을 dirty 로 올리므로 제거 자체는 증분이다. 트리 단위
+    /// `last_compute` 는 **root handle 자신을 지울 때만** 비운다 — 재발급된 handle 이 다른 root 가
+    /// 되면 `(root, avail)` 키가 오염되기 때문. 그 밖의 노드는 `alloc_handle` 이 skip 키
+    /// (`last_solved` · `last_avail`) 를 비워 만들어 재활용돼도 stale skip 이 없다.
+    ///
+    /// **Why (2026-10-21)**: 종전엔 모든 제거가 `last_compute` 를 비워 다음 `compute_layout` 이
+    /// 「available 변경」 으로 읽고 `mark_subtree_dirty(root)` — 22 페이지 문서에서 삭제 · 데이터
+    /// 연결 1건이 solve 46k (문서 전체 1 pass, 80 ms · 4x 290 ms). 삽입 · 폭 편집은 55~651.
     pub fn remove_node(&mut self, handle: usize) {
         if handle < self.nodes.len() && self.nodes[handle].is_some() {
             if self
@@ -1004,7 +1009,9 @@ impl LayoutTree {
             }
             self.nodes[handle] = None;
             self.free_list.push(handle);
-            self.last_compute = None;
+            if self.last_compute.is_some_and(|(root, _, _)| root == handle) {
+                self.last_compute = None;
+            }
         }
     }
 
@@ -12157,6 +12164,66 @@ mod tests {
         tree.remove_node(c1);
         tree.compute_layout(root, 400.0, 100.0);
         assert_eq!(tree.get_layout(c2).x, 0.0, "c1 제거 후 c2 는 x=0");
+    }
+
+    /// 2026-10-21 (Canvas 성능 조사 레버 4a) — 노드 하나를 지워도 clean 형제 서브트리는 skip 된다.
+    ///
+    /// `remove_node` 가 `last_compute` 를 무조건 비워 다음 `compute_layout` 이 「available 변경」
+    /// 으로 읽고 트리 전체를 dirty 로 풀었다 — 22 페이지 문서에서 삭제 · 데이터 연결 1건이
+    /// solve 46k (문서 전체 1 pass, 80 ms · 4x 290 ms). 제거는 부모의 `set_children` 이 이미
+    /// 조상 체인을 dirty 로 올리므로 트리 단위 무효화는 root handle 자신을 지울 때만 필요하다.
+    #[test]
+    fn remove_node_keeps_clean_sibling_subtrees_skipped() {
+        let mut tree = LayoutTree::new();
+        let a_leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let a = tree.create_node(adr268_box(200.0));
+        tree.set_children(a, vec![a_leaf]);
+        let b_leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let b = tree.create_node(adr268_box(200.0));
+        tree.set_children(b, vec![b_leaf]);
+        let c_leaf = tree.create_node(px_leaf(150.0, 20.0));
+        let c = tree.create_node(adr268_box(200.0));
+        tree.set_children(c, vec![c_leaf]);
+        let root = tree.create_node(flex_row_fixed(600.0, 40.0));
+        tree.set_children(root, vec![a, b, c]);
+        tree.compute_layout(root, 600.0, 40.0);
+        assert_eq!(tree.get_layout(c).x, 400.0);
+
+        tree.reset_counters();
+        tree.set_children(a, vec![]);
+        tree.remove_node(a_leaf);
+        tree.compute_layout(root, 600.0, 40.0);
+        let [visits, _] = tree.counters();
+        // root + a (dirty) + b · c (HIT 진입만) — b_leaf · c_leaf 는 들어가지 않는다.
+        assert!(visits <= 4, "형제 서브트리가 다시 풀렸다: solve {visits}");
+        assert_eq!(tree.get_layout(b).x, 200.0);
+        assert_eq!(tree.get_layout(c).x, 400.0);
+        assert_eq!(tree.get(a).map(|n| n.children.len()), Some(0));
+    }
+
+    /// root handle 자신을 지우고 같은 handle 로 새 root 를 만들면 stale skip 없이 다시 푼다
+    /// (`last_compute` 가 root handle 로 키를 잡으므로 이 경우만 비운다).
+    #[test]
+    fn remove_root_handle_reuse_recomputes() {
+        let mut tree = LayoutTree::new();
+        let old_leaf = tree.create_node(px_leaf(100.0, 20.0));
+        let old_root = tree.create_node(flex_row_fixed(400.0, 40.0));
+        tree.set_children(old_root, vec![old_leaf]);
+        tree.compute_layout(old_root, 400.0, 40.0);
+        assert_eq!(tree.get_layout(old_leaf).width, 100.0);
+
+        tree.set_children(old_root, vec![]);
+        tree.remove_node(old_leaf);
+        tree.remove_node(old_root);
+        // free_list 는 LIFO — old_root 의 handle 이 먼저 재발급된다.
+        let new_root = tree.create_node(flex_row_fixed(400.0, 40.0));
+        assert_eq!(new_root, old_root, "handle 재활용 전제");
+        let new_leaf = tree.create_node(px_leaf(300.0, 20.0));
+        tree.set_children(new_root, vec![new_leaf]);
+        tree.reset_counters();
+        tree.compute_layout(new_root, 400.0, 40.0);
+        assert!(tree.counters()[0] >= 2, "새 root 는 skip 없이 푼다");
+        assert_eq!(tree.get_layout(new_leaf).width, 300.0);
     }
 
     /// clean sibling 서브트리는 skip 되지만 부모 재배치 입력으로 정확한 크기를 반환한다.

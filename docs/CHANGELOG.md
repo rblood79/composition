@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [레이아웃 엔진 — 노드 제거가 문서 전체를 다시 풀지 않는다] - 2026-10-21
+
+### Performance
+
+- **요소 삭제 · 데이터 연결 · 삽입 undo 가 문서 전체 레이아웃을 다시 계산하지 않는다**: 엔진 `remove_node` (`packages/engine/src/tree.rs`) 가 `last_compute` 를 무조건 비워 다음 `compute_layout` 이 「available 변경」 으로 읽고 `mark_subtree_dirty(root)` — 트리 전체를 dirty 로 풀었다 (ADR-916 단위 4, `4e8ac7cd6`). 이제 root handle 자신을 지울 때만 비운다 — 그 밖의 제거는 부모 `set_children` 의 조상 dirty 전파로 충분하고, 재활용된 handle 의 새 노드는 skip 키 (`last_solved` · `last_avail`) 가 비어 있어 stale skip 이 없다.
+  - **Why**: ADR-248 이후 Canvas 성능 조사 레버 4 (`.agent/runs/2026-10-21-canvas-perf-regression/lever4/`) — 22 페이지 · record 10,664 문서에서 「1000 행 연결」 long task 194~447 ms (사용자 4x) 를 귀속: 행 수 무관 (10 행도 같음), self-time 55~75 % 가 `computeLayout` (engine wasm), `engine.solveVisits` 46k = 문서 전체 1 pass. Button 1개 삭제도 같았다 (45,860 · 80 ms · 4x 290). 삽입 · 폭 편집은 55~651.
+  - 효과 (dev · 같은 문서): 삭제 solve 45,860 → 49 · 80 → 10 ms (4x 286 → 27) · Table 연결 46,165 → 349 · 109 → 46 ms (4x 403 → 183) · GridList 1000 행 연결 46,741 → 651 · 107 → 48 ms (4x 438 → 225). 1x long task 0 (`steps-dev-after.json`). 연결에 남은 몫은 글자 측정 · resolver.
+  - 테스트: `remove_node_keeps_clean_sibling_subtrees_skipped` (RED: 형제 서브트리 재 solve) · `remove_root_handle_reuse_recomputes` (root handle 재발급은 종전대로 다시 푼다). cargo test 501 · golden 15 PASS.
+  - ratchet: `engine.solveVisits` (edit 류) 가 크게 내려간다 — 하향 기록 (`--update`) 은 app-pages 재기준과 같이.
+
 ## [Builder 로드 — mount 의 바인딩 행 중복 해석 제거] - 2026-10-21
 
 ### Performance
