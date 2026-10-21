@@ -4,6 +4,7 @@ import {
 } from "../../../catalogRuntime/originView";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
+import { renderCounters } from "../skia/renderCounters";
 
 /**
  * Slot chrome (editor only, not document paint). The definition edit view marks every declared
@@ -24,6 +25,10 @@ export function catalogSlotMarks(
   role: "origin" | "instance";
   identity: string;
 }[] {
+  // Built once per scene change (`catalogOverlayChrome.ts`), not per camera-only frame — the
+  // ratchet (`render.overlayChromeBuilt`, pan) keeps it so (2026-10-21).
+  if (process.env.NODE_ENV !== "production")
+    renderCounters.overlayChromeBuilt += 1;
   const graph = workspace.runtime.graph;
   // One root read per pass (the ADR-246 ratchet counts `workspace.root`).
   const root = workspace.root;

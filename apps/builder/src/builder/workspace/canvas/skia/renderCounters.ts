@@ -233,6 +233,11 @@ export interface RenderCounters {
   warmCandidatesSorted: number;
   warmPassRebuilt: number;
   warmCandidatesLinear: number;
+  /**
+   * Overlay chrome (slot marks · row remainders · page occluders) built from the records — once
+   * per scene change, not per camera-only frame (`catalogOverlayChrome.ts`, 2026-10-21).
+   */
+  overlayChromeBuilt: number;
 }
 
 const counters: RenderCounters = {
@@ -360,6 +365,7 @@ const counters: RenderCounters = {
   warmCandidatesSorted: 0,
   warmPassRebuilt: 0,
   warmCandidatesLinear: 0,
+  overlayChromeBuilt: 0,
 };
 
 /**

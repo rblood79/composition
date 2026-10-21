@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas pan — overlay chrome 을 scene 버전으로 보관] - 2026-10-21
+
+### Performance
+
+- **pan 중 camera-only 프레임이 record 전체를 다시 훑지 않는다**: overlay 의 slot 표시 (`catalogSlotMarks` — `root.domInputs` 전체 순회 + 조상 오르기 + `graph.getEntry`) · 바인딩 컬렉션의 「+N more」 나머지 (`catalogRowRemainders` — `canvasInputs` 전체 순회) · 페이지 가림 상자 (`catalogOccludingPages`, slot · 나머지 · 배지마다 페이지 O(n)) 를 Canvas 의 scene 버전 (`cellsVersion` — step · 미리보기 · 데이터 행 · 페이지 grid · 다른 root 에서 오른다) 으로 보관한다 (`workspace/canvas/catalog/catalogOverlayChrome.ts`, `CatalogCanvas.tsx` 의 overlay 입력). hover · 선택은 상자를 움직이지 않으므로 overlay 버전이 아니라 scene 버전이 키다.
+  - **Why**: ADR-248 이후 Canvas 성능 조사 (2026-10-21, `.agent/runs/2026-10-21-canvas-perf-regression/lever2/`) — 22 페이지 · record 11k 문서의 휠 pan 에서 프레임당 ~~1~~1.5 ms 가 이 세 계산이었다 (app 몫의 절반, `graph.getEntry` 가 app self 1위). 120 Hz 면 busy 12~~18 %, 4x throttle 이면 4~~6 ms/frame 이라 재기록 프레임과 겹치면 예산을 넘겼다. 입력은 scene 이 바뀔 때만 움직인다.
+  - 카운트: `render.overlayChromeBuilt` (slot 표시를 만든 횟수) — ratchet 조건 `60:app-pages` zoom · pan · page-switch 153 · 179 · 10 (프레임마다) → 0 · 0 · 0, edit 15 → 15 (step 마다 1). 원복 RED = 보관을 빼면 179 (2회 동일). ratchet 등재 (`--add-keys`) 는 ADR-277 fixture 변경 (TableView → Table) 으로 생긴 기존 A 초과 13건이 막아 `60:app-pages` 재기준 뒤로 미룸.
+  - wall-clock 방향 (gridlist-1000 · 데이터 행 포함 · dev · 휠 pan 3 s): main busy 가로 pan 11.7 → 7.7 % (app 4.8 → 1.5) · 4x 24.7 → 15.0 % (app 14.6 → 3.2) · 세로 pan @4x drop 11.9 → 6.2 %. overlay `renderSkia` 포함 시간 130 → 12 ms / 3 s. 재기록 (CanvasKit picture 재생) 은 그대로 — 별도 항목 (ADR-266 대안 B).
+  - 테스트: `catalogOverlayChrome.test.ts` (같은 버전 1회 · 버전 변경 재계산 · 가림 identity 별 보관).
+
 ## [ADR-277 — Table · TableView 통합 — 표는 하나] - 2026-10-21
 
 > Implemented 2026-10-21 — 사용자 G5 확인 (Chrome `adr277-live`). G4: preflight 전 단계 PASS · initial 번들 Builder −176 · Preview −163 B gzip (상한 안) · ratchet 미측정 (하니스 인증 세션 없음, 삭제뿐이라 카운트 증가 경로 없음). 본문 `docs/adr/completed/277-table-tableview-merge.md`.

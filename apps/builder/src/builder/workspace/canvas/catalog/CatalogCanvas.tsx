@@ -129,6 +129,7 @@ import {
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { catalogMenuView } from "./catalogMenuView";
+import { createOverlayChromeCache } from "./catalogOverlayChrome";
 import { catalogOverlayNode } from "./catalogOverlay";
 import { catalogScrollbarContent } from "./catalogScrollbarContent";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
@@ -397,14 +398,46 @@ export function CatalogCanvas({
         ? skiaFontManager.getFontMgr()
         : undefined;
     renderer.setContentNode(scene.contentNode(ck, fontMgr));
+    // Overlay chrome read from the records and the scene's boxes — slot marks, row remainders,
+    // page occluders (content chrome is cut there — §8.5) — kept per scene version: a camera-only
+    // pan frame reads the kept lists instead of walking every record (`catalogOverlayChrome.ts`).
+    const chrome = createOverlayChromeCache(
+      () => cellsVersion,
+      {
+        slots: () =>
+          catalogSlotMarks(
+            workspace,
+            scene.stream.boundsMap,
+            scene.stream.hitBoundsMap,
+          ),
+        remainders: () =>
+          catalogRowRemainders(workspace.root).flatMap((remainder) => {
+            const box = catalogRowRemainderBox(
+              remainder,
+              (id) => scene.stream.boundsMap.get(id),
+              scene.stream.hitBoundsMap.get(remainder.ownerId),
+            );
+            return box
+              ? [
+                  {
+                    box,
+                    hiddenRows: remainder.hiddenRows,
+                    ownerId: remainder.ownerId,
+                  },
+                ]
+              : [];
+          }),
+        occluders: (identity) =>
+          catalogOccludingPages(
+            identity,
+            (id) => workspace.root.canvasInputs.get(id)?.parentId,
+            scene.pageRootIds,
+            (id) => scene.stream.boundsMap.get(id),
+          ),
+      },
+    );
     /** Page boxes painted over a record's page (content chrome is cut there — §8.5). */
-    const occludersOf = (identity: string) =>
-      catalogOccludingPages(
-        identity,
-        (id) => workspace.root.canvasInputs.get(id)?.parentId,
-        scene.pageRootIds,
-        (id) => scene.stream.boundsMap.get(id),
-      );
+    const occludersOf = (identity: string) => chrome.occludersOf(identity);
     const badges = createCatalogBadges({
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
@@ -496,12 +529,7 @@ export function CatalogCanvas({
       childrenOf: (identity) =>
         sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
-      slots: () =>
-        catalogSlotMarks(
-          workspace,
-          scene.stream.boundsMap,
-          scene.stream.hitBoundsMap,
-        ),
+      slots: chrome.slots,
       hitBounds: () => scene.stream.hitBoundsMap,
       roleOf: (identity) => {
         const target = workspace.itemOfRecord(identity)?.target;
@@ -548,23 +576,7 @@ export function CatalogCanvas({
         }
         return hoverLeavesMemo.leaves;
       },
-      remainders: () =>
-        catalogRowRemainders(workspace.root).flatMap((remainder) => {
-          const box = catalogRowRemainderBox(
-            remainder,
-            (id) => scene.stream.boundsMap.get(id),
-            scene.stream.hitBoundsMap.get(remainder.ownerId),
-          );
-          return box
-            ? [
-                {
-                  box,
-                  hiddenRows: remainder.hiddenRows,
-                  ownerId: remainder.ownerId,
-                },
-              ]
-            : [];
-        }),
+      remainders: chrome.remainders,
       // A badge whose anchor a later-painted page covers is neither drawn nor pressed.
       badges: () =>
         badges
