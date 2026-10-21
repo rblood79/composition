@@ -1,8 +1,8 @@
 {
   "version": 1,
   "recorderSha256": "ea9cf64582c7c1fcba32bd7c3157973850bfd358081d7f4cdb4a98f122f57c60",
-  "generatedAt": "2026-10-18",
-  "head": "ce711b9fc8023ff337801e3bc5796ba207167ffb",
+  "generatedAt": "2026-10-21",
+  "head": "16ad74fb69fa9cb0d146521c55f4238bf117c5bf",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -254,16 +254,16 @@
           "v8.fn.src/builder/catalogRuntime/controller.ts#current": 2444,
           "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 1931,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 1326,
-          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1710,
+          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1680,
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 1480,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#(anonymous)": 5880,
-          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1766,
+          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1734,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 1440,
           "v8.fn.src/builder/panels/navigator/catalog/CatalogLayersSection.tsx#getKey": 1891,
           "v8.fn.src/catalog/commands/components.ts#(anonymous)": 1800,
           "v8.fn.src/catalog/commands/context.ts#read": 1512,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 1800,
-          "v8.fn.src/catalog/document/graph.ts#getEntry": 5330,
+          "v8.fn.src/catalog/document/graph.ts#getEntry": 3318,
           "v8.fn.src/catalog/document/graph.ts#ownerOf": 1455,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1730,
           "render.bufferProxyReads": 0,
@@ -404,16 +404,17 @@
           "reactRenderMeasures": 4487,
           "v8.app": 98176,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 9610,
-          "v8.fn.src/catalog/runtime/controller.ts#current": 2504,
-          "v8.fn.src/catalog/runtime/controller.ts#get graph": 1976,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 2546,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 1928,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 1430,
-          "v8.fn.src/catalog/document/library.ts#get": 1170,
+          "v8.fn.src/catalog/document/library.ts#get": 1080,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsCompute": 1110,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsKey": 1110,
           "v8.fn.src/i18n/labels.ts#translateKey": 800,
           "v8.fn.src/i18n/useI18n.ts#useI18n": 779,
           "v8.fn.src/catalog/commands/context.ts#definitionTypeName": 765,
-          "render.surfaceBytesMax": 43109888
+          "render.surfaceBytesMax": 43109888,
+          "v8.fn.src/builder/catalogRuntime/workspace.ts#rowOf": 720
         }
       },
       "edit": {
@@ -625,7 +626,8 @@
           "render.spatialResults": 30,
           "render.spatialUpsertCells": 60,
           "warmAfter.warmCandidatesScanned": 62,
-          "warmAfter.warmPassRebuilt": 1
+          "warmAfter.warmPassRebuilt": 1,
+          "render.overlayChromeBuilt": 16
         }
       },
       "page-switch": {
@@ -797,10 +799,10 @@
           "cdp.RecalcStyleCount": 170,
           "domMutations.childList": 50,
           "reactRenderMeasures": 1630,
-          "v8.app": 17154,
+          "v8.app": 16099,
           "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 157,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 2480,
-          "v8.fn.src/catalog/runtime/controller.ts#current": 157,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 147,
           "v8.fn.src/catalog/runtime/controller.ts#get graph": 157,
           "v8.fn.src/builder/catalogRuntime/layerTree.ts#(anonymous)": 300,
           "render.surfaceBytesMax": 43109888,
@@ -998,7 +1000,7 @@
           "perfLabels.render.text.paragraph.build": 60,
           "perfLabels.render.text.paragraph.layout": 60,
           "v8.fn.src/builder/catalogRuntime/canvasGesture.ts#(anonymous)": 26100,
-          "v8.fn.src/builder/catalogRuntime/canvasScene.ts#get stream": 28173,
+          "v8.fn.src/builder/catalogRuntime/canvasScene.ts#get stream": 27608,
           "v8.fn.src/builder/workspace/canvas/catalog/CatalogCanvas.tsx#bounds": 26652,
           "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#(anonymous)": 25665,
           "v8.fn.src/builder/workspace/canvas/interaction/measureGuides.ts#overlap": 41742,
@@ -1158,7 +1160,9 @@
           "render.spatialResults": 62,
           "render.spatialUpsertCells": 844,
           "warmAfter.warmCandidatesScanned": 62,
-          "warmAfter.warmPassRebuilt": 1
+          "warmAfter.warmPassRebuilt": 1,
+          "render.overlayChromeBuilt": 1,
+          "v8.fn.src/catalog/runtime/positioning.ts#catalogIsOutOfFlow": 25665
         }
       },
       "select-spread": {
@@ -1255,19 +1259,19 @@
           "render.viewportSequences": 0,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 1336,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#childRows": 842,
-          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1924,
+          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1894,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsCompute": 1324,
           "v8.fn.src/builder/catalogRuntime/readModel.ts#rowsKey": 1324,
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 1551,
-          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1916,
+          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1884,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 1620,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 1800,
-          "v8.fn.src/catalog/document/graph.ts#getEntry": 5485,
+          "v8.fn.src/catalog/document/graph.ts#getEntry": 3473,
           "v8.fn.src/catalog/document/graph.ts#ownerOf": 1515,
-          "v8.fn.src/catalog/document/library.ts#get": 1212,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 1793,
-          "v8.fn.src/catalog/runtime/controller.ts#current": 2860,
-          "v8.fn.src/catalog/runtime/controller.ts#get graph": 2212,
+          "v8.fn.src/catalog/document/library.ts#get": 1122,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 1792,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 2709,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 2091,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1752,
           "render.contentRecordedElements": 0,
           "render.contentRecordedText": 0,
@@ -1657,7 +1661,8 @@
           "render.spatialResults": 30,
           "render.spatialUpsertCells": 60,
           "warmAfter.warmCandidatesScanned": 602,
-          "warmAfter.warmPassRebuilt": 1
+          "warmAfter.warmPassRebuilt": 1,
+          "render.overlayChromeBuilt": 16
         }
       },
       "zoom": {
@@ -2148,7 +2153,8 @@
           "render.spatialResults": 3462,
           "render.spatialUpsertCells": 10307,
           "warmAfter.warmCandidatesScanned": 605,
-          "warmAfter.warmPassRebuilt": 1
+          "warmAfter.warmPassRebuilt": 1,
+          "render.overlayChromeBuilt": 15
         }
       }
     },
@@ -2497,7 +2503,8 @@
           "render.spatialCellsVisited": 81,
           "render.spatialItemsVisited": 675,
           "render.spatialResults": 99,
-          "render.spatialUpsertCells": 2738
+          "render.spatialUpsertCells": 2738,
+          "render.overlayChromeBuilt": 15
         }
       },
       "pan": {
@@ -3008,7 +3015,8 @@
           "warmAfter.warmCandidatesScanned": 116,
           "warmAfter.warmCandidatesSorted": 4,
           "warmAfter.warmPassRebuilt": 1,
-          "warmAfter.pictureWarmRecorded": 4
+          "warmAfter.pictureWarmRecorded": 4,
+          "render.overlayChromeBuilt": 15
         }
       },
       "select": {
@@ -3176,7 +3184,7 @@
           "caches.contentSurface.misses": 188,
           "caches.dragSubtreePicture.hits": 0,
           "caches.dragSubtreePicture.misses": 0,
-          "caches.nodePicture.hits": 6203,
+          "caches.nodePicture.hits": 6188,
           "caches.nodePicture.misses": 0,
           "caches.paintPool.hits": 7598,
           "caches.paintPool.missReasons.grow": 1,
@@ -3237,12 +3245,12 @@
           "render.contentRecordedText": 0,
           "render.contentTouchedElements": 0,
           "render.contentTouchedMax": 0,
-          "render.damageTouchedElements": 6203,
+          "render.damageTouchedElements": 6188,
           "render.execCalls": 188,
           "render.execCulledJumped": 0,
-          "render.execPictureJumped": 8315,
+          "render.execPictureJumped": 8285,
           "render.execSkipped": 0,
-          "render.execVisited": 21066,
+          "render.execVisited": 21026,
           "render.pageGridMoveBlockedRoots": 0,
           "render.pageGridMoveMovableRoots": 0,
           "render.pageGridMoveNullDirty": 0,
@@ -3296,7 +3304,7 @@
           "render.rebindSpliceRejectedOther": 0,
           "render.rebindSpliceRejectedScrollContext": 0,
           "render.scrollDeltaCalls": 31020,
-          "render.scrollDeltaIndexUpserts": 6311,
+          "render.scrollDeltaIndexUpserts": 6296,
           "render.scrollDeltaMapWrites": 575280,
           "render.scrollDeltaNodes": 143820,
           "render.scrollDeltaRerecords": 0,
@@ -3329,7 +3337,8 @@
           "render.spatialCellsVisited": 940,
           "render.spatialItemsVisited": 13806,
           "render.spatialResults": 6875,
-          "render.spatialUpsertCells": 19147
+          "render.spatialUpsertCells": 19147,
+          "render.overlayChromeBuilt": 188
         }
       }
     },
@@ -3550,7 +3559,9 @@
           "warmAfter.warmCandidatesScanned": 6425,
           "warmAfter.warmCandidatesSorted": 75,
           "warmAfter.warmPassRebuilt": 1,
-          "warmAfter.pictureWarmRecorded": 75
+          "warmAfter.pictureWarmRecorded": 75,
+          "render.overlayChromeBuilt": 44,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 10550
         }
       },
       "load-same-frame": {
@@ -3769,7 +3780,9 @@
           "warmAfter.warmCandidatesScanned": 6425,
           "warmAfter.warmCandidatesSorted": 75,
           "warmAfter.warmPassRebuilt": 1,
-          "warmAfter.pictureWarmRecorded": 75
+          "warmAfter.pictureWarmRecorded": 75,
+          "render.overlayChromeBuilt": 22,
+          "v8.fn.src/builder/workspace/canvas/skia/subtreeTranslate.ts#union": 8497
         }
       },
       "load-zoom": {
@@ -3830,8 +3843,8 @@
           "engine.solveVisits": 0,
           "perfLabels.input.viewport.wheel-zoom": 176,
           "perfLabels.render.skia.flush.content": 63,
-          "perfLabels.render.skia.flush.main": 153,
-          "perfLabels.render.skia.overlay": 153,
+          "perfLabels.render.skia.flush.main": 152,
+          "perfLabels.render.skia.overlay": 152,
           "perfLabels.render.skia.record.content": 63,
           "perfLabels.render.text.fontCollection": 0,
           "perfLabels.render.text.paragraph.build": 0,
@@ -3963,9 +3976,9 @@
           "domMutations.attributes": 2509,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0,
-          "v8.app": 1680062,
+          "v8.app": 908991,
           "v8.fn.src/builder/workspace/canvas/skia/sameDrawData.ts#sameValue": 2941987,
-          "v8.fn.src/catalog/document/graph.ts#getEntry": 787659,
+          "v8.fn.src/catalog/document/graph.ts#getEntry": 123462,
           "v8.fn.src/catalog/runtime/controller.ts#current": 386828,
           "v8.fn.src/catalog/runtime/controller.ts#get graph": 386778,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 60954,
@@ -4003,7 +4016,10 @@
           "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getSiblingOffset": 13012,
           "v8.fn.src/builder/workspace/canvas/wasm-bindings/idMapper.ts#getStringId": 11842,
           "v8.fn.src/builder/workspace/canvas/skia/effects.ts#endRenderEffects": 11842,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#recordsOfSource": 10956
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#recordsOfSource": 10956,
+          "render.overlayChromeBuilt": 22,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getUint32ArrayMemory0": 10580,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine.ts#flatToLayoutMap": 10517
         }
       },
       "zoom": {
@@ -4168,7 +4184,7 @@
           "v8.fn.src/builder/workspace/canvas/selection/types.ts#intersectBoxes": 222441,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 32106,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange": 11864,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendElement": 60169,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendElement": 8830,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#childClipRectOf": 71910,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 63246,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#createCommandReader": 11912,
@@ -4200,7 +4216,7 @@
           "cdp.RecalcStyleCount": 561,
           "domMutations.childList": 0,
           "reactRenderMeasures": 0,
-          "v8.app": 1446921,
+          "v8.app": 546892,
           "render.contentRedrawsOutOfPad": 27,
           "render.surfaceBytesMax": 43109888,
           "render.spatialQueries": 48,
@@ -4219,7 +4235,10 @@
           "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 9988,
           "v8.fn.src/catalog/runtime/persistentLayoutTree.ts#getLayoutsForIds": 9988,
           "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getLayoutsBatch": 9988,
-          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getArrayF32FromWasm0": 9988
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getArrayF32FromWasm0": 9988,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getFloat32ArrayMemory0": 9988,
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#passArray32ToWasm0": 9988,
+          "v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get": 8818
         }
       },
       "edit": {
@@ -4419,7 +4438,9 @@
           "warmAfter.warmCandidatesScanned": 6425,
           "warmAfter.warmCandidatesSorted": 15,
           "warmAfter.warmPassRebuilt": 1,
-          "warmAfter.pictureWarmRecorded": 15
+          "warmAfter.pictureWarmRecorded": 15,
+          "render.overlayChromeBuilt": 15,
+          "v8.fn.src/builder/workspace/canvas/skia/subtreeTranslate.ts#cloneClip": 5256
         }
       }
     },
@@ -4598,7 +4619,7 @@
           "v8.fn.src/catalog/runtime/boxModel.ts#side": 251428,
           "v8.fn.src/catalog/runtime/boxModel.ts#text": 463148,
           "v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs": 29479,
-          "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 16907,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 16818,
           "v8.fn.src/catalog/runtime/controller.ts#current": 50982,
           "v8.fn.src/catalog/runtime/controller.ts#get graph": 50894,
           "v8.fn.src/renderers/utils/tokenResolver.ts#resolveToken": 288230,
@@ -4636,7 +4657,8 @@
           "warmAfter.warmCandidatesScanned": 6425,
           "warmAfter.warmCandidatesSorted": 75,
           "warmAfter.warmPassRebuilt": 1,
-          "warmAfter.pictureWarmRecorded": 75
+          "warmAfter.pictureWarmRecorded": 75,
+          "render.overlayChromeBuilt": 66
         }
       }
     },
@@ -6356,16 +6378,17 @@
           "render.warmCandidatesScanned": 0,
           "render.warmCandidatesSorted": 0,
           "render.warmPassRebuilt": 0,
-          "warmAfter.pictureWarmRecorded": 0,
+          "warmAfter.pictureWarmRecorded": 379,
           "warmAfter.warmCandidatesScanned": 0,
-          "warmAfter.warmCandidatesSorted": 0,
+          "warmAfter.warmCandidatesSorted": 379,
           "warmAfter.warmPassRebuilt": 1
         },
         "B": {
           "cdp.LayoutCount": 21,
           "cdp.RecalcStyleCount": 0,
           "domMutations.childList": 0,
-          "reactRenderMeasures": 15
+          "reactRenderMeasures": 15,
+          "render.overlayChromeBuilt": 15
         }
       }
     }
@@ -6852,7 +6875,8 @@
       "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
       "on": "2026-10-16",
       "reason": "5b48f3d18 (ADR-256 Calendar) · a083bf4ab · b75eb19cc · ef8c9e30d (Design 패널 섹션이 선택마다 positionOfRecord · subscribeSteps 로 읽음) — 선택당 상수 회, 문서 크기 비례 아님",
-      "expires": "2027-04-17"
+      "expires": "2027-04-17",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60.select.B.v8.fn.src/catalog/runtime/controller.ts#get graph",
@@ -6861,7 +6885,8 @@
       "approvedBy": "사용자 (2026-10-17 B 경고 분석 — 상한 올려 수정)",
       "on": "2026-10-16",
       "reason": "b75eb19cc (부모가 정하는 칸 — ownerDecidedProps) · ef8c9e30d (field 속성 sync) — 선택당 상수 회",
-      "expires": "2027-04-17"
+      "expires": "2027-04-17",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60.select.B.v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs",
@@ -7713,7 +7738,8 @@
       "approvedBy": "사용자 (2026-10-18 ADR-274 결정 3 「25 개 --raise + 나머지 하향」)",
       "on": "2026-10-18",
       "reason": "ADR-274 — headless 1440 의 시작 배치가 auto 6 열 (zoom 파생) → 1 열 (모니터 1440 · 40 %). 같은 1 열 고정 대조에서 기준 = 변경 (evict 1233 · warm 331/6)",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:many-pages100@zoom0.1.edit.A.warmAfter.warmCandidatesScanned",
@@ -7731,7 +7757,8 @@
       "approvedBy": "사용자 (2026-10-18 ADR-274 결정 3 「25 개 --raise + 나머지 하향」)",
       "on": "2026-10-18",
       "reason": "ADR-274 — headless 1440 의 시작 배치가 auto 6 열 (zoom 파생) → 1 열 (모니터 1440 · 40 %). 같은 1 열 고정 대조에서 기준 = 변경 (evict 1233 · warm 331/6)",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.600.zoom.A.caches.contentSurface.missReasons.coverage-refresh",
@@ -7957,7 +7984,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.caches.contentSurface.misses",
@@ -7966,7 +7994,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.caches.nodePicture.hits",
@@ -7984,7 +8013,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.flush.content",
@@ -7993,7 +8023,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.record.content",
@@ -8002,7 +8033,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.render.contentFullRenders",
@@ -8011,7 +8043,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.render.contentTouchedElements",
@@ -8029,7 +8062,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.render.execPictureJumped",
@@ -8047,7 +8081,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.render.execVisited",
@@ -8065,7 +8100,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.render.viewportSequences",
@@ -8074,7 +8110,8 @@
       "approvedBy": "사용자 (2026-10-18 「16 개 --raise」)",
       "on": "2026-10-18",
       "reason": "000765655 의 하향이 같은 코드의 ±1 프레임 흔들림 (기록 63 ↔ 64) 중 낮은 값을 잡음 — 4b858ae55 (ADR-274) 측정값으로 복원",
-      "expires": "2027-04-18"
+      "expires": "2027-04-18",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
@@ -8191,7 +8228,8 @@
       "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
       "on": "2026-10-20",
       "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
-      "expires": "2027-04-20"
+      "expires": "2027-04-20",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60.drag.A.v8.fn.src/builder/workspace/canvas/catalog/CatalogCanvas.tsx#bounds",
@@ -8209,7 +8247,8 @@
       "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
       "on": "2026-10-20",
       "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
-      "expires": "2027-04-20"
+      "expires": "2027-04-20",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60.select-spread.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs",
@@ -8218,7 +8257,8 @@
       "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
       "on": "2026-10-20",
       "reason": "ADR-275 저장 형식 전환 — 저작 absolute 가 노드 placement {kind,x,y} 대신 layout position · insetLeft · insetTop (entry +93 B/저장 · drag 확정 명령 setFields) · 정렬 준비가 readModel 대신 root.domInputs 조회 (readModel#read −30 과 같은 수) · 이동이 고정 조건 유지를 위해 containing block bounds 1회. 기준 afca0fe12 worktree 대조 측정 (63b082e9c · 71983246a 와 같은 조건)",
-      "expires": "2027-04-20"
+      "expires": "2027-04-20",
+      "supersededOn": "2026-10-21"
     },
     {
       "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/workspace.ts#get root",
@@ -8227,7 +8267,1358 @@
       "approvedBy": "사용자 (2026-10-20 「상한 승인」)",
       "on": "2026-10-20",
       "reason": "ADR-275 — 정렬 준비 (prepareCatalogArrange) 가 선택마다 readModel 대신 root.domInputs 조회. 같은 run 의 select readModel#read 1710 → 1680 (−30) 과 같은 수 — select-spread 와 같은 원인 (1526e969a)",
-      "expires": "2027-04-20"
+      "expires": "2027-04-20",
+      "supersededOn": "2026-10-21"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.caches.nodePicture.hits",
+      "from": 6161,
+      "to": 6688,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.contentTouchedElements",
+      "from": 6161,
+      "to": 6688,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.contentTouchedMax",
+      "from": 434,
+      "to": 469,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.execPictureJumped",
+      "from": 8066,
+      "to": 8593,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.execVisited",
+      "from": 26249,
+      "to": 28357,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.render.scrollRangeVisits",
+      "from": 1896,
+      "to": 1980,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.render.scrollSubtreeVisits",
+      "from": 4884,
+      "to": 5094,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.render.translateNodes",
+      "from": 2514,
+      "to": 2568,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.engine.intrinsicMeasureMiss",
+      "from": 192,
+      "to": 360,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.engine.solveVisits",
+      "from": 14448,
+      "to": 15576,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.render.translateMapWrites",
+      "from": 10221,
+      "to": 10437,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.render.propertyNodeReads",
+      "from": 2523,
+      "to": 2577,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.warmAfter.warmCandidatesScanned",
+      "from": 6425,
+      "to": 6782,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.caches.nodePicture.hits",
+      "from": 460,
+      "to": 659,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.engine.intrinsicMeasureMiss",
+      "from": 288,
+      "to": 540,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.engine.solveVisits",
+      "from": 21672,
+      "to": 23364,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.contentTouchedElements",
+      "from": 126,
+      "to": 142,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.contentTouchedMax",
+      "from": 63,
+      "to": 71,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.damageTouchedElements",
+      "from": 584,
+      "to": 643,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.execPictureJumped",
+      "from": 713,
+      "to": 785,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.execVisited",
+      "from": 2852,
+      "to": 3140,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.propertyNodeReads",
+      "from": 3927,
+      "to": 4011,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.scrollRangeVisits",
+      "from": 2844,
+      "to": 2970,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.scrollSubtreeVisits",
+      "from": 7460,
+      "to": 7782,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.translateMapWrites",
+      "from": 15854,
+      "to": 16190,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.render.translateNodes",
+      "from": 3900,
+      "to": 3984,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#catalogOverflowClips",
+      "from": 13681,
+      "to": 14129,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 250701,
+      "to": 264517,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs",
+      "from": 28626,
+      "to": 29522,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.caches.nodePicture.hits",
+      "from": 0,
+      "to": 1093,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.engine.intrinsicMeasureMiss",
+      "from": 288,
+      "to": 540,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.engine.solveVisits",
+      "from": 21672,
+      "to": 23364,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.contentTouchedElements",
+      "from": 126,
+      "to": 142,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.contentTouchedMax",
+      "from": 63,
+      "to": 71,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.damageTouchedElements",
+      "from": 0,
+      "to": 1077,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.execPictureJumped",
+      "from": 1087,
+      "to": 1219,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.execVisited",
+      "from": 4050,
+      "to": 4578,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.propertyNodeReads",
+      "from": 44,
+      "to": 4025,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.scrollRangeVisits",
+      "from": 2844,
+      "to": 2970,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.scrollSubtreeVisits",
+      "from": 0,
+      "to": 7782,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.translateMapWrites",
+      "from": 0,
+      "to": 16190,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.render.translateNodes",
+      "from": 0,
+      "to": 3984,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#catalogOverflowClips",
+      "from": 13681,
+      "to": 14129,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-same-frame.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs",
+      "from": 28605,
+      "to": 29501,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.caches.nodePicture.hits",
+      "from": 8975,
+      "to": 9746,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentTouchedElements",
+      "from": 8993,
+      "to": 9764,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.contentTouchedMax",
+      "from": 434,
+      "to": 469,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execPictureJumped",
+      "from": 12053,
+      "to": 12824,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execVisited",
+      "from": 37337,
+      "to": 40421,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 50444,
+      "to": 54299,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 98416,
+      "to": 103042,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.caches.nodePicture.hits",
+      "from": 5737,
+      "to": 6233,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.contentTouchedElements",
+      "from": 5737,
+      "to": 6233,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.contentTouchedMax",
+      "from": 373,
+      "to": 404,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.execPictureJumped",
+      "from": 7435,
+      "to": 7931,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.execVisited",
+      "from": 24671,
+      "to": 26655,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 32106,
+      "to": 34586,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange",
+      "from": 11864,
+      "to": 12856,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 63246,
+      "to": 66222,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#createCommandReader",
+      "from": 11912,
+      "to": 12904,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get",
+      "from": 38051,
+      "to": 39539,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#segments.segments",
+      "from": 24671,
+      "to": 26655,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.engine.intrinsicMeasureMiss",
+      "from": 192,
+      "to": 360,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.engine.solveVisits",
+      "from": 14448,
+      "to": 15576,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.render.propertyNodeReads",
+      "from": 2523,
+      "to": 2577,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.render.scrollRangeVisits",
+      "from": 1896,
+      "to": 1980,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.render.scrollSubtreeVisits",
+      "from": 4884,
+      "to": 5094,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.render.translateMapWrites",
+      "from": 10221,
+      "to": 10437,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.render.translateNodes",
+      "from": 2514,
+      "to": 2568,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/builder/catalogRuntime/canvasBinding.ts#childrenOf",
+      "from": 6786,
+      "to": 7080,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/builder/catalogRuntime/canvasBinding.ts#overflowOf",
+      "from": 7524,
+      "to": 7818,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#catalogOverflowClips",
+      "from": 8874,
+      "to": 9168,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 11106,
+      "to": 11295,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/builder/workspace/canvas/skia/subtreeTranslate.ts#union",
+      "from": 5328,
+      "to": 5436,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 94140,
+      "to": 98850,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs",
+      "from": 18258,
+      "to": 18846,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.caches.nodePicture.hits",
+      "from": 587,
+      "to": 802,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.engine.intrinsicMeasureMiss",
+      "from": 288,
+      "to": 540,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.engine.solveVisits",
+      "from": 21672,
+      "to": 23364,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.contentTouchedElements",
+      "from": 252,
+      "to": 284,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.contentTouchedMax",
+      "from": 63,
+      "to": 71,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.damageTouchedElements",
+      "from": 587,
+      "to": 646,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.execPictureJumped",
+      "from": 842,
+      "to": 930,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.execVisited",
+      "from": 3496,
+      "to": 3848,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.propertyNodeReads",
+      "from": 3932,
+      "to": 4016,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.scrollRangeVisits",
+      "from": 2844,
+      "to": 2970,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.scrollSubtreeVisits",
+      "from": 7460,
+      "to": 7782,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.translateMapWrites",
+      "from": 15854,
+      "to": 16190,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.render.translateNodes",
+      "from": 3900,
+      "to": 3984,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 390124,
+      "to": 410848,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs",
+      "from": 29479,
+      "to": 30375,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.pan.A.caches.nodePicture.hits",
+      "from": 468,
+      "to": 532,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.pan.A.render.contentTouchedElements",
+      "from": 468,
+      "to": 532,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.pan.A.render.contentTouchedMax",
+      "from": 54,
+      "to": 62,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.pan.A.render.execPictureJumped",
+      "from": 468,
+      "to": 532,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.pan.A.render.execVisited",
+      "from": 2526,
+      "to": 2782,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.zoom.A.caches.nodePicture.hits",
+      "from": 7070,
+      "to": 7672,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.zoom.A.render.contentTouchedElements",
+      "from": 7070,
+      "to": 7672,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.zoom.A.render.contentTouchedMax",
+      "from": 270,
+      "to": 290,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.zoom.A.render.execPictureJumped",
+      "from": 8924,
+      "to": 9526,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@dpr2.zoom.A.render.execVisited",
+      "from": 31705,
+      "to": 34117,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.caches.nodePicture.hits",
+      "from": 4263,
+      "to": 4522,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.contentTouchedElements",
+      "from": 4263,
+      "to": 4522,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.contentTouchedMax",
+      "from": 609,
+      "to": 646,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.execPictureJumped",
+      "from": 6510,
+      "to": 6769,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.execVisited",
+      "from": 20478,
+      "to": 21514,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.caches.nodePicture.hits",
+      "from": 6059,
+      "to": 6505,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.caches.paintPool.hits",
+      "from": 127,
+      "to": 130,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.contentTouchedElements",
+      "from": 6059,
+      "to": 6505,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.contentTouchedMax",
+      "from": 699,
+      "to": 739,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.execPictureJumped",
+      "from": 8687,
+      "to": 9052,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.execVisited",
+      "from": 23300,
+      "to": 25156,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.caches.nodePicture.hits",
+      "from": 6520,
+      "to": 6999,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.contentTouchedElements",
+      "from": 6520,
+      "to": 6999,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.contentTouchedMax",
+      "from": 477,
+      "to": 512,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.execPictureJumped",
+      "from": 9406,
+      "to": 9885,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.execVisited",
+      "from": 27774,
+      "to": 29690,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.caches.nodePicture.hits",
+      "from": 4263,
+      "to": 4522,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.contentTouchedElements",
+      "from": 4263,
+      "to": 4522,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.contentTouchedMax",
+      "from": 609,
+      "to": 646,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.execPictureJumped",
+      "from": 6510,
+      "to": 6769,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.execVisited",
+      "from": 40368,
+      "to": 41404,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.spatialItemsVisited",
+      "from": 20468,
+      "to": 20622,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.spatialResults",
+      "from": 5187,
+      "to": 5446,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.caches.nodePicture.hits",
+      "from": 250,
+      "to": 252,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.caches.nodePicture.missReasons.cold",
+      "from": 36,
+      "to": 37,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.caches.nodePicture.misses",
+      "from": 36,
+      "to": 37,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.caches.paintPool.hits",
+      "from": 56,
+      "to": 57,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.caches.paragraph.misses",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.perfLabels.render.text.fontCollection",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.perfLabels.render.text.paragraph.build",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.perfLabels.render.text.paragraph.layout",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.contentRecordedElements",
+      "from": 36,
+      "to": 37,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.contentRecordedText",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.contentTouchedElements",
+      "from": 286,
+      "to": 289,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.contentTouchedMax",
+      "from": 30,
+      "to": 31,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.execPictureJumped",
+      "from": 286,
+      "to": 289,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.execVisited",
+      "from": 12052,
+      "to": 12065,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.paragraphMissFirst",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.pictureColdFirst",
+      "from": 36,
+      "to": 37,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.spatialItemsVisited",
+      "from": 2005,
+      "to": 2008,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.page-jump.A.render.spatialResults",
+      "from": 424,
+      "to": 427,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.engine.intrinsicMeasureMiss",
+      "from": 192,
+      "to": 360,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.engine.solveVisits",
+      "from": 18192,
+      "to": 19320,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.render.propertyNodeReads",
+      "from": 2529,
+      "to": 2583,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.render.scrollRangeVisits",
+      "from": 1896,
+      "to": 1980,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.render.scrollSubtreeVisits",
+      "from": 4884,
+      "to": 5094,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.render.translateMapWrites",
+      "from": 10221,
+      "to": 10437,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.render.translateNodes",
+      "from": 2514,
+      "to": 2568,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.warmAfter.warmCandidatesScanned",
+      "from": 0,
+      "to": 24684,
+      "approvedBy": "사용자 (2026-10-21 승인)",
+      "on": "2026-10-21",
+      "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
+      "expires": "2027-04-21"
     }
   ],
   "recorderChanges": [

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [perf ratchet — ADR-277 fixture 재기준 · 레버 3a · 4a 하향 기록] - 2026-10-21
+
+### Changed
+
+- **ratchet 상한 올리기 150건 (사용자 승인 2026-10-21, 만료 2027-04-21)**: app-pages 계열 6 seed (`60:app-pages` · `-images` · `-images-asset` · `@dpr2` · `@zoom0.1` · `60:many-pages100@zoom0.1`) 의 등급 A — ADR-277 이 fixture 의 TableView 를 Table starter (Column ×3 + Row) 로 바꿔 (`bdc6d3980`) 문서가 커졌는데 ADR-277 은 ratchet 을 재지 않았다 (CHANGELOG 「ratchet 미측정」). 같은 코드 2 pass 에서 150 키 전부 같은 값 (`scratchpad/ratchet-overa.json`) — 2a · 3a · 4a 와 무관 (2a push 때 run 과 key 집합 동일). pre-push 는 이 초과로 block 돼 3a · 4a 는 `SKIP_PERF_RATCHET=1` 로 push 했다.
+- **하향 40 · 새 지표 23 기록** (`--update`, pass 1): 레버 4a 의 `engine.solveVisits` 등. pass 2 판정 A 초과 0 · B 경고 26 (측정마다 흔들리는 cdp.LayoutCount · v8.fn 류, 차단 아님).
+
 ## [레이아웃 엔진 — 노드 제거가 문서 전체를 다시 풀지 않는다] - 2026-10-21
 
 ### Performance
