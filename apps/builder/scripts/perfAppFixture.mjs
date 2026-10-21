@@ -2,7 +2,7 @@
 //
 // 합성 격자 (`mixed` · `nested-flex`) 와 달리 사람이 만드는 사이트 · 앱 문서의 모양을 따른다: 22 페이지
 // (마케팅 · 블로그 · 쇼핑 · 대시보드 · 설정 · 문서 · 컴포넌트 모음), flex 중첩 뼈대 + 팔레트 원본 instance
-// (Button · TextField · Select · TableView · Tabs · Disclosure · Calendar …) 를 팔레트 삽입 경로
+// (Button · TextField · Select · Table · Tabs · Disclosure · Calendar …) 를 팔레트 삽입 경로
 // (`catalogPaletteInsertPlan`) 로 놓는다. 글자는 seed 고정 PRNG 의 단어 조합이라 실행마다 같은 문서다.
 // 규모: 22 페이지 · 문서 노드 ~3.3k · Canvas record ~5.1k (07-30 실문서 5,069 요소 · 23 페이지와 같은 급).
 //
@@ -452,7 +452,7 @@ export async function seedAppPages(options) {
       shell([
         wrap({ gap: 16 }, {}, Array.from({ length: 8 }, statCard)),
         P("Tabs"),
-        P("TableView"),
+        P("Table"),
         row({ gap: 24 }, {}, [
           col(
             { gap: 12, padding: 16, backgroundColor: "#ffffff" },
@@ -475,8 +475,8 @@ export async function seedAppPages(options) {
           P("Select", { label: "Status" }),
           P("Button"),
         ]),
-        P("TableView"),
-        P("TableView"),
+        P("Table"),
+        P("Table"),
         row(
           { gap: 8 },
           {},
@@ -523,7 +523,7 @@ export async function seedAppPages(options) {
         row({ gap: 24 }, {}, [
           col({ gap: 12 }, { width: 760 }, [
             T(para(5)),
-            P("TableView"),
+            P("Table"),
             activity(12),
           ]),
           col(
@@ -577,7 +577,7 @@ export async function seedAppPages(options) {
         P("Heading", { children: "Billing" }),
         wrap({ gap: 16 }, {}, Array.from({ length: 4 }, statCard)),
         pricing(),
-        P("TableView"),
+        P("Table"),
         fields(6),
       ]),
     ],
@@ -640,7 +640,7 @@ export async function seedAppPages(options) {
           "Image",
           "Card",
           "Tabs",
-          "TableView",
+          "Table",
           "ListBox",
           "GridList",
           "Tree",
