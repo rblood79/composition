@@ -86,6 +86,23 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     // ADR-256 Phase 5g: the submenu lives in the trigger item's closed Popover.
     SubmenuTrigger: new Set(["Popover"]),
   };
+/**
+ * The triggers whose overlay is the component's own body (ADR-278 `OPEN_BODY_ORIGINS` — Dialog ·
+ * Popover · Tooltip · ContextualHelp · Menu): a project component's origin opens it on the Local
+ * page card (`originBodyOpen`), as the Library page's cards do with a patch `open`. A picker's
+ * Popover (Select · ComboBox · DatePicker) is a part — it stays closed.
+ */
+const OPEN_BODY_TRIGGERS: ReadonlySet<string> = new Set([
+  "DialogTrigger",
+  "TooltipTrigger",
+  "ContextualHelp",
+  "MenuTrigger",
+]);
+/**
+ * Whether a trigger record draws its overlay body open although no display state says so — the
+ * consumer decides (a project component's origin drawn on the Local page).
+ */
+export type CatalogOriginBodyOpen = (trigger: CatalogConsumerNode) => boolean;
 
 /**
  * ADR-256 Phase 8c — a Disclosure's trigger parts, the reference `Disclosure > Heading >
@@ -730,6 +747,7 @@ export function catalogHiddenAtRest(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
+  originBodyOpen?: CatalogOriginBodyOpen,
 ): boolean {
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
   // `Icon` renders nothing for it (as the old Skia icon shape drew nothing), so no box either.
@@ -769,11 +787,16 @@ export function catalogHiddenAtRest(
   // reaches it there, `catalogPartParent`.)
   const partParent = catalogPartParent(node, get, typeOf);
   // (ADR-278: shown `open` — the Components page draws an overlay origin's body beside its
-  // trigger — the overlay is not the closed one.)
+  // trigger — the overlay is not the closed one. ADR-279 후속: so is a project component's own
+  // body on its Local page card — `originBodyOpen`, the body triggers only.)
   if (
     partParent &&
     TRIGGER_OVERLAY_CHILDREN[typeOf(partParent)]?.has(type) &&
-    node.displayState !== "open"
+    node.displayState !== "open" &&
+    !(
+      OPEN_BODY_TRIGGERS.has(typeOf(partParent)) &&
+      originBodyOpen?.(partParent) === true
+    )
   )
     return true;
   // (A hint part keeps its field through a layout frame — `catalogPartParent`.)

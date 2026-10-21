@@ -594,3 +594,83 @@ describe("ADR-279 Decision 4 — the first edit of an origin with instances asks
     workspace.dispose();
   });
 });
+
+describe("ADR-279 후속 — the Local page card draws an overlay component's body open (user 2026-10-22)", () => {
+  const lib = (name: string) =>
+    `lib:definition:origin-component-${name}` as NodeEntry["definitionId"];
+  /** The records under `owner`'s first record whose type is `type`. */
+  const recordsOf = (
+    root: CatalogWorkspace["root"],
+    owner: NodeId,
+    type: string,
+  ) => {
+    const under = (id: string): string[] => [
+      id,
+      ...root.canvasInputs.get(id)!.children.flatMap(under),
+    ];
+    return root
+      .recordsOfSource(owner)
+      .flatMap(under)
+      .map((id) => root.canvasInputs.get(id)!)
+      .filter((record) => root.typeOf(record) === type);
+  };
+  async function openWith(name: string, nodeId: string) {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({ projectId: PROJECT, name: "ADR-279" }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `adr279-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1920, height: 1080 },
+        autosaveSchedule: () => {},
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node(nodeId, lib(name))],
+        rootIds: [id(nodeId)],
+        newId: workspace.newId,
+      }),
+    );
+    const instance = workspace.execute(
+      catalogComponentCommands.create(id(nodeId), name, workspace.newId),
+    ).plan.selectAfter![0]!;
+    return { workspace, instance };
+  }
+
+  it("Dialog · Popover · Menu components: the ◆ root's Modal · Popover is shown with a box on the Local page; the page instance keeps it closed", async () => {
+    for (const [name, type] of [
+      ["dialog", "Modal"],
+      ["popover", "Popover"],
+      ["menu", "Popover"],
+    ] as const) {
+      const { workspace, instance } = await openWith(name, `${name}-origin`);
+      // On the page: the instance's overlay is the closed one (ADR-278).
+      const onPage = recordsOf(workspace.root, instance, type);
+      expect(onPage.length, name).toBeGreaterThan(0);
+      expect(onPage.every((record) => record.hidden === true), name).toBe(true);
+      // On the Local page (its own root): the origin's body is open — a box the user edits.
+      workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
+      const root = workspace.root;
+      const onCard = recordsOf(root, id(`${name}-origin`), type);
+      expect(onCard.length, name).toBeGreaterThan(0);
+      expect(onCard.every((record) => record.hidden !== true), name).toBe(true);
+      const box = root.getGeometry([onCard[0]!.id]).get(onCard[0]!.id)!;
+      expect(box.width, name).toBeGreaterThan(0);
+      expect(box.height, name).toBeGreaterThan(0);
+      workspace.dispose();
+    }
+  });
+
+  it("a picker component (Select) keeps its Popover closed on the Local page — its body is a part, not a slot", async () => {
+    const { workspace } = await openWith("select", "select-origin");
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
+    const popovers = recordsOf(workspace.root, id("select-origin"), "Popover");
+    expect(popovers.length).toBeGreaterThan(0);
+    expect(popovers.every((record) => record.hidden === true)).toBe(true);
+    workspace.dispose();
+  });
+});

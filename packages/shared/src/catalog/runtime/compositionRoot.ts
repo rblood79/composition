@@ -40,6 +40,7 @@ import {
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
+import { componentOriginOf } from "../commands/components";
 import { definitionTypeName } from "../commands/context";
 import type {
   DefinitionId,
@@ -143,6 +144,7 @@ import {
   type CatalogComposedPart,
   CATALOG_SLIDER_THICK_TRACK,
   catalogHiddenAtRest,
+  type CatalogOriginBodyOpen,
   catalogInlineAlertBoldText,
   catalogPresenceDependents,
   catalogStateDependents,
@@ -1321,9 +1323,10 @@ function withHidden(
   record: CatalogConsumerNode,
   get: (id: string) => CatalogConsumerNode | undefined,
   typeOf: (node: CatalogConsumerNode) => string,
+  originBodyOpen?: CatalogOriginBodyOpen,
 ): CatalogConsumerNode {
   const { hidden: _hidden, ...shown } = record;
-  return catalogHiddenAtRest(shown, get, typeOf)
+  return catalogHiddenAtRest(shown, get, typeOf, originBodyOpen)
     ? { ...shown, hidden: true }
     : shown;
 }
@@ -1892,7 +1895,7 @@ export class CatalogCompositionRoot {
       const next =
         valued.presentWhen === undefined
           ? valued
-          : withHidden(valued, get, this.typeOf);
+          : withHidden(valued, get, this.typeOf, this.originBodyOpen);
       let list = byRoot.get(rootId);
       if (!list) byRoot.set(rootId, (list = []));
       list.push(this.planRecord(id, next, rootId));
@@ -1919,7 +1922,7 @@ export class CatalogCompositionRoot {
         const next =
           valued.presentWhen === undefined
             ? valued
-            : withHidden(valued, read, this.typeOf);
+            : withHidden(valued, read, this.typeOf, this.originBodyOpen);
         if (
           sameFields(next.props, current.props) &&
           sameFields(next.visual, current.visual) &&
@@ -1944,7 +1947,12 @@ export class CatalogCompositionRoot {
     }
     for (const dependent of dependents.values()) {
       const { hidden: _hidden, ...shown } = dependent;
-      const hidden = catalogHiddenAtRest(shown, read, this.typeOf);
+      const hidden = catalogHiddenAtRest(
+        shown,
+        read,
+        this.typeOf,
+        this.originBodyOpen,
+      );
       if (hidden === (dependent.hidden === true)) continue;
       const rootId = this.recordRoots.get(dependent.id)!;
       let list = byRoot.get(rootId);
@@ -2176,7 +2184,7 @@ export class CatalogCompositionRoot {
       if (valued !== record) output.set(id, valued);
     }
     for (const [id, record] of output)
-      if (catalogHiddenAtRest(record, get, this.typeOf))
+      if (catalogHiddenAtRest(record, get, this.typeOf, this.originBodyOpen))
         output.set(id, { ...record, hidden: true });
     for (const [id, record] of output) {
       const derivedProps = this.derivedOf(record, get);
@@ -2284,6 +2292,15 @@ export class CatalogCompositionRoot {
     node.ruleId ??
     this.runtime.graph.getDefinition(node.definitionId as DefinitionId)?.name ??
     "";
+  /**
+   * ADR-279 후속 (user 2026-10-22): a project component's origin drawn itself — the Local page
+   * card's ◆ root (the record's source is the template root) — opens its overlay body
+   * (`presence.ts` `OPEN_BODY_TRIGGERS`) so the body has a box to edit, as the Library page's
+   * cards do. A page instance of the component collapses to the root's values but keeps its own
+   * source (the instance node): its overlay stays closed.
+   */
+  readonly originBodyOpen: CatalogOriginBodyOpen = (trigger) =>
+    componentOriginOf(this.runtime.graph, trigger.sourceId) !== undefined;
   /**
    * ADR-259 Phase 2 — a prefix field's box Group draws the Input rule's box (its padding · border
    * at the field's size, a centred row) and the Input in it lays its box down
@@ -4279,7 +4296,12 @@ export class CatalogCompositionRoot {
         presence.set(dependent.id, dependent);
     }
     for (const panel of presence.values()) {
-      const hidden = catalogHiddenAtRest(panel, get, this.typeOf);
+      const hidden = catalogHiddenAtRest(
+        panel,
+        get,
+        this.typeOf,
+        this.originBodyOpen,
+      );
       if (hidden === (panel.hidden === true)) continue;
       const { hidden: _hidden, ...shown } = panel;
       const rootId = this.recordRoots.get(panel.id)!;
@@ -4342,7 +4364,7 @@ export class CatalogCompositionRoot {
         // A dependent's presence follows the owner too (a value-conditioned part's final text —
         // Decision 7; an owner-hidden part — a NumberField's steppers under `hideStepper`): its
         // hidden is judged against the planned records, not only at its own edits.
-        const current = withHidden(valued, get, this.typeOf);
+        const current = withHidden(valued, get, this.typeOf, this.originBodyOpen);
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
         const fillLayout =

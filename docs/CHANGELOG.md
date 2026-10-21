@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts`.
   - 회귀: 8방향 flow 리사이즈의 미리보기·commit·undo와 위치 필드 불변, absolute·ratio top-left의 live 상자·cancel, Grid 스냅.
 
+## [Local page — 오버레이 컴포넌트의 본체가 Canvas 에 열린다] - 2026-10-22
+
+### Fixed
+
+- **Create component 로 만든 Dialog · Popover · Tooltip · ContextualHelp · Menu 컴포넌트의 본체 (Modal · Popover) 가 Local page 카드에서 상자를 갖는다**: ADR-279 로 원본이 Local page 에 선 뒤에도 Canvas 의 「닫힌 오버레이」 규칙이 그대로 적용돼 본체가 `display: none` (0×0) 이었다 — Design 패널은 template 폭 240 을 보여도 편집할 상자가 없었다. Library page 카드가 patch `open` 으로 본체를 펼치듯, record 의 source 가 project 컴포넌트의 template root 인 trigger 의 본체는 patch 없이 열린다 (`compositionRoot.ts` `originBodyOpen` · `presence.ts` `OPEN_BODY_TRIGGERS`). page 위 instance 와 picker (Select · ComboBox · DatePicker) 의 Popover 는 닫힌 채.
+  - 회귀: `adr279OriginOnLocalPage` 「ADR-279 후속」 2 (Dialog · Popover · Menu 본체 상자 > 0 · page instance 닫힘 · Select 닫힘).
+
 ## [ADR-278 Phase 1 ~ 3 — 오버레이 본체 = slot · Menu Items 에 Local 컴포넌트 · Library page 본체 칸] - 2026-10-21
 
 ### Added
