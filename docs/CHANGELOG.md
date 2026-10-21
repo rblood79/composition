@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ratchet 상한 올리기 150건 (사용자 승인 2026-10-21, 만료 2027-04-21)**: app-pages 계열 6 seed (`60:app-pages` · `-images` · `-images-asset` · `@dpr2` · `@zoom0.1` · `60:many-pages100@zoom0.1`) 의 등급 A — ADR-277 이 fixture 의 TableView 를 Table starter (Column ×3 + Row) 로 바꿔 (`bdc6d3980`) 문서가 커졌는데 ADR-277 은 ratchet 을 재지 않았다 (CHANGELOG 「ratchet 미측정」). 같은 코드 2 pass 에서 150 키 전부 같은 값 (`scratchpad/ratchet-overa.json`) — 2a · 3a · 4a 와 무관 (2a push 때 run 과 key 집합 동일). pre-push 는 이 초과로 block 돼 3a · 4a 는 `SKIP_PERF_RATCHET=1` 로 push 했다.
 - **하향 40 · 새 지표 23 기록** (`--update`, pass 1): 레버 4a 의 `engine.solveVisits` 등. pass 2 판정 A 초과 0 · B 경고 26 (측정마다 흔들리는 cdp.LayoutCount · v8.fn 류, 차단 아님).
 
+## [Library page — Item 줄 · slot 상자 · FieldButton · ContextualHelp 수리] - 2026-10-21
+
+### Fixed
+
+- **Library page 의 「Item」 줄이 trigger Button 의 5 상태를 그리지 않는다**: Menu · Select · SearchField · Dialog · Popover · ContextualHelp · Tooltip 7 카드가 자기 항목 대신 Button/Disabled/Hover/Pressed/Focus 를 「Item」 으로 반복했다. 항목 원본은 **declared slot 안에 있거나 두 번 이상 들어 있는** 상태 보유 원본만이다 — 루트 아래 한 번뿐인 trigger Button 은 부품이다 (`componentsPage.ts` `originItems`). Pagination · Toolbar · Nav · Tabs · ListBox 의 Item 줄은 그대로.
+  - **Why**: Framer component 체계 대조 (2026-10-21 deep research) 뒤 사용자 지적 「각 컴포넌트에 맞지 않는 불필요한 요소」 — 판정이 「깊이 2 안에서 처음 만나는 상태 보유 원본」 이라 trigger 가 먼저 잡혔다.
+- **root slot 의 빗금 상자가 항목 하나 크기**: ListBox · GridList · CardView 처럼 루트가 slot 인 원본은 같은 정의의 반복 항목 중 첫 것만 배치하고 나머지는 끈다 (`enabled: false`). GridList · CardView 의 빗금 상자가 세 항목 쌓인 ~500 px 였다. Toolbar 의 Separator 처럼 정의가 다른 내용은 그대로 둔다. 자식 slot (Table 의 Columns · Tabs 의 TabList) 은 변경 없음.
+- **FieldButton 카드가 빈 카드가 아니다**: ADR-276 뒤 FieldButton 원본 (Button instance · label 없음) 에 `icon` 이 없어 `{icon}` 이 그대로 남아 아무것도 그리지 않았다. 원본 기본 glyph `chevron-down` — ComboBox · DatePicker instance 는 자기 `icon` 을 그대로 쓴다.
+- **ContextualHelp trigger 의 ? 아이콘이 둘이 아니다**: ADR-276 이 Button 원본에 icon slot 자식을 두면서 ContextualHelp trigger 가 갖고 있던 자기 Icon 자식이 남아 resolver 가 두 Icon 에 glyph 를 찍었다. trigger 의 Icon 자식 template 삭제 — Button 원본의 icon slot 이 glyph 를 받는다.
+- 테스트: `phase4eOriginView.test.ts` 「Library page (2026-10-21)」 — 원복 RED 4 (Item 규칙 · one-of-each · FieldButton `{icon}` · ContextualHelp Icon 2). 남은 것 (별도): Table 카드의 빈 공간은 Table 원본의 `height: 400` 기본값.
+
 ## [레이아웃 엔진 — 노드 제거가 문서 전체를 다시 풀지 않는다] - 2026-10-21
 
 ### Performance

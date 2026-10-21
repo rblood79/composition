@@ -922,7 +922,8 @@ describe("ADR-248 4e library origin view", () => {
       ),
     ).toEqual(inputOf(listInstance).children.map(() => 1));
     // The slot is the size its contents take (a ToggleButtonGroup's is its buttons' height, not
-    // a fixed box): the origin measures what the filled instance does.
+    // a fixed box) — one of each (2026-10-21: a root slot's repeated items lay out the first
+    // only): the origin is no taller or wider than the filled instance, and a list's is shorter.
     for (const origin of [
       "togglebuttongroup",
       "buttongroup",
@@ -931,12 +932,16 @@ describe("ADR-248 4e library origin view", () => {
     ]) {
       const empty = rectOf(originSampleId(lib(origin)));
       const filled = rectOf(originInstanceId(lib(origin), "instance"));
-      expect([origin, empty.width, empty.height]).toEqual([
+      expect([
         origin,
-        filled.width,
-        filled.height,
-      ]);
+        empty.width <= filled.width,
+        empty.height <= filled.height,
+        empty.height > 0,
+      ]).toEqual([origin, true, true, true]);
     }
+    expect(rectOf(originSampleId(lib("listbox"))).height).toBeLessThan(
+      rectOf(originInstanceId(lib("listbox"), "instance")).height,
+    );
     // A Card's regions are its slots (S2 Card — ADR-256 Phase 10: preview, content, footer): the
     // origin hatches all three, the instance beside it only the footer it leaves empty.
     const slotNames = (record: string) =>
@@ -958,6 +963,88 @@ describe("ADR-248 4e library origin view", () => {
     expect(tabsCard.children.map(entryOf).map((row) => row.name)).not.toContain(
       "Slots",
     );
+    workspace.dispose();
+  });
+  it("Library page (2026-10-21): a trigger Button is a part, not an Item; a root slot lays out one of each; a FieldButton draws its glyph; a ContextualHelp's trigger holds one Icon", async () => {
+    const { workspace } = await open();
+    workspace.showDefinition(COMPONENTS_VIEW);
+    const graph = graphOf(workspace);
+    const nodeOf = (id: string) => graph.getEntry(id) as NodeEntry;
+    const cards = catalogComponentsPageCards(graph).map(nodeOf);
+    const cardOf = (name: string) => {
+      const card = cards.find((candidate) => candidate.name === name);
+      if (!card)
+        throw new Error(
+          `no card "${name}" — cards: ${cards.map((c) => c.name).join(", ")}`,
+        );
+      return card;
+    };
+    const rowsOf = (name: string) =>
+      cardOf(name)
+        .children.slice(1)
+        .map(nodeOf)
+        .map((row) => row.name);
+    // A picker's or an overlay's trigger is a Button held once, outside any slot: a part. Its
+    // items (a Menu's, a Select's) are in a popup — no Item line (the Button card has the
+    // states). Live 2026-10-21: 7 cards drew the Button's 5 states as their "Item".
+    for (const name of [
+      "Menu",
+      "Select",
+      "SearchField",
+      "Dialog",
+      "Popover",
+      "ContextualHelp",
+      "Tooltip",
+    ])
+      expect([name, rowsOf(name)]).toEqual([
+        name,
+        expect.not.arrayContaining(["Item"]),
+      ]);
+    // Items held in a slot, or held more than once (a Pagination's buttons), stay items.
+    for (const name of ["Pagination", "Toolbar", "Tabs", "ListBox", "Nav"])
+      expect([name, rowsOf(name)]).toEqual([
+        name,
+        expect.arrayContaining(["Item"]),
+      ]);
+    const lib = (name: string) =>
+      `lib:definition:origin-component-${name}` as LibraryDefinitionId;
+    const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
+    const rectOf = (id: string) =>
+      workspace.root.getGeometry([recordOf(id)]).get(recordOf(id))!;
+    const inputOf = (record: string) =>
+      workspace.root.canvasInputs.get(record)!;
+    // A root slot holding repeated items (a ListBox's, a GridList's, a CardView's) lays out one
+    // of each: the hatched box is an item's size, not the whole list's (live 2026-10-21: a
+    // GridList's and a CardView's box was ~500px tall).
+    for (const origin of ["listbox", "gridlist", "cardview"]) {
+      const empty = rectOf(originSampleId(lib(origin)));
+      const filled = rectOf(originInstanceId(lib(origin), "instance"));
+      expect([origin, empty.height < filled.height]).toEqual([origin, true]);
+      expect([
+        origin,
+        inputOf(recordOf(originSampleId(lib(origin)))).children.length,
+      ]).toEqual([origin, 1]);
+    }
+    const icons = (record: string): string[] =>
+      inputOf(record).children.flatMap((child) => [
+        ...(workspace.root.typeOf(inputOf(child)) === "Icon" ? [child] : []),
+        ...icons(child),
+      ]);
+    // A FieldButton on its own (ADR-276: a Button instance, no label) draws a glyph — a
+    // ComboBox's or DatePicker's instance sets its own. Live 2026-10-21: an empty card.
+    expect(
+      icons(recordOf(originSampleId(lib("fieldbutton")))).map(
+        (icon) => inputOf(icon).props.iconName,
+      ),
+    ).toEqual(["chevron-down"]);
+    // A ContextualHelp's trigger holds one Icon — the Button origin's icon slot takes the
+    // variant's glyph (resolver). Live 2026-10-21: two glyphs (ADR-276 kept the trigger's own
+    // Icon child beside the Button's).
+    expect(
+      icons(recordOf(originSampleId(lib("contextualhelp")))).map(
+        (icon) => inputOf(icon).props.iconName,
+      ),
+    ).toEqual(["circle-question-mark"]);
     workspace.dispose();
   });
 });

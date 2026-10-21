@@ -194,9 +194,13 @@ function originFacets(
 
 /**
  * A collection origin's item origin: the origin with state variants its template holds — under
- * the root or one container down (a TabList's tabs) — and that item's parts to fill in when it
- * is drawn alone (`label`: its text; the others hold a `{placeholder}` and are switched off).
- * `undefined` = not a collection (or a picker: its items are drawn in a popup).
+ * the root or one container down (a TabList's tabs) — **in a declared slot, or more than once**
+ * (a Pagination's buttons) — and that item's parts to fill in when it is drawn alone (`label`:
+ * its text; the others hold a `{placeholder}` and are switched off). `undefined` = not a
+ * collection (or a picker: its items are drawn in a popup). One such origin outside any slot is
+ * a part, not an item — a Menu's, Select's, SearchField's or an overlay's trigger Button. **Why
+ * (2026-10-21)**: 7 Library cards drew the Button's 5 states as their "Item" (the trigger, held
+ * once under the root, was found before — or instead of — the MenuItem in the popup).
  */
 function originItems(
   graph: CatalogGraph,
@@ -222,15 +226,29 @@ function originItems(
   );
   if (children.some((child) => child?.definitionId === CONTROL_GROUP))
     return undefined;
-  const origin = [
-    ...children,
-    ...children.flatMap((child) =>
-      (child?.children ?? []).map((id) =>
+  // The state-holding origins the root and its children hold, with whether their holder is a
+  // slot — in order (the root's own children first).
+  const held = [
+    { holder: own.root, nodes: children },
+    ...children.map((child) => ({
+      holder: child,
+      nodes: (child?.children ?? []).map((id) =>
         library.templates.get(id as LibraryTemplateId),
       ),
+    })),
+  ].flatMap(({ holder, nodes }) =>
+    nodes.flatMap((node) =>
+      node && stateIds.has(node.definitionId)
+        ? [{ definitionId: node.definitionId, inSlot: Boolean(holder?.slot) }]
+        : [],
     ),
-  ].find((child) => child && stateIds.has(child.definitionId))?.definitionId as
-    LibraryDefinitionId | undefined;
+  );
+  const origin = held.find(
+    (candidate) =>
+      candidate.inSlot ||
+      held.filter((other) => other.definitionId === candidate.definitionId)
+        .length > 1,
+  )?.definitionId as LibraryDefinitionId | undefined;
   const item = templateOf(origin);
   if (!origin || !item) return undefined;
   // (A crumb Link's `{href}` is the item's address, not a content place — ADR-256 Phase 5a.)
@@ -445,8 +463,17 @@ function pageKit(
         ...(width ? { width, flexShrink: 0 } : { alignItems: "flex-start" }),
       },
     );
-  /** A named line of cells. */
-  const row = (id: NodeId, name: string, cells: NodeId[]) =>
+  /**
+   * A named line of cells — captions on one baseline (`flex-end`); the Origin line's cells sit
+   * on top (`flex-start`: the origin's empty slot is an item's size, shorter than the filled
+   * instance beside it — 2026-10-21).
+   */
+  const row = (
+    id: NodeId,
+    name: string,
+    cells: NodeId[],
+    alignItems: "flex-end" | "flex-start" = "flex-end",
+  ) =>
     frame(
       id,
       name,
@@ -455,7 +482,7 @@ function pageKit(
         frame(`${id}/cells` as NodeId, "Samples", cells, {
           flexDirection: "row",
           flexWrap: "wrap",
-          alignItems: "flex-end",
+          alignItems,
           gap: 16,
         }),
       ],
@@ -787,7 +814,10 @@ export function catalogComponentsPageEntries(
     // what each slot holds is laid out but not drawn, so the slot keeps the size its contents
     // take (a ToggleButtonGroup's is its buttons' height, not a fixed box) and the chrome
     // hatches it (`catalogSlotMarks`). A slot the origin leaves empty (a Table's columns) has no
-    // such size: it takes a box of its own.
+    // such size: it takes a box of its own. A root slot holding repeated items lays out **one of
+    // each** (a ListBox's first item, a Toolbar's first button and its separator): the box is an
+    // item's size, not the whole list's. **Why (2026-10-21)**: a GridList's and a CardView's
+    // hatched box was the three stacked items' ~500px (user: 「slot 빗금 상자 높이」).
     const sampleId = originSampleId(origin.id);
     const slots = originSlots(graph, origin.id);
     // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
@@ -804,11 +834,20 @@ export function catalogComponentsPageEntries(
               visual: SLOT_BOX,
             },
           ]),
-      ...slot.contents.map((templatePath) => ({
-        kind: "patch" as const,
-        address: { instances: [sampleId], templatePath },
-        visual: { opacity: set(0) },
-      })),
+      ...slot.contents.map((templatePath, index) => {
+        const definitionOf = (path: LibraryTemplateId[]) =>
+          library.templates.get(path[path.length - 1]!)?.definitionId;
+        const repeat =
+          slot.path.length === 1 &&
+          slot.contents.findIndex(
+            (other) => definitionOf(other) === definitionOf(templatePath),
+          ) < index;
+        return {
+          kind: "patch" as const,
+          address: { instances: [sampleId], templatePath },
+          ...(repeat ? { enabled: false } : { visual: { opacity: set(0) } }),
+        };
+      }),
     ]);
     entries.set(sampleId, () => {
       const override = catalogOriginOverride(graph, origin.id);
@@ -856,15 +895,22 @@ export function catalogComponentsPageEntries(
     // it: the component as a page uses it.
     const filled = slots.some((slot) => !unfilled(slot));
     const rows: NodeId[] = [
-      row(base("row", "origin"), "Origin", [
-        cell(
-          base("cell", "origin"),
-          `${ORIGIN_MARK} ${origin.name}`,
-          sampleId,
-          cellWidth,
-        ),
-        ...(filled ? [instance("instance", origin.name, origin.id, {})] : []),
-      ]),
+      row(
+        base("row", "origin"),
+        "Origin",
+        [
+          cell(
+            base("cell", "origin"),
+            `${ORIGIN_MARK} ${origin.name}`,
+            sampleId,
+            cellWidth,
+          ),
+          ...(filled
+            ? [instance("instance", origin.name, origin.id, {})]
+            : []),
+        ],
+        "flex-start",
+      ),
     ];
     let weight = 60 + lineHeight(filled ? 2 : 1);
     const items = originItems(graph, origin.id, stateIds);

@@ -6565,21 +6565,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-contextualhelp__trigger",
     "definitionId": "lib:definition:origin-component-button",
-    "children": [
-      "lib:template:component-contextualhelp__trigger_icon"
-    ],
+    "children": [],
     "props": {
       "slot": false,
       "variant": "secondary",
       "label": ""
     },
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-contextualhelp__trigger_icon",
-    "definitionId": "lib:definition:type-Icon",
-    "children": [],
-    "props": {},
     "visual": {}
   },
   {
@@ -6764,7 +6755,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "variant": "secondary",
-      "label": ""
+      "label": "",
+      "icon": "chevron-down"
     },
     "visual": {
       "fill": "var(--accent-subtle)",
