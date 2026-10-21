@@ -68,7 +68,6 @@
 
   .react-aria-Modal[data-dialog-trigger] {
     position: relative;
-    padding: 0px;
     max-height: 90vh;
   }
 

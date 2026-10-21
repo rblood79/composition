@@ -7877,10 +7877,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         rootSelectors: {
+          // `data-dialog-trigger` = shared `Dialog` 가 DialogTrigger 바로 아래 (Modal 노드 없이) 놓인
+          //   Dialog 를 RAC Modal 로 감쌀 때 붙인다 (`components/Dialog.tsx`). padding 0 은 2026-10-22
+          //   부터 size M 과 같아 뺐다 — 남은 둘만 그 자동 Modal 의 몫.
           "&[data-dialog-trigger]": {
             styles: {
               position: "relative",
-              padding: "0px",
               "max-height": "90vh",
             },
           },
