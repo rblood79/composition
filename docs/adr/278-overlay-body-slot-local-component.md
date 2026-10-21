@@ -56,7 +56,7 @@ slot 선언은 library template 의 데이터다 — 생성기 없음 (`reusable
 - 설명:
   - 오버레이 5종의 본체에 slot 을 선언한다. slot holder = 있는 region frame (Dialog `content-region` → `content`, `actions-region` → `actions` · ContextualHelp `Content` → `content`, `Footer` → `footer`), 없으면 새 region frame 하나 (Popover · Tooltip 의 `content`) · Menu 는 `component-menu__menu` 자신 (`Items`, ListBox 와 같음). OverlayArrow · Dialog title heading · Close 버튼은 slot 밖 (RAC 부품).
   - 기본 채움 = 지금 template 내용 (heading · description · item ×3) — 바꾸지 않으면 「library 기본 그대로」.
-  - 커스터마이징 = 사용자가 어느 page 에서든 본체를 그리고 Create component (ORIGIN 이 그 page 에 남음) → trigger instance 의 slot 에 그 instance 를 넣는다 (Design 패널 slot 절 · 추천 · drag — ADR-261 그대로). Preview 는 RAC 가 Modal · Popover 안에 그 내용을 띄운다.
+  - 커스터마이징 = 사용자가 어느 page 에서든 본체를 그리고 Create component (ADR-279: 원본은 Local page 카드로, 그 자리에는 instance) → trigger instance 의 slot 에 그 instance 를 넣는다 (Design 패널 slot 절 · 추천 · drag — ADR-261 그대로). Preview 는 RAC 가 Modal · Popover 안에 그 내용을 띄운다.
   - Library page 카드: ◆ trigger 옆에 **본체를 펼친 칸** (Components page 전용 — 샘플 instance 의 오버레이 자식을 presence 가 숨기지 않는 display 상태). page 캔버스는 닫힌 채.
   - Components page Item 줄: slot 안 항목은 깊이에 관계없이 찾는다 → Menu 카드에 MenuItem 상태 줄.
 - 위험: 기술 **MEDIUM** / 성능 LOW / 유지보수 LOW / 마이그레이션 LOW.
@@ -112,7 +112,7 @@ slot 선언은 library template 의 데이터다 — 생성기 없음 (`reusable
    - picker 류 (Select · ComboBox · DatePicker · DateRangePicker) 의 Popover 는 범위 밖 — 본체가 ListBox · Calendar 부품이라 교체 대상이 아니다.
 
 2. **기본 채움 그대로 = library 기본**: `fillSlot` 이 없는 instance 는 template 내용 (heading · description · item …) 을 그린다 — 추가 작업 0. **옛 문서는 호환하지 않는다** (리뷰 h1): contract 44 로 저장된 프로젝트는 45 빌드가 로드 · 검증에서 거부하고 (`storage.ts:369` · `validation.ts:1505`) 재생성한다 — ADR-276 · 277 과 같은 정책, 변환 코드 0 (2026-10-14 「마이그레이션 코드 금지」). 저장 · 재열기 보존은 45 로 만든 문서의 새 `fillSlot` 에 대해 잰다.
-3. **커스터마이징 = Local 컴포넌트 instance 를 slot 에**. 새 UI 없음 — 다만 **컬렉션 slot 의 채움 목록이 Local 후보를 열거하도록 한 곳을 고친다** (리뷰 h2): `apps/builder/src/builder/catalogRuntime/slots.ts:291-303` `catalogSlotInsertOptions` 의 `items` 분기는 `catalogPaletteDefinitionId` 로 Library 항목 type 만 후보로 만들고 project 정의 순회 (`:335-353`) 는 free-content 분기에만 있다 — Menu `Items` (와 ListBox · GridList · TagGroup `Items`) 에 MenuItem 루트 Local 컴포넌트를 넣을 길이 Design 패널에 없다 (ADR-261 Phase 3 LOW deferred 「항목만 받는 slot 의 project 추천 미노출」 이 이 ADR 에서는 핵심 흐름이라 구현 항목으로 올린다). 수리 = `items` 분기에도 project 정의 (`usage !== "layout"` · 자기 정의 제외) 를 후보로 넣고, 기존 `allowed` 필터 (`assertNestable` — `definitionTypeName` 이 Local 정의의 루트 type 을 읽는다, `commands/context.ts:211-240`) 가 MenuItem 루트만 남긴다 (frame · Button 루트는 `NESTING_NOT_ALLOWED` 로 제외). 자유 내용 slot (Dialog `content`) 은 지금 분기가 이미 Local 을 열거한다. 그 밖은 Design 패널 slot 절 · Layers drop · drag · paste 가 ADR-261 Decision 1 의 EditTarget 규칙으로 `fillSlot` 에 쓴다. 교체 (`swapInstance`) 는 같은 slot name 으로 옮긴다. Create component 흐름 (ADR-260) 그대로 — 본체 ORIGIN 은 그린 page 에 남는다.
+3. **커스터마이징 = Local 컴포넌트 instance 를 slot 에**. 새 UI 없음 — 다만 **컬렉션 slot 의 채움 목록이 Local 후보를 열거하도록 한 곳을 고친다** (리뷰 h2): `apps/builder/src/builder/catalogRuntime/slots.ts:291-303` `catalogSlotInsertOptions` 의 `items` 분기는 `catalogPaletteDefinitionId` 로 Library 항목 type 만 후보로 만들고 project 정의 순회 (`:335-353`) 는 free-content 분기에만 있다 — Menu `Items` (와 ListBox · GridList · TagGroup `Items`) 에 MenuItem 루트 Local 컴포넌트를 넣을 길이 Design 패널에 없다 (ADR-261 Phase 3 LOW deferred 「항목만 받는 slot 의 project 추천 미노출」 이 이 ADR 에서는 핵심 흐름이라 구현 항목으로 올린다). 수리 = `items` 분기에도 project 정의 (`usage !== "layout"` · 자기 정의 제외) 를 후보로 넣고, 기존 `allowed` 필터 (`assertNestable` — `definitionTypeName` 이 Local 정의의 루트 type 을 읽는다, `commands/context.ts:211-240`) 가 MenuItem 루트만 남긴다 (frame · Button 루트는 `NESTING_NOT_ALLOWED` 로 제외). 자유 내용 slot (Dialog `content`) 은 지금 분기가 이미 Local 을 열거한다. 그 밖은 Design 패널 slot 절 · Layers drop · drag · paste 가 ADR-261 Decision 1 의 EditTarget 규칙으로 `fillSlot` 에 쓴다. 교체 (`swapInstance`) 는 같은 slot name 으로 옮긴다. Create component 흐름은 ADR-279 Decision 9 — 본체 원본은 Local page 카드로 가고 그 자리의 instance 를 slot 으로 옮긴다 (또는 slot 안에서 직접 그린 노드에 Create component → slot 안이 바로 instance).
 4. **Library page 카드의 본체 칸**: ◆ trigger 칸 옆에 본체 (Popover · Modal > Dialog · Tooltip · Menu) 를 펼쳐 그린 칸. 구현은 Components page 전용 — 카드 샘플의 오버레이 자식에 대해서만 `presence.ts` 의 「닫힌 오버레이」 숨김을 끄는 display 상태 (`displayState: "open"` 또는 같은 뜻의 patch). page 캔버스 · 다른 instance 는 닫힌 채 (Framer). Canvas 가 Popover · Modal 상자 자체를 못 그리면 본체 **내용** (slot holder 아래) 만 그린다 — Phase 0 판정.
 5. **Components page Item 줄**: slot 안 항목은 깊이 제한 없이 (slot holder 를 template 전체에서 찾는다) → Menu 카드 = MenuItem 상태 5.
 6. 범위 밖: page 캔버스에서 선택 시 본체 펼침 (composition 의 범위 결정 — 필요하면 별도 ADR) · SubmenuTrigger · picker Popover · 오버레이 열림 interaction (Preview 실행 값, ADR-250 과 같은 선).
@@ -179,7 +179,7 @@ LOW deferred 2 는 같은 날 후속으로 닫음 (사용자 요청 2026-10-21):
 
 - 오버레이 본체가 「library 기본 그대로」 와 「Local 컴포넌트로 교체」 두 길을 갖는다 — Framer 의 Overlay 모델과 같은 작업 흐름을 기존 slot 기계만으로.
 - Library page 카드 5 가 본체를 보여 준다. Menu 카드가 MenuItem 상태를 보인다.
-- 본체 디자인이 page 캔버스 (Local ORIGIN) 에서 되고 Preview 가 RAC 로 띄운다 — Canvas 가 오버레이를 여는 기능을 만들지 않는다.
+- 본체 디자인이 page 캔버스 (instance) 와 Local page 카드 (원본 — ADR-279) 에서 되고 Preview 가 RAC 로 띄운다 — Canvas 가 오버레이를 여는 기능을 만들지 않는다.
 
 ### Negative
 

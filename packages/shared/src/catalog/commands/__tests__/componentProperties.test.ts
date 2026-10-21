@@ -58,7 +58,6 @@ const definition = (name: string, root: string): DefinitionEntry => ({
   stateRules: {},
   templateRootId: id(root),
   usage: "component",
-  originRef: true,
 });
 const set = (value: AuthoredValue) => ({ kind: "set" as const, value });
 
@@ -88,7 +87,7 @@ function fixture(): CatalogGraph {
   return new CatalogGraph(
     documentOf(
       nodes,
-      ["cRoot", "oRoot", "lRoot", "I", "K", "L", "away"],
+      ["I", "K", "L", "away"],
       extra,
     ),
     library(),
@@ -255,7 +254,7 @@ describe("ADR-261 Phase 4 — component properties (text · boolean)", () => {
     const graph = new CatalogGraph(
       documentOf(
         [node("pRoot", "lib:definition:picker"), node("P", "project:definition:Pick")],
-        ["pRoot", "P"],
+        ["P"],
         [definition("Pick", "pRoot")],
       ),
       library(),

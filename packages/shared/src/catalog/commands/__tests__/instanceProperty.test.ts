@@ -61,7 +61,6 @@ const definition = (name: string, root: string): DefinitionEntry => ({
   stateRules: {},
   templateRootId: id(root),
   usage: "component",
-  originRef: true,
 });
 const glyph = (name: string, value: string): NodeEntry => ({
   ...text(name, value),
@@ -101,7 +100,7 @@ function fixture(): CatalogGraph {
     definition("Outer", "oRoot"),
   ];
   const graph = new CatalogGraph(
-    documentOf(nodes, ["sRoot", "hRoot", "cRoot", "oRoot", "I", "K"], extra),
+    documentOf(nodes, ["I", "K"], extra),
     library(),
   );
   run(

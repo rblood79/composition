@@ -1,10 +1,11 @@
 import {
+  componentOriginOf,
   createComponent,
   detachInstances,
   dissolveComponent,
+  duplicateDefinition,
   pushInstanceOverrides,
   resetInstance,
-  restoreOrigin,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
@@ -29,19 +30,14 @@ export interface CatalogComponentRef {
   project: boolean;
   /** The component's instances in the document (select-instances). */
   instanceIds: readonly NodeId[];
-  /**
-   * ADR-260 Decision 6: the component's origin was deleted (its definition holds it as a hidden
-   * template) — an instance offers 「Restore origin」.
-   */
-  restorable?: boolean;
 }
 /** What the Component section offers for a selected node. */
 export interface CatalogComponentState {
   /** The node is an instance: of a project component or of a library component origin. */
   instanceOf?: CatalogComponentRef;
   /**
-   * The node is the origin the definition edit view shows: a project component's template root,
-   * or the sample of a built-in origin.
+   * The node is a component's origin: a project component's template root (drawn on the Local
+   * page — ADR-279), a layout's root in its edit view, or the sample of a built-in origin.
    */
   originOf?: CatalogComponentRef;
 }
@@ -79,27 +75,7 @@ function componentRef(
         ),
     project,
     instanceIds: [...graph.instancesOf(definitionId)] as NodeId[],
-    ...(project && (definition as { originRef?: boolean }).originRef === false
-      ? { restorable: true }
-      : {}),
   };
-}
-
-/**
- * ADR-260: the project component whose origin a node is — in place on its page (or inside another
- * origin), or deleted and kept by its definition (the project components page shows it there). The
- * node alone decides (Decision 9); a layout's template root is no component.
- */
-function referencedOriginOf(
-  graph: CatalogReader,
-  id: string,
-): string | undefined {
-  const definitionId = graph.definitionOfTemplateRoot(id);
-  if (!definitionId) return undefined;
-  const definition = graph.getEntry(definitionId);
-  return definition?.kind === "definition" && definition.usage !== "layout"
-    ? definitionId
-    : undefined;
 }
 
 /**
@@ -144,9 +120,10 @@ export function catalogComponentState(
       const originOf = componentRef(graph, sampled);
       return originOf ? { originOf } : {};
     }
-    const inPlace = referencedOriginOf(graph, target.id);
-    if (inPlace) {
-      const originOf = componentRef(graph, inPlace);
+    // ADR-279: a project component's template root (the Local page's ◆) is its origin.
+    const origin = componentOriginOf(graph, target.id);
+    if (origin) {
+      const originOf = componentRef(graph, origin);
       if (originOf) return { originOf };
     }
     if (definitionView) {
@@ -179,8 +156,8 @@ export function catalogComponentRole(
     const node = graph.getEntry(target.id);
     if (node?.kind !== "node") return undefined;
     if (originOfEditableSample(target.id)) return "origin";
-    const inPlace = referencedOriginOf(graph, target.id);
-    if (inPlace && componentDefinition(graph, inPlace)) return "origin";
+    const origin = componentOriginOf(graph, target.id);
+    if (origin && componentDefinition(graph, origin)) return "origin";
     if (definitionView) {
       const viewed = graph.getEntry(definitionView);
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id)
@@ -195,11 +172,11 @@ export function catalogComponentRole(
 }
 
 /**
- * ADR-248 Phase 4e-4 · ADR-260: the Component section's commands — create a component from a node
- * (the node stays in place as its origin), detach an instance (it keeps what it showed, as owned
- * nodes), dissolve a project component (every instance detached, the definition removed — an
- * origin in place stays an ordinary node), restore a deleted origin beside an instance. Each is
- * one history step.
+ * ADR-248 Phase 4e-4 · ADR-279: the Component section's commands — create a component from a node
+ * (the definition owns it, an instance takes its place), detach an instance (it keeps what it
+ * showed, as owned nodes), delete a project component (every instance detached, the definition
+ * and its template removed), duplicate a component (a new one, 「{name} copy」). Each is one
+ * history step.
  */
 export const catalogComponentCommands = {
   create: (id: NodeId, name: string, newId: NewId): CatalogCommand =>
@@ -211,8 +188,11 @@ export const catalogComponentCommands = {
       definitionId: definitionId as EntryId<"definition">,
       newId,
     }),
-  restore: (instanceId: NodeId): CatalogCommand =>
-    restoreOrigin({ instanceId }),
+  duplicate: (definitionId: string, newId: NewId): CatalogCommand =>
+    duplicateDefinition({
+      definitionId: definitionId as EntryId<"definition">,
+      newId,
+    }),
   /** ADR-262: the instance's overrides onto its component's origin (Figma 「Push changes」). */
   push: (id: NodeId, newId: NewId): CatalogCommand =>
     pushInstanceOverrides({ id, newId }),

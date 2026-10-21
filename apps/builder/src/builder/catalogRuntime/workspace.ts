@@ -256,8 +256,7 @@ export class CatalogWorkspace {
   }
   /** After a step: a changed theme builds a new root in its color mode with its token values. */
   private afterStep(result: CatalogTransactionResult | undefined): void {
-    // The viewed definition is gone (an undo of its creation, a dissolve), or its origin is back
-    // on a page (ADR-260 — Restore origin, an undo of the deletion): back to the pages.
+    // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
     const viewed =
       this.definitionView && !isComponentsView(this.definitionView)
         ? this.runtime.graph.getEntry(this.definitionView)
@@ -265,7 +264,7 @@ export class CatalogWorkspace {
     if (
       this.definitionView &&
       !isComponentsView(this.definitionView) &&
-      (viewed?.kind !== "definition" || viewed.originRef === true)
+      viewed?.kind !== "definition"
     ) {
       this.showDefinition(undefined);
       return;
@@ -329,9 +328,8 @@ export class CatalogWorkspace {
           listener(card.identity);
       return;
     }
-    // ADR-260: a component's origin — go to that node and select it, as for a built-in origin:
-    // on its page when it stands on one, else (deleted — its definition keeps it — or inside
-    // one deleted) on the project components page, where every component is (user 2026-10-14).
+    // ADR-279 Decision 5: a component's origin lives on the project components page (the Local
+    // page) — open it there and select the template root, as for a built-in origin.
     const viewed =
       definitionId && !isComponentsView(definitionId)
         ? this.runtime.graph.getEntry(definitionId)
@@ -342,11 +340,7 @@ export class CatalogWorkspace {
       viewed.templateRootId &&
       this.runtime.graph.getEntry(viewed.templateRootId)
     ) {
-      const graph = this.runtime.graph;
-      let top: string = viewed.templateRootId;
-      for (let at = graph.ownerOf(top); at; at = graph.ownerOf(at)) top = at;
-      const onPage = graph.getEntry(top)?.kind === "page";
-      this.showDefinition(onPage ? undefined : PROJECT_COMPONENTS_VIEW);
+      this.showDefinition(PROJECT_COMPONENTS_VIEW);
       const items = this.itemsOfNode(viewed.templateRootId, 1);
       this.selectItems(items);
       if (items[0])

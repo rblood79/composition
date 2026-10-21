@@ -432,9 +432,9 @@ const acceptedKeys = (workspace: CatalogWorkspace, target: EditTarget) =>
  * The canonical first-class fields as commands on an owned node (after its other writes): clip =
  * the Frame's overflow (`frameClipInputToOperation`), slot / placeholder = its slot declaration
  * (a slot only inside a component template — the old recommended component ids have no place in
- * the declaration), reusable = make a component of it (last — the node stays in place as the
- * component's origin, ADR-260). `reusable: false` is refused (dissolving a component is the
- * Component section's, it detaches every instance).
+ * the declaration), reusable = make a component of it (last — the definition owns the node and an
+ * instance takes its place, ADR-279: the element is that instance from then on). `reusable: false`
+ * is refused (deleting a component is the Component section's, it detaches every instance).
  */
 export function catalogCanonicalCommands(
   workspace: CatalogWorkspace,
@@ -518,6 +518,17 @@ export function createCatalogAiWriteHost(
 ): AiWriteHost {
   const graph = workspace.runtime.graph;
   const targetOf = (id: string) => workspace.positionOfRecord(id)?.target;
+  /**
+   * ADR-279: a node made a component (`canonical.reusable`) is the definition's template now —
+   * the element the AI goes on with is the instance that took its place (its one instance).
+   */
+  const elementNodeAfter = (nodeId: NodeId): NodeId => {
+    const definitionId = graph.definitionOfTemplateRoot(nodeId);
+    const instance = definitionId
+      ? [...graph.instancesOf(definitionId)][0]
+      : undefined;
+    return (instance as NodeId | undefined) ?? nodeId;
+  };
   return {
     create(input) {
       try {
@@ -596,7 +607,9 @@ export function createCatalogAiWriteHost(
         );
         commands.push(...canonical.commands);
         runSteps(workspace, `AI: add ${input.type}`, commands);
-        const elementId = workspace.root.recordsOfSource(nodeId)[0];
+        const elementId = workspace.root.recordsOfSource(
+          elementNodeAfter(nodeId),
+        )[0];
         if (!elementId) return { ok: false, error: `NOT_DRAWN: ${nodeId}` };
         return { ok: true, elementId, parentId: parent.identity };
       } catch (error) {
@@ -633,7 +646,15 @@ export function createCatalogAiWriteHost(
           ),
           ...canonical.commands,
         ]);
-        return { ok: true, elementId: id };
+        const nodeId = target.kind === "node" ? target.id : undefined;
+        const after = nodeId ? elementNodeAfter(nodeId) : undefined;
+        return {
+          ok: true,
+          elementId:
+            after && after !== nodeId
+              ? (workspace.root.recordsOfSource(after)[0] ?? id)
+              : id,
+        };
       } catch (error) {
         return failure(error);
       }

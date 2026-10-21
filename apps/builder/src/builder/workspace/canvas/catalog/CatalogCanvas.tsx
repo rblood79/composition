@@ -19,6 +19,9 @@ import {
   type CatalogSpacingClick,
 } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
+import { catalogComponentCommands } from "../../../catalogRuntime/componentActions";
+import { confirmCatalogDissolve } from "../../../catalogRuntime/componentConfirm";
+import { catalogProjectComponentCardFrames } from "../../../catalogRuntime/componentsPage";
 import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import {
@@ -163,6 +166,10 @@ function catalogHeaderFrames(
     else if (isLibraryOrigin(id))
       frames.push({ id, title: catalogDefinitionTitle(graph, id), ...rect });
   }
+  // ADR-279: the Local page's cards — a header per component (rename · delete).
+  if (!onlyPage)
+    for (const card of catalogProjectComponentCardFrames(graph, workspace.root))
+      frames.push({ ...card, closable: true });
   return frames;
 }
 /** The definition edit view's declared slots: each drawn slot's box and whether it is empty. */
@@ -1716,6 +1723,20 @@ export function CatalogCanvas({
         onBeginRename={(pageId) => {
           if (workspace.runtime.graph.getEntry(pageId)?.kind === "page")
             workspace.session.setPage(pageId as EntryId<"page">);
+        }}
+        onCloseFrame={(id) => {
+          // ADR-279 Decision 6: the card's × = delete the component (every instance detached).
+          const graph = workspace.runtime.graph;
+          if (graph.getEntry(id)?.kind !== "definition") return;
+          void confirmCatalogDissolve(graph, id, () => {
+            try {
+              workspace.execute(
+                catalogComponentCommands.dissolve(id, workspace.newId),
+              );
+            } catch (error) {
+              callbacks.current.onError?.(error);
+            }
+          });
         }}
         onRenamePage={(pageId, title) => {
           const page = workspace.runtime.graph.getEntry(pageId);

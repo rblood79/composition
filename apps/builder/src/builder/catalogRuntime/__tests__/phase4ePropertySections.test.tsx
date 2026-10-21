@@ -471,12 +471,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         newId: workspace.newId,
       }),
     );
-    workspace.execute(
-      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
-    );
-    // ADR-260: "card" stays as the origin; its copy is an instance.
+    // ADR-279: the definition owns "card"; the instance in its place.
     const instance = workspace.execute(
-      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     ).plan.selectAfter![0];
     const declare = render(
       <I18nProvider initialLocale="en-US">
@@ -551,9 +548,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         newId: workspace.newId,
       }),
     );
-    workspace.execute(
+    const instance = workspace.execute(
       catalogComponentCommands.create(id("card"), "Card", workspace.newId),
-    );
+    ).plan.selectAfter![0];
     workspace.execute(
       catalogComponentCommands.create(
         id("body"),
@@ -561,9 +558,6 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         workspace.newId,
       ),
     );
-    const instance = workspace.execute(
-      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
-    ).plan.selectAfter![0];
     const target = {
       kind: "descendant" as const,
       ownerId: instance,

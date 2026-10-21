@@ -62,11 +62,13 @@ export {
   type ResetOverrideFieldInput,
 } from "./instanceOverrides";
 export {
+  componentOriginOf,
   createComponent,
   detachInstances,
   dissolveComponent,
+  duplicateDefinition,
   setLibraryDefault,
-  restoreOrigin,
+  splitPositionLayers,
 } from "./components";
 export {
   addRecord,

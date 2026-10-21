@@ -2,6 +2,8 @@
 
 ## Status
 
+> **Superseded in part by [ADR-279](../279-component-origin-on-local-page.md) (2026-10-21, 사용자 결정 — 결정 지점 ④)**: Decision 2 · 3 · 5 · 6 · 8 · 9 (그 자리 ORIGIN · `originRef` 참조 모양 · 해체 때 원본 유지 · 원본 삭제 = 숨은 template + Restore · 복제 = instance 의 `asInstance` 경로 · page 위 중첩 원본) 은 폐기 — 정의가 template 을 소유하고 원본은 Local page 카드에, page 에는 instance (Framer Assets 모델, contract 46). Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard `definitions` · `tokens` snapshot — `origins` 는 삭제) 은 그대로. 아래 본문은 2026-10-14 당시의 기록이다.
+
 Implemented — 2026-10-14 (Phase 0 ~ 4 · G0 ~ G5 종결 — main `010f3a2b5` · `af29d12e8`, pre-push perf ratchet pass · 사용자 G5 「확인했다」 · 아래 Live Exercise). Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](../reviews/260.md) Round 3 pending 0 · HIGH 5 전부 fixed — 전제 확정)
 
 > **Phase 0 ~ 4 완료 (2026-10-14) · Implemented** (G5 사용자 확인 · 보고 결함 2 수리 · 후속 요청 — Library · Local page): G0 inventory (37 파일 · 참조 종류 전수 · 후속 4 기능 막지 않음) · G1 모델 (`originRef` · `template` 역색인 · 순환 걷기 · template 노드 override 투영) · G2 명령 (create 무이동 · 해체 원본 유지 · 원본 삭제 = 숨은 template · `restoreOrigin` · 복제 · 붙여넣기 = instance · clipboard origins/definitions/tokens · 무작위 500 단계) · G3 Builder (ORIGIN on page · Go to component = page · Restore origin · 확인 대화상자 · slot · Layers · ⌘⌥K) + live 33/33 · **G5 사용자 확인 (10-14) — 보고 결함 2 (instance 속성 · 「+」) 수리**. G4 — type-check · shared 1641 · builder 5762 (기존 `resolveContainerStylesFallback` 1 제외) · 번들 initial Builder 1,319,045 / Preview 300,625 B gzip · `gate:perf-ratchet` 은 커밋 뒤 pre-push 에서 (dirty 트리는 HEAD 를 잰다). [breakdown §6](../design/260-component-origin-in-place-breakdown.md).

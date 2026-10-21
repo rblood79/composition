@@ -74,13 +74,6 @@ async function open() {
       workspace.newId,
     ),
   );
-  // ADR-260: the heading stays as the origin; deleting it hides it in its definition — the case
-  // that opens the definition edit view (as an older document's owned template).
-  workspace.execute(
-    removeTargets({
-      targets: [{ kind: "node", id: "project:node:title" as NodeId }],
-    }),
-  );
   workspace.execute(catalogNewLayoutCommand("Shell", workspace.newId));
   const graph = workspace.runtime.graph;
   const [layout, component] = catalogDefinitionList(graph);

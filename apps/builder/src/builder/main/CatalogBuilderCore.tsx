@@ -61,6 +61,7 @@ import { ToastContainer } from "../components/feedback/ToastContainer";
 import { AgentCommandConfirmDialogHost } from "../components/overlay/AgentCommandConfirmDialog";
 import { CommandPalette } from "../components/overlay/CommandPalette";
 import { EditingSemanticsImpactDialogHost } from "../components/overlay/EditingSemanticsImpactDialog";
+import { ComponentNameDialogHost } from "../components/overlay/ComponentNameDialog";
 import { PropertySelectionContext } from "../components/property/propertySelection";
 import {
   loadAllCustomFontsToSkia,
@@ -746,6 +747,8 @@ export function CatalogBuilderCore() {
       <AgentCommandConfirmDialogHost />
       {/* Detach · dissolve · the first edit of a component with instances (the old dialog). */}
       <EditingSemanticsImpactDialogHost />
+      {/* ADR-279: the name a new component gets (Create component). */}
+      <ComponentNameDialogHost />
       {/* ⌘/ — lists the commands the catalog Builder registered (the header menu's own list). */}
       <CommandPalette />
       <ToastContainer />

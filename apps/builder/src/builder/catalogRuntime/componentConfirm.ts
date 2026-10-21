@@ -10,6 +10,7 @@ import {
   type EditingSemanticsDetachConfirmationRequest,
   type EditingSemanticsImpactConfirmationRequest,
 } from "../utils/editingSemanticsImpactConfirmation";
+import { requestComponentName } from "../utils/componentNamePrompt";
 import {
   catalogDefinitionTitle,
   isComponentsView,
@@ -96,6 +97,29 @@ function impactRequest(
     originId: definitionId,
     originLabel: definitionName(graph, definitionId),
   };
+}
+
+/**
+ * ADR-279 Decision 3a: Create component asks for the name first (the default filled in — the
+ * node's name, else its type); Escape runs nothing. `prompt` is the request (the Builder's
+ * dialog host; none = the default name at once).
+ */
+export function promptCatalogComponentName(
+  defaultName: string,
+  run: (name: string) => void,
+  prompt: (request: {
+    defaultName: string;
+  }) => string | Promise<string | null> = requestComponentName,
+): string | Promise<string | null> {
+  const answer = prompt({ defaultName });
+  if (typeof answer === "string") {
+    run(answer);
+    return answer;
+  }
+  return answer.then((name) => {
+    if (name) run(name);
+    return name;
+  });
 }
 
 /** Dissolve a component; with instances the user confirms first (the old origin toggle). */
@@ -224,10 +248,15 @@ export function watchCatalogComponentEdits(
         return;
       if (touchesTemplate(graph, result.changedIds, view)) edited = view;
     }
-    // ADR-260 Decision 4: an origin in place (on a page, or inside a viewed template), or one
-    // the project components page shows.
+    // ADR-279 Decision 4: the Local page's origin (a definition's template root) or a node under it.
     edited ??= editedOrigin(graph, result.changedIds);
     if (!edited) return;
+    // The step that made the component (Create component — the definition is new in it) is no
+    // edit of an origin with instances: the instance in the node's place was made with it.
+    if (
+      result.inverse.some((op) => op.kind === "remove" && op.id === edited)
+    )
+      return;
     const request = impactRequest(graph, edited);
     if (!request) return;
     const key = impactKey(graph, edited);

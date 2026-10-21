@@ -5,11 +5,13 @@ import { definitionTypeName } from "../../../../../packages/shared/src/catalog/c
 import { catalogComponentsPageRows } from "./componentsPage";
 import { catalogInsertParent } from "./insertParent";
 import {
+  componentsViewRoot,
   isComponentsView,
   isComponentsViewRoot,
   isProjectComponentsView,
   originOfEditableSample,
 } from "./originView";
+import type { CatalogComponentsViewId } from "./originViewNode";
 import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
@@ -57,8 +59,8 @@ export interface CatalogLayerNode {
    */
   readonly slot?: string;
   /**
-   * A deleted component origin its definition keeps (ADR-260 — listed on the project components
-   * page): not removable again; Restore origin on an instance brings it back.
+   * A component's origin on the Local page (ADR-279 — the definition's template root): its row
+   * has no delete button (the card's delete button deletes the component).
    */
   readonly keptOrigin?: true;
 }
@@ -87,6 +89,11 @@ export interface CatalogLayerTreeHost {
   boundRows?(position: CatalogPosition): CatalogBoundLayerRows | undefined;
   /** Data rows changed outside the document (the bound rows are read again). */
   subscribeBoundRows?(listener: () => void): () => void;
+  /**
+   * The workspace built a new root: the project components page was laid out again after a step
+   * (a component made, deleted, undone) — its card rows are read from the new page entries.
+   */
+  subscribeRoot?(listener: () => void): () => void;
   /**
    * Whether a template position is absent by its parent's empty prop (a Checkbox's Description
    * without `description`): nothing renders it, so it has no row. Owned nodes are always listed.
@@ -141,11 +148,10 @@ const roleOf = (
   const nodeId =
     position.target.kind === "node" ? position.target.id : undefined;
   if (originOfEditableSample(nodeId)) return "origin";
-  // ADR-260: a component's origin in place (the node alone decides — Decision 9).
+  // ADR-279: a project component's template root (the Local page's ◆) is its origin.
   if (nodeId) {
     const definitionId = graph.definitionOfTemplateRoot(nodeId);
     const definition = definitionId ? graph.getEntry(definitionId) : undefined;
-    // (A deleted one its definition keeps too — the project components page lists it.)
     if (definition?.kind === "definition" && definition.usage !== "layout")
       return "origin";
   }
@@ -201,6 +207,7 @@ export class CatalogLayerTreeStore {
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribeSteps: () => void;
   private readonly unsubscribeBoundRows: () => void;
+  private readonly unsubscribeRoot: () => void;
   private rowsChanged = false;
   private disposed = false;
 
@@ -223,8 +230,8 @@ export class CatalogLayerTreeStore {
           );
         }),
       );
-      // The project components page: a row's origin can be deleted (kept by its definition) or
-      // restored without its row list changing — its few rows are read again each step.
+      // The project components page: its few rows are read again each step (a component made,
+      // renamed or deleted).
       // A parent prop edit shows or hides a value-gated part without its row list changing.
       const gated = this.valueGated.some(({ position, absent }) => {
         if (counting) docCounters.layersGatedChecked += 1;
@@ -240,6 +247,19 @@ export class CatalogLayerTreeStore {
     });
     this.unsubscribeBoundRows =
       host.subscribeBoundRows?.(() => this.rebuild()) ?? (() => {});
+    // The step's listeners run before the workspace lays the project components page out again
+    // (`afterStep`): the rows are read once more from the new page (user 2026-10-21). A root
+    // built for leaving the page (its view entries gone) is not: the panel switches owner next.
+    this.unsubscribeRoot =
+      host.subscribeRoot?.(() => {
+        if (
+          isProjectComponentsView(this.ownerId) &&
+          host.graph.getEntry(
+            componentsViewRoot(this.ownerId as CatalogComponentsViewId),
+          )
+        )
+          this.rebuild();
+      }) ?? (() => {});
     this.rebuild();
   }
 
@@ -266,6 +286,7 @@ export class CatalogLayerTreeStore {
     this.disposed = true;
     this.unsubscribeSteps();
     this.unsubscribeBoundRows();
+    this.unsubscribeRoot();
     for (const unsubscribe of this.rowSubscriptions.values()) unsubscribe();
     this.rowSubscriptions.clear();
     this.listeners.clear();

@@ -287,8 +287,8 @@ describe("ADR-261 Phase 2 — swapInstance", () => {
     ).toBe("DEFINITION_CYCLE");
     const origin = graphOf(
       [node("o", SECTION)],
-      ["o"],
-      [definition("O", "o", { originRef: true })],
+      [],
+      [definition("O", "o")],
     );
     expect(
       code(() => run(origin, swapInstance({ id: id("o"), definitionId: A }))),

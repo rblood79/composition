@@ -25,6 +25,7 @@ import {
 } from "../slots";
 import { setSlotDeclaration } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogWorkspace } from "../workspace";
+import { PROJECT_COMPONENTS_VIEW } from "../originView";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -72,15 +73,13 @@ async function open() {
       newId: allocator(),
     }),
   );
-  workspace.execute(
+  // ADR-279: the definitions own A and B; the instance in A's place is I.
+  const I = workspace.execute(
     createComponent({ id: id("A"), name: "Card A", newId: workspace.newId }),
-  );
+  ).plan.selectAfter![0] as NodeId;
   workspace.execute(
     createComponent({ id: id("B"), name: "Card B", newId: workspace.newId }),
   );
-  const I = workspace.execute(
-    duplicateNodes({ ids: [id("A")], newId: workspace.newId }),
-  ).plan.selectAfter![0] as NodeId;
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId) as ProjectEntry;
   const [defA, defB] = project.definitionIds;
@@ -131,10 +130,13 @@ describe("ADR-261 Phase 2 — Swap instance (Builder)", () => {
     if (item?.kind === "action") void item.run();
     expect(swap).toHaveBeenCalledWith(I);
 
+    // The origin is on the Local page (ADR-279) — a host over that root.
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
     const originRecord = workspace.root.recordsOfSource(id("A"))[0];
     workspace.selectRecords([originRecord]);
+    const localHost = { ...catalogMenuHost(workspace), swapInstance: swap };
     expect(
-      catalogCanvasMenuItems(host, "canvas-element", originRecord).some(
+      catalogCanvasMenuItems(localHost, "canvas-element", originRecord).some(
         (entry) => entry.kind === "action" && entry.id === "swap-instance",
       ),
     ).toBe(false);

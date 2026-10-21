@@ -14,7 +14,6 @@ import {
   applyLayout,
   createComponent,
   createLayout,
-  duplicateNodes,
   insertNodes,
   setFields,
   setSlotDeclaration,
@@ -113,11 +112,9 @@ async function open(options: { slotDefaults?: boolean } = {}) {
       slot: { name: "content", required: false },
     }),
   );
-  workspace.execute(
-    createComponent({ id: id("A"), name: "Card A", newId: workspace.newId }),
-  );
+  // ADR-279: the definition owns A; the instance in its place is I.
   const I = workspace.execute(
-    duplicateNodes({ ids: [id("A")], newId: workspace.newId }),
+    createComponent({ id: id("A"), name: "Card A", newId: workspace.newId }),
   ).plan.selectAfter![0] as NodeId;
   const slot = {
     kind: "descendant" as const,
@@ -281,9 +278,16 @@ describe("ADR-261 Phase 1 — drop · paste · reorder parent = the edit target"
 
   it("a Layers drop after a template row of an unfilled slot goes after it (ensureChildList order)", async () => {
     const { workspace, graph, I, record } = await open({ slotDefaults: true });
-    const J = workspace.execute(
-      duplicateNodes({ ids: [id("A")], newId: workspace.newId }),
-    ).plan.selectAfter![0] as NodeId;
+    // A fresh instance (its slot unfilled — I's slot already holds what `open` put there).
+    const J = id("J");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("J", graph.ownerOf(id("A"))!)],
+        rootIds: [J],
+        newId: workspace.newId,
+      }),
+    );
     expect(J).not.toBe(I);
     const tree = new CatalogLayerTreeStore(
       {

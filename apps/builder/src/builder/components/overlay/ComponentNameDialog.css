@@ -1,0 +1,27 @@
+/* ADR-279 — the Create component name dialog: the ConfirmDialog frame, one text field. */
+.component-name-dialog-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.component-name-dialog-input {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  height: var(--control-size);
+  padding: 0 var(--spacing-sm);
+  width: 100%;
+}
+
+.component-name-dialog-input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}

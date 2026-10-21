@@ -118,9 +118,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * origin's template carries the starter (`component-table__1_1..3` Columns Name · Type · Status,
  * `__2_1` a table-row instance with three Cells). A 43 document (a TableView instance, a Table
  * whose template had no starter) is refused (사용자 결정 2026-10-21).
+ * 46 (ADR-279): a definition owns its template — the ADR-260 reference field is gone; a
+ * component's origin lives on the Local page and an instance stands where the node stood. A 45
+ * document (an origin on a page, a hidden template) is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 45 as const;
+export const LIBRARY_CONTRACT_VERSION = 46 as const;
 
 export type EntryKind =
   | "project"
@@ -650,19 +653,13 @@ export interface DefinitionEntry {
   visual: VisualValues;
   stateRules: StateRules;
   bindingId?: string;
+  /** The template the definition owns (ADR-279: a component's origin, drawn on the Local page). */
   templateRootId?: NodeId;
   /**
    * `layout`: a reusable page layout — a page applies it by making its body an instance of this
    * definition and filling the template's slots. Absent = a component definition.
    */
   usage?: "component" | "layout";
-  /**
-   * ADR-260 — how the definition holds `templateRootId`. Absent (every older document and every
-   * layout): it owns the template. `true`: the root is a node it references — the component origin,
-   * owned by a page-side parent (or by the subtree of a hidden template, Decision 6). `false`: the
-   * origin was deleted and the definition owns the subtree as a hidden template ("Restore origin").
-   */
-  originRef?: boolean;
   /**
    * ADR-261 Decision 4 — the component's properties (Figma component properties): values an
    * instance writes under `key` on its root, projected onto the origin nodes they drive. The

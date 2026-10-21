@@ -46,13 +46,8 @@ export function catalogSlotDeclaration(
 ): { slot?: CatalogSlot } | undefined {
   const node = graph.getEntry(nodeId);
   if (node?.kind !== "node") return undefined;
-  // One walk up the owners (ADR-246 — a selection reads it): a template's node, or — ADR-260 — a
-  // component's origin in place and what it holds, declares slots.
+  // One walk up the owners (ADR-246 — a selection reads it): a template's node declares slots.
   for (let id: string = nodeId; ;) {
-    const definitionId = graph.definitionOfTemplateRoot(id);
-    const definition = definitionId ? graph.getEntry(definitionId) : undefined;
-    if (definition?.kind === "definition" && definition.originRef === true)
-      return node.slot ? { slot: node.slot } : {};
     const ownerId = graph.ownerOf(id);
     const owner = ownerId ? graph.getEntry(ownerId) : undefined;
     if (owner?.kind === "definition")

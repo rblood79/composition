@@ -23,8 +23,6 @@ import type { CatalogCommand } from "./compose";
 import { CommandDraft, fail, sameAddress } from "./context";
 import type { NewId } from "./materialize";
 import {
-  keepRemovedOrigins,
-  referencedOriginOf,
   removeWithReferrers,
   subtree,
 } from "./structure";
@@ -151,8 +149,7 @@ export const removePage =
       ...project,
       pageIds: project.pageIds.filter((id) => id !== input.id),
     });
-    // (An origin on the page becomes its component's hidden template — ADR-260 Decision 6.)
-    removeWithReferrers(draft, [input.id, ...keepRemovedOrigins(draft, nodes)]);
+    removeWithReferrers(draft, [input.id, ...nodes]);
     return { label: input.label ?? "Delete page", ops: draft.ops() };
   };
 
@@ -198,8 +195,6 @@ export const duplicatePage =
           old.startsWith("project:stateVariable:")
             ? input.newId("stateVariable")
             : input.newId("interaction"),
-        // (An origin on the page is copied as its instance — ADR-260 Decision 8.)
-        (nodeId) => referencedOriginOf(draft, nodeId)?.id,
       );
       for (const entry of clone.entries) draft.create(entry);
       for (const entry of clone.relatedEntries) {

@@ -19,7 +19,6 @@ import {
   Group,
   Magnet,
   Plus,
-  RefreshCcwDot,
   Replace,
   RotateCcw,
   RulerDimensionLine,
@@ -141,8 +140,6 @@ export const ACTION_ICONS = {
   goToOrigin: Focus,
   createComponent: DiamondPlus,
   detach: DiamondMinus,
-  /** ADR-260: a deleted origin back beside the instance (Figma 「Restore main component」). */
-  restoreOrigin: RefreshCcwDot,
   /** ADR-261: show another component in the instance's place (Figma 「Swap instance」). */
   swapInstance: Replace,
   /** ADR-262: the instance's overrides onto its origin (Figma 「Push changes to main component」). */

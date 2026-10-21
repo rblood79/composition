@@ -221,8 +221,8 @@ export interface TranslationKeys {
     detachInstance: string;
     selectInstances: string;
     createComponent: string;
-    detachComponent: string;
-    restoreOrigin: string;
+    deleteComponent: string;
+    componentName: string;
     swapInstance: string;
     swapSearch: string;
     swapRelated: string;
@@ -277,6 +277,7 @@ export interface TranslationKeys {
       detach: string;
       createComponent: string;
       dissolveComponent: string;
+      duplicateComponent: string;
       editComponentDefault: string;
       addPage: string;
       editPage: string;
@@ -368,7 +369,6 @@ export interface TranslationKeys {
       resetAllChanges: string;
       resetOverride: string;
       resetSwap: string;
-      restoreOrigin: string;
       setInstanceProperty: string;
       swapInstance: string;
       editData: string;

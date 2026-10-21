@@ -201,14 +201,14 @@ describe("ADR-248 Phase 4c read model", () => {
     expect(model.components()).toEqual([]);
     const newId = allocator();
     const plan = run(createComponent({ id: id("card"), name: "Card", newId }));
-    // ADR-260: the node stays as the origin — no instance yet; a copy of it is one.
+    // ADR-279: the instance in the node's place is the first; a copy of it is another.
     expect(model.components()).toMatchObject([
-      { name: "Card", instanceCount: 0 },
+      { name: "Card", instanceCount: 1 },
     ]);
     run(duplicateNodes({ ids: plan.selectAfter!, newId }));
-    expect(counts.at(-1)).toEqual([1]);
-    run(duplicateNodes({ ids: plan.selectAfter!, newId }));
     expect(counts.at(-1)).toEqual([2]);
+    run(duplicateNodes({ ids: plan.selectAfter!, newId }));
+    expect(counts.at(-1)).toEqual([3]);
   });
 
   it("finds author DOM id conflicts through the graph index, across edits and undo", async () => {

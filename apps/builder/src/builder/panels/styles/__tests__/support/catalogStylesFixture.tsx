@@ -10,7 +10,6 @@ import type {
   NodeId,
 } from "../../../../../../../../packages/shared/src/catalog/document/types";
 import {
-  duplicateNodes,
   insertNodes,
 } from "../../../../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
@@ -241,12 +240,9 @@ export async function openStylesFixture(
     },
     setBreakpoint: (breakpoint) => workspace.setBreakpoint(breakpoint),
     componentize(id, name) {
-      workspace.execute(
-        catalogComponentCommands.create(nodeIdOf(id), name, workspace.newId),
-      );
-      // ADR-260: the node stays as the origin; its copy is an instance.
+      // ADR-279: the definition owns the node; the instance in its place is the element.
       const instance = workspace.execute(
-        duplicateNodes({ ids: [nodeIdOf(id)], newId: workspace.newId }),
+        catalogComponentCommands.create(nodeIdOf(id), name, workspace.newId),
       ).plan.selectAfter![0]!;
       return workspace.root.recordsOfSource(instance)[0]!;
     },

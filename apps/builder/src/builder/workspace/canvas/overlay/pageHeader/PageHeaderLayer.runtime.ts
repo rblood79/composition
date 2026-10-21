@@ -137,6 +137,8 @@ export interface PageHeaderLayerProps {
   /** 편집기 열림 직전 (페이지 전환). */
   onBeginRename?: (pageId: string) => void;
   onRenamePage?: (pageId: string, title: string) => void;
+  /** ADR-279: the × of a closable frame (a Local page card — deletes the component). */
+  onCloseFrame?: (id: string) => void;
   /** The active page and whether anything is selected (the catalog session, ADR-248 4e). */
   activePageId: string | null;
   hasSelection: boolean;
@@ -151,4 +153,7 @@ export interface PageHeaderItemProps {
   /** ADR-226 폭 티어 — compact 는 액션 버튼을 렌더하지 않는다 (CSS 숨김 아님, 노드 6 → 2). */
   lod: PageHeaderLod;
   onRenameCommit: (pageId: string, value: string | null) => void;
+  /** ADR-279: × 가 동작하는 frame (Local page 카드) — `onClose` 를 부른다. */
+  closable?: boolean;
+  onClose?: (id: string) => void;
 }

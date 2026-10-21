@@ -23,6 +23,7 @@ import {
   createComponent,
   detachInstances,
   dissolveComponent,
+  duplicateDefinition,
   duplicateNodes,
   editItems,
   groupNodes,
@@ -33,8 +34,8 @@ import {
   pushInstanceOverrides,
   removeTargets,
   renameNode,
+  renameDefinition,
   resetInstance,
-  restoreOrigin,
   setFields,
   setWholeField,
   swapInstance,
@@ -371,7 +372,8 @@ describe("ADR-248 Phase 4b random command sequence", () => {
             })
           : undefined;
       },
-      // ADR-260: place an instance of a component (its origin stays in place), restore a deleted one.
+      // ADR-279: place an instance of a component; duplicate · rename a component; paste a copy of
+      // its origin (the Local page's template root → an instance).
       placeInstance: () => {
         const project = graph.getEntry(PROJECT) as ProjectEntry;
         const definitionId = pickOne(project.definitionIds);
@@ -387,27 +389,40 @@ describe("ADR-248 Phase 4b random command sequence", () => {
             })
           : undefined;
       },
-      removeOrigin: () => {
-        const origins = ownedNodes().filter((entry) => {
-          const definitionId = graph.definitionOfTemplateRoot(entry.id);
-          return (
-            !!definitionId &&
-            (graph.getEntry(definitionId) as DefinitionEntry).originRef === true
-          );
-        });
-        const target = pickOne(origins);
-        return target
-          ? removeTargets({ targets: [{ kind: "node", id: target.id }] })
+      duplicateComponent: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const id = pickOne(project.definitionIds);
+        return id
+          ? duplicateDefinition({
+              definitionId: id as EntryId<"definition">,
+              newId,
+            })
           : undefined;
       },
-      restore: () => {
-        const hidden = ownedNodes().filter(
-          (entry) =>
-            (graph.getEntry(entry.definitionId) as DefinitionEntry | undefined)
-              ?.originRef === false,
-        );
-        const target = pickOne(hidden);
-        return target ? restoreOrigin({ instanceId: target.id }) : undefined;
+      renameComponent: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const id = pickOne(project.definitionIds);
+        return id
+          ? renameDefinition({
+              id: id as EntryId<"definition">,
+              name: random() < 0.2 ? "" : `C${++next}`,
+            })
+          : undefined;
+      },
+      pasteOrigin: () => {
+        const project = graph.getEntry(PROJECT) as ProjectEntry;
+        const definition = graph.getEntry(
+          pickOne(project.definitionIds) ?? "",
+        ) as DefinitionEntry | undefined;
+        const parent = pickOne(parents());
+        return definition?.templateRootId && parent
+          ? (reader) =>
+              pasteNodes({
+                clipboard: copyNodes(reader, [definition.templateRootId!]),
+                parent,
+                newId,
+              })(reader)
+          : undefined;
       },
       // ADR-261 Phase 2: swap a component instance (library or project) to another component.
       swap: () => {

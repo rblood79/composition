@@ -1,6 +1,6 @@
 /**
- * ADR-260 — the component origin stays in place (a definition references its template root).
- * Phase 1: the document model (Decision 1 · 11 · 12).
+ * ADR-260 Decision 11 · 12 (kept by ADR-279 — the definition owns its template): the document
+ * model.
  */
 import { describe, expect, it } from "vitest";
 import { createG1Fixture } from "../fixture";
@@ -185,144 +185,68 @@ describe("ADR-260 Decision 12 — the definition cycle walk follows every owned 
   );
 });
 
-describe("ADR-260 Decision 1 — a definition references its origin in place", () => {
+describe("ADR-279 Decision 1 — a definition owns its origin (the Local page's template)", () => {
   const origin = node(ROOT, "lib:definition:card");
   const instance = node("project:node:inst", DEF);
 
-  it("loads the origin as a page child the definition references (no double ownership)", () => {
+  it("loads the origin under the definition (owner edge), an instance on the page", () => {
     const { document, library } = documentWith(
-      [definition({ originRef: true }), origin, instance],
-      [ROOT, instance.id],
+      [definition(), origin, instance],
+      [instance.id],
     );
     const graph = new CatalogGraph(document, library);
-    expect(graph.ownerOf(ROOT)).toBe(PAGE);
+    expect(graph.ownerOf(ROOT)).toBe(DEF);
     expect(graph.definitionOfTemplateRoot(ROOT)).toBe(DEF);
-    expect(graph.indexes.ownerToChildren.get(DEF)).toBeUndefined();
+    expect(graph.indexes.ownerToChildren.get(DEF)).toEqual(new Set([ROOT]));
   });
 
-  it("refuses the old shape with the root also on the page (DUPLICATE_OWNERSHIP)", () => {
+  it("refuses the ADR-260 field `originRef` (an origin on a page — contract 45)", () => {
+    const { document, library } = documentWith(
+      [{ ...definition(), originRef: true } as never, origin, instance],
+      [ROOT, instance.id],
+    );
+    expect(code(() => new CatalogGraph(document, library))).toBe(
+      "UNKNOWN_FIELD",
+    );
+  });
+
+  it("refuses the root also on the page (DUPLICATE_OWNERSHIP) and two definitions on one root", () => {
     const { document, library } = documentWith([definition(), origin], [ROOT]);
     expect(code(() => new CatalogGraph(document, library))).toBe(
       "DUPLICATE_OWNERSHIP",
     );
-  });
-
-  it("refuses a referenced origin nobody owns (UNOWNED_NODE) and a missing one (DANGLING_TEMPLATE)", () => {
-    const unowned = documentWith([definition({ originRef: true }), origin], []);
-    expect(
-      code(() => new CatalogGraph(unowned.document, unowned.library)),
-    ).toBe("UNOWNED_NODE");
-    const missing = documentWith([definition({ originRef: true })], []);
-    expect(
-      code(() => new CatalogGraph(missing.document, missing.library)),
-    ).toBe("DANGLING_TEMPLATE");
-  });
-
-  it("refuses two definitions on one root and originRef on a layout", () => {
-    const { document, library } = documentWith(
-      [
-        definition({ originRef: true }),
-        definition({ id: "project:definition:other", originRef: true }),
-        origin,
-      ],
-      [ROOT],
+    const two = documentWith(
+      [definition(), definition({ id: "project:definition:other" }), origin],
+      [],
     );
-    const project = document.entries[PROJECT] as Extract<
+    const project = two.document.entries[PROJECT] as Extract<
       CatalogEntry,
       { kind: "project" }
     >;
-    const twoDefinitions = {
-      ...document,
-      entries: {
-        ...document.entries,
-        [PROJECT]: {
-          ...project,
-          definitionIds: [DEF, "project:definition:other" as const],
-        },
-      },
-    };
-    expect(code(() => new CatalogGraph(twoDefinitions, library))).toBe(
-      "DUPLICATE_TEMPLATE_ROOT",
-    );
-    const layout = documentWith(
-      [definition({ originRef: true, usage: "layout" }), origin],
-      [ROOT],
-    );
-    expect(code(() => new CatalogGraph(layout.document, layout.library))).toBe(
-      "ORIGIN_REF_NOT_COMPONENT",
-    );
-  });
-
-  it("refuses deleting the origin while the definition still references it, revision unchanged", () => {
-    const { document, library } = documentWith(
-      [definition({ originRef: true }), origin],
-      [ROOT],
-    );
-    const graph = new CatalogGraph(document, library);
-    const page = graph.getEntry(PAGE) as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    const revision = graph.revision;
     expect(
-      code(() =>
-        applyCatalogTransaction(graph, {
-          projectId: graph.projectId,
-          expectedRevision: graph.revision,
-          ops: [
+      code(
+        () =>
+          new CatalogGraph(
             {
-              kind: "put",
-              entry: {
-                ...page,
-                children: page.children.filter((id) => id !== ROOT),
+              ...two.document,
+              entries: {
+                ...two.document.entries,
+                [PROJECT]: {
+                  ...project,
+                  definitionIds: [DEF, "project:definition:other" as const],
+                },
               },
             },
-            { kind: "remove", id: ROOT },
-          ],
-          history: { kind: "record", label: "delete origin" },
-        }),
+            two.library,
+          ),
       ),
-    ).toBe("DANGLING_TEMPLATE");
-    expect(graph.revision).toBe(revision);
-  });
-
-  it("hands the subtree to the definition (originRef false) in one step and back", () => {
-    const { document, library } = documentWith(
-      [definition({ originRef: true }), origin, instance],
-      [ROOT, instance.id],
-    );
-    const graph = new CatalogGraph(document, library);
-    const page = graph.getEntry(PAGE) as Extract<
-      CatalogEntry,
-      { kind: "page" }
-    >;
-    applyCatalogTransaction(graph, {
-      projectId: graph.projectId,
-      expectedRevision: graph.revision,
-      ops: [
-        {
-          kind: "put",
-          entry: {
-            ...page,
-            children: page.children.filter((id) => id !== ROOT),
-          },
-        },
-        { kind: "put", entry: definition({ originRef: false }) },
-      ],
-      history: { kind: "record", label: "hide origin" },
-    });
-    expect(graph.ownerOf(ROOT)).toBe(DEF);
-    expect(graph.definitionOfTemplateRoot(ROOT)).toBe(DEF);
-    // The whole-graph check agrees with the incremental one.
-    expect(code(() => new CatalogGraph(graph.exportDocument(), library))).toBe(
-      "ACCEPTED",
-    );
+    ).not.toBe("ACCEPTED");
   });
 
   it("reaches the definition's instances when the origin changes (affected ids)", () => {
     const { document, library } = documentWith(
-      [definition({ originRef: true }), origin, instance],
-      [ROOT, instance.id],
+      [definition(), origin, instance],
+      [instance.id],
     );
     const graph = new CatalogGraph(document, library);
     expect(graph.collectAffectedIds([ROOT]).has(instance.id)).toBe(true);
@@ -332,7 +256,7 @@ describe("ADR-260 Decision 1 — a definition references its origin in place", (
     const self = node("project:node:self", DEF);
     const { document, library } = documentWith(
       [
-        definition({ originRef: true }),
+        definition(),
         node(ROOT, "lib:definition:card", {
           descendantOverrides: [
             { kind: "fillSlot", address: cardSlot(ROOT), childIds: [self.id] },
@@ -340,14 +264,14 @@ describe("ADR-260 Decision 1 — a definition references its origin in place", (
         }),
         self,
       ],
-      [ROOT],
+      [],
     );
     expect(code(() => new CatalogGraph(document, library))).toBe(
       "DEFINITION_CYCLE",
     );
   });
 
-  it("keeps an old-shape document byte-identical through load and export", () => {
+  it("keeps a document byte-identical through load and export", () => {
     const { document, library } = documentWith(
       [definition(), origin, instance],
       [instance.id],
@@ -369,8 +293,8 @@ describe("ADR-260 — a deep self instance moved into the origin is a cycle", ()
     const inner = node("project:node:inner", "lib:definition:box");
     const origin = node(ROOT, "lib:definition:box", { children: [inner.id] });
     const { document, library } = documentWith(
-      [definition({ originRef: true }), origin, inner, frame, self],
-      [ROOT, frame.id],
+      [definition(), origin, inner, frame, self],
+      [frame.id],
     );
     const graph = new CatalogGraph(document, library);
     const page = graph.getEntry(PAGE) as Extract<
@@ -437,8 +361,7 @@ describe("ADR-260 Decision 11 — a template node's own overrides reach its inst
     templatePath: ["lib:template:cardRoot", "lib:template:cardSlot"],
   });
   const shapes = [
-    ["referenced origin", { originRef: true }, [ROOT]],
-    ["owned template (old shape)", {}, []],
+    ["owned template", {}, []],
   ] as const;
 
   it.each(shapes)(
@@ -524,8 +447,7 @@ describe("ADR-260 Decision 11 — a template node's own overrides reach its inst
 
 describe("ADR-260 Decision 11 — Layers positions follow the same rule", () => {
   it.each([
-    ["referenced origin", { originRef: true }, [ROOT]],
-    ["owned template (old shape)", {}, []],
+    ["owned template", {}, []],
   ] as const)(
     "lists the origin's slot contents inside the instance as its template positions (%s)",
     (_, shape, onPage) => {
@@ -583,8 +505,8 @@ describe("ADR-260 Decision 11 — the panel reads the origin's value under the i
     });
     const instance = node("project:node:inst", DEF);
     const { document, library } = documentWith(
-      [definition({ originRef: true }), origin, instance],
-      [ROOT, instance.id],
+      [definition(), origin, instance],
+      [instance.id],
     );
     const graph = new CatalogGraph(document, library);
     const target = {
@@ -656,8 +578,7 @@ describe("ADR-260 follow-up — an instance's props reach a library composite at
         ? resolved.props.children
         : undefined;
   it.each([
-    ["referenced origin", { originRef: true }, [ROOT]],
-    ["owned template (old shape)", {}, []],
+    ["owned template", {}, []],
   ] as const)("shows the instance's own value (%s)", (_, shape, onPage) => {
     // (The origin does not write the key itself — as a placed RadioGroup leaves Orientation.)
     const origin = node(ROOT, "lib:definition:labeled");

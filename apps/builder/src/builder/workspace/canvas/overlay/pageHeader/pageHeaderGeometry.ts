@@ -39,6 +39,8 @@ export type PageHeaderFrame = Pick<
 > & {
   /** 문서 페이지의 frame (Components 원본 · 정의 frame 이 아님) — `activePageHeaderFrames`. */
   isPage?: boolean;
+  /** ADR-279: Local page 의 컴포넌트 카드 — 헤더의 × 가 컴포넌트를 지운다. */
+  closable?: boolean;
 };
 
 /**

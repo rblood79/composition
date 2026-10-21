@@ -290,16 +290,16 @@ describe("ADR-248 Phase 4e-3b Canvas context menu", () => {
       labelKey: "componentAction.createComponent",
     });
     run(before, "toggle-component-origin");
-    // ADR-260: the node stays as the origin — its menu now detaches the component (⌘⌥K toggle).
-    workspace.selectRecords([record("list")]);
-    expect(
-      catalogCanvasMenuItems(withOrigin, "canvas-element", record("list")).find(
-        (item) => item.id === "toggle-component-origin",
-      ),
-    ).toMatchObject({ labelKey: "componentAction.detachComponent" });
-    // A copy of the origin is an instance (pen.dev).
+    // ADR-279: the definition owns the list (the Local page draws it); the instance in its place
+    // is selected — a copy of it is another instance.
+    const inPlace = workspace.session.getSnapshot().selection[0]!.target;
+    expect(inPlace.kind).toBe("node");
+    expect(inPlace).not.toEqual({ kind: "node", id: id("list") });
     const { plan } = workspace.execute(
-      duplicateNodes({ ids: [id("list")], newId: workspace.newId }),
+      duplicateNodes({
+        ids: [(inPlace as { id: NodeId }).id],
+        newId: workspace.newId,
+      }),
     );
     const instanceId = plan.selectAfter![0];
     const instance = workspace.runtime.graph.getEntry(instanceId);

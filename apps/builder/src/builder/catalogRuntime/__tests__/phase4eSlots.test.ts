@@ -71,12 +71,9 @@ describe("ADR-248 Phase 4e-4 slot section", () => {
     const { workspace, graph } = await open();
     // A plain page node has no slot to declare.
     expect(catalogSlotDeclaration(graph, id("content"))).toBe(undefined);
-    workspace.execute(
-      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
-    );
-    // ADR-260: "card" stays as the origin; its copy is an instance.
+    // ADR-279: the definition owns "card"; the instance in its place.
     const instance = workspace.execute(
-      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     ).plan.selectAfter![0];
     expect(catalogSlotDeclaration(graph, id("content"))).toEqual({});
 

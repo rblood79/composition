@@ -94,18 +94,10 @@ async function open() {
       newId: workspace.newId,
     }),
   );
-  workspace.execute(
-    catalogComponentCommands.create(id("title"), "Title", workspace.newId),
-  );
-  // ADR-260: the node stays as the origin; its copy is an instance, and deleting the origin hides
-  // it in its definition (a hidden template — the definition edit view's case, as an older
-  // document's owned template).
+  // ADR-279: the definition owns the title (the Local page draws it); the instance in its place.
   const instance = workspace.execute(
-    duplicateNodes({ ids: [id("title")], newId: workspace.newId }),
+    catalogComponentCommands.create(id("title"), "Title", workspace.newId),
   ).plan.selectAfter![0] as NodeId;
-  workspace.execute(
-    removeTargets({ targets: [{ kind: "node", id: id("title") }] }),
-  );
   const definitionId = catalogComponentState(workspace.runtime.graph, instance)
     .instanceOf!.definitionId as EntryId<"definition">;
   const text = () => {

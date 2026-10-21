@@ -11,12 +11,12 @@ import type {
   PageEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  createComponent,
   createPage,
   createTheme,
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { componentizeInPlace } from "../../../builder/catalogRuntime/__tests__/support/legacyComponent";
 import type { CatalogPreviewViewMessage } from "../../../../../../packages/shared/src/catalog/preview/protocol";
 import { CatalogPreviewChannel } from "../../../builder/catalogRuntime/previewChannel";
 import { NullLayoutEngine } from "../../../builder/catalogRuntime/nullLayoutEngine";
@@ -915,7 +915,7 @@ describe("ADR-248 4e-6 Preview entry", () => {
     act(() => {
       // (The pre-ADR-260 shape: the origin hidden in its definition, an instance in its place.)
       workspace.execute(
-        componentizeInPlace({
+        createComponent({
           id: "project:node:a" as NodeId,
           name: "Counter",
           newId: workspace.newId,

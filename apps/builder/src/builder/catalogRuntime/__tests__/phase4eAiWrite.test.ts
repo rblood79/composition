@@ -528,7 +528,8 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
         )
       ).error,
     ).toContain("REUSABLE_FALSE_NOT_SUPPORTED");
-    // Reusable: a component of the Frame — the Frame stays the element, as its origin (ADR-260).
+    // Reusable: a component of the Frame — the definition owns the Frame and the element the AI
+    // goes on with is the instance that took its place (ADR-279).
     const inner = await createElementTool.execute(
       { type: "Text", parentId: frameId, props: { children: "In" } },
       t,
@@ -543,14 +544,21 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     );
     expect(made.success, made.error).toBe(true);
     expect(steps()).toBe(beforeComponent + 1);
-    expect((made.data as { elementId: string }).elementId).toBe(frameId);
+    const madeId = (made.data as { elementId: string }).elementId;
+    expect(madeId).not.toBe(frameId);
     const definitionId =
       workspace.runtime.graph.definitionOfTemplateRoot(frameNode);
     const definition = definitionId
       ? workspace.runtime.graph.getEntry(definitionId)
       : undefined;
-    expect(definition).toMatchObject({ originRef: true });
-    expect(children("list")).toContain(frameNode);
+    expect(definition).toMatchObject({ templateRootId: frameNode });
+    expect(workspace.runtime.graph.ownerOf(frameNode)).toBe(definitionId);
+    const instanceNode = node(madeId)!.id;
+    expect(workspace.runtime.graph.getEntry(instanceNode)).toMatchObject({
+      definitionId,
+    });
+    expect(children("list")).toContain(instanceNode);
+    expect(children("list")).not.toContain(frameNode);
     // Inside the template a node declares a slot (the old id list has no place in it); the
     // template is not drawn as its own element here, so the host's commands are run directly.
     const slot = catalogCanonicalCommands(

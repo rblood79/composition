@@ -172,3 +172,22 @@ export function mapShowWhenAddresses(
     ...(showWhen.from ? { from: ref(showWhen.from) } : {}),
   };
 }
+
+/**
+ * The `showWhen` with every stored owner reference passed through `map`; `undefined` drops that
+ * reference (the condition falls back to the nearest ancestor that gives the key).
+ */
+export function mapShowWhenOwnerRefs(
+  showWhen: CatalogShowWhen,
+  map: (from: CatalogStateOwnerRef) => CatalogStateOwnerRef | undefined,
+): CatalogShowWhen {
+  const all = showWhen.all.map((item) => {
+    if (typeof item === "string" || !("from" in item) || !item.from)
+      return item;
+    const from = map(item.from);
+    if (from) return { ...item, from };
+    return "key" in item ? item.key : { not: item.not };
+  }) as CatalogShowWhen["all"];
+  const from = showWhen.from ? map(showWhen.from) : undefined;
+  return { all, ...(from ? { from } : {}) };
+}

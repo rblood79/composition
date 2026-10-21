@@ -378,12 +378,9 @@ describe("ADR-256 Decision 5 — required parts", () => {
       workspace.execute(detachInstances({ ids: [id], newId: workspace.newId }));
       const [wrapper] = owned("Group");
       expect(wrapper).toBeTruthy();
-      workspace.execute(
-        createComponent({ id, name: "My combo", newId: workspace.newId }),
-      );
-      // ADR-260: the combo stays as the origin; its copy is an instance.
+      // ADR-279: the definition owns the combo; the instance in its place.
       const instance = workspace.execute(
-        duplicateNodes({ ids: [id], newId: workspace.newId }),
+        createComponent({ id, name: "My combo", newId: workspace.newId }),
       ).plan.selectAfter![0]!;
       expect(
         (graph.getEntry(instance) as NodeEntry).definitionId.startsWith(

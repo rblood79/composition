@@ -1,0 +1,177 @@
+# ADR-279: Create component — 원본은 Local page 로, 그 자리에는 instance (Framer Assets 모델) · 생성 때 이름 · 카드 rename · 카드 삭제
+
+## Status
+
+Accepted — 2026-10-21 (Proposed 같은 날)
+
+> **Phase 2 · 3 종결 (2026-10-21, G2 · G3) — G4 통과 · G5 사용자 확인 대기.** Phase 2: 이름 대화상자 (bus + host, 입구 3 — host 없으면 기본 이름 동기) · Local 카드 헤더 (Canvas 페이지 헤더 층의 frame — 제목 더블클릭 rename · × = Delete component 확인) · Component 절 ORIGIN 이름 칸 + 「Delete component」 · ◆ ⌘D = `duplicateDefinition` · Go to component = 항상 Local page · 「In …」 삭제 · Create step 은 첫 편집 확인을 묻지 않음. Phase 3: [Live Exercise](#live-exercise) 7/7 (새 프로젝트 「ADR279」). 상세: [breakdown §Phase 2 · 3 결과](design/279-component-origin-on-local-page-breakdown.md).
+
+> **Phase 0 · 1 종결 (2026-10-21, G0 · G1)** — Phase 0: ADR-260 기계 inventory (8 · 17 · 12 파일, 추정과 같음) · Local ◆ 셀 편집 probe 6/6 통과 (막는 guard 없음 → R1 LOW) · 저장 주소 holder 4 + property target 1 발견 · fixture 테스트 12 RED. Phase 1: 소유 모양 하나 (`originRef` 삭제 · contract 46) · `createComponent` = 소유 template + 그 자리 instance + 층별 위치 이전 + 중첩 주소 재작성 (소비자 5 + `local` ref + property target prune) · `dissolveComponent` = 전부 detach + template 삭제 · `duplicateDefinition` · `restoreOrigin` · `keepRemovedOrigins` · clipboard `origins` 삭제. 새 테스트 14 (shared 11 · builder 2 · static 1) GREEN, 원복 RED 5/5 (`TEMPLATE_STEP_NOT_OWNED`). type-check 6/6 · shared 1691 · builder 6148 통과 (기존 실패 12 + 2 만). 상세: [breakdown §Phase 0 · 1 결과](design/279-component-origin-on-local-page-breakdown.md). `definitionOfTemplateRoot` 는 소유 역색인으로 유지 (G1 grep 0 목록에서 제외).
+
+- 사용자 요청: `/create-adr` (2026-10-21) — 같은 날 「컴포넌트 생성 시 이름 설정이 없다, 생성은 가능하지만 이름 변경도 없다. 다른 빌더들은 생성 시 이름을 정하는지, 생성 후 변경하는지 확인해」 조사 (Figma · Pencil · Framer · Webflow · Plasmic) 에서 출발.
+- 방향을 정한 사용자 원문 (2026-10-21):
+  - 「composition 은 ADR-260 으로 『Create component → 노드가 ORIGIN 으로 page 에 남기』 ← 잘못된 선택이다. 현재 기본제공 컴퍼넌트들이 Components - Library 에 origin 들이 남는 구조인데 그렇다면 Create component → 노드가 ORIGIN 으로 Local page 로 들어가고 page 에는 instance 가 남는 게 맞지 않나」
+  - 「추가되어야 하는 항목이 Local page - body 에 생성된 origin 컴퍼넌트 삭제 버튼 추가」
+- 사용자가 이미 답한 확인 항목 (AskUserQuestion, 2026-10-21 — 결정 지점 ④, [ADR-260](completed/260-component-origin-in-place.md) Decision 2 의 번복 confirm): **「Framer 식으로 전환」** (원본은 Local page ◆ 에만, page 는 INSTANCE, 생성 때 이름 입력 + 카드 rename) · **「정의 삭제 = page 의 instance 전부 detach 해 보통 노드로」** (Framer Unlink). 참조 모델은 pen.dev · Figma · Framer 셋이고 기준은 사용자 편의 (2026-10-21, 메모리 `project-origin-instance-slot-reference-pen-figma`) · 마이그레이션 코드 금지 (2026-10-14) · 기본 원본은 루트만 편집 (2026-10-05).
+- Accepted 근거 (2026-10-21): 사용자 `/execute-adr 279` 호출 + [reviews/279](reviews/279.md) Round 2 (codex, 수리 검증) pending 0 · HIGH 전부 `fixed` — 라운드 상한 안에서 닫힘. Phase 0 (G0) 결과는 [breakdown §Phase 0 결과](design/279-component-origin-on-local-page-breakdown.md): ◆ 셀 편집을 막는 guard 가 없어 R1 은 LOW, 저장 주소 holder 는 넷 (`descendantOverrides` 3 종 · interaction · `showWhen` address · `local`) + 추가 발견 1 (바깥 정의의 property target).
+- 리뷰 Round 1 (codex, 2026-10-21 — [reviews/279](reviews/279.md)) HIGH 2 → 같은 날 설계 수리: h1 중첩 추출이 바깥 instance 의 override 주소 (`instances` · `templatePath`) 를 끊는다 → 소유권 이전과 **같은 transaction 의 주소 재작성** 계약 (Decision 8 · R8 · G1) · h2 base 위치만 instance 로 옮기면 Mobile 위치가 base 에 덮인다 → **층별 (base · `responsive[bp].layout`) 위치 키 분리 이전** (Decision 2 · R3 · G1). ADR-261 · 262 「무변경」 은 그대로이되 주소 재작성이 그 둘의 주소 소비자를 포함한다 (breakdown §1a · §1e).
+- 선행 ADR 과의 관계 (fork 4 질문 — [breakdown §0](design/279-component-origin-on-local-page-breakdown.md)): 이 ADR 은 분리가 아니라 **[ADR-260](completed/260-component-origin-in-place.md) Decision 2 · 3 · 5 · 6 · 8 · 9 의 개정**이다 — 260 이 대안 D 로 적고 「그 자리」 요구 때문에 기각한 모델을, 그 요구가 철회되어 채택한다. 260 의 Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard 정의 snapshot) 은 소유 template 에도 쓰이므로 그대로다. [ADR-261](completed/261-component-api-swap-slot-suggestions-properties.md) · [262](completed/262-instance-override-push-and-reset-all.md) (교체 · slot 추천 · 속성 · 원본에 반영 · Reset all) 은 instance ↔ 정의 관계만 보므로 무변경. [ADR-278](278-overlay-body-slot-local-component.md) 의 「Local 컴포넌트 ORIGIN 이 page 에 남는다」 서술은 이 ADR 이 다시 쓴다 (Decision 9).
+
+## Context
+
+### 도메인
+
+- **문서 모델 (정의 → template 소유) + 명령 (`createComponent` · `dissolveComponent` · `renameDefinition`) + Builder (Local page · Design 패널 Component 절 · Layers · Canvas 메뉴 · Navigator Components 목록)**. D1 · D2 · D3 무변경 — DOM · prop · 시각 값은 바뀌지 않고, **원본 노드가 어느 소유자 아래 서는가** 와 그 편집 · 이름 · 삭제의 UI 만 바뀐다. 문서 schema 는 `DefinitionEntry.originRef` 필드 하나를 **뺀다** (ADR-260 이 넣은 것).
+- 참조 모델 (2026-10-21 조사 — 출처는 breakdown §1 표):
+  - **Framer**: Create Component (⌥⌘K) → 이름을 바로 정하고 (「Name the Component, then edit it on its dedicated Component canvas」) 원본은 **전용 Component canvas** 로 가며 Assets 패널에 오른다. page 에 남는 것은 instance. rename · duplicate · delete 는 Assets 패널 메뉴. 이름의 `/` 가 폴더.
+  - **Webflow**: 「Create component」 모달 — Name (필수) · Group · Description. 메인 컴포넌트는 컴포넌트 편집 모드에서만 편집, page 는 instance. **Plasmic**: 우클릭 Create component (Ctrl+Alt+K) 때 이름, 컴포넌트는 자기 artboard, `/` 폴더.
+  - **Figma · Pencil**: 레이어 이름을 그대로 쓰고 main component 는 page 그 자리에 남는다 (ADR-260 이 따른 쪽). 둘 다 생성 뒤 제자리 rename.
+  - 공통: **생성 뒤 이름 변경은 다섯 도구 전부 있다.** composition 만 둘 다 없다.
+
+### 현재 (실측 2026-10-21, main `b9c458d9d`)
+
+1. **생성 — 이름을 묻지 않는다**: `apps/builder/src/builder/catalogRuntime/canvasMenu.ts:671-676` 가 `node.name || definitionTypeName(…) || "Component"` 로 이름을 정해 `catalogComponentCommands.create` 를 부른다. 이름 없는 frame 을 고르면 「frame」, Popover 를 고르면 「Popover」 가 된다. 명령 자체는 `name` 을 받고 빈 이름을 `NAME_REQUIRED` 로 거부한다 (`packages/shared/src/catalog/commands/components.ts:118-163`).
+2. **이름 변경 — 명령은 있고 입구가 없다**: `renameDefinition` (`commands/project.ts:546-564`) · history 라벨 `renameComponent` (`panels/history/catalogHistoryLabels.ts`) 가 있지만, 연결된 UI 는 정의 편집 view 의 캔버스 헤더 (`workspace/canvas/catalog/CatalogCanvas.tsx:1714-1741` `PageHeaderLayer.onRenamePage`) 뿐이다. 그 view 는 ADR-260 뒤 layout · 숨은 template 전용이라 (`workspace.ts:260-271` `afterStep` 이 참조 원본이면 view 를 닫는다) 사용자 컴포넌트에서는 닿지 않는다. Local page 카드 · Layers · Design 패널 Component 절 · Navigator Components 목록 어디에도 rename 이 없다. Layers 의 노드 이름 변경도 없다 (`renameNode` 명령 UI 미사용, `CatalogLayerItem.tsx:90` 은 라벨만).
+3. **원본의 집이 둘이다**: library 원본은 Library page 카드의 ◆ 에 산다 (`catalogRuntime/componentsPage.ts` · `originView.ts` — 루트 prop · visual 만 `setLibraryDefault` 로 편집). 사용자 원본은 ADR-260 으로 page 의 노드다 (`originRef: true`, `commands/components.ts:140-150`) — Local page 카드의 ◆ 셀은 그 노드를 **가리키고** (`componentsPage.ts:1190-1212`: `originCell` 의 자식 = `component.rootId`, 다른 원본 안에 있으면 「In …」 글자만), 원본을 지우면 정의가 서브트리를 넘겨받아 `originRef: false` 「숨은 template」 이 되고 그때부터 Local page 가 그것을 그린다 (`catalogProjectComponents` `:1246-1270` — 「the page is where a deleted origin is found」). 즉 **「원본이 Local page 에만 있는 상태」 는 이미 있다 — 삭제의 결과로만 생길 뿐이다.**
+4. **Go to component** (`workspace.ts:316-356` `showDefinition`): 원본의 소유 사슬 top 이 page 면 그 page 로, 아니면 `PROJECT_COMPONENTS_VIEW` (Local page) 를 열고 루트를 선택 · 카드를 드러낸다 (`15b847d5b`). Local page 분기는 이 ADR 이 그대로 쓴다.
+5. **삭제 · 해체**: `dissolveComponent` (`components.ts:165-199`) 는 instance 전부 `detachInto` + 정의 삭제, template 서브트리는 `originRef !== true` 일 때만 같이 지운다. 입구는 Design 패널 Component 절의 ORIGIN 「Detach component」 (`panels/properties/catalog/CatalogComponentSection.tsx:324-345`, `confirmCatalogDissolve` 로 instance 수 확인) · Canvas 메뉴 (`canvasMenu.ts:650-668`) · ⌘⌥K. Local page 카드에는 삭제가 없다. `restoreOrigin` (`components.ts:201-250`) · `keepRemovedOrigins` (`commands/structure.ts:1022-1047`) · Component 절 「Restore origin」 (`CatalogComponentSection.tsx:509-512`, `componentActions.ts:82` `restorable`) 은 ADR-260 Decision 6 의 기계다.
+6. **ADR-260 기계의 범위** (삭제 후보 inventory, breakdown §1): `originRef` 를 읽는 비테스트 파일 8 (`componentActions.ts:82` · `slots.ts:54` · `workspace.ts:268` · `commands/structure.ts:1008-1047` · `document/graph.ts:94,1104` · `document/types.ts:665` · `document/validation.ts:1145-1178` · `commands/components.ts`), 역색인 `definitionOfTemplateRoot` 소비 17 파일, `restoreOrigin` · `keepRemovedOrigins` · clone `asInstance` (`document/clone.ts:17-53`) 소비 12 파일, 테스트 `adr260OriginInPlace` · `adr260` · `adr260ClipboardText` · `components.test`.
+7. **Local page ◆ 셀의 편집 경로**: `originView.ts:117-170` `catalogOriginEditCommand` 는 Components page **샘플** (library 원본의 view 사본) 에 닿는 op 만 `setLibraryDefault` 로 바꾸고 나머지는 그대로 보낸다. 사용자 원본의 ◆ 셀 자식은 view 사본이 아니라 실제 template 루트 노드라 (`componentsPage.ts:1202-1206`) 편집은 그 노드에 직접 쓰인다 — Phase 0 이 RED 로 확정한다 (R1).
+
+### 제약
+
+- **Hard**: 소유 불변식 — 한 노드의 소유자는 하나 (`DUPLICATE_OWNERSHIP`, `graph.ts:544-560`). 정의가 template 을 소유하면 그 노드는 page 의 자식일 수 없다 — 이 ADR 은 그 불변식 **안**으로 돌아간다 (ADR-248 4b 판정 ② 의 모양). 무작위 명령 하니스 500 단계 (ADR-260 G1 형식) 통과. 번들 상한 (ADR-201 §재승인) · pre-push ratchet (ADR-246) 안.
+- **Hard**: 마이그레이션 코드 금지 (2026-10-14) — `originRef: true` 문서를 소유 모양으로 바꾸는 로드 변환을 넣지 않는다. 구조 변경 계약대로 **`LIBRARY_CONTRACT_VERSION` 46** 으로 옛 문서를 거부한다 (ADR-276 · 277 · 278 과 같은 정책). 개발 단계 · 로컬 프로젝트뿐이라 영향 = 사용자 본인의 저장 프로젝트 (ADR-278 의 「ADR278」 테스트 프로젝트 포함) 를 다시 만든다.
+- **Soft**: 사용자 흐름 = Framer Assets 와 같은 결과 — Create component 뒤 **이름을 정하고**, page 에는 INSTANCE 칩, Local page 카드에 ◆ 가 서며 거기서 편집 · rename · 삭제. Library page 와 Local page 가 같은 카드 구조로 「기본 원본 / 사용자 원본」 을 나란히 둔다.
+- 기본 원본 (library) 은 그대로 루트만 편집 — 이 ADR 은 사용자 원본의 편집 범위만 정한다.
+
+### 생성기 질문 (반복 패턴 #2)
+
+해당 없음 — spec · generator 확장이 아니다. 문서 schema 는 필드 하나 제거 (검증기 · 직렬화 직접 편집).
+
+## Alternatives Considered
+
+### 대안 A: ADR-260 유지 + 이름 UI 만 (Figma · Pencil 식 — 생성 때 레이어 이름 승계, Layers · 캔버스 제자리 rename)
+
+- 설명: 원본은 page 에 남긴 채, 생성 직후 Layers 줄 (또는 Design 패널 Component 절) 의 이름을 편집 상태로 열고 이후 더블클릭 rename. Local page 카드는 지금처럼 가리키기만.
+- 근거: Figma · Pencil 이 이 모양이고 ADR-260 이 사용자 결정 (10-14) 으로 채택한 모델이라 변경 범위가 가장 작다 (UI 2 ~ 3 곳).
+- 위험: 기술 LOW / 성능 LOW / 유지보수 **MEDIUM** (원본의 집이 둘 — library 는 Library page, 사용자는 page 위; 정의의 세 모양 (`originRef` 없음 · true · false) 이 영구히 공존, ADR-260 R3) / 마이그레이션 LOW.
+- 기각: 사용자가 ADR-260 의 모델 자체를 「잘못된 선택」 으로 판정했다 (2026-10-21). Library ↔ Local 의 비대칭이 남는다.
+
+### 대안 B: Framer 모델 — 정의가 template 을 소유, 그 자리는 instance, Local page = 원본의 유일한 편집 자리, 생성 때 이름 · 카드 rename · 카드 삭제
+
+- 설명: `createComponent` 가 ADR-248 의 소유 모양으로 돌아간다 — 정의 (`originRef` 없음) 가 노드 서브트리를 소유하고, 그 자리 (부모 child list 의 같은 index · `placement` 승계) 에 새 instance 를 둔다 (지금 `createLayout` 이 page body 에 하는 것과 같은 경로, `commands/project.ts:316-375`). Local page 카드의 ◆ 셀이 그 template 루트를 그리고 (지금 숨은 template 을 그리는 경로 `componentsPage.ts:1190-1212` 그대로) 거기서 전 범위 편집 (자식 · sizing · layout · breakpoint · fill — library 샘플의 「루트만」 제한 없음). 생성 때 이름 입력 (기본값 = 노드 이름 또는 타입 이름) · Local page 카드 제목 rename · 카드 삭제 버튼 = `dissolveComponent` (instance 전부 detach). ADR-260 의 참조 기계 (`originRef` · `definitionOfTemplateRoot` · `keepRemovedOrigins` · `restoreOrigin` · clone `asInstance` · clipboard `origins`) 를 뺀다. 「Go to component」 = Local page 카드 (`showDefinition` 의 Local page 분기). contract 46.
+- 근거: 사용자 결정 (2026-10-21). Framer · Webflow · Plasmic 과 같은 모양. 「숨은 template」 이 이미 Local page 에서 그려지므로 **원본이 Local page 에 사는 상태는 새 구조가 아니다** — 생성 직후의 기본 모양으로 삼을 뿐이다. 정의의 모양이 하나 (소유) 로 돌아와 ADR-260 R3 (두 모양 공존) 이 사라진다. Library page · Local page 가 같은 카드 · 같은 ◆ 규약.
+- 위험: 기술 **MEDIUM** (Local page ◆ 셀의 전 범위 편집이 지금 보장되지 않는다 — library 샘플 제한 코드 · Components page 의 구조 변경 거부 `canOperate` 가 사용자 원본에도 걸리는지, Phase 0 RED) / 성능 LOW (Local page 는 생성 · rename · 해체마다 다시 배치한다 — `workspace.ts` `projectComponentsKey`, 지금도 같다) / 유지보수 **MEDIUM → LOW** (ADR-260 기계 삭제로 파일 8 + 17 + 12 가 단순해진다; 삭제 자체가 한 번의 비용) / 마이그레이션 **MEDIUM** (contract 46 — 옛 프로젝트 거부, 변환 0 · 개발 단계 정책).
+
+### 대안 C: Framer 모델이되 원본은 자동 생성 「Components」 page 의 노드 (ADR-260 대안 D — 참조 edge 유지)
+
+- 설명: `originRef: true` 를 유지하고, Create component 가 원본을 전용 page (publish · 라우트 · Pages 목록에서 숨김) 로 옮긴다. Local page 가 그 page 를 그린다.
+- 위험: 기술 **HIGH** (실제 page 하나를 publish · 라우트 · breakpoint · layout template · Pages 패널 · 저장에서 예외 처리해야 한다; ADR-260 의 참조 기계도 그대로 든다) / 성능 LOW / 유지보수 **HIGH** (page 예외 + 정의 세 모양 공존) / 마이그레이션 MEDIUM.
+- 기각: B 가 같은 사용자 결과를 소유 모양 하나로 낸다. page 예외는 ADR-278 이 「page 를 slot 내용으로」 를 기각한 사유 (page = URL · 무거움) 와 같은 비용.
+
+### 대안 D: 두 모양 공존 + 「Move to Local」 명령 (새 생성은 B, 옛 참조 원본은 그대로)
+
+- 설명: B 의 생성 경로를 쓰되 `originRef: true` 읽기를 남겨 옛 문서의 page 원본을 계속 지원하고, 사용자가 명령으로 옮긴다.
+- 위험: 기술 MEDIUM / 성능 LOW / 유지보수 **HIGH** (정의 세 모양 · 역색인 · Restore · clipboard `origins` 전부 영구 유지 — ADR-260 R3 · R7 그대로 + 새 명령) / 마이그레이션 LOW.
+- 기각: 「마이그레이션 코드 금지 · 구조 변경은 contract 로 거부」 정책 (2026-10-14, ADR-276 ~ 278) 과 어긋난다. 유지보수 HIGH 를 지불하고 얻는 것이 개발 단계 프로젝트 몇 개의 보존뿐이다.
+
+### Risk Threshold Check
+
+| 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ |
+| ---- | :--: | :--: | :------: | :----------: | :---: |
+| A    | LOW  | LOW  |   MED    |     LOW      |   0   |
+| B    | MED  | LOW  |   MED    |     MED      |   0   |
+| C    | HIGH | LOW  |   HIGH   |     MED      |   2   |
+| D    | MED  | LOW  |   HIGH   |     LOW      |   1   |
+
+루프 판정: B 는 HIGH 0 — 루프 불필요. A 도 HIGH 0 이지만 사용자 결정으로 기각.
+
+## Decision
+
+**대안 B 채택** — 사용자 컴포넌트의 원본은 정의가 소유하는 template 이고, 그것이 사는 곳 · 편집하는 곳 · 이름을 바꾸고 지우는 곳은 **Local page 카드** 다. page 에는 instance 만 선다.
+
+1. **정의의 모양은 하나 (소유)** — `DefinitionEntry.originRef` 를 schema · 검증 (`validation.ts:1145-1178`) · 그래프 edge (`graph.ts:94,1104`) 에서 뺀다. 정의는 `templateRootId` 를 소유한다 (ADR-248 모양 · layout 과 같다). `definitionOfTemplateRoot` 역색인은 `ownerOf(root)` 가 정의인가로 대체하고 (소비 17 파일 — breakdown §1 표), `keepRemovedOrigins` · `restoreOrigin` · clone `asInstance` · clipboard `origins` · Component 절 「Restore origin」 · `restorable` 을 지운다. ADR-260 Decision 11 (template 노드 override 투영 `resolution/templateOwners.ts`) · 12 (`ownedChildren` 순환 걷기) · 13 의 `definitions` · `tokens` snapshot 은 그대로 (소유 template 에도 쓰인다). `LIBRARY_CONTRACT_VERSION` 46 — 45 문서 거부 · 변환 0.
+2. **`createComponent`** — 정의를 만들어 노드 서브트리를 소유하고 (`templateRootId = node.id`), 부모 child list 의 그 자리에 새 instance (`definitionId` = 새 정의, `placement` 승계 — `createLayout` 의 body 교체와 같은 모양), `selectAfter: [instance.id]`. **위치 키는 층마다 옮긴다 (리뷰 h2)**: `POSITION_LAYOUT_KEYS` (`position` · inset 4 · `justifySelf` · `alignSelf`, `document/absoluteLayout.ts:8-16`) 를 base `layout` 과 `responsive[bp].layout` (`types.ts:487`) 각각에서 분리해 새 instance 의 **같은 층** 으로 옮기고 template 의 그 층에서는 지운다 — 위치 외 layout · visual · sizing write 는 template 에 남는다. 한 층의 layout 이 위치 키뿐이었으면 그 층의 `layout` 을 비운다. resolver 가 template 의 base + responsive 층을 적용한 뒤 instance 자신의 층으로 덮는 순서 (`resolver.ts:1772-1778`) 라, base 층만 옮기면 다른 층의 위치가 base 값에 덮인다 (base 10px · Mobile 20px → 둘 다 10px) 고 Mobile 에만 있는 위치는 template 에 남아 다음 instance 에 샌다. `positionLayout` · `withoutPositionLayout` (`absoluteLayout.ts:40-52`) 은 층 하나를 받으니 층마다 부른다. 노드의 `fillSlot` · 자식 · override 는 그대로 소유 안으로 따라간다 (옮기는 것은 소유자뿐 — ADR-260 「현재 8」 의 `fillSlot` 유실은 소유권 이전이 아니라 옛 명령의 승계 누락이었다; G1 이 RED 로 잰다). 생성 직후 Design 패널 Component 절 = INSTANCE (Go to component · Detach instance) — Framer 와 같다.
+3. **이름** — (a) 생성: Canvas 메뉴 · ⌘⌥K · Layers 메뉴의 「Create component」 가 **이름 입력** 을 연다 — 기본값은 노드 이름, 없으면 타입 이름 (지금 `canvasMenu.ts:671` 규칙), Enter 확정 · Esc 취소 (명령 실행 0). 빈 이름은 `NAME_REQUIRED` 그대로. (b) 변경: Local page 카드 **제목 더블클릭** (page 헤더 rename 과 같은 인라인 편집 — `PageHeaderLayer` 의 편집기 재사용 또는 카드 제목 view 노드의 글자 편집), Design 패널 Component 절 ORIGIN 의 이름 칸, Navigator Components 목록 (`CatalogDefinitionsSection.tsx`) 더블클릭 — 셋 다 `renameDefinition`. history 라벨 「Rename component」 는 있다. 이름의 `/` 폴더 (Framer · Plasmic) 는 범위 밖.
+4. **Local page = 원본 편집 자리** — 카드의 ◆ 셀은 template 루트 노드 자체 (지금 숨은 template 경로). 편집 범위 = page 위 노드와 같다 (자식 추가 · 삭제 · sizing · layout · breakpoint 층 · fill · slot 채움 · 속성 정의) — library 샘플의 「루트만」 제한 (`catalogOriginEditCommand`) 은 사용자 원본에 적용되지 않는다. 루트 자체의 삭제 · 밖으로 이동 · 다른 카드로 drop 은 `canOperate` 가 막는다 (카드 밖은 view 노드). 편집은 지금처럼 instance 전부에 흐르고 (`ownedChildren` 경로 — ADR-260 R2 의 역색인 분기는 사라진다), 첫 편집 확인 대화상자 (`componentConfirm.ts` `watchCatalogComponentEdits`) 는 「정의 view 안」 대신 「Local page 카드 안」 을 본다.
+5. **Go to component** (INSTANCE 칩 · Navigator 목록 클릭 · Layers) — Local page 를 열고 루트를 선택 · 카드를 드러낸다 (`showDefinition` 의 `PROJECT_COMPONENTS_VIEW` 분기, `workspace.ts:336-347` — page 분기 삭제). 정의 편집 view (단일 정의 root) 는 **layout 전용** 으로 남는다 (`createLayout` · `applyLayout`).
+6. **카드 삭제 버튼** (사용자 요청) — Local page 카드 제목 줄의 삭제 버튼 = `dissolveComponent`: instance 전부 detach (보통 노드로, 보이던 그대로) + 정의 · template 삭제, undo 한 step. instance 가 있으면 `confirmCatalogDissolve` 의 대화상자 (N 개 영향). 같은 명령이 Component 절 ORIGIN · Navigator Components 목록의 삭제 아이콘 (layout 의 `navigator.deleteLayout` 과 같은 자리) · Canvas 메뉴 (Local page 에서 루트 선택) 에서도 나온다. Library page 카드에는 없다 (`operation.systemOriginLocked`). ADR-260 Decision 5 (「해체해도 원본은 page 에 남는다」) 는 폐기 — 원본은 page 에 없다.
+7. **복제 · 복사 · 붙여넣기** — Local page ◆ 루트의 ⌘D = **새 컴포넌트** (정의 + 서브트리 복제, 이름 「{name} copy」 — Figma · Framer 가 main component 복제로 새 컴포넌트를 만드는 것과 같다). ◆ 루트를 복사해 page 에 붙여넣기 = **그 정의의 instance** (Figma 가 같은 파일 안 main component 붙여넣기를 instance 로 만드는 것 · pen.dev 「copy the origin to create an instance」) — clipboard 의 `definitions` snapshot 경로 (ADR-260 Decision 13) 가 「원본 사본 → 정의가 있으면 instance」 를 이미 결정하므로 `origins` 필드 대신 **복사한 노드가 template 루트인가** (`ownerOf` 가 정의) 로 판정한다. 다른 프로젝트로는 보통 사본 (Decision 13 그대로). 사용자 결정 1.
+8. **중첩** — Local page 카드 안의 노드에 Create component 를 하면 새 정의가 그 서브트리를 소유하고 바깥 template 의 그 자리에는 instance 가 선다 (page 위와 같은 규칙 — Figma nested instance). **주소 재작성이 같은 transaction 에 든다 (리뷰 h1)**: 바깥 정의 A 의 template `R > … > C > … > X` 에서 C 를 정의 B 로 추출해 그 자리에 instance J 를 두면, C 를 **지나는** 모든 주소 (`instances: [I, …], templatePath: [R, …, C, …, X]`) 는 `instances: [I, …, J], templatePath: [C, …, X]` 로, C **자체** 를 가리키는 주소 (`templatePath: [R, …, C]`) 는 J 로 (`templatePath: [R, …, J]`) 바뀐다. 대상은 같은 주소 형식을 쓰는 소비자 전부 — `descendantOverrides` 의 `patch` · `fillSlot` · `replace` (바깥 page instance 의 것과 ADR-260 Decision 11 의 template 노드 자신의 것) · `InteractionEntry` 의 address · `CatalogStateOwnerRef.ancestor.address` (`types.ts:750-762` · `stateOwnerRefs.ts:73`). 재작성 없이 소유권만 옮기면 검증기 (`resolution/address.ts:73-88` · `graph.ts:805-863` referrer 재검증) 가 `TEMPLATE_STEP_NOT_OWNED` 로 transaction 을 거부하고, 주소를 버리면 사용자 override 가 사라진다. C 자체를 가리키는 **fillSlot** 은 slot 이 C 의 것이라 `instances: [I, …, J], templatePath: [C]` 로 간다 (instance 에 내용을 넣는 `catalogInsertParent` 의 모양 — J 자리의 fillSlot 은 검증기가 잎 위치로 거부한다). `showWhen` 의 `{ ancestor: { local } }` (template 안 노드가 자기 origin 의 위치를 가리키는 instance 없는 주소) 가 C 를 지나면 `templatePath` 를 C 부터, C 밖 (B 의 template 에서 표현 불가) 을 가리키면 그 조건의 `from` 을 뺀다. 주소가 아닌 참조 하나 (Phase 0 발견): 바깥 정의 A 의 property (ADR-261) 가 추출 서브트리 안 노드를 target 으로 두면 검증기 `PROPERTY_TARGET_OUTSIDE` 가 거부하므로 같은 transaction 에서 그 target 을 뺀다 (`removeTargets` 의 `pruneComponentPropertyTargets` 와 같은 처리 — 중첩 instance 의 property 노출은 ADR-261 범위 밖). 선례는 `moveNodes` 의 `dropAddressesLeftOrigin` (`commands/structure.ts:923`) — 그것은 버리는 쪽, 이것은 옮기는 쪽이고 자리는 같다. undo 는 transaction 의 inverse 로 한 step, 저장 · 재열기는 재작성된 주소가 문서 필드라 로드 검증을 그대로 통과한다. page 위의 추출 (바깥 template 없음) 은 지나는 주소가 없어 재작성 0 — 서브트리 안 instance K 의 주소 (`instances: [K, …]`) 는 K 의 id 가 불변이라 그대로다. template 안에 다른 정의의 **instance** 는 허용, 다른 정의의 **원본** 은 구조상 생기지 않는다 (원본 = 정의가 소유하는 루트뿐). 자기 instance 를 template 에 넣는 순환은 Decision 12 의 `DEFINITION_CYCLE` 이 거부한다. ADR-260 Decision 9 (page 위 중첩 원본 · 「In …」 글자) 는 폐기. 사용자 결정 4.
+9. **ADR-278 흐름 재기술** — 오버레이 본체 Local 컴포넌트: (a) page 에서 본체를 그리고 Create component → 원본은 Local page, 그 자리의 instance 를 trigger 의 slot 으로 옮긴다 (drag · Layers drop — ADR-261 Decision 1), 또는 (b) slot 자리 안에서 직접 그린 노드에 Create component → slot 안이 바로 instance. ADR-278 본문 Decision 3 · Positive 2 의 「ORIGIN 이 그 page 에 남음」 을 이 Decision 으로 고친다 (Phase 4).
+10. 범위 밖: 이름 `/` 폴더 · 컴포넌트 설명 · 그룹 (Webflow Group) · Layers 의 노드 이름 변경 (`renameNode` UI — 별도 작업) · variant · 라이브러리 공유 · layout 모델 (ADR-260 Decision 10 그대로).
+
+**위험 수용 근거**: B 의 기술 MEDIUM 은 Local page ◆ 셀의 편집 범위 하나에 모이고 Phase 0 이 RED 로 확정한다 — 셀 자식이 실제 template 루트인 것은 코드가 보여 주고 (`componentsPage.ts:1202-1206`), 막는 것이 있다면 `catalogOriginEditCommand` · `canOperate` 의 Components page 분기뿐이다. ADR-260 기계 삭제는 참조 모양을 만드는 곳이 `createComponent` 하나라 (`components.ts:150`) 닫으면 생기지 않고, 읽는 곳은 contract 46 으로 들어올 수 없는 모양이라 죽은 코드가 된다 — 삭제가 안전하다. 마이그레이션 MEDIUM 은 정책 (2026-10-14) 이다. 리뷰 h1 · h2 (R8 · R3 HIGH) 는 둘 다 `createComponent` 한 명령 안의 계약이라 G1 unit 이 원복 RED 로 닫는다 — 주소 재작성은 `moveNodes` 의 `dropAddressesLeftOrigin` 과 같은 자리 (명령 안, transaction 하나) 에 들고, 층별 위치 이전은 `positionLayout` 을 층마다 부르는 것이다.
+
+**기각 사유**: A — 사용자가 모델 자체를 기각 (Library ↔ Local 비대칭). C — 실제 page 예외 처리가 HIGH 두 축. D — 정책 위반 · 유지보수 HIGH.
+
+> 구현 상세: [279-component-origin-on-local-page-breakdown.md](design/279-component-origin-on-local-page-breakdown.md)
+
+### 사용자 결정 N건 (execute-adr 가 닿을 때 묻는다)
+
+> **확정 (AskUserQuestion, 2026-10-21 Phase 1 착수 전)**: 1 ⌘D = 새 컴포넌트 · 붙여넣기 = instance · 2 작은 대화상자 · 3 「Delete component」 · 4 카드 안 Create 허용 — 넷 다 기본안.
+
+1. **◆ 복제 · 복사-붙여넣기** (Decision 7) — (기본안) ⌘D = 새 컴포넌트 「{name} copy」 · 복사 → page 붙여넣기 = instance / 대안: ⌘D 도 instance (pen.dev 「복사 = instance」 만 따름).
+2. **이름 입력 UI** (Decision 3a) — (기본안) 작은 대화상자 (기본값 채움 · Enter · Esc = 취소) / 대안: 대화상자 없이 생성한 뒤 Local page 카드 제목을 바로 편집 상태로 (Framer 의 인라인에 가깝지만 page 를 떠난다) / 대안: Design 패널 Component 절 INSTANCE 의 이름 칸만 (생성은 묵묵히).
+3. **Component 절 ORIGIN 의 「Detach component」 라벨** (Decision 6) — (기본안) 「Delete component」 로 바꾼다 (동작 = 카드 삭제 버튼과 같음) / 유지.
+4. **카드 안 Create component** (Decision 8) — (기본안) 허용 (중첩 instance) / 금지 (Local page 안에서는 메뉴 숨김).
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                         | 심각도 | 대응                                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Local page ◆ 셀의 전 범위 편집 — `catalogOriginEditCommand` (`originView.ts:117-170`) · Components page 의 `canOperate` 분기 · drop 부모 판정 (`catalogInsertParent`) 이 사용자 원본의 자식 추가 · 이동 · sizing 을 거부한다 — **Phase 0 실측: 거부 0** (guard 는 view entry 에만 걸리고 `canOperate` 는 2026-10-04 삭제됨) → LOW |  LOW   | G0 RED 통과 (6 조작 + 거부 3, breakdown §Phase 0 결과) · G2 unit 이 회귀 고정 · G3 live                                                                                                                                  |
+| R2  | ADR-260 기계 삭제의 누락 — 역색인 `definitionOfTemplateRoot` 소비 17 파일 중 하나가 `ownerOf` 로 바뀌지 않으면 원본 판정 (패널 · Canvas · Layers · 확인 대화상자 · slot 선언) 이 비고, `originRef` 잔재가 검증기에 남는다    |  HIGH  | G0 inventory 표 (파일 · 함수 · 대체) → G1 grep 0 (`originRef` · `restoreOrigin` · `keepRemovedOrigins` · `referencedOriginOf` · `asInstance` · `componentizeInPlace` — `definitionOfTemplateRoot` 는 소유 역색인으로 유지) + `pnpm docs:stale-symbols` + 무작위 명령 500 단계 하니스에 Create · 해체 · rename · ◆ 복제 · 붙여넣기 포함 |
+| R3  | `createComponent` 의 소유권 이전이 노드의 `fillSlot` · `descendantOverrides` · 위치 층을 떨어뜨린다 — base 층만 옮기면 Mobile · Tablet 위치가 base 값에 덮이고, 위치가 Mobile 에만 있으면 template 에 남아 다음 instance 에 샌다 (리뷰 h2) | HIGH | Decision 2 층별 분리 이전 · G1 — fixture 5 (fillSlot 항목 · override 있는 instance 포함 · base absolute + Mobile inset 변경 · base relative + Mobile absolute · Mobile 에서 pin 해제) 에서 생성 전후 **breakpoint 3 모두** resolved 동일 · template 의 모든 층에 위치 키 0 (원복 RED) |
+| R4  | contract 46 — ADR-278 의 live 프로젝트 「ADR278」 (45) 를 포함해 사용자 로컬 프로젝트가 dashboard 에서 사라진다                                                                                                              |  MED   | 정책 (2026-10-14) — ADR-278 G5 를 이 ADR Phase 3 이전에 끝내거나, G3 live 에서 「ADR279」 프로젝트로 ADR-278 흐름 (Decision 9) 을 같이 돈다. 사용자에게 Phase 1 착수 전 고지                                                                                    |
+| R5  | 이름 대화상자가 ⌘⌥K 의 한 손 흐름을 끊는다 — Framer 는 인라인, Figma 는 묻지 않는다                                                                                                                                          |  LOW   | 기본값 채움 + Enter 한 번 = 지금과 같은 두 손. 사용자 결정 2 로 모양 확정                                                                                                                                                                                       |
+| R6  | Local page 재배치 — 생성 · rename · 해체 · ◆ 편집마다 `projectComponentsKey` 가 바뀌어 page 전체를 다시 놓는다 (카드 높이 측정 2회 `openComponentsView`)                                                                     |  LOW   | 지금 숨은 template 편집과 같은 경로 — G4 에서 ratchet 지표 (`select` · `edit` 부류) 변화 0 확인. 카드 수 ≤ 50 가정                                                                                                                                              |
+| R7  | ADR-278 · 260 · 261 · 262 본문 · `state-management.md` · 메모리의 「원본은 page 의 노드」 서술이 남아 다음 세션이 참조 모양을 다시 만든다                                                                                    |  MED   | G5 — 260 본문 상단 「Decision 2 · 3 · 5 · 6 · 8 · 9 superseded by ADR-279」 · 278 Decision 3 · Positive 고침 · 규칙 파일 줄 교체 · `docs:stale-symbols` 통과                                                                                                    |
+| R8  | 중첩 추출의 주소 재작성 누락 — 소비자 (`patch` · `fillSlot` · `replace` · interaction address · state owner ref) 하나라도 빠지면 `TEMPLATE_STEP_NOT_OWNED` 로 생성이 거부되거나 그 override 가 사라진다 (리뷰 h1) | HIGH | Decision 8 · G0 (e) 주소 소비자 표 (`templatePath` 읽는 14 파일) · G1 — 소비자 5 종 각각 바깥 override 를 둔 fixture 에서 추출 뒤 resolved 동일 · undo · 저장 · 재열기 (원복 RED = 재작성 생략 시 거부) |
+
+## Gates
+
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 실패 시 대안                                          |
+| ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| G0   | Phase 0 종료        | breakdown 에 (a) ADR-260 기계 inventory 표 — `originRef` 8 · `definitionOfTemplateRoot` 17 · `restoreOrigin`/`keepRemovedOrigins`/`asInstance` 12 파일의 함수 · 대체 (`ownerOf` / 삭제) (b) Local page ◆ 셀 편집 RED 7 조작의 결과 (`catalogOriginEditCommand` · `canOperate` · `catalogInsertParent` 어느 것이 막는가) (c) 5 도구 이름 흐름 oracle 표 (출처 URL) (d) `createComponent` 소유권 이전 fixture 5 (R3) + 중첩 주소 fixture 5 (R8) 의 생성 전 resolved snapshot (breakpoint 3) (e) 주소 형식 소비자 표 — `templatePath` 를 읽는 14 파일의 함수 · 재작성 적용 여부                                                                                                                                                                                       | 추정 vs 실측 1.5× 초과는 inventory 보강으로 흡수 (M3) |
+| G1   | Phase 1 종료        | shared — `createComponent` 가 소유 template + 그 자리 instance (`placement` 승계 · 위치 키 층별 이전 · `fillSlot` · override 보존 — fixture 5 가 breakpoint 3 모두 resolved 동일, template 모든 층 위치 키 0) · 중첩 추출의 주소 재작성 (소비자 5 종 fixture 5 — 추출 뒤 resolved 동일 · undo 한 step · 저장 → 재열기 검증 통과 · 재작성 생략 시 `TEMPLATE_STEP_NOT_OWNED` RED) · `dissolveComponent` 가 instance 전부 detach + template 삭제 · `renameDefinition` · ◆ 복제 = 새 정의 · ◆ 복사 → 붙여넣기 = instance (같은 프로젝트) / 보통 사본 (다른 프로젝트) · `originRef` 를 가진 문서 · contract 45 거부 (`UNSUPPORTED_PROJECT_FORMAT`) · grep 0 (`originRef` · `restoreOrigin` · `keepRemovedOrigins` · `referencedOriginOf` · `asInstance` · `componentizeInPlace` — `definitionOfTemplateRoot` 는 소유 역색인으로 유지) · 무작위 명령 500 단계 전체 검증기 대조 + 전체 undo · `DEFINITION_CYCLE` 자기 instance 거부 유지 | 결함 수리 후 재측정                                   |
+| G2   | Phase 2 종료        | builder unit — 이름 입력 (기본값 · Enter · Esc 취소 = 명령 0 · 빈 이름 거부) · Local page 카드 제목 rename · Component 절 ORIGIN 이름 칸 · Navigator 목록 rename · 카드 삭제 버튼 → `dissolveComponent` + 확인 대화상자 (instance N) · Library 카드에 삭제 없음 · ◆ 셀 7 조작 통과 (R1, 원복 RED) · Go to component = Local page 루트 선택 · 생성 직후 Component 절 = INSTANCE · Layers 의 Local page 행 (card → ◆ → 자식) · `catalogComponentRole` 이 Local page 루트만 ORIGIN                                                                                                                                                  | 결함 수리 후 재측정                                   |
+| G3   | Phase 3 종료 (live) | headed Chrome (5173 · 새 프로젝트 「ADR279」 contract 46) — frame(Heading + Text) → ⌘⌥K → 이름 「Card」 입력 → page 의 그 자리 INSTANCE 칩 · Local page 카드 「Card」 ◆ → ◆ 에 Button 추가 · 글자 편집 → page instance 따라옴 · 카드 제목 더블클릭 → 「Promo card」 → Navigator · Component 절 이름 갱신 · 팔레트/Components 탭에서 넣기 = INSTANCE · ◆ ⌘D = 「Promo card copy」 카드 · 카드 삭제 → 확인 (2 instances) → page 의 둘이 보통 frame · undo 한 step 으로 복귀 · ADR-278 흐름 (Dialog 본체 그리기 → Create → instance 를 slot 으로 → Preview Open Dialog) · 새로고침 뒤 동일 · page error 0                           | 수리 후 재실행                                        |
+| G4   | push 전             | `pnpm type-check` · shared · builder 스위트 (기존 실패 `resolveContainerStylesFallback` · `slotIntrinsicHeight` · shared IconButton 잔재 제외) · `pnpm docs:stale-symbols` · `gate:perf-ratchet` A 초과 0 · initial 번들 상한 안                                                                                                                                                                                                                                                                                                                                                                                                 | 상한 초과 → 사용자 승인 `--raise`                     |
+| G5   | Implemented 승격 전 | 사용자 Builder 확인 (「확인했어」) · CHANGELOG · ADR-260 본문 상단 superseded-in-part 표기 + README 완료 표 비고 · ADR-278 Decision 3 · Positive 재기술 · `state-management.md` 「컴포넌트 원본은 page 의 노드다 (ADR-260)」 줄 교체 · 메모리 `project-origin-instance-slot-reference-pen-figma` 갱신                                                                                                                                                                                                                                                                                                                            | 문서 미비 → 승격 보류 (`adr-status-sync-check.sh`)    |
+
+### Live Exercise
+
+2026-10-21 · headed Chrome (Claude in Chrome MCP) · dev 5173 (HMR) · 새 프로젝트 「ADR279」 (contract 46 — dashboard 에 남겨 둠, 사용자 G5 확인용). 시드는 dev handle (`insertNodes`), 조작은 실제 포인터 · 키.
+
+| #   | 시나리오                                                                                                    | 결과                                                                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | frame (Heading + Text) 선택 → Design 패널 Create component → 대화상자 (기본 「Card」) → Escape               | PASS — 명령 0 (정의 0 · revision 그대로)                                                                                                      |
+| 2   | 다시 Create → Enter                                                                                         | PASS — 정의 「Card」 가 `card` 를 소유, page 그 자리는 새 instance (선택됨), Component 절 = 「Card INSTANCE」. (첫 실행 때 「Component impact」 가 떴음 → 수리 뒤 재실행에서 안 뜸) |
+| 3   | Navigator Components → Local → 카드 「01. CARD」 ◆ · 헤더 「Card」 (×) · ◆ Heading 더블클릭 → 「Hi there」      | PASS — 첫 편집 「Component impact 1 instance」 → Continue; Home 의 instance 2 개 (하나는 handle 로 추가) 모두 「Hi there」                       |
+| 4   | 헤더 제목 더블클릭 → 「Promo card」 Enter                                                                    | PASS — 정의 이름 · 헤더 · 카드 제목 「01. PROMO CARD」 · Component 절 ORIGIN 의 Component name 칸 모두 갱신                                   |
+| 5   | Layers 에서 ◆ 루트 선택 → ⌘D                                                                                | PASS — 「Promo card copy」 정의 · 카드 「02. PROMO CARD COPY」 · 헤더, instance 0 (카드 frame 을 선택한 ⌘D 는 「This can't be done」 토스트 — 정상) |
+| 6   | 헤더 × → 「… will affect 2 instances」 → Continue → `ws.undo()`                                              | PASS — 정의 · template 삭제, page 두 노드 = type-frame; undo 한 step 으로 정의 · instance 2 복귀, 카드 2                                     |
+| 7   | ADR-278 흐름 (handle): Dialog 놓기 · 「Dialog body」 frame → Create → instance 를 Dialog content slot 으로 → Preview Open Dialog · 새로고침 | PASS — Layers: Dialog > content > Descr… + frame INSTANCE; Preview 의 Dialog 에 「Body text」; 새로고침 뒤 contract 46 · 정의 3 전부 소유 · instance 2/0/1 · console error 0 |
+
+G5 중 사용자 보고 (2026-10-21, 수리 완료): Layers 를 body → ◆ → 부품까지 펼친 채 헤더 × → Continue 하면 `CatalogValidationError DANGLING_CHILD project:node:card` (Layers 의 카드 행 캐시가 page 재배치 전 step 알림에서 삭제된 루트를 읽음). 수리 = 행 캐시에 revision · page 재배치 (새 root) 뒤 Layers 재구성. 재실행 (같은 펼침 상태 · × → Continue → ⌘Z): PASS — 삭제 뒤 Layers body 비어 있음 · 「No components」 카드, undo 뒤 ◆ Card 와 부품 3 즉시 복귀, console error 0. 회귀 테스트 `adr279OriginOnLocalPage.test.ts` 「Delete component while the Local page Layers list the card」 (수리 두 반쪽 각각 원복 RED).
+
+LOW deferred 2: (a) handle 로 `showDefinition(undefined)` 와 `execute` 를 같은 tick 에 보내면 Local page view 노드를 보던 구독자 하나가 `CATALOG_SUBSCRIBER_FAILED` — 문서는 commit 됐고 UI 조작에서는 React 갱신이 사이에 들어 재현 경로 없음 (ADR-260 때와 같은 구조) · (b) 삭제 확인 문구 「Editing … will affect」 (종전 dissolve 와 같은 대화상자).
+
+## Consequences
+
+### Positive
+
+- 기본 원본 (Library page) 과 사용자 원본 (Local page) 이 같은 집 · 같은 카드 · 같은 ◆ 규약 — 사용자 지적의 비대칭이 사라진다.
+- 컴포넌트에 **이름을 정하고 바꾸고 지우는** 세 동작이 생긴다 (지금 0 · 0 · 패널 한 곳).
+- 정의의 모양이 하나로 돌아와 ADR-260 의 참조 기계 (`originRef` 세 상태 · 역색인 · Restore · clipboard `origins` · clone `asInstance`) 가 사라진다 — 소비 파일 8 + 17 + 12 단순화.
+- ADR-278 의 Local 컴포넌트 흐름이 깔끔해진다 — 본체 원본이 page 에 남지 않는다.
+
+### Negative
+
+- 원본 편집이 page 문맥을 떠난다 (Local page 카드 안) — Framer · Webflow · Plasmic 사용자는 익숙하고, Figma 사용자는 「Go to component」 한 번이 더 든다. ADR-260 Positive 2 의 반대.
+- ADR-260 (2026-10-14 Implemented · 37 파일) 의 Decision 6 개를 일주일 만에 되돌린다 — 그 구현 중 Decision 11 · 12 · 13 은 남고, 나머지는 삭제 비용.
+- contract 46 — 사용자 로컬 프로젝트 재생성 (ADR-278 「ADR278」 포함).
+- 이름 대화상자 한 단계 (Enter 로 기본값 수락).
+- Layers 의 노드 이름 변경은 여전히 없다 (범위 밖 — 별도 작업).

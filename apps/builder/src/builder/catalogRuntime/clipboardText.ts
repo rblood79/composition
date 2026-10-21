@@ -15,11 +15,10 @@ export function serializeCatalogClipboard(clipboard: CatalogClipboard): string {
     JSON.stringify({
       rootIds: clipboard.rootIds,
       entries: clipboard.entries,
-      // ADR-260 Decision 13: the source project, copied origins, definition and token snapshots.
+      // ADR-260 Decision 13: the source project, definition and token snapshots.
       ...(clipboard.sourceProjectId
         ? { sourceProjectId: clipboard.sourceProjectId }
         : {}),
-      ...(clipboard.origins ? { origins: clipboard.origins } : {}),
       ...(clipboard.definitions ? { definitions: clipboard.definitions } : {}),
       ...(clipboard.tokens ? { tokens: clipboard.tokens } : {}),
     })
@@ -36,7 +35,7 @@ export function parseCatalogClipboard(
       text.slice(CATALOG_CLIPBOARD_PREFIX.length),
     );
     if (!parsed || typeof parsed !== "object") return undefined;
-    const { rootIds, entries, sourceProjectId, origins, definitions, tokens } =
+    const { rootIds, entries, sourceProjectId, definitions, tokens } =
       parsed as Record<string, unknown>;
     const records = (value: unknown) =>
       Array.isArray(value) &&
@@ -53,17 +52,12 @@ export function parseCatalogClipboard(
       !records(entries)
     )
       return undefined;
-    // (The ADR-260 fields are optional: an older copy pastes as before; a malformed one is dropped.)
+    // (The ADR-260 fields are optional: an older copy pastes as before; a malformed one is dropped.
+    // ADR-279: an older copy's `origins` is ignored — a template root pastes as an instance by id.)
     return {
       rootIds,
       entries,
       ...(typeof sourceProjectId === "string" ? { sourceProjectId } : {}),
-      ...(origins &&
-      typeof origins === "object" &&
-      !Array.isArray(origins) &&
-      Object.values(origins).every((id) => typeof id === "string")
-        ? { origins }
-        : {}),
       ...(records(definitions) ? { definitions } : {}),
       ...(records(tokens) ? { tokens } : {}),
     } as CatalogClipboard;

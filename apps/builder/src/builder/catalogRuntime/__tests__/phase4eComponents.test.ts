@@ -83,7 +83,7 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-4 Component section", () => {
-  it("create → the node stays as the origin (ADR-260); dissolve → the instance keeps what it showed, the origin stays", async () => {
+  it("create → the definition owns the node, an instance stands in its place (ADR-279); dissolve → every instance keeps what it showed, the template goes", async () => {
     const { workspace, children } = await open();
     const graph = workspace.runtime.graph;
     expect(catalogComponentState(graph, id("card"))).toEqual({});
@@ -92,15 +92,21 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       catalogComponentCommands.create(id("card"), "Card", workspace.newId),
     );
     expect(graph.revision).toBe(revision + 1);
-    expect(plan.selectAfter).toEqual([id("card")]);
-    expect(children()[0]).toBe(id("card"));
+    const inPlace = plan.selectAfter![0]!;
+    expect(inPlace).not.toBe(id("card"));
+    expect(children()[0]).toBe(inPlace);
+    expect(children()).not.toContain(id("card"));
     const state = catalogComponentState(graph, id("card"));
     expect(state.originOf).toMatchObject({
       name: "Card",
       project: true,
-      instanceIds: [],
+      instanceIds: [inPlace],
     });
     expect(state.instanceOf).toBeUndefined();
+    expect(catalogComponentState(graph, inPlace).instanceOf).toMatchObject({
+      name: "Card",
+      instanceIds: [inPlace],
+    });
     expect(workspace.readModel.components()).toHaveLength(1);
     // An instance placed beside it.
     const definitionId = state.originOf!.definitionId as NodeEntry["definitionId"];
@@ -113,21 +119,22 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       }),
     );
     expect(catalogComponentState(graph, id("copy")).instanceOf).toMatchObject({
-      instanceIds: [id("copy")],
+      instanceIds: [inPlace, id("copy")],
     });
 
     workspace.execute(
       catalogComponentCommands.dissolve(definitionId, workspace.newId),
     );
     expect(workspace.readModel.components()).toHaveLength(0);
-    expect(graph.getEntry(id("card"))).toMatchObject({
-      definitionId: "lib:definition:type-frame",
-    });
-    const detached = graph.getEntry(id("copy"));
-    expect(detached).toMatchObject({
-      definitionId: "lib:definition:type-frame",
-    });
-    expect((detached as NodeEntry).children).toHaveLength(1);
+    // The template goes with the definition; every instance is an ordinary node now.
+    expect(graph.getEntry(id("card"))).toBeUndefined();
+    for (const instance of [inPlace, id("copy")]) {
+      const detached = graph.getEntry(instance);
+      expect(detached).toMatchObject({
+        definitionId: "lib:definition:type-frame",
+      });
+      expect((detached as NodeEntry).children).toHaveLength(1);
+    }
     workspace.undo();
     workspace.undo();
     workspace.undo();

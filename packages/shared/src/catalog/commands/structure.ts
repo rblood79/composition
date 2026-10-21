@@ -80,7 +80,10 @@ type Related = StateVariableEntry | InteractionEntry;
 const clampIndex = (index: number | undefined, length: number): number =>
   index === undefined || index < 0 || index > length ? length : index;
 
-function addRelated(draft: CommandDraft, related: readonly Related[]): void {
+export function addRelated(
+  draft: CommandDraft,
+  related: readonly Related[],
+): void {
   if (!related.length) return;
   for (const entry of related) draft.create(entry);
   const project = draft.project();
@@ -1005,51 +1008,6 @@ export function subtree(draft: CommandDraft, id: NodeId): NodeId[] {
   return out;
 }
 
-/** A node that is the origin of a component in place (ADR-260 — `originRef: true`), its definition. */
-export function referencedOriginOf(
-  draft: CommandDraft,
-  id: string,
-): DefinitionEntry | undefined {
-  const definitionId = draft.reader.definitionOfTemplateRoot(id);
-  const definition = definitionId ? draft.read(definitionId) : undefined;
-  return definition?.kind === "definition" && definition.originRef === true
-    ? definition
-    : undefined;
-}
-
-/**
- * ADR-260 Decision 6 (Figma): deleting an origin keeps its instances — the definition takes the
- * origin's subtree as a hidden template (`originRef: false`, 「Restore origin」). Only the outermost
- * origins of the deleted nodes move; an origin inside one stays referenced (its owner is still its
- * parent there). Returns the nodes still to remove.
- */
-export function keepRemovedOrigins(
-  draft: CommandDraft,
-  removed: readonly NodeId[],
-): NodeId[] {
-  const gone = new Set<string>(removed);
-  const kept = new Set<string>();
-  for (const id of removed) {
-    if (kept.has(id)) continue;
-    const definition = referencedOriginOf(draft, id);
-    if (!definition) continue;
-    let inside = false;
-    for (
-      let at = draft.reader.ownerOf(id);
-      at && gone.has(at);
-      at = draft.reader.ownerOf(at)
-    )
-      if (referencedOriginOf(draft, at)) {
-        inside = true;
-        break;
-      }
-    if (inside) continue;
-    draft.write({ ...definition, originRef: false });
-    for (const node of subtree(draft, id)) kept.add(node);
-  }
-  return removed.filter((id) => !kept.has(id));
-}
-
 /**
  * Remove records and everything that names them: owned state variables and interactions (and
  * interactions that act on a removed variable or target), and other instances' overrides whose
@@ -1263,7 +1221,7 @@ export const removeTargets =
       if (templateId && target.address.templatePath.length > 1)
         assertTemplatePartsKept(draft, target, templateId);
     }
-    removeWithReferrers(draft, keepRemovedOrigins(draft, removed));
+    removeWithReferrers(draft, removed);
     assertRequiredPartsKept(draft, nodeIds);
     assertTablesAligned(draft, [
       ...nodeIds,
@@ -1275,7 +1233,7 @@ export const removeTargets =
   };
 
 /** Allocate the related ID kinds the clone asks for. */
-const relatedId =
+export const relatedId =
   (newId: NewId) =>
   (
     oldId: EntryId<"stateVariable"> | EntryId<"interaction">,
@@ -1347,8 +1305,6 @@ export const duplicateNodes =
         id,
         () => input.newId("node"),
         relatedId(input.newId),
-        // A copy of a component origin is an instance of it (ADR-260 Decision 8 — pen.dev).
-        (nodeId) => referencedOriginOf(draft, nodeId)?.id,
       );
       clones.push({ clone, parent, index });
       roots.push(clone.entries.find((entry) => entry.id === clone.rootId)!);
@@ -1375,12 +1331,10 @@ export interface CatalogClipboard {
   entries: readonly (NodeEntry | Related)[];
   /**
    * ADR-260 Decision 13 — what a paste needs beyond the copied records (absent in an older copy):
-   * the project copied from, the copied component origins (node → its definition), the project
-   * definitions the copied nodes rest on (each with its template subtree, closed over nested
-   * definitions) and the project tokens they name.
+   * the project copied from, the project definitions the copied nodes rest on (each with its
+   * template subtree, closed over nested definitions) and the project tokens they name.
    */
   sourceProjectId?: EntryId<"project">;
-  origins?: Readonly<Record<string, EntryId<"definition">>>;
   definitions?: readonly (DefinitionEntry | NodeEntry)[];
   tokens?: readonly TokenEntry[];
 }
@@ -1394,11 +1348,8 @@ export function copyNodes(
   const nodes = new Set(rootIds.flatMap((id) => subtree(draft, id)));
   const entries: (NodeEntry | Related)[] = [];
   const related = new Set<string>();
-  const origins: Record<string, EntryId<"definition">> = {};
   for (const id of nodes) {
     entries.push(structuredClone(draft.node(id)));
-    const origin = referencedOriginOf(draft, id);
-    if (origin) origins[id] = origin.id;
     for (const referrerId of reader.referrersOf(id)) {
       const entry = reader.getEntry(referrerId);
       if (
@@ -1442,7 +1393,6 @@ export function copyNodes(
     rootIds,
     entries,
     sourceProjectId: reader.projectId,
-    ...(Object.keys(origins).length ? { origins } : {}),
     ...(definitions.length ? { definitions } : {}),
     ...(tokens.length ? { tokens } : {}),
   };
@@ -1458,8 +1408,9 @@ export interface PasteNodesInput {
 }
 /**
  * Paste a clipboard with new IDs (the source may be gone or in another project). ADR-260
- * Decision 13: a copied origin pastes as an instance where its definition is (the same project,
- * the origin in place or hidden); an instance of a definition the target lacks (another project, a
+ * Decision 13 · ADR-279 Decision 7: a copied component origin (a template root — the Local page's
+ * ◆) pastes as an instance of its definition in the same project (pen.dev 「copy the origin to
+ * create an instance」); an instance of a definition the target lacks (another project, a
  * dissolved component) pastes as ordinary nodes from the copied snapshot; a project token the
  * target lacks becomes the target's token of the same name and type, else its copied value; an
  * interaction acting on something the target lacks stays behind.
@@ -1484,14 +1435,8 @@ export const pasteNodes =
     const sameProject =
       !clipboard.sourceProjectId ||
       clipboard.sourceProjectId === reader.projectId;
-    const asInstance = (id: NodeId) => {
-      const definitionId = clipboard.origins?.[id];
-      return sameProject &&
-        definitionId &&
-        reader.getEntry(definitionId)?.kind === "definition"
-        ? definitionId
-        : undefined;
-    };
+    const instanceOf = (id: NodeId) =>
+      sameProject ? reader.definitionOfTemplateRoot(id) : undefined;
     let entries: NodeEntry[] = [];
     let related: Related[] = [];
     const rootIds: NodeId[] = [];
@@ -1501,7 +1446,7 @@ export const pasteNodes =
         rootId,
         () => input.newId("node"),
         relatedId(input.newId),
-        asInstance,
+        instanceOf,
       );
       entries.push(...clone.entries);
       related.push(...clone.relatedEntries);

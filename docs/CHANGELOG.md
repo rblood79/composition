@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-279 Phase 0 ~ 3 — Create component 원본은 Local page 로 · 그 자리에는 instance · 이름 대화상자 · 카드 rename · 카드 삭제] - 2026-10-21
+
+### Changed
+
+- **Create component → 정의가 노드를 소유하고 (원본은 Local page 카드의 ◆) page 그 자리에는 instance 가 선다** (Framer Assets 모델 — ADR-260 Decision 2 · 3 · 5 · 6 · 8 · 9 개정, 사용자 결정 2026-10-21). 위치 키 (`position` · inset · self 정렬) 는 base · Tablet · Mobile 층마다 instance 로 옮기고 template 에서 뺀다. Local 카드 안 노드에 Create component (중첩 추출) 를 하면 바깥 instance 의 override · interaction · 상태 참조 주소가 같은 step 에서 새 instance 를 지나도록 재작성된다.
+- **Go to component 는 항상 Local page** 로 열고 ◆ 루트를 선택한다. Local page 카드의 ◆ 는 page 노드와 같은 범위로 편집된다 (자식 · 순서 · sizing · breakpoint 층 · fill).
+- **Component 절 ORIGIN 「Detach component」 → 「Delete component」** (instance 전부 보통 노드로 + 정의 · template 삭제, 확인 대화상자).
+- 문서 contract 45 → **46** — `originRef` 필드 삭제. 옛 프로젝트는 열리지 않는다 (변환 없음 — 개발 단계 정책).
+
+### Added
+
+- **Create component 이름 대화상자** (Canvas 메뉴 · 액션 바 · ⌘⌥K · Design 패널) — 기본값은 노드 이름 (없으면 타입), Enter 확정 · Escape 취소.
+- **Local page 카드 헤더** — 제목 더블클릭으로 컴포넌트 이름 변경, × 로 컴포넌트 삭제. Design 패널 Component 절 ORIGIN 의 「Component name」 칸.
+- **◆ 루트 ⌘D = 새 컴포넌트 「{name} copy」** · ◆ 복사 → page 붙여넣기 = instance.
+
+### Removed
+
+- ADR-260 의 「Restore origin」 · 원본 삭제 때 숨은 template 보관 · clipboard `origins` — 원본은 page 에 없으므로 쓸 곳이 없다.
+
+### Fixed
+
+- **Local page Layers 를 펼친 채 Delete component 하면 `CatalogValidationError DANGLING_CHILD` 로 Navigator 가 죽던 것** (사용자 보고 2026-10-21): Layers 의 카드 행 캐시가 page 가 다시 배치되기 전 step 알림에서 삭제된 ◆ 루트를 다시 읽었다 — 행 캐시는 문서 revision 과 같이 두고, page 재배치 (새 root) 뒤 Layers 를 다시 읽는다 (삭제 · undo 뒤 Layers 가 바로 맞는다).
+
 ## [ADR-278 Phase 1 ~ 3 — 오버레이 본체 = slot · Menu Items 에 Local 컴포넌트 · Library page 본체 칸] - 2026-10-21
 
 ### Added

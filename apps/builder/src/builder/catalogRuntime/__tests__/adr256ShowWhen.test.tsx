@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   copyNodes,
+  createComponent,
   detachInstances,
   duplicateNodes,
   insertNodes,
@@ -15,7 +16,6 @@ import {
   setShowWhen,
   ungroupNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { componentizeInPlace } from "./support/legacyComponent";
 import {
   catalogShowWhenHolds,
   catalogStateOwner,
@@ -546,7 +546,7 @@ describe("ADR-256 Phase 4b — an origin's reference follows its instances and a
       "tb",
     );
     workspace.root.execute(
-      componentizeInPlace({ id: id("tb"), name: "Toggle", newId: workspace.newId }),
+      createComponent({ id: id("tb"), name: "Toggle", newId: workspace.newId }),
     );
     const instance = [...root.canvasInputs.values()].find(
       (r) => r.sourceId !== id("tb") && root.typeOf(r) === "ToggleButton",
@@ -805,7 +805,7 @@ describe("ADR-256 Phase 4 review (round 10)", () => {
       "tb",
     );
     workspace.root.execute(
-      componentizeInPlace({ id: id("f"), name: "Inner", newId: workspace.newId }),
+      createComponent({ id: id("f"), name: "Inner", newId: workspace.newId }),
     );
     const instance = [...root.canvasInputs.values()].find(
       (r) => r.parentId && root.canvasInputs.get(r.parentId)?.sourceId === id("tb"),
@@ -835,7 +835,7 @@ describe("ADR-256 Phase 4 review (round 10)", () => {
     );
     const { workspace, root } = opened;
     workspace.root.execute(
-      componentizeInPlace({ id: id("r"), name: "Holder", newId: workspace.newId }),
+      createComponent({ id: id("r"), name: "Holder", newId: workspace.newId }),
     );
     const instanceId = [...root.canvasInputs.values()].find(
       (r) => r.sourceId !== id("r") && r.collapsedIds?.some((c) => c.endsWith("::" + id("r"))),
@@ -1026,7 +1026,7 @@ describe("ADR-256 Phase 4 repair check (round 11)", () => {
     );
     const { workspace, root } = opened;
     workspace.root.execute(
-      componentizeInPlace({ id: id("r"), name: "Holder", newId: workspace.newId }),
+      createComponent({ id: id("r"), name: "Holder", newId: workspace.newId }),
     );
     const instanceId = [...root.canvasInputs.values()].find(
       (r) => r.sourceId !== id("r") && r.collapsedIds?.some((c) => c.endsWith("::" + id("r"))),
@@ -1088,10 +1088,10 @@ describe("ADR-256 Phase 4 repair check (round 11)", () => {
       "tb",
     );
     workspace.root.execute(
-      componentizeInPlace({ id: id("inner"), name: "Inner", newId: workspace.newId }),
+      createComponent({ id: id("inner"), name: "Inner", newId: workspace.newId }),
     );
     workspace.root.execute(
-      componentizeInPlace({ id: id("outer"), name: "Outer", newId: workspace.newId }),
+      createComponent({ id: id("outer"), name: "Outer", newId: workspace.newId }),
     );
     const outer = [...root.canvasInputs.values()].find(
       (r) => r.parentId && root.canvasInputs.get(r.parentId)?.sourceId === id("tb"),
@@ -1122,12 +1122,12 @@ describe("ADR-256 Phase 4 repair check (round 11)", () => {
     );
     const { workspace, root } = opened;
     workspace.root.execute(
-      componentizeInPlace({ id: id("r"), name: "Inner", newId: workspace.newId }),
+      createComponent({ id: id("r"), name: "Inner", newId: workspace.newId }),
     );
     const innerInstance = (workspace.runtime.graph.getEntry(id("o")) as NodeEntry)
       .children[0]!;
     workspace.root.execute(
-      componentizeInPlace({ id: id("o"), name: "Outer", newId: workspace.newId }),
+      createComponent({ id: id("o"), name: "Outer", newId: workspace.newId }),
     );
     const outerInstance = [...root.canvasInputs.values()].find(
       (r) => r.sourceId !== id("o") && r.collapsedIds?.some((c) => c.endsWith("::" + id("o"))),

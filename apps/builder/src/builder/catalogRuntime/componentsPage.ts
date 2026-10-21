@@ -351,8 +351,16 @@ function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
   return slots;
 }
 
-/** The Layers rows read so far, by the page's root entry (a new one each time the page is laid out). */
-const pageRows = new WeakMap<object, Map<string, CatalogPosition[]>>();
+/**
+ * The Layers rows read so far, by the page's root entry (a new one each time the page is laid out)
+ * and the document revision they were read at: a step (Delete component removes the ◆ root) runs
+ * the Layers rebuild before the page is laid out again, and rows read before it would still name
+ * the removed root (user 2026-10-21 — DANGLING_CHILD on the dissolve step).
+ */
+const pageRows = new WeakMap<
+  object,
+  Map<string, { revision: number; rows: CatalogPosition[] }>
+>();
 /**
  * The Layers rows of a Components page node, where they differ from its drawn children: the page
  * lists its cards (a group per component, numbered order) and a card what it holds — the origin,
@@ -370,13 +378,12 @@ export function catalogComponentsPageRows(
   if (!page) return undefined;
   let rows = pageRows.get(page);
   if (!rows) pageRows.set(page, (rows = new Map()));
-  let known = rows.get(position.identity);
-  if (!known) {
-    const read = readPageRows(reader, position);
-    if (!read) return undefined;
-    rows.set(position.identity, (known = read));
-  }
-  return known;
+  const known = rows.get(position.identity);
+  if (known && known.revision === reader.revision) return known.rows;
+  const read = readPageRows(reader, position);
+  if (!read) return undefined;
+  rows.set(position.identity, { revision: reader.revision, rows: read });
+  return read;
 }
 function readPageRows(
   reader: CatalogReader,
@@ -1175,37 +1182,19 @@ export function catalogProjectComponentsPageEntries(
     mode,
   );
   const components = catalogProjectComponents(graph);
-  const roots = new Set<string>(components.map((item) => item.rootId));
-  const insideOf = (rootId: NodeId): string | undefined => {
-    for (let at = graph.ownerOf(rootId); at; at = graph.ownerOf(at))
-      if (roots.has(at))
-        return components.find((item) => item.rootId === at)?.name;
-    return undefined;
-  };
   const width = COLUMN_WIDTH - CARD_PADDING * 2;
   for (const component of components) {
     const base = (...path: string[]) =>
       `${projectComponentCardId(component.id).slice(0, -"/card".length)}/${path.join("/")}` as NodeId;
-    const outer = insideOf(component.rootId);
-    // The origin's cell: the node itself, under the card's title only (user 2026-10-14 — no
-    // "Origin" line label, no caption). Read on each read: a deleted origin leaves the cell
-    // empty until the page is laid out again. An origin inside another one is drawn in that
-    // one's card: its own card says where it is.
+    // The origin's cell: the template root itself (ADR-279 — the definition owns it; edited
+    // here), under the card's title only (user 2026-10-14 — no "Origin" line label, no
+    // caption). Read on each read: a dissolved component leaves the cell empty until the page
+    // is laid out again.
     const originCell = projectComponentOriginCellId(component.id);
-    const where = outer
-      ? text(base("origin", "where"), `In ${outer}`, {
-          fontSize: 11,
-          color: MUTED_COLOR,
-        })
-      : undefined;
     entries.set(originCell, () =>
       node(originCell, FRAME, {
         name: component.name,
-        children: where
-          ? [where]
-          : graph.getEntry(component.rootId)
-            ? [component.rootId]
-            : [],
+        children: graph.getEntry(component.rootId) ? [component.rootId] : [],
         ...catalogCreationStyle({
           style: {
             display: "flex",
@@ -1267,6 +1256,60 @@ export function catalogProjectComponents(
         ]
       : [];
   });
+}
+
+/**
+ * ADR-279 Decision 3 · 6: the Local page cards' scene boxes for the Canvas header layer — each
+ * card gets a header (the component's name: double-click renames, × deletes the component) as a
+ * page frame does. Empty unless the Local page is drawn.
+ */
+export function catalogProjectComponentCardFrames(
+  graph: CatalogReader,
+  root: {
+    recordsOfSource(id: string): readonly string[];
+    domInputs: ReadonlyMap<string, { parentId?: string }>;
+    getGeometry(
+      ids: Iterable<string>,
+    ): ReadonlyMap<
+      string,
+      { x: number; y: number; width: number; height: number }
+    >;
+  },
+): { id: EntryId<"definition">; title: string; x: number; y: number; width: number; height: number }[] {
+  if (!graph.getEntry(PROJECT_ORIGIN_VIEW_NODE)) return [];
+  const frames: ReturnType<typeof catalogProjectComponentCardFrames> = [];
+  for (const component of catalogProjectComponents(graph)) {
+    const [record] = root.recordsOfSource(projectComponentCardId(component.id));
+    if (!record) continue;
+    // Geometry is parent-relative: the card's scene box sums its ancestors' (column · page root).
+    const chain: string[] = [];
+    for (
+      let at: string | undefined = record;
+      at && at !== "catalog:root";
+      at = root.domInputs.get(at)?.parentId
+    )
+      chain.push(at);
+    const boxes = root.getGeometry(chain);
+    const box = boxes.get(record);
+    if (!box) continue;
+    let x = 0;
+    let y = 0;
+    for (const id of chain) {
+      const ancestor = boxes.get(id);
+      if (!ancestor) continue;
+      x += ancestor.x;
+      y += ancestor.y;
+    }
+    frames.push({
+      id: component.id,
+      title: component.name,
+      x,
+      y,
+      width: box.width,
+      height: box.height,
+    });
+  }
+  return frames;
 }
 
 /** The page's card ids (a column's children), in drawn order. */

@@ -25,6 +25,7 @@ import { catalogEditContract } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import { PROJECT_COMPONENTS_VIEW } from "../originView";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -89,11 +90,9 @@ async function open() {
       newId: allocator(),
     }),
   );
-  workspace.execute(
-    createComponent({ id: id("A"), name: "Card", newId: workspace.newId }),
-  );
+  // ADR-279: the definition owns A; the instance in its place is I.
   const I = workspace.execute(
-    duplicateNodes({ ids: [id("A")], newId: workspace.newId }),
+    createComponent({ id: id("A"), name: "Card", newId: workspace.newId }),
   ).plan.selectAfter![0] as NodeId;
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId) as ProjectEntry;
@@ -184,13 +183,15 @@ describe("ADR-261 Phase 4 — component properties (Builder)", () => {
     );
     expect(recordIn(workspace, I, id("T"))?.props.children).toBe("Hello");
     expect(recordIn(workspace, I, id("X"))).toBeUndefined();
-    // The origin draws its own values.
+    // The origin draws its own values (on the Local page — ADR-279).
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
     expect(workspace.root.recordsOfSource(id("T"))[0]).toBeDefined();
     const originTitle = [...workspace.root.domInputs.values()].find(
       (record) =>
         record.sourceId === id("T") && !record.instancePath.includes(I),
     );
     expect(originTitle?.props.children).toBe("Title");
+    workspace.showDefinition(undefined);
     // R3: the instance's record (its root) carries no property key — the DOM gets no attribute.
     const instanceRecord = workspace.root.domInputs.get(
       workspace.root.recordsOfSource(I)[0],
@@ -319,11 +320,8 @@ describe("2026-10-15 — a user component instance's bound root props update inc
         newId: allocator(),
       }),
     );
-    workspace.execute(
-      createComponent({ id: id("F"), name, newId: workspace.newId }),
-    );
     const I = workspace.execute(
-      duplicateNodes({ ids: [id("F")], newId: workspace.newId }),
+      createComponent({ id: id("F"), name, newId: workspace.newId }),
     ).plan.selectAfter![0] as NodeId;
     /** The instance's parts' text by part type (Label · Description children, Input placeholder). */
     const texts = () =>

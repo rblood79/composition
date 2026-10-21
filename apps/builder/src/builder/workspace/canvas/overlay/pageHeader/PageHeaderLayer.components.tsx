@@ -53,6 +53,7 @@ export function PageHeaderLayer({
   canRenamePage,
   onBeginRename,
   onRenamePage,
+  onCloseFrame,
   activePageId,
   hasSelection,
 }: PageHeaderLayerProps) {
@@ -91,6 +92,7 @@ export function PageHeaderLayer({
     canRenamePage,
     onBeginRename,
     onRenamePage,
+    onCloseFrame,
   });
   useLayoutEffect(() => {
     handlersRef.current = {
@@ -98,6 +100,7 @@ export function PageHeaderLayer({
       canRenamePage,
       onBeginRename,
       onRenamePage,
+      onCloseFrame,
     };
   });
 
@@ -134,6 +137,10 @@ export function PageHeaderLayer({
     },
     [],
   );
+  const handleClose = useCallback(
+    (id: string) => handlersRef.current.onCloseFrame?.(id),
+    [],
+  );
 
   return (
     <div
@@ -161,6 +168,8 @@ export function PageHeaderLayer({
                 : resolvePageHeaderLod(frame.width * settled.zoom)
             }
             onRenameCommit={handleRenameCommit}
+            closable={frame.closable}
+            onClose={handleClose}
           />
         );
       })}
@@ -233,6 +242,8 @@ const PageHeaderItem = memo(function PageHeaderItem({
   editing,
   lod,
   onRenameCommit,
+  closable,
+  onClose,
 }: PageHeaderItemProps) {
   const compact = lod === "compact";
   return (
@@ -268,9 +279,11 @@ const PageHeaderItem = memo(function PageHeaderItem({
               동작은 보류 — onPress 는 close 의미가 확정되면 배선한다. */}
           {!compact && (
             <ActionIconButton
-              aria-label={`Close ${title}`}
+              aria-label={closable ? `Delete ${title}` : `Close ${title}`}
               className={PAGE_HEADER_ACTION_CLASS}
-              tooltip="Close"
+              tooltip={closable ? "Delete component" : "Close"}
+              // ADR-279 Decision 6: a Local page card's × deletes the component (asks first).
+              onPress={closable ? () => onClose?.(id) : undefined}
             >
               <X aria-hidden="true" size={iconProps.size} />
             </ActionIconButton>

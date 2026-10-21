@@ -113,11 +113,9 @@ async function open() {
       newId: allocator(),
     }),
   );
-  workspace.execute(
-    createComponent({ id: id("A"), name: "Card", newId: workspace.newId }),
-  );
+  // ADR-279: the definition owns A; the instance in its place is I.
   const I = workspace.execute(
-    duplicateNodes({ ids: [id("A")], newId: workspace.newId }),
+    createComponent({ id: id("A"), name: "Card", newId: workspace.newId }),
   ).plan.selectAfter![0] as NodeId;
   const card = (graph.getEntry(graph.projectId) as ProjectEntry)
     .definitionIds[2];

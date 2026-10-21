@@ -240,21 +240,15 @@ describe("ADR-248 4e-8 instance override rows", () => {
         newId: workspace.newId,
       }),
     );
-    workspace.execute(
+    // ADR-279: the definition owns the tile; the instance in its place is the element.
+    const instance = workspace.execute(
       catalogComponentCommands.create(
         "project:node:tile" as NodeId,
         "Tile",
         workspace.newId,
       ),
-    );
-    const graph = workspace.runtime.graph;
-    // ADR-260: the tile stays as the origin; its copy is an instance.
-    const instance = workspace.execute(
-      duplicateNodes({
-        ids: ["project:node:tile" as NodeId],
-        newId: workspace.newId,
-      }),
     ).plan.selectAfter![0]!;
+    const graph = workspace.runtime.graph;
     const record = workspace.root.recordsOfSource(instance)[0]!;
     const child = workspace.root.domInputs.get(record)!.children[0]!;
     const target = workspace.itemOfRecord(child)!.target;
@@ -311,7 +305,7 @@ describe("ADR-248 4e-8 instance override rows", () => {
       origin.getByRole("button", { name: "Select instances (1)" }),
     ).toBeTruthy();
     // Dissolving is the origin's (user 2026-10-14) — the instance above has no such button.
-    expect(origin.getByRole("button", { name: "Detach component" })).toBeTruthy();
+    expect(origin.getByRole("button", { name: "Delete component" })).toBeTruthy();
     origin.unmount();
   });
 
@@ -332,20 +326,15 @@ describe("ADR-248 4e-8 instance override rows", () => {
         newId: workspace.newId,
       }),
     );
-    workspace.execute(
+    // ADR-279: the definition owns the tile; the instance in its place is the element.
+    const instance = workspace.execute(
       catalogComponentCommands.create(
         "project:node:tile" as NodeId,
         "Tile",
         workspace.newId,
       ),
-    );
-    const graph = workspace.runtime.graph;
-    const instance = workspace.execute(
-      duplicateNodes({
-        ids: ["project:node:tile" as NodeId],
-        newId: workspace.newId,
-      }),
     ).plan.selectAfter![0]!;
+    const graph = workspace.runtime.graph;
     const record = workspace.root.recordsOfSource(instance)[0]!;
     const child = workspace.root.domInputs.get(record)!.children[0]!;
     const target = workspace.itemOfRecord(child)!.target;
@@ -399,19 +388,13 @@ describe("ADR-248 4e-8 instance override rows", () => {
         newId: workspace.newId,
       }),
     );
-    workspace.execute(
+    // ADR-279: the definition owns the pair; the instance in its place is the element.
+    const instance = workspace.execute(
       catalogComponentCommands.create(
         "project:node:pair" as NodeId,
         "Pair",
         workspace.newId,
       ),
-    );
-    // ADR-260: the pair stays as the origin; its copy is an instance.
-    const instance = workspace.execute(
-      duplicateNodes({
-        ids: ["project:node:pair" as NodeId],
-        newId: workspace.newId,
-      }),
     ).plan.selectAfter![0]!;
     const record = workspace.root.recordsOfSource(instance)[0]!;
     const targets = workspace.root.domInputs

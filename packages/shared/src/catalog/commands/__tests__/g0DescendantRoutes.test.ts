@@ -267,8 +267,10 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
       ["card", "moved"],
     );
     run(graph, createComponent({ id: id("card"), name: "Card", newId }));
-    // (ADR-260: the card stays as the origin, as in the old app; an instance of it follows.)
+    // (ADR-279: the definition owns the card; the instance in its place keeps the old app's
+    // "origin" position in the root order — an instance of it follows.)
     const definitionId = graph.definitionOfTemplateRoot(id("card"))!;
+    const inPlace = pageChildren(graph)[0]!;
     const instance = id("inst");
     run(
       graph,
@@ -292,12 +294,12 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
     );
     const slotTexts = () =>
       ofType(graph, instance, "Text").map((item) => item.props.children);
-    return { graph, newId, instance, slot, slotTexts };
+    return { graph, newId, instance, inPlace, slot, slotTexts };
   };
 
   it("structural-order: a page insert between the instance and a later root keeps the slot fill", () => {
     const old = routeOutput("structural");
-    const { graph, newId, instance, slotTexts } = slotComponent();
+    const { graph, newId, instance, inPlace, slotTexts } = slotComponent();
     run(
       graph,
       insertNodes({
@@ -308,12 +310,12 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
         newId,
       }),
     );
-    // ADR-260: the origin stands on the page as in the old app (the 2026-09-30 model differed).
+    // ADR-279: the instance in the node's place holds the old app's "origin" position.
     expect(
       pageChildren(graph).map((child) =>
         child === instance
           ? "adr248-instance"
-          : child === id("card")
+          : child === inPlace
             ? "adr248-origin"
             : `adr248-${child.slice(13)}`,
       ),

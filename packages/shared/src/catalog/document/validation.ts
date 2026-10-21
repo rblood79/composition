@@ -1142,7 +1142,6 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "bindingId",
           "templateRootId",
           "usage",
-          "originRef",
           "properties",
         ],
         "entry",
@@ -1169,14 +1168,6 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         (item.mode === "composite") === (item.bindingId !== undefined)
       )
         invalid("DEFINITION_EXECUTION_EXCLUSIVE", "entry");
-      // ADR-260: a component's template root may be a node it references (the origin in place) —
-      // never a layout's (a page body instance fills it), and only a composite has a root.
-      if (item.originRef !== undefined) {
-        if (typeof item.originRef !== "boolean")
-          invalid("INVALID_ORIGIN_REF", "entry.originRef");
-        if (item.usage === "layout" || item.templateRootId === undefined)
-          invalid("ORIGIN_REF_NOT_COMPONENT", "entry.originRef");
-      }
       if (item.properties !== undefined) {
         // ADR-261 Decision 4: a component's properties (a composite component, not a layout).
         if (item.mode !== "composite" || item.usage === "layout")

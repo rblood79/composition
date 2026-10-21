@@ -252,12 +252,9 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
   it("an instance shows its component's values under its own (the old origin baseline)", async () => {
     const { workspace, graph, host } = await open();
     host.updateStyles({ paddingTop: "12px", width: "200px" });
-    workspace.execute(
-      catalogComponentCommands.create(BOX, "Tile", workspace.newId),
-    );
-    // ADR-260: the box stays as the origin; its copy is an instance.
+    // ADR-279: the definition owns the box; the instance in its place.
     const instance = workspace.execute(
-      duplicateNodes({ ids: [BOX], newId: workspace.newId }),
+      catalogComponentCommands.create(BOX, "Tile", workspace.newId),
     ).plan.selectAfter![0]!;
     expect(instance).not.toBe(BOX);
     expect((graph.getEntry(instance) as NodeEntry).definitionId).toMatch(

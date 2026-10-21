@@ -415,13 +415,14 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(steps()).toBe(before + 1);
     expect(definitions()).toBe(count + 1);
 
-    // ADR-260: the element is now the component's origin — ⌘⌥K detaches the component again
-    // (pen.dev's toggle); the element stays.
+    // ADR-279: the instance that took the element's place is selected — ⌘⌥K on it offers
+    // Create component again (a component of the instance), not dissolve.
     const selected = workspace.session.getSnapshot().selection[0]!;
-    expect(selected.target).toEqual({ kind: "node", id: id("a") });
+    expect(selected.target.kind).toBe("node");
+    expect(selected.target).not.toEqual({ kind: "node", id: id("a") });
     workspace.selectRecords([selected.identity]);
     expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
-      "componentAction.detachComponent",
+      "componentAction.createComponent",
     );
   });
 

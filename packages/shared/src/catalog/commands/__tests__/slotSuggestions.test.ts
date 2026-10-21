@@ -35,7 +35,6 @@ const definition = (name: string, root: string): DefinitionEntry => ({
   visual: {},
   stateRules: {},
   templateRootId: id(root),
-  originRef: true,
 });
 const CARD = "project:definition:Card" as const;
 const CHIP = "project:definition:Chip" as const;
@@ -49,7 +48,7 @@ function fixture() {
   ];
   return graphOf(
     nodes,
-    ["root", "chip"],
+    [],
     [definition("Card", "root"), definition("Chip", "chip")],
   );
 }
@@ -153,7 +152,7 @@ describe("ADR-261 Phase 3 review — a slot copy that suggests its own component
         node("chip", SECTION),
         node("ci", CHIP),
       ],
-      ["root", "chip", "ci"],
+      ["ci"],
       [definition("Card", "root"), definition("Chip", "chip")],
     );
     suggest(graph, [CHIP]);

@@ -6,7 +6,7 @@ import {
   serializeCatalogClipboard,
 } from "../clipboardText";
 
-/** ADR-260 Decision 13 — the system clipboard text carries the paste's origin facts. */
+/** ADR-260 Decision 13 (ADR-279: no `origins`) — the system clipboard text carries the paste's facts. */
 describe("ADR-260 clipboard text", () => {
   const node = {
     kind: "node",
@@ -22,7 +22,6 @@ describe("ADR-260 clipboard text", () => {
     rootIds: ["project:node:a"],
     entries: [node],
     sourceProjectId: "project:project:p",
-    origins: { "project:node:a": "project:definition:d" },
     definitions: [node],
     tokens: [
       {
@@ -36,11 +35,11 @@ describe("ADR-260 clipboard text", () => {
     ],
   };
 
-  it("round-trips the source project, origins, definitions and tokens", () => {
+  it("round-trips the source project, definitions and tokens", () => {
     expect(parseCatalogClipboard(serializeCatalogClipboard(full))).toEqual(full);
   });
 
-  it("reads an older copy without them, and drops a malformed field", () => {
+  it("reads an older copy without them, and drops a malformed field (an ADR-260 `origins` too)", () => {
     const old = { rootIds: full.rootIds, entries: full.entries };
     expect(
       parseCatalogClipboard(CATALOG_CLIPBOARD_PREFIX + JSON.stringify(old)),
@@ -48,7 +47,11 @@ describe("ADR-260 clipboard text", () => {
     expect(
       parseCatalogClipboard(
         CATALOG_CLIPBOARD_PREFIX +
-          JSON.stringify({ ...old, origins: [1], tokens: "x" }),
+          JSON.stringify({
+            ...old,
+            origins: { "project:node:a": "project:definition:d" },
+            tokens: "x",
+          }),
       ),
     ).toEqual(old);
   });

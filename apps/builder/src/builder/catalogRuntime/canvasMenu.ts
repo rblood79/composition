@@ -1,6 +1,7 @@
 import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import { LayoutPanelTop, Maximize, Percent } from "lucide-react";
 import {
+  componentOriginOf,
   copyNodes,
   duplicateNodes,
   groupNodes,
@@ -8,8 +9,8 @@ import {
   pasteNodes,
   removeTargets,
   reorderReadsIndex,
-  ungroupNodes,
   type CatalogClipboard,
+  ungroupNodes,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
@@ -43,9 +44,10 @@ import {
   catalogComponentState,
 } from "./componentActions";
 import {
-  confirmCatalogPush,
   confirmCatalogDetach,
   confirmCatalogDissolve,
+  confirmCatalogPush,
+  promptCatalogComponentName,
 } from "./componentConfirm";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogParentOfNode } from "./insertParent";
@@ -370,11 +372,16 @@ export function catalogCanvasMenuItems(
         ),
       );
   }
+  // ADR-279 Decision 7: ⌘D on a component's origin (the Local page's ◆) makes a new component.
+  const duplicatedOrigin =
+    ids.length === 1 ? componentOriginOf(host.graph, ids[0]!) : undefined;
   items.push(
     ...action(
       "duplicate",
       "contextMenu.duplicate",
-      duplicateNodes({ ids, newId: host.newId, placement: COPY_OFFSET }),
+      duplicatedOrigin
+        ? catalogComponentCommands.duplicate(duplicatedOrigin, host.newId)
+        : duplicateNodes({ ids, newId: host.newId, placement: COPY_OFFSET }),
       "duplicate",
       ACTION_ICONS.duplicate,
     ),
@@ -626,17 +633,6 @@ export function catalogCanvasMenuItems(
       ),
     );
   }
-  // ADR-260 Decision 6: the component's origin was deleted — put it back beside this instance.
-  if (origin?.restorable)
-    component.push(
-      ...action(
-        "restore-origin",
-        "componentAction.restoreOrigin",
-        catalogComponentCommands.restore(ids[0]),
-        undefined,
-        ACTION_ICONS.restoreOrigin,
-      ),
-    );
   const detachable = ids.find((_, index) => states[index].instanceOf);
   if (detachable)
     component.push(
@@ -654,7 +650,7 @@ export function catalogCanvasMenuItems(
     component.push(
       ...action(
         "toggle-component-origin",
-        "componentAction.detachComponent",
+        "componentAction.deleteComponent",
         catalogComponentCommands.dissolve(ownOrigin.definitionId, host.newId),
         "toggleComponentOrigin",
         ACTION_ICONS.detach,
@@ -674,15 +670,22 @@ export function catalogCanvasMenuItems(
         (node.name ||
           definitionTypeName(host.graph, node.definitionId as DefinitionId))) ||
       "Component";
+    // ADR-279 Decision 3a: the name is asked first (the dialog; none = this default).
+    const nodeId = ids[0]!;
     component.push(
       ...action(
         "toggle-component-origin",
         "componentAction.createComponent",
-        catalogComponentCommands.create(ids[0], name, host.newId),
+        catalogComponentCommands.create(nodeId, name, host.newId),
         "toggleComponentOrigin",
         ACTION_ICONS.createComponent,
         false,
-        undefined,
+        () =>
+          void promptCatalogComponentName(name, (typed) =>
+            host.execute(
+              catalogComponentCommands.create(nodeId, typed, host.newId),
+            ),
+          ),
         true,
       ),
     );

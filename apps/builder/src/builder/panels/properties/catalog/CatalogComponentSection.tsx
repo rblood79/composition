@@ -3,6 +3,7 @@ import { Button as RACButton } from "react-aria-components/Button";
 import { Diamond } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
+  EntryId,
   CatalogReader,
   DefinitionId,
   EditTarget,
@@ -23,6 +24,7 @@ import {
   confirmCatalogDetach,
   confirmCatalogDissolve,
   confirmCatalogPush,
+  promptCatalogComponentName,
 } from "../../../catalogRuntime/componentConfirm";
 import { catalogPropertiesPatchCommand } from "../../../catalogRuntime/editContract";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
@@ -32,6 +34,7 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import {
+  renameDefinition,
   resetOverrideField,
   resetReplacement,
   setFields,
@@ -40,6 +43,7 @@ import {
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import { useToastStore } from "../../../stores/toast";
 import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyInput } from "../../../components/property/PropertyInput";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
@@ -319,8 +323,25 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
         (node.name ||
           graph.getDefinition(node.definitionId as DefinitionId)?.name)) ||
       t("componentAction.createComponent");
-    run(catalogComponentCommands.create(nodeId, name, workspace.newId));
+    // ADR-279 Decision 3a: the name is asked first (the dialog; none = this default).
+    void promptCatalogComponentName(name, (typed) =>
+      run(catalogComponentCommands.create(nodeId, typed, workspace.newId)),
+    );
   }, [graph, nodeId, run, t, workspace]);
+  // ADR-279 Decision 3b: the origin's name (the Local page card's title) is edited here too.
+  const rename = useCallback(
+    (name: string) => {
+      if (!originOf?.project || name.trim() === originOf.name) return;
+      run(
+        renameDefinition({
+          id: originOf.definitionId as EntryId<"definition">,
+          name,
+          label: "Rename component",
+        }),
+      );
+    },
+    [originOf, run],
+  );
   // Detach and dissolve ask first (the old component confirmation dialog).
   const detach = useCallback(() => {
     if (!nodeId) return;
@@ -484,6 +505,16 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           </div>
         )
       )}
+      {originOf?.project && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            key={originOf.definitionId}
+            label={t("componentAction.componentName")}
+            value={originOf.name}
+            onChange={rename}
+          />
+        </div>
+      )}
       <div className="fieldset-row">
         <div className="component-semantics-strip">
           {instanceOf && (
@@ -504,20 +535,6 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 />
               </RACButton>
             </ActionTooltipTrigger>
-          )}
-          {/* ADR-260 Decision 6: the component's origin was deleted — put it back beside this
-              instance (Figma 「Restore main component」). */}
-          {instanceOf?.restorable && nodeId && (
-            <RACButton
-              className="control-button"
-              onPress={() => run(catalogComponentCommands.restore(nodeId))}
-            >
-              <ACTION_ICONS.restoreOrigin
-                aria-hidden="true"
-                size={iconProps.size}
-              />
-              {t("componentAction.restoreOrigin")}
-            </RACButton>
           )}
           {instanceOf && nodeId && (
             <ActionTooltipTrigger
@@ -560,8 +577,8 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
               Detach instance (user 2026-10-14: a second detach after Create component). */}
           {originOf?.project && (
             <RACButton className="control-button" onPress={dissolve}>
-              <ACTION_ICONS.detach aria-hidden="true" size={iconProps.size} />
-              {t("componentAction.detachComponent")}
+              <ACTION_ICONS.delete aria-hidden="true" size={iconProps.size} />
+              {t("componentAction.deleteComponent")}
             </RACButton>
           )}
           {!originOf && nodeId && (

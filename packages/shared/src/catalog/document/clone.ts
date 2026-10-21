@@ -14,9 +14,9 @@ import { CatalogValidationError } from "./validation";
 
 /**
  * Clones owned records only. Definition, library and external data references remain IDs.
- * `asInstance` (ADR-260 Decision 8): a node it names a definition for (a component origin) is
- * copied as an instance of that definition — a node of its own with no subtree, at the origin's
- * position (its authored absolute `layout` keys — ADR-275).
+ * `instanceOf` (ADR-279 Decision 7 — a paste of a component's origin): a node it names a
+ * definition for is copied as an instance of that definition — a node of its own with no subtree,
+ * at the node's position (its authored absolute `layout` keys — ADR-275).
  */
 export function cloneNodeSubgraph(
   graph: Pick<CatalogReader, "getEntry" | "referrersOf">,
@@ -25,7 +25,7 @@ export function cloneNodeSubgraph(
   allocateRelatedId?: (
     oldId: EntryId<"stateVariable"> | EntryId<"interaction">,
   ) => EntryId<"stateVariable"> | EntryId<"interaction">,
-  asInstance?: (id: NodeId) => DefinitionId | undefined,
+  instanceOf?: (id: NodeId) => DefinitionId | undefined,
 ): {
   rootId: NodeId;
   entries: readonly NodeEntry[];
@@ -50,7 +50,7 @@ export function cloneNodeSubgraph(
     cloned.set(id, next);
     allocated.add(next);
     const node = read(id);
-    const definitionId = asInstance?.(id);
+    const definitionId = instanceOf?.(id);
     if (definitionId) {
       instanced.set(id, definitionId);
       ordered.push(node);

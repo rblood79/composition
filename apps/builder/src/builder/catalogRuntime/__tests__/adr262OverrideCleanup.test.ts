@@ -27,6 +27,7 @@ import {
 } from "../componentConfirm";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
+import { PROJECT_COMPONENTS_VIEW } from "../originView";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 import {
@@ -88,22 +89,14 @@ async function open() {
       newId,
     }),
   );
-  workspace.execute(
+  // ADR-279: the definition owns the card; the instance in its place is I, a duplicate of it J.
+  const I = workspace.execute(
     createComponent({ id: id("card"), name: "Card", newId: workspace.newId }),
-  );
+  ).plan.selectAfter![0]! as NodeId;
   const graph = workspace.runtime.graph;
-  const instanceOf = (ids: readonly string[]) =>
-    ids.filter((item) => item !== id("card")) as NodeId[];
-  workspace.execute(
-    duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
-  );
-  const [I] = instanceOf([...graph.instancesOf(definitionOf())]);
-  workspace.execute(
-    duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
-  );
-  const J = instanceOf([...graph.instancesOf(definitionOf())]).find(
-    (item) => item !== I,
-  )!;
+  const J = workspace.execute(
+    duplicateNodes({ ids: [I], newId: workspace.newId }),
+  ).plan.selectAfter![0]! as NodeId;
   function definitionOf() {
     return graph.definitionOfTemplateRoot(id("card"))!;
   }
@@ -153,12 +146,15 @@ describe("ADR-262 Phase 2 — Builder push · reset all", () => {
     );
     expect(items).toContain("push-changes");
     expect(items).toContain("reset-all-changes");
+    // The origin is drawn on the Local page (ADR-279).
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
     workspace.selectRecords([record(id("card"))]);
     const origin = ids(
       catalogCanvasMenuItems(host, "canvas-element", record(id("card"))),
     );
     expect(origin).not.toContain("push-changes");
     expect(origin).not.toContain("reset-all-changes");
+    workspace.showDefinition(undefined);
     expect(catalogOverrideCleanupTarget(graph, I)).toMatchObject({
       id: I,
       name: "Card",

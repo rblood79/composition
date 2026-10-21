@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-21 ADR-279 Accepted · Phase 0 ~ 3 종결 (G5 사용자 확인 대기)**: 사용자 `/execute-adr 279` + 리뷰 Round 2 pending 0 (HIGH 2 fixed) 로 Accepted. Phase 0 — ADR-260 기계 inventory (8 · 17 · 12 파일, 추정과 같음) · Local ◆ 셀 편집 probe 6/6 통과 (막는 guard 없음 → R1 LOW) · 저장 주소 holder 4 + property target 1. Phase 1 — `originRef` 삭제 · contract 46 · `createComponent` = 소유 template + 그 자리 instance + 층별 위치 이전 + 중첩 주소 재작성 · `dissolveComponent` = 전부 detach + template 삭제 · `duplicateDefinition` · Restore · 숨은 template · clipboard origins 삭제 (새 테스트 14, 원복 RED 5/5). Phase 2 — 이름 대화상자 (bus + host, 입구 3) · Local 카드 헤더 (제목 더블클릭 rename · × Delete component) · Component 절 Component name 칸 + 「Delete component」 · ◆ ⌘D = 새 컴포넌트 · Go to component = 항상 Local page. Phase 3 — live 7/7 (「ADR279」, ADR-278 Dialog 흐름 Preview 포함). 사용자 결정 4 모두 기본안. type-check 6/6 · shared 1691 · builder 6154 통과 (기존 실패 12 + 2). 열림 5 (Proposed 1 · Accepted 4), 완료 296, 합계 301.
+
 > **2026-10-04 ADR-252 Implemented**: 사용자 G5 확인 「확인했어」 — Design 패널 (탭 5 · 최소 폭 233) · 속성 · 스타일 동시 표시 손실 수용. live 22/22. 열림 −1, 완료 +1 (열림 6 — Proposed 5 · Accepted 1, 합계 279).
 >
 > **2026-10-04 ADR-252 Accepted**: 사용자 `/execute-adr 252` — 리뷰 round 1 종결 (HIGH 0 · pending 0) 상태에서 구현 착수. P0 ~ P3 구현, G0 ~ G3 통과 (live 24/24). G4 는 사용자 판정으로 통과 — ratchet A등급 +2 (RAC tabpanel 접근성 `tabIndex`) 상한 올림 (만료 2027-04-04). 같은 날 Modified 탭 제거 (사용자 판정) → 탭 5 · 최소 폭 233 유지 · initial JS gzip −59 B. G5 사용자 확인 전. 열림 7 (Proposed 5 · Accepted 2), 합계 279.
@@ -431,6 +433,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [279](279-component-origin-on-local-page.md) — Create component: 원본은 Local page 로 · 그 자리는 instance · 이름 · rename · 카드 삭제
+
+- **상태**: Accepted — 2026-10-21 (`/execute-adr 279` · 리뷰 Round 1 HIGH 2 수리 · Round 2 pending 0) — Phase 0 ~ 3 종결 (G0 ~ G4 · live 7/7), **G5 사용자 Builder 확인 대기** ([reviews/279](reviews/279.md) · 「ADR279」 프로젝트가 dashboard 에 있음)
+- **규모**: Phase 0 inventory (ADR-260 기계 8 + 17 + 12 파일 · Local page ◆ 셀 편집 RED 7 조작 · 5 도구 이름 oracle · 소유권 이전 fixture 3) → Phase 1 모델 · 명령 (`originRef` 제거 · contract 46 · `createComponent` = 소유 template + 그 자리 instance · `dissolveComponent` · `duplicateDefinition` · `restoreOrigin` · `keepRemovedOrigins` · `asInstance` · clipboard `origins` 삭제) → Phase 2 Builder (이름 대화상자 · 카드 제목 · Component 절 · Navigator rename · 카드 삭제 버튼 · ◆ 셀 전 범위 편집 · Go to component = Local page) → Phase 3 live (「ADR279」 프로젝트 · ADR-278 흐름 포함) → Phase 4 문서 (260 superseded-in-part · 278 재기술 · 규칙 줄). 사용자 결정 4. 추정 35 파일. G0 ~ G5. breakdown: [design/279](design/279-component-origin-on-local-page-breakdown.md)
+
 #### [275](275-position-section-figma-rules-framer-fields-layout-insets.md) — Position 절: Figma 규칙 + Framer 칸 배치, 저장은 layout inset
 
 - **상태**: Accepted — Phase 0 ~ 4 · 6 (sticky) · 7 (fixed) 종결 · Phase 5 live 통과 (2026-10-20) — G5 · G6 대기
@@ -478,6 +485,7 @@
 |  1   | [275](275-position-section-figma-rules-framer-fields-layout-insets.md)                         | Accepted 2026-10-19 — Phase 0 ~ 4 · 6 · 7 종결 · 5 live 통과                      | G5 (커밋 뒤 pre-push ratchet · 번들) · G6 사용자 패널 확인 → Implemented                                                                              |
 |  2   | [276](276-button-text-child-iconbutton-merge.md)                                               | Accepted 2026-10-20 — Phase 0 ~ 3 구현 + live G3, G5 (사용자 확인) 대기           | G5 사용자 확인 → Implemented                                                                                                                          |
 |  3   | [278](278-overlay-body-slot-local-component.md)                                                | Accepted 2026-10-21 — Phase 0 ~ 3 종결 · live 7/7 (사용자 결정 4 확정)            | G5 사용자 Builder 확인 (「ADR278」 프로젝트 · Library page 카드 5) → Implemented · Phase 0 RED 2 (slot 내용의 Preview DOM · Library page 본체 그리기) |
+|  4   | [279](279-component-origin-on-local-page.md)                                                   | Accepted 2026-10-21 — Phase 0 ~ 3 종결 · G5 대기                                   | 사용자 Builder 확인 (「ADR279」 프로젝트) → Implemented · Phase 4 문서 (260 superseded-in-part · 278 재기술 · 규칙 줄). contract 46 이라 「ADR278」 프로젝트는 이미 열리지 않는다 (278 G5 는 「ADR279」 의 Dialog 흐름으로 갈음 가능) |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                        |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                                                           |

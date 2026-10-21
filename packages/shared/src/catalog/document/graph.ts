@@ -89,11 +89,9 @@ export function tokenRefs(value: unknown, target: Set<string>): void {
 }
 export function ownedChildren(entry: CatalogEntry): NodeId[] {
   if (entry.kind === "page") return [...entry.children];
-  // ADR-260: a definition owns its template root unless it references it (the origin in place).
+  // A definition owns its template root (ADR-279 — a component's origin lives on the Local page).
   if (entry.kind === "definition")
-    return entry.templateRootId && entry.originRef !== true
-      ? [entry.templateRootId]
-      : [];
+    return entry.templateRootId ? [entry.templateRootId] : [];
   if (entry.kind !== "node") return [];
   const ids = [...entry.children];
   for (const override of entry.descendantOverrides) {
@@ -649,10 +647,7 @@ export class CatalogGraph {
   referrersOf(id: string): ReadonlySet<string> {
     return this.refIndex.get(id) ?? new Set();
   }
-  /**
-   * ADR-260: the project definition whose template root `id` is — owned (a definition's template)
-   * or referenced (a component origin in place on a page). The reverse of `templateRootId`.
-   */
+  /** The project definition whose template root `id` is (the reverse of `templateRootId`). */
   definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined {
     const found = this.templateIndex.get(id);
     return found
@@ -1099,16 +1094,6 @@ export class CatalogGraph {
         this.validateStateTokenRules(entry.stateRules, get, entry.id);
       }
       if (entry.kind === "definition") {
-        // ADR-260: a referenced origin is a node (its owner is checked like any node's).
-        if (
-          entry.originRef === true &&
-          entry.templateRootId &&
-          get(entry.templateRootId)?.kind !== "node"
-        )
-          throw new CatalogValidationError(
-            "DANGLING_TEMPLATE",
-            entry.templateRootId,
-          );
         this.validatePropValues(entry.defaults, entry.accepts, entry.id);
         this.validateTokenFields(entry.defaults, entry.accepts, get, entry.id);
         this.validateTokenFields(entry.visual, undefined, get, entry.id);

@@ -163,11 +163,7 @@ const pickerList = (owner: NodeId): InstanceAddress => ({
   templatePath: ["lib:template:pickRoot", "lib:template:list"],
 });
 
-const shapes = [
-  ["referenced origin on a page", { originRef: true }, true],
-  ["hidden template (deleted origin)", { originRef: false }, false],
-  ["owned template (old shape)", {}, false],
-] as const;
+const shapes = [["owned template", {}, false]] as const;
 
 /**
  * Component `comp`: origin R (Section, color black · mobile blue) > T (Text, color black · mobile
@@ -356,7 +352,7 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
   );
 
   it("row 4 alone (Round 2 h1): black / red / red on every instance", () => {
-    const graph = fixture({ originRef: true }, true, {
+    const graph = fixture({}, false, {
       descendantOverrides: [
         {
           kind: "patch",
@@ -376,7 +372,7 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
   });
 
   it("row 18 alone (Round 1 h1-2): the nested tablet layer stays masked after the push", () => {
-    const graph = fixture({ originRef: true }, true, {
+    const graph = fixture({}, false, {
       descendantOverrides: [
         {
           kind: "patch",
@@ -397,7 +393,7 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
   });
 
   it("row 7 alone: the instance's base fill sizing masks the origin's tablet layer — cleared", () => {
-    const graph = fixture({ originRef: true }, true, {
+    const graph = fixture({}, false, {
       fillSizing: { width: { factor: 1 } },
     });
     const before = displays(graph, I);
@@ -410,7 +406,7 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
   });
 
   it("row 1 · 2: a root prop and a component property value land on the nodes they drive", () => {
-    const graph = fixture({ originRef: true }, true, {});
+    const graph = fixture({}, false, {});
     run(
       graph,
       addComponentProperty({
@@ -450,8 +446,8 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
       props: { children: set("Own") },
     });
     const graph = fixture(
-      { originRef: true },
-      true,
+      {},
+      false,
       {
         descendantOverrides: [
           {
@@ -504,14 +500,14 @@ describe("ADR-262 G1 — push instance overrides onto the origin", () => {
   });
 
   it("refuses a node that is no instance", () => {
-    const graph = fixture({ originRef: true }, true, {});
+    const graph = fixture({}, false, {});
     expect(
       code(() => pushInstanceOverrides({ id: T, newId: allocator() })(graph)),
     ).toBe("NOT_AN_INSTANCE");
   });
 
   it("nested address rebases to the inner owner (the projection reads both at one position)", () => {
-    const graph = fixture({ originRef: true }, true, everyOverride(I));
+    const graph = fixture({}, false, everyOverride(I));
     const found = overridesAt(
       (id) => graph.getEntry(id),
       graph.getEntry(I) as NodeEntry,
@@ -590,7 +586,7 @@ describe("ADR-262 G2 — reset all changes", () => {
   );
 
   it("folds a swapped nested instance back (ADR-261 Phase 5 value)", () => {
-    const graph = fixture({ originRef: true }, true, {});
+    const graph = fixture({}, false, {});
     run(
       graph,
       addComponentProperty({
@@ -627,9 +623,12 @@ describe("ADR-262 G2 — reset all changes", () => {
     // replacement until the outer folds back, then it is the instance's own — one reset drops both.
     const id = (name: string) => `project:node:${name}` as NodeId;
     const def = (name: string, root: string) =>
-      definition(`project:definition:${name}` as DefinitionEntry["id"], name, id(root), {
-        originRef: true,
-      });
+      definition(
+        `project:definition:${name}` as DefinitionEntry["id"],
+        name,
+        id(root),
+        {},
+      );
     const graph = graphOf(
       [
         text("a", "A"),
@@ -643,7 +642,7 @@ describe("ADR-262 G2 — reset all changes", () => {
         node("ci", "project:definition:Card"),
         node("cj", "project:definition:Card"),
       ],
-      ["a", "b", "star", "heart", "card", "ci", "cj"],
+      ["ci", "cj"],
       [
         def("A", "a"),
         def("B", "b"),
@@ -701,7 +700,7 @@ describe("ADR-262 G2 — reset all changes", () => {
   });
 
   it("refuses a node that is no instance", () => {
-    const graph = fixture({ originRef: true }, true, {});
+    const graph = fixture({}, false, {});
     expect(code(() => resetInstance({ id: T })(graph))).toBe("NOT_AN_INSTANCE");
   });
 });
