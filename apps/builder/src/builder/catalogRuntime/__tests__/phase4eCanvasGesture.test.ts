@@ -458,6 +458,170 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     });
   });
 
+  it.each([
+    ["left", 0, 0.5, -20, 0],
+    ["top", 0.5, 0, 0, -20],
+    ["right", 1, 0.5, 20, 0],
+    ["bottom", 0.5, 1, 0, 20],
+    ["top-left", 0, 0, -20, -20],
+    ["top-right", 1, 0, 20, -20],
+    ["bottom-left", 0, 1, -20, 20],
+    ["bottom-right", 1, 1, 20, 20],
+  ] as const)(
+    "%s resize previews the live flow box and commits the same bounds",
+    async (_handle, fx, fy, dx, dy) => {
+      const { workspace, scene, gestures, record, box } = await open();
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: id("box") }],
+          sizing: {
+            width: { kind: "set", value: 200 },
+            height: { kind: "set", value: 160 },
+          },
+        }),
+      );
+      scene.sync();
+      workspace.selectRecords([record("box")]);
+      const start = box("box");
+      const x = start.x + start.width * fx;
+      const y = start.y + start.height * fy;
+      expect(gestures.beginResize(x, y, 1)).toBe(true);
+      gestures.update(x + dx, y + dy, 1, { snap: false });
+      const live = box("box");
+      expect(live).toEqual({
+        ...start,
+        width: start.width + Math.abs(dx),
+        height: start.height + Math.abs(dy),
+      });
+      expect(gestures.preview()?.ghost).toEqual(live);
+      gestures.finish();
+      expect(box("box")).toEqual(live);
+      const entry = workspace.runtime.graph.getEntry(id("box"));
+      if (entry?.kind !== "node") throw new Error("missing resized node");
+      expect(entry.layout?.position).toBeUndefined();
+      expect(entry.layout?.insetLeft).toBeUndefined();
+      expect(entry.layout?.insetTop).toBeUndefined();
+      expect(entry.sizing.width).toEqual({ kind: "set", value: live.width });
+      expect(entry.sizing.height).toEqual({ kind: "set", value: live.height });
+      workspace.undo();
+      scene.sync();
+      expect(box("box")).toEqual(start);
+    },
+  );
+
+  it.each(["absolute", "ratio"] as const)(
+    "%s top-left resize previews the resolved box and cancel restores it",
+    async (mode) => {
+      const { workspace, scene, gestures, record, box } = await open();
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: id("box") }],
+          sizing: {
+            width: { kind: "set", value: 200 },
+            ...(mode === "absolute"
+              ? { height: { kind: "set" as const, value: 160 } }
+              : {}),
+          },
+          ...(mode === "ratio"
+            ? {
+                visual: {
+                  aspectRatio: { kind: "set" as const, value: "2 / 1" },
+                },
+              }
+            : {}),
+        }),
+      );
+      if (mode === "absolute")
+        workspace.execute(
+          placeAbsolute({ kind: "node", id: id("box") }, 80, 60),
+        );
+      scene.sync();
+      workspace.selectRecords([record("box")]);
+      const start = box("box");
+      const revision = workspace.runtime.graph.revision;
+      expect(gestures.beginResize(start.x, start.y, 1)).toBe(true);
+      gestures.update(start.x - 20, start.y - 20, 1, { snap: false });
+      const live = box("box");
+      expect(live).toEqual({
+        x: mode === "absolute" ? start.x - 20 : start.x,
+        y: mode === "absolute" ? start.y - 20 : start.y,
+        width: 220,
+        height: mode === "absolute" ? 180 : 110,
+      });
+      expect(gestures.preview()?.ghost).toEqual(live);
+      gestures.cancel();
+      expect(box("box")).toEqual(start);
+      expect(workspace.runtime.graph.revision).toBe(revision);
+    },
+  );
+
+  it("keeps existing relative offsets while resizing only the size", async () => {
+    const { workspace, scene, gestures, record, box } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: {
+          width: { kind: "set", value: 200 },
+          height: { kind: "set", value: 160 },
+        },
+        layout: {
+          position: { kind: "set", value: "relative" },
+          insetLeft: { kind: "set", value: "12px" },
+          insetTop: { kind: "set", value: "8px" },
+        },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("box")]);
+    const start = box("box");
+    expect(gestures.beginResize(start.x, start.y, 1)).toBe(true);
+    gestures.update(start.x - 20, start.y - 20, 1, { snap: false });
+    expect(gestures.preview()?.ghost).toEqual(box("box"));
+    expect(box("box")).toMatchObject({
+      x: start.x,
+      y: start.y,
+      width: 220,
+      height: 180,
+    });
+    gestures.finish();
+    const entry = workspace.runtime.graph.getEntry(id("box"));
+    if (entry?.kind !== "node") throw new Error("missing resized node");
+    expect(entry.layout?.insetLeft).toEqual({ kind: "set", value: "12px" });
+    expect(entry.layout?.insetTop).toEqual({ kind: "set", value: "8px" });
+  });
+
+  it("does not activate inert insets when resizing a flow box", async () => {
+    const { workspace, scene, gestures, record, box } = await open();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("box") }],
+        sizing: { height: { kind: "set", value: 160 } },
+        layout: {
+          insetLeft: { kind: "set", value: "50px" },
+          insetBottom: { kind: "set", value: "30px" },
+        },
+      }),
+    );
+    scene.sync();
+    workspace.selectRecords([record("box")]);
+    const start = box("box");
+    const x = start.x + start.width / 2;
+    expect(gestures.beginResize(x, start.y, 1)).toBe(true);
+    gestures.update(x, start.y - 20, 1, { snap: false });
+    expect(box("box")).toMatchObject({
+      x: start.x,
+      y: start.y,
+      height: 180,
+    });
+    gestures.finish();
+    const entry = workspace.runtime.graph.getEntry(id("box"));
+    if (entry?.kind !== "node") throw new Error("missing resized node");
+    expect(entry.layout?.position).toBeUndefined();
+    expect(entry.layout?.insetLeft).toEqual({ kind: "set", value: "50px" });
+    expect(entry.layout?.insetBottom).toEqual({ kind: "set", value: "30px" });
+    expect(entry.layout?.insetTop).toBeUndefined();
+  });
+
   it("resize and spacing drags reflow live — siblings move, the document and history do not; release commits that geometry, cancel puts it back", async () => {
     const { workspace, scene, gestures, record, box } = await open();
     const entry = (name: string) => {

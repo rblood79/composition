@@ -35,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Local page Layers 를 펼친 채 Delete component 하면 `CatalogValidationError DANGLING_CHILD` 로 Navigator 가 죽던 것** (사용자 보고 2026-10-21): Layers 의 카드 행 캐시가 page 가 다시 배치되기 전 step 알림에서 삭제된 ◆ 루트를 다시 읽었다 — 행 캐시는 문서 revision 과 같이 두고, page 재배치 (새 root) 뒤 Layers 를 다시 읽는다 (삭제 · undo 뒤 Layers 가 바로 맞는다).
 
+## [Canvas — top·left 리사이즈 선택박스 좌표 일치] - 2026-10-21
+
+### Fixed
+
+- **top·left 리사이즈의 선택박스가 실제 요소와 일치한다**: 일반 흐름 요소는 width·height만 기록해 부모 레이아웃이 정한 좌상단을 유지하고, live 미리보기는 엔진이 계산한 scene 상자를 사용한다. 기존 absolute 위치 제약은 유지한다.
+  - **Why**: 미리보기는 top·left 이동 시 반대쪽 변을 고정했지만, 일반 흐름 요소에는 크기만 기록해 실제 요소와 선택박스가 반대 방향으로 늘어났다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts`.
+  - 회귀: 8방향 flow 리사이즈의 미리보기·commit·undo와 위치 필드 불변, absolute·ratio top-left의 live 상자·cancel, Grid 스냅.
+
 ## [ADR-278 Phase 1 ~ 3 — 오버레이 본체 = slot · Menu Items 에 Local 컴포넌트 · Library page 본체 칸] - 2026-10-21
 
 ### Added

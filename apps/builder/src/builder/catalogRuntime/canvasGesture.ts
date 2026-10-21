@@ -1079,16 +1079,23 @@ export class CatalogCanvasGestures {
     if (gesture.kind === "resize") {
       const box = gesture.startBox;
       const { width = box.width, height = box.height } = gesture.request;
-      const x = gesture.handle.includes("left")
-        ? box.x + box.width - width
-        : box.x;
-      const y = gesture.handle.includes("top")
-        ? box.y + box.height - height
-        : box.y;
+      const x =
+        gesture.absolute && gesture.handle.includes("left")
+          ? box.x + box.width - width
+          : box.x;
+      const y =
+        gesture.absolute && gesture.handle.includes("top")
+          ? box.y + box.height - height
+          : box.y;
       const parentId = this.host.records.get(gesture.item.identity)?.parentId;
       const gridGuides = parentId ? this.gridCellsOfRecord(parentId) : [];
+      // Live reflow owns the box: flow placement, ratio and size constraints may differ from
+      // the requested rectangle. The selection and resize preview must use the same scene box.
+      const liveBox = this.host.reflow
+        ? this.host.bounds(gesture.item.identity)
+        : undefined;
       return {
-        ghost: { x, y, width, height },
+        ghost: liveBox ?? { x, y, width, height },
         ...(gridGuides.length ? { gridGuides } : {}),
       };
     }

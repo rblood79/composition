@@ -89,6 +89,8 @@ paths:
 
 ## 8.7 선택 박스 좌표계 — scene 단일계
 
+- **리사이즈 live reflow의 미리보기는 선택박스와 같은 scene bounds를 사용한다** (`canvasGesture.ts` `preview`). 일반 흐름 요소의 left/top 핸들은 크기만 기록하고 부모 레이아웃이 정한 좌상단을 유지한다. authored absolute 배치의 위치 제약과 Grid 셀 스냅은 별도 경로다. **Why (2026-10-21 실측)**: flow Section의 left/top을 40px 당기면 미리보기만 반대편 고정으로 이동하고 실제 요소는 부모 위치에서 늘어나 두 박스가 40px 어긋났다. ratio의 종속 크기도 요청값이 아니라 레이아웃 결과를 따른다.
+
 포인터 판정에 쓰이는 값은 **전부 scene 좌표**다. 클릭 좌표(`CatalogCanvas.tsx` `scenePoint` 결과 — `(client − rect − viewport) / zoom`), 히트 bounds(`getSceneHitBounds`), 선택 박스(`selectionBoxLeader`, `CatalogCanvas.tsx`) 셋이 같은 계여야 한다.
 
 - `getSceneBounds` 는 **이미 scene 좌표**를 반환한다. 여기에 `panOffset` 을 빼거나 `zoom` 으로 나누는 보정을 **추가하지 않는다**.
