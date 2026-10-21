@@ -9619,6 +9619,33 @@
       "on": "2026-10-21",
       "reason": "ADR-277 — app-pages fixture 의 TableView 가 Table starter (Column ×3 + Row) 로 바뀌어 (bdc6d3980) 문서가 커짐 · 같은 코드 2 pass 동일값 (lever3·4 재기준 측정)",
       "expires": "2027-04-21"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 250701,
+      "to": 264700,
+      "approvedBy": "rblood79",
+      "on": "2026-10-21",
+      "reason": "ADR-279 — 정의가 template 을 소유하므로 소유 색인 · 순환 검사가 정의마다 entry 하나를 더 읽는다",
+      "expires": "2027-04-22"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 94140,
+      "to": 98900,
+      "approvedBy": "rblood79",
+      "on": "2026-10-21",
+      "reason": "ADR-279 — 정의가 template 을 소유하므로 소유 색인 · 순환 검사가 정의마다 entry 하나를 더 읽는다",
+      "expires": "2027-04-22"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 390124,
+      "to": 411000,
+      "approvedBy": "rblood79",
+      "on": "2026-10-21",
+      "reason": "ADR-279 — 정의가 template 을 소유하므로 소유 색인 · 순환 검사가 정의마다 entry 하나를 더 읽는다",
+      "expires": "2027-04-22"
     }
   ],
   "recorderChanges": [

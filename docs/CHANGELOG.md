@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Go to component 는 항상 Local page** 로 열고 ◆ 루트를 선택한다. Local page 카드의 ◆ 는 page 노드와 같은 범위로 편집된다 (자식 · 순서 · sizing · breakpoint 층 · fill).
 - **Component 절 ORIGIN 「Detach component」 → 「Delete component」** (instance 전부 보통 노드로 + 정의 · template 삭제, 확인 대화상자).
 - 문서 contract 45 → **46** — `originRef` 필드 삭제. 옛 프로젝트는 열리지 않는다 (변환 없음 — 개발 단계 정책).
+- perf ratchet (ADR-246): `app-pages-images` 3 run 의 graph `getEntry` A 상한 올림 (+44 · +15 · +66 — 정의가 template 을 소유하므로 소유 색인 · 순환 검사가 정의마다 entry 하나를 더 읽는다, 사용자 승인 · 만료 2027-04-22).
 
 ### Added
 
