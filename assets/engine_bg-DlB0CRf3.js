@@ -1,0 +1,1 @@
+var e=`/composition/assets/engine_bg-DkmRYmp3.wasm`;export{e as t};
