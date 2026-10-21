@@ -354,7 +354,8 @@ describe("ADR-277 — one table type", () => {
   });
 
   it("raises the library contract to 44 — a 43 document is refused, not converted", async () => {
-    expect(LIBRARY_CONTRACT_VERSION).toBe(44);
+    // (ADR-278 raised it again, to 45 — the refusal of an older contract is the same.)
+    expect(LIBRARY_CONTRACT_VERSION).toBeGreaterThanOrEqual(44);
     const library = await buildCodeCatalogLibrary();
     const document = newCatalogProjectDocument({
       projectId: PROJECT,

@@ -4,3 +4,8 @@
   flex-wrap: wrap;
   gap: var(--spacing-xs);
 }
+
+/* The insert list's trigger — the Swap picker's chip, muted like an empty field. */
+.slot-fill-trigger {
+  color: var(--fg-muted);
+}

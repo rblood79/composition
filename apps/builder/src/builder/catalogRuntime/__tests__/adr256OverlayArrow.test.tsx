@@ -180,13 +180,23 @@ describe("ADR-256 Phase 8a — OverlayArrow node", () => {
       );
     const overlay = (root: string) =>
       REUSABLE_ORIGIN_TEMPLATES.find((node) => node.id === root)!.children[1]!;
+    // (ADR-278: after the arrow, the body is the `content` slot's region frame.)
     expect(children(overlay("lib:template:component-popover"))).toEqual([
       "lib:definition:type-OverlayArrow",
+      "lib:definition:type-frame",
+    ]);
+    const region = (root: string) =>
+      REUSABLE_ORIGIN_TEMPLATES.find((node) => node.id === overlay(root))!
+        .children[1]!;
+    expect(children(region("lib:template:component-popover"))).toEqual([
       "lib:definition:origin-component-heading",
       "lib:definition:origin-component-description",
     ]);
     expect(children(overlay("lib:template:component-tooltip"))).toEqual([
       "lib:definition:type-OverlayArrow",
+      "lib:definition:type-frame",
+    ]);
+    expect(children(region("lib:template:component-tooltip"))).toEqual([
       "lib:definition:origin-component-description",
     ]);
   });
@@ -221,8 +231,11 @@ describe("ADR-256 Phase 8a — OverlayArrow node", () => {
         <Button>Open Popover</Button>
         <Popover>
           <OverlayArrow>{arrowSvg(12)}</OverlayArrow>
-          <Heading>Popover Title</Heading>
-          <Text slot="description">Popover content goes here.</Text>
+          {/* ADR-278: the body is the `content` slot's region frame (a defined difference). */}
+          <div>
+            <Heading>Popover Title</Heading>
+            <Text slot="description">Popover content goes here.</Text>
+          </div>
         </Popover>
       </DialogTrigger>,
     );
@@ -252,7 +265,10 @@ describe("ADR-256 Phase 8a — OverlayArrow node", () => {
         <Button>Hover me</Button>
         <Tooltip>
           <OverlayArrow>{arrowSvg(8)}</OverlayArrow>
-          <Text slot="description">Tooltip text</Text>
+          {/* ADR-278: the body is the `content` slot's region frame (a defined difference). */}
+          <div>
+            <Text slot="description">Tooltip text</Text>
+          </div>
         </Tooltip>
       </TooltipTrigger>,
     );

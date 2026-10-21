@@ -889,6 +889,7 @@ const DESCENDANT_PATCH_FIELDS = [
   "fillSizing",
   "responsive",
   "visibility",
+  "displayState",
 ] as const;
 /** A `patch`'s (or a `fillSlot`'s own) field writes; true when it holds one. */
 function descendantPatchFields(
@@ -905,6 +906,11 @@ function descendantPatchFields(
     visibility(item.visibility, `${at}.visibility`);
   if (item.enabled !== undefined && typeof item.enabled !== "boolean")
     invalid("ENABLED_BOOLEAN", `${at}.enabled`);
+  if (
+    item.displayState !== undefined &&
+    !DISPLAY_STATE_NAMES.includes(item.displayState as DisplayStateName)
+  )
+    invalid("DISPLAY_STATE_UNKNOWN", `${at}.displayState`);
   if (item.props !== undefined) writes(item.props, `${at}.props`);
   if (item.visual !== undefined)
     writes(item.visual, `${at}.visual`, visualFields);

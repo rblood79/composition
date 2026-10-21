@@ -114,7 +114,7 @@ function scene(name: string) {
   const catalog: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 44,
+    libraryContractVersion: 45,
     revision: 0,
     projectId,
     rootId: projectId,

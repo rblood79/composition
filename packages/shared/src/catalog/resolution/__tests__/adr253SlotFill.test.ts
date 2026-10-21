@@ -337,7 +337,7 @@ describe("ADR-253 Phase 4 — library validation of a slot fill", () => {
     extra: LibraryTemplateNode[] = [],
   ) =>
     buildCatalogLibrary({
-      contractVersion: 44,
+      contractVersion: 45,
       revision: "adr253-slot-fill",
       bindingIds: ["box", "text"],
       actionOpCodes: [],

@@ -530,22 +530,30 @@ describe("ADR-248 4e library origin view", () => {
       chartTypes.map(() => 248),
     );
     expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
-    // A Menu draws its trigger button: its items are in the popover (not on the Canvas), so its
-    // box is its trigger's — the Button's metrics at the same size (padding, min width).
-    const menuRect = rectOf(
-      originSampleId(
-        "lib:definition:origin-component-menu" as LibraryDefinitionId,
-      ),
+    // A Menu's trigger button has the Button's metrics at the same size (padding, min width).
+    // ADR-278: the card draws the Menu's body (its Popover, open) beside the trigger, so the
+    // sample's box is wider and taller than the trigger's (the 2026-10-21 test checks the body).
+    const menuSample = originSampleId(
+      "lib:definition:origin-component-menu" as LibraryDefinitionId,
     );
+    const menuRect = rectOf(menuSample);
+    const [menuRecord] = workspace.root.recordsOfSource(menuSample);
+    const triggerRecord = workspace.root.canvasInputs.get(menuRecord!)!
+      .children[0]!;
+    const triggerRect = workspace.root
+      .getGeometry([triggerRecord])
+      .get(triggerRecord)!;
     const buttonRect = rectOf(
       originSampleId(
         "lib:definition:origin-component-button" as LibraryDefinitionId,
       ),
     );
-    expect([menuRect.width, menuRect.height]).toEqual([
+    expect([triggerRect.width, triggerRect.height]).toEqual([
       buttonRect.width,
       buttonRect.height,
     ]);
+    expect(menuRect.width).toBeGreaterThan(buttonRect.width);
+    expect(menuRect.height).toBeGreaterThan(buttonRect.height);
     const columns = nodeOf(ORIGIN_VIEW_NODE).children.map((id) => ({
       height: rectOf(id).height,
       last: rectOf(nodeOf(id).children.at(-1)!).height,
@@ -988,8 +996,8 @@ describe("ADR-248 4e library origin view", () => {
     // A picker's or an overlay's trigger is a Button held once, outside any slot: a part. Its
     // items (a Menu's, a Select's) are in a popup — no Item line (the Button card has the
     // states). Live 2026-10-21: 7 cards drew the Button's 5 states as their "Item".
+    // (ADR-278: a Menu's items are in its `Items` slot, drawn open on the card — an Item line.)
     for (const name of [
-      "Menu",
       "Select",
       "SearchField",
       "Dialog",
@@ -1002,7 +1010,7 @@ describe("ADR-248 4e library origin view", () => {
         expect.not.arrayContaining(["Item"]),
       ]);
     // Items held in a slot, or held more than once (a Pagination's buttons), stay items.
-    for (const name of ["Pagination", "Toolbar", "Tabs", "ListBox", "Nav"])
+    for (const name of ["Pagination", "Toolbar", "Tabs", "ListBox", "Nav", "Menu"])
       expect([name, rowsOf(name)]).toEqual([
         name,
         expect.arrayContaining(["Item"]),
@@ -1067,6 +1075,40 @@ describe("ADR-248 4e library origin view", () => {
     expect(
       ["Meter", "Menu", "Section", "AvatarGroup", "CardView"].map(categoryOf),
     ).toEqual(["content", "layout", "layout", "content", "layout"]);
+    // ADR-278 (user decision 2): an overlay origin's card draws its body open beside the
+    // trigger — the Origin line's ◆ trigger, then the Modal · Popover · Tooltip to its right,
+    // with a size; a picker's Popover (a Select's list) stays closed. The page's own instances
+    // and the page canvas keep every overlay closed (`adr278OverlayBodySlot`).
+    const overlayOf = (origin: string, type: string) => {
+      const sample = recordOf(originSampleId(lib(origin)));
+      const under = (id: string): string[] => [
+        id,
+        ...inputOf(id).children.flatMap(under),
+      ];
+      const id = under(sample).find(
+        (record) => workspace.root.typeOf(inputOf(record)) === type,
+      );
+      expect(id, `${origin}: no ${type}`).toBeDefined();
+      return id!;
+    };
+    for (const [origin, type] of [
+      ["dialog", "Modal"],
+      ["popover", "Popover"],
+      ["tooltip", "Tooltip"],
+      ["contextualhelp", "Popover"],
+      ["menu", "Popover"],
+    ] as const) {
+      const overlay = overlayOf(origin, type);
+      expect([origin, inputOf(overlay).hidden ?? false]).toEqual([origin, false]);
+      const sample = recordOf(originSampleId(lib(origin)));
+      const trigger = inputOf(sample).children[0]!;
+      const box = workspace.root.getGeometry([overlay, trigger]);
+      const body = box.get(overlay)!;
+      const button = box.get(trigger)!;
+      expect([origin, body.width > 0 && body.height > 0]).toEqual([origin, true]);
+      expect([origin, body.x >= button.x + button.width]).toEqual([origin, true]);
+    }
+    expect(inputOf(overlayOf("select", "Popover")).hidden).toBe(true);
     workspace.dispose();
   });
 });

@@ -35,6 +35,14 @@
   - (b) Components page 샘플에서 오버레이 자식 숨김을 끈 상태 (`displayState` 임시) 로 Popover · Modal · Tooltip · Menu 가 `canvasInputs` 에 record 로 서고 geometry 가 0 이 아닌지. 0 이면 Decision 4 「내용만」.
 - 결과를 이 절 아래 「Phase 0 결과」 에 적는다.
 
+### Phase 0 결과 (2026-10-21, `/execute-adr 278`)
+
+- **인벤토리 (실측)**: presence `catalogHiddenAtRest` (`presence.ts:729`, 닫힌 오버레이 분기 `:771-773` 은 무조건 — `DisplayStateName` 8종에 `open` 없음, descendant patch 도 displayState 를 못 쓴다) · resolver 의 slot 투영은 일반 경로 (오버레이 조건 0) · Layers 는 slot 행을 `frame[content]` 로 낸다 · `catalogSlotTarget` 은 descendant target 그대로 · `catalogSlotInsertOptions` free 분기는 Local 열거, `items` 분기는 Library 항목만 (`slots.ts:291-303`) · Canvas rule 은 Modal (archetype `overlay`) · Popover · Tooltip · Menu · Dialog · DialogFooter 전부 있다 (`componentRulesTable.ts`).
+- **RED (a) = GREEN 3/3** — `apps/builder/src/builder/catalogRuntime/__tests__/adr278OverlayBodySlot.test.ts` (Phase 0 는 `buildCatalogLibrary` 로 slot 선언을 메모리에서 적용한 fixture): Dialog `content` 채움 → canvasInputs record 가 숨은 Modal 아래 region 의 마지막 자식 · Preview Open Dialog 뒤 `.react-aria-Modal` 에 채운 글자 · Layers 사슬 `Modal > Dialog > frame[content] > Text` · 채움 목록에 Text + Local 「Confirm body」. **발견**: 놓는 순간 slot 기본 내용 (description) 이 instance 소유 노드가 되고 (2026-10-14 `ownSlotContents`) 채움은 그 뒤에 붙는다 — 「기본 채움 그대로」 의 실체는 소유 노드 사본, 「원본 내용 복원」 이 되돌린다. 수리 행 0.
+- **RED h2 = RED 1/1**: Menu `Items` 후보 = MenuItem · SubmenuTrigger … 6 (Library), MenuItem 루트 Local 「Menu row」 없음 → Phase 1 `slots.ts` 수리.
+- **RED (b) = GREEN** (throwaway probe — `:771` 분기를 env 로 끄고 Library page 샘플 geometry, 파일은 되돌림): Modal 448×162 (흐름 안 — trigger 아래 y=16) · Dialog 400×114 · Popover 240×46 · Tooltip 20×12 · ContextualHelp Popover 268×74 · Menu Popover 68×144 (MenuItem 3×32). 카드 높이 94 → Dialog 262 · Popover 146 · Tooltip 112 · ContextualHelp 184 · Menu 244 (node 엔진은 글자 폭 0 — Skia 는 더 넓다). OverlayArrow 는 그대로 숨김 (ADR-256 8a). → Decision 4 기본안 (본체 상자 그대로) 유지, 「내용만」 불필요. 구현 자리: display state `open` 신설 + `:771` 분기가 그 상태의 record 는 숨기지 않음 (Components page 샘플 patch 만).
+- 규모: 추정과 같음 (수리 행 0 → 9 ~ 15 파일 안).
+
 ## 2. Phase 1 — slot 선언 · region frame · contract 45 (G1)
 
 - `reusableOriginLibrary.ts` 직접 편집 (ADR-276 · 277 과 같음):
@@ -50,6 +58,15 @@
 - Phase 0 (a) 가 RED 였으면 그 수리 (resolver · DOM 렌더러 · Layers · slot target) 를 여기에.
 - 원복 RED: 원본별 (slot 선언 제거 → Design 패널 slot 절 부재 · 교체 때 내용 유실).
 
+### Phase 1 결과 (2026-10-21)
+
+- 사용자 결정 1 · 3 · 4 = 권고안 (Tooltip slot 예 · ContextualHelp footer slot 예 · Menu `Items`), 결정 2 (Phase 2) = Origin 줄 ◆ 오른쪽.
+- 변경: `types.ts` contract 45 · `reusableOriginLibrary.ts` (slot 선언 5 + region frame 2 — Popover region 은 `rowGap: 12px` 로 heading · description 간격 = Popover gap 유지, Tooltip 은 0) · `slots.ts` (`projectComponents()` 를 `items` · free 두 분기가 같이 쓴다 — 거름은 기존 `allowed` 의 `assertNestable`).
+- 발견 (설계 보정): 놓는 순간 slot 기본 내용이 instance 소유 노드가 된다 (2026-10-14 `ownSlotContents`) — 빈 slot (Dialog `actions`) 은 채우기 전까지 override 없음. 소유 노드는 DOM id 를 가지므로 Dialog description 의 DOM 에 `id` 가 생긴다 (`adr254ContainerParts` 정해진 차이).
+- 테스트: `adr278OverlayBodySlot.test.ts` 8 GREEN · 원복 RED (library 선언 제거 → 5/8: 선언 · 기본 내용 소유 · Dialog 채움 · Popover 채움 · Swap / `slots.ts` 되돌림 → 1/8: Menu `Items` Local 후보) · 정해진 차이 3 파일 (`adr255OverlayTrigger` · `adr256OverlayArrow` · `adr254ContainerParts`) · contract 리터럴 33 파일 (`sed`, 거부 테스트의 44 는 유지).
+- G4 (이 Phase): type-check 6/6 · builder `catalogRuntime` 2372 (제외 목록 밖 실패 0) · shared `src/catalog` 1037 중 실패 12 = IconButton 잔재 (`DANGLING_DEFINITION: origin-component-iconbutton`, HEAD 와 같음).
+- Compare Mode parity (region div 가 중립 상자인지) 는 Phase 3 live 에서 잰다 — 생성 CSS 는 frame 에 선언을 내지 않고 (`type-frame` skipCSSGeneration), DOM 구조 비교는 `adr256OverlayArrow` 가 region div 를 정해진 차이로 든다.
+
 ## 3. Phase 2 — Library page 본체 칸 · Item 줄 (G2)
 
 - `componentsPage.ts`:
@@ -58,6 +75,13 @@
   - `originItems`: slot holder 를 template 전체에서 찾되, `TRIGGER_OVERLAY_CHILDREN` 안 (닫힌 오버레이) 의 slot 은 Menu (open 상태로 그리는 카드) 만 포함 — Select · ComboBox 의 ListBox `Items` 는 제외 (R5). 2026-10-21 「Library page」 테스트의 7 카드 단언에서 Menu 는 Item 줄 있음으로 바꾼다 (MenuItem 상태 4 — `--unselected` 없음, 본문 §현재 참고).
   - 카드 `weight` 에 본체 높이.
 - `catalogSlotMarks`: 본체 slot (빈 `actions`) 의 빗금.
+
+### Phase 2 결과 (2026-10-21)
+
+- 「본체 열림」 구현 = patch 의 `displayState` (문서 schema: `DescendantPatchFields` 에 선택 필드 하나 — 검증 `DISPLAY_STATE_UNKNOWN`, 소비자는 resolver 한 곳 · 층 병합 `templateOwners.ts`). `DisplayStateName` 에 `open` (paint state · RAC prop 없음 — DOM 은 닫힌 오버레이 그대로, `adr278OverlayBodySlot` 단언). Components page 만 쓴다 (derived view entry, 저장 0).
+- `componentsPage.ts`: `OPEN_BODY_ORIGINS` 5 · `CLOSED_OVERLAY_TYPES` 3 · 샘플 patch `open` (root > 첫 Modal · Popover · Tooltip 자식) · Origin 칸의 샘플을 「Body line」 row frame 에 (layout 전용 — `readPageRows` 는 frame 을 지나간다) · `originItems` BFS 깊이 무제한 + 규칙 보정 (컬렉션 slot 안 `catalogChildKind(...).kind === "items"` 또는 한 holder 에 2+ — 트리거 · Close · footer Link 제외).
+- 테스트: Library page 테스트 (Menu Item 줄 · 오버레이 5 본체 hidden=false · geometry · trigger 오른쪽 · Select 숨김) · `adr278OverlayBodySlot` +2 (open patch 가 page instance 의 Modal 을 그림 · DOM 은 닫힘 / 검증) · Menu 샘플 상자 단언 갱신. 원복 RED: presence 분기 3/18 · open patch 2/18 · resolver patch 층 3/18.
+- Library page 관행 유지: slot 내용은 빗금 (opacity 0) — Dialog 본체 = 제목 · 빗금 content · 빗금 actions · Close, Popover · Tooltip 본체 = 상자 + 빗금. Menu Items 는 항목 3 전부 빗금 (root slot 만 「하나씩」).
 
 ## 4. Phase 3 — live (G3)
 
@@ -70,6 +94,13 @@
   6. Layers: Dialog instance 펼침 → Modal > Dialog > content > Confirm body 행 선택 → Canvas 선택 표시 (닫힌 채 — 선택만).
   7. Library page 카드 68 · 69 · 70 · 71 · 34 본체 칸 · Menu Item 줄.
 - 정리는 삭제 명령 (undo 금지 — `feedback-live-cleanup-delete-not-undo`).
+
+### Phase 3 결과 (2026-10-21)
+
+- 본문 [Live Exercise](../278-overlay-body-slot-local-component.md#live-exercise) 7/7 PASS (프로젝트 「ADR278」 · contract 45). 2 단계의 Layers 경로 (리뷰 비차단 참고) 그대로.
+- LOW deferred 2 (Fill slot 목록 74 가 뷰포트보다 길면 스크롤 불가 · slot 절의 Local instance 라벨이 루트 type) — 같은 날 후속 (사용자 요청) 으로 닫음: slot 절의 채움 목록 = Swap 의 검색형 picker (추천 · Local · Library 묶음 · 목록 320px 스크롤) · 행 라벨 = 정의 이름. `phase4ePropertySections` 에 단위 1.
+- 설계 대비 점검 (같은 날): Tooltip `content` Preview · ListBox `Items` (root slot) Local 후보 단위 +2 → `adr278OverlayBodySlot` 12. Compare Mode parity 는 비교 대상 없음 (닫힌 오버레이 안 region div — Preview DOM 단위가 대신).
+- 함정: Preview 버튼은 publish 탭을 blob snapshot 으로 연다 — 뒤의 편집은 다시 열어야 보인다. dev handle `canvas.setCamera({scale:1,x,y})` 는 page 좌표 부호 반전 + 패널 폭 여유.
 
 ## 5. Phase 4 — 문서 · 종결 (G4 · G5)
 

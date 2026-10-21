@@ -1689,8 +1689,11 @@ export function resolveCatalogNode(
       props.data = rowing.records.map(
         (record) => record.values,
       ) as unknown as PropValue;
+    // (ADR-278: a path patch's display state sits between the instance root layer's and the
+    // template node's — the Components page opens an overlay origin's body with `open`.)
     const shownState =
       root?.displayState ??
+      patch?.displayState ??
       (!("kind" in template) ? template.displayState : undefined);
     // Inside its RAC collection (its keys) or group (its value) an item's selection is the
     // owner's, so a selection display state of the item template (a selected state origin) is not

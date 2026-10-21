@@ -52,6 +52,7 @@ const PATCH_FIELD_KEYS = [
   "fillSizing",
   "responsive",
   "visibility",
+  "displayState",
 ] as const satisfies readonly (keyof DescendantPatchFields)[];
 
 /** One owner's override at the position. */
@@ -111,6 +112,7 @@ export function layerPatchFields(
     "responsive",
     "visibility",
     "enabled",
+    "displayState",
   ] as const)
     if (over[key] !== undefined) merged[key] = over[key];
   return merged as DescendantPatchFields;

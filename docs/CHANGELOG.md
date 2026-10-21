@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-278 Phase 1 ~ 3 — 오버레이 본체 = slot · Menu Items 에 Local 컴포넌트 · Library page 본체 칸] - 2026-10-21
+
+### Added
+
+- **오버레이 본체가 slot 이다 (library contract 45)**: Dialog `content` · `actions`, Popover · Tooltip `content` (OverlayArrow 뒤 region frame), ContextualHelp `content` · `footer`, Menu `Items`. 놓은 instance 는 본체의 기본 내용 (제목 · 설명 · 항목) 을 자기 노드로 갖고, Design 패널 slot 절 · Layers drop 으로 Local 컴포넌트를 넣으면 Preview 의 Modal · Popover · Tooltip · Menu 가 그 내용을 띄운다. Swap 은 같은 이름 slot 으로 내용을 옮긴다. 옛 contract 44 프로젝트는 거부 (재생성, 변환 없음 — ADR-276 · 277 과 같음).
+- **컬렉션 slot 의 채움 목록에 Local 컴포넌트**: Menu `Items` (ListBox · GridList `Items` 도) 의 Fill 목록이 Library 항목 type 뿐 아니라 프로젝트 컴포넌트 중 루트가 그 자리에 설 수 있는 것 (MenuItem 루트) 을 보인다 — frame · Button 루트는 제외 (ADR-278 리뷰 h2).
+- **Library page 카드가 오버레이 본체를 펼쳐 보인다**: Dialog · Popover · Tooltip · ContextualHelp · Menu 카드의 Origin 줄에서 ◆ trigger 오른쪽에 본체 (Modal > Dialog 제목 · content · actions · Close / Popover · Tooltip 상자 / Need help? / Menu 목록) 가 선다 — slot 자리는 빗금. Components page 샘플만 display state `open` (patch 필드) 으로 열고 page 캔버스 · 인스턴스 칸은 닫힌 채 (Framer 와 같음). Menu 카드의 Item 줄 = MenuItem 상태 5 (전에는 Item 줄 없음). picker (Select · ComboBox …) 의 Popover 는 그대로 닫힘.
+- 테스트: `adr278OverlayBodySlot.test.ts` 12 (선언 · 44 거부 · 기본 내용 소유 · Dialog 채움 → record · Preview · Layers · 저장 · Popover · Tooltip 채움 → Preview · Swap · open patch · 검증 · 채움 목록 3 — Dialog · Menu · ListBox) · `phase4eOriginView` Library page (본체 5 · Menu Item 줄). live 7/7 (ADR-278 본문 Live Exercise).
+
+### Fixed
+
+- **Design 패널 slot 절의 채움 목록 (Fill slot · Add content) 이 Swap 과 같은 검색형 picker 가 됐다**: 추천 · Local · Library 가 각자 머리글 아래 묶이고 (전에는 75 항목 평평한 Select 라 Library 원본과 Local 컴포넌트가 섞여 구분되지 않았다), 목록이 자기 높이 (320px) 안에서 스크롤한다 (전에는 뷰포트보다 길어지면 끝까지 볼 수 없었다). 검색으로 좁힐 수 있다.
+- **slot 절 채움 행의 Local instance 라벨**: 컴포넌트 이름 (「Confirm body」) 으로 보인다 — 전에는 루트 type (`frame`).
+
 ## [perf ratchet — ADR-277 fixture 재기준 · 레버 3a · 4a 하향 기록] - 2026-10-21
 
 ### Changed
@@ -43,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - **요소 삭제 · 데이터 연결 · 삽입 undo 가 문서 전체 레이아웃을 다시 계산하지 않는다**: 엔진 `remove_node` (`packages/engine/src/tree.rs`) 가 `last_compute` 를 무조건 비워 다음 `compute_layout` 이 「available 변경」 으로 읽고 `mark_subtree_dirty(root)` — 트리 전체를 dirty 로 풀었다 (ADR-916 단위 4, `4e8ac7cd6`). 이제 root handle 자신을 지울 때만 비운다 — 그 밖의 제거는 부모 `set_children` 의 조상 dirty 전파로 충분하고, 재활용된 handle 의 새 노드는 skip 키 (`last_solved` · `last_avail`) 가 비어 있어 stale skip 이 없다.
-  - **Why**: ADR-248 이후 Canvas 성능 조사 레버 4 (`.agent/runs/2026-10-21-canvas-perf-regression/lever4/`) — 22 페이지 · record 10,664 문서에서 「1000 행 연결」 long task 194~447 ms (사용자 4x) 를 귀속: 행 수 무관 (10 행도 같음), self-time 55~75 % 가 `computeLayout` (engine wasm), `engine.solveVisits` 46k = 문서 전체 1 pass. Button 1개 삭제도 같았다 (45,860 · 80 ms · 4x 290). 삽입 · 폭 편집은 55~651.
+  - **Why**: ADR-248 이후 Canvas 성능 조사 레버 4 (`.agent/runs/2026-10-21-canvas-perf-regression/lever4/`) — 22 페이지 · record 10,664 문서에서 「1000 행 연결」 long task 194~~447 ms (사용자 4x) 를 귀속: 행 수 무관 (10 행도 같음), self-time 55~~75 % 가 `computeLayout` (engine wasm), `engine.solveVisits` 46k = 문서 전체 1 pass. Button 1개 삭제도 같았다 (45,860 · 80 ms · 4x 290). 삽입 · 폭 편집은 55~651.
   - 효과 (dev · 같은 문서): 삭제 solve 45,860 → 49 · 80 → 10 ms (4x 286 → 27) · Table 연결 46,165 → 349 · 109 → 46 ms (4x 403 → 183) · GridList 1000 행 연결 46,741 → 651 · 107 → 48 ms (4x 438 → 225). 1x long task 0 (`steps-dev-after.json`). 연결에 남은 몫은 글자 측정 · resolver.
   - 테스트: `remove_node_keeps_clean_sibling_subtrees_skipped` (RED: 형제 서브트리 재 solve) · `remove_root_handle_reuse_recomputes` (root handle 재발급은 종전대로 다시 푼다). cargo test 501 · golden 15 PASS.
   - ratchet: `engine.solveVisits` (edit 류) 가 크게 내려간다 — 하향 기록 (`--update`) 은 app-pages 재기준과 같이.
@@ -54,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **빌더가 열리며 바인딩 컬렉션의 행을 두 번 해석하지 않는다**: `CatalogBuilderCore` 의 mount effect 가 `workspace.refreshRows()` 를 무조건 불러 바인딩 소유자가 있는 page root 를 전부 다시 flatten 했다 — boot 는 `initializeForProject` 를 await 한 **뒤에** root 를 만들므로 root 는 이미 그 행을 가진 상태였다 (재해석 결과 record 7,731 전부 동일). mount 는 root 가 읽은 collections (`rowsSource`) 와 다른 것만 새로 고치고 (`changedCollectionIds`, `catalogRuntime/rowsRefresh.ts`), 이후 변경은 종전대로 data store 구독이 `refreshRows(changed)` 로 보낸다.
   - **Why**: ADR-248 이후 Canvas 성능 조사 레버 3 (`.agent/runs/2026-10-21-canvas-perf-regression/lever3/`) — 22 페이지 · record 10,664 · 바인딩 소유자 9 문서의 로드 long task 643 + 578 ms (사용자 탭) 를 귀속: ② root 생성 626 ms (`loadInitial` — JS 해석 + record 조립 75 %, 엔진 8 %) · ③ 첫 프레임 480 ms (장면 bind 50 % · **`refreshRows()` 중복 26 %** · geometry 13 %). production 도 같은 값이라 제품 몫.
-  - 효과 (dev · 1x): ③ 478~492 → 141~146 ms · presented 1.74~1.81 → 1.41~1.45 s · 로드 뒤 `doc.rootResolverVisits` 7,731 → 0. production · 4x 값은 lever3 README.
+  - 효과 (dev · 1x): ③ 478~~492 → 141~~146 ms · presented 1.74~~1.81 → 1.41~~1.45 s · 로드 뒤 `doc.rootResolverVisits` 7,731 → 0. production · 4x 값은 lever3 README.
   - live: 로드 뒤 바인딩 collection 에 행 1개 삽입 → Canvas rowCount 1000 → 1001 · 「+990 more」 → 「+991」 · 재해석은 그 collection 의 root 만 (811) · undo 로 1000 복귀 (`live-3a.json`).
   - 남은 꼬리 (같은 README): ② `loadInitial` 전 페이지 동기 해석 · ③ 장면 bind 전 record — 화면 안 페이지 먼저 (ADR 규모) · `refreshRows` 자체 (호출 1회 324~370 ms · 4x 1.3 s — page root 전부 재 flatten + 장면 전체 재 bind, 레버 4 후보).
   - 테스트: `rowsRefresh.test.ts` (변경 id 산출 · mount 가 무조건 `refreshRows()` 를 부르지 않는다는 정적 게이트).

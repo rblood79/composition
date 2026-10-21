@@ -1,6 +1,6 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { Minus } from "lucide-react";
+import { ChevronDown, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import type {
@@ -24,6 +24,8 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import type { CatalogSwapCandidate } from "../../../catalogRuntime/swapInstance";
+import { CatalogComponentPicker } from "./CatalogSwapPicker";
 import "./CatalogSlotSection.css";
 
 const DEFAULT_SLOT_NAME = "content";
@@ -57,13 +59,23 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
         ? catalogSlotDeclaration(graph, target.id)
         : undefined;
     const position = catalogSlotPosition(graph, target);
+    // A fill's row is named by the node, else by what it is an instance of: a project component's
+    // name (「Confirm body」 — its root type `frame` said nothing), a library origin's type.
+    const definitionLabel = (definitionId: DefinitionId) => {
+      const definition = definitionId.startsWith("lib:")
+        ? undefined
+        : graph.getEntry(definitionId);
+      return definition?.kind === "definition"
+        ? definition.name
+        : definitionTypeName(graph, definitionId);
+    };
     const filled = position?.fillIds?.map((id) => {
       const entry = graph.getEntry(id);
       return {
         id,
         label:
           entry?.kind === "node"
-            ? entry.name || definitionTypeName(graph, entry.definitionId)
+            ? entry.name || definitionLabel(entry.definitionId)
             : id,
       };
     });
@@ -202,6 +214,24 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     },
     [graph, run, target, workspace],
   );
+  // The insert list is the Swap picker's list (ADR-261): searchable, the suggested ones first, then
+  // the project's components (Local) apart from the Library's — each group under its header. Its
+  // own list scrolls (`.component-swap-list`), whatever the panel Select's popover rules say
+  // (2026-10-21: the 75-item flat Select overran the viewport without scrolling).
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const candidates = useCallback(
+    (): CatalogSwapCandidate[] =>
+      options.map((option) => ({
+        definitionId: option.definitionId,
+        label: option.label,
+        group: option.suggested
+          ? "preferred"
+          : option.local
+            ? "local"
+            : "library",
+      })),
+    [options],
+  );
   const setSuggested = useCallback(
     (next: readonly string[]) => {
       const slot = currentSlot();
@@ -311,14 +341,6 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       </PropertySection>
     );
   }
-  const fillOptions = [
-    { value: "", label: "Add content…" },
-    ...options.map((option) => ({
-      value: option.definitionId,
-      label: option.label,
-    })),
-  ];
-
   // A position with no slot declared: the insert list only (nothing to restore — its content is
   // the template's with the parts put in).
   if (!position) {
@@ -326,13 +348,24 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     return (
       <PropertySection title={t("propertiesPanel.slotSection")}>
         <div className="fieldset-row" data-wide="true">
-          <PropertySelect
-            label="Add content"
-            value=""
-            options={fillOptions}
-            translateOptions={false}
-            onChange={add}
-          />
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">
+              {t("propertiesPanel.slotAddContent")}
+            </legend>
+            <CatalogComponentPicker
+              label={t("propertiesPanel.slotAddContent")}
+              triggerClassName="component-semantics-identity component-swap-trigger slot-fill-trigger"
+              candidates={candidates}
+              onPick={add}
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+            >
+              <span className="component-semantics-identity-name">
+                {t("propertiesPanel.slotAddContent")}…
+              </span>
+              <ChevronDown aria-hidden="true" size={12} />
+            </CatalogComponentPicker>
+          </fieldset>
         </div>
       </PropertySection>
     );
@@ -377,13 +410,24 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
         </div>
       )}
       <div className="fieldset-row" data-wide="true">
-        <PropertySelect
-          label="Fill slot"
-          value=""
-          options={fillOptions}
-          translateOptions={false}
-          onChange={fill}
-        />
+        <fieldset className="properties-aria">
+          <legend className="fieldset-legend">
+            {t("propertiesPanel.slotFill")}
+          </legend>
+          <CatalogComponentPicker
+            label={t("propertiesPanel.slotFill")}
+            triggerClassName="component-semantics-identity component-swap-trigger slot-fill-trigger"
+            candidates={candidates}
+            onPick={fill}
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+          >
+            <span className="component-semantics-identity-name">
+              {t("propertiesPanel.slotFill")}…
+            </span>
+            <ChevronDown aria-hidden="true" size={12} />
+          </CatalogComponentPicker>
+        </fieldset>
       </div>
       {filled && (
         <RACButton className="control-button" onPress={restore}>

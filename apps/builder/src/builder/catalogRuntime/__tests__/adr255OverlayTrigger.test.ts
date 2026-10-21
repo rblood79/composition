@@ -107,11 +107,18 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(child(trigger, 1).props.children).toBe("Open Popover");
     expect(overlay.bindingId).toBe("popover");
     expect(overlay.hidden).toBe(true);
+    // (ADR-278: the body after the arrow is the `content` slot's region frame.)
     expect(
       overlay.children.map(
         (id) => child(overlay, overlay.children.indexOf(id)).bindingId,
       ),
-    ).toEqual(["overlayarrow", "heading", "description"]);
+    ).toEqual(["overlayarrow", "frame"]);
+    const region = child(overlay, 1);
+    expect(
+      region.children.map(
+        (id) => child(region, region.children.indexOf(id)).bindingId,
+      ),
+    ).toEqual(["heading", "description"]);
   });
 
   it("Tooltip: TooltipTrigger > Button + Tooltip; the Canvas draws the trigger only", async () => {
@@ -123,7 +130,9 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(overlay.bindingId).toBe("tooltip");
     expect(overlay.hidden).toBe(true);
     expect(child(overlay, 0).bindingId).toBe("overlayarrow");
-    expect(child(overlay, 1).bindingId).toBe("description");
+    // (ADR-278: the `content` slot's region frame holds the description.)
+    expect(child(overlay, 1).bindingId).toBe("frame");
+    expect(child(child(overlay, 1), 0).bindingId).toBe("description");
   });
 
   it("the Preview shows the trigger and no closed overlay", async () => {

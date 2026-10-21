@@ -223,6 +223,8 @@ export interface CatalogSlotInsertOption {
   readonly type?: string;
   /** ADR-261 Decision 3: the slot's origin suggests it (listed first — a hint, not a limit). */
   readonly suggested?: true;
+  /** A project component (the Local page's) — the list groups it apart from the Library's. */
+  readonly local?: true;
 }
 
 /** The type name a slot position draws (the template at the address, or the node itself). */
@@ -295,11 +297,35 @@ export function catalogSlotInsertOptions(
       : undefined;
   };
   const candidates: CatalogSlotInsertOption[] = [];
+  const project = graph.getEntry(graph.projectId);
+  const instanceDefinition =
+    target.kind === "descendant"
+      ? (
+          graph.getEntry(target.ownerId) as
+            { definitionId?: string } | undefined
+        )?.definitionId
+      : undefined;
+  // The project's components (not a layout, not the instance's own): a free-content position
+  // offers them all; a collection position offers them too — the nesting check below keeps the
+  // ones whose root is an item (ADR-278: a MenuItem-rooted component for a Menu's `Items`;
+  // before, the items branch listed the Library's item types only — review h2).
+  const projectComponents = (): CatalogSlotInsertOption[] =>
+    project?.kind === "project"
+      ? project.definitionIds.flatMap((id) => {
+          const definition = graph.getEntry(id);
+          return definition?.kind === "definition" &&
+            definition.usage !== "layout" &&
+            id !== instanceDefinition
+            ? [{ definitionId: id, label: definition.name, local: true as const }]
+            : [];
+        })
+      : [];
   if (kind.kind === "items") {
     for (const itemType of kind.items) {
       const option = ofType(itemType);
       if (option) candidates.push(option);
     }
+    candidates.push(...projectComponents());
   } else {
     const origins = new Set<string>();
     // ADR-256 Phase 9: a calendar header's parts — RAC's heading and its month · year pickers (their
@@ -332,24 +358,7 @@ export function catalogSlotInsertOptions(
         label: itemType === "frame" ? "Frame" : itemType,
       });
     }
-    const project = graph.getEntry(graph.projectId);
-    const instanceDefinition =
-      target.kind === "descendant"
-        ? (
-            graph.getEntry(target.ownerId) as
-              { definitionId?: string } | undefined
-          )?.definitionId
-        : undefined;
-    if (project?.kind === "project")
-      for (const id of project.definitionIds) {
-        const definition = graph.getEntry(id);
-        if (
-          definition?.kind === "definition" &&
-          definition.usage !== "layout" &&
-          id !== instanceDefinition
-        )
-          candidates.push({ definitionId: id, label: definition.name });
-      }
+    candidates.push(...projectComponents());
   }
   const parent: NodeParent =
     target.kind === "node"

@@ -19,6 +19,7 @@ import {
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { resolveCatalogRuleCanvasBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { catalogChildKind } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { catalogBuiltinOrigins } from "./layouts";
 import type { CatalogComponentsViewId } from "./originViewNode";
 import {
@@ -99,6 +100,23 @@ const ICON = "lib:definition:type-Icon";
 const TYPE_BASE = "text-base";
 // (A field's control Group — ADR-256 Phase 6b: a field, not a collection.)
 const CONTROL_GROUP = "lib:definition:type-Group";
+/**
+ * ADR-278: the overlay origins whose card draws the body (Modal · Popover · Tooltip) open beside
+ * the trigger (user decision 2, 2026-10-21 — the Origin line, right of ◆). A picker's Popover
+ * (a Select's list, a DatePicker's calendar) stays closed: its body is a part, not a slot.
+ */
+const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
+  "Dialog",
+  "Popover",
+  "Tooltip",
+  "ContextualHelp",
+  "Menu",
+]);
+const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set([
+  "lib:definition:type-Modal",
+  "lib:definition:type-Popover",
+  "lib:definition:type-Tooltip",
+]);
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
   "base",
@@ -226,28 +244,55 @@ function originItems(
   );
   if (children.some((child) => child?.definitionId === CONTROL_GROUP))
     return undefined;
-  // The state-holding origins the root and its children hold, with whether their holder is a
-  // slot — in order (the root's own children first).
-  const held = [
-    { holder: own.root, nodes: children },
-    ...children.map((child) => ({
-      holder: child,
-      nodes: (child?.children ?? []).map((id) =>
-        library.templates.get(id as LibraryTemplateId),
-      ),
-    })),
-  ].flatMap(({ holder, nodes }) =>
-    nodes.flatMap((node) =>
-      node && stateIds.has(node.definitionId)
-        ? [{ definitionId: node.definitionId, inSlot: Boolean(holder?.slot) }]
-        : [],
-    ),
+  // The state-holding origins the template holds at any depth, with whether their holder is a
+  // slot — level by level (the root's own children first). ADR-278: a closed overlay (a
+  // picker's Popover) is not entered — its items are drawn in a popup the card does not open;
+  // an overlay origin's own body (drawn open on its card) is.
+  const opensBody = OPEN_BODY_ORIGINS.has(
+    library.definitions.get(originId)?.name ?? "",
   );
+  const held: {
+    definitionId: string;
+    holder: LibraryTemplateId;
+    /** The holder is a collection's slot (a ListBox's · Menu's · TabList's items). */
+    collectionSlot: boolean;
+  }[] = [];
+  const holderTypeName = (holder: (typeof own)["root"]) =>
+    holder.definitionId.startsWith("lib:definition:type-")
+      ? holder.definitionId.slice("lib:definition:type-".length)
+      : (library.definitions.get(holder.definitionId as LibraryDefinitionId)
+          ?.name ?? "");
+  let level = [own.root];
+  while (level.length > 0) {
+    const next: typeof level = [];
+    for (const holder of level)
+      for (const id of holder.children) {
+        const node = library.templates.get(id as LibraryTemplateId);
+        if (!node) continue;
+        if (stateIds.has(node.definitionId))
+          held.push({
+            definitionId: node.definitionId,
+            holder: holder.id,
+            collectionSlot:
+              Boolean(holder.slot) &&
+              catalogChildKind(holderTypeName(holder)).kind === "items",
+          });
+        if (opensBody || !CLOSED_OVERLAY_TYPES.has(node.definitionId))
+          next.push(node);
+      }
+    level = next;
+  }
+  // An item: held in a collection's slot, or held more than once by one holder (a Pagination's
+  // buttons, a Toolbar's). One held once — a trigger Button, a Dialog's Close, a ContextualHelp
+  // footer's Link — is a part.
   const origin = held.find(
     (candidate) =>
-      candidate.inSlot ||
-      held.filter((other) => other.definitionId === candidate.definitionId)
-        .length > 1,
+      candidate.collectionSlot ||
+      held.filter(
+        (other) =>
+          other.definitionId === candidate.definitionId &&
+          other.holder === candidate.holder,
+      ).length > 1,
   )?.definitionId as LibraryDefinitionId | undefined;
   const item = templateOf(origin);
   if (!origin || !item) return undefined;
@@ -850,13 +895,48 @@ export function catalogComponentsPageEntries(
         };
       }),
     ]);
+    // ADR-278: an overlay origin's body (its root's Modal · Popover · Tooltip child) is drawn
+    // open beside the trigger — a display state at that position; the page's instances and the
+    // page canvas keep it closed.
+    const originRootId = (
+      library.definitions.get(origin.id) as
+        | { templateRootId?: LibraryTemplateId }
+        | undefined
+    )?.templateRootId;
+    const overlayId = OPEN_BODY_ORIGINS.has(origin.name)
+      ? library.templates
+          .get(originRootId!)
+          ?.children.find((id) =>
+            CLOSED_OVERLAY_TYPES.has(
+              library.templates.get(id as LibraryTemplateId)?.definitionId ??
+                "",
+            ),
+          )
+      : undefined;
+    const samplePatches = [
+      ...slotPatches,
+      ...(originRootId && overlayId
+        ? [
+            {
+              kind: "patch" as const,
+              address: {
+                instances: [sampleId],
+                templatePath: [originRootId, overlayId as LibraryTemplateId],
+              },
+              displayState: "open" as const,
+            },
+          ]
+        : []),
+    ];
     entries.set(sampleId, () => {
       const override = catalogOriginOverride(graph, origin.id);
       return node(sampleId, origin.id, {
         name: catalogDefinitionTitle(graph, origin.id),
         props: override?.defaults ?? {},
         visual: override?.visual ?? {},
-        ...(slotPatches.length > 0 ? { descendantOverrides: slotPatches } : {}),
+        ...(samplePatches.length > 0
+          ? { descendantOverrides: samplePatches }
+          : {}),
       });
     });
     /** An instance of the origin (or of one of its state variants) in a captioned cell. */
@@ -903,7 +983,17 @@ export function catalogComponentsPageEntries(
           cell(
             base("cell", "origin"),
             `${ORIGIN_MARK} ${origin.name}`,
-            sampleId,
+            // ADR-278 (user decision 2): the open body stands right of the trigger — a line of
+            // its own (the trigger node draws no box of its own, `display: contents`); the cell
+            // is a column (sample over caption). The frame is layout only (not a Layers row).
+            overlayId
+              ? frame(
+                  base("cell", "origin", "body-line"),
+                  "Body line",
+                  [sampleId],
+                  { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+                )
+              : sampleId,
             cellWidth,
           ),
           ...(filled

@@ -253,8 +253,9 @@ function expectSinceConversion(
     // ADR-256 Phase 10: the InlineAlert's description is in its S2 Content (`/1` → `/1/0`).
     if (type === "inline-alert") return path === "/1" ? "/1/0" : path;
     if (!moved) return path;
+    // ADR-278: after the arrow, the parts sit in the `content` slot's region frame (`/1/1/N`).
     const [first, ...rest] = path.slice(1).split("/");
-    return `/1/${Number(first) + 1}${rest.map((step) => `/${step}`).join("")}`;
+    return `/1/1/${Number(first)}${rest.map((step) => `/${step}`).join("")}`;
   };
   expect(Object.keys(now.records)).toEqual(
     Object.keys(before.records).map(pathNow),
@@ -317,6 +318,12 @@ function expectSinceConversion(
           .replace(
             "slot=close>Close</>",
             "slot=close><span class=react-aria-Text data-size=M slot=label>Close</></>",
+          )
+          // ADR-278: the description is the `content` slot's default content — the placed
+          // instance's own node (2026-10-14), which carries its DOM id like any owned node.
+          .replace(
+            "<span class=react-aria-Text slot=description>Dialog content goes here.</>",
+            "<span class=react-aria-Text id slot=description>Dialog content goes here.</>",
           )
       : type === "inline-alert"
         ? // ADR-256 Phase 10: S2 `InlineAlert > Heading + Content` — the description sits in a

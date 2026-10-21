@@ -527,6 +527,92 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     ).toHaveLength(0);
   });
 
+  // The insert list is the Swap picker's (2026-10-21): a project component's row under 「Local」,
+  // the Library's under 「Library」, the suggested ones first — and a Local fill's row is named by
+  // its component, not its root type.
+  it("the slot section's insert list groups Local and Library components and names a Local fill by its component", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node("card", "lib:definition:type-frame"),
+            children: [id("slotted")],
+          },
+          {
+            ...node("slotted", "lib:definition:type-frame"),
+            slot: { name: "content", required: false },
+          },
+          node("body", "lib:definition:type-frame"),
+        ],
+        rootIds: [id("card"), id("body")],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(id("card"), "Card", workspace.newId),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(
+        id("body"),
+        "Confirm body",
+        workspace.newId,
+      ),
+    );
+    const instance = workspace.execute(
+      duplicateNodes({ ids: [id("card")], newId: workspace.newId }),
+    ).plan.selectAfter![0];
+    const target = {
+      kind: "descendant" as const,
+      ownerId: instance,
+      address: {
+        instances: [instance],
+        templatePath: [id("card"), id("slotted")] as TemplateId[],
+      },
+    };
+    const section = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogSlotSection target={target} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    await act(async () => {
+      fireEvent.click(
+        within(section.container).getByRole("button", { name: "Fill slot" }),
+      );
+    });
+    // Groups in order, each with its header; the Local component sits under Local only.
+    const groups = screen.getAllByRole("group").map((group) => ({
+      header: group.querySelector("header")?.textContent,
+      options: within(group)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    }));
+    expect(groups.map((group) => group.header)).toEqual(["Local", "Library"]);
+    expect(groups[0].options).toEqual(["Confirm body"]);
+    expect(groups[1].options).toContain("Text");
+    expect(groups[1].options).not.toContain("Confirm body");
+    // The list is its own scroller — not the panel Select's popover.
+    const list = screen.getByRole("listbox");
+    expect(list.className).toContain("component-swap-list");
+    const local = within(screen.getAllByRole("group")[0]).getByRole("option", {
+      name: "Confirm body",
+    });
+    await act(async () => {
+      fireEvent.click(local);
+    });
+    expect(catalogSlotPosition(graph, target)?.fillIds).toHaveLength(1);
+    // The fill's row says 「Confirm body」, not its root type `frame`.
+    expect(
+      [...section.container.querySelectorAll(".frame-slot-fill .list-row__label")]
+        .map((label) => label.textContent),
+    ).toEqual(["Confirm body"]);
+    section.unmount();
+  });
+
   // ADR-256 Decision 4: what a position takes is its children kind — the template's `slot` is a name
   // only. A Calendar's header declares no slot, yet its insert list offers the month · year pickers —
   // as a template position and as an owned node (the calendar's month frame filled: its blocks are
@@ -610,7 +696,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       const listed = screen
         .getAllByRole("option")
         .map((option) => option.textContent);
-      expect(listed.slice(1, 4)).toEqual([
+      expect(listed.slice(0, 3)).toEqual([
         "CalendarHeading",
         "CalendarMonthPicker",
         "CalendarYearPicker",

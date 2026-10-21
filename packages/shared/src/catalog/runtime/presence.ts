@@ -768,7 +768,13 @@ export function catalogHiddenAtRest(
   // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
   // reaches it there, `catalogPartParent`.)
   const partParent = catalogPartParent(node, get, typeOf);
-  if (partParent && TRIGGER_OVERLAY_CHILDREN[typeOf(partParent)]?.has(type))
+  // (ADR-278: shown `open` — the Components page draws an overlay origin's body beside its
+  // trigger — the overlay is not the closed one.)
+  if (
+    partParent &&
+    TRIGGER_OVERLAY_CHILDREN[typeOf(partParent)]?.has(type) &&
+    node.displayState !== "open"
+  )
     return true;
   // (A hint part keeps its field through a layout frame — `catalogPartParent`.)
   const hintField = partParent;

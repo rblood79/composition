@@ -120,7 +120,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * whose template had no starter) is refused (사용자 결정 2026-10-21).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 44 as const;
+export const LIBRARY_CONTRACT_VERSION = 45 as const;
 
 export type EntryKind =
   | "project"
@@ -364,7 +364,12 @@ export type DisplayStateName =
   | "pressed"
   | "focusVisible"
   | "collapsed"
-  | "current";
+  | "current"
+  /**
+   * ADR-278: a closed overlay (a trigger's Modal · Popover · Tooltip) shown open — the Components
+   * page draws an overlay origin's body beside its trigger. No paint state, no RAC prop.
+   */
+  | "open";
 export const DISPLAY_STATE_NAMES: readonly DisplayStateName[] = [
   "selected",
   "unselected",
@@ -374,6 +379,7 @@ export const DISPLAY_STATE_NAMES: readonly DisplayStateName[] = [
   "focusVisible",
   "collapsed",
   "current",
+  "open",
 ];
 export type BreakpointName = "desktop" | "tablet" | "mobile";
 export type PagePlacementField =
@@ -468,6 +474,12 @@ export interface DescendantPatchFields {
   stateRules?: StateRules;
   /** `false` hides the addressed descendant (slot toggle); absent keeps the template value. */
   enabled?: boolean;
+  /**
+   * ADR-278: the display state shown at the addressed descendant (an instance root layer's
+   * `displayState` for one position — the Components page opens an overlay origin's body with
+   * `open`). Below the instance's own root layer, above the template node's.
+   */
+  displayState?: DisplayStateName;
   /** ADR-248 Phase 4b: the node authoring fields a path override can write (§3.4). */
   layout?: LayoutWrites;
   fills?: readonly CatalogFillLayer[];

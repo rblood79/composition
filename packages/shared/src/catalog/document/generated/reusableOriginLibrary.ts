@@ -3535,6 +3535,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-menu__menu",
     "definitionId": "lib:definition:type-Menu",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
     "children": [
       "lib:template:component-menu__item-1",
       "lib:template:component-menu__item-2",
@@ -6412,6 +6416,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-dialog__content-region",
     "definitionId": "lib:definition:type-frame",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
     "children": [
       "lib:template:component-dialog__2_2"
     ],
@@ -6456,6 +6464,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-dialog__actions-region",
     "definitionId": "lib:definition:type-frame",
+    "slot": {
+      "name": "actions",
+      "required": false
+    },
     "children": [],
     "props": {},
     "visual": {},
@@ -6502,8 +6514,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Popover",
     "children": [
       "lib:template:component-popover__arrow",
-      "lib:template:component-popover__1",
-      "lib:template:component-popover__2"
+      "lib:template:component-popover__content-region"
     ],
     "props": {
       "size": "{size}",
@@ -6515,6 +6526,26 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {
       "width": "240px"
+    }
+  },
+  {
+    "id": "lib:template:component-popover__content-region",
+    "definitionId": "lib:definition:type-frame",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-popover__1",
+      "lib:template:component-popover__2"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "rowGap": "12px",
+      "columnGap": "0"
     }
   },
   {
@@ -6613,6 +6644,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-contextualhelp__content",
     "definitionId": "lib:definition:type-Content",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
     "children": [
       "lib:template:component-contextualhelp__text"
     ],
@@ -6632,6 +6667,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-contextualhelp__footer",
     "definitionId": "lib:definition:type-Footer",
+    "slot": {
+      "name": "footer",
+      "required": false
+    },
     "children": [
       "lib:template:component-contextualhelp__link"
     ],
@@ -6675,13 +6714,32 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Tooltip",
     "children": [
       "lib:template:component-tooltip__arrow",
-      "lib:template:component-tooltip__1"
+      "lib:template:component-tooltip__content-region"
     ],
     "props": {
       "variant": "{variant}",
       "size": "{size}"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-tooltip__content-region",
+    "definitionId": "lib:definition:type-frame",
+    "slot": {
+      "name": "content",
+      "required": false
+    },
+    "children": [
+      "lib:template:component-tooltip__1"
+    ],
+    "props": {},
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "column",
+      "rowGap": "0",
+      "columnGap": "0"
+    }
   },
   {
     "id": "lib:template:component-tooltip__arrow",
