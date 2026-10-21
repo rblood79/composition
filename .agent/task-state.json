@@ -1,4 +1,17 @@
 {
+  "reviewAdr278": {
+    "task": "ADR-278 설계 리뷰",
+    "phase": "repair_review_recorded",
+    "status": "design_review_complete_high_0_pending_0",
+    "scope": "ADR 및 breakdown과 현재 코드 정적 대조; 제품 코드 및 ADR 상태 변경 없음",
+    "head": "35417aa8c",
+    "findings": [
+      "h1 설계 수리 확인: 44 거부·재생성 / 45 새 fill 저장·재열기 보존으로 Decision·Gate 정정",
+      "h2 설계 수리 확인: collection slot Local 후보 열거를 Phase 1 구현 항목과 G1·G3에 반영; 제품 구현은 미검증"
+    ],
+    "unverified": "테스트·빌드·브라우저·Phase 0 임시 fixture 실행 안 함",
+    "reviewLog": "docs/adr/reviews/278.md"
+  },
   "parallelSession": {
     "task": "ADR-248 이후 Canvas 성능 저하 조사",
     "phase": "pan_zoom_overlay_diagnosis",
@@ -22,11 +35,35 @@
     ],
     "evidenceDirectory": ".agent/runs/2026-10-21-canvas-performance-check"
   },
-  "goal": "(비어 있음 — ADR-277 종결, archives/task-state-2026-10.json)",
-  "phase": "idle",
-  "next": [],
-  "guard": "",
-  "stop": "",
-  "tip": "다른 세션 (Codex) 의 이전 상태는 parallelSession 키에 보존",
-  "updatedAt": "2026-10-21"
+  "goal": "ADR-248 이후 Canvas 성능 저하 조사 — 사용자 체감 (이동·줌 rAF 51~532 ms · click 1,516 ms, Chrome 4x throttle · 22 페이지 프로젝트) 의 원인 귀속. 분석·측정 우선, 제품 코드 변경은 원인 확정 뒤 (사용자 지시 2026-10-21)",
+  "phase": "phase3-levers-2a-3a-4a-pushed — 레버 1 제품 몫 · 2b · 3b · 3c/3d 는 사용자 결정 대기",
+  "next": [
+    "[x] 하니스 재현 — app-pages · mixed 600 · dev headless · idle,pan,zoom,select,edit · --profile (.agent/runs/2026-10-21-canvas-perf-regression/)",
+    "[x] 4x throttle 재현 (headless · headed) — pan 여유 · zoom p99 40 · select p95 123 ms (사용자 click 1,516 ms 는 미재현)",
+    "[x] Codex 단서 코드 대조 — 가림 clip O(n²) 22 페이지 231/프레임 (프로필 상위 아님) · ActionBar 는 선택당 1회",
+    "[x] 사용자 22 페이지 프로젝트 (9168f5be) 는 5173 IndexedDB 에 없음 · 남은 3개는 contract 42·43 (7~11 entries) → 현재 build 44 에서 열리지 않음",
+    "[x] 새 프로젝트 gridlist-1000 (5173) — GridList + Users 1000 행 연결 (사용자 지시)",
+    "[x] CMS 형 22 페이지 + 17 collection × 1000 행 연결 · 탭 안 계측 (live-cms-doc-2026-10-21.md)",
+    "[ ] 사용자 결정: 레버 순위 (Navigator/Design 선택 fan-out · pan 중 content 재기록 · 로드 long task) 중 착수 항목 · 4x throttle 재현은 사용자 탭에서",
+    "[x] perfAppFixture.mjs TableView→Table 커밋",
+    "[x] 레버1: 클릭 선택 fan-out 함수 단위 귀속 (Navigator 행 렌더 · Design 섹션 재계산) — 탭 프로파일 + 코드 경로",
+    "[ ] 레버1: 원인 확정 뒤 수정 + 원복 RED + live 재측정",
+    "[x] 레버2: pan 중 CanvasKit 재기록 (picture 재생 수)",
+    "[ ] 사용자 결정: 레버1 제품 몫 (production 1x ~13 ms · 4x ~40 ms) 착수 여부 vs 레버2 로 이동 · 사용자 탭 DevTools 닫고 재측정",
+    "[x] 사용자 결정: 레버2a (overlay 입력 memo — slots · remainders · occluders · scrollbar · headers) 착수 여부 · 2b 는 ADR-266 대안 B",
+    "[x] 2a 구현: catalogOverlayChrome.ts (scene 버전 보관) · render.overlayChromeBuilt 카운트 · 테스트 · CHANGELOG · 규칙",
+    "[x] 2a 커밋 (pathspec) + push",
+    "[x] 레버3: 로드 long task 귀속 — ② root 생성 626 (loadInitial 해석+record 조립 75 %) · ③ 첫 프레임 480 (bind 50 % · refreshRows 중복 26 % · getGeometry 13 %) · prod 같은 값 · 4x 2.5+1.9 s (lever3/README.md)",
+    "[x] 레버 3a: mount refreshRows 중복 제거 — ③ 480 → 141 (prod 4x 1,906 → 490) · live 행 삽입/undo PASS · 테스트 3 · type-check PASS",
+    "[x] 레버 3a 커밋 d46265055 (로컬) — push 는 pre-push ratchet block: A 초과 20건 전부 60:app-pages · 60:app-pages-images (zoom · edit · load-edit), 2a push 때 run 과 key 집합 동일 (scratchpad/judge-*.log)",
+    "[x] 레버4 귀속: 연결 1건 = 엔진 solveVisits 46k (문서 전체 1 pass) — remove_node 가 last_compute 를 비워 다음 compute_layout 이 트리 전체 dirty · 삭제 1건도 같음 (80 ms 1x / 290 4x) · 행 수 무관 (lever4/README.md)",
+    "[x] 레버 4a: tree.rs remove_node — 삭제 80 → 10 ms · 연결 109 → 46 (4x 403 → 183) · solve 46k → 49~651 · cargo 501 PASS · live PASS",
+    "[x] 3a d46265055 · 4a 16ad74fb6 push (SKIP_PERF_RATCHET=1 — 사용자 지시 2026-10-21)",
+    "[x] ratchet 재기준 e46011883: A 150 올림 (사용자 승인 · 만료 2027-04-21 · ADR-277 fixture) · 하향 40 · 새 지표 23 · pass 2 판정 A 0 / B 경고 26",
+    "[x] e46011883 push — pre-push 게이트 통과"
+  ],
+  "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
+  "stop": "type-check 실패 커밋 금지",
+  "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
+  "updatedAt": "2026-10-21T06:02:33Z"
 }
