@@ -665,6 +665,18 @@ describe("ADR-279 후속 — the Local page card draws an overlay component's bo
     }
   });
 
+  it("the Modal has no padding of its own (RAC starter — user 2026-10-22): the Dialog sits at the Modal's edge", async () => {
+    const { workspace } = await openWith("dialog", "dialog-origin");
+    workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
+    const root = workspace.root;
+    const modal = recordsOf(root, id("dialog-origin"), "Modal")[0]!;
+    expect(modal.visual.paddingLeft ?? modal.visual.padding ?? 0).toBe(0);
+    const dialog = recordsOf(root, id("dialog-origin"), "Dialog")[0]!;
+    const box = root.getGeometry([dialog.id]).get(dialog.id)!;
+    expect([box.x, box.y]).toEqual([0, 0]);
+    workspace.dispose();
+  });
+
   it("a picker component (Select) keeps its Popover closed on the Local page — its body is a part, not a slot", async () => {
     const { workspace } = await openWith("select", "select-origin");
     workspace.showDefinition(PROJECT_COMPONENTS_VIEW);

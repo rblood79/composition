@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/catalogRuntime/canvasGesture.ts`.
   - 회귀: 8방향 flow 리사이즈의 미리보기·commit·undo와 위치 필드 불변, absolute·ratio top-left의 live 상자·cancel, Grid 스냅.
 
+## [Modal — 자체 padding 제거 (RAC starter)] - 2026-10-22
+
+### Fixed
+
+- **`.react-aria-Modal` 의 `padding: 24px 24px` 를 지웠다**: RAC starter 의 Modal 은 padding 이 없고 본체 여백은 안의 Dialog 가 준다 — 옛 24 는 spec 시대 값의 잔재라 Modal 24 + Dialog 24 로 두 번 들어갔고, Local page 카드가 본체를 열자 Canvas 에서도 드러났다 (사용자 지적). Modal rule size `paddingX` · `paddingY` 0 (Calendar 선례) · 생성 `Modal.css` `padding: 0px 0px`. Canvas 와 Preview 모두 Dialog 가 Modal 모서리에 붙는다 (Local page Modal 높이 230 → 182).
+  - 회귀: `adr279OriginOnLocalPage` 「Modal 자체 padding 없음 — Dialog 가 모서리에」 (원복 RED).
+
 ## [Local page — 오버레이 컴포넌트의 본체가 Canvas 에 열린다] - 2026-10-22
 
 ### Fixed

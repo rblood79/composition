@@ -7846,11 +7846,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       M: {
-        paddingX: 24,
-        // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
-        //   `padding: 24px 24px` + `gap: 8px` 재생성용 (ruleSizeToSizeSpec paddingY 기본 0/gap 미emit
-        //   회피, Nav/DropZone 선례). layout 컨테이너 배치 SSOT 는 factory props.style(ADR-907 Layer B).
-        paddingY: 24,
+        // 사용자 2026-10-22 「`.react-aria-Modal { padding: 24px 24px }` 은 제거되는 게 맞다」: RAC
+        //   starter `.react-aria-Modal` 은 padding 이 없다 — 본체 여백은 안의 Dialog 가 준다
+        //   (Dialog rule paddingX/Y 24). 옛 24 는 spec 시대 값의 잔재 (ADR-912 단계5 step4, 2026-06-16)
+        //   라 Modal 24 + Dialog 24 로 두 번 들어갔다 — Local page 카드가 본체를 열자 (ADR-279 후속)
+        //   Canvas 에서도 드러났다. Calendar 선례 (`3f68a06b2`) 처럼 0 으로 명시.
+        paddingX: 0,
+        paddingY: 0,
         gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.xl}",
