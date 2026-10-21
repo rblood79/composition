@@ -48,6 +48,16 @@ export interface PropLayer {
   source: PropSource;
   /** `undefined` for a mask (the layer hides every value below it). */
   value: AuthoredValue | undefined;
+  /**
+   * A `template` layer: the instance whose props a `{name}` binding written there reads — the
+   * instance enclosing the position (its own template tree), or the position itself standing as
+   * the root of a collapsed composite (`definitionChain` descending into a root template).
+   */
+  binder?: TemplateBinder;
+}
+export interface TemplateBinder {
+  definitionId: DefinitionId;
+  at: "enclosing" | "self";
 }
 export interface PropReading {
   /** The authored value shown (the first layer), `undefined` when none sets it or it is masked. */
@@ -155,6 +165,7 @@ function templateChain(
   outerState?: TemplateRecord["displayState"],
   ancestors: Ancestors = NO_ANCESTORS,
   context?: PropLayer,
+  binder?: TemplateBinder,
 ): PropLayer[] {
   const template = readTemplate(reader, templateId);
   const state = ownedSelection(
@@ -176,7 +187,12 @@ function templateChain(
   // (The Form context: under the authored values and the display state, over the template's.)
   if (context) layers.push(context);
   if (libraryPatch) layers.push(libraryPatch);
-  if (own !== ABSENT) layers.push({ source: "template", value: own });
+  if (own !== ABSENT)
+    layers.push({
+      source: "template",
+      value: own,
+      ...(binder ? { binder } : {}),
+    });
   layers.push(
     ...definitionChain(
       reader,
@@ -222,6 +238,7 @@ function definitionChain(
         outerState,
         ancestors,
         context,
+        { definitionId, at: "self" },
       ),
     );
   return layers;
@@ -325,32 +342,100 @@ function propertyLayer(
     : undefined;
 }
 
+const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
+/**
+ * A template position's prop written as one `{name}` binding its origin accepts (a Popover's
+ * `offset: "{offset}"`, a Label's `{label}`) shows the binder instance's `name` — the resolver
+ * binds it there (ADR-254 Decision 5 for text; every prop the same). From that layer down the
+ * reading is the binder's reading of `name` (its own write counts as the instance's value, not
+ * this position's). A name the origin does not accept (a `{field}` row-data binding) stays as
+ * written; a binding with no value below it shows nothing (the resolver keeps its placeholder,
+ * which hides the part).
+ */
+function followTemplateBinding(
+  reader: CatalogReader,
+  target: EditTarget,
+  layers: PropLayer[],
+  following: ReadonlySet<string>,
+): PropLayer[] {
+  const index = layers.findIndex(
+    (layer) =>
+      layer.source === "template" &&
+      layer.binder !== undefined &&
+      typeof layer.value === "string" &&
+      WHOLE_TEMPLATE_BINDING.test(layer.value),
+  );
+  if (index < 0) return layers;
+  const layer = layers[index]!;
+  const name = WHOLE_TEMPLATE_BINDING.exec(layer.value as string)![1]!;
+  const binder = layer.binder!;
+  const followKey = `${binder.definitionId}:${binder.at}:${name}`;
+  if (
+    following.has(followKey) ||
+    !Object.hasOwn(readDefinition(reader, binder.definitionId).accepts, name)
+  )
+    return layers;
+  let bound: EditTarget = target;
+  if (binder.at === "enclosing") {
+    if (target.kind !== "node") {
+      const owner = reader.getEntry(target.ownerId);
+      if (owner?.kind !== "node") return layers;
+      const { instances } = target.address;
+      bound =
+        instances.length === 1
+          ? { kind: "node", id: owner.id }
+          : {
+              kind: "descendant",
+              ownerId: owner.id,
+              address: enclosingAddress(reader, owner, instances),
+            };
+    }
+  }
+  return [
+    ...layers.slice(0, index),
+    ...propLayers(
+      reader,
+      bound,
+      name,
+      new Set([...following, followKey]),
+    ).map((found) =>
+      found.source === "own" ? { ...found, source: "instance" as const } : found,
+    ),
+  ];
+}
+
 function propLayers(
   reader: CatalogReader,
   target: EditTarget,
   key: string,
+  following: ReadonlySet<string> = new Set(),
 ): PropLayer[] {
   if (target.kind === "node") {
     const node = reader.getEntry(target.id);
     if (node?.kind !== "node")
       throw new CatalogValidationError("NODE_REQUIRED", target.id);
     const own = node.props[key];
-    return [
-      ...(own?.kind === "set"
-        ? [{ source: "own" as const, value: own.value }]
-        : own?.kind === "mask"
-          ? [{ source: "own" as const, value: undefined }]
-          : []),
-      ...definitionChain(
-        reader,
-        node.definitionId,
-        key,
-        new Set(),
-        undefined,
-        lazy(() => nodeAncestors(reader, node.id)),
-        formContextLayer(reader, target, node.definitionId, key),
-      ),
-    ];
+    return followTemplateBinding(
+      reader,
+      target,
+      [
+        ...(own?.kind === "set"
+          ? [{ source: "own" as const, value: own.value }]
+          : own?.kind === "mask"
+            ? [{ source: "own" as const, value: undefined }]
+            : []),
+        ...definitionChain(
+          reader,
+          node.definitionId,
+          key,
+          new Set(),
+          undefined,
+          lazy(() => nodeAncestors(reader, node.id)),
+          formContextLayer(reader, target, node.definitionId, key),
+        ),
+      ],
+      following,
+    );
   }
   const owner = reader.getEntry(target.ownerId);
   if (owner?.kind !== "node")
@@ -423,6 +508,12 @@ function propLayers(
         };
     }
   }
+  // The position's own template tree: its `{name}` bindings read the enclosing instance.
+  const enclosingDefinition =
+    instances.length === 1
+      ? owner.definitionId
+      : readTemplate(reader, instances[instances.length - 1] as TemplateId)
+          .definitionId;
   layers.push(
     ...templateChain(
       reader,
@@ -439,9 +530,10 @@ function propLayers(
           .definitionId,
         key,
       ),
+      { definitionId: enclosingDefinition, at: "enclosing" },
     ),
   );
-  return layers;
+  return followTemplateBinding(reader, target, layers, following);
 }
 
 /** The definition a definition draws: a composite's root template's, else its own. */

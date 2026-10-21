@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 — template 에 묶인 prop 은 instance 값으로 읽는다] - 2026-10-22
+
+### Fixed
+
+- **Layers 에서 Popover (DialogTrigger 안) 를 선택하면 「Too many re-renders」 로 Builder 가 죽던 것** (사용자 보고 2026-10-22): Popover template 노드의 `offset` 등이 instance 에 묶인 `"{offset}"` 문자열이라 패널 숫자 칸이 `Number()` 로 NaN 을 받고, 렌더 중 동기화가 `NaN !== NaN` 으로 끝없이 돌았다. 이제 template 노드의 `{name}` 바인딩 (그 origin 이 받는 이름) 은 패널에서 묶인 instance 의 값 (기본값 · 쓴 값) 으로 읽히고 (`fieldSource` — 글자 `{label}` 과 같은 ADR-254 규칙, 접힌 composite 루트는 그 자리 자신이 묶는다; 받지 않는 이름 = 행 데이터 `{field}` 는 그대로), 숫자 칸은 NaN 을 받아도 한 번만 동기화한다.
+
 ## [ADR-279 Phase 0 ~ 3 — Create component 원본은 Local page 로 · 그 자리에는 instance · 이름 대화상자 · 카드 rename · 카드 삭제] - 2026-10-21
 
 ### Changed

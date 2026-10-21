@@ -11,6 +11,7 @@ import type {
   NodeId,
   TemplateId,
 } from "../../document/types";
+import { applyCatalogTransaction } from "../../transactions/transaction";
 import { readPropSource } from "../fieldSource";
 import {
   childPositions,
@@ -122,7 +123,13 @@ describe("ADR-248 Phase 4c prop sources", () => {
         )
           continue;
         const reading = readPropSource(graph, target, key);
-        if (reading.layers.some((layer) => isBinding(layer.value))) continue;
+        // (A binding the reading cannot follow — a `{field}` row template — and a resolved
+        // placeholder — a `{icon}` no instance value fills, which hides the part — are not values.)
+        if (
+          isBinding(value) ||
+          reading.layers.some((layer) => isBinding(layer.value))
+        )
+          continue;
         compared += 1;
         if (reading.source) sources.add(reading.source);
         if (JSON.stringify(reading.value) !== JSON.stringify(value))
@@ -221,5 +228,132 @@ describe("ADR-248 Phase 4c prop sources", () => {
         "variant",
       ),
     ).toMatchObject({ value: "secondary", source: "instance" });
+  });
+
+  /**
+   * 2026-10-22 (user: selecting a Popover in Layers → "Too many re-renders"): a template position's
+   * prop written as `{name}` shows the binder instance's `name` — the panel's number field got the
+   * string `"{offset}"` (NaN). The binder is the enclosing instance for the position's own
+   * template, the position itself for a collapsed composite root; a name the origin does not
+   * accept (a row template's `{label}`) stays as written; an unfilled binding shows nothing.
+   */
+  it("follows a `{name}` template binding to the instance's value, not the written placeholder", () => {
+    const popover = "project:node:popover" as NodeId;
+    const combo = "project:node:combo" as NodeId;
+    const button = "project:node:button" as NodeId;
+    const local = new CatalogGraph(
+      documentOf(
+        [
+          node("popover", "lib:definition:origin-component-popover" as never),
+          node("combo", "lib:definition:origin-component-combobox" as never),
+          node("button", "lib:definition:origin-component-button" as never, {
+            props: { icon: { kind: "set", value: "star" } },
+          }),
+        ],
+        ["popover", "combo", "button"],
+      ),
+      library,
+    );
+    const overlay: EditTarget = {
+      kind: "descendant",
+      ownerId: popover,
+      address: {
+        instances: [popover],
+        templatePath: [
+          "lib:template:component-popover" as TemplateId,
+          "lib:template:component-popover__overlay" as TemplateId,
+        ],
+      },
+    };
+    // The Popover's `offset: "{offset}"` → the popover origin's default, then the instance's write.
+    expect(readPropSource(local, overlay, "offset")).toMatchObject({
+      value: 8,
+      source: "definition-default",
+    });
+    applyCatalogTransaction(local, {
+      projectId: local.projectId,
+      expectedRevision: local.revision,
+      history: { kind: "record", label: "offset" },
+      ops: [
+        {
+          kind: "put",
+          entry: {
+            ...(local.getEntry(popover) as NodeEntry),
+            props: { offset: { kind: "set", value: 12 } },
+          },
+        },
+      ],
+    });
+    expect(readPropSource(local, overlay, "offset")).toMatchObject({
+      value: 12,
+      source: "instance",
+    });
+    // The resolver binds the same value.
+    const resolved = resolveCatalogNode(local, popover);
+    const drawn = (
+      nodes: readonly ResolvedCatalogNode[],
+    ): ResolvedCatalogNode | undefined =>
+      nodes.find((item) => item.sourceId === "lib:template:component-popover__overlay") ??
+      nodes.map((item) => drawn(item.children)).find(Boolean);
+    expect(drawn(resolved.children)?.props.offset).toBe(12);
+    // A row template's `{label}` (ListBoxItem accepts no `label`) stays a binding.
+    expect(
+      readPropSource(
+        local,
+        {
+          kind: "descendant",
+          ownerId: combo,
+          address: {
+            instances: [
+              combo,
+              "lib:template:component-combobox__item-1" as TemplateId,
+            ],
+            templatePath: [
+              "lib:template:component-listbox-item-default" as TemplateId,
+            ],
+          },
+        },
+        "children",
+      ).value,
+    ).toBe("{label}");
+    // A Button's Icon `{icon}`: the instance's `icon` (collapsed root — the node itself binds it).
+    const iconOf = (owner: NodeId) =>
+      readPropSource(
+        local,
+        {
+          kind: "descendant",
+          ownerId: owner,
+          address: {
+            instances: [owner],
+            templatePath: [
+              "lib:template:component-button" as TemplateId,
+              "lib:template:component-button__icon" as TemplateId,
+            ],
+          },
+        },
+        "iconName",
+      );
+    expect(iconOf(button)).toMatchObject({ value: "star", source: "instance" });
+    const plain = "project:node:plain" as NodeId;
+    applyCatalogTransaction(local, {
+      projectId: local.projectId,
+      expectedRevision: local.revision,
+      history: { kind: "record", label: "plain button" },
+      ops: [
+        {
+          kind: "put",
+          entry: node("plain", "lib:definition:origin-component-button" as never),
+        },
+        {
+          kind: "put",
+          entry: (() => {
+            const page = local.getEntry(PAGE);
+            if (page?.kind !== "page") throw new Error("page");
+            return { ...page, children: [...page.children, plain] };
+          })(),
+        },
+      ],
+    });
+    expect(iconOf(plain).value).toBeUndefined();
   });
 });

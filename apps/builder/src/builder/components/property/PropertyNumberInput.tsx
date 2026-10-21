@@ -53,8 +53,9 @@ export const PropertyNumberInput = memo(
     const focusedElementIdRef = useRef<string | null>(null);
     // 외부 value 또는 선택 요소가 바뀌면 렌더 중 즉시 동기화 (effect 불필요)
     const [prevSync, setPrevSync] = useState({ value, selectedElementId });
+    // (`Object.is`: a NaN value — `Number()` of a non-numeric prop — must not re-sync every render.)
     if (
-      prevSync.value !== value ||
+      !Object.is(prevSync.value, value) ||
       prevSync.selectedElementId !== selectedElementId
     ) {
       setPrevSync({ value, selectedElementId });
@@ -141,7 +142,7 @@ export const PropertyNumberInput = memo(
     );
   },
   (prevProps, nextProps) =>
-    prevProps.value === nextProps.value &&
+    Object.is(prevProps.value, nextProps.value) &&
     prevProps.onChange === nextProps.onChange &&
     prevProps.label === nextProps.label &&
     prevProps.min === nextProps.min &&
