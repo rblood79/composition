@@ -275,7 +275,7 @@ export class CatalogCanvasPicking {
       record;
       record = this.host.records.get(record.parentId)
     ) {
-      if (selected.has(record.id))
+      if (record.parentId !== PAGE_GRID && selected.has(record.id))
         return { id: record.id, leaveContext: false };
     }
     return this.target(x, y, false);
@@ -308,7 +308,7 @@ export class CatalogCanvasPicking {
     this.host.session.setHover(undefined);
   }
 
-  /** Enters the container under the point; `false` = nothing to enter (the target is a leaf). */
+  /** Selects the target or enters its child; `false` lets the caller try inline text editing. */
   doubleClick(x: number, y: number): boolean {
     const picked = this.pick(x, y);
     if (!picked) return false;
@@ -318,7 +318,12 @@ export class CatalogCanvasPicking {
       picked,
       session.getSnapshot().editingContext,
     );
-    if (!entry) return false;
+    if (!entry) {
+      // Pointerdown may have kept a selected ancestor (including the page body). A double click
+      // on the target's own empty area still selects it, even when there is no child to enter.
+      this.click(x, y);
+      return false;
+    }
     session.enterContext(entry.context);
     this.host.selectRecords([entry.target]);
     return true;

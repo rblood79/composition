@@ -115,6 +115,7 @@ pointerdown 을 "현재 선택을 잡아 끄는 동작" 으로 볼지의 판정�
 | body 선택 상태                             |     ❌      | 자식 클릭이 정상 선택                                  |
 | 히트 없음                                  |     ✅      | 기존 동작 보존 — 빈 영역이어도 박스 안이면 드래그 핸들 |
 
+- 선택된 자손을 유지하는 `targetKeepingSelection`에서도 page body (`parentId === "catalog:root"`)를 제외한다. 더블클릭은 진입할 child가 없어도 클릭 대상을 선택한 뒤 텍스트 편집 판정을 허용한다. **Why (2026-10-21)**: pointerdown이 선택된 Body를 유지하고 더블클릭은 child 진입 때만 선택을 바꿔, Card의 빈 padding 영역에서는 Body 선택이 남았다 (실제 Builder 및 Frame·Card 회귀 테스트 재현).
 - 깊이 진입은 **더블클릭 + 편집 맥락** (`canvasPick.ts` `doubleClick` → `session.enterContext`) 가 전담한다. 드래그 의도 판정이 깊이 모델을 겸하면 안 된다 — 두 축이 섞이면 겹친 형제 클릭이 삼켜진다.
 - 더블클릭으로 들어갈 곳이 없을 때의 글자 편집 (`resolveCatalogTextEditRecord`) 은 **그 요소가 직접 그리는 글자만** 대상이다 — 안쪽 부품이 바인딩으로 그리는 글자 (필드 · 그룹의 `label` → Label 의 `{label}`) 는 `catalogHasOwnText` (`textBinding.ts`) 가 제외한다. **Why (2026-10-14)**: RadioGroup 빈 영역 더블클릭이 그룹 상자 전체 (1440×63) 에 label 편집창을 열었다 — 필드 · 그룹 19종 공통.
 - body 예외를 판정 함수 **바깥**에 특수 분기로 두지 않는다. body 선택 박스는 페이지 전체를 덮어 bbox 판정이면 모든 클릭이 무시되므로, 같은 결함의 국소 우회가 재발한다.

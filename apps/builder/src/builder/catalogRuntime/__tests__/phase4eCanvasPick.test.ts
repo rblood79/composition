@@ -188,6 +188,46 @@ describe("ADR-248 Phase 4e-3 Canvas picking", () => {
     );
   });
 
+  it.each([
+    "lib:definition:type-frame",
+    "lib:definition:origin-component-card",
+  ])(
+    "double click on %s empty space selects it when the body is selected",
+    async (definition) => {
+      const { workspace, scene, picking, selected } = await open();
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            {
+              ...node("component", definition),
+              sizing: {
+                width: { kind: "set", value: 400 },
+                height: { kind: "set", value: 300 },
+              },
+            },
+          ],
+          rootIds: [id("component")],
+          newId: allocator(),
+        }),
+      );
+      scene.sync();
+      const record = workspace.root.recordsOfSource(id("component"))[0];
+      const box = scene.stream.boundsMap.get(record)!;
+      const x = box.x + box.width - 2;
+      const y = box.y + box.height / 2;
+      expect(picking.pick(x, y)).toBe(record);
+
+      const body = workspace.root.recordsOfSource(BODY)[0];
+      workspace.selectRecords([body]);
+      // A selected body must not swallow presses on its children, including their empty areas.
+      expect(picking.targetKeepingSelection(x, y, false)?.id).toBe(record);
+      expect(picking.doubleClick(x, y)).toBe(false);
+      expect(selected()).toEqual([record]);
+      expect(workspace.session.getSnapshot().editingContext).toBeUndefined();
+    },
+  );
+
   it("a click outside the entered context leaves it and selects at the page level", async () => {
     const { workspace, picking, center, selected } = await open();
     const [lx, ly] = center("leaf");
