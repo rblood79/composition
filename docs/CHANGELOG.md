@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ratchet 상한 올리기 150건 (사용자 승인 2026-10-21, 만료 2027-04-21)**: app-pages 계열 6 seed (`60:app-pages` · `-images` · `-images-asset` · `@dpr2` · `@zoom0.1` · `60:many-pages100@zoom0.1`) 의 등급 A — ADR-277 이 fixture 의 TableView 를 Table starter (Column ×3 + Row) 로 바꿔 (`bdc6d3980`) 문서가 커졌는데 ADR-277 은 ratchet 을 재지 않았다 (CHANGELOG 「ratchet 미측정」). 같은 코드 2 pass 에서 150 키 전부 같은 값 (`scratchpad/ratchet-overa.json`) — 2a · 3a · 4a 와 무관 (2a push 때 run 과 key 집합 동일). pre-push 는 이 초과로 block 돼 3a · 4a 는 `SKIP_PERF_RATCHET=1` 로 push 했다.
 - **하향 40 · 새 지표 23 기록** (`--update`, pass 1): 레버 4a 의 `engine.solveVisits` 등. pass 2 판정 A 초과 0 · B 경고 26 (측정마다 흔들리는 cdp.LayoutCount · v8.fn 류, 차단 아님).
 
+## [Components 팔레트 · Library page — category 재배정 · Parts 구역] - 2026-10-21
+
+### Changed
+
+- **팔레트 category 재배정 (Framer Insert 패널의 「넣으려는 것」 기준)**: Meter → content (ProgressBar 옆, 값 표시 묶음 — forms 의 Slider 뒤에 있었다) · Menu → layout (Nav · Breadcrumbs · Pagination 의 Navigation 묶음 — buttons 에 있었다) · Section → layout (컨테이너 — collections 의 TagGroup 뒤에 있었다) · AvatarGroup 은 catalog 값을 content 로 정정 (팔레트 overlay 가 content, catalog 가 layout 으로 서로 달랐다) · CardView 아이콘은 catalog 를 Grid 로 (LayoutGrid 는 builder ICON_MAP 미등록). `PALETTE_ONLY` overlay 에서 AvatarGroup · CardView · ButtonGroup 삭제 — catalog 에 등록돼 있어 중복이었다 (Image 만 남음). 팔레트 oracle 재캡처.
+  - **Why**: 2026-10-21 Library 감사 — 사용자 지적 「각 컴포넌트에 맞지 않는 불필요한 요소가 그룹에」. Framer 는 Media · Forms · Navigation 처럼 사용자가 넣으려는 것으로 묶는다.
+- **Library page 의 부품 카드는 「Parts」 구역으로 page 끝에**: Label · Input · DateInput · Description · FieldError · Heading · FieldButton 카드가 page 를 열며 컴포넌트처럼 서 있던 것을 팔레트 컴포넌트 뒤로 옮기고 제목에 「· PART」 를 붙인다 (`catalogBuiltinOrigins` 순서 · `componentsPage.ts` 카드 제목). 카드 자체는 유지 — ◆ 가 그 부품의 프로젝트 기본값 편집 자리 (Label 카드를 고치면 모든 field 의 Label 이 따라온다).
+- 테스트: `paletteItems.test.ts` oracle · `phase4eOriginView.test.ts` 「Library page (2026-10-21)」 (Parts 구역 · 제목 · category 5종).
+
 ## [Library page — Item 줄 · slot 상자 · FieldButton · ContextualHelp 수리] - 2026-10-21
 
 ### Fixed

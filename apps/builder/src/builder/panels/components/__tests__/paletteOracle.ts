@@ -1,7 +1,8 @@
 // AUTO-CAPTURED palette oracle — ADR-912 6 registry collapse / ComponentList 파생 proof
 // 현 ComponentList 정적 배열(contentComp/layoutComp/buttonsComp/formsComp/collectionsComp/dateTimeComp/overlaysComp)이
 // 노출하는 palette 항목의 1:1 보존 스냅샷. getPaletteItems() 파생 결과가 이 oracle 과 같아야 회귀 0.
-// 순서 = palette UI 표시 순서(category 7 + 항목). 캡처: 2026-06-11.
+// 순서 = palette UI 표시 순서(category 8 + 항목). 캡처: 2026-06-11 · 재캡처 2026-10-21 (Library 감사 —
+// Meter · Menu · Section · AvatarGroup category, CardView 아이콘, overlay 3종 → catalog).
 //
 // ⚠️ 이 파일을 손으로 수정하지 말 것 — palette 표시가 의도적으로 바뀔 때만 재캡처.
 export interface PaletteOracleItem {
@@ -25,7 +26,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "icon",
     icon: "Smile",
   },
-  // ADR-256 Phase 5g (2026-10-09): a keyboard shortcut (RAC Keyboard) — the reference's MenuItem part.
   {
     type: "Keyboard",
     category: "content",
@@ -49,6 +49,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     category: "content",
     label: "progress bar",
     icon: "BarChart3",
+  },
+  {
+    type: "Meter",
+    category: "content",
+    label: "meter",
+    icon: "Gauge",
   },
   {
     type: "Skeleton",
@@ -111,6 +117,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "GroupIcon",
   },
   {
+    type: "Section",
+    category: "layout",
+    label: "section",
+    icon: "Square",
+  },
+  {
     type: "Tabs",
     category: "layout",
     label: "tabs",
@@ -135,11 +147,16 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Menu",
   },
   {
-    // 재캡처 2026-08-21 — creator↔팔레트 전수 대조로 적발한 미노출 3종(Pagination/ColorField/Meter).
     type: "Pagination",
     category: "layout",
     label: "pagination",
     icon: "ChevronsLeftRight",
+  },
+  {
+    type: "Menu",
+    category: "layout",
+    label: "menu",
+    icon: "Menu",
   },
   {
     type: "DisclosureGroup",
@@ -197,20 +214,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "GroupIcon",
   },
   {
-    type: "Menu",
-    category: "buttons",
-    label: "menu",
-    icon: "Menu",
-  },
-  {
     type: "TextField",
     category: "forms",
     label: "text field",
     icon: "RectangleEllipsis",
   },
   {
-    // 재캡처 2026-08-21 — TextArea 팔레트 노출 (의도적 변경). catalog panel meta 와 factory
-    //   creator 는 처음부터 있었는데 PALETTE_ORDER 에만 빠져 꺼낼 수 없던 결손을 메운 것.
     type: "TextArea",
     category: "forms",
     label: "text area",
@@ -240,7 +249,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "color field",
     icon: "Palette",
   },
-  // 재캡처 2026-10-12 — ADR-258 Phase 3 (사용자 결정 3): Color 조작기 3 을 ColorField 뒤에.
   {
     type: "ColorArea",
     category: "forms",
@@ -302,12 +310,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "SlidersHorizontal",
   },
   {
-    type: "Meter",
-    category: "forms",
-    label: "meter",
-    icon: "Gauge",
-  },
-  {
     type: "DropZone",
     category: "forms",
     label: "drop zone",
@@ -362,12 +364,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Tag",
   },
   {
-    type: "Section",
-    category: "collections",
-    label: "section",
-    icon: "Square",
-  },
-  {
     type: "chart-area",
     category: "charts",
     label: "Area Chart",
@@ -403,7 +399,6 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "Radial Chart",
     icon: "Gauge",
   },
-  // ADR-217 — 산점도 (descriptor 순서 = 팔레트 순서).
   {
     type: "chart-scatter",
     category: "charts",
@@ -470,4 +465,4 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "tooltip",
     icon: "MessageSquare",
   },
-] as const;
+];

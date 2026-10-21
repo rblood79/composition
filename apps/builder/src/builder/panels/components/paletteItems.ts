@@ -189,16 +189,11 @@ export const ICON_MAP: Record<
  *   (사용자 판정 "컴포넌트에서 제공하지 않는다"). catalog rule/binding/shared 컴포넌트는 별도 정리.
  */
 const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
-  AvatarGroup: { category: "content", label: "avatar group", icon: "Users" },
   Image: { category: "content", label: "image", icon: "ImageIcon" },
   // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → PALETTE_ONLY overlay 에서 제거,
   //   catalog entry.panel(category layout, AppWindowMac) 파생으로 전환. PALETTE_ORDER source=catalog.
-  CardView: { category: "layout", label: "card view", icon: "Grid" },
-  ButtonGroup: {
-    category: "buttons",
-    label: "button group",
-    icon: "GroupIcon",
-  },
+  // 2026-10-21 (Library 감사): AvatarGroup · CardView · ButtonGroup 도 제거 — catalog 에 등록돼 있어
+  //   overlay 는 중복이었고 AvatarGroup 은 category 가 (content ↔ layout) 서로 달랐다. catalog 가 정본.
 };
 
 /**
@@ -217,9 +212,11 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Separator", source: "catalog" },
   { type: "Badge", source: "catalog" },
   { type: "ProgressBar", source: "catalog" },
+  // 2026-10-21: Meter 는 값 표시 — ProgressBar 옆 (content). forms 의 Slider 뒤에 있었다.
+  { type: "Meter", source: "catalog" },
   { type: "Skeleton", source: "catalog" },
   { type: "Avatar", source: "catalog" },
-  { type: "AvatarGroup", source: "overlay" },
+  { type: "AvatarGroup", source: "catalog" },
   { type: "StatusLight", source: "catalog" },
   { type: "InlineAlert", source: "catalog" },
   { type: "ProgressCircle", source: "catalog" },
@@ -227,6 +224,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "IllustratedMessage", source: "catalog" },
   { type: "Card", source: "catalog" },
   { type: "frame", source: "catalog" },
+  // 2026-10-21: Section 은 컨테이너 — frame 옆 (layout). collections 의 TagGroup 뒤에 있었다.
+  { type: "Section", source: "catalog" },
   { type: "Tabs", source: "catalog" },
   { type: "Breadcrumbs", source: "catalog" },
   { type: "Link", source: "catalog" },
@@ -236,16 +235,17 @@ const PALETTE_ORDER: ReadonlyArray<{
   //   없었다(코드 어디에도 제외 사유 없음). creator↔팔레트 전수 대조로 적발.
   // Pagination: 페이지 이동 UI — Breadcrumbs/Link/Nav 내비게이션 묶음 뒤.
   { type: "Pagination", source: "catalog" },
+  // 2026-10-21: Menu 는 Navigation 묶음 (layout) — buttons 의 ButtonGroup 뒤에 있었다.
+  { type: "Menu", source: "catalog" },
   { type: "DisclosureGroup", source: "catalog" },
   { type: "Disclosure", source: "catalog" },
-  { type: "CardView", source: "overlay" },
+  { type: "CardView", source: "catalog" },
   { type: "Slot", source: "catalog" },
   { type: "Button", source: "catalog" },
   { type: "ToggleButton", source: "catalog" },
   { type: "ToggleButtonGroup", source: "catalog" },
   { type: "Toolbar", source: "catalog" },
-  { type: "ButtonGroup", source: "overlay" },
-  { type: "Menu", source: "catalog" },
+  { type: "ButtonGroup", source: "catalog" },
   { type: "TextField", source: "catalog" },
   // TextArea 추가 (2026-08-21). catalog panel meta(forms/"text area"/RectangleEllipsis)와
   //   factory creator(ComponentFactory.createTextArea)는 처음부터 있었는데 본 배열에만 빠져 있어
@@ -271,8 +271,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ComboBox", source: "catalog" },
   { type: "Switch", source: "catalog" },
   { type: "Slider", source: "catalog" },
-  // Meter: 값 표시 계열 — Slider 뒤 (형제 ProgressBar 는 content 카테고리).
-  { type: "Meter", source: "catalog" },
   { type: "DropZone", source: "catalog" },
   { type: "FileTrigger", source: "catalog" },
   // ADR-201 (2026-09-17): 대용량 파일 업로드 compound — DropZone/FileTrigger 뒤.
@@ -283,7 +281,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "GridList", source: "catalog" },
   { type: "Tree", source: "catalog" },
   { type: "TagGroup", source: "catalog" },
-  { type: "Section", source: "catalog" },
   // ADR-194 (2026-09-08): 차트. catalog 등록 컴포넌트라 source="catalog".
   // (ADR-277, 2026-10-21: 「table view」 overlay 항목은 「table」 로 통합 — 표는 하나.)
   { type: "Chart", source: "catalog" },

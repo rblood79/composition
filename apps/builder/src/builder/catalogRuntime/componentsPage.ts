@@ -497,10 +497,11 @@ function pageKit(
     name: string,
     rows: NodeId[],
     weight: number,
+    caption: string = name,
   ) => {
     const title = text(
       titleId,
-      `${String(cards.length + 1).padStart(2, "0")}. ${name.toUpperCase()}`,
+      `${String(cards.length + 1).padStart(2, "0")}. ${caption.toUpperCase()}`,
       { fontSize: 12, fontWeight: 700 },
     );
     cards.push({
@@ -1050,7 +1051,15 @@ export function catalogComponentsPageEntries(
       );
       weight += Math.ceil(origin.kinds.length / 2) * 240 + 30;
     }
-    card(base("card"), base("title"), origin.name, rows, weight);
+    // (A base part's card is titled as one: the Parts section closes the page — 2026-10-21.)
+    card(
+      base("card"),
+      base("title"),
+      origin.name,
+      rows,
+      weight,
+      origin.category === "parts" ? `${origin.name} · part` : origin.name,
+    );
   });
 
   // Palette order down the columns.

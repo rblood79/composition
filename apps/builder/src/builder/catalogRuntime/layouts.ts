@@ -84,7 +84,11 @@ export function catalogBuiltinOrigins(
   library: CatalogLibrary,
 ): CatalogBuiltinOrigin[] {
   const seen = new Map<string, CatalogBuiltinOrigin>();
-  // The base parts first (ADR-253): the origins the composed components below are built from.
+  // The base parts (ADR-253): the origins the composed components are built from — drawn
+  // **after** the palette's components, as a Parts section at the end (user 2026-10-21: the
+  // parts opened the page as if they were components of their own; Framer lists no Label ·
+  // Input · FieldError items). They stay cards: a part card's ◆ is where the project's default
+  // for that part is edited (every field's Label follows the Label card).
   const parts: CatalogBuiltinOrigin[] = BASE_PART_ORIGIN_TYPES.flatMap(
     (type) => {
       const id = catalogPaletteDefinitionId(library, type);
@@ -121,7 +125,7 @@ export function catalogBuiltinOrigins(
     seen.set(id, origin);
     return [origin];
   });
-  return [...parts, ...palette];
+  return [...palette, ...parts];
 }
 
 /** The Navigator tab listing a definition (its edit view selects it); `undefined` = none. */

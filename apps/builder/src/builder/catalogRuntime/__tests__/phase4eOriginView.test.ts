@@ -30,6 +30,7 @@ import {
   COMPONENTS_PAGE_WIDTH,
 } from "../componentsPage";
 import { catalogBuiltinOrigins } from "../layouts";
+import { getPaletteItems } from "../../panels/components/paletteItems";
 import {
   CatalogOriginEditError,
   COMPONENTS_VIEW,
@@ -1045,6 +1046,27 @@ describe("ADR-248 4e library origin view", () => {
         (icon) => inputOf(icon).props.iconName,
       ),
     ).toEqual(["circle-question-mark"]);
+    // The base parts close the page as a Parts section (user 2026-10-21: they opened it as if
+    // components of their own), each titled as a part; the palette's components come first.
+    const origins = catalogBuiltinOrigins(graph.library);
+    const firstPart = origins.findIndex((origin) => origin.category === "parts");
+    expect(firstPart).toBeGreaterThan(0);
+    expect(
+      origins.slice(firstPart).every((origin) => origin.category === "parts"),
+    ).toBe(true);
+    const titleOf = (name: string) =>
+      (nodeOf(cardOf(name).children[0]!).props.children as { value: string })
+        .value;
+    expect(titleOf("Label")).toMatch(/\. LABEL · PART$/);
+    expect(titleOf("Button")).toMatch(/\. BUTTON$/);
+    // Categories (2026-10-21, Framer's "what you are adding" grouping): value displays with
+    // ProgressBar, Menu and Section with the layout · navigation group, AvatarGroup with Avatar.
+    const palette = getPaletteItems();
+    const categoryOf = (name: string) =>
+      palette.find((item) => item.type === name)!.category;
+    expect(
+      ["Meter", "Menu", "Section", "AvatarGroup", "CardView"].map(categoryOf),
+    ).toEqual(["content", "layout", "layout", "content", "layout"]);
     workspace.dispose();
   });
 });

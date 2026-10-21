@@ -238,8 +238,9 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "body",
     icon: "Layout",
   }),
+  // 2026-10-21 (Library 감사 · Framer 「넣으려는 것」 기준): 컨테이너 — collections 가 아니라 layout.
   primitiveEntry("Section", "primitives", FAMILY_1_CUTOVER, {
-    category: "collections",
+    category: "layout",
     label: "section",
     icon: "Square",
   }),
@@ -457,15 +458,17 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   + cutoverTypes 미포함 → generic 전환 아님(전용 렌더러 inline style 이 DOM 시각, generated CSS
   //   보조). catalog entry 는 Skia 게이트 활성 + palette source 목적. Card 본체(R6) 동형.
   //   옛 둘째 표 type 은 isQuiet boolean → variant:quiet 흡수(S2 정본 variant 모델, D2 BC 사용자 승인 — ADR-277 로 삭제).
+  // 2026-10-21: Avatar 옆 (content) — 팔레트 overlay 가 content 로 덮어쓰던 값을 catalog 에 정정.
   primitiveEntry("AvatarGroup", "primitives", FAMILY_1_CUTOVER, {
-    category: "layout",
+    category: "content",
     label: "avatar group",
     icon: "Users",
   }),
   primitiveEntry("CardView", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "card view",
-    icon: "LayoutGrid",
+    // 2026-10-21: 팔레트 overlay 가 쓰던 Grid (LayoutGrid 는 builder ICON_MAP 에 없다).
+    icon: "Grid",
   }),
   // ADR-209: canonical primitive 는 하나, 저작 진입점만 6종으로 분리.
   primitiveEntry("Chart", "primitives", FAMILY_1_CUTOVER, {
@@ -695,8 +698,9 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     icon: "BarChart3",
   }),
   // Meter — 측정값 표시. ADR-256 Phase 7b: ProgressBar 와 같은 노드 트리 (variant 4색 · indeterminate 없음).
+  // 2026-10-21: 값 표시 — ProgressBar 옆 (content). 입력이 아니다.
   primitiveEntry("Meter", "selection", FAMILY_3_CUTOVER, {
-    category: "forms",
+    category: "content",
     label: "meter",
     icon: "Gauge",
   }),
@@ -975,8 +979,9 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   //   buildCatalogShapes 가 text "Menu" 그림(C3 차단 미적용, Button 동형). rule fill base
   //   `{color.neutral}` == Button `{color.neutral}`. legacy render.shapes(bg+border+text"Menu")와
   //   parity, 유일 차이 text align(legacy left → catalog center)는 Button center 정합(정렬 정정).
+  // 2026-10-21: Navigation 묶음 (Nav · Breadcrumbs · Pagination 옆, layout) — trigger 가 Button 일 뿐.
   primitiveEntry("Menu", "collections", FAMILY_4_CUTOVER, {
-    category: "buttons",
+    category: "layout",
     label: "menu",
     icon: "Menu",
   }),

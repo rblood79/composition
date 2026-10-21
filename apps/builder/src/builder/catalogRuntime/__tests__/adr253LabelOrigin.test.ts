@@ -99,10 +99,12 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
     expect(record.collapsedSourceIds).toEqual(["lib:template:component-label"]);
   });
 
-  it("the Components page draws the Label origin (a base part, before the palette origins)", async () => {
+  it("the Components page draws the Label origin (a base part — the Parts section after the palette origins, 2026-10-21)", async () => {
     const { workspace, library } = await open();
     const origins = catalogBuiltinOrigins(library);
-    expect(origins[0]).toMatchObject({ id: LABEL_ORIGIN, name: "Label" });
+    const parts = origins.filter((origin) => origin.category === "parts");
+    expect(parts[0]).toMatchObject({ id: LABEL_ORIGIN, name: "Label" });
+    expect(origins.indexOf(parts[0]!)).toBeGreaterThan(0);
     workspace.showDefinition(LABEL_ORIGIN);
     const sample = [...workspace.root.canvasInputs.values()].find(
       (record) => record.sourceId === originSampleId(LABEL_ORIGIN),
