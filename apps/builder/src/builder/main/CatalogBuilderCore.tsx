@@ -82,6 +82,8 @@ import {
 } from "../panels/history/catalogSnapshotHost";
 import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { toProjectVariableDefs, useDataStore } from "../stores/data";
+import { changedCollectionIds } from "../catalogRuntime/rowsRefresh";
+import type { DataTable } from "../../types/builder/data.types";
 import { useToastStore } from "../stores/toast";
 import {
   setDataHistoryRecorder,
@@ -128,7 +130,13 @@ const NO_SNAPSHOT_ACTIONS = { canCreate: () => false, create() {} };
 
 type OpenState =
   | { kind: "opening" }
-  | { kind: "open"; workspace: CatalogWorkspace; name: string }
+  | {
+      kind: "open";
+      workspace: CatalogWorkspace;
+      name: string;
+      /** The data-store collections the root resolved its bound rows from (`rows` option). */
+      rowsSource: ReadonlyMap<string, DataTable>;
+    }
   | { kind: "failed"; message: string };
 
 /** ADR-248 Phase 4e-3: a breakpoint switch builds the composition root again (same runtime). */
@@ -220,6 +228,9 @@ export function CatalogBuilderCore() {
       if (cancelled) return;
       // The rest is the Canvas's first frame (the overlay goes when it is drawn).
       stage(90, "document");
+      // The rows the root is about to resolve: the mount refreshes only collections that change
+      // after this read (a second whole resolve of the bound pages was ~1/4 of the first frame).
+      const rowsSource = useDataStore.getState().collections;
       const snapRatio = window.devicePixelRatio || 1;
       setBorderSnapRatio(snapRatio);
       opened = new CatalogWorkspace(graph, storage, {
@@ -281,6 +292,7 @@ export function CatalogBuilderCore() {
         kind: "open",
         workspace: opened,
         name: project?.kind === "project" ? project.name : routeId,
+        rowsSource,
       });
     })().catch(async (error: unknown) => {
       if (cancelled) return;
@@ -331,6 +343,7 @@ export function CatalogBuilderCore() {
   );
 
   const workspace = state.kind === "open" ? state.workspace : undefined;
+  const rowsSource = state.kind === "open" ? state.rowsSource : undefined;
   const viewportActions = useMemo(
     () =>
       workspace
@@ -509,15 +522,20 @@ export function CatalogBuilderCore() {
     };
   }, []);
   // A collection's rows changed (edit, load, delete): its bound collections draw them again.
+  // The root already resolved the rows of the store it was opened with (`rowsSource`): on mount
+  // only what changed since is refreshed (2026-10-21 — an unconditional refresh resolved every
+  // bound page root a second time, ~125 ms of a 22-page document's first frame, 4× throttle ~520).
   useEffect(() => {
-    if (!workspace) return;
-    workspace.refreshRows();
+    if (!workspace || !rowsSource) return;
+    const since = changedCollectionIds(
+      useDataStore.getState().collections,
+      rowsSource,
+    );
+    if (since.length) workspace.refreshRows(since);
     return useDataStore.subscribe(
       (store) => store.collections,
       (next, previous) => {
-        const changed = [
-          ...new Set([...next.keys(), ...previous.keys()]),
-        ].filter((id) => next.get(id) !== previous.get(id));
+        const changed = changedCollectionIds(next, previous);
         if (!changed.length) return;
         try {
           workspace.refreshRows(changed);
@@ -526,7 +544,7 @@ export function CatalogBuilderCore() {
         }
       },
     );
-  }, [workspace]);
+  }, [workspace, rowsSource]);
   // Project variables changed (add, rename, default): the `{{ }}` readers resolve again.
   useEffect(() => {
     if (!workspace) return;

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Builder 로드 — mount 의 바인딩 행 중복 해석 제거] - 2026-10-21
+
+### Performance
+
+- **빌더가 열리며 바인딩 컬렉션의 행을 두 번 해석하지 않는다**: `CatalogBuilderCore` 의 mount effect 가 `workspace.refreshRows()` 를 무조건 불러 바인딩 소유자가 있는 page root 를 전부 다시 flatten 했다 — boot 는 `initializeForProject` 를 await 한 **뒤에** root 를 만들므로 root 는 이미 그 행을 가진 상태였다 (재해석 결과 record 7,731 전부 동일). mount 는 root 가 읽은 collections (`rowsSource`) 와 다른 것만 새로 고치고 (`changedCollectionIds`, `catalogRuntime/rowsRefresh.ts`), 이후 변경은 종전대로 data store 구독이 `refreshRows(changed)` 로 보낸다.
+  - **Why**: ADR-248 이후 Canvas 성능 조사 레버 3 (`.agent/runs/2026-10-21-canvas-perf-regression/lever3/`) — 22 페이지 · record 10,664 · 바인딩 소유자 9 문서의 로드 long task 643 + 578 ms (사용자 탭) 를 귀속: ② root 생성 626 ms (`loadInitial` — JS 해석 + record 조립 75 %, 엔진 8 %) · ③ 첫 프레임 480 ms (장면 bind 50 % · **`refreshRows()` 중복 26 %** · geometry 13 %). production 도 같은 값이라 제품 몫.
+  - 효과 (dev · 1x): ③ 478~492 → 141~146 ms · presented 1.74~1.81 → 1.41~1.45 s · 로드 뒤 `doc.rootResolverVisits` 7,731 → 0. production · 4x 값은 lever3 README.
+  - live: 로드 뒤 바인딩 collection 에 행 1개 삽입 → Canvas rowCount 1000 → 1001 · 「+990 more」 → 「+991」 · 재해석은 그 collection 의 root 만 (811) · undo 로 1000 복귀 (`live-3a.json`).
+  - 남은 꼬리 (같은 README): ② `loadInitial` 전 페이지 동기 해석 · ③ 장면 bind 전 record — 화면 안 페이지 먼저 (ADR 규모) · `refreshRows` 자체 (호출 1회 324~370 ms · 4x 1.3 s — page root 전부 재 flatten + 장면 전체 재 bind, 레버 4 후보).
+  - 테스트: `rowsRefresh.test.ts` (변경 id 산출 · mount 가 무조건 `refreshRows()` 를 부르지 않는다는 정적 게이트).
+
 ## [Canvas pan — overlay chrome 을 scene 버전으로 보관] - 2026-10-21
 
 ### Performance
