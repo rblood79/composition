@@ -17,28 +17,29 @@ import {
 import "./ConfirmDialog.css";
 import "./ComponentNameDialog.css";
 
+/**
+ * Mounted once by the Builder; renders nothing (no i18n subscriber, no overlay) until a request
+ * is open — the idle Builder's render counts stay as they were (ADR-246 ratchet).
+ */
 export function ComponentNameDialogHost() {
-  const { t } = useI18n();
   const [request, setRequest] = useState<ComponentNameRequest | null>(null);
-  const [name, setName] = useState("");
+  useEffect(() => subscribeComponentNameRequest(setRequest), []);
+  return request ? <ComponentNameDialog request={request} /> : null;
+}
+
+function ComponentNameDialog({ request }: { request: ComponentNameRequest }) {
+  const { t } = useI18n();
+  const [name, setName] = useState(request.defaultName);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(
-    () =>
-      subscribeComponentNameRequest((next) => {
-        setRequest(next);
-        setName(next?.defaultName ?? "");
-      }),
-    [],
-  );
   const confirm = () => resolveComponentNameRequest(name);
   const cancel = () => resolveComponentNameRequest(null);
   return (
     <ModalOverlay
       className="confirm-dialog-overlay"
-      isOpen={request !== null}
+      isOpen
       isDismissable
       onOpenChange={(open) => {
-        if (!open && request) cancel();
+        if (!open) cancel();
       }}
     >
       <Modal className="confirm-dialog-modal">
