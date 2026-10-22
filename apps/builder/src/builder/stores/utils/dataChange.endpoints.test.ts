@@ -540,3 +540,74 @@ describe("reduceDataOps — set_source{endpointId} 연결 (ADR-218 m3)", () => {
     ).toThrow(DataChangeError);
   });
 });
+
+describe("define_endpoint — the response paths the Preview session's load reads", () => {
+  it("cursorPath · selectedKeysPath ride the draft: set, kept by other edits, cleared by an empty value, undone", async () => {
+    const { toEndpointDraft } = await import("./dataChange");
+    const set = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft(
+            endpoint({
+              responseMapping: {
+                dataPath: "data",
+                cursorPath: "next",
+                selectedKeysPath: "selected",
+              },
+            }),
+          ),
+        },
+      ],
+      ctx(),
+    );
+    expect(set.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "data",
+      cursorPath: "next",
+      selectedKeysPath: "selected",
+    });
+    // (Another field's edit — the editor sends the whole endpoint — keeps them.)
+    const other = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft({
+            ...set.apiEndpoints.get("getUsers")!,
+            path: "/people",
+          }),
+        },
+      ],
+      { projectId: "p", apiEndpoints: set.apiEndpoints },
+    );
+    expect(other.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "data",
+      cursorPath: "next",
+      selectedKeysPath: "selected",
+    });
+    // (An empty value clears one.)
+    const cleared = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: { ...toEndpointDraft(other.apiEndpoints.get("getUsers")!), cursorPath: "" },
+        },
+      ],
+      { projectId: "p", apiEndpoints: other.apiEndpoints },
+    );
+    expect(cleared.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "data",
+      selectedKeysPath: "selected",
+    });
+    // (Undoing the first edit takes both away again.)
+    const undone = reduceDataOps(new Map(), set.inverse, {
+      projectId: "p",
+      apiEndpoints: set.apiEndpoints,
+    });
+    expect(undone.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "data",
+    });
+  });
+});

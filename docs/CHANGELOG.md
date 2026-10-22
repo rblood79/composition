@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — load 가 선택을 정한다 (`useAsyncList` load `selectedKeys`) · endpoint 편집기의 cursor 경로가 저장되지 않던 문제] - 2026-10-23
+
+### Added
+
+- **조회 응답의 선택 key 로 바운드 컴포넌트를 선택** — 레퍼런스 `useAsyncList` 의 `load` 가 `selectedKeys` 를 돌려주는 것과 같다.
+  - endpoint 편집기 Params 탭 「선택 key 경로」 (`responseMapping.selectedKeysPath`, 예: `selected` — key 배열 또는 `"all"`).
+  - 다시 읽기 · 검색 · 정렬의 key 는 선택을 바꾸고, 더 불러오기의 key 는 기존 선택에 더한다. 응답에 없으면 선택은 그대로.
+  - ListBox · GridList · Table · Tree · TagGroup 은 `selectedKeys`, Select · ComboBox 는 첫 key 를 `selectedKey` 로 (단일 선택 목록은 하나만).
+  - 위치: `packages/shared/src/collections/executeCollectionEndpoint.ts` · `catalog/runtime/catalogPreviewSession.ts` (`onLoadedSelection`) · `catalogPreviewInteractions.ts` (`selectLoaded`) · `ApiEndpointEditor.tsx` (`ResponsePathRow`) · 테스트 `loadSelection.test.tsx` (원복 RED)
+
+### Fixed
+
+- **endpoint 편집기의 「다음 페이지 cursor 경로」 가 저장되지 않던 문제** — 편집기 저장 (`toEndpointDraft` → `define_endpoint`) 이 `responseMapping` 중 `dataPath` 만 실어, 입력칸은 값을 보여도 store · 내보내기에 닿지 않았다 (이번 세션 1단계에서 넣은 칸). draft 에 `cursorPath` · `selectedKeysPath` 를 싣고 (`""` = 지움, undo 가 되돌림) 적용기가 반영한다.
+  - 위치: `packages/shared/src/schemas/dataChange.ts` · `apps/builder/src/builder/stores/utils/dataChange.ts` (`withResponsePaths`) · 테스트 `dataChange.endpoints.test.ts` (원복 RED)
+
 ## [Data — Picker · ComboBox 읽는 중 스피너 · 열린 목록 끝 더 불러오기 (S2 `loadingState` · `onLoadMore`)] - 2026-10-23
 
 ### Added

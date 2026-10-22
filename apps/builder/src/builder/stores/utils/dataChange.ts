@@ -354,6 +354,24 @@ function findEndpointById(
 }
 
 /** 저장된 `ApiEndpoint` → op 의 `endpoint` draft (inverse 에 싣는 형태 — 전체 정의). */
+/**
+ * The response paths a draft gives (`cursorPath` · `selectedKeysPath` — the Preview session's
+ * `useAsyncList` load): a value sets one, `""` clears it, none keeps it.
+ */
+function withResponsePaths(
+  mapping: ApiEndpoint["responseMapping"],
+  draft: ApiEndpointDraft,
+): ApiEndpoint["responseMapping"] {
+  const next = { ...mapping };
+  for (const key of ["cursorPath", "selectedKeysPath"] as const) {
+    const value = draft[key];
+    if (value === undefined) continue;
+    if (value) next[key] = value;
+    else delete next[key];
+  }
+  return next;
+}
+
 export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
   return {
     id: endpoint.id,
@@ -371,6 +389,9 @@ export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
       ? { bodyTemplate: endpoint.bodyTemplate }
       : {}),
     dataPath: endpoint.responseMapping?.dataPath ?? "",
+    // (Always — `""` = none, so an undo takes a path it added away again.)
+    cursorPath: endpoint.responseMapping?.cursorPath ?? "",
+    selectedKeysPath: endpoint.responseMapping?.selectedKeysPath ?? "",
     ...(endpoint.targetCollectionId !== undefined
       ? { targetCollectionId: endpoint.targetCollectionId }
       : {}),
@@ -468,14 +489,12 @@ function reduceDefineEndpoint(
       ...(draft.uploadDryRun !== undefined
         ? { uploadDryRun: draft.uploadDryRun }
         : {}),
-      ...(draft.dataPath !== undefined
-        ? {
-            responseMapping: {
-              ...existing.responseMapping,
-              dataPath: draft.dataPath,
-            },
-          }
-        : {}),
+      responseMapping: withResponsePaths(
+        draft.dataPath !== undefined
+          ? { ...existing.responseMapping, dataPath: draft.dataPath }
+          : existing.responseMapping,
+        draft,
+      ),
       ...(draft.targetCollectionId !== undefined
         ? { targetCollectionId: draft.targetCollectionId }
         : {}),
@@ -512,7 +531,7 @@ function reduceDefineEndpoint(
     ...(draft.bodyTemplate !== undefined
       ? { bodyTemplate: draft.bodyTemplate }
       : {}),
-    responseMapping: { dataPath: draft.dataPath ?? "" },
+    responseMapping: withResponsePaths({ dataPath: draft.dataPath ?? "" }, draft),
     ...(draft.targetCollectionId !== undefined
       ? { targetCollectionId: draft.targetCollectionId }
       : {}),

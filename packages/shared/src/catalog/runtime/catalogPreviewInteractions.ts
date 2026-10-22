@@ -298,6 +298,14 @@ export interface CatalogPreviewInteractionsOptions {
   root: () => CatalogCompositionRoot | undefined;
   /** The session's updates: the rules are rebuilt after each. */
   subscribe: (listener: () => void) => () => void;
+  /** The keys a collection's load returned (`useAsyncList` load `selectedKeys` — `selectLoaded`). */
+  subscribeLoadedSelection?: (
+    listener: (
+      collectionId: string,
+      keys: readonly string[] | "all",
+      join: boolean,
+    ) => void,
+  ) => () => void;
   navigate: (pageId: EntryId<"page">) => void;
   /** Go to a path (routes with `:param`, the 404 fallback); absent = exact routes via `navigate`. */
   navigateTo?: (path: string) => void;
@@ -349,6 +357,20 @@ export interface CatalogPreviewInteractionsOptions {
  * in the Preview; a capability writes a prop override of its target record (runtime only — the
  * document and the Builder never see it). `setState` writes the session's runtime values.
  */
+/** Bound components whose selection is one key (`selectedKey`) — a load's first key. */
+const LOADED_SINGLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
+  "Select",
+  "ComboBox",
+]);
+/** Bound collections whose selection is a key set (`selectedKeys`). */
+const LOADED_MULTIPLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
+  "ListBox",
+  "GridList",
+  "Table",
+  "Tree",
+  "TagGroup",
+]);
+
 export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private index: InteractionIndex = buildInteractionIndex([]);
   /** Record → its rules' signature (which rules, which triggers): a change re-renders it. */
@@ -363,6 +385,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly deps: DispatchDeps;
   private readonly unsubscribe: () => void;
+  private readonly unsubscribeLoadedSelection?: () => void;
 
   constructor(private readonly options: CatalogPreviewInteractionsOptions) {
     // A load a rule started settles later: its failure is reported and shown as a toast.
@@ -554,10 +577,14 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     };
     this.refresh();
     this.unsubscribe = options.subscribe(() => this.refresh());
+    this.unsubscribeLoadedSelection = options.subscribeLoadedSelection?.(
+      (collectionId, keys, join) => this.selectLoaded(collectionId, keys, join),
+    );
   }
 
   dispose(): void {
     this.unsubscribe();
+    this.unsubscribeLoadedSelection?.();
     this.listeners.clear();
   }
 
@@ -674,6 +701,63 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       console.warn(`[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`);
       this.options.showToast(message);
     });
+  }
+  /**
+   * `useAsyncList` load `selectedKeys` — the components showing a collection select the keys its
+   * load returned (`selectedKeys={list.selectedKeys}`): a load's replace the selection, a
+   * `loadMore`'s join it (a picker's `selectedKey` is the first; a single list keeps one).
+   */
+  selectLoaded(
+    collectionId: string,
+    keys: readonly string[] | "all",
+    join: boolean,
+  ): void {
+    const root = this.options.root();
+    const graph = this.options.graph();
+    if (!root || !graph) return;
+    for (const record of [...root.domInputs.values()]) {
+      const source = graph.getEntry(record.sourceId as never);
+      const binding = source?.kind === "node" ? source.binding : undefined;
+      if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+      const type = catalogTypeName(root, record);
+      if (LOADED_SINGLE_SELECTION_TYPES.has(type)) {
+        const current = catalogRuntimeStateOf(
+          root,
+          record,
+          this.overrideOf(record.id),
+          "selectedKey",
+        );
+        if (keys === "all") continue;
+        if (join && current != null) continue;
+        this.setRuntimeProps(record.id, { selectedKey: keys[0] ?? null });
+        continue;
+      }
+      if (!LOADED_MULTIPLE_SELECTION_TYPES.has(type)) continue;
+      const current = catalogRuntimeStateOf(
+        root,
+        record,
+        this.overrideOf(record.id),
+        "selectedKeys",
+        (recordId) => this.overrideOf(recordId),
+      );
+      const before =
+        current === "all"
+          ? "all"
+          : Array.isArray(current) || current instanceof Set
+            ? [...current].map(String)
+            : [];
+      const next =
+        keys === "all" || (join && before === "all")
+          ? "all"
+          : join
+            ? [...new Set([...(before as string[]), ...keys])]
+            : [...keys];
+      const single = record.props.selectionMode === "single";
+      this.setRuntimeProps(record.id, {
+        selectedKeys:
+          single && next !== "all" ? next.slice(join ? -1 : 0, join ? undefined : 1) : next,
+      });
+    }
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     const props = this.options.root()?.domInputs.get(id)?.props as

@@ -2011,6 +2011,9 @@ const koKR: TranslationKeys = {
     apiCursorPath: "다음 페이지 cursor 경로",
     apiCursorPathHint:
       "응답에서 다음 cursor 가 있는 곳 (예: next · meta.nextCursor). 쿼리에 {{ cursor }} 를 쓰면 그 값이 들어가고, cursor 가 URL 이면 그대로 읽는다 (useAsyncList.loadMore). load 인자 {{ filterText }} · {{ sortDescriptor.column }} · {{ sortDescriptor.direction }} 도 쓸 수 있다.",
+    apiSelectedKeysPath: "선택 key 경로",
+    apiSelectedKeysPathHint:
+      "응답에서 선택할 항목 key 가 있는 곳 (예: selected — key 배열 또는 \"all\"). 이 collection 을 보이는 컴포넌트가 그 항목을 선택한다. 더 불러오기의 key 는 기존 선택에 더한다 (useAsyncList load 의 selectedKeys).",
     apiUploadLive: "미리보기에서 실제 업로드",
     apiUploadLiveHint:
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
@@ -4367,6 +4370,9 @@ const enUS: TranslationKeys = {
     apiCursorPath: "Next page cursor path",
     apiCursorPathHint:
       "Where the response holds the next cursor (e.g. next · meta.nextCursor). {{ cursor }} in the query takes it; a URL cursor is fetched as is (useAsyncList.loadMore). The load arguments {{ filterText }} · {{ sortDescriptor.column }} · {{ sortDescriptor.direction }} work too.",
+    apiSelectedKeysPath: "Selected keys path",
+    apiSelectedKeysPathHint:
+      "Where the response holds the item keys to select (e.g. selected — an array of keys or \"all\"). The components showing this collection select them; a load-more's keys join the selection (useAsyncList load selectedKeys).",
     apiUploadLive: "Real upload in preview",
     apiUploadLiveHint:
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",

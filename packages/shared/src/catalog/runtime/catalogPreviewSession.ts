@@ -655,7 +655,10 @@ export class CatalogPreviewSession {
     collectionId: string,
     state: CatalogLoadingState,
     cursor?: string,
-  ): Promise<Record<string, unknown>[] | undefined> {
+  ): Promise<
+    | { items: Record<string, unknown>[]; selectedKeys?: string[] | "all" }
+    | undefined
+  > {
     const endpoint = this.queryEndpoint(collectionId);
     const sequence = (this.loadSequence.get(collectionId) ?? 0) + 1;
     this.loadSequence.set(collectionId, sequence);
@@ -683,10 +686,15 @@ export class CatalogPreviewSession {
         page.cursor === undefined ? rest : { ...rest, cursor: page.cursor },
       );
       this.loadingStates.set(collectionId, "idle");
-      return (Array.isArray(page.items) ? page.items : [page.items]).filter(
+      const items = (
+        Array.isArray(page.items) ? page.items : [page.items]
+      ).filter(
         (item): item is Record<string, unknown> =>
           !!item && typeof item === "object",
       );
+      return page.selectedKeys === undefined
+        ? { items }
+        : { items, selectedKeys: page.selectedKeys };
     } catch (error) {
       if (!latest()) return undefined;
       this.setLoadingState(collectionId, "error");
@@ -707,8 +715,38 @@ export class CatalogPreviewSession {
     collectionId: string,
     state: CatalogLoadingState = "loading",
   ): Promise<void> {
-    const items = await this.loadPage(collectionId, state);
-    if (items) this.showLoaded(collectionId, items);
+    const page = await this.loadPage(collectionId, state);
+    if (!page) return;
+    this.showLoaded(collectionId, page.items);
+    if (page.selectedKeys !== undefined)
+      this.selectLoaded(collectionId, page.selectedKeys, false);
+  }
+  /**
+   * The keys a load returned (`useAsyncList` load `selectedKeys` — `responseMapping.selectedKeysPath`)
+   * go to the components showing the collection: a load's replace their selection, a `loadMore`'s
+   * join it (the reference's reducer). The rule runtime writes them (`onLoadedSelection`).
+   */
+  private selectLoaded(
+    collectionId: string,
+    keys: readonly string[] | "all",
+    join: boolean,
+  ): void {
+    for (const listener of this.loadedSelectionListeners)
+      listener(collectionId, keys, join);
+  }
+  private readonly loadedSelectionListeners = new Set<
+    (collectionId: string, keys: readonly string[] | "all", join: boolean) => void
+  >();
+  /** Listens for the keys a load returned (the rule runtime selects them — `selectLoaded`). */
+  onLoadedSelection(
+    listener: (
+      collectionId: string,
+      keys: readonly string[] | "all",
+      join: boolean,
+    ) => void,
+  ): () => void {
+    this.loadedSelectionListeners.add(listener);
+    return () => this.loadedSelectionListeners.delete(listener);
   }
   /**
    * `useAsyncList.loadMore()` — the next page after the items shown (the rules' edits kept); no
@@ -721,8 +759,11 @@ export class CatalogPreviewSession {
     if (cursor === undefined || (state && state !== "idle" && state !== "error"))
       return;
     const shown = this.collectionItems(collectionId) as Record<string, unknown>[];
-    const items = await this.loadPage(collectionId, "loadingMore", cursor);
-    if (items) this.showLoaded(collectionId, [...shown, ...items]);
+    const page = await this.loadPage(collectionId, "loadingMore", cursor);
+    if (!page) return;
+    this.showLoaded(collectionId, [...shown, ...page.items]);
+    if (page.selectedKeys !== undefined)
+      this.selectLoaded(collectionId, page.selectedKeys, true);
   }
   /** `useAsyncList.setFilterText(text)` — loads again with the text (S2 `filtering`). */
   async setFilterText(collectionId: string, filterText: string): Promise<void> {

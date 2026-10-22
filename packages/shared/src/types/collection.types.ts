@@ -119,6 +119,11 @@ export interface ApiEndpointDefinition {
      * `meta.nextPage`); none / empty = the last page. A URL cursor is fetched as is.
      */
     cursorPath?: string;
+    /**
+     * `useAsyncList` load `selectedKeys` — where the response holds the keys to select (an array,
+     * or `"all"`); none = the selection stays (a `loadMore`'s join it).
+     */
+    selectedKeysPath?: string;
   };
   executionMode?: "client" | "server";
   timeout?: number;

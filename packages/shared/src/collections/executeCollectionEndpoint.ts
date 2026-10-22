@@ -86,7 +86,7 @@ function readPath(value: unknown, path: string): unknown {
  * templates read; a URL cursor on an endpoint that reads none is fetched as is (the reference's
  * `fetch(cursor || url)`).
  */
-export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string): Promise<{items: unknown; cursor?: string}> {
+export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string): Promise<{items: unknown; cursor?: string; selectedKeys?: string[] | "all"}> {
   const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);
   const target = cursor && !endpointReadsTemplate(endpoint, "cursor") && /^(https?:)?\//.test(cursor) ? new URL(cursor, url) : url;
   const response = await fetch(target, {method, headers, signal: requestSignal,
@@ -95,9 +95,13 @@ export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, si
   const result = await response.json();
   const cursorPath = endpoint.responseMapping?.cursorPath;
   const next = cursorPath ? readPath(result, cursorPath) : undefined;
+  const selectedPath = endpoint.responseMapping?.selectedKeysPath;
+  const selected = selectedPath ? readPath(result, selectedPath) : undefined;
   return {
     items: mappedItems(endpoint, result),
     ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : {}),
+    // (The load's `selectedKeys` — an array of keys or `"all"`; anything else is none.)
+    ...(selected === "all" ? {selectedKeys: "all" as const} : Array.isArray(selected) ? {selectedKeys: selected.map(String)} : {}),
   };
 }
 

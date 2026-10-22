@@ -1,6 +1,7 @@
 // A local in-memory Users REST stub for the CRUD sample (`docs/how-to/samples/collection-crud.composition.json`).
 // GET /users → rows (`?q=` filters by name · email, `?sort=<field>&dir=descending`; with `?limit=` a
-//   page `{items, next}` — `?page=` from 1, `next` the next page or null: useAsyncList's cursor) ·
+//   page `{items, next}` — `?page=` from 1, `next` the next page or null: useAsyncList's cursor;
+//   `?selected=u2,u3` adds that page's `selected` keys: useAsyncList load selectedKeys) ·
 // GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
 // Every request is printed (method · path · body · rows after). Restarting resets the rows.
 // Usage: node apps/builder/scripts/crud-endpoint-stub.mjs [port=5198]
@@ -66,7 +67,13 @@ createServer((req, res) => {
       if (!limit) return send(res, 200, found);
       const page = Math.max(1, Number(query.get("page") ?? 1));
       const items = found.slice((page - 1) * limit, page * limit);
-      return send(res, 200, { items, next: page * limit < found.length ? page + 1 : null });
+      // (`?selected=u2,u3` — the page's keys to select: useAsyncList load `selectedKeys`.)
+      const selected = query.get("selected");
+      return send(res, 200, {
+        items,
+        next: page * limit < found.length ? page + 1 : null,
+        ...(selected ? { selected: selected.split(",").filter((key) => items.some((item) => item.id === key)) } : {}),
+      });
     }
     let body = {};
     try {

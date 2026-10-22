@@ -281,7 +281,20 @@ export function ApiEndpointEditor({
 
         <TabPanel id="params" className={panelContents()}>
           <ParamsTab endpoint={endpoint} save={save} dt={dt} />
-          <CursorPathRow endpoint={endpoint} save={save} dt={dt} />
+          <ResponsePathRow
+            endpoint={endpoint}
+            save={save}
+            dt={dt}
+            field="cursorPath"
+            placeholder="next"
+          />
+          <ResponsePathRow
+            endpoint={endpoint}
+            save={save}
+            dt={dt}
+            field="selectedKeysPath"
+            placeholder="selected"
+          />
           <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
         </TabPanel>
         <TabPanel id="headers" className={panelContents()}>
@@ -333,38 +346,46 @@ function UploadTransportRow({
     </div>
   );
 }
-/** `useAsyncList` pagination — the response's next `cursor` (`responseMapping.cursorPath`). */
-function CursorPathRow({
+/**
+ * A path in the query response the Preview session's `useAsyncList` load reads: the next `cursor`
+ * (`responseMapping.cursorPath`) · the keys to select (`responseMapping.selectedKeysPath`).
+ */
+function ResponsePathRow({
   endpoint,
   save,
   dt,
+  field,
+  placeholder,
 }: {
   endpoint: ApiEndpoint;
   save: SaveFn;
   dt: DtFn;
+  field: "cursorPath" | "selectedKeysPath";
+  placeholder: string;
 }) {
-  const saved = endpoint.responseMapping?.cursorPath ?? "";
+  const saved = endpoint.responseMapping?.[field] ?? "";
   const [draft, setDraft] = useState(saved);
+  const label = field === "cursorPath" ? "apiCursorPath" : "apiSelectedKeysPath";
   const commit = () => {
-    const cursorPath = draft.trim();
-    if (cursorPath === saved) return;
-    const { cursorPath: _previous, ...mapping } = endpoint.responseMapping ?? {
+    const path = draft.trim();
+    if (path === saved) return;
+    const { [field]: _previous, ...mapping } = endpoint.responseMapping ?? {
       dataPath: "",
     };
     void save({
-      responseMapping: cursorPath ? { ...mapping, cursorPath } : mapping,
+      responseMapping: path ? { ...mapping, [field]: path } : mapping,
     });
   };
   return (
     <div className="datatable-api-section">
       <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt("apiCursorPath")}</legend>
+        <legend className="fieldset-legend">{dt(label)}</legend>
         <input
           type="text"
           className="datatable-api-input"
-          aria-label={dt("apiCursorPath")}
+          aria-label={dt(label)}
           value={draft}
-          placeholder="next"
+          placeholder={placeholder}
           spellCheck={false}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
@@ -373,7 +394,7 @@ function CursorPathRow({
           }}
         />
       </fieldset>
-      <p className="datatable-api-hint">{dt("apiCursorPathHint")}</p>
+      <p className="datatable-api-hint">{dt(`${label}Hint`)}</p>
     </div>
   );
 }

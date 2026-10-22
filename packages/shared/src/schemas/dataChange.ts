@@ -97,6 +97,10 @@ export const ApiEndpointDraftSchema = z.object({
     .optional(),
   bodyTemplate: z.string().optional(),
   dataPath: z.string().optional(),
+  /** `useAsyncList` — the response's next cursor (`responseMapping.cursorPath`; `""` clears it). */
+  cursorPath: z.string().optional(),
+  /** `useAsyncList` load `selectedKeys` (`responseMapping.selectedKeysPath`; `""` clears it). */
+  selectedKeysPath: z.string().optional(),
   targetCollectionId: z.string().optional(),
   /** ADR-201 Phase 4 — preview FileUpload 전송 dry-run 토글 (false = 실전송). */
   uploadDryRun: z.boolean().optional(),

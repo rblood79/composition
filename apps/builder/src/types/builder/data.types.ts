@@ -177,6 +177,12 @@ export interface ResponseMapping {
    * `loadMore`; `{{ cursor }}` in the query takes it, a URL cursor is fetched as is).
    */
   cursorPath?: string;
+
+  /**
+   * `useAsyncList` load `selectedKeys` — where the response holds the keys the components showing
+   * the collection select (an array, or `"all"`; the Preview session's load).
+   */
+  selectedKeysPath?: string;
 }
 
 /**
