@@ -25,10 +25,10 @@ node apps/builder/scripts/adr281-endpoint-stub.mjs        # 받은 요청을 터
 
 ## `collection-crud.composition.json` — 목록 · 상세 CRUD (전역 변수 · Table · List · Form)
 
-collection `Users` (id · name · email · role) 를 두 페이지가 쓰고, Form 이 로컬 REST 스텁에 쓴 뒤 **「collection 다시 읽기」 (`reload` — `useAsyncList.reload`)** 로 목록을 바꾼다. 처음 표시는 실행 정책 **Auto** (Builder 가 Preview 를 열 때 `GET /users` 1회).
+collection `Users` (id · name · email · role) 는 목록, `UserDetail` 은 상세 페이지가 서버에서 한 건만 읽는 collection 이다 (`getUser` = `GET /users/{{ params.id }}`). Form 이 Form 이 로컬 REST 스텁에 쓴 뒤 **「collection 다시 읽기」 (`reload` — `useAsyncList.reload`)** 로 목록을 바꾼다. 처음 표시는 실행 정책 **Auto** (Builder 가 Preview 를 열 때 `GET /users` 1회).
 
 ```bash
-node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:5198/users — 메모리 저장, 다시 켜면 seed 3행
+node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:5198/users (· /users/:id) — 메모리 저장, 다시 켜면 seed 3행
 ```
 
 확인은 헤더의 **Compare Mode (Preview + Skia)** 로 한다 (왼쪽 Preview 가 규칙을 실행한다). 상단 **Preview** 버튼 (publish 탭) 은 파일의 seed 3행으로 시작하고, 「다시 읽기」 버튼이나 제출 뒤 reload 로 서버 항목을 읽는다.
@@ -36,7 +36,7 @@ node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:519
 | 페이지              | 무엇                                                                                              | 기대                                                                                                                                                       |
 | ------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Home `/`            | Table (Column 머리글 정렬) · ListBox (항목 = `/detail/{id}` 링크) · 추가 Form · 다시 읽기 버튼    | 추가 → `POST /users` → reload 로 두 목록에 새 행 · Form 비움. ListBox 항목을 누르면 그 행의 상세 페이지                                                     |
-| Detail `/detail/:id` | frame 이 Users 의 `{{ params.id }}` 항목에 묶임 (`binding.key` — `useListData.getItem`)            | `{name} ({id})` · `{email} · {role}` 가 그 행. 수정 Form 은 그 값으로 시작 (`value="{name}"`) → `PUT /users` → reload · toast. 삭제 → `DELETE /users` → reload → Home |
+| Detail `/detail/:id` | frame 이 UserDetail 의 `{{ params.id }}` 항목에 묶임. 들어올 때 `GET /users/{{ params.id }}` 한 번 (경로가 바뀔 때만) | `{name} ({id})` · `{email} · {role}` 가 그 행. 수정 Form 은 그 값으로 시작 (`value="{name}"`) → `PUT /users` → UserDetail · Users reload · toast. 삭제 → `DELETE /users` → reload → Home |
 | 공통                | 전역 변수 `lastAction` · `opCount`                                                                | 제출마다 Create / Update / Delete (`set`) · 작업 수 +1 (`increment`). 「전역 변수 초기화」 = 없음 · 0 (`reset`). Canvas 는 기본값을 그린다 (설계)               |
 
-Canvas 의 Detail 페이지는 경로가 없어 첫 항목을 표본으로 그린다.
+Canvas 의 Detail 페이지는 경로가 없어 UserDetail 의 표본 행을 그린다. Builder 에서 `getUser` 를 시험 실행하면 `{{ params.id }}` 를 풀 수 없다는 오류로 거부된다 (경로 param 은 Preview 가 읽는다).

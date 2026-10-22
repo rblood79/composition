@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 상세 페이지의 한 건 조회 (endpoint 경로의 `{{ params.id }}` — router loader)] - 2026-10-23
+
+### Added
+
+- **조회 endpoint 의 경로 · query 에 `{{ }}` 템플릿** — 레퍼런스 `useAsyncList({ load })` 의 `load` 가 ``fetch(`/users/${id}`)`` 하는 형태 (일반 웹의 router loader). `GET /users/{{ params.id }}` 처럼 경로 param · 변수를 쓰면 Preview · Publish 세션이 풀어서 요청한다:
+  - 템플릿 endpoint 가 채우는 collection (`targetCollection`) 은 보이는 경로가 다른 URL 을 만들 때 한 번 읽는다 (상세 진입 · 다른 id). 같은 URL 은 다시 읽지 않고, 풀리지 않는 페이지 (Home — `:id` 없음 · 빈 값) 에서는 읽지 않는다. 「collection 다시 읽기」 도 풀린 URL 로 읽는다.
+  - 서버에 없는 id (404) 는 빈 항목 + `[CatalogPreview]` 경고.
+  - 문서 · contract 무변경 (endpoint 는 data store 레코드).
+  - 위치: `packages/shared/src/collections/executeCollectionEndpoint.ts` (`EndpointTemplateResolver` · `resolvedEndpointUrl`) · `packages/shared/src/catalog/runtime/catalogPreviewSession.ts` (`loadRouted` · `endpointTemplate`) · 테스트 `loadOne.test.tsx` (원복 RED)
+
+### Changed
+
+- **Builder 의 endpoint 실행은 남은 템플릿을 보내지 않는다** — 시험 실행 params · secret 치환 뒤에도 `{{ … }}` 가 남으면 요청 대신 오류 (실행 기록 실패).
+  - **Why**: Builder 에는 경로가 없어 `/users/%7B%7B%20params.id…` 를 그대로 보냈다.
+  - 위치: `apps/builder/src/builder/stores/utils/dataActions.ts` · 테스트 `dataActions.executeApi.test.ts` (원복 RED)
+- **CRUD 샘플의 상세가 한 건 조회** — collection `UserDetail` + endpoint `getUser` (`GET /users/{{ params.id }}`), Detail frame 은 UserDetail 에 묶임, 수정 뒤 UserDetail · Users 둘 다 reload. 스텁에 `GET /users/:id`. README · `samplesImport` 갱신.
+
 ## [샘플 — CRUD 샘플을 목록 · 상세 · reload 방식으로] - 2026-10-23
 
 ### Changed

@@ -1,10 +1,47 @@
 import type { ApiEndpointDefinition } from "../types/collection.types";
 
+/**
+ * Resolves the `{{ }}` templates of an endpoint's path · query values (`/users/{{ params.id }}`) —
+ * the Preview · publish session's state (route params, variables). `undefined`: a name it cannot
+ * read.
+ */
+export type EndpointTemplateResolver = (text: string) => string | undefined;
+
+const TEMPLATE = /\{\{[^}]*\}\}/;
+
+/**
+ * An endpoint's path and query with their templates resolved. A template nothing resolves (the
+ * Builder has no route) is refused — the request would carry `{{ … }}` literally.
+ */
+function resolvedEndpointParts(endpoint: ApiEndpointDefinition, resolve: EndpointTemplateResolver | undefined) {
+  const read = (text: string) => {
+    if (!TEMPLATE.test(text)) return text;
+    const value = resolve?.(text);
+    if (value === undefined) throw new Error(`${endpoint.name ?? endpoint.id}: ${TEMPLATE.exec(text)![0]} 를 풀 수 없습니다 (경로 param · 변수는 Preview 에서 읽는다)`);
+    return value;
+  };
+  return {
+    path: read(endpoint.path ?? ""),
+    query: (endpoint.queryParams ?? []).filter((param) => param.key).map((param) => [param.key, read(param.value ?? "")] as const),
+  };
+}
+
+/** The URL an endpoint asks for with its templates resolved — `undefined` while one does not resolve. */
+export function resolvedEndpointUrl(endpoint: ApiEndpointDefinition, resolve: EndpointTemplateResolver): string | undefined {
+  try {
+    const {path, query} = resolvedEndpointParts(endpoint, resolve);
+    return `${endpoint.baseUrl}${path}?${new URLSearchParams(query.map(([key, value]) => [key, value])).toString()}`;
+  } catch {
+    return undefined;
+  }
+}
+
 /** An endpoint's request parts (URL · headers · method · timeout signal) — the query and the submit share them. */
-export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: AbortSignal) {
+export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver) {
   if (endpoint.executionMode === "server") throw new Error("서버 API 실행 서비스가 연결되지 않았습니다");
-  const url = new URL(`${endpoint.baseUrl}${endpoint.path}`, window.location.href);
-  for (const param of endpoint.queryParams ?? []) if (param.key) url.searchParams.append(param.key, param.value);
+  const {path, query} = resolvedEndpointParts(endpoint, resolve);
+  const url = new URL(`${endpoint.baseUrl}${path}`, window.location.href);
+  for (const [key, value] of query) url.searchParams.append(key, value);
   const headers: Record<string, string> = {...(Array.isArray(endpoint.headers)
     ? Object.fromEntries(endpoint.headers.filter((header) => header.enabled && header.key).map((header) => [header.key, header.value]))
     : endpoint.headers)};
@@ -15,8 +52,8 @@ export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: Ab
 }
 
 /** 앱 runtime 공통 API 실행. Chart/List는 CollectionDataProvider 서비스만 소비한다. */
-export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal): Promise<unknown> {
-  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal);
+export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver): Promise<unknown> {
+  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);
   const response = await fetch(url, {method, headers, signal: requestSignal,
     body: method !== "GET" && method !== "HEAD" && endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);

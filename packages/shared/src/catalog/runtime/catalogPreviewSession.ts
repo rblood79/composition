@@ -32,7 +32,12 @@ import {
   type RuntimeStateHandle,
   type VariableDef,
 } from "@composition/shared";
-import { CATALOG_PARAMS_ROOT, catalogRuntimeVariables } from "./stateTemplate";
+import {
+  CATALOG_PARAMS_ROOT,
+  catalogBindingKey,
+  catalogRuntimeVariables,
+  type CatalogStateSource,
+} from "./stateTemplate";
 import {
   catalogNotFoundPage,
   resolveCatalogRoute,
@@ -42,6 +47,7 @@ import {
   createCollectionEndpointExecutor,
   createCollectionEndpointSubmitter,
   executeCollectionEndpoint,
+  resolvedEndpointUrl,
 } from "../../collections/executeCollectionEndpoint";
 import { getItemKey } from "../../collections/resolveCollectionItems";
 
@@ -146,6 +152,11 @@ export class CatalogPreviewSession {
   private endpoints: readonly (ApiEndpointDefinition & {
     targetCollection?: string;
   })[] = [];
+  /**
+   * The URL each collection was last loaded from — a query endpoint whose path · query read
+   * `{{ params.id }}` loads again only when the shown path gives another URL (`loadRouted`).
+   */
+  private readonly loadedUrls = new Map<string, string>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
   private readonly pendingSubmits = new Set<Promise<unknown>>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
@@ -249,6 +260,7 @@ export class CatalogPreviewSession {
         ];
         if (errors.length) console.error("[CatalogPreview] data:", ...errors);
       }
+      this.loadRouted();
       this.changed();
       return { kind: "ignored" };
     }
@@ -292,6 +304,7 @@ export class CatalogPreviewSession {
       const errors = this.currentRoot.refreshState(new Set([CATALOG_PARAMS_ROOT]));
       if (errors.length) console.error("[CatalogPreview] params:", ...errors);
     }
+    this.loadRouted();
     this.changed();
   }
   /** The shown path's route params (`:id` segments of the page's route — `{{ params.id }}`). */
@@ -532,9 +545,13 @@ export class CatalogPreviewSession {
     if (!endpoint)
       throw new Error(`${collection.name ?? collectionId} 을 채우는 endpoint 없음`);
     await Promise.allSettled([...this.pendingSubmits]);
+    const resolve = this.endpointTemplate;
+    const url = resolvedEndpointUrl(endpoint, resolve);
+    if (url) this.loadedUrls.set(collectionId, url);
     const items = await executeCollectionEndpoint(
       endpoint,
       new AbortController().signal,
+      resolve,
     );
     this.reloadedItems.set(
       collectionId,
@@ -547,6 +564,52 @@ export class CatalogPreviewSession {
     const errors = this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
     if (errors.length) console.error("[CatalogPreview] reload:", ...errors);
     this.changed();
+  }
+
+  /**
+   * An endpoint's `{{ }}` (route params · variables) read from the session's state, each on its
+   * own: an empty value is not one (Home has no `:id` — `/users/` is another resource).
+   */
+  private readonly endpointTemplate = (text: string): string | undefined => {
+    const graph = this.graph;
+    if (!graph) return undefined;
+    const source = this.stateSource();
+    let unresolved = false;
+    const value = text.replace(/\{\{[^}]*\}\}/g, (template) => {
+      const part = catalogBindingKey(graph, template, undefined, source);
+      if (!part || part.includes("{{")) unresolved = true;
+      return part ?? "";
+    });
+    return unresolved ? undefined : value;
+  };
+  /**
+   * A router loader (`useAsyncList({ load })` fetching `/users/${id}`): each API collection whose
+   * query endpoint reads a template loads when the shown path · data give another URL than its
+   * last load — once per URL; a template that does not resolve (another page) loads nothing.
+   */
+  private loadRouted(): void {
+    for (const collection of this.collections) {
+      if (!collection.id || collection.useMockData) continue;
+      const endpoint = this.endpoints.find(
+        (item) => item.targetCollection === collection.name,
+      );
+      if (
+        !endpoint ||
+        ![endpoint.path, ...(endpoint.queryParams ?? []).map((p) => p.value)].some(
+          (text) => text?.includes("{{"),
+        )
+      )
+        continue;
+      const url = resolvedEndpointUrl(endpoint, this.endpointTemplate);
+      if (!url || this.loadedUrls.get(collection.id) === url) continue;
+      this.loadedUrls.set(collection.id, url);
+      this.reload(collection.id).catch((error: unknown) =>
+        console.warn(
+          `[CatalogPreview] ${collection.name ?? collection.id} 를 읽지 못했다:`,
+          error,
+        ),
+      );
+    }
   }
 
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
@@ -639,14 +702,18 @@ export class CatalogPreviewSession {
         rows: (binding, kind) =>
           catalogBoundRows(binding, this.itemSources(), kind),
         tableSort: (tableId) => this.tableSorts.get(tableId),
-        state: {
-          projectVariables: () => this.variables,
-          read: (variableId, scope) => this.readState(variableId, scope),
-          params: () => this.params,
-        },
+        state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
       },
     );
+  }
+  /** What `{{ }}` reads in the Preview: project variables, runtime values, route params. */
+  private stateSource(): CatalogStateSource {
+    return {
+      projectVariables: () => this.variables,
+      read: (variableId, scope) => this.readState(variableId, scope),
+      params: () => this.params,
+    };
   }
   private changed(): void {
     this.version += 1;

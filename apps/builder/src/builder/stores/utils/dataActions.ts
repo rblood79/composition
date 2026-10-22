@@ -793,6 +793,13 @@ export const createExecuteApiEndpointAction =
       const fetchBody =
         body !== undefined ? substituteSecrets(body, secrets) : undefined;
       const secretUrl = substituteSecrets(url, secrets);
+      // A template left after the test params and secrets (`/users/{{ params.id }}` — the route is
+      // the Preview's): refused, not sent literally.
+      const unresolved = /\{\{[^}]*\}\}/.exec(secretUrl)?.[0];
+      if (unresolved)
+        throw new Error(
+          `${unresolved} 를 풀 수 없습니다 (경로 param 은 Preview 에서 읽는다)`,
+        );
 
       // 개발 환경에서 외부 API 호출 시 프록시 사용 (CORS 우회)
       let fetchUrl = secretUrl;

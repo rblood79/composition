@@ -57,6 +57,48 @@
       "executionPolicy": {
         "mode": "auto"
       }
+    },
+    {
+      "id": "b7c1e3a9-5d2f-4a6b-9c8e-1f0a2b3c4d5e",
+      "name": "UserDetail",
+      "schema": [
+        {
+          "id": "detail-id",
+          "key": "id",
+          "type": "string",
+          "label": "ID"
+        },
+        {
+          "id": "detail-name",
+          "key": "name",
+          "type": "string",
+          "label": "이름"
+        },
+        {
+          "id": "detail-email",
+          "key": "email",
+          "type": "email",
+          "label": "이메일"
+        },
+        {
+          "id": "detail-role",
+          "key": "role",
+          "type": "string",
+          "label": "역할"
+        }
+      ],
+      "mockData": [
+        {
+          "id": "u1",
+          "name": "김민준",
+          "email": "minjun@example.com",
+          "role": "admin"
+        }
+      ],
+      "useMockData": false,
+      "executionPolicy": {
+        "mode": "manual"
+      }
     }
   ],
   "apiEndpoints": [
@@ -75,6 +117,22 @@
       "executionMode": "client",
       "timeout": 30000,
       "targetCollection": "Users"
+    },
+    {
+      "id": "0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a05",
+      "name": "getUser",
+      "baseUrl": "http://localhost:5198",
+      "path": "/users/{{ params.id }}",
+      "method": "GET",
+      "headers": [],
+      "queryParams": [],
+      "bodyType": "none",
+      "responseMapping": {
+        "dataPath": ""
+      },
+      "executionMode": "client",
+      "timeout": 30000,
+      "targetCollection": "UserDetail"
     },
     {
       "id": "0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a02",
@@ -171,6 +229,7 @@
           "project:interaction:34e2b5aa-2dbc-4f20-83d7-7a425b9410b9",
           "project:interaction:72586f78-864b-4040-86d5-e0e1d03a7b87",
           "project:interaction:b70ad446-f2e5-47ef-98e1-5fb08e191578",
+          "project:interaction:5a1d7c3e-2b4f-4e6a-8d9c-0e1f2a3b4c5d",
           "project:interaction:46e3e11d-a526-41f0-8d4a-c248d9c45cc8",
           "project:interaction:72127795-59d7-480e-a581-cb39242cd483",
           "project:interaction:0f3192de-1d56-4124-ba69-00fafb20d560",
@@ -1063,7 +1122,7 @@
           "htmlId": "frame_1"
         },
         "binding": {
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d",
+          "collectionId": "data:collection:b7c1e3a9-5d2f-4a6b-9c8e-1f0a2b3c4d5e",
           "fieldMap": {},
           "key": "{{ params.id }}"
         }
@@ -1434,7 +1493,7 @@
         "trigger": "onSubmit",
         "action": {
           "opcode": "reload",
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
+          "collectionId": "data:collection:b7c1e3a9-5d2f-4a6b-9c8e-1f0a2b3c4d5e"
         }
       },
       "project:interaction:46e3e11d-a526-41f0-8d4a-c248d9c45cc8": {
@@ -1554,6 +1613,16 @@
           "opcode": "setState",
           "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
           "op": "reset"
+        }
+      },
+      "project:interaction:5a1d7c3e-2b4f-4e6a-8d9c-0e1f2a3b4c5d": {
+        "kind": "interaction",
+        "id": "project:interaction:5a1d7c3e-2b4f-4e6a-8d9c-0e1f2a3b4c5d",
+        "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "reload",
+          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
         }
       }
     }

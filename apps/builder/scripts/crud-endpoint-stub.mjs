@@ -1,5 +1,5 @@
 // A local in-memory Users REST stub for the CRUD sample (`docs/how-to/samples/collection-crud.composition.json`).
-// GET /users → rows · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
+// GET /users → rows · GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
 // Every request is printed (method · path · body · rows after). Restarting resets the rows.
 // Usage: node apps/builder/scripts/crud-endpoint-stub.mjs [port=5198]
 import { createServer } from "node:http";
@@ -38,6 +38,12 @@ createServer((req, res) => {
       return;
     }
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
+    const one = /^\/users\/([^/]+)$/.exec(path);
+    if (one && req.method === "GET") {
+      const row = rows.find((item) => item.id === decodeURIComponent(one[1]));
+      console.log(JSON.stringify({ method: "GET", path, status: row ? 200 : 404 }));
+      return row ? send(res, 200, row) : send(res, 404, { error: `${one[1]} 없음` });
+    }
     if (path !== "/users") return send(res, 404, { error: "not found" });
     if (req.method === "GET") return send(res, 200, rows);
     let body = {};

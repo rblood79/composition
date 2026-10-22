@@ -261,3 +261,20 @@ describe("executeApiEndpoint — 실행 스냅샷 (ADR-213 Phase 3)", () => {
     expect(run.response?.bodyBytes).toBe(API_RUN_BODY_PREVIEW_MAX_BYTES * 3);
   });
 });
+
+describe("executeApiEndpoint — a route template the Builder cannot read", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("/users/{{ params.id }} is refused, not fetched literally (the Preview reads the route)", async () => {
+    const fetch = vi.fn(async () => fakeResponse(users[0]));
+    vi.stubGlobal("fetch", fetch);
+    const { state, set, get } = makeStore(
+      endpoint({ path: "/users/{{ params.id }}" }),
+    );
+    await expect(
+      createExecuteApiEndpointAction(set, get)("api_1"),
+    ).rejects.toThrow(/params\.id/);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(state.apiRuns.get("api_1")?.ok).toBe(false);
+  });
+});

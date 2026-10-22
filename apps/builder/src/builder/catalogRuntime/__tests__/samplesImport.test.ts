@@ -111,11 +111,11 @@ describe("sample project files import into another project", () => {
     for (const id of written) expect(defined).toContain(id);
   });
 
-  it("collection CRUD: list · detail over the imported collection — every submit to an imported endpoint reloads it, the detail binds the path's item", async () => {
+  it("collection CRUD: list · detail — every submit reloads the list, the detail loads one item (GET /users/{{ params.id }}) and binds it", async () => {
     const { graph, rules, store, content } = await importSample(
       "collection-crud.composition.json",
     );
-    const [table] = await Promise.all(
+    const [table, detailTable] = await Promise.all(
       store.createDataTable.mock.results.map((result) => result.value),
     );
     const endpoints = await Promise.all(
@@ -123,14 +123,20 @@ describe("sample project files import into another project", () => {
     );
     const entries = Object.values(graph.exportDocument().entries);
     const collection = `data:collection:${table.id}`;
-    // Table · ListBox read every item; the detail frame the path's (`useListData.getItem`).
+    const detail = `data:collection:${detailTable.id}`;
+    // Table · ListBox read every item; the detail frame the one item its endpoint loaded.
     const bindings = entries.flatMap((entry) =>
       entry.kind === "node" && entry.binding ? [entry.binding] : [],
     );
-    expect(bindings.map((binding) => binding.collectionId)).toEqual(
-      Array(3).fill(collection),
+    expect(
+      bindings.map((binding) => [binding.collectionId, binding.key]),
+    ).toEqual(
+      expect.arrayContaining([
+        [collection, undefined],
+        [detail, "{{ params.id }}"],
+      ]),
     );
-    expect(bindings.map((binding) => binding.key)).toContain("{{ params.id }}");
+    expect(bindings).toHaveLength(3);
     expect(
       new Set(
         entries.flatMap((entry) => (entry.kind === "page" ? [entry.route] : [])),
@@ -164,9 +170,29 @@ describe("sample project files import into another project", () => {
         ),
       ),
     ).toEqual(new Set(["POST", "PUT", "DELETE"]));
-    expect(endpoints.find((endpoint) => endpoint.method === "GET")).toMatchObject(
-      { targetCollectionId: table.id },
-    );
+    expect(
+      endpoints
+        .filter((endpoint) => endpoint.method === "GET")
+        .map((endpoint) => [endpoint.path, endpoint.targetCollectionId]),
+    ).toEqual([
+      ["/users", table.id],
+      ["/users/{{ params.id }}", detailTable.id],
+    ]);
+    // The update reloads the detail too.
+    const update = submits.find(
+      (rule) =>
+        rule.action.opcode === "callEndpoint" &&
+        byId.get(rule.action.endpointId.slice("data:endpoint:".length))
+          ?.method === "PUT",
+    )!;
+    expect(
+      rules.some(
+        (rule) =>
+          rule.ownerId === update.ownerId &&
+          rule.action.opcode === "reload" &&
+          rule.action.collectionId === detail,
+      ),
+    ).toBe(true);
     expect(store.applyDataChange).toHaveBeenCalledWith(
       expect.objectContaining({
         ops: [
