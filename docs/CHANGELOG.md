@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 Slot — 그룹의 slot 피커는 그룹 항목만] - 2026-10-22
+
+### Fixed
+
+- **ButtonGroup 의 Slot 피커에 Library 컴포넌트 약 70개가 전부 나오던 것**: 그룹은 받는 자식 표에 자식 목록이 없어 「무엇이든 받는 자리」 로 판정됐다. 이제 그룹 자리 (ButtonGroup · ToggleButtonGroup · AvatarGroup · DisclosureGroup · Nav) 는 그 그룹의 항목 (Button · ToggleButton · Avatar · Disclosure · Link) 만, Local 컴포넌트는 루트가 그 항목인 것만 보여 준다. 고르면 그룹의 「+」 와 같이 항목 원본의 instance 로 들어간다. 받는 자식 판정 (드래그 · 붙여넣기) 은 바꾸지 않았다.
+
 ## [Components Local page — Layers 를 Library page 와 같은 카드 그룹 구조로] - 2026-10-22
 
 ### Changed

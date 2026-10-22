@@ -12,7 +12,10 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  createComponent,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { newCatalogProjectDocument } from "../project";
 import {
   catalogSlotCommands,
@@ -211,6 +214,37 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
       ),
       // (No deprecated `Section` · list-level `Header` — 2026-10-22.)
     ).toEqual(["ListBoxItem", "ListBoxSection"]);
+    // A group's root slot takes its items (`GROUP_ITEM_TYPES`), not the ~70 Library origins
+    // (2026-10-22 user 「buttonGroup slot 추가에 왜 이렇게 많은 컴퍼넌트」) — and of the project's
+    // components, the ones drawn by an item type.
+    const component = (name: string, from: string) => {
+      const node = place(from);
+      workspace.execute(
+        createComponent({ id: node.id, name, newId: workspace.newId }),
+      );
+    };
+    component("Save button", "button");
+    component("Status badge", "badge");
+    expect(
+      catalogSlotInsertOptions(graph, place("buttongroup")).map(
+        (option) => option.label,
+      ),
+    ).toEqual(["Button", "Save button"]);
+    for (const [name, item] of [
+      ["buttongroup", "Button"],
+      ["togglebuttongroup", "ToggleButton"],
+      ["avatargroup", "Avatar"],
+      ["disclosuregroup", "Disclosure"],
+      ["nav", "Link"],
+    ] as const) {
+      const group = place(name);
+      const types = catalogSlotInsertOptions(graph, group).map((option) =>
+        definitionTypeName(graph, option.definitionId),
+      );
+      expect(types, name).toEqual(
+        name === "buttongroup" ? [item, item] : [item],
+      );
+    }
     // A plain page node has no slot position.
     expect(catalogSlotPosition(graph, { kind: "node", id: BODY })).toBe(
       undefined,

@@ -1,5 +1,6 @@
 import {
   COLLECTION_FAMILIES,
+  GROUP_ITEM_TYPES,
   insertNodes,
   removeTargets,
   setSlotDeclaration,
@@ -422,15 +423,33 @@ export function catalogSlotInsertOptions(
             : [];
         })
       : [];
-  if (kind.kind === "items") {
-    for (const itemType of kind.items) {
+  // A group's slot (ButtonGroup · AvatarGroup · Nav …) takes its items, like a collection's: the
+  // children judgment calls a group free content (its nesting stays open), but the list offers
+  // what the group's "+" adds, not the ~70 Library origins (2026-10-22 user report).
+  const itemTypes =
+    kind.kind === "items" ? kind.items : GROUP_ITEM_TYPES[type];
+  if (itemTypes) {
+    for (const itemType of itemTypes) {
       const origin = catalogTemplateItemDefinition(graph, target, itemType);
       const option = origin
         ? { definitionId: origin, label: itemType, type: itemType }
         : ofType(itemType);
       if (option) candidates.push(option);
     }
-    candidates.push(...projectComponents());
+    // (A collection's nesting check keeps only item-rooted components; a group's nesting is open,
+    // so its list keeps the components drawn by one of its item types here.)
+    candidates.push(
+      ...projectComponents().filter((option) => {
+        if (kind.kind === "items") return true;
+        try {
+          return itemTypes.includes(
+            definitionTypeName(graph, option.definitionId),
+          );
+        } catch {
+          return false;
+        }
+      }),
+    );
   } else {
     const origins = new Set<string>();
     // ADR-256 Phase 9: a calendar header's parts — RAC's heading and its month · year pickers (their
