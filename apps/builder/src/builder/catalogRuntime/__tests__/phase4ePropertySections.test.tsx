@@ -5,6 +5,7 @@ import {
   createPage,
   duplicateNodes,
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -32,9 +33,11 @@ import { catalogEditContract } from "../editContract";
 import { catalogPageCommands } from "../pageSettings";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogWorkspaceProvider } from "../react";
+import { catalogItemInsertChoices } from "../itemInsert";
 import {
   catalogSlotCommands,
   catalogSlotDeclaration,
+  catalogSlotInsertOptions,
   catalogSlotPosition,
 } from "../slots";
 import {
@@ -596,6 +599,53 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     const fills = catalogSlotPosition(graph, slot)!.fillIds!;
     expect(fills).toHaveLength(4);
     expect(JSON.stringify(graph.getEntry(fills[3]))).toContain("Item 4");
+  });
+
+  // 2026-10-22 user 「listbox 에 slot - listboxitem 추가해도 instance 객체가 아니다」: a ListBox's item
+  // is an instance of the item origin its template uses (ListBoxItem/Default) — with no item left
+  // to copy the shape from too, and from the slot list's Library choice (the fill path).
+  it("a ListBox item added from the Slot picker is an instance of the template's item origin, with no sibling left too", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("lb", "lib:definition:origin-component-listbox")],
+        rootIds: [id("lb")],
+        newId: workspace.newId,
+      }),
+    );
+    const slot = { kind: "node" as const, id: id("lb") };
+    const origin = (graph.getEntry(
+      catalogSlotPosition(graph, slot)!.fillIds![0]!,
+    ) as NodeEntry).definitionId;
+    expect(origin).toBe("lib:definition:origin-component-listbox-item-default");
+    // The slot list's Library choice is that origin (a fill is an instance too).
+    expect(
+      catalogSlotInsertOptions(graph, slot).find(
+        (option) => option.type === "ListBoxItem",
+      )?.definitionId,
+    ).toBe(origin);
+    // No item left to copy: the item 「+」 still makes an instance of the origin.
+    workspace.execute(
+      removeTargets({
+        targets: catalogSlotPosition(graph, slot)!.fillIds!.map((fill) => ({
+          kind: "node" as const,
+          id: fill,
+        })),
+      }),
+    );
+    const position = workspace.positionOfRecord(
+      workspace.root.recordsOfSource(id("lb"))[0]!,
+    )!;
+    const choice = catalogItemInsertChoices(
+      { graph, readModel: workspace.readModel, newId: workspace.newId },
+      position,
+    ).find((item) => item.type === "ListBoxItem")!;
+    workspace.execute(choice.build());
+    const added = catalogSlotPosition(graph, slot)!.fillIds!;
+    expect(added).toHaveLength(1);
+    expect((graph.getEntry(added[0]!) as NodeEntry).definitionId).toBe(origin);
   });
 
   it("the slot section's insert list groups Local and Library components and names a Local fill by its component", async () => {

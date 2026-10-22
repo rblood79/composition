@@ -226,6 +226,39 @@ export const catalogSlotCommands = {
     },
 };
 
+/**
+ * The item origin a position's template holds for an item type (a ListBox's Items hold
+ * ListBoxItem/Default instances): a new item there is an instance of it, as the items it was
+ * placed with are — the palette's id for an item type is the bare type (2026-10-22 user 「instance
+ * 객체가 아니다」). A root slot is read at its instance's root position.
+ */
+export function catalogTemplateItemDefinition(
+  graph: CatalogReader,
+  target: EditTarget,
+  itemType: string,
+): DefinitionId | undefined {
+  const at = catalogSlotTarget(graph, target);
+  const node = at
+    ? (templateNodeAt(graph, at.address) as
+        | { children?: readonly string[] }
+        | undefined)
+    : undefined;
+  for (const childId of node?.children ?? []) {
+    const template = childId.startsWith("lib:")
+      ? graph.library.templates.get(childId as `lib:template:${string}`)
+      : undefined;
+    if (!template) continue;
+    const definitionId = template.definitionId as DefinitionId;
+    try {
+      if (definitionTypeName(graph, definitionId) === itemType)
+        return definitionId;
+    } catch {
+      // (A dangling template reference offers nothing.)
+    }
+  }
+  return undefined;
+}
+
 /** One choice of the slot section's insert list. */
 export interface CatalogSlotInsertOption {
   readonly definitionId: DefinitionId;
@@ -333,7 +366,10 @@ export function catalogSlotInsertOptions(
       : [];
   if (kind.kind === "items") {
     for (const itemType of kind.items) {
-      const option = ofType(itemType);
+      const origin = catalogTemplateItemDefinition(graph, target, itemType);
+      const option = origin
+        ? { definitionId: origin, label: itemType, type: itemType }
+        : ofType(itemType);
       if (option) candidates.push(option);
     }
     candidates.push(...projectComponents());

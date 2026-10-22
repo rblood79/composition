@@ -28,6 +28,7 @@ import {
   catalogPaletteDefinitionId,
 } from "./paletteInsert";
 import type { CatalogReadModel } from "./readModel";
+import { catalogTemplateItemDefinition } from "./slots";
 
 /**
  * ADR-248 4e: the old Properties slot section's "+" (ADR-234/239/241 — `resolveSlotInsertAction`)
@@ -186,7 +187,10 @@ export function catalogItemInsertChoices(
       )
     : undefined;
   const rows = wrapperRow ? readModel.childRows(wrapperRow) : own;
-  /** A sibling's definition for an item type (the shape the host shows), else the palette's. */
+  /**
+   * A sibling's definition for an item type (the shape the host shows), else the item origin the
+   * host's template holds (an instance like the items it was placed with), else the palette's.
+   */
   const definitionFor = (
     itemType: string,
     fallback?: NodeEntry["definitionId"],
@@ -194,6 +198,7 @@ export function catalogItemInsertChoices(
     rows.find((row) => typeOf(graph, row.definitionId) === itemType)
       ?.definitionId ??
     fallback ??
+    catalogTemplateItemDefinition(graph, position.target, itemType) ??
     catalogPaletteDefinitionId(graph.library, itemType);
   const entry = (
     definitionId: NodeEntry["definitionId"],
