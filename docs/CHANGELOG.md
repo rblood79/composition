@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [샘플 — CRUD 샘플을 목록 · 상세 · reload 방식으로] - 2026-10-23
+
+### Changed
+
+- **`docs/how-to/samples/collection-crud.composition.json`** — 2초 주기 조회 대신 제출마다 「collection 다시 읽기」 (`reload`), 처음 표시는 실행 정책 Auto. 페이지 둘: Home (Table 정렬 · ListBox 항목 = `/detail/{id}` 링크 · 추가 Form · 다시 읽기 버튼) · Detail `/detail/:id` (frame 이 `{{ params.id }}` 항목에 묶임 · 그 값으로 시작하는 수정 Form · 삭제 뒤 Home). README 절차 갱신 · 가져오기 테스트 `samplesImport` 갱신.
+
 ## [Interactions — Do 「collection 다시 읽기」 (`reload` — useAsyncList.reload)] - 2026-10-22
 
 ### Added

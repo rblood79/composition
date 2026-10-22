@@ -111,7 +111,7 @@ describe("sample project files import into another project", () => {
     for (const id of written) expect(defined).toContain(id);
   });
 
-  it("collection CRUD: Table · GridList · ListBox read the imported collection; each Form submits to an imported endpoint; the list endpoint fills that collection on its interval", async () => {
+  it("collection CRUD: list · detail over the imported collection — every submit to an imported endpoint reloads it, the detail binds the path's item", async () => {
     const { graph, rules, store, content } = await importSample(
       "collection-crud.composition.json",
     );
@@ -121,38 +121,46 @@ describe("sample project files import into another project", () => {
     const endpoints = await Promise.all(
       store.createApiEndpoint.mock.results.map((result) => result.value),
     );
-    const bound = Object.values(graph.exportDocument().entries)
-      .filter((entry) => entry.kind === "node" && entry.binding)
-      .map((entry) =>
-        entry.kind === "node" ? entry.binding!.collectionId : undefined,
-      );
-    expect(bound).toEqual(Array(3).fill(`data:collection:${table.id}`));
-    const submits = rules
-      .map((rule) => rule.action)
-      .filter((action) => action.opcode === "callEndpoint");
-    expect(submits.map((action) => action.body)).toEqual(
-      Array(3).fill("!event.formData"),
+    const entries = Object.values(graph.exportDocument().entries);
+    const collection = `data:collection:${table.id}`;
+    // Table · ListBox read every item; the detail frame the path's (`useListData.getItem`).
+    const bindings = entries.flatMap((entry) =>
+      entry.kind === "node" && entry.binding ? [entry.binding] : [],
     );
-    // Each Form clears itself after its submit (its own `reset` — the body was read at the event).
-    for (const owner of rules
-      .filter((rule) => rule.action.opcode === "callEndpoint")
-      .map((rule) => rule.ownerId))
+    expect(bindings.map((binding) => binding.collectionId)).toEqual(
+      Array(3).fill(collection),
+    );
+    expect(bindings.map((binding) => binding.key)).toContain("{{ params.id }}");
+    expect(
+      new Set(
+        entries.flatMap((entry) => (entry.kind === "page" ? [entry.route] : [])),
+      ),
+    ).toEqual(new Set(["/", "/detail/:id"]));
+    const submits = rules.filter(
+      (rule) => rule.action.opcode === "callEndpoint",
+    );
+    expect(submits.map((rule) => rule.action)).toEqual(
+      Array(3).fill(expect.objectContaining({ body: "!event.formData" })),
+    );
+    // Each submit reloads the collection (`useAsyncList.reload` — after the submit settles).
+    for (const submit of submits)
       expect(
         rules.some(
           (rule) =>
-            rule.ownerId === owner &&
+            rule.ownerId === submit.ownerId &&
             rule.trigger === "onSubmit" &&
-            rule.action.opcode === "capability" &&
-            rule.action.capabilityId === "reset" &&
-            rule.action.targetId === owner,
+            rule.action.opcode === "reload" &&
+            rule.action.collectionId === collection,
         ),
       ).toBe(true);
     const byId = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint]));
     expect(
       new Set(
-        submits.map(
-          (action) =>
-            byId.get(action.endpointId.slice("data:endpoint:".length))?.method,
+        submits.map((rule) =>
+          rule.action.opcode === "callEndpoint"
+            ? byId.get(rule.action.endpointId.slice("data:endpoint:".length))
+                ?.method
+            : undefined,
         ),
       ),
     ).toEqual(new Set(["POST", "PUT", "DELETE"]));
@@ -165,7 +173,7 @@ describe("sample project files import into another project", () => {
           {
             op: "set_execution_policy",
             collectionId: table.id,
-            policy: { mode: "interval", intervalSec: 2 },
+            policy: { mode: "auto" },
           },
         ],
       }),

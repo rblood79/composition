@@ -23,23 +23,20 @@ node apps/builder/scripts/adr281-endpoint-stub.mjs        # 받은 요청을 터
 
 전역 변수 `userName` (string) · `count` (number) · `isMember` (boolean) 와, 그 값을 읽고 (`{{ name }}`) 쓰는 버튼 — set (Create · Update) · reset (Delete) · increment · toggle. 「다른 페이지로 이동」 뒤에도 값이 유지되고 거기서 바꾼 값이 Home 에 보인다. 변수에 쓰는 값은 지금 리터럴만 된다 (입력 칸의 값을 변수에 쓰는 `!event.value` 는 아직 없다).
 
-## `collection-crud.composition.json` — 전역 변수 · Table · List · Form CRUD
+## `collection-crud.composition.json` — 목록 · 상세 CRUD (전역 변수 · Table · List · Form)
 
-collection `Users` (id · name · email · role) 하나를 Table · GridList · ListBox 셋이 읽고, Form 셋이 로컬 REST 스텁에 쓴다. 목록 갱신은 collection 실행 정책 **interval 2초** (연결 endpoint `listUsers` = `GET /users`) 가 맡는다.
+collection `Users` (id · name · email · role) 를 두 페이지가 쓰고, Form 이 로컬 REST 스텁에 쓴 뒤 **「collection 다시 읽기」 (`reload` — `useAsyncList.reload`)** 로 목록을 바꾼다. 처음 표시는 실행 정책 **Auto** (Builder 가 Preview 를 열 때 `GET /users` 1회).
 
 ```bash
 node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:5198/users — 메모리 저장, 다시 켜면 seed 3행
 ```
 
-확인은 헤더의 **Compare Mode (Preview + Skia)** 로 한다 — 왼쪽 Preview 가 규칙을 실행하고 Builder data store 의 갱신을 받는다. 상단 **Preview** 버튼 (publish 탭) 은 파일 스냅샷이라 제출은 되지만 목록이 다시 읽히지 않는다 (interval 실행은 Builder 가 한다).
+확인은 헤더의 **Compare Mode (Preview + Skia)** 로 한다 (왼쪽 Preview 가 규칙을 실행한다). 상단 **Preview** 버튼 (publish 탭) 은 파일의 seed 3행으로 시작하고, 「다시 읽기」 버튼이나 제출 뒤 reload 로 서버 항목을 읽는다.
 
-| 동작     | 어디서                                   | 기대                                                                                                    |
-| -------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Read     | Table · GridList · ListBox               | 같은 행. 스텁에 직접 넣은 행 (`curl -X POST …/users`) 도 2초 안에 셋 모두와 Canvas Table 에 나타난다    |
-| Create   | Create Form → 추가                       | `POST /users` (본문 = 필드 값 JSON) → 새 행 `u4…`                                                       |
-| 행 선택  | Table 행 (`onRowAction`) · GridList 항목 (`onAction`) | Update · Delete Form 의 id 칸이 그 행 id (`setValue` 값 = `!event.key`)                     |
-| Update   | Update Form → 수정                       | `PUT /users` — 채운 칸만 바뀐다                                                                         |
-| Delete   | Delete Form → 삭제                       | `DELETE /users` (본문 `{"id"}`) → 행이 사라진다                                                         |
-| 전역 변수 | 각 제출 · 「전역 변수 초기화」          | `lastAction` = Create / Update / Delete (`set`) · `opCount` +1 (`increment`) · 초기화 = 없음 · 0 (`reset`). Canvas 는 기본값을 그린다 (설계) |
+| 페이지              | 무엇                                                                                              | 기대                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home `/`            | Table (Column 머리글 정렬) · ListBox (항목 = `/detail/{id}` 링크) · 추가 Form · 다시 읽기 버튼    | 추가 → `POST /users` → reload 로 두 목록에 새 행 · Form 비움. ListBox 항목을 누르면 그 행의 상세 페이지                                                     |
+| Detail `/detail/:id` | frame 이 Users 의 `{{ params.id }}` 항목에 묶임 (`binding.key` — `useListData.getItem`)            | `{name} ({id})` · `{email} · {role}` 가 그 행. 수정 Form 은 그 값으로 시작 (`value="{name}"`) → `PUT /users` → reload · toast. 삭제 → `DELETE /users` → reload → Home |
+| 공통                | 전역 변수 `lastAction` · `opCount`                                                                | 제출마다 Create / Update / Delete (`set`) · 작업 수 +1 (`increment`). 「전역 변수 초기화」 = 없음 · 0 (`reset`). Canvas 는 기본값을 그린다 (설계)               |
 
-각 Form 은 제출 뒤 자기 `reset` 규칙으로 칸을 비운다 (규칙이 채운 id 칸 포함 — 본문은 제출 이벤트 때 이미 읽었다).
+Canvas 의 Detail 페이지는 경로가 없어 첫 항목을 표본으로 그린다.
