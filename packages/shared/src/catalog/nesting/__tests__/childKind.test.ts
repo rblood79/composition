@@ -5,10 +5,21 @@ import { canNest, catalogChildKind } from "../nestingRules";
 // ADR-256 Decision 4 — 부품의 children 종류 하나를 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다.
 describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   it("RAC collection 은 항목 목록이다 (설치 RAC 가 자유 내용을 버린다 — G0 ②)", () => {
+    // 2026-10-22 사용자 지시: 설치 RAC 1.22.1 의 `Section` 은 @deprecated (ListBoxSection · MenuSection
+    // 이 대체), `Header` 는 섹션의 머리글 (섹션 children 에 있다) — 목록 바로 아래 자식이 아니다.
     expect(catalogChildKind("ListBox")).toEqual({
       kind: "items",
-      items: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
+      items: ["ListBoxItem", "ListBoxSection"],
     });
+    expect(catalogChildKind("Menu")).toEqual({
+      kind: "items",
+      items: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
+    });
+    for (const section of ["ListBoxSection", "MenuSection", "GridListSection"])
+      expect(
+        (catalogChildKind(section) as { items: readonly string[] }).items,
+        section,
+      ).toContain("Header");
     expect(catalogChildKind("TabList")).toEqual({
       kind: "items",
       items: ["Tab"],

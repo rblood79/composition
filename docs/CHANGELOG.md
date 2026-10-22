@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ListBox · Menu 의 받는 자식 — deprecated Section · 목록 직속 Header 제거] - 2026-10-22
+
+### Changed
+
+- **ListBox · Menu 의 Items 에 Section · Header 가 더 나오지 않는다** (사용자 지시 2026-10-22): 받는 자식 표가 2026-09-08 의 범용 `Section` 시절 목록을 남겨 ListBox Items 피커 · 넣기 판정이 `Section` · `Header` 를 받았다. 설치 RAC 1.22.1 의 `Section` 은 @deprecated (ListBoxSection · MenuSection 이 대체) 이고 `Header` 는 섹션의 머리글 (섹션의 자식) 이다. 이제 ListBox = ListBoxItem · ListBoxSection, Menu = MenuItem · SubmenuTrigger · MenuSection · Separator. 라이브러리 템플릿 중 목록 직속 Section · Header 를 쓰는 곳은 없다 (전수 확인).
+  - 위치: `packages/shared/src/domain/componentTraits.ts` `ListBox` · `Menu` `children`
+
 ## [바인딩된 ListBox — 항목을 모두 지워도 행이 생긴다] - 2026-10-22
 
 ### Fixed

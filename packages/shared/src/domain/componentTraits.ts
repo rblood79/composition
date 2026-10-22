@@ -253,7 +253,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   ListBox: {
     container: "collection",
     families: ["itemSlotCollection", "disablingGroup"],
-    children: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
+    // (RAC 1.22.1: `Section` is @deprecated — ListBoxSection replaces it — and `Header` is a
+    //  section's heading, in the section's children. Neither sits right under the list, 2026-10-22.)
+    children: ["ListBoxItem", "ListBoxSection"],
   },
   // (ADR-256 Phase 6c · 6d: a Select's · ComboBox's items are in its ListBox — the reference's
   // `Popover > ListBox` — not the picker's own children.)
@@ -269,14 +271,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Menu: {
     container: "collection",
     families: ["itemSlotCollection"],
-    children: [
-      "MenuItem",
-      "SubmenuTrigger",
-      "MenuSection",
-      "Section",
-      "Separator",
-      "Header",
-    ],
+    // (As ListBox: no deprecated `Section`, and `Header` is MenuSection's, 2026-10-22.)
+    children: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
   },
   MenuSection: {
     container: "collection",

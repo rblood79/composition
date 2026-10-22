@@ -269,16 +269,9 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
   // 값 배열 순서까지 같아야 한다 — 위반 메시지 (`allowed.join`) 가 이 순서로 나간다.
   it("받는 항목 (RAC_COLLECTION_CHILD_TYPES) — 항목 목록 부품만", () => {
     expect(componentContractMap("children")).toStrictEqual({
-      ListBox: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
+      ListBox: ["ListBoxItem", "ListBoxSection"],
       ListBoxSection: ["Header", "ListBoxItem"],
-      Menu: [
-        "MenuItem",
-        "SubmenuTrigger",
-        "MenuSection",
-        "Section",
-        "Separator",
-        "Header",
-      ],
+      Menu: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
       MenuSection: ["Header", "MenuItem", "SubmenuTrigger"],
       SubmenuTrigger: ["MenuItem", "Popover"],
       GridList: ["GridListItem", "GridListSection"],

@@ -209,7 +209,8 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
       catalogSlotInsertOptions(graph, listbox).map((option) =>
         definitionTypeName(graph, option.definitionId),
       ),
-    ).toEqual(["ListBoxItem", "ListBoxSection", "Section", "Header"]);
+      // (No deprecated `Section` · list-level `Header` — 2026-10-22.)
+    ).toEqual(["ListBoxItem", "ListBoxSection"]);
     // A plain page node has no slot position.
     expect(catalogSlotPosition(graph, { kind: "node", id: BODY })).toBe(
       undefined,
