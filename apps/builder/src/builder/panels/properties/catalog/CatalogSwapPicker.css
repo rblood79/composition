@@ -33,17 +33,30 @@
   outline: none;
 }
 
-.component-swap-search .react-aria-Input {
-  inline-size: 100%;
-}
-
 .component-swap-list {
   max-height: 320px;
   overflow: auto;
+  overscroll-behavior: contain;
+
+  /* The panel Select list's rows (ListBox.css 「Popover Context」) — that block keys on the
+     Popover's `data-trigger="Select"`, and this list opens from a DialogTrigger, so its rows
+     restate the same values: the item padding, no outline, the focused row's surface. */
+  .react-aria-ListBoxItem {
+    padding: var(--lb-item-padding);
+
+    &[data-focus-visible] {
+      outline: none;
+    }
+
+    &[data-focused],
+    &[data-pressed] {
+      background: var(--bg-overlay);
+    }
+  }
 }
 
 .component-swap-header {
-  padding: var(--spacing-xs) var(--spacing-sm) 0;
+  padding: var(--spacing-xs) var(--spacing-md) 0;
   font-size: var(--text-2xs);
   color: var(--fg-muted);
 }

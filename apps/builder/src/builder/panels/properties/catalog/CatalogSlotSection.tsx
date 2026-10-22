@@ -20,15 +20,64 @@ import {
   catalogSlotTarget,
 } from "../../../catalogRuntime/slots";
 import { PropertyInput } from "../../../components/property/PropertyInput";
+import { useControlPopoverMetrics } from "../../../components/property/useControlPopoverMetrics";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
+import { ActionTooltipTrigger } from "../../../components/ui";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import type { CatalogSwapCandidate } from "../../../catalogRuntime/swapInstance";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import { CatalogComponentPicker } from "./CatalogSwapPicker";
 import "./CatalogSlotSection.css";
 
 const DEFAULT_SLOT_NAME = "content";
+
+/**
+ * The insert list as a panel field (the Font · Icon pickers' field): the legend names it, the box is
+ * an empty value with the Select chevron, and the searchable list opens under the box at its width.
+ */
+function SlotInsertField({
+  label,
+  candidates,
+  onPick,
+  open,
+  onOpenChange,
+}: {
+  label: string;
+  candidates: () => CatalogSwapCandidate[];
+  onPick: (definitionId: DefinitionId) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t } = useI18n();
+  const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
+    widthMode: "min-width",
+  });
+  return (
+    <fieldset className="properties-aria slot-insert-field">
+      <legend className="fieldset-legend">{label}</legend>
+      <div className="react-aria-control react-aria-Group" ref={anchorRef}>
+        <CatalogComponentPicker
+          label={label}
+          triggerClassName="react-aria-Button slot-fill-trigger"
+          triggerRef={controlRef}
+          popoverStyle={popoverStyle}
+          candidates={candidates}
+          onPick={onPick}
+          open={open}
+          onOpenChange={onOpenChange}
+        >
+          <span className="slot-fill-value">{t("common.select")}…</span>
+          <span aria-hidden="true" className="select-chevron">
+            <ChevronDown size={iconProps.size} />
+          </span>
+        </CatalogComponentPicker>
+      </div>
+    </fieldset>
+  );
+}
 
 /**
  * ADR-248 Phase 4e-4: the slot section over the catalog document (the old FrameSlot and
@@ -348,24 +397,13 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     return (
       <PropertySection title={t("propertiesPanel.slotSection")}>
         <div className="fieldset-row" data-wide="true">
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">
-              {t("propertiesPanel.slotAddContent")}
-            </legend>
-            <CatalogComponentPicker
-              label={t("propertiesPanel.slotAddContent")}
-              triggerClassName="component-semantics-identity component-swap-trigger slot-fill-trigger"
-              candidates={candidates}
-              onPick={add}
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-            >
-              <span className="component-semantics-identity-name">
-                {t("propertiesPanel.slotAddContent")}…
-              </span>
-              <ChevronDown aria-hidden="true" size={12} />
-            </CatalogComponentPicker>
-          </fieldset>
+          <SlotInsertField
+            label={t("propertiesPanel.slotAddContent")}
+            candidates={candidates}
+            onPick={add}
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+          />
         </div>
       </PropertySection>
     );
@@ -409,31 +447,31 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
             ))}
         </div>
       )}
-      <div className="fieldset-row" data-wide="true">
-        <fieldset className="properties-aria">
-          <legend className="fieldset-legend">
-            {t("propertiesPanel.slotFill")}
-          </legend>
-          <CatalogComponentPicker
-            label={t("propertiesPanel.slotFill")}
-            triggerClassName="component-semantics-identity component-swap-trigger slot-fill-trigger"
-            candidates={candidates}
-            onPick={fill}
-            open={pickerOpen}
-            onOpenChange={setPickerOpen}
-          >
-            <span className="component-semantics-identity-name">
-              {t("propertiesPanel.slotFill")}…
-            </span>
-            <ChevronDown aria-hidden="true" size={12} />
-          </CatalogComponentPicker>
-        </fieldset>
+      {/* The restore is the field row's icon action (an instance swap property's reset) — there
+          only once the slot's content is the instance's own. */}
+      <div className="fieldset-row slot-fill-row">
+        <SlotInsertField
+          label={t("propertiesPanel.slotFill")}
+          candidates={candidates}
+          onPick={fill}
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+        />
+        {filled && (
+          <div className="fieldset-actions actions-slot-restore">
+            <ActionTooltipTrigger tooltip={t("propertiesPanel.slotRestore")}>
+              <RACButton
+                aria-label={t("propertiesPanel.slotRestore")}
+                className="control-button"
+                data-icon-only="true"
+                onPress={restore}
+              >
+                <ACTION_ICONS.reset aria-hidden="true" size={iconProps.size} />
+              </RACButton>
+            </ActionTooltipTrigger>
+          </div>
+        )}
       </div>
-      {filled && (
-        <RACButton className="control-button" onPress={restore}>
-          Restore template content
-        </RACButton>
-      )}
     </PropertySection>
   );
 });

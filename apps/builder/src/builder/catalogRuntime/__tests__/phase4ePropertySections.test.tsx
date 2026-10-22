@@ -511,12 +511,16 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(
       position.container.querySelectorAll(".frame-slot-fill .list-row"),
     ).toHaveLength(1);
+    // The restore is the Fill slot row's icon action, not a labelled button under the field.
+    const restoreButton = within(position.container).getByRole("button", {
+      name: "Restore template content",
+    });
+    expect(
+      restoreButton.closest(".slot-fill-row > .fieldset-actions"),
+    ).not.toBeNull();
+    expect(restoreButton.textContent).toBe("");
     await act(async () => {
-      fireEvent.click(
-        within(position.container).getByRole("button", {
-          name: "Restore template content",
-        }),
-      );
+      fireEvent.click(restoreButton);
     });
     expect(catalogSlotPosition(graph, target)?.fillIds).toBe(undefined);
     expect(
@@ -578,8 +582,10 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         within(section.container).getByRole("button", { name: "Fill slot" }),
       );
     });
-    // Groups in order, each with its header; the Local component sits under Local only.
-    const groups = screen.getAllByRole("group").map((group) => ({
+    // Groups in order, each with its header; the Local component sits under Local only. (The
+    // search field is a group too — the list's sections are read inside the list.)
+    const list = screen.getByRole("listbox");
+    const groups = within(list).getAllByRole("group").map((group) => ({
       header: group.querySelector("header")?.textContent,
       options: within(group)
         .getAllByRole("option")
@@ -590,9 +596,17 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(groups[1].options).toContain("Text");
     expect(groups[1].options).not.toContain("Confirm body");
     // The list is its own scroller — not the panel Select's popover.
-    const list = screen.getByRole("listbox");
     expect(list.className).toContain("component-swap-list");
-    const local = within(screen.getAllByRole("group")[0]).getByRole("option", {
+    // The search is the Builder SearchField, and the trigger is a panel field (not the name chip).
+    expect(
+      screen.getByRole("searchbox").closest(".builder-search-field--control"),
+    ).not.toBeNull();
+    expect(
+      section.container.querySelector(
+        ".slot-insert-field .react-aria-Group > .slot-fill-trigger",
+      ),
+    ).not.toBeNull();
+    const local = within(within(list).getAllByRole("group")[0]).getByRole("option", {
       name: "Confirm body",
     });
     await act(async () => {

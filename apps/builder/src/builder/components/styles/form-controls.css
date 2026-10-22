@@ -442,12 +442,13 @@
 
     /* NumberField ± stepper 는 2026-09-15 제거 (화살표 키만) */
 
-    /* IconPicker / FontFamilyPicker: input-style trigger + clear button.
-       둘 다 Select 가 아니라 팝오버 trigger 버튼이라 `.react-aria-Select
+    /* IconPicker / FontFamilyPicker / slot 넣기 목록: input-style trigger + clear button.
+       셋 다 Select 가 아니라 팝오버 trigger 버튼이라 `.react-aria-Select
        .react-aria-Button` 규칙이 닿지 않는다. 생김새는 select trigger 와 같아야
        하므로 정의를 하나만 두고 선택자를 나눠 쓴다. */
     .icon-picker-input-trigger,
-    .font-picker-trigger {
+    .font-picker-trigger,
+    .slot-fill-trigger {
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
@@ -468,7 +469,8 @@
       }
 
       .icon-picker-value,
-      .font-picker-value {
+      .font-picker-value,
+      .slot-fill-value {
         flex: 1;
         text-align: left;
         overflow: hidden;
@@ -478,8 +480,14 @@
       }
 
       &:not(:has(.control-label)) .icon-picker-value,
-      &:not(:has(.control-label)) .font-picker-value {
+      &:not(:has(.control-label)) .font-picker-value,
+      &:not(:has(.control-label)) .slot-fill-value {
         padding-inline-start: var(--spacing);
+      }
+
+      /* slot 넣기 목록은 고른 값이 남지 않는다 — 늘 빈 필드 (muted placeholder) */
+      .slot-fill-value {
+        color: var(--fg-muted);
       }
 
       /* 아이콘 없는 아이콘 피커 = 값 없음 (muted). 글꼴 피커는 아이콘을 뺐어도 값이 있다 (panel-ui 03) */

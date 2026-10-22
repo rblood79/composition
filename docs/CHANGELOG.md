@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 slot 절 — Fill slot 피커를 패널 필드 어법으로 · restore 는 행 아이콘 액션] - 2026-10-22
+
+### Changed
+
+- **Fill slot · Add content 피커가 패널 필드다** (사용자 지적 2026-10-22 「빌더 디자인 패턴도 맞지 않다」): 트리거는 instance 이름 칩 대신 legend 아래 `Select…` + chevron 필드 (FontFamilyPicker · IconPicker 와 같은 trigger 규칙), 팝오버는 필드 상자의 좌측 · 폭에 맞춰 뜬다 (`useControlPopoverMetrics`). 팝오버 안 검색은 빌더 `SearchField` (`control` — 검색 아이콘 · 지우기 버튼, Command palette · 헤더 메뉴와 같은 것) 이고 목록 행은 패널 Select 목록과 같은 여백 · 포커스 표면이다 — Swap instance · instance 교체 속성 picker 도 같은 검색 · 행을 쓴다. 조합 (`Autocomplete + SearchField + ListBox`) 은 그대로.
+- **Restore template content 가 Fill slot 행의 아이콘 버튼이다** — 필드 아래 라벨 버튼 대신 행 오른쪽 액션 칸의 `↺` (instance 교체 속성의 reset 과 같은 `control-button` 아이콘 · 툴팁), 문구는 i18n (`propertiesPanel.slotRestore`).
+
 ## [Design 패널 — template 에 묶인 prop 은 instance 값으로 읽는다] - 2026-10-22
 
 ### Fixed

@@ -1,16 +1,21 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
 import { Header } from "react-aria-components/Header";
-import { Input } from "react-aria-components/Input";
 import {
   ListBox,
   ListBoxItem,
   ListBoxSection,
 } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
-import { SearchField } from "react-aria-components/SearchField";
 import { useFilter } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -25,6 +30,7 @@ import {
   type CatalogSwapCandidate,
 } from "../../../catalogRuntime/swapInstance";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import { SearchField } from "../../../components/ui/SearchField";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import "./CatalogSwapPicker.css";
 
@@ -38,9 +44,10 @@ const GROUP_LABEL = {
 } as const;
 
 /**
- * A searchable list of components in groups (Swap instance's — ADR-261 Decision 2, and an
- * instance swap property's — Phase 5): the trigger is the caller's, the list is read when it
- * opens.
+ * A searchable list of components in groups (Swap instance's — ADR-261 Decision 2, an instance
+ * swap property's — Phase 5, and a slot's insert list): the trigger is the caller's, the list is
+ * read when it opens. The search is the Builder SearchField (the Command palette's · header menu's
+ * `control` field) — Autocomplete links it to the ListBox.
  */
 export const CatalogComponentPicker = memo(function CatalogComponentPicker({
   label,
@@ -51,6 +58,8 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
   open,
   onOpenChange,
   dataRole,
+  triggerRef,
+  popoverStyle,
 }: {
   /** The trigger's accessible name and the list's. */
   label: string;
@@ -61,6 +70,9 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
   onPick: (definitionId: DefinitionId) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** A field trigger's popover lines up with its field box (`useControlPopoverMetrics`). */
+  triggerRef?: (node: HTMLElement | null) => void;
+  popoverStyle?: CSSProperties;
 }) {
   const { t } = useI18n();
   const candidates = useMemo<CatalogSwapCandidate[]>(
@@ -73,6 +85,7 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
   return (
     <DialogTrigger isOpen={open} onOpenChange={onOpenChange}>
       <RACButton
+        ref={triggerRef}
         className={triggerClassName}
         data-role={dataRole}
         aria-label={label}
@@ -82,16 +95,16 @@ export const CatalogComponentPicker = memo(function CatalogComponentPicker({
       <Popover
         className="react-aria-Popover property-select-popover component-swap-popover"
         placement="bottom start"
+        style={popoverStyle}
       >
         <Dialog className="component-swap-dialog" aria-label={label}>
           <Autocomplete filter={contains}>
             <SearchField
-              className="react-aria-SearchField component-swap-search"
-              aria-label={t("componentAction.swapSearch")}
+              appearance="control"
               autoFocus
-            >
-              <Input placeholder={t("componentAction.swapSearch")} />
-            </SearchField>
+              placeholder={t("componentAction.swapSearch")}
+              aria-label={t("componentAction.swapSearch")}
+            />
             <ListBox
               className="react-aria-ListBox component-swap-list"
               aria-label={label}

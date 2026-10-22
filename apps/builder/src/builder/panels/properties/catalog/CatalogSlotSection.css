@@ -5,7 +5,19 @@
   gap: var(--spacing-xs);
 }
 
-/* The insert list's trigger — the Swap picker's chip, muted like an empty field. */
-.slot-fill-trigger {
-  color: var(--fg-muted);
+/* The Fill slot field and, once the slot holds the instance's own content, its restore (the row's
+   icon column — an instance swap property's reset). */
+.slot-fill-row {
+  grid-template-columns: 1fr var(--control-size);
+  grid-template-areas: "field icon";
+}
+
+.slot-fill-row .slot-insert-field {
+  grid-area: field;
+  min-width: 0;
+}
+
+.actions-slot-restore {
+  grid-area: icon;
+  align-self: end;
 }

@@ -748,6 +748,7 @@ export interface TranslationKeys {
     slotSuggestAdd: string;
     slotFill: string;
     slotAddContent: string;
+    slotRestore: string;
     componentProperties: string;
     componentPropertyKindText: string;
     componentPropertyKindBoolean: string;
