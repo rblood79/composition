@@ -20,6 +20,11 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
   요소는 문서에 실리지 않아 검증이 비어 버립니다.
 - 스크립트로 반복할 흐름은 headed Playwright 하니스 `apps/builder/scripts/<주제>-live.mjs`
   (`BUILDER_URL` 로 대상 서버 지정) 에 둡니다.
+- 심은 요소는 고정 id 로 넣고 그 id 를 `removeTargets` 로 지웁니다. 정리에 `workspace.undo()` 를
+  쓰지 않습니다 — history 는 프로젝트당 스택 하나라 사용자가 같은 탭에서 한 편집을 되돌리고,
+  새로고침·HMR 은 스택을 비웁니다. 정리 전후 `workspace.history.getSnapshot()` 의 entry 에 남의
+  항목이 섞였는지 보고, 사용자가 탭을 쓰는 중일 수 있으면 별도 live 전용 프로젝트를 씁니다
+  (로컬 scratch 프로젝트의 데이터 손실은 보고 대상이 아닙니다).
 - Compare Mode 에서는 축소된 Preview 의 좌표 클릭이 Builder 헤더에 막히므로 요소에
   직접 click 이벤트를 보냅니다. Preview 에서 누른 노드는 Builder 선택이 되어 다음 팔레트 추가가
   그 안으로 들어가고, Compare Mode 를 토글하면 iframe 이 교체되어 붙잡아 둔 참조가 죽습니다.
