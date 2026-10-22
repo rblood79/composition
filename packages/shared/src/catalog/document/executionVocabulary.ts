@@ -21,6 +21,8 @@ export const CATALOG_ACTION_OPCODES = [
   "capability",
   // ADR-281 Decision 5 — a Form's submit to an API endpoint.
   "callEndpoint",
+  // ADR-281 user decision 3, second step — a rule appends to a collection (`useListData.append`).
+  "append",
 ] as const satisfies readonly InteractionEntry["action"]["opcode"][];
 
 export function codeExecutionVocabulary(): {

@@ -105,8 +105,10 @@ async function open() {
 describe("ADR-248 Phase 4e-4e Interactions", () => {
   it("the code library names the old rules vocabulary", async () => {
     const { execution } = await buildCodeCatalogLibrary();
-    // (ADR-281 Decision 5 — callEndpoint, a Form's submit to an API endpoint.)
+    // (ADR-281 Decision 5 — callEndpoint, a Form's submit to an API endpoint; append, its value
+    // added to a collection.)
     expect([...execution.actionOpCodes].sort()).toEqual([
+      "append",
       "callEndpoint",
       "capability",
       "navigate",
@@ -226,9 +228,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     const rule = catalogNewInteraction(owner, "onPress", set, workspace.newId);
     workspace.execute(catalogInteractionsCommand(owner, [rule], "Add"));
     workspace.execute(
-      catalogVariableCommands.remove(
-        variable.id as EntryId<"stateVariable">,
-      ),
+      catalogVariableCommands.remove(variable.id as EntryId<"stateVariable">),
     );
     expect(graph.getEntry(rule.id)).toBeUndefined();
     expect(catalogInteractionsOf(graph, owner)).toEqual([]);

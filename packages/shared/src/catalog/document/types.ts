@@ -121,6 +121,8 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 46 (ADR-279): a definition owns its template — the ADR-260 reference field is gone; a
  * component's origin lives on the Local page and an instance stands where the node stood. A 45
  * document (an origin on a page, a hidden template) is refused.
+ * 47 (same contract — additive): a rule may append to a collection (`append` — `useListData.append` — ADR-281
+ * user decision 3, second step); a 47 document without one is unchanged.
  * An earlier contract's document is refused, never re-mapped.
  */
 export const LIBRARY_CONTRACT_VERSION = 47 as const;
@@ -889,6 +891,12 @@ export interface InteractionEntry {
         endpointId: DataEndpointId;
         /** ADR-281 Decision 5 — the request body: a literal or `"!event.formData"`. */
         body?: Scalar;
+      }
+    | {
+        opcode: "append";
+        collectionId: DataCollectionId;
+        /** The value appended: `"!event.formData"` (a Form's fields) — resolved when the rule runs. */
+        value?: Scalar;
       }
     | { opcode: "toast"; message: string }
     | {

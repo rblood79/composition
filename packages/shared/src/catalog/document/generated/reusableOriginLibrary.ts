@@ -2389,7 +2389,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "label": "Name",
       "placeholder": "Enter your full name",
-      "isRequired": true
+      "isRequired": true,
+      "name": "name"
     },
     "visual": {}
   },
@@ -2401,7 +2402,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Email",
       "placeholder": "Enter your email",
       "type": "email",
-      "isRequired": true
+      "isRequired": true,
+      "name": "email"
     },
     "visual": {}
   },
@@ -2410,7 +2412,27 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-buttongroup",
     "children": [],
     "props": {},
-    "visual": {}
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-buttongroup",
+          "lib:template:component-buttongroup__1"
+        ],
+        "props": {
+          "type": "reset"
+        }
+      },
+      {
+        "templatePath": [
+          "lib:template:component-buttongroup",
+          "lib:template:component-buttongroup__2"
+        ],
+        "props": {
+          "type": "submit"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-inline-alert",

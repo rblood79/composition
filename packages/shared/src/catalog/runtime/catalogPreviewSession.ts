@@ -96,6 +96,12 @@ export class CatalogPreviewSession {
   private shownPage: EntryId<"page"> | undefined;
   /** The Builder's collections: bound collections draw their rows from them. */
   private collections: readonly CollectionDataSource[] = [];
+  /**
+   * ADR-281 user decision 3, second step — the items an `append` rule added, by collection id:
+   * session state (a reload drops them, the author's data never sees them), laid over the
+   * Builder's items each time they come (`itemSources`).
+   */
+  private readonly appendedItems = new Map<string, Record<string, unknown>[]>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
   private readonly tableSorts = new Map<string, CatalogTableSort>();
   /** The Builder's project variables (the data store's, H1). */
@@ -310,6 +316,67 @@ export class CatalogPreviewSession {
     this.options.applyTheme?.({ ...state, colorMode: mode });
   }
 
+  /** The collections as the bound components read them: the Builder's items, then the appended ones. */
+  private itemSources(): readonly CollectionDataSource[] {
+    if (!this.appendedItems.size) return this.collections;
+    return this.collections.map((collection) => {
+      const added = collection.id && this.appendedItems.get(collection.id);
+      if (!added) return collection;
+      // (The items the snapshot shows — `resolveCollectionSnapshot`: mock when `useMockData`, else
+      // the API's items, else mock.)
+      return !collection.useMockData && collection.runtimeData
+        ? { ...collection, runtimeData: [...collection.runtimeData, ...added] }
+        : { ...collection, mockData: [...(collection.mockData ?? []), ...added] };
+    });
+  }
+  /** A collection's items as the Preview shows them (appended items included). */
+  collectionItems(collectionId: string): readonly unknown[] {
+    const collection = this.itemSources().find((item) => item.id === collectionId);
+    if (!collection) return [];
+    return !collection.useMockData && collection.runtimeData
+      ? collection.runtimeData
+      : (collection.mockData ?? []);
+  }
+  /**
+   * ADR-281 user decision 3, second step — an `append` rule's value (`useListData.append`): the schema's fields only (a
+   * `number` field as a number, a `boolean` one as a boolean), an `id` when the schema has one and
+   * the value does not. Every component bound to the collection shows it at once.
+   */
+  append(
+    collectionId: string,
+    value: Readonly<Record<string, unknown>>,
+  ): { ok: boolean; reason?: string } {
+    const collection = this.collections.find((item) => item.id === collectionId);
+    if (!collection) return { ok: false, reason: `collection 없음: ${collectionId}` };
+    const schema = collection.schema ?? [];
+    const types = new Map(
+      schema.map((field) => [
+        field.key,
+        (field as { type?: string }).type,
+      ]),
+    );
+    const next: Record<string, unknown> = {};
+    for (const [key, field] of Object.entries(value)) {
+      if (schema.length && !types.has(key)) continue;
+      const type = types.get(key);
+      if (type === "number" && typeof field === "string") {
+        const number = Number(field);
+        next[key] = field.trim() === "" || Number.isNaN(number) ? field : number;
+      } else if (type === "boolean" && typeof field === "string")
+        next[key] = field === "true" || field === "on";
+      else next[key] = field;
+    }
+    if (types.has("id") && (next.id === undefined || next.id === ""))
+      next.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
+    const added = this.appendedItems.get(collectionId) ?? [];
+    this.appendedItems.set(collectionId, [...added, next]);
+    const errors = this.currentRoot?.refreshRows() ?? [];
+    if (errors.length) console.error("[CatalogPreview] append:", ...errors);
+    this.changed();
+    return { ok: true };
+  }
+  private itemSerial = 0;
+
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
     if (sort) this.tableSorts.set(tableId, sort);
     else this.tableSorts.delete(tableId);
@@ -398,7 +465,7 @@ export class CatalogPreviewSession {
         ...this.options.root,
         breakpoint: this.breakpoint,
         rows: (binding, kind) =>
-          catalogBoundRows(binding, this.collections, kind),
+          catalogBoundRows(binding, this.itemSources(), kind),
         tableSort: (tableId) => this.tableSorts.get(tableId),
         state: {
           projectVariables: () => this.variables,

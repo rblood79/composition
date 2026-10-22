@@ -587,6 +587,9 @@ export interface TranslationKeys {
     actionCallEndpoint: string;
     endpoint: string;
     endpointBody: string;
+    actionAppend: string;
+    collection: string;
+    appendValue: string;
     actionToast: string;
     actionCapability: string;
     capability: string;

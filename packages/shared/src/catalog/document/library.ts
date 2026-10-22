@@ -233,9 +233,14 @@ export function buildCatalogLibrary(
       throw new CatalogValidationError("INVALID_BINDING_ID", id);
   for (const opcode of actionOpCodes)
     if (
-      !["setState", "navigate", "callEndpoint", "toast", "capability"].includes(
-        opcode,
-      )
+      ![
+        "setState",
+        "navigate",
+        "callEndpoint",
+        "append",
+        "toast",
+        "capability",
+      ].includes(opcode)
     )
       throw new CatalogValidationError("UNKNOWN_ACTION_OPCODE", opcode);
   if (

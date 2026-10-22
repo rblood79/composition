@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — Do 「collection 에 추가」 (`append`) · 팔레트 Form 이 바로 제출됨] - 2026-10-22
+
+### Added
+
+- **Do 「collection 에 추가」 (`append`)** — ADR-281 사용자 결정 3 의 2차. 이름 · 의미는 RAC · S2 공통 레퍼런스 `useListData.append(...values)` (S2 는 `react-stately/useListData` 를 그대로 다시 내보낸다):
+  - Form 을 놓고 Interactions 에서 When 「제출」 → Do 「collection 에 추가」 → collection 을 고르면 끝난다. 값은 Form 이면 `!event.formData` 가 자동으로 잡힌다.
+  - 추가한 항목은 **Preview · Publish 실행 중에만** 있다 (레퍼런스의 `useListData` 처럼 클라이언트 상태 — 그 collection 에 바인딩된 Table · ListBox · GridList 가 바로 보여 주고, Builder 가 데이터를 다시 보내도 유지, 새로 열면 사라진다). 작성자의 Data 패널 테이블은 바뀌지 않는다.
+  - 항목은 schema 의 필드만 받고 (`number` · `boolean` 필드는 그 값으로), schema 에 `id` 가 있으면 비어 있을 때 만든다 (레퍼런스의 고유 key). record 가 아닌 값 · 없는 collection 은 `[interactions]` 경고로 보고한다.
+  - 문서: `InteractionEntry.action { opcode: "append", collectionId, value? }` — contract 47 그대로 (추가만, 47 문서 무변경). 수정 · 삭제는 같은 레퍼런스의 `update(key, newValue)` · `remove(...keys)` 로 잇는다.
+  - 위치: `packages/shared/src/catalog/document/{types,validation,library,executionVocabulary}.ts` · `interactions/{dispatcher,interactionRule.types}.ts` · `catalog/runtime/{catalogPreviewInteractions,catalogPreviewSession,domView.runtime}.ts` · 패널 `panels/interactions/catalog/{CatalogRuleRow,CatalogInteractionsPanel}.tsx` · 테스트 `append.test.tsx`
+
+### Fixed
+
+- **팔레트 Form 의 Save 가 제출하지 않던 것 · 칸 값이 제출 본문에 들어가지 않던 것**:
+  - **Why**: Form 원본의 버튼 줄은 ButtonGroup 원본 그대로라 Cancel · Save 가 `type="button"` 이었고, Name · Email 칸에 `name` 이 없어 `FormData` 가 비었다. 규칙을 걸어도 Save 로는 아무 일도 일어나지 않았다.
+  - 수정: Form 원본 template 이 칸에 `name` (`name` · `email`) 을, 버튼 줄의 Cancel 에 `type: reset` · Save 에 `type: submit` 을 준다 (`descendantPatches`). 시각 값 변경 0. 이미 놓은 Form 의 칸 · 버튼은 놓을 때 문서가 소유한 사본이라 그대로다 — 새로 놓은 Form 부터.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` · 테스트 `append.test.tsx` (원복 RED)
+
 ## [Data — 프로젝트 파일이 collection 의 실행 정책 · endpoint 연결을 옮김 · CRUD 샘플] - 2026-10-22
 
 ### Fixed

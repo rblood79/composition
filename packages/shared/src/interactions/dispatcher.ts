@@ -93,6 +93,15 @@ export interface DispatchDeps {
     endpointId: string,
     body: unknown,
   ) => { ok: boolean; reason?: string };
+  /**
+   * ADR-281 user decision 3, second step — append a record to a collection (`useListData.append` —
+   * the session holds it).
+   * Absent = the rule fails (never a silent no-op).
+   */
+  append?: (
+    collectionId: string,
+    value: Readonly<Record<string, unknown>>,
+  ) => { ok: boolean; reason?: string };
 }
 
 /** 트리거 요소의 렌더 문맥 — `createElementHandlers` 가 규칙 실행에 실어 보낸다 */
@@ -109,7 +118,13 @@ export interface DispatchContext {
 export type DispatchOutcome =
   | {
       ok: true;
-      kind: "navigate" | "toast" | "capability" | "setState" | "callEndpoint";
+      kind:
+        | "navigate"
+        | "toast"
+        | "capability"
+        | "setState"
+        | "callEndpoint"
+        | "append";
     }
   | { ok: false; reason: string };
 
@@ -256,6 +271,28 @@ export function executeInteractionRule(
     return result.ok
       ? { ok: true, kind: "callEndpoint" }
       : { ok: false, reason: result.reason ?? "callEndpoint 실패" };
+  }
+
+  if (action.kind === "append") {
+    if (!deps.append)
+      return { ok: false, reason: "append 실행 경로 없음 (append 미주입)" };
+    let value = action.value;
+    if (typeof value === "string" && value.startsWith("!event.")) {
+      const name = value.slice("!event.".length);
+      const event = context?.event;
+      if (!event || !(name in event))
+        return { ok: false, reason: `이벤트 인자 없음: ${value}` };
+      value = event[name];
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      return { ok: false, reason: "추가할 값이 record 가 아니다" };
+    const result = deps.append(
+      action.collectionId,
+      value as Readonly<Record<string, unknown>>,
+    );
+    return result.ok
+      ? { ok: true, kind: "append" }
+      : { ok: false, reason: result.reason ?? "append 실패" };
   }
 
   if (action.kind === "navigate") {

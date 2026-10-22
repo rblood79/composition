@@ -18,6 +18,7 @@ import type {
   InteractionEntry,
   NodeId,
   Scalar,
+  DataCollectionId,
   DataEndpointId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
@@ -265,6 +266,13 @@ export interface CatalogActionContext {
   targets: readonly CatalogTargetOption[];
   /** ADR-281 Decision 5 — the project's API endpoints (the data store's, H1). */
   endpoints?: readonly CatalogEndpointOption[];
+  /** The project's collections a rule can append to (the data store's, H1). */
+  collections?: readonly CatalogCollectionOption[];
+}
+
+export interface CatalogCollectionOption {
+  id: DataCollectionId;
+  name: string;
 }
 
 export interface CatalogEndpointOption {
@@ -298,6 +306,12 @@ export function catalogDefaultAction(
       context.endpoints?.[0];
     return endpoint
       ? { opcode: "callEndpoint", endpointId: endpoint.id }
+      : undefined;
+  }
+  if (choice === "append") {
+    const collection = context.collections?.[0];
+    return collection
+      ? { opcode: "append", collectionId: collection.id }
       : undefined;
   }
   if (choice === "capability") {

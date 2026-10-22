@@ -12,6 +12,7 @@ export function createG1Fixture() {
       "setState",
       "navigate",
       "callEndpoint",
+      "append",
       "toast",
       "capability",
     ],

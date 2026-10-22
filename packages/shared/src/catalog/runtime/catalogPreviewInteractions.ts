@@ -136,6 +136,15 @@ function ruleOf(
           ...(action.body !== undefined ? { body: action.body } : {}),
         },
       };
+    case "append":
+      return {
+        ...base,
+        action: {
+          kind: "append",
+          collectionId: action.collectionId.slice("data:collection:".length),
+          ...(action.value !== undefined ? { value: action.value } : {}),
+        },
+      };
     case "setState":
       return {
         ...base,
@@ -255,6 +264,8 @@ export interface CatalogPreviewInteractionsOptions {
    * later — a failure is reported and shown as a toast here (user decision 3).
    */
   submitEndpoint?: (endpointId: string, body: unknown) => Promise<unknown>;
+  /** ADR-281 user decision 3, second step — the session appends the value (`CatalogPreviewSession.append`). */
+  append?: DispatchDeps["append"];
 }
 
 /**
@@ -314,6 +325,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         });
         return { ok: true };
       },
+      ...(options.append ? { append: options.append } : {}),
       // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).
       getRuntimeState: (id, prop) => {
         const root = options.root();

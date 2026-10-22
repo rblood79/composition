@@ -69,12 +69,24 @@ export interface CallEndpointAction {
   body?: unknown;
 }
 
+/**
+ * ADR-281 user decision 3, second step — append to a collection (`useListData.append` — the project's
+ * collection id, no prefix). The running Preview / Publish session holds the item; the author's data is untouched.
+ */
+export interface AppendAction {
+  kind: "append";
+  collectionId: string;
+  /** `"!event.<arg>"` resolving to a record (the Form's `"!event.formData"`). */
+  value?: unknown;
+}
+
 export type InteractionAction =
   | NavigateAction
   | ToastAction
   | CapabilityAction
   | SetStateAction
-  | CallEndpointAction;
+  | CallEndpointAction
+  | AppendAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

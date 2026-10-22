@@ -858,6 +858,9 @@ const koKR: TranslationKeys = {
     actionCallEndpoint: "endpoint 호출",
     endpoint: "엔드포인트",
     endpointBody: "본문",
+    actionAppend: "collection 에 추가",
+    collection: "컬렉션",
+    appendValue: "값",
     actionCapability: "컴포넌트 기능…",
     capability: "기능",
     target: "대상",
@@ -3180,6 +3183,9 @@ const enUS: TranslationKeys = {
     actionNavigate: "Go to page",
     actionToast: "Show a toast",
     actionCallEndpoint: "Call an endpoint",
+    actionAppend: "Append to a collection",
+    collection: "Collection",
+    appendValue: "Value",
     endpoint: "Endpoint",
     endpointBody: "Body",
     actionCapability: "Component capability…",
@@ -6164,6 +6170,8 @@ const formattedMessages: Record<
       `지금 RAC 가 받지 않음 (${String(args?.reason ?? "")})`,
     "interactions.summaryCallEndpoint": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 호출`,
+    "interactions.summaryAppend": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 에 추가`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
     "interactions.summaryNavigateWithPath": (args) =>
@@ -6705,6 +6713,8 @@ const formattedMessages: Record<
       `RAC does not take this now (${String(args?.reason ?? "")})`,
     "interactions.summaryCallEndpoint": (args) =>
       `${String(args?.when ?? "")} → call ${String(args?.name ?? "")}`,
+    "interactions.summaryAppend": (args) =>
+      `${String(args?.when ?? "")} → append to ${String(args?.name ?? "")}`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
     "interactions.summaryNavigateWithPath": (args) =>

@@ -140,6 +140,15 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         name: endpoint?.name ?? action.endpointId,
       });
     }
+    if (action.opcode === "append") {
+      const collection = context.collections?.find(
+        (option) => option.id === action.collectionId,
+      );
+      return t("interactions.summaryAppend", {
+        when,
+        name: collection?.name ?? action.collectionId,
+      });
+    }
     if (action.opcode === "capability") {
       const capability = resolveCapabilities(targetType)[action.capabilityId];
       const label = capability ? t(capability.labelKey) : action.capabilityId;
@@ -225,7 +234,14 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
               onChange={(choice) => {
                 if (choice === action.opcode) return;
                 const next = catalogDefaultAction(choice, context);
-                if (next) setAction(next);
+                if (!next) return;
+                // A Form's submit adds its fields (the When gives `formData`).
+                if (
+                  next.opcode === "append" &&
+                  eventArgsOf(componentType, rule.trigger).includes("formData")
+                )
+                  setAction({ ...next, value: "!event.formData" });
+                else setAction(next);
               }}
             />
           </div>
@@ -312,6 +328,38 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                     value === "" || value === undefined
                       ? { opcode: "callEndpoint", endpointId: action.endpointId }
                       : { ...action, body: value as Scalar },
+                  )
+                }
+              />
+            </>
+          )}
+
+          {action.opcode === "append" && (
+            <>
+              <PropertySelect
+                label={t("interactions.collection")}
+                value={action.collectionId}
+                onChange={(collectionId) => {
+                  const next = context.collections?.find(
+                    (option) => option.id === collectionId,
+                  );
+                  if (next) setAction({ ...action, collectionId: next.id });
+                }}
+                options={(context.collections ?? []).map((option) => ({
+                  value: option.id,
+                  label: option.name,
+                }))}
+                translateOptions={false}
+              />
+              <ValueSourceField
+                param={{ kind: "text", labelKey: "interactions.appendValue" }}
+                value={action.value}
+                eventArgs={eventArgsOf(componentType, rule.trigger)}
+                onChange={(value) =>
+                  setAction(
+                    value === "" || value === undefined
+                      ? { opcode: "append", collectionId: action.collectionId }
+                      : { ...action, value: value as Scalar },
                   )
                 }
               />

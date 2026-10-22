@@ -1449,6 +1449,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         id(action.endpointId, "data:endpoint:", "entry.action.endpointId");
         // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
         if (action.body !== undefined) scalar(action.body, "entry.action.body");
+      } else if (action.opcode === "append") {
+        exact(action, ["opcode", "collectionId", "value"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.value !== undefined) scalar(action.value, "entry.action.value");
       } else if (action.opcode === "toast") {
         exact(action, ["opcode", "message"], "entry.action");
         string(action.message, "entry.action.message");

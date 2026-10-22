@@ -46,4 +46,5 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   setState: "interactions.actionSetState",
   capability: "interactions.actionCapability",
   callEndpoint: "interactions.actionCallEndpoint",
+  append: "interactions.actionAppend",
 } as const;

@@ -110,6 +110,8 @@ function CatalogRules({
   const projectVariables = useProjectVariableDefs();
   // ADR-281 Decision 5 — the endpoints a Form's submit can call (the data store's, H1).
   const apiEndpoints = useDataStore((state) => state.apiEndpoints);
+  // The collections a rule can append to (the data store's, H1).
+  const collections = useDataStore((state) => state.collections);
 
   const view = useMemo(() => {
     const componentType = catalogTargetTypeName(graph, target);
@@ -126,6 +128,10 @@ function CatalogRules({
         id: `data:endpoint:${endpoint.id}` as const,
         name: endpoint.name,
         method: endpoint.method,
+      })),
+      collections: [...collections.values()].map((collection) => ({
+        id: `data:collection:${collection.id}` as const,
+        name: collection.name,
       })),
     };
     const exposure = catalogExposureInput(graph, target);
@@ -145,7 +151,16 @@ function CatalogRules({
       ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
-  }, [apiEndpoints, graph, owner, pageId, projectVariables, revision, target]);
+  }, [
+    apiEndpoints,
+    collections,
+    graph,
+    owner,
+    pageId,
+    projectVariables,
+    revision,
+    target,
+  ]);
 
   const describeTarget = useCallback(
     (id: NodeId) => {

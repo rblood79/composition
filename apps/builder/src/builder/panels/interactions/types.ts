@@ -18,7 +18,9 @@ export type ActionChoice =
   | "setState"
   | "capability"
   // ADR-281 Decision 5 — a Form's submit to an API endpoint.
-  | "callEndpoint";
+  | "callEndpoint"
+  // ADR-281 user decision 3, second step — a Form's submit appends to a collection (`useListData.append`).
+  | "append";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {
