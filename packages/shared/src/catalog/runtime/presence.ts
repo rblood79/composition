@@ -23,6 +23,8 @@ import {
   isItemCollection,
 } from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
+import { catalogAncestorInherited } from "./inheritedProps";
+import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
@@ -1792,7 +1794,24 @@ export function catalogDerivedProps(
   const marked = partial
     ? { ...withSelection, isIndeterminate: true }
     : withSelection;
-  const result = disabled ? { ...marked, isDisabled: true } : marked;
+  // ADR-281 Decision 3 — a page root's · frame's isDisabled · isReadOnly reach the components whose
+  // RAC context takes them (RAC `Provider` on the DOM side). An own `false` does not re-enable: a
+  // record cannot tell an authored `false` from its origin's declared default (`catalogInheritedFlags`).
+  const takes = CATALOG_INHERITED_RECEIVERS.get(typeOf(node));
+  const fromHosts = takes
+    ? catalogAncestorInherited(node, get, typeOf)
+    : undefined;
+  const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
+    !!takes?.includes(flag) && fromHosts?.[flag] === true;
+  const hostDisabled = hostFlag("isDisabled");
+  const hostReadOnly = hostFlag("isReadOnly");
+  const inheritedMarked = hostReadOnly
+    ? { ...marked, isReadOnly: true }
+    : marked;
+  const result =
+    disabled || hostDisabled
+      ? { ...inheritedMarked, isDisabled: true }
+      : inheritedMarked;
   // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
   // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
   const grouped = catalogDisclosureGroupPosition(node, get, typeOf);

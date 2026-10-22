@@ -61,11 +61,20 @@ export interface SetStateAction {
   value?: unknown;
 }
 
+/** ADR-281 Decision 5 — send `body` to an API endpoint (the project's endpoint id, no prefix). */
+export interface CallEndpointAction {
+  kind: "callEndpoint";
+  endpointId: string;
+  /** A literal or `"!event.<arg>"` (the Form's `"!event.formData"`). */
+  body?: unknown;
+}
+
 export type InteractionAction =
   | NavigateAction
   | ToastAction
   | CapabilityAction
-  | SetStateAction;
+  | SetStateAction
+  | CallEndpointAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

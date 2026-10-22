@@ -80,6 +80,12 @@ export function catalogPreviewRuntime(
     writeState: session.writeState,
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
+    colorScheme: (mode) => session.setColorScheme(mode),
+    submitEndpoint: (endpointId, body) =>
+      session.dataServices.apiEndpointService?.submitApiEndpoint?.(
+        endpointId,
+        body,
+      ) ?? Promise.reject(new Error("endpoint 제출 서비스 없음")),
   });
 }
 

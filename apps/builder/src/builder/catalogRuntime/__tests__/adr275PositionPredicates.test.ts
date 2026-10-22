@@ -63,7 +63,7 @@ async function open() {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 46,
+    libraryContractVersion: 47,
     revision: 0,
     projectId,
     rootId: projectId,

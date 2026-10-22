@@ -36,6 +36,17 @@ export function catalogTableColumnKey(column: {
 export function catalogTableSortOf(
   value: unknown,
 ): CatalogTableSort | undefined {
+  // ADR-280 — a rule's `sort` value as text (the Interactions panel writes scalars):
+  // `<column key>:ascending` · `<column key>:descending`.
+  if (typeof value === "string") {
+    const match = /^(.+):(ascending|descending)$/.exec(value);
+    return match
+      ? {
+          column: match[1]!,
+          direction: match[2] as CatalogTableSort["direction"],
+        }
+      : undefined;
+  }
   if (!value || typeof value !== "object") return undefined;
   const { column, direction } = value as Record<string, unknown>;
   if (typeof column !== "string" && typeof column !== "number")

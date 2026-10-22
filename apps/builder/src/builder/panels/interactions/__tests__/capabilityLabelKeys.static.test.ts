@@ -11,7 +11,9 @@ import {
   APP_ACTIONS,
   CAPABILITY_REGISTRY,
   COMMON_CAPABILITIES,
+  NEVER_OFFERED_GROUPS,
 } from "@composition/shared";
+import { triggerGroupLabelKey, triggerLabelKey } from "../labels";
 
 import { localizedStrings } from "@/i18n/translations";
 import type { SupportedLocale } from "@/i18n";
@@ -74,5 +76,49 @@ describe("capability labelKey ↔ 카탈로그", () => {
         localizedStrings["ko-KR"][key] === localizedStrings["en-US"][key],
     );
     expect(identical.map((e) => e.key)).toEqual([]);
+  });
+});
+
+/**
+ * ADR-281 G1 — When 라벨은 손 목록이 아니라 등록표 그룹에서 유도한다
+ * (`interactions.trigger.<개념>.<callback>` · 그룹 머리글 `interactions.triggerGroup.<개념>`).
+ * 55 type 의 모든 그룹 · 보이는 이벤트 · 숨은 이벤트 (keyboard 제외 — Q3) 가 두 locale 에 있다.
+ */
+describe("ADR-281 — When 라벨 키 ↔ 카탈로그", () => {
+  const keys: Array<{ where: string; key: string }> = [];
+  for (const [type, entry] of Object.entries(CAPABILITY_REGISTRY))
+    for (const group of entry.groups ?? []) {
+      if (NEVER_OFFERED_GROUPS.includes(group.id)) continue;
+      keys.push({
+        where: `${type}.${group.id}`,
+        key: triggerGroupLabelKey(group.id),
+      });
+      for (const event of [...group.events, ...group.hiddenEvents])
+        keys.push({
+          where: `${type}.${group.id}.${event}`,
+          key: triggerLabelKey(group.id, event),
+        });
+    }
+
+  it("등록표 57 type (55 + page 루트 · frame — ADR-281 Phase 2) 이 그룹을 싣는다", () => {
+    expect(Object.keys(CAPABILITY_REGISTRY)).toHaveLength(57);
+    expect(keys.length).toBeGreaterThanOrEqual(55);
+  });
+
+  it.each(LOCALES)("%s 카탈로그가 모든 When 키를 해소한다", (locale) => {
+    const unresolved = keys.filter(({ key }) => {
+      const value = localizedStrings[locale][key];
+      return typeof value !== "string" || value.trim().length === 0;
+    });
+    expect(unresolved.map((e) => `${e.where} → ${e.key}`)).toEqual([]);
+  });
+
+  it("keyboard 는 어느 type 의 그룹에도 패널 키가 없다 (Q3)", () => {
+    for (const locale of LOCALES)
+      expect(
+        Object.keys(localizedStrings[locale]).filter((key) =>
+          key.startsWith("interactions.trigger.keyboard."),
+        ),
+      ).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { createCollectionEndpointExecutor } from "./executeCollectionEndpoint";
+import { createCollectionEndpointExecutor, createCollectionEndpointSubmitter } from "./executeCollectionEndpoint";
 import type {
   ApiEndpointDefinition,
   CollectionDataServices,
@@ -115,6 +115,7 @@ export function createCollectionSnapshotServices(
     apiEndpointService: {
       getApiEndpoints: () => endpoints,
       executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
+      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints),
     },
   };
 }

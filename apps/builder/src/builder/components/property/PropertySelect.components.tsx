@@ -4,6 +4,8 @@ import React, { memo, useCallback, useState } from "react";
 
 import { Button } from "react-aria-components/Button";
 
+import { Header } from "react-aria-components/Header";
+
 import {
   ListBox,
   ListBoxItem,
@@ -48,6 +50,7 @@ export const PropertySelectControl = memo(
     swatches,
     grid = false,
     gridSections,
+    sections,
     disabledKeys,
     icon: Icon,
     className,
@@ -159,6 +162,69 @@ export const PropertySelectControl = memo(
       );
     };
 
+    const listItem = (option: { value: string; label: string }) => (
+      <ListBoxItem
+        key={
+          optionValueMode === "literal"
+            ? literalKey(option.value)
+            : option.value
+        }
+        id={
+          optionValueMode === "literal"
+            ? literalKey(option.value)
+            : option.value
+        }
+        className="react-aria-ListBoxItem"
+        textValue={
+          i18n && translateOptions
+            ? translateKey(
+                i18n.t,
+                semanticLabelKeys[option.label] ?? option.label,
+                option.label,
+              )
+            : option.label
+        }
+      >
+        {swatches && swatches[option.value] != null && (
+          <span
+            aria-hidden="true"
+            className="property-swatch property-select__swatch"
+            // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
+            //   변하는 색만 인라인
+            style={{ background: swatches[option.value] }}
+          />
+        )}
+        {i18n && translateOptions
+          ? translateKey(
+              i18n.t,
+              semanticLabelKeys[option.label] ?? option.label,
+              option.label,
+            )
+          : option.label}
+      </ListBoxItem>);
+    // 머리글 구획 — sections 순서대로, 어디에도 없는 값은 머리글 없이 맨 뒤
+    const listGroups: ReadonlyArray<{
+      label?: string;
+      options: ReadonlyArray<(typeof options)[number]>;
+    }> = (() => {
+      if (!sections?.length) return [{ options }];
+      const byValue = new Map(options.map((o) => [o.value, o]));
+      const placed = new Set<string>();
+      const groups: { label?: string; options: (typeof options)[number][] }[] =
+        sections.map((section) => ({
+          label: section.label,
+          options: section.values.flatMap((v) => {
+            const option = byValue.get(v);
+            if (!option || placed.has(v)) return [];
+            placed.add(v);
+            return [option];
+          }),
+        }));
+      const rest = options.filter((o) => !placed.has(o.value));
+      if (rest.length > 0) groups.push({ options: rest });
+      return groups.filter((g) => g.options.length > 0);
+    })();
+
     return (
       <fieldset
         className={`properties-aria ${className || ""}`}
@@ -263,47 +329,21 @@ export const PropertySelectControl = memo(
                 </ListBox>
               ) : (
                 <ListBox className="react-aria-ListBox">
-                  {options.map((option) => (
-                    <ListBoxItem
-                      key={
-                        optionValueMode === "literal"
-                          ? literalKey(option.value)
-                          : option.value
-                      }
-                      id={
-                        optionValueMode === "literal"
-                          ? literalKey(option.value)
-                          : option.value
-                      }
-                      className="react-aria-ListBoxItem"
-                      textValue={
-                        i18n && translateOptions
-                          ? translateKey(
-                              i18n.t,
-                              semanticLabelKeys[option.label] ?? option.label,
-                              option.label,
-                            )
-                          : option.label
-                      }
-                    >
-                      {swatches && swatches[option.value] != null && (
-                        <span
-                          aria-hidden="true"
-                          className="property-swatch property-select__swatch"
-                          // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
-                          //   변하는 색만 인라인
-                          style={{ background: swatches[option.value] }}
-                        />
-                      )}
-                      {i18n && translateOptions
-                        ? translateKey(
-                            i18n.t,
-                            semanticLabelKeys[option.label] ?? option.label,
-                            option.label,
-                          )
-                        : option.label}
-                    </ListBoxItem>
-                  ))}
+                  {listGroups.map((group, index) =>
+                    group.label === undefined ? (
+                      group.options.map(listItem)
+                    ) : (
+                      <ListBoxSection
+                        key={`section-${index}`}
+                        className="react-aria-ListBoxSection"
+                      >
+                        <Header className="property-select__section-header">
+                          {group.label}
+                        </Header>
+                        {group.options.map(listItem)}
+                      </ListBoxSection>
+                    ),
+                  )}
                 </ListBox>
               )}
             </Popover>
@@ -327,6 +367,7 @@ export const PropertySelectControl = memo(
       prevProps.swatches === nextProps.swatches &&
       prevProps.grid === nextProps.grid &&
       prevProps.gridSections === nextProps.gridSections &&
+      prevProps.sections === nextProps.sections &&
       prevProps.afterControl === nextProps.afterControl &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );

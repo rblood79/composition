@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { SquareMousePointer } from "lucide-react";
-import { resolveTriggers } from "@composition/shared";
+import { exposedTriggerGroups, resolveTriggers } from "@composition/shared";
 import type {
   EditTarget,
   EntryId,
@@ -10,7 +10,11 @@ import type {
 import {
   catalogCapabilityTargets,
   catalogDefaultAction,
+  catalogExposureInput,
+  catalogInheritedInteractionsOf,
+  catalogInheritedRuleEnabledCommand,
   catalogInteractionOwner,
+  catalogReplaceInheritedRuleCommand,
   catalogInteractionsCommand,
   catalogInteractionsOf,
   catalogNewInteraction,
@@ -34,8 +38,9 @@ import { useI18n } from "@/i18n";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
-import { useProjectVariableDefs } from "../../../stores/data";
+import { useDataStore, useProjectVariableDefs } from "../../../stores/data";
 import { CatalogRuleRow } from "./CatalogRuleRow";
+import { CatalogInheritedRuleRow } from "./CatalogInheritedRuleRow";
 import "../InteractionsPanel.css";
 
 const AddIcon = ACTION_ICONS.add;
@@ -103,6 +108,8 @@ function CatalogRules({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // Project variables live in the data store (H1).
   const projectVariables = useProjectVariableDefs();
+  // ADR-281 Decision 5 — the endpoints a Form's submit can call (the data store's, H1).
+  const apiEndpoints = useDataStore((state) => state.apiEndpoints);
 
   const view = useMemo(() => {
     const componentType = catalogTargetTypeName(graph, target);
@@ -115,18 +122,30 @@ function CatalogRules({
         pageId,
         target.kind === "node" ? target.id : undefined,
       ),
+      endpoints: [...apiEndpoints.values()].map((endpoint) => ({
+        id: `data:endpoint:${endpoint.id}` as const,
+        name: endpoint.name,
+        method: endpoint.method,
+      })),
     };
+    const exposure = catalogExposureInput(graph, target);
     return {
       componentType,
+      exposure,
       triggers: resolveTriggers(componentType),
+      // ADR-281 Decision 1 — a new rule starts from a When RAC fires now.
+      firstTrigger: exposedTriggerGroups(componentType, exposure)[0]
+        ?.events[0],
       rules: catalogInteractionsOf(graph, owner),
+      // ADR-281 Decision 4 — what this instance position inherits from its component.
+      inherited: catalogInheritedInteractionsOf(graph, owner),
       context,
       choices: CHOICES.filter(
         (choice) => catalogDefaultAction(choice, context) !== undefined,
       ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
-  }, [graph, owner, pageId, projectVariables, revision, target]);
+  }, [apiEndpoints, graph, owner, pageId, projectVariables, revision, target]);
 
   const describeTarget = useCallback(
     (id: NodeId) => {
@@ -141,11 +160,17 @@ function CatalogRules({
     [graph],
   );
 
+  const targetExposure = useCallback(
+    (id: NodeId) => catalogExposureInput(graph, { kind: "node", id }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
+    [graph, revision],
+  );
+
   const write = (entries: readonly InteractionEntry[], label: string) =>
     run(catalogInteractionsCommand(owner, entries, label));
 
   const handleAdd = () => {
-    const trigger = view.triggers[0];
+    const trigger = view.firstTrigger ?? view.triggers[0];
     const action = catalogDefaultAction("navigate", view.context);
     if (!trigger || !action) return;
     const rule = catalogNewInteraction(owner, trigger, action, workspace.newId);
@@ -160,6 +185,37 @@ function CatalogRules({
         panelId="events"
       />
       <PanelContents>
+        {view.inherited.length > 0 && (
+          <Section
+            title={t("interactions.inheritedTitle")}
+            id="interactions-inherited"
+            badge={String(view.inherited.length)}
+          >
+            {view.inherited.map(({ rule, status }) => (
+              <CatalogInheritedRuleRow
+                key={rule.id}
+                rule={rule}
+                status={status}
+                componentType={catalogTargetTypeName(graph, {
+                  kind: "node",
+                  id: rule.ownerId,
+                })}
+                onEnabledChange={(enabled) =>
+                  run(catalogInheritedRuleEnabledCommand(owner, rule.id, enabled))
+                }
+                onReplace={() =>
+                  run(
+                    catalogReplaceInheritedRuleCommand(
+                      owner,
+                      rule,
+                      workspace.newId,
+                    ),
+                  )
+                }
+              />
+            ))}
+          </Section>
+        )}
         <Section
           title={t("interactions.rulesTitle")}
           id="interactions-rules"
@@ -188,6 +244,8 @@ function CatalogRules({
                   context={view.context}
                   choices={view.choices}
                   describeTarget={describeTarget}
+                  exposure={view.exposure}
+                  targetExposure={targetExposure}
                   expanded={expandedId === rule.id}
                   onToggle={() =>
                     setExpandedId((current) =>

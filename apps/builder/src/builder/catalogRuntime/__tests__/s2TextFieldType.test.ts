@@ -1,8 +1,14 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { textFieldBinding } from "../../../../../../packages/shared/src/catalog/bindings";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  CatalogGraph,
+  createCatalogGraph,
+} from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { migrateCatalogEntriesS2 } from "../../../../../../packages/shared/src/catalog/document/s2PropAlignment";
 import type {
@@ -88,5 +94,29 @@ describe("S2 TextField type", () => {
     owner.props.type = set("email");
     migrateCatalogEntriesS2(entries, library);
     expect(owner.props.type).toEqual(set("email"));
+  });
+
+  it("a document already in S2 form is not touched — a frozen export reopens (Publish)", async () => {
+    // (Publish opens the exported document — its entries are the graph's frozen records. The
+    //  migration deleted and rewrote an unchanged `type: "email"`, and the reopen threw.)
+    const { library, workspace } = await open("TextField");
+    const graph = workspace.root.runtime.graph;
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: OWNER }],
+        props: { type: set("email") },
+      }),
+    );
+    const exported = graph.exportDocument();
+    expect(Object.isFrozen(exported.entries[OWNER])).toBe(true);
+    const plain = JSON.parse(JSON.stringify(exported.entries)) as Record<
+      string,
+      CatalogEntry
+    >;
+    expect(migrateCatalogEntriesS2(plain, library)).toBe(false);
+    const reopened = createCatalogGraph(exported, library);
+    expect(
+      (reopened.getEntry(OWNER) as NodeEntry).props.type,
+    ).toEqual(set("email"));
   });
 });

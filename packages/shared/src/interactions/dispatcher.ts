@@ -15,8 +15,8 @@
  *
  * `capability` 가 generic 한 이유는 `CapabilityDef` 가 "어떤 prop 을 무엇으로
  * 바꾸는가" 를 이미 데이터로 들고 있기 때문이다 (`prop` / `value`). dispatcher 는
- * 컴포넌트 종류를 알 필요가 없고, (a) controlled 와 (b) remount 를 구분할 필요도
- * 없다 — 둘 다 "prop 을 patch" 로 동일하다 (breakdown §6 Phase 3 선행 확인).
+ * 컴포넌트 종류를 알 필요가 없다. ADR-280 — 값은 현재 유효 상태에서 계산하고
+ * (`op` 집합 연산), RAC 제약 (`guards`) 이 막는 쓰기는 하지 않는다 (`constraints.ts`).
  *
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §4
  */
@@ -25,6 +25,11 @@ import {
   CAPABILITY_REGISTRY,
   type CapabilityDef,
 } from "./capabilityRegistry";
+import {
+  applyCapabilityOp,
+  checkCapabilityConstraints,
+  toKeySet,
+} from "./constraints";
 import type { InteractionRule } from "./interactionRule.types";
 
 /** dispatcher 가 바깥 세계에 닿는 유일한 통로. */
@@ -50,16 +55,62 @@ export interface DispatchDeps {
     value?: unknown;
     instanceKeyFor?: (ownerElementId: string) => string;
   }) => { ok: boolean; reason?: string };
+  /**
+   * ADR-280 Decision 8 — the target's current RAC state for a prop: the runtime override, else
+   * what it starts with (a collection's Selected items …) — the Preview render reads the same
+   * (`catalogRuntimeStateOf`). Absent = the prop as `getElement` gives it.
+   */
+  getRuntimeState?: (id: string, prop: string) => unknown;
+  /**
+   * Restrictions an enclosing RAC group passes the target (CheckboxGroup · RadioGroup ·
+   * ToggleButtonGroup · DisclosureGroup `isDisabled` · `isReadOnly`), and a collection's item keys
+   * (all · disabled ones).
+   */
+  getConstraintContext?: (id: string) => {
+    inherited?: { isDisabled?: boolean; isReadOnly?: boolean };
+    itemKeys?: readonly string[];
+    disabledKeys?: readonly string[];
+  };
+  /**
+   * ADR-280 Decision 3 — the record that receives a state write: an overlay body's open state is
+   * its trigger's (`string`), `null` when RAC lets no one control it, `undefined` = the target.
+   */
+  stateOwnerOf?: (id: string, prop: string) => string | null | undefined;
+  /**
+   * ADR-280 Decision 9 — a DOM-ref capability (Form `submit` · `reset`). Absent = it fails
+   * (never a silent no-op).
+   */
+  invokeImperative?: (
+    id: string,
+    capability: string,
+  ) => { ok: boolean; reason?: string };
+  /**
+   * ADR-281 Decision 5 — send a body to an API endpoint. Returns whether the request started; the
+   * response's failure is the caller's to report (report + toast — it settles later). Absent = the
+   * rule fails (never a silent no-op).
+   */
+  callEndpoint?: (
+    endpointId: string,
+    body: unknown,
+  ) => { ok: boolean; reason?: string };
 }
 
 /** 트리거 요소의 렌더 문맥 — `createElementHandlers` 가 규칙 실행에 실어 보낸다 */
 export interface DispatchContext {
   instanceKeyFor?: (ownerElementId: string) => string;
+  /**
+   * ADR-280 Decision 6 — the RAC callback's arguments of the event that ran the rule, by name
+   * (`!event.<name>` in a capability's value).
+   */
+  event?: Readonly<Record<string, unknown>>;
 }
 
 /** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
 export type DispatchOutcome =
-  | { ok: true; kind: "navigate" | "toast" | "capability" | "setState" }
+  | {
+      ok: true;
+      kind: "navigate" | "toast" | "capability" | "setState" | "callEndpoint";
+    }
   | { ok: false; reason: string };
 
 /**
@@ -86,6 +137,7 @@ function resolveValue(
   def: CapabilityDef,
   currentValue: unknown,
   paramValue: unknown,
+  event?: Readonly<Record<string, unknown>>,
 ): { ok: true; value: unknown } | { ok: false; reason: string } {
   if (def.value === "!param") {
     if (paramValue === undefined) {
@@ -93,6 +145,14 @@ function resolveValue(
         ok: false,
         reason: "capability 가 값을 요구하나 params 가 없다",
       };
+    }
+    if (typeof paramValue === "string" && paramValue.startsWith("!event.")) {
+      const name = paramValue.slice("!event.".length);
+      if (!event || !(name in event))
+        return { ok: false, reason: `이벤트 인자 없음: ${paramValue}` };
+      // (A RAC Selection — `"all"` or a Set — goes on as an array, ADR-214's normalization.)
+      const raw = event[name];
+      return { ok: true, value: raw instanceof Set ? toKeySet(raw) : raw };
     }
     return { ok: true, value: paramValue };
   }
@@ -158,7 +218,10 @@ export function executeInteractionRule(
     if (!action.variableId)
       return { ok: false, reason: "setState 에 variableId 가 없다" };
     if (!deps.writeState)
-      return { ok: false, reason: "setState 실행 경로 없음 (writeState 미주입)" };
+      return {
+        ok: false,
+        reason: "setState 실행 경로 없음 (writeState 미주입)",
+      };
     const result = deps.writeState({
       variableId: action.variableId,
       op: action.op,
@@ -168,6 +231,27 @@ export function executeInteractionRule(
     return result.ok
       ? { ok: true, kind: "setState" }
       : { ok: false, reason: result.reason ?? "setState 실패" };
+  }
+
+  if (action.kind === "callEndpoint") {
+    if (!deps.callEndpoint)
+      return {
+        ok: false,
+        reason: "callEndpoint 실행 경로 없음 (callEndpoint 미주입)",
+      };
+    // ADR-280 Decision 8 ① — the value resolves as a capability's does (`!event.<arg>` · literal).
+    let body = action.body;
+    if (typeof body === "string" && body.startsWith("!event.")) {
+      const name = body.slice("!event.".length);
+      const event = context?.event;
+      if (!event || !(name in event))
+        return { ok: false, reason: `이벤트 인자 없음: ${body}` };
+      body = event[name];
+    }
+    const result = deps.callEndpoint(action.endpointId, body);
+    return result.ok
+      ? { ok: true, kind: "callEndpoint" }
+      : { ok: false, reason: result.reason ?? "callEndpoint 실패" };
   }
 
   if (action.kind === "navigate") {
@@ -197,25 +281,69 @@ export function executeInteractionRule(
     };
   }
   if (def.imperative) {
-    // registry 에 `imperative: true` 로 표시된 특례는 prop patch 로 환원 불가라
-    // dispatcher 가 다루지 않는다. 등재 자체가 보류(c) 이므로 정상 경로에서는
-    // 도달하지 않지만, 조용히 no-op 하면 "눌렀는데 아무 일도 없다" 가 된다.
-    return {
-      ok: false,
-      reason: `imperative capability 미지원: ${target.type}.${action.capability}`,
-    };
+    // ADR-280 Decision 9 — prop patch 로 환원되지 않는 DOM ref 특례 (Form submit · reset).
+    // 실행 경로가 없으면 실패를 돌려준다 — 조용한 no-op 은 "눌렀는데 아무 일도 없다" 가 된다.
+    if (!deps.invokeImperative)
+      return {
+        ok: false,
+        reason: `imperative capability 미지원: ${target.type}.${action.capability}`,
+      };
+    const result = deps.invokeImperative(action.targetId, action.capability);
+    return result.ok
+      ? { ok: true, kind: "capability" }
+      : {
+          ok: false,
+          reason:
+            result.reason ??
+            `imperative capability 실패: ${target.type}.${action.capability}`,
+        };
   }
 
+  // ADR-280 Decision 3 — 상태의 수신자 (overlay 본체의 open 은 trigger 의 것).
+  const owner = deps.stateOwnerOf?.(action.targetId, def.prop);
+  if (owner === null)
+    return {
+      ok: false,
+      reason: `RAC 가 ${target.type} 의 ${def.prop} 를 밖에서 제어하게 하지 않는다 (${action.capability})`,
+    };
+  const receiverId = owner ?? action.targetId;
+  const receiver =
+    receiverId === action.targetId ? target : deps.getElement(receiverId);
+  if (!receiver) return { ok: false, reason: `대상 요소 없음: ${receiverId}` };
+
+  // ADR-280 Decision 8 — 값 해소 → 현재 유효 상태 → 결과 계산 → RAC 제약 검사 → 결과 전체 쓰기.
+  const current =
+    def.prop && !def.prop.startsWith("style.") && deps.getRuntimeState
+      ? deps.getRuntimeState(receiverId, def.prop)
+      : readCurrent(def.prop, receiver.props);
   const resolved = resolveValue(
     def,
-    readCurrent(def.prop, target.props),
+    current,
     action.params?.value,
+    context?.event,
   );
   if (!resolved.ok) return resolved;
+  const constraintContext = {
+    props: receiver.props,
+    current,
+    ...deps.getConstraintContext?.(receiverId),
+  };
+  const next = applyCapabilityOp(def, resolved.value, constraintContext);
+  const refused = checkCapabilityConstraints(
+    def,
+    resolved.value,
+    next,
+    constraintContext,
+  );
+  if (refused)
+    return {
+      ok: false,
+      reason: `RAC 제약 (${refused}) — ${target.type}.${action.capability} 을 쓰지 않는다`,
+    };
 
   deps.updateElementProps(
-    action.targetId,
-    buildPatch(def.prop, resolved.value, target.props),
+    receiverId,
+    buildPatch(def.prop, next, receiver.props),
   );
   return { ok: true, kind: "capability" };
 }

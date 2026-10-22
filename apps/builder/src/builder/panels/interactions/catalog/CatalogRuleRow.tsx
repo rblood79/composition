@@ -2,7 +2,13 @@ import { memo, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   APP_ACTIONS,
+  capabilityRefusal,
+  eventArgsOf,
+  exposedCapabilities,
+  groupRefusal,
   resolveCapabilities,
+  triggerGroupOf,
+  type ExposureInput,
   type SetStateOp,
 } from "@composition/shared";
 import type {
@@ -23,6 +29,7 @@ import { useI18n } from "@/i18n";
 import { ActionPicker } from "../ActionPicker";
 import { CapabilityPicker } from "../CapabilityPicker";
 import { ParamField } from "../ParamField";
+import { ValueSourceField } from "../ValueSourceField";
 import { StateActionFieldsView } from "../StateActionFields";
 import { TriggerPicker } from "../TriggerPicker";
 import { triggerLabel } from "../labels";
@@ -59,6 +66,10 @@ interface CatalogRuleRowProps {
   choices: readonly ActionChoice[];
   /** A target the page list does not hold (another page's node): its type and label. */
   describeTarget: (id: NodeId) => CatalogTargetOption | undefined;
+  /** ADR-281 Decision 1 — the owner's restricting props (what its When offers). */
+  exposure: ExposureInput;
+  /** ADR-281 Decision 1 — a target's restricting props (what its Do offers). */
+  targetExposure: (id: NodeId) => ExposureInput;
   expanded: boolean;
   onToggle: () => void;
   onChange: (rule: InteractionEntry) => void;
@@ -76,6 +87,8 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
   context,
   choices,
   describeTarget,
+  exposure,
+  targetExposure,
   expanded,
   onToggle,
   onChange,
@@ -94,7 +107,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
   const targetType = target?.type ?? "";
 
   const summary = useMemo(() => {
-    const when = triggerLabel(rule.trigger, t);
+    const when = triggerLabel(componentType, rule.trigger, t);
     if (action.opcode === "navigate") {
       const page = context.pages.find((option) => option.id === action.pageId);
       return page
@@ -118,13 +131,37 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         name: variable?.name ?? action.variableId,
       });
     }
+    if (action.opcode === "callEndpoint") {
+      const endpoint = context.endpoints?.find(
+        (option) => option.id === action.endpointId,
+      );
+      return t("interactions.summaryCallEndpoint", {
+        when,
+        name: endpoint?.name ?? action.endpointId,
+      });
+    }
     if (action.opcode === "capability") {
       const capability = resolveCapabilities(targetType)[action.capabilityId];
       const label = capability ? t(capability.labelKey) : action.capabilityId;
       return `${when} → ${label} @ ${target ? targetLabel(target) : t("interactions.targetUnset")}`;
     }
     return when;
-  }, [action, context, rule.trigger, t, target, targetType]);
+  }, [action, componentType, context, rule.trigger, t, target, targetType]);
+
+  // ADR-281 Decision 1 — a rule the declared props now stop is kept, marked with the reason the
+  // dispatcher reports (never deleted).
+  const refusal = useMemo(() => {
+    const group = triggerGroupOf(componentType, rule.trigger);
+    const when = group ? groupRefusal(group, exposure) : undefined;
+    if (when) return when;
+    return action.opcode === "capability"
+      ? capabilityRefusal(
+          targetType,
+          action.capabilityId,
+          targetExposure(action.targetId),
+        )
+      : undefined;
+  }, [action, componentType, exposure, rule.trigger, targetExposure, targetType]);
 
   const capabilityDef =
     action.opcode === "capability"
@@ -163,6 +200,11 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
           <DeleteIcon size={14} />
         </button>
       </div>
+      {refusal && (
+        <p className="interaction-rule-refusal">
+          {t("interactions.racRefuses", { reason: refusal })}
+        </p>
+      )}
 
       {expanded && (
         <div className="interaction-rule-editor">
@@ -170,6 +212,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
             <TriggerPicker
               componentType={componentType}
               value={rule.trigger}
+              exposure={exposure}
               onChange={(trigger) => onChange({ ...rule, trigger })}
             />
             <ActionPicker
@@ -239,6 +282,42 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
             />
           )}
 
+          {action.opcode === "callEndpoint" && (
+            <>
+              <PropertySelect
+                label={t("interactions.endpoint")}
+                value={action.endpointId}
+                onChange={(endpointId) => {
+                  const next = context.endpoints?.find(
+                    (option) => option.id === endpointId,
+                  );
+                  if (next)
+                    setAction({
+                      ...action,
+                      endpointId: next.id,
+                    });
+                }}
+                options={(context.endpoints ?? []).map((option) => ({
+                  value: option.id,
+                  label: `${option.name} (${option.method})`,
+                }))}
+                translateOptions={false}
+              />
+              <ValueSourceField
+                param={{ kind: "text", labelKey: "interactions.endpointBody" }}
+                value={action.body}
+                eventArgs={eventArgsOf(componentType, rule.trigger)}
+                onChange={(value) =>
+                  setAction(
+                    value === "" || value === undefined
+                      ? { opcode: "callEndpoint", endpointId: action.endpointId }
+                      : { ...action, body: value as Scalar },
+                  )
+                }
+              />
+            </>
+          )}
+
           {action.opcode === "capability" && (
             <>
               <PropertySelect
@@ -249,7 +328,10 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                     (option) => option.id === targetId,
                   );
                   if (!next) return;
-                  const capabilities = resolveCapabilities(next.type);
+                  const capabilities = exposedCapabilities(
+                    next.type,
+                    targetExposure(next.id),
+                  );
                   setAction({
                     opcode: "capability",
                     targetId: next.id,
@@ -272,6 +354,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
               <CapabilityPicker
                 targetType={targetType}
                 value={action.capabilityId}
+                exposure={targetExposure(action.targetId)}
                 onChange={(capabilityId) =>
                   setAction({
                     opcode: "capability",
@@ -281,9 +364,10 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 }
               />
               {capabilityDef?.param && (
-                <ParamField
+                <ValueSourceField
                   param={capabilityDef.param}
                   value={action.value}
+                  eventArgs={eventArgsOf(componentType, rule.trigger)}
                   onChange={(value) =>
                     setAction({ ...action, value: value as Scalar })
                   }

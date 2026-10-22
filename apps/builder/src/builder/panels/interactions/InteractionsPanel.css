@@ -98,3 +98,18 @@
 .interaction-rule-row.fieldset-row {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+/* ADR-281 Decision 1 — 선언값이 막는 규칙의 표식 (삭제하지 않는다) */
+.interaction-rule-refusal {
+  margin: 0;
+  padding: 0 var(--spacing-sm) var(--spacing-xs);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+/* ADR-281 Decision 4 — 원본에서 상속한 규칙 행: 요약은 접기 버튼 없는 같은 28 행 */
+.interaction-rule-inherited-summary {
+  padding: 0 var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--fg);
+}

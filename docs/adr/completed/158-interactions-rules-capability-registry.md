@@ -4,6 +4,8 @@
 
 Implemented — 2026-08-16 (Phase 0~4 전부 완료)
 
+> **Superseded-in-part by [ADR-280](../280-interactions-rac-surface-registry-controlled-runtime.md) (2026-10-22)** — Phase 1 의 손 등록표 (`CAPABILITY_REGISTRY` 를 손으로 쓰고 `racRef` 문자열로 근거를 적던 방식) 는 RAC 개념 파일 + 컴포넌트 spec 에서 유도하는 등록표로, Phase 3 의 실행 조건 (uncontrolled `default*` + `key` remount, `deferred` 보류) 은 Preview/Publish 의 첫 render 부터 controlled 배관으로 바뀌었다. 스키마 (`InteractionEntry` · 한 줄 규칙 · 앱 액션 2) · 패널 모듈 · G1 (근거 없는 등재 금지 — 지금은 d.ts `satisfies` 와 render reach 행렬) 은 그대로다. 패널 (When · Do 선택지 · 라벨 · 값 칸) 은 [ADR-281](../281-interactions-panel-vocabulary-inheritance-form-destination.md) (2026-10-22) 이 재구성했다 — 개념 그룹 · RAC 가 지금 받는 것만 (`exposure.ts`) · 「리터럴 / 이벤트 인자」 · 라벨 손 목록 (`TRIGGER_LABEL_KEYS`) 삭제 · `callEndpoint` 실행.
+
 Accepted — 2026-07-20 (리뷰 승인 round 1: 이슈 3건(MED 1/LOW 2) 전건 fixed, HIGH/CRITICAL 0, 전제 확정 종결 계약 성립 — [reviews/158.md](../reviews/158.md))
 
 **Phase 4 삭제는 사용자 명시 승인(2026-08-16) 후 실행** — 96파일 / 19,513 LOC 은퇴 (`panels/events` 92 + `utils/events` 3 + ADR-149 legacy adapter 1 + 테스트). `EVENT_REGISTRY` 는 RAC 실존 11종으로 축소해 존치한다 — `ItemsManager` 의 `event-id` 드롭다운이 live consumer 이며, breakdown 의 파손 지점 6곳에 없던 항목이다.

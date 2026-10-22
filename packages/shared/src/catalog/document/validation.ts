@@ -890,6 +890,7 @@ const DESCENDANT_PATCH_FIELDS = [
   "responsive",
   "visibility",
   "displayState",
+  "interactions",
 ] as const;
 /** A `patch`'s (or a `fillSlot`'s own) field writes; true when it holds one. */
 function descendantPatchFields(
@@ -911,6 +912,15 @@ function descendantPatchFields(
     !DISPLAY_STATE_NAMES.includes(item.displayState as DisplayStateName)
   )
     invalid("DISPLAY_STATE_UNKNOWN", `${at}.displayState`);
+  if (item.interactions !== undefined) {
+    // ADR-281 Decision 4 — origin rule → "off" | this instance's rule (both interaction ids).
+    const map = object(item.interactions, `${at}.interactions`);
+    for (const [key, value] of Object.entries(map)) {
+      id(key, "project:interaction:", `${at}.interactions`);
+      if (value !== "off")
+        id(value, "project:interaction:", `${at}.interactions.${key}`);
+    }
+  }
   if (item.props !== undefined) writes(item.props, `${at}.props`);
   if (item.visual !== undefined)
     writes(item.visual, `${at}.visual`, visualFields);
@@ -1435,8 +1445,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         exact(action, ["opcode", "pageId"], "entry.action");
         id(action.pageId, "project:page:", "entry.action.pageId");
       } else if (action.opcode === "callEndpoint") {
-        exact(action, ["opcode", "endpointId"], "entry.action");
+        exact(action, ["opcode", "endpointId", "body"], "entry.action");
         id(action.endpointId, "data:endpoint:", "entry.action.endpointId");
+        // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
+        if (action.body !== undefined) scalar(action.body, "entry.action.body");
       } else if (action.opcode === "toast") {
         exact(action, ["opcode", "message"], "entry.action");
         string(action.message, "entry.action.message");

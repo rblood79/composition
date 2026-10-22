@@ -96,3 +96,10 @@
 .property-select__swatch {
   margin-inline-end: var(--spacing-xs);
 }
+
+/* 목록 모드 머리글 구획 (ADR-281 — Interactions When 의 개념 그룹). 팝오버 portal 에도 닿도록 unlayered. */
+.property-select-popover .property-select__section-header {
+  padding: var(--spacing-xs) var(--spacing-md) 0;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}

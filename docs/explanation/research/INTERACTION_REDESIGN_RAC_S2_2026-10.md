@@ -1,6 +1,6 @@
 # 인터렉션 재설계 연구 — RAC · S2 근본 개념 기준 (2026-10-22)
 
-> 목적: composition Interactions (ADR-158 「When → Do」 규칙 모델) 을 컴포넌트별 손 등재에서 **RAC · S2 의 재사용 가능한 상호작용 개념 (concept) 합성**으로 다시 세우기 위한 연구 기록. 정본 우선순위는 설치본 (`react-aria-components` 1.22.1 → `react-aria` 3.53.1 · `react-stately` 3.51.0 · `@react-types/shared` 3.37.0, `@react-spectrum/s2` 1.8.1) 의 `d.ts` · `dist/private/*.mjs` 이고, 로컬 md 스냅샷 (`.claude/skills/react-aria/references/` · `.claude/skills/react-spectrum/references/`) 은 읽기용이다 (ssot-hierarchy.md §1 D1 · D2). 이 문서는 ADR 이 아니다 — 결정 지점만 나열한다. 후속 ADR: [ADR-280](../../adr/280-interactions-rac-surface-registry-controlled-runtime.md) (base — 등록표 유도 · controlled 배관, 2026-10-22 Proposed) → ADR B (응용 — 패널 어휘 · 상속 · Form 제출 목적지, 미작성).
+> 목적: composition Interactions (ADR-158 「When → Do」 규칙 모델) 을 컴포넌트별 손 등재에서 **RAC · S2 의 재사용 가능한 상호작용 개념 (concept) 합성**으로 다시 세우기 위한 연구 기록. 정본 우선순위는 설치본 (`react-aria-components` 1.22.1 → `react-aria` 3.53.1 · `react-stately` 3.51.0 · `@react-types/shared` 3.37.0, `@react-spectrum/s2` 1.8.1) 의 `d.ts` · `dist/private/*.mjs` 이고, 로컬 md 스냅샷 (`.claude/skills/react-aria/references/` · `.claude/skills/react-spectrum/references/`) 은 읽기용이다 (ssot-hierarchy.md §1 D1 · D2). 이 문서는 ADR 이 아니다 — 결정 지점만 나열한다. 후속 ADR: [ADR-280](../../adr/280-interactions-rac-surface-registry-controlled-runtime.md) (base — 등록표 유도 · controlled 배관, 2026-10-22 Proposed) → [ADR-281](../../adr/281-interactions-panel-vocabulary-inheritance-form-destination.md) (응용 — 패널 어휘 · 상속 · instance 규칙 상속 · Form 제출 목적지, 2026-10-22 Proposed).
 
 ## 0. 요약
 
@@ -367,6 +367,8 @@ registry 의 events 는 `onPress` · `onChange` · `onSelectionChange` · `onExp
 ## 5. 재설계안 — 「컴포넌트별 손 등재」 를 「개념별 재사용 계약」 으로
 
 ### 5.1 개념 계약 (InteractionConcept)
+
+> **2026-10-22 ADR-280 구현 뒤 표현 조정** — 「개념 계약」 은 새 추상화가 아니라 **RAC 문서의 절 구조를 코드로 옮긴 묶음** 이고, 목적은 손 등록을 없애는 것이다 (사용자 원칙 「이미 제공하는 기능을 UI/UX 형태로 쉽게 전달」). 실제 모양은 아래 초안과 다르다 — 개념은 `{id, racDoc, racType, events, hiddenEvents?, state?, conditions, capabilities?}` 이고 표면이 다른 같은 개념은 객체를 나눴다 (`singleSelectionValue` · `singleSelectionTabs` · `singleSelectionPicker`). 정본은 `packages/shared/src/interactions/concepts/types.ts` · `componentInteractionSpecs.ts`.
 
 개념을 한 번 선언한다 (shared 층, `packages/shared/src/interactions/concepts/`):
 

@@ -58,6 +58,8 @@ export const CATALOG_D2_COMPOSITION_TYPES: ReadonlySet<string> = new Set([
 export const CATALOG_D2_PROVENANCE: Readonly<
   Record<string, Readonly<Record<string, CatalogD2Source>>>
 > = {
+  // ADR-281 Decision 3 — v3 Provider's cascade (S2's Provider dropped it; RAC Provider carries it).
+  body: { isDisabled: "v3", isReadOnly: "v3", isRequired: "v3" },
   Avatar: { initials: "composition", isDisabled: "v3" },
   AvatarGroup: { isDisabled: "composition" },
   // (S2 has a separate NotificationBadge for the dot — composition keeps it an axis of Badge.)

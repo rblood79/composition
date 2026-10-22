@@ -1,4 +1,5 @@
 import { linkBinding } from "../bindings/Link.binding";
+import { CATALOG_INHERITED_PROP_CONTRACTS } from "../bindings/inheritedProps";
 import type { PropContract } from "../types";
 
 /**
@@ -79,6 +80,8 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
     isSelected: ITEM_SELECTED_PROP_CONTRACT,
   },
+  // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root.
+  frame: CATALOG_INHERITED_PROP_CONTRACTS,
 };
 
 /**

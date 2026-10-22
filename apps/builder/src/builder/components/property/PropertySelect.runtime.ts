@@ -43,6 +43,11 @@ export interface PropertySelectProps {
   grid?: boolean;
   gridSections?: readonly (readonly string[])[];
   /**
+   * 목록 모드의 머리글 구획 (ADR-281 — Interactions When 의 개념 그룹). 옵션 값 묶음과 머리글,
+   * 순서대로 RAC `ListBoxSection` + `Header`. 어느 구획에도 없는 값은 머리글 없이 맨 뒤.
+   */
+  sections?: readonly { label: string; values: readonly string[] }[];
+  /**
    * 선택 불가 항목의 **옵션 값** (ADR-210 — columns 모드의 Pie/Radial). RAC `Select`
    * 의 `disabledKeys` 로 그대로 전달하며 (literal 모드는 UI key 로 변환) reset/literal/
    * 키보드 계약은 바꾸지 않는다. 사유 문구는 호출부가 별도 hint 로 둔다.

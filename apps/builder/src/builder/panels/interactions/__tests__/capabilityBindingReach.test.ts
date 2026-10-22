@@ -1,92 +1,76 @@
 // @vitest-environment node
 /**
- * ADR-158 — 등재 capability 의 prop 이 **실제로 컴포넌트에 닿는가**.
+ * ADR-158 · ADR-280 G2 — 등재 capability 의 prop 이 **실제로 컴포넌트에 닿는가**.
  *
- * **Why (2026-08-16 라이브 실측)**: `CAPABILITY_REGISTRY.Modal.open` 은
- * `racRef: "Modal.md — ModalOverlayProps.isOpen (controlled)"` 로 등재돼 있었지만,
- * catalog cutover 경로의 `Modal.binding.accepts` 에 `isOpen` 이 없었다. `toRacProps`
- * 는 `accepts` 에 선언된 키만 emit 하므로 **그 prop 은 RAC 에 영원히 도달하지
- * 않는다**. dispatcher 는 성공을 돌려주고 화면은 그대로 — G2 modal open 이 여기서
- * 막혔다.
+ * **Why (2026-08-16 라이브 실측)**: `CAPABILITY_REGISTRY.Modal.open` 은 등재돼 있었지만
+ * `Modal.binding.accepts` 에 `isOpen` 이 없어 RAC 에 닿지 않았다. dispatcher 는 성공을 돌려주고
+ * 화면은 그대로였다.
  *
- * racRef 는 "RAC 에 그런 controlled prop 이 있다" 는 증빙이지 "우리 렌더 경로가
- * 그걸 전달한다" 는 증빙이 아니다. G1 이 검증한 것과 실제 배선 사이의 이 틈을
- * 여기서 기계로 닫는다.
- *
- * 판정 범위 — **catalog cutover 타입의 non-style prop 만**:
- * - `style.*` capability(공통 show/hide/toggle)는 `props.style` 이 전 렌더러에
- *   전달되므로(ADR-907 Layer C) binding accepts 와 무관하다.
- * - cutover 되지 않은 타입은 per-component `rendererMap` 이 렌더하며 각 renderer 가
- *   `element.props` 를 직접 읽는다 — accepts 게이트를 거치지 않는다.
- * - `imperative: true` 는 prop 이 아니라 DOM ref 경유라 대상이 아니다.
+ * ADR-280 (2026-10-22): 옛 게이트는 binding `accepts` 를 봤고 delegating renderer 를 제외해
+ * ListBox · GridList 의 미도달을 잡지 못했다 (Phase 0 RED 1). 상태 capability 는 이제 Preview
+ * runtime 의 controlled helper (`catalog/runtime/runtimeStateProps.ts`) 가 record 의 runtime
+ * 값으로 RAC 에 넘기므로 `accepts` 가 아니라 **render 결과** 가 판정이다 — 그 행렬이
+ * `preview/catalog/__tests__/adr280Reach.test.tsx` 다. 여기서는 등록표의 모든 type 이 그 행렬
+ * (또는 같은 경로를 도는 Phase 0 · Form 테스트) 에 들어 있는지를 정적으로 집행한다.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  CAPABILITY_REGISTRY,
-  isCatalogCutover,
-  getPrimitiveBinding,
-} from "@composition/shared";
-import {
-  DELEGATING_INTERNAL_RENDERERS,
-  DELEGATING_RAC_RENDERERS,
-} from "../../../../../../../packages/shared/src/catalog/runtime/domRegistry";
+import { CAPABILITY_REGISTRY } from "@composition/shared";
 
-interface Unreachable {
-  type: string;
-  capability: string;
-  prop: string;
-  racRef: string;
-}
+const TESTS = [
+  "../../../../preview/catalog/__tests__/adr280Reach.test.tsx",
+  "../../../../preview/catalog/__tests__/adr280Phase0.test.tsx",
+  "../../../../preview/catalog/__tests__/adr280Form.test.tsx",
+  // ADR-281 — a page root's · frame's inherited props (the Provider render + guard rows).
+  "../../../../preview/catalog/__tests__/adr281Inheritance.test.tsx",
+].map((path) => readFileSync(resolve(import.meta.dirname, path), "utf8"));
 
-function collectUnreachable(): Unreachable[] {
-  const out: Unreachable[] = [];
+/**
+ * Types the render matrix reaches through another palette entry (the palette names the trigger
+ * tree after its body), or by the dispatcher's routing (a body's open is its trigger's).
+ */
+const REACHED_AS: Readonly<Record<string, string>> = {
+  MenuTrigger: '"Menu"',
+  DialogTrigger: '"Dialog"',
+  TooltipTrigger: '"Tooltip"',
+  // (An overlay body in a trigger: `stateOwnerOf` routes its open to the trigger — the trigger
+  // rows above; a body alone takes its own `isOpen`.)
+  Modal: '"Dialog"',
+  Popover: '"Popover"',
+  Tooltip: '"Tooltip"',
+  // (A Menu's selection is the list inside the MenuTrigger's Popover — the collections row of
+  // the same controlled helper; RangeCalendar · DateRangePicker values are `!event` objects.)
+  Menu: '"ListBox"',
+  RangeCalendar: '"Calendar"',
+  DateRangePicker: '"DatePicker"',
+  // (ADR-281 — the page root is the harness's body: its rows target it by capability.)
+  body: '"disableAll"',
+};
 
-  for (const [type, entry] of Object.entries(CAPABILITY_REGISTRY)) {
-    if (!isCatalogCutover(type)) continue;
-
-    const binding = getPrimitiveBinding(type);
-    if (!binding) continue;
-
-    // rendererMap 위임 경로는 `accepts` 게이트를 안 거친다 — render{Type} 이
-    // `element.props` 를 직접 읽으므로 선언되지 않은 prop 도 도달한다.
-    const isDelegating =
-      (binding.source.kind === "internal" &&
-        DELEGATING_INTERNAL_RENDERERS.has(binding.source.renderer)) ||
-      (binding.source.kind === "rac" && DELEGATING_RAC_RENDERERS.has(type));
-    if (isDelegating) continue;
-
-    const accepts = binding.props?.accepts ?? {};
-
-    for (const [capability, def] of Object.entries(entry.capabilities)) {
-      if (def.imperative) continue;
-      if (!def.prop || def.prop.startsWith("style.")) continue;
-      if (Object.prototype.hasOwnProperty.call(accepts, def.prop)) continue;
-      out.push({ type, capability, prop: def.prop, racRef: def.racRef });
-    }
-  }
-  return out;
-}
-
-describe("capability prop 이 렌더 경로까지 닿는다", () => {
-  it("catalog cutover 타입의 등재 capability prop 은 binding 이 받는다", () => {
+describe("capability prop 이 렌더 경로까지 닿는다 (ADR-280 G2)", () => {
+  it("등록표의 capability 를 가진 모든 type 이 render 도달 행렬에 있다", () => {
+    const missing = Object.entries(CAPABILITY_REGISTRY)
+      .filter(([, entry]) => Object.keys(entry.capabilities).length > 0)
+      .map(([type]) => type)
+      .filter(
+        (type) =>
+          !TESTS.some((source) =>
+            source.includes(REACHED_AS[type] ?? `"${type}"`),
+          ),
+      );
     expect(
-      collectUnreachable(),
-      "capability 는 등재됐는데 `toRacProps` 가 emit 하지 않는 prop 이다 — " +
-        "dispatcher 가 patch 해도 컴포넌트에 도달하지 않아 '눌렀는데 아무 일도 " +
-        "없다' 가 된다. 해당 `{type}.binding.ts` 의 `accepts` 에 prop 을 추가하거나, " +
-        "전달 경로가 없다면 capability 를 `deferred` 로 내린다.",
+      missing,
+      "등재된 capability 가 render 결과로 검증되지 않았다 — adr280Reach.test.tsx 에 행을 더한다 " +
+        "(binding 이 그 prop 을 RAC 에 넘기지 않으면 '눌렀는데 아무 일도 없다' 가 된다).",
     ).toEqual([]);
   });
 
-  it("판정 대상이 비어 있지 않다 (게이트 무력화 감지)", () => {
-    // cutover 판정이나 registry 파싱이 깨지면 위 단언이 조용히 통과한다.
-    const covered = Object.entries(CAPABILITY_REGISTRY).filter(
-      ([type, entry]) =>
-        isCatalogCutover(type) &&
-        Object.values(entry.capabilities).some(
-          (d) => d.prop && !d.prop.startsWith("style.") && !d.imperative,
-        ),
-    );
-    expect(covered.length).toBeGreaterThanOrEqual(3);
+  it("deferred 가 없다 — 보류 대신 전달 (ADR-280 G2)", () => {
+    expect(
+      Object.entries(CAPABILITY_REGISTRY).filter(
+        ([, entry]) => entry.deferred?.length,
+      ),
+    ).toEqual([]);
   });
 });

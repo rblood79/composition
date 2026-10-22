@@ -25,6 +25,8 @@ const require = createRequire(import.meta.url);
 
 /** composition type → S2 export of a different name. */
 const S2_ALIAS: Readonly<Record<string, string>> = {
+  // (ADR-281 — a page root passes S2 Provider's locale · colorScheme down.)
+  body: "Provider",
   Select: "Picker",
   GridList: "ListView",
   GridListItem: "ListViewItem",

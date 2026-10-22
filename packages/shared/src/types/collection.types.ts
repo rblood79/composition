@@ -200,6 +200,15 @@ export interface ApiEndpointService {
     endpointId: string,
     signal?: AbortSignal,
   ) => Promise<unknown>;
+  /**
+   * ADR-281 Decision 5 — a Form's submit: one request per call with the body (no sharing), success
+   * = `response.ok` (`submitCollectionEndpoint`).
+   */
+  submitApiEndpoint?: (
+    endpointId: string,
+    body: unknown,
+    signal?: AbortSignal,
+  ) => Promise<unknown>;
 }
 
 /**

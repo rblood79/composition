@@ -18,6 +18,7 @@ import {
   isInteractionRule,
   type InteractionRule,
 } from "./interactionRule.types";
+import { eventArgNames } from "./capabilityRegistry";
 import {
   executeInteractionRule,
   type DispatchContext,
@@ -92,12 +93,55 @@ export function createElementHandlers(
 
   const handlers: Record<string, InteractionCallback> = {};
   for (const [trigger, rules] of byTrigger) {
-    handlers[trigger] = () => {
+    handlers[trigger] = (...args: unknown[]) => {
+      const event = eventArgs(trigger, args);
       for (const rule of rules) {
-        const outcome = executeInteractionRule(rule, deps, context);
+        const outcome = executeInteractionRule(rule, deps, {
+          ...context,
+          event,
+        });
         onOutcome?.(rule, outcome);
       }
     };
   }
   return handlers;
+}
+
+/**
+ * ADR-280 Decision 6 · ADR-281 Decision 2 — the names a rule reads a RAC callback's arguments by
+ * (`!event.<name>`): every concept's `args` for that callback (`eventArgNames` — a callback two
+ * concepts name differently gets both), plus `value` for the first argument.
+ */
+function eventArgs(
+  trigger: string,
+  args: readonly unknown[],
+): Readonly<Record<string, unknown>> {
+  const named: Record<string, unknown> = {};
+  if (args.length) named.value = args[0];
+  for (const names of eventArgNames(trigger))
+    names.forEach((name, index) => {
+      if (index < args.length)
+        named[name] =
+          name === "formData" ? formDataOf(args[index]) : args[index];
+    });
+  return named;
+}
+
+/**
+ * ADR-281 Decision 5 — a submit event's fields as a plain object (`FormData` of its form element;
+ * a name given more than once — a CheckboxGroup — is an array). RAC calls `onSubmit` after its
+ * validation passed, while the event is still dispatching (`currentTarget` is the form).
+ */
+function formDataOf(event: unknown): Record<string, unknown> | undefined {
+  const form = (event as { currentTarget?: unknown } | null)?.currentTarget;
+  if (typeof HTMLFormElement === "undefined" || !(form instanceof HTMLFormElement))
+    return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of new FormData(form)) {
+    const item = typeof value === "string" ? value : value.name;
+    const prev = out[key];
+    out[key] =
+      prev === undefined ? item : Array.isArray(prev) ? [...prev, item] : [prev, item];
+  }
+  return out;
 }

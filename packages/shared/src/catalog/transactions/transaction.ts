@@ -79,13 +79,19 @@ export type CatalogOperation =
     };
 /** Whole-value fields of a path patch (replaced, not merged, by an incoming patch). */
 export type PatchWholeField =
-  "fills" | "fillSizing" | "responsive" | "visibility" | "enabled";
+  | "fills"
+  | "fillSizing"
+  | "responsive"
+  | "visibility"
+  | "enabled"
+  | "interactions";
 const PATCH_WHOLE_FIELDS: readonly string[] = [
   "fills",
   "fillSizing",
   "responsive",
   "visibility",
   "enabled",
+  "interactions",
 ];
 /** Whole-value node fields a single edit replaces (Fill panel, fill intent, display, theme). */
 export type NodeFieldOperation = {
@@ -260,6 +266,7 @@ function mergePatch(
     responsive: incoming.responsive ?? previous?.responsive,
     visibility: incoming.visibility ?? previous?.visibility,
     enabled: incoming.enabled ?? previous?.enabled,
+    interactions: incoming.interactions ?? previous?.interactions,
   };
   for (const field of clear) delete whole[field];
   const stateRules = { ...previous?.stateRules } as Record<

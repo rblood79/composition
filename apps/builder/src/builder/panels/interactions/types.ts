@@ -12,7 +12,13 @@ export type {
 } from "@composition/shared";
 
 /** Do 축 선택지 — 앱 액션 3종 (navigate / toast / setState — ADR-214) + capability 진입 */
-export type ActionChoice = "navigate" | "toast" | "setState" | "capability";
+export type ActionChoice =
+  | "navigate"
+  | "toast"
+  | "setState"
+  | "capability"
+  // ADR-281 Decision 5 — a Form's submit to an API endpoint.
+  | "callEndpoint";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {

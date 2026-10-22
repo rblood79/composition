@@ -73,3 +73,43 @@ it("Builder가 저장한 Frame backgroundColor를 DOM 배경으로 렌더한다"
     project.dispose();
   }
 });
+
+it("TextField type email 이 든 프로젝트가 열린다 — 이미 S2 형식인 값은 로드 전환이 건드리지 않는다", async () => {
+  // (Publish 는 export 한 문서 — graph 의 고정된 record — 를 다시 연다. 로드 전환이 바뀌지 않는
+  //  `type: "email"` 을 지웠다 다시 써서 INVALID_CATALOG_SNAPSHOT 이 났다: palette Form 의 email 칸.)
+  const { library, graph } = await publicationFixture();
+  const documentData = graph.exportDocument();
+  const body = documentData.entries[
+    "project:node:body"
+  ] as import("../../../../packages/shared/src/catalog/document/types").NodeEntry;
+  const content = catalogProjectContent(graph);
+  content.document = {
+    ...documentData,
+    entries: {
+      ...documentData.entries,
+      [body.id]: { ...body, children: ["project:node:email"] },
+      "project:node:email": {
+        ...body,
+        id: "project:node:email",
+        definitionId: "lib:definition:origin-component-textfield",
+        children: [],
+        props: { type: { kind: "set", value: "email" } },
+      },
+    },
+  };
+  const project = loadedCatalogContent(content, library, new Map());
+  const session = createPublishedSession(project, library);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () =>
+      root.render(<CatalogPreviewView session={session} />),
+    );
+    expect(host.querySelector("input")?.getAttribute("type")).toBe("email");
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    project.dispose();
+  }
+});

@@ -38,7 +38,10 @@ import {
   resolveCatalogRoute,
 } from "./catalogPreviewRoute";
 import type { LayoutEngineAPI } from "./layoutEngine";
-import { createCollectionEndpointExecutor } from "../../collections/executeCollectionEndpoint";
+import {
+  createCollectionEndpointExecutor,
+  createCollectionEndpointSubmitter,
+} from "../../collections/executeCollectionEndpoint";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -51,6 +54,7 @@ export function catalogPreviewDataServices(
     apiEndpointService: {
       getApiEndpoints: () => endpoints,
       executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
+      submitApiEndpoint: createCollectionEndpointSubmitter(endpoints),
     },
   };
 }
@@ -294,6 +298,18 @@ export class CatalogPreviewSession {
    * order). A bound Table's rows are sorted by the resolver before its height takes them, so the
    * bound roots resolve again.
    */
+  /**
+   * ADR-281 Decision 6 — show the theme in a color mode a rule set (a page root's `colorScheme`):
+   * the same `applyTheme` with the mode replaced, so the CSS variable sets stay the theme's.
+   */
+  setColorScheme(mode: "light" | "dark"): void {
+    const graph = this.runtime?.graph;
+    const state = graph ? this.options.theme?.(graph) : undefined;
+    if (!state || this.colorMode === mode) return;
+    this.colorMode = mode;
+    this.options.applyTheme?.({ ...state, colorMode: mode });
+  }
+
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
     if (sort) this.tableSorts.set(tableId, sort);
     else this.tableSorts.delete(tableId);

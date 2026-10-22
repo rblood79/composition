@@ -49,9 +49,12 @@
   "devDependencies": {
     "@composition/config": "workspace:*",
     "@react-aria/optimize-locales-plugin": "catalog:",
+    "@react-aria/test-utils": "1.0.0-rc.1",
     "@react-spectrum/s2": "1.8.1",
     "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "catalog:",
     "@types/papaparse": "^5.5.2",
     "@types/react": "catalog:",

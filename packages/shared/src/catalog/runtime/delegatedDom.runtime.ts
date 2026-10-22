@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { DEFAULT_SLOT, I18nProvider, TextContext } from "react-aria-components";
+import { DEFAULT_SLOT, TextContext } from "react-aria-components";
 
 import {
   Breadcrumb as AriaBreadcrumb,
@@ -160,6 +160,19 @@ import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
 } from "./compositionRoot";
+import {
+  catalogControlledProps,
+  catalogRuntimeStateOf,
+  catalogSelectionValue,
+  EXPANDED_KEYS,
+  INPUT_VALUE,
+  IS_OPEN,
+  IS_SELECTED,
+  SELECTED_KEY,
+  SELECTED_KEYS,
+  VALUE,
+  type CatalogStateProp,
+} from "./runtimeStateProps";
 
 import {
   CATALOG_LABEL_NODE_FIELDS,
@@ -187,6 +200,8 @@ import { catalogStateChildren, catalogStateFrame } from "./stateFrames";
 import {
   CalendarPickerList,
   CalendarPickerSelect,
+  ForwardingI18nProvider,
+  ForwardingMarker,
   GroupToggleFrame,
   SelfToggleButton,
   TagGroupRun,
@@ -337,9 +352,92 @@ export function catalogCollectionSelectedKeys(
   return keys;
 }
 
+/**
+ * ADR-280 Decision 8 — a collection's item keys (the same walk as its Selected keys): every key
+ * (to spell out a `"all"` selection) and the disabled ones (RAC refuses to select those).
+ */
+export function catalogCollectionItemKeys(
+  root: CatalogCompositionRoot,
+  collection: CatalogConsumerNode,
+): { itemKeys: string[]; disabledKeys: string[] } {
+  const type = catalogTypeName(root, collection);
+  const itemKeys: string[] = [];
+  const disabledKeys: string[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of node.children) {
+      const record = root.domInputs.get(child);
+      if (!record) continue;
+      const childType = catalogTypeName(root, record);
+      if (isCollectionItemOf(childType, type)) {
+        const key =
+          childType === "Row" && record.htmlId
+            ? record.htmlId
+            : resolveStaticItemKey(
+                record.props as Record<string, unknown>,
+                record.id,
+              );
+        itemKeys.push(key);
+        if (record.props.isDisabled === true) disabledKeys.push(key);
+      }
+      if (isCollectionWrapperOf(childType, type)) visit(record);
+    }
+  };
+  visit(collection);
+  return { itemKeys, disabledKeys };
+}
+
 /** RAC keeps its first `defaultSelectedKeys`: a changed authored set builds the collection again. */
 const selectionKey = (base: string, keys: readonly string[]) =>
   keys.length ? `${base}|selected:${keys.join(",")}` : base;
+
+/**
+ * ADR-280 Decision 4 — a node's RAC state in this render: the running Preview's runtime value
+ * (a rule's write, the user's change), else what it starts with (`catalogRuntimeStateOf` — the
+ * dispatcher reads the same).
+ */
+const runtimeState = (input: DelegatedDomInput, prop: string): unknown =>
+  catalogRuntimeStateOf(
+    input.root,
+    input.root.domInputs.get(input.node.id) ?? input.node,
+    input.runtimeProps?.(input.node.id),
+    prop,
+    input.runtimeProps,
+  );
+
+/** ADR-280 Decision 4 — the state prop to RAC: controlled in a running Preview, else its default. */
+const controlled = (
+  input: DelegatedDomInput,
+  names: CatalogStateProp,
+  value: unknown,
+  toOverride?: (next: unknown) => unknown,
+) =>
+  catalogControlledProps(
+    input.node.id,
+    input.setRuntimeProps,
+    names,
+    value,
+    toOverride,
+  );
+
+/**
+ * A field an Autocomplete drives (its SearchField · TextField): RAC gives it the text through the
+ * Autocomplete's context — a value of its own would beat it (the Autocomplete's `inputValue` is
+ * the controlled state, ADR-280).
+ */
+const inAutocomplete = (input: DelegatedDomInput) => {
+  const owner = catalogDomPartParent(input.root, input.node);
+  return !!owner && catalogTypeName(input.root, owner) === "Autocomplete";
+};
+
+/** ADR-280 — a picker's open state: controlled in a running Preview (RAC's own otherwise). */
+const openState = (input: DelegatedDomInput): Record<string, unknown> =>
+  input.setRuntimeProps
+    ? controlled(input, IS_OPEN, runtimeState(input, "isOpen") === true)
+    : {};
+
+/** The element's key: one key while controlled; else (a static render) the start state re-keys. */
+const stateKey = (input: DelegatedDomInput, uncontrolledKey: string) =>
+  input.setRuntimeProps ? marker(input).key : uncontrolledKey;
 
 export const str = (value: unknown) => String(value || "");
 
@@ -812,11 +910,12 @@ function withI18n(
   // (A calendar system alone extends the environment's locale — RAC's default.)
   const base = String(locale || globalThis.navigator?.language || "en-US");
   const tag = calendar ? `${base}-u-ca-${String(calendar)}` : base;
-  return createElement(
-    I18nProvider as ElementType,
-    { key: element.key, locale: tag },
+  // (ADR-280 Decision 5 — the provider forwards the rules' handlers to the field.)
+  return createElement(ForwardingI18nProvider, {
+    key: element.key,
+    locale: tag,
     element,
-  );
+  });
 }
 
 /**
@@ -983,6 +1082,10 @@ function nodeTreeField(
   own: (props: CatalogConsumerNode["props"]) => Record<string, unknown>,
   i18n?: (props: CatalogConsumerNode["props"]) => [unknown, unknown?],
   defaultLabelAlign?: string,
+  /** ADR-280 — RAC's changed value as the record's runtime `value` (the document's form). */
+  toOverride: (next: unknown) => unknown = (next) => next,
+  /** ADR-280 — the field's other RAC states (a picker's selection · open state · input text). */
+  states?: (input: DelegatedDomInput) => Record<string, unknown>,
 ): DelegatedDomBinding {
   return {
     render: (input) => {
@@ -1005,11 +1108,24 @@ function nodeTreeField(
           "data-label-align": labelAlign ?? defaultLabelAlign,
           "data-quiet": isQuiet ? "true" : undefined,
           ...ownProps,
-          // (RAC's value is the run state — `defaultValue`; a document edit of the value starts it
-          // again, as the Slider's does. Before, a mounted Preview input kept its old value.)
+          // A static render: RAC's value is the run state — `defaultValue`; a document edit of the
+          // value starts it again, as the Slider's does. A running Preview: controlled from the
+          // first render (always a defined value — `null` for none) and the change goes to the
+          // record's runtime `value` (ADR-280 Decision 4).
           ...("defaultValue" in ownProps
-            ? { key: `${input.node.id}:${String(ownProps.defaultValue)}` }
+            ? input.setRuntimeProps && !inAutocomplete(input)
+              ? {
+                  defaultValue: undefined,
+                  ...controlled(
+                    input,
+                    VALUE,
+                    ownProps.defaultValue ?? null,
+                    toOverride,
+                  ),
+                }
+              : { key: `${input.node.id}:${String(ownProps.defaultValue)}` }
             : {}),
+          ...states?.(input),
         },
         ...renderAll(input),
       );
@@ -1052,6 +1168,24 @@ const placeholderDate = (value: unknown, granularity: unknown) => {
 const dateValue = (value: unknown) =>
   typeof value === "string" ? safeParseDateString(value) : value;
 
+/** ADR-280 — a RAC date · time value as the record's runtime `value` (its ISO text). */
+const dateToOverride = (next: unknown) => (next == null ? null : String(next));
+
+/** A date range as RAC takes it (`{ start, end }` of dates), else none (`null`). */
+function dateRangeValue(value: unknown): unknown {
+  if (!value || typeof value !== "object") return null;
+  const { start, end } = value as { start?: unknown; end?: unknown };
+  const from = dateValue(start);
+  const to = dateValue(end);
+  return from && to ? { start: from, end: to } : null;
+}
+
+const dateRangeToOverride = (next: unknown) => {
+  if (!next || typeof next !== "object") return null;
+  const { start, end } = next as { start?: unknown; end?: unknown };
+  return start && end ? { start: String(start), end: String(end) } : null;
+};
+
 /** A DatePicker's · DateRangePicker's own RAC props (the parts take theirs from its context). */
 const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
   granularity: ["day", "hour", "minute", "second"].includes(
@@ -1091,12 +1225,15 @@ function timeValue(value: unknown): unknown {
  * a hidden input + press responder; DataField takes no rest props): the Preview's delegating
  * wrapper form, `display: contents`, so it adds no box.
  */
-const markerWrap = (input: DelegatedDomInput, element: ReactElement) =>
-  createElement(
-    "div",
-    { ...marker(input), style: { display: "contents" } },
+const markerWrap = (input: DelegatedDomInput, element: ReactElement) => {
+  const { key, ...markerProps } = marker(input);
+  // (ADR-280 Decision 5 — the rules' handlers reach the component, not the marker `div`.)
+  return createElement(ForwardingMarker, {
+    key,
+    markerProps: { ...markerProps, style: { display: "contents" } },
     element,
-  );
+  });
+};
 
 /** What a TagGroup gives its TagList: its `maxRows` · size · label position and its removed tags. */
 export const TagGroupRunContext = createContext<{
@@ -1197,14 +1334,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       // The Tabs' key, else its first Selected · enabled Tab, else the first enabled one — RAC's
       // own default (`catalogTabsSelection`, the Canvas reads the same).
-      const { selectedKey } = tabsModel(input.root, input.node);
+      const selectedKey = runtimeState(input, "selectedKey");
       return createElement(
         Tabs as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${str(selectedKey)}`,
+          key: stateKey(input, `${input.node.id}:${str(selectedKey)}`),
           style: input.style,
-          defaultSelectedKey: selectedKey,
+          ...controlled(input, SELECTED_KEY, selectedKey),
           density: props.density || "regular",
           orientation: props.orientation || "horizontal",
           size: props.size || "M",
@@ -1317,7 +1454,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // variant marks are the standalone list's.)
       const selected = inPicker
         ? []
-        : catalogCollectionSelectedKeys(input.root, input.node);
+        : (runtimeState(input, "selectedKeys") as string[] | "all");
       return createElement(
         (inPicker ? AriaListBox : ListBox) as ElementType,
         inPicker
@@ -1329,7 +1466,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             }
           : {
               ...marker(input),
-              key: selectionKey(marker(input).key, selected),
+              key: stateKey(
+                input,
+                selectionKey(marker(input).key, selected as string[]),
+              ),
               style: input.style,
               "aria-label": str(props.label || "List"),
               // (No variant axis — S2 · RAC · v3 have none, 2026-10-12. The shared ListBox's own
@@ -1339,8 +1479,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               selectionMode: props.selectionMode ?? "none",
               disallowEmptySelection: bool(props.disallowEmptySelection),
               autoFocus: bool(props.autoFocus),
-              // (Its items set Selected — the item's edit surface, 2026-10-13.)
-              defaultSelectedKeys: selected,
+              // (Its items set Selected — the item's edit surface, 2026-10-13; in a running
+              // Preview the selection is controlled — ADR-280.)
+              ...controlled(
+                input,
+                SELECTED_KEYS,
+                selected,
+                catalogSelectionValue,
+              ),
             },
         ...renderAll(
           input,
@@ -1360,12 +1506,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       ),
     render: (input) => {
       const props = input.node.props;
-      const selected = catalogCollectionSelectedKeys(input.root, input.node);
+      const selected = runtimeState(input, "selectedKeys") as string[] | "all";
       return createElement(
         GridList as ElementType,
         {
           ...marker(input),
-          key: selectionKey(marker(input).key, selected),
+          key: stateKey(
+            input,
+            selectionKey(marker(input).key, selected as string[]),
+          ),
           style: input.style,
           "aria-label": str(props.label || "Grid List"),
           variant: props.variant || "default",
@@ -1374,7 +1523,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode ?? "none",
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),
-          defaultSelectedKeys: selected,
+          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
         },
         ...renderAll(
           input,
@@ -1476,11 +1625,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const owner = catalogDomPartParent(input.root, input.node);
       const autocompleted =
         !!owner && catalogTypeName(input.root, owner) === "Autocomplete";
-      const selected = catalogCollectionSelectedKeys(input.root, input.node);
+      const selected = runtimeState(input, "selectedKeys") as string[];
       return createElement(
         AriaMenu as ElementType,
         {
-          key: selectionKey(input.node.id, selected),
+          key: input.setRuntimeProps
+            ? input.node.id
+            : selectionKey(input.node.id, selected),
           "data-catalog-id": input.node.id,
           className: "react-aria-Menu",
           "data-size": props.size || "M",
@@ -1495,8 +1646,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           ...(props.selectionMode && props.selectionMode !== "none"
             ? {
                 selectionMode: props.selectionMode,
-                // (Its MenuItems set Selected — 2026-10-13.)
-                defaultSelectedKeys: selected,
+                // (Its MenuItems set Selected — 2026-10-13; a running Preview controls it.)
+                ...controlled(
+                  input,
+                  SELECTED_KEYS,
+                  selected,
+                  catalogSelectionValue,
+                ),
               }
             : {}),
         },
@@ -1528,12 +1684,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       const items = (list: CatalogConsumerNode[]) =>
         treeItemElements(input, list);
-      const treeSelected = catalogCollectionSelectedKeys(input.root, input.node);
+      const treeSelected = runtimeState(input, "selectedKeys") as string[];
       return createElement(
         Tree as ElementType,
         {
           ...marker(input),
-          key: selectionKey(marker(input).key, treeSelected),
+          key: stateKey(
+            input,
+            selectionKey(marker(input).key, treeSelected as string[]),
+          ),
           style: input.style,
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
           selectionMode: props.selectionMode ?? "single",
@@ -1541,24 +1700,30 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           // RSP `selectionStyle` (checkbox → RAC `toggle`, highlight → `replace`): the shared Tree
           // converts it (`resolveSelectionBehavior`, highlight when unset).
           selectionStyle: props.selectionStyle,
-          expandedKeys: treeKeys(props.expandedKeys),
           // In the Preview the user's expansion is a runtime prop of the record (ADR-250); the
-          // declared keys stay in the document.
+          // declared keys stay in the document. Controlled from the first render (ADR-280).
           ...(input.setRuntimeProps
-            ? {
-                onExpandedChange: (keys: Iterable<unknown>) =>
-                  input.setRuntimeProps!(input.node.id, {
-                    expandedKeys: [...keys].map(String),
-                  }),
-              }
-            : {}),
-          defaultExpandedKeys: Array.isArray(props.defaultExpandedKeys)
-            ? props.defaultExpandedKeys
-            : [],
-          // The selection is the Preview's run state (RAC's own, as GridList's): a pressed row ·
-          // selection checkbox selects it (ADR-256 Phase 5h-2 — a pinned empty selection left the
-          // checkbox inert); it starts from the items set Selected (2026-10-13).
-          defaultSelectedKeys: treeSelected,
+            ? controlled(
+                input,
+                EXPANDED_KEYS,
+                treeKeys(runtimeState(input, "expandedKeys")) ?? [],
+                catalogSelectionValue,
+              )
+            : {
+                expandedKeys: treeKeys(props.expandedKeys),
+                defaultExpandedKeys: Array.isArray(props.defaultExpandedKeys)
+                  ? props.defaultExpandedKeys
+                  : [],
+              }),
+          // The selection starts from the items set Selected (2026-10-13); a pressed row ·
+          // selection checkbox selects it (ADR-256 Phase 5h-2) — the record's runtime value in a
+          // running Preview (ADR-280).
+          ...controlled(
+            input,
+            SELECTED_KEYS,
+            treeSelected,
+            catalogSelectionValue,
+          ),
         },
         ...items(
           children(input).filter(
@@ -1678,27 +1843,69 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // Popover takes the Select's trigger and place — `PopoverContext`). Without a visible label the
   // Select is named by its placeholder (RAC needs a label or an `aria-label`).
   select: calendarPickerSelect(
-    nodeTreeField(AriaSelect, "Select", (props) => ({
-      placeholder: opt(props.placeholder),
-      // Single (RAC's default) or Multiple — its ListBox and SelectValue follow RAC's state.
-      selectionMode:
-        props.selectionMode === "multiple" ? "multiple" : undefined,
-      "aria-label": str(props.label).trim()
-        ? undefined
-        : (opt(props.placeholder) ?? "Select an option"),
-    })),
+    nodeTreeField(
+      AriaSelect,
+      "Select",
+      (props) => ({
+        placeholder: opt(props.placeholder),
+        // Single (RAC's default) or Multiple — its ListBox and SelectValue follow RAC's state.
+        selectionMode:
+          props.selectionMode === "multiple" ? "multiple" : undefined,
+        "aria-label": str(props.label).trim()
+          ? undefined
+          : (opt(props.placeholder) ?? "Select an option"),
+      }),
+      undefined,
+      undefined,
+      undefined,
+      // (A calendar month · year picker's Select takes its value from the calendar — RAC's.)
+      (input) =>
+        isCalendarPicker(input, input.node)
+          ? {}
+          : {
+              ...controlled(
+                input,
+                SELECTED_KEY,
+                runtimeState(input, "selectedKey") ?? null,
+              ),
+              ...openState(input),
+            },
+    ),
   ),
   // ADR-256 Phase 6d: the reference's tree — `ComboBox > Label + Group(Input + Button) +
   // Text[description] + FieldError + Popover > ListBox`, each part in RAC's ComboBox context (its
   // Popover takes the Group as trigger and its place — `PopoverContext`). Without a visible label
   // the ComboBox is named by its placeholder (RAC needs a label or an `aria-label`).
-  combobox: nodeTreeField(AriaComboBox, "ComboBox", (props) => ({
-    allowsCustomValue: bool(props.allowsCustomValue),
-    menuTrigger: opt(props.menuTrigger),
-    "aria-label": str(props.label).trim()
-      ? undefined
-      : (opt(props.placeholder) ?? "Select an option"),
-  })),
+  combobox: nodeTreeField(
+    AriaComboBox,
+    "ComboBox",
+    (props) => ({
+      allowsCustomValue: bool(props.allowsCustomValue),
+      menuTrigger: opt(props.menuTrigger),
+      "aria-label": str(props.label).trim()
+        ? undefined
+        : (opt(props.placeholder) ?? "Select an option"),
+    }),
+    undefined,
+    undefined,
+    undefined,
+    // (A running Preview: its selection and input text controlled — ADR-280.)
+    (input) =>
+      input.setRuntimeProps
+        ? {
+            ...controlled(
+              input,
+              SELECTED_KEY,
+              runtimeState(input, "selectedKey") ?? null,
+            ),
+            ...controlled(
+              input,
+              INPUT_VALUE,
+              str(runtimeState(input, "inputValue")),
+            ),
+          }
+        : {},
+  ),
   // ADR-256 Phase 6e: the reference's tree — `DatePicker > Label + Group(DateInput + Button) +
   // Text[description] + FieldError + Popover > Calendar` (a DateRangePicker's pair of DateInputs and
   // RangeCalendar), each part in RAC's picker context (its Popover takes the Group as trigger and its
@@ -1708,16 +1915,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     "DatePicker",
     (props) => ({
       ...datePickerProps(props),
+      defaultValue: dateValue(props.value) ?? null,
       hourCycle: num(props.hourCycle),
       "aria-label": str(props.label).trim() ? undefined : "Date Picker",
     }),
     (props) => [props.locale, props.calendarSystem],
+    undefined,
+    dateToOverride,
+    openState,
   ),
   daterangepicker: nodeTreeField(
     AriaDateRangePicker,
     "DateRangePicker",
     (props) => ({
       ...datePickerProps(props),
+      defaultValue: dateRangeValue(props.value),
       hourCycle: num(props.hourCycle),
       allowsNonContiguousRanges: bool(props.allowsNonContiguousRanges),
       startName: opt(props.startName),
@@ -1725,6 +1937,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       "aria-label": str(props.label).trim() ? undefined : "Date Range",
     }),
     (props) => [props.locale, props.calendarSystem],
+    undefined,
+    dateRangeToOverride,
+    openState,
   ),
   searchfield: nodeTreeField(AriaSearchField, "SearchField", (props) => ({
     ...inputHints(props),
@@ -1739,6 +1954,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     AriaDateField,
     "DateField",
     (props) => ({
+      defaultValue: dateValue(props.value) ?? null,
       hideTimeZone: props.hideTimeZone !== false,
       shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
       minValue: dateValue(props.minValue),
@@ -1756,11 +1972,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       hourCycle: num(props.hourCycle),
     }),
     (props) => [props.locale, props.calendarSystem],
+    undefined,
+    dateToOverride,
   ),
   timefield: nodeTreeField(
     AriaTimeField,
     "TimeField",
     (props) => ({
+      defaultValue: timeValue(props.value) ?? null,
       hourCycle: num(props.hourCycle) ?? 24,
       placeholderValue: timeValue(props.placeholderValue),
       minValue: timeValue(props.minValue),
@@ -1774,31 +1993,39 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         : "minute",
     }),
     (props) => [props.locale],
+    undefined,
+    dateToOverride,
   ),
   colorfield: nodeTreeField(
     AriaColorField,
     "ColorField",
     (props) => ({
-      defaultValue: opt(props.defaultValue),
+      // (A running Preview's `value` — a rule's write, the user's edit — over the authored one.)
+      defaultValue: opt(props.value ?? props.defaultValue),
       channel: props.channel,
       colorSpace: props.colorSpace,
       isWheelDisabled: bool(props.isWheelDisabled),
     }),
     undefined,
     "start",
+    (next) =>
+      next && typeof (next as { toString?: unknown }).toString === "function"
+        ? (next as { toString(format: string): string }).toString("hex")
+        : "",
   ),
   // ADR-256 Phase 7c: the Slider is RAC's, its children in order — the reference `Label` +
   // `SliderOutput` + `SliderTrack > SliderFill + SliderThumb`, and anything the author put in.
   slider: {
     render: (input) => {
       const props = input.node.props;
-      const { min, max, value } = catalogSliderRange(input.node);
+      const { min, max } = catalogSliderRange(input.node);
+      const value = runtimeState(input, "value");
       return withI18n(
         createElement(AriaSlider as ElementType, {
           ...marker(input),
-          // (RAC's value is the run state — `defaultValue`; a document edit of the value starts it
-          // again, as a Tabs' selected key does.)
-          key: `${input.node.id}:${value}`,
+          // (A static render's value is RAC's run state — `defaultValue`; a document edit of the
+          // value starts it again. A running Preview's is controlled — ADR-280.)
+          key: stateKey(input, `${input.node.id}:${value}`),
           style: input.style,
           className: "react-aria-Slider",
           "data-size": str(props.size) || "M",
@@ -1806,7 +2033,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           // (S2 start · end — start is the sheet's default, so only end is an attribute.)
           "data-label-align": props.labelAlign === "end" ? "end" : undefined,
           "data-emphasized": bool(props.isEmphasized) || undefined,
-          defaultValue: value,
+          ...controlled(input, VALUE, value),
           minValue: min,
           maxValue: max,
           step: num(props.step) ?? 1,
@@ -1900,7 +2127,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         "data-size": str(props.size) || "M",
         // (S2 `isEmphasized` — the rule's emphasized variant, which the Canvas paints.)
         "data-emphasized": bool(props.isEmphasized) || undefined,
-        defaultSelected: bool(props.isSelected),
+        ...controlled(
+          input,
+          IS_SELECTED,
+          bool(runtimeState(input, "isSelected")),
+        ),
         isDisabled: bool(props.isDisabled),
         isReadOnly: bool(props.isReadOnly),
         isRequired: bool(props.isRequired),
@@ -1975,9 +2206,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       const inGroup = !!domToggleGroupOf(input.root, input.node);
       return createElement(RacSlotScope, {
-        // RAC holds the selection (a Preview press toggles it): an authored change of the default
-        // starts the element over, as the Tabs binding does with its default key (2026-10-09).
-        key: `${input.node.id}:${bool(props.isSelected)}`,
+        // A static render: RAC holds the selection and an authored change of the default starts the
+        // element over (2026-10-09). A running Preview: controlled — ADR-280.
+        key: stateKey(input, `${input.node.id}:${bool(props.isSelected)}`),
         context: "Checkbox",
         authored: props.slot,
         render: (resolution) =>
@@ -2000,7 +2231,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                         name: opt(props.name),
                       }
                     : {
-                        defaultSelected: bool(props.isSelected),
+                        ...controlled(
+                          input,
+                          IS_SELECTED,
+                          bool(runtimeState(input, "isSelected")),
+                        ),
                         name: opt(props.name),
                         value: opt(props.value),
                       }),
@@ -2048,16 +2283,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     watchesChildren: (node, root) => groupWatched(node, root, "Checkbox"),
     render: (input) => {
       const props = input.node.props;
-      const boxes = groupItems(input, "Checkbox");
-      const selected = boxes
-        .filter((box) => box.props.isSelected === true)
-        .map(groupItemValue);
+      const selected = runtimeState(input, "value") as string[];
       const size = str(props.size) || "M";
       return createElement(
         AriaCheckboxGroup as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${selected.join(",")}`,
+          key: stateKey(input, `${input.node.id}:${selected.join(",")}`),
           style: input.style,
           className: "react-aria-CheckboxGroup",
           "data-orientation": str(props.orientation) || "vertical",
@@ -2066,7 +2298,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-label-position": str(props.labelPosition) || "top",
           // (S2 start · end — start is the sheet's default, so only end is an attribute.)
           "data-label-align": props.labelAlign === "end" ? "end" : undefined,
-          defaultValue: selected,
+          ...controlled(input, VALUE, selected),
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
           isReadOnly: bool(props.isReadOnly),
@@ -2103,18 +2335,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     watchesChildren: (node, root) => groupWatched(node, root, "Radio"),
     render: (input) => {
       const props = input.node.props;
-      const radios = groupItems(input, "Radio");
-      const selected = radios.find((radio) => radio.props.isSelected === true);
-      const value =
-        selected?.props.value !== undefined
-          ? String(selected.props.value)
-          : str(props.value);
+      const value = str(runtimeState(input, "value"));
       const size = str(props.size) || "M";
       return createElement(
         AriaRadioGroup as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${value}`,
+          key: stateKey(input, `${input.node.id}:${value}`),
           style: input.style,
           className: "react-aria-RadioGroup",
           "data-radio-size": size,
@@ -2124,7 +2351,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-label-align": props.labelAlign === "end" ? "end" : undefined,
           // (No value is `null` — RAC reads `""` as a chosen value and takes every Radio out of
           // the Tab order; ADR-256 후속 7.)
-          defaultValue: value || null,
+          ...controlled(input, VALUE, value || null),
           orientation: str(props.orientation) || "vertical",
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
@@ -2145,9 +2372,17 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // read it (ADR-256 Decision 7 — the shared ToggleButton draws children, not RAC's function).
       if (!inGroup)
         return createElement(SelfToggleButton, {
-          key: `${input.node.id}:${bool(props.isSelected)}`,
+          key: stateKey(input, `${input.node.id}:${bool(props.isSelected)}`),
           ownerId: input.node.id,
           defaultSelected: bool(props.isSelected),
+          // (A running Preview: controlled by the record's runtime value — ADR-280.)
+          ...(input.setRuntimeProps
+            ? {
+                selected: bool(runtimeState(input, "isSelected")),
+                onSelectedChange: (next: boolean) =>
+                  input.setRuntimeProps!(input.node.id, { isSelected: next }),
+              }
+            : {}),
           isDisabled: bool(props.isDisabled),
           render: (selection: Record<string, unknown>) =>
             createElement(
@@ -2203,17 +2438,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
     render: (input) => {
       const props = input.node.props;
-      const { buttons } = groupToggleButtons(input.node, input.root);
-      const selected = new Set(
-        buttons
-          .filter((button) => button.props.isSelected === true)
-          .map((button) => button.id),
-      );
+      const selected = runtimeState(input, "selectedKeys") as string[] | "all";
       return createElement(
         ToggleButtonGroup as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${[...selected].sort().join(",")}`,
+          key: stateKey(
+            input,
+            `${input.node.id}:${[...selected].sort().join(",")}`,
+          ),
           style: input.style,
           orientation: props.orientation,
           selectionMode: props.selectionMode,
@@ -2225,7 +2458,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           staticColor: props.staticColor || "auto",
           size: props.size || "M",
           density: props.density || "regular",
-          defaultSelectedKeys: selected,
+          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
           // (Only when disabled — RAC writes `aria-disabled` for any boolean.)
           isDisabled: bool(props.isDisabled) || undefined,
         },
@@ -2391,23 +2624,24 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const key = (card: CatalogConsumerNode) =>
         resolveStaticItemKey(card.props as Record<string, unknown>, card.id);
       const selectionMode = str(props.selectionMode || "none");
-      const selected =
-        selectionMode === "none"
-          ? []
-          : cards.filter((card) => card.props.isSelected === true).map(key);
+      const selected = runtimeState(input, "selectedKeys") as string[];
       return createElement(
         AriaGridList as ElementType,
         {
           ...marker(input),
-          // (A changed authored selection remounts RAC's uncontrolled state — as a TagGroup's.)
-          key: `${input.node.id}:${selectionMode}:${selected.join(",")}`,
+          // (A static render: a changed authored selection remounts RAC's uncontrolled state — as
+          // a TagGroup's. A running Preview: controlled — ADR-280.)
+          key: stateKey(
+            input,
+            `${input.node.id}:${selectionMode}:${[...selected].join(",")}`,
+          ),
           className: "react-aria-CardView",
           "aria-label": str(props["aria-label"] || "Card view"),
           layout: "grid",
           "data-size": str(props.size || "M"),
           "data-variant": str(props.variant || "primary"),
           selectionMode,
-          defaultSelectedKeys: selected,
+          ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
           disabledKeys: cards
             .filter((card) => card.props.isDisabled === true)
             .map(key),
@@ -2553,9 +2787,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           },
         })),
       );
-      const keys = disclosures
-        .filter((child) => expanded.has(child.id))
-        .map((child) => child.id);
+      // ADR-280 — a rule's `expand` · `collapse` is the group's runtime `expandedKeys`; until
+      // there is one, its Disclosures' (declared or runtime) `isExpanded` — one function with the
+      // dispatcher (`catalogRuntimeStateOf`).
+      const groupKeys = input.runtimeProps?.(input.node.id)?.expandedKeys;
+      const keys = (runtimeState(input, "expandedKeys") as string[]).map(
+        String,
+      );
       // In the Preview the user's expansion is each Disclosure's runtime `isExpanded` (ADR-250); a
       // static render shows the declared state.
       const setRuntime = input.setRuntimeProps;
@@ -2575,6 +2813,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ? {
                 expandedKeys: keys,
                 onExpandedChange: (next: Set<unknown>) => {
+                  // (A rule's group keys follow the user's change; without them each Disclosure's
+                  // own runtime value is the state — a declaration drops it, ADR-250 R2.)
+                  if (Array.isArray(groupKeys))
+                    setRuntime(input.node.id, {
+                      expandedKeys: [...next].map(String),
+                    });
                   for (const child of disclosures)
                     if (next.has(child.id) !== expanded.has(child.id))
                       setRuntime(child.id, { isExpanded: next.has(child.id) });
@@ -2610,9 +2854,24 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...marker(input),
           style: input.style,
-          ...(typeof props.defaultValue === "string" && props.defaultValue
-            ? { defaultValue: props.defaultValue }
-            : {}),
+          // (ADR-280 — a running Preview controls it from the record's runtime `value`.)
+          ...(input.setRuntimeProps
+            ? controlled(
+                input,
+                VALUE,
+                opt(props.value ?? props.defaultValue) ?? null,
+                (next) =>
+                  next &&
+                  typeof (next as { toString?: unknown }).toString ===
+                    "function"
+                    ? (next as { toString(format: string): string }).toString(
+                        "hex",
+                      )
+                    : null,
+              )
+            : typeof props.defaultValue === "string" && props.defaultValue
+              ? { defaultValue: props.defaultValue }
+              : {}),
           ...(props.layout === "grid" || props.layout === "stack"
             ? { layout: props.layout }
             : {}),
@@ -2698,6 +2957,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: input.style,
           action: opt(props.action),
           method: props.method || undefined,
+          // ADR-280 Decision 9 — a Form without an authored destination (no `action`, not
+          // `method="dialog"`) does not leave the page on submit (it would reload the Preview ·
+          // the published page); an authored `action` · `dialog` keeps HTML's own submission.
+          onSubmit: (event: { preventDefault(): void }) => {
+            if (!str(props.action).trim() && props.method !== "dialog")
+              event.preventDefault();
+          },
           encType: props.encType || undefined,
           target: props.target || undefined,
           validationBehavior: props.validationBehavior || undefined,
@@ -2723,9 +2989,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           : props.selectionMode === "multiple"
             ? "multiple"
             : "single",
-        defaultValue: catalogCalendarPicker(input.root, input.node)
-          ? undefined
-          : dateValue(props.defaultValue),
+        // (A running Preview: controlled from the record's runtime `value` — ADR-280; a picker's
+        // calendar takes the picker's value from RAC's context.)
+        ...(catalogCalendarPicker(input.root, input.node)
+          ? {}
+          : controlled(
+              input,
+              VALUE,
+              dateValue(props.value ?? props.defaultValue) ?? null,
+              dateToOverride,
+            )),
       });
     },
   },
@@ -2737,6 +3010,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         allowsNonContiguousRanges: catalogCalendarPicker(input.root, input.node)
           ? undefined
           : bool(input.node.props.allowsNonContiguousRanges),
+        ...(catalogCalendarPicker(input.root, input.node)
+          ? {}
+          : controlled(
+              input,
+              VALUE,
+              dateRangeValue(input.node.props.value),
+              dateRangeToOverride,
+            )),
       }),
   },
 };
@@ -2760,10 +3041,9 @@ export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
 ]);
 
 /** A DateRangePicker's RangeCalendar: those, and the picker's non-contiguous ranges. */
-export const CATALOG_PICKER_RANGE_CALENDAR_PROPS: ReadonlySet<string> = new Set([
-  ...CATALOG_PICKER_CALENDAR_PROPS,
-  "allowsNonContiguousRanges",
-]);
+export const CATALOG_PICKER_RANGE_CALENDAR_PROPS: ReadonlySet<string> = new Set(
+  [...CATALOG_PICKER_CALENDAR_PROPS, "allowsNonContiguousRanges"],
+);
 
 /**
  * A Calendar's · RangeCalendar's RAC element. In a DatePicker · DateRangePicker
@@ -2856,15 +3136,62 @@ export function catalogStateSourceValue(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   prop: string,
+  runtimeOf?: (
+    recordId: string,
+  ) => Readonly<Record<string, unknown>> | undefined,
 ): unknown {
   const props = node.props;
   const type = catalogTypeName(root, node);
   switch (prop) {
     case "selectedKey":
-      return str(tabsModel(root, node).selectedKey);
+      return type === "Tabs"
+        ? str(tabsModel(root, node).selectedKey)
+        : (props.selectedKey ?? null);
     case "selectedKeys":
+      if (type === "ToggleButtonGroup")
+        return groupToggleButtons(node, root)
+          .buttons.filter((button) => button.props.isSelected === true)
+          .map((button) => button.id);
+      if (type === "TagGroup")
+        return tagGroupTags(root, node)
+          .filter((tag) => tag.props.isSelected === true)
+          .map(tagKey);
+      if (type === "CardView")
+        return str(props.selectionMode || "none") === "none"
+          ? []
+          : childrenOf(root, node)
+              .filter(
+                (card) =>
+                  catalogTypeName(root, card) === "Card" &&
+                  card.props.isSelected === true,
+              )
+              .map((card) =>
+                resolveStaticItemKey(
+                  card.props as Record<string, unknown>,
+                  card.id,
+                ),
+              );
       return catalogCollectionSelectedKeys(root, node);
     case "expandedKeys":
+      if (type === "DisclosureGroup") {
+        const { disclosures } = groupDisclosures(node, root);
+        const expanded = resolveGroupExpandedDisclosureIds(
+          props as Record<string, unknown>,
+          disclosures.map((child) => ({
+            id: child.id,
+            type: catalogTypeName(root, child),
+            props: {
+              ...(child.props as Record<string, unknown>),
+              ...runtimeOf?.(child.id),
+            },
+          })),
+        );
+        return disclosures
+          .filter((child) => expanded.has(child.id))
+          .map((child) => child.id);
+      }
+      if (Array.isArray(props.expandedKeys))
+        return props.expandedKeys.map(String);
       return Array.isArray(props.defaultExpandedKeys)
         ? props.defaultExpandedKeys.map(String)
         : [];
@@ -2874,6 +3201,16 @@ export function catalogStateSourceValue(
       return Boolean(props.isSelected);
     case "value": {
       if (type === "Slider") return catalogSliderRange(node).value;
+      if (type === "CheckboxGroup")
+        return catalogToggleGroupItems(
+          node,
+          "Checkbox",
+          domGet(root),
+          (record) => catalogTypeName(root, record),
+        )
+          .items.filter((box) => box.props.isSelected === true)
+          .map(groupItemValue);
+      if (type !== "RadioGroup") return props.value;
       const selected = catalogToggleGroupItems(
         node,
         "Radio",

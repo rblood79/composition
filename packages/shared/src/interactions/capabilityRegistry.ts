@@ -13,36 +13,24 @@
  * 모든 capability 는 `racRef` (RAC controlled prop 근거) 를 가져야 한다 — 근거 없는
  * 항목은 등재 금지. `capabilityRegistry.test.ts` 가 정적으로 집행한다.
  *
- * ## 등재 vs 보류 (Phase 0 실측 기준 — breakdown §0 표 ③)
- * Preview 렌더러의 상태 prop 배선을 3분류로 실측했다:
- * - **(a) controlled** — 상태 prop 직접 소비 → 즉시 반영
- * - **(b) uncontrolled + `key` 에 상태 포함** → prop patch 가 remount 로 반영.
- *   등재하되 `remount: true` 로 내부 상태(포커스/스크롤) 소실을 명시한다.
- * - **(c) `default*` 만 + `key` 고정, 또는 prop 미배선** → patch 무반응.
- *   `deferred` 에 키만 남기고 **등재 보류** (G1). Preview controlled 전환 후 해제.
+ * ## 등재 vs 보류
+ * ADR-280 (2026-10-22) — Preview/Publish 는 상태 prop 을 첫 render 부터 controlled 로 넘긴다
+ * (`catalog/runtime/runtimeStateProps.ts`). 등록표는 RAC 개념 표에서 유도하고
+ * (`componentInteractionSpecs.ts`), Preview 가 아직 전달하지 못하는 capability 만 `deferred`
+ * 에 키로 남긴다 (G1 — 사용자에게 노출되지 않는다).
  *
  * @see docs/adr/completed/158-interactions-rules-capability-registry.md
- * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §0 §3
+ * @see docs/adr/280-interactions-rac-surface-registry-controlled-runtime.md
  */
 
-import type {
-  DropZoneProps,
-  FileTriggerProps,
-} from "react-aria-components";
+import { COMPONENT_INTERACTION_SPECS } from "./componentInteractionSpecs";
+import { deriveRegistry } from "./deriveRegistry";
 
 /**
- * ADR-201 Phase 3 (2026-09-17) — 파일 입력 2종의 When 축. `satisfies` 로 RAC prop 실존을
- * **컴파일 시** 증명한다 (review-adr 201 m1 — `capabilityRegistry.test` 는 명명 규약만 보고
- * 실존은 검사하지 않는다). `onDrop` 은 `DropZoneProps` 가 `DropOptions` 에서 상속한다.
- * 커스텀 완료/오류 이벤트 (`onUploadComplete` 류) 는 RAC 실존 callback 이 아니라 등재하지
- * 않는다 (ADR-201 R2 — ADR-158 internal-source 예외 절차 후속).
+ * ADR-201 Phase 3 — 파일 입력 2종의 When 축 (정의는 `concepts/files.ts` — `satisfies` 로 RAC prop
+ * 실존을 컴파일 시 증명).
  */
-export const FILE_TRIGGER_EVENTS = [
-  "onSelect",
-] as const satisfies readonly (keyof FileTriggerProps)[];
-export const DROP_ZONE_EVENTS = [
-  "onDrop",
-] as const satisfies readonly (keyof DropZoneProps)[];
+export { DROP_ZONE_EVENTS, FILE_TRIGGER_EVENTS } from "./concepts/files";
 
 /** capability 가 값을 요구할 때 패널이 물어볼 입력의 종류 */
 export interface CapabilityParam {
@@ -77,13 +65,18 @@ export interface CapabilityDef {
   racRef: string;
   /** 값이 필요한 capability 의 입력 사양 (`value: "!param"` 과 쌍) */
   param?: CapabilityParam;
-  /**
-   * Preview 가 uncontrolled(`default*`) 로 렌더 중이나 `key` 에 해당 상태가 포함돼
-   * prop patch 가 remount 로 반영되는 경우. 내부 상태(포커스/스크롤)가 소실된다.
-   */
-  remount?: boolean;
   /** generic prop patch 로 환원 불가 — DOM ref 경유 특례 */
   imperative?: boolean;
+  /**
+   * ADR-280 Decision 8 — 이 쓰기를 막는 RAC 제약 prop (개념의 conditions 에서 유도).
+   * dispatcher 가 쓰기 전에 읽는다.
+   */
+  guards?: readonly string[];
+  /**
+   * ADR-280 Decision 8 — a key-set operation over the current state (`add` · `remove` a key —
+   * `selectionMode: "single"` replaces); absent = the resolved value is written as is.
+   */
+  op?: "add" | "remove";
 }
 
 export interface ComponentCapability {
@@ -96,6 +89,29 @@ export interface ComponentCapability {
    * (분류 (c)) 이라 등재를 보류한 capability 키. 사용자에게 노출되지 않는다.
    */
   deferred?: readonly string[];
+  /**
+   * ADR-280 — 유도했지만 패널에 내놓지 않는 RAC callback (keyboard — 사용자 결정 Q3 · hover ·
+   * focus · press 보조 이벤트 · 항목 노드의 이벤트). 패널 정책은 ADR B.
+   */
+  hiddenEvents?: readonly string[];
+  /**
+   * ADR-281 Decision 2 — each event's argument names (`!event.<name>`), from the concepts' `args`.
+   */
+  eventArgs?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * ADR-281 Decision 1 — the panel's When groups: one per concept (RAC documentation section) in
+   * spec order, with the props that stop RAC firing its events. An `item` owner's concepts are not
+   * here (the item node offers them).
+   */
+  groups?: readonly TriggerGroup[];
+}
+
+/** ADR-281 — one When group (a RAC documentation section) of a component. */
+export interface TriggerGroup {
+  id: string;
+  events: readonly string[];
+  hiddenEvents: readonly string[];
+  conditions: readonly string[];
 }
 
 /**
@@ -135,321 +151,17 @@ export const COMMON_CAPABILITIES: Readonly<Record<string, CapabilityDef>> = {
  * `capabilities` 에는 공통 3종을 중복 선언하지 않는다 — `resolveCapabilities()` 가
  * 조회 시점에 병합한다.
  */
+/**
+ * 컴포넌트별 선언. 키는 canonical 컴포넌트 `type` (composition-vocabulary.ts).
+ *
+ * ADR-280 Phase 1 — 손으로 쓰지 않는다. RAC 개념 파일 (`concepts/*.ts`, 설치 d.ts `satisfies`)
+ * 과 컴포넌트 spec (`componentInteractionSpecs.ts`) 에서 모듈 로드 때 한 번 유도한다.
+ * `capabilities` 에는 공통 3종을 중복 선언하지 않는다 — `resolveCapabilities()` 가 조회 시점에
+ * 병합한다.
+ */
 export const CAPABILITY_REGISTRY: Readonly<
   Record<string, ComponentCapability>
-> = {
-  // ── 트리거 전용 (고유 capability 없음) ──────────────────────────────
-  Button: { events: ["onPress"], capabilities: {} },
-  Link: { events: ["onPress"], capabilities: {} },
-  // ADR-201 Phase 3 — 파일 입력 트리거. 고유 capability 없음 (업로드 큐는 canonical 밖 런타임 층).
-  FileTrigger: { events: FILE_TRIGGER_EVENTS, capabilities: {} },
-  DropZone: { events: DROP_ZONE_EVENTS, capabilities: {} },
-
-  // ── (a) controlled — 즉시 반영 ────────────────────────────────────
-  Tree: {
-    events: ["onSelectionChange", "onExpandedChange"],
-    capabilities: {
-      selectItem: {
-        labelKey: "capabilities.selectItem",
-        prop: "selectedKeys",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
-        racRef: "Tree.md — selectedKeys (controlled)",
-      },
-      clearSelection: {
-        labelKey: "capabilities.clearSelection",
-        prop: "selectedKeys",
-        value: [],
-        racRef: "Tree.md — selectedKeys (controlled)",
-      },
-      expand: {
-        labelKey: "capabilities.expand",
-        prop: "expandedKeys",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
-        racRef: "Tree.md — expandedKeys (controlled)",
-      },
-      collapse: {
-        labelKey: "capabilities.collapseAll",
-        prop: "expandedKeys",
-        value: [],
-        racRef: "Tree.md — expandedKeys (controlled)",
-      },
-    },
-  },
-  TagGroup: {
-    events: ["onSelectionChange", "onRemove"],
-    capabilities: {
-      selectItem: {
-        labelKey: "capabilities.selectItem",
-        prop: "selectedKeys",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
-        racRef: "TagGroup.md — selectedKeys (controlled)",
-      },
-      clearSelection: {
-        labelKey: "capabilities.clearSelection",
-        prop: "selectedKeys",
-        value: [],
-        racRef: "TagGroup.md — selectedKeys (controlled)",
-      },
-    },
-  },
-  Modal: {
-    events: ["onOpenChange"],
-    capabilities: {
-      open: {
-        labelKey: "capabilities.open",
-        prop: "isOpen",
-        value: true,
-        racRef: "Modal.md — ModalOverlayProps.isOpen (controlled)",
-      },
-      close: {
-        labelKey: "capabilities.close",
-        prop: "isOpen",
-        value: false,
-        racRef: "Modal.md — ModalOverlayProps.isOpen (controlled)",
-      },
-    },
-  },
-
-  // ── (b) uncontrolled + key remount — 반영되나 내부 상태 소실 ────────
-  ListBox: {
-    events: ["onSelectionChange"],
-    capabilities: {
-      selectItem: {
-        labelKey: "capabilities.selectItem",
-        prop: "defaultSelectedKeys",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
-        racRef: "ListBox.md — selectedKeys / defaultSelectedKeys",
-        remount: true,
-      },
-      clearSelection: {
-        labelKey: "capabilities.clearSelection",
-        prop: "defaultSelectedKeys",
-        value: [],
-        racRef: "ListBox.md — selectedKeys / defaultSelectedKeys",
-        remount: true,
-      },
-    },
-  },
-  GridList: {
-    events: ["onSelectionChange"],
-    capabilities: {
-      selectItem: {
-        labelKey: "capabilities.selectItem",
-        prop: "defaultSelectedKeys",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
-        racRef: "GridList.md — selectedKeys / defaultSelectedKeys",
-        remount: true,
-      },
-      clearSelection: {
-        labelKey: "capabilities.clearSelection",
-        prop: "defaultSelectedKeys",
-        value: [],
-        racRef: "GridList.md — selectedKeys / defaultSelectedKeys",
-        remount: true,
-      },
-    },
-  },
-  Checkbox: {
-    events: ["onChange"],
-    capabilities: {
-      check: {
-        labelKey: "capabilities.check",
-        prop: "isSelected",
-        value: true,
-        racRef: "Checkbox.md — isSelected (controlled)",
-        remount: true,
-      },
-      uncheck: {
-        labelKey: "capabilities.uncheck",
-        prop: "isSelected",
-        value: false,
-        racRef: "Checkbox.md — isSelected (controlled)",
-        remount: true,
-      },
-      toggleCheck: {
-        labelKey: "capabilities.toggleCheck",
-        prop: "isSelected",
-        value: "!self",
-        racRef: "Checkbox.md — isSelected (controlled)",
-        remount: true,
-      },
-    },
-  },
-  ToggleButton: {
-    events: ["onChange"],
-    capabilities: {
-      check: {
-        labelKey: "capabilities.turnOn",
-        prop: "isSelected",
-        value: true,
-        racRef: "ToggleButton.md — isSelected (controlled)",
-        remount: true,
-      },
-      uncheck: {
-        labelKey: "capabilities.turnOff",
-        prop: "isSelected",
-        value: false,
-        racRef: "ToggleButton.md — isSelected (controlled)",
-        remount: true,
-      },
-      toggleCheck: {
-        labelKey: "capabilities.toggleOnOff",
-        prop: "isSelected",
-        value: "!self",
-        racRef: "ToggleButton.md — isSelected (controlled)",
-        remount: true,
-      },
-    },
-  },
-  RadioGroup: {
-    events: ["onChange"],
-    capabilities: {
-      setValue: {
-        labelKey: "capabilities.setValue",
-        prop: "value",
-        value: "!param",
-        param: { kind: "value", labelKey: "capabilities.paramValueToSelect" },
-        racRef: "RadioGroup.md — value (controlled)",
-        remount: true,
-      },
-    },
-  },
-  Slider: {
-    events: ["onChange", "onChangeEnd"],
-    capabilities: {
-      setValue: {
-        labelKey: "capabilities.setValue",
-        prop: "value",
-        value: "!param",
-        param: { kind: "number", labelKey: "capabilities.paramValue" },
-        racRef: "Slider.md — value (controlled)",
-        remount: true,
-      },
-    },
-  },
-  Tabs: {
-    events: ["onSelectionChange"],
-    capabilities: {
-      selectTab: {
-        labelKey: "capabilities.selectTab",
-        // Preview 는 `defaultSelectedKey` 만 소비하고 key 에 그 값을 포함한다
-        // (breakdown §0 표 ③) — patch 대상 prop 이름이 `selectedKey` 가 아니다.
-        prop: "defaultSelectedKey",
-        value: "!param",
-        param: { kind: "itemKey", labelKey: "capabilities.paramTabKey" },
-        racRef: "Tabs.md — selectedKey / defaultSelectedKey",
-        remount: true,
-      },
-    },
-  },
-  Disclosure: {
-    events: ["onExpandedChange"],
-    capabilities: {
-      expand: {
-        labelKey: "capabilities.expand",
-        prop: "isExpanded",
-        value: true,
-        racRef: "Disclosure.md — isExpanded (controlled)",
-        remount: true,
-      },
-      collapse: {
-        labelKey: "capabilities.collapse",
-        prop: "isExpanded",
-        value: false,
-        racRef: "Disclosure.md — isExpanded (controlled)",
-        remount: true,
-      },
-    },
-  },
-
-  // ── 특례 — DOM ref 경유 (RAC 이 native form 위임, D1 침범 아님) ──────
-  Form: {
-    events: ["onSubmit", "onReset"],
-    capabilities: {
-      submit: {
-        labelKey: "capabilities.submit",
-        prop: "",
-        value: null,
-        racRef: "Form.md — RAC 이 native <form> 위임 → ref.requestSubmit()",
-        imperative: true,
-      },
-      reset: {
-        labelKey: "capabilities.reset",
-        prop: "",
-        value: null,
-        racRef: "Form.md — RAC 이 native <form> 위임 → ref.reset()",
-        imperative: true,
-      },
-    },
-  },
-
-  // ── (c) 등재 보류 — 트리거로만 사용 가능 (G1) ──────────────────────
-  Select: {
-    events: ["onSelectionChange", "onOpenChange"],
-    capabilities: {},
-    deferred: ["selectItem", "clearSelection", "open", "close"],
-  },
-  ComboBox: {
-    events: ["onSelectionChange", "onInputChange", "onOpenChange"],
-    capabilities: {},
-    deferred: ["selectItem", "clearSelection", "setInput"],
-  },
-  TextField: {
-    events: ["onChange"],
-    capabilities: {},
-    deferred: ["setValue", "clear"],
-  },
-  NumberField: {
-    events: ["onChange"],
-    capabilities: {},
-    deferred: ["setValue", "clear"],
-  },
-  SearchField: {
-    events: ["onChange", "onSubmit"],
-    capabilities: {},
-    deferred: ["setValue", "clear"],
-  },
-  Switch: {
-    events: ["onChange"],
-    capabilities: {},
-    deferred: ["check", "uncheck", "toggleCheck"],
-  },
-  Table: {
-    events: ["onSelectionChange"],
-    capabilities: {},
-    deferred: ["selectItem", "clearSelection"],
-  },
-  DisclosureGroup: {
-    events: ["onExpandedChange"],
-    capabilities: {},
-    deferred: ["expand", "collapse"],
-  },
-  DatePicker: {
-    events: ["onChange"],
-    capabilities: {},
-    deferred: ["setValue", "open", "close"],
-  },
-  Calendar: {
-    events: ["onChange"],
-    capabilities: {},
-    deferred: ["setValue"],
-  },
-  Popover: {
-    events: ["onOpenChange"],
-    capabilities: {},
-    deferred: ["open", "close"],
-  },
-  Menu: {
-    events: ["onAction", "onOpenChange"],
-    capabilities: {},
-    deferred: ["open", "close"],
-  },
-} as const;
+> = deriveRegistry(COMPONENT_INTERACTION_SPECS);
 
 /**
  * 앱 액션 — 대상 요소가 없는 전역 동작.
@@ -486,6 +198,26 @@ export function resolveCapabilities(
 /** 트리거로 쓸 수 있는 callback 목록. 미등록 type 은 빈 배열 (트리거 불가). */
 export function resolveTriggers(componentType: string): readonly string[] {
   return CAPABILITY_REGISTRY[componentType]?.events ?? [];
+}
+
+const EVENT_ARG_NAMES = (() => {
+  const lists = new Map<string, (readonly string[])[]>();
+  for (const entry of Object.values(CAPABILITY_REGISTRY))
+    for (const [event, names] of Object.entries(entry.eventArgs ?? {})) {
+      const known = lists.get(event) ?? [];
+      if (!known.some((list) => list.join() === names.join()))
+        known.push(names);
+      lists.set(event, known);
+    }
+  return lists;
+})();
+
+/**
+ * ADR-281 Decision 2 — the argument name lists a callback has across the registry (the concepts'
+ * `args`); `bindings.ts` names a fired callback's arguments by every list.
+ */
+export function eventArgNames(event: string): readonly (readonly string[])[] {
+  return EVENT_ARG_NAMES.get(event) ?? [];
 }
 
 /** 해당 type 이 Do 축 대상이 될 수 있는지 (공통 3종만 있어도 true) */

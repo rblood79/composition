@@ -123,7 +123,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * document (an origin on a page, a hidden template) is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 46 as const;
+export const LIBRARY_CONTRACT_VERSION = 47 as const;
 
 export type EntryKind =
   | "project"
@@ -489,6 +489,14 @@ export interface DescendantPatchFields {
   fillSizing?: FillSizing;
   responsive?: Partial<Record<ResponsiveBreakpointName, NodeResponsiveLayer>>;
   visibility?: Partial<Record<BreakpointName, boolean>>;
+  /**
+   * ADR-281 Decision 4: the origin's rules this instance changes at the position — keyed by the
+   * template node's rule, `"off"` (it does not run here) or this instance's own rule at the same
+   * address (it runs instead). Read by `effectiveInteractions.ts` (the panel and the Preview).
+   */
+  interactions?: Readonly<
+    Record<EntryId<"interaction">, "off" | EntryId<"interaction">>
+  >;
 }
 
 export type DescendantOverride =
@@ -876,7 +884,12 @@ export interface InteractionEntry {
         value?: Scalar;
       }
     | { opcode: "navigate"; pageId: EntryId<"page"> }
-    | { opcode: "callEndpoint"; endpointId: DataEndpointId }
+    | {
+        opcode: "callEndpoint";
+        endpointId: DataEndpointId;
+        /** ADR-281 Decision 5 — the request body: a literal or `"!event.formData"`. */
+        body?: Scalar;
+      }
     | { opcode: "toast"; message: string }
     | {
         opcode: "capability";

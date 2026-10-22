@@ -92,12 +92,14 @@ describe("When 축 — 어휘 정합", () => {
     expect(found).toEqual([]);
   });
 
-  it("모든 등재 컴포넌트가 트리거 또는 capability 중 하나 이상을 제공한다", () => {
+  it("모든 등재 컴포넌트가 트리거 · capability · 유도한 숨은 callback 중 하나 이상을 갖는다", () => {
+    // (ADR-280 — 항목 노드는 owner item 이라 callback 을 유도하되 패널에 내놓지 않는다.)
     const empty = Object.entries(CAPABILITY_REGISTRY)
       .filter(
         ([, entry]) =>
           entry.events.length === 0 &&
-          Object.keys(entry.capabilities).length === 0,
+          Object.keys(entry.capabilities).length === 0 &&
+          !entry.hiddenEvents?.length,
       )
       .map(([type]) => type);
     expect(empty).toEqual([]);
@@ -194,13 +196,15 @@ describe("resolve 헬퍼", () => {
     expect(resolveTriggers("존재하지않는타입")).toEqual([]);
   });
 
-  it("보류 컴포넌트의 고유 capability 는 노출되지 않는다", () => {
-    // Select 는 selectItem 이 deferred — 공통 3종만 남아야 한다
-    expect(Object.keys(resolveCapabilities("Select"))).toEqual([
-      "show",
-      "hide",
-      "toggle",
-    ]);
+  it("ADR-280 G2 — 보류 capability 가 없다 (Preview/Publish 가 전부 RAC 에 전달)", () => {
+    const deferred = Object.entries(CAPABILITY_REGISTRY).flatMap(
+      ([type, entry]) =>
+        (entry.deferred ?? []).map((name) => `${type}.${name}`),
+    );
+    expect(deferred).toEqual([]);
+    expect(Object.keys(resolveCapabilities("Select"))).toEqual(
+      expect.arrayContaining(["selectItem", "clearSelection", "open", "close"]),
+    );
   });
 });
 

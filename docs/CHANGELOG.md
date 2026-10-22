@@ -11,11 +11,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-281 Phase 0 ~ 5 — Interactions 응용: 패널 어휘 · 조상 상속 · instance 규칙 상속 · Form 제출 목적지] - 2026-10-22
+
+### Added
+
+- **When 을 RAC 문서 절 (개념) 그룹으로**: 선택 목록에 「Press」 · 「Selection」 · 「Form」 같은 머리글이 붙고, 「Show all of RAC」 스위치가 S2 가 뺀 RAC 이벤트 (누르기 시작 · hover · focus) 를 연다 — keyboard 는 열지 않는다. 지금 RAC 가 받지 않는 것은 목록에서 빠진다 (disabled Button 의 「누를 때」 · readOnly Checkbox 의 「선택 상태가 바뀔 때」 · `selectionMode: none` ListBox 의 「항목 선택」). 이미 그런 규칙은 지우지 않고 행에 「지금 RAC 가 받지 않음 (사유)」 를 표시한다.
+- **값 칸 「직접 입력 / 이벤트 인자」**: 규칙 값으로 When 의 인자 (`keys` · `value` · `isOpen` · `formData` …) 를 고른다 — 손으로 `!event.keys` 를 적지 않아도 된다.
+- **page 루트 · frame 이 자손에 내려주는 prop**: `isDisabled` · `isReadOnly` · `isRequired` · `locale` (page 루트 · frame), Do 「안쪽 전체 비활성화 / 활성화 / 전환」 · 읽기 전용 · 필수 · 「로캘 설정」 · 「라이트 / 다크 모드로」 (page 루트). RAC `Provider` · `I18nProvider` 로 그리며 Canvas (disabled · readOnly 표시) 와 규칙의 제약 검사가 같은 값을 읽는다.
+- **원본 규칙을 instance 에서 끄기 · 바꾸기**: instance 를 고르면 「Inherited from component」 에 원본의 규칙이 보이고 (전에는 실행되는데 보이지 않았다), 「Runs in this instance」 스위치로 끄거나 「Replace in this instance」 로 이 instance 만의 규칙을 둔다. 「원본에 반영」 은 바꾼 규칙을 원본 규칙으로, 「Reset all」 은 끄기 · 바꾸기를 모두 지운다.
+- **Form 제출 → API endpoint**: Do 「Call an endpoint」 — Form 의 필드 값 (`!event.formData`, 필드 `name` 기준) 을 JSON 으로 보낸다. 제출마다 요청 하나 (두 Form 이 같은 endpoint 로 보내도 각자), `204` · 빈 응답도 성공, 실패 (`!ok` · 네트워크 · 시간 초과) 는 toast. Preview 도 실제로 보낸다.
+
+### Changed
+
+- library contract 46 → 47 (`DescendantPatchFields.interactions` · `callEndpoint.body`) — 46 으로 저장된 프로젝트는 열리지 않는다 (마이그레이션 없음, 사용자 결정 2026-10-22).
+
+### Fixed
+
+- **Form 이 든 프로젝트의 Preview 버튼 (publish 탭) 이 `INVALID_CATALOG_SNAPSHOT` 으로 열리지 않던 것** (ADR-281 이전부터): 로드 시 S2 전환 (`s2PropAlignment.ts` `migrateWrites`) 이 이미 S2 형식인 값 (TextField `type: "email"` — palette Form 의 email 칸) 도 지웠다 다시 써서, export 한 문서 (graph 의 고정된 record) 를 다시 여는 publish 에서 throw 했다. 같은 값으로 바뀌는 쓰기는 건드리지 않는다.
+
 ## [Design 패널 Slot — 그룹의 slot 피커는 그룹 항목만] - 2026-10-22
 
 ### Fixed
 
 - **ButtonGroup 의 Slot 피커에 Library 컴포넌트 약 70개가 전부 나오던 것**: 그룹은 받는 자식 표에 자식 목록이 없어 「무엇이든 받는 자리」 로 판정됐다. 이제 그룹 자리 (ButtonGroup · ToggleButtonGroup · AvatarGroup · DisclosureGroup · Nav) 는 그 그룹의 항목 (Button · ToggleButton · Avatar · Disclosure · Link) 만, Local 컴포넌트는 루트가 그 항목인 것만 보여 준다. 고르면 그룹의 「+」 와 같이 항목 원본의 instance 로 들어간다. 받는 자식 판정 (드래그 · 붙여넣기) 은 바꾸지 않았다.
+
+## [ADR-280 Phase 0 ~ 3 — Interactions 가 RAC 에 실제로 닿는다: 등록표 유도 · Preview/Publish controlled · 제약 검사 · Form 제출] - 2026-10-22
+
+### Fixed
+
+- **Interactions 규칙이 고른 대로 동작하지 않던 것** (Preview · Publish): Button → ListBox · GridList 「항목 선택」 이 아무것도 선택하지 않았다 (항목 집계를 RAC `defaultSelectedKeys` 로만 넘겨 규칙 값이 닿지 않음). 다중 선택 목록에서 「항목 선택」 이 기존 선택을 지우고 하나로 바꿨다. `locale` 을 지정한 Calendar · Date 가족과 FileTrigger 는 When 규칙이 실행되지 않았다 (`I18nProvider` · marker 래퍼가 핸들러를 버림). 이제 상태 prop 은 첫 render 부터 controlled 이고 (사용자 조작과 규칙이 같은 runtime 값을 쓴다), 래퍼는 핸들러를 안의 RAC 컴포넌트로 넘긴다.
+- **규칙이 RAC 의 제한을 넘던 것**: disabled Checkbox 에 다른 Button 의 「체크」 규칙이 체크를 넣었다. 이제 disabled · readOnly (그룹이 내려주는 것 포함) · 빈 선택 금지 · selectionMode none · 비활성 항목은 규칙이 바꾸지 않고 실패를 알린다.
+- **Form 「제출」 · 「초기화」 가 실행되지 않던 것**: 항상 「지원 안 함」 으로 끝났다. 이제 RAC 검증을 거쳐 제출하고 (Form 의 「제출 시」 규칙 실행), 초기화는 필드를 선언값으로 되돌린다. 목적지 (`action`) 가 없는 Form 의 제출은 페이지를 다시 읽지 않는다 — `action` 을 적은 Form 은 그대로 그 주소로 제출된다.
+- Menu · Dialog · Tooltip · ContextualHelp 의 열기/닫기는 trigger 노드가 받는다 (본체에 건 규칙도 trigger 로 간다 — RAC 는 본체가 자기 열림 값을 가지면 trigger 의 press 를 무시한다).
+
+### Added
+
+- 규칙으로 바꿀 수 있는 컴포넌트가 늘었다 — Switch · Select (선택 · 열기) · ComboBox (선택 · 입력) · TextField · TextArea · SearchField · NumberField · ColorField · Color 조작기 · ColorSwatchPicker · CheckboxGroup · ToggleButtonGroup · CardView · Table (선택 · 정렬) · Menu (선택) · DisclosureGroup · Date 가족 (값 · 열기) · Calendar · Autocomplete · trigger 4 종 (보류 35 → 0). 새 Do 「항목 선택 해제」 (`deselectItem`). 새 When — MenuTrigger · DialogTrigger · TooltipTrigger · ContextualHelp 의 열림 변경 · 목록의 「항목 실행」 (`onAction`) · Table 의 행 실행 · 정렬 변경 · SearchField 지우기.
+- 규칙 값 `!event.<인자>` (실행 층) — 다른 컴포넌트의 callback 인자를 넘긴다 (예: ListBox A 선택 변경 → ListBox B 「항목 선택」 `!event.keys`). 패널에서 고르는 UI 는 ADR B.
+- `@react-aria/test-utils` 1.0.0-rc.1 (builder devDependency, 테스트 전용) — 「규칙이 RAC 를 움직였다」 를 RAC 의 tester 로 판정.
+
+### Changed
+
+- 등록표 (`CAPABILITY_REGISTRY` · `IMPLICIT_STATE_SOURCES`) 를 손으로 쓰지 않는다 — RAC 개념 파일 19 (설치 d.ts `satisfies`) 와 컴포넌트 spec (55 type, type 별 이름 실존 컴파일 검사) 에서 유도. 「(재설정)」 표시 (remount) 삭제. 변수로 이름 붙일 수 있는 RAC 상태가 TextField · Select · Table 등으로 늘었다.
 
 ## [Components Local page — Layers 를 Library page 와 같은 카드 그룹 구조로] - 2026-10-22
 

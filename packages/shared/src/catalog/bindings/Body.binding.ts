@@ -1,4 +1,8 @@
 import type { PrimitiveBinding } from "../types";
+import {
+  CATALOG_COLOR_SCHEME_PROP,
+  CATALOG_INHERITED_PROP_CONTRACTS,
+} from "./inheritedProps";
 
 /**
  * Body — 페이지 루트 컨테이너 leaf (`<body>` → generic `<div>`).
@@ -14,7 +18,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition `<body>` 페이지 루트 (internal source, generic `div` fallback).
  *     Preview/Publish의 nested body div와 실제 document.body 동기화가 같은 class resolver를 쓴다.
- * D2: children(페이지 콘텐츠)만 — 페이지 루트는 최소 surface.
+ * D2: children(페이지 콘텐츠) + 자손에 내려주는 prop (ADR-281 — `inheritedProps.ts`: v3 Provider 의
+ *     `isDisabled` · `isReadOnly` · `isRequired` · S2 Provider 의 `locale` · `colorScheme`).
  * D3: 시각(배경 `{color.base}`)은 theme rule(COMPONENT_RULES_TABLE.body).
  */
 export const bodyBinding: PrimitiveBinding = {
@@ -23,7 +28,10 @@ export const bodyBinding: PrimitiveBinding = {
     renderer: "body",
   },
   props: {
-    accepts: {},
+    accepts: {
+      ...CATALOG_INHERITED_PROP_CONTRACTS,
+      colorScheme: CATALOG_COLOR_SCHEME_PROP,
+    },
     toRacProps: "default",
   },
 };

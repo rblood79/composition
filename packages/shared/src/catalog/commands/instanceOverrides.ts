@@ -52,6 +52,11 @@ import type { NewId } from "./materialize";
  *   2026-10-15 · ADR-261); the root's `sizing` · `layout` are its placement and stay (decision 3).
  * - A library origin takes only the root's `props` · `visual`, as its project defaults (decision 1).
  *
+ * - Rules (ADR-281 Decision 4 — the `interactions` map): a rule the instance replaced at a direct
+ *   position becomes the origin's (the origin rule takes the replacement's When · Do, the
+ *   replacement goes); a rule it turned off stays off in the instance (not pushed). A nested
+ *   position's map stays the instance's.
+ *
  * Reset all drops every override the instance holds except what stays by decision: the slot
  * contents keep their lists (`resetDescendant`'s rule), a swap folds back (`resetReplacement`),
  * the root keeps `placement` · `sizing` · `layout`. The result shows as a fresh instance of the
@@ -333,6 +338,27 @@ function withoutFields(
   );
 }
 
+/** ADR-281 — the interaction ids an override list's `interactions` maps name as replacements. */
+function replacementRules(overrides: readonly DescendantOverride[]): string[] {
+  return overrides.flatMap((item) =>
+    Object.values(descendantPatchOf(item)?.interactions ?? {}).filter(
+      (value) => value !== "off",
+    ),
+  );
+}
+
+/** Drop interaction entries (and their project order slots). */
+function removeRules(draft: CommandDraft, ids: readonly string[]): void {
+  const gone = new Set(ids.filter((id) => draft.read(id)?.kind === "interaction"));
+  if (!gone.size) return;
+  for (const id of gone) draft.remove(id);
+  const project = draft.project();
+  draft.write({
+    ...project,
+    interactionIds: project.interactionIds.filter((id) => !gone.has(id)),
+  });
+}
+
 /**
  * Push an instance's overrides onto its component's origin (one history step). Refused on a node
  * that is not a composite instance (`NOT_AN_INSTANCE`).
@@ -396,10 +422,41 @@ export const pushInstanceOverrides =
     draft.write(
       pushFieldsOntoNode(rootNow, { ...own, props: rootProps }, ["visual"]),
     );
+    // ADR-281 — a direct position's replaced rules become the origin's; its "off" entries and a
+    // nested position's map stay the instance's (re-added in 3).
+    const keptRules: { address: InstanceAddress; map: Record<string, string> }[] =
+      [];
+    const pushedRules: string[] = [];
+    for (const override of instance.descendantOverrides) {
+      const map = descendantPatchOf(override)?.interactions;
+      if (!map) continue;
+      const kept: Record<string, string> = {};
+      for (const [ruleId, value] of Object.entries(map)) {
+        const origin = draft.read(ruleId);
+        const replacement = value === "off" ? undefined : draft.read(value);
+        if (
+          override.address.instances.length === 1 &&
+          origin?.kind === "interaction" &&
+          replacement?.kind === "interaction"
+        ) {
+          draft.write({
+            ...origin,
+            trigger: replacement.trigger,
+            action: replacement.action,
+          });
+          pushedRules.push(value);
+        } else kept[ruleId] = value;
+      }
+      if (Object.keys(kept).length)
+        keptRules.push({ address: override.address, map: kept });
+    }
+    removeRules(draft, pushedRules);
     // 2. Each position: a direct one onto its template node, a nested one onto the nested
     //    instance's own override at the shortened address.
     for (const override of instance.descendantOverrides) {
-      const fields = fieldsOf(override);
+      const withRules = fieldsOf(override);
+      const { interactions: _rules, ...rest } = withRules ?? {};
+      const fields = withRules ? (nonEmpty(rest) ?? undefined) : undefined;
       if (!fields) continue;
       const { instances, templatePath } = override.address;
       if (instances.length === 1) {
@@ -447,10 +504,20 @@ export const pushInstanceOverrides =
       else overrides.push(next);
       draft.write({ ...owner, descendantOverrides: overrides });
     }
-    // 3. The instance keeps only what stays its own.
+    // 3. The instance keeps only what stays its own (its rules turned off — ADR-281).
+    const remaining = withoutFields(instance.descendantOverrides);
+    for (const { address, map } of keptRules) {
+      const index = remaining.findIndex((item) =>
+        sameAddress(item.address, address),
+      );
+      const interactions = map as DescendantPatchFields["interactions"];
+      if (index < 0) remaining.push({ kind: "patch", address, interactions });
+      else if (remaining[index]!.kind === "fillSlot")
+        remaining[index] = { ...remaining[index]!, interactions } as DescendantOverride;
+    }
     draft.write({
       ...clearedRoot(draft.node(input.id)),
-      descendantOverrides: withoutFields(instance.descendantOverrides),
+      descendantOverrides: remaining,
     });
     return { label, ops: draft.ops() };
   };
@@ -548,6 +615,9 @@ export const resetInstance =
     }
     const draft = new CommandDraft(stage);
     const current = draft.node(input.id);
+    // ADR-281 — the instance's replacement rules go with its `interactions` maps (a fresh
+    // instance runs the origin's rules).
+    removeRules(draft, replacementRules(current.descendantOverrides));
     draft.write({
       ...clearedRoot(current),
       descendantOverrides: withoutFields(current.descendantOverrides),

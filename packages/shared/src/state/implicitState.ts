@@ -6,6 +6,11 @@
  * 0 (controlled/uncontrolled 전환 없음, D1 무변경). 값 형식은 변수 타입으로 정규화한다
  * (`Selection` Set → 배열, `"all"` 은 문자열 그대로).
  */
+import { COMPONENT_INTERACTION_SPECS } from "../interactions/componentInteractionSpecs";
+import type {
+  ComponentInteractionSpec,
+  ValueTypeId,
+} from "../interactions/concepts/types";
 import type { VariableDefType } from "./variable.types";
 
 export interface ImplicitStateSource {
@@ -17,24 +22,60 @@ export interface ImplicitStateSource {
   type: VariableDefType;
 }
 
+/**
+ * ADR-280 Phase 1 — 손으로 쓰지 않는다. capability 와 같은 개념 표 (`COMPONENT_INTERACTION_SPECS`)
+ * 의 상태 개념에서 유도한다: 상태 prop 과 그 변경 callback 이 관찰 쌍이다. 항목 · trigger owner
+ * 는 제외 (항목의 상태는 컬렉션 것, open 은 trigger 노드의 RAC 상태라 노드 변수 후보가 아니다),
+ * 변수 타입으로 정규화되지 않는 값 (Color · DateValue · SortDescriptor) 도 제외.
+ */
+const VARIABLE_TYPE_OF: Partial<Record<ValueTypeId, VariableDefType>> = {
+  boolean: "boolean",
+  number: "number",
+  string: "string",
+  key: "string",
+  keys: "array",
+  strings: "array",
+};
+
+function deriveImplicitStateSources(): Readonly<
+  Record<string, readonly ImplicitStateSource[]>
+> {
+  const out: Record<string, readonly ImplicitStateSource[]> = {};
+  for (const [type, spec] of Object.entries(
+    COMPONENT_INTERACTION_SPECS as Readonly<
+      Record<string, ComponentInteractionSpec>
+    >,
+  )) {
+    const sources: ImplicitStateSource[] = [];
+    for (const use of spec.concepts) {
+      const state = use.concept.state;
+      // (A state with no callback — an inherited prop, ADR-281 — RAC reports no change of.)
+      if (
+        !state ||
+        !state.callback ||
+        use.owner === "item" ||
+        use.owner === "trigger"
+      )
+        continue;
+      const variableType = VARIABLE_TYPE_OF[state.valueType];
+      if (!variableType) continue;
+      if (sources.some((source) => source.prop === state.prop)) continue;
+      sources.push(
+        Object.freeze({
+          prop: state.prop,
+          event: state.callback,
+          type: variableType,
+        }),
+      );
+    }
+    if (sources.length) out[type] = Object.freeze(sources);
+  }
+  return Object.freeze(out);
+}
+
 export const IMPLICIT_STATE_SOURCES: Readonly<
   Record<string, readonly ImplicitStateSource[]>
-> = {
-  Tree: [
-    { prop: "selectedKeys", event: "onSelectionChange", type: "array" },
-    { prop: "expandedKeys", event: "onExpandedChange", type: "array" },
-  ],
-  TagGroup: [{ prop: "selectedKeys", event: "onSelectionChange", type: "array" }],
-  ListBox: [{ prop: "selectedKeys", event: "onSelectionChange", type: "array" }],
-  GridList: [{ prop: "selectedKeys", event: "onSelectionChange", type: "array" }],
-  Checkbox: [{ prop: "isSelected", event: "onChange", type: "boolean" }],
-  ToggleButton: [{ prop: "isSelected", event: "onChange", type: "boolean" }],
-  Switch: [{ prop: "isSelected", event: "onChange", type: "boolean" }],
-  RadioGroup: [{ prop: "value", event: "onChange", type: "string" }],
-  Slider: [{ prop: "value", event: "onChange", type: "number" }],
-  Tabs: [{ prop: "selectedKey", event: "onSelectionChange", type: "string" }],
-  Disclosure: [{ prop: "isExpanded", event: "onExpandedChange", type: "boolean" }],
-};
+> = deriveImplicitStateSources();
 
 export function resolveImplicitStateSources(
   componentType: string,

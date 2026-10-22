@@ -248,6 +248,17 @@ function migrateWrites(
   for (const [key, migrate] of Object.entries(rules)) {
     const write = writes[key];
     if (!write) continue;
+    // (A value already in S2 form maps to itself — it is left as is: an exported document's entries
+    //  are the graph's frozen records, and Publish reopens one.)
+    if (write.kind === "set") {
+      const next = Object.entries(migrate(write.value));
+      if (
+        next.length === 1 &&
+        next[0]![0] === key &&
+        next[0]![1] === write.value
+      )
+        continue;
+    }
     delete writes[key];
     changed = true;
     if (write.kind !== "set") continue;

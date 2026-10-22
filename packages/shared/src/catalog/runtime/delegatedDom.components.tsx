@@ -8,6 +8,7 @@ import {
   type ReactElement,
 } from "react";
 
+import { I18nProvider } from "react-aria-components";
 import type { Key } from "react-aria-components/Collection";
 
 import {
@@ -30,6 +31,12 @@ import {
 
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
 
+import {
+  catalogControlledProps,
+  catalogRuntimeStateOf,
+  catalogSelectionValue,
+  SELECTED_KEYS,
+} from "./runtimeStateProps";
 import { catalogForwardHandlers, catalogStateFrame } from "./stateFrames";
 
 import {
@@ -68,16 +75,23 @@ export function ToggleIndicatorPart({
 export function SelfToggleButton({
   ownerId,
   defaultSelected,
+  selected,
+  onSelectedChange,
   isDisabled,
   render,
   ...handlers
 }: {
   ownerId: string;
   defaultSelected: boolean;
+  /** ADR-280 — a running Preview's controlled selection (the record's runtime value). */
+  selected?: boolean;
+  onSelectedChange?: (next: boolean) => void;
   isDisabled: boolean;
   render: (selection: Record<string, unknown>) => ReactElement;
 } & Record<string, unknown>): ReactElement {
-  const [isSelected, setSelected] = useState(defaultSelected);
+  const [own, setOwn] = useState(defaultSelected);
+  const isSelected = selected ?? own;
+  const setSelected = onSelectedChange ?? setOwn;
   return catalogStateFrame(
     ownerId,
     ownerId,
@@ -120,17 +134,63 @@ export function GroupToggleFrame({
 
 export function CalendarPickerSelect({
   element,
+  ...handlers
 }: {
   element: ReactElement;
-}): ReactElement {
+} & Record<string, unknown>): ReactElement {
   const picker = useContext(CatalogCalendarPickerContext);
-  return picker
-    ? cloneElement(element as ReactElement<Record<string, unknown>>, {
-        "aria-label": picker.aria["aria-label"],
-        value: picker.aria.value,
-        onChange: picker.aria.onChange,
-      })
-    : element;
+  // (ADR-280 — the rules' handlers `withRuntime` gave this wrapper reach the Select, after the
+  // picker's own change.)
+  const forwarded = catalogForwardHandlers(element, handlers);
+  if (!picker) return forwarded;
+  const ruleChange = (forwarded.props as Record<string, unknown>).onChange as
+    ((value: unknown) => void) | undefined;
+  return cloneElement(forwarded as ReactElement<Record<string, unknown>>, {
+    "aria-label": picker.aria["aria-label"],
+    value: picker.aria.value,
+    onChange: (value: unknown) => {
+      (picker.aria.onChange as (value: unknown) => void)(value);
+      ruleChange?.(value);
+    },
+  });
+}
+
+/**
+ * ADR-280 Decision 5 — an `I18nProvider` around a RAC field (a locale · calendar system): the
+ * rules' handlers `withRuntime` gives the provider go on to the field inside.
+ */
+export function ForwardingI18nProvider({
+  locale,
+  element,
+  ...handlers
+}: {
+  locale: string;
+  element: ReactElement;
+} & Record<string, unknown>): ReactElement {
+  return createElement(
+    I18nProvider as ElementType,
+    { locale },
+    catalogForwardHandlers(element, handlers),
+  );
+}
+
+/**
+ * ADR-280 Decision 5 — the `display: contents` marker around a component with no DOM of its own
+ * (FileTrigger · DataField): the rules' handlers go to the component, not to the marker `div`.
+ */
+export function ForwardingMarker({
+  markerProps,
+  element,
+  ...handlers
+}: {
+  markerProps: Record<string, unknown>;
+  element: ReactElement;
+} & Record<string, unknown>): ReactElement {
+  return createElement(
+    "div",
+    markerProps,
+    catalogForwardHandlers(element, handlers),
+  );
 }
 
 /**
@@ -206,9 +266,14 @@ export function TagGroupRun({
   // (`isSelected`) hands RAC the key (`defaultSelectedKeys` — RAC selects only in a selection
   // mode, as the Canvas `catalogCollectionItemSelected`). A changed authored set remounts RAC's
   // group (its uncontrolled selection), as ToggleButtonGroup.
-  const selectedKeys = tags
-    .filter((tag) => tag.props.isSelected === true)
-    .map(tagKey);
+  // ADR-280 — a running Preview controls it from the record's runtime value (one function with
+  // the dispatcher — `catalogRuntimeStateOf`).
+  const selectedKeys = catalogRuntimeStateOf(
+    input.root,
+    input.root.domInputs.get(input.node.id) ?? input.node,
+    input.runtimeProps?.(input.node.id),
+    "selectedKeys",
+  ) as string[];
   return createElement(
     TagGroupRunContext.Provider,
     {
@@ -236,8 +301,16 @@ export function TagGroupRun({
         "data-label-position": labelPosition,
         // (S2 start · end — start is the sheet's default, so only end is an attribute.)
         "data-label-align": props.labelAlign === "end" ? "end" : undefined,
-        key: `selected:${selectedKeys.join(",")}`,
-        defaultSelectedKeys: selectedKeys,
+        key: input.setRuntimeProps
+          ? marker(input).key
+          : `selected:${[...selectedKeys].join(",")}`,
+        ...catalogControlledProps(
+          input.node.id,
+          input.setRuntimeProps,
+          SELECTED_KEYS,
+          selectedKeys,
+          catalogSelectionValue,
+        ),
         // (Without a visible label the group is named by its `label` — RAC needs a name.)
         "aria-label": named ? undefined : label || "Tag group",
         selectionMode: props.selectionMode ?? "none",

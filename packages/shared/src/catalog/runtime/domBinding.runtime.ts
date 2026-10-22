@@ -2,6 +2,19 @@ import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
 } from "./positioning";
+import { parseColor } from "react-aria-components/ColorPicker";
+import {
+  catalogControlledProps,
+  catalogRuntimeStateOf,
+  catalogOpenOwnerOf,
+  catalogSelectionValue,
+  CATALOG_OPEN_BODY_TYPES,
+  CATALOG_OPEN_TRIGGER_TYPES,
+  INPUT_VALUE,
+  IS_OPEN,
+  SELECTED_KEYS,
+  VALUE,
+} from "./runtimeStateProps";
 import {
   componentTypeSet,
   getPrimitiveBinding,
@@ -856,14 +869,26 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ),
   // ADR-256 Phase 6g: RAC `Autocomplete` — no element of its own; it gives the text field inside
   // its input props and the collection beside it the filter · virtual focus.
-  autocomplete: (node, _style, children) =>
+  autocomplete: (node, _style, children, context) =>
     createElement(
       CatalogAutocomplete as ElementType,
       {
         key: node.id,
-        ...(typeof node.props.defaultInputValue === "string"
-          ? { defaultInputValue: node.props.defaultInputValue }
-          : {}),
+        // (A running Preview: its text controlled from the record's runtime value — ADR-280.)
+        ...(context?.runtime?.setRuntimeProps
+          ? catalogControlledProps(
+              node.id,
+              (id, patch) => context.runtime!.setRuntimeProps!(id, patch),
+              INPUT_VALUE,
+              String(
+                context.runtime.overrideOf(node.id)?.inputValue ??
+                  node.props.defaultInputValue ??
+                  "",
+              ),
+            )
+          : typeof node.props.defaultInputValue === "string"
+            ? { defaultInputValue: node.props.defaultInputValue }
+            : {}),
         disableAutoFocusFirst: node.props.disableAutoFocusFirst === true,
         disableVirtualFocus: node.props.disableVirtualFocus === true,
       },
@@ -1917,6 +1942,37 @@ function ruleDom(
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
+  // ADR-280 Decision 3 · 4 (Phase 0 probe P1) — an overlay's open state is its trigger's: a
+  // running Preview controls the trigger's `isOpen` from the record's runtime value (a rule's
+  // `open` · `close`, the user's press · dismiss). A body owns it only standing without a trigger
+  // (its own `isOpen` beats the trigger's context — giving it one inside would kill the press).
+  if (
+    context.runtime?.setRuntimeProps &&
+    (CATALOG_OPEN_TRIGGER_TYPES.has(type) ||
+      (CATALOG_OPEN_BODY_TYPES.has(type) &&
+        !catalogOpenOwnerOf(root, node.id, domType)))
+  ) {
+    const declared = root.domInputs.get(node.id)?.props ?? node.props;
+    Object.assign(
+      rest,
+      catalogControlledProps(
+        node.id,
+        (id, patch) => context.runtime!.setRuntimeProps!(id, patch),
+        IS_OPEN,
+        Boolean(
+          catalogRuntimeStateOf(
+            root,
+            root.domInputs.get(node.id) ?? node,
+            context.runtime.overrideOf(node.id),
+            "isOpen",
+          ) ??
+          declared.defaultOpen ??
+          false,
+        ),
+      ),
+    );
+    delete rest.defaultOpen;
+  }
   // A resizable Column's document width is where its drag starts (S2 `width` is controlled — the
   // widths a drag leaves are the Preview's, 사용자 결정 5).
   if (lower === "column" && resizable) {
@@ -2013,6 +2069,26 @@ function ruleDom(
     for (const key of ["colorSpace", "channel", "xChannel", "yChannel"])
       delete rest[key];
     Object.assign(rest, catalogColorControlProps(colorType, node.props));
+    // ADR-280 Decision 4 — a running Preview controls the color from the record's runtime `value`
+    // (a rule's `setValue`, the user's drag); a static render keeps RAC's default.
+    if (context.runtime?.setRuntimeProps) {
+      const runtimeValue = node.props.value;
+      Object.assign(
+        rest,
+        catalogControlledProps(
+          node.id,
+          (id, patch) => context.runtime!.setRuntimeProps!(id, patch),
+          VALUE,
+          catalogColorInSpace(runtimeValue, rest.defaultValue),
+          (next) =>
+            next &&
+            typeof (next as { toString?: unknown }).toString === "function"
+              ? String(next)
+              : null,
+        ),
+      );
+      delete rest.defaultValue;
+    }
   }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
   const ownChildren = children;
@@ -2180,14 +2256,25 @@ function ruleDom(
   //   key part keeps the value's own space and exact channels (`catalogColorKey`) — no other prop.
   // A Table's rows set Selected start RAC's selection (2026-10-13 — its `defaultSelectedKeys`, which
   // RAC keeps from the first render: a changed set builds the Table again).
+  // ADR-280 — a running Preview controls it from the record's runtime value (`catalogRuntimeStateOf`
+  // — the dispatcher reads the same); no key part then.
   const tableSelected =
-    lower === "table" ? catalogCollectionSelectedKeys(root, node) : undefined;
+    lower !== "table"
+      ? undefined
+      : context.runtime?.setRuntimeProps
+        ? (catalogRuntimeStateOf(
+            root,
+            root.domInputs.get(node.id) ?? node,
+            context.runtime.overrideOf(node.id),
+            "selectedKeys",
+          ) as string[])
+        : catalogCollectionSelectedKeys(root, node);
   const ownKey =
     itemKey !== undefined && itemKey !== node.id
       ? `${node.id}#${itemKey}`
-      : colorType
+      : colorType && !context.runtime?.setRuntimeProps
         ? `${node.id}:${catalogColorKey(colorType, node.props.defaultValue)}`
-        : tableSelected?.length
+        : tableSelected?.length && !context.runtime?.setRuntimeProps
           ? `${node.id}|selected:${tableSelected.join(",")}`
           : node.id;
   const element = createElement(
@@ -2243,7 +2330,15 @@ function ruleDom(
                 }
               : {}),
             tableResizable: resizable,
-            defaultSelectedKeys: tableSelected,
+            ...catalogControlledProps(
+              node.id,
+              context.runtime?.setRuntimeProps
+                ? (id, patch) => context.runtime!.setRuntimeProps!(id, patch)
+                : undefined,
+              SELECTED_KEYS,
+              tableSelected,
+              catalogSelectionValue,
+            ),
           }
         : {}),
       // (A Row's RAC key — its Table's selection names it.)
@@ -2742,6 +2837,20 @@ export function useWatchedChildren(
   );
   const read = useCallback(() => version.current, []);
   useSyncExternalStore(subscribe, read, read);
+}
+
+/**
+ * ADR-280 — a runtime color (a rule's `#00FF00`, a drag's value) in the control's own space: a
+ * ColorSlider's channel (`hue`) exists only in its space, and RAC throws on the rest.
+ */
+function catalogColorInSpace(runtime: unknown, fallback: unknown): unknown {
+  if (typeof runtime !== "string" || !runtime) return fallback;
+  try {
+    const space = parseColor(String(fallback)).getColorSpace();
+    return parseColor(runtime).toFormat(space).toString();
+  } catch {
+    return fallback;
+  }
 }
 
 /** A capability's prop patch over the record (its `style` goes over the computed style). */

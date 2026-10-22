@@ -1,5 +1,10 @@
-import { isCapabilityTarget } from "@composition/shared";
+import { isCapabilityTarget, type ExposureInput } from "@composition/shared";
 import { setNodeInteractions } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  catalogInteractionOverridesAt,
+  effectiveInteractionsOf,
+  type CatalogInteractionStatus,
+} from "../../../../../packages/shared/src/catalog/resolution/effectiveInteractions";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import {
   definitionTypeName,
@@ -13,8 +18,13 @@ import type {
   InteractionEntry,
   NodeId,
   Scalar,
+  DataEndpointId,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import { catalogTargetDefinitionId } from "./editContract";
+import {
+  catalogPropBaseValue,
+  catalogTargetDefinitionId,
+} from "./editContract";
+import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   catalogEmptyVariableValue,
   catalogVisibleVariableEntries,
@@ -60,6 +70,37 @@ export function catalogTargetTypeName(
   } catch {
     return "";
   }
+}
+
+/** The props RAC stops a change by (ADR-281 Decision 1 — the panel judges What RAC accepts by them). */
+const EXPOSURE_PROPS = [
+  "isDisabled",
+  "isReadOnly",
+  "isPending",
+  "selectionMode",
+] as const;
+
+/**
+ * ADR-281 Decision 1: what the Interactions panel judges a node's When · Do choices by — its
+ * declared value of each restricting prop (else what it shows without one: the inherited value or
+ * the contract default), as the Preview hands them to RAC.
+ */
+export function catalogExposureInput(
+  graph: Parameters<typeof catalogPropBaseValue>[0],
+  target: EditTarget,
+): ExposureInput {
+  const props: Record<string, unknown> = {};
+  try {
+    for (const key of EXPOSURE_PROPS) {
+      const value =
+        readPropSource(graph, target, key).value ??
+        catalogPropBaseValue(graph, target, key);
+      if (value !== undefined) props[key] = value;
+    }
+  } catch {
+    // (A target the graph no longer holds — nothing restricts.)
+  }
+  return { props };
 }
 
 /** The owner's rules in project order. */
@@ -222,6 +263,14 @@ export interface CatalogActionContext {
   currentPageId: EntryId<"page"> | undefined;
   variables: readonly CatalogVisibleVariable[];
   targets: readonly CatalogTargetOption[];
+  /** ADR-281 Decision 5 — the project's API endpoints (the data store's, H1). */
+  endpoints?: readonly CatalogEndpointOption[];
+}
+
+export interface CatalogEndpointOption {
+  id: DataEndpointId;
+  name: string;
+  method: string;
 }
 
 /** The action a Do choice starts from, or undefined when it has nothing to point at. */
@@ -240,6 +289,15 @@ export function catalogDefaultAction(
     const variable = context.variables[0];
     return variable
       ? catalogSetStateAction(variable, catalogStateOps(variable.type)[0]!)
+      : undefined;
+  }
+  if (choice === "callEndpoint") {
+    // (A body goes with a method that carries one — a GET endpoint is offered last.)
+    const endpoint =
+      context.endpoints?.find((option) => option.method !== "GET") ??
+      context.endpoints?.[0];
+    return endpoint
+      ? { opcode: "callEndpoint", endpointId: endpoint.id }
       : undefined;
   }
   if (choice === "capability") {
@@ -279,3 +337,141 @@ export const catalogInteractionsCommand = (
     entries,
     label,
   });
+
+/** ADR-281 Decision 4 — a component's rule as one instance position sees it. */
+export interface CatalogInheritedInteraction {
+  rule: InteractionEntry;
+  status: CatalogInteractionStatus;
+}
+
+/**
+ * The position an owner stands at in its component (the instance root: its template root; a
+ * descendant: the end of its template path), or undefined for a node that is not a project
+ * component's instance.
+ */
+function inheritedPosition(
+  graph: CatalogVariableReader,
+  owner: CatalogInteractionOwner,
+): { sourceId: NodeId; address: InstanceAddress } | undefined {
+  if (owner.address) {
+    const sourceId = owner.address.templatePath.at(-1);
+    return sourceId?.startsWith("project:node:")
+      ? { sourceId: sourceId as NodeId, address: owner.address }
+      : undefined;
+  }
+  const node = graph.getEntry(owner.ownerId);
+  if (node?.kind !== "node") return undefined;
+  const definition = graph.getEntry(node.definitionId as never);
+  if (
+    definition?.kind !== "definition" ||
+    definition.mode !== "composite" ||
+    !definition.templateRootId?.startsWith("project:node:")
+  )
+    return undefined;
+  const sourceId = definition.templateRootId as NodeId;
+  return {
+    sourceId,
+    address: { instances: [owner.ownerId], templatePath: [sourceId] },
+  };
+}
+
+/**
+ * ADR-281 Decision 4: the rules an instance position inherits from its component's template node,
+ * each with what this instance does with it — the same `effectiveInteractionsOf` the Preview reads.
+ */
+export function catalogInheritedInteractionsOf(
+  graph: CatalogVariableReader,
+  owner: CatalogInteractionOwner,
+): CatalogInheritedInteraction[] {
+  const position = inheritedPosition(graph, owner);
+  if (!position) return [];
+  const get = (id: string) => graph.getEntry(id as never);
+  return effectiveInteractionsOf(
+    get,
+    catalogInteractionsOf(graph, { ownerId: position.sourceId }),
+    catalogInteractionOverridesAt(get, position.address),
+  );
+}
+
+/** The `upsertDescendant` op writing an instance position's map (empty map = cleared). */
+function overrideMapOp(
+  address: InstanceAddress,
+  map: Readonly<Record<string, "off" | EntryId<"interaction">>>,
+) {
+  const empty = !Object.keys(map).length;
+  return {
+    kind: "upsertDescendant" as const,
+    id: address.instances[0] as NodeId,
+    override: {
+      kind: "patch" as const,
+      address,
+      ...(empty
+        ? {}
+        : {
+            interactions: map as Readonly<
+              Record<EntryId<"interaction">, "off" | EntryId<"interaction">>
+            >,
+          }),
+    },
+    ...(empty ? { clear: ["interactions" as const] } : {}),
+  };
+}
+
+/**
+ * Turn an inherited rule off (or back on) at this instance position — one history step. Turning it
+ * on drops the position's entry (a replacement rule it pointed at stays the owner's own).
+ */
+export const catalogInheritedRuleEnabledCommand =
+  (
+    owner: CatalogInteractionOwner,
+    ruleId: EntryId<"interaction">,
+    enabled: boolean,
+  ): CatalogCommand =>
+  (reader) => {
+    const position = inheritedPosition(reader as CatalogVariableReader, owner);
+    if (!position) throw new Error("NOT_AN_INSTANCE_POSITION");
+    const get = (id: string) => reader.getEntry(id as never);
+    const map: Record<string, "off" | EntryId<"interaction">> = {
+      ...catalogInteractionOverridesAt(get, position.address),
+    };
+    if (enabled) delete map[ruleId];
+    else map[ruleId] = "off";
+    return {
+      label: enabled ? "Turn inherited rule on" : "Turn inherited rule off",
+      ops: [overrideMapOp(position.address, map)],
+    };
+  };
+
+/**
+ * 「이 instance 에서 바꾸기」 — a copy of the inherited rule as the owner's own rule, mapped to run
+ * instead of it at this position (one history step). The copy is then edited as any own rule.
+ */
+export const catalogReplaceInheritedRuleCommand =
+  (
+    owner: CatalogInteractionOwner,
+    rule: InteractionEntry,
+    newId: NewId,
+  ): CatalogCommand =>
+  (reader) => {
+    const position = inheritedPosition(reader as CatalogVariableReader, owner);
+    if (!position) throw new Error("NOT_AN_INSTANCE_POSITION");
+    const copy = catalogNewInteraction(owner, rule.trigger, rule.action, newId);
+    const own = catalogInteractionsOf(reader as CatalogVariableReader, owner);
+    const planned = catalogInteractionsCommand(
+      owner,
+      [...own, copy],
+      "Replace inherited rule",
+    )(reader);
+    const get = (id: string) => reader.getEntry(id as never);
+    return {
+      label: "Replace inherited rule",
+      ops: [
+        ...planned.ops,
+        overrideMapOp(position.address, {
+          ...catalogInteractionOverridesAt(get, position.address),
+          [rule.id]: copy.id,
+        }),
+      ],
+    };
+  };
+

@@ -32,6 +32,19 @@ import {
 import { withCatalogStateStyles } from "./stateStyles";
 
 import {
+  CatalogInheritedContext,
+  catalogHostInherited,
+  catalogInheritedFlags,
+  catalogMergeInherited,
+  type CatalogInheritedValues,
+} from "./inheritedProps";
+
+import {
+  CATALOG_INHERITED_RECEIVERS,
+  catalogProviderValues,
+} from "./providerContexts";
+
+import {
   CalendarCellDate,
   CalendarMonthOffset,
   CalendarWeekday,
@@ -194,6 +207,8 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   context,
 }: CatalogDomNodeProps): ReactElement | null {
   const read = useCallback(() => root.domInputs.get(id), [root, id]);
+  // ADR-281 Decision 3 — what this node's ancestors pass down (a host merges its own on top).
+  const outerInherited = useContext(CatalogInheritedContext);
   const node = useSyncExternalStore(
     useCallback(
       (notify: () => void) => root.subscribeDom(id, notify),
@@ -289,10 +304,23 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   // A removed node disappears through its parent's children delta; until then it renders nothing.
   if (!node) return null;
   context.onNodeRender?.(id);
-  const { rendered: shown, styleOverride } = withOverride(
+  const { rendered: overridden, styleOverride } = withOverride(
     node,
     runtime?.overrideOf(id),
   );
+  // ADR-281 Decision 3 — the flags a page root · frame passes down (ORed into the receiver's props).
+  const inheritedProps = catalogInheritedFlags(
+    overridden.props,
+    CATALOG_INHERITED_RECEIVERS.get(catalogTypeName(root, overridden)),
+    outerInherited,
+  );
+  const shown =
+    inheritedProps === overridden.props
+      ? overridden
+      : ({
+          ...overridden,
+          props: inheritedProps,
+        } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
     withRuntime(
       withCatalogStateStyles(
@@ -337,7 +365,48 @@ export const CatalogDomNode = memo(function CatalogDomNode({
     : draw(shown);
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
   // RAC state where they pass it down (`stateFrames.tsx`), else their records.
-  return shown.showWhen && element
-    ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), element)
-    : element;
+  const gated =
+    shown.showWhen && element
+      ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), element)
+      : element;
+  const inherited = catalogHostInherited(
+    catalogTypeName(root, shown),
+    shown.props,
+  );
+  return gated && inherited
+    ? catalogInheritanceProvider(
+        catalogMergeInherited(outerInherited, inherited),
+        gated,
+      )
+    : gated;
 });
+
+/**
+ * ADR-281 Decision 3 — a page root's · frame's descendants under RAC's own context: `Provider`
+ * fills the contexts that take each inherited flag (`providerContexts.ts`), `I18nProvider` the
+ * locale; RAC's rules decide inside (a component's own value and an inner context win).
+ */
+function catalogInheritanceProvider(
+  values: CatalogInheritedValues,
+  element: ReactElement,
+): ReactElement {
+  let inner = element;
+  if (values.locale)
+    inner = createElement(
+      RAC.I18nProvider as ElementType,
+      { locale: values.locale },
+      inner,
+    );
+  const provided = catalogProviderValues(values);
+  if (provided.length)
+    inner = createElement(
+      RAC.Provider as ElementType,
+      { values: provided },
+      inner,
+    );
+  return createElement(
+    CatalogInheritedContext.Provider,
+    { value: values },
+    inner,
+  );
+}

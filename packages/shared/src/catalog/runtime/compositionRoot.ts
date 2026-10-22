@@ -1,4 +1,8 @@
 import {
+  catalogHostInheritedChanged,
+  catalogInheritedReceivers,
+} from "./inheritedProps";
+import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
 } from "./positioning";
@@ -4331,6 +4335,14 @@ export class CatalogCompositionRoot {
           ? [get(update.record.parentId)!]
           : []),
         ...catalogDerivedPropsDependents(update.record, get, this.typeOf),
+        // ADR-281 Decision 3 — a page root's · frame's descendants follow what it passes down.
+        ...(catalogHostInheritedChanged(
+          this.typeOf(update.record),
+          this.records.get(update.id),
+          update.record,
+        )
+          ? catalogInheritedReceivers(update.record, get)
+          : []),
         // ADR-256 Decision 12: a part bound to the owner's value (`{valueText}` · `{percentage}%`).
         ...catalogValueDependents(update.record, get, this.typeOf),
         ...(update.record.children.length > 0 &&

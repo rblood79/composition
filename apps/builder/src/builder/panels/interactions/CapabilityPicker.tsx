@@ -1,12 +1,12 @@
 /**
- * ADR-158 Phase 2 — 대상 요소가 "당할 수 있는" 기능 선택.
+ * ADR-158 Phase 2 · ADR-281 Decision 1 — 대상 요소가 "당할 수 있는" 기능 선택.
  *
- * `resolveCapabilities(targetType)` = 공통 3종 + 그 컴포넌트 고유. G1 보류
- * (`deferred`) capability 는 registry 가 애초에 내주지 않으므로 여기 나타나지 않는다
- * — 미배선 기능이 사용자에게 노출될 경로가 원천 차단된다.
+ * `exposedCapabilities(targetType, 대상 선언값)` = 공통 3종 + 그 컴포넌트 고유 중 지금 RAC 가
+ * 받는 것 (dispatcher 의 첫 검사 `declaredRefusal` 과 같은 판정). G1 보류 (`deferred`)
+ * capability 는 registry 가 애초에 내주지 않는다. 규칙이 쓰는 이름은 늘 남는다.
  */
 import { memo, useMemo } from "react";
-import { resolveCapabilities } from "@composition/shared";
+import { exposedCapabilities, type ExposureInput } from "@composition/shared";
 
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
@@ -14,25 +14,24 @@ import { useI18n } from "@/i18n";
 interface CapabilityPickerProps {
   targetType: string;
   value: string;
+  exposure: ExposureInput;
   onChange: (capability: string) => void;
 }
 
 export const CapabilityPicker = memo(function CapabilityPicker({
   targetType,
   value,
+  exposure,
   onChange,
 }: CapabilityPickerProps) {
   const { t } = useI18n();
   const options = useMemo(() => {
-    const caps = resolveCapabilities(targetType);
+    const caps = exposedCapabilities(targetType, exposure, value);
     return Object.entries(caps).map(([key, def]) => ({
       value: key,
-      // remount 기능은 내부 상태(포커스/스크롤)가 초기화된다 — 선택 전에 알린다
-      label: def.remount
-        ? t("interactions.capabilityRemount", { label: t(def.labelKey) })
-        : t(def.labelKey),
+      label: t(def.labelKey),
     }));
-  }, [targetType, t]);
+  }, [exposure, targetType, t, value]);
 
   return (
     <PropertySelect

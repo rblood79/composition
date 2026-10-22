@@ -21,13 +21,49 @@ import type {
 import type { CatalogCompositionRoot } from "./compositionRoot";
 import type { CatalogDomRuntime } from "./domBinding";
 import { catalogTableSortOf, type CatalogTableSort } from "./tableSort";
+import {
+  catalogCollectionItemKeys,
+  catalogTypeName,
+} from "./delegatedDom.runtime";
+import {
+  catalogOpenOwnerOf,
+  catalogRuntimeStateOf,
+  CATALOG_OPEN_BODY_TYPES,
+} from "./runtimeStateProps";
+import { catalogToggleGroupOf } from "./presence";
+import {
+  catalogRecordInteractionOverrides,
+  effectiveInteractionsOf,
+} from "../resolution/effectiveInteractions";
+import { catalogAncestorInherited } from "./inheritedProps";
+import { CATALOG_INHERITED_RECEIVERS } from "./providerContexts";
 
-/** The records an interaction's owner is drawn as (every row of a bound row template too). */
+/**
+ * The records an interaction's owner is drawn as (every row of a bound row template too). An
+ * origin's rule leaves out the records whose instance turned it off or replaced it (ADR-281
+ * Decision 4 — `effectiveInteractionsOf`, the panel's answer too).
+ */
 function recordsOfOwner(
+  graph: CatalogGraph,
   root: CatalogCompositionRoot,
   entry: InteractionEntry,
 ): readonly string[] {
-  if (!entry.address) return root.recordsOfSource(entry.ownerId);
+  if (!entry.address) {
+    const get = (id: string) => graph.getEntry(id as never);
+    return root.recordsOfSource(entry.ownerId).filter((id) => {
+      const path = root.domInputs.get(id)?.instancePath ?? [];
+      if (!path.length) return true;
+      const overrides = catalogRecordInteractionOverrides(
+        get,
+        path,
+        entry.ownerId,
+      );
+      return (
+        !overrides ||
+        effectiveInteractionsOf(get, [entry], overrides)[0]!.status === "on"
+      );
+    });
+  }
   const { instances, templatePath } = entry.address;
   const templateId = templatePath[templatePath.length - 1];
   if (!templateId) return [];
@@ -44,7 +80,8 @@ function recordsOfOwner(
 /**
  * The shared rule shape of one catalog interaction on one record. `navigate` goes by the page's
  * route (the dispatcher's vocabulary); a capability targets the target node's first record.
- * `callEndpoint` has no Preview path yet (the old Preview had none either): no rule.
+ * `callEndpoint` sends its body to the project's endpoint (ADR-281 Decision 5 — the id without its
+ * `data:endpoint:` prefix, as the data services key it).
  */
 function ruleOf(
   graph: CatalogGraph,
@@ -90,6 +127,15 @@ function ruleOf(
           }
         : undefined;
     }
+    case "callEndpoint":
+      return {
+        ...base,
+        action: {
+          kind: "callEndpoint",
+          endpointId: action.endpointId.slice("data:endpoint:".length),
+          ...(action.body !== undefined ? { body: action.body } : {}),
+        },
+      };
     case "setState":
       return {
         ...base,
@@ -116,7 +162,7 @@ export function catalogPreviewRules(
   for (const id of project.interactionIds) {
     const entry = graph.getEntry(id);
     if (entry?.kind !== "interaction") continue;
-    for (const record of recordsOfOwner(root, entry)) {
+    for (const record of recordsOfOwner(graph, root, entry)) {
       const rule = ruleOf(graph, root, entry, record);
       if (rule) rules.push(rule);
     }
@@ -151,7 +197,10 @@ function mirrorsOf(
   const sources = resolveImplicitStateSources(type);
   if (!sources.length) return [];
   const mirrors: CatalogStateMirror[] = [];
-  for (const sourceId of [record.sourceId, ...(record.collapsedSourceIds ?? [])])
+  for (const sourceId of [
+    record.sourceId,
+    ...(record.collapsedSourceIds ?? []),
+  ])
     for (const referrerId of graph.referrersOf(sourceId)) {
       const entry = graph.getEntry(referrerId);
       if (entry?.kind !== "stateVariable" || entry.source?.nodeId !== sourceId)
@@ -196,6 +245,16 @@ export interface CatalogPreviewInteractionsOptions {
   report?: (rule: InteractionRule, reason: string) => void;
   /** ADR-257 Phase 4 — a Table's sort set by RAC (`sortDescriptor` runtime prop): the session's. */
   sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
+  /**
+   * ADR-281 Decision 6 — a page root's `colorScheme` set by a rule: the session shows the theme in
+   * that color mode (its CSS variables and `data-theme`, the theme's own variable sets).
+   */
+  colorScheme?: (mode: "light" | "dark") => void;
+  /**
+   * ADR-281 Decision 5 — a Form's submit to an endpoint (the session's `submitApiEndpoint`): settles
+   * later — a failure is reported and shown as a toast here (user decision 3).
+   */
+  submitEndpoint?: (endpointId: string, body: unknown) => Promise<unknown>;
 }
 
 /**
@@ -242,6 +301,95 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         };
       },
       updateElementProps: (id, patch) => this.setRuntimeProps(id, patch),
+      callEndpoint: (endpointId, body) => {
+        const submit = options.submitEndpoint;
+        if (!submit)
+          return { ok: false, reason: "endpoint 제출 서비스 없음" };
+        submit(endpointId, body).catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[interactions] endpoint ${endpointId} 제출 실패 — ${message}`,
+          );
+          options.showToast(message);
+        });
+        return { ok: true };
+      },
+      // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).
+      getRuntimeState: (id, prop) => {
+        const root = options.root();
+        const record = root?.domInputs.get(id);
+        return root && record
+          ? catalogRuntimeStateOf(
+              root,
+              record,
+              this.overrideOf(id),
+              prop,
+              (recordId) => this.overrideOf(recordId),
+            )
+          : undefined;
+      },
+      stateOwnerOf: (id, prop) => {
+        const root = options.root();
+        const record = root?.domInputs.get(id);
+        if (!root || !record || prop !== "isOpen") return undefined;
+        const typeOf = (node: typeof record) => catalogTypeName(root, node);
+        return CATALOG_OPEN_BODY_TYPES.has(typeOf(record))
+          ? catalogOpenOwnerOf(root, id, typeOf)
+          : undefined;
+      },
+      getConstraintContext: (id) => {
+        const root = options.root();
+        const record = root?.domInputs.get(id);
+        if (!root || !record) return {};
+        const group = catalogToggleGroupOf(
+          record,
+          (recordId) => root.domInputs.get(recordId),
+          (node) => catalogTypeName(root, node),
+        );
+        const groupProps = group
+          ? { ...group.props, ...this.overrideOf(group.id) }
+          : undefined;
+        // ADR-281 Decision 3 — what a page root · frame passes down, for the props the target's
+        // RAC context takes (the render ORs them in — `catalogInheritedFlags`).
+        const fromHosts = catalogAncestorInherited(
+          record,
+          (recordId) => root.domInputs.get(recordId),
+          (node) => catalogTypeName(root, node),
+          (node) => ({ ...node.props, ...this.overrideOf(node.id) }),
+        );
+        const takes =
+          CATALOG_INHERITED_RECEIVERS.get(catalogTypeName(root, record)) ?? [];
+        const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
+          takes.includes(flag) && fromHosts[flag] === true;
+        const inherited = {
+          isDisabled:
+            groupProps?.isDisabled === true || hostFlag("isDisabled"),
+          isReadOnly:
+            groupProps?.isReadOnly === true || hostFlag("isReadOnly"),
+        };
+        return {
+          ...(groupProps || inherited.isDisabled || inherited.isReadOnly
+            ? { inherited }
+            : {}),
+          ...catalogCollectionItemKeys(root, record),
+        };
+      },
+      // ADR-280 Decision 9 — Form submit · reset through the form element (RAC delegates to it).
+      invokeImperative: (id, capability) => {
+        const form = globalThis.document?.querySelector(
+          `form[data-catalog-id="${id.replace(/["\\]/g, "\\$&")}"]`,
+        );
+        if (!(form instanceof HTMLFormElement))
+          return { ok: false, reason: `form 요소 없음: ${id}` };
+        if (capability === "submit") form.requestSubmit();
+        else if (capability === "reset") form.reset();
+        else
+          return {
+            ok: false,
+            reason: `imperative capability 미지원: ${capability}`,
+          };
+        return { ok: true };
+      },
       navigate: (path) => {
         // By route, with `:param` routes and the 404 fallback (the session's router) when the
         // host has one; else the exact route only.
@@ -370,6 +518,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
+    if (patch.colorScheme === "light" || patch.colorScheme === "dark")
+      this.options.colorScheme?.(patch.colorScheme);
     this.touch(id);
   }
   /** The record's runtime props still standing over their declarations. */
