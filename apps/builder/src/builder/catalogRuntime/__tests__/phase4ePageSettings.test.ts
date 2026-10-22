@@ -158,6 +158,14 @@ describe("ADR-248 Phase 4e-4 page section", () => {
     expect(catalogPageRouteEdit(pages(), HOME, "/a//b")).toEqual({
       refused: "ROUTE_SLASHES",
     });
+    // A `:name` segment is a route param (`/detail/:id` — the router's `useParams`, `{{ params.id }}`).
+    expect(catalogPageRouteEdit(pages(), HOME, "/detail/:id")).toHaveProperty(
+      "command",
+    );
+    for (const route of ["/detail/:", "/detail/:1d", "/detail/x:id", "/:id-x"])
+      expect(catalogPageRouteEdit(pages(), HOME, route)).toEqual({
+        refused: "ROUTE_CHARACTERS",
+      });
     const edit = catalogPageRouteEdit(pages(), HOME, "start");
     if (!("command" in edit)) throw new Error("refused");
     workspace.execute(edit.command);

@@ -32,7 +32,7 @@ import {
   type RuntimeStateHandle,
   type VariableDef,
 } from "@composition/shared";
-import { catalogRuntimeVariables } from "./stateTemplate";
+import { CATALOG_PARAMS_ROOT, catalogRuntimeVariables } from "./stateTemplate";
 import {
   catalogNotFoundPage,
   resolveCatalogRoute,
@@ -260,7 +260,19 @@ export class CatalogPreviewSession {
     this.currentPath = nextPath;
     this.notFoundPath = undefined;
     if (!samePage) this.state?.enterPage(pageId);
+    // Another path (`/detail/u1` → `/detail/u2`, or into the page): the `{{ params.… }}` readers
+    // resolve again (the root resolves every page's records ahead).
+    if (this.currentRoot) {
+      const errors = this.currentRoot.refreshState(new Set([CATALOG_PARAMS_ROOT]));
+      if (errors.length) console.error("[CatalogPreview] params:", ...errors);
+    }
     this.changed();
+  }
+  /** The shown path's route params (`:id` segments of the page's route — `{{ params.id }}`). */
+  get params(): Readonly<Record<string, string>> {
+    const graph = this.graph;
+    const path = this.path;
+    return (graph && path && resolveCatalogRoute(graph, path)?.params) || {};
   }
   /** The path an internal link or a navigate action asked for and no page answers to. */
   private notFoundPath: string | undefined;
@@ -563,6 +575,7 @@ export class CatalogPreviewSession {
         state: {
           projectVariables: () => this.variables,
           read: (variableId, scope) => this.readState(variableId, scope),
+          params: () => this.params,
         },
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
       },

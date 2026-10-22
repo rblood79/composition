@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview — 목록 → 상세: 항목 링크가 Preview 라우터로 · `{{ params.id }}` · `:param` 경로] - 2026-10-22
+
+### Added
+
+- **항목 · 행 · Link 의 `href` 가 Preview · Publish 라우터로 간다** — RAC 레퍼런스의 `RouterProvider` (`navigate` = 세션 `navigateTo`) 를 Preview · Publish 공용 `CatalogPreviewView` 에 둔다. 바운드 목록의 행 템플릿에 `href="/detail/{id}"` 를 쓰면 행마다 `/detail/usr_…` 링크가 되고, 누르면 문서를 다시 읽지 않고 그 페이지로 간다 (`:param` 경로 · 404 페이지 포함).
+- **`{{ params.<이름> }}`** — 보이는 경로가 `:param` 경로 (`/detail/:id`) 에 맞으면 그 값 (router 의 `useParams` 이름). 모든 string prop 의 `{{ }}` 템플릿에서 읽고, 경로가 바뀌면 그 이름을 읽는 record 만 다시 푼다. Canvas 는 경로가 없어 원문을 그린다 (`{{ }}` 의 기본값 env 비대칭과 같은 결). 같은 이름의 변수가 있으면 변수가 이긴다.
+  - 위치: `packages/shared/src/catalog/runtime/{domView.components.tsx,catalogPreviewSession.ts,stateTemplate.ts,compositionRoot.ts}` · 테스트 `routeParams.test.tsx`
+
+### Fixed
+
+- **페이지 Route 에 `:param` (`/detail/:id`) 을 쓸 수 없던 것** — Preview 라우터는 `:param` 경로를 맞추는데 Page 설정의 Route 검증이 `:` 를 막았다. 세그먼트마다 「영문 · 숫자 · 하이픈」 또는 `:이름`.
+  - 위치: `apps/builder/src/builder/catalogRuntime/pageSettings.ts` · 테스트 `phase4ePageSettings.test.ts`
+- **바운드 목록의 행 템플릿 항목 prop (URL 등) 을 바꾸면 「CATALOG_STEP_ABORTED: RESOLVED_INSTANCE_MISSING」 으로 편집이 되돌아가던 것**:
+  - **Why**: Canvas 증분 갱신 (`planInstances`) 이 고칠 record 의 경로를 `allowed` 에 record id 그대로 넣었는데, 둘째 행부터의 record id 는 행 표시 (`…::item#row:<key>`) 를 달고 resolver 의 `include` 는 위치 (`…::item`) 로 묻는다. 둘째 행 record 를 다시 풀 때 항목 위치가 빠져 record 를 못 찾았다 (첫 행만 통과).
+  - 수정: `allowed` 에 행 표시를 뗀 위치를 넣는다 — 행 반복은 resolver 가 한다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` · 테스트 `rowTemplateHref.test.ts` (원복 RED)
+
 ## [Interactions — Do 「collection 항목 수정 · 삭제」 (`update` · `remove` — useListData)] - 2026-10-22
 
 ### Added

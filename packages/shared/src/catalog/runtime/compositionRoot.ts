@@ -1843,6 +1843,7 @@ export class CatalogCompositionRoot {
           this.stateSource?.projectVariables() ?? [],
         ),
         this.stateSource?.read?.bind(this.stateSource),
+        this.stateSource?.params?.bind(this.stateSource),
       ),
     );
     if (!props) return templateProps ? { ...rest, props: authored } : record;
@@ -3877,10 +3878,15 @@ export class CatalogCompositionRoot {
       const scanAll = new Set<string>();
       const chain: CatalogConsumerNode[] = [];
       let cursor: CatalogConsumerNode | undefined = before;
+      // A bound row's record is its row template position repeated (`…::item#row:<key>`); the
+      // resolver asks `include` for the position (`…::item`) and repeats it per row itself.
+      const position = (recordId: string) =>
+        recordId.split(CATALOG_ROW_SEPARATOR)[0]!;
       while (cursor) {
-        allowed.add(cursor.id);
+        allowed.add(position(cursor.id));
         // A collapsed record is reached through its composite layers' template roots.
-        for (const layerId of cursor.collapsedIds ?? []) allowed.add(layerId);
+        for (const layerId of cursor.collapsedIds ?? [])
+          allowed.add(position(layerId));
         chain.push(cursor);
         const parent = this.records.get(cursor.parentId);
         if (parent) {

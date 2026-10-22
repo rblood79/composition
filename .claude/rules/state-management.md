@@ -76,6 +76,7 @@ paths:
   - 페이지 · 요소 = 문서의 `StateVariableEntry { kind:"stateVariable", ownerId, name, valueType, defaultValue }` (`ProjectEntry.stateVariableIds`). 노드에 `state` 필드는 없다. 편집은 `stateVariables.ts` 의 record 명령 (UI: `CatalogStateSection.tsx`)
 - **가시성 · 이름 충돌 · 사용처** (Builder): `catalogVisibleVariableEntries` · `catalogVariableNameConflict` · `catalogVariableUsageCount` (`stateVariables.ts`, `dataVariables.ts`). 사슬은 요소 → 조상 → 페이지 → 프로젝트, 이름은 사슬 안에서 고유. 소유자 이동은 `catalogLegacyVariableMove` (`dataVariables.ts`).
 - **읽기 `{{ name }}`**: `resolveStateTemplate` (string prop 만, 깊이 6). **Canvas 는 기본값 env · Preview / publish 는 런타임 env** — 설계된 비대칭이라 `/cross-check` 에서 결함으로 판정하지 않는다. collection 행 템플릿은 `{{ }}` 먼저 → `{field}` 나중. 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax`).
+- **경로 param `{{ params.<이름> }}`**: Preview · publish 세션이 보이는 경로의 `:param` 값을 `CatalogStateSource.params` 로 준다 (`stateTemplate.ts` `CATALOG_PARAMS_ROOT`, 같은 이름 변수가 이김). 경로가 바뀌면 `refreshState({"params"})`. Canvas 는 원문 — 설계된 비대칭. 항목 · 행 · Link 의 `href` 는 `CatalogPreviewView` 의 RAC `RouterProvider` 가 세션 `navigateTo` 로 보낸다.
 - **런타임 값**: `createRuntimeState` (shared) — Preview (`catalogPreviewSession.ts`) 와 publish 에만 있다. 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}`. persist 는 project 만 (`composition:runtime-state:v1:${projectId}`). 구독은 `subscribeVariable` (의존 인덱스) — 전체 revision 구독 금지.
 - **쓰기 액션**: 문서에는 `InteractionEntry.action { opcode:"setState" }`, 실행은 shared `dispatcher` → `DispatchDeps.writeState`.
 

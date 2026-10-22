@@ -35,7 +35,7 @@ import "../editors/styles/pageSelectors.css";
 const ROUTE_MESSAGES: Record<CatalogRouteRefusal, string> = {
   ROUTE_EMPTY: "Route cannot be empty",
   ROUTE_CHARACTERS:
-    "Route can only contain letters, numbers, hyphens, and slashes",
+    "Route segments are letters, numbers and hyphens, or a :param",
   ROUTE_SLASHES: "Route cannot contain consecutive slashes or end with a slash",
   ROUTE_TAKEN: "Another page already uses this route",
 };

@@ -23,6 +23,11 @@ export interface CatalogStateSource {
   projectVariables(): readonly VariableDef[];
   /** A variable's runtime value in a scope; `undefined` = its default. */
   read?(variableId: string, scope: RuntimeScope): unknown;
+  /**
+   * The shown path's route params (`{{ params.id }}` — a `:id` route segment, the router's
+   * `useParams`). Absent (the Canvas) = `{{ params.… }}` stays as written.
+   */
+  params?(): Readonly<Record<string, string>>;
 }
 
 /** One variable a record sees, with the scope its value lives in. */
@@ -141,10 +146,14 @@ export function catalogRecordVariables(
   return out;
 }
 
+/** The template root of the shown path's route params (`{{ params.id }}`). */
+export const CATALOG_PARAMS_ROOT = "params";
+
 /** The `{{ }}` environment of a visible list: nearest name wins; unknown names stay as written. */
 export function catalogStateEnv(
   visible: readonly CatalogVisibleState[],
   read?: CatalogStateSource["read"],
+  params?: CatalogStateSource["params"],
 ): StateTemplateEnv {
   const byName = new Map<string, CatalogVisibleState>();
   for (const entry of visible)
@@ -152,7 +161,8 @@ export function catalogStateEnv(
   return {
     get(name) {
       const entry = byName.get(name);
-      if (!entry) return undefined;
+      // (A variable named `params` wins — the route params are the root no variable took.)
+      if (!entry) return name === CATALOG_PARAMS_ROOT ? params?.() : undefined;
       return (
         read?.(entry.id, entry.scope) ??
         defaultOf(entry.type, entry.defaultValue)

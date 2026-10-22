@@ -244,9 +244,9 @@ export type CatalogRouteRefusal =
   "ROUTE_EMPTY" | "ROUTE_CHARACTERS" | "ROUTE_SLASHES" | "ROUTE_TAKEN";
 
 /**
- * A route edit as one command, or why it is refused: a route starts with `/`, uses letters,
- * digits, hyphens and single slashes, does not end with a slash (except `/`) and no other page
- * has it.
+ * A route edit as one command, or why it is refused: a route starts with `/`, each segment is
+ * letters, digits and hyphens or a `:name` param (`/detail/:id` — what the Preview router matches,
+ * `{{ params.id }}`), single slashes, no slash at the end (except `/`) and no other page has it.
  */
 export function catalogPageRouteEdit(
   pages: readonly PageEntry[],
@@ -256,7 +256,17 @@ export function catalogPageRouteEdit(
   const text = raw.trim();
   if (!text) return { refused: "ROUTE_EMPTY" };
   const route = text.startsWith("/") ? text : `/${text}`;
-  if (!/^[a-z0-9\-/]+$/i.test(route)) return { refused: "ROUTE_CHARACTERS" };
+  if (
+    !route
+      .split("/")
+      .every(
+        (segment) =>
+          segment === "" ||
+          /^[a-z0-9-]+$/i.test(segment) ||
+          /^:[A-Za-z_][A-Za-z0-9_]*$/.test(segment),
+      )
+  )
+    return { refused: "ROUTE_CHARACTERS" };
   if (/\/\//.test(route) || (route.length > 1 && route.endsWith("/")))
     return { refused: "ROUTE_SLASHES" };
   if (pages.some((page) => page.id !== pageId && page.route === route))

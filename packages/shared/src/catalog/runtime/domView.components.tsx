@@ -1,5 +1,6 @@
 import { CollectionDataContext } from "@composition/shared";
 import { CatalogPreviewToastBridge } from "./toastBridge";
+import { RouterProvider } from "react-aria-components";
 
 import { ToastProvider, useToast } from "@composition/shared/components";
 
@@ -37,10 +38,14 @@ export function CatalogPreviewView({
         <p className="preview-not-found__path">{session.notFound}</p>
       </div>
     );
+  // RAC's client routing (the reference's `RouterProvider`): an item's, a row's or a link's own
+  // `href` goes to the session's router (`:param` routes, the 404 page), never a document load.
   return (
-    <Fragment key={`${rootKey(root)}:${record}`}>
-      {renderCatalogDom(root, record, { slotMode: "page", runtime })}
-    </Fragment>
+    <RouterProvider navigate={(path) => session.navigateTo(path)}>
+      <Fragment key={`${rootKey(root)}:${record}`}>
+        {renderCatalogDom(root, record, { slotMode: "page", runtime })}
+      </Fragment>
+    </RouterProvider>
   );
 }
 
