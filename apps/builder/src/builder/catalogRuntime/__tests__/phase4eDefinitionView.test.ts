@@ -19,6 +19,7 @@ import {
 } from "../componentActions";
 import { CatalogLayerTreeStore } from "../layerTree";
 import { PROJECT_COMPONENTS_VIEW } from "../originView";
+import { projectComponentCardId } from "../../../../../../packages/shared/src/catalog/runtime/originViewNode";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -123,7 +124,9 @@ describe("ADR-248 4e definition edit view", () => {
       kind: "node",
       id: id("title"),
     });
-    // Layers lists it under the page's body, with the origin mark.
+    // Layers lists it as the Library page does (2026-10-22 user 「동일한 통일된 패턴」): the page's
+    // body → the component's card (a group row, named by the component, the Canvas card selection)
+    // → the origin, with the origin mark.
     const layers = new CatalogLayerTreeStore(
       {
         readModel: workspace.readModel,
@@ -135,7 +138,14 @@ describe("ADR-248 4e definition edit view", () => {
     );
     const [viewBody] = layers.getSnapshot();
     layers.setExpanded(new Set([viewBody!.id]));
-    const originRow = layers.getSnapshot()[0]!.children?.[0];
+    const cardRow = layers.getSnapshot()[0]!.children?.[0];
+    expect(cardRow?.position.target).toEqual({
+      kind: "node",
+      id: projectComponentCardId(definitionId),
+    });
+    expect(cardRow?.name).toBe(graph.getDefinition(definitionId)?.name);
+    layers.setExpanded(new Set([viewBody!.id, cardRow!.id]));
+    const originRow = layers.getSnapshot()[0]!.children?.[0]!.children?.[0];
     expect(originRow?.position.target).toEqual({
       kind: "node",
       id: templateRoot,

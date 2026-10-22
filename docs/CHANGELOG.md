@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components Local page — Layers 를 Library page 와 같은 카드 그룹 구조로] - 2026-10-22
+
+### Changed
+
+- **Local page 의 Layers 가 body → 컴포넌트 카드 → ◆ 원본이다** (사용자 지시 2026-10-22 「Library 와 동일한 통일된 패턴」): Library page 는 카드마다 그룹 행 (카드 선택이 Canvas · Navigator 에서 같이 보인다) 인데 Local page 는 카드를 건너뛰고 ◆ 원본을 body 바로 아래에 나열해, Canvas 에서 카드를 골라도 Navigator 에 대응 행이 없었다. 이제 카드 행 (컴포넌트 이름, 프로젝트 순서) 아래 ◆ 가 있다. 카드 행은 Library 카드처럼 파생 행 (드래그 · 삭제 없음 — 삭제는 카드 머리의 ×), 「No components」 안내 카드는 행이 아니다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/componentsPage.ts` `readPageRows`
+
 ## [Canvas 드래그 — 빈 slot 표시가 컴포넌트를 따라 움직인다] - 2026-10-22
 
 ### Fixed

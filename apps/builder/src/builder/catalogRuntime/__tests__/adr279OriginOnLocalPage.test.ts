@@ -368,8 +368,14 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
     const pageRoot = workspace.readModel.definitionRows(
       PROJECT_COMPONENTS_VIEW,
     )[0]!;
+    // The page lists the component's card (a group row — as the Library page), the card its ◆.
+    const [cardRow] = catalogComponentsPageRows(graph, pageRoot) ?? [];
+    expect(cardRow?.target).toEqual({
+      kind: "node",
+      id: projectComponentCardId(definitionId),
+    });
     expect(
-      catalogComponentsPageRows(graph, pageRoot)?.map((row) => row.target),
+      catalogComponentsPageRows(graph, cardRow!)?.map((row) => row.target),
     ).toEqual([{ kind: "node", id: id("card") }]);
     workspace.showDefinition(COMPONENTS_VIEW);
     expect(catalogProjectComponentCardFrames(graph, workspace.root)).toEqual(
@@ -513,10 +519,11 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
       walk(layers.getSnapshot());
     };
     expand();
-    // The page lists its ◆ roots under the body (the card frames are layout only).
+    // The page lists the component's card under the body, the card its ◆ (2026-10-22 — the
+    // Library page's group rows).
     const originRow = layers
       .getSnapshot()[0]
-      ?.children?.find(
+      ?.children?.[0]?.children?.find(
         (row) =>
           row.position.target.kind === "node" &&
           row.position.target.id === id("card"),
@@ -535,7 +542,8 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
     // The page is laid out again without the card: no ◆ row (the 「No components」 card is layout).
     expect(layers.getSnapshot()[0]?.hasChildren).toBe(false);
     workspace.undo();
-    const back = layers.getSnapshot()[0]?.children;
+    expand();
+    const back = layers.getSnapshot()[0]?.children?.[0]?.children;
     expect(back?.map((row) => [row.name, row.role])).toEqual([["frame", "origin"]]);
     expect(back?.[0]?.children?.map((row) => row.name)).toEqual(["Text"]);
     layers.dispose();

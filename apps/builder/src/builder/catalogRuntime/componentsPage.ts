@@ -401,16 +401,27 @@ function readPageRows(
       else if (child.definitionId === FRAME) walk(child, wanted);
     }
   };
-  // The project components page: its origins themselves (a card holds one — the row deletes it).
+  // A project component's origin (the Local page's ◆ — ADR-279, the definition's template root).
+  const isProjectOrigin = (nodeId: string) =>
+    nodeId.startsWith("project:node:") &&
+    !nodeId.startsWith(ORIGIN_VIEW_NODE) &&
+    reader.definitionOfTemplateRoot(nodeId as NodeId) !== undefined;
+  // The project components page lists its cards as the Library page does — a group row per
+  // component (the Canvas selects the card the same way), in the project's order — and a card
+  // its origin (2026-10-22 user 「Library 와 동일한 통일된 패턴」; before, the origins stood
+  // directly under the page body and a selected card had no row).
   if (id === PROJECT_ORIGIN_VIEW_NODE) {
-    walk(
-      position,
-      (nodeId) =>
-        nodeId.startsWith("project:node:") &&
-        !nodeId.startsWith(ORIGIN_VIEW_NODE) &&
-        reader.definitionOfTemplateRoot(nodeId as NodeId) !== undefined,
+    walk(position, isPageCard);
+    const order = new Map<string, number>(
+      catalogProjectComponents(reader).map((component, index) => [
+        projectComponentCardId(component.id),
+        index,
+      ]),
     );
-    return found;
+    // (The 「No components」 card of an empty page is a note, not a component: no row.)
+    return found
+      .filter((card) => order.has(card.sourceId))
+      .sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!);
   }
   if (isPageRoot) {
     // The cards in their numbered order (the columns hold them in drawn order).
@@ -429,13 +440,15 @@ function readPageRows(
         .sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!),
     ];
   }
-  // A card: the origin and its instances (a theme card: its values), side by side.
+  // A card: the origin and its instances (a theme card: its values; a Local card: its ◆), side
+  // by side.
   walk(
     position,
     (nodeId) =>
       originOfEditableSample(nodeId) !== undefined ||
       originOfPageInstance(nodeId) !== undefined ||
-      isThemeSample(nodeId),
+      isThemeSample(nodeId) ||
+      isProjectOrigin(nodeId),
   );
   return found;
 }
