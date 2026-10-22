@@ -37,7 +37,10 @@ async function importSample(file: string) {
     collections: new Map(),
     apiEndpoints: new Map(),
     variables: new Map(),
-    createDataTable: vi.fn(),
+    createDataTable: vi.fn(async (config: { name: string }) => ({
+      ...config,
+      id: `table-${(next += 1)}`,
+    })),
     updateCollection: vi.fn(),
     setRuntimeData: vi.fn(),
     // (Another PC: the store gives each endpoint its own id.)
@@ -106,5 +109,60 @@ describe("sample project files import into another project", () => {
       .map((action) => action.variableId);
     expect(written.length).toBeGreaterThan(0);
     for (const id of written) expect(defined).toContain(id);
+  });
+
+  it("collection CRUD: Table · GridList · ListBox read the imported collection; each Form submits to an imported endpoint; the list endpoint fills that collection on its interval", async () => {
+    const { graph, rules, store, content } = await importSample(
+      "collection-crud.composition.json",
+    );
+    const [table] = await Promise.all(
+      store.createDataTable.mock.results.map((result) => result.value),
+    );
+    const endpoints = await Promise.all(
+      store.createApiEndpoint.mock.results.map((result) => result.value),
+    );
+    const bound = Object.values(graph.exportDocument().entries)
+      .filter((entry) => entry.kind === "node" && entry.binding)
+      .map((entry) =>
+        entry.kind === "node" ? entry.binding!.collectionId : undefined,
+      );
+    expect(bound).toEqual(Array(3).fill(`data:collection:${table.id}`));
+    const submits = rules
+      .map((rule) => rule.action)
+      .filter((action) => action.opcode === "callEndpoint");
+    expect(submits.map((action) => action.body)).toEqual(
+      Array(3).fill("!event.formData"),
+    );
+    const byId = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint]));
+    expect(
+      new Set(
+        submits.map(
+          (action) =>
+            byId.get(action.endpointId.slice("data:endpoint:".length))?.method,
+        ),
+      ),
+    ).toEqual(new Set(["POST", "PUT", "DELETE"]));
+    expect(endpoints.find((endpoint) => endpoint.method === "GET")).toMatchObject(
+      { targetCollectionId: table.id },
+    );
+    expect(store.applyDataChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ops: [
+          {
+            op: "set_execution_policy",
+            collectionId: table.id,
+            policy: { mode: "interval", intervalSec: 2 },
+          },
+        ],
+      }),
+      { projectId: "imported" },
+    );
+    const defined = new Set(
+      ((content.variables ?? []) as { id: string }[]).map(
+        (def) => `data:variable:${def.id}`,
+      ),
+    );
+    for (const action of rules.map((rule) => rule.action))
+      if (action.opcode === "setState") expect(defined).toContain(action.variableId);
   });
 });

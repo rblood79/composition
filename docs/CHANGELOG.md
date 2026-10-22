@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 프로젝트 파일이 collection 의 실행 정책 · endpoint 연결을 옮김 · CRUD 샘플] - 2026-10-22
+
+### Fixed
+
+- **프로젝트 파일을 가져오면 collection 의 실행 정책 (Auto · Interval) 과 「API endpoint」 연결이 사라지던 것**:
+  - **Why**: 내보내기는 실행 정책을 싣지만 (`toExportCollection` — 「import 복원용」) 가져오기는 이름 · schema · 행만 `updateCollection` 으로 넣었고, 그 diff 는 실행 정책을 다루지 않는다. endpoint 의 대상 collection (`targetCollectionId`) 은 내보내기 projection (`toRuntimeApiEndpoint`) 에서 빠져 파일에 없었다. 가져온 API collection 은 늘 Manual · 연결 없음이었다.
+  - 수정: 내보내기가 endpoint 에 대상 collection 이름 (`targetCollection`) 을 싣고, 가져오기가 그것을 가져온 collection 의 id 로 다시 잇는다. 실행 정책은 편집기와 같은 `set_execution_policy` op 로 넣는다.
+  - 위치: `apps/builder/src/builder/{main/useCatalogProjectFiles.tsx,utils/importCollectionEnvelope.ts}` · `packages/shared/src/types/collection.types.ts` · 테스트 `importCollectionEnvelope.test.ts` · `samplesImport.test.ts`
+
+### Added
+
+- **CRUD 샘플 프로젝트 파일** `docs/how-to/samples/collection-crud.composition.json`: collection `Users` 를 Table · GridList · ListBox 가 읽고, Create · Update · Delete Form 이 `callEndpoint` (`!event.formData`) 로 REST 스텁에 쓰고, 목록은 실행 정책 interval 2초로 다시 읽는다. 행 선택은 `!event.key` 로 Update · Delete 의 id 칸을 채우고, 전역 변수 `lastAction` · `opCount` 가 작업마다 바뀐다. 스텁 `apps/builder/scripts/crud-endpoint-stub.mjs` (`GET · POST · PUT · DELETE /users`). 확인 절차는 `docs/how-to/samples/README.md`.
+
 ## [Interactions — 「안쪽 전체 전환」 토글 · Publish 의 색 모드 규칙 · 가져온 프로젝트의 규칙 참조 · 확인용 샘플] - 2026-10-22
 
 ### Fixed

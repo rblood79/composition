@@ -122,6 +122,11 @@ export interface ApiEndpointDefinition {
    * 보낸다 (Data 패널 `useMockData` 동형 토글). 미지정/true = dry-run (진행률 시뮬레이션). publish 는 항상 실전송.
    */
   uploadDryRun?: boolean;
+  /**
+   * ADR-218 — the collection a query endpoint fills, by name: project files only (the export
+   * writes it, the import re-points it at the imported collection's id). Runtime envelopes omit it.
+   */
+  targetCollection?: string;
 }
 
 // ============================================

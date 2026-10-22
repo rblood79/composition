@@ -100,7 +100,17 @@ export function useCatalogProjectFiles(options: {
       currentPageId: open.session.getSnapshot().pageId ?? null,
       fontRegistry: loadFontRegistry(),
       collections: [...data.collections.values()].map(toExportCollection),
-      apiEndpoints: [...data.apiEndpoints.values()].map(toRuntimeApiEndpoint),
+      // (The collection a query endpoint fills travels by name — the import re-points it.)
+      apiEndpoints: [...data.apiEndpoints.values()].map((endpoint) => {
+        const collectionId = endpoint.targetCollectionId;
+        const target =
+          (collectionId && data.collections.get(collectionId)?.name) ||
+          endpoint.targetCollection;
+        return {
+          ...toRuntimeApiEndpoint(endpoint),
+          ...(target ? { targetCollection: target } : {}),
+        };
+      }),
       variables: getProjectVariableDefinitions(),
     };
   }, [routeId]);

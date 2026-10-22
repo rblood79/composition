@@ -123,4 +123,67 @@ describe("ADR-209 공통 JSON 데이터 소스 복원", () => {
     });
     expect(applyDataChange.mock.calls[0][1]).toEqual({ projectId: "target" });
   });
+  it("ADR-218 — 파일의 실행 정책과 endpoint 의 대상 collection 이 가져온 collection 에 다시 이어진다", async () => {
+    const applyDataChange = vi.fn(async () => ({}));
+    const createApiEndpoint = vi.fn(async (config) => ({
+      ...config,
+      id: "new-api",
+    }));
+    const store = {
+      collections: new Map(),
+      apiEndpoints: new Map(),
+      variables: new Map(),
+      createDataTable: vi.fn(async (config) => ({
+        ...config,
+        id: "new-users",
+      })),
+      setRuntimeData: vi.fn(),
+      createApiEndpoint,
+      updateCollection: vi.fn(),
+      updateApiEndpoint: vi.fn(),
+      applyDataChange,
+    };
+    const data = {
+      collections: [
+        {
+          id: "file-users",
+          name: "Users",
+          useMockData: false,
+          executionPolicy: { mode: "interval", intervalSec: 2 },
+        },
+      ],
+      apiEndpoints: [
+        {
+          id: "file-api",
+          name: "listUsers",
+          baseUrl: "http://localhost:5198",
+          path: "/users",
+          targetCollection: "Users",
+        },
+      ],
+    } as unknown as ProjectDataParts;
+    await importDataParts(
+      "target",
+      data,
+      store as unknown as Parameters<typeof importDataParts>[2],
+    );
+    expect(applyDataChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ops: [
+          {
+            op: "set_execution_policy",
+            collectionId: "new-users",
+            policy: { mode: "interval", intervalSec: 2 },
+          },
+        ],
+      }),
+      { projectId: "target" },
+    );
+    expect(createApiEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetCollectionId: "new-users",
+        targetCollection: "Users",
+      }),
+    );
+  });
 });

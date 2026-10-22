@@ -22,3 +22,24 @@ node apps/builder/scripts/adr281-endpoint-stub.mjs        # 받은 요청을 터
 ## `global-variable-crud.composition.json` — 전역 변수 CRUD
 
 전역 변수 `userName` (string) · `count` (number) · `isMember` (boolean) 와, 그 값을 읽고 (`{{ name }}`) 쓰는 버튼 — set (Create · Update) · reset (Delete) · increment · toggle. 「다른 페이지로 이동」 뒤에도 값이 유지되고 거기서 바꾼 값이 Home 에 보인다. 변수에 쓰는 값은 지금 리터럴만 된다 (입력 칸의 값을 변수에 쓰는 `!event.value` 는 아직 없다).
+
+## `collection-crud.composition.json` — 전역 변수 · Table · List · Form CRUD
+
+collection `Users` (id · name · email · role) 하나를 Table · GridList · ListBox 셋이 읽고, Form 셋이 로컬 REST 스텁에 쓴다. 목록 갱신은 collection 실행 정책 **interval 2초** (연결 endpoint `listUsers` = `GET /users`) 가 맡는다.
+
+```bash
+node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:5198/users — 메모리 저장, 다시 켜면 seed 3행
+```
+
+확인은 헤더의 **Compare Mode (Preview + Skia)** 로 한다 — 왼쪽 Preview 가 규칙을 실행하고 Builder data store 의 갱신을 받는다. 상단 **Preview** 버튼 (publish 탭) 은 파일 스냅샷이라 제출은 되지만 목록이 다시 읽히지 않는다 (interval 실행은 Builder 가 한다).
+
+| 동작     | 어디서                                   | 기대                                                                                                    |
+| -------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Read     | Table · GridList · ListBox               | 같은 행. 스텁에 직접 넣은 행 (`curl -X POST …/users`) 도 2초 안에 셋 모두와 Canvas Table 에 나타난다    |
+| Create   | Create Form → 추가                       | `POST /users` (본문 = 필드 값 JSON) → 새 행 `u4…`                                                       |
+| 행 선택  | Table 행 (`onRowAction`) · GridList 항목 (`onAction`) | Update · Delete Form 의 id 칸이 그 행 id (`setValue` 값 = `!event.key`)                     |
+| Update   | Update Form → 수정                       | `PUT /users` — 채운 칸만 바뀐다                                                                         |
+| Delete   | Delete Form → 삭제                       | `DELETE /users` (본문 `{"id"}`) → 행이 사라진다                                                         |
+| 전역 변수 | 각 제출 · 「전역 변수 초기화」          | `lastAction` = Create / Update / Delete (`set`) · `opCount` +1 (`increment`) · 초기화 = 없음 · 0 (`reset`). Canvas 는 기본값을 그린다 (설계) |
+
+제출 뒤 Form 칸은 비워지지 않는다 (같은 값으로 다시 보낼 수 있다).
