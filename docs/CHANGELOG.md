@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 드래그 — 빈 slot 표시가 컴포넌트를 따라 움직인다] - 2026-10-22
+
+### Fixed
+
+- **빈 slot 이 있는 컴포넌트를 끌면 slot 사선 표시만 제자리에 남던 것** (사용자 보고 2026-10-22): 드래그 중 요소는 그릴 때 offset 을 더하지만 (문서 · scene 상자는 놓을 때까지 그대로), overlay 의 slot 표시는 scene 상자 위치로 그렸다. 이제 끌리는 record · 비켜나는 형제 아래의 slot 표시는 같은 offset 으로 옮긴다. 드래그가 없으면 계산하지 않는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/catalogOverlayChrome.ts` `catalogDraggedSlotMarks` · `CatalogCanvas.tsx` overlay `slots`
+
 ## [ListBox · Menu 의 받는 자식 — deprecated Section · 목록 직속 Header 제거] - 2026-10-22
 
 ### Changed

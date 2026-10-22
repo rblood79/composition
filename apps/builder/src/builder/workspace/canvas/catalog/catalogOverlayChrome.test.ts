@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createOverlayChromeCache } from "./catalogOverlayChrome";
+import {
+  catalogDraggedSlotMarks,
+  createOverlayChromeCache,
+} from "./catalogOverlayChrome";
 
 /**
  * Pan 중 camera-only 프레임에도 overlay 가 slot 표시 · 행 나머지 · 페이지 가림 상자를 record 전체를
@@ -50,5 +53,53 @@ describe("createOverlayChromeCache", () => {
     expect(remainders).toHaveBeenCalledTimes(2);
     expect(occluders).toHaveBeenCalledTimes(2);
     expect(next).not.toBe(undefined);
+  });
+});
+
+/**
+ * 2026-10-22 사용자 보고 「컴포넌트 내 빈 slot 자리가 드래그 이동 때 그 자리에 남는다」: 드래그 중
+ * 요소는 그릴 때 offset 을 더하는데 slot 표시는 scene 상자 그대로 그려졌다. 끌리는 record (또는
+ * 비켜나는 형제) 아래의 slot 표시는 같은 offset 으로 옮긴다.
+ */
+describe("catalogDraggedSlotMarks", () => {
+  const box = { x: 10, y: 20, width: 30, height: 40 };
+  const mark = (identity: string) => ({
+    box,
+    empty: true,
+    role: "instance" as const,
+    identity,
+  });
+  // card > body > slot · other > otherSlot
+  const parents: Record<string, string> = {
+    slot: "body",
+    body: "card",
+    card: "page",
+    otherSlot: "other",
+    other: "page",
+  };
+  const parentOf = (id: string) => parents[id];
+
+  it("끌리는 record 의 자손 slot 은 drag offset 만큼, 비켜나는 형제의 자손은 그 형제 offset 만큼 옮긴다", () => {
+    const marks = [mark("slot"), mark("otherSlot")];
+    const moved = catalogDraggedSlotMarks(marks, parentOf, {
+      drag: { elementIds: new Set(["card"]), dx: 5, dy: -7 },
+      siblings: true,
+      siblingOffset: (id) => (id === "other" ? { dx: 0, dy: 12 } : undefined),
+    });
+    expect(moved.map((item) => item.box)).toEqual([
+      { ...box, x: 15, y: 13 },
+      { ...box, y: 32 },
+    ]);
+  });
+
+  it("드래그가 없으면 같은 배열을 돌려준다 (camera-only 프레임 비용 0)", () => {
+    const marks = [mark("slot")];
+    expect(
+      catalogDraggedSlotMarks(marks, parentOf, {
+        drag: null,
+        siblings: false,
+        siblingOffset: () => undefined,
+      }),
+    ).toBe(marks);
   });
 });

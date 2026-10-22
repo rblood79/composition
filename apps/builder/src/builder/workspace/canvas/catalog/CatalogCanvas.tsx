@@ -100,7 +100,10 @@ import { getCanvasKit } from "../skia/initCanvasKit";
 import { setEditingElementId } from "../skia/nodeRendererState";
 import {
   getDragSiblingOffsetRevision,
+  getDragVisualOffset,
   getDragVisualOffsetRevision,
+  getSiblingOffset,
+  hasDragSiblingOffsets,
   setDragSiblingOffsets,
   setDragVisualOffset,
 } from "../skia/nodeRendererTree";
@@ -132,7 +135,10 @@ import {
 import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { catalogMenuView } from "./catalogMenuView";
-import { createOverlayChromeCache } from "./catalogOverlayChrome";
+import {
+  catalogDraggedSlotMarks,
+  createOverlayChromeCache,
+} from "./catalogOverlayChrome";
 import { catalogOverlayNode } from "./catalogOverlay";
 import { catalogScrollbarContent } from "./catalogScrollbarContent";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
@@ -536,7 +542,17 @@ export function CatalogCanvas({
       childrenOf: (identity) =>
         sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
-      slots: chrome.slots,
+      // (During a drag the marks move with their records — the renderer translates them.)
+      slots: () =>
+        catalogDraggedSlotMarks(
+          chrome.slots(),
+          (identity) => sceneRoot.canvasInputs.get(identity)?.parentId,
+          {
+            drag: getDragVisualOffset(),
+            siblings: hasDragSiblingOffsets(),
+            siblingOffset: getSiblingOffset,
+          },
+        ),
       hitBounds: () => scene.stream.hitBoundsMap,
       roleOf: (identity) => {
         const target = workspace.itemOfRecord(identity)?.target;

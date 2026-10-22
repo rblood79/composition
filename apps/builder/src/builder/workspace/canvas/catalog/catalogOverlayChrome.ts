@@ -76,3 +76,54 @@ export function createOverlayChromeCache(
     },
   };
 }
+
+/** The drag presentation the renderer applies (`nodeRendererTree.ts`). */
+export interface CatalogDragShift {
+  drag: { elementIds: ReadonlySet<string>; dx: number; dy: number } | null;
+  /** Some sibling eases aside (`hasDragSiblingOffsets`). */
+  siblings: boolean;
+  siblingOffset(identity: string): { dx: number; dy: number } | undefined;
+}
+
+/**
+ * Slot marks of the drawn scene moved as their records are drawn during a drag: under a dragged
+ * record by the drag's offset, under a sibling easing aside by that sibling's. The scene's boxes
+ * stay put until the drop (the renderer only translates), so the marks read the same offsets.
+ * No drag: the same list (a camera-only frame pays nothing).
+ *
+ * **Why (2026-10-22 user report)**: an empty slot's hatch stayed where the component was while
+ * the component followed the pointer.
+ */
+export function catalogDraggedSlotMarks(
+  marks: readonly CatalogOverlaySlotMark[],
+  parentOf: (identity: string) => string | undefined,
+  shift: CatalogDragShift,
+): readonly CatalogOverlaySlotMark[] {
+  const { drag } = shift;
+  if (!drag && !shift.siblings) return marks;
+  let moved: CatalogOverlaySlotMark[] | undefined;
+  marks.forEach((mark, index) => {
+    let offset: { dx: number; dy: number } | undefined;
+    for (
+      let at: string | undefined = mark.identity;
+      at && !offset;
+      at = parentOf(at)
+    )
+      offset = drag?.elementIds.has(at)
+        ? drag
+        : shift.siblings
+          ? shift.siblingOffset(at)
+          : undefined;
+    if (!offset || (offset.dx === 0 && offset.dy === 0)) return;
+    moved ??= [...marks];
+    moved[index] = {
+      ...mark,
+      box: {
+        ...mark.box,
+        x: mark.box.x + offset.dx,
+        y: mark.box.y + offset.dy,
+      },
+    };
+  });
+  return moved ?? marks;
+}
