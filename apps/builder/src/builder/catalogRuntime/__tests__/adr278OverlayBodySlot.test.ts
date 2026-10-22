@@ -538,6 +538,40 @@ describe("ADR-278 — overlay body = slot", () => {
     expect(options).not.toContain("Confirm body");
   });
 
+  // 2026-10-22 user report 「restore 가 기존 기능대로 동작하지 않는다」: the placed instance owns its
+  // body's default content (2026-10-14), so restoring brings that content back as its own nodes —
+  // not the template position (the fill rows and the restore went away, the words were no longer
+  // the instance's). One step: undo gives the fill back.
+  it("Restore template content: the slot holds the default content again as the instance's own nodes (as placed), one step", async () => {
+    const { workspace, graph, nodeOf, fillAt, fillText, dialogContent } =
+      await open();
+    const words = (ids: readonly NodeId[]) =>
+      ids.map(
+        (id) =>
+          (nodeOf(id).props.children as { value?: unknown } | undefined)?.value,
+      );
+    const region = "component-dialog__content-region";
+    const placed = fillAt(DIALOG, region)!.childIds;
+    const added = fillText(dialogContent, "Custom words");
+    expect(words(fillAt(DIALOG, region)!.childIds)).toEqual([
+      "Dialog content goes here.",
+      "Custom words",
+    ]);
+
+    const revision = graph.revision;
+    workspace.execute(catalogSlotCommands.restore(dialogContent, workspace.newId));
+    expect(graph.revision).toBe(revision + 1);
+    const restored = fillAt(DIALOG, region)!.childIds;
+    expect(words(restored)).toEqual(["Dialog content goes here."]);
+    // New owned nodes in place of the old ones (the added one and the placed copy are gone).
+    expect(restored.some((id) => placed.includes(id))).toBe(false);
+    expect(graph.getEntry(added)).toBe(undefined);
+    for (const id of placed) expect(graph.getEntry(id)).toBe(undefined);
+
+    workspace.undo();
+    expect(fillAt(DIALOG, region)!.childIds).toEqual([...placed, added]);
+  });
+
   it("ListBox `Items` (a root slot) fill list: a ListBoxItem-rooted project component, not a frame-rooted one", async () => {
     const { workspace, fillAt, labels } = await open();
     const item = fillAt(LISTBOX, "component-listbox")!.childIds[0]!;

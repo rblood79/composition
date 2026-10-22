@@ -123,7 +123,7 @@ describe("ADR-248 Phase 4e-4 slot section", () => {
       definitionId: "lib:definition:text",
     });
 
-    workspace.execute(catalogSlotCommands.restore(target));
+    workspace.execute(catalogSlotCommands.restore(target, workspace.newId));
     expect(catalogSlotPosition(graph, target)).toEqual({
       slot: { name: "content", required: false },
     });

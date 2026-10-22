@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 slot 절 — Restore template content 는 놓았을 때의 내용으로] - 2026-10-22
+
+### Fixed
+
+- **Restore template content 가 놓았을 때의 내용으로 돌아가지 않던 것** (사용자 보고 2026-10-22): 팔레트로 놓은 라이브러리 원본 instance (Dialog · Popover · Card · ListBox …) 의 slot 은 놓는 순간 기본 내용을 소유 노드로 갖는데, restore 는 채움과 override 만 지워 템플릿 자리로 떨어졌다 — 패널의 내용 행과 restore 버튼이 사라지고, 내용은 ID · detach 가 없는 템플릿 자리가 됐다. 이제 restore 는 지운 뒤 놓기와 같은 `ownSlotContents` 로 기본 내용을 다시 소유 노드로 만든다 (history 한 step). project 컴포넌트 instance 는 전처럼 컴포넌트의 내용이 보인다.
+  - **Why**: 2026-10-14 「slot 내용은 놓는 순간 소유」 결정 때 restore 명령은 옛 동작 (override 제거) 그대로 남았다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/slots.ts` `catalogSlotCommands.restore`
+
 ## [Design 패널 slot 절 — Fill slot 피커를 패널 필드 어법으로 · restore 는 행 아이콘 액션] - 2026-10-22
 
 ### Changed

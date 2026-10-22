@@ -3,7 +3,10 @@ import {
   removeTargets,
   setSlotDeclaration,
 } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  stageOver,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
 import {
   assertNestable,
   CommandDraft,
@@ -13,7 +16,10 @@ import {
   templateDefinitionId,
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import { catalogChildKind } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
-import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import {
+  ownSlotContents,
+  type NewId,
+} from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
   DefinitionId,
@@ -183,30 +189,40 @@ export const catalogSlotCommands = {
       label: "Add content",
     });
   },
+  /**
+   * The slot's content as the instance was placed with: its fill and the position's override go,
+   * then a library origin's slot holds the template's default content again as the instance's own
+   * nodes — as placing it does (`ownSlotContents`, user decision 2026-10-14). A project component's
+   * slot shows its template's content (placing does not own it).
+   */
   restore:
-    (target: Extract<EditTarget, { kind: "descendant" }>): CatalogCommand =>
+    (
+      target: Extract<EditTarget, { kind: "descendant" }>,
+      newId: NewId,
+    ): CatalogCommand =>
     (reader) => {
       const position = catalogSlotPosition(reader, target);
       if (!position?.fillIds) throw new Error("SLOT_NOT_FILLED");
-      const remove = position.fillIds.length
-        ? removeTargets({
-            targets: position.fillIds.map((id) => ({
-              kind: "node" as const,
-              id,
-            })),
-          })(reader).ops
-        : [];
-      return {
-        label: "Restore slot content",
-        ops: [
-          ...remove,
-          {
-            kind: "removeDescendant",
-            id: target.ownerId,
-            address: target.address,
-          },
-        ],
-      };
+      const stage = stageOver(reader);
+      const ops = [
+        ...(position.fillIds.length
+          ? removeTargets({
+              targets: position.fillIds.map((id) => ({
+                kind: "node" as const,
+                id,
+              })),
+            })(stage).ops
+          : []),
+        {
+          kind: "removeDescendant" as const,
+          id: target.ownerId,
+          address: target.address,
+        },
+      ];
+      stage.apply(ops);
+      const draft = new CommandDraft(stage);
+      ownSlotContents(draft, [target.ownerId], newId);
+      return { label: "Restore slot content", ops: [...ops, ...draft.ops()] };
     },
 };
 

@@ -297,8 +297,9 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   );
   const restore = useCallback(() => {
     const slotTarget = catalogSlotTarget(graph, target);
-    if (slotTarget) run(catalogSlotCommands.restore(slotTarget));
-  }, [graph, run, target]);
+    if (slotTarget)
+      run(catalogSlotCommands.restore(slotTarget, workspace.newId));
+  }, [graph, run, target, workspace]);
   const removeFill = useCallback(
     (id: string) =>
       run(
