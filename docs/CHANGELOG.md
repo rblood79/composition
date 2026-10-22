@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [바인딩된 ListBox — 항목을 모두 지워도 행이 생긴다] - 2026-10-22
+
+### Fixed
+
+- **항목이 없는 ListBox 에 Content → Data collection 을 골라도 행이 생기지 않던 것** (사용자 보고 2026-10-22): 바인딩된 목록은 slot 에 소유한 첫 항목을 행 견본으로 반복하는데, 항목을 모두 지운 빈 slot 에는 견본이 없어 행 0 개였다 (Slot 에서 항목을 하나 넣으면 그제야 생겼다). 이제 빈 slot 은 원본의 첫 항목을 행 견본으로 쓴다 — 항목이 템플릿 자리일 때와 같다. 항목을 넣으면 그 항목이 견본이 된다. Canvas · Preview 가 같은 resolver 를 읽는다.
+  - **Why**: 2026-10-14 「slot 내용은 놓는 순간 소유」 뒤 행 반복이 소유 항목만 보게 됐고, 비어 버린 경우의 견본이 없었다.
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` fill-slot 분기
+
 ## [Design 패널 slot 절 — 새 ListBox 항목은 항목 원본의 instance] - 2026-10-22
 
 ### Fixed

@@ -15,6 +15,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import {
   insertNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
@@ -148,6 +149,34 @@ describe("ADR-248 4e row sample", () => {
     expect(catalogRowSampleHiddenWithin(root, label)).toBe(true);
     expect(catalogRowSampleHiddenWithin(root, rows[3]!.id)).toBe(false);
     canvas.dispose();
+    workspace.dispose();
+  });
+
+  // 2026-10-22 user 「listbox 에 child 가 없을 때 data collection 선택 시 row 가 생성되지 않는다 · slot 에서
+  // item 추가 시 생성됨」: a bound ListBox whose own items were all removed still repeats a row
+  // template — the origin's item, as a ListBox whose items are template positions does.
+  it("a bound ListBox with no item of its own left repeats its origin's item per row", async () => {
+    const workspace = await open("ListBox", rowsOf(3));
+    const graph = workspace.runtime.graph;
+    const fill = (graph.getEntry(LIST) as NodeEntry).descendantOverrides.find(
+      (override) => override.kind === "fillSlot",
+    ) as { childIds: readonly NodeId[] };
+    expect(fill.childIds.length).toBeGreaterThan(0);
+    workspace.execute(
+      removeTargets({
+        targets: fill.childIds.map((id) => ({ kind: "node" as const, id })),
+      }),
+    );
+    expect(
+      (
+        (graph.getEntry(LIST) as NodeEntry).descendantOverrides.find(
+          (override) => override.kind === "fillSlot",
+        ) as { childIds: readonly NodeId[] }
+      ).childIds,
+    ).toEqual([]);
+    expect(
+      rowRecords(workspace, "ListBoxItem").map((row) => row.rowIndex),
+    ).toEqual([0, 1, 2]);
     workspace.dispose();
   });
 
