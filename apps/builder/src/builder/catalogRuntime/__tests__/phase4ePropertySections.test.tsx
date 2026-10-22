@@ -651,7 +651,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
   // 2026-10-22 user 「listboxsection 추가 - slot 에서 listboxitem 추가 — instance 객체가 아닌 요소」: a
   // section holds no template items and no sibling yet — the item is still an instance of the item
   // origin the ListBox family uses.
-  it("a ListBoxItem added inside a new ListBoxSection is an instance of the ListBoxItem origin", async () => {
+  it("a new ListBoxSection is the section origin's instance with its header; an item added in it is a ListBoxItem origin instance", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
     workspace.execute(
@@ -671,6 +671,23 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     const sectionId = workspace.execute(
       choiceAt(listRecord, "ListBoxSection").build(),
     ).plan.selectAfter![0]!;
+    // 2026-10-22 user 「섹션도 원본 instance 만 넣고 header 가 포함」: the section is an instance of
+    // the ListBoxSection origin, holding its header and items as its own nodes (as placed).
+    expect((graph.getEntry(sectionId) as NodeEntry).definitionId).toBe(
+      "lib:definition:origin-component-listbox-section",
+    );
+    const sectionFill = (graph.getEntry(sectionId) as NodeEntry).descendantOverrides.find(
+      (override) => override.kind === "fillSlot",
+    ) as { childIds: readonly NodeId[] } | undefined;
+    expect(
+      sectionFill?.childIds.map(
+        (child) => (graph.getEntry(child) as NodeEntry).definitionId,
+      ),
+    ).toEqual([
+      "lib:definition:type-Header",
+      "lib:definition:origin-component-listbox-item-default",
+      "lib:definition:origin-component-listbox-item-default",
+    ]);
     const sectionRecord = workspace.root.recordsOfSource(sectionId)[0]!;
     const itemId = workspace.execute(
       choiceAt(sectionRecord, "ListBoxItem").build(),

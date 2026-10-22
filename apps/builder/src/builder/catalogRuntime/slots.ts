@@ -230,7 +230,9 @@ export const catalogSlotCommands = {
 /**
  * The item origin a collection family's own origin uses for an item type (a ListBox origin's items
  * are ListBoxItem/Default instances) — for a position with no template item to read (a new
- * ListBoxSection, 2026-10-22 user report). Searched down the owner origin's template.
+ * ListBoxSection, 2026-10-22 user report). Searched down the owner origin's template, else the
+ * Library origin drawn by that type (a ListBoxSection origin — its header and items, user 「섹션도
+ * 원본 instance · header 포함」); a state variant (`--hover`) is never the default.
  */
 function familyItemOrigin(
   graph: CatalogReader,
@@ -245,7 +247,7 @@ function familyItemOrigin(
     }
   };
   for (const family of COLLECTION_FAMILIES) {
-    if (family.item !== itemType) continue;
+    if (family.item !== itemType && family.section !== itemType) continue;
     const owner = library.definitions.get(
       catalogPaletteDefinitionId(library, family.owner),
     ) as { templateRootId?: string } | undefined;
@@ -263,6 +265,20 @@ function familyItemOrigin(
         return template.definitionId as DefinitionId;
       queue.push(...template.children);
     }
+  }
+  if (!COLLECTION_FAMILIES.some(
+    (family) => family.item === itemType || family.section === itemType,
+  ))
+    return undefined;
+  for (const definition of library.definitions.values()) {
+    const id = (definition as { id: string }).id;
+    if (!id.startsWith("lib:definition:origin-") || id.includes("--")) continue;
+    const root = (definition as { templateRootId?: string }).templateRootId;
+    const template = root
+      ? library.templates.get(root as `lib:template:${string}`)
+      : undefined;
+    if (template && typeOf(template.definitionId) === itemType)
+      return id as DefinitionId;
   }
   return undefined;
 }

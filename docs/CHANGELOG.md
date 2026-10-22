@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Slot 피커 · 「+」 로 넣은 ListBox 항목이 instance 가 아니던 것** (사용자 보고 2026-10-22 「slot - listboxitem 추가해도 instance 객체가 아니다」): 피커의 Library 선택지와 「+」 의 기본 정의가 팔레트 id — 항목 type 은 원본이 아닌 맨 type (`type-ListBoxItem`) — 라, 형제 항목이 없거나 fill 경로로 넣으면 놓을 때의 항목 (ListBoxItem 원본의 instance) 과 다른 객체가 됐다. 이제 그 자리 템플릿이 담은 항목 원본 (`origin-component-listbox-item-default` …) 을 쓴다 — GridList · Menu · Tree 등 템플릿에 항목을 담은 자리도 같다.
   - **Why**: 「+」 는 형제의 정의를 빌려 instance 가 되는 경우가 많아 드러나지 않았다 (형제가 없을 때 · Slot 피커의 fill 경로에서만).
   - 섹션 (ListBoxSection · GridListSection · MenuSection) 처럼 템플릿 항목도 형제도 없는 자리는 그 컬렉션 원본 (ListBox · GridList · Menu …) 의 템플릿이 쓰는 항목 원본을 따른다 (사용자 보고 2026-10-22 「listboxsection 추가 - slot 에서 listboxitem 추가 — instance 가 아닌 요소」).
+  - 새 섹션 (ListBoxSection · GridListSection · MenuSection) 도 섹션 원본의 instance 다 — 원본처럼 header 와 항목을 소유 노드로 갖는다 (사용자 2026-10-22 「섹션도 원본 instance · header 포함」, 전에는 header 없는 맨 type 이었다).
   - 위치: `apps/builder/src/builder/catalogRuntime/slots.ts` `catalogTemplateItemDefinition` · `itemInsert.ts` `definitionFor`
 
 ## [Design 패널 slot 절 — Slot 섹션 하나 · 목록과 삭제는 Layers 로 · 컬렉션 「+」 는 slot 내용에] - 2026-10-22
