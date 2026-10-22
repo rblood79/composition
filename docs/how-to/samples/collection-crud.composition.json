@@ -178,7 +178,10 @@
           "project:interaction:16bfd403-6eb2-48f4-b40a-2b31760a871a",
           "project:interaction:12118d04-bf38-44c8-8472-c2c2716528cb",
           "project:interaction:644141b2-cea0-4466-affc-db8b03919fb3",
-          "project:interaction:abd8e0fd-00b0-4164-8e83-3c5a1c279932"
+          "project:interaction:abd8e0fd-00b0-4164-8e83-3c5a1c279932",
+          "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e01",
+          "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e02",
+          "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e03"
         ],
         "assetIds": []
       },
@@ -1549,6 +1552,39 @@
           "opcode": "setState",
           "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
           "op": "reset"
+        }
+      },
+      "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e01": {
+        "kind": "interaction",
+        "id": "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e01",
+        "ownerId": "project:node:b918274d-35e2-4d8b-9cae-af0dec193409",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:b918274d-35e2-4d8b-9cae-af0dec193409",
+          "capabilityId": "reset"
+        }
+      },
+      "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e02": {
+        "kind": "interaction",
+        "id": "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e02",
+        "ownerId": "project:node:2b5c7683-7f53-4b15-afdf-21322d460c99",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:2b5c7683-7f53-4b15-afdf-21322d460c99",
+          "capabilityId": "reset"
+        }
+      },
+      "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e03": {
+        "kind": "interaction",
+        "id": "project:interaction:7c1e5a90-2b4d-4f6e-9a01-3d5f7b9c1e03",
+        "ownerId": "project:node:48f1f6f1-a82f-4ce8-9cbf-720567edbb8e",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:48f1f6f1-a82f-4ce8-9cbf-720567edbb8e",
+          "capabilityId": "reset"
         }
       }
     }

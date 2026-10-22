@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **CRUD 샘플 프로젝트 파일** `docs/how-to/samples/collection-crud.composition.json`: collection `Users` 를 Table · GridList · ListBox 가 읽고, Create · Update · Delete Form 이 `callEndpoint` (`!event.formData`) 로 REST 스텁에 쓰고, 목록은 실행 정책 interval 2초로 다시 읽는다. 행 선택은 `!event.key` 로 Update · Delete 의 id 칸을 채우고, 전역 변수 `lastAction` · `opCount` 가 작업마다 바뀐다. 스텁 `apps/builder/scripts/crud-endpoint-stub.mjs` (`GET · POST · PUT · DELETE /users`). 확인 절차는 `docs/how-to/samples/README.md`.
+- **CRUD 샘플 프로젝트 파일** `docs/how-to/samples/collection-crud.composition.json`: collection `Users` 를 Table · GridList · ListBox 가 읽고, Create · Update · Delete Form 이 `callEndpoint` (`!event.formData`) 로 REST 스텁에 쓰고, 목록은 실행 정책 interval 2초로 다시 읽는다. 행 선택은 `!event.key` 로 Update · Delete 의 id 칸을 채우고, 전역 변수 `lastAction` · `opCount` 가 작업마다 바뀌고, 각 Form 은 제출 뒤 자기 `reset` 으로 칸을 비운다. 스텁 `apps/builder/scripts/crud-endpoint-stub.mjs` (`GET · POST · PUT · DELETE /users`). 확인 절차는 `docs/how-to/samples/README.md`.
 
 ## [Interactions — 「안쪽 전체 전환」 토글 · Publish 의 색 모드 규칙 · 가져온 프로젝트의 규칙 참조 · 확인용 샘플] - 2026-10-22
 

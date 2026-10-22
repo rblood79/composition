@@ -42,4 +42,4 @@ node apps/builder/scripts/crud-endpoint-stub.mjs          # http://localhost:519
 | Delete   | Delete Form → 삭제                       | `DELETE /users` (본문 `{"id"}`) → 행이 사라진다                                                         |
 | 전역 변수 | 각 제출 · 「전역 변수 초기화」          | `lastAction` = Create / Update / Delete (`set`) · `opCount` +1 (`increment`) · 초기화 = 없음 · 0 (`reset`). Canvas 는 기본값을 그린다 (설계) |
 
-제출 뒤 Form 칸은 비워지지 않는다 (같은 값으로 다시 보낼 수 있다).
+각 Form 은 제출 뒤 자기 `reset` 규칙으로 칸을 비운다 (규칙이 채운 id 칸 포함 — 본문은 제출 이벤트 때 이미 읽었다).

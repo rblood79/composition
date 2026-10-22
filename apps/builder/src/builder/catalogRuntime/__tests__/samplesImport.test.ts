@@ -133,6 +133,20 @@ describe("sample project files import into another project", () => {
     expect(submits.map((action) => action.body)).toEqual(
       Array(3).fill("!event.formData"),
     );
+    // Each Form clears itself after its submit (its own `reset` — the body was read at the event).
+    for (const owner of rules
+      .filter((rule) => rule.action.opcode === "callEndpoint")
+      .map((rule) => rule.ownerId))
+      expect(
+        rules.some(
+          (rule) =>
+            rule.ownerId === owner &&
+            rule.trigger === "onSubmit" &&
+            rule.action.opcode === "capability" &&
+            rule.action.capabilityId === "reset" &&
+            rule.action.targetId === owner,
+        ),
+      ).toBe(true);
     const byId = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint]));
     expect(
       new Set(
