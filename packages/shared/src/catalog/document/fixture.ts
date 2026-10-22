@@ -16,6 +16,8 @@ export function createG1Fixture() {
       "update",
       "remove",
       "reload",
+      "loadMore",
+      "setFilterText",
       "toast",
       "capability",
     ],

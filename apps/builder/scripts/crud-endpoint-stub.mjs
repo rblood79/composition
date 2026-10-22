@@ -1,5 +1,7 @@
 // A local in-memory Users REST stub for the CRUD sample (`docs/how-to/samples/collection-crud.composition.json`).
-// GET /users → rows · GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
+// GET /users → rows (`?q=` filters by name · email, `?sort=<field>&dir=descending`; with `?limit=` a
+//   page `{items, next}` — `?page=` from 1, `next` the next page or null: useAsyncList's cursor) ·
+// GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
 // Every request is printed (method · path · body · rows after). Restarting resets the rows.
 // Usage: node apps/builder/scripts/crud-endpoint-stub.mjs [port=5198]
 // STUB_DELAY_MS=1500 answers every request that much later (to see a Preview's loading state).
@@ -39,7 +41,8 @@ createServer((req, res) => {
       res.end();
       return;
     }
-    const path = new URL(req.url ?? "/", "http://localhost").pathname;
+    const requestUrl = new URL(req.url ?? "/", "http://localhost");
+    const path = requestUrl.pathname;
     const one = /^\/users\/([^/]+)$/.exec(path);
     if (one && req.method === "GET") {
       const row = rows.find((item) => item.id === decodeURIComponent(one[1]));
@@ -47,7 +50,24 @@ createServer((req, res) => {
       return row ? send(res, 200, row) : send(res, 404, { error: `${one[1]} 없음` });
     }
     if (path !== "/users") return send(res, 404, { error: "not found" });
-    if (req.method === "GET") return send(res, 200, rows);
+    if (req.method === "GET") {
+      const query = requestUrl.searchParams;
+      const q = (query.get("q") ?? "").trim().toLowerCase();
+      let found = q
+        ? rows.filter((row) => `${row.name} ${row.email}`.toLowerCase().includes(q))
+        : [...rows];
+      const sort = query.get("sort");
+      if (sort && FIELDS.concat("id").includes(sort)) {
+        found.sort((a, b) => String(a[sort]).localeCompare(String(b[sort])));
+        if (query.get("dir") === "descending") found.reverse();
+      }
+      const limit = Number(query.get("limit"));
+      console.log(JSON.stringify({ method: "GET", path: `${path}${requestUrl.search}`, rows: found.length }));
+      if (!limit) return send(res, 200, found);
+      const page = Math.max(1, Number(query.get("page") ?? 1));
+      const items = found.slice((page - 1) * limit, page * limit);
+      return send(res, 200, { items, next: page * limit < found.length ? page + 1 : null });
+    }
     let body = {};
     try {
       body = text ? JSON.parse(text) : {};

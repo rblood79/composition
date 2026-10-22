@@ -31,6 +31,9 @@ export const tableBinding: PrimitiveBinding = {
         options: [
           { value: "idle", label: "Idle" },
           { value: "loading", label: "Loading" },
+          { value: "sorting", label: "Sorting" },
+          { value: "loadingMore", label: "Loading More" },
+          { value: "filtering", label: "Filtering" },
           { value: "error", label: "Error" },
         ],
       },

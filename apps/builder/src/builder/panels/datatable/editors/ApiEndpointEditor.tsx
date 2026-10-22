@@ -281,6 +281,7 @@ export function ApiEndpointEditor({
 
         <TabPanel id="params" className={panelContents()}>
           <ParamsTab endpoint={endpoint} save={save} dt={dt} />
+          <CursorPathRow endpoint={endpoint} save={save} dt={dt} />
           <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
         </TabPanel>
         <TabPanel id="headers" className={panelContents()}>
@@ -329,6 +330,50 @@ function UploadTransportRow({
       <p className="datatable-api-hint">
         {live ? dt("apiUploadLiveHint") : dt("apiUploadDryRunHint")}
       </p>
+    </div>
+  );
+}
+/** `useAsyncList` pagination — the response's next `cursor` (`responseMapping.cursorPath`). */
+function CursorPathRow({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const saved = endpoint.responseMapping?.cursorPath ?? "";
+  const [draft, setDraft] = useState(saved);
+  const commit = () => {
+    const cursorPath = draft.trim();
+    if (cursorPath === saved) return;
+    const { cursorPath: _previous, ...mapping } = endpoint.responseMapping ?? {
+      dataPath: "",
+    };
+    void save({
+      responseMapping: cursorPath ? { ...mapping, cursorPath } : mapping,
+    });
+  };
+  return (
+    <div className="datatable-api-section">
+      <fieldset className="properties-aria">
+        <legend className="fieldset-legend">{dt("apiCursorPath")}</legend>
+        <input
+          type="text"
+          className="datatable-api-input"
+          aria-label={dt("apiCursorPath")}
+          value={draft}
+          placeholder="next"
+          spellCheck={false}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+          }}
+        />
+      </fieldset>
+      <p className="datatable-api-hint">{dt("apiCursorPathHint")}</p>
     </div>
   );
 }

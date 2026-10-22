@@ -27,6 +27,9 @@ export const CATALOG_ACTION_OPCODES = [
   "remove",
   // `useAsyncList.reload` — an API collection loaded again.
   "reload",
+  // `useAsyncList.loadMore` · `setFilterText` — the next page · a server filter.
+  "loadMore",
+  "setFilterText",
 ] as const satisfies readonly InteractionEntry["action"]["opcode"][];
 
 export function codeExecutionVocabulary(): {

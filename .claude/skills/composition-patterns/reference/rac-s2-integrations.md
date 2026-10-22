@@ -38,11 +38,11 @@
 | list 필터                | `filterText` · `setFilterText` · `filter` (설치본)                                                                                                                      | ✗    |                                                                                            |
 | 비동기 load (첫 읽기)    | `useAsyncList({ load({signal}) })` → `{items}`                                                                                                                          | ✅   | 실행 정책 Auto · 경로 param endpoint (`loadRouted`)                                        |
 | 다시 읽기                | `list.reload()`                                                                                                                                                         | ✅   | Do `reload`                                                                                |
-| 읽는 중 상태             | `list.loadingState` · `list.isLoading`                                                                                                                                  | ◐    | 세션 `loadingStates` → 바운드 Table `loadingState` · Skeleton `isLoading`. 다른 컴포넌트 ✗ |
-| 더 불러오기 (pagination) | `list.loadMore` + `cursor` → 컴포넌트 `onLoadMore`                                                                                                                      | ✗    |                                                                                            |
-| 서버 정렬                | `load({sortDescriptor})`                                                                                                                                                | ✗    | 클라이언트 정렬만 (§4)                                                                     |
+| 읽는 중 상태             | `list.loadingState` · `list.isLoading`                                                                                                                                  | ◐ | 세션 `loadingStates` (S2 값 6종: `loading` · `sorting` · `loadingMore` · `filtering` · `error` · `idle`) → 바운드 Table `loadingState` · Skeleton `isLoading`. 다른 컴포넌트 표시 ✗ |
+| 더 불러오기 (pagination) | `list.loadMore` + `cursor` → 컴포넌트 `onLoadMore`                                                                                                                      | ◐ | Do `loadMore` + endpoint `responseMapping.cursorPath` · 쿼리 `{{ cursor }}` (URL cursor 는 그대로 읽음). 목록 끝 자동 `onLoadMore` ✗ |
+| 서버 정렬                | `load({sortDescriptor})`                                                                                                                                                | ✅ | endpoint 쿼리 `{{ sortDescriptor.column }}` · `{{ sortDescriptor.direction }}` — 바운드 Table 정렬이 서버로 (column = 필드 key), 클라이언트는 그 순서 유지 |
 | 클라이언트 정렬          | `sort({items, sortDescriptor})` + `useCollator`                                                                                                                         | ◐    | Table 열 정렬 (세션 `tableSort`)                                                           |
-| 서버 필터                | `load({filterText})` · `list.setFilterText` ↔ ComboBox `inputValue`/`onInputChange`                                                                                     | ✗    |                                                                                            |
+| 서버 필터                | `load({filterText})` · `list.setFilterText` ↔ ComboBox `inputValue`/`onInputChange`                                                                                     | ◐ | Do `setFilterText` + 쿼리 `{{ filterText }}` (cursor 처음부터). ComboBox · Autocomplete `inputValue` 자동 연결 ✗ |
 | load 가 선택 지정        | `initialSelectedKeys` · load 반환 `selectedKeys`                                                                                                                        | ✗    |                                                                                            |
 | load 오류                | `loadingState: "error"` · `error` (설치본)                                                                                                                              | ◐    | 세션이 `error` 를 기록 · 경고. 오류 표시 연결 ✗                                            |
 | 트리 데이터              | `useTreeData` (`getChildren`, `insert(parentKey, …)` · `append(parentKey, …)` · `move(key, toParentKey, index)` · `moveBefore/After` · `getItem` · `update` · `remove`) | ✗    | 계층 데이터 바인딩 없음                                                                    |
@@ -183,12 +183,11 @@
 
 이 순서는 이 표에서 뽑은 판단이고 결정이 아니다. 착수 전 사용자 확인 (D2 이름은 위 레퍼런스 그대로):
 
-1. 빈 상태 `renderEmptyState` · 무한 스크롤 `LoadMoreItem` + `onLoadMore` (`useAsyncList.loadMore` / `cursor`)
+1. 빈 상태 `renderEmptyState` · 목록 끝 자동 `onLoadMore` / `LoadMoreItem` (`loadMore` · `cursor` 는 2026-10-23 추가)
 2. 서버 검증 오류 Form `validationErrors` (제출 응답 → field)
-3. 검색 · 필터 — `useAsyncList` `filterText` (서버) · `useListData` `filter` (로컬) 를 바운드 컬렉션에
-4. 서버 정렬 `load({sortDescriptor})`
-5. `useListData` 의 `insert*` · `prepend` · `move*` · `removeSelectedItems` + 컬렉션 DnD (`useDragAndDrop`)
-6. Toast 종류 · timeout · action, Button `isPending` 자동 연결
-7. `useTreeData` · Table `treeColumn` 펼침 행 · TableFooter · S2 `renderActionBar`
+3. 검색 — ComboBox · Autocomplete `inputValue` ↔ `filterText` 자동 연결 · `useListData` `filter` (로컬) (`setFilterText` · 서버 정렬은 2026-10-23 추가)
+4. `useListData` 의 `insert*` · `prepend` · `move*` · `removeSelectedItems` + 컬렉션 DnD (`useDragAndDrop`)
+5. Toast 종류 · timeout · action, Button `isPending` 자동 연결
+6. `useTreeData` · Table `treeColumn` 펼침 행 · TableFooter · S2 `renderActionBar`
 
 관련: [state-management.md](../../../rules/state-management.md) §4 · §6 (바인딩 · Do 의 현재 구현), [ssot-hierarchy.md](../../../rules/ssot-hierarchy.md) §1 D2 (이름 정본 순서).

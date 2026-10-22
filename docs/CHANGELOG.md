@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — `useAsyncList` load 인자: 더 불러오기 · 서버 검색 · 서버 정렬 (`cursor` · `filterText` · `sortDescriptor`)] - 2026-10-23
+
+### Added
+
+- **load 인자를 조회 endpoint 템플릿으로** — 레퍼런스 `useAsyncList({ load({signal, cursor, filterText, sortDescriptor}) })` 의 인자 이름 그대로. endpoint 의 경로 · 쿼리에 `{{ cursor }}` · `{{ filterText }}` · `{{ sortDescriptor.column }}` · `{{ sortDescriptor.direction }}` 를 쓰면 Preview · Publish 세션이 그 값으로 읽는다. 아직 없는 값 (첫 페이지 · 검색어 없음) 의 쿼리는 보내지 않는다:
+  - **더 불러오기 (`loadMore`)** — endpoint 편집기 Params 탭의 「다음 페이지 cursor 경로」 (`responseMapping.cursorPath`, 예 `next`) 가 응답에서 다음 cursor 를 읽는다. Do 「collection 더 불러오기」 가 다음 페이지를 이어 붙인다 (마지막 페이지면 요청 없음). cursor 가 URL 이면 그대로 읽는다 (레퍼런스의 `fetch(cursor || url)`). 「다시 읽기」 는 처음 페이지부터.
+  - **서버 검색 (`setFilterText`)** — Do 「collection 검색어로 다시 읽기」 (값: 리터럴 · `!event.<인자>`). cursor 는 처음부터, S2 `loadingState: "filtering"`.
+  - **서버 정렬** — 바운드 Table 의 열 정렬이 endpoint 가 `sortDescriptor` 를 읽으면 서버 정렬로 간다 (column = 열의 필드 key). 클라이언트는 받은 순서를 그대로 둔다.
+  - 읽는 중 상태는 S2 `LoadingState` 값 6종 (`loading` · `sorting` · `loadingMore` · `filtering` · `error` · `idle`).
+  - 페이지를 넘기는 endpoint (`cursorPath`) 와 템플릿 endpoint 는 세션이 직접 첫 페이지를 읽는다 (cursor 가 세션 것).
+  - Builder 실행 (Auto · 시험 실행) 은 load 인자를 빈 값으로 — 그 쿼리를 빼고 첫 페이지를 읽는다.
+  - 문서: Do `loadMore` · `setFilterText` (contract 47 그대로, 추가만).
+  - 위치: `packages/shared/src/collections/executeCollectionEndpoint.ts` (`loadCollectionEndpoint` · `ENDPOINT_LOAD_ARGUMENTS`) · `catalog/runtime/catalogPreviewSession.ts` (`loadArguments` · `loadMore` · `setFilterText` · `sortCollection` · `serverSort`) · `interactions/dispatcher.ts` · `apps/builder/src/builder/stores/utils/dataActions.ts` · `panels/datatable/editors/ApiEndpointEditor.tsx` (`CursorPathRow`) · 테스트 `asyncList.test.tsx` · `dataActions.executeApi.test.ts` (원복 RED)
+- **CRUD 스텁** — `GET /users` 가 `?q=` (이름 · 이메일) · `?sort=&dir=` 를 받고, `?limit=` 이면 `{items, next}` 페이지 (`?page=`).
+
 ## [Data — 바인딩된 Table · Skeleton 이 collection 의 읽는 중 상태를 따른다 (`useAsyncList.loadingState`)] - 2026-10-23
 
 ### Added

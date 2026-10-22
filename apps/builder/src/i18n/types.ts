@@ -591,6 +591,9 @@ export interface TranslationKeys {
     actionUpdate: string;
     actionRemove: string;
     actionReload: string;
+    actionLoadMore: string;
+    actionSetFilterText: string;
+    filterText: string;
     itemKey: string;
     collection: string;
     appendValue: string;

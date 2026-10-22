@@ -920,6 +920,17 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
       }
     | {
+        /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */
+        opcode: "loadMore";
+        collectionId: DataCollectionId;
+      }
+    | {
+        /** `useAsyncList.setFilterText(text)` — loads again with the text (`load({filterText})`). */
+        opcode: "setFilterText";
+        collectionId: DataCollectionId;
+        value?: Scalar;
+      }
+    | {
         /** `useListData.remove(...keys)`. */
         opcode: "remove";
         collectionId: DataCollectionId;

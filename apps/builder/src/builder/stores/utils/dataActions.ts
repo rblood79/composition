@@ -705,12 +705,21 @@ export const createExecuteApiEndpointAction =
         });
       }
 
+      // `useAsyncList`'s load arguments (`{{ cursor }}` · `{{ filterText }}` ·
+      // `{{ sortDescriptor.* }}`) are the first load's empty ones here: their parameters are left
+      // out (the Preview session gives them — `loadCollectionEndpoint`).
+      const LOAD_ARGUMENT = /\{\{\s*(?:cursor|filterText|sortDescriptor)\b[^}]*\}\}/g;
+      const withoutLoadArguments = (text: string) =>
+        text.replace(LOAD_ARGUMENT, "");
+      url = withoutLoadArguments(url);
+
       // Query Parameters 추가
       if (endpoint.queryParams.length > 0) {
         const searchParams = new URLSearchParams();
         endpoint.queryParams.forEach((qp) => {
           if (qp.key) {
-            let value = qp.value;
+            let value = withoutLoadArguments(qp.value);
+            if (value === "" && qp.value !== "") return;
             // 변수 치환
             if (params) {
               Object.entries(params).forEach(([key, val]) => {

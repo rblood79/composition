@@ -104,6 +104,19 @@ export interface ReloadAction {
   collectionId: string;
 }
 
+/** `useAsyncList.loadMore()` — the next page. */
+export interface LoadMoreAction {
+  kind: "loadMore";
+  collectionId: string;
+}
+
+/** `useAsyncList.setFilterText(text)` — `"!event.value"` · a literal text. */
+export interface SetFilterTextAction {
+  kind: "setFilterText";
+  collectionId: string;
+  value?: unknown;
+}
+
 export type InteractionAction =
   | NavigateAction
   | ToastAction
@@ -113,7 +126,9 @@ export type InteractionAction =
   | AppendAction
   | UpdateAction
   | RemoveAction
-  | ReloadAction;
+  | ReloadAction
+  | LoadMoreAction
+  | SetFilterTextAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

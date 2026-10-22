@@ -862,6 +862,9 @@ const koKR: TranslationKeys = {
     actionUpdate: "collection 항목 수정",
     actionRemove: "collection 항목 삭제",
     actionReload: "collection 다시 읽기",
+    actionLoadMore: "collection 더 불러오기",
+    actionSetFilterText: "collection 검색어로 다시 읽기",
+    filterText: "검색어",
     itemKey: "항목 key",
     collection: "컬렉션",
     appendValue: "값",
@@ -1994,6 +1997,9 @@ const koKR: TranslationKeys = {
     apiTabParams: "Params",
     apiTabAuth: "인증",
     apiParamsHint: "쿼리 파라미터 · path 변수는 URL 에 {{key}} 로.",
+    apiCursorPath: "다음 페이지 cursor 경로",
+    apiCursorPathHint:
+      "응답에서 다음 cursor 가 있는 곳 (예: next · meta.nextCursor). 쿼리에 {{ cursor }} 를 쓰면 그 값이 들어가고, cursor 가 URL 이면 그대로 읽는다 (useAsyncList.loadMore). load 인자 {{ filterText }} · {{ sortDescriptor.column }} · {{ sortDescriptor.direction }} 도 쓸 수 있다.",
     apiUploadLive: "미리보기에서 실제 업로드",
     apiUploadLiveHint:
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
@@ -3192,6 +3198,9 @@ const enUS: TranslationKeys = {
     actionUpdate: "Update a collection item",
     actionRemove: "Remove collection items",
     actionReload: "Reload a collection",
+    actionLoadMore: "Load more of a collection",
+    actionSetFilterText: "Filter a collection (filterText)",
+    filterText: "Filter text",
     itemKey: "Item key",
     collection: "Collection",
     appendValue: "Value",
@@ -4333,6 +4342,9 @@ const enUS: TranslationKeys = {
     apiTabAuth: "Auth",
     apiParamsHint:
       "Query parameters · path variables go in the URL as {{key}}.",
+    apiCursorPath: "Next page cursor path",
+    apiCursorPathHint:
+      "Where the response holds the next cursor (e.g. next · meta.nextCursor). {{ cursor }} in the query takes it; a URL cursor is fetched as is (useAsyncList.loadMore). The load arguments {{ filterText }} · {{ sortDescriptor.column }} · {{ sortDescriptor.direction }} work too.",
     apiUploadLive: "Real upload in preview",
     apiUploadLiveHint:
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
@@ -6188,6 +6200,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 삭제`,
     "interactions.summaryReload": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 다시 읽기`,
+    "interactions.summaryLoadMore": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 더 불러오기`,
+    "interactions.summarySetFilterText": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 검색어로 다시 읽기`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
     "interactions.summaryNavigateWithPath": (args) =>
@@ -6737,6 +6753,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → remove ${String(args?.name ?? "")} items`,
     "interactions.summaryReload": (args) =>
       `${String(args?.when ?? "")} → reload ${String(args?.name ?? "")}`,
+    "interactions.summaryLoadMore": (args) =>
+      `${String(args?.when ?? "")} → load more of ${String(args?.name ?? "")}`,
+    "interactions.summarySetFilterText": (args) =>
+      `${String(args?.when ?? "")} → filter ${String(args?.name ?? "")}`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
     "interactions.summaryNavigateWithPath": (args) =>

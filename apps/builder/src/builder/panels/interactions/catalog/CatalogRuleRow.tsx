@@ -44,12 +44,16 @@ const LIST_DATA_FIELDS = {
   update: ["key", "value"],
   remove: ["keys"],
   reload: [],
+  loadMore: [],
+  setFilterText: ["value"],
 } as const;
 const LIST_DATA_SUMMARY_KEYS = {
   append: "interactions.summaryAppend",
   update: "interactions.summaryUpdate",
   remove: "interactions.summaryRemove",
   reload: "interactions.summaryReload",
+  loadMore: "interactions.summaryLoadMore",
+  setFilterText: "interactions.summarySetFilterText",
 } as const;
 
 const STATE_OP_LABEL_KEYS = {
@@ -159,7 +163,9 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
       action.opcode === "append" ||
       action.opcode === "update" ||
       action.opcode === "remove" ||
-      action.opcode === "reload"
+      action.opcode === "reload" ||
+      action.opcode === "loadMore" ||
+      action.opcode === "setFilterText"
     ) {
       const collection = context.collections?.find(
         (option) => option.id === action.collectionId,
@@ -356,7 +362,9 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
           {(action.opcode === "append" ||
             action.opcode === "update" ||
             action.opcode === "remove" ||
-            action.opcode === "reload") && (
+            action.opcode === "reload" ||
+            action.opcode === "loadMore" ||
+            action.opcode === "setFilterText") && (
             <>
               <PropertySelect
                 label={t("interactions.collection")}
@@ -379,9 +387,11 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                   param={{
                     kind: "text",
                     labelKey:
-                      field === "value"
-                        ? "interactions.appendValue"
-                        : "interactions.itemKey",
+                      action.opcode === "setFilterText"
+                        ? "interactions.filterText"
+                        : field === "value"
+                          ? "interactions.appendValue"
+                          : "interactions.itemKey",
                   }}
                   value={(action as Record<string, unknown>)[field]}
                   eventArgs={eventArgsOf(componentType, rule.trigger)}

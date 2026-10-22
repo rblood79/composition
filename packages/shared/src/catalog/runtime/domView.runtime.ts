@@ -90,6 +90,9 @@ export function catalogPreviewRuntime(
         ) ?? Promise.reject(new Error("endpoint 제출 서비스 없음")),
       ),
     reloadCollection: (collectionId) => session.reload(collectionId),
+    loadMore: (collectionId) => session.loadMore(collectionId),
+    setFilterText: (collectionId, filterText) =>
+      session.setFilterText(collectionId, filterText),
     append: (collectionId, value) => session.append(collectionId, value),
     update: (collectionId, key, value) => session.update(collectionId, key, value),
     remove: (collectionId, keys) => session.remove(collectionId, keys),

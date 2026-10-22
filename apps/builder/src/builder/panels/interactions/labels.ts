@@ -50,4 +50,6 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   update: "interactions.actionUpdate",
   remove: "interactions.actionRemove",
   reload: "interactions.actionReload",
+  loadMore: "interactions.actionLoadMore",
+  setFilterText: "interactions.actionSetFilterText",
 } as const;

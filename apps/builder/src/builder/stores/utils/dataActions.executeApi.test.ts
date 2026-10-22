@@ -278,3 +278,32 @@ describe("executeApiEndpoint — a route template the Builder cannot read", () =
     expect(state.apiRuns.get("api_1")?.ok).toBe(false);
   });
 });
+
+describe("executeApiEndpoint — useAsyncList load arguments in the Builder", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("{{ cursor }} · {{ filterText }} · {{ sortDescriptor.* }} are the first load's empty arguments: their parameters are left out", async () => {
+    const fetch = vi.fn(async (_url: string) => fakeResponse(users));
+    vi.stubGlobal("fetch", fetch);
+    const { set, get } = makeStore(
+      endpoint({
+        queryParams: [
+          { key: "page", value: "{{ cursor }}", type: "string", required: false },
+          { key: "q", value: "{{ filterText }}", type: "string", required: false },
+          {
+            key: "sort",
+            value: "{{ sortDescriptor.column }}",
+            type: "string",
+            required: false,
+          },
+          { key: "limit", value: "20", type: "string", required: false },
+        ],
+      }),
+    );
+    await expect(createExecuteApiEndpointAction(set, get)("api_1")).resolves.toEqual(users);
+    // (Dev sends an external URL through the proxy — `?url=` encoded.)
+    expect(decodeURIComponent(String(fetch.mock.calls[0]![0]))).toMatch(
+      /\/users\?limit=20$/,
+    );
+  });
+});

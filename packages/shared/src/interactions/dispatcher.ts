@@ -113,6 +113,12 @@ export interface DispatchDeps {
    * started; its failure is the caller's to report (it settles later). Absent = the rule fails.
    */
   reload?: (collectionId: string) => { ok: boolean; reason?: string };
+  /** `useAsyncList.loadMore()` · `setFilterText(text)` — started (settle later) or refused. */
+  loadMore?: (collectionId: string) => { ok: boolean; reason?: string };
+  setFilterText?: (
+    collectionId: string,
+    filterText: string,
+  ) => { ok: boolean; reason?: string };
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,
@@ -215,7 +221,9 @@ export type DispatchOutcome =
         | "append"
         | "update"
         | "remove"
-        | "reload";
+        | "reload"
+        | "loadMore"
+        | "setFilterText";
     }
   | { ok: false; reason: string };
 
@@ -378,6 +386,40 @@ export function executeInteractionRule(
     return result.ok
       ? { ok: true, kind: "reload" }
       : { ok: false, reason: result.reason ?? "reload 실패" };
+  }
+
+  if (action.kind === "loadMore") {
+    if (!deps.loadMore)
+      return { ok: false, reason: "loadMore 실행 경로 없음 (loadMore 미주입)" };
+    const result = deps.loadMore(action.collectionId);
+    return result.ok
+      ? { ok: true, kind: "loadMore" }
+      : { ok: false, reason: result.reason ?? "loadMore 실패" };
+  }
+
+  if (action.kind === "setFilterText") {
+    if (!deps.setFilterText)
+      return {
+        ok: false,
+        reason: "setFilterText 실행 경로 없음 (setFilterText 미주입)",
+      };
+    const value = resolveEventValue(action.value ?? "", context);
+    if (!value.ok) return value;
+    if (
+      value.value !== null &&
+      value.value !== undefined &&
+      typeof value.value === "object"
+    )
+      return { ok: false, reason: "setFilterText 값은 글자여야 한다" };
+    const result = deps.setFilterText(
+      action.collectionId,
+      value.value === null || value.value === undefined
+        ? ""
+        : String(value.value),
+    );
+    return result.ok
+      ? { ok: true, kind: "setFilterText" }
+      : { ok: false, reason: result.reason ?? "setFilterText 실패" };
   }
 
   if (action.kind === "navigate") {

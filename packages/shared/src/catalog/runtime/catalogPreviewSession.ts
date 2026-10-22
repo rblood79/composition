@@ -47,10 +47,14 @@ import type { LayoutEngineAPI } from "./layoutEngine";
 import {
   createCollectionEndpointExecutor,
   createCollectionEndpointSubmitter,
-  executeCollectionEndpoint,
+  ENDPOINT_LOAD_ARGUMENTS,
+  endpointReadsTemplate,
+  loadCollectionEndpoint,
   resolvedEndpointUrl,
 } from "../../collections/executeCollectionEndpoint";
+import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { getItemKey } from "../../collections/resolveCollectionItems";
+import { catalogTableColumnKey } from "./tableSort";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -158,6 +162,17 @@ export class CatalogPreviewSession {
    * `{{ params.id }}` loads again only when the shown path gives another URL (`loadRouted`).
    */
   private readonly loadedUrls = new Map<string, string>();
+  /**
+   * `useAsyncList`'s load arguments by collection id — `cursor` (the next page the last load
+   * gave), `filterText` (`setFilterText`), `sortDescriptor` (a bound Table's sort): what the query
+   * endpoint's templates read.
+   */
+  private readonly loadArguments = new Map<
+    string,
+    { cursor?: string; filterText?: string; sortDescriptor?: CatalogTableSort }
+  >();
+  /** Tables the server sorts (their endpoint reads `sortDescriptor`) — no client sort on them. */
+  private readonly serverSortedTables = new Set<string>();
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
   private readonly loadingStates = new Map<string, CatalogLoadingState>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
@@ -537,7 +552,8 @@ export class CatalogPreviewSession {
    * after the submits in flight, and show its items: the rules' local edits go (the server holds
    * the items now). A mock collection, or one no endpoint fills, is refused.
    */
-  async reload(collectionId: string): Promise<void> {
+  /** The query endpoint that fills a collection (`targetCollection`), refusing a mock one. */
+  private queryEndpoint(collectionId: string) {
     const collection = this.collections.find((item) => item.id === collectionId);
     if (!collection) throw new Error(`collection 없음: ${collectionId}`);
     if (collection.useMockData)
@@ -547,34 +563,92 @@ export class CatalogPreviewSession {
     );
     if (!endpoint)
       throw new Error(`${collection.name ?? collectionId} 을 채우는 endpoint 없음`);
-    this.setLoadingState(collectionId, "loading");
-    let items: unknown;
+    return endpoint;
+  }
+  /** One `load` of a collection's query endpoint with its load arguments (and a cursor). */
+  private async loadPage(
+    collectionId: string,
+    state: CatalogLoadingState,
+    cursor?: string,
+  ): Promise<Record<string, unknown>[]> {
+    const endpoint = this.queryEndpoint(collectionId);
+    this.setLoadingState(collectionId, state);
     try {
       await Promise.allSettled([...this.pendingSubmits]);
-      const resolve = this.endpointTemplate;
-      const url = resolvedEndpointUrl(endpoint, resolve);
-      if (url) this.loadedUrls.set(collectionId, url);
-      items = await executeCollectionEndpoint(
+      const resolve = this.endpointTemplateFor(collectionId, cursor);
+      if (cursor === undefined) {
+        const url = resolvedEndpointUrl(endpoint, resolve);
+        if (url) this.loadedUrls.set(collectionId, url);
+      }
+      const page = await loadCollectionEndpoint(
         endpoint,
         new AbortController().signal,
         resolve,
+        cursor,
+      );
+      const args = this.loadArguments.get(collectionId) ?? {};
+      const { cursor: _previous, ...rest } = args;
+      this.loadArguments.set(
+        collectionId,
+        page.cursor === undefined ? rest : { ...rest, cursor: page.cursor },
+      );
+      this.loadingStates.set(collectionId, "idle");
+      return (Array.isArray(page.items) ? page.items : [page.items]).filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object",
       );
     } catch (error) {
       this.setLoadingState(collectionId, "error");
       throw error;
     }
-    this.loadingStates.set(collectionId, "idle");
-    this.reloadedItems.set(
-      collectionId,
-      (Array.isArray(items) ? items : [items]).filter(
-        (item): item is Record<string, unknown> =>
-          !!item && typeof item === "object",
-      ),
-    );
+  }
+  /** Show a collection's loaded items (they replace the Builder's — the rules' edits go). */
+  private showLoaded(collectionId: string, items: Record<string, unknown>[]): void {
+    this.reloadedItems.set(collectionId, items);
     this.itemEdits.delete(collectionId);
-    const errors = this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
+    const errors =
+      this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
     if (errors.length) console.error("[CatalogPreview] reload:", ...errors);
     this.changed();
+  }
+  /** `useAsyncList.reload()` — the first page again (the cursor starts over). */
+  async reload(
+    collectionId: string,
+    state: CatalogLoadingState = "loading",
+  ): Promise<void> {
+    this.showLoaded(collectionId, await this.loadPage(collectionId, state));
+  }
+  /**
+   * `useAsyncList.loadMore()` — the next page after the items shown (the rules' edits kept); no
+   * cursor (the last page, or no `cursorPath`) = nothing to load.
+   */
+  async loadMore(collectionId: string): Promise<void> {
+    const cursor = this.loadArguments.get(collectionId)?.cursor;
+    if (cursor === undefined) return;
+    const shown = this.collectionItems(collectionId) as Record<string, unknown>[];
+    const items = await this.loadPage(collectionId, "loadingMore", cursor);
+    this.showLoaded(collectionId, [...shown, ...items]);
+  }
+  /** `useAsyncList.setFilterText(text)` — loads again with the text (S2 `filtering`). */
+  async setFilterText(collectionId: string, filterText: string): Promise<void> {
+    this.loadArguments.set(collectionId, {
+      ...this.loadArguments.get(collectionId),
+      filterText,
+    });
+    await this.reload(collectionId, "filtering");
+  }
+  /** `useAsyncList.sort(sortDescriptor)` with a server sort — loads again (S2 `sorting`). */
+  async sortCollection(
+    collectionId: string,
+    sortDescriptor: CatalogTableSort | undefined,
+  ): Promise<void> {
+    const { sortDescriptor: _previous, ...rest } =
+      this.loadArguments.get(collectionId) ?? {};
+    this.loadArguments.set(
+      collectionId,
+      sortDescriptor ? { ...rest, sortDescriptor } : rest,
+    );
+    await this.reload(collectionId, "sorting");
   }
 
   private setLoadingState(collectionId: string, state: CatalogLoadingState): void {
@@ -600,18 +674,34 @@ export class CatalogPreviewSession {
    * An endpoint's `{{ }}` (route params · variables) read from the session's state, each on its
    * own: an empty value is not one (Home has no `:id` — `/users/` is another resource).
    */
-  private readonly endpointTemplate = (text: string): string | undefined => {
-    const graph = this.graph;
-    if (!graph) return undefined;
-    const source = this.stateSource();
-    let unresolved = false;
-    const value = text.replace(/\{\{[^}]*\}\}/g, (template) => {
-      const part = catalogBindingKey(graph, template, undefined, source);
-      if (!part || part.includes("{{")) unresolved = true;
-      return part ?? "";
-    });
-    return unresolved ? undefined : value;
-  };
+  private endpointTemplateFor(collectionId: string, cursor?: string) {
+    return (text: string): string | undefined => {
+      const graph = this.graph;
+      if (!graph) return undefined;
+      const source = this.stateSource();
+      const args = { ...this.loadArguments.get(collectionId), cursor };
+      let unresolved = false;
+      const value = text.replace(/\{\{[^}]*\}\}/g, (template) => {
+        // `load({cursor, filterText, sortDescriptor})` — empty until given.
+        const path = /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(template);
+        if (path && (ENDPOINT_LOAD_ARGUMENTS as readonly string[]).includes(path[1]!)) {
+          let value: unknown = args[path[1] as keyof typeof args];
+          for (const segment of (path[2] ?? "").split(".").filter(Boolean))
+            value =
+              value !== null && typeof value === "object"
+                ? (value as Record<string, unknown>)[segment]
+                : undefined;
+          return typeof value === "string" || typeof value === "number"
+            ? String(value)
+            : "";
+        }
+        const part = catalogBindingKey(graph, template, undefined, source);
+        if (!part || part.includes("{{")) unresolved = true;
+        return part ?? "";
+      });
+      return unresolved ? undefined : value;
+    };
+  }
   /**
    * A router loader (`useAsyncList({ load })` fetching `/users/${id}`): each API collection whose
    * query endpoint reads a template loads when the shown path · data give another URL than its
@@ -623,14 +713,16 @@ export class CatalogPreviewSession {
       const endpoint = this.endpoints.find(
         (item) => item.targetCollection === collection.name,
       );
+      // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
       if (
         !endpoint ||
-        ![endpoint.path, ...(endpoint.queryParams ?? []).map((p) => p.value)].some(
-          (text) => text?.includes("{{"),
-        )
+        !(endpointReadsTemplate(endpoint) || endpoint.responseMapping?.cursorPath)
       )
         continue;
-      const url = resolvedEndpointUrl(endpoint, this.endpointTemplate);
+      const url = resolvedEndpointUrl(
+        endpoint,
+        this.endpointTemplateFor(collection.id),
+      );
       if (!url || this.loadedUrls.get(collection.id) === url) continue;
       this.loadedUrls.set(collection.id, url);
       this.reload(collection.id).catch((error: unknown) =>
@@ -642,9 +734,67 @@ export class CatalogPreviewSession {
     }
   }
 
+  /** A Table record's server sort: its bound collection and the sort by field, else undefined. */
+  private serverSort(
+    tableId: string,
+    sort: CatalogTableSort | undefined,
+  ):
+    | { collectionId: string; sortDescriptor: CatalogTableSort | undefined }
+    | undefined {
+    const root = this.currentRoot;
+    const graph = this.graph;
+    const table = root?.domInputs.get(tableId);
+    if (!root || !graph || !table) return undefined;
+    const source = graph.getEntry(table.sourceId as never);
+    const binding = source?.kind === "node" ? source.binding : undefined;
+    if (!binding) return undefined;
+    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    const collection = this.collections.find((item) => item.id === collectionId);
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpoints.find((item) => item.targetCollection === collection.name)
+        : undefined;
+    if (!endpoint || !endpointReadsTemplate(endpoint, "sortDescriptor"))
+      return undefined;
+    if (!sort) return { collectionId, sortDescriptor: undefined };
+    const header = table.children
+      .map((id) => root.domInputs.get(id))
+      .find((record) => record?.ruleId === "TableHeader");
+    const columns = (header?.children ?? [])
+      .map((id) => root.domInputs.get(id))
+      .filter((record) => record?.ruleId === "Column");
+    const index = columns.findIndex(
+      (column) =>
+        !!column &&
+        catalogTableColumnKey({
+          id: column.id,
+          ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+        }) === sort.column,
+    );
+    if (index < 0) return undefined;
+    return {
+      collectionId,
+      sortDescriptor: {
+        column: resolveTableColumnKey(columns[index]!.props, index),
+        direction: sort.direction,
+      },
+    };
+  }
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
     if (sort) this.tableSorts.set(tableId, sort);
     else this.tableSorts.delete(tableId);
+    // A bound Table whose query endpoint reads `sortDescriptor` is sorted by the server
+    // (`load({sortDescriptor})`, the column as its field): the client keeps the server's order.
+    const server = this.serverSort(tableId, sort);
+    if (server) {
+      this.serverSortedTables.add(tableId);
+      this.sortCollection(server.collectionId, server.sortDescriptor).catch(
+        (error: unknown) =>
+          console.warn("[CatalogPreview] 서버 정렬을 읽지 못했다:", error),
+      );
+      return;
+    }
+    this.serverSortedTables.delete(tableId);
     // (Only roots showing a binding resolve again — an authored Table's Rows are ordered by the
     // DOM, `catalogTableSortedRows`.)
     const errors = this.currentRoot?.refreshRows() ?? [];
@@ -730,7 +880,10 @@ export class CatalogPreviewSession {
         ...this.options.root,
         breakpoint: this.breakpoint,
         rows: (binding, kind) => this.boundRows(binding, kind),
-        tableSort: (tableId) => this.tableSorts.get(tableId),
+        tableSort: (tableId) =>
+          this.serverSortedTables.has(tableId)
+            ? undefined
+            : this.tableSorts.get(tableId),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),
       },

@@ -15,6 +15,8 @@ export function createPencilFixtureLibrary() {
       "update",
       "remove",
       "reload",
+      "loadMore",
+      "setFilterText",
       "toast",
       "capability",
     ],

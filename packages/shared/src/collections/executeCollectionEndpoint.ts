@@ -10,6 +10,21 @@ export type EndpointTemplateResolver = (text: string) => string | undefined;
 const TEMPLATE = /\{\{[^}]*\}\}/;
 
 /**
+ * `useAsyncList`'s `load({cursor, filterText, sortDescriptor})` arguments — names a query
+ * endpoint's templates read (`?page={{ cursor }}` · `?q={{ filterText }}` ·
+ * `?sort={{ sortDescriptor.column }}`). Not given yet (the first page, no text) = empty: the query
+ * parameter is left out.
+ */
+export const ENDPOINT_LOAD_ARGUMENTS = ["cursor", "filterText", "sortDescriptor"] as const;
+const LOAD_ARGUMENT = new RegExp(`\\{\\{\\s*(?:${ENDPOINT_LOAD_ARGUMENTS.join("|")})\\b`);
+
+/** Whether an endpoint's path · query read a template (and so a load argument or the route). */
+export function endpointReadsTemplate(endpoint: ApiEndpointDefinition, loadArgument?: (typeof ENDPOINT_LOAD_ARGUMENTS)[number]): boolean {
+  const texts = [endpoint.path ?? "", ...(endpoint.queryParams ?? []).map((param) => param.value ?? "")];
+  return texts.some((text) => loadArgument ? new RegExp(`\\{\\{\\s*${loadArgument}\\b`).test(text) : TEMPLATE.test(text));
+}
+
+/**
  * An endpoint's path and query with their templates resolved. A template nothing resolves (the
  * Builder has no route) is refused — the request would carry `{{ … }}` literally.
  */
@@ -22,7 +37,11 @@ function resolvedEndpointParts(endpoint: ApiEndpointDefinition, resolve: Endpoin
   };
   return {
     path: read(endpoint.path ?? ""),
-    query: (endpoint.queryParams ?? []).filter((param) => param.key).map((param) => [param.key, read(param.value ?? "")] as const),
+    // (A load argument not given yet is empty — that parameter is not sent.)
+    query: (endpoint.queryParams ?? []).filter((param) => param.key)
+      .map((param) => [param.key, read(param.value ?? ""), LOAD_ARGUMENT.test(param.value ?? "")] as const)
+      .filter(([, value, loadArgument]) => !loadArgument || value !== "")
+      .map(([key, value]) => [key, value] as const),
   };
 }
 
@@ -51,17 +70,44 @@ export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: Ab
   return {url, headers, method, signal: requestSignal};
 }
 
+/** A query response's items (`responseMapping.dataPath`) — none = `[]`. */
+function mappedItems(endpoint: ApiEndpointDefinition, result: unknown): unknown {
+  const dataPath = endpoint.responseMapping?.dataPath;
+  const mapped = dataPath ? readPath(result, dataPath) : result;
+  return mapped ?? [];
+}
+function readPath(value: unknown, path: string): unknown {
+  return path.split(".").reduce<unknown>((current, key) => (current !== null && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), value);
+}
+
+/**
+ * `useAsyncList.load` — one page of a query endpoint: its items and the next `cursor`
+ * (`responseMapping.cursorPath`; none = the last page). A `cursor` given is the load argument the
+ * templates read; a URL cursor on an endpoint that reads none is fetched as is (the reference's
+ * `fetch(cursor || url)`).
+ */
+export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string): Promise<{items: unknown; cursor?: string}> {
+  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);
+  const target = cursor && !endpointReadsTemplate(endpoint, "cursor") && /^(https?:)?\//.test(cursor) ? new URL(cursor, url) : url;
+  const response = await fetch(target, {method, headers, signal: requestSignal,
+    body: method !== "GET" && method !== "HEAD" && endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined});
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  const result = await response.json();
+  const cursorPath = endpoint.responseMapping?.cursorPath;
+  const next = cursorPath ? readPath(result, cursorPath) : undefined;
+  return {
+    items: mappedItems(endpoint, result),
+    ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : {}),
+  };
+}
+
 /** 앱 runtime 공통 API 실행. Chart/List는 CollectionDataProvider 서비스만 소비한다. */
 export async function executeCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver): Promise<unknown> {
   const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);
   const response = await fetch(url, {method, headers, signal: requestSignal,
     body: method !== "GET" && method !== "HEAD" && endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  const result = await response.json();
-  const dataPath = endpoint.responseMapping?.dataPath;
-  const mapped = dataPath ? dataPath.split(".").reduce((value, key) => value?.[key], result) : result;
-  if (mapped == null) return [];
-  return mapped;
+  return mappedItems(endpoint, await response.json());
 }
 
 /**

@@ -338,7 +338,9 @@ export function catalogDefaultAction(
     choice === "append" ||
     choice === "update" ||
     choice === "remove" ||
-    choice === "reload"
+    choice === "reload" ||
+    choice === "loadMore" ||
+    choice === "setFilterText"
   ) {
     const collection = context.collections?.[0];
     return collection ? { opcode: choice, collectionId: collection.id } : undefined;

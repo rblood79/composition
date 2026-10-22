@@ -155,7 +155,13 @@ export type CatalogRowSource = (
   ownerId?: NodeId,
 ) => CatalogBoundRows | undefined;
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
-export type CatalogLoadingState = "loading" | "idle" | "error";
+export type CatalogLoadingState =
+  | "loading"
+  | "sorting"
+  | "loadingMore"
+  | "error"
+  | "idle"
+  | "filtering";
 /**
  * A binding's delivered rows; `total` = the collection's row count when it holds more (the window),
  * `loadingState` = its load (the Preview session's — the Canvas loads nothing and sends none).

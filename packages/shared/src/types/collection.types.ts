@@ -114,6 +114,11 @@ export interface ApiEndpointDefinition {
   responseMapping?: {
     dataPath: string;
     fieldMappings?: Array<{ sourceKey: string; targetKey: string }>;
+    /**
+     * `useAsyncList` pagination — where the response holds the next `cursor` (`next` ·
+     * `meta.nextPage`); none / empty = the last page. A URL cursor is fetched as is.
+     */
+    cursorPath?: string;
   };
   executionMode?: "client" | "server";
   timeout?: number;

@@ -241,6 +241,8 @@ export function buildCatalogLibrary(
         "update",
         "remove",
         "reload",
+        "loadMore",
+        "setFilterText",
         "toast",
         "capability",
       ].includes(opcode)

@@ -156,11 +156,21 @@ function ruleOf(
         },
       };
     case "reload":
+    case "loadMore":
       return {
         ...base,
         action: {
-          kind: "reload",
+          kind: action.opcode,
           collectionId: action.collectionId.slice("data:collection:".length),
+        },
+      };
+    case "setFilterText":
+      return {
+        ...base,
+        action: {
+          kind: "setFilterText",
+          collectionId: action.collectionId.slice("data:collection:".length),
+          ...(action.value !== undefined ? { value: action.value } : {}),
         },
       };
     case "remove":
@@ -301,6 +311,9 @@ export interface CatalogPreviewInteractionsOptions {
    * settles later — a failure is reported and shown as a toast here.
    */
   reloadCollection?: (collectionId: string) => Promise<unknown>;
+  /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
+  loadMore?: (collectionId: string) => Promise<unknown>;
+  setFilterText?: (collectionId: string, filterText: string) => Promise<unknown>;
 }
 
 /**
@@ -326,6 +339,13 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   private readonly unsubscribe: () => void;
 
   constructor(private readonly options: CatalogPreviewInteractionsOptions) {
+    // A load a rule started settles later: its failure is reported and shown as a toast.
+    const settleLoad = (load: Promise<unknown>, collectionId: string, what: string) =>
+      load.catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[interactions] collection ${collectionId} ${what} 실패 — ${message}`);
+        options.showToast(message);
+      });
     this.deps = {
       getElement: (id) => {
         const record = options.root()?.domInputs.get(id);
@@ -366,13 +386,23 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       reload: (collectionId) => {
         const reload = options.reloadCollection;
         if (!reload) return { ok: false, reason: "collection 다시 읽기 서비스 없음" };
-        reload(collectionId).catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          console.warn(
-            `[interactions] collection ${collectionId} 다시 읽기 실패 — ${message}`,
-          );
-          options.showToast(message);
-        });
+        settleLoad(reload(collectionId), collectionId, "다시 읽기");
+        return { ok: true };
+      },
+      loadMore: (collectionId) => {
+        if (!options.loadMore)
+          return { ok: false, reason: "collection 더 불러오기 서비스 없음" };
+        settleLoad(options.loadMore(collectionId), collectionId, "더 불러오기");
+        return { ok: true };
+      },
+      setFilterText: (collectionId, filterText) => {
+        if (!options.setFilterText)
+          return { ok: false, reason: "collection 검색 서비스 없음" };
+        settleLoad(
+          options.setFilterText(collectionId, filterText),
+          collectionId,
+          "검색",
+        );
         return { ok: true };
       },
       // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).

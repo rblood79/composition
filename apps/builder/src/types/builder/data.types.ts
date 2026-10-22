@@ -171,6 +171,12 @@ export interface ResponseMapping {
 
   /** 페이지네이션 설정 (선택적) */
   pagination?: PaginationConfig;
+
+  /**
+   * `useAsyncList` pagination — where the response holds the next `cursor` (the Preview session's
+   * `loadMore`; `{{ cursor }}` in the query takes it, a URL cursor is fetched as is).
+   */
+  cursorPath?: string;
 }
 
 /**
