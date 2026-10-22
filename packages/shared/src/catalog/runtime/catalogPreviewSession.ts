@@ -55,6 +55,7 @@ import {
 import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import { getItemKey } from "../../collections/resolveCollectionItems";
 import { catalogTableColumnKey } from "./tableSort";
+import type { CatalogListPosition } from "../../interactions/dispatcher";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -78,8 +79,26 @@ const ITEM_KEY_FIELDS = ["id", "key", "value"] as const;
 /** One `useListData` operation a rule ran on a collection (the Preview session's record). */
 type CatalogItemEdit =
   | { kind: "append"; item: Record<string, unknown> }
+  | { kind: "insert"; at: CatalogListPosition; item: Record<string, unknown> }
   | { kind: "update"; key: string; patch: Record<string, unknown> }
-  | { kind: "remove"; keys: readonly string[] | "all" };
+  | { kind: "remove"; keys: readonly string[] | "all" }
+  | {
+      kind: "move";
+      keys: readonly string[];
+      to: Exclude<CatalogListPosition, "start">;
+    };
+
+/** Where a position falls in a list of items (keys as `getItemKey` reads them), else -1. */
+function positionIndex(
+  items: readonly Record<string, unknown>[],
+  at: CatalogListPosition,
+): number {
+  if (at === "start") return 0;
+  if ("index" in at) return Math.min(at.index, items.length);
+  const key = "before" in at ? at.before : at.after;
+  const found = items.findIndex((item, index) => getItemKey(item, index) === key);
+  return found < 0 ? -1 : "before" in at ? found : found + 1;
+}
 
 /** The edits over a list of items, in order — keys as the bound components read them (`getItemKey`). */
 function replayItemEdits(
@@ -89,7 +108,25 @@ function replayItemEdits(
   let items = [...base];
   for (const edit of edits) {
     if (edit.kind === "append") items = [...items, edit.item];
-    else if (edit.kind === "update")
+    else if (edit.kind === "insert") {
+      const at = positionIndex(items, edit.at);
+      if (at >= 0) items = [...items.slice(0, at), edit.item, ...items.slice(at)];
+    } else if (edit.kind === "move") {
+      // (`useListData.move` · `moveBefore` · `moveAfter` — the moved items keep their order.)
+      const keys = new Set(edit.keys);
+      const keyed = items.map((item, index) => [getItemKey(item, index), item] as const);
+      const moved = keyed.filter(([key]) => keys.has(key)).map(([, item]) => item);
+      const rest = keyed.filter(([key]) => !keys.has(key));
+      const restItems = rest.map(([, item]) => item);
+      let at: number;
+      if ("index" in edit.to) at = Math.min(edit.to.index, restItems.length);
+      else {
+        const target = "before" in edit.to ? edit.to.before : edit.to.after;
+        const found = rest.findIndex(([key]) => key === target);
+        at = found < 0 ? -1 : "before" in edit.to ? found : found + 1;
+      }
+      if (at >= 0) items = [...restItems.slice(0, at), ...moved, ...restItems.slice(at)];
+    } else if (edit.kind === "update")
       items = items.map((item, index) =>
         getItemKey(item, index) === edit.key ? { ...item, ...edit.patch } : item,
       );
@@ -505,6 +542,52 @@ export class CatalogPreviewSession {
       )
         item.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
       return { kind: "append", item };
+    });
+  }
+  /**
+   * `useListData.insert(index, …)` · `insertBefore(key, …)` · `insertAfter(key, …)` · `prepend(…)`
+   * — the value's schema fields as one item there (a new `id` when the schema has one and the value
+   * none, as `append`); an unknown key is reported.
+   */
+  insert(
+    collectionId: string,
+    at: CatalogListPosition,
+    value: Readonly<Record<string, unknown>>,
+  ): { ok: boolean; reason?: string } {
+    return this.edit(collectionId, (collection, items) => {
+      if (positionIndex(items as Record<string, unknown>[], at) < 0)
+        return {
+          reason: `항목 없음: ${typeof at === "object" && !("index" in at) ? ("before" in at ? at.before : at.after) : ""}`,
+        };
+      const item = this.itemFields(collection, value);
+      if (
+        (collection.schema ?? []).some((field) => field.key === "id") &&
+        (item.id === undefined || item.id === "")
+      )
+        item.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
+      return { kind: "insert", at, item };
+    });
+  }
+  /**
+   * `useListData.move(key, toIndex)` · `moveBefore(key, keys)` · `moveAfter(key, keys)` — the items
+   * to the position, in their order; an unknown key is reported.
+   */
+  move(
+    collectionId: string,
+    keys: readonly string[],
+    to: Exclude<CatalogListPosition, "start">,
+  ): { ok: boolean; reason?: string } {
+    return this.edit(collectionId, (_collection, items) => {
+      const present = new Set(items.map((item, index) => getItemKey(item, index)));
+      const target = "index" in to ? undefined : "before" in to ? to.before : to.after;
+      const missing = [...keys, ...(target === undefined ? [] : [target])].filter(
+        (key) => !present.has(key),
+      );
+      if (!keys.length) return { reason: "옮길 항목의 key 가 없다" };
+      if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
+      if (target !== undefined && keys.includes(target))
+        return { reason: `옮길 항목 ${target} 가 기준 항목이다` };
+      return { kind: "move", keys, to };
     });
   }
   /**

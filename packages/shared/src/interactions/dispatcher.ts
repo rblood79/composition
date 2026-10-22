@@ -119,6 +119,23 @@ export interface DispatchDeps {
     collectionId: string,
     filterText: string,
   ) => { ok: boolean; reason?: string };
+  /**
+   * `useListData.insert*` · `prepend` — the item at an index, next to a key, or first. An unknown
+   * key is the session's to report.
+   */
+  insert?: (
+    collectionId: string,
+    position: CatalogListPosition,
+    value: Readonly<Record<string, unknown>>,
+  ) => { ok: boolean; reason?: string };
+  /** `useListData.move(key, toIndex)` · `moveBefore` · `moveAfter` — the items to a position. */
+  move?: (
+    collectionId: string,
+    keys: readonly string[],
+    to: Exclude<CatalogListPosition, "start">,
+  ) => { ok: boolean; reason?: string };
+  /** The list's selection — the keys selected in the components showing the collection. */
+  selectedKeysOf?: (collectionId: string) => readonly string[] | "all";
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,
@@ -208,6 +225,97 @@ function dispatchListData(
     : { ok: false, reason: result.reason ?? `${action.kind} 실패` };
 }
 
+/** Where `useListData` puts an item: an index, next to a key, or first (`prepend`). */
+export type CatalogListPosition =
+  | { index: number }
+  | { before: string }
+  | { after: string }
+  | "start";
+
+/** `useListData`'s positions (insert · move by index or key) and `removeSelectedItems`. */
+function dispatchListPosition(
+  action: Extract<
+    InteractionRule["action"],
+    { kind: "insert" | "insertBefore" | "insertAfter" | "prepend" | "move" | "moveBefore" | "moveAfter" | "removeSelectedItems" }
+  >,
+  deps: DispatchDeps,
+  context: DispatchContext | undefined,
+): DispatchOutcome {
+  const done = (result: { ok: boolean; reason?: string }): DispatchOutcome =>
+    result.ok
+      ? { ok: true, kind: action.kind }
+      : { ok: false, reason: result.reason ?? `${action.kind} 실패` };
+  const scalarKey = (raw: unknown, what: string) => {
+    const value = resolveEventValue(raw, context);
+    if (!value.ok) return value;
+    const key = keyOf(value.value);
+    return key === undefined
+      ? ({ ok: false, reason: `${what} 가 없다` } as const)
+      : ({ ok: true, key } as const);
+  };
+  const index = (raw: unknown) => {
+    const value = resolveEventValue(raw, context);
+    if (!value.ok) return value;
+    const number = Number(value.value);
+    return Number.isInteger(number) && number >= 0
+      ? ({ ok: true, index: number } as const)
+      : ({ ok: false, reason: "위치가 0 이상의 정수가 아니다" } as const);
+  };
+  if (action.kind === "removeSelectedItems") {
+    if (!deps.selectedKeysOf || !deps.remove)
+      return { ok: false, reason: "removeSelectedItems 실행 경로 없음" };
+    const keys = deps.selectedKeysOf(action.collectionId);
+    if (keys !== "all" && !keys.length)
+      return { ok: false, reason: "선택한 항목이 없다" };
+    return done(deps.remove(action.collectionId, keys));
+  }
+  if (action.kind === "move" || action.kind === "moveBefore" || action.kind === "moveAfter") {
+    if (!deps.move) return { ok: false, reason: "move 실행 경로 없음 (move 미주입)" };
+    if (action.kind === "move") {
+      const key = scalarKey(action.key, "옮길 항목의 key");
+      if (!key.ok) return key;
+      const to = index(action.toIndex);
+      if (!to.ok) return to;
+      return done(deps.move(action.collectionId, [key.key], { index: to.index }));
+    }
+    const target = scalarKey(action.key, "기준 항목의 key");
+    if (!target.ok) return target;
+    const moved = resolveEventValue(action.keys, context);
+    if (!moved.ok) return moved;
+    const keys = (
+      moved.value instanceof Set || Array.isArray(moved.value)
+        ? [...moved.value]
+        : [moved.value]
+    )
+      .map(keyOf)
+      .filter((key): key is string => key !== undefined);
+    if (!keys.length) return { ok: false, reason: "옮길 항목의 key 가 없다" };
+    return done(
+      deps.move(
+        action.collectionId,
+        keys,
+        action.kind === "moveBefore" ? { before: target.key } : { after: target.key },
+      ),
+    );
+  }
+  if (!deps.insert) return { ok: false, reason: "insert 실행 경로 없음 (insert 미주입)" };
+  const value = resolveEventValue(action.value, context);
+  if (!value.ok) return value;
+  if (!isRecordValue(value.value))
+    return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
+  let position: CatalogListPosition = "start";
+  if (action.kind === "insert") {
+    const at = index(action.index);
+    if (!at.ok) return at;
+    position = { index: at.index };
+  } else if (action.kind !== "prepend") {
+    const key = scalarKey(action.key, "기준 항목의 key");
+    if (!key.ok) return key;
+    position = action.kind === "insertBefore" ? { before: key.key } : { after: key.key };
+  }
+  return done(deps.insert(action.collectionId, position, value.value));
+}
+
 /** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
 export type DispatchOutcome =
   | {
@@ -223,7 +331,15 @@ export type DispatchOutcome =
         | "remove"
         | "reload"
         | "loadMore"
-        | "setFilterText";
+        | "setFilterText"
+        | "insert"
+        | "insertBefore"
+        | "insertAfter"
+        | "prepend"
+        | "move"
+        | "moveBefore"
+        | "moveAfter"
+        | "removeSelectedItems";
     }
   | { ok: false; reason: string };
 
@@ -387,6 +503,18 @@ export function executeInteractionRule(
       ? { ok: true, kind: "reload" }
       : { ok: false, reason: result.reason ?? "reload 실패" };
   }
+
+  if (
+    action.kind === "insert" ||
+    action.kind === "insertBefore" ||
+    action.kind === "insertAfter" ||
+    action.kind === "prepend" ||
+    action.kind === "move" ||
+    action.kind === "moveBefore" ||
+    action.kind === "moveAfter" ||
+    action.kind === "removeSelectedItems"
+  )
+    return dispatchListPosition(action, deps, context);
 
   if (action.kind === "loadMore") {
     if (!deps.loadMore)

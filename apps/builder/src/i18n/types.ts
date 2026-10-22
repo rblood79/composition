@@ -594,6 +594,17 @@ export interface TranslationKeys {
     actionLoadMore: string;
     actionSetFilterText: string;
     filterText: string;
+    listIndex: string;
+    targetKey: string;
+    movedKeys: string;
+    actionInsert: string;
+    actionInsertBefore: string;
+    actionInsertAfter: string;
+    actionPrepend: string;
+    actionMove: string;
+    actionMoveBefore: string;
+    actionMoveAfter: string;
+    actionRemoveSelectedItems: string;
     itemKey: string;
     collection: string;
     appendValue: string;

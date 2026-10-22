@@ -30,7 +30,7 @@ export const PropertyInputControl = memo(
     const selection = usePropertySelection();
     const selectedElementId = selection.useSelectedId();
     // Local state for input value (debounced save)
-    const [inputValue, setInputValue] = useState<string>(String(value || ""));
+    const [inputValue, setInputValue] = useState<string>(String(value ?? ""));
     // `{{` 자동완성 — 캐럿 위치 기준 후보 (stateNames 가 있을 때만)
     const [suggest, setSuggest] = useState<{
       start: number;
@@ -98,7 +98,7 @@ export const PropertyInputControl = memo(
       inputSource.selectedElementId !== selectedElementId
     ) {
       setInputSource({ value, selectedElementId });
-      setInputValue(String(value || ""));
+      setInputValue(String(value ?? ""));
     }
     useEffect(() => {
       justSavedViaEnterRef.current = false;
@@ -137,7 +137,7 @@ export const PropertyInputControl = memo(
       }
 
       // Save to parent only on blur (reduces DB calls)
-      if (inputValue !== String(value || "")) {
+      if (inputValue !== String(value ?? "")) {
         onChange(inputValue);
       }
     };
@@ -171,7 +171,7 @@ export const PropertyInputControl = memo(
       if (e.key === "Enter" && !multiline) {
         // Save on Enter (only for single-line inputs)
         e.preventDefault();
-        if (inputValue !== String(value || "")) {
+        if (inputValue !== String(value ?? "")) {
           onChange(inputValue);
           // ⭐ useRef로 즉시 플래그 설정 (setState와 달리 동기적!)
           justSavedViaEnterRef.current = true;

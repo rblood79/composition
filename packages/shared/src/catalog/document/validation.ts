@@ -1459,7 +1459,35 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.key !== undefined) scalar(action.key, "entry.action.key");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
-      } else if (action.opcode === "reload" || action.opcode === "loadMore") {
+      } else if (action.opcode === "insert") {
+        exact(action, ["opcode", "collectionId", "index", "value"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.index !== undefined) scalar(action.index, "entry.action.index");
+        if (action.value !== undefined) scalar(action.value, "entry.action.value");
+      } else if (action.opcode === "insertBefore" || action.opcode === "insertAfter") {
+        exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.key !== undefined) scalar(action.key, "entry.action.key");
+        if (action.value !== undefined) scalar(action.value, "entry.action.value");
+      } else if (action.opcode === "prepend") {
+        exact(action, ["opcode", "collectionId", "value"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.value !== undefined) scalar(action.value, "entry.action.value");
+      } else if (action.opcode === "move") {
+        exact(action, ["opcode", "collectionId", "key", "toIndex"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.key !== undefined) scalar(action.key, "entry.action.key");
+        if (action.toIndex !== undefined) scalar(action.toIndex, "entry.action.toIndex");
+      } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
+        exact(action, ["opcode", "collectionId", "key", "keys"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.key !== undefined) scalar(action.key, "entry.action.key");
+        if (action.keys !== undefined) scalar(action.keys, "entry.action.keys");
+      } else if (
+        action.opcode === "reload" ||
+        action.opcode === "loadMore" ||
+        action.opcode === "removeSelectedItems"
+      ) {
         exact(action, ["opcode", "collectionId"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
       } else if (action.opcode === "setFilterText") {

@@ -27,7 +27,16 @@ export type ActionChoice =
   // `useAsyncList.reload` · `loadMore` · `setFilterText`.
   | "reload"
   | "loadMore"
-  | "setFilterText";
+  | "setFilterText"
+  // `useListData`'s positions.
+  | "insert"
+  | "insertBefore"
+  | "insertAfter"
+  | "prepend"
+  | "move"
+  | "moveBefore"
+  | "moveAfter"
+  | "removeSelectedItems";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {

@@ -340,7 +340,15 @@ export function catalogDefaultAction(
     choice === "remove" ||
     choice === "reload" ||
     choice === "loadMore" ||
-    choice === "setFilterText"
+    choice === "setFilterText" ||
+    choice === "insert" ||
+    choice === "insertBefore" ||
+    choice === "insertAfter" ||
+    choice === "prepend" ||
+    choice === "move" ||
+    choice === "moveBefore" ||
+    choice === "moveAfter" ||
+    choice === "removeSelectedItems"
   ) {
     const collection = context.collections?.[0];
     return collection ? { opcode: choice, collectionId: collection.id } : undefined;

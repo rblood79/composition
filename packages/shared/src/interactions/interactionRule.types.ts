@@ -104,6 +104,38 @@ export interface ReloadAction {
   collectionId: string;
 }
 
+/**
+ * `useListData.insert(index, …)` · `insertBefore(key, …)` · `insertAfter(key, …)` · `prepend(…)` —
+ * `value` resolves to a record (`"!event.formData"`), `index` · `key` to a scalar.
+ */
+export type InsertAction = {
+  [K in "insert" | "insertBefore" | "insertAfter" | "prepend"]: {
+    kind: K;
+    collectionId: string;
+    index?: unknown;
+    key?: unknown;
+    value?: unknown;
+  };
+}["insert" | "insertBefore" | "insertAfter" | "prepend"];
+
+/** `useListData.move(key, toIndex)` · `moveBefore(key, keys)` · `moveAfter(key, keys)`. */
+export type MoveAction = {
+  [K in "move" | "moveBefore" | "moveAfter"]: {
+    kind: K;
+    collectionId: string;
+    key?: unknown;
+    toIndex?: unknown;
+    /** The items moved next to `key` (`"!event.keys"` · a literal key). */
+    keys?: unknown;
+  };
+}["move" | "moveBefore" | "moveAfter"];
+
+/** `useListData.removeSelectedItems()` — the selection of the components showing the list. */
+export interface RemoveSelectedItemsAction {
+  kind: "removeSelectedItems";
+  collectionId: string;
+}
+
 /** `useAsyncList.loadMore()` — the next page. */
 export interface LoadMoreAction {
   kind: "loadMore";
@@ -128,7 +160,10 @@ export type InteractionAction =
   | RemoveAction
   | ReloadAction
   | LoadMoreAction
-  | SetFilterTextAction;
+  | SetFilterTextAction
+  | InsertAction
+  | MoveAction
+  | RemoveSelectedItemsAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

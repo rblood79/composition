@@ -182,6 +182,25 @@ function ruleOf(
           ...(action.keys !== undefined ? { keys: action.keys } : {}),
         },
       };
+    case "insert":
+    case "insertBefore":
+    case "insertAfter":
+    case "prepend":
+    case "move":
+    case "moveBefore":
+    case "moveAfter":
+    case "removeSelectedItems": {
+      // (`useListData`'s positions — the rule's fields as they are, the collection without its prefix.)
+      const { opcode, collectionId, ...fields } = action;
+      return {
+        ...base,
+        action: {
+          kind: opcode,
+          collectionId: collectionId.slice("data:collection:".length),
+          ...fields,
+        },
+      };
+    }
     case "setState":
       return {
         ...base,
@@ -303,6 +322,9 @@ export interface CatalogPreviewInteractionsOptions {
   submitEndpoint?: (endpointId: string, body: unknown) => Promise<unknown>;
   /** ADR-281 user decision 3, second step — the session appends the value (`CatalogPreviewSession.append`). */
   append?: DispatchDeps["append"];
+  /** `CatalogPreviewSession.insert` · `move` (`useListData`'s positions). */
+  insert?: DispatchDeps["insert"];
+  move?: DispatchDeps["move"];
   /** `CatalogPreviewSession.update` · `remove` (`useListData.update` · `remove`). */
   update?: DispatchDeps["update"];
   remove?: DispatchDeps["remove"];
@@ -387,6 +409,32 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       ...(options.append ? { append: options.append } : {}),
       ...(options.update ? { update: options.update } : {}),
       ...(options.remove ? { remove: options.remove } : {}),
+      ...(options.insert ? { insert: options.insert } : {}),
+      ...(options.move ? { move: options.move } : {}),
+      // `useListData.removeSelectedItems()` — the list's selection is what the components showing
+      // the collection select (each bound record's current selection — the render's value).
+      selectedKeysOf: (collectionId) => {
+        const root = options.root();
+        const graph = options.graph();
+        if (!root || !graph) return [];
+        const keys = new Set<string>();
+        for (const record of root.domInputs.values()) {
+          const source = graph.getEntry(record.sourceId as never);
+          const binding = source?.kind === "node" ? source.binding : undefined;
+          if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+          const selected = catalogRuntimeStateOf(
+            root,
+            record,
+            this.overrideOf(record.id),
+            "selectedKeys",
+            (recordId) => this.overrideOf(recordId),
+          );
+          if (selected === "all") return "all";
+          if (Array.isArray(selected) || selected instanceof Set)
+            for (const key of selected) keys.add(String(key));
+        }
+        return [...keys];
+      },
       reload: (collectionId) => {
         const reload = options.reloadCollection;
         if (!reload) return { ok: false, reason: "collection 다시 읽기 서비스 없음" };

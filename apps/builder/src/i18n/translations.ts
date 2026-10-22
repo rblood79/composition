@@ -865,6 +865,17 @@ const koKR: TranslationKeys = {
     actionLoadMore: "collection 더 불러오기",
     actionSetFilterText: "collection 검색어로 다시 읽기",
     filterText: "검색어",
+    listIndex: "위치 (index)",
+    targetKey: "기준 항목 key",
+    movedKeys: "옮길 항목 key",
+    actionInsert: "collection 위치에 넣기",
+    actionInsertBefore: "collection 항목 앞에 넣기",
+    actionInsertAfter: "collection 항목 뒤에 넣기",
+    actionPrepend: "collection 맨 앞에 넣기",
+    actionMove: "collection 항목 옮기기",
+    actionMoveBefore: "collection 항목 앞으로 옮기기",
+    actionMoveAfter: "collection 항목 뒤로 옮기기",
+    actionRemoveSelectedItems: "collection 선택 항목 삭제",
     itemKey: "항목 key",
     collection: "컬렉션",
     appendValue: "값",
@@ -3201,6 +3212,17 @@ const enUS: TranslationKeys = {
     actionLoadMore: "Load more of a collection",
     actionSetFilterText: "Filter a collection (filterText)",
     filterText: "Filter text",
+    listIndex: "Index",
+    targetKey: "Target item key",
+    movedKeys: "Item keys to move",
+    actionInsert: "Insert into a collection at",
+    actionInsertBefore: "Insert before a collection item",
+    actionInsertAfter: "Insert after a collection item",
+    actionPrepend: "Prepend to a collection",
+    actionMove: "Move a collection item",
+    actionMoveBefore: "Move collection items before",
+    actionMoveAfter: "Move collection items after",
+    actionRemoveSelectedItems: "Remove the selected collection items",
     itemKey: "Item key",
     collection: "Collection",
     appendValue: "Value",
@@ -6204,6 +6226,22 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 더 불러오기`,
     "interactions.summarySetFilterText": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 검색어로 다시 읽기`,
+    "interactions.summaryInsert": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 위치에 넣기`,
+    "interactions.summaryInsertBefore": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 앞에 넣기`,
+    "interactions.summaryInsertAfter": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 뒤에 넣기`,
+    "interactions.summaryPrepend": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 맨 앞에 넣기`,
+    "interactions.summaryMove": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 옮기기`,
+    "interactions.summaryMoveBefore": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 앞으로 옮기기`,
+    "interactions.summaryMoveAfter": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 뒤로 옮기기`,
+    "interactions.summaryRemoveSelectedItems": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 선택 항목 삭제`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
     "interactions.summaryNavigateWithPath": (args) =>
@@ -6757,6 +6795,22 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → load more of ${String(args?.name ?? "")}`,
     "interactions.summarySetFilterText": (args) =>
       `${String(args?.when ?? "")} → filter ${String(args?.name ?? "")}`,
+    "interactions.summaryInsert": (args) =>
+      `${String(args?.when ?? "")} → insert into ${String(args?.name ?? "")}`,
+    "interactions.summaryInsertBefore": (args) =>
+      `${String(args?.when ?? "")} → insert before an item of ${String(args?.name ?? "")}`,
+    "interactions.summaryInsertAfter": (args) =>
+      `${String(args?.when ?? "")} → insert after an item of ${String(args?.name ?? "")}`,
+    "interactions.summaryPrepend": (args) =>
+      `${String(args?.when ?? "")} → prepend to ${String(args?.name ?? "")}`,
+    "interactions.summaryMove": (args) =>
+      `${String(args?.when ?? "")} → move an item of ${String(args?.name ?? "")}`,
+    "interactions.summaryMoveBefore": (args) =>
+      `${String(args?.when ?? "")} → move items of ${String(args?.name ?? "")}`,
+    "interactions.summaryMoveAfter": (args) =>
+      `${String(args?.when ?? "")} → move items of ${String(args?.name ?? "")}`,
+    "interactions.summaryRemoveSelectedItems": (args) =>
+      `${String(args?.when ?? "")} → remove the selected items of ${String(args?.name ?? "")}`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
     "interactions.summaryNavigateWithPath": (args) =>

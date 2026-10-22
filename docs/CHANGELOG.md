@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — `useListData` 위치 편집 (insert · insertBefore · insertAfter · prepend · move · moveBefore · moveAfter · removeSelectedItems)] - 2026-10-23
+
+### Added
+
+- **Do 「collection 위치에 넣기 · 항목 앞 · 뒤에 넣기 · 맨 앞에 넣기 · 항목 옮기기 · 앞 · 뒤로 옮기기 · 선택 항목 삭제」** — 레퍼런스 `useListData` 메서드 이름 · 인자 순서 그대로: `insert(index, …)` · `insertBefore(key, …)` · `insertAfter(key, …)` · `prepend(…)` · `move(key, toIndex)` · `moveBefore(key, keys)` · `moveAfter(key, keys)` · `removeSelectedItems()`.
+  - 값은 `append` 처럼 record (`!event.formData`), 위치 · key 는 리터럴 또는 `!event.<인자>`. 모르는 key · 잘못된 위치는 보고 (조용한 no-op 없음).
+  - `removeSelectedItems` 의 선택 = 그 collection 에 묶인 컴포넌트들의 현재 선택.
+  - 세션이 `append` · `update` · `remove` 와 같은 편집 기록으로 들고 Builder 항목 위에 다시 적용한다 (H1 — 데이터 · 문서 무변경).
+  - 문서: Do 8종 추가 (contract 47 그대로).
+  - 위치: `packages/shared/src/interactions/dispatcher.ts` (`dispatchListPosition` · `CatalogListPosition`) · `catalog/runtime/catalogPreviewSession.ts` (`insert` · `move` · `positionIndex`) · `catalogPreviewInteractions.ts` (`selectedKeysOf`) · Interactions 패널 · 테스트 `listDataPositions.test.tsx` (원복 RED)
+
+### Fixed
+
+- **패널 입력이 숫자 0 을 빈 칸으로 보이던 문제** — `PropertyInput` 이 `String(value || "")` 라 0 이 사라졌다 (Do 「항목 옮기기」 의 위치 0 에서 발견). `??` 로 — `null` · `undefined` 만 빈 칸.
+  - 위치: `apps/builder/src/builder/components/property/PropertyInput.components.tsx` · 테스트 `PropertyInput.zero.test.tsx` (원복 RED)
+
 ## [Data — 목록 끝에서 자동으로 더 불러오기 (`onLoadMore` · `*LoadMoreItem`) · ComboBox 입력이 서버 검색 (`filterText`)] - 2026-10-23
 
 ### Added

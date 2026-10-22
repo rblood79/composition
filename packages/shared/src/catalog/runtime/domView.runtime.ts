@@ -98,6 +98,8 @@ export function catalogPreviewRuntime(
     append: (collectionId, value) => session.append(collectionId, value),
     update: (collectionId, key, value) => session.update(collectionId, key, value),
     remove: (collectionId, keys) => session.remove(collectionId, keys),
+    insert: (collectionId, at, value) => session.insert(collectionId, at, value),
+    move: (collectionId, keys, to) => session.move(collectionId, keys, to),
   });
 }
 

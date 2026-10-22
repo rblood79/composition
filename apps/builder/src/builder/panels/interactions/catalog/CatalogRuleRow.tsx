@@ -46,7 +46,28 @@ const LIST_DATA_FIELDS = {
   reload: [],
   loadMore: [],
   setFilterText: ["value"],
+  insert: ["index", "value"],
+  insertBefore: ["key", "value"],
+  insertAfter: ["key", "value"],
+  prepend: ["value"],
+  move: ["key", "toIndex"],
+  moveBefore: ["key", "keys"],
+  moveAfter: ["key", "keys"],
+  removeSelectedItems: [],
 } as const;
+type ListDataOpcode = keyof typeof LIST_DATA_FIELDS;
+const isListDataOpcode = (opcode: string): opcode is ListDataOpcode =>
+  opcode in LIST_DATA_FIELDS;
+/** A list-data field's label (the reference's argument names: `index` · `key` · `keys` …). */
+function listDataFieldLabelKey(opcode: ListDataOpcode, field: string): string {
+  if (opcode === "setFilterText") return "interactions.filterText";
+  if (field === "value") return "interactions.appendValue";
+  if (field === "index" || field === "toIndex") return "interactions.listIndex";
+  if (field === "keys") return "interactions.movedKeys";
+  if (opcode === "moveBefore" || opcode === "moveAfter" || opcode.startsWith("insert"))
+    return "interactions.targetKey";
+  return "interactions.itemKey";
+}
 const LIST_DATA_SUMMARY_KEYS = {
   append: "interactions.summaryAppend",
   update: "interactions.summaryUpdate",
@@ -54,6 +75,14 @@ const LIST_DATA_SUMMARY_KEYS = {
   reload: "interactions.summaryReload",
   loadMore: "interactions.summaryLoadMore",
   setFilterText: "interactions.summarySetFilterText",
+  insert: "interactions.summaryInsert",
+  insertBefore: "interactions.summaryInsertBefore",
+  insertAfter: "interactions.summaryInsertAfter",
+  prepend: "interactions.summaryPrepend",
+  move: "interactions.summaryMove",
+  moveBefore: "interactions.summaryMoveBefore",
+  moveAfter: "interactions.summaryMoveAfter",
+  removeSelectedItems: "interactions.summaryRemoveSelectedItems",
 } as const;
 
 const STATE_OP_LABEL_KEYS = {
@@ -159,14 +188,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         name: endpoint?.name ?? action.endpointId,
       });
     }
-    if (
-      action.opcode === "append" ||
-      action.opcode === "update" ||
-      action.opcode === "remove" ||
-      action.opcode === "reload" ||
-      action.opcode === "loadMore" ||
-      action.opcode === "setFilterText"
-    ) {
+    if ("collectionId" in action && isListDataOpcode(action.opcode)) {
       const collection = context.collections?.find(
         (option) => option.id === action.collectionId,
       );
@@ -359,12 +381,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
             </>
           )}
 
-          {(action.opcode === "append" ||
-            action.opcode === "update" ||
-            action.opcode === "remove" ||
-            action.opcode === "reload" ||
-            action.opcode === "loadMore" ||
-            action.opcode === "setFilterText") && (
+          {isListDataOpcode(action.opcode) && "collectionId" in action && (
             <>
               <PropertySelect
                 label={t("interactions.collection")}
@@ -386,12 +403,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                   key={field}
                   param={{
                     kind: "text",
-                    labelKey:
-                      action.opcode === "setFilterText"
-                        ? "interactions.filterText"
-                        : field === "value"
-                          ? "interactions.appendValue"
-                          : "interactions.itemKey",
+                    labelKey: listDataFieldLabelKey(action.opcode as ListDataOpcode, field),
                   }}
                   value={(action as Record<string, unknown>)[field]}
                   eventArgs={eventArgsOf(componentType, rule.trigger)}

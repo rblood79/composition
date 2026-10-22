@@ -27,6 +27,15 @@ export const CATALOG_ACTION_OPCODES = [
   "remove",
   // `useAsyncList.reload` — an API collection loaded again.
   "reload",
+  // `useListData`'s positions — insert · move by index or next to a key, the selection removed.
+  "insert",
+  "insertBefore",
+  "insertAfter",
+  "prepend",
+  "move",
+  "moveBefore",
+  "moveAfter",
+  "removeSelectedItems",
   // `useAsyncList.loadMore` · `setFilterText` — the next page · a server filter.
   "loadMore",
   "setFilterText",

@@ -920,6 +920,45 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
       }
     | {
+        /** `useListData.insert(index, …items)` — the value at `index` (a number). */
+        opcode: "insert";
+        collectionId: DataCollectionId;
+        index?: Scalar;
+        value?: Scalar;
+      }
+    | {
+        /** `useListData.insertBefore(key, …)` · `insertAfter(key, …)` — next to the item `key`. */
+        opcode: "insertBefore" | "insertAfter";
+        collectionId: DataCollectionId;
+        key?: Scalar;
+        value?: Scalar;
+      }
+    | {
+        /** `useListData.prepend(…items)`. */
+        opcode: "prepend";
+        collectionId: DataCollectionId;
+        value?: Scalar;
+      }
+    | {
+        /** `useListData.move(key, toIndex)`. */
+        opcode: "move";
+        collectionId: DataCollectionId;
+        key?: Scalar;
+        toIndex?: Scalar;
+      }
+    | {
+        /** `useListData.moveBefore(key, keys)` · `moveAfter(key, keys)` — `keys` next to `key`. */
+        opcode: "moveBefore" | "moveAfter";
+        collectionId: DataCollectionId;
+        key?: Scalar;
+        keys?: Scalar;
+      }
+    | {
+        /** `useListData.removeSelectedItems()` — the selection of the components showing it. */
+        opcode: "removeSelectedItems";
+        collectionId: DataCollectionId;
+      }
+    | {
         /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */
         opcode: "loadMore";
         collectionId: DataCollectionId;

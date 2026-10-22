@@ -52,4 +52,12 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   reload: "interactions.actionReload",
   loadMore: "interactions.actionLoadMore",
   setFilterText: "interactions.actionSetFilterText",
+  insert: "interactions.actionInsert",
+  insertBefore: "interactions.actionInsertBefore",
+  insertAfter: "interactions.actionInsertAfter",
+  prepend: "interactions.actionPrepend",
+  move: "interactions.actionMove",
+  moveBefore: "interactions.actionMoveBefore",
+  moveAfter: "interactions.actionMoveAfter",
+  removeSelectedItems: "interactions.actionRemoveSelectedItems",
 } as const;
