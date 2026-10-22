@@ -731,6 +731,7 @@ export interface TranslationKeys {
     collectionEmpty: string;
     removeBinding: string;
     bindingOpenTable: string;
+    bindingItemKey: string;
     bindingNewTable: string;
     bindingUsedBy: string;
     idCheckUnique: string;

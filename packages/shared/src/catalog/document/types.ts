@@ -526,6 +526,12 @@ export function descendantPatchOf(
 export interface DataBindingRef {
   collectionId: DataCollectionId;
   fieldMap: Readonly<Record<string, DataFieldId>>;
+  /**
+   * `useListData.getItem(key)` — one item of the collection: a literal key or a `{{ }}` template
+   * (`{{ params.id }}` · a variable). Absent = every item. A container's descendants read the
+   * item's fields (`{name}`); a collection component shows that item only.
+   */
+  key?: string;
 }
 
 export interface ProjectEntry {

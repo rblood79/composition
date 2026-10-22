@@ -151,6 +151,8 @@ export interface CatalogBoundRow {
 export type CatalogRowSource = (
   binding: DataBindingRef,
   kind?: "items" | "records",
+  /** The bound node — what a `key` template sees (its page's variables). */
+  ownerId?: NodeId,
 ) => CatalogBoundRows | undefined;
 /** A binding's delivered rows; `total` = the collection's row count when it holds more (the window). */
 export type CatalogBoundRows = readonly CatalogBoundRow[] & {
@@ -1128,7 +1130,13 @@ export function resolveCatalogNode(
       sampleOwner?: NodeId;
     },
   ): ResolvedCatalogNode | undefined => {
-    const ownedRow = ownedRowing?.row;
+    // `useListData.getItem(key)` — a keyed binding is one item: its descendants read its fields
+    // (a container), a collection repeats it alone.
+    const keyedRows =
+      node.binding?.key !== undefined && rows
+        ? rows(node.binding, "items", node.id)
+        : undefined;
+    const ownedRow = ownedRowing?.row ?? keyedRows?.[0];
     const sampleOwner = ownedRowing?.rowStart
       ? node.id
       : ownedRowing?.sampleOwner;
@@ -1221,10 +1229,12 @@ export function resolveCatalogNode(
       templateTypeName(definition.templateRootId) === "Chart";
     const records =
       node.binding && rows && charted
-        ? rows(node.binding, "records")
+        ? rows(node.binding, "records", node.id)
         : undefined;
     const rowSet =
-      node.binding && rows && !charted ? rows(node.binding) : undefined;
+      node.binding && rows && !charted
+        ? (keyedRows ?? rows(node.binding, "items", node.id))
+        : undefined;
     if (
       definition.mode === "composite" &&
       definition.templateRootId &&
@@ -1266,7 +1276,8 @@ export function resolveCatalogNode(
             ),
             undefined,
             rowSet
-              ? { rowSet }
+              ? // (A keyed item is also the row its template's own positions read.)
+                { rowSet, ...(keyedRows?.[0] ? { row: keyedRows[0] } : {}) }
               : records
                 ? { records }
                 : ownedRow

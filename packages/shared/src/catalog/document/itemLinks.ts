@@ -80,8 +80,12 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
     isSelected: ITEM_SELECTED_PROP_CONTRACT,
   },
-  // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root.
-  frame: CATALOG_INHERITED_PROP_CONTRACTS,
+  // ADR-281 Decision 3 (user decision 1) — a frame passes these down like the page root; a keyed
+  // binding (`useListData.getItem`) gives its descendants one item's fields (a detail view).
+  frame: {
+    ...CATALOG_INHERITED_PROP_CONTRACTS,
+    dataBinding: { kind: "binding", label: "Data", section: "content" },
+  },
 };
 
 /**

@@ -46,6 +46,7 @@ import { useCollections } from "../../stores/data";
 import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
 import "./PropertyDataBinding.css";
 import { PropertyFieldset } from "./PropertyFieldset";
+import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 
@@ -413,6 +414,20 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               disabled={disabled}
             />
           ))}
+
+        {/* `useListData.getItem(key)` — 한 항목: 리터럴 key 또는 {{ params.id }} · {{ 변수 }} */}
+        {selectedCollectionId && (
+          <PropertyInput
+            label={t("propertiesPanel.bindingItemKey")}
+            value={value?.key ?? ""}
+            placeholder="{{ params.id }}"
+            onChange={(text) => {
+              if (!value) return;
+              const key = text.trim();
+              onChange({ ...value, key: key || undefined });
+            }}
+          />
+        )}
 
         {/* 기존 문서의 비-dataTable 바인딩 안내 (read 호환 — 신규 기록은 dataTable 고정) */}
         {isLegacyNonTableBinding && (

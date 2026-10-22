@@ -180,6 +180,7 @@ import {
 import { catalogChildOrder } from "./calendarModel";
 import {
   catalogRecordVariables,
+  catalogBindingKey,
   catalogStateEnv,
   catalogStateNames,
   catalogStateProps,
@@ -1547,7 +1548,23 @@ export class CatalogCompositionRoot {
     this.pageFrames = options.pageFrames === true;
     this.screenWidth = options.screenWidth;
     this.colorMode = options.colorMode ?? "light";
-    this.rows = options.rows;
+    const rows = options.rows;
+    // A keyed binding (`useListData.getItem(key)`) reads its key here, once for both consumers:
+    // resolved = that item; not resolvable (the Canvas — no route, no runtime values) = a sample.
+    this.rows =
+      rows &&
+      ((binding, kind, ownerId) => {
+        if (binding.key === undefined) return rows(binding, kind, ownerId);
+        const key = catalogBindingKey(
+          this.runtime.graph,
+          binding.key,
+          ownerId,
+          this.stateSource,
+        );
+        if (key !== undefined) return rows({ ...binding, key }, kind, ownerId);
+        const { key: _template, ...every } = binding;
+        return rows(every, kind, ownerId)?.slice(0, 1);
+      });
     this.tableSort = options.tableSort;
     this.rowSample = options.rowSample;
     this.stateSource = options.state;
@@ -1873,6 +1890,22 @@ export class CatalogCompositionRoot {
    * the subscriber errors.
    */
   refreshState(names?: ReadonlySet<string>): unknown[] {
+    // A keyed binding whose key reads a changed name picks its item again.
+    const keyed = new Set<string>();
+    for (const sourceId of this.sourceInstances.keys()) {
+      const entry = this.runtime.graph.getEntry(sourceId);
+      const binding = entry?.kind === "node" ? entry.binding : undefined;
+      if (
+        binding?.key !== undefined &&
+        (!names ||
+          catalogStateNames({ key: binding.key }).some((name) => names.has(name)))
+      )
+        keyed.add(binding.collectionId);
+    }
+    const rowErrors = keyed.size ? this.refreshRows(keyed) : [];
+    return [...rowErrors, ...this.refreshStateReaders(names)];
+  }
+  private refreshStateReaders(names?: ReadonlySet<string>): unknown[] {
     const byRoot = new Map<NodeId, RecordPlan[]>();
     const get = (key: string) => this.records.get(key);
     for (const id of this.stateReaders(names)) {

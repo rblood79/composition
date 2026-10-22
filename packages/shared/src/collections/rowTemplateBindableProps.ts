@@ -11,7 +11,8 @@ import type { CollectionFieldRoles } from "./resolveCollectionItems";
  * Canvas 투영 · DOM 렌더 · 패널 컬럼 연결이 같은 상수를 읽는다. 모든 string prop 을 보간하면 사용자가 쓴
  * `{`…`}` 글자까지 바뀌므로 내용을 싣는 prop 만 둔다 (Text · Button · Badge · Link · StatusLight 의
  * `children` · Link `href` · Image · Avatar `src`/`alt` · Avatar `initials` · Icon `iconName`, 2026-09-26
- * Phase 0 inventory). 파싱은 ADR-159 `compileFieldTemplate` / `interpolateFieldTemplate` 두 심볼만.
+ * Phase 0 inventory · field 의 `value` — 한 항목 바인딩의 수정 Form, 2026-10-22). 파싱은 ADR-159
+ * `compileFieldTemplate` / `interpolateFieldTemplate` 두 심볼만.
  */
 export const ROW_TEMPLATE_BINDABLE_PROP_KEYS = [
   "children",
@@ -23,6 +24,9 @@ export const ROW_TEMPLATE_BINDABLE_PROP_KEYS = [
   "alt",
   "initials",
   "iconName",
+  // A field's value (its start value in the Preview) — an edit Form over a keyed item
+  // (`binding.key`) starts from the item's fields.
+  "value",
 ] as const;
 
 export type RowTemplateBindablePropKey =

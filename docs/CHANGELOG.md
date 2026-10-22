@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 한 항목 바인딩 (`binding.key` — useListData.getItem) · 수정 Form 미리 채우기] - 2026-10-22
+
+### Added
+
+- **한 항목 바인딩 `binding.key`** — RAC · S2 레퍼런스 `useListData.getItem(key)`. Data 칸의 「Item key」 에 리터럴 (`usr_1`) 또는 `{{ }}` 템플릿 (`{{ params.id }}` · `{{ 변수 }}` — 이름 붙인 `selectedKeys` 는 첫 key) 을 쓰면 collection 의 그 항목 하나가 바인딩된다:
+  - 컨테이너 (frame · Form) 는 자손의 `{name}` · `{gender}` 가 그 항목 값을 읽는다 — detail 화면을 한 번에 묶는다. frame · Form 에 Data 칸이 생겼다 (`dataBinding` — composition 공통 확장).
+  - 목록 컴포넌트 (ListBox · Table …) 는 그 항목만 보인다. key 는 window 밖 항목도 찾고, 없는 key 는 빈 항목.
+  - key 가 읽는 변수 · 경로가 바뀌면 그 바인딩만 다시 고른다 (`refreshState` → `refreshRows`). Canvas 는 경로 · 런타임 값이 없어 첫 항목을 표본으로 그린다.
+  - 문서: `DataBindingRef.key?: string` — contract 47 그대로 (추가만).
+- **수정 Form 미리 채우기** — field 의 `value` 를 행 값 prop 목록 (`ROW_TEMPLATE_BINDABLE_PROP_KEYS`) 에 더해 `value="{email}"` 이면 그 항목 값으로 시작한다 (Preview 는 그 값을 시작값으로 controlled).
+  - 위치: `packages/shared/src/catalog/{document/types.ts,document/validation.ts,runtime/dataBinding.ts,runtime/stateTemplate.ts (catalogBindingKey),runtime/compositionRoot.ts,resolution/resolver.ts}` · `collections/rowTemplateBindableProps.ts` · `document/itemLinks.ts` · `bindings/Form.binding.ts` · 패널 `PropertyDataBinding.tsx` · 테스트 `getItem.test.tsx` · `keyedBindingCanvas.test.ts` (원복 RED)
+
 ## [Preview — 목록 → 상세: 항목 링크가 Preview 라우터로 · `{{ params.id }}` · `:param` 경로] - 2026-10-22
 
 ### Added

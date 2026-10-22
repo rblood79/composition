@@ -334,6 +334,11 @@ export interface PropertyDataBinding {
    * 필드는 캐시 키 호환을 위해 유지하고, 기존 값은 컬렉션 변경 시에도 보존한다.
    */
   path?: string;
+  /**
+   * `useListData.getItem(key)` — 한 항목만: 리터럴 key 또는 `{{ }}` 템플릿 (`{{ params.id }}` · 변수).
+   * 없으면 항목 전부. 컨테이너의 자손은 그 항목의 필드 (`{name}`) 를 읽는다.
+   */
+  key?: string;
   /** 기본값 */
   defaultValue?: unknown;
   /** 갱신 모드 (기본: manual) */

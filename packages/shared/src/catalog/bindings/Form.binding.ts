@@ -29,6 +29,9 @@ export const formBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // A keyed binding (`useListData.getItem`) — the Form's fields start from one item's
+      // (`value="{name}"`): an edit Form (composition's data layer, `dataBinding`).
+      dataBinding: { kind: "binding", label: "Data", section: "content" },
       // S2 1.8.0 `isEmphasized` (2026-10-10): Form context — isEmphasized 를 받는 자식 field
       //   (Checkbox · Switch · 그룹 · Slider · TagGroup) 중 자기 값을 안 적은 것에 채워진다
       //   (`CATALOG_FORM_CONTEXT_KEYS`). 옛 variant (default · outlined) 는 S2 에 없어 로드 시

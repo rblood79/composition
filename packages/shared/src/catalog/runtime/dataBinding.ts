@@ -50,7 +50,13 @@ export function catalogBindingRef(
     if (typeof fieldId !== "string" || !REF_ID.test(fieldId)) return null;
     fieldMap[role] = `${FIELD}${fieldId}` as DataFieldId;
   }
-  return { collectionId: catalogCollectionId(value.collectionId), fieldMap };
+  return {
+    collectionId: catalogCollectionId(value.collectionId),
+    fieldMap,
+    ...(typeof value.key === "string" && value.key.trim()
+      ? { key: value.key.trim() }
+      : {}),
+  };
 }
 
 /** A binding reference as the picker value (`name` = the collection's, when known). */
@@ -70,6 +76,7 @@ export function catalogBindingValue(
     collectionId: dataCollectionIdOf(ref.collectionId),
     name,
     ...(Object.keys(fieldMap).length ? { fieldMap } : {}),
+    ...(ref.key !== undefined ? { key: ref.key } : {}),
   };
 }
 
@@ -143,7 +150,9 @@ export function catalogFieldUsageElements(
  * value heuristics and `fieldMap` roles), at most the old window limit. `undefined` = the
  * collection is not loaded (the template items stay). Duplicate keys get their index.
  * `kind: "records"` = the collection's own records, every row (the old Canvas Chart's
- * `readDataBindingRows` — the chart model caps its rows itself).
+ * `readDataBindingRows` — the chart model caps its rows itself). A `key` (already resolved — the
+ * composition root resolves the binding's template) gives that one item (`useListData.getItem`,
+ * past the window), or an empty item when no item has it.
  */
 export function catalogBoundRows(
   ref: DataBindingRef,
@@ -165,13 +174,17 @@ export function catalogBoundRows(
   const seen = new Set<string>();
   const rows: CatalogBoundRow[] = getFlatProjectionRows(
     { dataBinding, collections },
-    limit,
+    ref.key === undefined ? limit : Number.MAX_SAFE_INTEGER,
   ).map((row) => {
     let key = String(row.itemKey);
     if (seen.has(key)) key = `${key}~${row.rowIndex}`;
     seen.add(key);
     return { key, values: buildCollectionRowTemplateItem(row) };
   });
+  if (ref.key !== undefined) {
+    const item = rows.find((row) => row.key === ref.key);
+    return [item ?? { key: ref.key, values: {} }];
+  }
   // At the window limit the collection may hold more: its count is the sample's "+N more".
   if (rows.length < limit) return rows;
   const total = readDataBindingRows(dataBinding, collections).length;

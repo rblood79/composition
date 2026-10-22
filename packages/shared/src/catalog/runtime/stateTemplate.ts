@@ -183,6 +183,66 @@ export function catalogStateProps<T extends Record<string, unknown>>(
   return resolveStateTemplateProps(authored, env());
 }
 
+/**
+ * A keyed binding's key (`binding.key` — `useListData.getItem(key)`): a literal, or `{{ }}` over the
+ * bound node's page variables, the project's and the route params. A whole-template key keeps its
+ * value's kind — a selection (an array) gives its first key. `undefined` = nothing to read here
+ * (the Canvas has no route and no runtime values): the caller shows a sample item.
+ */
+export function catalogBindingKey(
+  graph: CatalogGraph,
+  key: string,
+  ownerId: string | undefined,
+  source: CatalogStateSource | undefined,
+): string | undefined {
+  if (!hasStateTemplateSyntax({ key })) return key;
+  const visible: CatalogVisibleState[] = [];
+  for (let id = ownerId; id; id = graph.ownerOf(id)) {
+    if (graph.getEntry(id)?.kind !== "page") continue;
+    const pageId = id as EntryId<"page">;
+    for (const variable of ownedVariables(graph, pageId))
+      visible.push({
+        id: variable.id,
+        name: variable.name,
+        type: variableType(variable.valueType),
+        defaultValue: variable.defaultValue,
+        scope: { kind: "page", pageId },
+      });
+    break;
+  }
+  for (const variable of source?.projectVariables() ?? [])
+    visible.push({
+      id: `${PROJECT_VARIABLE}${variable.id}`,
+      name: variable.name,
+      type: variable.type,
+      defaultValue: variable.defaultValue,
+      scope: { kind: "project" },
+    });
+  const env = catalogStateEnv(
+    visible,
+    source?.read?.bind(source),
+    source?.params?.bind(source),
+  );
+  const runtime = source?.read !== undefined;
+  const whole = /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(
+    key.trim(),
+  );
+  if (whole) {
+    let value = env.get(whole[1]!);
+    for (const segment of (whole[2] ?? "").split(".").filter(Boolean))
+      value =
+        value !== null && typeof value === "object"
+          ? (value as Record<string, unknown>)[segment]
+          : undefined;
+    if (Array.isArray(value)) value = value[0];
+    if (typeof value === "number") return String(value);
+    if (typeof value !== "string") return undefined;
+    return value === "" && !runtime ? undefined : value;
+  }
+  const text = resolveStateTemplateProps({ key }, env).key;
+  return hasStateTemplateSyntax({ key: text }) ? undefined : text;
+}
+
 /** Names a record's authored props read (a refresh re-resolves only those readers). */
 export function catalogStateNames(authored: Record<string, unknown>): string[] {
   return collectPropsStateRefs(authored);

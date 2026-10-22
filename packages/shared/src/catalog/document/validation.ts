@@ -953,8 +953,9 @@ function descendant(value: unknown, at: string): void {
 }
 function binding(value: unknown, at: string): void {
   const item = object(value, at);
-  exact(item, ["collectionId", "fieldMap"], at);
+  exact(item, ["collectionId", "fieldMap", "key"], at);
   id(item.collectionId, "data:collection:", `${at}.collectionId`);
+  if (item.key !== undefined) string(item.key, `${at}.key`);
   for (const [key, value] of Object.entries(
     object(item.fieldMap, `${at}.fieldMap`),
   )) {

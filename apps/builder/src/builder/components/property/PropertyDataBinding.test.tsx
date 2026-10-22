@@ -116,13 +116,14 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     expect(container.querySelector(".binding-path-input")).toBeNull();
     expect(container.textContent).not.toContain("데이터 경로");
 
-    // 남는 오소링 표면 = 컬렉션 Select 행 + (ADR-212 Phase 6) 바인딩 동선 행뿐 —
-    // 갱신/경로 오소링 행은 없다.
+    // 남는 오소링 표면 = 컬렉션 Select 행 + (ADR-212 Phase 6) 바인딩 동선 행 + 항목 key
+    // (`useListData.getItem(key)`, 2026-10-22) — 갱신/경로 오소링 행은 없다.
     expect(container.querySelector(".binding-name-row")).not.toBeNull();
     expect(container.querySelector(".binding-actions")).not.toBeNull();
+    expect(container.textContent).toContain("Item key");
     expect(
       container.querySelectorAll(".property-data-binding > *"),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
   });
 
   it("컬렉션 선택 시 기존 path / refreshMode / refreshInterval 을 모두 보존한다", () => {
