@@ -51,6 +51,7 @@ import { catalogInlineAlertIcon } from "../document/inlineAlertIcon";
 import { Group } from "../../components/Group";
 
 import { Icon } from "../../components/Icon";
+import { ProgressCircle } from "../../components/ProgressCircle";
 
 import { Slot } from "../../components/Slot";
 
@@ -1973,6 +1974,32 @@ function ruleDom(
     );
     delete rest.defaultOpen;
   }
+  // `useAsyncList`'s load (resolver — a bound Table): S2's TableBody shows it, not RAC's Table.
+  if (lower === "table") delete rest.loadingState;
+  // S2 TableView `loadingState: "loading"` — an empty body draws the progress circle (S2
+  // `TableBody`'s `renderEmptyState`; rows keep showing while they reload).
+  if (
+    lower === "tablebody" &&
+    root.domInputs.get(node.parentId)?.props.loadingState === "loading"
+  )
+    rest.renderEmptyState = () =>
+      createElement(
+        "div",
+        // (S2 `centeredWrapper` — the Canvas loads nothing, so it has no counterpart.)
+        {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            height: "100%",
+          },
+        },
+        createElement(ProgressCircle, {
+          isIndeterminate: true,
+          "aria-label": "Loading…",
+        }),
+      );
   // A resizable Column's document width is where its drag starts (S2 `width` is controlled — the
   // widths a drag leaves are the Preview's, 사용자 결정 5).
   if (lower === "column" && resizable) {

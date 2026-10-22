@@ -43,6 +43,9 @@ export const skeletonBinding: PrimitiveBinding = {
         section: "state",
         default: true,
       },
+      // `<Skeleton isLoading={list.isLoading}>` — bound to a collection, the Preview gives it the
+      //   collection's load (composition's data layer, `dataBinding`); the Canvas keeps `isLoading`.
+      dataBinding: { kind: "binding", label: "Data", section: "content" },
     },
     toRacProps: "default",
   },

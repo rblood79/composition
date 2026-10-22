@@ -154,9 +154,15 @@ export type CatalogRowSource = (
   /** The bound node — what a `key` template sees (its page's variables). */
   ownerId?: NodeId,
 ) => CatalogBoundRows | undefined;
-/** A binding's delivered rows; `total` = the collection's row count when it holds more (the window). */
+/** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
+export type CatalogLoadingState = "loading" | "idle" | "error";
+/**
+ * A binding's delivered rows; `total` = the collection's row count when it holds more (the window),
+ * `loadingState` = its load (the Preview session's — the Canvas loads nothing and sends none).
+ */
 export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly total?: number;
+  readonly loadingState?: CatalogLoadingState;
 };
 /** Bound collections whose rows the Builder samples when they grow with them (ADR-157). */
 const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([
@@ -1174,6 +1180,19 @@ export function resolveCatalogNode(
       )
         props.children = String(ownedRow.values.label ?? "");
     }
+    // `useAsyncList`'s `loadingState` beside its items (`<TableView loadingState={list.loadingState}>`
+    // · `<Skeleton isLoading={list.isLoading}>`): a bound Table · Skeleton reads its collection's load.
+    const loadingType =
+      node.binding && rows
+        ? ruleDefinitionOf(node.definitionId).name
+        : undefined;
+    if (loadingType === "Table" || loadingType === "Skeleton") {
+      const state = (keyedRows ?? rows!(node.binding!, "items", node.id))
+        ?.loadingState;
+      if (state && loadingType === "Skeleton")
+        props.isLoading = state === "loading";
+      else if (state) props.loadingState = state;
+    }
     applyFormContext(
       node.definitionId,
       props,
@@ -1252,12 +1271,12 @@ export function resolveCatalogNode(
             { ...self, collapsed: true },
             templateBindings(node.definitionId, props),
             instanceRoot(
-              withoutPropertyKeys(
-                node.definitionId,
-                ownedRowing?.rowStart
-                  ? [...Object.keys(node.props), "id"]
-                  : Object.keys(node.props),
-              ),
+              withoutPropertyKeys(node.definitionId, [
+                ...Object.keys(node.props),
+                ...(ownedRowing?.rowStart ? ["id"] : []),
+                // (The collection's load reaches the template root — the Table record.)
+                ...(props.loadingState !== undefined ? ["loadingState"] : []),
+              ]),
               props,
               [
                 ...Object.keys(node.visual),

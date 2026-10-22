@@ -21,6 +21,7 @@ import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
 import { catalogBoundRows } from "./dataBinding";
 import type { CatalogTableSort } from "./tableSort";
+import type { CatalogLoadingState } from "../resolution/resolver";
 import {
   createRuntimeState,
   type ApiEndpointDefinition,
@@ -157,6 +158,8 @@ export class CatalogPreviewSession {
    * `{{ params.id }}` loads again only when the shown path gives another URL (`loadRouted`).
    */
   private readonly loadedUrls = new Map<string, string>();
+  /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
+  private readonly loadingStates = new Map<string, CatalogLoadingState>();
   /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
   private readonly pendingSubmits = new Set<Promise<unknown>>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
@@ -544,15 +547,23 @@ export class CatalogPreviewSession {
     );
     if (!endpoint)
       throw new Error(`${collection.name ?? collectionId} 을 채우는 endpoint 없음`);
-    await Promise.allSettled([...this.pendingSubmits]);
-    const resolve = this.endpointTemplate;
-    const url = resolvedEndpointUrl(endpoint, resolve);
-    if (url) this.loadedUrls.set(collectionId, url);
-    const items = await executeCollectionEndpoint(
-      endpoint,
-      new AbortController().signal,
-      resolve,
-    );
+    this.setLoadingState(collectionId, "loading");
+    let items: unknown;
+    try {
+      await Promise.allSettled([...this.pendingSubmits]);
+      const resolve = this.endpointTemplate;
+      const url = resolvedEndpointUrl(endpoint, resolve);
+      if (url) this.loadedUrls.set(collectionId, url);
+      items = await executeCollectionEndpoint(
+        endpoint,
+        new AbortController().signal,
+        resolve,
+      );
+    } catch (error) {
+      this.setLoadingState(collectionId, "error");
+      throw error;
+    }
+    this.loadingStates.set(collectionId, "idle");
     this.reloadedItems.set(
       collectionId,
       (Array.isArray(items) ? items : [items]).filter(
@@ -566,6 +577,25 @@ export class CatalogPreviewSession {
     this.changed();
   }
 
+  private setLoadingState(collectionId: string, state: CatalogLoadingState): void {
+    this.loadingStates.set(collectionId, state);
+    const errors =
+      this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
+    if (errors.length) console.error("[CatalogPreview] loading:", ...errors);
+    this.changed();
+  }
+  /** The bound rows with their collection's load (idle unless a load runs — the Preview's). */
+  private boundRows(
+    binding: Parameters<typeof catalogBoundRows>[0],
+    kind: Parameters<typeof catalogBoundRows>[2],
+  ) {
+    const rows = catalogBoundRows(binding, this.itemSources(), kind);
+    if (!rows) return rows;
+    const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+    return Object.assign(rows, {
+      loadingState: this.loadingStates.get(collectionId) ?? "idle",
+    });
+  }
   /**
    * An endpoint's `{{ }}` (route params · variables) read from the session's state, each on its
    * own: an empty value is not one (Home has no `:id` — `/users/` is another resource).
@@ -699,8 +729,7 @@ export class CatalogPreviewSession {
       {
         ...this.options.root,
         breakpoint: this.breakpoint,
-        rows: (binding, kind) =>
-          catalogBoundRows(binding, this.itemSources(), kind),
+        rows: (binding, kind) => this.boundRows(binding, kind),
         tableSort: (tableId) => this.tableSorts.get(tableId),
         state: this.stateSource(),
         ...(this.colorMode ? { colorMode: this.colorMode } : {}),

@@ -20,6 +20,20 @@ export const tableBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
+      // S2 TableView `loadingState` (`useAsyncList.loadingState`): the bound collection's load —
+      //   the resolver derives it from the Preview session's rows (not authored, so not edited).
+      //   `loading` draws S2's progress circle in an empty body (`domBinding.runtime.ts`).
+      loadingState: {
+        kind: "enum",
+        label: "Loading State",
+        section: "state",
+        editorHidden: true,
+        options: [
+          { value: "idle", label: "Idle" },
+          { value: "loading", label: "Loading" },
+          { value: "error", label: "Error" },
+        ],
+      },
       size: {
         kind: "size",
         label: "Size",

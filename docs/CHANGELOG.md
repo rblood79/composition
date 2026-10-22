@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 바인딩된 Table · Skeleton 이 collection 의 읽는 중 상태를 따른다 (`useAsyncList.loadingState`)] - 2026-10-23
+
+### Added
+
+- **읽는 중 상태 (`loadingState`) 자동 연결** — 레퍼런스는 한 list 에서 `items` 와 `loadingState` 를 같이 넘긴다 (`<TableView items={list.items} loadingState={list.loadingState}>` · `<Skeleton isLoading={list.isLoading}>`). 빌더에서는 바인딩이 그 연결이다 — 문서에 새 칸 없음:
+  - Preview · Publish 세션이 collection 마다 `loading` · `idle` · `error` 를 들고 (다시 읽기 · 경로 param 조회가 지나는 `reload`), 바인딩된 행 결과에 실어 보낸다.
+  - **Table**: S2 TableView 처럼 `loading` 이고 본문이 비었을 때 진행 원 (ProgressCircle, `aria-label` 「Loading…」). 행이 있으면 다시 읽는 동안에도 행을 그대로 둔다 (S2 `TableBody` 와 같음). `loadingState` 는 S2 prop 이름 그대로 Table accepts 에 패널 숨김으로 둔다.
+  - **Skeleton**: collection 에 묶을 수 있다 (Data 칸). 묶이면 읽는 동안에만 나타난다 — Detail 처럼 한 건을 읽는 자리.
+  - Canvas 는 아무것도 읽지 않아 작성한 값 그대로 (Skeleton `isLoading` 기본 true) — 설계된 비대칭.
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` (`CatalogLoadingState` · 바운드 Table · Skeleton) · `catalog/runtime/catalogPreviewSession.ts` (`loadingStates` · `boundRows`) · `catalog/runtime/domBinding.runtime.ts` (TableBody `renderEmptyState`) · `catalog/bindings/{Table,Skeleton}.binding.ts` · 테스트 `loadingState.test.tsx` (원복 RED)
+- **CRUD 스텁 지연** — `STUB_DELAY_MS=1500 node apps/builder/scripts/crud-endpoint-stub.mjs` 로 응답을 늦춰 읽는 중 상태를 본다.
+
 ## [Data — 상세 페이지의 한 건 조회 (endpoint 경로의 `{{ params.id }}` — router loader)] - 2026-10-23
 
 ### Added

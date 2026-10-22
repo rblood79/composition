@@ -2,9 +2,11 @@
 // GET /users → rows · GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
 // Every request is printed (method · path · body · rows after). Restarting resets the rows.
 // Usage: node apps/builder/scripts/crud-endpoint-stub.mjs [port=5198]
+// STUB_DELAY_MS=1500 answers every request that much later (to see a Preview's loading state).
 import { createServer } from "node:http";
 
 const PORT = Number(process.argv[2] ?? 5198);
+const DELAY_MS = Number(process.env.STUB_DELAY_MS ?? 0);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
@@ -31,7 +33,7 @@ const pick = (body) =>
 createServer((req, res) => {
   let text = "";
   req.on("data", (chunk) => (text += chunk));
-  req.on("end", () => {
+  req.on("end", () => setTimeout(() => {
     if (req.method === "OPTIONS") {
       res.writeHead(204, CORS);
       res.end();
@@ -75,5 +77,5 @@ createServer((req, res) => {
     if (result) return send(res, status, result);
     res.writeHead(204, CORS);
     res.end();
-  });
+  }, req.method === "OPTIONS" ? 0 : DELAY_MS));
 }).listen(PORT, () => console.log(`users CRUD stub on http://localhost:${PORT}/users`));
