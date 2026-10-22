@@ -65,5 +65,58 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-21T06:02:33Z"
+  "updatedAt": "2026-10-21T13:01:54.855474+00:00",
+  "componentEmptyDoubleClick": {
+    "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
+    "phase": "verified",
+    "status": "complete_local_uncommitted",
+    "findings": [
+      "사용자 Builder Card 오른쪽 padding 더블클릭 시 Body 선택 유지 RED 재현",
+      "targetKeepingSelection의 선택 유지 대상에서 page body 제외",
+      "doubleClick은 context 진입이 없어도 클릭 대상 선택 후 텍스트 편집 판정 허용"
+    ],
+    "validation": {
+      "regression": "Frame · 등록 Card 회귀 RED 2 확인 → 인접 테스트 14/14 PASS",
+      "live": "Body → Card 빈 padding 더블클릭 · 단일 클릭 · child Preview 더블클릭 · Escape 복귀 PASS; 수집 console error 0; CPU throttle 미측정",
+      "preflight": "PASS (typecheck 포함)"
+    },
+    "evidenceDirectory": ".agent/runs/2026-10-21-component-empty-doubleclick",
+    "scope": "Canvas picking · 인접 회귀 테스트 · CHANGELOG · interaction 규칙 Why"
+  },
+  "reviewAdr279": {
+    "task": "ADR-279 설계 리뷰",
+    "phase": "repair_review_recorded",
+    "status": "design_review_complete_high_0_pending_0",
+    "scope": "ADR·breakdown·현재 코드 정적 대조; 제품 코드 및 ADR 상태 변경 없음",
+    "head": "b9c458d9d",
+    "findings": [
+      "h1 fixed (설계): Decision 8·R8·G0(e)·G1·breakdown에 동일 transaction의 주소 재작성 및 기존 결과 보존 명시",
+      "h2 fixed (설계): Decision 2·R3·G1·breakdown에 base/tablet/mobile 위치 키 같은 층 이전 및 template 제거 명시"
+    ],
+    "unverified": "제품 구현·실행 RED/GREEN·Builder·저장/로드·성능 gate 미실행",
+    "reviewLog": "docs/adr/reviews/279.md",
+    "evidenceDirectory": ".agent/runs/2026-10-21-review-adr279"
+  },
+  "resizeTopLeftInvestigation": {
+    "task": "페이지 내부 요소 top/left 리사이즈 포인터·선택박스·요소 불일치 조사",
+    "phase": "verified",
+    "scope": "일반 흐름 요소의 크기만 기록하고 선택박스와 실제 요소 좌표 일치 수정 및 회귀·live 검증",
+    "status": "complete_pushed",
+    "findings": [
+      "현재 localhost:5173 ADR278 프로젝트 Home Section(295×227, zoom 102%)에서 재현",
+      "left 40px 외측 드래그: ghost x≈571..911 / 실제 요소 및 scene 선택 경계 x≈611..951",
+      "top 40px 외측 드래그: ghost y≈218..488 / 실제 요소 및 scene 선택 경계 y≈258..528",
+      "right/bottom 40px 외측 드래그: ghost와 실제 경계 일치",
+      "원인: preview()는 항상 반대편 고정으로 top/left 위치 이동; flow 요소 resolveResizeRequest에는 position 없음; reflow/commit은 크기만 변경; catalogOverlay는 scene bounds 선택박스와 ghost를 함께 그림",
+      "사용자 결정: 일반 흐름 요소는 width·height만 저장하고 부모 레이아웃의 좌상단을 고정",
+      "preview()가 live scene bounds를 사용하도록 수리; 일반 흐름 요소의 위치·inset 변경 없음, absolute 위치 제약은 유지",
+      "검증용 리사이즈는 Undo로 복원하고 임시 Chrome 탭을 닫음"
+    ],
+    "validation": {
+      "live": "임시 Chrome Builder 탭 mobile 99%: left width 122→142, top height 254→274; 요소·선택박스 좌상단 x≈58 y≈164 유지; 2회 Undo 후 122×254 복원",
+      "tests": "인접 Vitest 3파일 76/76 PASS (8방향 flow, absolute·ratio, Grid); Builder 및 전체 codex:typecheck PASS; guard·자체 변경 파일 format·diff check PASS; 33a4f0c4b 커밋·origin/main push, ADR-246 ratchet pass (B 경고 27)",
+      "unverified": "현재 사용자 문서의 Canvas↔Preview 최신 저장 상태 parity 및 CPU throttle은 미검증"
+    },
+    "evidenceDirectory": ".agent/runs/2026-10-21-resize-top-left-check"
+  }
 }

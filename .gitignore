@@ -69,6 +69,7 @@ packages/shared/src/**/*.d.ts.map
 .worktrees/
 .agent/runs/
 .agent/archives/
+.agent/task-state.json
 .claude/settings.local.json
 .claude/.spec-rebuild-pending
 .claude/.css-regen-pending
