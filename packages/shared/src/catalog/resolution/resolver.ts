@@ -177,6 +177,8 @@ const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
   "GridList",
   "Tree",
   "Menu",
+  "Select",
+  "ComboBox",
   "Skeleton",
 ]);
 /** Bound collections whose rows the Builder samples when they grow with them (ADR-157). */

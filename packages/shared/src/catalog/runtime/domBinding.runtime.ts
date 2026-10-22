@@ -53,6 +53,7 @@ import { Group } from "../../components/Group";
 
 import { Icon } from "../../components/Icon";
 import { ProgressCircle } from "../../components/ProgressCircle";
+import { catalogPickerSpinner } from "./pickerSpinner";
 
 import { Slot } from "../../components/Slot";
 
@@ -1980,7 +1981,7 @@ function ruleDom(
     context.runtime?.setRuntimeProps &&
     (CATALOG_OPEN_TRIGGER_TYPES.has(type) ||
       (CATALOG_OPEN_BODY_TYPES.has(type) &&
-        !catalogOpenOwnerOf(root, node.id, domType)))
+        catalogOpenOwnerOf(root, node.id, domType) === undefined))
   ) {
     const declared = root.domInputs.get(node.id)?.props ?? node.props;
     Object.assign(
@@ -3093,6 +3094,20 @@ export function renderNode(
         ),
       );
   }
+  // S2 Picker · ComboBox `loadingState` (`useAsyncList.loadingState`): a bound picker's field shows
+  // its spinner — in the Select's trigger before the chevron, in the ComboBox's Group before its
+  // button (`catalogPickerSpinner`).
+  const pickerType =
+    partParent &&
+    ((node.bindingId === "button" &&
+      catalogTypeName(root, partParent) === "Select") ||
+      (node.bindingId === "group" &&
+        catalogTypeName(root, partParent) === "ComboBox"))
+      ? catalogTypeName(root, partParent)
+      : undefined;
+  const pickerSpinner = catalogPickerSpinner(pickerType, partParent?.props);
+  if (pickerSpinner)
+    children.splice(Math.max(children.length - 1, 0), 0, pickerSpinner);
   if (node.bindingId === "label") {
     const necessity = catalogFieldLabelNecessity(root, node);
     if (isValidElement(necessity))

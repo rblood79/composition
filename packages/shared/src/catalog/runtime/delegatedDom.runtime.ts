@@ -283,6 +283,23 @@ function serverFiltered(
   };
 }
 
+const PICKER_TYPES: ReadonlySet<string> = new Set(["Select", "ComboBox"]);
+
+/** The record whose binding a collection shows: its own, or its picker's (through the Popover). */
+function boundOwnerOf(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  const own = root.runtime.graph.getEntry(node.sourceId as never);
+  if (own?.kind === "node" && own.binding) return node;
+  const popover = root.domInputs.get(node.parentId);
+  if (!popover || catalogTypeName(root, popover) !== "Popover") return undefined;
+  const picker = root.domInputs.get(popover.parentId);
+  return picker && PICKER_TYPES.has(catalogTypeName(root, picker))
+    ? picker
+    : undefined;
+}
+
 /**
  * The reference's load-more item at a bound collection's end (S2 passes `onLoadMore` and draws it
  * itself): RAC's `*LoadMoreItem` sentinel loads the next page when it is seen —
@@ -296,12 +313,16 @@ export function catalogLoadMoreItem(
   pages: (collectionId: string) => boolean,
 ): ReactElement[] {
   if (!loadMore) return [];
-  const source = root.runtime.graph.getEntry(node.sourceId as never);
+  // (A picker's list shows the picker's collection — `Select · ComboBox > Popover > ListBox`, S2
+  // Picker · ComboBox `onLoadMore`.)
+  const owner = boundOwnerOf(root, node);
+  if (!owner) return [];
+  const source = root.runtime.graph.getEntry(owner.sourceId as never);
   const binding = source?.kind === "node" ? source.binding : undefined;
   if (!binding) return [];
   const collectionId = binding.collectionId.replace(/^data:collection:/, "");
   if (!pages(collectionId)) return [];
-  const isLoading = node.props.loadingState === "loadingMore";
+  const isLoading = owner.props.loadingState === "loadingMore";
   return [
     createElement(
       Item,

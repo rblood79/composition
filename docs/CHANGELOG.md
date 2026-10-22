@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — Picker · ComboBox 읽는 중 스피너 · 열린 목록 끝 더 불러오기 (S2 `loadingState` · `onLoadMore`)] - 2026-10-23
+
+### Added
+
+- **바운드 Select (S2 Picker) · ComboBox 가 collection 의 읽는 중 상태를 보인다** — S2 설치본과 같은 자리 · 조건:
+  - Select: 읽는 동안 (`loading`) 트리거 안 chevron 앞에 스피너, 목록이 열려 있으면 숨김.
+  - ComboBox: 읽기 · 검색 (`loading` · `filtering`) 이 500ms 넘게 걸리면 입력 안 버튼 앞에 스피너, 새 입력이 오면 다시 기다린다 (검색은 목록이 열려 있을 때만).
+  - 열린 목록의 끝이 보이면 다음 페이지를 읽는다 (`ListBoxLoadMoreItem` — picker 안 ListBox 는 picker 의 바인딩을 따른다).
+  - 문서: Select · ComboBox 에 숨김 prop `loadingState` (패널 비노출, contract 47 그대로). Canvas 는 읽지 않으므로 그대로 (설계된 비대칭).
+  - 위치: `packages/shared/src/catalog/runtime/pickerSpinner.ts` (`catalogPickerSpinner`) · `domBinding.runtime.ts` · `delegatedDom.runtime.ts` (`boundOwnerOf`) · `resolution/resolver.ts` · 테스트 `pickerLoading.test.tsx` (원복 RED)
+
+### Fixed
+
+- **Preview · publish 에서 ComboBox 목록이 열리지 않던 문제** — ComboBox 안 Popover 는 「아무도 열림을 제어하지 않음」(`catalogOpenOwnerOf` → `null`) 인데 DOM 이 이것을 「trigger 없는 본체」(`undefined`) 와 같이 읽어 Popover 를 `isOpen=false` 로 고정했다 (ADR-280 `ffcbe0590` 부터). 판정을 `=== undefined` 로.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · 테스트 `pickerLoading.test.tsx` 「a ComboBox's list opens」 (원복 RED)
+
 ## [Interactions — `useListData` 위치 편집 (insert · insertBefore · insertAfter · prepend · move · moveBefore · moveAfter · removeSelectedItems)] - 2026-10-23
 
 ### Added
