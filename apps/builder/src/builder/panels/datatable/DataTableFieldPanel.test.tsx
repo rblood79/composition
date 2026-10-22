@@ -41,6 +41,8 @@ vi.mock("../../stores/toast", () => ({
 
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
+import { CatalogWorkspaceProvider } from "../../catalogRuntime/react";
+import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
 import { DataTableFieldPanel } from "./DataTableFieldPanel";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import {
@@ -58,11 +60,14 @@ vi.mock("../../layout/panelWorkspaceVisibility", () => ({
   setPanelWorkspacePanelVisibility: vi.fn(),
 }));
 
+// (An open project — the panel waits for the workspace; its body reads only the hosts.)
 const wrap = (node: ReactNode) => (
   <I18nProvider initialLocale="en-US">
-    <DataUsageSourceContext.Provider value={USAGE}>
-      {node}
-    </DataUsageSourceContext.Provider>
+    <CatalogWorkspaceProvider workspace={{} as CatalogWorkspace}>
+      <DataUsageSourceContext.Provider value={USAGE}>
+        {node}
+      </DataUsageSourceContext.Provider>
+    </CatalogWorkspaceProvider>
   </I18nProvider>
 );
 

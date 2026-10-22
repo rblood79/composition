@@ -23,6 +23,7 @@ import { Table2, Globe, Variable, RefreshCw, Database } from "lucide-react";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
+import { CatalogWorkspaceGate } from "../../catalogRuntime/react";
 import { useDataStore } from "../../stores/data";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { PanelHeader } from "../../components/panel/PanelHeader";
@@ -50,7 +51,16 @@ const TABS: TabConfig[] = [
   { id: "variables", label: "Variables", icon: Variable },
 ];
 
-export function DataTablePanel({ isActive }: PanelProps) {
+/** Panels mount before the workspace exists — the Data hosts are provided with it. */
+export function DataTablePanel(props: PanelProps) {
+  return (
+    <CatalogWorkspaceGate>
+      <DataTablePanelContent {...props} />
+    </CatalogWorkspaceGate>
+  );
+}
+
+function DataTablePanelContent({ isActive }: PanelProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;

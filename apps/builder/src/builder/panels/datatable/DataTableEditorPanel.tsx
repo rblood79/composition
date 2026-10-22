@@ -33,6 +33,7 @@ import { PanelContents } from "../../components/panel/PanelContents";
 import { ActionIconToggleButton } from "../../components/ui";
 import type { DataTableEditorMode } from "./types/editorTypes";
 import "./DataTableEditorPanel.css";
+import { CatalogWorkspaceGate } from "../../catalogRuntime/react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
@@ -257,7 +258,16 @@ function getModeKey(mode: NonNullable<DataTableEditorMode>): string {
 }
 
 // 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
+/** Panels mount before the workspace exists — the Data hosts are provided with it. */
 export function DataTableEditorPanel() {
+  return (
+    <CatalogWorkspaceGate>
+      <DataTableEditorPanelContent />
+    </CatalogWorkspaceGate>
+  );
+}
+
+function DataTableEditorPanelContent() {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;

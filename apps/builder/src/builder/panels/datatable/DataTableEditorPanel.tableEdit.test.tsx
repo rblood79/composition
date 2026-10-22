@@ -45,11 +45,18 @@ vi.mock("../../hooks/usePanelLayout", () => ({
 
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
+import { CatalogWorkspaceProvider } from "../../catalogRuntime/react";
+import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
 import { DataTableEditorPanel } from "./DataTableEditorPanel";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 
+// (An open project — the panel waits for the workspace; its body reads only the hosts.)
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <CatalogWorkspaceProvider workspace={{} as CatalogWorkspace}>
+      {node}
+    </CatalogWorkspaceProvider>
+  </I18nProvider>
 );
 
 afterEach(() => {

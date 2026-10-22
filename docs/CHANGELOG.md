@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data 패널 — 프로젝트를 열 때 Builder 전체가 멈추던 것] - 2026-10-22
+
+### Fixed
+
+- **Data 패널을 열어 둔 채 프로젝트를 열면 「Data usage host is not provided」 로 Builder 화면이 사라지던 것**:
+  - **Why**: 패널은 workspace 보다 먼저 마운트된다 (`CatalogBuilderCore` 가 프로젝트가 열리기 전에는 패널을 Data host provider 밖에서 그린다). 다른 catalog 패널 (Design · Interactions · Components · History · Themes) 은 `CatalogWorkspaceGate` 로 기다렸지만 Data 패널 3 개만 빠져 있어, 패널 코드가 먼저 로드되면 `useDataUsageSource` 가 throw 했다 — 경쟁이라 로드 순서에 따라 나거나 안 났다.
+  - 수정: `DataTablePanel` · `DataTableEditorPanel` · `DataTableFieldPanel` 을 `CatalogWorkspaceGate` 로 감싼다.
+  - 위치: `apps/builder/src/builder/panels/datatable/{DataTablePanel,DataTableEditorPanel,DataTableFieldPanel}.tsx` · 테스트 `DataPanelsWorkspaceGate.test.tsx`
+
 ## [ADR-281 Phase 0 ~ 5 — Interactions 응용: 패널 어휘 · 조상 상속 · instance 규칙 상속 · Form 제출 목적지] - 2026-10-22
 
 ### Added

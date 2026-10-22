@@ -38,6 +38,7 @@ import type { FieldUsageRef } from "./utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "./utils/typeChangePreview";
 import type { PanelProps } from "../core/types";
 import "./DataTableFieldPanel.css";
+import { CatalogWorkspaceGate } from "../../catalogRuntime/react";
 
 const DeleteIcon = ACTION_ICONS.delete;
 
@@ -47,7 +48,16 @@ interface PendingTypeChange {
   invalidRowIndexes: number[];
 }
 
+/** Panels mount before the workspace exists — the Data hosts are provided with it. */
 export function DataTableFieldPanel(_props: PanelProps) {
+  return (
+    <CatalogWorkspaceGate>
+      <DataTableFieldPanelContent />
+    </CatalogWorkspaceGate>
+  );
+}
+
+function DataTableFieldPanelContent() {
   const { t } = useI18n();
   const dt = (
     key: string,
