@@ -2,12 +2,11 @@ import { memo, useCallback, useState, useSyncExternalStore } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { ChevronDown, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
-import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import type {
   DefinitionId,
   EditTarget,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
-import { removeTargets } from "../../../../../../../packages/shared/src/catalog/commands";
+import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { catalogCreationProps } from "../../../catalogRuntime/paletteInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import {
@@ -29,10 +28,13 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import type { CatalogSwapCandidate } from "../../../catalogRuntime/swapInstance";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { CatalogItemInsertSection } from "./CatalogItemInsertSection";
 import { CatalogComponentPicker } from "./CatalogSwapPicker";
 import "./CatalogSlotSection.css";
 
 const DEFAULT_SLOT_NAME = "content";
+/** A picker key for an item type the position's 「+」 builds (no Library option of that type). */
+const ITEM_KEY = "item:";
 
 /**
  * The insert list as a panel field (the Font · Icon pickers' field): the legend names it, the box is
@@ -40,12 +42,16 @@ const DEFAULT_SLOT_NAME = "content";
  */
 function SlotInsertField({
   label,
+  legend = label,
   candidates,
   onPick,
   open,
   onOpenChange,
 }: {
+  /** The trigger's and the list's accessible name. */
   label: string;
+  /** The field's legend (the slot's name), else the label. */
+  legend?: string;
   candidates: () => CatalogSwapCandidate[];
   onPick: (definitionId: DefinitionId) => void;
   open: boolean;
@@ -57,7 +63,7 @@ function SlotInsertField({
   });
   return (
     <fieldset className="properties-aria slot-insert-field">
-      <legend className="fieldset-legend">{label}</legend>
+      <legend className="fieldset-legend">{legend}</legend>
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <CatalogComponentPicker
           label={label}
@@ -82,17 +88,22 @@ function SlotInsertField({
 /**
  * ADR-248 Phase 4e-4: the slot section over the catalog document (the old FrameSlot and
  * ComponentSlotFill sections) — a node inside a project component's (or layout's) template
- * declares a slot (name, required); an instance's slot position lists what fills it (each
- * removable), takes a project component or a free-content primitive, and restores the template's
- * content. Each edit is one step.
+ * declares a slot (name, required); an instance's slot position takes a project component or a
+ * free-content primitive (an item type built as the item 「+」 builds it) and restores the
+ * template's content. Each edit is one step. What fills the slot — the list, its order, removing
+ * one — is the Layers tree's (2026-10-22 user 「Layers 트리와 중복」). A position that is no slot
+ * shows the item 「+」 section alone (one Slot section either way).
  */
 export const CatalogSlotSection = memo(function CatalogSlotSection({
   target,
   type,
+  identity,
 }: {
   target: EditTarget;
   /** The selected part's type (the panel's contract) — no graph read per selection. */
   type?: string;
+  /** The selected record (the item 「+」 reads its position). */
+  identity?: string;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
@@ -108,26 +119,8 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
         ? catalogSlotDeclaration(graph, target.id)
         : undefined;
     const position = catalogSlotPosition(graph, target);
-    // A fill's row is named by the node, else by what it is an instance of: a project component's
-    // name (「Confirm body」 — its root type `frame` said nothing), a library origin's type.
-    const definitionLabel = (definitionId: DefinitionId) => {
-      const definition = definitionId.startsWith("lib:")
-        ? undefined
-        : graph.getEntry(definitionId);
-      return definition?.kind === "definition"
-        ? definition.name
-        : definitionTypeName(graph, definitionId);
-    };
-    const filled = position?.fillIds?.map((id) => {
-      const entry = graph.getEntry(id);
-      return {
-        id,
-        label:
-          entry?.kind === "node"
-            ? entry.name || definitionLabel(entry.definitionId)
-            : id,
-      };
-    });
+    // (The instance holds the slot's content — the restore applies.)
+    const filled = position?.fillIds !== undefined;
     // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert —
     // a slot declaration only names the position, so a part with no slot whose parts the palette
     // doesn't offer (a Calendar's header) has the list too.
@@ -166,7 +159,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       choices: ReturnType<typeof catalogSlotSuggestionChoices>;
       declaration?: ReturnType<typeof catalogSlotDeclaration>;
       position?: ReturnType<typeof catalogSlotPosition>;
-      filled?: { id: string; label: string }[];
+      filled: boolean;
       options: ReturnType<typeof catalogSlotInsertOptions>;
     };
 
@@ -268,18 +261,67 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   // own list scrolls (`.component-swap-list`), whatever the panel Select's popover rules say
   // (2026-10-21: the 75-item flat Select overran the viewport without scrolling).
   const [pickerOpen, setPickerOpen] = useState(false);
-  const candidates = useCallback(
-    (): CatalogSwapCandidate[] =>
-      options.map((option) => ({
-        definitionId: option.definitionId,
-        label: option.label,
-        group: option.suggested
-          ? "preferred"
-          : option.local
-            ? "local"
-            : "library",
-      })),
-    [options],
+  // The item 「+」 of the selected record's position (a ListBox's ListBoxItem · ListBoxSection, a
+  // Menu's MenuItem · SubmenuTrigger …): an item type is built as it builds it (「Item 4」, a menu
+  // key, a submenu's parts). Read when the list opens or a choice is picked.
+  const itemChoices = useCallback(() => {
+    const position = identity
+      ? workspace.positionOfRecord(identity)
+      : undefined;
+    return position
+      ? catalogItemInsertChoices(
+          {
+            graph,
+            readModel: workspace.readModel,
+            newId: workspace.newId,
+          },
+          position,
+        )
+      : [];
+  }, [graph, identity, workspace]);
+  const candidates = useCallback((): CatalogSwapCandidate[] => {
+    const listed = options.map((option) => ({
+      definitionId: option.definitionId,
+      label: option.label,
+      group: option.suggested
+        ? ("preferred" as const)
+        : option.local
+          ? ("local" as const)
+          : ("library" as const),
+    }));
+    // An item type the Library list doesn't offer (a ListBoxSection, a SubmenuTrigger).
+    const extra = itemChoices()
+      .filter(
+        (choice) =>
+          !options.some(
+            (option) =>
+              option.type === choice.type &&
+              option.definitionId.startsWith("lib:"),
+          ),
+      )
+      .map((choice) => ({
+        definitionId: `${ITEM_KEY}${choice.type}` as DefinitionId,
+        label: choice.type,
+        group: "library" as const,
+      }));
+    return [...listed, ...extra];
+  }, [itemChoices, options]);
+  /** A pick of an item type runs the item 「+」; anything else the slot's own insert. */
+  const pickWith = useCallback(
+    (insert: (value: string) => void) => (value: string) => {
+      const type = value.startsWith(ITEM_KEY)
+        ? value.slice(ITEM_KEY.length)
+        : options.find(
+            (option) =>
+              option.definitionId === value && value.startsWith("lib:"),
+          )?.type;
+      const choice = type
+        ? itemChoices().find((item) => item.type === type)
+        : undefined;
+      if (choice) run(choice.build());
+      else if (!value.startsWith(ITEM_KEY)) insert(value);
+    },
+    [itemChoices, options, run],
   );
   const setSuggested = useCallback(
     (next: readonly string[]) => {
@@ -300,20 +342,15 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     if (slotTarget)
       run(catalogSlotCommands.restore(slotTarget, workspace.newId));
   }, [graph, run, target, workspace]);
-  const removeFill = useCallback(
-    (id: string) =>
-      run(
-        removeTargets({
-          targets: [{ kind: "node", id: id as `project:node:${string}` }],
-          label: "Remove from slot",
-        }),
-      ),
-    [run],
-  );
+  // (A template node's slot declaration keeps the item 「+」 beside it.)
+  const itemSection = identity ? (
+    <CatalogItemInsertSection identity={identity} />
+  ) : null;
 
   if (declaration) {
     const slot = declaration.slot;
     return (
+      <>
       <PropertySection title={t("propertiesPanel.slotSection")}>
         <div className="fieldset-row" data-wide="true">
           <PropertySwitch
@@ -389,19 +426,22 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           </>
         )}
       </PropertySection>
+      {itemSection}
+      </>
     );
   }
   // A position with no slot declared: the insert list only (nothing to restore — its content is
-  // the template's with the parts put in).
+  // the template's with the parts put in). A position with nothing to insert from the slot list
+  // (a list frame, a group, a Table's header or body) keeps the item 「+」 section.
   if (!position) {
-    if (!options.length) return null;
+    if (!options.length) return itemSection;
     return (
       <PropertySection title={t("propertiesPanel.slotSection")}>
         <div className="fieldset-row" data-wide="true">
           <SlotInsertField
             label={t("propertiesPanel.slotAddContent")}
             candidates={candidates}
-            onPick={add}
+            onPick={pickWith(add)}
             open={pickerOpen}
             onOpenChange={setPickerOpen}
           />
@@ -412,49 +452,14 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
 
   return (
     <PropertySection title={t("propertiesPanel.slotSection")}>
-      <fieldset className="properties-aria frame-slot-fill">
-        <legend className="fieldset-legend">{position.slot.name}</legend>
-        {filled?.map((item) => (
-          <div key={item.id} className="list-row">
-            <div className="list-row__body">
-              <span className="list-row__label">{item.label}</span>
-            </div>
-            <div className="list-row__actions">
-              <button
-                type="button"
-                className="list-row__action"
-                aria-label={`Remove ${item.label}`}
-                onClick={() => removeFill(item.id)}
-              >
-                <Minus size={12} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </fieldset>
-      {/* ADR-261 Decision 3: the origin's suggestions, one press to fill (pen.dev). */}
-      {options.some((option) => option.suggested) && (
-        <div className="slot-suggestion-strip">
-          {options
-            .filter((option) => option.suggested)
-            .map((option) => (
-              <RACButton
-                key={option.definitionId}
-                className="control-button"
-                onPress={() => fill(option.definitionId)}
-              >
-                {option.label}
-              </RACButton>
-            ))}
-        </div>
-      )}
       {/* The restore is the field row's icon action (an instance swap property's reset) — there
           only once the slot's content is the instance's own. */}
       <div className="fieldset-row slot-fill-row">
         <SlotInsertField
           label={t("propertiesPanel.slotFill")}
+          legend={position.slot.name}
           candidates={candidates}
-          onPick={fill}
+          onPick={pickWith(fill)}
           open={pickerOpen}
           onOpenChange={setPickerOpen}
         />
@@ -473,6 +478,22 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           </div>
         )}
       </div>
+      {/* ADR-261 Decision 3: the origin's suggestions, one press to fill (pen.dev). */}
+      {options.some((option) => option.suggested) && (
+        <div className="slot-suggestion-strip">
+          {options
+            .filter((option) => option.suggested)
+            .map((option) => (
+              <RACButton
+                key={option.definitionId}
+                className="control-button"
+                onPress={() => fill(option.definitionId)}
+              >
+                {option.label}
+              </RACButton>
+            ))}
+        </div>
+      )}
     </PropertySection>
   );
 });

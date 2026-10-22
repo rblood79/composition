@@ -292,6 +292,33 @@ function treeItemKey(draft: CommandDraft, item: NodeParent): string {
   return isInstance ? `${treeItemKey(draft, parent)}/${own}` : own;
 }
 
+/**
+ * A library origin instance whose template root is its items' slot (a ListBox's · GridList's
+ * "Items"): the item joins the slot's content, where the items it was placed with are — as a
+ * group's does (`insertGroupItem` rootSlot, 2026-10-14). Appended to the node's own children it
+ * stood after the slot, apart from the items the Design panel's slot lists (2026-10-22).
+ */
+function collectionRootSlot(
+  draft: CommandDraft,
+  host: NodeParent,
+): NodeParent | undefined {
+  if (host.kind !== "node") return undefined;
+  const definitionId = draft.node(host.id).definitionId;
+  if (!definitionId.startsWith("lib:")) return undefined;
+  const definition = draft.reader.library.definitions.get(
+    definitionId as `lib:definition:${string}`,
+  );
+  const root =
+    definition?.mode === "composite" ? definition.templateRootId : undefined;
+  return root && draft.reader.library.templates.get(root)?.slot
+    ? {
+        kind: "descendant",
+        ownerId: host.id,
+        address: { instances: [host.id], templatePath: [root as TemplateId] },
+      }
+    : undefined;
+}
+
 export const insertCollectionItem =
   (input: {
     /** The list frame (TabList, TagList, ListBox …), a section, or an item that holds items. */
@@ -333,7 +360,13 @@ export const insertCollectionItem =
       if (!tree || positionType(draft, tree) !== "Tree")
         fail("TREE_ITEM_OUTSIDE_TREE", positionId(input.host));
     }
-    place(draft, input.host, input.entries, input.rootId, input.newId);
+    place(
+      draft,
+      collectionRootSlot(draft, input.host) ?? input.host,
+      input.entries,
+      input.rootId,
+      input.newId,
+    );
     if (family.panels) {
       const owner = parentOf(draft, input.host);
       const panels = owner

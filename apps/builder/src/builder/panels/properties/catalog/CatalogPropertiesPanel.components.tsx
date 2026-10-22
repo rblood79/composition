@@ -194,17 +194,21 @@ export function CatalogPropertiesBody({
             type={contract.type}
           />
         )}
-        {!originSample && (
+        {/* One Slot section: the slot's picker (its item types built as the item 「+」 builds them),
+            or the item 「+」 where the position is no slot (and on an origin sample). */}
+        {originSample ? (
+          <CatalogItemInsertSection
+            key={`items:${first.identity}`}
+            identity={first.identity}
+          />
+        ) : (
           <CatalogSlotSection
             key={`slot:${targetKey(first.target)}`}
             target={first.target}
             type={contract.type}
+            identity={first.identity}
           />
         )}
-        <CatalogItemInsertSection
-          key={`items:${first.identity}`}
-          identity={first.identity}
-        />
         <CatalogItemRolesSection
           key={`roles:${first.identity}`}
           identity={first.identity}

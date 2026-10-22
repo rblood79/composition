@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 slot 절 — Slot 섹션 하나 · 목록과 삭제는 Layers 로 · 컬렉션 「+」 는 slot 내용에] - 2026-10-22
+
+### Changed
+
+- **Slot 섹션이 하나다** (사용자 지적 2026-10-22 「slot section 두개가 중복」 · 「항목 목록, 삭제는 layers 트리와 중복」): 놓은 ListBox 처럼 slot 이면서 항목을 받는 자리에 Slot 섹션이 둘 (slot 채움 목록 + 피커 / 항목 type 마다 「+」) 떴다. 이제 slot 자리는 피커 하나 (legend = slot 이름) + restore 아이콘 + 추천 버튼이고, 피커에서 고른 항목 type 은 옛 「+」 와 같이 만들어진다 (「Item 4」 · menu key · submenu 부품, Library 목록에 없는 ListBoxSection · SubmenuTrigger 도 피커에). 채운 내용의 목록 · 순서 · 삭제는 Layers 트리가 맡는다 (Slot 섹션의 목록 행 · − 제거). slot 이 아닌 자리 (그룹 · TableHeader · TableBody · picker 의 ListBox · Components page 샘플) 는 「+」 섹션 그대로.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogSlotSection.tsx` · `CatalogPropertiesPanel.components.tsx`
+
+### Fixed
+
+- **놓은 ListBox · GridList 의 「+」 항목이 slot 내용 밖에 붙던 것**: 템플릿 루트가 Items slot 인 컬렉션 instance 에 항목을 넣으면 노드의 children (slot 뒤) 으로 들어가 놓을 때의 항목과 따로 놀았다. 이제 slot 내용에 들어간다.
+  - **Why**: 2026-10-14 그룹 (`insertGroupItem`) 에는 루트 slot 경로를 넣었는데 컬렉션 (`insertCollectionItem`) 에는 빠져 있었다.
+  - 위치: `packages/shared/src/catalog/commands/collections.ts` `collectionRootSlot`
+
 ## [Design 패널 slot 절 — Restore template content 는 놓았을 때의 내용으로] - 2026-10-22
 
 ### Fixed

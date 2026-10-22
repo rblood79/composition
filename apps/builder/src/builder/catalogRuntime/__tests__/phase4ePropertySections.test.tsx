@@ -508,9 +508,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    expect(
-      position.container.querySelectorAll(".frame-slot-fill .list-row"),
-    ).toHaveLength(1);
+    // (What fills the slot is listed by the Layers tree, not here.)
+    expect(catalogSlotPosition(graph, target)?.fillIds).toHaveLength(1);
+    expect(position.container.querySelector(".list-row")).toBeNull();
     // The restore is the Fill slot row's icon action, not a labelled button under the field.
     const restoreButton = within(position.container).getByRole("button", {
       name: "Restore template content",
@@ -523,14 +523,81 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       fireEvent.click(restoreButton);
     });
     expect(catalogSlotPosition(graph, target)?.fillIds).toBe(undefined);
+    // Nothing of the instance's own to restore: the action goes.
     expect(
-      position.container.querySelectorAll(".frame-slot-fill .list-row"),
-    ).toHaveLength(0);
+      within(position.container).queryByRole("button", {
+        name: "Restore template content",
+      }),
+    ).toBeNull();
   });
 
   // The insert list is the Swap picker's (2026-10-21): a project component's row under 「Local」,
-  // the Library's under 「Library」, the suggested ones first — and a Local fill's row is named by
-  // its component, not its root type.
+  // the Library's under 「Library」, the suggested ones first — and a Local pick fills the slot with
+  // an instance of that component.
+  // 2026-10-22 user 「slot section 두개가 중복」 · 「항목 목록, 삭제는 layers 트리와 중복」: a placed
+  // ListBox's Items slot has one Slot section — the picker (its item types built like the old 「+」 —
+  // 「Item 4」 — and the section type) and the restore; the items list and their removal are the
+  // Layers tree's.
+  it("a placed ListBox has one Slot section: no items list or 「+」 rows; the picker adds an item as the item 「+」 did", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("lb", "lib:definition:origin-component-listbox")],
+        rootIds: [id("lb")],
+        newId: workspace.newId,
+      }),
+    );
+    const slot = { kind: "node" as const, id: id("lb") };
+    expect(catalogSlotPosition(graph, slot)?.fillIds).toHaveLength(3);
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <DataUsageSourceContext.Provider
+            value={createCatalogDataUsageSource(workspace)}
+          >
+            <QuickConnectHostContext.Provider
+              value={createCatalogQuickConnectHost(
+                workspace,
+                {
+                  apply: async () => ({ applied: [], inverse: [] }),
+                  collection: () => undefined,
+                },
+                (name) => name,
+              )}
+            >
+              <DesignPanel />
+            </QuickConnectHostContext.Provider>
+          </DataUsageSourceContext.Provider>
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    expect(
+      screen.getAllByText("Slot", { selector: ".section-title, .section-title *" }),
+    ).toHaveLength(1);
+    expect(document.querySelectorAll(".frame-slot-fill .list-row")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: /^Insert / })).toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Fill slot" }));
+    });
+    const options = within(screen.getByRole("listbox"))
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    expect(options).toContain("ListBoxItem");
+    expect(options).toContain("ListBoxSection");
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("listbox")).getByRole("option", {
+          name: "ListBoxItem",
+        }),
+      );
+    });
+    const fills = catalogSlotPosition(graph, slot)!.fillIds!;
+    expect(fills).toHaveLength(4);
+    expect(JSON.stringify(graph.getEntry(fills[3]))).toContain("Item 4");
+  });
+
   it("the slot section's insert list groups Local and Library components and names a Local fill by its component", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
@@ -613,11 +680,14 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       fireEvent.click(local);
     });
     expect(catalogSlotPosition(graph, target)?.fillIds).toHaveLength(1);
-    // The fill's row says 「Confirm body」, not its root type `frame`.
+    // The fill is an instance of 「Confirm body」 (the Layers tree names it).
+    const fill = graph.getEntry(
+      catalogSlotPosition(graph, target)!.fillIds![0]!,
+    ) as NodeEntry;
     expect(
-      [...section.container.querySelectorAll(".frame-slot-fill .list-row__label")]
-        .map((label) => label.textContent),
-    ).toEqual(["Confirm body"]);
+      (graph.getEntry(fill.definitionId) as { name?: string } | undefined)
+        ?.name,
+    ).toBe("Confirm body");
     section.unmount();
   });
 
