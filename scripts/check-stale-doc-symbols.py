@@ -68,7 +68,9 @@ EXCLUDE = re.compile(
     r"docs/explanation/research/|docs/reference/upload/|docs/reference/api/|"
     r"REACT_ARIA_LIBRARIES|docs/reference/audits/|docs/legacy/|"
     r"project-pen-|reference-devtools-|reference-obsidian|reference-webllm|"
-    r"project-openpencil|project-taffy|project-adobe-oss|/archive/"
+    r"project-openpencil|project-taffy|project-adobe-oss|/archive/|"
+    # RAC · S2 연동 전수 목록 — 아직 없는 레퍼런스 API (✗ 행) 를 이름 그대로 적는다
+    r"composition-patterns/reference/rac-s2-integrations"
 )
 SYMBOL = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 HIST = re.compile(
