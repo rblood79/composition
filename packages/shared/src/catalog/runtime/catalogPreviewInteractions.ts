@@ -155,6 +155,14 @@ function ruleOf(
           ...(action.value !== undefined ? { value: action.value } : {}),
         },
       };
+    case "reload":
+      return {
+        ...base,
+        action: {
+          kind: "reload",
+          collectionId: action.collectionId.slice("data:collection:".length),
+        },
+      };
     case "remove":
       return {
         ...base,
@@ -288,6 +296,11 @@ export interface CatalogPreviewInteractionsOptions {
   /** `CatalogPreviewSession.update` · `remove` (`useListData.update` · `remove`). */
   update?: DispatchDeps["update"];
   remove?: DispatchDeps["remove"];
+  /**
+   * `useAsyncList.reload()` — the session loads the collection again (`CatalogPreviewSession.reload`):
+   * settles later — a failure is reported and shown as a toast here.
+   */
+  reloadCollection?: (collectionId: string) => Promise<unknown>;
 }
 
 /**
@@ -350,6 +363,18 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       ...(options.append ? { append: options.append } : {}),
       ...(options.update ? { update: options.update } : {}),
       ...(options.remove ? { remove: options.remove } : {}),
+      reload: (collectionId) => {
+        const reload = options.reloadCollection;
+        if (!reload) return { ok: false, reason: "collection 다시 읽기 서비스 없음" };
+        reload(collectionId).catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[interactions] collection ${collectionId} 다시 읽기 실패 — ${message}`,
+          );
+          options.showToast(message);
+        });
+        return { ok: true };
+      },
       // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).
       getRuntimeState: (id, prop) => {
         const root = options.root();

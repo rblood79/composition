@@ -23,7 +23,9 @@ export type ActionChoice =
   | "append"
   // `useListData.update` · `remove`.
   | "update"
-  | "remove";
+  | "remove"
+  // `useAsyncList.reload`.
+  | "reload";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {

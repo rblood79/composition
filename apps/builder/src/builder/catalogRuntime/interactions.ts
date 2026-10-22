@@ -334,7 +334,12 @@ export function catalogDefaultAction(
       ? { opcode: "callEndpoint", endpointId: endpoint.id }
       : undefined;
   }
-  if (choice === "append" || choice === "update" || choice === "remove") {
+  if (
+    choice === "append" ||
+    choice === "update" ||
+    choice === "remove" ||
+    choice === "reload"
+  ) {
     const collection = context.collections?.[0];
     return collection ? { opcode: choice, collectionId: collection.id } : undefined;
   }

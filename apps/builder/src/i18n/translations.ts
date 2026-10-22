@@ -861,6 +861,7 @@ const koKR: TranslationKeys = {
     actionAppend: "collection 에 추가",
     actionUpdate: "collection 항목 수정",
     actionRemove: "collection 항목 삭제",
+    actionReload: "collection 다시 읽기",
     itemKey: "항목 key",
     collection: "컬렉션",
     appendValue: "값",
@@ -3190,6 +3191,7 @@ const enUS: TranslationKeys = {
     actionAppend: "Append to a collection",
     actionUpdate: "Update a collection item",
     actionRemove: "Remove collection items",
+    actionReload: "Reload a collection",
     itemKey: "Item key",
     collection: "Collection",
     appendValue: "Value",
@@ -6184,6 +6186,8 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 수정`,
     "interactions.summaryRemove": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 삭제`,
+    "interactions.summaryReload": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 다시 읽기`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
     "interactions.summaryNavigateWithPath": (args) =>
@@ -6731,6 +6735,8 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → update a ${String(args?.name ?? "")} item`,
     "interactions.summaryRemove": (args) =>
       `${String(args?.when ?? "")} → remove ${String(args?.name ?? "")} items`,
+    "interactions.summaryReload": (args) =>
+      `${String(args?.when ?? "")} → reload ${String(args?.name ?? "")}`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
     "interactions.summaryNavigateWithPath": (args) =>

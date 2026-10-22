@@ -108,6 +108,11 @@ export interface DispatchDeps {
     key: string | undefined,
     value: Readonly<Record<string, unknown>>,
   ) => { ok: boolean; reason?: string };
+  /**
+   * `useAsyncList.reload()` — run the collection's query endpoint again. Returns whether it
+   * started; its failure is the caller's to report (it settles later). Absent = the rule fails.
+   */
+  reload?: (collectionId: string) => { ok: boolean; reason?: string };
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,
@@ -209,7 +214,8 @@ export type DispatchOutcome =
         | "callEndpoint"
         | "append"
         | "update"
-        | "remove";
+        | "remove"
+        | "reload";
     }
   | { ok: false; reason: string };
 
@@ -364,6 +370,15 @@ export function executeInteractionRule(
     action.kind === "remove"
   )
     return dispatchListData(action, deps, context);
+
+  if (action.kind === "reload") {
+    if (!deps.reload)
+      return { ok: false, reason: "reload 실행 경로 없음 (reload 미주입)" };
+    const result = deps.reload(action.collectionId);
+    return result.ok
+      ? { ok: true, kind: "reload" }
+      : { ok: false, reason: result.reason ?? "reload 실패" };
+  }
 
   if (action.kind === "navigate") {
     const path = action.params?.path;

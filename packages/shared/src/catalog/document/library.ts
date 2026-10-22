@@ -240,6 +240,7 @@ export function buildCatalogLibrary(
         "append",
         "update",
         "remove",
+        "reload",
         "toast",
         "capability",
       ].includes(opcode)

@@ -41,6 +41,7 @@ import type { LayoutEngineAPI } from "./layoutEngine";
 import {
   createCollectionEndpointExecutor,
   createCollectionEndpointSubmitter,
+  executeCollectionEndpoint,
 } from "../../collections/executeCollectionEndpoint";
 import { getItemKey } from "../../collections/resolveCollectionItems";
 
@@ -134,6 +135,19 @@ export class CatalogPreviewSession {
    * (`itemSources`).
    */
   private readonly itemEdits = new Map<string, CatalogItemEdit[]>();
+  /**
+   * `useAsyncList.reload()` — the items a `reload` rule loaded, by collection id: they replace the
+   * Builder's API items until the Builder sends other ones (`receive`).
+   */
+  private readonly reloadedItems = new Map<string, Record<string, unknown>[]>();
+  /** The Builder's API items last received, by collection id (a change drops a reload's). */
+  private readonly receivedItems = new Map<string, string>();
+  /** The project's API endpoints (each query endpoint names the collection it fills). */
+  private endpoints: readonly (ApiEndpointDefinition & {
+    targetCollection?: string;
+  })[] = [];
+  /** Endpoint submits in flight — a `reload` waits for them (`await fetch; list.reload()`). */
+  private readonly pendingSubmits = new Set<Promise<unknown>>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
   private readonly tableSorts = new Map<string, CatalogTableSort>();
   /** The Builder's project variables (the data store's, H1). */
@@ -209,6 +223,18 @@ export class CatalogPreviewSession {
     const data = parseCatalogPreviewData(value);
     if (data) {
       this.collections = data.collections as readonly CollectionDataSource[];
+      // Items the Builder loaded again replace a `reload`'s (the newer load wins).
+      for (const collection of this.collections) {
+        if (!collection.id) continue;
+        const received = JSON.stringify(collection.runtimeData ?? null);
+        if (
+          this.receivedItems.has(collection.id) &&
+          this.receivedItems.get(collection.id) !== received
+        )
+          this.reloadedItems.delete(collection.id);
+        this.receivedItems.set(collection.id, received);
+      }
+      this.endpoints = (data.apiEndpoints ?? []) as unknown as typeof this.endpoints;
       this.variables = (data.variables ??
         []) as unknown as readonly VariableDef[];
       this.services = catalogPreviewDataServices(
@@ -362,8 +388,10 @@ export class CatalogPreviewSession {
 
   /** The collections as the bound components read them: the Builder's items with the edits replayed. */
   private itemSources(): readonly CollectionDataSource[] {
-    if (!this.itemEdits.size) return this.collections;
-    return this.collections.map((collection) => {
+    if (!this.itemEdits.size && !this.reloadedItems.size) return this.collections;
+    return this.collections.map((source) => {
+      const reloaded = source.id && this.reloadedItems.get(source.id);
+      const collection = reloaded ? { ...source, runtimeData: reloaded } : source;
       const edits = collection.id && this.itemEdits.get(collection.id);
       if (!edits) return collection;
       // (The items the snapshot shows — `resolveCollectionSnapshot`: mock when `useMockData`, else
@@ -481,6 +509,45 @@ export class CatalogPreviewSession {
     });
   }
   private itemSerial = 0;
+  /** A submit in flight until it settles (a `reload` waits for it). */
+  trackSubmit<T>(submit: Promise<T>): Promise<T> {
+    this.pendingSubmits.add(submit);
+    const settled = () => this.pendingSubmits.delete(submit);
+    submit.then(settled, settled);
+    return submit;
+  }
+  /**
+   * `useAsyncList.reload()` — run the query endpoint that fills the collection (`targetCollection`)
+   * after the submits in flight, and show its items: the rules' local edits go (the server holds
+   * the items now). A mock collection, or one no endpoint fills, is refused.
+   */
+  async reload(collectionId: string): Promise<void> {
+    const collection = this.collections.find((item) => item.id === collectionId);
+    if (!collection) throw new Error(`collection 없음: ${collectionId}`);
+    if (collection.useMockData)
+      throw new Error(`${collection.name ?? collectionId} 은 목업 데이터를 쓴다 (API 연결 없음)`);
+    const endpoint = this.endpoints.find(
+      (item) => item.targetCollection === collection.name,
+    );
+    if (!endpoint)
+      throw new Error(`${collection.name ?? collectionId} 을 채우는 endpoint 없음`);
+    await Promise.allSettled([...this.pendingSubmits]);
+    const items = await executeCollectionEndpoint(
+      endpoint,
+      new AbortController().signal,
+    );
+    this.reloadedItems.set(
+      collectionId,
+      (Array.isArray(items) ? items : [items]).filter(
+        (item): item is Record<string, unknown> =>
+          !!item && typeof item === "object",
+      ),
+    );
+    this.itemEdits.delete(collectionId);
+    const errors = this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
+    if (errors.length) console.error("[CatalogPreview] reload:", ...errors);
+    this.changed();
+  }
 
   sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
     if (sort) this.tableSorts.set(tableId, sort);

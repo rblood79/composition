@@ -1,4 +1,5 @@
-import { toExportCollection, toRuntimeApiEndpoint } from "@composition/shared";
+import { toExportCollection } from "@composition/shared";
+import { endpointWithTarget } from "../utils/endpointTarget";
 import type { ProjectContentV2 } from "@composition/shared/assets";
 import {
   useCallback,
@@ -101,16 +102,9 @@ export function useCatalogProjectFiles(options: {
       fontRegistry: loadFontRegistry(),
       collections: [...data.collections.values()].map(toExportCollection),
       // (The collection a query endpoint fills travels by name — the import re-points it.)
-      apiEndpoints: [...data.apiEndpoints.values()].map((endpoint) => {
-        const collectionId = endpoint.targetCollectionId;
-        const target =
-          (collectionId && data.collections.get(collectionId)?.name) ||
-          endpoint.targetCollection;
-        return {
-          ...toRuntimeApiEndpoint(endpoint),
-          ...(target ? { targetCollection: target } : {}),
-        };
-      }),
+      apiEndpoints: [...data.apiEndpoints.values()].map((endpoint) =>
+        endpointWithTarget(endpoint, data.collections),
+      ),
       variables: getProjectVariableDefinitions(),
     };
   }, [routeId]);

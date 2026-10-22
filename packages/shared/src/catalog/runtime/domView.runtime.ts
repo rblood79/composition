@@ -81,11 +81,15 @@ export function catalogPreviewRuntime(
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
     colorScheme: (mode) => session.setColorScheme(mode),
+    // (A submit in flight is what a `reload` in the same event waits for — `await fetch; reload()`.)
     submitEndpoint: (endpointId, body) =>
-      session.dataServices.apiEndpointService?.submitApiEndpoint?.(
-        endpointId,
-        body,
-      ) ?? Promise.reject(new Error("endpoint 제출 서비스 없음")),
+      session.trackSubmit(
+        session.dataServices.apiEndpointService?.submitApiEndpoint?.(
+          endpointId,
+          body,
+        ) ?? Promise.reject(new Error("endpoint 제출 서비스 없음")),
+      ),
+    reloadCollection: (collectionId) => session.reload(collectionId),
     append: (collectionId, value) => session.append(collectionId, value),
     update: (collectionId, key, value) => session.update(collectionId, key, value),
     remove: (collectionId, keys) => session.remove(collectionId, keys),

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — Do 「collection 다시 읽기」 (`reload` — useAsyncList.reload)] - 2026-10-22
+
+### Added
+
+- **Do 「collection 다시 읽기」 (`reload`)** — RAC · S2 레퍼런스 `useAsyncList.reload()`. API 와 연결된 collection 의 조회 endpoint (`targetCollection`) 를 Preview · Publish 가 다시 실행하고 그 항목으로 바꾼다 — 주기 조회 (실행 정책 Interval) 없이 「제출 → endpoint 호출 → 다시 읽기」 가 된다:
+  - 같은 이벤트의 진행 중 제출을 기다린 뒤 읽는다 (레퍼런스의 `await fetch; list.reload()` 순서 — 세션 `trackSubmit`).
+  - 규칙의 지역 편집 (`append` · `update` · `remove`) 은 지운다 (서버가 정본). Builder 가 다른 항목을 보내면 그쪽이 이긴다.
+  - 목업 collection · 채우는 endpoint 가 없는 collection 은 `[interactions]` 경고 + toast.
+  - Builder Preview 로 보내는 endpoint 도 파일 내보내기처럼 연결 collection 이름을 싣는다 (`endpointWithTarget`).
+  - 문서: `{ opcode: "reload", collectionId }` — contract 47 그대로 (추가만).
+  - 위치: `packages/shared/src/catalog/runtime/{catalogPreviewSession.ts,catalogPreviewInteractions.ts,domView.runtime.ts}` · `interactions/dispatcher.ts` · `apps/builder/src/builder/utils/endpointTarget.ts` · 패널 · 테스트 `reload.test.tsx` (원복 RED)
+
 ## [Data — 한 항목 바인딩 (`binding.key` — useListData.getItem) · 수정 Form 미리 채우기] - 2026-10-22
 
 ### Added

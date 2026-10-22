@@ -122,7 +122,8 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * component's origin lives on the Local page and an instance stands where the node stood. A 45
  * document (an origin on a page, a hidden template) is refused.
  * 47 (same contract — additive): a rule may append to, update or remove from a collection
- * (`append` · `update` · `remove` — `useListData.append` · `update` · `remove` — ADR-281
+ * (`append` · `update` · `remove` — `useListData.append` · `update` · `remove`) or load it
+ * again (`reload` — `useAsyncList.reload` — ADR-281
  * user decision 3, second step); a 47 document without one is unchanged.
  * An earlier contract's document is refused, never re-mapped.
  */
@@ -912,6 +913,11 @@ export interface InteractionEntry {
         /** The item's key (`"!event.key"` · a literal); absent = the value's `id`. */
         key?: Scalar;
         value?: Scalar;
+      }
+    | {
+        /** `useAsyncList.reload()` — the collection's endpoint runs again (its items replace). */
+        opcode: "reload";
+        collectionId: DataCollectionId;
       }
     | {
         /** `useListData.remove(...keys)`. */

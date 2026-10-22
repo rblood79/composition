@@ -49,4 +49,5 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   append: "interactions.actionAppend",
   update: "interactions.actionUpdate",
   remove: "interactions.actionRemove",
+  reload: "interactions.actionReload",
 } as const;

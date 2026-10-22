@@ -10,7 +10,7 @@ import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
 import { toProjectVariableDefs, useDataStore } from "../../../stores/data";
 import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecutionPolicyScheduler";
-import { toRuntimeApiEndpoint } from "@composition/shared";
+import { endpointWithTarget } from "../../../utils/endpointTarget";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
 
 /** The collections as the Preview reads them (the old Preview channel's projection). */
@@ -121,8 +121,10 @@ export function CatalogPreviewFrame({
           version: CATALOG_PREVIEW_PAYLOAD_VERSION,
           collections: previewCollections(),
           variables: toProjectVariableDefs(useDataStore.getState().variables),
+          // (Each query endpoint names the collection it fills — the Preview's `reload`.)
           apiEndpoints: [...useDataStore.getState().apiEndpoints.values()].map(
-            toRuntimeApiEndpoint,
+            (endpoint) =>
+              endpointWithTarget(endpoint, useDataStore.getState().collections),
           ),
         },
         origin,

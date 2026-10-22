@@ -43,11 +43,13 @@ const LIST_DATA_FIELDS = {
   append: ["value"],
   update: ["key", "value"],
   remove: ["keys"],
+  reload: [],
 } as const;
 const LIST_DATA_SUMMARY_KEYS = {
   append: "interactions.summaryAppend",
   update: "interactions.summaryUpdate",
   remove: "interactions.summaryRemove",
+  reload: "interactions.summaryReload",
 } as const;
 
 const STATE_OP_LABEL_KEYS = {
@@ -156,7 +158,8 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
     if (
       action.opcode === "append" ||
       action.opcode === "update" ||
-      action.opcode === "remove"
+      action.opcode === "remove" ||
+      action.opcode === "reload"
     ) {
       const collection = context.collections?.find(
         (option) => option.id === action.collectionId,
@@ -352,7 +355,8 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
 
           {(action.opcode === "append" ||
             action.opcode === "update" ||
-            action.opcode === "remove") && (
+            action.opcode === "remove" ||
+            action.opcode === "reload") && (
             <>
               <PropertySelect
                 label={t("interactions.collection")}

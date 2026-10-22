@@ -15,6 +15,7 @@ export function createG1Fixture() {
       "append",
       "update",
       "remove",
+      "reload",
       "toast",
       "capability",
     ],

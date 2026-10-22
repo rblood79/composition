@@ -590,6 +590,7 @@ export interface TranslationKeys {
     actionAppend: string;
     actionUpdate: string;
     actionRemove: string;
+    actionReload: string;
     itemKey: string;
     collection: string;
     appendValue: string;

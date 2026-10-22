@@ -25,6 +25,8 @@ export const CATALOG_ACTION_OPCODES = [
   "append",
   "update",
   "remove",
+  // `useAsyncList.reload` — an API collection loaded again.
+  "reload",
 ] as const satisfies readonly InteractionEntry["action"]["opcode"][];
 
 export function codeExecutionVocabulary(): {

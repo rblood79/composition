@@ -112,6 +112,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
       "callEndpoint",
       "capability",
       "navigate",
+      "reload",
       "remove",
       "setState",
       "toast",

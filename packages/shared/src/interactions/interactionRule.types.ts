@@ -98,6 +98,12 @@ export interface RemoveAction {
   keys?: unknown;
 }
 
+/** `useAsyncList.reload()` — the collection's query endpoint runs again. */
+export interface ReloadAction {
+  kind: "reload";
+  collectionId: string;
+}
+
 export type InteractionAction =
   | NavigateAction
   | ToastAction
@@ -106,7 +112,8 @@ export type InteractionAction =
   | CallEndpointAction
   | AppendAction
   | UpdateAction
-  | RemoveAction;
+  | RemoveAction
+  | ReloadAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {
