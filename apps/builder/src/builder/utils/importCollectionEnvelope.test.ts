@@ -56,7 +56,11 @@ describe("ADR-209 공통 JSON 데이터 소스 복원", () => {
     expect(createApiEndpoint).toHaveBeenCalledWith(
       expect.objectContaining({ responseMapping: { dataPath: "rows" } }),
     );
-    expect(restored.get("old-table")).toBe("new-table");
+    // (The document's references, as written: a collection · an endpoint the file names by id.)
+    expect(restored.get("data:collection:old-table")).toBe(
+      "data:collection:new-table",
+    );
+    expect(restored.get("data:endpoint:old-api")).toBe("data:endpoint:new-api");
   });
   it("ADR-214 — envelope 의 variables 를 define_variable 한 DataChange 로 복원: 같은 이름은 그 id 로 갱신, 없으면 envelope id 로 생성", async () => {
     const applyDataChange = vi.fn(
@@ -87,11 +91,16 @@ describe("ADR-209 공통 JSON 데이터 소스 복원", () => {
         { id: "exp-count", name: "count", type: "number" },
       ],
     } as unknown as ProjectDataParts;
-    await importDataParts(
+    const restored = await importDataParts(
       "target",
       data,
       store as unknown as Parameters<typeof importDataParts>[2],
     );
+    // (A rule's `setState.variableId` follows the variable it lands in.)
+    expect(restored.get("data:variable:exp-user")).toBe(
+      "data:variable:local-user",
+    );
+    expect(restored.has("data:variable:exp-count")).toBe(false);
     expect(applyDataChange).toHaveBeenCalledTimes(1);
     expect(applyDataChange.mock.calls[0][0]).toMatchObject({
       ops: [

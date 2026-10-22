@@ -15,7 +15,6 @@ import { buildCodeCatalogLibrary } from "../../../packages/shared/src/catalog/do
 import type { EntryId } from "../../../packages/shared/src/catalog/document/types";
 import type { CatalogPreviewSession } from "../../../packages/shared/src/catalog/runtime/catalogPreviewSession";
 import {
-  applyCatalogPreviewTheme,
   CatalogPreviewDataProvider,
   catalogPreviewLinkClick,
   catalogPreviewRuntime,
@@ -23,7 +22,6 @@ import {
   CatalogPreviewView,
   CatalogToastProvider,
 } from "../../../packages/shared/src/catalog/runtime/domView";
-import { catalogThemeState } from "../../../packages/shared/src/catalog/runtime/theme";
 import { CatalogPreviewToastBridge } from "../../../packages/shared/src/catalog/runtime/toastBridge";
 import {
   loadCatalogProjectFile,
@@ -189,7 +187,6 @@ export function App() {
                   : url,
             )
           : "";
-        applyCatalogPreviewTheme(catalogThemeState(next.graph!));
         const previous = lifecycle.current.accepted;
         const toast = new CatalogPreviewToastBridge();
         const runtime = catalogPreviewRuntime(next, toast);

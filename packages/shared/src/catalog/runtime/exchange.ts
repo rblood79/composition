@@ -179,18 +179,16 @@ export function rehomeCatalogDocument(
 }
 
 /**
- * The file's collections are created or matched by name in the open project's data store (the
- * old import rule); a collection that got another id there is re-pointed wherever the document
- * references it (`data:collection:<id>` — bindings, data actions).
+ * The file's data parts are created or matched by name in the open project's data store (the old
+ * import rule); one that got another id there is re-pointed wherever the document references it —
+ * `data:collection:` (bindings, data actions), `data:endpoint:` (a Form's `callEndpoint`, ADR-281),
+ * `data:variable:` (`setState`). `refs` holds the whole reference ids.
  */
-export function remapCatalogCollections(
+export function remapCatalogDataRefs(
   document: CatalogDocument,
-  ids: ReadonlyMap<string, string>,
+  refs: ReadonlyMap<string, string>,
 ): CatalogDocument {
-  const map = new Map<string, string>();
-  for (const [from, to] of ids)
-    if (from !== to)
-      map.set(`data:collection:${from}`, `data:collection:${to}`);
+  const map = new Map([...refs].filter(([from, to]) => from !== to));
   return map.size ? replaceStrings(document, map) : document;
 }
 
@@ -305,7 +303,7 @@ export async function importCatalogProjectContent(options: {
     options.library,
   );
   const ids = await options.importData(extras);
-  const remapped = remapCatalogCollections(
+  const remapped = remapCatalogDataRefs(
     rehomeCatalogDocument(read, options.projectId),
     ids,
   );

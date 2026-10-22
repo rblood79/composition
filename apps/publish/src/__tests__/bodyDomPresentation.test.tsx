@@ -113,3 +113,21 @@ it("TextField type email 이 든 프로젝트가 열린다 — 이미 S2 형식�
     project.dispose();
   }
 });
+
+it("규칙의 colorScheme (page 루트 darkScheme) 이 Publish 에서도 테마를 그 색 모드로 다시 적용한다", async () => {
+  // (ADR-281 Decision 6 — Preview 는 세션에 applyTheme 을 넘겼지만 Publish 세션은 넘기지 않아
+  //  setColorScheme 이 아무 일도 하지 않았다: Preview 전용 분기.)
+  const { library, graph } = await publicationFixture();
+  const project = loadedCatalogContent(
+    catalogProjectContent(graph),
+    library,
+    new Map(),
+  );
+  const session = createPublishedSession(project, library);
+  expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  session.setColorScheme("dark");
+  expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  session.setColorScheme("light");
+  expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  project.dispose();
+});

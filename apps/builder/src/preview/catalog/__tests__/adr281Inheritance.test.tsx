@@ -99,6 +99,29 @@ describe("ADR-281 G2 — a page root's isDisabled", () => {
   });
 });
 
+describe("ADR-281 G2 — a rule's read-only on the page root at runtime", () => {
+  it.each(["readOnlyAll", "toggleReadOnlyAll"])(
+    "%s makes a descendant TextField's input read-only",
+    async (capabilityId) => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const h = await openAdr280Preview(["TextField", "Button"]);
+      const [field, button] = h.ids as [NodeId, NodeId];
+      h.rule(button, "onPress", {
+        opcode: "capability",
+        targetId: BODY,
+        capabilityId,
+      });
+      const input = () =>
+        h.element(field)?.querySelector("input") as HTMLInputElement;
+      expect(input().readOnly).toBe(false);
+      press(h.element(button));
+      expect(warnings()).toEqual([]);
+      expect(input().readOnly).toBe(true);
+      h.view.unmount();
+    },
+  );
+});
+
 describe("ADR-281 G2 — a page root's isReadOnly and the dispatcher's guard", () => {
   it("a TextField under a read-only page root refuses setValue (report) — the same answer as RAC", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});

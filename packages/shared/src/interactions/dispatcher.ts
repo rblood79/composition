@@ -161,6 +161,10 @@ function resolveValue(
     if (typeof currentValue === "boolean") {
       return { ok: true, value: !currentValue };
     }
+    // A prop's toggle is a boolean state: unwritten = off (ADR-281 — a page root's or frame's
+    //   `isReadOnly` has no value until a rule sets it; the display channel below wrote "none").
+    if (!def.prop.startsWith("style."))
+      return { ok: true, value: !currentValue };
     // 값 유무로 토글하는 채널 (style.display 등) — 설정돼 있으면 해제
     return { ok: true, value: currentValue == null ? "none" : null };
   }

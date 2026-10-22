@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — 「안쪽 전체 전환」 토글 · Publish 의 색 모드 규칙 · 가져온 프로젝트의 규칙 참조 · 확인용 샘플] - 2026-10-22
+
+### Fixed
+
+- **page 루트 · frame 의 「읽기 전용 전환」 (`toggleReadOnlyAll` · `toggleDisabledAll` · `toggleRequiredAll`) 이 아무것도 바꾸지 않던 것** (ADR-281 G6 확인 중 발견):
+  - **Why**: `!self` 토글은 현재값이 boolean 일 때만 뒤집고, 값이 없으면 `style.display` 처럼 `"none"` 을 썼다. 작성하지 않은 page 루트 · frame 의 `isReadOnly` 는 값이 없어 `isReadOnly: "none"` 이 써졌고, 상속 flag (`=== true`) 에 닿지 않았다.
+  - 수정: `style.` 이 아닌 prop 의 토글은 boolean 상태로 본다 — 값이 없으면 꺼짐에서 뒤집는다.
+  - 위치: `packages/shared/src/interactions/dispatcher.ts` · 테스트 `adr281Inheritance.test.tsx`
+- **Publish 에서 「다크 모드로 / 라이트 모드로」 규칙 (page 루트 `colorScheme`) 이 반응하지 않던 것**:
+  - **Why**: Builder Preview 는 세션에 `applyTheme` 을 넘기지만 Publish 세션은 넘기지 않고 `App.tsx` 가 한 번만 직접 적용해, `setColorScheme` 이 아무 일도 하지 않았다 (Preview 전용 분기).
+  - 수정: Publish 세션도 `applyTheme: applyCatalogPreviewTheme` 을 받는다 (snapshot 때 적용 · 규칙의 색 모드 재적용). `App.tsx` 의 중복 호출 삭제.
+  - 위치: `apps/publish/src/{catalogSession.ts,App.tsx}` · 테스트 `bodyDomPresentation.test.tsx`
+- **프로젝트 파일을 다른 프로젝트로 가져오면 Form 의 「Call an endpoint」 규칙이 끊기던 것 · 같은 이름 변수의 `setState` 가 끊기던 것**:
+  - **Why**: 가져오기는 data part 를 이름으로 맞추는데, endpoint 는 새 id 로 생기고 같은 이름 변수는 이 프로젝트의 id 가 된다. 문서 참조를 다시 잇는 것은 collection 뿐이라 `data:endpoint:` · `data:variable:` 참조가 없는 대상을 가리켰다 (ADR-281 이 문서에 endpoint 참조를 들였다).
+  - 수정: `importDataParts` 가 세 종류의 문서 참조 표 (파일 쪽 → 이 프로젝트 쪽) 를 돌려주고, `remapCatalogDataRefs` 가 문서 전체에서 바꾼다.
+  - 위치: `apps/builder/src/builder/utils/importCollectionEnvelope.ts` · `packages/shared/src/catalog/runtime/exchange.ts` · 테스트 `importCollectionEnvelope.test.ts` · `phase4eProjectFiles.test.ts` · `samplesImport.test.ts`
+
+### Added
+
+- **확인용 샘플 프로젝트 파일** (`docs/how-to/samples/`): `adr281-g6-check.composition.json` (ADR-281 G6 네 축 — 패널 어휘 · 조상 상속 · instance 규칙 상속 · Form 제출) · `global-variable-crud.composition.json` (전역 변수 읽기 · 쓰기). 헤더 프로젝트 파일 메뉴의 가져오기로 연다. Form 제출을 받는 로컬 스텁 `apps/builder/scripts/adr281-endpoint-stub.mjs`.
+
 ## [Data 패널 — 프로젝트를 열 때 Builder 전체가 멈추던 것] - 2026-10-22
 
 ### Fixed

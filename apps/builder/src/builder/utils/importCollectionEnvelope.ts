@@ -29,7 +29,9 @@ type ImportStore = Pick<
 
 /**
  * 파일의 collections · API endpoints · 변수 정의를 이 프로젝트 data store 에 넣는다 (이름이 같으면 갱신).
- * 돌려주는 map = 파일의 collection id → 이 프로젝트의 collection id (문서 참조 재연결용).
+ * 돌려주는 map = 문서 참조의 파일 쪽 id → 이 프로젝트 쪽 id (`data:collection:` · `data:endpoint:` ·
+ * `data:variable:` — 같은 것은 빠진다). 문서의 바인딩 · `callEndpoint` · `setState` 가 가져온 뒤에도
+ * 같은 대상을 가리키게 한다 (ADR-281 — endpoint 는 새 id 로 생기고, 같은 이름의 변수는 이 프로젝트의 id).
  */
 export async function importDataParts(
   projectId: string,
@@ -37,6 +39,9 @@ export async function importDataParts(
   store: ImportStore,
 ): Promise<Map<string, string>> {
   const ids = new Map<string, string>();
+  const link = (kind: string, from: string, to: string) => {
+    if (from !== to) ids.set(`data:${kind}:${from}`, `data:${kind}:${to}`);
+  };
   for (const source of data.collections ?? []) {
     // store Map 은 id 키 (ADR-152 HC8) — envelope 은 이름이 정본이라 name resolve.
     const current =
@@ -54,7 +59,7 @@ export async function importDataParts(
       current ??
       (await store.createDataTable({ ...config, project_id: projectId }));
     if (current) await store.updateCollection(current.id, config);
-    ids.set(source.id, target.id);
+    link("collection", source.id, target.id);
     if (source.runtimeData)
       store.setRuntimeData(source.name, source.runtimeData);
   }
@@ -85,12 +90,14 @@ export async function importDataParts(
       timeout: source.timeout,
     };
     if (current) await store.updateApiEndpoint(current.id, config);
-    else await store.createApiEndpoint(config);
+    const target = current ?? (await store.createApiEndpoint(config));
+    link("endpoint", source.id, target.id);
   }
   // ADR-214 — 프로젝트 변수 정의 복원: 같은 이름이 있으면 그 변수를 갱신, 없으면 envelope 의 id 로
   //   생성 (문서 안 `setState.variableId` 참조가 그대로 살아야 한다). 한 DataChange (History 1).
   const variableOps = (data.variables ?? []).map((def) => {
     const current = store.variables.get(def.name);
+    if (current) link("variable", def.id, current.id);
     return {
       op: "define_variable" as const,
       variableId: current?.id ?? def.id,

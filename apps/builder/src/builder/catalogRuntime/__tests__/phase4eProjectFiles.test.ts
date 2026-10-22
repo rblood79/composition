@@ -7,6 +7,7 @@ import type {
   CatalogDocument,
   CatalogLibrary,
   EntryId,
+  InteractionEntry,
   NodeEntry,
   ProjectEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -57,6 +58,18 @@ async function sourceProject() {
     descendantOverrides: [],
     binding: { collectionId: "data:collection:c1", fieldMap: {} },
   } as unknown as NodeEntry;
+  // (ADR-281: a Form's submit names its endpoint by id — the import re-points it too.)
+  const submit = {
+    kind: "interaction",
+    id: "project:interaction:submit",
+    ownerId: list.id,
+    trigger: "onSubmit",
+    action: {
+      opcode: "callEndpoint",
+      endpointId: "data:endpoint:e1",
+      body: "!event.formData",
+    },
+  } as unknown as InteractionEntry;
   const project = base.entries[SOURCE] as ProjectEntry;
   const body = base.entries[BODY] as NodeEntry;
   const document: CatalogDocument = {
@@ -66,10 +79,12 @@ async function sourceProject() {
       [SOURCE]: {
         ...project,
         assetIds: [asset.id],
+        interactionIds: [submit.id],
       },
       [body.id]: { ...body, children: [list.id] },
       [asset.id]: asset,
       [list.id]: list,
+      [submit.id]: submit,
     },
   };
   const graph = new CatalogGraph(document, library);
@@ -158,7 +173,10 @@ describe("ADR-248 Phase 4e-6 project files", () => {
       replace: (document) => storage.replace(document, library!),
       importData: async (extras) => {
         imported.push(extras.collections);
-        return new Map([["c1", "c9"]]);
+        return new Map([
+          ["data:collection:c1", "data:collection:c9"],
+          ["data:endpoint:e1", "data:endpoint:e9"],
+        ]);
       },
     });
     expect(imported).toEqual([[{ id: "c1", name: "Users" }]]);
@@ -178,6 +196,9 @@ describe("ADR-248 Phase 4e-6 project files", () => {
       collectionId: "data:collection:c9",
       fieldMap: {},
     });
+    expect(
+      (stored.entries["project:interaction:submit"] as InteractionEntry).action,
+    ).toMatchObject({ opcode: "callEndpoint", endpointId: "data:endpoint:e9" });
     expect(stored.entries["project:asset:logo"]).toBeDefined();
     // A save of the document the tab held before the import conflicts.
     await expect(

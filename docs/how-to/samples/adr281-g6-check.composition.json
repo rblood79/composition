@@ -1,0 +1,831 @@
+{
+  "format": "composition-catalog-project",
+  "version": 1,
+  "exportedAt": "2026-10-22T09:46:54.010Z",
+  "project": {
+    "id": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
+    "name": "ADR-281 G6 확인"
+  },
+  "document": {
+    "format": "composition-catalog",
+    "schemaVersion": 1,
+    "libraryContractVersion": 47,
+    "revision": 42,
+    "projectId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
+    "rootId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
+    "entries": {
+      "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b": {
+        "kind": "definition",
+        "id": "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b",
+        "name": "G6 버튼",
+        "mode": "composite",
+        "accepts": {},
+        "defaults": {},
+        "visual": {},
+        "stateRules": {},
+        "templateRootId": "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9",
+        "usage": "component"
+      },
+      "project:interaction:08a5223b-94e4-417d-ab34-567d2bd7b3e6": {
+        "kind": "interaction",
+        "id": "project:interaction:08a5223b-94e4-417d-ab34-567d2bd7b3e6",
+        "ownerId": "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "toast",
+          "message": "C 의 자기 규칙"
+        }
+      },
+      "project:interaction:1194df66-ccd7-4317-84fd-ac46dfc9e6d1": {
+        "kind": "interaction",
+        "id": "project:interaction:1194df66-ccd7-4317-84fd-ac46dfc9e6d1",
+        "ownerId": "project:node:6a0d121b-35c3-4ad6-b11f-b2932d279c5a",
+        "trigger": "onChange",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d",
+          "capabilityId": "setValue",
+          "value": "!event.value"
+        }
+      },
+      "project:interaction:14fa3cb6-ffc5-46fa-ab20-2aaa4642f6d5": {
+        "kind": "interaction",
+        "id": "project:interaction:14fa3cb6-ffc5-46fa-ab20-2aaa4642f6d5",
+        "ownerId": "project:node:08a62a25-ca51-47e6-b350-b28d301b90cb",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:home-body",
+          "capabilityId": "lightScheme"
+        }
+      },
+      "project:interaction:36401dd5-f9e9-451d-a328-938df32c53c8": {
+        "kind": "interaction",
+        "id": "project:interaction:36401dd5-f9e9-451d-a328-938df32c53c8",
+        "ownerId": "project:node:db728117-dbb1-4fd3-84dc-438b6339b7c4",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906",
+          "capabilityId": "disableAll"
+        }
+      },
+      "project:interaction:5aa3eacd-a125-40eb-8899-7f668ee96dee": {
+        "kind": "interaction",
+        "id": "project:interaction:5aa3eacd-a125-40eb-8899-7f668ee96dee",
+        "ownerId": "project:node:d368d521-9590-4de1-a859-590f01ae6786",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906",
+          "capabilityId": "enableAll"
+        }
+      },
+      "project:interaction:6e074463-cece-434c-a5cd-a5bb4b8a1eac": {
+        "kind": "interaction",
+        "id": "project:interaction:6e074463-cece-434c-a5cd-a5bb4b8a1eac",
+        "ownerId": "project:node:bd5946ee-4b73-4558-a1a6-b22c2bdce422",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "toast",
+          "message": "frame 안 버튼 눌림"
+        }
+      },
+      "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118": {
+        "kind": "interaction",
+        "id": "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118",
+        "ownerId": "project:node:620ea153-ba2b-4d46-85e9-847e50fa12c7",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "callEndpoint",
+          "endpointId": "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2",
+          "body": "!event.formData"
+        }
+      },
+      "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e": {
+        "kind": "interaction",
+        "id": "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e",
+        "ownerId": "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "toast",
+          "message": "원본 규칙 실행"
+        }
+      },
+      "project:interaction:d1d95a7a-153d-4f26-9a6b-2c1e1cb7e6b6": {
+        "kind": "interaction",
+        "id": "project:interaction:d1d95a7a-153d-4f26-9a6b-2c1e1cb7e6b6",
+        "ownerId": "project:node:0be69cc1-a587-4844-a59d-ddd59aaef398",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:home-body",
+          "capabilityId": "darkScheme"
+        }
+      },
+      "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f": {
+        "kind": "interaction",
+        "id": "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f",
+        "ownerId": "project:node:0831f2bc-003a-4845-a70d-eaebbdc395ec",
+        "trigger": "onSubmit",
+        "action": {
+          "opcode": "callEndpoint",
+          "endpointId": "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2",
+          "body": "!event.formData"
+        }
+      },
+      "project:interaction:fcb7165f-94bb-4c23-b690-65b803bfc23e": {
+        "kind": "interaction",
+        "id": "project:interaction:fcb7165f-94bb-4c23-b690-65b803bfc23e",
+        "ownerId": "project:node:6fb82153-a01c-4c67-871a-85dd6d609db9",
+        "trigger": "onPress",
+        "action": {
+          "opcode": "capability",
+          "targetId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906",
+          "capabilityId": "toggleReadOnlyAll"
+        }
+      },
+      "project:node:06704752-9521-4ea8-8a54-4312fe0b9f56": {
+        "kind": "node",
+        "id": "project:node:06704752-9521-4ea8-8a54-4312fe0b9f56",
+        "definitionId": "lib:definition:text",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "① 패널 어휘 — 아래 「원본」 칸에 입력하면 「사본」 칸이 같은 값 (!event.value)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "text_1"
+        }
+      },
+      "project:node:0831f2bc-003a-4845-a70d-eaebbdc395ec": {
+        "kind": "node",
+        "id": "project:node:0831f2bc-003a-4845-a70d-eaebbdc395ec",
+        "definitionId": "lib:definition:type-Form",
+        "children": [
+          "project:node:574b597d-1538-4881-8baf-3c30338a1d42",
+          "project:node:fe48a3de-939e-48b2-89ad-7024cee0b95a",
+          "project:node:bbd26877-3a4a-4f93-8b6f-6edfbeac4489"
+        ],
+        "props": {},
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "form_2"
+        }
+      },
+      "project:node:08a62a25-ca51-47e6-b350-b28d301b90cb": {
+        "kind": "node",
+        "id": "project:node:08a62a25-ca51-47e6-b350-b28d301b90cb",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "라이트 모드"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_6"
+        }
+      },
+      "project:node:0be69cc1-a587-4844-a59d-ddd59aaef398": {
+        "kind": "node",
+        "id": "project:node:0be69cc1-a587-4844-a59d-ddd59aaef398",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "다크 모드"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_5"
+        }
+      },
+      "project:node:10dc760e-0342-434e-a01a-d0d152a40f28": {
+        "kind": "node",
+        "id": "project:node:10dc760e-0342-434e-a01a-d0d152a40f28",
+        "definitionId": "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "instance B (끔)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [
+          {
+            "kind": "patch",
+            "address": {
+              "instances": [
+                "project:node:10dc760e-0342-434e-a01a-d0d152a40f28"
+              ],
+              "templatePath": [
+                "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9"
+              ]
+            },
+            "interactions": {
+              "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e": "off"
+            }
+          }
+        ],
+        "metadata": {
+          "htmlId": "button_9"
+        }
+      },
+      "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9": {
+        "kind": "node",
+        "id": "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "instance A (원본 규칙)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_7"
+        }
+      },
+      "project:node:358c2709-a606-4600-9561-0e1b1e19de4d": {
+        "kind": "node",
+        "id": "project:node:358c2709-a606-4600-9561-0e1b1e19de4d",
+        "definitionId": "lib:definition:text",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "④ Form 제출 — 실패 확인 (POST /fail → 500 → toast)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "text_5"
+        }
+      },
+      "project:node:477848b4-e05a-4922-9a2e-93c2fc5e7a7c": {
+        "kind": "node",
+        "id": "project:node:477848b4-e05a-4922-9a2e-93c2fc5e7a7c",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "frame 안 입력"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_3"
+        }
+      },
+      "project:node:47b0a49b-903b-4939-a186-9d4efc9164b0": {
+        "kind": "node",
+        "id": "project:node:47b0a49b-903b-4939-a186-9d4efc9164b0",
+        "definitionId": "lib:definition:text",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "③ instance 규칙 상속 — 원본 규칙: toast 「원본 규칙 실행」 · A 그대로 · B 끔 · C 자기 규칙으로 바꿈"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "text_3"
+        }
+      },
+      "project:node:492ba45f-3674-4e41-b8db-32c3dc586906": {
+        "kind": "node",
+        "id": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906",
+        "definitionId": "lib:definition:type-frame",
+        "children": [
+          "project:node:bd5946ee-4b73-4558-a1a6-b22c2bdce422",
+          "project:node:477848b4-e05a-4922-9a2e-93c2fc5e7a7c",
+          "project:node:bfd30702-a25c-41f9-b5b0-edd021ff1c5c"
+        ],
+        "props": {},
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "frame_1"
+        }
+      },
+      "project:node:49f7bb21-94a8-4e55-ac18-ebca49cdf67c": {
+        "kind": "node",
+        "id": "project:node:49f7bb21-94a8-4e55-ac18-ebca49cdf67c",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "name": {
+            "kind": "set",
+            "value": "fullName"
+          },
+          "label": {
+            "kind": "set",
+            "value": "이름"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_4"
+        }
+      },
+      "project:node:574b597d-1538-4881-8baf-3c30338a1d42": {
+        "kind": "node",
+        "id": "project:node:574b597d-1538-4881-8baf-3c30338a1d42",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "name": {
+            "kind": "set",
+            "value": "fullName"
+          },
+          "label": {
+            "kind": "set",
+            "value": "이름"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_6"
+        }
+      },
+      "project:node:620ea153-ba2b-4d46-85e9-847e50fa12c7": {
+        "kind": "node",
+        "id": "project:node:620ea153-ba2b-4d46-85e9-847e50fa12c7",
+        "definitionId": "lib:definition:type-Form",
+        "children": [
+          "project:node:49f7bb21-94a8-4e55-ac18-ebca49cdf67c",
+          "project:node:fb3c940e-84d2-47fa-9c03-09fba7fccb01",
+          "project:node:b25c0583-7c6b-48e4-8eae-356b63e8f6a3"
+        ],
+        "props": {},
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "form_1"
+        }
+      },
+      "project:node:6a0d121b-35c3-4ad6-b11f-b2932d279c5a": {
+        "kind": "node",
+        "id": "project:node:6a0d121b-35c3-4ad6-b11f-b2932d279c5a",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "원본"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_1"
+        }
+      },
+      "project:node:6fb82153-a01c-4c67-871a-85dd6d609db9": {
+        "kind": "node",
+        "id": "project:node:6fb82153-a01c-4c67-871a-85dd6d609db9",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "frame 읽기 전용 전환"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_4"
+        }
+      },
+      "project:node:9d7629b4-6b7d-4cb1-b61a-803566d5c698": {
+        "kind": "node",
+        "id": "project:node:9d7629b4-6b7d-4cb1-b61a-803566d5c698",
+        "definitionId": "lib:definition:origin-component-heading",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "ADR-281 G6 확인"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "heading_1"
+        }
+      },
+      "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac": {
+        "kind": "node",
+        "id": "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac",
+        "definitionId": "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "instance C (바꿈)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [
+          {
+            "kind": "patch",
+            "address": {
+              "instances": [
+                "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac"
+              ],
+              "templatePath": [
+                "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9"
+              ]
+            },
+            "interactions": {
+              "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e": "project:interaction:08a5223b-94e4-417d-ab34-567d2bd7b3e6"
+            }
+          }
+        ],
+        "metadata": {
+          "htmlId": "button_10"
+        }
+      },
+      "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d": {
+        "kind": "node",
+        "id": "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "사본"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_2"
+        }
+      },
+      "project:node:b25c0583-7c6b-48e4-8eae-356b63e8f6a3": {
+        "kind": "node",
+        "id": "project:node:b25c0583-7c6b-48e4-8eae-356b63e8f6a3",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "type": {
+            "kind": "set",
+            "value": "submit"
+          },
+          "label": {
+            "kind": "set",
+            "value": "제출"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_11"
+        }
+      },
+      "project:node:bbd26877-3a4a-4f93-8b6f-6edfbeac4489": {
+        "kind": "node",
+        "id": "project:node:bbd26877-3a4a-4f93-8b6f-6edfbeac4489",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "type": {
+            "kind": "set",
+            "value": "submit"
+          },
+          "label": {
+            "kind": "set",
+            "value": "제출"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_12"
+        }
+      },
+      "project:node:bd5946ee-4b73-4558-a1a6-b22c2bdce422": {
+        "kind": "node",
+        "id": "project:node:bd5946ee-4b73-4558-a1a6-b22c2bdce422",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "frame 안 버튼"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_1"
+        }
+      },
+      "project:node:bfd30702-a25c-41f9-b5b0-edd021ff1c5c": {
+        "kind": "node",
+        "id": "project:node:bfd30702-a25c-41f9-b5b0-edd021ff1c5c",
+        "definitionId": "lib:definition:origin-component-checkbox",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "frame 안 체크"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "checkbox_1"
+        }
+      },
+      "project:node:ca665de8-6121-4e1c-802f-ccb5dee5b8f3": {
+        "kind": "node",
+        "id": "project:node:ca665de8-6121-4e1c-802f-ccb5dee5b8f3",
+        "definitionId": "lib:definition:text",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "④ Form 제출 — 성공 (POST http://localhost:5199/submit, 본문 = 필드 값 JSON)"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "text_4"
+        }
+      },
+      "project:node:d368d521-9590-4de1-a859-590f01ae6786": {
+        "kind": "node",
+        "id": "project:node:d368d521-9590-4de1-a859-590f01ae6786",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "frame 활성화"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_3"
+        }
+      },
+      "project:node:db728117-dbb1-4fd3-84dc-438b6339b7c4": {
+        "kind": "node",
+        "id": "project:node:db728117-dbb1-4fd3-84dc-438b6339b7c4",
+        "definitionId": "lib:definition:origin-component-button",
+        "children": [],
+        "props": {
+          "label": {
+            "kind": "set",
+            "value": "frame 비활성화"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_2"
+        }
+      },
+      "project:node:df3500cd-6b64-4abc-ab1d-cc504b4c399f": {
+        "kind": "node",
+        "id": "project:node:df3500cd-6b64-4abc-ab1d-cc504b4c399f",
+        "definitionId": "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b",
+        "children": [],
+        "props": {},
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "button_8"
+        }
+      },
+      "project:node:e3183e49-f74a-4ac1-ba9e-6b6c5234ed5e": {
+        "kind": "node",
+        "id": "project:node:e3183e49-f74a-4ac1-ba9e-6b6c5234ed5e",
+        "definitionId": "lib:definition:text",
+        "children": [],
+        "props": {
+          "children": {
+            "kind": "set",
+            "value": "② 조상 상속 — 버튼으로 아래 frame 안 요소 전체를 끄고 켬 · 다크/라이트"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "text_2"
+        }
+      },
+      "project:node:fb3c940e-84d2-47fa-9c03-09fba7fccb01": {
+        "kind": "node",
+        "id": "project:node:fb3c940e-84d2-47fa-9c03-09fba7fccb01",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "name": {
+            "kind": "set",
+            "value": "email"
+          },
+          "type": {
+            "kind": "set",
+            "value": "email"
+          },
+          "label": {
+            "kind": "set",
+            "value": "이메일"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_5"
+        }
+      },
+      "project:node:fe48a3de-939e-48b2-89ad-7024cee0b95a": {
+        "kind": "node",
+        "id": "project:node:fe48a3de-939e-48b2-89ad-7024cee0b95a",
+        "definitionId": "lib:definition:origin-component-textfield",
+        "children": [],
+        "props": {
+          "name": {
+            "kind": "set",
+            "value": "email"
+          },
+          "type": {
+            "kind": "set",
+            "value": "email"
+          },
+          "label": {
+            "kind": "set",
+            "value": "이메일"
+          }
+        },
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": [],
+        "metadata": {
+          "htmlId": "textfield_7"
+        }
+      },
+      "project:node:home-body": {
+        "kind": "node",
+        "id": "project:node:home-body",
+        "definitionId": "lib:definition:type-body",
+        "name": "Body",
+        "children": [
+          "project:node:9d7629b4-6b7d-4cb1-b61a-803566d5c698",
+          "project:node:06704752-9521-4ea8-8a54-4312fe0b9f56",
+          "project:node:6a0d121b-35c3-4ad6-b11f-b2932d279c5a",
+          "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d",
+          "project:node:e3183e49-f74a-4ac1-ba9e-6b6c5234ed5e",
+          "project:node:492ba45f-3674-4e41-b8db-32c3dc586906",
+          "project:node:db728117-dbb1-4fd3-84dc-438b6339b7c4",
+          "project:node:d368d521-9590-4de1-a859-590f01ae6786",
+          "project:node:6fb82153-a01c-4c67-871a-85dd6d609db9",
+          "project:node:0be69cc1-a587-4844-a59d-ddd59aaef398",
+          "project:node:08a62a25-ca51-47e6-b350-b28d301b90cb",
+          "project:node:47b0a49b-903b-4939-a186-9d4efc9164b0",
+          "project:node:df3500cd-6b64-4abc-ab1d-cc504b4c399f",
+          "project:node:10dc760e-0342-434e-a01a-d0d152a40f28",
+          "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac",
+          "project:node:ca665de8-6121-4e1c-802f-ccb5dee5b8f3",
+          "project:node:620ea153-ba2b-4d46-85e9-847e50fa12c7",
+          "project:node:358c2709-a606-4600-9561-0e1b1e19de4d",
+          "project:node:0831f2bc-003a-4845-a70d-eaebbdc395ec"
+        ],
+        "props": {},
+        "visual": {},
+        "sizing": {},
+        "descendantOverrides": []
+      },
+      "project:page:home": {
+        "kind": "page",
+        "id": "project:page:home",
+        "route": "/",
+        "name": "Home",
+        "children": [
+          "project:node:home-body"
+        ]
+      },
+      "project:project:3f7c3764-8569-444c-9580-4e1d2b027263": {
+        "kind": "project",
+        "id": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
+        "name": "ADR-281 G6 확인",
+        "pageIds": [
+          "project:page:home"
+        ],
+        "definitionIds": [
+          "project:definition:b55f2efd-f761-4973-8fcb-3193132b9e1b"
+        ],
+        "overrideIds": [],
+        "themeIds": [],
+        "tokenIds": [],
+        "stateVariableIds": [],
+        "interactionIds": [
+          "project:interaction:1194df66-ccd7-4317-84fd-ac46dfc9e6d1",
+          "project:interaction:6e074463-cece-434c-a5cd-a5bb4b8a1eac",
+          "project:interaction:36401dd5-f9e9-451d-a328-938df32c53c8",
+          "project:interaction:5aa3eacd-a125-40eb-8899-7f668ee96dee",
+          "project:interaction:fcb7165f-94bb-4c23-b690-65b803bfc23e",
+          "project:interaction:d1d95a7a-153d-4f26-9a6b-2c1e1cb7e6b6",
+          "project:interaction:14fa3cb6-ffc5-46fa-ab20-2aaa4642f6d5",
+          "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e",
+          "project:interaction:08a5223b-94e4-417d-ab34-567d2bd7b3e6",
+          "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118",
+          "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f"
+        ],
+        "assetIds": []
+      }
+    }
+  },
+  "currentPageId": "project:page:home",
+  "collections": [],
+  "apiEndpoints": [
+    {
+      "id": "59ab4de3-143e-4a9d-b744-6b965f5e9be2",
+      "name": "submitForm",
+      "baseUrl": "http://localhost:5199",
+      "path": "/submit",
+      "method": "POST",
+      "headers": [],
+      "queryParams": [],
+      "bodyType": "json",
+      "responseMapping": {
+        "dataPath": ""
+      },
+      "executionMode": "client",
+      "timeout": 30000
+    },
+    {
+      "id": "f6109b5d-beb2-47c6-bc9a-b5f47732e8c2",
+      "name": "failForm",
+      "baseUrl": "http://localhost:5199",
+      "path": "/fail",
+      "method": "POST",
+      "headers": [],
+      "queryParams": [],
+      "bodyType": "json",
+      "responseMapping": {
+        "dataPath": ""
+      },
+      "executionMode": "client",
+      "timeout": 30000
+    }
+  ],
+  "variables": [],
+  "assets": {}
+}
