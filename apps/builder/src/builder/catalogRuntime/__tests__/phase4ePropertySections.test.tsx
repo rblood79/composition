@@ -648,6 +648,38 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect((graph.getEntry(added[0]!) as NodeEntry).definitionId).toBe(origin);
   });
 
+  // 2026-10-22 user 「listboxsection 추가 - slot 에서 listboxitem 추가 — instance 객체가 아닌 요소」: a
+  // section holds no template items and no sibling yet — the item is still an instance of the item
+  // origin the ListBox family uses.
+  it("a ListBoxItem added inside a new ListBoxSection is an instance of the ListBoxItem origin", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("lb", "lib:definition:origin-component-listbox")],
+        rootIds: [id("lb")],
+        newId: workspace.newId,
+      }),
+    );
+    const host = { graph, readModel: workspace.readModel, newId: workspace.newId };
+    const choiceAt = (record: string, type: string) =>
+      catalogItemInsertChoices(host, workspace.positionOfRecord(record)!).find(
+        (item) => item.type === type,
+      )!;
+    const listRecord = workspace.root.recordsOfSource(id("lb"))[0]!;
+    const sectionId = workspace.execute(
+      choiceAt(listRecord, "ListBoxSection").build(),
+    ).plan.selectAfter![0]!;
+    const sectionRecord = workspace.root.recordsOfSource(sectionId)[0]!;
+    const itemId = workspace.execute(
+      choiceAt(sectionRecord, "ListBoxItem").build(),
+    ).plan.selectAfter![0]!;
+    expect((graph.getEntry(itemId) as NodeEntry).definitionId).toBe(
+      "lib:definition:origin-component-listbox-item-default",
+    );
+  });
+
   it("the slot section's insert list groups Local and Library components and names a Local fill by its component", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;

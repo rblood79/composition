@@ -1,4 +1,5 @@
 import {
+  COLLECTION_FAMILIES,
   insertNodes,
   removeTargets,
   setSlotDeclaration,
@@ -227,10 +228,51 @@ export const catalogSlotCommands = {
 };
 
 /**
+ * The item origin a collection family's own origin uses for an item type (a ListBox origin's items
+ * are ListBoxItem/Default instances) — for a position with no template item to read (a new
+ * ListBoxSection, 2026-10-22 user report). Searched down the owner origin's template.
+ */
+function familyItemOrigin(
+  graph: CatalogReader,
+  itemType: string,
+): DefinitionId | undefined {
+  const library = graph.library;
+  const typeOf = (definitionId: string) => {
+    try {
+      return definitionTypeName(graph, definitionId as DefinitionId);
+    } catch {
+      return undefined;
+    }
+  };
+  for (const family of COLLECTION_FAMILIES) {
+    if (family.item !== itemType) continue;
+    const owner = library.definitions.get(
+      catalogPaletteDefinitionId(library, family.owner),
+    ) as { templateRootId?: string } | undefined;
+    const queue = owner?.templateRootId ? [owner.templateRootId] : [];
+    for (let at = 0; at < queue.length && at < 64; at += 1) {
+      const template = library.templates.get(
+        queue[at] as `lib:template:${string}`,
+      );
+      if (!template) continue;
+      if (
+        at > 0 &&
+        template.definitionId.startsWith("lib:definition:origin-") &&
+        typeOf(template.definitionId) === itemType
+      )
+        return template.definitionId as DefinitionId;
+      queue.push(...template.children);
+    }
+  }
+  return undefined;
+}
+
+/**
  * The item origin a position's template holds for an item type (a ListBox's Items hold
- * ListBoxItem/Default instances): a new item there is an instance of it, as the items it was
- * placed with are — the palette's id for an item type is the bare type (2026-10-22 user 「instance
- * 객체가 아니다」). A root slot is read at its instance's root position.
+ * ListBoxItem/Default instances), else the one its collection family's origin uses: a new item
+ * there is an instance of it, as the items it was placed with are — the palette's id for an item
+ * type is the bare type (2026-10-22 user 「instance 객체가 아니다」). A root slot is read at its
+ * instance's root position.
  */
 export function catalogTemplateItemDefinition(
   graph: CatalogReader,
@@ -256,7 +298,7 @@ export function catalogTemplateItemDefinition(
       // (A dangling template reference offers nothing.)
     }
   }
-  return undefined;
+  return familyItemOrigin(graph, itemType);
 }
 
 /** One choice of the slot section's insert list. */
