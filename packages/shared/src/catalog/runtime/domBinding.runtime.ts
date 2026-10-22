@@ -41,6 +41,7 @@ import {
 import * as RAC from "react-aria-components";
 
 import { Heading, Label, Text } from "react-aria-components";
+import { TableLoadMoreItem } from "react-aria-components/Table";
 
 import { Button } from "../../components/Button";
 
@@ -139,6 +140,7 @@ import {
   CATALOG_DELEGATED_DOM,
   CATALOG_INPUT_NODE_FIELDS,
   catalogCollectionSelectedKeys,
+  catalogLoadMoreItem,
   catalogDomPartParent,
   catalogFieldLabelNecessity,
   catalogOwnerDrawnPart,
@@ -255,6 +257,16 @@ export interface CatalogDomRuntime {
    * of the record — the same values a capability writes, never the document (ADR-250).
    */
   setRuntimeProps?(id: string, patch: Readonly<Record<string, unknown>>): void;
+  /** `useAsyncList.loadMore()` — a bound collection's end loads the next page (the session's). */
+  loadMore?(collectionId: string): void;
+  /** Whether a collection pages (its endpoint gives a cursor) — only those end in a load-more item. */
+  pages?(collectionId: string): boolean;
+  /**
+   * `inputValue={list.filterText} onInputChange={list.setFilterText}` — the collection a record's
+   * text filters on the server (a ComboBox · an Autocomplete's list), and the text's load.
+   */
+  serverFilterOf?(recordId: string): string | undefined;
+  setFilterText?(collectionId: string, filterText: string): void;
   subscribe(id: string, notify: () => void): () => void;
 }
 
@@ -870,23 +882,39 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ),
   // ADR-256 Phase 6g: RAC `Autocomplete` — no element of its own; it gives the text field inside
   // its input props and the collection beside it the filter · virtual focus.
-  autocomplete: (node, _style, children, context) =>
-    createElement(
+  autocomplete: (node, _style, children, context) => {
+    // (Its list filtered on the server — `inputValue={list.filterText}
+    // onInputChange={list.setFilterText}`, no client filter.)
+    const runtime = context?.runtime;
+    const serverCollection = runtime?.serverFilterOf?.(node.id);
+    const text =
+      runtime?.setRuntimeProps &&
+      catalogControlledProps(
+        node.id,
+        (id, patch) => runtime.setRuntimeProps!(id, patch),
+        INPUT_VALUE,
+        String(
+          runtime.overrideOf(node.id)?.inputValue ??
+            node.props.defaultInputValue ??
+            "",
+        ),
+      );
+    return createElement(
       CatalogAutocomplete as ElementType,
       {
         key: node.id,
         // (A running Preview: its text controlled from the record's runtime value — ADR-280.)
-        ...(context?.runtime?.setRuntimeProps
-          ? catalogControlledProps(
-              node.id,
-              (id, patch) => context.runtime!.setRuntimeProps!(id, patch),
-              INPUT_VALUE,
-              String(
-                context.runtime.overrideOf(node.id)?.inputValue ??
-                  node.props.defaultInputValue ??
-                  "",
-              ),
-            )
+        ...(text
+          ? serverCollection && runtime?.setFilterText
+            ? {
+                ...text,
+                onInputChange: (value: string) => {
+                  (text.onInputChange as (next: string) => void)(value);
+                  runtime.setFilterText!(serverCollection, value);
+                },
+                serverFiltered: true,
+              }
+            : text
           : typeof node.props.defaultInputValue === "string"
             ? { defaultInputValue: node.props.defaultInputValue }
             : {}),
@@ -894,7 +922,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         disableVirtualFocus: node.props.disableVirtualFocus === true,
       },
       ...children,
-    ),
+    );
+  },
   // ADR-256 Phase 5h: RAC `TreeItemContent` — no element of its own; its children are the row's
   // (RAC gives them the row's chevron `Button` and selection `Checkbox` contexts).
   treeitemcontent: (node, _style, children) =>
@@ -3048,6 +3077,22 @@ export function renderNode(
       }),
     ];
   });
+  // A bound Table's end loads its next page (`TableLoadMoreItem` — `onLoadMore`, S2 TableView).
+  if (node.ruleId === "TableBody") {
+    const table = root.domInputs.get(node.parentId);
+    if (table)
+      children.push(
+        ...catalogLoadMoreItem(
+          root,
+          table,
+          context.runtime?.loadMore
+            ? (collectionId) => context.runtime!.loadMore!(collectionId)
+            : undefined,
+          TableLoadMoreItem,
+          (collectionId) => context.runtime?.pages?.(collectionId) ?? false,
+        ),
+      );
+  }
   if (node.bindingId === "label") {
     const necessity = catalogFieldLabelNecessity(root, node);
     if (isValidElement(necessity))
@@ -3083,6 +3128,24 @@ export function renderNode(
                 recordId: string,
                 patch: Readonly<Record<string, unknown>>,
               ) => context.runtime!.setRuntimeProps!(recordId, patch),
+            }
+          : {}),
+        ...(context.runtime?.loadMore
+          ? {
+              loadMore: (collectionId: string) =>
+                context.runtime!.pages?.(collectionId)
+                  ? context.runtime!.loadMore!(collectionId)
+                  : undefined,
+              pages: (collectionId: string) =>
+                context.runtime!.pages?.(collectionId) ?? false,
+            }
+          : {}),
+        ...(context.runtime?.serverFilterOf && context.runtime.setFilterText
+          ? {
+              serverFilterOf: (recordId: string) =>
+                context.runtime!.serverFilterOf!(recordId),
+              setFilterText: (collectionId: string, filterText: string) =>
+                context.runtime!.setFilterText!(collectionId, filterText),
             }
           : {}),
       }),

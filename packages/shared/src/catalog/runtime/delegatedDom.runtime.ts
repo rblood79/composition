@@ -60,9 +60,17 @@ import {
   GridListItem as AriaGridListItem,
 } from "react-aria-components/GridList";
 
-import { ListBox as AriaListBox } from "react-aria-components/ListBox";
+import {
+  ListBox as AriaListBox,
+  ListBoxLoadMoreItem,
+} from "react-aria-components/ListBox";
+import { GridListLoadMoreItem } from "react-aria-components/GridList";
+import { TreeLoadMoreItem } from "react-aria-components/Tree";
 
-import { Menu as AriaMenu } from "react-aria-components/Menu";
+import {
+  Menu as AriaMenu,
+  MenuLoadMoreItem,
+} from "react-aria-components/Menu";
 
 import { Meter as AriaMeter } from "react-aria-components/Meter";
 
@@ -100,6 +108,7 @@ import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
 import { TreeItem as AriaTreeItem } from "react-aria-components/Tree";
 
 import { Breadcrumbs } from "../../components/Breadcrumbs";
+import { ProgressCircle } from "../../components/ProgressCircle";
 
 import { Card } from "../../components/Card";
 
@@ -235,10 +244,81 @@ export interface DelegatedDomInput {
     recordId: string,
     patch: Readonly<Record<string, unknown>>,
   ) => void;
+  /**
+   * `useAsyncList.loadMore()` of a running Preview (the session's): a bound collection's end
+   * (`*LoadMoreItem` — `onLoadMore`) loads its next page. Absent = a static render.
+   */
+  readonly loadMore?: (collectionId: string) => void;
+  /** Whether a collection pages (its endpoint gives a cursor). */
+  readonly pages?: (collectionId: string) => boolean;
+  /** The collection the record's text filters on the server · that text's load (`setFilterText`). */
+  readonly serverFilterOf?: (recordId: string) => string | undefined;
+  readonly setFilterText?: (collectionId: string, filterText: string) => void;
   /** A record's runtime props (another record's — a group reads its children's). */
   readonly runtimeProps?: (
     recordId: string,
   ) => Readonly<Record<string, unknown>> | undefined;
+}
+
+/**
+ * `onInputChange={list.setFilterText}` beside a record's controlled text when its collection is
+ * filtered on the server; the collection then shows what the server gave (`defaultFilter` keeps
+ * every item — the reference passes `items`, which RAC does not filter).
+ */
+function serverFiltered(
+  input: DelegatedDomInput,
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const collectionId = input.serverFilterOf?.(input.node.id);
+  const setFilterText = input.setFilterText;
+  if (!collectionId || !setFilterText) return props;
+  const onInputChange = props.onInputChange as ((value: string) => void) | undefined;
+  return {
+    ...props,
+    onInputChange: (value: string) => {
+      onInputChange?.(value);
+      setFilterText(collectionId, value);
+    },
+    defaultFilter: () => true,
+  };
+}
+
+/**
+ * The reference's load-more item at a bound collection's end (S2 passes `onLoadMore` and draws it
+ * itself): RAC's `*LoadMoreItem` sentinel loads the next page when it is seen —
+ * `useAsyncList.loadMore()`, nothing without a cursor — its spinner while `loadingMore`.
+ */
+export function catalogLoadMoreItem(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  loadMore: ((collectionId: string) => void) | undefined,
+  Item: ElementType,
+  pages: (collectionId: string) => boolean,
+): ReactElement[] {
+  if (!loadMore) return [];
+  const source = root.runtime.graph.getEntry(node.sourceId as never);
+  const binding = source?.kind === "node" ? source.binding : undefined;
+  if (!binding) return [];
+  const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+  if (!pages(collectionId)) return [];
+  const isLoading = node.props.loadingState === "loadingMore";
+  return [
+    createElement(
+      Item,
+      {
+        key: "__load-more",
+        onLoadMore: () => loadMore(collectionId),
+        isLoading,
+      },
+      isLoading
+        ? createElement(ProgressCircle, {
+            isIndeterminate: true,
+            size: "S",
+            "aria-label": "Loading more…",
+          })
+        : null,
+    ),
+  ];
 }
 
 export interface DelegatedDomBinding {
@@ -1496,6 +1576,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ),
           ),
         ),
+        ...catalogLoadMoreItem(
+          input.root,
+          input.node,
+          input.loadMore,
+          ListBoxLoadMoreItem,
+          (id) => input.pages?.(id) ?? false,
+        ),
       );
     },
   },
@@ -1532,6 +1619,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               catalogTypeName(input.root, child),
             ),
           ),
+        ),
+        ...catalogLoadMoreItem(
+          input.root,
+          input.node,
+          input.loadMore,
+          GridListLoadMoreItem,
+          (id) => input.pages?.(id) ?? false,
         ),
       );
     },
@@ -1662,6 +1756,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             MENU_CHILD_TYPES.has(catalogTypeName(input.root, child)),
           ),
         ),
+        ...catalogLoadMoreItem(
+          input.root,
+          input.node,
+          input.loadMore,
+          MenuLoadMoreItem,
+          (id) => input.pages?.(id) ?? false,
+        ),
       );
     },
   },
@@ -1729,6 +1830,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           children(input).filter(
             (child) => catalogTypeName(input.root, child) === "TreeItem",
           ),
+        ),
+        ...catalogLoadMoreItem(
+          input.root,
+          input.node,
+          input.loadMore,
+          TreeLoadMoreItem,
+          (id) => input.pages?.(id) ?? false,
         ),
       );
     },
@@ -1889,7 +1997,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     undefined,
     undefined,
     undefined,
-    // (A running Preview: its selection and input text controlled — ADR-280.)
+    // (A running Preview: its selection and input text controlled — ADR-280. A server-filtered
+    // ComboBox — its endpoint reads `{{ filterText }}` — loads with the text, the reference's
+    // `inputValue={list.filterText} onInputChange={list.setFilterText}`: the list does not filter
+    // again.)
     (input) =>
       input.setRuntimeProps
         ? {
@@ -1898,10 +2009,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               SELECTED_KEY,
               runtimeState(input, "selectedKey") ?? null,
             ),
-            ...controlled(
+            ...serverFiltered(
               input,
-              INPUT_VALUE,
-              str(runtimeState(input, "inputValue")),
+              controlled(
+                input,
+                INPUT_VALUE,
+                str(runtimeState(input, "inputValue")),
+              ),
             ),
           }
         : {},

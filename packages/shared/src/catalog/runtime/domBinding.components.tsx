@@ -184,12 +184,22 @@ export function CatalogCalendarCell({
   } as RAC.CalendarCellProps);
 }
 
-/** RAC `Autocomplete` with the reference's filter (`useFilter({sensitivity: "base"}).contains`). */
-export function CatalogAutocomplete(
-  props: Omit<RAC.AutocompleteProps<object>, "filter">,
-): ReactElement {
+/**
+ * RAC `Autocomplete` with the reference's filter (`useFilter({sensitivity: "base"}).contains`); a
+ * server-filtered one (its list's endpoint reads `{{ filterText }}`) has none — the reference's
+ * async example: the list shows what the server gave for the text.
+ */
+export function CatalogAutocomplete({
+  serverFiltered,
+  ...props
+}: Omit<RAC.AutocompleteProps<object>, "filter"> & {
+  serverFiltered?: boolean;
+}): ReactElement {
   const { contains } = RAC.useFilter({ sensitivity: "base" });
-  return createElement(RAC.Autocomplete, { ...props, filter: contains });
+  return createElement(
+    RAC.Autocomplete,
+    serverFiltered ? props : { ...props, filter: contains },
+  );
 }
 
 /**

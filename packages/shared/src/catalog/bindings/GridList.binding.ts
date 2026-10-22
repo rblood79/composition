@@ -7,6 +7,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { LOADING_STATE_PROP } from "./loadingStateProps";
 import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
 
 export const gridListBinding: PrimitiveBinding = {
@@ -16,6 +17,8 @@ export const gridListBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 ListView `loadingState` — the bound collection's load (derived; the end loads more).
+      loadingState: LOADING_STATE_PROP,
       dataBinding: { kind: "binding", label: "Data", section: "content" },
       // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
       //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는

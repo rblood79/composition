@@ -171,6 +171,8 @@ export class CatalogPreviewSession {
     string,
     { cursor?: string; filterText?: string; sortDescriptor?: CatalogTableSort }
   >();
+  /** Each collection's latest load — an older one's answer is dropped (the newer text wins). */
+  private readonly loadSequence = new Map<string, number>();
   /** Tables the server sorts (their endpoint reads `sortDescriptor`) — no client sort on them. */
   private readonly serverSortedTables = new Set<string>();
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
@@ -570,12 +572,15 @@ export class CatalogPreviewSession {
     collectionId: string,
     state: CatalogLoadingState,
     cursor?: string,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<Record<string, unknown>[] | undefined> {
     const endpoint = this.queryEndpoint(collectionId);
+    const sequence = (this.loadSequence.get(collectionId) ?? 0) + 1;
+    this.loadSequence.set(collectionId, sequence);
+    const latest = () => this.loadSequence.get(collectionId) === sequence;
     this.setLoadingState(collectionId, state);
+    const resolve = this.endpointTemplateFor(collectionId, cursor);
     try {
       await Promise.allSettled([...this.pendingSubmits]);
-      const resolve = this.endpointTemplateFor(collectionId, cursor);
       if (cursor === undefined) {
         const url = resolvedEndpointUrl(endpoint, resolve);
         if (url) this.loadedUrls.set(collectionId, url);
@@ -586,6 +591,8 @@ export class CatalogPreviewSession {
         resolve,
         cursor,
       );
+      // (A newer load started meanwhile — `useAsyncList` aborts this one: its answer is dropped.)
+      if (!latest()) return undefined;
       const args = this.loadArguments.get(collectionId) ?? {};
       const { cursor: _previous, ...rest } = args;
       this.loadArguments.set(
@@ -598,6 +605,7 @@ export class CatalogPreviewSession {
           !!item && typeof item === "object",
       );
     } catch (error) {
+      if (!latest()) return undefined;
       this.setLoadingState(collectionId, "error");
       throw error;
     }
@@ -616,7 +624,8 @@ export class CatalogPreviewSession {
     collectionId: string,
     state: CatalogLoadingState = "loading",
   ): Promise<void> {
-    this.showLoaded(collectionId, await this.loadPage(collectionId, state));
+    const items = await this.loadPage(collectionId, state);
+    if (items) this.showLoaded(collectionId, items);
   }
   /**
    * `useAsyncList.loadMore()` — the next page after the items shown (the rules' edits kept); no
@@ -624,10 +633,13 @@ export class CatalogPreviewSession {
    */
   async loadMore(collectionId: string): Promise<void> {
     const cursor = this.loadArguments.get(collectionId)?.cursor;
-    if (cursor === undefined) return;
+    // (A load in flight first — the reference's `loadMore` while loading does nothing.)
+    const state = this.loadingStates.get(collectionId);
+    if (cursor === undefined || (state && state !== "idle" && state !== "error"))
+      return;
     const shown = this.collectionItems(collectionId) as Record<string, unknown>[];
     const items = await this.loadPage(collectionId, "loadingMore", cursor);
-    this.showLoaded(collectionId, [...shown, ...items]);
+    if (items) this.showLoaded(collectionId, [...shown, ...items]);
   }
   /** `useAsyncList.setFilterText(text)` — loads again with the text (S2 `filtering`). */
   async setFilterText(collectionId: string, filterText: string): Promise<void> {
@@ -636,6 +648,56 @@ export class CatalogPreviewSession {
       filterText,
     });
     await this.reload(collectionId, "filtering");
+  }
+  /**
+   * Whether a collection pages (`useAsyncList.loadMore` has a next page to ask for): its query
+   * endpoint gives a cursor (`responseMapping.cursorPath`) or reads `{{ cursor }}`.
+   */
+  pages(collectionId: string): boolean {
+    const collection = this.collections.find((item) => item.id === collectionId);
+    const endpoint =
+      collection && !collection.useMockData
+        ? this.endpoints.find((item) => item.targetCollection === collection.name)
+        : undefined;
+    return (
+      !!endpoint &&
+      (!!endpoint.responseMapping?.cursorPath ||
+        endpointReadsTemplate(endpoint, "cursor"))
+    );
+  }
+  /**
+   * The collection a record's text filters on the server (`inputValue={list.filterText}`): a
+   * ComboBox's own binding, an Autocomplete's list's — when its query endpoint reads
+   * `{{ filterText }}`; else undefined (the list filters itself).
+   */
+  serverFilterOf(recordId: string): string | undefined {
+    const root = this.currentRoot;
+    const graph = this.graph;
+    if (!root || !graph) return undefined;
+    const visit = (id: string, depth: number): string | undefined => {
+      const record = root.domInputs.get(id);
+      if (!record) return undefined;
+      const source = graph.getEntry(record.sourceId as never);
+      const binding = source?.kind === "node" ? source.binding : undefined;
+      if (binding) {
+        const collectionId = binding.collectionId.replace(/^data:collection:/, "");
+        const collection = this.collections.find((item) => item.id === collectionId);
+        const endpoint =
+          collection && !collection.useMockData
+            ? this.endpoints.find((item) => item.targetCollection === collection.name)
+            : undefined;
+        return endpoint && endpointReadsTemplate(endpoint, "filterText")
+          ? collectionId
+          : undefined;
+      }
+      if (depth === 0) return undefined;
+      for (const child of record.children) {
+        const found = visit(child, depth - 1);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    return visit(recordId, 3);
   }
   /** `useAsyncList.sort(sortDescriptor)` with a server sort — loads again (S2 `sorting`). */
   async sortCollection(
@@ -675,11 +737,12 @@ export class CatalogPreviewSession {
    * own: an empty value is not one (Home has no `:id` — `/users/` is another resource).
    */
   private endpointTemplateFor(collectionId: string, cursor?: string) {
+    // (The load's arguments as it starts — a later `setFilterText` is a later load's.)
+    const args = { ...this.loadArguments.get(collectionId), cursor };
     return (text: string): string | undefined => {
       const graph = this.graph;
       if (!graph) return undefined;
       const source = this.stateSource();
-      const args = { ...this.loadArguments.get(collectionId), cursor };
       let unresolved = false;
       const value = text.replace(/\{\{[^}]*\}\}/g, (template) => {
         // `load({cursor, filterText, sortDescriptor})` — empty until given.

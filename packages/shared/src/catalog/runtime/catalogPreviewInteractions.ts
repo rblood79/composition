@@ -314,6 +314,10 @@ export interface CatalogPreviewInteractionsOptions {
   /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
   loadMore?: (collectionId: string) => Promise<unknown>;
   setFilterText?: (collectionId: string, filterText: string) => Promise<unknown>;
+  /** The collection a record's text filters on the server (`CatalogPreviewSession.serverFilterOf`). */
+  serverFilterOf?: (recordId: string) => string | undefined;
+  /** Whether a collection pages (`CatalogPreviewSession.pages`). */
+  pages?: (collectionId: string) => boolean;
 }
 
 /**
@@ -599,6 +603,30 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
    * A record's runtime props: a capability's patch and the component's own state (a Disclosure or
    * Tree expanded by the user) — one value per prop, never the document (ADR-250).
    */
+  pages(collectionId: string): boolean {
+    return this.options.pages?.(collectionId) ?? false;
+  }
+  serverFilterOf(recordId: string): string | undefined {
+    return this.options.serverFilterOf?.(recordId);
+  }
+  setFilterText(collectionId: string, filterText: string): void {
+    const load = this.options.setFilterText;
+    if (!load) return;
+    load(collectionId, filterText).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[interactions] collection ${collectionId} 검색 실패 — ${message}`);
+      this.options.showToast(message);
+    });
+  }
+  loadMore(collectionId: string): void {
+    const load = this.options.loadMore;
+    if (!load) return;
+    load(collectionId).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`);
+      this.options.showToast(message);
+    });
+  }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
     const props = this.options.root()?.domInputs.get(id)?.props as
       Readonly<Record<string, unknown>> | undefined;

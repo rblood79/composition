@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 목록 끝에서 자동으로 더 불러오기 (`onLoadMore` · `*LoadMoreItem`) · ComboBox 입력이 서버 검색 (`filterText`)] - 2026-10-23
+
+### Added
+
+- **목록 끝 자동 `onLoadMore`** — S2 TableView · ListView · TreeView 처럼 바인딩만 하면 된다: Preview · Publish 에서 페이지를 넘기는 collection (endpoint 에 `cursorPath` 또는 `{{ cursor }}`) 에 묶인 ListBox · GridList · Table · Tree · Menu 의 끝에 RAC `ListBoxLoadMoreItem` · `GridListLoadMoreItem` · `TableLoadMoreItem` · `TreeLoadMoreItem` · `MenuLoadMoreItem` 을 둔다 — 끝이 보이면 다음 페이지를 읽고 (`useAsyncList.loadMore`), 읽는 동안 스피너. cursor 가 없으면 요청 없음, 읽는 중의 `loadMore` 는 무시 (레퍼런스와 같음).
+  - 바운드 ListBox · GridList · Tree · Menu 도 `loadingState` 를 받는다 (패널 숨김 prop — S2 이름).
+- **ComboBox 입력 = 서버 검색** — 레퍼런스 `<ComboBox items={list.items} inputValue={list.filterText} onInputChange={list.setFilterText}>`. 바운드 collection 의 endpoint 가 `{{ filterText }}` 를 읽으면 입력할 때마다 그 글자로 다시 읽고, 목록은 서버가 준 항목을 그대로 보인다 (`defaultFilter` 끔). endpoint 가 읽지 않으면 지금처럼 목록이 스스로 거른다. Autocomplete 안의 바운드 목록도 같은 연결 (서버 검색이면 `filter` 없음).
+- 같은 collection 의 이전 요청 응답이 나중에 오면 버린다 — 마지막 글자 · 마지막 페이지가 이긴다 (레퍼런스는 이전 요청을 abort).
+- 위치: `packages/shared/src/catalog/runtime/delegatedDom.runtime.ts` (`catalogLoadMoreItem` · `serverFiltered`) · `domBinding.runtime.ts` (TableBody · Autocomplete) · `catalogPreviewSession.ts` (`pages` · `serverFilterOf` · `loadSequence`) · `catalog/bindings/loadingStateProps.ts` · 테스트 `asyncList.test.tsx` (원복 RED)
+
 ## [Data — `useAsyncList` load 인자: 더 불러오기 · 서버 검색 · 서버 정렬 (`cursor` · `filterText` · `sortDescriptor`)] - 2026-10-23
 
 ### Added

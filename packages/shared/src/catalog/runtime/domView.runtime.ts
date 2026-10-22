@@ -93,6 +93,8 @@ export function catalogPreviewRuntime(
     loadMore: (collectionId) => session.loadMore(collectionId),
     setFilterText: (collectionId, filterText) =>
       session.setFilterText(collectionId, filterText),
+    serverFilterOf: (recordId) => session.serverFilterOf(recordId),
+    pages: (collectionId) => session.pages(collectionId),
     append: (collectionId, value) => session.append(collectionId, value),
     update: (collectionId, key, value) => session.update(collectionId, key, value),
     remove: (collectionId, keys) => session.remove(collectionId, keys),

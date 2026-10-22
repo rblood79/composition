@@ -48,6 +48,16 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver;
+// (jsdom has no IntersectionObserver — RAC's `*LoadMoreItem` sentinel watches with one; a test that
+// needs it seen stubs its own.)
+globalThis.IntersectionObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+} as unknown as typeof IntersectionObserver;
 // (jsdom has no Web Animations — RAC's Tabs indicator asks for them.)
 Element.prototype.getAnimations ??= () => [];
 

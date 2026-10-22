@@ -170,6 +170,15 @@ export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly total?: number;
   readonly loadingState?: CatalogLoadingState;
 };
+/** Bound components that show their collection's load (`useAsyncList.loadingState`). */
+const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
+  "Table",
+  "ListBox",
+  "GridList",
+  "Tree",
+  "Menu",
+  "Skeleton",
+]);
 /** Bound collections whose rows the Builder samples when they grow with them (ADR-157). */
 const SAMPLED_ROW_OWNERS: ReadonlySet<string> = new Set([
   "ListBox",
@@ -1192,7 +1201,7 @@ export function resolveCatalogNode(
       node.binding && rows
         ? ruleDefinitionOf(node.definitionId).name
         : undefined;
-    if (loadingType === "Table" || loadingType === "Skeleton") {
+    if (loadingType && LOADING_STATE_TYPES.has(loadingType)) {
       const state = (keyedRows ?? rows!(node.binding!, "items", node.id))
         ?.loadingState;
       if (state && loadingType === "Skeleton")

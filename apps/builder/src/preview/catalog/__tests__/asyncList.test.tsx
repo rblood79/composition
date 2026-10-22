@@ -218,3 +218,95 @@ describe("useAsyncList — load arguments", () => {
     h.view.unmount();
   });
 });
+
+describe("onLoadMore — the end of a bound collection loads the next page (LoadMoreItem)", () => {
+  /** jsdom has no IntersectionObserver: the sentinel is seen as soon as it is observed. */
+  function seeEverySentinel() {
+    const seen = vi.fn();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          private readonly callback: (
+            entries: { isIntersecting: boolean; target: Element }[],
+          ) => void,
+        ) {}
+        observe(target: Element) {
+          seen(target);
+          queueMicrotask(() =>
+            this.callback([{ isIntersecting: true, target }]),
+          );
+        }
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      },
+    );
+    return seen;
+  }
+
+  for (const type of ["ListBox", "GridList", "Table"])
+    it(`${type}: reaching its end loads the next page until no cursor is left`, async () => {
+      const seen = seeEverySentinel();
+      const urls = stubServer();
+      const h = await asyncPreview(
+        {
+          path: "/users",
+          queryParams: [{ key: "page", value: "{{ cursor }}" }],
+        },
+        [type, "Button"],
+      );
+      await settle();
+      expect(seen).toHaveBeenCalled();
+      expect(urls).toEqual(["/users", "/users?page=2"]);
+      expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+      h.view.unmount();
+      vi.unstubAllGlobals();
+    });
+});
+
+describe("filterText — a ComboBox's input is the server filter (`inputValue={list.filterText}`)", () => {
+  it("typing loads again with the text when the endpoint reads {{ filterText }}; the last text wins", async () => {
+    const urls = stubServer();
+    const h = await asyncPreview(
+      {
+        path: "/users",
+        queryParams: [{ key: "q", value: "{{ filterText }}" }],
+      },
+      ["ComboBox", "Button"],
+    );
+    expect(urls).toEqual(["/users"]);
+    const input = h.element(h.collection)!.querySelector("input")!;
+    act(() => {
+      fireEvent.change(input, { target: { value: "P" } });
+    });
+    act(() => {
+      fireEvent.change(input, { target: { value: "Pa" } });
+    });
+    await settle();
+    expect(urls).toEqual(["/users", "/users?q=P", "/users?q=Pa"]);
+    expect(
+      (h.session.collectionItems("users") as { name: string }[]).map(
+        (item) => item.name,
+      ),
+    ).toEqual(["Park"]);
+    h.view.unmount();
+  });
+
+  it("an endpoint that does not read {{ filterText }}: typing loads nothing (the list filters itself)", async () => {
+    const urls = stubServer();
+    const h = await asyncPreview(
+      { path: "/users", queryParams: [{ key: "page", value: "{{ cursor }}" }] },
+      ["ComboBox", "Button"],
+    );
+    const input = h.element(h.collection)!.querySelector("input")!;
+    act(() => {
+      fireEvent.change(input, { target: { value: "Pa" } });
+    });
+    await settle();
+    expect(urls).toEqual(["/users"]);
+    h.view.unmount();
+  });
+});
