@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — Do 「collection 항목 수정 · 삭제」 (`update` · `remove` — useListData)] - 2026-10-22
+
+### Added
+
+- **Do 「collection 항목 수정」 (`update`) · 「collection 항목 삭제」 (`remove`)** — `append` 와 같은 RAC · S2 레퍼런스 묶음 `useListData.update(key, newValue)` · `remove(...keys)`:
+  - 행 동작 (`onAction` · `onRowAction`) 이면 key 가 `!event.key`, 선택 변경 (`onSelectionChange`) 이면 `!event.keys` (선택 집합 · `"all"`), Form 제출이면 값이 `!event.formData` 로 자동으로 잡힌다. key 는 직접 입력도 된다.
+  - `update` 는 그 key 의 항목이 값의 schema 필드를 받는다 (key 필드 `id` · `key` · `value` 는 그대로). key 를 비우면 값의 `id` 를 쓴다 — 수정 Form 에 `id` 칸만 두면 된다.
+  - 세션이 `append` · `update` · `remove` 를 순서대로 기록하고 Builder 의 항목 위에 다시 적용한다 — Builder 가 데이터를 다시 보내도 유지. 없는 key 는 `[interactions]` 경고로 보고한다.
+  - 문서: `{ opcode: "update", collectionId, key?, value? }` · `{ opcode: "remove", collectionId, keys? }` — contract 47 그대로 (추가만).
+  - 위치: `catalog/runtime/catalogPreviewSession.ts` (`replayItemEdits`) · `interactions/dispatcher.ts` (`dispatchListData`) · 패널 `CatalogRuleRow.tsx` · `catalogRuntime/interactions.ts` (`catalogListDataEventDefaults`) · 테스트 `updateRemove.test.tsx`
+
 ## [Interactions — Do 「collection 에 추가」 (`append`) · 팔레트 Form 이 바로 제출됨] - 2026-10-22
 
 ### Added

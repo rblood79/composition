@@ -23,6 +23,8 @@ export const CATALOG_ACTION_OPCODES = [
   "callEndpoint",
   // ADR-281 user decision 3, second step — a rule appends to a collection (`useListData.append`).
   "append",
+  "update",
+  "remove",
 ] as const satisfies readonly InteractionEntry["action"]["opcode"][];
 
 export function codeExecutionVocabulary(): {

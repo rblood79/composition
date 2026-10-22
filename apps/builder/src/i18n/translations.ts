@@ -859,6 +859,9 @@ const koKR: TranslationKeys = {
     endpoint: "엔드포인트",
     endpointBody: "본문",
     actionAppend: "collection 에 추가",
+    actionUpdate: "collection 항목 수정",
+    actionRemove: "collection 항목 삭제",
+    itemKey: "항목 key",
     collection: "컬렉션",
     appendValue: "값",
     actionCapability: "컴포넌트 기능…",
@@ -3184,6 +3187,9 @@ const enUS: TranslationKeys = {
     actionToast: "Show a toast",
     actionCallEndpoint: "Call an endpoint",
     actionAppend: "Append to a collection",
+    actionUpdate: "Update a collection item",
+    actionRemove: "Remove collection items",
+    itemKey: "Item key",
     collection: "Collection",
     appendValue: "Value",
     endpoint: "Endpoint",
@@ -6172,6 +6178,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 호출`,
     "interactions.summaryAppend": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 에 추가`,
+    "interactions.summaryUpdate": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 수정`,
+    "interactions.summaryRemove": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 항목 삭제`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
     "interactions.summaryNavigateWithPath": (args) =>
@@ -6715,6 +6725,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → call ${String(args?.name ?? "")}`,
     "interactions.summaryAppend": (args) =>
       `${String(args?.when ?? "")} → append to ${String(args?.name ?? "")}`,
+    "interactions.summaryUpdate": (args) =>
+      `${String(args?.when ?? "")} → update a ${String(args?.name ?? "")} item`,
+    "interactions.summaryRemove": (args) =>
+      `${String(args?.when ?? "")} → remove ${String(args?.name ?? "")} items`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
     "interactions.summaryNavigateWithPath": (args) =>

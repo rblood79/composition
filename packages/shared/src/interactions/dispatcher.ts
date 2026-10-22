@@ -102,6 +102,17 @@ export interface DispatchDeps {
     collectionId: string,
     value: Readonly<Record<string, unknown>>,
   ) => { ok: boolean; reason?: string };
+  /** `useListData.update(key, newValue)` — absent `key` = the value's `id`. */
+  update?: (
+    collectionId: string,
+    key: string | undefined,
+    value: Readonly<Record<string, unknown>>,
+  ) => { ok: boolean; reason?: string };
+  /** `useListData.remove(...keys)` — `"all"` removes every item. */
+  remove?: (
+    collectionId: string,
+    keys: readonly string[] | "all",
+  ) => { ok: boolean; reason?: string };
 }
 
 /** 트리거 요소의 렌더 문맥 — `createElementHandlers` 가 규칙 실행에 실어 보낸다 */
@@ -114,6 +125,78 @@ export interface DispatchContext {
   event?: Readonly<Record<string, unknown>>;
 }
 
+/** A rule value: `"!event.<arg>"` is the fired callback's argument, anything else itself. */
+function resolveEventValue(
+  value: unknown,
+  context: DispatchContext | undefined,
+): { ok: true; value: unknown } | { ok: false; reason: string } {
+  if (typeof value !== "string" || !value.startsWith("!event."))
+    return { ok: true, value };
+  const name = value.slice("!event.".length);
+  const event = context?.event;
+  if (!event || !(name in event))
+    return { ok: false, reason: `이벤트 인자 없음: ${value}` };
+  return { ok: true, value: event[name] };
+}
+
+const isRecordValue = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  !!value && typeof value === "object" && !Array.isArray(value) && !(value instanceof Set);
+
+/** A key value (`!event.key` · a literal) as the string the bound items are keyed by. */
+const keyOf = (value: unknown): string | undefined =>
+  typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : undefined;
+
+/**
+ * ADR-281 user decision 3, second step — `useListData`'s `append` · `update` · `remove` on a
+ * collection (the session holds the result).
+ */
+function dispatchListData(
+  action: Extract<
+    InteractionRule["action"],
+    { kind: "append" | "update" | "remove" }
+  >,
+  deps: DispatchDeps,
+  context: DispatchContext | undefined,
+): DispatchOutcome {
+  const run = deps[action.kind];
+  if (!run)
+    return {
+      ok: false,
+      reason: `${action.kind} 실행 경로 없음 (${action.kind} 미주입)`,
+    };
+  let result: { ok: boolean; reason?: string };
+  if (action.kind === "remove") {
+    const keys = resolveEventValue(action.keys, context);
+    if (!keys.ok) return keys;
+    const list =
+      keys.value === "all"
+        ? ("all" as const)
+        : keys.value instanceof Set || Array.isArray(keys.value)
+          ? [...keys.value].map(keyOf).filter((key) => key !== undefined)
+          : [keyOf(keys.value)].filter((key) => key !== undefined);
+    result = deps.remove!(action.collectionId, list);
+  } else {
+    const value = resolveEventValue(action.value, context);
+    if (!value.ok) return value;
+    if (!isRecordValue(value.value))
+      return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
+    if (action.kind === "append")
+      result = deps.append!(action.collectionId, value.value);
+    else {
+      const key = resolveEventValue(action.key, context);
+      if (!key.ok) return key;
+      if (key.value !== undefined && keyOf(key.value) === undefined)
+        return { ok: false, reason: "수정할 항목의 key 가 scalar 가 아니다" };
+      result = deps.update!(action.collectionId, keyOf(key.value), value.value);
+    }
+  }
+  return result.ok
+    ? { ok: true, kind: action.kind }
+    : { ok: false, reason: result.reason ?? `${action.kind} 실패` };
+}
+
 /** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
 export type DispatchOutcome =
   | {
@@ -124,7 +207,9 @@ export type DispatchOutcome =
         | "capability"
         | "setState"
         | "callEndpoint"
-        | "append";
+        | "append"
+        | "update"
+        | "remove";
     }
   | { ok: false; reason: string };
 
@@ -273,27 +358,12 @@ export function executeInteractionRule(
       : { ok: false, reason: result.reason ?? "callEndpoint 실패" };
   }
 
-  if (action.kind === "append") {
-    if (!deps.append)
-      return { ok: false, reason: "append 실행 경로 없음 (append 미주입)" };
-    let value = action.value;
-    if (typeof value === "string" && value.startsWith("!event.")) {
-      const name = value.slice("!event.".length);
-      const event = context?.event;
-      if (!event || !(name in event))
-        return { ok: false, reason: `이벤트 인자 없음: ${value}` };
-      value = event[name];
-    }
-    if (!value || typeof value !== "object" || Array.isArray(value))
-      return { ok: false, reason: "추가할 값이 record 가 아니다" };
-    const result = deps.append(
-      action.collectionId,
-      value as Readonly<Record<string, unknown>>,
-    );
-    return result.ok
-      ? { ok: true, kind: "append" }
-      : { ok: false, reason: result.reason ?? "append 실패" };
-  }
+  if (
+    action.kind === "append" ||
+    action.kind === "update" ||
+    action.kind === "remove"
+  )
+    return dispatchListData(action, deps, context);
 
   if (action.kind === "navigate") {
     const path = action.params?.path;

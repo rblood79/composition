@@ -121,7 +121,8 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 46 (ADR-279): a definition owns its template — the ADR-260 reference field is gone; a
  * component's origin lives on the Local page and an instance stands where the node stood. A 45
  * document (an origin on a page, a hidden template) is refused.
- * 47 (same contract — additive): a rule may append to a collection (`append` — `useListData.append` — ADR-281
+ * 47 (same contract — additive): a rule may append to, update or remove from a collection
+ * (`append` · `update` · `remove` — `useListData.append` · `update` · `remove` — ADR-281
  * user decision 3, second step); a 47 document without one is unchanged.
  * An earlier contract's document is refused, never re-mapped.
  */
@@ -897,6 +898,21 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
         /** The value appended: `"!event.formData"` (a Form's fields) — resolved when the rule runs. */
         value?: Scalar;
+      }
+    | {
+        /** `useListData.update(key, newValue)` — the item's fields take the value's. */
+        opcode: "update";
+        collectionId: DataCollectionId;
+        /** The item's key (`"!event.key"` · a literal); absent = the value's `id`. */
+        key?: Scalar;
+        value?: Scalar;
+      }
+    | {
+        /** `useListData.remove(...keys)`. */
+        opcode: "remove";
+        collectionId: DataCollectionId;
+        /** The items' keys: `"!event.key"` · `"!event.keys"` (a selection) · a literal. */
+        keys?: Scalar;
       }
     | { opcode: "toast"; message: string }
     | {

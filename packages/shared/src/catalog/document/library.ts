@@ -238,6 +238,8 @@ export function buildCatalogLibrary(
         "navigate",
         "callEndpoint",
         "append",
+        "update",
+        "remove",
         "toast",
         "capability",
       ].includes(opcode)

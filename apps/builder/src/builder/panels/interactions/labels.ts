@@ -47,4 +47,6 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   capability: "interactions.actionCapability",
   callEndpoint: "interactions.actionCallEndpoint",
   append: "interactions.actionAppend",
+  update: "interactions.actionUpdate",
+  remove: "interactions.actionRemove",
 } as const;

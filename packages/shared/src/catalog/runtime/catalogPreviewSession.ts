@@ -42,6 +42,7 @@ import {
   createCollectionEndpointExecutor,
   createCollectionEndpointSubmitter,
 } from "../../collections/executeCollectionEndpoint";
+import { getItemKey } from "../../collections/resolveCollectionItems";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -57,6 +58,36 @@ export function catalogPreviewDataServices(
       submitApiEndpoint: createCollectionEndpointSubmitter(endpoints),
     },
   };
+}
+
+/** The fields an item's key is read from (`getItemKey`) — an `update` never changes them. */
+const ITEM_KEY_FIELDS = ["id", "key", "value"] as const;
+
+/** One `useListData` operation a rule ran on a collection (the Preview session's record). */
+type CatalogItemEdit =
+  | { kind: "append"; item: Record<string, unknown> }
+  | { kind: "update"; key: string; patch: Record<string, unknown> }
+  | { kind: "remove"; keys: readonly string[] | "all" };
+
+/** The edits over a list of items, in order — keys as the bound components read them (`getItemKey`). */
+function replayItemEdits(
+  base: readonly Record<string, unknown>[],
+  edits: readonly CatalogItemEdit[],
+): Record<string, unknown>[] {
+  let items = [...base];
+  for (const edit of edits) {
+    if (edit.kind === "append") items = [...items, edit.item];
+    else if (edit.kind === "update")
+      items = items.map((item, index) =>
+        getItemKey(item, index) === edit.key ? { ...item, ...edit.patch } : item,
+      );
+    else if (edit.keys === "all") items = [];
+    else {
+      const keys = new Set(edit.keys);
+      items = items.filter((item, index) => !keys.has(getItemKey(item, index)));
+    }
+  }
+  return items;
 }
 
 export interface CatalogPreviewSessionOptions {
@@ -97,11 +128,12 @@ export class CatalogPreviewSession {
   /** The Builder's collections: bound collections draw their rows from them. */
   private collections: readonly CollectionDataSource[] = [];
   /**
-   * ADR-281 user decision 3, second step — the items an `append` rule added, by collection id:
-   * session state (a reload drops them, the author's data never sees them), laid over the
-   * Builder's items each time they come (`itemSources`).
+   * ADR-281 user decision 3, second step — what `append` · `update` · `remove` rules did, by
+   * collection id, in order (`useListData`'s operations): session state (a reload drops it, the
+   * author's data never sees it), replayed over the Builder's items each time they come
+   * (`itemSources`).
    */
-  private readonly appendedItems = new Map<string, Record<string, unknown>[]>();
+  private readonly itemEdits = new Map<string, CatalogItemEdit[]>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
   private readonly tableSorts = new Map<string, CatalogTableSort>();
   /** The Builder's project variables (the data store's, H1). */
@@ -316,20 +348,25 @@ export class CatalogPreviewSession {
     this.options.applyTheme?.({ ...state, colorMode: mode });
   }
 
-  /** The collections as the bound components read them: the Builder's items, then the appended ones. */
+  /** The collections as the bound components read them: the Builder's items with the edits replayed. */
   private itemSources(): readonly CollectionDataSource[] {
-    if (!this.appendedItems.size) return this.collections;
+    if (!this.itemEdits.size) return this.collections;
     return this.collections.map((collection) => {
-      const added = collection.id && this.appendedItems.get(collection.id);
-      if (!added) return collection;
+      const edits = collection.id && this.itemEdits.get(collection.id);
+      if (!edits) return collection;
       // (The items the snapshot shows — `resolveCollectionSnapshot`: mock when `useMockData`, else
       // the API's items, else mock.)
-      return !collection.useMockData && collection.runtimeData
-        ? { ...collection, runtimeData: [...collection.runtimeData, ...added] }
-        : { ...collection, mockData: [...(collection.mockData ?? []), ...added] };
+      const api = !collection.useMockData && !!collection.runtimeData;
+      const items = replayItemEdits(
+        (api ? collection.runtimeData : collection.mockData) ?? [],
+        edits,
+      );
+      return api
+        ? { ...collection, runtimeData: items }
+        : { ...collection, mockData: items };
     });
   }
-  /** A collection's items as the Preview shows them (appended items included). */
+  /** A collection's items as the Preview shows them (the rules' edits included). */
   collectionItems(collectionId: string): readonly unknown[] {
     const collection = this.itemSources().find((item) => item.id === collectionId);
     if (!collection) return [];
@@ -338,22 +375,16 @@ export class CatalogPreviewSession {
       : (collection.mockData ?? []);
   }
   /**
-   * ADR-281 user decision 3, second step — an `append` rule's value (`useListData.append`): the schema's fields only (a
-   * `number` field as a number, a `boolean` one as a boolean), an `id` when the schema has one and
-   * the value does not. Every component bound to the collection shows it at once.
+   * The schema's fields of a rule's value: a `number` field as a number, a `boolean` one as a
+   * boolean (a Form sends strings); a collection without a schema takes every field.
    */
-  append(
-    collectionId: string,
+  private itemFields(
+    collection: CollectionDataSource,
     value: Readonly<Record<string, unknown>>,
-  ): { ok: boolean; reason?: string } {
-    const collection = this.collections.find((item) => item.id === collectionId);
-    if (!collection) return { ok: false, reason: `collection 없음: ${collectionId}` };
+  ): Record<string, unknown> {
     const schema = collection.schema ?? [];
     const types = new Map(
-      schema.map((field) => [
-        field.key,
-        (field as { type?: string }).type,
-      ]),
+      schema.map((field) => [field.key, (field as { type?: string }).type]),
     );
     const next: Record<string, unknown> = {};
     for (const [key, field] of Object.entries(value)) {
@@ -366,14 +397,76 @@ export class CatalogPreviewSession {
         next[key] = field === "true" || field === "on";
       else next[key] = field;
     }
-    if (types.has("id") && (next.id === undefined || next.id === ""))
-      next.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
-    const added = this.appendedItems.get(collectionId) ?? [];
-    this.appendedItems.set(collectionId, [...added, next]);
+    return next;
+  }
+  private edit(
+    collectionId: string,
+    plan: (
+      collection: CollectionDataSource,
+      items: readonly unknown[],
+    ) => CatalogItemEdit | { reason: string },
+  ): { ok: boolean; reason?: string } {
+    const collection = this.collections.find((item) => item.id === collectionId);
+    if (!collection) return { ok: false, reason: `collection 없음: ${collectionId}` };
+    const edit = plan(collection, this.collectionItems(collectionId));
+    if ("reason" in edit) return { ok: false, reason: edit.reason };
+    this.itemEdits.set(collectionId, [...(this.itemEdits.get(collectionId) ?? []), edit]);
     const errors = this.currentRoot?.refreshRows() ?? [];
-    if (errors.length) console.error("[CatalogPreview] append:", ...errors);
+    if (errors.length) console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
     this.changed();
     return { ok: true };
+  }
+  /**
+   * `useListData.append(value)` — the value's schema fields, with an `id` when the schema has one
+   * and the value does not. Every component bound to the collection shows it at once.
+   */
+  append(
+    collectionId: string,
+    value: Readonly<Record<string, unknown>>,
+  ): { ok: boolean; reason?: string } {
+    return this.edit(collectionId, (collection) => {
+      const item = this.itemFields(collection, value);
+      if (
+        (collection.schema ?? []).some((field) => field.key === "id") &&
+        (item.id === undefined || item.id === "")
+      )
+        item.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
+      return { kind: "append", item };
+    });
+  }
+  /**
+   * `useListData.update(key, newValue)` — the item whose key is `key` (absent = the value's `id`)
+   * takes the value's schema fields; its key fields stay. An unknown key is reported.
+   */
+  update(
+    collectionId: string,
+    key: string | undefined,
+    value: Readonly<Record<string, unknown>>,
+  ): { ok: boolean; reason?: string } {
+    return this.edit(collectionId, (collection, items) => {
+      const target = key ?? (value.id === undefined ? undefined : String(value.id));
+      if (target === undefined) return { reason: "수정할 항목의 key 가 없다" };
+      if (!items.some((item, index) => getItemKey(item, index) === target))
+        return { reason: `항목 없음: ${target}` };
+      const patch = this.itemFields(collection, value);
+      for (const field of ITEM_KEY_FIELDS) delete patch[field];
+      return { kind: "update", key: target, patch };
+    });
+  }
+  /** `useListData.remove(...keys)` — `"all"` removes every item; an unknown key is reported. */
+  remove(
+    collectionId: string,
+    keys: readonly string[] | "all",
+  ): { ok: boolean; reason?: string } {
+    return this.edit(collectionId, (_collection, items) => {
+      if (keys !== "all") {
+        const present = new Set(items.map((item, index) => getItemKey(item, index)));
+        const missing = keys.filter((key) => !present.has(key));
+        if (!keys.length) return { reason: "삭제할 항목의 key 가 없다" };
+        if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
+      }
+      return { kind: "remove", keys };
+    });
   }
   private itemSerial = 0;
 

@@ -282,6 +282,32 @@ export interface CatalogEndpointOption {
 }
 
 /** The action a Do choice starts from, or undefined when it has nothing to point at. */
+/**
+ * A list-data action (`append` · `update` · `remove`) starts from what its When gives: a Form's
+ * `formData` as the value, a row's `key` (an action) or a selection's `keys` as the key.
+ */
+export function catalogListDataEventDefaults(
+  action: CatalogInteractionAction,
+  eventArgs: readonly string[],
+): CatalogInteractionAction {
+  const has = (name: string) => eventArgs.includes(name);
+  if (action.opcode === "append")
+    return has("formData") ? { ...action, value: "!event.formData" } : action;
+  if (action.opcode === "update")
+    return {
+      ...action,
+      ...(has("key") ? { key: "!event.key" } : {}),
+      ...(has("formData") ? { value: "!event.formData" } : {}),
+    };
+  if (action.opcode === "remove")
+    return has("key")
+      ? { ...action, keys: "!event.key" }
+      : has("keys")
+        ? { ...action, keys: "!event.keys" }
+        : action;
+  return action;
+}
+
 export function catalogDefaultAction(
   choice: CatalogActionChoice,
   context: CatalogActionContext,
@@ -308,11 +334,9 @@ export function catalogDefaultAction(
       ? { opcode: "callEndpoint", endpointId: endpoint.id }
       : undefined;
   }
-  if (choice === "append") {
+  if (choice === "append" || choice === "update" || choice === "remove") {
     const collection = context.collections?.[0];
-    return collection
-      ? { opcode: "append", collectionId: collection.id }
-      : undefined;
+    return collection ? { opcode: choice, collectionId: collection.id } : undefined;
   }
   if (choice === "capability") {
     const target =

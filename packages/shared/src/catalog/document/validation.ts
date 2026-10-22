@@ -1453,6 +1453,15 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         exact(action, ["opcode", "collectionId", "value"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
+      } else if (action.opcode === "update") {
+        exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.key !== undefined) scalar(action.key, "entry.action.key");
+        if (action.value !== undefined) scalar(action.value, "entry.action.value");
+      } else if (action.opcode === "remove") {
+        exact(action, ["opcode", "collectionId", "keys"], "entry.action");
+        id(action.collectionId, "data:collection:", "entry.action.collectionId");
+        if (action.keys !== undefined) scalar(action.keys, "entry.action.keys");
       } else if (action.opcode === "toast") {
         exact(action, ["opcode", "message"], "entry.action");
         string(action.message, "entry.action.message");

@@ -80,13 +80,33 @@ export interface AppendAction {
   value?: unknown;
 }
 
+/** `useListData.update(key, newValue)` — absent `key` = the value's `id`. */
+export interface UpdateAction {
+  kind: "update";
+  collectionId: string;
+  /** `"!event.key"` or a literal key. */
+  key?: unknown;
+  /** `"!event.<arg>"` resolving to a record (the Form's `"!event.formData"`). */
+  value?: unknown;
+}
+
+/** `useListData.remove(...keys)`. */
+export interface RemoveAction {
+  kind: "remove";
+  collectionId: string;
+  /** `"!event.key"` · `"!event.keys"` (a selection — a set, or `"all"`) · a literal key. */
+  keys?: unknown;
+}
+
 export type InteractionAction =
   | NavigateAction
   | ToastAction
   | CapabilityAction
   | SetStateAction
   | CallEndpointAction
-  | AppendAction;
+  | AppendAction
+  | UpdateAction
+  | RemoveAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

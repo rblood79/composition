@@ -87,6 +87,8 @@ export function catalogPreviewRuntime(
         body,
       ) ?? Promise.reject(new Error("endpoint 제출 서비스 없음")),
     append: (collectionId, value) => session.append(collectionId, value),
+    update: (collectionId, key, value) => session.update(collectionId, key, value),
+    remove: (collectionId, keys) => session.remove(collectionId, keys),
   });
 }
 

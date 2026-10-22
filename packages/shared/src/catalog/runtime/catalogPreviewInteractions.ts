@@ -145,6 +145,25 @@ function ruleOf(
           ...(action.value !== undefined ? { value: action.value } : {}),
         },
       };
+    case "update":
+      return {
+        ...base,
+        action: {
+          kind: "update",
+          collectionId: action.collectionId.slice("data:collection:".length),
+          ...(action.key !== undefined ? { key: action.key } : {}),
+          ...(action.value !== undefined ? { value: action.value } : {}),
+        },
+      };
+    case "remove":
+      return {
+        ...base,
+        action: {
+          kind: "remove",
+          collectionId: action.collectionId.slice("data:collection:".length),
+          ...(action.keys !== undefined ? { keys: action.keys } : {}),
+        },
+      };
     case "setState":
       return {
         ...base,
@@ -266,6 +285,9 @@ export interface CatalogPreviewInteractionsOptions {
   submitEndpoint?: (endpointId: string, body: unknown) => Promise<unknown>;
   /** ADR-281 user decision 3, second step — the session appends the value (`CatalogPreviewSession.append`). */
   append?: DispatchDeps["append"];
+  /** `CatalogPreviewSession.update` · `remove` (`useListData.update` · `remove`). */
+  update?: DispatchDeps["update"];
+  remove?: DispatchDeps["remove"];
 }
 
 /**
@@ -326,6 +348,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         return { ok: true };
       },
       ...(options.append ? { append: options.append } : {}),
+      ...(options.update ? { update: options.update } : {}),
+      ...(options.remove ? { remove: options.remove } : {}),
       // ADR-280 Decision 8 — the state RAC shows (the render reads the same function).
       getRuntimeState: (id, prop) => {
         const root = options.root();

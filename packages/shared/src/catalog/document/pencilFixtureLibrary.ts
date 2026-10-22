@@ -12,6 +12,8 @@ export function createPencilFixtureLibrary() {
       "navigate",
       "callEndpoint",
       "append",
+      "update",
+      "remove",
       "toast",
       "capability",
     ],

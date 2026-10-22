@@ -18,6 +18,7 @@ import type {
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogDefaultAction,
+  catalogListDataEventDefaults,
   catalogSetStateAction,
   type CatalogActionContext,
   type CatalogInteractionAction,
@@ -36,6 +37,18 @@ import { triggerLabel } from "../labels";
 import type { ActionChoice } from "../types";
 
 const DeleteIcon = ACTION_ICONS.delete;
+
+/** `useListData`'s operations: the rule fields after the collection (reference argument order). */
+const LIST_DATA_FIELDS = {
+  append: ["value"],
+  update: ["key", "value"],
+  remove: ["keys"],
+} as const;
+const LIST_DATA_SUMMARY_KEYS = {
+  append: "interactions.summaryAppend",
+  update: "interactions.summaryUpdate",
+  remove: "interactions.summaryRemove",
+} as const;
 
 const STATE_OP_LABEL_KEYS = {
   set: "interactions.stateOpSet",
@@ -140,11 +153,15 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         name: endpoint?.name ?? action.endpointId,
       });
     }
-    if (action.opcode === "append") {
+    if (
+      action.opcode === "append" ||
+      action.opcode === "update" ||
+      action.opcode === "remove"
+    ) {
       const collection = context.collections?.find(
         (option) => option.id === action.collectionId,
       );
-      return t("interactions.summaryAppend", {
+      return t(LIST_DATA_SUMMARY_KEYS[action.opcode], {
         when,
         name: collection?.name ?? action.collectionId,
       });
@@ -235,13 +252,12 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 if (choice === action.opcode) return;
                 const next = catalogDefaultAction(choice, context);
                 if (!next) return;
-                // A Form's submit adds its fields (the When gives `formData`).
-                if (
-                  next.opcode === "append" &&
-                  eventArgsOf(componentType, rule.trigger).includes("formData")
-                )
-                  setAction({ ...next, value: "!event.formData" });
-                else setAction(next);
+                setAction(
+                  catalogListDataEventDefaults(
+                    next,
+                    eventArgsOf(componentType, rule.trigger),
+                  ),
+                );
               }}
             />
           </div>
@@ -334,7 +350,9 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
             </>
           )}
 
-          {action.opcode === "append" && (
+          {(action.opcode === "append" ||
+            action.opcode === "update" ||
+            action.opcode === "remove") && (
             <>
               <PropertySelect
                 label={t("interactions.collection")}
@@ -351,18 +369,26 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 }))}
                 translateOptions={false}
               />
-              <ValueSourceField
-                param={{ kind: "text", labelKey: "interactions.appendValue" }}
-                value={action.value}
-                eventArgs={eventArgsOf(componentType, rule.trigger)}
-                onChange={(value) =>
-                  setAction(
-                    value === "" || value === undefined
-                      ? { opcode: "append", collectionId: action.collectionId }
-                      : { ...action, value: value as Scalar },
-                  )
-                }
-              />
+              {LIST_DATA_FIELDS[action.opcode].map((field) => (
+                <ValueSourceField
+                  key={field}
+                  param={{
+                    kind: "text",
+                    labelKey:
+                      field === "value"
+                        ? "interactions.appendValue"
+                        : "interactions.itemKey",
+                  }}
+                  value={(action as Record<string, unknown>)[field]}
+                  eventArgs={eventArgsOf(componentType, rule.trigger)}
+                  onChange={(value) => {
+                    const next = { ...action } as Record<string, unknown>;
+                    if (value === "" || value === undefined) delete next[field];
+                    else next[field] = value as Scalar;
+                    setAction(next as CatalogInteractionAction);
+                  }}
+                />
+              ))}
             </>
           )}
 
