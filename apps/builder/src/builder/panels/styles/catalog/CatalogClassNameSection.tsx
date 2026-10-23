@@ -1,8 +1,11 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
 import { useI18n } from "@/i18n";
 import type { NodeId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { setNodeAttribute } from "../../../../../../../packages/shared/src/catalog/commands";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogNodeMetadata,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -19,7 +22,6 @@ export const CatalogClassNameSection = memo(function CatalogClassNameSection() {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
-  const graph = workspace.runtime.graph;
   const identity = useStylesSelectedId();
   const target = identity
     ? workspace.positionOfRecord(identity)?.target
@@ -28,14 +30,7 @@ export const CatalogClassNameSection = memo(function CatalogClassNameSection() {
     target?.kind === "node" && !target.id.startsWith(ORIGIN_VIEW_NODE)
       ? target.id
       : undefined;
-  const subscribeSteps = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const className = useSyncExternalStore(subscribeSteps, () => {
-    const entry = nodeId ? graph.getEntry(nodeId) : undefined;
-    return entry?.kind === "node" ? (entry.metadata?.className ?? "") : "";
-  });
+  const className = useCatalogNodeMetadata(nodeId, "className");
   const writeClassName = useCallback(
     (value: string) => {
       if (!nodeId || value.trim() === className) return;

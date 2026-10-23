@@ -12,6 +12,7 @@ import {
 import type {
   EditTarget,
   EntryId,
+  NodeMetadata,
   PageEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 
@@ -101,6 +102,22 @@ export function useCatalogOwnFields(target: EditTarget) {
     [readModel, id],
   );
   return useSyncExternalStore(subscribe, () => readModel.ownFields(target));
+}
+
+/** A node's DOM attribute (`metadata` — ID · class names · aria label), `""` when unset or no node. */
+export function useCatalogNodeMetadata(
+  nodeId: string | undefined,
+  field: keyof NodeMetadata,
+): string {
+  const { runtime } = useCatalogWorkspace();
+  const subscribe = useCallback(
+    (notify: () => void) => runtime.subscribeSteps(() => notify()),
+    [runtime],
+  );
+  return useSyncExternalStore(subscribe, () => {
+    const entry = nodeId ? runtime.graph.getEntry(nodeId) : undefined;
+    return entry?.kind === "node" ? (entry.metadata?.[field] ?? "") : "";
+  });
 }
 
 /** The project's pages in order (re-renders when a page or the page order changes). */

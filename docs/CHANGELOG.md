@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Image — 업로드한 그림의 Preview 주소] - 2026-10-24
+
+### Fixed
+
+- **업로드한 그림을 src 로 쓴 Image 가 Preview · publish 에서 깨지던 문제** — `asset:` 참조를 실행 시점 URL 로 풀어 `img` 에 싣는다 (Avatar 와 같은 `resolveAssetUrl`).
+  - **Why:** DOM 은 `props.src` 를 그대로 넘겨 `asset:sha256-…` 문자열이 `img src` 가 됐다 — Canvas 는 이미지 캐시가 같은 참조를 풀어 그려 두 화면이 갈렸다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts`
+
 ## [Layers — 선택으로 펼친 행 유지] - 2026-10-24
 
 ### Fixed

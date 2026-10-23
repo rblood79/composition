@@ -9,6 +9,7 @@ export {
   useCatalogRows,
   useCatalogPropSource,
   useCatalogOwnFields,
+  useCatalogNodeMetadata,
   useCatalogPages,
   useCatalogComponents,
   useCatalogSaveStatus,

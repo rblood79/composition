@@ -97,8 +97,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     tree?.getSnapshot ?? noSnapshot,
   );
 
-  // Expanded rows = user toggles + the selection's ancestors − rows the user closed.
-  const [userExpanded, setUserExpanded] = useState<Set<Key>>(new Set());
+  // Expanded rows = user toggles + every selection's ancestors − rows the user closed.
+  const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   const [userCollapsed, setUserCollapsed] = useState<Set<Key>>(new Set());
   const selectedIds = useMemo(
     () => selection.map((item) => item.identity),
@@ -120,26 +120,17 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   // (2026-10-24 user report 「layer 트리가 깜빡이거나 떨리거나 이전 대상과 왔다갔다」) the rows
   // followed the current selection alone, so each Canvas selection closed the last one's ancestors
   // and opened its own — the rows jumped, twice per double-click (container, then the child).
-  useLayoutEffect(() => {
-    setUserExpanded((previous) => {
-      const opened = [...autoExpanded].filter(
-        (key) => !previous.has(key) && !userCollapsed.has(key),
-      );
-      return opened.length ? new Set([...previous, ...opened]) : previous;
-    });
-  }, [autoExpanded, userCollapsed]);
-  // The expanded rows as one value: a selection among siblings gives the same rows, and a new Set
-  // made RAC re-flatten the whole expanded tree (ADR-265 — 5k rows per selection).
-  const expandedList = useMemo(() => {
-    const merged = new Set(userExpanded);
-    for (const key of autoExpanded)
-      if (!userCollapsed.has(key)) merged.add(key);
-    return JSON.stringify([...merged]);
-  }, [autoExpanded, userCollapsed, userExpanded]);
-  const expandedKeys = useMemo(
-    () => new Set<Key>(JSON.parse(expandedList) as Key[]),
-    [expandedList],
-  );
+  // Folded in during render (no second commit), and the Set is replaced only when a row opens: a
+  // selection among siblings keeps it, and a new Set made RAC re-flatten the whole expanded tree
+  // (ADR-265 — 5k rows per selection).
+  const [openedFor, setOpenedFor] = useState<Set<Key>>();
+  if (openedFor !== autoExpanded) {
+    setOpenedFor(autoExpanded);
+    const opened = [...autoExpanded].filter(
+      (key) => !expandedKeys.has(key) && !userCollapsed.has(key),
+    );
+    if (opened.length) setExpandedKeys(new Set([...expandedKeys, ...opened]));
+  }
   useLayoutEffect(() => {
     tree?.setExpanded(new Set([...expandedKeys].map(String)));
   }, [expandedKeys, tree]);
@@ -152,12 +143,12 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         for (const key of next) collapsed.delete(key);
         return collapsed;
       });
-      setUserExpanded(next);
+      setExpandedKeys(next);
     },
     [expandedKeys],
   );
   const handleCollapseAll = useCallback(() => {
-    setUserExpanded(new Set());
+    setExpandedKeys(new Set());
     setUserCollapsed(new Set(autoExpanded));
   }, [autoExpanded]);
 

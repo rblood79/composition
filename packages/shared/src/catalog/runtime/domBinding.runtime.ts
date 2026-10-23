@@ -158,6 +158,8 @@ import {
 
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 
+import { resolveAssetUrl } from "../../utils/assetRef";
+
 import {
   catalogAuthoredLayout,
   catalogAuthoredVisual,
@@ -1944,8 +1946,11 @@ function imageElementProps(props: Readonly<Record<string, unknown>>): {
   src?: string;
   alt: string;
 } {
+  // ADR-235: an uploaded `asset:` ref resolves to its URL (`Avatar.tsx`); not ready yet = no src.
   const src =
-    typeof props.src === "string" && props.src !== "" ? props.src : undefined;
+    typeof props.src === "string" && props.src !== ""
+      ? (resolveAssetUrl(props.src) ?? undefined)
+      : undefined;
   return {
     ...(src ? { src } : {}),
     alt: typeof props.alt === "string" ? props.alt : "",
