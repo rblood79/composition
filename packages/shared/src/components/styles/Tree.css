@@ -82,9 +82,12 @@
       visibility: hidden;
       align-items: center;
       justify-content: center;
-      width: 20px;
+      /* The level indent before the glyph — S2 TreeView's `level-padding` column,
+         `(level − 1) × --indent` (16px): the box grows by it and the 20px glyph area stays
+         (border-box — the Canvas's `catalogTreeChevronLayout` box). */
+      width: calc(20px + (var(--tree-item-level) - 1) * 16px);
       height: 100%;
-      padding-left: calc((var(--tree-item-level) - 1) * var(--padding));
+      padding-left: calc((var(--tree-item-level) - 1) * 16px);
       /* Keeps its width beside the full-width label (4e-11). */
       flex-shrink: 0;
       cursor: pointer;

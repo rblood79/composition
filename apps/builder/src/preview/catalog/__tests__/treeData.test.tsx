@@ -110,6 +110,32 @@ describe("useTreeData — a bound Tree shows every level", () => {
   });
 });
 
+describe("useTreeData — a row's text is its item's (`<Text>{item.name}</Text>`)", () => {
+  it("each bound row shows its item's label (the name field), every level; the starter's sample text gives way", async () => {
+    const h = await treePreview();
+    h.expand("docs");
+    h.press();
+    const texts = () =>
+      [...(h.element(h.tree)?.querySelectorAll('[role="row"]') ?? [])].map(
+        (row) => row.textContent?.trim(),
+      );
+    expect(texts()).toEqual(["Docs", "Alpha", "Beta", "Images"]);
+    h.view.unmount();
+  });
+
+  it("an unbound Tree keeps the starter's sample text", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = await openAdr280Preview(["Tree"]);
+    const tree = h.ids[0] as NodeId;
+    expect(
+      [...(h.element(tree)?.querySelectorAll('[role="row"]') ?? [])].map(
+        (row) => row.textContent?.trim(),
+      ),
+    ).toEqual(["Node 1", "Node 2"]);
+    h.view.unmount();
+  });
+});
+
 describe("useTreeData — edits with a parent", () => {
   it("insert(parentKey, index) · append(parentKey) · move(key, toParentKey, index) · a nested key's remove · update", async () => {
     const h = await treePreview();

@@ -7725,7 +7725,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "children": "Tree item"
+      "children": "{label}"
     },
     "visual": {}
   },

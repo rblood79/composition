@@ -1233,9 +1233,12 @@ export interface CatalogComposedPart {
   readonly wraps?: readonly string[];
 }
 
-/** `Tree.css` chevron button: `width: 20px` (content box) + `padding-left: (level − 1) × --padding`. */
+/**
+ * `Tree.css` chevron button: `width: 20px + indent` with `padding-left: indent`, indent =
+ * `(level − 1) × 16px` — S2 TreeView's `level-padding` column before the expand button (`--indent: 16`).
+ */
 const TREE_CHEVRON_WIDTH = 20;
-const TREE_LEVEL_PADDING = 4;
+const TREE_LEVEL_PADDING = 16;
 /** The chevron svg (`size={16}`): the button's content height. */
 const TREE_CHEVRON_ICON = 16;
 

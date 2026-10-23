@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree — 행 글자가 항목 이름 · S2 들여쓰기 (단계당 16px)] - 2026-10-23
+
+### Changed
+
+- **바운드 Tree 의 행 글자가 항목의 label (이름 필드)** — TreeItem 원본의 글자가 `"Tree item"` 고정에서 `{label}` 로 (ListBoxItem 과 같은 행 label, 레퍼런스 `<Text>{item.name}</Text>`). 바인딩 없는 Tree 는 starter 의 표본 글자 (Node 1 · Node 2) 그대로, 「+」 로 넣는 항목은 「Item N」.
+  - 주의: 오늘 전에 「+」 로 넣어 글자를 고치지 않은 TreeItem 은 `{label}` 로 보인다 (ListBoxItem 과 같은 동작 — 글자를 한 번 쓰면 사라진다).
+- **Tree 들여쓰기 = S2 TreeView** — `level-padding` 열 `(level − 1) × 16px` (전에는 4px 를 chevron 20px 상자 안에서 써 DOM 에서는 보이지 않았고, Canvas 는 상자를 4px 넓혀 두 consumer 가 달랐다). DOM `Tree.css` 와 Canvas `catalogTreeChevronLayout` 이 같은 상자 (폭 20 + 들여쓰기, 왼쪽 padding = 들여쓰기).
+- 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (`component-tree-item-default__label`) · `catalog/runtime/presence.ts` (`TREE_LEVEL_PADDING`) · `components/styles/Tree.css` · 테스트 `treeData.test.tsx` · `treeItemChevronNode.test.ts` (원복 RED)
+
 ## [Data — 트리 데이터 (`useTreeData`) · 바운드 Tree 가 데이터 행을 반복] - 2026-10-23
 
 ### Added

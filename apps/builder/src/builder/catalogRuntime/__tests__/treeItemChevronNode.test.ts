@@ -174,11 +174,12 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
             // (Its row is the content node — the child item is the next row, not beside it: the
             // chevron is centered in the 32px row as when collapsed — ADR-256 후속 14.)
             { item: parentItem, chevron: [8, 8, 20, 16], labelX: 30 },
-            // level 2: the button grows by its level padding (`(level − 1) × --padding`)
+            // level 2: the button grows by its level indent — S2 TreeView's `level-padding`
+            // column, `(level − 1) × --indent` (16px)
             {
               item: kids(parentItem.id)[1],
-              chevron: [8, 8, 24, 16],
-              labelX: 34,
+              chevron: [8, 8, 36, 16],
+              labelX: 46,
             },
           ]
         : [
