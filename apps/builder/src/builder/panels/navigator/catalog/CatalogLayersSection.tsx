@@ -1,6 +1,8 @@
 import {
+  createContext,
   memo,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -53,6 +55,63 @@ const layerText = (node: CatalogLayerNode) => node.name;
 const noSnapshot = () => EMPTY;
 
 /**
+ * What a row reads from the selection: indent guides and the selection's area. A context, not the
+ * render closure — RAC keeps a row's render until that row's own state changes, so a closure drew
+ * the last selection's area on the rows it did not re-render.
+ */
+const LayerRowSelection = createContext<{
+  tree: CatalogLayerTreeStore | undefined;
+  selectedKeys: ReadonlySet<Key>;
+  selectedChain: ReadonlySet<string>;
+  regionTails: ReadonlySet<string>;
+} | null>(null);
+
+function CatalogLayerRow({
+  node,
+  state,
+  onDelete,
+  onContextMenu,
+}: {
+  node: CatalogLayerNode;
+  state: TreeItemState;
+  onDelete: (node: CatalogLayerNode) => void;
+  onContextMenu: (node: CatalogLayerNode, event: React.MouseEvent) => void;
+}) {
+  const selection = useContext(LayerRowSelection);
+  const tree = selection?.tree;
+  const guides: boolean[] = [];
+  let underSelection = false;
+  for (
+    let parent = node.parentId && tree?.node(node.parentId);
+    parent;
+    parent = parent.parentId ? tree?.node(parent.parentId) : undefined
+  ) {
+    guides.unshift(!!selection?.selectedChain.has(parent.id));
+    underSelection ||= !!selection?.selectedKeys.has(parent.id);
+  }
+  return (
+    <CatalogLayerItem
+      node={node}
+      isSelected={state.isSelected}
+      isExpanded={state.isExpanded}
+      isFocusVisible={state.isFocusVisible}
+      activeGuides={guides}
+      selectionRegion={
+        selection?.regionTails.has(node.id)
+          ? "tail"
+          : state.isSelected && (tree?.node(node.id) ?? node).children?.length
+            ? "head"
+            : underSelection
+              ? "body"
+              : undefined
+      }
+      onDelete={onDelete}
+      onContextMenu={onContextMenu}
+    />
+  );
+}
+
+/**
  * ADR-248 Phase 4e-4: the Layers tree of the open page — rows from the read model (keys = the
  * Canvas records, so the tree and the Canvas share one selection), expanded rows read one level
  * deeper; selecting enters the parent's editing context (the old tree rule); delete and drag are
@@ -97,7 +156,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     tree?.getSnapshot ?? noSnapshot,
   );
 
-  // Expanded rows = user toggles + every selection's ancestors − rows the user closed.
+  // Expanded rows = user toggles + every selection's ancestors (+ a single selection itself) −
+  // rows the user closed.
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   const [userCollapsed, setUserCollapsed] = useState<Set<Key>>(new Set());
   const selectedIds = useMemo(
@@ -107,6 +167,13 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   const autoExpanded = useMemo(() => {
     const records = workspace.root.domInputs;
     const parents = new Set<Key>();
+    // A single selection opens one level of its own (Framer, 2026-10-24): its children show, theirs
+    // stay closed. Only a record with children — a leaf key would replace the Set for nothing.
+    if (
+      selectedIds.length === 1 &&
+      records.get(selectedIds[0])?.children.length
+    )
+      parents.add(selectedIds[0]);
     for (const id of selectedIds)
       for (
         let record = records.get(records.get(id)?.parentId ?? "");
@@ -299,28 +366,34 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       chain.add(record.id);
     return chain;
   }, [selectedIds, workspace]);
+  // The selection's region (Framer): a selected row and the rows shown under it read as one area —
+  // these are the area's last rows (the deepest last row shown under each selected row).
+  const regionTails = useMemo(() => {
+    const tails = new Set<string>();
+    if (!items.length) return tails;
+    for (const id of selectedIds) {
+      let node = tree?.node(id);
+      if (!node?.children?.length) continue;
+      while (node.children?.length)
+        node = node.children[node.children.length - 1];
+      tails.add(node.id);
+    }
+    return tails;
+  }, [items, selectedIds, tree]);
+  const rowSelection = useMemo(
+    () => ({ tree, selectedKeys, selectedChain, regionTails }),
+    [tree, selectedKeys, selectedChain, regionTails],
+  );
   const renderContent = useCallback(
-    (node: CatalogLayerNode, state: TreeItemState) => {
-      const guides: boolean[] = [];
-      for (
-        let parent = node.parentId && tree?.node(node.parentId);
-        parent;
-        parent = parent.parentId ? tree?.node(parent.parentId) : undefined
-      )
-        guides.unshift(selectedChain.has(parent.id));
-      return (
-        <CatalogLayerItem
-          node={node}
-          isSelected={state.isSelected}
-          isExpanded={state.isExpanded}
-          isFocusVisible={state.isFocusVisible}
-          activeGuides={guides}
-          onDelete={handleDelete}
-          onContextMenu={handleContextMenu}
-        />
-      );
-    },
-    [handleContextMenu, handleDelete, selectedChain, tree],
+    (node: CatalogLayerNode, state: TreeItemState) => (
+      <CatalogLayerRow
+        node={node}
+        state={state}
+        onDelete={handleDelete}
+        onContextMenu={handleContextMenu}
+      />
+    ),
+    [handleContextMenu, handleDelete],
   );
 
   return (
@@ -342,40 +415,42 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         </ActionIconButton>
       }
     >
-      <Virtualizer layout={ListLayout} layoutOptions={LAYOUT_OPTIONS}>
-        <TreeBase<CatalogLayerNode>
-          aria-label="Layers"
-          items={items as CatalogLayerNode[]}
-          getKey={layerKey}
-          getTextValue={layerText}
-          renderContent={renderContent}
-          selectedKeys={selectedKeys}
-          selectionMode="multiple"
-          selectionBehavior="replace"
-          expandedKeys={expandedKeys}
-          onSelectionChange={handleSelectionChange}
-          onExpandedChange={handleExpandedChange}
-          dnd={{
-            canDrag: (node) =>
-              !node.body &&
-              !node.projection &&
-              node.position.target.kind === "node",
-            isValidDrop,
-            onMove: handleMove,
-            dragType: "application/x-layer-tree-item",
-            // The old Layers drag preview: the layer's name, or how many layers move.
-            renderDragPreview: (items) => (
-              <div className="tree-drag-preview">
-                {items.length > 1
-                  ? t("navigator.layersDragCount", { count: items.length })
-                  : (items[0]?.["text/plain"] ?? t("navigator.layer"))}
-              </div>
-            ),
-          }}
-          className="layer-tree layer-tree--rac-virtualized"
-          dropIndicatorClassName="layer-drop-indicator"
-        />
-      </Virtualizer>
+      <LayerRowSelection.Provider value={rowSelection}>
+        <Virtualizer layout={ListLayout} layoutOptions={LAYOUT_OPTIONS}>
+          <TreeBase<CatalogLayerNode>
+            aria-label="Layers"
+            items={items as CatalogLayerNode[]}
+            getKey={layerKey}
+            getTextValue={layerText}
+            renderContent={renderContent}
+            selectedKeys={selectedKeys}
+            selectionMode="multiple"
+            selectionBehavior="replace"
+            expandedKeys={expandedKeys}
+            onSelectionChange={handleSelectionChange}
+            onExpandedChange={handleExpandedChange}
+            dnd={{
+              canDrag: (node) =>
+                !node.body &&
+                !node.projection &&
+                node.position.target.kind === "node",
+              isValidDrop,
+              onMove: handleMove,
+              dragType: "application/x-layer-tree-item",
+              // The old Layers drag preview: the layer's name, or how many layers move.
+              renderDragPreview: (items) => (
+                <div className="tree-drag-preview">
+                  {items.length > 1
+                    ? t("navigator.layersDragCount", { count: items.length })
+                    : (items[0]?.["text/plain"] ?? t("navigator.layer"))}
+                </div>
+              ),
+            }}
+            className="layer-tree layer-tree--rac-virtualized"
+            dropIndicatorClassName="layer-drop-indicator"
+          />
+        </Virtualizer>
+      </LayerRowSelection.Provider>
       <ContextMenuOverlay
         isOpen={!!menu}
         request={menu?.request ?? null}

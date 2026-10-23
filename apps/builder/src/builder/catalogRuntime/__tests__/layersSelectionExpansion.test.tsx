@@ -78,8 +78,19 @@ async function open() {
         text("project:node:a-text", "Alpha"),
         frame("project:node:b", ["project:node:b-text"]),
         text("project:node:b-text", "Beta"),
+        frame("project:node:c", [
+          "project:node:c-inner",
+          "project:node:c-last",
+        ]),
+        frame("project:node:c-inner", ["project:node:c-inner-text"]),
+        text("project:node:c-inner-text", "Inner"),
+        text("project:node:c-last", "Last"),
       ],
-      rootIds: ["project:node:a", "project:node:b"] as NodeId[],
+      rootIds: [
+        "project:node:a",
+        "project:node:b",
+        "project:node:c",
+      ] as NodeId[],
       newId: workspace.newId,
     }),
   );
@@ -102,7 +113,11 @@ async function open() {
     document.querySelector<HTMLElement>(
       `.layer-tree [data-key="${CSS.escape(record(sourceId))}"]`,
     );
-  return { workspace, select, row };
+  const region = (sourceId: string) =>
+    row(sourceId)
+      ?.querySelector(".elementItem")
+      ?.getAttribute("data-selection-region") ?? undefined;
+  return { workspace, select, row, region };
 }
 
 describe("Layers — rows a selection opened stay open", () => {
@@ -124,5 +139,51 @@ describe("Layers — rows a selection opened stay open", () => {
     select("project:node:a-text");
     act(() => workspace.session.clearSelection());
     expect(row("project:node:a")?.getAttribute("aria-expanded")).toBe("true");
+  });
+});
+
+/**
+ * 2026-10-24 (사용자 「framer 왼쪽 Layers 탭 트리 — 선택한 메뉴 1차 child 만 열리고 영역표시가 된다」):
+ * a single selection opens one level of its own, and the selected row with the rows shown under it
+ * read as one area (Framer Layers).
+ */
+describe("Layers — a selection opens its first level and marks its area", () => {
+  it("selecting a frame opens its children only, not theirs", async () => {
+    const { select, row } = await open();
+    select("project:node:c");
+    expect(row("project:node:c")?.getAttribute("aria-expanded")).toBe("true");
+    // Collapsed (a collapsed row is not read further — RAC leaves aria-expanded off).
+    expect(row("project:node:c-inner")?.getAttribute("aria-expanded")).not.toBe(
+      "true",
+    );
+    expect(row("project:node:c-inner-text")).toBeNull();
+  });
+
+  it("the selected row heads the area, its shown rows fill it, the last row ends it", async () => {
+    const { select, region } = await open();
+    select("project:node:c");
+    expect(region("project:node:c")).toBe("head");
+    expect(region("project:node:c-inner")).toBe("body");
+    expect(region("project:node:c-last")).toBe("tail");
+    expect(region("project:node:a")).toBeUndefined();
+
+    // A leaf selection has no area.
+    select("project:node:c-last");
+    expect(region("project:node:c-last")).toBeUndefined();
+    expect(region("project:node:c-inner")).toBeUndefined();
+  });
+
+  it("a row the user closed stays closed when selected again", async () => {
+    const { workspace, select, row } = await open();
+    select("project:node:c");
+    act(() =>
+      row("project:node:c")
+        ?.querySelector<HTMLElement>(".layer-expand-button")
+        ?.click(),
+    );
+    expect(row("project:node:c-inner")).toBeNull();
+    act(() => workspace.session.clearSelection());
+    select("project:node:c");
+    expect(row("project:node:c-inner")).toBeNull();
   });
 });

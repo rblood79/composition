@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layers — 선택 행의 1단계 펼침 · 선택 영역 표시] - 2026-10-24
+
+### Changed
+
+- **Navigator Layers 에서 요소 하나를 선택하면 그 요소의 직계 자식이 펼쳐진다** (Framer) — 손자 행은 접힌 채 둔다. Canvas 선택도 같고, 사용자가 접은 행은 다시 선택해도 펼치지 않는다.
+- **선택 행과 그 아래 펼쳐진 행이 한 영역으로 표시된다** — 선택 행이 위 모서리, 영역의 마지막 행이 아래 모서리를 갖는다. 선택 행 바탕은 `--accent` 에 글자 · 아이콘 `--bg-overlay`, 아래 행은 바탕만 그 8% (Navigator 의 모든 트리 선택 행에 적용 — 누르는 중에도 유지).
+
+### Fixed
+
+- **선택 표시가 이전 선택 기준으로 남던 Layers 행**:
+  - **Why**: 행이 선택 정보를 render 클로저로 받았는데, RAC 는 행 자신의 상태가 바뀔 때까지 그 행의 render 를 재사용한다 — 선택을 옮기면 상태가 안 바뀐 행은 이전 선택의 영역 · 안내선 강조를 그렸다 (새 테스트의 leaf 선택 단언이 원복 시 `tail` 로 RED).
+  - 수정: 선택 정보 (`selectedKeys` · 조상 사슬 · 영역 끝 행) 를 context 로 행에 준다.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogLayersSection.tsx` (`CatalogLayerRow`)
+
 ## [Image — 업로드한 그림의 Preview 주소] - 2026-10-24
 
 ### Fixed

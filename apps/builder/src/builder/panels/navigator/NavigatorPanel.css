@@ -15,6 +15,27 @@
   overflow: hidden;
 }
 
+/* 선택 영역 (Framer Layers): 선택 행과 그 아래 펼쳐진 행이 한 덩어리 — 선택 행이 위 모서리,
+   마지막 행이 아래 모서리를 갖는다. hover · 선택 규칙보다 앞에 둬서 둘이 이긴다. */
+.elementItem[data-selection-region="head"] {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.elementItem[data-selection-region="body"],
+.elementItem[data-selection-region="tail"] {
+  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.elementItem[data-selection-region="body"] {
+  border-radius: 0;
+}
+
+.elementItem[data-selection-region="tail"] {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
 .elementItem:hover {
   background-color: color-mix(in srgb, var(--fg) 8%, transparent);
 }
@@ -24,8 +45,13 @@
   background-color: color-mix(in srgb, var(--fg) 12%, transparent);
 }
 
-.elementItem.active {
-  background-color: var(--accent-subtle);
+/* 선택 행 = --accent 채움, 그 아래 영역 = 같은 색 8% (사용자 지정 2026-10-24 — Framer Layers). */
+/* 누르는 중 (`:active` · RAC `data-pressed`) 에도 선택 바탕 유지 — 눌림 회색 규칙이 더 구체적이라
+   그대로 두면 선택 행을 누르는 동안 회색 바탕 위 흰 글자가 됐다 (2026-10-24 사용자 보고). */
+.elementItem.active,
+.elementItem.active:active,
+.react-aria-TreeItem[data-pressed] .elementItem.active {
+  background-color: var(--accent);
   z-index: 1;
 }
 
@@ -175,8 +201,11 @@
   transform: translateX(0%);
 }
 
-.elementItem.active .elementItemLabel {
-  color: var(--fg);
+/* 선택 행의 글자 · 아이콘 = --bg-overlay (사용자 지정 2026-10-24 — --accent 바탕 위).
+   아이콘 규칙은 아래 페이지 트리 아이콘 규칙 뒤에 둔다 (같은 specificity). */
+.elementItem.active .elementItemLabel,
+.elementItem.active .layer-slot-role {
+  color: var(--bg-overlay);
 }
 
 /* Dragging - 드래그 중인 원본 아이템 */
@@ -455,6 +484,12 @@
 /* 자식이 없는 페이지 (파일 아이콘) */
 .element[data-has-children="false"] .elementItemIcon svg {
   stroke: var(--fg-muted);
+}
+
+/* 선택 행 아이콘 (펼침 · 종류 · 끌기 · 삭제) — lucide 의 stroke 속성은 CSS 가 이긴다. */
+.elementItem.active .elementItemIcon svg,
+.elementItem.active .elementItemActions svg {
+  stroke: var(--bg-overlay);
 }
 
 /* ========================================

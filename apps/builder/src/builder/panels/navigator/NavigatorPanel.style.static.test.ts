@@ -173,7 +173,11 @@ describe("NavigatorPanel shared panel style contract", () => {
       /\.react-aria-TreeItem\[data-pressed\] \.elementItem \{[^}]*background-color: color-mix\(in srgb, var\(--fg\) 12%, transparent\);/s,
     );
     expect(css).toMatch(
-      /\.elementItem\.active \{[^}]*background-color: var\(--accent-subtle\);/s,
+      /\.elementItem\.active \{[^}]*background-color: var\(--accent\);/s,
+    );
+    // Pressing the selected row keeps its fill (the pressed rule is more specific).
+    expect(css).toMatch(
+      /\.react-aria-TreeItem\[data-pressed\] \.elementItem\.active \{[^}]*background-color: var\(--accent\);/s,
     );
     expect(css).toMatch(
       /\.elementItem\.focused \{[^}]*outline: 2px solid var\(--focus-ring\);[^}]*outline-offset: -2px;/s,

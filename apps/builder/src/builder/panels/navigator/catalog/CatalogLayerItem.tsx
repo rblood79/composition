@@ -21,6 +21,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   isExpanded,
   isFocusVisible,
   activeGuides,
+  selectionRegion,
   onDelete,
   onContextMenu,
 }: {
@@ -29,6 +30,11 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   isExpanded: boolean;
   isFocusVisible: boolean;
   activeGuides: readonly boolean[];
+  /**
+   * The row's place in a selected row's area (Framer): `head` = the selected row with rows shown
+   * under it, `body` = a row under it, `tail` = the area's last row.
+   */
+  selectionRegion?: "head" | "body" | "tail";
   onDelete: (node: CatalogLayerNode) => void;
   /** Right click: the Canvas element menu over this row (the old Layers row's `layer-item`). */
   onContextMenu?: (node: CatalogLayerNode, event: React.MouseEvent) => void;
@@ -53,6 +59,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
       className={`elementItem ${isSelected ? "active" : ""} ${
         isFocusVisible ? "focused" : ""
       }`}
+      data-selection-region={selectionRegion}
       onContextMenu={(event) => onContextMenu?.(node, event)}
     >
       <IndentGuides depth={depth} activeGuides={activeGuides} />
