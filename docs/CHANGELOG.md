@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Component state를 기존 입력칸에서 바로 편집** — 별도 활성화 버튼과 추가 입력창을 제거한다. 포커스 이동·Enter 시 기존 이름과 실제로 다른 값만 등록·변경한다. 우측 제거 버튼은 이름이 바뀌었거나 연결된 변수가 있을 때 활성화되고, 아직 등록하지 않은 편집은 제거 버튼으로 되돌릴 수 있다. 변수를 제거하면 원래 상태 이름으로 돌아온다.
   - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogStateSection.tsx` · `panels/properties/state/StateSection.css`
 
+## [속성 패널 Select — 다시 그릴 때 항목 렌더 · 번역 생략] - 2026-10-23
+
+### Performance
+
+- **닫힌 PropertySelect 가 같은 옵션으로 다시 그릴 때 항목 목록을 재사용** — RAC Select 는 닫혀 있어도 collection 을 만들려고 모든 ListBoxItem 을 렌더한다. 항목 목록을 옵션 · 번역 함수 기준으로 memo 해 선택이 바뀔 때마다 항목 렌더와 번역을 반복하지 않는다 (frame · page 루트 Locale 37 항목에서 선택마다 ×4~5 → 1회).
+  - **Why:** ADR-246 ratchet 이 seed 60 select 의 I18n 호출 증가를 잡았고, 재측정으로 Locale Select 의 반복 번역이 원인임을 확인했다.
+  - 위치: `apps/builder/src/builder/components/property/PropertySelect.components.tsx` (`11d4acbb0`)
+
+### Infrastructure
+
+- **ADR-246 ratchet 실행 시간 단축** — seed 를 동시 3개 · 오래 걸리는 seed 먼저 실행하고, 하니스 실패는 seed 별 1회 재시도, 재측정은 상한을 넘은 seed 만 다시 잰다. 상한 47개 raise · zoom 의 양봉 키 10개 A → B 이동 (사용자 승인 · 만료 2027-04-23).
+  - 위치: `apps/builder/scripts/perf-ratchet-run.mjs` · `apps/builder/perf/ratchet.json` (`11d4acbb0` · `046d74b04`)
+
 ## [State 변수 편집 — 이름과 타입을 합친 단일 행] - 2026-10-23
 
 ### Changed
