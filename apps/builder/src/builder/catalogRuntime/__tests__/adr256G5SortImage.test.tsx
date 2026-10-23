@@ -14,6 +14,8 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { renderCatalogDom } from "../domBinding";
+import { catalogEditContract } from "../editContract";
+import { catalogRuleShapes } from "../ruleShapes";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -188,5 +190,104 @@ describe("ADR-256 G5 example 10 — Image is the RAC examples' plain img outside
     expect(image.getAttribute("alt")).toBe("");
     expect(image.getAttribute("data-catalog-id")).toBeTruthy();
     expect(image.children.length).toBe(0);
+  });
+});
+
+/**
+ * 2026-10-24 (사용자 「image 컴퍼넌트 프러퍼티에 image src, alt 를 넣을 프러퍼티가 누락」): S2 `Image`
+ * `src` · `alt` — the Design panel edits them, the DOM `img` and the Canvas image shape show them.
+ */
+describe("Image src · alt (S2 Image)", () => {
+  const SRC = "https://example.test/photo.png";
+  const frame = (imageProps: Record<string, unknown>, inCard = false) => [
+    ...(inCard
+      ? [
+          node("project:node:f", "Card", {}, ["project:node:p"]),
+          node("project:node:p", "CardPreview", {}, ["project:node:img"]),
+        ]
+      : [
+          {
+            ...node("project:node:f", "frame", {}, ["project:node:img"]),
+            definitionId: "lib:definition:type-frame",
+          } as NodeEntry,
+        ]),
+    node("project:node:img", "Image", imageProps),
+  ];
+
+  it("the Design panel offers src and alt", async () => {
+    const { workspace, record } = await open(frame({}), ["project:node:f"]);
+    const contract = catalogEditContract(
+      workspace.runtime.graph,
+      workspace.readModel,
+      workspace.positionOfRecord(record("project:node:img").id)!.target,
+    );
+    expect(
+      contract.fields
+        .filter((field) => !field.editorHidden)
+        .map((field) => [field.key, field.section]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["src", "content"],
+        ["alt", "content"],
+      ]),
+    );
+  });
+
+  for (const inCard of [false, true])
+    it(`the DOM img carries them (${inCard ? "S2 Card preview" : "plain img"})`, async () => {
+      const { draw } = await open(frame({ src: SRC, alt: "A photo" }, inCard), [
+        "project:node:f",
+      ]);
+      const img = draw("project:node:f").querySelector("img")!;
+      expect(img.getAttribute("src")).toBe(SRC);
+      expect(img.getAttribute("alt")).toBe("A photo");
+      expect(img.style.objectFit).toBe("cover");
+    });
+
+  it("no source: no src attribute, decorative alt", async () => {
+    const { draw } = await open(frame({}), ["project:node:f"]);
+    const img = draw("project:node:f").querySelector("img")!;
+    expect(img.hasAttribute("src")).toBe(false);
+    expect(img.getAttribute("alt")).toBe("");
+  });
+
+  it("the Canvas draws the picture over the placeholder, covering the box", async () => {
+    const { workspace, root, record, rect } = await open(frame({ src: SRC }), [
+      "project:node:f",
+    ]);
+    const image = record("project:node:img");
+    const box = rect("project:node:img");
+    const shapes = catalogRuleShapes({
+      node: root.canvasInputs.get(image.id)!,
+      rect: { width: box.width, height: box.height },
+      rule: workspace.runtime.graph.library.rules.get("Image" as never)!,
+      type: "Image",
+      authoredVisual: {},
+    });
+    const at = shapes.findIndex((shape) => shape.type === "image");
+    expect(shapes[at]).toMatchObject({
+      src: SRC,
+      fit: "cover",
+      width: box.width,
+      height: box.height,
+    });
+    expect(at).toBeGreaterThan(
+      shapes.findIndex((shape) => "id" in shape && shape.id === "bg"),
+    );
+    workspace.root.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(image.id)!.target],
+        props: { src: set("") },
+      }),
+    );
+    expect(
+      catalogRuleShapes({
+        node: root.canvasInputs.get(image.id)!,
+        rect: { width: box.width, height: box.height },
+        rule: workspace.runtime.graph.library.rules.get("Image" as never)!,
+        type: "Image",
+        authoredVisual: {},
+      }).some((shape) => shape.type === "image"),
+    ).toBe(false);
   });
 });

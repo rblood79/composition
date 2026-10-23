@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Image — src · alt 속성] - 2026-10-24
+
+### Fixed
+
+- **Image 의 Image URL (`src`) · Alt Text (`alt`) 를 Design 패널에서 편집** — S2 `Image` 의 두 prop. Preview · publish 의 `img` 가 그 값을 싣고 (`src` 없으면 속성 없음 · `alt` 없으면 `""`), Canvas 는 자리표시 배경 위에 그림을 cover 로 그린다.
+  - **Why:** Image 는 binding 없는 rule-only type 인데 `RULE_TYPE_PROP_CONTRACTS` 에 항목이 없어 Property 탭에 필드가 없었고, DOM 은 `alt=""` 고정 · Canvas 는 상자만 그렸다.
+  - 위치: `packages/shared/src/catalog/document/itemLinks.ts` · `catalog/runtime/domBinding.runtime.ts` · `apps/builder/src/builder/catalogRuntime/ruleShapes.ts`
+
 ## [데이터 연결 용어 — Collection 구성과 Table 원본 구분] - 2026-10-24
 
 ### Fixed

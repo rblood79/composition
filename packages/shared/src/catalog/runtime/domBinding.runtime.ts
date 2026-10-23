@@ -1935,6 +1935,23 @@ function imageInS2CardPreview(
   return !!parent && catalogTypeName(root, parent) === "CardPreview";
 }
 
+/**
+ * An Image's `img` source and text (S2 `Image` — `src` only when set, `alt=""` without one: no
+ * text = decorative). The picture covers the box (S2 Card's image · `Avatar.tsx`), as the Canvas
+ * image shape fits it (`ruleShapes` — cover).
+ */
+function imageElementProps(props: Readonly<Record<string, unknown>>): {
+  src?: string;
+  alt: string;
+} {
+  const src =
+    typeof props.src === "string" && props.src !== "" ? props.src : undefined;
+  return {
+    ...(src ? { src } : {}),
+    alt: typeof props.alt === "string" ? props.alt : "",
+  };
+}
+
 function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -2196,15 +2213,15 @@ function ruleDom(
     if (typeof node.props.fillStyle === "string")
       dataAttrs["data-fill-style"] = String(node.props.fillStyle);
     // An Image outside an S2 Card's preview is the RAC examples' plain `img` (G5 example 10 — the
-    // GridList item's photo): the element is the box (`alt=""` — no source, the placeholder fill).
+    // GridList item's photo): the element is the box (no source — the placeholder fill).
     if (type === "Image" && !imageInS2CardPreview(root, node))
       return createElement("img", {
         key: node.id,
         "data-catalog-id": node.id,
         className: "react-aria-Image",
-        alt: "",
+        ...imageElementProps(node.props),
         ...dataAttrs,
-        style,
+        style: { objectFit: "cover", ...style },
       });
     // S2 InlineAlert's variant icon — first, as S2 renders it (`catalogInlineAlertIcon`; the
     // Canvas draws the same box, `ruleShapes`).
@@ -2240,10 +2257,21 @@ function ruleDom(
           ]
         : []),
       // In an S2 Card's preview the Image is S2's: a box around its `img` (`@react-spectrum/s2`
-      // 1.8.0 mounted — G5 example 13); with no source the `img` paints nothing (`alt=""`), the box
-      // keeps the placeholder fill.
+      // 1.8.0 mounted — G5 example 13) — the `img` fills the box (S2 `imgStyles`, the Card's
+      // `objectFit: cover`); with no source it paints nothing, the box keeps the placeholder fill.
       ...(type === "Image"
-        ? [createElement("img", { key: "img", alt: "" })]
+        ? [
+            createElement("img", {
+              key: "img",
+              ...imageElementProps(node.props),
+              style: {
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              },
+            }),
+          ]
         : content),
     );
   }

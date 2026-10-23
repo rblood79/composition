@@ -247,14 +247,19 @@ function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
   const glyph = catalogLinkOutGlyph(input.type, input.node.props.size);
   const box = catalogBoxModel(input.node);
   const px = (value: unknown) =>
-    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value ?? 0)) || 0;
   // An icon's x is in the padding box (the shape converter shifts it past the border — the DOM
   // glyph is placed from the padding box too): the padding box width less the own right padding.
   const border = snapBorderWidth(px(box.borderWidth));
   const ownRight = px(box.padding?.right) + border * 2;
   const color =
     catalogRuleTextColor(input) ??
-    (resolveToken("{color.neutral}" as TokenRef, input.theme ?? "light") as string);
+    (resolveToken(
+      "{color.neutral}" as TokenRef,
+      input.theme ?? "light",
+    ) as string);
   // A card (`catalogLinkOutCardEndInset`): in its bottom padding, its end at the texts' end.
   const cardEnd = catalogLinkOutCardEndInset(input.type);
   return [
@@ -287,7 +292,9 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
   if (!icon) return [];
   const box = catalogBoxModel(input.node);
   const px = (value: unknown) =>
-    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value ?? 0)) || 0;
   // (An icon's x · y are in the padding box — the shape converter shifts them past the border.)
   const border = snapBorderWidth(px(box.borderWidth));
   const ownRight = px(box.padding?.right) + border * 2;
@@ -305,6 +312,30 @@ function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
       strokeWidth: 2,
     } as Shape,
   ];
+}
+
+/**
+ * An Image's picture (`src`) over its placeholder fill, under its border — covering the box with the
+ * box's corners (the DOM `img` — `object-fit: cover`, `domBinding.runtime.ts` `imageElementProps`).
+ * No source: the placeholder fill alone.
+ */
+function imageShape(
+  shapes: Shape[],
+  props: Readonly<Record<string, unknown>>,
+  rect: { width: number; height: number },
+): void {
+  if (typeof props.src !== "string" || props.src === "") return;
+  const bg = shapes.findIndex((shape) => "id" in shape && shape.id === "bg");
+  shapes.splice(bg + 1, 0, {
+    type: "image",
+    x: 0,
+    y: 0,
+    width: rect.width,
+    height: rect.height,
+    src: props.src,
+    fit: "cover",
+    ...(bg >= 0 ? { radius: (shapes[bg] as { radius?: never }).radius } : {}),
+  });
 }
 
 function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
@@ -342,6 +373,7 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
     catalogTextDecoration(props, visual, rule.textDecoration),
     type,
   );
+  if (type === "Image") imageShape(base, props, rect);
   const prepend: Shape[] = [];
   const append: Shape[] = [];
   for (const key of keys) {

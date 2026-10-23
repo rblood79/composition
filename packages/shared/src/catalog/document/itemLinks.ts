@@ -86,6 +86,12 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
     ...CATALOG_INHERITED_PROP_CONTRACTS,
     dataBinding: { kind: "binding", label: "Data", section: "content" },
   },
+  // S2 `Image` `src` · `alt` (2026-10-24 — the picture it shows and its accessible text; the DOM
+  //   `img` and the Canvas image shape read the same props).
+  Image: {
+    src: { kind: "string", label: "Image URL", section: "content" },
+    alt: { kind: "string", label: "Alt Text", section: "content" },
+  },
 };
 
 /**
