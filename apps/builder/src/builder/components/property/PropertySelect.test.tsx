@@ -7,6 +7,9 @@
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { I18nContext } from "../../../i18n/I18nProvider";
+import type { I18nContextValue } from "../../../i18n/types";
+
 import { PropertySelect } from "./PropertySelect";
 
 afterEach(cleanup);
@@ -181,7 +184,12 @@ it("grid 모드 — 팝오버는 구획별 격자, 트리거는 색 점 + 이름
     { value: "red", label: "Red" },
     { value: "purple", label: "Purple" },
   ];
-  const swatches = { accent: "blue", negative: "crimson", red: "red", purple: "purple" };
+  const swatches = {
+    accent: "blue",
+    negative: "crimson",
+    red: "red",
+    purple: "purple",
+  };
   const ui = render(
     <PropertySelect
       label="Variant"
@@ -191,21 +199,32 @@ it("grid 모드 — 팝오버는 구획별 격자, 트리거는 색 점 + 이름
       options={options}
       swatches={swatches}
       grid
-      gridSections={[["accent", "negative"], ["red", "purple"]]}
+      gridSections={[
+        ["accent", "negative"],
+        ["red", "purple"],
+      ]}
     />,
   );
-  const trigger = within(ui.getByRole("group", { name: "Variant" })).getByRole("button");
+  const trigger = within(ui.getByRole("group", { name: "Variant" })).getByRole(
+    "button",
+  );
   expect(trigger.textContent).toContain("Purple");
   expect(trigger.querySelector(".property-select__swatch")).not.toBeNull();
 
   open(ui, "Variant");
   const listbox = ui.getByRole("listbox");
   expect(listbox.classList.contains("property-select-grid")).toBe(true);
-  expect(listbox.querySelectorAll(".property-select-grid__section")).toHaveLength(2);
+  expect(
+    listbox.querySelectorAll(".property-select-grid__section"),
+  ).toHaveLength(2);
   // 칸은 스와치뿐 · 접근 이름은 textValue · 선택 칸엔 체크
   const purple = ui.getByRole("option", { name: "Purple" });
   expect(purple.querySelector(".property-select-grid__check")).not.toBeNull();
-  expect(ui.getByRole("option", { name: "Red" }).querySelector(".property-select-grid__check")).toBeNull();
+  expect(
+    ui
+      .getByRole("option", { name: "Red" })
+      .querySelector(".property-select-grid__check"),
+  ).toBeNull();
   fireEvent.click(ui.getByRole("option", { name: "Red" }));
   expect(onChange).toHaveBeenCalledWith("red");
 });
@@ -217,15 +236,25 @@ it("grid 모드 — 구획에 없는 값은 마지막 구획 뒤에 선다", () 
       value="a"
       onChange={vi.fn()}
       translateOptions={false}
-      options={[{ value: "a", label: "A" }, { value: "b", label: "B" }, { value: "c", label: "C" }]}
+      options={[
+        { value: "a", label: "A" },
+        { value: "b", label: "B" },
+        { value: "c", label: "C" },
+      ]}
       grid
       gridSections={[["a"]]}
     />,
   );
   open(ui, "Variant");
-  const sections = ui.getByRole("listbox").querySelectorAll(".property-select-grid__section");
+  const sections = ui
+    .getByRole("listbox")
+    .querySelectorAll(".property-select-grid__section");
   expect(sections).toHaveLength(2);
-  expect(within(sections[1] as HTMLElement).getAllByRole("option").map((o) => o.textContent || o.getAttribute("aria-label"))).toHaveLength(2);
+  expect(
+    within(sections[1] as HTMLElement)
+      .getAllByRole("option")
+      .map((o) => o.textContent || o.getAttribute("aria-label")),
+  ).toHaveLength(2);
 });
 
 // 2026-09-16 사용자 지적 — 반복되는 모양은 클래스, 변하는 색만 인라인
@@ -243,10 +272,44 @@ it("색 점은 클래스가 모양을 맡고 인라인은 background 하나뿐",
       swatches={swatches}
     />,
   );
-  const dot = document.querySelector(
-    ".property-select__swatch",
-  ) as HTMLElement;
+  const dot = document.querySelector(".property-select__swatch") as HTMLElement;
   expect(dot).not.toBeNull();
   expect(dot.style.background).toBe("var(--accent)");
   expect(dot.style.length).toBe(1);
+});
+
+// 2026-10-23 ADR-246 ratchet — 닫힌 Select 도 RAC 가 collection 을 만들려고 항목을 렌더한다. frame ·
+//   page 루트의 Locale (37 항목) 이 선택마다 렌더 ×3 · 항목당 번역 ×2 로 I18n 호출이 1,730 → 5,446.
+it("같은 옵션으로 다시 그리면 항목 라벨을 다시 번역하지 않는다 (항목당 1회)", () => {
+  const t = vi.fn((key: string) => key);
+  const i18n = { t } as unknown as I18nContextValue;
+  const options = [
+    { value: "a", label: "Option Q1" },
+    { value: "b", label: "Option Q2" },
+    { value: "c", label: "Option Q3" },
+  ];
+  const optionCalls = () =>
+    t.mock.calls.filter(([key]) => options.some((o) => o.label === key)).length;
+  const ui = render(
+    <I18nContext.Provider value={i18n}>
+      <PropertySelect
+        label="Locale"
+        value="a"
+        onChange={() => {}}
+        options={options}
+      />
+    </I18nContext.Provider>,
+  );
+  expect(optionCalls()).toBe(options.length);
+  ui.rerender(
+    <I18nContext.Provider value={i18n}>
+      <PropertySelect
+        label="Locale"
+        value="b"
+        onChange={() => {}}
+        options={options}
+      />
+    </I18nContext.Provider>,
+  );
+  expect(optionCalls()).toBe(options.length);
 });

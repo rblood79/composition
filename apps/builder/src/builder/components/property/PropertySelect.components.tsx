@@ -1,6 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 
 import { Button } from "react-aria-components/Button";
 
@@ -101,117 +101,106 @@ export const PropertySelectControl = memo(
       [onChange, optionValueMode, options],
     );
 
-    const optionLabel = (option: { value: string; label: string }) =>
-      i18n && translateOptions
-        ? translateKey(
-            i18n.t,
-            semanticLabelKeys[option.label] ?? option.label,
-            option.label,
-          )
-        : option.label;
-    const itemKey = (option: { value: string }) =>
-      optionValueMode === "literal" ? literalKey(option.value) : option.value;
-
-    // 격자 구획 — gridSections 순서대로, 어디에도 없는 값은 마지막 구획 뒤
-    const gridGroups: ReadonlyArray<ReadonlyArray<(typeof options)[number]>> =
-      (() => {
-        if (!grid) return [];
-        const byValue = new Map(options.map((o) => [o.value, o]));
-        const placed = new Set<string>();
-        const groups = (gridSections ?? [options.map((o) => o.value)]).map(
-          (values) =>
-            values.flatMap((v) => {
-              const option = byValue.get(v);
-              if (!option || placed.has(v)) return [];
-              placed.add(v);
-              return [option];
-            }),
-        );
-        const rest = options.filter((o) => !placed.has(o.value));
-        if (rest.length > 0) groups.push(rest);
-        return groups.filter((g) => g.length > 0);
-      })();
-
-    const gridItem = (option: { value: string; label: string }) => {
-      const text = optionLabel(option);
-      return (
-        <ListBoxItem
-          key={itemKey(option)}
-          id={itemKey(option)}
-          className="react-aria-ListBoxItem property-select-grid__item"
-          textValue={text}
-          aria-label={text}
-        >
-          {({ isSelected }) => (
-            <span
-              className="property-select-grid__swatch"
-              title={text}
-              style={{ background: swatches?.[option.value] }}
-            >
-              {isSelected && (
-                <Check
-                  aria-hidden="true"
-                  className="property-select-grid__check"
-                  size={iconProps.size}
-                  strokeWidth={2.5}
-                />
-              )}
-            </span>
-          )}
-        </ListBoxItem>
-      );
-    };
-
-    const listItem = (option: { value: string; label: string }) => (
-      <ListBoxItem
-        key={
-          optionValueMode === "literal"
-            ? literalKey(option.value)
-            : option.value
-        }
-        id={
-          optionValueMode === "literal"
-            ? literalKey(option.value)
-            : option.value
-        }
-        className="react-aria-ListBoxItem"
-        textValue={
-          i18n && translateOptions
-            ? translateKey(
-                i18n.t,
-                semanticLabelKeys[option.label] ?? option.label,
-                option.label,
-              )
-            : option.label
-        }
-      >
-        {swatches && swatches[option.value] != null && (
-          <span
-            aria-hidden="true"
-            className="property-swatch property-select__swatch"
-            // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
-            //   변하는 색만 인라인
-            style={{ background: swatches[option.value] }}
-          />
-        )}
-        {i18n && translateOptions
+    // 항목 목록 — 닫힌 Select 도 RAC 가 collection 을 만들려고 항목을 렌더한다. 같은 옵션이면 같은
+    //   element 를 돌려줘 다시 그릴 때 항목 렌더 · 번역을 건너뛴다 (2026-10-23 ratchet — frame ·
+    //   page 루트의 Locale 37 항목이 선택마다 렌더 · 번역 ×4~5).
+    const t = i18n?.t;
+    const listBox = useMemo(() => {
+      const optionLabel = (option: { value: string; label: string }) =>
+        t && translateOptions
           ? translateKey(
-              i18n.t,
+              t,
               semanticLabelKeys[option.label] ?? option.label,
               option.label,
             )
-          : option.label}
-      </ListBoxItem>);
-    // 머리글 구획 — sections 순서대로, 어디에도 없는 값은 머리글 없이 맨 뒤
-    const listGroups: ReadonlyArray<{
-      label?: string;
-      options: ReadonlyArray<(typeof options)[number]>;
-    }> = (() => {
-      if (!sections?.length) return [{ options }];
-      const byValue = new Map(options.map((o) => [o.value, o]));
-      const placed = new Set<string>();
-      const groups: { label?: string; options: (typeof options)[number][] }[] =
-        sections.map((section) => ({
+          : option.label;
+      const itemKey = (option: { value: string }) =>
+        optionValueMode === "literal" ? literalKey(option.value) : option.value;
+
+      // 격자 구획 — gridSections 순서대로, 어디에도 없는 값은 마지막 구획 뒤
+      const gridGroups: ReadonlyArray<ReadonlyArray<(typeof options)[number]>> =
+        (() => {
+          if (!grid) return [];
+          const byValue = new Map(options.map((o) => [o.value, o]));
+          const placed = new Set<string>();
+          const groups = (gridSections ?? [options.map((o) => o.value)]).map(
+            (values) =>
+              values.flatMap((v) => {
+                const option = byValue.get(v);
+                if (!option || placed.has(v)) return [];
+                placed.add(v);
+                return [option];
+              }),
+          );
+          const rest = options.filter((o) => !placed.has(o.value));
+          if (rest.length > 0) groups.push(rest);
+          return groups.filter((g) => g.length > 0);
+        })();
+
+      const gridItem = (option: { value: string; label: string }) => {
+        const text = optionLabel(option);
+        return (
+          <ListBoxItem
+            key={itemKey(option)}
+            id={itemKey(option)}
+            className="react-aria-ListBoxItem property-select-grid__item"
+            textValue={text}
+            aria-label={text}
+          >
+            {({ isSelected }) => (
+              <span
+                className="property-select-grid__swatch"
+                title={text}
+                style={{ background: swatches?.[option.value] }}
+              >
+                {isSelected && (
+                  <Check
+                    aria-hidden="true"
+                    className="property-select-grid__check"
+                    size={iconProps.size}
+                    strokeWidth={2.5}
+                  />
+                )}
+              </span>
+            )}
+          </ListBoxItem>
+        );
+      };
+
+      const listItem = (option: { value: string; label: string }) => {
+        const text = optionLabel(option);
+        return (
+          <ListBoxItem
+            key={itemKey(option)}
+            id={itemKey(option)}
+            className="react-aria-ListBoxItem"
+            textValue={text}
+          >
+            {swatches && swatches[option.value] != null && (
+              <span
+                aria-hidden="true"
+                className="property-swatch property-select__swatch"
+                // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
+                //   변하는 색만 인라인
+                style={{ background: swatches[option.value] }}
+              />
+            )}
+            {text}
+          </ListBoxItem>
+        );
+      };
+      // 머리글 구획 — sections 순서대로, 어디에도 없는 값은 머리글 없이 맨 뒤
+      const listGroups: ReadonlyArray<{
+        label?: string;
+        options: ReadonlyArray<(typeof options)[number]>;
+      }> = (() => {
+        if (!sections?.length) return [{ options }];
+        const byValue = new Map(options.map((o) => [o.value, o]));
+        const placed = new Set<string>();
+        const groups: {
+          label?: string;
+          options: (typeof options)[number][];
+        }[] = sections.map((section) => ({
           label: section.label,
           options: section.values.flatMap((v) => {
             const option = byValue.get(v);
@@ -220,10 +209,55 @@ export const PropertySelectControl = memo(
             return [option];
           }),
         }));
-      const rest = options.filter((o) => !placed.has(o.value));
-      if (rest.length > 0) groups.push({ options: rest });
-      return groups.filter((g) => g.options.length > 0);
-    })();
+        const rest = options.filter((o) => !placed.has(o.value));
+        if (rest.length > 0) groups.push({ options: rest });
+        return groups.filter((g) => g.options.length > 0);
+      })();
+      return grid ? (
+        <ListBox
+          className="react-aria-ListBox property-select-grid"
+          layout="grid"
+        >
+          {gridGroups.map((group, index) => (
+            <ListBoxSection
+              key={index}
+              className="react-aria-ListBoxSection property-select-grid__section"
+              aria-label={`${displayLabel} ${index + 1}`}
+            >
+              {group.map(gridItem)}
+            </ListBoxSection>
+          ))}
+        </ListBox>
+      ) : (
+        <ListBox className="react-aria-ListBox">
+          {listGroups.map((group, index) =>
+            group.label === undefined ? (
+              group.options.map(listItem)
+            ) : (
+              <ListBoxSection
+                key={`section-${index}`}
+                className="react-aria-ListBoxSection"
+              >
+                <Header className="property-select__section-header">
+                  {group.label}
+                </Header>
+                {group.options.map(listItem)}
+              </ListBoxSection>
+            ),
+          )}
+        </ListBox>
+      );
+    }, [
+      displayLabel,
+      grid,
+      gridSections,
+      optionValueMode,
+      options,
+      sections,
+      swatches,
+      t,
+      translateOptions,
+    ]);
 
     return (
       <fieldset
@@ -312,40 +346,7 @@ export const PropertySelectControl = memo(
               }
               style={popoverStyle}
             >
-              {grid ? (
-                <ListBox
-                  className="react-aria-ListBox property-select-grid"
-                  layout="grid"
-                >
-                  {gridGroups.map((group, index) => (
-                    <ListBoxSection
-                      key={index}
-                      className="react-aria-ListBoxSection property-select-grid__section"
-                      aria-label={`${displayLabel} ${index + 1}`}
-                    >
-                      {group.map(gridItem)}
-                    </ListBoxSection>
-                  ))}
-                </ListBox>
-              ) : (
-                <ListBox className="react-aria-ListBox">
-                  {listGroups.map((group, index) =>
-                    group.label === undefined ? (
-                      group.options.map(listItem)
-                    ) : (
-                      <ListBoxSection
-                        key={`section-${index}`}
-                        className="react-aria-ListBoxSection"
-                      >
-                        <Header className="property-select__section-header">
-                          {group.label}
-                        </Header>
-                        {group.options.map(listItem)}
-                      </ListBoxSection>
-                    ),
-                  )}
-                </ListBox>
-              )}
+              {listBox}
             </Popover>
           </AriaSelect>
         </div>

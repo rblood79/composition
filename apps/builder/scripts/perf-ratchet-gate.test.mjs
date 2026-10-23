@@ -16,7 +16,7 @@ import {
   runKeyOf,
   harnessArgsFrom,
 } from "./perf-ratchet-gate.mjs";
-import { revisionProblems } from "./perf-ratchet-run.mjs";
+import { overASeeds, revisionProblems } from "./perf-ratchet-run.mjs";
 
 const ratchet = () => ({
   band: 1.03,
@@ -791,4 +791,17 @@ test("ADR-272: seed 키에 . 이 있어도 (@zoom0.1) --update · --raise 가 �
     "2026-10-18",
   );
   assert.equal(raised.raises[0].from, 5);
+});
+
+test("HC2 재실행 시드 — 점이 든 시드 이름 (`@zoom0.1`) 과 접두가 같은 시드 (60 · 600 · 60:app-pages) 를 가른다", () => {
+  const seeds = ["60", "600", "60:app-pages", "60:app-pages@zoom0.1"];
+  const verdict = {
+    overA: [
+      { path: "seeds.60:app-pages@zoom0.1.zoom.A.render.x", ceiling: 1, value: 2 },
+      { path: "seeds.600.select.A.doc.readStale", ceiling: 1, value: 2 },
+      { path: "seeds.600.edit.A.doc.readStale", ceiling: 1, value: 2 },
+    ],
+  };
+  assert.deepEqual(overASeeds(verdict, seeds).sort(), ["600", "60:app-pages@zoom0.1"]);
+  assert.deepEqual(overASeeds({ overA: [] }, seeds), []);
 });

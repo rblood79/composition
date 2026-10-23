@@ -3843,8 +3843,6 @@
           "engine.solveVisits": 0,
           "perfLabels.input.viewport.wheel-zoom": 176,
           "perfLabels.render.skia.flush.content": 63,
-          "perfLabels.render.skia.flush.main": 152,
-          "perfLabels.render.skia.overlay": 152,
           "perfLabels.render.skia.record.content": 63,
           "perfLabels.render.text.fontCollection": 0,
           "perfLabels.render.text.paragraph.build": 0,
@@ -3862,8 +3860,6 @@
           "render.execCalls": 63,
           "render.execCulledJumped": 0,
           "render.execPictureJumped": 12053,
-          "render.execSkipped": 5066,
-          "render.execVisited": 37337,
           "render.imageCompletions": 22,
           "render.imageEncodedDecodeCalls": 0,
           "render.imageLoadedPerFrameMax": 1,
@@ -3945,9 +3941,7 @@
           "render.viewportFallbackUnsafePaint": 0,
           "render.viewportFallbacks": 0,
           "render.viewportSequences": 63,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 50444,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorAt": 479688,
-          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 98416,
           "v8.fn.src/builder/workspace/canvas/skia/sameDrawData.ts#(anonymous)": 2740855,
           "v8.fn.src/builder/workspace/canvas/skia/sameDrawData.ts#isPlainObject": 778168,
           "v8.fn.src/builder/workspace/canvas/skia/subtreeTranslate.ts#cloneClip": 444536,
@@ -4019,7 +4013,13 @@
           "v8.fn.src/catalog/runtime/compositionRoot.ts#recordsOfSource": 10956,
           "render.overlayChromeBuilt": 22,
           "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getUint32ArrayMemory0": 10580,
-          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine.ts#flatToLayoutMap": 10517
+          "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine.ts#flatToLayoutMap": 10517,
+          "perfLabels.render.skia.flush.main": 153,
+          "perfLabels.render.skia.overlay": 153,
+          "render.execSkipped": 5254,
+          "render.execVisited": 41533,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)": 55773,
+          "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex": 105862
         }
       },
       "zoom": {
@@ -5116,8 +5116,6 @@
           "render.execCalls": 51,
           "render.execCulledJumped": 0,
           "render.execPictureJumped": 6510,
-          "render.execSkipped": 5272,
-          "render.execVisited": 20478,
           "render.gpuContextsCreated": 0,
           "render.gpuContextsDeleted": 0,
           "render.grCacheNearLimitFrames": 0,
@@ -5226,7 +5224,9 @@
           "render.spatialCellsVisited": 55624,
           "render.spatialItemsVisited": 20468,
           "render.spatialResults": 5187,
-          "render.spatialUpsertCells": 0
+          "render.spatialUpsertCells": 0,
+          "render.execSkipped": 5440,
+          "render.execVisited": 21696
         }
       },
       "zoom-ladder": {
@@ -5304,8 +5304,6 @@
           "render.execCalls": 23,
           "render.execCulledJumped": 0,
           "render.execPictureJumped": 8687,
-          "render.execSkipped": 2398,
-          "render.execVisited": 23300,
           "render.gpuContextsCreated": 0,
           "render.gpuContextsDeleted": 0,
           "render.grCacheNearLimitFrames": 0,
@@ -5414,7 +5412,9 @@
           "render.spatialCellsVisited": 48453,
           "render.spatialItemsVisited": 31935,
           "render.spatialResults": 7606,
-          "render.spatialUpsertCells": 0
+          "render.spatialUpsertCells": 0,
+          "render.execSkipped": 2530,
+          "render.execVisited": 25299
         }
       }
     },
@@ -9646,6 +9646,429 @@
       "on": "2026-10-21",
       "reason": "ADR-279 — 정의가 template 을 소유하므로 소유 색인 · 순환 검사가 정의마다 entry 하나를 더 읽는다",
       "expires": "2027-04-22"
+    },
+    {
+      "path": "seeds.60.select.A.domMutations.attributes",
+      "from": 183,
+      "to": 213,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace",
+      "from": 1326,
+      "to": 1654,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/readModel.ts#read",
+      "from": 1680,
+      "to": 2805,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/workspace.ts#get root",
+      "from": 1734,
+      "to": 2154,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord",
+      "from": 1440,
+      "to": 1980,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 3318,
+      "to": 3948,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/catalog/document/graph.ts#ownerOf",
+      "from": 1455,
+      "to": 1785,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/i18n/I18nProvider.tsx#(anonymous)",
+      "from": 1730,
+      "to": 2672,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.edit.A.doc.readStale",
+      "from": 1,
+      "to": 6,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.domMutations.attributes",
+      "from": 125,
+      "to": 155,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace",
+      "from": 1336,
+      "to": 1654,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/readModel.ts#read",
+      "from": 1894,
+      "to": 3019,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/readModel.ts#rowsCompute",
+      "from": 1324,
+      "to": 1729,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/readModel.ts#rowsKey",
+      "from": 1324,
+      "to": 1729,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/workspace.ts#get root",
+      "from": 1884,
+      "to": 2304,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord",
+      "from": 1620,
+      "to": 2160,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 3473,
+      "to": 4067,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/document/graph.ts#ownerOf",
+      "from": 1515,
+      "to": 1845,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/document/library.ts#get",
+      "from": 1122,
+      "to": 1292,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs",
+      "from": 1792,
+      "to": 2212,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/runtime/controller.ts#current",
+      "from": 2709,
+      "to": 3229,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/catalog/runtime/controller.ts#get graph",
+      "from": 2091,
+      "to": 2566,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/i18n/I18nProvider.tsx#(anonymous)",
+      "from": 1752,
+      "to": 2674,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.600.select.A.domMutations.attributes",
+      "from": 183,
+      "to": 213,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.600.edit.A.doc.readStale",
+      "from": 1,
+      "to": 6,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.600.select-spread.A.domMutations.attributes",
+      "from": 107,
+      "to": 137,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.execSkipped",
+      "from": 3958,
+      "to": 4042,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages.zoom.A.render.execVisited",
+      "from": 26249,
+      "to": 28448,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages.edit.A.warmAfter.warmCandidatesScanned",
+      "from": 6425,
+      "to": 6807,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.600:scroll-boxes.scroll.A.domMutations.attributes",
+      "from": 32,
+      "to": 34,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "ADR-281 (ffcbe0590) frame · page 루트 상속 칸 4 (isDisabled · isReadOnly · isRequired · locale 37 옵션) + 5cc7cebd1 frame 한 항목 바인딩 읽기 — frame 선택마다 칸이 더 마운트된다 (RAC HiddenSelect option 37 포함). Locale 항목 렌더 memo 로 I18n 5,446 → 2,672 를 줄인 뒤의 값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 250701,
+      "to": 270721,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.execSkipped",
+      "from": 3832,
+      "to": 3904,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.render.execVisited",
+      "from": 24671,
+      "to": 26733,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "from": 32106,
+      "to": 34664,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#appendCommandRange",
+      "from": 11864,
+      "to": 12886,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 63246,
+      "to": 66378,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#createCommandReader",
+      "from": 11912,
+      "to": 12934,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get",
+      "from": 38051,
+      "to": 39635,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#segments.segments",
+      "from": 24671,
+      "to": 26733,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images.edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 94140,
+      "to": 100965,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 390124,
+      "to": 420154,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages-images-asset.load-edit.A.v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf",
+      "from": 16818,
+      "to": 17085,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.execSkipped",
+      "from": 4336,
+      "to": 4420,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.25.zoom.A.render.execVisited",
+      "from": 27774,
+      "to": 29781,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.execSkipped",
+      "from": 21184,
+      "to": 21352,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.zoom.A.render.execVisited",
+      "from": 40368,
+      "to": 41586,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "b24a4b77f 컬렉션 원본의 EmptyState 기본 자식 — 행이 있는 동안 숨은 노드가 줌 그리기 명령 순회에 더해진다 (같은 코드 같은 값, 문서 노드 증가 비례)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60:many-pages100@zoom0.1.edit.A.warmAfter.warmCandidatesScanned",
+      "from": 0,
+      "to": 24788,
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "on": "2026-10-23",
+      "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
     }
   ],
   "recorderChanges": [
@@ -9692,6 +10115,86 @@
       "on": "2026-10-18",
       "approvedBy": "사용자 (2026-10-18 「권장순서 대로 진행해」 — ④ A 등급 흔들림 지표 재분류)",
       "reason": "같은 코드 2 회 2,811 ↔ 2,815 (줌 표시 갱신 시각)"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.flush.main",
+      "to": "B",
+      "value": 153,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (151 · 152 · 153) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.perfLabels.render.skia.overlay",
+      "to": "B",
+      "value": 153,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (151 · 152 · 153) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execSkipped",
+      "to": "B",
+      "value": 5254,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (5008 · 5150 · 5254) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.render.execVisited",
+      "to": "B",
+      "value": 41533,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (39072 · 40474 · 40512 · 41533) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#(anonymous)",
+      "to": "B",
+      "value": 55773,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (52403 · 54343 · 54390 · 55773) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages-images.load-zoom.A.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "to": "B",
+      "value": 105862,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (99488 · 103128 · 103224 · 105862) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.execSkipped",
+      "to": "B",
+      "value": 5440,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (5272 · 5440) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom.A.render.execVisited",
+      "to": "B",
+      "value": 21696,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (21514 · 21696) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.execSkipped",
+      "to": "B",
+      "value": 2530,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (2398 · 2530) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
+    },
+    {
+      "path": "seeds.60:app-pages@zoom0.1.zoom-ladder.A.render.execVisited",
+      "to": "B",
+      "value": 25299,
+      "on": "2026-10-23",
+      "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
+      "reason": "같은 코드 (b24a4b77f) 에서 값이 갈린다 (25156 · 25299) — 줌 · 이미지 완료 시각에 따른 프레임 경계 흔들림"
     }
   ],
   "retired": [

@@ -8,6 +8,9 @@
  *   worktree 경로 — 아니면 (다른 세션의 WIP 가 있거나 HEAD ≠ sha) push 대상 sha 를 전용 worktree
  *     (<repo>/.cache/perf-ratchet/wt) 에 checkout 하고 그 root 를 5179 로 서빙해 잰다.
  *   어느 쪽도 못 하면 차단 (exit 1). 건너뛰는 길은 SKIP_PERF_RATCHET=1 뿐 (hook 이 처리).
+ *
+ * 시간 (2026-10-23): 시드를 동시 3개로 (긴 시드 먼저) 재고, 하니스가 실패한 시드는 1회 다시 재고,
+ * HC2 재실행은 A 가 넘친 시드만 다시 잰다.
  */
 import { spawn, spawnSync, execFileSync } from "node:child_process";
 import {
@@ -49,6 +52,30 @@ export const RUNTIME_PATHS = [
   "patches",
   "turbo.json",
 ];
+
+/**
+ * 시드별 지난 측정 시간 (초) — 병렬 실행에서 오래 걸리는 시드부터 시작해 마지막 하나가 혼자 남지 않게 한다
+ * (`many-pages100` 은 시드만 90초 — 2026-10-23). 값은 순서에만 쓴다 (판정 무관 · gitignored).
+ */
+const DURATIONS_PATH = join(REPO_ROOT, ".cache", "perf-ratchet", "durations.json");
+
+function readDurations() {
+  try {
+    return JSON.parse(readFileSync(DURATIONS_PATH, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeDurations(next) {
+  try {
+    mkdirSync(join(REPO_ROOT, ".cache", "perf-ratchet"), { recursive: true });
+    writeFileSync(
+      DURATIONS_PATH,
+      JSON.stringify({ ...readDurations(), ...next }, null, 2),
+    );
+  } catch {}
+}
 
 const ENGINE_WASM = join(
   BUILDER_DIR,
@@ -287,36 +314,88 @@ function runHarness({ url, storageState, args, outDir, root = REPO_ROOT }) {
   });
 }
 
-/** ratchet.runs 의 시드별 조건으로 한 바퀴 잰다 → { <seed>: { <cls>: flat counts } } */
+/**
+ * ratchet.runs 의 시드별 조건으로 잰다 → { <seed>: { <cls>: flat counts } }. `seeds` 를 주면 그 시드만.
+ * 하니스가 실패한 시드는 1회 다시 잰다 — 시드 직후 handle 이 사라지는 간헐 실패 (2026-10-23 같은 코드
+ * 3회 재실행 전부 통과) 하나로 push 전체를 막고 처음부터 다시 돌리지 않는다. 두 번 다 실패하면 throw.
+ * `concurrency` 는 동시에 띄우는 하니스 수 (기본 1 — 순차).
+ */
 export async function measureOnce({
   ratchet,
   url,
   storageState,
   root = REPO_ROOT,
+  seeds = Object.keys(ratchet.runs),
+  concurrency = 1,
+  say = () => {},
 }) {
   const measured = {};
-  for (const [seed, run] of Object.entries(ratchet.runs)) {
-    const outDir = mkdtempSync(
-      join(tmpdir(), `perf-ratchet-${seed.replace(/[^\w-]/g, "-")}-`),
-    );
-    const report = await runHarness({
-      url,
-      storageState,
-      args: run.args,
-      outDir,
-      root,
-    });
-    measured[seed] = countsByClass(report);
-  }
+  const durations = {};
+  const measureSeed = async (seed) => {
+    const run = ratchet.runs[seed];
+    const t0 = Date.now();
+    for (let attempt = 1; ; attempt += 1) {
+      const outDir = mkdtempSync(
+        join(tmpdir(), `perf-ratchet-${seed.replace(/[^\w-]/g, "-")}-`),
+      );
+      try {
+        const report = await runHarness({
+          url,
+          storageState,
+          args: run.args,
+          outDir,
+          root,
+        });
+        measured[seed] = countsByClass(report);
+        durations[seed] = Math.round((Date.now() - t0) / 1000);
+        say(
+          `  · ${seed} ${Math.round((Date.now() - t0) / 1000)}초${attempt > 1 ? ` (재시도 ${attempt - 1})` : ""}`,
+        );
+        return;
+      } catch (e) {
+        if (attempt >= 2) throw new Error(`${seed}: ${e.message}`);
+        say(`  · ${seed} 하니스 실패 — 1회 다시 잰다: ${e.message}`);
+      }
+    }
+  };
+  const known = readDurations();
+  const queue = [...seeds].sort((a, b) => (known[b] ?? 0) - (known[a] ?? 0));
+  const worker = async () => {
+    while (queue.length) await measureSeed(queue.shift());
+  };
+  await Promise.all(
+    Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker),
+  );
+  writeDurations(durations);
   return measured;
 }
 
+/**
+ * 첫 판정에서 등급 A 가 넘친 시드 — HC2 재실행은 이 시드만 다시 잰다. 경로는 `seeds.<seed>.<cls>.A.<key>`
+ * 이고 시드 이름에 점이 있다 (`60:app-pages@zoom0.1`) — 알려진 시드 이름과 대조한다.
+ */
+export function overASeeds(verdict, seedNames) {
+  const seedOf = (path) =>
+    seedNames
+      .filter((seed) => path.startsWith(`seeds.${seed}.`))
+      .sort((a, b) => b.length - a.length)[0];
+  return [...new Set(verdict.overA.map((o) => seedOf(o.path)))].filter(Boolean);
+}
+
 function parseArgs(argv) {
-  const opts = { sha: null, port: 5179, engineChanged: false };
+  const opts = {
+    sha: null,
+    port: 5179,
+    engineChanged: false,
+    // 동시 하니스 수. 2026-10-23 실측: 순차 359초 → 3개 202초 · 4개 (긴 시드 먼저) 128초, 두 번 다 등급 A
+    // 키 4,501개가 순차 값과 전부 같았다. 5173 을 사용자와 같이 쓰므로 3 (PERF_RATCHET_CONCURRENCY=1 로 순차).
+    concurrency: Number(process.env.PERF_RATCHET_CONCURRENCY ?? 3),
+  };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--sha") opts.sha = argv[++i];
     else if (argv[i] === "--port") opts.port = Number(argv[++i]);
     else if (argv[i] === "--engine-changed") opts.engineChanged = true;
+    else if (argv[i] === "--concurrency") opts.concurrency = Number(argv[++i]);
   }
   return opts;
 }
@@ -372,22 +451,32 @@ export async function runGate(argv) {
       `[ADR-246] perf ratchet — ${mode} · 서버 ${server.url} (${server.owned ? `자체 기동 ${Math.round((server.bootMs ?? 0) / 1000)}초` : "5173 재사용"}) · 시드 ${Object.keys(ratchet.runs).join(", ")}`,
     );
     const storageState = storageStateFor(server.url);
-    const first = judge(
-      ratchet,
-      await measureOnce({ ratchet, url: server.url, storageState, root }),
-    );
+    const measure = (seeds) =>
+      measureOnce({
+        ratchet,
+        url: server.url,
+        storageState,
+        root,
+        seeds,
+        concurrency: opts.concurrency,
+        say,
+      });
+    const firstMeasured = await measure();
+    const first = judge(ratchet, firstMeasured);
     let decision = decide(first);
     let second = null;
     if (decision === "rerun") {
+      // 넘친 시드만 다시 잰다 — 나머지 시드는 첫 값 그대로 (A 초과가 없었으니 판정이 바뀌지 않는다).
+      const rerun = overASeeds(first, Object.keys(ratchet.runs));
       say(
         renderVerdict(first, {
-          header: "  첫 실행 — 등급 A 초과, 같은 조건으로 1회 재실행 (HC2)",
+          header: `  첫 실행 — 등급 A 초과, 같은 조건으로 1회 재실행 (HC2 — 시드 ${rerun.join(", ")})`,
         }),
       );
-      second = judge(
-        ratchet,
-        await measureOnce({ ratchet, url: server.url, storageState, root }),
-      );
+      second = judge(ratchet, {
+        ...firstMeasured,
+        ...(await measure(rerun)),
+      });
       decision = decide(first, second);
     }
     const secs = Math.round((Date.now() - t0) / 1000);
