@@ -43,7 +43,7 @@ import { parseColor } from "react-aria-components/ColorPicker";
 
 import { ColorSwatchPickerItem as AriaColorSwatchPickerItem } from "react-aria-components/ColorSwatchPicker";
 
-import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
+import { CatalogComboBox } from "./comboBoxSelectionText";
 
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 
@@ -2006,7 +2006,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // Popover takes the Group as trigger and its place — `PopoverContext`). Without a visible label
   // the ComboBox is named by its placeholder (RAC needs a label or an `aria-label`).
   combobox: nodeTreeField(
-    AriaComboBox,
+    CatalogComboBox,
     "ComboBox",
     (props) => ({
       allowsCustomValue: bool(props.allowsCustomValue),
@@ -2021,10 +2021,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     // (A running Preview: its selection and input text controlled — ADR-280. A server-filtered
     // ComboBox — its endpoint reads `{{ filterText }}` — loads with the text, the reference's
     // `inputValue={list.filterText} onInputChange={list.setFilterText}`: the list does not filter
-    // again.)
+    // again. With both controlled, RAC leaves the input text to the selection's writer —
+    // `CatalogComboBox`.)
     (input) =>
       input.setRuntimeProps
         ? {
+            onSelectionText: (patch: Record<string, unknown>) =>
+              input.setRuntimeProps!(input.node.id, patch),
             ...controlled(
               input,
               SELECTED_KEY,

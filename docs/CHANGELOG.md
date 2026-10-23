@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ComboBox — 입력칸 글자가 선택을 따른다 · API 편집기 Params 빠른 입력 글자 유실] - 2026-10-23
+
+### Fixed
+
+- **Preview · publish 의 ComboBox 입력칸이 선택된 항목의 글자를 보인다** — 목록에서 고르기 · 규칙 (`selectItem`) · load 가 돌려준 선택 (`selectedKeys`) 모두. 전에는 선택은 바뀌어도 입력칸이 그대로 (빈 칸) 였다: running Preview 가 `selectedKey` 와 `inputValue` 를 둘 다 controlled 로 넘기면 RAC 는 글자 동기화를 쓰는 쪽에 맡긴다 (레퍼런스 「Fully controlled」).
+  - blur 하면 고친 글자가 선택 항목 글자로 돌아오고, `allowsCustomValue` 면 친 글자가 남는다 (RAC 그대로). 늦게 도착한 항목 (async 목록) 의 글자도 채운다.
+  - 항목 action 이 목록을 먼저 닫는 경우 (virtual 클릭 · 항목에 action) 에도 고른 뒤 목록이 다시 열리지 않는다.
+- **API endpoint 편집기 Params · Headers 의 이름 · 값 칸에 빠르게 치면 글자가 빠지던 문제** — 앞 글자의 저장이 늦게 돌아오면 편집기가 그 값을 외부 변경으로 보고 입력 중인 칸을 되돌렸다. 이제 자기가 보낸 값이 돌아온 것은 무시하고, 다른 편집 · undo 만 다시 반영한다.
+- 위치: `packages/shared/src/catalog/runtime/comboBoxSelectionText.ts` (`CatalogComboBox`) · `delegatedDom.runtime.ts` (`combobox`) · `apps/builder/src/builder/panels/datatable/editors/ApiEndpointEditor.tsx` (`KeyValueEditor`) · 테스트 `comboBoxInputText.test.tsx` · `loadSelection.test.tsx` · `ApiEndpointEditor.test.tsx` (원복 RED)
+
 ## [Tree — 행 글자가 항목 이름 · S2 들여쓰기 (단계당 16px)] - 2026-10-23
 
 ### Changed

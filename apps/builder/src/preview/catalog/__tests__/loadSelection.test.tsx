@@ -52,7 +52,7 @@ function stubServer(selected: Record<number, string[] | undefined>) {
   return urls;
 }
 
-async function selectionPreview(type: "ListBox" | "Select") {
+async function selectionPreview(type: "ListBox" | "Select" | "ComboBox") {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
   const h = await openAdr280Preview([type, "Button"]);
@@ -164,6 +164,37 @@ describe("useAsyncList load selectedKeys", () => {
       h.element(h.collection)?.querySelector(".react-aria-SelectValue")
         ?.textContent,
     ).toContain("Park");
+    h.view.unmount();
+  });
+
+  // RAC leaves the input text to the selection's writer when both `selectedKey` and `inputValue`
+  // are controlled (the reference's "Fully controlled").
+  it("a ComboBox's input shows the selected item's text — on load, when a rule selects, when picked", async () => {
+    stubServer({ 1: ["u2"] });
+    const h = await selectionPreview("ComboBox");
+    const input = () =>
+      h.element(h.collection)!.querySelector("input")! as HTMLInputElement;
+    expect(input().value).toBe("Park");
+    h.rule(h.button, "onPress", {
+      opcode: "capability",
+      targetId: h.collection,
+      capabilityId: "selectItem",
+      value: "u1",
+    } as never);
+    await h.press();
+    expect(input().value).toBe("Kim");
+    act(() => {
+      fireEvent.click(h.element(h.collection)!.querySelector("button")!);
+    });
+    await settle();
+    const park = [...document.querySelectorAll('[role="option"]')].find(
+      (option) => option.textContent?.includes("Park"),
+    )!;
+    act(() => {
+      fireEvent.click(park);
+    });
+    await settle();
+    expect(input().value).toBe("Park");
     h.view.unmount();
   });
 });
