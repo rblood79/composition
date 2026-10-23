@@ -44,7 +44,7 @@ import {
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
-import { componentOriginOf } from "../commands/components";
+import { componentOriginOf } from "../document/componentOrigin";
 import { definitionTypeName } from "../commands/context";
 import type {
   DefinitionId,

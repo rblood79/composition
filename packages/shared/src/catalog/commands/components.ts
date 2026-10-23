@@ -1,6 +1,5 @@
 import type {
   AuthoredValue,
-  CatalogReader,
   CatalogStateOwnerRef,
   DefinitionEntry,
   DefinitionOverrideEntry,
@@ -469,14 +468,4 @@ export const duplicateDefinition =
     };
   };
 
-/** Whether `reader` knows `id` as a project component's template root (its origin). */
-export function componentOriginOf(
-  reader: CatalogReader,
-  id: string,
-): EntryId<"definition"> | undefined {
-  const definitionId = reader.definitionOfTemplateRoot(id);
-  const definition = definitionId ? reader.getEntry(definitionId) : undefined;
-  return definition?.kind === "definition" && definition.usage !== "layout"
-    ? definitionId
-    : undefined;
-}
+export { componentOriginOf } from "../document/componentOrigin";
