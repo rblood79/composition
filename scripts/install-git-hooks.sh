@@ -40,6 +40,5 @@ echo "pre-push 는 D3 경로(catalog/spec/생성 CSS·Canvas/Skia·Preview·폰�
 echo "바뀐 push 에서만 시각 파리티 smoke 를 돌린다. 그 외 push 는 즉시 통과."
 echo "건너뛰려면: SKIP_VISUAL_PARITY=1 git push origin main"
 echo ""
-echo "pre-push 는 성능 경로(builder src·shared·engine·specs·의존성·하니스)가 바뀐 push 에서"
-echo "결정적 카운트 ratchet 을 돌린다 (ADR-246, apps/builder/perf/ratchet.json)."
-echo "건너뛰려면: SKIP_PERF_RATCHET=1 git push origin main (두 탈출구는 서로를 우회하지 않는다)"
+echo "결정적 카운트 ratchet (ADR-246) 은 push 에서 기본으로 돌지 않는다 (2026-10-24) —"
+echo "성능 작업 때 pnpm gate:perf-ratchet 로 직접 돌리거나, PERF_RATCHET=1 git push origin main."

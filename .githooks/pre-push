@@ -3,17 +3,14 @@
 # (ADR-198 · 205 시각 파리티 단계는 ADR-248 Phase 4e 에서 뺐다 — 옛 Skia 경로를 재던 smoke 와
 #  텍스트 축 격차표가 옛 렌더 경로와 함께 지워졌다. 사용자 결정 2026-10-02.)
 #
-# 이 저장소는 web PR 을 금지하고 main 에 직접 push 한다
-# (`.claude/rules/git-workflow.md`). 그래서 PR status check 라는 자리가 없고,
-# **push 직전이 첫 차단 지점**이다.
+# **기본은 끔 (2026-10-24 사용자 결정 「push 자동 실행 끄고 수동으로」)**: push 마다 seed 전체를
+# 재고 넘으면 한 번 더 재는 비용이 작업 시간보다 길었고, 값이 둘로 갈리는 키 (같은 코드에서
+# 63 · 64) 가 두 번 다 위쪽이 나오면 막혀 흐름이 끊겼다. 10-10 이후 상한 올림 15 커밋 ·
+# 누적 raise 404 에 비해 게이트가 잡아 고친 것은 호출 수 줄이기 ~8 건이었다. 측정은 성능 작업
+# 때 `pnpm gate:perf-ratchet` 로 직접 돌린다.
 #
-# 다만 게이트가 흐름을 끊으면 그 자체가 손실이라는 것이 같은 규칙의 요지다.
-# 그래서 두 가지를 지킨다:
-#
-# 1. **경로 스코프** — 성능 경로에 닿지 않는 push (문서/통계/ADR 본문 등) 는 측정을
-#    돌리지 않고 즉시 통과한다. 실측상 대부분의 push 가 여기 해당한다.
-# 2. **탈출구** — `SKIP_PERF_RATCHET=1` 은 성능 ratchet (ADR-246) 을 건너뛴다.
-#    건너뛴 사실은 조용하지 않게 출력한다.
+# push 에서 돌리려면 `PERF_RATCHET=1 git push origin main` — 성능 경로에 닿은 push 만 잰다
+# (문서/통계/ADR 본문 · 테스트만 바뀐 push 는 그대로 통과).
 #
 # 구조 (ADR-246 round 1·2 리뷰): 조기 exit 0 을 두지 않는다 — 변경 목록 수집 → 스코프 판정
 # → 해당 게이트 순차 실행 (실패 즉시 exit 1) → 마지막에 한 번 exit 0. 빈 변경 목록만 즉시 통과.
@@ -24,10 +21,10 @@ set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-RUN_RATCHET=1
-if [ "${SKIP_PERF_RATCHET:-0}" = "1" ]; then
-  echo "[ADR-246] SKIP_PERF_RATCHET=1 — 성능 ratchet 게이트를 건너뛴다 (의도한 것이 맞는지 확인)."
-  RUN_RATCHET=0
+# 기본 끔 — `PERF_RATCHET=1` 일 때만 돈다 (옛 탈출구 `SKIP_PERF_RATCHET=1` 은 그대로 끈다).
+RUN_RATCHET=0
+if [ "${PERF_RATCHET:-0}" = "1" ] && [ "${SKIP_PERF_RATCHET:-0}" != "1" ]; then
+  RUN_RATCHET=1
 fi
 
 # push 되는 커밋 범위의 변경 파일 목록.

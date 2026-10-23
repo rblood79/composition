@@ -96,7 +96,7 @@ const entry = entries.find((e) => e.id === id); // → graph.getEntry(id)
 # 누수 · 프레임 기준선 (ADR-246 · BUILDER_PERF_BASELINE_2026-09)
 pnpm perf:baseline -- --lane leak|frame
 
-# 결정적 카운트 ratchet (pre-push 자동)
+# 결정적 카운트 ratchet (수동 — 성능 작업 때. push 자동 실행은 2026-10-24 기본 끔)
 pnpm gate:perf-ratchet
 
 # 프로파일링

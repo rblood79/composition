@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **테이블 연결 문구 통일** — Data 패널은 `Tables / 테이블`, 생성 액션은 양쪽 패널 모두 `New table / 새 테이블`로 표시한다. Properties의 `Collection` 섹션은 유지하고, 10종 컴포넌트의 연결 필드 legend와 선택 접근성 이름은 `Data source / 데이터 소스`, placeholder는 `Choose a table… / 테이블 선택…`, 빈 상태는 등록된 테이블 안내로 정리한다.
 
+## [성능 ratchet — push 자동 실행 끔] - 2026-10-24
+
+### Infrastructure
+
+- **ADR-246 결정적 카운트 ratchet 을 push 에서 기본으로 돌리지 않는다** — 성능 작업 때 `pnpm gate:perf-ratchet` 로 직접 돌리고, push 에서 돌리려면 `PERF_RATCHET=1 git push origin main`.
+  - **Why:** push 마다 seed 전체 측정 + 재측정이 작업 시간보다 길었고, 같은 코드에서 63 · 64 로 갈리는 키가 두 번 다 위쪽이면 push 가 막혔다. 게이트가 잡아 고친 것은 호출 수 줄이기 위주로 체감 속도와 거리가 있었다 (사용자 결정 2026-10-24).
+  - 위치: `.githooks/pre-push` · `scripts/install-git-hooks.sh` · `CLAUDE.md`
+
 ## [컬렉션 데이터 연결 — 모든 컬렉션의 항목 필드 · Icon field 삭제] - 2026-10-24
 
 ### Changed
