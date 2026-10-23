@@ -26,13 +26,16 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 import { needsAuthoredAriaLabel } from "../ariaLabelNeed";
 
 /**
- * ADR-248 Phase 4e-4: the common DOM axis of an element (ID · Class Name · Aria Label) over the
- * catalog document — the node's `metadata`: the ID is `htmlId` (unique: the graph's index refuses a
- * taken one, the check button assigns or dedupes `base_N`), class and aria label are `className` ·
- * `ariaLabel` (every element, whatever its definition accepts). A template position (inside an
- * instance) has no DOM attributes of its own.
+ * ADR-248 Phase 4e-4: an element's ID and Aria Label over the catalog document — the node's
+ * `metadata`: the ID is `htmlId` (unique: the graph's index refuses a taken one, the check button
+ * assigns or dedupes `base_N`), the aria label `ariaLabel` (every element, whatever its definition
+ * accepts). A template position (inside an instance) has no DOM attributes of its own.
+ *
+ * 2026-10-24 (사용자 — RAC API 표의 묶음): `id` · `aria-label` 은 레퍼런스의 Accessibility 묶음이라
+ * 절 이름도 Accessibility 다. `className` 은 Styling 묶음이라 Style 탭 Class 절
+ * (`panels/styles/catalog/CatalogClassNameSection.tsx`) 로 옮겼다.
  */
-export const CatalogAttributesSection = memo(function CatalogAttributesSection({
+export const CatalogAccessibilitySection = memo(function CatalogAccessibilitySection({
   target,
   identity,
 }: {
@@ -49,7 +52,7 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
     (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
     [workspace],
   );
-  const metadataOf = (field: "htmlId" | "className" | "ariaLabel") => () => {
+  const metadataOf = (field: "htmlId" | "ariaLabel") => () => {
     const entry = nodeId ? graph.getEntry(nodeId) : undefined;
     return entry?.kind === "node" ? (entry.metadata?.[field] ?? "") : "";
   };
@@ -66,21 +69,17 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
         )
       : "";
   });
-  const className = useSyncExternalStore(
-    subscribeSteps,
-    metadataOf("className"),
-  );
   const ariaLabel = useSyncExternalStore(
     subscribeSteps,
     metadataOf("ariaLabel"),
   );
 
-  const writeAttribute = useCallback(
-    (field: "className" | "ariaLabel", value: string, current: string) => {
-      if (!nodeId || value.trim() === current) return;
-      run(setNodeAttribute({ id: nodeId as NodeId, field, value }));
+  const writeAriaLabel = useCallback(
+    (value: string) => {
+      if (!nodeId || value.trim() === ariaLabel) return;
+      run(setNodeAttribute({ id: nodeId as NodeId, field: "ariaLabel", value }));
     },
-    [nodeId, run],
+    [ariaLabel, nodeId, run],
   );
   // A refused id shows under the field and the field shows the stored id again (the old ID
   // field); the message belongs to the element it was typed for.
@@ -146,7 +145,7 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
     }),
   });
   return (
-    <PropertySection title={t("propertiesPanel.attributes")}>
+    <PropertySection title={t("propertiesPanel.accessibility")}>
       {nodeId && (
         <div className="fieldset-row" data-wide="true">
           <PropertyInput
@@ -179,22 +178,12 @@ export const CatalogAttributesSection = memo(function CatalogAttributesSection({
           </div>
         </div>
       )}
-      {nodeId && (
-        <div className="fieldset-row" data-wide="true">
-          <PropertyInput
-            label="Class Name"
-            value={className}
-            onChange={(value) => writeAttribute("className", value, className)}
-            placeholder={t("propertiesPanel.classNamePlaceholder")}
-          />
-        </div>
-      )}
       {nodeId && showAriaLabel && (
         <div className="fieldset-row" data-wide="true">
           <PropertyInput
             label="Aria Label"
             value={ariaLabel}
-            onChange={(value) => writeAttribute("ariaLabel", value, ariaLabel)}
+            onChange={writeAriaLabel}
             placeholder={t("propertiesPanel.ariaLabelPlaceholder")}
           />
         </div>

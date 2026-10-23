@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 — Accessibility 절 · Style 탭 Class 절] - 2026-10-24
+
+### Changed
+
+- **Property 탭 Attributes 절 → Accessibility 절 (ID · Aria Label), Class Name 은 Style 탭 Class 절로** — RAC API 표의 묶음을 따른다: `id` · `aria-label` 은 Accessibility, `className` · `style` 은 Styling.
+  - **Why:** 한 절에 Accessibility 묶음 (ID · Aria Label) 과 Styling 묶음 (Class Name) 이 섞여 있었다. Aria Label 이 나오는 조건 (RAC 가 이름을 만들지 못할 때만) 은 그대로다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogAccessibilitySection.tsx` · `apps/builder/src/builder/panels/styles/catalog/CatalogClassNameSection.tsx`
+
 ## [Image — src · alt 속성] - 2026-10-24
 
 ### Fixed

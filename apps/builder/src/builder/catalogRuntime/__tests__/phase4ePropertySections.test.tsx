@@ -23,7 +23,7 @@ import { DataUsageSourceContext } from "../../panels/datatable/usage/dataUsageSo
 import { QuickConnectHostContext } from "../../panels/datatable/usage/quickConnectHost";
 import { DesignPanel } from "../../panels/design/DesignPanel";
 import { useDesignPanelView } from "../../panels/design/designPanelView";
-import { CatalogAttributesSection } from "../../panels/properties/catalog/CatalogAttributesSection";
+import { CatalogAccessibilitySection } from "../../panels/properties/catalog/CatalogAccessibilitySection";
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
 import { CatalogSlotSection } from "../../panels/properties/catalog/CatalogSlotSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
@@ -131,7 +131,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogAttributesSection
+          <CatalogAccessibilitySection
             target={item!.target}
             identity={item!.identity}
           />

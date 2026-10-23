@@ -61,6 +61,7 @@ export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
   "fill",
   "border",
   "effect",
+  "class-name",
   "typography",
 ];
 

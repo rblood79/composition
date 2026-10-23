@@ -58,6 +58,8 @@ import {
 
 import { useStylesSelection } from "./StylesPanel.runtime";
 
+import { CatalogClassNameSection } from "./catalog/CatalogClassNameSection";
+
 import { catalogElementlessType } from "../../../../../../packages/shared/src/catalog/runtime/elementless";
 
 // 절 순서 Layout → Size → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막. Padding 은 Layout 절
@@ -80,6 +82,7 @@ const StyleGroupSections = memo(function StyleGroupSections() {
       <FillSection />
       <BorderSection />
       <EffectSection />
+      <CatalogClassNameSection />
     </>
   );
 });

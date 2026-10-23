@@ -797,7 +797,7 @@ export interface TranslationKeys {
     overrideFill: string;
     overrideFillSizing: string;
     overrideVisibility: string;
-    attributes: string;
+    accessibility: string;
     classNamePlaceholder: string;
     ariaLabelPlaceholder: string;
     slotSection: string;

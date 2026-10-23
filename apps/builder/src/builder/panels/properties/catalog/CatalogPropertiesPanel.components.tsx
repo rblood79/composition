@@ -57,7 +57,7 @@ import { ItemsSourceContext } from "../generic/itemsSource";
 
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
 
-import { CatalogAttributesSection } from "./CatalogAttributesSection";
+import { CatalogAccessibilitySection } from "./CatalogAccessibilitySection";
 
 
 import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
@@ -169,8 +169,8 @@ export function CatalogPropertiesBody({
         {/* The Components page: only a sample's root props and styles are its origin's project
             defaults (user decision: root only) — no node attributes, state or slot. */}
         {!originSample && (
-          <CatalogAttributesSection
-            key={`attributes:${targetKey(first.target)}`}
+          <CatalogAccessibilitySection
+            key={`accessibility:${targetKey(first.target)}`}
             target={first.target}
             identity={first.identity}
           />

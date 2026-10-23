@@ -16,7 +16,7 @@ import {
   setHtmlId,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
-import { CatalogAttributesSection } from "../../panels/properties/catalog/CatalogAttributesSection";
+import { CatalogAccessibilitySection } from "../../panels/properties/catalog/CatalogAccessibilitySection";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { CatalogWorkspaceProvider } from "../react";
 import { newCatalogProjectDocument } from "../project";
@@ -188,7 +188,7 @@ describe("ADR-248 4e-8 automatic element ids", () => {
     const view = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogAttributesSection
+          <CatalogAccessibilitySection
             target={{ kind: "node", id: second }}
             identity={workspace.root.recordsOfSource(second)[0]!}
           />

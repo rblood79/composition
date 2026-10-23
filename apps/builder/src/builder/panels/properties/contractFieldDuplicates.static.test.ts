@@ -3,8 +3,9 @@ import { resolveTestEditContract as resolveEditContract } from "../../catalogRun
  * Properties 패널 — 같은 prop 이 두 곳에 뜨지 않는다 (2026-09-15 사용자 지적: Nav 의
  * `aria-label` 이 Content 와 Attributes 둘 다에 있었다).
  *
- * Attributes 절 (`ElementAttributesSection`) 은 전 타입 공통 축 (id · className · aria-label) 을
- * 편집한다. 어떤 계약도 같은 key 를 보이는 필드로 열면 안 된다 — 열어야 하면 `editorHidden`.
+ * 전 타입 공통 축 — Property 탭 Accessibility 절 (`CatalogAccessibilitySection` — id · aria-label) 과
+ * Style 탭 Class 절 (`CatalogClassNameSection` — className) — 이 편집한다. 어떤 계약도 같은 key 를
+ * 보이는 필드로 열면 안 된다 — 열어야 하면 `editorHidden`.
  * 같은 계약 안에서 key 나 표시 라벨이 두 번 나오는 것도 같은 문제다.
  */
 import { componentCatalog } from "@composition/shared";
@@ -33,7 +34,7 @@ describe("Properties 계약 필드 — Attributes 축 · key · 라벨 중복 0"
       );
       for (const field of fields) {
         if (ATTRIBUTE_AXIS_KEYS.has(field.key)) {
-          problems.push(`${entry.type}.${field.key} — Attributes 절과 중복`);
+          problems.push(`${entry.type}.${field.key} — Accessibility · Class 절과 중복`);
         }
       }
       const byKey = new Map<string, number>();
