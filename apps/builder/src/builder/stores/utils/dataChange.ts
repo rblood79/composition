@@ -936,7 +936,7 @@ export function reduceDataOps(
 
 export type BindElementOp = Extract<DataOp, { op: "bind_element" }>;
 
-/** 사람 UI (`PropertyDataBinding`) 가 `props.dataBinding` 에 기록하는 것과 같은 형상. */
+/** 사람 UI (`CollectionBinding`) 가 `props.dataBinding` 에 기록하는 것과 같은 형상. */
 export interface DataTableBindingValue {
   source: "dataTable";
   collectionId: string;

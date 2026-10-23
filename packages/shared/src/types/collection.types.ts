@@ -290,7 +290,7 @@ export type RefreshMode = "manual" | "onMount" | "interval";
  *
  * `DataBinding`(canonical collection 바인딩)과 다른, 더 단순한 표현이다.
  * 이 shape 의 **정본은 여기 하나**다 — builder 의
- * `components/property/PropertyDataBinding.tsx` 는 이것을 `DataBindingValue`
+ * `components/property/CollectionBinding.tsx` 는 이것을 `DataBindingValue`
  * 로 재수출하기만 한다 (종전에는 같은 shape 를 양쪽에 각각 선언했고, ADR-159
  * 의 read-호환 근거 주석이 builder 쪽에만 실려 있어 shared 사본을 보는 쪽은
  * 그 계약을 알 수 없었다).
@@ -368,7 +368,6 @@ export interface PropertyDataBinding {
  * (`ListBox`/`Select`/`Menu`/`Table`/`Tabs`/`TagGroup`/`GridList`/`ComboBox`/
  * `Breadcrumbs`/`RadioGroup`/`CheckboxGroup`/`ToggleButtonGroup`/`Tree`)의
  * `dataBinding` prop 과 builder 인스펙터가 **이 이름으로만** 소비한다. builder
- * 쪽에서는 동명 컴포넌트 `PropertyDataBinding` 과 식별자가 충돌해 별칭 쪽이
- * 유일한 선택지다.
+ * 인스펙터는 이 별칭으로 import 한다 (편집 UI 컴포넌트는 `CollectionBinding`).
  */
 export type DataBindingValue = PropertyDataBinding;

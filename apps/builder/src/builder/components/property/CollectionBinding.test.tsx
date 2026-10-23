@@ -41,9 +41,9 @@ vi.mock("../../stores/data", () => ({
 }));
 
 import {
-  PropertyDataBinding,
-  PropertyDataBindingActions,
-} from "./PropertyDataBinding";
+  CollectionBinding,
+  CollectionBindingActions,
+} from "./CollectionBinding";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import * as quickConnectHostModule from "../../panels/datatable/usage/quickConnectHost";
@@ -89,10 +89,10 @@ const renderWithI18n = (ui: ReactElement) =>
     ),
   });
 
-describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
+describe("CollectionBinding — 죽은 오소링 표면 제거 계약 (2026-07-24)", () => {
   it("갱신 모드 / 갱신 간격 / 데이터 경로 오소링 UI 를 렌더하지 않는다", () => {
     const { container } = renderWithI18n(
-      <PropertyDataBinding
+      <CollectionBinding
         value={{
           source: "dataTable",
           name: "Users",
@@ -129,7 +129,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
   it("컬렉션 선택 시 기존 path / refreshMode / refreshInterval 을 모두 보존한다", () => {
     const onChange = vi.fn();
     const { container } = renderWithI18n(
-      <PropertyDataBinding
+      <CollectionBinding
         value={{
           source: "dataTable",
           name: "Users",
@@ -168,7 +168,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
   });
 });
 
-describe("PropertyDataBinding — fieldMap value (ADR-152 Phase 2)", () => {
+describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
   // 위 mock 의 collection 은 schema 가 없어 fieldMap 행이 뜨지 않는다 (표면 1행 계약 유지).
   // schema 가 있는 collection 은 모듈 mock 을 덮어 쓴다.
   const withSchema = async () => {
@@ -188,12 +188,12 @@ describe("PropertyDataBinding — fieldMap value (ADR-152 Phase 2)", () => {
     vi.resetModules();
     // 모듈 재로드 뒤에는 i18n context 도 같은 인스턴스여야 한다
     const [
-      { PropertyDataBinding: Comp },
+      { CollectionBinding: Comp },
       { I18nProvider: Provider },
       { QuickConnectHostContext },
       { DataUsageSourceContext },
     ] = await Promise.all([
-      import("./PropertyDataBinding"),
+      import("./CollectionBinding"),
       import("@/i18n"),
       import("../../panels/datatable/usage/quickConnectHost"),
       import("../../panels/datatable/usage/dataUsageSource"),
@@ -270,11 +270,11 @@ describe("PropertyDataBinding — fieldMap value (ADR-152 Phase 2)", () => {
 });
 
 // 2026-09-16 사용자 지시 — 「새 테이블 만들기」 는 폼 안 글자 버튼이 아니라 행 끝 28 열의
-// DatabasePlus 아이콘 (`PropertyDataBindingActions`, 렌더러가 fieldset 옆에 둔다).
-describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-09-16)", () => {
+// DatabasePlus 아이콘 (`CollectionBindingActions`, 렌더러가 fieldset 옆에 둔다).
+describe("CollectionBinding — 새 테이블 액션은 행 액션 열 (2026-09-16)", () => {
   it("폼 내부의 열기 · 사용처 · 연결 해제 액션을 제거한다", () => {
     const { container } = renderWithI18n(
-      <PropertyDataBinding
+      <CollectionBinding
         value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
         onChange={() => {}}
       />,
@@ -290,7 +290,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
 
   it("바인딩 없는 폼은 동선 행 자체가 없다 (종전엔 「새 테이블」 한 줄이 남았다)", () => {
     const { container } = renderWithI18n(
-      <PropertyDataBinding value={null} onChange={() => {}} />,
+      <CollectionBinding value={null} onChange={() => {}} />,
     );
     expect(container.querySelector(".binding-actions")).toBeNull();
   });
@@ -298,7 +298,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
   it("행 액션 = fieldset-actions 안 아이콘 버튼, 누르면 프로젝트의 테이블 생성기를 연다", () => {
     routeParams.projectId = "p-1";
     editorStore.openTableCreator.mockClear();
-    const { container } = renderWithI18n(<PropertyDataBindingActions />);
+    const { container } = renderWithI18n(<CollectionBindingActions />);
     const wrapper = container.querySelector(
       ".fieldset-actions.actions-binding",
     );
@@ -311,14 +311,12 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
 
   it("연결 해제는 외부 액션 열에서 동작하며 비활성 상태를 따른다", () => {
     const onClear = vi.fn();
-    const view = renderWithI18n(
-      <PropertyDataBindingActions onClear={onClear} />,
-    );
+    const view = renderWithI18n(<CollectionBindingActions onClear={onClear} />);
     const clear = screen.getByRole("button", { name: "Remove binding" });
     expect(clear.closest(".fieldset-actions.actions-binding")).not.toBeNull();
     fireEvent.click(clear);
     expect(onClear).toHaveBeenCalledTimes(1);
-    view.rerender(<PropertyDataBindingActions onClear={onClear} disabled />);
+    view.rerender(<CollectionBindingActions onClear={onClear} disabled />);
     fireEvent.click(screen.getByRole("button", { name: "Remove binding" }));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
@@ -326,9 +324,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
   it("ADR-013: elementId 가 있으면 누른 시점의 대상 스냅샷을 캡처해 연결 모드로 연다 · 캡처 실패는 일반 생성", () => {
     routeParams.projectId = "p-1";
     editorStore.openTableCreator.mockClear();
-    const first = renderWithI18n(
-      <PropertyDataBindingActions elementId="lb-1" />,
-    );
+    const first = renderWithI18n(<CollectionBindingActions elementId="lb-1" />);
     fireEvent.click(first.container.querySelector("button")!);
     expect(quickConnect.capture).toHaveBeenCalledWith("lb-1");
     expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1", {
@@ -342,7 +338,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
     first.unmount();
     editorStore.openTableCreator.mockClear();
     const second = renderWithI18n(
-      <PropertyDataBindingActions elementId="ghost" />,
+      <CollectionBindingActions elementId="ghost" />,
     );
     fireEvent.click(second.container.querySelector("button")!);
     expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
@@ -351,7 +347,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
 
   it("프로젝트 밖 (projectId 없음) 이면 서지 않는다", () => {
     routeParams.projectId = undefined;
-    const { container } = renderWithI18n(<PropertyDataBindingActions />);
+    const { container } = renderWithI18n(<CollectionBindingActions />);
     expect(container.firstChild).toBeNull();
     routeParams.projectId = "p-1";
   });

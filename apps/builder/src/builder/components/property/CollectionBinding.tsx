@@ -1,6 +1,6 @@
 import { useParams } from "react-router";
 /**
- * PropertyDataBinding Component
+ * CollectionBinding Component
  *
  * Property Editor에서 요소 속성을 Data Source에 바인딩할 수 있는 UI
  *
@@ -10,7 +10,7 @@ import { useParams } from "react-router";
  * - 단일 항목 key 설정
  *
  * @example
- * <PropertyDataBinding
+ * <CollectionBinding
  *   label="데이터 소스"
  *   value={currentProps.dataBinding}
  *   onChange={(binding) => updateProp('dataBinding', binding)}
@@ -47,7 +47,7 @@ import {
   ActionTooltipTrigger,
   SwatchIconButton,
 } from "../ui";
-import "./PropertyDataBinding.css";
+import "./CollectionBinding.css";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
@@ -65,7 +65,7 @@ import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 // 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
 export type { DataBindingValue, RefreshMode } from "@composition/shared";
 
-interface PropertyDataBindingProps {
+interface CollectionBindingProps {
   /** 라벨 */
   label?: string;
   /** 현재 바인딩 값 */
@@ -193,7 +193,7 @@ function FieldMapSelect({
   );
 }
 
-export const PropertyDataBinding = memo(function PropertyDataBinding({
+export const CollectionBinding = memo(function CollectionBinding({
   label,
   icon: Icon,
   value,
@@ -201,7 +201,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   className,
   disabled,
   elementId,
-}: PropertyDataBindingProps) {
+}: CollectionBindingProps) {
   const { t } = useI18n();
   const workspace = useOptionalCatalogWorkspace();
   const isTree =
@@ -431,8 +431,8 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
 });
 
 /** 새 테이블 생성 — Collection 헤더 또는 일반 데이터 바인딩의 행 액션. */
-export const PropertyDataBindingCreateAction = memo(
-  function PropertyDataBindingCreateAction({
+export const CollectionBindingCreateAction = memo(
+  function CollectionBindingCreateAction({
     disabled,
     elementId,
     inHeader = false,
@@ -483,45 +483,43 @@ export const PropertyDataBindingCreateAction = memo(
 );
 
 /** 선택된 바인딩의 행 액션. Collection의 생성 액션은 헤더에 둔다. */
-export const PropertyDataBindingActions = memo(
-  function PropertyDataBindingActions({
-    disabled,
-    elementId,
-    onClear,
-    showCreate = true,
-  }: {
-    disabled?: boolean;
-    elementId?: string;
-    /** 바인딩이 있을 때만 제공. 삭제된 collection 및 legacy 바인딩도 해제할 수 있다. */
-    onClear?: () => void;
-    showCreate?: boolean;
-  }) {
-    const { t } = useI18n();
-    const { projectId } = useParams<{ projectId: string }>();
-    if (!onClear && (!showCreate || !projectId)) return null;
-    const clearLabel = t("propertiesPanel.removeBinding");
-    return (
-      <div className="fieldset-actions actions-binding">
-        {onClear && (
-          <ActionTooltipTrigger tooltip={clearLabel}>
-            <SwatchIconButton
-              aria-label={clearLabel}
-              isDisabled={disabled}
-              onPress={onClear}
-            >
-              <X aria-hidden="true" {...iconProps} />
-            </SwatchIconButton>
-          </ActionTooltipTrigger>
-        )}
-        {showCreate && (
-          <PropertyDataBindingCreateAction
-            elementId={elementId}
-            disabled={disabled}
-          />
-        )}
-      </div>
-    );
-  },
-);
+export const CollectionBindingActions = memo(function CollectionBindingActions({
+  disabled,
+  elementId,
+  onClear,
+  showCreate = true,
+}: {
+  disabled?: boolean;
+  elementId?: string;
+  /** 바인딩이 있을 때만 제공. 삭제된 collection 및 legacy 바인딩도 해제할 수 있다. */
+  onClear?: () => void;
+  showCreate?: boolean;
+}) {
+  const { t } = useI18n();
+  const { projectId } = useParams<{ projectId: string }>();
+  if (!onClear && (!showCreate || !projectId)) return null;
+  const clearLabel = t("propertiesPanel.removeBinding");
+  return (
+    <div className="fieldset-actions actions-binding">
+      {onClear && (
+        <ActionTooltipTrigger tooltip={clearLabel}>
+          <SwatchIconButton
+            aria-label={clearLabel}
+            isDisabled={disabled}
+            onPress={onClear}
+          >
+            <X aria-hidden="true" {...iconProps} />
+          </SwatchIconButton>
+        </ActionTooltipTrigger>
+      )}
+      {showCreate && (
+        <CollectionBindingCreateAction
+          elementId={elementId}
+          disabled={disabled}
+        />
+      )}
+    </div>
+  );
+});
 
-export default PropertyDataBinding;
+export default CollectionBinding;

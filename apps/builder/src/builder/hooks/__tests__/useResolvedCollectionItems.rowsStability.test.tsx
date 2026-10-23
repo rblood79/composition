@@ -41,7 +41,7 @@ const binding = {
   collectionId: "c1",
   name: "Users",
   fieldMap: { value: "f-uid" },
-} as unknown as DataBinding; // v2 PropertyDataBinding — hook 이 normalizeDataBinding 으로 받는다 (Tabs 와 같은 cast)
+} as unknown as DataBinding; // v2 CollectionBinding — hook 이 normalizeDataBinding 으로 받는다 (Tabs 와 같은 cast)
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;

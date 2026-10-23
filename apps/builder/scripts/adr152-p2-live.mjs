@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// adr152-p2-live.mjs — ADR-152 Phase 2 live: Properties 패널 PropertyDataBinding 의 fieldMap
+// adr152-p2-live.mjs — ADR-152 Phase 2 live: Properties 패널 CollectionBinding 의 fieldMap
 //   (value / icon 한정) Select — collection 선택 뒤 schema 필드가 옵션으로 뜨고, 선택 commit 이
 //   문서에 `fieldMap.value = <fieldId>` 를 쓰며, 재로드 · 필드 rename 뒤에도 (id 참조) 표시가 따라온다.
 // 사용: node apps/builder/scripts/adr152-p2-live.mjs [--headed]   (dev 서버 5173 · .auth-session.json)

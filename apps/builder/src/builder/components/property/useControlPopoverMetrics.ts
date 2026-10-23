@@ -12,7 +12,7 @@
  *
  * 그래서 `PropertySelect` / `PropertyUnitInput` 은 group ↔ control 의 실측 rect 로
  * `width / min-width / margin-left` 를 직접 계산해 왔는데, 동일 로직이 컴포넌트마다
- * 복제되면서 `PropertyDataBinding` 처럼 복제를 빠뜨린 곳이 패널 규약에서 이탈했다
+ * 복제되면서 `CollectionBinding` 처럼 복제를 빠뜨린 곳이 패널 규약에서 이탈했다
  * (컬렉션 선택 팝오버가 field 박스보다 28px 좁고 24px 안쪽으로 뜨던 문제).
  * 본 훅이 그 계산의 단일 소스다.
  *
@@ -60,7 +60,7 @@ export function useControlPopoverMetrics({
   widthMode = "fit-content",
 }: ControlPopoverMetricsOptions = {}): ControlPopoverMetrics {
   // ref 대신 state 로 element 를 잡는다 — 조건부 렌더되는 control (예: collection 이
-  // 비동기 로드된 뒤에야 마운트되는 PropertyDataBinding 의 Select) 도 마운트 시점에
+  // 비동기 로드된 뒤에야 마운트되는 CollectionBinding 의 Select) 도 마운트 시점에
   // 측정 effect 가 다시 돌아야 하기 때문. object ref 였다면 최초 effect 가 null 로
   // 돌고 끝나 metrics 가 0 으로 고정된다.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);

@@ -23,10 +23,10 @@ import type { ItemsManagerField } from "@composition/rendering";
 
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {
-  PropertyDataBinding,
-  PropertyDataBindingActions,
-  PropertyDataBindingCreateAction,
-} from "../../../components/property/PropertyDataBinding";
+  CollectionBinding,
+  CollectionBindingActions,
+  CollectionBindingCreateAction,
+} from "../../../components/property/CollectionBinding";
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -57,7 +57,7 @@ import {
   type FieldEditor,
 } from "./fieldEditor";
 import { useI18n } from "../../../../i18n";
-import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
+import type { DataBindingValue } from "../../../components/property/CollectionBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
@@ -1064,7 +1064,7 @@ const GenericField = memo(function GenericField({
 
     // "binding" — collection data binding.
     //   field.key === "dataBinding": 외부 데이터 소스(dataTable/api/variable/route) 연결
-    //     UI(PropertyDataBinding)를 렌더 — ADR-912 catalog cutover 로 누락된 RSP Dynamic
+    //     UI(CollectionBinding)를 렌더 — ADR-912 catalog cutover 로 누락된 RSP Dynamic
     //     collections 진입점 복원. CatalogInspectorFields 와 동일 처리.
     //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용) → null.
     case "binding":
@@ -1073,13 +1073,13 @@ const GenericField = memo(function GenericField({
         // 형제라 fragment 로 둘을 낸다 (Attributes ID 행의 복사 아이콘과 같은 자리).
         return (
           <>
-            <PropertyDataBinding
+            <CollectionBinding
               label={field.label}
               value={(value as DataBindingValue | null | undefined) ?? null}
               onChange={(v) => update(v)}
               elementId={elementId}
             />
-            <PropertyDataBindingActions
+            <CollectionBindingActions
               elementId={elementId}
               onClear={value ? () => update(null) : undefined}
               showCreate={field.section !== "collection"}
@@ -1431,10 +1431,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
                     field.kind === "binding" && field.key === "dataBinding",
                 ),
               ) ? (
-                <PropertyDataBindingCreateAction
-                  elementId={elementId}
-                  inHeader
-                />
+                <CollectionBindingCreateAction elementId={elementId} inHeader />
               ) : undefined
             }
           >

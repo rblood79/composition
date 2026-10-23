@@ -54,7 +54,7 @@ describe("builder-menu-row 적용처 — 메뉴 항목 28", () => {
 });
 
 describe("데이터 바인딩 옵션 — 한 줄 (이름 12 · 타입 10 mono caps)", () => {
-  const css = read("components/property/PropertyDataBinding.css");
+  const css = read("components/property/CollectionBinding.css");
 
   it("옵션 컨테이너는 row, 설명은 --text-2xs mono", () => {
     expect(block(css, ".binding-option")).not.toContain(
