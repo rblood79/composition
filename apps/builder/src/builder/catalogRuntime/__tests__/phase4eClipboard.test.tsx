@@ -170,7 +170,7 @@ describe("ADR-248 Phase 4e-5 property / style clipboard", () => {
     expect(host.readSelectedTarget().style).toEqual(copied);
   });
 
-  it("⌘⌥C / ⌘⌥V: Properties buttons and keys, then Styles keys — both in the Design panel (id properties, ADR-252)", async () => {
+  it("⌘⌥C / ⌘⌥V: Properties keys without header buttons, then Styles keys — both in the Design panel (id properties, ADR-252)", async () => {
     const { workspace, contract, value, select } = await open();
     function Harness({ target }: { target: EditTarget }) {
       return (
@@ -190,8 +190,20 @@ describe("ADR-248 Phase 4e-5 property / style clipboard", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
+    expect(
+      screen.queryByRole("button", { name: "Copy properties" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Paste properties" }),
+    ).toBeNull();
+    const copyPanel = view.container.querySelector<HTMLElement>(
+      '[data-panel-id="properties"]',
+    )!;
+    copyPanel.tabIndex = -1;
+    act(() => copyPanel.focus());
+    fireEvent.focusIn(copyPanel);
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Copy properties" }));
+      fireEvent.keyDown(copyPanel, cmdAlt("c"));
     });
     expect(JSON.parse(clipboardText)).toEqual({
       label: "Save",

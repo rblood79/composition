@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Design 패널 — Accessibility 절 · Style 탭 Class 절] - 2026-10-24
 
+### Removed
+
+- **Property 탭 헤더의 Copy properties / Paste properties 버튼 제거** — 컴포넌트별 속성 구성이 다른 Property 탭의 헤더 버튼을 제거한다. 스타일 탭의 Copy styles / Paste styles 버튼은 유지한다.
+
 ### Changed
 
 - **Property 탭 Attributes 절 → Accessibility 절 (ID · Aria Label), Class Name 은 Style 탭 Class 절로** — RAC API 표의 묶음을 따른다: `id` · `aria-label` 은 Accessibility, `className` · `style` 은 Styling.
