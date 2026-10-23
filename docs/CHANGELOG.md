@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **테이블 연결 문구 통일** — Data 패널은 `Tables / 테이블`, 생성 액션은 양쪽 패널 모두 `New table / 새 테이블`로 표시한다. Properties의 `Collection` 섹션은 유지하고, 10종 컴포넌트의 연결 필드 legend와 선택 접근성 이름은 `Data source / 데이터 소스`, placeholder는 `Choose a table… / 테이블 선택…`, 빈 상태는 등록된 테이블 안내로 정리한다.
+- **Value field 선택의 열쇠 아이콘 제거** — 테이블 연결 후 `Value field: Auto` 앞에 표시되던 장식 아이콘을 제거한다.
 
 ## [컬렉션 데이터 연결 — Item key 는 Form 에만] - 2026-10-24
 

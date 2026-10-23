@@ -20,14 +20,7 @@ import { useParams } from "react-router";
 import { useI18n } from "@/i18n";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
-import {
-  ChevronDown,
-  DatabasePlus,
-  KeyRound,
-  Link2,
-  ListTree,
-  X,
-} from "lucide-react";
+import { ChevronDown, DatabasePlus, Link2, ListTree, X } from "lucide-react";
 import React, { memo, useCallback } from "react";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
@@ -105,11 +98,6 @@ const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
 ];
 /** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
 const FIELD_MAP_AUTO_KEY = "__auto__";
-const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
-  value: KeyRound,
-  children: ListTree,
-  parentId: ListTree,
-};
 const FIELD_MAP_ROLE_LABEL: Record<
   FieldMapRole,
   "fieldMapValue" | "fieldMapChildren" | "fieldMapParentId"
@@ -136,7 +124,7 @@ function FieldMapSelect({
   const { t } = useI18n();
   const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
   const { controlRef, popoverStyle } = useControlPopoverMetrics();
-  const RoleIcon = FIELD_MAP_ROLE_ICON[role];
+  const RoleIcon = role === "value" ? null : ListTree;
   const label = t(`propertiesPanel.${FIELD_MAP_ROLE_LABEL[role]}`);
   return (
     <div className="binding-row binding-fieldmap-row">
@@ -151,9 +139,11 @@ function FieldMapSelect({
         isDisabled={disabled}
       >
         <Button className="react-aria-Button" ref={triggerRef}>
-          <span aria-hidden="true" className="binding-fieldmap-role">
-            <RoleIcon size={iconProps.size} />
-          </span>
+          {RoleIcon && (
+            <span aria-hidden="true" className="binding-fieldmap-role">
+              <RoleIcon size={iconProps.size} />
+            </span>
+          )}
           <SelectValue>
             {({ selectedText }) => `${label}: ${selectedText ?? ""}`}
           </SelectValue>
