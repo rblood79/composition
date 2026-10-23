@@ -239,6 +239,13 @@
     --background-color: var(--accent-subtle);
   }
 
+  :where(.react-aria-Tree[data-composition-tree])
+    .react-aria-TreeItem
+    .react-aria-Checkbox[slot="selection"] {
+    padding: 0;
+    flex-shrink: 0;
+  }
+
   /* Drop indicator */
   :where(.react-aria-Tree[data-composition-tree]) .react-aria-DropIndicator {
     &[data-drop-target] {

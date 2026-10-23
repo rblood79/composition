@@ -16,8 +16,33 @@ import {
   COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
   DEFAULT_COLLECTION_OVERSCAN,
   toItemProjectionRow,
+  parentRowsToTree,
   type CollectionDataSource,
 } from "../resolveCollectionItems";
+
+describe("parentRowsToTree — flat Tree collection", () => {
+  it("source order, missing parent, and cycles keep each row exactly once", () => {
+    const data = [
+      { id: "child", parentId: "root", name: "Child" },
+      { id: "root", parentId: null, name: "Root" },
+      { id: "orphan", parentId: "missing", name: "Orphan" },
+      { id: "a", parentId: "b", name: "A" },
+      { id: "b", parentId: "a", name: "B" },
+    ];
+    const tree = parentRowsToTree(
+      data.map((item, index) => toItemProjectionRow(item, index)),
+      "parentId",
+    );
+    const keys = (nodes: typeof tree): string[] =>
+      nodes.flatMap((node) => [node.row.itemKey, ...keys(node.children)]);
+    expect(keys(tree).sort()).toEqual(data.map((item) => item.id).sort());
+    expect(
+      tree.find((node) => node.row.itemKey === "root")?.children[0]?.row
+        .itemKey,
+    ).toBe("child");
+    expect(tree.some((node) => node.row.itemKey === "orphan")).toBe(true);
+  });
+});
 
 describe("resolveCollectionItems — sourceKind 판정", () => {
   it("정적 props.items → sourceKind:'static-items' + rows 정규화", () => {
@@ -350,7 +375,9 @@ describe("ADR-157 — 샘플 상수 + remainder 메타", () => {
     // Phase 1 은 순수 추가 — default 는 WINDOW_LIMIT 유지 (scene 소비처가 Phase 2 에서
     // SAMPLE_LIMIT 를 명시 전달하며 hatch 와 함께 land).
     const rows = getFlatProjectionRows({ props: { items } });
-    expect(rows).toHaveLength(Math.min(COLLECTION_ROW_PROJECTION_WINDOW_LIMIT, 100));
+    expect(rows).toHaveLength(
+      Math.min(COLLECTION_ROW_PROJECTION_WINDOW_LIMIT, 100),
+    );
     expect(rows).toHaveLength(100);
   });
 });
@@ -376,8 +403,16 @@ describe("icon / avatar slot 분리", () => {
       avatar: "https://x.test/a.png",
     });
     // 상대 경로 / data URI / 확장자 — 전부 이미지 참조
-    for (const src of ["/img/a.png", "./a.jpg", "data:image/png;base64,AA", "a.webp"]) {
-      expect(row({ label: "A", avatar: src })).toMatchObject({ avatar: src, icon: null });
+    for (const src of [
+      "/img/a.png",
+      "./a.jpg",
+      "data:image/png;base64,AA",
+      "a.webp",
+    ]) {
+      expect(row({ label: "A", avatar: src })).toMatchObject({
+        avatar: src,
+        icon: null,
+      });
     }
   });
 

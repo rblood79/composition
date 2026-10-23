@@ -345,7 +345,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // (`:has([slot=icon])`) is the presence value `catalogItemSlotInset`.
   ListBox: () => {
     const descSize = textPx("text-xs");
-    const hairline = Number(resolveToken("{border.width.hairline}" as TokenRef));
+    const hairline = Number(
+      resolveToken("{border.width.hairline}" as TokenRef),
+    );
     const parts: CompiledPartRule[] = [
       ...(descSize
         ? [
@@ -448,8 +450,14 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // grid, 6 apart.
   // ADR-256 Phase 9 — RAC's month · year pickers render no element: their Select is the header's
   // item (`display: contents` — the engine lays their children out in the parent's flow).
-  CalendarMonthPicker: () => ({ replace: true, layout: { display: "contents" } }),
-  CalendarYearPicker: () => ({ replace: true, layout: { display: "contents" } }),
+  CalendarMonthPicker: () => ({
+    replace: true,
+    layout: { display: "contents" },
+  }),
+  CalendarYearPicker: () => ({
+    replace: true,
+    layout: { display: "contents" },
+  }),
   // (No size — 2026-10-13: 7 cells of 30 wide unless the calendar is given a width, which it then
   // fills, wider or narrower — the DOM's `.month` `width: 238px; flex: 1 1 auto; max-width: 100%`
   // with no intrinsic minimum (`container-type` — `min-width: 0` here); its grid's cells follow its
@@ -790,6 +798,13 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           paddingY: 4,
           paddingX: 8,
         },
+      },
+      {
+        childType: "Checkbox",
+        via: "TreeItemContent",
+        childProps: { slot: "selection" },
+        layout: {},
+        visual: { paddingY: 0, paddingX: 0, minHeight: 0 },
       },
       // Its chevron button: the sheet's `.react-aria-Button[slot=chevron]` (`all: unset` — a bare
       // box around the svg). Its width and level indent are `catalogTreeChevronLayout` on the

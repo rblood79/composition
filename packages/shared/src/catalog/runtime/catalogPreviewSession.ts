@@ -52,8 +52,12 @@ import {
   loadCollectionEndpoint,
   resolvedEndpointUrl,
 } from "../../collections/executeCollectionEndpoint";
-import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
-import { getItemKey } from "../../collections/resolveCollectionItems";
+import {
+  getItemKey,
+  parentRowsToTree,
+  resolveTableColumnKey,
+  toItemProjectionRow,
+} from "../../collections/resolveCollectionItems";
 import { catalogTableColumnKey } from "./tableSort";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
 
@@ -100,6 +104,12 @@ type CatalogItemEdit =
 
 type CatalogItems = readonly Record<string, unknown>[];
 
+const itemKey = (
+  item: Record<string, unknown>,
+  index: number,
+  keyField?: string,
+) => getItemKey(item, index, keyField ? { value: keyField } : undefined);
+
 /** An item's child items (`useTreeData.getChildren` — the binding's children field), else none. */
 function childItemsOf(
   item: Record<string, unknown>,
@@ -115,11 +125,15 @@ function childItemsOf(
 }
 
 /** Every key in the items (the tree's, every level), as the bound components read them. */
-function itemKeysOf(items: CatalogItems, childrenKey?: string): Set<string> {
+function itemKeysOf(
+  items: CatalogItems,
+  childrenKey?: string,
+  keyField?: string,
+): Set<string> {
   const keys = new Set<string>();
   const visit = (level: CatalogItems) =>
     level.forEach((item, index) => {
-      keys.add(getItemKey(item, index));
+      keys.add(itemKey(item, index, keyField));
       const children = childItemsOf(item, childrenKey);
       if (children) visit(children);
     });
@@ -133,12 +147,19 @@ function levelOfKey(
   key: string,
   childrenKey?: string,
   parent: string | null = null,
+  keyField?: string,
 ): string | null | undefined {
   for (const [index, item] of items.entries()) {
-    if (getItemKey(item, index) === key) return parent;
+    if (itemKey(item, index, keyField) === key) return parent;
     const children = childItemsOf(item, childrenKey);
     if (!children) continue;
-    const found = levelOfKey(children, key, childrenKey, getItemKey(item, index));
+    const found = levelOfKey(
+      children,
+      key,
+      childrenKey,
+      itemKey(item, index, keyField),
+      keyField,
+    );
     if (found !== undefined) return found;
   }
   return undefined;
@@ -150,6 +171,7 @@ function withLevel(
   parent: string | null,
   childrenKey: string | undefined,
   change: (level: CatalogItems) => CatalogItems,
+  keyField?: string,
 ): CatalogItems | undefined {
   if (parent === null) return change(items);
   if (!childrenKey) return undefined;
@@ -157,9 +179,12 @@ function withLevel(
   const visit = (level: CatalogItems): CatalogItems =>
     level.map((item, index) => {
       if (found) return item;
-      if (getItemKey(item, index) === parent) {
+      if (itemKey(item, index, keyField) === parent) {
         found = true;
-        return { ...item, [childrenKey]: change(childItemsOf(item, childrenKey) ?? []) };
+        return {
+          ...item,
+          [childrenKey]: change(childItemsOf(item, childrenKey) ?? []),
+        };
       }
       const children = childItemsOf(item, childrenKey);
       return children ? { ...item, [childrenKey]: visit(children) } : item;
@@ -172,24 +197,35 @@ function withLevel(
 function mapItems(
   items: CatalogItems,
   childrenKey: string | undefined,
-  each: (item: Record<string, unknown>, index: number) => Record<string, unknown> | null,
+  each: (
+    item: Record<string, unknown>,
+    index: number,
+  ) => Record<string, unknown> | null,
 ): Record<string, unknown>[] {
   return items.flatMap((item, index) => {
     const kept = each(item, index);
     if (!kept) return [];
     const children = childItemsOf(kept, childrenKey);
     return [
-      children ? { ...kept, [childrenKey!]: mapItems(children, childrenKey, each) } : kept,
+      children
+        ? { ...kept, [childrenKey!]: mapItems(children, childrenKey, each) }
+        : kept,
     ];
   });
 }
 
 /** Where a position falls in a list of items (keys as `getItemKey` reads them), else -1. */
-function positionIndex(items: CatalogItems, at: CatalogListPosition): number {
+function positionIndex(
+  items: CatalogItems,
+  at: CatalogListPosition,
+  keyField?: string,
+): number {
   if (at === "start") return 0;
   if ("index" in at) return Math.min(at.index, items.length);
   const key = "before" in at ? at.before : at.after;
-  const found = items.findIndex((item, index) => getItemKey(item, index) === key);
+  const found = items.findIndex(
+    (item, index) => itemKey(item, index, keyField) === key,
+  );
   return found < 0 ? -1 : "before" in at ? found : found + 1;
 }
 
@@ -199,9 +235,16 @@ function levelOfPosition(
   at: CatalogListPosition,
   parent: string | null | undefined,
   childrenKey: string | undefined,
+  keyField?: string,
 ): string | null | undefined {
   if (at === "start" || "index" in at) return parent ?? null;
-  return levelOfKey(items, "before" in at ? at.before : at.after, childrenKey);
+  return levelOfKey(
+    items,
+    "before" in at ? at.before : at.after,
+    childrenKey,
+    null,
+    keyField,
+  );
 }
 
 /**
@@ -212,6 +255,7 @@ function replayItemEdits(
   base: CatalogItems,
   edits: readonly CatalogItemEdit[],
   childrenKey?: string,
+  keyField?: string,
 ): Record<string, unknown>[] {
   let items: CatalogItems = [...base];
   const at = (
@@ -219,50 +263,119 @@ function replayItemEdits(
     change: (level: CatalogItems) => CatalogItems,
   ) => {
     if (parent === undefined) return;
-    items = withLevel(items, parent, childrenKey, change) ?? items;
+    items = withLevel(items, parent, childrenKey, change, keyField) ?? items;
   };
   for (const edit of edits) {
-    if (edit.kind === "append") at(edit.parent ?? null, (level) => [...level, edit.item]);
+    if (edit.kind === "append")
+      at(edit.parent ?? null, (level) => [...level, edit.item]);
     else if (edit.kind === "insert")
-      at(levelOfPosition(items, edit.at, edit.parent, childrenKey), (level) => {
-        const index = positionIndex(level, edit.at);
-        return index < 0
-          ? level
-          : [...level.slice(0, index), edit.item, ...level.slice(index)];
-      });
+      at(
+        levelOfPosition(items, edit.at, edit.parent, childrenKey, keyField),
+        (level) => {
+          const index = positionIndex(level, edit.at, keyField);
+          return index < 0
+            ? level
+            : [...level.slice(0, index), edit.item, ...level.slice(index)];
+        },
+      );
     else if (edit.kind === "move") {
       // (`move` · `moveBefore` · `moveAfter` — the moved items keep their order, from any level.)
       const keys = new Set(edit.keys);
       const moved: Record<string, unknown>[] = [];
       const rest = mapItems(items, childrenKey, (item, index) => {
-        if (!keys.has(getItemKey(item, index))) return item;
+        if (!keys.has(itemKey(item, index, keyField))) return item;
         moved.push(item);
         return null;
       });
-      const level = levelOfPosition(rest, edit.to, edit.toParent, childrenKey);
+      const level = levelOfPosition(
+        rest,
+        edit.to,
+        edit.toParent,
+        childrenKey,
+        keyField,
+      );
       const next =
         level === undefined
           ? undefined
-          : withLevel(rest, level, childrenKey, (items) => {
-              const index = positionIndex(items, edit.to);
-              return index < 0
-                ? items
-                : [...items.slice(0, index), ...moved, ...items.slice(index)];
-            });
+          : withLevel(
+              rest,
+              level,
+              childrenKey,
+              (items) => {
+                const index = positionIndex(items, edit.to, keyField);
+                return index < 0
+                  ? items
+                  : [...items.slice(0, index), ...moved, ...items.slice(index)];
+              },
+              keyField,
+            );
       if (next) items = next;
     } else if (edit.kind === "update")
       items = mapItems(items, childrenKey, (item, index) =>
-        getItemKey(item, index) === edit.key ? { ...item, ...edit.patch } : item,
+        itemKey(item, index, keyField) === edit.key
+          ? { ...item, ...edit.patch }
+          : item,
       );
     else if (edit.keys === "all") items = [];
     else {
       const keys = new Set(edit.keys);
       items = mapItems(items, childrenKey, (item, index) =>
-        keys.has(getItemKey(item, index)) ? null : item,
+        keys.has(itemKey(item, index, keyField)) ? null : item,
       );
     }
   }
   return [...items];
+}
+
+/** Run the same Tree edit operations on flat rows, then persist the result as flat parent IDs. */
+function replayFlatTreeEdits(
+  base: CatalogItems,
+  edits: readonly CatalogItemEdit[],
+  parentField: string,
+  keyField?: string,
+): Record<string, unknown>[] {
+  const childField = "__compositionFlatTreeChildren__";
+  const nested = parentRowsToTree(
+    base.map((item, index) =>
+      toItemProjectionRow(
+        item,
+        index,
+        keyField ? { value: keyField } : undefined,
+      ),
+    ),
+    parentField,
+  );
+  const toItems = (nodes: typeof nested): Record<string, unknown>[] =>
+    nodes.map(({ row, children }) => ({
+      ...(row.item as Record<string, unknown>),
+      [childField]: toItems(children),
+    }));
+  const edited = replayItemEdits(toItems(nested), edits, childField, keyField);
+  const flat: Record<string, unknown>[] = [];
+  const rawKey = (
+    item: Record<string, unknown>,
+  ): string | number | undefined => {
+    for (const field of [keyField, "id", "key", "value"]) {
+      if (!field) continue;
+      const value = item[field];
+      if ((typeof value === "string" && value) || typeof value === "number")
+        return value;
+    }
+    return undefined;
+  };
+  const visit = (items: CatalogItems, parent: string | number | null) => {
+    items.forEach((item, index) => {
+      const { [childField]: children, ...rest } = item;
+      flat.push({ ...rest, [parentField]: parent });
+      if (Array.isArray(children))
+        visit(
+          children as Record<string, unknown>[],
+          rawKey(item) ?? itemKey(item, index, keyField),
+        );
+    });
+  };
+  visit(edited, null);
+  return flat;
 }
 
 export interface CatalogPreviewSessionOptions {
@@ -428,7 +541,8 @@ export class CatalogPreviewSession {
           this.reloadedItems.delete(collection.id);
         this.receivedItems.set(collection.id, received);
       }
-      this.endpoints = (data.apiEndpoints ?? []) as unknown as typeof this.endpoints;
+      this.endpoints = (data.apiEndpoints ??
+        []) as unknown as typeof this.endpoints;
       this.variables = (data.variables ??
         []) as unknown as readonly VariableDef[];
       this.services = catalogPreviewDataServices(
@@ -484,7 +598,9 @@ export class CatalogPreviewSession {
     // Another path (`/detail/u1` → `/detail/u2`, or into the page): the `{{ params.… }}` readers
     // resolve again (the root resolves every page's records ahead).
     if (this.currentRoot) {
-      const errors = this.currentRoot.refreshState(new Set([CATALOG_PARAMS_ROOT]));
+      const errors = this.currentRoot.refreshState(
+        new Set([CATALOG_PARAMS_ROOT]),
+      );
       if (errors.length) console.error("[CatalogPreview] params:", ...errors);
     }
     this.loadRouted();
@@ -584,20 +700,29 @@ export class CatalogPreviewSession {
 
   /** The collections as the bound components read them: the Builder's items with the edits replayed. */
   private itemSources(): readonly CollectionDataSource[] {
-    if (!this.itemEdits.size && !this.reloadedItems.size) return this.collections;
+    if (!this.itemEdits.size && !this.reloadedItems.size)
+      return this.collections;
     return this.collections.map((source) => {
       const reloaded = source.id && this.reloadedItems.get(source.id);
-      const collection = reloaded ? { ...source, runtimeData: reloaded } : source;
+      const collection = reloaded
+        ? { ...source, runtimeData: reloaded }
+        : source;
       const edits = collection.id && this.itemEdits.get(collection.id);
       if (!edits) return collection;
       // (The items the snapshot shows — `resolveCollectionSnapshot`: mock when `useMockData`, else
       // the API's items, else mock.)
       const api = !collection.useMockData && !!collection.runtimeData;
-      const items = replayItemEdits(
-        (api ? collection.runtimeData : collection.mockData) ?? [],
-        edits,
-        this.childrenKeyOf(collection.id),
-      );
+      const base = (api ? collection.runtimeData : collection.mockData) ?? [];
+      const parentField = this.parentIdKeyOf(collection.id);
+      const keyField = this.treeFieldKeyOf(collection.id, "value");
+      const items = parentField
+        ? replayFlatTreeEdits(base, edits, parentField, keyField)
+        : replayItemEdits(
+            base,
+            edits,
+            this.childrenKeyOf(collection.id),
+            keyField,
+          );
       return api
         ? { ...collection, runtimeData: items }
         : { ...collection, mockData: items };
@@ -605,7 +730,9 @@ export class CatalogPreviewSession {
   }
   /** A collection's items as the Preview shows them (the rules' edits included). */
   collectionItems(collectionId: string): readonly unknown[] {
-    const collection = this.itemSources().find((item) => item.id === collectionId);
+    const collection = this.itemSources().find(
+      (item) => item.id === collectionId,
+    );
     if (!collection) return [];
     return !collection.useMockData && collection.runtimeData
       ? collection.runtimeData
@@ -629,7 +756,8 @@ export class CatalogPreviewSession {
       const type = types.get(key);
       if (type === "number" && typeof field === "string") {
         const number = Number(field);
-        next[key] = field.trim() === "" || Number.isNaN(number) ? field : number;
+        next[key] =
+          field.trim() === "" || Number.isNaN(number) ? field : number;
       } else if (type === "boolean" && typeof field === "string")
         next[key] = field === "true" || field === "on";
       else next[key] = field;
@@ -643,13 +771,20 @@ export class CatalogPreviewSession {
       items: readonly unknown[],
     ) => CatalogItemEdit | { reason: string },
   ): { ok: boolean; reason?: string } {
-    const collection = this.collections.find((item) => item.id === collectionId);
-    if (!collection) return { ok: false, reason: `collection 없음: ${collectionId}` };
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    if (!collection)
+      return { ok: false, reason: `collection 없음: ${collectionId}` };
     const edit = plan(collection, this.collectionItems(collectionId));
     if ("reason" in edit) return { ok: false, reason: edit.reason };
-    this.itemEdits.set(collectionId, [...(this.itemEdits.get(collectionId) ?? []), edit]);
+    this.itemEdits.set(collectionId, [
+      ...(this.itemEdits.get(collectionId) ?? []),
+      edit,
+    ]);
     const errors = this.currentRoot?.refreshRows() ?? [];
-    if (errors.length) console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
+    if (errors.length)
+      console.error(`[CatalogPreview] ${edit.kind}:`, ...errors);
     this.changed();
     return { ok: true };
   }
@@ -693,9 +828,13 @@ export class CatalogPreviewSession {
       if (
         typeof at === "object" &&
         !("index" in at) &&
-        !this.keysOf(collectionId, items).has("before" in at ? at.before : at.after)
+        !this.keysOf(collectionId, items).has(
+          "before" in at ? at.before : at.after,
+        )
       )
-        return { reason: `항목 없음: ${"before" in at ? at.before : at.after}` };
+        return {
+          reason: `항목 없음: ${"before" in at ? at.before : at.after}`,
+        };
       const item = this.itemFields(collection, value);
       if (
         (collection.schema ?? []).some((field) => field.key === "id") &&
@@ -718,15 +857,21 @@ export class CatalogPreviewSession {
     toParentKey?: string | null,
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (_collection, items) => {
-      const missingParent = this.missingParent(collectionId, items, toParentKey);
+      const missingParent = this.missingParent(
+        collectionId,
+        items,
+        toParentKey,
+      );
       if (missingParent) return missingParent;
       if (toParentKey != null && keys.includes(toParentKey))
         return { reason: `옮길 항목 ${toParentKey} 가 새 부모다` };
       const present = this.keysOf(collectionId, items);
-      const target = "index" in to ? undefined : "before" in to ? to.before : to.after;
-      const missing = [...keys, ...(target === undefined ? [] : [target])].filter(
-        (key) => !present.has(key),
-      );
+      const target =
+        "index" in to ? undefined : "before" in to ? to.before : to.after;
+      const missing = [
+        ...keys,
+        ...(target === undefined ? [] : [target]),
+      ].filter((key) => !present.has(key));
       if (!keys.length) return { reason: "옮길 항목의 key 가 없다" };
       if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
       if (target !== undefined && keys.includes(target))
@@ -746,12 +891,15 @@ export class CatalogPreviewSession {
     value: Readonly<Record<string, unknown>>,
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (collection, items) => {
-      const target = key ?? (value.id === undefined ? undefined : String(value.id));
+      const target =
+        key ?? (value.id === undefined ? undefined : String(value.id));
       if (target === undefined) return { reason: "수정할 항목의 key 가 없다" };
       if (!this.keysOf(collectionId, items).has(target))
         return { reason: `항목 없음: ${target}` };
       const patch = this.itemFields(collection, value);
       for (const field of ITEM_KEY_FIELDS) delete patch[field];
+      const valueField = this.treeFieldKeyOf(collectionId, "value");
+      if (valueField) delete patch[valueField];
       return { kind: "update", key: target, patch };
     });
   }
@@ -765,43 +913,58 @@ export class CatalogPreviewSession {
         const present = this.keysOf(collectionId, items);
         const missing = keys.filter((key) => !present.has(key));
         if (!keys.length) return { reason: "삭제할 항목의 key 가 없다" };
-        if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
+        if (missing.length)
+          return { reason: `항목 없음: ${missing.join(", ")}` };
       }
       return { kind: "remove", keys };
     });
   }
   private itemSerial = 0;
-  /**
-   * The field holding a collection's child items (`useTreeData.getChildren`): a bound component's
-   * `fieldMap.children` (the schema field's key), else none — a flat list.
-   */
-  private childrenKeyOf(collectionId: string | undefined): string | undefined {
+  /** A bound Tree role's schema key, if that collection has the role mapped. */
+  private treeFieldKeyOf(
+    collectionId: string | undefined,
+    role: "children" | "parentId" | "value",
+  ): string | undefined {
     const graph = this.graph;
     if (!graph || !collectionId) return undefined;
-    const schema = this.collections.find((item) => item.id === collectionId)?.schema ?? [];
+    const schema =
+      this.collections.find((item) => item.id === collectionId)?.schema ?? [];
     for (const id of graph.bindingsOf(`data:collection:${collectionId}`)) {
       const entry = graph.getEntry(id as never);
       const field =
-        entry?.kind === "node" ? entry.binding?.fieldMap.children : undefined;
+        entry?.kind === "node" ? entry.binding?.fieldMap[role] : undefined;
       if (!field) continue;
       const fieldId = field.replace(/^data:field:/, "");
       return schema.find((item) => item.id === fieldId)?.key ?? fieldId;
     }
     return undefined;
   }
+  private childrenKeyOf(collectionId: string | undefined): string | undefined {
+    return this.treeFieldKeyOf(collectionId, "children");
+  }
+  private parentIdKeyOf(collectionId: string | undefined): string | undefined {
+    return this.treeFieldKeyOf(collectionId, "parentId");
+  }
   /** Every key in a collection's items — the tree's, every level. */
   private keysOf(collectionId: string, items: readonly unknown[]): Set<string> {
-    return itemKeysOf(items as CatalogItems, this.childrenKeyOf(collectionId));
+    return itemKeysOf(
+      items as CatalogItems,
+      this.childrenKeyOf(collectionId),
+      this.treeFieldKeyOf(collectionId, "value"),
+    );
   }
-  /** A tree edit's parent that is not there (a flat list has none), else undefined. */
+  /** A tree edit's parent that is not in the collection, else undefined. */
   private missingParent(
     collectionId: string,
     items: readonly unknown[],
     parentKey: string | null | undefined,
   ): { reason: string } | undefined {
     if (parentKey == null) return undefined;
-    if (!this.childrenKeyOf(collectionId))
-      return { reason: "하위 항목 필드 (fieldMap.children) 가 없는 목록이다" };
+    if (!this.childrenKeyOf(collectionId) && !this.parentIdKeyOf(collectionId))
+      return {
+        reason:
+          "하위 항목 필드 (fieldMap.children 또는 fieldMap.parentId) 가 없는 목록이다",
+      };
     return this.keysOf(collectionId, items).has(parentKey)
       ? undefined
       : { reason: `부모 항목 없음: ${parentKey}` };
@@ -820,15 +983,21 @@ export class CatalogPreviewSession {
    */
   /** The query endpoint that fills a collection (`targetCollection`), refusing a mock one. */
   private queryEndpoint(collectionId: string) {
-    const collection = this.collections.find((item) => item.id === collectionId);
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
     if (!collection) throw new Error(`collection 없음: ${collectionId}`);
     if (collection.useMockData)
-      throw new Error(`${collection.name ?? collectionId} 은 목업 데이터를 쓴다 (API 연결 없음)`);
+      throw new Error(
+        `${collection.name ?? collectionId} 은 목업 데이터를 쓴다 (API 연결 없음)`,
+      );
     const endpoint = this.endpoints.find(
       (item) => item.targetCollection === collection.name,
     );
     if (!endpoint)
-      throw new Error(`${collection.name ?? collectionId} 을 채우는 endpoint 없음`);
+      throw new Error(
+        `${collection.name ?? collectionId} 을 채우는 endpoint 없음`,
+      );
     return endpoint;
   }
   /** One `load` of a collection's query endpoint with its load arguments (and a cursor). */
@@ -883,11 +1052,16 @@ export class CatalogPreviewSession {
     }
   }
   /** Show a collection's loaded items (they replace the Builder's — the rules' edits go). */
-  private showLoaded(collectionId: string, items: Record<string, unknown>[]): void {
+  private showLoaded(
+    collectionId: string,
+    items: Record<string, unknown>[],
+  ): void {
     this.reloadedItems.set(collectionId, items);
     this.itemEdits.delete(collectionId);
     const errors =
-      this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
+      this.currentRoot?.refreshRows(
+        new Set([`data:collection:${collectionId}`]),
+      ) ?? [];
     if (errors.length) console.error("[CatalogPreview] reload:", ...errors);
     this.changed();
   }
@@ -916,7 +1090,11 @@ export class CatalogPreviewSession {
       listener(collectionId, keys, join);
   }
   private readonly loadedSelectionListeners = new Set<
-    (collectionId: string, keys: readonly string[] | "all", join: boolean) => void
+    (
+      collectionId: string,
+      keys: readonly string[] | "all",
+      join: boolean,
+    ) => void
   >();
   /** Listens for the keys a load returned (the rule runtime selects them — `selectLoaded`). */
   onLoadedSelection(
@@ -937,9 +1115,15 @@ export class CatalogPreviewSession {
     const cursor = this.loadArguments.get(collectionId)?.cursor;
     // (A load in flight first — the reference's `loadMore` while loading does nothing.)
     const state = this.loadingStates.get(collectionId);
-    if (cursor === undefined || (state && state !== "idle" && state !== "error"))
+    if (
+      cursor === undefined ||
+      (state && state !== "idle" && state !== "error")
+    )
       return;
-    const shown = this.collectionItems(collectionId) as Record<string, unknown>[];
+    const shown = this.collectionItems(collectionId) as Record<
+      string,
+      unknown
+    >[];
     const page = await this.loadPage(collectionId, "loadingMore", cursor);
     if (!page) return;
     this.showLoaded(collectionId, [...shown, ...page.items]);
@@ -959,10 +1143,14 @@ export class CatalogPreviewSession {
    * endpoint gives a cursor (`responseMapping.cursorPath`) or reads `{{ cursor }}`.
    */
   pages(collectionId: string): boolean {
-    const collection = this.collections.find((item) => item.id === collectionId);
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
     const endpoint =
       collection && !collection.useMockData
-        ? this.endpoints.find((item) => item.targetCollection === collection.name)
+        ? this.endpoints.find(
+            (item) => item.targetCollection === collection.name,
+          )
         : undefined;
     return (
       !!endpoint &&
@@ -985,11 +1173,18 @@ export class CatalogPreviewSession {
       const source = graph.getEntry(record.sourceId as never);
       const binding = source?.kind === "node" ? source.binding : undefined;
       if (binding) {
-        const collectionId = binding.collectionId.replace(/^data:collection:/, "");
-        const collection = this.collections.find((item) => item.id === collectionId);
+        const collectionId = binding.collectionId.replace(
+          /^data:collection:/,
+          "",
+        );
+        const collection = this.collections.find(
+          (item) => item.id === collectionId,
+        );
         const endpoint =
           collection && !collection.useMockData
-            ? this.endpoints.find((item) => item.targetCollection === collection.name)
+            ? this.endpoints.find(
+                (item) => item.targetCollection === collection.name,
+              )
             : undefined;
         return endpoint && endpointReadsTemplate(endpoint, "filterText")
           ? collectionId
@@ -1018,10 +1213,15 @@ export class CatalogPreviewSession {
     await this.reload(collectionId, "sorting");
   }
 
-  private setLoadingState(collectionId: string, state: CatalogLoadingState): void {
+  private setLoadingState(
+    collectionId: string,
+    state: CatalogLoadingState,
+  ): void {
     this.loadingStates.set(collectionId, state);
     const errors =
-      this.currentRoot?.refreshRows(new Set([`data:collection:${collectionId}`])) ?? [];
+      this.currentRoot?.refreshRows(
+        new Set([`data:collection:${collectionId}`]),
+      ) ?? [];
     if (errors.length) console.error("[CatalogPreview] loading:", ...errors);
     this.changed();
   }
@@ -1051,8 +1251,14 @@ export class CatalogPreviewSession {
       let unresolved = false;
       const value = text.replace(/\{\{[^}]*\}\}/g, (template) => {
         // `load({cursor, filterText, sortDescriptor})` — empty until given.
-        const path = /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(template);
-        if (path && (ENDPOINT_LOAD_ARGUMENTS as readonly string[]).includes(path[1]!)) {
+        const path =
+          /^\{\{\s*([A-Za-z_$][\w$]*)((?:\.[A-Za-z_$][\w$]*)*)\s*\}\}$/.exec(
+            template,
+          );
+        if (
+          path &&
+          (ENDPOINT_LOAD_ARGUMENTS as readonly string[]).includes(path[1]!)
+        ) {
           let value: unknown = args[path[1] as keyof typeof args];
           for (const segment of (path[2] ?? "").split(".").filter(Boolean))
             value =
@@ -1084,7 +1290,10 @@ export class CatalogPreviewSession {
       // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
       if (
         !endpoint ||
-        !(endpointReadsTemplate(endpoint) || endpoint.responseMapping?.cursorPath)
+        !(
+          endpointReadsTemplate(endpoint) ||
+          endpoint.responseMapping?.cursorPath
+        )
       )
         continue;
       const url = resolvedEndpointUrl(
@@ -1117,10 +1326,14 @@ export class CatalogPreviewSession {
     const binding = source?.kind === "node" ? source.binding : undefined;
     if (!binding) return undefined;
     const collectionId = binding.collectionId.replace(/^data:collection:/, "");
-    const collection = this.collections.find((item) => item.id === collectionId);
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
     const endpoint =
       collection && !collection.useMockData
-        ? this.endpoints.find((item) => item.targetCollection === collection.name)
+        ? this.endpoints.find(
+            (item) => item.targetCollection === collection.name,
+          )
         : undefined;
     if (!endpoint || !endpointReadsTemplate(endpoint, "sortDescriptor"))
       return undefined;

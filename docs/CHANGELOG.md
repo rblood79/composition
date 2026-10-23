@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree — Checkbox 선택 스타일 표시] - 2026-10-23
+
+### Fixed
+
+- **Tree의 Selection Style = Checkbox가 행에 체크박스를 표시** — TreeItem origin에 RAC `Checkbox[slot=selection]`을 제공하고, `selectionMode`가 선택을 허용하며 `selectionStyle`이 `checkbox`일 때 Canvas와 Preview에 표시한다. `highlight` 또는 `none`에서는 숨긴다. Preview 체크박스 클릭은 해당 행을 선택한다.
+  - **Why:** `selectionStyle`은 RAC의 선택 동작으로만 변환됐고 TreeItem 행에는 선택 Checkbox 슬롯이 없어 표시가 바뀌지 않았다.
+  - 위치: `packages/shared/src/catalog/document/codeCatalogLibrary.ts` · `catalog/runtime/presence.ts` · `catalog/runtime/delegatedDom.runtime.ts` · `components/Tree.tsx` · `components/styles/Tree.css` · 인접 테스트
+
+## [Tree — 평면 collection의 부모 ID 연동] - 2026-10-23
+
+### Added
+
+- **Tree 데이터 연결에 부모 ID 필드 추가** — `id`·`parentId` 행을 가진 일반적인 테이블에서 부모 ID 필드를 선택하면 Canvas와 Preview가 같은 계층을 표시한다. 원본 행 순서를 형제 순서로 사용하며, 기존 하위 항목 배열 연결은 유지한다.
+  - Preview의 하위 항목 추가·이동·삭제는 평면 행의 부모 ID를 갱신한다. 존재하지 않는 부모와 순환 관계는 행을 숨기지 않고 최상위에 표시한다.
+  - **Why:** 기존 연결은 각 행의 `children` 배열만 읽어, 평면 테이블의 부모 관계가 모두 한 단계로 표시됐다.
+  - 위치: `packages/shared/src/collections/resolveCollectionItems.ts` · `catalog/runtime/dataBinding.ts` · `catalogPreviewSession.ts` · `components/Tree.tsx` · `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` · 인접 테스트
+
 ## [ComboBox — 입력칸 글자가 선택을 따른다 · API 편집기 Params 빠른 입력 글자 유실] - 2026-10-23
 
 ### Fixed

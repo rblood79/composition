@@ -33,8 +33,18 @@ const ITEMS = [
   },
   { id: "img", name: "Images" },
 ];
+const FLAT_ITEMS = [
+  { id: "docs", name: "Docs", parentId: null },
+  { id: "a", name: "Alpha", parentId: "docs" },
+  { id: "b", name: "Beta", parentId: "docs" },
+  { id: "img", name: "Images", parentId: null },
+];
+const NUMBER_ITEMS = [
+  { id: 1, name: "Root", parentId: null },
+  { id: 2, name: "Child", parentId: 1 },
+];
 
-async function treePreview(children = true) {
+async function treePreview(children: boolean | "flat" | "numeric" = true) {
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
   const h = await openAdr280Preview(["Tree", "Button"]);
@@ -51,8 +61,14 @@ async function treePreview(children = true) {
             { id: "f-id", key: "id", type: "string" },
             { id: "f-name", key: "name", type: "string" },
             { id: "f-children", key: "children", type: "array" },
+            { id: "f-parent", key: "parentId", type: "string" },
           ],
-          mockData: ITEMS,
+          mockData:
+            children === "numeric"
+              ? NUMBER_ITEMS
+              : children === "flat"
+                ? FLAT_ITEMS
+                : ITEMS,
           useMockData: true,
         },
       ],
@@ -67,7 +83,11 @@ async function treePreview(children = true) {
         source: "dataTable",
         collectionId: "files",
         name: "Files",
-        ...(children ? { fieldMap: { children: "f-children" } } : {}),
+        ...(children === "flat" || children === "numeric"
+          ? { fieldMap: { parentId: "f-parent" } }
+          : children
+            ? { fieldMap: { children: "f-children" } }
+            : {}),
       })!,
     ),
   );
@@ -84,7 +104,8 @@ async function treePreview(children = true) {
   /** The tree's rows as `level:key` (RAC's row key = the item's key), in order. */
   const rows = () =>
     [...(h.element(tree)?.querySelectorAll('[role="row"]') ?? [])].map(
-      (row) => `${row.getAttribute("aria-level")}:${row.getAttribute("data-key")}`,
+      (row) =>
+        `${row.getAttribute("aria-level")}:${row.getAttribute("data-key")}`,
     );
   const press = () =>
     act(() => {
@@ -106,6 +127,20 @@ describe("useTreeData — a bound Tree shows every level", () => {
   it("without the children role the tree stays one level (the old rows)", async () => {
     const h = await treePreview(false);
     expect(h.rows()).toEqual(["1:docs", "1:img"]);
+    h.view.unmount();
+  });
+
+  it("fieldMap.parentId nests flat records under their parent in source order", async () => {
+    const h = await treePreview("flat");
+    expect(h.rows()).toEqual(["1:docs", "1:img"]);
+    h.expand("docs");
+    h.press();
+    expect(h.rows()).toEqual(["1:docs", "2:a", "2:b", "1:img"]);
+    expect(
+      [...(h.element(h.tree)?.querySelectorAll('[role="row"]') ?? [])].map(
+        (row) => row.textContent?.trim(),
+      ),
+    ).toEqual(["Docs", "Alpha", "Beta", "Images"]);
     h.view.unmount();
   });
 });
@@ -137,6 +172,49 @@ describe("useTreeData — a row's text is its item's (`<Text>{item.name}</Text>`
 });
 
 describe("useTreeData — edits with a parent", () => {
+  it("numeric parent IDs keep their field type after a flat Tree edit", async () => {
+    const h = await treePreview("numeric");
+    act(() => {
+      expect(h.session.append("files", { id: 3, name: "New" }, "1").ok).toBe(
+        true,
+      );
+    });
+    const items = h.session.collectionItems("files") as Record<
+      string,
+      unknown
+    >[];
+    expect(items.find((item) => item.id === 3)?.parentId).toBe(1);
+    h.view.unmount();
+  });
+
+  it("flat records keep parentId and source order after append, move, and remove", async () => {
+    const h = await treePreview("flat");
+    act(() => {
+      expect(
+        h.session.append("files", { id: "c", name: "Gamma" }, "docs").ok,
+      ).toBe(true);
+      expect(h.session.move("files", ["b"], { index: 0 }, "img").ok).toBe(true);
+      expect(h.session.remove("files", ["a"]).ok).toBe(true);
+    });
+    const items = h.session.collectionItems("files") as Record<
+      string,
+      unknown
+    >[];
+    expect(items.map(({ id, parentId }) => [id, parentId])).toEqual([
+      ["docs", null],
+      ["c", "docs"],
+      ["img", null],
+      ["b", "img"],
+    ]);
+    h.expand("docs");
+    h.press();
+    expect(h.rows()).toEqual(["1:docs", "2:c", "1:img"]);
+    h.expand("img");
+    h.press();
+    expect(h.rows()).toEqual(["1:docs", "1:img", "2:b"]);
+    h.view.unmount();
+  });
+
   it("insert(parentKey, index) · append(parentKey) · move(key, toParentKey, index) · a nested key's remove · update", async () => {
     const h = await treePreview();
     const names = () => {
@@ -207,7 +285,12 @@ describe("useTreeData — edits with a parent", () => {
     // (`append` · `insert` · `prepend` take a parent too — the stored rule reopens the same.)
     for (const action of [
       { opcode: "append", value: "!event.formData", parentKey: "img" },
-      { opcode: "insert", index: 0, value: "!event.formData", parentKey: "img" },
+      {
+        opcode: "insert",
+        index: 0,
+        value: "!event.formData",
+        parentKey: "img",
+      },
       { opcode: "prepend", value: "!event.formData", parentKey: "!event.key" },
     ] as const)
       expect(() =>

@@ -1,14 +1,12 @@
 import { getReusableOriginId, resolveComponentRule } from "@composition/shared";
 import {
   CODE_CATALOG_SUPPORTED_TYPES,
+  CODE_CATALOG_REUSABLE_TEMPLATES,
   catalogTypeDefinition,
   catalogTypeDefinitionId,
 } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { instanceContract } from "../../../../../packages/shared/src/catalog/document/library";
-import {
-  REUSABLE_ORIGIN_DEFINITIONS,
-  REUSABLE_ORIGIN_TEMPLATES,
-} from "../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { REUSABLE_ORIGIN_DEFINITIONS } from "../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
 import type { LibraryDefinition } from "../../../../../packages/shared/src/catalog/document/types";
 import {
   deriveOptions,
@@ -21,7 +19,7 @@ const definitions = new Map<string, LibraryDefinition>(
   REUSABLE_ORIGIN_DEFINITIONS.map((definition) => [definition.id, definition]),
 );
 const templates = new Map(
-  REUSABLE_ORIGIN_TEMPLATES.map((node) => [String(node.id), node]),
+  CODE_CATALOG_REUSABLE_TEMPLATES.map((node) => [String(node.id), node]),
 );
 
 /**

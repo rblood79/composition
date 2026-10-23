@@ -764,6 +764,7 @@ export interface TranslationKeys {
     fieldMapValue: string;
     fieldMapIcon: string;
     fieldMapChildren: string;
+    fieldMapParentId: string;
     fieldMapAuto: string;
     fieldTemplatePlaceholder: string;
     insertField: string;

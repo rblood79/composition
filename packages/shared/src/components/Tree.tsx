@@ -10,13 +10,16 @@ import {
 import { Collection } from "react-aria-components/Collection";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { InfoIcon, ChevronRightIcon, Minus } from "lucide-react";
+import { Children, isValidElement } from "react";
 import { resolveSelectionBehavior } from "./selectionStyle";
+import { Checkbox } from "./Checkbox";
 import type { DataBinding, DataBindingValue } from "../types";
 import type { ComponentSize } from "../types";
 import { useResolvedCollectionItems } from "../hooks";
 import {
+  parentRowsToTree,
   toItemProjectionRow,
-  type CollectionProjectionRow,
+  type CollectionTreeRow,
 } from "../collections/resolveCollectionItems";
 import { Skeleton } from "./Skeleton";
 
@@ -114,9 +117,8 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
   };
 
   // ADR-152 Phase 4: raw useCollectionData → shared 정규화 (useResolvedCollectionItems).
-  //   최상위 행은 hook 이, 자식 (`children` 고정 key — DataField.children 중첩 규약과 같은
-  //   이름, fieldMap.children 역할은 수요 발생 시 additive) 은 같은 toItemProjectionRow +
-  //   roles 로 정규화한다 — item key = fieldMap value 역할 · 휴리스틱, 라벨 = row.label.
+  //   최상위 행은 hook 이, 자식은 fieldMap.children 또는 fieldMap.parentId 로 연결한다.
+  //   item key = fieldMap value 역할 · 휴리스틱, 라벨 = row.label.
   const {
     rows: treeRows,
     loading,
@@ -126,6 +128,11 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     dataBinding: dataBinding as DataBinding,
     componentName: "Tree",
     fallbackData: [],
+    // A parent may appear after the usual row window; build the hierarchy from all rows.
+    windowLimit: (dataBinding as DataBindingValue | undefined)?.fieldMap
+      ?.parentId
+      ? Number.MAX_SAFE_INTEGER
+      : undefined,
   });
   const treeData = treeRows;
 
@@ -164,16 +171,23 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
 
   // DataBinding이 있고 데이터가 로드된 경우
   if (dataBinding && treeData.length > 0) {
+    const treeNodes = fieldRoles?.parentId
+      ? parentRowsToTree(treeData, fieldRoles.parentId)
+      : treeData.map((row) => ({ row, children: [] }));
     const renderTreeItemsRecursively = (
-      rows: readonly CollectionProjectionRow[],
+      nodes: readonly CollectionTreeRow[],
     ): React.ReactNode => {
-      return rows.map((row) => {
+      return nodes.map(({ row, children: linkedChildren }) => {
         const item = (row.item ?? {}) as Record<string, unknown>;
-        const childItems = Array.isArray(item.children)
-          ? (item.children as unknown[]).map((child, index) =>
-              toItemProjectionRow(child, index, fieldRoles),
-            )
-          : [];
+        const nested = item[fieldRoles?.children ?? "children"];
+        const childItems = fieldRoles?.parentId
+          ? linkedChildren
+          : Array.isArray(nested)
+            ? (nested as unknown[]).map((child, index) => ({
+                row: toItemProjectionRow(child, index, fieldRoles),
+                children: [],
+              }))
+            : [];
         const hasChildren = childItems.length > 0;
 
         return (
@@ -208,7 +222,7 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
             showInfoButton={false}
           />
         ) : (
-          renderTreeItemsRecursively(treeData)
+          renderTreeItemsRecursively(treeNodes)
         )}
       </AriaTree>
     );
@@ -234,13 +248,18 @@ export function TreeItemContent(
     hasChildren?: boolean;
   },
 ) {
+  const hasAuthoredSelection = Children.toArray(props.children).some(
+    (child) =>
+      isValidElement<{ slot?: string }>(child) &&
+      child.props.slot === "selection",
+  );
   return (
     <AriaTreeItemContent {...props}>
-      {/* (No automatic selection checkbox: a selection checkbox is the author's
-          `Checkbox[slot=selection]` node — ADR-256 Phase 5h-2 · 후속 16 — the Canvas draws none
-          either.) */}
-      {() => (
+      {({ selectionBehavior, selectionMode }) => (
         <>
+          {selectionBehavior === "toggle" &&
+            selectionMode !== "none" &&
+            !hasAuthoredSelection && <Checkbox slot="selection" size="S" />}
           <Button slot="chevron">
             {props.hasChildren ? (
               <ChevronRightIcon size={16} data-chevron="true" />

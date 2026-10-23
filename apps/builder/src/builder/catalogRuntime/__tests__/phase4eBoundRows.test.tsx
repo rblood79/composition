@@ -243,6 +243,35 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
     ).toBeUndefined();
   });
 
+  it("flat parentId rows resolve all records before the root window is applied", () => {
+    const binding: DataBindingRef = {
+      collectionId: BINDING.collectionId,
+      fieldMap: {
+        value: "data:field:f-id" as DataBindingRef["fieldMap"][string],
+        parentId: "data:field:f-parent" as DataBindingRef["fieldMap"][string],
+      },
+    };
+    const collections = [
+      {
+        id: "c1",
+        schema: [
+          { id: "f-id", key: "id" },
+          { id: "f-parent", key: "parentId" },
+        ],
+        mockData: [
+          { id: "child", parentId: "root", name: "Child" },
+          { id: "root", parentId: null, name: "Root" },
+          { id: "other", parentId: null, name: "Other" },
+        ],
+        useMockData: true,
+      },
+    ];
+    const rows = catalogBoundRows(binding, collections, "items", 1)!;
+    expect(rows.map((item) => item.key)).toEqual(["root"]);
+    expect(rows[0]?.children?.map((item) => item.key)).toEqual(["child"]);
+    expect(rows.total).toBe(2);
+  });
+
   it("edits keep the rows: a value edit on the bound list (fast path), and a role switched off on the row template reaches every row", async () => {
     const { workspace } = await open("ListBox");
     workspace.execute(
@@ -277,12 +306,12 @@ describe("ADR-248 Phase 4e-4e bound rows", () => {
       // (2026-10-14: a placed picker's items are its own ListBoxItem nodes — the ListBox's slot
       // fill; the rows follow the first one, the others are sample items.)
       const { workspace } = await open(type);
-      expect(
-        items(workspace).map((item) => [item.key, item.texts[0]]),
-      ).toEqual([
-        ["a", "Alpha"],
-        ["b", "Beta"],
-      ]);
+      expect(items(workspace).map((item) => [item.key, item.texts[0]])).toEqual(
+        [
+          ["a", "Alpha"],
+          ["b", "Beta"],
+        ],
+      );
     },
   );
 

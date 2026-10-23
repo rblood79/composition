@@ -263,9 +263,11 @@ export interface CollectionFieldRoles {
   icon?: string;
   /** `useTreeData.getChildren` — the field holding an item's child items (a bound Tree's levels). */
   children?: string;
+  /** Flat Tree rows: the field containing the parent item's value/key (null for roots). */
+  parentId?: string;
 }
 
-const FIELD_ROLE_KEYS = ["value", "icon", "children"] as const;
+const FIELD_ROLE_KEYS = ["value", "icon", "children", "parentId"] as const;
 
 /**
  * `dataBinding.fieldMap` (fieldId · v1 key) → 행 key. `schema` 가 있으면 `resolveField`
@@ -293,7 +295,8 @@ export function resolveFieldRoles(
   }
   return roles.value !== undefined ||
     roles.icon !== undefined ||
-    roles.children !== undefined
+    roles.children !== undefined ||
+    roles.parentId !== undefined
     ? roles
     : undefined;
 }
@@ -467,6 +470,64 @@ export function toItemProjectionRow(
     rowIndex,
     value: getItemValue(item, roles),
   };
+}
+
+export interface CollectionTreeRow {
+  row: CollectionProjectionRow;
+  children: CollectionTreeRow[];
+}
+
+/**
+ * Flat adjacency-list rows → tree rows for both the catalog projector and the direct Tree wrapper.
+ * Source order is sibling order. Missing/ambiguous parents and cycles stay visible as roots.
+ */
+export function parentRowsToTree(
+  rows: readonly CollectionProjectionRow[],
+  parentField: string,
+): CollectionTreeRow[] {
+  const nodes: CollectionTreeRow[] = rows.map((row) => ({ row, children: [] }));
+  const counts = new Map<string, number>();
+  for (const row of rows)
+    counts.set(row.itemKey, (counts.get(row.itemKey) ?? 0) + 1);
+  const byKey = new Map<string, CollectionTreeRow>();
+  for (const node of nodes)
+    if (counts.get(node.row.itemKey) === 1) byKey.set(node.row.itemKey, node);
+
+  const parentOf = new Map<CollectionTreeRow, CollectionTreeRow>();
+  for (const node of nodes) {
+    const item = node.row.item;
+    if (!isRecord(item)) continue;
+    const value = item[parentField];
+    if (typeof value !== "string" && typeof value !== "number") continue;
+    const key = String(value);
+    if (!key) continue;
+    const parent = byKey.get(key);
+    if (parent && parent !== node) parentOf.set(node, parent);
+  }
+
+  // Break one edge per cycle. Walk parent chains iteratively so deep trees stay stack-safe.
+  const settled = new Set<CollectionTreeRow>();
+  for (const node of nodes) {
+    if (settled.has(node)) continue;
+    const path: CollectionTreeRow[] = [];
+    const position = new Map<CollectionTreeRow, number>();
+    let current: CollectionTreeRow | undefined = node;
+    while (current && !settled.has(current) && !position.has(current)) {
+      position.set(current, path.length);
+      path.push(current);
+      current = parentOf.get(current);
+    }
+    if (current && position.has(current)) parentOf.delete(current);
+    path.forEach((item) => settled.add(item));
+  }
+
+  const roots: CollectionTreeRow[] = [];
+  for (const node of nodes) {
+    const parent = parentOf.get(node);
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  return roots;
 }
 
 /**

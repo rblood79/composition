@@ -9,6 +9,7 @@ import {
 import { Time, toCalendarDateTime } from "@internationalized/date";
 
 import {
+  Fragment,
   createContext,
   createElement,
   type CSSProperties,
@@ -67,10 +68,7 @@ import {
 import { GridListLoadMoreItem } from "react-aria-components/GridList";
 import { TreeLoadMoreItem } from "react-aria-components/Tree";
 
-import {
-  Menu as AriaMenu,
-  MenuLoadMoreItem,
-} from "react-aria-components/Menu";
+import { Menu as AriaMenu, MenuLoadMoreItem } from "react-aria-components/Menu";
 
 import { Meter as AriaMeter } from "react-aria-components/Meter";
 
@@ -197,6 +195,7 @@ import {
   catalogToggleGroupItems,
   catalogToggleGroupOf,
   catalogTreeItemExpanded,
+  catalogTreeSelectionCheckboxHidden,
   FIELD_HINT_OWNERS,
 } from "./presence";
 
@@ -272,7 +271,8 @@ function serverFiltered(
   const collectionId = input.serverFilterOf?.(input.node.id);
   const setFilterText = input.setFilterText;
   if (!collectionId || !setFilterText) return props;
-  const onInputChange = props.onInputChange as ((value: string) => void) | undefined;
+  const onInputChange = props.onInputChange as
+    ((value: string) => void) | undefined;
   return {
     ...props,
     onInputChange: (value: string) => {
@@ -293,7 +293,8 @@ function boundOwnerOf(
   const own = root.runtime.graph.getEntry(node.sourceId as never);
   if (own?.kind === "node" && own.binding) return node;
   const popover = root.domInputs.get(node.parentId);
-  if (!popover || catalogTypeName(root, popover) !== "Popover") return undefined;
+  if (!popover || catalogTypeName(root, popover) !== "Popover")
+    return undefined;
   const picker = root.domInputs.get(popover.parentId);
   return picker && PICKER_TYPES.has(catalogTypeName(root, picker))
     ? picker
@@ -2341,6 +2342,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // element's props over the context's).
   checkbox: {
     render: (input) => {
+      if (
+        catalogTreeSelectionCheckboxHidden(
+          input.node,
+          (id) => input.root.domInputs.get(id),
+          input.root.typeOf,
+        )
+      )
+        return createElement(Fragment, { key: input.node.id });
       const props = input.node.props;
       const inGroup = !!domToggleGroupOf(input.root, input.node);
       return createElement(RacSlotScope, {

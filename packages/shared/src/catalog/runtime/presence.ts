@@ -526,6 +526,23 @@ function catalogSelectionCheckboxes(
     );
 }
 
+/** A Tree selection slot is visible only in its checkbox selection style. */
+export function catalogTreeSelectionCheckboxHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const item = catalogSelectionCheckboxItem(node, get, typeOf);
+  if (!item || typeOf(item) !== "TreeItem") return false;
+  const tree = catalogCollectionOfItem(item, get, typeOf);
+  return (
+    !tree ||
+    typeOf(tree) !== "Tree" ||
+    tree.props.selectionMode === "none" ||
+    tree.props.selectionStyle !== "checkbox"
+  );
+}
+
 /** ADR-256 Phase 5i-2 — the RAC Table a Column heads (through its TableHeader). */
 function catalogTableOfColumn(
   column: CatalogConsumerNode,
@@ -773,6 +790,8 @@ export function catalogHiddenAtRest(
   if (catalogSkeletonIdle(node, typeOf)) return true;
   // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
   if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
+  // RAC renders a Tree selection Checkbox only for toggle/checkbox selection.
+  if (catalogTreeSelectionCheckboxHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -997,6 +1016,7 @@ export function catalogPresenceDependents(
           ...catalogTreeChevrons(child, get, typeOf).filter((glyph) =>
             catalogTreeChevronGlyphItem(glyph, get, typeOf),
           ),
+          ...catalogSelectionCheckboxes(child, get, typeOf),
         );
         visit(child);
       }

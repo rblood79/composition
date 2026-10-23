@@ -5,19 +5,39 @@
  */
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const treeSource = vi.hoisted(() => ({
+  override: undefined as Record<string, unknown>[] | undefined,
+}));
 
 const schema = [
   { id: "f-uid", key: "uid", type: "string" },
   { id: "f-title", key: "title", type: "string" },
 ];
 const rows = [
-  { id: "auto-1", uid: "U-1", title: "First", content: "C1", children: [{ id: "auto-1a", uid: "U-1a", title: "Child" }] },
+  {
+    id: "auto-1",
+    uid: "U-1",
+    title: "First",
+    content: "C1",
+    children: [{ id: "auto-1a", uid: "U-1a", title: "Child" }],
+  },
   { id: "auto-2", uid: "U-2", title: "Second", content: "C2" },
 ];
 vi.mock("../../hooks/useCollectionData", () => ({
-  useCollectionData: () => ({ data: rows, loading: false, error: null, reload: () => {}, schema }),
+  useCollectionData: () => ({
+    data: treeSource.override ?? rows,
+    loading: false,
+    error: null,
+    reload: () => {},
+    schema,
+  }),
 }));
+
+afterEach(() => {
+  treeSource.override = undefined;
+});
 
 import { Tabs } from "../Tabs";
 import { Tree } from "../Tree";
@@ -38,7 +58,9 @@ describe("Tabs — dataBinding 동적 탭", () => {
   });
 
   it("fieldMap.value = uid → 탭 · 패널 key 가 uid 컬럼", () => {
-    const html = renderToStaticMarkup(<Tabs dataBinding={binding({ value: "f-uid" })} />);
+    const html = renderToStaticMarkup(
+      <Tabs dataBinding={binding({ value: "f-uid" })} />,
+    );
     expect(html).toContain('data-key="U-1"');
     expect(html).toContain('data-key="U-2"');
     expect(html).not.toContain('data-key="auto-1"');
@@ -46,14 +68,57 @@ describe("Tabs — dataBinding 동적 탭", () => {
 });
 
 describe("Tree — dataBinding 재귀", () => {
+  it("checkbox selectionStyle renders RAC's selection slot for each row", () => {
+    const checkbox = renderToStaticMarkup(
+      <Tree
+        aria-label="t"
+        dataBinding={binding({ value: "f-uid" })}
+        selectionMode="multiple"
+        selectionStyle="checkbox"
+      />,
+    );
+    const highlight = renderToStaticMarkup(
+      <Tree
+        aria-label="t"
+        dataBinding={binding({ value: "f-uid" })}
+        selectionMode="multiple"
+        selectionStyle="highlight"
+      />,
+    );
+    expect(checkbox).toContain('slot="selection"');
+    expect(highlight).not.toContain('slot="selection"');
+  });
+
   it("fieldMap.value = uid → 최상위 · 자식 item key 가 uid 컬럼, 라벨은 title", () => {
     const html = renderToStaticMarkup(
-      <Tree aria-label="t" dataBinding={binding({ value: "f-uid" })} defaultExpandedKeys={["U-1"]} />,
+      <Tree
+        aria-label="t"
+        dataBinding={binding({ value: "f-uid" })}
+        defaultExpandedKeys={["U-1"]}
+      />,
     );
     expect(html).toContain('data-key="U-1"');
     expect(html).toContain('data-key="U-1a"');
     expect(html).toContain("Child");
     expect(html).not.toContain('data-key="auto-1"');
+  });
+
+  it("fieldMap.parentId groups flat rows before rendering", () => {
+    treeSource.override = [
+      { uid: "U-1", title: "Root", parentId: null },
+      { uid: "U-1a", title: "Child", parentId: "U-1" },
+      { uid: "U-1a-1", title: "Grandchild", parentId: "U-1a" },
+    ];
+    const html = renderToStaticMarkup(
+      <Tree
+        aria-label="t"
+        dataBinding={binding({ value: "f-uid", parentId: "parentId" })}
+        defaultExpandedKeys={["U-1", "U-1a"]}
+      />,
+    );
+    expect(html).toContain('data-key="U-1a"');
+    expect(html).toContain('data-key="U-1a-1"');
+    expect(html).toContain("Child");
   });
 });
 
@@ -61,7 +126,10 @@ describe("TagGroup — 정규화 id 가 raw id 를 이긴다 (Phase 4 sweep 실�
   it("fieldMap.value = uid → Tag key 가 uid 컬럼 (raw `id` 로 덮이지 않는다)", async () => {
     const { TagGroup } = await import("../TagGroup");
     const html = renderToStaticMarkup(
-      <TagGroup aria-label="tags" dataBinding={binding({ value: "f-uid" }) as never} />,
+      <TagGroup
+        aria-label="tags"
+        dataBinding={binding({ value: "f-uid" }) as never}
+      />,
     );
     expect(html).toContain('data-key="U-1"');
     expect(html).not.toContain('data-key="auto-1"');

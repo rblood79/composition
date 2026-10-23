@@ -2,6 +2,7 @@ import {
   buildCollectionRowTemplateItem,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   getFlatProjectionRows,
+  parentRowsToTree,
   readDataBindingRows,
   resolveBoundCollection,
   resolveFieldRoles,
@@ -180,6 +181,7 @@ export function catalogBoundRows(
     resolveBoundCollection(dataBinding, collections)?.schema,
   );
   const childrenKey = roles?.children;
+  const parentKey = roles?.parentId;
   const childRows = (item: unknown): CatalogBoundRow[] | undefined => {
     const children =
       childrenKey && item !== null && typeof item === "object"
@@ -199,26 +201,42 @@ export function catalogBoundRows(
       };
     });
   };
-  const rows: CatalogBoundRow[] = getFlatProjectionRows(
+  const projected = getFlatProjectionRows(
     { dataBinding, collections },
-    ref.key === undefined ? limit : Number.MAX_SAFE_INTEGER,
-  ).map((row) => {
+    parentKey || ref.key !== undefined ? Number.MAX_SAFE_INTEGER : limit,
+  );
+  const boundRow = (
+    row: (typeof projected)[number],
+    children?: CatalogBoundRow[],
+  ): CatalogBoundRow => {
     let key = String(row.itemKey);
     if (seen.has(key)) key = `${key}~${row.rowIndex}`;
     seen.add(key);
-    const children = childRows(row.item);
     return {
       key,
       values: buildCollectionRowTemplateItem(row),
       ...(children ? { children } : {}),
     };
-  });
+  };
+  const flatRoots = parentKey
+    ? parentRowsToTree(projected, parentKey)
+    : undefined;
+  const rows: CatalogBoundRow[] = flatRoots
+    ? flatRoots
+        .slice(0, ref.key === undefined ? limit : undefined)
+        .map(function visit(node): CatalogBoundRow {
+          const row = boundRow(node.row);
+          const children = node.children.map(visit);
+          return children.length ? { ...row, children } : row;
+        })
+    : projected.map((row) => boundRow(row, childRows(row.item)));
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);
     return [item ?? { key: ref.key, values: {} }];
   }
   // At the window limit the collection may hold more: its count is the sample's "+N more".
   if (rows.length < limit) return rows;
-  const total = readDataBindingRows(dataBinding, collections).length;
+  const total =
+    flatRoots?.length ?? readDataBindingRows(dataBinding, collections).length;
   return total > rows.length ? Object.assign(rows, { total }) : rows;
 }

@@ -90,24 +90,31 @@ interface PropertyDataBindingProps {
 // ADR-159 P4b: SOURCE_OPTIONS 4종(dataTable/api/variable/route) 소스 선택 UI 제거 —
 //   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
 
-type FieldMapRole = "value" | "icon" | "children";
+type FieldMapRole = "value" | "icon" | "children" | "parentId";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon"];
 /** A Tree's binding also names its items' children (`useTreeData.getChildren`). */
-const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon", "children"];
+const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
+  "value",
+  "icon",
+  "parentId",
+  "children",
+];
 /** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
   value: KeyRound,
   icon: Image,
   children: ListTree,
+  parentId: ListTree,
 };
 const FIELD_MAP_ROLE_LABEL: Record<
   FieldMapRole,
-  "fieldMapValue" | "fieldMapIcon" | "fieldMapChildren"
+  "fieldMapValue" | "fieldMapIcon" | "fieldMapChildren" | "fieldMapParentId"
 > = {
   value: "fieldMapValue",
   icon: "fieldMapIcon",
   children: "fieldMapChildren",
+  parentId: "fieldMapParentId",
 };
 
 /** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
@@ -275,7 +282,11 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       if (!value) return;
       const next = { ...(value.fieldMap ?? {}) };
       if (key === null || key === FIELD_MAP_AUTO_KEY) delete next[role];
-      else next[role] = String(key);
+      else {
+        next[role] = String(key);
+        if (role === "parentId") delete next.children;
+        if (role === "children") delete next.parentId;
+      }
       onChange({
         ...value,
         fieldMap: Object.keys(next).length > 0 ? next : undefined,
@@ -421,7 +432,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             <FieldMapSelect
               key={role}
               role={role}
-              fields={fieldOptions}
+              fields={
+                role === "children"
+                  ? fieldOptions.filter((field) => field.type === "array")
+                  : role === "parentId"
+                    ? fieldOptions.filter(
+                        (field) =>
+                          field.type === "string" || field.type === "number",
+                      )
+                    : fieldOptions
+              }
               selectedFieldId={
                 resolveField(fieldOptions, value?.fieldMap?.[role])?.id ?? null
               }
