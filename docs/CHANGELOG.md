@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tree 자동 체크박스 · State 이름표 · body 높이 기본값 · 실패하던 테스트 23 정리] - 2026-10-24
+
+### Fixed
+
+- **checkbox 방식 Tree 에서 내용 노드 (TreeItemContent) 가 없는 항목에 Preview 만 선택 체크박스를 그리던 문제**:
+  - **Why**: 2026-10-23 체크박스 선택 지원 (`51d5ecfc8`) 이 TreeItem 원본에 작성자 `Checkbox[slot=selection]` 노드를 넣으면서 공용 `TreeItemContent` 의 자동 체크박스도 되살렸다. 그래서 노드가 없는 항목은 DOM 에만 체크박스가 생겼고 Canvas 에는 없었다. ADR-256 후속 16 이 지운 비대칭이다.
+  - 수정: 자동 체크박스는 공용 `Tree` 의 데이터 행 경로 (작성할 노드가 없는 행) 에서만 켠다 (`autoSelectionCheckbox`).
+  - 위치: `packages/shared/src/components/Tree.tsx`
+- **State 절의 불리언 상태 이름표가 같은 영어의 다른 한국어와 갈리던 문제** — `Selected` · `Expanded` · `Open` (한국어 「선택 여부」 · 「펼침 여부」 · 「열림 여부」) 을 `Is selected` · `Is expanded` · `Is open` 으로 바꿨다. 속성 · 동작의 `Selected`(선택됨) · `Open`(열기) 과 다른 개념이다. Interactions 의 「항목 key」 · 「기준 항목 key」 · 「옮길 항목 key」 는 다른 곳과 같은 「항목 키」 계열로 맞췄다.
+  - 위치: `apps/builder/src/i18n/translations.ts`
+- **높이를 쓰지 않은 body 의 Styles Height 기본값이 「100%」 로 해석되던 문제** — 2026-10-21 Preview body 의 `height: 100%` (DOM 전용 fallback) 를 패널 기본값 해석이 읽었다. 레이아웃 컨테이너 (body · frame · Slot) 는 containerStyles 의 높이 축을 기본값으로 내지 않는다. 실효값이 있으면 그 값 (실측 844 PX) 이 먼저라 이 화면에서는 차이가 보이지 않는다.
+  - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
+
+### Changed
+
+- **TreeItem 의 selection Checkbox template 을 원본 정본 파일로 옮겼다** — 빌드 때 끼워 넣던 코드 (`codeCatalogLibrary.ts` `CODE_CATALOG_REUSABLE_TEMPLATES`) 를 지우고 `generated/reusableOriginLibrary.ts` 에 직접 둔다. 라이브러리 revision 은 그대로다.
+- **기능 변경 뒤 갱신되지 않은 테스트 23건 정리**:
+  - ADR-276 으로 지운 IconButton 원본 → Button 원본 (shared 10건).
+  - ADR-277 Table starter 열 (1건) · 계약 번호 47 (1건) · Collection 섹션의 `dataBinding` (1건).
+  - Tree selection Checkbox 구조 (builder 6건).
+  - 그 밖: Properties 섹션 순서의 `collection` (1건), Disclosure 기본 폭 `100%` (2026-10-19 `affebfb69`, 1건), i18n 표기 · body 높이 (위 Fixed, 2건).
+  - 위치: `packages/shared/src/catalog/**/__tests__` · `apps/builder/src/builder/catalogRuntime/__tests__`
+
 ## [Preview — collection 다시 읽기가 연결된 endpoint 로] - 2026-10-24
 
 ### Fixed

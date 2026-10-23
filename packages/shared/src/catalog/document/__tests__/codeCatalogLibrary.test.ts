@@ -24,17 +24,16 @@ const sourceValue = (value: string | number | undefined) => {
 };
 
 describe("ADR-248 Phase 3 source-derived immutable code library", () => {
-  it("resolves IconButton whole-value icon and label references from typed instance defaults and writes", async () => {
+  it("resolves the Button origin's whole-value icon and label references from typed instance defaults and writes (ADR-276 — the old IconButton template)", async () => {
     const library = await buildCodeCatalogLibrary();
     const definition = library.definitions.get(
-      "lib:definition:origin-component-iconbutton",
+      "lib:definition:origin-component-button",
     )!;
     expect(definition.accepts).toMatchObject({
       icon: "string",
       label: "string",
     });
     expect(definition.defaults).toMatchObject({
-      icon: "star",
       label: "Button",
     });
     const { document } = createG1Fixture();
@@ -71,11 +70,13 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         root.sourceId === id ? root : root.children.map(walk).find(Boolean);
       return walk(resolveCatalogNode(graph, node.id));
     };
+    // ADR-276: the Button origin is the old IconButton template with no glyph default — an unfilled
+    // `{icon}` stays a placeholder (its Icon position is not present in the Canvas or the DOM).
     expect(
-      leaf("lib:template:component-iconbutton__icon")?.props.iconName,
-    ).toBe("star");
+      leaf("lib:template:component-button__icon")?.props.iconName,
+    ).toBe("{icon}");
     expect(
-      leaf("lib:template:component-iconbutton__label")?.props.children,
+      leaf("lib:template:component-button__label")?.props.children,
     ).toBe("Button");
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
@@ -97,10 +98,10 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       ],
     });
     expect(
-      leaf("lib:template:component-iconbutton__icon")?.props.iconName,
+      leaf("lib:template:component-button__icon")?.props.iconName,
     ).toBe("heart");
     expect(
-      leaf("lib:template:component-iconbutton__label")?.props.children,
+      leaf("lib:template:component-button__label")?.props.children,
     ).toBe("Like");
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
@@ -115,10 +116,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         },
       ],
     });
-    // Old contract (`resolveTemplateBindingValues`): a removed instance value binds the schema default.
+    // Old contract (`resolveTemplateBindingValues`): a removed instance value binds the schema default
+    // — the Button origin has none for `icon`, so the placeholder comes back.
     expect(
-      leaf("lib:template:component-iconbutton__icon")?.props.iconName,
-    ).toBe("star");
+      leaf("lib:template:component-button__icon")?.props.iconName,
+    ).toBe("{icon}");
     applyCatalogTransaction(graph, {
       projectId: graph.projectId,
       expectedRevision: graph.revision,
@@ -133,7 +135,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       ],
     });
     // Instance root value: an accepted key the template root also accepts reaches the root.
-    expect(leaf("lib:template:component-iconbutton")?.props.variant).toBe(
+    expect(leaf("lib:template:component-button")?.props.variant).toBe(
       "secondary",
     );
   });
@@ -206,7 +208,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(44);
+    expect(library.contractVersion).toBe(47);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",

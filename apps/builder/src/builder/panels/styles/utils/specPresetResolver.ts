@@ -102,7 +102,10 @@ type PresetExtractor<T> = (
   spec?: SpecShape,
   type?: string,
 ) => T;
-type ContainerExtractor<T> = (cs: Record<string, unknown>) => T;
+type ContainerExtractor<T> = (
+  cs: Record<string, unknown>,
+  type: string,
+) => T;
 
 const allCaches: Array<Map<string, unknown>> = [];
 
@@ -193,7 +196,7 @@ function createResolver<T extends object>(
 
     const cs = spec?.containerStyles;
     const csPreset =
-      containerExtractor && cs ? containerExtractor(cs) : ({} as T);
+      containerExtractor && cs ? containerExtractor(cs, type) : ({} as T);
 
     // ADR-082 fallback merge 순서 — 낮은 우선순위부터 spread.
     // containerStyles(catalog base, composition 흡수) < sizes (최상, 기존 동작 보존)
@@ -348,6 +351,18 @@ const TRACK_HEIGHT_TYPES: ReadonlySet<string> = new Set([
   "Pagination",
   "FileTrigger",
 ]);
+/**
+ * composition-native 레이아웃 컨테이너 — 고유 높이가 없다 (높이는 페이지 프레임 · 레이아웃이 정한다).
+ * containerStyles 의 높이 축은 DOM 채널 fallback 이라 (body 의 `minHeight` · `height` `100%` — 생성
+ * CSS 가 Preview body 를 페이지 프레임 높이로 채우는 값, Canvas 는 아트보드 높이로 그린다) 패널
+ * 기본값으로 내지 않는다. **Why (2026-10-24)**: 2026-10-21 body `height: 100%` 뒤 높이를 쓰지 않은
+ * body 의 Height 가 「100%」 로 표시됐다 (`slotIntrinsicHeight.test.ts` 의 2026-07-27 계약).
+ */
+const LAYOUT_CONTAINER_TYPES: ReadonlySet<string> = new Set([
+  "body",
+  "frame",
+  "Slot",
+]);
 const HEIGHT_AXIS_KEYS: ReadonlySet<string> = new Set([
   "height",
   "minHeight",
@@ -424,9 +439,12 @@ const TRANSFORM_STRING_KEYS = [
 
 function transformFromContainerStyles(
   cs: Record<string, unknown>,
+  type: string,
 ): TransformSpecPreset {
   const out: TransformSpecPreset = {};
+  const noHeight = LAYOUT_CONTAINER_TYPES.has(type);
   for (const k of TRANSFORM_STRING_KEYS) {
+    if (noHeight && HEIGHT_AXIS_KEYS.has(k)) continue;
     const v = cs[k];
     const resolved = resolveToNumber(v);
     if (resolved !== undefined) out[k] = resolved;

@@ -507,7 +507,22 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const nestedHandleStyles = [...tree.engine.styles.values()].filter(
       (style) => style.display === "none",
     );
-    expect(nestedHandleStyles.length).toBe(nested.length + hiddenGlyphs.length);
+    // (And each row's selection Checkbox rests hidden — the Tree's selection style is not
+    // `checkbox`, 2026-10-23 `51d5ecfc8`.)
+    const hiddenSelections = tree
+      .byType("Checkbox")
+      .filter((checkbox) => checkbox.hidden === true);
+    expect(hiddenSelections.length).toBeGreaterThan(0);
+    // Every record that rests hidden is out of layout — the collapsed items, the leaf glyphs, the
+    // selection Checkboxes, the collection's empty state while it has items (2026-10-23
+    // `b24a4b77f`) and the parts their own rules hide (an empty Description …).
+    const hiddenRecords = [...tree.root.canvasInputs.values()].filter(
+      (record) => record.hidden === true,
+    );
+    expect(hiddenRecords).toEqual(
+      expect.arrayContaining([...nested, ...hiddenGlyphs, ...hiddenSelections]),
+    );
+    expect(nestedHandleStyles.length).toBe(hiddenRecords.length);
 
     const select = await open(
       "lib:definition:origin-component-select" as DefinitionId,

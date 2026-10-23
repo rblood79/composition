@@ -85,9 +85,12 @@ const set = <T>(value: T) => ({ kind: "set" as const, value });
 const T = (name: string) => `lib:template:component-${name}` as TemplateId;
 const ORIGIN = (name: string) =>
   `lib:definition:origin-component-${name}` as NodeEntry["definitionId"];
-/** An old origin ref (`component-iconbutton`) → its origin definition. */
+/**
+ * An old origin ref (`component-iconbutton`) → its origin definition. ADR-276 merged IconButton
+ * into the Button origin (`Button > Icon{icon} + Text{label}`, contract 43).
+ */
 const OLD_REF = (ref: string) =>
-  `lib:definition:origin-${ref}` as NodeEntry["definitionId"];
+  `lib:definition:origin-${ref === "component-iconbutton" ? "component-button" : ref}` as NodeEntry["definitionId"];
 const TYPE = (name: string) =>
   catalogTypeDefinitionId(name) as NodeEntry["definitionId"];
 const at = (
@@ -229,6 +232,7 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
   it("table-column-insert: the first column of a Table instance's header", () => {
     const old = routeOutput("table");
     const table = id("table");
+    let cells = 0;
     const graph = graphWith([node("table", ORIGIN("table"))], ["table"]);
     run(
       graph,
@@ -238,19 +242,34 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
           entries: [node(`column-${spec.key}`, ORIGIN("table-column"))],
           rootId: id(`column-${spec.key}`),
         }),
-        buildCell: (rowId) => ({
-          entries: [node(`cell-${rowId}`, TYPE("Cell"))],
-          rootId: id(`cell-${rowId}`),
-        }),
+        // (ADR-277: the Table origin has a static row — each gets a cell per new column.)
+        buildCell: () => {
+          cells += 1;
+          return {
+            entries: [node(`cell-${cells}`, TYPE("Cell"))],
+            rootId: id(`cell-${cells}`),
+          };
+        },
         newId: allocator(),
       }),
     );
-    expect(
-      ofType(graph, table, "Column").map((column) => ({
-        key: column.props.key,
-        label: column.props.children,
-      })),
-    ).toEqual(old.reader.columns);
+    const columns = ofType(graph, table, "Column").map((column) => ({
+      key: column.props.key,
+      label: column.props.children,
+    }));
+    // The old app's Table header started empty, so its new column was the first (`column1`). ADR-277
+    // gave the Table origin a starter (Name · Type · Status): the same rule — the number after the
+    // header's columns — appends `column4` after them.
+    expect(old.reader.columns).toEqual([{ key: "column1", label: "Column 1" }]);
+    expect(columns.slice(0, -1).map((column) => column.label)).toEqual([
+      "Name",
+      "Type",
+      "Status",
+    ]);
+    expect(columns.at(-1)).toEqual({
+      key: `column${columns.length}`,
+      label: `Column ${columns.length}`,
+    });
   });
 
   /** A user component with a `content` slot filled with "First", and a page text "Moved". */
@@ -409,15 +428,15 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
   describe("IconButton label position (descendant-active)", () => {
     const icon = id("icon");
     const list = id("list");
-    const labelPath = [T("iconbutton"), T("iconbutton__label")];
+    const labelPath = [T("button"), T("button__label")];
     const label = at(icon, labelPath);
     const activeGraph = () =>
       graphWith(
-        [node("icon", ORIGIN("iconbutton")), node("list", ORIGIN("listbox"))],
+        [node("icon", ORIGIN("button")), node("list", ORIGIN("listbox"))],
         ["icon", "list"],
       );
     const labelNode = (graph: CatalogGraph) =>
-      bySource(graph, icon, T("iconbutton__label"))!;
+      bySource(graph, icon, T("button__label"))!;
 
     it("presentation-style + presentation-fills + canonical-actions: style and fills on the label", () => {
       const old = oracle("descendant-active/baseline.json");
@@ -570,12 +589,12 @@ describe.skipIf(BASELINE_ABSENT)("ADR-248 G0 active descendant routes", () => {
     const a = id("a");
     const b = id("b");
     const labelOf = (owner: NodeId) =>
-      at(owner, [T("iconbutton"), T("iconbutton__label")]);
+      at(owner, [T("button"), T("button__label")]);
     const labelText = (graph: CatalogGraph, owner: NodeId) =>
-      bySource(graph, owner, T("iconbutton__label"))?.props.children;
+      bySource(graph, owner, T("button__label"))?.props.children;
     const setup = () => {
       const graph = graphWith(
-        [node("a", ORIGIN("iconbutton")), node("b", ORIGIN("iconbutton"))],
+        [node("a", ORIGIN("button")), node("b", ORIGIN("button"))],
         ["a", "b"],
       );
       run(

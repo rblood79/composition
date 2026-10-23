@@ -26,36 +26,11 @@ import type {
   LibraryDefinitionId,
   LibraryToken,
   LibraryTokenId,
-  LibraryTemplateNode,
   LayoutValues,
   PartRule,
   ValueType,
   VisualValues,
 } from "./types";
-
-/** The TreeItem origin supplies RAC's selection slot when its Tree uses checkbox selection. */
-const TREE_ITEM_CONTENT_ID =
-  "lib:template:component-tree-item-default__content" as const;
-const TREE_ITEM_SELECTION_ID =
-  "lib:template:component-tree-item-default__selection" as const;
-export const CODE_CATALOG_REUSABLE_TEMPLATES: readonly LibraryTemplateNode[] =
-  REUSABLE_ORIGIN_TEMPLATES.flatMap((template) =>
-    template.id === TREE_ITEM_CONTENT_ID
-      ? [
-          {
-            ...template,
-            children: [TREE_ITEM_SELECTION_ID, ...template.children],
-          },
-          {
-            id: TREE_ITEM_SELECTION_ID,
-            definitionId: "lib:definition:origin-component-checkbox",
-            children: [],
-            props: { slot: "selection", children: "", size: "S" },
-            visual: {},
-          },
-        ]
-      : [template],
-  );
 
 /** Native types whose typed definitions the test entry composes until their catalog port. */
 const NATIVE_TEST_ENTRY_TYPES: ReadonlySet<string> = new Set(["frame", "Slot"]);
@@ -739,7 +714,7 @@ export async function buildCodeCatalogLibrary(
   // typed definition for every registered type (registration contract + D3 rule). The native
   // Frame/Group/Slot definitions are composed by the test entry until their catalog port.
   const typeNames = new Set([
-    ...CODE_CATALOG_REUSABLE_TEMPLATES.map((template) => template.definitionId)
+    ...REUSABLE_ORIGIN_TEMPLATES.map((template) => template.definitionId)
       .filter((id) => id.startsWith("lib:definition:type-"))
       .map((id) => id.slice("lib:definition:type-".length)),
     ...registeredCatalogTypes().filter(
@@ -792,7 +767,7 @@ export async function buildCodeCatalogLibrary(
         contractVersion: LIBRARY_CONTRACT_VERSION,
         theme,
         definitions: sourceDefinitions,
-        templates: CODE_CATALOG_REUSABLE_TEMPLATES,
+        templates: REUSABLE_ORIGIN_TEMPLATES,
         tokens: [...tokens.values()],
         bindingIds,
         execution,
@@ -809,7 +784,7 @@ export async function buildCodeCatalogLibrary(
     bindingIds,
     ...execution,
     definitions: sourceDefinitions,
-    templates: CODE_CATALOG_REUSABLE_TEMPLATES,
+    templates: REUSABLE_ORIGIN_TEMPLATES,
     tokens: [...tokens.values()],
     rules,
   });

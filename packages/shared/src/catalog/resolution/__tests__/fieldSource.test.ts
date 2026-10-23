@@ -197,7 +197,7 @@ describe("ADR-248 Phase 4c prop sources", () => {
     const local = new CatalogGraph(
       documentOf(
         [
-          node("icon", "lib:definition:origin-component-iconbutton" as never, {
+          node("icon", "lib:definition:origin-component-button" as never, {
             props: { variant: { kind: "set", value: "secondary" } },
           }),
         ],
@@ -222,7 +222,7 @@ describe("ADR-248 Phase 4c prop sources", () => {
           ownerId: icon,
           address: {
             instances: [icon],
-            templatePath: ["lib:template:component-iconbutton" as TemplateId],
+            templatePath: ["lib:template:component-button" as TemplateId],
           },
         },
         "variant",

@@ -73,10 +73,11 @@ describe("Properties 필드 규칙 — 매핑표 dispatch · 칩 묶음 · 섹�
     expect(s).toContain("<PropertyNumberInput");
   });
 
-  it("섹션 순서 content → appearance → layout → state → interaction → locale, 필드는 kind 묶음", async () => {
+  // (Collection — a collection's data binding — follows Content: 2026-10-23 「Collection 섹션 분리」.)
+  it("섹션 순서 content → collection → appearance → layout → state → interaction → locale, 필드는 kind 묶음", async () => {
     const s = await source();
     expect(s).toContain(
-      '"content",\n  "appearance",\n  "layout",\n  "state",\n  "interaction",\n  "locale",',
+      '"content",\n  "collection",\n  "appearance",\n  "layout",\n  "state",\n  "interaction",\n  "locale",',
     );
     expect(s).toContain("packFieldRows(sortFields(list))");
     expect(s).toContain("isSingleChoice(field)");

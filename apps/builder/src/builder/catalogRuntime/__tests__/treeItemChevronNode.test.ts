@@ -161,11 +161,14 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
         "treeitemcontent",
       ]);
       const [content] = kids(parentItem.id);
+      // (The row content starts with RAC's selection slot — a Checkbox there only in the checkbox
+      // selection style, 2026-10-23 `51d5ecfc8` — then the chevron Button and the label.)
       expect(kids(content.id).map((child) => child.bindingId)).toEqual([
+        "checkbox",
         "button",
         "text",
       ]);
-      expect(kids(kids(content.id)[0].id).map((c) => c.bindingId)).toEqual([
+      expect(kids(kids(content.id)[1].id).map((c) => c.bindingId)).toEqual([
         "icon",
       ]);
       // The `TreeItemChevron` node's box and the label beside it (main `7c806db22`).
@@ -187,7 +190,7 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
             { item: leafItem, chevron: [8, 8, 20, 16], labelX: 30 },
           ];
       for (const { item, chevron, labelX } of rows) {
-        const [button, label] = kids(kids(item.id)[0].id);
+        const [, button, label] = kids(kids(item.id)[0].id);
         expect(rectIn(root, button.id, item.id)).toEqual(chevron);
         expect(rectIn(root, label.id, item.id)[0]).toBeCloseTo(labelX, 3);
       }
@@ -201,7 +204,7 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
     const html = renderToStaticMarkup(renderCatalogDom(root, tree.id));
     for (const item of [parentItem, leafItem]) {
       const [content] = kids(item.id);
-      const [button, label] = kids(content.id);
+      const [, button, label] = kids(content.id);
       expect(catalogDomRendersNode(root, content.id)).toBe(false);
       expect(html).not.toContain(`data-catalog-id="${content.id}"`);
       expect(html).toMatch(
@@ -222,7 +225,7 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
       item: (typeof kids extends (id: string) => infer R ? R : never)[number],
     ) => {
       const [content] = kids(item.id);
-      const [button, label] = kids(content.id);
+      const [, button, label] = kids(content.id);
       return { button, label, icon: kids(button.id)[0] };
     };
     const { button, label, icon } = glyphOf(parentItem);

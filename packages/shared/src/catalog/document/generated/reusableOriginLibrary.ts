@@ -7786,10 +7786,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tree-item-default__content",
     "definitionId": "lib:definition:type-TreeItemContent",
     "children": [
+      "lib:template:component-tree-item-default__selection",
       "lib:template:component-tree-item-default__chevron",
       "lib:template:component-tree-item-default__label"
     ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tree-item-default__selection",
+    "definitionId": "lib:definition:origin-component-checkbox",
+    "children": [],
+    "props": {
+      "slot": "selection",
+      "children": "",
+      "size": "S"
+    },
     "visual": {}
   },
   {

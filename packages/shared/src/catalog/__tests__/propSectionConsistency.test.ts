@@ -24,6 +24,9 @@ const SAME_NAME_DIFFERENT_PROP: Readonly<Record<string, string>> = {
   type: "Button submit/reset vs input type",
   // A Form's `target` is where it submits (with Action · Method — Behavior); an item's is its link's.
   target: "Form submission vs link",
+  // A collection's `dataBinding` is the rows its items repeat (Collection — 2026-10-23 「Collection
+  // 섹션 분리」); a container's · Form's · Skeleton's · Chart's is the data its content reads (Content).
+  dataBinding: "collection items vs content data",
 };
 
 function contracts(): Array<[string, string, PropContract]> {

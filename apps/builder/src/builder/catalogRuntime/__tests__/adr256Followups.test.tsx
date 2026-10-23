@@ -343,6 +343,11 @@ describe("ADR-256 후속 C — Tree · Table", () => {
       selectionStyle: "checkbox",
       selectionMode: "multiple",
     });
+    // The origin's items show their selection Checkbox (the row content's slot, 2026-10-23
+    // `51d5ecfc8`); the bare item below adds none.
+    const selections = () => html().match(/slot="selection"/g)?.length ?? 0;
+    const before = selections();
+    expect(before).toBeGreaterThan(0);
     // (A bare TreeItem — no TreeItemContent: the DOM composes its row through the shared one.)
     const bare = workspace.newId("node") as NodeId;
     workspace.execute(
@@ -365,6 +370,6 @@ describe("ADR-256 후속 C — Tree · Table", () => {
       }),
     );
     expect(html()).toContain("Bare");
-    expect(html()).not.toMatch(/slot="selection"/);
+    expect(selections()).toBe(before);
   });
 });

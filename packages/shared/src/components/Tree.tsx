@@ -197,6 +197,8 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
             title={row.label}
             hasChildren={hasChildren}
             showInfoButton={false}
+            // (A data row has no node to author RAC's selection slot.)
+            autoSelectionCheckbox
             childItems={
               hasChildren ? renderTreeItemsRecursively(childItems) : undefined
             }
@@ -246,18 +248,26 @@ export function TreeItemContent(
   props: Omit<TreeItemContentProps, "children"> & {
     children?: React.ReactNode;
     hasChildren?: boolean;
+    /**
+     * RAC's selection slot for a row that has no node to author it — a data row of the bound
+     * `Tree` path. A catalog item draws only its own `Checkbox[slot=selection]` node (ADR-256 후속
+     * 16 — the Canvas draws none either).
+     */
+    autoSelectionCheckbox?: boolean;
   },
 ) {
+  const { autoSelectionCheckbox, ...contentProps } = props;
   const hasAuthoredSelection = Children.toArray(props.children).some(
     (child) =>
       isValidElement<{ slot?: string }>(child) &&
       child.props.slot === "selection",
   );
   return (
-    <AriaTreeItemContent {...props}>
+    <AriaTreeItemContent {...contentProps}>
       {({ selectionBehavior, selectionMode }) => (
         <>
-          {selectionBehavior === "toggle" &&
+          {autoSelectionCheckbox &&
+            selectionBehavior === "toggle" &&
             selectionMode !== "none" &&
             !hasAuthoredSelection && <Checkbox slot="selection" size="S" />}
           <Button slot="chevron">
@@ -286,6 +296,8 @@ export interface TreeItemProps extends Omit<
   onInfoClick?: () => void;
   hasChildren?: boolean;
   childItems?: React.ReactNode; // 하위 TreeItem들을 위한 별도 prop
+  /** `TreeItemContent.autoSelectionCheckbox` — the bound data rows only. */
+  autoSelectionCheckbox?: boolean;
 }
 
 export function TreeItem(props: TreeItemProps) {
@@ -299,6 +311,7 @@ export function TreeItem(props: TreeItemProps) {
     onInfoClick,
     hasChildren,
     childItems,
+    autoSelectionCheckbox,
     ...restProps
   } = props;
 
@@ -311,7 +324,10 @@ export function TreeItem(props: TreeItemProps) {
       {...restProps}
       className="react-aria-TreeItem"
     >
-      <TreeItemContent hasChildren={actualHasChildren}>
+      <TreeItemContent
+        hasChildren={actualHasChildren}
+        autoSelectionCheckbox={autoSelectionCheckbox}
+      >
         {/* ADR-239 — 역할 자식 (Label Text) 이 글자를 그리는 항목은 title 이 비어 있다 — 빈 span 이 행 gap 을
             하나 더 만들지 않도록 싣지 않는다. */}
         {displayTitle !== "" && (

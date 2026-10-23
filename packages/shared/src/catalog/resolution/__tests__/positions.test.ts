@@ -134,7 +134,7 @@ describe("ADR-248 Phase 4c position enumeration", () => {
         [
           node("tabs", ORIGIN("tabs")),
           node("list", ORIGIN("listbox")),
-          node("icon", ORIGIN("iconbutton")),
+          node("icon", ORIGIN("button")),
           node("off", catalogTypeDefinitionId("Text") as never, {
             enabled: false,
           }),
@@ -196,7 +196,7 @@ describe("ADR-248 Phase 4c position enumeration", () => {
             kind: "replace",
             address: {
               instances: [icon],
-              templatePath: [T("iconbutton"), T("iconbutton__label")],
+              templatePath: [T("button"), T("button__label")],
             },
             replacementId: id("replacement"),
           },

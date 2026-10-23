@@ -483,15 +483,19 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       );
     });
 
-    it("disclosure/disclosuregroup → width fallback 없음 (ADR-151 Phase 6 정정 — B22 전제 착오 철회)", () => {
-      // generated Disclosure(Group).css 에 base width 규칙 없음 (width:100% 는
-      //   DisclosureHeader 의 것). DOM 정본 = flex 부모 fit-content (실측 168.2/106.9)
-      //   — 강제 width:100% 는 역방향 발산. block 부모 정합은 §5.5 IFC 주입 담당.
-      expect(
-        resolveContainerStylesFallback("disclosure", {}),
-      ).not.toHaveProperty("width");
+    it("disclosure/disclosuregroup → width:100% (2026-10-19 `affebfb69` — 기본 너비를 catalog 정본으로)", () => {
+      // ADR-151 Phase 6 은 generated Disclosure(Group).css 에 base width 규칙이 없어 fallback 을
+      //   철회했다. 2026-10-19 「Disclosure 기본 너비 수정」 이 catalog 정본 (containerStyles) 에
+      //   width:100% 를 넣고 생성 CSS 루트도 같은 값을 낸다 — Canvas fallback 도 같은 값이다 (대칭).
+      expect(resolveContainerStylesFallback("disclosure", {})).toMatchObject({
+        width: "100%",
+      });
       expect(
         resolveContainerStylesFallback("disclosuregroup", {}),
+      ).toMatchObject({ width: "100%" });
+      // 사용자 명시 width 우선 — fallback 미주입
+      expect(
+        resolveContainerStylesFallback("disclosure", { width: 200 }),
       ).not.toHaveProperty("width");
     });
 
