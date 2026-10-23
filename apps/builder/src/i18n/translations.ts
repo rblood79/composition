@@ -1014,7 +1014,7 @@ const koKR: TranslationKeys = {
       "'{name}' 을 삭제합니다. 사용처 {count} 곳의 템플릿은 원문으로, 규칙은 대상 없음으로 남습니다.",
     stateDeleteSettersMessage:
       "'{name}' 을 삭제합니다. 이 상태를 바꾸는 인터랙션 {count} 개도 함께 삭제됩니다.",
-    stateAncestorTitle: "조상에서 보이는 상태",
+    stateAncestorTitle: "상속된 변수",
     stateOwnerProject: "프로젝트",
     stateOwnerPage: "페이지",
     stateInstanceHint: "인스턴스마다 별도 값",
@@ -3383,7 +3383,7 @@ const enUS: TranslationKeys = {
       "Delete '{name}'. Templates in {count} place(s) keep the raw text and rules lose their target.",
     stateDeleteSettersMessage:
       "Delete '{name}'. The {count} interaction(s) that set it are deleted too.",
-    stateAncestorTitle: "Visible from ancestors",
+    stateAncestorTitle: "Inherited variables",
     stateOwnerProject: "Project",
     stateOwnerPage: "Page",
     stateInstanceHint: "Separate value per instance",

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **상위 범위 변수 그룹 명칭 정리** — State 섹션의 `Visible from ancestors` / `조상에서 보이는 상태`를 `Inherited variables` / `상속된 변수`로 변경한다.
 - **Component state를 기존 입력칸에서 바로 편집** — 별도 활성화 버튼과 추가 입력창을 제거한다. 포커스 이동·Enter 시 기존 이름과 실제로 다른 값만 등록·변경한다. 우측 제거 버튼은 이름이 바뀌었거나 연결된 변수가 있을 때 활성화되고, 아직 등록하지 않은 편집은 제거 버튼으로 되돌릴 수 있다. 변수를 제거하면 원래 상태 이름으로 돌아온다.
   - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogStateSection.tsx` · `panels/properties/state/StateSection.css`
 
