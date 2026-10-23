@@ -32,6 +32,19 @@ const quickConnect = vi.hoisted(() => ({
       : null,
   ),
 }));
+// 대상 요소의 rule — Form 만 항목 key (한 항목) 를 받는다 (2026-10-24).
+const ruleOf = vi.hoisted(
+  () => new Map<string, { ruleId: string }>([["form-1", { ruleId: "Form" }]]),
+);
+vi.mock("../../catalogRuntime/react.runtime", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../catalogRuntime/react.runtime")
+  >("../../catalogRuntime/react.runtime");
+  return {
+    ...actual,
+    useOptionalCatalogWorkspace: () => ({ root: { domInputs: ruleOf } }),
+  };
+});
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
 vi.mock("../../stores/data", () => ({
   useCollections: () => [
@@ -116,14 +129,29 @@ describe("CollectionBinding — 죽은 오소링 표면 제거 계약 (2026-07-2
     expect(container.querySelector(".binding-path-input")).toBeNull();
     expect(container.textContent).not.toContain("데이터 경로");
 
-    // 남는 오소링 표면 = 컬렉션 Select 행 + 항목 key
-    // (`useListData.getItem(key)`, 2026-10-22) — 갱신/경로 오소링 행은 없다.
+    // 남는 오소링 표면 = 컬렉션 Select 행 (항목 key 는 Form 만 — 아래) — 갱신/경로 오소링 행은 없다.
     expect(container.querySelector(".binding-name-row")).not.toBeNull();
     expect(container.querySelector(".binding-actions")).toBeNull();
-    expect(container.textContent).toContain("Item key");
+    expect(container.textContent).not.toContain("Item key");
     expect(
       container.querySelectorAll(".property-data-binding > *"),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+  });
+
+  // `useListData.getItem(key)` (2026-10-22) 는 Form 이 한 항목을 읽는 자리다 — 컬렉션 컴포넌트에
+  // 두면 목록이 그 한 항목만 보인다 (2026-10-24 사용자 「Item key 를 Form 에만」).
+  it.each([
+    ["form-1", true],
+    ["lb-1", false],
+  ])("항목 key (한 항목) 입력은 Form 에만 — %s", (elementId, shown) => {
+    const { container } = renderWithI18n(
+      <CollectionBinding
+        elementId={elementId}
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={() => {}}
+      />,
+    );
+    expect(container.textContent?.includes("Item key")).toBe(shown);
   });
 
   it("컬렉션 선택 시 기존 path / refreshMode / refreshInterval 을 모두 보존한다", () => {

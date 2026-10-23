@@ -204,10 +204,14 @@ export const CollectionBinding = memo(function CollectionBinding({
 }: CollectionBindingProps) {
   const { t } = useI18n();
   const workspace = useOptionalCatalogWorkspace();
-  const isTree =
-    !!workspace &&
-    !!elementId &&
-    workspace.root.domInputs.get(elementId)?.ruleId === "Tree";
+  const ruleId =
+    workspace && elementId
+      ? workspace.root.domInputs.get(elementId)?.ruleId
+      : undefined;
+  const isTree = ruleId === "Tree";
+  // `useListData.getItem(key)` — Form 이 한 항목을 읽어 필드를 채운다. 컬렉션 컴포넌트에 두면 목록이
+  // 그 한 항목만 보여 입력을 두지 않는다 (2026-10-24 사용자 「Item key 를 Form 에만」).
+  const readsOneItem = ruleId === "Form";
   const fieldMapRoles = isTree ? TREE_FIELD_MAP_ROLES : FIELD_MAP_ROLES;
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
@@ -406,7 +410,7 @@ export const CollectionBinding = memo(function CollectionBinding({
           ))}
 
         {/* `useListData.getItem(key)` — 한 항목: 리터럴 key 또는 {{ params.id }} · {{ 변수 }} */}
-        {selectedCollectionId && (
+        {selectedCollectionId && readsOneItem && (
           <PropertyInput
             label={t("propertiesPanel.bindingItemKey")}
             value={value?.key ?? ""}

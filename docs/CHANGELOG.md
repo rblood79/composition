@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **테이블 연결 문구 통일** — Data 패널은 `Tables / 테이블`, 생성 액션은 양쪽 패널 모두 `New table / 새 테이블`로 표시한다. Properties의 `Collection` 섹션은 유지하고, 10종 컴포넌트의 연결 필드 legend와 선택 접근성 이름은 `Data source / 데이터 소스`, placeholder는 `Choose a table… / 테이블 선택…`, 빈 상태는 등록된 테이블 안내로 정리한다.
 
+## [컬렉션 데이터 연결 — Item key 는 Form 에만] - 2026-10-24
+
+### Changed
+
+- **바인딩의 「Item key (one item)」 입력을 Form 에만 표시** — ListBox · GridList 등 컬렉션 컴포넌트와 Chart 의 Collection 절에서는 숨긴다.
+  - **Why:** `useListData.getItem(key)` (2026-10-22) 는 Form 이 한 항목을 읽어 필드를 채우는 자리인데, 바인딩 UI 가 하나라 모든 컴포넌트에 나왔다. 컬렉션 컴포넌트에 채우면 목록이 그 한 항목만 보인다.
+  - 위치: `apps/builder/src/builder/components/property/CollectionBinding.tsx`
+
 ## [성능 ratchet — push 자동 실행 끔] - 2026-10-24
 
 ### Infrastructure
