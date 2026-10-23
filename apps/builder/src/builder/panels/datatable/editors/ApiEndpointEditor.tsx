@@ -429,13 +429,22 @@ function KeyValueEditor({
 }) {
   const groupId = useId();
   // 로컬 draft — 빈 행을 즉시 store 에 쓰지 않는다 (define_endpoint 는 실제 값 편집에만).
-  // 외부 (endpoint) 가 바뀌면 (다른 편집·undo) 다시 seed 한다.
+  // 외부 (endpoint) 가 바뀌면 (다른 편집·undo) 다시 seed 한다. 이 편집기가 보낸 값 (`sentRef`) 이
+  // 저장 뒤 돌아온 것은 외부 변경이 아니다 — 빠르게 칠 때 앞 글자의 저장이 늦게 돌아와 그 뒤에
+  // 친 글자를 지웠다 (2026-10-23).
   const [draft, setDraft] = useState<KeyValueRow[]>(rows);
   const seedRef = useRef(JSON.stringify(rows));
+  const sentRef = useRef<string[]>([]);
   useEffect(() => {
     const next = JSON.stringify(rows);
+    const sent = sentRef.current.indexOf(next);
+    if (sent >= 0) {
+      sentRef.current = sentRef.current.slice(sent + 1);
+      return;
+    }
     if (next !== seedRef.current) {
       seedRef.current = next;
+      sentRef.current = [];
       setDraft(rows);
     }
   }, [rows]);
@@ -456,7 +465,8 @@ function KeyValueEditor({
     if (
       filledJson !== JSON.stringify(rows.filter((r) => r.key.trim() !== ""))
     ) {
-      seedRef.current = JSON.stringify(next);
+      seedRef.current = filledJson;
+      sentRef.current.push(filledJson);
       onChange(filled);
     }
   };

@@ -140,6 +140,34 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     expect(op.endpoint.queryParams.some((q) => q.key === "page")).toBe(true);
   });
 
+  // 2026-10-23 사용자 보고 — 이름 칸에 빠르게 치면 글자가 빠졌다: 앞 글자의 저장이 늦게 돌아와
+  // (store → endpoint) 그 값으로 draft 를 다시 seed 했다.
+  it("Params 탭 — 빠르게 친 글자가 늦게 돌아온 앞 저장에 지워지지 않는다 (다른 편집은 다시 seed)", () => {
+    applyDataChange.mockImplementation(() => new Promise(() => {}));
+    const { getByRole, container, rerender } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),
+    );
+    fireEvent.click(getByRole("tab", { name: "Params" }));
+    const add = getByRole("button", { name: "Add parameter" });
+    fireEvent.click(add);
+    const keyInput = () =>
+      container.querySelector(".datatable-kv-row input") as HTMLInputElement;
+    fireEvent.change(keyInput(), { target: { value: "p" } });
+    fireEvent.change(keyInput(), { target: { value: "pa" } });
+    const withKey = (key: string) =>
+      ({
+        ...endpoint,
+        queryParams: [{ key, value: "", type: "string", required: false }],
+      }) as unknown as ApiEndpoint;
+    rerender(wrap(<ApiEndpointEditor endpoint={withKey("p")} onClose={() => {}} />));
+    expect(keyInput().value).toBe("pa");
+    rerender(wrap(<ApiEndpointEditor endpoint={withKey("pa")} onClose={() => {}} />));
+    expect(keyInput().value).toBe("pa");
+    rerender(wrap(<ApiEndpointEditor endpoint={withKey("q")} onClose={() => {}} />));
+    expect(keyInput().value).toBe("q");
+    applyDataChange.mockImplementation(async () => ({ endpointIds: ["ep1"] }));
+  });
+
   it("Auth 탭 — 프리셋·secret 이름·값(이 기기에만) 필드가 뜬다 (vault 어법 HC6)", () => {
     const { getByRole } = render(
       wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),
