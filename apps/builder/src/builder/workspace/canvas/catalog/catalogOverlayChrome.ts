@@ -6,12 +6,16 @@ export interface CatalogOverlaySlotMark {
   empty: boolean;
   role: EditingSemanticsRole;
   identity: string;
+  /** Under a dragged root (drawn over every page): not cut by the occluding pages. */
+  onTop?: boolean;
 }
 
 export interface CatalogOverlayRemainder {
   box: BoundingBox;
   hiddenRows: number;
   ownerId: string;
+  /** Under a dragged root (drawn over every page): not cut by the occluding pages. */
+  onTop?: boolean;
 }
 
 export interface CatalogOverlayChromeBuilders {
@@ -81,49 +85,80 @@ export function createOverlayChromeCache(
 export interface CatalogDragShift {
   drag: { elementIds: ReadonlySet<string>; dx: number; dy: number } | null;
   /** Some sibling eases aside (`hasDragSiblingOffsets`). */
-  siblings: boolean;
   siblingOffset(identity: string): { dx: number; dy: number } | undefined;
+  siblings: boolean;
+  /**
+   * A record the stream draws at its top layer from its own place — a dragged root, a fixed box
+   * (`RenderCommandStream.topLayerElementIds`): the offsets of the records above it are not its.
+   */
+  topLayerRoot(identity: string): boolean;
+}
+
+/** Where the renderer draws a record during a drag, against its scene box. */
+export interface CatalogDragPlacement {
+  dx: number;
+  dy: number;
+  /** Under a dragged root: drawn over every page (the occluding pages do not cut it). */
+  onTop: boolean;
 }
 
 /**
- * Slot marks of the drawn scene moved as their records are drawn during a drag: under a dragged
- * record by the drag's offset, under a sibling easing aside by that sibling's. The scene's boxes
- * stay put until the drop (the renderer only translates), so the marks read the same offsets.
- * No drag: the same list (a camera-only frame pays nothing).
+ * A record's drag placement, as the renderer draws it: each level adds its own offset (the drag's
+ * on a dragged record, a sibling's easing aside) to its parent's place (`renderCommands.ts`
+ * translateStack), up to a top-layer root. Kept per call — the records under one container walk
+ * its chain once. No drag: undefined (a camera-only frame pays nothing).
  *
  * **Why (2026-10-22 user report)**: an empty slot's hatch stayed where the component was while
- * the component followed the pointer.
+ * the component followed the pointer. **2026-10-24 review**: the nearest offset alone left a mark
+ * under an easing child of an easing container off by the container's offset.
  */
-export function catalogDraggedSlotMarks(
-  marks: readonly CatalogOverlaySlotMark[],
+export function catalogDragPlacement(
   parentOf: (identity: string) => string | undefined,
   shift: CatalogDragShift,
-): readonly CatalogOverlaySlotMark[] {
+): ((identity: string) => CatalogDragPlacement | undefined) | undefined {
   const { drag } = shift;
-  if (!drag && !shift.siblings) return marks;
-  let moved: CatalogOverlaySlotMark[] | undefined;
-  marks.forEach((mark, index) => {
-    let offset: { dx: number; dy: number } | undefined;
-    for (
-      let at: string | undefined = mark.identity;
-      at && !offset;
-      at = parentOf(at)
-    )
-      offset = drag?.elementIds.has(at)
-        ? drag
-        : shift.siblings
-          ? shift.siblingOffset(at)
-          : undefined;
-    if (!offset || (offset.dx === 0 && offset.dy === 0)) return;
-    moved ??= [...marks];
-    moved[index] = {
-      ...mark,
-      box: {
-        ...mark.box,
-        x: mark.box.x + offset.dx,
-        y: mark.box.y + offset.dy,
-      },
-    };
+  if (!drag && !shift.siblings) return undefined;
+  const kept = new Map<string, CatalogDragPlacement | null>();
+  const placementOf = (identity: string): CatalogDragPlacement | null => {
+    const known = kept.get(identity);
+    if (known !== undefined) return known;
+    const dragged = drag?.elementIds.has(identity) ?? false;
+    const own = dragged
+      ? drag
+      : shift.siblings
+        ? shift.siblingOffset(identity)
+        : undefined;
+    const root = shift.topLayerRoot(identity);
+    const parent = root ? undefined : parentOf(identity);
+    const above = parent ? placementOf(parent) : null;
+    const dx = (own?.dx ?? 0) + (above?.dx ?? 0);
+    const dy = (own?.dy ?? 0) + (above?.dy ?? 0);
+    const onTop = (dragged && root) || (above?.onTop ?? false);
+    const placement = dx || dy || onTop ? { dx, dy, onTop } : null;
+    kept.set(identity, placement);
+    return placement;
+  };
+  return (identity) => placementOf(identity) ?? undefined;
+}
+
+/**
+ * Scene-box chrome (slot marks, row remainders, binding badges) moved with its records during a
+ * drag (`catalogDragPlacement`). Nothing moved: the same list.
+ */
+export function catalogDraggedChrome<T>(
+  items: readonly T[],
+  identityOf: (item: T) => string | undefined,
+  placementOf: ((identity: string) => CatalogDragPlacement | undefined) | undefined,
+  move: (item: T, placement: CatalogDragPlacement) => T,
+): readonly T[] {
+  if (!placementOf) return items;
+  let moved: T[] | undefined;
+  items.forEach((item, index) => {
+    const identity = identityOf(item);
+    const placement = identity ? placementOf(identity) : undefined;
+    if (!placement) return;
+    moved ??= [...items];
+    moved[index] = move(item, placement);
   });
-  return moved ?? marks;
+  return moved ?? items;
 }

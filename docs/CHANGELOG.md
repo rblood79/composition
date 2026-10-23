@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas — 드래그 중 slot · 행 나머지 · 배지 표시 위치] - 2026-10-24
+
+### Fixed
+
+- **드래그 중 빈 slot 빗금 · 「+N more」 · 데이터 배지가 끌리거나 비켜나는 요소에서 어긋나던 문제**:
+  - **Why**: 렌더러는 단계마다 offset (끌기 · 형제 비킴) 을 부모 위치에 더하고 (`translateStack`) 끌리는 서브트리는 top layer 에서 조상 offset 없이 그린다. 그런데 slot 표시는 가장 가까운 조상의 offset 하나만 받았다. 그래서 비켜나는 컨테이너 안의 비켜나는 자식 아래 빗금이 컨테이너 offset 만큼 어긋났다. 행 나머지와 배지는 드래그 offset 을 아예 받지 않았다. 끌리는 서브트리는 모든 page 위에 그려지는데 표시는 원래 page 의 가림 상자로 잘렸다 (code review 2026-10-24).
+  - 수정: `catalogDragPlacement` 가 렌더러와 같은 규칙으로 record 의 그리는 위치를 계산한다 — 조상 offset 을 합치고 top layer root 에서 멈춘다. 같은 프레임의 slot · 행 나머지 · 배지가 이 계산을 공유한다. 끌리는 서브트리의 표시는 가림 상자로 자르지 않는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/catalogOverlayChrome.ts` · `CatalogCanvas.tsx` · `catalogOverlay.ts`
+
 ## [Layers — 선택 행의 1단계 펼침 · 선택 영역 표시] - 2026-10-24
 
 ### Changed

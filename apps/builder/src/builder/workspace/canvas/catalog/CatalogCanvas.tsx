@@ -136,7 +136,9 @@ import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
 import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { catalogMenuView } from "./catalogMenuView";
 import {
-  catalogDraggedSlotMarks,
+  catalogDragPlacement,
+  catalogDraggedChrome,
+  type CatalogDragPlacement,
   createOverlayChromeCache,
 } from "./catalogOverlayChrome";
 import { catalogOverlayNode } from "./catalogOverlay";
@@ -203,6 +205,14 @@ const IS_MAC =
   typeof navigator !== "undefined" && navigator.platform.includes("Mac");
 /** The dragged element's opacity over another container than its own (Figma draws it faded). */
 const DRAG_OUTSIDE_ALPHA = 0.5;
+
+/** A scene box where the drag draws its record (`catalogDragPlacement`). */
+function shiftedBox<T extends { x: number; y: number }>(
+  box: T,
+  at: CatalogDragPlacement,
+): T {
+  return { ...box, x: box.x + at.dx, y: box.y + at.dy };
+}
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -414,43 +424,64 @@ export function CatalogCanvas({
     // Overlay chrome read from the records and the scene's boxes — slot marks, row remainders,
     // page occluders (content chrome is cut there — §8.5) — kept per scene version: a camera-only
     // pan frame reads the kept lists instead of walking every record (`catalogOverlayChrome.ts`).
-    const chrome = createOverlayChromeCache(
-      () => cellsVersion,
-      {
-        slots: () =>
-          catalogSlotMarks(
-            workspace,
-            scene.stream.boundsMap,
-            scene.stream.hitBoundsMap,
-          ),
-        remainders: () =>
-          catalogRowRemainders(workspace.root).flatMap((remainder) => {
-            const box = catalogRowRemainderBox(
-              remainder,
-              (id) => scene.stream.boundsMap.get(id),
-              scene.stream.hitBoundsMap.get(remainder.ownerId),
-            );
-            return box
-              ? [
-                  {
-                    box,
-                    hiddenRows: remainder.hiddenRows,
-                    ownerId: remainder.ownerId,
-                  },
-                ]
-              : [];
-          }),
-        occluders: (identity) =>
-          catalogOccludingPages(
-            identity,
-            (id) => workspace.root.canvasInputs.get(id)?.parentId,
-            scene.pageRootIds,
+    const chrome = createOverlayChromeCache(() => cellsVersion, {
+      slots: () =>
+        catalogSlotMarks(
+          workspace,
+          scene.stream.boundsMap,
+          scene.stream.hitBoundsMap,
+        ),
+      remainders: () =>
+        catalogRowRemainders(workspace.root).flatMap((remainder) => {
+          const box = catalogRowRemainderBox(
+            remainder,
             (id) => scene.stream.boundsMap.get(id),
-          ),
-      },
-    );
+            scene.stream.hitBoundsMap.get(remainder.ownerId),
+          );
+          return box
+            ? [
+                {
+                  box,
+                  hiddenRows: remainder.hiddenRows,
+                  ownerId: remainder.ownerId,
+                },
+              ]
+            : [];
+        }),
+      occluders: (identity) =>
+        catalogOccludingPages(
+          identity,
+          (id) => workspace.root.canvasInputs.get(id)?.parentId,
+          scene.pageRootIds,
+          (id) => scene.stream.boundsMap.get(id),
+        ),
+    });
     /** Page boxes painted over a record's page (content chrome is cut there — §8.5). */
     const occludersOf = (identity: string) => chrome.occludersOf(identity);
+    // The drag placement of the scene-box chrome (`catalogDragPlacement`), one per drawn drag
+    // presentation: the slot marks, remainders and badges of a frame share its chains.
+    let dragPlacementKey = "";
+    let dragPlacementOf: ReturnType<typeof catalogDragPlacement>;
+    const dragPlacement = () => {
+      const key = `${cellsVersion}:${getDragVisualOffsetRevision()}:${getDragSiblingOffsetRevision()}`;
+      if (key !== dragPlacementKey) {
+        dragPlacementKey = key;
+        const parentOf = (identity: string) =>
+          sceneRoot.canvasInputs.get(identity)?.parentId;
+        dragPlacementOf = catalogDragPlacement(parentOf, {
+          drag: getDragVisualOffset(),
+          siblings: hasDragSiblingOffsets(),
+          siblingOffset: getSiblingOffset,
+          topLayerRoot: (identity) => {
+            const top = scene.stream.topLayerElementIds;
+            if (!top.has(identity)) return false;
+            const parent = parentOf(identity);
+            return !parent || !top.has(parent);
+          },
+        });
+      }
+      return dragPlacementOf;
+    };
     const badges = createCatalogBadges({
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
@@ -542,16 +573,17 @@ export function CatalogCanvas({
       childrenOf: (identity) =>
         sceneRoot.canvasInputs.get(identity)?.children ?? [],
       guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
-      // (During a drag the marks move with their records — the renderer translates them.)
+      // (During a drag the scene-box chrome moves with its records — the renderer translates them.)
       slots: () =>
-        catalogDraggedSlotMarks(
+        catalogDraggedChrome(
           chrome.slots(),
-          (identity) => sceneRoot.canvasInputs.get(identity)?.parentId,
-          {
-            drag: getDragVisualOffset(),
-            siblings: hasDragSiblingOffsets(),
-            siblingOffset: getSiblingOffset,
-          },
+          (mark) => mark.identity,
+          dragPlacement(),
+          (mark, at) => ({
+            ...mark,
+            box: shiftedBox(mark.box, at),
+            onTop: at.onTop,
+          }),
         ),
       hitBounds: () => scene.stream.hitBoundsMap,
       roleOf: (identity) => {
@@ -599,22 +631,42 @@ export function CatalogCanvas({
         }
         return hoverLeavesMemo.leaves;
       },
-      remainders: chrome.remainders,
+      remainders: () =>
+        catalogDraggedChrome(
+          chrome.remainders(),
+          (remainder) => remainder.ownerId,
+          dragPlacement(),
+          (remainder, at) => ({
+            ...remainder,
+            box: shiftedBox(remainder.box, at),
+            onTop: at.onTop,
+          }),
+        ),
       // A badge whose anchor a later-painted page covers is neither drawn nor pressed.
-      badges: () =>
-        badges
+      badges: () => {
+        const placementOf = dragPlacement();
+        return badges
           .targets(scene.stream.boundsMap, scene.stream.hitBoundsMap)
-          .filter(
-            (badge) =>
-              !badge.recordId ||
-              !occludersOf(badge.recordId).some(
-                (rect) =>
-                  badge.bounds.x >= rect.x &&
-                  badge.bounds.y >= rect.y &&
-                  badge.bounds.x <= rect.x + rect.width &&
-                  badge.bounds.y <= rect.y + rect.height,
-              ),
-          ),
+          .flatMap((badge) => {
+            const at = badge.recordId
+              ? placementOf?.(badge.recordId)
+              : undefined;
+            const drawn = at
+              ? { ...badge, bounds: shiftedBox(badge.bounds, at) }
+              : badge;
+            // (A dragged badge is drawn with its record over every page.)
+            if (at?.onTop || !badge.recordId) return [drawn];
+            return occludersOf(badge.recordId).some(
+              (rect) =>
+                drawn.bounds.x >= rect.x &&
+                drawn.bounds.y >= rect.y &&
+                drawn.bounds.x <= rect.x + rect.width &&
+                drawn.bounds.y <= rect.y + rect.height,
+            )
+              ? []
+              : [drawn];
+          });
+      },
       occluders: (identity) => occludersOf(identity),
       badgeHits,
       overflow: () => overflowTree,

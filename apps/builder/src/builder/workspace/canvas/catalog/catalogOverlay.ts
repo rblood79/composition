@@ -86,6 +86,8 @@ export interface CatalogOverlayInputs {
     role: EditingSemanticsRole;
     /** The slot's record: its chrome is cut where a later-painted page covers its page. */
     identity?: string;
+    /** Under a dragged root (drawn over every page): not cut. */
+    onTop?: boolean;
   }[];
   /**
    * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with
@@ -95,6 +97,7 @@ export interface CatalogOverlayInputs {
     box: BoundingBox;
     hiddenRows: number;
     ownerId?: string;
+    onTop?: boolean;
   }[];
   /**
    * The page boxes painted over a record's page (`catalogOccludingPages`): content chrome of the
@@ -283,7 +286,11 @@ export function catalogOverlayNode(
       }
       for (const slot of inputs.slots?.() ?? []) {
         const band = catalogSlotBand(slot.box.height, zoom);
-        withOccluders(ck, canvas, occludersOf(slot.identity), () =>
+        withOccluders(
+          ck,
+          canvas,
+          slot.onTop ? undefined : occludersOf(slot.identity),
+          () =>
           renderSlotHatchPattern(
             ck,
             canvas,
@@ -295,7 +302,11 @@ export function catalogOverlayNode(
         );
       }
       for (const remainder of inputs.remainders?.() ?? [])
-        withOccluders(ck, canvas, occludersOf(remainder.ownerId), () =>
+        withOccluders(
+          ck,
+          canvas,
+          remainder.onTop ? undefined : occludersOf(remainder.ownerId),
+          () =>
           renderCollectionRemainderMarker(
             ck,
             canvas,
