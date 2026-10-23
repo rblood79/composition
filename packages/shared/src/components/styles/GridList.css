@@ -47,7 +47,8 @@
       outline: 2px solid var(--focus-ring);
     }
 
-    &[data-empty] {
+    /* (Builder 자체 목록만 — 카탈로그 목록의 빈 상태는 작성자의 IllustratedMessage 가 Canvas 와 같은 배치로 그린다, RAC renderEmptyState 2026-10-23.) */
+    &[data-empty]:not([data-catalog-id]) {
       display: flex;
       align-items: center;
       justify-content: center;

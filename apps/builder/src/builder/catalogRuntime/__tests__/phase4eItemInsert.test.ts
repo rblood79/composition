@@ -123,16 +123,21 @@ describe("ADR-248 4e item insert ('+')", () => {
     ]);
     const before = childTypes(workspace, "ListBox");
     add(workspace, "ListBox", "ListBoxItem");
+    // (The new item goes after the items, before the list's empty state.)
+    expect(before.at(-1)).toBe("IllustratedMessage");
     expect(childTypes(workspace, "ListBox")).toEqual([
-      ...before,
+      ...before.slice(0, -1),
       "ListBoxItem",
+      "IllustratedMessage",
     ]);
-    const ids = recordOf(workspace, "ListBox").children.map(
-      (id) => workspace.root.domInputs.get(id)!.props.id,
+    const items = recordOf(workspace, "ListBox").children.filter(
+      (id) =>
+        workspace.root.typeOf(workspace.root.domInputs.get(id)!) ===
+        "ListBoxItem",
     );
+    const ids = items.map((id) => workspace.root.domInputs.get(id)!.props.id);
     // The new item reads "Item <n>" (its description and icon parts hidden), not the bare
     // `{label}` · `{description}` · `{icon}` row placeholders.
-    const items = recordOf(workspace, "ListBox").children;
     const added = workspace.root.domInputs.get(items[items.length - 1]!)!;
     const parts = added.children.map((id) => workspace.root.domInputs.get(id)!);
     expect(

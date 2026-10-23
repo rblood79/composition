@@ -131,6 +131,8 @@ function layers(workspace: CatalogWorkspace) {
       subscribeSteps: (listener) => workspace.runtime.subscribeSteps(listener),
       boundRows: (position) => workspace.boundRowsOf(position),
       subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
+      collectionRowHidden: (position, parentType) =>
+        workspace.collectionRowHidden(position, parentType),
     },
     workspace.session.getSnapshot().pageId!,
   );

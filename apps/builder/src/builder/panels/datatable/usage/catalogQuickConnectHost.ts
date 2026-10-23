@@ -196,6 +196,7 @@ export function createCatalogQuickConnectHost(
               collectionId: catalogCollectionId(collectionId),
               fieldMap: {},
             },
+            workspace.newId,
           ),
         );
         const name = label(input.name);

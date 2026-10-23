@@ -1899,12 +1899,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-listbox__item-1",
       "lib:template:component-listbox__item-2",
-      "lib:template:component-listbox__item-3"
+      "lib:template:component-listbox__item-3",
+      "lib:template:component-listbox__empty-state"
     ],
     "props": {
       "selectionMode": "single"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-listbox__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-listbox__item-1",
@@ -2109,13 +2128,32 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-gridlist__item-1",
       "lib:template:component-gridlist__item-2",
-      "lib:template:component-gridlist__item-3"
+      "lib:template:component-gridlist__item-3",
+      "lib:template:component-gridlist__empty-state"
     ],
     "props": {
       "layout": "grid",
       "selectionMode": "none"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-gridlist__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-gridlist__item-1",
@@ -3564,13 +3602,32 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-menu__item-1",
       "lib:template:component-menu__item-2",
-      "lib:template:component-menu__item-3"
+      "lib:template:component-menu__item-3",
+      "lib:template:component-menu__menu__empty-state"
     ],
     "props": {
       "size": "{size}",
       "selectionMode": "{selectionMode}"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu__menu__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-menu__item-1",
@@ -5439,12 +5496,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "children": [
       "lib:template:component-tree__item-1",
-      "lib:template:component-tree__item-2"
+      "lib:template:component-tree__item-2",
+      "lib:template:component-tree__empty-state"
     ],
     "props": {
       "selectionMode": "single"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-tree__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-tree__item-1",
@@ -7542,12 +7618,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-taggroup__2__tag-1",
       "lib:template:component-taggroup__2__tag-2",
       "lib:template:component-taggroup__2__tag-3",
-      "lib:template:component-taggroup__2__tag-4"
+      "lib:template:component-taggroup__2__tag-4",
+      "lib:template:component-taggroup__2__empty-state"
     ],
     "props": {
       "size": "M"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-taggroup__2__empty-state",
+    "definitionId": "lib:definition:origin-component-illustratedmessage",
+    "children": [],
+    "props": {},
+    "visual": {},
+    "descendantPatches": [
+      {
+        "templatePath": [
+          "lib:template:component-illustratedmessage",
+          "lib:template:component-illustratedmessage__illustration"
+        ],
+        "props": {
+          "iconName": "folder-open"
+        }
+      }
+    ]
   },
   {
     "id": "lib:template:component-taggroup__2__tag-1",

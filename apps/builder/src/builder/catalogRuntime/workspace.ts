@@ -17,6 +17,11 @@ import type { NewId } from "../../../../../packages/shared/src/catalog/commands/
 import type { CatalogClipboard } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+  RAC_COLLECTION_CHILD_TYPES,
+} from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type { CatalogTransactionResult } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type { LayoutEngineAPI } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { CatalogAutosave } from "./autosave";
@@ -460,6 +465,32 @@ export class CatalogWorkspace {
     return (
       !!record &&
       catalogAbsentByOwnerValue(record, (id) => records.get(id), root.typeOf)
+    );
+  }
+  /**
+   * Whether the Canvas leaves a collection's row undrawn (Layers lists what it draws, 2026-10-23):
+   * its EmptyState (RAC `renderEmptyState`) while it has items, and its item positions while its
+   * loaded data is empty (no row is projected from them).
+   */
+  collectionRowHidden(position: CatalogPosition, parentType: string): boolean {
+    if (!CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)) return false;
+    const root = this.currentRoot;
+    let type: string;
+    try {
+      type = definitionTypeName(this.runtime.graph, position.definitionId);
+    } catch {
+      return false;
+    }
+    if (type === CATALOG_EMPTY_STATE_TYPE)
+      return (
+        (
+          root.canvasInputs.get(position.identity) ??
+          root.domInputs.get(position.identity)
+        )?.hidden === true
+      );
+    return (
+      (RAC_COLLECTION_CHILD_TYPES[parentType] ?? []).includes(type) &&
+      !root.domInputs.has(position.identity)
     );
   }
   boundRowsOf(position: CatalogPosition): CatalogBoundLayerRows | undefined {

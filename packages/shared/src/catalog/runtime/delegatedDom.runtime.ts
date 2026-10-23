@@ -198,6 +198,7 @@ import {
   catalogTreeSelectionCheckboxHidden,
   FIELD_HINT_OWNERS,
 } from "./presence";
+import { CATALOG_EMPTY_STATE_TYPE } from "../nesting/nestingRules";
 
 import { racSlotProps } from "./racSlot";
 
@@ -300,6 +301,52 @@ function boundOwnerOf(
     ? picker
     : undefined;
 }
+
+/** S2's first-load spinner in an empty collection (`loadingState: "loading"` — S2 `centeredWrapper`). */
+export function catalogLoadingEmptyState(): ReactElement {
+  return createElement(
+    "div",
+    // (The Canvas loads nothing, so it has no counterpart.)
+    {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        height: "100%",
+      },
+    },
+    createElement(ProgressCircle, {
+      isIndeterminate: true,
+      "aria-label": "Loading…",
+    }),
+  );
+}
+
+/**
+ * A collection's RAC `renderEmptyState` (2026-10-23 사용자 결정): its IllustratedMessage child —
+ * RAC draws it while the collection has no items, as the Canvas does (`catalogHiddenAtRest`). While
+ * a bound collection's first load runs, S2's spinner instead (ListView · TreeView · TableView).
+ */
+export function catalogEmptyState(
+  input: DelegatedDomInput,
+  loadingState: unknown = input.node.props.loadingState,
+): { renderEmptyState?: () => ReactNode } {
+  if (loadingState === "loading")
+    return { renderEmptyState: catalogLoadingEmptyState };
+  const content = children(input).find(
+    (child) => catalogTypeName(input.root, child) === CATALOG_EMPTY_STATE_TYPE,
+  );
+  return content
+    ? { renderEmptyState: () => input.renderChild(content.id) }
+    : {};
+}
+
+/** Whether a collection child is its empty state (rendered by `catalogEmptyState`, not as an item). */
+const isEmptyStateChild = (
+  child: CatalogConsumerNode,
+  root: CatalogCompositionRoot,
+) => catalogTypeName(root, child) === CATALOG_EMPTY_STATE_TYPE;
 
 /**
  * The reference's load-more item at a bound collection's end (S2 passes `onLoadMore` and draws it
@@ -1518,7 +1565,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   listbox: {
     ownsChild: (child, _parent, root) =>
-      !["ListBoxItem", "ListBoxSection"].includes(catalogTypeName(root, child)),
+      !["ListBoxItem", "ListBoxSection"].includes(
+        catalogTypeName(root, child),
+      ) && !isEmptyStateChild(child, root),
     render: (input) => {
       const props = input.node.props;
       // A picker's list (ADR-253 Phase 4): RAC's Select · ComboBox own its name, selection and
@@ -1565,6 +1614,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               style: input.style,
               className: "react-aria-ListBox",
               "data-size": str(picker!.props.size || "M"),
+              ...catalogEmptyState(input),
             }
           : {
               ...marker(input),
@@ -1589,6 +1639,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 selected,
                 catalogSelectionValue,
               ),
+              ...catalogEmptyState(input),
             },
         ...renderAll(
           input,
@@ -1612,7 +1663,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: (child, _parent, root) =>
       !["GridListItem", "GridListSection"].includes(
         catalogTypeName(root, child),
-      ),
+      ) && !isEmptyStateChild(child, root),
     render: (input) => {
       const props = input.node.props;
       const selected = runtimeState(input, "selectedKeys") as string[] | "all";
@@ -1633,6 +1684,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),
           ...controlled(input, SELECTED_KEYS, selected, catalogSelectionValue),
+          ...catalogEmptyState(input),
         },
         ...renderAll(
           input,
@@ -1726,7 +1778,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     // MenuTrigger's or a SubmenuTrigger's Popover (the trigger names it and opens it — RAC's
     // `MenuContext` · `PopoverContext`, Phase 5g), or open in an Autocomplete (its filter — RAC's
     // `SelectableCollectionContext`, G0 example 4).
-    ownsChild: ownsAll,
+    ownsChild: (child, _parent, root) => !isEmptyStateChild(child, root),
     render: (input) => {
       const props = input.node.props;
       const popover = input.root.domInputs.get(input.node.parentId);
@@ -1759,6 +1811,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             : triggered || autocompleted
               ? {}
               : { "aria-label": "Menu" }),
+          ...catalogEmptyState(input),
           ...(props.selectionMode && props.selectionMode !== "none"
             ? {
                 selectionMode: props.selectionMode,
@@ -1847,6 +1900,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             treeSelected,
             catalogSelectionValue,
           ),
+          ...catalogEmptyState(input),
         },
         ...items(
           children(input).filter(

@@ -468,7 +468,7 @@ export function catalogPropertiesPatchCommand(
     const first = targets[0];
     const before = first ? catalogTargetBinding(graph, first) : undefined;
     if (JSON.stringify(before) === JSON.stringify(ref)) continue;
-    commands.push(catalogBindingCommand(targets, ref));
+    commands.push(catalogBindingCommand(targets, ref, newId));
   }
   const propCommand =
     catalogColorControlPatchCommand(graph, targets, props, currentOf) ??

@@ -52,7 +52,12 @@ import type {
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import { catalogFieldBox, catalogFieldBoxOfInput } from "./fieldPrefix";
-import { catalogChildKind } from "../nesting/nestingRules";
+import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+  RAC_COLLECTION_CHILD_TYPES,
+  catalogChildKind,
+} from "../nesting/nestingRules";
 export { catalogStateKeysOf };
 
 /**
@@ -756,6 +761,29 @@ export function catalogAbsentByValue(node: CatalogConsumerNode): boolean {
   );
 }
 
+/**
+ * Whether a collection holds an item — what RAC's `collection.size` counts: its `item` nodes (a
+ * section's included), not a loader · Header · Separator. The resolved children: a bound
+ * collection's rows (none while its data is empty).
+ */
+export function catalogCollectionHasItems(
+  collection: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const items = RAC_COLLECTION_CHILD_TYPES[typeOf(collection)] ?? [];
+  return collection.children.some((id) => {
+    const child = get(id);
+    if (!child) return false;
+    const type = typeOf(child);
+    if (!items.includes(type) || type === "Separator" || type === "Header")
+      return false;
+    return type.endsWith("Section")
+      ? catalogCollectionHasItems(child, get, typeOf)
+      : true;
+  });
+}
+
 const REPEAT_TEMPLATE_BINDINGS: ReadonlySet<string> = new Set([
   "calendarcell",
   "calendarheadercell",
@@ -804,6 +832,13 @@ export function catalogHiddenAtRest(
   if (!parent) return false;
   const type = typeOf(node);
   const parentType = typeOf(parent);
+  // RAC `renderEmptyState` (2026-10-23): a collection's IllustratedMessage is drawn while it has no
+  // items.
+  if (
+    type === CATALOG_EMPTY_STATE_TYPE &&
+    CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)
+  )
+    return catalogCollectionHasItems(parent, get, typeOf);
   // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
   // reaches it there, `catalogPartParent`.)
   const partParent = catalogPartParent(node, get, typeOf);

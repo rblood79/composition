@@ -2264,8 +2264,8 @@ export function resolveCatalogNode(
       // A bound collection whose own items were all removed (an empty slot) still has a row
       // template: the origin's first item, as when its items are template positions (2026-10-22
       // user 「child 가 없을 때 data collection 선택 시 row 가 생성되지 않는다」). Adding an item makes
-      // that one the row template.
-      if (rowSet && !change.childIds.length && itemPositions.length)
+      // that one the row template. (Its EmptyState may stay — no item is what counts, 2026-10-23.)
+      if (rowSet && !ownedRowItems && itemPositions.length)
         children.push(
           ...projectChildren([itemPositions[0]!], childParent, self),
         );

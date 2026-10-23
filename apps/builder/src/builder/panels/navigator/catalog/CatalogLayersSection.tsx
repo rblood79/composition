@@ -82,6 +82,10 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         subscribeRoot: (listener) => workspace.subscribeRoot(listener),
         // A part with no value to show (an empty `{description}`) has no row.
         absentByValue: (position) => workspace.rowAbsentByValue(position),
+        // A collection's EmptyState while it has items · its item positions while its data is
+        // empty are not drawn, so they have no row.
+        collectionRowHidden: (position, parentType) =>
+          workspace.collectionRowHidden(position, parentType),
       },
       ownerId,
     );

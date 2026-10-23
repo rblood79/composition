@@ -38,7 +38,7 @@ import {
   readTemplate,
   type NewId,
 } from "./materialize";
-import { removeWithReferrers, subtree } from "./structure";
+import { catalogAppendIndex, removeWithReferrers, subtree } from "./structure";
 
 /**
  * ADR-248 Phase 4b component-aware item insertion — the old Slot "+" planners (ADR-234 collection
@@ -231,9 +231,12 @@ function place(
   if (!root) return void fail("ROOT_NOT_IN_ENTRIES", rootId);
   assertNestable(draft, parent, [root.definitionId]);
   for (const entry of entries) draft.create(entry);
+  const list = ensureChildList(draft, parent, newId);
+  const at = catalogAppendIndex(draft, list, [rootId]);
   setChildList(draft, parent, [
-    ...ensureChildList(draft, parent, newId),
+    ...list.slice(0, at),
     rootId,
+    ...list.slice(at),
   ]);
   ownSlotContents(draft, [rootId], newId);
 }

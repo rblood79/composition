@@ -239,7 +239,13 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
 
   it("an empty description or error message is not there (Canvas and DOM)", async () => {
     const { html, of, edit } = await open();
-    const hints = () => [...of("Description"), ...of("FieldError")];
+    // (The TagGroup's own hints — not the empty state IllustratedMessage's description.)
+    const hints = () => {
+      const message = new Set(of("IllustratedMessage").map((m) => m.id));
+      return [...of("Description"), ...of("FieldError")].filter(
+        (hint) => !message.has(hint.parentId),
+      );
+    };
     expect(hints().every((hint) => hint.hidden === true)).toBe(true);
     expect(html()).not.toContain('slot="description"');
     expect(html()).not.toContain('slot="errorMessage"');

@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컬렉션 빈 상태 — RAC renderEmptyState 를 IllustratedMessage 자식으로] - 2026-10-23
+
+### Added
+
+- **ListBox · GridList · Tree · TagGroup · Menu 가 빈 상태를 기본으로 갖는다** — 팔레트로 놓은 컬렉션에 IllustratedMessage ("No results") 가 이미 들어 있어, 놓고 데이터에 연결하면 끝이다. 그 IllustratedMessage 가 RAC `renderEmptyState` 의 내용이고 (S2 예제 모양, 사용자 결정 2026-10-23 — 원본 컴포넌트에 기본 포함), 항목 · 바운드 행이 0 일 때만 Canvas 와 Preview 둘 다 그리며, 항목이 있으면 둘 다 숨긴다. 지웠으면 Design 패널 Slot 의 넣기 목록에서 다시 넣는다. 이미 놓은 컬렉션에는 생기지 않는다 (옛 문서 변환 없음).
+  - Layers 에는 「EmptyState」 로 보이고 (노드 type 은 S2 그대로 IllustratedMessage — 새 컴포넌트 type 없음, 사용자가 이름을 바꾸면 그 이름), 그림은 S2 예제의 FolderOpen (`folder-open`) 이다.
+  - 항목 「+」 · Slot 넣기 · 팔레트 넣기는 새 노드를 빈 상태 앞에 둔다 — 빈 상태는 항목 뒤에 남는다 (`catalogAppendIndex`).
+  - **Layers 도 Canvas 에 그려진 대로다** — 항목 · 행이 있으면 EmptyState 행이 없고, 데이터가 0행이면 그려지지 않는 항목 틀 대신 EmptyState 하나만 보인다 (`workspace.collectionRowHidden`, 사용자 지적 2026-10-23). 행이 있는 동안 EmptyState 를 고치려면 데이터를 비우거나 항목을 지운다. 바인딩 · 데이터 도착 · 항목 삭제로 판정이 바뀌면 그 step 에서 바로 다시 그린다 (전에는 행 목록이 그대로면 선택할 때까지 옛 트리가 남았다 — `collectionGated`, 사용자 보고 「동기화가 느리다」).
+  - **EmptyState 는 컬렉션과 함께만 지워진다** — 선택 후 Delete 키 · Layers 삭제 버튼 (버튼 없음) · 밖으로 끌어 옮기기 모두 거절하고 안내를 띄운다 (`removeTargets` · `moveNodes` 의 `emptyStateCollectionOf`, 사용자 지적 2026-10-23). 컬렉션 안 순서 바꾸기와 컬렉션째 삭제는 된다.
+  - 항목을 다 지워 EmptyState 만 남아도 바운드 목록은 원본 항목으로 행을 그린다 (resolver 가 남은 자식이 아니라 남은 항목을 센다 — 전에는 자식이 0일 때만).
+  - **항목 없이 데이터를 연결해도 행을 선택할 수 있다** — 자기 항목이 없는 컬렉션 (항목을 다 지우고 EmptyState 만 남은 ListBox · GridList · TagGroup …) 을 연결하면, 같은 step 에 원본의 첫 항목을 자기 노드로 하나 넣어 행 템플릿으로 쓴다 (항목 「+」 와 같은 결과, undo 한 번에 함께 되돌림). 전에는 원본 template 항목으로 행을 그려 Canvas · Layers 어디서도 행이 선택되지 않았다 (`dataBindingCommand.ts` `rowTemplateInsert`, 사용자 보고 2026-10-23). 이미 그 상태로 연결된 컬렉션은 다시 연결하거나 항목 「+」 로 행 템플릿을 넣는다.
+  - 중첩 규칙: 컬렉션은 여전히 항목만 받고, IllustratedMessage 하나만 예외다 (`componentTraits` `emptyStateCollection` → `CATALOG_EMPTY_STATE_COLLECTIONS`).
+  - 바운드 목록의 첫 로드 중에는 빈 목록에 S2 진행 원을 보인다 (Table 은 전부터 그랬고, 이제 ListBox · GridList · Tree · Menu 도 같다).
+  - **Why:** 목록이 비면 아무것도 그리지 않아 「결과 없음」 을 보일 길이 없었다 (`rac-s2-integrations.md` §12 우선순위 1).
+  - Builder 자체 목록의 수동 `[data-empty]` 규칙 (가운데 정렬 · 기울임) 은 카탈로그 목록에 적용하지 않는다 — Canvas 에 대응이 없어 두 쪽 배치가 달라진다.
+  - 남은 것: TableBody (RAC 가 `td colSpan` 행에 그림) · CardView. Menu 는 연결만 하고 Preview 테스트 · live 는 아직이다.
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (원본 5종의 `__empty-state`) · `catalog/commands/structure.ts` · `collections.ts` · `packages/shared/src/domain/componentTraits.ts` · `catalog/nesting/nestingRules.ts` · `catalog/runtime/presence.ts` (`catalogCollectionHasItems`) · `catalog/runtime/delegatedDom.runtime.ts` (`catalogEmptyState` · `catalogLoadingEmptyState`) · `delegatedDom.components.tsx` (TagList) · `components/styles/{ListBox,GridList,Tree}.css` · `apps/builder/src/builder/catalogRuntime/slots.ts` · 테스트 `emptyState.test.tsx` (원복 RED) · `adr256SlotInsertOptions.test.ts`
+
 ## [Tree — Checkbox 선택 스타일 표시] - 2026-10-23
 
 ### Fixed

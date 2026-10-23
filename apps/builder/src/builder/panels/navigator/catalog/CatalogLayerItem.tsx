@@ -128,6 +128,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
           !derived &&
           !node.projection &&
           !node.keptOrigin &&
+          !node.emptyState &&
           !OWNER_DRAWN_PART_OWNERS[node.typeName] && (
             <Button
               className="iconButton"

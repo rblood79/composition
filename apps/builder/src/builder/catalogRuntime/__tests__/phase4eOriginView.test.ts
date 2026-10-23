@@ -1010,7 +1010,14 @@ describe("ADR-248 4e library origin view", () => {
         expect.not.arrayContaining(["Item"]),
       ]);
     // Items held in a slot, or held more than once (a Pagination's buttons), stay items.
-    for (const name of ["Pagination", "Toolbar", "Tabs", "ListBox", "Nav", "Menu"])
+    for (const name of [
+      "Pagination",
+      "Toolbar",
+      "Tabs",
+      "ListBox",
+      "Nav",
+      "Menu",
+    ])
       expect([name, rowsOf(name)]).toEqual([
         name,
         expect.arrayContaining(["Item"]),
@@ -1029,9 +1036,12 @@ describe("ADR-248 4e library origin view", () => {
       const empty = rectOf(originSampleId(lib(origin)));
       const filled = rectOf(originInstanceId(lib(origin), "instance"));
       expect([origin, empty.height < filled.height]).toEqual([origin, true]);
+      // (A list's empty state IllustratedMessage is there too, hidden beside its items.)
       expect([
         origin,
-        inputOf(recordOf(originSampleId(lib(origin)))).children.length,
+        inputOf(recordOf(originSampleId(lib(origin)))).children.filter(
+          (child) => !inputOf(child).hidden,
+        ).length,
       ]).toEqual([origin, 1]);
     }
     const icons = (record: string): string[] =>
@@ -1057,7 +1067,9 @@ describe("ADR-248 4e library origin view", () => {
     // The base parts close the page as a Parts section (user 2026-10-21: they opened it as if
     // components of their own), each titled as a part; the palette's components come first.
     const origins = catalogBuiltinOrigins(graph.library);
-    const firstPart = origins.findIndex((origin) => origin.category === "parts");
+    const firstPart = origins.findIndex(
+      (origin) => origin.category === "parts",
+    );
     expect(firstPart).toBeGreaterThan(0);
     expect(
       origins.slice(firstPart).every((origin) => origin.category === "parts"),
@@ -1099,14 +1111,23 @@ describe("ADR-248 4e library origin view", () => {
       ["menu", "Popover"],
     ] as const) {
       const overlay = overlayOf(origin, type);
-      expect([origin, inputOf(overlay).hidden ?? false]).toEqual([origin, false]);
+      expect([origin, inputOf(overlay).hidden ?? false]).toEqual([
+        origin,
+        false,
+      ]);
       const sample = recordOf(originSampleId(lib(origin)));
       const trigger = inputOf(sample).children[0]!;
       const box = workspace.root.getGeometry([overlay, trigger]);
       const body = box.get(overlay)!;
       const button = box.get(trigger)!;
-      expect([origin, body.width > 0 && body.height > 0]).toEqual([origin, true]);
-      expect([origin, body.x >= button.x + button.width]).toEqual([origin, true]);
+      expect([origin, body.width > 0 && body.height > 0]).toEqual([
+        origin,
+        true,
+      ]);
+      expect([origin, body.x >= button.x + button.width]).toEqual([
+        origin,
+        true,
+      ]);
     }
     expect(inputOf(overlayOf("select", "Popover")).hidden).toBe(true);
     workspace.dispose();

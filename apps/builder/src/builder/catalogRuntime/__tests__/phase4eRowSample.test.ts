@@ -162,9 +162,15 @@ describe("ADR-248 4e row sample", () => {
       (override) => override.kind === "fillSlot",
     ) as { childIds: readonly NodeId[] };
     expect(fill.childIds.length).toBeGreaterThan(0);
+    // (Its items — its EmptyState goes only with the list, 2026-10-23.)
+    const isEmptyState = (id: NodeId) =>
+      (graph.getEntry(id) as NodeEntry).definitionId ===
+      "lib:definition:origin-component-illustratedmessage";
     workspace.execute(
       removeTargets({
-        targets: fill.childIds.map((id) => ({ kind: "node" as const, id })),
+        targets: fill.childIds
+          .filter((id) => !isEmptyState(id))
+          .map((id) => ({ kind: "node" as const, id })),
       }),
     );
     expect(
@@ -172,7 +178,7 @@ describe("ADR-248 4e row sample", () => {
         (graph.getEntry(LIST) as NodeEntry).descendantOverrides.find(
           (override) => override.kind === "fillSlot",
         ) as { childIds: readonly NodeId[] }
-      ).childIds,
+      ).childIds.filter((id) => !isEmptyState(id)),
     ).toEqual([]);
     expect(
       rowRecords(workspace, "ListBoxItem").map((row) => row.rowIndex),

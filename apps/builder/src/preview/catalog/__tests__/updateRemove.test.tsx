@@ -91,10 +91,13 @@ async function listPreview() {
     act(() => {
       fireEvent.click(h.element(button)!);
     });
+  // (Not RAC's empty-state option — the list's IllustratedMessage, 2026-10-23.)
   const options = () =>
-    [...(h.element(list)?.querySelectorAll('[role="option"]') ?? [])].map(
-      (option) => option.textContent ?? "",
-    );
+    [...(h.element(list)?.querySelectorAll('[role="option"]') ?? [])]
+      .filter(
+        (option) => !option.querySelector(".react-aria-IllustratedMessage"),
+      )
+      .map((option) => option.textContent ?? "");
   const items = () =>
     h.session.collectionItems("users") as Record<string, unknown>[];
   return { ...h, form, list, button, save, press, options, items };
@@ -206,6 +209,9 @@ describe("update · remove — execution", () => {
     });
     expect(h.items()).toEqual([]);
     expect(h.options()).toEqual([]);
+    expect(
+      h.element(h.list)?.querySelector(".react-aria-IllustratedMessage"),
+    ).not.toBeNull();
     h.view.unmount();
   });
 });

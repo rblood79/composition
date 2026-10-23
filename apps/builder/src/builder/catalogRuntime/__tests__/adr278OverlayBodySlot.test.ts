@@ -327,7 +327,8 @@ describe("ADR-278 — overlay body = slot", () => {
     expect(
       fillAt(HELP, "component-contextualhelp__footer")!.childIds.length,
     ).toBe(1);
-    expect(fillAt(MENU, "component-menu__menu")!.childIds.length).toBe(3);
+    // (Three MenuItems and the Menu's empty state IllustratedMessage — 2026-10-23.)
+    expect(fillAt(MENU, "component-menu__menu")!.childIds.length).toBe(4);
     const host = await mount(workspace, root.recordsOfSource(POPOVER)[0]!);
     await press(host.querySelector("button")!);
     const popover = document.querySelector(".react-aria-Popover")!;
@@ -490,9 +491,13 @@ describe("ADR-278 — overlay body = slot", () => {
     ]);
     const modal = modalOf(OPEN);
     expect(modal.hidden ?? false).toBe(false);
-    expect(root.getGeometry([modal.id]).get(modal.id)!.width).toBeGreaterThan(0);
+    expect(root.getGeometry([modal.id]).get(modal.id)!.width).toBeGreaterThan(
+      0,
+    );
     expect(modalOf(DIALOG).hidden).toBe(true);
-    const html = renderToStaticMarkup(renderCatalogDom(workspace.root, root.recordsOfSource(OPEN)[0]!));
+    const html = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, root.recordsOfSource(OPEN)[0]!),
+    );
     // (The DOM keeps RAC's closed overlay — `open` is a Canvas display state, no RAC prop.)
     expect(html).not.toContain("react-aria-Modal");
   });
@@ -559,7 +564,9 @@ describe("ADR-278 — overlay body = slot", () => {
     ]);
 
     const revision = graph.revision;
-    workspace.execute(catalogSlotCommands.restore(dialogContent, workspace.newId));
+    workspace.execute(
+      catalogSlotCommands.restore(dialogContent, workspace.newId),
+    );
     expect(graph.revision).toBe(revision + 1);
     const restored = fillAt(DIALOG, region)!.childIds;
     expect(words(restored)).toEqual(["Dialog content goes here."]);

@@ -9,7 +9,10 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  removeTargets,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogLayerTreeStore, type CatalogLayerNode } from "../layerTree";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
@@ -100,6 +103,8 @@ function layers(workspace: CatalogWorkspace) {
       subscribeSteps: (listener) => workspace.runtime.subscribeSteps(listener),
       boundRows: (position) => workspace.boundRowsOf(position),
       subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
+      collectionRowHidden: (position, parentType) =>
+        workspace.collectionRowHidden(position, parentType),
     },
     page,
   );
@@ -127,6 +132,7 @@ describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
   it("lists a bound ListBox's data rows as its rows, each the row's record", async () => {
     const { workspace } = await open("ListBox");
     const { listRow } = layers(workspace);
+    // (No EmptyState row: the Canvas does not draw it while there are rows, 2026-10-23.)
     expect(view(listRow())).toEqual([
       ["Alpha", true],
       ["Beta", true],
@@ -148,6 +154,7 @@ describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
   it("follows a data change; unbound or unknown rows list the item positions", async () => {
     const { workspace, setRows } = await open("GridList");
     const { listRow } = layers(workspace);
+    // (No EmptyState row: the Canvas does not draw it while there are rows, 2026-10-23.)
     expect(view(listRow())).toEqual([
       ["Alpha", true],
       ["Beta", true],
@@ -155,6 +162,10 @@ describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
     setRows([row("c", "Gamma")]);
     workspace.refreshRows(["c1"]);
     expect(view(listRow())).toEqual([["Gamma", true]]);
+    // Its data emptied: the Canvas draws the EmptyState alone — no item positions either.
+    setRows([]);
+    workspace.refreshRows(["c1"]);
+    expect(view(listRow())).toEqual([["EmptyState", false]]);
     setRows(undefined);
     workspace.refreshRows(["c1"]);
     expect(view(listRow()).every(([, projection]) => !projection)).toBe(true);
@@ -164,5 +175,17 @@ describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
     expect(
       view(layers(plain.workspace).listRow()).map(([name]) => name),
     ).toEqual(["ListBoxItem", "ListBoxItem", "ListBoxItem"]);
+    // Its items deleted, the Canvas draws its EmptyState: now it has a row.
+    const plainTree = layers(plain.workspace);
+    const items = plainTree.listRow().children!.map((row) => row.position);
+    plain.workspace.execute(
+      removeTargets({
+        targets: items.map((item) => item.target),
+        newId: plain.workspace.newId,
+      }),
+    );
+    expect(view(plainTree.listRow()).map(([name]) => name)).toEqual([
+      "EmptyState",
+    ]);
   });
 });

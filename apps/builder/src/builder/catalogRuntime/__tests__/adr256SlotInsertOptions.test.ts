@@ -4,7 +4,11 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
-import { catalogChildKind } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
+import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+  catalogChildKind,
+} from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type {
   DefinitionId,
   EntryId,
@@ -127,9 +131,12 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
         if (!options.length) empty.push(`${name} ${type}`);
         const kind = catalogChildKind(type);
         for (const option of options) {
+          // (Besides its items, a collection lists its empty state — RAC `renderEmptyState`.)
           if (kind.kind === "items")
             expect(
-              kind.items,
+              CATALOG_EMPTY_STATE_COLLECTIONS.has(type)
+                ? [...kind.items, CATALOG_EMPTY_STATE_TYPE]
+                : kind.items,
               `${name} ${type} lists ${option.label}`,
             ).toContain(definitionTypeName(graph, option.definitionId));
           try {
@@ -212,8 +219,9 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
       catalogSlotInsertOptions(graph, listbox).map((option) =>
         definitionTypeName(graph, option.definitionId),
       ),
-      // (No deprecated `Section` · list-level `Header` — 2026-10-22.)
-    ).toEqual(["ListBoxItem", "ListBoxSection"]);
+      // (No deprecated `Section` · list-level `Header` — 2026-10-22. Its empty state beside the
+      // items — RAC `renderEmptyState`, 2026-10-23.)
+    ).toEqual(["ListBoxItem", "ListBoxSection", "IllustratedMessage"]);
     // A group's root slot takes its items (`GROUP_ITEM_TYPES`), not the ~70 Library origins
     // (2026-10-22 user 「buttonGroup slot 추가에 왜 이렇게 많은 컴퍼넌트」) — and of the project's
     // components, the ones drawn by an item type.

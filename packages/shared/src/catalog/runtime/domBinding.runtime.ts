@@ -52,7 +52,6 @@ import { catalogInlineAlertIcon } from "../document/inlineAlertIcon";
 import { Group } from "../../components/Group";
 
 import { Icon } from "../../components/Icon";
-import { ProgressCircle } from "../../components/ProgressCircle";
 import { catalogPickerSpinner } from "./pickerSpinner";
 
 import { Slot } from "../../components/Slot";
@@ -142,6 +141,7 @@ import {
   CATALOG_INPUT_NODE_FIELDS,
   catalogCollectionSelectedKeys,
   catalogLoadMoreItem,
+  catalogLoadingEmptyState,
   catalogDomPartParent,
   catalogFieldLabelNecessity,
   catalogOwnerDrawnPart,
@@ -2012,24 +2012,7 @@ function ruleDom(
     lower === "tablebody" &&
     root.domInputs.get(node.parentId)?.props.loadingState === "loading"
   )
-    rest.renderEmptyState = () =>
-      createElement(
-        "div",
-        // (S2 `centeredWrapper` — the Canvas loads nothing, so it has no counterpart.)
-        {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: "100%",
-          },
-        },
-        createElement(ProgressCircle, {
-          isIndeterminate: true,
-          "aria-label": "Loading…",
-        }),
-      );
+    rest.renderEmptyState = catalogLoadingEmptyState;
   // A resizable Column's document width is where its drag starts (S2 `width` is controlled — the
   // widths a drag leaves are the Preview's, 사용자 결정 5).
   if (lower === "column" && resizable) {

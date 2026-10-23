@@ -1,5 +1,9 @@
 import { componentTypeSet } from "../../domain/componentTraits";
 import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+} from "../nesting/nestingRules";
+import {
   absoluteStart,
   layoutIsAbsolute,
   shiftAbsoluteLayout,
@@ -141,6 +145,29 @@ function itemContentParent(
   };
 }
 
+/**
+ * Where a node appended to `list` goes: before a collection's empty state (its IllustratedMessage —
+ * RAC `renderEmptyState`, 2026-10-23), which stays after the items; the end otherwise (and for an
+ * empty state itself).
+ */
+export function catalogAppendIndex(
+  draft: CommandDraft,
+  list: readonly string[],
+  ids: readonly string[],
+): number {
+  const emptyState = (id: string) => {
+    const entry = draft.read(id);
+    return (
+      entry?.kind === "node" &&
+      definitionTypeName(draft.reader, entry.definitionId) ===
+        CATALOG_EMPTY_STATE_TYPE
+    );
+  };
+  if (ids.some(emptyState)) return list.length;
+  const at = list.findIndex(emptyState);
+  return at < 0 ? list.length : at;
+}
+
 function placeAt(
   draft: CommandDraft,
   parent: NodeParent,
@@ -149,7 +176,10 @@ function placeAt(
   newId: NewId,
 ): void {
   const list = ensureChildList(draft, parent, newId);
-  const at = clampIndex(index, list.length);
+  const at = clampIndex(
+    index ?? catalogAppendIndex(draft, list, ids),
+    list.length,
+  );
   setChildList(draft, parent, [
     ...list.slice(0, at),
     ...ids,
@@ -848,6 +878,26 @@ export function reorderReadsIndex(reader: CatalogReader, id: NodeId): boolean {
 }
 
 /** Move (or reorder) nodes; nodes under another moved node travel with it. */
+/**
+ * A collection's EmptyState (its direct IllustratedMessage — RAC `renderEmptyState`, 2026-10-23
+ * user report 「삭제가 되면 안 되는 것」): it goes only with its collection. Refused: deleting it
+ * (unless its collection goes too) and moving it out of its collection.
+ */
+function emptyStateCollectionOf(
+  draft: CommandDraft,
+  target: EditTarget,
+): string | undefined {
+  const [type, parentType] =
+    target.kind === "node"
+      ? parentAncestorTypes(draft, { kind: "node", id: target.id })
+      : parentAncestorTypes(draft, target);
+  return type === CATALOG_EMPTY_STATE_TYPE &&
+    parentType &&
+    CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType)
+    ? parentType
+    : undefined;
+}
+
 export const moveNodes =
   (input: MoveNodesInput): CatalogCommand =>
   (reader) => {
@@ -859,9 +909,18 @@ export const moveNodes =
         : input.parent.kind === "descendant"
           ? input.parent.ownerId
           : undefined;
-    for (const id of roots)
+    for (const id of roots) {
       if (parentNode && isWithin(reader, parentNode, id))
         fail("MOVE_INTO_SELF", id);
+      // (Reordered inside its collection, an EmptyState stays; out of it, it is refused.)
+      const collection = emptyStateCollectionOf(draft, { kind: "node", id });
+      if (
+        collection &&
+        (reader.ownerOf(id) !== parentNode ||
+          parentAncestorTypes(draft, input.parent)[0] !== collection)
+      )
+        fail("REQUIRED_PART_NOT_REMOVABLE", `${collection}>EmptyState`);
+    }
     assertNestable(
       draft,
       input.parent,
@@ -960,7 +1019,9 @@ function dropAddressesLeftOrigin(
   const left = new Set<string>();
   for (const root of addressed) {
     const before = owners.get(root);
-    const from = before ? originOf(before, (id) => draft.reader.ownerOf(id)) : undefined;
+    const from = before
+      ? originOf(before, (id) => draft.reader.ownerOf(id))
+      : undefined;
     if (!from || from === root) continue;
     if (originOf(root, ownerAfter) === from) continue;
     for (const id of subtree(draft, root)) left.add(id);
@@ -1120,6 +1181,22 @@ export const removeTargets =
   (input: RemoveInput): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
+    for (const target of input.targets) {
+      const collection = emptyStateCollectionOf(draft, target);
+      if (
+        collection &&
+        !(
+          target.kind === "node" &&
+          input.targets.some(
+            (other) =>
+              other.kind === "node" &&
+              other.id !== target.id &&
+              isWithin(reader, target.id, other.id),
+          )
+        )
+      )
+        fail("REQUIRED_PART_NOT_REMOVABLE", `${collection}>EmptyState`);
+    }
     // ADR-256 Phase 5i-3: a RAC Table column takes its cell in every aligned row along (G0 ⑨ —
     // one transaction, as a new column gives every row a cell). A reusable row's template cell is
     // hidden there, as a deleted template position is (Round 12).
@@ -1661,7 +1738,9 @@ export const groupNodes =
           setChildList(
             draft,
             item.parent,
-            (childList(draft, item.parent) ?? []).filter((id) => id !== item.id),
+            (childList(draft, item.parent) ?? []).filter(
+              (id) => id !== item.id,
+            ),
           );
     const list = childList(draft, parent) ?? [];
     const members = siblings

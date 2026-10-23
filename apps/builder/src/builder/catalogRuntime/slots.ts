@@ -17,7 +17,11 @@ import {
   overrideAt,
   templateDefinitionId,
 } from "../../../../../packages/shared/src/catalog/commands/context";
-import { catalogChildKind } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
+import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+  catalogChildKind,
+} from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import {
   ownSlotContents,
   type NewId,
@@ -267,9 +271,11 @@ function familyItemOrigin(
       queue.push(...template.children);
     }
   }
-  if (!COLLECTION_FAMILIES.some(
-    (family) => family.item === itemType || family.section === itemType,
-  ))
+  if (
+    !COLLECTION_FAMILIES.some(
+      (family) => family.item === itemType || family.section === itemType,
+    )
+  )
     return undefined;
   for (const definition of library.definitions.values()) {
     const id = (definition as { id: string }).id;
@@ -299,8 +305,7 @@ export function catalogTemplateItemDefinition(
   const at = catalogSlotTarget(graph, target);
   const node = at
     ? (templateNodeAt(graph, at.address) as
-        | { children?: readonly string[] }
-        | undefined)
+        { children?: readonly string[] } | undefined)
     : undefined;
   for (const childId of node?.children ?? []) {
     const template = childId.startsWith("lib:")
@@ -419,21 +424,31 @@ export function catalogSlotInsertOptions(
           return definition?.kind === "definition" &&
             definition.usage !== "layout" &&
             id !== instanceDefinition
-            ? [{ definitionId: id, label: definition.name, local: true as const }]
+            ? [
+                {
+                  definitionId: id,
+                  label: definition.name,
+                  local: true as const,
+                },
+              ]
             : [];
         })
       : [];
   // A group's slot (ButtonGroup · AvatarGroup · Nav …) takes its items, like a collection's: the
   // children judgment calls a group free content (its nesting stays open), but the list offers
   // what the group's "+" adds, not the ~70 Library origins (2026-10-22 user report).
-  const itemTypes =
-    kind.kind === "items" ? kind.items : GROUP_ITEM_TYPES[type];
+  const itemTypes = kind.kind === "items" ? kind.items : GROUP_ITEM_TYPES[type];
   if (itemTypes) {
     for (const itemType of itemTypes) {
       const origin = catalogTemplateItemDefinition(graph, target, itemType);
       const option = origin
         ? { definitionId: origin, label: itemType, type: itemType }
         : ofType(itemType);
+      if (option) candidates.push(option);
+    }
+    // Its empty state (RAC `renderEmptyState`, 2026-10-23): an IllustratedMessage beside the items.
+    if (CATALOG_EMPTY_STATE_COLLECTIONS.has(type)) {
+      const option = ofType(CATALOG_EMPTY_STATE_TYPE);
       if (option) candidates.push(option);
     }
     // (A collection's nesting check keeps only item-rooted components; a group's nesting is open,

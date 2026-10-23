@@ -109,7 +109,8 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
     });
     expect(workspace.readModel.components()).toHaveLength(1);
     // An instance placed beside it.
-    const definitionId = state.originOf!.definitionId as NodeEntry["definitionId"];
+    const definitionId = state.originOf!
+      .definitionId as NodeEntry["definitionId"];
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
@@ -235,7 +236,10 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       workspace.positionOfRecord(groupRecord!)!,
     );
     workspace.execute(plus!.build());
-    const slotList = catalogSlotPosition(graph, { kind: "node", id: id("group") });
+    const slotList = catalogSlotPosition(graph, {
+      kind: "node",
+      id: id("group"),
+    });
     expect(slotList?.fillIds).toHaveLength(3);
     expect(slotList?.fillIds?.slice(0, 2)).toEqual(items);
     expect((graph.getEntry(id("group")) as NodeEntry).children).toEqual([]);
@@ -260,9 +264,7 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
-        entries: [
-          node("list", "lib:definition:origin-component-listbox"),
-        ],
+        entries: [node("list", "lib:definition:origin-component-listbox")],
         rootIds: [id("list")],
         newId: workspace.newId,
       }),
@@ -273,8 +275,10 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
         .pageRows(pageId)
         .flatMap((row) => [row, ...workspace.readModel.childRows(row)])
         .find((row) => row.target.kind === "node" && row.target.id === nodeId)!;
+    // (Its three items and its empty state IllustratedMessage — 2026-10-23.)
     const listItems = workspace.readModel.childRows(rowOf(id("list")));
     expect(listItems.map((row) => row.target.kind)).toEqual([
+      "node",
       "node",
       "node",
       "node",
@@ -301,8 +305,15 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       "node",
       "node",
       "node",
+      "node",
     ]);
-    expect(new Set(after.map((row) => String(row.definitionId))).size).toBe(1);
+    // (The items share one origin; the empty state stays last.)
+    expect(
+      new Set(after.slice(0, -1).map((row) => String(row.definitionId))).size,
+    ).toBe(1);
+    expect(String(after.at(-1)!.definitionId)).toBe(
+      "lib:definition:origin-component-illustratedmessage",
+    );
     // A template row of a plain type (a Button origin's Text) is no instance.
     for (const child of workspace.readModel.childRows(rowOf(id("icon"))))
       expect(catalogComponentRole(graph, child.target)).toBeUndefined();
@@ -335,7 +346,9 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       for (const record of items) {
         const target = workspace.itemOfRecord(record.id)!.target;
         expect(target.kind).toBe("node");
-        const entry = graph.getEntry((target as { id: NodeId }).id) as NodeEntry;
+        const entry = graph.getEntry(
+          (target as { id: NodeId }).id,
+        ) as NodeEntry;
         expect(entry.metadata?.htmlId).toBeTruthy();
         expect(catalogComponentRole(graph, target)).toBe("instance");
         expect(catalogComponentState(graph, target).instanceOf).toMatchObject({
@@ -358,7 +371,9 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       workspace.execute(
         insertNodes({
           parent: { kind: "node", id: BODY },
-          entries: [node(`${type}-host`, `lib:definition:origin-component-${type}`)],
+          entries: [
+            node(`${type}-host`, `lib:definition:origin-component-${type}`),
+          ],
           rootIds: [id(`${type}-host`)],
           newId: workspace.newId,
         }),
@@ -379,9 +394,14 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       );
       expect(part().visual.backgroundColor).toBe("#ff0000");
       expect(part().children.length).toBe(items);
-      const descendant = target as Extract<typeof target, { kind: "descendant" }>;
+      const descendant = target as Extract<
+        typeof target,
+        { kind: "descendant" }
+      >;
       const listAt = () =>
-        (graph.getEntry(descendant.ownerId) as NodeEntry).descendantOverrides.find(
+        (
+          graph.getEntry(descendant.ownerId) as NodeEntry
+        ).descendantOverrides.find(
           (item) =>
             JSON.stringify(item.address) === JSON.stringify(descendant.address),
         );

@@ -152,7 +152,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     for (const bad of ["1abc", "a b", "a.b", "제목"]) {
       await commit(bad);
       expect([bad, stored()]).toEqual([bad, "text_2"]);
-      expect(screen.getByRole("alert").textContent).toMatch(/start with a letter/);
+      expect(screen.getByRole("alert").textContent).toMatch(
+        /start with a letter/,
+      );
       expect(field().value).toBe("text_2");
     }
     await commit("text_1");
@@ -387,16 +389,22 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       screen.queryByRole("button", { name: "Update route (incl. children)" });
     // In line (a root page): nothing to offer.
     expect(update()).toBeNull();
-    act(() => workspace.execute(catalogPageCommands.parent(page("guide"), page("docs"))));
-    expect(container.querySelector(".page-resolved-url-value")?.textContent).toBe(
-      "/docs/guide",
+    act(() =>
+      workspace.execute(
+        catalogPageCommands.parent(page("guide"), page("docs")),
+      ),
     );
+    expect(
+      container.querySelector(".page-resolved-url-value")?.textContent,
+    ).toBe("/docs/guide");
     // The stored route stays until the user takes the offer.
     expect(graph.getEntry(page("guide"))).toMatchObject({ route: "/guide" });
     await act(async () => {
       fireEvent.click(update()!);
     });
-    expect(graph.getEntry(page("guide"))).toMatchObject({ route: "/docs/guide" });
+    expect(graph.getEntry(page("guide"))).toMatchObject({
+      route: "/docs/guide",
+    });
     expect(graph.getEntry(page("intro"))).toMatchObject({
       route: "/docs/guide/intro",
     });
@@ -553,7 +561,8 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       }),
     );
     const slot = { kind: "node" as const, id: id("lb") };
-    expect(catalogSlotPosition(graph, slot)?.fillIds).toHaveLength(3);
+    // (Three items and the list's empty state IllustratedMessage, 2026-10-23.)
+    expect(catalogSlotPosition(graph, slot)?.fillIds).toHaveLength(4);
     render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
@@ -577,9 +586,13 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       </I18nProvider>,
     );
     expect(
-      screen.getAllByText("Slot", { selector: ".section-title, .section-title *" }),
+      screen.getAllByText("Slot", {
+        selector: ".section-title, .section-title *",
+      }),
     ).toHaveLength(1);
-    expect(document.querySelectorAll(".frame-slot-fill .list-row")).toHaveLength(0);
+    expect(
+      document.querySelectorAll(".frame-slot-fill .list-row"),
+    ).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /^Insert / })).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Fill slot" }));
@@ -597,7 +610,8 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       );
     });
     const fills = catalogSlotPosition(graph, slot)!.fillIds!;
-    expect(fills).toHaveLength(4);
+    // (The new item goes before the empty state, which stays last.)
+    expect(fills).toHaveLength(5);
     expect(JSON.stringify(graph.getEntry(fills[3]))).toContain("Item 4");
   });
 
@@ -616,9 +630,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       }),
     );
     const slot = { kind: "node" as const, id: id("lb") };
-    const origin = (graph.getEntry(
-      catalogSlotPosition(graph, slot)!.fillIds![0]!,
-    ) as NodeEntry).definitionId;
+    const origin = (
+      graph.getEntry(
+        catalogSlotPosition(graph, slot)!.fillIds![0]!,
+      ) as NodeEntry
+    ).definitionId;
     expect(origin).toBe("lib:definition:origin-component-listbox-item-default");
     // The slot list's Library choice is that origin (a fill is an instance too).
     expect(
@@ -629,10 +645,17 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     // No item left to copy: the item 「+」 still makes an instance of the origin.
     workspace.execute(
       removeTargets({
-        targets: catalogSlotPosition(graph, slot)!.fillIds!.map((fill) => ({
-          kind: "node" as const,
-          id: fill,
-        })),
+        // (Its items — its EmptyState goes only with the list, 2026-10-23.)
+        targets: catalogSlotPosition(graph, slot)!
+          .fillIds!.filter(
+            (fill) =>
+              (graph.getEntry(fill) as NodeEntry).definitionId !==
+              "lib:definition:origin-component-illustratedmessage",
+          )
+          .map((fill) => ({
+            kind: "node" as const,
+            id: fill,
+          })),
       }),
     );
     const position = workspace.positionOfRecord(
@@ -643,8 +666,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       position,
     ).find((item) => item.type === "ListBoxItem")!;
     workspace.execute(choice.build());
+    // (The new item, then the list's EmptyState that stayed.)
     const added = catalogSlotPosition(graph, slot)!.fillIds!;
-    expect(added).toHaveLength(1);
+    expect(added).toHaveLength(2);
     expect((graph.getEntry(added[0]!) as NodeEntry).definitionId).toBe(origin);
   });
 
@@ -662,7 +686,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         newId: workspace.newId,
       }),
     );
-    const host = { graph, readModel: workspace.readModel, newId: workspace.newId };
+    const host = {
+      graph,
+      readModel: workspace.readModel,
+      newId: workspace.newId,
+    };
     const choiceAt = (record: string, type: string) =>
       catalogItemInsertChoices(host, workspace.positionOfRecord(record)!).find(
         (item) => item.type === type,
@@ -676,9 +704,10 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect((graph.getEntry(sectionId) as NodeEntry).definitionId).toBe(
       "lib:definition:origin-component-listbox-section",
     );
-    const sectionFill = (graph.getEntry(sectionId) as NodeEntry).descendantOverrides.find(
-      (override) => override.kind === "fillSlot",
-    ) as { childIds: readonly NodeId[] } | undefined;
+    const sectionFill = (
+      graph.getEntry(sectionId) as NodeEntry
+    ).descendantOverrides.find((override) => override.kind === "fillSlot") as
+      { childIds: readonly NodeId[] } | undefined;
     expect(
       sectionFill?.childIds.map(
         (child) => (graph.getEntry(child) as NodeEntry).definitionId,
@@ -751,12 +780,14 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     // Groups in order, each with its header; the Local component sits under Local only. (The
     // search field is a group too — the list's sections are read inside the list.)
     const list = screen.getByRole("listbox");
-    const groups = within(list).getAllByRole("group").map((group) => ({
-      header: group.querySelector("header")?.textContent,
-      options: within(group)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    }));
+    const groups = within(list)
+      .getAllByRole("group")
+      .map((group) => ({
+        header: group.querySelector("header")?.textContent,
+        options: within(group)
+          .getAllByRole("option")
+          .map((option) => option.textContent),
+      }));
     expect(groups.map((group) => group.header)).toEqual(["Local", "Library"]);
     expect(groups[0].options).toEqual(["Confirm body"]);
     expect(groups[1].options).toContain("Text");
@@ -772,9 +803,12 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         ".slot-insert-field .react-aria-Group > .slot-fill-trigger",
       ),
     ).not.toBeNull();
-    const local = within(within(list).getAllByRole("group")[0]).getByRole("option", {
-      name: "Confirm body",
-    });
+    const local = within(within(list).getAllByRole("group")[0]).getByRole(
+      "option",
+      {
+        name: "Confirm body",
+      },
+    );
     await act(async () => {
       fireEvent.click(local);
     });

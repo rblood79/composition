@@ -54,7 +54,12 @@ export type ComponentTraitFamily =
    * 직계 자식을 항목으로 읽는 Table 부품 (header 의 Column · body 의 Row · row 의 Cell). 중첩 층 2
    * 표에는 넣지 않는다 — 인스턴스 위치가 자기 자식을 갖는 판정 (ADR-248 fillSlot) 만 읽는다.
    */
-  | "tableItemHost";
+  | "tableItemHost"
+  /**
+   * RAC `renderEmptyState` 를 받는 컬렉션 — 직계 자식 IllustratedMessage 가 그 내용이고, 항목이
+   * 없을 때만 그려진다 (2026-10-23 사용자 결정 — `children` 열 밖의 유일한 직계 자식).
+   */
+  | "emptyStateCollection";
 
 export interface ComponentTraits {
   readonly container?: ComponentContainerKind;
@@ -252,7 +257,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ADR-238 Phase 2 — section 층 (RAC `ListBoxSection` · `MenuSection` · `GridListSection` + `Header`).
   ListBox: {
     container: "collection",
-    families: ["itemSlotCollection", "disablingGroup"],
+    families: ["itemSlotCollection", "disablingGroup", "emptyStateCollection"],
     // (RAC 1.22.1: `Section` is @deprecated — ListBoxSection replaces it — and `Header` is a
     //  section's heading, in the section's children. Neither sits right under the list, 2026-10-22.)
     children: ["ListBoxItem", "ListBoxSection"],
@@ -270,7 +275,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   Menu: {
     container: "collection",
-    families: ["itemSlotCollection"],
+    families: ["itemSlotCollection", "emptyStateCollection"],
     // (As ListBox: no deprecated `Section`, and `Header` is MenuSection's, 2026-10-22.)
     children: ["MenuItem", "SubmenuTrigger", "MenuSection", "Separator"],
   },
@@ -290,7 +295,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   GridList: {
     container: "collection",
-    families: ["itemSlotCollection", "disablingGroup"],
+    families: ["itemSlotCollection", "disablingGroup", "emptyStateCollection"],
     children: ["GridListItem", "GridListSection"],
   },
   GridListSection: {
@@ -305,6 +310,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TagGroup: { families: ["itemSlotCollection", "disablingGroup"] },
   TagList: {
     container: "collection",
+    families: ["emptyStateCollection"],
     children: ["Tag"],
     owners: ["TagGroup"],
   },
@@ -337,7 +343,11 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["tableItemHost"],
     children: ["Cell"],
   },
-  Tree: { container: "collection", children: ["TreeItem"] },
+  Tree: {
+    container: "collection",
+    families: ["emptyStateCollection"],
+    children: ["TreeItem"],
+  },
   // ADR-256 Phase 10: S2 CardView is a RAC GridList whose items are its Cards
   //   (`@react-spectrum/s2/src/CardView.tsx`).
   CardView: { container: "collection", children: ["Card"] },

@@ -25,6 +25,7 @@
 
 import {
   componentContractMap,
+  componentTypeSet,
   containerTypeSet,
 } from "../../domain/componentTraits";
 
@@ -92,6 +93,14 @@ export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
 export const RAC_COLLECTION_CHILD_TYPES: Readonly<
   Record<string, readonly string[]>
 > = componentContractMap("children");
+
+/**
+ * 빈 상태 내용 (RAC `renderEmptyState` — S2 예제의 IllustratedMessage, 2026-10-23 사용자 결정): 이
+ * 컬렉션들은 항목 밖에 이 type 하나를 직계 자식으로 받고, 항목이 없을 때만 그린다.
+ */
+export const CATALOG_EMPTY_STATE_TYPE = "IllustratedMessage";
+export const CATALOG_EMPTY_STATE_COLLECTIONS: ReadonlySet<string> =
+  componentTypeSet("emptyStateCollection");
 
 /**
  * 합성 부품이 뜻을 갖기 위해 조상 어딘가에 있어야 하는 소유자. 직계가 아니어도 된다
@@ -342,7 +351,10 @@ export function resolveNestingViolation(
   // 층 2 — RAC 합성 (a): 항목 목록 부품 (RAC collection) 은 항목만 받는다 — 래퍼도 RAC 가 버린다.
   if (parentType !== null && !isOpaque(parentType)) {
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
-    if (allowed && !allowed.includes(childType)) {
+    const emptyState =
+      childType === CATALOG_EMPTY_STATE_TYPE &&
+      CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType);
+    if (allowed && !allowed.includes(childType) && !emptyState) {
       return {
         layer: "rac-composition",
         parentType,

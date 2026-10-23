@@ -46,6 +46,7 @@ import {
   childrenOf,
   DelegatedDomInput,
   marker,
+  catalogEmptyState,
   renderAll,
   str,
   tagChipText,
@@ -397,7 +398,8 @@ export function TagListRun({
       : null,
     createElement(
       AriaTagList as ElementType,
-      { className: "react-aria-TagList" },
+      // (Its IllustratedMessage child while it has no tags — RAC `renderEmptyState`.)
+      { className: "react-aria-TagList", ...catalogEmptyState(input) },
       ...shown.map((tag) => input.renderChild(tag.id)),
     ),
     showCollapsed && visibleTagCount < tags.length

@@ -2,6 +2,10 @@ import { docCounters } from "../../../../../packages/shared/src/catalog/docCount
 import { isBodyType } from "@composition/shared";
 import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  CATALOG_EMPTY_STATE_COLLECTIONS,
+  CATALOG_EMPTY_STATE_TYPE,
+} from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { catalogComponentsPageRows } from "./componentsPage";
 import { catalogInsertParent } from "./insertParent";
 import {
@@ -63,6 +67,11 @@ export interface CatalogLayerNode {
    * has no delete button (the card's delete button deletes the component).
    */
   readonly keptOrigin?: true;
+  /**
+   * A collection's EmptyState (its IllustratedMessage — RAC `renderEmptyState`, 2026-10-23): it
+   * goes only with its collection, so its row has no delete button (`removeTargets` refuses too).
+   */
+  readonly emptyState?: true;
 }
 
 /** The data rows one row holds (4e-6-36): the drawn rows and the count the sample leaves out. */
@@ -99,6 +108,11 @@ export interface CatalogLayerTreeHost {
    * without `description`): nothing renders it, so it has no row. Owned nodes are always listed.
    */
   absentByValue?(position: CatalogPosition): boolean;
+  /**
+   * Whether a collection's row is one the Canvas does not draw (2026-10-23 user report): its empty
+   * state (EmptyState) while it has items, its item positions while its loaded data is empty.
+   */
+  collectionRowHidden?(position: CatalogPosition, parentType: string): boolean;
 }
 
 const typeNameOf = (graph: CatalogReader, position: CatalogPosition) => {
@@ -124,16 +138,29 @@ const declaredAt = (graph: CatalogReader, position: CatalogPosition) => {
 };
 const slotOf = (graph: CatalogReader, position: CatalogPosition) =>
   declaredAt(graph, position)?.slot?.name;
-/** A row's name: the node's own name, a slot's role, else its type. */
+/**
+ * A row's name: the node's own name, a slot's role, a collection's empty state (its
+ * IllustratedMessage — RAC `renderEmptyState`, 2026-10-23), else its type.
+ */
 const nameOf = (
   graph: CatalogReader,
   position: CatalogPosition,
   typeName: string,
+  parentType: string | undefined,
 ) => {
   const node = declaredAt(graph, position);
   const own = position.target.kind === "node" || node?.slot ? node?.name : "";
-  return own || node?.slot?.name || typeName;
+  return (
+    own ||
+    node?.slot?.name ||
+    (isEmptyState(typeName, parentType) ? "EmptyState" : typeName)
+  );
 };
+/** A collection's direct IllustratedMessage — its EmptyState (RAC `renderEmptyState`). */
+const isEmptyState = (typeName: string, parentType: string | undefined) =>
+  typeName === CATALOG_EMPTY_STATE_TYPE &&
+  !!parentType &&
+  CATALOG_EMPTY_STATE_COLLECTIONS.has(parentType);
 /**
  * A row's mark: a component's origin in place (ADR-260) and the definition view's root are the
  * origin, as is a built-in origin's sample on the Components page (whose own root is only the
@@ -175,6 +202,7 @@ const sameNode = (a: CatalogLayerNode, b: CatalogLayerNode) =>
   a.selects === b.selects &&
   a.slot === b.slot &&
   a.keptOrigin === b.keptOrigin &&
+  a.emptyState === b.emptyState &&
   a.parentId === b.parentId &&
   a.depth === b.depth &&
   a.hasChildren === b.hasChildren &&
@@ -204,6 +232,16 @@ export class CatalogLayerTreeStore {
     position: CatalogPosition;
     absent: boolean;
   }[] = [];
+  /**
+   * A collection's rows judged by `collectionRowHidden` and the judgment: a binding, a data load or
+   * an item removed flips it without the row list changing (2026-10-23 user report 「동기화가
+   * 느리다 — empty 를 선택하니 갱신」).
+   */
+  private collectionGated: readonly {
+    position: CatalogPosition;
+    parentType: string;
+    hidden: boolean;
+  }[] = [];
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribeSteps: () => void;
   private readonly unsubscribeBoundRows: () => void;
@@ -225,7 +263,14 @@ export class CatalogLayerTreeStore {
           const node = this.nodes.get(identity);
           return (
             node &&
-            (nameOf(host.graph, node.position, node.typeName) !== node.name ||
+            (nameOf(
+              host.graph,
+              node.position,
+              node.typeName,
+              node.parentId
+                ? this.nodes.get(node.parentId)?.typeName
+                : undefined,
+            ) !== node.name ||
               slotOf(host.graph, node.position) !== node.slot)
           );
         }),
@@ -237,9 +282,15 @@ export class CatalogLayerTreeStore {
         if (counting) docCounters.layersGatedChecked += 1;
         return (host.absentByValue?.(position) ?? false) !== absent;
       });
+      const collectionFlipped = this.collectionGated.some(
+        ({ position, parentType, hidden }) =>
+          (host.collectionRowHidden?.(position, parentType) ?? false) !==
+          hidden,
+      );
       if (
         renamed ||
         gated ||
+        collectionFlipped ||
         this.rowsChanged ||
         isProjectComponentsView(this.ownerId)
       )
@@ -302,6 +353,11 @@ export class CatalogLayerTreeStore {
     const nodes = new Map<string, CatalogLayerNode>();
     const visibleNodes = new Map<string, string[]>();
     const valueGated: { position: CatalogPosition; absent: boolean }[] = [];
+    const collectionGated: {
+      position: CatalogPosition;
+      parentType: string;
+      hidden: boolean;
+    }[] = [];
     const wanted = new Set<string>(["page"]);
     // A template part absent by its parent's empty prop has no row (owned nodes stay listed).
     const listed = (rows: readonly CatalogPosition[]) => {
@@ -318,6 +374,7 @@ export class CatalogLayerTreeStore {
       position: CatalogPosition,
       parentId: string | null,
       depth: number,
+      parentType?: string,
     ): CatalogLayerNode => {
       if (counting) docCounters.layersRowsBuilt += 1;
       wanted.add(position.identity);
@@ -331,11 +388,26 @@ export class CatalogLayerTreeStore {
       const typeName = typeNameOf(graph, position);
       const slot = slotOf(graph, position);
       const role = roleOf(graph, position, parentId, this.definitionOwner());
+      const collectionRowHidden = this.host.collectionRowHidden;
+      const drawn =
+        collectionRowHidden && CATALOG_EMPTY_STATE_COLLECTIONS.has(typeName)
+          ? rows.filter((row) => {
+              const hidden = collectionRowHidden(row, typeName);
+              collectionGated.push({
+                position: row,
+                parentType: typeName,
+                hidden,
+              });
+              return !hidden;
+            })
+          : rows;
       const children = (): CatalogLayerNode[] =>
         bound
-          ? projectRows(position, rows, bound, depth + 1)
-          : rows.map((row) => build(row, position.identity, depth + 1));
-      const count = bound ? bound.rows.length : rows.length;
+          ? projectRows(position, drawn, bound, depth + 1)
+          : drawn.map((row) =>
+              build(row, position.identity, depth + 1, typeName),
+            );
+      const count = bound ? bound.rows.length : drawn.length;
       const expanded = count > 0 && this.expanded.has(position.identity);
       const next: CatalogLayerNode = {
         id: position.identity,
@@ -343,7 +415,10 @@ export class CatalogLayerTreeStore {
         depth,
         hasChildren: count > 0,
         ...(expanded ? { children: children() } : {}),
-        name: nameOf(graph, position, typeName),
+        name: nameOf(graph, position, typeName, parentType),
+        ...(isEmptyState(typeName, parentType)
+          ? { emptyState: true as const }
+          : {}),
         typeName,
         position,
         body: parentId === null && isBodyType(typeName),
@@ -419,7 +494,10 @@ export class CatalogLayerTreeStore {
       ];
       const out: CatalogLayerNode[] = [];
       for (const row of rows) {
-        if (!isItem(row)) out.push(build(row, parent.identity, depth));
+        if (!isItem(row))
+          out.push(
+            build(row, parent.identity, depth, typeNameOf(graph, parent)),
+          );
         else if (row === template) out.push(...projected());
       }
       if (!template) out.push(...projected());
@@ -437,6 +515,7 @@ export class CatalogLayerTreeStore {
     this.nodes = nodes;
     this.visibleNodes = visibleNodes;
     this.valueGated = valueGated;
+    this.collectionGated = collectionGated;
     this.syncSubscriptions(wanted);
     const changed =
       top.length !== this.snapshot.length ||
