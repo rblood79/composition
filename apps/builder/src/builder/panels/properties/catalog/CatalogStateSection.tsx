@@ -7,7 +7,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { ChevronDown, ChevronRight, Link2, Minus, Pencil } from "lucide-react";
+import { Button } from "react-aria-components/Button";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
+import {
+  Select as AriaSelect,
+  SelectValue,
+} from "react-aria-components/Select";
+import { Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import type {
@@ -32,6 +39,8 @@ import {
 } from "../../../catalogRuntime/stateVariables";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
+import { useControlPopoverMetrics } from "../../../components/property/useControlPopoverMetrics";
+import { useSelectTriggerFocusRestore } from "../../../components/property/useSelectTriggerFocusRestore";
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -55,6 +64,52 @@ const TYPE_OPTIONS = CATALOG_VARIABLE_TYPES.map((type) => ({
   label: type,
 }));
 
+/** 단위 피커와 같은 입력 내부 보조 선택. 타입 이름 자체가 트리거가 된다. */
+function StateVariableTypeSelect({
+  value,
+  onChange,
+}: {
+  value: CatalogVariableType;
+  onChange: (value: CatalogVariableType) => void;
+}) {
+  const { t } = useI18n();
+  const { controlRef, popoverStyle } = useControlPopoverMetrics();
+  const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
+  return (
+    <AriaSelect
+      className="react-aria-Select state-variable-type"
+      ref={controlRef}
+      aria-label={t("propertiesPanel.stateType")}
+      selectedKey={value}
+      onSelectionChange={(key) =>
+        key !== null && onChange(String(key) as CatalogVariableType)
+      }
+      onOpenChange={restoreFocusOnClose}
+    >
+      <Button className="react-aria-Button" ref={triggerRef}>
+        <SelectValue />
+      </Button>
+      <Popover
+        className="react-aria-Popover property-select-popover"
+        style={popoverStyle}
+      >
+        <ListBox className="react-aria-ListBox">
+          {TYPE_OPTIONS.map((option) => (
+            <ListBoxItem
+              key={option.value}
+              id={option.value}
+              textValue={option.label}
+              className="react-aria-ListBoxItem"
+            >
+              {option.label}
+            </ListBoxItem>
+          ))}
+        </ListBox>
+      </Popover>
+    </AriaSelect>
+  );
+}
+
 const SOURCE_LABEL_KEYS = {
   selectedKeys: "stateSelectedItems",
   selectedKey: "stateSelectedItem",
@@ -66,112 +121,122 @@ const SOURCE_LABEL_KEYS = {
   isOpen: "stateOpen",
 } as const;
 
-/** 상태 컨트롤과 우측 액션 열은 다른 Property 필드와 같은 격자를 사용한다. */
+/** 기존 상태 이름을 직접 편집하고 실제로 바뀐 값만 반영한다. */
 function StateSourceField({
   source,
   label,
-  expanded,
   error,
   onName,
   onRename,
-  onToggle,
   onRemove,
+  onClearError,
 }: {
   source: CatalogStateSource;
   label: string;
-  expanded: boolean;
   error?: string;
   onName: (source: CatalogStateSource, name: string) => void;
   onRename: (id: string, name: string) => void;
-  onToggle: (id: string) => void;
   onRemove: (variable: StateVariableEntry) => void;
+  onClearError: () => void;
 }) {
   const { t } = useI18n();
-  const [naming, setNaming] = useState(false);
-  const editorId = useId();
-  const editorRef = useRef<HTMLDivElement>(null);
   const variable = source.variable;
-  const editing = variable ? expanded : naming;
-  const actionLabel = variable
-    ? t("common.edit")
-    : t("propertiesPanel.stateUseElsewhere");
+  const savedName = variable?.name ?? source.prop;
+  const [draft, setDraft] = useState(savedName);
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cancelOnBlur = useRef(false);
+  const changed = draft.trim() !== savedName;
+
   useEffect(() => {
-    if (editing) editorRef.current?.querySelector("input")?.focus();
-  }, [editing]);
+    setDraft(savedName);
+  }, [variable?.id, savedName]);
+
+  const commit = () => {
+    if (cancelOnBlur.current) {
+      cancelOnBlur.current = false;
+      return;
+    }
+    if (!changed) {
+      setDraft(savedName);
+      onClearError();
+      return;
+    }
+    if (variable) onRename(variable.id, draft.trim());
+    else onName(source, draft.trim());
+  };
+  const removeLabel = t("common.delete");
   return (
     <div
       className="state-def"
       data-implicit={source.prop}
-      data-expanded={editing || undefined}
+      data-variable-id={variable?.id}
     >
-      <div className="fieldset-row state-source-row" data-wide="true">
+      <div
+        className="fieldset-row state-source-row"
+        data-wide="true"
+        onFocusCapture={() => {
+          cancelOnBlur.current = false;
+        }}
+        onBlur={(event) => {
+          // 행 안의 제거 버튼으로 이동할 때는 저장하지 않는다. 행을 떠날 때만 반영한다.
+          if (
+            event.relatedTarget instanceof Node &&
+            event.currentTarget.contains(event.relatedTarget)
+          )
+            return;
+          commit();
+        }}
+      >
         <PropertyFieldset legend={label} labelMode="hidden">
-          <span className="state-source-value" title={source.prop}>
-            {variable?.name ?? source.prop}
-          </span>
+          <input
+            id={inputId}
+            ref={inputRef}
+            className="react-aria-Input"
+            aria-label={t("propertiesPanel.stateVariableName")}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${inputId}-error` : undefined}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                cancelOnBlur.current = true;
+                setDraft(savedName);
+                onClearError();
+                event.currentTarget.blur();
+              }
+            }}
+          />
           <span className="state-source-type">{source.type}</span>
         </PropertyFieldset>
         <div className="fieldset-actions state-source-actions">
-          <ActionTooltipTrigger tooltip={actionLabel}>
+          <ActionTooltipTrigger tooltip={removeLabel}>
             <SwatchIconButton
-              aria-label={actionLabel}
-              aria-expanded={editing}
-              aria-controls={editing ? editorId : undefined}
+              aria-label={removeLabel}
+              isDisabled={!variable && !changed}
               onPress={() => {
-                if (variable) onToggle(variable.id);
-                else {
-                  if (naming) onName(source, "");
-                  setNaming(!naming);
-                }
+                setDraft(savedName);
+                onClearError();
+                if (variable) {
+                  cancelOnBlur.current = true;
+                  onRemove(variable);
+                } else inputRef.current?.focus();
               }}
             >
-              {variable ? <Pencil size={16} /> : <Link2 size={16} />}
+              <Minus size={16} />
             </SwatchIconButton>
           </ActionTooltipTrigger>
-          {variable && (
-            <ActionTooltipTrigger tooltip={t("common.delete")}>
-              <SwatchIconButton
-                aria-label={t("common.delete")}
-                onPress={() => onRemove(variable)}
-              >
-                <Minus size={16} />
-              </SwatchIconButton>
-            </ActionTooltipTrigger>
-          )}
         </div>
       </div>
-      {editing && (
-        <div
-          id={editorId}
-          ref={editorRef}
-          className="list-row__fields state-def-editor"
-        >
-          <div className="fieldset-row" data-wide="true">
-            <PropertyInput
-              label={t("propertiesPanel.stateVariableName")}
-              value={variable?.name ?? ""}
-              placeholder={source.prop}
-              onChange={(name) =>
-                variable ? onRename(variable.id, name) : onName(source, name)
-              }
-            />
-          </div>
-          <p className="state-source-hint">
-            {variable ? (
-              <>
-                <code>{`{{ ${variable.name} }}`}</code>{" "}
-                {t("propertiesPanel.stateSourceReference")}
-              </>
-            ) : (
-              t("propertiesPanel.stateImplicitHint")
-            )}
-          </p>
-          {error && (
-            <p className="state-def-error" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
+      {error && (
+        <p id={`${inputId}-error`} className="state-def-error" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -250,8 +315,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
   });
   const view = JSON.parse(viewKey) as StateView;
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  // The Data panel's index jumps here: open the variable and bring the section into view.
+  // The Data panel's index jumps here: focus the variable and bring the section into view.
   const focusRequest = useStateSectionFocus((state) => state.request);
   const rootRef = useRef<HTMLDivElement>(null);
   const handledSeq = useRef(0);
@@ -259,13 +323,27 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     if (!focusRequest || focusRequest.seq === handledSeq.current) return;
     if (focusRequest.ownerNodeId !== owner) return;
     handledSeq.current = focusRequest.seq;
-    if (focusRequest.variableId) setExpandedId(focusRequest.variableId);
+    const sections = useSectionCollapse.getState();
+    sections.expandSections([STATE_SECTION_ID]);
+    sections.setFocusSection(STATE_SECTION_ID);
     // The panel's sections are `content-visibility: auto`: a section that just mounted has no
     // height until the browser's next rendering (all of them sat at the panel top, so a scroll
     // now did nothing and they then pushed this one below the fold). Scroll after that frame.
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
         rootRef.current?.scrollIntoView({ block: "nearest" });
+        if (focusRequest.variableId) {
+          const row = [
+            ...(rootRef.current?.querySelectorAll<HTMLElement>(
+              "[data-variable-id]",
+            ) ?? []),
+          ].find(
+            (element) => element.dataset.variableId === focusRequest.variableId,
+          );
+          const input = row?.querySelector<HTMLInputElement>("input");
+          input?.focus();
+          input?.select();
+        }
       });
     });
     return () => cancelAnimationFrame(frame);
@@ -303,7 +381,6 @@ export const CatalogStateSection = memo(function CatalogStateSection({
         (variable) => variable.name === name,
       );
       if (added) {
-        setExpandedId(added.id);
         const sections = useSectionCollapse.getState();
         sections.expandSections([STATE_SECTION_ID]);
         sections.setFocusSection(STATE_SECTION_ID);
@@ -344,7 +421,8 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     (source: CatalogStateSource, raw: string) => {
       const errorId = `source:${source.prop}`;
       const name = raw.trim();
-      if (!name) return setError(errorId, null);
+      if (!name)
+        return setError(errorId, t("propertiesPanel.stateNameInvalid"));
       const pageId = catalogNodePage(graph, nodeId);
       if (!pageId) return;
       if (!NAME_PATTERN.test(name))
@@ -363,7 +441,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       const record = recordId
         ? workspace.root.domInputs.get(recordId)
         : undefined;
-      const named = run(
+      run(
         catalogVariableCommands.nameSource(
           pageId,
           nodeId,
@@ -375,14 +453,6 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           workspace.newId,
         ),
       );
-      if (named) {
-        const variable = catalogOwnVariables(graph, pageId).find(
-          (entry) =>
-            entry.source?.nodeId === nodeId &&
-            entry.source.prop === source.prop,
-        );
-        if (variable) setExpandedId(variable.id);
-      }
     },
     [graph, nodeId, ownerLabel, run, setError, t, workspace],
   );
@@ -423,7 +493,6 @@ export const CatalogStateSection = memo(function CatalogStateSection({
   }, [pendingDelete, run, setError]);
 
   const renderRow = (variable: StateVariableEntry) => {
-    const expanded = expandedId === variable.id;
     const source = variable.source;
     const usages = view.usage[variable.id] ?? 0;
     const error = errors[variable.id];
@@ -431,105 +500,72 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       <div
         key={variable.id}
         className="state-def"
-        data-expanded={expanded || undefined}
         data-variable-id={variable.id}
-        data-implicit={source?.prop}
       >
-        <div className="list-row">
-          <div className="list-row__body">
-            <button
-              type="button"
-              className="list-row__action state-def-toggle"
-              onClick={() => setExpandedId(expanded ? null : variable.id)}
-              aria-expanded={expanded}
-              aria-label={variable.name}
-            >
-              {expanded ? (
-                <ChevronDown size={12} />
-              ) : (
-                <ChevronRight size={12} />
-              )}
-            </button>
-            <span
-              className="list-row__label state-def-name"
-              title={source?.prop}
-            >
-              {variable.name}
-            </span>
-            <span className="list-row__meta state-def-meta">
-              {source
-                ? `${source.prop} · ${ownerLabel(source.nodeId)}`
-                : variable.valueType}
-            </span>
-            {usages > 0 && (
-              <span className="list-row__meta state-def-usage">
-                {t("propertiesPanel.stateUsageCount", { count: usages })}
-              </span>
+        <div
+          className="fieldset-row state-variable-row"
+          data-source={source ? "true" : undefined}
+        >
+          <PropertyInput
+            label={t(
+              source
+                ? "propertiesPanel.stateVariableName"
+                : "propertiesPanel.stateName",
             )}
-          </div>
-          <div className="list-row__actions">
-            <button
-              type="button"
-              className="list-row__action state-def-remove"
-              onClick={() => setPendingDelete(variable)}
-              aria-label={t("common.delete")}
-            >
-              <Minus size={12} />
-            </button>
+            value={variable.name}
+            onChange={(value) => rename(variable.id, value)}
+            endControl={
+              !source ? (
+                <StateVariableTypeSelect
+                  value={variable.valueType as CatalogVariableType}
+                  onChange={(value) => changeType(variable.id, value)}
+                />
+              ) : undefined
+            }
+          />
+          {!source && (
+            <>
+              {variable.valueType === "boolean" ? (
+                <PropertySelect
+                  label={t("propertiesPanel.stateDefault")}
+                  value={String(variable.defaultValue === true)}
+                  options={[
+                    { value: "false", label: "false" },
+                    { value: "true", label: "true" },
+                  ]}
+                  translateOptions={false}
+                  onChange={(value) => changeDefault(variable.id, value)}
+                />
+              ) : (
+                <PropertyInput
+                  label={t("propertiesPanel.stateDefault")}
+                  value={String(variable.defaultValue)}
+                  onChange={(value) => changeDefault(variable.id, value)}
+                />
+              )}
+            </>
+          )}
+          <div className="fieldset-actions state-variable-actions">
+            <ActionTooltipTrigger tooltip={t("common.delete")}>
+              <SwatchIconButton
+                onPress={() => setPendingDelete(variable)}
+                aria-label={t("common.delete")}
+              >
+                <Minus size={16} />
+              </SwatchIconButton>
+            </ActionTooltipTrigger>
           </div>
         </div>
-        {expanded && (
-          <div className="list-row__fields state-def-editor">
-            <div className="fieldset-row" data-wide="true">
-              <PropertyInput
-                label={t(
-                  source
-                    ? "propertiesPanel.stateVariableName"
-                    : "propertiesPanel.stateName",
-                )}
-                value={variable.name}
-                onChange={(value) => rename(variable.id, value)}
-              />
-            </div>
-            {source && (
-              <p className="state-source-hint">
-                <code>{`{{ ${variable.name} }}`}</code>{" "}
-                {t("propertiesPanel.stateSourceReference")}
-              </p>
-            )}
-            {/* (A named RAC state follows its component: no type or default of its own.) */}
-            {!source && (
-              <div className="fieldset-row">
-                <PropertySelect
-                  label={t("propertiesPanel.stateType")}
-                  value={variable.valueType}
-                  options={TYPE_OPTIONS}
-                  translateOptions={false}
-                  onChange={(value) =>
-                    changeType(variable.id, value as CatalogVariableType)
-                  }
-                />
-                {variable.valueType === "boolean" ? (
-                  <PropertySelect
-                    label={t("propertiesPanel.stateDefault")}
-                    value={String(variable.defaultValue === true)}
-                    options={[
-                      { value: "false", label: "false" },
-                      { value: "true", label: "true" },
-                    ]}
-                    translateOptions={false}
-                    onChange={(value) => changeDefault(variable.id, value)}
-                  />
-                ) : (
-                  <PropertyInput
-                    label={t("propertiesPanel.stateDefault")}
-                    value={String(variable.defaultValue)}
-                    onChange={(value) => changeDefault(variable.id, value)}
-                  />
-                )}
-              </div>
-            )}
-          </div>
+        {source && (
+          <p className="state-source-hint">
+            <code>{`{{ ${variable.name} }}`}</code>{" "}
+            {t("propertiesPanel.stateSourceReference")}
+          </p>
+        )}
+        {usages > 0 && (
+          <span className="state-source-hint">
+            {t("propertiesPanel.stateUsageCount", { count: usages })}
+          </span>
         )}
         {error && (
           <p className="state-def-error" role="alert">
@@ -580,14 +616,16 @@ export const CatalogStateSection = memo(function CatalogStateSection({
                   key={`${nodeId}:${source.prop}`}
                   source={source}
                   label={label}
-                  expanded={source.variable?.id === expandedId}
                   error={errors[source.variable?.id ?? `source:${source.prop}`]}
                   onName={nameSource}
                   onRename={rename}
-                  onToggle={(id) =>
-                    setExpandedId((current) => (current === id ? null : id))
-                  }
                   onRemove={setPendingDelete}
+                  onClearError={() =>
+                    setError(
+                      source.variable?.id ?? `source:${source.prop}`,
+                      null,
+                    )
+                  }
                 />
               );
             })}

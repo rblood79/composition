@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 상태 — 직접 편집과 변경값만 반영] - 2026-10-24
+
+### Changed
+
+- **Component state를 기존 입력칸에서 바로 편집** — 별도 활성화 버튼과 추가 입력창을 제거한다. 포커스 이동·Enter 시 기존 이름과 실제로 다른 값만 등록·변경한다. 우측 제거 버튼은 이름이 바뀌었거나 연결된 변수가 있을 때 활성화되고, 아직 등록하지 않은 편집은 제거 버튼으로 되돌릴 수 있다. 변수를 제거하면 원래 상태 이름으로 돌아온다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogStateSection.tsx` · `panels/properties/state/StateSection.css`
+
+## [State 변수 편집 — 이름과 타입을 합친 단일 행] - 2026-10-23
+
+### Changed
+
+- **Custom variables를 펼침 없이 한 가로 행에서 편집** — Name 입력 오른쪽에 선택된 타입 이름을 표시하고, 누르면 타입 메뉴를 연다. 기본값은 옆 필드에, 삭제는 우측 fieldset-actions에 배치한다. 공통 PropertyInput의 보조 컨트롤 슬롯을 사용한다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogStateSection.tsx`
+
 ## [State 속성 — 컴포넌트 상태의 사용 목적 안내] - 2026-10-23
 
 ### Changed

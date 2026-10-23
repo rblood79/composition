@@ -255,9 +255,20 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     const own = () => catalogOwnVariables(graph, id("a"));
     expect(own().map((variable) => variable.name)).toEqual(["state1"]);
+    expect(container.querySelector(".state-def-toggle")).toBeNull();
+    const nameField = within(container).getByRole("group", { name: "Name" });
+    expect(
+      nameField.querySelector(".react-aria-control .state-variable-type"),
+    ).not.toBeNull();
+    expect(nameField.querySelector(".select-chevron")).toBeNull();
+    expect(
+      within(container)
+        .getByRole("button", { name: "Delete" })
+        .closest(".fieldset-actions"),
+    ).not.toBeNull();
     const revision = graph.revision;
     const input = container.querySelector(
-      ".state-def-editor input",
+      ".state-variable-row input",
     ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "taken" } });
     await act(async () => {
@@ -276,18 +287,28 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(container.querySelector(".state-def-error")).toBeNull();
     // The default field was rendered before the rename; its edit keeps the new name.
     const defaultInput = container.querySelectorAll(
-      ".state-def-editor input",
+      ".state-variable-row input",
     )[1] as HTMLInputElement;
     fireEvent.change(defaultInput, { target: { value: "hello" } });
     await act(async () => {
       fireEvent.keyDown(defaultInput, { key: "Enter" });
     });
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
+    // Changing the embedded type keeps the edited name and resets the default for that type.
+    const typeSelect = nameField.querySelector(".state-variable-type select")!;
+    await act(async () => {
+      fireEvent.change(typeSelect, { target: { value: "number" } });
+    });
+    expect(own()).toMatchObject([
+      { name: "open", valueType: "number", defaultValue: 0 },
+    ]);
+    expect(nameField.querySelector("button")?.textContent).toBe("number");
   });
 
-  it("the State section names a RAC state: a read-only page variable with the component's value", async () => {
+  it("the component state commits only changed names and removes or resets in the same field", async () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
+    const page = "project:page:home" as EntryId<"page">;
     const { container } = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
@@ -297,73 +318,119 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     );
     const group = () =>
       container.querySelector('[data-group="implicit"]') as HTMLElement;
-    expect(within(group()).getByText("Component state")).toBeTruthy();
-    expect(within(group()).queryByText("Selected items")).toBeNull();
     expect(group().querySelectorAll("legend")).toHaveLength(1);
-    const useAction = within(group()).getByRole("button", {
-      name: "Use elsewhere",
-    });
-    expect(useAction.closest(".fieldset-actions")).not.toBeNull();
-    expect(useAction.closest(".react-aria-control")).toBeNull();
-    expect(within(group()).queryByRole("textbox")).toBeNull();
-    const beforeNaming = graph.revision;
-    await act(async () => {
-      fireEvent.click(
-        within(group()).getByRole("button", { name: "Use elsewhere" }),
-      );
-    });
-    expect(graph.revision).toBe(beforeNaming);
-    await act(async () => {
-      fireEvent.click(
-        within(group()).getByRole("button", { name: "Use elsewhere" }),
-      );
-    });
-    expect(within(group()).queryByRole("textbox")).toBeNull();
-    expect(graph.revision).toBe(beforeNaming);
-    await act(async () => {
-      fireEvent.click(
-        within(group()).getByRole("button", { name: "Use elsewhere" }),
-      );
-    });
+    const input = within(group()).getByRole("textbox", {
+      name: "Variable name",
+    }) as HTMLInputElement;
+    const remove = within(group()).getByRole("button", {
+      name: "Delete",
+    }) as HTMLButtonElement;
+    expect(input.disabled).toBe(false);
+    expect(input.value).toBe("selectedKeys");
+    expect(remove.disabled).toBe(true);
+    expect(remove.closest(".fieldset-actions")).not.toBeNull();
+    expect(remove.closest(".react-aria-control")).toBeNull();
     expect(
-      within(group()).getByText(/variable name to use it elsewhere/),
-    ).toBeTruthy();
-    const input = within(group())
-      .getByRole("group", { name: "Variable name" })
-      .querySelector("input")! as HTMLInputElement;
-    expect(document.activeElement).toBe(input);
+      within(group()).queryByRole("button", { name: "Use elsewhere" }),
+    ).toBeNull();
+    const revision = graph.revision;
+    await act(async () => {
+      input.focus();
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(graph.revision).toBe(revision);
+    expect(catalogOwnVariables(graph, page)).toEqual([]);
+    expect(remove.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: "draftName" } });
+    expect(remove.disabled).toBe(false);
+    // Focusing the reset button must not first commit an unwanted source variable.
+    await act(async () => {
+      fireEvent.blur(input, { relatedTarget: remove });
+      fireEvent.click(remove);
+    });
+    expect(input.value).toBe("selectedKeys");
+    expect(graph.revision).toBe(revision);
+    expect(catalogOwnVariables(graph, page)).toEqual([]);
+    expect(remove.disabled).toBe(true);
+
     fireEvent.change(input, { target: { value: "1bad" } });
     await act(async () => {
-      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.blur(input);
     });
     expect(within(group()).getByRole("alert")).toBeTruthy();
-    const revision = graph.revision;
+    expect(input.disabled).toBe(false);
+    expect(graph.revision).toBe(revision);
+    fireEvent.change(input, { target: { value: "selectedKeys " } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(input.value).toBe("selectedKeys");
+    expect(within(group()).queryByRole("alert")).toBeNull();
+    expect(graph.revision).toBe(revision);
+
     fireEvent.change(input, { target: { value: "picked" } });
     await act(async () => {
-      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.blur(input);
     });
     expect(graph.revision).toBe(revision + 1);
-    const variable = catalogOwnVariables(
-      graph,
-      "project:page:home" as EntryId<"page">,
-    ).find((item) => item.name === "picked");
+    const variable = catalogOwnVariables(graph, page).find(
+      (item) => item.name === "picked",
+    );
     expect(variable).toMatchObject({
       valueType: "string[]",
       source: { nodeId: id("list"), prop: "selectedKeys" },
     });
-    // A named state keeps its field and moves edit/delete actions into the external column.
     expect(
-      within(group()).getByRole("group", { name: "Selected items" }),
-    ).toBeTruthy();
-    const edit = within(group()).getByRole("button", { name: "Edit" });
-    expect(edit.closest(".fieldset-actions")).not.toBeNull();
-    expect(edit.closest(".react-aria-control")).toBeNull();
-    expect(within(group()).getByText("picked")).toBeTruthy();
-    expect(within(group()).getByText("{{ picked }}")).toBeTruthy();
-    expect(group().querySelectorAll(".state-def-editor input")).toHaveLength(1);
-    expect(within(group()).queryByText("Type")).toBeNull();
-    // Not listed again as the page's (visible from ancestors).
-    expect(container.querySelector('[data-group="ancestors"]')).toBeNull();
+      within(group()).getByRole("textbox", { name: "Variable name" }),
+    ).toBe(input);
+    expect(group().querySelectorAll("input")).toHaveLength(1);
+    expect(group().querySelector(".state-def-editor")).toBeNull();
+    expect(remove.disabled).toBe(false);
+    const savedRevision = graph.revision;
+    await act(async () => {
+      input.focus();
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(graph.revision).toBe(savedRevision);
+
+    fireEvent.change(input, { target: { value: "chosen" } });
+    await act(async () => {
+      fireEvent.blur(input);
+    });
+    expect(catalogOwnVariables(graph, page)).toMatchObject([
+      { id: variable!.id, name: "chosen" },
+    ]);
+    const beforeRemove = graph.revision;
+    fireEvent.change(input, { target: { value: "unsavedName" } });
+    await act(async () => {
+      fireEvent.blur(input, { relatedTarget: remove });
+      fireEvent.click(remove);
+    });
+    expect(graph.revision).toBe(beforeRemove);
+    expect(catalogOwnVariables(graph, page)).toMatchObject([
+      { name: "chosen" },
+    ]);
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("alertdialog")).getByRole("button", {
+          name: "Delete",
+        }),
+      );
+    });
+    expect(catalogOwnVariables(graph, page)).toEqual([]);
+    expect(input.disabled).toBe(false);
+    expect(input.value).toBe("selectedKeys");
+    expect(remove.disabled).toBe(true);
+    const removedRevision = graph.revision;
+    await act(async () => {
+      input.focus();
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(graph.revision).toBe(removedRevision);
   });
 
   it("the page section refuses a malformed route with a message and writes a valid one", async () => {

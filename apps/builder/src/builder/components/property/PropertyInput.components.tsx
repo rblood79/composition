@@ -26,6 +26,7 @@ export const PropertyInputControl = memo(
     labelMode,
     suffixLabel,
     afterControl,
+    endControl,
   }: PropertyInputProps) {
     const selection = usePropertySelection();
     const selectedElementId = selection.useSelectedId();
@@ -258,6 +259,7 @@ export const PropertyInputControl = memo(
             disabled={disabled}
           />
         )}
+        {endControl}
         {suggestionList}
       </PropertyFieldset>
     );
@@ -278,7 +280,8 @@ export const PropertyInputControl = memo(
       prevProps.stateNames === nextProps.stateNames &&
       prevProps.labelMode === nextProps.labelMode &&
       prevProps.suffixLabel === nextProps.suffixLabel &&
-      prevProps.afterControl === nextProps.afterControl
+      prevProps.afterControl === nextProps.afterControl &&
+      prevProps.endControl === nextProps.endControl
     );
   },
 );

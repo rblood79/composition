@@ -29,6 +29,8 @@ export interface PropertyInputProps {
   suffixLabel?: string;
   /** 컨트롤 아래 필드 상태 문구 (`<span slot="description">` — `PropertySelect.afterControl` 과 같은 자리). */
   afterControl?: React.ReactNode;
+  /** 같은 컨트롤 박스 안 입력 오른쪽의 보조 컨트롤 (단위·타입 선택 등). */
+  endControl?: React.ReactNode;
 }
 
 export const STATE_TRIGGER = /\{\{\s*([A-Za-z_$][\w$]*)?$/;
