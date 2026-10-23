@@ -19,9 +19,10 @@ interface PropertyFieldsetProps {
   /**
    * `legend` (기본, 필드 위 18 행 + 아이콘) / `suffix` — legend·아이콘 없이 라벨을 상자 안
    * 우측 suffix (10 mono caps) 로 둔다 (PropertyUnitInput 과 같은 어법, panel-ui 07).
+   * `hidden` — 표시 라벨 없이 접근 이름만 유지.
    * 접근 이름은 fieldset `aria-label` 로 유지.
    */
-  labelMode?: "legend" | "suffix";
+  labelMode?: "legend" | "suffix" | "hidden";
   /** suffix 모드의 표시 글자 (기본 legend). 접근 이름은 언제나 legend. */
   suffixLabel?: string;
 }
@@ -41,13 +42,14 @@ export function PropertyFieldset({
       ? translateKey(i18n.t, semanticLabelKeys[legend] ?? legend, legend)
       : legend;
   const suffix = labelMode === "suffix";
+  const hideLegend = labelMode !== "legend";
   return (
     <fieldset
       className={`properties-aria ${className}`}
-      data-label-mode={suffix ? "suffix" : undefined}
-      aria-label={suffix ? displayLegend : undefined}
+      data-label-mode={hideLegend ? labelMode : undefined}
+      aria-label={hideLegend ? displayLegend : undefined}
     >
-      {displayLegend && !suffix && (
+      {displayLegend && !hideLegend && (
         <legend className="fieldset-legend">{displayLegend}</legend>
       )}
       <div className="react-aria-control react-aria-Group">

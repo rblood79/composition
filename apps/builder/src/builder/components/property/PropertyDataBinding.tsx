@@ -5,9 +5,9 @@ import { useParams } from "react-router";
  * Property Editor에서 요소 속성을 Data Source에 바인딩할 수 있는 UI
  *
  * Features:
- * - DataTable, ApiEndpoint, Variable 선택
- * - 데이터 경로 (path) 설정
- * - 바인딩 표현식 프리뷰
+ * - 컬렉션 선택
+ * - 항목 ID · 아이콘 · Tree 구조 필드 매핑
+ * - 단일 항목 key 설정
  *
  * @example
  * <PropertyDataBinding
@@ -27,7 +27,6 @@ import {
   KeyRound,
   Link2,
   ListTree,
-  Table2,
   X,
 } from "lucide-react";
 import React, { memo, useCallback } from "react";
@@ -39,13 +38,16 @@ import {
   SelectValue,
 } from "react-aria-components/Select";
 import type { DataField } from "../../../types/builder/data.types";
-import { iconEditProps, iconProps } from "../../../utils/ui/uiConstants";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
-import { useDataUsageSource } from "../../panels/datatable/usage/dataUsageSource";
 import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
 import { useCollections } from "../../stores/data";
 import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react.runtime";
-import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
+import {
+  ActionIconButton,
+  ActionTooltipTrigger,
+  SwatchIconButton,
+} from "../ui";
 import "./PropertyDataBinding.css";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { PropertyInput } from "./PropertyInput";
@@ -209,7 +211,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const fieldMapRoles = isTree ? TREE_FIELD_MAP_ROLES : FIELD_MAP_ROLES;
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
-  const openTableEditor = useDataTableEditorStore((s) => s.openTableEditor);
 
   // 직접 prop 값 사용 (fully controlled)
   const source = value?.source || "";
@@ -268,12 +269,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     selectedCollectionId !== null
       ? (collections.find((dt) => dt.id === selectedCollectionId) ?? null)
       : null;
-  // "사용처 N" — 152 역참조 (collection 단위). 이 요소를 포함해 collection 에 매인 요소 수.
-  const collectionUsage = useDataUsageSource().useCollectionUsage(collections);
-  const usedByCount =
-    selectedCollectionId !== null
-      ? (collectionUsage.get(selectedCollectionId) ?? 0)
-      : 0;
   const fieldOptions: readonly DataField[] = (
     selectedCollection?.schema ?? []
   ).filter((field) => typeof field.id === "string" && field.id.length > 0);
@@ -299,11 +294,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   // 근거는 DataBindingValue.path / RefreshMode 주석 참조. 기존 저장값 보존은
   // handleNameChange 의 재기록이 담당한다 (컬렉션을 바꿔도 값이 유실되지 않음).
 
-  // 바인딩 제거
-  const handleClear = useCallback(() => {
-    onChange(null);
-  }, [onChange]);
-
   // 바인딩 표현식 프리뷰
   const bindingExpression = value
     ? `{{${value.source}.${value.name}${value.path ? "." + value.path : ""}}}`
@@ -325,7 +315,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     <PropertyFieldset legend={label} icon={Icon ?? Link2} className={className}>
       <div className="property-data-binding">
         {/* collection(테이블명) 선택 — 소스 선택 단계 제거, dataTable 단일 (ADR-159 P4b).
-            선택된 값은 Select 자신이 표시하고 해제 버튼만 옆에 둔다 — 별도 바인딩
+            선택된 값은 Select 자신이 표시한다 — 별도 바인딩
             표현식 preview 행은 제거했다.
             **Why**: SelectValue 가 `"컬렉션 선택..."` 문자열 하드코딩이라 선택값을
             표시하지 못했고, 그 공백을 메우려고 preview 행이 선택 상태를 중복 표기하던
@@ -390,42 +380,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               {t("propertiesPanel.collectionEmpty")}
             </div>
           )}
-
-          {/* 해제 버튼은 Select 렌더 여부와 무관하게 노출 — collection 이 0개인
-              상태에서도 기존(legacy 포함) 바인딩을 제거할 수 있어야 한다. */}
-          {value && (
-            <button
-              className="binding-clear"
-              onClick={handleClear}
-              type="button"
-              aria-label={t("propertiesPanel.removeBinding")}
-              disabled={disabled}
-            >
-              <X size={iconEditProps.size} />
-            </button>
-          )}
         </div>
-
-        {/* ADR-212 Phase 6 (UX-1, B4) — 바인딩 옆 동선: 열기 · 사용처 N. 「새 테이블」 은
-            폼 안이 아니라 행 끝 28 열 (`PropertyDataBindingCreateAction`, 2026-09-16 사용자
-            지시) — 선택된 컬렉션이 없을 때도 서는 액션이라 폼 아래 글자 버튼으로 두면
-            빈 폼에 버튼 한 줄이 남았다. */}
-        {selectedCollection && (
-          <div className="binding-actions">
-            <button
-              type="button"
-              className="binding-action"
-              onClick={() => openTableEditor(selectedCollection.id)}
-              disabled={disabled}
-            >
-              <Table2 size={iconEditProps.size} />
-              {t("propertiesPanel.bindingOpenTable")}
-            </button>
-            <span className="binding-usedby">
-              {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
-            </span>
-          </div>
-        )}
 
         {fieldOptions.length > 0 &&
           fieldMapRoles.map((role) => (
@@ -475,26 +430,16 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   );
 });
 
-/**
- * 「새 테이블 만들기」 — 바인딩 행 끝 28 열의 아이콘 액션 (2026-09-16 사용자 지시: 폼 안
- * 글자 버튼 대신 행 액션 열에 `DatabasePlus`). Attributes ID 행의 복사 아이콘과 같은
- * 자리·크롬 (`.fieldset-actions` + `SwatchIconButton`) 이고, 이름은 aria-label + 툴팁이
- * 나른다. 바인딩 fieldset 은 여러 줄이라 (컬렉션 Select · 열기/사용처 · fieldMap) 기본
- * `align-self: end` 대신 첫 줄 — legend 아래 컬렉션 Select 상자 — 에 맞춘다
- * (`.actions-binding`). 렌더러 (`GenericFieldRenderer` binding case) 가 fieldset 과 같은
- * `.fieldset-row` 안에 나란히 둔다. 프로젝트 밖 (projectId 없음) 이면 서지 않는다.
- *
- * ADR-013 — `elementId` 가 있으면 **연결 모드**로 연다: 누른 시점의 요소·페이지·바인딩
- * 스냅샷을 캡처해 Creator 에 넘기고, 생성 결과가 그 요소에 자동 연결된다 (선택이 바뀌어도
- * 대상은 캡처된 요소). 캡처가 실패하면 (요소 없음) 일반 생성으로 연다.
- */
+/** 새 테이블 생성 — Collection 헤더 또는 일반 데이터 바인딩의 행 액션. */
 export const PropertyDataBindingCreateAction = memo(
   function PropertyDataBindingCreateAction({
     disabled,
     elementId,
+    inHeader = false,
   }: {
     disabled?: boolean;
     elementId?: string;
+    inHeader?: boolean;
   }) {
     const { t } = useI18n();
     const { projectId } = useParams<{ projectId: string }>();
@@ -502,27 +447,78 @@ export const PropertyDataBindingCreateAction = memo(
     const quickConnect = useQuickConnectHost();
     if (!projectId) return null;
     const label = t("propertiesPanel.bindingNewTable");
+    const onPress = () => {
+      const connect = elementId ? quickConnect.capture(elementId) : null;
+      if (connect) openTableCreator(projectId, connect);
+      else openTableCreator(projectId);
+    };
+    const icon = (
+      <DatabasePlus
+        aria-hidden="true"
+        size={iconProps.size}
+        strokeWidth={iconProps.strokeWidth}
+      />
+    );
+    return inHeader ? (
+      <ActionIconButton
+        aria-label={label}
+        tooltip={label}
+        isDisabled={disabled}
+        onPress={onPress}
+      >
+        {icon}
+      </ActionIconButton>
+    ) : (
+      <ActionTooltipTrigger tooltip={label}>
+        <SwatchIconButton
+          aria-label={label}
+          isDisabled={disabled}
+          onPress={onPress}
+        >
+          {icon}
+        </SwatchIconButton>
+      </ActionTooltipTrigger>
+    );
+  },
+);
+
+/** 선택된 바인딩의 행 액션. Collection의 생성 액션은 헤더에 둔다. */
+export const PropertyDataBindingActions = memo(
+  function PropertyDataBindingActions({
+    disabled,
+    elementId,
+    onClear,
+    showCreate = true,
+  }: {
+    disabled?: boolean;
+    elementId?: string;
+    /** 바인딩이 있을 때만 제공. 삭제된 collection 및 legacy 바인딩도 해제할 수 있다. */
+    onClear?: () => void;
+    showCreate?: boolean;
+  }) {
+    const { t } = useI18n();
+    const { projectId } = useParams<{ projectId: string }>();
+    if (!onClear && (!showCreate || !projectId)) return null;
+    const clearLabel = t("propertiesPanel.removeBinding");
     return (
       <div className="fieldset-actions actions-binding">
-        <ActionTooltipTrigger tooltip={label}>
-          <SwatchIconButton
-            aria-label={label}
-            isDisabled={disabled}
-            onPress={() => {
-              const connect = elementId
-                ? quickConnect.capture(elementId)
-                : null;
-              if (connect) openTableCreator(projectId, connect);
-              else openTableCreator(projectId);
-            }}
-          >
-            <DatabasePlus
-              aria-hidden="true"
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconButton>
-        </ActionTooltipTrigger>
+        {onClear && (
+          <ActionTooltipTrigger tooltip={clearLabel}>
+            <SwatchIconButton
+              aria-label={clearLabel}
+              isDisabled={disabled}
+              onPress={onClear}
+            >
+              <X aria-hidden="true" {...iconProps} />
+            </SwatchIconButton>
+          </ActionTooltipTrigger>
+        )}
+        {showCreate && (
+          <PropertyDataBindingCreateAction
+            elementId={elementId}
+            disabled={disabled}
+          />
+        )}
       </div>
     );
   },

@@ -20,7 +20,7 @@ export const tableBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      dataBinding: { kind: "binding", label: "Data", section: "content" },
+      dataBinding: { kind: "binding", label: "Data", section: "collection" },
       // S2 TableView `loadingState` (`useAsyncList.loadingState`) — derived, not authored.
       loadingState: LOADING_STATE_PROP,
       size: {

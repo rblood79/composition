@@ -17,7 +17,7 @@ export const breadcrumbsBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      dataBinding: { kind: "binding", label: "Data", section: "content" },
+      dataBinding: { kind: "binding", label: "Data", section: "collection" },
       size: {
         kind: "size",
         label: "Size",

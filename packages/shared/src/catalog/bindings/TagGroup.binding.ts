@@ -15,7 +15,7 @@ export const tagGroupBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      dataBinding: { kind: "binding", label: "Data", section: "content" },
+      dataBinding: { kind: "binding", label: "Data", section: "collection" },
       // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
       //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
       //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).

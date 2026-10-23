@@ -242,8 +242,16 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(
       container.querySelector(".state-ancestor-row")?.textContent,
     ).toContain("taken");
+    const add = within(container).getByRole("button", { name: "Add" });
+    expect(add.closest(".section-header .section-actions")).not.toBeNull();
     await act(async () => {
-      fireEvent.click(within(container).getByText("Add"));
+      fireEvent.click(
+        within(container).getByRole("button", { name: "Collapse section" }),
+      );
+    });
+    expect(container.querySelector(".section-content")).toBeNull();
+    await act(async () => {
+      fireEvent.click(add);
     });
     const own = () => catalogOwnVariables(graph, id("a"));
     expect(own().map((variable) => variable.name)).toEqual(["state1"]);
@@ -289,10 +297,41 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     );
     const group = () =>
       container.querySelector('[data-group="implicit"]') as HTMLElement;
-    expect(within(group()).getByText("selectedKeys")).toBeTruthy();
-    const input = within(group()).getByLabelText(
-      "Name it selectedKeys",
-    ) as HTMLInputElement;
+    expect(within(group()).getByText("Component state")).toBeTruthy();
+    expect(within(group()).queryByText("Selected items")).toBeNull();
+    expect(group().querySelectorAll("legend")).toHaveLength(1);
+    const useAction = within(group()).getByRole("button", {
+      name: "Use elsewhere",
+    });
+    expect(useAction.closest(".fieldset-actions")).not.toBeNull();
+    expect(useAction.closest(".react-aria-control")).toBeNull();
+    expect(within(group()).queryByRole("textbox")).toBeNull();
+    const beforeNaming = graph.revision;
+    await act(async () => {
+      fireEvent.click(
+        within(group()).getByRole("button", { name: "Use elsewhere" }),
+      );
+    });
+    expect(graph.revision).toBe(beforeNaming);
+    await act(async () => {
+      fireEvent.click(
+        within(group()).getByRole("button", { name: "Use elsewhere" }),
+      );
+    });
+    expect(within(group()).queryByRole("textbox")).toBeNull();
+    expect(graph.revision).toBe(beforeNaming);
+    await act(async () => {
+      fireEvent.click(
+        within(group()).getByRole("button", { name: "Use elsewhere" }),
+      );
+    });
+    expect(
+      within(group()).getByText(/variable name to use it elsewhere/),
+    ).toBeTruthy();
+    const input = within(group())
+      .getByRole("group", { name: "Variable name" })
+      .querySelector("input")! as HTMLInputElement;
+    expect(document.activeElement).toBe(input);
     fireEvent.change(input, { target: { value: "1bad" } });
     await act(async () => {
       fireEvent.keyDown(input, { key: "Enter" });
@@ -312,13 +351,15 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       valueType: "string[]",
       source: { nodeId: id("list"), prop: "selectedKeys" },
     });
-    // Named: a row with the name and its source; no type or default to edit.
-    expect(group().querySelector(".state-def-name")?.textContent).toBe(
-      "picked",
-    );
-    await act(async () => {
-      fireEvent.click(within(group()).getByLabelText("picked"));
-    });
+    // A named state keeps its field and moves edit/delete actions into the external column.
+    expect(
+      within(group()).getByRole("group", { name: "Selected items" }),
+    ).toBeTruthy();
+    const edit = within(group()).getByRole("button", { name: "Edit" });
+    expect(edit.closest(".fieldset-actions")).not.toBeNull();
+    expect(edit.closest(".react-aria-control")).toBeNull();
+    expect(within(group()).getByText("picked")).toBeTruthy();
+    expect(within(group()).getByText("{{ picked }}")).toBeTruthy();
     expect(group().querySelectorAll(".state-def-editor input")).toHaveLength(1);
     expect(within(group()).queryByText("Type")).toBeNull();
     // Not listed again as the page's (visible from ancestors).

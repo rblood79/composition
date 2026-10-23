@@ -42,7 +42,7 @@ vi.mock("../../stores/data", () => ({
 
 import {
   PropertyDataBinding,
-  PropertyDataBindingCreateAction,
+  PropertyDataBindingActions,
 } from "./PropertyDataBinding";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
@@ -116,14 +116,14 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     expect(container.querySelector(".binding-path-input")).toBeNull();
     expect(container.textContent).not.toContain("데이터 경로");
 
-    // 남는 오소링 표면 = 컬렉션 Select 행 + (ADR-212 Phase 6) 바인딩 동선 행 + 항목 key
+    // 남는 오소링 표면 = 컬렉션 Select 행 + 항목 key
     // (`useListData.getItem(key)`, 2026-10-22) — 갱신/경로 오소링 행은 없다.
     expect(container.querySelector(".binding-name-row")).not.toBeNull();
-    expect(container.querySelector(".binding-actions")).not.toBeNull();
+    expect(container.querySelector(".binding-actions")).toBeNull();
     expect(container.textContent).toContain("Item key");
     expect(
       container.querySelectorAll(".property-data-binding > *"),
-    ).toHaveLength(3);
+    ).toHaveLength(2);
   });
 
   it("컬렉션 선택 시 기존 path / refreshMode / refreshInterval 을 모두 보존한다", () => {
@@ -274,9 +274,9 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
 });
 
 // 2026-09-16 사용자 지시 — 「새 테이블 만들기」 는 폼 안 글자 버튼이 아니라 행 끝 28 열의
-// DatabasePlus 아이콘 (`PropertyDataBindingCreateAction`, 렌더러가 fieldset 옆에 둔다).
+// DatabasePlus 아이콘 (`PropertyDataBindingActions`, 렌더러가 fieldset 옆에 둔다).
 describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-09-16)", () => {
-  it("폼 안에는 「새 테이블」 버튼이 없고 남는 동선은 열기 · 사용처뿐", () => {
+  it("폼 내부의 열기 · 사용처 · 연결 해제 액션을 제거한다", () => {
     const { container } = renderWithI18n(
       <PropertyDataBinding
         value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
@@ -286,7 +286,9 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
     const actions = Array.from(
       container.querySelectorAll(".binding-actions .binding-action"),
     ).map((b) => b.textContent?.trim());
-    expect(actions).toEqual(["Open this table"]);
+    expect(actions).toEqual([]);
+    expect(screen.queryByRole("button", { name: "Remove binding" })).toBeNull();
+    expect(container.textContent).not.toContain("Used by");
     expect(screen.queryByRole("button", { name: "New table" })).toBeNull();
   });
 
@@ -300,7 +302,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
   it("행 액션 = fieldset-actions 안 아이콘 버튼, 누르면 프로젝트의 테이블 생성기를 연다", () => {
     routeParams.projectId = "p-1";
     editorStore.openTableCreator.mockClear();
-    const { container } = renderWithI18n(<PropertyDataBindingCreateAction />);
+    const { container } = renderWithI18n(<PropertyDataBindingActions />);
     const wrapper = container.querySelector(
       ".fieldset-actions.actions-binding",
     );
@@ -311,11 +313,25 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
     expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
   });
 
+  it("연결 해제는 외부 액션 열에서 동작하며 비활성 상태를 따른다", () => {
+    const onClear = vi.fn();
+    const view = renderWithI18n(
+      <PropertyDataBindingActions onClear={onClear} />,
+    );
+    const clear = screen.getByRole("button", { name: "Remove binding" });
+    expect(clear.closest(".fieldset-actions.actions-binding")).not.toBeNull();
+    fireEvent.click(clear);
+    expect(onClear).toHaveBeenCalledTimes(1);
+    view.rerender(<PropertyDataBindingActions onClear={onClear} disabled />);
+    fireEvent.click(screen.getByRole("button", { name: "Remove binding" }));
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
   it("ADR-013: elementId 가 있으면 누른 시점의 대상 스냅샷을 캡처해 연결 모드로 연다 · 캡처 실패는 일반 생성", () => {
     routeParams.projectId = "p-1";
     editorStore.openTableCreator.mockClear();
     const first = renderWithI18n(
-      <PropertyDataBindingCreateAction elementId="lb-1" />,
+      <PropertyDataBindingActions elementId="lb-1" />,
     );
     fireEvent.click(first.container.querySelector("button")!);
     expect(quickConnect.capture).toHaveBeenCalledWith("lb-1");
@@ -330,7 +346,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
     first.unmount();
     editorStore.openTableCreator.mockClear();
     const second = renderWithI18n(
-      <PropertyDataBindingCreateAction elementId="ghost" />,
+      <PropertyDataBindingActions elementId="ghost" />,
     );
     fireEvent.click(second.container.querySelector("button")!);
     expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
@@ -339,7 +355,7 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
 
   it("프로젝트 밖 (projectId 없음) 이면 서지 않는다", () => {
     routeParams.projectId = undefined;
-    const { container } = renderWithI18n(<PropertyDataBindingCreateAction />);
+    const { container } = renderWithI18n(<PropertyDataBindingActions />);
     expect(container.firstChild).toBeNull();
     routeParams.projectId = "p-1";
   });

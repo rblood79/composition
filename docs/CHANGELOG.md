@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [State 속성 — 컴포넌트 상태의 사용 목적 안내] - 2026-10-23
+
+### Changed
+
+- **암묵 상태를 컴포넌트 상태로 정리** — 컴포넌트 상태만 legend로 표시하고 개별 상태의 중복 legend는 숨기되 접근 이름을 유지한다. 기존 Property 필드와 같은 fieldset-row와 우측 fieldset-actions에 사용·편집·삭제 버튼을 배치하고, 공통 PropertyInput의 Enter·blur로 등록한다. 다른 곳에서 사용 툴팁과 펼친 영역 안내로 목적을 알린다. 등록 후에는 `{{ 변수명 }}` 참조 방법과 자동 갱신 안내를 제공한다. 명시 상태는 직접 만든 변수로 표시하고, 추가 버튼은 State 헤더의 공통 + 액션으로 제공한다. 접힌 상태에서 추가하면 편집 영역을 펼친다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogStateSection.tsx` · `panels/properties/state/StateSection.css` · `i18n/{types,translations}.ts`
+
+## [Slot 속성 — 복원 버튼 스타일 통일] - 2026-10-23
+
+### Fixed
+
+- **Items 옆 Restore 버튼을 공통 SwatchIconButton으로 통일** — 다른 fieldset-actions 버튼과 같은 배경·안쪽 아이콘 영역·그림자·상호작용 스타일을 사용한다.
+  - **Why:** Slot 복원만 일반 control-button을 사용해 공통 행 액션 버튼과 시각적으로 달랐다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogSlotSection.tsx`
+
+## [컬렉션 연결 — 속성 액션 정리] - 2026-10-23
+
+### Changed
+
+- **연결 해제를 fieldset-actions로 이동** — 데이터 선택 컨트롤 밖의 액션 열에 연결 해제를 배치하고, Collection의 새 테이블 버튼은 섹션 헤더 액션으로 이동한다. 내부의 Open this table · Used by 영역을 제거한다. Canvas의 데이터 이동 기능을 이용한다.
+  - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` · `PropertyDataBinding.css` · `components/styles/panel-system.css` · `panels/properties/generic/GenericFieldRenderer.tsx`
+
+## [컬렉션 속성 — Collection 섹션 분리] - 2026-10-23
+
+### Changed
+
+- **컬렉션 데이터 바인딩을 Content에서 Collection 섹션으로 이동** — ListBox · GridList · Table · Tree · TagGroup · Menu · Select · ComboBox · Tabs · Breadcrumbs에 적용한다. Label · Description 같은 일반 콘텐츠는 Content에 유지하고, Collection은 Content 다음에 배치한다.
+  - 위치: `packages/shared/src/catalog/bindings/*.binding.ts` · `apps/builder/src/builder/panels/properties/generic/GenericFieldRenderer.tsx`
+
 ## [컬렉션 빈 상태 — RAC renderEmptyState 를 IllustratedMessage 자식으로] - 2026-10-23
 
 ### Added

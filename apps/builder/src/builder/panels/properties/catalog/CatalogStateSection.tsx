@@ -2,11 +2,12 @@ import {
   memo,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { ChevronDown, ChevronRight, Minus } from "lucide-react";
+import { ChevronDown, ChevronRight, Link2, Minus, Pencil } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
 import type {
@@ -31,20 +32,150 @@ import {
 } from "../../../catalogRuntime/stateVariables";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ConfirmDialog } from "../../../components/overlay";
+import {
+  ActionIconButton,
+  ActionTooltipTrigger,
+  SwatchIconButton,
+} from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { useStateSectionFocus } from "../state/stateSectionFocus";
+import { useSectionCollapse } from "../../styles/hooks/useSectionCollapse";
 import "../state/StateSection.css";
 
 const AddIcon = ACTION_ICONS.add;
+const STATE_SECTION_ID = "property-state";
 const NAME_PATTERN = /^[A-Za-z_$][\w$]*$/;
 const TYPE_OPTIONS = CATALOG_VARIABLE_TYPES.map((type) => ({
   value: type,
   label: type,
 }));
+
+const SOURCE_LABEL_KEYS = {
+  selectedKeys: "stateSelectedItems",
+  selectedKey: "stateSelectedItem",
+  isSelected: "stateSelection",
+  inputValue: "stateInputValue",
+  value: "stateValue",
+  expandedKeys: "stateExpandedItems",
+  isExpanded: "stateExpanded",
+  isOpen: "stateOpen",
+} as const;
+
+/** 상태 컨트롤과 우측 액션 열은 다른 Property 필드와 같은 격자를 사용한다. */
+function StateSourceField({
+  source,
+  label,
+  expanded,
+  error,
+  onName,
+  onRename,
+  onToggle,
+  onRemove,
+}: {
+  source: CatalogStateSource;
+  label: string;
+  expanded: boolean;
+  error?: string;
+  onName: (source: CatalogStateSource, name: string) => void;
+  onRename: (id: string, name: string) => void;
+  onToggle: (id: string) => void;
+  onRemove: (variable: StateVariableEntry) => void;
+}) {
+  const { t } = useI18n();
+  const [naming, setNaming] = useState(false);
+  const editorId = useId();
+  const editorRef = useRef<HTMLDivElement>(null);
+  const variable = source.variable;
+  const editing = variable ? expanded : naming;
+  const actionLabel = variable
+    ? t("common.edit")
+    : t("propertiesPanel.stateUseElsewhere");
+  useEffect(() => {
+    if (editing) editorRef.current?.querySelector("input")?.focus();
+  }, [editing]);
+  return (
+    <div
+      className="state-def"
+      data-implicit={source.prop}
+      data-expanded={editing || undefined}
+    >
+      <div className="fieldset-row state-source-row" data-wide="true">
+        <PropertyFieldset legend={label} labelMode="hidden">
+          <span className="state-source-value" title={source.prop}>
+            {variable?.name ?? source.prop}
+          </span>
+          <span className="state-source-type">{source.type}</span>
+        </PropertyFieldset>
+        <div className="fieldset-actions state-source-actions">
+          <ActionTooltipTrigger tooltip={actionLabel}>
+            <SwatchIconButton
+              aria-label={actionLabel}
+              aria-expanded={editing}
+              aria-controls={editing ? editorId : undefined}
+              onPress={() => {
+                if (variable) onToggle(variable.id);
+                else {
+                  if (naming) onName(source, "");
+                  setNaming(!naming);
+                }
+              }}
+            >
+              {variable ? <Pencil size={16} /> : <Link2 size={16} />}
+            </SwatchIconButton>
+          </ActionTooltipTrigger>
+          {variable && (
+            <ActionTooltipTrigger tooltip={t("common.delete")}>
+              <SwatchIconButton
+                aria-label={t("common.delete")}
+                onPress={() => onRemove(variable)}
+              >
+                <Minus size={16} />
+              </SwatchIconButton>
+            </ActionTooltipTrigger>
+          )}
+        </div>
+      </div>
+      {editing && (
+        <div
+          id={editorId}
+          ref={editorRef}
+          className="list-row__fields state-def-editor"
+        >
+          <div className="fieldset-row" data-wide="true">
+            <PropertyInput
+              label={t("propertiesPanel.stateVariableName")}
+              value={variable?.name ?? ""}
+              placeholder={source.prop}
+              onChange={(name) =>
+                variable ? onRename(variable.id, name) : onName(source, name)
+              }
+            />
+          </div>
+          <p className="state-source-hint">
+            {variable ? (
+              <>
+                <code>{`{{ ${variable.name} }}`}</code>{" "}
+                {t("propertiesPanel.stateSourceReference")}
+              </>
+            ) : (
+              t("propertiesPanel.stateImplicitHint")
+            )}
+          </p>
+          {error && (
+            <p className="state-def-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface StateView {
   isPage: boolean;
@@ -106,9 +237,9 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       ancestors: catalogAncestorVariables(graph, owner)
         .filter((variable) => variable.source?.nodeId !== nodeId)
         .map((variable) => ({
-        variable,
-        owner: ownerLabel(variable.ownerId),
-      })),
+          variable,
+          owner: ownerLabel(variable.ownerId),
+        })),
       usage: Object.fromEntries(
         own.map((variable) => [
           variable.id,
@@ -171,7 +302,12 @@ export const CatalogStateSection = memo(function CatalogStateSection({
       const added = catalogOwnVariables(graph, owner).find(
         (variable) => variable.name === name,
       );
-      if (added) setExpandedId(added.id);
+      if (added) {
+        setExpandedId(added.id);
+        const sections = useSectionCollapse.getState();
+        sections.expandSections([STATE_SECTION_ID]);
+        sections.setFocusSection(STATE_SECTION_ID);
+      }
     }
   }, [graph, owner, run, workspace]);
 
@@ -224,8 +360,10 @@ export const CatalogStateSection = memo(function CatalogStateSection({
         );
       setError(errorId, null);
       const recordId = workspace.root.recordsOfSource(nodeId)[0];
-      const record = recordId ? workspace.root.domInputs.get(recordId) : undefined;
-      run(
+      const record = recordId
+        ? workspace.root.domInputs.get(recordId)
+        : undefined;
+      const named = run(
         catalogVariableCommands.nameSource(
           pageId,
           nodeId,
@@ -237,6 +375,14 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           workspace.newId,
         ),
       );
+      if (named) {
+        const variable = catalogOwnVariables(graph, pageId).find(
+          (entry) =>
+            entry.source?.nodeId === nodeId &&
+            entry.source.prop === source.prop,
+        );
+        if (variable) setExpandedId(variable.id);
+      }
     },
     [graph, nodeId, ownerLabel, run, setError, t, workspace],
   );
@@ -287,6 +433,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
         className="state-def"
         data-expanded={expanded || undefined}
         data-variable-id={variable.id}
+        data-implicit={source?.prop}
       >
         <div className="list-row">
           <div className="list-row__body">
@@ -303,7 +450,10 @@ export const CatalogStateSection = memo(function CatalogStateSection({
                 <ChevronRight size={12} />
               )}
             </button>
-            <span className="list-row__label state-def-name">
+            <span
+              className="list-row__label state-def-name"
+              title={source?.prop}
+            >
               {variable.name}
             </span>
             <span className="list-row__meta state-def-meta">
@@ -332,42 +482,52 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           <div className="list-row__fields state-def-editor">
             <div className="fieldset-row" data-wide="true">
               <PropertyInput
-                label={t("propertiesPanel.stateName")}
+                label={t(
+                  source
+                    ? "propertiesPanel.stateVariableName"
+                    : "propertiesPanel.stateName",
+                )}
                 value={variable.name}
                 onChange={(value) => rename(variable.id, value)}
               />
             </div>
+            {source && (
+              <p className="state-source-hint">
+                <code>{`{{ ${variable.name} }}`}</code>{" "}
+                {t("propertiesPanel.stateSourceReference")}
+              </p>
+            )}
             {/* (A named RAC state follows its component: no type or default of its own.) */}
             {!source && (
-            <div className="fieldset-row">
-              <PropertySelect
-                label={t("propertiesPanel.stateType")}
-                value={variable.valueType}
-                options={TYPE_OPTIONS}
-                translateOptions={false}
-                onChange={(value) =>
-                  changeType(variable.id, value as CatalogVariableType)
-                }
-              />
-              {variable.valueType === "boolean" ? (
+              <div className="fieldset-row">
                 <PropertySelect
-                  label={t("propertiesPanel.stateDefault")}
-                  value={String(variable.defaultValue === true)}
-                  options={[
-                    { value: "false", label: "false" },
-                    { value: "true", label: "true" },
-                  ]}
+                  label={t("propertiesPanel.stateType")}
+                  value={variable.valueType}
+                  options={TYPE_OPTIONS}
                   translateOptions={false}
-                  onChange={(value) => changeDefault(variable.id, value)}
+                  onChange={(value) =>
+                    changeType(variable.id, value as CatalogVariableType)
+                  }
                 />
-              ) : (
-                <PropertyInput
-                  label={t("propertiesPanel.stateDefault")}
-                  value={String(variable.defaultValue)}
-                  onChange={(value) => changeDefault(variable.id, value)}
-                />
-              )}
-            </div>
+                {variable.valueType === "boolean" ? (
+                  <PropertySelect
+                    label={t("propertiesPanel.stateDefault")}
+                    value={String(variable.defaultValue === true)}
+                    options={[
+                      { value: "false", label: "false" },
+                      { value: "true", label: "true" },
+                    ]}
+                    translateOptions={false}
+                    onChange={(value) => changeDefault(variable.id, value)}
+                  />
+                ) : (
+                  <PropertyInput
+                    label={t("propertiesPanel.stateDefault")}
+                    value={String(variable.defaultValue)}
+                    onChange={(value) => changeDefault(variable.id, value)}
+                  />
+                )}
+              </div>
             )}
           </div>
         )}
@@ -383,8 +543,18 @@ export const CatalogStateSection = memo(function CatalogStateSection({
   return (
     <div data-state-owner={owner} ref={rootRef}>
       <PropertySection
+        id={STATE_SECTION_ID}
         title={t("propertiesPanel.stateSection")}
         badge={<span className="state-section-count">{view.own.length}</span>}
+        actions={
+          <ActionIconButton
+            aria-label={t("propertiesPanel.stateAdd")}
+            tooltip={t("propertiesPanel.stateAdd")}
+            onPress={add}
+          >
+            <AddIcon size={16} />
+          </ActionIconButton>
+        }
       >
         {view.sources.length > 0 && (
           <fieldset
@@ -393,74 +563,51 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           >
             <legend className="fieldset-legend">
               {t("propertiesPanel.stateImplicitTitle")}
-              <span className="state-group-meta">
-                {t("propertiesPanel.stateImplicitRac")}
-              </span>
             </legend>
             {view.sources.map((source) => {
-              if (source.variable) return renderRow(source.variable);
-              const errorId = `source:${source.prop}`;
-              // An unnamed RAC state: [prop · type] [name input].
+              const labelKey =
+                SOURCE_LABEL_KEYS[
+                  source.prop as keyof typeof SOURCE_LABEL_KEYS
+                ];
+              const label =
+                source.prop === "selectedKey" && type === "Tabs"
+                  ? t("propertiesPanel.stateSelectedTab")
+                  : labelKey
+                    ? t(`propertiesPanel.${labelKey}`)
+                    : source.prop;
               return (
-                <div
-                  key={source.prop}
-                  className="state-def state-def--unnamed"
-                  data-implicit={source.prop}
-                >
-                  <div className="list-row state-def-summary">
-                    <div className="list-row__body">
-                      <span className="list-row__label state-def-name state-def-name--prop">
-                        {source.prop}
-                      </span>
-                      <span className="list-row__meta state-def-meta">
-                        {source.type}
-                      </span>
-                    </div>
-                    <div className="list-row__actions state-def-name-group">
-                      <input
-                        type="text"
-                        className="list-row__input state-def-name-input"
-                        placeholder={t("propertiesPanel.stateNamePlaceholder")}
-                        aria-label={`${t("propertiesPanel.stateNamePlaceholder")} ${source.prop}`}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter")
-                            nameSource(source, event.currentTarget.value);
-                        }}
-                        onBlur={(event) =>
-                          nameSource(source, event.currentTarget.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                  {errors[errorId] && (
-                    <p className="state-def-error" role="alert">
-                      {errors[errorId]}
-                    </p>
-                  )}
-                </div>
+                <StateSourceField
+                  key={`${nodeId}:${source.prop}`}
+                  source={source}
+                  label={label}
+                  expanded={source.variable?.id === expandedId}
+                  error={errors[source.variable?.id ?? `source:${source.prop}`]}
+                  onName={nameSource}
+                  onRename={rename}
+                  onToggle={(id) =>
+                    setExpandedId((current) => (current === id ? null : id))
+                  }
+                  onRemove={setPendingDelete}
+                />
               );
             })}
           </fieldset>
         )}
-        <fieldset className="properties-aria state-group" data-group="explicit">
-          <legend className="fieldset-legend">
-            {t(
-              view.isPage
-                ? "propertiesPanel.statePageTitle"
-                : "propertiesPanel.stateExplicitTitle",
-            )}
-          </legend>
-          {view.own.map(renderRow)}
-          <button
-            type="button"
-            className="control-button"
-            data-variant="add"
-            onClick={add}
+        {view.own.length > 0 && (
+          <fieldset
+            className="properties-aria state-group"
+            data-group="explicit"
           >
-            <AddIcon size={14} />
-            <span>{t("propertiesPanel.stateAdd")}</span>
-          </button>
-        </fieldset>
+            <legend className="fieldset-legend">
+              {t(
+                view.isPage
+                  ? "propertiesPanel.statePageTitle"
+                  : "propertiesPanel.stateExplicitTitle",
+              )}
+            </legend>
+            {view.own.map((variable) => renderRow(variable))}
+          </fieldset>
+        )}
         {view.ancestors.length > 0 && (
           <fieldset
             className="properties-aria state-group"

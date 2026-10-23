@@ -24,6 +24,7 @@ import type { ItemsManagerField } from "@composition/rendering";
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {
   PropertyDataBinding,
+  PropertyDataBindingActions,
   PropertyDataBindingCreateAction,
 } from "../../../components/property/PropertyDataBinding";
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
@@ -303,11 +304,12 @@ function computeFieldSpan(field: ResolvedField): "wide" | "half" {
 
 /**
  * 섹션 순서 — 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
- * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content) → 모양 (Appearance · Layout) → 동작
+ * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content · Collection) → 모양 (Appearance · Layout) → 동작
  * (State · Interaction) → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로.
  */
 const SECTION_ORDER: readonly string[] = [
   "content",
+  "collection",
   "appearance",
   "layout",
   "state",
@@ -1067,7 +1069,7 @@ const GenericField = memo(function GenericField({
     //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용) → null.
     case "binding":
       if (field.key === "dataBinding") {
-        // fieldset (1·2열) + 행 끝 28 열의 「새 테이블」 아이콘 — 같은 `.fieldset-row` 의
+        // fieldset (1·2열) + 행 끝 28 열의 연결 해제 · 새 테이블 아이콘 — 같은 `.fieldset-row` 의
         // 형제라 fragment 로 둘을 낸다 (Attributes ID 행의 복사 아이콘과 같은 자리).
         return (
           <>
@@ -1077,7 +1079,11 @@ const GenericField = memo(function GenericField({
               onChange={(v) => update(v)}
               elementId={elementId}
             />
-            <PropertyDataBindingCreateAction elementId={elementId} />
+            <PropertyDataBindingActions
+              elementId={elementId}
+              onClear={value ? () => update(null) : undefined}
+              showCreate={field.section !== "collection"}
+            />
           </>
         );
       }
@@ -1414,7 +1420,24 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
         )
           return null;
         return (
-          <PropertySection key={section} title={sectionTitle(section)}>
+          <PropertySection
+            key={section}
+            title={sectionTitle(section)}
+            actions={
+              section === "collection" &&
+              rows.some((row) =>
+                row.some(
+                  (field) =>
+                    field.kind === "binding" && field.key === "dataBinding",
+                ),
+              ) ? (
+                <PropertyDataBindingCreateAction
+                  elementId={elementId}
+                  inHeader
+                />
+              ) : undefined
+            }
+          >
             {head}
             {renderRows(rows)}
             {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.

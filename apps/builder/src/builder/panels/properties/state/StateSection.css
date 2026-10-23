@@ -16,14 +16,6 @@
   min-width: 0;
 }
 
-/* legend 옆 출처 표기 (RAC) — 10 mono (Component 절의 역할 표기와 같은 어법) */
-.state-group-meta {
-  margin-inline-start: var(--spacing-xs);
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--fg-muted);
-}
-
 .state-def {
   display: flex;
   flex-direction: column;
@@ -31,19 +23,38 @@
   min-width: 0;
 }
 
-/* 이름 없는 암묵 상태 — prop 이름은 mono 흐림 */
-.state-def-name--prop {
-  font-family: var(--font-mono);
+.state-source-hint {
+  margin: 0;
+  font-size: var(--text-2xs);
   color: var(--fg-muted);
-}
-
-/* 이름 입력 칸 — 반폭 열과 같은 87 */
-.state-def-name-group {
-  inline-size: 87px;
+  overflow-wrap: anywhere;
 }
 
 .state-def-error {
   margin: 0;
   color: var(--negative);
   font-size: var(--text-xs);
+}
+
+/* 상태 필드의 우측 전용 액션 열 — 개별 legend 없이 컨트롤 첫 줄에 맞춘다. */
+.state-source-row > .state-source-actions {
+  align-self: start;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.state-source-value {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-source-type {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
 }

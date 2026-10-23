@@ -23,7 +23,7 @@ import { useControlPopoverMetrics } from "../../../components/property/useContro
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import { ActionTooltipTrigger } from "../../../components/ui";
+import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import type { CatalogSwapCandidate } from "../../../catalogRuntime/swapInstance";
@@ -351,82 +351,84 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     const slot = declaration.slot;
     return (
       <>
-      <PropertySection title={t("propertiesPanel.slotSection")}>
-        <div className="fieldset-row" data-wide="true">
-          <PropertySwitch
-            label={t("propertiesPanel.slotSection")}
-            isSelected={Boolean(slot)}
-            onChange={toggleSlot}
-          />
-        </div>
-        {slot && (
-          <>
-            <div className="fieldset-row" data-wide="true">
-              <PropertyInput
-                label="Slot name"
-                value={slot.name}
-                onChange={renameSlot}
-              />
-            </div>
-            <div className="fieldset-row" data-wide="true">
-              <PropertySwitch
-                label="Required"
-                isSelected={slot.required}
-                onChange={setRequired}
-              />
-            </div>
-            {/* ADR-261 Decision 3 — pen.dev 「suggested slot components」: offered first in an
+        <PropertySection title={t("propertiesPanel.slotSection")}>
+          <div className="fieldset-row" data-wide="true">
+            <PropertySwitch
+              label={t("propertiesPanel.slotSection")}
+              isSelected={Boolean(slot)}
+              onChange={toggleSlot}
+            />
+          </div>
+          {slot && (
+            <>
+              <div className="fieldset-row" data-wide="true">
+                <PropertyInput
+                  label="Slot name"
+                  value={slot.name}
+                  onChange={renameSlot}
+                />
+              </div>
+              <div className="fieldset-row" data-wide="true">
+                <PropertySwitch
+                  label="Required"
+                  isSelected={slot.required}
+                  onChange={setRequired}
+                />
+              </div>
+              {/* ADR-261 Decision 3 — pen.dev 「suggested slot components」: offered first in an
                 instance's slot, never a restriction. */}
-            <fieldset className="properties-aria slot-suggestions">
-              <legend className="fieldset-legend">
-                {t("propertiesPanel.slotSuggested")}
-              </legend>
-              {suggestions?.map((item) => (
-                <div key={item.id} className="list-row">
-                  <div className="list-row__body">
-                    <span className="list-row__label">{item.label}</span>
+              <fieldset className="properties-aria slot-suggestions">
+                <legend className="fieldset-legend">
+                  {t("propertiesPanel.slotSuggested")}
+                </legend>
+                {suggestions?.map((item) => (
+                  <div key={item.id} className="list-row">
+                    <div className="list-row__body">
+                      <span className="list-row__label">{item.label}</span>
+                    </div>
+                    <div className="list-row__actions">
+                      <button
+                        type="button"
+                        className="list-row__action"
+                        aria-label={`Remove ${item.label}`}
+                        onClick={() =>
+                          setSuggested(
+                            (slot.suggested ?? []).filter(
+                              (id) => id !== item.id,
+                            ),
+                          )
+                        }
+                      >
+                        <Minus size={12} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="list-row__actions">
-                    <button
-                      type="button"
-                      className="list-row__action"
-                      aria-label={`Remove ${item.label}`}
-                      onClick={() =>
-                        setSuggested(
-                          (slot.suggested ?? []).filter((id) => id !== item.id),
-                        )
-                      }
-                    >
-                      <Minus size={12} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </fieldset>
-            <div className="fieldset-row" data-wide="true">
-              <PropertySelect
-                label={t("propertiesPanel.slotSuggestAdd")}
-                value=""
-                options={[
-                  {
-                    value: "",
-                    label: `${t("propertiesPanel.slotSuggestAdd")}…`,
-                  },
-                  ...choices.map((choice) => ({
-                    value: choice.definitionId,
-                    label: choice.label,
-                  })),
-                ]}
-                translateOptions={false}
-                onChange={(value) =>
-                  value && setSuggested([...(slot.suggested ?? []), value])
-                }
-              />
-            </div>
-          </>
-        )}
-      </PropertySection>
-      {itemSection}
+                ))}
+              </fieldset>
+              <div className="fieldset-row" data-wide="true">
+                <PropertySelect
+                  label={t("propertiesPanel.slotSuggestAdd")}
+                  value=""
+                  options={[
+                    {
+                      value: "",
+                      label: `${t("propertiesPanel.slotSuggestAdd")}…`,
+                    },
+                    ...choices.map((choice) => ({
+                      value: choice.definitionId,
+                      label: choice.label,
+                    })),
+                  ]}
+                  translateOptions={false}
+                  onChange={(value) =>
+                    value && setSuggested([...(slot.suggested ?? []), value])
+                  }
+                />
+              </div>
+            </>
+          )}
+        </PropertySection>
+        {itemSection}
       </>
     );
   }
@@ -466,14 +468,12 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
         {filled && (
           <div className="fieldset-actions actions-slot-restore">
             <ActionTooltipTrigger tooltip={t("propertiesPanel.slotRestore")}>
-              <RACButton
+              <SwatchIconButton
                 aria-label={t("propertiesPanel.slotRestore")}
-                className="control-button"
-                data-icon-only="true"
                 onPress={restore}
               >
                 <ACTION_ICONS.reset aria-hidden="true" size={iconProps.size} />
-              </RACButton>
+              </SwatchIconButton>
             </ActionTooltipTrigger>
           </div>
         )}
