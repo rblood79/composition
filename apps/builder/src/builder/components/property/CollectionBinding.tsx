@@ -333,7 +333,7 @@ export const CollectionBinding = memo(function CollectionBinding({
               selectedKey={selectedCollectionId}
               onSelectionChange={handleNameChange}
               onOpenChange={restoreNameFocus}
-              aria-label={t("propertiesPanel.collection")}
+              aria-label={t("propertiesPanel.bindingDataSource")}
               isDisabled={disabled}
             >
               <Button className="react-aria-Button" ref={nameTriggerRef}>

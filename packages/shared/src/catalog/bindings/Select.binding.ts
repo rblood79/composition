@@ -16,7 +16,11 @@ export const selectBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      dataBinding: { kind: "binding", label: "Data", section: "collection" },
+      dataBinding: {
+        kind: "binding",
+        label: "Data source",
+        section: "collection",
+      },
       // S2 Picker `loadingState` — the bound collection's load (derived; the field's spinner, the end loads more).
       loadingState: LOADING_STATE_PROP,
       // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드

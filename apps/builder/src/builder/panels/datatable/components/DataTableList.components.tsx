@@ -102,7 +102,7 @@ export function DataTableList({
   return (
     <Section
       id="datatable-list"
-      title={localize("tableList", "Table List")}
+      title={localize("tableList", "Tables")}
       badge={
         <span className="datatable-list-count">
           {t("countItems", { count: collections.length })}
@@ -118,7 +118,7 @@ export function DataTableList({
       ) : (
         <GridList
           className="list-group list-group--stack"
-          aria-label={localize("tableList", "Table List")}
+          aria-label={localize("tableList", "Tables")}
           selectionMode="single"
           selectionBehavior="replace"
           selectedKeys={editingId ? [editingId] : []}
@@ -204,7 +204,7 @@ export function DataTableList({
         onPress={onCreateClick}
       >
         <AddIcon {...iconProps} />
-        <span>{localize("addTable", "Add Table")}</span>
+        <span>{localize("addTable", "New table")}</span>
       </Button>
       <ConfirmDialog
         isOpen={pendingDeleteId !== null}

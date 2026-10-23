@@ -755,6 +755,7 @@ export interface TranslationKeys {
     pasteProperties: string;
     confirmDeleteSelection: string;
     dataBinding: string;
+    bindingDataSource: string;
     collection: string;
     collectionPlaceholder: string;
     collectionEmpty: string;

@@ -111,6 +111,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Variant: "chart.variant",
   Size: "chart.size",
   Data: "chart.data",
+  "Data source": "propertiesPanel.bindingDataSource",
   Right: "chart.right",
   Bottom: "chart.bottom",
   Interaction: "chart.interaction",

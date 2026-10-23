@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 연결 용어 — Collection 구성과 Table 원본 구분] - 2026-10-24
+
+### Fixed
+
+- **테이블 연결 문구 통일** — Data 패널은 `Tables / 테이블`, 생성 액션은 양쪽 패널 모두 `New table / 새 테이블`로 표시한다. Properties의 `Collection` 섹션은 유지하고, 10종 컴포넌트의 연결 필드 legend와 선택 접근성 이름은 `Data source / 데이터 소스`, placeholder는 `Choose a table… / 테이블 선택…`, 빈 상태는 등록된 테이블 안내로 정리한다.
+
 ## [컬렉션 데이터 연결 — 모든 컬렉션의 항목 필드 · Icon field 삭제] - 2026-10-24
 
 ### Changed
