@@ -97,6 +97,34 @@
     "reviewLog": "docs/adr/reviews/279.md",
     "evidenceDirectory": ".agent/runs/2026-10-21-review-adr279"
   },
+  "treeFlatCollectionBinding": {
+    "task": "Tree collection 평면 id-parentId 데이터 연동",
+    "phase": "verified",
+    "scope": "Tree parentId 매핑, Canvas/Preview 투영, 기존 children 호환, 인접 회귀 및 live 검증",
+    "status": "complete_pushed",
+    "validation": {
+      "tests": "Builder 인접 3파일 31/31, shared 인접 3파일 46/46, 추가 숫자 부모 ID Builder 테스트 9/9, 최종 shared 재실행 2파일 38/38 PASS",
+      "live": "localhost:5173 Builder의 임시 Tree flat binding verify 프로젝트에서 DataTable id/name/parentId 4행 연결; Parent ID field 선택, Preview Docs 1단계 아래 Alpha/Beta 2단계, Images 1단계 확인; Canvas는 문서 기본 collapsed 루트 2개 확인 (ADR-250 계약); console error 0",
+      "preflight": "codex:preflight PASS (guard, format, typecheck, registration, agent catalog, skills gate); git diff --check PASS"
+    },
+    "commit": "51d5ecfc8",
+    "push": "origin/main 성공; ADR-246 ratchet 796초 두 실행 값 불일치로 unmeasurable 통과 (A 초과 32 기록)"
+  },
+  "treeSelectionStyleCheckbox": {
+    "task": "Tree Property Selection Style Checkbox 표시 수리",
+    "phase": "verified",
+    "status": "complete_pushed",
+    "scope": "RAC/RSP 레퍼런스 확인, TreeItem origin 선택 슬롯, Canvas/Preview 표시 조건, 회귀·브라우저 검증",
+    "findings": [
+      "RED: checkbox 스타일 TreeItem 3개에 Checkbox 노드 0개",
+      "기본 TreeItem origin에 Checkbox[slot=selection] 연결, highlight·none에서는 숨김",
+      "실제 Builder Tree flat binding verify 프로젝트에서 Property checkbox 선택 → Preview/Canvas 체크박스 2개 표시, 클릭 선택, highlight 전환 시 숨김, console error 0",
+      "Builder 인접 3파일 34/34, shared 인접 3파일 45/45, typecheck 및 codex:preflight PASS",
+      "codeCatalogLibrary.test.ts의 2건은 HEAD 기준 계약 버전 47 대 기대 44, 제거된 iconbutton origin 기대값으로 기존 실패"
+    ],
+    "commit": "51d5ecfc8",
+    "push": "origin/main 성공; ADR-246 ratchet 796초 두 실행 값 불일치로 unmeasurable 통과 (A 초과 32 기록)"
+  },
   "resizeTopLeftInvestigation": {
     "task": "페이지 내부 요소 top/left 리사이즈 포인터·선택박스·요소 불일치 조사",
     "phase": "verified",
@@ -118,5 +146,108 @@
       "unverified": "현재 사용자 문서의 Canvas↔Preview 최신 저장 상태 parity 및 CPU throttle은 미검증"
     },
     "evidenceDirectory": ".agent/runs/2026-10-21-resize-top-left-check"
+  },
+  "collectionPropertySection": {
+    "task": "컬렉션 데이터 바인딩 Content → Collection 섹션 변경",
+    "status": "complete_pushed",
+    "scope": "10개 collection binding 메타데이터 및 공통 섹션 순서; 일반 Content 유지",
+    "reference": "https://react-aria.adobe.com/collections",
+    "validation": {
+      "preflight": "PASS (typecheck 포함)",
+      "adjacentTests": "19 passed",
+      "live": "Chrome Builder ListBox/GridList/TagGroup Collection 표시, TagGroup Content 분리 확인; 콘솔 오류 0",
+      "unverified": "나머지 7종 개별 브라우저 확인 미실행",
+      "commit": "not requested"
+    },
+    "commit": "d8391f519"
+  },
+  "collectionBindingActions": {
+    "task": "Collection New table을 section-actions로 이동; 연결 해제는 행 액션 유지",
+    "status": "complete_pushed",
+    "scope": "PropertyDataBinding, GenericFieldRenderer, panel-system CSS, 인접 테스트",
+    "validation": {
+      "tests": "26 passed (header 이동 후)",
+      "typecheck": "PASS (header 이동 후)",
+      "scopedGates": "guard/format/diff check PASS; 동시 perf 작업은 제외",
+      "live": "ListBox: New table section-actions 소속 확인; Collection 접힌 상태에서 생성 열기, 선택 ListBox 연결 안내 확인 후 취소; 해제는 fieldset-actions 유지",
+      "console": "검증 흐름 오류 0; 진입 시 삭제된 이전 검증 프로젝트 PROJECT_NOT_FOUND 1건 후 새 검증 프로젝트에서 진행"
+    },
+    "commit": "d8391f519"
+  },
+  "slotRestoreButtonStyle": {
+    "task": "Slot Items Restore 버튼 공통 행 액션 스타일 적용",
+    "status": "complete_pushed",
+    "cause": "control-button 사용으로 swatch-icon-inner 및 inset shadow 부재",
+    "validation": {
+      "typecheck": "PASS",
+      "adjacentTests": "16 passed; 기존 restore 클릭·원본 복원 검증 포함",
+      "live": "ListBox Restore 28x28, swatch-icon-inner, 공통 배경 및 inset shadow 확인",
+      "guard": "PASS",
+      "format": "변경 외 기존 선언 섹션 들여쓰기 불일치: HEAD도 prettier.check false; 무관한 블록 보존"
+    },
+    "commit": "d8391f519"
+  },
+  "componentStatePurposeUI": {
+    "task": "State 섹션을 목적 중심 UI와 선택적 변수 노출 흐름으로 정리",
+    "status": "complete_pushed",
+    "scope": "CatalogStateSection, StateSection.css, 한영 i18n, 인접 테스트",
+    "reference": "사용자 승인: 컴포넌트 상태 / 다른 곳에서 사용 / 변수 이름 안내",
+    "design": "Component state만 legend 유지; 개별 상태 legend 숨김(aria 이름 유지), 우측 액션 열은 컨트롤 상단에 정렬",
+    "validation": {
+      "tests": "phase4ePropertySections 16 PASS; i18n placeholder 1 PASS",
+      "typecheck": "PASS (최종 우측 액션 분리 후)",
+      "guard": "PASS",
+      "format": "커밋 대상23개 파일 검사 PASS (기존 불일치 정리)",
+      "live": "Chrome 독립 Collection actions verify: 상태 표시, 우측 사용 액션, 변수 등록, 새로고침 보존, 삭제 후 초기 표시, 최종 외부 액션 DOM/스크린샷 및 이름 변경 확인",
+      "console": "최종 검증 탭 오류 0; 작업 중 i18n HMR 리로드 오류는 cold 탭에서 재검증",
+      "legendUpdate": "타입 검사, 인접16개, 변경파일 포맷 PASS; 실제 Tabs에서 Component state legend 1개, 개별 legend 없음, 우측 액션 top 차이 0px 확인",
+      "headerAdd": "State section-actions + 확인; 접힌 섹션에서 추가하면 새 변수 편집 표시, Chrome 오류 0",
+      "commitScope": "Collection/State/Slot 속성 패널23개 파일; 다른 성능·PropertySelect 작업 제외",
+      "pushGate": "전체3회 시도(병렬1,순차2) 모두 하니스 실패. many-pages100은 b24a4b77f 및 d8391f519 단일재현에서 PASS, 3차전체에서도 PASS(120s); 이후600 select-spread에서 navigation context destroyed 2회로 차단. 게이트 우회·기준 변경 안 함.",
+      "push": "origin/main b24a4b77f -> d8391f519 성공; 사용자 생략 승인에 따라 이번 push만 SKIP_PERF_RATCHET=1 적용"
+    },
+    "commit": "d8391f519"
+  },
+  "customVariableColumn": {
+    "task": "Custom variables 펼침 제거 및 Name+타입 텍스트 버튼 통합, Default/삭제 한 행 유지",
+    "status": "complete_pushed",
+    "validation": {
+      "preflight": "PASS (최종 커밋 전 검사)",
+      "tests": "관련 3파일 19 PASS",
+      "live": "독립문서: Name 내부 number 텍스트 버튼 ArrowDown 메뉴 열기 -> boolean 선택; 이름count 보존·버튼boolean 갱신·Default false, 화살표없음 및 같은컨트롤 검증; 콘솔오류0",
+      "typeButtonStyle": "사용자 교정: background transparent 및 border-radius0 로컬 재정의 제거. 공통 Select 스타일 복원 확인(radius6px), CSS 포맷/diff 검사 PASS",
+      "push": "origin/main 성공; ADR-246 ratchet PASS (B 경고51)"
+    },
+    "commit": "230eafd0d"
+  },
+  "inlineComponentStateName": {
+    "task": "Component state 직접 편집, 변경 없는 Enter no-op, 변경 시 제거 활성화",
+    "status": "complete_pushed",
+    "scope": "컴포넌트 상태 이름 편집, 별도 펼침 제거, 제거 후 초기화",
+    "validation": {
+      "preflight": "PASS (최종 커밋 전 검사)",
+      "tests": "관련 3파일 19 PASS",
+      "live": "Chrome 독립문서: 처음부터편집가능, selectedKeys 그대로Enter -> 제거disabled유지, draftOnly입력 -> 제거활성 -> 클릭시원복/확인창없음; selectedEntries입력blur등록 -> 새로고침보존/제거활성; 콘솔오류0",
+      "typePadding": "Chrome computed padding 0px 4px 확인",
+      "push": "origin/main 성공; ADR-246 ratchet PASS (B 경고51)"
+    },
+    "commit": "230eafd0d"
+  },
+  "inheritedVariableLabel": {
+    "task": "State 상위 변수 그룹 명칭 변경",
+    "status": "complete_pushed",
+    "scope": "stateAncestorTitle 한영 문구 및 CHANGELOG",
+    "labels": {
+      "en": "Inherited variables",
+      "ko": "상속된 변수"
+    },
+    "validation": {
+      "preflight": "PASS (typecheck 포함)",
+      "diff": "PASS",
+      "live": "Chrome 기존 검증 문서 ListBoxItem State legend Inherited variables 표시 확인; 기존 상위 변수 count/selectedEntries 표시 유지",
+      "push": "origin/main 성공 56423889e",
+      "ratchet": "unmeasurable: app-pages-images 재실행 값 불일치, 게이트 정책상 통과; 성능 PASS 아님"
+    },
+    "commit": "56423889e"
   }
 }
