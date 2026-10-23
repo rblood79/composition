@@ -14,8 +14,10 @@ import { endpointWithTarget } from "../../../utils/endpointTarget";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
 
 /** The collections as the Preview reads them (the old Preview channel's projection). */
-function previewCollections() {
-  return [...useDataStore.getState().collections.values()].map((table) => ({
+function previewCollections(
+  collections: ReturnType<typeof useDataStore.getState>["collections"],
+) {
+  return [...collections.values()].map((table) => ({
     id: table.id,
     name: table.name,
     schema: table.schema,
@@ -114,21 +116,22 @@ export function CatalogPreviewFrame({
     followView();
     const offSession = workspace.session.subscribe(followView);
     let ready = false;
-    const sendData = () =>
+    const sendData = () => {
+      const { apiEndpoints, collections, variables } = useDataStore.getState();
       frameRef.current?.contentWindow?.postMessage(
         {
           type: "CATALOG_DATA",
           version: CATALOG_PREVIEW_PAYLOAD_VERSION,
-          collections: previewCollections(),
-          variables: toProjectVariableDefs(useDataStore.getState().variables),
+          collections: previewCollections(collections),
+          variables: toProjectVariableDefs(variables),
           // (Each query endpoint names the collection it fills — the Preview's `reload`.)
-          apiEndpoints: [...useDataStore.getState().apiEndpoints.values()].map(
-            (endpoint) =>
-              endpointWithTarget(endpoint, useDataStore.getState().collections),
+          apiEndpoints: [...apiEndpoints.values()].map((endpoint) =>
+            endpointWithTarget(endpoint, collections),
           ),
         },
         origin,
       );
+    };
     const offData = useDataStore.subscribe(
       (store) =>
         [store.collections, store.variables, store.apiEndpoints] as const,

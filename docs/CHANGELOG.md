@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview — collection 다시 읽기가 연결된 endpoint 로] - 2026-10-24
+
+### Fixed
+
+- **이름이 같은 collection 이 있으면 Preview 의 「collection 다시 읽기」 (reload) · 페이지 · 검색 · 정렬 · 경로 읽기가 다른 collection 의 endpoint 를 실행하던 문제**:
+  - **Why**: Preview 세션이 collection 이름으로만 endpoint 를 찾아, 같은 이름의 첫 endpoint 가 실행됐다. Builder 도 id 로 연결된 collection 이 지워지면 남은 이름을 보내, 나중에 그 이름을 쓴 다른 collection 이 그 endpoint 로 채워질 수 있었다 (code review 2026-10-24).
+  - 수정: Builder 가 endpoint 에 연결 collection id (`targetCollectionId`) 를 같이 싣고, 연결이 끊긴 endpoint 에는 대상을 싣지 않는다. Preview 세션은 id 가 있으면 id 로만, 없을 때만 이름으로 찾는다 (Builder `dataActions` 와 같은 규칙).
+  - 위치: `packages/shared/src/catalog/runtime/catalogPreviewSession.ts` (`endpointFilling`) · `apps/builder/src/builder/utils/endpointTarget.ts` · `CatalogPreviewFrame.tsx` (store 를 한 번 읽어 보낸다)
+
 ## [Canvas — 드래그 중 slot · 행 나머지 · 배지 표시 위치] - 2026-10-24
 
 ### Fixed

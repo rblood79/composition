@@ -430,9 +430,7 @@ export class CatalogPreviewSession {
   /** The Builder's API items last received, by collection id (a change drops a reload's). */
   private readonly receivedItems = new Map<string, string>();
   /** The project's API endpoints (each query endpoint names the collection it fills). */
-  private endpoints: readonly (ApiEndpointDefinition & {
-    targetCollection?: string;
-  })[] = [];
+  private endpoints: readonly ApiEndpointDefinition[] = [];
   /**
    * The URL each collection was last loaded from — a query endpoint whose path · query read
    * `{{ params.id }}` loads again only when the shown path gives another URL (`loadRouted`).
@@ -981,6 +979,19 @@ export class CatalogPreviewSession {
    * after the submits in flight, and show its items: the rules' local edits go (the server holds
    * the items now). A mock collection, or one no endpoint fills, is refused.
    */
+  /**
+   * The endpoint that fills a collection: the one linked to its id (`targetCollectionId`), else one
+   * that names it and is linked to no id (Builder's `dataActions` rule — two collections can share
+   * a name). **Why (2026-10-24 review)**: matching the name alone ran the first endpoint of that
+   * name.
+   */
+  private endpointFilling(collection: { id?: string; name?: string }) {
+    return this.endpoints.find((item) =>
+      item.targetCollectionId
+        ? item.targetCollectionId === collection.id
+        : item.targetCollection === collection.name,
+    );
+  }
   /** The query endpoint that fills a collection (`targetCollection`), refusing a mock one. */
   private queryEndpoint(collectionId: string) {
     const collection = this.collections.find(
@@ -991,9 +1002,7 @@ export class CatalogPreviewSession {
       throw new Error(
         `${collection.name ?? collectionId} 은 목업 데이터를 쓴다 (API 연결 없음)`,
       );
-    const endpoint = this.endpoints.find(
-      (item) => item.targetCollection === collection.name,
-    );
+    const endpoint = this.endpointFilling(collection);
     if (!endpoint)
       throw new Error(
         `${collection.name ?? collectionId} 을 채우는 endpoint 없음`,
@@ -1148,9 +1157,7 @@ export class CatalogPreviewSession {
     );
     const endpoint =
       collection && !collection.useMockData
-        ? this.endpoints.find(
-            (item) => item.targetCollection === collection.name,
-          )
+        ? this.endpointFilling(collection)
         : undefined;
     return (
       !!endpoint &&
@@ -1182,9 +1189,7 @@ export class CatalogPreviewSession {
         );
         const endpoint =
           collection && !collection.useMockData
-            ? this.endpoints.find(
-                (item) => item.targetCollection === collection.name,
-              )
+            ? this.endpointFilling(collection)
             : undefined;
         return endpoint && endpointReadsTemplate(endpoint, "filterText")
           ? collectionId
@@ -1284,9 +1289,7 @@ export class CatalogPreviewSession {
   private loadRouted(): void {
     for (const collection of this.collections) {
       if (!collection.id || collection.useMockData) continue;
-      const endpoint = this.endpoints.find(
-        (item) => item.targetCollection === collection.name,
-      );
+      const endpoint = this.endpointFilling(collection);
       // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
       if (
         !endpoint ||
@@ -1331,9 +1334,7 @@ export class CatalogPreviewSession {
     );
     const endpoint =
       collection && !collection.useMockData
-        ? this.endpoints.find(
-            (item) => item.targetCollection === collection.name,
-          )
+        ? this.endpointFilling(collection)
         : undefined;
     if (!endpoint || !endpointReadsTemplate(endpoint, "sortDescriptor"))
       return undefined;

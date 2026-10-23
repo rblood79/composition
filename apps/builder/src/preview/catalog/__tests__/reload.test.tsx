@@ -200,6 +200,53 @@ describe("reload — useAsyncList.reload", () => {
     h.view.unmount();
   });
 
+  /**
+   * 2026-10-24 review: the session found a collection's endpoint by the collection's name — two
+   * collections of one name (or a deleted one whose name another took) ran the first endpoint of
+   * that name. The endpoint's collection id decides; the name only where the endpoint has no id.
+   */
+  it("a reload runs the endpoint linked to the collection's id, not the first one of its name", async () => {
+    const urls: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      urls.push(String(input));
+      return new Response(JSON.stringify([{ id: "u5", name: "Han" }]), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const h = await reloadPreview();
+    const message = data([{ id: "u1", name: "Kim" }]);
+    act(() => {
+      h.session.receive({
+        ...message,
+        collections: [
+          { ...message.collections[0], id: "users-old" },
+          message.collections[0],
+        ],
+        apiEndpoints: [
+          {
+            id: "list-old",
+            name: "listOldUsers",
+            baseUrl: "https://api.example.test",
+            path: "/old-users",
+            method: "GET",
+            targetCollectionId: "users-old",
+            targetCollection: "Users",
+          },
+          { ...message.apiEndpoints[0], targetCollectionId: "users" },
+        ],
+      });
+    });
+    h.rule(h.button, "onPress", { opcode: "reload", collectionId: USERS });
+    act(() => {
+      fireEvent.click(h.element(h.button)!);
+    });
+    await settle();
+    expect(urls).toEqual(["https://api.example.test/users"]);
+    expect(h.options()).toEqual([expect.stringContaining("Han")]);
+    expect(warnings()).toEqual([]);
+    h.view.unmount();
+  });
+
   it("a mock collection is reported (nothing loads it), with a toast", async () => {
     const calls = stubServer([]);
     const h = await reloadPreview(true);

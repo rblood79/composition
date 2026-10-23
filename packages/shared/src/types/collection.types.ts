@@ -137,6 +137,12 @@ export interface ApiEndpointDefinition {
    * writes it, the import re-points it at the imported collection's id). Runtime envelopes omit it.
    */
   targetCollection?: string;
+  /**
+   * The collection a query endpoint fills, by id, where the envelope carries the collections it
+   * names (the Builder's Preview, a project file). A reader matches it first and the name only when
+   * it is absent (`targetCollection` — two collections can share a name).
+   */
+  targetCollectionId?: string;
 }
 
 // ============================================
