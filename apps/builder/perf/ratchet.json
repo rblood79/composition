@@ -27,12 +27,7 @@
       ]
     },
     "600": {
-      "classes": [
-        "select",
-        "edit",
-        "zoom",
-        "select-spread"
-      ],
+      "classes": ["select", "edit", "zoom", "select-spread"],
       "args": [
         "--lane",
         "frame",
@@ -44,9 +39,7 @@
       ]
     },
     "600:nested-flex": {
-      "classes": [
-        "edit"
-      ],
+      "classes": ["edit"],
       "args": [
         "--lane",
         "frame",
@@ -60,12 +53,7 @@
       ]
     },
     "60:app-pages": {
-      "classes": [
-        "zoom",
-        "edit",
-        "pan",
-        "page-switch"
-      ],
+      "classes": ["zoom", "edit", "pan", "page-switch"],
       "args": [
         "--lane",
         "frame",
@@ -79,10 +67,7 @@
       ]
     },
     "60:sticky-lists": {
-      "classes": [
-        "edit",
-        "select"
-      ],
+      "classes": ["edit", "select"],
       "args": [
         "--lane",
         "frame",
@@ -96,9 +81,7 @@
       ]
     },
     "600:scroll-boxes": {
-      "classes": [
-        "scroll"
-      ],
+      "classes": ["scroll"],
       "args": [
         "--lane",
         "frame",
@@ -112,13 +95,7 @@
       ]
     },
     "60:app-pages-images": {
-      "classes": [
-        "load-edit",
-        "load-same-frame",
-        "load-zoom",
-        "zoom",
-        "edit"
-      ],
+      "classes": ["load-edit", "load-same-frame", "load-zoom", "zoom", "edit"],
       "args": [
         "--lane",
         "frame",
@@ -133,9 +110,7 @@
       ]
     },
     "60:app-pages-images-asset": {
-      "classes": [
-        "load-edit"
-      ],
+      "classes": ["load-edit"],
       "args": [
         "--lane",
         "frame",
@@ -150,10 +125,7 @@
       ]
     },
     "60:app-pages@dpr2": {
-      "classes": [
-        "pan",
-        "zoom"
-      ],
+      "classes": ["pan", "zoom"],
       "args": [
         "--lane",
         "frame",
@@ -169,10 +141,7 @@
       ]
     },
     "60:app-pages@zoom0.1": {
-      "classes": [
-        "zoom",
-        "zoom-ladder"
-      ],
+      "classes": ["zoom", "zoom-ladder"],
       "args": [
         "--lane",
         "frame",
@@ -188,9 +157,7 @@
       ]
     },
     "60:app-pages@zoom0.25": {
-      "classes": [
-        "zoom"
-      ],
+      "classes": ["zoom"],
       "args": [
         "--lane",
         "frame",
@@ -206,12 +173,7 @@
       ]
     },
     "60:many-pages100@zoom0.1": {
-      "classes": [
-        "zoom",
-        "pan",
-        "page-jump",
-        "edit"
-      ],
+      "classes": ["zoom", "pan", "page-jump", "edit"],
       "args": [
         "--lane",
         "frame",
@@ -10068,6 +10030,24 @@
       "approvedBy": "rblood79 (2026-10-23 「1·2 는 raise, zoom 은 B 로」)",
       "on": "2026-10-23",
       "reason": "51d5ecfc8 (Tree flat data) + b24a4b77f (컬렉션 원본 EmptyState 기본 자식) — 문서 노드 증가에 비례 (각 ~1 %)",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select.A.v8.fn.src/i18n/I18nProvider.tsx#(anonymous)",
+      "from": 1730,
+      "to": 2688,
+      "approvedBy": "rblood79 (2026-10-23 「d8391f519 몫만큼 I18n 상한을 올려」)",
+      "on": "2026-10-23",
+      "reason": "d8391f519 (Property 패널 컬렉션 · 상태 칸 액션 정렬) 이 seed 60 선택마다 번역 호출 ~15 를 더한다 — 11d4acbb0 (b24a4b77f + PropertySelect memo) 2,672 대비, 같은 코드 5 회 중 1 ~ 2 흔들림의 최댓값",
+      "expires": "2027-04-23"
+    },
+    {
+      "path": "seeds.60.select-spread.A.v8.fn.src/i18n/I18nProvider.tsx#(anonymous)",
+      "from": 1752,
+      "to": 2690,
+      "approvedBy": "rblood79 (2026-10-23 「d8391f519 몫만큼 I18n 상한을 올려」)",
+      "on": "2026-10-23",
+      "reason": "d8391f519 (Property 패널 컬렉션 · 상태 칸 액션 정렬) 이 seed 60 선택마다 번역 호출 ~15 를 더한다 — 11d4acbb0 (b24a4b77f + PropertySelect memo) 2,672 대비, 같은 코드 5 회 중 1 ~ 2 흔들림의 최댓값",
       "expires": "2027-04-23"
     }
   ],
