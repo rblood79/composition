@@ -168,7 +168,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
   });
 });
 
-describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => {
+describe("PropertyDataBinding — fieldMap value (ADR-152 Phase 2)", () => {
   // 위 mock 의 collection 은 schema 가 없어 fieldMap 행이 뜨지 않는다 (표면 1행 계약 유지).
   // schema 가 있는 collection 은 모듈 mock 을 덮어 쓴다.
   const withSchema = async () => {
@@ -209,7 +209,7 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     return { Comp, renderFresh };
   };
 
-  it("schema 가 있는 collection 을 고르면 value / icon Select 가 뜨고 저장값은 fieldId", async () => {
+  it("schema 가 있는 collection 을 고르면 value Select 가 뜨고 (icon 은 없다 — 2026-10-24) 저장값은 fieldId", async () => {
     const { Comp, renderFresh } = await withSchema();
     const onChange = vi.fn();
     const { container } = renderFresh(
@@ -225,7 +225,7 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
       ".binding-fieldmap-select[data-role='icon'] select",
     ) as HTMLSelectElement | null;
     expect(valueSelect).not.toBeNull();
-    expect(iconSelect).not.toBeNull();
+    expect(iconSelect).toBeNull();
     // 옵션 = 자동 + 필드 3 (키는 fieldId)
     expect([...valueSelect!.options].map((o) => o.value)).toEqual(
       expect.arrayContaining(["f-id", "f-name", "f-avatar"]),
@@ -251,7 +251,8 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
           source: "dataTable",
           collectionId: "c-users",
           name: "Users",
-          fieldMap: { value: "f-id", icon: "avatar" },
+          // (v1 key 저장값 — id 로 해석돼 표시)
+          fieldMap: { value: "name" },
         }}
         onChange={onChange}
       />,
@@ -259,16 +260,11 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     const valueSelect = container.querySelector(
       ".binding-fieldmap-select[data-role='value'] select",
     ) as HTMLSelectElement;
-    const iconSelect = container.querySelector(
-      ".binding-fieldmap-select[data-role='icon'] select",
-    ) as HTMLSelectElement;
-    expect(valueSelect.value).toBe("f-id");
-    // v1 key 저장값도 id 로 해석돼 표시
-    expect(iconSelect.value).toBe("f-avatar");
+    expect(valueSelect.value).toBe("f-name");
 
-    fireEvent.change(iconSelect, { target: { value: "__auto__" } });
+    fireEvent.change(valueSelect, { target: { value: "__auto__" } });
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ fieldMap: { value: "f-id" } }),
+      expect.objectContaining({ fieldMap: undefined }),
     );
   });
 });

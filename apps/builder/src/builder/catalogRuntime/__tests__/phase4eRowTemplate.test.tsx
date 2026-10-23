@@ -237,21 +237,39 @@ describe("ADR-248 Phase 4e-4e row template", () => {
     expect(
       view.container.querySelectorAll("[data-item-origin-notice]"),
     ).toHaveLength(1);
-    expect(screen.getByText("Card fields")).toBeTruthy();
+    expect(screen.getByText("Item fields")).toBeTruthy();
     expect(screen.getAllByText(/Text · children/)).toHaveLength(2);
   });
 
-  it("a bound ListBox has no card fields (GridList only)", async () => {
+  // Every bound collection's row template lists its content fields (2026-10-24 — GridList only
+  // before): the item (a part's at any depth — TagGroup > TagList > Tag, Select > Popover >
+  // ListBox) and its shown picture slots; the item's control slots (Tag remove · Tree chevron) and
+  // a nested sample row are not content.
+  it.each([
+    [
+      "ListBox",
+      [
+        ["Icon", "iconName", "{icon}"],
+        ["Text", "children", "{label}"],
+        ["Text", "children", "{description}"],
+      ],
+    ],
+    // (Its Icon · Avatar slots are off in the origin: a hidden position is no field.)
+    ["TagGroup", [["Text", "children", "{label}"]]],
+    ["Tree", [["Text", "children", "{label}"]]],
+    ["Select", [["Text", "children", "{label}"]]],
+  ])("a bound %s lists its row template's fields", async (type, expected) => {
     const library = await buildCodeCatalogLibrary();
     const { workspace, graph } = await open();
+    const id = "project:node:list" as NodeId;
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
         entries: [
           {
             kind: "node",
-            id: "project:node:list" as NodeId,
-            definitionId: catalogPaletteDefinitionId(library, "ListBox"),
+            id,
+            definitionId: catalogPaletteDefinitionId(library, type),
             children: [],
             props: {},
             visual: {},
@@ -260,20 +278,23 @@ describe("ADR-248 Phase 4e-4e row template", () => {
             binding: BINDING,
           },
         ],
-        rootIds: ["project:node:list" as NodeId],
+        rootIds: [id],
         newId: workspace.newId,
       }),
     );
     const [body] = pagePositions(graph, HOME);
     const list = childPositions(graph, body!).find(
       (position) =>
-        position.target.kind === "node" &&
-        position.target.id === "project:node:list",
+        position.target.kind === "node" && position.target.id === id,
     )!;
+    expect(catalogRowTemplateId(graph, id)).toBeTruthy();
     expect(
-      catalogRowTemplateId(graph, "project:node:list" as NodeId),
-    ).toBeTruthy();
-    expect(catalogCardFields(graph, list)).toBeUndefined();
+      catalogCardFields(graph, list)?.fields.map((field) => [
+        field.label,
+        field.key,
+        field.value,
+      ]),
+    ).toEqual(expected);
   });
 
   it("Properties field source: {field} columns inside the row template; {{ names the element sees", async () => {

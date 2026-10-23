@@ -141,7 +141,7 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   Align: ["align", "move"],
   Distribute: ["distribute", "move"],
   "Add element": ["addElement", "add"],
-  "Edit card field": ["editCardField", "edit"],
+  "Edit item field": ["editCardField", "edit"],
   "Button icon": ["buttonIcon", "edit"],
   "Remove button icon": ["removeButtonIcon", "edit"],
   "Button label": ["buttonLabel", "edit"],

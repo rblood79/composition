@@ -774,7 +774,6 @@ export interface TranslationKeys {
     labelPositionSide: string;
     legacyBinding: string;
     fieldMapValue: string;
-    fieldMapIcon: string;
     fieldMapChildren: string;
     fieldMapParentId: string;
     fieldMapAuto: string;

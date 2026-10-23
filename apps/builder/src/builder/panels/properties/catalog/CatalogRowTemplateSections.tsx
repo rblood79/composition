@@ -52,9 +52,10 @@ export const CatalogItemOriginNotice = memo(function CatalogItemOriginNotice({
 });
 
 /**
- * ADR-248 Phase 4e-4e: a bound GridList's card fields (the old GridListCardFieldsSection) — each
- * content prop of its row template's descendants takes a `{field}` template of the bound
- * collection's columns; a write is the GridList's patch at that position (one step).
+ * ADR-248 Phase 4e-4e: a bound collection's item fields (the old GridListCardFieldsSection —
+ * every bound collection since 2026-10-24) — each content prop of its row template's descendants
+ * (글자 · 그림 칸) takes a `{field}` template of the bound collection's columns; a write is the
+ * collection's patch at that position (one step).
  */
 export const CatalogCardFieldsSection = memo(function CatalogCardFieldsSection({
   identity,

@@ -20,16 +20,16 @@ import {
   childPositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { CATALOG_ROW_ITEM_TYPES } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 
 /**
  * ADR-248 Phase 4e-4e: the row template of a bound collection (the first item position of its
  * template root — the shared resolver repeats it per data row, 4e-4e-3a). Editing it (or inside
- * it) reaches every data row; the card fields section lists its content props a row fills.
+ * it) reaches every data row; the card fields section lists its content props a row fills. The
+ * item types are the resolver's (2026-10-24 — a list of its own left Tag · TreeItem · Breadcrumb
+ * without a row template here).
  */
-const ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
-  "ListBoxItem",
-  "GridListItem",
-]);
+const ROW_ITEM_TYPES = CATALOG_ROW_ITEM_TYPES;
 
 function templateType(reader: CatalogReader, templateId: TemplateId): string {
   try {
@@ -239,9 +239,35 @@ function rowValue(
   return typeof value === "string" ? value : "";
 }
 
+/** An item's control slots (Tag remove · Tree chevron · selection · drag): parts, not content. */
+const CONTROL_SLOTS: ReadonlySet<string> = new Set([
+  "remove",
+  "chevron",
+  "selection",
+  "drag",
+]);
+
+/** A position's literal `slot` (the owned node's, else its template's). */
+function slotOf(reader: CatalogReader, position: CatalogPosition): unknown {
+  const entry =
+    position.target.kind === "node"
+      ? reader.getEntry(position.target.id)
+      : position.sourceId.startsWith("lib:")
+        ? reader.library.templates.get(
+            position.sourceId as `lib:template:${string}`,
+          )
+        : reader.getEntry(position.sourceId);
+  const slot = (entry as { props?: Record<string, unknown> } | undefined)
+    ?.props?.slot;
+  return slot && typeof slot === "object" && "value" in slot
+    ? (slot as { value?: unknown }).value
+    : slot;
+}
+
 /**
- * The card fields of a bound GridList position: each content prop a row fills on the row
- * template's descendants (document order, depth ≤ 8). Empty when not a bound GridList.
+ * The card fields of a bound collection position: each content prop a row fills on the row
+ * template's descendants (document order, depth ≤ 8). The row template may sit under a part
+ * (TagGroup > TagList > Tag · Select > Popover > ListBox). Undefined when not bound.
  */
 export function catalogCardFields(
   reader: CatalogReader,
@@ -250,17 +276,15 @@ export function catalogCardFields(
   if (position.target.kind !== "node") return undefined;
   const owner = reader.getEntry(position.target.id);
   if (owner?.kind !== "node" || !owner.binding) return undefined;
-  let type: string;
-  try {
-    type = definitionTypeName(reader, owner.definitionId);
-  } catch {
-    return undefined;
-  }
-  if (type !== "GridList") return undefined;
   const rowTemplate = catalogRowTemplateId(reader, owner.id);
-  const item = childPositions(reader, position).find(
-    (child) => child.sourceId === rowTemplate,
-  );
+  if (!rowTemplate) return undefined;
+  let item: CatalogPosition | undefined;
+  for (
+    let level = childPositions(reader, position), depth = 0;
+    level.length && !item && depth < 8;
+    level = level.flatMap((child) => childPositions(reader, child)), depth += 1
+  )
+    item = level.find((child) => child.sourceId === rowTemplate);
   if (!item) return undefined;
   const fields: CatalogCardField[] = [];
   const visit = (parent: CatalogPosition, depth: number) => {
@@ -272,9 +296,16 @@ export function catalogCardFields(
       } catch {
         continue;
       }
+      // (A nested row item — a Tree's sample child row — is the rows' again, not a field.)
+      if (ROW_ITEM_TYPES.has(childType)) continue;
+      const slot = slotOf(reader, child);
+      if (typeof slot === "string" && CONTROL_SLOTS.has(slot)) continue;
       const values: Record<string, string> = {};
-      for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
-        values[key] = rowValue(reader, child.target, key);
+      for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS) {
+        // (An untyped node lists the keys holding a value — `rowTemplateBindableKeysFor`.)
+        const value = rowValue(reader, child.target, key);
+        if (value) values[key] = value;
+      }
       const node =
         child.target.kind === "node"
           ? reader.getEntry(child.target.id)
@@ -305,6 +336,6 @@ export function catalogCardFieldCommand(
       [field.key]:
         next === "" ? { kind: "remove" } : { kind: "set", value: next },
     },
-    label: "Edit card field",
+    label: "Edit item field",
   });
 }

@@ -23,7 +23,6 @@ import { resolveBoundCollection, resolveField } from "@composition/shared";
 import {
   ChevronDown,
   DatabasePlus,
-  Image,
   KeyRound,
   Link2,
   ListTree,
@@ -92,12 +91,15 @@ interface PropertyDataBindingProps {
 // ADR-159 P4b: SOURCE_OPTIONS 4종(dataTable/api/variable/route) 소스 선택 UI 제거 —
 //   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
 
-type FieldMapRole = "value" | "icon" | "children" | "parentId";
-const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon"];
+/**
+ * 바인딩이 고르는 열 역할 — 항목 key (`value`) 와 Tree 의 하위 관계. 글자 · 그림 칸은 항목 필드
+ * 절이 행 template 의 `{field}` 로 연결한다 (icon 역할은 2026-10-24 삭제).
+ */
+type FieldMapRole = "value" | "children" | "parentId";
+const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value"];
 /** A Tree's binding also names its items' children (`useTreeData.getChildren`). */
 const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
   "value",
-  "icon",
   "parentId",
   "children",
 ];
@@ -105,16 +107,14 @@ const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = [
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
   value: KeyRound,
-  icon: Image,
   children: ListTree,
   parentId: ListTree,
 };
 const FIELD_MAP_ROLE_LABEL: Record<
   FieldMapRole,
-  "fieldMapValue" | "fieldMapIcon" | "fieldMapChildren" | "fieldMapParentId"
+  "fieldMapValue" | "fieldMapChildren" | "fieldMapParentId"
 > = {
   value: "fieldMapValue",
-  icon: "fieldMapIcon",
   children: "fieldMapChildren",
   parentId: "fieldMapParentId",
 };
@@ -262,7 +262,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     ],
   );
 
-  // ADR-152 Phase 2 — fieldMap (value / icon 한정; label/description 은 ADR-159 `{field}`
+  // ADR-152 Phase 2 — fieldMap (value · Tree 하위 관계 한정; 글자 · 그림 칸은 ADR-159 `{field}`
   // 템플릿이 정본). 값은 **fieldId** (v2.1) — v1 key 저장값은 resolveField 가 id 로 올린다.
   // 노출 조건: 선택 collection 에 id 있는 필드가 있을 때만 (없으면 표면은 컬렉션 1행).
   const selectedCollection =

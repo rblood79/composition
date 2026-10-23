@@ -111,7 +111,7 @@ export function useResolvedCollectionItems(
         ? "static-items"
         : "empty";
 
-    // ADR-152 Phase 3: fieldMap 역할 (value/icon) — Skia `getFlatProjectionRows` 와 같은
+    // ADR-152 Phase 3: fieldMap 역할 (value · children · parentId) — Skia `getFlatProjectionRows` 와 같은
     //   resolver (`resolveFieldRoles`) 로 id → key. schema 는 useCollectionData 가 준다.
     const roles = hasBoundRows
       ? resolveFieldRoles(dataBinding, schema)

@@ -284,8 +284,8 @@ export function interpolateCollectionRowTemplate(
       item,
       label: getItemLabel(item, itemKey, 0),
       description: getItemDescription(item),
-      // ADR-152 Phase 3: fieldMap 역할 — Skia projection row 의 icon/value 와 같은 resolver
-      icon: getItemIcon(item, roles),
+      // ADR-152 Phase 3: fieldMap 역할 — Skia projection row 의 value 와 같은 resolver
+      icon: getItemIcon(item),
       value: getItemValue(item, roles),
     }),
   );

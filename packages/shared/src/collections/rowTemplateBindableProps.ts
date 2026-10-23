@@ -33,7 +33,7 @@ export type RowTemplateBindablePropKey =
   (typeof ROW_TEMPLATE_BINDABLE_PROP_KEYS)[number];
 
 /**
- * 패널 「카드 필드」 절이 컴포넌트마다 보여 줄 키 (Phase 0 inventory — 값이 아직 없어도 연결할 수 있게 타입으로
+ * 패널 「항목 필드」 절이 컴포넌트마다 보여 줄 키 (Phase 0 inventory — 값이 아직 없어도 연결할 수 있게 타입으로
  * 정한다). 표에 없는 타입은 허용표 키 중 이미 string 값을 가진 것만 보인다.
  */
 const ROW_TEMPLATE_BINDABLE_PROPS_BY_TYPE: Readonly<

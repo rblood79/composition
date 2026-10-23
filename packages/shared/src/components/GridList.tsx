@@ -454,7 +454,7 @@ export function GridList<T extends object>({
           {(item) => {
             // ADR-159 P3: 템플릿 존재 시 보간 — 없으면 정규화 label/description (BC).
             const itemRecord = item as Record<string, unknown>;
-            // ADR-152 Phase 3: fieldMap 역할 (value/icon) — 호출 시점에 푼다
+            // ADR-152 Phase 3: fieldMap 역할 (value) — 호출 시점에 푼다
             const fieldRoles = resolveFieldRoles(dataBinding);
             const rowLabel = rowLabelTemplate
               ? interpolateCollectionRowTemplate(

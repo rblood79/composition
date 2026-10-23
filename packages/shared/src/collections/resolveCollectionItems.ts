@@ -254,20 +254,20 @@ export function readDataBindingRows(
 
 /**
  * ADR-152 Phase 3 — 바인딩 `fieldMap` 의 역할별 **행 key** (id 를 key 로 푼 뒤).
- * `value` = item key/value 컬럼 (선택 키 · `{value}`), `icon` = 좌측 slot 컬럼 (glyph 면
- * icon, 이미지 참조면 avatar). label/description 은 ADR-159 `{field}` 템플릿이 정본이라 없다.
- * 미지정 역할은 기존 고정 필드 휴리스틱 그대로 (BC).
+ * `value` = item key/value 컬럼 (선택 키 · `{value}`). label · description · 그림 칸 (Icon
+ * `iconName` · Avatar `src`) 은 행 template 의 `{field}` 가 정본이라 없다 (icon 역할은
+ * 2026-10-24 삭제 — 항목 필드 절이 모든 컬렉션의 그림 칸을 연결한다). 미지정 역할은 기존 고정
+ * 필드 휴리스틱 그대로.
  */
 export interface CollectionFieldRoles {
   value?: string;
-  icon?: string;
   /** `useTreeData.getChildren` — the field holding an item's child items (a bound Tree's levels). */
   children?: string;
   /** Flat Tree rows: the field containing the parent item's value/key (null for roots). */
   parentId?: string;
 }
 
-const FIELD_ROLE_KEYS = ["value", "icon", "children", "parentId"] as const;
+const FIELD_ROLE_KEYS = ["value", "children", "parentId"] as const;
 
 /**
  * `dataBinding.fieldMap` (fieldId · v1 key) → 행 key. `schema` 가 있으면 `resolveField`
@@ -294,7 +294,6 @@ export function resolveFieldRoles(
     roles[role] = key;
   }
   return roles.value !== undefined ||
-    roles.icon !== undefined ||
     roles.children !== undefined ||
     roles.parentId !== undefined
     ? roles
@@ -390,17 +389,8 @@ function isImageReference(value: string): boolean {
  * icon 이 아니라 **avatar slot** 으로 간다(`getItemAvatar`) — 한 값이 두 slot 에 동시에
  * 잡히면 chip 좌측 슬롯 판정과 폭이 어긋난다.
  */
-export function getItemIcon(
-  item: unknown,
-  roles?: CollectionFieldRoles,
-): string | null {
+export function getItemIcon(item: unknown): string | null {
   if (!isRecord(item)) return null;
-  // ADR-152 Phase 3: icon 역할 컬럼이 지정되면 그 값만 본다 (없으면 슬롯 비움 — 다른
-  //   컬럼으로 새지 않는다). glyph 면 icon, 이미지 참조면 avatar slot 몫.
-  if (roles?.icon) {
-    const chosen = readStringField(item, [roles.icon]);
-    return chosen == null || isImageReference(chosen) ? null : chosen;
-  }
   const raw = readStringField(item, ["icon", "iconName", "avatar", "image"]);
   if (raw == null) return null;
   return isImageReference(raw) ? null : raw;
@@ -412,15 +402,8 @@ export function getItemIcon(
  * icon slot 과 같은 좌측 슬롯을 공유하며(소비자에서 avatar 우선), 값이 이미지 참조로
  * 읽힐 때만 채워진다. glyph 이름이 들어 있으면 여기선 null 이고 icon slot 이 가져간다.
  */
-export function getItemAvatar(
-  item: unknown,
-  roles?: CollectionFieldRoles,
-): string | null {
+export function getItemAvatar(item: unknown): string | null {
   if (!isRecord(item)) return null;
-  if (roles?.icon) {
-    const chosen = readStringField(item, [roles.icon]);
-    return chosen != null && isImageReference(chosen) ? chosen : null;
-  }
   const raw = readStringField(item, [
     "avatar",
     "avatarUrl",
@@ -460,9 +443,9 @@ export function toItemProjectionRow(
   const itemKey = getItemKey(item, rowIndex, roles);
   return {
     kind: "item",
-    avatar: getItemAvatar(item, roles),
+    avatar: getItemAvatar(item),
     description: getItemDescription(item),
-    icon: getItemIcon(item, roles),
+    icon: getItemIcon(item),
     isDisabled: getItemDisabled(item),
     item,
     itemKey,

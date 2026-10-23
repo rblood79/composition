@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컬렉션 데이터 연결 — 모든 컬렉션의 항목 필드 · Icon field 삭제] - 2026-10-24
+
+### Changed
+
+- **항목 필드 절을 모든 바운드 컬렉션에** — ListBox · GridList · TagGroup · Tree · Breadcrumbs · Select · ComboBox 를 데이터에 연결하면 행 template 안의 글자 · 그림 칸 (Text `children` · Icon `iconName` · Image · Avatar `src` …) 에 열을 `{field}` 로 연결하는 절이 나온다. 절 이름은 「Card fields / 카드 필드」 → 「Item fields / 항목 필드」. 부품 안 항목 (TagGroup > TagList > Tag · Select > Popover > ListBox) 도 찾고, 항목의 조작 부품 (Tag 삭제 · Tree 펼침 · 선택 Checkbox) 과 Tree 의 표본 하위 행은 절에 넣지 않는다.
+  - **Why:** 렌더 쪽 (resolver 의 행 반복 · `{field}` 보간) 은 이미 모든 컬렉션에 공통인데, 패널만 ADR-162 의 「GridList 먼저」 범위를 ADR-248 Phase 4e-4e-2d-2 에서 그대로 옮겨 GridList 전용이었다. 행 항목 종류도 resolver 와 다른 목록 (ListBoxItem · GridListItem 만) 이라 TagGroup · Tree · Breadcrumbs 는 「항목 원본」 안내도 나오지 않았다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/rowTemplate.ts` · `panels/properties/catalog/CatalogRowTemplateSections.tsx`
+
+### Removed
+
+- **바인딩의 Icon field (`fieldMap.icon`)** — 그림 칸은 항목 필드 절에서 연결한다. 연결하지 않은 칸은 지금처럼 `icon` · `avatar` 같은 열 이름 추정으로 채운다. 옛 문서의 `fieldMap.icon` 은 읽지 않는다 (추정으로 돌아간다).
+  - **Why:** GridList 카드에는 `{icon}` 을 읽는 자식이 없어 아무 효과가 없었고, 다른 컬렉션에서는 같은 칸을 고르는 길이 두 개 (바인딩 열 역할 · 항목 필드) 가 됐다. RAC 에는 「아이콘 열」 개념이 없다 — 항목 안 Icon 이 행 값을 읽는다.
+  - 위치: `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` · `packages/shared/src/collections/resolveCollectionItems.ts`
+
 ## [컴포넌트 상태 — 직접 편집과 변경값만 반영] - 2026-10-24
 
 ### Changed
