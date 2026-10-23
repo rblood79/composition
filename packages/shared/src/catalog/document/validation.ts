@@ -1451,33 +1451,38 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
         if (action.body !== undefined) scalar(action.body, "entry.action.body");
       } else if (action.opcode === "append") {
-        exact(action, ["opcode", "collectionId", "value"], "entry.action");
+        exact(action, ["opcode", "collectionId", "value", "parentKey"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
+        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
       } else if (action.opcode === "update") {
         exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.key !== undefined) scalar(action.key, "entry.action.key");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
       } else if (action.opcode === "insert") {
-        exact(action, ["opcode", "collectionId", "index", "value"], "entry.action");
+        exact(action, ["opcode", "collectionId", "index", "value", "parentKey"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.index !== undefined) scalar(action.index, "entry.action.index");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
+        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
       } else if (action.opcode === "insertBefore" || action.opcode === "insertAfter") {
         exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.key !== undefined) scalar(action.key, "entry.action.key");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
       } else if (action.opcode === "prepend") {
-        exact(action, ["opcode", "collectionId", "value"], "entry.action");
+        exact(action, ["opcode", "collectionId", "value", "parentKey"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.value !== undefined) scalar(action.value, "entry.action.value");
+        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
       } else if (action.opcode === "move") {
-        exact(action, ["opcode", "collectionId", "key", "toIndex"], "entry.action");
+        exact(action, ["opcode", "collectionId", "key", "toIndex", "toParentKey"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");
         if (action.key !== undefined) scalar(action.key, "entry.action.key");
         if (action.toIndex !== undefined) scalar(action.toIndex, "entry.action.toIndex");
+        if (action.toParentKey !== undefined)
+          scalar(action.toParentKey, "entry.action.toParentKey");
       } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
         exact(action, ["opcode", "collectionId", "key", "keys"], "entry.action");
         id(action.collectionId, "data:collection:", "entry.action.collectionId");

@@ -143,6 +143,7 @@ function ruleOf(
           kind: "append",
           collectionId: action.collectionId.slice("data:collection:".length),
           ...(action.value !== undefined ? { value: action.value } : {}),
+          ...(action.parentKey !== undefined ? { parentKey: action.parentKey } : {}),
         },
       };
     case "update":

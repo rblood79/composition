@@ -1075,6 +1075,7 @@ const GenericField = memo(function GenericField({
               label={field.label}
               value={(value as DataBindingValue | null | undefined) ?? null}
               onChange={(v) => update(v)}
+              elementId={elementId}
             />
             <PropertyDataBindingCreateAction elementId={elementId} />
           </>

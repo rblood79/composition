@@ -95,11 +95,14 @@ export function catalogPreviewRuntime(
       session.setFilterText(collectionId, filterText),
     serverFilterOf: (recordId) => session.serverFilterOf(recordId),
     pages: (collectionId) => session.pages(collectionId),
-    append: (collectionId, value) => session.append(collectionId, value),
+    append: (collectionId, value, parentKey) =>
+      session.append(collectionId, value, parentKey),
     update: (collectionId, key, value) => session.update(collectionId, key, value),
     remove: (collectionId, keys) => session.remove(collectionId, keys),
-    insert: (collectionId, at, value) => session.insert(collectionId, at, value),
-    move: (collectionId, keys, to) => session.move(collectionId, keys, to),
+    insert: (collectionId, at, value, parentKey) =>
+      session.insert(collectionId, at, value, parentKey),
+    move: (collectionId, keys, to, toParentKey) =>
+      session.move(collectionId, keys, to, toParentKey),
     // (A load's `selectedKeys` select in the components showing the collection.)
     subscribeLoadedSelection: (listener) => session.onLoadedSelection(listener),
   });

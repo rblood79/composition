@@ -2,7 +2,7 @@
 // GET /users → rows (`?q=` filters by name · email, `?sort=<field>&dir=descending`; with `?limit=` a
 //   page `{items, next}` — `?page=` from 1, `next` the next page or null: useAsyncList's cursor;
 //   `?selected=u2,u3` adds that page's `selected` keys: useAsyncList load selectedKeys) ·
-// GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
+// GET /folders → nested items (a bound Tree's children) · GET /users/:id → one row (404 when none) · POST /users (create) · PUT /users (update by body.id) · DELETE /users (delete by body.id).
 // Every request is printed (method · path · body · rows after). Restarting resets the rows.
 // Usage: node apps/builder/scripts/crud-endpoint-stub.mjs [port=5198]
 // STUB_DELAY_MS=1500 answers every request that much later (to see a Preview's loading state).
@@ -50,6 +50,20 @@ createServer((req, res) => {
       console.log(JSON.stringify({ method: "GET", path, status: row ? 200 : 404 }));
       return row ? send(res, 200, row) : send(res, 404, { error: `${one[1]} 없음` });
     }
+    // (`GET /folders` — nested items for a bound Tree: useTreeData's `children`.)
+    if (path === "/folders" && req.method === "GET")
+      return send(res, 200, [
+        {
+          id: "docs",
+          name: "문서",
+          children: [
+            { id: "plan", name: "기획서" },
+            { id: "spec", name: "명세", children: [{ id: "api", name: "API 명세" }] },
+          ],
+        },
+        { id: "img", name: "이미지", children: [{ id: "logo", name: "로고" }] },
+        { id: "memo", name: "메모" },
+      ]);
     if (path !== "/users") return send(res, 404, { error: "not found" });
     if (req.method === "GET") {
       const query = requestUrl.searchParams;

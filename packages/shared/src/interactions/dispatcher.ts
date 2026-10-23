@@ -101,6 +101,8 @@ export interface DispatchDeps {
   append?: (
     collectionId: string,
     value: Readonly<Record<string, unknown>>,
+    /** `useTreeData.append(parentKey, …)` — under this parent item (absent = the top level). */
+    parentKey?: string,
   ) => { ok: boolean; reason?: string };
   /** `useListData.update(key, newValue)` — absent `key` = the value's `id`. */
   update?: (
@@ -127,12 +129,16 @@ export interface DispatchDeps {
     collectionId: string,
     position: CatalogListPosition,
     value: Readonly<Record<string, unknown>>,
+    /** `useTreeData` — under this parent item (absent = the top level). */
+    parentKey?: string,
   ) => { ok: boolean; reason?: string };
   /** `useListData.move(key, toIndex)` · `moveBefore` · `moveAfter` — the items to a position. */
   move?: (
     collectionId: string,
     keys: readonly string[],
     to: Exclude<CatalogListPosition, "start">,
+    /** `useTreeData.move(key, toParentKey, index)` — the new parent (absent = the top level). */
+    toParentKey?: string,
   ) => { ok: boolean; reason?: string };
   /** The list's selection — the keys selected in the components showing the collection. */
   selectedKeysOf?: (collectionId: string) => readonly string[] | "all";
@@ -210,8 +216,11 @@ function dispatchListData(
     if (!value.ok) return value;
     if (!isRecordValue(value.value))
       return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
-    if (action.kind === "append")
-      result = deps.append!(action.collectionId, value.value);
+    if (action.kind === "append") {
+      const parent = optionalKey(action.parentKey, context);
+      if (!parent.ok) return parent;
+      result = deps.append!(action.collectionId, value.value, parent.key);
+    }
     else {
       const key = resolveEventValue(action.key, context);
       if (!key.ok) return key;
@@ -276,7 +285,11 @@ function dispatchListPosition(
       if (!key.ok) return key;
       const to = index(action.toIndex);
       if (!to.ok) return to;
-      return done(deps.move(action.collectionId, [key.key], { index: to.index }));
+      const parent = optionalKey(action.toParentKey, context);
+      if (!parent.ok) return parent;
+      return done(
+        deps.move(action.collectionId, [key.key], { index: to.index }, parent.key),
+      );
     }
     const target = scalarKey(action.key, "기준 항목의 key");
     if (!target.ok) return target;
@@ -313,7 +326,25 @@ function dispatchListPosition(
     if (!key.ok) return key;
     position = action.kind === "insertBefore" ? { before: key.key } : { after: key.key };
   }
-  return done(deps.insert(action.collectionId, position, value.value));
+  const parent = optionalKey(action.parentKey, context);
+  if (!parent.ok) return parent;
+  return done(deps.insert(action.collectionId, position, value.value, parent.key));
+}
+
+/** `useTreeData`'s optional parent key (`!event.<arg>` · a literal): none / empty = the top level. */
+function optionalKey(
+  raw: unknown,
+  context: DispatchContext | undefined,
+): { ok: true; key?: string } | { ok: false; reason: string } {
+  if (raw === undefined || raw === "") return { ok: true };
+  const value = resolveEventValue(raw, context);
+  if (!value.ok) return value;
+  if (value.value === undefined || value.value === null || value.value === "")
+    return { ok: true };
+  const key = keyOf(value.value);
+  return key === undefined
+    ? { ok: false, reason: "부모 항목의 key 가 scalar 가 아니다" }
+    : { ok: true, key };
 }
 
 /** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */

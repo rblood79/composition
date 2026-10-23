@@ -142,6 +142,11 @@ export interface CatalogBoundRow {
   key: string;
   /** What the row template's `{field}` placeholders read (row fields + label/description/icon/value). */
   values: Readonly<Record<string, unknown>>;
+  /**
+   * The item's child rows (`useTreeData.getChildren` — the binding's `fieldMap.children`): a bound
+   * Tree shows them inside the row, the same item template again.
+   */
+  children?: readonly CatalogBoundRow[];
 }
 /**
  * The rows of a binding; `undefined` = unknown (not loaded) — the template items stay. `kind`
@@ -215,6 +220,7 @@ export const CATALOG_ROW_ITEM_TYPES: ReadonlySet<string> = new Set([
   "GridListItem",
   "Tag",
   "Breadcrumb",
+  "TreeItem",
 ]);
 /**
  * Source of a bound Table's projected rows and cells (`…:row`, `…:cell-<column>`): they show data,
@@ -259,6 +265,52 @@ function withRowKey(
     ...node,
     rowKey: key,
     children: node.children.map((child) => withRowKey(child, key)),
+  };
+}
+/**
+ * `useTreeData` — a bound Tree's row with child rows (`CatalogBoundRow.children`): the row's own
+ * sample items (a template's nested TreeItems) give way to the same item template again for each
+ * child row, inside the row — the reference's `<Collection items={item.children}>` with the same
+ * render function. Other rows stay as they are.
+ */
+function nestTreeRows(
+  node: ResolvedCatalogNode,
+  data: CatalogBoundRow,
+  project: (row: CatalogBoundRow) => ResolvedCatalogNode | undefined,
+  isTreeItem: (node: ResolvedCatalogNode) => boolean,
+  isInstance: (node: ResolvedCatalogNode) => boolean,
+): ResolvedCatalogNode {
+  if (!isTreeItem(node)) return node;
+  // (A TreeItem instance — 「TreeItem/Default」 — holds its TreeItem as its template root; its own
+  // nested items — the starter's 「Node 1.1」 — are samples.)
+  if (isInstance(node))
+    return {
+      ...node,
+      children: node.children.flatMap((child) =>
+        !isTreeItem(child)
+          ? [child]
+          : isInstance(child)
+            ? []
+            : [nestTreeRows(child, data, project, isTreeItem, isInstance)],
+      ),
+    };
+  const nested = (data.children ?? []).flatMap((child) => {
+    const projected = project(child);
+    return projected
+      ? [
+          nestTreeRows(
+            withRowKey(projected, child.key),
+            child,
+            project,
+            isTreeItem,
+            isInstance,
+          ),
+        ]
+      : [];
+  });
+  return {
+    ...node,
+    children: [...node.children.filter((child) => !isTreeItem(child)), ...nested],
   };
 }
 export interface CatalogResolutionSelection {
@@ -516,6 +568,14 @@ export function resolveCatalogNode(
       definition.templateRootId as `lib:template:${string}`,
     );
     return template ? lookupDefinition(template.definitionId) : definition;
+  };
+  /** A resolved node is a TreeItem (a bound Tree's row — `nestTreeRows`). */
+  const isTreeItemRecord = (node: ResolvedCatalogNode) =>
+    ruleDefinitionOf(node.definitionId).name === "TreeItem";
+  /** A resolved node instantiates a composite (its template root is its child). */
+  const isInstanceRecord = (node: ResolvedCatalogNode) => {
+    const definition = lookupDefinition(node.definitionId);
+    return definition.mode === "composite" && !!definition.templateRootId;
   };
   const templateTypeName = (templateId: TemplateId): string => {
     const template = templateId.startsWith("lib:")
@@ -1910,8 +1970,8 @@ export function resolveCatalogNode(
         if (rowSet && itemPositions.includes(childId)) {
           // The first item position is the row template; the rest are sample items.
           if (childId !== itemPositions[0]) continue;
-          rowSet.forEach((data, index) => {
-            const projected = projectTemplate(
+          const projectRow = (data: CatalogBoundRow) =>
+            projectTemplate(
               owner,
               childId,
               instancePath,
@@ -1922,9 +1982,17 @@ export function resolveCatalogNode(
               patches,
               { row: data, rowStart: true },
             );
+          rowSet.forEach((data, index) => {
+            const projected = projectRow(data);
             if (projected)
               push(out, {
-                ...(index === 0 ? projected : withRowKey(projected, data.key)),
+                ...nestTreeRows(
+                  index === 0 ? projected : withRowKey(projected, data.key),
+                  data,
+                  projectRow,
+                  isTreeItemRecord,
+                  isInstanceRecord,
+                ),
                 rowIndex: index,
               });
           });
@@ -2149,14 +2217,22 @@ export function resolveCatalogNode(
           throw new CatalogValidationError("DANGLING_CHILD", childId);
         if (rowSet && rowItems.includes(childId)) {
           if (childId !== rowItems[0]) continue;
-          rowSet.forEach((data, index) => {
-            const projected = resolveOwned(child, childPath, undefined, self, {
+          const projectRow = (data: CatalogBoundRow) =>
+            resolveOwned(child, childPath, undefined, self, {
               row: data,
               rowStart: true,
             });
+          rowSet.forEach((data, index) => {
+            const projected = projectRow(data);
             if (projected)
               push(children, {
-                ...(index === 0 ? projected : withRowKey(projected, data.key)),
+                ...nestTreeRows(
+                  index === 0 ? projected : withRowKey(projected, data.key),
+                  data,
+                  projectRow,
+                  isTreeItemRecord,
+                  isInstanceRecord,
+                ),
                 rowIndex: index,
               });
           });

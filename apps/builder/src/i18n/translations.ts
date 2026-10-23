@@ -868,6 +868,8 @@ const koKR: TranslationKeys = {
     listIndex: "위치 (index)",
     targetKey: "기준 항목 key",
     movedKeys: "옮길 항목 key",
+    parentKey: "부모 항목 key (트리 · 비우면 맨 위)",
+    toParentKey: "새 부모 항목 key (트리 · 비우면 맨 위)",
     actionInsert: "collection 위치에 넣기",
     actionInsertBefore: "collection 항목 앞에 넣기",
     actionInsertAfter: "collection 항목 뒤에 넣기",
@@ -1030,6 +1032,7 @@ const koKR: TranslationKeys = {
     labelPositionSide: "옆",
     fieldMapValue: "값 필드",
     fieldMapIcon: "아이콘 필드",
+    fieldMapChildren: "하위 항목 필드 (트리)",
     fieldMapAuto: "자동",
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
@@ -3218,6 +3221,8 @@ const enUS: TranslationKeys = {
     listIndex: "Index",
     targetKey: "Target item key",
     movedKeys: "Item keys to move",
+    parentKey: "Parent item key (tree · empty = top level)",
+    toParentKey: "New parent item key (tree · empty = top level)",
     actionInsert: "Insert into a collection at",
     actionInsertBefore: "Insert before a collection item",
     actionInsertAfter: "Insert after a collection item",
@@ -3382,6 +3387,7 @@ const enUS: TranslationKeys = {
     labelPositionSide: "Side",
     fieldMapValue: "Value field",
     fieldMapIcon: "Icon field",
+    fieldMapChildren: "Children field (tree)",
     fieldMapAuto: "Auto",
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",

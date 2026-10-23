@@ -78,6 +78,8 @@ export interface AppendAction {
   collectionId: string;
   /** `"!event.<arg>"` resolving to a record (the Form's `"!event.formData"`). */
   value?: unknown;
+  /** `useTreeData.append(parentKey, …)` — the parent item's key; absent = the top level. */
+  parentKey?: unknown;
 }
 
 /** `useListData.update(key, newValue)` — absent `key` = the value's `id`. */
@@ -115,6 +117,8 @@ export type InsertAction = {
     index?: unknown;
     key?: unknown;
     value?: unknown;
+    /** `useTreeData` — `insert` · `prepend` under this parent item; absent = the top level. */
+    parentKey?: unknown;
   };
 }["insert" | "insertBefore" | "insertAfter" | "prepend"];
 
@@ -125,6 +129,8 @@ export type MoveAction = {
     collectionId: string;
     key?: unknown;
     toIndex?: unknown;
+    /** `useTreeData.move(key, toParentKey, index)` — the new parent's key; absent = the top. */
+    toParentKey?: unknown;
     /** The items moved next to `key` (`"!event.keys"` · a literal key). */
     keys?: unknown;
   };

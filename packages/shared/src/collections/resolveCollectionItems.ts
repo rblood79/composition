@@ -261,9 +261,11 @@ export function readDataBindingRows(
 export interface CollectionFieldRoles {
   value?: string;
   icon?: string;
+  /** `useTreeData.getChildren` — the field holding an item's child items (a bound Tree's levels). */
+  children?: string;
 }
 
-const FIELD_ROLE_KEYS = ["value", "icon"] as const;
+const FIELD_ROLE_KEYS = ["value", "icon", "children"] as const;
 
 /**
  * `dataBinding.fieldMap` (fieldId · v1 key) → 행 key. `schema` 가 있으면 `resolveField`
@@ -289,7 +291,9 @@ export function resolveFieldRoles(
       : (resolveFieldRef(`#${ref}`) ?? ref);
     roles[role] = key;
   }
-  return roles.value !== undefined || roles.icon !== undefined
+  return roles.value !== undefined ||
+    roles.icon !== undefined ||
+    roles.children !== undefined
     ? roles
     : undefined;
 }

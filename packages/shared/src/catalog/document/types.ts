@@ -905,6 +905,8 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
         /** The value appended: `"!event.formData"` (a Form's fields) — resolved when the rule runs. */
         value?: Scalar;
+        /** `useTreeData.append(parentKey, …)` — the parent item's key; absent = the top level. */
+        parentKey?: Scalar;
       }
     | {
         /** `useListData.update(key, newValue)` — the item's fields take the value's. */
@@ -925,6 +927,8 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
         index?: Scalar;
         value?: Scalar;
+        /** `useTreeData.insert(parentKey, index, …)` — the parent item's key; absent = the top. */
+        parentKey?: Scalar;
       }
     | {
         /** `useListData.insertBefore(key, …)` · `insertAfter(key, …)` — next to the item `key`. */
@@ -938,6 +942,8 @@ export interface InteractionEntry {
         opcode: "prepend";
         collectionId: DataCollectionId;
         value?: Scalar;
+        /** `useTreeData.prepend(parentKey, …)` — the parent item's key; absent = the top level. */
+        parentKey?: Scalar;
       }
     | {
         /** `useListData.move(key, toIndex)`. */
@@ -945,6 +951,8 @@ export interface InteractionEntry {
         collectionId: DataCollectionId;
         key?: Scalar;
         toIndex?: Scalar;
+        /** `useTreeData.move(key, toParentKey, index)` — the new parent's key; absent = the top. */
+        toParentKey?: Scalar;
       }
     | {
         /** `useListData.moveBefore(key, keys)` · `moveAfter(key, keys)` — `keys` next to `key`. */

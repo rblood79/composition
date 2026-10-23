@@ -26,6 +26,7 @@ import {
   Image,
   KeyRound,
   Link2,
+  ListTree,
   Table2,
   X,
 } from "lucide-react";
@@ -43,6 +44,7 @@ import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTable
 import { useDataUsageSource } from "../../panels/datatable/usage/dataUsageSource";
 import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
 import { useCollections } from "../../stores/data";
+import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react.runtime";
 import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
 import "./PropertyDataBinding.css";
 import { PropertyFieldset } from "./PropertyFieldset";
@@ -73,6 +75,8 @@ interface PropertyDataBindingProps {
   className?: string;
   /** 비활성화 */
   disabled?: boolean;
+  /** The bound record — a Tree's binding offers the children role (`useTreeData.getChildren`). */
+  elementId?: string;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
@@ -86,20 +90,24 @@ interface PropertyDataBindingProps {
 // ADR-159 P4b: SOURCE_OPTIONS 4종(dataTable/api/variable/route) 소스 선택 UI 제거 —
 //   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
 
-type FieldMapRole = "value" | "icon";
+type FieldMapRole = "value" | "icon" | "children";
 const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon"];
+/** A Tree's binding also names its items' children (`useTreeData.getChildren`). */
+const TREE_FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon", "children"];
 /** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
 const FIELD_MAP_AUTO_KEY = "__auto__";
 const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
   value: KeyRound,
   icon: Image,
+  children: ListTree,
 };
 const FIELD_MAP_ROLE_LABEL: Record<
   FieldMapRole,
-  "fieldMapValue" | "fieldMapIcon"
+  "fieldMapValue" | "fieldMapIcon" | "fieldMapChildren"
 > = {
   value: "fieldMapValue",
   icon: "fieldMapIcon",
+  children: "fieldMapChildren",
 };
 
 /** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
@@ -183,8 +191,15 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   onChange,
   className,
   disabled,
+  elementId,
 }: PropertyDataBindingProps) {
   const { t } = useI18n();
+  const workspace = useOptionalCatalogWorkspace();
+  const isTree =
+    !!workspace &&
+    !!elementId &&
+    workspace.root.domInputs.get(elementId)?.ruleId === "Tree";
+  const fieldMapRoles = isTree ? TREE_FIELD_MAP_ROLES : FIELD_MAP_ROLES;
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
   const openTableEditor = useDataTableEditorStore((s) => s.openTableEditor);
@@ -402,7 +417,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
         )}
 
         {fieldOptions.length > 0 &&
-          FIELD_MAP_ROLES.map((role) => (
+          fieldMapRoles.map((role) => (
             <FieldMapSelect
               key={role}
               role={role}

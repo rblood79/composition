@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data — 트리 데이터 (`useTreeData`) · 바운드 Tree 가 데이터 행을 반복] - 2026-10-23
+
+### Added
+
+- **바운드 Tree 가 계층 데이터를 단계별로 보인다** — 레퍼런스 `useTreeData` 의 `getChildren`.
+  - Properties 데이터 연결에 「하위 항목 필드 (트리)」 (Tree 만) — 항목의 하위 항목 배열이 든 필드 (`fieldMap.children`).
+  - 행마다 같은 TreeItem template 을 하위 항목마다 다시 놓는다 (레퍼런스 `<Collection items={item.children}>` 와 같은 render). Canvas · Preview 가 같은 resolver 를 읽는다.
+- **트리 편집 Do** — `append` · `insert` · `prepend` 에 「부모 항목 key」 (`parentKey` — `useTreeData.insert(parentKey, index, …)`), `move` 에 「새 부모 항목 key」 (`toParentKey` — `move(key, toParentKey, index)`). 비우면 맨 위. `update` · `remove` · `insertBefore/After` · `moveBefore/After` 의 key 는 트리 어느 단계든 찾는다. 문서: Do 의 선택 칸 추가 (contract 47 그대로).
+- 위치: `packages/shared/src/catalog/resolution/resolver.ts` (`nestTreeRows`) · `catalog/runtime/dataBinding.ts` · `catalogPreviewSession.ts` (`replayItemEdits` · `childrenKeyOf`) · `interactions/dispatcher.ts` · `PropertyDataBinding.tsx` · `CatalogRuleRow.tsx` · 테스트 `treeData.test.tsx` (원복 RED)
+
+### Fixed
+
+- **바인딩한 Tree 가 데이터 행을 반복하지 않던 문제** — TreeItem 이 행 반복 항목 (`CATALOG_ROW_ITEM_TYPES`) 에 없어, 바인딩해도 starter 의 표본 항목 (Node 1 · Node 2) 만 보였다.
+
 ## [Data — load 가 선택을 정한다 (`useAsyncList` load `selectedKeys`) · endpoint 편집기의 cursor 경로가 저장되지 않던 문제] - 2026-10-23
 
 ### Added

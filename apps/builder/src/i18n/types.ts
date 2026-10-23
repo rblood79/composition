@@ -597,6 +597,8 @@ export interface TranslationKeys {
     listIndex: string;
     targetKey: string;
     movedKeys: string;
+    parentKey: string;
+    toParentKey: string;
     actionInsert: string;
     actionInsertBefore: string;
     actionInsertAfter: string;
@@ -761,6 +763,7 @@ export interface TranslationKeys {
     legacyBinding: string;
     fieldMapValue: string;
     fieldMapIcon: string;
+    fieldMapChildren: string;
     fieldMapAuto: string;
     fieldTemplatePlaceholder: string;
     insertField: string;

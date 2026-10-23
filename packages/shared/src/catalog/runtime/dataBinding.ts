@@ -4,6 +4,8 @@ import {
   getFlatProjectionRows,
   readDataBindingRows,
   resolveBoundCollection,
+  resolveFieldRoles,
+  toItemProjectionRow,
   type CollectionDataSource,
   type DataBindingValue,
 } from "@composition/shared";
@@ -172,6 +174,31 @@ export function catalogBoundRows(
           : {},
     }));
   const seen = new Set<string>();
+  // (`useTreeData.getChildren` — the binding's children field: each row carries its child rows.)
+  const roles = resolveFieldRoles(
+    dataBinding,
+    resolveBoundCollection(dataBinding, collections)?.schema,
+  );
+  const childrenKey = roles?.children;
+  const childRows = (item: unknown): CatalogBoundRow[] | undefined => {
+    const children =
+      childrenKey && item !== null && typeof item === "object"
+        ? (item as Record<string, unknown>)[childrenKey]
+        : undefined;
+    if (!Array.isArray(children) || !children.length) return undefined;
+    return children.map((child, index) => {
+      const row = toItemProjectionRow(child, index, roles);
+      let key = String(row.itemKey);
+      if (seen.has(key)) key = `${key}~${index}`;
+      seen.add(key);
+      const nested = childRows(child);
+      return {
+        key,
+        values: buildCollectionRowTemplateItem(row),
+        ...(nested ? { children: nested } : {}),
+      };
+    });
+  };
   const rows: CatalogBoundRow[] = getFlatProjectionRows(
     { dataBinding, collections },
     ref.key === undefined ? limit : Number.MAX_SAFE_INTEGER,
@@ -179,7 +206,12 @@ export function catalogBoundRows(
     let key = String(row.itemKey);
     if (seen.has(key)) key = `${key}~${row.rowIndex}`;
     seen.add(key);
-    return { key, values: buildCollectionRowTemplateItem(row) };
+    const children = childRows(row.item);
+    return {
+      key,
+      values: buildCollectionRowTemplateItem(row),
+      ...(children ? { children } : {}),
+    };
   });
   if (ref.key !== undefined) {
     const item = rows.find((row) => row.key === ref.key);

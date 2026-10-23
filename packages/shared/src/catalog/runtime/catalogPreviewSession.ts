@@ -76,23 +76,116 @@ export function catalogPreviewDataServices(
 /** The fields an item's key is read from (`getItemKey`) — an `update` never changes them. */
 const ITEM_KEY_FIELDS = ["id", "key", "value"] as const;
 
-/** One `useListData` operation a rule ran on a collection (the Preview session's record). */
+/**
+ * One `useListData` · `useTreeData` operation a rule ran on a collection (the Preview session's
+ * record). `parent` · `toParent` are the tree's (`insert(parentKey, …)` · `move(key, toParentKey, …)`
+ * — `null` / absent = the top level).
+ */
 type CatalogItemEdit =
-  | { kind: "append"; item: Record<string, unknown> }
-  | { kind: "insert"; at: CatalogListPosition; item: Record<string, unknown> }
+  | { kind: "append"; item: Record<string, unknown>; parent?: string | null }
+  | {
+      kind: "insert";
+      at: CatalogListPosition;
+      item: Record<string, unknown>;
+      parent?: string | null;
+    }
   | { kind: "update"; key: string; patch: Record<string, unknown> }
   | { kind: "remove"; keys: readonly string[] | "all" }
   | {
       kind: "move";
       keys: readonly string[];
       to: Exclude<CatalogListPosition, "start">;
+      toParent?: string | null;
     };
 
+type CatalogItems = readonly Record<string, unknown>[];
+
+/** An item's child items (`useTreeData.getChildren` — the binding's children field), else none. */
+function childItemsOf(
+  item: Record<string, unknown>,
+  childrenKey: string | undefined,
+): CatalogItems | undefined {
+  const children = childrenKey ? item[childrenKey] : undefined;
+  return Array.isArray(children)
+    ? children.filter(
+        (child): child is Record<string, unknown> =>
+          !!child && typeof child === "object",
+      )
+    : undefined;
+}
+
+/** Every key in the items (the tree's, every level), as the bound components read them. */
+function itemKeysOf(items: CatalogItems, childrenKey?: string): Set<string> {
+  const keys = new Set<string>();
+  const visit = (level: CatalogItems) =>
+    level.forEach((item, index) => {
+      keys.add(getItemKey(item, index));
+      const children = childItemsOf(item, childrenKey);
+      if (children) visit(children);
+    });
+  visit(items);
+  return keys;
+}
+
+/** The parent of the level holding `key` (`null` = the top level), else undefined. */
+function levelOfKey(
+  items: CatalogItems,
+  key: string,
+  childrenKey?: string,
+  parent: string | null = null,
+): string | null | undefined {
+  for (const [index, item] of items.entries()) {
+    if (getItemKey(item, index) === key) return parent;
+    const children = childItemsOf(item, childrenKey);
+    if (!children) continue;
+    const found = levelOfKey(children, key, childrenKey, getItemKey(item, index));
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/** The items with one level (`parent` — `null` the top) replaced; undefined when no such parent. */
+function withLevel(
+  items: CatalogItems,
+  parent: string | null,
+  childrenKey: string | undefined,
+  change: (level: CatalogItems) => CatalogItems,
+): CatalogItems | undefined {
+  if (parent === null) return change(items);
+  if (!childrenKey) return undefined;
+  let found = false;
+  const visit = (level: CatalogItems): CatalogItems =>
+    level.map((item, index) => {
+      if (found) return item;
+      if (getItemKey(item, index) === parent) {
+        found = true;
+        return { ...item, [childrenKey]: change(childItemsOf(item, childrenKey) ?? []) };
+      }
+      const children = childItemsOf(item, childrenKey);
+      return children ? { ...item, [childrenKey]: visit(children) } : item;
+    });
+  const next = visit(items);
+  return found ? next : undefined;
+}
+
+/** The items with `keep` applied at every level (the tree's — a key anywhere). */
+function mapItems(
+  items: CatalogItems,
+  childrenKey: string | undefined,
+  each: (item: Record<string, unknown>, index: number) => Record<string, unknown> | null,
+): Record<string, unknown>[] {
+  return items.flatMap((item, index) => {
+    const kept = each(item, index);
+    if (!kept) return [];
+    const children = childItemsOf(kept, childrenKey);
+    return [
+      children ? { ...kept, [childrenKey!]: mapItems(children, childrenKey, each) } : kept,
+    ];
+  });
+}
+
 /** Where a position falls in a list of items (keys as `getItemKey` reads them), else -1. */
-function positionIndex(
-  items: readonly Record<string, unknown>[],
-  at: CatalogListPosition,
-): number {
+function positionIndex(items: CatalogItems, at: CatalogListPosition): number {
   if (at === "start") return 0;
   if ("index" in at) return Math.min(at.index, items.length);
   const key = "before" in at ? at.before : at.after;
@@ -100,43 +193,76 @@ function positionIndex(
   return found < 0 ? -1 : "before" in at ? found : found + 1;
 }
 
-/** The edits over a list of items, in order — keys as the bound components read them (`getItemKey`). */
+/** The level a position names: a key's own level, else the given parent's (`null` the top). */
+function levelOfPosition(
+  items: CatalogItems,
+  at: CatalogListPosition,
+  parent: string | null | undefined,
+  childrenKey: string | undefined,
+): string | null | undefined {
+  if (at === "start" || "index" in at) return parent ?? null;
+  return levelOfKey(items, "before" in at ? at.before : at.after, childrenKey);
+}
+
+/**
+ * The edits over a list of items, in order — keys as the bound components read them (`getItemKey`);
+ * with a children field (`useTreeData`) at every level of the tree.
+ */
 function replayItemEdits(
-  base: readonly Record<string, unknown>[],
+  base: CatalogItems,
   edits: readonly CatalogItemEdit[],
+  childrenKey?: string,
 ): Record<string, unknown>[] {
-  let items = [...base];
+  let items: CatalogItems = [...base];
+  const at = (
+    parent: string | null | undefined,
+    change: (level: CatalogItems) => CatalogItems,
+  ) => {
+    if (parent === undefined) return;
+    items = withLevel(items, parent, childrenKey, change) ?? items;
+  };
   for (const edit of edits) {
-    if (edit.kind === "append") items = [...items, edit.item];
-    else if (edit.kind === "insert") {
-      const at = positionIndex(items, edit.at);
-      if (at >= 0) items = [...items.slice(0, at), edit.item, ...items.slice(at)];
-    } else if (edit.kind === "move") {
-      // (`useListData.move` · `moveBefore` · `moveAfter` — the moved items keep their order.)
+    if (edit.kind === "append") at(edit.parent ?? null, (level) => [...level, edit.item]);
+    else if (edit.kind === "insert")
+      at(levelOfPosition(items, edit.at, edit.parent, childrenKey), (level) => {
+        const index = positionIndex(level, edit.at);
+        return index < 0
+          ? level
+          : [...level.slice(0, index), edit.item, ...level.slice(index)];
+      });
+    else if (edit.kind === "move") {
+      // (`move` · `moveBefore` · `moveAfter` — the moved items keep their order, from any level.)
       const keys = new Set(edit.keys);
-      const keyed = items.map((item, index) => [getItemKey(item, index), item] as const);
-      const moved = keyed.filter(([key]) => keys.has(key)).map(([, item]) => item);
-      const rest = keyed.filter(([key]) => !keys.has(key));
-      const restItems = rest.map(([, item]) => item);
-      let at: number;
-      if ("index" in edit.to) at = Math.min(edit.to.index, restItems.length);
-      else {
-        const target = "before" in edit.to ? edit.to.before : edit.to.after;
-        const found = rest.findIndex(([key]) => key === target);
-        at = found < 0 ? -1 : "before" in edit.to ? found : found + 1;
-      }
-      if (at >= 0) items = [...restItems.slice(0, at), ...moved, ...restItems.slice(at)];
+      const moved: Record<string, unknown>[] = [];
+      const rest = mapItems(items, childrenKey, (item, index) => {
+        if (!keys.has(getItemKey(item, index))) return item;
+        moved.push(item);
+        return null;
+      });
+      const level = levelOfPosition(rest, edit.to, edit.toParent, childrenKey);
+      const next =
+        level === undefined
+          ? undefined
+          : withLevel(rest, level, childrenKey, (items) => {
+              const index = positionIndex(items, edit.to);
+              return index < 0
+                ? items
+                : [...items.slice(0, index), ...moved, ...items.slice(index)];
+            });
+      if (next) items = next;
     } else if (edit.kind === "update")
-      items = items.map((item, index) =>
+      items = mapItems(items, childrenKey, (item, index) =>
         getItemKey(item, index) === edit.key ? { ...item, ...edit.patch } : item,
       );
     else if (edit.keys === "all") items = [];
     else {
       const keys = new Set(edit.keys);
-      items = items.filter((item, index) => !keys.has(getItemKey(item, index)));
+      items = mapItems(items, childrenKey, (item, index) =>
+        keys.has(getItemKey(item, index)) ? null : item,
+      );
     }
   }
-  return items;
+  return [...items];
 }
 
 export interface CatalogPreviewSessionOptions {
@@ -470,6 +596,7 @@ export class CatalogPreviewSession {
       const items = replayItemEdits(
         (api ? collection.runtimeData : collection.mockData) ?? [],
         edits,
+        this.childrenKeyOf(collection.id),
       );
       return api
         ? { ...collection, runtimeData: items }
@@ -533,15 +660,20 @@ export class CatalogPreviewSession {
   append(
     collectionId: string,
     value: Readonly<Record<string, unknown>>,
+    parentKey?: string | null,
   ): { ok: boolean; reason?: string } {
-    return this.edit(collectionId, (collection) => {
+    return this.edit(collectionId, (collection, items) => {
+      const missing = this.missingParent(collectionId, items, parentKey);
+      if (missing) return missing;
       const item = this.itemFields(collection, value);
       if (
         (collection.schema ?? []).some((field) => field.key === "id") &&
         (item.id === undefined || item.id === "")
       )
         item.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
-      return { kind: "append", item };
+      return parentKey == null
+        ? { kind: "append", item }
+        : { kind: "append", item, parent: parentKey };
     });
   }
   /**
@@ -553,19 +685,26 @@ export class CatalogPreviewSession {
     collectionId: string,
     at: CatalogListPosition,
     value: Readonly<Record<string, unknown>>,
+    parentKey?: string | null,
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (collection, items) => {
-      if (positionIndex(items as Record<string, unknown>[], at) < 0)
-        return {
-          reason: `항목 없음: ${typeof at === "object" && !("index" in at) ? ("before" in at ? at.before : at.after) : ""}`,
-        };
+      const missing = this.missingParent(collectionId, items, parentKey);
+      if (missing) return missing;
+      if (
+        typeof at === "object" &&
+        !("index" in at) &&
+        !this.keysOf(collectionId, items).has("before" in at ? at.before : at.after)
+      )
+        return { reason: `항목 없음: ${"before" in at ? at.before : at.after}` };
       const item = this.itemFields(collection, value);
       if (
         (collection.schema ?? []).some((field) => field.key === "id") &&
         (item.id === undefined || item.id === "")
       )
         item.id = `item-${Date.now().toString(36)}-${(this.itemSerial += 1)}`;
-      return { kind: "insert", at, item };
+      return parentKey == null
+        ? { kind: "insert", at, item }
+        : { kind: "insert", at, item, parent: parentKey };
     });
   }
   /**
@@ -576,9 +715,14 @@ export class CatalogPreviewSession {
     collectionId: string,
     keys: readonly string[],
     to: Exclude<CatalogListPosition, "start">,
+    toParentKey?: string | null,
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (_collection, items) => {
-      const present = new Set(items.map((item, index) => getItemKey(item, index)));
+      const missingParent = this.missingParent(collectionId, items, toParentKey);
+      if (missingParent) return missingParent;
+      if (toParentKey != null && keys.includes(toParentKey))
+        return { reason: `옮길 항목 ${toParentKey} 가 새 부모다` };
+      const present = this.keysOf(collectionId, items);
       const target = "index" in to ? undefined : "before" in to ? to.before : to.after;
       const missing = [...keys, ...(target === undefined ? [] : [target])].filter(
         (key) => !present.has(key),
@@ -587,7 +731,9 @@ export class CatalogPreviewSession {
       if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
       if (target !== undefined && keys.includes(target))
         return { reason: `옮길 항목 ${target} 가 기준 항목이다` };
-      return { kind: "move", keys, to };
+      return toParentKey == null
+        ? { kind: "move", keys, to }
+        : { kind: "move", keys, to, toParent: toParentKey };
     });
   }
   /**
@@ -602,7 +748,7 @@ export class CatalogPreviewSession {
     return this.edit(collectionId, (collection, items) => {
       const target = key ?? (value.id === undefined ? undefined : String(value.id));
       if (target === undefined) return { reason: "수정할 항목의 key 가 없다" };
-      if (!items.some((item, index) => getItemKey(item, index) === target))
+      if (!this.keysOf(collectionId, items).has(target))
         return { reason: `항목 없음: ${target}` };
       const patch = this.itemFields(collection, value);
       for (const field of ITEM_KEY_FIELDS) delete patch[field];
@@ -616,7 +762,7 @@ export class CatalogPreviewSession {
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (_collection, items) => {
       if (keys !== "all") {
-        const present = new Set(items.map((item, index) => getItemKey(item, index)));
+        const present = this.keysOf(collectionId, items);
         const missing = keys.filter((key) => !present.has(key));
         if (!keys.length) return { reason: "삭제할 항목의 key 가 없다" };
         if (missing.length) return { reason: `항목 없음: ${missing.join(", ")}` };
@@ -625,6 +771,41 @@ export class CatalogPreviewSession {
     });
   }
   private itemSerial = 0;
+  /**
+   * The field holding a collection's child items (`useTreeData.getChildren`): a bound component's
+   * `fieldMap.children` (the schema field's key), else none — a flat list.
+   */
+  private childrenKeyOf(collectionId: string | undefined): string | undefined {
+    const graph = this.graph;
+    if (!graph || !collectionId) return undefined;
+    const schema = this.collections.find((item) => item.id === collectionId)?.schema ?? [];
+    for (const id of graph.bindingsOf(`data:collection:${collectionId}`)) {
+      const entry = graph.getEntry(id as never);
+      const field =
+        entry?.kind === "node" ? entry.binding?.fieldMap.children : undefined;
+      if (!field) continue;
+      const fieldId = field.replace(/^data:field:/, "");
+      return schema.find((item) => item.id === fieldId)?.key ?? fieldId;
+    }
+    return undefined;
+  }
+  /** Every key in a collection's items — the tree's, every level. */
+  private keysOf(collectionId: string, items: readonly unknown[]): Set<string> {
+    return itemKeysOf(items as CatalogItems, this.childrenKeyOf(collectionId));
+  }
+  /** A tree edit's parent that is not there (a flat list has none), else undefined. */
+  private missingParent(
+    collectionId: string,
+    items: readonly unknown[],
+    parentKey: string | null | undefined,
+  ): { reason: string } | undefined {
+    if (parentKey == null) return undefined;
+    if (!this.childrenKeyOf(collectionId))
+      return { reason: "하위 항목 필드 (fieldMap.children) 가 없는 목록이다" };
+    return this.keysOf(collectionId, items).has(parentKey)
+      ? undefined
+      : { reason: `부모 항목 없음: ${parentKey}` };
+  }
   /** A submit in flight until it settles (a `reload` waits for it). */
   trackSubmit<T>(submit: Promise<T>): Promise<T> {
     this.pendingSubmits.add(submit);

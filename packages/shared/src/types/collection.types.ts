@@ -325,6 +325,8 @@ export interface PropertyDataBinding {
     value?: string;
     description?: string;
     icon?: string;
+    /** `useTreeData.getChildren` — the field holding an item's child items (a bound Tree). */
+    children?: string;
   };
   /**
    * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.

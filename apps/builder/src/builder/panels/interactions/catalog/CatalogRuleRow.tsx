@@ -40,17 +40,19 @@ const DeleteIcon = ACTION_ICONS.delete;
 
 /** `useListData`'s operations: the rule fields after the collection (reference argument order). */
 const LIST_DATA_FIELDS = {
-  append: ["value"],
+  // (`useTreeData` adds the parent first — `append(parentKey, …)` · `insert(parentKey, index, …)` ·
+  // `prepend(parentKey, …)` · `move(key, toParentKey, index)`; empty = the top level.)
+  append: ["parentKey", "value"],
   update: ["key", "value"],
   remove: ["keys"],
   reload: [],
   loadMore: [],
   setFilterText: ["value"],
-  insert: ["index", "value"],
+  insert: ["parentKey", "index", "value"],
   insertBefore: ["key", "value"],
   insertAfter: ["key", "value"],
-  prepend: ["value"],
-  move: ["key", "toIndex"],
+  prepend: ["parentKey", "value"],
+  move: ["key", "toParentKey", "toIndex"],
   moveBefore: ["key", "keys"],
   moveAfter: ["key", "keys"],
   removeSelectedItems: [],
@@ -64,6 +66,8 @@ function listDataFieldLabelKey(opcode: ListDataOpcode, field: string): string {
   if (field === "value") return "interactions.appendValue";
   if (field === "index" || field === "toIndex") return "interactions.listIndex";
   if (field === "keys") return "interactions.movedKeys";
+  if (field === "parentKey") return "interactions.parentKey";
+  if (field === "toParentKey") return "interactions.toParentKey";
   if (opcode === "moveBefore" || opcode === "moveAfter" || opcode.startsWith("insert"))
     return "interactions.targetKey";
   return "interactions.itemKey";
