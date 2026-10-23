@@ -71,6 +71,7 @@
   width: 1px;
   background: var(--border);
   pointer-events: none;
+  display: none;
 }
 
 .layer-indent-guide[data-active] {

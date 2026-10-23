@@ -249,5 +249,52 @@
       "ratchet": "unmeasurable: app-pages-images 재실행 값 불일치, 게이트 정책상 통과; 성능 PASS 아님"
     },
     "commit": "56423889e"
+  },
+  "collectionTableTerminology": {
+    "task": "Collection 섹션 유지, 데이터 원본 Table 문구 통일",
+    "status": "complete_pushed",
+    "scope": "한영 문구, 10종 catalog legend, 공통 select 접근성 이름, Data 목록 fallback, CHANGELOG",
+    "validation": {
+      "preflight": "PASS (typecheck 포함)",
+      "tests": "CollectionBinding·property sections·i18n 인접 3파일 27 PASS",
+      "live": "Chrome: Data Tables/New table, ListBox/TagGroup Data source, GridList Choose a table… 및 Data source 접근성 이름, 양쪽 New table 버튼2개 확인; console error0",
+      "unverified": "빈 테이블 목록 상태와 한국어 개별 브라우저 전환은 미실행; 한영 문자열 정적 확인",
+      "push": "origin/main 219c1a3dc에 7458777f9 포함 확인; 일반 push Everything up-to-date",
+      "ratchet": "사용자 결정에 따른 새 hook 기본 off 확인; 변경 전 시작한 측정 중지. 성능 검증 미완료"
+    },
+    "commit": "7458777f9"
+  },
+  "valueFieldIcon": {
+    "task": "Value field 선택 앞 열쇠 아이콘 제거",
+    "status": "complete_pushed",
+    "validation": {
+      "preflight": "PASS",
+      "tests": "CollectionBinding 인접12 PASS",
+      "live": "Chrome ListBox: Value field: Auto, key icon0, leading icon0, chevron1 확인",
+      "push": "origin/main 포함 확인; git push origin main Everything up-to-date"
+    },
+    "commit": "d9e12961c"
+  },
+  "designStyleClipboardButtons": {
+    "task": "Design 스타일 탭 헤더 Copy styles/Paste styles 버튼 제거",
+    "status": "reverted_by_user_correction",
+    "scope": "StylesHeaderActions 버튼·전용 핸들러 제거; Focus와 단축키 유지; 이전 Properties 대상은 사용자 정정으로 제외",
+    "validation": {
+      "preflight": "PASS (typecheck 포함)",
+      "tests": "DesignPanel·StylesPanel 인접3파일12 PASS; 기존 단축키 전환·복사 회귀 포함",
+      "live": "Chrome ListBox 선택: Layout/Style/Text/Screen 헤더 Copy styles/Paste styles 없음; console error0"
+    }
+  },
+  "designPropertyClipboardButtons": {
+    "task": "스타일 헤더 복구, Property 헤더 Copy/Paste 버튼 제거",
+    "status": "complete_pushed",
+    "scope": "Property 버튼 렌더만 제거; 기존 단축키·메뉴 등록 유지",
+    "validation": {
+      "preflight": "PASS",
+      "tests": "Design·Styles·Clipboard 인접4파일15 PASS",
+      "live": "Chrome ListBox: Property Copy/Paste properties 0개, Style Copy/Paste styles 각1개 확인",
+      "push": "origin/main 5b67b0b1d -> 606600847 성공"
+    },
+    "commit": "606600847"
   }
 }
