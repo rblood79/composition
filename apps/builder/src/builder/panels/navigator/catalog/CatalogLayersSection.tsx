@@ -116,6 +116,18 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         parents.add(record.id);
     return parents;
   }, [selectedIds, workspace]);
+  // Rows a selection opened stay open after it moves on (Figma): only the user closes them. Before
+  // (2026-10-24 user report 「layer 트리가 깜빡이거나 떨리거나 이전 대상과 왔다갔다」) the rows
+  // followed the current selection alone, so each Canvas selection closed the last one's ancestors
+  // and opened its own — the rows jumped, twice per double-click (container, then the child).
+  useLayoutEffect(() => {
+    setUserExpanded((previous) => {
+      const opened = [...autoExpanded].filter(
+        (key) => !previous.has(key) && !userCollapsed.has(key),
+      );
+      return opened.length ? new Set([...previous, ...opened]) : previous;
+    });
+  }, [autoExpanded, userCollapsed]);
   // The expanded rows as one value: a selection among siblings gives the same rows, and a new Set
   // made RAC re-flatten the whole expanded tree (ADR-265 — 5k rows per selection).
   const expandedList = useMemo(() => {

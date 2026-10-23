@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layers — 선택으로 펼친 행 유지] - 2026-10-24
+
+### Fixed
+
+- **Canvas 에서 요소를 선택할 때 Navigator Layers 트리가 떨리거나 강조 행이 위아래로 튀던 문제** — 선택으로 펼친 행은 선택이 옮겨가거나 풀려도 펼친 채 둔다 (Figma). 사용자가 접은 행과 Collapse all 은 그대로 접힌다.
+  - **Why:** 펼침 상태가 현재 선택의 조상만으로 계산돼 선택이 바뀔 때마다 이전 선택 쪽 행이 접히고 새 선택 쪽 행이 펼쳐졌다 (실측 행 수 11 → 6 → 9). 더블클릭으로 안쪽을 고르면 컨테이너 선택 → 안쪽 선택이 약 30ms 안에 연달아 와 강조 행이 위로 튀었다 돌아왔다.
+  - 위치: `apps/builder/src/builder/panels/navigator/catalog/CatalogLayersSection.tsx`
+
 ## [Design 패널 — Accessibility 절 · Style 탭 Class 절] - 2026-10-24
 
 ### Changed
