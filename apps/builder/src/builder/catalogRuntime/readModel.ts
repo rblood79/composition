@@ -1,3 +1,4 @@
+import { projectInstancesOf } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import { docCounters } from "../../../../../packages/shared/src/catalog/docCounters";
 import type {
   CatalogEntry,
@@ -474,7 +475,7 @@ export class CatalogReadModel {
                   definitionId: definition.id,
                   name: definition.name,
                   templateRootId: definition.templateRootId,
-                  instanceCount: reader.instancesOf(definition.id).size,
+                  instanceCount: projectInstancesOf(reader, definition.id).length,
                 },
               ];
             })
@@ -539,6 +540,44 @@ export class CatalogReadModel {
       docCounters.readStale += stale.size;
       if (changed.size) docCounters.readStaleByIndex += this.byIndex.size;
     }
+    this.recompute(stale, counting);
+  }
+
+  /**
+   * The reads of the derived view entries (the Components page) — their own lookups, row fields
+   * and children. A view entry is rebuilt on each read, so its fields compare by value.
+   */
+  private staleViewReads(stale: Set<string>): void {
+    const graph = this.runtime.graph;
+    // (And the stored nodes a view draws children in — a Components page ◆ cell, ADR-282.)
+    for (const id of [...graph.viewEntryIds(), ...graph.viewChildNodeIds()]) {
+      for (const key of this.byDep.get(id) ?? []) stale.add(key);
+      const byRow = this.byRow.get(id);
+      const byParent = this.byParent.get(id);
+      if (!byRow?.size && !byParent?.size) continue;
+      const entry = this.runtime.graph.getEntry(id);
+      for (const key of byRow ?? [])
+        if (this.reads.get(key)?.rowDeps?.get(id) !== rowFields(entry))
+          stale.add(key);
+      for (const key of byParent ?? []) {
+        const held = this.reads.get(key)?.parentDeps?.get(id);
+        if (!held || !same(held, parentFields(entry))) stale.add(key);
+      }
+    }
+  }
+
+  /**
+   * The derived view entries were laid out again outside a step (the Components page's relayout —
+   * an unlock or lock of the Library swaps its ◆ cells' children, ADR-282): the reads over them
+   * follow.
+   */
+  viewEntriesChanged(): void {
+    const stale = new Set<string>();
+    this.staleViewReads(stale);
+    this.recompute(stale, process.env.NODE_ENV === "development");
+  }
+
+  private recompute(stale: ReadonlySet<string>, counting: boolean): void {
     for (const key of stale) {
       const cached = this.reads.get(key);
       if (!cached) continue;

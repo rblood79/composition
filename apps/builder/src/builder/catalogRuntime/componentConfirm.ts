@@ -1,3 +1,4 @@
+import { projectInstancesOf } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
   CatalogReader,
@@ -81,14 +82,14 @@ function confirmedKeys(graph: CatalogReader): Set<string> {
   return keys;
 }
 const impactKey = (graph: CatalogReader, definitionId: string) =>
-  JSON.stringify([definitionId, [...graph.instancesOf(definitionId)]]);
+  JSON.stringify([definitionId, projectInstancesOf(graph, definitionId)]);
 
 function impactRequest(
   graph: CatalogReader,
   definitionId: string,
 ): EditingSemanticsImpactConfirmationRequest | undefined {
   const startedAt = performance.now();
-  const instances = [...graph.instancesOf(definitionId)];
+  const instances = projectInstancesOf(graph, definitionId);
   if (instances.length === 0) return undefined;
   return {
     countDurationMs: performance.now() - startedAt,
@@ -149,7 +150,7 @@ export async function confirmCatalogPush(
   const node = graph.getEntry(instanceId);
   if (node?.kind !== "node") return false;
   const startedAt = performance.now();
-  const others = [...graph.instancesOf(node.definitionId)].filter(
+  const others = projectInstancesOf(graph, node.definitionId).filter(
     (id) => id !== instanceId,
   );
   const confirmed = others.length

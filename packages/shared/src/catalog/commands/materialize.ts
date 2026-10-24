@@ -172,6 +172,7 @@ export function readTemplate(
     stateRules,
     presentWhen,
     showWhen,
+    displayState,
     ...extra
   } = structuredClone(node);
   return {
@@ -188,6 +189,7 @@ export function readTemplate(
     ...(layout ? { layout } : {}),
     extra,
     overrides: descendantOverrides,
+    ...(displayState ? { displayState } : {}),
     hasBinding: Object.values(props).some(
       (write) =>
         write.kind === "set" &&

@@ -2,6 +2,7 @@ import { docCounters } from "./docCounters";
 import { catalogAutoHtmlIds } from "./attributes";
 import { catalogGridAutoRows } from "./gridAutoRows";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import { originForksOf } from "../../../../../packages/shared/src/catalog/document/originFork";
 import type {
   BreakpointName,
   DefinitionId,
@@ -15,6 +16,10 @@ import type {
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogClipboard } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  lockOrigins,
+  unlockOrigins,
+} from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
@@ -43,7 +48,9 @@ import { catalogRowSampleHidden } from "./rowSample";
 import { catalogAbsentByOwnerValue } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import { CatalogHistoryStore } from "./history";
 import {
-  catalogComponentsPageCards,
+  catalogComponentPageCreation,
+  catalogLocalPageSync,
+  catalogComponentPageStored,
   catalogProjectComponents,
   setCatalogComponentsView,
 } from "./componentsPage";
@@ -55,9 +62,11 @@ import {
   isLibraryOrigin,
   isProjectComponentsView,
   originCardId,
+  componentPageNodeId,
   PROJECT_COMPONENTS_VIEW,
   originSampleId,
 } from "./originView";
+import { holdsLibraryOrigin } from "./originViewNode";
 import {
   CatalogSession,
   type CatalogDefinitionViewId,
@@ -149,6 +158,15 @@ const isElementRecord = (sourceId: string) =>
  * when a Preview is attached, its channel. Every edit goes through `execute` / `undo` / `redo`,
  * so the root's consumers take each step before it is published and the session follows it.
  */
+/** The unlocked library origins and their copy roots (the Library page's ◆ cells — ADR-282). */
+function libraryForksKey(graph: CatalogGraph): string {
+  return JSON.stringify(
+    [...originForksOf((id) => graph.getEntry(id), graph.projectId)].map(
+      ([id, fork]) => [id, fork.templateRootId],
+    ),
+  );
+}
+
 export class CatalogWorkspace {
   readonly runtime: CatalogRuntime;
   private currentRoot: CatalogCompositionRoot;
@@ -188,6 +206,14 @@ export class CatalogWorkspace {
       undo: () => this.undo(),
       redo: () => this.redo(),
     });
+    // ADR-282: the Library opens locked — the copies a session left unlocked and nobody edited go
+    // back to the library (saved, no history entry). A failure leaves them; the project opens.
+    if (originForksOf((id) => graph.getEntry(id), graph.projectId).size)
+      try {
+        this.root.executeOnLoad(lockOrigins());
+      } catch (error) {
+        console.error("[CatalogWorkspace] lock library on open:", error);
+      }
   }
 
   /** Canvas and DOM records of the current breakpoint (`setBreakpoint` replaces it). */
@@ -243,13 +269,10 @@ export class CatalogWorkspace {
       setCatalogComponentsView(
         this.runtime.graph,
         this.definitionView,
-        this.componentsHeights,
         this.colorMode,
       );
     this.replaceRoot(this.currentRoot.breakpoint);
   }
-  /** The Components page's measured card heights (its columns stay balanced on a re-read). */
-  private componentsHeights: ReadonlyMap<string, number> | undefined;
   /** A new composition root over the same runtime (the layout engine starts empty). */
   private replaceRoot(breakpoint: BreakpointName): void {
     if (process.env.NODE_ENV === "development") docCounters.rootReplaced += 1;
@@ -285,30 +308,103 @@ export class CatalogWorkspace {
       if (this.projectComponentsKey !== key)
         this.openComponentsView(this.definitionView);
     }
+    // ADR-282: an origin unlocked or reset (an undo too) — its card's ◆ is its copy's root or
+    // its sample again: the Library page is laid out again.
+    else if (
+      this.definitionView === COMPONENTS_VIEW &&
+      this.libraryForksKey !== libraryForksKey(this.runtime.graph)
+    )
+      this.openComponentsView(this.definitionView);
+    // (No copy left — an undo of the unlock, a reset: the Library is locked again.)
+    if (
+      this.libraryUnlocked &&
+      !originForksOf((id) => this.runtime.graph.getEntry(id), this.projectId)
+        .size
+    )
+      this.setLibraryMode(false);
+  }
+  /**
+   * ADR-282 (user 2026-10-24 「Library 전체 해제」): the Library page's edit mode — unlocked, every
+   * ◆ is its origin's copy and takes every edit; locked (the default — not saved), its copies take
+   * none and a library ◆ its root props and styles only.
+   */
+  private libraryUnlocked = false;
+  private readonly libraryModeListeners = new Set<() => void>();
+  get isLibraryUnlocked(): boolean {
+    return this.libraryUnlocked;
+  }
+  subscribeLibraryMode(listener: () => void): () => void {
+    this.libraryModeListeners.add(listener);
+    return () => this.libraryModeListeners.delete(listener);
+  }
+  private setLibraryMode(unlocked: boolean): void {
+    if (this.libraryUnlocked === unlocked) return;
+    this.libraryUnlocked = unlocked;
+    for (const listener of [...this.libraryModeListeners]) listener();
+  }
+  /**
+   * Unlock the whole Library (every origin forked in one step — `unlockOrigins`) or lock it (the
+   * copies nobody edited go back to the library — `lockOrigins`). One history step when the
+   * document changes; the mode follows either way.
+   */
+  setLibraryUnlocked(unlocked: boolean): void {
+    const graph = this.runtime.graph;
+    const command = unlocked
+      ? unlockOrigins({ newId: this.newId })
+      : lockOrigins();
+    let plan: CatalogCommandPlan | undefined;
+    try {
+      plan = command(graph.commandReader);
+    } catch (error) {
+      // (Every origin already unlocked: only the mode changes.)
+      if ((error as { code?: string }).code !== "ORIGINS_UNLOCKED") throw error;
+    }
+    if (plan?.ops.length) {
+      const executed = this.root.execute(() => plan!);
+      this.afterStep(executed.result);
+    }
+    this.setLibraryMode(unlocked);
   }
   /** The components the project components page was laid out with. */
   private projectComponentsKey: string | undefined;
+  /** The unlocked origins the Library page was laid out with (ADR-282). */
+  private libraryForksKey: string | undefined;
   /**
    * Lay a derived components page out (its view entries, a new root), then again with the cards'
    * drawn heights so its columns are balanced.
    */
   private openComponentsView(view: CatalogComponentsViewId): void {
     const graph = this.runtime.graph;
-    this.componentsHeights = undefined;
     this.projectComponentsKey = isProjectComponentsView(view)
       ? JSON.stringify(catalogProjectComponents(graph))
       : undefined;
-    setCatalogComponentsView(graph, view, undefined, this.colorMode);
-    this.replaceRoot(this.currentRoot.breakpoint);
-    const heights = new Map<string, number>();
-    for (const cardId of catalogComponentsPageCards(graph, view)) {
-      const records = this.root.recordsOfSource(cardId);
-      const height = this.root.getGeometry(records).get(records[0]!)?.height;
-      if (height !== undefined) heights.set(cardId, height);
+    this.libraryForksKey =
+      view === COMPONENTS_VIEW ? libraryForksKey(graph) : undefined;
+    // ADR-282 Phase 3: a page the project stores is the document's (its layout is the user's);
+    // the first open stores it (user 2026-10-25 — library-body is a page's body, the Local page
+    // too), and the Local page follows the project's components. Either is a step the project
+    // takes, not the user's: saved, no history entry.
+    const plan = catalogComponentPageStored(graph, view)
+      ? isProjectComponentsView(view)
+        ? catalogLocalPageSync(graph, this.colorMode)?.(graph.commandReader)
+        : undefined
+      : catalogComponentPageCreation(graph, view, this.colorMode)(
+          graph.commandReader,
+        );
+    if (plan) {
+      setCatalogComponentsView(graph, undefined);
+      this.runtime.load(plan.label, plan.ops);
     }
-    this.componentsHeights = heights;
-    setCatalogComponentsView(graph, view, heights, this.colorMode);
+    setCatalogComponentsView(graph, view, this.colorMode);
     this.replaceRoot(this.currentRoot.breakpoint);
+    // (Laid out again after a step — the Library's ◆ cells hold the copy roots or the samples:
+    // Layers and the Canvas pick read the new rows.)
+    this.readModel.viewEntriesChanged();
+  }
+  /** A Components page node: its stored id when the project stores the page (ADR-282 Phase 3). */
+  private componentPageNode(viewId: NodeId): NodeId {
+    const stored = componentPageNodeId(viewId);
+    return this.runtime.graph.storedEntry(stored) ? stored : viewId;
   }
   private definitionView: CatalogDefinitionViewId | undefined;
   /**
@@ -325,9 +421,19 @@ export class CatalogWorkspace {
       if (!this.runtime.graph.library.definitions.has(definitionId))
         throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
       this.showDefinition(COMPONENTS_VIEW);
-      this.session.select(this.itemsOfNode(originSampleId(definitionId), 1));
+      // (An unlocked origin's ◆ is its copy's root — ADR-282.)
+      const copyRoot =
+        this.runtime.graph.getDefinitionOverride(definitionId)?.templateRootId;
+      this.session.select(
+        copyRoot
+          ? this.libraryOriginItems(copyRoot)
+          : this.itemsOfNode(originSampleId(definitionId), 1),
+      );
       // Bring that component's card into view (the page is far larger than the Canvas).
-      const [card] = this.itemsOfNode(originCardId(definitionId), 1);
+      const [card] = this.itemsOfNode(
+        this.componentPageNode(originCardId(definitionId)),
+        1,
+      );
       if (card)
         for (const listener of [...this.recordRevealListeners])
           listener(card.identity);
@@ -366,11 +472,9 @@ export class CatalogWorkspace {
     this.definitionView = definitionId;
     this.session.setDefinitionView(definitionId);
     if (isComponentsView(definitionId)) {
-      // Balance its columns by the cards' drawn heights (a second layout).
       this.openComponentsView(definitionId);
       return;
     }
-    this.componentsHeights = undefined;
     this.projectComponentsKey = undefined;
     setCatalogComponentsView(graph, undefined);
     this.replaceRoot(this.currentRoot.breakpoint);
@@ -596,7 +700,13 @@ export class CatalogWorkspace {
         this.runtime.graph,
         catalogGridAutoRows(
           isComponentsView(view)
-            ? catalogOriginEditCommand(this.runtime.graph, command, this.newId)
+            ? catalogOriginEditCommand(
+                this.runtime.graph,
+                command,
+                this.newId,
+                // (A locked Library: its copies take no edit — ADR-282.)
+                view === COMPONENTS_VIEW && !this.libraryUnlocked,
+              )
             : command,
         ),
       ),
@@ -604,7 +714,7 @@ export class CatalogWorkspace {
     this.afterStep(executed.result);
     if (executed.plan.selectAfter)
       this.selectItems(
-        executed.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
+        executed.plan.selectAfter.flatMap((id) => this.selectableItemsOf(id)),
       );
     for (const listener of [...this.executeListeners])
       listener(executed.result);
@@ -634,7 +744,7 @@ export class CatalogWorkspace {
     if (recorded.result) this.afterStep(recorded.result);
     if (recorded.plan?.selectAfter)
       this.selectItems(
-        recorded.plan.selectAfter.flatMap((id) => this.itemsOfNode(id, 1)),
+        recorded.plan.selectAfter.flatMap((id) => this.selectableItemsOf(id)),
       );
     return recorded.result;
   }
@@ -654,6 +764,32 @@ export class CatalogWorkspace {
   }
 
   /** Selection items for a node's drawn positions (`limit` of them, in record order). */
+  /**
+   * ADR-282: an unlocked origin's copy root as its Library card's ◆ draws it — not one of the
+   * instances that project it (every Button on the page is drawn from the copy root too).
+   */
+  libraryOriginItems(id: NodeId): CatalogSelectionItem[] {
+    const records = this.root.domInputs;
+    return this.itemsOfNode(id)
+      .filter(({ identity }) => {
+        const record = records.get(identity);
+        // (Its own record — not another ◆ whose root is an instance of it, a FieldButton's.)
+        return (
+          record?.sourceId === id &&
+          holdsLibraryOrigin(records.get(record.parentId)?.sourceId)
+        );
+      })
+      .slice(0, 1);
+  }
+  /** A node's first drawn position — an unlocked origin's copy root, its Library card's ◆. */
+  private selectableItemsOf(id: NodeId): CatalogSelectionItem[] {
+    const own = this.runtime.graph
+      .definitionOfTemplateRoot(id)
+      ?.startsWith("lib:")
+      ? this.libraryOriginItems(id)
+      : [];
+    return own.length ? own : this.itemsOfNode(id, 1);
+  }
   itemsOfNode(id: NodeId, limit = Infinity): CatalogSelectionItem[] {
     return this.root
       .recordsOfSource(id)

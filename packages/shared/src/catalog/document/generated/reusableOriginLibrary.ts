@@ -568,7 +568,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "isDisabled": "boolean"
     },
     "defaults": {
-      "label": "Toggle Button",
+      "label": "Toggle",
       "size": "M",
       "staticColor": "auto",
       "isEmphasized": false,

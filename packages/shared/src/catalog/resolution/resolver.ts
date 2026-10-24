@@ -564,10 +564,14 @@ export function resolveCatalogNode(
     const definition = lookupDefinition(definitionId);
     if (definition.mode !== "composite" || !definition.templateRootId)
       return definition;
-    const template = library.templates.get(
-      definition.templateRootId as `lib:template:${string}`,
-    );
-    return template ? lookupDefinition(template.definitionId) : definition;
+    // (An unlocked origin's root is its copy — ADR-282.)
+    const rootId = definition.templateRootId;
+    const template = rootId.startsWith("lib:")
+      ? library.templates.get(rootId as `lib:template:${string}`)
+      : graph.getEntry(rootId);
+    return template && "definitionId" in template
+      ? lookupDefinition(template.definitionId)
+      : definition;
   };
   /** A resolved node is a TreeItem (a bound Tree's row — `nestTreeRows`). */
   const isTreeItemRecord = (node: ResolvedCatalogNode) =>
@@ -1191,7 +1195,32 @@ export function resolveCatalogNode(
     const override = findOverride(definitionId)?.stateRules[nodeState];
     return [rule, override].filter((item): item is VisualWrites => !!item);
   };
+  /**
+   * ADR-282: the bindings of an unlocked origin whose copy is drawn as owned nodes (the Library
+   * page card's ◆ — the copy root itself, no instance): the origin's defaults (its override's over
+   * the library's), as its locked sample showed them. Set while that subtree resolves.
+   */
+  let ownedForkBindings: Props | undefined;
   const resolveOwned = (
+    ...args: Parameters<typeof resolveOwnedNode>
+  ): ResolvedCatalogNode | undefined => {
+    const origin = graph.definitionOfTemplateRoot(args[0].id);
+    if (!origin?.startsWith("lib:")) return resolveOwnedNode(...args);
+    const outer = ownedForkBindings;
+    const defaults: Props = {};
+    applyWrites(defaults, findOverride(origin)?.defaults ?? {});
+    // (The open page's display text first — what no prop binds, e.g. an item's `{label}`.)
+    ownedForkBindings = {
+      ...graph.originDisplayBindings(origin),
+      ...templateBindings(origin, defaults),
+    };
+    try {
+      return resolveOwnedNode(...args);
+    } finally {
+      ownedForkBindings = outer;
+    }
+  };
+  const resolveOwnedNode = (
     node: NodeEntry,
     instancePath: readonly (NodeId | TemplateId)[],
     inherited?: {
@@ -1244,6 +1273,10 @@ export function resolveCatalogNode(
       props,
       ownedRow && sampleOwner ? withoutSampleContent(node.props) : node.props,
     );
+    if (ownedForkBindings)
+      for (const key of Object.keys(node.props))
+        if (key in props)
+          props[key] = bindTemplateValue(props[key], ownedForkBindings);
     if (ownedRow) {
       // As on a row template position: only content props read the row (ADR-162 allowlist).
       for (const key of ROW_TEMPLATE_BINDABLE_PROP_KEYS)
@@ -1801,7 +1834,8 @@ export function resolveCatalogNode(
     const shownState =
       root?.displayState ??
       patch?.displayState ??
-      (!("kind" in template) ? template.displayState : undefined);
+      // (An unlocked origin's copy node keeps the library node's — ADR-282.)
+      template.displayState;
     // Inside its RAC collection (its keys) or group (its value) an item's selection is the
     // owner's, so a selection display state of the item template (a selected state origin) is not
     // forced there (ADR-256 후속 7 — the groups).

@@ -85,6 +85,7 @@ import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { toProjectVariableDefs, useDataStore } from "../stores/data";
 import { changedCollectionIds } from "../catalogRuntime/rowsRefresh";
 import type { DataTable } from "../../types/builder/data.types";
+import { notifyEditRefusal } from "../catalogRuntime/operationNotice";
 import { useToastStore } from "../stores/toast";
 import {
   setDataHistoryRecorder,
@@ -333,6 +334,7 @@ export function CatalogBuilderCore() {
   }, []);
   const handleSceneError = useCallback(
     (error: unknown) => {
+      if (notifyEditRefusal(error)) return;
       console.error("[CatalogBuilder] canvas scene:", error);
       toastError(
         t("catalogProject.sceneFailed", {

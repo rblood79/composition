@@ -480,6 +480,26 @@ export class CatalogRuntime {
       "sync",
     );
   }
+  /**
+   * A step the document takes as it opens, not a user action (ADR-282: a Library left unlocked
+   * is locked again): saved like an edit, no history entry (`skip: "load"`).
+   */
+  load(
+    label: string,
+    ops: readonly CatalogOperation[],
+    consumer?: CatalogStepConsumer,
+  ): CatalogTransactionResult {
+    const session = this.current();
+    return this.step(
+      session,
+      label,
+      ops,
+      session.graph.revision,
+      consumer,
+      () => undefined,
+      "load",
+    );
+  }
   undo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
     const session = this.current();
     const entry = session.undo.at(-1);
@@ -538,7 +558,7 @@ export class CatalogRuntime {
     expectedRevision: number,
     consumer: CatalogStepConsumer | undefined,
     record: (result: CatalogTransactionResult) => void,
-    mode: "record" | "sync" = "record",
+    mode: "record" | "sync" | "load" = "record",
   ): CatalogTransactionResult {
     const targets = new Set<string>(
       ops.map((op) => (op.kind === "put" ? op.entry.id : op.id)),
@@ -551,7 +571,7 @@ export class CatalogRuntime {
       history:
         mode === "record"
           ? { kind: "record", label }
-          : { kind: "skip", reason: "sync" },
+          : { kind: "skip", reason: mode },
     });
     const seeds = [...result.changedIds, ...result.removedIds];
     // ADR-265 (C1): the walk reads only the graph's indexes from its seeds. Same seeds and no index
@@ -583,9 +603,13 @@ export class CatalogRuntime {
       session.graph.revertCommit(result.revision);
       throw new CatalogStepAbortedError(label, session.graph.revision, cause);
     }
-    if (mode === "record") {
+    // (A replica's step is the editor's to save.)
+    if (mode !== "sync") {
+      // (As stored: a Components page ◆ cell's drawn origin is the view's — ADR-282 Phase 3. Saved
+      // through `getEntry`, a cell kept a view sample in its children and the project no longer
+      // opened — `entry.children[0]`, user 2026-10-25.)
       const changed = [...result.changedIds].map((id) => {
-        const entry = session.graph.getEntry(id) as CatalogEntry;
+        const entry = session.graph.storedEntry(id) as CatalogEntry;
         return { id, json: JSON.stringify(entry) };
       });
       if (process.env.NODE_ENV === "development")

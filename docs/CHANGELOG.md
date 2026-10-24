@@ -11,10 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-282 Phase 0 ~ 2 — Library page 원본 잠금 해제 · 리셋] - 2026-10-24
+
+### Added
+
+- **Library page 의 기본 원본을 잠금 해제해 전체 편집** (사용자 요청 「잠금 ↔ 해제 · 리셋 아이콘, 해제 뒤 origin 수정」 — ADR-282 Accepted):
+  - Navigator Components 탭 Library 행 오른쪽에 [리셋] [잠금 `lock` ↔ `lock-open`]. 잠금 아이콘은 **Library 전체**의 편집 모드를 켜고 끈다 (사용자 지시 「Library 전체 해제」 — 선택 불필요). 해제하면 모든 원본이 한 step 에 사본이 되고 (「Unlock library」), 다시 잠그면 편집하지 않은 원본은 라이브러리로 돌아가고 편집한 원본만 남는다 (「Lock library」). 잠긴 동안 사본은 편집되지 않는다 — 시도하면 「Library 가 잠겨 있습니다 — Navigator 의 Library 잠금을 풀면 편집할 수 있습니다」 안내가 뜬다 (console 오류 · 「Canvas 가 이 편집을 그리지 못했습니다」 toast 가 아니라 거부 안내 — 단축키 · 메뉴 · Styles 패널 · Navigator 명령 공통, `operationNotice.ts` `notifyEditRefusal`). ◆ 자체의 복제 · 삭제 · 이동은 「원본 자체는 복제 · 삭제 · 이동할 수 없습니다」 (전에는 목록 항목 템플릿 문구 — Local page 원본도 같다).
+  - 해제 · 잠금 뒤 Canvas 에서 ◆ 를 클릭하면 사본 루트가 선택된다 — **Why**: Library page 를 다시 배치할 때 view entry 가 step 밖에서 바뀌어, read model 이 ◆ 칸의 행을 표본 기준으로 들고 있었다 (클릭은 맞는 record 를 찾았지만 선택이 비었다). 다시 배치한 뒤 read model 이 view entry 의 행을 다시 읽는다 (`readModel.ts` `viewEntriesChanged`).
+  - 해제한 채 새로고침 · 닫기를 해도 다음에 열 때 Library 는 잠긴 상태이고, 손대지 않은 사본은 그때 라이브러리로 돌아간다 (편집한 사본만 남음). 저장되지만 History 에는 남지 않는다 — runtime 의 새 `load` step (history `skip: "load"`, `controller.ts` · `compositionRoot.ts` `executeOnLoad`). 전에는 사본 85 개가 남아 잠긴 Library 의 카드가 모두 「· unlocked」 였다.
+  - 해제한 Menu 카드의 Item ◆ (MenuItem) 가 `{label}` 대신 표본처럼 「Item」 을 그린다 (`{shortcut}` · `{description}` 은 비어 그려지지 않음) — 그 글자는 담는 쪽 (Menu) 의 prop 이라 사본에 값이 없었다. Library page 가 ◆ 표시용 값을 등록하고 (`CatalogGraph.setOriginDisplayBindings`), resolver 는 사본 루트를 직접 그릴 때만 읽는다 (instance 무관).
+  - 해제한 원본은 프로젝트가 그 template 의 **사본**을 갖고, 카드의 ◆ 가 사본 루트가 된다 (헤더 「· unlocked」). 자식 추가 · 레이아웃 · fill · breakpoint 까지 Local page 원본처럼 편집되고, 그 원본의 모든 instance — 다른 원본 안의 부품 자리 (Select 의 trigger · Toolbar · NumberField 증감 버튼) 포함 — 가 따른다. instance 마다의 글자 (`{label}`) 는 그대로 instance 값이다.
+  - [리셋] 은 확인 대화상자 (원본 수 · instance 수 · 해제 뒤 새 자리에 채운 내용 수) 뒤 프로젝트가 바꾼 원본 전부를 라이브러리 기본으로 되돌린다 (사본 · 기본값 · 상태 스타일까지). 리셋 뒤 Library 는 잠긴다. 해제 · 잠금 · 리셋 모두 한 번의 undo.
+  - Design 패널 Component 절: 해제된 ◆ 에 원본 기본값 칸 (label · icon · variant …).
+  - 위치: `packages/shared/src/catalog/{document/originFork.ts,commands/originFork.ts,document/graph.ts,transactions/transaction.ts}` · `apps/builder/src/builder/catalogRuntime/{originUnlock.ts,componentsPage.ts,workspace.ts,canvasPick.ts}` · `panels/navigator/catalog/CatalogDefinitionsSection.tsx`
+
+- **Library · Local page = 프로젝트 문서의 page (ADR-282 Phase 3 · 사용자 지시 2026-10-25 「library-body 는 home-body 에 대응」)**:
+  - Components 탭에서 Library · Local 을 처음 열 때 그 page 가 프로젝트 문서에 저장된다 (History 에 남지 않음). 그 뒤로는 Pages 탭의 page 처럼 body · 카드 · 제목 · 줄 · 칸 · 캡션 · ◇ instance 를 고르고 옮기고 지우고 Layout · Style 을 편집한다. Layers 는 page 트리 (body > 카드 > 줄 > ◆ · ◇) 다. body 는 Pages 의 body 처럼 breakpoint 폭 (desktop 1920 · tablet 768 · mobile 390) 이고 높이는 카드만큼 (`100%`), grid 열은 desktop 3 · tablet 2 · mobile 1 (`auto` — body 의 breakpoint 레이어) 이며 카드는 자기 열 폭을 채운다 (`width: 100%`), 카드는 번호 순서로 body 바로 아래 놓인다 (Column frame 없음). 카드의 줄은 grid 하나 — 첫 행 샘플, 아래 행 캡션.
+  - CardView · Badge · Meter · StatusLight · InlineAlert · Card 카드에 Variants 줄 없음 (사용자 요청 2026-10-25).
+  - Origin 줄만 있는 카드는 줄 이름 · 줄 frame 없이 카드가 바로 ◆ · 캡션을 담는다 (제목 바로 뒤에 ◆ — `graph.setViewChildren` 의 위치 인자, 사용자 요청 2026-10-25). 폭을 채우는 원본 (Meter · 필드 · 목록) 은 카드 폭으로 그려진다.
+  - Dialog · Popover · ContextualHelp 카드는 원본 (◆, 본체 열림) 만 그린다 — 옆의 채운 instance (◇) 없음 (사용자 요청 2026-10-25).
+  - ◆ 칸은 원본을 참조만 하고 그린다 (`NodeEntry.originOf`) — 잠긴 원본은 표본, 해제한 · Local 원본은 그 template 루트. 잠금 · 해제 · 리셋 · 컴포넌트 생성 · 삭제는 page 를 건드리지 않는다. Local page 는 컴포넌트 생성 · 삭제 · 이름 변경을 따라 카드를 맞춘다.
+  - Preview · publish 는 이 page 를 싣지 않는다. 사용자에게 보이는 instance 수 (Component 절 · 확인 대화상자) 는 page 의 ◇ 를 세지 않는다.
+  - 대가: 열어 본 프로젝트의 문서가 커진다 — 저장 id 를 짧게 (`project:node:cp-<역할>-<hash>`) 하고 줄 · 칸 · Column frame 을 걷어 Library 464 KB · 1,139 노드 (처음 1 MB · 1,611 노드, 사용자 「Library 가 왜 1mb」). 코드 라이브러리가 바뀌어도 저장된 page 는 그대로다 — 이 변경 전에 저장된 page 도 옛 모양 그대로.
+  - 위치: `packages/shared/src/catalog/document/{componentPages.ts,graph.ts}` (`setViewChildren` · `commandReader`) · `transactions/transaction.ts` · `runtime/controller.ts` (`load`) · `apps/builder/src/builder/catalogRuntime/{componentsPage.ts,workspace.ts,previewChannel.ts,layerTree.ts}`
+
+### Changed
+
+- **ToggleButton 기본 Label 「Toggle Button」 → 「Toggle」** (사용자 요청 2026-10-25) — 원본 기본값 (`reusableOriginLibrary.ts`) · 편집 스키마 기본값 · 기본 props 셋 다. Label 을 직접 적지 않은 ToggleButton 은 모두 「Toggle」 로 보인다.
+- **문서 계약 48** — override 가 사본 (`templateRootId` · `templateMap`) 을 가질 수 있고 노드가 `displayState` · `originOf` 를, project 가 `componentPageIds` 를 가질 수 있다. contract 47 문서는 열리지 않는다 (변환 없음 — 개발 단계 정책). 저장소 샘플 3 개는 번호만 48.
+
 ## [Local page 컴포넌트 slot 삭제 — 채운 instance 가 있으면 거부되던 문제] - 2026-10-24
 
 ### Fixed
 
+- **Library page 의 ◆ 칸을 편집한 프로젝트가 다시 열리지 않던 문제 (`entry.children[0]`)** (ADR-282 Phase 3 · 사용자 보고 2026-10-25): 저장이 바뀐 노드를 view 가 덧붙인 자식 (◆ 표본) 까지 담아 기록했다 — 이제 문서에 저장된 모습 그대로 기록한다 (`controller.ts` → `graph.storedEntry`). 이미 그렇게 저장된 프로젝트는 그대로다.
 - **Local page 원본에서 slot 노드를 지우면 `UNOWNED_NODE` 로 삭제가 거부되던 문제** (ADR-282 리뷰 Round 2 가 재현):
   - **Why**: `removeWithReferrers` 는 지워진 자리를 가리키는 instance override 를 걸러 내면서 `replace` 의 대체 노드만 같이 지웠다. `fillSlot` 의 채움 노드는 남아 소유자를 잃었고, transaction 검증이 거부했다 (문서는 보존됨).
   - 수리: 탈락한 `fillSlot` 의 채움 서브트리도 같은 step 에서 지운다. 그 노드가 가진 interaction · 상태 변수도 함께 정리된다. 한 번의 undo 로 slot · 채움 내용 · override 가 모두 돌아온다.

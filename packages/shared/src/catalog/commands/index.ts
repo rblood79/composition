@@ -71,6 +71,14 @@ export {
   splitPositionLayers,
 } from "./components";
 export {
+  lockOrigins,
+  originResetLoss,
+  resetOrigin,
+  resetOrigins,
+  unlockOrigin,
+  unlockOrigins,
+} from "./originFork";
+export {
   addRecord,
   applyLayout,
   createLayout,

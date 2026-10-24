@@ -18,7 +18,7 @@ import {
   catalogComponentState,
 } from "../componentActions";
 import { CatalogLayerTreeStore } from "../layerTree";
-import { PROJECT_COMPONENTS_VIEW } from "../originView";
+import { componentPageNodeId, PROJECT_COMPONENTS_VIEW } from "../originView";
 import { projectComponentCardId } from "../../../../../../packages/shared/src/catalog/runtime/originViewNode";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -136,16 +136,29 @@ describe("ADR-248 4e definition edit view", () => {
       },
       PROJECT_COMPONENTS_VIEW as never,
     );
-    const [viewBody] = layers.getSnapshot();
-    layers.setExpanded(new Set([viewBody!.id]));
-    const cardRow = layers.getSnapshot()[0]!.children?.[0];
-    expect(cardRow?.position.target).toEqual({
-      kind: "node",
-      id: projectComponentCardId(definitionId),
-    });
+    // The stored Local page is a page tree (ADR-282 Phase 3): body > card > ◆ cell >
+    // the template root, the origin.
+    const originRecord = workspace.itemsOfNode(templateRoot!, 1)[0]!.identity;
+    const path = originRecord.split("::")[0]!.split("/");
+    layers.setExpanded(
+      new Set(path.map((id, at) => `${path.slice(0, at + 1).join("/")}::${id}`)),
+    );
+    type Row = ReturnType<typeof layers.getSnapshot>[number];
+    const find = (rows: readonly Row[] | undefined, id: string): Row | undefined => {
+      for (const row of rows ?? []) {
+        if (row.id === id) return row;
+        const found = find(row.children, id);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const cardId = componentPageNodeId(projectComponentCardId(definitionId));
+    const cardRow = find(
+      layers.getSnapshot(),
+      path.slice(0, path.indexOf(cardId) + 1).join("/") + "::" + cardId,
+    );
     expect(cardRow?.name).toBe(graph.getDefinition(definitionId)?.name);
-    layers.setExpanded(new Set([viewBody!.id, cardRow!.id]));
-    const originRow = layers.getSnapshot()[0]!.children?.[0]!.children?.[0];
+    const originRow = find(layers.getSnapshot(), originRecord);
     expect(originRow?.position.target).toEqual({
       kind: "node",
       id: templateRoot,

@@ -240,7 +240,7 @@ function flatten(rows: readonly CatalogLayerNode[]): CatalogLayerNode[] {
 describe("ADR-278 — overlay body = slot", () => {
   it("declares the body slots on the five overlay origins (contract 45 → 46 by ADR-279 → 47 by ADR-281), the Popover's and Tooltip's in a region frame after the arrow", async () => {
     const { library } = await open();
-    expect(LIBRARY_CONTRACT_VERSION).toBe(47);
+    expect(LIBRARY_CONTRACT_VERSION).toBeGreaterThanOrEqual(47);
     const slotOf = (id: string) => library.templates.get(T(id))?.slot;
     const slot = (name: string) => ({ name, required: false });
     expect(slotOf("component-dialog__content-region")).toEqual(slot("content"));

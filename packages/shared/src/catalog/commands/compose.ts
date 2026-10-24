@@ -48,7 +48,10 @@ export function composeCommands(
  */
 export function stageOver(reader: CatalogReader): CatalogStage {
   if (reader instanceof CatalogStage || !("isViewEntry" in reader)) {
-    const base = reader as CatalogReader & { isViewEntry?: (id: string) => boolean };
+    const base = reader as CatalogReader & {
+      isViewEntry?: (id: string) => boolean;
+      viewChildIds?: (id: string) => readonly NodeId[] | undefined;
+    };
     return new CatalogStage({
       get projectId() {
         return reader.projectId;
@@ -66,6 +69,7 @@ export function stageOver(reader: CatalogReader): CatalogStage {
       definitionOfTemplateRoot: (id: string) =>
         reader.definitionOfTemplateRoot(id),
       isViewEntry: (id: string) => base.isViewEntry?.(id) ?? false,
+      viewChildIds: (id: string) => base.viewChildIds?.(id),
     } as unknown as CatalogGraph);
   }
   return new CatalogStage(reader as CatalogGraph);

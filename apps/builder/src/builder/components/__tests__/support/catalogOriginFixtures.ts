@@ -14,7 +14,7 @@ const ORIGINS: Record<string, LegacyNodeFixture> = {
     props: {
       size: "M",
       staticColor: "auto",
-      children: "Toggle Button",
+      children: "Toggle",
       isEmphasized: false,
       isQuiet: false,
       isSelected: false,

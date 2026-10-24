@@ -31,6 +31,11 @@ import { assertCatalogLibrary, instanceContract } from "./library";
 import { docCounters } from "../docCounters";
 import { componentPropertiesOf } from "./componentProperties";
 import { catalogChildKind } from "../nesting/nestingRules";
+import {
+  catalogBaseLibrary,
+  forkedCatalogLibrary,
+  originForksOf,
+} from "./originFork";
 
 export interface GraphIndexes {
   definitionToInstances: ReadonlyMap<DefinitionId, ReadonlySet<NodeId>>;
@@ -89,8 +94,9 @@ export function tokenRefs(value: unknown, target: Set<string>): void {
 }
 export function ownedChildren(entry: CatalogEntry): NodeId[] {
   if (entry.kind === "page") return [...entry.children];
-  // A definition owns its template root (ADR-279 — a component's origin lives on the Local page).
-  if (entry.kind === "definition")
+  // A definition owns its template root (ADR-279 — a component's origin lives on the Local page);
+  // an unlocked library origin's override owns its template copy (ADR-282).
+  if (entry.kind === "definition" || entry.kind === "definitionOverride")
     return entry.templateRootId ? [entry.templateRootId] : [];
   if (entry.kind !== "node") return [];
   const ids = [...entry.children];
@@ -281,6 +287,8 @@ function edgesOf(entry: CatalogEntry, withOwner = true): Edge[] {
     edges.push({ type: "token", key: token, target: entry.id });
   return edges;
 }
+/** A prop that is one template binding (`"{isDisabled}"` — the resolver's `WHOLE_TEMPLATE_BINDING`). */
+const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 /** A prop value against its declared type — the shared rule (`catalogPropValueFits`). */
 const propValueMatches = catalogPropValueFits;
 function edgeKey(edge: Edge): string {
@@ -391,10 +399,13 @@ export class CatalogGraph {
     transactionIndexEdgesUpdated: 0,
   };
   readonly projectId: EntryId<"project">;
-  readonly library: CatalogLibrary;
+  /** The code library (no document's forks). */
+  readonly codeLibrary: CatalogLibrary;
+  private forkedLibrary: CatalogLibrary | undefined;
 
   constructor(document: CatalogDocument, library: CatalogLibrary) {
     validateCatalogDocument(document);
+    library = catalogBaseLibrary(library);
     assertCatalogLibrary(library);
     if (document.libraryContractVersion !== library.contractVersion)
       throw new CatalogValidationError(
@@ -402,7 +413,7 @@ export class CatalogGraph {
         "document.libraryContractVersion",
       );
     this.projectId = document.projectId;
-    this.library = library;
+    this.codeLibrary = library;
     this.currentRevision = document.revision;
     for (const entry of Object.values(document.entries))
       this.table.set(entry.id, ownedRecord(entry));
@@ -433,6 +444,23 @@ export class CatalogGraph {
   get revision(): number {
     return this.currentRevision;
   }
+  /**
+   * The library as the committed document reads it (ADR-282 — an unlocked origin's template is the
+   * copy its override owns; `forkedCatalogLibrary`). Rebuilt after a commit that changes an override.
+   */
+  get library(): CatalogLibrary {
+    return (this.forkedLibrary ??= forkedCatalogLibrary(
+      this.codeLibrary,
+      originForksOf((id) => this.table.get(id), this.projectId),
+    ));
+  }
+  /** The library as `get` reads the document (a staged transaction's view — ADR-282). */
+  libraryFor(get: (id: string) => CatalogEntry | undefined): CatalogLibrary {
+    return forkedCatalogLibrary(
+      this.codeLibrary,
+      originForksOf(get, this.projectId),
+    );
+  }
   get size(): number {
     return this.table.size;
   }
@@ -446,7 +474,70 @@ export class CatalogGraph {
     return { ...this.lastMetrics };
   }
   getEntry(id: string): CatalogEntry | undefined {
-    return this.table.get(id) ?? this.viewEntries.get(id)?.();
+    const stored = this.table.get(id);
+    if (!stored) return this.viewEntries.get(id)?.();
+    const drawn = this.viewChildren.get(id);
+    if (!drawn || stored.kind !== "node") return stored;
+    const ids = drawn.compute();
+    if (!ids.length) return stored;
+    const at = Math.min(drawn.at, stored.children.length);
+    return {
+      ...stored,
+      children: [
+        ...stored.children.slice(0, at),
+        ...ids,
+        ...stored.children.slice(at),
+      ],
+    };
+  }
+  private readonly viewChildren = new Map<
+    string,
+    { at: number; compute: () => readonly NodeId[] }
+  >();
+  /**
+   * ADR-282 Phase 3 — children a view draws in a stored node, after its first `at` children (a
+   * Components page ◆ cell: its origin's sample, or the template root a definition or an
+   * override owns — a card that holds its ◆ draws it after its title). Read like the node's
+   * children, never part of the document — the transaction stage drops them from every write
+   * (`viewChildIds`), and exports, saves and indexes read the stored node. `undefined` removes it.
+   */
+  setViewChildren(
+    id: NodeId,
+    at: number,
+    compute?: () => readonly NodeId[],
+  ): void {
+    if (compute) this.viewChildren.set(id, { at, compute });
+    else this.viewChildren.delete(id);
+  }
+  private commandView: CatalogGraph | undefined;
+  /**
+   * ADR-282 Phase 3 — the graph as commands and transactions read it: stored entries and view
+   * entries, without the children a view draws in a stored node (`setViewChildren`). A command
+   * that walks a ◆ cell (deletes its card, rewrites addresses) must not take the origin it draws.
+   */
+  get commandReader(): CatalogGraph {
+    return (this.commandView ??= new Proxy(this, {
+      get: (target, key) => {
+        if (key === "getEntry")
+          return (id: string) =>
+            target.table.get(id) ?? target.viewEntries.get(id)?.();
+        if (key === "commandReader") return target.commandView;
+        const value = Reflect.get(target, key, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }));
+  }
+  /** A document entry as stored (no view entry, no view children). */
+  storedEntry(id: string): CatalogEntry | undefined {
+    return this.table.get(id);
+  }
+  /** The stored nodes a view adds children to (their rows follow the view's relayout). */
+  viewChildNodeIds(): readonly string[] {
+    return [...this.viewChildren.keys()];
+  }
+  /** The view children `getEntry` adds to a stored node (none = `undefined`). */
+  viewChildIds(id: string): readonly NodeId[] | undefined {
+    return this.viewChildren.get(id)?.compute();
   }
   /**
    * Derived view entries (HC2 — a derived view is never a write source): a node read like an
@@ -458,6 +549,26 @@ export class CatalogGraph {
     if (this.table.has(id)) throw new Error(`VIEW_ENTRY_ID_TAKEN:${id}`);
     if (compute) this.viewEntries.set(id, compute);
     else this.viewEntries.delete(id);
+  }
+  private originDisplay: ReadonlyMap<
+    string,
+    Readonly<Record<string, string>>
+  > = new Map();
+  /**
+   * ADR-282 — what the open derived page shows for an origin's template text no prop binds (the
+   * Library card's item ◆: a MenuItem's `{label}` — its holder fills it — as its sample's
+   * "Item"). Display only: the resolver reads it for an unlocked origin's copy root resolved
+   * itself (the ◆), never for an instance.
+   */
+  setOriginDisplayBindings(
+    bindings: ReadonlyMap<string, Readonly<Record<string, string>>>,
+  ): void {
+    this.originDisplay = bindings;
+  }
+  originDisplayBindings(
+    definitionId: string,
+  ): Readonly<Record<string, string>> | undefined {
+    return this.originDisplay.get(definitionId);
   }
   /** The ids of the derived view entries (none, or the one the open view draws). */
   viewEntryIds(): readonly string[] {
@@ -623,12 +734,14 @@ export class CatalogGraph {
       if (old?.kind === "definitionOverride") {
         this.overrideIndex.delete(old.targetId);
         this.overrideTarget.delete(old.id);
+        if (old.templateRootId) this.forkedLibrary = undefined;
       }
       if (entry === null) this.table.delete(id);
       else this.table.set(id, entry);
       if (entry?.kind === "definitionOverride") {
         this.overrideIndex.set(entry.targetId, entry.id);
         this.overrideTarget.set(entry.id, entry.targetId);
+        if (entry.templateRootId) this.forkedLibrary = undefined;
       }
       this.dirty.add(id);
     }
@@ -647,11 +760,17 @@ export class CatalogGraph {
   referrersOf(id: string): ReadonlySet<string> {
     return this.refIndex.get(id) ?? new Set();
   }
-  /** The project definition whose template root `id` is (the reverse of `templateRootId`). */
-  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined {
+  /**
+   * The definition whose template root `id` is (the reverse of `templateRootId`): a project
+   * definition, or an unlocked library origin whose override owns `id` (ADR-282).
+   */
+  definitionOfTemplateRoot(id: string): DefinitionId | undefined {
     const found = this.templateIndex.get(id);
-    return found
-      ? (found.values().next().value as EntryId<"definition">)
+    if (found) return found.values().next().value as EntryId<"definition">;
+    const owner = this.ownerByChild.get(id);
+    const entry = owner ? this.table.get(owner) : undefined;
+    return entry?.kind === "definitionOverride" && entry.templateRootId === id
+      ? entry.targetId
       : undefined;
   }
   /** Committed nodes bound to a data collection (the Data panel's usage, no scan). */
@@ -680,6 +799,7 @@ export class CatalogGraph {
   validateStructuralDelta(
     staged: ReadonlyMap<string, CatalogEntry | null>,
     get: (id: string) => CatalogEntry | undefined,
+    library: CatalogLibrary = this.libraryFor(get),
   ): void {
     const root = get(this.projectId);
     if (root?.kind !== "project")
@@ -688,6 +808,7 @@ export class CatalogGraph {
       const listed = new Set<string>();
       for (const ids of [
         root.pageIds,
+        root.componentPageIds ?? [],
         root.definitionIds,
         root.overrideIds,
         root.themeIds,
@@ -795,7 +916,9 @@ export class CatalogGraph {
         top = cursor;
       }
       // A subtree placed inside a template may contain an instance of that template.
-      if (get(top)?.kind === "definition") definitionsChanged = true;
+      const topKind = get(top)?.kind;
+      if (topKind === "definition" || topKind === "definitionOverride")
+        definitionsChanged = true;
     }
     // Committed entries whose references read a staged record are re-validated.
     const referrers = new Set<string>();
@@ -837,13 +960,28 @@ export class CatalogGraph {
         if (others.length)
           throw new CatalogValidationError("DUPLICATE_TEMPLATE_ROOT", root);
       }
-      // A template root carries its definition's instance contract.
-      for (const owner of [ownerAfter(id), this.ownerByChild.get(id)])
-        if (owner && get(owner)?.kind === "definition") {
+      // A template root carries its definition's instance contract (an unlocked origin's copy
+      // root its origin's — ADR-282).
+      for (const owner of [ownerAfter(id), this.ownerByChild.get(id)]) {
+        const ownerEntry = owner ? get(owner) : undefined;
+        if (ownerEntry?.kind === "definition") {
           definitionsChanged = true;
-          for (const instance of this.instancesOf(owner))
+          for (const instance of this.instancesOf(ownerEntry.id))
+            referrers.add(instance);
+        } else if (
+          ownerEntry?.kind === "definitionOverride" &&
+          ownerEntry.templateRootId === id
+        ) {
+          definitionsChanged = true;
+          for (const instance of this.instancesOf(ownerEntry.targetId))
             referrers.add(instance);
         }
+      }
+      if (
+        entry?.kind === "definitionOverride" ||
+        before?.kind === "definitionOverride"
+      )
+        definitionsChanged = true;
       if (
         (entry?.kind === "node" &&
           entry.definitionId.startsWith("project:definition:")) ||
@@ -855,7 +993,7 @@ export class CatalogGraph {
     for (const referrer of referrers) {
       if (staged.has(referrer)) continue;
       const entry = get(referrer);
-      if (entry) this.validateEntryReferences(entry, get);
+      if (entry) this.validateEntryReferences(entry, get, library, ownerAfter);
     }
     const released = new Set<string>();
     for (const [id, entry] of staged) {
@@ -875,7 +1013,7 @@ export class CatalogGraph {
       const definitions = root.definitionIds
         .map((id) => get(id))
         .filter((entry): entry is CatalogEntry => !!entry);
-      this.validateDefinitionCycles(get, definitions);
+      this.validateDefinitionCycles(get, definitions, library);
     }
   }
 
@@ -889,6 +1027,7 @@ export class CatalogGraph {
     const listed = new Set<string>([root.id]);
     for (const ids of [
       root.pageIds,
+      root.componentPageIds ?? [],
       root.definitionIds,
       root.overrideIds,
       root.themeIds,
@@ -913,6 +1052,10 @@ export class CatalogGraph {
     const templateRoots = new Set<string>();
     const overrides = new Set<string>();
     const entryIds = new Set(entries.map((entry) => entry.id));
+    // (The owners as the view reads them, for the copy of an unlocked origin — ADR-282 R7.)
+    const ownerInView = new Map<string, string>();
+    for (const entry of entries)
+      for (const child of ownedChildren(entry)) ownerInView.set(child, entry.id);
     if (entries.length !== entryIds.size)
       throw new CatalogValidationError("DUPLICATE_ID", "entries");
     for (const entry of entries) {
@@ -949,7 +1092,9 @@ export class CatalogGraph {
         if (get(child)?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", child);
       }
-      this.validateEntryReferences(entry, get);
+      this.validateEntryReferences(entry, get, this.library, (id) =>
+        ownerInView.get(id),
+      );
     }
     for (const entry of entries)
       if (entry.kind === "node" && !owners.has(entry.id))
@@ -973,11 +1118,34 @@ export class CatalogGraph {
   validateEntryReferences(
     entry: CatalogEntry,
     get: (id: string) => CatalogEntry | undefined,
+    /** The library as `get` reads the document (ADR-282 — a transaction's staged forks). */
+    library: CatalogLibrary = this.library,
+    /** Owner of a node as `get` reads the document (an unlocked origin's copy — ADR-282 R7). */
+    ownerOf: (id: string) => string | undefined = (id) => this.ownerOf(id),
   ): void {
     const lookupDefinition = (id: DefinitionId) =>
       id.startsWith("lib:")
-        ? this.library.definitions.get(id as `lib:definition:${string}`)
+        ? library.definitions.get(id as `lib:definition:${string}`)
         : (get(id) as DefinitionEntry | undefined);
+    /**
+     * ADR-282 Decision 8 — a node of an unlocked origin's copy keeps the library template's
+     * bindings (`"{isDisabled}"`): the accepts of the origin whose copy holds it (owner chain).
+     */
+    const forkOriginAccepts = (id: string) => {
+      const seen = new Set<string>();
+      for (
+        let cursor = ownerOf(id);
+        cursor && !seen.has(cursor);
+        cursor = ownerOf(cursor)
+      ) {
+        seen.add(cursor);
+        const owner = get(cursor);
+        if (owner?.kind === "definitionOverride")
+          return library.definitions.get(owner.targetId)?.accepts;
+        if (owner?.kind !== "node") return undefined;
+      }
+      return undefined;
+    };
     // A composite instance is its template root: it takes the root's props plus its schema.
     const contractOf = (definition: DefinitionEntry | LibraryDefinition) =>
       instanceContract(
@@ -985,7 +1153,7 @@ export class CatalogGraph {
         (id) => lookupDefinition(id as DefinitionId) as LibraryDefinition,
         (id) =>
           id.startsWith("lib:")
-            ? this.library.templates.get(id as `lib:template:${string}`)
+            ? library.templates.get(id as `lib:template:${string}`)
             : (get(id) as { definitionId: string } | undefined),
       );
     if (entry.kind === "node") {
@@ -999,8 +1167,12 @@ export class CatalogGraph {
         if (!lookupDefinition(id))
           throw new CatalogValidationError("DANGLING_DEFINITION", id);
       const definition = { ...found, ...contractOf(found) };
-      this.validatePropWrites(entry.props, definition.accepts, entry.id);
-      this.validatePropChoices(entry.props, definition, get, entry.id);
+      this.validatePropWrites(entry.props, definition.accepts, entry.id, () =>
+        forkOriginAccepts(entry.id),
+      );
+      this.validatePropChoices(entry.props, definition, get, entry.id, () =>
+        forkOriginAccepts(entry.id),
+      );
       // ADR-258 Decision 8 — the last line: a color space · channel combination RAC throws on
       //   (the panel and the AI normalize before writing; import · paste · direct commands land here).
       const colorError = catalogColorControlPropsError(
@@ -1024,7 +1196,7 @@ export class CatalogGraph {
           entry,
           override.address,
           get,
-          this.library,
+          library,
         );
         // Filling a template position with instance-owned children: a declared slot, or a part
         // that takes children (ADR-256 Decision 4 — its RAC children kind is items or free content;
@@ -1077,11 +1249,11 @@ export class CatalogGraph {
       if (
         entry.kind === "definition" &&
         entry.bindingId &&
-        !this.library.execution.bindingIds.has(entry.bindingId)
+        !library.execution.bindingIds.has(entry.bindingId)
       )
         throw new CatalogValidationError("UNKNOWN_BINDING_ID", entry.bindingId);
       if (entry.kind === "definitionOverride") {
-        const target = this.library.definitions.get(entry.targetId);
+        const target = library.definitions.get(entry.targetId);
         if (!target)
           throw new CatalogValidationError(
             "DANGLING_DEFINITION",
@@ -1089,6 +1261,37 @@ export class CatalogGraph {
           );
         this.validatePropWrites(entry.defaults, target.accepts, entry.id);
         this.validatePropChoices(entry.defaults, target, get, entry.id);
+        if (entry.templateRootId) {
+          // ADR-282: the copy stands for the origin's library template — its root is the library
+          // root's type, every mapped node is a node, every key a node of the library template.
+          const libraryRoot = this.codeLibrary.definitions.get(entry.targetId)
+            ?.templateRootId as `lib:template:${string}` | undefined;
+          const root = get(entry.templateRootId);
+          if (
+            !libraryRoot ||
+            root?.kind !== "node" ||
+            root.definitionId !==
+              this.codeLibrary.templates.get(libraryRoot)?.definitionId ||
+            entry.templateMap?.[libraryRoot] !== entry.templateRootId
+          )
+            throw new CatalogValidationError(
+              "INVALID_ORIGIN_TEMPLATE_ROOT",
+              entry.id,
+            );
+          for (const [templateId, nodeId] of Object.entries(
+            entry.templateMap ?? {},
+          ))
+            if (
+              !this.codeLibrary.templates.has(
+                templateId as `lib:template:${string}`,
+              ) ||
+              get(nodeId)?.kind !== "node"
+            )
+              throw new CatalogValidationError(
+                "INVALID_ORIGIN_TEMPLATE_ROOT",
+                `${entry.id}.${templateId}`,
+              );
+        }
         this.validateTokenFields(entry.defaults, target.accepts, get, entry.id);
         this.validateTokenFields(entry.visual, undefined, get, entry.id);
         this.validateStateTokenRules(entry.stateRules, get, entry.id);
@@ -1110,10 +1313,10 @@ export class CatalogGraph {
       if (owner?.kind !== "node")
         throw new CatalogValidationError("DANGLING_OWNER", entry.ownerId);
       if (entry.address)
-        validateInstanceAddress(owner, entry.address, get, this.library);
-      if (!this.library.execution.triggerIds.has(entry.trigger))
+        validateInstanceAddress(owner, entry.address, get, library);
+      if (!library.execution.triggerIds.has(entry.trigger))
         throw new CatalogValidationError("UNKNOWN_TRIGGER_ID", entry.trigger);
-      if (!this.library.execution.actionOpCodes.has(entry.action.opcode))
+      if (!library.execution.actionOpCodes.has(entry.action.opcode))
         throw new CatalogValidationError(
           "UNKNOWN_ACTION_OPCODE",
           entry.action.opcode,
@@ -1130,7 +1333,7 @@ export class CatalogGraph {
             entry.action.targetId,
           );
         if (
-          !this.library.execution.capabilityIds.has(entry.action.capabilityId)
+          !library.execution.capabilityIds.has(entry.action.capabilityId)
         )
           throw new CatalogValidationError(
             "UNKNOWN_CAPABILITY_ID",
@@ -1203,7 +1406,7 @@ export class CatalogGraph {
     tokenRefs(entry, tokenIds);
     for (const token of tokenIds) {
       const found = token.startsWith("lib:")
-        ? this.library.tokens.get(token as `lib:token:${string}`)
+        ? library.tokens.get(token as `lib:token:${string}`)
         : (get(token) as { kind: string } | undefined);
       if (!found || ("kind" in found && found.kind !== "token"))
         throw new CatalogValidationError("DANGLING_TOKEN", token);
@@ -1214,13 +1417,22 @@ export class CatalogGraph {
     props: Readonly<Record<string, { kind: string; value?: unknown }>>,
     accepts: Readonly<Record<string, string>>,
     at: string,
+    /** The accepts a whole `{key}` binding may name (an unlocked origin's copy — ADR-282). */
+    bindingAccepts?: () => Readonly<Record<string, string>> | undefined,
   ): void {
     for (const [key, write] of Object.entries(props)) {
       const type = accepts[key];
       if (!type)
         throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
-      if (write.kind === "set" && !propValueMatches(write.value, type))
+      if (write.kind === "set" && !propValueMatches(write.value, type)) {
+        // (One binding of the origin's prop of the same type — the library template rule.)
+        const bound =
+          typeof write.value === "string"
+            ? WHOLE_TEMPLATE_BINDING.exec(write.value)
+            : null;
+        if (bound && bindingAccepts?.()?.[bound[1]] === type) continue;
         throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
+      }
     }
   }
   private validatePropChoices(
@@ -1228,12 +1440,22 @@ export class CatalogGraph {
     definition: DefinitionEntry | LibraryDefinition,
     get: (id: string) => CatalogEntry | undefined,
     at: string,
+    /** The accepts a whole `{key}` binding may name (an unlocked origin's copy — ADR-282). */
+    bindingAccepts?: () => Readonly<Record<string, string>> | undefined,
   ): void {
     if (!("propChoices" in definition) || !definition.propChoices) return;
     for (const [key, choices] of Object.entries(definition.propChoices)) {
       const write = props[key];
       if (write?.kind !== "set") continue;
       const raw = write.value;
+      // (One binding of the origin's prop of the same type: the instance's value is checked there.)
+      const bound =
+        typeof raw === "string" ? WHOLE_TEMPLATE_BINDING.exec(raw) : null;
+      if (
+        bound &&
+        bindingAccepts?.()?.[bound[1]] === definition.accepts[key]
+      )
+        continue;
       const value =
         raw && typeof raw === "object" && "tokenId" in raw
           ? (raw.tokenId as string).startsWith("lib:")
@@ -1329,10 +1551,21 @@ export class CatalogGraph {
   private validateDefinitionCycles(
     get: (id: string) => CatalogEntry | undefined,
     entries: readonly CatalogEntry[],
+    library: CatalogLibrary = this.library,
   ): void {
     const definitions = entries.filter(
       (item): item is DefinitionEntry => item.kind === "definition",
     );
+    // ADR-282: an unlocked origin's copy is its template — a copy holding an instance of an origin
+    // whose template reaches it back (directly, or through a library template — the Select's
+    // Button part) is a cycle. Library templates are walked only when the document has forks.
+    const project = get(this.projectId);
+    const forks = (project?.kind === "project" ? project.overrideIds : [])
+      .map((id) => get(id))
+      .filter(
+        (item): item is DefinitionOverrideEntry =>
+          item?.kind === "definitionOverride" && !!item.templateRootId,
+      );
     const visiting = new Set<string>();
     const visited = new Set<string>();
     const visit = (id: string): void => {
@@ -1340,27 +1573,42 @@ export class CatalogGraph {
         throw new CatalogValidationError("DEFINITION_CYCLE", id);
       if (visited.has(id)) return;
       visiting.add(id);
-      const definition = get(id) as DefinitionEntry | undefined;
-      if (definition?.templateRootId) {
-        const walk = (nodeId: NodeId, seen: Set<NodeId>): void => {
+      const rootId = id.startsWith("lib:")
+        ? library.definitions.get(id as LibraryDefinitionId)?.templateRootId
+        : (get(id) as DefinitionEntry | undefined)?.templateRootId;
+      if (rootId) {
+        const walk = (nodeId: string, seen: Set<string>): void => {
           if (seen.has(nodeId)) return;
           seen.add(nodeId);
           if (process.env.NODE_ENV === "development")
             docCounters.definitionCycleChecks += 1;
+          if (nodeId.startsWith("lib:")) {
+            const template = library.templates.get(
+              nodeId as `lib:template:${string}`,
+            );
+            if (!template) return;
+            visit(template.definitionId);
+            for (const child of template.children) walk(child, seen);
+            return;
+          }
           const node = get(nodeId) as NodeEntry | undefined;
           if (!node) return;
-          if (node.definitionId.startsWith("project:definition:"))
+          if (
+            node.definitionId.startsWith("project:definition:") ||
+            (forks.length && node.definitionId.startsWith("lib:"))
+          )
             visit(node.definitionId);
           // Every child the template projects: its children and its `replace` · `fillSlot`
           // nodes (ADR-260 Decision 12 — a self instance in a slot fill is a cycle too).
           for (const child of ownedChildren(node)) walk(child, seen);
         };
-        walk(definition.templateRootId, new Set());
+        walk(rootId, new Set());
       }
       visiting.delete(id);
       visited.add(id);
     };
     for (const definition of definitions) visit(definition.id);
+    for (const fork of forks) visit(fork.targetId);
   }
   private indexFor(type: EdgeType): MutableIndex {
     if (type === "definition") return this.definitionIndex;

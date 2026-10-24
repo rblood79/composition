@@ -34,17 +34,45 @@ export function EditingSemanticsImpactDialogHost() {
   };
 
   const isDetachRequest = request?.kind === "detach-instance";
+  const resetRequest = request?.kind === "origin-reset" ? request : undefined;
+  const impactRequest =
+    request && request.kind !== "origin-reset" && request.kind !== "detach-instance"
+      ? request
+      : undefined;
   const instanceCount = isDetachRequest ? 1 : (request?.instanceCount ?? 0);
   const instanceLabel =
     instanceCount === 1 ? "1 instance" : `${instanceCount} instances`;
   const previewInstanceIds =
-    request && !isDetachRequest ? request.impactedInstanceIds.slice(0, 5) : [];
+    impactRequest ? impactRequest.impactedInstanceIds.slice(0, 5) : [];
   const hiddenInstanceCount = Math.max(
     0,
     instanceCount - previewInstanceIds.length,
   );
-  const title = isDetachRequest ? "Detach instance" : "Component impact";
-  const body = isDetachRequest ? (
+  const title = isDetachRequest
+    ? "Detach instance"
+    : resetRequest
+      ? "Reset origins"
+      : "Component impact";
+  const body = resetRequest ? (
+    <>
+      <p>
+        Resetting{" "}
+        <strong>
+          {resetRequest.originCount === 1
+            ? "1 origin"
+            : `${resetRequest.originCount} origins`}
+        </strong>{" "}
+        to the library default will affect <strong>{instanceLabel}</strong>.
+      </p>
+      {resetRequest.lostNodeCount > 0 && (
+        <p>
+          Content filled at positions added after unlocking —{" "}
+          {resetRequest.lostNodeCount} node(s) in{" "}
+          {resetRequest.lostInstanceCount} instance(s) — will be removed.
+        </p>
+      )}
+    </>
+  ) : isDetachRequest ? (
     <p>
       Detaching <strong>{request?.instanceLabel ?? "this instance"}</strong>{" "}
       will turn it into a standalone element. Future origin changes will no
@@ -53,11 +81,11 @@ export function EditingSemanticsImpactDialogHost() {
   ) : (
     <>
       <p>
-        Editing {request?.originLabel ?? "this component"} will affect{" "}
+        Editing {impactRequest?.originLabel ?? "this component"} will affect{" "}
         <strong>{instanceLabel}</strong>.
       </p>
       <p className="editing-impact-meta">
-        Counted in {request?.countDurationMs.toFixed(1) ?? "0.0"}ms.
+        Counted in {impactRequest?.countDurationMs.toFixed(1) ?? "0.0"}ms.
       </p>
     </>
   );

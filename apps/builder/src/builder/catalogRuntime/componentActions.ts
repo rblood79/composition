@@ -1,3 +1,4 @@
+import { projectInstancesOf } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import {
   componentOriginOf,
   createComponent,
@@ -40,6 +41,11 @@ export interface CatalogComponentState {
    * page — ADR-279), a layout's root in its edit view, or the sample of a built-in origin.
    */
   originOf?: CatalogComponentRef;
+  /**
+   * ADR-282: the node is an unlocked library origin's copy root (the Library page's ◆) — its own
+   * fields are the template's; the origin's defaults (`accepts`) are its override's.
+   */
+  unlocked?: true;
 }
 
 /** The definition a component: a project component (not a layout) or a built-in library origin. */
@@ -74,7 +80,7 @@ function componentRef(
           definitionId as `lib:definition:${string}`,
         ),
     project,
-    instanceIds: [...graph.instancesOf(definitionId)] as NodeId[],
+    instanceIds: projectInstancesOf(graph, definitionId) as NodeId[],
   };
 }
 
@@ -126,6 +132,12 @@ export function catalogComponentState(
       const originOf = componentRef(graph, origin);
       if (originOf) return { originOf };
     }
+    // ADR-282: an unlocked library origin's copy root is that origin.
+    const unlocked = graph.definitionOfTemplateRoot(target.id);
+    if (unlocked?.startsWith("lib:")) {
+      const originOf = componentRef(graph, unlocked);
+      if (originOf) return { originOf, unlocked: true };
+    }
     if (definitionView) {
       const viewed = graph.getEntry(definitionView);
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id) {
@@ -158,6 +170,8 @@ export function catalogComponentRole(
     if (originOfEditableSample(target.id)) return "origin";
     const origin = componentOriginOf(graph, target.id);
     if (origin && componentDefinition(graph, origin)) return "origin";
+    if (graph.definitionOfTemplateRoot(target.id)?.startsWith("lib:"))
+      return "origin";
     if (definitionView) {
       const viewed = graph.getEntry(definitionView);
       if (viewed?.kind === "definition" && viewed.templateRootId === target.id)

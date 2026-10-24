@@ -8,6 +8,7 @@ import type {
   DefinitionId,
   EditTarget,
   InstanceAddress,
+  LibraryDefinitionId,
   NodeEntry,
   NodeId,
   ResponsiveBreakpointName,
@@ -51,6 +52,8 @@ import { catalogSwapPlan } from "../../../catalogRuntime/swapInstance";
 import { CatalogSwapPicker } from "./CatalogSwapPicker";
 import { CatalogInstancePropertiesRows } from "./CatalogInstancePropertiesSection";
 import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
+import { catalogOriginOverride } from "../../../catalogRuntime/originView";
+import { setLibraryDefault } from "../../../../../../../packages/shared/src/catalog/commands";
 
 const ComponentIcon = ACTION_ICONS.component;
 
@@ -213,13 +216,16 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const stateKey = useSyncExternalStore(subscribe, () =>
     JSON.stringify(catalogComponentState(graph, target, definitionView)),
   );
-  const { instanceOf, originOf } = JSON.parse(stateKey) as ReturnType<
-    typeof catalogComponentState
-  >;
+  const { instanceOf, originOf, unlocked } = JSON.parse(
+    stateKey,
+  ) as ReturnType<typeof catalogComponentState>;
   const component = instanceOf ?? originOf;
   const own = useCatalogOwnFields(target);
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
-  const listsOwn = !!instanceOf || (!!originOf && !originOf.project);
+  // (An unlocked origin's copy root: its own fields are its template's, not the project's
+  // defaults — those are its override's, edited below — ADR-282.)
+  const listsOwn =
+    !!instanceOf || (!!originOf && !originOf.project && !unlocked);
   const rootTarget: EditTarget = target;
   // The instance's writes at its template positions (the old list's `path.field` rows) and its
   // root's whole · state · breakpoint overrides (ADR-262 — every kind a Reset reaches).
@@ -515,6 +521,11 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           />
         </div>
       )}
+      {unlocked && originOf && (
+        <CatalogOriginDefaultsRows
+          definitionId={originOf.definitionId as LibraryDefinitionId}
+        />
+      )}
       <div className="fieldset-row">
         <div className="component-semantics-strip">
           {instanceOf && (
@@ -644,3 +655,61 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     </PropertySection>
   );
 });
+
+/**
+ * ADR-282 Decision 3: an unlocked origin's defaults — its `accepts` text values every instance
+ * shows unless it writes its own (the composite namespace: the copy root's own props are the
+ * template's) — edited as the locked ◆'s Property fields were (`setLibraryDefault`).
+ */
+function CatalogOriginDefaultsRows({
+  definitionId,
+}: {
+  definitionId: LibraryDefinitionId;
+}) {
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const graph = workspace.runtime.graph;
+  const subscribe = useCallback(
+    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
+    [workspace],
+  );
+  const key = useSyncExternalStore(subscribe, () => {
+    const definition = graph.library.definitions.get(definitionId);
+    const written = catalogOriginOverride(graph, definitionId)?.defaults ?? {};
+    return JSON.stringify(
+      Object.entries(definition?.accepts ?? {})
+        .filter(([, type]) => type === "string")
+        .map(([prop]) => {
+          const write = written[prop];
+          const value =
+            write?.kind === "set" ? write.value : definition?.defaults[prop];
+          return [prop, typeof value === "string" ? value : ""];
+        }),
+    );
+  });
+  const fields = JSON.parse(key) as [string, string][];
+  if (!fields.length) return null;
+  return (
+    <>
+      {fields.map(([prop, value]) => (
+        <div className="fieldset-row" data-wide="true" key={prop}>
+          <PropertyInput
+            label={prop}
+            value={value}
+            onChange={(next) =>
+              run(
+                setLibraryDefault({
+                  definitionId,
+                  scope: "defaults",
+                  key: prop,
+                  write: { kind: "set", value: next },
+                  newId: workspace.newId,
+                }),
+              )
+            }
+          />
+        </div>
+      ))}
+    </>
+  );
+}

@@ -39,9 +39,12 @@ import {
   originCardId,
   originInstanceId,
   originOfPageInstance,
+  isPageInstance,
+  isComponentPageNode,
   originOfSample,
   originSampleId,
   themeSampleId,
+  componentPageNodeId,
 } from "./originViewNode";
 
 export {
@@ -62,17 +65,26 @@ export {
   originCardId,
   originInstanceId,
   originOfPageInstance,
+  isPageInstance,
+  isComponentPageNode,
   originOfSample,
   originSampleId,
   themeSampleId,
+  componentPageNodeId,
 };
 
 /** The origin a Components page node is the editable sample of. */
 export const originOfEditableSample = originOfSample;
 
+/**
+ * An edit the Components page does not take: `ORIGIN_ROOT_ONLY` — a sample takes its root props ·
+ * styles only; `LIBRARY_LOCKED` — the Library is locked (ADR-282: unlocking it lets the edit run).
+ */
 export class CatalogOriginEditError extends Error {
-  constructor() {
-    super("ORIGIN_ROOT_ONLY");
+  constructor(
+    readonly code: "ORIGIN_ROOT_ONLY" | "LIBRARY_LOCKED" = "ORIGIN_ROOT_ONLY",
+  ) {
+    super(code);
     this.name = "CatalogOriginEditError";
   }
 }
@@ -107,6 +119,24 @@ export function catalogOriginOverride(
   return undefined;
 }
 
+/** An unlocked origin's copy node an operation writes (its owner chain reaches an override). */
+const forkNodeOf = (reader: CatalogReader, op: CatalogOperation) => {
+  const id = op.kind === "put" ? op.entry.id : "id" in op ? op.id : undefined;
+  if (id === undefined || !id.startsWith("project:node:")) return undefined;
+  const seen = new Set<string>();
+  for (
+    let cursor: string | undefined = id;
+    cursor && !seen.has(cursor);
+    cursor = reader.ownerOf(cursor)
+  ) {
+    seen.add(cursor);
+    const owner = reader.getEntry(cursor);
+    if (owner?.kind === "definitionOverride") return id;
+    if (owner && owner.kind !== "node") return undefined;
+  }
+  return undefined;
+};
+
 /** The Components page node an operation writes (`undefined` = a document entry). */
 const pageNodeOf = (graph: CatalogGraph, op: CatalogOperation) => {
   const id = op.kind === "put" ? op.entry.id : "id" in op ? op.id : undefined;
@@ -121,9 +151,16 @@ export function catalogOriginEditCommand(
   graph: CatalogGraph,
   command: CatalogCommand,
   newId: NewId,
+  /**
+   * ADR-282: the Library is locked — an edit of an unlocked origin's copy (a node its override
+   * owns) is refused, as a library ◆'s structure is.
+   */
+  libraryLocked = false,
 ): CatalogCommand {
   return (reader) => {
     const planned = command(reader);
+    if (libraryLocked && planned.ops.some((op) => forkNodeOf(reader, op)))
+      throw new CatalogOriginEditError("LIBRARY_LOCKED");
     if (!planned.ops.some((op) => pageNodeOf(graph, op))) return planned;
     const writes: CatalogCommand[] = [];
     const rest: CatalogOperation[] = [];
@@ -155,7 +192,10 @@ export function catalogOriginEditCommand(
             newId,
           }),
         );
-      else throw new CatalogOriginEditError();
+      else
+        throw new CatalogOriginEditError(
+          libraryLocked ? "LIBRARY_LOCKED" : "ORIGIN_ROOT_ONLY",
+        );
     }
     // One transaction: each default write reads the override the previous one created.
     return composeCommands(graph, planned.label, [

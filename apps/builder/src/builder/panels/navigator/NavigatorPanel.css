@@ -179,6 +179,13 @@
   border-radius: var(--radius-md);
 }
 
+/* ADR-282: a row action that does nothing now (the Library lock with no origin selected) says
+   so — it looked like the enabled one and a press did nothing. */
+.elementItemActions .iconButton[data-disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .elementItemActions .layer-drag-handle {
   cursor: grab;
   padding: 0;

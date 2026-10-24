@@ -8,13 +8,20 @@ import type {
   NodeEntry,
   LibraryDefinitionId,
   NodeId,
+  ProjectEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import {
+  LIBRARY_COMPONENT_PAGE,
+  projectInstancesOf,
+  withoutComponentPages,
+} from "../../../../../../packages/shared/src/catalog/document/componentPages";
 import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { resolveCatalogNode } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
+import { CANVAS_VIEWPORT } from "../../../../../../packages/shared/src/catalog/runtime/canvasBreakpoints";
 import {
   catalogSlotBand,
   catalogSlotMarks,
@@ -25,10 +32,7 @@ import {
   catalogComponentRole,
   catalogComponentState,
 } from "../componentActions";
-import {
-  catalogComponentsPageCards,
-  COMPONENTS_PAGE_WIDTH,
-} from "../componentsPage";
+import { catalogComponentsPageCards } from "../componentsPage";
 import { catalogBuiltinOrigins } from "../layouts";
 import { getPaletteItems } from "../../panels/components/paletteItems";
 import {
@@ -38,6 +42,8 @@ import {
   originCardId,
   originInstanceId,
   originSampleId,
+  componentPageNodeId,
+  isPageCard,
 } from "../originView";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -99,6 +105,57 @@ async function open() {
   return { workspace, library, button };
 }
 const graphOf = (workspace: CatalogWorkspace) => workspace.runtime.graph;
+/**
+ * A card's lines (user 2026-10-25 — no frame per line or per cell): after the title, each line's
+ * name (a Text) and its grids (frames named as the line) — a grid's first row the samples, the
+ * rows under it their captions.
+ */
+const cardLines = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
+  const lines: { name: string; grids: NodeEntry[] }[] = [];
+  for (const child of card.children.slice(1).map(nodeOf)) {
+    if (
+      child.definitionId !== "lib:definition:type-frame" ||
+      child.layout?.gridTemplateColumns === undefined
+    )
+      continue;
+    const last = lines.at(-1);
+    if (last && last.name === child.name) last.grids.push(child);
+    else lines.push({ name: child.name!, grids: [child] });
+  }
+  return lines;
+};
+/** A line's cells: each sample and the name of the caption under it. */
+const lineCells = (
+  line: { grids: NodeEntry[] },
+  nodeOf: (id: string) => NodeEntry,
+) =>
+  line.grids.flatMap((grid) => {
+    const columns = String(
+      (grid.layout?.gridTemplateColumns as { value: string }).value,
+    ).split(" ").length;
+    const children = grid.children.map(nodeOf);
+    return children.slice(0, columns).map((sample, at) => ({
+      name: children[columns + at]!.name,
+      sample,
+    }));
+  });
+/**
+ * A card of the Origin line alone holds its cells itself (user 2026-10-25 — no line name, no line
+ * frame): after the title, each sample and then its caption.
+ */
+const aloneCells = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
+  const children = card.children.slice(1).map(nodeOf);
+  return children.flatMap((sample, at) =>
+    at % 2 === 0 ? [{ sample, name: children[at + 1]!.name }] : [],
+  );
+};
+/** A Components page node's id: its stored one once the page is stored (ADR-282 Phase 3). */
+const pageNode = (workspace: CatalogWorkspace, viewId: string): NodeId => {
+  const stored = componentPageNodeId(viewId);
+  return (
+    graphOf(workspace).storedEntry(stored) ? stored : viewId
+  ) as NodeId;
+};
 const placedLabel = (workspace: CatalogWorkspace) =>
   resolveCatalogNode(graphOf(workspace), PLACED).props.label;
 
@@ -120,7 +177,7 @@ describe("ADR-248 4e library origin view", () => {
     );
   });
 
-  it("opening an origin shows the Components page (never part of the document) with its sample selected", async () => {
+  it("opening an origin shows the Components page (stored as the project's Library page the first time — ADR-282 Phase 3) with its sample selected", async () => {
     const { workspace, library, button } = await open();
     const sampleId = originSampleId(button.id);
     const revealed: string[] = [];
@@ -131,7 +188,8 @@ describe("ADR-248 4e library origin view", () => {
     );
     // The Canvas is asked to bring that component's card into view.
     expect(revealed).toEqual([
-      workspace.itemsOfNode(originCardId(button.id), 1)[0]!.identity,
+      workspace.itemsOfNode(pageNode(workspace, originCardId(button.id)), 1)[0]!
+        .identity,
     ]);
     expect(
       workspace.session.getSnapshot().selection.map((item) => item.target),
@@ -140,9 +198,8 @@ describe("ADR-248 4e library origin view", () => {
       (record) => record.parentId === "catalog:root",
     );
     expect(roots.map((record) => record.sourceId)).toEqual([ORIGIN_VIEW_NODE]);
-    // Layers: the page lists a group per card (theme, then components in palette order); a
-    // component's group holds its origin and its instances side by side —
-    // the column, line and cell frames are not rows.
+    // Layers: the stored page is a page (user 2026-10-25) — body > cards > lines; the Origin
+    // line's first row is the origin (its sample), the other lines' the instances.
     const store = new CatalogLayerTreeStore(
       {
         readModel: workspace.readModel,
@@ -154,62 +211,52 @@ describe("ADR-248 4e library origin view", () => {
     );
     const [root] = store.getSnapshot();
     expect(root!.role).toBe(undefined);
-    expect(root!.hasChildren).toBe(true);
-    const cardRow = (id: string) =>
-      workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
-    const buttonCard = cardRow(originCardId(button.id));
-    const fieldCard = cardRow(
-      originCardId(
-        "lib:definition:origin-component-textfield" as typeof button.id,
-      ),
-    );
-    store.setExpanded(new Set([root!.id, buttonCard, fieldCard]));
-    const groups = store.getSnapshot()[0]!.children!;
-    expect(groups.map((row) => row.name)).toEqual([
-      "Colors",
-      "Typography",
-      "Icons",
-      "Spacing",
-      ...catalogBuiltinOrigins(library).map((origin) => origin.name),
-    ]);
-    expect(groups.every((row) => row.role === undefined)).toBe(true);
-    // A theme group lists its values.
-    store.setExpanded(
-      new Set([root!.id, buttonCard, fieldCard, groups[3]!.id]),
-    );
-    const groupOf = (id: string) =>
-      store.getSnapshot()[0]!.children!.find((row) => row.id === id)!;
-    expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
-      "md",
-      "2xs",
-      "xs",
-      "sm",
-      "lg",
-      "xl",
-      "2xl",
-    ]);
-    // Button: the origin, then 6 variants × (rest + 4 states).
-    const [originRow, ...instances] = groupOf(buttonCard).children!;
-    expect(originRow!.role).toBe("origin");
-    expect(originRow!.name).toBe("Button");
-    expect(instances.every((row) => row.role === "instance")).toBe(true);
-    expect(instances.map((row) => row.name).slice(0, 2)).toEqual([
-      "Button / Accent / Default",
-      "Button / Accent / Disabled",
-    ]);
-    expect(instances.length).toBe(30);
-    // The origin's own row holds only its template (not the instances again).
-    expect(originRow!.hasChildren).toBe(true);
-    // (No row draws the origin again for its parts: a card's first row is its origin, the rest
-    // its instances.)
-    expect(groupOf(fieldCard).children![0]!.name).toBe("TextField");
-    expect(
-      groupOf(fieldCard)
-        .children!.map((row) => row.name)
-        .filter((name) => name.endsWith("/ Parts")),
-    ).toEqual([]);
+    expect(root!.body).toBe(true);
+    const expandTo = (...records: string[]) =>
+      store.setExpanded(
+        new Set(
+          records.flatMap((record) => {
+            const path = record.split("::")[0]!.split("/");
+            return path.map(
+              (id, at) => `${path.slice(0, at + 1).join("/")}::${id}`,
+            );
+          }),
+        ),
+      );
+    const rowOf = (
+      rows: ReturnType<typeof store.getSnapshot>,
+      id: string,
+    ): (typeof rows)[number] | undefined => {
+      for (const row of rows) {
+        if (row.id === id) return row;
+        const found = rowOf(row.children ?? [], id);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const sampleRecord = workspace.itemsOfNode(sampleId, 1)[0]!.identity;
+    const hoverRecord = workspace.itemsOfNode(
+      pageNode(workspace, originInstanceId(button.id, "primary/Hover")),
+      1,
+    )[0]!.identity;
+    expandTo(sampleRecord, hoverRecord);
+    const originRow = rowOf(store.getSnapshot(), sampleRecord)!;
+    expect(originRow.role).toBe("origin");
+    expect(originRow.name).toBe("Button");
+    expect(originRow.hasChildren).toBe(true);
+    const hoverRow = rowOf(store.getSnapshot(), hoverRecord)!;
+    expect(hoverRow.role).toBe("instance");
+    // The card's frames are rows (a page's frames): the card under the body, then its line.
+    const names = sampleRecord
+      .split("::")[0]!
+      .split("/")
+      .map((id) => (graphOf(workspace).getEntry(id) as NodeEntry | undefined)?.name);
+    expect(names.filter(Boolean).slice(0, 2)).toEqual(["Button", "Origin"]);
     expect(catalogComponentRole(graphOf(workspace), sampleId)).toBe("origin");
-    const hover = originInstanceId(button.id, "primary/Hover");
+    const hover = pageNode(
+      workspace,
+      originInstanceId(button.id, "primary/Hover"),
+    );
     expect(catalogComponentRole(graphOf(workspace), hover)).toBe("instance");
     // Every drawn node has a position (selection, panels): the Button origin and its states.
     for (const id of [sampleId, hover]) {
@@ -220,33 +267,53 @@ describe("ADR-248 4e library origin view", () => {
     const records = workspace.root.domInputs;
     const recordOf = (id: string) =>
       workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
-    const caption = [...records.values()].find((record) =>
-      record.sourceId.endsWith(`${button.id}/cell/primary/Hover/caption`),
+    const caption = [...records.values()].find(
+      (record) =>
+        record.sourceId ===
+        componentPageNodeId(
+          `${ORIGIN_VIEW_NODE}/origin/${button.id}/caption/primary/Hover`,
+        ),
     )!;
     expect(resolveCatalogClickRecord(records, caption.id, undefined)).toBe(
-      recordOf(originCardId(button.id)),
+      recordOf(pageNode(workspace, originCardId(button.id))),
     );
     for (const id of [sampleId, hover])
       expect(resolveCatalogClickRecord(records, recordOf(id), undefined)).toBe(
         recordOf(id),
       );
-    // Not in the document, the instance index, or exports.
-    const exported = graphOf(workspace).exportDocument().entries;
-    expect(exported[ORIGIN_VIEW_NODE]).toBe(undefined);
-    expect(exported[sampleId]).toBe(undefined);
-    expect([...graphOf(workspace).instancesOf(button.id)]).toEqual([PLACED]);
+    // The page is the document's (a component page — not a route, not Preview's); its samples are
+    // not. Opening it made no history step.
+    const graph = graphOf(workspace);
+    const exported = graph.exportDocument();
+    expect(exported.entries[ORIGIN_VIEW_NODE]).toBeDefined();
+    expect(exported.entries[sampleId]).toBe(undefined);
+    expect(exported.entries[LIBRARY_COMPONENT_PAGE]).toMatchObject({
+      kind: "page",
+      children: [ORIGIN_VIEW_NODE],
+    });
+    const project = exported.entries[graph.projectId] as ProjectEntry;
+    expect(project.componentPageIds).toEqual([LIBRARY_COMPONENT_PAGE]);
+    expect(project.pageIds).not.toContain(LIBRARY_COMPONENT_PAGE);
+    expect(
+      withoutComponentPages(exported).entries[ORIGIN_VIEW_NODE],
+    ).toBeUndefined();
+    // (The fixture's own insert only.)
+    expect(workspace.history.getSnapshot().labels).toEqual(["Insert"]);
+    // The showcase instances are not the project's (what an origin edit is said to reach).
+    expect(projectInstancesOf(graph, button.id)).toEqual([PLACED]);
     workspace.showDefinition(undefined);
-    expect(graphOf(workspace).getEntry(ORIGIN_VIEW_NODE)).toBe(undefined);
-    expect(graphOf(workspace).viewEntryIds()).toEqual([]);
+    expect(graph.getEntry(ORIGIN_VIEW_NODE)).toBeDefined();
+    expect(graph.viewEntryIds()).toEqual([]);
     workspace.dispose();
   });
 
-  it("the page: a card per built-in origin over balanced columns — variants × states, captions", async () => {
+  it("the page: a card per built-in origin on a three-column grid — variants × states, captions", async () => {
     const { workspace, library } = await open();
     workspace.showDefinition(COMPONENTS_VIEW);
     const graph = graphOf(workspace);
-    const nodeOf = (id: string) => graph.getEntry(id) as NodeEntry;
-    // Every palette origin has one card, whichever column it is on.
+    const nodeOf = (id: string) =>
+      graph.getEntry(pageNode(workspace, id)) as NodeEntry;
+    // Every palette origin has one card, directly under the body.
     const cards = catalogComponentsPageCards(graph).map(nodeOf);
     const THEME = ["Colors", "Typography", "Icons", "Spacing"];
     expect(
@@ -280,12 +347,17 @@ describe("ADR-248 4e library origin view", () => {
       },
     });
     // Colors lists the semantic colors only — no row of the raw palette they pick from.
-    expect(
-      cards
-        .find((candidate) => candidate.name === "Colors")!
-        .children.slice(1)
-        .map((id) => nodeOf(id).name),
-    ).toEqual(["Origin", "Accent", "Neutral", "Negative", "Border", "Surface"]);
+    const linesOf = (name: string) =>
+      cardLines(cards.find((candidate) => candidate.name === name)!, nodeOf);
+    const cellsOf = (line: { grids: NodeEntry[] }) => lineCells(line, nodeOf);
+    expect(linesOf("Colors").map((line) => line.name)).toEqual([
+      "Origin",
+      "Accent",
+      "Neutral",
+      "Negative",
+      "Border",
+      "Surface",
+    ]);
     expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
       fontSize: { kind: "set", value: 20 },
     });
@@ -293,33 +365,26 @@ describe("ADR-248 4e library origin view", () => {
       iconName: { kind: "set", value: "search" },
     });
     // A theme card reads as a component card: its base value as the origin, the rest as instances.
-    const themeCells = (row: NodeEntry) =>
-      nodeOf(row.children[1]!).children.map(nodeOf);
-    const spacingRows = cards
-      .find((candidate) => candidate.name === "Spacing")!
-      .children.slice(1)
-      .map(nodeOf);
+    const spacingRows = linesOf("Spacing");
     expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
-    expect(themeCells(spacingRows[0]!).map((cell) => cell.name)).toEqual([
+    expect(cellsOf(spacingRows[0]!).map((cell) => cell.name)).toEqual([
       "◆ md",
     ]);
-    expect(themeCells(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
-    const colorRows = cards
-      .find((candidate) => candidate.name === "Colors")!
-      .children.slice(1)
-      .map(nodeOf);
-    expect(themeCells(colorRows[0]!).map((cell) => cell.name)).toEqual(
+    expect(cellsOf(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
+    const colorRows = linesOf("Colors");
+    expect(cellsOf(colorRows[0]!).map((cell) => cell.name)).toEqual(
       expect.arrayContaining(["◆ accent", "◆ neutral", "◆ base"]),
     );
-    expect(themeCells(colorRows[1]!).map((cell) => cell.name)).toEqual(
+    expect(cellsOf(colorRows[1]!).map((cell) => cell.name)).toEqual(
       expect.arrayContaining(["◇ hover", "◇ on-accent"]),
     );
     expect(themeNode("spacing/md/sample").sizing).toMatchObject({
       width: { kind: "set", value: 16 },
     });
     const card = cards.find((candidate) => candidate.name === "Button")!;
-    const [title, ...rows] = card.children.map(nodeOf);
-    expect(title!.name).toMatch(/^\d\d\. BUTTON$/);
+    const title = nodeOf(card.children[0]!);
+    const rows = linesOf("Button");
+    expect(title.name).toMatch(/^\d\d\. BUTTON$/);
     // The origin, then its instances: a line per variant (no line of sizes — a size is a prop
     // of every instance, and the line took most of a card).
     expect(rows.map((row) => row.name)).toEqual([
@@ -331,9 +396,7 @@ describe("ADR-248 4e library origin view", () => {
       "Premium",
       "Genai",
     ]);
-    const cellsOf = (row: NodeEntry) =>
-      nodeOf(row.children[1]!).children.map(nodeOf);
-    const sampleOf = (cell: NodeEntry) => nodeOf(cell.children[0]!);
+    const sampleOf = (cell: { sample: NodeEntry }) => cell.sample;
     const origin = "lib:definition:origin-component-button";
     // The origin's cell holds its one editable sample, marked as the origin.
     const [originCell] = cellsOf(rows[0]!);
@@ -355,24 +418,14 @@ describe("ADR-248 4e library origin view", () => {
     );
     // A card has no Parts row (it drew the origin once more; what a collection holds is its
     // Item row).
-    const field = cards.find((candidate) => candidate.name === "TextField")!;
-    expect(field.children.map(nodeOf).map((row) => row.name)).not.toContain(
-      "Parts",
-    );
+    expect(linesOf("TextField").map((row) => row.name)).not.toContain("Parts");
     // A collection shows its item origin's states (not its own variants — they only tint its
     // hover): the item drawn on its own, its label filled in and its placeholders off.
-    const grid = cards.find((candidate) => candidate.name === "GridList")!;
-    const gridRows = grid.children.slice(1).map(nodeOf);
+    const gridRows = linesOf("GridList");
     expect(gridRows.map((row) => row.name)).toEqual(["Origin", "Item"]);
     // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
     // part) is not a collection: no Item line.
-    const combo = cards.find((candidate) => candidate.name === "ComboBox")!;
-    expect(
-      combo.children
-        .slice(1)
-        .map(nodeOf)
-        .map((row) => row.name),
-    ).not.toContain("Item");
+    expect(linesOf("ComboBox").map((row) => row.name)).not.toContain("Item");
     // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
     expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
       "◆ GridList",
@@ -419,7 +472,7 @@ describe("ADR-248 4e library origin view", () => {
       (candidate) => candidate.name === "ButtonGroup",
     );
     if (buttonGroup) {
-      const groupRows = buttonGroup.children.slice(1).map(nodeOf);
+      const groupRows = linesOf("ButtonGroup");
       const itemRow = groupRows.find((row) => row.name === "Item");
       if (itemRow)
         expect(cellsOf(itemRow).map((cell) => cell.name)[0]).toMatch(/^◇ /);
@@ -490,10 +543,39 @@ describe("ADR-248 4e library origin view", () => {
     ).toEqual(rows.flatMap((row) => cellsOf(row).map(() => undefined)));
     // A Chart card draws an instance per chart type — the palette's creation variants of the
     // origin, each with the props the palette creates it with.
-    const chartRows = cards
-      .find((candidate) => candidate.name === "Chart")!
-      .children.slice(1)
-      .map(nodeOf);
+    const cardOf = (name: string) =>
+      cards.find((candidate) => candidate.name === name)!;
+    // Dialog · Popover · ContextualHelp draw their origin alone — its body open, no filled
+    // instance beside it (user 2026-10-25).
+    for (const name of ["Dialog", "Popover", "ContextualHelp"])
+      expect([
+        name,
+        aloneCells(cardOf(name), nodeOf).map((cell) => cell.name),
+      ]).toEqual([name, [`◆ ${name}`]]);
+    // These cards draw no Variants line (user 2026-10-25) — the Origin line alone, held by the
+    // card itself: no line name or frame, the ◆ after the title (user 2026-10-25).
+    for (const name of [
+      "CardView",
+      "Badge",
+      "Meter",
+      "StatusLight",
+      "InlineAlert",
+      "Card",
+    ])
+      expect([name, linesOf(name).length]).toEqual([name, 0]);
+    const meter = cardOf("Meter");
+    expect(aloneCells(meter, nodeOf).map((cell) => cell.name)).toEqual([
+      "◆ Meter",
+    ]);
+    expect(nodeOf(meter.children[1]!).id).toBe(
+      originSampleId("lib:definition:origin-component-meter" as LibraryDefinitionId),
+    );
+    expect(
+      (graph.storedEntry(pageNode(workspace, originCardId(
+        "lib:definition:origin-component-meter" as LibraryDefinitionId,
+      ))) as NodeEntry).originOf,
+    ).toBe("lib:definition:origin-component-meter");
+    const chartRows = linesOf("Chart");
     // (No Variants row — the Chart has no variant axis, 2026-10-12.)
     expect(chartRows.map((row) => row.name)).toEqual(["Origin", "Types"]);
     const chartTypes = cellsOf(chartRows[1]!);
@@ -516,14 +598,10 @@ describe("ADR-248 4e library origin view", () => {
     expect(catalogComponentRole(graph, sampleOf(chartTypes[0]!).id)).toBe(
       "instance",
     );
-    // The page keeps its own width whatever the viewport, and its columns are balanced by the
-    // cards' drawn heights: no column is taller than the shortest by more than its last card
-    // (and the gap under it — each next card goes on the column lightest so far, gap included).
     const rectOf = (id: string) => {
       const [record] = workspace.root.recordsOfSource(id);
       return workspace.root.getGeometry([record!]).get(record!)!;
     };
-    expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(COMPONENTS_PAGE_WIDTH);
     // The chart types are drawn two to a line (each half the card's inner width).
     const chartRects = chartTypes.map((cell) => rectOf(sampleOf(cell).id));
     expect(chartRects.map((rect) => rect.width)).toEqual(
@@ -554,13 +632,52 @@ describe("ADR-248 4e library origin view", () => {
     ]);
     expect(menuRect.width).toBeGreaterThan(buttonRect.width);
     expect(menuRect.height).toBeGreaterThan(buttonRect.height);
-    const columns = nodeOf(ORIGIN_VIEW_NODE).children.map((id) => ({
-      height: rectOf(id).height,
-      last: rectOf(nodeOf(id).children.at(-1)!).height,
-    }));
-    const shortest = Math.min(...columns.map((column) => column.height));
-    for (const column of columns)
-      expect(column.height - column.last).toBeLessThanOrEqual(shortest + 24);
+    // The body is a grid of three columns as wide as their cards (user 2026-10-25), the cards
+    // directly in it in their numbered order, row by row; it is the breakpoint's page wide (a
+    // page body's width — desktop, tablet, mobile) and as tall as its cards (`height: 100%`).
+    const body = nodeOf(ORIGIN_VIEW_NODE);
+    expect(body.layout).toMatchObject({
+      display: { kind: "set", value: "grid" },
+      gridTemplateColumns: { kind: "set", value: "auto auto auto" },
+    });
+    expect(body.children.every((id) => isPageCard(id))).toBe(true);
+    // Every card is its column's width (`width: 100%`).
+    expect(
+      new Set(body.children.map((id) => JSON.stringify(nodeOf(id).visual.width))),
+    ).toEqual(new Set([JSON.stringify({ kind: "set", value: "100%" })]));
+    const boxes = body.children.map((id) => rectOf(id));
+    expect(new Set(boxes.slice(0, 3).map((box) => box.x)).size).toBe(3);
+    // (Cards in one column are equally wide.)
+    expect(boxes.filter((_, at) => at % 3 === 0).every((box) => box.width === boxes[0]!.width)).toBe(true);
+    expect(boxes[3]!.x).toBe(boxes[0]!.x);
+    expect(boxes[3]!.y).toBeGreaterThan(boxes[0]!.y);
+    expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(CANVAS_VIEWPORT.desktop.width);
+    const lastCard = boxes.at(-1)!;
+    expect(rectOf(ORIGIN_VIEW_NODE).height).toBeCloseTo(
+      Math.max(...boxes.map((box) => box.y + box.height)) + 16,
+      0,
+    );
+    expect(lastCard.y).toBeGreaterThan(CANVAS_VIEWPORT.desktop.height);
+    // Three columns on desktop, two on tablet, one on mobile (the body's breakpoint layers).
+    for (const [breakpoint, columns] of [
+      ["tablet", 2],
+      ["mobile", 1],
+    ] as const) {
+      workspace.setBreakpoint(breakpoint);
+      const xs = body.children.map((id) => rectOf(id).x);
+      expect([
+        breakpoint,
+        rectOf(ORIGIN_VIEW_NODE).width,
+        new Set(xs).size,
+        xs[columns],
+      ]).toEqual([
+        breakpoint,
+        CANVAS_VIEWPORT[breakpoint].width,
+        columns,
+        xs[0],
+      ]);
+    }
+    workspace.setBreakpoint("desktop");
     workspace.dispose();
   });
 
@@ -651,20 +768,21 @@ describe("ADR-248 4e library origin view", () => {
         }),
       ),
     ).toThrow(CatalogOriginEditError);
-    // An instance beside the origin and the page's own frames take no edits.
-    for (const id of [
-      originInstanceId(button.id, "primary/Hover"),
-      ORIGIN_VIEW_NODE,
-    ])
-      expect(() =>
-        workspace.execute(
-          setFields({
-            targets: [{ kind: "node", id }],
-            visual: { paddingTop: { kind: "set", value: 4 } },
-          }),
-        ),
-      ).toThrow(CatalogOriginEditError);
     expect(workspace.history.getSnapshot().labels.length).toBe(steps);
+    // The stored page's own nodes take edits as a page's do (user 2026-10-25 — library-body is a
+    // page's body): an instance beside the origin, the body.
+    for (const id of [
+      pageNode(workspace, originInstanceId(button.id, "primary/Hover")),
+      ORIGIN_VIEW_NODE,
+    ]) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id }],
+          visual: { paddingTop: { kind: "set", value: 4 } },
+        }),
+      );
+      workspace.undo();
+    }
     // A write that skips the origin view's translation never stages the sample.
     let code: string | undefined;
     try {
@@ -710,7 +828,8 @@ describe("ADR-248 4e library origin view", () => {
     const { workspace, button } = await open();
     const lib = (name: string) =>
       `lib:definition:origin-component-${name}` as LibraryDefinitionId;
-    const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
+    const recordOf = (id: string) =>
+      workspace.root.recordsOfSource(pageNode(workspace, id))[0]!;
     const rectOf = (id: string) =>
       workspace.root.getGeometry([recordOf(id)]).get(recordOf(id))!;
     const inputOf = (record: string) =>
@@ -843,11 +962,36 @@ describe("ADR-248 4e library origin view", () => {
     workspace.showDefinition(button.id);
     // A Meter's track takes its owner's variant: the track rule paints every one of them
     // (a missing variant painted no track). (The ProgressBar has no variant — 2026-10-12.)
+    // (The Meter card has no Variants line — user 2026-10-25: a negative Meter placed on the
+    // page, then taken back.)
+    workspace.showDefinition(undefined);
+    const METER = "project:node:negative-meter" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: METER,
+            definitionId: lib("meter"),
+            children: [],
+            props: { variant: { kind: "set", value: "negative" } },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [METER],
+        newId: workspace.newId,
+      }),
+    );
     const negativeTrack = under(
-      recordOf(originInstanceId(lib("meter"), "negative")),
+      workspace.root.recordsOfSource(METER)[0]!,
       "metertrack",
     ).map((record) => inputOf(record).derivedProps?.variant);
     expect(negativeTrack).toEqual(["negative"]);
+    workspace.undo();
+    workspace.showDefinition(button.id);
     expect(
       Object.keys(COMPONENT_RULES_TABLE.Meter.variants).filter(
         (variant) => !(variant in COMPONENT_RULES_TABLE.MeterTrack.variants),
@@ -978,7 +1122,8 @@ describe("ADR-248 4e library origin view", () => {
     const { workspace } = await open();
     workspace.showDefinition(COMPONENTS_VIEW);
     const graph = graphOf(workspace);
-    const nodeOf = (id: string) => graph.getEntry(id) as NodeEntry;
+    const nodeOf = (id: string) =>
+      graph.getEntry(pageNode(workspace, id)) as NodeEntry;
     const cards = catalogComponentsPageCards(graph).map(nodeOf);
     const cardOf = (name: string) => {
       const card = cards.find((candidate) => candidate.name === name);
@@ -1024,7 +1169,8 @@ describe("ADR-248 4e library origin view", () => {
       ]);
     const lib = (name: string) =>
       `lib:definition:origin-component-${name}` as LibraryDefinitionId;
-    const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
+    const recordOf = (id: string) =>
+      workspace.root.recordsOfSource(pageNode(workspace, id))[0]!;
     const rectOf = (id: string) =>
       workspace.root.getGeometry([recordOf(id)]).get(recordOf(id))!;
     const inputOf = (record: string) =>
@@ -1035,7 +1181,12 @@ describe("ADR-248 4e library origin view", () => {
     for (const origin of ["listbox", "gridlist", "cardview"]) {
       const empty = rectOf(originSampleId(lib(origin)));
       const filled = rectOf(originInstanceId(lib(origin), "instance"));
-      expect([origin, empty.height < filled.height]).toEqual([origin, true]);
+      // (A CardView card holds its cells itself — user 2026-10-25: both are the card's width,
+      // and three cards fit on one row of the filled one.)
+      expect([origin, empty.height < filled.height || origin === "cardview"]).toEqual([
+        origin,
+        true,
+      ]);
       // (A list's empty state IllustratedMessage is there too, hidden beside its items.)
       expect([
         origin,

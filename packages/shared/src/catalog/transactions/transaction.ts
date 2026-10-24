@@ -3,6 +3,7 @@ import type {
   CatalogEntry,
   CatalogLibrary,
   CatalogReader,
+  DefinitionId,
   LayoutField,
   ResponsiveBreakpointName,
   DataBindingRef,
@@ -346,14 +347,25 @@ export class CatalogStage implements CatalogReader {
   get revision(): number {
     return this.graph.revision;
   }
+  /** Staged override or project records since the library view was read (ADR-282 forks). */
+  private forksStaged = false;
+  private stagedLibrary: CatalogLibrary | undefined;
   get library(): CatalogLibrary {
-    return this.graph.library;
+    if (!this.forksStaged) return this.graph.library;
+    return (this.stagedLibrary ??= this.graph.libraryFor(this.get));
   }
   readonly get = (id: string): CatalogEntry | undefined => {
     this.metrics.transactionEntryReads++;
     if (this.staged.has(id)) return this.staged.get(id) ?? undefined;
-    return this.graph.getEntry(id);
+    return this.base.getEntry(id);
   };
+  /** What the stage reads under its records: the graph as commands read it (ADR-282 Phase 3). */
+  private get base(): Pick<CatalogGraph, "getEntry"> {
+    return (
+      (this.graph as Partial<Pick<CatalogGraph, "commandReader">>)
+        .commandReader ?? this.graph
+    );
+  }
   getEntry(id: string): CatalogEntry | undefined {
     return this.get(id);
   }
@@ -378,13 +390,24 @@ export class CatalogStage implements CatalogReader {
       (entry) => entry.kind === "node" && entry.definitionId === definitionId,
     );
   }
-  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined {
+  definitionOfTemplateRoot(id: string): DefinitionId | undefined {
     const committed = this.graph.definitionOfTemplateRoot(id);
     const found = this.overlay(
-      committed ? new Set<string>([committed]) : new Set<string>(),
+      committed && !committed.startsWith("lib:")
+        ? new Set<string>([committed])
+        : new Set<string>(),
       (entry) => entry.kind === "definition" && entry.templateRootId === id,
     );
-    return found.values().next().value as EntryId<"definition"> | undefined;
+    const definition = found.values().next().value as
+      | EntryId<"definition">
+      | undefined;
+    if (definition) return definition;
+    // ADR-282: an unlocked origin's copy root (its override owns it).
+    const owner = this.ownerOf(id);
+    const entry = owner ? this.get(owner) : undefined;
+    return entry?.kind === "definitionOverride" && entry.templateRootId === id
+      ? entry.targetId
+      : undefined;
   }
   /** A committed index set with the staged records re-tested against `holds`. */
   private overlay(
@@ -402,11 +425,42 @@ export class CatalogStage implements CatalogReader {
     for (const op of ops) this.applyOne(op);
     return this;
   }
+  /**
+   * ADR-282 Phase 3: a stored node as written — without the children a view draws in it
+   * (`CatalogGraph.setViewChildren`). A command reads them with the node and writes the node back
+   * (a ◆ cell's layout edit); they are never the document's.
+   */
+  /** The view children the graph adds to a stored node (ADR-282 Phase 3). */
+  viewChildIds(id: string): readonly NodeId[] | undefined {
+    return this.graph.viewChildIds(id);
+  }
+  private stored<T extends CatalogEntry | null | undefined>(entry: T): T {
+    if (entry?.kind !== "node") return entry;
+    const drawn = this.graph.viewChildIds(entry.id);
+    if (!drawn?.length) return entry;
+    const skip = new Set<string>(drawn);
+    return {
+      ...entry,
+      children: entry.children.filter((id) => !skip.has(id)),
+    } as T;
+  }
   private stage(id: string, value: CatalogEntry | null): void {
     // A derived view entry is read-only (HC2): no op stages it into the document.
     if (this.graph.isViewEntry(id))
       throw new CatalogValidationError("VIEW_ENTRY_READ_ONLY", id);
-    if (!this.before.has(id)) this.before.set(id, this.graph.getEntry(id));
+    value = this.stored(value);
+    if (!this.before.has(id))
+      this.before.set(id, this.stored(this.base.getEntry(id)));
+    const previous = this.get(id);
+    if (
+      value?.kind === "definitionOverride" ||
+      value?.kind === "project" ||
+      previous?.kind === "definitionOverride" ||
+      previous?.kind === "project"
+    ) {
+      this.forksStaged = true;
+      this.stagedLibrary = undefined;
+    }
     this.staged.set(id, value);
   }
   private applyOne(op: CatalogOperation): void {
@@ -430,7 +484,9 @@ export class CatalogStage implements CatalogReader {
       const entry = validateCatalogEntry(op.entry);
       const old = this.get(entry.id);
       this.inverse.unshift(
-        old ? { kind: "put", entry: old } : { kind: "remove", id: entry.id },
+        old
+          ? { kind: "put", entry: this.stored(old) }
+          : { kind: "remove", id: entry.id },
       );
       this.stage(entry.id, entry);
       this.structural = true;
@@ -439,7 +495,7 @@ export class CatalogStage implements CatalogReader {
     if (op.kind === "remove") {
       const old = this.get(op.id);
       if (!old) throw new CatalogValidationError("ENTRY_NOT_FOUND", op.id);
-      this.inverse.unshift({ kind: "put", entry: old });
+      this.inverse.unshift({ kind: "put", entry: this.stored(old) });
       this.stage(op.id, null);
       this.structural = true;
       return;
@@ -665,18 +721,20 @@ export function applyCatalogTransaction(
   const stage = new CatalogStage(graph).apply(request.ops);
   const { staged, before, inverse, metrics, get } = stage;
   const structural = stage.structural;
+  const library = stage.library;
+  const ownerOf = (id: string) => stage.ownerOf(id);
   const counting = process.env.NODE_ENV === "development";
   if (counting) docCounters.stagedEntries += staged.size;
   for (const [id, entry] of staged) {
     if (entry !== null) {
       if (counting) docCounters.validatedEntries += 1;
       validateCatalogEntry(entry);
-      graph.validateEntryReferences(entry, get);
+      graph.validateEntryReferences(entry, get, library, ownerOf);
     }
     if (!structural && before.get(id)?.kind !== entry?.kind)
       throw new CatalogValidationError("LEAF_KIND_CHANGED", id);
   }
-  if (structural) graph.validateStructuralDelta(staged, get);
+  if (structural) graph.validateStructuralDelta(staged, get, library);
   // Owners before the commit: a removed node keeps its old parent in the impact.
   const ownerBefore = new Map<string, string>();
   for (const id of staged.keys()) {

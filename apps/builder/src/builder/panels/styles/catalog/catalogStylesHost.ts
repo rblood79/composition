@@ -85,6 +85,7 @@ import {
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { SelectedElement } from "../../../inspector/types";
+import { notifyEditRefusal } from "../../../catalogRuntime/operationNotice";
 import { useToastStore } from "../../../stores/toast";
 import {
   resolveEligibleSeedDefault,
@@ -338,6 +339,7 @@ export function createCatalogStylesHost(
       const command = build();
       if (command) workspace.execute(command);
     } catch (error) {
+      if (notifyEditRefusal(error)) return;
       useToastStore
         .getState()
         .showToast(

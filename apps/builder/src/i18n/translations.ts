@@ -401,12 +401,16 @@ const koKR: TranslationKeys = {
     systemOriginLocked:
       "라이브러리 컴포넌트는 삭제 · 풀기 · 분리할 수 없습니다",
     templateAnchorLocked: "목록의 항목 템플릿은 삭제할 수 없습니다",
+    originRootFixed: "원본 자체는 복제 · 삭제 · 이동할 수 없습니다",
     requiredPartKept:
       "컴포넌트가 동작하는 데 필요한 부품이라 삭제하거나 밖으로 옮길 수 없습니다",
     tableCellsAligned:
       "표의 행은 열마다 칸이 하나씩 있어야 합니다 — 열을 지우거나 넣으면 칸이 같이 바뀝니다",
     instanceChildLocked: "인스턴스 안 요소는 원본에서 편집합니다",
     notAllowed: "이 선택에는 할 수 없는 작업입니다",
+    originRootOnly: "원본에서는 맨 바깥 요소의 속성과 스타일만 바꿀 수 있습니다",
+    libraryLocked:
+      "Library 가 잠겨 있습니다 — Navigator 의 Library 잠금을 풀면 편집할 수 있습니다",
     ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
   },
   history: {
@@ -443,6 +447,11 @@ const koKR: TranslationKeys = {
       dissolveComponent: "컴포넌트 삭제",
       duplicateComponent: "컴포넌트 복제",
       editComponentDefault: "컴포넌트 기본값 편집",
+      unlockOrigin: "원본 잠금 해제",
+      resetOrigin: "원본 초기화",
+      resetOrigins: "원본 전체 초기화",
+      unlockLibrary: "Library 잠금 해제",
+      lockLibrary: "Library 잠금",
       addPage: "페이지 추가",
       editPage: "페이지 편집",
       reorderPages: "페이지 순서 변경",
@@ -1727,6 +1736,9 @@ const koKR: TranslationKeys = {
     layersDragCount: "레이어 {count}개",
     components: "컴포넌트",
     deleteLayout: "레이아웃 삭제",
+    unlockOrigin: "Library 잠금 해제 — 편집",
+    lockOrigin: "Library 잠금",
+    resetOrigins: "원본 초기화 (전체)",
     renameLayout: "레이아웃 이름 변경",
     layoutDefaultName: "레이아웃",
     layouts: "레이아웃",
@@ -2764,12 +2776,16 @@ const enUS: TranslationKeys = {
     systemOriginLocked:
       "Library components can't be deleted, ungrouped, or detached",
     templateAnchorLocked: "A list's item template can't be deleted",
+    originRootFixed: "An origin itself can't be duplicated, deleted or moved",
     requiredPartKept:
       "The component needs this part to work — it can't be deleted or moved out",
     tableCellsAligned:
       "A table row needs one cell per column — deleting or adding a column changes its cells",
     instanceChildLocked: "Edit elements inside an instance on its component",
     notAllowed: "This can't be done to the selection",
+    originRootOnly: "On an origin, only its outer element's props and styles change",
+    libraryLocked:
+      "The Library is locked — unlock it in the Navigator to edit",
     ungroupInstance: "An instance can't be ungrouped — detach it first",
   },
   history: {
@@ -2805,6 +2821,11 @@ const enUS: TranslationKeys = {
       dissolveComponent: "Delete component",
       duplicateComponent: "Duplicate component",
       editComponentDefault: "Edit component default",
+      unlockOrigin: "Unlock origin",
+      resetOrigin: "Reset origin",
+      resetOrigins: "Reset origins",
+      unlockLibrary: "Unlock library",
+      lockLibrary: "Lock library",
       addPage: "Add page",
       editPage: "Edit page",
       reorderPages: "Reorder pages",
@@ -4093,6 +4114,9 @@ const enUS: TranslationKeys = {
     layersDragCount: "{count} layers",
     components: "Components",
     deleteLayout: "Delete Layout",
+    unlockOrigin: "Unlock Library — Edit",
+    lockOrigin: "Lock Library",
+    resetOrigins: "Reset Origins (All)",
     renameLayout: "Rename Layout",
     layoutDefaultName: "Layout",
     layouts: "Layouts",

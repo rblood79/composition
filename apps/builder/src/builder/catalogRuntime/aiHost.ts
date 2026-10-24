@@ -1,3 +1,4 @@
+import { projectInstancesOf } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import {
   createComponent,
   insertNodes,
@@ -525,7 +526,7 @@ export function createCatalogAiWriteHost(
   const elementNodeAfter = (nodeId: NodeId): NodeId => {
     const definitionId = graph.definitionOfTemplateRoot(nodeId);
     const instance = definitionId
-      ? [...graph.instancesOf(definitionId)][0]
+      ? projectInstancesOf(graph, definitionId)[0]
       : undefined;
     return (instance as NodeId | undefined) ?? nodeId;
   };

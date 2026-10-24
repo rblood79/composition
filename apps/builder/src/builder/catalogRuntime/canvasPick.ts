@@ -1,10 +1,12 @@
 import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommands";
 import {
+  isComponentPageNode,
   isComponentsViewRoot,
+  holdsLibraryOrigin,
   isPageCard,
+  isPageInstance,
   isProjectComponentOriginCell,
   isThemeSample,
-  originOfPageInstance,
   originOfSample,
 } from "./originViewNode";
 import type { CatalogSelectionItem, CatalogSession } from "./session";
@@ -98,10 +100,13 @@ export function resolveCatalogClickRecord(
       // card, line and cell frames are layout only).
       if (
         originOfSample(record.sourceId) ||
-        originOfPageInstance(record.sourceId) ||
+        isPageInstance(record.sourceId) ||
         isThemeSample(record.sourceId) ||
         // The project components page: a component's origin node.
         isProjectComponentOriginCell(parent?.sourceId) ||
+        // The Library page: an unlocked origin's copy root in its ◆ cell (ADR-282).
+        (!isComponentPageNode(record.sourceId) &&
+          holdsLibraryOrigin(parent?.sourceId)) ||
         isPageCard(record.sourceId)
       )
         return record.id;

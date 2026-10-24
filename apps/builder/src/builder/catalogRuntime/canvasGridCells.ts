@@ -76,7 +76,8 @@ function trackKind(token: string | undefined, length: number): TrackKind {
   const percent = /^(\d+(\.\d+)?)%$/.exec(max);
   if (percent) return { fixed: (length * Number(percent[1])) / 100 };
   const flex = /^(\d+(\.\d+)?)fr$/.exec(max);
-  if (flex) return { fr: Number(flex[1]), ...(floor !== undefined ? { floor } : {}) };
+  if (flex)
+    return { fr: Number(flex[1]), ...(floor !== undefined ? { floor } : {}) };
   return floor !== undefined ? { floor } : {};
 }
 
@@ -88,24 +89,34 @@ function sizeTracks(
   gap: number,
 ): { start: number; size: number }[] {
   const base = (kind: TrackKind, index: number) =>
-    Math.max(kind.floor ?? 0, kind.floor !== undefined && kind.fr ? 0 : (content[index] ?? 0));
+    Math.max(
+      kind.floor ?? 0,
+      kind.floor !== undefined && kind.fr ? 0 : (content[index] ?? 0),
+    );
   const sizes = kinds.map((kind, index) => {
     if (kind.fixed !== undefined) return kind.fixed;
     if (kind.fr) return 0;
     const size = base(kind, index);
-    return kind.cap !== undefined ? Math.min(size, Math.max(kind.cap, kind.floor ?? 0)) : size;
+    return kind.cap !== undefined
+      ? Math.min(size, Math.max(kind.cap, kind.floor ?? 0))
+      : size;
   });
   const gaps = gap * Math.max(0, kinds.length - 1);
   const totalFr = kinds.reduce((sum, kind) => sum + (kind.fr ?? 0), 0);
   if (totalFr > 0) {
     // CSS §12.7.1: an fr track whose share is under its base keeps the base, the rest re-share.
-    const flexible = new Set(kinds.flatMap((kind, index) => (kind.fr ? [index] : [])));
+    const flexible = new Set(
+      kinds.flatMap((kind, index) => (kind.fr ? [index] : [])),
+    );
     for (;;) {
       const used = sizes.reduce(
         (sum, size, index) => sum + (flexible.has(index) ? 0 : size),
         gaps,
       );
-      const pool = [...flexible].reduce((sum, index) => sum + kinds[index]!.fr!, 0);
+      const pool = [...flexible].reduce(
+        (sum, index) => sum + kinds[index]!.fr!,
+        0,
+      );
       const unit = Math.max(0, length - used) / (pool || 1);
       const frozen = [...flexible].filter(
         (index) => kinds[index]!.fr! * unit < base(kinds[index]!, index),
@@ -163,7 +174,8 @@ export function lineTrack(value: unknown): number | undefined {
 
 /** `span n` → n; anything else → undefined. */
 export function lineSpan(value: unknown): number | undefined {
-  const match = typeof value === "string" ? /^span\s+(\d+)$/.exec(value.trim()) : null;
+  const match =
+    typeof value === "string" ? /^span\s+(\d+)$/.exec(value.trim()) : null;
   const span = match ? Number(match[1]) : NaN;
   return span >= 1 ? span : undefined;
 }
@@ -190,15 +202,30 @@ export function gridPlacement(
   let columns = Math.max(1, columnCount);
   const taken = new Set<string>();
   const cells: GridArea[] = [];
+  // An end line past a start line spans to it (`1 / 3` — a grid area's placement: a Meter's bar
+  // spans its two columns, user 2026-10-25).
+  const toLine = (start: number | undefined, end: unknown) => {
+    const last = lineTrack(end);
+    return start !== undefined && last !== undefined && last > start
+      ? last - start
+      : undefined;
+  };
   const items = lines.map((item) => {
     const column = lineTrack(item?.column);
     const row = lineTrack(item?.row);
     return {
       row,
       column,
-      rowSpan: lineSpan(item?.rowEnd) ?? lineSpan(item?.row) ?? 1,
+      rowSpan:
+        lineSpan(item?.rowEnd) ??
+        toLine(row, item?.rowEnd) ??
+        lineSpan(item?.row) ??
+        1,
       columnSpan: Math.min(
-        lineSpan(item?.columnEnd) ?? lineSpan(item?.column) ?? 1,
+        lineSpan(item?.columnEnd) ??
+          toLine(column, item?.columnEnd) ??
+          lineSpan(item?.column) ??
+          1,
         column === undefined ? columns : Infinity,
       ),
     };
@@ -341,7 +368,8 @@ export function gridLayout(input: {
         0,
         ...items
           .filter(
-            (_, i) => placed[i]!.column === column && placed[i]!.columnSpan === 1,
+            (_, i) =>
+              placed[i]!.column === column && placed[i]!.columnSpan === 1,
           )
           .map((box) => box.width),
       ),
@@ -401,16 +429,17 @@ export function gridLayout(input: {
   const rowKinds = Array.from({ length: rowCount }, (_, row) =>
     trackKind(rowTokens[row], content.height),
   );
-  const rows = sizeTracks(
-    rowKinds,
-    heights,
-    content.height,
-    rowGap,
-  ).map((track) => ({ start: content.y + track.start, size: track.size }));
+  const rows = sizeTracks(rowKinds, heights, content.height, rowGap).map(
+    (track) => ({ start: content.y + track.start, size: track.size }),
+  );
   const occupant = new Array<number>(rowCount * cols).fill(-1);
   placed.forEach((area, index) => {
     for (let r = area.row; r < area.row + area.rowSpan; r++)
-      for (let c = area.column; c < Math.min(cols, area.column + area.columnSpan); c++)
+      for (
+        let c = area.column;
+        c < Math.min(cols, area.column + area.columnSpan);
+        c++
+      )
         occupant[r * cols + c] = index;
   });
   if (input.appendRow !== false && !occupant.includes(-1)) {

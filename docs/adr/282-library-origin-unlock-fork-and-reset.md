@@ -2,7 +2,16 @@
 
 ## Status
 
-Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4 — 리셋 = override entry 전체 삭제) 반영 · Round 1 HIGH 3 반영 같은 날 — 결정 1 · 2 개정, 결정 8 · 9 · 10 추가, 사용자 결정 2 삭제 (기존 override 흡수는 결정 1 이 정함), R1 · R3 개정 · R7 추가, G1 · G2 구체화 — [reviews/282](reviews/282.md))
+Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Round 2 pending 0 · HIGH 전부 fixed 로 승격). 이전: Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4) · Round 1 HIGH 3 설계 반영)
+
+> **Phase 0 ~ 2 완료 (2026-10-24, 미커밋)** — 사용자 결정 3 건 답 (같은 날): 1-a 선택한 ◆ 의 원본 · 2-a override 가 있는 원본 전부 · 3-a 부품 자리도 따른다.
+>
+> - **Phase 0**: 결정 2 의 「정의 조회 한 곳」 을 graph · stage 의 `library` 자체를 **fork 를 반영한 view** (`document/originFork.ts` `forkedCatalogLibrary`) 로 구현 — `definitions.get` 61 자리 · `templates.get` 23 파일이 별도 분기 없이 사본을 읽는다 (lib 루트를 가정한 cast 1 자리 `resolver.ts` `ruleDefinitionOf` 만 수리). 다른 원본 template 의 `descendantPatches` · `slotFills` 경로는 view 가 `templateMap` 으로 번역. 검증은 transaction 의 staged view 로 (`validateEntryReferences(…, library, ownerOf)`). RED 6 은 G1 · G2 테스트로 옮김.
+> - **Phase 1**: contract 48 · override `templateRootId` · `templateMap` (소유 edge · 검증 `INVALID_ORIGIN_TEMPLATE_ROOT`) · `NodeEntry.displayState` (상태 원본 69 template 의 사본 보존 — 기호 복사에 필요해 추가) · `unlockOrigin` · `resetOrigin` · `resetOrigins` (`commands/originFork.ts`) · 사본 노드의 whole binding 규칙 (prop 형 · `propChoices` — R7, Popover `{size}` 가 실제로 걸림) · fork 를 지나는 정의 cycle 검사 · `TEMPLATE_ROOT_FIXED` 를 override 소유 루트에도 · `removeWithReferrers` 가 재주소된 interaction 을 남김. shared 1739 PASS, 원복 RED 5/5 (주소 재작성 · library view · interaction guard · 리셋 역재작성 · 바인딩 규칙).
+> - **Phase 2**: Library page 카드 ◆ = 사본 루트 (읽을 때마다 — 리셋 step 의 consumer 가 지워진 루트를 읽지 않게) · 카드 경로 번역 · 헤더 「· unlocked」 · 사본을 직접 그릴 때 원본 기본값 바인딩 (live 에서 「{label}」 로 보임 → 수리) · Canvas 클릭 · 「원본으로 이동」 · `selectAfter` 가 카드의 ◆ record 를 고름 (instance 투영과 구별) · Layers role origin · 삭제 버튼 없음 · Component 절 원본 기본값 칸 · Navigator 행 [리셋] [잠금/해제] · 리셋 확인 대화상자 · History 라벨 3 · i18n. builder 6415 PASS.
+> - **사용자 지시 2026-10-24 (결정 1 대체)** — 「아이콘은 lock · lock-open 으로 전환, Library 전체 해제되게」: 행의 잠금은 **Library 편집 모드** (`CatalogWorkspace.setLibraryUnlocked` — 저장하지 않는 세션 상태, 기본 잠금). 해제 = `unlockOrigins` 한 step (모든 `origin-` composite — 상태 변형 제외 — 85 개를 사본으로, 주소 재작성 1 회), 잠금 = `lockOrigins` (사본이 새 사본과 같은 원본은 라이브러리로 돌아가고 — 루트 style 은 override `visual` 로 — 편집한 원본만 사본 유지). 잠금 중 사본 편집은 거부 (`ORIGIN_ROOT_ONLY`). 리셋은 그대로 전부 기본 + 잠금. 해제 확인 대화상자는 없앴다 (모드 전환 · undo 가능 · 잠금이 안 편집한 사본을 걷음).
+> - **Phase 3 (사용자 지시 2026-10-25, 미커밋)** — Library · Local page 를 문서의 page 로: 처음 열 때 한 step (History 없음 — runtime `load` step) 으로 `ProjectEntry.componentPageIds` 의 page 에 저장 (Library 1,685 노드 · 문서 7.7 KB → 1.04 MB · 첫 열기 1.76 s), body · 카드 · 줄 · 칸 · 캡션 · ◇ instance = page 노드 (선택 · Layout 편집 · 삭제), ◆ 칸 = `NodeEntry.originOf` + 그리는 자식 (`graph.setViewChildren` — 명령 · stage 는 `graph.commandReader` 로 읽어 그 자식을 보지 않는다), Preview · publish 는 component page 를 뺀다 (`withoutComponentPages`), Local page 는 정의 생성 · 삭제 · 이름 변경을 따라감 (`catalogLocalPageSync`), 사용자에게 보이는 instance 수는 page 의 ◇ 를 빼고 센다 (`projectInstancesOf`). 표시 id 는 `componentPageNodeId` 로 문서 id 문법에 맞춘다. **같은 날 후속 (사용자 「Library 가 왜 1mb」 → 「1 · 2 진행 + body grid 3 × auto」)**: 저장 id = `project:node:cp-<역할>-<hash>` (평균 99 → 29 B — 역할 `card` · `inst` · `theme` · `origin` · `local` 은 id 머리에), body = grid `auto auto auto` · Column 6 frame 제거 (카드 = body 직속, 높이 측정 단계 삭제), 줄 wrapper · 칸 frame 제거 (줄 = grid 하나 — 첫 행 샘플 · 아래 행 캡션, 긴 줄은 나눔) → Library page 1,611 → 1,139 노드 · 867 → 464 KB. [§Phase 3](#phase-3--library--local-page--문서의-page).
+> - **남은 것**: G4 (번들 상한 · `gate:perf-ratchet` `counts.doc` — 커밋 뒤, dirty tree 면 ratchet 이 HEAD 를 잰다) · G5 (사용자 5173 확인) → Implemented.
 
 - 사용자 요청: `/create-adr` (2026-10-24) — 같은 날 「navigator - components 탭 library page 는 수정 편집이 되지 않게 되어 있다. 우측에 잠금 ↔ 해제 아이콘 추가하고 해제 후에는 library page 의 origin 을 수정할 수 있게 — 우측 아이콘은 "리셋(초기화) - 해제(잠금)"」.
 - 방향을 정한 사용자 답 (2026-10-24, 결정 지점 ④ — 승인 scope 변경):
@@ -101,7 +110,7 @@ Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4 — 리셋 = override entry �
 - **C**: 기존 instance · 부품 자리가 따라오지 않아 ADR-253 의 목적 (원본 하나 → 전체) 을 깬다. 사용자가 고른 토글 어법과 다르다.
 - **D**: 변환 없이 불가 (CRITICAL) · 문서 · 번들 상한.
 
-### 사용자 결정 (execute-adr 가 닿을 때 묻는다)
+### 사용자 결정 (2026-10-24 답 — 셋 다 권고안: 1-a · 2-a · 3-a. 같은 날 1 은 「Library 전체 해제」 로 대체 — Status 참조)
 
 1. **해제 입구**: Navigator 행의 토글이 어느 원본을 해제하는가 — (a) Canvas 에서 선택한 ◆ 의 원본 (권고 — Layout 행 삭제가 선택과 무관한 것과 다르지만, 원본 145 중 하나를 고르는 유일한 자리가 선택이다) · (b) 토글을 누르면 원본 고르기 팝업 · (c) 카드 헤더에도 잠금 아이콘 (행 토글은 선택 원본에 적용).
 2. **리셋 단위**: 행의 [리셋] 이 (a) override 가 있는 원본 전부 (권고 — 사용자 「리셋(초기화)」 · 확인 대화상자) · (b) 선택 원본만, 전체는 메뉴.
@@ -136,7 +145,63 @@ Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4 — 리셋 = override entry �
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+(Implemented 승격 시 G5 와 함께 확정 — 아래는 G3 기록)
+
+- **2026-10-24 G3 (Chrome MCP, 5175 dev, 새 프로젝트 「ADR282」 — Button 「Save」 · 「Cancel」 + Select)**: Library page Button ◆ 선택 → 행 잠금 아이콘 → 「Editing Button will affect 2 instances」 → Continue → 카드 「24. BUTTON · UNLOCKED」, ◆ 가 사본 루트 (Component 절 ORIGIN · 원본 기본값 칸). ◆ 에 Badge 자식 · padding 24 · 초록 fill → Library 카드의 variant × state instance 전부 · Toolbar · Menu · NumberField 증감 버튼 (Button 부품 — 결정 3-a) · page 의 Save · Cancel (각자 글자 유지) · Select trigger 에 반영. 새로고침 (저장 → 로드) 뒤 유지. Preview: Save 134×32 · Cancel 146×32 · 초록 · padding 24px (Canvas 135 · 147 × 32). 행 [리셋] → 「Resetting 1 origin … 2 instances」 → Continue → page 가 기본 Button (58 × 30 · Preview 57 × 30) · History 「Reset origin」 · ⌘Z 로 같은 사본 복귀 · ⌘⇧Z 로 리셋. live 에서 결함 3 수리: ◆ 가 「{label}」 · 클릭이 카드 전체 · 「원본으로 이동」 이 빈 선택.
+- **잔여 관찰 (LOW, 별도)**: 해제 + Badge 상태에서 Select trigger 높이 Canvas 32 ↔ DOM 30 — trigger 에 자식이 늘었을 때의 상자 높이 차이 (잠금 대조군은 30 ↔ 30). fork 경로가 아니라 trigger 안 추가 내용의 높이 계산이라 `/cross-check` 대상으로 남긴다.
+
+## Phase 3 — Library · Local page = 문서의 page (사용자 지시 2026-10-25)
+
+### Context
+
+- 사용자 지시 (2026-10-25): 「개념이 Pages-home-body, components-library-body 에 매칭되는 개념이 되어야 한다. library-body 의 디자인패널 layout 탭 편집 불가, library-body 내의 선택 안 되는 요소가 많다. ◆ origin, ◇ instance 객체 표기들 layer 트리에 나오지 않는다. pages 탭의 page 요소들처럼 구성이 되어야 한다.」
+- 사용자 답 (AskUserQuestion, 같은 날 — 결정 지점 ④ 승인 scope 변경): **프로젝트 문서의 page** (카드 · 제목 · 캡션 = 일반 frame · text 노드) · **Library · Local 둘 다** · **ADR-282 Phase 3** · 크기 실측 (Library 1,685 노드 · 약 890 KB — 빈 프로젝트 7.7 KB 의 ~117 배) 뒤 **처음 열 때 만들기** (프로젝트 생성 때가 아니라 Components 탭에서 처음 열 때 문서에 넣는다).
+- 이 지시는 2026-10-05 · 10-14 의 「Components page = 파생 화면 · 저장 안 됨 · 카드 틀은 배치 전용」 (메모리 `project-components-tab-is-one-components-page`) 을 사용자가 다시 꺼내 바꾼 것이다 (재개 조건 (a)). 카드 구성 (Origin ◆ + ◇ · Item 줄) 자체는 유지.
+- **지금의 사실**: 두 page 는 `graph.setViewEntry` 의 파생 entry (`componentsPage.ts` — 저장 · export · 색인 · transaction 밖, `graph.ts:479-489`). 그래서 (1) 카드 · 줄 · 칸은 편집 대상이 아니고 (`originView.ts` `pageNodeOf` 가 view entry 에 닿는 op 를 거부 · Canvas pick 이 틀을 건너뜀 — `canvasPick.ts` `resolveCatalogClickRecord`), (2) body 를 골라도 Layout 탭이 쓸 곳이 없다. ◆ 칸의 자식은 잠긴 원본이면 view 표본 (`originSampleId`), 해제 · Local 원본이면 **다른 소유자의 template 루트** (override · 정의 소유) 다 — view entry 라서 소유 검증을 받지 않고 그 루트를 자식으로 든다.
+- **hard 제약**: 소유 불변식 (한 노드의 소유자는 하나 — `DUPLICATE_OWNERSHIP`, `graph.ts` `validateStructuralDelta`) — 문서 노드인 칸은 template 루트를 `children` 에 둘 수 없다. 잠긴 기본 원본은 문서 노드가 없다 (코드 template). Preview · publish 는 이 page 를 그리지 않아야 하고 (사용자 page 가 아니다 — 라우트 · Pages 목록 · publish 밖), 890 KB 를 실어 보내지 않아야 한다 (Preview 상한 320,000 B 는 번들이지만 snapshot 도 postMessage 로 간다). contract 는 48 그대로 (48 이 아직 커밋 전이라 같은 번호에 싣는다) · 변환 0 (2026-10-14 정책).
+
+### Alternatives
+
+- **대안 P1 — 칸 = 저장 노드 + 그리는 자식 하나 (view children)** ★ 채택: 카드 · 줄 · 칸 · 캡션 · ◇ instance 는 page 가 소유하는 저장 노드다. ◆ 만 지금처럼 그린다 — Builder 가 ◆ 칸 id 에 「그리는 자식」 (잠긴 원본 = view 표본 · 해제 / Local = template 루트) 을 등록하면 `graph.getEntry(칸)` 이 그것을 `children` 앞에 붙여 돌려주고 (view entry 와 같은 읽기 — 모든 consumer 가 이미 이 모양을 그린다), transaction stage 가 모든 쓰기에서 그 id 를 걸러 낸다 (한 곳). 저장 · export · 색인은 table 만 읽어 그 자식을 보지 않는다. Preview · publish 는 component page 를 통째로 뺀다 (template 은 정의 · override 소유 그대로라 빠져도 instance 가 그려진다).
+  - 위험: 기술 MEDIUM (읽기에만 보이는 자식 — 쓰기 · inverse 가 그 id 를 실으면 stage 가 걸러야 한다, 한 곳이라 원복 RED 로 고정) / 성능 MEDIUM (문서 +890 KB — 열어 본 프로젝트만, 저장은 바뀐 entry 만) / 유지보수 LOW (소유 모양 무변경 · 기존 그리기 경로 재사용) / 마이그레이션 LOW (contract 48 그대로 · 변환 0).
+- **대안 P2 — ◆ = 저장된 instance + 대상 매핑**: ◆ 를 원본의 instance 노드로 저장하고, 해제 · Local 원본이면 그 instance 투영의 행 · record 대상을 template 노드로 바꿔 편집이 사본에 가게 한다.
+  - 위험: 기술 **HIGH** (instance 투영 행은 루트가 접혀 instance 자신이 된다 — `positions.ts` `collapsedRootChildren`; 대상을 바꾸는 층은 대안 A (op 재작성) 와 같은 결함 자리) / 성능 LOW / 유지보수 **HIGH** (positions · record · Layers · pick 에 anchor 분기) / 마이그레이션 LOW.
+- **대안 P3 — 원본을 page 가 소유 (ADR-260 참조 모양 복귀)**: 칸이 template 루트를 소유하고 정의 · override 는 참조만.
+  - 위험: 기술 **HIGH** (ADR-279 Decision 1 의 소유 모양을 되돌림 · page 가 없을 때 (처음 열기 전) 의 두 모양) / 성능 MEDIUM / 유지보수 **HIGH** (Preview · publish 가 page 안의 template 을 실어야 해 page 를 뺄 수 없다) / 마이그레이션 MEDIUM. ADR-279 가 대안 C 로 기각한 비용 그대로.
+
+| 대안 | HIGH+ 축        | 판정     |
+| ---- | --------------- | -------- |
+| P1   | 없음            | **채택** |
+| P2   | 기술 · 유지보수 | 기각     |
+| P3   | 기술 · 유지보수 | 기각     |
+
+### Decision
+
+**P1.** 결정:
+
+11. **component page** — `ProjectEntry.componentPageIds` (project 소유 목록 — `pageIds` 와 별개라 라우트 · Pages 목록 · publish · Preview 가 보지 않는다) 의 page 둘: Library (`project:page:catalog-library`) · Local (`project:page:catalog-local`). body 는 지금 view 루트의 id 그대로 (`ORIGIN_VIEW_NODE` · `PROJECT_ORIGIN_VIEW_NODE`) 라 Components 화면 · 정의 view root · pick 규칙이 그 id 로 page 를 연다.
+12. **처음 열 때 만들기** — Components 탭에서 그 page 를 처음 열면 `componentsPage.ts` 가 지금 만드는 entry 를 저장 노드로 바꿔 한 step 에 넣는다 (History 없음 — `executeOnLoad`, 결정 사용자 답). 그 뒤로는 코드 라이브러리가 바뀌어도 page 는 그대로 (사용자 답의 대가 — 리셋 · 다시 만들기는 범위 밖).
+13. **◆ 칸** — 저장 노드 (캡션만 소유) + 그리는 자식 하나 (P1). 잠금 · 해제 · 리셋 · Local 컴포넌트 생성 · 삭제는 page 를 건드리지 않고 그리는 자식만 바뀐다. 칸 자체는 frame 이라 Layout 편집이 된다.
+14. **page 요소 = page 노드** — 카드 · 줄 · 칸 · 캡션 · body 는 선택 · 이동 · 삭제 · Layout · Style 편집이 된다 (home-body 와 같다). ◇ instance 는 그 원본의 instance (INSTANCE 칩). Layers 는 Pages 와 같은 트리이고 ◆ (원본) · ◇ (instance) 표식이 행에 선다.
+15. **Local page** — 정의가 생기거나 사라지면 Local page 의 카드를 맞춘다 (page 가 있을 때만 — 처음 열기 전이면 열 때 만든다).
+
+> 구현 상세: [breakdown §8 Phase 3](design/282-library-origin-unlock-fork-and-reset-breakdown.md#8-phase-3--library--local-page--문서의-page)
+
+### Risks
+
+| ID  | 위험                                                                                                                                     | 심각도 | 대응                                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------- |
+| R8  | 그리는 자식이 쓰기로 새어 저장됨 — 칸을 고친 명령 · 그 inverse 가 `getEntry` 의 children 을 그대로 실어 `DUPLICATE_OWNERSHIP` · dangling |  HIGH  | stage 의 쓰기 한 곳에서 걸러 냄 · G6 (칸 Layout 편집 · undo · 저장 → 로드에 그리는 자식 0 — 원복 RED)                  |
+| R9  | Preview · publish 에 component page 가 실려 snapshot 이 890 KB 커지거나 page 가 라우트로 보임                                            |  HIGH  | export 경계에서 component page 와 그 서브트리를 뺀다 · G6 (Preview snapshot · publish 파일 크기 = page 열기 전과 같음) |
+| R10 | 열어 본 프로젝트의 저장 · 열기 비용 (+890 KB)                                                                                            |  MED   | G7 — 저장 · 다시 열기 시간을 page 열기 전후로 잰다 (사용자 CMS 프로젝트)                                               |
+| R11 | Local page 의 카드가 정의와 어긋남 (undo 로 정의가 사라졌는데 카드가 남음)                                                               |  MED   | 카드 맞추기를 정의 변경 step 뒤에 · 사라진 정의의 칸은 그리는 자식 0 (빈 칸) · G6                                      |
+
+### Gates
+
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                                                                                | 실패 시 대안 |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| G6   | Phase 3 모델 · 명령 | unit: component page 만들기 (History 0 · 저장 → 로드 같은 page) · 칸 Layout 편집 → 저장 문서에 그리는 자식 0 · undo/redo · Preview snapshot / publish export 에 component page 0 · 잠금 → 해제 → 리셋 동안 칸의 그리는 자식만 바뀜 · Local 정의 생성 · undo 뒤 카드 맞춤 | 원인 수리    |
+| G7   | Phase 3 live        | 5175: Library 첫 열기 → body 선택 · Layout 탭 편집 · 카드 · 제목 선택 · Layers ◆ · ◇ · 해제 편집 · 새로고침 뒤 유지 · Preview 에 Library 없음. 저장 · 다시 열기 시간 기록                                                                                                | `/fix`       |
 
 ## Consequences
 

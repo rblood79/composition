@@ -240,10 +240,13 @@ export interface TranslationKeys {
     bodyLocked: string;
     systemOriginLocked: string;
     templateAnchorLocked: string;
+    originRootFixed: string;
     requiredPartKept: string;
     tableCellsAligned: string;
     instanceChildLocked: string;
     notAllowed: string;
+    originRootOnly: string;
+    libraryLocked: string;
     ungroupInstance: string;
   };
   history: {
@@ -279,6 +282,11 @@ export interface TranslationKeys {
       dissolveComponent: string;
       duplicateComponent: string;
       editComponentDefault: string;
+      unlockOrigin: string;
+      resetOrigin: string;
+      resetOrigins: string;
+      unlockLibrary: string;
+      lockLibrary: string;
       addPage: string;
       editPage: string;
       reorderPages: string;
@@ -1531,6 +1539,9 @@ export interface TranslationKeys {
     layer: string;
     layersDragCount: string;
     deleteLayout: string;
+    unlockOrigin: string;
+    lockOrigin: string;
+    resetOrigins: string;
     renameLayout: string;
     layoutDefaultName: string;
     pages: string;

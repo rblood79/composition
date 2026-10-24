@@ -280,7 +280,7 @@ export function buildCatalogLibrary(
         "UNKNOWN_BINDING_ID",
         definition.bindingId,
       );
-    if (definition.templateRootId && !templates.has(definition.templateRootId))
+    if (definition.templateRootId && !templates.has(definition.templateRootId as LibraryTemplateId))
       throw new CatalogValidationError(
         "DANGLING_TEMPLATE",
         definition.templateRootId,
@@ -392,11 +392,11 @@ export function buildCatalogLibrary(
         patch.templatePath[0] !== composite.templateRootId
       )
         throw new CatalogValidationError("INVALID_DESCENDANT_ADDRESS", at);
-      let target = templates.get(patch.templatePath[0]);
+      let target = templates.get(patch.templatePath[0] as LibraryTemplateId);
       for (const step of patch.templatePath.slice(1)) {
-        if (!target?.children.includes(step))
+        if (!target?.children.includes(step as LibraryTemplateId))
           throw new CatalogValidationError("INVALID_DESCENDANT_ADDRESS", at);
-        target = templates.get(step);
+        target = templates.get(step as LibraryTemplateId);
       }
       if (!target) throw new CatalogValidationError("DANGLING_TEMPLATE", at);
       const targetContract = instanceOf(
@@ -427,11 +427,11 @@ export function buildCatalogLibrary(
         fill.templatePath[0] !== composite.templateRootId
       )
         throw new CatalogValidationError("INVALID_SLOT_FILL", at);
-      let target = templates.get(fill.templatePath[0]);
+      let target = templates.get(fill.templatePath[0] as LibraryTemplateId);
       for (const step of fill.templatePath.slice(1)) {
-        if (!target?.children.includes(step))
+        if (!target?.children.includes(step as LibraryTemplateId))
           throw new CatalogValidationError("INVALID_SLOT_FILL", at);
-        target = templates.get(step);
+        target = templates.get(step as LibraryTemplateId);
       }
       // Only a declared slot position is filled, and each child fills one position.
       if (!target?.slot)
@@ -454,7 +454,7 @@ export function buildCatalogLibrary(
   };
   for (const definition of definitions.values())
     if (definition.templateRootId)
-      own(definition.templateRootId, definition.id);
+      own(definition.templateRootId as LibraryTemplateId, definition.id);
   for (const template of templates.values())
     for (const child of template.children) own(child, template.id);
   for (const id of templates.keys())
@@ -580,7 +580,7 @@ export function buildCatalogLibrary(
           visitDefinition(node.definitionId as LibraryDefinitionId);
         for (const child of node.children) walk(child);
       };
-      walk(definition.templateRootId);
+      walk(definition.templateRootId as LibraryTemplateId);
     }
     defVisiting.delete(id);
     defVisited.add(id);

@@ -17,6 +17,8 @@ import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
 import { importDataParts } from "../utils/importCollectionEnvelope";
 import DirectoryLinkButton from "./DirectoryLinkButton";
+import { withoutComponentPages } from "../../../../../packages/shared/src/catalog/document/componentPages";
+import type { CatalogDocument } from "../../../../../packages/shared/src/catalog/document/types";
 import { openCatalogPublish } from "./openCatalogPublish";
 // 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
 import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
@@ -124,7 +126,12 @@ export function useCatalogProjectFiles(options: {
   );
 
   const openPublish = useCallback(async () => {
-    const content = collectContent();
+    const collected = collectContent();
+    // (Publish runs the app: the Components tab's pages are not part of it — ADR-282 Phase 3.)
+    const content = collected && {
+      ...collected,
+      document: withoutComponentPages(collected.document as CatalogDocument),
+    };
     if (!content) {
       toast("error", t("header.projectFileUnavailable"));
       return;

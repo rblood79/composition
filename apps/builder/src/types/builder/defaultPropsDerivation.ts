@@ -58,7 +58,7 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
     isDisabled: false,
   },
   ToggleButton: {
-    children: "Toggle Button",
+    children: "Toggle",
     isEmphasized: false,
     isQuiet: false,
     isSelected: false,

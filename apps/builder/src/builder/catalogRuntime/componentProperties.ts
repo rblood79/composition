@@ -64,7 +64,7 @@ export function catalogPropertyOrigin(
     if (definition?.kind !== "definition" || definition.usage === "layout")
       return undefined;
     return {
-      definitionId,
+      definitionId: definition.id,
       name: definition.name,
       rootId: cursor as NodeId,
     };

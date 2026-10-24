@@ -15,9 +15,23 @@ export type EditingSemanticsDetachConfirmationRequest = {
   originLabel?: string | null;
 };
 
+/**
+ * ADR-282 Decision 6 · 10: resetting library origins to the library default — how many origins,
+ * the instances that follow, and what instances filled only at positions made after an unlock
+ * (it goes with the reset).
+ */
+export type EditingSemanticsResetConfirmationRequest = {
+  kind: "origin-reset";
+  originCount: number;
+  instanceCount: number;
+  lostInstanceCount: number;
+  lostNodeCount: number;
+};
+
 export type EditingSemanticsConfirmationRequest =
   | EditingSemanticsImpactConfirmationRequest
-  | EditingSemanticsDetachConfirmationRequest;
+  | EditingSemanticsDetachConfirmationRequest
+  | EditingSemanticsResetConfirmationRequest;
 
 type Listener = (request: EditingSemanticsConfirmationRequest | null) => void;
 
@@ -39,6 +53,10 @@ function fallbackConfirm(
   if (request.kind === "detach-instance") {
     return confirmFn("Detach this instance from its component?");
   }
+  if (request.kind === "origin-reset")
+    return confirmFn(
+      `Reset ${request.originCount} origin(s) to the library default?`,
+    );
 
   const label =
     request.instanceCount === 1
@@ -63,6 +81,15 @@ export function requestEditingSemanticsImpactConfirmation(
   return requestEditingSemanticsConfirmation({
     ...request,
     kind: request.kind ?? "origin-impact",
+  });
+}
+
+export function requestEditingSemanticsResetConfirmation(
+  request: Omit<EditingSemanticsResetConfirmationRequest, "kind">,
+): Promise<boolean> {
+  return requestEditingSemanticsConfirmation({
+    ...request,
+    kind: "origin-reset",
   });
 }
 

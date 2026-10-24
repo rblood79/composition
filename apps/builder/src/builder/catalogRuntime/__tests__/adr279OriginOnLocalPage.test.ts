@@ -37,6 +37,9 @@ import {
   COMPONENTS_VIEW,
   PROJECT_COMPONENTS_VIEW,
   projectComponentCardId,
+  componentPageNodeId,
+  PROJECT_ORIGIN_VIEW_NODE,
+  projectComponentOriginCellId,
 } from "../originView";
 import { catalogMenuHost } from "../shortcuts";
 import {
@@ -355,6 +358,10 @@ describe("ADR-279 Decision 3a — Create component asks for the name", () => {
   });
 });
 
+type CatalogLayerNodeLike = ReturnType<
+  CatalogLayerTreeStore["getSnapshot"]
+>[number];
+
 describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename, delete, duplicate", () => {
   it("the Local page's cards have header frames (the component's name) and the Library page none", async () => {
     const { workspace, graph, definitionId } = await open();
@@ -368,15 +375,18 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
     const pageRoot = workspace.readModel.definitionRows(
       PROJECT_COMPONENTS_VIEW,
     )[0]!;
-    // The page lists the component's card (a group row — as the Library page), the card its ◆.
-    const [cardRow] = catalogComponentsPageRows(graph, pageRoot) ?? [];
-    expect(cardRow?.target).toEqual({
-      kind: "node",
-      id: projectComponentCardId(definitionId),
-    });
+    // The page is the project's (ADR-282 Phase 3): the component's card, its ◆ cell — which
+    // draws the template root its definition owns, and stores only the reference.
+    expect(pageRoot.target).toEqual({ kind: "node", id: PROJECT_ORIGIN_VIEW_NODE });
     expect(
-      catalogComponentsPageRows(graph, cardRow!)?.map((row) => row.target),
-    ).toEqual([{ kind: "node", id: id("card") }]);
+      graph.storedEntry(componentPageNodeId(projectComponentCardId(definitionId))),
+    ).toBeDefined();
+    const cell = componentPageNodeId(projectComponentOriginCellId(definitionId));
+    expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(id("card"));
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(
+      id("card"),
+    );
+    expect((graph.storedEntry(cell) as NodeEntry).originOf).toBe(definitionId);
     workspace.showDefinition(COMPONENTS_VIEW);
     expect(catalogProjectComponentCardFrames(graph, workspace.root)).toEqual(
       [],
@@ -401,7 +411,9 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
       catalogProjectComponentCardFrames(graph, workspace.root)[0],
     ).toMatchObject({ title: "Promo card" });
     const title = graph.getEntry(
-      `${projectComponentCardId(definitionId).slice(0, -"/card".length)}/title` as NodeId,
+      componentPageNodeId(
+        `${projectComponentCardId(definitionId).slice(0, -"/card".length)}/title`,
+      ),
     ) as NodeEntry;
     expect(JSON.stringify(title.props.children)).toContain("PROMO CARD");
     expect(catalogComponentRole(graph, instance)).toBe("instance");
@@ -521,13 +533,22 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
     expand();
     // The page lists the component's card under the body, the card its ◆ (2026-10-22 — the
     // Library page's group rows).
-    const originRow = layers
-      .getSnapshot()[0]
-      ?.children?.[0]?.children?.find(
-        (row) =>
+    // (A page tree — body > card > ◆ cell > ◆, ADR-282 Phase 3.)
+    const find = (
+      rows: readonly CatalogLayerNodeLike[] | undefined,
+    ): CatalogLayerNodeLike | undefined => {
+      for (const row of rows ?? []) {
+        if (
           row.position.target.kind === "node" &&
-          row.position.target.id === id("card"),
-      );
+          row.position.target.id === id("card")
+        )
+          return row;
+        const found = find(row.children);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const originRow = find(layers.getSnapshot());
     expect(originRow?.role).toBe("origin");
     expect(originRow?.children?.map((row) => row.name)).toEqual(["Text"]);
     // Before: the step's listeners (Layers) threw CatalogValidationError DANGLING_CHILD project:node:card.
@@ -539,13 +560,14 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
       ),
     ).toBe("ACCEPTED");
     expect(graph.getEntry(id("card"))).toBeUndefined();
-    // The page is laid out again without the card: no ◆ row (the 「No components」 card is layout).
-    expect(layers.getSnapshot()[0]?.hasChildren).toBe(false);
+    // The page follows: the component's card is gone with it — no ◆ row.
+    expand();
+    expect(find(layers.getSnapshot())).toBeUndefined();
     workspace.undo();
     expand();
-    const back = layers.getSnapshot()[0]?.children?.[0]?.children;
-    expect(back?.map((row) => [row.name, row.role])).toEqual([["frame", "origin"]]);
-    expect(back?.[0]?.children?.map((row) => row.name)).toEqual(["Text"]);
+    const back = find(layers.getSnapshot());
+    expect([back?.name, back?.role]).toEqual(["frame", "origin"]);
+    expect(back?.children?.map((row) => row.name)).toEqual(["Text"]);
     layers.dispose();
     workspace.dispose();
   });

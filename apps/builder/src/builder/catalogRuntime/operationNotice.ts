@@ -10,6 +10,7 @@ import {
   type NestingViolation,
 } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { useToastStore } from "../stores/toast";
+import { CatalogOriginEditError } from "./originView";
 import {
   notifyNestingRejected,
   showNestingRelocatedToast,
@@ -17,7 +18,8 @@ import {
 
 const REASON_KEY: Record<string, string> = {
   UNGROUP_INSTANCE: "operation.ungroupInstance",
-  TEMPLATE_ROOT_FIXED: "operation.templateAnchorLocked",
+  // An origin's own root (Local page · Layout page · an unlocked Library ◆ — ADR-282).
+  TEMPLATE_ROOT_FIXED: "operation.originRootFixed",
   REPLACEMENT_NOT_MOVABLE: "operation.templateAnchorLocked",
   // ADR-256 Decision 5: a part RAC needs for its owner (a Select's trigger Button …).
   REQUIRED_PART_NOT_REMOVABLE: "operation.requiredPartKept",
@@ -49,8 +51,26 @@ function nestingViolationOf(
   );
 }
 
+const ORIGIN_EDIT_KEY: Record<CatalogOriginEditError["code"], string> = {
+  ORIGIN_ROOT_ONLY: "operation.originRootOnly",
+  // ADR-282: the Library page's lock is on.
+  LIBRARY_LOCKED: "operation.libraryLocked",
+};
+
+/**
+ * An edit the Components page refuses (a locked Library, a sample's structure) is the user's
+ * action meeting a rule, not a failure: tell why and return true; other errors return false.
+ */
+export function notifyEditRefusal(error: unknown): boolean {
+  if (!(error instanceof CatalogOriginEditError)) return false;
+  const key = ORIGIN_EDIT_KEY[error.code];
+  useToastStore.getState().showToast("info", key, { messageKey: key });
+  return true;
+}
+
 /** Tell the user why a refused structural edit did nothing. */
 export function notifyOperationRefused(error: unknown): void {
+  if (notifyEditRefusal(error)) return;
   if (error instanceof CatalogValidationError) {
     if (error.code === "NESTING_NOT_ALLOWED") {
       const violation = nestingViolationOf(error);

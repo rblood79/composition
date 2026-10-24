@@ -1076,6 +1076,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "id",
           "name",
           "pageIds",
+          "componentPageIds",
           "definitionIds",
           "overrideIds",
           "themeIds",
@@ -1101,6 +1102,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         ["assetIds", "project:asset:"],
       ] as const)
         list(item[key], prefix, `entry.${key}`);
+      if (item.componentPageIds !== undefined)
+        list(item.componentPageIds, "project:page:", "entry.componentPageIds");
       if (item.activeThemeId !== undefined)
         id(item.activeThemeId, "project:theme:", "entry.activeThemeId");
       if (item.pageLayout !== undefined)
@@ -1189,13 +1192,33 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
     case "definitionOverride":
       exact(
         item,
-        ["kind", "id", "targetId", "defaults", "visual", "stateRules"],
+        [
+          "kind",
+          "id",
+          "targetId",
+          "defaults",
+          "visual",
+          "stateRules",
+          "templateRootId",
+          "templateMap",
+        ],
         "entry",
       );
       id(item.targetId, "lib:definition:", "entry.targetId");
       writes(item.defaults, "entry.defaults");
       writes(item.visual, "entry.visual", visualFields);
       stateRules(item.stateRules, "entry.stateRules");
+      // ADR-282: an unlocked origin's template copy and its library → copy map, together.
+      if ((item.templateRootId === undefined) !== (item.templateMap === undefined))
+        invalid("INVALID_ORIGIN_TEMPLATE_ROOT", "entry.templateRootId");
+      if (item.templateRootId !== undefined) {
+        id(item.templateRootId, "project:node:", "entry.templateRootId");
+        const map = object(item.templateMap, "entry.templateMap");
+        for (const [key, value] of Object.entries(map)) {
+          id(key, "lib:template:", "entry.templateMap");
+          id(value, "project:node:", `entry.templateMap.${key}`);
+        }
+      }
       break;
     case "node": {
       exact(
@@ -1225,11 +1248,25 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "metadata",
           "presentWhen",
           "showWhen",
+          "displayState",
+          "originOf",
         ],
         "entry",
       );
       presentWhen(item.presentWhen, "entry.presentWhen");
+      if (
+        item.originOf !== undefined &&
+        !/^(lib|project):definition:[A-Za-z0-9][A-Za-z0-9_-]*$/.test(
+          String(item.originOf),
+        )
+      )
+        invalid("INVALID_ID", "entry.originOf");
       showWhen(item.showWhen, "entry.showWhen");
+      if (
+        item.displayState !== undefined &&
+        !DISPLAY_STATE_NAMES.includes(item.displayState as DisplayStateName)
+      )
+        invalid("DISPLAY_STATE_UNKNOWN", "entry.displayState");
       if (item.metadata !== undefined) {
         const metadata = object(item.metadata, "entry.metadata");
         exact(metadata, ["htmlId", "className", "ariaLabel"], "entry.metadata");

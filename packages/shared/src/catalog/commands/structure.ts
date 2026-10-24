@@ -1088,6 +1088,8 @@ export function removeWithReferrers(
       const entry = draft.read(referrerId);
       if (!entry) continue;
       if (entry.kind === "stateVariable" || entry.kind === "interaction") {
+        // (A record this command re-addressed away from the removed ids stays — ADR-282 reset.)
+        if (!referencedIds(entry).some((ref) => draft.removed(ref))) continue;
         draft.remove(referrerId);
         removedRelated.push(referrerId);
         queue.push(referrerId);

@@ -1717,6 +1717,16 @@ export class CatalogCompositionRoot {
       this.consume,
     );
   }
+  /**
+   * A command the document runs as it opens (not a user action): committed and saved like
+   * `execute`, no history entry.
+   */
+  executeOnLoad(command: CatalogCommand): CatalogTransactionResult | undefined {
+    const plan = command(this.runtime.graph.commandReader);
+    return plan.ops.length
+      ? this.runtime.load(plan.label, plan.ops, this.consume)
+      : undefined;
+  }
   /** A Preview replica takes the editor's delta: the same consumer, no history, no save. */
   sync(ops: readonly CatalogOperation[]): CatalogTransactionResult {
     return this.runtime.sync("Sync", ops, this.consume);
@@ -1732,7 +1742,7 @@ export class CatalogCompositionRoot {
   } {
     for (let attempt = 0; ; attempt++) {
       const revision = this.runtime.graph.revision;
-      const plan = command(this.runtime.graph);
+      const plan = command(this.runtime.graph.commandReader);
       try {
         return {
           plan,
@@ -1898,7 +1908,9 @@ export class CatalogCompositionRoot {
       if (
         binding?.key !== undefined &&
         (!names ||
-          catalogStateNames({ key: binding.key }).some((name) => names.has(name)))
+          catalogStateNames({ key: binding.key }).some((name) =>
+            names.has(name),
+          ))
       )
         keyed.add(binding.collectionId);
     }
@@ -2109,10 +2121,11 @@ export class CatalogCompositionRoot {
 
   private pageRoots(): NodeId[] {
     if (this.definitionView) {
-      // The Components page: the derived root frame the workspace put in the graph's view.
+      // The Components page: its body — the page the project stores (ADR-282 Phase 3), else the
+      // derived root frame the workspace put in the graph's view.
       if (isComponentsView(this.definitionView)) {
         const root = componentsViewRoot(this.definitionView);
-        return this.runtime.graph.isViewEntry(root) ? [root] : [];
+        return this.runtime.graph.getEntry(root) ? [root] : [];
       }
       const definition = this.runtime.graph.getEntry(this.definitionView);
       return definition?.kind === "definition" && definition.templateRootId
@@ -2338,7 +2351,11 @@ export class CatalogCompositionRoot {
    * source (the instance node): its overlay stays closed.
    */
   readonly originBodyOpen: CatalogOriginBodyOpen = (trigger) =>
-    componentOriginOf(this.runtime.graph, trigger.sourceId) !== undefined;
+    componentOriginOf(this.runtime.graph, trigger.sourceId) !== undefined ||
+    // (An unlocked library origin's copy root — the Library page's ◆, ADR-282.)
+    !!this.runtime.graph
+      .definitionOfTemplateRoot(trigger.sourceId)
+      ?.startsWith("lib:");
   /**
    * ADR-259 Phase 2 — a prefix field's box Group draws the Input rule's box (its padding · border
    * at the field's size, a centred row) and the Input in it lays its box down
@@ -3287,6 +3304,24 @@ export class CatalogCompositionRoot {
   ): Record<string, unknown> | undefined {
     if (!this.pageFrames || record.parentId !== "catalog:root")
       return undefined;
+    if (isComponentsView(this.definitionView)) {
+      // A Components page's body is a page's (user 2026-10-25): the breakpoint's page width —
+      // its `%` width (the body rule's 100%) of that width, as a page root's; its height its own
+      // (the body rule's 100% of the view's root: as tall as its cards). It keeps that width in
+      // the view's root, a flex box the viewport wide.
+      const tier = CANVAS_VIEWPORT[this.breakpoint];
+      const width = record.sizing.width ?? record.visual.width;
+      const percent =
+        width == null ? undefined : viewportPercentWidth(width, tier.width);
+      return {
+        ...(width == null
+          ? { width: `${tier.width}px` }
+          : percent !== undefined
+            ? { width: percent }
+            : {}),
+        flexShrink: 0,
+      };
+    }
     if (this.definitionView) {
       // A layout is drawn at the page size it frames; a component at its own size.
       const definition = this.runtime.graph.getEntry(this.definitionView);
@@ -4415,7 +4450,12 @@ export class CatalogCompositionRoot {
         // A dependent's presence follows the owner too (a value-conditioned part's final text —
         // Decision 7; an owner-hidden part — a NumberField's steppers under `hideStepper`): its
         // hidden is judged against the planned records, not only at its own edits.
-        const current = withHidden(valued, get, this.typeOf, this.originBodyOpen);
+        const current = withHidden(
+          valued,
+          get,
+          this.typeOf,
+          this.originBodyOpen,
+        );
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
         const fillLayout =

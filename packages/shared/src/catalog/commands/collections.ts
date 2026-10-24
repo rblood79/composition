@@ -313,7 +313,7 @@ function collectionRootSlot(
   );
   const root =
     definition?.mode === "composite" ? definition.templateRootId : undefined;
-  return root && draft.reader.library.templates.get(root)?.slot
+  return root && readTemplate(draft, root).slot
     ? {
         kind: "descendant",
         ownerId: host.id,

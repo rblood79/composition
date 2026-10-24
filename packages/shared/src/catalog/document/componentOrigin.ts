@@ -12,6 +12,6 @@ export function componentOriginOf(
   const definitionId = reader.definitionOfTemplateRoot(id);
   const definition = definitionId ? reader.getEntry(definitionId) : undefined;
   return definition?.kind === "definition" && definition.usage !== "layout"
-    ? definitionId
+    ? definition.id
     : undefined;
 }

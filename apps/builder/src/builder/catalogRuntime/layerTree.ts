@@ -6,7 +6,10 @@ import {
   CATALOG_EMPTY_STATE_COLLECTIONS,
   CATALOG_EMPTY_STATE_TYPE,
 } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
-import { catalogComponentsPageRows } from "./componentsPage";
+import {
+  catalogComponentPageStored,
+  catalogComponentsPageRows,
+} from "./componentsPage";
 import { catalogInsertParent } from "./insertParent";
 import {
   componentsViewRoot,
@@ -178,6 +181,8 @@ const roleOf = (
   // ADR-279: a project component's template root (the Local page's ◆) is its origin.
   if (nodeId) {
     const definitionId = graph.definitionOfTemplateRoot(nodeId);
+    // (ADR-282: an unlocked library origin's copy root — the Library page's ◆ — too.)
+    if (definitionId?.startsWith("lib:")) return "origin";
     const definition = definitionId ? graph.getEntry(definitionId) : undefined;
     if (definition?.kind === "definition" && definition.usage !== "layout")
       return "origin";
@@ -378,9 +383,11 @@ export class CatalogLayerTreeStore {
     ): CatalogLayerNode => {
       if (counting) docCounters.layersRowsBuilt += 1;
       wanted.add(position.identity);
-      // The Components page lists origins and their instances, not its drawn frames.
+      // A derived Components page lists origins and their instances, not its drawn frames; a
+      // stored one (ADR-282 Phase 3) is a page — its frames are rows as a page's are.
       const rows = listed(
-        (isComponentsView(this.ownerId)
+        (isComponentsView(this.ownerId) &&
+        !catalogComponentPageStored(graph, this.ownerId)
           ? catalogComponentsPageRows(graph, position)
           : undefined) ?? readModel.childRows(position),
       );
@@ -424,10 +431,14 @@ export class CatalogLayerTreeStore {
         body: parentId === null && isBodyType(typeName),
         ...(role ? { role } : {}),
         ...(slot ? { slot } : {}),
-        ...(isProjectComponentsView(this.ownerId) &&
-        position.target.kind === "node" &&
-        graph.getEntry(graph.ownerOf(position.target.id) ?? "")?.kind ===
-          "definition"
+        ...((isProjectComponentsView(this.ownerId) &&
+          position.target.kind === "node" &&
+          graph.getEntry(graph.ownerOf(position.target.id) ?? "")?.kind ===
+            "definition") ||
+        // (ADR-282: an unlocked origin's copy root on the Library page — Reset takes it away.)
+        (position.target.kind === "node" &&
+          graph.getEntry(graph.ownerOf(position.target.id) ?? "")?.kind ===
+            "definitionOverride")
           ? { keptOrigin: true as const }
           : {}),
       };

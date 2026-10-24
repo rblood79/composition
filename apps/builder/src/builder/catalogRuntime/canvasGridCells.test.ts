@@ -229,6 +229,44 @@ describe("gridPlacement — CSS grid placement of pinned, auto and spanning item
   });
 });
 
+describe("gridPlacement — end lines (a grid-area's placement)", () => {
+  it("user report (2026-10-25): a Meter's bar (columns 1 / 3) spans both tracks — the 1fr track is the Label's, the auto track the value's, inside the Meter", () => {
+    // A Meter: `"label value" "bar bar"` · `1fr auto` (column gap 12) — the rule's grid areas
+    // resolve to start · end lines. Before, an end line was read only as `span n`: the bar took
+    // the first track alone, sized it 240, and the value's track was drawn past the Meter.
+    const lines = [
+      { column: "1", columnEnd: "2", row: "1", rowEnd: "2" },
+      { column: "2", columnEnd: "3", row: "1", rowEnd: "2" },
+      { column: "1", columnEnd: "3", row: "2", rowEnd: "3" },
+    ];
+    expect(gridPlacement(lines, 2).cells).toEqual([
+      { row: 0, column: 0, rowSpan: 1, columnSpan: 1 },
+      { row: 0, column: 1, rowSpan: 1, columnSpan: 1 },
+      { row: 1, column: 0, rowSpan: 1, columnSpan: 2 },
+    ]);
+    const layout = gridLayout({
+      content: { x: 40, y: 0, width: 240, height: 32 },
+      columns: "1fr auto",
+      columnGap: 12,
+      rowGap: 4,
+      items: [
+        { x: 40, y: 0, width: 51, height: 20 },
+        { x: 252, y: 0, width: 28, height: 20 },
+        { x: 40, y: 24, width: 240, height: 8 },
+      ],
+      lines,
+      fallbackHeight: 0,
+      appendRow: false,
+    });
+    expect(
+      layout.tracks.columns.map(({ start, size }) => [start, size]),
+    ).toEqual([
+      [40, 200],
+      [252, 28],
+    ]);
+  });
+});
+
 describe("gridLayout — occupancy", () => {
   it("a spanning item is in each of its cells; the cells past it stay empty", () => {
     const layout = gridLayout({

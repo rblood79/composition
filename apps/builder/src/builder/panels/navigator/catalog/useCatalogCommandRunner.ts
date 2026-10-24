@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import { notifyEditRefusal } from "../../../catalogRuntime/operationNotice";
 import { useToastStore } from "../../../stores/toast";
 
 /**
@@ -18,6 +19,7 @@ export function useCatalogCommandRunner(): (
         workspace.execute(command);
         return true;
       } catch (error) {
+        if (notifyEditRefusal(error)) return false;
         useToastStore
           .getState()
           .showToast(

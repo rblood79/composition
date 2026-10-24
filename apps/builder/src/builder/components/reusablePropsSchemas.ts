@@ -36,7 +36,7 @@ export const TOGGLEBUTTON_PROPS_SCHEMA: PropsSchema = {
   label: {
     kind: "string",
     label: "Label",
-    default: "Toggle Button",
+    default: "Toggle",
     section: "content",
   },
   icon: {

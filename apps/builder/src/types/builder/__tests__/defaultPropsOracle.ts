@@ -63,7 +63,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     type: "ToggleButton",
     props: {
       size: "M",
-      children: "Toggle Button",
+      children: "Toggle",
       isEmphasized: false,
       isQuiet: false,
       staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-21)

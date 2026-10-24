@@ -125,9 +125,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * (`append` · `update` · `remove` — `useListData.append` · `update` · `remove`) or load it
  * again (`reload` — `useAsyncList.reload` — ADR-281
  * user decision 3, second step); a 47 document without one is unchanged.
+ * 48 — ADR-282: a library origin's project override may own a copy of the origin's template
+ * (`templateRootId` · `templateMap` — the origin unlocked on the Library page); the copy is the
+ * origin's template for every instance. A 47 document is refused (사용자 지시 2026-10-14).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 47 as const;
+export const LIBRARY_CONTRACT_VERSION = 48 as const;
 
 export type EntryKind =
   | "project"
@@ -540,6 +543,12 @@ export interface ProjectEntry {
   id: EntryId<"project">;
   name: string;
   pageIds: readonly EntryId<"page">[];
+  /**
+   * ADR-282 Phase 3 — the Components tab's pages (the Library's · Local's): pages the project
+   * owns outside `pageIds`, so routes, the Pages list, Preview and publish do not see them. Made
+   * the first time the tab opens one.
+   */
+  componentPageIds?: readonly EntryId<"page">[];
   definitionIds: readonly EntryId<"definition">[];
   overrideIds: readonly EntryId<"definitionOverride">[];
   themeIds: readonly EntryId<"theme">[];
@@ -724,6 +733,13 @@ export interface DefinitionOverrideEntry {
   defaults: PropWrites;
   visual: VisualWrites;
   stateRules: StateRules;
+  /**
+   * ADR-282: the unlocked origin's template — a copy of the library template the override owns
+   * (absent = locked, the library template). Every instance of the origin projects it.
+   */
+  templateRootId?: NodeId;
+  /** ADR-282: library template node → its copy (with `templateRootId`, never alone). */
+  templateMap?: Readonly<Record<LibraryTemplateId, NodeId>>;
 }
 /** ADR-256 Decision 7 — the value conditions a node's presence may have (`presentWhen`). */
 export type CatalogPresentWhen = "nonEmptyText";
@@ -827,6 +843,18 @@ export interface NodeEntry {
   presentWhen?: CatalogPresentWhen;
   /** ADR-256 Decision 7 — the states in which the node is there (`CatalogShowWhen`). */
   showWhen?: CatalogShowWhen;
+  /**
+   * ADR-282: the display state a node of an unlocked origin's copy keeps from the library template
+   * node it copies (a state origin's root — `LibraryTemplateNode.displayState`).
+   */
+  displayState?: DisplayStateName;
+  /**
+   * ADR-282 Phase 3 — a Components page ◆ cell: the origin it draws first (a library origin's
+   * sample, or the template root its definition · override owns). A reference the Builder reads
+   * (`CatalogGraph.setViewChildren`), not a child — the cell owns only its stored children. An
+   * origin that is gone draws nothing.
+   */
+  originOf?: DefinitionId;
   /** Authored box layout over the definition and rule layout (ADR-248 Phase 4a). */
   layout?: LayoutWrites;
   /** Paint layers; absent = the definition's fill. */
@@ -1039,8 +1067,11 @@ export interface CatalogReader {
   ownerOf(id: string): string | undefined;
   referrersOf(id: string): ReadonlySet<string>;
   instancesOf(definitionId: string): ReadonlySet<string>;
-  /** ADR-260: the project definition whose template root `id` is (owned or referenced). */
-  definitionOfTemplateRoot(id: string): EntryId<"definition"> | undefined;
+  /**
+   * The definition whose template root `id` is: a project definition (ADR-279), or an unlocked
+   * library origin whose override owns `id` (ADR-282 — a `lib:definition:` id).
+   */
+  definitionOfTemplateRoot(id: string): DefinitionId | undefined;
 }
 
 export interface CatalogDocument {
@@ -1073,7 +1104,8 @@ export interface LibraryDefinition {
   conditionalRules?: readonly ConditionalRule[];
   partRules?: readonly PartRule[];
   bindingId?: string;
-  templateRootId?: LibraryTemplateId;
+  /** A library template id; an unlocked origin's copy (ADR-282) through the graph's library view. */
+  templateRootId?: TemplateId;
   /**
    * Registered D3 rule (`COMPONENT_RULES_TABLE` key) whose variant paint, state paint and
    * sub-part structure the binding executors read from `CatalogLibrary.rules`. Size geometry
@@ -1087,7 +1119,8 @@ export interface LibraryDefinition {
  * `InstanceAddress.templatePath`); the instance chain is the template node itself.
  */
 export interface LibraryDescendantPatch {
-  templatePath: readonly LibraryTemplateId[];
+  /** Library template ids; the copies of an unlocked origin's (ADR-282) through the library view. */
+  templatePath: readonly TemplateId[];
   props?: PropValues;
   visual?: VisualValues;
   layout?: LayoutValues;
@@ -1101,7 +1134,7 @@ export interface LibraryDescendantPatch {
  * template root (as `LibraryDescendantPatch.templatePath`).
  */
 export interface LibrarySlotFill {
-  templatePath: readonly LibraryTemplateId[];
+  templatePath: readonly TemplateId[];
   childIds: readonly LibraryTemplateId[];
 }
 export interface LibraryTemplateNode {

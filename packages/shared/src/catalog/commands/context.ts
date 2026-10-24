@@ -366,7 +366,9 @@ export function locate(
         };
     return fail("REPLACEMENT_NOT_MOVABLE", id);
   }
-  if (owner?.kind === "definition") return fail("TEMPLATE_ROOT_FIXED", id);
+  // (An unlocked origin's copy root too — its override owns it, ADR-282 Decision 4.)
+  if (owner?.kind === "definition" || owner?.kind === "definitionOverride")
+    return fail("TEMPLATE_ROOT_FIXED", id);
   return fail("NODE_NOT_PLACED", id);
 }
 

@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components/Button";
-import { File, LayoutTemplate } from "lucide-react";
+import { File, LayoutTemplate, Lock, LockOpen } from "lucide-react";
 import {
   deleteLayout,
   renameDefinition,
@@ -28,6 +28,11 @@ import {
   COMPONENTS_VIEW,
   PROJECT_COMPONENTS_VIEW,
 } from "../../../catalogRuntime/originView";
+import {
+  catalogOverriddenOrigins,
+  confirmCatalogOriginReset,
+} from "../../../catalogRuntime/originUnlock";
+import { useToastStore } from "../../../stores/toast";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { Section } from "../../../components/panel/Section";
@@ -50,6 +55,7 @@ type DefinitionNode = Omit<CatalogDefinitionItem, "id"> & {
 
 const ComponentIcon = ACTION_ICONS.component;
 const DeleteIcon = ACTION_ICONS.delete;
+const ResetIcon = ACTION_ICONS.reset;
 const AddIcon = ACTION_ICONS.add;
 
 /**
@@ -316,6 +322,7 @@ function DefinitionRowContent({
         )}
       </div>
       <div className="elementItemActions">
+        {item.id === COMPONENTS_VIEW && <LibraryOriginActions />}
         {item.usage === "layout" && (
           <Button
             className="iconButton"
@@ -331,5 +338,75 @@ function DefinitionRowContent({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * ADR-282 — the Library page row's actions (user 2026-10-24 「리셋(초기화) - 해제(잠금)」 · 「Library
+ * 전체 해제」): the lock (`lock` ↔ `lock-open`) unlocks the whole Library for editing — every ◆ is
+ * its origin's copy — and locks it again (the copies nobody edited go back to the library); reset
+ * takes every overridden origin back to the library default (after the reset dialog) and locks.
+ * Its own subscriptions: the RAC row keeps rendered content until its item changes.
+ */
+function LibraryOriginActions() {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const graph = workspace.runtime.graph;
+  const unlocked = useSyncExternalStore(
+    useCallback(
+      (notify: () => void) => workspace.subscribeLibraryMode(notify),
+      [workspace],
+    ),
+    () => workspace.isLibraryUnlocked,
+  );
+  const overridden = useSyncExternalStore(
+    useCallback(
+      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
+      [workspace],
+    ),
+    () => catalogOverriddenOrigins(graph).length,
+  );
+  const LockIcon = unlocked ? LockOpen : Lock;
+  const lockLabel = unlocked
+    ? t("navigator.lockOrigin")
+    : t("navigator.unlockOrigin");
+  return (
+    <>
+      <Button
+        className="iconButton"
+        aria-label={t("navigator.resetOrigins")}
+        isDisabled={overridden === 0}
+        onPress={() => void confirmCatalogOriginReset(graph, run)}
+      >
+        <ResetIcon
+          color={ICON_EDIT_PROPS.color}
+          strokeWidth={ICON_EDIT_PROPS.stroke}
+          size={ICON_EDIT_PROPS.size}
+        />
+      </Button>
+      <span title={lockLabel}>
+        <Button
+          className="iconButton"
+          aria-label={lockLabel}
+          aria-pressed={unlocked}
+          onPress={() => {
+            try {
+              workspace.setLibraryUnlocked(!unlocked);
+            } catch (error) {
+              useToastStore
+                .getState()
+                .showToast("error", String((error as Error).message ?? error));
+            }
+          }}
+        >
+          <LockIcon
+            color={ICON_EDIT_PROPS.color}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            size={ICON_EDIT_PROPS.size}
+          />
+        </Button>
+      </span>
+    </>
   );
 }

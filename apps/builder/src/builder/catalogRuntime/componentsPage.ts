@@ -6,9 +6,19 @@ import {
   typography,
 } from "@composition/rendering";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import { originForksOf } from "../../../../../packages/shared/src/catalog/document/originFork";
+import {
+  componentPageMembers,
+  LIBRARY_COMPONENT_PAGE,
+  LOCAL_COMPONENT_PAGE,
+} from "../../../../../packages/shared/src/catalog/document/componentPages";
+import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import type { CatalogOperation } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type {
   CatalogReader,
+  DefinitionId,
   EntryId,
+  InstanceAddress,
   LibraryDefinitionId,
   LibraryTemplateId,
   NodeEntry,
@@ -39,7 +49,9 @@ import {
   originInstanceId,
   originOfEditableSample,
   originOfPageInstance,
+  originOfSample,
   originSampleId,
+  componentPageNodeId,
   themeSampleId,
 } from "./originView";
 import {
@@ -58,13 +70,20 @@ import {
  * by side); a card draws no line of sizes (user 2026-10-06: it took most of a card). All of it is graph view entries (never saved, exported or indexed). The
  * Layers tree lists the page as card → origin and instances (`catalogComponentsPageRows`).
  */
-const COLUMNS = 6;
-const COLUMN_WIDTH = 560;
-const GAP = 24;
-const PAGE_PADDING = 32;
+/**
+ * The body's grid columns per breakpoint, each as wide as its cards (user 2026-10-25 「desktop
+ * 3*auto, tablet 2*auto, mobile 1*auto」) — the base and the tablet · mobile layers.
+ */
+const BODY_COLUMNS = { desktop: 3, tablet: 2, mobile: 1 } as const;
+const autoTracks = (count: number) => Array(count).fill("auto").join(" ");
+const GAP = 16;
+const PAGE_PADDING = 16;
 const CARD_PADDING = 24;
-export const COMPONENTS_PAGE_WIDTH =
-  COLUMN_WIDTH * COLUMNS + GAP * (COLUMNS - 1) + PAGE_PADDING * 2;
+/** The width a card's line fills before it breaks onto the next line. */
+const LINE_WIDTH = 512;
+const CELL_GAP = 16;
+/** Narrow cells a line holds. */
+const PER_LINE = 5;
 /** A composed origin's cell (a field, a list): wide enough to lay its parts out. */
 const COMPOSED_CELL_WIDTH = 240;
 /**
@@ -111,6 +130,24 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "Tooltip",
   "ContextualHelp",
   "Menu",
+]);
+/**
+ * Overlay origins whose card draws the origin alone — no filled instance beside its open body
+ * (user 2026-10-25 「61.dialog, 62.popover, 63. 모두 instance 객체 삭제」).
+ */
+const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
+  "Dialog",
+  "Popover",
+  "ContextualHelp",
+]);
+/** Origins whose card draws no Variants line (user 2026-10-25 「… - Variants 제거」). */
+const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
+  "CardView",
+  "Badge",
+  "Meter",
+  "StatusLight",
+  "InlineAlert",
+  "Card",
 ]);
 const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set([
   "lib:definition:type-Modal",
@@ -176,11 +213,12 @@ function originFacets(
   originId: LibraryDefinitionId,
   stateIds: readonly LibraryDefinitionId[],
 ): OriginFacets {
-  const library = graph.library;
+  // (The card's layout reads the library template — an unlocked origin's copy keeps its card.)
+  const library = graph.codeLibrary;
   const origin = library.definitions.get(originId);
   const root =
     origin && "templateRootId" in origin && origin.templateRootId
-      ? library.templates.get(origin.templateRootId)
+      ? library.templates.get(origin.templateRootId as LibraryTemplateId)
       : undefined;
   const type = root
     ? (library.definitions.get(root.definitionId as LibraryDefinitionId) as
@@ -225,14 +263,14 @@ function originItems(
   originId: LibraryDefinitionId,
   stateIds: ReadonlyMap<string, readonly LibraryDefinitionId[]>,
 ) {
-  const library = graph.library;
+  const library = graph.codeLibrary;
   const templateOf = (definitionId: string | undefined) => {
     const definition = definitionId
       ? library.definitions.get(definitionId as LibraryDefinitionId)
       : undefined;
     const rootId =
       definition && "templateRootId" in definition
-        ? definition.templateRootId
+        ? (definition.templateRootId as LibraryTemplateId | undefined)
         : undefined;
     const root = rootId ? library.templates.get(rootId) : undefined;
     return rootId && root ? { rootId, root } : undefined;
@@ -323,10 +361,12 @@ function originItems(
  * the template root and the paths of what it holds (switched off to show the slot empty).
  */
 function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
-  const library = graph.library;
+  const library = graph.codeLibrary;
   const origin = library.definitions.get(originId);
   const rootId =
-    origin && "templateRootId" in origin ? origin.templateRootId : undefined;
+    origin && "templateRootId" in origin
+      ? (origin.templateRootId as LibraryTemplateId | undefined)
+      : undefined;
   const slots: {
     name: string;
     path: LibraryTemplateId[];
@@ -453,20 +493,17 @@ function readPageRows(
   return found;
 }
 
+/** A sample in a line and the caption lines under it. */
+interface PageCell {
+  sample: NodeId;
+  captions: readonly NodeId[];
+}
+
 /**
- * The page's entries by id (`ORIGIN_VIEW_NODE` = its root); each is computed on read. `heights`
- * = the cards' drawn heights (by card id): the columns are balanced by them instead of the
- * estimate (the workspace measures the first layout, then lays the page out again).
+ * The drawing kit of a components page: its entries (each computed on read), the theme colors,
+ * and what a page is made of — numbered cards of named lines on a grid body.
  */
-/**
- * The drawing kit of a derived components page: its entries (each computed on read), the theme
- * colors, and the frames a page is made of — captioned cells, named lines, numbered cards.
- */
-function pageKit(
-  graph: CatalogGraph,
-  heights: ReadonlyMap<string, number> | undefined,
-  mode: "light" | "dark",
-) {
+function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
   const library = graph.library;
   // The page's own colors are the theme's (read in the workspace's color mode).
   const color = (name: string) => String(resolveToken(`{color.${name}}`, mode));
@@ -505,63 +542,83 @@ function pageKit(
         ...catalogCreationStyle({ style: { display: "flex", ...style } }),
       }),
     );
-  /** A sample over its caption (`width`: a fixed cell the sample may fill). */
-  const cell = (
-    id: NodeId,
-    caption: string,
-    sampleId: NodeId,
-    width?: number,
-  ) =>
-    frame(
-      id,
-      caption,
-      [
-        sampleId,
-        text(`${id}/caption` as NodeId, caption, {
-          fontSize: 11,
-          color: MUTED_COLOR,
-        }),
-      ],
-      {
-        flexDirection: "column",
-        gap: 6,
-        ...(width ? { width, flexShrink: 0 } : { alignItems: "flex-start" }),
-      },
-    );
+  /** A cell's caption (`at` > 0: a muted second line). */
+  const caption = (id: NodeId, value: string, at = 0) =>
+    text(id, value, {
+      fontSize: at === 0 ? 11 : 10,
+      color: MUTED_COLOR,
+    });
   /**
-   * A named line of cells — captions on one baseline (`flex-end`); the Origin line's cells sit
-   * on top (`flex-start`: the origin's empty slot is an item's size, shorter than the filled
-   * instance beside it — 2026-10-21).
+   * A named line of cells (user 2026-10-25 — no frame per line or per cell): its name, then its
+   * cells in grids of `perLine` columns — the samples on the first row, their captions on the
+   * rows under it, so each sample stands over its caption. Captions sit on one baseline (`end`);
+   * the Origin line's samples on top (`start`: the origin's empty slot is shorter than the filled
+   * instance beside it — 2026-10-21). `track`: a fixed column width (a sample that fills its
+   * cell). The grids are `<id>/1`, `<id>/2` … (the first holds a card's ◆).
    */
-  const row = (
-    id: NodeId,
-    name: string,
-    cells: NodeId[],
-    alignItems: "flex-end" | "flex-start" = "flex-end",
-  ) =>
-    frame(
-      id,
-      name,
-      [
-        text(`${id}/label` as NodeId, name, { fontSize: 12, fontWeight: 600 }),
-        frame(`${id}/cells` as NodeId, "Samples", cells, {
-          flexDirection: "row",
-          flexWrap: "wrap",
-          alignItems,
-          gap: 16,
-        }),
-      ],
-      { flexDirection: "column", gap: 10 },
+  const line = (
+    id: string,
+    name: string | undefined,
+    cells: readonly PageCell[],
+    options: {
+      alignItems?: "end" | "start";
+      track?: number;
+      perLine?: number;
+    } = {},
+  ): NodeId[] => {
+    const perLine = Math.max(
+      1,
+      options.perLine ??
+        (options.track
+          ? Math.floor((LINE_WIDTH + CELL_GAP) / (options.track + CELL_GAP))
+          : PER_LINE),
     );
+    const ids: NodeId[] =
+      name === undefined
+        ? []
+        : [
+            text(`${id}/label` as NodeId, name, {
+              fontSize: 12,
+              fontWeight: 600,
+            }),
+          ];
+    for (let at = 0; at < cells.length; at += perLine) {
+      const chunk = cells.slice(at, at + perLine);
+      const rows = Math.max(0, ...chunk.map((cell) => cell.captions.length));
+      ids.push(
+        frame(
+          `${id}/${at / perLine + 1}` as NodeId,
+          name ?? "Samples",
+          [
+            ...chunk.map((cell) => cell.sample),
+            ...Array.from({ length: rows }, (_, row) =>
+              chunk.flatMap((cell) =>
+                cell.captions[row] ? [cell.captions[row]] : [],
+              ),
+            ).flat(),
+          ],
+          {
+            display: "grid",
+            gridTemplateColumns: chunk
+              .map(() => (options.track ? `${options.track}px` : "auto"))
+              .join(" "),
+            alignItems: options.alignItems ?? "end",
+            columnGap: `${CELL_GAP}px`,
+            rowGap: "6px",
+          },
+        ),
+      );
+    }
+    return ids;
+  };
 
-  const cards: { id: NodeId; weight: number }[] = [];
-  /** A numbered card (numbered in the order the cards are made). */
+  const cards: NodeId[] = [];
+  /** A numbered card (numbered in the order the cards are made): its title, then its lines. */
   const card = (
     cardId: NodeId,
     titleId: NodeId,
     name: string,
-    rows: NodeId[],
-    weight: number,
+    lines: NodeId[],
     caption: string = name,
   ) => {
     const title = text(
@@ -569,76 +626,91 @@ function pageKit(
       `${String(cards.length + 1).padStart(2, "0")}. ${caption.toUpperCase()}`,
       { fontSize: 12, fontWeight: 700 },
     );
-    cards.push({
-      id: frame(cardId, name, [title, ...rows], {
+    cards.push(
+      // (Its grid column's width — user 2026-10-25 「카드들 모두 width 100%」.)
+      frame(cardId, name, [title, ...lines], {
+        width: "100%",
         flexDirection: "column",
-        gap: 20,
+        alignItems: "flex-start",
+        gap: 12,
         padding: CARD_PADDING,
         backgroundColor: color("base"),
         borderRadius: 12,
       }),
-      weight: heights?.get(cardId) ?? weight,
-    });
+    );
   };
 
   /**
-   * Lay the cards down the columns (each next card on the lightest one) under the root frame — a
-   * body, named by its type in Layers as a page's body is (user 2026-10-14).
+   * The cards in their numbered order under the root — a body, named by its type in Layers as a
+   * page's body is (user 2026-10-14) — on a grid of columns as wide as their cards, three on
+   * desktop, two on tablet, one on mobile (user 2026-10-25: no column frames). Its width is the
+   * breakpoint's page width, as a page body's (the composition root's page frame); its height
+   * the body rule's `100%` (user 2026-10-25).
    */
   const finish = (rootId: NodeId) => {
-    const columns = Array.from({ length: COLUMNS }, () => ({
-      cards: [] as NodeId[],
-      weight: 0,
-    }));
-    for (const card of cards) {
-      const column = columns.reduce((lightest, candidate) =>
-        candidate.weight < lightest.weight ? candidate : lightest,
-      );
-      column.cards.push(card.id);
-      column.weight += card.weight + GAP;
-    }
+    const columns = (breakpoint: "tablet" | "mobile") => ({
+      layout: catalogCreationStyle({
+        style: { gridTemplateColumns: autoTracks(BODY_COLUMNS[breakpoint]) },
+      }).layout!,
+    });
     fixed(
       node(rootId, "lib:definition:type-body", {
-        children: columns.map((column, index) =>
-          frame(
-            `${rootId}/column/${index + 1}` as NodeId,
-            `Column ${index + 1}`,
-            column.cards,
-            {
-              flexDirection: "column",
-              gap: GAP,
-              width: COLUMN_WIDTH,
-              flexShrink: 0,
-            },
-          ),
-        ),
+        children: cards,
+        responsive: { tablet: columns("tablet"), mobile: columns("mobile") },
         ...catalogCreationStyle({
           style: {
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "flex-start",
+            display: "grid",
+            gridTemplateColumns: autoTracks(BODY_COLUMNS.desktop),
             gap: GAP,
             padding: PAGE_PADDING,
-            width: COMPONENTS_PAGE_WIDTH,
             backgroundColor: color("neutral-subtle"),
-            // The view's root container is the viewport wide: keep the page its own width.
-            flexShrink: 0,
           },
         }),
       }),
     );
     return entries;
   };
-  return { library, color, MUTED_COLOR, entries, fixed, text, frame, cell, row, card, finish };
+  return {
+    library,
+    color,
+    MUTED_COLOR,
+    entries,
+    fixed,
+    text,
+    frame,
+    caption,
+    line,
+    card,
+    finish,
+  };
 }
 
 export function catalogComponentsPageEntries(
   graph: CatalogGraph,
-  heights?: ReadonlyMap<string, number>,
   mode: "light" | "dark" = "light",
+  /** Filled with the origins' display text (`CatalogGraph.setOriginDisplayBindings`). */
+  display = new Map<string, Readonly<Record<string, string>>>(),
 ): Map<NodeId, () => NodeEntry> {
-  const { library, color, MUTED_COLOR, entries, fixed, text, frame, cell, row, card, finish } =
-    pageKit(graph, heights, mode);
+  const { library, color, entries, fixed, text, frame, caption, line, card, finish } =
+    pageKit(graph, mode);
+  // ADR-282: the card's structure is the library template's (stable ids); an unlocked origin's
+  // instances project its copy, so every address the page writes goes through the copies.
+  const code = graph.codeLibrary;
+  const forks = originForksOf((id) => graph.getEntry(id), graph.projectId);
+  const copyOf = new Map<string, string>();
+  for (const fork of forks.values())
+    for (const [templateId, nodeId] of Object.entries(fork.templateMap))
+      copyOf.set(templateId, nodeId);
+  const throughCopies = <T extends string>(ids: readonly T[]): T[] =>
+    ids.map((id) => (copyOf.get(id) ?? id) as T);
+  const address = (
+    instances: readonly string[],
+    templatePath: readonly string[],
+  ) =>
+    ({
+      instances: throughCopies(instances),
+      templatePath: throughCopies(templatePath),
+    }) as InstanceAddress;
   const stateIds = new Map<string, LibraryDefinitionId[]>();
   for (const id of library.definitions.keys()) {
     const at = id.indexOf("--");
@@ -650,25 +722,22 @@ export function catalogComponentsPageEntries(
   // The theme first (01–04): its colors, type scale, icons and spacing — the values every
   // component below is drawn with.
   const theme = (...path: string[]) => part("theme", ...path);
-  const captioned = (id: NodeId, sampleId: NodeId, ...lines: string[]) =>
-    frame(
-      id,
-      lines[0]!,
-      [
-        sampleId,
-        ...lines.map((line, at) =>
-          text(`${id}/caption/${at}` as NodeId, line, {
-            fontSize: at === 0 ? 11 : 10,
-            ...(at === 0 ? {} : { color: MUTED_COLOR }),
-          }),
-        ),
-      ],
-      { flexDirection: "column", gap: 4, alignItems: "flex-start" },
-    );
+  /** A theme value over its caption lines (the first names it with its mark). */
+  const captioned = (
+    key: string,
+    name: string,
+    sample: NodeId,
+    ...lines: string[]
+  ): PageCell => ({
+    sample,
+    captions: lines.map((value, at) =>
+      caption(theme(key, name, "caption", String(at)), value, at),
+    ),
+  });
   // Each theme card follows the component cards: the base value as its origin (◆), the values
   // derived from it as instances (◇) — a grouping for reading, not a document relation.
-  const origins = (key: string, cells: NodeId[]) =>
-    row(theme(key, "row", "origin"), "Origin", cells);
+  const origins = (key: string, cells: PageCell[]) =>
+    line(theme(key, "line", "origin"), "Origin", cells);
   {
     // A family's head (`accent`) is the origin; `accent-hover`, `on-accent` derive from it.
     // Surfaces derive from `base`. The raw palette the tint and neutral pick from is left out —
@@ -686,9 +755,10 @@ export function catalogComponentsPageEntries(
       else if (COLOR_SURFACES.includes(name)) groups.get("surface")!.push(name);
     }
     for (const [key, list] of groups) if (!list.length) groups.delete(key);
-    const swatch = (name: string, mark: string, caption = name) =>
+    const swatch = (name: string, mark: string, label = name) =>
       captioned(
-        theme("colors", name),
+        "colors",
+        name,
         frame(themeSampleId("colors", name), name, [], {
           width: 44,
           height: 44,
@@ -699,37 +769,31 @@ export function catalogComponentsPageEntries(
           borderStyle: "solid",
           borderColor: color("border"),
         }),
-        `${mark} ${caption}`,
+        `${mark} ${label}`,
         color(name),
       );
-    card(
-      theme("colors", "card"),
-      theme("colors", "title"),
-      "Colors",
-      [
-        origins(
-          "colors",
-          heads.map((name) => swatch(name, ORIGIN_MARK)),
-        ),
-        ...[...groups].map(([group, list]) =>
-          row(
-            theme("colors", "row", group),
-            titleCase(group),
-            list.map((name) =>
-              swatch(
-                name,
-                INSTANCE_MARK,
-                // `accent-hover` under Accent reads `hover`; `on-accent` keeps its name.
-                name.startsWith(`${group}-`)
-                  ? name.slice(group.length + 1)
-                  : name,
-              ),
+    card(theme("colors", "card"), theme("colors", "title"), "Colors", [
+      ...origins(
+        "colors",
+        heads.map((name) => swatch(name, ORIGIN_MARK)),
+      ),
+      ...[...groups].flatMap(([group, list]) =>
+        line(
+          theme("colors", "line", group),
+          titleCase(group),
+          list.map((name) =>
+            swatch(
+              name,
+              INSTANCE_MARK,
+              // `accent-hover` under Accent reads `hover`; `on-accent` keeps its name.
+              name.startsWith(`${group}-`)
+                ? name.slice(group.length + 1)
+                : name,
             ),
           ),
         ),
-      ],
-      60 + (groups.size + 1) * 110,
-    );
+      ),
+    ]);
   }
   {
     const sizes = Object.entries(typography)
@@ -738,7 +802,8 @@ export function catalogComponentsPageEntries(
     const lineHeights = typography as unknown as Record<string, number>;
     const sample = ([name, size]: [string, unknown], mark: string) =>
       captioned(
-        theme("typography", name),
+        "typography",
+        name,
         text(
           themeSampleId("typography", name),
           "Aa 가나다 123",
@@ -753,34 +818,35 @@ export function catalogComponentsPageEntries(
         }`,
       );
     const base = sizes.find(([name]) => name === TYPE_BASE) ?? sizes[0]!;
-    card(
-      theme("typography", "card"),
-      theme("typography", "title"),
-      "Typography",
-      [
-        origins("typography", [sample(base, ORIGIN_MARK)]),
-        frame(
-          theme("typography", "row", "sizes"),
-          "Sizes",
-          [
-            text(theme("typography", "row", "sizes", "label"), "Sizes", {
-              fontSize: 12,
-              fontWeight: 600,
-            }),
-            ...sizes
-              .filter((entry) => entry !== base)
-              .map((entry) => sample(entry, INSTANCE_MARK)),
-          ],
-          { flexDirection: "column", gap: 14 },
-        ),
-      ],
-      120 + sizes.reduce((sum, [, size]) => sum + Number(size) * 1.4 + 34, 0),
-    );
+    // The sizes one to a row, each caption beside its sample.
+    const rows = sizes
+      .filter((entry) => entry !== base)
+      .map((entry) => sample(entry, INSTANCE_MARK));
+    card(theme("typography", "card"), theme("typography", "title"), "Typography", [
+      ...origins("typography", [sample(base, ORIGIN_MARK)]),
+      text(theme("typography", "line", "sizes", "label"), "Sizes", {
+        fontSize: 12,
+        fontWeight: 600,
+      }),
+      frame(
+        theme("typography", "line", "sizes", "1"),
+        "Sizes",
+        rows.flatMap((row) => [row.sample, ...row.captions]),
+        {
+          display: "grid",
+          gridTemplateColumns: "auto auto",
+          alignItems: "center",
+          columnGap: `${CELL_GAP}px`,
+          rowGap: "10px",
+        },
+      ),
+    ]);
   }
   {
     const icon = (name: string, mark: string, iconName = name) =>
       captioned(
-        theme("icons", name),
+        "icons",
+        name,
         fixed(
           node(themeSampleId("icons", name), ICON, {
             name,
@@ -790,25 +856,21 @@ export function catalogComponentsPageEntries(
         `${mark} ${name}`,
       );
     const icons = SAMPLE_ICONS.filter((name) => getIconData(name));
-    card(
-      theme("icons", "card"),
-      theme("icons", "title"),
-      "Icons",
-      [
-        origins("icons", [icon("Icon", ORIGIN_MARK, "star")]),
-        row(
-          theme("icons", "row", "instances"),
-          "Instances",
-          icons.map((name) => icon(name, INSTANCE_MARK)),
-        ),
-      ],
-      150 + Math.ceil(icons.length / 7) * 60,
-    );
+    card(theme("icons", "card"), theme("icons", "title"), "Icons", [
+      ...origins("icons", [icon("Icon", ORIGIN_MARK, "star")]),
+      ...line(
+        theme("icons", "line", "instances"),
+        "Instances",
+        icons.map((name) => icon(name, INSTANCE_MARK)),
+        { perLine: 7 },
+      ),
+    ]);
   }
   {
     const box = ([name, size]: [string, unknown], mark: string) =>
       captioned(
-        theme("spacing", name),
+        "spacing",
+        name,
         frame(themeSampleId("spacing", name), name, [], {
           width: Number(size),
           height: Number(size),
@@ -823,24 +885,33 @@ export function catalogComponentsPageEntries(
       );
     const steps = Object.entries(spacing);
     const base = steps.find(([name]) => name === "md") ?? steps[0]!;
-    card(
-      theme("spacing", "card"),
-      theme("spacing", "title"),
-      "Spacing",
-      [
-        origins("spacing", [box(base, ORIGIN_MARK)]),
-        row(
-          theme("spacing", "row", "sizes"),
-          "Sizes",
-          steps
-            .filter((step) => step !== base)
-            .map((step) => box(step, INSTANCE_MARK)),
-        ),
-      ],
-      250,
-    );
+    card(theme("spacing", "card"), theme("spacing", "title"), "Spacing", [
+      ...origins("spacing", [box(base, ORIGIN_MARK)]),
+      ...line(
+        theme("spacing", "line", "sizes"),
+        "Sizes",
+        steps
+          .filter((step) => step !== base)
+          .map((step) => box(step, INSTANCE_MARK)),
+        { perLine: 7 },
+      ),
+    ]);
   }
 
+  /**
+   * ADR-282 Decision 3: an unlocked origin's ◆ is its copy's root itself (an owned node — every
+   * edit command works on it, as on a Local page card's); the holder draws it in place of the
+   * sample while the copy is there (read on each read).
+   */
+  const drawCopy = (holder: NodeId, sampleId: NodeId, copyRoot: NodeId) => {
+    const laidOut = entries.get(holder)!();
+    entries.set(holder, () => ({
+      ...laidOut,
+      children: laidOut.children.map((child) =>
+        child === sampleId && graph.getEntry(copyRoot) ? copyRoot : child,
+      ),
+    }));
+  };
   const cardOrigins = new Set<string>(
     catalogBuiltinOrigins(library).map((origin) => origin.id),
   );
@@ -861,19 +932,6 @@ export function catalogComponentsPageEntries(
     const cellWidth = wide
       ? (WIDER_CELL[origin.name] ?? COMPOSED_CELL_WIDTH)
       : undefined;
-    // Estimated drawn height of a line of `count` cells (columns are balanced by it).
-    const lineHeight = (count: number) => {
-      const perLine = wide
-        ? Math.max(
-            1,
-            Math.floor(
-              (COLUMN_WIDTH - CARD_PADDING * 2) /
-                ((WIDER_CELL[origin.name] ?? COMPOSED_CELL_WIDTH) + 16),
-            ),
-          )
-        : 5;
-      return Math.ceil(count / perLine) * (wide ? 220 : 64) + 30;
-    };
     // The origin's own sample: its fields = the project's override (read on each read). Its
     // declared slots show empty (the pen.dev design-system page: a component's master shows its
     // slots hatched, the instance beside it what fills them — the instance is what a page uses):
@@ -896,13 +954,13 @@ export function catalogComponentsPageEntries(
         : [
             {
               kind: "patch" as const,
-              address: { instances: [sampleId], templatePath: slot.path },
+              address: address([sampleId], slot.path),
               visual: SLOT_BOX,
             },
           ]),
       ...slot.contents.map((templatePath, index) => {
         const definitionOf = (path: LibraryTemplateId[]) =>
-          library.templates.get(path[path.length - 1]!)?.definitionId;
+          code.templates.get(path[path.length - 1]!)?.definitionId;
         const repeat =
           slot.path.length === 1 &&
           slot.contents.findIndex(
@@ -910,7 +968,7 @@ export function catalogComponentsPageEntries(
           ) < index;
         return {
           kind: "patch" as const,
-          address: { instances: [sampleId], templatePath },
+          address: address([sampleId], templatePath),
           ...(repeat ? { enabled: false } : { visual: { opacity: set(0) } }),
         };
       }),
@@ -919,30 +977,30 @@ export function catalogComponentsPageEntries(
     // open beside the trigger — a display state at that position; the page's instances and the
     // page canvas keep it closed.
     const originRootId = (
-      library.definitions.get(origin.id) as
-        | { templateRootId?: LibraryTemplateId }
-        | undefined
+      code.definitions.get(origin.id) as
+        { templateRootId?: LibraryTemplateId } | undefined
     )?.templateRootId;
     const overlayId = OPEN_BODY_ORIGINS.has(origin.name)
-      ? library.templates
+      ? code.templates
           .get(originRootId!)
           ?.children.find((id) =>
             CLOSED_OVERLAY_TYPES.has(
-              library.templates.get(id as LibraryTemplateId)?.definitionId ??
-                "",
+              code.templates.get(id as LibraryTemplateId)?.definitionId ?? "",
             ),
           )
       : undefined;
+    // (ADR-282: an unlocked origin's ◆ is its copy's root — `drawCopy`; its instances follow.)
+    const forkRoot = forks.get(origin.id)?.templateRootId;
     const samplePatches = [
       ...slotPatches,
       ...(originRootId && overlayId
         ? [
             {
               kind: "patch" as const,
-              address: {
-                instances: [sampleId],
-                templatePath: [originRootId, overlayId as LibraryTemplateId],
-              },
+              address: address(
+                [sampleId],
+                [originRootId, overlayId as LibraryTemplateId],
+              ),
               displayState: "open" as const,
             },
           ]
@@ -959,27 +1017,24 @@ export function catalogComponentsPageEntries(
           : {}),
       });
     });
-    /** An instance of the origin (or of one of its state variants) in a captioned cell. */
+    /** An instance of the origin (or of one of its state variants) over its caption. */
     const instance = (
       key: string,
-      caption: string,
+      label: string,
       definitionId: LibraryDefinitionId,
       props: NodeEntry["props"],
-    ) =>
-      cell(
-        base("cell", key),
-        `${INSTANCE_MARK} ${caption}`,
-        fixed(
-          node(originInstanceId(origin.id, key), definitionId, {
-            name: `${origin.name} / ${key
-              .split("/")
-              .map(titleCase)
-              .join(" / ")}`,
-            props,
-          }),
-        ),
-        cellWidth,
-      );
+    ): PageCell => ({
+      sample: fixed(
+        node(originInstanceId(origin.id, key), definitionId, {
+          name: `${origin.name} / ${key
+            .split("/")
+            .map(titleCase)
+            .join(" / ")}`,
+          props,
+        }),
+      ),
+      captions: [caption(base("caption", key), `${INSTANCE_MARK} ${label}`)],
+    });
     /** The instances of one variant's line: at rest, then each state. */
     const stateCells = (variant: string | undefined) => {
       const key = variant ?? "default";
@@ -994,36 +1049,30 @@ export function catalogComponentsPageEntries(
     };
     // The origin (its slots empty) and, where a slot holds something, an instance of it beside
     // it: the component as a page uses it.
-    const filled = slots.some((slot) => !unfilled(slot));
-    const rows: NodeId[] = [
-      row(
-        base("row", "origin"),
-        "Origin",
-        [
-          cell(
-            base("cell", "origin"),
-            `${ORIGIN_MARK} ${origin.name}`,
-            // ADR-278 (user decision 2): the open body stands right of the trigger — a line of
-            // its own (the trigger node draws no box of its own, `display: contents`); the cell
-            // is a column (sample over caption). The frame is layout only (not a Layers row).
-            overlayId
-              ? frame(
-                  base("cell", "origin", "body-line"),
-                  "Body line",
-                  [sampleId],
-                  { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-                )
-              : sampleId,
-            cellWidth,
-          ),
-          ...(filled
-            ? [instance("instance", origin.name, origin.id, {})]
-            : []),
+    const filled =
+      !ORIGIN_ONLY_CARDS.has(origin.name) &&
+      slots.some((slot) => !unfilled(slot));
+    // ADR-278 (user decision 2): the open body stands right of the trigger — a line of its own
+    // (the trigger node draws no box of its own, `display: contents`). The frame is layout only
+    // (not a Layers row on a derived page).
+    const bodyLine = overlayId
+      ? frame(base("origin", "body-line"), "Body line", [sampleId], {
+          flexDirection: "row",
+          gap: 12,
+          alignItems: "flex-start",
+        })
+      : undefined;
+    const originCells: PageCell[] = [
+      {
+        sample: bodyLine ?? sampleId,
+        captions: [
+          caption(base("caption", "origin"), `${ORIGIN_MARK} ${origin.name}`),
         ],
-        "flex-start",
-      ),
+      },
+      ...(filled ? [instance("instance", origin.name, origin.id, {})] : []),
     ];
-    let weight = 60 + lineHeight(filled ? 2 : 1);
+    // The card's other lines (variants, states, items, types) — the Origin line goes first.
+    const lines: NodeId[] = [];
     const items = originItems(graph, origin.id, stateIds);
     if (items) {
       // A collection: the states are its item origin's (the collection's own variant only tints
@@ -1037,40 +1086,64 @@ export function catalogComponentsPageEntries(
       const itemSampleId = originSampleId(items.origin);
       const itemTitle = catalogDefinitionTitle(graph, items.origin);
       const itemOriginCell = !cardOrigins.has(items.origin);
-      if (itemOriginCell) entries.set(itemSampleId, () => {
-        const override = catalogOriginOverride(graph, items.origin);
-        return node(itemSampleId, items.origin, {
-          name: itemTitle,
-          props: override?.defaults ?? {},
-          visual: override?.visual ?? {},
-          descendantOverrides: items.parts.map((item) => ({
-            kind: "patch" as const,
-            address: { instances: [itemSampleId], templatePath: item.path },
-            ...(item.label
-              ? { props: { children: set("Item") } }
-              : { enabled: false }),
-          })),
+      // (An unlocked item origin's ◆ is its copy's root, as a card's origin — ADR-282.)
+      const itemFork = forks.get(items.origin)?.templateRootId;
+      // (Its parts read its holder's props: the copy root shows the sample's 「Item」 and leaves
+      // the other placeholders empty — their `presentWhen` drops them, as the sample's patches.)
+      if (itemOriginCell) {
+        const shown: Record<string, string> = {};
+        for (const part of items.parts)
+          for (const [key, value] of Object.entries(
+            code.templates.get(part.path.at(-1)!)?.props ?? {},
+          )) {
+            const bound =
+              key !== "href" && typeof value === "string"
+                ? /^\{(\w+)\}$/.exec(value)?.[1]
+                : undefined;
+            if (bound)
+              shown[bound] = part.label && key === "children" ? "Item" : "";
+          }
+        display.set(items.origin, shown);
+      }
+      if (itemOriginCell)
+        entries.set(itemSampleId, () => {
+          const override = catalogOriginOverride(graph, items.origin);
+          return node(itemSampleId, items.origin, {
+            name: itemTitle,
+            props: override?.defaults ?? {},
+            visual: override?.visual ?? {},
+            descendantOverrides: items.parts.map((item) => ({
+              kind: "patch" as const,
+              address: address([itemSampleId], item.path),
+              ...(item.label
+                ? { props: { children: set("Item") } }
+                : { enabled: false }),
+            })),
+          });
         });
-      });
-      rows.push(
-        row(base("row", "items"), "Item", [
+      lines.push(
+        ...line(base("line", "items"), "Item", [
           ...(itemOriginCell
             ? [
-                cell(
-                  base("cell", "item-origin"),
-                  // (Its type — the origin's own name carries its state: `ListBoxItem/Selected`.)
-                  `${ORIGIN_MARK} ${itemTitle.split("/")[0]}`,
-                  itemSampleId,
-                ),
+                {
+                  sample: itemSampleId,
+                  captions: [
+                    caption(
+                      base("caption", "item-origin"),
+                      // (Its type — the origin's own name carries its state: `ListBoxItem/Selected`.)
+                      `${ORIGIN_MARK} ${itemTitle.split("/")[0]}`,
+                    ),
+                  ],
+                },
               ]
             : []),
-          ...states.map((stateId) => {
+          ...states.map((stateId): PageCell => {
             const title = catalogDefinitionTitle(graph, stateId);
-            const caption = title
+            const label = title
               .slice(title.indexOf("/") + 1)
               .replace(/\//g, " / ");
-            const id = originInstanceId(origin.id, `item/${caption}`);
-            const stateRoot = library.definitions.get(stateId);
+            const id = originInstanceId(origin.id, `item/${label}`);
+            const stateRoot = code.definitions.get(stateId);
             // A state variant's template root is the nested instance the patch goes through.
             const instances = [
               id,
@@ -1081,98 +1154,123 @@ export function catalogComponentsPageEntries(
                 ? [stateRoot.templateRootId]
                 : []),
             ];
-            return cell(
-              base("cell", "item", caption),
-              `${INSTANCE_MARK} ${caption}`,
-              fixed(
+            return {
+              sample: fixed(
                 node(id, stateId, {
-                  name: `${origin.name} / Item / ${caption}`,
+                  name: `${origin.name} / Item / ${label}`,
                   descendantOverrides: items.parts.map((item) => ({
                     kind: "patch" as const,
-                    address: { instances, templatePath: item.path },
+                    address: address(instances, item.path),
                     ...(item.label
                       ? { props: { children: set("Item") } }
                       : { enabled: false }),
                   })),
                 }),
               ),
-            );
+              captions: [
+                caption(base("caption", "item", label), `${INSTANCE_MARK} ${label}`),
+              ],
+            };
           }),
         ]),
       );
-      weight += lineHeight(states.length + (itemOriginCell ? 1 : 0));
+      // (Read on each read, as the card's Origin line — ADR-282.)
+      if (itemOriginCell && itemFork)
+        drawCopy(base("line", "items", "1"), itemSampleId, itemFork);
     } else if (facets.states.length > 0 && facets.variants.length > 1) {
       // Variants × states: a line per variant.
       for (const variant of facets.variants)
-        rows.push(
-          row(base("row", variant), titleCase(variant), stateCells(variant)),
+        lines.push(
+          ...line(base("line", variant), titleCase(variant), stateCells(variant), {
+            track: cellWidth,
+          }),
         );
-      weight += facets.variants.length * lineHeight(1 + facets.states.length);
-    } else if (facets.variants.length > 1) {
+    } else if (
+      facets.variants.length > 1 &&
+      !NO_VARIANTS_LINE.has(origin.name)
+    ) {
       // No states: the variants side by side.
-      rows.push(
-        row(
-          base("row", "variants"),
+      lines.push(
+        ...line(
+          base("line", "variants"),
           "Variants",
           facets.variants.map((variant) =>
             instance(variant, titleCase(variant), origin.id, {
               variant: set(variant),
             }),
           ),
+          { track: cellWidth },
         ),
       );
-      weight += lineHeight(facets.variants.length);
     } else if (facets.states.length > 0) {
-      rows.push(row(base("row", "states"), "States", stateCells(undefined)));
-      weight += lineHeight(1 + facets.states.length);
+      lines.push(
+        ...line(base("line", "states"), "States", stateCells(undefined), {
+          track: cellWidth,
+        }),
+      );
     }
     // The palette's creation variants of the origin (a Chart's chart types — user 2026-10-06):
     // an instance of each, with the props the palette creates it with, two to a line.
     if (origin.kinds && origin.kinds.length > 1) {
-      const width = (COLUMN_WIDTH - CARD_PADDING * 2 - 16) / 2;
-      rows.push(
-        row(
-          base("row", "types"),
+      const width = (LINE_WIDTH - CELL_GAP) / 2;
+      lines.push(
+        ...line(
+          base("line", "types"),
           "Types",
-          origin.kinds.map((kind) =>
-            cell(
-              base("cell", "type", kind.key),
-              `${INSTANCE_MARK} ${kind.label}`,
-              fixed(
-                node(
-                  originInstanceId(origin.id, `type/${kind.key}`),
+          origin.kinds.map((kind) => ({
+            sample: fixed(
+              node(originInstanceId(origin.id, `type/${kind.key}`), origin.id, {
+                name: `${origin.name} / ${kind.label}`,
+                props: catalogCreationProps(
+                  library,
                   origin.id,
-                  {
-                    name: `${origin.name} / ${kind.label}`,
-                    props: catalogCreationProps(
-                      library,
-                      origin.id,
-                      origin.name,
-                      kind.initialProps,
-                    ),
-                    ...catalogCreationStyle({ style: { width } }),
-                  },
+                  origin.name,
+                  kind.initialProps,
                 ),
-              ),
-              width,
+                ...catalogCreationStyle({ style: { width } }),
+              }),
             ),
-          ),
+            captions: [
+              caption(
+                base("caption", "type", kind.key),
+                `${INSTANCE_MARK} ${kind.label}`,
+              ),
+            ],
+          })),
+          { track: width },
         ),
       );
-      weight += Math.ceil(origin.kinds.length / 2) * 240 + 30;
     }
+    // A card of the Origin line alone holds its cells itself — no line name, no line frame
+    // (user 2026-10-25 「Origin 하나뿐인 카드만, 그룹까지 제거」): the card draws the ◆ after its
+    // title (`registerDrawnOrigins`). Otherwise the Origin line is the first line, its first grid
+    // the ◆ holder.
+    const alone = lines.length === 0;
+    const holder = bodyLine ?? (alone ? base("card") : base("line", "origin", "1"));
+    if (!alone)
+      lines.unshift(
+        ...line(base("line", "origin"), "Origin", originCells, {
+          alignItems: "start",
+          track: cellWidth,
+        }),
+      );
     // (A base part's card is titled as one: the Parts section closes the page — 2026-10-21.)
     card(
       base("card"),
       base("title"),
       origin.name,
-      rows,
-      weight,
-      origin.category === "parts" ? `${origin.name} · part` : origin.name,
+      alone
+        ? originCells.flatMap((cell) => [cell.sample, ...cell.captions])
+        : lines,
+      // (An unlocked origin's card says so — its template is the project's copy, ADR-282 R6.)
+      `${origin.category === "parts" ? `${origin.name} · part` : origin.name}${forkRoot ? " · unlocked" : ""}`,
     );
+    // (Read on each read: a reset — or an undo of the unlock — removes the copy before the page
+    // is laid out again; the holder draws the sample until then, as a Local card's cell does.)
+    if (forkRoot) drawCopy(holder, sampleId, forkRoot);
   });
 
-  // Palette order down the columns.
+  // Palette order, row by row.
   return finish(ORIGIN_VIEW_NODE);
 }
 
@@ -1186,16 +1284,10 @@ export function catalogComponentsPageEntries(
  */
 export function catalogProjectComponentsPageEntries(
   graph: CatalogGraph,
-  heights?: ReadonlyMap<string, number>,
   mode: "light" | "dark" = "light",
 ): Map<NodeId, () => NodeEntry> {
-  const { MUTED_COLOR, entries, text, card, finish } = pageKit(
-    graph,
-    heights,
-    mode,
-  );
+  const { MUTED_COLOR, entries, text, card, finish } = pageKit(graph, mode);
   const components = catalogProjectComponents(graph);
-  const width = COLUMN_WIDTH - CARD_PADDING * 2;
   for (const component of components) {
     const base = (...path: string[]) =>
       `${projectComponentCardId(component.id).slice(0, -"/card".length)}/${path.join("/")}` as NodeId;
@@ -1212,7 +1304,7 @@ export function catalogProjectComponentsPageEntries(
           style: {
             display: "flex",
             flexDirection: "column",
-            width,
+            width: LINE_WIDTH,
             flexShrink: 0,
           },
         }),
@@ -1223,7 +1315,6 @@ export function catalogProjectComponentsPageEntries(
       base("title"),
       component.name,
       [originCell],
-      heights?.get(projectComponentCardId(component.id)) ?? 420,
     );
   }
   // An empty page says what fills it.
@@ -1239,7 +1330,6 @@ export function catalogProjectComponentsPageEntries(
           { fontSize: 12, color: MUTED_COLOR },
         ),
       ],
-      100,
     );
   return finish(PROJECT_ORIGIN_VIEW_NODE);
 }
@@ -1288,11 +1378,22 @@ export function catalogProjectComponentCardFrames(
       { x: number; y: number; width: number; height: number }
     >;
   },
-): { id: EntryId<"definition">; title: string; x: number; y: number; width: number; height: number }[] {
+): {
+  id: EntryId<"definition">;
+  title: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}[] {
   if (!graph.getEntry(PROJECT_ORIGIN_VIEW_NODE)) return [];
   const frames: ReturnType<typeof catalogProjectComponentCardFrames> = [];
   for (const component of catalogProjectComponents(graph)) {
-    const [record] = root.recordsOfSource(projectComponentCardId(component.id));
+    const cardId = projectComponentCardId(component.id);
+    const stored = componentPageNodeId(cardId);
+    const [record] = root.recordsOfSource(
+      graph.getEntry(stored) ? stored : cardId,
+    );
     if (!record) continue;
     // Geometry is parent-relative: the card's scene box sums its ancestors' (column · page root).
     const chain: string[] = [];
@@ -1325,36 +1426,324 @@ export function catalogProjectComponentCardFrames(
   return frames;
 }
 
-/** The page's card ids (a column's children), in drawn order. */
+/** The page's card ids (the body's children), in drawn order. */
 export function catalogComponentsPageCards(
   graph: CatalogGraph,
   view: CatalogComponentsViewId = COMPONENTS_VIEW,
 ): NodeId[] {
   const root = graph.getEntry(componentsViewRoot(view));
-  if (root?.kind !== "node") return [];
-  return root.children.flatMap((columnId) => {
-    const column = graph.getEntry(columnId);
-    return column?.kind === "node" ? [...column.children] : [];
-  });
+  return root?.kind === "node" ? [...root.children] : [];
+}
+
+/** ADR-282 Phase 3: the document page a Components tab page is stored as. */
+export const catalogComponentPageId = (
+  view: CatalogComponentsViewId,
+): EntryId<"page"> =>
+  isProjectComponentsView(view) ? LOCAL_COMPONENT_PAGE : LIBRARY_COMPONENT_PAGE;
+
+/** Whether the project stores this Components tab page (made the first time it opened). */
+export function catalogComponentPageStored(
+  graph: CatalogReader,
+  view: CatalogComponentsViewId,
+): boolean {
+  const project = graph.getEntry(graph.projectId);
+  const pageId = catalogComponentPageId(view);
+  return (
+    project?.kind === "project" &&
+    !!project.componentPageIds?.includes(pageId) &&
+    graph.getEntry(pageId)?.kind === "page"
+  );
 }
 
 /**
- * Show a derived components page in the graph's view entries — the built-in origins'
- * (`COMPONENTS_VIEW`) or the project's components (`PROJECT_COMPONENTS_VIEW`) — or stop showing
- * one (`undefined`). `heights`: see `catalogComponentsPageEntries`.
+ * ADR-282 Phase 3 (user 2026-10-25 「library-body = home-body」): the page as document entries,
+ * made the first time the tab opens it — its derived entries stored under short document ids
+ * (`componentPageNodeId`), the ◆ cells holding a reference to their origin
+ * (`NodeEntry.originOf` — the origin's sample or template root is the view's, drawn first), the
+ * samples left to the view. One step, no history entry (the caller runs it on open).
+ */
+export function catalogComponentPageCreation(
+  graph: CatalogGraph,
+  view: CatalogComponentsViewId,
+  mode?: "light" | "dark",
+): CatalogCommand {
+  return (reader) => {
+    const project = reader.getEntry(reader.projectId);
+    if (project?.kind !== "project") throw new Error("PROJECT_ROOT_REQUIRED");
+    const pageId = catalogComponentPageId(view);
+    const entries = isProjectComponentsView(view)
+      ? catalogProjectComponentsPageEntries(graph, mode)
+      : catalogComponentsPageEntries(graph, mode);
+    const ops: CatalogOperation[] = storedPageNodes(reader, entries).map(
+      (entry) => ({ kind: "put", entry }),
+    );
+    ops.push(
+      {
+        kind: "put",
+        entry: {
+          kind: "page",
+          id: pageId,
+          route: isProjectComponentsView(view) ? "/local" : "/library",
+          name: isProjectComponentsView(view) ? "Local" : "Library",
+          children: [componentsViewRoot(view)],
+        },
+      },
+      {
+        kind: "put",
+        entry: {
+          ...project,
+          componentPageIds: [...(project.componentPageIds ?? []), pageId],
+        },
+      },
+    );
+    return { label: "Create components page", ops };
+  };
+}
+
+/**
+ * A page's derived entries as document nodes (`include`: the view ids to take — all but the
+ * samples by default): ids under `componentPageNodeId`, each ◆ cell's first child — a library
+ * origin's sample, or a template root a definition · override owns — kept as `originOf`.
+ */
+function storedPageNodes(
+  reader: CatalogReader,
+  entries: ReadonlyMap<NodeId, () => NodeEntry>,
+  include: (viewId: NodeId) => boolean = () => true,
+): NodeEntry[] {
+  const stored = (id: string) => componentPageNodeId(id);
+  const address = (value: InstanceAddress): InstanceAddress => ({
+    instances: value.instances.map(stored) as InstanceAddress["instances"],
+    templatePath: value.templatePath,
+  });
+  const nodes: NodeEntry[] = [];
+  const taken = new Map<string, string>();
+  for (const [id, compute] of entries) {
+    if (originOfSample(id) || !include(id)) continue;
+    // (Two view ids under one hash would make one node of two.)
+    const other = taken.get(stored(id));
+    if (other !== undefined && other !== id)
+      throw new Error(`COMPONENT_PAGE_ID_COLLISION:${other}:${id}`);
+    taken.set(stored(id), id);
+    const entry = compute();
+    let originOf: DefinitionId | undefined;
+    const children = entry.children.filter((child) => {
+      const origin =
+        originOfSample(child) ??
+        (child.startsWith(ORIGIN_VIEW_NODE)
+          ? undefined
+          : reader.definitionOfTemplateRoot(child));
+      if (!origin) return true;
+      originOf = origin;
+      return false;
+    });
+    nodes.push({
+      ...entry,
+      id: stored(entry.id),
+      children: children.map(stored),
+      descendantOverrides: entry.descendantOverrides.map((override) =>
+        override.kind === "patch"
+          ? { ...override, address: address(override.address) }
+          : override.kind === "fillSlot"
+            ? {
+                ...override,
+                address: address(override.address),
+                childIds: override.childIds.map(stored),
+              }
+            : {
+                ...override,
+                address: address(override.address),
+                replacementId: stored(override.replacementId),
+              },
+      ),
+      ...(originOf ? { originOf } : {}),
+    } as NodeEntry);
+  }
+  return nodes;
+}
+
+/**
+ * ADR-282 Phase 3 — the stored Local page follows the project's components: a card for each
+ * component it has none for (after the body's last card), none for a component that is gone (its
+ * ◆ cell drew nothing). Its other content — moved cards, edited frames — stays the user's.
+ * `undefined` = nothing to do. The caller runs it as a step the project takes (no history).
+ */
+export function catalogLocalPageSync(
+  graph: CatalogGraph,
+  mode?: "light" | "dark",
+): CatalogCommand | undefined {
+  const root = graph.storedEntry(PROJECT_ORIGIN_VIEW_NODE);
+  if (root?.kind !== "node") return undefined;
+  const subtree = (id: string): string[] => {
+    const entry = graph.storedEntry(id);
+    return entry?.kind === "node"
+      ? [id, ...entry.children.flatMap(subtree)]
+      : [id];
+  };
+  // The components the page has a card for: its ◆ cells' origins.
+  const cells = new Map<string, NodeId>();
+  for (const id of subtree(PROJECT_ORIGIN_VIEW_NODE)) {
+    const entry = graph.storedEntry(id);
+    if (entry?.kind === "node" && entry.originOf)
+      cells.set(entry.originOf, entry.id);
+  }
+  const wanted = new Set(
+    catalogProjectComponents(graph).map((item) => item.id),
+  );
+  const gone = [...cells].filter(([origin]) => !wanted.has(origin as never));
+  const added = [...wanted].filter((id) => !cells.has(id));
+  const empty = componentPageNodeId(`${PROJECT_ORIGIN_VIEW_NODE}/empty/card`);
+  const emptyGone = added.length > 0 && !!graph.storedEntry(empty);
+  const entries = catalogProjectComponentsPageEntries(graph, mode);
+  // A card's title follows its component's name (a rename) while it is still the page's own
+  // `NN. NAME` — a title the user wrote stays.
+  const titles: NodeEntry[] = [];
+  for (const [origin] of cells) {
+    if (!wanted.has(origin as never)) continue;
+    const viewId =
+      `${projectComponentCardId(origin).slice(0, -"/card".length)}/title` as NodeId;
+    const stored = graph.storedEntry(componentPageNodeId(viewId));
+    const fresh = entries.get(viewId)?.();
+    if (stored?.kind !== "node" || !fresh) continue;
+    const text = (entry: NodeEntry) => {
+      const value = entry.props.children;
+      return value && typeof value === "object" && "value" in value
+        ? String(value.value)
+        : undefined;
+    };
+    const was = text(stored);
+    if (was && /^\d{2}\. /.test(was) && was !== text(fresh))
+      titles.push({
+        ...stored,
+        props: { ...stored.props, children: fresh.props.children! },
+      });
+  }
+  if (!gone.length && !added.length && !emptyGone && !titles.length)
+    return undefined;
+  return (reader) => {
+    const ops: CatalogOperation[] = [];
+    const parents = new Map<string, NodeEntry>();
+    const parentOf = (id: string) => {
+      const owner = reader.ownerOf(id);
+      const entry = owner
+        ? (parents.get(owner) ?? reader.getEntry(owner))
+        : undefined;
+      return entry?.kind === "node" ? entry : undefined;
+    };
+    const removeCard = (cardId: string) => {
+      const parent = parentOf(cardId);
+      if (parent)
+        parents.set(parent.id, {
+          ...parent,
+          children: parent.children.filter((child) => child !== cardId),
+        });
+      for (const id of subtree(cardId))
+        ops.push({ kind: "remove", id: id as NodeId });
+    };
+    for (const [, cell] of gone) {
+      const card = reader.ownerOf(cell);
+      if (card) removeCard(card);
+    }
+    if (emptyGone) removeCard(empty);
+    for (const title of titles) ops.push({ kind: "put", entry: title });
+    if (added.length) {
+      const cardIds = new Set(
+        added.map((id) => projectComponentCardId(id) as string),
+      );
+      const inCard = (id: NodeId) =>
+        [...cardIds].some(
+          (card) => id === card || id.startsWith(card.slice(0, -"card".length)),
+        );
+      for (const entry of storedPageNodes(reader, entries, inCard))
+        ops.push({ kind: "put", entry });
+      // After the body's last card.
+      const body = parents.get(root.id) ?? root;
+      parents.set(root.id, {
+        ...body,
+        children: [
+          ...body.children,
+          ...added.map((id) => componentPageNodeId(projectComponentCardId(id))),
+        ],
+      });
+    }
+    for (const entry of parents.values()) ops.push({ kind: "put", entry });
+    return { label: "Sync components page", ops };
+  };
+}
+
+/** The ◆ cells whose drawn origin the view registers (per graph — cleared with the view). */
+const drawnCells = new WeakMap<CatalogGraph, Set<NodeId>>();
+/**
+ * ADR-282 Phase 3: a stored page's ◆ cells draw their origin first — an unlocked or project
+ * origin's template root (its owner's), else a library origin's sample (a view entry).
+ */
+function registerDrawnOrigins(graph: CatalogGraph, pageId: EntryId<"page">) {
+  const cells = drawnCells.get(graph) ?? new Set<NodeId>();
+  drawnCells.set(graph, cells);
+  for (const id of componentPageMembers(
+    (entryId) => graph.storedEntry(entryId),
+    graph.projectId,
+  )) {
+    const entry = graph.storedEntry(id);
+    if (entry?.kind !== "node" || !entry.originOf) continue;
+    const origin = entry.originOf;
+    if (!componentPageOwns(graph, pageId, id)) continue;
+    cells.add(entry.id);
+    // (A card that holds its ◆ draws it after its title — user 2026-10-25.)
+    graph.setViewChildren(entry.id, isPageCard(entry.id) ? 1 : 0, () => {
+      const owner = origin.startsWith("lib:")
+        ? catalogOriginOverride(graph, origin as LibraryDefinitionId)
+        : graph.getEntry(origin);
+      const root =
+        owner?.kind === "definition" || owner?.kind === "definitionOverride"
+          ? owner.templateRootId
+          : undefined;
+      if (root && graph.storedEntry(root)) return [root];
+      const sample = originSampleId(origin as LibraryDefinitionId);
+      return origin.startsWith("lib:") && graph.isViewEntry(sample)
+        ? [sample]
+        : [];
+    });
+  }
+}
+/** Whether a stored node is under a component page (its owner chain reaches `pageId`). */
+function componentPageOwns(
+  graph: CatalogGraph,
+  pageId: string,
+  id: string,
+): boolean {
+  for (
+    let cursor: string | undefined = id;
+    cursor;
+    cursor = graph.ownerOf(cursor)
+  )
+    if (cursor === pageId) return true;
+  return false;
+}
+
+/**
+ * Show a components page — the built-in origins' (`COMPONENTS_VIEW`) or the project's components
+ * (`PROJECT_COMPONENTS_VIEW`) — or stop showing one (`undefined`). A page the project stores
+ * (ADR-282 Phase 3) is the document's: the view adds only its samples and the origins its ◆
+ * cells draw. Otherwise the page is derived view entries.
  */
 export function setCatalogComponentsView(
   graph: CatalogGraph,
   view: CatalogComponentsViewId | undefined,
-  heights?: ReadonlyMap<string, number>,
   mode?: "light" | "dark",
 ): void {
   for (const id of graph.viewEntryIds())
     if (id.startsWith(ORIGIN_VIEW_NODE))
       graph.setViewEntry(id as NodeId, undefined);
+  for (const id of drawnCells.get(graph) ?? [])
+    graph.setViewChildren(id, 0);
+  drawnCells.delete(graph);
+  const display = new Map<string, Readonly<Record<string, string>>>();
+  graph.setOriginDisplayBindings(display);
   if (!view) return;
+  const stored = catalogComponentPageStored(graph, view);
   for (const [id, compute] of isProjectComponentsView(view)
-    ? catalogProjectComponentsPageEntries(graph, heights, mode)
-    : catalogComponentsPageEntries(graph, heights, mode))
-    graph.setViewEntry(id, compute);
+    ? catalogProjectComponentsPageEntries(graph, mode)
+    : catalogComponentsPageEntries(graph, mode, display))
+    if (!stored || originOfSample(id)) graph.setViewEntry(id, compute);
+  if (stored) registerDrawnOrigins(graph, catalogComponentPageId(view));
 }

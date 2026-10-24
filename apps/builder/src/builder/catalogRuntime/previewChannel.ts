@@ -9,6 +9,11 @@ import {
   type CatalogPreviewMessage,
   type CatalogPreviewViewMessage,
 } from "../../../../../packages/shared/src/catalog/preview/protocol";
+import {
+  componentPageMembers,
+  withoutComponentPageIds,
+  withoutComponentPages,
+} from "../../../../../packages/shared/src/catalog/document/componentPages";
 import type { CatalogRuntime } from "./controller";
 
 /**
@@ -97,6 +102,8 @@ export class CatalogPreviewChannel {
     if (this.ready && this.sentRevision !== null) this.sendView();
   }
 
+  /** The component pages' entries at the last send (a removed one never reached Preview). */
+  private componentMembers: ReadonlySet<string> = new Set();
   private sendView(): void {
     if (!this.pageId) return;
     this.options.post({
@@ -116,11 +123,19 @@ export class CatalogPreviewChannel {
     if (graph.projectId !== this.sentProject) return this.sendSnapshot();
     const changed: CatalogEntry[] = [];
     const removedIds: EntryId[] = [];
+    // (The Components tab's pages are the Builder's — Preview never has them, ADR-282 Phase 3.)
+    const members = componentPageMembers(
+      (id) => graph.storedEntry(id),
+      graph.projectId,
+    );
     for (const id of this.pendingIds) {
-      const entry = graph.getEntry(id);
-      if (entry) changed.push(entry as CatalogEntry);
-      else removedIds.push(id as EntryId);
+      const entry = graph.storedEntry(id);
+      if (entry) {
+        if (!members.has(id)) changed.push(withoutComponentPageIds(entry));
+      } else if (!this.componentMembers.has(id))
+        removedIds.push(id as EntryId);
     }
+    this.componentMembers = members;
     this.pendingIds.clear();
     if (graph.revision === this.sentRevision) return;
     const baseRevision = this.sentRevision;
@@ -146,8 +161,12 @@ export class CatalogPreviewChannel {
       version: CATALOG_PREVIEW_PAYLOAD_VERSION,
       projectId: graph.projectId,
       revision: graph.revision,
-      document: graph.exportDocument(),
+      document: withoutComponentPages(graph.exportDocument()),
     });
+    this.componentMembers = componentPageMembers(
+      (id) => graph.storedEntry(id),
+      graph.projectId,
+    );
     this.sendView();
   }
 }
