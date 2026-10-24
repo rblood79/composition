@@ -727,8 +727,7 @@ export class CatalogWorkspace {
   ): void {
     const pageId = items[0] && this.pageOfRecord(items[0].identity);
     if (pageId && pageId !== this.session.getSnapshot().pageId) {
-      this.session.setPage(pageId);
-      this.session.select(items);
+      this.session.setPage(pageId, items);
       return;
     }
     this.session.select(items, options);

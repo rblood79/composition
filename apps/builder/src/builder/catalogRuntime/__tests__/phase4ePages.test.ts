@@ -155,4 +155,23 @@ describe("ADR-248 Phase 4e-4 Pages tree", () => {
       selection: [{ identity: record }],
     });
   });
+
+  // 2026-10-24 user report 「Layers 트리 선택시 깜빡임」: the page switch and the selection were two
+  // snapshots — listeners saw the new page with nothing selected in between.
+  it("opens the other page and selects in one snapshot", async () => {
+    const { workspace, add } = await open();
+    const second = add();
+    workspace.session.setPage(HOME);
+    const body = workspace.readModel.pages().find((page) => page.id === second)!
+      .children[0] as NodeId;
+    const record = workspace.root.recordsOfSource(body)[0];
+    const seen: { pageId?: string; selected: number }[] = [];
+    const off = workspace.session.subscribe(() => {
+      const { pageId, selection } = workspace.session.getSnapshot();
+      seen.push({ pageId, selected: selection.length });
+    });
+    workspace.selectRecords([record]);
+    off();
+    expect(seen).toEqual([{ pageId: second, selected: 1 }]);
+  });
 });

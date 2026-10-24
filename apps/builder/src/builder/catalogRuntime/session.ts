@@ -110,13 +110,20 @@ export class CatalogSession {
     for (const listener of [...this.listeners]) listener();
   }
 
-  setPage(pageId: EntryId<"page">): void {
+  /**
+   * Open a page; `selection` replaces the cleared selection in the same snapshot (a selection on
+   * another page — listeners never see the new page with nothing selected).
+   */
+  setPage(
+    pageId: EntryId<"page">,
+    selection: readonly CatalogSelectionItem[] = [],
+  ): void {
     if (this.runtime.graph.getEntry(pageId)?.kind !== "page")
       throw new Error(`CATALOG_SESSION_PAGE_NOT_FOUND:${pageId}`);
     if (pageId === this.state.pageId) return;
     this.set({
       pageId,
-      selection: [],
+      selection: this.distinct(selection.filter(this.shown)),
       hover: undefined,
       editingContext: undefined,
       textEditing: undefined,
@@ -151,20 +158,7 @@ export class CatalogSession {
         if (at >= 0) selection.splice(at, 1);
         else selection.push(item);
       }
-    } else {
-      // Keep the first item for each drawn identity/target pair. This index lives only
-      // for this selection change; repeated scans of the same selection are unnecessary.
-      const seen = new Map<string, Set<string>>();
-      selection = shown.filter((item) => {
-        const identity = item.identity;
-        const key = targetKey(item.target);
-        const targets = seen.get(identity);
-        if (targets?.has(key)) return false;
-        if (targets) targets.add(key);
-        else seen.set(identity, new Set([key]));
-        return true;
-      });
-    }
+    } else selection = this.distinct(shown);
     const unchanged =
       selection.length === this.state.selection.length &&
       selection.every((item, index) =>
@@ -182,6 +176,21 @@ export class CatalogSession {
   }
   clearSelection(): void {
     this.select([]);
+  }
+  /** Keep the first item for each drawn identity/target pair (an index for this change only). */
+  private distinct(
+    items: readonly CatalogSelectionItem[],
+  ): CatalogSelectionItem[] {
+    const seen = new Map<string, Set<string>>();
+    return items.filter((item) => {
+      const identity = item.identity;
+      const key = targetKey(item.target);
+      const targets = seen.get(identity);
+      if (targets?.has(key)) return false;
+      if (targets) targets.add(key);
+      else seen.set(identity, new Set([key]));
+      return true;
+    });
   }
   setHover(item: CatalogSelectionItem | undefined): void {
     if (
