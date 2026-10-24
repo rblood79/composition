@@ -24,6 +24,7 @@ import {
   type ResolvedCatalogNode,
 } from "../../resolution/resolver";
 import { createComponent } from "../components";
+import { removeTargets } from "../structure";
 import {
   allocator,
   code,
@@ -491,3 +492,77 @@ describe("ADR-279 Decision 1 — contract 46", () => {
     );
   });
 });
+
+describe("ADR-279 Local page — deleting a template slot that an instance filled (review ADR-282 round 2)", () => {
+  const A = "project:definition:a" as DefinitionEntry["id"];
+  const R = "project:node:r" as NodeId;
+  const C = "project:node:c" as NodeId;
+  const I = "project:node:i" as NodeId;
+  const S = "project:node:s" as NodeId;
+  const SC = "project:node:sc" as NodeId;
+  const K = "project:interaction:k" as InteractionEntry["id"];
+  const outer: DefinitionEntry = {
+    kind: "definition",
+    id: A,
+    name: "Outer",
+    mode: "composite",
+    accepts: {},
+    defaults: {},
+    visual: {},
+    stateRules: {},
+    templateRootId: R,
+    usage: "component",
+  };
+  /** `a`: R > C (slot `content`); page instance I fills C with S (> SC), S owns interaction K. */
+  const fixture = () =>
+    graphOf(
+      [
+        node("r", "lib:definition:section", { children: [C] }),
+        node("c", "lib:definition:section", {
+          slot: { name: "content", required: false },
+        }),
+        node("i", A, {
+          descendantOverrides: [
+            {
+              kind: "fillSlot",
+              address: { instances: [I], templatePath: [R, C] },
+              childIds: [S],
+            },
+          ],
+        }),
+        node("s", "lib:definition:section", { children: [SC] }),
+        text("sc", "Filled"),
+      ],
+      ["i"],
+      [
+        outer,
+        {
+          kind: "interaction",
+          id: K,
+          ownerId: S,
+          trigger: "press",
+          action: { opcode: "navigate", pageId: PAGE },
+        } as InteractionEntry,
+      ],
+    );
+
+  it("removes the slot with the instance's contents there (and what they own) — no UNOWNED_NODE, one undo restores", () => {
+    const graph = fixture();
+    expect(JSON.stringify(drawnByInstance(graph, I, "desktop"))).toContain(
+      "Filled",
+    );
+    const start = snapshot(graph);
+    const { result } = run(
+      graph,
+      removeTargets({ targets: [{ kind: "node", id: C }] }),
+    );
+    expect(graph.getEntry(C)).toBeUndefined();
+    expect(entry(graph, I, "node").descendantOverrides).toEqual([]);
+    for (const gone of [S, SC, K]) expect(graph.getEntry(gone)).toBeUndefined();
+    expect(entry(graph, R, "node").children).toEqual([]);
+    expect(reloads(graph)).toBe("ACCEPTED");
+    undo(graph, result.inverse);
+    expect(snapshot(graph)).toBe(start);
+  });
+});
+

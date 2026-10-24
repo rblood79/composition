@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Local page 컴포넌트 slot 삭제 — 채운 instance 가 있으면 거부되던 문제] - 2026-10-24
+
+### Fixed
+
+- **Local page 원본에서 slot 노드를 지우면 `UNOWNED_NODE` 로 삭제가 거부되던 문제** (ADR-282 리뷰 Round 2 가 재현):
+  - **Why**: `removeWithReferrers` 는 지워진 자리를 가리키는 instance override 를 걸러 내면서 `replace` 의 대체 노드만 같이 지웠다. `fillSlot` 의 채움 노드는 남아 소유자를 잃었고, transaction 검증이 거부했다 (문서는 보존됨).
+  - 수리: 탈락한 `fillSlot` 의 채움 서브트리도 같은 step 에서 지운다. 그 노드가 가진 interaction · 상태 변수도 함께 정리된다. 한 번의 undo 로 slot · 채움 내용 · override 가 모두 돌아온다.
+  - 위치: `packages/shared/src/catalog/commands/structure.ts` (`removeWithReferrers`)
+
 ## [Layout 이름 변경 — Page 처럼 행 더블클릭] - 2026-10-24
 
 ### Added

@@ -1124,13 +1124,20 @@ export function removeWithReferrers(
             } as CatalogEntry).some((ref) => draft.removed(ref)),
         );
         // ADR-261 Phase 5: a replacement standing in a removed position goes with it (an instance
-        // property's value when its origin node is deleted).
+        // property's value when its origin node is deleted). So do the contents an instance filled
+        // a removed slot with: dropping the fillSlot alone left them unowned (`UNOWNED_NODE` —
+        // a Local page template slot deleted while an instance fills it, 2026-10-24).
         for (const item of entry.descendantOverrides)
-          if (item.kind === "replace" && !kept.includes(item)) {
-            const gone = subtree(draft, item.replacementId);
-            for (const removedId of gone) draft.remove(removedId);
-            queue.push(...gone);
-          }
+          if (kept.includes(item)) continue;
+          else if (item.kind === "replace" || item.kind === "fillSlot")
+            for (const rootId of item.kind === "replace"
+              ? [item.replacementId]
+              : item.childIds) {
+              if (draft.removed(rootId)) continue;
+              const gone = subtree(draft, rootId);
+              for (const removedId of gone) draft.remove(removedId);
+              queue.push(...gone);
+            }
         // ADR-261 Decision 3: a removed component leaves the slots that suggested it.
         const suggested = entry.slot?.suggested?.filter(
           (id) => !draft.removed(id),
