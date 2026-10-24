@@ -26,7 +26,7 @@
 
 .elementItem[data-selection-region="body"],
 .elementItem[data-selection-region="tail"] {
-  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+  background-color: var(--bg-muted);
 }
 
 .elementItem[data-selection-region="body"] {

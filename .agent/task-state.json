@@ -60,12 +60,17 @@
     "[x] 레버 4a: tree.rs remove_node — 삭제 80 → 10 ms · 연결 109 → 46 (4x 403 → 183) · solve 46k → 49~651 · cargo 501 PASS · live PASS",
     "[x] 3a d46265055 · 4a 16ad74fb6 push (SKIP_PERF_RATCHET=1 — 사용자 지시 2026-10-21)",
     "[x] ratchet 재기준 e46011883: A 150 올림 (사용자 승인 · 만료 2027-04-21 · ADR-277 fixture) · 하향 40 · 새 지표 23 · pass 2 판정 A 0 / B 경고 26",
-    "[x] e46011883 push — pre-push 게이트 통과"
+    "[x] e46011883 push — pre-push 게이트 통과",
+    "[x] (사용자 /fix 2026-10-24) code-review 1~4: 드래그 중 scene-box chrome (slot · remainder · badge) 이 렌더러처럼 조상 offset 합산 · top layer root 에서 멈춤 · 끌리는 서브트리는 page 가림 상자로 안 자름 — unit 8 · RED 변이 2 · 회귀 394 PASS, live PASS (5175 · 중첩 형제 offset + 실제 포인터 드래그) · 3cb0cbfe0 push (4 = page delta 호출부 0 · fixed 는 맵이 안 움직여 재현 불가)",
+    "[x] (사용자 /fix 2026-10-24) code-review 5·7: Preview endpoint 찾기 id 우선 (endpointFilling) · endpointWithTarget id 전달 · 끊긴 연결은 대상 없음 · store 한 번 읽기 — fd7b81dfb push. 남은 것: previewBuilderAuthoringImport.static 실패 (HEAD c3be6f5b8 compositionRoot → commands/components)",
+    "[x] (사용자 2026-10-24) previewBuilderAuthoringImport.static 수리: componentOriginOf → document/componentOrigin.ts (commands/components 는 재수출) · 11/11 · 1e5e7711c push. HEAD 부터 실패 19건 (shared 13: g0DescendantRoutes 8 · codeCatalogLibrary 2 · propSectionConsistency · fieldSource · positions / builder 6: treeItemChevronNode 4 · adr256Followups · phase3Presence) — 이번 변경과 무관, 미조사",
+    "[x] (사용자 2026-10-24) HEAD 부터 실패하던 테스트 23 정리 + 제품 결함 3 (Tree 자동 체크박스 비대칭 · State 이름표 i18n · body 높이 기본값) — ce44113f2 push. shared 1727 · builder 6412 전부 PASS",
+    "[x] (사용자 2026-10-24 「레퍼런스에 나온대로」) State 절 상태 이름표 8 = RAC prop 이름 · 「항목 key」 통일 — 71de2aacb push"
   ],
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-21T13:01:54.855474+00:00",
+  "updatedAt": "2026-10-24T03:08:59.039965+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -296,5 +301,19 @@
       "push": "origin/main 5b67b0b1d -> 606600847 성공"
     },
     "commit": "606600847"
+  },
+  "navigatorSelectionFlickerDiagnosis": {
+    "task": "Navigator Pages 및 Layers 선택 깜빡임과 이전 선택 복귀 원인 조사",
+    "phase": "diagnosis_complete",
+    "scope": "원인 조사만; 제품 코드 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-24-navigator-selection-flicker",
+    "findings": [
+      "공통 .elementItem background-color 100ms transition으로 Pages/Layers 선택 해제 행의 이전 강조가 남음; Layers transition만 임시 제거 A/B에서 잔상 소멸",
+      "Page 6→Page 8 rAF의 Layers 행 수 10→0→1, 빈 프레임 약13ms; owner key remount + useEffect store 초기화 경로",
+      "계측한 페이지/레이어 클릭에서 실제 session 새 대상→이전 대상→새 대상 역전 미재현"
+    ],
+    "status": "two_visual_causes_confirmed_actual_selection_reversal_unverified",
+    "cleanup": "임시 wrapper/구독/observer/rAF/listener/style/window 객체 제거, 원래 메서드 동일성 확인; Page6/세 번째 Column 선택 복귀",
+    "productChanges": "none"
   }
 }

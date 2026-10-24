@@ -372,14 +372,14 @@
          중간 스톱 3개는 ease-out 알파 근사다. 선형 2-스톱은 페이드가 끝나는 지점에
          기울기가 꺾여 mach band (눈이 잡는 경계선) 가 보인다. 곡선을 태우면 그 선이
          사라진다 — 장식 마감이 목적이므로 이 부드러움이 효과 자체다. */
-      mask-image: linear-gradient(
+      /*mask-image: linear-gradient(
         to bottom,
         #000 max(50%, 100% - 24px),
         rgb(0 0 0 / 0.85) max(62%, 100% - 18px),
         rgb(0 0 0 / 0.55) max(75%, 100% - 12px),
         rgb(0 0 0 / 0.22) max(88%, 100% - 6px),
         transparent
-      );
+      );*/
 
       .fieldset-actions {
         grid-area: icon;
