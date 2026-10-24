@@ -110,17 +110,6 @@ function StateVariableTypeSelect({
   );
 }
 
-const SOURCE_LABEL_KEYS = {
-  selectedKeys: "stateSelectedItems",
-  selectedKey: "stateSelectedItem",
-  isSelected: "stateSelection",
-  inputValue: "stateInputValue",
-  value: "stateValue",
-  expandedKeys: "stateExpandedItems",
-  isExpanded: "stateExpanded",
-  isOpen: "stateOpen",
-} as const;
-
 /** 기존 상태 이름을 직접 편집하고 실제로 바뀐 값만 반영한다. */
 function StateSourceField({
   source,
@@ -601,16 +590,9 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               {t("propertiesPanel.stateImplicitTitle")}
             </legend>
             {view.sources.map((source) => {
-              const labelKey =
-                SOURCE_LABEL_KEYS[
-                  source.prop as keyof typeof SOURCE_LABEL_KEYS
-                ];
-              const label =
-                source.prop === "selectedKey" && type === "Tabs"
-                  ? t("propertiesPanel.stateSelectedTab")
-                  : labelKey
-                    ? t(`propertiesPanel.${labelKey}`)
-                    : source.prop;
+              // The RAC prop the state is (`isSelected` · `selectedKeys` · `inputValue` …) — the
+              // reference's name in every locale (사용자 2026-10-24 「레퍼런스에 나온대로」).
+              const label = source.prop;
               return (
                 <StateSourceField
                   key={`${nodeId}:${source.prop}`}

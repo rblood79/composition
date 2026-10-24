@@ -19,8 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 2026-10-23 체크박스 선택 지원 (`51d5ecfc8`) 이 TreeItem 원본에 작성자 `Checkbox[slot=selection]` 노드를 넣으면서 공용 `TreeItemContent` 의 자동 체크박스도 되살렸다. 그래서 노드가 없는 항목은 DOM 에만 체크박스가 생겼고 Canvas 에는 없었다. ADR-256 후속 16 이 지운 비대칭이다.
   - 수정: 자동 체크박스는 공용 `Tree` 의 데이터 행 경로 (작성할 노드가 없는 행) 에서만 켠다 (`autoSelectionCheckbox`).
   - 위치: `packages/shared/src/components/Tree.tsx`
-- **State 절의 불리언 상태 이름표가 같은 영어의 다른 한국어와 갈리던 문제** — `Selected` · `Expanded` · `Open` (한국어 「선택 여부」 · 「펼침 여부」 · 「열림 여부」) 을 `Is selected` · `Is expanded` · `Is open` 으로 바꿨다. 속성 · 동작의 `Selected`(선택됨) · `Open`(열기) 과 다른 개념이다. Interactions 의 「항목 key」 · 「기준 항목 key」 · 「옮길 항목 key」 는 다른 곳과 같은 「항목 키」 계열로 맞췄다.
-  - 위치: `apps/builder/src/i18n/translations.ts`
+- **State 절의 컴포넌트 상태 이름표가 같은 영어의 다른 한국어와 갈리던 문제** — 상태 이름표를 RAC 레퍼런스의 prop 이름 그대로 보인다 (두 언어 같은 이름, 사용자 「레퍼런스에 나온대로」): `isSelected` · `isExpanded` · `isOpen` · `selectedKeys` · `selectedKey` · `inputValue` · `value` · `expandedKeys` (옛 「선택 여부」 · 「선택한 항목」 · 「선택한 탭」 · 「입력한 텍스트」 · 「현재 값」 · 「펼친 항목」 …). 이름표 대응표 (`SOURCE_LABEL_KEYS`) 와 번역 키 9개는 지웠다. 같은 영어 `Item key` 의 한국어는 RAC `Key` 를 따라 「항목 key」 하나로 맞췄다 (`capabilities.paramItemKey` 「항목 키」 → 「항목 key」).
+  - 위치: `apps/builder/src/i18n/translations.ts` · `panels/properties/catalog/CatalogStateSection.tsx`
 - **높이를 쓰지 않은 body 의 Styles Height 기본값이 「100%」 로 해석되던 문제** — 2026-10-21 Preview body 의 `height: 100%` (DOM 전용 fallback) 를 패널 기본값 해석이 읽었다. 레이아웃 컨테이너 (body · frame · Slot) 는 containerStyles 의 높이 축을 기본값으로 내지 않는다. 실효값이 있으면 그 값 (실측 844 PX) 이 먼저라 이 화면에서는 차이가 보이지 않는다.
   - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
 

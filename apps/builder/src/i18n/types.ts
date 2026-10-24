@@ -707,15 +707,6 @@ export interface TranslationKeys {
     stateUseElsewhere: string;
     stateVariableName: string;
     stateSourceReference: string;
-    stateSelectedItems: string;
-    stateSelectedItem: string;
-    stateSelectedTab: string;
-    stateSelection: string;
-    stateInputValue: string;
-    stateValue: string;
-    stateExpandedItems: string;
-    stateExpanded: string;
-    stateOpen: string;
     stateImplicitHint: string;
     stateImplicitRac: string;
     stateNamePlaceholder: string;
