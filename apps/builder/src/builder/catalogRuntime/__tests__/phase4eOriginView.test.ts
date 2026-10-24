@@ -477,26 +477,15 @@ describe("ADR-248 4e library origin view", () => {
       if (itemRow)
         expect(cellsOf(itemRow).map((cell) => cell.name)[0]).toMatch(/^◇ /);
     }
-    // A root edit on the item origin's sample is that origin's project default.
-    workspace.execute(
-      setFields({
-        targets: [{ kind: "node", id: itemSample.id }],
-        visual: { paddingTop: { kind: "set", value: 20 } },
-      }),
-    );
-    const project = graph.getEntry(graph.projectId);
-    const overrides =
-      project?.kind === "project"
-        ? project.overrideIds.map((id) => graph.getEntry(id))
-        : [];
-    expect(overrides).toContainEqual(
-      expect.objectContaining({
-        kind: "definitionOverride",
-        targetId: ITEM_ORIGIN,
-        visual: { paddingTop: { kind: "set", value: 20 } },
-      }),
-    );
-    workspace.undo();
+    // The Library is locked: the item origin's sample takes no edit (user 2026-10-25).
+    expect(() =>
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: itemSample.id }],
+          visual: { paddingTop: { kind: "set", value: 20 } },
+        }),
+      ),
+    ).toThrow(new CatalogOriginEditError("LIBRARY_LOCKED"));
     expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
       [
         "",
@@ -681,72 +670,49 @@ describe("ADR-248 4e library origin view", () => {
     workspace.dispose();
   });
 
-  it("a root edit is the origin's project default: every instance shows it, undo takes it back", async () => {
+  it("locked, the Library takes no edit — not even an origin's root defaults; unlocked, the ◆ is the copy and every instance follows (user 2026-10-25)", async () => {
     const { workspace, button } = await open();
     const SAMPLE = originSampleId(button.id);
     const before = placedLabel(workspace);
     workspace.showDefinition(button.id);
+    const steps = workspace.history.getSnapshot().labels.length;
+    expect(() =>
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: SAMPLE }],
+          props: { label: { kind: "set", value: "Go" } },
+        }),
+      ),
+    ).toThrow(new CatalogOriginEditError("LIBRARY_LOCKED"));
+    expect(workspace.history.getSnapshot().labels.length).toBe(steps);
+    expect(placedLabel(workspace)).toBe(before);
+    const graph = graphOf(workspace);
+    const project = graph.getEntry(graph.projectId);
+    expect(project?.kind === "project" && project.overrideIds).toEqual([]);
+    // Unlocked: the ◆ is the origin's copy root; its style reaches the placed instance.
+    workspace.setLibraryUnlocked(true);
+    const copyRoot = graph.getDefinitionOverride(button.id)!.templateRootId!;
     workspace.execute(
       setFields({
-        targets: [{ kind: "node", id: SAMPLE }],
-        props: { label: { kind: "set", value: "Go" } },
+        targets: [{ kind: "node", id: copyRoot }],
         visual: { paddingTop: { kind: "set", value: 20 } },
       }),
     );
-    const project = graphOf(workspace).getEntry(graphOf(workspace).projectId);
-    const override =
-      project?.kind === "project"
-        ? graphOf(workspace).getEntry(project.overrideIds[0]!)
-        : undefined;
-    expect(override).toMatchObject({
-      kind: "definitionOverride",
-      targetId: button.id,
-      defaults: { label: { kind: "set", value: "Go" } },
-      visual: { paddingTop: { kind: "set", value: 20 } },
-    });
-    // The sample shows its override as own values; the placed instance follows.
-    expect((graphOf(workspace).getEntry(SAMPLE) as NodeEntry).props).toEqual({
-      label: { kind: "set", value: "Go" },
-    });
-    expect(placedLabel(workspace)).toBe("Go");
-    // The panels read it as the sample's own value (resettable).
-    expect(
-      workspace.readModel.ownFields({ kind: "node", id: SAMPLE }).props,
-    ).toEqual({ label: { kind: "set", value: "Go" } });
-    const sample = [...workspace.root.domInputs.values()].find(
-      (record) => record.sourceId === SAMPLE,
-    )!;
-    // The Canvas draws the new label in the sample (a template text reads `{label}`).
-    const subtree = (id: string): unknown[] => {
-      const record = workspace.root.domInputs.get(id)!;
-      return [record.props, ...record.children.flatMap(subtree)];
+    const placedPadding = () => {
+      workspace.showDefinition(undefined);
+      const [item] = workspace.itemsOfNode(PLACED, 1);
+      const padding = workspace.root.domInputs.get(item!.identity)!.visual
+        .paddingTop;
+      workspace.showDefinition(button.id);
+      return padding;
     };
-    expect(JSON.stringify(subtree(sample.id))).toContain('"Go"');
-    // A second edit (the override exists: a value-only step) redraws the sample too, and a
-    // subscribed panel read follows it.
-    const seen: unknown[] = [];
-    const unsubscribe = workspace.readModel.subscribeOwnFields(
-      { kind: "node", id: SAMPLE },
-      (fields) => seen.push(fields.props.label),
-    );
-    workspace.execute(
-      setFields({
-        targets: [{ kind: "node", id: SAMPLE }],
-        props: { label: { kind: "set", value: "Next" } },
-      }),
-    );
-    expect(JSON.stringify(subtree(sample.id))).toContain('"Next"');
-    expect(seen.at(-1)).toEqual({ kind: "set", value: "Next" });
-    unsubscribe();
+    expect(placedPadding()).toBe(20);
     workspace.undo();
-    // One history step each; undo restores.
-    expect(workspace.history.getSnapshot().labels.at(-1)).toBeDefined();
-    workspace.undo();
-    expect(placedLabel(workspace)).toBe(before);
+    expect(placedPadding()).not.toBe(20);
     workspace.dispose();
   });
 
-  it("anything but the root's props and base styles is refused", async () => {
+  it("locked, nothing on the Library page takes an edit (its samples, its own nodes); unlocked, its own nodes do", async () => {
     const { workspace, button } = await open();
     const SAMPLE = originSampleId(button.id);
     workspace.showDefinition(button.id);
@@ -770,11 +736,22 @@ describe("ADR-248 4e library origin view", () => {
     ).toThrow(CatalogOriginEditError);
     expect(workspace.history.getSnapshot().labels.length).toBe(steps);
     // The stored page's own nodes take edits as a page's do (user 2026-10-25 — library-body is a
-    // page's body): an instance beside the origin, the body.
-    for (const id of [
+    // page's body) — once the Library is unlocked; locked, they take none.
+    const pageNodes = [
       pageNode(workspace, originInstanceId(button.id, "primary/Hover")),
       ORIGIN_VIEW_NODE,
-    ]) {
+    ];
+    for (const id of pageNodes)
+      expect(() =>
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id }],
+            visual: { paddingTop: { kind: "set", value: 4 } },
+          }),
+        ),
+      ).toThrow(new CatalogOriginEditError("LIBRARY_LOCKED"));
+    workspace.setLibraryUnlocked(true);
+    for (const id of pageNodes) {
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id }],
@@ -783,6 +760,7 @@ describe("ADR-248 4e library origin view", () => {
       );
       workspace.undo();
     }
+    workspace.setLibraryUnlocked(false);
     // A write that skips the origin view's translation never stages the sample.
     let code: string | undefined;
     try {

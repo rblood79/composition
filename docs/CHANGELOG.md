@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Library 가 잠긴 상태에서도 Library page 가 편집되던 문제** (사용자 보고 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」): 잠금 중에는 원본 표본 (루트 기본값 포함) · 해제 사본 · page 자신의 노드 (body · 카드 · 줄 · 캡션 · ◇) 모두 편집을 거부하고 「The Library is locked」 안내를 띄운다 (`originView.ts` `catalogOriginEditCommand`). 해제하면 전부 편집된다.
 - **Library page 의 ◆ 칸을 편집한 프로젝트가 다시 열리지 않던 문제 (`entry.children[0]`)** (ADR-282 Phase 3 · 사용자 보고 2026-10-25): 저장이 바뀐 노드를 view 가 덧붙인 자식 (◆ 표본) 까지 담아 기록했다 — 이제 문서에 저장된 모습 그대로 기록한다 (`controller.ts` → `graph.storedEntry`). 이미 그렇게 저장된 프로젝트는 그대로다.
 - **Local page 원본에서 slot 노드를 지우면 `UNOWNED_NODE` 로 삭제가 거부되던 문제** (ADR-282 리뷰 Round 2 가 재현):
   - **Why**: `removeWithReferrers` 는 지워진 자리를 가리키는 instance override 를 걸러 내면서 `replace` 의 대체 노드만 같이 지웠다. `fillSlot` 의 채움 노드는 남아 소유자를 잃었고, transaction 검증이 거부했다 (문서는 보존됨).

@@ -391,15 +391,27 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(sample);
     expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
     expect((graph.storedEntry(cell) as NodeEntry).originOf).toBe(BUTTON);
-    // The cell is a page frame: a layout edit, its undo while the view is closed, its redo —
-    // none of them stores the drawn origin.
+    // Locked, the page takes no edit (user 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」).
+    expect(() =>
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: cell }],
+          visual: { paddingTop: { kind: "set", value: 8 } },
+        }),
+      ),
+    ).toThrow(CatalogOriginEditError);
+    // Unlocked, the cell is a page frame: a layout edit, its undo while the view is closed, its
+    // redo — none of them stores the drawn origin (the copy root, once unlocked).
+    workspace.setLibraryUnlocked(true);
+    const copyRoot = graph.getDefinitionOverride(BUTTON)!.templateRootId!;
+    expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(copyRoot);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: cell }],
         visual: { paddingTop: { kind: "set", value: 8 } },
       }),
     );
-    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
     workspace.showDefinition(undefined);
     workspace.undo();
     workspace.redo();
@@ -407,7 +419,7 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
       kind: "set",
       value: 8,
     });
-    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
     // Preview: no component page in the snapshot or in a delta (nor the project's list of them).
     preview.onReady(); // (a new Preview document after the page was made)
     const snapshots = posts.filter((post) => post.type === "CATALOG_SNAPSHOT");
@@ -440,7 +452,7 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     await workspace.runtime.save();
     workspace.dispose();
     const loaded = new CatalogGraph(await storage.load(PROJECT, library), library);
-    expect((loaded.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
+    expect((loaded.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
     expect((loaded.storedEntry(cell) as NodeEntry).visual.paddingTop).toEqual({
       kind: "set",
       value: 8,
