@@ -97,14 +97,33 @@ export const chartTest: TestUserConfig = {
   testTimeout: 15000,
 };
 
-// `vitest run --project <name>` 으로 고른다. 환경변수·고정 캡처가 필요한 하니스
-// (`vitest.adr220.config.ts` · `vitest.adr248-g3.browser.config.ts` · `vitest.chart.a11y.config.ts`)
-// 는 기본 실행에 섞이지 않게 별도 config 로 둔다.
+/** 같은 차트 테스트를 브라우저의 실제 media query를 dark/reduced-motion으로 설정해 돌리는 대조군. */
+const chartA11yTest: TestUserConfig = {
+  ...chartTest,
+  include: [
+    "../../packages/shared/src/components/chart/chartInteraction.browser.test.tsx",
+    "../../packages/shared/src/components/chart/chartTheme.browser.test.tsx",
+    "../../packages/shared/src/components/chart/rechartsRuntime.browser.test.tsx",
+  ],
+};
+
+// `vitest run --project <name>` 으로 고른다. ADR-248 G3 하니스 (`vitest.adr248-g3.browser.config.ts`)
+// 는 고정 캡처가 oracle 이라 기본 실행에 섞이지 않게 별도 config 로 둔다.
 export default defineConfig({
   resolve: sharedResolve,
   test: {
     projects: [
       { plugins: nodePlugins(), test: { name: "unit", ...unitTest } },
+      // ADR-220 고정 컨텍스트 스냅샷 하니스 — `ADR220_SNAPSHOT_ARM` 이 없으면 전부 skip 한다.
+      //   ADR220_SNAPSHOT_ARM=baseline|candidate TZ=UTC pnpm -F @composition/builder exec vitest run --project adr220
+      {
+        plugins: nodePlugins(),
+        test: {
+          name: "adr220",
+          ...unitTest,
+          include: ["scripts/adr220-snapshot.test.ts"],
+        },
+      },
       {
         plugins: browserPlugins(),
         test: { name: "parity", ...parityTest, browser: chromium() },
@@ -112,6 +131,22 @@ export default defineConfig({
       {
         plugins: browserPlugins(),
         test: { name: "chart", ...chartTest, browser: chromium() },
+      },
+      {
+        plugins: browserPlugins(),
+        test: {
+          name: "chart-a11y",
+          ...chartA11yTest,
+          browser: chromium(
+            playwright({
+              contextOptions: {
+                colorScheme: "dark",
+                reducedMotion: "reduce",
+                deviceScaleFactor: 2,
+              },
+            }),
+          ),
+        },
       },
     ],
   },

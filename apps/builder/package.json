@@ -14,7 +14,7 @@
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
     "test:parity": "vitest run --project parity",
-    "test:chart": "vitest run --project chart",
+    "test:chart": "vitest run --project chart --project chart-a11y",
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {

@@ -6,8 +6,8 @@
  * `now` 규칙) · TZ · locale · `t` 에 의존한다. 하니스가 다섯을 전부 고정하고 결과의
  * `context` 에 남긴다. 실행 출처 (`provenance`) 는 별도 보존하고 비교에서 제외한다.
  *
- *   ADR220_SNAPSHOT_ARM=baseline  TZ=UTC pnpm -F @composition/builder exec vitest run --config vitest.adr220.config.ts
- *   ADR220_SNAPSHOT_ARM=candidate TZ=UTC pnpm -F @composition/builder exec vitest run --config vitest.adr220.config.ts
+ *   ADR220_SNAPSHOT_ARM=baseline  TZ=UTC pnpm -F @composition/builder exec vitest run --project adr220
+ *   ADR220_SNAPSHOT_ARM=candidate TZ=UTC pnpm -F @composition/builder exec vitest run --project adr220
  *
  * baseline 은 `docs/adr/evidence/220-p0-seed-snapshot.json` — 파일이 있으면 실패한다
  * (덮어쓰기 금지). candidate 는 `220-p2-seed-snapshot.json` 에 쓰고 baseline 과
