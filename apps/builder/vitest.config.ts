@@ -1,64 +1,118 @@
 import { resolve } from "path";
-import { defineConfig } from "vitest/config";
+import { playwright } from "@vitest/browser-playwright";
 import wasm from "vite-plugin-wasm";
+import {
+  defineConfig,
+  type TestUserConfig,
+  type ViteUserConfig,
+} from "vitest/config";
 
+const shared = (path: string) =>
+  resolve(import.meta.dirname, "../../packages/shared/src", path);
+
+export const sharedResolve: ViteUserConfig["resolve"] = {
+  alias: [
+    { find: "@", replacement: resolve(import.meta.dirname, "src") },
+    {
+      find: /^@composition\/shared\/components\/styles\/(.*)$/,
+      replacement: shared("components/styles/$1"),
+    },
+    {
+      find: /^@composition\/shared\/components\/(.*)$/,
+      replacement: shared("components/$1"),
+    },
+    {
+      find: "@composition/shared/components",
+      replacement: shared("components/index.ts"),
+    },
+    {
+      find: "@composition/shared/assets",
+      replacement: shared("assets/index.ts"),
+    },
+    {
+      find: "@composition/shared/utils",
+      replacement: shared("utils/index.ts"),
+    },
+    {
+      find: "@composition/shared/types",
+      replacement: shared("types/index.ts"),
+    },
+    {
+      find: "@composition/shared/hooks",
+      replacement: shared("hooks/index.ts"),
+    },
+    { find: "@composition/shared", replacement: shared("index.ts") },
+  ],
+};
+
+// ADR-916 Phase 2-B (B2): dual-run 테스트가 두 wasm-pack 산출물(--target bundler)을 ES 모듈로
+// 로드하려면 vite-plugin-wasm 이 필요하다. 플러그인이 `configResolved` 에서 실행 환경을 기억하므로
+// project 마다 새 인스턴스를 만든다.
+// vite-plugin-wasm 3.6은 이름이 정확히 `vitest`인 plugin으로 Node 실행을 감지하지만 Vitest 5는
+// plugin 이름을 `vitest:*`로 바꿨다. 호환 marker가 없으면 browser URL을 Node fetch에 넘겨
+// WASM 테스트가 실패한다. browser project 에 marker 를 두면 .wasm 이 base64 inline 으로 바뀐다.
+export const nodePlugins = () => [{ name: "vitest" }, wasm()];
+export const browserPlugins = () => [wasm()];
+
+export const unitTest: TestUserConfig = {
+  environment: "jsdom",
+  setupFiles: ["./src/test/rtlCleanup.ts"],
+  // ADR-256 G5 example 13: the S2 oracle (`@react-spectrum/s2`, a test-only devDependency) imports
+  // its compiled `.css` — Vite transforms it (inline) instead of Node loading it.
+  server: { deps: { inline: [/@react-spectrum\/s2/] } },
+  include: [
+    "src/**/__tests__/**/*.test.ts",
+    "src/**/__tests__/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+  ],
+  exclude: ["**/node_modules/**", "**/*.browser.test.tsx"],
+};
+
+export const chromium = (
+  provider = playwright(),
+): NonNullable<TestUserConfig["browser"]> => ({
+  enabled: true,
+  provider,
+  headless: true,
+  screenshotFailures: false,
+  instances: [{ browser: "chromium" }],
+});
+
+// ADR-156 Phase 1 — Chrome 차등 하니스 (G1). jsdom 은 레이아웃 계산이 없어 oracle 이 될 수 없다.
+// @vitest/browser + Playwright(Chromium)로 실 DOM `getBoundingClientRect`(leg 1, ground truth)와
+// 엔진 `computeLayout`(leg 2)을 한 파일에서 대조한다 — 두 leg 가 한 번에 돌아 상수 고정(순환 oracle)이
+// 불필요하다.
+export const parityTest: TestUserConfig = {
+  include: ["tests/parity/**/*.browser.test.ts"],
+  // DOM leg 페이지의 root 폰트 문맥을 production 과 같이 고정한다 — 앱 배럴의 CSS 부작용에
+  // 기대지 않는다 (2026-09-16 CSS 단일 채널 뒤 DOM leg 만 Times 로 떨어졌다, harness/setupThemeFont.ts).
+  setupFiles: ["./tests/parity/harness/setupThemeFont.ts"],
+};
+
+// ADR-209 실제 Recharts와 Canvas 기하 대조.
+export const chartTest: TestUserConfig = {
+  ...parityTest,
+  include: ["../../packages/shared/src/components/chart/*.browser.test.tsx"],
+  testTimeout: 15000,
+};
+
+// `vitest run --project <name>` 으로 고른다. 환경변수·고정 캡처가 필요한 하니스
+// (`vitest.adr220.config.ts` · `vitest.adr248-g3.browser.config.ts` · `vitest.chart.a11y.config.ts`)
+// 는 기본 실행에 섞이지 않게 별도 config 로 둔다.
 export default defineConfig({
-  // ADR-916 Phase 2-B (B2): dual-run 테스트가 두 wasm-pack 산출물(--target
-  // bundler)을 ES 모듈로 로드하려면 vite-plugin-wasm 이 필요하다. .wasm import 가
-  // 없는 기존 테스트에는 no-op(개입 없음).
-  // vite-plugin-wasm 3.6은 이름이 정확히 `vitest`인 plugin으로 Node 실행을
-  // 감지하지만 Vitest 5는 plugin 이름을 `vitest:*`로 바꿨다. 호환 marker가
-  // 없으면 browser URL을 Node fetch에 넘겨 WASM 테스트가 실패한다.
-  plugins: [{ name: "vitest" }, wasm()],
-  resolve: {
-    alias: [
-      { find: "@", replacement: `${resolve(import.meta.dirname, "src")}` },
-      {
-        find: /^@composition\/shared\/components\/styles\/(.*)$/,
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/components/styles/$1")}`,
-      },
-      {
-        find: /^@composition\/shared\/components\/(.*)$/,
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/components/$1")}`,
-      },
-      {
-        find: "@composition/shared/components",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/components/index.ts")}`,
-      },
-      {
-        find: "@composition/shared/assets",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/assets/index.ts")}`,
-      },
-      {
-        find: "@composition/shared/utils",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/utils/index.ts")}`,
-      },
-      {
-        find: "@composition/shared/types",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/types/index.ts")}`,
-      },
-      {
-        find: "@composition/shared/hooks",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/hooks/index.ts")}`,
-      },
-      {
-        find: "@composition/shared",
-        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/index.ts")}`,
-      },
-    ],
-  },
+  resolve: sharedResolve,
   test: {
-    exclude: ["**/node_modules/**", "**/*.browser.test.tsx"],
-    environment: "jsdom",
-    setupFiles: ["./src/test/rtlCleanup.ts"],
-    // ADR-256 G5 example 13: the S2 oracle (`@react-spectrum/s2`, a test-only devDependency) imports
-    // its compiled `.css` — Vite transforms it (inline) instead of Node loading it.
-    server: { deps: { inline: [/@react-spectrum\/s2/] } },
-    include: [
-      "src/**/__tests__/**/*.test.ts",
-      "src/**/__tests__/**/*.test.tsx",
-      "src/**/*.test.ts",
-      "src/**/*.test.tsx",
+    projects: [
+      { plugins: nodePlugins(), test: { name: "unit", ...unitTest } },
+      {
+        plugins: browserPlugins(),
+        test: { name: "parity", ...parityTest, browser: chromium() },
+      },
+      {
+        plugins: browserPlugins(),
+        test: { name: "chart", ...chartTest, browser: chromium() },
+      },
     ],
   },
 });

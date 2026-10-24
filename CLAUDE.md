@@ -12,7 +12,7 @@ pnpm wasm:build:engine                              # Rust 엔진 → wasm (산�
 pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
-pnpm -F @composition/builder test:parity            # browser vitest · 시각 비교는 vitest.adr248-g3.browser.config.ts (G3 하니스)
+pnpm -F @composition/builder test:parity            # browser vitest (`vitest.config.ts` 의 parity project) · 시각 비교는 vitest.adr248-g3.browser.config.ts (G3 하니스)
 pnpm codex:preflight                                # guard + format + typecheck + registration gate
 pnpm docs:stale-symbols [--all]                     # 규칙·skill·agent 문서가 소스에 없는 심볼을 현재 것처럼 인용하면 exit 1 (--docs · --memory 는 보고만) — 삭제·개명 커밋 뒤 실행
 pnpm gate:perf-ratchet                              # 결정적 카운트 ratchet (ADR-246) — 수동 실행 (성능 작업 때). push 자동 실행은 2026-10-24 기본 끔 · 켜려면 PERF_RATCHET=1 git push
@@ -25,7 +25,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 **핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/catalogRuntime/` (편집 runtime — `workspace.ts` · `controller.ts` · `compositionRoot.ts`) · `packages/shared/src/catalog/{transactions,commands}/` (문서 변경 명령) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (Canvas) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
-**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 비교는 ADR-248 G3 하니스 (`apps/builder/tests/adr248-g3/`, `vitest.adr248-g3.browser.config.ts`). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
+**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts` 의 `unit` project) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `parity` project) · 시각 비교는 ADR-248 G3 하니스 (`apps/builder/tests/adr248-g3/`, `vitest.adr248-g3.browser.config.ts`). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
 ## SSOT 체인 정본 — 3-Domain 분할
 

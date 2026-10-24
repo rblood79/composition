@@ -1,17 +1,22 @@
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import base from "./vitest.browser.config.ts";
+import {
+  browserPlugins,
+  chromium,
+  parityTest,
+  sharedResolve,
+} from "./vitest.config.ts";
 
 // ADR-248 G3 old/new Canvas comparison. The frozen G0 Canvas captures were taken by headless
 // Chrome (`channel: "chrome"`, WebGL surface), so the new Canvas leg rasterizes in the same
-// browser channel. Kept out of the default parity include because its oracle is the frozen
+// browser channel. Kept out of the default parity project because its oracle is the frozen
 // production capture environment.
 export default defineConfig({
-  ...base,
+  plugins: browserPlugins(),
+  resolve: sharedResolve,
   // Diagnostic only: `ADR248_DUMP_DOM=<Type> ADR248_DUMP_DIR=<abs dir>` writes that type's
   // isolated DOM box tree.
   define: {
-    ...base.define,
     __ADR248_REPLAY__: JSON.stringify(process.env.ADR248_REPLAY ?? ""),
     __ADR248_OLD_PNG_DIR__: JSON.stringify(
       process.env.ADR248_OLD_PNG_DIR ?? "",
@@ -26,11 +31,10 @@ export default defineConfig({
     __ADR248_LIVE_DIR__: JSON.stringify(process.env.ADR248_LIVE_DIR ?? ""),
   },
   test: {
-    ...base.test,
+    ...parityTest,
     include: ["tests/adr248-g3/**/*.browser.test.ts"],
     browser: {
-      ...base.test!.browser!,
-      provider: playwright({ launchOptions: { channel: "chrome" } }),
+      ...chromium(playwright({ launchOptions: { channel: "chrome" } })),
       viewport: { width: 1440, height: 900 },
     },
   },

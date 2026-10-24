@@ -195,24 +195,25 @@ do_verify() {
       local dir rel tests
       dir=$(pkg_dir "$p")
       if pkg_has_vitest "$p"; then
-        rel=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | sed "s|^$dir/||" | grep -vE '^tests/(adr248-g3|parity|visual-parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
+        rel=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | sed "s|^$dir/||" | grep -vE '^tests/(adr248-g3|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
         tests=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | grep -E "$RE_TEST" | sed "s|^$dir/||" | tr '\n' ' ' | sed 's/ $//' || true)
+        # builder 는 browser project (parity · chart) 를 함께 선언하므로 related 를 unit 에 한정한다.
+        local unit_project=""
+        [ "$p" = builder ] && unit_project="--project unit"
         # shellcheck disable=SC2086
-        [ -n "$rel" ] && run_step vitest "$p" pnpm -F "$(pkg_filter "$p")" exec vitest related --run --passWithNoTests $rel
-        # 테스트 파일은 **자기 config 로** 돌린다. 기본 config 의 include 가
+        [ -n "$rel" ] && run_step vitest "$p" pnpm -F "$(pkg_filter "$p")" exec vitest related --run --passWithNoTests $unit_project $rel
+        # 테스트 파일은 **자기 project · config 로** 돌린다. unit include 가
         # `src/**` 라서 `tests/**` 를 그냥 넘기면 "No test files found" → exit 1 로
-        # 항상 빨간불이 된다 (ADR-198 Phase 3 에서 확인). config 파일이 실재할 때만
-        # 갈아 끼우므로 다른 패키지 동작은 그대로다.
+        # 항상 빨간불이 된다 (ADR-198 Phase 3 에서 확인). `tests/parity` · `tests/adr248-g3`
+        # 는 builder 에만 있으므로 다른 패키지 동작은 그대로다.
         if [ -n "$tests" ]; then
-          local browser_tests visual_tests g3_tests default_tests
+          local browser_tests g3_tests default_tests
           # shellcheck disable=SC2086
           g3_tests=$(printf '%s\n' $tests | grep -E '^tests/adr248-g3/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
-          visual_tests=$(printf '%s\n' $tests | grep -E '^tests/visual-parity/' | tr '\n' ' ' | sed 's/ $//' || true)
-          # shellcheck disable=SC2086
           browser_tests=$(printf '%s\n' $tests | grep -E '^tests/parity/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
-          default_tests=$(printf '%s\n' $tests | grep -vE '^tests/(adr248-g3|visual-parity|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
+          default_tests=$(printf '%s\n' $tests | grep -vE '^tests/(adr248-g3|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
           [ -n "$default_tests" ] && run_step vitest "$p:test-files" pnpm -F "$(pkg_filter "$p")" exec vitest run $default_tests
           if [ -n "$g3_tests" ]; then
@@ -221,11 +222,7 @@ do_verify() {
           fi
           if [ -n "$browser_tests" ]; then
             # shellcheck disable=SC2086
-            run_step vitest "$p:browser-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.browser.config.ts $browser_tests
-          fi
-          if [ -n "$visual_tests" ]; then
-            # shellcheck disable=SC2086
-            run_step vitest "$p:visual-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.visual-parity.config.ts $visual_tests
+            run_step vitest "$p:browser-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --project parity $browser_tests
           fi
         fi
       fi

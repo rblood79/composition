@@ -11,9 +11,10 @@
     "type-check": "bash scripts/type-check-baseline.sh",
     "type-check:raw": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "type-check:strict": "tsc -p tsconfig.app.json --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:parity": "vitest run --config vitest.browser.config.ts",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:parity": "vitest run --project parity",
+    "test:chart": "vitest run --project chart",
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {
