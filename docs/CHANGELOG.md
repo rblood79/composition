@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layout 이름 변경 — Page 처럼 행 더블클릭] - 2026-10-24
+
+### Added
+
+- **Navigator Layouts 탭의 Layout 이름을 행에서 바꾼다** (사용자 요청 「Layout 은 Page 와 같은 개념」): 행을 더블클릭하면 이름 칸이 열리고, Enter 나 포커스 이동으로 확정, Escape 로 취소한다. 확정은 `renameDefinition` 한 step 이고, History 에는 「레이아웃 이름 변경」으로 남는다. Components 탭의 고정 페이지 두 개는 대상이 아니다.
+  - 이름 칸은 Page 행과 같은 부품 (`InlineRenameInput`) 이다.
+  - 이름 칸 상태는 행 부품이 갖는다. RAC 컬렉션이 항목이 바뀌기 전까지 행 내용을 다시 그리지 않아서, 섹션 상태로 두면 칸이 열리지 않았다 (live 에서 확인).
+  - 위치: `apps/builder/src/builder/panels/navigator/{catalog/CatalogDefinitionsSection.tsx,tree/InlineRenameInput.tsx,tree/PageTree/PageTreeItemContent.tsx}`
+
 ## [Layers 선택 깜빡임 · 다른 페이지 요소 선택 한 번에] - 2026-10-24
 
 ### Fixed

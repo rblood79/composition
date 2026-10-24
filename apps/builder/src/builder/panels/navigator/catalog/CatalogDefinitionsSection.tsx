@@ -1,8 +1,17 @@
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components/Button";
 import { File, LayoutTemplate } from "lucide-react";
-import { deleteLayout } from "../../../../../../../packages/shared/src/catalog/commands";
+import {
+  deleteLayout,
+  renameDefinition,
+} from "../../../../../../../packages/shared/src/catalog/commands";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
@@ -25,6 +34,7 @@ import { Section } from "../../../components/panel/Section";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { ICON_EDIT_PROPS } from "../tree/helpers";
+import { InlineRenameInput } from "../tree/InlineRenameInput";
 import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
@@ -45,7 +55,8 @@ const AddIcon = ACTION_ICONS.add;
 /**
  * ADR-248 4e: the project's layouts or components (the Navigator's Layouts / Components tab).
  * Selecting one opens the definition edit view (its template on the Canvas and in Layers); a new
- * layout is a body with one content slot; a layout is deleted with its pages' content given back.
+ * layout is a body with one content slot; a layout is deleted with its pages' content given back,
+ * and renamed in place by double-clicking its row, as a page is (user 2026-10-24).
  * A component is made from a selection (Create component) and dissolved from Properties. The
  * Components tab lists the Components page first — one derived page that draws every built-in
  * component origin with its state variants (user 2026-10-05, `componentsPage`) — then the
@@ -136,6 +147,20 @@ export const CatalogDefinitionsSection = memo(
       );
       if (plan !== undefined && created) openLayout(created.id);
     }, [graph, items, openLayout, run, t]);
+    const renameLayout = useCallback(
+      (item: DefinitionNode, typed: string) => {
+        const name = typed.trim();
+        if (!name || name === item.name) return;
+        run(
+          renameDefinition({
+            id: item.id as CatalogDefinitionItem["id"],
+            name,
+            label: "Rename layout",
+          }),
+        );
+      },
+      [run],
+    );
     const removeLayout = useCallback(
       (item: DefinitionNode) =>
         run(
@@ -154,48 +179,14 @@ export const CatalogDefinitionsSection = memo(
     );
     const renderContent = useCallback(
       (item: DefinitionNode, state: TreeItemState) => (
-        <div className={`elementItem ${state.isSelected ? "active" : ""}`}>
-          <div className="elementItemIndent" />
-          <div className="elementItemIcon">
-            {item.page ? (
-              <File
-                color={ICON_EDIT_PROPS.color}
-                strokeWidth={ICON_EDIT_PROPS.stroke}
-                size={ICON_EDIT_PROPS.size}
-              />
-            ) : item.usage === "layout" ? (
-              <LayoutTemplate
-                color={ICON_EDIT_PROPS.color}
-                strokeWidth={ICON_EDIT_PROPS.stroke}
-                size={ICON_EDIT_PROPS.size}
-              />
-            ) : (
-              <ComponentIcon
-                color={ICON_EDIT_PROPS.color}
-                strokeWidth={ICON_EDIT_PROPS.stroke}
-                size={ICON_EDIT_PROPS.size}
-              />
-            )}
-          </div>
-          <div className="elementItemLabel">{item.name}</div>
-          <div className="elementItemActions">
-            {item.usage === "layout" && (
-              <Button
-                className="iconButton"
-                aria-label={`${t("navigator.deleteLayout")} ${item.name}`}
-                onPress={() => removeLayout(item)}
-              >
-                <DeleteIcon
-                  color={ICON_EDIT_PROPS.color}
-                  strokeWidth={ICON_EDIT_PROPS.stroke}
-                  size={ICON_EDIT_PROPS.size}
-                />
-              </Button>
-            )}
-          </div>
-        </div>
+        <DefinitionRowContent
+          item={item}
+          state={state}
+          onRename={renameLayout}
+          onDelete={removeLayout}
+        />
       ),
-      [removeLayout, t],
+      [removeLayout, renameLayout],
     );
 
     const title =
@@ -256,3 +247,89 @@ export const CatalogDefinitionsSection = memo(
     );
   },
 );
+
+/**
+ * A Layouts / Components row. The rename field's state lives here, not in the section: the RAC
+ * collection keeps a row's rendered content until its item changes, so section state would not
+ * reach the row (the Page row keeps its own the same way).
+ */
+function DefinitionRowContent({
+  item,
+  state,
+  onRename,
+  onDelete,
+}: {
+  item: DefinitionNode;
+  state: TreeItemState;
+  onRename: (item: DefinitionNode, name: string) => void;
+  onDelete: (item: DefinitionNode) => void;
+}) {
+  const { t } = useI18n();
+  const [isRenaming, setIsRenaming] = useState(false);
+  const isLayout = item.usage === "layout" && !item.page;
+  return (
+    <div
+      className={`elementItem ${state.isSelected ? "active" : ""}`}
+      onDoubleClick={(event) => {
+        if (!isLayout) return;
+        const target = event.target;
+        if (target instanceof Element && target.closest("button, input"))
+          return;
+        event.stopPropagation();
+        setIsRenaming(true);
+      }}
+    >
+      <div className="elementItemIndent" />
+      <div className="elementItemIcon">
+        {item.page ? (
+          <File
+            color={ICON_EDIT_PROPS.color}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            size={ICON_EDIT_PROPS.size}
+          />
+        ) : item.usage === "layout" ? (
+          <LayoutTemplate
+            color={ICON_EDIT_PROPS.color}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            size={ICON_EDIT_PROPS.size}
+          />
+        ) : (
+          <ComponentIcon
+            color={ICON_EDIT_PROPS.color}
+            strokeWidth={ICON_EDIT_PROPS.stroke}
+            size={ICON_EDIT_PROPS.size}
+          />
+        )}
+      </div>
+      <div className="elementItemLabel">
+        {isRenaming ? (
+          <InlineRenameInput
+            label={`${t("navigator.renameLayout")} ${item.name}`}
+            defaultValue={item.name}
+            onDone={(typed) => {
+              setIsRenaming(false);
+              if (typed !== undefined) onRename(item, typed);
+            }}
+          />
+        ) : (
+          item.name
+        )}
+      </div>
+      <div className="elementItemActions">
+        {item.usage === "layout" && (
+          <Button
+            className="iconButton"
+            aria-label={`${t("navigator.deleteLayout")} ${item.name}`}
+            onPress={() => onDelete(item)}
+          >
+            <DeleteIcon
+              color={ICON_EDIT_PROPS.color}
+              strokeWidth={ICON_EDIT_PROPS.stroke}
+              size={ICON_EDIT_PROPS.size}
+            />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

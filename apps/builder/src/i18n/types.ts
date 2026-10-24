@@ -296,6 +296,7 @@ export interface TranslationKeys {
       applyLayoutPreset: string;
       layoutSlot: string;
       deleteLayout: string;
+      renameLayout: string;
       rename: string;
       renameComponent: string;
       addTheme: string;
@@ -1530,6 +1531,7 @@ export interface TranslationKeys {
     layer: string;
     layersDragCount: string;
     deleteLayout: string;
+    renameLayout: string;
     layoutDefaultName: string;
     pages: string;
     layouts: string;

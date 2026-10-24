@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "react-aria-components/Button";
 import {
   ChevronRight,
@@ -8,6 +8,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { ICON_EDIT_PROPS } from "../helpers";
+import { InlineRenameInput } from "../InlineRenameInput";
 import type { TreeItemState } from "../TreeBase/types";
 import type { PageTreeNode, PageTreePage } from "./types";
 import { ACTION_ICONS } from "../../../../config/actionIcons";
@@ -41,22 +42,16 @@ export function PageTreeItemContent<P extends PageTreePage>({
   const { isSelected, isExpanded, isFocusVisible } = state;
   const isImmutablePage = isRoot || isSystemPage;
   const [isRenaming, setIsRenaming] = useState(false);
-  const renameCancelRef = useRef(false);
 
   const beginRename = () => {
     if (isSystemPage || !onRename) return;
-    renameCancelRef.current = false;
     onReselect?.(page);
     setIsRenaming(true);
   };
 
-  const commitRename = (title: string) => {
+  const commitRename = (title: string | undefined) => {
     setIsRenaming(false);
-    if (renameCancelRef.current) {
-      renameCancelRef.current = false;
-      return;
-    }
-    onRename?.(page, title);
+    if (title !== undefined) onRename?.(page, title);
   };
 
   return (
@@ -115,25 +110,10 @@ export function PageTreeItemContent<P extends PageTreePage>({
       </div>
       <div className="elementItemLabel">
         {isRenaming ? (
-          <input
-            className="page-title-rename-input"
-            aria-label={`Rename page ${name}`}
+          <InlineRenameInput
+            label={`Rename page ${name}`}
             defaultValue={page.title}
-            autoFocus
-            onFocus={(event) => event.currentTarget.select()}
-            onPointerDown={(event) => event.stopPropagation()}
-            onBlur={(event) => commitRename(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Enter") {
-                event.preventDefault();
-                event.currentTarget.blur();
-              } else if (event.key === "Escape") {
-                event.preventDefault();
-                renameCancelRef.current = true;
-                event.currentTarget.blur();
-              }
-            }}
+            onDone={commitRename}
           />
         ) : (
           name

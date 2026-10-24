@@ -92,6 +92,7 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   "Toast placement": ["toastPlacement", "page"],
   "Add layout": ["addLayout", "layout"],
   "Delete layout": ["deleteLayout", "layout"],
+  "Rename layout": ["renameLayout", "layout"],
   "Apply layout preset": ["applyLayoutPreset", "layout"],
   "Layout slot": ["layoutSlot", "layout"],
   Rename: ["rename", "edit"],
