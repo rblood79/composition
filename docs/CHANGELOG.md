@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Layers 선택 깜빡임 · 다른 페이지 요소 선택 한 번에] - 2026-10-24
+
+### Fixed
+
+- **Layers 행을 누르면 새 행이 비었다가 이전 행이 진하게 남고, 그다음 새 행이 선택되던 문제** (사용자 보고 「선택활성화 → 이전활성화 → 선택활성화」):
+  - **Why**: 행 바탕에 `transition: background-color 100ms` 가 있었다. 같은 날 선택 색을 `--accent` 채움과 흰 글자로 바꾼 (`b2557f70c`) 뒤로는, 글자색은 바로 바뀌고 바탕만 서서히 바뀌었다. 그래서 그 사이 새 행은 밝은 바탕 위 흰 글자로 비어 보였고, 이전 행만 진하게 남았다. 4x throttle 에서는 이 중간 프레임이 길게 보였다.
+  - 수정: 행 바탕 transition 을 없앴다. 이제 선택은 한 프레임에 바뀐다 (화면 녹화 프레임으로 확인).
+  - 위치: `apps/builder/src/builder/panels/navigator/NavigatorPanel.css`
+- **다른 페이지 요소를 선택하면 페이지 전환과 선택이 따로 반영되던 문제** — 구독자가 「새 페이지 + 선택 없음」 상태를 한 번 거쳤다. 이제 `session.setPage(pageId, selection)` 으로 한 snapshot 에 같이 쓴다 (`04fffe8c6`).
+  - 위치: `apps/builder/src/builder/catalogRuntime/{session,workspace}.ts`
+
 ## [Tree 자동 체크박스 · State 이름표 · body 높이 기본값 · 실패하던 테스트 23 정리] - 2026-10-24
 
 ### Fixed

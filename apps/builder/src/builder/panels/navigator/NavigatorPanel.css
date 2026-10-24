@@ -11,7 +11,9 @@
   min-height: var(--control-size);
   padding-inline: var(--spacing);
   border-radius: var(--radius-md);
-  transition: background-color 100ms ease;
+  /* 바탕 transition 없음: 선택 행은 글자색이 즉시 --bg-overlay 로 바뀌는데 바탕만 서서히 --accent 로
+     가면, 그 사이 새 행은 밝은 바탕 위 흰 글자로 비고 이전 행만 진하게 남았다 (2026-10-24 사용자 보고
+     「선택활성화 → 이전활성화 → 선택활성화」 — 4x throttle 에서 중간 프레임이 길게 보인다). */
   overflow: hidden;
 }
 
