@@ -60,6 +60,9 @@
   /* ========== Base TreeItem ========== */
   :where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem {
     display: flex;
+    /* Its list's width (user 2026-10-25 「treeItem(origin) 에 width:100%」). */
+    width: 100%;
+    box-sizing: border-box;
     align-items: center;
     gap: var(--spacing-2xs);
     min-height: 32px;

@@ -192,24 +192,6 @@ const SAMPLE_VISUAL: Readonly<Record<string, Readonly<Record<string, string>>>> 
   ColorSlider: { width: "100%", maxWidth: "none" },
   DropZone: { width: "100%", height: "auto" },
 };
-/**
- * A part of the ◆ sample sized on the page — the root's child of that origin (user 2026-10-25
- * 「colorfield - input 의 maxWidth: auto」).
- */
-const SAMPLE_PART_VISUAL: Readonly<
-  Record<
-    string,
-    {
-      readonly definitionId: string;
-      readonly visual: Readonly<Record<string, string>>;
-    }
-  >
-> = {
-  ColorField: {
-    definitionId: "lib:definition:origin-component-input",
-    visual: { maxWidth: "none" },
-  },
-};
 /** A page size as node fields: a max size other than px is a `layout` field, the rest `visual`. */
 const sampleFields = (values: Readonly<Record<string, string>> = {}) => {
   const visual: Record<string, ReturnType<typeof set<string>>> = {};
@@ -1114,30 +1096,8 @@ export function catalogComponentsPageEntries(
       ? [originRootId!, overlayId as LibraryTemplateId]
       : undefined;
     const FULL_WIDTH = { width: set("100%") };
-    const partVisual = SAMPLE_PART_VISUAL[origin.name];
-    const partId = partVisual
-      ? code.templates
-          .get(originRootId!)
-          ?.children.find(
-            (id) =>
-              code.templates.get(id as LibraryTemplateId)?.definitionId ===
-              partVisual.definitionId,
-          )
-      : undefined;
     const samplePatches = [
       ...slotPatches,
-      ...(partVisual && partId
-        ? [
-            {
-              kind: "patch" as const,
-              address: address(
-                [sampleId],
-                [originRootId!, partId as LibraryTemplateId],
-              ),
-              ...sampleFields(partVisual.visual),
-            },
-          ]
-        : []),
       ...(bodyPath
         ? [
             {

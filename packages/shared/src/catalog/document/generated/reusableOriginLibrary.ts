@@ -2043,20 +2043,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-gridlist-item-default",
     "definitionId": "lib:definition:type-GridListItem",
     "children": [
-      "lib:template:component-gridlist-item-default__image",
       "lib:template:component-gridlist-item-default__label",
       "lib:template:component-gridlist-item-default__description"
     ],
     "props": {},
     "visual": {},
     "displayState": "selected"
-  },
-  {
-    "id": "lib:template:component-gridlist-item-default__image",
-    "definitionId": "lib:definition:type-Image",
-    "children": [],
-    "props": {},
-    "visual": {}
   },
   {
     "id": "lib:template:component-gridlist-item-default__label",
@@ -2132,7 +2124,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-gridlist__empty-state"
     ],
     "props": {
-      "layout": "grid",
+      "layout": "stack",
       "selectionMode": "none"
     },
     "visual": {}
@@ -2636,11 +2628,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "name": "Footer",
       "required": false
     },
-    "children": [],
+    "children": [
+      "lib:template:component-card__footer-button"
+    ],
     "props": {},
-    "visual": {
-      "paddingTop": 8
-    }
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-card__footer-button",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "label": "Action"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-badge",

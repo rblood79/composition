@@ -169,13 +169,11 @@ describe("ADR-248 Phase 4e-4e row template", () => {
     expect(
       cards.fields.map((field) => [field.label, field.key, field.value]),
     ).toEqual([
-      // The reference card's photo (2026-10-13 「이미지 카드로」) — a row can fill it too.
-      ["Image", "src", ""],
-      ["Image", "alt", ""],
+      // (The S2 ListView row, 2026-10-25 — no photo: the 10-13 card's Image src · alt before.)
       ["Text", "children", "{label}"],
       ["Text", "children", "{description}"],
     ]);
-    const DESCRIPTION = 3;
+    const DESCRIPTION = 1;
     const depth = workspace.runtime.historyDepth.undo;
     workspace.execute(
       catalogCardFieldCommand(cards.fields[DESCRIPTION]!, "{size}"),

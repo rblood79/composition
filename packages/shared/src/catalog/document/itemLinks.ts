@@ -147,14 +147,12 @@ export function catalogLinkOutGlyph(
 }
 
 /**
- * A card item's glyph place (GridListItem — the RAC reference card, 2026-10-13): its photo spans
- * the card and a Canvas node paints under its children, so the glyph sits in the card's bottom
- * padding (centred there), its end at the texts' end (their 16 inset — `manualBoxRules`
- * GridListItem). The card's padding stays — its photo keeps the card's width.
+ * A card item's glyph place: the glyph in the card's bottom padding, its end at the texts' end.
+ * No item is a card now — a GridListItem is the S2 ListView row again (2026-10-25 사용자 「GridList 를
+ * S2 ListView 처럼 목록 행으로」; the RAC reference card of 2026-10-13 had 16): its glyph sits at the
+ * row's end, as S2's.
  */
-const LINK_OUT_CARD_END_INSET: Readonly<Record<string, number>> = {
-  GridListItem: 16,
-};
+const LINK_OUT_CARD_END_INSET: Readonly<Record<string, number>> = {};
 
 /** The glyph's end inset when the item is a card (no row end padding grows), else undefined. */
 export function catalogLinkOutCardEndInset(type: string): number | undefined {

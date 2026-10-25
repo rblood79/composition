@@ -106,12 +106,39 @@ function wrapperGroupHost(
   return node?.kind === "node" ? node.id : undefined;
 }
 
+/**
+ * The S2 Card's parts and what the reference puts in each (user 2026-10-25 「RSP 레퍼런스 체크 후
+ * 등록 가능한 항목」 — `@react-spectrum/s2` Card.md API): a CardPreview `<Image />` or
+ * `<Illustration />` (the gallery example's Badge · Avatar over it), a Content `<Text slot="title" />
+ * <ActionMenu /> <Text slot="description" />` (the collection example's Icon — the ActionMenu is the
+ * palette's Menu, a MenuTrigger), a Footer a StatusLight or a Button (`LinkButton` — a Button with
+ * `href`). Only a Card's own parts: an InlineAlert's Content is its text.
+ */
+export const CARD_PART_ITEM_TYPES: Readonly<
+  Record<string, readonly string[]>
+> = {
+  CardPreview: ["Image", "Illustration", "Badge", "Avatar"],
+  Content: ["Text", "Menu", "Icon"],
+  Footer: ["StatusLight", "Button"],
+};
+
+/** A node position that is a Card's part (its parent a Card). */
+function cardPart(graph: CatalogGraph, position: CatalogPosition): boolean {
+  if (position.target.kind !== "node") return false;
+  const owner = graph.ownerOf(position.target.id);
+  const parent = owner ? graph.getEntry(owner) : undefined;
+  return parent?.kind === "node" && typeOf(graph, parent.definitionId) === "Card";
+}
+
 /** The item types a position takes with "+" (the old slot host rules over the catalog families). */
 function itemTypesOf(
   graph: CatalogGraph,
   type: string,
   position: CatalogPosition,
 ): readonly string[] {
+  // (A Card's part takes its reference contents — an owned Card's, as a group's items.)
+  if (CARD_PART_ITEM_TYPES[type])
+    return cardPart(graph, position) ? CARD_PART_ITEM_TYPES[type] : [];
   if (type === "TableHeader") return ["Column"];
   if (type === "TableBody") return ["Row"];
   const group = GROUP_ITEM_TYPES[type];
@@ -404,6 +431,16 @@ export function catalogItemInsertChoices(
           );
           return { entries: [next, ...cells], rootId: next.id };
         },
+        newId,
+      });
+    }
+    // A Card's part: the content goes in after what it holds (a palette node).
+    if (CARD_PART_ITEM_TYPES[type]) {
+      const content = entry(definitionFor(itemType), itemType);
+      return insertNodes({
+        parent,
+        entries: [content],
+        rootIds: [content.id],
         newId,
       });
     }

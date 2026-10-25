@@ -217,8 +217,8 @@ export const CATALOG_FIELD_BOX_INPUT_STYLE = {
   flexShrink: 1,
   flexBasis: 0,
   minWidth: 0,
-  // (A ColorField's Input keeps no maximum — its `--cf-input-max-width` places a box of its own;
-  // in a prefix box the Group is the box. The Canvas never applies it there.)
+  // (An Input in a prefix box keeps no maximum — the Group is the box. A ColorField's own
+  // per-size maximum is gone too, user 2026-10-25.)
   maxWidth: "none",
 } as const;
 

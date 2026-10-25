@@ -2,45 +2,45 @@
   /* 2026-10-13 (사용자 「gridlist 를 RAC 레퍼런스 테마 기준으로」 · 「이미지 카드로」) — the RAC
    * reference `GridList.css` (react-aria.adobe.com/GridList). Only catalog GridLists match these
    * classes: the Builder's own GridList (ApiEndpointList) names its own (`list-group` · `list-item`).
-   * The card's surface · shadow · radius · gap · size padding are the catalog GridListItem rule's
-   * (generated `GridListItem.css`); the Canvas mirrors this sheet in `manualBoxRules` (GridList ·
+   * The row's fill · size padding are the catalog GridListItem rule's (generated
+   * `GridListItem.css`); the Canvas mirrors this sheet in `manualBoxRules` (GridList ·
    * GridListItem). Sizes the reference fixes (`max-height: 500px` · `min-height: 100px`) are the
    * author's, as the ListBox's (2026-07-29 사용자 결정). */
 
   /* ========== GridList ========== */
+  /* 2026-10-25 (사용자 「GridList 를 S2 ListView 처럼 목록 행으로」 — the 10-13 reference image cards
+     before): the S2 ListView (`@react-spectrum/s2` 1.8.1 `ListView.tsx`) — full-width rows in a
+     1px border box, radius 8, on the base surface, no padding or gap. `stack` (the default) = one
+     column, `grid` = two equal columns of rows. The Canvas mirrors it in `manualBoxRules`. */
   .react-aria-GridList {
     display: grid;
-    justify-content: center;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-sm);
-    scroll-padding: var(--spacing-sm);
-    border: none;
+    gap: 0;
+    padding: 0;
+    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    background: transparent;
+    background: var(--bg);
     color: var(--fg);
     width: 100%;
     overflow: auto;
     outline: none;
     forced-color-adjust: none;
     box-sizing: border-box;
-    --grid-item-size: 200px;
 
     &[data-layout="grid"] {
-      grid-auto-rows: min-content;
-
       &:not([data-orientation="horizontal"]) {
-        grid-template-columns: repeat(
-          auto-fit,
-          minmax(100px, var(--grid-item-size))
-        );
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
-    /* The reference's one `auto` column: there its cards' photos are wider than their 250 cap —
-       the column is the cap (a card with no photo yet would shrink to its text). */
     &[data-layout="stack"] {
-      grid-template-columns: minmax(0, 250px);
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* S2 `isQuiet` (its rows carry `data-variant="quiet"`): no box — no border, fill or radius. */
+    &:has(> .react-aria-GridListItem[data-variant="quiet"]) {
+      border: none;
+      background: transparent;
+      border-radius: 0;
     }
 
     &[data-focus-visible] {
@@ -73,30 +73,16 @@
       }
     }
 
-    /* Sections: each a grid of the same cards, its header across. */
+    /* Sections: each a column of the same rows, its header across. */
     > .react-aria-GridListSection {
       display: grid;
-      justify-content: center;
-      gap: var(--spacing-lg);
+      gap: 0;
       width: 100%;
-      grid-template-columns: repeat(
-        auto-fit,
-        minmax(100px, var(--grid-item-size))
-      );
-      grid-auto-rows: min-content;
-
-      &:not(:first-child) {
-        margin-top: var(--spacing-lg);
-      }
+      grid-template-columns: minmax(0, 1fr);
 
       > .react-aria-GridListHeader {
         grid-column: 1 / -1;
       }
-    }
-
-    &[data-layout="stack"] > .react-aria-GridListSection {
-      grid-template-columns: minmax(0, 250px);
-      align-items: center;
     }
   }
 
@@ -114,43 +100,30 @@
     user-select: none;
   }
 
-  /* ========== GridListItem (card) ========== */
+  /* ========== GridListItem (row) ========== */
+  /* The S2 ListView row (`listitem`): a grid — the leading visual (Image 32 square · Icon · the
+     selection checkbox) across both rows, 8 before the texts; the label over its description,
+     2 apart — at least 40 high, padded 8 · 12, a 1px border line under it. Its fill (hover ·
+     selected) is the catalog GridListItem rule's (generated `GridListItem.css`). */
   .react-aria-GridListItem {
-    padding-bottom: var(--spacing-lg);
-    max-width: 250px;
-    overflow: clip;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 0;
+    width: 100%;
+    min-height: 40px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border);
+    box-sizing: border-box;
+    position: relative;
     outline: none;
     cursor: default;
-    transform: translateZ(0);
-    transition-property: scale;
-    transition-duration: 200ms;
     -webkit-tap-highlight-color: transparent;
 
     &[data-focus-visible] {
       outline: 2px solid var(--focus-ring);
-      outline-offset: 2px;
-    }
-
-    &[data-pressed] {
-      scale: 0.98;
-    }
-
-    /* The selection ring: 2px of the text color, a 2px light inner line. */
-    &::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      border: 2px solid var(--fg);
-      outline: 2px solid color-mix(in srgb, var(--bg) 70%, transparent);
-      outline-offset: -4px;
-      opacity: 0;
-      transition: opacity 200ms;
-    }
-
-    &[data-selected]::after {
-      opacity: 1;
+      outline-offset: -2px;
     }
 
     &[data-href] {
@@ -169,54 +142,47 @@
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: inherit;
       z-index: 5;
       outline: 2px solid var(--accent);
       outline-offset: -2px;
       background: var(--accent-subtle);
     }
 
-    /* (Descendants — RAC draws the item's children in its `gridcell`.)
-       The photo: the card's width, 200 high (`--grid-item-size`), then 8 more to the texts
-       (the reference's `padding-bottom: 8` — a margin here: an empty Image paints its
-       placeholder fill over its padding). */
+    /* (Descendants — RAC draws the item's children in its `gridcell`.) */
+    .react-aria-Image,
+    .react-aria-Icon,
+    .react-aria-CheckboxField[slot="selection"],
+    .react-aria-Checkbox[slot="selection"] {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      margin-right: var(--spacing-sm);
+    }
+
     .react-aria-Image {
       /* (An Image with no source shows the Image rule's placeholder fill — `{color.neutral-subtle}`,
          as the Canvas paints it; the generated Image sheet is not loaded — inline-style contract.) */
       background: var(--bg-muted);
-      width: 100%;
-      height: var(--grid-item-size);
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
       object-fit: cover;
-      margin-bottom: var(--spacing-sm);
-      flex-shrink: 0;
       -webkit-user-drag: none;
       -webkit-touch-callout: none;
     }
 
-    /* The texts: inset 16 a side, the label 500, the description 12 — both in the card's color.
-       (Their one line · wrap is S2 ListView `overflowMode` — the item rule's block.) */
+    /* The texts: the label over its description (12), both in the row's color. (Their one line ·
+       wrap is S2 ListView `overflowMode` — the item rule's block.) */
     .react-aria-Text {
-      padding: 0 var(--spacing-lg);
+      grid-column: 2;
       color: inherit;
       font-size: inherit;
       line-height: inherit;
 
-      &:not([slot]) {
-        font-weight: 500;
-      }
-
       &[slot="description"] {
+        grid-row: 2;
         font-size: var(--text-xs);
         line-height: var(--text-xs--line-height);
       }
-    }
-
-    /* The selection checkbox (`Checkbox slot="selection"` — ADR-256 Phase 5f) over the photo. */
-    .react-aria-CheckboxField[slot="selection"],
-    .react-aria-Checkbox[slot="selection"] {
-      position: absolute;
-      top: var(--spacing-lg);
-      inset-inline-start: var(--spacing-lg);
     }
 
     .react-aria-Button[slot="drag"] {
@@ -224,10 +190,6 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      position: absolute;
-      bottom: var(--spacing-sm);
-      inset-inline-end: var(--spacing-sm);
-      border-radius: var(--radius-lg);
       color: var(--fg);
 
       &[data-focus-visible] {

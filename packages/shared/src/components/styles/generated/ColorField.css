@@ -70,31 +70,6 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ColorField[data-size="XS"] {
-  --cf-input-max-width: 9ch;
-}
-
-.react-aria-ColorField[data-size="S"] {
-  --cf-input-max-width: 10ch;
-}
-
-.react-aria-ColorField[data-size="M"] {
-  --cf-input-max-width: 12ch;
-}
-
-.react-aria-ColorField[data-size="L"] {
-  --cf-input-max-width: 14ch;
-}
-
-.react-aria-ColorField[data-size="XL"] {
-  --cf-input-max-width: 16ch;
-}
-
-.react-aria-ColorField .react-aria-Input {
-  max-width: var(--cf-input-max-width);
-  box-sizing: border-box;
-}
-
 .react-aria-ColorField[data-label-position="side"] {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

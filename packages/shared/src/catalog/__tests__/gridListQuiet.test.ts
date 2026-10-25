@@ -33,12 +33,16 @@ describe("GridList quiet — 채널은 컨테이너가 아니라 카드", () => 
     const quiet = COMPONENT_RULES_TABLE.GridListItem.variants.quiet;
     expect(quiet).toBeDefined();
     expect(quiet!.fill?.default.base).toBe("{color.transparent}");
-    expect(quiet!.colors?.border).toBe("{color.transparent}");
+    // (The row's separator color — 2026-10-25 S2 ListView row; its border width is none.)
+    expect(quiet!.colors?.border).toBe("{color.border}");
     // 쉬는 상태만 비우고 hover/pressed 는 배경이 돌아온다 (Spectrum quiet 정의).
     expect(quiet!.fill?.default.hover).toBe("{color.neutral-subtle}");
-    // 선택 표시는 남긴다 — 지우면 어떤 카드가 선택됐는지 알 수 없다 (2026-10-13: RAC 레퍼런스 링 —
-    //   글자색 2px).
-    expect(quiet!.colors?.selectedBorder).toBe("{color.neutral}");
+    // 선택 표시는 행 바탕 (S2 ListView 의 선택 tint — 2026-10-25 목록 행) 이라 테두리 링은 없다.
+    expect(quiet!.colors?.selectedBorder).toBe("{color.transparent}");
+    expect(
+      COMPONENT_RULES_TABLE.GridListItem.variants.default!.fill?.default
+        .selected,
+    ).toBe("{color.accent-subtle}");
   });
 
 });

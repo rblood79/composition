@@ -13,44 +13,47 @@
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
-  display: flex;
-  flex-direction: column;
+  display: grid;
   position: relative;
 
   /* Default variant */
-  background: var(--bg-overlay);
+  background: transparent;
   color: var(--fg);
-  border: var(--border-width-none) solid transparent;
+  border: var(--border-width-none) solid var(--border);
 
   /* Default size */
   height: auto;
-  padding: 0px 0px;
+  padding: 8px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-none);
   line-height: var(--text-sm--line-height);
   border-width: var(--border-width-none);
-  gap: 8px;
+  gap: 2px;
 }
 
 .react-aria-GridListItem[data-variant="default"] {
-  background: var(--bg-overlay);
+  background: transparent;
   color: var(--fg);
-  border-color: transparent;
+  border-color: var(--border);
 
   &[data-hovered] {
-    background: var(--bg-overlay);
+    background: var(--bg-muted);
   }
 
   &[data-pressed] {
-    background: var(--bg-overlay);
+    background: var(--bg-muted);
+  }
+
+  &[data-selected] {
+    background: var(--accent-subtle);
+    border-color: transparent;
   }
 }
 
 .react-aria-GridListItem[data-variant="quiet"] {
   background: transparent;
   color: var(--fg);
-  border-color: transparent;
+  border-color: var(--border);
 
   &[data-hovered] {
     background: var(--bg-muted);

@@ -227,10 +227,8 @@ describe.each(FIELDS)("S2 %s side label", (type) => {
         0,
       );
     expect(control.x).toBeGreaterThan(label.x + label.width);
-    // (A ColorField's input stops at its per-size max width — `--cf-input-max-width`.)
-    if (type === "ColorField")
-      expect(control.x + control.width).toBeLessThanOrEqual(owner.width);
-    else expect(control.x + control.width).toBeCloseTo(owner.width, 0);
+    // (A ColorField's input fills too — its per-size max width is gone, user 2026-10-25.)
+    expect(control.x + control.width).toBeCloseTo(owner.width, 0);
     expect(description.x).toBeCloseTo(control.x, 0);
     expect(description.y).toBeGreaterThan(control.y);
   });

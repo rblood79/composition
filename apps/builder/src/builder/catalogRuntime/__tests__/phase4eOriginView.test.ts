@@ -668,8 +668,8 @@ describe("ADR-248 4e library origin view", () => {
     );
     expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
     // A ColorSlider's and a DropZone's ◆ fill their card (no 300px cap · the DropZone's height its
-    // content's), a ColorField's Input its field (no `ch` cap) — user 2026-10-25. The rule's
-    // values stay the origin's and its instances'.
+    // content's — the page's values, the rule's stay the origin's and its instances'), a
+    // ColorField's Input its field (the rule's per-size `ch` cap is gone) — user 2026-10-25.
     const innerOf = (name: string) =>
       rectOf(
         pageNode(
@@ -710,13 +710,11 @@ describe("ADR-248 4e library origin view", () => {
       sampleRect("colorslider").width,
       sampleRect("dropzone").width,
       sampleRect("dropzone").height < 120,
-      workspace.root.canvasInputs.get(fieldInput)!.layout?.maxWidth,
       widthOf(fieldInput),
     ]).toEqual([
       innerOf("colorslider"),
       innerOf("dropzone"),
       true,
-      "none",
       widthOf(colorField),
     ]);
     // A Menu's trigger button has the Button's metrics at the same size (padding, min width).
@@ -1094,8 +1092,8 @@ describe("ADR-248 4e library origin view", () => {
       "XL",
     ]);
     expect(sizesUnder("buttongroup", "XS", "button")).toEqual(["XS", "XS"]);
-    // A Card placed on a page: its regions are slots — the one it leaves empty (the footer) is
-    // hatched at its own box, the filled ones are not marked.
+    // A Card placed on a page: its regions are slots — filled ones are not marked (its footer holds
+    // a Button since 2026-10-25: none is left empty).
     const CARD = "project:node:card-placed" as NodeId;
     workspace.execute(
       insertNodes({
@@ -1131,7 +1129,7 @@ describe("ADR-248 4e library origin view", () => {
           mark.empty,
           mark.role,
         ]),
-    ).toEqual([["Footer", true, "instance"]]);
+    ).toEqual([]);
     workspace.showDefinition(button.id);
     // A Meter's track takes its owner's variant: the track rule paints every one of them
     // (a missing variant painted no track). (The ProgressBar has no variant — 2026-10-12.)

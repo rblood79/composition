@@ -237,28 +237,27 @@ describe("ADR-259 Phase 1 — item links", () => {
       }
     });
 
-  it("GridListItem: the card's glyph sits in its bottom padding at the texts' end in both consumers (layout · Canvas glyph · DOM glyph)", async () => {
+  it("GridListItem: the glyph box is one box in both consumers (layout padding · Canvas glyph · DOM glyph)", async () => {
+    // (The S2 ListView row again — 2026-10-25 사용자 「GridList 를 S2 ListView 처럼 목록 행으로」; the
+    // 10-13 reference card put the glyph in its bottom padding.)
     const { workspace, root, of, edit, render } = await open("GridList", "box");
     const item = of("GridListItem")[0];
     const owner = of("GridList")[0];
-    const image = of("Image").find((node) => node.parentId === item.id)!;
-    const imageBefore = root.getGeometry([image.id]).get(image.id)!;
     const before = root.getGeometry([item.id]).get(item.id)!;
+    const ownRight = 12; // GridListItem rule size M paddingX (the S2 ListView row)
     edit(item.id, { href: "https://x.test", target: "_blank" });
     const record = root.canvasInputs.get(item.id)!;
     const glyph = catalogLinkOutGlyph("GridListItem", record.props.size);
-    // The card keeps its padding: its photo still spans it (2026-10-13 — before, the end padding
-    // grew by the glyph and its gap and the photo lost 16).
+    expect(catalogLinkOutCardEndInset("GridListItem")).toBeUndefined();
+    // The content box shrinks by the glyph and its gap (the end padding grew).
+    const label = of("Text").find((text) => text.parentId === item.id)!;
+    const labelBox = root.getGeometry([label.id]).get(label.id)!;
     const box = root.getGeometry([item.id]).get(item.id)!;
-    const imageBox = root.getGeometry([image.id]).get(image.id)!;
     expect(box.width).toBe(before.width);
-    expect(imageBox.width).toBe(imageBefore.width);
-    expect(imageBox.width).toBe(box.width);
-    // The card's bottom padding (the RAC reference card's 16 — `manualBoxRules` GridListItem).
-    const bottom = 16;
-    const end = catalogLinkOutCardEndInset("GridListItem")!;
-    expect(end).toBe(16);
-    // Canvas glyph centre: in the bottom padding, its end at the texts' end (no border).
+    expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(
+      box.width - ownRight - glyph.size - glyph.gap + 0.5,
+    );
+    // Canvas glyph centre: at the row's end, vertically centred.
     const shapes = catalogRuleShapes({
       node: record,
       rect: { width: box.width, height: box.height },
@@ -272,11 +271,11 @@ describe("ADR-259 Phase 1 — item links", () => {
         (shape as { iconName?: string }).iconName === "external-link",
     ) as { x: number; y: number; fontSize: number } | undefined;
     expect(icon).toMatchObject({
-      x: box.width - end - glyph.size / 2,
-      y: box.height - bottom / 2,
+      x: box.width - ownRight - glyph.size / 2,
+      y: box.height / 2,
       fontSize: glyph.size,
     });
-    // DOM glyph box: the same place, the card's padding untouched.
+    // DOM glyph box.
     const { host, done } = await render(owner.id);
     const el = host.querySelector<HTMLElement>(
       `[data-catalog-id="${item.id}"]`,
@@ -288,17 +287,15 @@ describe("ADR-259 Phase 1 — item links", () => {
       paddingRight: el.style.paddingRight,
       position: el.style.position,
       right: span.style.right,
-      bottom: span.style.bottom,
-      top: span.style.top,
       width: span.style.width,
+      top: span.style.top,
       ariaHidden: span.getAttribute("aria-hidden"),
     }).toEqual({
-      paddingRight: "",
+      paddingRight: `${ownRight + glyph.size + glyph.gap}px`,
       position: "relative",
-      right: `${end}px`,
-      bottom: `${(bottom - glyph.size) / 2}px`,
-      top: "",
+      right: `${ownRight}px`,
       width: `${glyph.size}px`,
+      top: "50%",
       ariaHidden: "true",
     });
     await done();

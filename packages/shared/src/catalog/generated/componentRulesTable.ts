@@ -1831,8 +1831,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         width: "100%",
         // (ADR-256 Phase 10: its alignment and gap are its owner's — the Card rule's
-        //   `staticSelectors`. A Card's footer `paddingTop: 8px` stays the template's inline value:
-        //   the sizes block below writes `padding: 0px 0px` at the owner selector's specificity.)
+        //   `staticSelectors`. A Card's footer has no top padding of its own — the template's inline
+        //   `paddingTop: 8px` was removed, user 2026-10-25 「footer 에 paddingtop:8px 기본값 제거」.)
       },
     },
   },
@@ -2562,34 +2562,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-          {
-            // 배치만 (ADR-253): 입력칸의 최대 폭. 모양 (padding · 글꼴 · 모서리) 은 Input rule 이 정한다.
-            childSelector: ".react-aria-Input",
-            prefix: "cf-input",
-            variables: {
-              XS: {
-                "--cf-input-max-width": "9ch",
-              },
-              S: {
-                "--cf-input-max-width": "10ch",
-              },
-              M: {
-                "--cf-input-max-width": "12ch",
-              },
-              L: {
-                "--cf-input-max-width": "14ch",
-              },
-              XL: {
-                "--cf-input-max-width": "16ch",
-              },
-            },
-            bridges: {
-              "max-width": "var(--cf-input-max-width)",
-              "box-sizing": "border-box",
-            },
-          },
-        ],
+        // (2026-10-25 사용자 요청 「colorfield (origin) - input 의 maxWidth 12 → auto」: 입력칸의 size 별
+        //   최대 폭 (`--cf-input-max-width` 9 · 10 · 12 · 14 · 16ch delegation) 을 뺐다 — Input 은 field 폭을 채운다.)
+        delegation: [],
       },
     },
   },
@@ -5338,7 +5313,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: 0,
+        // The S2 ListView box's corner (`radius: default` — 8; `GridList.css` · `manualBoxRules`),
+        //   2026-10-25 — 0 before (the reference image cards' list had no box).
+        borderRadius: "{radius.lg}",
         height: 0,
       },
     },
@@ -5390,12 +5367,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `.react-aria-GridListItem` — a flex column card (its photo, then its texts) on the overlay
       //   surface with the reference's one-layer shadow (the Canvas draws it too —
       //   `resolveEffectiveBoxShadow`), no border, its children from the top (no centring).
+      //   (No `minWidth: 0` — user 2026-10-25 「gridlistitem(origin) - minWidth: auto」.)
+      //   2026-10-25 (사용자 「GridList 를 S2 ListView 처럼 목록 행으로」): the S2 ListView row — no card
+      //   shadow; its grid (leading visual · label over description) is `manualBoxRules` GridListItem's
+      //   and `GridList.css`'s.
       containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        minWidth: 0,
+        display: "grid",
         position: "relative",
-        boxShadow: "0 2px 8px rgb(0 0 0 / 0.15)",
       },
       // ADR-248 4e-11: `GridList.css` `[data-disabled]` (opacity 0.38) — the same disabled state as
       //   ListBoxItem, read by both consumers.
@@ -5414,19 +5392,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   colors.border(TableRow 와 달리 GridListItem 은 카드 테두리 의도됨).
     variants: {
       default: {
+        // The S2 ListView row (`listRowBackground`): transparent at rest, a light neutral wash on
+        //   hover · press, the selection tint (S2 `highlight` — a blue wash; here the accent's).
         fill: {
           default: {
-            base: "{color.layer-1}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
+            base: "{color.transparent}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent-subtle}",
           },
         },
+        // The row's separator color (its 1px bottom line — `manualBoxRules` · `GridList.css`; the
+        //   rule's own border width is none), clear while selected (S2 `isSelected: transparent`).
         colors: {
           text: "{color.neutral}",
-          border: "{color.transparent}",
-          // The reference's selection ring (`::after` 2px `light-dark(black, white)` — the text
-          //   color in either theme); the Canvas draws it as the selected card's 2px border.
-          selectedBorder: "{color.neutral}",
+          border: "{color.border}",
+          selectedBorder: "{color.transparent}",
         },
         // 굵기 선언 없음 (사용자 결정 2026-09-29): 카드 label · description 모두 기본 굵기 (400).
         //   종전 600 은 description 까지 굵게 했다 (DOM 상속).
@@ -5452,10 +5433,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             pressed: "{color.neutral-hover}",
           },
         },
+        // The row's separator color (its 1px bottom line — `manualBoxRules` · `GridList.css`; the
+        //   rule's own border width is none), clear while selected (S2 `isSelected: transparent`).
         colors: {
           text: "{color.neutral}",
-          border: "{color.transparent}",
-          selectedBorder: "{color.neutral}",
+          border: "{color.border}",
+          selectedBorder: "{color.transparent}",
         },
       },
     },
@@ -5463,15 +5446,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.lg}",
-        // height 0 = content-fit (카드 시각 = 사진 + label + description + 아래 padding).
+        borderRadius: "{radius.none}",
+        // height 0 = content-fit (a row at least 40 — `manualBoxRules` GridListItem `minHeight`).
         height: 0,
-        // The reference card pads only its bottom (16 — `GridList.css` · the Canvas's
-        //   `manualBoxRules` GridListItem); its texts are inset 16 a side themselves.
-        paddingX: 0,
-        paddingY: 0,
-        // The reference's `gap: var(--spacing-2)` between the photo and its texts.
-        gap: 8,
+        // The S2 ListView row padding (8 · 12); its label over its description 2 apart.
+        paddingX: 12,
+        paddingY: 8,
+        gap: 2,
         borderWidth: "{border.width.none}",
       },
     },

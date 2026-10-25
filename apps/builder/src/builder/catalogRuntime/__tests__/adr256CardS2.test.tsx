@@ -15,6 +15,7 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import type {
   EntryId,
   LibraryDefinitionId,
+  NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
@@ -25,6 +26,8 @@ import { predictRacSlot } from "../../../../../../packages/shared/src/catalog/ru
 import { catalogTextCommand } from "../canvasText";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
+import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
+import { catalogItemInsertChoices } from "../itemInsert";
 import { catalogSlotCommands, catalogSlotInsertOptions } from "../slots";
 import { CatalogStorage } from "../storage";
 import { catalogTextBinding } from "../textBinding";
@@ -197,7 +200,7 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     // around an inner `div`, the Image a box around its `img`, S2 `Text` a `span`, the Footer a
     // `footer`.
     expect(shape(card)).toBe(
-      "div.react-aria-Card(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer)",
+      "div.react-aria-Card(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer(button.react-aria-Button(span.react-aria-Text[slot=label])))",
     );
   });
 
@@ -224,7 +227,16 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
             children: String(slotText("description").props.children),
           }),
         ),
-        h(s2.Footer, null),
+        // (The origin's Footer Button — user 2026-10-25.)
+        h(
+          s2.Footer,
+          null,
+          // (Our Button's text is its label Text node — `span[slot=label]`, ADR-276.)
+          h(s2.Button, {
+            variant: "primary",
+            children: h(s2.Text, { slot: "label", children: "Action" }),
+          }),
+        ),
       ),
     );
     expect(ours).toBe(structure(reference.firstElementChild!));
@@ -393,6 +405,79 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     );
   });
 
+  it("an owned Card's parts add what the S2 reference puts in them — Preview, Content, Footer (user 2026-10-25)", async () => {
+    const { workspace, part } = await place("card");
+    const graph = workspace.runtime.graph;
+    // (Unlocked, the Card origin's template is the project's copy — owned nodes, as a Local card's.)
+    workspace.setLibraryUnlocked(true);
+    const copy = graph.getDefinitionOverride(
+      "lib:definition:origin-component-card" as LibraryDefinitionId,
+    )!.templateMap!;
+    const positionOf = (template: string) => {
+      const id = copy[`lib:template:component-card__${template}` as never]!;
+      return {
+        target: { kind: "node" as const, id },
+        sourceId: id,
+        instancePath: [],
+        definitionId: (graph.getEntry(id) as NodeEntry)
+          .definitionId,
+        identity: id,
+      };
+    };
+    const host = {
+      graph,
+      readModel: workspace.readModel,
+      newId: workspace.newId,
+    };
+    const expected = {
+      preview: ["Image", "Illustration", "Badge", "Avatar"],
+      content: ["Text", "Menu", "Icon"],
+      footer: ["StatusLight", "Button"],
+    };
+    for (const [template, types] of Object.entries(expected)) {
+      const choices = catalogItemInsertChoices(host, positionOf(template));
+      expect([template, choices.map((choice) => choice.type)]).toEqual([
+        template,
+        types,
+      ]);
+      // Each goes in after what the part holds — the placed Card draws it.
+      for (const choice of choices) workspace.execute(choice.build());
+    }
+    // Each went in after what the part held (the origin's copy — the Library page draws it).
+    const typesIn = (template: string) =>
+      (
+        graph.getEntry(
+          copy[`lib:template:component-card__${template}` as never]!,
+        ) as NodeEntry
+      ).children.map((id) =>
+        definitionTypeName(
+          graph,
+          (graph.getEntry(id) as NodeEntry).definitionId,
+        ),
+      );
+    expect(typesIn("preview")).toEqual([
+      "Image",
+      "Image",
+      "Illustration",
+      "Badge",
+      "Avatar",
+    ]);
+    expect(typesIn("content")).toEqual([
+      "Text",
+      "Text",
+      "Text",
+      "MenuTrigger",
+      "Icon",
+    ]);
+    // (After the origin's own Footer Button — user 2026-10-25.)
+    expect(typesIn("footer")).toEqual(["Button", "StatusLight", "Button"]);
+    // The Footer has no top padding of its own (user 2026-10-25 — the template's inline 8px removed).
+    expect(part("Footer").visual.paddingTop).toBeUndefined();
+    // A placed Card's part (an instance position) fills its slot instead (the slot picker).
+    const placedContent = workspace.itemOfRecord(part("Content").id)!.target;
+    expect(placedContent.kind).toBe("descendant");
+  });
+
   it("the title is its own node's text — no Card prop owns it", async () => {
     const { workspace, root, slotText, placed } = await place("card");
     expect(
@@ -476,7 +561,7 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
         "cell",
       ),
     ).toBe(
-      "cell(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer)",
+      "cell(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer(button.react-aria-Button(span.react-aria-Text[slot=label])))",
     );
     expect(
       (rows[0]!.querySelector('[role="gridcell"]') as HTMLElement).style

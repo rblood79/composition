@@ -4,6 +4,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 
 const AddIcon = ACTION_ICONS.add;
@@ -11,7 +12,9 @@ const AddIcon = ACTION_ICONS.add;
 /**
  * ADR-248 4e: the old slot section's item "+" (same rows and classes) — a list frame, a group, a
  * TableHeader or a Table's TableBody lists the item types it takes; "+" adds one (one history
- * step, the new item selected). Elements that hold no items show nothing.
+ * step, the new item selected). Elements that hold no items show nothing. More than one type is
+ * one select — picking a type adds it (user 2026-10-25 「추가 가능한 item 이 한 개 이상일 때 select
+ * 방식」: a Card's Preview took four "+" rows).
  */
 export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
   identity,
@@ -50,6 +53,29 @@ export const CatalogItemInsertSection = memo(function CatalogItemInsertSection({
     [position, revision, workspace],
   );
   if (!choices.length) return null;
+  if (choices.length > 1)
+    return (
+      <PropertySection title={t("propertiesPanel.slotSection")}>
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("propertiesPanel.slotAddContent")}
+            value=""
+            options={[
+              { value: "", label: `${t("propertiesPanel.slotAddContent")}…` },
+              ...choices.map((choice) => ({
+                value: choice.type,
+                label: choice.type,
+              })),
+            ]}
+            translateOptions={false}
+            onChange={(value) => {
+              const choice = choices.find((item) => item.type === value);
+              if (choice) run(choice.build());
+            }}
+          />
+        </div>
+      </PropertySection>
+    );
   return (
     <PropertySection title={t("propertiesPanel.slotSection")}>
       <div aria-label="Items" className="frame-slot-list">

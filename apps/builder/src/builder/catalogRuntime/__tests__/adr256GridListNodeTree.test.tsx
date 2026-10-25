@@ -177,8 +177,7 @@ function reference(withCheckbox: boolean): string {
                 ),
               ]
             : []),
-          // The reference card's photo (2026-10-13 「이미지 카드로」 — the GridList example's `img`).
-          createElement("img", { key: "image", alt: "" }),
+          // (No photo — the S2 ListView row, 2026-10-25: a label over its description.)
           // (Our item label is a Text node — the reference's plain text in a span.)
           createElement("span", { key: "label" }, label),
           createElement(

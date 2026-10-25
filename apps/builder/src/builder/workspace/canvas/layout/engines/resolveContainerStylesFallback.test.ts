@@ -141,18 +141,17 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
 
   describe("gridlistitem — ADR-171 Phase 3 (catalog 3층 개방 → 실효 DOM 값 도달)", () => {
     it("empty parentStyle → structure.containerStyles + sizes 축 반환 (실효 DOM 정합)", () => {
-      // 2026-10-13 — the RAC reference card: no size padding (its bottom 16 is the manual
-      //   sheet's · `manualBoxRules`), 8 between children, no border, relative.
+      // 2026-10-25 — the S2 ListView row: a grid (its tracks · placement are `manualBoxRules`'),
+      //   padded 8 · 12, 2 between the label and its description, no border, relative.
       expect(resolveContainerStylesFallback("gridlistitem", {})).toEqual({
-        display: "flex",
-        flexDirection: "column",
+        display: "grid",
         position: "relative",
-        paddingTop: 0,
-        paddingBottom: 0,
-        paddingLeft: 0,
-        paddingRight: 0,
-        rowGap: 8,
-        columnGap: 8,
+        paddingTop: 8,
+        paddingBottom: 8,
+        paddingLeft: 12,
+        paddingRight: 12,
+        rowGap: 2,
+        columnGap: 2,
         // catalog `sizes.M.borderWidth` 축 — `{border.width.none}`.
         borderWidth: 0,
       });

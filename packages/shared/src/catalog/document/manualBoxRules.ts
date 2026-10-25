@@ -226,8 +226,11 @@ const linkLineHeightRatio = (): number | undefined => {
   return fontSize && lineHeight ? lineHeight / fontSize : undefined;
 };
 
-/** The reference GridList's card columns (`GridList.css` `--grid-item-size` 200). */
-const GRID_LIST_TRACKS = "repeat(auto-fit, minmax(100px, 200px))";
+/**
+ * A `grid` GridList's columns: two equal columns (user 2026-10-25 「gridlist - items - columns:2,
+ * rows: auto」 — the reference's `repeat(auto-fit, minmax(100px, 200px))` before), rows `auto`.
+ */
+const GRID_LIST_TRACKS = "repeat(2, minmax(0, 1fr))";
 
 const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   Separator: () => ({
@@ -272,28 +275,38 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // 2026-10-13 (사용자 「gridlist 를 RAC 레퍼런스 테마 기준으로」 · 「이미지 카드로」) — the RAC
-  // reference `GridList.css` (the manual sheet — only catalog GridLists carry its classes): a grid
-  // padded 8, 16 between cards, `grid` = `repeat(auto-fit, minmax(100px, 200px))` centred rows,
-  // `stack` = one centred `auto` column. A section is the same grid with its header across.
+  // 2026-10-25 (사용자 「GridList 를 S2 ListView 처럼 목록 행으로」 — the 10-13 reference image
+  // cards before): the S2 ListView (`@react-spectrum/s2` 1.8.1 `ListView.tsx` `listView`) — a list
+  // of full-width rows in a 1px `--border` box, radius 8, on the base surface, no padding or gap
+  // (each row draws its separator). `stack` (the default) = one column; `grid` (RAC) = two equal
+  // columns of rows (`GRID_LIST_TRACKS`). A section is the same column with its header across.
   GridList: () => ({
     replace: true,
     layout: {
       display: "grid",
-      justifyContent: "center",
-      // (The sheet's `grid-auto-rows: min-content` — the implicit `auto` rows are the same in a
-      // list without a set height.)
       gridTemplateColumns: GRID_LIST_TRACKS,
     },
-    visual: { width: "100%", gap: 16, paddingX: 8, paddingY: 8, radius: 8 },
-    conditional: [
+    visual: {
+      width: "100%",
+      gap: 0,
+      paddingX: 0,
+      paddingY: 0,
+      radius: 8,
+      fill: "var(--bg)",
+      borderStyle: "solid",
+      borderColor: "var(--border)",
+      borderWidth: 1,
+      overflow: "clip",
+    } as ManualBoxRule["visual"],
+    conditional: <NonNullable<ManualBoxRule["conditional"]>>[
       {
         when: { layout: "stack" },
-        // (The sheet's one column — the cards' 250 cap.)
-        layout: {
-          gridTemplateColumns: "minmax(0, 250px)",
-          alignItems: "center",
-        },
+        layout: { gridTemplateColumns: "minmax(0, 1fr)" },
+      },
+      // S2 `isQuiet`: no box — no border, fill or radius (its rows keep their lines).
+      {
+        when: { isQuiet: true },
+        visual: { borderWidth: 0, fill: "transparent", radius: 0 },
       },
     ],
     parts: <CompiledPartRule[]>[
@@ -301,10 +314,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         childType: "GridListSection",
         layout: {
           display: "grid",
-          justifyContent: "center",
-          gridTemplateColumns: GRID_LIST_TRACKS,
+          gridTemplateColumns: "minmax(0, 1fr)",
         },
-        visual: { width: "100%", gap: 16 },
+        visual: { width: "100%", gap: 0 },
       },
       // `.react-aria-GridListHeader` (RAC `GridListHeader` — no Header sheet reaches it): across the
       // section's columns, `--text-base` 500, `padding: 4 16`, the overlay surface in a hairline
@@ -394,26 +406,54 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // (16), at most 250 wide, clipped. Its photo (an Image child) the card's width, 200 high, 8 above
   // the texts; its texts inset 16 a side — the label 500, the description `--text-xs`, both in the
   // card's color (`MANUAL_ITEM_LABEL_COLORS`); the selection checkbox over the photo, 16 in.
+  // The S2 ListView row (`ListView.tsx` `listitem`, 2026-10-25 — the reference image card before):
+  // a grid — a leading visual (Image 32 square · Icon · the selection checkbox) across both rows,
+  // 8 before the texts; the label over its description (2 apart) — at least 40 high, padded 8 · 12,
+  // a 1px `--border` line under each row. Its fill (hover · selected) is the GridListItem rule's.
   GridListItem: () => {
     const fontSize = textPx("text-sm");
     const lineHeight = textPx("text-sm--line-height");
     const descSize = textPx("text-xs");
     const descLine = textPx("text-xs--line-height");
+    const leading: CompiledPartRule["layout"] = {
+      gridColumnStart: "1",
+      gridRowStart: "1",
+      gridRowEnd: "3",
+      marginRight: "8px",
+    };
     return {
-      layout: { maxWidth: "250px" },
-      visual: { paddingTop: 0, paddingBottom: 16, overflow: "clip" },
+      layout: {
+        display: "grid",
+        gridTemplateColumns: "auto minmax(0, 1fr)",
+        alignItems: "center",
+        rowGap: "2px",
+        columnGap: "0px",
+      },
+      visual: {
+        width: "100%",
+        minHeight: 40,
+        paddingTop: 8,
+        paddingBottom: 8,
+        paddingLeft: 12,
+        paddingRight: 12,
+        borderStyle: "solid",
+        borderColor: "var(--border)",
+        borderTopWidth: 0,
+        borderRightWidth: 0,
+        borderLeftWidth: 0,
+        borderBottomWidth: 1,
+      } as ManualBoxRule["visual"],
       parts: <CompiledPartRule[]>[
         {
           childType: "Image",
-          layout: { flexShrink: "0", marginBottom: "8px" },
-          visual: { width: "100%", height: 200 },
+          layout: leading,
+          visual: { width: 32, height: 32, radius: 4 },
         },
+        { childType: "Icon", layout: leading, visual: {} },
         {
           childType: "Text",
-          layout: {},
+          layout: { gridColumnStart: "2" },
           visual: {
-            fontWeight: 500,
-            paddingX: 16,
             ...(fontSize && lineHeight
               ? { fontSize, lineHeight: lineHeight / fontSize }
               : {}),
@@ -422,10 +462,9 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         {
           childType: "Text",
           childProps: { slot: "description" },
-          layout: {},
+          layout: { gridColumnStart: "2", gridRowStart: "2" },
           visual: {
             fontWeight: 400,
-            paddingX: 16,
             ...(descSize && descLine
               ? { fontSize: descSize, lineHeight: descLine / descSize }
               : {}),
@@ -434,7 +473,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         {
           childType: "Checkbox",
           childProps: { slot: "selection" },
-          layout: { position: "absolute", insetTop: "16px", insetLeft: "16px" },
+          layout: leading,
           visual: {},
         },
       ],
@@ -775,9 +814,11 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `Tree.css` row (`:where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem`): flex,
   // centered, `gap: --spacing-2xs`, `min-height: 32px`, `padding: --spacing-xs --spacing-sm`. Its
   // chevron button is an owner-composed part (`catalogComposedParts`).
+  // (Its list's width — user 2026-10-25 「treeItem(origin) 에 width:100%」: an item drawn alone, the
+  // Library page's ◆, hugged its label.)
   TreeItem: (): ManualBoxRule => ({
     layout: { display: "flex", flexDirection: "row", alignItems: "center" },
-    visual: { gap: 2, minHeight: 32, paddingY: 4, paddingX: 8 },
+    visual: { width: "100%", gap: 2, minHeight: 32, paddingY: 4, paddingX: 8 },
     parts: [
       // ADR-256 Phase 5h: the row content (RAC `TreeItemContent` — no element: its children sit in
       // the row's `display: contents` cell, so they are the row's flex items). The Canvas lays it
@@ -791,10 +832,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           flexDirection: "row",
           alignItems: "center",
         },
+        // (No minimum of its own — user 2026-10-25 「treeItemcontent 에 minWidth 0 → auto, minHeight
+        // auto」: the row's 32 is its item's.)
         visual: {
           gap: 2,
-          minWidth: 0,
-          minHeight: 32,
           paddingY: 4,
           paddingX: 8,
         },

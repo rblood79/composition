@@ -135,6 +135,8 @@ describe("ADR-276 Button origin template", () => {
       "lib:template:component-pagination__5": "→",
       "lib:template:component-buttongroup__1": "Cancel",
       "lib:template:component-buttongroup__2": "Save",
+      // (A Card's Footer Button — user 2026-10-25 「card(origin) - footer - slot 에 button 추가」.)
+      "lib:template:component-card__footer-button": "Action",
       "lib:template:component-menu__trigger": "Menu",
       "lib:template:component-numberfield__2_2": "",
       "lib:template:component-numberfield__2_3": "",
@@ -157,8 +159,8 @@ describe("ADR-276 Button origin template", () => {
         template.definitionId ===
           "lib:definition:origin-component-togglebutton",
     );
-    // 27 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
-    expect(nested).toHaveLength(34);
+    // 28 Button + 7 ToggleButton positions; the 9 state variants carry no text of their own.
+    expect(nested).toHaveLength(35);
     const labels = Object.fromEntries(
       nested
         .filter((template) => !template.displayState)

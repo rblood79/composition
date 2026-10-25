@@ -164,13 +164,10 @@ describe("resolveCatalogContainerBase — collection-item base-axis (3-A-3b 재�
   //   (`GridList.css`/`collections.css`)이 이미 center 인데 catalog 에 없어 Skia 만
   //   flex-start 였다. 지금은 L1 게이트에 막혀 반환되지 않고, Phase 3 에서 전달된다.
   // 2026-10-13 — the RAC reference card: no centring, relative, its shadow.
-  it("GridListItem → base-axis (3-A-3b structure 추가, camelCase)", () => {
+  it("GridListItem → base-axis (2026-10-25 S2 ListView 행 — grid · relative, 그림자 없음)", () => {
     expect(resolveCatalogContainerBase("GridListItem")).toEqual({
-      display: "flex",
-      flexDirection: "column",
-      minWidth: 0,
+      display: "grid",
       position: "relative",
-      boxShadow: "0 2px 8px rgb(0 0 0 / 0.15)",
     });
   });
 

@@ -57,14 +57,14 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
       expect(rule).toBeDefined();
     });
 
-    // 2026-10-13 — the RAC reference card (사용자 「이미지 카드로」): padded only at its bottom (16 —
-    //   the manual sheet · `manualBoxRules`), its texts inset 16 themselves, 8 between children.
-    it("sizes.M — paddingX 0 / paddingY 0 / gap 8 (RAC 레퍼런스 카드)", () => {
+    // 2026-10-25 — the S2 ListView row (사용자 「GridList 를 S2 ListView 처럼 목록 행으로」): padded
+    //   8 · 12, its label over its description 2 apart.
+    it("sizes.M — paddingX 12 / paddingY 8 / gap 2 (S2 ListView 행)", () => {
       const md = rule?.sizes?.M as Record<string, unknown> | undefined;
       expect(md).toBeDefined();
-      expect(md?.paddingX).toBe(0);
-      expect(md?.paddingY).toBe(0);
-      expect(md?.gap).toBe(8);
+      expect(md?.paddingX).toBe(12);
+      expect(md?.paddingY).toBe(8);
+      expect(md?.gap).toBe(2);
     });
 
     it("항목에는 굵기를 선언하지 않는다 — description 이 600 을 물려받지 않게", () => {
@@ -74,15 +74,12 @@ describe("collection item 시각 metric (catalog SSOT)", () => {
         expect((variant as { textWeight?: number }).textWeight).toBeUndefined();
     });
 
-    // 2026-10-13 — the RAC reference card: children from the top (no centring), relative (its
-    //   selection ring · checkbox), the reference's one-layer shadow.
-    it("containerStyles — flex column (minWidth 0 로 grid track 축소 허용) · relative · 그림자", () => {
+    // 2026-10-25 — the S2 ListView row: a grid (its leading visual · label over description —
+    //   `manualBoxRules`), relative, no card shadow.
+    it("containerStyles — grid · relative (S2 ListView 행, 그림자 없음)", () => {
       expect(rule?.structure?.containerStyles).toEqual({
-        display: "flex",
-        flexDirection: "column",
-        minWidth: 0,
+        display: "grid",
         position: "relative",
-        boxShadow: "0 2px 8px rgb(0 0 0 / 0.15)",
       });
     });
   });
