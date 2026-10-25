@@ -217,8 +217,9 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
     expect(inGroup().map((record) => record.visual.minHeight)).toEqual([
       20, 20,
     ]);
+    // (Its column's width — user 2026-10-25 「cardview - card - width: 200px → 100%」.)
     expect(inView().map((record) => record.visual.width)).toEqual([
-      200, 200, 200,
+      "100%", "100%", "100%",
     ]);
     write("visual", "minHeight", 41, undefined, origin("checkbox"));
     write("visual", "width", 300, undefined, origin("card"));
@@ -227,8 +228,9 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
       41, 41,
     ]);
     // A template position's own value (the written difference) stays over the origin's override.
+    // (Its column's width — user 2026-10-25 「cardview - card - width: 200px → 100%」.)
     expect(inView().map((record) => record.visual.width)).toEqual([
-      200, 200, 200,
+      "100%", "100%", "100%",
     ]);
     expect(drawn(workspace, resolve(workspace, "card")).visual.width).toBe(300);
   });

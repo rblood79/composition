@@ -3295,8 +3295,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "width": "100%"
     },
     "layout": {
-      "display": "flex",
-      "flexWrap": "wrap"
+      "display": "grid",
+      "gridTemplateColumns": "repeat(2, minmax(0, 1fr))",
+      "gridTemplateRows": "auto"
     }
   },
   {
@@ -3305,7 +3306,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200
+      "width": "100%"
     }
   },
   {
@@ -3314,7 +3315,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200
+      "width": "100%"
     }
   },
   {
@@ -3323,7 +3324,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200
+      "width": "100%"
     }
   },
   {
