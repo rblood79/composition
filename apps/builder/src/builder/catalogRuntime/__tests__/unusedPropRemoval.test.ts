@@ -28,7 +28,6 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * and an old document's write is dropped on load (`migrateCatalogEntriesS2`).
  */
 const REMOVED: ReadonlyArray<readonly [string, string, unknown]> = [
-  ["CardView", "layout", "waterfall"],
   ["CardView", "density", "compact"],
   ["CardView", "selectionStyle", "highlight"],
   ["ColorSwatchPicker", "density", "compact"],

@@ -2,6 +2,7 @@ import {
   catalogHostInheritedChanged,
   catalogInheritedReceivers,
 } from "./inheritedProps";
+import { catalogWaterfallLayout } from "./waterfall";
 import {
   catalogIsAuthoredAbsolute,
   catalogIsAuthoredPlaced,
@@ -1180,6 +1181,9 @@ function styleOf(
     ...stickyInsets(node),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
+    // RAC `WaterfallLayout` · S2 CardView `layout="waterfall"`: the grid's row axis is masonry —
+    // the engine stacks the items under the shortest column (`waterfall.ts`).
+    ...(catalogWaterfallLayout(node) ? { gridTemplateRows: ["masonry"] } : {}),
     ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
       ? { aspectRatio: catalogAspectRatio(node.visual.aspectRatio) }
       : {}),

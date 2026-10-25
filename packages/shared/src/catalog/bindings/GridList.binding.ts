@@ -54,6 +54,10 @@ export const gridListBinding: PrimitiveBinding = {
         options: [
           { value: "stack", label: "Stack" },
           { value: "grid", label: "Grid" },
+          // 2026-10-26 (사용자 「RAC photos · S2 CardView 의 waterfall(masonry) 누락 — 적용해」):
+          //   RAC 는 GridList 를 `Virtualizer layout={WaterfallLayout}` 로 감싸 놓는다 — 열은 grid
+          //   트랙, 항목은 가장 짧은 열 아래 (`runtime/waterfall.ts`).
+          { value: "waterfall", label: "Waterfall" },
         ],
       },
       // ADR-923 r24m1 — 기본값 "single" 은 어느 표면에도 없던 값이었다. RAC 기본은 "none",

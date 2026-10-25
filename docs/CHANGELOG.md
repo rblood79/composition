@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [CardView · GridList waterfall 배치 — Canvas 엔진 masonry 축 + Preview 배치] - 2026-10-26
+
+### Added
+
+- **CardView · GridList `layout: waterfall`** (사용자 요청 「RAC photos · S2 CardView 의 waterfall(masonry) 패턴 누락 — 적용해」):
+  - CardView 의 S2 `layout` (grid · waterfall) 을 Design 패널 Appearance 에 다시 들였고 (2026-10-14 「소비자 없음」 으로 지웠던 축 — 옛 문서의 값을 로드 때 지우던 마이그레이션도 뺐다), GridList `layout` 에 Waterfall 을 더했다 (RAC 는 GridList 를 `Virtualizer layout={WaterfallLayout}` 로 감싼다 — D2 출처 `rac`).
+  - waterfall 은 열을 grid 트랙 그대로 두고 (CardView 원본 2열 · GridList 2열), 항목을 순서대로 **가장 짧은 열** 아래에 쌓는다 (1px 안 동률은 왼쪽). 컨테이너 높이 = 가장 긴 열.
+  - Canvas: 엔진이 `grid-template-rows: masonry` 를 받는다 (`styleOf` 가 보낸다) — `solve_grid_masonry` 가 트랙 pass 두 번 (순환 배치로 열 폭 높이를 잰 뒤, 정한 열에 다시 놓고 열 누적 높이만큼 내림).
+  - Preview / publish: 브라우저에 안정된 masonry 트랙이 없어 같은 규칙으로 RAC 항목을 놓는다 — 열 하나 · 1행 · `translate` 로 내림, 행 높이 = 가장 긴 열 (`CatalogWaterfallGrid` — 렌더마다, 그리고 항목 크기가 바뀔 때 (이미지 로드) 다시 배치).
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid_masonry` · `masonry_lanes`) · `packages/shared/src/catalog/runtime/{waterfall.ts,compositionRoot.ts,delegatedDom.runtime.ts}` · `packages/shared/src/catalog/bindings/{CardView,GridList}.binding.ts` · `packages/shared/src/catalog/document/s2PropAlignment.ts`
+
+### Tests
+
+- Rust `grid_masonry_rows_*` 2 (가장 짧은 열 · 자기 margin · 열 폭이 다를 때 다시 풀기) · `waterfallLayout.test.ts` (lane 규칙 · CardView · GridList Canvas 배치 · grid 대조 · 새로고침 없이 전환).
+
 ## [ADR-282 Phase 0 ~ 2 — Library page 원본 잠금 해제 · 리셋] - 2026-10-24
 
 ### Added

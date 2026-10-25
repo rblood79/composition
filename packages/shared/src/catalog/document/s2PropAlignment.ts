@@ -102,8 +102,8 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  * S2 에 있지만 구현이 없는 것은 「지금은 제거」): props no consumer read — the Canvas and the DOM
  * looked the same whatever the value. Their old writes are dropped on load.
  *
- * - CardView `layout` · `density` · `selectionStyle` (S2 — the DOM fixed a grid, no density sheet,
- *   no selection style), ColorSwatchPicker `density` · `rounding` (S2 — never passed to the
+ * - CardView `density` · `selectionStyle` (S2 — no density sheet, no selection style; `layout` was
+ *   dropped too until 2026-10-26, when `waterfall` came in — `runtime/waterfall.ts`), ColorSwatchPicker `density` · `rounding` (S2 — never passed to the
  *   swatches), ToggleButtonGroup `isQuiet` (S2 — no context to the buttons, no sheet).
  * - ColorPicker `defaultValue` (its children hold their own values — the picker is a box).
  * - GridListItem · Tag `children`: the item's text is its Text node's (`itemTextChildren`).
@@ -112,7 +112,7 @@ const visibleMonthsOf: PropValueMigration = (value) =>
  *   no subtree tint (its color tokens are one theme table) — the accent is the theme's tint.
  */
 const UNUSED_PROPS = {
-  CardView: { layout: dropOf, density: dropOf, selectionStyle: dropOf },
+  CardView: { density: dropOf, selectionStyle: dropOf },
   ColorSwatchPicker: { density: dropOf, rounding: dropOf },
   ColorPicker: { defaultValue: dropOf },
   ToggleButtonGroup: { isQuiet: dropOf },

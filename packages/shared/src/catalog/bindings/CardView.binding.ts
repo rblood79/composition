@@ -16,9 +16,12 @@ import type { PrimitiveBinding } from "../types";
  *   `<div role="grid">` flex-wrap 안에 그린다. 고유 renderer id(`"cardview"`)가 그 항목의 key 다.
  *
  * D1: composition `<div role="grid">` (internal source — delegatedDom 이 role 을 부여).
- * D2: variant/size(appearance) + selectionMode(state) surface. columns 는 2026-09-10 제거 — S2 CardView
- *     에도 columns 없음. S2 layout · density · selectionStyle 은 2026-10-14 제거 — 어느 consumer 도
- *     읽지 않았다 (사용자 「불필요하게 등록된 프러퍼티 제거」 · 「지금은 제거」).
+ * D2: variant/size/layout(appearance) + selectionMode(state) surface. columns 는 2026-09-10 제거 —
+ *     S2 CardView 에도 columns 없음. S2 density · selectionStyle 은 2026-10-14 제거 — 어느 consumer 도
+ *     읽지 않았다 (사용자 「불필요하게 등록된 프러퍼티 제거」 · 「지금은 제거」). S2 `layout` 은 같은 날
+ *     제거했다가 2026-10-26 다시 들였다 (사용자 「waterfall(masonry) 패턴 누락 — 적용해」): `waterfall`
+ *     이면 열은 grid 트랙 그대로, 카드는 가장 짧은 열 아래로 쌓인다 (`runtime/waterfall.ts` — Canvas
+ *     엔진 `grid-template-rows: masonry` · DOM `CatalogWaterfallGrid`).
  * D3: 시각(variant transparent + radius 0)은 theme rule(COMPONENT_RULES_TABLE.CardView).
  *     Skia generic box shell ↔ DOM flex-wrap `div` (delegatedDom) 시각 대칭.
  */
@@ -43,6 +46,17 @@ export const cardViewBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "M",
+      },
+      // S2 CardView `layout` (RAC `GridLayout` · `WaterfallLayout`).
+      layout: {
+        kind: "enum",
+        label: "Layout",
+        section: "appearance",
+        default: "grid",
+        options: [
+          { value: "grid", label: "Grid" },
+          { value: "waterfall", label: "Waterfall" },
+        ],
       },
       selectionMode: {
         kind: "enum",

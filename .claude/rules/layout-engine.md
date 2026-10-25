@@ -178,6 +178,7 @@ paths:
 
 - Block-child normalization (구 fullTreeLayout §5.5 width:100% 보정) 은 ADR-923 Phase 5 에서 삭제 — block 컨테이너 안 block 자식의 auto→stretch 는 엔진 block.rs
 - 요소 순서: `NodeEntry.children` · `PageEntry.children` 배열 순서가 정본 (ADR-118) — `order_num` 은 없다
+- **waterfall = `grid-template-rows: masonry` (2026-10-26)**: CardView · GridList `layout: waterfall` 이면 `styleOf` 가 이 키워드를 보내고 엔진 `solve_grid_masonry` 가 열 트랙 그대로 · 항목은 가장 짧은 열 아래 (1px 안 동률은 왼쪽) · 컨테이너 = 가장 긴 열로 놓는다. DOM 은 같은 규칙을 `runtime/waterfall.ts` `catalogWaterfallPlace` 가 한다 (브라우저 masonry 트랙 미사용) — lane 규칙을 바꾸면 Rust `masonry_lanes` 와 TS `catalogWaterfallLanes` 를 같이.
 - 중첩 flex의 min-content 측정은 자식 컨테이너의 min-content를 사용하고, flex 재배치 후에는 원래 main basis를 보존한다.
   **Why (2026-10-14)**: 텍스트+Icon을 감싼 span의 최소 폭이 68px 대신 113px가 되어 shrink가 막혔다. used 폭을 다시 basis로 쓰면 부모 최종 폭과 손자 배치 폭도 달라졌다.
 

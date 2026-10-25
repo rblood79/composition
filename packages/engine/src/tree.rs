@@ -610,6 +610,11 @@ struct TreeNode {
     /// 서브트리에 definite 높이를 **소비**하는 노드가 있는가 — `(mutation_gen, %만, 중첩 컨테이너 포함)`.
     /// post-kernel 재-solve 를 소비자가 있는 item 으로 한정하는 게이트 (G3 — 2^d 차단).
     definite_consumer: Option<(u64, bool, bool)>,
+    /// waterfall (`grid-template-rows: masonry`) 배치 중인 lane — 자식 순서대로 열 인덱스.
+    /// `solve_grid_masonry` 가 트랙 pass 동안만 Some (빈 Vec = 순환 배치), 끝나면 None.
+    masonry_lanes: Option<Vec<usize>>,
+    /// 트랙 pass 가 센 명시 열 수 (waterfall lane 수).
+    masonry_cols: usize,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -856,6 +861,8 @@ impl LayoutTree {
             last_definite_h: None,
             pct_base_h: None,
             definite_consumer: None,
+            masonry_lanes: None,
+            masonry_cols: 0,
         })
     }
 
@@ -1148,6 +1155,8 @@ impl LayoutTree {
                 last_definite_h: None,
                 pct_base_h: None,
                 definite_consumer: None,
+                masonry_lanes: None,
+                masonry_cols: 0,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -4663,6 +4672,112 @@ impl LayoutTree {
         avail_w: f32,
         avail_h: f32,
     ) -> (f32, f32) {
+        let masonry = self
+            .get(handle)
+            .map(|n| is_masonry_rows(n.style.grid_template_rows.as_deref()) && n.masonry_lanes.is_none())
+            .unwrap_or(false);
+        if masonry {
+            return self.solve_grid_masonry(handle, children, explicit_w, explicit_h, avail_w, avail_h);
+        }
+        self.solve_grid_tracks(handle, children, explicit_w, explicit_h, avail_w, avail_h)
+    }
+
+    /// waterfall — `grid-template-rows: masonry` (CSS-GRID-3 masonry 축, RAC `WaterfallLayout` ·
+    /// S2 CardView `layout="waterfall"`). 열은 grid 트랙 그대로, 행 축에는 트랙이 없다: 자식은
+    /// 순서대로 **가장 짧은 열** (1px 안 동률이면 왼쪽) 아래에 쌓인다. 구현은 트랙 pass 두 번 —
+    /// (1) 순환 배치 (열 i % n · 1행 · align start) 로 열 폭에서의 높이를 재고, (2) 그 높이로
+    /// 정한 열에 다시 놓은 뒤 (열 폭이 다를 때만), 각 자식을 그 열의 누적 높이만큼 내린다.
+    /// 컨테이너 블록 크기 = 가장 긴 열. DOM 은 같은 규칙을 `catalogWaterfallPlacement` 가 한다.
+    fn solve_grid_masonry(
+        &mut self,
+        handle: usize,
+        children: &[usize],
+        explicit_w: f32,
+        explicit_h: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
+        let set_lanes = |tree: &mut Self, lanes: Option<Vec<usize>>| {
+            if let Some(n) = tree.get_mut(handle) {
+                n.masonry_lanes = lanes;
+            }
+        };
+        set_lanes(self, Some(Vec::new()));
+        let (mut w, mut h) =
+            self.solve_grid_tracks(handle, children, explicit_w, explicit_h, avail_w, avail_h);
+        let cols = self.get(handle).map(|n| n.masonry_cols).unwrap_or(1).max(1);
+        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        let parent_ctx = self.ctx_for(avail_w);
+        let off_y = pad_border_start(&style, &parent_ctx, false);
+        let own_pb_v = axis_pad_border(&style, &parent_ctx, false);
+        let row_gap = resolve_gap(style.row_gap.as_deref(), &self.ctx_for(w));
+        // 자식 margin box 의 (top margin, 상자 높이, bottom margin).
+        let extents = |tree: &Self| -> Vec<(f32, f32, f32)> {
+            children
+                .iter()
+                .map(|&c| {
+                    tree.get(c)
+                        .map(|n| {
+                            let m = GridItemMargin::resolve(&n.style, &tree.ctx_for(n.layout.width));
+                            (m.top, n.layout.height, m.bottom)
+                        })
+                        .unwrap_or((0.0, 0.0, 0.0))
+                })
+                .collect()
+        };
+        let lanes = masonry_lanes(&extents(self), cols, row_gap);
+        let round_robin: Vec<usize> = (0..children.len()).map(|i| i % cols).collect();
+        if lanes != round_robin {
+            for &c in children {
+                self.mark_subtree_dirty(c);
+            }
+            set_lanes(self, Some(lanes.clone()));
+            (w, h) =
+                self.solve_grid_tracks(handle, children, explicit_w, explicit_h, avail_w, avail_h);
+        }
+        set_lanes(self, None);
+        let sizes = extents(self);
+        let mut lane_h = vec![0.0_f32; cols];
+        for (i, &c) in children.iter().enumerate() {
+            let lane = lanes[i].min(cols - 1);
+            let (mt, bh, mb) = sizes[i];
+            if let Some(n) = self.get_mut(c) {
+                n.layout.y = off_y + lane_h[lane] + mt;
+            }
+            lane_h[lane] += mt + bh + mb + row_gap;
+        }
+        if explicit_h <= 0.0 {
+            let content = if children.is_empty() {
+                0.0
+            } else {
+                (lane_h.iter().copied().fold(0.0_f32, f32::max) - row_gap).max(0.0)
+            };
+            let ctx_h = self.ctx_for(avail_h);
+            let mut used = content;
+            if let Some(mn) = resolve_dimension_opt(style.min_height.as_deref(), &ctx_h) {
+                used = used.max(spec_to_content(mn, own_pb_v));
+            }
+            if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &ctx_h) {
+                used = used.min(spec_to_content(mx, own_pb_v));
+            }
+            h = used.max(0.0);
+            if let Some(n) = self.get_mut(handle) {
+                n.layout.height = h;
+            }
+        }
+        (w, h)
+    }
+
+    /// grid 트랙 배치 (`solve_grid` 본체 — waterfall 의 트랙 pass 이기도 하다).
+    fn solve_grid_tracks(
+        &mut self,
+        handle: usize,
+        children: &[usize],
+        explicit_w: f32,
+        explicit_h: f32,
+        avail_w: f32,
+        avail_h: f32,
+    ) -> (f32, f32) {
         let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
         let parent_ctx = self.ctx_for(avail_w);
         let own_pb_h = axis_pad_border(&style, &parent_ctx, true);
@@ -4693,6 +4808,12 @@ impl LayoutTree {
         // (1) track array → space-join 문자열.
         let template_cols = join_tracks(style.grid_template_columns.as_deref());
         let mut template_rows = join_tracks(style.grid_template_rows.as_deref());
+        // waterfall 트랙 pass: 행 트랙 없음 — 자식은 모두 1행 (`solve_grid_masonry`).
+        let masonry_lanes = self.get(handle).and_then(|n| n.masonry_lanes.clone());
+        let masonry = masonry_lanes.is_some();
+        if masonry {
+            template_rows = String::new();
+        }
 
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
         // 라인 이름 (`[a] 1fr [b]`, CSS-GRID-1 §7.2.1 — upstream 대조 ⑥) 은 여기서 번호로 푼다:
@@ -4741,6 +4862,19 @@ impl LayoutTree {
                 raw
             }
         };
+        if let Some(lanes) = &masonry_lanes {
+            let cols = explicit_col_count.max(1);
+            if let Some(n) = self.get_mut(handle) {
+                n.masonry_cols = cols;
+            }
+            placement_spec = (0..children.len())
+                .map(|i| {
+                    let lane = lanes.get(i).copied().unwrap_or(i % cols).min(cols - 1);
+                    format!("|{} / {}|1 / 2", lane + 1, lane + 2)
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+        }
         let mut placed_cells = grid::resolve_child_cells(
             &placement_spec,
             children.len(),
@@ -5270,7 +5404,8 @@ impl LayoutTree {
             let grid_definite_h = {
                 let (_, pre_eh) = self.resolve_self_size(c, w, h);
                 let pre = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-                let stretch_h = grid_block_align(pre.align_self.as_deref(), grid_align_items) == 0
+                let stretch_h = !masonry
+                    && grid_block_align(pre.align_self.as_deref(), grid_align_items) == 0
                     && pre_eh <= 0.0
                     && !size_is_intrinsic_keyword(pre.height.as_deref())
                     && !is_auto_margin(pre.margin_top.as_deref())
@@ -5298,7 +5433,12 @@ impl LayoutTree {
             //   **grid 축 하나**의 비대칭이었다.
             let ew_is_keyword = size_is_intrinsic_keyword(cstyle.width.as_deref());
             let eh_is_keyword = size_is_intrinsic_keyword(cstyle.height.as_deref());
-            let align = grid_block_align(cstyle.align_self.as_deref(), grid_align_items);
+            // (waterfall: 자식은 자기 높이 — 열 안에서 쌓인다.)
+            let align = if masonry {
+                1
+            } else {
+                grid_block_align(cstyle.align_self.as_deref(), grid_align_items)
+            };
             // 세로(block) 배치 코드 결정 (ADR-156 옵션 3-a 세로축 — §Residual "align:stretch
             //   explicit-height" 해소):
             //   - align≠stretch → 그 정렬 코드(start/center/end) + 자식 실제 height.
@@ -6751,6 +6891,28 @@ fn preferred_size_behaves_as_auto(v: Option<&str>) -> bool {
 /// grid.rs `tokenize_template` 이 다시 최상위 토큰으로 분해하므로 join 만 한다.
 /// 각 원소가 `repeat(...)`/`minmax(...)` 같은 복합 표현이어도 공백 없는 단일 토큰
 /// 이라 join 후 재토큰화가 무손실(괄호 depth 기반 tokenize). 미설정/빈 배열은 "".
+/// `grid-template-rows: masonry` — waterfall 축 (`solve_grid_masonry`).
+fn is_masonry_rows(rows: Option<&[String]>) -> bool {
+    matches!(rows, Some([only]) if only.trim().eq_ignore_ascii_case("masonry"))
+}
+
+/// waterfall lane — 자식 순서대로 가장 짧은 열 (1px 안 동률은 왼쪽 — 측정 sub-pixel 차이로
+/// Canvas 와 DOM 이 다른 열을 고르지 않게). `extents` = (top margin, 상자 높이, bottom margin).
+/// DOM 쪽 같은 규칙: `packages/shared/src/catalog/runtime/waterfall.ts`.
+fn masonry_lanes(extents: &[(f32, f32, f32)], cols: usize, row_gap: f32) -> Vec<usize> {
+    const TOLERANCE: f32 = 1.0;
+    let mut lane_h = vec![0.0_f32; cols.max(1)];
+    extents
+        .iter()
+        .map(|&(mt, h, mb)| {
+            let min = lane_h.iter().copied().fold(f32::INFINITY, f32::min);
+            let lane = lane_h.iter().position(|&v| v <= min + TOLERANCE).unwrap_or(0);
+            lane_h[lane] += mt + h + mb + row_gap;
+            lane
+        })
+        .collect()
+}
+
 fn join_tracks(tracks: Option<&[String]>) -> String {
     match tracks {
         Some(list) if !list.is_empty() => list.join(" "),
@@ -8720,6 +8882,49 @@ mod tests {
             2, 400.0, -1.0,
         );
         assert_eq!(t.get_layout(h[1]).height, 40.0, "align start 배치 높이 = border-box 40");
+    }
+
+    /// waterfall (`grid-template-rows: masonry`) — 가장 짧은 열 아래로 쌓이고, 컨테이너는 가장
+    /// 긴 열 (RAC `WaterfallLayout` · S2 CardView `layout="waterfall"`).
+    #[test]
+    fn grid_masonry_rows_stack_items_under_the_shortest_column() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"100px"},"children":[]},
+            {"style":{"height":"40px"},"children":[]},
+            {"style":{"height":"30px"},"children":[]},
+            {"style":{"height":"50px","marginTop":"5px"},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["1fr","1fr"],"gridTemplateRows":["masonry"],"rowGap":"10px","columnGap":"10px","paddingTop":"4px","width":"210px"},"children":[0,1,2,3]}
+        ]"#,
+            4, 400.0, -1.0,
+        );
+        let at = |i: usize| {
+            let l = t.get_layout(h[i]);
+            (l.x, l.y, l.width, l.height)
+        };
+        assert_eq!(at(0), (0.0, 4.0, 100.0, 100.0), "1번 → 왼쪽 열");
+        assert_eq!(at(1), (110.0, 4.0, 100.0, 40.0), "2번 → 오른쪽 열");
+        assert_eq!(at(2), (110.0, 54.0, 100.0, 30.0), "3번 → 짧은 오른쪽 (40 + gap 10)");
+        assert_eq!(at(3), (110.0, 99.0, 100.0, 50.0), "4번 → 오른쪽 (90 < 110) · 자기 margin 5");
+        // 왼쪽 100 · 오른쪽 40+10+30+10+5+50 = 145 → content 145, + padding 4
+        assert_eq!(t.get_layout(h[4]).height, 149.0, "컨테이너 = 가장 긴 열 + padding");
+    }
+
+    /// 열 폭이 다르면 두 번째 트랙 pass 가 자식을 실제 열 폭으로 다시 푼다 (높이 = 그 폭에서).
+    #[test]
+    fn grid_masonry_rows_unequal_columns_resolve_at_the_lane_width() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"100px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["60px","140px"],"gridTemplateRows":["masonry"],"width":"200px"},"children":[0,1,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        let l2 = t.get_layout(h[2]);
+        assert_eq!((l2.x, l2.y, l2.width), (60.0, 20.0, 140.0), "3번 → 오른쪽 열 폭 140");
+        assert_eq!(t.get_layout(h[3]).height, 100.0);
     }
 
     #[test]

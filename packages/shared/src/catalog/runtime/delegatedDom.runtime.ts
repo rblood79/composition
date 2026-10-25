@@ -1,4 +1,5 @@
 import { resolveTextSourceText } from "@composition/rendering";
+import { CatalogWaterfallGrid, catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
 
 import {
@@ -1667,9 +1668,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       const selected = runtimeState(input, "selectedKeys") as string[] | "all";
+      const waterfall = catalogWaterfallLayout(input.node);
       return createElement(
-        GridList as ElementType,
+        (waterfall ? CatalogWaterfallGrid : GridList) as ElementType,
         {
+          ...(waterfall ? { as: GridList } : {}),
           ...marker(input),
           key: stateKey(
             input,
@@ -1679,7 +1682,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "aria-label": str(props.label || "Grid List"),
           variant: props.variant || "default",
           isQuiet: bool(props.isQuiet),
-          layout: props.layout || "grid",
+          // (RAC GridList lays out `stack` · `grid`; a waterfall is a grid whose rows are placed —
+          // `CatalogWaterfallGrid`, RAC's `WaterfallLayout` keeps the grid's keyboard model.)
+          layout: waterfall ? "grid" : props.layout || "grid",
           selectionMode: props.selectionMode ?? "none",
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),
@@ -2826,9 +2831,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         resolveStaticItemKey(card.props as Record<string, unknown>, card.id);
       const selectionMode = str(props.selectionMode || "none");
       const selected = runtimeState(input, "selectedKeys") as string[];
+      const waterfall = catalogWaterfallLayout(input.node);
       return createElement(
-        AriaGridList as ElementType,
+        (waterfall ? CatalogWaterfallGrid : AriaGridList) as ElementType,
         {
+          ...(waterfall ? { as: AriaGridList } : {}),
           ...marker(input),
           // (A static render: a changed authored selection remounts RAC's uncontrolled state — as
           // a TagGroup's. A running Preview: controlled — ADR-280.)
