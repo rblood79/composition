@@ -4371,10 +4371,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   Canvas 의 부모 DialogTrigger 는 `width: fit-content` 라 100% 가 풀리지 않아 본문이 min-content (156) 로
       //   찌그러졌고, DOM 은 Modal (폭 없음 · max-width min(500px, 90vw)) shrink-to-fit 이라 두 렌더러 폭이 갈렸다.
       //   고정 폭이면 두 부모 모두에서 400 — `maxWidth` 는 좁은 Modal (90vw) 에서 넘치지 않게.
+      // 2026-10-25 사용자 요청 「Dialog 의 width 를 400 → 310」: Library page 를 잠금 해제한 mobile 에서
+      //   Dialog 원본 복사본 (400) 이 카드 안쪽 폭 (310) 을 넘었다.
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-        width: "400px",
+        width: "310px",
         maxWidth: "100%",
         overflow: "auto",
       },
@@ -5097,32 +5099,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
-      //   재생성용 (FileTrigger.spec.sizes 미러). iconSize 는 이미 존재. height · paddingX 는 트리거
-      //   button 의 상자 (ADR-248 4e-10 — composition.containerStyles 제거로 두 소비자가 emit).
+      // 2026-10-25 사용자 요청 「FILETRIGGER 의 size(s,m,l) 모두 button 컴퍼넌트 size(s,m,l) 의 정보와
+      //   동일하게」 — Button rule 의 S · M · L 과 같은 값 (height 0 = 내용 + paddingY). 전에는 고정
+      //   height 32 · 40 · 48 · paddingX 12 · 24 · 32 였다.
       S: {
-        paddingX: 12,
-        fontSize: "{typography.text-sm}",
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.sm}",
-        height: 32,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        iconSize: 16,
+        paddingX: 8,
+        paddingY: 2,
         gap: 6,
-        iconSize: 14,
+        iconGap: 6,
       },
       M: {
-        paddingX: 24,
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.md}",
-        height: 40,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        iconSize: 18,
+        paddingX: 12,
+        paddingY: 4,
         gap: 8,
-        iconSize: 16,
+        iconGap: 8,
       },
       L: {
-        paddingX: 32,
-        fontSize: "{typography.text-lg}",
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
+        fontWeight: 500,
         borderRadius: "{radius.lg}",
-        height: 48,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        iconSize: 24,
+        paddingX: 16,
+        paddingY: 8,
         gap: 10,
-        iconSize: 20,
+        iconGap: 10,
       },
     },
     structure: {

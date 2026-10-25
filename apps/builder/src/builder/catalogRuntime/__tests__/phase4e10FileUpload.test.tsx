@@ -38,8 +38,9 @@ describe("FileTrigger — rule box on the trigger button", () => {
   it("generated CSS carries the size box and the variant paint", () => {
     const css = readFileSync(`${GENERATED}/FileTrigger.css`, "utf8");
     const md = blockOf(css, '.react-aria-FileTrigger[data-size="M"]');
-    expect(md).toContain("height: 40px;");
-    expect(md).toContain("padding: 0px 24px;");
+    // (The Button's M box — user 2026-10-25 「FILETRIGGER 의 size 모두 button 의 size 와 동일하게」.)
+    expect(md).toContain("padding: 4px 12px;");
+    expect(md).not.toContain("height: 40px;");
     expect(css).toContain('.react-aria-FileTrigger[data-variant="default"]');
     expect(blockOf(css, ".react-aria-FileTrigger")).not.toContain(
       "display: inline-block;",
@@ -53,10 +54,12 @@ describe("FileTrigger — rule box on the trigger button", () => {
     const input = fixture.workspace.root.getLayoutInput(fixture.recordOf("ft"));
     expect(input).toMatchObject({
       display: "inline-flex",
-      height: "40px",
-      paddingLeft: "24px",
-      paddingRight: "24px",
+      paddingLeft: "12px",
+      paddingRight: "12px",
+      paddingTop: "4px",
+      paddingBottom: "4px",
     });
+    expect(input).not.toHaveProperty("height");
   });
 });
 

@@ -75,7 +75,14 @@ import {
  * 3*auto, tablet 2*auto, mobile 1*auto」) — the base and the tablet · mobile layers.
  */
 const BODY_COLUMNS = { desktop: 3, tablet: 2, mobile: 1 } as const;
-const autoTracks = (count: number) => Array(count).fill("auto").join(" ");
+/** The Library page's desktop columns (user 2026-10-25 「library - desktop 일 때 column 3 → 4」). */
+const LIBRARY_DESKTOP_COLUMNS = 4;
+/**
+ * The body's columns: equal shares of its width (user 2026-10-25 「2 행일 때 5:5, 3:3:3」) that no
+ * card widens (an unlocked origin's copy keeps its own width — a Dialog's 400 widened the mobile
+ * column). The Layout panel's own count preset (`gridTracks.ts`).
+ */
+const equalTracks = (count: number) => `repeat(${count}, minmax(0, 1fr))`;
 const GAP = 16;
 const PAGE_PADDING = 16;
 const CARD_PADDING = 24;
@@ -134,6 +141,9 @@ const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "AvatarGroup",
   "Form",
   "TagGroup",
+  // (User 2026-10-25 「menu - menu(instance) … 삭제」 · 「tooltip - tooltip(instance) … 삭제」.)
+  "Menu",
+  "Tooltip",
 ]);
 /**
  * Origins whose card draws no Item line (user 2026-10-25 「Nav - Item(text), instance(자식들포함)도
@@ -145,7 +155,24 @@ const NO_ITEMS_LINE: ReadonlySet<string> = new Set([
   "Nav",
   "CheckboxGroup",
   "RadioGroup",
+  // (User 2026-10-25 「pagination · DisclosureGroup · ToggleButtonGroup · toolbar · buttongroup -
+  // item(text), item(instance) 자식들 모두 삭제」.)
+  "Pagination",
+  "DisclosureGroup",
+  "ToggleButtonGroup",
+  "Toolbar",
+  "ButtonGroup",
 ]);
+/** Origins whose card draws no States line (user 2026-10-25 「DISCLOSURE - States … 삭제」). */
+const NO_STATES_LINE: ReadonlySet<string> = new Set(["Disclosure"]);
+/**
+ * Variant lines a card leaves out (user 2026-10-25 「checkbox · switch - Emphasized,
+ * Emphasized(instance) 자식들 모두 삭제」).
+ */
+const SKIPPED_VARIANT_LINES: Readonly<Record<string, ReadonlySet<string>>> = {
+  Checkbox: new Set(["emphasized"]),
+  Switch: new Set(["emphasized"]),
+};
 /** Origins whose card draws no Variants line (user 2026-10-25 「… - Variants 제거」). */
 const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
   "CardView",
@@ -155,6 +182,50 @@ const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
   "InlineAlert",
   "Card",
 ]);
+/**
+ * The ◆ sample's own size on the page — the origin and its instances keep the rule's (user
+ * 2026-10-25: a Chart's 320px widened the mobile page's one column · 「colorSlider - width: 100%,
+ * maxWidth: auto」 · 「dropZone - width: 100%, height: auto」).
+ */
+const SAMPLE_VISUAL: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  Chart: { width: "100%" },
+  ColorSlider: { width: "100%", maxWidth: "none" },
+  DropZone: { width: "100%", height: "auto" },
+};
+/**
+ * A part of the ◆ sample sized on the page — the root's child of that origin (user 2026-10-25
+ * 「colorfield - input 의 maxWidth: auto」).
+ */
+const SAMPLE_PART_VISUAL: Readonly<
+  Record<
+    string,
+    {
+      readonly definitionId: string;
+      readonly visual: Readonly<Record<string, string>>;
+    }
+  >
+> = {
+  ColorField: {
+    definitionId: "lib:definition:origin-component-input",
+    visual: { maxWidth: "none" },
+  },
+};
+/** A page size as node fields: a max size other than px is a `layout` field, the rest `visual`. */
+const sampleFields = (values: Readonly<Record<string, string>> = {}) => {
+  const visual: Record<string, ReturnType<typeof set<string>>> = {};
+  const layout: Record<string, ReturnType<typeof set<string>>> = {};
+  for (const [key, value] of Object.entries(values))
+    (key === "maxWidth" || key === "maxHeight" ? layout : visual)[key] =
+      set(value);
+  return {
+    visual,
+    ...(Object.keys(layout).length > 0 ? { layout } : {}),
+  };
+};
+const sampleLayout = (values?: Readonly<Record<string, string>>) => {
+  const { layout } = sampleFields(values);
+  return layout ? { layout } : {};
+};
 const CLOSED_OVERLAY_TYPES: ReadonlySet<string> = new Set([
   "lib:definition:type-Modal",
   "lib:definition:type-Popover",
@@ -692,15 +763,15 @@ function pageKit(
 
   /**
    * The cards in their order under the root — a body, named by its type in Layers as a
-   * page's body is (user 2026-10-14) — on a grid of columns as wide as their cards, three on
-   * desktop, two on tablet, one on mobile (user 2026-10-25: no column frames). Its width is the
+   * page's body is (user 2026-10-14) — on a grid of equal columns, three on
+   * desktop (the Library page's four), two on tablet, one on mobile (user 2026-10-25: no column frames). Its width is the
    * breakpoint's page width, as a page body's (the composition root's page frame); its height
    * the body rule's `100%` (user 2026-10-25).
    */
   const finish = (rootId: NodeId) => {
     const columns = (breakpoint: "tablet" | "mobile") => ({
       layout: catalogCreationStyle({
-        style: { gridTemplateColumns: autoTracks(BODY_COLUMNS[breakpoint]) },
+        style: { gridTemplateColumns: equalTracks(BODY_COLUMNS[breakpoint]) },
       }).layout!,
     });
     fixed(
@@ -710,7 +781,11 @@ function pageKit(
         ...catalogCreationStyle({
           style: {
             display: "grid",
-            gridTemplateColumns: autoTracks(BODY_COLUMNS.desktop),
+            gridTemplateColumns: equalTracks(
+              cardWidth === "100%"
+                ? LIBRARY_DESKTOP_COLUMNS
+                : BODY_COLUMNS.desktop,
+            ),
             gap: GAP,
             padding: PAGE_PADDING,
             backgroundColor: color("neutral-subtle"),
@@ -1039,8 +1114,30 @@ export function catalogComponentsPageEntries(
       ? [originRootId!, overlayId as LibraryTemplateId]
       : undefined;
     const FULL_WIDTH = { width: set("100%") };
+    const partVisual = SAMPLE_PART_VISUAL[origin.name];
+    const partId = partVisual
+      ? code.templates
+          .get(originRootId!)
+          ?.children.find(
+            (id) =>
+              code.templates.get(id as LibraryTemplateId)?.definitionId ===
+              partVisual.definitionId,
+          )
+      : undefined;
     const samplePatches = [
       ...slotPatches,
+      ...(partVisual && partId
+        ? [
+            {
+              kind: "patch" as const,
+              address: address(
+                [sampleId],
+                [originRootId!, partId as LibraryTemplateId],
+              ),
+              ...sampleFields(partVisual.visual),
+            },
+          ]
+        : []),
       ...(bodyPath
         ? [
             {
@@ -1070,11 +1167,10 @@ export function catalogComponentsPageEntries(
         name: catalogDefinitionTitle(graph, origin.id),
         props: override?.defaults ?? {},
         visual: {
-          // (A Chart's ◆ fills its card — user 2026-10-25: its 320px widened the mobile page's
-          // one column. The page's own value: the origin and its instances keep 320.)
-          ...(origin.name === "Chart" ? { width: set("100%") } : {}),
+          ...sampleFields(SAMPLE_VISUAL[origin.name]).visual,
           ...override?.visual,
         },
+        ...sampleLayout(SAMPLE_VISUAL[origin.name]),
         ...(samplePatches.length > 0
           ? { descendantOverrides: samplePatches }
           : {}),
@@ -1238,7 +1334,9 @@ export function catalogComponentsPageEntries(
         drawCopy(base("line", "items", "1"), itemSampleId, itemFork);
     } else if (facets.states.length > 0 && facets.variants.length > 1) {
       // Variants × states: a line per variant.
-      for (const variant of facets.variants)
+      for (const variant of facets.variants.filter(
+        (variant) => !SKIPPED_VARIANT_LINES[origin.name]?.has(variant),
+      ))
         lines.push(
           ...line(
             base("line", variant),
@@ -1266,7 +1364,10 @@ export function catalogComponentsPageEntries(
           { track: cellWidth },
         ),
       );
-    } else if (facets.states.length > 0) {
+    } else if (
+      facets.states.length > 0 &&
+      !NO_STATES_LINE.has(origin.name)
+    ) {
       lines.push(
         ...line(base("line", "states"), "States", stateCells(undefined), {
           track: cellWidth,

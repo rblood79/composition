@@ -329,7 +329,7 @@ describe("ADR-248 4e library origin view", () => {
     workspace.dispose();
   });
 
-  it("the page: a card per built-in origin on a three-column grid — variants × states, no captions", async () => {
+  it("the page: a card per built-in origin on a four-column grid — variants × states, no captions", async () => {
     const { workspace, library } = await open();
     workspace.showDefinition(COMPONENTS_VIEW);
     const graph = graphOf(workspace);
@@ -597,6 +597,8 @@ describe("ADR-248 4e library origin view", () => {
       "AvatarGroup",
       "Form",
       "TagGroup",
+      "Menu",
+      "Tooltip",
     ])
       expect([
         name,
@@ -658,13 +660,65 @@ describe("ADR-248 4e library origin view", () => {
     const chart = "lib:definition:origin-component-chart" as LibraryDefinitionId;
     const chartInner =
       rectOf(pageNode(workspace, originCardId(chart))).width - 2 * 24;
-    expect(chartRects.map((rect) => rect.width)).toEqual(
-      chartTypes.map(() => (chartInner - 16) / 2),
+    expect(chartRects.map((rect) => Math.round(rect.width))).toEqual(
+      chartTypes.map(() => Math.round((chartInner - 16) / 2)),
     );
     expect(rectOf(pageNode(workspace, originSampleId(chart))).width).toBe(
       chartInner,
     );
     expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
+    // A ColorSlider's and a DropZone's ◆ fill their card (no 300px cap · the DropZone's height its
+    // content's), a ColorField's Input its field (no `ch` cap) — user 2026-10-25. The rule's
+    // values stay the origin's and its instances'.
+    const innerOf = (name: string) =>
+      rectOf(
+        pageNode(
+          workspace,
+          originCardId(
+            `lib:definition:origin-component-${name}` as LibraryDefinitionId,
+          ),
+        ),
+      ).width -
+      2 * 24;
+    const sampleRect = (name: string) =>
+      rectOf(
+        pageNode(
+          workspace,
+          originSampleId(
+            `lib:definition:origin-component-${name}` as LibraryDefinitionId,
+          ),
+        ),
+      );
+    const colorField = workspace.root.recordsOfSource(
+      pageNode(
+        workspace,
+        originSampleId(
+          "lib:definition:origin-component-colorfield" as LibraryDefinitionId,
+        ),
+      ),
+    )[0]!;
+    const fieldInput = workspace.root.canvasInputs
+      .get(colorField)!
+      .children.find(
+        (id) =>
+          workspace.root.canvasInputs.get(id)?.definitionId ===
+          "lib:definition:type-Input",
+      )!;
+    const widthOf = (record: string) =>
+      workspace.root.getGeometry([record]).get(record)!.width;
+    expect([
+      sampleRect("colorslider").width,
+      sampleRect("dropzone").width,
+      sampleRect("dropzone").height < 120,
+      workspace.root.canvasInputs.get(fieldInput)!.layout?.maxWidth,
+      widthOf(fieldInput),
+    ]).toEqual([
+      innerOf("colorslider"),
+      innerOf("dropzone"),
+      true,
+      "none",
+      widthOf(colorField),
+    ]);
     // A Menu's trigger button has the Button's metrics at the same size (padding, min width).
     // ADR-278: the card draws the Menu's body (its Popover, open) beside the trigger, so the
     // sample's box is wider and taller than the trigger's (the 2026-10-21 test checks the body).
@@ -694,13 +748,17 @@ describe("ADR-248 4e library origin view", () => {
     ]);
     expect(menuRect.width).toBeGreaterThan(buttonRect.width);
     expect(menuRect.height).toBeGreaterThan(buttonRect.height);
-    // The body is a grid of three columns as wide as their cards (user 2026-10-25), the cards
+    // The body is a grid of four equal columns on desktop (user 2026-10-25 「3:3:3」 · 「library -
+    // desktop 일 때 column 3 → 4」), the cards
     // directly in it in their numbered order, row by row; it is the breakpoint's page wide (a
     // page body's width — desktop, tablet, mobile) and as tall as its cards (`height: 100%`).
     const body = nodeOf(ORIGIN_VIEW_NODE);
     expect(body.layout).toMatchObject({
       display: { kind: "set", value: "grid" },
-      gridTemplateColumns: { kind: "set", value: "auto auto auto" },
+      gridTemplateColumns: {
+        kind: "set",
+        value: "repeat(4, minmax(0, 1fr))",
+      },
     });
     expect(body.children.every((id) => isPageCard(id))).toBe(true);
     // Every card is its grid column's width (`width: 100%` — user 2026-10-25).
@@ -721,9 +779,9 @@ describe("ADR-248 4e library origin view", () => {
       }),
     ).toEqual([]);
     const boxes = body.children.map((id) => rectOf(id));
-    expect(new Set(boxes.slice(0, 3).map((box) => box.x)).size).toBe(3);
-    expect(boxes[3]!.x).toBe(boxes[0]!.x);
-    expect(boxes[3]!.y).toBeGreaterThan(boxes[0]!.y);
+    expect(new Set(boxes.slice(0, 4).map((box) => box.x)).size).toBe(4);
+    expect(boxes[4]!.x).toBe(boxes[0]!.x);
+    expect(boxes[4]!.y).toBeGreaterThan(boxes[0]!.y);
     expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(CANVAS_VIEWPORT.desktop.width);
     const lastCard = boxes.at(-1)!;
     expect(rectOf(ORIGIN_VIEW_NODE).height).toBeCloseTo(
@@ -731,23 +789,31 @@ describe("ADR-248 4e library origin view", () => {
       0,
     );
     expect(lastCard.y).toBeGreaterThan(CANVAS_VIEWPORT.desktop.height);
-    // Three columns on desktop, two on tablet, one on mobile (the body's breakpoint layers).
+    // Four columns on desktop, two on tablet, one on mobile (the body's breakpoint layers).
     for (const [breakpoint, columns] of [
+      ["desktop", 4],
       ["tablet", 2],
       ["mobile", 1],
     ] as const) {
       workspace.setBreakpoint(breakpoint);
       const xs = body.children.map((id) => rectOf(id).x);
+      // (Equal columns — user 2026-10-25 「5:5, 3:3:3」: the page's width less its padding and
+      // gaps, shared.)
+      const share =
+        (CANVAS_VIEWPORT[breakpoint].width - 2 * 16 - (columns - 1) * 16) /
+        columns;
       expect([
         breakpoint,
         rectOf(ORIGIN_VIEW_NODE).width,
         new Set(xs).size,
         xs[columns],
+        [...new Set(body.children.map((id) => Math.round(rectOf(id).width)))],
       ]).toEqual([
         breakpoint,
         CANVAS_VIEWPORT[breakpoint].width,
         columns,
         xs[0],
+        [Math.round(share)],
       ]);
     }
     // On mobile the Chart no longer widens the one column past the page (user 2026-10-25: its
@@ -756,6 +822,13 @@ describe("ADR-248 4e library origin view", () => {
     expect(
       new Set(body.children.map((id) => rectOf(id).width)),
     ).toEqual(new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]));
+    // … nor, unlocked, an origin's copy (its own width — a Dialog's, 400 until 2026-10-25; user 2026-10-25
+    // 「edit 모드시 다시 mobile 넓이를 넘어선다」): the columns are equal shares.
+    workspace.setLibraryUnlocked(true);
+    expect(
+      new Set(body.children.map((id) => rectOf(id).width)),
+    ).toEqual(new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]));
+    workspace.setLibraryUnlocked(false);
     // A component card's lines wrap (a flex row as wide as the card — user 2026-10-25: five
     // `auto` columns of states made every mobile card 525 wide live); a theme card's captioned
     // cells and a Chart's types (two `1fr` columns) stay grids.
@@ -765,7 +838,7 @@ describe("ADR-248 4e library origin view", () => {
     const wrapping = lineFrames.filter(
       (line) => line.layout?.flexWrap !== undefined,
     );
-    expect(wrapping.length).toBeGreaterThan(20);
+    expect(wrapping.length).toBeGreaterThan(15);
     expect(
       new Set(
         wrapping.map((line) =>
@@ -1234,10 +1307,8 @@ describe("ADR-248 4e library origin view", () => {
         name,
         expect.not.arrayContaining(["Item"]),
       ]);
-    // Items held in a slot, or held more than once (a Pagination's buttons), stay items.
+    // Items held in a slot stay items.
     for (const name of [
-      "Pagination",
-      "Toolbar",
       "Tabs",
       "ListBox",
       "Menu",
@@ -1248,8 +1319,26 @@ describe("ADR-248 4e library origin view", () => {
       ]);
     // A Nav's and a group's card draw their origin alone — no Item line (user 2026-10-25). (A
     // Link and a Checkbox have a card of their own; a Radio has none.)
-    for (const name of ["Nav", "CheckboxGroup", "RadioGroup"])
+    for (const name of [
+      "Nav",
+      "CheckboxGroup",
+      "RadioGroup",
+      "Pagination",
+      "DisclosureGroup",
+      "ToggleButtonGroup",
+      "Toolbar",
+      "ButtonGroup",
+    ])
       expect([name, rowsOf(name)]).toEqual([name, [name]]);
+    // A Disclosure's card draws no States line, a Checkbox's and a Switch's no Emphasized line
+    // (user 2026-10-25).
+    expect(rowsOf("Disclosure")).not.toContain("States");
+    for (const name of ["Checkbox", "Switch"])
+      expect([name, rowsOf(name)]).toEqual([
+        name,
+        expect.not.arrayContaining(["Emphasized"]),
+      ]);
+    expect(rowsOf("Checkbox")).toContain("Default");
     expect(
       cards.filter((card) => ["Link", "Checkbox", "Radio"].includes(card.name ?? ""))
         .map((card) => card.name),
