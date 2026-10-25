@@ -37,6 +37,12 @@ import {
   projectInstancesOf,
 } from "../../../../../../packages/shared/src/catalog/document/componentPages";
 import { newCatalogProjectDocument } from "../project";
+import {
+  catalogDirtyStyleProps,
+  catalogResetStyleWrites,
+} from "../styleDirty";
+import { LAYOUT_PROPS } from "../../panels/styles/sections/styleSectionProps";
+import { ORIGIN_VIEW_NODE } from "../../../../../../packages/shared/src/catalog/runtime/originViewNode";
 import { useToastStore } from "../../stores/toast";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -461,5 +467,48 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     expect(reopened.history.getSnapshot().labels).toEqual([]);
     expect(reopened.itemsOfNode(sample, 1)).toHaveLength(1);
     reopened.dispose();
+  });
+  it("the Library body's grid · gap · padding are the page's defaults: not modified, a reset of an edit goes back to them (user 2026-10-25)", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.showDefinition(BUTTON);
+    const body = { kind: "node" as const, id: componentPageNodeId(ORIGIN_VIEW_NODE) };
+    const own = () => workspace.readModel.ownFields(body);
+    const baseline = workspace.componentPageBaseline(body);
+    expect(baseline).toBeDefined();
+    for (const breakpoint of ["desktop", "tablet", "mobile"] as const)
+      expect([
+        breakpoint,
+        catalogDirtyStyleProps(own(), breakpoint, LAYOUT_PROPS, baseline),
+      ]).toEqual([breakpoint, []]);
+    // (Without the baseline every page value read as the user's.)
+    expect(catalogDirtyStyleProps(own(), "desktop", LAYOUT_PROPS)).toContain(
+      "display",
+    );
+    workspace.setLibraryUnlocked(true);
+    workspace.execute(
+      setFields({
+        targets: [body],
+        visual: { gap: { kind: "set", value: 40 } },
+        layout: { display: { kind: "remove" } },
+      }),
+    );
+    expect(
+      catalogDirtyStyleProps(own(), "desktop", LAYOUT_PROPS, baseline),
+    ).toEqual(expect.arrayContaining(["display", "gap"]));
+    const reset = catalogResetStyleWrites(
+      own(),
+      "desktop",
+      LAYOUT_PROPS,
+      workspace.componentPageBaseline(body),
+    )!;
+    workspace.execute(setFields({ targets: [body], ...reset.writes }));
+    const entry = graph.getEntry(body.id) as NodeEntry;
+    expect(entry.visual.gap).toEqual(baseline!.visual.gap);
+    expect(entry.layout?.display).toEqual({ kind: "set", value: "grid" });
+    expect(
+      catalogDirtyStyleProps(own(), "desktop", LAYOUT_PROPS, baseline),
+    ).toEqual([]);
+    workspace.dispose();
   });
 });

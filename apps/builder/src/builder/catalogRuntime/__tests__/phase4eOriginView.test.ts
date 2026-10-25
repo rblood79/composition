@@ -105,6 +105,11 @@ async function open() {
   return { workspace, library, button };
 }
 const graphOf = (workspace: CatalogWorkspace) => workspace.runtime.graph;
+/** A line's cells frame: a grid (a theme card's captioned cells) or a wrapping row (user 2026-10-25). */
+const isLineFrame = (child: NodeEntry | undefined) =>
+  child?.definitionId === "lib:definition:type-frame" &&
+  (child.layout?.gridTemplateColumns !== undefined ||
+    child.layout?.flexWrap !== undefined);
 /**
  * A card's lines (user 2026-10-25 — no frame per line or per cell): after the title, each line's
  * name (a Text) and its grids (frames named as the line) — a grid's first row the samples, the
@@ -113,11 +118,7 @@ const graphOf = (workspace: CatalogWorkspace) => workspace.runtime.graph;
 const cardLines = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
   const lines: { name: string; grids: NodeEntry[] }[] = [];
   for (const child of card.children.slice(1).map(nodeOf)) {
-    if (
-      child.definitionId !== "lib:definition:type-frame" ||
-      child.layout?.gridTemplateColumns === undefined
-    )
-      continue;
+    if (!isLineFrame(child)) continue;
     const last = lines.at(-1);
     if (last && last.name === child.name) last.grids.push(child);
     else lines.push({ name: child.name!, grids: [child] });
@@ -155,8 +156,7 @@ const lineCells = (
 const aloneCells = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
   const children = card.children.slice(1).map(nodeOf);
   // (A line: its name — a Text named as the grid after it — then its grids.)
-  const grid = (child: NodeEntry | undefined) =>
-    child?.layout?.gridTemplateColumns !== undefined;
+  const grid = isLineFrame;
   const first = children.findIndex(
     (child, at) =>
       grid(child) ||
@@ -382,6 +382,18 @@ describe("ADR-248 4e library origin view", () => {
       "Border",
       "Surface",
     ]);
+    // The type sizes stand one under another, each caption under its sample (a flex column —
+    // user 2026-10-25).
+    const typeSizes = cardLines(
+      cards.find((candidate) => candidate.name === "Typography")!,
+      nodeOf,
+    );
+    expect(typeSizes.map((line) => line.name)).toEqual(["Origin"]);
+    const sizesFrame = nodeOf(`${ORIGIN_VIEW_NODE}/theme/typography/line/sizes/1`);
+    expect(sizesFrame.layout).toMatchObject({
+      display: { kind: "set", value: "flex" },
+      flexDirection: { kind: "set", value: "column" },
+    });
     expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
       fontSize: { kind: "set", value: 20 },
     });
@@ -450,15 +462,12 @@ describe("ADR-248 4e library origin view", () => {
     // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
     // part) is not a collection: no Item line.
     expect(linesOf("ComboBox").map((row) => row.name)).not.toContain("Item");
-    // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
+    // The origin alone under the title (its slot empty — no filled instance, user 2026-10-25).
     expect(
       aloneCells(cards.find((candidate) => candidate.name === "GridList")!, nodeOf).map(
         (cell) => cell.name,
       ),
-    ).toEqual([
-      "GridList",
-      "GridList / Instance",
-    ]);
+    ).toEqual(["GridList"]);
     // The Item row opens with the item origin itself (its editable sample; user 2026-10-13
     // 「Item 줄 맨 앞에 ◆ 원본 칸」), then its instances at rest and in each state.
     const ITEM_ORIGIN =
@@ -564,9 +573,31 @@ describe("ADR-248 4e library origin view", () => {
     // origin, each with the props the palette creates it with.
     const cardOf = (name: string) =>
       cards.find((candidate) => candidate.name === name)!;
-    // Dialog · Popover · ContextualHelp draw their origin alone — its body open, no filled
-    // instance beside it (user 2026-10-25).
-    for (const name of ["Dialog", "Popover", "ContextualHelp"])
+    // Dialog · Popover · ContextualHelp (their body open), CardView and the collections · groups ·
+    // containers draw their origin alone — no filled instance beside it (user 2026-10-25).
+    for (const name of [
+      "Dialog",
+      "Popover",
+      "ContextualHelp",
+      "CardView",
+      "ListBox",
+      "GridList",
+      "Tree",
+      "Table",
+      "CheckboxGroup",
+      "RadioGroup",
+      "Toolbar",
+      "ToggleButtonGroup",
+      "ButtonGroup",
+      "DisclosureGroup",
+      "Nav",
+      "Card",
+      "Tabs",
+      "Breadcrumbs",
+      "AvatarGroup",
+      "Form",
+      "TagGroup",
+    ])
       expect([
         name,
         aloneCells(cardOf(name), nodeOf).map((cell) => cell.name),
@@ -621,10 +652,17 @@ describe("ADR-248 4e library origin view", () => {
       const [record] = workspace.root.recordsOfSource(id);
       return workspace.root.getGeometry([record!]).get(record!)!;
     };
-    // The chart types are drawn two to a line (each half the card's inner width).
+    // The chart types are drawn two to a line (each half the card's inner width — two `1fr`
+    // columns, user 2026-10-25), the ◆ the card's inner width.
     const chartRects = chartTypes.map((cell) => rectOf(sampleOf(cell).id));
+    const chart = "lib:definition:origin-component-chart" as LibraryDefinitionId;
+    const chartInner =
+      rectOf(pageNode(workspace, originCardId(chart))).width - 2 * 24;
     expect(chartRects.map((rect) => rect.width)).toEqual(
-      chartTypes.map(() => 248),
+      chartTypes.map(() => (chartInner - 16) / 2),
+    );
+    expect(rectOf(pageNode(workspace, originSampleId(chart))).width).toBe(
+      chartInner,
     );
     expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
     // A Menu's trigger button has the Button's metrics at the same size (padding, min width).
@@ -665,10 +703,23 @@ describe("ADR-248 4e library origin view", () => {
       gridTemplateColumns: { kind: "set", value: "auto auto auto" },
     });
     expect(body.children.every((id) => isPageCard(id))).toBe(true);
-    // Every card is as wide as its contents (`width: fit-content` — user 2026-10-25).
+    // Every card is its grid column's width (`width: 100%` — user 2026-10-25).
     expect(
       new Set(body.children.map((id) => JSON.stringify(nodeOf(id).visual.width))),
-    ).toEqual(new Set([JSON.stringify({ kind: "set", value: "fit-content" })]));
+    ).toEqual(new Set([JSON.stringify({ kind: "set", value: "100%" })]));
+    // … its min · max sizes auto (user 2026-10-25).
+    expect(
+      body.children.flatMap((id) => {
+        const { visual, sizing } = nodeOf(id) as NodeEntry & {
+          sizing?: Record<string, unknown>;
+        };
+        return ["minWidth", "maxWidth", "minHeight", "maxHeight"].filter(
+          (key) =>
+            (visual as Record<string, unknown>)[key] !== undefined ||
+            sizing?.[key] !== undefined,
+        );
+      }),
+    ).toEqual([]);
     const boxes = body.children.map((id) => rectOf(id));
     expect(new Set(boxes.slice(0, 3).map((box) => box.x)).size).toBe(3);
     expect(boxes[3]!.x).toBe(boxes[0]!.x);
@@ -699,6 +750,44 @@ describe("ADR-248 4e library origin view", () => {
         xs[0],
       ]);
     }
+    // On mobile the Chart no longer widens the one column past the page (user 2026-10-25: its
+    // fixed 248px type columns and 320px ◆ made every card 512 wide). (This env's text is
+    // narrower than a browser's: live, the five-column state lines still do — 2026-10-25.)
+    expect(
+      new Set(body.children.map((id) => rectOf(id).width)),
+    ).toEqual(new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]));
+    // A component card's lines wrap (a flex row as wide as the card — user 2026-10-25: five
+    // `auto` columns of states made every mobile card 525 wide live); a theme card's captioned
+    // cells and a Chart's types (two `1fr` columns) stay grids.
+    const lineFrames = body.children
+      .flatMap((id) => nodeOf(id).children.map(nodeOf))
+      .filter(isLineFrame);
+    const wrapping = lineFrames.filter(
+      (line) => line.layout?.flexWrap !== undefined,
+    );
+    expect(wrapping.length).toBeGreaterThan(20);
+    expect(
+      new Set(
+        wrapping.map((line) =>
+          JSON.stringify([line.layout?.flexWrap, line.visual.width]),
+        ),
+      ),
+    ).toEqual(
+      new Set([
+        JSON.stringify([
+          { kind: "set", value: "wrap" },
+          { kind: "set", value: "100%" },
+        ]),
+      ]),
+    );
+    expect(
+      lineFrames
+        .filter((line) => line.layout?.flexWrap === undefined)
+        .every(
+          (line) =>
+            captioned(line.children.map(nodeOf)) || line.name === "Types",
+        ),
+    ).toBe(true);
     workspace.setBreakpoint("desktop");
     workspace.dispose();
   });
@@ -1015,9 +1104,8 @@ describe("ADR-248 4e library origin view", () => {
       }),
     );
     // Declared slots (pen.dev's design-system page: a component's master shows its slots
-    // hatched, the instance beside it what fills them): a Tabs card's origin keeps its tab list
-    // and panels laid out but not drawn — each slot hatched at that size — and the instance
-    // beside it is filled (no mark); a Table's origin holds no columns or rows: its slots take a
+    // hatched): a Tabs card's origin keeps its tab list and panels laid out but not drawn — each
+    // slot hatched at that size; a Table's origin holds no columns or rows: its slots take a
     // box of their own.
     const slotMarks = catalogSlotMarks(workspace, bounds, bounds);
     const marksUnder = (record: string) =>
@@ -1045,9 +1133,6 @@ describe("ADR-248 4e library origin view", () => {
     expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([
       48, 48, 12,
     ]);
-    expect(
-      marksUnder(recordOf(originInstanceId(lib("tabs"), "instance"))),
-    ).toEqual([]);
     const tableMarks = marksUnder(recordOf(originSampleId(lib("table"))));
     expect(tableMarks.map((mark) => [mark.empty, mark.role])).toEqual([
       [true, "origin"],
@@ -1076,18 +1161,10 @@ describe("ADR-248 4e library origin view", () => {
           mark.box.height > 0,
         ]),
     ).toEqual([[true, "origin", true, true]]);
-    const listInstance = recordOf(originInstanceId(lib("listbox"), "instance"));
-    expect(slotMarks.filter((mark) => mark.identity === listInstance)).toEqual(
-      [],
-    );
-    expect(
-      inputOf(listInstance).children.map(
-        (child) => inputOf(child).visual.opacity ?? 1,
-      ),
-    ).toEqual(inputOf(listInstance).children.map(() => 1));
     // The slot is the size its contents take (a ToggleButtonGroup's is its buttons' height, not
     // a fixed box) — one of each (2026-10-21: a root slot's repeated items lay out the first
-    // only): the origin is no taller or wider than the filled instance, and a list's is shorter.
+    // only): the origin's box is an item's, not a fixed or a whole list's (no filled instance
+    // beside it to compare with — user 2026-10-25).
     for (const origin of [
       "togglebuttongroup",
       "buttongroup",
@@ -1095,19 +1172,14 @@ describe("ADR-248 4e library origin view", () => {
       "listbox",
     ]) {
       const empty = rectOf(originSampleId(lib(origin)));
-      const filled = rectOf(originInstanceId(lib(origin), "instance"));
-      expect([
+      expect([origin, empty.height > 0, empty.height < 120]).toEqual([
         origin,
-        empty.width <= filled.width,
-        empty.height <= filled.height,
-        empty.height > 0,
-      ]).toEqual([origin, true, true, true]);
+        true,
+        true,
+      ]);
     }
-    expect(rectOf(originSampleId(lib("listbox"))).height).toBeLessThan(
-      rectOf(originInstanceId(lib("listbox"), "instance")).height,
-    );
     // A Card's regions are its slots (S2 Card — ADR-256 Phase 10: preview, content, footer): the
-    // origin hatches all three, the instance beside it only the footer it leaves empty.
+    // origin hatches all three.
     const slotNames = (record: string) =>
       marksUnder(record).map((mark) => inputOf(mark.identity).slot?.name);
     expect(slotNames(recordOf(originSampleId(lib("card"))))).toEqual([
@@ -1115,9 +1187,6 @@ describe("ADR-248 4e library origin view", () => {
       "Content",
       "Footer",
     ]);
-    expect(
-      slotNames(recordOf(originInstanceId(lib("card"), "instance"))),
-    ).toEqual(["Footer"]);
     // No Slots row: the origin shows them.
     const entryOf = (id: string) =>
       graphOf(workspace).getEntry(id) as NodeEntry;
@@ -1171,13 +1240,20 @@ describe("ADR-248 4e library origin view", () => {
       "Toolbar",
       "Tabs",
       "ListBox",
-      "Nav",
       "Menu",
     ])
       expect([name, rowsOf(name)]).toEqual([
         name,
         expect.arrayContaining(["Item"]),
       ]);
+    // A Nav's and a group's card draw their origin alone — no Item line (user 2026-10-25). (A
+    // Link and a Checkbox have a card of their own; a Radio has none.)
+    for (const name of ["Nav", "CheckboxGroup", "RadioGroup"])
+      expect([name, rowsOf(name)]).toEqual([name, [name]]);
+    expect(
+      cards.filter((card) => ["Link", "Checkbox", "Radio"].includes(card.name ?? ""))
+        .map((card) => card.name),
+    ).toEqual(["Link", "Checkbox"]);
     const lib = (name: string) =>
       `lib:definition:origin-component-${name}` as LibraryDefinitionId;
     const recordOf = (id: string) =>
@@ -1191,13 +1267,10 @@ describe("ADR-248 4e library origin view", () => {
     // GridList's and a CardView's box was ~500px tall).
     for (const origin of ["listbox", "gridlist", "cardview"]) {
       const empty = rectOf(originSampleId(lib(origin)));
-      const filled = rectOf(originInstanceId(lib(origin), "instance"));
-      // (A CardView card holds its cells itself — user 2026-10-25: both are the card's width,
-      // and three cards fit on one row of the filled one.)
-      expect([origin, empty.height < filled.height || origin === "cardview"]).toEqual([
-        origin,
-        true,
-      ]);
+      // (No filled instance beside it to compare with — user 2026-10-25: a list's whole items
+      // were ~500px tall.)
+      if (origin !== "cardview")
+        expect([origin, empty.height < 300]).toEqual([origin, true]);
       // (A list's empty state IllustratedMessage is there too, hidden beside its items.)
       expect([
         origin,
@@ -1286,10 +1359,27 @@ describe("ADR-248 4e library origin view", () => {
         origin,
         true,
       ]);
-      expect([origin, body.x >= button.x + button.width]).toEqual([
+      // (A Dialog's and a Popover's body under it — user 2026-10-25.)
+      expect([
         origin,
-        true,
-      ]);
+        origin === "dialog" || origin === "popover"
+          ? body.y >= button.y + button.height
+          : body.x >= button.x + button.width,
+      ]).toEqual([origin, true]);
+    }
+    // A Dialog's body line, Modal and Dialog fill the card's width (user 2026-10-25).
+    {
+      const modal = overlayOf("dialog", "Modal");
+      const dialog = inputOf(modal).children[0]!;
+      const line = recordOf(
+        `${originCardId(lib("dialog")).slice(0, -"/card".length)}/origin/body-line`,
+      );
+      const card = recordOf(originCardId(lib("dialog")));
+      const box = workspace.root.getGeometry([card, line, modal, dialog]);
+      const inner = box.get(card)!.width - 2 * 24;
+      expect(
+        [line, modal, dialog].map((id) => Math.round(box.get(id)!.width)),
+      ).toEqual([inner, inner, inner].map(Math.round));
     }
     expect(inputOf(overlayOf("select", "Popover")).hidden).toBe(true);
     workspace.dispose();

@@ -38,8 +38,17 @@ export function catalogDirtyStyleProps(
   own: OwnFields,
   breakpoint: BreakpointName,
   properties: readonly string[],
+  /**
+   * The node's own values that are its defaults (a Library · Local page node as the page makes
+   * it — `catalogComponentPageBaseline`): a field holding its baseline value is not modified, a
+   * baseline field the node dropped is.
+   */
+  baseline?: OwnFields,
 ): string[] {
   const layer = layerOf(own, breakpoint);
+  const base = baseline ? layerOf(baseline, breakpoint) : undefined;
+  const has = (fields: Record<string, unknown>, field: string) =>
+    Object.prototype.hasOwnProperty.call(fields, field);
   const mapped = new Map(
     properties.map((key) => {
         const fields = fieldsOf(key);
@@ -51,7 +60,12 @@ export function catalogDirtyStyleProps(
             "visual" | "layout" | "sizing",
             string,
           ];
-          return Object.prototype.hasOwnProperty.call(layer[scope], field);
+          if (!base) return has(layer[scope], field);
+          return (
+            has(layer[scope], field) !== has(base[scope], field) ||
+            JSON.stringify(layer[scope][field as never]) !==
+              JSON.stringify(base[scope][field as never])
+          );
         });
         return [key, { all, dirty }] as const;
       }),
@@ -80,11 +94,24 @@ export function catalogResetStyleWrites(
   own: OwnFields,
   breakpoint: BreakpointName,
   properties: readonly string[],
+  /** The node's defaults (`catalogDirtyStyleProps`): a reset writes them back. */
+  baseline?: OwnFields,
 ): { writes: CatalogStyleFieldWrites } | undefined {
-  const dirty = catalogDirtyStyleProps(own, breakpoint, properties);
+  const dirty = catalogDirtyStyleProps(own, breakpoint, properties, baseline);
   if (!dirty.length) return undefined;
   const writes = catalogStyleWritesOf(
     Object.fromEntries(dirty.map((key) => [key, ""])),
   );
-  return { writes };
+  if (!baseline) return { writes };
+  // (A field the baseline holds goes back to its value, not away.)
+  const base = layerOf(baseline, breakpoint);
+  const restored: CatalogStyleFieldWrites = {};
+  for (const scope of ["visual", "layout", "sizing"] as const)
+    for (const field of Object.keys(writes[scope] ?? {})) {
+      const value = (base[scope] as Record<string, unknown>)[field];
+      (restored[scope] ??= {} as never)[field as never] = (
+        value === undefined ? { kind: "remove" } : value
+      ) as never;
+    }
+  return { writes: restored };
 }

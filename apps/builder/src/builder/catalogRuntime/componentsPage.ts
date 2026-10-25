@@ -51,6 +51,7 @@ import {
   originOfSample,
   originSampleId,
   componentPageNodeId,
+  isComponentPageNode,
   themeSampleId,
 } from "./originView";
 import {
@@ -106,13 +107,44 @@ const OPEN_BODY_ORIGINS: ReadonlySet<string> = new Set([
   "Menu",
 ]);
 /**
- * Overlay origins whose card draws the origin alone — no filled instance beside its open body
- * (user 2026-10-25 「61.dialog, 62.popover, 63. 모두 instance 객체 삭제」).
+ * Origins whose card draws the origin alone — no filled instance beside it (user 2026-10-25
+ * 「61.dialog, 62.popover, 63. 모두 instance 객체 삭제」 · 「CardView 에 instance 그룹 삭제」). Its
+ * other lines (Item · States) stay.
  */
 const ORIGIN_ONLY_CARDS: ReadonlySet<string> = new Set([
   "Dialog",
   "Popover",
   "ContextualHelp",
+  "CardView",
+  // (Collections · groups · containers — user 2026-10-25 「… 에 instance 제거」.)
+  "ListBox",
+  "GridList",
+  "Tree",
+  "Table",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Toolbar",
+  "ToggleButtonGroup",
+  "ButtonGroup",
+  "DisclosureGroup",
+  "Nav",
+  "Card",
+  "Tabs",
+  "Breadcrumbs",
+  "AvatarGroup",
+  "Form",
+  "TagGroup",
+]);
+/**
+ * Origins whose card draws no Item line (user 2026-10-25 「Nav - Item(text), instance(자식들포함)도
+ * 제거」 · 「checkboxgroup, radiogroup - item(text), item(자식들모두) 제거」) — the item origin's ◆
+ * is not drawn there either (a Nav's Link and a Checkbox have a card of their own; a Radio has none
+ * — the page draws no Radio origin).
+ */
+const NO_ITEMS_LINE: ReadonlySet<string> = new Set([
+  "Nav",
+  "CheckboxGroup",
+  "RadioGroup",
 ]);
 /** Origins whose card draws no Variants line (user 2026-10-25 「… - Variants 제거」). */
 const NO_VARIANTS_LINE: ReadonlySet<string> = new Set([
@@ -477,7 +509,12 @@ interface PageCell {
  * The drawing kit of a components page: its entries (each computed on read), the theme colors,
  * and what a page is made of — cards of named lines on a grid body.
  */
-function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
+function pageKit(
+  graph: CatalogGraph,
+  mode: "light" | "dark",
+  /** The cards' width: their grid column's (Library) or their contents' (Local). */
+  cardWidth: "100%" | "fit-content" = "fit-content",
+) {
   const library = graph.library;
   // The page's own colors are the theme's (read in the workspace's color mode).
   const color = (name: string) => String(resolveToken(`{color.${name}}`, mode));
@@ -539,6 +576,8 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
       alignItems?: "end" | "start";
       track?: number;
       perLine?: number;
+      /** Equal `1fr` columns across the card's width (a Chart's types — user 2026-10-25). */
+      fill?: boolean;
     } = {},
   ): NodeId[] => {
     const perLine = Math.max(
@@ -558,10 +597,11 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
             }),
           ];
     // Uncaptioned cells (a component card's — user 2026-10-25 「origin, instance 표시 텍스트 제거」)
-    // wrap on one grid: no caption row to keep under its sample.
-    const step = cells.some((cell) => cell.captions.length > 0)
-      ? perLine
-      : cells.length;
+    // wrap in one flex row (user 2026-10-25 「줄 grid 를 flex-wrap 으로」: five `auto` columns of
+    // states widened the mobile page's one column): no caption row to keep under its sample.
+    const captioned = cells.some((cell) => cell.captions.length > 0);
+    const step = captioned ? perLine : cells.length;
+    const wrap = !captioned && !options.fill;
     for (let at = 0; at < cells.length; at += step) {
       const chunk = cells.slice(at, at + step);
       const rows = Math.max(0, ...chunk.map((cell) => cell.captions.length));
@@ -577,16 +617,36 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
               ),
             ).flat(),
           ],
-          {
-            display: "grid",
-            gridTemplateColumns: chunk
-              .slice(0, perLine)
-              .map(() => (options.track ? `${options.track}px` : "auto"))
-              .join(" "),
-            alignItems: options.alignItems ?? "end",
-            columnGap: `${CELL_GAP}px`,
-            rowGap: "6px",
-          },
+          wrap
+            ? {
+                flexDirection: "row",
+                flexWrap: "wrap",
+                // (The card's width — a line as wide as its cells never wraps.)
+                width: "100%",
+                alignItems:
+                  (options.alignItems ?? "end") === "end"
+                    ? "flex-end"
+                    : "flex-start",
+                columnGap: `${CELL_GAP}px`,
+                rowGap: `${CELL_GAP}px`,
+              }
+            : {
+                display: "grid",
+                gridTemplateColumns: chunk
+                  .slice(0, perLine)
+                  .map(() =>
+                    options.fill
+                      ? "1fr"
+                      : options.track
+                        ? `${options.track}px`
+                        : "auto",
+                  )
+                  .join(" "),
+                ...(options.fill ? { width: "100%" } : {}),
+                alignItems: options.alignItems ?? "end",
+                columnGap: `${CELL_GAP}px`,
+                rowGap: "6px",
+              },
         ),
       );
     }
@@ -601,7 +661,7 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
     name: string,
     lines: NodeId[],
     caption: string = name,
-    /** The width its contents fill (a field's ◆ — a `%` width of a fit-content card is nothing). */
+    /** The width its contents fill (a field's ◆ — a `%` width of an auto track is nothing). */
     contentWidth?: number,
   ) => {
     const title = text(
@@ -611,10 +671,15 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
       { fontSize: 12, fontWeight: 700 },
     );
     cards.push(
-      // (As wide as its contents — user 2026-10-25 「width 는 % 에서 fit-content 로」.)
+      // (A Library card is its grid column's width, its min · max sizes auto — user 2026-10-25
+      // 「Library page 에 body 아래 자식의 width 는 100%」 · 「minWidth, maxWidth, minHeight,
+      // maxHeight 는 auto」; a Local card as wide as its contents — 「fit-content 로」 — at least
+      // its wide origin's.)
       frame(cardId, name, [title, ...lines], {
-        width: "fit-content",
-        ...(contentWidth ? { minWidth: contentWidth + 2 * CARD_PADDING } : {}),
+        width: cardWidth,
+        ...(contentWidth && cardWidth === "fit-content"
+          ? { minWidth: contentWidth + 2 * CARD_PADDING }
+          : {}),
         flexDirection: "column",
         alignItems: "flex-start",
         gap: 12,
@@ -676,8 +741,18 @@ export function catalogComponentsPageEntries(
   /** Filled with the origins' display text (`CatalogGraph.setOriginDisplayBindings`). */
   display = new Map<string, Readonly<Record<string, string>>>(),
 ): Map<NodeId, () => NodeEntry> {
-  const { library, color, entries, fixed, text, frame, caption, line, card, finish } =
-    pageKit(graph, mode);
+  const {
+    library,
+    color,
+    entries,
+    fixed,
+    text,
+    frame,
+    caption,
+    line,
+    card,
+    finish,
+  } = pageKit(graph, mode, "100%");
   // ADR-282: the card's structure is the library template's (stable ids); an unlocked origin's
   // instances project its copy, so every address the page writes goes through the copies.
   const code = graph.codeLibrary;
@@ -804,29 +879,33 @@ export function catalogComponentsPageEntries(
         }`,
       );
     const base = sizes.find(([name]) => name === TYPE_BASE) ?? sizes[0]!;
-    // The sizes one to a row, each caption beside its sample.
+    // The sizes one under another, each caption under its sample (user 2026-10-25 — a flex
+    // column, not a grid).
     const rows = sizes
       .filter((entry) => entry !== base)
       .map((entry) => sample(entry, INSTANCE_MARK));
-    card(theme("typography", "card"), theme("typography", "title"), "Typography", [
-      ...origins("typography", [sample(base, ORIGIN_MARK)]),
-      text(theme("typography", "line", "sizes", "label"), "Sizes", {
-        fontSize: 12,
-        fontWeight: 600,
-      }),
-      frame(
-        theme("typography", "line", "sizes", "1"),
-        "Sizes",
-        rows.flatMap((row) => [row.sample, ...row.captions]),
-        {
-          display: "grid",
-          gridTemplateColumns: "auto auto",
-          alignItems: "center",
-          columnGap: `${CELL_GAP}px`,
-          rowGap: "10px",
-        },
-      ),
-    ]);
+    card(
+      theme("typography", "card"),
+      theme("typography", "title"),
+      "Typography",
+      [
+        ...origins("typography", [sample(base, ORIGIN_MARK)]),
+        text(theme("typography", "line", "sizes", "label"), "Sizes", {
+          fontSize: 12,
+          fontWeight: 600,
+        }),
+        frame(
+          theme("typography", "line", "sizes", "1"),
+          "Sizes",
+          rows.flatMap((row) => [row.sample, ...row.captions]),
+          {
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 6,
+          },
+        ),
+      ],
+    );
   }
   {
     const box = ([name, size]: [string, unknown], mark: string) =>
@@ -953,18 +1032,35 @@ export function catalogComponentsPageEntries(
       : undefined;
     // (ADR-282: an unlocked origin's ◆ is its copy's root — `drawCopy`; its instances follow.)
     const forkRoot = forks.get(origin.id)?.templateRootId;
+    // A Dialog's body (its Modal and the Dialog in it) fills the card's width, under the trigger
+    // (user 2026-10-25 「dialog 아래 body line, Modal, Dialog 3개 모두 width:100%」).
+    const fullBody = origin.name === "Dialog";
+    const bodyPath = overlayId
+      ? [originRootId!, overlayId as LibraryTemplateId]
+      : undefined;
+    const FULL_WIDTH = { width: set("100%") };
     const samplePatches = [
       ...slotPatches,
-      ...(originRootId && overlayId
+      ...(bodyPath
         ? [
             {
               kind: "patch" as const,
-              address: address(
-                [sampleId],
-                [originRootId, overlayId as LibraryTemplateId],
-              ),
+              address: address([sampleId], bodyPath),
               displayState: "open" as const,
+              ...(fullBody ? { visual: FULL_WIDTH } : {}),
             },
+            ...(fullBody
+              ? (code.templates.get(bodyPath[1]!)?.children ?? []).map(
+                  (child) => ({
+                    kind: "patch" as const,
+                    address: address(
+                      [sampleId],
+                      [...bodyPath, child as LibraryTemplateId],
+                    ),
+                    visual: FULL_WIDTH,
+                  }),
+                )
+              : []),
           ]
         : []),
     ];
@@ -973,7 +1069,12 @@ export function catalogComponentsPageEntries(
       return node(sampleId, origin.id, {
         name: catalogDefinitionTitle(graph, origin.id),
         props: override?.defaults ?? {},
-        visual: override?.visual ?? {},
+        visual: {
+          // (A Chart's ◆ fills its card — user 2026-10-25: its 320px widened the mobile page's
+          // one column. The page's own value: the origin and its instances keep 320.)
+          ...(origin.name === "Chart" ? { width: set("100%") } : {}),
+          ...override?.visual,
+        },
         ...(samplePatches.length > 0
           ? { descendantOverrides: samplePatches }
           : {}),
@@ -988,10 +1089,7 @@ export function catalogComponentsPageEntries(
     ): PageCell => ({
       sample: fixed(
         node(originInstanceId(origin.id, key), definitionId, {
-          name: `${origin.name} / ${key
-            .split("/")
-            .map(titleCase)
-            .join(" / ")}`,
+          name: `${origin.name} / ${key.split("/").map(titleCase).join(" / ")}`,
           props,
         }),
       ),
@@ -1014,12 +1112,19 @@ export function catalogComponentsPageEntries(
     const filled =
       !ORIGIN_ONLY_CARDS.has(origin.name) &&
       slots.some((slot) => !unfilled(slot));
-    // ADR-278 (user decision 2): the open body stands right of the trigger — a line of its own
+    // ADR-278 (user decision 2): the open body stands right of the trigger (a Dialog's · a Popover's under it) — a line of its own
     // (the trigger node draws no box of its own, `display: contents`). The frame is layout only
     // (not a Layers row on a derived page).
+    // (A Dialog's and a Popover's body stand under their trigger — user 2026-10-25 「dialog -
+    // body line 의 row → column」 · 「popover 아래 body line - column」; a Dialog's line fills the
+    // card — 「width:100%」.)
     const bodyLine = overlayId
       ? frame(base("origin", "body-line"), "Body line", [sampleId], {
-          flexDirection: "row",
+          flexDirection:
+            origin.name === "Dialog" || origin.name === "Popover"
+              ? "column"
+              : "row",
+          ...(fullBody ? { width: "100%" } : {}),
           gap: 12,
           alignItems: "flex-start",
         })
@@ -1034,7 +1139,9 @@ export function catalogComponentsPageEntries(
     // The card's other lines (variants, states, items, types) — the Origin line goes first.
     const lines: NodeId[] = [];
     const items = originItems(graph, origin.id, stateIds);
-    if (items) {
+    if (items && NO_ITEMS_LINE.has(origin.name)) {
+      // (Its origin alone.)
+    } else if (items) {
       // A collection: the states are its item origin's (the collection's own variant only tints
       // its hover) — the item at rest and in each state, drawn on its own so its display state
       // shows (inside the collection the collection's selection decides).
@@ -1133,9 +1240,14 @@ export function catalogComponentsPageEntries(
       // Variants × states: a line per variant.
       for (const variant of facets.variants)
         lines.push(
-          ...line(base("line", variant), titleCase(variant), stateCells(variant), {
-            track: cellWidth,
-          }),
+          ...line(
+            base("line", variant),
+            titleCase(variant),
+            stateCells(variant),
+            {
+              track: cellWidth,
+            },
+          ),
         );
     } else if (
       facets.variants.length > 1 &&
@@ -1162,9 +1274,10 @@ export function catalogComponentsPageEntries(
       );
     }
     // The palette's creation variants of the origin (a Chart's chart types — user 2026-10-06):
-    // an instance of each, with the props the palette creates it with, two to a line.
+    // an instance of each, with the props the palette creates it with, two to a line — two `1fr`
+    // columns, each instance its column's width (user 2026-10-25: fixed 248px columns widened
+    // the mobile page's one column to 512).
     if (origin.kinds && origin.kinds.length > 1) {
-      const width = (LINE_WIDTH - CELL_GAP) / 2;
       lines.push(
         ...line(
           base("line", "types"),
@@ -1179,12 +1292,12 @@ export function catalogComponentsPageEntries(
                   origin.name,
                   kind.initialProps,
                 ),
-                ...catalogCreationStyle({ style: { width } }),
+                ...catalogCreationStyle({ style: { width: "100%" } }),
               }),
             ),
             captions: [],
           })),
-          { track: width },
+          { perLine: 2, fill: true },
         ),
       );
     }
@@ -1248,12 +1361,9 @@ export function catalogProjectComponentsPageEntries(
         }),
       }),
     );
-    card(
-      projectComponentCardId(component.id),
-      base("title"),
-      component.name,
-      [originCell],
-    );
+    card(projectComponentCardId(component.id), base("title"), component.name, [
+      originCell,
+    ]);
   }
   // An empty page says what fills it.
   if (components.length === 0)
@@ -1391,6 +1501,42 @@ export function catalogComponentPageStored(
     !!project.componentPageIds?.includes(pageId) &&
     graph.getEntry(pageId)?.kind === "page"
   );
+}
+
+/** Per graph: the stored page nodes as the page makes them (one revision · color mode). */
+const pageBaselines = new WeakMap<
+  CatalogGraph,
+  { revision: number; mode?: "light" | "dark"; nodes: Map<string, NodeEntry> }
+>();
+/**
+ * A stored Library · Local page node as the page makes it (its body, a card, a line) — the
+ * defaults its Styles reset returns to and its "modified" marks compare with (user 2026-10-25:
+ * the body's grid · gap · padding are the page's, not the user's edits — as a page body's are its
+ * rule's). `undefined` for any other node, or a node the page no longer makes.
+ */
+export function catalogComponentPageBaseline(
+  graph: CatalogGraph,
+  id: string,
+  mode?: "light" | "dark",
+): NodeEntry | undefined {
+  if (
+    !(isComponentPageNode(id) || isComponentsViewRoot(id)) ||
+    !graph.storedEntry(id)
+  )
+    return undefined;
+  let cached = pageBaselines.get(graph);
+  if (!cached || cached.revision !== graph.revision || cached.mode !== mode) {
+    const nodes = new Map<string, NodeEntry>();
+    for (const entries of [
+      catalogComponentsPageEntries(graph, mode),
+      catalogProjectComponentsPageEntries(graph, mode),
+    ])
+      for (const entry of storedPageNodes(graph.commandReader, entries))
+        nodes.set(entry.id, entry);
+    cached = { revision: graph.revision, mode, nodes };
+    pageBaselines.set(graph, cached);
+  }
+  return cached.nodes.get(id);
 }
 
 /**
@@ -1673,8 +1819,7 @@ export function setCatalogComponentsView(
   for (const id of graph.viewEntryIds())
     if (id.startsWith(ORIGIN_VIEW_NODE))
       graph.setViewEntry(id as NodeId, undefined);
-  for (const id of drawnCells.get(graph) ?? [])
-    graph.setViewChildren(id, 0);
+  for (const id of drawnCells.get(graph) ?? []) graph.setViewChildren(id, 0);
   drawnCells.delete(graph);
   const display = new Map<string, Readonly<Record<string, string>>>();
   graph.setOriginDisplayBindings(display);

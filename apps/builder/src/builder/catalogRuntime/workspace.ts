@@ -47,7 +47,10 @@ import { CatalogReadModel } from "./readModel";
 import { catalogRowSampleHidden } from "./rowSample";
 import { catalogAbsentByOwnerValue } from "../../../../../packages/shared/src/catalog/runtime/presence";
 import { CatalogHistoryStore } from "./history";
+import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
+import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
+  catalogComponentPageBaseline,
   catalogComponentPageCreation,
   catalogLocalPageSync,
   catalogComponentPageStored,
@@ -879,6 +882,27 @@ export class CatalogWorkspace {
       if (position) items.push({ target: position.target, identity });
     }
     this.selectItems(items, options);
+  }
+  /**
+   * A Library · Local page node's defaults — its fields as the page makes it
+   * (`catalogComponentPageBaseline`): the Styles panel's "modified" marks and reset read them.
+   */
+  componentPageBaseline(target: EditTarget): OwnFields | undefined {
+    if (target.kind !== "node") return undefined;
+    const entry = catalogComponentPageBaseline(
+      this.runtime.graph,
+      target.id,
+      this.colorMode,
+    );
+    return entry
+      ? {
+          props: entry.props,
+          visual: entry.visual,
+          layout: entry.layout ?? {},
+          sizing: entry.sizing,
+          ...(entry.responsive ? { responsive: entry.responsive } : {}),
+        }
+      : undefined;
   }
   /** The selection item of a drawn record (its row's target); `undefined` = not an element row. */
   itemOfRecord(identity: string): CatalogSelectionItem | undefined {

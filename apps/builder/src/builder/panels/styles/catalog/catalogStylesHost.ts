@@ -1136,10 +1136,18 @@ export function createCatalogStylesHost(
     useDirtyStyleProps(properties) {
       const id = useCatalogSession((state) => state.selection[0]?.identity);
       const breakpoint = useCatalogSession((state) => state.breakpoint);
-      const { own } = useOwnFieldsOf(workspace, id ?? null);
+      const { target, own } = useOwnFieldsOf(workspace, id ?? null);
       return useMemo(
-        () => (own ? catalogDirtyStyleProps(own, breakpoint, properties) : []),
-        [own, breakpoint, properties],
+        () =>
+          own && target
+            ? catalogDirtyStyleProps(
+                own,
+                breakpoint,
+                properties,
+                workspace.componentPageBaseline(target),
+              )
+            : [],
+        [own, target, breakpoint, properties],
       );
     },
     resetStyles(properties) {
@@ -1153,6 +1161,7 @@ export function createCatalogStylesHost(
             workspace.readModel.ownFields(target),
             breakpoint,
             properties,
+            workspace.componentPageBaseline(target),
           );
           if (!reset) continue;
           if (Object.keys(reset.writes).length)
