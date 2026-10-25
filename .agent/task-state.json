@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-24T03:08:59.039965+00:00",
+  "updatedAt": "2026-10-24T15:56:10.815867+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -315,5 +315,77 @@
     "status": "two_visual_causes_confirmed_actual_selection_reversal_unverified",
     "cleanup": "임시 wrapper/구독/observer/rAF/listener/style/window 객체 제거, 원래 메서드 동일성 확인; Page6/세 번째 Column 선택 복귀",
     "productChanges": "none"
+  },
+  "reviewAdr282": {
+    "task": "ADR-282 설계 리뷰",
+    "phase": "repair_review_round2_recorded",
+    "status": "original_high_3_design_fixed_new_high_1_pending_1",
+    "scope": "Round 1 설계 수리 대조 및 실제 removeTargets를 통한 ADR-279 slot 삭제 반례 확인; 제품 코드 수정 없음",
+    "head": "131d6d48f",
+    "findings": [
+      "Round 1 h1·h2·h3는 결정 1·2·3·8·9·10 및 G1/G2·RED4/5/6에서 설계 수리 확인",
+      "신규 h4: reset이 fork metadata만 삭제하여 defaults·stateRules가 남음; 기본 원본 초기화 계약 미충족",
+      "Local page 공개 removeTargets → transaction에서 slot 삭제 UNOWNED_NODE 재현; 실패 transaction 원자성 보존; 별도 선행 제품 수리 대상"
+    ],
+    "validation": {
+      "probe": "round2-probe.ts: 실제 Local page 삭제 거부·원자성·reset 결과 defaults/stateRules 잔존 assert PASS",
+      "reviewSchema": "errors 0",
+      "guard": "PASS"
+    },
+    "unverified": "제품 unlock/reset 구현 GREEN·실제 Builder Canvas↔Preview·저장/재열기·성능·번들",
+    "reviewLog": "docs/adr/reviews/282.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-24-review-adr282",
+    "completedAt": "2026-10-24T11:48:33.546818+00:00"
+  },
+  "framerReaAnalysis": {
+    "phase": "partial-ui-docs-analysis-private-source-blocked",
+    "report": "/private/tmp/framer-analysis-2026-10-24/analysis-report.json",
+    "updatedAt": "2026-10-24T11:09:46.114654+00:00",
+    "testsRun": false,
+    "technicalLimit": "RawCDPapprovaldeclined;REAparsedJS0files;noeditorinternalclaims"
+  },
+  "adr282": {
+    "task": "ADR-282 execute — Library page 원본 잠금 해제 (fork) · 리셋",
+    "phase": "phase3-in-progress",
+    "userDecisions": "1-a 선택 ◆ · 2-a override 있는 원본 전부 · 3-a 부품 자리 따름 (2026-10-24)",
+    "next": [
+      "[x] Phase 0 — library fork view · 분류 · RED 테스트화",
+      "[x] Phase 1 — contract 48 · unlock/reset 명령 · 검증 · shared 1739 PASS · 원복 RED 5/5",
+      "[x] Phase 2 — Library 카드 · Navigator 행 · Component 절 · 확인 대화상자 · builder 6415 PASS",
+      "[x] G3 live (Chrome MCP 5175, 프로젝트 ADR282) — 결함 3 수리 ({label} · 클릭 · 원본으로 이동)",
+      "[x] 문서 — ADR Status · Live Exercise · breakdown §7 · README · CHANGELOG",
+      "[ ] 사용자 커밋 요청 → G4 번들 · gate:perf-ratchet (커밋 뒤)",
+      "[ ] G5 사용자 5173 확인 → Implemented · completed/ 이동",
+      "[ ] LOW: Select trigger 자식 추가 시 Canvas 32 ↔ DOM 30 (/cross-check)",
+      "[x] 3-A 모델 — componentPageIds · contract 49 · setViewChildren · stage 걸러내기 · export 제외",
+      "[x] 3-B Library page 만들기 (처음 열 때 · executeOnLoad)",
+      "[x] 3-C 편집 · pick · Layers ◆/◇ · Layout 탭",
+      "[x] 3-D Local page + 카드 맞추기",
+      "[x] 3-E G6 unit · G7 live (Library · Local) · 문서 — 남은 것: 저장·다시 열기 시간 (R10)",
+      "[x] 메모: contract 는 48 유지 (48 미커밋) — ADR 본문의 \"contract 49\" 문구 고치기"
+    ],
+    "phase3": "사용자 지시 2026-10-25: Library · Local = 문서 page (처음 열 때 만들기 · ◆ 칸 = 그리는 자식 P1)"
+  },
+  "reviewAdr283": {
+    "task": "ADR-283 설계 리뷰",
+    "phase": "repair_review_round2_recorded",
+    "status": "h2_h3_h4_design_fixed_h1_partial_pending_1",
+    "scope": "Round 1 HIGH4 설계 수리 대조; 반복 행 안 local 참조 문맥 단일 반증 probe; 제품 코드 수정 없음",
+    "head": "f480895f9",
+    "findings": [
+      "H2 모든 project 경로 색인·중간 명령 RED 설계 수리 확인",
+      "H3 local 포함 모든 경로 ID 사본 map 재매핑 설계 수리 확인",
+      "H4 unset 저장·색인·검증·실행·재지정 설계 수리 확인",
+      "H1 잔여: local 반복 조상 검사 면제 시 3행 반복 원본 규칙의 Save 후보가3개; 실행 행 identity 적용 시1개"
+    ],
+    "validation": {
+      "probe": "round2-probe.ts: 실제 Local Row 컴포넌트 행3개 투영, 제안local정책 후보3 vs 행조상identity후보1 assert PASS",
+      "reviewSchema": "errors0",
+      "guard": "PASS"
+    },
+    "unverified": "새 기능 구현 GREEN·실제 Builder·RAC 이벤트·Preview/Publish·저장/재열기·성능/번들",
+    "reviewLog": "docs/adr/reviews/283.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-25-review-adr283",
+    "completedAt": "2026-10-25T14:11:01.951200+00:00"
   }
 }

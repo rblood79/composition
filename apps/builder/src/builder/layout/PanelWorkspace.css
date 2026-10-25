@@ -183,7 +183,7 @@
     background: var(--chrome-surface);
     border-radius: var(--chrome-radius);
     border: var(--chrome-border);
-    box-shadow: var(--chrome-shadow-floating);
+    box-shadow: var(--chrome-shadow);
     opacity: 1;
     transform: none;
     transition:
