@@ -1,5 +1,4 @@
 import {
-  getIconData,
   lightColors,
   resolveToken,
   spacing,
@@ -91,31 +90,6 @@ const COMPOSED_CELL_WIDTH = 240;
  * shrink): their cell's width.
  */
 const WIDER_CELL: Readonly<Record<string, number>> = { DateRangePicker: 360 };
-/** Icons the Icons card shows (those the registry holds). */
-const SAMPLE_ICONS = [
-  "house",
-  "search",
-  "bell",
-  "circle-user",
-  "settings",
-  "mail",
-  "calendar",
-  "chart-line",
-  "shield",
-  "pencil",
-  "square-pen",
-  "circle-check",
-  "x",
-  "info",
-  "triangle-alert",
-  "lock",
-  "upload",
-  "download",
-  "star",
-  "heart",
-  "trash-2",
-];
-const ICON = "lib:definition:type-Icon";
 const TYPE_BASE = "text-base";
 // (A field's control Group — ADR-256 Phase 6b: a field, not a collection.)
 const CONTROL_GROUP = "lib:definition:type-Group";
@@ -550,8 +524,9 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
     });
   /**
    * A named line of cells (user 2026-10-25 — no frame per line or per cell): its name, then its
-   * cells in grids of `perLine` columns — the samples on the first row, their captions on the
-   * rows under it, so each sample stands over its caption. Captions sit on one baseline (`end`);
+   * cells on a grid of `perLine` columns. Captioned cells (a theme card's) go in grids of one row
+   * of samples each, their captions on the rows under it, so each sample stands over its caption;
+   * a component card's cells have none (Layers marks them ◆ · ◇) and wrap on one grid. Captions sit on one baseline (`end`);
    * the Origin line's samples on top (`start`: the origin's empty slot is shorter than the filled
    * instance beside it — 2026-10-21). `track`: a fixed column width (a sample that fills its
    * cell). The grids are `<id>/1`, `<id>/2` … (the first holds a card's ◆).
@@ -582,12 +557,17 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
               fontWeight: 600,
             }),
           ];
-    for (let at = 0; at < cells.length; at += perLine) {
-      const chunk = cells.slice(at, at + perLine);
+    // Uncaptioned cells (a component card's — user 2026-10-25 「origin, instance 표시 텍스트 제거」)
+    // wrap on one grid: no caption row to keep under its sample.
+    const step = cells.some((cell) => cell.captions.length > 0)
+      ? perLine
+      : cells.length;
+    for (let at = 0; at < cells.length; at += step) {
+      const chunk = cells.slice(at, at + step);
       const rows = Math.max(0, ...chunk.map((cell) => cell.captions.length));
       ids.push(
         frame(
-          `${id}/${at / perLine + 1}` as NodeId,
+          `${id}/${at / step + 1}` as NodeId,
           name ?? "Samples",
           [
             ...chunk.map((cell) => cell.sample),
@@ -600,6 +580,7 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
           {
             display: "grid",
             gridTemplateColumns: chunk
+              .slice(0, perLine)
               .map(() => (options.track ? `${options.track}px` : "auto"))
               .join(" "),
             alignItems: options.alignItems ?? "end",
@@ -719,7 +700,8 @@ export function catalogComponentsPageEntries(
     stateIds.set(base, [...(stateIds.get(base) ?? []), id]);
   }
 
-  // The theme first (01–04): its colors, type scale, icons and spacing — the values every
+  // The theme first (01–03): its colors, type scale and spacing (no Icons card — user
+  // 2026-10-25 「03.icon 카드 전체 제거」) — the values every
   // component below is drawn with.
   const theme = (...path: string[]) => part("theme", ...path);
   /** A theme value over its caption lines (the first names it with its mark). */
@@ -839,30 +821,6 @@ export function catalogComponentsPageEntries(
           columnGap: `${CELL_GAP}px`,
           rowGap: "10px",
         },
-      ),
-    ]);
-  }
-  {
-    const icon = (name: string, mark: string, iconName = name) =>
-      captioned(
-        "icons",
-        name,
-        fixed(
-          node(themeSampleId("icons", name), ICON, {
-            name,
-            props: { iconName: set(iconName) },
-          }),
-        ),
-        `${mark} ${name}`,
-      );
-    const icons = SAMPLE_ICONS.filter((name) => getIconData(name));
-    card(theme("icons", "card"), theme("icons", "title"), "Icons", [
-      ...origins("icons", [icon("Icon", ORIGIN_MARK, "star")]),
-      ...line(
-        theme("icons", "line", "instances"),
-        "Instances",
-        icons.map((name) => icon(name, INSTANCE_MARK)),
-        { perLine: 7 },
       ),
     ]);
   }
@@ -1033,7 +991,7 @@ export function catalogComponentsPageEntries(
           props,
         }),
       ),
-      captions: [caption(base("caption", key), `${INSTANCE_MARK} ${label}`)],
+      captions: [],
     });
     /** The instances of one variant's line: at rest, then each state. */
     const stateCells = (variant: string | undefined) => {
@@ -1065,9 +1023,7 @@ export function catalogComponentsPageEntries(
     const originCells: PageCell[] = [
       {
         sample: bodyLine ?? sampleId,
-        captions: [
-          caption(base("caption", "origin"), `${ORIGIN_MARK} ${origin.name}`),
-        ],
+        captions: [],
       },
       ...(filled ? [instance("instance", origin.name, origin.id, {})] : []),
     ];
@@ -1127,13 +1083,7 @@ export function catalogComponentsPageEntries(
             ? [
                 {
                   sample: itemSampleId,
-                  captions: [
-                    caption(
-                      base("caption", "item-origin"),
-                      // (Its type — the origin's own name carries its state: `ListBoxItem/Selected`.)
-                      `${ORIGIN_MARK} ${itemTitle.split("/")[0]}`,
-                    ),
-                  ],
+                  captions: [],
                 },
               ]
             : []),
@@ -1167,9 +1117,7 @@ export function catalogComponentsPageEntries(
                   })),
                 }),
               ),
-              captions: [
-                caption(base("caption", "item", label), `${INSTANCE_MARK} ${label}`),
-              ],
+              captions: [],
             };
           }),
         ]),
@@ -1230,38 +1178,23 @@ export function catalogComponentsPageEntries(
                 ...catalogCreationStyle({ style: { width } }),
               }),
             ),
-            captions: [
-              caption(
-                base("caption", "type", kind.key),
-                `${INSTANCE_MARK} ${kind.label}`,
-              ),
-            ],
+            captions: [],
           })),
           { track: width },
         ),
       );
     }
-    // A card of the Origin line alone holds its cells itself — no line name, no line frame
-    // (user 2026-10-25 「Origin 하나뿐인 카드만, 그룹까지 제거」): the card draws the ◆ after its
-    // title (`registerDrawnOrigins`). Otherwise the Origin line is the first line, its first grid
-    // the ◆ holder.
-    const alone = lines.length === 0;
-    const holder = bodyLine ?? (alone ? base("card") : base("line", "origin", "1"));
-    if (!alone)
-      lines.unshift(
-        ...line(base("line", "origin"), "Origin", originCells, {
-          alignItems: "start",
-          track: cellWidth,
-        }),
-      );
+    // The card holds its origin's cells itself, right under its title — no Origin line name, no
+    // Origin line frame (user 2026-10-25 「Origin(Text) · Origin(그룹) 제거, 원본 자식은 타이틀
+    // 아래 바로」): the card draws the ◆ after its title (`registerDrawnOrigins`), its other lines
+    // follow.
+    const holder = bodyLine ?? base("card");
     // (A base part's card is titled as one: the Parts section closes the page — 2026-10-21.)
     card(
       base("card"),
       base("title"),
       origin.name,
-      alone
-        ? originCells.flatMap((cell) => [cell.sample, ...cell.captions])
-        : lines,
+      [...originCells.map((cell) => cell.sample), ...lines],
       // (An unlocked origin's card says so — its template is the project's copy, ADR-282 R6.)
       `${origin.category === "parts" ? `${origin.name} · part` : origin.name}${forkRoot ? " · unlocked" : ""}`,
     );

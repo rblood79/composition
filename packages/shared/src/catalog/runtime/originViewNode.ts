@@ -172,20 +172,20 @@ export const isProjectComponentOriginCell = (
   ((id.startsWith(PROJECT_CARD_PREFIX) && id.endsWith("/origin")) ||
     storedRole(id) === "local");
 /**
- * ADR-282: the Library page nodes that hold an origin's ◆ (a card's Origin line, an overlay's body
- * line, a collection card's Item line) — an unlocked origin's copy root stands there.
+ * ADR-282: the Library page nodes other than a card that hold an origin's ◆ (an overlay's body
+ * line, a collection card's Item line) — an unlocked origin's copy root stands there. (A card
+ * holds its origin's ◆ itself, under its title — user 2026-10-25.)
  */
 export const isLibraryOriginCell = (id: string | undefined): boolean =>
   !!id &&
   ((id.startsWith(`${ORIGIN_VIEW_NODE}/origin/`) &&
-    (id.endsWith("/line/origin/1") ||
-      id.endsWith("/origin/body-line") ||
+    (id.endsWith("/origin/body-line") ||
       id.endsWith("/line/items/1"))) ||
     storedRole(id) === "origin");
 
 /**
  * A Library page node that may hold an origin's ◆ (an unlocked origin's copy root stands there):
- * a ◆ line or body line, or a card of the Origin line alone (user 2026-10-25).
+ * a body line or an Item line, or a card (its ◆ under its title — user 2026-10-25).
  */
 export const holdsLibraryOrigin = (id: string | undefined): boolean =>
   isLibraryOriginCell(id) || isPageCard(id);

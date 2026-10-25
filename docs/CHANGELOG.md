@@ -26,9 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/shared/src/catalog/{document/originFork.ts,commands/originFork.ts,document/graph.ts,transactions/transaction.ts}` · `apps/builder/src/builder/catalogRuntime/{originUnlock.ts,componentsPage.ts,workspace.ts,canvasPick.ts}` · `panels/navigator/catalog/CatalogDefinitionsSection.tsx`
 
 - **Library · Local page = 프로젝트 문서의 page (ADR-282 Phase 3 · 사용자 지시 2026-10-25 「library-body 는 home-body 에 대응」)**:
-  - Components 탭에서 Library · Local 을 처음 열 때 그 page 가 프로젝트 문서에 저장된다 (History 에 남지 않음). 그 뒤로는 Pages 탭의 page 처럼 body · 카드 · 제목 · 줄 · 칸 · 캡션 · ◇ instance 를 고르고 옮기고 지우고 Layout · Style 을 편집한다. Layers 는 page 트리 (body > 카드 > 줄 > ◆ · ◇) 다. body 는 Pages 의 body 처럼 breakpoint 폭 (desktop 1920 · tablet 768 · mobile 390) 이고 높이는 카드만큼 (`100%`), grid 열은 desktop 3 · tablet 2 · mobile 1 (`auto` — body 의 breakpoint 레이어) 이며 카드는 자기 열 폭을 채운다 (`width: 100%`), 카드는 번호 순서로 body 바로 아래 놓인다 (Column frame 없음). 카드의 줄은 grid 하나 — 첫 행 샘플, 아래 행 캡션.
+  - Components 탭에서 Library · Local 을 처음 열 때 그 page 가 프로젝트 문서에 저장된다 (History 에 남지 않음). 그 뒤로는 Pages 탭의 page 처럼 body · 카드 · 제목 · 줄 · ◇ instance 를 고르고 옮기고 지우고 Layout · Style 을 편집한다. Layers 는 page 트리 (body > 카드 > 줄 > ◆ · ◇) 다. body 는 Pages 의 body 처럼 breakpoint 폭 (desktop 1920 · tablet 768 · mobile 390) 이고 높이는 카드만큼 (`100%`), grid 열은 desktop 3 · tablet 2 · mobile 1 (`auto` — body 의 breakpoint 레이어) 이며 카드는 자기 열 폭을 채운다 (`width: 100%`), 카드는 번호 순서로 body 바로 아래 놓인다 (Column frame 없음). 카드의 줄은 grid 하나 — 컴포넌트 카드는 ◆ · ◇ 캡션 글자 없이 샘플만 놓고 (역할 표시는 Layers 의 ◆ · ◇ · instance 이름, 사용자 요청 2026-10-25 — 캡션 글자 약 300개 · Library page 약 100 KB 감소), theme 카드 (Colors · Typography · Spacing — 01~03, 컴포넌트는 04 부터) 는 값 이름 · 값 캡션을 그대로 둔다. Icons 카드는 뺐다 (사용자 요청 2026-10-25).
   - CardView · Badge · Meter · StatusLight · InlineAlert · Card 카드에 Variants 줄 없음 (사용자 요청 2026-10-25).
-  - Origin 줄만 있는 카드는 줄 이름 · 줄 frame 없이 카드가 바로 ◆ · 캡션을 담는다 (제목 바로 뒤에 ◆ — `graph.setViewChildren` 의 위치 인자, 사용자 요청 2026-10-25). 폭을 채우는 원본 (Meter · 필드 · 목록) 은 카드 폭으로 그려진다.
+  - 컴포넌트 카드에는 Origin 줄 이름 (Text) · Origin 줄 frame 이 없다 — ◆ 원본 (과 slot 을 채운 ◇) 은 카드 제목 바로 아래에 서고, 다른 줄 (Variants · 상태 · Item · Types) 이 그 뒤에 온다 (`graph.setViewChildren` 의 위치 인자, 사용자 요청 2026-10-25 「Origin(Text) · Origin(그룹) 제거」). 폭을 채우는 원본 (Meter · 필드 · 목록) 은 카드 폭으로 그려진다.
   - Dialog · Popover · ContextualHelp 카드는 원본 (◆, 본체 열림) 만 그린다 — 옆의 채운 instance (◇) 없음 (사용자 요청 2026-10-25).
   - ◆ 칸은 원본을 참조만 하고 그린다 (`NodeEntry.originOf`) — 잠긴 원본은 표본, 해제한 · Local 원본은 그 template 루트. 잠금 · 해제 · 리셋 · 컴포넌트 생성 · 삭제는 page 를 건드리지 않는다. Local page 는 컴포넌트 생성 · 삭제 · 이름 변경을 따라 카드를 맞춘다.
   - Preview · publish 는 이 page 를 싣지 않는다. 사용자에게 보이는 instance 수 (Component 절 · 확인 대화상자) 는 page 의 ◇ 를 세지 않는다.
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Library 가 잠긴 상태에서도 Library page 가 편집되던 문제** (사용자 보고 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」): 잠금 중에는 원본 표본 (루트 기본값 포함) · 해제 사본 · page 자신의 노드 (body · 카드 · 줄 · 캡션 · ◇) 모두 편집을 거부하고 「The Library is locked」 안내를 띄운다 (`originView.ts` `catalogOriginEditCommand`). 해제하면 전부 편집된다.
+- **Library 가 잠긴 상태에서도 Library page 가 편집되던 문제** (사용자 보고 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」): 잠금 중에는 원본 표본 (루트 기본값 포함) · 해제 사본 · page 자신의 노드 (body · 카드 · 줄 · ◇) 모두 편집을 거부하고 「The Library is locked」 안내를 띄운다 (`originView.ts` `catalogOriginEditCommand`). 해제하면 전부 편집된다.
 - **Library page 의 ◆ 칸을 편집한 프로젝트가 다시 열리지 않던 문제 (`entry.children[0]`)** (ADR-282 Phase 3 · 사용자 보고 2026-10-25): 저장이 바뀐 노드를 view 가 덧붙인 자식 (◆ 표본) 까지 담아 기록했다 — 이제 문서에 저장된 모습 그대로 기록한다 (`controller.ts` → `graph.storedEntry`). 이미 그렇게 저장된 프로젝트는 그대로다.
 - **Local page 원본에서 slot 노드를 지우면 `UNOWNED_NODE` 로 삭제가 거부되던 문제** (ADR-282 리뷰 Round 2 가 재현):
   - **Why**: `removeWithReferrers` 는 지워진 자리를 가리키는 instance override 를 걸러 내면서 `replace` 의 대체 노드만 같이 지웠다. `fillSlot` 의 채움 노드는 남아 소유자를 잃었고, transaction 검증이 거부했다 (문서는 보존됨).

@@ -383,12 +383,11 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     expect(project.componentPageIds).toEqual([LIBRARY_COMPONENT_PAGE]);
     expect(project.pageIds).not.toContain(LIBRARY_COMPONENT_PAGE);
     expect(workspace.history.getSnapshot().labels).toEqual(["Insert", "Insert"]);
-    // The Origin line draws the origin's sample first; the document keeps its other cells.
-    const cell = componentPageNodeId(
-      `${originCardId(BUTTON).slice(0, -"/card".length)}/line/origin/1`,
-    );
+    // The card draws the origin's sample right after its title (no Origin line — user
+    // 2026-10-25); the document keeps its other children.
+    const cell = componentPageNodeId(originCardId(BUTTON));
     const sample = originSampleId(BUTTON);
-    expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(sample);
+    expect((graph.getEntry(cell) as NodeEntry).children[1]).toBe(sample);
     expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
     expect((graph.storedEntry(cell) as NodeEntry).originOf).toBe(BUTTON);
     // Locked, the page takes no edit (user 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」).
@@ -404,7 +403,7 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     // redo — none of them stores the drawn origin (the copy root, once unlocked).
     workspace.setLibraryUnlocked(true);
     const copyRoot = graph.getDefinitionOverride(BUTTON)!.templateRootId!;
-    expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(copyRoot);
+    expect((graph.getEntry(cell) as NodeEntry).children[1]).toBe(copyRoot);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: cell }],

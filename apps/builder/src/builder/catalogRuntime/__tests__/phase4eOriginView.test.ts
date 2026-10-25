@@ -124,30 +124,50 @@ const cardLines = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
   }
   return lines;
 };
-/** A line's cells: each sample and the name of the caption under it. */
+/** A caption's mark (a theme card's — a component card's cells have none, user 2026-10-25). */
+const captioned = (children: NodeEntry[]) =>
+  children.some((child) => /^[◆◇] /.test(child.name ?? ""));
+/**
+ * A line's cells: each sample and the name of the caption under it — or, uncaptioned (a component
+ * card's, user 2026-10-25 「origin, instance 표시 텍스트 제거」), the sample's own name.
+ */
 const lineCells = (
   line: { grids: NodeEntry[] },
   nodeOf: (id: string) => NodeEntry,
 ) =>
   line.grids.flatMap((grid) => {
+    const children = grid.children.map(nodeOf);
+    if (!captioned(children))
+      return children.map((sample) => ({ name: sample.name, sample }));
     const columns = String(
       (grid.layout?.gridTemplateColumns as { value: string }).value,
     ).split(" ").length;
-    const children = grid.children.map(nodeOf);
     return children.slice(0, columns).map((sample, at) => ({
       name: children[columns + at]!.name,
       sample,
     }));
   });
 /**
- * A card of the Origin line alone holds its cells itself (user 2026-10-25 — no line name, no line
- * frame): after the title, each sample and then its caption.
+ * A card holds its origin's cells itself, right under its title (user 2026-10-25 — no Origin line
+ * name, no Origin line frame): the samples before its first line — an overlay's in its body line
+ * (ADR-278: the body to the right of its trigger).
  */
 const aloneCells = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
   const children = card.children.slice(1).map(nodeOf);
-  return children.flatMap((sample, at) =>
-    at % 2 === 0 ? [{ sample, name: children[at + 1]!.name }] : [],
+  // (A line: its name — a Text named as the grid after it — then its grids.)
+  const grid = (child: NodeEntry | undefined) =>
+    child?.layout?.gridTemplateColumns !== undefined;
+  const first = children.findIndex(
+    (child, at) =>
+      grid(child) ||
+      (grid(children[at + 1]) && children[at + 1]!.name === child.name),
   );
+  return children
+    .slice(0, first < 0 ? undefined : first)
+    .map((cell) =>
+      cell.name === "Body line" ? nodeOf(cell.children[0]!) : cell,
+    )
+    .map((sample) => ({ sample, name: sample.name }));
 };
 /** A Components page node's id: its stored one once the page is stored (ADR-282 Phase 3). */
 const pageNode = (workspace: CatalogWorkspace, viewId: string): NodeId => {
@@ -251,7 +271,9 @@ describe("ADR-248 4e library origin view", () => {
       .split("::")[0]!
       .split("/")
       .map((id) => (graphOf(workspace).getEntry(id) as NodeEntry | undefined)?.name);
-    expect(names.filter(Boolean).slice(0, 2)).toEqual(["Button", "Origin"]);
+    // (No Origin line: the ◆ stands right under the card's title — user 2026-10-25.)
+    expect(names.filter(Boolean)).not.toContain("Origin");
+    expect(names.filter(Boolean)[0]).toBe("Button");
     expect(catalogComponentRole(graphOf(workspace), sampleId)).toBe("origin");
     const hover = pageNode(
       workspace,
@@ -267,14 +289,14 @@ describe("ADR-248 4e library origin view", () => {
     const records = workspace.root.domInputs;
     const recordOf = (id: string) =>
       workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
-    const caption = [...records.values()].find(
+    const label = [...records.values()].find(
       (record) =>
         record.sourceId ===
         componentPageNodeId(
-          `${ORIGIN_VIEW_NODE}/origin/${button.id}/caption/primary/Hover`,
+          `${ORIGIN_VIEW_NODE}/origin/${button.id}/line/primary/label`,
         ),
     )!;
-    expect(resolveCatalogClickRecord(records, caption.id, undefined)).toBe(
+    expect(resolveCatalogClickRecord(records, label.id, undefined)).toBe(
       recordOf(pageNode(workspace, originCardId(button.id))),
     );
     for (const id of [sampleId, hover])
@@ -307,7 +329,7 @@ describe("ADR-248 4e library origin view", () => {
     workspace.dispose();
   });
 
-  it("the page: a card per built-in origin on a three-column grid — variants × states, captions", async () => {
+  it("the page: a card per built-in origin on a three-column grid — variants × states, no captions", async () => {
     const { workspace, library } = await open();
     workspace.showDefinition(COMPONENTS_VIEW);
     const graph = graphOf(workspace);
@@ -315,7 +337,8 @@ describe("ADR-248 4e library origin view", () => {
       graph.getEntry(pageNode(workspace, id)) as NodeEntry;
     // Every palette origin has one card, directly under the body.
     const cards = catalogComponentsPageCards(graph).map(nodeOf);
-    const THEME = ["Colors", "Typography", "Icons", "Spacing"];
+    // (No Icons card — user 2026-10-25.)
+    const THEME = ["Colors", "Typography", "Spacing"];
     expect(
       cards
         .map((card) => card.name)
@@ -326,7 +349,7 @@ describe("ADR-248 4e library origin view", () => {
         .map((origin) => origin.name)
         .sort(),
     );
-    // The theme's cards are numbered 01–04, the components from 05; their values are the
+    // The theme's cards are numbered 01–03, the components from 04; their values are the
     // theme token tables' (a swatch per color, a sample per type size, a box per spacing step).
     const titleOf = (name: string) =>
       nodeOf(cards.find((candidate) => candidate.name === name)!.children[0]!)
@@ -334,10 +357,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(THEME.map(titleOf)).toEqual([
       "01. COLORS",
       "02. TYPOGRAPHY",
-      "03. ICONS",
-      "04. SPACING",
+      "03. SPACING",
     ]);
-    expect(titleOf(catalogBuiltinOrigins(library)[0]!.name)).toMatch(/^05\. /);
+    expect(titleOf(catalogBuiltinOrigins(library)[0]!.name)).toMatch(/^04\. /);
     const themeNode = (path: string) =>
       nodeOf(`${ORIGIN_VIEW_NODE}/theme/${path}`);
     expect(themeNode("colors/accent/sample").visual).toMatchObject({
@@ -361,9 +383,6 @@ describe("ADR-248 4e library origin view", () => {
     expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
       fontSize: { kind: "set", value: 20 },
     });
-    expect(themeNode("icons/search/sample").props).toEqual({
-      iconName: { kind: "set", value: "search" },
-    });
     // A theme card reads as a component card: its base value as the origin, the rest as instances.
     const spacingRows = linesOf("Spacing");
     expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
@@ -385,10 +404,10 @@ describe("ADR-248 4e library origin view", () => {
     const title = nodeOf(card.children[0]!);
     const rows = linesOf("Button");
     expect(title.name).toMatch(/^\d\d\. BUTTON$/);
-    // The origin, then its instances: a line per variant (no line of sizes — a size is a prop
-    // of every instance, and the line took most of a card).
+    // The origin under the title (no Origin line — user 2026-10-25), then its instances: a line
+    // per variant (no line of sizes — a size is a prop of every instance, and the line took most
+    // of a card).
     expect(rows.map((row) => row.name)).toEqual([
-      "Origin",
       "Accent",
       "Primary",
       "Secondary",
@@ -398,18 +417,21 @@ describe("ADR-248 4e library origin view", () => {
     ]);
     const sampleOf = (cell: { sample: NodeEntry }) => cell.sample;
     const origin = "lib:definition:origin-component-button";
-    // The origin's cell holds its one editable sample, marked as the origin.
-    const [originCell] = cellsOf(rows[0]!);
-    expect(originCell!.name).toBe("◆ Button");
+    // The origin's cell holds its one editable sample — no caption under it (user 2026-10-25
+    // 「origin, instance 표시 텍스트 제거」: Layers marks it ◆).
+    const [originCell] = aloneCells(card, nodeOf);
+    expect(originCell!.name).toBe("Button");
     expect(sampleOf(originCell!).id).toBe(originSampleId(origin));
-    // A variant's line: instances (marked) of the origin at rest, then of its state variants.
-    const primary = cellsOf(rows[2]!);
+    // A variant's line: instances of the origin at rest, then of its state variants — one grid,
+    // named by their instances.
+    expect(rows[1]!.grids).toHaveLength(1);
+    const primary = cellsOf(rows[1]!);
     expect(primary.map((cell) => cell.name)).toEqual([
-      "◇ Default",
-      "◇ Disabled",
-      "◇ Hover",
-      "◇ Pressed",
-      "◇ Focus Visible",
+      "Button / Primary / Default",
+      "Button / Primary / Disabled",
+      "Button / Primary / Hover",
+      "Button / Primary / Pressed",
+      "Button / Primary / Focus Visible",
     ]);
     expect(primary.map((cell) => sampleOf(cell).definitionId)).toEqual(
       ["", "--disabled", "--hover", "--pressed", "--focus-visible"].map(
@@ -422,21 +444,25 @@ describe("ADR-248 4e library origin view", () => {
     // A collection shows its item origin's states (not its own variants — they only tint its
     // hover): the item drawn on its own, its label filled in and its placeholders off.
     const gridRows = linesOf("GridList");
-    expect(gridRows.map((row) => row.name)).toEqual(["Origin", "Item"]);
+    expect(gridRows.map((row) => row.name)).toEqual(["Item"]);
     // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
     // part) is not a collection: no Item line.
     expect(linesOf("ComboBox").map((row) => row.name)).not.toContain("Item");
     // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
-    expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
-      "◆ GridList",
-      "◇ GridList",
+    expect(
+      aloneCells(cards.find((candidate) => candidate.name === "GridList")!, nodeOf).map(
+        (cell) => cell.name,
+      ),
+    ).toEqual([
+      "GridList",
+      "GridList / Instance",
     ]);
-    // The Item row opens with the item origin itself (◆ — its editable sample; user 2026-10-13
-    // 「Item 줄 맨 앞에 ◆ 원본 칸」), then its instances (◇) at rest and in each state.
+    // The Item row opens with the item origin itself (its editable sample; user 2026-10-13
+    // 「Item 줄 맨 앞에 ◆ 원본 칸」), then its instances at rest and in each state.
     const ITEM_ORIGIN =
       "lib:definition:origin-component-gridlist-item-default" as LibraryDefinitionId;
-    const [itemOriginCell, ...itemCells] = cellsOf(gridRows[1]!);
-    expect(itemOriginCell!.name).toBe("◆ GridListItem");
+    const [itemOriginCell, ...itemCells] = cellsOf(gridRows[0]!);
+    expect(itemOriginCell!.name).toMatch(/^GridListItem/);
     const itemSample = sampleOf(itemOriginCell!);
     expect(itemSample.id).toBe(originSampleId(ITEM_ORIGIN));
     expect(itemSample.definitionId).toBe(ITEM_ORIGIN);
@@ -454,7 +480,7 @@ describe("ADR-248 4e library origin view", () => {
       address: { instances: [itemSample.id] },
       props: { children: { kind: "set", value: "Item" } },
     });
-    expect(itemCells.map((cell) => cell.name)[0]).toMatch(/^◇ /);
+    expect(itemCells.map((cell) => cell.name)[0]).toMatch(/^GridList \/ Item \//);
     // Every page node stands in one place (no item origin's sample is drawn twice).
     const placed = new Map<string, number>();
     const visit = (id: string) => {
@@ -475,7 +501,9 @@ describe("ADR-248 4e library origin view", () => {
       const groupRows = linesOf("ButtonGroup");
       const itemRow = groupRows.find((row) => row.name === "Item");
       if (itemRow)
-        expect(cellsOf(itemRow).map((cell) => cell.name)[0]).toMatch(/^◇ /);
+        expect(cellsOf(itemRow).map((cell) => cell.name)[0]).toMatch(
+          /^ButtonGroup \/ Item \//,
+        );
     }
     // The Library is locked: the item origin's sample takes no edit (user 2026-10-25).
     expect(() =>
@@ -518,7 +546,7 @@ describe("ADR-248 4e library origin view", () => {
       },
       props: { children: { kind: "set", value: "Item" } },
     });
-    const accentHover = sampleOf(cellsOf(rows[1]!)[2]!);
+    const accentHover = sampleOf(cellsOf(rows[0]!)[2]!);
     expect(accentHover.definitionId).toBe(`${origin}--hover`);
     expect(accentHover.props).toEqual({
       variant: { kind: "set", value: "accent" },
@@ -540,7 +568,7 @@ describe("ADR-248 4e library origin view", () => {
       expect([
         name,
         aloneCells(cardOf(name), nodeOf).map((cell) => cell.name),
-      ]).toEqual([name, [`◆ ${name}`]]);
+      ]).toEqual([name, [name]]);
     // These cards draw no Variants line (user 2026-10-25) — the Origin line alone, held by the
     // card itself: no line name or frame, the ◆ after the title (user 2026-10-25).
     for (const name of [
@@ -554,7 +582,7 @@ describe("ADR-248 4e library origin view", () => {
       expect([name, linesOf(name).length]).toEqual([name, 0]);
     const meter = cardOf("Meter");
     expect(aloneCells(meter, nodeOf).map((cell) => cell.name)).toEqual([
-      "◆ Meter",
+      "Meter",
     ]);
     expect(nodeOf(meter.children[1]!).id).toBe(
       originSampleId("lib:definition:origin-component-meter" as LibraryDefinitionId),
@@ -566,11 +594,11 @@ describe("ADR-248 4e library origin view", () => {
     ).toBe("lib:definition:origin-component-meter");
     const chartRows = linesOf("Chart");
     // (No Variants row — the Chart has no variant axis, 2026-10-12.)
-    expect(chartRows.map((row) => row.name)).toEqual(["Origin", "Types"]);
-    const chartTypes = cellsOf(chartRows[1]!);
+    expect(chartRows.map((row) => row.name)).toEqual(["Types"]);
+    const chartTypes = cellsOf(chartRows[0]!);
     expect(chartTypes.map((cell) => cell.name)).toEqual(
       ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
-        (name) => `◇ ${name} Chart`,
+        (name) => `Chart / ${name} Chart`,
       ),
     );
     expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
@@ -610,9 +638,14 @@ describe("ADR-248 4e library origin view", () => {
     const triggerRect = workspace.root
       .getGeometry([triggerRecord])
       .get(triggerRecord)!;
+    // (A Button instance at rest: its cell hugs it, as the trigger's.)
     const buttonRect = rectOf(
-      originSampleId(
-        "lib:definition:origin-component-button" as LibraryDefinitionId,
+      pageNode(
+        workspace,
+        originInstanceId(
+          "lib:definition:origin-component-button" as LibraryDefinitionId,
+          "primary/default",
+        ),
       ),
     );
     expect([triggerRect.width, triggerRect.height]).toEqual([
