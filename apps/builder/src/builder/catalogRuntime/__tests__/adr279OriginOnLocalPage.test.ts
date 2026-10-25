@@ -421,6 +421,25 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
     expect(
       catalogProjectComponentCardFrames(graph, workspace.root)[0],
     ).toMatchObject({ title: "Card" });
+    // A title the user wrote stays through a rename (the page's own title is its node's name —
+    // no `NN.` number to tell it by since 2026-10-25).
+    const titleId = title.id;
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: titleId }],
+        props: { children: set("My card") },
+      }),
+    );
+    workspace.execute(
+      renameDefinition({
+        id: definitionId,
+        name: "Hero card",
+        label: "Rename component",
+      }),
+    );
+    expect(
+      JSON.stringify((graph.getEntry(titleId) as NodeEntry).props.children),
+    ).toContain("My card");
     workspace.dispose();
   });
 

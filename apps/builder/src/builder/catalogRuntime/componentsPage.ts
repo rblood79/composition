@@ -438,7 +438,7 @@ function readPageRows(
       .sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!);
   }
   if (isPageRoot) {
-    // The cards in their numbered order (the columns hold them in drawn order).
+    // The cards in their order (the columns hold them in drawn order).
     walk(position, isPageCard);
     const order = new Map<string, number>(
       catalogBuiltinOrigins(reader.library).map((item, index) => [
@@ -475,7 +475,7 @@ interface PageCell {
 
 /**
  * The drawing kit of a components page: its entries (each computed on read), the theme colors,
- * and what a page is made of — numbered cards of named lines on a grid body.
+ * and what a page is made of — cards of named lines on a grid body.
  */
 function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
   const library = graph.library;
@@ -594,23 +594,27 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
   };
 
   const cards: NodeId[] = [];
-  /** A numbered card (numbered in the order the cards are made): its title, then its lines. */
+  /** A card (in the order the cards are made): its title, then its lines. */
   const card = (
     cardId: NodeId,
     titleId: NodeId,
     name: string,
     lines: NodeId[],
     caption: string = name,
+    /** The width its contents fill (a field's ◆ — a `%` width of a fit-content card is nothing). */
+    contentWidth?: number,
   ) => {
     const title = text(
       titleId,
-      `${String(cards.length + 1).padStart(2, "0")}. ${caption.toUpperCase()}`,
+      // (No number before it — user 2026-10-25 「num. 제거」.)
+      caption.toUpperCase(),
       { fontSize: 12, fontWeight: 700 },
     );
     cards.push(
-      // (Its grid column's width — user 2026-10-25 「카드들 모두 width 100%」.)
+      // (As wide as its contents — user 2026-10-25 「width 는 % 에서 fit-content 로」.)
       frame(cardId, name, [title, ...lines], {
-        width: "100%",
+        width: "fit-content",
+        ...(contentWidth ? { minWidth: contentWidth + 2 * CARD_PADDING } : {}),
         flexDirection: "column",
         alignItems: "flex-start",
         gap: 12,
@@ -622,7 +626,7 @@ function pageKit(graph: CatalogGraph, mode: "light" | "dark") {
   };
 
   /**
-   * The cards in their numbered order under the root — a body, named by its type in Layers as a
+   * The cards in their order under the root — a body, named by its type in Layers as a
    * page's body is (user 2026-10-14) — on a grid of columns as wide as their cards, three on
    * desktop, two on tablet, one on mobile (user 2026-10-25: no column frames). Its width is the
    * breakpoint's page width, as a page body's (the composition root's page frame); its height
@@ -1197,6 +1201,7 @@ export function catalogComponentsPageEntries(
       [...originCells.map((cell) => cell.sample), ...lines],
       // (An unlocked origin's card says so — its template is the project's copy, ADR-282 R6.)
       `${origin.category === "parts" ? `${origin.name} · part` : origin.name}${forkRoot ? " · unlocked" : ""}`,
+      cellWidth,
     );
     // (Read on each read: a reset — or an undo of the unlock — removes the copy before the page
     // is laid out again; the holder draws the sample until then, as a Local card's cell does.)
@@ -1527,8 +1532,8 @@ export function catalogLocalPageSync(
   const empty = componentPageNodeId(`${PROJECT_ORIGIN_VIEW_NODE}/empty/card`);
   const emptyGone = added.length > 0 && !!graph.storedEntry(empty);
   const entries = catalogProjectComponentsPageEntries(graph, mode);
-  // A card's title follows its component's name (a rename) while it is still the page's own
-  // `NN. NAME` — a title the user wrote stays.
+  // A card's title follows its component's name (a rename) while it is still the page's own —
+  // its text still the node's name, as the page wrote both — a title the user wrote stays.
   const titles: NodeEntry[] = [];
   for (const [origin] of cells) {
     if (!wanted.has(origin as never)) continue;
@@ -1544,9 +1549,10 @@ export function catalogLocalPageSync(
         : undefined;
     };
     const was = text(stored);
-    if (was && /^\d{2}\. /.test(was) && was !== text(fresh))
+    if (was && was === stored.name && was !== text(fresh))
       titles.push({
         ...stored,
+        name: text(fresh),
         props: { ...stored.props, children: fresh.props.children! },
       });
   }

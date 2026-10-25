@@ -349,17 +349,19 @@ describe("ADR-248 4e library origin view", () => {
         .map((origin) => origin.name)
         .sort(),
     );
-    // The theme's cards are numbered 01–03, the components from 04; their values are the
+    // The theme's cards come first, titled by name (no number — user 2026-10-25); their values are the
     // theme token tables' (a swatch per color, a sample per type size, a box per spacing step).
     const titleOf = (name: string) =>
       nodeOf(cards.find((candidate) => candidate.name === name)!.children[0]!)
         .name;
     expect(THEME.map(titleOf)).toEqual([
-      "01. COLORS",
-      "02. TYPOGRAPHY",
-      "03. SPACING",
+      "COLORS",
+      "TYPOGRAPHY",
+      "SPACING",
     ]);
-    expect(titleOf(catalogBuiltinOrigins(library)[0]!.name)).toMatch(/^04\. /);
+    expect(THEME.map((name) => cards.findIndex((card) => card.name === name))).toEqual([
+      0, 1, 2,
+    ]);
     const themeNode = (path: string) =>
       nodeOf(`${ORIGIN_VIEW_NODE}/theme/${path}`);
     expect(themeNode("colors/accent/sample").visual).toMatchObject({
@@ -403,7 +405,7 @@ describe("ADR-248 4e library origin view", () => {
     const card = cards.find((candidate) => candidate.name === "Button")!;
     const title = nodeOf(card.children[0]!);
     const rows = linesOf("Button");
-    expect(title.name).toMatch(/^\d\d\. BUTTON$/);
+    expect(title.name).toBe("BUTTON");
     // The origin under the title (no Origin line — user 2026-10-25), then its instances: a line
     // per variant (no line of sizes — a size is a prop of every instance, and the line took most
     // of a card).
@@ -663,14 +665,12 @@ describe("ADR-248 4e library origin view", () => {
       gridTemplateColumns: { kind: "set", value: "auto auto auto" },
     });
     expect(body.children.every((id) => isPageCard(id))).toBe(true);
-    // Every card is its column's width (`width: 100%`).
+    // Every card is as wide as its contents (`width: fit-content` — user 2026-10-25).
     expect(
       new Set(body.children.map((id) => JSON.stringify(nodeOf(id).visual.width))),
-    ).toEqual(new Set([JSON.stringify({ kind: "set", value: "100%" })]));
+    ).toEqual(new Set([JSON.stringify({ kind: "set", value: "fit-content" })]));
     const boxes = body.children.map((id) => rectOf(id));
     expect(new Set(boxes.slice(0, 3).map((box) => box.x)).size).toBe(3);
-    // (Cards in one column are equally wide.)
-    expect(boxes.filter((_, at) => at % 3 === 0).every((box) => box.width === boxes[0]!.width)).toBe(true);
     expect(boxes[3]!.x).toBe(boxes[0]!.x);
     expect(boxes[3]!.y).toBeGreaterThan(boxes[0]!.y);
     expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(CANVAS_VIEWPORT.desktop.width);
@@ -1239,8 +1239,8 @@ describe("ADR-248 4e library origin view", () => {
     const titleOf = (name: string) =>
       (nodeOf(cardOf(name).children[0]!).props.children as { value: string })
         .value;
-    expect(titleOf("Label")).toMatch(/\. LABEL · PART$/);
-    expect(titleOf("Button")).toMatch(/\. BUTTON$/);
+    expect(titleOf("Label")).toBe("LABEL · PART");
+    expect(titleOf("Button")).toBe("BUTTON");
     // Categories (2026-10-21, Framer's "what you are adding" grouping): value displays with
     // ProgressBar, Menu and Section with the layout · navigation group, AvatarGroup with Avatar.
     const palette = getPaletteItems();
