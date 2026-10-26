@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Columns3 } from "lucide-react";
-import type { DataOp } from "@composition/shared";
+import { resolveField, type DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { useI18n } from "../../../i18n";
@@ -33,6 +33,7 @@ import {
 } from "./stores/dataTableEditorStore";
 import { planFieldRename } from "./utils/fieldRename";
 import { FIELD_TYPES } from "./utils/fieldTypes";
+import { CompactSelect } from "./editors/CompactSelect";
 import { useDataUsageSource } from "./usage/dataUsageSource";
 import type { FieldUsageRef } from "./utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "./utils/typeChangePreview";
@@ -314,6 +315,15 @@ function FieldForm({
         </ListBox>
       </fieldset>
 
+      {type === "reference" ? (
+        <ReferenceTarget
+          field={field}
+          collectionId={collectionId}
+          dt={dt}
+          onChange={(reference) => void patchField({ reference })}
+        />
+      ) : null}
+
       <fieldset className="properties-aria datatable-field-flags">
         <legend className="fieldset-legend">{dt("fieldRequired")}</legend>
         <label className="datatable-field-check">
@@ -411,6 +421,66 @@ function FieldForm({
         onDismiss={() => setPendingType(null)}
       />
     </div>
+  );
+}
+
+/**
+ * ADR-284 Decision 4 — a reference field's target: the collection its values are keys of and the
+ * field of that collection the key matches (its `id`, usually). A view reads the target row's
+ * fields by a path through this field (`team.name`).
+ */
+function ReferenceTarget({
+  field,
+  collectionId,
+  dt,
+  onChange,
+}: {
+  field: DataField;
+  collectionId: string;
+  dt: (key: string) => string;
+  onChange: (reference: { collectionId: string; keyField: string }) => void;
+}) {
+  const collections = useDataStore((state) => state.collections);
+  const targets = [...collections.values()].filter(
+    (table) => table.id !== collectionId,
+  );
+  const targetId = field.reference?.collectionId;
+  const target = targetId ? collections.get(targetId) : undefined;
+  const keyFields = (target?.schema ?? []).filter((item) => item.id);
+  return (
+    <fieldset className="properties-aria datatable-field-reference">
+      <legend className="fieldset-legend">{dt("fieldReference")}</legend>
+      <CompactSelect
+        aria-label={dt("fieldReferenceCollection")}
+        value={field.reference?.collectionId ?? ""}
+        options={[
+          ...(field.reference
+            ? []
+            : [{ value: "", label: dt("fieldReferenceNone") }]),
+          ...targets.map((table) => ({ value: table.id, label: table.name })),
+        ]}
+        onChange={(collectionId) => {
+          const next = collections.get(collectionId);
+          if (!next) return;
+          // (The target's `id` field when it has one — what a row key usually is.)
+          const key = resolveField(next.schema, "id") ?? next.schema[0];
+          if (key?.id) onChange({ collectionId: next.id, keyField: key.id });
+        }}
+      />
+      {target ? (
+        <CompactSelect
+          aria-label={dt("fieldReferenceKey")}
+          value={field.reference?.keyField ?? ""}
+          options={keyFields.map((item) => ({
+            value: item.id!,
+            label: item.key,
+          }))}
+          onChange={(value) =>
+            onChange({ collectionId: target.id, keyField: value })
+          }
+        />
+      ) : null}
+    </fieldset>
   );
 }
 

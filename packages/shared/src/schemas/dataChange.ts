@@ -16,7 +16,8 @@
 import { z } from "zod";
 import { VARIABLE_DEF_TYPES } from "../state/variable.types";
 
-export const DATA_FIELD_TYPES = [
+/** The value types a field holds by itself (an AI table spec's choices). */
+export const DATA_VALUE_FIELD_TYPES = [
   "string",
   "number",
   "boolean",
@@ -28,6 +29,25 @@ export const DATA_FIELD_TYPES = [
   "array",
   "object",
 ] as const;
+/**
+ * Every field type — and `reference` (ADR-284 Decision 4): the row's value is a key of another
+ * collection's row (`reference`), a view reads that row's fields by a field path.
+ */
+export const DATA_FIELD_TYPES = [
+  ...DATA_VALUE_FIELD_TYPES,
+  "reference",
+] as const;
+
+/** A reference field's target: the collection and the field whose value the key matches. */
+export interface DataFieldReference {
+  collectionId: string;
+  /** The target collection's field id the key is compared with (its `id` field, usually). */
+  keyField: string;
+}
+const DataFieldReferenceSchema = z.object({
+  collectionId: z.string(),
+  keyField: z.string(),
+});
 
 export interface DataFieldShape {
   id?: string;
@@ -37,6 +57,7 @@ export interface DataFieldShape {
   required?: boolean;
   defaultValue?: unknown;
   children?: DataFieldShape[];
+  reference?: DataFieldReference;
 }
 
 export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
@@ -49,6 +70,7 @@ export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
   get children() {
     return z.array(DataFieldSchema).optional();
   },
+  reference: DataFieldReferenceSchema.optional(),
 });
 
 /**
@@ -64,6 +86,7 @@ export const DataFieldPatchSchema = z.object({
   get children() {
     return z.array(DataFieldSchema).nullable().optional();
   },
+  reference: DataFieldReferenceSchema.nullable().optional(),
 });
 
 const RowSchema = z.record(z.string(), z.unknown());

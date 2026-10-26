@@ -1275,12 +1275,24 @@ export function resolveCatalogNode(
     },
   ): ResolvedCatalogNode | undefined => {
     // `useListData.getItem(key)` — a keyed binding is one item: its descendants read its fields
-    // (a container), a collection repeats it alone.
+    // (a container), a collection repeats it alone. Inside a data row the key may name the row's
+    // fields (ADR-284 — `{teamId}`: the Teams row a Users row points at · `{id}`: an Orders count
+    // grouped by user, the reverse count); its own item wins over the row it sits in.
+    const rowKey =
+      node.binding?.key !== undefined && ownedRowing?.row
+        ? bindRowValue(node.binding.key, ownedRowing.row)
+        : node.binding?.key;
     const keyedRows =
       node.binding?.key !== undefined && rows
-        ? rows(node.binding, "items", node.id)
+        ? rows(
+            rowKey === node.binding.key
+              ? node.binding
+              : { ...node.binding, key: String(rowKey) },
+            "items",
+            node.id,
+          )
         : undefined;
-    const ownedRow = ownedRowing?.row ?? keyedRows?.[0];
+    const ownedRow = keyedRows?.[0] ?? ownedRowing?.row;
     const sampleOwner = ownedRowing?.rowStart
       ? node.id
       : ownedRowing?.sampleOwner;

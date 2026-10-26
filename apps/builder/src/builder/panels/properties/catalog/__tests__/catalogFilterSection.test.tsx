@@ -507,4 +507,93 @@ describe("ADR-284 G4 — derived views in the Design panel", () => {
     );
     expect(headings.map((node) => node.binding!.key)).toEqual(["Kim", "Park"]);
   });
+
+  it("references: 「Show a referenced value」 keys a row Text by teamId; 「Count referencing rows」 groups Orders by userId", () => {
+    const users = useDataStore.getState().collections.get("users") as never as {
+      schema: unknown[];
+    };
+    useDataStore.setState({
+      collections: new Map([
+        [
+          "users",
+          {
+            ...(users as object),
+            schema: [
+              { id: "f-uid", key: "id", type: "string" },
+              ...users.schema,
+              {
+                id: "f-team",
+                key: "teamId",
+                type: "reference",
+                reference: { collectionId: "teams", keyField: "f-tid" },
+              },
+            ],
+          } as never,
+        ],
+        [
+          "teams",
+          {
+            id: "teams",
+            name: "Teams",
+            project_id: "p",
+            schema: [
+              { id: "f-tid", key: "id", type: "string" },
+              { id: "f-tname", key: "name", type: "string" },
+            ],
+            mockData: [{ id: "t1", name: "Red" }],
+            runtimeData: [],
+            useMockData: true,
+          } as never,
+        ],
+        [
+          "orders",
+          {
+            id: "orders",
+            name: "Orders",
+            project_id: "p",
+            schema: [
+              { id: "f-oid", key: "id", type: "string" },
+              {
+                id: "f-user",
+                key: "userId",
+                type: "reference",
+                reference: { collectionId: "users", keyField: "f-uid" },
+              },
+            ],
+            mockData: [],
+            runtimeData: [],
+            useMockData: true,
+          } as never,
+        ],
+      ]),
+    });
+    act(() => fixture.select("list"));
+    renderDesign();
+    fireEvent.click(
+      buttonByText(groupByLegend("Search · filter"), "Show a referenced value"),
+    );
+    act(() => {
+      fireEvent.click(buttonByText(groupByLegend("Search · filter"), "Create"));
+    });
+    fireEvent.click(
+      buttonByText(groupByLegend("Search · filter"), "Count referencing rows"),
+    );
+    act(() => {
+      fireEvent.click(buttonByText(groupByLegend("Search · filter"), "Create"));
+    });
+    const texts = pageNodes().filter(
+      (node) => typeOf(node) === "Text" && node.binding?.key,
+    );
+    expect(
+      texts.map((node) => [node.binding!.collectionId, node.binding!.key]),
+    ).toEqual([
+      ["data:collection:teams", "{teamId}"],
+      ["data:collection:orders", "{id}"],
+    ]);
+    expect(texts[0]!.props.children).toMatchObject({ value: "{name}" });
+    const count = graph().getEntry(texts[1]!.binding!.viewId!) as {
+      groupBy: unknown;
+    };
+    expect(count.groupBy).toEqual([["data:field:f-user"]]);
+  });
 });

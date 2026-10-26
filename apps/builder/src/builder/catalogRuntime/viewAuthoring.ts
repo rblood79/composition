@@ -63,6 +63,12 @@ import {
   VIEW_COMPARISONS_BY_KIND,
   viewFieldKind,
 } from "../../../../../packages/shared/src/collections/view/comparison";
+import {
+  VIEW_PATH_JOIN,
+  viewFieldOf,
+  viewRunReferences,
+  viewRunSchema,
+} from "../../../../../packages/shared/src/collections/view/evaluate";
 import { parseRuleValueRef } from "../../../../../packages/shared/src/interactions/valueRef";
 import { catalogBindingCommand } from "./dataBindingCommand";
 import { catalogParentOfNode } from "./insertParent";
@@ -77,7 +83,11 @@ import {
   catalogCreationStyle,
   catalogPaletteDefinitionId,
 } from "./paletteInsert";
-import { catalogCardFieldCommand, catalogCardFields } from "./rowTemplate";
+import {
+  catalogCardFieldCommand,
+  catalogCardFields,
+  catalogRowTemplateId,
+} from "./rowTemplate";
 import {
   catalogNodePage,
   catalogVariableNameConflict,
@@ -178,6 +188,74 @@ export interface CatalogFilterField {
   readonly id: string;
   readonly key: string;
   readonly type?: string;
+  /** A path through a reference field (`[teamId, name]` — 「team.name」); absent = `[id]`. */
+  readonly path?: readonly string[];
+  /** A path's value of a row (the target row's field — `viewFieldOf`'s reader). */
+  readonly read?: (row: unknown) => unknown;
+}
+
+/** A grouped view's field of a group by `field` (a path's result field id joins its steps). */
+const groupField = (field: CatalogFilterField) =>
+  `data:field:${(field.path ?? [field.id]).join(VIEW_PATH_JOIN)}` as const;
+
+/** A field's stored path (`data:field:` ids — a reference path's steps). */
+export const catalogFieldPath = (
+  field: CatalogFilterField,
+): readonly `data:field:${string}`[] =>
+  (field.path ?? [field.id]).map((id) => `data:field:${id}` as const);
+
+/**
+ * The fields a list's view can read (ADR-284 Decision 4): its collection's own fields and, for
+ * each reference field, the target's fields through it (「teamId.name」 — a condition · a sort ·
+ * a grouping on the Teams row a Users row points at).
+ */
+export function catalogViewFields(
+  table:
+    | {
+        schema?: readonly {
+          id?: string;
+          key: string;
+          type?: string;
+          reference?: { collectionId: string; keyField: string };
+        }[];
+      }
+    | undefined,
+  collections: readonly {
+    id: string;
+    schema?: readonly { id?: string; key: string; type?: string }[];
+    mockData?: readonly unknown[];
+    runtimeData?: readonly unknown[];
+    useMockData?: boolean;
+  }[],
+): CatalogFilterField[] {
+  const schema = viewRunSchema(table?.schema);
+  const references = viewRunReferences(collections as never);
+  const out: CatalogFilterField[] = schema.map(({ id, key, type }) => ({
+    id,
+    key,
+    ...(type ? { type } : {}),
+  }));
+  for (const field of schema) {
+    const target = field.reference && references(field.reference.collectionId);
+    for (const step of target?.schema ?? []) {
+      // (Not the key it matches — the row holds that value already — nor a further reference.)
+      if (step.reference || step.id === field.reference!.keyField) continue;
+      const path = [field.id, step.id];
+      const read = viewFieldOf(
+        path.map((id) => `data:field:${id}` as const),
+        schema,
+        references,
+      )?.read;
+      out.push({
+        id: path.join("."),
+        key: `${field.key}.${step.key}`,
+        ...(step.type ? { type: step.type } : {}),
+        path,
+        ...(read ? { read } : {}),
+      });
+    }
+  }
+  return out;
 }
 
 /**
@@ -230,8 +308,9 @@ export function catalogFieldValues(
 ): string[] {
   const out: string[] = [];
   for (const row of rows) {
-    const cell =
-      row !== null && typeof row === "object"
+    const cell = field.read
+      ? field.read(row)
+      : row !== null && typeof row === "object"
         ? (row as Record<string, unknown>)[field.key]
         : undefined;
     const values = Array.isArray(cell) ? cell : [cell];
@@ -624,7 +703,7 @@ export function catalogFilterCommand(
         ...query.where.items,
         {
           id: conditionId,
-          fields: [[`data:field:${plan.field.id}`]],
+          fields: [catalogFieldPath(plan.field)],
           ...catalogFilterCondition(
             plan.kind,
             plan.field,
@@ -1313,7 +1392,7 @@ export function catalogGroupListCommand(
   const source = derivedSource(reader, plan, newId);
   const viewId = newId("view") as EntryId<"view">;
   const groupListId = newId("node") as NodeId;
-  const field = `data:field:${plan.field.id}` as const;
+  const field = catalogFieldPath(plan.field);
   const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
   if (source.step) steps.push(source.step);
   steps.push(() =>
@@ -1322,7 +1401,7 @@ export function catalogGroupListCommand(
         viewId,
         `${plan.viewName} · ${plan.field.key}`,
         source.sourceId,
-        { where: EMPTY_WHERE, groupBy: [[field]], aggregates: COUNT },
+        { where: EMPTY_WHERE, groupBy: [field], aggregates: COUNT },
       ),
     }),
   );
@@ -1338,7 +1417,7 @@ export function catalogGroupListCommand(
           {
             binding: {
               collectionId: source.binding.collectionId,
-              fieldMap: { value: field },
+              fieldMap: { value: groupField(plan.field) },
               viewId,
             },
           },
@@ -1400,7 +1479,7 @@ export function catalogGroupColumnsCommand(
 } {
   if (!plan.values.length) throw new Error(`NO_VALUES: ${plan.field.key}`);
   const source = derivedSource(reader, plan, newId);
-  const field = `data:field:${plan.field.id}` as const;
+  const field = catalogFieldPath(plan.field);
   const countViewId = newId("view") as EntryId<"view">;
   const rowId = newId("node") as NodeId;
   const columns = plan.values.map((value) => ({
@@ -1420,7 +1499,7 @@ export function catalogGroupColumnsCommand(
         source.sourceId,
         {
           where: EMPTY_WHERE,
-          groupBy: [[field]],
+          groupBy: [field],
           emptyGroups: "all",
           aggregates: COUNT,
         },
@@ -1440,7 +1519,7 @@ export function catalogGroupColumnsCommand(
               items: [
                 {
                   id: `column-${plan.field.id}`,
-                  fields: [[field]],
+                  fields: [field],
                   op: "equals",
                   value: column.value,
                 },
@@ -1486,7 +1565,7 @@ export function catalogGroupColumnsCommand(
             {
               binding: {
                 collectionId: source.binding.collectionId,
-                fieldMap: { value: field },
+                fieldMap: { value: groupField(plan.field) },
                 viewId: countViewId,
                 key: column.value,
               },
@@ -1526,5 +1605,160 @@ export function catalogGroupColumnsCommand(
   return {
     command: sequence(plan.label ?? "Group into columns", steps),
     created: { rowId, countViewId, columns },
+  };
+}
+
+// ── Phase 4c — references in a row: the target's value · the rows pointing at it ──
+
+/**
+ * The row's own fields kept as row fields before a first node goes into the row template: that
+ * edit makes the template's content owned copies, which take the item's values for `{label}` ·
+ * `{description}` — sample text the data rows then drop. Written as the position's own values,
+ * the copies keep reading the row.
+ */
+function keepRowFields(
+  stage: CatalogReader,
+  listId: NodeId,
+): CatalogCommand | undefined {
+  const cards = catalogCardFields(stage, nodePosition(stage, listId));
+  const placeholders = (cards?.fields ?? []).filter(
+    (field) => field.target.kind !== "node" && /^\{[^{}]+\}$/.test(field.value),
+  );
+  if (!placeholders.length) return undefined;
+  return (reader) => {
+    const inner = stageOver(reader);
+    const ops: CatalogCommandPlan["ops"][number][] = [];
+    for (const field of placeholders) {
+      const plan = catalogCardFieldCommand(field, field.value)(inner);
+      inner.apply(plan.ops);
+      ops.push(...plan.ops);
+    }
+    return { label: "Row fields", ops };
+  };
+}
+
+/** Insert a Text at the end of a bound list's row template (every data row shows it). */
+function rowTemplateText(
+  stage: CatalogReader,
+  listId: NodeId,
+  textId: NodeId,
+  children: string,
+  binding: DataBindingRef,
+  newId: NewId,
+): CatalogCommand {
+  const itemId = catalogRowTemplateId(stage, listId);
+  if (!itemId || !itemId.startsWith("project:node:"))
+    throw new Error(`NO_ROW_TEMPLATE: ${listId}`);
+  const item = stage.getEntry(itemId as NodeId);
+  if (item?.kind !== "node") throw new Error(`NO_ROW_TEMPLATE: ${listId}`);
+  // (No index: the end of the item's content — its template root's fill, made by this insert when
+  // it is the first — after the label and the description the row's grid places first.)
+  return insertNodes({
+    parent: { kind: "node", id: itemId as NodeId },
+    entries: [paletteNode(stage, textId, "Text", { children }, { binding })],
+    rootIds: [textId],
+    newId,
+  });
+}
+
+/**
+ * 「참조 값 표시」 (Decision 4 — `find`): a Text in each row of the list showing a field of the row
+ * its reference field points at — the Text reads the target collection by key = the row's
+ * reference value (`binding.key: "{teamId}"`, `useListData.getItem`).
+ */
+export function catalogReferenceValueCommand(
+  reader: CatalogReader,
+  plan: {
+    readonly listId: NodeId;
+    /** The list's reference field (its key — the row field the key template reads). */
+    readonly field: CatalogFilterField;
+    readonly target: { readonly collectionId: string; readonly key: string };
+    readonly label?: string;
+  },
+  newId: NewId,
+): { command: CatalogCommand; created: { textId: NodeId } } {
+  const textId = newId("node") as NodeId;
+  return {
+    command: sequence(plan.label ?? "Show referenced value", [
+      (stage) => keepRowFields(stage, plan.listId),
+      (stage) =>
+        rowTemplateText(
+          stage,
+          plan.listId,
+          textId,
+          `{${plan.target.key}}`,
+          {
+            collectionId: `data:collection:${plan.target.collectionId}`,
+            fieldMap: {},
+            key: `{${plan.field.key}}`,
+          },
+          newId,
+        ),
+    ]),
+    created: { textId },
+  };
+}
+
+/**
+ * 「참조하는 행 수」 (Decision 4 — 역방향 집계): a Text in each row of the list counting the rows of
+ * another collection whose reference field points at it (a user's orders). One shared view groups
+ * that collection by the reference field (`count`); each row's Text reads its group by key = the
+ * row's key field value. A row nothing points at shows nothing.
+ */
+export function catalogReferenceCountCommand(
+  reader: CatalogReader,
+  plan: {
+    readonly listId: NodeId;
+    /** The referencing collection and its reference field (whose target is the list's data). */
+    readonly from: {
+      readonly collectionId: string;
+      readonly collectionName: string;
+      readonly field: CatalogFilterField;
+    };
+    /** The list's field the reference matches (the reference's `keyField`). */
+    readonly keyField: CatalogFilterField;
+    readonly text: string;
+    readonly label?: string;
+  },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: { textId: NodeId; viewId: EntryId<"view"> };
+} {
+  const viewId = newId("view") as EntryId<"view">;
+  const textId = newId("node") as NodeId;
+  const field = catalogFieldPath(plan.from.field);
+  const collectionId = `data:collection:${plan.from.collectionId}` as const;
+  return {
+    command: sequence(plan.label ?? "Count referencing rows", [
+      () =>
+        addView({
+          entry: {
+            kind: "view",
+            id: viewId,
+            name: `${plan.from.collectionName} · ${plan.from.field.key} count`,
+            source: { collectionId },
+            where: EMPTY_WHERE,
+            groupBy: [field],
+            aggregates: COUNT,
+          },
+        }),
+      (stage) => keepRowFields(stage, plan.listId),
+      (stage) =>
+        rowTemplateText(
+          stage,
+          plan.listId,
+          textId,
+          plan.text,
+          {
+            collectionId,
+            fieldMap: { value: groupField(plan.from.field) },
+            viewId,
+            key: `{${plan.keyField.key}}`,
+          },
+          newId,
+        ),
+    ]),
+    created: { textId, viewId },
   };
 }

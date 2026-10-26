@@ -10,7 +10,10 @@
  *
  * 결정적 생성: seed = 테이블 이름 → 같은 설명이면 같은 미리보기 (재승인 · 테스트 안정).
  */
-import { DATA_FIELD_TYPES, type DataFieldShape } from "@composition/shared";
+import {
+  DATA_VALUE_FIELD_TYPES,
+  type DataFieldShape,
+} from "@composition/shared";
 import { z } from "zod";
 import {
   FALLBACK_LOCALE,
@@ -168,7 +171,8 @@ const FieldSpecSchema = z.object({
     .min(1)
     .max(64)
     .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "key 는 식별자 형태 (영문 · 숫자 · _)"),
-  type: z.enum(DATA_FIELD_TYPES),
+  // (A reference needs its target collection — the Data panel sets it, not a table spec.)
+  type: z.enum(DATA_VALUE_FIELD_TYPES),
   label: z.string().max(80).optional(),
   required: z.boolean().optional(),
   /** 샘플 값 생성 규칙 — 생략 시 type 과 key 로 기본 규칙 */

@@ -18,6 +18,8 @@ import type {
 } from "../resolution/resolver";
 import {
   runViewQueries,
+  viewRunReferences,
+  viewRunSchema,
   type ViewRunResult,
 } from "../../collections/view/evaluate";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
@@ -217,10 +219,12 @@ export function catalogBoundRows(
       // count marked as part of the data.)
       const counts = ref.query.queries.slice(depth);
       const known = total !== undefined || whole;
-      const result = runBindingView(rows, table, {
-        ...ref.query,
-        queries: counts,
-      });
+      const result = runBindingView(
+        rows,
+        table,
+        { ...ref.query, queries: counts },
+        sources,
+      );
       const counted = known
         ? result.rows.map((row) =>
             Object.fromEntries(
@@ -236,7 +240,7 @@ export function catalogBoundRows(
     }
   } else if (ref.query) {
     const rows = readDataBindingRows(dataBinding, sources);
-    const result = runBindingView(rows, table, ref.query);
+    const result = runBindingView(rows, table, ref.query, sources);
     // (Local rows are the whole data; an API page is part of it until no further page.)
     const complete =
       table.useMockData === true ? true : ref.query.loaded?.complete;
@@ -260,7 +264,26 @@ export function catalogBoundRows(
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
-  const shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
+  let shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
+  // (A key with no group in a grouped view: that group has no rows — its counts are 0, a user
+  // nothing points at has 0 orders.)
+  const last = ref.query?.queries.at(-1);
+  if (
+    ref.key !== undefined &&
+    last?.groupBy &&
+    shown?.[0] &&
+    !Object.keys(shown[0].values).length
+  )
+    shown = [
+      {
+        ...shown[0],
+        values: Object.fromEntries(
+          (last.aggregates ?? [])
+            .filter((aggregate) => aggregate.fn === "count")
+            .map((aggregate) => [aggregate.as, 0]),
+        ),
+      },
+    ];
   return shown && view ? Object.assign(shown, { view }) : shown;
 }
 
@@ -294,24 +317,45 @@ function partialAggregates(
  * values it read and the source rows; a variable write or a row change is another key).
  */
 const viewRuns = new WeakMap<object, Map<string, ViewRunResult>>();
+const rowVersions = new WeakMap<object, number>();
+let nextRowVersion = 0;
+/** One number per rows array (the data store replaces a collection's rows on every change). */
+function rowsVersion(rows: object): number {
+  let version = rowVersions.get(rows);
+  if (version === undefined)
+    rowVersions.set(rows, (version = ++nextRowVersion));
+  return version;
+}
+
 function runBindingView(
   rows: readonly unknown[],
   table: CollectionDataSource,
   query: CatalogRowQuery,
+  sources: readonly CollectionDataSource[],
 ): ViewRunResult {
-  const signature = JSON.stringify([query.queries, query.values]);
+  // (A reference field's target rows are part of the key: a Teams change re-runs a Users view.)
+  const referenced = (table.schema ?? []).flatMap((field) => {
+    const target = field.reference
+      ? sources.find((item) => item.id === field.reference!.collectionId)
+      : undefined;
+    return target
+      ? [
+          rowsVersion(
+            (target.useMockData ? target.mockData : target.runtimeData) ?? [],
+          ),
+        ]
+      : [];
+  });
+  const signature = JSON.stringify([query.queries, query.values, referenced]);
   let runs = viewRuns.get(rows);
   if (!runs) viewRuns.set(rows, (runs = new Map()));
   const cached = runs.get(signature);
   if (cached) return cached;
   const result = runViewQueries(rows, {
     queries: query.queries,
-    schema: (table.schema ?? []).flatMap((field) =>
-      field.id && field.key
-        ? [{ id: field.id, key: field.key, type: field.type }]
-        : [],
-    ),
+    schema: viewRunSchema(table.schema),
     resolve: catalogRowQueryResolve(query),
+    references: viewRunReferences(sources),
   });
   // (A few views per rows: the oldest goes first.)
   if (runs.size >= 16) runs.delete(runs.keys().next().value!);

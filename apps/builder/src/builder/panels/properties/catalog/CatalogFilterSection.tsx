@@ -40,6 +40,8 @@ import {
   catalogGroupColumnsCommand,
   catalogGroupListCommand,
   catalogOrFilterCondition,
+  catalogReferenceCountCommand,
+  catalogReferenceValueCommand,
   catalogResultCountCommand,
   catalogRemoveFilterCondition,
   catalogShareView,
@@ -47,8 +49,10 @@ import {
   catalogSortFollowCommand,
   catalogSplitSharedView,
   catalogUnreadFilterVariables,
+  catalogViewFields,
   type CatalogFilterConnection,
   type CatalogFilterControlKind,
+  type CatalogFilterField,
 } from "../../../catalogRuntime/viewAuthoring";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
@@ -94,6 +98,15 @@ function useBoundTable(nodeId: NodeId | undefined): DataTable | undefined {
     const id = binding?.collectionId.replace(/^data:collection:/, "");
     return collections.find((table) => table.id === id);
   }, [collections, nodeId, revision, workspace]);
+}
+
+/** A list's fields for a condition · a grouping: its own and those through its references. */
+function useViewFields(table: DataTable | undefined): CatalogFilterField[] {
+  const collections = useCollections();
+  return useMemo(
+    () => catalogViewFields(table, collections),
+    [collections, table],
+  );
 }
 
 const rowsOf = (table: DataTable | undefined): readonly unknown[] =>
@@ -316,9 +329,7 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
     void revision;
     return catalogFilterConnections(workspace.runtime.graph, listId);
   }, [listId, revision, workspace]);
-  const fields = (table?.schema ?? []).flatMap((field) =>
-    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
-  );
+  const fields = useViewFields(table);
   const create = (fieldId: string, kind: CatalogFilterControlKind) => {
     const field = fields.find((item) => item.id === fieldId);
     if (!field) return;
@@ -522,12 +533,40 @@ function DerivedViews({
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
-  const [grouping, setGrouping] = useState<"list" | "columns" | null>(null);
-  const fields = (table?.schema ?? []).flatMap((field) =>
-    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
-  );
+  const [grouping, setGrouping] = useState<
+    "list" | "columns" | "value" | "count" | null
+  >(null);
+  const fields = useViewFields(table);
+  const collections = useCollections();
   const [fieldId, setFieldId] = useState("");
   const graph = workspace.runtime.graph;
+  // (「참조 값 표시」 — a field through a reference; 「참조하는 행 수」 — another collection's
+  // reference field pointing at this one.)
+  const pathFields = fields.filter((field) => field.path);
+  const referring = collections.flatMap((other) =>
+    other.id === table?.id
+      ? []
+      : other.schema.flatMap((field) =>
+          field.id &&
+          field.reference?.collectionId === table?.id &&
+          table?.schema.some((key) => key.id === field.reference!.keyField)
+            ? [{ collection: other, field }]
+            : [],
+        ),
+  );
+  const options =
+    grouping === "value"
+      ? pathFields.map((field) => ({ value: field.id, label: field.key }))
+      : grouping === "count"
+        ? referring.map(({ collection, field }) => ({
+            value: `${collection.id}|${field.id}`,
+            label: `${collection.name}.${field.key}`,
+          }))
+        : fields.map((field) => ({ value: field.id, label: field.key }));
+  const chosen =
+    fieldId && options.some((item) => item.value === fieldId)
+      ? fieldId
+      : (options[0]?.value ?? "");
   const viewName = () => {
     const node = graph.getEntry(listId);
     return t("dataView.viewName", {
@@ -535,7 +574,56 @@ function DerivedViews({
     });
   };
   const group = () => {
-    const field = fields.find((item) => item.id === (fieldId || fields[0]?.id));
+    if (grouping === "value") {
+      const field = pathFields.find((item) => item.id === chosen);
+      const via = fields.find((item) => item.id === field?.path?.[0]);
+      const reference = table?.schema.find(
+        (item) => item.id === via?.id,
+      )?.reference;
+      if (!field || !via || !reference) return;
+      const { command } = catalogReferenceValueCommand(
+        graph,
+        {
+          listId,
+          field: via,
+          target: {
+            collectionId: reference.collectionId,
+            key: field.key.slice(via.key.length + 1),
+          },
+          label: t("dataView.referenceValue"),
+        },
+        workspace.newId,
+      );
+      if (run(command)) setGrouping(null);
+      return;
+    }
+    if (grouping === "count") {
+      const hit = referring.find(
+        ({ collection, field }) => `${collection.id}|${field.id}` === chosen,
+      );
+      const key = table?.schema.find(
+        (item) => item.id === hit?.field.reference?.keyField,
+      );
+      if (!hit || !key?.id) return;
+      const { command } = catalogReferenceCountCommand(
+        graph,
+        {
+          listId,
+          from: {
+            collectionId: hit.collection.id,
+            collectionName: hit.collection.name,
+            field: { id: hit.field.id!, key: hit.field.key, type: "reference" },
+          },
+          keyField: { id: key.id, key: key.key },
+          text: t("dataView.countText"),
+          label: t("dataView.referenceCount"),
+        },
+        workspace.newId,
+      );
+      if (run(command)) setGrouping(null);
+      return;
+    }
+    const field = fields.find((item) => item.id === chosen);
     if (!field || !grouping) return;
     const plan = {
       listId,
@@ -559,12 +647,15 @@ function DerivedViews({
     return (
       <div className="data-view-add-form">
         <PropertySelect
-          label={t("dataView.groupField")}
-          value={fieldId || fields[0]?.id || ""}
-          options={fields.map((field) => ({
-            value: field.id,
-            label: field.key,
-          }))}
+          label={t(
+            grouping === "value"
+              ? "dataView.referenceField"
+              : grouping === "count"
+                ? "dataView.referringField"
+                : "dataView.groupField",
+          )}
+          value={chosen}
+          options={options}
           translateOptions={false}
           onChange={setFieldId}
         />
@@ -572,7 +663,7 @@ function DerivedViews({
           <Button
             className="control-button"
             data-variant="primary"
-            isDisabled={!fields.length}
+            isDisabled={!options.length}
             onPress={group}
           >
             {t("dataView.create")}
@@ -618,6 +709,24 @@ function DerivedViews({
       >
         {t("dataView.groupColumns")}
       </Button>
+      {pathFields.length ? (
+        <Button
+          className="control-button"
+          data-variant="add"
+          onPress={() => setGrouping("value")}
+        >
+          {t("dataView.referenceValue")}
+        </Button>
+      ) : null}
+      {referring.length ? (
+        <Button
+          className="control-button"
+          data-variant="add"
+          onPress={() => setGrouping("count")}
+        >
+          {t("dataView.referenceCount")}
+        </Button>
+      ) : null}
     </>
   );
 }
@@ -672,9 +781,7 @@ export function CatalogControlFilterSection({
   }, [controlId, graph, revision]);
   const collections = useCollections();
   if (!kind) return null;
-  const fields = (table?.schema ?? []).flatMap((field) =>
-    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
-  );
+  const fields = useViewFields(table);
   const create = (fieldId: string) => {
     const listId = target ?? targets[0]?.id;
     const field = fields.find((item) => item.id === fieldId);
@@ -906,9 +1013,7 @@ function UnreadVariables({
     void revision;
     return catalogUnreadFilterVariables(graph, listId);
   }, [graph, listId, revision]);
-  const fields = (table?.schema ?? []).flatMap((field) =>
-    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
-  );
+  const fields = useViewFields(table);
   if (!unread.length) return null;
   return (
     <>
@@ -1059,9 +1164,7 @@ function ConnectionRun({
   const list = graph.getEntry(connection.listId);
   const binding = list?.kind === "node" ? list.binding : undefined;
   const queries = binding ? catalogBindingViews(graph, binding) : undefined;
-  const schema = (table?.schema ?? []).flatMap((field) =>
-    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
-  );
+  const schema = useViewFields(table);
   const local = table?.useMockData !== false;
   const endpoint = !local
     ? [...endpoints.values()].find((item) =>

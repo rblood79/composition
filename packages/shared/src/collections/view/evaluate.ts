@@ -31,6 +31,16 @@ export interface ViewRunField {
   id: string;
   key: string;
   type?: string;
+  /** ADR-284 Decision 4 — a reference field: its value is a key of `collectionId`'s `keyField`. */
+  reference?: { collectionId: string; keyField: string };
+  /** A field read through references (`team.name`): the target row's value, not `row[key]`. */
+  read?: (row: unknown) => unknown;
+}
+
+/** A referenced collection as the run reads it (the target of a reference field). */
+export interface ViewRunCollection {
+  rows: readonly unknown[];
+  schema: readonly ViewRunField[];
 }
 
 export interface ViewRunInput {
@@ -45,6 +55,8 @@ export interface ViewRunInput {
   locale?: string;
   /** Today as `YYYY-MM-DD` (`withinLast`); absent = the clock's. */
   today?: string;
+  /** The collections reference fields point at (a path through one reads its rows). */
+  references?: (collectionId: string) => ViewRunCollection | undefined;
 }
 
 export interface ViewRunResult {
@@ -62,20 +74,156 @@ export type ViewVerdict = "match" | "miss" | "skip";
 
 const fieldId = (id: string) => id.replace(/^data:field:/, "");
 
-/** The schema field a path's first step names (Phase 4: reference steps). */
+/** A data schema as the run reads it (fields with ids; a reference keeps its target). */
+export function viewRunSchema(
+  schema:
+    | readonly {
+        id?: string;
+        key: string;
+        type?: string;
+        reference?: { collectionId: string; keyField: string };
+      }[]
+    | undefined,
+): ViewRunField[] {
+  return (schema ?? []).flatMap((field) =>
+    field.id && field.key
+      ? [
+          {
+            id: field.id,
+            key: field.key,
+            ...(field.type ? { type: field.type } : {}),
+            ...(field.reference ? { reference: field.reference } : {}),
+          },
+        ]
+      : [],
+  );
+}
+
+/** The collections a run's reference fields reach, from the loaded collections (by data id). */
+export function viewRunReferences(
+  collections: readonly {
+    id?: string;
+    schema?: Parameters<typeof viewRunSchema>[0];
+    mockData?: readonly unknown[];
+    runtimeData?: readonly unknown[];
+    useMockData?: boolean;
+  }[],
+): NonNullable<ViewRunInput["references"]> {
+  const read = new Map<string, ViewRunCollection | undefined>();
+  return (collectionId) => {
+    const id = collectionId.replace(/^data:collection:/, "");
+    if (!read.has(id)) {
+      const source = collections.find((item) => item.id === id);
+      read.set(
+        id,
+        source
+          ? {
+              rows:
+                (source.useMockData ? source.mockData : source.runtimeData) ??
+                [],
+              schema: viewRunSchema(source.schema),
+            }
+          : undefined,
+      );
+    }
+    return read.get(id);
+  };
+}
+
+/** The steps of a path in its field's id (a grouped row's field by a path). */
+export const VIEW_PATH_JOIN = "__";
+
+/** A target's rows by their key field's value (`find` — one index per rows and key field). */
+const keyIndexes = new WeakMap<object, Map<string, Map<string, unknown>>>();
+function keyIndex(
+  rows: readonly unknown[],
+  key: ViewRunField,
+): Map<string, unknown> {
+  let byField = keyIndexes.get(rows);
+  if (!byField) keyIndexes.set(rows, (byField = new Map()));
+  let index = byField.get(key.key);
+  if (!index) {
+    index = new Map();
+    for (const row of rows) {
+      const value = cellOf(row, key);
+      if (value === undefined || value === null || value === "") continue;
+      // (The first row with a key wins — `items.find`.)
+      if (!index.has(String(value))) index.set(String(value), row);
+    }
+    byField.set(key.key, index);
+  }
+  return index;
+}
+
+/**
+ * The field a path names: one step is a schema field; more steps go through reference fields
+ * (`[teamId, name]` = the Teams row whose key is the row's `teamId`, its `name` — `team.name`).
+ * A step that does not resolve (no field · not a reference · no target) is undefined (the
+ * condition is broken); a row whose key finds no target row reads an empty value (「없음」).
+ */
 export function viewFieldOf(
   path: DataFieldPath,
   schema: readonly ViewRunField[],
+  references?: ViewRunInput["references"],
 ): ViewRunField | undefined {
-  if (path.length !== 1) return undefined;
+  if (!path.length) return undefined;
   const id = fieldId(path[0]!);
-  return schema.find((field) => field.id === id);
+  const first = schema.find((field) => field.id === id);
+  if (!first || path.length === 1) return first;
+  const target = first.reference && references?.(first.reference.collectionId);
+  if (!target) return undefined;
+  const keyId = fieldId(first.reference!.keyField);
+  const key = target.schema.find((field) => field.id === keyId);
+  const rest = viewFieldOf(path.slice(1), target.schema, references);
+  if (!key || !rest) return undefined;
+  const index = keyIndex(target.rows, key);
+  return {
+    // (A grouped view's field id of a path — `__` joins the steps: a data id has no dot.)
+    id: path.map(fieldId).join(VIEW_PATH_JOIN),
+    key: `${first.key}.${rest.key}`,
+    ...(rest.type ? { type: rest.type } : {}),
+    read: (row) => {
+      const value = cellOf(row, first);
+      if (value === undefined || value === null || value === "")
+        return undefined;
+      const hit = index.get(String(value));
+      return hit === undefined ? undefined : cellOf(hit, rest);
+    },
+  };
 }
 
+/** A row's value of a field: through its references, or by its key (`a.b` — a grouped row's). */
 function cellOf(row: unknown, field: ViewRunField): unknown {
-  return row !== null && typeof row === "object"
-    ? (row as Record<string, unknown>)[field.key]
-    : undefined;
+  if (field.read) return field.read(row);
+  if (row === null || typeof row !== "object") return undefined;
+  const record = row as Record<string, unknown>;
+  if (field.key in record || !field.key.includes(".")) return record[field.key];
+  let value: unknown = record;
+  for (const step of field.key.split(".")) {
+    if (value === null || typeof value !== "object") return undefined;
+    value = (value as Record<string, unknown>)[step];
+  }
+  return value;
+}
+
+/**
+ * Write a grouped row's field: `team.name` both as itself (a binding's field role reads the key)
+ * and nested (`{ team: { name } }` — what a `{team.name}` template reads).
+ */
+function setCell(row: Record<string, unknown>, key: string, value: unknown) {
+  row[key] = value;
+  if (!key.includes(".")) return;
+  const steps = key.split(".");
+  let at = row;
+  for (const step of steps.slice(0, -1)) {
+    const next = at[step];
+    at = (at[step] =
+      next !== null && typeof next === "object" ? next : {}) as Record<
+      string,
+      unknown
+    >;
+  }
+  at[steps[steps.length - 1]!] = value;
 }
 
 /** A condition with its value read once per run (not per row). */
@@ -119,12 +267,12 @@ function prepare(
  */
 export function readViewCondition(
   condition: ViewCondition,
-  input: Pick<ViewRunInput, "schema" | "resolve">,
+  input: Pick<ViewRunInput, "schema" | "resolve" | "references">,
 ):
   | { skip: true; broken: boolean }
   | { skip: false; fields: ViewRunField[]; value: unknown } {
   const fields = condition.fields.map((path) =>
-    viewFieldOf(path, input.schema),
+    viewFieldOf(path, input.schema, input.references),
   );
   if (fields.some((field) => !field)) return { skip: true, broken: true };
   // 적용 여부 — a Checkbox's 「closed 제외」: false (or not set) skips.
@@ -242,7 +390,7 @@ function sortOf(
   const sort = query.sort;
   if (!sort) return undefined;
   if ("field" in sort) {
-    const field = viewFieldOf(sort.field, schema);
+    const field = viewFieldOf(sort.field, schema, input.references);
     return field ? { field, direction: sort.direction } : undefined;
   }
   const value = input.resolve(`!var.${sort.variableId}`)?.value;
@@ -269,17 +417,22 @@ export const viewAggregateBroken = (aggregate: ViewAggregate) =>
 export function viewResultSchema(
   query: ViewQuery,
   schema: readonly ViewRunField[],
+  references?: ViewRunInput["references"],
 ): readonly ViewRunField[] {
   if (!query.groupBy && !query.aggregates) return schema;
   const fields: ViewRunField[] = [];
   for (const path of query.groupBy ?? []) {
-    const field = viewFieldOf(path, schema);
-    if (field) fields.push(field);
+    const field = viewFieldOf(path, schema, references);
+    // (A grouped row holds the value itself — a path's `team.name` as `{ team: { name } }`.)
+    if (field) {
+      const { read: _read, ...own } = field;
+      fields.push(own);
+    }
   }
   for (const aggregate of query.aggregates ?? []) {
     const source =
       aggregate.field && (aggregate.fn === "min" || aggregate.fn === "max")
-        ? viewFieldOf(aggregate.field, schema)
+        ? viewFieldOf(aggregate.field, schema, references)
         : undefined;
     fields.push({
       id: aggregate.as,
@@ -331,14 +484,17 @@ function groupRows(
   rows: readonly unknown[],
   sourceRows: readonly unknown[],
   schema: readonly ViewRunField[],
+  references: ViewRunInput["references"],
   broken: string[],
 ): readonly unknown[] {
-  const keys = (query.groupBy ?? []).map((path) => viewFieldOf(path, schema));
+  const keys = (query.groupBy ?? []).map((path) =>
+    viewFieldOf(path, schema, references),
+  );
   if (keys.some((field) => !field)) broken.push(VIEW_GROUP_BROKEN);
   const fields = keys.filter((field): field is ViewRunField => !!field);
   const aggregates = (query.aggregates ?? []).map((aggregate) => {
     const field = aggregate.field
-      ? viewFieldOf(aggregate.field, schema)
+      ? viewFieldOf(aggregate.field, schema, references)
       : undefined;
     if (aggregate.field && !field) broken.push(viewAggregateBroken(aggregate));
     return { aggregate, field };
@@ -357,7 +513,9 @@ function groupRows(
   else rows.forEach((row) => groupOf(row).rows.push(row));
   return [...groups.values()].map((group) => {
     const row: Record<string, unknown> = {};
-    fields.forEach((field, index) => (row[field.key] = group.values[index]));
+    fields.forEach((field, index) =>
+      setCell(row, field.key, group.values[index]),
+    );
     for (const { aggregate, field } of aggregates)
       row[aggregate.as] = aggregateOf(aggregate, field, group.rows);
     return row;
@@ -384,9 +542,9 @@ function runQuery(
   let out = applied
     ? rows.filter((row) => judge(where, row, stage) !== "miss")
     : rows;
-  const resultSchema = viewResultSchema(query, schema);
+  const resultSchema = viewResultSchema(query, schema, input.references);
   if (query.groupBy || query.aggregates)
-    out = groupRows(query, out, dataRows, schema, broken);
+    out = groupRows(query, out, dataRows, schema, input.references, broken);
   const sort = sortOf(query, input, resultSchema);
   if (sort) {
     const sign = sort.direction === "descending" ? -1 : 1;
@@ -431,12 +589,12 @@ export function runViewQueries(
 
 /** The fields the view at `queryIndex` reads: its source's result fields. */
 export function viewSchemaAt(
-  input: Pick<ViewRunInput, "queries" | "schema">,
+  input: Pick<ViewRunInput, "queries" | "schema" | "references">,
   queryIndex: number,
 ): readonly ViewRunField[] {
   let schema = input.schema;
   for (const query of input.queries.slice(0, queryIndex))
-    schema = viewResultSchema(query, schema);
+    schema = viewResultSchema(query, schema, input.references);
   return schema;
 }
 

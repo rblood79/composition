@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 4c) — 참조 필드: 다른 표의 행을 가리키고 그 값으로 거르기 · 보이기 · 세기] - 2026-10-27
+
+### Added
+
+- **필드 타입 「Reference」** (ADR-284 Phase 4c): Data 패널 필드 편집에서 다른 표와 맞출 필드를 고른다 (예: Users.teamId → Teams.id)
+- 목록의 검색 · 묶기 · 정렬에 참조 너머 필드 (`teamId.name`) 를 고를 수 있다 — 가리키는 행이 없는 값은 「없음」 으로 걸러진다
+- **「참조 값 표시」**: 목록의 각 행에 가리키는 행의 값 (팀 이름) 을 보인다
+- **「참조하는 행 수」**: 각 행을 가리키는 다른 표의 행 수 (사용자별 주문 수) 를 보인다 — 없으면 0
+  - 위치: `packages/shared/src/collections/view/evaluate.ts` (`viewFieldOf` 경로) · `catalog/resolution/resolver.ts` (행 필드 key) · `viewAuthoring.ts` · `DataTableFieldPanel.tsx` (`ReferenceTarget`)
+
+### Fixed
+
+- 목록 행 템플릿에 처음 노드를 넣으면 행의 이름 · 설명이 데이터 대신 표본 글자로 굳어 행에서 사라지던 것 (이 동작들이 넣는 Text 기준)
+  - **Why**: 첫 삽입이 template 내용을 사본으로 만들며 `{label}` 을 항목 값으로 바꿨다 — 삽입 전 행 필드 자리를 그대로 적어 둔다
+- 행에 넣은 Text 가 행 내용 맨 앞에 서서 GridList 행의 이름이 설명 아래로 밀리던 것 — 끝에 붙인다
+
+### Tests
+
+- `reference.test.ts` 4 · `adr284Reference.test.tsx` 2 · 패널 +1 · 데이터 · 갱신 +2 · 원복 RED 10/10
+
 ## [데이터 보기 (ADR-284 Phase 4a · 4b) — 결과 수 · 묶기로 목록 · 묶기로 열 (kanban)] - 2026-10-27
 
 ### Added

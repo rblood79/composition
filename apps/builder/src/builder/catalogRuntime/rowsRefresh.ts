@@ -15,7 +15,23 @@ export function changedCollectionIds<T>(
   previous: ReadonlyMap<string, T>,
 ): string[] {
   if (next === previous) return [];
-  return [...new Set([...next.keys(), ...previous.keys()])].filter(
+  const changed = [...new Set([...next.keys(), ...previous.keys()])].filter(
     (id) => next.get(id) !== previous.get(id),
   );
+  // (ADR-284 — a collection whose reference field points at a changed one reads it: a Users view
+  // over `team.name` runs again when Teams changes.)
+  const referring = [...next.entries()].flatMap(([id, table]) =>
+    !changed.includes(id) &&
+    (
+      table as {
+        schema?: readonly { reference?: { collectionId: string } }[];
+      }
+    ).schema?.some(
+      (field) =>
+        field.reference && changed.includes(field.reference.collectionId),
+    )
+      ? [id]
+      : [],
+  );
+  return [...changed, ...referring];
 }

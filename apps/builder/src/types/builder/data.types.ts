@@ -34,7 +34,9 @@ export type DataFieldType =
   | "url"
   | "image"
   | "array"
-  | "object";
+  | "object"
+  /** ADR-284 — a key of another collection's row (`DataField.reference`). */
+  | "reference";
 
 /**
  * 데이터 필드 정의
@@ -64,6 +66,9 @@ export interface DataField {
 
   /** 중첩 스키마 (type이 "object" 또는 "array"인 경우) */
   children?: DataField[];
+
+  /** ADR-284 — `type: "reference"`: the target collection and the field its key matches. */
+  reference?: { collectionId: string; keyField: string };
 }
 
 /**

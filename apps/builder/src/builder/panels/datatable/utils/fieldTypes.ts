@@ -9,6 +9,7 @@ import {
   Hash,
   Image as ImageIcon,
   Link as LinkIcon,
+  Link2,
   List,
   Mail,
   ToggleLeft,
@@ -35,6 +36,7 @@ export const FIELD_TYPES: readonly FieldTypeEntry[] = [
   { value: "image", icon: ImageIcon, i18n: "types.image" },
   { value: "array", icon: List, i18n: "types.array" },
   { value: "object", icon: Braces, i18n: "types.object" },
+  { value: "reference", icon: Link2, i18n: "types.reference" },
 ];
 
 /** 모르는 타입 (구 문서) 은 string 아이콘으로 */

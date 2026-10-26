@@ -7,7 +7,7 @@
  * - 검증 실패 (없는 collection · 범위 밖 row · 미배선 op) 는 아무것도 바꾸지 않는다
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DataOp } from "@composition/shared";
+import { DataOpSchema, type DataOp } from "@composition/shared";
 import type { DataTable } from "../../../types/builder/data.types";
 
 const dbMock = {
@@ -153,6 +153,32 @@ describe("reduceDataOps — op 별 결과 + 역연산 왕복", () => {
         collectionId: "c1",
         fieldId: "f_name",
         patch: { key: "name", label: "Name" },
+      },
+    ]);
+  });
+
+  it("ADR-284 — update_field to a reference: the target is stored, the inverse removes it", () => {
+    const op: DataOp = {
+      op: "update_field",
+      collectionId: "c1",
+      fieldId: "f_name",
+      patch: {
+        type: "reference",
+        reference: { collectionId: "teams", keyField: "f_id" },
+      },
+    };
+    expect(DataOpSchema.safeParse(op).success).toBe(true);
+    const r = roundTrip([op]);
+    expect(r.collections.get("c1")!.schema[0]).toMatchObject({
+      type: "reference",
+      reference: { collectionId: "teams", keyField: "f_id" },
+    });
+    expect(r.inverse).toEqual([
+      {
+        op: "update_field",
+        collectionId: "c1",
+        fieldId: "f_name",
+        patch: { type: "string", reference: null },
       },
     ]);
   });

@@ -17,6 +17,25 @@ describe("changedCollectionIds", () => {
     expect(changedCollectionIds(new Map(map), map)).toEqual([]);
   });
 
+  it("ADR-284 — 바뀐 collection 을 참조하는 collection 도 돌려준다 (Teams 변경 → team.name 을 읽는 Users)", () => {
+    const users = {
+      id: "users",
+      schema: [{ key: "teamId", reference: { collectionId: "teams" } }],
+    };
+    const orders = { id: "orders", schema: [{ key: "id" }] };
+    const previous = new Map<string, object>([
+      ["teams", table("teams")],
+      ["users", users],
+      ["orders", orders],
+    ]);
+    const next = new Map<string, object>([
+      ["teams", table("teams")],
+      ["users", users],
+      ["orders", orders],
+    ]);
+    expect(changedCollectionIds(next, previous)).toEqual(["teams", "users"]);
+  });
+
   it("바뀐 · 추가 · 지운 collection 만 돌려준다", () => {
     const a = table("a");
     const previous = new Map([
