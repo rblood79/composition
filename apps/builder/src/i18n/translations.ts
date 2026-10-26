@@ -957,6 +957,7 @@ const koKR: TranslationKeys = {
     stateOpReset: "기본값으로",
     stateValue: "값",
     stateStep: "증분",
+    stateToggleValue: "기본값과 번갈아 쓸 값",
     summarySetState: "{when} → {op} {name}",
   },
   capabilities: {
@@ -2396,6 +2397,9 @@ const koKR: TranslationKeys = {
     op_contains: "포함 (대소문자 무시)",
     op_startsWith: "으로 시작",
     op_endsWith: "으로 끝남",
+    op_notContains: "포함하지 않음",
+    op_notStartsWith: "으로 시작하지 않음",
+    op_notEndsWith: "으로 끝나지 않음",
     op_oneOf: "그 중 하나",
     op_containsAny: "하나라도 포함",
     op_containsAll: "전부 포함",
@@ -2407,6 +2411,15 @@ const koKR: TranslationKeys = {
     op_before: "이전",
     op_after: "이후",
     op_withinLast: "최근 기간",
+    follow_title: "변수로 정하기",
+    follow_add: "변수로 정할 속성 추가",
+    follow_prop: "속성",
+    follow_variable: "변수",
+    follow_read: "읽을 것",
+    follow_readValue: "값",
+    follow_readSize: "선택 수",
+    follow_op: "비교",
+    follow_value: "기준 값",
     op_exists: "값 있음",
     op_notExists: "값 없음",
   },
@@ -3486,6 +3499,7 @@ const enUS: TranslationKeys = {
     stateOpReset: "Reset to default",
     stateValue: "Value",
     stateStep: "Increment step",
+    stateToggleValue: "Value to switch with the default",
     summarySetState: "{when} → {op} {name}",
   },
   capabilities: {
@@ -4933,6 +4947,9 @@ const enUS: TranslationKeys = {
     op_contains: "Contains (any case)",
     op_startsWith: "Starts with",
     op_endsWith: "Ends with",
+    op_notContains: "Does not contain",
+    op_notStartsWith: "Does not start with",
+    op_notEndsWith: "Does not end with",
     op_oneOf: "Is one of",
     op_containsAny: "Contains any of",
     op_containsAll: "Contains all of",
@@ -4944,6 +4961,15 @@ const enUS: TranslationKeys = {
     op_before: "Before",
     op_after: "After",
     op_withinLast: "Within the last",
+    follow_title: "Set by variable",
+    follow_add: "Add a property set by a variable",
+    follow_prop: "Property",
+    follow_variable: "Variable",
+    follow_read: "Read",
+    follow_readValue: "Value",
+    follow_readSize: "Selection count",
+    follow_op: "Comparison",
+    follow_value: "Compared with",
     op_exists: "Has a value",
     op_notExists: "Has no value",
   },
@@ -6413,6 +6439,8 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
+    "dataView.follow_remove": (args) =>
+      `${String(args?.prop ?? "")} 의 변수 연결 해제`,
     "dataView.currentValue": (args) =>
       `현재 값 (Preview): ${String(args?.value ?? "")}`,
     "dataView.beforeRun": (args) =>
@@ -7025,6 +7053,8 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
+    "dataView.follow_remove": (args) =>
+      `Stop setting ${String(args?.prop ?? "")} by a variable`,
     "dataView.currentValue": (args) =>
       `Current value (Preview): ${String(args?.value ?? "")}`,
     "dataView.beforeRun": (args) =>

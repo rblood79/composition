@@ -1,6 +1,6 @@
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
-import type { CalendarDuration, ValueType } from "./types";
+import type { CalendarDuration, PropWhen, ValueType } from "./types";
 
 /**
  * A scalar value against its declared value type. `slot` (ADR-256 Decision 4) holds a slot name or
@@ -41,7 +41,9 @@ export function catalogPropValueFits(value: unknown, type: string): boolean {
       )
     );
   if (Array.isArray(value)) return false;
-  if (value && typeof value === "object") return "tokenId" in value;
+  // (ADR-284 Phase 6 — a value condition is a boolean.)
+  if (value && typeof value === "object")
+    return "tokenId" in value || (isPropWhen(value) && type === "boolean");
   return scalarFitsType(value, type);
 }
 
@@ -84,4 +86,13 @@ export function catalogColumnSizeFits(
   if (typeof value === "number") return Number.isFinite(value) && value >= 0;
   if (typeof value !== "string") return false;
   return COLUMN_PERCENT.test(value) || (!staticOnly && COLUMN_FR.test(value));
+}
+
+/** ADR-284 Phase 6 — a prop's value condition (`{ kind: "when", … }`). */
+export function isPropWhen(value: unknown): value is PropWhen {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    (value as { kind?: unknown }).kind === "when"
+  );
 }

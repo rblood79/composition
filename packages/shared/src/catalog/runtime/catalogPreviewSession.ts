@@ -1682,6 +1682,8 @@ export class CatalogPreviewSession {
       for (const id of changed) {
         const name = this.state!.getDefinition(id)?.def.name;
         if (name) names.add(name);
+        // (ADR-284 Phase 6 — a prop's value condition names its variable by id.)
+        names.add(id);
       }
       if (!names.size || !this.currentRoot) return;
       const errors = this.currentRoot.refreshState(names);
@@ -1729,7 +1731,14 @@ export class CatalogPreviewSession {
       }): boolean =>
         item.items
           ? item.items.some((child) => visit(child as typeof item))
-          : ["contains", "startsWith", "endsWith"].includes(item.op ?? "") &&
+          : [
+              "contains",
+              "startsWith",
+              "endsWith",
+              "notContains",
+              "notStartsWith",
+              "notEndsWith",
+            ].includes(item.op ?? "") &&
             typeof item.value === "string" &&
             item.value.startsWith("!var.") &&
             ids.has(item.value.slice("!var.".length).split(".")[0]!);

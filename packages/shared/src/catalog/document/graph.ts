@@ -1426,7 +1426,15 @@ export class CatalogGraph {
                 "STATE_VALUE_TYPE",
                 action.variableId,
               );
-            if (action.op === "toggle" && variable.valueType !== "boolean")
+            // (ADR-284 Phase 6 — a text variable toggles to a text value and back.)
+            if (
+              action.op === "toggle" &&
+              !(variable.valueType === "boolean" && action.value === undefined) &&
+              !(
+                variable.valueType === "string" &&
+                typeof action.value === "string"
+              )
+            )
               throw new CatalogValidationError(
                 "STATE_OP_TYPE",
                 action.variableId,

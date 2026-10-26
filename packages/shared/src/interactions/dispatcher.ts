@@ -154,6 +154,11 @@ export interface DispatchDeps {
   ) => { ok: boolean; reason?: string };
   /** The list's selection — the keys selected in the components showing the collection. */
   selectedKeysOf?: (collectionId: string) => readonly string[] | "all";
+  /**
+   * ADR-284 Phase 6 — the selection after `removeSelectedItems` (`useListData` empties it): the
+   * components showing the collection select nothing.
+   */
+  clearSelectionOf?: (collectionId: string) => void;
   /** `useListData.remove(...keys)` — `"all"` removes every item. */
   remove?: (
     collectionId: string,
@@ -340,7 +345,9 @@ function dispatchListPosition(
     const keys = deps.selectedKeysOf(action.collectionId);
     if (keys !== "all" && !keys.length)
       return { ok: false, reason: "선택한 항목이 없다" };
-    return done(deps.remove(action.collectionId, keys));
+    const removed = done(deps.remove(action.collectionId, keys));
+    if (removed.ok) deps.clearSelectionOf?.(action.collectionId);
+    return removed;
   }
   if (action.kind === "move" || action.kind === "moveBefore" || action.kind === "moveAfter") {
     if (!deps.move) return { ok: false, reason: "move 실행 경로 없음 (move 미주입)" };

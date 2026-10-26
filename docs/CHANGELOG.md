@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 6a) — 변수로 정하는 속성 · 선택 없으면 비활성 · 다른 데이터로 끌어 놓기] - 2026-10-27
+
+### Added
+
+- **Design 「변수로 정하기」** (ADR-284 Phase 6a): 요소의 속성을 변수로 정한다 — 켜고 끄는 속성 (비활성 · 필수 …) 은 「변수가 값 없음 · 같음 · 선택 수 = 0 …」 일 때 켜지고, 글자 속성 (선택 방식 …) 은 변수의 값이 된다. 예: Delete 버튼은 목록에서 고른 것이 없으면 비활성
+- 비교에 **「포함하지 않음」 · 「으로 시작하지 않음」 · 「으로 끝나지 않음」**
+- Set state 의 **글자 변수 전환** (기본값 ↔ 정한 값 — Edit 버튼으로 선택 방식 none ↔ multiple)
+- 목록이 자기 drop 규칙이 바꾸는 다른 데이터의 항목을 받는다 (사진을 앨범 Tree 에 놓아 앨범 바꾸기) — 그 데이터의 목록은 규칙 없이도 끌린다. 하나만 고른 선택은 글자 변수에 그 key 로 들어간다
+
+### Fixed
+
+- 「선택한 항목 지우기」 뒤 목록 선택이 남아 있던 것 (지운 뒤 선택 비움)
+- 규칙이 목록 선택을 비워도 (`clearSelection`) 그 선택에 붙인 이름 (상태) 은 예전 값을 갖고 있던 것
+
 ## [데이터 보기 (ADR-284 Phase 5) — 목록 항목 끌어 놓기 · kanban 열 이동] - 2026-10-27
 
 ### Added

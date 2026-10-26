@@ -129,6 +129,13 @@ export function coerceRuntimeValue(
   switch (type) {
     case "string":
       if (value === null || value === undefined) return { ok: true, value: "" };
+      // (ADR-284 Phase 6 — a single selection's key: the photos sidebar's `[...keys][0]`.)
+      if (
+        Array.isArray(value) &&
+        value.length <= 1 &&
+        value.every((item) => typeof item !== "object")
+      )
+        return { ok: true, value: value.length ? String(value[0]) : "" };
       return {
         ok: true,
         value:
@@ -376,6 +383,16 @@ export function createRuntimeState(
           break;
         }
         case "toggle": {
+          // ADR-284 Phase 6 — a text variable toggles between its default and the value
+          // (ios-list's `setSelectionMode(m => m === 'none' ? 'multiple' : 'none')`).
+          if (
+            entry.def.type === "string" &&
+            typeof request.value === "string"
+          ) {
+            next =
+              current === request.value ? defaultFor(entry.def) : request.value;
+            break;
+          }
           if (entry.def.type !== "boolean")
             return {
               ok: false,

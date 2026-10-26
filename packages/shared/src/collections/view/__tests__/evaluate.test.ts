@@ -128,6 +128,23 @@ describe("ADR-284 view evaluator — comparisons", () => {
     ).toEqual([]);
   });
 
+  it("not contains · not starts with · not ends with = the `!` of useFilter's (emoji's `!label.startsWith`); a list cell = no element", () => {
+    expect(
+      filter(condition("notStartsWith", "f-name", { value: "elo" })),
+    ).toEqual(["u1", "u2", "u3"]);
+    expect(filter(condition("notContains", "f-name", { value: "e" }))).toEqual(
+      ["u1", "u2"],
+    );
+    expect(filter(condition("notEndsWith", "f-name", { value: "RK" }))).toEqual(
+      ["u1", "u3", "u4"],
+    );
+    // (A list cell: no tag contains "b" — u1 · u2 hold one.)
+    expect(filter(condition("notContains", "f-tags", { value: "b" }))).toEqual([
+      "u3",
+      "u4",
+    ]);
+  });
+
   it("numbers compare by value; `between` includes both ends, an empty end is open", () => {
     expect(filter(condition("gte", "f-age", { value: 31 }))).toEqual([
       "u1",

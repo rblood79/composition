@@ -244,6 +244,8 @@ export function catalogPreviewRules(
 interface CatalogStateMirror {
   variableId: string;
   event: string;
+  /** The state prop it follows (a capability writing it moves the variable too). */
+  prop: string;
   type: VariableDefType;
 }
 
@@ -281,6 +283,7 @@ function mirrorsOf(
         mirrors.push({
           variableId: entry.id,
           event: source.event,
+          prop,
           type: source.type,
         });
     }
@@ -468,6 +471,24 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             for (const key of selected) keys.add(String(key));
         }
         return [...keys];
+      },
+      clearSelectionOf: (collectionId) => {
+        const root = options.root();
+        const graph = options.graph();
+        if (!root || !graph) return;
+        for (const record of [...root.domInputs.values()]) {
+          const source = graph.getEntry(record.sourceId as never);
+          const binding = source?.kind === "node" ? source.binding : undefined;
+          if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+          const selected = catalogRuntimeStateOf(
+            root,
+            record,
+            this.overrideOf(record.id),
+            "selectedKeys",
+            (recordId) => this.overrideOf(recordId),
+          );
+          if (selected !== undefined) this.setRuntimeProps(record.id, { selectedKeys: [] });
+        }
       },
       reload: (collectionId) => {
         const reload = options.reloadCollection;
@@ -830,6 +851,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
       this.options.colorScheme?.(patch.colorScheme);
+    // ADR-284 Phase 6 — a named state follows its prop when a rule writes it too (a capability's
+    // `clearSelection`: RAC fires no `onSelectionChange` for a controlled change), so a value
+    // condition reading it (Delete's `isDisabled`) sees the cleared selection.
+    const graph = this.options.graph();
+    const root = this.options.root();
+    if (graph && root)
+      for (const mirror of mirrorsOf(graph, root, id))
+        if (mirror.prop in patch)
+          this.deps.writeState?.({
+            variableId: mirror.variableId,
+            op: "set",
+            value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
+          });
     this.touch(id);
   }
   /** The record's runtime props still standing over their declarations. */

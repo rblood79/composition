@@ -206,8 +206,26 @@ export interface NumberFormatValue {
   readonly useGrouping?: boolean;
   readonly signDisplay?: "auto" | "never" | "always" | "exceptZero";
 }
+/**
+ * ADR-284 Phase 6 — a boolean prop that reads a value condition (ios-list's
+ * `isDisabled={selectedKeys !== 'all' && selectedKeys.size === 0}`): true while `subject` compares as
+ * `op` with `value` — the view condition's closed vocabulary over one value instead of a row. The
+ * subject is a variable reference (`!var.<id>[.path]`; `.size` = a selection's count). Resolved where
+ * `{{ }}` is (the record's variables — runtime values in Preview · Publish, defaults in the Canvas).
+ */
+export interface PropWhen {
+  kind: "when";
+  subject: string;
+  op: ViewComparison;
+  value?: ViewConditionValue;
+}
 export type AuthoredValue =
-  Scalar | TokenUse | StructuredValue | CalendarDuration | NumberFormatValue;
+  | Scalar
+  | TokenUse
+  | StructuredValue
+  | CalendarDuration
+  | NumberFormatValue
+  | PropWhen;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -231,7 +249,11 @@ export type ValueType =
   | "numberFormat";
 /** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
 export type PropValue =
-  Scalar | StructuredValue | CalendarDuration | NumberFormatValue;
+  | Scalar
+  | StructuredValue
+  | CalendarDuration
+  | NumberFormatValue
+  | PropWhen;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:
@@ -559,7 +581,8 @@ export interface DataBindingRef {
 export type DataFieldPath = readonly DataFieldId[];
 /**
  * ADR-284 Decision 2 — the closed comparison vocabulary. Text ones follow RAC `useFilter`
- * (`Intl.Collator` `usage: "search"`, `sensitivity: "base"`); `oneOf` = the value is one of a list
+ * (`Intl.Collator` `usage: "search"`, `sensitivity: "base"`) and `not…` is its `!` (the emoji
+ * picker's `!label.startsWith('regional indicator')`); `oneOf` = the value is one of a list
  * (a `Selection`), `containsAny` · `containsAll` read an array field; `between` includes both ends;
  * `before` · `after` · `withinLast` compare dates by day.
  */
@@ -569,6 +592,9 @@ export type ViewComparison =
   | "contains"
   | "startsWith"
   | "endsWith"
+  | "notContains"
+  | "notStartsWith"
+  | "notEndsWith"
   | "oneOf"
   | "containsAny"
   | "containsAll"
@@ -588,6 +614,9 @@ export const VIEW_COMPARISONS: readonly ViewComparison[] = [
   "contains",
   "startsWith",
   "endsWith",
+  "notContains",
+  "notStartsWith",
+  "notEndsWith",
   "oneOf",
   "containsAny",
   "containsAll",

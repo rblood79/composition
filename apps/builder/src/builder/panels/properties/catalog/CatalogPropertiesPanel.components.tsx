@@ -103,6 +103,7 @@ import { CatalogShowWhenSection } from "./CatalogShowWhenSection";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 
 import { CatalogStateSection } from "./CatalogStateSection";
+import { CatalogPropFollowSection } from "./CatalogPropFollowSection";
 
 import {
   CALENDAR_TYPES,
@@ -199,6 +200,13 @@ export function CatalogPropertiesBody({
             key={`state:${first.target.id}`}
             nodeId={first.target.id}
             type={contract.type}
+          />
+        )}
+        {first.target.kind === "node" && !originSample && (
+          <CatalogPropFollowSection
+            key={`follow:${first.target.id}`}
+            nodeId={first.target.id}
+            workspace={workspace}
           />
         )}
         {/* One Slot section: the slot's picker (its item types built as the item 「+」 builds them),

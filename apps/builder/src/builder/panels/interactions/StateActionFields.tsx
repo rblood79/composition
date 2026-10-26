@@ -41,6 +41,8 @@ export interface StateActionValue {
 function opsForType(type: VisibleVariable["def"]["type"] | null): SetStateOp[] {
   if (type === "boolean") return ["toggle", "set", "reset"];
   if (type === "number") return ["increment", "set", "reset"];
+  // (ADR-284 Phase 6 — a text variable toggles between its default and a value.)
+  if (type === "string") return ["set", "toggle", "reset"];
   return ["set", "reset"];
 }
 
@@ -84,9 +86,16 @@ export const StateActionFieldsView = memo(function StateActionFieldsView({
 
   const ops = opsForType(type);
   const opOptions = ops.map((op) => ({ value: op, label: t(OP_LABEL_KEYS[op]) }));
-  const needsValue = action.op === "set" || action.op === "increment";
+  const needsValue =
+    action.op === "set" ||
+    action.op === "increment" ||
+    (action.op === "toggle" && type === "string");
   const valueLabel =
-    action.op === "increment" ? t("interactions.stateStep") : t("interactions.stateValue");
+    action.op === "increment"
+      ? t("interactions.stateStep")
+      : action.op === "toggle"
+        ? t("interactions.stateToggleValue")
+        : t("interactions.stateValue");
 
   return (
     <>

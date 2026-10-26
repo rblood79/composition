@@ -17,7 +17,9 @@ type Handler = (...args: unknown[]) => void;
  * The dragged items carry their keys under the collection's own type (`getItems` — the reference's
  * `'issue-id'`), so a list accepts items of the same collection only (`acceptedDragTypes`), and a
  * drop from another list names the keys it reads back (`await item.getText(type)`) as the event's
- * `keys` — the argument the rule's `update` · `moveBefore` take, as `onReorder`'s `e.keys`.
+ * `keys` — the argument the rule's `update` · `moveBefore` take, as `onReorder`'s `e.keys`. A list
+ * whose drop rules write another collection accepts that collection's items too (ADR-284 Phase 6 —
+ * photos dropped on an album); with no drop rule it only drags.
  */
 /**
  * The `useDragAndDrop` options of a list whose rules handle `handlers`' events: each drop handler
@@ -27,22 +29,29 @@ export function catalogDragAndDropOptions(
   handlers: Readonly<Record<string, unknown>>,
   dragType: string,
   fire: (name: string, event: object) => void,
+  acceptedTypes: readonly string[] = [dragType],
+  draggable = true,
 ): DragAndDropOptions {
   const dropped = (items: readonly DropItem[]) =>
     Promise.all(
-      items
-        .filter(isTextDropItem)
-        .filter((item) => item.types.has(dragType))
-        .map((item) => item.getText(dragType)),
+      items.filter(isTextDropItem).flatMap((item) => {
+        const type = acceptedTypes.find((accepted) => item.types.has(accepted));
+        return type ? [item.getText(type)] : [];
+      }),
     );
   const keysOf = (keys: Set<Key>) => [...keys].map(String);
   const options: DragAndDropOptions = {
-    getItems: (keys) =>
-      [...keys].map((key) => ({
-        [dragType]: String(key),
-        "text/plain": String(key),
-      })),
-    acceptedDragTypes: [dragType],
+    // (Without `getItems` the items do not drag — the reference's album sidebar only takes drops.)
+    ...(draggable
+      ? {
+          getItems: (keys: Set<Key>) =>
+            [...keys].map((key) => ({
+              [dragType]: String(key),
+              "text/plain": String(key),
+            })),
+        }
+      : {}),
+    acceptedDragTypes: [...acceptedTypes],
     // (Items move between the lists of one collection — the reference's `getDropOperation`.)
     getDropOperation: () => "move",
   };
@@ -68,10 +77,14 @@ export default function CatalogDragAndDrop({
   element,
   handlers,
   dragType,
+  acceptedTypes,
+  draggable,
 }: {
   element: ReactElement;
   handlers: Readonly<Record<string, Handler>>;
   dragType: string;
+  acceptedTypes?: readonly string[];
+  draggable?: boolean;
 }): ReactElement {
   // (The rules' handlers change with the document; the options call the latest — set on commit.)
   const latest = useRef(handlers);
@@ -79,8 +92,12 @@ export default function CatalogDragAndDrop({
     latest.current = handlers;
   });
   const { dragAndDropHooks } = useDragAndDrop(
-    catalogDragAndDropOptions(handlers, dragType, (name, event) =>
-      latest.current[name]?.(event),
+    catalogDragAndDropOptions(
+      handlers,
+      dragType,
+      (name, event) => latest.current[name]?.(event),
+      acceptedTypes,
+      draggable,
     ),
   );
   return cloneElement(element, { dragAndDropHooks } as object);

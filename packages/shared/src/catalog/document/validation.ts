@@ -439,6 +439,7 @@ function authoredValue(
     return;
   }
   const ref = object(value, at);
+  if (ref.kind === "when") return propWhen(ref, at);
   exact(ref, ["kind", "tokenId"], at);
   if (ref.kind !== "token") invalid("UNKNOWN_VALUE_KIND", at);
   id(ref.tokenId, "", `${at}.tokenId`);
@@ -447,6 +448,33 @@ function authoredValue(
     !(ref.tokenId as string).startsWith("project:token:")
   )
     invalid("TOKEN_ID_REQUIRED", at);
+}
+/**
+ * ADR-284 Phase 6 — a prop's value condition: a variable subject (`!var.<id>[.path]`), a closed
+ * comparison, and its value as a view condition's (a literal · a list · a reference).
+ */
+function propWhen(node: Record<string, unknown>, at: string): void {
+  exact(node, ["kind", "subject", "op", "value"], at);
+  if (typeof node.subject !== "string" || !/^!var\.[^.]+/.test(node.subject))
+    invalid("WHEN_SUBJECT_VARIABLE", `${at}.subject`);
+  const op = node.op as string;
+  if (!VIEW_COMPARISONS.includes(op as never))
+    invalid("UNKNOWN_COMPARISON", `${at}.op`);
+  const isRef = typeof node.value === "string" && node.value.startsWith("!");
+  if (VIEW_NO_VALUE_COMPARISONS.has(op)) {
+    if (node.value !== undefined)
+      invalid("COMPARISON_VALUE_NOT_ALLOWED", `${at}.value`);
+  } else if (node.value === undefined)
+    invalid("COMPARISON_VALUE_REQUIRED", `${at}.value`);
+  else if (Array.isArray(node.value)) {
+    if (!VIEW_LIST_COMPARISONS.has(op) && op !== "between")
+      invalid("SCALAR_REQUIRED", `${at}.value`);
+    node.value.forEach((item, index) => scalar(item, `${at}.value[${index}]`));
+  } else {
+    if (VIEW_LIST_COMPARISONS.has(op) && !isRef)
+      invalid("COMPARISON_LIST_REQUIRED", `${at}.value`);
+    scalar(node.value, `${at}.value`);
+  }
 }
 /** `50%`, `10vw`, `2rem` … — a non-negative CSS length the layout resolves (not px). */
 const relativeMinLength = (value: unknown): boolean =>
@@ -1661,11 +1689,15 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
             (typeof action.value !== "number" || !Number.isFinite(action.value))
           )
             invalid("STATE_INCREMENT_NUMBER", `${at}.value`);
-          if (
-            (action.op === "toggle" || action.op === "reset") &&
-            action.value !== undefined
-          )
+          if (action.op === "reset" && action.value !== undefined)
             invalid("STATE_VALUE_NOT_ALLOWED", `${at}.value`);
+          // (ADR-284 Phase 6 — a toggle's value: the text a text variable toggles to.)
+          if (
+            action.op === "toggle" &&
+            action.value !== undefined &&
+            typeof action.value !== "string"
+          )
+            invalid("STATE_TOGGLE_TEXT", `${at}.value`);
         } else if (action.opcode === "navigate") {
           exact(action, ["opcode", "pageId"], `${at}`);
           id(action.pageId, "project:page:", `${at}.pageId`);

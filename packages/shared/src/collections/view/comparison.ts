@@ -45,6 +45,9 @@ export const VIEW_COMPARISONS_BY_KIND: Readonly<
     "contains",
     "startsWith",
     "endsWith",
+    "notContains",
+    "notStartsWith",
+    "notEndsWith",
     "oneOf",
     "exists",
     "notExists",
@@ -107,6 +110,13 @@ function collatorOf(
 
 const text = (value: unknown): string =>
   value === undefined || value === null ? "" : String(value);
+
+/** The text comparisons whose `!` the `not…` ones are. */
+export const NEGATED_TEXT = {
+  notContains: "contains",
+  notStartsWith: "startsWith",
+  notEndsWith: "endsWith",
+} as const satisfies Partial<Record<ViewComparison, ViewComparison>>;
 
 /** `useFilter`'s `contains` · `startsWith` · `endsWith` (same scan, same collator). */
 function textMatch(
@@ -266,7 +276,7 @@ export function viewCompare(
       break;
   }
   if (Array.isArray(cell))
-    return op === "notEquals"
+    return op === "notEquals" || op in NEGATED_TEXT
       ? cell.every((element) => viewCompare(op, element, value, options))
       : cell.some((element) => viewCompare(op, element, value, options));
   switch (op) {
@@ -280,6 +290,15 @@ export function viewCompare(
       return textMatch(
         collatorOf(options.locale, options.sensitivity ?? "base"),
         op,
+        text(cell),
+        text(value),
+      );
+    case "notContains":
+    case "notStartsWith":
+    case "notEndsWith":
+      return !textMatch(
+        collatorOf(options.locale, options.sensitivity ?? "base"),
+        NEGATED_TEXT[op],
         text(cell),
         text(value),
       );

@@ -9,7 +9,14 @@ import {
   type VisibleVariable,
 } from "@composition/shared";
 import type { CatalogGraph } from "../document/graph";
-import type { EntryId, StateVariableEntry, ValueType } from "../document/types";
+import type {
+  EntryId,
+  PropWhen,
+  StateVariableEntry,
+  ValueType,
+} from "../document/types";
+import { isPropWhen } from "../document/valueType";
+import { viewCompare } from "../../collections/view/comparison";
 
 /** A project variable's reference in the catalog document (`data:variable:<id>`). */
 const PROJECT_VARIABLE = "data:variable:";
@@ -161,16 +168,34 @@ export function catalogRecordVariables(
 /** The template root of the shown path's route params (`{{ params.id }}`). */
 export const CATALOG_PARAMS_ROOT = "params";
 
+/** A `{{ }}` environment that also reads a variable by id (a value condition's `!var.<id>`). */
+export interface CatalogStateEnv extends StateTemplateEnv {
+  /** A visible variable's value by id; undefined = not visible here. */
+  byId(id: string): { value: unknown } | undefined;
+}
+
 /** The `{{ }}` environment of a visible list: nearest name wins; unknown names stay as written. */
 export function catalogStateEnv(
   visible: readonly CatalogVisibleState[],
   read?: CatalogStateSource["read"],
   params?: CatalogStateSource["params"],
-): StateTemplateEnv {
+): CatalogStateEnv {
   const byName = new Map<string, CatalogVisibleState>();
-  for (const entry of visible)
+  const byId = new Map<string, CatalogVisibleState>();
+  for (const entry of visible) {
     if (!byName.has(entry.name)) byName.set(entry.name, entry);
+    if (!byId.has(entry.id)) byId.set(entry.id, entry);
+  }
   return {
+    byId(id) {
+      const entry = byId.get(id);
+      if (!entry) return undefined;
+      return {
+        value:
+          read?.(entry.id, entry.scope) ??
+          defaultOf(entry.type, entry.defaultValue),
+      };
+    },
     get(name) {
       const entry = byName.get(name);
       // (A variable named `params` wins — the route params are the root no variable took.)
@@ -189,10 +214,63 @@ export function catalogStateEnv(
  */
 export function catalogStateProps<T extends Record<string, unknown>>(
   authored: T,
-  env: () => StateTemplateEnv,
+  env: () => CatalogStateEnv,
 ): T | undefined {
-  if (!hasStateTemplateSyntax(authored)) return undefined;
-  return resolveStateTemplateProps(authored, env());
+  const templates = hasStateTemplateSyntax(authored);
+  const conditions = Object.values(authored).some(isPropWhen);
+  if (!templates && !conditions) return undefined;
+  const scope = env();
+  const props = templates ? resolveStateTemplateProps(authored, scope) : authored;
+  if (!conditions) return props;
+  // (ADR-284 Phase 6 — a value condition's prop is the condition's verdict.)
+  const out: Record<string, unknown> = { ...props };
+  for (const [key, value] of Object.entries(authored))
+    if (isPropWhen(value)) out[key] = catalogPropWhenValue(value, scope);
+  return out as T;
+}
+
+/**
+ * ADR-284 Phase 6 — a value condition's verdict: the subject variable (its path read — `.size` is a
+ * selection's count, `"all"` stays `"all"`) compared with the value (a literal or `!var.<id>`) by the
+ * view comparisons. An unknown variable is false (the prop keeps its off state).
+ */
+export function catalogPropWhenValue(
+  when: PropWhen,
+  env: Pick<CatalogStateEnv, "byId">,
+): boolean {
+  const read = (ref: string): { value: unknown } | undefined => {
+    const [id, ...path] = ref.slice("!var.".length).split(".");
+    const found = id ? env.byId(id) : undefined;
+    if (!found) return undefined;
+    let value = found.value;
+    for (const segment of path) {
+      if (segment === "size" && (Array.isArray(value) || value instanceof Set))
+        value = Array.isArray(value) ? value.length : value.size;
+      else if (segment === "size" && value === "all") value = "all";
+      else
+        value =
+          value !== null && typeof value === "object"
+            ? (value as Record<string, unknown>)[segment]
+            : undefined;
+    }
+    return { value };
+  };
+  const subject = read(when.subject);
+  if (!subject) return false;
+  const value =
+    typeof when.value === "string" && when.value.startsWith("!var.")
+      ? read(when.value)?.value
+      : when.value;
+  const cell = subject.value;
+  const kind =
+    typeof cell === "number"
+      ? "number"
+      : typeof cell === "boolean"
+        ? "boolean"
+        : Array.isArray(cell) || cell instanceof Set
+          ? "list"
+          : "text";
+  return viewCompare(when.op, cell, value, { kind });
 }
 
 /**
@@ -288,9 +366,18 @@ export function catalogVariableValue(
   };
 }
 
-/** Names a record's authored props read (a refresh re-resolves only those readers). */
+/**
+ * Names a record's authored props read (a refresh re-resolves only those readers) — a value
+ * condition's variables by id (the refresh passes both names and ids).
+ */
 export function catalogStateNames(authored: Record<string, unknown>): string[] {
-  return collectPropsStateRefs(authored);
+  const names = collectPropsStateRefs(authored);
+  for (const value of Object.values(authored))
+    if (isPropWhen(value))
+      for (const ref of [value.subject, value.value])
+        if (typeof ref === "string" && ref.startsWith("!var."))
+          names.push(ref.slice("!var.".length).split(".")[0]!);
+  return names;
 }
 
 /**

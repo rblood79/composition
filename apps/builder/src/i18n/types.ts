@@ -672,6 +672,7 @@ export interface TranslationKeys {
     stateOpReset: string;
     stateValue: string;
     stateStep: string;
+    stateToggleValue: string;
     summarySetState: string;
   };
   /**
