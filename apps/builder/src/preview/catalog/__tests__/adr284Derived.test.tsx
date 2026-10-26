@@ -205,6 +205,30 @@ describe("ADR-284 G4 — 「묶기로 목록 만들기」 · 「묶기로 열 �
     h.view.unmount();
   });
 
+  it("「모든 값」: a value the list's choice empties stays with 0", async () => {
+    const h = await boundList();
+    const { command, created } = catalogGroupListCommand(
+      h.graph(),
+      {
+        listId: h.list,
+        viewName: "Users view",
+        field: GENDER,
+        emptyGroups: true,
+      },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.flush();
+    await settle();
+    await h.choose(2);
+    expect(
+      [...h.element(created.listId)!.querySelectorAll('[role="option"]')].map(
+        (option) => option.textContent?.trim(),
+      ),
+    ).toEqual(["male0", "female1"]);
+    h.view.unmount();
+  });
+
   it("kanban columns: a heading with the value's count over a list of its rows; an empty column says 0", async () => {
     const h = await boundList();
     const { command, created } = catalogGroupColumnsCommand(

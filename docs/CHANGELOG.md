@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 4d) — 「모든 값」 묶기 · 성능 · 번들 측정] - 2026-10-27
+
+### Added
+
+- **「묶기로 목록 만들기」 의 「모든 값 (0 개인 값도)」** (ADR-284 Phase 4d): 목록의 조건이 어떤 값을 비워도 그 값이 0 으로 남는다
+
+### Performance
+
+- 데이터 보기 계산: 100 행 · 조건 5 · 변수 변경 p95 0.087 ms (기준 16 ms) · 10,000 행 p95 5 ms · 같은 값 재계산 0.04 ms (memo) — 묶기 · 집계 · 참조 계산은 Preview 첫 로드 밖 (lazy chunk), Preview initial +39 B
+
 ## [데이터 보기 (ADR-284 Phase 4c) — 참조 필드: 다른 표의 행을 가리키고 그 값으로 거르기 · 보이기 · 세기] - 2026-10-27
 
 ### Added

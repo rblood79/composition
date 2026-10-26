@@ -1383,7 +1383,11 @@ export function catalogResultCountCommand(
  */
 export function catalogGroupListCommand(
   reader: CatalogReader,
-  plan: CatalogDerivedPlan & { readonly field: CatalogFilterField },
+  plan: CatalogDerivedPlan & {
+    readonly field: CatalogFilterField;
+    /** 「모든 값」 — every value the field has in the data, a group with no rows says 0. */
+    readonly emptyGroups?: boolean;
+  },
   newId: NewId,
 ): {
   command: CatalogCommand;
@@ -1401,7 +1405,12 @@ export function catalogGroupListCommand(
         viewId,
         `${plan.viewName} · ${plan.field.key}`,
         source.sourceId,
-        { where: EMPTY_WHERE, groupBy: [field], aggregates: COUNT },
+        {
+          where: EMPTY_WHERE,
+          groupBy: [field],
+          ...(plan.emptyGroups ? { emptyGroups: "all" as const } : {}),
+          aggregates: COUNT,
+        },
       ),
     }),
   );

@@ -57,6 +57,7 @@ import {
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
 import { useCollections, useDataStore } from "../../../stores/data";
 import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
 import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
@@ -539,6 +540,7 @@ function DerivedViews({
   const fields = useViewFields(table);
   const collections = useCollections();
   const [fieldId, setFieldId] = useState("");
+  const [everyValue, setEveryValue] = useState(false);
   const graph = workspace.runtime.graph;
   // (「참조 값 표시」 — a field through a reference; 「참조하는 행 수」 — another collection's
   // reference field pointing at this one.)
@@ -635,7 +637,11 @@ function DerivedViews({
     };
     const { command } =
       grouping === "list"
-        ? catalogGroupListCommand(graph, plan, workspace.newId)
+        ? catalogGroupListCommand(
+            graph,
+            { ...plan, emptyGroups: everyValue },
+            workspace.newId,
+          )
         : catalogGroupColumnsCommand(
             graph,
             { ...plan, values: catalogFieldValues(rowsOf(table), field) },
@@ -659,6 +665,13 @@ function DerivedViews({
           translateOptions={false}
           onChange={setFieldId}
         />
+        {grouping === "list" ? (
+          <PropertyCheckbox
+            label={t("dataView.everyValue")}
+            isSelected={everyValue}
+            onChange={setEveryValue}
+          />
+        ) : null}
         <div className="data-view-add-actions">
           <Button
             className="control-button"
