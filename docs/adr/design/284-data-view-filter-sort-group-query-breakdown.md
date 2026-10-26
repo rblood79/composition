@@ -324,3 +324,40 @@
 - G0 ③ 의 원인은 `writeState` 가 `loadRouted` 를 부르지 않는 것에 더해 문서 변경 (보기 연결 · 수정) 도 부르지 않던 것 — receiver 구독에서 부른다.
 - 세 시점 경고: 편집기의 보기 목록은 형식 · 문서 (조건 · 원본) 변경마다 다시 계산된다. 조건 저작 화면 · 원본 변경 화면의 표시는 Phase 3 저작 UI 가 같은 `viewQueryLimits` 를 읽는다.
 - scope: shared 7 · builder 9 파일 + 테스트 4 — breakdown 범위 안. sub-group 없음.
+
+### Phase 3 — 3a · 3b (2026-10-27, 진행 중 — 사후 보고: Phase 3 을 sub-group 4 개 (3a 생성 함수 · 3b 패널 · 3c 정렬 따라가기 · 3d 공유 보기 · 상세 · 반례) 로 나눠 커밋)
+
+**생성 함수** — `apps/builder/src/builder/catalogRuntime/viewAuthoring.ts`: `catalogFilterCommand(graph, plan, newId)` 가 한 command (`sequence` — 앞 단계의 stage 위에서 다음 단계를 계획) 로 ① 컨트롤 삽입 (`insertNodes` — 목록의 부모 · 목록 바로 앞, 선택 이동 없음) ② 선택 항목 교체 (삽입한 instance 가 소유한 `fillSlot` 목록에 그 항목 원본으로 「전체」 + 필드 값 — `insertCollectionItem` / `insertGroupItem`, 그 뒤 template 항목 삭제) ③ page 변수 (`addRecord` — 목록의 page 소유, 이름 `<field>Filter` 유일) ④ 규칙 (`catalogInteractionsCommand` — 기존 규칙 + 새 규칙) ⑤ 조건 (내장 보기는 `catalogBindingCommand`, 공유 보기는 `updateView`). 실패하면 전체가 거부된다 (바인딩 없는 목록 반례). 항목 글자 채움은 `itemInsert.ts` 의 closure 를 `catalogItemRowFill` 로 꺼내 둘이 같이 쓴다.
+
+**기본값 표** (`CATALOG_FILTER_CONTROLS` · `catalogFilterCondition`):
+
+| 종류    | 컨트롤          | When → 값                         | 변수          | 조건                                                  |
+| ------- | --------------- | --------------------------------- | ------------- | ----------------------------------------------------- |
+| 입력    | SearchField     | onChange → `!event.value`         | string `""`   | 포함 (글자 필드, 그 밖은 같음) · 빈 값 건너뜀         |
+| 선택    | Select          | onChange → `!event.value`         | string `all`  | 같음 · `all` 건너뜀 · 항목 「전체」 + 필드 값         |
+| 라디오  | RadioGroup      | onChange → `!event.value`         | string `all`  | 같음 · `all` 건너뜀 · 항목 「전체」 + 필드 값         |
+| 여러 개 | TagGroup        | onSelectionChange → `!event.keys` | array         | 그 중 하나 · 빈 값 건너뜀 · 항목 = 필드 값            |
+| 체크    | Checkbox        | onChange → `!event.value`         | boolean false | 예/아니오 필드 = 예, 그 밖 = 첫 값 · `enabled` = 변수 |
+| 날짜    | DatePicker      | onChange → `!event.value`         | object        | 같음 (일 단위)                                        |
+| 기간    | DateRangePicker | onChange → `!event.value`         | object        | 사이 (`.start` · `.end`)                              |
+
+**연결 · 편집** — `catalogFilterConnections(list)` (조건 → 값 · `enabled` 가 읽는 변수 → 그 변수를 Set state 하는 규칙의 주인; 프로젝트 변수 `data:variable:` 는 색인 밖이라 page 의 규칙을 훑는다) · `catalogControlFilterConnections(control)` · `catalogFilterTargets(page)` · `catalogEditFilterCondition` (비교 · 건너뛰는 값) · `catalogOrFilterCondition` (조건을 `or` 묶음으로 감싸고 사본) · `catalogRemoveFilterCondition` (조건만 — 빈 `or` 도 함께).
+
+**패널** — `panels/properties/catalog/CatalogFilterSection.tsx` (`fieldset.properties-aria` + legend): 바운드 목록 = Collection 절 끝 「검색 · 필터」 (연결 행 = 필드 · 비교 (뜻 이름 18) · 컨트롤, ⋮ 메뉴 = 편집 · 또는 조건 추가 · 연결 해제 / 「검색 추가」 → 필드 · 컨트롤 → 생성), 필터 컨트롤 = 「Filter」 절 (그 컨트롤이 거르는 목록 · 「이 컨트롤로 목록 거르기」 → 대상 목록 · 필드). 생성 직후 그 연결의 상세가 `status` 로 열린다 (생성 안내 · 비교 · 건너뛰는 값 · 변수 이름 · 쓰는 컨트롤). i18n `dataView.*` (ko · en, 파라미터 문구는 formatted 함수 3) — 공용 어휘 게이트에 맞춰 「편집」 · 「생성」.
+
+**검증**:
+
+| 항목                                          | 결과                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 생성 · Preview (`adr284Authoring.test.tsx` 7) | 입력: 목록 앞 SearchField · `nameFilter` · onChange 규칙 · 포함 → Preview 에서 `pa` 입력 → Park · history +1 · Undo 한 번에 넷 다 사라짐. 라디오: 항목 all · male · female · 「전체」 처음 선택 · female → Park · 「전체」 → 셋. 선택 · 태그 · 체크 · 날짜 · 기간의 항목 · 변수 · 조건 · 이름 유일 · 기본값에서 전부 건너뜀. 두 진입점 같은 문서. 재진입 편집 (변수 · 규칙 수 그대로) · 「또는」 · 해제 (변수 · 규칙 · 컨트롤 남음). 프로젝트 변수의 쓰는 규칙 찾기. 바인딩 없는 목록 = 전체 거부 |
+| 패널 (`catalogFilterSection.test.tsx` 2)      | Design 패널에서 「Add search」 → 「Create」 = history +1 · SearchField · 포함 · status 에 변수 이름 · 요약 「name Contains (any case) · SearchField」. RadioGroup 의 「Filter a list with this control」 → 그 컨트롤이 목록을 거름 (새 컨트롤 0)                                                                                                                                                                                                                                                  |
+| 원복 RED 7/7                                  | 규칙 값 리터럴 · 입력 비교 같음 · `all` 건너뜀 제거 · template 항목 남김 · 「전체」 선택 제거 · 프로젝트 변수 훑기 제거 · 패널 연결 제거                                                                                                                                                                                                                                                                                                                                                          |
+| 스위트 · type-check                           | builder preview · catalogRuntime · properties · design · i18n · components 403 파일 3384 통과 · type-check 0                                                                                                                                                                                                                                                                                                                                                                                      |
+
+**live (Chrome MCP · dev 5175 · 2026-10-27)** — 「ADR284 live」 (Users 를 mock 으로 되돌림): GridList 선택 → Collection 절 「Search · filter」 → 「Add search」 → Field gender · Control 「Pick one (radio)」 → 「Create」 → Canvas 목록 앞에 gender · All · male · female, 패널에 연결 행 + 생성 안내 (비교 Equals · 건너뛰는 값 all · 변수 genderFilter · RadioGroup) → Preview 에서 female → 목록 Park 만 → 새로고침 뒤 연결 유지 · RadioGroup 선택 → 「Filter」 절에 「GridList · gender Equals · RadioGroup」. live 중 발견 · 수리 2: 「All」 이 처음 선택되지 않음 (원본 RadioGroup 은 `value` 를 받지 않는다 — 항목 `isSelected` 로) · Phase 1 의 프로젝트 변수 조건이 「쓰는 컨트롤 없음」 (색인 밖 — page 규칙에서 찾음).
+
+**정정 · 남은 것**:
+
+- 「결과 수 표시」 (G3 목록) 는 파생 보기의 `count` 계산이 Phase 4 (lazy 집계) 라 G4 의 「파생 보기 바인딩 (Text count)」 과 함께 닫는다.
+- 3c 「정렬 따라가기」 — 보기에 정렬 변수가 있는 Table 의 `sortDescriptor` 를 그 변수에 묶는다 (Table 의 RAC 열 key 는 record id 라 규칙 값으로는 필드에 닿지 않는다 — 열 → 필드 key 변환을 Table 쪽에서). G0 ② · 257 반례.
+- 3d 공유 보기 「이 보기를 N 개가 봅니다」 · 「이 목록에서만 바꾸기 · 해제」 · 연결 상세의 실행 값 (실행 전 표시) · 행 판정 설명 · walkthrough §9.3 10 지점 반례.

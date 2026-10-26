@@ -114,20 +114,21 @@ function wrapperGroupHost(
  * palette's Menu, a MenuTrigger), a Footer a StatusLight or a Button (`LinkButton` — a Button with
  * `href`). Only a Card's own parts: an InlineAlert's Content is its text.
  */
-export const CARD_PART_ITEM_TYPES: Readonly<
-  Record<string, readonly string[]>
-> = {
-  CardPreview: ["Image", "Illustration", "Badge", "Avatar"],
-  Content: ["Text", "Menu", "Icon"],
-  Footer: ["StatusLight", "Button"],
-};
+export const CARD_PART_ITEM_TYPES: Readonly<Record<string, readonly string[]>> =
+  {
+    CardPreview: ["Image", "Illustration", "Badge", "Avatar"],
+    Content: ["Text", "Menu", "Icon"],
+    Footer: ["StatusLight", "Button"],
+  };
 
 /** A node position that is a Card's part (its parent a Card). */
 function cardPart(graph: CatalogGraph, position: CatalogPosition): boolean {
   if (position.target.kind !== "node") return false;
   const owner = graph.ownerOf(position.target.id);
   const parent = owner ? graph.getEntry(owner) : undefined;
-  return parent?.kind === "node" && typeOf(graph, parent.definitionId) === "Card";
+  return (
+    parent?.kind === "node" && typeOf(graph, parent.definitionId) === "Card"
+  );
 }
 
 /** The item types a position takes with "+" (the old slot host rules over the catalog families). */
@@ -180,6 +181,65 @@ const PICKER_LIST: Readonly<Record<string, readonly string[]>> = {
   TagGroup: ["TagList"],
   Table: ["TableHeader", "TableBody"],
 };
+
+/**
+ * A list item's row fields: a library item origin whose template shows `{label}` · `{description}` ·
+ * `{icon}` (the row template fields data rows fill) gets `label` for the label and hides the
+ * description and icon parts, instead of drawing the bare placeholders. Root placeholders become own
+ * props, part placeholders path overrides on the new instance (ADR-284 — a filter control's items
+ * from field values use it too).
+ */
+export function catalogItemRowFill(
+  library: CatalogGraph["library"],
+  definitionId: NodeEntry["definitionId"],
+  label: string,
+): {
+  props: Record<string, unknown>;
+  patches: (nodeId: NodeId) => DescendantOverride[];
+} {
+  const definition = library.definitions.get(
+    definitionId as LibraryDefinitionId,
+  ) as { mode?: string; templateRootId?: LibraryTemplateId } | undefined;
+  const rootId = definition?.templateRootId;
+  if (definition?.mode !== "composite" || !rootId)
+    return { props: {}, patches: () => [] };
+  const fieldOf = (props: Readonly<Record<string, unknown>> | undefined) => {
+    for (const key of ["children", "iconName"]) {
+      const match =
+        typeof props?.[key] === "string"
+          ? /^\{(label|description|icon|shortcut)\}$/.exec(props[key] as string)
+          : null;
+      if (match) return { key, field: match[1] };
+    }
+    return undefined;
+  };
+  const props: Record<string, unknown> = {};
+  const root = library.templates.get(rootId);
+  const rootField = fieldOf(root?.props);
+  if (rootField?.field === "label") props[rootField.key] = label;
+  const parts: { path: LibraryTemplateId[]; field: string; key: string }[] = [];
+  const visit = (path: LibraryTemplateId[], depth: number) => {
+    const node = library.templates.get(path[path.length - 1]!);
+    for (const childId of (node?.children ?? []) as LibraryTemplateId[]) {
+      const child = library.templates.get(childId);
+      const found = fieldOf(child?.props);
+      if (found) parts.push({ path: [...path, childId], ...found });
+      else if (depth < 3) visit([...path, childId], depth + 1);
+    }
+  };
+  visit([rootId], 0);
+  return {
+    props,
+    patches: (nodeId) =>
+      parts.map(({ path, field, key }) => ({
+        kind: "patch",
+        address: { instances: [nodeId], templatePath: path },
+        ...(field === "label"
+          ? { props: { [key]: { kind: "set", value: label } } as PropWrites }
+          : { enabled: false }),
+      })),
+  };
+}
 
 export function catalogItemInsertChoices(
   host: CatalogItemInsertHost,
@@ -266,62 +326,17 @@ export function catalogItemInsertChoices(
     definitionId: NodeEntry["definitionId"],
     itemType: string,
     named?: string,
-  ): {
-    props: Record<string, unknown>;
-    patches: (nodeId: NodeId) => DescendantOverride[];
-  } => {
-    const definition = graph.library.definitions.get(
-      definitionId as LibraryDefinitionId,
-    ) as { mode?: string; templateRootId?: LibraryTemplateId } | undefined;
-    const rootId = definition?.templateRootId;
-    if (definition?.mode !== "composite" || !rootId)
-      return { props: {}, patches: () => [] };
+  ) => {
     const count = rows.filter(
       (row) => typeOf(graph, row.definitionId) === itemType,
     ).length;
     // A Tab or Tag reads like its siblings ("Tab 3"); other items "Item <n>".
-    const label =
+    return catalogItemRowFill(
+      graph.library,
+      definitionId,
       named ??
-      `${itemType === "Tab" || itemType === "Tag" ? itemType : "Item"} ${count + 1}`;
-    const fieldOf = (props: Readonly<Record<string, unknown>> | undefined) => {
-      for (const key of ["children", "iconName"]) {
-        const match =
-          typeof props?.[key] === "string"
-            ? /^\{(label|description|icon|shortcut)\}$/.exec(
-                props[key] as string,
-              )
-            : null;
-        if (match) return { key, field: match[1] };
-      }
-      return undefined;
-    };
-    const props: Record<string, unknown> = {};
-    const root = graph.library.templates.get(rootId);
-    const rootField = fieldOf(root?.props);
-    if (rootField?.field === "label") props[rootField.key] = label;
-    const parts: { path: LibraryTemplateId[]; field: string; key: string }[] =
-      [];
-    const visit = (path: LibraryTemplateId[], depth: number) => {
-      const node = graph.library.templates.get(path[path.length - 1]!);
-      for (const childId of (node?.children ?? []) as LibraryTemplateId[]) {
-        const child = graph.library.templates.get(childId);
-        const found = fieldOf(child?.props);
-        if (found) parts.push({ path: [...path, childId], ...found });
-        else if (depth < 3) visit([...path, childId], depth + 1);
-      }
-    };
-    visit([rootId], 0);
-    return {
-      props,
-      patches: (nodeId) =>
-        parts.map(({ path, field, key }) => ({
-          kind: "patch",
-          address: { instances: [nodeId], templatePath: path },
-          ...(field === "label"
-            ? { props: { [key]: { kind: "set", value: label } } as PropWrites }
-            : { enabled: false }),
-        })),
-    };
+        `${itemType === "Tab" || itemType === "Tag" ? itemType : "Item"} ${count + 1}`,
+    );
   };
 
   /** A MenuItem with its row fields filled (a new key, the label `named` or "Item <n>"). */

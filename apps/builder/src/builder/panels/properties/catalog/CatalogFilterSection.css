@@ -1,0 +1,79 @@
+/**
+ * ADR-284 Phase 3 — 「검색 · 필터」 · 「목록 거르기」 (Design panel Property tab). Structure classes are
+ * panel-system's; only `data-view-*` is defined here.
+ */
+.data-view-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.data-view-connection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.data-view-connection-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--control-size);
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.data-view-connection-summary {
+  min-width: 0;
+  height: var(--control-size);
+  padding: 0 var(--spacing-sm);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+}
+
+.data-view-connection-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.data-view-connection-detail,
+.data-view-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-inline-start: var(--spacing-sm);
+  border-inline-start: 2px solid var(--border);
+}
+
+.data-view-add-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.data-view-made,
+.data-view-detail-line {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.data-view-made {
+  color: var(--fg);
+}

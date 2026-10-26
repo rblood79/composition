@@ -1,3 +1,8 @@
+import {
+  CatalogControlFilterSection,
+  CatalogListFilterSection,
+} from "./CatalogFilterSection";
+import { catalogFilterKindOfType } from "../../../catalogRuntime/viewAuthoring";
 import { Settings2 } from "lucide-react";
 
 import {
@@ -8,7 +13,10 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
+import type {
+  EditTarget,
+  NodeId,
+} from "../../../../../../../packages/shared/src/catalog/document/types";
 
 import { catalogCalendarPicker } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
 
@@ -58,7 +66,6 @@ import { ItemsSourceContext } from "../generic/itemsSource";
 import { useChartPropertyExtras } from "../useChartPropertyExtras";
 
 import { CatalogAccessibilitySection } from "./CatalogAccessibilitySection";
-
 
 import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
 import { CatalogFieldPrefixField } from "./CatalogFieldPrefixField";
@@ -286,7 +293,9 @@ const CatalogFields = memo(function CatalogFields({
   // 2026-10-14: the props this node's owner decides where it sits (a grouped toggle's size and
   // emphasis, a field's button's size, a picker's list selection …) — not offered here.
   // (Read only for a type an owner can decide — the root is not touched for the others.)
-  const mayBeOwnerDecided = CATALOG_OWNER_DECIDED_TYPES.has(contract.type ?? "");
+  const mayBeOwnerDecided = CATALOG_OWNER_DECIDED_TYPES.has(
+    contract.type ?? "",
+  );
   const ownerDecidedKey = useSyncExternalStore(subscribeSteps, () => {
     if (!mayBeOwnerDecided || !root) return "";
     const record = root.domInputs.get(elementId);
@@ -324,8 +333,7 @@ const CatalogFields = memo(function CatalogFields({
     const fields = contract.fields
       .filter(
         (field) =>
-          field.origin === "semantic" &&
-          !ownerDecided?.keys.has(field.key),
+          field.origin === "semantic" && !ownerDecided?.keys.has(field.key),
       )
       .map((field) =>
         radioOptions && field.key === "value"
@@ -344,12 +352,7 @@ const CatalogFields = memo(function CatalogFields({
     // (ADR-276: a Button · ToggleButton origin's words · glyph are its `label` · `icon` props —
     // its reusable schema, no child fields of its own.)
     return fields;
-  }, [
-    contract,
-    ownerDecided,
-    radioOptionsKey,
-    selectedTabKey,
-  ]);
+  }, [contract, ownerDecided, radioOptionsKey, selectedTabKey]);
   // (A picker's calendar keeps its own notice — it names what the picker edits.)
   const decidedLabels = ownerDecided
     ? contract.fields
@@ -434,6 +437,17 @@ const CatalogFields = memo(function CatalogFields({
       return false;
     }
   }, [targets, workspace]);
+  // ADR-284 Phase 3: a bound list's 「검색 · 필터」 · a filter control's 「목록 거르기」 (one node).
+  const filterNode =
+    targets.length === 1 && targets[0]!.kind === "node"
+      ? targets[0]!.id
+      : undefined;
+  const isBound = useSyncExternalStore(subscribeSteps, () => {
+    const node = filterNode
+      ? workspace.runtime.graph.getEntry(filterNode)
+      : undefined;
+    return node?.kind === "node" && !!node.binding;
+  });
   const extras = useChartPropertyExtras({
     elementId,
     elementType: contract.type,
@@ -476,10 +490,39 @@ const CatalogFields = memo(function CatalogFields({
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
       contentExtras={extras.contentExtras}
-      sectionExtras={extras.sectionExtras}
+      sectionExtras={withFilterSections(
+        extras.sectionExtras,
+        filterNode,
+        contract.type,
+        isBound,
+      )}
     />
   );
 });
+
+/**
+ * ADR-284 Phase 3: the filter entries — a bound list's 「검색 · 필터」 at the end of its Collection
+ * section, a filter control's own 「Filter」 section (both one node selected).
+ */
+function withFilterSections(
+  sectionExtras: Partial<Record<string, ReactNode>> | undefined,
+  nodeId: NodeId | undefined,
+  type: string | undefined,
+  isBound: boolean,
+): Partial<Record<string, ReactNode>> | undefined {
+  if (!nodeId) return sectionExtras;
+  const out = { ...sectionExtras };
+  if (isBound)
+    out.collection = (
+      <>
+        {sectionExtras?.collection}
+        <CatalogListFilterSection listId={nodeId} />
+      </>
+    );
+  if (type && catalogFilterKindOfType(type))
+    out.filter = <CatalogControlFilterSection controlId={nodeId} />;
+  return out;
+}
 
 /** The owner's notice above a section's own extra fields. */
 function withOwnerNotice(
