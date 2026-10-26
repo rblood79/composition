@@ -2341,6 +2341,18 @@ const koKR: TranslationKeys = {
     made: "생성했습니다 — 비교 · 건너뛰는 값 · 변수를 확인하세요.",
     noControl: "값을 쓰는 컨트롤 없음",
     noFields: "이 목록의 데이터에 필드가 없습니다.",
+    empty: "(빈 값)",
+    rows: "행 판정",
+    rowShown: "보임",
+    rowHidden: "숨김",
+    verdict_match: "일치",
+    verdict_miss: "불일치",
+    verdict_skip: "건너뜀",
+    limits: "보낼 수 없는 조건",
+    requestNone:
+      "이 API 는 조건을 보내지 않습니다 — 불러온 행에서 거릅니다 (API 편집기 「조회 형식」).",
+    serverRows:
+      "서버가 돌려주지 않은 행이 왜 빠졌는지는 여기서 알 수 없습니다.",
     splitHere: "이 목록에서만",
     shareView: "이름 붙여 공유",
     shareName: "보기 이름",
@@ -4842,6 +4854,17 @@ const enUS: TranslationKeys = {
     made: "Created — check the comparison, the value that skips it and the variable.",
     noControl: "no control sets its value",
     noFields: "This list's data has no fields.",
+    empty: "(empty)",
+    rows: "Row verdicts",
+    rowShown: "shown",
+    rowHidden: "hidden",
+    verdict_match: "match",
+    verdict_miss: "no match",
+    verdict_skip: "skipped",
+    limits: "Conditions the request cannot carry",
+    requestNone:
+      "This API sends no conditions — the loaded rows are filtered (API editor 「Query format」).",
+    serverRows: "Why the server left a row out cannot be told here.",
     splitHere: "This list only",
     shareView: "Share as a named view",
     shareName: "View name",
@@ -6330,6 +6353,16 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
+    "dataView.currentValue": (args) =>
+      `현재 값 (Preview): ${String(args?.value ?? "")}`,
+    "dataView.beforeRun": (args) =>
+      `실행 전 — 기본값 ${String(args?.value ?? "")}`,
+    "dataView.rowLine": (args) =>
+      `${String(args?.row ?? "")} — 이 조건 ${String(args?.verdict ?? "")} · ${String(args?.shown ?? "")}`,
+    "dataView.requestParams": (args) =>
+      `보내는 요청: ?${String(args?.params ?? "")}`,
+    "dataView.requestBody": (args) =>
+      `보내는 요청 본문: ${String(args?.body ?? "")}`,
     "dataView.sharedLine": (args) =>
       `공유 보기 「${String(args?.name ?? "")}」 — ${String(args?.count ?? 0)}개가 봅니다. 조건을 바꾸면 모두 바뀝니다.`,
     "dataView.unreadLine": (args) =>
@@ -6931,6 +6964,16 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
+    "dataView.currentValue": (args) =>
+      `Current value (Preview): ${String(args?.value ?? "")}`,
+    "dataView.beforeRun": (args) =>
+      `Not running — default ${String(args?.value ?? "")}`,
+    "dataView.rowLine": (args) =>
+      `${String(args?.row ?? "")} — this condition: ${String(args?.verdict ?? "")} · ${String(args?.shown ?? "")}`,
+    "dataView.requestParams": (args) =>
+      `Request sent: ?${String(args?.params ?? "")}`,
+    "dataView.requestBody": (args) =>
+      `Request body sent: ${String(args?.body ?? "")}`,
     "dataView.sharedLine": (args) =>
       `Shared view "${String(args?.name ?? "")}" — read by ${String(args?.count ?? 0)}. A condition change reaches them all.`,
     "dataView.unreadLine": (args) =>

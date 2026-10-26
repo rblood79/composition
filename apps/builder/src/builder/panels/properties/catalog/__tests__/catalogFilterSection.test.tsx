@@ -11,9 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../../../../i18n";
 import { catalogBindingRef } from "../../../../catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../../catalogRuntime/dataBindingCommand";
+import { translations } from "../../../../../i18n/translations";
 import {
   catalogFilterCommand,
   catalogFilterConnections,
+  catalogOrFilterCondition,
   catalogRemoveFilterCondition,
   catalogSharedViewOf,
   catalogShareView,
@@ -42,6 +44,12 @@ vi.mock("../../../../layout/panelWorkspaceVisibility", () => ({
  * Design panel's Property tab, as an author clicks.
  */
 let fixture: StylesFixture;
+const i18nEn = Object.fromEntries(
+  Object.entries(translations["en-US"].dataView).map(([key, value]) => [
+    `dataView.${key}`,
+    value,
+  ]),
+) as Record<string, string>;
 
 beforeEach(async () => {
   vi.stubGlobal("CSS", { escape: (value: string) => value });
@@ -279,6 +287,172 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     expect(connection!.variable!.id).toBe(made.created.variableId);
     expect(connection!.controls).toEqual([
       { nodeId: nodeIdOf("radio"), ruleId: made.created.ruleId },
+    ]);
+  });
+
+  it("a connection's detail: 「Not running」 and the default, then the Preview's value — each local row's verdict from the evaluator", () => {
+    const w = fixture.workspace;
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: { id: "f-gender", key: "gender", type: "string" },
+        kind: "radio",
+        control: { nodeId: nodeIdOf("radio") },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(buttonByText(group, "gender Equals · RadioGroup"));
+    const run = () => group.querySelector(".data-view-run")!;
+    expect(run().textContent).toContain("Not running — default all");
+    // (「all」 skips: both rows shown, the condition skipped.)
+    expect(
+      [...run().querySelectorAll("li")].map((li) => li.textContent),
+    ).toEqual([
+      "Kim — this condition: skipped · shown",
+      "Park — this condition: skipped · shown",
+    ]);
+    act(() => {
+      w.setPreviewValues({ [made.created.variableId]: "female" });
+    });
+    expect(run().textContent).toContain("Current value (Preview): female");
+    expect(
+      [...run().querySelectorAll("li")].map((li) => li.textContent),
+    ).toEqual([
+      "Kim — this condition: no match · hidden",
+      "Park — this condition: match · shown",
+    ]);
+  });
+
+  it("an API collection's detail shows the request it sends and what it cannot carry — no reason for rows the server left out", () => {
+    const w = fixture.workspace;
+    const store = useDataStore.getState();
+    const users = store.collections.get("users")!;
+    useDataStore.setState({
+      collections: new Map([["users", { ...users, useMockData: false }]]),
+      apiEndpoints: new Map([
+        [
+          "list",
+          {
+            id: "list",
+            name: "list",
+            method: "GET",
+            baseUrl: "https://api.test",
+            path: "/users",
+            headers: [],
+            queryParams: [],
+            bodyType: "none",
+            responseMapping: { dataPath: "items" },
+            targetCollectionId: "users",
+            querySerialization: { kind: "suffix" },
+          } as never,
+        ],
+      ]),
+    });
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: { id: "f-name", key: "name", type: "string" },
+        kind: "text",
+        control: { insert: true },
+        values: [],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(group.querySelector(".data-view-connection-summary")!);
+    act(() => {
+      w.setPreviewValues({ [made.created.variableId]: "pa" });
+    });
+    const run = group.querySelector(".data-view-run")!;
+    expect(run.textContent).toContain("Request sent: ?name_like=pa");
+    expect(run.textContent).toContain(
+      "Why the server left a row out cannot be told here.",
+    );
+    expect(run.querySelectorAll("li")).toHaveLength(0);
+  });
+
+  it("walkthrough §9.3 ③ ⑦ ⑩ — names carry their meaning; an `or` the API cannot send is named in the condition's own detail", () => {
+    const w = fixture.workspace;
+    const store = useDataStore.getState();
+    const users = store.collections.get("users")!;
+    useDataStore.setState({
+      collections: new Map([["users", { ...users, useMockData: false }]]),
+      apiEndpoints: new Map([
+        [
+          "list",
+          {
+            id: "list",
+            name: "list",
+            method: "GET",
+            baseUrl: "https://api.test",
+            path: "/users",
+            headers: [],
+            queryParams: [],
+            bodyType: "none",
+            responseMapping: { dataPath: "items" },
+            targetCollectionId: "users",
+            querySerialization: { kind: "suffix" },
+          } as never,
+        ],
+      ]),
+    });
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: { id: "f-gender", key: "gender", type: "string" },
+        kind: "radio",
+        control: { nodeId: nodeIdOf("radio") },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    // ③ 「또는 조건 추가」 wraps the condition (the root stays `and`).
+    w.execute(
+      catalogOrFilterCondition(
+        w.runtime.graph,
+        nodeIdOf("list"),
+        made.created.conditionId,
+        "second",
+      ),
+    );
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(group.querySelector(".data-view-connection-summary")!);
+    // ⑦ at authoring time: the `or` the suffix format cannot carry.
+    expect(
+      group.querySelector('[aria-label="Conditions the request cannot carry"]')
+        ?.textContent,
+    ).toContain("or-group — cannot be parameters");
+    // ③ ⑩ the comparison names say what they mean (less than ≠ at most · any ≠ all · ends).
+    const options = (key: string) => i18nEn[`dataView.op_${key}`];
+    expect([
+      options("lt"),
+      options("lte"),
+      options("containsAny"),
+      options("containsAll"),
+      options("between"),
+    ]).toEqual([
+      "Less than",
+      "At most",
+      "Contains any of",
+      "Contains all of",
+      "Between (ends included)",
     ]);
   });
 });

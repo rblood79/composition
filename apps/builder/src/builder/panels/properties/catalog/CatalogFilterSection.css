@@ -77,3 +77,25 @@
 .data-view-made {
   color: var(--fg);
 }
+
+.data-view-run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.data-view-rows,
+.data-view-limits {
+  margin: 0;
+  padding-inline-start: var(--spacing-lg);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+
+  & li[data-shown="false"] {
+    color: var(--fg-disabled);
+  }
+}
+
+.data-view-limits {
+  color: var(--notice);
+}

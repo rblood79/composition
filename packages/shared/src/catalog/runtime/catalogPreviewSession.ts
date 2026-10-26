@@ -393,6 +393,11 @@ function replayFlatTreeEdits(
 export interface CatalogPreviewSessionOptions {
   /** Ask the Builder for a snapshot (`window.parent.postMessage(request, origin)`). */
   requestSnapshot: (request: CatalogPreviewSnapshotRequest) => void;
+  /**
+   * ADR-284 Decision 11 — the variables' current values for the Builder (`CATALOG_STATE_VALUES`):
+   * a filter connection's detail reads what the running Preview holds, not the defaults.
+   */
+  reportState?: (values: Readonly<Record<string, unknown>>) => void;
   engine: () => LayoutEngineAPI;
   viewport: { width: number; height: number };
   locale?: string;
@@ -505,6 +510,7 @@ export class CatalogPreviewSession {
         this.syncDefinitions();
         this.applyTheme(true);
         this.currentRoot = this.createRoot();
+        this.reportState();
       } else {
         this.syncDefinitions();
         if (this.applyTheme(false)) this.currentRoot = this.createRoot();
@@ -1154,9 +1160,7 @@ export class CatalogPreviewSession {
    * definition) the bindings of that collection read, when the endpoint names a query format. Two
    * different views on one endpoint are not sent (`MULTI_VIEW` — each filters its loaded rows).
    */
-  private serverView(
-    collectionId: string,
-  ):
+  private serverView(collectionId: string):
     | {
         query: CatalogRowQuery;
         serialized: SerializedViewQuery;
@@ -1651,7 +1655,28 @@ export class CatalogPreviewSession {
       // ADR-284 Decision 6: a request reading a written variable (an endpoint's `{{ name }}`, a
       // view it carries) loads again — after a pause when a text condition reads it (typing).
       this.reloadForVariables(changed);
+      this.reportState();
       this.changed();
+    });
+  }
+  private reportScheduled = false;
+  /** The variables' current values to the Builder (once per task — several writes, one report). */
+  private reportState(): void {
+    const report = this.options.reportState;
+    const graph = this.graph;
+    if (!report || !graph || !this.state || this.reportScheduled) return;
+    this.reportScheduled = true;
+    queueMicrotask(() => {
+      this.reportScheduled = false;
+      const values: Record<string, unknown> = {};
+      for (const { def } of catalogRuntimeVariables(graph, this.variables)) {
+        const read = this.readVariable({ variableId: def.id } as never);
+        if (!read) continue;
+        // (A RAC `Selection` as its keys — the message carries plain values.)
+        values[def.id] =
+          read.value instanceof Set ? [...read.value] : read.value;
+      }
+      report(values);
     });
   }
   /**

@@ -376,4 +376,27 @@
 - **수리 (Phase 1 결함)** — 공유 보기 entry 가 바뀌어도 그것을 읽는 목록의 바인딩은 그대로라 root 가 다시 풀리지 않아 행이 옛 조건으로 남았다 (공유 · 분리 테스트가 RED 로 잡음). `compositionRoot.plan` 이 바뀐 view entry 마다 `viewReaders` (직접 + 파생 보기 경유) 의 root 를 영향 root 에 넣는다.
 - **검증** — `adr284Authoring` +2: 공유 → 두 목록 female 에 Park · 분리 → 공유 보기 사용처 1 · 공유 보기 조건 변경 (같지 않음) 이 원래 목록만 바꿈 (Kim · Lee / Park) · Undo 2 번 → 둘 다 공유. B 습관: 변수 · 규칙만 남은 RadioGroup → 안내 1 건 → 연결 = 변수 수 · 규칙 수 그대로 · 안내 0. 패널 +1 (Table 의 「read by 2」 · 「This list only」 · 안내 note · 「Connect」 → 기존 변수 · 규칙). 원복 RED 4/4 (보기 변경 재계산 · 분리의 `viewId` 제거 · 안내 · 재사용). shared 1772 · builder 540 파일 4369 · type-check 0.
 - **live (5175)** — GridList 「Share as a named view」 → 이름 People · Also read by Table → 생성 → Table 선택 → 「Shared view "People" — read by 2. A condition change reaches them all.」 + 「This list only」 → 누름 → Table 바인딩 = 내장 사본 (조건 1 · 정렬 변수 tableSort), GridList 는 People 그대로. live 중 발견 · 수리 1: 「함께 볼 목록」 의 「없음」 이 빈 값이라 선택 없음 (—) 으로 보임 → 키 `none`.
-- **남은 Phase 3 (3e)** — 연결 상세의 실행 값 (Compare Mode Preview 채널 · 실행 전 표시) · 행 판정 설명 (`explainViewRow`) · API 의 요청 조건 · 로드 범위 · 경고 (조건 저작 시점의 `viewQueryLimits`) · §9.3 10 지점 반례 표.
+- **남은 Phase 3 (3e)** — 아래 Phase 3e 기록.
+
+### Phase 3e — 2026-10-27 (연결 상세의 실행 결과 · G3 닫힘)
+
+- **Preview → Builder 값 보고** — `catalogPreviewSession` 의 `reportState` 옵션: 상태 구독과 root 생성 뒤 microtask 하나로 변수 값 (plain 값) 을 보고 → `catalogPreviewApp` 이 `CATALOG_STATE_VALUES` 를 보냄 → `CatalogPreviewFrame` 이 기존 origin · source 검증 뒤 `workspace.setPreviewValues` (`detachPreview` 가 비움). Preview 가 없으면 값 없음 = 「실행 전」.
+- **연결 상세 (`ConnectionRun`)** — 「현재 값 (Preview): …」 / 「실행 전 — 기본값 …」 (기본값을 실측 값으로 보이지 않음) · 로컬 원본은 상세를 연 연결의 행마다 `explainViewRow` (목록의 계산기와 같은 평가기 — 별도 UI 평가기 없음, 평상시 trace 저장 없음) 로 「이 조건: 일치 · 표시」 / 「불일치 · 숨김」 / 「건너뜀」. API 원본은 그 보기를 실제로 싣는 요청 (접미 파라미터 또는 본문 JSON — `serializeViewQueries`) · 싣지 못하는 조건 (`viewQueryLimits` — 저작 순서와 상관없이 상세를 열 때마다 계산) · 「서버가 돌려주지 않은 행의 제외 이유는 보이지 않습니다」 (로컬 추정으로 확정하지 않음).
+- **검증** — `adr284Authoring` +1 (변수 쓰기 → 보고 한 번 · plain 값) · 패널 +3 (실행 전 → Preview 값 → 행 판정 3 · API 요청 파라미터 · 한계 · 서버 행 안내 · walkthrough ③ ⑦ ⑩). 원복 RED 4/4 (보고 제거 · 기본값을 현재 값으로 · 판정을 평가기 대신 상수로 · 한계 목록 제거). ADR-284 스위트 4 파일 30 · type-check 0.
+- **live (5175, Compare Mode — Chrome MCP)** — 「ADR284 live」 → Compare Mode 켬 → Preview 의 RadioGroup female → Preview GridList · Table 둘 다 Park → Canvas 에서 GridList 선택 → 「검색 · 필터」 연결 상세: 「Current value (Preview): female」 · Kim — no match · hidden / Park — match · shown / Lee — no match · hidden. 콘솔 오류 0.
+- **G3 닫힘** — 「결과 수 표시」 는 파생 보기 `count` (Phase 4) 와 함께 G4 로 (Phase 3a 기록). 판독: 3a ~ 3e 원복 RED 합 22/23 (3c 의 DOM 런타임 prop 차단 1 건 관찰 결과 같음 — LOW deferred).
+
+#### walkthrough §9.3 10 지점 — 반례가 지금 어디서 막히나
+
+| #   | 지점                       | G3 에서 막는 자리                                                                                                                                                | 테스트                                                 |
+| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1   | 「거르기」 기본값          | 기본값 표 (글자 = 포함 · 값 고르기 = 같음 · 태그 = 그 중 하나) · 「전체」 = `all` 건너뜀 · 항목 = 필드 값 그대로 (대소문자 일치) · 확인 화면                     | `adr284Authoring` 「검색 추가」 3 · 패널 Add search    |
+| 2   | boolean 컨트롤의 자리      | 체크 = 조건의 적용 여부 (`enabled`) — 값 자리에 변수를 넣지 않음                                                                                                 | `adr284Authoring` select · tags · check · date · range |
+| 3   | 묶음 위치 · 미만           | 「또는 조건 추가」 가 그 조건을 `or` 로 감쌈 (루트에 AND 로 붙지 않음) · 비교 이름 「미만」 · 「이하」 구분                                                      | `adr284Authoring` re-entry · 패널 ③ ⑦ ⑩                |
+| 4   | 기본 보기 ↔ 이름 있는 보기 | 공유 보기 「N개가 봅니다」 · 「이 목록에서만」 · 내장 보기에 집계 금지 (Phase 1 `VIEW_AGGREGATE_DERIVED_ONLY`). 개수 = 파생 보기 → G4                            | `adr284Authoring` 공유 · 분리 · 패널 shared view       |
+| 5   | 정렬의 한 번 동작          | 「정렬 따라가기」 한 동작 · Table 화살표 = 변수 값 · 변수 없는 Table 은 257 런타임 정렬 그대로                                                                   | G0 ② · `adr284Authoring` 정렬 2 · 패널 Follow sort     |
+| 6   | drag & drop                | Phase 5 (G5)                                                                                                                                                     | —                                                      |
+| 7   | API 직렬화 · 경고 시점     | endpoint 조회 형식 편집기 (Phase 2) · 연결 상세가 상세를 열 때마다 싣는 요청과 한계를 보임 (조건을 먼저 두고 원본을 바꾼 순서도 같음) · 서버 미반환 행 이유 없음 | `adr284ApiView` 7 · 패널 API detail · ③ ⑦ ⑩            |
+| 8   | 참조 경로 · Select 해제    | Select 에 「전체」 항목 (처음 선택) — 해제 경로. 참조 경로 편집 · 끊김 = G4                                                                                      | `adr284Authoring` select                               |
+| 9   | B 습관                     | 아무 목록도 읽지 않는 변수를 그 자리에 안내 + 「이 목록의 조건으로 연결」 (변수 · 규칙 재사용)                                                                   | `adr284Authoring` hand-made rule · 패널 Connect        |
+| 10  | 비교 뜻이 이름에 없음      | 비교 18 의 이름이 뜻을 말함 (그 중 하나 · 모두 · 사이 (끝 포함) · 일 단위 날짜) · 연결 상세의 행 판정                                                            | 패널 ③ ⑦ ⑩ · connection detail                         |

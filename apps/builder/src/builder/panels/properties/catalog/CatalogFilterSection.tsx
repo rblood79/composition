@@ -50,7 +50,13 @@ import {
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { useCollections } from "../../../stores/data";
+import { useCollections, useDataStore } from "../../../stores/data";
+import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
+import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
+import {
+  serializeViewQueries,
+  viewQueryLimits,
+} from "../../../../../../../packages/shared/src/collections/view/serialize";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
@@ -208,6 +214,7 @@ function ConnectionRow({
               control: controls.join(", ") || t("dataView.noControl"),
             })}
           </p>
+          <ConnectionRun connection={connection} table={table} />
         </div>
       ) : null}
     </div>
@@ -841,5 +848,195 @@ function UnreadVariables({
         </div>
       ))}
     </>
+  );
+}
+
+/** A reference's value: the running Preview's (when it reports), else the variable's default. */
+function useViewResolver(listId: NodeId) {
+  const workspace = useCatalogWorkspace();
+  const projectVariables = useDataStore((state) => state.variables);
+  const subscribe = useCallback(
+    (notify: () => void) => workspace.subscribePreviewValues(notify),
+    [workspace],
+  );
+  const running = useSyncExternalStore(
+    subscribe,
+    () => workspace.previewValues,
+  );
+  const graph = workspace.runtime.graph;
+  const valueOf = useCallback(
+    (variableId: string): { value: unknown } | undefined => {
+      if (running && Object.prototype.hasOwnProperty.call(running, variableId))
+        return { value: running[variableId] };
+      const entry = graph.getEntry(variableId);
+      if (entry?.kind === "stateVariable")
+        return {
+          value:
+            entry.defaultValue === "" &&
+            (entry.valueType === "object" || entry.valueType === "array")
+              ? null
+              : entry.defaultValue,
+        };
+      if (variableId.startsWith("data:variable:")) {
+        const id = variableId.slice("data:variable:".length);
+        const project = [...projectVariables.values()].find(
+          (variable) => variable.id === id,
+        );
+        return project ? { value: project.defaultValue } : undefined;
+      }
+      return undefined;
+    },
+    [graph, projectVariables, running],
+  );
+  const resolve = useCallback(
+    (value: unknown): { value: unknown } | undefined => {
+      if (typeof value !== "string" || !value.startsWith("!")) return { value };
+      const match = /^!var\.([^.]+)((?:\.[^.]+)*)$/.exec(value);
+      if (!match) return undefined;
+      const read = valueOf(match[1]!);
+      if (!read) return undefined;
+      let current = read.value;
+      for (const segment of (match[2] ?? "").split(".").filter(Boolean))
+        current =
+          current !== null && typeof current === "object"
+            ? (current as Record<string, unknown>)[segment]
+            : undefined;
+      return { value: current };
+    },
+    [valueOf],
+  );
+  void listId;
+  return { running: running !== undefined, valueOf, resolve };
+}
+
+/**
+ * Decision 11 — the connection as it runs: the variable's current value (the Preview's, else 「실행
+ * 전」 and the default), each local row's verdict on the condition (the evaluator's own judge —
+ * `explainViewRow`), or for an API collection the request it sends and what it cannot send (rows the
+ * server did not return have no local reason).
+ */
+function ConnectionRun({
+  connection,
+  table,
+}: {
+  connection: CatalogFilterConnection;
+  table: DataTable | undefined;
+}) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const graph = workspace.runtime.graph;
+  const endpoints = useDataStore((state) => state.apiEndpoints);
+  const { running, valueOf, resolve } = useViewResolver(connection.listId);
+  const show = (value: unknown) =>
+    value === undefined || value === null || value === ""
+      ? t("dataView.empty")
+      : typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value);
+  const variableValue = connection.variable
+    ? valueOf(connection.variable.id)?.value
+    : undefined;
+  const list = graph.getEntry(connection.listId);
+  const binding = list?.kind === "node" ? list.binding : undefined;
+  const queries = binding ? catalogBindingViews(graph, binding) : undefined;
+  const schema = (table?.schema ?? []).flatMap((field) =>
+    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+  );
+  const local = table?.useMockData !== false;
+  const endpoint = !local
+    ? [...endpoints.values()].find((item) =>
+        item.targetCollectionId
+          ? item.targetCollectionId === table?.id
+          : item.targetCollection === table?.name,
+      )
+    : undefined;
+  const rows = local ? rowsOf(table).slice(0, 8) : [];
+  const label = (row: unknown) => {
+    const record = (row ?? {}) as Record<string, unknown>;
+    const text = schema.find(
+      (field) => typeof record[field.key] === "string" && field.key !== "id",
+    );
+    return String((text && record[text.key]) ?? record.id ?? "");
+  };
+  const verdict = (value: string) => t(`dataView.verdict_${value}`);
+  const request =
+    endpoint?.querySerialization && queries
+      ? serializeViewQueries(
+          endpoint.querySerialization,
+          { queries, schema, resolve },
+          endpoint.method,
+        )
+      : undefined;
+  const limits =
+    endpoint?.querySerialization && queries
+      ? viewQueryLimits(
+          endpoint.querySerialization,
+          { queries, schema },
+          endpoint.method,
+        )
+      : [];
+  return (
+    <div className="data-view-run">
+      <p className="data-view-detail-line">
+        {connection.variable
+          ? running
+            ? t("dataView.currentValue", { value: show(variableValue) })
+            : t("dataView.beforeRun", { value: show(variableValue) })
+          : null}
+      </p>
+      {local && queries && rows.length ? (
+        <ul className="data-view-rows" aria-label={t("dataView.rows")}>
+          {rows.map((row, index) => {
+            const verdicts = explainViewRow(row, { queries, schema, resolve });
+            const own = verdicts.get(connection.condition.id) ?? "skip";
+            const shown =
+              (verdicts.get(queries[queries.length - 1]!.where.id) ??
+                "match") !== "miss";
+            return (
+              <li key={index} data-shown={shown}>
+                {t("dataView.rowLine", {
+                  row: label(row),
+                  verdict: verdict(own),
+                  shown: shown
+                    ? t("dataView.rowShown")
+                    : t("dataView.rowHidden"),
+                })}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {!local ? (
+        <>
+          <p className="data-view-detail-line">
+            {endpoint?.querySerialization
+              ? request?.body
+                ? t("dataView.requestBody", {
+                    body: JSON.stringify(request.body),
+                  })
+                : t("dataView.requestParams", {
+                    params:
+                      request?.params
+                        .map(([key, value]) => `${key}=${value}`)
+                        .join("&") || t("dataView.empty"),
+                  })
+              : t("dataView.requestNone")}
+          </p>
+          {limits.length ? (
+            <ul className="data-view-limits" aria-label={t("dataView.limits")}>
+              {limits.map((warning, index) => (
+                <li key={index}>
+                  {t(`datatable.apiQueryWarn${warning.code}`, {
+                    condition: warning.conditionId ?? "",
+                    comparison: warning.comparison ?? "",
+                  })}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="data-view-detail-line">{t("dataView.serverRows")}</p>
+        </>
+      ) : null}
+    </div>
   );
 }

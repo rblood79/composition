@@ -739,3 +739,33 @@ describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록�
     h.view.unmount();
   });
 });
+
+describe("ADR-284 Decision 11 — the running Preview reports its variables (the Builder's detail reads them)", () => {
+  it("a variable write is reported once, in plain values", async () => {
+    const h = await boundList();
+    const created = h.add("radio");
+    await settle();
+    const reports: Record<string, unknown>[] = [];
+    (
+      h.session as unknown as {
+        options: { reportState?: (values: Record<string, unknown>) => void };
+      }
+    ).options.reportState = (values) => reports.push({ ...values });
+    act(() => {
+      h.session.writeState({
+        variableId: created.variableId,
+        op: "set",
+        value: "female",
+      } as never);
+      h.session.writeState({
+        variableId: created.variableId,
+        op: "set",
+        value: "male",
+      } as never);
+    });
+    await settle();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]![created.variableId]).toBe("male");
+    h.view.unmount();
+  });
+});

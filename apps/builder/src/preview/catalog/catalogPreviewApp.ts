@@ -48,6 +48,12 @@ async function startCatalogPreview(): Promise<void> {
   const origin = window.location.origin;
   const session = new CatalogPreviewSession(library, {
     requestSnapshot: (request) => window.parent.postMessage(request, origin),
+    // ADR-284 Decision 11: the running values a filter's detail shows in the Builder.
+    reportState: (values) =>
+      window.parent.postMessage(
+        { type: "CATALOG_STATE_VALUES", values },
+        origin,
+      ),
     engine: () => new NullLayoutEngine(),
     viewport: { width: window.innerWidth, height: window.innerHeight },
     locale: navigator.language,

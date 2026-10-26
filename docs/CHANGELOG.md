@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 3e) — 연결 상세가 실행 중인 값과 행마다 걸러진 이유를 보인다] - 2026-10-27
+
+### Added
+
+- **연결 상세의 실행 값** (ADR-284 Phase 3e):
+  - Preview 가 실행 중이면 「현재 값 (Preview): …」, 아니면 「실행 전 — 기본값 …」 (기본값을 현재 값처럼 보이지 않음)
+  - 로컬 데이터는 행마다 「이 조건: 일치 · 표시」 / 「불일치 · 숨김」 / 「건너뜀」 — 목록을 거르는 계산기와 같은 판정
+  - API 데이터는 실제로 보내는 요청 (파라미터 또는 본문) 과 그 형식이 싣지 못하는 조건, 「서버가 돌려주지 않은 행의 제외 이유는 보이지 않습니다」
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogFilterSection.tsx` · `packages/shared/src/catalog/runtime/catalogPreviewSession.ts` (`reportState`) · `CatalogPreviewFrame.tsx` (`CATALOG_STATE_VALUES`) · `workspace.ts` (`previewValues`)
+
+### Documentation
+
+- walkthrough §9.3 의 조용한 실패 10 지점이 각각 어디서 막히는지 표 (`docs/adr/design/284-data-view-filter-sort-group-query-breakdown.md` §10 Phase 3e) · G3 닫힘 (「결과 수 표시」 는 G4)
+
+### Tests
+
+- `adr284Authoring.test.tsx` +1 (Preview 값 보고) · `catalogFilterSection.test.tsx` +3 · 원복 RED 4/4
+
 ## [데이터 보기 (ADR-284 Phase 3d) — 공유 보기와 「이 목록에서만」, 아무도 읽지 않는 변수 안내] - 2026-10-27
 
 ### Added

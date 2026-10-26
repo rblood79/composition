@@ -42,9 +42,9 @@ function followCatalogPageFrame(
 ): () => void {
   const place = () => {
     const { pageId, breakpoint } = workspace.session.getSnapshot();
-    const rect =
-      (pageId ? workspace.root.pageFrameRects().get(pageId) : undefined) ??
-      { x: 0, y: 0, ...CANVAS_VIEWPORT[breakpoint] };
+    const rect = (pageId
+      ? workspace.root.pageFrameRects().get(pageId)
+      : undefined) ?? { x: 0, y: 0, ...CANVAS_VIEWPORT[breakpoint] };
     const camera = getViewportPresentationSnapshot();
     const width = `${rect.width}px`;
     const height = `${rect.height}px`;
@@ -170,6 +170,11 @@ export function CatalogPreviewFrame({
           workspace.selectRecords([identity], {
             additive: data.additive === true,
           });
+      } else if (data?.type === "CATALOG_STATE_VALUES") {
+        // ADR-284 Decision 11: what the running Preview's variables hold (a filter's detail).
+        const values = (data as { values?: unknown }).values;
+        if (values && typeof values === "object")
+          workspace.setPreviewValues(values as Record<string, unknown>);
       } else channel.onPreviewMessage(event.data);
     };
     window.addEventListener("message", onMessage);

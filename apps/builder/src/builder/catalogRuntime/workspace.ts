@@ -391,9 +391,11 @@ export class CatalogWorkspace {
       ? isProjectComponentsView(view)
         ? catalogLocalPageSync(graph, this.colorMode)?.(graph.commandReader)
         : undefined
-      : catalogComponentPageCreation(graph, view, this.colorMode)(
-          graph.commandReader,
-        );
+      : catalogComponentPageCreation(
+          graph,
+          view,
+          this.colorMode,
+        )(graph.commandReader);
     if (plan) {
       setCatalogComponentsView(graph, undefined);
       this.runtime.load(plan.label, plan.ops);
@@ -919,6 +921,27 @@ export class CatalogWorkspace {
   detachPreview(): void {
     this.preview?.dispose();
     this.preview = undefined;
+    this.setPreviewValues(undefined);
+  }
+
+  private previewValuesState: Readonly<Record<string, unknown>> | undefined;
+  private readonly previewValueListeners = new Set<() => void>();
+  /**
+   * ADR-284 Decision 11 — the variables' values the attached Preview reports (`undefined` = no
+   * Preview running: a filter's detail says 「실행 전」 and shows the defaults as defaults).
+   */
+  get previewValues(): Readonly<Record<string, unknown>> | undefined {
+    return this.previewValuesState;
+  }
+  setPreviewValues(
+    values: Readonly<Record<string, unknown>> | undefined,
+  ): void {
+    this.previewValuesState = values;
+    for (const listener of this.previewValueListeners) listener();
+  }
+  subscribePreviewValues(listener: () => void): () => void {
+    this.previewValueListeners.add(listener);
+    return () => this.previewValueListeners.delete(listener);
   }
 
   dispose(): void {
