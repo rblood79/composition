@@ -964,7 +964,11 @@ function binding(value: unknown, at: string): void {
   if (item.view !== undefined) {
     if (item.viewId !== undefined) invalid("VIEW_AND_VIEW_ID", `${at}.view`);
     const query = viewQuery(item.view, `${at}.view`, []);
-    if (query.groupBy !== undefined || query.aggregates !== undefined)
+    if (
+      query.groupBy !== undefined ||
+      query.aggregates !== undefined ||
+      query.emptyGroups !== undefined
+    )
       invalid("VIEW_AGGREGATE_DERIVED_ONLY", `${at}.view`);
   }
   for (const [key, value] of Object.entries(
@@ -995,7 +999,11 @@ function viewQuery(
   extra: readonly string[],
 ): Record<string, unknown> {
   const item = object(value, at);
-  exact(item, ["where", "groupBy", "aggregates", "sort", ...extra], at);
+  exact(
+    item,
+    ["where", "groupBy", "emptyGroups", "aggregates", "sort", ...extra],
+    at,
+  );
   const ids = new Set<string>();
   const unique = (raw: unknown, path: string) => {
     const text = string(raw, path);
@@ -1083,6 +1091,12 @@ function viewQuery(
     item.groupBy.forEach((field, index) =>
       dataFieldPath(field, `${at}.groupBy[${index}]`),
     );
+  }
+  if (item.emptyGroups !== undefined) {
+    if (item.emptyGroups !== "all")
+      invalid("INVALID_EMPTY_GROUPS", `${at}.emptyGroups`);
+    if (item.groupBy === undefined)
+      invalid("GROUP_BY_REQUIRED", `${at}.groupBy`);
   }
   if (item.aggregates !== undefined) {
     if (!Array.isArray(item.aggregates) || item.aggregates.length === 0)

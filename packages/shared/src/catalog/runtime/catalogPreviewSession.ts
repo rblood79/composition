@@ -22,6 +22,8 @@ import type { CatalogThemeState } from "./theme";
 import { catalogBoundRows } from "./dataBinding";
 import {
   catalogBindingQuery,
+  catalogCountOnlyView,
+  catalogCountlessViews,
   catalogRowQueryResolve,
   type CatalogRowQuery,
 } from "./viewQuery";
@@ -1186,10 +1188,21 @@ export class CatalogPreviewSession {
         nodeId,
         this.stateSource(),
       );
-      if (query) views.set(JSON.stringify(query.queries), { query, nodeId });
+      // (A count of a view is that view's request — 「결과 수 표시」 reads the server's total.)
+      if (query) {
+        const base = catalogCountlessViews(query.queries);
+        views.set(JSON.stringify(base), {
+          query: { ...query, queries: base },
+          nodeId,
+        });
+      }
     }
     if (views.size !== 1) return undefined;
     const [{ query, nodeId }] = [...views.values()];
+    // (A grouping · an aggregate is not a request: the view runs on the loaded rows, partial until
+    // the last page — Decision 6, never a partial count shown as the whole.)
+    if (query.queries.some((item) => item.groupBy || item.aggregates))
+      return undefined;
     return {
       query,
       nodeId,
@@ -1415,10 +1428,12 @@ export class CatalogPreviewSession {
     if (authored.query) {
       const id = authored.collectionId.replace(/^data:collection:/, "");
       const view = this.serverView(id);
+      const depth = view?.query.queries.length ?? 0;
       if (
         view &&
         JSON.stringify(view.query.queries) ===
-          JSON.stringify(authored.query.queries)
+          JSON.stringify(authored.query.queries.slice(0, depth)) &&
+        authored.query.queries.slice(depth).every(catalogCountOnlyView)
       ) {
         const total = this.loadTotals.get(id);
         binding = {
@@ -1429,6 +1444,7 @@ export class CatalogPreviewSession {
               ...(total !== undefined ? { total } : {}),
               complete: this.loadArguments.get(id)?.cursor === undefined,
               warnings: view.serialized.warnings.length,
+              ...(depth < authored.query.queries.length ? { depth } : {}),
             },
           },
         };

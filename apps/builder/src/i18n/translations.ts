@@ -2099,6 +2099,8 @@ const koKR: TranslationKeys = {
     apiQueryWarnBROKEN: "「{condition}」 필드가 없다 — 건너뛴다",
     apiQueryWarnGET_BODY: "GET 은 본문을 보내지 않는다 — 방식을 POST 로",
     apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
+    apiQueryWarnGROUP:
+      "묶기 · 집계는 요청에 싣지 않는다 — 불러온 행으로 계산 (마지막 페이지 전에는 일부)",
     apiUploadLive: "미리보기에서 실제 업로드",
     apiUploadLiveHint:
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
@@ -2360,6 +2362,11 @@ const koKR: TranslationKeys = {
     shareNone: "없음",
     connectUnread: "이 목록의 조건으로 연결",
     sortFollow: "정렬 따라가기",
+    resultCount: "결과 수 표시",
+    groupList: "묶기로 목록 만들기",
+    groupColumns: "묶기로 열 만들기",
+    groupField: "묶을 필드",
+    countText: "{count}개",
     sortFollower: "따라갈 목록",
     sortTable: "정렬을 따를 Table",
     controlSection: "목록 거르기",
@@ -4610,6 +4617,8 @@ const enUS: TranslationKeys = {
     apiQueryWarnBROKEN: '"{condition}" field is missing — skipped',
     apiQueryWarnGET_BODY: "GET sends no body — use POST",
     apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
+    apiQueryWarnGROUP:
+      "Grouping · aggregates are not put in the request — computed on the loaded rows (part of them until the last page)",
     apiUploadLive: "Real upload in preview",
     apiUploadLiveHint:
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
@@ -4872,6 +4881,11 @@ const enUS: TranslationKeys = {
     shareNone: "None",
     connectUnread: "Connect as this list's condition",
     sortFollow: "Follow sort",
+    resultCount: "Show result count",
+    groupList: "Group into a list",
+    groupColumns: "Group into columns",
+    groupField: "Group by",
+    countText: "Results: {count}",
     sortFollower: "List that follows",
     sortTable: "Table to follow",
     controlSection: "Filter a list",
@@ -6367,6 +6381,7 @@ const formattedMessages: Record<
       `공유 보기 「${String(args?.name ?? "")}」 — ${String(args?.count ?? 0)}개가 봅니다. 조건을 바꾸면 모두 바뀝니다.`,
     "dataView.unreadLine": (args) =>
       `${String(args?.control ?? "")} 가 쓰는 변수 ${String(args?.variable ?? "")} 를 읽는 목록이 없습니다 — 값을 바꿔도 아무것도 걸러지지 않습니다.`,
+    "dataView.viewName": (args) => `${String(args?.list ?? "")} 보기`,
     "dataView.sortFollowing": (args) =>
       `정렬: 변수 ${String(args?.variable ?? "")} (Table 머리글이 씀)`,
     "dataView.variableLine": (args) =>
@@ -6978,6 +6993,7 @@ const formattedMessages: Record<
       `Shared view "${String(args?.name ?? "")}" — read by ${String(args?.count ?? 0)}. A condition change reaches them all.`,
     "dataView.unreadLine": (args) =>
       `No list reads the variable ${String(args?.variable ?? "")} that ${String(args?.control ?? "")} sets — changing it narrows nothing.`,
+    "dataView.viewName": (args) => `${String(args?.list ?? "")} view`,
     "dataView.sortFollowing": (args) =>
       `Sorted by variable ${String(args?.variable ?? "")} (a Table's header writes it)`,
     "dataView.variableLine": (args) =>

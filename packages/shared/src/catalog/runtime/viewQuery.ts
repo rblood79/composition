@@ -29,7 +29,16 @@ export interface CatalogRowQuery {
    * further page; `total` = the server's count for the query; `warnings` = conditions the request
    * could not carry (the result holds rows they would have left out).
    */
-  served?: { complete: boolean; total?: number; warnings?: number };
+  served?: {
+    complete: boolean;
+    total?: number;
+    warnings?: number;
+    /**
+     * The views the server answered (the chain's first `depth`; absent = all): the rest are counts
+     * of that answer (「결과 수 표시」 — `catalogCountOnlyView`), the server's total when it gave one.
+     */
+    depth?: number;
+  };
   /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
   loaded?: { complete: boolean };
   /**
@@ -38,6 +47,29 @@ export interface CatalogRowQuery {
    * `values` holds it with the column as its field (what the view sorts by).
    */
   sort?: { column: string; direction: "ascending" | "descending" };
+}
+
+/**
+ * ADR-284 G4 — a view that only counts its source's rows (「결과 수 표시」's derived view): no
+ * condition, grouping or sort. Over a view the server answered, its count is the server's total.
+ */
+export function catalogCountOnlyView(query: ViewQuery): boolean {
+  return (
+    !query.where.items.length &&
+    !query.groupBy &&
+    !query.sort &&
+    !!query.aggregates?.length &&
+    query.aggregates.every((aggregate) => aggregate.fn === "count")
+  );
+}
+
+/** A view chain without its trailing count-only views (the part a request can carry). */
+export function catalogCountlessViews(
+  queries: readonly ViewQuery[],
+): readonly ViewQuery[] {
+  let end = queries.length;
+  while (end > 1 && catalogCountOnlyView(queries[end - 1]!)) end -= 1;
+  return queries.slice(0, end);
 }
 
 /** The views a binding reads, its shared view's sources first; undefined = none. */

@@ -456,3 +456,55 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     ]);
   });
 });
+
+describe("ADR-284 G4 — derived views in the Design panel", () => {
+  const graph = () => fixture.workspace.runtime.graph;
+  const pageNodes = () =>
+    Object.values(graph().exportDocument().entries).filter(
+      (entry): entry is NodeEntry => entry.kind === "node",
+    );
+
+  it("「Show result count」: one step — the list's view promoted, a count view, a Text reading its row", () => {
+    act(() => fixture.select("list"));
+    renderDesign();
+    const depth = fixture.workspace.runtime.historyDepth.undo;
+    act(() => {
+      fireEvent.click(
+        buttonByText(groupByLegend("Search · filter"), "Show result count"),
+      );
+    });
+    expect(fixture.workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    const list = graph().getEntry(nodeIdOf("list")) as NodeEntry;
+    expect(list.binding!.viewId).toBeTruthy();
+    const text = pageNodes().find(
+      (node) => typeOf(node) === "Text" && node.binding?.key === "row-1",
+    )!;
+    expect(text.props.children).toMatchObject({ value: "Results: {count}" });
+    const count = graph().getEntry(text.binding!.viewId!) as {
+      source: { viewId: string };
+      aggregates: unknown;
+    };
+    expect(count.source.viewId).toBe(list.binding!.viewId);
+    expect(count.aggregates).toEqual([{ fn: "count", as: "count" }]);
+  });
+
+  it("「Group into columns」 → field → Create: a column per value with its list and heading", () => {
+    act(() => fixture.select("list"));
+    renderDesign();
+    fireEvent.click(
+      buttonByText(groupByLegend("Search · filter"), "Group into columns"),
+    );
+    act(() => {
+      fireEvent.click(buttonByText(groupByLegend("Search · filter"), "Create"));
+    });
+    // (The first field — name: Kim · Park, one column each.)
+    const lists = pageNodes().filter(
+      (node) => typeOf(node) === "GridList" && node.id !== nodeIdOf("list"),
+    );
+    expect(lists).toHaveLength(2);
+    const headings = pageNodes().filter(
+      (node) => typeOf(node) === "Text" && node.binding?.key,
+    );
+    expect(headings.map((node) => node.binding!.key)).toEqual(["Kim", "Park"]);
+  });
+});

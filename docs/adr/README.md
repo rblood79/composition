@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-27 ADR-284 Phase 4a · 4b** — 계산기의 묶기 · 집계 (count · sum · mean · min · max, 결과 schema 를 사슬 · 정렬이 읽음, 「모든 값」 = `emptyGroups: "all"`) · 「결과 수 표시」 · 「묶기로 목록 만들기」 · 「묶기로 열 만들기」 (목록 보기 승격 뒤 파생 — 조건 사본 0 · Undo 한 번). API: 묶기는 요청에 싣지 않고 불러온 행 기준 「N+」, 목록 보기의 결과 수는 서버 total. live (5175) 결과 수 3 → 1 · 열 male · 0 | female · 1. 열림 · 합계 변화 없음.
+
 > **2026-10-27 ADR-284 Phase 3e · G3 닫힘** — 연결 상세가 실행 결과를 설명한다: 실행 중인 Preview 가 변수 값을 Builder 에 알리고 (「현재 값 (Preview)」 · 없으면 「실행 전 — 기본값」) · 로컬 행마다 계산기의 판정 (일치 · 표시 / 불일치 · 숨김 / 건너뜀) · API 원본은 싣는 요청과 싣지 못하는 조건 · 서버 미반환 행 이유는 확정하지 않음. walkthrough §9.3 10 지점 반례 표 (breakdown §10). live (5175, Compare Mode) Preview female → 상세 「female」 · Park 만 표시. 열림 · 합계 변화 없음.
 
 > **2026-10-27 ADR-284 Phase 3d** — 공유 보기 「N개가 봅니다」 · 「이 목록에서만」 (사본 분리) · 「이름 붙여 공유」 · 손으로 만든 변수를 읽는 목록이 없을 때 그 자리 안내 + 「이 목록의 조건으로 연결」 (변수 · 규칙 재사용). 공유 보기 조건 변경이 읽는 목록에 반영되지 않던 Phase 1 결함 수리. live (5175) 공유 → 분리. 열림 · 합계 변화 없음.
@@ -466,7 +468,7 @@
 
 #### [284](284-data-view-filter-sort-group-query.md) — 데이터 보기: 조회 · 필터 · 정렬 · 묶기 · 참조를 변수와 보기로, RAC 코드로 환원되는 저장 형식
 
-- **상태**: Accepted — 2026-10-26 · Phase 0 ~ 3 완료 (contract 50 저장 형식 · 계산기 · 다중 Do · API 직렬화 · 재호출 · 저작 UI 「검색 추가」 · 「정렬 따라가기」 · 공유 보기 · 연결 상세 실행 값 · walkthrough 10 지점 반례) · 다음 Phase 4 (묶기 · 집계 · 참조 · 「결과 수 표시」) · (사용자 `/create-adr`) · 연구 [DATA_LAYER_RAC_EXAMPLES_2026-10](../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) 기반 · 선행 283 (값 참조 · contract 49) 의 다음 — contract 50 커밋은 283 G5 뒤 (R5) · 리뷰 round 3 (HIGH 1 · MEDIUM 3 · LOW 1) 반영 2026-10-26 — code view 수용 집합 (예제 5 종 데이터 흐름 · 제외 목록) · Table 정렬 기준 = 정렬 변수 · 파생 보기는 기본 보기 승격 · Preview 번들 phase 배분 (R10)
+- **상태**: Accepted — 2026-10-26 · Phase 0 ~ 3 완료 (contract 50 저장 형식 · 계산기 · 다중 Do · API 직렬화 · 재호출 · 저작 UI 「검색 추가」 · 「정렬 따라가기」 · 공유 보기 · 연결 상세 실행 값 · walkthrough 10 지점 반례) · Phase 4 진행 중 (4a 묶기 · 집계 · 4b 결과 수 · 묶기 목록 · 열 완료 — 다음 4c 참조 · 4d 성능 · 번들) · (사용자 `/create-adr`) · 연구 [DATA_LAYER_RAC_EXAMPLES_2026-10](../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) 기반 · 선행 283 (값 참조 · contract 49) 의 다음 — contract 50 커밋은 283 G5 뒤 (R5) · 리뷰 round 3 (HIGH 1 · MEDIUM 3 · LOW 1) 반영 2026-10-26 — code view 수용 집합 (예제 5 종 데이터 흐름 · 제외 목록) · Table 정렬 기준 = 정렬 변수 · 파생 보기는 기본 보기 승격 · Preview 번들 phase 배분 (R10)
 - **규모**: Phase 0 inventory (보기 · 바인딩 · 필드 참조 자리 전수 · 규칙 `action` 소비자 전수 · 예제 7 종 → 저장 형식 표 · RED 4) → Phase 1 저장 형식 (`ViewEntry` · 조건 트리 · 묶기 · 집계 · 참조 · `actions[]` 자리 전부 · contract 50) + 검증 · 색인 · 명령 전수 + 로컬 계산기 (Preview · Publish 공유) → Phase 2 직렬화 · 변수 변경 재호출 · 세 시점 경고 → Phase 3 저작 UI (기능 하나 = 동작 하나 · 진입점 양쪽 · 기본값 표 · walkthrough 10 지점 반례) → Phase 4 묶기 · 집계 · 참조 · 성능 → Phase 5 dnd + 다중 Do 배선 → Phase 6 code view 생성기 + 수용 집합 동치 → Phase 7 live · 문서 → G8 사용자 확인. 추정 ~70 파일. breakdown: [design/284](design/284-data-view-filter-sort-group-query-breakdown.md)
 
 #### [283](283-interaction-capability-target-ref-picker.md) — Interactions capability 대상 참조: instance 안쪽 · 실행 record 기준 해소 · 검색 선택기 · Canvas 지정

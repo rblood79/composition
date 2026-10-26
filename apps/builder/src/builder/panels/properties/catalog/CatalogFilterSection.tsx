@@ -37,7 +37,10 @@ import {
   catalogFilterConnections,
   catalogFilterKindOfType,
   catalogFilterTargets,
+  catalogGroupColumnsCommand,
+  catalogGroupListCommand,
   catalogOrFilterCondition,
+  catalogResultCountCommand,
   catalogRemoveFilterCondition,
   catalogShareView,
   catalogSharedViewOf,
@@ -374,6 +377,7 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
       )}
       <UnreadVariables listId={listId} table={table} />
       <SortFollow listId={listId} />
+      <DerivedViews listId={listId} table={table} />
     </fieldset>
   );
 }
@@ -499,6 +503,122 @@ function SortFollow({ listId }: { listId: NodeId }) {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * ADR-284 G4 — the derived views of a list (Decision 7): 「결과 수 표시」 (a Text with the count of
+ * the list's view), 「묶기로 목록 만들기」 · 「묶기로 열 만들기」 (a field → a ListBox of its groups ·
+ * kanban columns). Each is one action; the list's built-in view is promoted to the shared view
+ * the derived view reads (no condition copied).
+ */
+function DerivedViews({
+  listId,
+  table,
+}: {
+  listId: NodeId;
+  table: DataTable | undefined;
+}) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const [grouping, setGrouping] = useState<"list" | "columns" | null>(null);
+  const fields = (table?.schema ?? []).flatMap((field) =>
+    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+  );
+  const [fieldId, setFieldId] = useState("");
+  const graph = workspace.runtime.graph;
+  const viewName = () => {
+    const node = graph.getEntry(listId);
+    return t("dataView.viewName", {
+      list: (node?.kind === "node" && node.name) || table?.name || "",
+    });
+  };
+  const group = () => {
+    const field = fields.find((item) => item.id === (fieldId || fields[0]?.id));
+    if (!field || !grouping) return;
+    const plan = {
+      listId,
+      viewName: viewName(),
+      field,
+      label: t(
+        grouping === "list" ? "dataView.groupList" : "dataView.groupColumns",
+      ),
+    };
+    const { command } =
+      grouping === "list"
+        ? catalogGroupListCommand(graph, plan, workspace.newId)
+        : catalogGroupColumnsCommand(
+            graph,
+            { ...plan, values: catalogFieldValues(rowsOf(table), field) },
+            workspace.newId,
+          );
+    if (run(command)) setGrouping(null);
+  };
+  if (grouping)
+    return (
+      <div className="data-view-add-form">
+        <PropertySelect
+          label={t("dataView.groupField")}
+          value={fieldId || fields[0]?.id || ""}
+          options={fields.map((field) => ({
+            value: field.id,
+            label: field.key,
+          }))}
+          translateOptions={false}
+          onChange={setFieldId}
+        />
+        <div className="data-view-add-actions">
+          <Button
+            className="control-button"
+            data-variant="primary"
+            isDisabled={!fields.length}
+            onPress={group}
+          >
+            {t("dataView.create")}
+          </Button>
+          <Button className="control-button" onPress={() => setGrouping(null)}>
+            {t("dataView.cancel")}
+          </Button>
+        </div>
+      </div>
+    );
+  return (
+    <>
+      <Button
+        className="control-button"
+        data-variant="add"
+        onPress={() => {
+          const { command } = catalogResultCountCommand(
+            graph,
+            {
+              listId,
+              viewName: viewName(),
+              text: t("dataView.countText"),
+              label: t("dataView.resultCount"),
+            },
+            workspace.newId,
+          );
+          run(command);
+        }}
+      >
+        {t("dataView.resultCount")}
+      </Button>
+      <Button
+        className="control-button"
+        data-variant="add"
+        onPress={() => setGrouping("list")}
+      >
+        {t("dataView.groupList")}
+      </Button>
+      <Button
+        className="control-button"
+        data-variant="add"
+        onPress={() => setGrouping("columns")}
+      >
+        {t("dataView.groupColumns")}
+      </Button>
+    </>
   );
 }
 

@@ -36,10 +36,12 @@ import {
   removeTargets,
 } from "../../../../../packages/shared/src/catalog/commands/structure";
 import {
+  addView,
   catalogViewUsers,
   promoteBindingView,
   updateView,
 } from "../../../../../packages/shared/src/catalog/commands/views";
+import { nodePosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
@@ -72,8 +74,10 @@ import {
 import { catalogItemRowFill } from "./itemInsert";
 import {
   catalogCreationProps,
+  catalogCreationStyle,
   catalogPaletteDefinitionId,
 } from "./paletteInsert";
+import { catalogCardFieldCommand, catalogCardFields } from "./rowTemplate";
 import {
   catalogNodePage,
   catalogVariableNameConflict,
@@ -1123,4 +1127,404 @@ export function catalogSharedViewOf(
   return shared
     ? { view: shared, users: catalogViewUsers(reader as never, shared.id) }
     : undefined;
+}
+
+// ── Phase 4 — derived views: 「결과 수 표시」 · 「묶기로 목록 만들기」 · 「묶기로 열 만들기」 ──
+
+/** The count aggregate's name in a derived view's rows (`{count}` in a text). */
+export const CATALOG_COUNT_FIELD = "count";
+const EMPTY_WHERE: ViewConditionGroup = { id: "where", op: "and", items: [] };
+const COUNT = [{ fn: "count" as const, as: CATALOG_COUNT_FIELD }];
+/** The one row of a count without grouping (`getItemKey` — a row without an id is `row-N`). */
+const COUNT_ROW_KEY = "row-1";
+
+export interface CatalogDerivedPlan {
+  /** The bound list the derived view reads. */
+  readonly listId: NodeId;
+  /** The shared view's name when the list's built-in view is promoted (「<목록> 보기」). */
+  readonly viewName: string;
+  readonly label?: string;
+}
+
+/**
+ * The view a derived view reads: the list's shared view, or its built-in view promoted to one
+ * (review round 3 M2 — never a copy of its conditions: a condition added to the list later reaches
+ * the count). The promotion is a step of the same command (one Undo).
+ */
+function derivedSource(
+  reader: CatalogReader,
+  plan: CatalogDerivedPlan,
+  newId: NewId,
+): {
+  binding: DataBindingRef;
+  sourceId: EntryId<"view">;
+  step?: () => CatalogCommand;
+} {
+  const list = reader.getEntry(plan.listId);
+  const binding = list?.kind === "node" ? list.binding : undefined;
+  if (!binding) throw new Error(`NOT_BOUND: ${plan.listId}`);
+  if (binding.viewId) return { binding, sourceId: binding.viewId };
+  const sourceId = newId("view") as EntryId<"view">;
+  return {
+    binding,
+    sourceId,
+    step: () =>
+      promoteBindingView({
+        nodeId: plan.listId,
+        id: sourceId,
+        name: plan.viewName,
+      }),
+  };
+}
+
+/** A palette node (`type`) with creation props · style and an optional binding. */
+function paletteNode(
+  reader: CatalogReader,
+  id: NodeId,
+  type: string,
+  initial: Record<string, unknown>,
+  extra: Partial<NodeEntry> = {},
+): NodeEntry {
+  const definitionId = catalogPaletteDefinitionId(reader.library, type);
+  const { style, ...props } = initial;
+  return {
+    kind: "node",
+    id,
+    definitionId,
+    children: [],
+    props: definitionId.startsWith("lib:")
+      ? catalogCreationProps(
+          reader.library,
+          definitionId as LibraryDefinitionId,
+          type,
+          props,
+        )
+      : {},
+    ...catalogCreationStyle(style ? { style } : undefined),
+    descendantOverrides: [],
+    ...extra,
+  };
+}
+
+/** Insert entries next to the list (`after`: right after it, else right before it). */
+function insertNextTo(
+  listId: NodeId,
+  entries: readonly NodeEntry[],
+  rootId: NodeId,
+  after: boolean,
+  newId: NewId,
+) {
+  return (stage: CatalogReader) => {
+    const parent = catalogParentOfNode(stage, listId);
+    if (!parent) throw new Error(`NO_PARENT: ${listId}`);
+    return insertNodes({
+      parent,
+      index: childIdsOf(stage, parent).indexOf(listId) + (after ? 1 : 0),
+      entries: [...entries],
+      rootIds: [rootId],
+      newId,
+    });
+  };
+}
+
+/** A derived view entry over `sourceId`. */
+const derivedView = (
+  id: EntryId<"view">,
+  name: string,
+  sourceId: EntryId<"view">,
+  query: ViewQuery,
+): ViewEntry => ({
+  kind: "view",
+  id,
+  name,
+  source: { viewId: sourceId },
+  ...query,
+});
+
+/**
+ * 「결과 수 표시」 (Decision 7 · G4) — a Text before the list showing how many rows its view gives:
+ * a derived view (`count` over the list's view) and the Text reading its one row (`binding.key`).
+ * `text` holds `{count}` (the host's language — 「{count}개」).
+ */
+export function catalogResultCountCommand(
+  reader: CatalogReader,
+  plan: CatalogDerivedPlan & { readonly text: string },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: { textId: NodeId; viewId: EntryId<"view"> };
+} {
+  const source = derivedSource(reader, plan, newId);
+  const viewId = newId("view") as EntryId<"view">;
+  const textId = newId("node") as NodeId;
+  const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
+  if (source.step) steps.push(source.step);
+  steps.push(() =>
+    addView({
+      entry: derivedView(viewId, `${plan.viewName} · count`, source.sourceId, {
+        where: EMPTY_WHERE,
+        aggregates: COUNT,
+      }),
+    }),
+  );
+  steps.push((stage) =>
+    insertNextTo(
+      plan.listId,
+      [
+        paletteNode(
+          stage,
+          textId,
+          "Text",
+          { children: plan.text },
+          {
+            binding: {
+              collectionId: source.binding.collectionId,
+              fieldMap: {},
+              viewId,
+              key: COUNT_ROW_KEY,
+            },
+          },
+        ),
+      ],
+      textId,
+      false,
+      newId,
+    )(stage),
+  );
+  return {
+    command: sequence(plan.label ?? "Show result count", steps),
+    created: { textId, viewId },
+  };
+}
+
+/**
+ * 「묶기로 목록 만들기」 — a ListBox after the list with one item per value of `field` and its count:
+ * a derived view grouping the list's view by the field (`count`), the ListBox reading it (its item
+ * key = the group value) with the row's description = `{count}`.
+ */
+export function catalogGroupListCommand(
+  reader: CatalogReader,
+  plan: CatalogDerivedPlan & { readonly field: CatalogFilterField },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: { listId: NodeId; viewId: EntryId<"view"> };
+} {
+  const source = derivedSource(reader, plan, newId);
+  const viewId = newId("view") as EntryId<"view">;
+  const groupListId = newId("node") as NodeId;
+  const field = `data:field:${plan.field.id}` as const;
+  const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
+  if (source.step) steps.push(source.step);
+  steps.push(() =>
+    addView({
+      entry: derivedView(
+        viewId,
+        `${plan.viewName} · ${plan.field.key}`,
+        source.sourceId,
+        { where: EMPTY_WHERE, groupBy: [[field]], aggregates: COUNT },
+      ),
+    }),
+  );
+  steps.push((stage) =>
+    insertNextTo(
+      plan.listId,
+      [
+        paletteNode(
+          stage,
+          groupListId,
+          "ListBox",
+          {},
+          {
+            binding: {
+              collectionId: source.binding.collectionId,
+              fieldMap: { value: field },
+              viewId,
+            },
+          },
+        ),
+      ],
+      groupListId,
+      true,
+      newId,
+    )(stage),
+  );
+  steps.push((stage) => countDescription(stage, groupListId));
+  return {
+    command: sequence(plan.label ?? "Group into a list", steps),
+    created: { listId: groupListId, viewId },
+  };
+}
+
+/** A bound list's row description = `{count}` (the row template's `{description}` field). */
+function countDescription(
+  stage: CatalogReader,
+  listId: NodeId,
+): CatalogCommand | undefined {
+  const cards = catalogCardFields(stage, nodePosition(stage, listId));
+  const description = cards?.fields.find(
+    (field) => field.value === "{description}",
+  );
+  return description
+    ? catalogCardFieldCommand(description, `{${CATALOG_COUNT_FIELD}}`)
+    : undefined;
+}
+
+/**
+ * 「묶기로 열 만들기」 (kanban — 연구 §2.4) — a row of columns after the list, one per value of
+ * `field`: each column is a heading (the value and its count) over a GridList reading a column
+ * view (the list's view where field = value). The counts are one grouped view with every value
+ * (`emptyGroups: "all"` — an empty column says 0), each heading its row by key. The columns'
+ * drop rules are Phase 5's.
+ */
+export function catalogGroupColumnsCommand(
+  reader: CatalogReader,
+  plan: CatalogDerivedPlan & {
+    readonly field: CatalogFilterField;
+    readonly values: readonly string[];
+  },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: {
+    rowId: NodeId;
+    countViewId: EntryId<"view">;
+    columns: readonly {
+      value: string;
+      frameId: NodeId;
+      headingId: NodeId;
+      listId: NodeId;
+      viewId: EntryId<"view">;
+    }[];
+  };
+} {
+  if (!plan.values.length) throw new Error(`NO_VALUES: ${plan.field.key}`);
+  const source = derivedSource(reader, plan, newId);
+  const field = `data:field:${plan.field.id}` as const;
+  const countViewId = newId("view") as EntryId<"view">;
+  const rowId = newId("node") as NodeId;
+  const columns = plan.values.map((value) => ({
+    value,
+    frameId: newId("node") as NodeId,
+    headingId: newId("node") as NodeId,
+    listId: newId("node") as NodeId,
+    viewId: newId("view") as EntryId<"view">,
+  }));
+  const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
+  if (source.step) steps.push(source.step);
+  steps.push(() =>
+    addView({
+      entry: derivedView(
+        countViewId,
+        `${plan.viewName} · ${plan.field.key} count`,
+        source.sourceId,
+        {
+          where: EMPTY_WHERE,
+          groupBy: [[field]],
+          emptyGroups: "all",
+          aggregates: COUNT,
+        },
+      ),
+    }),
+  );
+  for (const column of columns)
+    steps.push(() =>
+      addView({
+        entry: derivedView(
+          column.viewId,
+          `${plan.viewName} · ${column.value}`,
+          source.sourceId,
+          {
+            where: {
+              ...EMPTY_WHERE,
+              items: [
+                {
+                  id: `column-${plan.field.id}`,
+                  fields: [[field]],
+                  op: "equals",
+                  value: column.value,
+                },
+              ],
+            },
+          },
+        ),
+      }),
+    );
+  // (The row and its column frames with their headings first; each GridList goes in its column
+  // after — a placed instance owns its slot contents as it lands.)
+  steps.push((stage) => {
+    const frame = (id: NodeId, children: NodeId[], style: object) =>
+      paletteNode(
+        stage,
+        id,
+        "frame",
+        { style: { display: "flex", ...style } },
+        {
+          children,
+        },
+      );
+    return insertNextTo(
+      plan.listId,
+      [
+        frame(
+          rowId,
+          columns.map((column) => column.frameId),
+          { flexDirection: "row", columnGap: "16px", width: "100%" },
+        ),
+        ...columns.flatMap((column) => [
+          frame(column.frameId, [column.headingId], {
+            flexDirection: "column",
+            rowGap: "8px",
+            flexGrow: 1,
+            flexBasis: 0,
+          }),
+          paletteNode(
+            stage,
+            column.headingId,
+            "Text",
+            { children: `${column.value} · {${CATALOG_COUNT_FIELD}}` },
+            {
+              binding: {
+                collectionId: source.binding.collectionId,
+                fieldMap: { value: field },
+                viewId: countViewId,
+                key: column.value,
+              },
+            },
+          ),
+        ]),
+      ],
+      rowId,
+      true,
+      newId,
+    )(stage);
+  });
+  for (const column of columns)
+    steps.push((stage) =>
+      insertNodes({
+        parent: { kind: "node", id: column.frameId },
+        index: 1,
+        entries: [
+          paletteNode(
+            stage,
+            column.listId,
+            "GridList",
+            {},
+            {
+              binding: {
+                collectionId: source.binding.collectionId,
+                fieldMap: source.binding.fieldMap,
+                viewId: column.viewId,
+              },
+            },
+          ),
+        ],
+        rootIds: [column.listId],
+        newId,
+      }),
+    );
+  return {
+    command: sequence(plan.label ?? "Group into columns", steps),
+    created: { rowId, countViewId, columns },
+  };
 }

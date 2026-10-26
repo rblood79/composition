@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 4a · 4b) — 결과 수 · 묶기로 목록 · 묶기로 열 (kanban)] - 2026-10-27
+
+### Added
+
+- **「결과 수 표시」** (ADR-284 Phase 4b): 목록의 「검색 · 필터」 에서 한 번 누르면 목록 앞에 결과 수 Text 가 생긴다 — 목록의 조건이 바뀌면 같이 바뀐다
+- **「묶기로 목록 만들기」 · 「묶기로 열 만들기」**: 필드를 고르면 값마다 개수가 붙은 ListBox, 또는 값마다 열 (머리 = 값 · 개수, 아래 = 그 값의 행 목록) 을 만든다. 빈 열도 남고 0 을 보인다
+  - 목록의 조건은 복사하지 않는다 — 목록의 보기를 이름 있는 보기로 바꾼 뒤 그것을 읽는다 (Undo 한 번에 모두 되돌림)
+- 데이터 보기 계산기의 묶기 · 집계 (count · sum · mean · min · max) — 정렬과 그 뒤 보기가 집계 값을 읽는다
+  - 위치: `packages/shared/src/collections/view/evaluate.ts` · `apps/builder/src/builder/catalogRuntime/viewAuthoring.ts` · `CatalogFilterSection.tsx` (`DerivedViews`)
+
+### Changed
+
+- API 데이터: 묶기 · 집계는 요청에 싣지 않고 불러온 행으로 계산하며, 마지막 페이지 전이면 「12+」 · 「≈ 4.2」 로 일부임을 보인다. 목록의 결과 수는 서버가 준 전체 수를 쓴다
+  - **Why**: 부분 데이터의 집계를 전체 값처럼 보이면 틀린 숫자를 믿게 된다 (ADR-284 Decision 6)
+
+### Tests
+
+- `group.test.ts` 10 · `adr284Derived.test.tsx` 3 · `adr284ApiView` +2 · 패널 +2 · 원복 RED 4a 5/6 · 4b 6/6
+
 ## [데이터 보기 (ADR-284 Phase 3e) — 연결 상세가 실행 중인 값과 행마다 걸러진 이유를 보인다] - 2026-10-27
 
 ### Added

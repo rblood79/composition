@@ -10,6 +10,8 @@ import type {
 import { runViewQueries } from "../../../../../../packages/shared/src/collections/view/evaluate";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
+import { catalogResultCountCommand } from "../../../builder/catalogRuntime/viewAuthoring";
+import { addView } from "../../../../../../packages/shared/src/catalog/commands";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -550,6 +552,90 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
     );
     expect(h.shown(h.button)).toEqual(expected({ where: where([EITHER]) }, {}));
     expect(h.session.viewResult(h.list)?.served).toBeUndefined();
+    h.view.unmount();
+  });
+
+  it("a grouped view (G4) is not a request: it counts the loaded rows and never calls them complete", async () => {
+    // (Pages of 3: the loaded rows are part of the data until the last page.)
+    const server = stubServer(3);
+    const h = await apiPreview(SUFFIX_VIEW, {
+      queryParams: [{ key: "page", value: "{{ cursor }}" }],
+      responseMapping: {
+        dataPath: "items",
+        totalPath: "total",
+        cursorPath: "next",
+      },
+    });
+    server.requests.length = 0;
+    const VIEW = "project:view:by-gender";
+    act(() => {
+      h.workspace.execute(
+        addView({
+          entry: {
+            kind: "view",
+            id: VIEW as never,
+            name: "By gender",
+            source: { collectionId: USERS },
+            where: where([]),
+            groupBy: [["data:field:f-gender"]],
+            aggregates: [{ fn: "count", as: "count" }],
+          },
+        }),
+      );
+      h.workspace.execute(
+        catalogBindingCommand([{ kind: "node", id: h.list }], {
+          ...catalogBindingRef({
+            source: "dataTable",
+            collectionId: "users",
+            name: "Users",
+          })!,
+          viewId: VIEW as never,
+        }),
+      );
+    });
+    h.flush();
+    await settle();
+    // (No request carries a grouping; the result is the Builder's loaded rows grouped.)
+    expect(server.urls().filter((url) => url.includes("gender"))).toEqual([]);
+    const result = h.session.viewResult(h.list);
+    expect(result?.served).toBeUndefined();
+    expect(result?.complete).not.toBe(true);
+    // (The first page's 3 rows — Kim · Park · Lee — are 2 male · 1 female, not the 8 rows' 4 · 4.)
+    expect(result?.matched).toBe(2);
+    expect(result?.loaded).toBe(3);
+    h.view.unmount();
+  });
+
+  it("「결과 수 표시」 over a view the server answers: the count is the server's total, not the loaded page", async () => {
+    const server = stubServer(3);
+    const h = await apiPreview(SUFFIX_VIEW, {
+      queryParams: [{ key: "page", value: "{{ cursor }}" }],
+      responseMapping: {
+        dataPath: "items",
+        totalPath: "total",
+        cursorPath: "next",
+      },
+    });
+    const { command, created } = catalogResultCountCommand(
+      h.workspace.runtime.graph,
+      { listId: h.list, viewName: "Users view", text: "{count}" },
+      h.workspace.newId,
+    );
+    act(() => {
+      h.workspace.execute(command);
+    });
+    h.flush();
+    await settle();
+    // (One request — the list's view; the count is a count of it, not another view.)
+    expect(server.urls().at(-1)).toBe("/users?_sort=age&_order=asc");
+    expect(h.shown()).toHaveLength(3);
+    expect(h.element(created.textId)?.textContent?.trim()).toBe("8");
+    h.write("g", "female");
+    await settle();
+    expect(server.urls().at(-1)).toBe(
+      "/users?gender=female&_sort=age&_order=asc",
+    );
+    expect(h.element(created.textId)?.textContent?.trim()).toBe("4");
     h.view.unmount();
   });
 });

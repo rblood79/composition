@@ -67,7 +67,9 @@ export type SerializationWarningCode =
   /** A body format on a `GET` endpoint (the body is not sent). */
   | "GET_BODY"
   /** Several different views read one endpoint's collection (one request — none sent). */
-  | "MULTI_VIEW";
+  | "MULTI_VIEW"
+  /** A grouping · aggregates: not a request — the view runs on the loaded rows (Phase 4). */
+  | "GROUP";
 
 export interface SerializationWarning {
   code: SerializationWarningCode;
@@ -311,7 +313,10 @@ export function viewQueryLimits(
         comparison: item.op,
       });
   };
-  for (const query of input.queries) visit(query.where);
+  for (const query of input.queries) {
+    visit(query.where);
+    if (query.groupBy || query.aggregates) warnings.push({ code: "GROUP" });
+  }
   if (
     serialization.kind !== "suffix" &&
     (method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD")

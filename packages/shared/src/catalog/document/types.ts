@@ -653,6 +653,11 @@ export type ViewSort =
 export interface ViewQuery {
   where: ViewConditionGroup;
   groupBy?: readonly DataFieldPath[];
+  /**
+   * A group with no rows (after the conditions): absent = no row; `"all"` = every value the group
+   * field has in the data is a row (a kanban column's count of 0).
+   */
+  emptyGroups?: "all";
   aggregates?: readonly ViewAggregate[];
   sort?: ViewSort;
 }

@@ -17,6 +17,8 @@ const LITERAL_OR_LOCAL = new Set([
   "datatable.headersHint",
   "datatable.bodyVariableHint",
   "datatable.fields.valueOrVariable",
+  // (ADR-284 「결과 수 표시」 — the Text it makes holds `{count}` for the row to fill.)
+  "dataView.countText",
 ]);
 
 describe("i18n placeholder messages", () => {

@@ -181,20 +181,59 @@ export function catalogBoundRows(
   // items · records · trees · the "+N more" total — reads the view's rows).
   let view: CatalogViewResultMeta | undefined;
   let collections = sources;
+  /** The collection's rows replaced by a view's result (a grouped one with its own fields). */
+  const resultRows = (
+    rows: readonly unknown[],
+    schema?: ViewRunResult["schema"],
+  ): readonly CollectionDataSource[] =>
+    sources.map((source) =>
+      source === table
+        ? {
+            ...source,
+            useMockData: true,
+            mockData: rows as never,
+            status: "success" as const,
+            ...(schema ? { schema: schema as never } : {}),
+          }
+        : source,
+    );
   if (ref.query?.served) {
     // (The server answered this view: its rows are the result — never filtered again, R1.)
     const rows = readDataBindingRows(dataBinding, sources);
-    const { complete, total, warnings } = ref.query.served;
+    const { complete, total, warnings, depth } = ref.query.served;
+    const whole = complete && (total === undefined || total <= rows.length);
     view = {
       matched: rows.length,
       loaded: rows.length,
-      complete: complete && (total === undefined || total <= rows.length),
+      complete: whole,
       ...(total !== undefined ? { total } : {}),
       broken: [],
       applied: 0,
       served: true,
       ...(warnings ? { unsent: warnings } : {}),
     };
+    if (depth !== undefined && depth < ref.query.queries.length) {
+      // (A count of the answered view — 「결과 수 표시」: the server's total, else the loaded rows'
+      // count marked as part of the data.)
+      const counts = ref.query.queries.slice(depth);
+      const known = total !== undefined || whole;
+      const result = runBindingView(rows, table, {
+        ...ref.query,
+        queries: counts,
+      });
+      const counted = known
+        ? result.rows.map((row) =>
+            Object.fromEntries(
+              Object.keys(row as object).map((key) => [
+                key,
+                total ?? rows.length,
+              ]),
+            ),
+          )
+        : partialAggregates(result.rows, counts);
+      view = { ...view, matched: counted.length, complete: known };
+      collections = resultRows(counted, result.schema);
+    }
   } else if (ref.query) {
     const rows = readDataBindingRows(dataBinding, sources);
     const result = runBindingView(rows, table, ref.query);
@@ -208,20 +247,46 @@ export function catalogBoundRows(
       broken: result.broken,
       applied: result.applied,
     };
-    collections = sources.map((source) =>
-      source === table
-        ? {
-            ...source,
-            useMockData: true,
-            mockData: result.rows as never,
-            status: "success",
-          }
-        : source,
+    // (A grouped view's rows have its own fields: the group fields and the aggregates. Over part
+    // of the data its aggregates say so — never a partial count shown as the whole, Decision 6.)
+    const grouped = ref.query.queries.some(
+      (item) => item.groupBy || item.aggregates,
+    );
+    collections = resultRows(
+      grouped && complete !== true
+        ? partialAggregates(result.rows, ref.query.queries)
+        : result.rows,
+      grouped ? result.schema : undefined,
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
   const shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
   return shown && view ? Object.assign(shown, { view }) : shown;
+}
+
+/**
+ * Aggregates over part of the data (an API collection before its last page) as shown: a count is
+ * at least its value (`12+`), another aggregate an estimate (`≈ 4.2`) — the rows keep the group
+ * fields. Display only: the run's own values are numbers.
+ */
+function partialAggregates(
+  rows: readonly unknown[],
+  queries: CatalogRowQuery["queries"],
+): unknown[] {
+  const marks = new Map<string, string>();
+  for (const query of queries)
+    for (const aggregate of query.aggregates ?? [])
+      marks.set(aggregate.as, aggregate.fn);
+  return rows.map((row) => {
+    if (row === null || typeof row !== "object") return row;
+    const out = { ...(row as Record<string, unknown>) };
+    for (const [name, fn] of marks) {
+      const value = out[name];
+      if (value === null || value === undefined) continue;
+      out[name] = fn === "count" ? `${value}+` : `≈ ${value}`;
+    }
+    return out;
+  });
 }
 
 /**

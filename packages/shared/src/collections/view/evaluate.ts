@@ -4,12 +4,15 @@
  * branch). It runs on the source's whole rows; the display window comes after (Decision 3 — a
  * match past the 100th row is a match).
  *
- * Order per view: conditions → (Phase 4: group · aggregate) → sort. A derived view runs on its
- * source view's result. The reference examples' shape (연구 §2): `items.filter(…conditions with
- * empty values passing…).toSorted(collator…)`.
+ * Order per view: conditions → group · aggregate → sort. A derived view runs on its source view's
+ * result and reads its schema (a grouped view's rows are its group fields and its aggregates — the
+ * sort and the next view name them by id). The reference examples' shape (연구 §2):
+ * `items.filter(…conditions with empty values passing…).toSorted(collator…)`, a count is
+ * `reduce`.
  */
 import type {
   DataFieldPath,
+  ViewAggregate,
   ViewCondition,
   ViewConditionGroup,
   ViewQuery,
@@ -46,6 +49,8 @@ export interface ViewRunInput {
 
 export interface ViewRunResult {
   rows: readonly unknown[];
+  /** The result rows' fields: the source's, or a grouped view's group fields and aggregates. */
+  schema: readonly ViewRunField[];
   /** Conditions whose field or reference does not resolve: skipped, and shown as broken. */
   broken: readonly string[];
   /** Conditions that applied (not skipped) — 「적용 조건 수」. */
@@ -232,11 +237,12 @@ function countApplied(group: PreparedGroup): number {
 function sortOf(
   query: ViewQuery,
   input: ViewRunInput,
+  schema: readonly ViewRunField[],
 ): { field: ViewRunField; direction: "ascending" | "descending" } | undefined {
   const sort = query.sort;
   if (!sort) return undefined;
   if ("field" in sort) {
-    const field = viewFieldOf(sort.field, input.schema);
+    const field = viewFieldOf(sort.field, schema);
     return field ? { field, direction: sort.direction } : undefined;
   }
   const value = input.resolve(`!var.${sort.variableId}`)?.value;
@@ -244,25 +250,144 @@ function sortOf(
   const { column, direction } = value as Record<string, unknown>;
   if (direction !== "ascending" && direction !== "descending") return undefined;
   const name = String(column ?? "");
-  const field = input.schema.find(
+  const field = schema.find(
     (item) => item.id === fieldId(name) || item.key === name,
   );
   return field ? { field, direction } : undefined;
 }
 
-/** One view over rows: its conditions, then its sort (stable). */
+/** The broken marks of a grouping · an aggregate whose field does not resolve. */
+export const VIEW_GROUP_BROKEN = "groupBy";
+export const viewAggregateBroken = (aggregate: ViewAggregate) =>
+  `aggregate:${aggregate.as}`;
+
+/**
+ * A grouped view's result fields: its group fields as the source has them, then each aggregate
+ * (`id` = `key` = its `as`; a count · sum · mean is a number, a min · max keeps its field's type).
+ * A view without grouping or aggregates keeps the source's.
+ */
+export function viewResultSchema(
+  query: ViewQuery,
+  schema: readonly ViewRunField[],
+): readonly ViewRunField[] {
+  if (!query.groupBy && !query.aggregates) return schema;
+  const fields: ViewRunField[] = [];
+  for (const path of query.groupBy ?? []) {
+    const field = viewFieldOf(path, schema);
+    if (field) fields.push(field);
+  }
+  for (const aggregate of query.aggregates ?? []) {
+    const source =
+      aggregate.field && (aggregate.fn === "min" || aggregate.fn === "max")
+        ? viewFieldOf(aggregate.field, schema)
+        : undefined;
+    fields.push({
+      id: aggregate.as,
+      key: aggregate.as,
+      type: source?.type ?? "number",
+    });
+  }
+  return fields;
+}
+
+const groupKeyOf = (value: unknown) =>
+  JSON.stringify(value === undefined ? null : value);
+
+function aggregateOf(
+  aggregate: ViewAggregate,
+  field: ViewRunField | undefined,
+  rows: readonly unknown[],
+): unknown {
+  if (aggregate.fn === "count") return rows.length;
+  if (!field) return null;
+  const cells = rows
+    .map((row) => cellOf(row, field))
+    .filter((cell) => !viewValueIsEmpty(cell));
+  if (aggregate.fn === "min" || aggregate.fn === "max") {
+    if (!cells.length) return null;
+    const sign = aggregate.fn === "min" ? 1 : -1;
+    return cells.reduce((best, cell) =>
+      sign * catalogTableSortCompare(cell, best) < 0 ? cell : best,
+    );
+  }
+  // (`sum` · `mean` read numbers — Chart `budgetAggregate`'s; a text cell that is a number counts.)
+  const numbers = cells
+    .map((cell) => (typeof cell === "number" ? cell : Number(cell)))
+    .filter((cell) => Number.isFinite(cell));
+  const sum = numbers.reduce((total, cell) => total + cell, 0);
+  if (aggregate.fn === "sum") return sum;
+  return numbers.length ? sum / numbers.length : null;
+}
+
+/**
+ * Group · aggregate (Decision 3): one row per distinct group value (in first-seen order) with the
+ * group fields and the aggregates; aggregates without grouping are one row (a list's result count).
+ * A group with no rows is not a row — unless `emptyGroups: "all"`: every value the field has in
+ * the data (the collection's rows — a kanban column stays while a search empties it) is a row (a
+ * count of 0).
+ */
+function groupRows(
+  query: ViewQuery,
+  rows: readonly unknown[],
+  sourceRows: readonly unknown[],
+  schema: readonly ViewRunField[],
+  broken: string[],
+): readonly unknown[] {
+  const keys = (query.groupBy ?? []).map((path) => viewFieldOf(path, schema));
+  if (keys.some((field) => !field)) broken.push(VIEW_GROUP_BROKEN);
+  const fields = keys.filter((field): field is ViewRunField => !!field);
+  const aggregates = (query.aggregates ?? []).map((aggregate) => {
+    const field = aggregate.field
+      ? viewFieldOf(aggregate.field, schema)
+      : undefined;
+    if (aggregate.field && !field) broken.push(viewAggregateBroken(aggregate));
+    return { aggregate, field };
+  });
+  const groups = new Map<string, { values: unknown[]; rows: unknown[] }>();
+  const groupOf = (row: unknown) => {
+    const values = fields.map((field) => cellOf(row, field) ?? null);
+    const key = groupKeyOf(values);
+    let group = groups.get(key);
+    if (!group) groups.set(key, (group = { values, rows: [] }));
+    return group;
+  };
+  if (query.emptyGroups === "all" && fields.length)
+    sourceRows.forEach((row) => groupOf(row));
+  if (!fields.length) groups.set("", { values: [], rows: [...rows] });
+  else rows.forEach((row) => groupOf(row).rows.push(row));
+  return [...groups.values()].map((group) => {
+    const row: Record<string, unknown> = {};
+    fields.forEach((field, index) => (row[field.key] = group.values[index]));
+    for (const { aggregate, field } of aggregates)
+      row[aggregate.as] = aggregateOf(aggregate, field, group.rows);
+    return row;
+  });
+}
+
+/** One view over rows: its conditions, its group · aggregates, then its sort (stable). */
 function runQuery(
   query: ViewQuery,
   rows: readonly unknown[],
+  /** Every value a group field has (`emptyGroups`): the collection's rows, else these rows. */
+  dataRows: readonly unknown[],
+  schema: readonly ViewRunField[],
   input: ViewRunInput,
   broken: string[],
-): { rows: readonly unknown[]; applied: number } {
-  const where = prepare(query.where, input, broken);
+): {
+  rows: readonly unknown[];
+  schema: readonly ViewRunField[];
+  applied: number;
+} {
+  const stage = { ...input, schema };
+  const where = prepare(query.where, stage, broken);
   const applied = countApplied(where);
   let out = applied
-    ? rows.filter((row) => judge(where, row, input) !== "miss")
+    ? rows.filter((row) => judge(where, row, stage) !== "miss")
     : rows;
-  const sort = sortOf(query, input);
+  const resultSchema = viewResultSchema(query, schema);
+  if (query.groupBy || query.aggregates)
+    out = groupRows(query, out, dataRows, schema, broken);
+  const sort = sortOf(query, input, resultSchema);
   if (sort) {
     const sign = sort.direction === "descending" ? -1 : 1;
     out = out
@@ -273,7 +398,7 @@ function runQuery(
       )
       .map((item) => item.row);
   }
-  return { rows: out, applied };
+  return { rows: out, schema: resultSchema, applied };
 }
 
 /** The view chain over a source's whole rows. */
@@ -283,13 +408,36 @@ export function runViewQueries(
 ): ViewRunResult {
   const broken: string[] = [];
   let out = rows;
+  let schema = input.schema;
   let applied = 0;
+  let grouped = false;
   for (const query of input.queries) {
-    const result = runQuery(query, out, input, broken);
+    // (Until a view groups, the collection's rows hold every value of a field.)
+    const result = runQuery(
+      query,
+      out,
+      grouped ? out : rows,
+      schema,
+      input,
+      broken,
+    );
+    grouped ||= !!(query.groupBy || query.aggregates);
     out = result.rows;
+    schema = result.schema;
     applied = result.applied;
   }
-  return { rows: out, broken, applied };
+  return { rows: out, schema, broken, applied };
+}
+
+/** The fields the view at `queryIndex` reads: its source's result fields. */
+export function viewSchemaAt(
+  input: Pick<ViewRunInput, "queries" | "schema">,
+  queryIndex: number,
+): readonly ViewRunField[] {
+  let schema = input.schema;
+  for (const query of input.queries.slice(0, queryIndex))
+    schema = viewResultSchema(query, schema);
+  return schema;
 }
 
 /**
@@ -304,12 +452,13 @@ export function explainViewRow(
   const verdicts = new Map<string, ViewVerdict>();
   const query = input.queries[queryIndex];
   if (!query) return verdicts;
+  const stage = { ...input, schema: viewSchemaAt(input, queryIndex) };
   const visit = (item: PreparedCondition | PreparedGroup): ViewVerdict => {
-    const verdict = judge(item, row, input);
+    const verdict = judge(item, row, stage);
     verdicts.set(item.id, verdict);
     if (item.kind === "group") item.items.forEach(visit);
     return verdict;
   };
-  visit(prepare(query.where, input, []));
+  visit(prepare(query.where, stage, []));
   return verdicts;
 }
