@@ -1,0 +1,50 @@
+// Source: https://github.com/adobe/react-spectrum/blob/338cf2e1940e395c899e79b7ac09eb0de6b1cea7/packages/dev/s2-docs/pages/react-aria/examples/plants/PlantList.tsx
+// Copyright Adobe. Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+// ADR-284 §7a code view acceptance fixture — verbatim copy, not compiled (.txt).
+
+'use client';
+import {GridList, GridListItem} from 'tailwind-starter/GridList';
+import {Plant} from './plants';
+import {PlantActionMenu} from './PlantActionMenu';
+
+interface PlantListProps {
+  items: Plant[];
+  onFavoriteChange: (id: number, isFavorite: boolean) => void;
+  onEdit: (item: Plant) => void;
+  onDelete: (item: Plant) => void;
+}
+
+/* Rendered on mobile in place of the PlantTable */
+export function PlantList(props: PlantListProps) {
+  let {items, onFavoriteChange, onEdit, onDelete} = props;
+  return (
+    <GridList
+      aria-label="My plants"
+      selectionMode="multiple"
+      items={items}
+      renderEmptyState={() => 'No results. Try changing the filters.'}
+      className="h-[320px] w-full md:!hidden">
+      {item => (
+        <GridListItem textValue={item.common_name}>
+          <div className="grid grid-cols-[40px_1fr_auto] gap-x-2 w-full">
+            <img
+              alt=""
+              src={item.default_image?.thumbnail}
+              className="inline rounded-sm row-span-2 object-contain h-[40px]"
+            />
+            <span className="truncate capitalize">{item.common_name}</span>
+            <span className="truncate text-xs text-gray-600 dark:text-zinc-400 col-start-2 row-start-2">
+              {item.scientific_name}
+            </span>
+            <PlantActionMenu
+              item={item}
+              onFavoriteChange={onFavoriteChange}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </div>
+        </GridListItem>
+      )}
+    </GridList>
+  );
+}

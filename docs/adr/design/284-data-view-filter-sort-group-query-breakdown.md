@@ -218,3 +218,32 @@
 ## 10. 기록
 
 (Phase 종결 때 적는다 — 날짜 · 실측 · RED/GREEN · 원복 RED · 사후 보고 (scope inflation · sub-group).)
+
+### Phase 0 — 2026-10-26 (main `c8a50109e`)
+
+**RED 4** (`apps/builder/src/preview/catalog/__tests__/adr284DataView.test.tsx`, `it.fails` — `it` 으로 바꿔 돌려 실패 이유를 확인):
+
+| #   | 실패 이유 (실측)                                                                             | GREEN 이 되는 phase |
+| --- | -------------------------------------------------------------------------------------------- | ------------------- |
+| ①   | mock GridList + 버튼 규칙 (`setFilterText` "female") 뒤에도 `Kim · Park · Lee` — 기대 `Park` | 1 (보기 조건)       |
+| ②   | Table 은 `Kim · Lee · Park` 로 정렬되나 같은 데이터 GridList 는 `Kim · Park · Lee`           | 3 (정렬 따라가기)   |
+| ③   | 변수 `gender` 를 `female` 로 쓴 뒤 요청 `/users?gender=male` 하나뿐                          | 2 (재호출)          |
+| ④   | 규칙 하나에 `actions: [update, moveBefore]` → `CatalogValidationError entry.actions`         | 1 (저장) · 5 (배선) |
+
+**probe 6**:
+
+1. `useListData` 의 `filter` 는 `filterText` 가 빈 값이어도 모든 항목에 실행된다 (`react-stately@3.51.0 dist/private/data/useListData.mjs:22` — `filter ? state.items.filter(...) : state.items`). 「전체」 는 조건의 건너뜀이 처리한다 — 확인.
+2. `useFilter` (`react-aria@3.53.1 dist/private/i18n/useFilter.mjs:15-61`) = `useCollator({ usage: "search", ...options })` · 빈 부분 문자열 = 참 · 양쪽 NFC 정규화 · `contains` 는 길이 같은 조각마다 `collator.compare === 0` (startsWith · endsWith 도 같은 비교). 조건 「포함 · 시작 · 끝」 은 같은 알고리즘을 `Intl.Collator(locale, { usage: "search", sensitivity: "base" })` 로 재현한다 — 계산기가 RAC hook 을 부르지 않는 순수 함수라서.
+3. data id 는 `referencedIds` 밖이다 (`graph.ts:112-161` — `project:` 접두만). 바인딩은 `collection` edge (`graph.ts:256-260`, key = `collectionId`) 로 색인된다. 필드 id (`fieldMap` 값) 는 어디에도 색인되지 않는다. → 보기의 원본 collection 은 같은 `collection` edge 로 넣고, 필드 · 참조 대상 삭제 검사는 Data 패널 쪽 (보기를 읽어 「끊김」 표시) 에 둔다. 프로젝트 변수 (`data:variable:`) 도 색인 밖이라 page 변수 (`project:stateVariable:`) 만 `referencedIds` 로 든다 — 지금 `setState` 와 같다 (`graph.ts:150-154`).
+4. 컨트롤 → 값 모양은 등록표에서 유도된다 — 개념의 `state.valueType` (`interactions/concepts/types.ts:15-26` `ValueTypeId` 10 — boolean · string · number · key · keys · strings · date · dateRange · color · sort). 손 표 없이 기본값 표 (값 고르기 = 같음 / 그 중 하나 · 글자 = 포함) 를 `valueType` 으로 고른다.
+5. 생성 연결 탐색 경로 (freeze): 컨트롤 노드 → `InteractionEntry` (`ownerId` = 컨트롤 · `action.opcode: "setState"` · `variableId`) → 변수 → 보기 조건 (값 `!var.<variableId>` · 조건 id) → 그 보기를 가진 바인딩 노드. 반대 방향은 바인딩 → 보기 조건의 `!var` → 그 변수를 쓰는 `setState` 규칙의 `ownerId`. 이름 · 패널 순서로 추정하지 않는다. 후보가 여러 개 (같은 변수를 쓰는 규칙 둘) 면 목록으로 고르게 한다.
+6. 조회 결과 범위: `catalogBoundRows` (`runtime/dataBinding.ts:160-260`) 의 `items` 경로는 `getFlatProjectionRows(…, limit)` 에서 표시 상한을 건다 (`:207-210`), `records` 경로는 전체 행 (`:168`). → 보기 계산은 `getFlatProjectionRows` 앞에서 바운드 collection 의 행을 계산 결과로 바꿔 넘긴다 (items · records 가 같은 계산 결과를 소비). `ResponseMapping.pagination.totalPath` (`apps/builder/src/types/builder/data.types.ts:155`) 는 **타입만 있고 읽는 곳 0** — 「API 전체 수」 는 Phase 2 가 `loadCollectionEndpoint` 에서 읽고 세션이 같은 조회의 total 로 들고 있어야 한다 (설정 칸 존재 ≠ 지원).
+
+**inventory freeze**:
+
+- §1b 규칙 `action` 소비자 22 파일 — shared: `document/{validation,graph,clone}.ts` · `transactions/transaction.ts:767` · `commands/{components,materialize,swap,project,instanceOverrides}.ts` · `runtime/catalogPreviewInteractions.ts` · `interactions/interactionRule.types.ts`; builder: `catalogRuntime/{interactions,aiHost,dataVariables,targetPick,targetRef}.ts` · `panels/interactions/{StateActionFields.tsx,catalog/CatalogRuleRow.tsx,catalog/CatalogInheritedRuleRow.tsx}` · `services/ai/tools/{createInteractionRule,definitions}.ts` · `i18n/translations.ts` (라벨). dispatcher · `executionVocabulary.ts` 는 변환된 규칙만 받는다 (문서 `action` 직접 읽기 0).
+- §1a 바인딩 읽기 · 쓰기 31 파일 (binding 정의 파일 제외) — shared: `document/{types,validation,graph,itemLinks}.ts` · `commands/{fields,collections}.ts` · `transactions/transaction.ts` · `resolution/resolver.ts` · `runtime/{dataBinding,catalogPreviewSession,catalogPreviewInteractions,compositionRoot,delegatedDom.runtime,domBinding.runtime,domRegistry.runtime,domRegistry.components}.ts(x)` · `collections/resolveBoundCollection.ts` · `components/GridList.tsx`; builder: `catalogRuntime/{canvasScene,dataBindingCommand,dataHistory,editContract,rowTemplate}.ts` · `main/CatalogBuilderCore.tsx` · `panels/datatable/{usage/catalogQuickConnectHost,utils/quickConnectPlan}.ts` · `panels/interactions/catalog/CatalogInteractionsPanel.tsx` · `panels/properties/catalog/CatalogRowTemplateSections.tsx` · `components/property/CollectionBinding.tsx` · `stores/utils/dataChange.ts` · `services/ai/{catalog/componentCatalog,tools/bindCollection}.ts`.
+- 수용 집합 원본 fixture 10 파일 — `packages/shared/src/codeView/__fixtures__/reference/` (react-spectrum `338cf2e1940e395c899e79b7ac09eb0de6b1cea7`, 2026-10-23 · 머리에 출처 · Apache-2.0 · `.txt` 라 컴파일 · 포맷 대상 아님): plants (App · PlantTable · PlantList · plants) · photos (App · Sidebar · PhotoGrid) · kanban · ios-list · emoji-picker (mdx 첫 `tsx` 블록). 공식 저장소의 `crud.mdx` 는 plants 를 보여 주는 페이지다 (예제 수 7 그대로).
+- 번들 (production build `vite build` → `adr209-bundle-closure.mjs`, dirty = 문서 · 테스트 · fixture 만): **Preview initial 308,574 B gz → 여유 H = 11,426** (§8b 배분의 기준). Builder initial 1,421,341 — 상한 1,390,000 초과는 HEAD 기존 (283 기록 1,418,803 이후 product 커밋 포함), 284 는 Δ 로 잰다.
+
+**사후 보고**: scope 변화 없음. Phase 0 은 테스트 · fixture · 문서뿐이라 CHANGELOG 면제 (테스트만).

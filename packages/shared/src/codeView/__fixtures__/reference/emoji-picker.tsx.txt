@@ -1,0 +1,57 @@
+// Source: https://github.com/adobe/react-spectrum/blob/338cf2e1940e395c899e79b7ac09eb0de6b1cea7/packages/dev/s2-docs/pages/react-aria/examples/emoji-picker.mdx
+// Copyright Adobe. Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+// ADR-284 §7a code view acceptance fixture — verbatim copy, not compiled (.txt).
+
+"use client";
+import {Select, SelectValue, ListBox, ListBoxItem} from 'react-aria-components/Select';
+import {Autocomplete, useFilter} from 'react-aria-components/Autocomplete';
+import {Virtualizer, GridLayout, Size} from 'react-aria-components/Virtualizer';
+import {Button} from 'vanilla-starter/Button';
+import {Popover} from 'vanilla-starter/Popover';
+import {SearchField} from 'vanilla-starter/SearchField';
+import _emojis from 'emojibase-data/en/compact.json';
+import './EmojiPicker.css';
+
+type Emoji = (typeof _emojis)[0];
+const emojis: Emoji[] = _emojis.filter((e) => typeof e.label === 'string' && !e.label.startsWith('regional indicator'));
+
+export default function EmojiPicker() {
+  let {contains} = useFilter({ sensitivity: 'base' });
+
+  return (
+    <Select aria-label="Emoji" className="emoji-picker" defaultValue="🥳">
+      <Button variant="secondary">
+        <SelectValue />
+      </Button>
+      <Popover placement="bottom" className="emoji-picker-popover">
+        <Autocomplete filter={contains}>
+          <SearchField aria-label="Search" placeholder="Search emoji" autoFocus />
+          <Virtualizer
+            layout={GridLayout}
+            layoutOptions={{
+              minItemSize: new Size(32, 32),
+              maxItemSize: new Size(32, 32),
+              minSpace: new Size(4, 4),
+              preserveAspectRatio: true,
+            }}>
+            <ListBox className="emoji-list" items={emojis} aria-label="Emoji list" layout="grid">
+              {(item) => <EmojiItem id={String(item.unicode)} item={item} />}
+            </ListBox>
+          </Virtualizer>
+        </Autocomplete>
+      </Popover>
+    </Select>
+  );
+}
+
+function EmojiItem({ id, item }: { id: string; item: Emoji }) {
+  return (
+    <ListBoxItem
+      id={id}
+      value={item}
+      textValue={(item.label || '') + (Array.isArray(item.tags) ? item.tags.join(' ') : '')}
+      className="emoji-item">
+      {item.unicode}
+    </ListBoxItem>
+  );
+}
