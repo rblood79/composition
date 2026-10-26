@@ -11,6 +11,7 @@ import type {
   LibraryDefinition,
   LibraryDefinitionId,
   DefinitionOverrideEntry,
+  InteractionEntry,
   NodeEntry,
   NodeId,
   TokenId,
@@ -36,6 +37,7 @@ import {
   forkedCatalogLibrary,
   originForksOf,
 } from "./originFork";
+import { parseRuleValueRef } from "../../interactions/valueRef";
 
 export interface GraphIndexes {
   definitionToInstances: ReadonlyMap<DefinitionId, ReadonlySet<NodeId>>;
@@ -134,7 +136,14 @@ export function referencedIds(entry: CatalogEntry): string[] {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
     if (entry.action.opcode === "navigate") ids.push(entry.action.pageId);
-    if (entry.action.opcode === "capability") ids.push(entry.action.targetId);
+    // ADR-283 Decision 3: every project id of a target's address (a swap · extraction · delete of
+    // a middle step finds the rule), as the owner address.
+    if (entry.action.opcode === "capability") {
+      const target = entry.action.target;
+      if ("nodeId" in target) ids.push(target.nodeId);
+      else if ("address" in target) address(target.address);
+      else if ("local" in target) address(target.local);
+    }
     if (
       entry.action.opcode === "setState" &&
       entry.action.variableId.startsWith("project:")
@@ -1327,11 +1336,7 @@ export class CatalogGraph {
       )
         throw new CatalogValidationError("DANGLING_PAGE", entry.action.pageId);
       if (entry.action.opcode === "capability") {
-        if (get(entry.action.targetId)?.kind !== "node")
-          throw new CatalogValidationError(
-            "DANGLING_TARGET",
-            entry.action.targetId,
-          );
+        validateCapabilityTarget(entry, get, library, ownerOf);
         if (
           !library.execution.capabilityIds.has(entry.action.capabilityId)
         )
@@ -1355,9 +1360,15 @@ export class CatalogGraph {
       ) {
         const variable = get(entry.action.variableId);
         if (variable?.kind === "stateVariable") {
+          // (A reference — `!event` · `!item` · `!var` — is checked when the rule runs; a structured
+          //   variable takes only references, or `""` to empty it.)
+          const value = entry.action.value;
           if (
             entry.action.op === "set" &&
-            typeof entry.action.value !== variable.valueType
+            !parseRuleValueRef(value) &&
+            (variable.valueType === "object" || variable.valueType === "array"
+              ? value !== ""
+              : typeof value !== variable.valueType)
           )
             throw new CatalogValidationError(
               "STATE_VALUE_TYPE",
@@ -1706,4 +1717,75 @@ export function createCatalogGraph(
     library,
   );
   return new CatalogGraph(document, library);
+}
+
+/**
+ * ADR-283 Decision 1 · 3 — a capability target names a drawn place: a page node (a template's only
+ * from a rule of that template — drawn once per instance, the firing origin says which), a position of an
+ * authored instance (`address`, its first step an authored node), or a position of the origin
+ * whose template holds the rule's owner (`local`). `unset` names nothing.
+ */
+function validateCapabilityTarget(
+  entry: InteractionEntry,
+  get: (id: string) => CatalogEntry | undefined,
+  library: CatalogLibrary,
+  ownerOf: (id: string) => string | undefined,
+): void {
+  if (entry.action.opcode !== "capability") return;
+  const target = entry.action.target;
+  /** The definition whose template holds `id` (owner chain top), else undefined. */
+  const templateDefinitionOf = (id: string): DefinitionId | undefined => {
+    const seen = new Set<string>();
+    for (let cursor = ownerOf(id); cursor && !seen.has(cursor); cursor = ownerOf(cursor)) {
+      seen.add(cursor);
+      const owner = get(cursor);
+      if (owner?.kind === "definition") return owner.id;
+      if (owner?.kind === "definitionOverride") return owner.targetId;
+      if (owner?.kind !== "node") return undefined;
+    }
+    return undefined;
+  };
+  if ("unset" in target) return;
+  if ("nodeId" in target) {
+    if (get(target.nodeId)?.kind !== "node")
+      throw new CatalogValidationError("DANGLING_TARGET", target.nodeId);
+    // (A template node is drawn once per instance: only a rule of that same template names it by
+    // id — the firing record's origin says which; elsewhere `address` · `local` do.)
+    const template = templateDefinitionOf(target.nodeId);
+    if (template && template !== templateDefinitionOf(entry.ownerId))
+      throw new CatalogValidationError("TARGET_IN_TEMPLATE", target.nodeId);
+    return;
+  }
+  if ("address" in target) {
+    const first = get(target.address.instances[0]!);
+    if (first?.kind !== "node" || templateDefinitionOf(first.id))
+      throw new CatalogValidationError(
+        "DANGLING_TARGET",
+        target.address.instances[0]!,
+      );
+    validateInstanceAddress(first, target.address, get, library);
+    return;
+  }
+  const definitionId = templateDefinitionOf(entry.ownerId);
+  if (!definitionId)
+    throw new CatalogValidationError("TARGET_LOCAL_OUTSIDE_TEMPLATE", entry.id);
+  const anchor = {
+    kind: "node",
+    id: "catalog:local-target" as NodeId,
+    definitionId,
+    children: [],
+    props: {},
+    visual: {},
+    sizing: {},
+    descendantOverrides: [],
+  } as NodeEntry;
+  validateInstanceAddress(
+    anchor,
+    {
+      instances: [anchor.id, ...target.local.instances],
+      templatePath: target.local.templatePath,
+    },
+    get,
+    library,
+  );
 }

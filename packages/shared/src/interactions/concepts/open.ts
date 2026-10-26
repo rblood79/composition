@@ -46,6 +46,8 @@ export const open = {
   capabilities: {
     open: { labelKey: "capabilities.open", value: true },
     close: { labelKey: "capabilities.close", value: false },
+    // (`useOverlayTriggerState.toggle` — `toggleCheck`'s counterpart, RAC event audit 2026-10-26.)
+    toggleOpen: { labelKey: "capabilities.toggleOpen", value: "!self" },
   },
 } as const satisfies InteractionConcept;
 

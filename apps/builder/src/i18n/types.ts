@@ -579,15 +579,28 @@ export interface TranslationKeys {
     uploadFormats: string;
   };
   interactions: {
+    /** ADR-283 — 대상 선택기 · Canvas 지정. */
+    targetGroupPage: string;
+    targetGroupComponent: string;
+    targetSearch: string;
+    targetRepoint: string;
+    targetAim: string;
+    targetPickBanner: string;
+    targetPickNoCapability: string;
+    targetOutOfContext: string;
     showAllRacEvents: string;
     inheritedTitle: string;
     inheritedEnabled: string;
     inheritedReplace: string;
     inheritedReplaced: string;
-    valueSource: string;
-    valueSourceLiteral: string;
-    valueSourceEvent: string;
-    eventArgument: string;
+    valuePick: string;
+    valueSearch: string;
+    valueGroupEvent: string;
+    valueGroupItem: string;
+    valueGroupVariable: string;
+    valueItemWhole: string;
+    valueClear: string;
+    valueTypeMismatch: string;
     /** ADR-281 — `interactions.trigger.<concept>.<callback>` (등록표 그룹에서 유도). */
     trigger: Record<string, Record<string, string>>;
     /** ADR-281 — When 그룹 (개념) 머리글. */
@@ -665,11 +678,18 @@ export interface TranslationKeys {
     expand: string;
     collapse: string;
     collapseAll: string;
+    collapseItem: string;
+    toggleExpand: string;
     open: string;
     close: string;
+    toggleOpen: string;
     check: string;
     uncheck: string;
     toggleCheck: string;
+    checkItem: string;
+    uncheckItem: string;
+    focusDate: string;
+    paramDate: string;
     turnOn: string;
     turnOff: string;
     toggleOnOff: string;

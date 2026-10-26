@@ -10,6 +10,8 @@ import { SET_STATE_OPS, type SetStateOp, type VisibleVariable } from "@compositi
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
+import { ValueField } from "./ValueField";
+import type { CatalogValueSources, CatalogValueType } from "./valueOptions";
 
 
 const OP_LABEL_KEYS: Record<SetStateOp, string> = {
@@ -51,6 +53,8 @@ interface StateActionFieldsViewProps {
   onChange: (action: StateActionValue) => void;
   /** "변수 없음" 선택지 — 완성된 규칙만 저장하는 문서 (catalog) 는 끈다 */
   allowUnset?: boolean;
+  /** 값 칸의 「값 고르기」 — 이 규칙의 이벤트 인자 · 선택한 항목 · 변수 (없으면 직접 입력만) */
+  valueSources?: CatalogValueSources;
 }
 
 export const StateActionFieldsView = memo(function StateActionFieldsView({
@@ -58,6 +62,7 @@ export const StateActionFieldsView = memo(function StateActionFieldsView({
   action,
   onChange,
   allowUnset = true,
+  valueSources,
 }: StateActionFieldsViewProps) {
   const { t } = useI18n();
   const selected = variables.find((entry) => entry.id === action.variableId);
@@ -107,7 +112,27 @@ export const StateActionFieldsView = memo(function StateActionFieldsView({
         }
         options={opOptions}
       />
-      {needsValue && type !== "boolean" && (
+      {needsValue && valueSources && (
+        <ValueField
+          label={valueLabel}
+          kind={
+            action.op === "increment" || type === "number"
+              ? "number"
+              : type === "boolean"
+                ? "boolean"
+                : "text"
+          }
+          value={action.value}
+          onChange={(value) => onChange({ ...action, value })}
+          sources={valueSources}
+          expectedType={
+            (action.op === "increment" ? "number" : type) as
+              | CatalogValueType
+              | undefined
+          }
+        />
+      )}
+      {needsValue && !valueSources && type !== "boolean" && (
         <PropertyInput
           label={valueLabel}
           type={type === "number" ? "number" : "text"}
@@ -136,7 +161,7 @@ export const StateActionFieldsView = memo(function StateActionFieldsView({
           }}
         />
       )}
-      {needsValue && type === "boolean" && (
+      {needsValue && !valueSources && type === "boolean" && (
         <PropertySelect
           label={valueLabel}
           value={action.value === true ? "true" : "false"}

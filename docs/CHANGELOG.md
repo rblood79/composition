@@ -11,6 +11,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions — Value 칸 「값 고르기」: 이벤트 인자 · 선택한 항목 · 변수를 골라 담기] - 2026-10-26
+
+### Added
+
+- **Value 칸의 「값 고르기」 (`{ }` 버튼)**: Set state 값 · Capability 값 · API body · 목록 데이터 칸이 같은 선택기를 쓴다. 목록은 그 규칙이 이미 아는 것에서 만든다 — When 의 RAC 인자 (`keys` · `value` · `formData` …), 데이터에 묶인 owner 의 「선택한 항목」 (`useListData.getItem` — 항목 전체 · schema 필드), 닿는 변수. 고른 값은 칩 (`선택한 항목 › name`) 으로 보이고, 변수 type 과 모양이 다르면 그 자리에서 안내한다
+  - 저장은 값 전체 참조 — `!event.<인자>[.경로]` · `!item.<key 인자>[.필드]` · `!var.<변수 id>[.경로]` (기존 `!event.<인자>` 를 넓힘, 문서 스키마 변경 없음). 행 전체는 object, multiple 선택은 배열 그대로 들어간다
+  - 위치: `packages/shared/src/interactions/valueRef.ts` · `apps/builder/src/builder/panels/interactions/{ValueField.tsx,valueOptions.ts}`
+- **page · 요소 변수 type `object` · `array`**: 행 전체 · 선택 목록을 담는다 (기본값 없음 — 규칙이 채운다, `{{ TEMP.name }}` 으로 읽기). 기존 문서는 그대로 열린다
+
+### Fixed
+
+- **Set state 값이 입력한 글자 그대로 저장 · 실행됨**: GridList 선택으로 `selectedKeys.name` 을 적으면 Text 에 그 글자가 나왔다
+  - **Why**: Set state 의 값 칸은 리터럴 전용이고 실행 (`dispatcher.ts`) 도 `action.value` 를 해석 없이 썼다 — Capability · body 는 `!event` 를 풀었지만 Set state 만 빠져 있었다. number 변수에 `!event.value` 를 넣으면 문서 검증이 거부하기도 했다
+  - 수정: 모든 값 칸이 resolver 하나 (`resolveRuleValue`) 로 읽고, 문서 검증은 참조 값을 실행 때 확인한다
+
+### Tests
+
+- `apps/builder/src/preview/catalog/__tests__/valueRef.test.tsx` (single · name / 행 전체 / multiple · 배열 / 리터럴 유지 — 실행 쪽을 되돌리면 3건 실패) · `panels/interactions/__tests__/valueField.test.tsx`
+
+## [Preview — instance 안쪽 자리의 Ratio 잠금이 Preview 전체를 멈추던 결함] - 2026-10-26
+
+### Fixed
+
+- **Card 의 CardPreview 처럼 rule 이 있는 자리에 Ratio 를 걸면 Preview · Publish 가 그려지지 않음**:
+  - `CATALOG_DOM_VISUAL_UNSUPPORTED:…component-card__preview:aspectRatio` 로 렌더가 멈췄다
+  - **Why**: rule executor 의 작성 style 반복문이 `aspectRatio` 를 모르는 키로 던졌다 — 같은 함수가 반복문 뒤에서 그 값을 inline `aspect-ratio` 로 쓰고 있었다. rule 이 없는 노드 (frame) 는 다른 경로라 증상이 없었다
+  - 수정: 반복문이 `aspectRatio` 를 건너뛴다 (아래의 기존 inline 쓰기가 담당)
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.runtime.ts` `authoredStyle`
+  - 테스트: `apps/builder/src/preview/catalog/__tests__/authoredAspectRatio.test.tsx`
+
+## [Interactions — RAC 레퍼런스 기준 When · Do 전수 조사와 보완] - 2026-10-26
+
+### Added
+
+- **When (RAC callback) 보완** — 설치 RAC 1.22.1 d.ts 76 type 의 callback 을 등록표와 대조해 빠진 것을 더했다 (S2 1.8.1 이 유지하는 것은 보이게, S2 가 뺀 hover 는 「RAC 전체 보기」 뒤):
+  - DropZone `onDropEnter` · `onDropMove` · `onDropActivate` · `onDropExit` (+ hover 숨김) · Menu `onClose` · Form `onInvalid` · TagGroup `onAction` · Checkbox · Switch `onPress`.
+  - **항목 노드의 `onAction`** — ListBoxItem · GridListItem · TreeItem · Row · Tag · MenuItem (MenuItem 은 등록표에 처음 들어옴). 항목의 press · hover · focus 는 숨김 그대로.
+  - CheckboxGroup · ListBox · Select · ComboBox · DateField · TimeField · DatePicker · DateRangePicker 의 focus (+ keyboard 는 Q3 대로 노출 0).
+- **Do (고유 기능) 보완** — controlled prop 대조: Calendar · RangeCalendar `focusDate` (그 날짜의 달로 — `focusedValue` 를 Preview 가 controlled 로 넘긴다) · Tree · DisclosureGroup `collapseItem` · CheckboxGroup `checkItem` · `uncheckItem` · 열림 `toggleOpen` · Disclosure `toggleExpand`.
+
+### Changed
+
+- **Select 의 선택 = RAC 1.22 / S2 Picker 의 `value` · `onChange`** — `selectedKey` · `onSelectionChange` 는 RAC 가 deprecated 로 둔 single 전용 이름이라 숨김으로 남긴다 (그 이름을 쓰는 규칙은 계속 실행). Select 에 `deselectItem` 이 생기고 `selectItem` 은 multiple 에서 더한다. 값 변수 원천도 `value` 로 (옛 `selectedKey` 원천 변수는 관찰이 끊긴다 — 변환 없음).
+
+### Fixed
+
+- `selectionMode: "multiple"` Select 에 건 규칙이 실행되지 않았다 — RAC 가 multiple 에서 `selectedKey` 를 무시하고 `onSelectionChange` 를 부르지 않는다 (`useSelectState.mjs`). `selectItem` 도 닿지 않았다.
+- TreeItem 에 건 규칙 handler 가 RAC TreeItem 에 닿지 않았다 — Tree 렌더러가 항목을 직접 그려 `withRuntime` 을 거치지 않았다 (`treeItemElements` 에 `handlersOf` 전달 · Tree 가 항목 record 를 구독).
+- Checkbox · Switch 의 hover 규칙이 실행되지 않았다 — RAC 1.22 `CheckboxField` 에는 HoverEvents 가 없고 `*Button` 만 받는다 (그 record 의 hover handler 를 Button 으로).
+- Preview · Publish 에서 팔레트 Link (href `#`) 를 누르면 「404 Page not found」 로 바뀌었다 — RAC client 라우팅이 `#` 을 경로로 넘겼다. `#anchor` 는 페이지에 머물고 그 요소로 스크롤한다.
+
+### Tests
+
+- `interactionWhenReach.test.tsx` 196 — 보이는 When 전부 · 숨은 press · hover · focus 전부를 Preview 전 경로에서 실제 RAC 조작으로 실행 (정적 행 누락 게이트 2) + 추가한 Do 9 행. 원복 RED 5/5 (Select · TreeItem · toggle hover · Link `#` · focusDate). live (Chrome MCP 5174 → Publish 탭): Checkbox hover · Node 2 onAction · Select multiple 두 항목 onChange · Link 누름 toast + 페이지 유지, 패널 When 목록 (Checkbox 「On press」 · TreeItem 「On item action」).
+
+## [ADR-283 Phase 0 ~ 4 — Interactions 대상 참조: instance 안쪽 · 누른 자리 기준 실행 · 검색 선택기 · Canvas 지정] - 2026-10-26
+
+### Changed
+
+- **대상 선택기 · Canvas 이름표의 `#` = 요소의 DOM id (Accessibility ID)**: `Save (Button) #button_1` · instance 안쪽 자리는 그 instance 의 id (`OrderCard #ordercard_1 ▸ Save`) — DOM id 로 검색도 된다. DOM id 가 없을 때만 내부 id 끝 4자리 (`· a1b2`)
+  - **Why**: `#` 뒤가 레이어 이름 (`Button #Save`) 이거나 내부 id 꼬리여서, Preview 가 그리는 `id=""` 와 다른 값이 CSS `#id` 처럼 보였다 (사용자 지적)
+  - 위치: `catalogRuntime/interactions.ts` (`htmlId`) · `panels/interactions/catalog/CatalogTargetPicker.tsx` `catalogTargetLabels` · `catalogRuntime/targetPick.ts`
+- **capability 규칙의 대상이 「장소 참조」 가 됐다** (contract 49 — 48 문서는 열리지 않는다, 변환 없음): page 노드 (`{ nodeId }`) 뿐 아니라 instance 안 자리 (`{ address }` — OrderCard 의 Save) · 컴포넌트 원본 안 자리 (`{ local }` — 원본 규칙이 같은 컴포넌트의 형제를) 를 가리킨다. swap · detach 로 자리가 사라진 규칙은 지우지 않고 「대상 없음」 으로 남긴다 (`{ unset: true }` — 패널 「대상 없음 · 다시 지정」, swap 알림 「대상 없음 N」, Publish 경고).
+- **대상 칸 = 검색 선택기**: 「이 페이지」 / 「컴포넌트 안」 그룹 · `OrderCard ▸ Save` 경로 라벨 · 이름이 겹치면 짧은 id (instance 자리는 instance 의 id) · 50 개 넘으면 가상화 · 목록 hover ↔ Canvas 강조. 새 대상이 지금 기능을 받지 않으면 행 아래에 「X 는 ‘Disable’ 을 받지 않아 ‘Hide’ 로 바꿨습니다」 (말없는 폴백 제거).
+- **Canvas 에서 대상 지정**: 대상 칸 옆 조준 버튼 → 배너 · 이름표 → 클릭 (⌘ 클릭 = 안쪽 요소) = 한 step, Esc = 변경 없음, 선택 · 편집 맥락은 그대로. field 부품 (Input · Label …) 은 그 field 로, overlay 본체 (Modal · Popover · Tooltip) 는 trigger 로 올려 이름표에 두 이름.
+- AI 의 `createInteractionRule` 이 instance 안 요소를 대상으로 받는다.
+
+### Fixed
+
+- 원본 규칙 · 데이터 행 template 의 규칙이 **누른 instance · 누른 행**의 대상을 바꾼다 — 전에는 대상의 첫 record (첫 instance · 첫 행) 만 바뀌었다 (`recordsOfSource(targetId)[0]`, G0 RED).
+
+### Tests
+
+- `adr283TargetRef.test.ts` 19 (구현 판독 수리 반례 5 포함) · `adr283Preview.test.tsx` (RAC) · `adr283TargetPicker.test.tsx` 4 · `adr283CanvasPick.test.ts` 4 · 원복 RED 4/4 · live (Chrome MCP 5174 — 선택기 · Canvas 지정 · Esc · ⌘Z · Publish 실행 · swap 「대상 없음」).
+
 ## [CardView · GridList waterfall 배치 — Canvas 엔진 masonry 축 + Preview 배치] - 2026-10-26
 
 ### Added

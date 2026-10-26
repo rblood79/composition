@@ -49,7 +49,9 @@ import {
   catalogInteractionsOf,
   catalogNewInteraction,
   type CatalogInteractionAction,
+  type CatalogInteractionOwner,
 } from "./interactions";
+import { catalogTargetRefOf } from "./targetRef";
 import {
   catalogVariableIndex,
   catalogVariableUsageCounter,
@@ -677,10 +679,10 @@ export function createCatalogAiWriteHost(
         const target = targetOf(elementId);
         if (!target)
           return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
-        const catalogAction = catalogRuleAction(workspace, action);
+        const owner = catalogInteractionOwner(target);
+        const catalogAction = catalogRuleAction(workspace, action, owner);
         if ("error" in catalogAction)
           return { ok: false, error: catalogAction.error };
-        const owner = catalogInteractionOwner(target);
         const entry = catalogNewInteraction(
           owner,
           trigger,
@@ -715,6 +717,7 @@ export function createCatalogAiWriteHost(
 function catalogRuleAction(
   workspace: CatalogWorkspace,
   action: InteractionAction,
+  owner?: CatalogInteractionOwner,
 ): { action: CatalogInteractionAction } | { error: string } {
   const graph = workspace.runtime.graph;
   if (action.kind === "toast")
@@ -741,14 +744,19 @@ function catalogRuleAction(
       : { error: `PAGE_NOT_FOUND: ${path}` };
   }
   if (action.kind === "capability") {
-    const target = workspace.positionOfRecord(action.targetId)?.target;
-    if (target?.kind !== "node")
-      return { error: `CAPABILITY_TARGET_NOT_A_NODE: ${action.targetId}` };
+    // ADR-283: the element (a page node or a place inside an instance) as the stored reference.
+    const position = workspace.positionOfRecord(action.targetId)?.target;
+    const target =
+      position && owner
+        ? catalogTargetRefOf(graph, owner, position)
+        : undefined;
+    if (!target)
+      return { error: `CAPABILITY_TARGET_OUT_OF_REACH: ${action.targetId}` };
     const value = (action.params as { value?: unknown } | undefined)?.value;
     return {
       action: {
         opcode: "capability",
-        targetId: target.id,
+        target,
         capabilityId: action.capability,
         ...(value !== undefined ? { value: value as Scalar } : {}),
       },

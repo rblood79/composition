@@ -86,7 +86,7 @@ describe("ADR-281 G2 — a page root's isDisabled", () => {
     const [trigger, target] = h.ids as [NodeId, NodeId];
     h.rule(trigger, "onPress", {
       opcode: "capability",
-      targetId: BODY,
+      target: { nodeId: BODY },
       capabilityId: "disableAll",
     });
     h.rule(target, "onPress", { opcode: "toast", message: "target" });
@@ -108,7 +108,7 @@ describe("ADR-281 G2 — a rule's read-only on the page root at runtime", () => 
       const [field, button] = h.ids as [NodeId, NodeId];
       h.rule(button, "onPress", {
         opcode: "capability",
-        targetId: BODY,
+        target: { nodeId: BODY },
         capabilityId,
       });
       const input = () =>
@@ -129,7 +129,7 @@ describe("ADR-281 G2 — a page root's isReadOnly and the dispatcher's guard", (
     const [field, button] = h.ids as [NodeId, NodeId];
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: field,
+      target: { nodeId: field },
       capabilityId: "setValue",
       value: "written",
     });
@@ -208,7 +208,7 @@ describe("ADR-281 G2 — colorScheme (user decision 4)", () => {
     const [button] = h.ids as [NodeId];
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: BODY,
+      target: { nodeId: BODY },
       capabilityId: "darkScheme",
     });
     const before = applied.length;

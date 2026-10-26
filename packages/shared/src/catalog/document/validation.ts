@@ -1438,6 +1438,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           break;
         }
       }
+      // (A structured variable starts empty — its value comes from a rule's reference.)
+      if (item.valueType === "object" || item.valueType === "array") {
+        if (item.defaultValue !== "")
+          invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
+        break;
+      }
       if (!scalarValueTypes.has(item.valueType as ValueType))
         invalid("INVALID_VALUE_TYPE", "entry.valueType");
       scalar(item.defaultValue, "entry.defaultValue");
@@ -1546,10 +1552,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       } else if (action.opcode === "capability") {
         exact(
           action,
-          ["opcode", "targetId", "capabilityId", "value"],
+          ["opcode", "target", "capabilityId", "value"],
           "entry.action",
         );
-        id(action.targetId, "project:node:", "entry.action.targetId");
+        nodeRef(action.target, "entry.action.target", "TARGET_REF_SHAPE", true);
         string(action.capabilityId, "entry.action.capabilityId");
         if (action.value !== undefined) {
           if (Array.isArray(action.value))
@@ -1809,33 +1815,45 @@ function stateOwnerRef(value: unknown, at: string): void {
     return;
   }
   exact(data, ["ancestor"], at);
-  const ancestor = object(data.ancestor, `${at}.ancestor`);
-  const [form] = Object.keys(ancestor);
-  if (Object.keys(ancestor).length !== 1)
-    invalid("STATE_OWNER_REF_SHAPE", `${at}.ancestor`);
-  if (form === "nodeId")
-    id(ancestor.nodeId, "project:node:", `${at}.ancestor.nodeId`);
-  else if (form === "address")
-    address(ancestor.address, `${at}.ancestor.address`);
+  nodeRef(data.ancestor, `${at}.ancestor`, "STATE_OWNER_REF_SHAPE");
+}
+/**
+ * ADR-283 Decision 1 — one stored place (`CatalogNodeRef`): exactly one of `nodeId` · `address` ·
+ * `local`, shared by a state owner reference and a capability target. A capability target may
+ * also be `{ unset: true }` (`allowUnset`).
+ */
+function nodeRef(
+  value: unknown,
+  at: string,
+  code: string,
+  allowUnset = false,
+): void {
+  const ref = object(value, at);
+  const [form] = Object.keys(ref);
+  if (Object.keys(ref).length !== 1) invalid(code, at);
+  if (form === "nodeId") id(ref.nodeId, "project:node:", `${at}.nodeId`);
+  else if (form === "address") address(ref.address, `${at}.address`);
   else if (form === "local") {
-    const local = object(ancestor.local, `${at}.ancestor.local`);
-    exact(local, ["instances", "templatePath"], `${at}.ancestor.local`);
+    const local = object(ref.local, `${at}.local`);
+    exact(local, ["instances", "templatePath"], `${at}.local`);
     if (!Array.isArray(local.instances))
-      invalid("ARRAY_REQUIRED", `${at}.ancestor.local.instances`);
+      invalid("ARRAY_REQUIRED", `${at}.local.instances`);
     if (!Array.isArray(local.templatePath) || local.templatePath.length === 0)
-      invalid("TEMPLATE_PATH_REQUIRED", `${at}.ancestor.local.templatePath`);
+      invalid("TEMPLATE_PATH_REQUIRED", `${at}.local.templatePath`);
     for (const [index, item] of [
       ...local.instances,
       ...local.templatePath,
     ].entries()) {
-      const text = id(item, "", `${at}.ancestor.local[${index}]`);
+      const text = id(item, "", `${at}.local[${index}]`);
       if (
         !text.startsWith("project:node:") &&
         !text.startsWith("lib:template:")
       )
-        invalid("TEMPLATE_ID_REQUIRED", `${at}.ancestor.local`);
+        invalid("TEMPLATE_ID_REQUIRED", `${at}.local`);
     }
-  } else invalid("STATE_OWNER_REF_SHAPE", `${at}.ancestor`);
+  } else if (form === "unset" && allowUnset) {
+    if (ref.unset !== true) invalid(code, `${at}.unset`);
+  } else invalid(code, at);
 }
 /** ADR-256 Decision 7 — `presentWhen` is one of the fixed value conditions. */
 function presentWhen(value: unknown, at: string): void {

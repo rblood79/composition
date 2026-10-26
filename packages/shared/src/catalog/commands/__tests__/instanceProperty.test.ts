@@ -231,7 +231,12 @@ describe("ADR-261 Phase 5 — instance swap property", () => {
       definitionId: HEART,
       newId: allocator(),
     });
-    expect(report).toEqual({ kept: 1, dropped: 0, movedOut: 0 });
+    expect(report).toEqual({
+      kept: 1,
+      dropped: 0,
+      movedOut: 0,
+      targetsUnset: 0,
+    });
     pick(graph, HEART);
     expect(texts(resolveCatalogNode(graph, I))).toEqual(["Title", "S!"]);
     const placed = graph.getEntry(replacement(graph)!) as NodeEntry;

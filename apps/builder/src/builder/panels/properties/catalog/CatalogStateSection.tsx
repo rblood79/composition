@@ -24,6 +24,7 @@ import type {
 import { catalogStateSourceValue } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import {
   CATALOG_VARIABLE_TYPES,
+  catalogStructuredVariableType,
   catalogAncestorVariables,
   catalogNodePage,
   catalogNodeStateSources,
@@ -512,7 +513,8 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               ) : undefined
             }
           />
-          {!source && (
+          {/* (A structured variable has no literal default — a rule's reference fills it.) */}
+          {!source && !catalogStructuredVariableType(variable.valueType) && (
             <>
               {variable.valueType === "boolean" ? (
                 <PropertySelect

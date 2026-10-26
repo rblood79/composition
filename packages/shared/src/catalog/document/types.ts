@@ -128,9 +128,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 48 — ADR-282: a library origin's project override may own a copy of the origin's template
  * (`templateRootId` · `templateMap` — the origin unlocked on the Library page); the copy is the
  * origin's template for every instance. A 47 document is refused (사용자 지시 2026-10-14).
+ * 49 — ADR-283: a capability action's target is a place reference (`target` — `{ nodeId }` ·
+ * `{ address }` · `{ local }` · `{ unset }`) instead of a page node id (`targetId`). A 48 document
+ * is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 48 as const;
+export const LIBRARY_CONTRACT_VERSION = 49 as const;
 
 export type EntryKind =
   | "project"
@@ -780,17 +783,27 @@ export type CatalogStateKey = (typeof CATALOG_STATE_KEYS)[number];
  */
 export type CatalogStateOwnerRef =
   | { type: string }
+  | { ancestor: CatalogNodeRef };
+/**
+ * A stored reference to one drawn place of the document (ADR-283 Decision 1 — shared by a state
+ * owner reference and a capability's target): an authored node (`nodeId`), a position inside an
+ * instance (`address`), or, inside an origin's template, a position of that origin relative to the
+ * instance it is drawn in (`local`).
+ */
+export type CatalogNodeRef =
+  | { nodeId: NodeId }
+  | { address: InstanceAddress }
   | {
-      ancestor:
-        | { nodeId: NodeId }
-        | { address: InstanceAddress }
-        | {
-            local: {
-              instances: readonly TemplateId[];
-              templatePath: readonly TemplateId[];
-            };
-          };
+      local: {
+        instances: readonly TemplateId[];
+        templatePath: readonly TemplateId[];
+      };
     };
+/**
+ * A capability's target (ADR-283 Decision 1): a place, or `unset` — the place was removed by a
+ * swap · detach · dissolve and the rule stays to be pointed again (no reference, nothing runs).
+ */
+export type CatalogCapabilityTarget = CatalogNodeRef | { unset: true };
 /** One condition: a key, its negation, or either with its own state owner. */
 export type CatalogShowCondition =
   | CatalogStateKey
@@ -897,7 +910,11 @@ export interface StateVariableEntry {
   id: EntryId<"stateVariable">;
   ownerId: EntryId<"page"> | NodeId;
   name: string;
-  valueType: ValueType;
+  /**
+   * `object` · `array` hold structured values a rule writes (a selected row — the Value field's
+   * `!item.keys`); their default is `""` (nothing yet — read as `null`).
+   */
+  valueType: ValueType | "object" | "array";
   /** A `source` variable's array kind (selected · expanded keys) holds the keys. */
   defaultValue: Scalar | readonly string[];
   /**
@@ -1015,7 +1032,7 @@ export interface InteractionEntry {
     | { opcode: "toast"; message: string }
     | {
         opcode: "capability";
-        targetId: NodeId;
+        target: CatalogCapabilityTarget;
         capabilityId: string;
         value?: Scalar | readonly Scalar[];
       };

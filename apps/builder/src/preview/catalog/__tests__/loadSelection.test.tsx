@@ -138,7 +138,7 @@ describe("useAsyncList load selectedKeys", () => {
     expect(h.selected()).toEqual([]);
     h.rule(h.button, "onPress", {
       opcode: "capability",
-      targetId: h.collection,
+      target: { nodeId: h.collection },
       capabilityId: "selectItem",
       value: "u1",
     } as never);
@@ -177,7 +177,7 @@ describe("useAsyncList load selectedKeys", () => {
     expect(input().value).toBe("Park");
     h.rule(h.button, "onPress", {
       opcode: "capability",
-      targetId: h.collection,
+      target: { nodeId: h.collection },
       capabilityId: "selectItem",
       value: "u1",
     } as never);

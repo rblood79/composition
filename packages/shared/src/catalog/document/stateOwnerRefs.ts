@@ -1,5 +1,6 @@
 import { RAC_STATE_KEYS } from "../generated/racStateKeys";
 import type {
+  CatalogNodeRef,
   CatalogShowWhen,
   CatalogStateKey,
   CatalogStateOwnerRef,
@@ -55,6 +56,27 @@ export function catalogShowWhenRefs(
   );
 }
 
+/**
+ * ADR-283 Decision 3 — a stored place with every project node id passed through `map` (a copy's new
+ * ids): the node, and each step of an address or an origin-local position (a copied template's
+ * positions are new ids too — `duplicateDefinition`). Library ids stay.
+ */
+export function mapNodeRefIds<T extends CatalogNodeRef | { unset: true }>(
+  ref: T,
+  map: (id: NodeId) => NodeId,
+): T {
+  const node = (id: string) =>
+    (id.startsWith("project:node:") ? map(id as NodeId) : id) as never;
+  const steps = (value: InstanceAddress | { instances: readonly string[]; templatePath: readonly string[] }) => ({
+    instances: value.instances.map(node),
+    templatePath: value.templatePath.map(node),
+  });
+  if ("nodeId" in ref) return { nodeId: map(ref.nodeId) } as T;
+  if ("address" in ref) return { address: steps(ref.address) } as unknown as T;
+  if ("local" in ref) return { local: steps(ref.local) } as unknown as T;
+  return ref;
+}
+
 /** The `showWhen` with every stored node id passed through `map` (a copy's new ids). */
 export function mapShowWhenNodeIds(
   showWhen: CatalogShowWhen,
@@ -63,20 +85,10 @@ export function mapShowWhenNodeIds(
   const ref = (from: CatalogStateOwnerRef): CatalogStateOwnerRef => {
     if (!("ancestor" in from)) return from;
     const ancestor = from.ancestor;
-    if ("nodeId" in ancestor) return { ancestor: { nodeId: map(ancestor.nodeId) } };
-    if ("address" in ancestor) {
-      const node = (id: string) =>
-        (id.startsWith("project:node:") ? map(id as NodeId) : id) as never;
-      return {
-        ancestor: {
-          address: {
-            instances: ancestor.address.instances.map(node),
-            templatePath: ancestor.address.templatePath.map(node),
-          },
-        },
-      };
-    }
-    return from;
+    // (An origin-local reference is relative to its own origin: unchanged here — the template copy
+    // that renames its positions maps it with `mapNodeRefIds` directly.)
+    if ("local" in ancestor) return from;
+    return { ancestor: mapNodeRefIds(ancestor, map) };
   };
   return {
     all: showWhen.all.map((item) =>

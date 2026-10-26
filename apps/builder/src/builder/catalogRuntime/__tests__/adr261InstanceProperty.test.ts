@@ -201,7 +201,12 @@ describe("ADR-261 Phase 5 — instance swap property (Builder)", () => {
       heart as never,
       workspace.newId,
     );
-    expect(report).toEqual({ kept: 0, dropped: 0, movedOut: 0 });
+    expect(report).toEqual({
+      kept: 0,
+      dropped: 0,
+      movedOut: 0,
+      targetsUnset: 0,
+    });
     workspace.execute(command);
     expect(textsIn(workspace, I)).toEqual(["Title", "♥"]);
     expect(catalogInstancePropertyRows(graph, scope)[0]).toMatchObject({

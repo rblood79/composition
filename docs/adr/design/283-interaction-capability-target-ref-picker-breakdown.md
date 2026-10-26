@@ -130,4 +130,36 @@ fixture: page 에 Local 컴포넌트 「OrderCard」 (안에 Button 「Save」 �
 
 ## 8. 기록
 
-(Phase 별 종결 · 실측 · 추정 대비 — execute-adr 가 적는다.)
+### Phase 0 — inventory · probe · RED (2026-10-26)
+
+- **§1a 전수**: 표 그대로 (`targetId` 를 쓰는 소스 18 자리 + 테스트 18 파일 36 리터럴 + 샘플 3 파일 7 자리 — `docs/how-to/samples/*.composition.json`). 표에 없던 자리 2: 구조 이동의 검증 (`transactions/transaction.ts` — 노드가 template 으로 옮겨지면 그 노드를 가리키는 `{ nodeId }` 가 무효가 된다 → 옮겨진 subtree 의 규칙을 다시 검증) · Publish 열기 (`useCatalogProjectFiles.tsx` — R7 경고).
+- **§1b record 체인 실측** (`boundRowTemplate` 하니스 probe — GridList 3 행 · TextField · Dialog): 행 record (`rowIndex`) 와 행 자손 (`#row:<key>`, `parentId` 가 같은 행 record), instance 루트 (`collapsedIds` 에 template 루트), template 자손 · overlay 본체 (Dialog `__modal` 의 `parentId` = instance record), slot 채움 노드 — **모든 종류의 `parentId` 체인이 행 record · instance 루트 record 에 닿는다** (R5 — 조상 표지 추가 불요). `instancePath` 는 소유 노드가 자기 id 를 더해 형제마다 다르다 (리뷰 H1 사실 확인).
+- **해소 구현의 모양** (§1b 를 실측에 맞춤): 후보 = `recordsOfSource(leaf)` (template 루트는 instance record 의 `collapsedSourceIds` 로 색인돼 있다) → 이름 붙인 instance 단계마다 후보의 조상 체인에 그 source 를 그리는 record 가 있어야 함 → `local` 은 실행 record 의 체인에서 원본 루트를 그리는 record (instance record 또는 Local page 의 원본) 를 anchor 로, 후보가 그 아래 → 후보 체인의 모든 행 record 가 실행 record 의 체인에 있어야 함 → 1 / 0 (`TARGET_OUT_OF_CONTEXT`) / 2+ (`TARGET_AMBIGUOUS`, 테스트가 0 을 단언). `nodeId` 는 template 노드를 가리킬 수 없게 검증 (`TARGET_IN_TEMPLATE`) — template 노드는 instance 마다 그려져 `local` · `address` 가 어느 것인지 말한다.
+- **RED 3**: ① 행 2 Delete → 행 1 Text (`recordsOfSource[0]` — 잠재 결함 3 재현) ② 패널 후보에 instance 안 Save 없음 ③ AI `CAPABILITY_TARGET_NOT_A_NODE`. 셋 다 의도한 이유로 RED.
+- **probe 1 · 2**: TextField 의 Input (`__2`) → `catalogSubpartOwnerType` = TextField, Dialog 의 Modal → `catalogOpenOwnerOf` = Dialog instance record (Phase 3 테스트로 고정).
+- **정정 2** (본문 Status): 모든 type 이 공통 capability 3 을 가져 「capability 없는 type」 은 없다 — 패널 후보는 page 노드 · instance 자리 전부 (Icon · Text 부품 포함, 결정 4 「전부」). Canvas 지정의 「클릭한 컴포넌트」 는 클릭 선택과 같은 정규화 (`picking.target`, ⌘ = 안쪽 요소) — raw hit 는 Button 의 Text 를 고른다.
+- **§1c 후보 수**: 사용자 CMS 22 페이지 · 「ADR281 live」 프로젝트는 contract 48 이라 측정 불가 (R4) — live fixture (Button 121 + OrderCard 2) 의 후보 372 (instance 자리 포함) 로 가상화 · 검색 확인.
+
+### Phase 1 — 모델 · 해소 · 명령 (G1, 2026-10-26)
+
+- 소스: `types.ts` (`CatalogNodeRef` · `CatalogCapabilityTarget` · contract 49) · `validation.ts` (`nodeRef` 공유) · `graph.ts` (색인 · `validateCapabilityTarget`) · `stateOwnerRefs.ts` (`mapNodeRefIds`) · `clone.ts` · `materialize.ts` (`reanchorInteractions` 대상 + `unplaced`) · `components.ts` (`rewriteTargetsIntoComponent` + 추출 경로의 대상 holder) · `swap.ts` (`targetsUnset`) · `instanceProperty.ts` · `transaction.ts` (옮겨진 subtree 재검증) · `runtime/capabilityTarget.ts` (새) · `catalogPreviewInteractions.ts` · builder `aiHost.ts` · `targetRef.ts` (새).
+- 테스트: `adr283TargetRef.test.ts` 14 (반례 ①~⑤ · 경계 · 검증 · 색인 · createComponent · duplicateDefinition · detach · dissolve · 삭제 · swap → `unset` 저장/로드/재지정/undo/redo · AI) · `adr283Preview.test.tsx` (RAC Preview — instance 둘). 원복 RED 4/4: `[0]` 복귀 → 반례 5 RED · 색인 root·leaf → 색인 RED · 복사 `local` 무변경 → duplicate RED · createComponent holder 제거 → createComponent RED.
+- fixture contract 리터럴 29 파일 + `targetId` 36 + 샘플 3 파일. shared 1741 · builder 6442 PASS (실패 1 = `chromeIsland.static` — HEAD 기존, 이번 변경 무관).
+- `isStateOwner` (presence) 와의 helper 공유는 하지 않았다 — 방향이 반대다 (상태 주체는 조건을 든 record 의 조상, 대상은 실행 record 와 문맥을 공유하는 다른 record). 같은 참조 모양 · 같은 검증 함수 (`nodeRef`) 만 공유.
+
+### Phase 2 — 패널 (G2, 2026-10-26)
+
+- `catalogCapabilityTargetsOf` (generator — 기본 대상은 page 노드 우선으로 일찍 멈춤) · `catalogTargetOptionOf` · `CatalogTargetPicker.tsx` (+css, 패널 모듈 14/15) · 행의 안내 줄 2 (capability 폴백 · 「대상 없음 · 다시 지정」/「이 자리에서는 대상에 닿지 않음」, role `status`) · hover ↔ session hover · i18n 2 locale. 짧은 id = 마지막 4 자, instance 자리는 instance id 로 (live 에서 두 instance 의 Save 가 같은 template id 로 구분되지 않던 것 수리).
+- 테스트: `adr283TargetPicker.test.tsx` 4 · `adr281PanelVocabulary` 갱신. 300 후보의 열림 시간은 jsdom 에 layout 이 없어 가상화 속성만 단언, 시간은 live — 372 후보 (Button 121 + 부품 · OrderCard 자리) 계산 2 ms · 클릭 → 첫 행 43 ms (가상화, 행 16 개만 그림, dev 서버 · CPU throttle 없음) — G2 ≤ 100 ms 통과.
+
+### Phase 3 — Canvas 지정 (G3, 2026-10-26)
+
+- 세션 `targetPick` (페이지 · 정의 보기 전환 · 규칙 삭제 때 해제) · `CatalogCanvas` pointerdown/move/Esc 첫 분기 · `CatalogTargetPickOverlay` (배너 · 이름표 · 패널 밖 press 해제) · `targetPick.ts` (올림 2 · 지정 명령 — 지정 시작 때 lazy load, G4 번들) · Canvas 지정의 폴백 안내는 `catalogTargetPickFallback` 으로 행에 같은 줄.
+- 테스트: `adr283CanvasPick.test.ts` 4 (세션 · 1 step · 선택 유지 · undo · 같은 대상 0 · 올림 2). gesture 분기의 원복 RED 는 Canvas 를 jsdom 에서 띄울 수 없어 live 로 대신 (선택 · context 무변경 확인).
+
+### Phase 4 — live · 측정 · 문서 (G4, 2026-10-26)
+
+- live: 본문 `### Live Exercise`. 번들: Builder 1,418,803 B gz (HEAD 1,410,913 — 별도 worktree 빌드, 상한 초과는 기존), Preview 307,651 (≤ 320,000). `docs:stale-symbols` exit 0. 문서: `state-management.md` §6 · ADR-158 · ADR-281 Status 한 줄 · README · CHANGELOG.
+- 관찰 (범위 밖): live 첫 프로젝트에서 `project:page:catalog-library` page 가 project 의 `componentPageIds` 없이 문서에 남아 Publish 가 `UNOWNED_ENTRY` 로 열리지 않았다 — 새 프로젝트에서 같은 seed 는 정상. 만든 경로 미확정 (ADR-282 Library page 생성 경로 후보).
+- **구현 판독 Round 3** ([reviews/283](../reviews/283.md)): HIGH 1 (instance 단계 `local` 의 anchor) · MEDIUM 3 (중첩 instance detach · 중첩 단계 createComponent — page 경로 포함 · 같은 template `nodeId` 거부) → 수리 + 반례 5 + 수리 원복 RED 4/4. §1b 의 「`local` anchor = 실행 record 체인에서 원본 루트를 그리는 record」 는 원본 루트를 `templatePath[0]` 이 아니라 규칙 주인의 owner 체인 top 에서 읽는다 (`catalogOriginRootOf`) — `local.instances` 가 있으면 `templatePath` 는 가장 안쪽 정의 기준이다 (`InstanceAddress` 규약). Decision 1 의 「template 노드는 `nodeId` 로 가리킬 수 없다」 는 「같은 template 의 규칙만」 으로 좁혔다 (paste · move).
+- 추정 대비: 소스 ~19 → 24 (새 4), 테스트 리터럴 ~33 + N → 29 + 18 + 샘플 3, 새 테스트 4 → 5. 1.5 배 미만.

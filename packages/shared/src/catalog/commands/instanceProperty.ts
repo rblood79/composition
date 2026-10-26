@@ -613,7 +613,12 @@ export function planInstanceProperty(
         item.kind === "boolean" &&
         item.targets.some((driven) => driven.id === target),
     );
-  const report: SwapInstanceReport = { kept: 0, dropped: 0, movedOut: 0 };
+  const report: SwapInstanceReport = {
+    kept: 0,
+    dropped: 0,
+    movedOut: 0,
+    targetsUnset: 0,
+  };
   const stage = stageOver(reader);
   const ops: CatalogCommandPlan["ops"][number][] = [];
   const run = (step: (draft: CommandDraft) => void) => {
@@ -630,6 +635,7 @@ export function planInstanceProperty(
     report.kept += planned.report.kept;
     report.dropped += planned.report.dropped;
     report.movedOut += planned.report.movedOut;
+    report.targetsUnset += planned.report.targetsUnset;
   };
   for (const position of positions) {
     const origin = stage.getEntry(position.target) as NodeEntry;

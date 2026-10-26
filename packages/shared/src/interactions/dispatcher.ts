@@ -28,9 +28,9 @@ import {
 import {
   applyCapabilityOp,
   checkCapabilityConstraints,
-  toKeySet,
 } from "./constraints";
 import type { InteractionRule } from "./interactionRule.types";
+import { resolveRuleValue, type RuleValueEnv } from "./valueRef";
 
 /** dispatcher 가 바깥 세계에 닿는 유일한 통로. */
 export interface DispatchDeps {
@@ -55,6 +55,11 @@ export interface DispatchDeps {
     value?: unknown;
     instanceKeyFor?: (ownerElementId: string) => string;
   }) => { ok: boolean; reason?: string };
+  /** A variable's current value (`!var.<id>` in a rule value); undefined = no such variable. */
+  readState?: (request: {
+    variableId: string;
+    instanceKeyFor?: (ownerElementId: string) => string;
+  }) => { value: unknown } | undefined;
   /**
    * ADR-280 Decision 8 — the target's current RAC state for a prop: the runtime override, else
    * what it starts with (a collection's Selected items …) — the Preview render reads the same
@@ -157,20 +162,35 @@ export interface DispatchContext {
    * (`!event.<name>` in a capability's value).
    */
   event?: Readonly<Record<string, unknown>>;
+  /** The owner's bound items the keys name (`!item.<arg>` — `useListData.getItem`). */
+  itemsOf?: RuleValueEnv["itemsOf"];
+  /** The owner's `selectionMode` is `single` (`!item.keys` is one item). */
+  singleSelection?: boolean;
 }
 
-/** A rule value: `"!event.<arg>"` is the fired callback's argument, anything else itself. */
+/**
+ * A rule value as the run reads it (`valueRef.ts` — `!event` · `!item` · `!var` references, else
+ * the literal): every value slot (Set state · capability · body · list data) reads it so.
+ */
 function resolveEventValue(
   value: unknown,
   context: DispatchContext | undefined,
+  deps?: Pick<DispatchDeps, "readState">,
 ): { ok: true; value: unknown } | { ok: false; reason: string } {
-  if (typeof value !== "string" || !value.startsWith("!event."))
-    return { ok: true, value };
-  const name = value.slice("!event.".length);
-  const event = context?.event;
-  if (!event || !(name in event))
-    return { ok: false, reason: `이벤트 인자 없음: ${value}` };
-  return { ok: true, value: event[name] };
+  return resolveRuleValue(value, {
+    ...(context?.event ? { event: context.event } : {}),
+    ...(context?.itemsOf ? { itemsOf: context.itemsOf } : {}),
+    singleSelection: context?.singleSelection ?? false,
+    ...(deps?.readState
+      ? {
+          readVariable: (variableId: string) =>
+            deps.readState!({
+              variableId,
+              instanceKeyFor: context?.instanceKeyFor,
+            }),
+        }
+      : {}),
+  });
 }
 
 const isRecordValue = (value: unknown): value is Readonly<Record<string, unknown>> =>
@@ -202,7 +222,7 @@ function dispatchListData(
     };
   let result: { ok: boolean; reason?: string };
   if (action.kind === "remove") {
-    const keys = resolveEventValue(action.keys, context);
+    const keys = resolveEventValue(action.keys, context, deps);
     if (!keys.ok) return keys;
     const list =
       keys.value === "all"
@@ -212,7 +232,7 @@ function dispatchListData(
           : [keyOf(keys.value)].filter((key) => key !== undefined);
     result = deps.remove!(action.collectionId, list);
   } else {
-    const value = resolveEventValue(action.value, context);
+    const value = resolveEventValue(action.value, context, deps);
     if (!value.ok) return value;
     if (!isRecordValue(value.value))
       return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
@@ -222,7 +242,7 @@ function dispatchListData(
       result = deps.append!(action.collectionId, value.value, parent.key);
     }
     else {
-      const key = resolveEventValue(action.key, context);
+      const key = resolveEventValue(action.key, context, deps);
       if (!key.ok) return key;
       if (key.value !== undefined && keyOf(key.value) === undefined)
         return { ok: false, reason: "수정할 항목의 key 가 scalar 가 아니다" };
@@ -255,7 +275,7 @@ function dispatchListPosition(
       ? { ok: true, kind: action.kind }
       : { ok: false, reason: result.reason ?? `${action.kind} 실패` };
   const scalarKey = (raw: unknown, what: string) => {
-    const value = resolveEventValue(raw, context);
+    const value = resolveEventValue(raw, context, deps);
     if (!value.ok) return value;
     const key = keyOf(value.value);
     return key === undefined
@@ -263,7 +283,7 @@ function dispatchListPosition(
       : ({ ok: true, key } as const);
   };
   const index = (raw: unknown) => {
-    const value = resolveEventValue(raw, context);
+    const value = resolveEventValue(raw, context, deps);
     if (!value.ok) return value;
     const number = Number(value.value);
     return Number.isInteger(number) && number >= 0
@@ -293,7 +313,7 @@ function dispatchListPosition(
     }
     const target = scalarKey(action.key, "기준 항목의 key");
     if (!target.ok) return target;
-    const moved = resolveEventValue(action.keys, context);
+    const moved = resolveEventValue(action.keys, context, deps);
     if (!moved.ok) return moved;
     const keys = (
       moved.value instanceof Set || Array.isArray(moved.value)
@@ -312,7 +332,7 @@ function dispatchListPosition(
     );
   }
   if (!deps.insert) return { ok: false, reason: "insert 실행 경로 없음 (insert 미주입)" };
-  const value = resolveEventValue(action.value, context);
+  const value = resolveEventValue(action.value, context, deps);
   if (!value.ok) return value;
   if (!isRecordValue(value.value))
     return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
@@ -398,7 +418,8 @@ function resolveValue(
   def: CapabilityDef,
   currentValue: unknown,
   paramValue: unknown,
-  event?: Readonly<Record<string, unknown>>,
+  /** A rule value's reference (`!event` · `!item` · `!var`) as the run reads it. */
+  resolveRef: (value: unknown) => { ok: true; value: unknown } | { ok: false; reason: string },
 ): { ok: true; value: unknown } | { ok: false; reason: string } {
   if (def.value === "!param") {
     if (paramValue === undefined) {
@@ -407,15 +428,8 @@ function resolveValue(
         reason: "capability 가 값을 요구하나 params 가 없다",
       };
     }
-    if (typeof paramValue === "string" && paramValue.startsWith("!event.")) {
-      const name = paramValue.slice("!event.".length);
-      if (!event || !(name in event))
-        return { ok: false, reason: `이벤트 인자 없음: ${paramValue}` };
-      // (A RAC Selection — `"all"` or a Set — goes on as an array, ADR-214's normalization.)
-      const raw = event[name];
-      return { ok: true, value: raw instanceof Set ? toKeySet(raw) : raw };
-    }
-    return { ok: true, value: paramValue };
+    // (A RAC Selection — `"all"` or a Set — goes on as an array, ADR-214's normalization.)
+    return resolveRef(paramValue);
   }
 
   if (def.value === "!self") {
@@ -487,10 +501,13 @@ export function executeInteractionRule(
         ok: false,
         reason: "setState 실행 경로 없음 (writeState 미주입)",
       };
+    // (A Set value · an increment reads its source when the rule runs — `!event` · `!item` · `!var`.)
+    const value = resolveEventValue(action.value, context, deps);
+    if (!value.ok) return value;
     const result = deps.writeState({
       variableId: action.variableId,
       op: action.op,
-      value: action.value,
+      value: value.value,
       instanceKeyFor: context?.instanceKeyFor,
     });
     return result.ok
@@ -505,15 +522,9 @@ export function executeInteractionRule(
         reason: "callEndpoint 실행 경로 없음 (callEndpoint 미주입)",
       };
     // ADR-280 Decision 8 ① — the value resolves as a capability's does (`!event.<arg>` · literal).
-    let body = action.body;
-    if (typeof body === "string" && body.startsWith("!event.")) {
-      const name = body.slice("!event.".length);
-      const event = context?.event;
-      if (!event || !(name in event))
-        return { ok: false, reason: `이벤트 인자 없음: ${body}` };
-      body = event[name];
-    }
-    const result = deps.callEndpoint(action.endpointId, body);
+    const body = resolveEventValue(action.body, context, deps);
+    if (!body.ok) return body;
+    const result = deps.callEndpoint(action.endpointId, body.value);
     return result.ok
       ? { ok: true, kind: "callEndpoint" }
       : { ok: false, reason: result.reason ?? "callEndpoint 실패" };
@@ -562,7 +573,7 @@ export function executeInteractionRule(
         ok: false,
         reason: "setFilterText 실행 경로 없음 (setFilterText 미주입)",
       };
-    const value = resolveEventValue(action.value ?? "", context);
+    const value = resolveEventValue(action.value ?? "", context, deps);
     if (!value.ok) return value;
     if (
       value.value !== null &&
@@ -647,7 +658,7 @@ export function executeInteractionRule(
     def,
     current,
     action.params?.value,
-    context?.event,
+    (value) => resolveEventValue(value, context, deps),
   );
   if (!resolved.ok) return resolved;
   const constraintContext = {

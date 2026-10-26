@@ -107,9 +107,16 @@ describe("When 축 — 어휘 정합", () => {
 });
 
 describe("ADR-201 — 파일 입력 트리거 등재 (RAC 실존 callback 만)", () => {
-  it("FileTrigger 는 onSelect 하나, DropZone 은 onDrop 하나를 When 축으로 낸다", () => {
+  it("FileTrigger 는 onSelect 하나, DropZone 은 onDrop 과 끌기 단계 4개를 When 축으로 낸다", () => {
     expect(resolveTriggers("FileTrigger")).toEqual(["onSelect"]);
-    expect(resolveTriggers("DropZone")).toEqual(["onDrop"]);
+    // (RAC event audit 2026-10-26 — DropOptions 의 drop 단계, S2 DropZone 이 유지.)
+    expect(resolveTriggers("DropZone")).toEqual([
+      "onDrop",
+      "onDropEnter",
+      "onDropMove",
+      "onDropActivate",
+      "onDropExit",
+    ]);
   });
 
   it("커스텀 완료/오류 이벤트는 등재하지 않는다 (R2 — ADR-158 G1)", () => {

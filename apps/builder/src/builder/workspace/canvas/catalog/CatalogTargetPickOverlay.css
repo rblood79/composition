@@ -1,0 +1,36 @@
+/* ADR-283 Decision 5 — the Canvas target pick: a banner over the canvas and the pointer's tag. */
+.catalog-target-pick-banner {
+  position: absolute;
+  /* (Below the header chrome island — the viewport controls sit at the top centre.) */
+  inset-block-start: calc(var(--control-size-lg) + var(--spacing-xl));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--chrome-radius);
+  background: var(--chrome-surface);
+  box-shadow: var(--chrome-shadow);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  pointer-events: none;
+}
+
+.catalog-target-pick-tag {
+  position: absolute;
+  z-index: 3;
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--chrome-radius);
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+  pointer-events: none;
+
+  &[data-unavailable] {
+    background: var(--bg-muted);
+    color: var(--fg-muted);
+  }
+}

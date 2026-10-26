@@ -2,13 +2,20 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { SquareMousePointer } from "lucide-react";
 import { exposedTriggerGroups, resolveTriggers } from "@composition/shared";
 import type {
+  CatalogCapabilityTarget,
   EditTarget,
   EntryId,
   InteractionEntry,
-  NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
+  catalogOriginRootOf,
+  resolveCapabilityTarget,
+} from "../../../../../../../packages/shared/src/catalog/runtime/capabilityTarget";
+import {
   catalogCapabilityTargets,
+  catalogFirstCapabilityTarget,
+  catalogTargetOptionOf,
+  type CatalogTargetOption,
   catalogDefaultAction,
   catalogExposureInput,
   catalogInheritedInteractionsOf,
@@ -39,7 +46,8 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
 import { useDataStore, useProjectVariableDefs } from "../../../stores/data";
-import { CatalogRuleRow } from "./CatalogRuleRow";
+import { CatalogRuleRow, type CatalogTargetNotice } from "./CatalogRuleRow";
+import { catalogTargetRefOf } from "../../../catalogRuntime/targetRef";
 import { CatalogInheritedRuleRow } from "./CatalogInheritedRuleRow";
 import "../InteractionsPanel.css";
 
@@ -83,6 +91,7 @@ function CatalogInteractionsContent() {
     <CatalogRules
       key={targetKey(first.target)}
       target={first.target}
+      identity={first.identity}
       pageId={pageId}
     />
   );
@@ -90,9 +99,12 @@ function CatalogInteractionsContent() {
 
 function CatalogRules({
   target,
+  identity,
   pageId,
 }: {
   target: EditTarget;
+  /** The selected record (ADR-283 — a target is read as this record sees it). */
+  identity: string;
   pageId: EntryId<"page"> | undefined;
 }) {
   const { t } = useI18n();
@@ -114,16 +126,43 @@ function CatalogRules({
   const collections = useDataStore((state) => state.collections);
 
   const view = useMemo(() => {
+    let targets: CatalogTargetOption[] | undefined;
+    // 「선택한 항목」 — the collection the selected record shows (its own binding, an instance's on
+    //   the node it collapses) and its selection mode as RAC reads it (the record's props).
+    const ownerItemsOf = (): Pick<CatalogActionContext, "ownerItems"> => {
+      const record = workspace.root.domInputs.get(identity);
+      for (const sourceId of record
+        ? [record.sourceId, ...(record.collapsedSourceIds ?? [])]
+        : []) {
+        const entry = graph.getEntry(sourceId as never);
+        const collectionId =
+          entry?.kind === "node" ? entry.binding?.collectionId : undefined;
+        if (!collectionId) continue;
+        const collection = collections.get(
+          collectionId.replace(/^data:collection:/, ""),
+        );
+        return {
+          ownerItems: {
+            fields: (collection?.schema ?? []).map((field) => ({
+              key: field.key,
+              type: field.type,
+            })),
+            single: record?.props.selectionMode === "single",
+          },
+        };
+      }
+      return {};
+    };
     const componentType = catalogTargetTypeName(graph, target);
     const context: CatalogActionContext = {
       pages: catalogPageOptions(graph),
       currentPageId: pageId,
       variables: catalogVisibleVariables(graph, owner.ownerId, projectVariables),
-      targets: catalogCapabilityTargets(
-        graph,
-        pageId,
-        target.kind === "node" ? target.id : undefined,
-      ),
+      // ADR-283 R6: read when a picker opens (once per graph revision), the first one stops early.
+      targets: () =>
+        (targets ??= catalogCapabilityTargets(graph, pageId, undefined, owner)),
+      firstTarget: () =>
+        catalogFirstCapabilityTarget(graph, pageId, undefined, owner),
       endpoints: [...apiEndpoints.values()].map((endpoint) => ({
         id: `data:endpoint:${endpoint.id}` as const,
         name: endpoint.name,
@@ -133,6 +172,7 @@ function CatalogRules({
         id: `data:collection:${collection.id}` as const,
         name: collection.name,
       })),
+      ...ownerItemsOf(),
     };
     const exposure = catalogExposureInput(graph, target);
     return {
@@ -155,31 +195,77 @@ function CatalogRules({
     apiEndpoints,
     collections,
     graph,
+    identity,
     owner,
     pageId,
     projectVariables,
     revision,
     target,
+    workspace,
   ]);
 
   const describeTarget = useCallback(
-    (id: NodeId) => {
-      if (graph.getEntry(id)?.kind !== "node") return undefined;
-      const node = graph.getEntry(id);
-      return {
-        id,
-        type: catalogTargetTypeName(graph, { kind: "node", id }),
-        ...(node?.kind === "node" && node.name ? { name: node.name } : {}),
-      };
-    },
-    [graph],
-  );
-
-  const targetExposure = useCallback(
-    (id: NodeId) => catalogExposureInput(graph, { kind: "node", id }),
+    (ref: CatalogCapabilityTarget) =>
+      "unset" in ref ? undefined : catalogTargetOptionOf(graph, ref),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
     [graph, revision],
   );
+  // ADR-283 Decision 2 — the panel reads a target as the selected record sees it (the Preview's
+  // `resolveCapabilityTarget`): another row's · instance's place names nothing from here.
+  const targetNotice = useCallback(
+    (ref: CatalogCapabilityTarget): CatalogTargetNotice | undefined => {
+      if ("unset" in ref) return "unset";
+      const resolved = resolveCapabilityTarget(
+        workspace.root,
+        identity,
+        ref,
+        catalogOriginRootOf(graph, owner.ownerId),
+      );
+      return "error" in resolved && resolved.error === "TARGET_OUT_OF_CONTEXT"
+        ? "outOfContext"
+        : undefined;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
+    [graph, identity, owner, revision, workspace],
+  );
+
+  const targetExposure = useCallback(
+    (edit: EditTarget) => catalogExposureInput(graph, edit),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read at each graph revision
+    [graph, revision],
+  );
+  // ADR-283 Decision 4 — the list ↔ Canvas highlight: an option's record (as the selected record
+  // sees it) is the session hover; the Canvas hover marks its option.
+  const onTargetHover = useCallback(
+    (option: CatalogTargetOption | undefined) => {
+      if (!option) return workspace.session.setHover(undefined);
+      const resolved = resolveCapabilityTarget(
+        workspace.root,
+        identity,
+        option.ref,
+        catalogOriginRootOf(workspace.runtime.graph, owner.ownerId),
+      );
+      const recordId =
+        "recordId" in resolved
+          ? resolved.recordId
+          : workspace.root.recordsOfSource(
+              option.edit.kind === "node"
+                ? option.edit.id
+                : option.edit.address.templatePath.at(-1)!,
+            )[0];
+      workspace.session.setHover(
+        recordId ? { target: option.edit, identity: recordId } : undefined,
+      );
+    },
+    [identity, owner, workspace],
+  );
+  const hover = useCatalogSession((state) => state.hover);
+  const canvasHoverKey = useMemo(() => {
+    if (!hover) return undefined;
+    const ref = catalogTargetRefOf(graph, owner, hover.target);
+    return ref ? JSON.stringify(ref) : undefined;
+  }, [graph, hover, owner]);
+  const targetPick = useCatalogSession((state) => state.targetPick);
 
   const write = (entries: readonly InteractionEntry[], label: string) =>
     run(catalogInteractionsCommand(owner, entries, label));
@@ -259,6 +345,15 @@ function CatalogRules({
                   context={view.context}
                   choices={view.choices}
                   describeTarget={describeTarget}
+                  targetNotice={targetNotice}
+                  onTargetHover={onTargetHover}
+                  canvasHoverKey={canvasHoverKey}
+                  aiming={targetPick?.ruleId === rule.id}
+                  onAim={() =>
+                    workspace.session.setTargetPick(
+                      targetPick?.ruleId === rule.id ? undefined : rule.id,
+                    )
+                  }
                   exposure={view.exposure}
                   targetExposure={targetExposure}
                   expanded={expandedId === rule.id}

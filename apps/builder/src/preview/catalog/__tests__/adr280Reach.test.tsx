@@ -39,7 +39,7 @@ async function pressRule(
   const value = options.pickValue ? options.pickValue(harness) : options.value;
   harness.rule(button, "onPress", {
     opcode: "capability",
-    targetId: target,
+    target: { nodeId: target },
     capabilityId,
     ...(value !== undefined ? { value } : {}),
   } as Action);

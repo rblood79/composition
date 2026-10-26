@@ -389,6 +389,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
           kept: report.kept,
           dropped: report.dropped,
           movedOut: report.movedOut,
+          targetsUnset: report.targetsUnset,
         }),
         {
           bypassCooldown: true,

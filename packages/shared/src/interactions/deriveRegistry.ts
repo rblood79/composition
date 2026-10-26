@@ -53,6 +53,9 @@ function capabilitiesOf(use: ConceptUse): {
       ...(param ? { param } : {}),
       ...(capability.imperative ? { imperative: true } : {}),
       ...(capability.op ? { op: capability.op } : {}),
+      ...(capability.op && concept.selectionDefault
+        ? { selectionDefault: concept.selectionDefault }
+        : {}),
       ...(concept.conditions.length ? { guards: concept.conditions } : {}),
     };
   }

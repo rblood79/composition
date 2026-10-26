@@ -203,7 +203,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 48,
+    "libraryContractVersion": 49,
     "revision": 48,
     "projectId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",
     "rootId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",
@@ -1471,7 +1471,9 @@
         "trigger": "onSubmit",
         "action": {
           "opcode": "capability",
-          "targetId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
+          "target": {
+            "nodeId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5"
+          },
           "capabilityId": "reset"
         }
       },

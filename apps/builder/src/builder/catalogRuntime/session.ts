@@ -39,6 +39,12 @@ export interface CatalogSessionState {
    * template instead of the pages. The page stays the open page to return to.
    */
   readonly definitionView?: CatalogDefinitionViewId;
+  /**
+   * ADR-283 Decision 5 — the Canvas picks a capability rule's target: the next Canvas click names
+   * the rule's target instead of selecting (not saved; Esc · a page change · the rule's removal
+   * end it).
+   */
+  readonly targetPick?: { readonly ruleId: EntryId<"interaction"> };
 }
 /**
  * What the edit view shows instead of the pages: a project definition, or the Components page
@@ -127,6 +133,7 @@ export class CatalogSession {
       hover: undefined,
       editingContext: undefined,
       textEditing: undefined,
+      targetPick: undefined,
     });
   }
   setBreakpoint(breakpoint: BreakpointName): void {
@@ -141,7 +148,14 @@ export class CatalogSession {
       hover: undefined,
       editingContext: undefined,
       textEditing: undefined,
+      targetPick: undefined,
     });
+  }
+
+  /** ADR-283 Decision 5 — start (a rule id) or end (`undefined`) the Canvas target pick. */
+  setTargetPick(ruleId: EntryId<"interaction"> | undefined): void {
+    if (ruleId === this.state.targetPick?.ruleId) return;
+    this.set({ targetPick: ruleId ? { ruleId } : undefined });
   }
 
   /** Replace the selection, or (`additive`) toggle each item in it. */
@@ -253,6 +267,11 @@ export class CatalogSession {
       textEditing:
         this.state.textEditing && this.shown(this.state.textEditing)
           ? this.state.textEditing
+          : undefined,
+      targetPick:
+        this.state.targetPick &&
+        graph.getEntry(this.state.targetPick.ruleId)?.kind === "interaction"
+          ? this.state.targetPick
           : undefined,
     });
   }

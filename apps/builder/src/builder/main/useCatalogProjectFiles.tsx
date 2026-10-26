@@ -20,6 +20,7 @@ import DirectoryLinkButton from "./DirectoryLinkButton";
 import { withoutComponentPages } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import type { CatalogDocument } from "../../../../../packages/shared/src/catalog/document/types";
 import { openCatalogPublish } from "./openCatalogPublish";
+import { catalogUnsetTargetRuleCount } from "../catalogRuntime/targetRef";
 // 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
 import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
 
@@ -136,6 +137,10 @@ export function useCatalogProjectFiles(options: {
       toast("error", t("header.projectFileUnavailable"));
       return;
     }
+    // ADR-283 R7: rules left without a target are reported, not blocking.
+    const unset = catalogUnsetTargetRuleCount(content.document as CatalogDocument);
+    if (unset > 0)
+      toast("warning", t("interactions.publishTargetsUnset", { count: unset }));
     try {
       await openCatalogPublish(content, readStoredAsset);
     } catch (error) {

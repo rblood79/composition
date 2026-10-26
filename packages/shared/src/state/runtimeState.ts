@@ -154,9 +154,9 @@ export function coerceRuntimeValue(
       return { ok: false };
     }
     case "object":
-      return typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
+      // (`null` = nothing — a single selection cleared, `!item.keys` of no key.)
+      return value === null ||
+        (typeof value === "object" && !Array.isArray(value))
         ? { ok: true, value }
         : { ok: false };
     case "array":

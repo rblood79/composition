@@ -1,6 +1,7 @@
 import {
   buildInteractionIndex,
   createElementHandlers,
+  type DispatchContext,
   type DispatchDeps,
   type InteractionIndex,
   type InteractionRule,
@@ -19,6 +20,10 @@ import type {
   InteractionEntry,
 } from "../document/types";
 import type { CatalogCompositionRoot } from "./compositionRoot";
+import {
+  catalogOriginRootOf,
+  resolveCapabilityTarget,
+} from "./capabilityTarget";
 import type { CatalogDomRuntime } from "./domBinding";
 import { catalogTableSortOf, type CatalogTableSort } from "./tableSort";
 import {
@@ -28,6 +33,7 @@ import {
 import {
   catalogOpenOwnerOf,
   catalogRuntimeStateOf,
+  catalogSelectValue,
   CATALOG_OPEN_BODY_TYPES,
 } from "./runtimeStateProps";
 import { catalogToggleGroupOf } from "./presence";
@@ -79,7 +85,8 @@ function recordsOfOwner(
 
 /**
  * The shared rule shape of one catalog interaction on one record. `navigate` goes by the page's
- * route (the dispatcher's vocabulary); a capability targets the target node's first record.
+ * route (the dispatcher's vocabulary); a capability targets the record its target reference names
+ * from this record (`resolveCapabilityTarget` — unresolved: no rule).
  * `callEndpoint` sends its body to the project's endpoint (ADR-281 Decision 5 — the id without its
  * `data:endpoint:` prefix, as the data services key it).
  */
@@ -112,7 +119,14 @@ function ruleOf(
         action: { kind: "toast", params: { message: action.message } },
       };
     case "capability": {
-      const target = root.recordsOfSource(action.targetId)[0];
+      // ADR-283 Decision 2: the target as the record that fired sees it (same row · instance).
+      const resolved = resolveCapabilityTarget(
+        root,
+        elementId,
+        action.target,
+        catalogOriginRootOf(graph, entry.ownerId),
+      );
+      const target = "recordId" in resolved ? resolved.recordId : undefined;
       return target
         ? {
             ...base,
@@ -313,6 +327,13 @@ export interface CatalogPreviewInteractionsOptions {
   showToast: (message: string) => void;
   /** Variable writes (`setState`); absent = the rule reports that it cannot run. */
   writeState?: DispatchDeps["writeState"];
+  /** A variable's current value (`!var.<id>` in a rule value). */
+  readState?: DispatchDeps["readState"];
+  /** `useListData.getItem` for keys in a collection (`!item.<arg>` — the session's items). */
+  itemsByKeys?: (
+    collectionId: string,
+    keys: readonly string[] | "all",
+  ) => readonly unknown[];
   /** The record drawing `ownerId` on `recordId`'s chain: an element variable's value key. */
   ownerRecord?: (recordId: string, ownerId: string) => string | undefined;
   /** A rule that could not run (the old Preview's warning — never a silent no-op). */
@@ -360,7 +381,6 @@ export interface CatalogPreviewInteractionsOptions {
  */
 /** Bound components whose selection is one key (`selectedKey`) — a load's first key. */
 const LOADED_SINGLE_SELECTION_TYPES: ReadonlySet<string> = new Set([
-  "Select",
   "ComboBox",
 ]);
 /** Bound collections whose selection is a key set (`selectedKeys`). */
@@ -575,6 +595,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       },
       showToast: options.showToast,
       ...(options.writeState ? { writeState: options.writeState } : {}),
+      ...(options.readState ? { readState: options.readState } : {}),
     };
     this.refresh();
     this.unsubscribe = options.subscribe(() => this.refresh());
@@ -629,6 +650,35 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     for (const notify of [...(this.listeners.get(id) ?? [])]) notify();
   }
 
+  /**
+   * `!item.<arg>` on this record: the items its keys name in the collection it shows (its own
+   * binding — an instance's on the node it collapses), and whether its selection is single.
+   */
+  private itemsContext(
+    id: string,
+  ): Pick<DispatchContext, "itemsOf" | "singleSelection"> {
+    const itemsByKeys = this.options.itemsByKeys;
+    if (!itemsByKeys) return {};
+    return {
+      itemsOf: (keys) => {
+        const graph = this.options.graph();
+        const record = this.options.root()?.domInputs.get(id);
+        if (!graph || !record) return undefined;
+        for (const sourceId of [record.sourceId, ...(record.collapsedSourceIds ?? [])]) {
+          const entry = graph.getEntry(sourceId as never);
+          const collectionId =
+            entry?.kind === "node" ? entry.binding?.collectionId : undefined;
+          if (collectionId)
+            return itemsByKeys(collectionId.replace(/^data:collection:/, ""), keys);
+        }
+        return undefined;
+      },
+      // (Read at render, as RAC reads `selectionMode` — a change renders the record again.)
+      singleSelection:
+        this.options.root()?.domInputs.get(id)?.props.selectionMode === "single",
+    };
+  }
+
   revisionOf(id: string): number {
     return this.revisions.get(id) ?? 0;
   }
@@ -645,6 +695,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       // An element variable's value lives under the record drawing its owner in this context.
       {
         instanceKeyFor: (ownerId) => ownerRecord?.(id, ownerId) ?? ownerId,
+        ...this.itemsContext(id),
       },
     );
     const graph = this.options.graph();
@@ -721,6 +772,23 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       const binding = source?.kind === "node" ? source.binding : undefined;
       if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
       const type = catalogTypeName(root, record);
+      // (A Select's selection is RAC's `value` — a key, or keys with `selectionMode: "multiple"`.)
+      if (type === "Select") {
+        if (keys === "all") continue;
+        const multiple = record.props.selectionMode === "multiple";
+        const current = catalogSelectValue(
+          catalogRuntimeStateOf(root, record, this.overrideOf(record.id), "value"),
+          multiple,
+        );
+        const loaded = multiple ? [...keys] : (keys[0] ?? null);
+        const next = !join
+          ? loaded
+          : multiple
+            ? [...new Set([...(current as string[]), ...keys])]
+            : (current ?? loaded);
+        this.setRuntimeProps(record.id, { value: next });
+        continue;
+      }
       if (LOADED_SINGLE_SELECTION_TYPES.has(type)) {
         const current = catalogRuntimeStateOf(
           root,

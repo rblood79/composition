@@ -105,10 +105,32 @@ export const valueDateRange = valueConcept(
   "dateRange",
   null,
 );
-export const valueStrings = valueConcept(
+const strings = valueConcept(
   "value",
   "CheckboxGroup.md — Value",
   "CheckboxGroupProps",
   "strings",
   [],
 );
+/**
+ * A CheckboxGroup's value is a set of checkbox values — one is checked or unchecked by a key set
+ * operation (`selectItem` · `deselectItem`'s counterparts, RAC event audit 2026-10-26).
+ */
+export const valueStrings = {
+  ...strings,
+  capabilities: {
+    ...strings.capabilities,
+    checkItem: {
+      labelKey: "capabilities.checkItem",
+      value: "!param",
+      param: { kind: "value", labelKey: "capabilities.paramValueToSelect" },
+      op: "add",
+    },
+    uncheckItem: {
+      labelKey: "capabilities.uncheckItem",
+      value: "!param",
+      param: { kind: "value", labelKey: "capabilities.paramValueToSelect" },
+      op: "remove",
+    },
+  },
+} as const satisfies InteractionConcept;

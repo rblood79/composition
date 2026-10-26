@@ -1,4 +1,4 @@
-import { mapShowWhenNodeIds } from "./stateOwnerRefs";
+import { mapNodeRefIds, mapShowWhenNodeIds } from "./stateOwnerRefs";
 import type {
   CatalogReader,
   DefinitionId,
@@ -132,7 +132,8 @@ export function cloneNodeSubgraph(
     )
       action.variableId = (relatedIds.get(action.variableId) ??
         action.variableId) as EntryId<"stateVariable">;
-    if (action.opcode === "capability") action.targetId = map(action.targetId);
+    if (action.opcode === "capability")
+      action.target = mapNodeRefIds(action.target, map);
     return {
       ...structuredClone(entry),
       id: relatedIds.get(entry.id) as EntryId<"interaction">,

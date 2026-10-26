@@ -1,0 +1,72 @@
+/* The Value field's 「값 고르기」 — a picked source is a chip in the field box; the pick and clear
+   buttons are bare icons inside the box (as the target picker's aim button). */
+.interactions-value-pick {
+  display: inline-flex;
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+
+  &[data-hovered],
+  &[data-pressed] {
+    color: var(--fg);
+  }
+
+  &[data-disabled] {
+    cursor: default;
+    opacity: 0.4;
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.interactions-value-field .react-aria-Group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.interactions-value-chip {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  font-size: var(--text-xs);
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interactions-value-after {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.interactions-value-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+
+  &[data-nested] {
+    padding-inline-start: calc(var(--spacing-md) + var(--spacing-sm));
+  }
+}
+
+.interactions-value-option-type {
+  flex: 0 0 auto;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}

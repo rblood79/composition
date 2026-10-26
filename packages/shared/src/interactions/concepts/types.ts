@@ -72,6 +72,11 @@ export interface InteractionConcept {
   args?: Readonly<Record<string, readonly string[]>>;
   /** ADR-281 Decision 1 — the panel group (RAC documentation section); default = `id`. */
   group?: string;
+  /**
+   * The selection mode RAC uses when the prop is unset (a Select is single by default) — a key set
+   * operation replaces in single mode.
+   */
+  selectionDefault?: "single";
 }
 
 /**

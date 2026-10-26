@@ -49,7 +49,7 @@ async function listBoxRule(
     h.declare(ownedNodes(h, "listboxitem")[0]!, { isSelected: true });
   h.rule(button, "onPress", {
     opcode: "capability",
-    targetId: listBox,
+    target: { nodeId: listBox },
     capabilityId,
     ...(value !== undefined ? { value } : {}),
   });
@@ -139,7 +139,7 @@ describe("ADR-280 G2 — RAC's constraints refuse the write (round 1 h2)", () =>
     h.declare(field, { isReadOnly: true, value: "kept" });
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: field,
+      target: { nodeId: field },
       capabilityId: "setValue",
       value: "changed",
     });
@@ -162,7 +162,7 @@ describe("ADR-280 G2 — RAC's constraints refuse the write (round 1 h2)", () =>
     h.declare(box, { isSelected: false });
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: box,
+      target: { nodeId: box },
       capabilityId: "check",
     });
     act(() => {
@@ -188,7 +188,7 @@ describe("ADR-280 G2 — `!event.<arg>` (Decision 6)", () => {
     h.declare(b, { selectionMode: "multiple" });
     h.rule(a, "onSelectionChange", {
       opcode: "capability",
-      targetId: b,
+      target: { nodeId: b },
       capabilityId: "selectItem",
       value: "!event.keys",
     });
@@ -229,7 +229,7 @@ describe("ADR-280 R2 — no uncontrolled ↔ controlled switch", () => {
     const button = h.ids.at(-1) as NodeId;
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: h.ids[0]!,
+      target: { nodeId: h.ids[0]! },
       capabilityId: "setValue",
       value: "x",
     });

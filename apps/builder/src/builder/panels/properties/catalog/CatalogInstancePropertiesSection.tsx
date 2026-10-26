@@ -71,6 +71,7 @@ export const CatalogInstancePropertiesRows = memo(
                 kept: report.kept,
                 dropped: report.dropped,
                 movedOut: report.movedOut,
+                targetsUnset: report.targetsUnset,
               })
             : t("propertiesPanel.instancePropertyReset"),
           {

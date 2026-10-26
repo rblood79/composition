@@ -43,6 +43,13 @@ export const expansionKeys = {
       param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
       op: "add",
     },
+    // (One key out of the set — `deselectItem`'s counterpart, RAC event audit 2026-10-26.)
+    collapseItem: {
+      labelKey: "capabilities.collapseItem",
+      value: "!param",
+      param: { kind: "itemKey", labelKey: "capabilities.paramItemKey" },
+      op: "remove",
+    },
     collapse: { labelKey: "capabilities.collapseAll", value: [] },
   },
 } as const satisfies InteractionConcept;
@@ -63,5 +70,6 @@ export const expansionOne = {
   capabilities: {
     expand: { labelKey: "capabilities.expand", value: true },
     collapse: { labelKey: "capabilities.collapse", value: false },
+    toggleExpand: { labelKey: "capabilities.toggleExpand", value: "!self" },
   },
 } as const satisfies InteractionConcept;

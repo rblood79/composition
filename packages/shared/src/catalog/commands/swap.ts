@@ -48,6 +48,11 @@ export interface SwapInstanceReport {
   dropped: number;
   /** Slot contents · replacements moved out after the instance (no slot of that name). */
   movedOut: number;
+  /**
+   * ADR-283 Decision 3 (user decision 3): rules whose capability target had no place — the rule
+   * stays with `target: { unset: true }` to be pointed again (not `dropped`, which removes it).
+   */
+  targetsUnset: number;
 }
 
 export interface SwapInstanceInput {
@@ -218,7 +223,12 @@ export function planSwapInstance(
 
   const before = templatePaths(reader, node.definitionId);
   const after = templatePaths(reader, input.definitionId);
-  const report: SwapInstanceReport = { kept: 0, dropped: 0, movedOut: 0 };
+  const report: SwapInstanceReport = {
+    kept: 0,
+    dropped: 0,
+    movedOut: 0,
+    targetsUnset: 0,
+  };
 
   // The new component's instance contract: root props (and writes at its position) it takes.
   const contract = instanceContract(
@@ -490,20 +500,57 @@ export function planSwapInstance(
   const holders = new Set<NodeId>([input.id]);
   for (const referrerId of reader.referrersOf(input.id)) {
     const entry = draft.read(referrerId);
-    if (entry?.kind === "interaction" && entry.address) {
-      const index = entry.address.instances.indexOf(input.id);
-      if (index < 0) continue;
-      const kind =
-        entry.address.instances.length > index + 1 ? "nested" : "position";
-      const address = remapThrough(entry.address, index, kind);
-      if (address) {
-        draft.write({ ...entry, address });
+    if (entry?.kind === "interaction") {
+      let next = entry;
+      const index = entry.address?.instances.indexOf(input.id) ?? -1;
+      if (entry.address && index >= 0) {
+        const kind =
+          entry.address.instances.length > index + 1 ? "nested" : "position";
+        const address = remapThrough(entry.address, index, kind);
+        if (!address) {
+          draft.remove(entry.id);
+          goneInteractions.add(entry.id);
+          report.dropped++;
+          continue;
+        }
+        next = { ...next, address };
         report.kept++;
-      } else {
-        draft.remove(entry.id);
-        goneInteractions.add(entry.id);
-        report.dropped++;
       }
+      // ADR-283 Decision 3: a capability target through the node moves the same way; one with no
+      // place stays as 「no target」 (user decision 3).
+      const action = next.action;
+      if (action.opcode === "capability") {
+        const target = action.target;
+        const steps =
+          "address" in target
+            ? target.address
+            : "local" in target
+              ? (target.local as InstanceAddress)
+              : undefined;
+        const at = steps?.instances.indexOf(input.id) ?? -1;
+        if (steps && at >= 0) {
+          const moved = remapThrough(
+            steps,
+            at,
+            steps.instances.length > at + 1 ? "nested" : "position",
+          );
+          // (The owner's address moved above already counted the rule once.)
+          if (!moved) report.targetsUnset++;
+          else if (next === entry) report.kept++;
+          next = {
+            ...next,
+            action: {
+              ...action,
+              target: !moved
+                ? { unset: true }
+                : "address" in target
+                  ? { address: moved }
+                  : { local: moved },
+            },
+          };
+        }
+      }
+      if (next !== entry) draft.write(next);
     } else if (entry?.kind === "node" && entry.id !== input.id) {
       const { overrides, out } = remapOverrides(entry, 1);
       if (

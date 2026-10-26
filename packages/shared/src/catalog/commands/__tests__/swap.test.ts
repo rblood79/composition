@@ -177,7 +177,12 @@ describe("ADR-261 Phase 2 — swapInstance", () => {
     const graph = fixture();
     const start = snapshot(graph);
     const { report } = planSwapInstance(graph, { id: I, definitionId: B });
-    expect(report).toEqual({ kept: 4, dropped: 2, movedOut: 0 });
+    expect(report).toEqual({
+      kept: 4,
+      dropped: 2,
+      movedOut: 0,
+      targetsUnset: 0,
+    });
     const { result } = run(graph, swapInstance({ id: I, definitionId: B }));
     const swapped = graph.getEntry(I) as NodeEntry;
     expect(swapped.definitionId).toBe(B);

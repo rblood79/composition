@@ -27,6 +27,7 @@ import type {
   EntryKind,
   InstanceAddress,
   InteractionEntry,
+  CatalogCapabilityTarget,
   LayoutWrites,
   LibraryDefinitionId,
   LibraryTemplateNode,
@@ -240,8 +241,11 @@ export interface Materializer {
    * `prefix`: only the absorbed ones go).
    */
   remainingOverrides(prefix?: readonly TemplateId[]): DescendantOverride[];
-  /** The owner's interactions addressing a copied position now belong to the copy. */
-  reanchorInteractions(): void;
+  /**
+   * The owner's interactions addressing a copied position now belong to the copy, and capability
+   * targets there name it; `unplaced: "unset"` (the instance is gone) unsets a target not copied.
+   */
+  reanchorInteractions(unplaced?: "keep" | "unset"): void;
 }
 
 /**
@@ -622,8 +626,8 @@ export function createMaterializer(
             startsWith(item.address.templatePath, prefix)
           ),
       ),
-    reanchorInteractions: () =>
-      reanchorInteractions(draft, ownerId, instances, placed),
+    reanchorInteractions: (unplaced = "keep") =>
+      reanchorInteractions(draft, ownerId, instances, placed, unplaced),
   };
 }
 
@@ -1016,53 +1020,131 @@ function mergePatches(base: Patch, over: Patch): Patch {
   return merged;
 }
 
-/** The owner's interactions addressing a materialized position now belong to its owned copy. */
+/**
+ * The owner's interactions addressing a materialized position now belong to its owned copy, and
+ * every capability target addressing one now names the copy (ADR-283 Decision 3 — `{ nodeId }`, or
+ * through a placed nested instance its address). A target at a position not copied stays, unless
+ * the instance is gone (`unplaced: "unset"` — detach): then the rule has no target.
+ */
 function reanchorInteractions(
   draft: CommandDraft,
   ownerId: NodeId,
   instances: InstanceAddress["instances"],
   placed: ReadonlyMap<string, NodeId>,
+  unplaced: "keep" | "unset",
 ): void {
-  for (const referrerId of draft.reader.referrersOf(ownerId)) {
-    const entry = draft.read(referrerId);
-    if (entry?.kind !== "interaction" || entry.ownerId !== ownerId) continue;
-    const address = entry.address;
-    if (!address) continue;
-    let next: InteractionEntry | undefined;
+  /** An address of this instance level moved onto the copies (`undefined` = not through it). */
+  const move = (
+    address: InstanceAddress,
+  ):
+    | { nodeId: NodeId }
+    | { address: InstanceAddress }
+    | { unplaced: true }
+    | undefined => {
     if (
       sameAddress(
         { instances: address.instances, templatePath: [] },
-        {
-          instances,
-          templatePath: [],
-        },
+        { instances, templatePath: [] },
       )
     ) {
       const target = placed.get(address.templatePath.join("\0"));
-      if (target) {
-        const { address: _address, ...rest } = entry;
-        next = { ...rest, ownerId: target };
-      }
-    } else if (
+      return target ? { nodeId: target } : { unplaced: true };
+    }
+    if (
       address.instances.length > instances.length &&
       startsWith(address.instances, instances)
     ) {
       const step = address.instances[instances.length];
       for (const [path, id] of placed)
-        if (path.split("\0").at(-1) === step) {
-          next = {
-            ...entry,
-            ownerId: id,
+        if (path.split("\0").at(-1) === step)
+          return {
             address: {
               instances: [id, ...address.instances.slice(instances.length + 1)],
               templatePath: address.templatePath,
-            },
+            } as InstanceAddress,
           };
-          break;
-        }
+      return { unplaced: true };
     }
-    if (next) draft.write(next);
+    return undefined;
+  };
+  for (const referrerId of draft.reader.referrersOf(ownerId)) {
+    const entry = draft.read(referrerId);
+    if (entry?.kind !== "interaction") continue;
+    let next: InteractionEntry = entry;
+    if (entry.ownerId === ownerId && entry.address) {
+      const moved = move(entry.address);
+      if (moved && "nodeId" in moved) {
+        const { address: _address, ...rest } = entry;
+        next = { ...rest, ownerId: moved.nodeId };
+      } else if (moved && "address" in moved)
+        next = {
+          ...entry,
+          ownerId: moved.address.instances[0] as NodeId,
+          address: moved.address,
+        };
+    }
+    const action = next.action;
+    if (action.opcode === "capability" && "address" in action.target) {
+      const moved = move(action.target.address);
+      const target =
+        !moved || ("unplaced" in moved && unplaced === "keep")
+          ? undefined
+          : "unplaced" in moved
+            ? ({ unset: true } as const)
+            : moved;
+      if (target) next = { ...next, action: { ...action, target } };
+    } else if (action.opcode === "capability" && "local" in action.target) {
+      // (Inside an origin, a nested instance materialized: its copied place is a node of the origin
+      // — a `local` from the origin root through the copies; a deeper step through a copied
+      // instance.)
+      const local = action.target.local as InstanceAddress;
+      const moved = move(local);
+      let target: CatalogCapabilityTarget | undefined;
+      if (!moved || ("unplaced" in moved && unplaced === "keep")) target = undefined;
+      else if ("unplaced" in moved) target = { unset: true };
+      else if ("address" in moved)
+        target = {
+          local: {
+            instances: moved.address.instances as TemplateId[],
+            templatePath: moved.address.templatePath,
+          },
+        };
+      else {
+        const path = originPathOf(draft, ownerId);
+        for (let at = 1; at <= local.templatePath.length; at++) {
+          const id = placed.get(local.templatePath.slice(0, at).join("\0"));
+          if (id && id !== path[path.length - 1]) path.push(id);
+        }
+        target =
+          path.length && path[path.length - 1] === moved.nodeId
+            ? { local: { instances: [], templatePath: path as TemplateId[] } }
+            : { unset: true };
+      }
+      if (target) next = { ...next, action: { ...action, target } };
+    }
+    if (next !== entry) draft.write(next);
   }
+}
+
+/** The origin-root-to-node ids of a node inside a component's template (owner chain), [] elsewhere. */
+function originPathOf(draft: CommandDraft, id: NodeId): string[] {
+  const path = [id as string];
+  const seen = new Set<string>();
+  for (
+    let cursor = draft.reader.ownerOf(id);
+    cursor && !seen.has(cursor);
+    cursor = draft.reader.ownerOf(cursor)
+  ) {
+    seen.add(cursor);
+    const owner = draft.read(cursor as never) as
+      | { kind: string; id: string }
+      | undefined;
+    if (owner?.kind === "definition" || owner?.kind === "definitionOverride")
+      return path;
+    if (owner?.kind !== "node") return [];
+    path.unshift(owner.id);
+  }
+  return [];
 }
 
 type AnyDefinition = Pick<
@@ -1122,5 +1204,5 @@ export function detachInto(draft: CommandDraft, id: NodeId, newId: NewId): void 
     sizing: { ...sizing, ...root.sizing },
     ...(root.layout || layout ? { layout: { ...root.layout, ...layout } } : {}),
   });
-  materializer.reanchorInteractions();
+  materializer.reanchorInteractions("unset");
 }

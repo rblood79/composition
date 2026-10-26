@@ -1,4 +1,8 @@
-import { isCapabilityTarget, type ExposureInput } from "@composition/shared";
+import {
+  isCapabilityTarget,
+  parseRuleValueRef,
+  type ExposureInput,
+} from "@composition/shared";
 import { setNodeInteractions } from "../../../../../packages/shared/src/catalog/commands";
 import {
   catalogInteractionOverridesAt,
@@ -12,6 +16,8 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
+  CatalogNodeRef,
+  DescendantOverride,
   EditTarget,
   EntryId,
   InstanceAddress,
@@ -26,6 +32,11 @@ import {
   catalogTargetDefinitionId,
 } from "./editContract";
 import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
+import { ownedChildren } from "../../../../../packages/shared/src/catalog/document/graph";
+import {
+  catalogTemplateDefinitionOf,
+  catalogTemplatePathOf,
+} from "./targetRef";
 import {
   catalogEmptyVariableValue,
   catalogVisibleVariableEntries,
@@ -150,39 +161,349 @@ export function catalogPageOptions(
 }
 
 export interface CatalogTargetOption {
-  id: NodeId;
+  /** The option's identity: its stored reference as text. */
+  key: string;
+  /** What the rule stores (ADR-283 Decision 1). */
+  ref: CatalogNodeRef;
+  /** The document place (its type, restricting props · the Canvas highlight). */
+  edit: EditTarget;
   type: string;
   name?: string;
+  /** ADR-283 Decision 4: the instance chain's labels down to it (`OrderCard ▸ Save`); [] on the page. */
+  path: string[];
+  /** 「이 페이지」 (page nodes) · 「컴포넌트 안」 (positions inside an instance or the origin). */
+  group: "page" | "component";
+  /**
+   * The author DOM id (Accessibility ID — the element's `id=""`) that tells it apart: a page node's
+   * own; a place inside an instance has none of its own, so its instance's (the first path label).
+   */
+  htmlId?: string;
+  /** The id's short tail — told apart when names repeat and there is no DOM id. */
+  shortId: string;
   /** A page root (the page body): listed, but not a Do choice's starting target. */
   pageRoot?: true;
 }
 
-/** Capability targets: the page's own nodes (depth first) whose type has a capability. */
-export function catalogCapabilityTargets(
+/** A page node's author DOM id (`metadata.htmlId`); none for a template node (`local`). */
+const htmlIdOf = (graph: CatalogVariableReader, ref: CatalogNodeRef, id: string) => {
+  if ("local" in ref) return undefined;
+  const node = graph.getEntry(id);
+  return node?.kind === "node" ? node.metadata?.htmlId || undefined : undefined;
+};
+const shortIdOf = (id: string) => {
+  const tail = id.split(":").pop()!;
+  return tail.slice(Math.max(0, tail.length - 4));
+};
+const sameEditTarget = (left: EditTarget, right: EditTarget) =>
+  left.kind === "node"
+    ? right.kind === "node" && left.id === right.id
+    : right.kind === "descendant" &&
+      left.ownerId === right.ownerId &&
+      sameAddress(left.address, right.address);
+
+/** A template position's node (a library template or a project template node). */
+function templateNodeOf(
+  graph: CatalogVariableReader,
+  id: string,
+):
+  | { definitionId: string; children: readonly string[]; name?: string }
+  | undefined {
+  if (id.startsWith("lib:"))
+    return graph.library.templates.get(id as `lib:template:${string}`) as
+      | { definitionId: string; children: readonly string[]; name?: string }
+      | undefined;
+  const node = graph.getEntry(id);
+  return node?.kind === "node"
+    ? {
+        definitionId: node.definitionId,
+        children: ownedChildren(node),
+        ...(node.name ? { name: node.name } : {}),
+      }
+    : undefined;
+}
+
+/** A composite definition's template root and name (a library or a project definition). */
+function compositeOf(
+  graph: CatalogVariableReader,
+  definitionId: string,
+): { rootId: string; name: string } | undefined {
+  const definition = definitionId.startsWith("lib:")
+    ? graph.library.definitions.get(definitionId as `lib:definition:${string}`)
+    : graph.getEntry(definitionId);
+  if (!definition || ("kind" in definition && definition.kind !== "definition"))
+    return undefined;
+  const { mode, templateRootId, name } = definition as {
+    mode: string;
+    templateRootId?: string;
+    name: string;
+  };
+  return mode === "composite" && templateRootId
+    ? { rootId: templateRootId, name }
+    : undefined;
+}
+
+/**
+ * ADR-283 Decision 4 — the places a rule of `owner` can target, depth first: on a page, its own
+ * nodes (slot contents and replacements too — 「이 페이지」) and every position inside their instances
+ * (`{ address }`, nested instances too, user decision 4 「전부」 — 「컴포넌트 안」); for a rule inside a
+ * component's template (the Local page), that template's own places only (`{ local }` — a template
+ * does not know the page). Only types with a capability; the owner itself is left out. Lazy: a
+ * caller wanting the first stops the walk (`catalogFirstCapabilityTarget`).
+ */
+export function* catalogCapabilityTargetsOf(
   graph: CatalogVariableReader,
   pageId: EntryId<"page"> | undefined,
   excludeId?: NodeId,
-): CatalogTargetOption[] {
+  owner?: CatalogInteractionOwner,
+): Generator<CatalogTargetOption> {
+  const excluded: EditTarget | undefined = owner
+    ? owner.address
+      ? { kind: "descendant", ownerId: owner.ownerId, address: owner.address }
+      : { kind: "node", id: owner.ownerId }
+    : excludeId
+      ? { kind: "node", id: excludeId }
+      : undefined;
+  const option = (
+    ref: CatalogNodeRef,
+    edit: EditTarget,
+    path: string[],
+    group: CatalogTargetOption["group"],
+    name: string | undefined,
+    pageRoot = false,
+  ): CatalogTargetOption | undefined => {
+    if (excluded && sameEditTarget(edit, excluded)) return undefined;
+    const type = catalogTargetTypeName(graph, edit);
+    if (!type || !isCapabilityTarget(type)) return undefined;
+    // (A place inside an instance is told apart by its instance — the template id is shared.)
+    const leaf =
+      edit.kind === "node" ? edit.id : edit.address.instances[0]!;
+    const htmlId = htmlIdOf(graph, ref, leaf);
+    return {
+      key: JSON.stringify(ref),
+      ref,
+      edit,
+      type,
+      ...(name ? { name } : {}),
+      path,
+      group,
+      ...(htmlId ? { htmlId } : {}),
+      shortId: shortIdOf(leaf),
+      ...(pageRoot ? { pageRoot: true as const } : {}),
+    };
+  };
+  /**
+   * The positions under one template node of an instance chain: `instances` reach the definition,
+   * `steps` the position; `toRef` stores the address as the rule keeps it.
+   */
+  function* visitTemplate(
+    holder: NodeId,
+    instances: readonly string[],
+    steps: readonly string[],
+    labels: string[],
+    toRef: (address: InstanceAddress) => CatalogNodeRef,
+    overrides: readonly DescendantOverride[],
+  ): Generator<CatalogTargetOption> {
+    const id = steps.at(-1)!;
+    const template = templateNodeOf(graph, id);
+    if (!template) return;
+    const address = { instances, templatePath: steps } as InstanceAddress;
+    const at = overrides.find((override) =>
+      sameAddress(override.address, address),
+    );
+    // (A replaced position, a filled slot: the replacement · contents are page nodes — listed there.)
+    if (at?.kind === "replace") return;
+    const edit: EditTarget = { kind: "descendant", ownerId: holder, address };
+    const name = template.name;
+    // (A root stands for its instance — the instance's label already names it.)
+    const here =
+      steps.length > 1
+        ? [...labels, name ?? catalogTargetTypeName(graph, edit)]
+        : labels;
+    // (A root is its instance's place: the page node, or the nested position above it.)
+    if (steps.length > 1) {
+      const found = option(toRef(address), edit, here, "component", name);
+      if (found) yield found;
+    }
+    if (at?.kind === "fillSlot") return;
+    const nested =
+      steps.length > 1 ? compositeOf(graph, template.definitionId) : undefined;
+    if (nested)
+      yield* visitTemplate(
+        holder,
+        [...instances, id],
+        [nested.rootId],
+        here,
+        toRef,
+        overrides,
+      );
+    for (const child of template.children)
+      yield* visitTemplate(
+        holder,
+        instances,
+        [...steps, child],
+        here,
+        toRef,
+        overrides,
+      );
+  }
+  const ownerDefinition = owner
+    ? catalogTemplateDefinitionOf(graph, owner.ownerId)
+    : undefined;
+  if (ownerDefinition) {
+    // The origin's own places (`local`): its template from the root, nested instances too.
+    const origin = compositeOf(graph, ownerDefinition);
+    if (!origin) return;
+    const toLocal = (address: InstanceAddress): CatalogNodeRef => ({
+      local: {
+        instances: address.instances,
+        templatePath: address.templatePath,
+      },
+    });
+    function* visitOrigin(
+      id: NodeId,
+      labels: string[],
+    ): Generator<CatalogTargetOption> {
+      const node = graph.getEntry(id);
+      if (node?.kind !== "node") return;
+      const path = catalogTemplatePathOf(graph, id);
+      if (!path) return;
+      const edit: EditTarget = { kind: "node", id };
+      const here = [...labels, node.name ?? catalogTargetTypeName(graph, edit)];
+      const found = option(
+        { local: { instances: [], templatePath: path } },
+        edit,
+        here,
+        "component",
+        node.name,
+      );
+      if (found) yield found;
+      const nested = compositeOf(graph, node.definitionId);
+      if (nested && id !== origin!.rootId)
+        yield* visitTemplate(
+          id,
+          [id],
+          [nested.rootId],
+          here,
+          toLocal,
+          node.descendantOverrides,
+        );
+      for (const child of ownedChildren(node)) yield* visitOrigin(child, here);
+    }
+    yield* visitOrigin(origin.rootId as NodeId, []);
+    return;
+  }
   const page = pageId ? graph.getEntry(pageId) : undefined;
-  if (page?.kind !== "page") return [];
-  const options: CatalogTargetOption[] = [];
-  const visit = (id: NodeId, pageRoot: boolean) => {
+  if (page?.kind !== "page") return;
+  function* visit(id: NodeId, pageRoot: boolean): Generator<CatalogTargetOption> {
     const node = graph.getEntry(id);
     if (node?.kind !== "node") return;
-    if (id !== excludeId) {
-      const type = catalogTargetTypeName(graph, { kind: "node", id });
-      if (type && isCapabilityTarget(type))
-        options.push({
-          id,
-          type,
-          ...(node.name ? { name: node.name } : {}),
-          ...(pageRoot ? { pageRoot: true as const } : {}),
-        });
-    }
-    for (const child of node.children) visit(child, false);
+    const found = option(
+      { nodeId: id },
+      { kind: "node", id },
+      [],
+      "page",
+      node.name,
+      pageRoot,
+    );
+    if (found) yield found;
+    const composite = compositeOf(graph, node.definitionId);
+    if (composite)
+      yield* visitTemplate(
+        id,
+        [id],
+        [composite.rootId],
+        [node.name ?? composite.name],
+        (address) => ({ address }),
+        node.descendantOverrides,
+      );
+    for (const child of ownedChildren(node)) yield* visit(child, false);
+  }
+  for (const root of page.children) yield* visit(root, true);
+}
+
+/**
+ * ADR-283 — the option a stored target stands for (a rule's current target, which the page list
+ * may not hold: another page's node, a place of an origin): its document place, type and labels.
+ */
+export function catalogTargetOptionOf(
+  graph: CatalogVariableReader,
+  ref: CatalogNodeRef,
+): CatalogTargetOption | undefined {
+  const steps = "address" in ref ? ref.address : "local" in ref ? ref.local : undefined;
+  const edit: EditTarget | undefined =
+    "nodeId" in ref
+      ? { kind: "node", id: ref.nodeId }
+      : steps!.instances.length
+        ? {
+            kind: "descendant",
+            ownerId: steps!.instances[0] as NodeId,
+            address: steps as InstanceAddress,
+          }
+        : { kind: "node", id: steps!.templatePath.at(-1) as NodeId };
+  const type = catalogTargetTypeName(graph, edit);
+  if (!type) return undefined;
+  const nameOf = (id: string) =>
+    id.startsWith("lib:")
+      ? (graph.library.templates.get(id as `lib:template:${string}`) as
+          | { name?: string }
+          | undefined)?.name
+      : (() => {
+          const node = graph.getEntry(id);
+          return node?.kind === "node" ? node.name : undefined;
+        })();
+  const leaf = edit.kind === "node" ? edit.id : edit.address.templatePath.at(-1)!;
+  const name = nameOf(leaf);
+  const distinct = edit.kind === "node" ? edit.id : edit.address.instances[0]!;
+  const htmlId = htmlIdOf(graph, ref, distinct);
+  const path =
+    "address" in ref
+      ? [
+          // (The list's label: the instance's name, else its component's.)
+          nameOf(ref.address.instances[0]!) ??
+            (() => {
+              const instance = graph.getEntry(ref.address.instances[0]!);
+              return instance?.kind === "node"
+                ? compositeOf(graph, instance.definitionId)?.name
+                : undefined;
+            })() ??
+            catalogTargetTypeName(graph, { kind: "node", id: ref.address.instances[0] as NodeId }),
+          ...ref.address.templatePath.slice(1).map((id) => nameOf(id) ?? catalogTargetTypeName(graph, { kind: "descendant", ownerId: ref.address.instances[0] as NodeId, address: { instances: ref.address.instances, templatePath: ref.address.templatePath.slice(0, ref.address.templatePath.indexOf(id) + 1) } as InstanceAddress })),
+        ]
+      : "local" in ref
+        ? ref.local.templatePath.map((id) => nameOf(id) ?? type)
+        : [];
+  return {
+    key: JSON.stringify(ref),
+    ref,
+    edit,
+    type,
+    ...(name ? { name } : {}),
+    path,
+    group: "nodeId" in ref ? "page" : "component",
+    ...(htmlId ? { htmlId } : {}),
+    shortId: shortIdOf(distinct),
   };
-  for (const root of page.children) visit(root, true);
-  return options;
+}
+
+/** Every capability target of `catalogCapabilityTargetsOf`. */
+export const catalogCapabilityTargets = (
+  ...args: Parameters<typeof catalogCapabilityTargetsOf>
+): CatalogTargetOption[] => [...catalogCapabilityTargetsOf(...args)];
+
+/** A new capability rule's starting target (a page node first). */
+export function catalogFirstCapabilityTarget(
+  ...args: Parameters<typeof catalogCapabilityTargetsOf>
+): CatalogTargetOption | undefined {
+  // (A page node first — not the page body, not a part of the owner's own instance; else the
+  // first place inside a component, else the body.)
+  let root: CatalogTargetOption | undefined;
+  let inside: CatalogTargetOption | undefined;
+  for (const option of catalogCapabilityTargetsOf(...args)) {
+    if (option.pageRoot) root ??= option;
+    else if (option.group === "page") return option;
+    else inside ??= option;
+  }
+  return inside ?? root;
 }
 
 export interface CatalogVisibleVariable {
@@ -249,8 +570,9 @@ export function catalogSetStateAction(
       opcode: "setState",
       variableId: variable.id,
       op: next,
+      // (A reference — `!event` · `!item` · `!var` — keeps; the run reads it.)
       value:
-        typeof value === variable.type
+        typeof value === variable.type || parseRuleValueRef(value)
           ? value
           : catalogEmptyVariableValue(variable.type),
     };
@@ -263,11 +585,22 @@ export interface CatalogActionContext {
   pages: readonly CatalogPageOption[];
   currentPageId: EntryId<"page"> | undefined;
   variables: readonly CatalogVisibleVariable[];
-  targets: readonly CatalogTargetOption[];
+  /** ADR-283 — the places a capability can target, read when asked (a picker opening). */
+  targets: () => readonly CatalogTargetOption[];
+  /** A new capability rule's starting target (`catalogFirstCapabilityTarget` — stops early). */
+  firstTarget?: () => CatalogTargetOption | undefined;
   /** ADR-281 Decision 5 — the project's API endpoints (the data store's, H1). */
   endpoints?: readonly CatalogEndpointOption[];
   /** The project's collections a rule can append to (the data store's, H1). */
   collections?: readonly CatalogCollectionOption[];
+  /**
+   * The owner's bound collection — the fields a rule's value can read from the item its `keys`
+   * name (「선택한 항목」 — `useListData.getItem`), and whether its selection is single.
+   */
+  ownerItems?: {
+    fields: readonly { key: string; type: string }[];
+    single: boolean;
+  };
 }
 
 export interface CatalogCollectionOption {
@@ -354,10 +687,12 @@ export function catalogDefaultAction(
     return collection ? { opcode: choice, collectionId: collection.id } : undefined;
   }
   if (choice === "capability") {
-    const target =
-      context.targets.find((option) => !option.pageRoot) ?? context.targets[0];
+    const targets = context.firstTarget ? undefined : context.targets();
+    const target = context.firstTarget
+      ? context.firstTarget()
+      : (targets!.find((option) => !option.pageRoot) ?? targets![0]);
     return target
-      ? { opcode: "capability", targetId: target.id, capabilityId: "hide" }
+      ? { opcode: "capability", target: target.ref, capabilityId: "hide" }
       : undefined;
   }
   return undefined;

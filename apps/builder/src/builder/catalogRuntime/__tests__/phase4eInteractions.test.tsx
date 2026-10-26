@@ -97,7 +97,7 @@ async function open() {
     pages: catalogPageOptions(graph),
     currentPageId: HOME,
     variables: catalogVisibleVariables(graph, id("button")),
-    targets: catalogCapabilityTargets(graph, HOME, id("button")),
+    targets: () => catalogCapabilityTargets(graph, HOME, id("button")),
   });
   return { workspace, graph, owner, context };
 }
@@ -154,7 +154,9 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     expect(catalogInteractionsOf(graph, owner)).toEqual([rule]);
 
     // Capability on the Tabs node (the button itself is not a target).
-    const targets = context().targets.map((target) => target.id);
+    const targets = context()
+      .targets()
+      .map((target) => target.edit.kind === "node" && target.edit.id);
     expect(targets).toContain(id("tabs"));
     expect(targets).not.toContain(id("button"));
     const capability: InteractionEntry = {
@@ -163,10 +165,13 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     };
     workspace.execute(catalogInteractionsCommand(owner, [capability], "Edit"));
     // The page body is listed but not the starting target.
-    expect(context().targets[0]).toMatchObject({ id: BODY, pageRoot: true });
+    expect(context().targets()[0]).toMatchObject({
+      ref: { nodeId: BODY },
+      pageRoot: true,
+    });
     expect(catalogInteractionsOf(graph, owner)[0]!.action).toEqual({
       opcode: "capability",
-      targetId: id("tabs"),
+      target: { nodeId: id("tabs") },
       capabilityId: "hide",
     });
     const second = catalogNewInteraction(
@@ -213,7 +218,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     // No variable, no target on an empty page: those choices have nothing to point at.
     expect(catalogDefaultAction("setState", context())).toBeUndefined();
     expect(
-      catalogDefaultAction("capability", { ...context(), targets: [] }),
+      catalogDefaultAction("capability", { ...context(), targets: () => [] }),
     ).toBeUndefined();
     workspace.execute(
       catalogVariableCommands.add(HOME, "count", workspace.newId),

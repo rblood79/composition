@@ -50,7 +50,8 @@ export function applyCapabilityOp(
     currentSet === "all" ? [...(context.itemKeys ?? [])] : currentSet;
   if (def.op === "add") {
     if (keys === "all") return "all";
-    if (context.props.selectionMode === "single") return added.slice(-1);
+    if ((context.props.selectionMode ?? def.selectionDefault) === "single")
+      return added.slice(-1);
     return [...current, ...added.filter((key) => !current.includes(key))];
   }
   return current.filter((key) => !added.includes(key));

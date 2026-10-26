@@ -185,7 +185,7 @@ describe("ADR-250 Preview expansion is runtime state", () => {
             "onPress",
             {
               opcode: "capability",
-              targetId: tree,
+              target: { nodeId: tree },
               capabilityId: "expand",
               value: "item-1",
             },

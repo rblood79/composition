@@ -36,6 +36,7 @@ import type {
   LinkProps,
   ListBoxItemProps,
   ListBoxProps,
+  MenuItemProps,
   MenuProps,
   MenuTriggerProps,
   ModalOverlayProps,
@@ -63,7 +64,7 @@ import type {
   TreeItemProps,
   TreeProps,
 } from "react-aria-components";
-import { action, rowAction } from "./concepts/action";
+import { action, itemAction, menuClose, rowAction } from "./concepts/action";
 import { expansionKeys, expansionOne } from "./concepts/expansion";
 import { dragDrop, fileSelect } from "./concepts/files";
 import { focus } from "./concepts/focus";
@@ -85,6 +86,7 @@ import { press } from "./concepts/press";
 import { remove } from "./concepts/remove";
 import { search } from "./concepts/search";
 import {
+  selectValue,
   selectionAsValue,
   singleSelectionPicker,
   singleSelectionTabs,
@@ -110,11 +112,18 @@ const POINTER = [
   { concept: keyboard },
 ] as const;
 const FIELD_FOCUS = [{ concept: focus }, { concept: keyboard }] as const;
-/** A collection item: press · hover only, its state is the collection's (owner item — hidden). */
+/**
+ * A collection item: its own `onAction` (the item node's When — RAC event audit 2026-10-26), and
+ * press · hover · focus · keyboard owned as an item (hidden — its state is the collection's).
+ */
 const ITEM = [
+  { concept: itemAction },
   { concept: press, owner: "item" },
   { concept: hover, owner: "item" },
 ] as const;
+/** (An item whose RAC props have focus — a Tag · MenuItem — or focus and keyboard — a ListBoxItem.) */
+const ITEM_FOCUS = [...ITEM, { concept: focus, owner: "item" }] as const;
+const ITEM_KEYBOARD = [...ITEM_FOCUS, { concept: keyboard, owner: "item" }] as const;
 const TOGGLE_BUTTON_LABELS = {
   check: "capabilities.turnOn",
   uncheck: "capabilities.turnOff",
@@ -138,11 +147,16 @@ export const COMPONENT_INTERACTION_SPECS = {
   Button: { concepts: [{ concept: press }, ...POINTER] },
   Link: { concepts: [{ concept: press }, ...POINTER] },
   FileTrigger: { concepts: [{ concept: fileSelect }] },
-  DropZone: { concepts: [{ concept: dragDrop }] },
+  DropZone: { concepts: [{ concept: dragDrop }, { concept: hover }] },
 
   // ── toggles ──────────────────────────────────────────────────────────
   Checkbox: {
-    concepts: [{ concept: toggle }, { concept: hover }, ...FIELD_FOCUS],
+    concepts: [
+      { concept: toggle },
+      { concept: press },
+      { concept: hover },
+      ...FIELD_FOCUS,
+    ],
   },
   ToggleButton: {
     concepts: [
@@ -152,10 +166,15 @@ export const COMPONENT_INTERACTION_SPECS = {
     ],
   },
   Switch: {
-    concepts: [{ concept: toggle }, { concept: hover }, ...FIELD_FOCUS],
+    concepts: [
+      { concept: toggle },
+      { concept: press },
+      { concept: hover },
+      ...FIELD_FOCUS,
+    ],
   },
   CheckboxGroup: {
-    concepts: [{ concept: valueStrings, owner: "group" }],
+    concepts: [{ concept: valueStrings, owner: "group" }, { concept: focus }],
   },
   ToggleButtonGroup: {
     concepts: [{ concept: multiSelection, owner: "group" }],
@@ -195,25 +214,21 @@ export const COMPONENT_INTERACTION_SPECS = {
 
   // ── pickers ──────────────────────────────────────────────────────────
   Select: {
-    concepts: [{ concept: singleSelectionPicker }, { concept: open }],
+    concepts: [{ concept: selectValue }, { concept: open }, ...FIELD_FOCUS],
   },
   ComboBox: {
     concepts: [
       { concept: singleSelectionPicker },
       { concept: inputValue },
       { concept: openObserved },
+      ...FIELD_FOCUS,
     ],
   },
   Autocomplete: { concepts: [{ concept: inputValue }] },
 
   // ── collections ──────────────────────────────────────────────────────
   ListBox: {
-    concepts: [
-      {
-        concept: multiSelection,
-      },
-      { concept: action },
-    ],
+    concepts: [{ concept: multiSelection }, { concept: action }, { concept: focus }],
   },
   GridList: {
     concepts: [
@@ -240,9 +255,19 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: action },
     ],
   },
-  TagGroup: { concepts: [{ concept: multiSelection }, { concept: remove }] },
+  TagGroup: {
+    concepts: [
+      { concept: multiSelection },
+      { concept: action },
+      { concept: remove },
+    ],
+  },
   Menu: {
-    concepts: [{ concept: action }, { concept: multiSelection }],
+    concepts: [
+      { concept: action },
+      { concept: menuClose },
+      { concept: multiSelection },
+    ],
   },
   Breadcrumbs: { concepts: [{ concept: action }] },
   Tabs: {
@@ -276,13 +301,13 @@ export const COMPONENT_INTERACTION_SPECS = {
   Popover: { concepts: [{ concept: open }] },
 
   // ── date · time ──────────────────────────────────────────────────────
-  DateField: { concepts: [{ concept: valueDate }] },
-  TimeField: { concepts: [{ concept: valueDate }] },
+  DateField: { concepts: [{ concept: valueDate }, ...FIELD_FOCUS] },
+  TimeField: { concepts: [{ concept: valueDate }, ...FIELD_FOCUS] },
   DatePicker: {
-    concepts: [{ concept: valueDate }, { concept: open }],
+    concepts: [{ concept: valueDate }, { concept: open }, ...FIELD_FOCUS],
   },
   DateRangePicker: {
-    concepts: [{ concept: valueDateRange }, { concept: open }],
+    concepts: [{ concept: valueDateRange }, { concept: open }, ...FIELD_FOCUS],
   },
   Calendar: {
     concepts: [{ concept: valueDate }, { concept: focusedDate }],
@@ -295,13 +320,28 @@ export const COMPONENT_INTERACTION_SPECS = {
   Form: { concepts: [{ concept: form }] },
 
   // ── collection items (owner item — every event hidden, the state is the collection's) ─
-  ListBoxItem: { concepts: ITEM },
+  ListBoxItem: { concepts: ITEM_KEYBOARD },
   GridListItem: { concepts: ITEM },
   TreeItem: { concepts: ITEM },
   Row: { concepts: ITEM },
-  Tag: { concepts: ITEM },
-  Tab: { concepts: [{ concept: hover, owner: "item" }] },
-  Radio: { concepts: [{ concept: hover, owner: "item" }] },
+  Tag: { concepts: ITEM_FOCUS },
+  MenuItem: { concepts: ITEM_FOCUS },
+  // (A Tab · Radio has no action — its press selects; press · hover · focus are the item's.)
+  Tab: {
+    concepts: [
+      { concept: press, owner: "item" },
+      { concept: hover, owner: "item" },
+      { concept: focus, owner: "item" },
+    ],
+  },
+  Radio: {
+    concepts: [
+      { concept: press, owner: "item" },
+      { concept: hover, owner: "item" },
+      { concept: focus, owner: "item" },
+      { concept: keyboard, owner: "item" },
+    ],
+  },
 } as const satisfies Record<string, ComponentInteractionSpec>;
 
 // ── compile-time check: every derived name exists on the type's installed RAC props ──────
@@ -377,6 +417,7 @@ interface RacPropsOf {
   TreeItem: TreeItemProps;
   Row: RowProps<object>;
   Tag: TagProps;
+  MenuItem: MenuItemProps;
   Tab: TabProps;
   Radio: RadioProps;
 }

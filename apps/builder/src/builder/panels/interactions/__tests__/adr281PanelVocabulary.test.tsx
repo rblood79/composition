@@ -1,7 +1,7 @@
 /**
  * ADR-281 G1 — the Interactions panel's vocabulary: When in concept groups with only what RAC
- * fires now, hidden RAC events behind the "Show all of RAC" toggle (never keyboard — Q3), a value
- * source of literal · event argument, and a rule the declared props stop kept with a marker.
+ * fires now, hidden RAC events behind the "Show all of RAC" toggle (never keyboard — Q3), and a
+ * rule the declared props stop kept with a marker (the value source is `valueField.test.tsx`).
  */
 import {
   cleanup,
@@ -17,7 +17,6 @@ import type {
   NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { TriggerPicker } from "../TriggerPicker";
-import { ValueSourceField } from "../ValueSourceField";
 import { CatalogRuleRow } from "../catalog/CatalogRuleRow";
 import { CatalogInheritedRuleRow } from "../catalog/CatalogInheritedRuleRow";
 import { readFileSync } from "node:fs";
@@ -94,36 +93,6 @@ describe("ADR-281 G1 — When groups and the hidden-event toggle", () => {
   });
 });
 
-describe("ADR-281 G1 — the value source", () => {
-  it("an event argument is stored as !event.<arg> from the When's args", () => {
-    const onChange = vi.fn();
-    wrap(
-      <ValueSourceField
-        param={{ kind: "itemKey", labelKey: "capabilities.paramItemKey" }}
-        value="a"
-        eventArgs={["keys"]}
-        onChange={onChange}
-      />,
-    );
-    const source = openSelect("Value source");
-    expect(source.options).toEqual(["Literal", "Event argument"]);
-    fireEvent.click(screen.getByRole("option", { name: "Event argument" }));
-    expect(onChange).toHaveBeenLastCalledWith("!event.keys");
-  });
-
-  it("without event arguments it is the literal field alone", () => {
-    wrap(
-      <ValueSourceField
-        param={{ kind: "text", labelKey: "capabilities.paramValue" }}
-        value="x"
-        eventArgs={[]}
-        onChange={() => {}}
-      />,
-    );
-    expect(screen.queryByRole("group", { name: "Value source" })).toBeNull();
-  });
-});
-
 describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker", () => {
   const rule: InteractionEntry = {
     kind: "interaction",
@@ -132,7 +101,7 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
     trigger: "onPress",
     action: {
       opcode: "capability",
-      targetId: "project:node:list" as NodeId,
+      target: { nodeId: "project:node:list" as NodeId },
       capabilityId: "selectItem",
       value: "a",
     },
@@ -141,7 +110,7 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
     pages: [],
     currentPageId: undefined,
     variables: [],
-    targets: [{ id: "project:node:list" as NodeId, type: "ListBox" }],
+    targets: () => [],
   };
   const row = (targetProps: Record<string, unknown>) =>
     wrap(
@@ -150,7 +119,17 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
         componentType="Button"
         context={context}
         choices={["capability"]}
-        describeTarget={() => undefined}
+        describeTarget={() => ({
+          key: "list",
+          ref: { nodeId: "project:node:list" as NodeId },
+          edit: { kind: "node", id: "project:node:list" as NodeId },
+          type: "ListBox",
+          path: [],
+          group: "page",
+          shortId: "list",
+        })}
+        targetNotice={() => undefined}
+        onTargetHover={() => {}}
         exposure={{ props: {} }}
         targetExposure={() => ({ props: targetProps })}
         expanded={false}

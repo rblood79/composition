@@ -107,7 +107,12 @@ describe("ADR-261 Phase 2 — Swap instance (Builder)", () => {
     const { workspace, graph, I, defB } = await open();
     const revision = graph.revision;
     const { command, report } = catalogSwapPlan(graph, I, defB);
-    expect(report).toEqual({ kept: 0, dropped: 0, movedOut: 0 });
+    expect(report).toEqual({
+      kept: 0,
+      dropped: 0,
+      movedOut: 0,
+      targetsUnset: 0,
+    });
     workspace.execute(command);
     expect((graph.getEntry(I) as NodeEntry).definitionId).toBe(defB);
     expect(graph.revision).toBe(revision + 1);

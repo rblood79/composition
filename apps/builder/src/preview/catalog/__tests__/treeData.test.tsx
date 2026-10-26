@@ -96,7 +96,7 @@ async function treePreview(children: boolean | "flat" | "numeric" = true) {
   const expand = (key: string) => {
     h.rule(h.ids[1] as NodeId, "onPress", {
       opcode: "capability",
-      targetId: tree,
+      target: { nodeId: tree },
       capabilityId: "expand",
       value: key,
     } as never);

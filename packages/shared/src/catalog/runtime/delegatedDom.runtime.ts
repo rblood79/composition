@@ -7,7 +7,12 @@ import {
   OWNER_DRAWN_PART_OWNERS,
 } from "@composition/shared";
 
-import { Time, toCalendarDateTime } from "@internationalized/date";
+import {
+  getLocalTimeZone,
+  Time,
+  toCalendarDateTime,
+  today,
+} from "@internationalized/date";
 
 import {
   Fragment,
@@ -172,6 +177,7 @@ import {
   catalogControlledProps,
   catalogRuntimeStateOf,
   catalogSelectionValue,
+  catalogSelectValue,
   EXPANDED_KEYS,
   INPUT_VALUE,
   IS_OPEN,
@@ -179,6 +185,7 @@ import {
   SELECTED_KEY,
   SELECTED_KEYS,
   VALUE,
+  FOCUSED_VALUE,
   type CatalogStateProp,
 } from "./runtimeStateProps";
 
@@ -259,6 +266,13 @@ export interface DelegatedDomInput {
   readonly runtimeProps?: (
     recordId: string,
   ) => Readonly<Record<string, unknown>> | undefined;
+  /**
+   * A running Preview's rule handlers of a record this binding draws itself (a Tree's RAC TreeItems
+   * are not their own nodes — `withRuntime` never sees them).
+   */
+  readonly handlersOf?: (
+    recordId: string,
+  ) => Readonly<Record<string, (...args: unknown[]) => void>>;
 }
 
 /**
@@ -696,6 +710,18 @@ function treeKeys(value: unknown): string[] {
   return typeof value === "string" && value ? [value] : [];
 }
 
+/** Every TreeItem record a Tree draws (nested items included). */
+function treeItemIds(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string[] {
+  return childrenOf(root, node).flatMap((child) =>
+    catalogTypeName(root, child) === "TreeItem"
+      ? [child.id, ...treeItemIds(root, child)]
+      : [],
+  );
+}
+
 function treeItemElements(
   input: DelegatedDomInput,
   list: readonly CatalogConsumerNode[],
@@ -738,6 +764,8 @@ function treeItemElements(
           isDisabled: item.props.isDisabled === true,
           // ADR-259 Phase 1: RAC's item link (`data-href` · `data-target` · `data-rel`).
           ...catalogItemLinkProps(item.props),
+          // (The item's own rules — its `onAction` · press · hover.)
+          ...input.handlersOf?.(item.id),
         },
         ...others.map((kid) => input.renderChild(kid.id)),
         ...treeItemElements(input, childItems),
@@ -766,6 +794,7 @@ function treeItemElements(
       showInfoButton: false,
       isDisabled: item.props.isDisabled === true,
       ...catalogItemLinkProps(item.props),
+      ...input.handlersOf?.(item.id),
       children: others.map((kid) => input.renderChild(kid.id)),
       childItems: childItems.length
         ? treeItemElements(input, childItems)
@@ -1118,15 +1147,38 @@ export function catalogToggleIndicatorElement(
     : null;
 }
 
+/**
+ * RAC 1.22 splits a toggle into `CheckboxField` · `SwitchField` (the toggle's props) and its
+ * `*Button` (the `label`) — hover is the button's (`CheckboxButtonProps extends HoverEvents`;
+ * `CheckboxFieldProps` has none — installed `Checkbox.mjs` `useHover({...props})` in the button).
+ * A rule on the Checkbox · Switch node (the Field) reaches the button here.
+ */
+function toggleHoverHandlers(
+  input: DelegatedDomInput,
+): Record<string, (...args: unknown[]) => void> {
+  const owner = input.root.domInputs.get(input.node.parentId);
+  if (!owner || !TOGGLE_FIELD_TYPES.has(catalogTypeName(input.root, owner)))
+    return {};
+  return Object.fromEntries(
+    Object.entries(input.handlersOf?.(owner.id) ?? {}).filter(([name]) =>
+      name.startsWith("onHover"),
+    ),
+  );
+}
+const TOGGLE_FIELD_TYPES: ReadonlySet<string> = new Set(["Checkbox", "Switch"]);
+
 function toggleButton(
   component: ElementType,
   className: string,
   indicators: ToggleIndicators,
 ): DelegatedDomBinding {
   return {
+    // (The toggle's hover rules are drawn here — a rule added on the toggle renders it again.)
+    watchesChildren: (node) => [node.parentId],
     render: (input) =>
       createElement(component, {
         ...marker(input),
+        ...toggleHoverHandlers(input),
         style: input.style,
         className,
         children: (state: ToggleRenderProps) =>
@@ -1849,6 +1901,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   tree: {
     // TreeItem children become RAC TreeItems (title/childItems); their other children render.
     // Nested items of a collapsed parent are not rendered (ADR-239 `expandedKeys`).
+    // (The Tree draws its items: a rule added on one renders the Tree again — its handlers.)
+    watchesChildren: (node, root) => treeItemIds(root, node),
     ownsDescendant: (node, _ancestor, root) => {
       const parent = root.domInputs.get(node.parentId);
       const get = (id: string) => root.domInputs.get(id);
@@ -2052,10 +2106,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         isCalendarPicker(input, input.node)
           ? {}
           : {
+              // (RAC 1.22 Select's selection is `value` · `onChange` — S2 Picker's; the deprecated
+              // `selectedKey` is single only, RAC ignores it with `selectionMode: "multiple"`.)
               ...controlled(
                 input,
-                SELECTED_KEY,
-                runtimeState(input, "selectedKey") ?? null,
+                VALUE,
+                catalogSelectValue(
+                  runtimeState(input, "value"),
+                  input.node.props.selectionMode === "multiple",
+                ),
               ),
               ...openState(input),
             },
@@ -3201,12 +3260,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         // calendar takes the picker's value from RAC's context.)
         ...(catalogCalendarPicker(input.root, input.node)
           ? {}
-          : controlled(
-              input,
-              VALUE,
-              dateValue(props.value ?? props.defaultValue) ?? null,
-              dateToOverride,
-            )),
+          : {
+              ...controlled(
+                input,
+                VALUE,
+                dateValue(props.value ?? props.defaultValue) ?? null,
+                dateToOverride,
+              ),
+              ...focusedDateProps(input, props.value ?? props.defaultValue),
+            }),
       });
     },
   },
@@ -3220,12 +3282,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           : bool(input.node.props.allowsNonContiguousRanges),
         ...(catalogCalendarPicker(input.root, input.node)
           ? {}
-          : controlled(
-              input,
-              VALUE,
-              dateRangeValue(input.node.props.value),
-              dateRangeToOverride,
-            )),
+          : {
+              ...controlled(
+                input,
+                VALUE,
+                dateRangeValue(input.node.props.value),
+                dateRangeToOverride,
+              ),
+              ...focusedDateProps(
+                input,
+                (dateRangeValue(input.node.props.value) as { start?: unknown } | null)
+                  ?.start,
+              ),
+            }),
       }),
   },
 };
@@ -3260,6 +3329,29 @@ export const CATALOG_PICKER_RANGE_CALENDAR_PROPS: ReadonlySet<string> = new Set(
  * (a calendar has no size — the picker's size is its field's). Its `visibleDuration` ·
  * `weeksInMonth` stay the node's (ADR-256 Phase 9 — the context carries neither, `useDatePicker` `calendarProps`).
  */
+/**
+ * RAC Calendar.md "Focused value" — in a running Preview the calendar's focused date (the month it
+ * shows) is the record's runtime `focusedValue`: a rule's `focusDate` writes it, the user's
+ * navigation (`onFocusChange`) too. Controlled from the first render (ADR-280 Decision 4) — it
+ * starts where RAC would: the authored focused date, the value, else today.
+ */
+function focusedDateProps(
+  input: DelegatedDomInput,
+  value: unknown,
+): Record<string, unknown> {
+  if (!input.setRuntimeProps) return {};
+  const props = input.node.props;
+  return controlled(
+    input,
+    FOCUSED_VALUE,
+    dateValue(props.focusedValue) ??
+      dateValue(props.defaultFocusedValue) ??
+      dateValue(value) ??
+      today(getLocalTimeZone()),
+    dateToOverride,
+  );
+}
+
 function calendarElement(
   input: DelegatedDomInput,
   Component: ElementType,

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useSyncExternalStore } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   APP_ACTIONS,
@@ -12,8 +12,9 @@ import {
   type SetStateOp,
 } from "@composition/shared";
 import type {
+  CatalogCapabilityTarget,
+  EditTarget,
   InteractionEntry,
-  NodeId,
   Scalar,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
@@ -26,11 +27,14 @@ import {
 } from "../../../catalogRuntime/interactions";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { CatalogTargetPicker, catalogTargetLabels } from "./CatalogTargetPicker";
+import { catalogTargetPickFallback } from "../../../catalogRuntime/targetRef";
 import { useI18n } from "@/i18n";
 import { ActionPicker } from "../ActionPicker";
 import { CapabilityPicker } from "../CapabilityPicker";
 import { ParamField } from "../ParamField";
-import { ValueSourceField } from "../ValueSourceField";
+import { ValueField } from "../ValueField";
+import type { CatalogValueSources } from "../valueOptions";
 import { StateActionFieldsView } from "../StateActionFields";
 import { TriggerPicker } from "../TriggerPicker";
 import { triggerLabel } from "../labels";
@@ -102,13 +106,12 @@ const GROUP_LABEL_KEYS = {
   element: "interactions.stateVariableGroupElement",
 } as const;
 
+/** A target's text (the picker's label for it alone — its chain, else `type #name`). */
 const targetLabel = (target: CatalogTargetOption) =>
-  target.name ? `${target.type} #${target.name}` : target.type;
-/** A picker option: unnamed nodes of one type are told apart by their id's short tail. */
-const targetOptionLabel = (target: CatalogTargetOption) =>
-  target.name
-    ? targetLabel(target)
-    : `${target.type} (${target.id.split(":").pop()!.slice(0, 8)})`;
+  catalogTargetLabels([target]).get(target.key)!;
+
+/** ADR-283 — why a rule's target names nothing from the selected place. */
+export type CatalogTargetNotice = "unset" | "outOfContext";
 
 interface CatalogRuleRowProps {
   rule: InteractionEntry;
@@ -116,12 +119,20 @@ interface CatalogRuleRowProps {
   context: CatalogActionContext;
   /** Do choices that have something to point at. */
   choices: readonly ActionChoice[];
-  /** A target the page list does not hold (another page's node): its type and label. */
-  describeTarget: (id: NodeId) => CatalogTargetOption | undefined;
+  /** ADR-283 — the option a stored target stands for (its type, labels, document place). */
+  describeTarget: (ref: CatalogCapabilityTarget) => CatalogTargetOption | undefined;
+  /** ADR-283 Decision 2 — whether the target names a record from the selected place. */
+  targetNotice: (ref: CatalogCapabilityTarget) => CatalogTargetNotice | undefined;
+  /** ADR-283 Decision 4 — the list highlights its option on the Canvas (and back). */
+  onTargetHover: (option: CatalogTargetOption | undefined) => void;
+  canvasHoverKey?: string;
+  /** ADR-283 Decision 5 — pick this rule's target on the Canvas. */
+  onAim?: () => void;
+  aiming?: boolean;
   /** ADR-281 Decision 1 — the owner's restricting props (what its When offers). */
   exposure: ExposureInput;
   /** ADR-281 Decision 1 — a target's restricting props (what its Do offers). */
-  targetExposure: (id: NodeId) => ExposureInput;
+  targetExposure: (edit: EditTarget) => ExposureInput;
   expanded: boolean;
   onToggle: () => void;
   onChange: (rule: InteractionEntry) => void;
@@ -139,6 +150,11 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
   context,
   choices,
   describeTarget,
+  targetNotice,
+  onTargetHover,
+  canvasHoverKey,
+  onAim,
+  aiming,
   exposure,
   targetExposure,
   expanded,
@@ -152,11 +168,33 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
     onChange({ ...rule, action: next });
 
   const target =
-    action.opcode === "capability"
-      ? (context.targets.find((option) => option.id === action.targetId) ??
-        describeTarget(action.targetId))
-      : undefined;
+    action.opcode === "capability" ? describeTarget(action.target) : undefined;
   const targetType = target?.type ?? "";
+  const notice =
+    action.opcode === "capability" ? targetNotice(action.target) : undefined;
+  // ADR-283 Decision 4 — a new target that does not take the capability: the line says what
+  // changed (never a silent fallback); it stays until the next change.
+  const [fallback, setFallback] = useState<
+    { target: string; from: string; to: string } | undefined
+  >(undefined);
+  // (A Canvas pick's fallback — the same line.)
+  const picked = useSyncExternalStore(
+    catalogTargetPickFallback.subscribe,
+    catalogTargetPickFallback.get,
+  );
+  const capabilityLabel = (id: string) => {
+    const def = resolveCapabilities(targetType)[id];
+    return def ? t(def.labelKey) : id;
+  };
+  const shownFallback =
+    fallback ??
+    (picked?.ruleId === rule.id && target
+      ? {
+          target: targetLabel(target),
+          from: capabilityLabel(picked.from),
+          to: capabilityLabel(picked.to),
+        }
+      : undefined);
 
   const summary = useMemo(() => {
     const when = triggerLabel(componentType, rule.trigger, t);
@@ -204,10 +242,10 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
     if (action.opcode === "capability") {
       const capability = resolveCapabilities(targetType)[action.capabilityId];
       const label = capability ? t(capability.labelKey) : action.capabilityId;
-      return `${when} → ${label} @ ${target ? targetLabel(target) : t("interactions.targetUnset")}`;
+      return `${when} → ${label} @ ${target && notice !== "unset" ? targetLabel(target) : t("interactions.targetUnset")}`;
     }
     return when;
-  }, [action, componentType, context, rule.trigger, t, target, targetType]);
+  }, [action, componentType, context, notice, rule.trigger, t, target, targetType]);
 
   // ADR-281 Decision 1 — a rule the declared props now stop is kept, marked with the reason the
   // dispatcher reports (never deleted).
@@ -219,7 +257,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
       ? capabilityRefusal(
           targetType,
           action.capabilityId,
-          targetExposure(action.targetId),
+          target ? targetExposure(target.edit) : { props: {} },
         )
       : undefined;
   }, [action, componentType, exposure, rule.trigger, targetExposure, targetType]);
@@ -238,6 +276,16 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         groupLabelKey: GROUP_LABEL_KEYS[variable.group],
       })),
     [context.variables],
+  );
+  // 「값 고르기」 — what this rule's values can name: its When's arguments, the owner's selected
+  //   item (a bound owner's keys), the variables in reach.
+  const valueSources = useMemo<CatalogValueSources>(
+    () => ({
+      eventArgs: eventArgsOf(componentType, rule.trigger),
+      ...(context.ownerItems ? { items: context.ownerItems } : {}),
+      variables: context.variables,
+    }),
+    [componentType, context.ownerItems, context.variables, rule.trigger],
   );
 
   return (
@@ -327,6 +375,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
           {action.opcode === "setState" && (
             <StateActionFieldsView
               variables={variableOptions}
+              valueSources={valueSources}
               allowUnset={false}
               action={{
                 variableId: action.variableId,
@@ -370,10 +419,11 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 }))}
                 translateOptions={false}
               />
-              <ValueSourceField
-                param={{ kind: "text", labelKey: "interactions.endpointBody" }}
+              <ValueField
+                label={t("interactions.endpointBody")}
+                kind="text"
                 value={action.body}
-                eventArgs={eventArgsOf(componentType, rule.trigger)}
+                sources={valueSources}
                 onChange={(value) =>
                   setAction(
                     value === "" || value === undefined
@@ -403,14 +453,12 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 translateOptions={false}
               />
               {LIST_DATA_FIELDS[action.opcode].map((field) => (
-                <ValueSourceField
+                <ValueField
                   key={field}
-                  param={{
-                    kind: "text",
-                    labelKey: listDataFieldLabelKey(action.opcode as ListDataOpcode, field),
-                  }}
+                  label={t(listDataFieldLabelKey(action.opcode as ListDataOpcode, field))}
+                  kind="text"
                   value={(action as Record<string, unknown>)[field]}
-                  eventArgs={eventArgsOf(componentType, rule.trigger)}
+                  sources={valueSources}
                   onChange={(value) => {
                     const next = { ...action } as Record<string, unknown>;
                     if (value === "" || value === undefined) delete next[field];
@@ -424,54 +472,79 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
 
           {action.opcode === "capability" && (
             <>
-              <PropertySelect
+              <CatalogTargetPicker
                 label={t("interactions.target")}
-                value={action.targetId}
-                onChange={(targetId) => {
-                  const next = context.targets.find(
-                    (option) => option.id === targetId,
-                  );
-                  if (!next) return;
+                value={target ? targetLabel(target) : undefined}
+                options={context.targets as () => CatalogTargetOption[]}
+                onHover={onTargetHover}
+                canvasHoverKey={canvasHoverKey}
+                onAim={onAim}
+                aiming={aiming}
+                onPick={(next) => {
                   const capabilities = exposedCapabilities(
                     next.type,
-                    targetExposure(next.id),
+                    targetExposure(next.edit),
+                  );
+                  const keeps = action.capabilityId in capabilities;
+                  const label = (id: string) => {
+                    const def = resolveCapabilities(next.type)[id] ?? resolveCapabilities(targetType)[id];
+                    return def ? t(def.labelKey) : id;
+                  };
+                  setFallback(
+                    keeps
+                      ? undefined
+                      : {
+                          target: targetLabel(next),
+                          from: label(action.capabilityId),
+                          to: label("hide"),
+                        },
                   );
                   setAction({
                     opcode: "capability",
-                    targetId: next.id,
-                    capabilityId:
-                      action.capabilityId in capabilities
-                        ? action.capabilityId
-                        : "hide",
+                    target: next.ref,
+                    capabilityId: keeps ? action.capabilityId : "hide",
                   });
                 }}
-                options={[
-                  ...(target && !context.targets.includes(target)
-                    ? [target]
-                    : []),
-                  ...context.targets,
-                ].map((option) => ({
-                  value: option.id,
-                  label: targetOptionLabel(option),
-                }))}
               />
+              {shownFallback && (
+                <div
+                  className="interactions-target-notice"
+                  role="status"
+                  data-tone="warning"
+                >
+                  {t("interactions.capabilityFallback", shownFallback)}
+                </div>
+              )}
+              {notice && (
+                <div
+                  className="interactions-target-notice"
+                  role="status"
+                  data-tone="warning"
+                >
+                  {notice === "unset"
+                    ? `${t("interactions.targetUnset")} · ${t("interactions.targetRepoint")}`
+                    : t("interactions.targetOutOfContext")}
+                </div>
+              )}
               <CapabilityPicker
                 targetType={targetType}
                 value={action.capabilityId}
-                exposure={targetExposure(action.targetId)}
-                onChange={(capabilityId) =>
+                exposure={target ? targetExposure(target.edit) : { props: {} }}
+                onChange={(capabilityId) => {
+                  setFallback(undefined);
                   setAction({
                     opcode: "capability",
-                    targetId: action.targetId,
+                    target: action.target,
                     capabilityId,
-                  })
-                }
+                  });
+                }}
               />
               {capabilityDef?.param && (
-                <ValueSourceField
-                  param={capabilityDef.param}
+                <ValueField
+                  label={t(capabilityDef.param.labelKey)}
+                  kind={capabilityDef.param.kind === "number" ? "number" : "text"}
                   value={action.value}
-                  eventArgs={eventArgsOf(componentType, rule.trigger)}
+                  sources={valueSources}
                   onChange={(value) =>
                     setAction({ ...action, value: value as Scalar })
                   }

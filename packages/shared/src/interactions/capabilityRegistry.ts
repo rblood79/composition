@@ -77,6 +77,8 @@ export interface CapabilityDef {
    * `selectionMode: "single"` replaces); absent = the resolved value is written as is.
    */
   op?: "add" | "remove";
+  /** The selection mode RAC uses when `selectionMode` is unset (a Select's `"single"`). */
+  selectionDefault?: "single";
 }
 
 export interface ComponentCapability {

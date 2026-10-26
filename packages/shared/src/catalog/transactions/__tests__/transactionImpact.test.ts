@@ -136,7 +136,7 @@ function fixture(): CatalogDocument {
       trigger: "press",
       action: {
         opcode: "capability",
-        targetId: "project:node:leafB1",
+        target: { nodeId: "project:node:leafB1" },
         capabilityId: "selectItem",
       },
     },

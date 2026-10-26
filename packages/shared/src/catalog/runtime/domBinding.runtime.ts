@@ -2766,6 +2766,7 @@ function authoredStyle(
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
+    if (key === "aspectRatio") continue; // written below from the resolved ratio
     const textCss =
       TYPOGRAPHY_KEYS.has(key) &&
       carriesText &&
@@ -3151,6 +3152,8 @@ export function renderNode(
           ? {
               runtimeProps: (recordId: string) =>
                 context.runtime!.overrideOf(recordId),
+              handlersOf: (recordId: string) =>
+                context.runtime!.handlersOf(recordId),
             }
           : {}),
         ...(context.runtime?.setRuntimeProps

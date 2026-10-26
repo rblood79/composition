@@ -62,7 +62,19 @@ function ownedVariables(
 }
 
 /** A catalog value type in the shared variable model (structured values are arrays). */
-function variableType(type: ValueType): VariableDefType {
+/** A document variable's default: a structured one's `""` is nothing yet (`null`). */
+function documentDefault(variable: {
+  valueType: ValueType | "object" | "array";
+  defaultValue: unknown;
+}): unknown {
+  return (variable.valueType === "object" || variable.valueType === "array") &&
+    variable.defaultValue === ""
+    ? null
+    : variable.defaultValue;
+}
+
+function variableType(type: ValueType | "object" | "array"): VariableDefType {
+  if (type === "object" || type === "array") return type;
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"
@@ -122,7 +134,7 @@ export function catalogRecordVariables(
           id: variable.id,
           name: variable.name,
           type: variableType(variable.valueType),
-          defaultValue: variable.defaultValue,
+          defaultValue: documentDefault(variable),
           scope: { kind: "element", instanceKey },
         });
   }
@@ -132,7 +144,7 @@ export function catalogRecordVariables(
         id: variable.id,
         name: variable.name,
         type: variableType(variable.valueType),
-        defaultValue: variable.defaultValue,
+        defaultValue: documentDefault(variable),
         scope: { kind: "page", pageId },
       });
   for (const variable of projectVariables)
@@ -205,7 +217,7 @@ export function catalogBindingKey(
         id: variable.id,
         name: variable.name,
         type: variableType(variable.valueType),
-        defaultValue: variable.defaultValue,
+        defaultValue: documentDefault(variable),
         scope: { kind: "page", pageId },
       });
     break;
@@ -271,7 +283,7 @@ export function catalogRuntimeVariables(
         id: variable.id,
         name: variable.name,
         type: variableType(variable.valueType),
-        defaultValue: variable.defaultValue,
+        defaultValue: documentDefault(variable),
       },
       owner:
         owner?.kind === "page"

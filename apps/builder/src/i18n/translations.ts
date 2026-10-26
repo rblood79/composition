@@ -389,7 +389,7 @@ const koKR: TranslationKeys = {
     swapLibrary: "라이브러리",
     swapPreferred: "추천",
     swapped:
-      "{name} 으로 교체 — 유지 {kept} · 버림 {dropped} · 밖으로 {movedOut}",
+      "{name} 으로 교체 — 유지 {kept} · 버림 {dropped} · 밖으로 {movedOut} · 대상 없음 {targetsUnset}",
     systemOriginLocked: "라이브러리 컴포넌트는 분리할 수 없습니다",
     pushChanges: "원본에 반영",
     resetAllChanges: "전부 되돌리기",
@@ -762,10 +762,14 @@ const koKR: TranslationKeys = {
     inheritedEnabled: "이 instance 에서 실행",
     inheritedReplace: "이 instance 에서 바꾸기",
     inheritedReplaced: "이 instance 의 규칙이 대신 실행됨",
-    valueSource: "값 소스",
-    valueSourceLiteral: "직접 입력",
-    valueSourceEvent: "이벤트 인자",
-    eventArgument: "인자",
+    valuePick: "값 고르기",
+    valueSearch: "값 검색",
+    valueGroupEvent: "이번 이벤트",
+    valueGroupItem: "선택한 항목",
+    valueGroupVariable: "변수",
+    valueItemWhole: "항목 전체",
+    valueClear: "값 지우기",
+    valueTypeMismatch: "값의 type 이 변수와 맞지 않습니다",
     trigger: {
       press: {
         onPress: "누를 때",
@@ -789,6 +793,10 @@ const koKR: TranslationKeys = {
       },
       dragDrop: {
         onDrop: "파일을 놓을 때",
+        onDropEnter: "끌어 온 것이 들어올 때",
+        onDropMove: "끌어 온 것이 움직일 때",
+        onDropActivate: "끌어 온 채 머물 때",
+        onDropExit: "끌어 온 것이 나갈 때",
       },
       toggle: {
         onChange: "선택 상태가 바뀔 때",
@@ -823,6 +831,7 @@ const koKR: TranslationKeys = {
       action: {
         onAction: "항목을 실행할 때",
         onRowAction: "행을 실행할 때",
+        onClose: "메뉴가 닫혀야 할 때",
       },
       sort: {
         onSortChange: "정렬이 바뀔 때",
@@ -839,6 +848,7 @@ const koKR: TranslationKeys = {
       form: {
         onSubmit: "제출할 때",
         onReset: "초기화할 때",
+        onInvalid: "잘못된 필드가 있을 때",
       },
     },
     triggerGroup: {
@@ -895,6 +905,14 @@ const koKR: TranslationKeys = {
     capability: "기능",
     target: "대상",
     targetUnset: "대상 미지정",
+    targetGroupPage: "이 페이지",
+    targetGroupComponent: "컴포넌트 안",
+    targetSearch: "대상 검색",
+    targetRepoint: "다시 지정",
+    targetAim: "Canvas 에서 대상 지정",
+    targetPickBanner: "대상으로 쓸 요소를 클릭 · Esc 로 취소",
+    targetPickNoCapability: "기능 없음",
+    targetOutOfContext: "이 자리에서는 대상에 닿지 않음",
     navigatePage: "페이지",
     rulesTitle: "규칙",
     selectElement: "요소를 선택하세요",
@@ -932,11 +950,18 @@ const koKR: TranslationKeys = {
     expand: "펼치기",
     collapse: "접기",
     collapseAll: "모두 접기",
+    collapseItem: "항목 접기",
+    toggleExpand: "펼침 전환",
     open: "열기",
     close: "닫기",
+    toggleOpen: "열림 전환",
     check: "체크",
     uncheck: "체크 해제",
     toggleCheck: "체크 전환",
+    checkItem: "값 체크",
+    uncheckItem: "값 체크 해제",
+    focusDate: "날짜로 이동",
+    paramDate: "날짜 (YYYY-MM-DD)",
     turnOn: "켜기",
     turnOff: "끄기",
     toggleOnOff: "켬/끔 전환",
@@ -2764,7 +2789,7 @@ const enUS: TranslationKeys = {
     swapLibrary: "Library",
     swapPreferred: "Preferred",
     swapped:
-      "Swapped to {name} — kept {kept} · dropped {dropped} · moved out {movedOut}",
+      "Swapped to {name} — kept {kept} · dropped {dropped} · moved out {movedOut} · no target {targetsUnset}",
     systemOriginLocked: "Library components can't be detached",
     pushChanges: "Push changes to component",
     resetAllChanges: "Reset all changes",
@@ -3136,10 +3161,14 @@ const enUS: TranslationKeys = {
     inheritedEnabled: "Runs in this instance",
     inheritedReplace: "Replace in this instance",
     inheritedReplaced: "This instance's own rule runs instead",
-    valueSource: "Value source",
-    valueSourceLiteral: "Literal",
-    valueSourceEvent: "Event argument",
-    eventArgument: "Argument",
+    valuePick: "Pick a value",
+    valueSearch: "Search values",
+    valueGroupEvent: "This event",
+    valueGroupItem: "Selected item",
+    valueGroupVariable: "Variables",
+    valueItemWhole: "Whole item",
+    valueClear: "Clear value",
+    valueTypeMismatch: "The value's type doesn't fit the variable",
     trigger: {
       press: {
         onPress: "On press",
@@ -3163,6 +3192,10 @@ const enUS: TranslationKeys = {
       },
       dragDrop: {
         onDrop: "On file drop",
+        onDropEnter: "On drag enter",
+        onDropMove: "On drag move",
+        onDropActivate: "On drag hold",
+        onDropExit: "On drag exit",
       },
       toggle: {
         onChange: "On check change",
@@ -3197,6 +3230,7 @@ const enUS: TranslationKeys = {
       action: {
         onAction: "On item action",
         onRowAction: "On row action",
+        onClose: "On menu close",
       },
       sort: {
         onSortChange: "On sort change",
@@ -3213,6 +3247,7 @@ const enUS: TranslationKeys = {
       form: {
         onSubmit: "On submit",
         onReset: "On reset",
+        onInvalid: "On invalid field",
       },
     },
     triggerGroup: {
@@ -3269,6 +3304,14 @@ const enUS: TranslationKeys = {
     capability: "Capability",
     target: "Target",
     targetUnset: "No target",
+    targetGroupPage: "This page",
+    targetGroupComponent: "Inside components",
+    targetSearch: "Search targets",
+    targetRepoint: "Point again",
+    targetAim: "Pick the target on the Canvas",
+    targetPickBanner: "Click the element to target · Esc to cancel",
+    targetPickNoCapability: "No capability",
+    targetOutOfContext: "The target is out of reach here",
     navigatePage: "Page",
     rulesTitle: "Rules",
     selectElement: "Select an element",
@@ -3306,11 +3349,18 @@ const enUS: TranslationKeys = {
     expand: "Expand",
     collapse: "Collapse",
     collapseAll: "Collapse all",
+    collapseItem: "Collapse item",
+    toggleExpand: "Toggle expanded",
     open: "Open",
     close: "Close",
+    toggleOpen: "Toggle open",
     check: "Check",
     uncheck: "Uncheck",
     toggleCheck: "Toggle check",
+    checkItem: "Check value",
+    uncheckItem: "Uncheck value",
+    focusDate: "Go to date",
+    paramDate: "Date (YYYY-MM-DD)",
     turnOn: "Turn on",
     turnOff: "Turn off",
     toggleOnOff: "Toggle on/off",
@@ -5976,7 +6026,7 @@ const formattedMessages: Record<
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override 해제됨`,
     "componentAction.swapped": (args) =>
-      `${String(args?.name ?? "")} 으로 교체 — 유지 ${String(args?.kept ?? 0)} · 버림 ${String(args?.dropped ?? 0)} · 밖으로 ${String(args?.movedOut ?? 0)}`,
+      `${String(args?.name ?? "")} 으로 교체 — 유지 ${String(args?.kept ?? 0)} · 버림 ${String(args?.dropped ?? 0)} · 밖으로 ${String(args?.movedOut ?? 0)} · 대상 없음 ${String(args?.targetsUnset ?? 0)}`,
     "componentAction.pushed": (args) =>
       `${String(args?.name ?? "")} 원본에 반영됨`,
     "propertiesPanel.componentPropertyLayers": (args) =>
@@ -6262,6 +6312,16 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} 은 트리거를 제공하지 않습니다`,
     "interactions.racRefuses": (args) =>
       `지금 RAC 가 받지 않음 (${String(args?.reason ?? "")})`,
+    "interactions.capabilityFallback": (args) =>
+      `${String(args?.target ?? "")} 는 ‘${String(args?.from ?? "")}’ 을 받지 않아 ‘${String(args?.to ?? "")}’ 로 바꿨습니다 · 실행 취소로 되돌릴 수 있습니다`,
+    "interactions.targetPickOwner": (args) =>
+      `${String(args?.part ?? "")} → ${String(args?.owner ?? "")} (상태 소유)`,
+    "interactions.valueTypeMismatch": (args) =>
+      `${String(args?.actual ?? "")} 값은 ${String(args?.expected ?? "")} 변수에 맞지 않습니다 — 변수 type 을 바꾸거나 다른 값을 고르세요`,
+    "interactions.targetPickDeep": (args) =>
+      `${String(args?.key ?? "")} 클릭 = 안쪽 요소`,
+    "interactions.publishTargetsUnset": (args) =>
+      `대상 없는 규칙 ${String(args?.count ?? 0)} 개 — Interactions 에서 다시 지정하세요`,
     "interactions.summaryCallEndpoint": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 호출`,
     "interactions.summaryAppend": (args) =>
@@ -6540,7 +6600,7 @@ const formattedMessages: Record<
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override cleared`,
     "componentAction.swapped": (args) =>
-      `Swapped to ${String(args?.name ?? "")} — kept ${String(args?.kept ?? 0)} · dropped ${String(args?.dropped ?? 0)} · moved out ${String(args?.movedOut ?? 0)}`,
+      `Swapped to ${String(args?.name ?? "")} — kept ${String(args?.kept ?? 0)} · dropped ${String(args?.dropped ?? 0)} · moved out ${String(args?.movedOut ?? 0)} · no target ${String(args?.targetsUnset ?? 0)}`,
     "componentAction.pushed": (args) => `Pushed to ${String(args?.name ?? "")}`,
     "propertiesPanel.componentPropertyLayers": (args) =>
       Number(args?.count ?? 0) === 1
@@ -6831,6 +6891,16 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} provides no triggers`,
     "interactions.racRefuses": (args) =>
       `RAC does not take this now (${String(args?.reason ?? "")})`,
+    "interactions.capabilityFallback": (args) =>
+      `${String(args?.target ?? "")} does not take ‘${String(args?.from ?? "")}’ — changed to ‘${String(args?.to ?? "")}’ · Undo reverts it`,
+    "interactions.targetPickOwner": (args) =>
+      `${String(args?.part ?? "")} → ${String(args?.owner ?? "")} (owns the state)`,
+    "interactions.valueTypeMismatch": (args) =>
+      `A ${String(args?.actual ?? "")} value doesn't fit a ${String(args?.expected ?? "")} variable — change the variable's type or pick another value`,
+    "interactions.targetPickDeep": (args) =>
+      `${String(args?.key ?? "")} click = the element inside`,
+    "interactions.publishTargetsUnset": (args) =>
+      `${String(args?.count ?? 0)} rule(s) have no target — point them again in Interactions`,
     "interactions.summaryCallEndpoint": (args) =>
       `${String(args?.when ?? "")} → call ${String(args?.name ?? "")}`,
     "interactions.summaryAppend": (args) =>

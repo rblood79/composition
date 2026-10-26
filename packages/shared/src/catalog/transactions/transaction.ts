@@ -734,7 +734,42 @@ export function applyCatalogTransaction(
     if (!structural && before.get(id)?.kind !== entry?.kind)
       throw new CatalogValidationError("LEAF_KIND_CHANGED", id);
   }
-  if (structural) graph.validateStructuralDelta(staged, get, library);
+  if (structural) {
+    graph.validateStructuralDelta(staged, get, library);
+    // ADR-283 Decision 1: a rule's capability target is checked against its owner chain (a page
+    // node, not a template's) — a node moved into a template re-checks the rules naming it.
+    const rechecked = new Set<string>();
+    const visited = new Set<string>();
+    // (Only what changed owner: the children a staged record gained, and their subtrees.)
+    const stack = [...staged].flatMap(([id, entry]) => {
+      if (!entry || (entry.kind !== "node" && entry.kind !== "definition"))
+        return [];
+      const old = before.get(id);
+      const had = new Set<string>(
+        old && (old.kind === "node" || old.kind === "definition")
+          ? ownedChildren(old)
+          : [],
+      );
+      return (ownedChildren(entry) as string[]).filter((child) => !had.has(child));
+    });
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+      const node = get(id);
+      if (node?.kind === "node") stack.push(...ownedChildren(node));
+      for (const referrerId of stage.referrersOf(id)) {
+        if (staged.has(referrerId) || rechecked.has(referrerId)) continue;
+        rechecked.add(referrerId);
+        const referrer = get(referrerId);
+        if (
+          referrer?.kind === "interaction" &&
+          referrer.action.opcode === "capability"
+        )
+          graph.validateEntryReferences(referrer, get, library, ownerOf);
+      }
+    }
+  }
   // Owners before the commit: a removed node keeps its old parent in the impact.
   const ownerBefore = new Map<string, string>();
   for (const id of staged.keys()) {

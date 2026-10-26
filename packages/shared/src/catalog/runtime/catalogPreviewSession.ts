@@ -655,30 +655,50 @@ export class CatalogPreviewSession {
     value,
     instanceKeyFor,
   }) => {
+    const scope = this.variableScope(variableId, instanceKeyFor);
+    if ("reason" in scope) return { ok: false, reason: scope.reason };
+    const result = this.state!.write({ variableId, op, value, scope: scope.scope });
+    return result.ok
+      ? { ok: true }
+      : { ok: false, reason: result.reason ?? "setState 실패" };
+  };
+  /** A variable's current value as a rule reads it (`!var.<id>` — the scope `writeState` writes). */
+  readVariable: NonNullable<DispatchDeps["readState"]> = ({
+    variableId,
+    instanceKeyFor,
+  }) => {
+    const scope = this.variableScope(variableId, instanceKeyFor);
+    return "reason" in scope
+      ? undefined
+      : { value: this.state!.read(variableId, scope.scope) };
+  };
+  /**
+   * The scope a variable's value lives in. An element variable's value lives under the record that
+   * draws its owner in the trigger's render context (`instanceKeyFor`), else the owner's first record.
+   */
+  private variableScope(
+    variableId: string,
+    instanceKeyFor: ((ownerElementId: string) => string) | undefined,
+  ): { scope: RuntimeScope } | { reason: string } {
     const definition = this.state?.getDefinition(variableId);
-    if (!this.state || !definition)
-      return { ok: false, reason: `변수 없음: ${variableId}` };
+    if (!this.state || !definition) return { reason: `변수 없음: ${variableId}` };
     const owner = definition.owner;
-    let scope: RuntimeScope;
     if (owner.kind === "element") {
       const key = instanceKeyFor?.(owner.elementId);
       const instanceKey =
         key && this.currentRoot?.domInputs.has(key)
           ? key
           : this.currentRoot?.recordsOfSource(owner.elementId)[0];
-      if (!instanceKey)
-        return { ok: false, reason: `변수 소유 요소 없음: ${owner.elementId}` };
-      scope = { kind: "element", instanceKey };
-    } else
-      scope =
+      if (!instanceKey) return { reason: `변수 소유 요소 없음: ${owner.elementId}` };
+      return { scope: { kind: "element", instanceKey } };
+    }
+    return {
+      scope:
         owner.kind === "page"
           ? { kind: "page", pageId: owner.pageId }
-          : { kind: "project" };
-    const result = this.state.write({ variableId, op, value, scope });
-    return result.ok
-      ? { ok: true }
-      : { ok: false, reason: result.reason ?? "setState 실패" };
-  };
+          : { kind: "project" },
+    };
+  }
   /**
    * ADR-257 Phase 4 — a Table's Preview sort (RAC `onSortChange`; undefined = the document's
    * order). A bound Table's rows are sorted by the resolver before its height takes them, so the
@@ -735,6 +755,29 @@ export class CatalogPreviewSession {
     return !collection.useMockData && collection.runtimeData
       ? collection.runtimeData
       : (collection.mockData ?? []);
+  }
+  /**
+   * `useListData.getItem(key)` for each key (in key order; `"all"` = every item shown): the items as
+   * the Preview shows them, keyed as the bound components key them (`getItemKey` with the binding's
+   * value field) — a tree's children included.
+   */
+  itemsByKeys(
+    collectionId: string,
+    keys: readonly string[] | "all",
+  ): readonly unknown[] {
+    const items = this.collectionItems(collectionId) as CatalogItems;
+    if (keys === "all") return items;
+    const keyField = this.treeFieldKeyOf(collectionId, "value");
+    const childrenField = this.childrenKeyOf(collectionId);
+    const byKey = new Map<string, unknown>();
+    const visit = (level: CatalogItems) =>
+      level.forEach((item, index) => {
+        byKey.set(itemKey(item, index, keyField), item);
+        const children = childrenField ? item[childrenField] : undefined;
+        if (Array.isArray(children)) visit(children as CatalogItems);
+      });
+    visit(items);
+    return keys.flatMap((key) => (byKey.has(key) ? [byKey.get(key)] : []));
   }
   /**
    * The schema's fields of a rule's value: a `number` field as a number, a `boolean` one as a

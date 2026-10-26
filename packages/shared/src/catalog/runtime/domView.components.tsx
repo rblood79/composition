@@ -17,6 +17,20 @@ import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
 
 import { catalogToastPosition, rootKey } from "./domView.runtime";
 
+/** The Preview router's `navigate`: a route moves the page, an `#anchor` scrolls to its element. */
+export function catalogPreviewNavigate(
+  session: CatalogPreviewSession,
+): (path: string) => void {
+  return (path) => {
+    if (!path.startsWith("#")) {
+      session.navigateTo(path);
+      return;
+    }
+    const id = decodeURIComponent(path.slice(1));
+    if (id) document.getElementById(id)?.scrollIntoView?.();
+  };
+}
+
 export function CatalogPreviewView({
   session,
   runtime,
@@ -40,8 +54,10 @@ export function CatalogPreviewView({
     );
   // RAC's client routing (the reference's `RouterProvider`): an item's, a row's or a link's own
   // `href` goes to the session's router (`:param` routes, the 404 page), never a document load.
+  // (An `#anchor` stays on the page — RAC prevents the browser's jump, so it scrolls here; the
+  // palette Link's `#` was a 404 — RAC event audit 2026-10-26.)
   return (
-    <RouterProvider navigate={(path) => session.navigateTo(path)}>
+    <RouterProvider navigate={catalogPreviewNavigate(session)}>
       <Fragment key={`${rootKey(root)}:${record}`}>
         {renderCatalogDom(root, record, { slotMode: "page", runtime })}
       </Fragment>

@@ -26,7 +26,7 @@ async function formWithButton(capabilityId: "submit" | "reset") {
   harness.rule(form, "onSubmit", { opcode: "toast", message: "submitted" });
   harness.rule(button, "onPress", {
     opcode: "capability",
-    targetId: form,
+    target: { nodeId: form },
     capabilityId,
   });
   /** Each submit event's `defaultPrevented`, read after the Preview's handlers ran. */

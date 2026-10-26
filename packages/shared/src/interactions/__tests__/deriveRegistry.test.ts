@@ -155,6 +155,12 @@ const OWNER_MOVED: readonly string[] = [
 ];
 
 /**
+ * Exception 3 — a name RAC deprecated (RAC event audit 2026-10-26): RAC 1.22 Select's selection is
+ * `value` · `onChange` (S2 Picker's); `onSelectionChange` is single-only and stays derived, hidden.
+ */
+const DEPRECATED_HIDDEN: readonly string[] = ["Select.events.onSelectionChange"];
+
+/**
  * Exception 2 — `default*` → controlled transition (Decision 4 · R1): the capability writes the
  * concept's controlled prop once Phase 2 makes the binding controlled. Until then the spec's
  * `legacyProp` keeps the old prop; G1 pins both ends of each pair.
@@ -202,8 +208,11 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
         continue;
       }
       for (const event of hand.events)
-        if (!derived.events.includes(event))
+        if (!derived.events.includes(event)) {
           missing.push(`${type}.events.${event}`);
+          if (DEPRECATED_HIDDEN.includes(`${type}.events.${event}`))
+            expect(derived.hiddenEvents).toContain(event);
+        }
       for (const name of Object.keys(hand.capabilities))
         if (!derived.capabilities[name])
           missing.push(`${type}.capabilities.${name}`);
@@ -212,7 +221,7 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
         if (!derived.deferred?.includes(name) && !derived.capabilities[name])
           missing.push(`${type}.deferred.${name}`);
     }
-    expect(missing).toEqual(OWNER_MOVED);
+    expect(missing).toEqual([...DEPRECATED_HIDDEN, ...OWNER_MOVED]);
   });
 
   it("every hand capability keeps its prop, except the listed transitions", () => {
@@ -269,18 +278,31 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
     // props are not a RAC component's state — nothing restricts writing them.)
     expect(
       without.filter((name) => !/^(body|frame)\./.test(name)),
-    ).toEqual(["ColorSwatchPicker.setValue", "Table.sort"]);
+    ).toEqual([
+      "ColorSwatchPicker.setValue",
+      "Table.sort",
+      // (RAC restricts a calendar's focused date with nothing — `focusedValue` moves when disabled.)
+      "Calendar.focusDate",
+      "RangeCalendar.focusDate",
+    ]);
   });
 
-  it("an item owner offers no When; keyboard is never offered (Q3)", () => {
+  it("an item offers its own onAction only (its press · hover · focus are hidden); keyboard is never offered (Q3)", () => {
+    // (RAC event audit 2026-10-26 — an item's `onAction` is RAC's item callback, offered on the
+    // item node; the state events stay the collection's.)
     for (const type of [
       "ListBoxItem",
       "GridListItem",
       "TreeItem",
       "Row",
       "Tag",
-    ])
-      expect(CAPABILITY_REGISTRY[type]?.events).toEqual([]);
+      "MenuItem",
+    ]) {
+      expect(CAPABILITY_REGISTRY[type]?.events, type).toEqual(["onAction"]);
+      expect(CAPABILITY_REGISTRY[type]?.hiddenEvents, type).toContain("onPress");
+    }
+    for (const type of ["Tab", "Radio"])
+      expect(CAPABILITY_REGISTRY[type]?.events, type).toEqual([]);
     for (const [type, entry] of Object.entries(CAPABILITY_REGISTRY))
       expect(entry.events, type).not.toContain("onKeyDown");
   });

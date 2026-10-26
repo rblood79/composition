@@ -34,7 +34,7 @@ describe("ADR-280 Phase 0 — RED 1: a collection's selection capability does no
     const [listBox, button] = ids as [NodeId, NodeId];
     rule(button, "onPress", {
       opcode: "capability",
-      targetId: listBox,
+      target: { nodeId: listBox },
       capabilityId: "selectItem",
       value: "starred",
     });
@@ -61,7 +61,7 @@ describe("ADR-280 Phase 0 — RED 1: a collection's selection capability does no
     expect(key).toBeTruthy();
     rule(button, "onPress", {
       opcode: "capability",
-      targetId: gridList,
+      target: { nodeId: gridList },
       capabilityId: "selectItem",
       value: key!,
     });
@@ -115,7 +115,7 @@ describe("ADR-280 Phase 0 — RED 4: a capability write ignores RAC's constraint
     declare(checkbox, { isSelected: false, isDisabled: true });
     rule(button, "onPress", {
       opcode: "capability",
-      targetId: checkbox,
+      target: { nodeId: checkbox },
       capabilityId: "check",
     });
     press(element(button));
@@ -142,7 +142,7 @@ describe("ADR-280 Phase 0 — RED 5: Form submit / reset do not run", () => {
     rule(form, "onSubmit", { opcode: "toast", message: "submitted" });
     rule(button, "onPress", {
       opcode: "capability",
-      targetId: form,
+      target: { nodeId: form },
       capabilityId: "submit",
     });
     press(element(button));

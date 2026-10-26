@@ -146,6 +146,11 @@ import { catalogScrollbarContent } from "./catalogScrollbarContent";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
 import { CatalogTextEditor } from "./CatalogTextEditor";
 import {
+  CatalogTargetPickOverlay,
+  setCatalogTargetPickTag,
+} from "./CatalogTargetPickOverlay";
+import { catalogTargetPickFallback } from "../../../catalogRuntime/targetRef";
+import {
   bindCatalogCamera,
   openCatalogCameraMemory,
 } from "./catalogViewMemory";
@@ -1253,9 +1258,63 @@ export function CatalogCanvas({
         ? elements[0]!.identity
         : undefined;
     };
+    /**
+     * ADR-283 Decision 5 — while a rule's target is picked, the press names the target instead of
+     * selecting: what a click would select (⌘ the element itself), raised to a part's state owner.
+     */
+    // (The pick's raise tables load when a pick starts — they stay out of the initial bundle, G4.)
+    let pickModule:
+      | typeof import("../../../catalogRuntime/targetPick")
+      | undefined;
+    const loadPickModule = () => {
+      if (!pickModule && workspace.session.getSnapshot().targetPick)
+        void import("../../../catalogRuntime/targetPick").then((module) => {
+          pickModule = module;
+        });
+    };
+    const releasePickModule = workspace.session.subscribe(loadPickModule);
+    // (A Canvas mounted while a pick runs loads it now.)
+    loadPickModule();
+    const targetPickAt = (event: PointerEvent) => {
+      const pick = workspace.session.getSnapshot().targetPick;
+      if (!pick) return undefined;
+      if (!pickModule) return { ruleId: pick.ruleId, loading: true as const };
+      syncScene();
+      const { x, y } = scenePoint(event);
+      const target = picking.target(x, y, event.metaKey || event.ctrlKey);
+      return {
+        ruleId: pick.ruleId,
+        found: target
+          ? pickModule.catalogCanvasTargetPick(workspace, pick.ruleId, target.id)
+          : undefined,
+      };
+    };
+    const endTargetPick = () => {
+      workspace.session.setTargetPick(undefined);
+      setCatalogTargetPickTag(undefined);
+      picking.leave();
+    };
     const onPointerDown = (event: PointerEvent) => {
       // Only the primary button selects and drags (the secondary opens the context menu).
       if (event.button !== 0) return;
+      // The target pick takes the press first: no selection, drag or context step (R3).
+      const targetPick = targetPickAt(event);
+      if (targetPick) {
+        event.preventDefault();
+        if ("loading" in targetPick) return;
+        const found = targetPick.found;
+        if (found?.write) {
+          workspace.execute(found.write.command);
+          catalogTargetPickFallback.set(
+            found.write.fallback
+              ? { ruleId: targetPick.ruleId, ...found.write.fallback }
+              : undefined,
+          );
+        }
+        // (A place that takes nothing keeps the pick going — empty space ends it.)
+        if (found?.write || !found) endTargetPick();
+        return;
+      }
       if (gestureSession.blocksPointerDown(event.pointerId)) return;
       // A guide under the pointer (rulers shown) takes the press before any element.
       if (guides.press(event)) {
@@ -1466,6 +1525,24 @@ export function CatalogCanvas({
         gestureSession.endPointer(event.pointerId);
     };
     const onPointerMove = (event: PointerEvent) => {
+      const targetPick = targetPickAt(event);
+      if (targetPick) {
+        const found = "loading" in targetPick ? undefined : targetPick.found;
+        workspace.session.setHover(
+          found ? workspace.itemOfRecord(found.recordId) : undefined,
+        );
+        const rect = canvas.getBoundingClientRect();
+        setCatalogTargetPickTag(
+          found
+            ? {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top,
+                pick: found,
+              }
+            : undefined,
+        );
+        return;
+      }
       setMeasuring(event.altKey);
       if (event.buttons !== 0 || gestureSession.shouldSuppressElementHover()) {
         picking.leave();
@@ -1549,6 +1626,10 @@ export function CatalogCanvas({
     const onWindowBlur = () => setMeasuring(false);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || isEditableTarget(event.target)) return;
+      if (workspace.session.getSnapshot().targetPick) {
+        endTargetPick();
+        return;
+      }
       if (gestures.pending) {
         endDrag();
         gestures.cancel();
@@ -1700,6 +1781,7 @@ export function CatalogCanvas({
       unwatchContext();
       setSurfaceLost(false);
       document.removeEventListener("visibilitychange", updatePaused);
+      releasePickModule();
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerleave", onPointerLeave);
@@ -1780,6 +1862,7 @@ export function CatalogCanvas({
         }}
       />
       <DotBackground />
+      <CatalogTargetPickOverlay />
       <PageHeaderLayer
         frames={headerFrames}
         activePageId={activePageId}

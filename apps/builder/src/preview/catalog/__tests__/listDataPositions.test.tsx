@@ -171,7 +171,7 @@ describe("useListData positions — rules", () => {
             "onPress",
             {
               opcode: "capability",
-              targetId: h.list,
+              target: { nodeId: h.list },
               capabilityId: "selectItem",
               value: "u2",
             },

@@ -39,7 +39,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     const last = items.at(-1)!;
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: select,
+      target: { nodeId: select },
       capabilityId: "selectItem",
       // (A static item's RAC key is its `id`, else its record id — `resolveStaticItemKey`.)
       value: typeof last.props.id === "string" ? last.props.id : last.id,
@@ -68,7 +68,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     h.declare(b, { selectionMode: "multiple" });
     h.rule(a, "onSelectionChange", {
       opcode: "capability",
-      targetId: b,
+      target: { nodeId: b },
       capabilityId: "selectItem",
       value: "!event.keys",
     });
@@ -94,7 +94,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     const [trigger, button] = h.ids as [NodeId, NodeId];
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: trigger,
+      target: { nodeId: trigger },
       capabilityId: "open",
     });
     const triggerButton = h.view.container.querySelector<HTMLElement>(
@@ -114,7 +114,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     const [picker, button] = h.ids as [NodeId, NodeId];
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: picker,
+      target: { nodeId: picker },
       capabilityId: "setValue",
       value: "2026-10-22",
     });
@@ -145,7 +145,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     const key = tester().getColumns()[0]!.getAttribute("data-key") ?? "";
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: table,
+      target: { nodeId: table },
       capabilityId: "sort",
       value: `${key}:descending`,
     });
@@ -166,7 +166,7 @@ describe("ADR-280 G3 — RAC testers observe the rules", () => {
     h.rule(form, "onSubmit", { opcode: "toast", message: "submitted" });
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: form,
+      target: { nodeId: form },
       capabilityId: "submit",
     });
     pressButton(h, button);

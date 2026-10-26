@@ -118,7 +118,7 @@ function openPicker(
   if (type === "Select") {
     h.rule(h.button, "onPress", {
       opcode: "capability",
-      targetId: h.picker,
+      target: { nodeId: h.picker },
       capabilityId: "open",
     } as never);
     act(() => {

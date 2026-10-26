@@ -22,4 +22,12 @@ export const focusedDate = {
     valueType: "date",
   },
   conditions: [],
+  // (RAC event audit 2026-10-26 — the controlled `focusedValue` had no write: go to a date's month.)
+  capabilities: {
+    focusDate: {
+      labelKey: "capabilities.focusDate",
+      value: "!param",
+      param: { kind: "text", labelKey: "capabilities.paramDate" },
+    },
+  },
 } as const satisfies InteractionConcept;

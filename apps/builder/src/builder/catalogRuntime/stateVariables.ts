@@ -28,12 +28,24 @@ export interface CatalogVariableReader extends CatalogReader {
 }
 
 export type CatalogVariableOwnerId = EntryId<"page"> | NodeId;
-export type CatalogVariableType = "string" | "number" | "boolean";
+/** `object` · `array` hold what a rule's reference writes (a selected row); they start empty. */
+export type CatalogVariableType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "object"
+  | "array";
 export const CATALOG_VARIABLE_TYPES: readonly CatalogVariableType[] = [
   "string",
   "number",
   "boolean",
+  "object",
+  "array",
 ];
+
+/** A variable whose value is structured — no literal default, a rule's reference fills it. */
+export const catalogStructuredVariableType = (type: string) =>
+  type === "object" || type === "array";
 
 /**
  * The owner a node's State section edits: a page root's (and a page body's, also inside a layout
@@ -156,6 +168,7 @@ export function catalogNextVariableName(
 }
 
 export function catalogEmptyVariableValue(type: CatalogVariableType): Scalar {
+  // (A structured variable's `""` is nothing yet — the runtime reads `null`.)
   return type === "number" ? 0 : type === "boolean" ? false : "";
 }
 
@@ -165,6 +178,7 @@ export function catalogParseVariableValue(
   raw: string,
 ): Scalar | undefined {
   if (type === "string") return raw;
+  if (catalogStructuredVariableType(type)) return "";
   if (type === "boolean") return raw.trim() === "true";
   const text = raw.trim();
   if (text === "") return 0;

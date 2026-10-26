@@ -78,6 +78,8 @@ export function catalogPreviewRuntime(
     navigateTo: (path) => session.navigateTo(path),
     showToast: (message) => toast.show(message),
     writeState: session.writeState,
+    readState: session.readVariable,
+    itemsByKeys: (collectionId, keys) => session.itemsByKeys(collectionId, keys),
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
     sortTable: (tableId, sort) => session.sortTable(tableId, sort),
     colorScheme: (mode) => session.setColorScheme(mode),

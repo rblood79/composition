@@ -100,8 +100,8 @@ describe("ADR-281 — When 라벨 키 ↔ 카탈로그", () => {
         });
     }
 
-  it("등록표 57 type (55 + page 루트 · frame — ADR-281 Phase 2) 이 그룹을 싣는다", () => {
-    expect(Object.keys(CAPABILITY_REGISTRY)).toHaveLength(57);
+  it("등록표 58 type (55 + page 루트 · frame — ADR-281 Phase 2 · MenuItem — RAC event audit 2026-10-26) 이 그룹을 싣는다", () => {
+    expect(Object.keys(CAPABILITY_REGISTRY)).toHaveLength(58);
     expect(keys.length).toBeGreaterThanOrEqual(55);
   });
 

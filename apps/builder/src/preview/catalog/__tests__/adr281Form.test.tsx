@@ -158,7 +158,7 @@ describe("ADR-281 G4 — execution", () => {
     });
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: form,
+      target: { nodeId: form },
       capabilityId: "submit",
     });
     const [element] = h.forms();
@@ -265,7 +265,7 @@ describe("ADR-281 G4 — execution", () => {
     });
     h.rule(button, "onPress", {
       opcode: "capability",
-      targetId: form,
+      target: { nodeId: form },
       capabilityId: "submit",
     });
     act(() => {

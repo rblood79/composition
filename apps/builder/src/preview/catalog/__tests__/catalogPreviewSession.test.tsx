@@ -448,7 +448,7 @@ describe("ADR-248 4e-6 Preview entry", () => {
           catalogNewInteraction(
             owner,
             "onPress",
-            { opcode: "capability", targetId: FRAME, capabilityId: "toggle" },
+            { opcode: "capability", target: { nodeId: FRAME }, capabilityId: "toggle" },
             workspace.newId,
           ),
         ],

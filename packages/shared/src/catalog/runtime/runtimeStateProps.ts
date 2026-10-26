@@ -34,6 +34,20 @@ export function catalogSelectionValue(next: unknown): unknown {
   return next;
 }
 
+/**
+ * A Select's selection as RAC's `value` takes it — one key (or `null`) in single mode, the keys with
+ * `selectionMode: "multiple"` (a rule's key set operation writes an array either way).
+ */
+export function catalogSelectValue(value: unknown, multiple: boolean): unknown {
+  const keys =
+    value === null || value === undefined || value === ""
+      ? []
+      : Array.isArray(value) || value instanceof Set
+        ? [...value].map(String)
+        : [String(value)];
+  return multiple ? keys : (keys[0] ?? null);
+}
+
 /** How a state prop is passed to RAC (its controlled · default · change callback names). */
 export interface CatalogStateProp {
   /** RAC's controlled prop — also the override key the capability writes. */
@@ -96,6 +110,11 @@ export const EXPANDED_KEYS: CatalogStateProp = {
   prop: "expandedKeys",
   defaultProp: "defaultExpandedKeys",
   callback: "onExpandedChange",
+};
+export const FOCUSED_VALUE: CatalogStateProp = {
+  prop: "focusedValue",
+  defaultProp: "defaultFocusedValue",
+  callback: "onFocusChange",
 };
 export const INPUT_VALUE: CatalogStateProp = {
   prop: "inputValue",

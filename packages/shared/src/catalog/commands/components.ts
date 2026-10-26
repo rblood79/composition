@@ -1,5 +1,6 @@
 import type {
   AuthoredValue,
+  CatalogCapabilityTarget,
   CatalogStateOwnerRef,
   DefinitionEntry,
   DefinitionOverrideEntry,
@@ -11,6 +12,7 @@ import type {
   NodeResponsiveLayer,
   ResponsiveBreakpointName,
   StateName,
+  TemplateId,
   WriteValue,
 } from "../document/types";
 import {
@@ -18,6 +20,7 @@ import {
   withoutPositionLayout,
 } from "../document/absoluteLayout";
 import { cloneNodeSubgraph } from "../document/clone";
+import { ownedChildren } from "../document/graph";
 import {
   mapShowWhenAddresses,
   mapShowWhenOwnerRefs,
@@ -222,9 +225,52 @@ function rewriteAddressesThroughExtracted(
         return { ...override, address };
       });
       if (changed) draft.write({ ...holder, descendantOverrides: overrides });
-    } else if (holder?.kind === "interaction" && holder.address) {
-      const address = through(holder.address, "instance");
-      if (address) draft.write({ ...holder, address });
+    } else if (holder?.kind === "interaction") {
+      let next = holder;
+      const address = holder.address && through(holder.address, "instance");
+      if (address) next = { ...next, address };
+      // ADR-283 Decision 3: a capability target through the node. An address · a `local` held
+      // outside the node passes through the instance; a `local` held inside it is relative to the
+      // new template root (above it — unreachable from the new template: no target).
+      const action = next.action;
+      if (action.opcode === "capability" && !("nodeId" in action.target)) {
+        const target = action.target;
+        let moved: typeof target | undefined;
+        if ("address" in target) {
+          const at = through(target.address, "instance");
+          if (at) moved = { address: at };
+        } else if ("local" in target) {
+          const local = target.local;
+          const at = local.templatePath.indexOf(extracted);
+          if (subtree(draft, extracted).includes(next.ownerId))
+            moved =
+              at < 0
+                ? // (Through a nested instance that moved in too: already the new template's.)
+                  local.instances.length &&
+                  subtree(draft, extracted).includes(
+                    local.instances[0] as NodeId,
+                  )
+                  ? undefined
+                  : { unset: true }
+                : {
+                    local: {
+                      instances: local.instances,
+                      templatePath: local.templatePath.slice(at),
+                    },
+                  };
+          else if (at >= 0) {
+            const step = through(local as InstanceAddress, "instance")!;
+            moved = {
+              local: {
+                instances: step.instances,
+                templatePath: step.templatePath,
+              },
+            };
+          }
+        }
+        if (moved) next = { ...next, action: { ...action, target: moved } };
+      }
+      if (next !== holder) draft.write(next);
     } else if (holder?.kind === "definition" && holder.id === outerId) {
       const inside = new Set<string>(subtree(draft, extracted));
       pruneComponentPropertyTargets(draft, holder, (_property, target) =>
@@ -288,6 +334,81 @@ function rewriteAddressesThroughExtracted(
     });
     if (changed) draft.write({ ...node, showWhen });
   }
+}
+
+/**
+ * ADR-283 Decision 3 — the nodes made a component's template now sit in the new definition's
+ * template behind the instance `instanceId` that took the node's place. A capability target naming
+ * one of them is rewritten in this same step:
+ * - by id (`{ nodeId }`): from a rule inside the new template, a place of its own origin
+ *   (`local`); from elsewhere, the place in the instance — `{ address }` on a page, a `local`
+ *   through the instance inside an outer component's template (`outer`);
+ * - a step through a nested instance that moved in (`address` · `local` instances): the instance
+ *   is a step before it, unless the rule moved in too (then a `local` of the new template).
+ * Steps of the moved node's own template path are `rewriteAddressesThroughExtracted`'s.
+ */
+function rewriteTargetsIntoComponent(
+  draft: CommandDraft,
+  rootId: NodeId,
+  instanceId: NodeId,
+  outer: boolean,
+): void {
+  const parentOf = new Map<NodeId, NodeId>();
+  const stack = [rootId];
+  while (stack.length) {
+    const id = stack.pop()!;
+    for (const child of ownedChildren(draft.node(id))) {
+      parentOf.set(child, id);
+      stack.push(child);
+    }
+  }
+  const inside = new Set<string>([rootId, ...parentOf.keys()]);
+  const pathTo = (id: NodeId): NodeId[] => {
+    const path = [id];
+    for (let at = parentOf.get(id); at; at = parentOf.get(at)) path.unshift(at);
+    return path;
+  };
+  const done = new Set<string>();
+  for (const nodeId of inside)
+    for (const referrerId of draft.reader.referrersOf(nodeId)) {
+      if (done.has(referrerId)) continue;
+      const entry = draft.read(referrerId);
+      if (entry?.kind !== "interaction" || entry.action.opcode !== "capability")
+        continue;
+      const target = entry.action.target;
+      const ruleInside = inside.has(entry.ownerId);
+      let next: CatalogCapabilityTarget | undefined;
+      if ("nodeId" in target && inside.has(target.nodeId)) {
+        const templatePath = pathTo(target.nodeId);
+        next = ruleInside
+          ? { local: { instances: [], templatePath } }
+          : outer
+            ? { local: { instances: [instanceId], templatePath } }
+            : { address: { instances: [instanceId], templatePath } };
+      } else if ("address" in target || "local" in target) {
+        const steps = "address" in target ? target.address : target.local;
+        const at = steps.instances.findIndex((id) => inside.has(id));
+        if (at < 0 || steps.templatePath.includes(rootId)) continue;
+        const instances = ruleInside
+          ? steps.instances.slice(at)
+          : [
+              ...steps.instances.slice(0, at),
+              instanceId,
+              ...steps.instances.slice(at),
+            ];
+        const moved = {
+          instances: instances as TemplateId[],
+          templatePath: steps.templatePath,
+        };
+        next =
+          "address" in target && !ruleInside
+            ? { address: moved as InstanceAddress }
+            : { local: moved };
+      }
+      if (!next) continue;
+      done.add(referrerId);
+      draft.write({ ...entry, action: { ...entry.action, target: next } });
+    }
 }
 
 /** The definition whose template holds `id` (owner chain top), or undefined on a page. */
@@ -364,6 +485,7 @@ export const createComponent =
       ...project,
       definitionIds: [...project.definitionIds, definitionId],
     });
+    rewriteTargetsIntoComponent(draft, node.id, instanceId, !!outerId);
     if (outerId)
       rewriteAddressesThroughExtracted(draft, node.id, instanceId, outerId);
     return {

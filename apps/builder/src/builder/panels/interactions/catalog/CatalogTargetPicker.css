@@ -1,0 +1,132 @@
+/* ADR-283 Decision 4 — a capability rule's target field: the target chip (a button opening the
+   searchable list) and the Canvas pick button side by side in one control group. */
+.interactions-target-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* (Inside the field box the two buttons are bare — the box is the control, as a panel Select's.) */
+.interactions-target-trigger,
+.interactions-target-aim {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--text-xs);
+}
+
+.interactions-target-trigger {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  & > svg:last-child {
+    flex: 0 0 auto;
+    color: var(--fg-muted);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.interactions-target-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-unset] {
+    color: var(--fg-muted);
+  }
+}
+
+.interactions-target-aim {
+  display: inline-flex;
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--fg-muted);
+
+  &[data-hovered],
+  &[data-active] {
+    color: var(--fg);
+  }
+
+  &[data-active] {
+    background: var(--bg-overlay);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.interactions-target-popover.property-select-popover {
+  min-width: 260px;
+}
+
+.interactions-target-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  outline: none;
+}
+
+.interactions-target-list {
+  max-height: 320px;
+  overflow: auto;
+  overscroll-behavior: contain;
+
+  /* (A virtualized list needs a fixed scroll box — the Virtualizer draws the rows in view.) */
+  &[data-virtualized] {
+    height: 320px;
+  }
+
+  .react-aria-ListBoxItem {
+    padding: var(--lb-item-padding);
+
+    &[data-focus-visible] {
+      outline: none;
+    }
+
+    &[data-focused],
+    &[data-pressed],
+    &[data-canvas-hover] {
+      background: var(--bg-overlay);
+    }
+  }
+}
+
+.interactions-target-header {
+  padding: var(--spacing-xs) var(--spacing-md) 0;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+/* ADR-283 Decision 4 — the line under a rule: a capability the new target does not take, or a
+   target that names nothing (role status). */
+.interactions-target-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+
+  &[data-tone="warning"] {
+    color: var(--fg);
+  }
+}
