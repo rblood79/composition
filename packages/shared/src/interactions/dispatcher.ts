@@ -112,11 +112,15 @@ export interface DispatchDeps {
     /** `useTreeData.append(parentKey, …)` — under this parent item (absent = the top level). */
     parentKey?: string,
   ) => { ok: boolean; reason?: string };
-  /** `useListData.update(key, newValue)` — absent `key` = the value's `id`. */
+  /**
+   * `useListData.update(key, newValue)` — absent `key` = the value's `id`. With `fieldId` the value
+   * is that one field's (`{...getItem(key), [field]: value}`).
+   */
   update?: (
     collectionId: string,
     key: string | undefined,
     value: Readonly<Record<string, unknown>>,
+    fieldId?: string,
   ) => { ok: boolean; reason?: string };
   /**
    * `useAsyncList.reload()` — run the collection's query endpoint again. Returns whether it
@@ -237,6 +241,8 @@ function dispatchListData(
   } else {
     const value = resolveEventValue(action.value, context, deps);
     if (!value.ok) return value;
+    if (action.kind === "update" && action.field)
+      return dispatchFieldUpdate(action, value.value, deps, context);
     if (!isRecordValue(value.value))
       return { ok: false, reason: `${action.kind} 할 값이 record 가 아니다` };
     if (action.kind === "append") {
@@ -255,6 +261,41 @@ function dispatchListData(
   return result.ok
     ? { ok: true, kind: action.kind }
     : { ok: false, reason: result.reason ?? `${action.kind} 실패` };
+}
+
+/** Keys a value names: a set · list (each) or one scalar; non-scalar members dropped. */
+const keysIn = (value: unknown): string[] =>
+  (value instanceof Set || Array.isArray(value) ? [...value] : [value])
+    .map(keyOf)
+    .filter((key): key is string => key !== undefined);
+
+/**
+ * ADR-284 Phase 5 — `update` of one field (`field`): every key the rule names takes the value at
+ * that field (the kanban's `for (let id of ids) list.update(id, {...list.getItem(id), status})`).
+ * The first failing key stops the rest.
+ */
+function dispatchFieldUpdate(
+  action: Extract<InteractionAction, { kind: "update" }>,
+  value: unknown,
+  deps: DispatchDeps,
+  context: DispatchContext | undefined,
+): DispatchOutcome {
+  if (value !== null && typeof value === "object")
+    return { ok: false, reason: "필드에 쓸 값이 scalar 가 아니다" };
+  const key = resolveEventValue(action.key, context, deps);
+  if (!key.ok) return key;
+  const keys = keysIn(key.value);
+  if (!keys.length) return { ok: false, reason: "수정할 항목의 key 가 없다" };
+  for (const item of keys) {
+    const result = deps.update!(
+      action.collectionId,
+      item,
+      { [action.field!]: value },
+      action.field,
+    );
+    if (!result.ok) return { ok: false, reason: result.reason ?? "update 실패" };
+  }
+  return { ok: true, kind: "update" };
 }
 
 /** Where `useListData` puts an item: an index, next to a key, or first (`prepend`). */
@@ -318,19 +359,22 @@ function dispatchListPosition(
     if (!target.ok) return target;
     const moved = resolveEventValue(action.keys, context, deps);
     if (!moved.ok) return moved;
-    const keys = (
-      moved.value instanceof Set || Array.isArray(moved.value)
-        ? [...moved.value]
-        : [moved.value]
-    )
-      .map(keyOf)
-      .filter((key): key is string => key !== undefined);
+    const keys = keysIn(moved.value);
     if (!keys.length) return { ok: false, reason: "옮길 항목의 key 가 없다" };
+    // ADR-284 Phase 5 — the drop's side picks the method (`dropPosition === 'before'` → moveBefore).
+    let before = action.kind === "moveBefore";
+    if (action.dropPosition !== undefined) {
+      const side = resolveEventValue(action.dropPosition, context, deps);
+      if (!side.ok) return side;
+      if (side.value !== "before" && side.value !== "after")
+        return { ok: false, reason: `놓은 쪽이 before · after 가 아니다: ${String(side.value)}` };
+      before = side.value === "before";
+    }
     return done(
       deps.move(
         action.collectionId,
         keys,
-        action.kind === "moveBefore" ? { before: target.key } : { after: target.key },
+        before ? { before: target.key } : { after: target.key },
       ),
     );
   }

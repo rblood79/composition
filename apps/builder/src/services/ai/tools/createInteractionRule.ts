@@ -1,5 +1,6 @@
 /**
- * create_interaction_rule Tool — 이벤트 규칙 1건을 만든다 (ADR-134 Phase 4, D4).
+ * create_interaction_rule Tool — 이벤트 규칙 1건을 만든다 (ADR-134 Phase 4, D4). Do 는 하나
+ * (`action`) 또는 순서대로 실행하는 목록 (`actions` — ADR-284 Phase 5).
  *
  * 목표 스키마는 **ADR-158 `InteractionRule`** 이다 — dormant `SerializedEvent` / root
  * `actions` 는 쓰지 않는다 (ADR-134 R6 이 정확히 그 오조준을 막으려는 위험이다).
@@ -103,7 +104,12 @@ export const createInteractionRuleTool: ToolExecutor = {
   ): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string | undefined;
     const trigger = args.trigger as string | undefined;
-    const actionArgs = (args.action ?? {}) as ActionArgs;
+    // ADR-284 Phase 5 — `actions` (Do list, run in order) or one `action`.
+    const actionArgs = (
+      Array.isArray(args.actions) && args.actions.length
+        ? args.actions
+        : [args.action ?? {}]
+    ) as ActionArgs[];
 
     if (!elementIdArg || !trigger) {
       return {
@@ -144,13 +150,21 @@ export const createInteractionRuleTool: ToolExecutor = {
         };
       }
 
-      const { action, error, hint } = buildAction(
-        t,
-        actionArgs,
-        elementsById as Map<string, { type: string }>,
-      );
-      if (!action) {
-        return { success: false, error, ...(hint ? { data: hint } : {}) };
+      const actions: InteractionAction[] = [];
+      for (const [index, raw] of actionArgs.entries()) {
+        const { action, error, hint } = buildAction(
+          t,
+          raw,
+          elementsById as Map<string, { type: string }>,
+        );
+        if (!action) {
+          return {
+            success: false,
+            error: actionArgs.length > 1 ? `Do ${index + 1}: ${error}` : error,
+            ...(hint ? { data: hint } : {}),
+          };
+        }
+        actions.push(action);
       }
 
       const rule: InteractionRule = {
@@ -158,7 +172,7 @@ export const createInteractionRuleTool: ToolExecutor = {
         type: "interaction",
         elementId: targetId,
         trigger,
-        actions: [action],
+        actions,
       };
 
       // 스키마 가드 — 구 `SerializedEvent` 형태가 섞이면 여기서 걸린다
@@ -173,11 +187,15 @@ export const createInteractionRuleTool: ToolExecutor = {
       // host (the old canonical `events` write is the old store host's).
       const writeHost = getAiWriteHost();
       if (!writeHost) return { success: false, error: AI_WRITE_HOST_MISSING };
-      const written = await writeHost.addInteraction(targetId, trigger, action);
+      const written = await writeHost.addInteraction(
+        targetId,
+        trigger,
+        actions,
+      );
       if (!written.ok) return { success: false, error: written.error };
       return {
         success: true,
-        data: { ruleId: written.ruleId, elementId: targetId, trigger, action },
+        data: { ruleId: written.ruleId, elementId: targetId, trigger, actions },
         affectedElementIds: [targetId],
       };
     } catch (error) {

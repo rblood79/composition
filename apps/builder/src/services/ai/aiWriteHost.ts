@@ -62,11 +62,14 @@ export interface AiWriteHost {
     AiWriteResult<{ elementId: string; canonicalApplied?: boolean }>
   >;
   remove(id: string, t?: ToolTranslate): MaybeAsync<AiWriteResult>;
-  /** Add an interaction rule on an element (the old rule action shape); one step. */
+  /**
+   * Add an interaction rule on an element (the old rule action shape — one, or a Do list run in
+   * order, ADR-284 Phase 5); one step.
+   */
   addInteraction(
     elementId: string,
     trigger: string,
-    action: InteractionAction,
+    action: InteractionAction | readonly InteractionAction[],
   ): MaybeAsync<AiWriteResult<{ ruleId: string }>>;
   /** Run several writes as one history step (`label`). */
   batch<T>(label: string, run: () => Promise<T>): Promise<T>;

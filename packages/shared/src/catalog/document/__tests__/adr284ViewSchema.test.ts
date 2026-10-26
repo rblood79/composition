@@ -15,6 +15,7 @@ import {
   removeView,
 } from "../../commands";
 import { cloneNodeSubgraph } from "../clone";
+import { validateCatalogEntry } from "../validation";
 import {
   allocator,
   code,
@@ -180,6 +181,40 @@ describe("ADR-284 — the view shape", () => {
     expect(code(() => new CatalogGraph(old as never, library()))).toBe(
       "UNSUPPORTED_LIBRARY_CONTRACT",
     );
+  });
+
+  it("Phase 5 — a drop's Dos: `update` of one field (a field id), a move by the drop's side", () => {
+    const rule = (actions: unknown): CatalogEntry =>
+      ({
+        kind: "interaction",
+        id: "project:interaction:r",
+        ownerId: "project:node:list",
+        trigger: "press",
+        actions,
+      }) as never;
+    const update = {
+      opcode: "update",
+      collectionId: "data:collection:users",
+      key: "!event.keys",
+      field: "data:field:f-gender",
+      value: "female",
+    };
+    const move = {
+      opcode: "moveBefore",
+      collectionId: "data:collection:users",
+      key: "!event.target.key",
+      keys: "!event.keys",
+      dropPosition: "!event.target.dropPosition",
+    };
+    // (The entry shape — the fixture library's vocabulary has no list opcodes.)
+    const shape = (actions: unknown) =>
+      code(() => validateCatalogEntry(rule(actions))) ?? "ACCEPTED";
+    expect(shape([update, move])).toBe("ACCEPTED");
+    expect(shape([{ ...update, field: "f-gender" }])).not.toBe("ACCEPTED");
+    expect(shape([{ ...move, dropPosition: { side: 1 } }])).not.toBe(
+      "ACCEPTED",
+    );
+    expect(shape([{ ...move, side: "before" }])).toBe("UNKNOWN_FIELD");
   });
 });
 

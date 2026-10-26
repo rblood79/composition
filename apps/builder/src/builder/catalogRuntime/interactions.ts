@@ -606,6 +606,8 @@ export interface CatalogActionContext {
 export interface CatalogCollectionOption {
   id: DataCollectionId;
   name: string;
+  /** Its schema fields (an `update` of one field names it — ADR-284 Phase 5). */
+  fields?: readonly { id: string; key: string }[];
 }
 
 export interface CatalogEndpointOption {
@@ -629,8 +631,24 @@ export function catalogListDataEventDefaults(
   if (action.opcode === "update")
     return {
       ...action,
-      ...(has("key") ? { key: "!event.key" } : {}),
+      ...(has("key")
+        ? { key: "!event.key" }
+        : has("keys") && has("dropOperation")
+          ? { key: "!event.keys" }
+          : {}),
       ...(has("formData") ? { value: "!event.formData" } : {}),
+    };
+  // (ADR-284 Phase 5 — a drop moves the dragged keys next to its target, on the side it chose.)
+  if (
+    (action.opcode === "moveBefore" || action.opcode === "moveAfter") &&
+    has("target") &&
+    has("keys")
+  )
+    return {
+      ...action,
+      key: "!event.target.key",
+      keys: "!event.keys",
+      dropPosition: "!event.target.dropPosition",
     };
   if (action.opcode === "remove")
     return has("key")

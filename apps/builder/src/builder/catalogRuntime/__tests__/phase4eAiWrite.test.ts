@@ -330,6 +330,41 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
       t,
     );
     expect(missing.error).toContain("PAGE_NOT_FOUND");
+    // ADR-284 Phase 5 — `actions`: one rule, its Dos in order, one step; a bad Do names its place.
+    const beforeList = steps();
+    const list = await createInteractionRuleTool.execute(
+      {
+        elementId: go,
+        trigger,
+        actions: [
+          { kind: "toast", message: "Saved" },
+          { kind: "navigate", path: route },
+        ],
+      },
+      t,
+    );
+    expect(list.success, list.error).toBe(true);
+    expect(steps()).toBe(beforeList + 1);
+    const last = catalogInteractionsOf(workspace.runtime.graph, {
+      ownerId: id("go"),
+    }).at(-1)!;
+    expect(last.actions.map((action) => action.opcode)).toEqual([
+      "toast",
+      "navigate",
+    ]);
+    const bad = await createInteractionRuleTool.execute(
+      {
+        elementId: go,
+        trigger,
+        actions: [
+          { kind: "toast", message: "Saved" },
+          { kind: "navigate", path: "/nope" },
+        ],
+      },
+      t,
+    );
+    expect(bad.error).toContain("Do 2:");
+    expect(steps()).toBe(beforeList + 1);
   });
 
   it("bind_collection and propose_data_change bind_element: approved, one entry of the document history; undo takes the binding and the new collection back", async () => {

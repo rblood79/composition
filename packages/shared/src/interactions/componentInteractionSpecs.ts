@@ -64,7 +64,9 @@ import type {
   TreeItemProps,
   TreeProps,
 } from "react-aria-components";
+import type { DragAndDropOptions } from "react-aria-components/useDragAndDrop";
 import { action, itemAction, menuClose, rowAction } from "./concepts/action";
+import { collectionDragDrop } from "./concepts/collectionDragDrop";
 import { expansionKeys, expansionOne } from "./concepts/expansion";
 import { dragDrop, fileSelect } from "./concepts/files";
 import { focus } from "./concepts/focus";
@@ -228,7 +230,12 @@ export const COMPONENT_INTERACTION_SPECS = {
 
   // ── collections ──────────────────────────────────────────────────────
   ListBox: {
-    concepts: [{ concept: multiSelection }, { concept: action }, { concept: focus }],
+    concepts: [
+      { concept: multiSelection },
+      { concept: action },
+      { concept: collectionDragDrop },
+      { concept: focus },
+    ],
   },
   GridList: {
     concepts: [
@@ -236,6 +243,7 @@ export const COMPONENT_INTERACTION_SPECS = {
         concept: multiSelection,
       },
       { concept: action },
+      { concept: collectionDragDrop },
     ],
   },
   CardView: {
@@ -246,6 +254,7 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: multiSelection },
       { concept: sort },
       { concept: rowAction },
+      { concept: collectionDragDrop },
     ],
   },
   Tree: {
@@ -253,6 +262,7 @@ export const COMPONENT_INTERACTION_SPECS = {
       { concept: multiSelection },
       { concept: expansionKeys },
       { concept: action },
+      { concept: collectionDragDrop },
     ],
   },
   TagGroup: {
@@ -348,7 +358,8 @@ export const COMPONENT_INTERACTION_SPECS = {
 
 /**
  * The installed RAC props of each spec'd type. S2-only types read the RAC component S2 builds on
- * (CardView → GridList · ContextualHelp → DialogTrigger · TextArea → TextField).
+ * (CardView → GridList · ContextualHelp → DialogTrigger · TextArea → TextField). A collection that
+ * drags and drops takes `useDragAndDrop`'s options through its `dragAndDropHooks` (ADR-284 Phase 5).
  */
 /**
  * ADR-281 — a page root's · frame's props: RAC context props they pass down and S2 `Provider`'s
@@ -385,13 +396,13 @@ interface RacPropsOf {
   Select: SelectProps<object>;
   ComboBox: ComboBoxProps<object>;
   Autocomplete: AutocompleteProps;
-  ListBox: ListBoxProps<object>;
-  GridList: GridListProps<object>;
+  ListBox: ListBoxProps<object> & DragAndDropOptions;
+  GridList: GridListProps<object> & DragAndDropOptions;
   CardView: GridListProps<object>;
   body: PageRootProps;
   frame: Omit<PageRootProps, "colorScheme">;
-  Table: TableProps;
-  Tree: TreeProps<object>;
+  Table: TableProps & DragAndDropOptions;
+  Tree: TreeProps<object> & DragAndDropOptions;
   TagGroup: TagGroupProps;
   Menu: MenuProps<object>;
   Breadcrumbs: BreadcrumbsProps<object>;

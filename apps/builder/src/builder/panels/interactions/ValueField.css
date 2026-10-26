@@ -30,6 +30,11 @@
   }
 }
 
+/* (A fieldset's `min-inline-size: min-content` would let a long source name widen the panel.) */
+.interactions-value-field {
+  min-width: 0;
+}
+
 .interactions-value-field .react-aria-Group {
   display: flex;
   align-items: center;

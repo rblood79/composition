@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 5) — 목록 항목 끌어 놓기 · kanban 열 이동] - 2026-10-27
+
+### Added
+
+- **목록 항목 끌어 놓기** (ADR-284 Phase 5): ListBox · GridList · Tree · Table 의 Interactions 에 「항목 끌어 놓기」 When 5 — 같은 목록 안 순서 바꾸기 · 다른 목록의 항목을 사이에 · 빈 자리 · 항목 위에 놓기 · 끌기 끝. 값 고르기로 끌어 온 항목 (`keys`) · 놓은 자리 (`target.key`) · 놓은 쪽 (`target.dropPosition`) 을 쓴다. 규칙이 있는 목록만 Preview 에서 끌린다 (같은 데이터의 목록끼리만 받음)
+- **「묶기로 열 만들기」 가 drop 규칙까지**: 열마다 「다른 열의 카드를 놓으면 이 열 값으로 바꾸고 놓은 자리로」 · 「빈 열에 놓으면 값만」 · 「같은 열 안 순서」 규칙을 같이 만든다 — 카드를 옮기면 열 머리 개수가 바뀐다
+- 「collection 항목 수정」 Do 의 **「쓸 필드」** (한 필드만 바꾸기, 여러 항목이면 각각) · 「항목 앞으로 옮기기」 Do 의 **「놓은 쪽」** (놓은 위치가 앞 · 뒤를 고름)
+- AI 규칙 도구가 Do 여러 개 (`actions`) 를 한 규칙으로 만든다
+
+### Fixed
+
+- 묶기 개수 머리 (「묶기로 열 만들기」 · 「묶기로 목록 만들기」) 가 있는 데이터에서 목록 편집 규칙 (수정 · 삭제 · 옮기기) 이 「항목 없음」 으로 실패하던 것
+- Interactions 값 칸에 긴 값 이름이 패널 밖으로 넘치던 것
+
 ## [데이터 보기 (ADR-284 Phase 4d) — 「모든 값」 묶기 · 성능 · 번들 측정] - 2026-10-27
 
 ### Added

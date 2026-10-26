@@ -71,6 +71,7 @@ function componentOf(spec: ComponentInteractionSpec): ComponentCapability {
     for (const name of names ?? []) if (!list.includes(name)) list.push(name);
   };
   const eventArgs: Record<string, readonly string[]> = {};
+  const fieldEvents: string[] = [];
   const groups: { id: string; events: string[]; hiddenEvents: string[]; conditions: string[] }[] =
     [];
   const grouped = new Set<string>();
@@ -85,8 +86,10 @@ function componentOf(spec: ComponentInteractionSpec): ComponentCapability {
     Object.assign(capabilities, own.capabilities);
     add(deferred, own.deferred);
     const concept: InteractionConcept = use.concept;
-    for (const [event, names] of Object.entries(concept.args ?? {}))
+    for (const [event, names] of Object.entries(concept.args ?? {})) {
       eventArgs[event] ??= names;
+      if (concept.argFields) add(fieldEvents, [event]);
+    }
     if (use.owner === "item") continue;
     const id = concept.group ?? concept.id;
     let group = groups.find((item) => item.id === id);
@@ -127,6 +130,7 @@ function componentOf(spec: ComponentInteractionSpec): ComponentCapability {
     ...(Object.keys(eventArgs).length
       ? { eventArgs: Object.freeze(eventArgs) }
       : {}),
+    ...(fieldEvents.length ? { eventArgFields: Object.freeze(fieldEvents) } : {}),
     ...(frozenGroups.length ? { groups: Object.freeze(frozenGroups) } : {}),
   });
 }

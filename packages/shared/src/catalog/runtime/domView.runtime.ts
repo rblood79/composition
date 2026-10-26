@@ -99,7 +99,8 @@ export function catalogPreviewRuntime(
     pages: (collectionId) => session.pages(collectionId),
     append: (collectionId, value, parentKey) =>
       session.append(collectionId, value, parentKey),
-    update: (collectionId, key, value) => session.update(collectionId, key, value),
+    update: (collectionId, key, value, fieldId) =>
+      session.update(collectionId, key, value, fieldId),
     remove: (collectionId, keys) => session.remove(collectionId, keys),
     insert: (collectionId, at, value, parentKey) =>
       session.insert(collectionId, at, value, parentKey),

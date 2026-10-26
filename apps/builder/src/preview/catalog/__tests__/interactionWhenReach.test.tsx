@@ -9,6 +9,8 @@ import {
   catalogInteractionsCommand,
   catalogNewInteraction,
 } from "../../../builder/catalogRuntime/interactions";
+import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
+import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -146,6 +148,156 @@ function drag(zone: Element, ...events: ("dragEnter" | "dragOver" | "drop" | "dr
   dragPoint += events.length;
 }
 
+/**
+ * ADR-284 Phase 5 — a collection's drag and drop through RAC's own path: two lists of one
+ * collection (a drag carries the collection's type — a list accepts only its own collection's
+ * items), the source list dragging too (a rule makes a list drag), jsdom's empty rects laid out as
+ * rows 40px high (`ListDropTargetDelegate` reads them), a `DataTransfer` RAC writes and reads.
+ */
+const DROP_ROW = 40;
+const DROP_LIST = "[role=grid],[role=listbox],[role=treegrid]";
+const DROP_ITEM = "[data-key]:is([role=row],[role=option])";
+function dropRects() {
+  const original = Element.prototype.getBoundingClientRect;
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: Element,
+  ) {
+    const rect = (left: number, top: number, height: number) =>
+      ({
+        x: left,
+        y: top,
+        left,
+        top,
+        right: left + 200,
+        bottom: top + height,
+        width: 200,
+        height,
+        toJSON() {},
+      }) as DOMRect;
+    const list = this.closest(DROP_LIST);
+    const left = Number(list?.getAttribute("data-drop-left") ?? 0);
+    const item = this.closest(DROP_ITEM);
+    if (item && list) {
+      const items = [...list.querySelectorAll(DROP_ITEM)].filter(
+        (row) => row.closest(DROP_LIST) === list,
+      );
+      return rect(left, items.indexOf(item) * DROP_ROW, DROP_ROW);
+    }
+    if (this.matches(DROP_LIST))
+      return rect(left, 0, Math.max(this.querySelectorAll(DROP_ITEM).length, 1) * DROP_ROW);
+    return original.call(this);
+  });
+}
+function dataTransfer() {
+  const data = new Map<string, string>();
+  const items: { kind: string; type: string; getAsString: (cb: (s: string) => void) => void }[] = [];
+  return {
+    get items() {
+      return Object.assign([...items], {
+        add(value: string, type: string) {
+          data.set(type, value);
+          items.push({ kind: "string", type, getAsString: (cb) => cb(value) });
+        },
+      });
+    },
+    get types() {
+      return [...data.keys()];
+    },
+    files: [],
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData(type: string, value: string) {
+      this.items.add(value, type);
+    },
+    getData: (type: string) => data.get(type) ?? "",
+    setDragImage() {},
+    clearData() {},
+  };
+}
+async function collectionDrop(h: Harness, event: string) {
+  const [own, other] = h.ids as [NodeId, NodeId];
+  act(() => {
+    h.session.receive({
+      type: "CATALOG_DATA",
+      version: 1,
+      collections: [
+        {
+          id: "users",
+          name: "Users",
+          schema: [
+            { id: "f-id", key: "id", type: "string" },
+            { id: "f-name", key: "name", type: "string" },
+          ],
+          mockData: [
+            { id: "u1", name: "Kim" },
+            { id: "u2", name: "Park" },
+          ],
+          runtimeData: [],
+          useMockData: true,
+        },
+      ],
+      variables: [],
+      apiEndpoints: [],
+    } as never);
+  });
+  h.workspace.execute(
+    catalogBindingCommand(
+      [own, other].map((id) => ({ kind: "node" as const, id })),
+      catalogBindingRef({ source: "dataTable", collectionId: "users", name: "Users" })!,
+    ),
+  );
+  h.flush();
+  if (event !== "onDragEnd")
+    h.rule(other, "onDragEnd", { opcode: "toast", message: "source" });
+  await act(async () => {
+    await import(
+      "../../../../../../packages/shared/src/catalog/runtime/catalogDragAndDrop.components"
+    );
+  });
+  await act(() => new Promise((done) => setTimeout(done, 20)));
+  dropRects();
+  const [target, source] = qa(h, DROP_LIST);
+  source!.setAttribute("data-drop-left", "300");
+  const rows = (list: Element) => [...list.querySelectorAll(DROP_ITEM)];
+  const transfer = dataTransfer();
+  const fire = (element: Element, name: keyof typeof createEvent, x: number, y: number) => {
+    const created = createEvent[name](element, { dataTransfer: transfer });
+    Object.defineProperty(created, "clientX", { value: x });
+    Object.defineProperty(created, "clientY", { value: y });
+    fireEvent(element, created);
+  };
+  // Where the drag starts and where it lands: in its own list (onReorder · onDragEnd's source) or
+  // from the other list — between rows (onInsert), on a row (onItemDrop), on the list (onRootDrop).
+  const internal = event === "onReorder" || event === "onDragEnd";
+  const from = internal ? rows(target!)[0]! : rows(source!)[0]!;
+  const [to, y] =
+    event === "onReorder"
+      ? [rows(target!).at(-1)!, rows(target!).length * DROP_ROW - 2]
+      : event === "onDragEnd"
+        ? [source!, 2]
+        : event === "onItemDrop"
+          ? [rows(target!)[0]!, DROP_ROW / 2]
+          : event === "onInsert"
+            ? [target!, 2]
+            : [target!, DROP_ROW / 2];
+  const x = event === "onDragEnd" ? 400 : 100;
+  await act(async () => fire(from, "dragStart", 10, 10));
+  await act(() => new Promise((done) => setTimeout(done, 20)));
+  await act(async () => {
+    fire(to, "dragEnter", x, y);
+    fire(to, "dragOver", x, y);
+  });
+  await act(async () => {
+    await new Promise((done) => setTimeout(done, 20));
+    fire(to, "dragOver", x, y);
+  });
+  await act(async () => fire(to, "drop", x, y));
+  await act(async () => {
+    fire(from, "dragEnd", x, y);
+    await new Promise((done) => setTimeout(done, 50));
+  });
+}
+
 /** The owned node a record draws (`<path>::<node>` — an instance's own item). */
 const nodeOf = (element: Element | null | undefined) =>
   element!.getAttribute("data-catalog-id")!.split("::").at(-1) as NodeId;
@@ -221,6 +373,20 @@ const ROWS: Row[] = [
       await act(() => new Promise((done) => setTimeout(done, 900)));
     },
   },
+  // ── a collection's drag and drop (ADR-284 Phase 5) ──
+  ...(["ListBox", "GridList", "Tree", "Table"] as const).flatMap((list) =>
+    (
+      ["onReorder", "onInsert", "onRootDrop", "onItemDrop", "onDragEnd"] as const
+    ).map(
+      (event): Row => ({
+        palette: list,
+        type: list,
+        event,
+        with: [list],
+        act: (h) => collectionDrop(h, event),
+      }),
+    ),
+  ),
   // ── toggles ──
   {
     palette: "Checkbox",

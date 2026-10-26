@@ -42,6 +42,19 @@ const COMPONENT_TAGS: readonly string[] = getAiComponentCatalog()
   .filter((entry) => entry.placeable)
   .map((entry) => entry.type);
 
+/** One Do of `create_interaction_rule` (its `action`, or each of its `actions`). */
+const RULE_ACTION_PROPERTIES = {
+  kind: {
+    type: "string",
+    enum: ["navigate", "toast", "capability"],
+  },
+  path: { type: "string" },
+  message: { type: "string" },
+  targetId: { type: "string" },
+  capability: { type: "string" },
+  value: {},
+};
+
 const definitions: ChatCompletionTool[] = [
   {
     type: "function",
@@ -329,20 +342,16 @@ const definitions: ChatCompletionTool[] = [
           action: {
             type: "object",
             description: "aiToolDef.ruleAction",
-            properties: {
-              kind: {
-                type: "string",
-                enum: ["navigate", "toast", "capability"],
-              },
-              path: { type: "string" },
-              message: { type: "string" },
-              targetId: { type: "string" },
-              capability: { type: "string" },
-              value: {},
-            },
+            properties: RULE_ACTION_PROPERTIES,
+          },
+          // ADR-284 Phase 5 — a rule's Do list, run in order (a failing Do stops the rest).
+          actions: {
+            type: "array",
+            description: "aiToolDef.ruleActions",
+            items: { type: "object", properties: RULE_ACTION_PROPERTIES },
           },
         },
-        required: ["elementId", "trigger", "action"],
+        required: ["elementId", "trigger"],
       },
     },
   },

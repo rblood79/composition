@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-27 ADR-284 Phase 5 · G5 닫힘** — 컬렉션 drag & drop: ListBox · GridList · Tree · Table 에 When 5 (`onReorder` · `onInsert` · `onRootDrop` · `onItemDrop` · `onDragEnd`) · 인자 (`keys` · `target.key` · `target.dropPosition` …) · 「묶기로 열 만들기」 가 열마다 drop 규칙 3 을 함께 만들어 카드가 열을 옮기고 머리 개수가 바뀐다 · update 「쓸 필드」 · move 「놓은 쪽」 (선택 필드 추가) · AI 규칙 도구 Do 목록. 수리: 개수 머리가 있으면 목록 편집이 「항목 없음」 이던 세션 결함. Preview initial +431 B (배선은 lazy 561 B). live (5175) 실제 drag 4 시나리오. 열림 · 합계 변화 없음.
+>
 > **2026-10-27 ADR-284 Phase 4d · G4 닫힘** — 성능: 100 행 × 조건 5 × 변수 변경 p95 0.087 ms (기준 16 ms) · 10,000 행 p95 5 ms (memo hit 0.04) · 참조 경로 1.7 ms. 번들: Preview initial +39 B (스키마 타입만, 계산은 lazy chunk). 「묶기로 목록 만들기」 에 「모든 값」 체크. 열림 · 합계 변화 없음.
 
 > **2026-10-27 ADR-284 Phase 4c** — 참조 필드: Data 필드 타입 「Reference」 (대상 컬렉션 · 맞출 필드) · 보기가 `teamId.name` 경로로 거르고 · 정렬하고 · 묶는다 (대상 없는 키 = 「없음」) · 「참조 값 표시」 (행에 팀 이름) · 「참조하는 행 수」 (사용자별 주문 수, 없으면 0). 수리: 행 템플릿 첫 삽입이 행 필드를 표본 값으로 굳히던 것 · 삽입이 행 맨 앞에 서던 것. live (5175) 필드 패널 Reference → 행 「Kim / male / Red」. 열림 · 합계 변화 없음.

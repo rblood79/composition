@@ -171,6 +171,9 @@ function CatalogRules({
       collections: [...collections.values()].map((collection) => ({
         id: `data:collection:${collection.id}` as const,
         name: collection.name,
+        fields: (collection.schema ?? []).flatMap((field) =>
+          field.id ? [{ id: field.id, key: field.key }] : [],
+        ),
       })),
       ...ownerItemsOf(),
     };

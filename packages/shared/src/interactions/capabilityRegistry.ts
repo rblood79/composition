@@ -100,6 +100,8 @@ export interface ComponentCapability {
    * ADR-281 Decision 2 — each event's argument names (`!event.<name>`), from the concepts' `args`.
    */
   eventArgs?: Readonly<Record<string, readonly string[]>>;
+  /** ADR-284 Phase 5 — events whose `eventArgs` name the fields of their one event object. */
+  eventArgFields?: readonly string[];
   /**
    * ADR-281 Decision 1 — the panel's When groups: one per concept (RAC documentation section) in
    * spec order, with the props that stop RAC firing its events. An `item` owner's concepts are not
@@ -221,6 +223,16 @@ const EVENT_ARG_NAMES = (() => {
 export function eventArgNames(event: string): readonly (readonly string[])[] {
   return EVENT_ARG_NAMES.get(event) ?? [];
 }
+
+const EVENT_ARG_FIELDS: ReadonlySet<string> = new Set(
+  Object.values(CAPABILITY_REGISTRY).flatMap(
+    (entry) => entry.eventArgFields ?? [],
+  ),
+);
+
+/** ADR-284 Phase 5 — whether a callback's argument names are its one event object's fields. */
+export const eventArgsAreFields = (event: string): boolean =>
+  EVENT_ARG_FIELDS.has(event);
 
 /** 해당 type 이 Do 축 대상이 될 수 있는지 (공통 3종만 있어도 true) */
 export function isCapabilityTarget(componentType: string): boolean {

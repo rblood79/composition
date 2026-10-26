@@ -3,7 +3,9 @@ import type {
   BreakpointName,
   CatalogLibrary,
   EntryId,
+  NodeEntry,
 } from "../document/types";
+import { definitionTypeName } from "../commands/context";
 import {
   parseCatalogPreviewData,
   parseCatalogPreviewView,
@@ -964,12 +966,14 @@ export class CatalogPreviewSession {
   }
   /**
    * `useListData.update(key, newValue)` — the item whose key is `key` (absent = the value's `id`)
-   * takes the value's schema fields; its key fields stay. An unknown key is reported.
+   * takes the value's schema fields; its key fields stay. An unknown key is reported. `fieldId`
+   * (ADR-284 Phase 5) names the one field the value's `fieldId` entry writes.
    */
   update(
     collectionId: string,
     key: string | undefined,
     value: Readonly<Record<string, unknown>>,
+    fieldId?: string,
   ): { ok: boolean; reason?: string } {
     return this.edit(collectionId, (collection, items) => {
       const target =
@@ -977,7 +981,15 @@ export class CatalogPreviewSession {
       if (target === undefined) return { reason: "수정할 항목의 key 가 없다" };
       if (!this.keysOf(collectionId, items).has(target))
         return { reason: `항목 없음: ${target}` };
-      const patch = this.itemFields(collection, value);
+      let fields = value;
+      if (fieldId !== undefined) {
+        const field = (collection.schema ?? []).find(
+          (item) => item.id === fieldId,
+        );
+        if (!field) return { reason: `필드 없음: ${fieldId}` };
+        fields = { [field.key]: value[fieldId] };
+      }
+      const patch = this.itemFields(collection, fields);
       for (const field of ITEM_KEY_FIELDS) delete patch[field];
       const valueField = this.treeFieldKeyOf(collectionId, "value");
       if (valueField) delete patch[valueField];
@@ -1015,6 +1027,12 @@ export class CatalogPreviewSession {
       const field =
         entry?.kind === "node" ? entry.binding?.fieldMap[role] : undefined;
       if (!field) continue;
+      // (Only a Tree's roles key the items — a Text's `value` (a group count's heading, ADR-284)
+      // names the field it shows, not the items' key.)
+      if (
+        definitionTypeName(graph, (entry as NodeEntry).definitionId) !== "Tree"
+      )
+        continue;
       const fieldId = field.replace(/^data:field:/, "");
       return schema.find((item) => item.id === fieldId)?.key ?? fieldId;
     }

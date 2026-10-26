@@ -52,6 +52,16 @@ const EVENT_ARG_TYPES: Readonly<Record<string, CatalogValueType>> = {
   files: "array",
   descriptor: "object",
   date: "object",
+  // (A collection's drag and drop — ADR-284 Phase 5: the drop event's fields.)
+  items: "array",
+  target: "object",
+  dropOperation: "string",
+  isInternal: "boolean",
+};
+
+/** An argument's fields a rule reads on their own (a drop's `target.key` · `target.dropPosition`). */
+const EVENT_ARG_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  target: ["key", "dropPosition"],
 };
 
 /** A schema field's type as a value's (text kinds — email · url · date … — are strings). */
@@ -67,12 +77,21 @@ const itemArgOf = (eventArgs: readonly string[]) =>
 export function catalogValueOptions(
   sources: CatalogValueSources,
 ): CatalogValueOption[] {
-  const options: CatalogValueOption[] = sources.eventArgs.map((arg) => ({
-    value: formatRuleValueRef({ from: "event", arg, path: [] }),
-    group: "event",
-    name: arg,
-    ...(EVENT_ARG_TYPES[arg] ? { type: EVENT_ARG_TYPES[arg] } : {}),
-  }));
+  const options: CatalogValueOption[] = sources.eventArgs.flatMap((arg) => [
+    {
+      value: formatRuleValueRef({ from: "event", arg, path: [] }),
+      group: "event" as const,
+      name: arg,
+      ...(EVENT_ARG_TYPES[arg] ? { type: EVENT_ARG_TYPES[arg] } : {}),
+    },
+    ...(EVENT_ARG_FIELDS[arg] ?? []).map((field) => ({
+      value: formatRuleValueRef({ from: "event", arg, path: [field] }),
+      group: "event" as const,
+      name: `${arg}.${field}`,
+      type: "string" as const,
+      nested: true,
+    })),
+  ]);
   const arg = itemArgOf(sources.eventArgs);
   if (arg && sources.items) {
     const single = itemRefIsSingle(arg, sources.items.single);

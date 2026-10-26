@@ -803,6 +803,13 @@ const koKR: TranslationKeys = {
         onDropActivate: "끌어 온 채 머물 때",
         onDropExit: "끌어 온 것이 나갈 때",
       },
+      collectionDragDrop: {
+        onReorder: "같은 목록 안에서 순서를 바꿀 때",
+        onInsert: "다른 목록의 항목을 사이에 놓을 때",
+        onRootDrop: "빈 자리에 놓을 때",
+        onItemDrop: "항목 위에 놓을 때",
+        onDragEnd: "끌기가 끝날 때",
+      },
       toggle: {
         onChange: "선택 상태가 바뀔 때",
       },
@@ -862,6 +869,7 @@ const koKR: TranslationKeys = {
       focus: "포커스",
       fileSelect: "파일 선택",
       dragDrop: "끌어 놓기",
+      collectionDragDrop: "항목 끌어 놓기",
       toggle: "선택 상태",
       value: "값",
       multiSelection: "선택",
@@ -893,6 +901,9 @@ const koKR: TranslationKeys = {
     listIndex: "위치 (index)",
     targetKey: "기준 항목 key",
     movedKeys: "옮길 항목 key",
+    dropPosition: "놓은 쪽 (비우면 Do 의 방향)",
+    updateField: "쓸 필드",
+    updateWholeItem: "값 = 항목 (필드 전체)",
     parentKey: "부모 항목 key (트리 · 비우면 맨 위)",
     toParentKey: "새 부모 항목 key (트리 · 비우면 맨 위)",
     actionInsert: "collection 위치에 넣기",
@@ -1430,6 +1441,8 @@ const koKR: TranslationKeys = {
       "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
     ruleAction:
       "수행할 동작. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+    ruleActions:
+      "순서대로 실행할 동작 목록 (action 대신 — 실패한 동작에서 멈춥니다). 각 항목은 action 과 같은 모양.",
     listCollections:
       "프로젝트의 데이터 테이블(collection) 목록을 읽습니다 — id · 이름 · 필드 수 · 행 수 · 소스 · 사용처 수. 행은 싣지 않습니다 (get_collection 의 sampleRows). 바인딩·데이터 변경 전에 먼저 호출하세요.",
     getCollection:
@@ -3319,6 +3332,13 @@ const enUS: TranslationKeys = {
         onDropActivate: "On drag hold",
         onDropExit: "On drag exit",
       },
+      collectionDragDrop: {
+        onReorder: "On reorder in this list",
+        onInsert: "On drop between items from another list",
+        onRootDrop: "On drop on the empty list",
+        onItemDrop: "On drop on an item",
+        onDragEnd: "On drag end",
+      },
       toggle: {
         onChange: "On check change",
       },
@@ -3378,6 +3398,7 @@ const enUS: TranslationKeys = {
       focus: "Focus",
       fileSelect: "File select",
       dragDrop: "Drag and drop",
+      collectionDragDrop: "Item drag and drop",
       toggle: "Checked state",
       value: "Value",
       multiSelection: "Selection",
@@ -3407,6 +3428,9 @@ const enUS: TranslationKeys = {
     listIndex: "Index",
     targetKey: "Target item key",
     movedKeys: "Item keys to move",
+    dropPosition: "Drop side (empty = the Do's)",
+    updateField: "Field to write",
+    updateWholeItem: "Value = item (all fields)",
     parentKey: "Parent item key (tree · empty = top level)",
     toParentKey: "New parent item key (tree · empty = top level)",
     actionInsert: "Insert into a collection at",
@@ -3950,6 +3974,8 @@ const enUS: TranslationKeys = {
       "A callback name the component exposes (onPress, …). Do not use DOM aliases such as onClick.",
     ruleAction:
       "The action to run. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+    ruleActions:
+      "Actions to run in order (instead of action — a failing one stops the rest). Each has action's shape.",
     listCollections:
       "Lists the project's data tables (collections) — id, name, field count, row count, source, and how many elements use each. Rows are not included (use get_collection sampleRows). Call this before binding or proposing data changes.",
     getCollection:

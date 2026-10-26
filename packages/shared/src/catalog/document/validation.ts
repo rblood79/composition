@@ -1680,10 +1680,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
           if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
         } else if (action.opcode === "update") {
-          exact(action, ["opcode", "collectionId", "key", "value"], `${at}`);
+          exact(action, ["opcode", "collectionId", "key", "value", "field"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
           if (action.value !== undefined) scalar(action.value, `${at}.value`);
+          if (action.field !== undefined) id(action.field, "data:field:", `${at}.field`);
         } else if (action.opcode === "insert") {
           exact(action, ["opcode", "collectionId", "index", "value", "parentKey"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
@@ -1708,10 +1709,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           if (action.toParentKey !== undefined)
             scalar(action.toParentKey, `${at}.toParentKey`);
         } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
-          exact(action, ["opcode", "collectionId", "key", "keys"], `${at}`);
+          exact(action, ["opcode", "collectionId", "key", "keys", "dropPosition"], `${at}`);
           id(action.collectionId, "data:collection:", `${at}.collectionId`);
           if (action.key !== undefined) scalar(action.key, `${at}.key`);
           if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
+          if (action.dropPosition !== undefined)
+            scalar(action.dropPosition, `${at}.dropPosition`);
         } else if (
           action.opcode === "reload" ||
           action.opcode === "loadMore" ||

@@ -70,6 +70,11 @@ export interface InteractionConcept {
    * first argument too.
    */
   args?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * ADR-284 Phase 5 — the callbacks take one event object and `args` name its fields (a
+   * collection's drag and drop: `e.keys` · `e.target`), not the callback's parameters.
+   */
+  argFields?: true;
   /** ADR-281 Decision 1 — the panel group (RAC documentation section); default = `id`. */
   group?: string;
   /**

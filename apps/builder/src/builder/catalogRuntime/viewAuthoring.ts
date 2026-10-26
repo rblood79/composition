@@ -47,6 +47,7 @@ import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/do
 import type {
   DataBindingRef,
   EntryId,
+  InteractionEntry,
   LibraryDefinitionId,
   NodeEntry,
   NodeId,
@@ -1483,6 +1484,8 @@ export function catalogGroupColumnsCommand(
       headingId: NodeId;
       listId: NodeId;
       viewId: EntryId<"view">;
+      /** The column's drop rules (`onInsert` · `onRootDrop` · `onReorder` — ADR-284 Phase 5). */
+      ruleIds: readonly EntryId<"interaction">[];
     }[];
   };
 } {
@@ -1611,9 +1614,52 @@ export function catalogGroupColumnsCommand(
         newId,
       }),
     );
+  // ADR-284 Phase 5 — the kanban's drops (the reference's `Column`): a card from another column
+  // takes this column's value and lands next to its target (`onInsert`), on the empty column it
+  // takes the value (`onRootDrop`), in its own column it moves (`onReorder`). The update writes the
+  // collection the columns show (a reference path's field is another collection's — no drops).
+  const rules = new Map<NodeId, readonly InteractionEntry[]>();
+  if (!plan.field.path || plan.field.path.length === 1) {
+    const collectionId = source.binding.collectionId;
+    const fieldId =
+      `data:field:${plan.field.path?.[0] ?? plan.field.id}` as const;
+    const move = {
+      opcode: "moveBefore",
+      collectionId,
+      key: "!event.target.key",
+      keys: "!event.keys",
+      dropPosition: "!event.target.dropPosition",
+    } as const;
+    for (const column of columns) {
+      const owner = { ownerId: column.listId };
+      const update = {
+        opcode: "update",
+        collectionId,
+        key: "!event.keys",
+        field: fieldId,
+        value: column.value,
+      } as const;
+      rules.set(column.listId, [
+        catalogNewInteraction(owner, "onInsert", [update, move], newId),
+        catalogNewInteraction(owner, "onRootDrop", [update], newId),
+        catalogNewInteraction(owner, "onReorder", [move], newId),
+      ]);
+    }
+    for (const [listId, entries] of rules)
+      steps.push(() =>
+        catalogInteractionsCommand({ ownerId: listId }, entries, "Rules"),
+      );
+  }
   return {
     command: sequence(plan.label ?? "Group into columns", steps),
-    created: { rowId, countViewId, columns },
+    created: {
+      rowId,
+      countViewId,
+      columns: columns.map((column) => ({
+        ...column,
+        ruleIds: (rules.get(column.listId) ?? []).map((rule) => rule.id),
+      })),
+    },
   };
 }
 

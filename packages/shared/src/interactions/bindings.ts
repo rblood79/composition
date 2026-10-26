@@ -18,7 +18,7 @@ import {
   isInteractionRule,
   type InteractionRule,
 } from "./interactionRule.types";
-import { eventArgNames } from "./capabilityRegistry";
+import { eventArgNames, eventArgsAreFields } from "./capabilityRegistry";
 import {
   executeInteractionRule,
   type DispatchContext,
@@ -118,6 +118,13 @@ function eventArgs(
 ): Readonly<Record<string, unknown>> {
   const named: Record<string, unknown> = {};
   if (args.length) named.value = args[0];
+  if (eventArgsAreFields(trigger)) {
+    // (ADR-284 Phase 5 — a drag and drop handler's one event object: its fields by name.)
+    const event = (args[0] ?? {}) as Record<string, unknown>;
+    for (const names of eventArgNames(trigger))
+      for (const name of names) if (name in event) named[name] = event[name];
+    return named;
+  }
   for (const names of eventArgNames(trigger))
     names.forEach((name, index) => {
       if (index < args.length)

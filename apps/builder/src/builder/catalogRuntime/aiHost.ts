@@ -680,13 +680,26 @@ export function createCatalogAiWriteHost(
         if (!target)
           return { ok: false, error: `ELEMENT_NOT_FOUND: ${elementId}` };
         const owner = catalogInteractionOwner(target);
-        const catalogAction = catalogRuleAction(workspace, action, owner);
-        if ("error" in catalogAction)
-          return { ok: false, error: catalogAction.error };
+        const list: readonly InteractionAction[] = Array.isArray(action)
+          ? action
+          : [action as InteractionAction];
+        const actions: CatalogInteractionAction[] = [];
+        for (const [index, item] of list.entries()) {
+          const catalogAction = catalogRuleAction(workspace, item, owner);
+          if ("error" in catalogAction)
+            return {
+              ok: false,
+              error:
+                list.length > 1
+                  ? `Do ${index + 1}: ${catalogAction.error}`
+                  : catalogAction.error,
+            };
+          actions.push(catalogAction.action);
+        }
         const entry = catalogNewInteraction(
           owner,
           trigger,
-          catalogAction.action,
+          actions,
           workspace.newId,
         );
         runSteps(workspace, "AI: interaction", [

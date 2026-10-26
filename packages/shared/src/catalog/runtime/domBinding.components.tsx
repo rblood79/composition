@@ -2,7 +2,9 @@ import { useCatalogDomInput } from "./domBinding.runtime";
 
 import {
   createElement,
+  lazy,
   memo,
+  Suspense,
   useCallback,
   useContext,
   useSyncExternalStore,
@@ -12,8 +14,45 @@ import {
 } from "react";
 
 import * as RAC from "react-aria-components";
+import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
 
-import { type CatalogConsumerNode } from "./compositionRoot";
+/** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
+const CatalogDragAndDrop = lazy(
+  () => import("./catalogDragAndDrop.components"),
+);
+
+/**
+ * A collection whose rules handle a drag and drop (`onInsert` …) gets `dragAndDropHooks` — the
+ * drags carry the bound collection's type (else the node's): items move between lists of one
+ * collection. Until the chunk loads the list draws without them.
+ */
+function withDragAndDrop(
+  root: CatalogCompositionRoot,
+  record: CatalogConsumerNode,
+  element: ReactElement | null,
+  handlers: Readonly<Record<string, (...args: unknown[]) => void>> | undefined,
+): ReactElement | null {
+  if (!element || !handlers) return element;
+  const dnd = Object.fromEntries(
+    COLLECTION_DRAG_DROP_EVENTS.flatMap((name) =>
+      handlers[name] ? [[name, handlers[name]]] : [],
+    ),
+  );
+  if (!Object.keys(dnd).length) return element;
+  const source = root.runtime.graph.getEntry(record.sourceId as never);
+  const binding = source?.kind === "node" ? source.binding : undefined;
+  const dragType = `application/x-composition-item+${binding?.collectionId ?? record.sourceId}`;
+  return createElement(
+    Suspense,
+    { fallback: element },
+    createElement(CatalogDragAndDrop, { element, handlers: dnd, dragType }),
+  );
+}
+
+import {
+  type CatalogCompositionRoot,
+  type CatalogConsumerNode,
+} from "./compositionRoot";
 
 import {
   CATALOG_DELEGATED_DOM,
@@ -332,18 +371,23 @@ export const CatalogDomNode = memo(function CatalogDomNode({
           props: inheritedProps,
         } as CatalogConsumerNode);
   const draw = (record: CatalogConsumerNode) =>
-    withRuntime(
-      withCatalogStateStyles(
-        renderNode(
-          root,
-          record,
-          context,
-          parentInput,
-          partParent,
-          watchedParent,
-          styleOverride,
+    withDragAndDrop(
+      root,
+      record,
+      withRuntime(
+        withCatalogStateStyles(
+          renderNode(
+            root,
+            record,
+            context,
+            parentInput,
+            partParent,
+            watchedParent,
+            styleOverride,
+          ),
+          catalogDomStateStyles(record),
         ),
-        catalogDomStateStyles(record),
+        runtime?.handlersOf(id),
       ),
       runtime?.handlersOf(id),
     );

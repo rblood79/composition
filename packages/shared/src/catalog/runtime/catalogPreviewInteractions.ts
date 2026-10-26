@@ -171,6 +171,9 @@ function actionOf(
         collectionId: action.collectionId.slice("data:collection:".length),
         ...(action.key !== undefined ? { key: action.key } : {}),
         ...(action.value !== undefined ? { value: action.value } : {}),
+        ...(action.field !== undefined
+          ? { field: action.field.slice("data:field:".length) }
+          : {}),
       };
     case "reload":
     case "loadMore":

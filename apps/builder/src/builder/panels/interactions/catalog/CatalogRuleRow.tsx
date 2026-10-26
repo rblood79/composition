@@ -59,8 +59,9 @@ const LIST_DATA_FIELDS = {
   insertAfter: ["key", "value"],
   prepend: ["parentKey", "value"],
   move: ["key", "toParentKey", "toIndex"],
-  moveBefore: ["key", "keys"],
-  moveAfter: ["key", "keys"],
+  // (ADR-284 Phase 5 — a drop's side picks before · after: `!event.target.dropPosition`.)
+  moveBefore: ["key", "keys", "dropPosition"],
+  moveAfter: ["key", "keys", "dropPosition"],
   removeSelectedItems: [],
 } as const;
 type ListDataOpcode = keyof typeof LIST_DATA_FIELDS;
@@ -74,6 +75,7 @@ function listDataFieldLabelKey(opcode: ListDataOpcode, field: string): string {
   if (field === "keys") return "interactions.movedKeys";
   if (field === "parentKey") return "interactions.parentKey";
   if (field === "toParentKey") return "interactions.toParentKey";
+  if (field === "dropPosition") return "interactions.dropPosition";
   if (opcode === "moveBefore" || opcode === "moveAfter" || opcode.startsWith("insert"))
     return "interactions.targetKey";
   return "interactions.itemKey";
@@ -508,6 +510,32 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
                 }))}
                 translateOptions={false}
               />
+              {action.opcode === "update" && (
+                <PropertySelect
+                  label={t("interactions.updateField")}
+                  value={action.field ?? ""}
+                  onChange={(field) => {
+                    const { field: _old, ...rest } = action;
+                    setAction(
+                      field
+                        ? { ...rest, field: field as `data:field:${string}` }
+                        : rest,
+                    );
+                  }}
+                  options={[
+                    { value: "", label: t("interactions.updateWholeItem") },
+                    ...(
+                      context.collections?.find(
+                        (option) => option.id === action.collectionId,
+                      )?.fields ?? []
+                    ).map((field) => ({
+                      value: `data:field:${field.id}`,
+                      label: field.key,
+                    })),
+                  ]}
+                  translateOptions={false}
+                />
+              )}
               {LIST_DATA_FIELDS[action.opcode].map((field) => (
                 <ValueField
                   key={field}

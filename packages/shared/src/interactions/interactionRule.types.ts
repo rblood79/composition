@@ -87,10 +87,12 @@ export interface AppendAction {
 export interface UpdateAction {
   kind: "update";
   collectionId: string;
-  /** `"!event.key"` or a literal key. */
+  /** `"!event.key"` or a literal key; keys (`"!event.keys"`) update each item. */
   key?: unknown;
   /** `"!event.<arg>"` resolving to a record (the Form's `"!event.formData"`). */
   value?: unknown;
+  /** ADR-284 Phase 5 — the one field (data field id, no prefix) the value writes. */
+  field?: string;
 }
 
 /** `useListData.remove(...keys)`. */
@@ -134,6 +136,8 @@ export type MoveAction = {
     toParentKey?: unknown;
     /** The items moved next to `key` (`"!event.keys"` · a literal key). */
     keys?: unknown;
+    /** ADR-284 Phase 5 — `moveBefore` · `moveAfter` by the drop's side (`"!event.target.dropPosition"`). */
+    dropPosition?: unknown;
   };
 }["move" | "moveBefore" | "moveAfter"];
 

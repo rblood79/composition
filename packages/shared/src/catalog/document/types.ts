@@ -1098,9 +1098,17 @@ export type InteractionAction =
         /** `useListData.update(key, newValue)` — the item's fields take the value's. */
         opcode: "update";
         collectionId: DataCollectionId;
-        /** The item's key (`"!event.key"` · a literal); absent = the value's `id`. */
+        /**
+         * The item's key (`"!event.key"` · a literal); absent = the value's `id`. Keys
+         * (`"!event.keys"`) update each item (the reference's `for (let id of ids) list.update(…)`).
+         */
         key?: Scalar;
         value?: Scalar;
+        /**
+         * ADR-284 Phase 5 — the one field the value writes (`{...list.getItem(id), [field]: value}`
+         * — the kanban's status); absent = the value is a record whose fields the item takes.
+         */
+        field?: DataFieldId;
       }
     | {
         /** `useAsyncList.reload()` — the collection's endpoint runs again (its items replace). */
@@ -1146,6 +1154,12 @@ export type InteractionAction =
         collectionId: DataCollectionId;
         key?: Scalar;
         keys?: Scalar;
+        /**
+         * ADR-284 Phase 5 — the side a drop chose (`"!event.target.dropPosition"`): `before` runs
+         * `moveBefore`, `after` `moveAfter` (the reference's `if (e.target.dropPosition === …)`);
+         * absent = the opcode's side.
+         */
+        dropPosition?: Scalar;
       }
     | {
         /** `useListData.removeSelectedItems()` — the selection of the components showing it. */

@@ -623,6 +623,9 @@ export interface TranslationKeys {
     listIndex: string;
     targetKey: string;
     movedKeys: string;
+    dropPosition: string;
+    updateField: string;
+    updateWholeItem: string;
     parentKey: string;
     toParentKey: string;
     actionInsert: string;
@@ -1283,6 +1286,7 @@ export interface TranslationKeys {
     createRule: string;
     ruleTrigger: string;
     ruleAction: string;
+    ruleActions: string;
     listCollections: string;
     getCollection: string;
     listApiEndpoints: string;
