@@ -154,7 +154,7 @@ export async function openAdr280Preview(
   const rule = (
     ownerId: NodeId,
     trigger: string,
-    action: InteractionEntry["action"],
+    action: InteractionEntry["actions"][number],
   ) => {
     const owner = { ownerId };
     workspace.execute(

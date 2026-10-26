@@ -197,7 +197,7 @@ describe("useListData positions — rules", () => {
 
   it("the new rules pass the document check and reopen the same; an extra field is refused", async () => {
     const h = await listPreview();
-    const actions: InteractionEntry["action"][] = [
+    const actions: InteractionEntry["actions"][number][] = [
       {
         opcode: "insert",
         collectionId: USERS,
@@ -244,14 +244,14 @@ describe("useListData positions — rules", () => {
         .filter(
           (entry): entry is InteractionEntry => entry.kind === "interaction",
         )
-        .map((entry) => entry.action.opcode)
+        .map((entry) => entry.actions[0].opcode)
         .sort();
     expect(stored(reopened)).toEqual(actions.map((a) => a.opcode).sort());
     const broken = structuredClone(exported);
     const rule = Object.values(broken.entries).find(
-      (entry) => entry.kind === "interaction" && entry.action.opcode === "move",
+      (entry) => entry.kind === "interaction" && entry.actions[0].opcode === "move",
     ) as InteractionEntry;
-    (rule.action as unknown as Record<string, unknown>).extra = 1;
+    (rule.actions[0] as unknown as Record<string, unknown>).extra = 1;
     expect(() => new CatalogGraph(broken, library)).toThrow();
     h.view.unmount();
   });

@@ -30,7 +30,7 @@ async function withRule() {
   });
   const target = () => {
     const rule = h.graph.getEntry(ruleId as never) as InteractionEntry;
-    return rule.action.opcode === "capability" ? rule.action.target : undefined;
+    return rule.actions[0].opcode === "capability" ? rule.actions[0].target : undefined;
   };
   return { ...h, ruleId, target };
 }

@@ -144,7 +144,10 @@ export function catalogVariableUsageCounter(
     const ids = new Set([variableId, catalogProjectVariableId(variableId)]);
     let count = interactions.filter(
       (entry: InteractionEntry) =>
-        entry.action.opcode === "setState" && ids.has(entry.action.variableId),
+        entry.actions.some(
+          (action) =>
+            action.opcode === "setState" && ids.has(action.variableId),
+        ),
     ).length;
     if (name)
       for (const ref of refs) {
@@ -208,8 +211,10 @@ export function catalogLegacyVariableMove(
       ? project.interactionIds.flatMap((ruleId) => {
           const rule = graph.getEntry(ruleId);
           return rule?.kind === "interaction" &&
-            rule.action.opcode === "setState" &&
-            rule.action.variableId === oldId
+            rule.actions.some(
+              (action) =>
+                action.opcode === "setState" && action.variableId === oldId,
+            )
             ? [rule]
             : [];
         })
@@ -237,11 +242,14 @@ export function catalogLegacyVariableMove(
       setNodeInteractions({
         ownerId: first.ownerId,
         ...(first.address ? { address: first.address } : {}),
-        entries: all.map((rule) =>
-          rule.action.opcode === "setState" && rule.action.variableId === oldId
-            ? { ...rule, action: { ...rule.action, variableId: id } }
-            : rule,
-        ),
+        entries: all.map((rule) => ({
+          ...rule,
+          actions: rule.actions.map((action) =>
+            action.opcode === "setState" && action.variableId === oldId
+              ? { ...action, variableId: id }
+              : action,
+          ),
+        })),
       }),
     );
   }

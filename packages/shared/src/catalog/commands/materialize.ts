@@ -1083,7 +1083,8 @@ function reanchorInteractions(
           address: moved.address,
         };
     }
-    const action = next.action;
+    // (ADR-284: every capability Do of the rule.)
+    const actions = next.actions.map((action) => {
     if (action.opcode === "capability" && "address" in action.target) {
       const moved = move(action.target.address);
       const target =
@@ -1092,7 +1093,7 @@ function reanchorInteractions(
           : "unplaced" in moved
             ? ({ unset: true } as const)
             : moved;
-      if (target) next = { ...next, action: { ...action, target } };
+      return target ? { ...action, target } : action;
     } else if (action.opcode === "capability" && "local" in action.target) {
       // (Inside an origin, a nested instance materialized: its copied place is a node of the origin
       // — a `local` from the origin root through the copies; a deeper step through a copied
@@ -1120,8 +1121,12 @@ function reanchorInteractions(
             ? { local: { instances: [], templatePath: path as TemplateId[] } }
             : { unset: true };
       }
-      if (target) next = { ...next, action: { ...action, target } };
+      return target ? { ...action, target } : action;
     }
+    return action;
+    });
+    if (actions.some((action, index) => action !== next.actions[index]))
+      next = { ...next, actions };
     if (next !== entry) draft.write(next);
   }
 }

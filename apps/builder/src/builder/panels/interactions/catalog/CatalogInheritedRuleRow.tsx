@@ -28,14 +28,17 @@ export const CatalogInheritedRuleRow = memo(function CatalogInheritedRuleRow({
   onReplace,
 }: CatalogInheritedRuleRowProps) {
   const { t } = useI18n();
-  const doLabel =
-    rule.action.opcode in ACTION_CHOICE_LABEL_KEYS
-      ? t(
-          ACTION_CHOICE_LABEL_KEYS[
-            rule.action.opcode as keyof typeof ACTION_CHOICE_LABEL_KEYS
-          ],
-        )
-      : rule.action.opcode;
+  const doLabel = rule.actions
+    .map((action) =>
+      action.opcode in ACTION_CHOICE_LABEL_KEYS
+        ? t(
+            ACTION_CHOICE_LABEL_KEYS[
+              action.opcode as keyof typeof ACTION_CHOICE_LABEL_KEYS
+            ],
+          )
+        : action.opcode,
+    )
+    .join(" · ");
   const summary = `${triggerLabel(componentType, rule.trigger, t)} → ${doLabel}`;
   const replaced = typeof status === "object";
   return (

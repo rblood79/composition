@@ -229,9 +229,19 @@ describe("InteractionRule 판별", () => {
         type: "interaction",
         elementId: "el-1",
         trigger: "onPress",
-        action: { kind: "navigate", params: { path: "/home" } },
+        actions: [{ kind: "navigate", params: { path: "/home" } }],
       }),
     ).toBe(true);
+    // (ADR-284: a rule holds a Do list — the single `action` of contract 49 is no rule.)
+    expect(
+      isInteractionRule({
+        id: "r1",
+        type: "interaction",
+        elementId: "el-1",
+        trigger: "onPress",
+        action: { kind: "navigate", params: { path: "/home" } },
+      }),
+    ).toBe(false);
   });
 
   it("구 SerializedEvent entry 를 배제한다 (Phase 4 잔존 데이터 방어)", () => {

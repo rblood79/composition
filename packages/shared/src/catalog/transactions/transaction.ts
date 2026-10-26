@@ -764,7 +764,7 @@ export function applyCatalogTransaction(
         const referrer = get(referrerId);
         if (
           referrer?.kind === "interaction" &&
-          referrer.action.opcode === "capability"
+          referrer.actions.some((action) => action.opcode === "capability")
         )
           graph.validateEntryReferences(referrer, get, library, ownerOf);
       }

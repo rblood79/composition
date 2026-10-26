@@ -96,28 +96,40 @@ function ruleOf(
   entry: InteractionEntry,
   elementId: string,
 ): InteractionRule | undefined {
-  const base = {
+  // ADR-284 Decision 8 — the Do list in order; a Do that does not resolve here (a page gone · a
+  // target this record does not reach) drops the rule: running the rest would skip a step.
+  const actions: InteractionRule["actions"][number][] = [];
+  for (const action of entry.actions) {
+    const converted = actionOf(graph, root, entry, action, elementId);
+    if (!converted) return undefined;
+    actions.push(converted);
+  }
+  if (!actions.length) return undefined;
+  return {
     id: entry.id,
-    type: "interaction" as const,
+    type: "interaction",
     elementId,
     trigger: entry.trigger,
+    actions,
   };
-  const action = entry.action;
+}
+
+function actionOf(
+  graph: CatalogGraph,
+  root: CatalogCompositionRoot,
+  entry: InteractionEntry,
+  action: InteractionEntry["actions"][number],
+  elementId: string,
+): InteractionRule["actions"][number] | undefined {
   switch (action.opcode) {
     case "navigate": {
       const page = graph.getEntry(action.pageId);
       return page?.kind === "page"
-        ? {
-            ...base,
-            action: { kind: "navigate", params: { path: page.route } },
-          }
+        ? { kind: "navigate", params: { path: page.route } }
         : undefined;
     }
     case "toast":
-      return {
-        ...base,
-        action: { kind: "toast", params: { message: action.message } },
-      };
+      return { kind: "toast", params: { message: action.message } };
     case "capability": {
       // ADR-283 Decision 2: the target as the record that fired sees it (same row · instance).
       const resolved = resolveCapabilityTarget(
@@ -129,73 +141,54 @@ function ruleOf(
       const target = "recordId" in resolved ? resolved.recordId : undefined;
       return target
         ? {
-            ...base,
-            action: {
-              kind: "capability",
-              targetId: target,
-              capability: action.capabilityId,
-              ...(action.value !== undefined
-                ? { params: { value: action.value } }
-                : {}),
-            },
+            kind: "capability",
+            targetId: target,
+            capability: action.capabilityId,
+            ...(action.value !== undefined
+              ? { params: { value: action.value } }
+              : {}),
           }
         : undefined;
     }
     case "callEndpoint":
       return {
-        ...base,
-        action: {
-          kind: "callEndpoint",
-          endpointId: action.endpointId.slice("data:endpoint:".length),
-          ...(action.body !== undefined ? { body: action.body } : {}),
-        },
+        kind: "callEndpoint",
+        endpointId: action.endpointId.slice("data:endpoint:".length),
+        ...(action.body !== undefined ? { body: action.body } : {}),
       };
     case "append":
       return {
-        ...base,
-        action: {
-          kind: "append",
-          collectionId: action.collectionId.slice("data:collection:".length),
-          ...(action.value !== undefined ? { value: action.value } : {}),
-          ...(action.parentKey !== undefined ? { parentKey: action.parentKey } : {}),
-        },
+        kind: "append",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.value !== undefined ? { value: action.value } : {}),
+        ...(action.parentKey !== undefined
+          ? { parentKey: action.parentKey }
+          : {}),
       };
     case "update":
       return {
-        ...base,
-        action: {
-          kind: "update",
-          collectionId: action.collectionId.slice("data:collection:".length),
-          ...(action.key !== undefined ? { key: action.key } : {}),
-          ...(action.value !== undefined ? { value: action.value } : {}),
-        },
+        kind: "update",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.key !== undefined ? { key: action.key } : {}),
+        ...(action.value !== undefined ? { value: action.value } : {}),
       };
     case "reload":
     case "loadMore":
       return {
-        ...base,
-        action: {
-          kind: action.opcode,
-          collectionId: action.collectionId.slice("data:collection:".length),
-        },
+        kind: action.opcode,
+        collectionId: action.collectionId.slice("data:collection:".length),
       };
     case "setFilterText":
       return {
-        ...base,
-        action: {
-          kind: "setFilterText",
-          collectionId: action.collectionId.slice("data:collection:".length),
-          ...(action.value !== undefined ? { value: action.value } : {}),
-        },
+        kind: "setFilterText",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.value !== undefined ? { value: action.value } : {}),
       };
     case "remove":
       return {
-        ...base,
-        action: {
-          kind: "remove",
-          collectionId: action.collectionId.slice("data:collection:".length),
-          ...(action.keys !== undefined ? { keys: action.keys } : {}),
-        },
+        kind: "remove",
+        collectionId: action.collectionId.slice("data:collection:".length),
+        ...(action.keys !== undefined ? { keys: action.keys } : {}),
       };
     case "insert":
     case "insertBefore":
@@ -208,23 +201,17 @@ function ruleOf(
       // (`useListData`'s positions — the rule's fields as they are, the collection without its prefix.)
       const { opcode, collectionId, ...fields } = action;
       return {
-        ...base,
-        action: {
-          kind: opcode,
-          collectionId: collectionId.slice("data:collection:".length),
-          ...fields,
-        },
+        kind: opcode,
+        collectionId: collectionId.slice("data:collection:".length),
+        ...fields,
       };
     }
     case "setState":
       return {
-        ...base,
-        action: {
-          kind: "setState",
-          variableId: action.variableId,
-          op: action.op,
-          ...(action.value !== undefined ? { value: action.value } : {}),
-        },
+        kind: "setState",
+        variableId: action.variableId,
+        op: action.op,
+        ...(action.value !== undefined ? { value: action.value } : {}),
       };
     default:
       return undefined;
@@ -623,7 +610,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     for (const rule of rules)
       signatures.set(
         rule.elementId,
-        `${signatures.get(rule.elementId) ?? ""}|${rule.id}:${rule.trigger}:${JSON.stringify(rule.action)}`,
+        `${signatures.get(rule.elementId) ?? ""}|${rule.id}:${rule.trigger}:${JSON.stringify(rule.actions)}`,
       );
     // A named RAC state adds an observer to its node's records: naming one re-renders them too.
     const project = graph?.getEntry(graph.projectId);

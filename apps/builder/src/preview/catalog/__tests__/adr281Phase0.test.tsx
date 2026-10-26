@@ -122,7 +122,7 @@ describe("ADR-281 Phase 0 — RED 3: a callEndpoint rule has no Preview rule", (
     });
     const rules = catalogPreviewRules(h.session.graph!, h.session.root!);
     expect(
-      rules.filter((rule) => (rule.action.kind as string) === "callEndpoint"),
+      rules.filter((rule) => (rule.actions[0].kind as string) === "callEndpoint"),
     ).toHaveLength(1);
     h.view.unmount();
   });

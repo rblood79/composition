@@ -5,6 +5,7 @@ import type {
   EntryId,
   InteractionEntry,
   NodeId,
+  ViewQuery,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogTableColumnKey } from "../../../../../../packages/shared/src/catalog/runtime/tableSort";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
@@ -43,8 +44,8 @@ async function usersPreview(
     variables?: {
       id: string;
       name: string;
-      type: "string";
-      defaultValue: string;
+      type: "string" | "object";
+      defaultValue: unknown;
     }[];
   },
 ) {
@@ -88,15 +89,22 @@ async function usersPreview(
   return h;
 }
 
-function bind(h: Awaited<ReturnType<typeof usersPreview>>, ids: NodeId[]) {
+function bind(
+  h: Awaited<ReturnType<typeof usersPreview>>,
+  ids: NodeId[],
+  view?: ViewQuery,
+) {
   h.workspace.execute(
     catalogBindingCommand(
       ids.map((id) => ({ kind: "node" as const, id })),
-      catalogBindingRef({
-        source: "dataTable",
-        collectionId: "users",
-        name: "Users",
-      })!,
+      {
+        ...catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+        ...(view ? { view } : {}),
+      },
     ),
   );
   h.flush();
@@ -111,31 +119,47 @@ function shown(h: Awaited<ReturnType<typeof usersPreview>>, id: NodeId) {
 }
 
 describe("ADR-284 G0 — RED until the data view phases", () => {
-  // ① 현재 2 — `setFilterText` stores the text and reloads; a mock collection does not load, so
-  // the list stays as it was (the user's 「무반응」). Phase 1: a view condition filters it.
-  it.fails(
-    "① a mock GridList filtered by a control's rule shows only the matching rows",
-    async () => {
-      const h = await usersPreview(["GridList", "Button"], {
-        useMockData: true,
-      });
-      const [list, button] = h.ids as [NodeId, NodeId];
-      bind(h, [list]);
-      await settle();
-      expect(shown(h, list)).toEqual(["Kim", "Park", "Lee"]);
-      h.rule(button, "onPress", {
-        opcode: "setFilterText",
-        collectionId: USERS,
-        value: "female",
-      });
-      act(() => {
-        fireEvent.click(h.element(button)!);
-      });
-      await settle();
-      expect(shown(h, list)).toEqual(["Park"]);
-      h.view.unmount();
-    },
-  );
+  // ① 현재 2 — `setFilterText` only reloads an API; a mock list did not change (the user's 「무반응」).
+  // Phase 1: the binding's built-in view holds the condition (gender = the variable, "all"
+  // skips) and a rule writes the variable.
+  it("① a mock GridList filtered by a control's rule shows only the matching rows", async () => {
+    const h = await usersPreview(["GridList", "Button"], {
+      useMockData: true,
+      variables: [
+        { id: "gender", name: "gender", type: "string", defaultValue: "all" },
+      ],
+    });
+    const [list, button] = h.ids as [NodeId, NodeId];
+    bind(h, [list], {
+      where: {
+        id: "where",
+        op: "and",
+        items: [
+          {
+            id: "gender",
+            fields: [["data:field:f-gender"]],
+            op: "equals",
+            value: "!var.data:variable:gender",
+            skip: "all",
+          },
+        ],
+      },
+    });
+    await settle();
+    expect(shown(h, list)).toEqual(["Kim", "Park", "Lee"]);
+    h.rule(button, "onPress", {
+      opcode: "setState",
+      variableId: "data:variable:gender",
+      op: "set",
+      value: "female",
+    });
+    act(() => {
+      fireEvent.click(h.element(button)!);
+    });
+    await settle();
+    expect(shown(h, list)).toEqual(["Park"]);
+    h.view.unmount();
+  });
 
   // ② 현재 3 — the sort is the Table's runtime state (ADR-257): a GridList on the same data keeps
   // its order. Phase 3: 「정렬 따라가기」 puts the sort in a variable both read through one view.
@@ -223,13 +247,23 @@ describe("ADR-284 G0 — RED until the data view phases", () => {
     },
   );
 
-  // ④ 현재 7 — one rule is one action (ADR-158): a drop that changes the card's column and its
-  // place needs two. Phase 1 opens `actions[]` (stored shape); Phase 5 wires the drop.
-  it.fails(
+  // ④ 현재 7 — one rule was one action (ADR-158): a drop that changes the card's column and its
+  // place needs two. Phase 1 opens `actions[]` and runs it in order; Phase 5 wires the drop.
+  it(
     "④ one rule runs `update` then `moveBefore` (kanban drop)",
     async () => {
+      // (The card's new fields come from a value reference — a literal is a scalar; Phase 5's
+      // drop gives the dropped column.)
       const h = await usersPreview(["GridList", "Button"], {
         useMockData: true,
+        variables: [
+          {
+            id: "moved",
+            name: "moved",
+            type: "object",
+            defaultValue: { gender: "female" },
+          },
+        ],
       });
       const [list, button] = h.ids as [NodeId, NodeId];
       bind(h, [list]);
@@ -245,7 +279,7 @@ describe("ADR-284 G0 — RED until the data view phases", () => {
             opcode: "update",
             collectionId: USERS,
             key: "u3",
-            value: { gender: "female" } as never,
+            value: "!var.data:variable:moved",
           },
           { opcode: "moveBefore", collectionId: USERS, key: "u1", keys: "u3" },
         ],
@@ -257,6 +291,10 @@ describe("ADR-284 G0 — RED until the data view phases", () => {
       });
       await settle();
       expect(shown(h, list)).toEqual(["Lee", "Kim", "Park"]);
+      expect(
+        (h.session.collectionItems("users") as { id: string; gender: string }[])
+          .find((row) => row.id === "u3")?.gender,
+      ).toBe("female");
       h.view.unmount();
     },
   );

@@ -131,7 +131,7 @@ function fixture(): CatalogGraph {
     ownerId: id("save"),
     address: LABEL_AT("save"),
     trigger: "onPress",
-    action: { opcode: "toast", message: "hi" },
+    actions: [{ opcode: "toast", message: "hi" }],
   };
   const entries: CatalogEntry[] = [interaction];
   const doc = documentOf(

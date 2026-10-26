@@ -9,7 +9,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 49,
+    "libraryContractVersion": 50,
     "revision": 27,
     "projectId": "project:project:7d834a71-b4e7-417f-a0c7-d6c2dde53998",
     "rootId": "project:project:7d834a71-b4e7-417f-a0c7-d6c2dde53998",
@@ -19,111 +19,131 @@
         "id": "project:interaction:07549636-5c75-4dda-b99f-0f062421da9e",
         "ownerId": "project:node:76caace2-8de6-4f8d-aad3-bbb0a21c74d6",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
-          "op": "set",
-          "value": 100
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+            "op": "set",
+            "value": 100
+          }
+        ]
       },
       "project:interaction:136f0f65-3073-4d3a-9ff2-67adbb2cb21a": {
         "kind": "interaction",
         "id": "project:interaction:136f0f65-3073-4d3a-9ff2-67adbb2cb21a",
         "ownerId": "project:node:d9348dbe-ce57-4b0d-b527-0ab0e6efe888",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
-          "op": "set",
-          "value": "홍길동"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
+            "op": "set",
+            "value": "홍길동"
+          }
+        ]
       },
       "project:interaction:139f0140-2a10-428e-976f-e8b4026dbdd5": {
         "kind": "interaction",
         "id": "project:interaction:139f0140-2a10-428e-976f-e8b4026dbdd5",
         "ownerId": "project:node:f9350e1c-c188-4d49-9775-f15ebd82dbdd",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
-          "op": "reset"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+            "op": "reset"
+          }
+        ]
       },
       "project:interaction:15aac83b-83a7-4604-a3fb-c65faf777344": {
         "kind": "interaction",
         "id": "project:interaction:15aac83b-83a7-4604-a3fb-c65faf777344",
         "ownerId": "project:node:6e2b23e2-009e-4c96-85c1-24537fa4397e",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
-          "op": "increment"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+            "op": "increment"
+          }
+        ]
       },
       "project:interaction:249fdb4b-ab7d-4d2e-8f65-b742f8117554": {
         "kind": "interaction",
         "id": "project:interaction:249fdb4b-ab7d-4d2e-8f65-b742f8117554",
         "ownerId": "project:node:a1739977-3504-4ecf-b768-c1fd0a5afa0a",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:3debe2bb-1381-49bc-bbec-272ce67f3ad4",
-          "op": "toggle"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:3debe2bb-1381-49bc-bbec-272ce67f3ad4",
+            "op": "toggle"
+          }
+        ]
       },
       "project:interaction:9130040c-d3ba-4269-959b-e0d912c64b28": {
         "kind": "interaction",
         "id": "project:interaction:9130040c-d3ba-4269-959b-e0d912c64b28",
         "ownerId": "project:node:00e95ca2-6be9-4a39-8962-f3f4af6dd472",
         "trigger": "onPress",
-        "action": {
-          "opcode": "navigate",
-          "pageId": "project:page:home"
-        }
+        "actions": [
+          {
+            "opcode": "navigate",
+            "pageId": "project:page:home"
+          }
+        ]
       },
       "project:interaction:a4660846-b657-4d4f-99e4-c4086285eb97": {
         "kind": "interaction",
         "id": "project:interaction:a4660846-b657-4d4f-99e4-c4086285eb97",
         "ownerId": "project:node:5473b92d-9410-43ba-a6d4-babe0ca54237",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
-          "op": "set",
-          "value": "김철수"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
+            "op": "set",
+            "value": "김철수"
+          }
+        ]
       },
       "project:interaction:a77524eb-61d7-40df-a5c5-5b12a1abc14e": {
         "kind": "interaction",
         "id": "project:interaction:a77524eb-61d7-40df-a5c5-5b12a1abc14e",
         "ownerId": "project:node:fb4d5c80-64da-4dfe-bb92-8967f1010065",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
-          "op": "increment"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+            "op": "increment"
+          }
+        ]
       },
       "project:interaction:ab0f8bff-728a-41df-9dcd-0e590444e90d": {
         "kind": "interaction",
         "id": "project:interaction:ab0f8bff-728a-41df-9dcd-0e590444e90d",
         "ownerId": "project:node:16545693-675f-4d77-8f2c-7aa06055cbd5",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
-          "op": "reset"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
+            "op": "reset"
+          }
+        ]
       },
       "project:interaction:ef6b9b14-707d-4900-8ebf-8705ba315787": {
         "kind": "interaction",
         "id": "project:interaction:ef6b9b14-707d-4900-8ebf-8705ba315787",
         "ownerId": "project:node:5cbf917c-3bf2-421b-82a6-1b72e6650cce",
         "trigger": "onPress",
-        "action": {
-          "opcode": "navigate",
-          "pageId": "project:page:other"
-        }
+        "actions": [
+          {
+            "opcode": "navigate",
+            "pageId": "project:page:other"
+          }
+        ]
       },
       "project:node:00e95ca2-6be9-4a39-8962-f3f4af6dd472": {
         "kind": "node",

@@ -49,7 +49,7 @@ export async function openAdr283Fixture(
       rule: (
         ownerId: NodeId,
         trigger: string,
-        action: InteractionEntry["action"],
+        action: InteractionEntry["actions"][number],
       ) => string,
       library: CatalogLibrary,
     ) => void;
@@ -121,7 +121,7 @@ export async function openAdr283Fixture(
   const rule = (
     ownerId: NodeId,
     trigger: string,
-    action: InteractionEntry["action"],
+    action: InteractionEntry["actions"][number],
   ) => {
     const owner = { ownerId };
     const entry = catalogNewInteraction(owner, trigger, action, workspace.newId);

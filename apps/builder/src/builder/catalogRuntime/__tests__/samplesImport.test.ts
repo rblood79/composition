@@ -85,7 +85,7 @@ describe("sample project files import into another project", () => {
       store.createApiEndpoint.mock.results.map((result) => result.value),
     );
     const endpoints = rules
-      .map((rule) => rule.action)
+      .map((rule) => rule.actions[0])
       .filter((action) => action.opcode === "callEndpoint")
       .map((action) => action.endpointId);
     expect(endpoints).toHaveLength(2);
@@ -104,7 +104,7 @@ describe("sample project files import into another project", () => {
       ),
     );
     const written = rules
-      .map((rule) => rule.action)
+      .map((rule) => rule.actions[0])
       .filter((action) => action.opcode === "setState")
       .map((action) => action.variableId);
     expect(written.length).toBeGreaterThan(0);
@@ -143,9 +143,9 @@ describe("sample project files import into another project", () => {
       ),
     ).toEqual(new Set(["/", "/detail/:id"]));
     const submits = rules.filter(
-      (rule) => rule.action.opcode === "callEndpoint",
+      (rule) => rule.actions[0].opcode === "callEndpoint",
     );
-    expect(submits.map((rule) => rule.action)).toEqual(
+    expect(submits.map((rule) => rule.actions[0])).toEqual(
       Array(3).fill(expect.objectContaining({ body: "!event.formData" })),
     );
     // Each submit reloads the collection (`useAsyncList.reload` — after the submit settles).
@@ -155,16 +155,16 @@ describe("sample project files import into another project", () => {
           (rule) =>
             rule.ownerId === submit.ownerId &&
             rule.trigger === "onSubmit" &&
-            rule.action.opcode === "reload" &&
-            rule.action.collectionId === collection,
+            rule.actions[0].opcode === "reload" &&
+            rule.actions[0].collectionId === collection,
         ),
       ).toBe(true);
     const byId = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint]));
     expect(
       new Set(
         submits.map((rule) =>
-          rule.action.opcode === "callEndpoint"
-            ? byId.get(rule.action.endpointId.slice("data:endpoint:".length))
+          rule.actions[0].opcode === "callEndpoint"
+            ? byId.get(rule.actions[0].endpointId.slice("data:endpoint:".length))
                 ?.method
             : undefined,
         ),
@@ -181,16 +181,16 @@ describe("sample project files import into another project", () => {
     // The update reloads the detail too.
     const update = submits.find(
       (rule) =>
-        rule.action.opcode === "callEndpoint" &&
-        byId.get(rule.action.endpointId.slice("data:endpoint:".length))
+        rule.actions[0].opcode === "callEndpoint" &&
+        byId.get(rule.actions[0].endpointId.slice("data:endpoint:".length))
           ?.method === "PUT",
     )!;
     expect(
       rules.some(
         (rule) =>
           rule.ownerId === update.ownerId &&
-          rule.action.opcode === "reload" &&
-          rule.action.collectionId === detail,
+          rule.actions[0].opcode === "reload" &&
+          rule.actions[0].collectionId === detail,
       ),
     ).toBe(true);
     expect(store.applyDataChange).toHaveBeenCalledWith(
@@ -210,7 +210,7 @@ describe("sample project files import into another project", () => {
         (def) => `data:variable:${def.id}`,
       ),
     );
-    for (const action of rules.map((rule) => rule.action))
+    for (const action of rules.map((rule) => rule.actions[0]))
       if (action.opcode === "setState") expect(defined).toContain(action.variableId);
   });
 });

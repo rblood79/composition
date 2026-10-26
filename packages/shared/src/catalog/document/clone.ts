@@ -10,6 +10,7 @@ import type {
   InteractionEntry,
 } from "./types";
 import { positionLayout } from "./absoluteLayout";
+import { mapBindingViewVariables } from "./viewRefs";
 import { CatalogValidationError } from "./validation";
 
 /**
@@ -125,15 +126,17 @@ export function cloneNodeSubgraph(
         id: relatedIds.get(entry.id) as EntryId<"stateVariable">,
         ownerId: map(entry.ownerId as NodeId),
       };
-    const action = structuredClone(entry.action);
-    if (
-      action.opcode === "setState" &&
-      action.variableId.startsWith("project:")
-    )
-      action.variableId = (relatedIds.get(action.variableId) ??
-        action.variableId) as EntryId<"stateVariable">;
-    if (action.opcode === "capability")
-      action.target = mapNodeRefIds(action.target, map);
+    const actions = structuredClone(entry.actions).map((action) => {
+      if (
+        action.opcode === "setState" &&
+        action.variableId.startsWith("project:")
+      )
+        action.variableId = (relatedIds.get(action.variableId) ??
+          action.variableId) as EntryId<"stateVariable">;
+      if (action.opcode === "capability")
+        action.target = mapNodeRefIds(action.target, map);
+      return action;
+    });
     return {
       ...structuredClone(entry),
       id: relatedIds.get(entry.id) as EntryId<"interaction">,
@@ -150,7 +153,7 @@ export function cloneNodeSubgraph(
             },
           }
         : {}),
-      action,
+      actions,
     };
   });
   return {
@@ -181,6 +184,15 @@ export function cloneNodeSubgraph(
         // ADR-256 §1-1: a state owner inside the copy is the copy's (a reference outside stays).
         ...(entry.showWhen
           ? { showWhen: mapShowWhenNodeIds(entry.showWhen, map) }
+          : {}),
+        // ADR-284: a view reading an element variable of the copy reads the copy's.
+        ...(entry.binding?.view
+          ? {
+              binding: mapBindingViewVariables(
+                structuredClone(entry.binding),
+                (id) => relatedIds.get(id),
+              ),
+            }
           : {}),
       };
     }),

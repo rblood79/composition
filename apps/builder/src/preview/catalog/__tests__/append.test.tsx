@@ -118,7 +118,7 @@ describe("append — storage", () => {
         .filter(
           (entry): entry is InteractionEntry => entry.kind === "interaction",
         )
-        .map((entry) => entry.action);
+        .map((entry) => entry.actions[0]);
     expect(actions(reopened)).toEqual([
       { opcode: "append", collectionId: USERS, value: "!event.formData" },
     ]);
@@ -126,19 +126,19 @@ describe("append — storage", () => {
     const rule = Object.values(broken.entries).find(
       (entry) => entry.kind === "interaction",
     ) as InteractionEntry;
-    (rule.action as unknown as Record<string, unknown>).extra = 1;
+    (rule.actions[0] as unknown as Record<string, unknown>).extra = 1;
     expect(() => new CatalogGraph(broken, library)).toThrow();
     const wrongRef = structuredClone(exported);
     (
       Object.values(wrongRef.entries).find(
         (entry) => entry.kind === "interaction",
-      ) as unknown as { action: Record<string, unknown> }
-    ).action.collectionId = "users";
+      ) as unknown as { actions: Record<string, unknown>[] }
+    ).actions[0]!.collectionId = "users";
     expect(() => new CatalogGraph(wrongRef, library)).toThrow();
     expect(
       catalogPreviewRules(h.session.graph!, h.session.root!)
-        .filter((item) => item.action.kind === "append")
-        .map((item) => item.action),
+        .filter((item) => item.actions[0].kind === "append")
+        .map((item) => item.actions[0]),
     ).toEqual([
       { kind: "append", collectionId: "users", value: "!event.formData" },
     ]);

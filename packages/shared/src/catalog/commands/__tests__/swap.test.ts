@@ -132,7 +132,7 @@ function fixture() {
     ownerId: I,
     address: { instances: [I], templatePath: [id("aRoot"), id("aTitle")] },
     trigger: "press",
-    action: { opcode: "navigate", pageId: PAGE },
+    actions: [{ opcode: "navigate", pageId: PAGE }],
   } as InteractionEntry;
   const extra: CatalogEntry[] = [
     definition("A", "aRoot"),

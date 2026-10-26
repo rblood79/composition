@@ -1,3 +1,4 @@
+import { mapBindingViewVariables } from "../document/viewRefs";
 import { cloneNodeSubgraph } from "../document/clone";
 import type {
   CatalogReader,
@@ -196,20 +197,28 @@ export const duplicatePage =
             ? input.newId("stateVariable")
             : input.newId("interaction"),
       );
-      for (const entry of clone.entries) draft.create(entry);
+      // (ADR-284: a view reading a page variable reads the copy's.)
+      for (const entry of clone.entries)
+        draft.create(
+          entry.binding?.view
+            ? {
+                ...entry,
+                binding: mapBindingViewVariables(entry.binding, (id) =>
+                  variables.get(id),
+                ),
+              }
+            : entry,
+        );
       for (const entry of clone.relatedEntries) {
         // Page variables the copied interactions set follow the page copy.
-        if (
-          entry.kind === "interaction" &&
-          entry.action.opcode === "setState" &&
-          variables.has(entry.action.variableId)
-        )
+        if (entry.kind === "interaction")
           related.push({
             ...entry,
-            action: {
-              ...entry.action,
-              variableId: variables.get(entry.action.variableId)!,
-            },
+            actions: entry.actions.map((action) =>
+              action.opcode === "setState" && variables.has(action.variableId)
+                ? { ...action, variableId: variables.get(action.variableId)! }
+                : action,
+            ),
           });
         else related.push(entry);
       }

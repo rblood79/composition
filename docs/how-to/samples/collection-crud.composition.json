@@ -203,7 +203,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 49,
+    "libraryContractVersion": 50,
     "revision": 48,
     "projectId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",
     "rootId": "project:project:6d0c1b7e-5a3f-4c2e-9b1a-c0a1d5e7f001",
@@ -1425,207 +1425,245 @@
         "id": "project:interaction:96b5304a-f69d-45eb-9b26-d06f47fff9e2",
         "ownerId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "callEndpoint",
-          "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a02",
-          "body": "!event.formData"
-        }
+        "actions": [
+          {
+            "opcode": "callEndpoint",
+            "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a02",
+            "body": "!event.formData"
+          }
+        ]
       },
       "project:interaction:f32b787e-3cdc-4ac3-ac90-b2c01467d639": {
         "kind": "interaction",
         "id": "project:interaction:f32b787e-3cdc-4ac3-ac90-b2c01467d639",
         "ownerId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "reload",
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
-        }
+        "actions": [
+          {
+            "opcode": "reload",
+            "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
+          }
+        ]
       },
       "project:interaction:2164052d-1329-4757-b7d5-0d1c7f026027": {
         "kind": "interaction",
         "id": "project:interaction:2164052d-1329-4757-b7d5-0d1c7f026027",
         "ownerId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
-          "op": "set",
-          "value": "Create"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
+            "op": "set",
+            "value": "Create"
+          }
+        ]
       },
       "project:interaction:a211bb4a-a4e4-424b-893b-0eda08f49962": {
         "kind": "interaction",
         "id": "project:interaction:a211bb4a-a4e4-424b-893b-0eda08f49962",
         "ownerId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
-          "op": "increment"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
+            "op": "increment"
+          }
+        ]
       },
       "project:interaction:34e2b5aa-2dbc-4f20-83d7-7a425b9410b9": {
         "kind": "interaction",
         "id": "project:interaction:34e2b5aa-2dbc-4f20-83d7-7a425b9410b9",
         "ownerId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5"
-          },
-          "capabilityId": "reset"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:c4adb26b-bca5-43de-88e4-963208ec8cb5"
+            },
+            "capabilityId": "reset"
+          }
+        ]
       },
       "project:interaction:72586f78-864b-4040-86d5-e0e1d03a7b87": {
         "kind": "interaction",
         "id": "project:interaction:72586f78-864b-4040-86d5-e0e1d03a7b87",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "callEndpoint",
-          "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a03",
-          "body": "!event.formData"
-        }
+        "actions": [
+          {
+            "opcode": "callEndpoint",
+            "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a03",
+            "body": "!event.formData"
+          }
+        ]
       },
       "project:interaction:b70ad446-f2e5-47ef-98e1-5fb08e191578": {
         "kind": "interaction",
         "id": "project:interaction:b70ad446-f2e5-47ef-98e1-5fb08e191578",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "reload",
-          "collectionId": "data:collection:b7c1e3a9-5d2f-4a6b-9c8e-1f0a2b3c4d5e"
-        }
+        "actions": [
+          {
+            "opcode": "reload",
+            "collectionId": "data:collection:b7c1e3a9-5d2f-4a6b-9c8e-1f0a2b3c4d5e"
+          }
+        ]
       },
       "project:interaction:46e3e11d-a526-41f0-8d4a-c248d9c45cc8": {
         "kind": "interaction",
         "id": "project:interaction:46e3e11d-a526-41f0-8d4a-c248d9c45cc8",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
-          "op": "set",
-          "value": "Update"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
+            "op": "set",
+            "value": "Update"
+          }
+        ]
       },
       "project:interaction:72127795-59d7-480e-a581-cb39242cd483": {
         "kind": "interaction",
         "id": "project:interaction:72127795-59d7-480e-a581-cb39242cd483",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
-          "op": "increment"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
+            "op": "increment"
+          }
+        ]
       },
       "project:interaction:0f3192de-1d56-4124-ba69-00fafb20d560": {
         "kind": "interaction",
         "id": "project:interaction:0f3192de-1d56-4124-ba69-00fafb20d560",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "toast",
-          "message": "수정했습니다"
-        }
+        "actions": [
+          {
+            "opcode": "toast",
+            "message": "수정했습니다"
+          }
+        ]
       },
       "project:interaction:d4e478ee-819a-4140-acfc-4c614612f12e": {
         "kind": "interaction",
         "id": "project:interaction:d4e478ee-819a-4140-acfc-4c614612f12e",
         "ownerId": "project:node:cba2bc0a-0b7e-4620-8d66-6e873944a2b6",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "callEndpoint",
-          "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a04",
-          "body": "!event.formData"
-        }
+        "actions": [
+          {
+            "opcode": "callEndpoint",
+            "endpointId": "data:endpoint:0f3a6c21-7b4d-4e59-8a12-5c6d7e8f9a04",
+            "body": "!event.formData"
+          }
+        ]
       },
       "project:interaction:6feae6fd-322b-4ab9-900a-a2797036f6b8": {
         "kind": "interaction",
         "id": "project:interaction:6feae6fd-322b-4ab9-900a-a2797036f6b8",
         "ownerId": "project:node:cba2bc0a-0b7e-4620-8d66-6e873944a2b6",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "reload",
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
-        }
+        "actions": [
+          {
+            "opcode": "reload",
+            "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
+          }
+        ]
       },
       "project:interaction:97b46110-a0eb-47e2-ac4c-7f2059752021": {
         "kind": "interaction",
         "id": "project:interaction:97b46110-a0eb-47e2-ac4c-7f2059752021",
         "ownerId": "project:node:cba2bc0a-0b7e-4620-8d66-6e873944a2b6",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
-          "op": "set",
-          "value": "Delete"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
+            "op": "set",
+            "value": "Delete"
+          }
+        ]
       },
       "project:interaction:cce9ce2a-a207-42a3-8259-09a4570a5516": {
         "kind": "interaction",
         "id": "project:interaction:cce9ce2a-a207-42a3-8259-09a4570a5516",
         "ownerId": "project:node:cba2bc0a-0b7e-4620-8d66-6e873944a2b6",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
-          "op": "increment"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
+            "op": "increment"
+          }
+        ]
       },
       "project:interaction:975f92e1-4733-4827-817f-ca169f56ccc7": {
         "kind": "interaction",
         "id": "project:interaction:975f92e1-4733-4827-817f-ca169f56ccc7",
         "ownerId": "project:node:cba2bc0a-0b7e-4620-8d66-6e873944a2b6",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "navigate",
-          "pageId": "project:page:home"
-        }
+        "actions": [
+          {
+            "opcode": "navigate",
+            "pageId": "project:page:home"
+          }
+        ]
       },
       "project:interaction:99cd271e-d042-4295-8a45-88c1e2a28391": {
         "kind": "interaction",
         "id": "project:interaction:99cd271e-d042-4295-8a45-88c1e2a28391",
         "ownerId": "project:node:c0041803-339c-43c2-9c99-55c089624409",
         "trigger": "onPress",
-        "action": {
-          "opcode": "reload",
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
-        }
+        "actions": [
+          {
+            "opcode": "reload",
+            "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
+          }
+        ]
       },
       "project:interaction:8692c329-652f-4ed5-bf8e-ec16bae6c898": {
         "kind": "interaction",
         "id": "project:interaction:8692c329-652f-4ed5-bf8e-ec16bae6c898",
         "ownerId": "project:node:838cc31f-1365-44c1-bbf4-d4e22cf95f5d",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
-          "op": "reset"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a01",
+            "op": "reset"
+          }
+        ]
       },
       "project:interaction:f16285fb-f6f2-4295-8bde-284d6862aa3f": {
         "kind": "interaction",
         "id": "project:interaction:f16285fb-f6f2-4295-8bde-284d6862aa3f",
         "ownerId": "project:node:838cc31f-1365-44c1-bbf4-d4e22cf95f5d",
         "trigger": "onPress",
-        "action": {
-          "opcode": "setState",
-          "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
-          "op": "reset"
-        }
+        "actions": [
+          {
+            "opcode": "setState",
+            "variableId": "data:variable:4b9e2d17-3c6a-4f81-b0d2-7e5a9c1f3a02",
+            "op": "reset"
+          }
+        ]
       },
       "project:interaction:5a1d7c3e-2b4f-4e6a-8d9c-0e1f2a3b4c5d": {
         "kind": "interaction",
         "id": "project:interaction:5a1d7c3e-2b4f-4e6a-8d9c-0e1f2a3b4c5d",
         "ownerId": "project:node:dc48e480-8a83-458a-9751-95fa198b5f97",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "reload",
-          "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
-        }
+        "actions": [
+          {
+            "opcode": "reload",
+            "collectionId": "data:collection:a4fd5257-09e4-43d6-8288-f2fa6a22484d"
+          }
+        ]
       }
     }
   },

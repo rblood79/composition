@@ -30,6 +30,7 @@ import {
   layeredOverride,
   overridesAt,
 } from "./templateOwners";
+import type { CatalogRowQuery } from "../runtime/viewQuery";
 import { CatalogGraph } from "../document/graph";
 import {
   componentPropertiesOf,
@@ -153,8 +154,13 @@ export interface CatalogBoundRow {
  * "items" (default) = the rows a collection repeats (the item reader's label/value fields, the
  * window limit); "records" = the collection's own records (a Chart's data — no window, raw fields).
  */
+/**
+ * ADR-284 — a binding as the row source sees it: with its view resolved for the bound node (the
+ * composition root's row wrapper — `catalogBindingQuery`).
+ */
+export type CatalogRowBinding = DataBindingRef & { query?: CatalogRowQuery };
 export type CatalogRowSource = (
-  binding: DataBindingRef,
+  binding: CatalogRowBinding,
   kind?: "items" | "records",
   /** The bound node — what a `key` template sees (its page's variables). */
   ownerId?: NodeId,
@@ -174,7 +180,23 @@ export type CatalogLoadingState =
 export type CatalogBoundRows = readonly CatalogBoundRow[] & {
   readonly total?: number;
   readonly loadingState?: CatalogLoadingState;
+  /** ADR-284 — the binding's view result (absent = no view). */
+  readonly view?: CatalogViewResultMeta;
 };
+/**
+ * ADR-284 Decision 3 — what a view's result covers: `matched` rows of `loaded` source rows (before
+ * the display window); `complete` = the source rows are all of the data (a local collection) —
+ * absent when not known (an API page). A run value, never stored in the document.
+ */
+export interface CatalogViewResultMeta {
+  readonly matched: number;
+  readonly loaded: number;
+  readonly complete?: boolean;
+  /** Conditions whose field or reference does not resolve (skipped). */
+  readonly broken: readonly string[];
+  /** Conditions that applied (not skipped). */
+  readonly applied: number;
+}
 /** Bound components that show their collection's load (`useAsyncList.loadingState`). */
 const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
   "Table",

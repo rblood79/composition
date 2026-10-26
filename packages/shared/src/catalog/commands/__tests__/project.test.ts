@@ -158,7 +158,7 @@ describe("ADR-248 Phase 4b project commands", () => {
           id: "project:interaction:go",
           ownerId: "project:node:button",
           trigger: "press",
-          action: { opcode: "navigate", pageId: "project:page:about" },
+          actions: [{ opcode: "navigate", pageId: "project:page:about" }],
         },
       }),
     );
@@ -477,11 +477,11 @@ describe("ADR-248 Phase 4b project commands", () => {
       id: id as EntryId<"interaction">,
       ownerId: "project:node:button",
       trigger: "press",
-      action: {
+      actions: [{
         opcode: "setState",
         variableId: "project:stateVariable:open",
         op,
-      },
+      }],
     });
     run(
       graph,
@@ -503,7 +503,7 @@ describe("ADR-248 Phase 4b project commands", () => {
     );
     expect(graph.getEntry("project:interaction:one")).toBeUndefined();
     expect(
-      (graph.getEntry("project:interaction:two") as InteractionEntry).action,
+      (graph.getEntry("project:interaction:two") as InteractionEntry).actions[0],
     ).toMatchObject({ op: "reset" });
     expect(project(graph).interactionIds).toEqual(["project:interaction:two"]);
     undo(graph, replaced.result.inverse);

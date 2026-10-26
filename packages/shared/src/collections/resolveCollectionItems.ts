@@ -145,7 +145,7 @@ export type CollectionDataSource = {
   mockData?: Record<string, unknown>[];
   name?: string;
   /** ADR-152 Phase 1b: `{#id}` 템플릿 · 차트 `#id` 참조를 위해 resolve 시 색인에 등록. */
-  schema?: readonly { id?: string; key: string }[];
+  schema?: readonly { id?: string; key: string; type?: string }[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;
 };

@@ -52,7 +52,7 @@ import {
  * target), and a choice with nothing to point at is not offered.
  */
 
-export type CatalogInteractionAction = InteractionEntry["action"];
+export type CatalogInteractionAction = InteractionEntry["actions"][number];
 export type CatalogActionChoice = CatalogInteractionAction["opcode"];
 
 export interface CatalogInteractionOwner {
@@ -651,7 +651,8 @@ export function catalogDefaultAction(
       context.pages[0];
     return page ? { opcode: "navigate", pageId: page.id } : undefined;
   }
-  if (choice === "toast") return { opcode: "toast", message: "" };
+  // (A toast's message is required — an empty one is no complete rule: the document refuses it.)
+  if (choice === "toast") return { opcode: "toast", message: "Message" };
   if (choice === "setState") {
     const variable = context.variables[0];
     return variable
@@ -698,10 +699,11 @@ export function catalogDefaultAction(
   return undefined;
 }
 
+/** A new rule: one Do, or a Do list (ADR-284 Decision 8 — run in order). */
 export function catalogNewInteraction(
   owner: CatalogInteractionOwner,
   trigger: string,
-  action: CatalogInteractionAction,
+  action: CatalogInteractionAction | readonly CatalogInteractionAction[],
   newId: NewId,
 ): InteractionEntry {
   return {
@@ -710,7 +712,9 @@ export function catalogNewInteraction(
     ownerId: owner.ownerId,
     ...(owner.address ? { address: owner.address } : {}),
     trigger,
-    action,
+    actions: Array.isArray(action)
+      ? [...(action as readonly CatalogInteractionAction[])]
+      : [action as CatalogInteractionAction],
   };
 }
 
@@ -843,7 +847,7 @@ export const catalogReplaceInheritedRuleCommand =
   (reader) => {
     const position = inheritedPosition(reader as CatalogVariableReader, owner);
     if (!position) throw new Error("NOT_AN_INSTANCE_POSITION");
-    const copy = catalogNewInteraction(owner, rule.trigger, rule.action, newId);
+    const copy = catalogNewInteraction(owner, rule.trigger, rule.actions, newId);
     const own = catalogInteractionsOf(reader as CatalogVariableReader, owner);
     const planned = catalogInteractionsCommand(
       owner,

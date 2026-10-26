@@ -158,7 +158,7 @@ export const createInteractionRuleTool: ToolExecutor = {
         type: "interaction",
         elementId: targetId,
         trigger,
-        action,
+        actions: [action],
       };
 
       // 스키마 가드 — 구 `SerializedEvent` 형태가 섞이면 여기서 걸린다

@@ -6,9 +6,10 @@
  * `SerializedEvent` + `SerializedAction` chain (actionRef/fallbackActionRef/
  * condition/next DAG) 은 은퇴.
  *
- * 규칙 1개 = 한 줄: `When(RAC callback) → Do(앱 액션 | 대상 capability)`.
- * 조건부 실행 / debounce / throttle / 다중 actions[] / 템플릿은 스키마에서
- * 원천 제거됐다 (ADR-158 §Decision — 필요 실증 시 후속 ADR).
+ * 규칙 1개 = 한 줄: `When(RAC callback) → Do(앱 액션 | 대상 capability)` 의 순서 목록.
+ * ADR-284 Decision 8 — 다중 Do (`actions[]`, 순서 실행 · 실패 시 중단) 는 kanban drop
+ * (`update` + `moveBefore`) 이 실증해 열었다. 조건부 실행 / debounce / throttle / 템플릿은
+ * 여전히 스키마에 없다 (ADR-158 §Decision).
  *
  * @see docs/adr/completed/158-interactions-rules-capability-registry.md
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §2
@@ -187,8 +188,8 @@ export interface InteractionRule {
    * DOM 별칭(onClick / onMouseEnter / onKeyDown …) 은 은퇴 어휘라 허용되지 않는다.
    */
   trigger: string;
-  /** 수행할 동작 */
-  action: InteractionAction;
+  /** 수행할 동작 — 순서대로, 앞의 것이 실패하면 멈춘다 (ADR-284) */
+  actions: readonly InteractionAction[];
 }
 
 /** entry 가 신규 스키마인지 판정 (구 `SerializedEvent` 잔존 데이터 배제) */
@@ -200,7 +201,8 @@ export function isInteractionRule(value: unknown): value is InteractionRule {
     typeof v.id === "string" &&
     typeof v.elementId === "string" &&
     typeof v.trigger === "string" &&
-    typeof v.action === "object" &&
-    v.action !== null
+    Array.isArray(v.actions) &&
+    v.actions.length > 0 &&
+    v.actions.every((action) => typeof action === "object" && action !== null)
   );
 }

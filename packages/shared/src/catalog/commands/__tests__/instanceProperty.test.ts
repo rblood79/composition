@@ -262,7 +262,7 @@ describe("ADR-261 Phase 5 — instance swap property", () => {
       ownerId: I,
       address: { instances: [I], templatePath: ICON_PATH },
       trigger: "press",
-      action: { opcode: "navigate", pageId: "project:page:main" },
+      actions: [{ opcode: "navigate", pageId: "project:page:main" }],
     } as InteractionEntry;
     const hover: InteractionEntry = {
       ...tap,

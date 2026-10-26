@@ -64,11 +64,11 @@ async function sourceProject() {
     id: "project:interaction:submit",
     ownerId: list.id,
     trigger: "onSubmit",
-    action: {
+    actions: [{
       opcode: "callEndpoint",
       endpointId: "data:endpoint:e1",
       body: "!event.formData",
-    },
+    }],
   } as unknown as InteractionEntry;
   const project = base.entries[SOURCE] as ProjectEntry;
   const body = base.entries[BODY] as NodeEntry;
@@ -197,7 +197,7 @@ describe("ADR-248 Phase 4e-6 project files", () => {
       fieldMap: {},
     });
     expect(
-      (stored.entries["project:interaction:submit"] as InteractionEntry).action,
+      (stored.entries["project:interaction:submit"] as InteractionEntry).actions[0],
     ).toMatchObject({ opcode: "callEndpoint", endpointId: "data:endpoint:e9" });
     expect(stored.entries["project:asset:logo"]).toBeDefined();
     // A save of the document the tab held before the import conflicts.

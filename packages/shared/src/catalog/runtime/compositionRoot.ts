@@ -187,6 +187,7 @@ import {
   catalogStateProps,
   type CatalogStateSource,
 } from "./stateTemplate";
+import { catalogBindingQuery } from "./viewQuery";
 import {
   CatalogRuntime,
   type CatalogExternalEffect,
@@ -1557,7 +1558,16 @@ export class CatalogCompositionRoot {
     // resolved = that item; not resolvable (the Canvas — no route, no runtime values) = a sample.
     this.rows =
       rows &&
-      ((binding, kind, ownerId) => {
+      ((authored, kind, ownerId) => {
+        // ADR-284: the binding's view, its references read for this node (runtime values in the
+        // Preview · Publish, defaults on the Canvas) — the row source runs it before the window.
+        const query = catalogBindingQuery(
+          this.runtime.graph,
+          authored,
+          ownerId,
+          this.stateSource,
+        );
+        const binding = query ? { ...authored, query } : authored;
         if (binding.key === undefined) return rows(binding, kind, ownerId);
         const key = catalogBindingKey(
           this.runtime.graph,
@@ -1909,12 +1919,25 @@ export class CatalogCompositionRoot {
     for (const sourceId of this.sourceInstances.keys()) {
       const entry = this.runtime.graph.getEntry(sourceId);
       const binding = entry?.kind === "node" ? entry.binding : undefined;
+      if (!binding) continue;
       if (
-        binding?.key !== undefined &&
+        binding.key !== undefined &&
         (!names ||
           catalogStateNames({ key: binding.key }).some((name) =>
             names.has(name),
           ))
+      )
+        keyed.add(binding.collectionId);
+      // ADR-284: a view reading a changed variable shows its rows again.
+      else if (
+        (binding.view || binding.viewId) &&
+        (!names ||
+          catalogBindingQuery(
+            this.runtime.graph,
+            binding,
+            sourceId,
+            this.stateSource,
+          )?.names.some((name) => names.has(name)))
       )
         keyed.add(binding.collectionId);
     }

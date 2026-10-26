@@ -442,7 +442,7 @@ export const pushInstanceOverrides =
           draft.write({
             ...origin,
             trigger: replacement.trigger,
-            action: replacement.action,
+            actions: replacement.actions,
           });
           pushedRules.push(value);
         } else kept[ruleId] = value;

@@ -321,7 +321,7 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
     const rules = catalogInteractionsOf(workspace.runtime.graph, {
       ownerId: id("go"),
     });
-    expect(rules.map((rule) => rule.action.opcode)).toEqual([
+    expect(rules.map((rule) => rule.actions[0].opcode)).toEqual([
       "toast",
       "navigate",
     ]);

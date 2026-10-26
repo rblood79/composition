@@ -122,7 +122,7 @@ describe("ADR-281 G4 — storage", () => {
         .filter(
           (entry): entry is InteractionEntry => entry.kind === "interaction",
         )
-        .map((entry) => entry.action);
+        .map((entry) => entry.actions[0]);
     expect(actions(reopened)).toEqual(actions(graph));
     expect(actions(reopened)).toContainEqual({
       opcode: "callEndpoint",
@@ -132,13 +132,13 @@ describe("ADR-281 G4 — storage", () => {
     const rule = Object.values(broken.entries).find(
       (entry) => entry.kind === "interaction",
     ) as InteractionEntry;
-    (rule.action as unknown as Record<string, unknown>).extra = 1;
+    (rule.actions[0] as unknown as Record<string, unknown>).extra = 1;
     expect(() => new CatalogGraph(broken, library)).toThrow();
     // The Preview rule carries the body (no prefix on the endpoint id).
     const rules = catalogPreviewRules(h.session.graph!, h.session.root!).filter(
-      (item) => item.action.kind === "callEndpoint",
+      (item) => item.actions[0].kind === "callEndpoint",
     );
-    expect(rules.map((item) => item.action)).toEqual([
+    expect(rules.map((item) => item.actions[0])).toEqual([
       { kind: "callEndpoint", endpointId: "signup" },
       { kind: "callEndpoint", endpointId: "signup", body: "!event.formData" },
     ]);

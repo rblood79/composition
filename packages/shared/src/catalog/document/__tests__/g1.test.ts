@@ -428,7 +428,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 49,
+          contractVersion: 50,
           revision: "bad",
           definitions: [
             {
@@ -452,7 +452,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 49,
+          contractVersion: 50,
           revision: "bad",
           definitions: [],
           templates: [],
@@ -480,7 +480,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
               id: "project:interaction:bad",
               ownerId: "project:node:cardA",
               trigger: "press",
-              action: { opcode: "eval", code: "x" },
+              actions: [{ opcode: "eval", code: "x" }],
             } as never,
           },
         ]),
@@ -797,12 +797,12 @@ describe("ADR-248 G1 isolated catalog graph", () => {
           id: "project:interaction:press",
           ownerId: "project:node:cardA",
           trigger: "press",
-          action: {
+          actions: [{
             opcode: "setState",
             variableId: "project:stateVariable:flag",
             op: "set",
             value: true,
-          },
+          }],
         },
       },
       {
@@ -844,7 +844,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
             templatePath: ["lib:template:cardRoot", "lib:template:cardText"],
           },
           trigger: "press",
-          action: { opcode: "toast", message: "Saved" },
+          actions: [{ opcode: "toast", message: "Saved" }],
         },
       },
       {
@@ -854,12 +854,12 @@ describe("ADR-248 G1 isolated catalog graph", () => {
           id: "project:interaction:capability",
           ownerId: "project:node:cardA",
           trigger: "change",
-          action: {
+          actions: [{
             opcode: "capability",
             target: { nodeId: "project:node:cardB" },
             capabilityId: "setValue",
             value: "x",
-          },
+          }],
         },
       },
       {
@@ -869,11 +869,11 @@ describe("ADR-248 G1 isolated catalog graph", () => {
           id: "project:interaction:press",
           ownerId: "project:node:cardA",
           trigger: "press",
-          action: {
+          actions: [{
             opcode: "setState",
             variableId: "project:stateVariable:flag",
             op: "toggle",
-          },
+          }],
         },
       },
     ]);
@@ -887,11 +887,11 @@ describe("ADR-248 G1 isolated catalog graph", () => {
               id: "project:interaction:press",
               ownerId: "project:node:cardA",
               trigger: "press",
-              action: {
+              actions: [{
                 opcode: "setState",
                 variableId: "project:stateVariable:flag",
                 op: "increment",
-              },
+              }],
             },
           },
         ]),
@@ -907,11 +907,11 @@ describe("ADR-248 G1 isolated catalog graph", () => {
               id: "project:interaction:capability",
               ownerId: "project:node:cardA",
               trigger: "change",
-              action: {
+              actions: [{
                 opcode: "capability",
                 target: { nodeId: "project:node:cardB" },
                 capabilityId: "eval(x)",
-              },
+              }],
             },
           },
         ]),
@@ -927,7 +927,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
               id: "project:interaction:toast",
               ownerId: "project:node:cardA",
               trigger: "onClick",
-              action: { opcode: "toast", message: "x" },
+              actions: [{ opcode: "toast", message: "x" }],
             },
           },
         ]),
@@ -943,12 +943,12 @@ describe("ADR-248 G1 isolated catalog graph", () => {
               id: "project:interaction:press",
               ownerId: "project:node:cardA",
               trigger: "press",
-              action: {
+              actions: [{
                 opcode: "setState",
                 variableId: "project:stateVariable:flag",
                 op: "set",
                 value: "wrong",
-              },
+              }],
             },
           },
         ]),
@@ -1421,7 +1421,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 49,
+          contractVersion: 50,
           revision: "cycle",
           bindingIds: [],
           actionOpCodes: [],
@@ -1486,7 +1486,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("applies compatible immutable library revision changes without project snapshots", () => {
     const { document, library } = createG1Fixture();
     const updated = buildCatalogLibrary({
-      contractVersion: 49,
+      contractVersion: 50,
       revision: "g1-fixture-v2",
       definitions: [...library.definitions.values()],
       templates: [...library.templates.values()],
@@ -1710,11 +1710,11 @@ describe("ADR-248 G1 isolated catalog graph", () => {
             templatePath: ["lib:template:cardRoot"],
           },
           trigger: "press",
-          action: {
+          actions: [{
             opcode: "setState",
             variableId: "project:stateVariable:local",
             op: "toggle",
-          },
+          }],
         },
       },
     ]);
@@ -1752,9 +1752,9 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     if (interaction?.kind !== "interaction")
       throw new Error("interaction missing");
     expect(interaction.address?.instances[0]).toBe(copy.rootId);
-    expect(interaction.action.opcode).toBe("setState");
-    if (interaction.action.opcode === "setState")
-      expect(interaction.action.variableId).toBe(
+    expect(interaction.actions[0].opcode).toBe("setState");
+    if (interaction.actions[0].opcode === "setState")
+      expect(interaction.actions[0].variableId).toBe(
         "project:stateVariable:localCopy",
       );
   });
@@ -1762,7 +1762,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("fans out one Tree and Slider definition override to both instances", () => {
     const { document, library } = createG1Fixture();
     const extended = buildCatalogLibrary({
-      contractVersion: 49,
+      contractVersion: 50,
       revision: "g1-tree-slider",
       definitions: [
         ...library.definitions.values(),

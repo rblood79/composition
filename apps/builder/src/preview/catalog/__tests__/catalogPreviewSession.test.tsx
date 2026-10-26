@@ -526,8 +526,8 @@ describe("ADR-248 4e-6 Preview entry", () => {
         catalogInteractionsCommand(
           owner,
           rules().map((rule) =>
-            rule.action.opcode === "toast"
-              ? { ...rule, action: { opcode: "toast", message: "Bye" } }
+            rule.actions[0].opcode === "toast"
+              ? { ...rule, actions: [{ opcode: "toast", message: "Bye" }] }
               : rule,
           ),
           "Edit",

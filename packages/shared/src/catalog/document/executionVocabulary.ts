@@ -3,7 +3,7 @@ import {
   COMMON_CAPABILITIES,
 } from "../../interactions/capabilityRegistry";
 import { NEVER_OFFERED_GROUPS } from "../../interactions/exposure";
-import type { InteractionEntry } from "./types";
+import type { InteractionAction } from "./types";
 
 /**
  * ADR-248 Phase 4e-4e: the code catalog library's execution vocabulary — the Interactions rule
@@ -39,12 +39,12 @@ export const CATALOG_ACTION_OPCODES = [
   // `useAsyncList.loadMore` · `setFilterText` — the next page · a server filter.
   "loadMore",
   "setFilterText",
-] as const satisfies readonly InteractionEntry["action"]["opcode"][];
+] as const satisfies readonly InteractionAction["opcode"][];
 
 export function codeExecutionVocabulary(): {
   triggerIds: string[];
   capabilityIds: string[];
-  actionOpCodes: InteractionEntry["action"]["opcode"][];
+  actionOpCodes: InteractionAction["opcode"][];
 } {
   const triggers = new Set<string>();
   const capabilities = new Set<string>(Object.keys(COMMON_CAPABILITIES));

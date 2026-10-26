@@ -106,27 +106,38 @@ export function catalogTargetPickCommand(
   target: EditTarget,
   type: string,
   exposure: ExposureInput,
+  /** ADR-284 — which Do of the rule (default: its first capability Do). */
+  doIndex?: number,
 ):
   | { command: CatalogCommand; fallback?: { from: string; to: string } }
   | undefined {
   const rule = graph.getEntry(ruleId as never);
-  if (rule?.kind !== "interaction" || rule.action.opcode !== "capability")
-    return undefined;
+  if (rule?.kind !== "interaction") return undefined;
+  const at =
+    doIndex !== undefined && rule.actions[doIndex]?.opcode === "capability"
+      ? doIndex
+      : rule.actions.findIndex((action) => action.opcode === "capability");
+  const action = rule.actions[at];
+  if (action?.opcode !== "capability") return undefined;
   const owner: CatalogInteractionOwner = {
     ownerId: rule.ownerId,
     ...(rule.address ? { address: rule.address } : {}),
   };
   const ref = catalogTargetRefOf(graph, owner, target);
   if (!ref || !isCapabilityTarget(type)) return undefined;
-  if (sameCatalogTarget(ref, rule.action.target)) return undefined;
-  const keeps = rule.action.capabilityId in exposedCapabilities(type, exposure);
+  if (sameCatalogTarget(ref, action.target)) return undefined;
+  const keeps = action.capabilityId in exposedCapabilities(type, exposure);
   const next: InteractionEntry = {
     ...rule,
-    action: {
-      opcode: "capability",
-      target: ref,
-      capabilityId: keeps ? rule.action.capabilityId : "hide",
-    },
+    actions: rule.actions.map((item, index) =>
+      index === at
+        ? {
+            opcode: "capability",
+            target: ref,
+            capabilityId: keeps ? action.capabilityId : "hide",
+          }
+        : item,
+    ),
   };
   return {
     command: catalogInteractionsCommand(
@@ -138,7 +149,7 @@ export function catalogTargetPickCommand(
     ),
     ...(keeps
       ? {}
-      : { fallback: { from: rule.action.capabilityId, to: "hide" } }),
+      : { fallback: { from: action.capabilityId, to: "hide" } }),
   };
 }
 

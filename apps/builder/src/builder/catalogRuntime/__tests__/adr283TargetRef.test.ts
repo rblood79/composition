@@ -42,7 +42,7 @@ const capability = (target: CatalogCapabilityTarget) =>
 const ruleOf = (h: Fixture, id: string) =>
   h.graph.getEntry(id as never) as InteractionEntry | undefined;
 const targetOf = (h: Fixture, id: string) => {
-  const action = ruleOf(h, id)?.action;
+  const action = ruleOf(h, id)?.actions[0];
   return action?.opcode === "capability" ? action.target : undefined;
 };
 /** The Preview rule's target record for a firing record (the shared conversion). */
@@ -50,7 +50,7 @@ const firedTarget = (h: Fixture, ruleId: string, firing: string) => {
   const rule = catalogPreviewRules(h.graph, h.workspace.root).find(
     (item) => item.id === ruleId && item.elementId === firing,
   );
-  return rule && "targetId" in rule.action ? rule.action.targetId : undefined;
+  return rule && "targetId" in rule.actions[0] ? rule.actions[0].targetId : undefined;
 };
 /** The record of `instanceId` (a page instance) a record is drawn under. */
 const instanceRecordOf = (
@@ -288,7 +288,7 @@ describe("ADR-283 G1 — the commands through a target (Decision 3)", () => {
     const copied = [...h.graph.referrersOf(copyEdit!)]
       .map((id) => ruleOf(h, id))
       .find((entry) => entry?.kind === "interaction" && entry.id !== origin);
-    expect(copied?.action).toMatchObject({
+    expect(copied?.actions[0]).toMatchObject({
       target: {
         local: { instances: [], templatePath: [copy.templateRootId, copySave] },
       },
@@ -412,14 +412,14 @@ describe("ADR-283 G1 — the commands through a target (Decision 3)", () => {
       structuredClone(h.graph.exportDocument()),
       h.library,
     );
-    expect((reopened.getEntry(page) as InteractionEntry).action).toMatchObject({
+    expect((reopened.getEntry(page) as InteractionEntry).actions[0]).toMatchObject({
       target: { unset: true },
     });
     const rule = ruleOf(h, page)!;
     h.workspace.execute(
       catalogInteractionsCommand(
         { ownerId: TOGGLE },
-        [{ ...rule, action: capability({ nodeId: ROW_TEXT }) }],
+        [{ ...rule, actions: [capability({ nodeId: ROW_TEXT })]}],
         "Set interaction target",
       ),
     );

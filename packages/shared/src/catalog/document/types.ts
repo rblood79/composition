@@ -131,9 +131,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 49 — ADR-283: a capability action's target is a place reference (`target` — `{ nodeId }` ·
  * `{ address }` · `{ local }` · `{ unset }`) instead of a page node id (`targetId`). A 48 document
  * is refused.
+ * 50 — ADR-284: a rule's Do is a list (`actions`, one action = a list of one) instead of one
+ * `action`; a binding may read a view (`viewId` · `view`) and the project lists shared views
+ * (`viewIds`). A 49 document is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 49 as const;
+export const LIBRARY_CONTRACT_VERSION = 50 as const;
 
 export type EntryKind =
   | "project"
@@ -145,7 +148,8 @@ export type EntryKind =
   | "token"
   | "stateVariable"
   | "interaction"
-  | "asset";
+  | "asset"
+  | "view";
 export type EntryId<K extends EntryKind = EntryKind> = `project:${K}:${string}`;
 export type LibraryDefinitionId = `lib:definition:${string}`;
 export type LibraryTemplateId = `lib:template:${string}`;
@@ -539,6 +543,129 @@ export interface DataBindingRef {
    * item's fields (`{name}`); a collection component shows that item only.
    */
   key?: string;
+  /**
+   * ADR-284 — a shared view the binding reads (named, `ProjectEntry.viewIds`); its root collection
+   * is `collectionId`. Absent = the binding's own (built-in) view below, or every row.
+   */
+  viewId?: EntryId<"view">;
+  /** ADR-284 — the binding's built-in view (unnamed) over `collectionId`; never with `viewId`. */
+  view?: ViewQuery;
+}
+
+/**
+ * ADR-284 — a field path: field ids from the source collection, through reference fields
+ * (`[teamId, name]` = `team.name`). Stored by id so a rename keeps it.
+ */
+export type DataFieldPath = readonly DataFieldId[];
+/**
+ * ADR-284 Decision 2 — the closed comparison vocabulary. Text ones follow RAC `useFilter`
+ * (`Intl.Collator` `usage: "search"`, `sensitivity: "base"`); `oneOf` = the value is one of a list
+ * (a `Selection`), `containsAny` · `containsAll` read an array field; `between` includes both ends;
+ * `before` · `after` · `withinLast` compare dates by day.
+ */
+export type ViewComparison =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "startsWith"
+  | "endsWith"
+  | "oneOf"
+  | "containsAny"
+  | "containsAll"
+  | "gte"
+  | "gt"
+  | "lte"
+  | "lt"
+  | "between"
+  | "before"
+  | "after"
+  | "withinLast"
+  | "exists"
+  | "notExists";
+export const VIEW_COMPARISONS: readonly ViewComparison[] = [
+  "equals",
+  "notEquals",
+  "contains",
+  "startsWith",
+  "endsWith",
+  "oneOf",
+  "containsAny",
+  "containsAll",
+  "gte",
+  "gt",
+  "lte",
+  "lt",
+  "between",
+  "before",
+  "after",
+  "withinLast",
+  "exists",
+  "notExists",
+];
+/** A condition's value: a literal, a list (`oneOf` · `between`) or a rule value reference string. */
+export type ViewConditionValue = Scalar | readonly Scalar[];
+/**
+ * ADR-284 — one condition: `filter`'s one term. Any of `fields` matching is a match (plants'
+ * `name` OR `scientific` contains the search). `value` may be a rule value reference
+ * (`!var.<id>` · `!event.<arg>` — `interactions/valueRef.ts`).
+ */
+export interface ViewCondition {
+  /** Stable within the view (re-editing · the run explanation name the same condition). */
+  id: string;
+  fields: readonly DataFieldPath[];
+  op: ViewComparison;
+  value?: ViewConditionValue;
+  /**
+   * The value that skips the condition (passes every row): `"empty"` (default — no value · `""` ·
+   * `[]`) or a literal (a RadioGroup's `"all"`).
+   */
+  skip?: "empty" | Scalar;
+  /** Whether it applies: a boolean or a reference (a Checkbox's `!var.<id>`); false skips it. */
+  enabled?: Scalar;
+  /** Text comparisons — `Intl.Collator` sensitivity (default `base`, as `useFilter`). */
+  sensitivity?: "base" | "accent" | "case" | "variant";
+  /** `withinLast` — the value counts these units back from today. */
+  unit?: "day" | "week" | "month" | "year";
+}
+/** ADR-284 — conditions joined by `and` · `or`; a group whose items all skip is skipped. */
+export interface ViewConditionGroup {
+  id: string;
+  op: "and" | "or";
+  items: readonly (ViewCondition | ViewConditionGroup)[];
+}
+/** ADR-284 Decision 3 — aggregate names shared with Chart `budgetAggregate` (+ `count`). */
+export type ViewAggregateFn = "count" | "sum" | "mean" | "min" | "max";
+export interface ViewAggregate {
+  fn: ViewAggregateFn;
+  /** The field summed · compared; absent for `count`. */
+  field?: DataFieldPath;
+  /** The result field's name (unique in the view). */
+  as: string;
+}
+/**
+ * ADR-284 Decision 5 — the sort: a variable holding a `SortDescriptor` (`{column, direction}` — a
+ * Table's `onSortChange` writes it; `column` names a field by id or key), or a literal one.
+ */
+export type ViewSort =
+  | { variableId: EntryId<"stateVariable"> | ProjectVariableId }
+  | { field: DataFieldPath; direction: "ascending" | "descending" };
+/** ADR-284 — what a view computes over its source: conditions → group · aggregate → sort. */
+export interface ViewQuery {
+  where: ViewConditionGroup;
+  groupBy?: readonly DataFieldPath[];
+  aggregates?: readonly ViewAggregate[];
+  sort?: ViewSort;
+}
+/**
+ * ADR-284 Decision 1 — a shared (named) view. Its source is a collection or another shared view (a
+ * derived view — the result count of a list's view). A binding's built-in view is promoted to one
+ * when a derived view needs it as its source.
+ */
+export interface ViewEntry extends ViewQuery {
+  kind: "view";
+  id: EntryId<"view">;
+  name: string;
+  source: { collectionId: DataCollectionId } | { viewId: EntryId<"view"> };
 }
 
 export interface ProjectEntry {
@@ -559,6 +686,8 @@ export interface ProjectEntry {
   stateVariableIds: readonly EntryId<"stateVariable">[];
   interactionIds: readonly EntryId<"interaction">[];
   assetIds: readonly EntryId<"asset">[];
+  /** ADR-284 — the shared data views (absent = none). */
+  viewIds?: readonly EntryId<"view">[];
   activeThemeId?: EntryId<"theme">;
   pageLayout?: PageLayoutDeclaration;
   /**
@@ -931,7 +1060,14 @@ export interface InteractionEntry {
   ownerId: NodeId;
   address?: InstanceAddress;
   trigger: string;
-  action:
+  /**
+   * ADR-284 Decision 8 — the Do list, run in order (one action = a list of one); a failure stops
+   * the rest. No condition · branch (ADR-158).
+   */
+  actions: readonly InteractionAction[];
+}
+/** One Do of a rule (ADR-284 — a rule holds a list of them). */
+export type InteractionAction =
     | {
         opcode: "setState";
         variableId: EntryId<"stateVariable"> | ProjectVariableId;
@@ -1036,7 +1172,6 @@ export interface InteractionEntry {
         capabilityId: string;
         value?: Scalar | readonly Scalar[];
       };
-}
 export interface AssetEntry {
   kind: "asset";
   id: EntryId<"asset">;
@@ -1055,7 +1190,8 @@ export type CatalogEntry =
   | TokenEntry
   | StateVariableEntry
   | InteractionEntry
-  | AssetEntry;
+  | AssetEntry
+  | ViewEntry;
 
 /** What an edit addresses: an owned node, or a template position inside an instance. */
 export type EditTarget =
@@ -1208,6 +1344,6 @@ export interface CatalogLibrary {
     bindingIds: ReadonlySet<string>;
     triggerIds: ReadonlySet<string>;
     capabilityIds: ReadonlySet<string>;
-    actionOpCodes: ReadonlySet<InteractionEntry["action"]["opcode"]>;
+    actionOpCodes: ReadonlySet<InteractionAction["opcode"]>;
   };
 }

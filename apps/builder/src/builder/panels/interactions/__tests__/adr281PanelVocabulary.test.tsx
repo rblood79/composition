@@ -99,12 +99,12 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
     id: "project:interaction:r1" as InteractionEntry["id"],
     ownerId: "project:node:b" as NodeId,
     trigger: "onPress",
-    action: {
+    actions: [{
       opcode: "capability",
       target: { nodeId: "project:node:list" as NodeId },
       capabilityId: "selectItem",
       value: "a",
-    },
+    }],
   };
   const context = {
     pages: [],
@@ -159,7 +159,7 @@ describe("ADR-281 G3 — the inherited rule row", () => {
     id: "project:interaction:origin" as InteractionEntry["id"],
     ownerId: "project:node:template" as NodeId,
     trigger: "onPress",
-    action: { opcode: "toast", message: "hi" },
+    actions: [{ opcode: "toast", message: "hi" }],
   };
 
   it("a summary, an on/off switch and Replace in this instance", () => {

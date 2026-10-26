@@ -238,7 +238,7 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
       defaultValue: 3,
     });
     const ruleNow = graph.getEntry(rule.id);
-    expect(ruleNow?.kind === "interaction" && ruleNow.action).toMatchObject({
+    expect(ruleNow?.kind === "interaction" && ruleNow.actions[0]).toMatchObject({
       variableId: moved.id,
     });
     workspace.undo();
@@ -246,7 +246,7 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
     expect(defined.has("v-old")).toBe(true);
     expect(graph.getEntry(moved.id)).toBeUndefined();
     const ruleBack = graph.getEntry(rule.id);
-    expect(ruleBack?.kind === "interaction" && ruleBack.action).toMatchObject({
+    expect(ruleBack?.kind === "interaction" && ruleBack.actions[0]).toMatchObject({
       variableId: "data:variable:v-old",
     });
   });

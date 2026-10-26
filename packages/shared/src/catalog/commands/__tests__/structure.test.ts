@@ -203,11 +203,11 @@ describe("ADR-248 Phase 4b structure commands", () => {
           id: "project:interaction:toggle",
           ownerId: "project:node:button",
           trigger: "press",
-          action: {
+          actions: [{
             opcode: "setState",
             variableId: "project:stateVariable:open",
             op: "toggle",
-          },
+          }],
         },
       ],
     );

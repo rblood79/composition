@@ -133,8 +133,9 @@ export function catalogUnsetTargetRuleCount(document: {
   for (const entry of Object.values(document.entries) as InteractionEntry[])
     if (
       entry?.kind === "interaction" &&
-      entry.action.opcode === "capability" &&
-      "unset" in entry.action.target
+      entry.actions.some(
+        (action) => action.opcode === "capability" && "unset" in action.target,
+      )
     )
       count++;
   return count;

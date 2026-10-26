@@ -103,6 +103,13 @@ export {
   updateTheme,
 } from "./project";
 export {
+  addView,
+  catalogViewUsers,
+  promoteBindingView,
+  removeView,
+  updateView,
+} from "./views";
+export {
   currentItems,
   editItems,
   readTargetProp,

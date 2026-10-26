@@ -24,12 +24,12 @@ const capability = (name: string, value?: unknown): InteractionRule => ({
   type: "interaction",
   elementId: "button",
   trigger: "onPress",
-  action: {
+  actions: [{
     kind: "capability",
     targetId: "target",
     capability: name,
     ...(value !== undefined ? { params: { value } } : {}),
-  },
+  }],
 });
 
 describe("ADR-280 Phase 0 — RED 3: the open concept sits on the overlay body, not its trigger", () => {

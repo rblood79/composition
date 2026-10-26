@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 1) — 목록이 변수 조건으로 걸러지고, 규칙 하나가 Do 여러 개를 순서대로 실행] - 2026-10-26
+
+### Added
+
+- **규칙의 Do 목록**: Interactions 패널의 규칙 편집기 끝 「Do 추가」 — 한 When 에 Do 를 여러 개 두고 순서대로 실행한다 (앞 Do 가 실패하면 뒤 Do 는 실행하지 않는다). Do 가 둘 이상이면 「Do 순서」 에서 고르고 지운다. 요약은 「… 외 Do N개」
+  - 저장: `InteractionEntry.actions[]` (Do 하나 = 길이 1) — ADR-158 「한 규칙 = 한 Do」 의 후속 (kanban drop 의 `update` + `moveBefore` 실증). 조건부 실행 · 분기는 여전히 없다
+- **데이터 보기 (조회 조건)**: 바인딩이 조건 트리 (`and` · `or` · 비교 18 · 건너뛰는 값 · 적용 여부 · 변수 참조 `!var`) 와 정렬을 갖는다 — 목록 자신의 내장 보기 (`binding.view`) 또는 이름 붙인 공유 보기 (`binding.viewId` · `ViewEntry`). mock 데이터도 걸러진다 (전에는 `setFilterText` 가 API 만 다시 불러 mock 목록이 「무반응」 이었다)
+  - 계산: 원본 전체에 조건 → 정렬을 적용한 뒤 표시 상한 (100) 을 건다 — 101번째 이후 행만 일치해도 보인다. 글자 비교는 RAC `useFilter` 와 같은 규칙 (대소문자 · 악센트 무시), 날짜는 일 단위
+  - 변수가 바뀌면 그 변수를 읽는 목록이 다시 계산된다 (Preview · Publish 실행 값, Canvas 는 기본값)
+  - Canvas · Preview · Publish 가 같은 계산기 하나 (`packages/shared/src/collections/view/`) 를 쓴다
+  - 저작 UI 는 Phase 3 (「검색 추가」 · 「이 컨트롤로 거르기」) — 지금은 문서 · 명령 층
+- 공유 보기 명령 `addView` · `updateView` · `removeView` (읽는 곳이 있으면 거부) · `promoteBindingView` (목록의 내장 보기 → 공유 보기)
+
+### Changed
+
+- **Breaking — library contract 50**: 규칙은 `actions` 목록, 바인딩은 `view` · `viewId` 를 가질 수 있다. contract 49 문서는 열리지 않는다 (변환 없음 — 개발 단계 방침). 샘플 3 파일은 새 형식
+
+### Fixed
+
+- **Do 를 「Show a toast」 로 고르면 오류 토스트 (`…message`)**: 기본 message 가 빈 글자라 문서 검증이 거부했다 — 기본 message 를 채운다. 모든 Do 선택의 기본값이 문서 검증을 통과하는지 테스트로 고정
+
+### Tests
+
+- `collections/view/__tests__/evaluate.test.ts` (계산기 14 — 200 행 표시 상한 반례 포함) · `oneEvaluator.static.test.ts` (계산기 하나) · `document/__tests__/adr284ViewSchema.test.ts` (9) · `preview/catalog/__tests__/adr284DataView.test.tsx` (G0 RED 4 — ① ④ GREEN) · 원복 RED 8/8
+
 ## [Interactions — Value 칸 「값 고르기」: 이벤트 인자 · 선택한 항목 · 변수를 골라 담기] - 2026-10-26
 
 ### Added

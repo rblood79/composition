@@ -71,6 +71,8 @@ paths:
 - publish snapshot 은 `toRuntimeCollection(table)` (`{ id, name, schema, mockData, useMockData }`). `ExportedProjectSchema` 는 schema 필드 `id` 를 통과시킨다.
 - 이름: 저장 · 내부 타입은 `collections` (`CollectionState` · `targetCollection`), 사용자에게 보이는 UI 심볼 `DataTable*` (`panels/datatable/`) 은 유지.
 
+- **데이터 보기 (ADR-284)**: 바인딩은 내장 보기 (`binding.view` — 조건 트리 · 정렬) 또는 공유 보기 (`binding.viewId` → `ViewEntry`, 원본 사슬의 collection = 바인딩의 `collectionId`) 를 읽는다. compositionRoot 의 행 감싸개가 보기 사슬과 `!var` 값을 한 번 풀어 (`catalogBindingQuery`) 행 소스에 넘기고, `catalogBoundRows` 가 **표시 투영 전** 원본 전체에 `runViewQueries` (`collections/view/evaluate.ts`) 를 실행한다 — Canvas · Preview · Publish 가 같은 모듈 (`oneEvaluator.static.test.ts`). 변수 쓰기 → `refreshState(names)` 가 그 변수를 읽는 보기의 collection 을 다시 읽는다. 필드 · 참조가 없는 조건은 건너뛰고 `rows.view.broken` 으로 낸다 (조용한 통과 금지 — 패널이 표시). 공유 보기 삭제는 읽는 곳이 있으면 `VIEW_IN_USE`, 파생 보기는 목록의 내장 보기를 `promoteBindingView` 로 승격한 뒤 가리킨다 (조건 사본 금지).
+
 ## 5. 상태 변수 (ADR-214)
 
 - **모델**: `VariableDef` (`packages/shared/src/state/`). 소유자별 저장 —
@@ -80,7 +82,7 @@ paths:
 - **읽기 `{{ name }}`**: `resolveStateTemplate` (string prop 만, 깊이 6). **Canvas 는 기본값 env · Preview / publish 는 런타임 env** — 설계된 비대칭이라 `/cross-check` 에서 결함으로 판정하지 않는다. collection 행 템플릿은 `{{ }}` 먼저 → `{field}` 나중. 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax`).
 - **경로 param `{{ params.<이름> }}`**: Preview · publish 세션이 보이는 경로의 `:param` 값을 `CatalogStateSource.params` 로 준다 (`stateTemplate.ts` `CATALOG_PARAMS_ROOT`, 같은 이름 변수가 이김). 경로가 바뀌면 `refreshState({"params"})`. Canvas 는 원문 — 설계된 비대칭. 항목 · 행 · Link 의 `href` 는 `CatalogPreviewView` 의 RAC `RouterProvider` 가 세션 `navigateTo` 로 보낸다.
 - **런타임 값**: `createRuntimeState` (shared) — Preview (`catalogPreviewSession.ts`) 와 publish 에만 있다. 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}`. persist 는 project 만 (`composition:runtime-state:v1:${projectId}`). 구독은 `subscribeVariable` (의존 인덱스) — 전체 revision 구독 금지.
-- **쓰기 액션**: 문서에는 `InteractionEntry.action { opcode:"setState" }`, 실행은 shared `dispatcher` → `DispatchDeps.writeState`.
+- **쓰기 액션**: 문서에는 `InteractionEntry.actions[] { opcode:"setState" }`, 실행은 shared `dispatcher` → `DispatchDeps.writeState`.
 
 `showWhen`·`presentWhen`·RAC render props 값과 상태 주체 주소는
 [RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다.
@@ -88,7 +90,8 @@ paths:
 
 ## 6. Interaction (ADR-131 의 events / actions 를 대체)
 
-- 문서 정본은 `InteractionEntry { kind:"interaction", ownerId, trigger, action }` (`ProjectEntry.interactionIds`) — interaction 이 자기 소유 노드를 가리킨다 (노드가 `props.onPress: "ev1"` 로 가리키지 않는다). 편집은 `catalogRuntime/interactions.ts` 의 명령.
+- 문서 정본은 `InteractionEntry { kind:"interaction", ownerId, trigger, actions }` (`ProjectEntry.interactionIds`) — interaction 이 자기 소유 노드를 가리킨다 (노드가 `props.onPress: "ev1"` 로 가리키지 않는다). 편집은 `catalogRuntime/interactions.ts` 의 명령.
+- **Do 목록 (ADR-284, contract 50)**: `actions` 는 순서대로 실행되고 실패한 Do 에서 멈춘다 (dispatcher `executeInteractionRule` — 「Do N: 사유」). Preview 변환 (`ruleOf` → `actionOf`) 은 한 Do 라도 그 record 에서 풀리지 않으면 규칙을 내지 않는다 — 뒤 Do 가 앞 Do 를 전제한다. Do 를 읽는 곳 (색인 · 복사 · detach · createComponent · swap · 변수 이동 · Canvas 대상 지정) 은 모든 Do 를 돈다 — 첫 Do 만 보면 뒤 Do 의 page · 변수 · 대상이 dangling 이 된다. 조건부 실행 · 분기는 없다.
 - **등록표는 손으로 쓰지 않는다 (ADR-280)**: `CAPABILITY_REGISTRY` · `IMPLICIT_STATE_SOURCES` 는 RAC 개념 파일 (`packages/shared/src/interactions/concepts/*.ts` — RAC 문서 절 하나 = 개념 하나, 이름마다 설치 d.ts `satisfies`) 과 컴포넌트 spec (`componentInteractionSpecs.ts` — 유일한 손 입력) 에서 `deriveRegistry` 가 만든다. 새 컴포넌트의 When · Do 는 spec 한 줄 (개념 · owner) 이고, type 마다 쓰는 이름이 그 RAC props 에 없으면 `RAC_SURFACE_CHECK` 가 컴파일을 막는다. 개념 표는 RAC 의 절 구조를 옮긴 묶음일 뿐 새 어휘가 아니다 (사용자 원칙 2026-10-22).
 - **Preview/Publish 의 상태는 첫 render 부터 controlled**: running Preview (`setRuntimeProps` 가 있는 렌더) 의 binding 은 상태 prop 을 `catalogControlledProps` (`catalog/runtime/runtimeStateProps.ts`) 로 넘긴다 — 값은 항상 정의 (`undefined` 로 uncontrolled 에 떨어지는 render 금지 — react-stately 는 `value !== undefined` 로 판정), RAC 의 변경은 record 의 runtime 값으로, `default*` 와 controlled prop 을 같이 넘기지 않는다, key 에 상태값을 넣지 않는다 (remount 금지). 현재 값은 `catalogRuntimeStateOf` 하나 (runtime override ?? 시작 상태 — 항목이 선언한 선택 포함) 를 렌더와 dispatcher 가 같이 읽는다. **Why**: 항목 집계를 `defaultSelectedKeys` 로 넘기던 ListBox · GridList 는 규칙이 쓴 선택이 RAC 에 닿지 않았고, dispatcher 는 집계를 몰라 다중 선택의 `selectItem` 이 기존 선택을 지웠다 (ADR-280 Phase 0 RED).
 - **ComboBox 는 선택과 입력 글자를 둘 다 controlled 로 받는다 — 글자는 `CatalogComboBox` 가 쓴다**: RAC 는 `selectedKey` · `inputValue` 가 둘 다 controlled 면 글자 동기화를 쓰는 쪽에 맡긴다 (`useComboBoxState` — 레퍼런스 「Fully controlled」). `onSelectionChange` 가 key 와 그 항목 글자를 한 번에 쓰고 (blur 의 같은 key 호출 = 글자 되돌림, `null` = `allowsCustomValue` 의 custom 값이라 글자를 둔다), 다른 곳의 선택 (규칙 · load) 과 늦게 온 항목 글자는 `ComboBoxStateContext` 를 읽는 자식 effect 가 쓴다. 항목 글자는 `selectionManager.collection` (전체) 에서 — `state.collection` 은 닫혀 있을 때 마지막으로 보인 목록이다. 글자를 쓰는 render 는 `menuTrigger: "manual"` 이다. **Why (2026-10-23)**: 항목 action (virtual 클릭) 은 목록을 먼저 닫고 선택을 알린다 — 닫힌 · focus 된 칸에 글자가 오면 RAC 가 타이핑으로 보고 다시 열었다 (live 재현).

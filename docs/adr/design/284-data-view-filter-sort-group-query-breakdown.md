@@ -247,3 +247,41 @@
 - 번들 (production build `vite build` → `adr209-bundle-closure.mjs`, dirty = 문서 · 테스트 · fixture 만): **Preview initial 308,574 B gz → 여유 H = 11,426** (§8b 배분의 기준). Builder initial 1,421,341 — 상한 1,390,000 초과는 HEAD 기존 (283 기록 1,418,803 이후 product 커밋 포함), 284 는 Δ 로 잰다.
 
 **사후 보고**: scope 변화 없음. Phase 0 은 테스트 · fixture · 문서뿐이라 CHANGELOG 면제 (테스트만).
+
+### Phase 1 — 2026-10-26 (main `de54eefba` 위 작업 트리)
+
+**저장 형식 (contract 50)** — `packages/shared/src/catalog/document/types.ts`: `InteractionEntry.actions: readonly InteractionAction[]` (옛 `action` 은 49 문서 거부 · 변환 0) · `DataBindingRef.viewId?` · `view?: ViewQuery` · `ViewEntry` (`kind: "view"`, 이름 필수, `source` = collection 또는 공유 보기) · `ProjectEntry.viewIds?` (없으면 보기 0) · `ViewCondition` (`id` · `fields` (필드 id 경로 — 여러 개면 하나라도) · `op` 18 · `value` (리터럴 · 목록 · `!var` 참조) · `skip` (`"empty"` 기본 · 리터럴) · `enabled` · `sensitivity` · `unit`) · `ViewConditionGroup` (`and` · `or`) · `ViewAggregate` (count · sum · mean · min · max) · `ViewSort` (변수 · 리터럴). 샘플 3 · fixture · contract 리터럴 32 파일.
+
+**검증 · 색인 · 명령**:
+
+- `validation.ts` — `viewQuery` (조건 id 유일 · `or` 빈 묶음 거부 · 비교 × 값 모양: 목록 3 · `between` 두 끝 · `exists` 값 없음 · `withinLast` 단위 · `enabled` boolean 또는 참조) · 내장 보기의 묶기 · 집계 거부 (`VIEW_AGGREGATE_DERIVED_ONLY` — 결정 3) · `view` 와 `viewId` 동시 거부 · `actions` 길이 ≥ 1 (`ACTIONS_REQUIRED`).
+- `graph.ts` — `catalogViewRootCollection` (공유 보기의 원본 사슬 — 없음 · 순환 = `DANGLING_VIEW`) · 바인딩의 `viewId` 원본 = `collectionId` (`VIEW_COLLECTION_MISMATCH`) · `referencedIds` 에 `binding.viewId` · `source.viewId` · 모든 Do 의 page · 변수 · 대상. 필드 id 와 프로젝트 변수 (`data:`) 는 Phase 0 probe 3 대로 색인 밖 — 계산기가 「끊김」 (`broken`) 으로 낸다.
+- 명령 — `commands/views.ts` 신설: `addView` · `updateView` · `removeView` (읽는 바인딩 · 보기가 있으면 `VIEW_IN_USE`) · `promoteBindingView` (내장 → 공유 · 바인딩은 `viewId` · 한 step) · `catalogViewUsers`. `document/viewRefs.ts` — 보기의 `!var` 참조 재매핑: `cloneNodeSubgraph` (subtree 의 요소 변수 사본) · `duplicatePage` (page 변수 사본). detach · createComponent · swap 은 바인딩이 노드 필드라 무변경 (내장 보기는 노드와 함께 이동).
+- 다중 Do 소비자 (§1b 22 파일) — dispatcher `executeInteractionRule` 이 Do 를 순서대로, 실패한 Do 에서 멈추고 「Do N: 사유」 로 보고 · Preview 변환 `ruleOf` → `actionOf` (한 Do 라도 이 record 에서 풀리지 않으면 규칙 전체를 내지 않음 — 뒤 Do 가 앞 Do 를 전제) · components · materialize · swap · project · instanceOverrides · transaction 재검증 · clone · dataVariables · targetPick (Do 번호 · 기본 = 첫 capability Do) · targetRef · AI host (AI 도구는 Do 하나로 만든다 — 다중 Do 도구는 Phase 5 §1b) · 패널.
+
+**로컬 계산기** — `packages/shared/src/collections/view/comparison.ts` (비교 표 하나 — 필드 종류 × 비교 · `useFilter` 와 같은 `Intl.Collator({usage:"search"})` + NFC 조각 비교 · 날짜는 일 단위 · 범위 끝 포함 · `Selection` `Set` · `"all"`) · `evaluate.ts` (`runViewQueries` — 조건 값은 실행 1 회 해석 · `and` / `or` · 전부 건너뛴 묶음 = 건너뜀 · 필드 · 참조 없음 = 건너뜀 + `broken` · 정렬 (변수 `{column, direction}` — field id 또는 key) · 파생 보기 사슬 · `explainViewRow` = 같은 판정의 행별 설명 — Decision 11 의 재료). `catalog/runtime/viewQuery.ts` — 바인딩의 보기 사슬과 참조 값 (`catalogVariableValue` — 노드 page 변수 · 프로젝트 변수, Canvas 기본값 · Preview/Publish 실행 값) 을 compositionRoot 의 행 감싸개가 한 번 풀어 행 소스에 넘긴다. `catalogBoundRows` 가 **표시 투영 전** 원본 전체에 실행하고 결과 메타 `view` (`matched` · `loaded` · `complete` (mock = true, API 는 Phase 2) · `broken` · `applied`) 를 싣는다 · memo = (보기 정의 · 읽은 값 · 원본 행 배열). `refreshState(names)` 가 그 변수를 읽는 보기의 collection 을 다시 읽는다.
+
+**패널** — `CatalogRuleRow`: When 아래 「Do 순서」 (Do 가 둘 이상일 때 · `1. Set state` 형식 · 이 Do 삭제) → Do 편집기 (고른 Do) → 「Do 추가」 (`.control-button` `data-variant="add"`, 새 Do = 마지막 Do 와 같은 종류의 기본값) · 요약 「… 외 Do N개」 · 상속 행은 Do 이름을 이어 적는다. History 라벨 4 (보기 추가 · 편집 · 삭제 · 공유).
+
+**검증**:
+
+| 항목                                  | 결과                                                                                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0 RED                                | ① (mock GridList + 변수 조건) GREEN · ④ (`update` + `moveBefore` 한 규칙) GREEN · ② · ③ 은 `it.fails` 유지 (Phase 3 · 2)                                             |
+| 계산기 (`evaluate.test.ts` 14)        | 비교 18 · 묶음 · 건너뜀 · 적용 여부 · 끊김 · 설명 · 정렬 · 사슬 · 200 행 (r101..r200 만 일치 → 100 행 · 전부 일치 → 표시 100 / total 200 / matched 200)              |
+| 스키마 · 명령 (`adr284ViewSchema` 9)  | 모양 거부 7 · 공유 보기 3 · Do 목록 · 49 거부 · `VIEW_IN_USE` · 승격 + undo · page 복제 변수 재매핑 · Do 색인                                                        |
+| grep 게이트 (`oneEvaluator.static` 2) | `runViewQueries` · `viewCompare` 정의 1 곳 · 호출자 `dataBinding.ts` 하나 · Publish = shared 세션                                                                    |
+| 패널 (`phase4eInteractions` +2)       | Do 추가 · 순서 목록 · 삭제 각 한 step · 모든 Do 선택의 기본값이 문서 검증 통과                                                                                       |
+| 원복 RED 8/8                          | 행 소스 보기 실행 · 감싸개 query · refreshState 보기 · dispatcher 모든 Do · page 복제 재매핑 · `VIEW_IN_USE` · 내장 보기 집계 거부 · 전부 건너뛴 묶음 (반례 추가 뒤) |
+| 스위트                                | shared 1766 · builder unit 6661 (실패 `chromeIsland.static` 1 = HEAD 기존 · 5k G5 테스트는 전체 실행 부하 중 5 s timeout, 단독 9/9) · publish 13 · type-check 0      |
+| 번들 (production build)               | Preview initial 308,640 (Δ +66) · lazy `dataBinding` · `graph` chunk +5,372 · Builder initial 1,425,895 (Δ +4,554 — HEAD 상한 초과는 기존)                           |
+
+**live (Chrome MCP · dev 5175 · 2026-10-26)** — 새 프로젝트 「ADR284 live」: Users (mock 3 행) · 프로젝트 변수 `gender` (`all`) 시드 → 팔레트로 GridList · Button → Design 패널 Data source 로 Users 연결 → 내장 보기 (gender = 변수, `all` 건너뜀) 를 문서 명령으로 (저작 UI 는 Phase 3) → Canvas 3 행 · 변수 기본값 `female` → Canvas 1 행 · `all` 로 복귀 → Interactions 패널에서 Button 규칙 · Do = Set state `male` · 「Do 추가」 → Do 순서 2 → Show a toast (이때 HEAD 기존 결함 — 기본 message `""` 를 문서가 거부 — 발견 · 수리) → Compare Mode Preview 에서 버튼 → 목록 Kim · Lee + 토스트 「Message」 → 새로고침 → contract 50 · Do 목록 · 보기 조건 유지.
+
+**정정 · 사후 보고**:
+
+- 비교 어휘는 18 (본문 Decision B-2 의 나열 그대로 — 「17」 은 셈 착오).
+- §8b 의 「조건 계산기 core 는 Preview initial」 은 틀린 전제다 — Preview 의 catalog runtime (graph · dataBinding · session) 은 이미 initial 밖 lazy chunk 다. Phase 1 의 Preview initial Δ 는 +66 B. 배분 표는 lazy chunk 의 증분으로 읽는다 (R10 의 「lazy chunk 로 옮김」 대안은 이미 성립).
+- `update` 의 값은 record 여야 한다 (리터럴은 scalar) — kanban drop 의 열 값은 Phase 5 가 이벤트 인자 · 변수로 넘긴다. ④ 테스트는 object 변수 참조를 쓴다.
+- scope: §1b 22 파일 + 테스트 · fixture 약 60 파일 (contract 리터럴 · `action` → `actions`) — breakdown 추정 범위 안. sub-group 없음.
+- contract 50 커밋 순서 (R5): ADR-283 G5 (사용자 Builder 확인) 뒤.

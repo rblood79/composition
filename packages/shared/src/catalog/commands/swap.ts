@@ -518,8 +518,9 @@ export function planSwapInstance(
       }
       // ADR-283 Decision 3: a capability target through the node moves the same way; one with no
       // place stays as 「no target」 (user decision 3).
-      const action = next.action;
-      if (action.opcode === "capability") {
+      let counted = next !== entry;
+      const actions = next.actions.map((action) => {
+        if (action.opcode !== "capability") return action;
         const target = action.target;
         const steps =
           "address" in target
@@ -536,20 +537,23 @@ export function planSwapInstance(
           );
           // (The owner's address moved above already counted the rule once.)
           if (!moved) report.targetsUnset++;
-          else if (next === entry) report.kept++;
-          next = {
-            ...next,
-            action: {
-              ...action,
-              target: !moved
-                ? { unset: true }
-                : "address" in target
-                  ? { address: moved }
-                  : { local: moved },
-            },
+          else if (!counted) {
+            report.kept++;
+            counted = true;
+          }
+          return {
+            ...action,
+            target: !moved
+              ? ({ unset: true } as const)
+              : "address" in target
+                ? { address: moved }
+                : { local: moved },
           };
         }
-      }
+        return action;
+      });
+      if (actions.some((action, index) => action !== next.actions[index]))
+        next = { ...next, actions };
       if (next !== entry) draft.write(next);
     } else if (entry?.kind === "node" && entry.id !== input.id) {
       const { overrides, out } = remapOverrides(entry, 1);

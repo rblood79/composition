@@ -478,6 +478,10 @@ const koKR: TranslationKeys = {
       editTheme: "테마 편집",
       switchTheme: "테마 전환",
       editToken: "토큰 편집",
+      addView: "보기 추가",
+      editView: "보기 편집",
+      deleteView: "보기 삭제",
+      shareView: "보기 공유",
       editTypography: "타이포그래피 편집",
       addVariable: "변수 추가",
       renameVariable: "변수 이름 변경",
@@ -920,6 +924,9 @@ const koKR: TranslationKeys = {
     noRules: "아직 규칙이 없습니다. 규칙을 추가해 이 요소의 동작을 정의하세요.",
     addRule: "규칙 추가",
     deleteRule: "규칙 삭제",
+    addDo: "Do 추가",
+    removeDo: "이 Do 삭제",
+    doList: "Do 순서",
     editRule: "규칙 편집",
     summaryNavigate: "{when} → 페이지 이동",
     summaryNavigateWithPath: "{when} → 페이지 이동 ({path})",
@@ -2877,6 +2884,10 @@ const enUS: TranslationKeys = {
       editTheme: "Edit theme",
       switchTheme: "Switch theme",
       editToken: "Edit token",
+      addView: "Add view",
+      editView: "Edit view",
+      deleteView: "Delete view",
+      shareView: "Share view",
       editTypography: "Edit typography",
       addVariable: "Add variable",
       renameVariable: "Rename variable",
@@ -3319,6 +3330,9 @@ const enUS: TranslationKeys = {
     noRules: "No rules yet. Add one to define how this element behaves.",
     addRule: "Add rule",
     deleteRule: "Delete rule",
+    addDo: "Add Do",
+    removeDo: "Remove this Do",
+    doList: "Do order",
     editRule: "Edit rule",
     summaryNavigate: "{when} → go to page",
     summaryNavigateWithPath: "{when} → go to page ({path})",
@@ -6354,6 +6368,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → ${String(args?.name ?? "")} 선택 항목 삭제`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동`,
+    "interactions.summaryMoreDos": (args) =>
+      `${String(args?.summary ?? "")} 외 Do ${String(args?.count ?? 0)}개`,
+    "interactions.doStep": (args) =>
+      `${String(args?.index ?? 1)}. ${String(args?.name ?? "")}`,
     "interactions.summaryNavigateWithPath": (args) =>
       `${String(args?.when ?? "")} → 페이지 이동 (${String(args?.path ?? "")})`,
     "interactions.summaryToast": (args) =>
@@ -6933,6 +6951,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → remove the selected items of ${String(args?.name ?? "")}`,
     "interactions.summaryNavigate": (args) =>
       `${String(args?.when ?? "")} → go to page`,
+    "interactions.summaryMoreDos": (args) =>
+      `${String(args?.summary ?? "")} + ${String(args?.count ?? 0)} more Do`,
+    "interactions.doStep": (args) =>
+      `${String(args?.index ?? 1)}. ${String(args?.name ?? "")}`,
     "interactions.summaryNavigateWithPath": (args) =>
       `${String(args?.when ?? "")} → go to page (${String(args?.path ?? "")})`,
     "interactions.summaryToast": (args) =>

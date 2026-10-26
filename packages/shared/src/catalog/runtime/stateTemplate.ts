@@ -208,28 +208,7 @@ export function catalogBindingKey(
   source: CatalogStateSource | undefined,
 ): string | undefined {
   if (!hasStateTemplateSyntax({ key })) return key;
-  const visible: CatalogVisibleState[] = [];
-  for (let id = ownerId; id; id = graph.ownerOf(id)) {
-    if (graph.getEntry(id)?.kind !== "page") continue;
-    const pageId = id as EntryId<"page">;
-    for (const variable of ownedVariables(graph, pageId))
-      visible.push({
-        id: variable.id,
-        name: variable.name,
-        type: variableType(variable.valueType),
-        defaultValue: documentDefault(variable),
-        scope: { kind: "page", pageId },
-      });
-    break;
-  }
-  for (const variable of source?.projectVariables() ?? [])
-    visible.push({
-      id: `${PROJECT_VARIABLE}${variable.id}`,
-      name: variable.name,
-      type: variable.type,
-      defaultValue: variable.defaultValue,
-      scope: { kind: "project" },
-    });
+  const visible = pageAndProjectStates(graph, ownerId, source);
   const env = catalogStateEnv(
     visible,
     source?.read?.bind(source),
@@ -253,6 +232,60 @@ export function catalogBindingKey(
   }
   const text = resolveStateTemplateProps({ key }, env).key;
   return hasStateTemplateSyntax({ key: text }) ? undefined : text;
+}
+
+/** The bound node's page variables and the project's (what a binding's key · view reads). */
+function pageAndProjectStates(
+  graph: CatalogGraph,
+  ownerId: string | undefined,
+  source: CatalogStateSource | undefined,
+): CatalogVisibleState[] {
+  const visible: CatalogVisibleState[] = [];
+  for (let id = ownerId; id; id = graph.ownerOf(id)) {
+    if (graph.getEntry(id)?.kind !== "page") continue;
+    const pageId = id as EntryId<"page">;
+    for (const variable of ownedVariables(graph, pageId))
+      visible.push({
+        id: variable.id,
+        name: variable.name,
+        type: variableType(variable.valueType),
+        defaultValue: documentDefault(variable),
+        scope: { kind: "page", pageId },
+      });
+    break;
+  }
+  for (const variable of source?.projectVariables() ?? [])
+    visible.push({
+      id: `${PROJECT_VARIABLE}${variable.id}`,
+      name: variable.name,
+      type: variable.type,
+      defaultValue: variable.defaultValue,
+      scope: { kind: "project" },
+    });
+  return visible;
+}
+
+/**
+ * ADR-284 — a variable's value by id as a view reads it (`!var.<id>` — a condition's value · a
+ * sort): the bound node's page variable or the project's; the runtime value (Preview · Publish)
+ * else its default (the Canvas). Undefined = no such variable there (the condition is broken).
+ */
+export function catalogVariableValue(
+  graph: CatalogGraph,
+  variableId: string,
+  ownerId: string | undefined,
+  source: CatalogStateSource | undefined,
+): { value: unknown; name: string } | undefined {
+  const entry = pageAndProjectStates(graph, ownerId, source).find(
+    (item) => item.id === variableId,
+  );
+  if (!entry) return undefined;
+  return {
+    value:
+      source?.read?.(entry.id, entry.scope) ??
+      defaultOf(entry.type, entry.defaultValue),
+    name: entry.name,
+  };
 }
 
 /** Names a record's authored props read (a refresh re-resolves only those readers). */

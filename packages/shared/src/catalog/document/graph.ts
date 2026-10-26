@@ -3,6 +3,7 @@ import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits } from "./valueType";
 import type {
   CatalogDocument,
+  DataCollectionId,
   CatalogEntry,
   CatalogLibrary,
   DefinitionEntry,
@@ -108,6 +109,26 @@ export function ownedChildren(entry: CatalogEntry): NodeId[] {
   }
   return ids;
 }
+/**
+ * ADR-284 — the collection a shared view reads through its source chain, or undefined when a
+ * source is missing or the chain loops.
+ */
+export function catalogViewRootCollection(
+  viewId: string,
+  get: (id: string) => CatalogEntry | undefined,
+  self?: CatalogEntry,
+): DataCollectionId | undefined {
+  const seen = new Set<string>();
+  for (let id: string | undefined = viewId; id; ) {
+    if (seen.has(id)) return undefined;
+    seen.add(id);
+    const view: CatalogEntry | undefined = id === self?.id ? self : get(id);
+    if (view?.kind !== "view") return undefined;
+    if ("collectionId" in view.source) return view.source.collectionId;
+    id = view.source.viewId;
+  }
+  return undefined;
+}
 /** By-ID references not carried by the owner, definition, token or collection edges. */
 export function referencedIds(entry: CatalogEntry): string[] {
   const ids: string[] = [];
@@ -135,21 +156,29 @@ export function referencedIds(entry: CatalogEntry): string[] {
   if (entry.kind === "interaction") {
     ids.push(entry.ownerId);
     if (entry.address) address(entry.address);
-    if (entry.action.opcode === "navigate") ids.push(entry.action.pageId);
-    // ADR-283 Decision 3: every project id of a target's address (a swap · extraction · delete of
-    // a middle step finds the rule), as the owner address.
-    if (entry.action.opcode === "capability") {
-      const target = entry.action.target;
-      if ("nodeId" in target) ids.push(target.nodeId);
-      else if ("address" in target) address(target.address);
-      else if ("local" in target) address(target.local);
+    for (const action of entry.actions) {
+      if (action.opcode === "navigate") ids.push(action.pageId);
+      // ADR-283 Decision 3: every project id of a target's address (a swap · extraction · delete
+      // of a middle step finds the rule), as the owner address.
+      if (action.opcode === "capability") {
+        const target = action.target;
+        if ("nodeId" in target) ids.push(target.nodeId);
+        else if ("address" in target) address(target.address);
+        else if ("local" in target) address(target.local);
+      }
+      if (
+        action.opcode === "setState" &&
+        action.variableId.startsWith("project:")
+      )
+        ids.push(action.variableId);
     }
-    if (
-      entry.action.opcode === "setState" &&
-      entry.action.variableId.startsWith("project:")
-    )
-      ids.push(entry.action.variableId);
   }
+  // ADR-284: the shared view a binding reads · a derived view's source view. (A condition's
+  // `!var` · a sort variable are read when the view runs — as a rule's Value field, ADR-283.)
+  if (entry.kind === "node" && entry.binding?.viewId)
+    ids.push(entry.binding.viewId);
+  if (entry.kind === "view" && "viewId" in entry.source)
+    ids.push(entry.source.viewId);
   if (entry.kind === "stateVariable") {
     ids.push(entry.ownerId);
     // A named RAC state goes with its node (removed with it, never left observing nothing).
@@ -825,6 +854,7 @@ export class CatalogGraph {
         root.stateVariableIds,
         root.interactionIds,
         root.assetIds,
+        root.viewIds ?? [],
       ])
         for (const id of ids) {
           if (listed.has(id) || (id as string) === root.id)
@@ -1044,6 +1074,7 @@ export class CatalogGraph {
       root.stateVariableIds,
       root.interactionIds,
       root.assetIds,
+      root.viewIds ?? [],
     ])
       for (const id of ids) {
         if (listed.has(id))
@@ -1253,7 +1284,24 @@ export class CatalogGraph {
         !entry.binding.collectionId.startsWith("data:collection:")
       )
         throw new CatalogValidationError("INVALID_COLLECTION_REF", entry.id);
+      // ADR-284: a shared view the binding reads is a view over the binding's collection.
+      if (entry.binding?.viewId) {
+        const root = catalogViewRootCollection(entry.binding.viewId, get);
+        if (!root)
+          throw new CatalogValidationError(
+            "DANGLING_VIEW",
+            entry.binding.viewId,
+          );
+        if (root !== entry.binding.collectionId)
+          throw new CatalogValidationError(
+            "VIEW_COLLECTION_MISMATCH",
+            entry.id,
+          );
+      }
     }
+    // ADR-284: a derived view's source is a shared view, never a cycle.
+    if (entry.kind === "view" && !catalogViewRootCollection(entry.id, get, entry))
+      throw new CatalogValidationError("DANGLING_VIEW", entry.id);
     if (entry.kind === "definition" || entry.kind === "definitionOverride") {
       if (
         entry.kind === "definition" &&
@@ -1325,68 +1373,73 @@ export class CatalogGraph {
         validateInstanceAddress(owner, entry.address, get, library);
       if (!library.execution.triggerIds.has(entry.trigger))
         throw new CatalogValidationError("UNKNOWN_TRIGGER_ID", entry.trigger);
-      if (!library.execution.actionOpCodes.has(entry.action.opcode))
-        throw new CatalogValidationError(
-          "UNKNOWN_ACTION_OPCODE",
-          entry.action.opcode,
-        );
-      if (
-        entry.action.opcode === "navigate" &&
-        get(entry.action.pageId)?.kind !== "page"
-      )
-        throw new CatalogValidationError("DANGLING_PAGE", entry.action.pageId);
-      if (entry.action.opcode === "capability") {
-        validateCapabilityTarget(entry, get, library, ownerOf);
+      // ADR-284 Decision 8 — a rule's Do list: at least one, each checked as one rule was.
+      if (!entry.actions.length)
+        throw new CatalogValidationError("EMPTY_ACTIONS", entry.id);
+      for (const action of entry.actions) {
+        if (!library.execution.actionOpCodes.has(action.opcode))
+          throw new CatalogValidationError(
+            "UNKNOWN_ACTION_OPCODE",
+            action.opcode,
+          );
         if (
-          !library.execution.capabilityIds.has(entry.action.capabilityId)
+          action.opcode === "navigate" &&
+          get(action.pageId)?.kind !== "page"
+        )
+          throw new CatalogValidationError("DANGLING_PAGE", action.pageId);
+        if (action.opcode === "capability") {
+          validateCapabilityTarget(entry, action, get, library, ownerOf);
+          if (
+            !library.execution.capabilityIds.has(action.capabilityId)
+          )
+            throw new CatalogValidationError(
+              "UNKNOWN_CAPABILITY_ID",
+              action.capabilityId,
+            );
+        }
+        if (
+          action.opcode === "setState" &&
+          action.variableId.startsWith("project:") &&
+          get(action.variableId)?.kind !== "stateVariable"
         )
           throw new CatalogValidationError(
-            "UNKNOWN_CAPABILITY_ID",
-            entry.action.capabilityId,
+            "DANGLING_VARIABLE",
+            action.variableId,
           );
-      }
-      if (
-        entry.action.opcode === "setState" &&
-        entry.action.variableId.startsWith("project:") &&
-        get(entry.action.variableId)?.kind !== "stateVariable"
-      )
-        throw new CatalogValidationError(
-          "DANGLING_VARIABLE",
-          entry.action.variableId,
-        );
-      if (
-        entry.action.opcode === "setState" &&
-        entry.action.variableId.startsWith("project:")
-      ) {
-        const variable = get(entry.action.variableId);
-        if (variable?.kind === "stateVariable") {
-          // (A reference — `!event` · `!item` · `!var` — is checked when the rule runs; a structured
-          //   variable takes only references, or `""` to empty it.)
-          const value = entry.action.value;
-          if (
-            entry.action.op === "set" &&
-            !parseRuleValueRef(value) &&
-            (variable.valueType === "object" || variable.valueType === "array"
-              ? value !== ""
-              : typeof value !== variable.valueType)
-          )
-            throw new CatalogValidationError(
-              "STATE_VALUE_TYPE",
-              entry.action.variableId,
-            );
-          if (entry.action.op === "toggle" && variable.valueType !== "boolean")
-            throw new CatalogValidationError(
-              "STATE_OP_TYPE",
-              entry.action.variableId,
-            );
-          if (
-            entry.action.op === "increment" &&
-            variable.valueType !== "number"
-          )
-            throw new CatalogValidationError(
-              "STATE_OP_TYPE",
-              entry.action.variableId,
-            );
+        if (
+          action.opcode === "setState" &&
+          action.variableId.startsWith("project:")
+        ) {
+          const variable = get(action.variableId);
+          if (variable?.kind === "stateVariable") {
+            // (A reference — `!event` · `!item` · `!var` — is checked when the rule runs; a structured
+            //   variable takes only references, or `""` to empty it.)
+            const value = action.value;
+            if (
+              action.op === "set" &&
+              !parseRuleValueRef(value) &&
+              (variable.valueType === "object" || variable.valueType === "array"
+                ? value !== ""
+                : typeof value !== variable.valueType)
+            )
+              throw new CatalogValidationError(
+                "STATE_VALUE_TYPE",
+                action.variableId,
+              );
+            if (action.op === "toggle" && variable.valueType !== "boolean")
+              throw new CatalogValidationError(
+                "STATE_OP_TYPE",
+                action.variableId,
+              );
+            if (
+              action.op === "increment" &&
+              variable.valueType !== "number"
+            )
+              throw new CatalogValidationError(
+                "STATE_OP_TYPE",
+                action.variableId,
+              );
+          }
         }
       }
     }
@@ -1727,12 +1780,13 @@ export function createCatalogGraph(
  */
 function validateCapabilityTarget(
   entry: InteractionEntry,
+  action: InteractionEntry["actions"][number],
   get: (id: string) => CatalogEntry | undefined,
   library: CatalogLibrary,
   ownerOf: (id: string) => string | undefined,
 ): void {
-  if (entry.action.opcode !== "capability") return;
-  const target = entry.action.target;
+  if (action.opcode !== "capability") return;
+  const target = action.target;
   /** The definition whose template holds `id` (owner chain top), else undefined. */
   const templateDefinitionOf = (id: string): DefinitionId | undefined => {
     const seen = new Set<string>();

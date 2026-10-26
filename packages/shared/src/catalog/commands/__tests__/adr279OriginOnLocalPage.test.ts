@@ -445,7 +445,7 @@ describe("ADR-279 Decision 8 — extracting a nested component rewrites the addr
       ownerId: I,
       address: through(I),
       trigger: "press",
-      action: { opcode: "navigate", pageId: PAGE },
+      actions: [{ opcode: "navigate", pageId: PAGE }],
     };
     const graph = fixture([], [], [interaction]);
     const { J, done } = extract(graph);
@@ -541,7 +541,7 @@ describe("ADR-279 Local page — deleting a template slot that an instance fille
           id: K,
           ownerId: S,
           trigger: "press",
-          action: { opcode: "navigate", pageId: PAGE },
+          actions: [{ opcode: "navigate", pageId: PAGE }],
         } as InteractionEntry,
       ],
     );

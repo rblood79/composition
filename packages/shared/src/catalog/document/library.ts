@@ -6,7 +6,7 @@ import {
 } from "./componentProperties";
 import type {
   CatalogLibrary,
-  InteractionEntry,
+  InteractionAction,
   LibraryDefinition,
   LibraryDefinitionId,
   LibraryTemplateId,
@@ -131,7 +131,7 @@ export interface CatalogLibraryInput {
   rules?: Readonly<Record<string, ComponentRule>>;
   triggerIds?: readonly string[];
   capabilityIds?: readonly string[];
-  actionOpCodes: readonly InteractionEntry["action"]["opcode"][];
+  actionOpCodes: readonly InteractionAction["opcode"][];
 }
 
 /**

@@ -232,8 +232,9 @@ function rewriteAddressesThroughExtracted(
       // ADR-283 Decision 3: a capability target through the node. An address · a `local` held
       // outside the node passes through the instance; a `local` held inside it is relative to the
       // new template root (above it — unreachable from the new template: no target).
-      const action = next.action;
-      if (action.opcode === "capability" && !("nodeId" in action.target)) {
+      const actions = next.actions.map((action) => {
+        if (action.opcode !== "capability" || "nodeId" in action.target)
+          return action;
         const target = action.target;
         let moved: typeof target | undefined;
         if ("address" in target) {
@@ -268,8 +269,10 @@ function rewriteAddressesThroughExtracted(
             };
           }
         }
-        if (moved) next = { ...next, action: { ...action, target: moved } };
-      }
+        return moved ? { ...action, target: moved } : action;
+      });
+      if (actions.some((action, index) => action !== next.actions[index]))
+        next = { ...next, actions };
       if (next !== holder) draft.write(next);
     } else if (holder?.kind === "definition" && holder.id === outerId) {
       const inside = new Set<string>(subtree(draft, extracted));
@@ -373,10 +376,11 @@ function rewriteTargetsIntoComponent(
     for (const referrerId of draft.reader.referrersOf(nodeId)) {
       if (done.has(referrerId)) continue;
       const entry = draft.read(referrerId);
-      if (entry?.kind !== "interaction" || entry.action.opcode !== "capability")
-        continue;
-      const target = entry.action.target;
+      if (entry?.kind !== "interaction") continue;
       const ruleInside = inside.has(entry.ownerId);
+      const retarget = (
+        target: CatalogCapabilityTarget,
+      ): CatalogCapabilityTarget | undefined => {
       let next: CatalogCapabilityTarget | undefined;
       if ("nodeId" in target && inside.has(target.nodeId)) {
         const templatePath = pathTo(target.nodeId);
@@ -388,7 +392,7 @@ function rewriteTargetsIntoComponent(
       } else if ("address" in target || "local" in target) {
         const steps = "address" in target ? target.address : target.local;
         const at = steps.instances.findIndex((id) => inside.has(id));
-        if (at < 0 || steps.templatePath.includes(rootId)) continue;
+        if (at < 0 || steps.templatePath.includes(rootId)) return undefined;
         const instances = ruleInside
           ? steps.instances.slice(at)
           : [
@@ -405,9 +409,18 @@ function rewriteTargetsIntoComponent(
             ? { address: moved as InstanceAddress }
             : { local: moved };
       }
-      if (!next) continue;
+      return next;
+      };
+      // (ADR-284: every capability Do of the rule.)
+      const actions = entry.actions.map((action) => {
+        if (action.opcode !== "capability") return action;
+        const next = retarget(action.target);
+        return next ? { ...action, target: next } : action;
+      });
+      if (actions.every((action, index) => action === entry.actions[index]))
+        continue;
       done.add(referrerId);
-      draft.write({ ...entry, action: { ...entry.action, target: next } });
+      draft.write({ ...entry, actions });
     }
 }
 

@@ -26,7 +26,7 @@ export async function createCodeCatalogScenarioLibrary(
     "SHA-256",
     new TextEncoder().encode(
       JSON.stringify({
-        contractVersion: 49,
+        contractVersion: 50,
         definitions,
         bindingIds,
         tokens,
@@ -38,7 +38,7 @@ export async function createCodeCatalogScenarioLibrary(
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
   return buildCatalogLibrary({
-    contractVersion: 49,
+    contractVersion: 50,
     revision,
     definitions,
     templates: [...source.templates.values()],

@@ -313,6 +313,10 @@ export interface TranslationKeys {
       editTheme: string;
       switchTheme: string;
       editToken: string;
+      addView: string;
+      editView: string;
+      deleteView: string;
+      shareView: string;
       editTypography: string;
       addVariable: string;
       renameVariable: string;
@@ -644,6 +648,9 @@ export interface TranslationKeys {
     noRules: string;
     addRule: string;
     deleteRule: string;
+    addDo: string;
+    removeDo: string;
+    doList: string;
     editRule: string;
     summaryNavigate: string;
     summaryNavigateWithPath: string;

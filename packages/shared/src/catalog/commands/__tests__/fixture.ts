@@ -26,7 +26,7 @@ import type { CatalogCommand } from "../compose";
  */
 export const library = () =>
   buildCatalogLibrary({
-    contractVersion: 49,
+    contractVersion: 50,
     revision: "phase4b-structure",
     bindingIds: ["section", "text", "listbox", "item"],
     actionOpCodes: ["setState", "capability", "navigate"],
@@ -242,11 +242,18 @@ export function documentOf(
       .filter((entry) => entry.kind === "interaction")
       .map((entry) => entry.id as EntryId<"interaction">),
     assetIds: [],
+    ...(extra.some((entry) => entry.kind === "view")
+      ? {
+          viewIds: extra
+            .filter((entry) => entry.kind === "view")
+            .map((entry) => entry.id as EntryId<"view">),
+        }
+      : {}),
   };
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 49,
+    libraryContractVersion: 50,
     revision: 0,
     projectId: PROJECT,
     rootId: PROJECT,

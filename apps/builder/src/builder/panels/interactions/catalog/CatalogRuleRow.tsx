@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, useSyncExternalStore } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "react-aria-components";
 import {
   APP_ACTIONS,
   capabilityRefusal,
@@ -37,10 +38,11 @@ import { ValueField } from "../ValueField";
 import type { CatalogValueSources } from "../valueOptions";
 import { StateActionFieldsView } from "../StateActionFields";
 import { TriggerPicker } from "../TriggerPicker";
-import { triggerLabel } from "../labels";
+import { ACTION_CHOICE_LABEL_KEYS, triggerLabel } from "../labels";
 import type { ActionChoice } from "../types";
 
 const DeleteIcon = ACTION_ICONS.delete;
+const AddIcon = ACTION_ICONS.add;
 
 /** `useListData`'s operations: the rule fields after the collection (reference argument order). */
 const LIST_DATA_FIELDS = {
@@ -163,9 +165,16 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
   onRemove,
 }: CatalogRuleRowProps) {
   const { t } = useI18n();
-  const action = rule.action;
+  // ADR-284 Decision 8 — the rule's Do list: the editor shows one Do at a time (the order list
+  // picks it); a new Do goes last, a Do is removed while another stays.
+  const [doIndex, setDoIndex] = useState(0);
+  const at = Math.min(doIndex, rule.actions.length - 1);
+  const action = rule.actions[at]!;
   const setAction = (next: CatalogInteractionAction) =>
-    onChange({ ...rule, action: next });
+    onChange({
+      ...rule,
+      actions: rule.actions.map((item, index) => (index === at ? next : item)),
+    });
 
   const target =
     action.opcode === "capability" ? describeTarget(action.target) : undefined;
@@ -246,6 +255,11 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
     }
     return when;
   }, [action, componentType, context, notice, rule.trigger, t, target, targetType]);
+  const more = rule.actions.length - 1;
+  const doName = (item: CatalogInteractionAction) =>
+    item.opcode in ACTION_CHOICE_LABEL_KEYS
+      ? t(ACTION_CHOICE_LABEL_KEYS[item.opcode as keyof typeof ACTION_CHOICE_LABEL_KEYS])
+      : item.opcode;
 
   // ADR-281 Decision 1 — a rule the declared props now stop is kept, marked with the reason the
   // dispatcher reports (never deleted).
@@ -294,11 +308,18 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
         <button
           type="button"
           className="interaction-rule-toggle"
-          onClick={onToggle}
+          onClick={() => {
+            setDoIndex(0);
+            onToggle();
+          }}
           aria-expanded={expanded}
         >
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          <span className="interaction-rule-text">{summary}</span>
+          <span className="interaction-rule-text">
+            {more > 0
+              ? t("interactions.summaryMoreDos", { summary, count: more })
+              : summary}
+          </span>
         </button>
         <button
           type="button"
@@ -324,6 +345,41 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
               exposure={exposure}
               onChange={(trigger) => onChange({ ...rule, trigger })}
             />
+          </div>
+          {rule.actions.length > 1 && (
+            <div className="fieldset-row interaction-rule-dos">
+              <PropertySelect
+                label={t("interactions.doList")}
+                value={String(at)}
+                onChange={(value) => setDoIndex(Number(value))}
+                options={rule.actions.map((item, index) => ({
+                  value: String(index),
+                  label: t("interactions.doStep", {
+                    index: index + 1,
+                    name: doName(item),
+                  }),
+                }))}
+                translateOptions={false}
+              />
+              <div className="fieldset-actions actions-remove-do">
+                <button
+                  type="button"
+                  className="iconButton"
+                  aria-label={t("interactions.removeDo")}
+                  onClick={() => {
+                    onChange({
+                      ...rule,
+                      actions: rule.actions.filter((_item, index) => index !== at),
+                    });
+                    setDoIndex(Math.max(0, at - 1));
+                  }}
+                >
+                  <DeleteIcon size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="fieldset-row interaction-rule-row">
             <ActionPicker
               value={action.opcode as ActionChoice}
               choices={
@@ -552,6 +608,23 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
               )}
             </>
           )}
+
+          <Button
+            className="control-button"
+            data-variant="add"
+            onPress={() => {
+              // (The new Do starts as the last one's kind — a kanban drop's `update` then `move`.)
+              const next =
+                catalogDefaultAction(action.opcode as ActionChoice, context) ??
+                catalogDefaultAction("toast", context);
+              if (!next) return;
+              onChange({ ...rule, actions: [...rule.actions, next] });
+              setDoIndex(rule.actions.length);
+            }}
+          >
+            <AddIcon size={14} />
+            {t("interactions.addDo")}
+          </Button>
         </div>
       )}
     </div>

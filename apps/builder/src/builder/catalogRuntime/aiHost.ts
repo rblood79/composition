@@ -278,7 +278,7 @@ export function createCatalogAiReadHost(
             elementId:
               workspace.root.recordsOfSource(rule.ownerId)[0] ?? rule.ownerId,
             trigger: rule.trigger,
-            actionKind: rule.action.opcode,
+            actionKind: rule.actions.map((action) => action.opcode).join(","),
           },
         ];
       });

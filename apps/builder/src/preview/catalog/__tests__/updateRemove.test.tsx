@@ -124,7 +124,7 @@ describe("update · remove — storage", () => {
         .filter(
           (entry): entry is InteractionEntry => entry.kind === "interaction",
         )
-        .map((entry) => entry.action);
+        .map((entry) => entry.actions[0]);
     expect(
       actions(new CatalogGraph(structuredClone(exported), library)),
     ).toEqual(actions(h.workspace.runtime.graph));
@@ -132,9 +132,9 @@ describe("update · remove — storage", () => {
       const broken = structuredClone(exported);
       const rule = Object.values(broken.entries).find(
         (entry) =>
-          entry.kind === "interaction" && entry.action.opcode === opcode,
+          entry.kind === "interaction" && entry.actions[0].opcode === opcode,
       ) as InteractionEntry;
-      (rule.action as unknown as Record<string, unknown>).extra = 1;
+      (rule.actions[0] as unknown as Record<string, unknown>).extra = 1;
       expect(() => new CatalogGraph(broken, library)).toThrow();
     }
     h.view.unmount();
@@ -223,7 +223,7 @@ describe("update · remove — dispatcher key values", () => {
       type: "interaction",
       elementId: "e",
       trigger: "onSelectionChange",
-      action,
+      actions: [action],
     }) as never;
 
   it('remove takes a selection (a Set · "all") or one key from the event; update a scalar key', () => {

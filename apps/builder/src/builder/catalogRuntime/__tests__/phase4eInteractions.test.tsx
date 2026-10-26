@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { validateCatalogEntry } from "../../../../../../packages/shared/src/catalog/document/validation";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   EntryId,
@@ -139,6 +140,18 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     expect(
       catalogTargetTypeName(graph, { kind: "node", id: id("button") }),
     ).toBe("Button");
+    // (Every Do choice starts as a complete action the document takes — a toast once started
+    //   with an empty message the validator refuses: 「Show a toast」 failed in the panel.)
+    for (const choice of ["navigate", "toast", "capability"] as const)
+      expect(() =>
+        validateCatalogEntry({
+          kind: "interaction",
+          id: "project:interaction:check",
+          ownerId: id("button"),
+          trigger: "onPress",
+          actions: [catalogDefaultAction(choice, context())!],
+        }),
+      ).not.toThrow();
     const navigate = catalogDefaultAction("navigate", context())!;
     // The first page other than the current one.
     expect(navigate).toEqual({ opcode: "navigate", pageId: ABOUT });
@@ -161,7 +174,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     expect(targets).not.toContain(id("button"));
     const capability: InteractionEntry = {
       ...rule,
-      action: catalogDefaultAction("capability", context())!,
+      actions: [catalogDefaultAction("capability", context())!],
     };
     workspace.execute(catalogInteractionsCommand(owner, [capability], "Edit"));
     // The page body is listed but not the starting target.
@@ -169,7 +182,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
       ref: { nodeId: BODY },
       pageRoot: true,
     });
-    expect(catalogInteractionsOf(graph, owner)[0]!.action).toEqual({
+    expect(catalogInteractionsOf(graph, owner)[0]!.actions[0]).toEqual({
       opcode: "capability",
       target: { nodeId: id("tabs") },
       capabilityId: "hide",
@@ -190,7 +203,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     // Editing the first rule keeps its place (the project list orders an owner's rules).
     const edited: InteractionEntry = {
       ...capability,
-      action: { opcode: "toast", message: "edited" },
+      actions: [{ opcode: "toast", message: "edited" }],
     };
     workspace.execute(
       catalogInteractionsCommand(owner, [edited, second], "Edit"),
@@ -262,7 +275,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
         id: "project:interaction:a" as EntryId<"interaction">,
         ownerId: id("card"),
         trigger: "onPress",
-        action: { opcode: "toast", message: "own" },
+        actions: [{ opcode: "toast", message: "own" }],
       },
       {
         kind: "interaction",
@@ -270,7 +283,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
         ownerId: id("card"),
         address: { instances: [id("card")], templatePath: [] },
         trigger: "onPress",
-        action: { opcode: "toast", message: "descendant" },
+        actions: [{ opcode: "toast", message: "descendant" }],
       },
     ];
     const reader = {
@@ -314,19 +327,19 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     );
     const start = graph.revision;
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Add rule|Add/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
     });
     expect(graph.revision).toBe(start + 1);
     const [rule] = catalogInteractionsOf(graph, owner);
     expect(rule).toMatchObject({
       trigger: "onPress",
-      action: { opcode: "navigate", pageId: ABOUT },
+      actions: [{ opcode: "navigate", pageId: ABOUT }],
     });
     // The new rule opens with its summary naming the page.
     expect(screen.getByText("On press → go to page (About)")).toBeTruthy();
     // A second add appends to the list.
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Add rule|Add/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
     });
     const both = catalogInteractionsOf(graph, owner);
     expect(both.map((r) => r.id)).toEqual([rule!.id, expect.any(String)]);
@@ -337,5 +350,43 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     });
     expect(catalogInteractionsOf(graph, owner)).toEqual([both[1]]);
     expect(graph.revision).toBe(start + 3);
+  });
+
+  it("ADR-284: a rule's Do list — Add Do appends one, the order list picks it, remove keeps the rest (one step each)", async () => {
+    const { workspace, graph, owner } = await open();
+    workspace.selectRecords([workspace.root.recordsOfSource(id("button"))[0]!]);
+    render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogInteractionsPanel />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
+    });
+    const start = graph.revision;
+    // (The new rule opens: its editor ends with 「Add Do」.)
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Do" }));
+    });
+    expect(graph.revision).toBe(start + 1);
+    const [rule] = catalogInteractionsOf(graph, owner);
+    expect(rule!.actions).toEqual([
+      { opcode: "navigate", pageId: ABOUT },
+      { opcode: "navigate", pageId: ABOUT },
+    ]);
+    expect(
+      screen.getByText("On press → go to page (About) + 1 more Do"),
+    ).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove this Do" }));
+    });
+    expect(graph.revision).toBe(start + 2);
+    expect(catalogInteractionsOf(graph, owner)[0]!.actions).toEqual([
+      { opcode: "navigate", pageId: ABOUT },
+    ]);
+    // (One Do left: no order list, no remove.)
+    expect(screen.queryByRole("button", { name: "Remove this Do" })).toBeNull();
   });
 });

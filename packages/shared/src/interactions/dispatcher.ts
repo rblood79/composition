@@ -29,7 +29,10 @@ import {
   applyCapabilityOp,
   checkCapabilityConstraints,
 } from "./constraints";
-import type { InteractionRule } from "./interactionRule.types";
+import type {
+  InteractionAction,
+  InteractionRule,
+} from "./interactionRule.types";
 import { resolveRuleValue, type RuleValueEnv } from "./valueRef";
 
 /** dispatcher 가 바깥 세계에 닿는 유일한 통로. */
@@ -208,7 +211,7 @@ const keyOf = (value: unknown): string | undefined =>
  */
 function dispatchListData(
   action: Extract<
-    InteractionRule["action"],
+    InteractionAction,
     { kind: "append" | "update" | "remove" }
   >,
   deps: DispatchDeps,
@@ -264,7 +267,7 @@ export type CatalogListPosition =
 /** `useListData`'s positions (insert · move by index or key) and `removeSelectedItems`. */
 function dispatchListPosition(
   action: Extract<
-    InteractionRule["action"],
+    InteractionAction,
     { kind: "insert" | "insertBefore" | "insertAfter" | "prepend" | "move" | "moveBefore" | "moveAfter" | "removeSelectedItems" }
   >,
   deps: DispatchDeps,
@@ -485,13 +488,35 @@ function readCurrent(
   return style?.[propPath.slice("style.".length)];
 }
 
-/** 규칙 하나를 실행한다. */
+/**
+ * 규칙 하나를 실행한다 — Do 를 순서대로, 실패한 Do 에서 멈추고 그 결과를 돌려준다 (ADR-284
+ * Decision 8: 뒤의 Do 는 앞의 Do 가 만든 상태를 전제한다 — kanban 의 `update` 뒤 `moveBefore`).
+ */
 export function executeInteractionRule(
   rule: InteractionRule,
   deps: DispatchDeps,
   context?: DispatchContext,
 ): DispatchOutcome {
-  const { action } = rule;
+  let outcome: DispatchOutcome = {
+    ok: false,
+    reason: "규칙에 Do 가 없다",
+  };
+  for (const [index, action] of rule.actions.entries()) {
+    outcome = executeInteractionAction(action, deps, context);
+    if (!outcome.ok)
+      return rule.actions.length > 1
+        ? { ...outcome, reason: `Do ${index + 1}: ${outcome.reason}` }
+        : outcome;
+  }
+  return outcome;
+}
+
+/** Do 하나를 실행한다. */
+function executeInteractionAction(
+  action: InteractionAction,
+  deps: DispatchDeps,
+  context?: DispatchContext,
+): DispatchOutcome {
 
   if (action.kind === "setState") {
     if (!action.variableId)

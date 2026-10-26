@@ -134,11 +134,11 @@ function fixture(): CatalogDocument {
       id: "project:interaction:go",
       ownerId: "project:node:leafA1",
       trigger: "press",
-      action: {
+      actions: [{
         opcode: "capability",
         target: { nodeId: "project:node:leafB1" },
         capabilityId: "selectItem",
-      },
+      }],
     },
   };
   for (const item of nodes) entries[item.id] = item;

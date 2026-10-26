@@ -10,7 +10,14 @@ import {
   type CollectionDataSource,
   type DataBindingValue,
 } from "@composition/shared";
-import type { CatalogBoundRow, CatalogBoundRows } from "../resolution/resolver";
+import type {
+  CatalogBoundRow,
+  CatalogBoundRows,
+  CatalogRowBinding,
+  CatalogViewResultMeta,
+} from "../resolution/resolver";
+import { runViewQueries, type ViewRunResult } from "../../collections/view/evaluate";
+import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import type {
   CatalogReader,
   DataBindingRef,
@@ -158,14 +165,81 @@ export function catalogFieldUsageElements(
  * past the window), or an empty item when no item has it.
  */
 export function catalogBoundRows(
-  ref: DataBindingRef,
-  collections: readonly CollectionDataSource[],
+  ref: CatalogRowBinding,
+  sources: readonly CollectionDataSource[],
   kind: "items" | "records" = "items",
   limit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
 ): CatalogBoundRows | undefined {
   const dataBinding = catalogBindingValue(ref);
-  if (!dataBinding || !resolveBoundCollection(dataBinding, collections))
-    return undefined;
+  const table = dataBinding && resolveBoundCollection(dataBinding, sources);
+  if (!dataBinding || !table) return undefined;
+  // ADR-284 Decision 3 · 6 — the view runs on the collection's whole rows, before the display
+  // window below: its result stands in for the collection's rows (every reader after this point —
+  // items · records · trees · the "+N more" total — reads the view's rows).
+  let view: CatalogViewResultMeta | undefined;
+  let collections = sources;
+  if (ref.query) {
+    const rows = readDataBindingRows(dataBinding, sources);
+    const result = runBindingView(rows, table, ref.query);
+    view = {
+      matched: result.rows.length,
+      loaded: rows.length,
+      ...(table.useMockData === true ? { complete: true } : {}),
+      broken: result.broken,
+      applied: result.applied,
+    };
+    collections = sources.map((source) =>
+      source === table
+        ? {
+            ...source,
+            useMockData: true,
+            mockData: result.rows as never,
+            status: "success",
+          }
+        : source,
+    );
+  }
+  const shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
+  return shown && view ? Object.assign(shown, { view }) : shown;
+}
+
+/**
+ * The last run per source rows and query (ADR-284 R4 — the memo key is the view definition, the
+ * values it read and the source rows; a variable write or a row change is another key).
+ */
+const viewRuns = new WeakMap<object, Map<string, ViewRunResult>>();
+function runBindingView(
+  rows: readonly unknown[],
+  table: CollectionDataSource,
+  query: CatalogRowQuery,
+): ViewRunResult {
+  const signature = JSON.stringify([query.queries, query.values]);
+  let runs = viewRuns.get(rows);
+  if (!runs) viewRuns.set(rows, (runs = new Map()));
+  const cached = runs.get(signature);
+  if (cached) return cached;
+  const result = runViewQueries(rows, {
+    queries: query.queries,
+    schema: (table.schema ?? []).flatMap((field) =>
+      field.id && field.key
+        ? [{ id: field.id, key: field.key, type: field.type }]
+        : [],
+    ),
+    resolve: catalogRowQueryResolve(query),
+  });
+  // (A few views per rows: the oldest goes first.)
+  if (runs.size >= 16) runs.delete(runs.keys().next().value!);
+  runs.set(signature, result);
+  return result;
+}
+
+function boundRowsOf(
+  ref: DataBindingRef,
+  dataBinding: DataBindingValue,
+  collections: readonly CollectionDataSource[],
+  kind: "items" | "records",
+  limit: number,
+): CatalogBoundRows | undefined {
   if (kind === "records")
     return readDataBindingRows(dataBinding, collections).map((item, index) => ({
       key: String(index),

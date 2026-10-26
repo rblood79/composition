@@ -9,7 +9,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 49,
+    "libraryContractVersion": 50,
     "revision": 42,
     "projectId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
     "rootId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
@@ -31,131 +31,153 @@
         "id": "project:interaction:08a5223b-94e4-417d-ab34-567d2bd7b3e6",
         "ownerId": "project:node:aa63d9a6-17a8-4864-bbb4-f7f7fc871cac",
         "trigger": "onPress",
-        "action": {
-          "opcode": "toast",
-          "message": "C 의 자기 규칙"
-        }
+        "actions": [
+          {
+            "opcode": "toast",
+            "message": "C 의 자기 규칙"
+          }
+        ]
       },
       "project:interaction:1194df66-ccd7-4317-84fd-ac46dfc9e6d1": {
         "kind": "interaction",
         "id": "project:interaction:1194df66-ccd7-4317-84fd-ac46dfc9e6d1",
         "ownerId": "project:node:6a0d121b-35c3-4ad6-b11f-b2932d279c5a",
         "trigger": "onChange",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d"
-          },
-          "capabilityId": "setValue",
-          "value": "!event.value"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:b171e251-00f6-4e27-8bed-4ed82605be4d"
+            },
+            "capabilityId": "setValue",
+            "value": "!event.value"
+          }
+        ]
       },
       "project:interaction:14fa3cb6-ffc5-46fa-ab20-2aaa4642f6d5": {
         "kind": "interaction",
         "id": "project:interaction:14fa3cb6-ffc5-46fa-ab20-2aaa4642f6d5",
         "ownerId": "project:node:08a62a25-ca51-47e6-b350-b28d301b90cb",
         "trigger": "onPress",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:home-body"
-          },
-          "capabilityId": "lightScheme"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:home-body"
+            },
+            "capabilityId": "lightScheme"
+          }
+        ]
       },
       "project:interaction:36401dd5-f9e9-451d-a328-938df32c53c8": {
         "kind": "interaction",
         "id": "project:interaction:36401dd5-f9e9-451d-a328-938df32c53c8",
         "ownerId": "project:node:db728117-dbb1-4fd3-84dc-438b6339b7c4",
         "trigger": "onPress",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
-          },
-          "capabilityId": "disableAll"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
+            },
+            "capabilityId": "disableAll"
+          }
+        ]
       },
       "project:interaction:5aa3eacd-a125-40eb-8899-7f668ee96dee": {
         "kind": "interaction",
         "id": "project:interaction:5aa3eacd-a125-40eb-8899-7f668ee96dee",
         "ownerId": "project:node:d368d521-9590-4de1-a859-590f01ae6786",
         "trigger": "onPress",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
-          },
-          "capabilityId": "enableAll"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
+            },
+            "capabilityId": "enableAll"
+          }
+        ]
       },
       "project:interaction:6e074463-cece-434c-a5cd-a5bb4b8a1eac": {
         "kind": "interaction",
         "id": "project:interaction:6e074463-cece-434c-a5cd-a5bb4b8a1eac",
         "ownerId": "project:node:bd5946ee-4b73-4558-a1a6-b22c2bdce422",
         "trigger": "onPress",
-        "action": {
-          "opcode": "toast",
-          "message": "frame 안 버튼 눌림"
-        }
+        "actions": [
+          {
+            "opcode": "toast",
+            "message": "frame 안 버튼 눌림"
+          }
+        ]
       },
       "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118": {
         "kind": "interaction",
         "id": "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118",
         "ownerId": "project:node:620ea153-ba2b-4d46-85e9-847e50fa12c7",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "callEndpoint",
-          "endpointId": "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2",
-          "body": "!event.formData"
-        }
+        "actions": [
+          {
+            "opcode": "callEndpoint",
+            "endpointId": "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2",
+            "body": "!event.formData"
+          }
+        ]
       },
       "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e": {
         "kind": "interaction",
         "id": "project:interaction:c7e86fe4-cc3a-4046-81c5-300ae00d0b2e",
         "ownerId": "project:node:1aff0c29-93f5-4f7f-9b59-40c806cd08c9",
         "trigger": "onPress",
-        "action": {
-          "opcode": "toast",
-          "message": "원본 규칙 실행"
-        }
+        "actions": [
+          {
+            "opcode": "toast",
+            "message": "원본 규칙 실행"
+          }
+        ]
       },
       "project:interaction:d1d95a7a-153d-4f26-9a6b-2c1e1cb7e6b6": {
         "kind": "interaction",
         "id": "project:interaction:d1d95a7a-153d-4f26-9a6b-2c1e1cb7e6b6",
         "ownerId": "project:node:0be69cc1-a587-4844-a59d-ddd59aaef398",
         "trigger": "onPress",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:home-body"
-          },
-          "capabilityId": "darkScheme"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:home-body"
+            },
+            "capabilityId": "darkScheme"
+          }
+        ]
       },
       "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f": {
         "kind": "interaction",
         "id": "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f",
         "ownerId": "project:node:0831f2bc-003a-4845-a70d-eaebbdc395ec",
         "trigger": "onSubmit",
-        "action": {
-          "opcode": "callEndpoint",
-          "endpointId": "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2",
-          "body": "!event.formData"
-        }
+        "actions": [
+          {
+            "opcode": "callEndpoint",
+            "endpointId": "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2",
+            "body": "!event.formData"
+          }
+        ]
       },
       "project:interaction:fcb7165f-94bb-4c23-b690-65b803bfc23e": {
         "kind": "interaction",
         "id": "project:interaction:fcb7165f-94bb-4c23-b690-65b803bfc23e",
         "ownerId": "project:node:6fb82153-a01c-4c67-871a-85dd6d609db9",
         "trigger": "onPress",
-        "action": {
-          "opcode": "capability",
-          "target": {
-            "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
-          },
-          "capabilityId": "toggleReadOnlyAll"
-        }
+        "actions": [
+          {
+            "opcode": "capability",
+            "target": {
+              "nodeId": "project:node:492ba45f-3674-4e41-b8db-32c3dc586906"
+            },
+            "capabilityId": "toggleReadOnlyAll"
+          }
+        ]
       },
       "project:node:06704752-9521-4ea8-8a54-4312fe0b9f56": {
         "kind": "node",

@@ -21,6 +21,7 @@ import {
   type LibraryToken,
   type TokenType,
   type ValueType,
+  VIEW_COMPARISONS,
   type VisualField,
 } from "./types";
 import { catalogCalendarDurationFits } from "./valueType";
@@ -47,6 +48,7 @@ const entryKinds = new Set<EntryKind>([
   "stateVariable",
   "interaction",
   "asset",
+  "view",
 ]);
 const visualFields = new Set<VisualField>([
   "color",
@@ -300,7 +302,7 @@ const placementFields = new Set([
   "gridRowEnd",
 ]);
 const idPattern =
-  /^(project:(project|page|definition|definitionOverride|node|theme|token|stateVariable|interaction|asset):[A-Za-z0-9][A-Za-z0-9_-]*|lib:(definition|template|token):[A-Za-z0-9][A-Za-z0-9_-]*|data:(collection|field|endpoint|variable):[A-Za-z0-9][A-Za-z0-9_-]*)$/;
+  /^(project:(project|page|definition|definitionOverride|node|theme|token|stateVariable|interaction|asset|view):[A-Za-z0-9][A-Za-z0-9_-]*|lib:(definition|template|token):[A-Za-z0-9][A-Za-z0-9_-]*|data:(collection|field|endpoint|variable):[A-Za-z0-9][A-Za-z0-9_-]*)$/;
 
 function invalid(code: string, at: string): never {
   throw new CatalogValidationError(code, at);
@@ -953,15 +955,172 @@ function descendant(value: unknown, at: string): void {
 }
 function binding(value: unknown, at: string): void {
   const item = object(value, at);
-  exact(item, ["collectionId", "fieldMap", "key"], at);
+  exact(item, ["collectionId", "fieldMap", "key", "viewId", "view"], at);
   id(item.collectionId, "data:collection:", `${at}.collectionId`);
   if (item.key !== undefined) string(item.key, `${at}.key`);
+  // ADR-284 Decision 1 — a shared view, or the binding's own (built-in) view: never both. A
+  // built-in view filters · sorts its list; grouping · aggregates are a derived (shared) view's.
+  if (item.viewId !== undefined) id(item.viewId, "project:view:", `${at}.viewId`);
+  if (item.view !== undefined) {
+    if (item.viewId !== undefined) invalid("VIEW_AND_VIEW_ID", `${at}.view`);
+    const query = viewQuery(item.view, `${at}.view`, []);
+    if (query.groupBy !== undefined || query.aggregates !== undefined)
+      invalid("VIEW_AGGREGATE_DERIVED_ONLY", `${at}.view`);
+  }
   for (const [key, value] of Object.entries(
     object(item.fieldMap, `${at}.fieldMap`),
   )) {
     if (!key) invalid("INVALID_FIELD_MAP", at);
     id(value, "data:field:", `${at}.fieldMap.${key}`);
   }
+}
+const VIEW_LIST_COMPARISONS = new Set(["oneOf", "containsAny", "containsAll"]);
+const VIEW_NO_VALUE_COMPARISONS = new Set(["exists", "notExists"]);
+/** ADR-284 — field ids through reference fields (`[teamId, name]`). */
+function dataFieldPath(value: unknown, at: string): void {
+  if (!Array.isArray(value) || value.length === 0)
+    invalid("FIELD_PATH_REQUIRED", at);
+  value.forEach((field, index) => id(field, "data:field:", `${at}[${index}]`));
+}
+/**
+ * ADR-284 — a view's query: the condition tree (ids unique in the view, an `or` group never
+ * empty), the comparison × value shape (a list for `oneOf` · `containsAny` · `containsAll`, two
+ * ends for `between`, none for `exists` · `notExists`, a unit for `withinLast` — a value may be a
+ * reference string), grouping, aggregates (`as` unique) and the sort. Field types × comparisons
+ * are the data's (the schema lives outside the document) — the panel and the run check them.
+ */
+function viewQuery(
+  value: unknown,
+  at: string,
+  extra: readonly string[],
+): Record<string, unknown> {
+  const item = object(value, at);
+  exact(item, ["where", "groupBy", "aggregates", "sort", ...extra], at);
+  const ids = new Set<string>();
+  const unique = (raw: unknown, path: string) => {
+    const text = string(raw, path);
+    if (ids.has(text)) invalid("DUPLICATE_CONDITION_ID", path);
+    ids.add(text);
+  };
+  const conditionValue = (raw: unknown, path: string) => {
+    if (Array.isArray(raw))
+      raw.forEach((cell, index) => scalar(cell, `${path}[${index}]`));
+    else scalar(raw, path);
+  };
+  const group = (raw: unknown, path: string): void => {
+    const node = object(raw, path);
+    exact(node, ["id", "op", "items"], path);
+    unique(node.id, `${path}.id`);
+    if (node.op !== "and" && node.op !== "or")
+      invalid("INVALID_GROUP_OP", `${path}.op`);
+    if (!Array.isArray(node.items)) invalid("ARRAY_REQUIRED", `${path}.items`);
+    if (node.op === "or" && node.items.length === 0)
+      invalid("EMPTY_OR_GROUP", `${path}.items`);
+    node.items.forEach((child, index) => {
+      const childAt = `${path}.items[${index}]`;
+      if (object(child, childAt).items !== undefined) group(child, childAt);
+      else condition(child, childAt);
+    });
+  };
+  const condition = (raw: unknown, path: string): void => {
+    const node = object(raw, path);
+    exact(
+      node,
+      ["id", "fields", "op", "value", "skip", "enabled", "sensitivity", "unit"],
+      path,
+    );
+    unique(node.id, `${path}.id`);
+    if (!Array.isArray(node.fields) || node.fields.length === 0)
+      invalid("FIELDS_REQUIRED", `${path}.fields`);
+    node.fields.forEach((field, index) =>
+      dataFieldPath(field, `${path}.fields[${index}]`),
+    );
+    const op = node.op as string;
+    if (!VIEW_COMPARISONS.includes(op as never))
+      invalid("UNKNOWN_COMPARISON", `${path}.op`);
+    const isRef = typeof node.value === "string" && node.value.startsWith("!");
+    if (VIEW_NO_VALUE_COMPARISONS.has(op)) {
+      if (node.value !== undefined)
+        invalid("COMPARISON_VALUE_NOT_ALLOWED", `${path}.value`);
+    } else if (node.value === undefined)
+      invalid("COMPARISON_VALUE_REQUIRED", `${path}.value`);
+    else if (VIEW_LIST_COMPARISONS.has(op)) {
+      if (!isRef && !Array.isArray(node.value))
+        invalid("COMPARISON_LIST_REQUIRED", `${path}.value`);
+      conditionValue(node.value, `${path}.value`);
+    } else if (op === "between") {
+      if (!isRef && (!Array.isArray(node.value) || node.value.length !== 2))
+        invalid("COMPARISON_RANGE_REQUIRED", `${path}.value`);
+      conditionValue(node.value, `${path}.value`);
+    } else if (Array.isArray(node.value))
+      invalid("SCALAR_REQUIRED", `${path}.value`);
+    else scalar(node.value, `${path}.value`);
+    if (op === "withinLast") {
+      if (!["day", "week", "month", "year"].includes(node.unit as string))
+        invalid("COMPARISON_UNIT_REQUIRED", `${path}.unit`);
+    } else if (node.unit !== undefined)
+      invalid("COMPARISON_UNIT_NOT_ALLOWED", `${path}.unit`);
+    if (node.skip !== undefined && node.skip !== "empty")
+      scalar(node.skip, `${path}.skip`);
+    if (node.enabled !== undefined) {
+      scalar(node.enabled, `${path}.enabled`);
+      if (
+        typeof node.enabled !== "boolean" &&
+        !(typeof node.enabled === "string" && node.enabled.startsWith("!"))
+      )
+        invalid("CONDITION_ENABLED_BOOLEAN", `${path}.enabled`);
+    }
+    if (
+      node.sensitivity !== undefined &&
+      !["base", "accent", "case", "variant"].includes(node.sensitivity as string)
+    )
+      invalid("INVALID_SENSITIVITY", `${path}.sensitivity`);
+  };
+  group(item.where, `${at}.where`);
+  if (item.groupBy !== undefined) {
+    if (!Array.isArray(item.groupBy) || item.groupBy.length === 0)
+      invalid("GROUP_BY_REQUIRED", `${at}.groupBy`);
+    item.groupBy.forEach((field, index) =>
+      dataFieldPath(field, `${at}.groupBy[${index}]`),
+    );
+  }
+  if (item.aggregates !== undefined) {
+    if (!Array.isArray(item.aggregates) || item.aggregates.length === 0)
+      invalid("AGGREGATES_REQUIRED", `${at}.aggregates`);
+    const names = new Set<string>();
+    item.aggregates.forEach((raw, index) => {
+      const path = `${at}.aggregates[${index}]`;
+      const aggregate = object(raw, path);
+      exact(aggregate, ["fn", "field", "as"], path);
+      if (!["count", "sum", "mean", "min", "max"].includes(aggregate.fn as string))
+        invalid("UNKNOWN_AGGREGATE", `${path}.fn`);
+      if (aggregate.field !== undefined)
+        dataFieldPath(aggregate.field, `${path}.field`);
+      else if (aggregate.fn !== "count")
+        invalid("AGGREGATE_FIELD_REQUIRED", `${path}.field`);
+      const name = string(aggregate.as, `${path}.as`);
+      if (names.has(name)) invalid("DUPLICATE_AGGREGATE_NAME", `${path}.as`);
+      names.add(name);
+    });
+  }
+  if (item.sort !== undefined) {
+    const sort = object(item.sort, `${at}.sort`);
+    if (sort.variableId !== undefined) {
+      exact(sort, ["variableId"], `${at}.sort`);
+      const variableId = id(sort.variableId, "", `${at}.sort.variableId`);
+      if (
+        !variableId.startsWith("project:stateVariable:") &&
+        !variableId.startsWith("data:variable:")
+      )
+        invalid("INVALID_VARIABLE_REF", `${at}.sort.variableId`);
+    } else {
+      exact(sort, ["field", "direction"], `${at}.sort`);
+      dataFieldPath(sort.field, `${at}.sort.field`);
+      if (sort.direction !== "ascending" && sort.direction !== "descending")
+        invalid("INVALID_SORT_DIRECTION", `${at}.sort.direction`);
+    }
+  }
+  return item;
 }
 function nonnegative(value: unknown, at: string): void {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
@@ -1084,6 +1243,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "stateVariableIds",
           "interactionIds",
           "assetIds",
+          "viewIds",
           "activeThemeId",
           "pageLayout",
           "toastPlacement",
@@ -1102,6 +1262,8 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         ["assetIds", "project:asset:"],
       ] as const)
         list(item[key], prefix, `entry.${key}`);
+      if (item.viewIds !== undefined)
+        list(item.viewIds, "project:view:", "entry.viewIds");
       if (item.componentPageIds !== undefined)
         list(item.componentPageIds, "project:page:", "entry.componentPageIds");
       if (item.activeThemeId !== undefined)
@@ -1454,117 +1616,137 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
     case "interaction": {
       exact(
         item,
-        ["kind", "id", "ownerId", "address", "trigger", "action"],
+        ["kind", "id", "ownerId", "address", "trigger", "actions"],
         "entry",
       );
       id(item.ownerId, "project:node:", "entry.ownerId");
       if (item.address !== undefined) address(item.address, "entry.address");
       string(item.trigger, "entry.trigger");
-      const action = object(item.action, "entry.action");
-      if (action.opcode === "setState") {
-        exact(action, ["opcode", "variableId", "op", "value"], "entry.action");
-        const variableId = id(action.variableId, "", "entry.action.variableId");
-        if (
-          !variableId.startsWith("project:stateVariable:") &&
-          !variableId.startsWith("data:variable:")
-        )
-          invalid("INVALID_VARIABLE_REF", "entry.action.variableId");
-        if (
-          !["set", "toggle", "increment", "reset"].includes(action.op as string)
-        )
-          invalid("INVALID_STATE_OP", "entry.action.op");
-        if (action.op === "set") scalar(action.value, "entry.action.value");
-        if (
-          action.op === "increment" &&
-          action.value !== undefined &&
-          (typeof action.value !== "number" || !Number.isFinite(action.value))
-        )
-          invalid("STATE_INCREMENT_NUMBER", "entry.action.value");
-        if (
-          (action.op === "toggle" || action.op === "reset") &&
-          action.value !== undefined
-        )
-          invalid("STATE_VALUE_NOT_ALLOWED", "entry.action.value");
-      } else if (action.opcode === "navigate") {
-        exact(action, ["opcode", "pageId"], "entry.action");
-        id(action.pageId, "project:page:", "entry.action.pageId");
-      } else if (action.opcode === "callEndpoint") {
-        exact(action, ["opcode", "endpointId", "body"], "entry.action");
-        id(action.endpointId, "data:endpoint:", "entry.action.endpointId");
-        // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
-        if (action.body !== undefined) scalar(action.body, "entry.action.body");
-      } else if (action.opcode === "append") {
-        exact(action, ["opcode", "collectionId", "value", "parentKey"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
-      } else if (action.opcode === "update") {
-        exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.key !== undefined) scalar(action.key, "entry.action.key");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-      } else if (action.opcode === "insert") {
-        exact(action, ["opcode", "collectionId", "index", "value", "parentKey"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.index !== undefined) scalar(action.index, "entry.action.index");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
-      } else if (action.opcode === "insertBefore" || action.opcode === "insertAfter") {
-        exact(action, ["opcode", "collectionId", "key", "value"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.key !== undefined) scalar(action.key, "entry.action.key");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-      } else if (action.opcode === "prepend") {
-        exact(action, ["opcode", "collectionId", "value", "parentKey"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-        if (action.parentKey !== undefined) scalar(action.parentKey, "entry.action.parentKey");
-      } else if (action.opcode === "move") {
-        exact(action, ["opcode", "collectionId", "key", "toIndex", "toParentKey"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.key !== undefined) scalar(action.key, "entry.action.key");
-        if (action.toIndex !== undefined) scalar(action.toIndex, "entry.action.toIndex");
-        if (action.toParentKey !== undefined)
-          scalar(action.toParentKey, "entry.action.toParentKey");
-      } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
-        exact(action, ["opcode", "collectionId", "key", "keys"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.key !== undefined) scalar(action.key, "entry.action.key");
-        if (action.keys !== undefined) scalar(action.keys, "entry.action.keys");
-      } else if (
-        action.opcode === "reload" ||
-        action.opcode === "loadMore" ||
-        action.opcode === "removeSelectedItems"
-      ) {
-        exact(action, ["opcode", "collectionId"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-      } else if (action.opcode === "setFilterText") {
-        exact(action, ["opcode", "collectionId", "value"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.value !== undefined) scalar(action.value, "entry.action.value");
-      } else if (action.opcode === "remove") {
-        exact(action, ["opcode", "collectionId", "keys"], "entry.action");
-        id(action.collectionId, "data:collection:", "entry.action.collectionId");
-        if (action.keys !== undefined) scalar(action.keys, "entry.action.keys");
-      } else if (action.opcode === "toast") {
-        exact(action, ["opcode", "message"], "entry.action");
-        string(action.message, "entry.action.message");
-      } else if (action.opcode === "capability") {
-        exact(
-          action,
-          ["opcode", "target", "capabilityId", "value"],
-          "entry.action",
-        );
-        nodeRef(action.target, "entry.action.target", "TARGET_REF_SHAPE", true);
-        string(action.capabilityId, "entry.action.capabilityId");
-        if (action.value !== undefined) {
-          if (Array.isArray(action.value))
-            action.value.forEach((value, index) =>
-              scalar(value, `entry.action.value[${index}]`),
-            );
-          else scalar(action.value, "entry.action.value");
-        }
-      } else invalid("UNKNOWN_ACTION_OPCODE", "entry.action.opcode");
+      // ADR-284 Decision 8 — the Do list (one action = a list of one).
+      if (!Array.isArray(item.actions) || item.actions.length === 0)
+        invalid("ACTIONS_REQUIRED", "entry.actions");
+      for (const [actionIndex, raw] of item.actions.entries()) {
+        const at = `entry.actions[${actionIndex}]`;
+        const action = object(raw, at);
+        if (action.opcode === "setState") {
+          exact(action, ["opcode", "variableId", "op", "value"], `${at}`);
+          const variableId = id(action.variableId, "", `${at}.variableId`);
+          if (
+            !variableId.startsWith("project:stateVariable:") &&
+            !variableId.startsWith("data:variable:")
+          )
+            invalid("INVALID_VARIABLE_REF", `${at}.variableId`);
+          if (
+            !["set", "toggle", "increment", "reset"].includes(action.op as string)
+          )
+            invalid("INVALID_STATE_OP", `${at}.op`);
+          if (action.op === "set") scalar(action.value, `${at}.value`);
+          if (
+            action.op === "increment" &&
+            action.value !== undefined &&
+            (typeof action.value !== "number" || !Number.isFinite(action.value))
+          )
+            invalid("STATE_INCREMENT_NUMBER", `${at}.value`);
+          if (
+            (action.op === "toggle" || action.op === "reset") &&
+            action.value !== undefined
+          )
+            invalid("STATE_VALUE_NOT_ALLOWED", `${at}.value`);
+        } else if (action.opcode === "navigate") {
+          exact(action, ["opcode", "pageId"], `${at}`);
+          id(action.pageId, "project:page:", `${at}.pageId`);
+        } else if (action.opcode === "callEndpoint") {
+          exact(action, ["opcode", "endpointId", "body"], `${at}`);
+          id(action.endpointId, "data:endpoint:", `${at}.endpointId`);
+          // (`scalar` refuses `undefined` — a rule without a body is the shape stored before, ADR-281.)
+          if (action.body !== undefined) scalar(action.body, `${at}.body`);
+        } else if (action.opcode === "append") {
+          exact(action, ["opcode", "collectionId", "value", "parentKey"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
+        } else if (action.opcode === "update") {
+          exact(action, ["opcode", "collectionId", "key", "value"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.key !== undefined) scalar(action.key, `${at}.key`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+        } else if (action.opcode === "insert") {
+          exact(action, ["opcode", "collectionId", "index", "value", "parentKey"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.index !== undefined) scalar(action.index, `${at}.index`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
+        } else if (action.opcode === "insertBefore" || action.opcode === "insertAfter") {
+          exact(action, ["opcode", "collectionId", "key", "value"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.key !== undefined) scalar(action.key, `${at}.key`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+        } else if (action.opcode === "prepend") {
+          exact(action, ["opcode", "collectionId", "value", "parentKey"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+          if (action.parentKey !== undefined) scalar(action.parentKey, `${at}.parentKey`);
+        } else if (action.opcode === "move") {
+          exact(action, ["opcode", "collectionId", "key", "toIndex", "toParentKey"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.key !== undefined) scalar(action.key, `${at}.key`);
+          if (action.toIndex !== undefined) scalar(action.toIndex, `${at}.toIndex`);
+          if (action.toParentKey !== undefined)
+            scalar(action.toParentKey, `${at}.toParentKey`);
+        } else if (action.opcode === "moveBefore" || action.opcode === "moveAfter") {
+          exact(action, ["opcode", "collectionId", "key", "keys"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.key !== undefined) scalar(action.key, `${at}.key`);
+          if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
+        } else if (
+          action.opcode === "reload" ||
+          action.opcode === "loadMore" ||
+          action.opcode === "removeSelectedItems"
+        ) {
+          exact(action, ["opcode", "collectionId"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+        } else if (action.opcode === "setFilterText") {
+          exact(action, ["opcode", "collectionId", "value"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.value !== undefined) scalar(action.value, `${at}.value`);
+        } else if (action.opcode === "remove") {
+          exact(action, ["opcode", "collectionId", "keys"], `${at}`);
+          id(action.collectionId, "data:collection:", `${at}.collectionId`);
+          if (action.keys !== undefined) scalar(action.keys, `${at}.keys`);
+        } else if (action.opcode === "toast") {
+          exact(action, ["opcode", "message"], `${at}`);
+          string(action.message, `${at}.message`);
+        } else if (action.opcode === "capability") {
+          exact(
+            action,
+            ["opcode", "target", "capabilityId", "value"],
+            `${at}`,
+          );
+          nodeRef(action.target, `${at}.target`, "TARGET_REF_SHAPE", true);
+          string(action.capabilityId, `${at}.capabilityId`);
+          if (action.value !== undefined) {
+            if (Array.isArray(action.value))
+              action.value.forEach((value, index) =>
+                scalar(value, `${at}.value[${index}]`),
+              );
+            else scalar(action.value, `${at}.value`);
+          }
+        } else invalid("UNKNOWN_ACTION_OPCODE", `${at}.opcode`);
+      }
+      break;
+    }
+    case "view": {
+      // ADR-284 Decision 1 — a shared view: a name, a source (a collection or another view).
+      viewQuery(item, "entry", ["kind", "id", "name", "source"]);
+      string(item.name, "entry.name");
+      const source = object(item.source, "entry.source");
+      if (source.viewId !== undefined) {
+        exact(source, ["viewId"], "entry.source");
+        id(source.viewId, "project:view:", "entry.source.viewId");
+      } else {
+        exact(source, ["collectionId"], "entry.source");
+        id(source.collectionId, "data:collection:", "entry.source.collectionId");
+      }
       break;
     }
     case "asset":

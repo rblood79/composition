@@ -149,7 +149,7 @@ describe("ADR-281 G3 — an instance turns an origin's rule off or replaces it",
     h.run(
       catalogInteractionsCommand(
         owner,
-        [{ ...copy!, action: { opcode: "toast", message: "mine" } }],
+        [{ ...copy!, actions: [{ opcode: "toast", message: "mine" }] }],
         "Edit",
       ),
     );
@@ -174,7 +174,7 @@ describe("ADR-281 G3 — ADR-262 push and Reset all cover the rules", () => {
     h.run(
       catalogInteractionsCommand(
         owner,
-        [{ ...copy!, action: { opcode: "toast", message: "mine" } }],
+        [{ ...copy!, actions: [{ opcode: "toast", message: "mine" }] }],
         "Edit",
       ),
     );
@@ -186,7 +186,7 @@ describe("ADR-281 G3 — ADR-262 push and Reset all cover the rules", () => {
     h.run(pushInstanceOverrides({ id: h.a, newId: h.workspace.newId }));
     expect(catalogInteractionsOf(h.graph, h.owner)).toEqual([]);
     const origin = h.graph.getEntry(h.rule.id);
-    expect(origin?.kind === "interaction" && origin.action).toEqual({
+    expect(origin?.kind === "interaction" && origin.actions[0]).toEqual({
       opcode: "toast",
       message: "mine",
     });
@@ -233,7 +233,7 @@ describe("ADR-281 G3 — storage (contract 47)", () => {
     h.run(catalogInheritedRuleEnabledCommand({ ownerId: h.a }, rule!.id, false));
     const library = await buildCodeCatalogLibrary();
     const exported = h.graph.exportDocument();
-    expect(exported.libraryContractVersion).toBe(49);
+    expect(exported.libraryContractVersion).toBe(50);
     const reopened = new CatalogGraph(structuredClone(exported), library);
     expect(
       catalogInheritedInteractionsOf(reopened, { ownerId: h.a })[0]?.status,
