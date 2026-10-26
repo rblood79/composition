@@ -29,6 +29,8 @@ import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
 import { ApiEndpointEditor } from "./ApiEndpointEditor";
+import { WorkspaceContext } from "../../../catalogRuntime/react.runtime";
+import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 
 const endpoint = {
   id: "ep1",
@@ -51,8 +53,7 @@ const wrap = (node: ReactNode) => (
 
 function lastOps() {
   const call = applyDataChange.mock.calls.at(-1) as unknown as
-    | [{ ops: { op: string }[] }]
-    | undefined;
+    [{ ops: { op: string }[] }] | undefined;
   return call?.[0].ops;
 }
 
@@ -65,7 +66,9 @@ afterEach(() => {
 
 describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
   it("요청 바 — Method/URL/Send, Send 는 executeApiEndpoint 호출", async () => {
-    const { getByRole } = render(wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />));
+    const { getByRole } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),
+    );
     const send = getByRole("button", { name: /Send/ });
     fireEvent.pointerDown(send, { button: 0 });
     fireEvent.pointerUp(send, { button: 0 });
@@ -133,10 +136,15 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     fireEvent.pointerDown(add, { button: 0 });
     fireEvent.pointerUp(add, { button: 0 });
     fireEvent.click(add);
-    const keyInput = container.querySelector(".datatable-kv-row input") as HTMLInputElement;
+    const keyInput = container.querySelector(
+      ".datatable-kv-row input",
+    ) as HTMLInputElement;
     fireEvent.change(keyInput, { target: { value: "page" } });
     await waitFor(() => expect(applyDataChange).toHaveBeenCalled());
-    const op = lastOps()?.[0] as { op: string; endpoint: { queryParams: { key: string }[] } };
+    const op = lastOps()?.[0] as {
+      op: string;
+      endpoint: { queryParams: { key: string }[] };
+    };
     expect(op.endpoint.queryParams.some((q) => q.key === "page")).toBe(true);
   });
 
@@ -159,11 +167,17 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
         ...endpoint,
         queryParams: [{ key, value: "", type: "string", required: false }],
       }) as unknown as ApiEndpoint;
-    rerender(wrap(<ApiEndpointEditor endpoint={withKey("p")} onClose={() => {}} />));
+    rerender(
+      wrap(<ApiEndpointEditor endpoint={withKey("p")} onClose={() => {}} />),
+    );
     expect(keyInput().value).toBe("pa");
-    rerender(wrap(<ApiEndpointEditor endpoint={withKey("pa")} onClose={() => {}} />));
+    rerender(
+      wrap(<ApiEndpointEditor endpoint={withKey("pa")} onClose={() => {}} />),
+    );
     expect(keyInput().value).toBe("pa");
-    rerender(wrap(<ApiEndpointEditor endpoint={withKey("q")} onClose={() => {}} />));
+    rerender(
+      wrap(<ApiEndpointEditor endpoint={withKey("q")} onClose={() => {}} />),
+    );
     expect(keyInput().value).toBe("q");
     applyDataChange.mockImplementation(async () => ({ endpointIds: ["ep1"] }));
   });
@@ -184,11 +198,19 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
       startedAt: "2026-09-17T00:00:00.000Z",
       durationMs: 12,
       ok: false,
-      request: { method: "GET", url: "https://api.test/upload", headers: {}, bodyType: "none" },
+      request: {
+        method: "GET",
+        url: "https://api.test/upload",
+        headers: {},
+        bodyType: "none",
+      },
       response: {
         status: 405,
         statusText: "Method Not Allowed",
-        headers: { "tus-resumable": "1.0.0", allow: "OPTIONS, POST, HEAD, PATCH, DELETE" },
+        headers: {
+          "tus-resumable": "1.0.0",
+          allow: "OPTIONS, POST, HEAD, PATCH, DELETE",
+        },
         bodyPreview: "method not allowed",
         bodyTruncated: false,
         bodyBytes: 18,
@@ -196,7 +218,13 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
       error: "HTTP 405: Method Not Allowed",
     });
     const { container, getByText } = render(
-      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} initialTab="response" />),
+      wrap(
+        <ApiEndpointEditor
+          endpoint={endpoint}
+          onClose={() => {}}
+          initialTab="response"
+        />,
+      ),
     );
     const note = container.querySelector("[data-upload-endpoint]");
     expect(note).not.toBeNull();
@@ -226,7 +254,12 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
       startedAt: "2026-10-05T00:00:00.000Z",
       durationMs: 5,
       ok: true,
-      request: { method: "GET", url: "https://api.test/orders", headers: {}, bodyType: "none" },
+      request: {
+        method: "GET",
+        url: "https://api.test/orders",
+        headers: {},
+        bodyType: "none",
+      },
       response: {
         status: 200,
         statusText: "OK",
@@ -237,7 +270,13 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
       },
     });
     const { getByRole, getByLabelText } = render(
-      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} initialTab="params" />),
+      wrap(
+        <ApiEndpointEditor
+          endpoint={endpoint}
+          onClose={() => {}}
+          initialTab="params"
+        />,
+      ),
     );
     fireEvent.click(getByRole("tab", { name: "Response" }));
     fireEvent.click(getByRole("tab", { name: /Schema/ }));
@@ -247,7 +286,11 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     fireEvent.pointerUp(save, { button: 0 });
     fireEvent.click(save);
     await waitFor(() => expect(applyDataChange).toHaveBeenCalled());
-    const ops = lastOps() as { op: string; collectionId?: string; endpoint?: { targetCollectionId?: string } }[];
+    const ops = lastOps() as {
+      op: string;
+      collectionId?: string;
+      endpoint?: { targetCollectionId?: string };
+    }[];
     expect(ops.map((op) => op.op)).toEqual(["set_source", "define_endpoint"]);
     expect(ops[0]!.collectionId).toBe("c-orders");
     expect(ops[1]!.endpoint?.targetCollectionId).toBe("c-orders");
@@ -257,10 +300,22 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
   it("Auth 탭 — 저장된 secret 이름을 보이고 바꾸지 않은 blur 는 쓰지 않는다", async () => {
     const withAuth = {
       ...endpoint,
-      headers: [{ key: "Authorization", value: "Bearer {{secret.MY_TOKEN}}", enabled: true }],
+      headers: [
+        {
+          key: "Authorization",
+          value: "Bearer {{secret.MY_TOKEN}}",
+          enabled: true,
+        },
+      ],
     } as unknown as ApiEndpoint;
     const { getByLabelText } = render(
-      wrap(<ApiEndpointEditor endpoint={withAuth} onClose={() => {}} initialTab="auth" />),
+      wrap(
+        <ApiEndpointEditor
+          endpoint={withAuth}
+          onClose={() => {}}
+          initialTab="auth"
+        />,
+      ),
     );
     const secret = getByLabelText("Secret name") as HTMLInputElement;
     expect(secret.value).toBe("MY_TOKEN");
@@ -268,5 +323,118 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     fireEvent.blur(secret);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(applyDataChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("ADR-284 — the query format (Params tab)", () => {
+  /** A workspace whose graph binds one node to `users` with an `or` view (task ⑥). */
+  const workspace = {
+    runtime: {
+      subscribeSteps: () => () => {},
+      graph: {
+        revision: 1,
+        bindingsOf: (ref: string) =>
+          new Set(ref === "data:collection:users" ? ["project:node:list"] : []),
+        getEntry: (id: string) =>
+          id === "project:node:list"
+            ? {
+                kind: "node",
+                id,
+                name: "People list",
+                binding: {
+                  source: "dataTable",
+                  collectionId: "data:collection:users",
+                  view: {
+                    where: {
+                      id: "where",
+                      op: "and",
+                      items: [
+                        {
+                          id: "either",
+                          op: "or",
+                          items: [
+                            {
+                              id: "f",
+                              fields: [["data:field:f-gender"]],
+                              op: "equals",
+                              value: "female",
+                            },
+                            {
+                              id: "y",
+                              fields: [["data:field:f-age"]],
+                              op: "lt",
+                              value: 25,
+                            },
+                          ],
+                        },
+                        {
+                          id: "s",
+                          fields: [["data:field:f-name"]],
+                          op: "startsWith",
+                          value: "K",
+                        },
+                      ],
+                    },
+                  },
+                },
+              }
+            : undefined,
+      },
+    },
+  } as unknown as CatalogWorkspace;
+  const suffixEndpoint = {
+    ...endpoint,
+    targetCollection: "Users",
+    querySerialization: { kind: "suffix" },
+  } as unknown as ApiEndpoint;
+
+  it("the comparison table shows json-server's defaults; the views list what the format cannot carry; a named suffix saves the table", async () => {
+    collections.set("users", {
+      id: "users",
+      name: "Users",
+      schema: [
+        { id: "f-name", key: "name", type: "string" },
+        { id: "f-gender", key: "gender", type: "string" },
+        { id: "f-age", key: "age", type: "number" },
+      ],
+    });
+    const { getByRole } = render(
+      wrap(
+        <WorkspaceContext.Provider value={workspace}>
+          <ApiEndpointEditor endpoint={suffixEndpoint} onClose={() => {}} />
+        </WorkspaceContext.Provider>,
+      ),
+    );
+    const table = getByRole("group", { name: "Comparison → parameter" });
+    const input = (op: string) =>
+      [...table.querySelectorAll("label")]
+        .find((label) => label.textContent?.startsWith(op))!
+        .querySelector("input")!;
+    expect(input("contains").value).toBe("{field}_like");
+    expect(input("equals").value).toBe("{field}");
+    expect(input("startsWith").value).toBe("");
+    const views = getByRole("list", {
+      name: "Data views reading this collection",
+    });
+    expect(views.textContent).toContain("People list");
+    expect(views.textContent).toContain('"either" or-group');
+    expect(views.textContent).toContain('"s" startsWith');
+    // (Naming `startsWith` saves the whole table — json-server's rows stay.)
+    fireEvent.change(input("startsWith"), {
+      target: { value: "{field}_start" },
+    });
+    fireEvent.blur(input("startsWith"));
+    await waitFor(() => expect(lastOps()).toBeDefined());
+    const op = lastOps()![0] as unknown as {
+      endpoint: {
+        querySerialization: { kind: string; suffixes: Record<string, string> };
+      };
+    };
+    expect(op.endpoint.querySerialization.kind).toBe("suffix");
+    expect(op.endpoint.querySerialization.suffixes).toMatchObject({
+      contains: "_like",
+      equals: "",
+      startsWith: "_start",
+    });
   });
 });

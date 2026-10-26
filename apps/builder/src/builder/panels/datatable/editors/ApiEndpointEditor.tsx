@@ -64,6 +64,7 @@ import {
   type AuthPreset,
 } from "./authPreset";
 import { buildSaveApiAsTableOps } from "./saveApiAsTable";
+import { QueryFormatSection } from "./QueryFormatSection";
 import { recommendArrayPaths } from "../utils/responseSchema";
 import { listSecretNames, setSecret } from "../utils/secretVault";
 import "./ApiEndpointEditor.css";
@@ -295,6 +296,14 @@ export function ApiEndpointEditor({
             field="selectedKeysPath"
             placeholder="selected"
           />
+          <ResponsePathRow
+            endpoint={endpoint}
+            save={save}
+            dt={dt}
+            field="totalPath"
+            placeholder="total"
+          />
+          <QueryFormatSection endpoint={endpoint} save={save} dt={dt} />
           <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
         </TabPanel>
         <TabPanel id="headers" className={panelContents()}>
@@ -348,7 +357,8 @@ function UploadTransportRow({
 }
 /**
  * A path in the query response the Preview session's `useAsyncList` load reads: the next `cursor`
- * (`responseMapping.cursorPath`) · the keys to select (`responseMapping.selectedKeysPath`).
+ * (`responseMapping.cursorPath`) · the keys to select (`responseMapping.selectedKeysPath`) · the
+ * query's whole count (`responseMapping.totalPath` — ADR-284).
  */
 function ResponsePathRow({
   endpoint,
@@ -360,12 +370,17 @@ function ResponsePathRow({
   endpoint: ApiEndpoint;
   save: SaveFn;
   dt: DtFn;
-  field: "cursorPath" | "selectedKeysPath";
+  field: "cursorPath" | "selectedKeysPath" | "totalPath";
   placeholder: string;
 }) {
   const saved = endpoint.responseMapping?.[field] ?? "";
   const [draft, setDraft] = useState(saved);
-  const label = field === "cursorPath" ? "apiCursorPath" : "apiSelectedKeysPath";
+  const label =
+    field === "cursorPath"
+      ? "apiCursorPath"
+      : field === "selectedKeysPath"
+        ? "apiSelectedKeysPath"
+        : "apiTotalPath";
   const commit = () => {
     const path = draft.trim();
     if (path === saved) return;

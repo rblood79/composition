@@ -16,7 +16,10 @@ import type {
   CatalogRowBinding,
   CatalogViewResultMeta,
 } from "../resolution/resolver";
-import { runViewQueries, type ViewRunResult } from "../../collections/view/evaluate";
+import {
+  runViewQueries,
+  type ViewRunResult,
+} from "../../collections/view/evaluate";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import type {
   CatalogReader,
@@ -178,13 +181,30 @@ export function catalogBoundRows(
   // items · records · trees · the "+N more" total — reads the view's rows).
   let view: CatalogViewResultMeta | undefined;
   let collections = sources;
-  if (ref.query) {
+  if (ref.query?.served) {
+    // (The server answered this view: its rows are the result — never filtered again, R1.)
+    const rows = readDataBindingRows(dataBinding, sources);
+    const { complete, total, warnings } = ref.query.served;
+    view = {
+      matched: rows.length,
+      loaded: rows.length,
+      complete: complete && (total === undefined || total <= rows.length),
+      ...(total !== undefined ? { total } : {}),
+      broken: [],
+      applied: 0,
+      served: true,
+      ...(warnings ? { unsent: warnings } : {}),
+    };
+  } else if (ref.query) {
     const rows = readDataBindingRows(dataBinding, sources);
     const result = runBindingView(rows, table, ref.query);
+    // (Local rows are the whole data; an API page is part of it until no further page.)
+    const complete =
+      table.useMockData === true ? true : ref.query.loaded?.complete;
     view = {
       matched: result.rows.length,
       loaded: rows.length,
-      ...(table.useMockData === true ? { complete: true } : {}),
+      ...(complete !== undefined ? { complete } : {}),
       broken: result.broken,
       applied: result.applied,
     };

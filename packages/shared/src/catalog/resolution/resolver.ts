@@ -167,12 +167,7 @@ export type CatalogRowSource = (
 ) => CatalogBoundRows | undefined;
 /** `useAsyncList`'s load state of a collection (S2 `LoadingState` — the states a load passes). */
 export type CatalogLoadingState =
-  | "loading"
-  | "sorting"
-  | "loadingMore"
-  | "error"
-  | "idle"
-  | "filtering";
+  "loading" | "sorting" | "loadingMore" | "error" | "idle" | "filtering";
 /**
  * A binding's delivered rows; `total` = the collection's row count when it holds more (the window),
  * `loadingState` = its load (the Preview session's — the Canvas loads nothing and sends none).
@@ -196,6 +191,12 @@ export interface CatalogViewResultMeta {
   readonly broken: readonly string[];
   /** Conditions that applied (not skipped). */
   readonly applied: number;
+  /** The server's count for the view's query (only when the server gave it). */
+  readonly total?: number;
+  /** The rows are the server's answer to the view (the request carried it). */
+  readonly served?: boolean;
+  /** Conditions the request could not carry (the server's rows are not narrowed by them). */
+  readonly unsent?: number;
 }
 /** Bound components that show their collection's load (`useAsyncList.loadingState`). */
 const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
@@ -332,7 +333,10 @@ function nestTreeRows(
   });
   return {
     ...node,
-    children: [...node.children.filter((child) => !isTreeItem(child)), ...nested],
+    children: [
+      ...node.children.filter((child) => !isTreeItem(child)),
+      ...nested,
+    ],
   };
 }
 export interface CatalogResolutionSelection {

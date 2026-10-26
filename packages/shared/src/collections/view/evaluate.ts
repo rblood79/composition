@@ -58,7 +58,7 @@ export type ViewVerdict = "match" | "miss" | "skip";
 const fieldId = (id: string) => id.replace(/^data:field:/, "");
 
 /** The schema field a path's first step names (Phase 4: reference steps). */
-function fieldOf(
+export function viewFieldOf(
   path: DataFieldPath,
   schema: readonly ViewRunField[],
 ): ViewRunField | undefined {
@@ -106,30 +106,28 @@ function prepare(
   };
 }
 
-function prepareCondition(
+/**
+ * A condition as a run reads it once: its fields, whether it applies (`enabled` · the skip value ·
+ * an empty value) and its value with references read. `broken` = a field or a reference that does
+ * not resolve (the condition is skipped and shown as broken). The local evaluator and the API
+ * serializer read the same answer (ADR-284 R1 — one skip rule for both).
+ */
+export function readViewCondition(
   condition: ViewCondition,
-  input: ViewRunInput,
-  broken: string[],
-): PreparedCondition {
-  const skipped = (isBroken: boolean): PreparedCondition => {
-    if (isBroken) broken.push(condition.id);
-    return {
-      kind: "condition",
-      id: condition.id,
-      skip: true,
-      fields: [],
-      condition,
-      value: undefined,
-    };
-  };
-  const fields = condition.fields.map((path) => fieldOf(path, input.schema));
-  if (fields.some((field) => !field)) return skipped(true);
+  input: Pick<ViewRunInput, "schema" | "resolve">,
+):
+  | { skip: true; broken: boolean }
+  | { skip: false; fields: ViewRunField[]; value: unknown } {
+  const fields = condition.fields.map((path) =>
+    viewFieldOf(path, input.schema),
+  );
+  if (fields.some((field) => !field)) return { skip: true, broken: true };
   // 적용 여부 — a Checkbox's 「closed 제외」: false (or not set) skips.
   if (condition.enabled !== undefined) {
     const enabled = input.resolve(condition.enabled);
-    if (!enabled) return skipped(true);
+    if (!enabled) return { skip: true, broken: true };
     if (enabled.value !== true && enabled.value !== "true")
-      return skipped(false);
+      return { skip: true, broken: false };
   }
   let value: unknown;
   if (condition.op !== "exists" && condition.op !== "notExists") {
@@ -138,10 +136,10 @@ function prepareCondition(
       ? condition.value.map((cell) => input.resolve(cell))
       : input.resolve(condition.value);
     if (Array.isArray(read)) {
-      if (read.some((cell) => !cell)) return skipped(true);
+      if (read.some((cell) => !cell)) return { skip: true, broken: true };
       value = read.map((cell) => cell!.value);
     } else {
-      if (!read) return skipped(true);
+      if (!read) return { skip: true, broken: true };
       value = read.value;
     }
     const skipValue = condition.skip ?? "empty";
@@ -151,18 +149,38 @@ function prepareCondition(
         ? Array.isArray(value) && value.every(viewValueIsEmpty)
         : viewValueIsEmpty(value) || viewValueList(value) === "all";
     if (skipValue === "empty" ? empty : empty || value === skipValue)
-      return skipped(false);
+      return { skip: true, broken: false };
+  }
+  return { skip: false, fields: fields as ViewRunField[], value };
+}
+
+function prepareCondition(
+  condition: ViewCondition,
+  input: ViewRunInput,
+  broken: string[],
+): PreparedCondition {
+  const read = readViewCondition(condition, input);
+  if (read.skip) {
+    if (read.broken) broken.push(condition.id);
+    return {
+      kind: "condition",
+      id: condition.id,
+      skip: true,
+      fields: [],
+      condition,
+      value: undefined,
+    };
   }
   return {
     kind: "condition",
     id: condition.id,
     skip: false,
-    fields: (fields as ViewRunField[]).map((field) => ({
+    fields: read.fields.map((field) => ({
       field,
       kind: viewFieldKind(field.type),
     })),
     condition,
-    value,
+    value: read.value,
   };
 }
 
@@ -218,7 +236,7 @@ function sortOf(
   const sort = query.sort;
   if (!sort) return undefined;
   if ("field" in sort) {
-    const field = fieldOf(sort.field, input.schema);
+    const field = viewFieldOf(sort.field, input.schema);
     return field ? { field, direction: sort.direction } : undefined;
   }
   const value = input.resolve(`!var.${sort.variableId}`)?.value;

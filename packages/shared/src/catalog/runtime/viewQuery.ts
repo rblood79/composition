@@ -22,6 +22,15 @@ export interface CatalogRowQuery {
   values: Readonly<Record<string, unknown>>;
   /** The variable names the queries read (a write to one of them shows the rows again). */
   names: readonly string[];
+  /**
+   * ADR-284 Decision 6 — set by the Preview · Publish session when the rows are the server's answer
+   * to this view (the request carried it): the view does not run on them again. `complete` = no
+   * further page; `total` = the server's count for the query; `warnings` = conditions the request
+   * could not carry (the result holds rows they would have left out).
+   */
+  served?: { complete: boolean; total?: number; warnings?: number };
+  /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
+  loaded?: { complete: boolean };
 }
 
 /** The views a binding reads, its shared view's sources first; undefined = none. */

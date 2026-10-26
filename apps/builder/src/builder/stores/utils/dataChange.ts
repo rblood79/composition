@@ -23,6 +23,7 @@ import {
   type DataOp,
   type VariableDefinition,
 } from "@composition/shared";
+import type { EndpointQuerySerialization } from "../../../../../../packages/shared/src/collections/view/serialize";
 import { getDB } from "../../../lib/db";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
@@ -355,21 +356,35 @@ function findEndpointById(
 
 /** 저장된 `ApiEndpoint` → op 의 `endpoint` draft (inverse 에 싣는 형태 — 전체 정의). */
 /**
- * The response paths a draft gives (`cursorPath` · `selectedKeysPath` — the Preview session's
- * `useAsyncList` load): a value sets one, `""` clears it, none keeps it.
+ * The response paths a draft gives (`cursorPath` · `selectedKeysPath` · `totalPath` — the Preview
+ * session's `useAsyncList` load): a value sets one, `""` clears it, none keeps it.
  */
 function withResponsePaths(
   mapping: ApiEndpoint["responseMapping"],
   draft: ApiEndpointDraft,
 ): ApiEndpoint["responseMapping"] {
   const next = { ...mapping };
-  for (const key of ["cursorPath", "selectedKeysPath"] as const) {
+  for (const key of ["cursorPath", "selectedKeysPath", "totalPath"] as const) {
     const value = draft[key];
     if (value === undefined) continue;
     if (value) next[key] = value;
     else delete next[key];
   }
   return next;
+}
+
+/** ADR-284 — a draft's query format: a value sets it, `null` clears it, none keeps it. */
+function withQuerySerialization(
+  existing: ApiEndpoint | undefined,
+  draft: ApiEndpointDraft,
+): Pick<ApiEndpoint, "querySerialization"> {
+  const value =
+    draft.querySerialization === undefined
+      ? existing?.querySerialization
+      : (draft.querySerialization ?? undefined);
+  return value
+    ? { querySerialization: value as EndpointQuerySerialization }
+    : {};
 }
 
 export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
@@ -392,6 +407,8 @@ export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
     // (Always — `""` = none, so an undo takes a path it added away again.)
     cursorPath: endpoint.responseMapping?.cursorPath ?? "",
     selectedKeysPath: endpoint.responseMapping?.selectedKeysPath ?? "",
+    totalPath: endpoint.responseMapping?.totalPath ?? "",
+    querySerialization: endpoint.querySerialization ?? null,
     ...(endpoint.targetCollectionId !== undefined
       ? { targetCollectionId: endpoint.targetCollectionId }
       : {}),
@@ -489,6 +506,7 @@ function reduceDefineEndpoint(
       ...(draft.uploadDryRun !== undefined
         ? { uploadDryRun: draft.uploadDryRun }
         : {}),
+      ...withQuerySerialization(existing, draft),
       responseMapping: withResponsePaths(
         draft.dataPath !== undefined
           ? { ...existing.responseMapping, dataPath: draft.dataPath }
@@ -500,6 +518,7 @@ function reduceDefineEndpoint(
         : {}),
       updated_at: stamp,
     };
+    if (draft.querySerialization === null) delete next.querySerialization;
     apiEndpoints.delete(existing.name);
     apiEndpoints.set(name, next);
     out.endpointsUpserted.add(existing.id);
@@ -531,7 +550,11 @@ function reduceDefineEndpoint(
     ...(draft.bodyTemplate !== undefined
       ? { bodyTemplate: draft.bodyTemplate }
       : {}),
-    responseMapping: withResponsePaths({ dataPath: draft.dataPath ?? "" }, draft),
+    responseMapping: withResponsePaths(
+      { dataPath: draft.dataPath ?? "" },
+      draft,
+    ),
+    ...withQuerySerialization(undefined, draft),
     ...(draft.targetCollectionId !== undefined
       ? { targetCollectionId: draft.targetCollectionId }
       : {}),

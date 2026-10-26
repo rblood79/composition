@@ -20,8 +20,20 @@ import {
 import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
 import { catalogBoundRows } from "./dataBinding";
+import {
+  catalogBindingQuery,
+  catalogRowQueryResolve,
+  type CatalogRowQuery,
+} from "./viewQuery";
+import {
+  serializeViewQueries,
+  type SerializedViewQuery,
+} from "../../collections/view/serialize";
 import type { CatalogTableSort } from "./tableSort";
-import type { CatalogLoadingState } from "../resolution/resolver";
+import type {
+  CatalogLoadingState,
+  CatalogViewResultMeta,
+} from "../resolution/resolver";
 import {
   createRuntimeState,
   type ApiEndpointDefinition,
@@ -447,6 +459,17 @@ export class CatalogPreviewSession {
   >();
   /** Each collection's latest load — an older one's answer is dropped (the newer text wins). */
   private readonly loadSequence = new Map<string, number>();
+  /** Each collection's load in flight — a newer load aborts it (`useAsyncList` `signal`). */
+  private readonly loadControllers = new Map<string, AbortController>();
+  /**
+   * ADR-284 Decision 3 — the total the server gave for a collection's current query (its whole
+   * count, `responseMapping.totalPath`); absent = not known. A new query drops it.
+   */
+  private readonly loadTotals = new Map<string, number>();
+  /** ADR-284 — a variable write that a text condition reads loads again after a pause. */
+  private viewReloadTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Collections the session loads only for the view their request carries. */
+  private readonly viewLoaded = new Set<string>();
   /** Tables the server sorts (their endpoint reads `sortDescriptor`) — no client sort on them. */
   private readonly serverSortedTables = new Set<string>();
   /** Each collection's load (`useAsyncList.loadingState`) — what a bound Table · Skeleton shows. */
@@ -486,6 +509,8 @@ export class CatalogPreviewSession {
         this.syncDefinitions();
         if (this.applyTheme(false)) this.currentRoot = this.createRoot();
       }
+      // (ADR-284: a view bound · changed in the document is another request for its endpoint.)
+      this.loadRouted();
       this.changed();
     });
   }
@@ -657,7 +682,12 @@ export class CatalogPreviewSession {
   }) => {
     const scope = this.variableScope(variableId, instanceKeyFor);
     if ("reason" in scope) return { ok: false, reason: scope.reason };
-    const result = this.state!.write({ variableId, op, value, scope: scope.scope });
+    const result = this.state!.write({
+      variableId,
+      op,
+      value,
+      scope: scope.scope,
+    });
     return result.ok
       ? { ok: true }
       : { ok: false, reason: result.reason ?? "setState 실패" };
@@ -681,7 +711,8 @@ export class CatalogPreviewSession {
     instanceKeyFor: ((ownerElementId: string) => string) | undefined,
   ): { scope: RuntimeScope } | { reason: string } {
     const definition = this.state?.getDefinition(variableId);
-    if (!this.state || !definition) return { reason: `변수 없음: ${variableId}` };
+    if (!this.state || !definition)
+      return { reason: `변수 없음: ${variableId}` };
     const owner = definition.owner;
     if (owner.kind === "element") {
       const key = instanceKeyFor?.(owner.elementId);
@@ -689,7 +720,8 @@ export class CatalogPreviewSession {
         key && this.currentRoot?.domInputs.has(key)
           ? key
           : this.currentRoot?.recordsOfSource(owner.elementId)[0];
-      if (!instanceKey) return { reason: `변수 소유 요소 없음: ${owner.elementId}` };
+      if (!instanceKey)
+        return { reason: `변수 소유 요소 없음: ${owner.elementId}` };
       return { scope: { kind: "element", instanceKey } };
     }
     return {
@@ -1065,22 +1097,33 @@ export class CatalogPreviewSession {
     const sequence = (this.loadSequence.get(collectionId) ?? 0) + 1;
     this.loadSequence.set(collectionId, sequence);
     const latest = () => this.loadSequence.get(collectionId) === sequence;
+    // (A newer load aborts the one in flight — its late answer is dropped below too.)
+    this.loadControllers.get(collectionId)?.abort();
+    const controller = new AbortController();
+    this.loadControllers.set(collectionId, controller);
     this.setLoadingState(collectionId, state);
     const resolve = this.endpointTemplateFor(collectionId, cursor);
+    // ADR-284 Decision 6: the views reading the collection, in the endpoint's query format.
+    const extra = this.viewRequest(collectionId);
     try {
       await Promise.allSettled([...this.pendingSubmits]);
       if (cursor === undefined) {
-        const url = resolvedEndpointUrl(endpoint, resolve);
+        // (Another query: its total is not the last query's.)
+        this.loadTotals.delete(collectionId);
+        const url = resolvedEndpointUrl(endpoint, resolve, extra);
         if (url) this.loadedUrls.set(collectionId, url);
       }
       const page = await loadCollectionEndpoint(
         endpoint,
-        new AbortController().signal,
+        controller.signal,
         resolve,
         cursor,
+        extra,
       );
       // (A newer load started meanwhile — `useAsyncList` aborts this one: its answer is dropped.)
       if (!latest()) return undefined;
+      if (page.total !== undefined)
+        this.loadTotals.set(collectionId, page.total);
       const args = this.loadArguments.get(collectionId) ?? {};
       const { cursor: _previous, ...rest } = args;
       this.loadArguments.set(
@@ -1101,7 +1144,72 @@ export class CatalogPreviewSession {
       if (!latest()) return undefined;
       this.setLoadingState(collectionId, "error");
       throw error;
+    } finally {
+      if (this.loadControllers.get(collectionId) === controller)
+        this.loadControllers.delete(collectionId);
     }
+  }
+  /**
+   * ADR-284 Decision 6 — the view a collection's query endpoint carries: the one view (by its
+   * definition) the bindings of that collection read, when the endpoint names a query format. Two
+   * different views on one endpoint are not sent (`MULTI_VIEW` — each filters its loaded rows).
+   */
+  private serverView(
+    collectionId: string,
+  ):
+    | {
+        query: CatalogRowQuery;
+        serialized: SerializedViewQuery;
+        nodeId: string;
+      }
+    | undefined {
+    const graph = this.graph;
+    const collection = this.collections.find(
+      (item) => item.id === collectionId,
+    );
+    if (!graph || !collection || collection.useMockData) return undefined;
+    const endpoint = this.endpointFilling(collection);
+    const format = endpoint?.querySerialization;
+    if (!endpoint || !format || format.kind === "none") return undefined;
+    const views = new Map<string, { query: CatalogRowQuery; nodeId: string }>();
+    for (const nodeId of graph.bindingsOf(`data:collection:${collectionId}`)) {
+      const entry = graph.getEntry(nodeId as never);
+      const binding = entry?.kind === "node" ? entry.binding : undefined;
+      if (!binding || (!binding.view && !binding.viewId)) continue;
+      const query = catalogBindingQuery(
+        graph,
+        binding,
+        nodeId,
+        this.stateSource(),
+      );
+      if (query) views.set(JSON.stringify(query.queries), { query, nodeId });
+    }
+    if (views.size !== 1) return undefined;
+    const [{ query, nodeId }] = [...views.values()];
+    return {
+      query,
+      nodeId,
+      serialized: serializeViewQueries(
+        format,
+        {
+          queries: query.queries,
+          schema: (collection.schema ?? []).flatMap((field) =>
+            field.id && field.key
+              ? [{ id: field.id, key: field.key, type: field.type }]
+              : [],
+          ),
+          resolve: catalogRowQueryResolve(query),
+        },
+        endpoint.method,
+      ),
+    };
+  }
+  /** The request parts a collection's server view adds (none = the endpoint as authored). */
+  private viewRequest(collectionId: string) {
+    const view = this.serverView(collectionId);
+    if (!view) return undefined;
+    const { params, body } = view.serialized;
+    return { query: params, ...(body ? { body } : {}) };
   }
   /** Show a collection's loaded items (they replace the Builder's — the rules' edits go). */
   private showLoaded(
@@ -1273,11 +1381,64 @@ export class CatalogPreviewSession {
     if (errors.length) console.error("[CatalogPreview] loading:", ...errors);
     this.changed();
   }
+  /**
+   * ADR-284 Decision 3 — what a bound node's view shows: matched · loaded rows, the server's total
+   * when it gave one, whether the rows are all of the data. Undefined = no view (or no rows yet).
+   */
+  viewResult(nodeId: string): CatalogViewResultMeta | undefined {
+    const graph = this.graph;
+    const entry = graph?.getEntry(nodeId as never);
+    const binding = entry?.kind === "node" ? entry.binding : undefined;
+    if (!graph || !binding) return undefined;
+    const query = catalogBindingQuery(
+      graph,
+      binding,
+      nodeId,
+      this.stateSource(),
+    );
+    return query
+      ? this.boundRows({ ...binding, query }, "items")?.view
+      : undefined;
+  }
   /** The bound rows with their collection's load (idle unless a load runs — the Preview's). */
   private boundRows(
-    binding: Parameters<typeof catalogBoundRows>[0],
+    authored: Parameters<typeof catalogBoundRows>[0],
     kind: Parameters<typeof catalogBoundRows>[2],
   ) {
+    // ADR-284 Decision 6: rows the server answered for this binding's view are its result — the
+    // view does not run on them again; the total is the server's for that query.
+    let binding = authored;
+    if (authored.query) {
+      const id = authored.collectionId.replace(/^data:collection:/, "");
+      const view = this.serverView(id);
+      if (
+        view &&
+        JSON.stringify(view.query.queries) ===
+          JSON.stringify(authored.query.queries)
+      ) {
+        const total = this.loadTotals.get(id);
+        binding = {
+          ...authored,
+          query: {
+            ...authored.query,
+            served: {
+              ...(total !== undefined ? { total } : {}),
+              complete: this.loadArguments.get(id)?.cursor === undefined,
+              warnings: view.serialized.warnings.length,
+            },
+          },
+        };
+      } else if (!this.collections.find((item) => item.id === id)?.useMockData)
+        binding = {
+          ...authored,
+          query: {
+            ...authored.query,
+            loaded: {
+              complete: this.loadArguments.get(id)?.cursor === undefined,
+            },
+          },
+        };
+    }
     const rows = catalogBoundRows(binding, this.itemSources(), kind);
     if (!rows) return rows;
     const collectionId = binding.collectionId.replace(/^data:collection:/, "");
@@ -1329,26 +1490,44 @@ export class CatalogPreviewSession {
    * query endpoint reads a template loads when the shown path · data give another URL than its
    * last load — once per URL; a template that does not resolve (another page) loads nothing.
    */
-  private loadRouted(): void {
+  private loadRouted(state: CatalogLoadingState = "loading"): void {
     for (const collection of this.collections) {
       if (!collection.id || collection.useMockData) continue;
       const endpoint = this.endpointFilling(collection);
+      // (ADR-284: a view the request carries — a variable it reads gives another request.)
+      const viewed = !!this.serverView(collection.id);
       // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
       if (
         !endpoint ||
         !(
           endpointReadsTemplate(endpoint) ||
-          endpoint.responseMapping?.cursorPath
+          endpoint.responseMapping?.cursorPath ||
+          viewed
         )
-      )
+      ) {
+        // (Its view no longer goes with the request: the rows the server filtered for it go —
+        // the Builder's load shows again.)
+        if (this.viewLoaded.delete(collection.id)) {
+          this.loadedUrls.delete(collection.id);
+          this.loadTotals.delete(collection.id);
+          this.reloadedItems.delete(collection.id);
+          const errors =
+            this.currentRoot?.refreshRows(
+              new Set([`data:collection:${collection.id}`]),
+            ) ?? [];
+          if (errors.length) console.error("[CatalogPreview] view:", ...errors);
+        }
         continue;
+      }
+      if (viewed) this.viewLoaded.add(collection.id);
       const url = resolvedEndpointUrl(
         endpoint,
         this.endpointTemplateFor(collection.id),
+        this.viewRequest(collection.id),
       );
       if (!url || this.loadedUrls.get(collection.id) === url) continue;
       this.loadedUrls.set(collection.id, url);
-      this.reload(collection.id).catch((error: unknown) =>
+      this.reload(collection.id, state).catch((error: unknown) =>
         console.warn(
           `[CatalogPreview] ${collection.name ?? collection.id} 를 읽지 못했다:`,
           error,
@@ -1469,8 +1648,41 @@ export class CatalogPreviewSession {
       if (!names.size || !this.currentRoot) return;
       const errors = this.currentRoot.refreshState(names);
       if (errors.length) console.error("[CatalogPreview] state:", ...errors);
+      // ADR-284 Decision 6: a request reading a written variable (an endpoint's `{{ name }}`, a
+      // view it carries) loads again — after a pause when a text condition reads it (typing).
+      this.reloadForVariables(changed);
       this.changed();
     });
+  }
+  /**
+   * The requests a variable write changes load again (`loadRouted` — only a URL · body other than
+   * the last load's). A text comparison (`contains` · `startsWith` · `endsWith`) reading a written
+   * variable waits 300 ms (the newest text wins); any other write loads at once.
+   */
+  private reloadForVariables(changed: Iterable<string>): void {
+    const ids = new Set(changed);
+    const typing = this.collections.some((collection) => {
+      const view = collection.id ? this.serverView(collection.id) : undefined;
+      const visit = (item: {
+        items?: readonly unknown[];
+        op?: string;
+        value?: unknown;
+      }): boolean =>
+        item.items
+          ? item.items.some((child) => visit(child as typeof item))
+          : ["contains", "startsWith", "endsWith"].includes(item.op ?? "") &&
+            typeof item.value === "string" &&
+            item.value.startsWith("!var.") &&
+            ids.has(item.value.slice("!var.".length).split(".")[0]!);
+      return !!view && view.query.queries.some((query) => visit(query.where));
+    });
+    clearTimeout(this.viewReloadTimer);
+    // (Another query of the same collection: S2's `filtering` — the rows stay while it loads.)
+    if (!typing) {
+      this.loadRouted("filtering");
+      return;
+    }
+    this.viewReloadTimer = setTimeout(() => this.loadRouted("filtering"), 300);
   }
   /** The runtime state's definitions: the document's variables and the project's. */
   private syncDefinitions(): void {

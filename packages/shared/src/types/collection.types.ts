@@ -1,3 +1,4 @@
+import type { EndpointQuerySerialization } from "../collections/view/serialize";
 /**
  * Collection Data Types
  *
@@ -124,7 +125,17 @@ export interface ApiEndpointDefinition {
      * or `"all"`); none = the selection stays (a `loadMore`'s join it).
      */
     selectedKeysPath?: string;
+    /**
+     * ADR-284 Decision 3 — where the response holds the total of the items the query matches
+     * (`meta.total`): the whole count for that query; none = the total is not known.
+     */
+    totalPath?: string;
   };
+  /**
+   * ADR-284 Decision 6 — how the views reading this endpoint's collection go into its request
+   * (`suffix` query parameters · `body` JSON · `none` = local only); absent = `none`.
+   */
+  querySerialization?: EndpointQuerySerialization;
   executionMode?: "client" | "server";
   timeout?: number;
   /**

@@ -592,7 +592,10 @@ describe("define_endpoint — the response paths the Preview session's load read
       [
         {
           op: "define_endpoint",
-          endpoint: { ...toEndpointDraft(other.apiEndpoints.get("getUsers")!), cursorPath: "" },
+          endpoint: {
+            ...toEndpointDraft(other.apiEndpoints.get("getUsers")!),
+            cursorPath: "",
+          },
         },
       ],
       { projectId: "p", apiEndpoints: other.apiEndpoints },
@@ -606,6 +609,74 @@ describe("define_endpoint — the response paths the Preview session's load read
       projectId: "p",
       apiEndpoints: set.apiEndpoints,
     });
+    expect(undone.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
+      dataPath: "data",
+    });
+  });
+
+  it("ADR-284 — totalPath and the query format ride the draft: set, kept by other edits, cleared by null, undone", async () => {
+    const { toEndpointDraft } = await import("./dataChange");
+    const set = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft(
+            endpoint({
+              responseMapping: { dataPath: "data", totalPath: "meta.total" },
+              querySerialization: {
+                kind: "suffix",
+                suffixes: { contains: "_like", startsWith: "_start" },
+              },
+            }),
+          ),
+        },
+      ],
+      ctx(),
+    );
+    const saved = set.apiEndpoints.get("getUsers")!;
+    expect(saved.responseMapping).toEqual({
+      dataPath: "data",
+      totalPath: "meta.total",
+    });
+    expect(saved.querySerialization).toEqual({
+      kind: "suffix",
+      suffixes: { contains: "_like", startsWith: "_start" },
+    });
+    const other = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft({ ...saved, path: "/people" }),
+        },
+      ],
+      { projectId: "p", apiEndpoints: set.apiEndpoints },
+    );
+    expect(other.apiEndpoints.get("getUsers")!.querySerialization).toEqual(
+      saved.querySerialization,
+    );
+    const { querySerialization: _format, ...plain } = saved;
+    const cleared = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_endpoint",
+          endpoint: toEndpointDraft(plain as ApiEndpoint),
+        },
+      ],
+      { projectId: "p", apiEndpoints: other.apiEndpoints },
+    );
+    expect(cleared.apiEndpoints.get("getUsers")!).not.toHaveProperty(
+      "querySerialization",
+    );
+    const undone = reduceDataOps(new Map(), set.inverse, {
+      projectId: "p",
+      apiEndpoints: set.apiEndpoints,
+    });
+    expect(undone.apiEndpoints.get("getUsers")!).not.toHaveProperty(
+      "querySerialization",
+    );
     expect(undone.apiEndpoints.get("getUsers")!.responseMapping).toEqual({
       dataPath: "data",
     });

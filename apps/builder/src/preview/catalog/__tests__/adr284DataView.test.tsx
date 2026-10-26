@@ -195,107 +195,102 @@ describe("ADR-284 G0 — RED until the data view phases", () => {
     },
   );
 
-  // ③ 현재 3 — `writeState` does not call `loadRouted`: an endpoint reading `{{ gender }}` loads
-  // once with the default. Phase 2: a variable the view reads loads its endpoint again.
-  it.fails(
-    "③ an endpoint reading a variable loads again when a rule writes it",
-    async () => {
-      const urls: string[] = [];
-      vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
-        const url = new URL(String(input));
-        urls.push(`${url.pathname}${url.search}`);
-        const gender = url.searchParams.get("gender");
-        return new Response(
-          JSON.stringify({
-            items: ROWS.filter((row) => row.gender === gender),
-          }),
-          { headers: { "content-type": "application/json" } },
-        );
-      });
-      const h = await usersPreview(["ListBox", "Button"], {
-        useMockData: false,
-        endpoint: {
-          path: "/users",
-          queryParams: [{ key: "gender", value: "{{ gender }}" }],
+  // ③ 현재 3 — `writeState` did not call `loadRouted`: an endpoint reading `{{ gender }}` loaded
+  // once with the default. Phase 2: a written variable a request reads loads it again.
+  it("③ an endpoint reading a variable loads again when a rule writes it", async () => {
+    const urls: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      urls.push(`${url.pathname}${url.search}`);
+      const gender = url.searchParams.get("gender");
+      return new Response(
+        JSON.stringify({
+          items: ROWS.filter((row) => row.gender === gender),
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    });
+    const h = await usersPreview(["ListBox", "Button"], {
+      useMockData: false,
+      endpoint: {
+        path: "/users",
+        queryParams: [{ key: "gender", value: "{{ gender }}" }],
+      },
+      variables: [
+        {
+          id: "gender",
+          name: "gender",
+          type: "string",
+          defaultValue: "male",
         },
-        variables: [
-          {
-            id: "gender",
-            name: "gender",
-            type: "string",
-            defaultValue: "male",
-          },
-        ],
-      });
-      const [list, button] = h.ids as [NodeId, NodeId];
-      bind(h, [list]);
-      await settle();
-      expect(urls).toEqual(["/users?gender=male"]);
-      h.rule(button, "onPress", {
-        opcode: "setState",
-        variableId: "data:variable:gender",
-        op: "set",
-        value: "female",
-      });
-      act(() => {
-        fireEvent.click(h.element(button)!);
-      });
-      await settle();
-      expect(urls).toEqual(["/users?gender=male", "/users?gender=female"]);
-      expect(shown(h, list)).toEqual(["Park"]);
-      h.view.unmount();
-    },
-  );
+      ],
+    });
+    const [list, button] = h.ids as [NodeId, NodeId];
+    bind(h, [list]);
+    await settle();
+    expect(urls).toEqual(["/users?gender=male"]);
+    h.rule(button, "onPress", {
+      opcode: "setState",
+      variableId: "data:variable:gender",
+      op: "set",
+      value: "female",
+    });
+    act(() => {
+      fireEvent.click(h.element(button)!);
+    });
+    await settle();
+    expect(urls).toEqual(["/users?gender=male", "/users?gender=female"]);
+    expect(shown(h, list)).toEqual(["Park"]);
+    h.view.unmount();
+  });
 
   // ④ 현재 7 — one rule was one action (ADR-158): a drop that changes the card's column and its
   // place needs two. Phase 1 opens `actions[]` and runs it in order; Phase 5 wires the drop.
-  it(
-    "④ one rule runs `update` then `moveBefore` (kanban drop)",
-    async () => {
-      // (The card's new fields come from a value reference — a literal is a scalar; Phase 5's
-      // drop gives the dropped column.)
-      const h = await usersPreview(["GridList", "Button"], {
-        useMockData: true,
-        variables: [
-          {
-            id: "moved",
-            name: "moved",
-            type: "object",
-            defaultValue: { gender: "female" },
-          },
-        ],
-      });
-      const [list, button] = h.ids as [NodeId, NodeId];
-      bind(h, [list]);
-      await settle();
-      const owner = { ownerId: button };
-      const rule = {
-        kind: "interaction",
-        id: h.workspace.newId("interaction") as EntryId<"interaction">,
-        ownerId: button,
-        trigger: "onPress",
-        actions: [
-          {
-            opcode: "update",
-            collectionId: USERS,
-            key: "u3",
-            value: "!var.data:variable:moved",
-          },
-          { opcode: "moveBefore", collectionId: USERS, key: "u1", keys: "u3" },
-        ],
-      } as unknown as InteractionEntry;
-      h.workspace.execute(catalogInteractionsCommand(owner, [rule], "Rules"));
-      h.flush();
-      act(() => {
-        fireEvent.click(h.element(button)!);
-      });
-      await settle();
-      expect(shown(h, list)).toEqual(["Lee", "Kim", "Park"]);
-      expect(
-        (h.session.collectionItems("users") as { id: string; gender: string }[])
-          .find((row) => row.id === "u3")?.gender,
-      ).toBe("female");
-      h.view.unmount();
-    },
-  );
+  it("④ one rule runs `update` then `moveBefore` (kanban drop)", async () => {
+    // (The card's new fields come from a value reference — a literal is a scalar; Phase 5's
+    // drop gives the dropped column.)
+    const h = await usersPreview(["GridList", "Button"], {
+      useMockData: true,
+      variables: [
+        {
+          id: "moved",
+          name: "moved",
+          type: "object",
+          defaultValue: { gender: "female" },
+        },
+      ],
+    });
+    const [list, button] = h.ids as [NodeId, NodeId];
+    bind(h, [list]);
+    await settle();
+    const owner = { ownerId: button };
+    const rule = {
+      kind: "interaction",
+      id: h.workspace.newId("interaction") as EntryId<"interaction">,
+      ownerId: button,
+      trigger: "onPress",
+      actions: [
+        {
+          opcode: "update",
+          collectionId: USERS,
+          key: "u3",
+          value: "!var.data:variable:moved",
+        },
+        { opcode: "moveBefore", collectionId: USERS, key: "u1", keys: "u3" },
+      ],
+    } as unknown as InteractionEntry;
+    h.workspace.execute(catalogInteractionsCommand(owner, [rule], "Rules"));
+    h.flush();
+    act(() => {
+      fireEvent.click(h.element(button)!);
+    });
+    await settle();
+    expect(shown(h, list)).toEqual(["Lee", "Kim", "Park"]);
+    expect(
+      (
+        h.session.collectionItems("users") as { id: string; gender: string }[]
+      ).find((row) => row.id === "u3")?.gender,
+    ).toBe("female");
+    h.view.unmount();
+  });
 });

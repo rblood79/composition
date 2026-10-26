@@ -408,7 +408,8 @@ const koKR: TranslationKeys = {
       "표의 행은 열마다 칸이 하나씩 있어야 합니다 — 열을 지우거나 넣으면 칸이 같이 바뀝니다",
     instanceChildLocked: "인스턴스 안 요소는 원본에서 편집합니다",
     notAllowed: "이 선택에는 할 수 없는 작업입니다",
-    originRootOnly: "원본에서는 맨 바깥 요소의 속성과 스타일만 바꿀 수 있습니다",
+    originRootOnly:
+      "원본에서는 맨 바깥 요소의 속성과 스타일만 바꿀 수 있습니다",
     libraryLocked:
       "Library 가 잠겨 있습니다 — Navigator 의 Library 잠금을 풀면 편집할 수 있습니다",
     ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
@@ -2068,6 +2069,36 @@ const koKR: TranslationKeys = {
     apiSelectedKeysPath: "선택 key 경로",
     apiSelectedKeysPathHint:
       '응답에서 선택할 항목 key 가 있는 곳 (예: selected — key 배열 또는 "all"). 이 collection 을 보이는 컴포넌트가 그 항목을 선택한다. 더 불러오기의 key 는 기존 선택에 더한다 (useAsyncList load 의 selectedKeys).',
+    apiTotalPath: "전체 개수 경로",
+    apiTotalPathHint:
+      "응답에서 이 조회에 맞는 전체 개수가 있는 곳 (예: total · meta.total). 데이터 보기가 「총 N 개」 를 보이고, 없으면 불러온 행까지만 센다.",
+    apiQueryFormat: "조회 형식",
+    apiQueryFormat_none: "없음 (불러온 행에서 거름)",
+    apiQueryFormat_suffix: "쿼리 파라미터 (json-server 식)",
+    apiQueryFormat_body: "본문 JSON",
+    apiQueryFormatHint_none:
+      "데이터 보기의 조건을 서버에 보내지 않는다. 불러온 행에서만 거르므로 페이지를 나눠 받는 endpoint 는 일부 결과다.",
+    apiQueryFormatHint_suffix:
+      "조건마다 파라미터 하나 (gender=male · name_like=pa · age_gte=20), 정렬은 _sort · _order. 변수를 바꾸면 다시 부른다 (글자 조건은 0.3초 뒤).",
+    apiQueryFormatHint_body:
+      "조건 묶음 전체를 본문 JSON ({ where, sort }) 으로 보낸다. GET 은 본문을 보낼 수 없다.",
+    apiQueryParams: "비교 → 파라미터",
+    apiQueryNotSent: "보내지 않음",
+    apiQuery_sortParam: "정렬 필드",
+    apiQuery_orderParam: "정렬 방향",
+    apiQueryViews: "이 collection 을 읽는 데이터 보기",
+    apiQueryCarried: "조건 전부를 보낸다",
+    apiQueryWarnOR_GROUP:
+      "「{condition}」 또는 묶음 — 파라미터로 보낼 수 없어 서버가 거르지 않는다",
+    apiQueryWarnCOMPARISON:
+      "「{condition}」 {comparison} — 표에 파라미터가 없어 보내지 않는다",
+    apiQueryWarnMULTI_FIELD:
+      "「{condition}」 여러 필드 중 하나 — 파라미터로 보낼 수 없다",
+    apiQueryWarnREFERENCE_PATH:
+      "「{condition}」 참조 너머 필드 — 아직 보낼 수 없다",
+    apiQueryWarnBROKEN: "「{condition}」 필드가 없다 — 건너뛴다",
+    apiQueryWarnGET_BODY: "GET 은 본문을 보내지 않는다 — 방식을 POST 로",
+    apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
     apiUploadLive: "미리보기에서 실제 업로드",
     apiUploadLiveHint:
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
@@ -2815,9 +2846,9 @@ const enUS: TranslationKeys = {
       "A table row needs one cell per column — deleting or adding a column changes its cells",
     instanceChildLocked: "Edit elements inside an instance on its component",
     notAllowed: "This can't be done to the selection",
-    originRootOnly: "On an origin, only its outer element's props and styles change",
-    libraryLocked:
-      "The Library is locked — unlock it in the Navigator to edit",
+    originRootOnly:
+      "On an origin, only its outer element's props and styles change",
+    libraryLocked: "The Library is locked — unlock it in the Navigator to edit",
     ungroupInstance: "An instance can't be ungrouped — detach it first",
   },
   history: {
@@ -4481,6 +4512,36 @@ const enUS: TranslationKeys = {
     apiSelectedKeysPath: "Selected keys path",
     apiSelectedKeysPathHint:
       'Where the response holds the item keys to select (e.g. selected — an array of keys or "all"). The components showing this collection select them; a load-more\'s keys join the selection (useAsyncList load selectedKeys).',
+    apiTotalPath: "Total count path",
+    apiTotalPathHint:
+      'Where the response holds how many items the query matches in all (e.g. total · meta.total). A data view shows "N in total"; without it only the loaded rows are counted.',
+    apiQueryFormat: "Query format",
+    apiQueryFormat_none: "None (filter the loaded rows)",
+    apiQueryFormat_suffix: "Query parameters (json-server style)",
+    apiQueryFormat_body: "Body JSON",
+    apiQueryFormatHint_none:
+      "The data views' conditions are not sent. Only the loaded rows are filtered — a partial result when the endpoint pages.",
+    apiQueryFormatHint_suffix:
+      "One parameter per condition (gender=male · name_like=pa · age_gte=20), the sort as _sort · _order. A variable change loads again (text conditions after 0.3 s).",
+    apiQueryFormatHint_body:
+      "The whole condition tree goes as body JSON ({ where, sort }). GET cannot send a body.",
+    apiQueryParams: "Comparison → parameter",
+    apiQueryNotSent: "Not sent",
+    apiQuery_sortParam: "Sort field",
+    apiQuery_orderParam: "Sort direction",
+    apiQueryViews: "Data views reading this collection",
+    apiQueryCarried: "All conditions are sent",
+    apiQueryWarnOR_GROUP:
+      '"{condition}" or-group — cannot be parameters; the server does not filter by it',
+    apiQueryWarnCOMPARISON:
+      '"{condition}" {comparison} — no parameter in the table; not sent',
+    apiQueryWarnMULTI_FIELD:
+      '"{condition}" any of several fields — cannot be a parameter',
+    apiQueryWarnREFERENCE_PATH:
+      '"{condition}" field through a reference — cannot be sent yet',
+    apiQueryWarnBROKEN: '"{condition}" field is missing — skipped',
+    apiQueryWarnGET_BODY: "GET sends no body — use POST",
+    apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
     apiUploadLive: "Real upload in preview",
     apiUploadLiveHint:
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
@@ -6154,6 +6215,16 @@ const formattedMessages: Record<
       `${String(args?.total ?? 0)}행 중 ${String(args?.count ?? 0)}행이 ${String(args?.type ?? "")} 값이 아닙니다.`,
     "datatable.fieldAdded": (args) =>
       `필드 "${String(args?.key ?? "")}" 를 추가했습니다.`,
+    "datatable.apiQueryWarnOR_GROUP": (args) =>
+      `「${String(args?.condition ?? "")}」 또는 묶음 — 파라미터로 보낼 수 없어 서버가 거르지 않는다`,
+    "datatable.apiQueryWarnCOMPARISON": (args) =>
+      `「${String(args?.condition ?? "")}」 ${String(args?.comparison ?? "")} — 표에 파라미터가 없어 보내지 않는다`,
+    "datatable.apiQueryWarnMULTI_FIELD": (args) =>
+      `「${String(args?.condition ?? "")}」 여러 필드 중 하나 — 파라미터로 보낼 수 없다`,
+    "datatable.apiQueryWarnREFERENCE_PATH": (args) =>
+      `「${String(args?.condition ?? "")}」 참조 너머 필드 — 아직 보낼 수 없다`,
+    "datatable.apiQueryWarnBROKEN": (args) =>
+      `「${String(args?.condition ?? "")}」 필드가 없다 — 건너뛴다`,
     "datatable.apiSchemaCandidate": (args) =>
       `${String(args?.path ?? "")} · ${String(args?.count ?? 0)}행`,
     "datatable.importRows": (args) => `${String(args?.count ?? 0)}행`,
@@ -6734,6 +6805,16 @@ const formattedMessages: Record<
       `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} rows are not valid ${String(args?.type ?? "")}.`,
     "datatable.fieldAdded": (args) =>
       `Added field "${String(args?.key ?? "")}".`,
+    "datatable.apiQueryWarnOR_GROUP": (args) =>
+      `"${String(args?.condition ?? "")}" or-group — cannot be parameters; the server does not filter by it`,
+    "datatable.apiQueryWarnCOMPARISON": (args) =>
+      `"${String(args?.condition ?? "")}" ${String(args?.comparison ?? "")} — no parameter in the table; not sent`,
+    "datatable.apiQueryWarnMULTI_FIELD": (args) =>
+      `"${String(args?.condition ?? "")}" any of several fields — cannot be a parameter`,
+    "datatable.apiQueryWarnREFERENCE_PATH": (args) =>
+      `"${String(args?.condition ?? "")}" field through a reference — cannot be sent yet`,
+    "datatable.apiQueryWarnBROKEN": (args) =>
+      `"${String(args?.condition ?? "")}" field is missing — skipped`,
     "datatable.apiSchemaCandidate": (args) =>
       `${String(args?.path ?? "")} · ${String(args?.count ?? 0)} rows`,
     "datatable.importRows": (args) => `${String(args?.count ?? 0)} rows`,

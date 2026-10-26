@@ -1,4 +1,7 @@
-import { createCollectionEndpointExecutor, createCollectionEndpointSubmitter } from "./executeCollectionEndpoint";
+import {
+  createCollectionEndpointExecutor,
+  createCollectionEndpointSubmitter,
+} from "./executeCollectionEndpoint";
 import type {
   ApiEndpointDefinition,
   CollectionDataServices,
@@ -81,6 +84,7 @@ export function toRuntimeApiEndpoint(
     executionMode,
     timeout,
     uploadDryRun,
+    querySerialization,
   } = endpoint;
   return {
     id,
@@ -96,6 +100,8 @@ export function toRuntimeApiEndpoint(
     executionMode,
     timeout,
     ...(uploadDryRun !== undefined ? { uploadDryRun } : {}),
+    // (ADR-284 — the views' query format travels to the Preview and the published file.)
+    ...(querySerialization !== undefined ? { querySerialization } : {}),
   };
 }
 

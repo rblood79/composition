@@ -45,22 +45,44 @@ function resolvedEndpointParts(endpoint: ApiEndpointDefinition, resolve: Endpoin
   };
 }
 
+/**
+ * ADR-284 — what a view adds to a query request (`serializeViewQueries`): query parameters after
+ * the endpoint's own, or the body JSON (merged over the endpoint's body template object).
+ */
+export interface EndpointRequestExtra {
+  query?: readonly (readonly [string, string])[];
+  body?: unknown;
+}
+
 /** The URL an endpoint asks for with its templates resolved — `undefined` while one does not resolve. */
-export function resolvedEndpointUrl(endpoint: ApiEndpointDefinition, resolve: EndpointTemplateResolver): string | undefined {
+export function resolvedEndpointUrl(endpoint: ApiEndpointDefinition, resolve: EndpointTemplateResolver, extra?: EndpointRequestExtra): string | undefined {
   try {
     const {path, query} = resolvedEndpointParts(endpoint, resolve);
-    return `${endpoint.baseUrl}${path}?${new URLSearchParams(query.map(([key, value]) => [key, value])).toString()}`;
+    const all = [...query, ...(extra?.query ?? [])];
+    return `${endpoint.baseUrl}${path}?${new URLSearchParams(all.map(([key, value]) => [key, value])).toString()}${extra?.body === undefined ? "" : `#${JSON.stringify(extra.body)}`}`;
   } catch {
     return undefined;
   }
 }
 
+/** The request body: a view's JSON over the endpoint's body template object, else the template. */
+function requestBody(endpoint: ApiEndpointDefinition, extra?: EndpointRequestExtra): string | undefined {
+  if (extra?.body === undefined) return endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined;
+  let base: unknown;
+  try {
+    base = endpoint.bodyTemplate ? JSON.parse(endpoint.bodyTemplate) : undefined;
+  } catch {
+    base = undefined;
+  }
+  return JSON.stringify(base && typeof base === "object" && !Array.isArray(base) ? {...base, ...(extra.body as object)} : extra.body);
+}
+
 /** An endpoint's request parts (URL · headers · method · timeout signal) — the query and the submit share them. */
-export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver) {
+export function buildEndpointRequest(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, extra?: EndpointRequestExtra) {
   if (endpoint.executionMode === "server") throw new Error("서버 API 실행 서비스가 연결되지 않았습니다");
   const {path, query} = resolvedEndpointParts(endpoint, resolve);
   const url = new URL(`${endpoint.baseUrl}${path}`, window.location.href);
-  for (const [key, value] of query) url.searchParams.append(key, value);
+  for (const [key, value] of [...query, ...(extra?.query ?? [])]) url.searchParams.append(key, value);
   const headers: Record<string, string> = {...(Array.isArray(endpoint.headers)
     ? Object.fromEntries(endpoint.headers.filter((header) => header.enabled && header.key).map((header) => [header.key, header.value]))
     : endpoint.headers)};
@@ -86,19 +108,25 @@ function readPath(value: unknown, path: string): unknown {
  * templates read; a URL cursor on an endpoint that reads none is fetched as is (the reference's
  * `fetch(cursor || url)`).
  */
-export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string): Promise<{items: unknown; cursor?: string; selectedKeys?: string[] | "all"}> {
-  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve);
+export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, signal: AbortSignal, resolve?: EndpointTemplateResolver, cursor?: string, extra?: EndpointRequestExtra): Promise<{items: unknown; cursor?: string; selectedKeys?: string[] | "all"; total?: number}> {
+  const {url, headers, method, signal: requestSignal} = buildEndpointRequest(endpoint, signal, resolve, extra);
   const target = cursor && !endpointReadsTemplate(endpoint, "cursor") && /^(https?:)?\//.test(cursor) ? new URL(cursor, url) : url;
+  const body = requestBody(endpoint, extra);
   const response = await fetch(target, {method, headers, signal: requestSignal,
-    body: method !== "GET" && method !== "HEAD" && endpoint.bodyType !== "none" ? endpoint.bodyTemplate : undefined});
+    body: method !== "GET" && method !== "HEAD" ? body : undefined});
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   const result = await response.json();
   const cursorPath = endpoint.responseMapping?.cursorPath;
   const next = cursorPath ? readPath(result, cursorPath) : undefined;
   const selectedPath = endpoint.responseMapping?.selectedKeysPath;
   const selected = selectedPath ? readPath(result, selectedPath) : undefined;
+  // (ADR-284 Decision 3 — the query's whole count, when the response holds it. The Data panel keeps
+  // it under `pagination` — read when the top-level one is absent.)
+  const totalPath = endpoint.responseMapping?.totalPath ?? (endpoint.responseMapping as {pagination?: {totalPath?: string}} | undefined)?.pagination?.totalPath;
+  const total = totalPath ? Number(readPath(result, totalPath)) : NaN;
   return {
     items: mappedItems(endpoint, result),
+    ...(Number.isFinite(total) && total >= 0 ? {total} : {}),
     ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : {}),
     // (The load's `selectedKeys` — an array of keys or `"all"`; anything else is none.)
     ...(selected === "all" ? {selectedKeys: "all" as const} : Array.isArray(selected) ? {selectedKeys: selected.map(String)} : {}),

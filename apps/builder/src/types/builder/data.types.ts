@@ -5,6 +5,7 @@ import type {
   VariableMigrationStatus,
   VariableOwner,
 } from "@composition/shared";
+import type { EndpointQuerySerialization } from "../../../../../packages/shared/src/collections/view/serialize";
 
 export type { ExecutionPolicy } from "@composition/shared";
 
@@ -183,6 +184,12 @@ export interface ResponseMapping {
    * the collection select (an array, or `"all"`; the Preview session's load).
    */
   selectedKeysPath?: string;
+
+  /**
+   * ADR-284 Decision 3 — where the response holds the query's whole count (`meta.total`);
+   * `pagination.totalPath` is read when this is absent.
+   */
+  totalPath?: string;
 }
 
 /**
@@ -244,6 +251,12 @@ export interface ApiEndpoint {
 
   // Response Handling
   responseMapping: ResponseMapping;
+
+  /**
+   * ADR-284 Decision 6 — how the data views reading the target collection go into the request
+   * (`suffix` query parameters · `body` JSON · `none` = local only); absent = `none`.
+   */
+  querySerialization?: EndpointQuerySerialization;
 
   // Target DataTable
   /** v2.1 (ADR-152): 안정 참조 — sink 는 id 우선, `targetCollection` (이름) fallback */

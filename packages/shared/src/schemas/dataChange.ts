@@ -101,6 +101,18 @@ export const ApiEndpointDraftSchema = z.object({
   cursorPath: z.string().optional(),
   /** `useAsyncList` load `selectedKeys` (`responseMapping.selectedKeysPath`; `""` clears it). */
   selectedKeysPath: z.string().optional(),
+  /** ADR-284 — the query's whole count in the response (`responseMapping.totalPath`; `""` clears it). */
+  totalPath: z.string().optional(),
+  /** ADR-284 Decision 6 — the views' query format (`null` clears it — local only). */
+  querySerialization: z
+    .object({
+      kind: z.enum(["suffix", "body", "none"]),
+      suffixes: z.record(z.string(), z.string()).optional(),
+      sortParam: z.string().optional(),
+      orderParam: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
   targetCollectionId: z.string().optional(),
   /** ADR-201 Phase 4 — preview FileUpload 전송 dry-run 토글 (false = 실전송). */
   uploadDryRun: z.boolean().optional(),

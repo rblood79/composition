@@ -53,6 +53,19 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   flex-direction: column;
 }
 
+/* The editor panel's rules (`.datatable-editor-panel .panel-tabs { flex: none }` · `.panel-contents
+   { overflow: hidden }`) are for its outer body; this editor's `Tabs` holds its `TabPanel`s, which
+   scroll — a long Params tab (the query format table) was cut off with no scroll. */
+.datatable-api-editor > .datatable-api-tabs.panel-tabs {
+  flex: 1;
+}
+.datatable-api-editor .datatable-api-tabs > .panel-contents {
+  overflow-y: auto;
+}
+.datatable-api-editor .datatable-api-tabs > .panel-contents > * {
+  flex-shrink: 0;
+}
+
 .datatable-api-section {
   display: flex;
   flex-direction: column;
@@ -258,4 +271,48 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   font-size: var(--text-xs);
   color: var(--fg);
   cursor: pointer;
+}
+
+/* ADR-284 — the query format's comparison → parameter table and the views it carries */
+.datatable-api-query-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+.datatable-api-query-row {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.datatable-api-query-op {
+  color: var(--fg-muted);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.datatable-api-query-views {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.datatable-api-query-view-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.datatable-api-query-view {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+.datatable-api-query-warnings {
+  margin: var(--spacing-xs) 0 0;
+  padding-inline-start: var(--spacing-lg);
+  color: var(--notice);
+  font-size: var(--text-xs);
 }

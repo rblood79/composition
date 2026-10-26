@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 2) — API 목록: 보기 조건이 요청 파라미터로 가고, 변수가 바뀌면 다시 불러온다] - 2026-10-26
+
+### Added
+
+- **endpoint 「조회 형식」** (Data 패널 → API 편집기 → Params 탭): 없음 (불러온 행에서 거름) · 쿼리 파라미터 (json-server 식 — `gender=male` · `name_like=pa` · `age_gte=20`, 정렬은 `_sort` · `_order`) · 본문 JSON (조건 묶음 전체 `{ where, sort }`)
+  - 쿼리 파라미터는 비교 → 파라미터 표로 서버에 맞게 고친다 (`{field}_like` · 빈 칸 = 보내지 않음) · 정렬 파라미터 이름도
+  - 이 collection 을 읽는 데이터 보기마다 「조건 전부를 보낸다」 또는 보낼 수 없는 조건 (`or` 묶음 · 표에 없는 비교 · 여러 필드 중 하나 · 참조 너머 필드 · GET 본문) 을 보인다 — 조용히 빠지지 않는다
+- **「전체 개수 경로」** (`responseMapping.totalPath`): 응답의 전체 개수 (예: `total` · `meta.total`) — 그 조회의 값일 때만 「총 N 개」 로 쓴다
+- **변수가 바뀌면 다시 불러오기**: 보기 조건이나 endpoint 의 `{{ 변수 }}` 가 읽는 변수를 규칙이 바꾸면 그 endpoint 를 다시 부른다 — 검색처럼 글자 조건은 0.3 초 뒤 마지막 글자로 한 번. 새 조회는 앞 요청을 취소하고, 이전 페이지 · 전체 개수를 이어받지 않으며, 늦게 온 앞 응답은 버린다
+
+### Changed
+
+- 서버가 보기를 받아 거른 행은 그대로 보기의 결과다 (클라이언트가 다시 거르지 않는다). 한 endpoint 를 서로 다른 보기 둘이 읽으면 요청에 싣지 않고 각자 불러온 행에서 거른다
+- 보기를 목록에 붙이거나 고치면 Preview 가 그 endpoint 를 곧바로 다시 부른다
+
+### Fixed
+
+- **API 편집기 Params 탭이 길면 아래가 잘리고 스크롤되지 않던 것**: 편집기 패널의 `overflow: hidden` · `flex: none` 이 탭 본문에도 걸렸다
+
+### Tests
+
+- `preview/catalog/__tests__/adr284ApiView.test.tsx` (G2 7 — serializer 와 따로 쓴 json-server · body 트리 mock 서버의 응답 = 로컬 계산기) · `collections/view/__tests__/serialize.test.ts` (6) · 편집기 · draft 각 +1 · G0 RED ③ GREEN · 원복 RED 7/7
+
 ## [데이터 보기 (ADR-284 Phase 1) — 목록이 변수 조건으로 걸러지고, 규칙 하나가 Do 여러 개를 순서대로 실행] - 2026-10-26
 
 ### Added
