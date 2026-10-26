@@ -39,7 +39,11 @@ import {
   catalogFilterTargets,
   catalogOrFilterCondition,
   catalogRemoveFilterCondition,
+  catalogShareView,
+  catalogSharedViewOf,
   catalogSortFollowCommand,
+  catalogSplitSharedView,
+  catalogUnreadFilterVariables,
   type CatalogFilterConnection,
   type CatalogFilterControlKind,
 } from "../../../catalogRuntime/viewAuthoring";
@@ -329,6 +333,7 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
   return (
     <fieldset className="properties-aria data-view-section">
       <legend className="fieldset-legend">{t("dataView.section")}</legend>
+      <SharedView listId={listId} />
       {connections.map((connection) => (
         <ConnectionRow
           key={connection.condition.id}
@@ -360,6 +365,7 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
           {t("dataView.add")}
         </Button>
       )}
+      <UnreadVariables listId={listId} table={table} />
       <SortFollow listId={listId} />
     </fieldset>
   );
@@ -615,5 +621,225 @@ export function CatalogControlFilterSection({
         </Button>
       )}
     </fieldset>
+  );
+}
+
+/** A node's display name (its own, else its component type). */
+function nodeLabel(
+  graph: ReturnType<typeof useCatalogWorkspace>["runtime"]["graph"],
+  id: string,
+): string {
+  const node = graph.getEntry(id);
+  if (node?.kind !== "node") return id;
+  if (node.name) return node.name;
+  try {
+    return definitionTypeName(graph, node.definitionId);
+  } catch {
+    return id;
+  }
+}
+
+/**
+ * Decision 7 — a shared view: who reads it (「이 보기를 N 개가 봅니다」 — a change reaches them all)
+ * and 「이 목록에서만」 (the list keeps a copy as its own). A built-in view with conditions offers
+ * 「이름 붙여 공유」 (another list on the same data reads it instead of its own).
+ */
+function SharedView({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const [sharing, setSharing] = useState(false);
+  const [name, setName] = useState("");
+  // (「없음」 is a key of its own — an empty value reads as no choice.)
+  const [other, setOther] = useState<string>("none");
+  const info = useMemo(() => {
+    void revision;
+    const shared = catalogSharedViewOf(graph, listId);
+    const node = graph.getEntry(listId);
+    const binding = node?.kind === "node" ? node.binding : undefined;
+    const own = binding?.view;
+    const pageId = catalogNodePage(graph as never, listId);
+    const others = pageId
+      ? catalogFilterTargets(graph, pageId as EntryId<"page">).filter((id) => {
+          if (id === listId) return false;
+          const entry = graph.getEntry(id);
+          return (
+            entry?.kind === "node" &&
+            entry.binding?.collectionId === binding?.collectionId
+          );
+        })
+      : [];
+    return {
+      shared,
+      shareable: !shared && !!own && (own.where.items.length > 0 || !!own.sort),
+      others,
+    };
+  }, [graph, listId, revision]);
+  if (info.shared)
+    return (
+      <div className="data-view-shared">
+        <p className="data-view-detail-line">
+          {t("dataView.sharedLine", {
+            name: info.shared.view.name,
+            count: info.shared.users.length,
+          })}
+        </p>
+        {info.shared.users.length > 1 ? (
+          <Button
+            className="control-button"
+            onPress={() => run(catalogSplitSharedView(graph, listId))}
+          >
+            {t("dataView.splitHere")}
+          </Button>
+        ) : null}
+      </div>
+    );
+  if (!info.shareable) return null;
+  if (!sharing)
+    return (
+      <Button className="control-button" onPress={() => setSharing(true)}>
+        {t("dataView.shareView")}
+      </Button>
+    );
+  return (
+    <div className="data-view-add-form">
+      <PropertyInput
+        label={t("dataView.shareName")}
+        value={name}
+        onChange={setName}
+      />
+      {info.others.length ? (
+        <PropertySelect
+          label={t("dataView.shareWith")}
+          value={other}
+          options={[
+            { value: "none", label: t("dataView.shareNone") },
+            ...info.others.map((id) => ({
+              value: id,
+              label: nodeLabel(graph, id),
+            })),
+          ]}
+          translateOptions={false}
+          onChange={setOther}
+        />
+      ) : null}
+      <div className="data-view-add-actions">
+        <Button
+          className="control-button"
+          data-variant="primary"
+          isDisabled={!name.trim()}
+          onPress={() => {
+            if (
+              run(
+                catalogShareView(
+                  graph,
+                  {
+                    listId,
+                    name: name.trim(),
+                    otherIds: other !== "none" ? [other as NodeId] : [],
+                  },
+                  workspace.newId,
+                ),
+              )
+            )
+              setSharing(false);
+          }}
+        >
+          {t("dataView.create")}
+        </Button>
+        <Button className="control-button" onPress={() => setSharing(false)}>
+          {t("dataView.cancel")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * §9.3-9 — a control on the page sets a variable no list reads (the variable and the rule were made
+ * by hand): it is named here, with 「이 목록의 조건으로 연결」 (the condition reads that variable — no
+ * second variable or rule).
+ */
+function UnreadVariables({
+  listId,
+  table,
+}: {
+  listId: NodeId;
+  table: DataTable | undefined;
+}) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const unread = useMemo(() => {
+    void revision;
+    return catalogUnreadFilterVariables(graph, listId);
+  }, [graph, listId, revision]);
+  const fields = (table?.schema ?? []).flatMap((field) =>
+    field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+  );
+  if (!unread.length) return null;
+  return (
+    <>
+      {unread.map((item) => (
+        <div className="data-view-unread" key={item.variableId}>
+          <p className="data-view-detail-line" role="note">
+            {t("dataView.unreadLine", {
+              control: nodeLabel(graph, item.controlId),
+              variable: item.name,
+            })}
+          </p>
+          {connecting === item.variableId ? (
+            <AddForm
+              fields={fields}
+              kindChoice={false}
+              onCreate={(fieldId) => {
+                const field = fields.find((entry) => entry.id === fieldId);
+                const node = graph.getEntry(item.controlId);
+                let kind: CatalogFilterControlKind = "text";
+                try {
+                  kind =
+                    (node?.kind === "node" &&
+                      catalogFilterKindOfType(
+                        definitionTypeName(graph, node.definitionId),
+                      )) ||
+                    "text";
+                } catch {
+                  kind = "text";
+                }
+                if (!field) return;
+                const { command } = catalogFilterCommand(
+                  graph,
+                  {
+                    listId,
+                    field,
+                    kind,
+                    control: { nodeId: item.controlId },
+                    values: catalogFieldValues(rowsOf(table), field),
+                    allLabel: t("dataView.allOption"),
+                    reuseVariableId: item.variableId as never,
+                    label: t("dataView.connectUnread"),
+                  },
+                  workspace.newId,
+                );
+                if (run(command)) setConnecting(null);
+              }}
+              onCancel={() => setConnecting(null)}
+            />
+          ) : (
+            <Button
+              className="control-button"
+              onPress={() => setConnecting(item.variableId)}
+            >
+              {t("dataView.connectUnread")}
+            </Button>
+          )}
+        </div>
+      ))}
+    </>
   );
 }

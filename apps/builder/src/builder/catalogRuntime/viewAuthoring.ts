@@ -35,7 +35,11 @@ import {
   insertNodes,
   removeTargets,
 } from "../../../../../packages/shared/src/catalog/commands/structure";
-import { updateView } from "../../../../../packages/shared/src/catalog/commands/views";
+import {
+  catalogViewUsers,
+  promoteBindingView,
+  updateView,
+} from "../../../../../packages/shared/src/catalog/commands/views";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
@@ -248,6 +252,12 @@ export interface CatalogFilterPlan {
   readonly values: readonly string[];
   /** The 「전체」 item's label (the host's language). */
   readonly allLabel: string;
+  /**
+   * §9.3-9 — the variable an existing control's rule already sets (the 「변수 + 규칙만」 habit): the
+   * condition reads it; no new variable or rule.
+   */
+  readonly reuseVariableId?:
+    EntryId<"stateVariable"> | `data:variable:${string}`;
   readonly label?: string;
 }
 
@@ -513,8 +523,10 @@ export function catalogFilterCommand(
   const spec = CATALOG_FILTER_CONTROLS[plan.kind];
   const controlId =
     "nodeId" in plan.control ? plan.control.nodeId : (newId("node") as NodeId);
-  const variableId = newId("stateVariable") as EntryId<"stateVariable">;
-  const conditionId = `filter-${variableId.slice(-8)}`;
+  const reuse = plan.reuseVariableId;
+  const variableId = (reuse ??
+    newId("stateVariable")) as EntryId<"stateVariable">;
+  const conditionId = `filter-${(reuse ? newId("stateVariable") : variableId).slice(-8)}`;
   const variableRef = `!var.${variableId}`;
   const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [];
   if ("insert" in plan.control) {
@@ -565,6 +577,7 @@ export function catalogFilterCommand(
     );
   }
   steps.push((stage) => {
+    if (reuse) return undefined;
     const ownerId =
       catalogNodePage(stage as never, plan.listId) ??
       catalogVariableOwner(stage as never, plan.listId);
@@ -593,11 +606,13 @@ export function catalogFilterCommand(
     newId,
   );
   steps.push((stage) =>
-    catalogInteractionsCommand(
-      owner,
-      [...catalogInteractionsOf(stage as never, owner), rule],
-      "Rules",
-    ),
+    reuse
+      ? undefined
+      : catalogInteractionsCommand(
+          owner,
+          [...catalogInteractionsOf(stage as never, owner), rule],
+          "Rules",
+        ),
   );
   steps.push((stage) =>
     writeView(stage, plan.listId, (query) =>
@@ -620,7 +635,16 @@ export function catalogFilterCommand(
   const command = sequence(plan.label ?? "Add filter", steps);
   return {
     command,
-    created: { controlId, variableId, ruleId: rule.id, conditionId },
+    created: {
+      controlId,
+      variableId,
+      // (A reused variable keeps the control's own rule.)
+      ruleId: reuse
+        ? ((catalogFilterRuleOf(graph, controlId, reuse) ??
+            rule.id) as EntryId<"interaction">)
+        : rule.id,
+      conditionId,
+    },
   };
 }
 
@@ -945,4 +969,158 @@ export function catalogSortFollowCommand(
     command: sequence(plan.label ?? "Follow sort", steps),
     created: { variableId, ruleId: rule.id },
   };
+}
+
+/** The rule of a control that sets a variable (the connection's control side). */
+function catalogFilterRuleOf(
+  reader: CatalogReader,
+  controlId: NodeId,
+  variableId: string,
+): string | undefined {
+  for (const id of reader.referrersOf(controlId)) {
+    const rule = reader.getEntry(id);
+    if (
+      rule?.kind === "interaction" &&
+      rule.ownerId === controlId &&
+      rule.actions.some(
+        (action) =>
+          action.opcode === "setState" && action.variableId === variableId,
+      )
+    )
+      return rule.id;
+  }
+  return undefined;
+}
+
+/** Every variable a view reads (its conditions and its sort variable). */
+function viewVariables(query: ViewQuery): string[] {
+  const out: string[] = [];
+  const visit = (item: ViewCondition | ViewConditionGroup) => {
+    if ("items" in item) item.items.forEach(visit);
+    else out.push(...conditionVariables(item));
+  };
+  visit(query.where);
+  if (query.sort && "variableId" in query.sort) out.push(query.sort.variableId);
+  return out;
+}
+
+/**
+ * §9.3-9 (B 습관) — the controls on a list's page whose rule sets a variable no list on the page
+ * reads: the author made the variable and the rule by hand and nothing narrows. The list's section
+ * names them and offers 「이 목록의 조건으로 연결」 (`reuseVariableId`).
+ */
+export function catalogUnreadFilterVariables(
+  reader: CatalogReader,
+  listId: NodeId,
+): { variableId: string; name: string; controlId: NodeId; ruleId: string }[] {
+  const pageId = catalogNodePage(reader as never, listId);
+  if (!pageId) return [];
+  const read = new Set<string>();
+  for (const id of catalogFilterTargets(reader, pageId)) {
+    const node = reader.getEntry(id);
+    const binding = node?.kind === "node" ? node.binding : undefined;
+    if (binding)
+      viewVariables(viewOf(reader, binding).query).forEach((v) => read.add(v));
+  }
+  const out: {
+    variableId: string;
+    name: string;
+    controlId: NodeId;
+    ruleId: string;
+  }[] = [];
+  for (const ruleId of rulesOnPage(reader, listId)) {
+    const rule = reader.getEntry(ruleId);
+    if (rule?.kind !== "interaction") continue;
+    const owner = reader.getEntry(rule.ownerId);
+    let filterControl = false;
+    if (owner?.kind === "node")
+      filterControl = !!catalogFilterKindOfType(
+        typeOf(reader, owner.definitionId),
+      );
+    if (!filterControl) continue;
+    for (const action of rule.actions) {
+      if (action.opcode !== "setState" || read.has(action.variableId)) continue;
+      if (out.some((item) => item.variableId === action.variableId)) continue;
+      const variable = reader.getEntry(action.variableId);
+      out.push({
+        variableId: action.variableId,
+        name:
+          variable?.kind === "stateVariable"
+            ? variable.name
+            : action.variableId.replace(/^data:variable:/, ""),
+        controlId: rule.ownerId,
+        ruleId: rule.id,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * 「이 목록에서만」 (Decision 7) — the list leaves its shared view: its built-in view becomes a copy
+ * of the shared view's conditions and sort; the shared view and its other users stay as they are.
+ * A shared view derived from another view (or with grouping) cannot be copied into a built-in one
+ * (Decision 1 · 3) — refused.
+ */
+export function catalogSplitSharedView(
+  reader: CatalogReader,
+  listId: NodeId,
+): CatalogCommand {
+  const list = reader.getEntry(listId);
+  const binding = list?.kind === "node" ? list.binding : undefined;
+  const shared = binding ? viewOf(reader, binding).shared : undefined;
+  if (!binding || !shared) throw new Error(`NOT_SHARED: ${listId}`);
+  if ("viewId" in shared.source || shared.groupBy || shared.aggregates?.length)
+    throw new Error(`VIEW_NOT_SPLITTABLE: ${shared.id}`);
+  const { viewId: _shared, ...rest } = binding;
+  return catalogBindingCommand([{ kind: "node", id: listId }], {
+    ...rest,
+    view: {
+      where: shared.where,
+      ...(shared.sort ? { sort: shared.sort } : {}),
+    },
+  });
+}
+
+/**
+ * 「이름 붙여 공유」 — the list's built-in view becomes a named shared view (`promoteBindingView`),
+ * and the other lists (bound to the same collection) read it instead of their own.
+ */
+export function catalogShareView(
+  reader: CatalogReader,
+  plan: {
+    readonly listId: NodeId;
+    readonly name: string;
+    readonly otherIds: readonly NodeId[];
+  },
+  newId: NewId,
+): CatalogCommand {
+  const viewId = newId("view") as EntryId<"view">;
+  return sequence("Share view", [
+    () =>
+      promoteBindingView({ nodeId: plan.listId, id: viewId, name: plan.name }),
+    ...plan.otherIds.map((otherId) => (stage: CatalogReader) => {
+      const other = stage.getEntry(otherId);
+      const binding = other?.kind === "node" ? other.binding : undefined;
+      if (!binding) throw new Error(`NOT_BOUND: ${otherId}`);
+      const { view: _own, ...rest } = binding;
+      return catalogBindingCommand([{ kind: "node", id: otherId }], {
+        ...rest,
+        viewId,
+      });
+    }),
+  ]);
+}
+
+/** A list's shared view and the nodes · views that read it (「이 보기를 N 개가 봅니다」). */
+export function catalogSharedViewOf(
+  reader: CatalogReader,
+  listId: NodeId,
+): { view: ViewEntry; users: string[] } | undefined {
+  const list = reader.getEntry(listId);
+  const binding = list?.kind === "node" ? list.binding : undefined;
+  const shared = binding ? viewOf(reader, binding).shared : undefined;
+  return shared
+    ? { view: shared, users: catalogViewUsers(reader as never, shared.id) }
+    : undefined;
 }

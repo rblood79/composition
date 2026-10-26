@@ -20,7 +20,11 @@ import {
   catalogFilterConnections,
   catalogOrFilterCondition,
   catalogRemoveFilterCondition,
+  catalogShareView,
+  catalogSharedViewOf,
   catalogSortFollowCommand,
+  catalogSplitSharedView,
+  catalogUnreadFilterVariables,
   type CatalogFilterControlKind,
 } from "../../../builder/catalogRuntime/viewAuthoring";
 import { openAdr280Preview } from "./support/adr280Harness";
@@ -609,6 +613,129 @@ describe("ADR-284 G3 — 「정렬 따라가기」 and the Table that keeps its 
     expect(
       (h.graph().getEntry(h.list) as NodeEntry).binding!.view?.sort,
     ).toBeUndefined();
+    h.view.unmount();
+  });
+});
+
+describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록에서만) and the hand-made variable (§9.3-9)", () => {
+  const rowsOf = (h: Awaited<ReturnType<typeof boundList>>, id: NodeId) =>
+    [
+      ...(h.element(id)?.querySelectorAll('[role="row"], [role="option"]') ??
+        []),
+    ]
+      .map((item) => NAMES.exec(item.textContent ?? "")?.[0])
+      .filter(Boolean);
+  const bindUsers = (h: Awaited<ReturnType<typeof boundList>>, id: NodeId) =>
+    h.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id }],
+        catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+      ),
+    );
+
+  it("「이름 붙여 공유」: another list reads the same conditions; 「이 목록에서만」 gives it a copy — the shared view and its other reader stay", async () => {
+    const h = await boundList(["GridList", "ListBox"]);
+    const other = h.ids[1] as NodeId;
+    bindUsers(h, other);
+    const radio = h.add("radio");
+    h.workspace.execute(
+      catalogShareView(
+        h.graph(),
+        { listId: h.list, name: "People", otherIds: [other] },
+        h.workspace.newId,
+      ),
+    );
+    h.flush();
+    await settle();
+    const shared = catalogSharedViewOf(h.graph(), other)!;
+    expect(shared.view.name).toBe("People");
+    expect(shared.users.sort()).toEqual([h.list, other].sort());
+    // (Both read the one condition: female narrows both.)
+    const radios = [
+      ...h.element(radio.controlId)!.querySelectorAll('input[type="radio"]'),
+    ] as HTMLInputElement[];
+    act(() => {
+      fireEvent.click(radios[2]!);
+    });
+    await settle();
+    expect(rowsOf(h, h.list)).toEqual(["Park"]);
+    expect(rowsOf(h, other)).toEqual(["Park"]);
+    // 「이 목록에서만」: the ListBox keeps its own copy; editing the shared view no longer reaches it.
+    h.workspace.execute(catalogSplitSharedView(h.graph(), other));
+    h.flush();
+    expect(catalogSharedViewOf(h.graph(), other)).toBeUndefined();
+    expect(catalogSharedViewOf(h.graph(), h.list)!.users).toEqual([h.list]);
+    h.workspace.execute(
+      catalogEditFilterCondition(h.graph(), h.list, radio.conditionId, {
+        op: "notEquals",
+      }),
+    );
+    h.flush();
+    await settle();
+    expect(rowsOf(h, h.list)).toEqual(["Kim", "Lee"]);
+    expect(rowsOf(h, other)).toEqual(["Park"]);
+    // (Undo of the split: the ListBox reads the shared view again.)
+    h.workspace.undo();
+    h.workspace.undo();
+    h.flush();
+    expect(catalogSharedViewOf(h.graph(), other)!.users.sort()).toEqual(
+      [h.list, other].sort(),
+    );
+    h.view.unmount();
+  });
+
+  it("a control whose hand-made rule sets a variable no list reads is named; 「이 목록의 조건으로 연결」 reads that variable — no second variable or rule", async () => {
+    const h = await boundList(["GridList", "RadioGroup"]);
+    const radio = h.ids[1] as NodeId;
+    // (The B habit: a variable and an onChange → Set state rule made by hand, no condition.)
+    const made = h.add("radio", GENDER, { nodeId: radio });
+    h.workspace.execute(
+      catalogRemoveFilterCondition(h.graph(), h.list, made.conditionId),
+    );
+    h.flush();
+    const unread = catalogUnreadFilterVariables(h.graph(), h.list);
+    expect(unread).toEqual([
+      {
+        variableId: made.variableId,
+        name: "genderFilter",
+        controlId: radio,
+        ruleId: made.ruleId,
+      },
+    ]);
+    const project = () =>
+      (
+        h.graph().getEntry(h.graph().projectId) as unknown as {
+          stateVariableIds: string[];
+        }
+      ).stateVariableIds.length;
+    const variables = project();
+    const rules = [...h.graph().referrersOf(radio)].length;
+    const { command, created } = catalogFilterCommand(
+      h.graph(),
+      {
+        listId: h.list,
+        field: GENDER,
+        kind: "radio",
+        control: { nodeId: radio },
+        values: [],
+        allLabel: "전체",
+        reuseVariableId: made.variableId,
+      },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.flush();
+    expect(project()).toBe(variables);
+    expect([...h.graph().referrersOf(radio)].length).toBe(rules);
+    expect(created.ruleId).toBe(made.ruleId);
+    expect(catalogUnreadFilterVariables(h.graph(), h.list)).toEqual([]);
+    expect(catalogFilterConnections(h.graph(), h.list)[0]!.controls).toEqual([
+      { nodeId: radio, ruleId: made.ruleId },
+    ]);
     h.view.unmount();
   });
 });

@@ -11,7 +11,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../../../../i18n";
 import { catalogBindingRef } from "../../../../catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../../catalogRuntime/dataBindingCommand";
-import { catalogFilterConnections } from "../../../../catalogRuntime/viewAuthoring";
+import {
+  catalogFilterCommand,
+  catalogFilterConnections,
+  catalogRemoveFilterCondition,
+  catalogSharedViewOf,
+  catalogShareView,
+} from "../../../../catalogRuntime/viewAuthoring";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
 import type { NodeEntry } from "../../../../../../../../packages/shared/src/catalog/document/types";
 import { resetCommandRegistry } from "../../../../stores/commandRegistry";
@@ -203,5 +209,76 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     expect(groupByLegend("Search · filter").textContent).toContain(
       "Sorted by variable tableSort",
     );
+  });
+
+  it("a shared view says how many read it and offers 「This list only」; a hand-made variable no list reads is named with 「Connect」", () => {
+    const w = fixture.workspace;
+    const gender = { id: "f-gender", key: "gender", type: "string" };
+    // (A filter on the GridList, shared with the Table.)
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: gender,
+        kind: "radio",
+        control: { nodeId: nodeIdOf("radio") },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    w.execute(
+      catalogShareView(
+        w.runtime.graph,
+        {
+          listId: nodeIdOf("list"),
+          name: "People",
+          otherIds: [nodeIdOf("table")],
+        },
+        w.newId,
+      ),
+    );
+    act(() => fixture.select("table"));
+    const view = renderDesign();
+    const group = groupByLegend("Search · filter");
+    expect(group.textContent).toContain('Shared view "People" — read by 2');
+    act(() => {
+      fireEvent.click(buttonByText(group, "This list only"));
+    });
+    expect(
+      catalogSharedViewOf(w.runtime.graph, nodeIdOf("table")),
+    ).toBeUndefined();
+    view.unmount();
+    // (The B habit: the condition goes, the RadioGroup's variable and rule stay — nothing reads it.)
+    // (Both the shared view and the Table's copy drop the condition.)
+    for (const id of ["list", "table"])
+      w.execute(
+        catalogRemoveFilterCondition(
+          w.runtime.graph,
+          nodeIdOf(id),
+          made.created.conditionId,
+        ),
+      );
+    act(() => fixture.select("list"));
+    renderDesign();
+    const listGroup = groupByLegend("Search · filter");
+    expect(listGroup.querySelector('[role="note"]')?.textContent).toContain(
+      "No list reads the variable genderFilter that RadioGroup sets",
+    );
+    fireEvent.click(
+      buttonByText(listGroup, "Connect as this list's condition"),
+    );
+    act(() => {
+      fireEvent.click(buttonByText(listGroup, "Create"));
+    });
+    const [connection] = catalogFilterConnections(
+      w.runtime.graph,
+      nodeIdOf("list"),
+    );
+    expect(connection!.variable!.id).toBe(made.created.variableId);
+    expect(connection!.controls).toEqual([
+      { nodeId: nodeIdOf("radio"), ruleId: made.created.ruleId },
+    ]);
   });
 });

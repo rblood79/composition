@@ -1638,6 +1638,29 @@ export class CatalogCompositionRoot {
    * ADR-284 Decision 5 — the field a Table's Column shows, by its RAC key (`catalogTableColumnKey`
    * — the record id, or the author's HTML id): what a sort variable a Table's rule wrote sorts by.
    */
+  /** The nodes whose binding reads a view — directly or through views derived from it. */
+  private viewReaders(viewId: string): string[] {
+    const graph = this.runtime.graph;
+    const nodes: string[] = [];
+    const seen = new Set<string>();
+    const visit = (id: string) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      for (const referrer of graph.referrersOf(id)) {
+        const entry = graph.getEntry(referrer);
+        if (entry?.kind === "node" && entry.binding?.viewId === id)
+          nodes.push(referrer);
+        else if (
+          entry?.kind === "view" &&
+          "viewId" in entry.source &&
+          entry.source.viewId === id
+        )
+          visit(referrer);
+      }
+    };
+    visit(viewId);
+    return nodes;
+  }
   private tableColumnField(columnKey: string): string | undefined {
     const inputs = this.domInputs;
     const record =
@@ -4821,6 +4844,16 @@ export class CatalogCompositionRoot {
         const root = this.recordRoots.get(id);
         if (root && currentRoots.has(root)) affectedRoots.add(root);
       }
+    // ADR-284: a shared view changed — the lists reading it (directly, or through a view derived
+    // from it) show other rows; their binding did not change, so nothing else names them.
+    for (const id of result.changedIds) {
+      if (this.runtime.graph.getEntry(id)?.kind !== "view") continue;
+      for (const nodeId of this.viewReaders(id))
+        for (const record of this.sourceInstances.get(nodeId) ?? []) {
+          const root = this.recordRoots.get(record);
+          if (root && currentRoots.has(root)) affectedRoots.add(root);
+        }
+    }
     let visits = 0;
     let resolverVisits = 0;
     const roots: ConsumePlan["roots"][number][] = [];

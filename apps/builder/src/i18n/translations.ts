@@ -2341,6 +2341,12 @@ const koKR: TranslationKeys = {
     made: "생성했습니다 — 비교 · 건너뛰는 값 · 변수를 확인하세요.",
     noControl: "값을 쓰는 컨트롤 없음",
     noFields: "이 목록의 데이터에 필드가 없습니다.",
+    splitHere: "이 목록에서만",
+    shareView: "이름 붙여 공유",
+    shareName: "보기 이름",
+    shareWith: "함께 볼 목록",
+    shareNone: "없음",
+    connectUnread: "이 목록의 조건으로 연결",
     sortFollow: "정렬 따라가기",
     sortFollower: "따라갈 목록",
     sortTable: "정렬을 따를 Table",
@@ -4836,6 +4842,12 @@ const enUS: TranslationKeys = {
     made: "Created — check the comparison, the value that skips it and the variable.",
     noControl: "no control sets its value",
     noFields: "This list's data has no fields.",
+    splitHere: "This list only",
+    shareView: "Share as a named view",
+    shareName: "View name",
+    shareWith: "Also read by",
+    shareNone: "None",
+    connectUnread: "Connect as this list's condition",
     sortFollow: "Follow sort",
     sortFollower: "List that follows",
     sortTable: "Table to follow",
@@ -6318,6 +6330,10 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
+    "dataView.sharedLine": (args) =>
+      `공유 보기 「${String(args?.name ?? "")}」 — ${String(args?.count ?? 0)}개가 봅니다. 조건을 바꾸면 모두 바뀝니다.`,
+    "dataView.unreadLine": (args) =>
+      `${String(args?.control ?? "")} 가 쓰는 변수 ${String(args?.variable ?? "")} 를 읽는 목록이 없습니다 — 값을 바꿔도 아무것도 걸러지지 않습니다.`,
     "dataView.sortFollowing": (args) =>
       `정렬: 변수 ${String(args?.variable ?? "")} (Table 머리글이 씀)`,
     "dataView.variableLine": (args) =>
@@ -6915,6 +6931,10 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
+    "dataView.sharedLine": (args) =>
+      `Shared view "${String(args?.name ?? "")}" — read by ${String(args?.count ?? 0)}. A condition change reaches them all.`,
+    "dataView.unreadLine": (args) =>
+      `No list reads the variable ${String(args?.variable ?? "")} that ${String(args?.control ?? "")} sets — changing it narrows nothing.`,
     "dataView.sortFollowing": (args) =>
       `Sorted by variable ${String(args?.variable ?? "")} (a Table's header writes it)`,
     "dataView.variableLine": (args) =>
