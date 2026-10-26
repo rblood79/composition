@@ -6,6 +6,7 @@
 
 import {
   Bot,
+  Code,
   Columns3,
   Database,
   FileEdit,
@@ -64,6 +65,13 @@ const CatalogInteractionsPanel = lazyPanel(() =>
 const CatalogThemesPanel = lazyPanel(() =>
   import("../themes/catalog/CatalogThemesPanel").then((m) => ({
     default: m.CatalogThemesPanel,
+  })),
+);
+
+// ADR-284 Phase 6 — the code view (generator · inverse map) only on its first open.
+const CatalogCodeViewPanel = lazyPanel(() =>
+  import("../codeView/CatalogCodeViewPanel").then((m) => ({
+    default: m.CatalogCodeViewPanel,
   })),
 );
 
@@ -270,6 +278,23 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // 진입점은 전체 메뉴 작업 공간 구역 · ⌥8 (사용자 2026-09-29 — 레일에서 뺌)
     hiddenFromRail: true,
     displayModes: ["panel", "floating"],
+  },
+  {
+    id: "codeView",
+    name: "코드",
+    nameEn: "Code",
+    icon: Code,
+    component: CatalogCodeViewPanel,
+    category: "editor",
+    defaultPosition: "right",
+    minWidth: 320,
+    maxWidth: 1000,
+    defaultWidth: 480,
+    defaultHeight: 600,
+    description: "페이지를 React Aria 코드로 보기 · 표시된 자리 고치기",
+    displayModes: ["panel", "floating"],
+    // (진입점은 전체 메뉴 작업 공간 구역 — 레일 7 개는 그대로, 사용자 2026-09-29 레일 정책)
+    hiddenFromRail: true,
   },
   // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의
   // Font Family 피커가 여는 모달(`FontManagerDialog`)이 담당한다. 저빈도 작업이라

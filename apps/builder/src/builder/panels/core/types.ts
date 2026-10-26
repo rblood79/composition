@@ -78,7 +78,8 @@ export type PanelId =
   // Editor panels
   | "properties" // Design 패널 (ADR-252 — Properties · Styles 통합, id 는 저장 키라 유지)
   | "events"
-  | "history";
+  | "history"
+  | "codeView"; // ADR-284 Phase 6 — the page as React Aria code
 
 /**
  * 패널 설정

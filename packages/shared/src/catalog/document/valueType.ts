@@ -1,6 +1,6 @@
 import { isRacColorString } from "./colorValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
-import type { CalendarDuration, PropWhen, ValueType } from "./types";
+import type { CalendarDuration, PropVar, PropWhen, ValueType } from "./types";
 
 /**
  * A scalar value against its declared value type. `slot` (ADR-256 Decision 4) holds a slot name or
@@ -26,6 +26,8 @@ export function scalarFitsType(
  * token type is checked separately) or a scalar of that type.
  */
 export function catalogPropValueFits(value: unknown, type: string): boolean {
+  // (ADR-284 Phase 6 — a variable's value fits any prop: it is read when the record resolves.)
+  if (isPropVar(value)) return true;
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "slot") return scalarFitsType(value, type);
@@ -43,7 +45,11 @@ export function catalogPropValueFits(value: unknown, type: string): boolean {
   if (Array.isArray(value)) return false;
   // (ADR-284 Phase 6 — a value condition is a boolean.)
   if (value && typeof value === "object")
-    return "tokenId" in value || (isPropWhen(value) && type === "boolean");
+    return (
+      "tokenId" in value ||
+      (isPropWhen(value) && type === "boolean") ||
+      isPropVar(value)
+    );
   return scalarFitsType(value, type);
 }
 
@@ -94,5 +100,14 @@ export function isPropWhen(value: unknown): value is PropWhen {
     !!value &&
     typeof value === "object" &&
     (value as { kind?: unknown }).kind === "when"
+  );
+}
+
+/** ADR-284 Phase 6 — a prop that is a variable's value (`{ kind: "var", ref: "!var.<id>" }`). */
+export function isPropVar(value: unknown): value is PropVar {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    (value as { kind?: unknown }).kind === "var"
   );
 }

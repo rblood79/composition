@@ -319,6 +319,61 @@ describe("ADR-284 G3 — 「검색 추가」 makes the filter in one action", ()
   });
 });
 
+describe("ADR-284 Phase 6 — the controls 「검색 추가」 makes show their variable", () => {
+  it("a Clear button resetting the variables clears the TagGroup · Checkbox · RadioGroup (plants' Clear filters)", async () => {
+    const h = await boundList(["GridList", "Button"]);
+    const clear = h.ids[1] as NodeId;
+    const tags = h.add("tags");
+    const check = h.add("check");
+    const radio = h.add("radio");
+    h.rule(clear, "onPress", [
+      { opcode: "setState", variableId: tags.variableId, op: "reset" },
+      { opcode: "setState", variableId: check.variableId, op: "reset" },
+      { opcode: "setState", variableId: radio.variableId, op: "reset" },
+    ] as never);
+    await settle();
+    const tagRows = () => [
+      ...h.element(tags.controlId)!.querySelectorAll('[role="row"]'),
+    ];
+    const radios = () =>
+      [
+        ...h.element(radio.controlId)!.querySelectorAll('input[type="radio"]'),
+      ] as HTMLInputElement[];
+    const box = () =>
+      h
+        .element(check.controlId)!
+        .querySelector('input[type="checkbox"]') as HTMLInputElement;
+    act(() => {
+      fireEvent.click(tagRows()[1]!);
+    });
+    await settle();
+    act(() => {
+      fireEvent.click(radios()[2]!);
+    });
+    await settle();
+    act(() => {
+      fireEvent.click(box());
+    });
+    await settle();
+    expect(tagRows()[1]!.getAttribute("aria-selected")).toBe("true");
+    expect(radios()[2]!.checked).toBe(true);
+    expect(box().checked).toBe(true);
+    act(() => {
+      fireEvent.click(h.element(clear)!);
+    });
+    await settle();
+    // (The variables back to their defaults — and the controls show them.)
+    expect(tagRows().map((row) => row.getAttribute("aria-selected"))).toEqual([
+      "false",
+      "false",
+    ]);
+    expect(radios()[0]!.checked).toBe(true);
+    expect(box().checked).toBe(false);
+    expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+    h.view.unmount();
+  });
+});
+
 describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () => {
   it("「이 컨트롤로 거르기」 on a placed RadioGroup makes the same variable · rule · condition as 「검색 추가」", async () => {
     const a = await boundList();

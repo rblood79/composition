@@ -43,6 +43,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands/views";
 import { nodePosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
+import { conceptStateOf } from "../../../../../packages/shared/src/interactions/conceptState";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   DataBindingRef,
@@ -715,6 +716,29 @@ export function catalogFilterCommand(
       ]),
     ),
   );
+  // ADR-284 Phase 6 — the control shows the variable (its state prop reads it — RAC's controlled
+  // pair `selectedKeys={cycles} onSelectionChange={setCycles}`): a rule that writes the variable
+  // (a 「Clear filters」 button) moves the control too, as the plants reference.
+  steps.push((stage) => {
+    if (reuse) return undefined;
+    const control = stage.getEntry(controlId);
+    if (control?.kind !== "node") return undefined;
+    const state = conceptStateOf(
+      definitionTypeName(stage, control.definitionId),
+      spec.trigger,
+    );
+    if (!state) return undefined;
+    return setFields({
+      targets: [{ kind: "node", id: controlId }],
+      props: {
+        [state.prop]: {
+          kind: "set",
+          value: { kind: "var", ref: variableRef },
+        },
+      },
+      label: "Add filter",
+    });
+  });
   // (No selection change: the list — or the control — stays selected, its confirmation in view.)
   const command = sequence(plan.label ?? "Add filter", steps);
   return {
@@ -729,6 +753,43 @@ export function catalogFilterCommand(
         : rule.id,
       conditionId,
     },
+  };
+}
+
+/**
+ * ADR-284 Phase 6 — 「고정 값으로」: a condition with a literal value and no control · variable (the
+ * emoji picker's `!label.startsWith('regional indicator')` — a data clean-up the page always
+ * applies). The comparison starts at the field kind's first that takes a value (text = 「같음」);
+ * the author edits the comparison · value next (one step each).
+ */
+export function catalogStaticConditionCommand(
+  reader: CatalogReader,
+  plan: {
+    readonly listId: NodeId;
+    readonly field: CatalogFilterField;
+    readonly op?: ViewComparison;
+    readonly value?: ViewCondition["value"];
+    readonly label?: string;
+  },
+  newId: NewId,
+): { command: CatalogCommand; created: { conditionId: string } } {
+  const conditionId = `fixed-${String(newId("stateVariable")).slice(-8)}`;
+  const condition: ViewCondition = {
+    id: conditionId,
+    fields: [catalogFieldPath(plan.field)],
+    op: plan.op ?? "equals",
+    ...(plan.op === "exists" || plan.op === "notExists"
+      ? {}
+      : { value: plan.value ?? "" }),
+  };
+  return {
+    command: sequence(plan.label ?? "Add filter", [
+      (stage) =>
+        writeView(stage, plan.listId, (query) =>
+          withItems(query, [...query.where.items, condition]),
+        ),
+    ]),
+    created: { conditionId },
   };
 }
 
@@ -877,7 +938,9 @@ export function catalogEditFilterCondition(
   reader: CatalogReader,
   listId: NodeId,
   conditionId: string,
-  patch: Partial<Pick<ViewCondition, "op" | "skip" | "value" | "sensitivity">>,
+  patch: Partial<
+    Pick<ViewCondition, "op" | "skip" | "value" | "sensitivity" | "fields">
+  >,
 ): CatalogCommand {
   const edit = (item: ViewCondition | ViewConditionGroup): typeof item =>
     "items" in item

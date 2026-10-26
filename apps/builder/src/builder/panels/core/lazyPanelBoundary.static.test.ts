@@ -24,6 +24,7 @@ const LAZY_TARGETS = [
   { dir: "themes", module: "CatalogThemesPanel" },
   { dir: "interactions", module: "CatalogInteractionsPanel" },
   { dir: "settings", module: "SettingsPanel" },
+  { dir: "codeView", module: "CatalogCodeViewPanel" },
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -1738,6 +1738,7 @@ export interface TranslationKeys {
   datatable: Record<string, string>;
   /** ADR-284 — 「검색 · 필터」 (data view authoring). */
   dataView: Record<string, string>;
+  codeView: Record<string, string>;
   debugger: Record<string, string>;
   components: {
     // Content

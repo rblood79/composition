@@ -1,6 +1,8 @@
 import { catalogColorControlPropsError } from "./colorValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
-import { catalogPropValueFits } from "./valueType";
+import { catalogPropValueFits, isPropVar } from "./valueType";
+import { definitionTypeName } from "../commands/context";
+import { conceptStatePropsOf } from "../../interactions/conceptState";
 import type {
   CatalogDocument,
   DataCollectionId,
@@ -1207,8 +1209,22 @@ export class CatalogGraph {
         if (!lookupDefinition(id))
           throw new CatalogValidationError("DANGLING_DEFINITION", id);
       const definition = { ...found, ...contractOf(found) };
-      this.validatePropWrites(entry.props, definition.accepts, entry.id, () =>
-        forkOriginAccepts(entry.id),
+      // (ADR-284 Phase 6 — a RAC state prop of the node's type may read a variable (`PropVar` — a
+      //  filter control's `selectedKeys={cycles}`) though the panel offers no fixed value for it.)
+      let stateProps: ReadonlySet<string> | undefined;
+      try {
+        stateProps = conceptStatePropsOf(
+          definitionTypeName(this as never, entry.definitionId),
+        );
+      } catch {
+        stateProps = undefined;
+      }
+      this.validatePropWrites(
+        entry.props,
+        definition.accepts,
+        entry.id,
+        () => forkOriginAccepts(entry.id),
+        stateProps,
       );
       this.validatePropChoices(entry.props, definition, get, entry.id, () =>
         forkOriginAccepts(entry.id),
@@ -1491,9 +1507,18 @@ export class CatalogGraph {
     at: string,
     /** The accepts a whole `{key}` binding may name (an unlocked origin's copy — ADR-282). */
     bindingAccepts?: () => Readonly<Record<string, string>> | undefined,
+    /** ADR-284 Phase 6 — RAC state props a variable may drive (`PropVar`) without `accepts`. */
+    stateProps?: ReadonlySet<string>,
   ): void {
     for (const [key, write] of Object.entries(props)) {
       const type = accepts[key];
+      if (
+        !type &&
+        write.kind === "set" &&
+        isPropVar(write.value) &&
+        stateProps?.has(key)
+      )
+        continue;
       if (!type)
         throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
       if (write.kind === "set" && !propValueMatches(write.value, type)) {

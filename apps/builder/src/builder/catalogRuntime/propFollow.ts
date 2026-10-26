@@ -5,7 +5,9 @@
  *
  * - a boolean prop holds a value condition (`PropWhen` — the view comparisons over one variable),
  * - a text prop holds the variable as a whole template (`{{ name }}` — ADR-214, as written in a
- *   text field), so the prop is the variable's value.
+ *   text field), so the prop is the variable's value,
+ * - a key list prop (`selectedKeys` · `expandedKeys` …) holds the variable (`PropVar` — the photos
+ *   sidebar's `selectedKeys={[album]}`: RAC's selection follows the variable).
  *
  * Read back from the document: the follows are the node's props in those two shapes. Writing is
  * `setFields` (one step, one Undo); removing a follow returns the prop to its default.
@@ -15,12 +17,16 @@ import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   NodeId,
+  PropVar,
   PropWhen,
   StateVariableEntry,
   ViewComparison,
   ViewConditionValue,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import { isPropWhen } from "../../../../../packages/shared/src/catalog/document/valueType";
+import {
+  isPropVar,
+  isPropWhen,
+} from "../../../../../packages/shared/src/catalog/document/valueType";
 import { catalogVisibleVariableEntries } from "./stateVariables";
 
 export type CatalogPropFollow =
@@ -59,11 +65,15 @@ export function catalogPropFollowVariables(
   return catalogVisibleVariableEntries(graph as never, nodeId);
 }
 
-/** The props a follow may take: the node's accepted boolean and text props. */
+/** A follow's prop kind: a value condition · a text template · a key list (`PropVar`). */
+export type CatalogPropFollowType = "boolean" | "string" | "keys";
+const KEY_LIST = /Keys$/;
+
+/** The props a follow may take: the node's accepted boolean, text and key list props. */
 export function catalogPropFollowProps(
   graph: Reader,
   nodeId: NodeId,
-): { prop: string; type: "boolean" | "string" }[] {
+): { prop: string; type: CatalogPropFollowType }[] {
   const node = nodeOf(graph, nodeId);
   const accepts =
     (node &&
@@ -76,8 +86,13 @@ export function catalogPropFollowProps(
   const rank = (entry: { prop: string; type: string }) =>
     entry.prop === "isDisabled" ? 0 : entry.type === "boolean" ? 1 : 2;
   return Object.entries(accepts)
-    .filter(([, type]) => type === "boolean" || type === "string")
-    .map(([prop, type]) => ({ prop, type: type as "boolean" | "string" }))
+    .flatMap(([prop, type]): { prop: string; type: CatalogPropFollowType }[] =>
+      type === "boolean" || type === "string"
+        ? [{ prop, type }]
+        : type === "string[]" && KEY_LIST.test(prop)
+          ? [{ prop, type: "keys" }]
+          : [],
+    )
     .sort((a, b) => rank(a) - rank(b) || a.prop.localeCompare(b.prop));
 }
 
@@ -122,7 +137,7 @@ export function catalogPropFollowValue(
   graph: Reader,
   nodeId: NodeId,
   follow: CatalogPropFollow,
-): PropWhen | string | undefined {
+): PropWhen | PropVar | string | undefined {
   if (follow.kind === "when")
     return {
       kind: "when",
@@ -133,6 +148,9 @@ export function catalogPropFollowValue(
       op: follow.op,
       ...(follow.value !== undefined ? { value: follow.value } : {}),
     };
+  // (A key list prop reads the variable itself; a text prop its template.)
+  if (KEY_LIST.test(follow.prop))
+    return { kind: "var", ref: `!var.${follow.variableId}` };
   const variable = catalogPropFollowVariables(graph, nodeId).find(
     (entry) => entry.id === follow.variableId,
   );

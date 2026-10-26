@@ -165,7 +165,7 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     ]);
   });
 
-  it("panelConfigs 소스 파서가 메뉴 패널 9 개를 읽는다", () => {
+  it("panelConfigs 소스 파서가 메뉴 패널 10 개를 읽는다 (ADR-284 코드 — 메뉴 전용)", () => {
     expect(railPanels.map((panel) => panel.id)).toEqual([
       "navigator",
       "components",
@@ -176,6 +176,7 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
       "properties",
       "events",
       "history",
+      "codeView",
     ]);
   });
 

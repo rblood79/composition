@@ -694,7 +694,7 @@ export function resolveCatalogNode(
   const tokenValue = (value: AuthoredValue): PropValue => {
     if (typeof value !== "object" || !("kind" in value)) return value;
     // (ADR-284 Phase 6 — a value condition resolves with the record's variables, as `{{ }}`.)
-    if (value.kind === "when") return value;
+    if (value.kind === "when" || value.kind === "var") return value;
     const token = graph.getToken(value.tokenId);
     if (!token)
       throw new CatalogValidationError("DANGLING_TOKEN", value.tokenId);

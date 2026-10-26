@@ -32,6 +32,8 @@ import {
   CATALOG_FILTER_CONTROLS,
   catalogControlFilterConnections,
   catalogEditFilterCondition,
+  catalogFieldPath,
+  catalogStaticConditionCommand,
   catalogFieldValues,
   catalogFilterCommand,
   catalogFilterConnections,
@@ -69,9 +71,13 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
 
-const KINDS = Object.keys(
-  CATALOG_FILTER_CONTROLS,
-) as CatalogFilterControlKind[];
+/** ADR-284 Phase 6 — 「고정 값으로」: a condition with no control (a literal value). */
+const STATIC = "static";
+type AddKind = CatalogFilterControlKind | typeof STATIC;
+const KINDS: readonly AddKind[] = [
+  ...(Object.keys(CATALOG_FILTER_CONTROLS) as CatalogFilterControlKind[]),
+  STATIC,
+];
 
 /** The graph's revision as React state (every committed step re-reads the connections). */
 function useGraphRevision() {
@@ -147,6 +153,10 @@ function ConnectionRow({
     }
   };
   const op = (value: ViewComparison) => t(`dataView.op_${value}`);
+  // (ADR-284 Phase 6 — 「또는 조건 추가」 copies the condition for another field: the field is
+  //  edited here — plants' search over the common and the scientific name.)
+  const viewFields = useViewFields(table);
+  const fieldValue = (condition.fields[0] ?? []).join("|");
   const controls = connection.controls.map((control) =>
     typeName(control.nodeId),
   );
@@ -206,6 +216,31 @@ function ConnectionRow({
           {justMade ? (
             <p className="data-view-made">{t("dataView.made")}</p>
           ) : null}
+          {viewFields.length > 1 ? (
+            <PropertySelect
+              label={t("dataView.field")}
+              value={fieldValue}
+              options={viewFields.map((item) => ({
+                value: catalogFieldPath(item).join("|"),
+                label: item.key,
+              }))}
+              translateOptions={false}
+              onChange={(value) => {
+                const next = viewFields.find(
+                  (item) => catalogFieldPath(item).join("|") === value,
+                );
+                if (!next) return;
+                const kind = viewFieldKind(next.type);
+                edit({
+                  fields: [catalogFieldPath(next)],
+                  // (A comparison the new field's kind does not offer becomes its first.)
+                  ...(VIEW_COMPARISONS_BY_KIND[kind].includes(condition.op)
+                    ? {}
+                    : { op: VIEW_COMPARISONS_BY_KIND[kind][0]! }),
+                });
+              }}
+            />
+          ) : null}
           <PropertySelect
             label={t("dataView.comparison")}
             value={condition.op}
@@ -213,7 +248,30 @@ function ConnectionRow({
             translateOptions={false}
             onChange={(value) => edit({ op: value as ViewComparison })}
           />
-          {condition.enabled === undefined ? (
+          {!connection.variable &&
+          condition.op !== "exists" &&
+          condition.op !== "notExists" &&
+          !Array.isArray(condition.value) ? (
+            <PropertyInput
+              label={t("dataView.fixedValue")}
+              value={
+                condition.value === undefined ? "" : String(condition.value)
+              }
+              onChange={(value) =>
+                edit({
+                  value:
+                    viewFieldKind(field?.type) === "number" &&
+                    value.trim() !== "" &&
+                    Number.isFinite(Number(value))
+                      ? Number(value)
+                      : viewFieldKind(field?.type) === "boolean"
+                        ? value === "true"
+                        : value,
+                })
+              }
+            />
+          ) : null}
+          {condition.enabled === undefined && connection.variable ? (
             <PropertyInput
               label={t("dataView.skip")}
               value={skip}
@@ -253,12 +311,12 @@ function AddForm({
   targets?: readonly { id: NodeId; label: string }[];
   target?: NodeId;
   onTarget?: (id: NodeId) => void;
-  onCreate: (fieldId: string, kind: CatalogFilterControlKind) => void;
+  onCreate: (fieldId: string, kind: AddKind) => void;
   onCancel: () => void;
 }) {
   const { t } = useI18n();
   const [fieldId, setFieldId] = useState(fields[0]?.id ?? "");
-  const [kind, setKind] = useState<CatalogFilterControlKind>("text");
+  const [kind, setKind] = useState<AddKind>("text");
   return (
     <div className="data-view-add-form">
       {targets ? (
@@ -296,7 +354,7 @@ function AddForm({
             label: t(`dataView.kind_${value}`),
           }))}
           translateOptions={false}
-          onChange={(value) => setKind(value as CatalogFilterControlKind)}
+          onChange={(value) => setKind(value as AddKind)}
         />
       ) : null}
       <div className="data-view-add-actions">
@@ -331,9 +389,21 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
     return catalogFilterConnections(workspace.runtime.graph, listId);
   }, [listId, revision, workspace]);
   const fields = useViewFields(table);
-  const create = (fieldId: string, kind: CatalogFilterControlKind) => {
+  const create = (fieldId: string, kind: AddKind) => {
     const field = fields.find((item) => item.id === fieldId);
     if (!field) return;
+    if (kind === STATIC) {
+      const { command, created } = catalogStaticConditionCommand(
+        workspace.runtime.graph,
+        { listId, field, label: t("dataView.add") },
+        workspace.newId,
+      );
+      if (!run(command)) return;
+      setAdding(false);
+      setOpenId(created.conditionId);
+      setMadeId(created.conditionId);
+      return;
+    }
     const { command, created } = catalogFilterCommand(
       workspace.runtime.graph,
       {

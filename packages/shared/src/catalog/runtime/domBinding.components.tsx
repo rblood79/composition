@@ -15,6 +15,7 @@ import {
 
 import * as RAC from "react-aria-components";
 import { COLLECTION_DRAG_DROP_EVENTS } from "../../interactions/concepts/collectionDragDrop";
+import { resolveTriggers } from "../../interactions/capabilityRegistry";
 
 /** ADR-284 Phase 5 — `useDragAndDrop` and its drop indicator load with the first list that drags. */
 const CatalogDragAndDrop = lazy(
@@ -77,6 +78,10 @@ function withDragAndDrop(
       handlers?.[name] ? [[name, handlers[name]]] : [],
     ),
   );
+  // (Only a collection component drags — a Text bound to the same data, a kanban column's count,
+  //  takes no `dragAndDropHooks`.)
+  if (!resolveTriggers(catalogTypeName(root, record)).includes("onReorder"))
+    return element;
   const source = root.runtime.graph.getEntry(record.sourceId as never);
   const binding = source?.kind === "node" ? source.binding : undefined;
   const writes = catalogDropWrites(root);
@@ -87,10 +92,13 @@ function withDragAndDrop(
     return element;
   const own = binding?.collectionId ?? record.sourceId;
   const dragType = `${DRAG_TYPE}${own}`;
-  // (Its own collection's items and the collections its drop rules write; the items drag when
-  //  some drop rule takes them. Unbound: its own node's items, as before.)
+  // (The collections its drop rules write — its own too when it reorders; a list whose drop
+  //  rules write nothing takes its own items. Unbound: its own node's items, as before.)
+  const written = writes.byOwner.get(record.sourceId);
   const acceptedTypes = [
-    ...new Set([own, ...(writes.byOwner.get(record.sourceId) ?? [])]),
+    ...new Set(
+      written?.size ? [...(dnd.onReorder ? [own] : []), ...written] : [own],
+    ),
   ].map((id) => `${DRAG_TYPE}${id}`);
   // (Not when its drop rules only write other collections and nothing takes its own items — the
   //  album sidebar takes photos, its albums do not drag.)

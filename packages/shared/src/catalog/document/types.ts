@@ -219,13 +219,23 @@ export interface PropWhen {
   op: ViewComparison;
   value?: ViewConditionValue;
 }
+/**
+ * ADR-284 Phase 6 — a prop that is a variable's value (a state prop RAC controls: the photos
+ * sidebar's `selectedKeys={[album]}` — a key list prop of a text variable holds its one key). Text
+ * props read a variable as a whole `{{ name }}` template instead.
+ */
+export interface PropVar {
+  kind: "var";
+  ref: string;
+}
 export type AuthoredValue =
   | Scalar
   | TokenUse
   | StructuredValue
   | CalendarDuration
   | NumberFormatValue
-  | PropWhen;
+  | PropWhen
+  | PropVar;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -253,7 +263,8 @@ export type PropValue =
   | StructuredValue
   | CalendarDuration
   | NumberFormatValue
-  | PropWhen;
+  | PropWhen
+  | PropVar;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:

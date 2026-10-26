@@ -1,3 +1,4 @@
+import { isPropVar } from "../document/valueType";
 import { resolveTextSourceText } from "@composition/rendering";
 import { CatalogWaterfallGrid, catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
@@ -3442,6 +3443,10 @@ export function catalogStateSourceValue(
 ): unknown {
   const props = node.props;
   const type = catalogTypeName(root, node);
+  // (ADR-284 Phase 6 — a state prop that reads a variable (「검색 추가」 · 「변수로 정하기」) is the
+  //  variable's value: it beats the items' start selection — a RadioGroup's 「전체」 after a pick.)
+  if (isPropVar((node as { templateProps?: Record<string, unknown> }).templateProps?.[prop]))
+    return props[prop];
   switch (prop) {
     case "selectedKey":
       return type === "Tabs"

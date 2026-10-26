@@ -34,6 +34,10 @@ const STANDARD_PANEL_SOURCES = [
     component: "DataTableFieldPanel",
     source: "../datatable/DataTableFieldPanel.tsx",
   },
+  {
+    component: "CatalogCodeViewPanel",
+    source: "../codeView/CatalogCodeViewPanel.tsx",
+  },
 ] as const;
 
 function panelHeaderBlocks(source: string): string[] {
@@ -41,14 +45,14 @@ function panelHeaderBlocks(source: string): string[] {
 }
 
 describe("registered panel close action coverage", () => {
-  it("등록된 11개 패널을 전부 인벤토리한다", async () => {
+  it("등록된 12개 패널을 전부 인벤토리한다", async () => {
     const configs = await readFile(
       resolve(__dirname, "panelConfigs.ts"),
       "utf-8",
     );
     const registeredComponents = configs.match(/^\s*component:\s*\w+,/gm) ?? [];
 
-    expect(registeredComponents).toHaveLength(11);
+    expect(registeredComponents).toHaveLength(12);
     for (const { component } of STANDARD_PANEL_SOURCES) {
       expect(configs).toContain(`component: ${component}`);
     }

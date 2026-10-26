@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 6b · 6c) — 코드 보기 · 표시된 자리 고치기 · 필터 컨트롤이 변수를 따라감] - 2026-10-27
+
+### Added
+
+- **「코드」 패널** (ADR-284 Phase 6, 전체 메뉴): 지금 페이지를 React Aria 코드로 보여 준다 — 변수는 `useState`, 필터는 `filter(…)`, 정렬은 `toSorted`, 규칙은 핸들러, 끌어 놓기는 `useDragAndDrop`. 표시된 자리 (변수 이름 · 초기값 · 조건 · 정렬 열 · When) 를 고쳐 「적용」 하면 문서가 바뀌고 (한 번에 Undo), 그 밖을 고치면 줄 번호와 함께 「문서로 환원되지 않는 코드」 로 알리고 아무것도 바꾸지 않는다
+- 공식 예제 5 종 (plants · photos · kanban · ios-list · emoji-picker) 을 빌더로 만들었을 때 코드가 원본과 같은 데이터 흐름인지 판정하는 스크립트 (`node scripts/code-view-equivalence.mjs`)
+- 필터 조건 상세의 **「필드」** (「또는 조건」 의 사본을 다른 필드로) · 추가 폼의 **「고정 값 (컨트롤 없음)」** (컨트롤 · 변수 없이 늘 거르는 조건)
+- 「변수로 정하기」 가 선택 같은 목록 prop (`selectedKeys` …) 도 받는다 — 예: 앨범 Tree 의 선택이 album 변수를 따라감
+
+### Changed
+
+- 「검색 추가」 로 만든 컨트롤이 변수를 따라간다 — 규칙이 변수를 바꾸면 (「필터 지우기」 버튼) 태그 · 체크박스 · 라디오 표시도 같이 바뀐다
+
+### Fixed
+
+- 라디오 필터에서 다른 값을 고른 뒤 「전체」 로 돌아가지 않던 것 (변수를 따라갈 때 항목의 시작 선택이 이겼다)
+
 ## [데이터 보기 (ADR-284 Phase 6a) — 변수로 정하는 속성 · 선택 없으면 비활성 · 다른 데이터로 끌어 놓기] - 2026-10-27
 
 ### Added

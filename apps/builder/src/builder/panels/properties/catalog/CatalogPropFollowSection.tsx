@@ -15,6 +15,7 @@ import {
   catalogPropFollowVariables,
   catalogPropFollows,
   type CatalogPropFollow,
+  type CatalogPropFollowType,
 } from "../../../catalogRuntime/propFollow";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -29,7 +30,7 @@ const NO_VALUE = new Set<ViewComparison>(["exists", "notExists"]);
 
 interface FollowView {
   follows: CatalogPropFollow[];
-  props: { prop: string; type: "boolean" | "string" }[];
+  props: { prop: string; type: CatalogPropFollowType }[];
   variables: { id: string; name: string; valueType: string }[];
 }
 

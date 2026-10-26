@@ -326,6 +326,14 @@ async function photos() {
   );
   h.flush();
   h.declare(tree, { selectionMode: "single" });
+  // (The Tree's selection is the album — 「변수로 정하기」: a drop's album selects that row.)
+  h.workspace.execute(
+    catalogPropFollowCommand(h.workspace.runtime.graph, tree, "selectedKeys", {
+      prop: "selectedKeys",
+      kind: "variable",
+      variableId: album,
+    }),
+  );
   // (Both rules in one list — the panel's command replaces the owner's rules.)
   const owner = { ownerId: tree };
   h.workspace.execute(
@@ -438,8 +446,13 @@ describe("ADR-284 Phase 6 — photos: Tree selection → album condition, photo 
       travelIndex * DROP_ROW + DROP_ROW / 2,
     );
     await settle();
-    // (The drop's rules: p2's album is travel, and Travel is the album shown.)
+    // (The drop's rules: p2's album is travel, and Travel is the album shown — and selected.)
     expect(h.keys(h.grid)).toEqual(["p1", "p2", "p3"]);
+    const selected = () =>
+      albumRows()
+        .filter((row) => row.getAttribute("aria-selected") === "true")
+        .map((row) => row.getAttribute("data-key"));
+    expect(selected()).toEqual(["travel"]);
     await user.click(
       albumRows().find((row) => row.getAttribute("data-key") === "food")!,
     );

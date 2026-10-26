@@ -1,0 +1,119 @@
+{
+  "$comment": "ADR-284 G6 — the code view's acceptance set (breakdown §7a). Each example: the reference fixture files (react-spectrum 338cf2e1940e395c899e79b7ac09eb0de6b1cea7) and the generated golden file; the states the comparison covers (§7a 비교하는 부분); what it leaves out and why (§7a 제외, plus the additions reported in breakdown §10 Phase 6b). Facts outside the states are listed as 「비교 밖」 by scripts/code-view-equivalence.mjs, never silently dropped. tabs · ripple have no data flow (§7a) and are not listed.",
+  "normalizations": [
+    "N1 useState(<rows>) ≡ useListData({initialItems}) ≡ useAsyncList — one collection state",
+    "N2 let {selectedKeys: x, setSelectedKeys: setX} = list ≡ useState<Selection> x — the list's selection",
+    "N3 .sort(compare) ≡ .toSorted(compare) on the filtered rows",
+    "N4 cond ? rows : rows.filter(term) ≡ rows.filter(cond || term) — a skip value",
+    "N5 useMemo(() => rows, deps) ≡ rows",
+    "N6 String.prototype.startsWith/includes/endsWith ≡ useFilter's (a case-sensitive one is sensitivity 'variant'); contains(x.join(''), v) on a list ≡ x.some(e => contains(e, v))",
+    "N7 typeof x === 'string' ≡ (x != null && x !== '') — the field has a value",
+    "N8 a bare item.f term ≡ item.f === true",
+    "N9 setRows(rows.filter(r => … !sel.has(r.id))) ≡ list.removeSelectedItems() — which also empties the selection (setSel(new Set()))",
+    "N10 setRows(rows.map(r => … ? {...r, f: v} : r)) ≡ for (id of keys) list.update(id, {...list.getItem(id), f: v})",
+    "N11 a custom component's props are inlined into its JSX (PlantTable · PlantList · Sidebar · PhotoGrid · Column)",
+    "N12 a key list prop of one key selectedKeys={[x]} with onSelectionChange={keys => setX([...keys][0])} — a single selection in a text state",
+    "N13 Table's items on TableBody ≡ on Table"
+  ],
+  "examples": {
+    "plants": {
+      "reference": [
+        "reference/plants-App.tsx.txt",
+        "reference/plants-PlantTable.tsx.txt",
+        "reference/plants-PlantList.tsx.txt"
+      ],
+      "entry": "App",
+      "generated": "generated/plants.tsx.txt",
+      "states": [
+        "search",
+        "favorite",
+        "cycles",
+        "sunlight",
+        "watering",
+        "sortDescriptor"
+      ],
+      "fieldAliases": {
+        "getSunlight(item)": "sunlight"
+      },
+      "exclude": [
+        {
+          "fact": "state:visibleColumns",
+          "reason": "열 보이기 Menu (`columns` — 데이터 층 아님, §7a)"
+        },
+        {
+          "fact": "wire:Table.columns",
+          "reason": "열 보이기 (§7a)"
+        },
+        {
+          "fact": "wire:Menu.*",
+          "reason": "열 보이기 Menu (§7a)"
+        }
+      ],
+      "compareWrites": false,
+      "$compareWrites": "false — 행 추가 · 수정 · 삭제 · 즐겨찾기 (PlantDialog · AlertDialog · PlantActionMenu) 는 §7a plants 비교 부분이 아니다: 그 쓰기는 「비교 밖」 으로 출력"
+    },
+    "photos": {
+      "reference": [
+        "reference/photos-App.tsx.txt",
+        "reference/photos-Sidebar.tsx.txt",
+        "reference/photos-PhotoGrid.tsx.txt"
+      ],
+      "entry": "App",
+      "generated": "generated/photos.tsx.txt",
+      "states": ["album"],
+      "exclude": [
+        {
+          "fact": "wire:Autocomplete.*",
+          "reason": "Autocomplete filter 층 (사용자 결정 4 — 별도 ADR, §7a)"
+        }
+      ]
+    },
+    "kanban": {
+      "reference": ["reference/kanban.tsx.txt"],
+      "entry": "KanbanBoard",
+      "generated": "generated/kanban.tsx.txt",
+      "states": [],
+      "exclude": []
+    },
+    "ios-list": {
+      "reference": ["reference/ios-list.tsx.txt"],
+      "entry": "SwipableList",
+      "generated": "generated/ios-list.tsx.txt",
+      "states": ["selectedKeys", "selectionMode"],
+      "exclude": [
+        {
+          "fact": "wire:GridList.onAction",
+          "reason": "선택 모드 none 일 때 행 탭을 동작으로 (`onAction={selectionMode === 'none' ? () => {} : undefined}`) — iOS 행 탭 표시 층 (§7a 스와이프 · 애니메이션 묶음, Phase 6b 추가 보고)"
+        },
+        {
+          "fact": "text:Button",
+          "reason": "Edit 버튼 글자 「Edit」 ↔ 「Cancel」 — 표시 글자 (Phase 6b 추가 보고)"
+        },
+        {
+          "fact": "wire:Button.style",
+          "reason": "Delete 의 opacity — 표시 층 (§7a)"
+        },
+        {
+          "fact": "wire:ListItem.*",
+          "reason": "스와이프로 지우기 (§7a 스와이프)"
+        }
+      ]
+    },
+    "emoji-picker": {
+      "reference": ["reference/emoji-picker.tsx.txt"],
+      "entry": "EmojiPicker",
+      "generated": "generated/emoji-picker.tsx.txt",
+      "states": [],
+      "exclude": [
+        {
+          "fact": "wire:Autocomplete.*",
+          "reason": "Autocomplete filter 층 (사용자 결정 4, §7a)"
+        },
+        {
+          "fact": "wire:Select.defaultValue",
+          "reason": "uncontrolled — 데이터 흐름 아님 (§7a)"
+        }
+      ]
+    }
+  }
+}

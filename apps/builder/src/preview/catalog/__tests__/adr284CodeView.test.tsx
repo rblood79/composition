@@ -1,0 +1,581 @@
+import { act } from "@testing-library/react";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { removeTargets } from "../../../../../../packages/shared/src/catalog/commands/structure";
+import { addRecord } from "../../../../../../packages/shared/src/catalog/commands/project";
+import type {
+  EntryId,
+  NodeId,
+  StateVariableEntry,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import { generateCodeView } from "../../../../../../packages/shared/src/codeView/generate";
+import type { CodeViewCollection } from "../../../../../../packages/shared/src/codeView/types";
+import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
+import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
+import {
+  catalogInteractionsCommand,
+  catalogNewInteraction,
+} from "../../../builder/catalogRuntime/interactions";
+import {
+  catalogCodeView,
+  catalogCodeViewCommand,
+  catalogCodeViewInverse,
+} from "../../../builder/catalogRuntime/codeView";
+import { catalogPropFollowCommand } from "../../../builder/catalogRuntime/propFollow";
+import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
+import {
+  catalogEditFilterCondition,
+  catalogFieldPath,
+  catalogFilterCommand,
+  catalogGroupColumnsCommand,
+  catalogOrFilterCondition,
+  catalogShareView,
+  catalogSortFollowCommand,
+  catalogStaticConditionCommand,
+  type CatalogFilterField,
+} from "../../../builder/catalogRuntime/viewAuthoring";
+import { openAdr280Preview } from "./support/adr280Harness";
+
+/**
+ * ADR-284 Phase 6 (G6) — the acceptance set (breakdown §7a) rebuilt in the builder with the
+ * commands its panels run (「검색 추가」 · 「또는 조건」 · 공유 · 「정렬 따라가기」 · 「묶기로 열
+ * 만들기」 · 「고정 값으로」 · 「변수로 정하기」 · rules), then generated as code. The output is the
+ * golden file `packages/shared/src/codeView/__fixtures__/generated/<example>.tsx.txt` that
+ * `scripts/code-view-equivalence.mjs` compares with the reference fixture (a change of the
+ * generator shows here first — `UPDATE_CODE_VIEW=1` rewrites the files).
+ */
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+const HOME = "project:page:home" as EntryId<"page">;
+const GENERATED = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../../../packages/shared/src/codeView/__fixtures__/generated",
+);
+const settle = () =>
+  act(async () => {
+    for (let i = 0; i < 5; i += 1) await new Promise((r) => setTimeout(r, 0));
+  });
+
+type Collection = CodeViewCollection & {
+  readonly mockData: readonly Record<string, unknown>[];
+};
+
+async function open(
+  types: readonly string[],
+  collections: readonly Collection[],
+) {
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const h = await openAdr280Preview(types);
+  act(() => {
+    h.session.receive({
+      type: "CATALOG_DATA",
+      version: 1,
+      collections: collections.map((collection) => ({
+        ...collection,
+        runtimeData: [],
+        useMockData: true,
+      })),
+      variables: [],
+      apiEndpoints: [],
+    } as never);
+  });
+  const graph = () => h.workspace.runtime.graph;
+  const bind = (id: NodeId, collectionId: string) =>
+    h.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id }],
+        catalogBindingRef({
+          source: "dataTable",
+          collectionId,
+          name: collectionId,
+        })!,
+      ),
+    );
+  const rename = (variableId: string, name: string) => {
+    const entry = graph().getEntry(variableId) as StateVariableEntry;
+    h.workspace.execute(catalogVariableCommands.rename(entry, name));
+  };
+  const field = (collection: Collection, key: string): CatalogFilterField => {
+    const found = collection.schema.find((item) => item.key === key)!;
+    return { id: found.id!, key: found.key, type: found.type };
+  };
+  const rules = (ownerId: NodeId, list: [string, unknown[]][]) => {
+    const owner = { ownerId };
+    h.workspace.execute(
+      catalogInteractionsCommand(
+        owner,
+        list.map(([trigger, actions]) =>
+          catalogNewInteraction(
+            owner,
+            trigger,
+            actions as never,
+            h.workspace.newId,
+          ),
+        ),
+        "Rules",
+      ),
+    );
+  };
+  const code = () =>
+    generateCodeView({ reader: graph(), pageId: HOME, collections }).code;
+  return { ...h, graph, bind, rename, field, rules, code };
+}
+
+/** The golden file: rewritten with `UPDATE_CODE_VIEW=1`, else the code must equal it. */
+function golden(name: string, code: string) {
+  const file = join(GENERATED, `${name}.tsx.txt`);
+  const text = `// ADR-284 §7a acceptance set — ${name} rebuilt in the builder, generated by packages/shared/src/codeView/generate.ts.\n// Golden output of apps/builder/src/preview/catalog/__tests__/adr284CodeView.test.tsx (UPDATE_CODE_VIEW=1 rewrites).\n\n${code}`;
+  if (process.env.UPDATE_CODE_VIEW === "1" || !existsSync(file)) {
+    mkdirSync(GENERATED, { recursive: true });
+    writeFileSync(file, text);
+  }
+  expect(text).toBe(readFileSync(file, "utf8"));
+}
+
+const PLANTS: Collection = {
+  id: "plants",
+  name: "plants",
+  schema: [
+    { id: "p-id", key: "id", type: "string" },
+    { id: "p-common", key: "common_name", type: "string" },
+    { id: "p-scientific", key: "scientific_name", type: "array" },
+    { id: "p-cycle", key: "cycle", type: "string" },
+    { id: "p-sunlight", key: "sunlight", type: "string" },
+    { id: "p-watering", key: "watering", type: "string" },
+    { id: "p-favorite", key: "isFavorite", type: "boolean" },
+  ],
+  mockData: [
+    {
+      id: "1",
+      common_name: "European Silver Fir",
+      scientific_name: ["Abies alba"],
+      cycle: "Perennial",
+      sunlight: "full sun",
+      watering: "Frequent",
+      isFavorite: false,
+    },
+  ],
+};
+
+/** plants rebuilt with the panels' commands (shared by the golden and the inverse map tests). */
+async function buildPlants() {
+  const h = await open(["Table", "GridList", "Button"], [PLANTS]);
+  const [table, grid, clear] = h.ids as [NodeId, NodeId, NodeId];
+  h.bind(table, "plants");
+  h.bind(grid, "plants");
+  // (「이름 붙여 공유」 — the GridList reads the Table's view.)
+  h.workspace.execute(
+    catalogShareView(
+      h.graph(),
+      { listId: table, name: "items", otherIds: [grid] },
+      h.workspace.newId,
+    ),
+  );
+  const filter = (kind: string, key: string, values: string[] = []) => {
+    const { command, created } = catalogFilterCommand(
+      h.graph(),
+      {
+        listId: table,
+        field: h.field(PLANTS, key),
+        kind: kind as never,
+        control: { insert: true },
+        values,
+        allLabel: "All",
+      },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    return created;
+  };
+  const search = filter("text", "common_name");
+  // (「또는 조건 추가」 then the copy's field: the scientific name.)
+  h.workspace.execute(
+    catalogOrFilterCondition(h.graph(), table, search.conditionId, "search-or"),
+  );
+  h.workspace.execute(
+    catalogEditFilterCondition(h.graph(), table, "search-or", {
+      fields: [catalogFieldPath(h.field(PLANTS, "scientific_name"))],
+    }),
+  );
+  const favorite = filter("check", "isFavorite");
+  const cycles = filter("tags", "cycle", ["Perennial", "Annual"]);
+  const sunlight = filter("tags", "sunlight", ["full sun", "part shade"]);
+  const watering = filter("tags", "watering", ["Frequent", "Average"]);
+  const sort = catalogSortFollowCommand(
+    h.graph(),
+    { tableId: table, followerIds: [grid] },
+    h.workspace.newId,
+  );
+  h.workspace.execute(sort.command);
+  h.rename(search.variableId, "search");
+  h.rename(favorite.variableId, "favorite");
+  h.rename(cycles.variableId, "cycles");
+  h.rename(sunlight.variableId, "sunlight");
+  h.rename(watering.variableId, "watering");
+  h.rename(sort.created.variableId, "sortDescriptor");
+  // (「Clear filters」: the filter variables back to their defaults — the controls follow them.)
+  h.declare(clear, { label: "Clear filters" });
+  h.rules(clear, [
+    [
+      "onPress",
+      [favorite, cycles, sunlight, watering].map((created) => ({
+        opcode: "setState",
+        variableId: created.variableId,
+        op: "reset",
+      })),
+    ],
+  ]);
+  return { ...h, table, grid, clear, search };
+}
+
+describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
+  it("plants: search (two names) · favorite · cycle · sunlight · watering → one shared view, the Table's sort, the GridList reads it", async () => {
+    const h = await buildPlants();
+    golden("plants", h.code());
+    h.view.unmount();
+  });
+
+  it("photos: the album Tree's selection is the album condition (library = every photo); a photo dropped on an album updates it", async () => {
+    const albums: Collection = {
+      id: "albums",
+      name: "albums",
+      schema: [
+        { id: "a-id", key: "id", type: "string" },
+        { id: "a-name", key: "name", type: "string" },
+      ],
+      mockData: [{ id: "library", name: "Library" }],
+    };
+    const photos: Collection = {
+      id: "photos",
+      name: "photos",
+      schema: [
+        { id: "ph-id", key: "id", type: "string" },
+        { id: "ph-album", key: "album", type: "string" },
+      ],
+      mockData: [{ id: "p1", album: "travel" }],
+    };
+    const h = await open(["Tree", "GridList"], [albums, photos]);
+    const [tree, grid] = h.ids as [NodeId, NodeId];
+    h.bind(tree, "albums");
+    h.bind(grid, "photos");
+    const album = "project:stateVariable:album" as EntryId<"stateVariable">;
+    h.workspace.execute(
+      addRecord({
+        entry: {
+          kind: "stateVariable",
+          id: album,
+          ownerId: HOME,
+          name: "album",
+          valueType: "string",
+          defaultValue: "library",
+        } satisfies StateVariableEntry,
+      }),
+    );
+    // (The condition on the photos: album = $album, skipped at 「library」.)
+    const { command } = catalogStaticConditionCommand(
+      h.graph(),
+      { listId: grid, field: h.field(photos, "album"), op: "equals" },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    const conditionId = (() => {
+      const node = h.graph().getEntry(grid);
+      const items =
+        node?.kind === "node" ? node.binding?.view?.where.items : [];
+      return (items?.[0] as { id: string }).id;
+    })();
+    h.workspace.execute(
+      catalogEditFilterCondition(h.graph(), grid, conditionId, {
+        value: `!var.${album}`,
+        skip: "library",
+      }),
+    );
+    // (「변수로 정하기」: the Tree's selection is the album — a drop's album selects it too.)
+    h.declare(tree, { selectionMode: "single" });
+    h.workspace.execute(
+      catalogPropFollowCommand(h.graph(), tree, "selectedKeys", {
+        prop: "selectedKeys",
+        kind: "variable",
+        variableId: album,
+      }),
+    );
+    h.rules(tree, [
+      [
+        "onSelectionChange",
+        [
+          {
+            opcode: "setState",
+            variableId: album,
+            op: "set",
+            value: "!event.keys",
+          },
+        ],
+      ],
+      [
+        "onItemDrop",
+        [
+          {
+            opcode: "update",
+            collectionId: "data:collection:photos",
+            key: "!event.keys",
+            field: "data:field:ph-album",
+            value: "!event.target.key",
+          },
+          {
+            opcode: "setState",
+            variableId: album,
+            op: "set",
+            value: "!event.target.key",
+          },
+        ],
+      ],
+    ]);
+    await settle();
+    golden("photos", h.code());
+    h.view.unmount();
+  });
+
+  it("kanban: 「묶기로 열 만들기」 — a column per status with its count and its drop rules (the source list removed)", async () => {
+    const tickets: Collection = {
+      id: "tickets",
+      name: "tickets",
+      schema: [
+        { id: "k-id", key: "id", type: "string" },
+        { id: "k-title", key: "title", type: "string" },
+        { id: "k-status", key: "status", type: "string" },
+      ],
+      mockData: [{ id: "#1", title: "A", status: "Open" }],
+    };
+    const h = await open(["GridList"], [tickets]);
+    const [list] = h.ids as [NodeId];
+    h.bind(list, "tickets");
+    const { command } = catalogGroupColumnsCommand(
+      h.graph(),
+      {
+        listId: list,
+        viewName: "items",
+        field: h.field(tickets, "status"),
+        values: ["Open", "In Progress", "Closed"],
+      },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.workspace.execute(
+      removeTargets({ targets: [{ kind: "node", id: list }] }),
+    );
+    golden("kanban", h.code());
+    h.view.unmount();
+  });
+
+  it("ios-list: selectionMode a variable Edit switches · the selection named · Delete disabled while it is empty · Delete removes it and leaves edit mode", async () => {
+    const emails: Collection = {
+      id: "emails",
+      name: "emails",
+      schema: [
+        { id: "e-id", key: "id", type: "string" },
+        { id: "e-subject", key: "subject", type: "string" },
+      ],
+      mockData: [{ id: "1", subject: "Meeting" }],
+    };
+    const h = await open(["Button", "Button", "GridList"], [emails]);
+    const [del, edit, list] = h.ids as [NodeId, NodeId, NodeId];
+    h.bind(list, "emails");
+    h.declare(del, { label: "Delete" });
+    h.declare(edit, { label: "Edit" });
+    const mode = "project:stateVariable:mode" as EntryId<"stateVariable">;
+    const selected =
+      "project:stateVariable:selected" as EntryId<"stateVariable">;
+    h.workspace.execute(
+      addRecord({
+        entry: {
+          kind: "stateVariable",
+          id: mode,
+          ownerId: HOME,
+          name: "selectionMode",
+          valueType: "string",
+          defaultValue: "none",
+        } satisfies StateVariableEntry,
+      }),
+    );
+    h.workspace.execute(
+      catalogVariableCommands.nameSource(
+        HOME,
+        list,
+        { prop: "selectedKeys", type: "array" },
+        [],
+        "selectedKeys",
+        (() => selected) as never,
+      ),
+    );
+    h.workspace.execute(
+      catalogPropFollowCommand(h.graph(), list, "selectionMode", {
+        prop: "selectionMode",
+        kind: "variable",
+        variableId: mode,
+      }),
+    );
+    h.workspace.execute(
+      catalogPropFollowCommand(h.graph(), del, "isDisabled", {
+        prop: "isDisabled",
+        kind: "when",
+        variableId: selected,
+        path: "",
+        op: "notExists",
+      }),
+    );
+    h.rules(del, [
+      [
+        "onPress",
+        [
+          {
+            opcode: "removeSelectedItems",
+            collectionId: "data:collection:emails",
+          },
+          { opcode: "setState", variableId: mode, op: "set", value: "none" },
+        ],
+      ],
+    ]);
+    h.rules(edit, [
+      [
+        "onPress",
+        [
+          {
+            opcode: "setState",
+            variableId: mode,
+            op: "toggle",
+            value: "multiple",
+          },
+          {
+            opcode: "capability",
+            target: { nodeId: list },
+            capabilityId: "clearSelection",
+          },
+        ],
+      ],
+    ]);
+    golden("ios-list", h.code());
+    h.view.unmount();
+  });
+
+  it("emoji: a fixed condition — the label is text and does not start with 「regional indicator」", async () => {
+    const emojis: Collection = {
+      id: "emojis",
+      name: "emojis",
+      schema: [
+        { id: "m-id", key: "id", type: "string" },
+        { id: "m-label", key: "label", type: "string" },
+      ],
+      mockData: [{ id: "😀", label: "grinning face" }],
+    };
+    const h = await open(["ListBox"], [emojis]);
+    const [list] = h.ids as [NodeId];
+    h.bind(list, "emojis");
+    for (const [op, value] of [
+      ["exists", undefined],
+      ["notStartsWith", "regional indicator"],
+    ] as const) {
+      const { command, created } = catalogStaticConditionCommand(
+        h.graph(),
+        { listId: list, field: h.field(emojis, "label"), op, value },
+        h.workspace.newId,
+      );
+      h.workspace.execute(command);
+      // (`String.prototype.startsWith` is case sensitive — the condition's sensitivity says so.)
+      if (op === "notStartsWith")
+        h.workspace.execute(
+          catalogEditFilterCondition(h.graph(), list, created.conditionId, {
+            sensitivity: "variant",
+          }),
+        );
+    }
+    golden("emoji-picker", h.code());
+    h.view.unmount();
+  });
+});
+
+describe("ADR-284 G6 — the code view's 1:1 positions write the document (inverse map)", () => {
+  const result = (h: Awaited<ReturnType<typeof buildPlants>>) =>
+    catalogCodeView(h.graph(), HOME, {
+      collections: [PLANTS],
+      endpoints: [],
+    })!;
+
+  it("a variable's name · a filter term's comparison · a handler's When: one step, the document's own fields", async () => {
+    const h = await buildPlants();
+    const before = result(h);
+    const edited = before.code
+      .replace("let [search, setSearch]", "let [query, setSearch]")
+      .replace(
+        "contains(String(item.common_name), search)",
+        "startsWith(String(item.common_name), search)",
+      )
+      .replace("onChange={setSearch}", "onSubmit={setSearch}");
+    const inverse = catalogCodeViewInverse(before, edited);
+    expect(inverse.rejected).toEqual([]);
+    expect(inverse.edits.map((edit) => edit.kind)).toEqual([
+      "renameVariable",
+      "condition",
+      "trigger",
+    ]);
+    const depth = h.workspace.runtime.historyDepth.undo;
+    expect(
+      h.workspace.execute(catalogCodeViewCommand(inverse.edits)),
+    ).toBeTruthy();
+    expect(h.workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    const after = result(h);
+    expect(after.code).toContain("let [query, setQuery] = useState('');");
+    expect(after.code).toContain("startsWith(String(item.common_name), query)");
+    expect(after.code).toContain("value={query} onSubmit={setQuery}");
+    // (The document: the variable's name, the condition's comparison, the rule's When.)
+    expect(
+      (h.graph().getEntry(h.search.variableId) as StateVariableEntry).name,
+    ).toBe("query");
+    // (One Undo returns all three.)
+    h.workspace.undo();
+    expect(result(h).code).toBe(before.code);
+    h.view.unmount();
+  });
+
+  it("a change outside the marked parts applies nothing and names its line", async () => {
+    const h = await buildPlants();
+    const before = result(h);
+    const lines = before.code.split("\n");
+    const at = lines.findIndex((line) => line.includes("let collator"));
+    lines.splice(at + 1, 0, "  let extra = useMemo(() => 1, []);");
+    const inverse = catalogCodeViewInverse(before, lines.join("\n"));
+    expect(inverse.edits).toEqual([]);
+    expect(inverse.rejected).toEqual([
+      {
+        line: at + 2,
+        reason: "outsideSlot",
+        text: "  let extra = useMemo(() => 1, []);",
+      },
+    ]);
+    // (A position that cannot take the text: a term the comparisons do not read.)
+    const odd = catalogCodeViewInverse(
+      before,
+      before.code.replace(
+        "contains(String(item.common_name), search)",
+        "item.common_name.length > 3",
+      ),
+    );
+    expect(odd.edits).toEqual([]);
+    expect(odd.rejected.map((line) => line.reason)).toEqual(["unreadable"]);
+    // (A When the component does not offer — the Interactions panel's list: Button's press only.)
+    const hidden = catalogCodeViewInverse(
+      before,
+      before.code.replace("onPress={() => {", "onPressStart={() => {"),
+    );
+    expect(hidden.edits).toEqual([]);
+    expect(hidden.rejected[0]).toMatchObject({
+      reason: "unreadable",
+      text: "onPressStart",
+    });
+    h.view.unmount();
+  });
+});

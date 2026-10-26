@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-27 ADR-284 Phase 6b · 6c · G6 닫힘** — code view: 생성기 (page → React Aria 코드, 연구 §3 어휘) · 1:1 자리 역매핑 (변수 이름 · 초기값 · 조건 · 정렬 열 · When → 기존 명령 한 step, 자리 밖 = 줄 번호 거부) · 「코드」 패널 (전체 메뉴 · lazy). 수용 판정 스크립트 — 예제 5 종을 빌더로 재현 → 레퍼런스와 데이터 흐름 사실 PASS (plants 22 · photos 8 · kanban 8 · ios-list 7 · emoji 3). 재현 중 수리: 조건 「필드」 · 「고정 값」 조건 · 「검색 추가」 컨트롤이 변수를 따라감 (`PropVar`) · RadioGroup 「전체」 복귀. live (5175) 코드 편집 → Preview 반영 · 자리 밖 거부. 열림 · 합계 변화 없음.
+>
 > **2026-10-27 ADR-284 Phase 6a** — code view 수용 집합 대조로 찾은 형식 수리 (R9, 선택 필드 · contract 50 그대로): 비교 「…하지 않음」 3 (emoji) · boolean prop 의 값 조건 + Design 「변수로 정하기」 · 글자 변수 전환 · 「선택 수」 (ios-list — 사용자 결정 「prop 이 값 조건을 읽음」) · drop 목록이 규칙이 쓰는 다른 collection 을 받음 · 단일 선택 key → 글자 변수 (photos). 수리: `removeSelectedItems` 뒤 선택 잔존 · `clearSelection` 을 이름 붙은 상태가 안 따라감. live (5175) Button 「변수로 정하기」 → Preview 선택 없음 = 비활성 · 선택 = 활성. 열림 · 합계 변화 없음.
 >
 > **2026-10-27 ADR-284 Phase 5 · G5 닫힘** — 컬렉션 drag & drop: ListBox · GridList · Tree · Table 에 When 5 (`onReorder` · `onInsert` · `onRootDrop` · `onItemDrop` · `onDragEnd`) · 인자 (`keys` · `target.key` · `target.dropPosition` …) · 「묶기로 열 만들기」 가 열마다 drop 규칙 3 을 함께 만들어 카드가 열을 옮기고 머리 개수가 바뀐다 · update 「쓸 필드」 · move 「놓은 쪽」 (선택 필드 추가) · AI 규칙 도구 Do 목록. 수리: 개수 머리가 있으면 목록 편집이 「항목 없음」 이던 세션 결함. Preview initial +431 B (배선은 lazy 561 B). live (5175) 실제 drag 4 시나리오. 열림 · 합계 변화 없음.

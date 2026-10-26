@@ -440,6 +440,12 @@ function authoredValue(
   }
   const ref = object(value, at);
   if (ref.kind === "when") return propWhen(ref, at);
+  if (ref.kind === "var") {
+    exact(ref, ["kind", "ref"], at);
+    if (typeof ref.ref !== "string" || !/^!var\.[^.]+/.test(ref.ref))
+      invalid("WHEN_SUBJECT_VARIABLE", `${at}.ref`);
+    return;
+  }
   exact(ref, ["kind", "tokenId"], at);
   if (ref.kind !== "token") invalid("UNKNOWN_VALUE_KIND", at);
   id(ref.tokenId, "", `${at}.tokenId`);

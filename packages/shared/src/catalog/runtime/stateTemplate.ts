@@ -11,11 +11,12 @@ import {
 import type { CatalogGraph } from "../document/graph";
 import type {
   EntryId,
+  PropVar,
   PropWhen,
   StateVariableEntry,
   ValueType,
 } from "../document/types";
-import { isPropWhen } from "../document/valueType";
+import { isPropVar, isPropWhen } from "../document/valueType";
 import { viewCompare } from "../../collections/view/comparison";
 
 /** A project variable's reference in the catalog document (`data:variable:<id>`). */
@@ -217,7 +218,9 @@ export function catalogStateProps<T extends Record<string, unknown>>(
   env: () => CatalogStateEnv,
 ): T | undefined {
   const templates = hasStateTemplateSyntax(authored);
-  const conditions = Object.values(authored).some(isPropWhen);
+  const conditions = Object.values(authored).some(
+    (value) => isPropWhen(value) || isPropVar(value),
+  );
   if (!templates && !conditions) return undefined;
   const scope = env();
   const props = templates ? resolveStateTemplateProps(authored, scope) : authored;
@@ -226,7 +229,34 @@ export function catalogStateProps<T extends Record<string, unknown>>(
   const out: Record<string, unknown> = { ...props };
   for (const [key, value] of Object.entries(authored))
     if (isPropWhen(value)) out[key] = catalogPropWhenValue(value, scope);
+    else if (isPropVar(value)) out[key] = catalogPropVarValue(key, value, scope);
   return out as T;
+}
+
+/** RAC's key list props: a text variable's one key is a list of one (`selectedKeys={[album]}`). */
+const KEY_LIST_PROPS: ReadonlySet<string> = new Set([
+  "selectedKeys",
+  "defaultSelectedKeys",
+  "expandedKeys",
+  "disabledKeys",
+]);
+
+/** ADR-284 Phase 6 — a prop that is a variable's value (undefined = no such variable). */
+export function catalogPropVarValue(
+  prop: string,
+  value: PropVar,
+  env: Pick<CatalogStateEnv, "byId">,
+): unknown {
+  const [id, ...path] = value.ref.slice("!var.".length).split(".");
+  let read = id ? env.byId(id)?.value : undefined;
+  for (const segment of path)
+    read =
+      read !== null && typeof read === "object"
+        ? (read as Record<string, unknown>)[segment]
+        : undefined;
+  if (KEY_LIST_PROPS.has(prop) && !Array.isArray(read) && read !== "all")
+    return read === undefined || read === null || read === "" ? [] : [read];
+  return read;
 }
 
 /**
@@ -373,7 +403,8 @@ export function catalogVariableValue(
 export function catalogStateNames(authored: Record<string, unknown>): string[] {
   const names = collectPropsStateRefs(authored);
   for (const value of Object.values(authored))
-    if (isPropWhen(value))
+    if (isPropVar(value)) names.push(value.ref.slice("!var.".length).split(".")[0]!);
+    else if (isPropWhen(value))
       for (const ref of [value.subject, value.value])
         if (typeof ref === "string" && ref.startsWith("!var."))
           names.push(ref.slice("!var.".length).split(".")[0]!);

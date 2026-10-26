@@ -2333,6 +2333,19 @@ const koKR: TranslationKeys = {
     importing: "가져오는 중…",
     columns: "열",
   },
+  codeView: {
+    title: "코드",
+    section: "페이지 코드",
+    noPage: "페이지를 열면 코드가 보입니다.",
+    codeLabel: "페이지의 React Aria 코드",
+    editorLabel: "코드 편집 — 표시된 자리만 문서에 반영됩니다",
+    edit: "표시된 자리 고치기",
+    apply: "적용",
+    cancel: "취소",
+    rejected: "문서로 환원되지 않는 코드라 아무것도 적용하지 않았습니다.",
+    reasonOutside: "표시된 자리 밖의 변경",
+    reasonUnreadable: "이 자리가 읽을 수 없는 값",
+  },
   dataView: {
     section: "검색 · 필터",
     add: "검색 추가",
@@ -2411,6 +2424,8 @@ const koKR: TranslationKeys = {
     op_before: "이전",
     op_after: "이후",
     op_withinLast: "최근 기간",
+    kind_static: "고정 값 (컨트롤 없음)",
+    fixedValue: "값",
     follow_title: "변수로 정하기",
     follow_add: "변수로 정할 속성 추가",
     follow_prop: "속성",
@@ -4884,6 +4899,19 @@ const enUS: TranslationKeys = {
     importing: "Importing…",
     columns: "Columns",
   },
+  codeView: {
+    title: "Code",
+    section: "Page code",
+    noPage: "Open a page to see its code.",
+    codeLabel: "The page's React Aria code",
+    editorLabel: "Edit code — only the marked parts go back to the document",
+    edit: "Edit the marked parts",
+    apply: "Apply",
+    cancel: "Cancel",
+    rejected: "This code does not map back to the document — nothing was applied.",
+    reasonOutside: "a change outside the marked parts",
+    reasonUnreadable: "a value this part cannot take",
+  },
   dataView: {
     section: "Search · filter",
     add: "Add search",
@@ -4961,6 +4989,8 @@ const enUS: TranslationKeys = {
     op_before: "Before",
     op_after: "After",
     op_withinLast: "Within the last",
+    kind_static: "Fixed value (no control)",
+    fixedValue: "Value",
     follow_title: "Set by variable",
     follow_add: "Add a property set by a variable",
     follow_prop: "Property",
@@ -6441,6 +6471,10 @@ const formattedMessages: Record<
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
     "dataView.follow_remove": (args) =>
       `${String(args?.prop ?? "")} 의 변수 연결 해제`,
+    "codeView.applied": (args) =>
+      `문서에 ${String(args?.count ?? 0)} 곳을 반영했습니다.`,
+    "codeView.rejectedLine": (args) =>
+      `${String(args?.line ?? "")} 줄 — ${String(args?.reason ?? "")}`,
     "dataView.currentValue": (args) =>
       `현재 값 (Preview): ${String(args?.value ?? "")}`,
     "dataView.beforeRun": (args) =>
@@ -7055,6 +7089,10 @@ const formattedMessages: Record<
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
     "dataView.follow_remove": (args) =>
       `Stop setting ${String(args?.prop ?? "")} by a variable`,
+    "codeView.applied": (args) =>
+      `Applied ${String(args?.count ?? 0)} change(s) to the document.`,
+    "codeView.rejectedLine": (args) =>
+      `Line ${String(args?.line ?? "")} — ${String(args?.reason ?? "")}`,
     "dataView.currentValue": (args) =>
       `Current value (Preview): ${String(args?.value ?? "")}`,
     "dataView.beforeRun": (args) =>
