@@ -5,6 +5,8 @@ import type {
   ViewConditionGroup,
   ViewQuery,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { removeTargets } from "../../../../../../packages/shared/src/catalog/commands/structure";
+import { catalogViewUsers } from "../../../../../../packages/shared/src/catalog/commands/views";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
 import {
@@ -180,6 +182,61 @@ describe("ADR-284 G4 — 「결과 수 표시」 · the promoted view (review ro
     expect(h.graph().getEntry(created.viewId)).toBeUndefined();
     expect(binding()?.viewId).toBeUndefined();
     expect(binding()?.view?.where.items).toHaveLength(1);
+    h.view.unmount();
+  });
+});
+
+describe("ADR-284 G4 — a derived view goes with the last node reading it", () => {
+  it("deleting the result count's Text deletes its count view (the list's view keeps one reader); Undo restores both", async () => {
+    const h = await boundList();
+    const { command, created } = catalogResultCountCommand(
+      h.graph(),
+      { listId: h.list, viewName: "Users view", text: "{count}개" },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    const listView = () => {
+      const entry = h.graph().getEntry(h.list);
+      return entry?.kind === "node" ? entry.binding!.viewId! : undefined;
+    };
+    const source = listView()!;
+    expect(catalogViewUsers(h.graph(), source)).toHaveLength(2);
+    expect(
+      h.workspace.execute(
+        removeTargets({ targets: [{ kind: "node", id: created.textId }] }),
+      ),
+    ).toBeTruthy();
+    expect(h.graph().getEntry(created.viewId)).toBeUndefined();
+    expect(catalogViewUsers(h.graph(), source)).toEqual([h.list]);
+    h.workspace.undo();
+    expect(h.graph().getEntry(created.viewId)).toBeTruthy();
+    expect(catalogViewUsers(h.graph(), source)).toHaveLength(2);
+    h.view.unmount();
+  });
+});
+
+describe("ADR-284 결정 3 — 「적용 조건 수 표시」", () => {
+  it("a Text before the list counts the view's applied conditions: 「전체」 is none, a choice is one", async () => {
+    const h = await boundList();
+    const { command, created } = catalogResultCountCommand(
+      h.graph(),
+      {
+        listId: h.list,
+        viewName: "Users view",
+        text: "조건 {applied}개",
+        aggregate: "applied",
+      },
+      h.workspace.newId,
+    );
+    expect(h.workspace.execute(command)).toBeTruthy();
+    h.flush();
+    await settle();
+    expect(h.text(created.textId)).toBe("조건 0개");
+    await h.choose(2);
+    expect(h.names(h.list)).toEqual(["Park"]);
+    expect(h.text(created.textId)).toBe("조건 1개");
+    await h.choose(0);
+    expect(h.text(created.textId)).toBe("조건 0개");
     h.view.unmount();
   });
 });

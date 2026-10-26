@@ -31,6 +31,7 @@ import {
   catalogFilterCommand,
   catalogGroupColumnsCommand,
   catalogOrFilterCondition,
+  catalogResultCountCommand,
   catalogShareView,
   catalogSortFollowCommand,
   catalogStaticConditionCommand,
@@ -230,6 +231,19 @@ async function buildPlants() {
       })),
     ],
   ]);
+  // (「적용 조건 수 표시」 — the Filters button's badge: how many conditions apply.)
+  h.workspace.execute(
+    catalogResultCountCommand(
+      h.graph(),
+      {
+        listId: table,
+        viewName: "items",
+        text: "{applied}",
+        aggregate: "applied",
+      },
+      h.workspace.newId,
+    ).command,
+  );
   return { ...h, table, grid, clear, search };
 }
 

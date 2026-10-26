@@ -65,7 +65,7 @@ export interface ViewRunResult {
   schema: readonly ViewRunField[];
   /** Conditions whose field or reference does not resolve: skipped, and shown as broken. */
   broken: readonly string[];
-  /** Conditions that applied (not skipped) — 「적용 조건 수」. */
+  /** Conditions that applied (not skipped) over the whole chain — 「적용 조건 수」. */
   applied: number;
 }
 
@@ -373,13 +373,15 @@ function judge(
   return item.op === "and" ? "match" : "miss";
 }
 
+/**
+ * 「적용 조건 수」 — the view's top-level conditions that apply: a nested group (「또는 조건」 — a search
+ * over two names) is one condition, applying when anything in it does.
+ */
 function countApplied(group: PreparedGroup): number {
-  return group.items.reduce(
-    (sum, item) =>
-      sum + (item.kind === "group" ? countApplied(item) : item.skip ? 0 : 1),
-    0,
-  );
+  return group.items.filter((item) => appliesAny(item)).length;
 }
+const appliesAny = (item: PreparedCondition | PreparedGroup): boolean =>
+  item.kind === "group" ? item.items.some(appliesAny) : !item.skip;
 
 /** A sort's field and direction as the run reads them (a variable holds `{column, direction}`). */
 function sortOf(
@@ -450,8 +452,10 @@ function aggregateOf(
   aggregate: ViewAggregate,
   field: ViewRunField | undefined,
   rows: readonly unknown[],
+  sourceApplied: number,
 ): unknown {
   if (aggregate.fn === "count") return rows.length;
+  if (aggregate.fn === "applied") return sourceApplied;
   if (!field) return null;
   const cells = rows
     .map((row) => cellOf(row, field))
@@ -486,6 +490,8 @@ function groupRows(
   schema: readonly ViewRunField[],
   references: ViewRunInput["references"],
   broken: string[],
+  /** The conditions the source views applied (the `applied` aggregate). */
+  sourceApplied: number,
 ): readonly unknown[] {
   const keys = (query.groupBy ?? []).map((path) =>
     viewFieldOf(path, schema, references),
@@ -517,7 +523,12 @@ function groupRows(
       setCell(row, field.key, group.values[index]),
     );
     for (const { aggregate, field } of aggregates)
-      row[aggregate.as] = aggregateOf(aggregate, field, group.rows);
+      row[aggregate.as] = aggregateOf(
+        aggregate,
+        field,
+        group.rows,
+        sourceApplied,
+      );
     return row;
   });
 }
@@ -531,6 +542,7 @@ function runQuery(
   schema: readonly ViewRunField[],
   input: ViewRunInput,
   broken: string[],
+  sourceApplied: number,
 ): {
   rows: readonly unknown[];
   schema: readonly ViewRunField[];
@@ -544,7 +556,15 @@ function runQuery(
     : rows;
   const resultSchema = viewResultSchema(query, schema, input.references);
   if (query.groupBy || query.aggregates)
-    out = groupRows(query, out, dataRows, schema, input.references, broken);
+    out = groupRows(
+      query,
+      out,
+      dataRows,
+      schema,
+      input.references,
+      broken,
+      sourceApplied,
+    );
   const sort = sortOf(query, input, resultSchema);
   if (sort) {
     const sign = sort.direction === "descending" ? -1 : 1;
@@ -567,7 +587,8 @@ export function runViewQueries(
   const broken: string[] = [];
   let out = rows;
   let schema = input.schema;
-  let applied = 0;
+  // (The conditions the views before this one applied — a derived view's `applied` aggregate.)
+  let sourceApplied = 0;
   let grouped = false;
   for (const query of input.queries) {
     // (Until a view groups, the collection's rows hold every value of a field.)
@@ -578,13 +599,14 @@ export function runViewQueries(
       schema,
       input,
       broken,
+      sourceApplied,
     );
     grouped ||= !!(query.groupBy || query.aggregates);
     out = result.rows;
     schema = result.schema;
-    applied = result.applied;
+    sourceApplied += result.applied;
   }
-  return { rows: out, schema, broken, applied };
+  return { rows: out, schema, broken, applied: sourceApplied };
 }
 
 /** The fields the view at `queryIndex` reads: its source's result fields. */

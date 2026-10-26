@@ -144,6 +144,25 @@ describe("ADR-284 — the view shape", () => {
     );
   });
 
+  it("결정 3 — 「적용 조건 수」 is the `applied` aggregate: no field", () => {
+    const derived = (aggregate: object) =>
+      shared({
+        id: "project:view:d",
+        source: { viewId: VIEW },
+        where,
+        aggregates: [aggregate as never],
+      });
+    const at = (aggregate: object) =>
+      accepted(
+        [bound({ viewId: "project:view:d" as EntryId<"view"> })],
+        [shared(), derived(aggregate)],
+      );
+    expect(at({ fn: "applied", as: "applied" })).toBe("ACCEPTED");
+    expect(
+      at({ fn: "applied", field: ["data:field:f-gender"], as: "applied" }),
+    ).toBe("AGGREGATE_FIELD_NOT_ALLOWED");
+  });
+
   it("a rule holds a Do list: at least one; a 49 single `action` is refused", () => {
     const rule = (actions: unknown): CatalogEntry =>
       ({

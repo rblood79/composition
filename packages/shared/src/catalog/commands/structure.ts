@@ -30,6 +30,7 @@ import type {
   LayoutWrites,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
+import { removeUnreadDerivedViews } from "./views";
 import { CatalogStage } from "../transactions/transaction";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
@@ -1081,6 +1082,8 @@ export function removeWithReferrers(
   const queue = [...ids];
   for (const id of ids) draft.remove(id);
   const removedRelated: string[] = [];
+  /** Every node this removal takes (the ids and the slot contents that go with them). */
+  const removedNodes = [...ids];
   while (queue.length) {
     const id = queue.shift()!;
     for (const referrerId of draft.reader.referrersOf(id)) {
@@ -1139,6 +1142,7 @@ export function removeWithReferrers(
               const gone = subtree(draft, rootId);
               for (const removedId of gone) draft.remove(removedId);
               queue.push(...gone);
+              removedNodes.push(...gone);
             }
         // ADR-261 Decision 3: a removed component leaves the slots that suggested it.
         const suggested = entry.slot?.suggested?.filter(
@@ -1166,6 +1170,8 @@ export function removeWithReferrers(
     if (suggested.length !== entry.slot.suggested.length)
       draft.write({ ...entry, slot: withSuggested(entry.slot, suggested) });
   }
+  // ADR-284 — a derived view (a result count's · a grouping's) goes with its last reader.
+  removeUnreadDerivedViews(draft, removedNodes);
   if (!removedRelated.length) return;
   const gone = new Set(removedRelated);
   const project = draft.project();

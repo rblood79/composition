@@ -641,6 +641,13 @@ class Generator {
       }
     }
     const grouped = !!query.groupBy?.length;
+    if (!grouped && query.aggregates?.length && !query.where.items.length) {
+      // (A count without grouping — 「결과 수 표시」 · 「적용 조건 수 표시」: one row, the key the
+      // runtime gives a row without an id.)
+      const fields = this.aggregateFields(code, query, source);
+      out.line(`let ${code.name} = [{id: 'row-1', ${fields.join(", ")}}];`);
+      return;
+    }
     // (A grouping view: the filtered rows first, then `Map.groupBy` and the aggregates.)
     const filtered = grouped
       ? this.names.take(`${code.name}Rows`, "rows")
@@ -701,24 +708,7 @@ class Generator {
     const read = this.fieldRead(code.collectionId, query.groupBy![0]!);
     const groups = this.names.take(`${code.name}Groups`, "groups");
     out.line(`let ${groups} = Map.groupBy(${rows}, item => ${read});`);
-    const fields = (query.aggregates ?? []).map((aggregate) => {
-      const field = aggregate.field
-        ? this.pathKey(code.collectionId, aggregate.field)
-        : "";
-      const name = property(aggregate.as);
-      switch (aggregate.fn) {
-        case "count":
-          return `${name}: rows.length`;
-        case "sum":
-          return `${name}: rows.reduce((sum, row) => sum + Number(row.${field} ?? 0), 0)`;
-        case "mean":
-          return `${name}: rows.reduce((sum, row) => sum + Number(row.${field} ?? 0), 0) / rows.length`;
-        case "min":
-          return `${name}: rows.map(row => row.${field}).toSorted()[0]`;
-        case "max":
-          return `${name}: rows.map(row => row.${field}).toSorted().at(-1)`;
-      }
-    });
+    const fields = this.aggregateFields(code, query, "rows");
     const value = identifier(key, "value");
     const entries =
       query.emptyGroups === "all"
@@ -730,6 +720,93 @@ class Generator {
       .write(
         `let ${code.name} = ${entries}.map(([${value}, rows]) => ({id: ${value}, ${property(key)}: ${value}${fields.length ? `, ${fields.join(", ")}` : ""}}))`,
       );
+  }
+
+  /** A view's aggregates over `rows` as object fields (`count: rows.length` …). */
+  private aggregateFields(
+    code: ViewCode,
+    query: ViewQuery,
+    rows: string,
+  ): string[] {
+    return (query.aggregates ?? []).map((aggregate) => {
+      const field = aggregate.field
+        ? this.pathKey(code.collectionId, aggregate.field)
+        : "";
+      const name = property(aggregate.as);
+      switch (aggregate.fn) {
+        case "count":
+          return `${name}: ${rows}.length`;
+        case "sum":
+          return `${name}: ${rows}.reduce((sum, row) => sum + Number(row.${field} ?? 0), 0)`;
+        case "mean":
+          return `${name}: ${rows}.reduce((sum, row) => sum + Number(row.${field} ?? 0), 0) / ${rows}.length`;
+        case "min":
+          return `${name}: ${rows}.map(row => row.${field}).toSorted()[0]`;
+        case "max":
+          return `${name}: ${rows}.map(row => row.${field}).toSorted().at(-1)`;
+        case "applied":
+          return `${name}: ${this.appliedCode(code)}`;
+      }
+    });
+  }
+
+  /**
+   * 「적용 조건 수」 — how many conditions of the source views apply, as code: each condition's
+   * 「applies」 (its 적용 variable, not its skip value — an empty search does not count).
+   */
+  private appliedCode(code: ViewCode): string {
+    const actives: string[] = [];
+    let source =
+      "viewId" in code.owner
+        ? this.doc.view(code.owner.viewId)?.source
+        : undefined;
+    while (source && "viewId" in source) {
+      const view = this.doc.view(source.viewId);
+      if (!view) break;
+      // (A nested group — 「또는 조건」 — is one condition: it applies when anything in it does.)
+      const leaves = (group: ViewConditionGroup): string[] =>
+        group.items.flatMap((item) =>
+          "items" in item ? leaves(item) : (this.activeOf(item) ?? []),
+        );
+      const before = actives.length;
+      for (const item of view.where.items) {
+        const active =
+          "items" in item ? [...new Set(leaves(item))] : this.activeOf(item);
+        if (Array.isArray(active)) {
+          if (active.length)
+            actives.push(
+              active.length > 1 ? `(${active.join(" || ")})` : active[0]!,
+            );
+        } else if (active) actives.push(active);
+      }
+      // (Root first: the source of a source is read before it.)
+      actives.unshift(...actives.splice(before));
+      source = view.source;
+    }
+    return actives.length
+      ? `[${actives.join(", ")}].filter(Boolean).length`
+      : "0";
+  }
+
+  /** Whether a condition applies, as code (undefined = never — `enabled: false`). */
+  private activeOf(condition: ViewCondition): string | undefined {
+    if (condition.enabled === false) return undefined;
+    const value = this.conditionValue(condition.value);
+    const parts: string[] = [];
+    if (
+      typeof condition.enabled === "string" &&
+      condition.enabled.startsWith("!var.")
+    )
+      parts.push(this.conditionValue(condition.enabled).code);
+    const skip = this.skipOf(condition, value);
+    if (skip.length) parts.push(`!(${skip.join(" || ")})`);
+    else if (
+      value.variable &&
+      ["contains", "startsWith", "endsWith"].includes(condition.op)
+    )
+      // (An empty search matches every row — it is not a filter.)
+      parts.push(`${value.code} !== ''`);
+    return parts.length ? parts.join(" && ") : "true";
   }
 
   /** A field path's key (`team.name` for a reference path). */

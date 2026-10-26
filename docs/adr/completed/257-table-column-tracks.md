@@ -4,6 +4,8 @@
 
 Implemented — 2026-10-12 (Phase 0 ~ 5 · 후속 GridList · Badge `overflowMode` 완료 · G6 총비용 A/B 측정 — 스크롤 · 칸 편집은 노이즈 안, 열 폭 편집은 commit · layout 같고 화면 반영 총시간만 약 +6 ms. 그 차이는 열 폭이 바뀔 때 모든 행의 칸이 실제로 움직여 Canvas 가 더 그리는 몫이라 사용자 「1번으로 진행해」 (2026-10-12) 로 수용 — [Live Exercise](#live-exercise))
 
+> **정렬 소유 범위 — [ADR-284](../284-data-view-filter-sort-group-query.md) 후속 (2026-10-27)**: 보기에 정렬 변수가 있는 Table (「정렬 따라가기」 로 만든 `SortDescriptor` 변수) 은 그 변수가 정렬을 소유한다 — resolver 가 이 ADR 의 Preview 런타임 정렬을 건너뛰고, 화살표와 행 순서를 변수에서 읽으며, 머리글 누름은 Table 의 `onSortChange` 규칙만 쓴다 (`_sortByVariable`). 정렬 변수가 없는 Table (바인딩 없는 Table · 기본 보기에 정렬이 없는 바인딩 Table) 은 이 ADR 의 런타임 정렬 그대로다 (ADR-284 사용자 결정 2).
+
 Accepted — 2026-10-10 (Proposed 2026-10-10)
 
 - 승격 근거: 사용자 `/execute-adr 257` (2026-10-10) + [reviews/257.md](../reviews/257.md) 최신 round 2 pending 0 · HIGH 전부 fixed.

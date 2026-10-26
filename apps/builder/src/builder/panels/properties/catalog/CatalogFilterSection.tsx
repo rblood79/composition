@@ -46,6 +46,8 @@ import {
   catalogReferenceValueCommand,
   catalogResultCountCommand,
   catalogRemoveFilterCondition,
+  catalogDefaultFilterKind,
+  catalogJoinSharedView,
   catalogShareView,
   catalogSharedViewOf,
   catalogSortFollowCommand,
@@ -316,7 +318,12 @@ function AddForm({
 }) {
   const { t } = useI18n();
   const [fieldId, setFieldId] = useState(fields[0]?.id ?? "");
-  const [kind, setKind] = useState<AddKind>("text");
+  // (The control follows the field's type until one is chosen — a boolean is a Checkbox.)
+  const [chosen, setChosen] = useState<AddKind | null>(null);
+  const kind =
+    chosen ??
+    catalogDefaultFilterKind(fields.find((field) => field.id === fieldId)?.type);
+  const setKind = setChosen;
   return (
     <div className="data-view-add-form">
       {targets ? (
@@ -781,6 +788,26 @@ function DerivedViews({
       <Button
         className="control-button"
         data-variant="add"
+        onPress={() => {
+          const { command } = catalogResultCountCommand(
+            graph,
+            {
+              listId,
+              viewName: viewName(),
+              text: t("dataView.appliedText"),
+              label: t("dataView.appliedCount"),
+              aggregate: "applied",
+            },
+            workspace.newId,
+          );
+          run(command);
+        }}
+      >
+        {t("dataView.appliedCount")}
+      </Button>
+      <Button
+        className="control-button"
+        data-variant="add"
         onPress={() => setGrouping("list")}
       >
         {t("dataView.groupList")}
@@ -982,9 +1009,11 @@ function SharedView({ listId }: { listId: NodeId }) {
       ? catalogFilterTargets(graph, pageId as EntryId<"page">).filter((id) => {
           if (id === listId) return false;
           const entry = graph.getEntry(id);
+          // (A list on the same data — not a one-item read such as a result count's Text.)
           return (
             entry?.kind === "node" &&
-            entry.binding?.collectionId === binding?.collectionId
+            entry.binding?.collectionId === binding?.collectionId &&
+            entry.binding?.key === undefined
           );
         })
       : [];
@@ -994,6 +1023,15 @@ function SharedView({ listId }: { listId: NodeId }) {
       others,
     };
   }, [graph, listId, revision]);
+  // (Lists on the data that do not read the shared view yet — 「함께 볼 목록」.)
+  // (A list reading another shared view keeps it — 「이 목록에서만」 there first.)
+  const joinable: string[] = info.shared
+    ? info.others.filter((id) => {
+        const entry = graph.getEntry(id);
+        return entry?.kind === "node" && !entry.binding?.viewId;
+      })
+    : [];
+  const joining = (joinable.includes(other) ? other : joinable[0]) as NodeId;
   if (info.shared)
     return (
       <div className="data-view-shared">
@@ -1010,6 +1048,30 @@ function SharedView({ listId }: { listId: NodeId }) {
           >
             {t("dataView.splitHere")}
           </Button>
+        ) : null}
+        {joinable.length ? (
+          <>
+            <PropertySelect
+              label={t("dataView.shareWith")}
+              value={joining}
+              options={joinable.map((id) => ({
+                value: id,
+                label: nodeLabel(graph, id),
+              }))}
+              translateOptions={false}
+              onChange={setOther}
+            />
+            <Button
+              className="control-button"
+              onPress={() =>
+                run(
+                  catalogJoinSharedView(info.shared!.view.id, [joining]),
+                )
+              }
+            >
+              {t("dataView.shareJoin")}
+            </Button>
+          </>
         ) : null}
       </div>
     );

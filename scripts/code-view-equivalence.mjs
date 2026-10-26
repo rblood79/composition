@@ -21,11 +21,11 @@
  * `states`, §7a 비교하는 부분); facts about other states are printed as 「비교 밖」, never dropped
  * silently. `exclude` (with a reason each) removes facts from both sides. Equal fact sets = PASS.
  *
- * Usage: node scripts/code-view-equivalence.mjs [--json]   (exit 1 on a FAIL)
+ * Usage: node scripts/code-view-equivalence.mjs [--json] [--generated <example>=<file>]   (exit 1 on a FAIL)
  */
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -977,13 +977,20 @@ export function judge(options = {}) {
     if (options.only && options.only !== name) continue;
     const states = new Set(example.states);
     const side = (paths, entry, generated) => {
-      const files = paths.map((path) => parse(join(FIXTURES, path)));
+      const files = paths.map((path) =>
+        parse(isAbsolute(path) ? path : join(FIXTURES, path)),
+      );
       const extractor = new Extractor(files, example);
       const facts = extractor.run(generated ? undefined : entry);
       return { extractor, facts };
     };
     const reference = side(example.reference, example.entry, false);
-    const generated = side([example.generated], undefined, true);
+    // (`--generated <example>=<file>` — another generated code, e.g. one copied from the Builder.)
+    const generated = side(
+      [options.generated?.[name] ?? example.generated],
+      undefined,
+      true,
+    );
     const excludes = example.exclude.map((rule) => ({
       ...rule,
       test: glob(rule.fact),
@@ -1037,7 +1044,20 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const json = process.argv.includes("--json");
-  const report = judge();
+  const generated = Object.fromEntries(
+    process.argv
+      .flatMap((arg, index) =>
+        arg === "--generated" ? [process.argv[index + 1]] : [],
+      )
+      .map((pair) => {
+        const at = pair.indexOf("=");
+        return [pair.slice(0, at), resolve(pair.slice(at + 1))];
+      }),
+  );
+  const only = Object.keys(generated).length === 1
+    ? Object.keys(generated)[0]
+    : undefined;
+  const report = judge({ generated, ...(only ? { only } : {}) });
   if (json) console.log(JSON.stringify(report, null, 2));
   else {
     for (const result of report.results) {

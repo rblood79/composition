@@ -1565,6 +1565,7 @@ export interface TranslationKeys {
     properties: string;
     interactions: string;
     history: string;
+    codeView: string;
   };
   navigator: {
     components: string;

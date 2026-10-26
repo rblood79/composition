@@ -60,6 +60,46 @@ export const updateView =
     };
   };
 
+/**
+ * A derived view (one over another view — a result count, a grouping, a kanban column) goes with
+ * the last node reading it: called by a removal with the nodes it removed. A view read by nothing
+ * else is removed, then its source if that is a derived view left unread too. A view over a
+ * collection (a list's named or promoted view) stays — it is the user's.
+ */
+export function removeUnreadDerivedViews(
+  draft: CommandDraft,
+  removedNodes: readonly string[],
+): void {
+  const queue: string[] = [];
+  for (const id of removedNodes) {
+    const entry = draft.reader.getEntry(id) as
+      | { kind: "node"; binding?: { viewId?: string } }
+      | undefined;
+    if (entry?.kind === "node" && entry.binding?.viewId)
+      queue.push(entry.binding.viewId);
+  }
+  const gone: string[] = [];
+  while (queue.length) {
+    const viewId = queue.shift()!;
+    if (draft.removed(viewId)) continue;
+    const view = draft.read(viewId) as ViewEntry | undefined;
+    if (view?.kind !== "view" || !("viewId" in view.source)) continue;
+    const readers = catalogViewUsers(draft.reader, view.id).filter(
+      (id) => !draft.removed(id),
+    );
+    if (readers.length) continue;
+    draft.remove(view.id);
+    gone.push(view.id);
+    queue.push(view.source.viewId);
+  }
+  if (!gone.length) return;
+  const project = draft.project();
+  draft.write({
+    ...project,
+    viewIds: listed(project.viewIds).filter((id) => !gone.includes(id)),
+  });
+}
+
 /** Remove a shared view no binding or view reads (else `VIEW_IN_USE` — the panel names them). */
 export const removeView =
   (input: { id: EntryId<"view">; label?: string }): CatalogCommand =>

@@ -673,11 +673,21 @@ export interface ViewConditionGroup {
   op: "and" | "or";
   items: readonly (ViewCondition | ViewConditionGroup)[];
 }
-/** ADR-284 Decision 3 — aggregate names shared with Chart `budgetAggregate` (+ `count`). */
-export type ViewAggregateFn = "count" | "sum" | "mean" | "min" | "max";
+/**
+ * ADR-284 Decision 3 — aggregate names shared with Chart `budgetAggregate` (+ `count`), and
+ * `applied`: the number of conditions the source views apply (「적용 조건 수」 — a skipped condition
+ * is not counted; the same for every row).
+ */
+export type ViewAggregateFn =
+  | "count"
+  | "sum"
+  | "mean"
+  | "min"
+  | "max"
+  | "applied";
 export interface ViewAggregate {
   fn: ViewAggregateFn;
-  /** The field summed · compared; absent for `count`. */
+  /** The field summed · compared; absent for `count` · `applied`. */
   field?: DataFieldPath;
   /** The result field's name (unique in the view). */
   as: string;

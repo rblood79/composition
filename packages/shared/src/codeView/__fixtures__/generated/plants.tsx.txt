@@ -3,7 +3,7 @@
 
 import {useState} from 'react';
 import {useCollator, useFilter} from 'react-aria';
-import {Button, Checkbox, GridList, GridListItem, Row, SearchField, Table, TagGroup, type Selection, type SortDescriptor} from 'react-aria-components';
+import {Button, Checkbox, GridList, GridListItem, Row, SearchField, Table, TagGroup, Text, type Selection, type SortDescriptor} from 'react-aria-components';
 import plants from './data/plants';
 
 export default function Home() {
@@ -24,6 +24,7 @@ export default function Home() {
       (sunlight === 'all' || sunlight.size === 0 || sunlight.has(item.sunlight)) &&
       (watering === 'all' || watering.size === 0 || watering.has(item.watering)))
     .toSorted((a, b) => collator.compare(String(a[sortDescriptor.column]), String(b[sortDescriptor.column])) * sortDescriptorDir);
+  let itemsApplied = [{id: 'row-1', applied: [search !== '', favorite, !(cycles === 'all' || cycles.size === 0), !(sunlight === 'all' || sunlight.size === 0), !(watering === 'all' || watering.size === 0)].filter(Boolean).length}];
 
   return (
     <>
@@ -32,6 +33,7 @@ export default function Home() {
       <TagGroup label="cycle" selectedKeys={cycles} onSelectionChange={setCycles} />
       <TagGroup label="sunlight" selectedKeys={sunlight} onSelectionChange={setSunlight} />
       <TagGroup label="watering" selectedKeys={watering} onSelectionChange={setWatering} />
+      <Text>{`${itemsApplied.find(row => row.id === 'row-1')?.applied ?? ''}`}</Text>
       <Table sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor} items={items}>
         {item => <Row id={item.id} textValue={String(item.id)}>{item.id}</Row>}
       </Table>

@@ -225,16 +225,43 @@ export function catalogBoundRows(
         { ...ref.query, queries: counts },
         sources,
       );
-      const counted = known
-        ? result.rows.map((row) =>
-            Object.fromEntries(
-              Object.keys(row as object).map((key) => [
-                key,
-                total ?? rows.length,
-              ]),
-            ),
-          )
-        : partialAggregates(result.rows, counts);
+      // (「적용 조건 수」 is the answered views' own — read from their conditions, not the rows.)
+      const appliedNames = new Set(
+        counts.flatMap((query) =>
+          (query.aggregates ?? [])
+            .filter((aggregate) => aggregate.fn === "applied")
+            .map((aggregate) => aggregate.as),
+        ),
+      );
+      const applied = appliedNames.size
+        ? runBindingView(
+            [],
+            table,
+            { ...ref.query, queries: ref.query.queries.slice(0, depth) },
+            sources,
+          ).applied
+        : 0;
+      const counted = (
+        known
+          ? result.rows.map((row) =>
+              Object.fromEntries(
+                Object.keys(row as object).map((key) => [
+                  key,
+                  total ?? rows.length,
+                ]),
+              ),
+            )
+          : partialAggregates(result.rows, counts)
+      ).map((row) =>
+        appliedNames.size
+          ? {
+              ...(row as object),
+              ...Object.fromEntries(
+                [...appliedNames].map((name) => [name, applied]),
+              ),
+            }
+          : row,
+      );
       view = { ...view, matched: counted.length, complete: known };
       collections = resultRows(counted, result.schema);
     }
@@ -299,7 +326,8 @@ function partialAggregates(
   const marks = new Map<string, string>();
   for (const query of queries)
     for (const aggregate of query.aggregates ?? [])
-      marks.set(aggregate.as, aggregate.fn);
+      // (「적용 조건 수」 reads the conditions, not the rows — whole on any part of the data.)
+      if (aggregate.fn !== "applied") marks.set(aggregate.as, aggregate.fn);
   return rows.map((row) => {
     if (row === null || typeof row !== "object") return row;
     const out = { ...(row as Record<string, unknown>) };

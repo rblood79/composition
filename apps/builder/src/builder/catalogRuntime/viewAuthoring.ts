@@ -176,6 +176,18 @@ export const CATALOG_FILTER_CONTROLS: Readonly<
   },
 };
 
+/**
+ * A field type's default control in 「검색 추가」 (probe 4 — the value shape picks it): a boolean is
+ * a Checkbox, a date a DatePicker, anything else a search.
+ */
+export function catalogDefaultFilterKind(
+  type: string | undefined,
+): CatalogFilterControlKind {
+  if (type === "boolean") return "check";
+  if (type === "date" || type === "datetime") return "date";
+  return "text";
+}
+
 /** A control type's filter kind (the control entry point); undefined = not a filter control. */
 export function catalogFilterKindOfType(
   type: string,
@@ -1259,6 +1271,29 @@ export function catalogShareView(
   ]);
 }
 
+/**
+ * 「함께 볼 목록」 on a view already shared (a result count promoted it, or it was named before):
+ * other lists on the same data read it instead of their own view — one step.
+ */
+export function catalogJoinSharedView(
+  viewId: EntryId<"view">,
+  listIds: readonly NodeId[],
+): CatalogCommand {
+  return sequence(
+    "Share view",
+    listIds.map((listId) => (stage: CatalogReader) => {
+      const list = stage.getEntry(listId);
+      const binding = list?.kind === "node" ? list.binding : undefined;
+      if (!binding) throw new Error(`NOT_BOUND: ${listId}`);
+      const { view: _own, ...rest } = binding;
+      return catalogBindingCommand([{ kind: "node", id: listId }], {
+        ...rest,
+        viewId,
+      });
+    }),
+  );
+}
+
 /** A list's shared view and the nodes · views that read it (「이 보기를 N 개가 봅니다」). */
 export function catalogSharedViewOf(
   reader: CatalogReader,
@@ -1387,11 +1422,16 @@ const derivedView = (
 /**
  * 「결과 수 표시」 (Decision 7 · G4) — a Text before the list showing how many rows its view gives:
  * a derived view (`count` over the list's view) and the Text reading its one row (`binding.key`).
- * `text` holds `{count}` (the host's language — 「{count}개」).
+ * `text` holds `{count}` (the host's language — 「{count}개」). With `aggregate: "applied"` it is
+ * 「적용 조건 수 표시」 (Decision 3) — how many of the view's conditions apply (`{applied}`, the
+ * plants example's filter badge).
  */
 export function catalogResultCountCommand(
   reader: CatalogReader,
-  plan: CatalogDerivedPlan & { readonly text: string },
+  plan: CatalogDerivedPlan & {
+    readonly text: string;
+    readonly aggregate?: "count" | "applied";
+  },
   newId: NewId,
 ): {
   command: CatalogCommand;
@@ -1404,10 +1444,18 @@ export function catalogResultCountCommand(
   if (source.step) steps.push(source.step);
   steps.push(() =>
     addView({
-      entry: derivedView(viewId, `${plan.viewName} · count`, source.sourceId, {
-        where: EMPTY_WHERE,
-        aggregates: COUNT,
-      }),
+      entry: derivedView(
+        viewId,
+        `${plan.viewName} · ${plan.aggregate ?? "count"}`,
+        source.sourceId,
+        {
+          where: EMPTY_WHERE,
+          aggregates:
+            plan.aggregate === "applied"
+              ? [{ fn: "applied", as: "applied" }]
+              : COUNT,
+        },
+      ),
     }),
   );
   steps.push((stage) =>
@@ -1435,7 +1483,13 @@ export function catalogResultCountCommand(
     )(stage),
   );
   return {
-    command: sequence(plan.label ?? "Show result count", steps),
+    command: sequence(
+      plan.label ??
+        (plan.aggregate === "applied"
+          ? "Show applied condition count"
+          : "Show result count"),
+      steps,
+    ),
     created: { textId, viewId },
   };
 }

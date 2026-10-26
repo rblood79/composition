@@ -50,8 +50,9 @@ export interface CatalogRowQuery {
 }
 
 /**
- * ADR-284 G4 — a view that only counts its source's rows (「결과 수 표시」's derived view): no
- * condition, grouping or sort. Over a view the server answered, its count is the server's total.
+ * ADR-284 G4 — a view that only counts its source's rows (「결과 수 표시」's derived view) or its
+ * applied conditions (「적용 조건 수 표시」): no condition, grouping or sort. Over a view the server
+ * answered, its count is the server's total.
  */
 export function catalogCountOnlyView(query: ViewQuery): boolean {
   return (
@@ -59,7 +60,9 @@ export function catalogCountOnlyView(query: ViewQuery): boolean {
     !query.groupBy &&
     !query.sort &&
     !!query.aggregates?.length &&
-    query.aggregates.every((aggregate) => aggregate.fn === "count")
+    query.aggregates.every(
+      (aggregate) => aggregate.fn === "count" || aggregate.fn === "applied",
+    )
   );
 }
 

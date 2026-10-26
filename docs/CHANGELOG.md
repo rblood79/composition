@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 7) — 적용 조건 수 · 공유 보기에 목록 더하기 · 파생 보기 정리] - 2026-10-27
+
+### Added
+
+- **「적용 조건 수 표시」** (목록 「검색 · 필터」): 목록 앞에 지금 적용된 조건 수를 보여 주는 글자 (`조건 {applied}개`) — 빈 검색 · 「전체」 · 꺼진 체크는 세지 않고, 「또는」 으로 묶은 검색은 하나로 센다. API 데이터에서도 일부만 불러왔다고 「+」 를 붙이지 않는다. 코드 보기는 plants 예제의 필터 배지처럼 `[…].filter(Boolean).length`
+- 이미 공유된 보기 (결과 수 표시 등이 만든 것) 에 같은 데이터의 다른 목록을 더하는 **「함께 볼 목록」 · 「이 보기 함께 읽기」**
+- 판정 스크립트 `--generated <예제>=<파일>` — Builder 의 「코드」 패널에서 복사한 코드를 원본과 대조
+
+### Changed
+
+- 「검색 추가」 의 컨트롤이 필드 타입을 따른다 — boolean 필드는 Checkbox, 날짜는 DatePicker (직접 고르기 전까지)
+
+### Fixed
+
+- 결과 수 · 묶기 · kanban 열의 글자나 목록을 지워도 그 보기가 남아 「N개가 봅니다」 가 부풀고 원본 보기를 지울 수 없던 것 — 마지막으로 읽던 것이 지워지면 함께 지워진다 (Undo 로 함께 돌아옴)
+- 「코드」 패널 이름이 영어 화면에서도 「코드」 로 나오던 것
+
 ## [데이터 보기 (ADR-284 Phase 6b · 6c) — 코드 보기 · 표시된 자리 고치기 · 필터 컨트롤이 변수를 따라감] - 2026-10-27
 
 ### Added

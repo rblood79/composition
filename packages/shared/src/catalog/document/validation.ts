@@ -1140,11 +1140,17 @@ function viewQuery(
       const path = `${at}.aggregates[${index}]`;
       const aggregate = object(raw, path);
       exact(aggregate, ["fn", "field", "as"], path);
-      if (!["count", "sum", "mean", "min", "max"].includes(aggregate.fn as string))
+      if (
+        !["count", "sum", "mean", "min", "max", "applied"].includes(
+          aggregate.fn as string,
+        )
+      )
         invalid("UNKNOWN_AGGREGATE", `${path}.fn`);
-      if (aggregate.field !== undefined)
+      if (aggregate.fn === "applied" && aggregate.field !== undefined)
+        invalid("AGGREGATE_FIELD_NOT_ALLOWED", `${path}.field`);
+      else if (aggregate.field !== undefined)
         dataFieldPath(aggregate.field, `${path}.field`);
-      else if (aggregate.fn !== "count")
+      else if (aggregate.fn !== "count" && aggregate.fn !== "applied")
         invalid("AGGREGATE_FIELD_REQUIRED", `${path}.field`);
       const name = string(aggregate.as, `${path}.as`);
       if (names.has(name)) invalid("DUPLICATE_AGGREGATE_NAME", `${path}.as`);

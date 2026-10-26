@@ -18,6 +18,8 @@ import {
   catalogOrFilterCondition,
   catalogRemoveFilterCondition,
   catalogSharedViewOf,
+  catalogDefaultFilterKind,
+  catalogResultCountCommand,
   catalogShareView,
 } from "../../../../catalogRuntime/viewAuthoring";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
@@ -288,6 +290,61 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     expect(connection!.controls).toEqual([
       { nodeId: nodeIdOf("radio"), ruleId: made.created.ruleId },
     ]);
+  });
+
+  it("「Add search」's control follows the field's type until one is chosen — a boolean is a Checkbox", () => {
+    expect(catalogDefaultFilterKind("boolean")).toBe("check");
+    expect(catalogDefaultFilterKind("date")).toBe("date");
+    expect(catalogDefaultFilterKind("string")).toBe("text");
+    expect(catalogDefaultFilterKind(undefined)).toBe("text");
+  });
+
+  it("a view already shared (a result count promoted it): another list on the data joins it with 「Also read by」", () => {
+    const w = fixture.workspace;
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: { id: "f-gender", key: "gender", type: "string" },
+        kind: "radio",
+        control: { nodeId: nodeIdOf("radio") },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    // (「결과 수 표시」 promotes the list's view — its Text reads one row: not a list to offer.)
+    w.execute(
+      catalogResultCountCommand(
+        w.runtime.graph,
+        { listId: nodeIdOf("list"), viewName: "People", text: "{count}" },
+        w.newId,
+      ).command,
+    );
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    expect(group.textContent).toContain('Shared view "People" — read by 2');
+    // (The choices are the lists — not the result count's Text.)
+    const choices = [...group.querySelectorAll("option")].map(
+      (option) => option.textContent,
+    );
+    expect(choices).toContain("Table");
+    expect(choices).not.toContain("Text");
+    const depth = w.runtime.historyDepth.undo;
+    act(() => {
+      fireEvent.click(buttonByText(group, "Read it there too"));
+    });
+    const graph = w.runtime.graph;
+    const table = graph.getEntry(nodeIdOf("table")) as NodeEntry;
+    const list = graph.getEntry(nodeIdOf("list")) as NodeEntry;
+    expect(table.binding!.viewId).toBe(list.binding!.viewId);
+    expect(table.binding!.view).toBeUndefined();
+    expect(w.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(groupByLegend("Search · filter").textContent).toContain(
+      'Shared view "People" — read by 3',
+    );
   });
 
   it("a connection's detail: 「Not running」 and the default, then the Preview's value — each local row's verdict from the evaluator", () => {
