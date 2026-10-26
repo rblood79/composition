@@ -423,6 +423,53 @@ When 개념 (현재): action · multiSelection (`keys`) · singleSelection (`val
 
 이 넷이 있으면 일반적인 목록 · 검색 화면 (필터 바 + 정렬 + 결과 수) 부터 대시보드 (상태별 개수 · 합계) · 관계 데이터 (주문 ↔ 사용자) 까지 「쉽게 · 다양하게」 기준을 만족한다. 로컬 (mock) 에서 phase 3 · 4 를 Preview 가 다 계산할지는 §7-7 결정이다.
 
+### 8.5 같은 결과를 코드로도 — code view 는 레퍼런스 예제의 모양 그대로 (사용자 2026-10-26)
+
+사용자 원문: 「이렇게 해서 나오는 것이 code edit 형태로도 제공하는 것은 어떨까.」 → 「레퍼런스에 스크립트처럼 그것들을 쉽게 사용하게 하려고 하는 것이었고, 반대로 code view 로 했을 때 그 형태가 그대로 나와야겠지.」
+
+빌더의 UI 는 §2 예제들이 코드로 하는 일 (`useListData` · `filter` · `useFilter` · `useCollator` · `sortDescriptor` · `useDragAndDrop`) 을 쉽게 만드는 것이고, **code view 는 그 반대 방향 — 문서를 레퍼런스 예제와 같은 모양의 RAC 코드로 보여 주는 것**이다. 전용 DSL 이 아니라 React Aria 코드 그 자체여야 한다 — 그래야 「빌더 = RAC 수준 조립」 (사용자 원칙 10-07) 이 눈으로 확인되고, 개발자가 넘겨받을 때 배울 것이 없다.
+
+**모양 — 과제 ① · ② · ⑩ 을 만든 문서의 code view (plants/App.tsx 와 같은 어법)**
+
+```tsx
+let [search, setSearch] = useState('');                      // SearchField → $search
+let [gender, setGender] = useState('all');                   // RadioGroup  → $gender
+let [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({column: 'name', direction: 'ascending'});
+let {contains} = useFilter({sensitivity: 'base'});
+let collator = useCollator();
+let users = Users
+  .filter(u => contains(u.name, search) && (gender === 'all' || u.gender === gender))
+  .toSorted((a, b) => collator.compare(a[sortDescriptor.column], b[sortDescriptor.column]) * dir);
+
+<SearchField value={search} onChange={setSearch} />
+<RadioGroup value={gender} onChange={setGender}>…</RadioGroup>
+<Table sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor}>…<TableBody items={users}>…</TableBody></Table>
+<GridList items={users}>{u => <GridListItem textValue={u.name}>…</GridListItem>}</GridList>
+```
+
+문서의 단위와 코드의 단위가 1:1 이다 — 변수 = `useState` · 규칙 (`onChange → Set state`) = `onChange={setX}` · 보기 조건 = `filter(…)` 의 한 항 · 정렬 = `toSorted(collator…)` · 집계 = `reduce` / `Map` · 참조 = `find` · drag & drop = `useDragAndDrop({…})` · API = `useAsyncList({load({filterText, sortDescriptor})})`. §3 의 어휘표가 곧 생성 코드의 어휘표다.
+
+**이것이 주는 것**
+
+1. **레퍼런스와의 정합을 검사할 수 있다** — 공식 예제 7 종을 빌더로 다시 만들었을 때 code view 가 그 예제의 `App.tsx` 와 같은 구조 (hook · filter 항 · prop 배선) 로 나오는지가 **수용 기준**이 된다. §4 원형 20 이 전부 코드로 환원되는지도 여기서 드러난다.
+2. **개발자 인계** — 프리랜서 · 다음 담당자가 문서 대신 익숙한 RAC 코드를 읽는다. 검토 · diff 도 이 코드로.
+3. **Publish 의 또 다른 형태** — 지금 Publish 는 문서를 해석하는 런타임 (DOM runtime) 이다. 생성 코드가 레퍼런스 모양이면 「코드로 내보내기」 가 같은 투영의 출력이 된다 (정책은 메모리 `project-publish-link-only-defer-until-builder-stable` — 별도 결정).
+4. **AI 의 출력 · 입력 형식** — AI 가 RAC 코드 (학습 데이터에 가장 많은 형태) 를 내고, 빌더가 그중 문서로 환원되는 부분만 받는다.
+
+**편집 (code edit) 의 범위 — 어디까지 거꾸로 가나**
+
+- **1:1 자리는 양방향** — 조건의 비교 · 값 · 필드, 변수 이름 · 초기값, 정렬 열, `useDragAndDrop` 의 어느 핸들러 — 코드의 그 자리를 고치면 문서의 그 자리가 바뀐다 (projection 편집 — 코드를 파싱하는 것이 아니라 생성한 코드의 자리에 편집을 매핑). 적용은 기존 명령 (`workspace.execute`) 으로, undo · 저장 · Preview 그대로.
+- **자리 밖의 코드는 받지 않는다** — `filter` 안에 임의 함수 호출 · 새 hook · 조건 밖 JS 를 적으면 「문서로 환원되지 않는 코드」 로 그 줄에 표시하고 적용하지 않는다. 받으면 §9.2 의 A 경로 (사람마다 다른 결과 · 코드 층 조용한 실패) 가 돌아오고 Publish 에 사용자 코드가 들어간다. **code view 는 문서를 읽고 고치는 창이고, 문서를 벗어나는 길이 아니다.**
+- 그래서 「숙련자 전용 자유 코드」 는 여전히 배제다 (§7-3 의 일반 식 배제와 같은 결정). 숙련자는 code view 에서 1:1 자리를 빠르게 고치는 것으로 충분하고, 그 이상이 필요하면 그것은 빌더에 없는 기능이므로 §9.6 대로 **빌더가 채워야 할 결함**이다.
+
+**요구 (설계에 넣을 것)**
+
+- 문서 스키마 → RAC 코드 생성기 하나 (어휘 = §3 · 부록 A). 두 번째 모델이 아니다.
+- 생성 코드는 공식 예제의 어법을 따른다 — `useListData` / `useAsyncList` 선택 기준 (로컬 · API), `useFilter({sensitivity:'base'})`, `useCollator`, controlled prop 배선, `Collection` · `Section` 중첩, `useDragAndDrop` 핸들러 → list 명령.
+- 1:1 자리 목록과 그 역매핑 (코드 자리 → 문서 필드) 을 스키마에 같이 선언한다. 자리 밖 편집의 표시 문구.
+- **수용 기준**: §2 의 예제 7 종을 빌더로 재현 → code view 가 예제 `App.tsx` 와 구조 동치 (hook · filter 항 · 배선; 스타일 · 마크업 세부는 제외).
+- phase: 저장 형식 (phase 1) 과 조건 · 정렬 · 집계 · 참조의 실행 (phase 2 ~ 4) 뒤에 생성기 — 그 전에는 환원할 것이 없다. 다만 **수용 기준 (예제 7 종 재현) 은 phase 1 설계 때부터 고정**해 저장 형식이 코드로 환원되지 않는 모양을 갖지 않게 한다.
+
 ## 9. 쉬움 평가 — 과제 × 방식 cognitive walkthrough (2026-10-26 후속)
 
 > 사용자 제안 「스크립트 방식 · 지금 빌더 · 리서치 설계를 신입 개발자 100 명 페르소나로 비교」 를 셀 수 있는 모양으로 바꿔 돌린 결과. 페르소나 100 명은 한 모델의 100 표본이라 독립 근거가 아니고, 신입의 차이는 사전 지식 축 3 개 (R React 상태 · Q SQL 필터 개념 · S 스프레드시트 · Notion 필터) 의 8 조합으로 닫힌다. 그래서 **과제 12 × 방식 3** 을 설계 근거 (§6 · §8) 를 주지 않은 독립 walker 3 개가 각자 걷고, 동작 수 · 필요한 개념 (프로필별 새 개념) · **조용한 실패 지점** (틀린 선택인데 오류 없이 무반응 · 그럴듯한 틀린 결과) · 결과 왕복 · 확장 비용 · 불가를 셌다. 숫자는 모델 추정이다 — 셋이 같은 방향이면 설계 사실, 갈리면 가정 차이로 읽는다. brief 와 walker 보고 원문: `docs/explanation/research/data-layer-walkthrough-2026-10/`.
