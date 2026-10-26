@@ -2394,7 +2394,9 @@ function ruleDom(
       ...(lower === "table"
         ? {
             sortDescriptor: catalogTableSortOf(node.props.sortDescriptor),
-            ...(context.runtime?.setRuntimeProps
+            // (ADR-284 Decision 5: a Table its view's variable sorts — the header press is the
+            // rule's, which writes the variable; no runtime sort of its own.)
+            ...(context.runtime?.setRuntimeProps && !node.props._sortByVariable
               ? {
                   onSortChange: (sortDescriptor: unknown) =>
                     context.runtime!.setRuntimeProps!(node.id, {

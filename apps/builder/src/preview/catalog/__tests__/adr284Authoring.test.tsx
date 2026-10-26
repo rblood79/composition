@@ -7,6 +7,7 @@ import type {
   ViewCondition,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands/structure";
+import { setFields } from "../../../../../../packages/shared/src/catalog/commands/fields";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
@@ -19,6 +20,7 @@ import {
   catalogFilterConnections,
   catalogOrFilterCondition,
   catalogRemoveFilterCondition,
+  catalogSortFollowCommand,
   type CatalogFilterControlKind,
 } from "../../../builder/catalogRuntime/viewAuthoring";
 import { openAdr280Preview } from "./support/adr280Harness";
@@ -474,6 +476,139 @@ describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () =>
     expect(() => h.workspace.execute(command)).toThrow();
     expect(h.graph().revision).toBe(before);
     void insertNodes;
+    h.view.unmount();
+  });
+});
+
+describe("ADR-284 G3 — 「정렬 따라가기」 and the Table that keeps its own sort (사용자 결정 2)", () => {
+  const pressName = async (
+    h: Awaited<ReturnType<typeof boundList>>,
+    tableId: NodeId,
+  ) => {
+    const header = [
+      ...(h.element(tableId)?.querySelectorAll('[role="columnheader"]') ?? []),
+    ].find((cell) => /Name/.test(cell.textContent ?? "")) as HTMLElement;
+    act(() => {
+      fireEvent.pointerDown(header, { button: 0, pointerType: "mouse" });
+      fireEvent.pointerUp(header, { button: 0, pointerType: "mouse" });
+      fireEvent.click(header);
+    });
+    await settle();
+  };
+  const listOrder = (h: Awaited<ReturnType<typeof boundList>>, id: NodeId) =>
+    [
+      ...(h.element(id)?.querySelectorAll('[role="row"], [role="option"]') ??
+        []),
+    ]
+      .map((item) => NAMES.exec(item.textContent ?? "")?.[0])
+      .filter(Boolean);
+
+  it("without a sort variable a bound Table's header press is ADR-257's runtime sort — the GridList keeps its order", async () => {
+    const h = await boundList(["GridList", "Table"]);
+    const tableId = h.ids[1] as NodeId;
+    h.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: tableId }],
+        catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+      ),
+    );
+    // (The author's switch only — Columns sortable, no sort variable: ADR-257 as it was.)
+    const columns: NodeId[] = [];
+    const visit = (id: string) => {
+      const node = h.graph().getEntry(id);
+      if (node?.kind !== "node") return;
+      if (definitionTypeName(h.graph(), node.definitionId) === "Column")
+        columns.push(id as NodeId);
+      node.children.forEach(visit);
+      for (const override of node.descendantOverrides)
+        if (override.kind === "fillSlot") override.childIds.forEach(visit);
+    };
+    visit(tableId);
+    expect(columns.length).toBeGreaterThan(0);
+    h.workspace.execute(
+      setFields({
+        targets: columns.map((id) => ({ kind: "node" as const, id })),
+        props: { allowsSorting: { kind: "set", value: true } },
+      }),
+    );
+    h.flush();
+    await settle();
+    await pressName(h, tableId);
+    expect(listOrder(h, tableId)).toEqual(["Kim", "Lee", "Park"]);
+    // (The GridList is not the Table's: its order stays the data's.)
+    expect(listOrder(h, h.list)).toEqual(["Kim", "Park", "Lee"]);
+    h.view.unmount();
+  });
+
+  it("「정렬 따라가기」 is one step: the variable · the Table's onSortChange rule · both views' sort · sortable Columns", async () => {
+    const h = await boundList(["GridList", "Table"]);
+    const tableId = h.ids[1] as NodeId;
+    h.workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: tableId }],
+        catalogBindingRef({
+          source: "dataTable",
+          collectionId: "users",
+          name: "Users",
+        })!,
+      ),
+    );
+    h.flush();
+    const depth = h.workspace.runtime.historyDepth.undo;
+    const { command, created } = catalogSortFollowCommand(
+      h.graph(),
+      { tableId, followerIds: [h.list] },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.flush();
+    await settle();
+    expect(h.workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(h.graph().getEntry(created.variableId)).toMatchObject({
+      name: "tableSort",
+      valueType: "object",
+    });
+    expect(h.graph().getEntry(created.ruleId)).toMatchObject({
+      ownerId: tableId,
+      trigger: "onSortChange",
+      actions: [{ value: "!event.descriptor" }],
+    });
+    for (const id of [tableId, h.list])
+      expect((h.graph().getEntry(id) as NodeEntry).binding!.view!.sort).toEqual(
+        { variableId: created.variableId },
+      );
+    await pressName(h, tableId);
+    expect(listOrder(h, tableId)).toEqual(["Kim", "Lee", "Park"]);
+    expect(listOrder(h, h.list)).toEqual(["Kim", "Lee", "Park"]);
+    // (Another writer of the variable — a rule elsewhere: the Table's rows and arrow follow it,
+    // not the Table's last press.)
+    const written = h.session.readVariable({
+      variableId: created.variableId,
+    } as never)!.value as { column: string };
+    act(() => {
+      h.session.writeState({
+        variableId: created.variableId,
+        op: "set",
+        value: { column: written.column, direction: "descending" },
+      } as never);
+    });
+    await settle();
+    expect(listOrder(h, tableId)).toEqual(["Park", "Lee", "Kim"]);
+    expect(listOrder(h, h.list)).toEqual(["Park", "Lee", "Kim"]);
+    const header = [
+      ...(h.element(tableId)?.querySelectorAll('[role="columnheader"]') ?? []),
+    ].find((cell) => /Name/.test(cell.textContent ?? ""))!;
+    expect(header.getAttribute("aria-sort")).toBe("descending");
+    h.workspace.undo();
+    h.flush();
+    expect(h.graph().getEntry(created.variableId)).toBeUndefined();
+    expect(
+      (h.graph().getEntry(h.list) as NodeEntry).binding!.view?.sort,
+    ).toBeUndefined();
     h.view.unmount();
   });
 });

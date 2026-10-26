@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 Phase 3c) — 「정렬 따라가기」: Table 의 정렬을 다른 목록도 따라간다] - 2026-10-27
+
+### Added
+
+- **「정렬 따라가기」** (데이터 연결 목록 → 「검색 · 필터」 끝 「Follow sort」): Table 에서는 따라갈 목록을, 다른 목록에서는 따를 Table 을 고르면 Table 머리글을 눌러 정렬할 때 그 목록도 같은 순서가 된다 — 정렬 변수 · 머리글 규칙 · 두 목록의 정렬이 한 번에 생기고 Undo 한 번에 사라진다. Table 의 열은 정렬 가능해진다
+
+### Changed
+
+- 정렬 변수로 정렬되는 Table 은 그 변수의 것이다 — 다른 규칙이 변수를 바꿔도 행과 머리글 화살표가 같이 바뀐다. 정렬 변수 없는 Table 의 머리글 정렬은 전과 같다 (그 Table 만 정렬)
+
+### Tests
+
+- `adr284DataView.test.tsx` G0 ② GREEN · `adr284Authoring.test.tsx` +2 · 패널 +1 · 원복 RED 3/4
+
 ## [데이터 보기 (ADR-284 Phase 3a · 3b) — 「검색 추가」 한 번으로 목록 거르기] - 2026-10-27
 
 ### Added

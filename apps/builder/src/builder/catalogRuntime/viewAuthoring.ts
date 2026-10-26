@@ -36,6 +36,7 @@ import {
   removeTargets,
 } from "../../../../../packages/shared/src/catalog/commands/structure";
 import { updateView } from "../../../../../packages/shared/src/catalog/commands/views";
+import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   DataBindingRef,
@@ -843,4 +844,105 @@ export function catalogOrFilterCondition(
         where: wrap(query.where) as ViewConditionGroup,
       })),
   ]);
+}
+
+/** The Columns a Table owns (its header's own nodes — Quick Connect's or the palette's). */
+function ownedColumns(reader: CatalogReader, tableId: NodeId): NodeId[] {
+  const out: NodeId[] = [];
+  const visit = (id: NodeId, depth: number) => {
+    const node = reader.getEntry(id);
+    if (node?.kind !== "node" || depth > 3) return;
+    if (typeOf(reader, node.definitionId) === "Column") {
+      out.push(id);
+      return;
+    }
+    node.children.forEach((child) => visit(child, depth + 1));
+    for (const override of node.descendantOverrides)
+      if (override.kind === "fillSlot")
+        override.childIds.forEach((child) => visit(child, depth + 1));
+  };
+  visit(tableId, 0);
+  return out;
+}
+
+/**
+ * ADR-284 「정렬 따라가기」 (Decision 5 · §9.4-6) — one action: a page variable holds the sort, the
+ * Table's header press writes it (its `onSortChange` rule — the RAC `SortDescriptor`), and the
+ * Table's view and each follower's view sort by it. The Table's own Columns become sortable. A Table
+ * sorted so is the variable's: its arrow is the variable's, no runtime sort of its own (사용자
+ * 결정 2 — a Table without a sort variable keeps ADR-257's).
+ */
+export function catalogSortFollowCommand(
+  graph: Pick<CatalogGraph, "library"> & CatalogReader,
+  plan: {
+    readonly tableId: NodeId;
+    readonly followerIds: readonly NodeId[];
+    readonly label?: string;
+  },
+  newId: NewId,
+): {
+  command: CatalogCommand;
+  created: {
+    variableId: EntryId<"stateVariable">;
+    ruleId: EntryId<"interaction">;
+  };
+} {
+  const variableId = newId("stateVariable") as EntryId<"stateVariable">;
+  const owner = { ownerId: plan.tableId };
+  const rule = catalogNewInteraction(
+    owner,
+    "onSortChange",
+    { opcode: "setState", variableId, op: "set", value: "!event.descriptor" },
+    newId,
+  );
+  const sortBy = (query: ViewQuery): ViewQuery => ({
+    ...query,
+    sort: { variableId },
+  });
+  const steps: ((stage: CatalogReader) => CatalogCommand | undefined)[] = [
+    (stage) => {
+      const ownerId =
+        catalogNodePage(stage as never, plan.tableId) ??
+        catalogVariableOwner(stage as never, plan.tableId);
+      let name = "tableSort";
+      for (
+        let n = 2;
+        catalogVariableNameConflict(stage as never, ownerId, name);
+        n++
+      )
+        name = `tableSort${n}`;
+      return addRecord({
+        entry: {
+          kind: "stateVariable",
+          id: variableId,
+          ownerId,
+          name,
+          valueType: "object",
+          defaultValue: "",
+        } satisfies StateVariableEntry,
+      });
+    },
+    (stage) =>
+      catalogInteractionsCommand(
+        owner,
+        [...catalogInteractionsOf(stage as never, owner), rule],
+        "Rules",
+      ),
+    (stage) => {
+      const columns = ownedColumns(stage, plan.tableId);
+      return columns.length
+        ? setFields({
+            targets: columns.map((id) => ({ kind: "node" as const, id })),
+            props: { allowsSorting: { kind: "set", value: true } },
+          })
+        : undefined;
+    },
+    ...[plan.tableId, ...plan.followerIds].map(
+      (id) => (stage: CatalogReader) => writeView(stage, id, sortBy),
+    ),
+  ];
+  return {
+    command: sequence(plan.label ?? "Follow sort", steps),
+    created: { variableId, ruleId: rule.id },
+  };
 }

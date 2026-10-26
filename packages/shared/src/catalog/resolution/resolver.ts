@@ -22,6 +22,7 @@ import type {
   StateName,
   StateRules,
   TemplateId,
+  ViewEntry,
   VisualWrites,
   WriteValue,
 } from "../document/types";
@@ -197,6 +198,11 @@ export interface CatalogViewResultMeta {
   readonly served?: boolean;
   /** Conditions the request could not carry (the server's rows are not narrowed by them). */
   readonly unsent?: number;
+  /** ADR-284 Decision 5 — the sort variable's RAC descriptor (a Table sorted by it shows it). */
+  readonly sort?: {
+    readonly column: string;
+    readonly direction: "ascending" | "descending";
+  };
 }
 /** Bound components that show their collection's load (`useAsyncList.loadingState`). */
 const LOADING_STATE_TYPES: ReadonlySet<string> = new Set([
@@ -1447,6 +1453,7 @@ export function resolveCatalogNode(
           ),
           rowSet,
           `${instancePath.join("/")}::${node.id}`,
+          viewSortsByVariable(node.binding, lookupEntry),
         ),
       );
     }
@@ -1519,6 +1526,8 @@ export function resolveCatalogNode(
     rowSet: readonly CatalogBoundRow[] | undefined,
     /** The bound node's record identity (the instance — its template root collapses into it). */
     tableId: string,
+    /** ADR-284: the node's view sorts by a variable (the Table's own runtime sort steps aside). */
+    sortedByVariable = false,
   ): ResolvedCatalogNode | undefined => {
     if (!projected || !rowSet) return projected;
     const typeOf = (resolved: ResolvedCatalogNode) =>
@@ -1546,7 +1555,12 @@ export function resolveCatalogNode(
     }));
     // ADR-257 Phase 4: the Preview's sort orders every data row by the column's field value
     // before the rows its height shows are taken (사용자 결정 4 — the Canvas has no sort).
-    const sort = tableSort?.(tableId);
+    // ADR-284 Decision 5: a Table whose view sorts by a variable is that variable's — its rows
+    // come sorted by the view, and its arrow is the variable's (사용자 결정 2).
+    const variableSort = (rowSet as { view?: CatalogViewResultMeta }).view
+      ?.sort;
+    const sortedByView = variableSort !== undefined || sortedByVariable;
+    const sort = sortedByView ? undefined : tableSort?.(tableId);
     const sortKey =
       sort && columns.find((column) => column.id === sort.column)?.key;
     const ordered =
@@ -1653,6 +1667,17 @@ export function resolveCatalogNode(
     });
     return {
       ...projected,
+      // ADR-284 Decision 5: a Table sorted by its view's variable shows the variable's sort and
+      // leaves its header press to the rule that writes it (no runtime sort of its own).
+      ...(sortedByView
+        ? {
+            props: {
+              ...projected.props,
+              sortDescriptor: variableSort,
+              _sortByVariable: true,
+            } as typeof projected.props,
+          }
+        : {}),
       // Table.css clips the outer table (`overflow: hidden`): rows past its height are cut.
       visual: { ...projected.visual, overflow: "hidden" },
       children: projected.children.map((child) =>
@@ -2401,4 +2426,24 @@ function push(
   child: ResolvedCatalogNode | undefined,
 ): void {
   if (child) children.push(child);
+}
+
+/**
+ * ADR-284 Decision 5 — a binding's view (built-in, or the shared one it reads) sorts by a variable:
+ * a Table bound so is that variable's (사용자 결정 2 — the others keep ADR-257's runtime sort).
+ */
+function viewSortsByVariable(
+  binding: DataBindingRef | undefined,
+  lookupEntry: (id: string) => unknown,
+): boolean {
+  if (!binding) return false;
+  const sort =
+    binding.view?.sort ??
+    (() => {
+      const shared = binding.viewId ? lookupEntry(binding.viewId) : undefined;
+      return shared && (shared as { kind?: string }).kind === "view"
+        ? (shared as ViewEntry).sort
+        : undefined;
+    })();
+  return !!sort && "variableId" in sort;
 }

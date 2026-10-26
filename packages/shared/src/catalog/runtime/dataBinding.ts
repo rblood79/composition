@@ -219,6 +219,7 @@ export function catalogBoundRows(
         : source,
     );
   }
+  if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
   const shown = boundRowsOf(ref, dataBinding, collections, kind, limit);
   return shown && view ? Object.assign(shown, { view }) : shown;
 }

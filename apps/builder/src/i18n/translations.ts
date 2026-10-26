@@ -2341,6 +2341,9 @@ const koKR: TranslationKeys = {
     made: "생성했습니다 — 비교 · 건너뛰는 값 · 변수를 확인하세요.",
     noControl: "값을 쓰는 컨트롤 없음",
     noFields: "이 목록의 데이터에 필드가 없습니다.",
+    sortFollow: "정렬 따라가기",
+    sortFollower: "따라갈 목록",
+    sortTable: "정렬을 따를 Table",
     controlSection: "목록 거르기",
     controlAction: "이 컨트롤로 목록 거르기",
     target: "대상 목록",
@@ -4833,6 +4836,9 @@ const enUS: TranslationKeys = {
     made: "Created — check the comparison, the value that skips it and the variable.",
     noControl: "no control sets its value",
     noFields: "This list's data has no fields.",
+    sortFollow: "Follow sort",
+    sortFollower: "List that follows",
+    sortTable: "Table to follow",
     controlSection: "Filter a list",
     controlAction: "Filter a list with this control",
     target: "Target list",
@@ -6312,6 +6318,8 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
+    "dataView.sortFollowing": (args) =>
+      `정렬: 변수 ${String(args?.variable ?? "")} (Table 머리글이 씀)`,
     "dataView.variableLine": (args) =>
       `변수 ${String(args?.variable ?? "")} · 값을 쓰는 컨트롤 ${String(args?.control ?? "")}`,
     "datatable.apiQueryWarnOR_GROUP": (args) =>
@@ -6907,6 +6915,8 @@ const formattedMessages: Record<
     "dataView.summary": (args) =>
       `${String(args?.field ?? "")} ${String(args?.op ?? "")} · ${String(args?.control ?? "")}`,
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
+    "dataView.sortFollowing": (args) =>
+      `Sorted by variable ${String(args?.variable ?? "")} (a Table's header writes it)`,
     "dataView.variableLine": (args) =>
       `Variable ${String(args?.variable ?? "")} · set by ${String(args?.control ?? "")}`,
     "datatable.apiQueryWarnOR_GROUP": (args) =>

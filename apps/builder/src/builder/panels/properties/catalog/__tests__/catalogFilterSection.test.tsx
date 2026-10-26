@@ -72,12 +72,16 @@ beforeEach(async () => {
     [
       { id: "radio", type: "RadioGroup" },
       { id: "list", type: "GridList" },
+      { id: "table", type: "Table" },
     ],
     {},
   );
   fixture.workspace.execute(
     catalogBindingCommand(
-      [{ kind: "node", id: nodeIdOf("list") }],
+      [
+        { kind: "node", id: nodeIdOf("list") },
+        { kind: "node", id: nodeIdOf("table") },
+      ],
       catalogBindingRef({
         source: "dataTable",
         collectionId: "users",
@@ -177,6 +181,27 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     });
     expect(within(group).getByRole("status").textContent).toContain(
       "nameFilter",
+    );
+  });
+
+  it("「Follow sort」 from the GridList: it follows the page's Table — the sort variable, the Table's rule, both views", () => {
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(buttonByText(group, "Follow sort"));
+    act(() => {
+      fireEvent.click(buttonByText(group, "Create"));
+    });
+    const graph = fixture.workspace.runtime.graph;
+    const list = graph.getEntry(nodeIdOf("list")) as NodeEntry;
+    const table = graph.getEntry(nodeIdOf("table")) as NodeEntry;
+    const sort = list.binding!.view!.sort as { variableId: string };
+    expect(table.binding!.view!.sort).toEqual(sort);
+    expect(graph.getEntry(sort.variableId)).toMatchObject({
+      name: "tableSort",
+    });
+    expect(groupByLegend("Search · filter").textContent).toContain(
+      "Sorted by variable tableSort",
     );
   });
 });

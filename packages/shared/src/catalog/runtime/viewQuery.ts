@@ -14,6 +14,7 @@ import type {
 } from "../document/types";
 import { parseRuleValueRef } from "../../interactions/valueRef";
 import { catalogVariableValue, type CatalogStateSource } from "./stateTemplate";
+import { catalogTableSortOf } from "./tableSort";
 
 /** A binding's view as the row source runs it. */
 export interface CatalogRowQuery {
@@ -31,6 +32,12 @@ export interface CatalogRowQuery {
   served?: { complete: boolean; total?: number; warnings?: number };
   /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
   loaded?: { complete: boolean };
+  /**
+   * ADR-284 Decision 5 — the sort variable's value as written (a Table's RAC `SortDescriptor`, its
+   * column the Column's RAC key): what a Table sorted by the variable shows as its `sortDescriptor`.
+   * `values` holds it with the column as its field (what the view sorts by).
+   */
+  sort?: { column: string; direction: "ascending" | "descending" };
 }
 
 /** The views a binding reads, its shared view's sources first; undefined = none. */
@@ -81,6 +88,8 @@ export function catalogBindingQuery(
   binding: DataBindingRef,
   ownerId: string | undefined,
   source: CatalogStateSource | undefined,
+  /** A Table's RAC column key → the field it shows (a sort variable a Table's rule wrote). */
+  columnField?: (columnKey: string) => string | undefined,
 ): CatalogRowQuery | undefined {
   const queries = catalogBindingViews(graph, binding);
   if (!queries) return undefined;
@@ -107,7 +116,21 @@ export function catalogBindingQuery(
     // (A RAC `Selection` written by a rule: a `Set` reads as its keys.)
     values[ref] = value instanceof Set ? [...value] : value;
   }
-  return { queries, values, names: [...names] };
+  // (A sort variable a Table's `onSortChange` rule wrote names its Column by RAC key: the view sorts
+  // by that Column's field. A rule's text value `<key>:<direction>` reads the same.)
+  let sort: CatalogRowQuery["sort"];
+  for (const query of queries) {
+    if (!query.sort || !("variableId" in query.sort)) continue;
+    const ref = `!var.${query.sort.variableId}`;
+    const raw = catalogTableSortOf(values[ref]);
+    if (!raw) continue;
+    sort = raw;
+    values[ref] = {
+      column: columnField?.(raw.column) ?? raw.column,
+      direction: raw.direction,
+    };
+  }
+  return { queries, values, names: [...names], ...(sort ? { sort } : {}) };
 }
 
 /** The run's reader of a query's values: a reference to its value, a literal to itself. */

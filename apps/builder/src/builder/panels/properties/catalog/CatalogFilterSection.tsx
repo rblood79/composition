@@ -39,6 +39,7 @@ import {
   catalogFilterTargets,
   catalogOrFilterCondition,
   catalogRemoveFilterCondition,
+  catalogSortFollowCommand,
   type CatalogFilterConnection,
   type CatalogFilterControlKind,
 } from "../../../catalogRuntime/viewAuthoring";
@@ -359,7 +360,132 @@ export function CatalogListFilterSection({ listId }: { listId: NodeId }) {
           {t("dataView.add")}
         </Button>
       )}
+      <SortFollow listId={listId} />
     </fieldset>
+  );
+}
+
+/**
+ * 「정렬 따라가기」 (Decision 5 · §9.4-6) — from a Table: another list follows its sort; from
+ * another list: it follows a Table's. One action (`catalogSortFollowCommand`) either way. A list
+ * already sorted by a variable shows that variable.
+ */
+function SortFollow({ listId }: { listId: NodeId }) {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const run = useCatalogCommandRunner();
+  const revision = useGraphRevision();
+  const graph = workspace.runtime.graph;
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<NodeId | undefined>();
+  const info = useMemo(() => {
+    void revision;
+    const node = graph.getEntry(listId);
+    const binding = node?.kind === "node" ? node.binding : undefined;
+    const typeName = (id: NodeId) => {
+      const entry = graph.getEntry(id);
+      try {
+        return entry?.kind === "node"
+          ? definitionTypeName(graph, entry.definitionId)
+          : "";
+      } catch {
+        return "";
+      }
+    };
+    const sort =
+      binding?.view?.sort ??
+      (() => {
+        const shared = binding?.viewId
+          ? graph.getEntry(binding.viewId)
+          : undefined;
+        return shared?.kind === "view" ? shared.sort : undefined;
+      })();
+    const sortVariable =
+      sort && "variableId" in sort
+        ? graph.getEntry(sort.variableId)
+        : undefined;
+    const isTable = typeName(listId) === "Table";
+    const pageId = catalogNodePage(graph as never, listId);
+    const others = pageId
+      ? catalogFilterTargets(graph, pageId as EntryId<"page">).filter(
+          (id) => id !== listId && (isTable ? true : typeName(id) === "Table"),
+        )
+      : [];
+    return {
+      isTable,
+      sortName:
+        sortVariable?.kind === "stateVariable" ? sortVariable.name : undefined,
+      others: others.map((id) => {
+        const entry = graph.getEntry(id);
+        return {
+          id,
+          label:
+            (entry?.kind === "node" && entry.name) ||
+            `${typeName(id)} · ${id.slice(-4)}`,
+        };
+      }),
+    };
+  }, [graph, listId, revision]);
+  if (info.sortName)
+    return (
+      <p className="data-view-detail-line">
+        {t("dataView.sortFollowing", { variable: info.sortName })}
+      </p>
+    );
+  if (!info.others.length) return null;
+  if (!picking)
+    return (
+      <Button
+        className="control-button"
+        data-variant="add"
+        onPress={() => setPicking(true)}
+      >
+        {t("dataView.sortFollow")}
+      </Button>
+    );
+  const target = picked ?? info.others[0]!.id;
+  return (
+    <div className="data-view-add-form">
+      <PropertySelect
+        label={t(info.isTable ? "dataView.sortFollower" : "dataView.sortTable")}
+        value={target}
+        options={info.others.map((item) => ({
+          value: item.id,
+          label: item.label,
+        }))}
+        translateOptions={false}
+        onChange={(value) => setPicked(value as NodeId)}
+      />
+      <div className="data-view-add-actions">
+        <Button
+          className="control-button"
+          data-variant="primary"
+          onPress={() => {
+            const { command } = catalogSortFollowCommand(
+              graph,
+              info.isTable
+                ? {
+                    tableId: listId,
+                    followerIds: [target],
+                    label: t("dataView.sortFollow"),
+                  }
+                : {
+                    tableId: target,
+                    followerIds: [listId],
+                    label: t("dataView.sortFollow"),
+                  },
+              workspace.newId,
+            );
+            if (run(command)) setPicking(false);
+          }}
+        >
+          {t("dataView.create")}
+        </Button>
+        <Button className="control-button" onPress={() => setPicking(false)}>
+          {t("dataView.cancel")}
+        </Button>
+      </div>
+    </div>
   );
 }
 

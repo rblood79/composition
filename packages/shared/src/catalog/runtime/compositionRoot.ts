@@ -188,6 +188,7 @@ import {
   type CatalogStateSource,
 } from "./stateTemplate";
 import { catalogBindingQuery } from "./viewQuery";
+import { resolveTableColumnKey } from "../../collections/resolveCollectionItems";
 import {
   CatalogRuntime,
   type CatalogExternalEffect,
@@ -1566,6 +1567,7 @@ export class CatalogCompositionRoot {
           authored,
           ownerId,
           this.stateSource,
+          (columnKey) => this.tableColumnField(columnKey),
         );
         const binding = query ? { ...authored, query } : authored;
         if (binding.key === undefined) return rows(binding, kind, ownerId);
@@ -1632,6 +1634,25 @@ export class CatalogCompositionRoot {
     return !!record && !!this.tagRows.get(record.parentId)?.hidden.includes(id);
   }
   /** The records (drawn positions) of one node or template: one source can be drawn many times. */
+  /**
+   * ADR-284 Decision 5 — the field a Table's Column shows, by its RAC key (`catalogTableColumnKey`
+   * — the record id, or the author's HTML id): what a sort variable a Table's rule wrote sorts by.
+   */
+  private tableColumnField(columnKey: string): string | undefined {
+    const inputs = this.domInputs;
+    const record =
+      inputs.get(columnKey) ??
+      [...inputs.values()].find((item) => item.htmlId === columnKey);
+    if (!record || record.ruleId !== "Column") return undefined;
+    const header = inputs.get(record.parentId);
+    const columns = (header?.children ?? []).filter(
+      (id) => inputs.get(id)?.ruleId === "Column",
+    );
+    return resolveTableColumnKey(
+      record.props as Record<string, unknown>,
+      columns.indexOf(record.id),
+    );
+  }
   recordsOfSource(sourceId: string): readonly string[] {
     return [...(this.sourceInstances.get(sourceId) ?? [])];
   }

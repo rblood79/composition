@@ -7,10 +7,10 @@ import type {
   NodeId,
   ViewQuery,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { catalogTableColumnKey } from "../../../../../../packages/shared/src/catalog/runtime/tableSort";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
 import { catalogInteractionsCommand } from "../../../builder/catalogRuntime/interactions";
+import { catalogSortFollowCommand } from "../../../builder/catalogRuntime/viewAuthoring";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -161,39 +161,46 @@ describe("ADR-284 G0 — RED until the data view phases", () => {
     h.view.unmount();
   });
 
-  // ② 현재 3 — the sort is the Table's runtime state (ADR-257): a GridList on the same data keeps
-  // its order. Phase 3: 「정렬 따라가기」 puts the sort in a variable both read through one view.
-  it.fails(
-    "② a Table's sort is followed by a GridList showing the same data",
-    async () => {
-      const h = await usersPreview(["Table", "GridList"], {
-        useMockData: true,
-      });
-      const [tableId, list] = h.ids as [NodeId, NodeId];
-      bind(h, [tableId, list]);
-      await settle();
-      const root = h.session.root!;
-      const table = [...root.domInputs.values()].find(
-        (record) => record.ruleId === "Table",
-      )!;
-      const header = table.children
-        .map((id) => root.domInputs.get(id))
-        .find((record) => record?.ruleId === "TableHeader")!;
-      const name = header.children
-        .map((id) => root.domInputs.get(id)!)
-        .find((record) => record.ruleId === "Column")!;
+  // ② 현재 3 — the sort was the Table's runtime state (ADR-257): a GridList on the same data kept
+  // its order. Phase 3: 「정렬 따라가기」 puts the sort in a variable both read through one view —
+  // the Table's header press (its rule) writes it.
+  it("② a Table's sort is followed by a GridList showing the same data", async () => {
+    const h = await usersPreview(["Table", "GridList"], {
+      useMockData: true,
+    });
+    const [tableId, list] = h.ids as [NodeId, NodeId];
+    bind(h, [tableId, list]);
+    const { command } = catalogSortFollowCommand(
+      h.workspace.runtime.graph,
+      { tableId, followerIds: [list] },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.flush();
+    await settle();
+    const press = async () => {
+      const header = [
+        ...(h.element(tableId)?.querySelectorAll('[role="columnheader"]') ??
+          []),
+      ].find((cell) => /Name/.test(cell.textContent ?? "")) as HTMLElement;
       act(() => {
-        h.session.sortTable(table.id, {
-          column: catalogTableColumnKey(name),
-          direction: "ascending",
-        });
+        fireEvent.pointerDown(header, { button: 0, pointerType: "mouse" });
+        fireEvent.pointerUp(header, { button: 0, pointerType: "mouse" });
+        fireEvent.click(header);
       });
       await settle();
-      expect(shown(h, tableId)).toEqual(["Kim", "Lee", "Park"]);
-      expect(shown(h, list)).toEqual(["Kim", "Lee", "Park"]);
-      h.view.unmount();
-    },
-  );
+      return header;
+    };
+    const header = await press();
+    expect(shown(h, tableId)).toEqual(["Kim", "Lee", "Park"]);
+    expect(shown(h, list)).toEqual(["Kim", "Lee", "Park"]);
+    // (The arrow is the variable's: the header shows the sort the rule wrote.)
+    expect(header.getAttribute("aria-sort")).toBe("ascending");
+    await press();
+    expect(shown(h, tableId)).toEqual(["Park", "Lee", "Kim"]);
+    expect(shown(h, list)).toEqual(["Park", "Lee", "Kim"]);
+    h.view.unmount();
+  });
 
   // ③ 현재 3 — `writeState` did not call `loadRouted`: an endpoint reading `{{ gender }}` loaded
   // once with the default. Phase 2: a written variable a request reads loads it again.
