@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284) — Implemented] - 2026-10-27
+
+### Changed
+
+- ADR-284 데이터 보기 (조회 · 필터 · 정렬 · 묶기 · 참조를 변수와 보기로, RAC 코드로 환원되는 저장 형식) 를 **Implemented** 로 — 사용자가 본인 Builder 에서 walkthrough ① 라디오로 거르기 · ⑥ 검색 AND (female OR age < 25) · ⑫ kanban 열 3 + 끌어 옮기기를 직접 확인 (G8). 기능은 Phase 1 ~ 7 엔트리 (아래) 로 이미 실렸고 이 엔트리는 종결 기록이다. 알려진 사용성 메모 (LOW): 글자 타입 필드에서 숫자 비교 (「미만」 등) 가 빠진 이유를 패널이 안내하지 않는다 — 열 타입을 number 로 바꾸면 나온다. 후속: 코드 보기 편집을 닫힌 어휘 전체로 넓히는 ADR-285.
+
 ## [데이터 보기 (ADR-284 Phase 7 후속) — 코드 보기가 API 요청을 그대로 보여 줌] - 2026-10-27
 
 ### Fixed

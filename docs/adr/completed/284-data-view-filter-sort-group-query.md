@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-26 (사용자 `/execute-adr 284` + [reviews/284.md](reviews/284.md) Round 4 이슈 0 · pending 0 · Round 3 HIGH 1 fixed) · 사용자 결정 1 · 2 · 3 · 5 · 6 · 7 권고안 확정 (같은 날 질문 — 4 · 8 은 원래대로 ADR 밖) · Phase 0 ~ 7 완료 (G3 · G4 · G5 · G6 · G7 닫힘) · 다음 G8 (사용자 Builder 확인 → Implemented)
+Implemented — 2026-10-27 (G8 사용자 Builder 확인 「확인되었다」 — walkthrough ① · ⑥ · ⑫ · 아래 Live Exercise). Accepted — 2026-10-26 (사용자 `/execute-adr 284` + [reviews/284.md](../reviews/284.md) Round 4 이슈 0 · pending 0 · Round 3 HIGH 1 fixed) · 사용자 결정 1 · 2 · 3 · 5 · 6 · 7 권고안 확정 (같은 날 질문 — 4 · 8 은 원래대로 ADR 밖) · Phase 0 ~ 7 완료 (G3 ~ G7 닫힘). 후속: code view 편집을 닫힌 어휘 전체로 넓히는 [ADR-285](../285-code-view-closed-vocabulary-round-trip.md) (사용자 결정 — 이 ADR 은 지금 범위로 닫음)
 
 > **Phase 0 (2026-10-26)**: RED 4 (`it.fails`, `apps/builder/src/preview/catalog/__tests__/adr284DataView.test.tsx`) 가 의도한 이유로 RED — ① mock GridList 가 규칙 뒤에도 3 행 · ② Table 은 Kim · Lee · Park 으로 정렬되나 같은 데이터 GridList 는 Kim · Park · Lee · ③ 변수 쓰기 뒤 요청 `/users?gender=male` 하나 · ④ `CatalogValidationError entry.actions`. probe 6 · inventory §1b 22 파일 · 수용 집합 원본 fixture 10 (react-spectrum `338cf2e19`) · Preview initial 308,574 B gz (여유 H 11,426). 정정 2: data id (`data:collection:` · `data:field:` · `data:variable:`) 는 `referencedIds` 밖 — 바인딩은 `collection` edge 로만 색인 · `ResponseMapping.pagination.totalPath` 는 타입만 있고 소비자 0 (Phase 2 가 소비 경로를 만든다). 상세: breakdown §10.
 >
@@ -34,11 +34,11 @@ Accepted — 2026-10-26 (사용자 `/execute-adr 284` + [reviews/284.md](reviews
 
 > **Phase 7 후속 (2026-10-27, 사용자 「API 코드 모양 수리 진행해」)**: code view 의 API 데이터 모양을 Decision 9 · 연구 §8.5 대로 — 설계 대조에서 생성기가 `load` 인자를 선언만 하고 고정 URL 을 받아 불러온 행을 클라이언트 `filter` 로 거르던 것 (실제 실행은 `?gender=female` 을 보냄 — code view 가 다른 데이터 흐름을 보였다, 수용 집합이 전부 로컬이라 판정에 안 걸림). 생성기가 세션의 `serverView` 판정을 그대로 따른다 (조회 형식 있음 · 모든 page 의 그 collection 바인딩이 같은 보기 하나 · 묶기 없음, 꼬리 count 보기 제외): 조건 · 정렬이 `url.searchParams` (건너뜀 값은 `if (gender !== 'all')` 로) 또는 JSON 본문 (`where` 트리 · `sort`) 으로 요청에 실리고, 그 보기는 불러온 `items` 그대로 (`filter` · `toSorted` 없음), 읽는 변수가 바뀌면 `useEffect(() => { users.reload(); }, […])`. 형식이 못 담는 조건은 「Not in the request (…) — and not filtered here.」 줄 (`viewQueryLimits`, R1 — 런타임도 거르지 않는다). 응답은 `responseMapping` 의 목록 · cursor 경로 (`json.items` · `json.next`), 다음 페이지는 `fetch(cursor || url)`. 형식이 없거나 보기가 여럿이면 전처럼 endpoint 를 그대로 부르고 불러온 행을 거른다 (여럿이면 그 이유 주석). 1:1 자리: 매개변수 `'gender', String(gender)` 를 `'gender_ne', …` 로 고치면 조건 비교가 바뀐다 (접미 표를 거꾸로 — 가장 긴 접미가 필드 key 를 남기는 쪽) · 상수 정렬의 `_sort` 값. 목록 값 (`for (let x of …)`) · `between` · 본문 형식의 조건은 자리 없이 읽기 전용. 원복 RED 6/6. live (같은 날 「확인해」): 접미 형식 요청 `?gender=male` · 매개변수 자리 `gender_ne` 편집 → `?gender_ne=male` 이 Preview 요청과 일치. live 에서 정렬 시작값 차이 (코드 `{column: 'id'}` → `_sort=id`, 실행은 정렬 없음 — 구조 변수는 시작값이 늘 빔) 를 찾아 정렬 변수를 비어 시작하게 수리 (원복 RED 3/3).
 >
-> [보충 검토 및 반영 기록](reviews/284.md): 신입 개발자 관점의 연결 재편집 · 결과 계산 범위 · 실행 설명 · 인계 검증을 보강했다 (2026-10-26 사용자 「수정반영해」). 설계 보충이며 구현 완료나 Status 승격을 뜻하지 않는다.
+> [보충 검토 및 반영 기록](../reviews/284.md): 신입 개발자 관점의 연결 재편집 · 결과 계산 범위 · 실행 설명 · 인계 검증을 보강했다 (2026-10-26 사용자 「수정반영해」). 설계 보충이며 구현 완료나 Status 승격을 뜻하지 않는다.
 >
 > **리뷰 round 3 반영 (2026-10-26 사용자 「수정반영해」)**: H1 code view 수용 기준을 예제 7 종 전체가 아니라 **수용 집합** (예제 5 종의 데이터 흐름 · 제외 목록 명시 · 고정 revision 원본 fixture) 으로 좁혔다 (Decision 9 · G6 · R9 · breakdown §7a). M1 Table 정렬 소유 기준을 「보기에 정렬 변수가 있는 Table」 하나로 통일했다 (Decision 5 · 사용자 결정 2 · breakdown §0 · §1a). M2 파생 보기는 원본 목록의 기본 보기를 공유 보기로 **승격**한 뒤 가리킨다 — 조건 사본 금지 (Decision 1 · G4 · breakdown §5). M3 Preview 번들 여유를 phase 별로 배분하고 Preview 쪽 lazy 대안 · 상한 만료를 R10 으로 관리한다 (G4 · G7 · breakdown §8b). L1 사용자 결정 2 의 분류 표기를 고쳤다.
 
-- 사용자 요청: `/create-adr 데이터 조회 · 필터 · 정렬 · 보기` (2026-10-26). 출발은 같은 날 「GridList 에 Users 데이터가 묶여 있고 RadioGroup (all · male · female) 으로 거르려면 어떻게 하나 · RAC 는 무엇을 주나」 → 연구 [DATA_LAYER_RAC_EXAMPLES_2026-10](../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) (예제 7 종 · 어휘 · gap · walkthrough).
+- 사용자 요청: `/create-adr 데이터 조회 · 필터 · 정렬 · 보기` (2026-10-26). 출발은 같은 날 「GridList 에 Users 데이터가 묶여 있고 RadioGroup (all · male · female) 으로 거르려면 어떻게 하나 · RAC 는 무엇을 주나」 → 연구 [DATA_LAYER_RAC_EXAMPLES_2026-10](../../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) (예제 7 종 · 어휘 · gap · walkthrough).
 - 방향을 정한 사용자 원문 (2026-10-26):
   - 「radiogroup 만 테스트한 것이고 checkbox · input · select 등 다양한 조건 조합으로 나올 수 있지 않나」 · 「adobe 제공 sample 만 봐도 filter · sort 조합이다」 — 한 컨트롤이 아니라 **조건의 조합과 정렬**이 범위.
   - 「OR 묶음 · 조인 · 집계는 범위 밖으로 해야 하는 이유가 뭐지」 → 셋을 **설계에 넣고 phase 로 나눈다** (연구 §8.3.1 — 범위 밖 근거 셋 모두 불성립).
@@ -46,7 +46,7 @@ Accepted — 2026-10-26 (사용자 `/execute-adr 284` + [reviews/284.md](reviews
   - 「나도 개발자가 아니다 … 목록형에 연동하면 보여주기 · 검색 기능 추가 · input · select 추가 — 하나의 예시일 뿐」 — **기능 이름 하나 = 빌더 동작 하나**, 진입점은 양쪽, 첫 화면 어휘는 비개발자의 것 (연구 §9.4.1).
   - 「code view 로 했을 때 그 형태가 그대로 나와야겠지」 — code view 는 **레퍼런스 예제 모양의 RAC 코드**, 전용 DSL 아님 (연구 §8.5).
 - 이미 답한 확인: 「새 어휘 금지」 원칙 (2026-10-22) 은 RAC 표면이 있는 Interactions 에 닿고, 데이터 조회에는 RAC 표면이 없으므로 참조는 데이터 도구 (Airtable · Notion · SQL) 다 (연구 §8.3.1 · 사용자 승인된 §8 커밋 `8eebf6b77`).
-- 선행: [ADR-152](completed/152-data-panel-collection-binding-integration.md) (`DataBindingRef` · id 기반 `fieldMap`) · [ADR-132](completed/132-usecollectiondata-useasynclist-alignment.md) (`useAsyncList` 모양의 collection 로드) · [ADR-158](completed/158-interactions-rules-capability-registry.md) (한 규칙 = 한 줄) · [ADR-214](completed/214-variables-owner-model-runtime-state.md) (변수) · [ADR-257](completed/257-table-column-tracks.md) (Table 정렬 = Preview 런타임 상태) · [ADR-280](280-interactions-rac-surface-registry-controlled-runtime.md) · [ADR-281](281-interactions-panel-vocabulary-inheritance-form-destination.md) (`!event` 값 참조 · `callEndpoint`) · [ADR-283](283-interaction-capability-target-ref-picker.md) (값 참조 `!item` · `!var` · 「값 고르기」, contract 49). 의존 방향 152 · 214 → 280 → 281 → 283 → **284**. 분리 아님 — 데이터 층의 **조회 단위 (보기)** 를 새로 두는 base 결정이고, 뒤의 code view · dnd 는 그 응용 phase 다.
+- 선행: [ADR-152](152-data-panel-collection-binding-integration.md) (`DataBindingRef` · id 기반 `fieldMap`) · [ADR-132](132-usecollectiondata-useasynclist-alignment.md) (`useAsyncList` 모양의 collection 로드) · [ADR-158](158-interactions-rules-capability-registry.md) (한 규칙 = 한 줄) · [ADR-214](214-variables-owner-model-runtime-state.md) (변수) · [ADR-257](257-table-column-tracks.md) (Table 정렬 = Preview 런타임 상태) · [ADR-280](../280-interactions-rac-surface-registry-controlled-runtime.md) · [ADR-281](../281-interactions-panel-vocabulary-inheritance-form-destination.md) (`!event` 값 참조 · `callEndpoint`) · [ADR-283](../283-interaction-capability-target-ref-picker.md) (값 참조 `!item` · `!var` · 「값 고르기」, contract 49). 의존 방향 152 · 214 → 280 → 281 → 283 → **284**. 분리 아님 — 데이터 층의 **조회 단위 (보기)** 를 새로 두는 base 결정이고, 뒤의 code view · dnd 는 그 응용 phase 다.
 
 ## Context
 
@@ -139,7 +139,7 @@ B 가 HIGH 0 — 추가 루프 불요. MEDIUM 넷은 Risks 와 Gates 가 관리�
 
 **대안 B 채택.**
 
-> 구현 상세: [284-data-view-filter-sort-group-query-breakdown.md](design/284-data-view-filter-sort-group-query-breakdown.md)
+> 구현 상세: [284-data-view-filter-sort-group-query-breakdown.md](../design/284-data-view-filter-sort-group-query-breakdown.md)
 
 1. **조회 단위는 보기 (view) entry 다.** 원본 (collection 또는 다른 보기) + 조건 트리 + 묶기 · 집계 + 정렬. 바인딩은 `viewId` 로 가리키고, 가리키지 않으면 이름 없는 기본 보기가 바인딩에 내장된다 (문서에는 같은 `ViewEntry` 모양, `name` 없음). 공유가 필요할 때만 이름을 붙여 다른 바인딩이 가리킨다. 조건과 정렬은 나눠 공유할 수 있다. 보기의 `source.viewId` 는 공유 보기만 가리킨다. 그래서 파생 보기 (결과 수 · 묶기 · 집계) 를 만들 때 원본 목록이 내장 기본 보기를 쓰면, 그 보기를 **공유 보기로 승격** (이름 자동 · 목록 바인딩은 `viewId` 로) 한 뒤 source 로 둔다. 조건을 복사한 파생 보기는 만들지 않는다 (대안 A 의 기각 사유와 같은 조용한 불일치). 승격과 파생 보기 생성은 Undo 한 번으로 함께 복원된다.
 2. **조건 = 필드 경로(들) + 비교 방식 + 값 참조 + 건너뜀 + 적용 여부.** 비교 방식 어휘는 닫혀 있고 (Decision B-2) 이름에 뜻을 붙인다 (하나라도 / 전부 포함 · 사이 (끝 포함) · 미만 · 초과). 필드 타입 × 값 모양으로 목록을 좁힌다. 조건은 보기 안에서 안정 id를 가져 재편집과 실행 설명이 같은 조건을 가리킨다. 글자 비교는 `useFilter` 와 같은 `Intl.Collator` 규칙 (`sensitivity: "base"` 기본).
@@ -212,7 +212,9 @@ R1 · R2 는 G2 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 �
 
 ### Live Exercise
 
-**G7 — 2026-10-27 · Chrome MCP · dev 5175 (사용자 5173 무관) · mock 서버 5199 · 콘솔 오류 0** (G8 사용자 확인은 아직 — Implemented 승격 때 이 절에 더한다).
+**G8 — 2026-10-27 · 사용자 confirm (본인 Builder 5173)** — walkthrough 과제 ① 라디오로 거르기 (「검색 추가」 → gender · 「선택 (라디오)」 → Preview 에서 female · 전체) · ⑥ 검색 AND (female OR age < 25) (검색 추가 둘 + gender 조건 행 ⋮ 「또는 조건 추가」 → age 「미만」 25 · 「결과 수 표시」) · ⑫ kanban 열 3 + 끌어 옮기기 (「묶기로 열 만들기」 → Preview drop → 머리 개수 · 행 값). 사용자 「확인되었다」. 진행 중 질문 2 — 「또는 조건 추가」 위치 (목록의 「검색 · 필터」 와 컨트롤의 「목록 거르기」 양쪽 조건 행 ⋮ 메뉴 · 같은 명령) · 「미만」 이 없음 (age 열이 글자 타입 — 숫자 비교는 number 필드에서만, 설계대로) → **사용성 메모 (LOW deferred)**: 필드 타입 때문에 비교가 빠졌다는 안내가 패널에 없다.
+
+**G7 — 2026-10-27 · Chrome MCP · dev 5175 (사용자 5173 무관) · mock 서버 5199 · 콘솔 오류 0**.
 
 1. **plants 구성 (「검색 추가」 로)** — 새 page 에 Table · GridList (팔레트) → Table 「만들고 연결」 (Paste 6 행 · 열을 schema 로 교체) → 「검색 추가」 다섯 번 (common_name 검색 · isFavorite Checkbox · cycle · sunlight · watering TagGroup) → 검색 연결의 「또는 조건 추가」 → 사본 필드를 scientific_name 으로 → 「결과 수 표시」 · 「적용 조건 수 표시」 → GridList 를 같은 데이터에 연결 → Table 의 「이 보기 함께 읽기」 → GridList 「정렬 따라가기」. **PASS**.
 2. **Preview (Compare Mode)** — 검색 「a」 → Table · GridList 5 행 (Fern 제외) · 「Results: 5 · Filters: 1」 → Favorite · Perennial → 2 행 (Aloe · Hosta) · 「Filters: 3」 → Common Name 머리글 두 번 → 내림차순, GridList 가 p5 · p1 로 따라감. **PASS**.

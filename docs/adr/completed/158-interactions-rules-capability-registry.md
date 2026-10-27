@@ -120,7 +120,7 @@ ADR-149 Wave 1 (Implemented 2026-07-19) 은 EventsPanel 을 2-depth UX 로 재�
 
 ### Negative
 
-- 조건부 실행 / debounce·throttle / 다중 액션 체인 기능 소실 (의도적 — 필요 실증 시 후속 ADR) — **다중 액션은 [ADR-284](../284-data-view-filter-sort-group-query.md) (2026-10-26, contract 50) 가 「한 줄」 의 Do 목록으로 되살렸다**: 규칙 하나 = When 하나 → Do 여러 개 (순서대로, 실패한 Do 에서 멈춤 — `actions[]`). 조건부 실행 · 분기 · debounce 는 여전히 없다.
+- 조건부 실행 / debounce·throttle / 다중 액션 체인 기능 소실 (의도적 — 필요 실증 시 후속 ADR) — **다중 액션은 [ADR-284](284-data-view-filter-sort-group-query.md) (2026-10-26, contract 50) 가 「한 줄」 의 Do 목록으로 되살렸다**: 규칙 하나 = When 하나 → Do 여러 개 (순서대로, 실패한 Do 에서 멈춤 — `actions[]`). 조건부 실행 · 분기 · debounce 는 여전히 없다.
 - 기존 저장 이벤트 데이터 drop (영향 0% — 상기 수식화)
 - publish 동작은 본 ADR 범위 밖 — Preview·publish 격차가 후속 ADR 까지 잔존 (R5)
 - `panels/events/` 에 있던 ExecutionDebugger 등 부속 도구 동반 은퇴

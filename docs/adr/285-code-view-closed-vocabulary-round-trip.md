@@ -10,7 +10,7 @@ Proposed — 2026-10-27
   1. 「스크립트까지 동일하게」 = **닫힌 어휘 전체 양방향** — 생성기가 내는 어휘 (요소 · prop · `useState` 변수 · `filter` 항 · 정렬 · 묶기 · `onChange={setX}` 규칙 · `useListData` 명령 · `useAsyncList`) 는 어디든 고치고 더하고 지울 수 있다. 그 밖의 JS (임의 함수 · 계산식) 는 줄을 짚어 거절. 「임의 JS 도 받기」 는 기각 (10-26 결정 「자유 코드 escape 아님」 · 원칙 「불가 → 스크립트 escape 금지」 유지).
   2. ADR 구성 = **ADR-284 는 지금 범위로 G8 → Implemented, 이 작업은 새 ADR**. 284 에 Phase 8 로 넓히지 않는다 (리뷰 승인 범위 유지).
   3. **편집기 = CodeMirror 6** (같은 날, 리뷰 round 2 뒤 — 사용자 「code edit 가 기본 textarea 다 편집기로서는 부족하다고 본다. framer 경우 monaco 를 사용하고 … 스니펫 기능부터 더 이점이 있지 않나」 → 「CodeMirror 로도 충분한가?」 → 「CodeMirror 로 진행해」 · 범위는 「ADR-285 에 넣기」). Monaco 는 임의 TS 를 받는 편집기 (TS 언어 서비스 · worker · ≈600 KB+ gz) 라 닫힌 어휘에 맞지 않고 크다 — 기각. textarea 유지는 h1 (identity) 을 diff 추측으로만 풀어야 해서 기각.
-- 선행: [ADR-284](284-data-view-filter-sort-group-query.md) (Accepted · G8 대기). 이 ADR 의 착수는 284 Implemented 뒤.
+- 선행: [ADR-284](completed/284-data-view-filter-sort-group-query.md) (Implemented 2026-10-27). 이 ADR 의 착수는 284 Implemented 뒤.
 - 리뷰: [reviews/285.md](reviews/285.md) Round 1 (2026-10-27, HIGH 2 · MEDIUM 1) → 설계 수리 → Round 2 (h2 · m3 fixed · h1 HIGH 잔존 — 줄 LCS 가 한 줄 글자 수정을 삭제+추가로, 같은 줄 둘 중 하나 삭제를 임의 tie-break 로) → 같은 날 수리: identity 를 diff 추측이 아니라 **편집기의 편집 연산 추적** 으로 (Decision 3 · 확인 항목 3) → Round 3 (h1 HIGH 잔존 — 붙여넣기 구간의 (부모 · 종류 · 순서) 대응이 B · A 순서 붙여넣기를 이동이 아니라 글자 교환으로) → 같은 날 수리 (정규화 텍스트 짝 먼저 · 순서는 identity 근거 아님 · 모호성 수 감소 한정 해제; scope 변경 뒤라 round 3 = 판독 1) → Round 4 (수리 검증 — 이슈 0 · probe 18 단언 · pending 0) **승인 round**.
 - 메모리: `project-code-view-structural-edit-closed-vocabulary` (결정 원문) · `project-code-view-is-rac-reference-code` (10-26 — code view = 레퍼런스 모양의 RAC 코드).
 

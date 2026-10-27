@@ -1,6 +1,6 @@
 # ADR-284 design breakdown — 데이터 보기 · 조건 트리 · 묶기 · 집계 · 참조 · 정렬 변수 · 직렬화 · dnd 다중 Do · code view
 
-> 본문: [../284-data-view-filter-sort-group-query.md](../284-data-view-filter-sort-group-query.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다. 연구: [DATA_LAYER_RAC_EXAMPLES_2026-10](../../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) (§2 예제 · §3 어휘 · §4 원형 20 · §5 gap · §8 보완 · §9 walkthrough) — §4 · §5 · §8.3 이 Phase 0 inventory 의 출발점, §7 · 본문 사용자 결정 8 이 질문 목록, §8.4 + §9.4 가 이 phase 표의 원형.
+> 본문: [../284-data-view-filter-sort-group-query.md](../completed/284-data-view-filter-sort-group-query.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다. 연구: [DATA_LAYER_RAC_EXAMPLES_2026-10](../../explanation/research/DATA_LAYER_RAC_EXAMPLES_2026-10.md) (§2 예제 · §3 어휘 · §4 원형 20 · §5 gap · §8 보완 · §9 walkthrough) — §4 · §5 · §8.3 이 Phase 0 inventory 의 출발점, §7 · 본문 사용자 결정 8 이 질문 목록, §8.4 + §9.4 가 이 phase 표의 원형.
 
 ## 0. 전제 lock-in (분리 아님 — 데이터 층의 조회 단위를 새로 두는 base)
 
@@ -490,9 +490,9 @@
 - **live 중 찾은 결함 수리**: ① 이미 공유된 보기에 목록 합류 (`catalogJoinSharedView` · 패널 「함께 볼 목록」 — 다른 공유 보기를 읽는 목록 · 한 항목 읽기 (`binding.key`) 는 후보 밖) ② 파생 보기 정리 (`views.ts` `removeUnreadDerivedViews` ← `removeWithReferrers` — 모든 삭제 경로, collection 위 보기는 남음) ③ 「검색 추가」 기본 컨트롤 = 필드 타입 (`catalogDefaultFilterKind`). 그 밖: `panels.codeView` 라벨 · 판정 스크립트 `--generated`.
 - **테스트**: `collections/view/__tests__/applied.test.ts` 6 (사슬 · 「또는」 = 하나 · 건너뜀 0 · served · 일부 데이터 · 꼬리 보기) · `adr284ViewSchema` +1 (필드 금지) · `adr284Derived` +2 (Preview 의 「조건 N개」 · 파생 보기 정리 + Undo) · `catalogFilterSection` +2 (합류 · 기본 컨트롤) · `adr284CodeView` plants golden 에 적용 조건 수 배지.
 - **원복 RED 10/12**: aggregate · 「또는」 하나 · served · 일부 데이터 · 필드 금지 · 꼬리 보기 · 생성기 · 합류 UI · 기본 컨트롤 · 파생 보기 정리 = RED. GREEN 2 (LOW deferred): 생성기의 「또는」 묶음 안 다른 변수 조합 (`(a || b)`) — 수용 집합에 그런 조건이 없어 golden 이 지나지 않음 · 합류 후보의 `binding.key` 거름 — 파생 보기를 읽는 Text 는 `viewId` 거름이 먼저 뺀다 (손으로 key 를 단 Text 만 남는 경우).
-- **live (G7)**: ADR 본문 [Live Exercise](../284-data-view-filter-sort-group-query.md#live-exercise) — plants 구성 · Preview · Publish · kanban 이동 · API 전환 · code view 대조 (22 중 20, 차이 2 = 구성 차이) · 인계 시나리오 기능 확인 (인간 관찰 UNVERIFIED) · 기본 컨트롤.
+- **live (G7)**: ADR 본문 [Live Exercise](../completed/284-data-view-filter-sort-group-query.md#live-exercise) — plants 구성 · Preview · Publish · kanban 이동 · API 전환 · code view 대조 (22 중 20, 차이 2 = 구성 차이) · 인계 시나리오 기능 확인 (인간 관찰 UNVERIFIED) · 기본 컨트롤.
 - **번들**: Preview initial 309,408 B gz (Phase 6 대비 +1, §8b 배분 안) · Builder initial 1,450,682 B (+692).
-- **G8 대기**: 사용자 Builder 확인 (walkthrough ① · ⑥ · ⑫).
+- **G8**: 아래 「G8」 절.
 
 ### Phase 7 후속 — 2026-10-27 (code view 의 API 데이터 모양 — 설계 대조에서 찾음)
 
@@ -502,3 +502,10 @@
 - **live (2026-10-27, 사용자 「확인해」, Chrome MCP · 5175 + mock 5199)**: ADR284 live 문서 Users 를 `listUsers` (접미 형식) 로 바꿔 「코드」 패널 확인 — `useAsyncList` · `if (genderFilter !== 'all') url.searchParams.append('gender', …)` · `useEffect(… reload())` · `let people = users.items` 가 나옴. Preview 에서 male 선택 → mock 로그 `GET /users?gender=male` · 3 행 (코드와 같은 요청). 코드 편집으로 `'gender'` → `'gender_ne'` Apply → Preview male 선택 → `GET /users?gender_ne=male` · Park · Choi · Kang 3 행. 같은 편집으로 `'gender'` 로 되돌리고 Users 를 표 데이터 · 연결 없음으로 원복. 콘솔 오류 0.
 - **live 에서 찾은 차이 — 정렬 시작값**: 코드는 정렬 변수를 `{column: 'id', direction: 'ascending'}` 로 시작해 `_sort=id&_order=asc` 를 실었으나 실제 요청은 `GET /users` (정렬 없음). 문서의 구조 변수 (object · array) 는 시작값이 늘 비어 있고 (`validation.ts` — `defaultValue: ""` 만 허용), 실행은 열이 정해지기 전까지 정렬하지 않는다 (`evaluate.ts` `sortOf` · `serialize.ts` `sortOf`). 로컬 데이터에서도 id 순 정렬이 원래 순서와 다를 수 있었다 (`u10` 이 `u2` 앞). Phase 6b 부터 있던 차이 — plants 예제는 행이 id 순이라 판정에 안 걸렸다.
 - **수리** (`generate.ts`): 정렬 변수는 `useState<SortDescriptor>()` (시작값 자리 없음) · 방향 `sortDescriptor?.direction` · 로컬 `toSorted((a, b) => sortDescriptor ? … : 0)` · 접미 형식 `if (sortDescriptor) { _sort · _order }` · 본문 형식 `sort: sortDescriptor && {…}` (JSON 이 키를 뺀다). 테스트 2 건 기대값 갱신 · plants golden 갱신. 원복 RED 3/3 (plants golden · 접미 · 본문). 수용 판정 5/5. live: 「코드」 패널이 새 모양 (API · 로컬 둘 다) 을 보이고 실행 요청 `GET /users` 와 맞음.
+
+### G8 — 2026-10-27 (사용자 Builder 확인 → Implemented)
+
+- 사용자가 본인 Builder (5173) 에서 walkthrough ① (라디오로 거르기) · ⑥ (검색 AND (female OR age < 25)) · ⑫ (kanban 열 3 + 끌어 옮기기) 를 직접 수행 → 「확인되었다」. 기록은 ADR 본문 [Live Exercise](../completed/284-data-view-filter-sort-group-query.md#live-exercise) G8.
+- 진행 중 질문 2: 「또는 조건 추가」 위치 (조건 행 ⋮ 메뉴 — 목록 「검색 · 필터」 · 컨트롤 「목록 거르기」 양쪽, `CatalogFilterSection.tsx:193`) · 「미만」 없음 (age 가 글자 타입 — `comparison.ts` 의 kind 별 비교, 설계대로). 사용성 메모 LOW deferred: 필드 타입 때문에 빠진 비교의 안내 없음.
+- Status Implemented · 본문 `completed/` 로 이동 · README · CHANGELOG 갱신. 후속 ADR-285 (code view 편집 닫힌 어휘 전체).
+- 5175 「ADR284 live」 테스트 문서 잔여 (Page 2 · Garden · Plants 표 · Home Table 합류) 는 사용자 결정 대기 — 서버는 꺼져 있음.
