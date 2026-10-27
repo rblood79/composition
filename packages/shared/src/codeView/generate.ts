@@ -4,7 +4,10 @@
  *
  * - a variable → `useState` (a selection is a `Selection`, a sort a `SortDescriptor`),
  * - a collection → `useListData` (local rows a rule writes) · `useAsyncList` (an endpoint) · the
- *   imported rows (read only),
+ *   imported rows (read only). An endpoint with a query format (Decision 6) carries the one view
+ *   its lists read in the request — `url.searchParams` · a JSON body, a variable it reads reloads
+ *   (`useEffect(() => list.reload(), […])`) — and that view is the loaded items (the session's
+ *   `serverView`: the server answered it, nothing filters them again),
  * - a view → `filter(…)` terms (`&&` · `||`, a skip value → `v === … ||`, an enabled flag →
  *   `!flag ||`) · `toSorted(collator…)` · `Map.groupBy` + counts · a reference → `find`,
  * - a rule → a JSX handler (a single `Set state` of the event value is the setter itself —
@@ -36,6 +39,12 @@ import type {
 } from "../catalog/document/types";
 import { isPropVar, isPropWhen } from "../catalog/document/valueType";
 import { resolveField } from "../collections/resolveBoundCollection";
+import {
+  DEFAULT_QUERY_SUFFIXES,
+  viewQueryLimits,
+  type EndpointQuerySerialization,
+  type SerializationWarningCode,
+} from "../collections/view/serialize";
 import { isBodyType } from "../domain/predicates";
 import {
   eventArgNames,
@@ -57,6 +66,17 @@ import type {
 const COLLECTION = "data:collection:";
 const FIELD = "data:field:";
 /** The drops that bring items from elsewhere — their keys are read from the drag data. */
+/** Why a condition is not in a request (`viewQueryLimits` codes). */
+const NOT_SENT: Record<SerializationWarningCode, string> = {
+  OR_GROUP: "an or of conditions",
+  COMPARISON: "a comparison the format does not name",
+  MULTI_FIELD: "a condition over several fields",
+  REFERENCE_PATH: "a path through a reference",
+  BROKEN: "a field that does not resolve",
+  GET_BODY: "a GET request carries no body",
+  MULTI_VIEW: "several views",
+  GROUP: "a grouping",
+};
 const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
 const DRAG_EVENTS = new Set([
   "onReorder",
@@ -201,6 +221,13 @@ interface CollectionCode {
   /** `useListData` · `useAsyncList` (rules write it or it loads) — `items` reads `<name>.items`. */
   hook: "list" | "async" | "rows";
 }
+/** A collection whose endpoint carries its lists' one view (the session's `serverView`). */
+interface ServedView {
+  format: EndpointQuerySerialization;
+  method: string;
+  /** The view chain, sources first (trailing count-only views left out — not a request). */
+  chain: { key: string; query: ViewQuery }[];
+}
 interface ViewCode {
   name: string;
   owner: CodeViewViewOwner;
@@ -223,6 +250,9 @@ class Generator {
   private readonly variables = new Map<string, VariableCode>();
   private readonly rowSources = new Map<string, CollectionCode>();
   private readonly views = new Map<string, ViewCode>();
+  private readonly served = new Map<string, ServedView>();
+  /** Collections several different views read — none goes in the request (`MULTI_VIEW`). */
+  private readonly multiView = new Set<string>();
   private readonly rules = new Map<string, InteractionEntry[]>();
   /** Props a capability writes on a node: the state that holds them (`<node>SelectedKeys`). */
   private readonly ruleStates = new Map<string, VariableCode>();
@@ -394,6 +424,7 @@ class Generator {
         });
       }
     }
+    this.collectServed();
     // A named selection of a list a rule writes is the list's own (`useListData` selection).
     for (const variable of this.variables.values()) {
       const source = variable.entry.source;
@@ -579,15 +610,344 @@ class Generator {
         continue;
       }
       const endpoint = code.collection?.endpoint;
+      const url = endpoint?.url ?? "";
+      const served = this.served.get(code.id);
       this.import("react-aria-components/useAsyncList", "useAsyncList");
       out.line(`let ${code.name} = useAsyncList({`);
-      out.in().line("async load({signal, filterText, sortDescriptor}) {").in();
+      out.in().line("async load({signal, cursor}) {").in();
+      if (served) this.writeRequest(out, code, served, url);
+      else {
+        if (this.multiView.has(code.id))
+          out.line(
+            `// Lists read different views of ${code.name}: none goes in the request — each filters the loaded items.`,
+          );
+        out.line(
+          `let res = await fetch(cursor || ${literal(url)}${endpoint?.method && endpoint.method.toUpperCase() !== "GET" ? `, {signal, method: ${literal(endpoint.method)}}` : ", {signal}"});`,
+        );
+      }
+      // (The response's items · next cursor — the endpoint's response mapping.)
+      const read = (path: string | undefined) =>
+        path
+          ? path.split(".").reduce((code, key) => member(code, key), "json")
+          : "json";
+      out.line("let json = await res.json();");
       out.line(
-        `let res = await fetch(${literal(endpoint?.url ?? "")}${endpoint?.method && endpoint.method !== "GET" ? `, {signal, method: ${literal(endpoint.method)}}` : ", {signal}"});`,
+        `return {items: ${read(endpoint?.dataPath)}${endpoint?.cursorPath ? `, cursor: ${read(endpoint.cursorPath)}` : ""}};`,
       );
-      out.line("return {items: await res.json()};").out().line("}").out();
+      out.out().line("}").out();
       out.line("});");
+      if (served) {
+        const dependencies = this.servedDependencies(served);
+        if (dependencies.length) {
+          this.import("react", "useEffect");
+          out.line(
+            `useEffect(() => { ${code.name}.reload(); }, [${dependencies.join(", ")}]);`,
+          );
+        }
+      }
     }
+  }
+
+  /** The nodes of every page bound to a collection (the session reads them all). */
+  private boundNodes(collectionId: string): NodeEntry[] {
+    const out: NodeEntry[] = [];
+    const visit = (id: string) => {
+      const node = this.doc.node(id);
+      if (!node) return;
+      if (node.binding?.collectionId === collectionId) out.push(node);
+      node.children.forEach(visit);
+    };
+    for (const pageId of this.doc.project.pageIds) {
+      const page = this.doc.get(pageId);
+      if (page?.kind === "page") page.children.forEach(visit);
+    }
+    return out;
+  }
+
+  /** A binding's view chain, sources first (`key` = the views map key). */
+  private chainOf(
+    node: NodeEntry,
+  ): { key: string; query: ViewQuery }[] | undefined {
+    const binding = node.binding;
+    if (!binding) return undefined;
+    if (binding.view) return [{ key: node.id, query: binding.view }];
+    const chain: { key: string; query: ViewQuery }[] = [];
+    let id: string | undefined = binding.viewId;
+    while (id) {
+      const view = this.doc.view(id);
+      if (!view) return undefined;
+      chain.unshift({ key: view.id, query: view });
+      id = "viewId" in view.source ? view.source.viewId : undefined;
+    }
+    return chain.length ? chain : undefined;
+  }
+
+  /**
+   * The session's `serverView` per endpoint collection: its query format names a request, and the
+   * bindings of the collection read one view (by its definition — a count of it is the same
+   * request) without grouping.
+   */
+  private collectServed(): void {
+    const countOnly = (query: ViewQuery) =>
+      !query.where.items.length &&
+      !query.groupBy &&
+      !query.sort &&
+      !!query.aggregates?.length &&
+      query.aggregates.every(
+        (aggregate) => aggregate.fn === "count" || aggregate.fn === "applied",
+      );
+    for (const code of this.rowSources.values()) {
+      const endpoint = code.collection?.endpoint;
+      const format = endpoint?.querySerialization;
+      if (code.hook !== "async" || !format || format.kind === "none") continue;
+      const chains = new Map<string, { key: string; query: ViewQuery }[]>();
+      for (const node of this.boundNodes(code.id)) {
+        const chain = this.chainOf(node);
+        if (!chain) continue;
+        let end = chain.length;
+        while (end > 1 && countOnly(chain[end - 1]!.query)) end -= 1;
+        const base = chain.slice(0, end);
+        chains.set(JSON.stringify(base.map((item) => item.query)), base);
+      }
+      if (chains.size > 1) this.multiView.add(code.id);
+      if (chains.size !== 1) continue;
+      const [chain] = [...chains.values()];
+      if (chain!.some((item) => item.query.groupBy || item.query.aggregates))
+        continue;
+      this.served.set(code.id, {
+        format,
+        method: (endpoint!.method ?? "GET").toUpperCase(),
+        chain: chain!,
+      });
+    }
+  }
+
+  /** The view a served collection's request carries: parameters (`suffix`) or a JSON body. */
+  private writeRequest(
+    out: CodeWriter,
+    code: CollectionCode,
+    served: ServedView,
+    url: string,
+  ): void {
+    const collection = code.collection!;
+    const queries = served.chain.map((item) => item.query);
+    const limits = viewQueryLimits(
+      served.format,
+      {
+        queries,
+        schema: collection.schema.flatMap((field) =>
+          field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+        ),
+      },
+      served.method,
+    );
+    const notSent = new Map<string, SerializationWarningCode>();
+    for (const warning of limits)
+      if (warning.conditionId) notSent.set(warning.conditionId, warning.code);
+    const owner = served.chain.at(-1)!;
+    const view = this.views.get(owner.key)!;
+    const init =
+      served.method === "GET" ? "{signal}" : `{signal, method: ${literal(served.method)}}`;
+    const last = queries.at(-1)!;
+    if (served.format.kind === "suffix") {
+      out.line(`let url = new URL(${literal(url)});`);
+      const suffixes = served.format.suffixes ?? DEFAULT_QUERY_SUFFIXES;
+      const visit = (item: ViewCondition | ViewConditionGroup) => {
+        const reason = notSent.get(item.id);
+        if (reason) {
+          out.line(`// Not in the request (${NOT_SENT[reason]}) — and not filtered here.`);
+          return;
+        }
+        if ("items" in item) item.items.forEach(visit);
+        else this.writeParam(out, item, view, suffixes);
+      };
+      for (const query of queries) visit(query.where);
+      this.writeSortParams(out, last, view, served.format);
+      out.line(`let res = await fetch(cursor || url, ${init});`);
+      return;
+    }
+    if (served.method === "GET" || served.method === "HEAD") {
+      out.line("// A GET request carries no body: the view is not sent — and not filtered here.");
+      out.line(`let res = await fetch(cursor || ${literal(url)}, ${init});`);
+      return;
+    }
+    const group = (item: ViewConditionGroup): string =>
+      `{op: ${literal(item.op)}, items: [${item.items
+        .map((child) =>
+          "items" in child ? group(child) : this.bodyCondition(child, view),
+        )
+        .filter(Boolean)
+        .join(", ")}].filter(Boolean)}`;
+    const wheres = queries.map((query) => group(query.where));
+    out.line(
+      `let where = ${wheres.length === 1 ? wheres[0] : `{op: 'and', items: [${wheres.join(", ")}]}`};`,
+    );
+    const sort = this.sortCode(last, view);
+    out.line(
+      `let res = await fetch(cursor || ${literal(url)}, {signal, method: ${literal(served.method)}, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where${sort ? `, sort: {field: ${sort.field}, direction: ${sort.direction}}` : ""}})});`,
+    );
+  }
+
+  /** A condition's guard: its 적용 variable and its skip value (`gender !== 'all'`). */
+  private guardOf(
+    condition: ViewCondition,
+    value: { code: string; variable?: VariableCode },
+  ): string | undefined {
+    const parts: string[] = [];
+    if (
+      typeof condition.enabled === "string" &&
+      condition.enabled.startsWith("!var.")
+    )
+      parts.push(this.conditionValue(condition.enabled).code);
+    const skip = this.skipOf(condition, value);
+    if (skip.length === 1 && / === /.test(skip[0]!))
+      parts.push(skip[0]!.replace(" === ", " !== "));
+    else if (skip.length) parts.push(`!(${skip.join(" || ")})`);
+    else if (
+      value.variable &&
+      ["contains", "startsWith", "endsWith"].includes(condition.op)
+    )
+      parts.push(`${value.code} !== ''`);
+    return parts.length ? parts.join(" && ") : undefined;
+  }
+
+  /** One condition as request parameters (`url.searchParams.append('gender', String(gender))`). */
+  private writeParam(
+    out: CodeWriter,
+    condition: ViewCondition,
+    view: ViewCode,
+    suffixes: Readonly<Partial<Record<ViewComparison, string>>>,
+  ): void {
+    if (condition.enabled === false) return;
+    const key = this.pathKey(view.collectionId, condition.fields[0]!);
+    const value = this.conditionValue(condition.value);
+    const guard = this.guardOf(condition, value);
+    const lead = guard ? `if (${guard}) ` : "";
+    const text = (code: string) =>
+      /^'.*'$|^-?\d/.test(code) ? code : `String(${code})`;
+    if (condition.op === "between") {
+      const cells = Array.isArray(condition.value) ? condition.value : [];
+      [suffixes.gte, suffixes.lte].forEach((suffix, index) => {
+        const cell = this.conditionValue(cells[index]);
+        out.line(
+          `${lead}url.searchParams.append(${literal(`${key}${suffix}`)}, ${text(cell.code)});`,
+        );
+      });
+      return;
+    }
+    const suffix = suffixes[condition.op] ?? "";
+    if (condition.op === "oneOf" || Array.isArray(condition.value)) {
+      out.line(
+        `${lead}for (let x of ${value.code}) url.searchParams.append(${literal(`${key}${suffix}`)}, String(x));`,
+      );
+      return;
+    }
+    out.start().write(`${lead}url.searchParams.append(`);
+    out.slot(`${literal(`${key}${suffix}`)}, ${text(value.code)}`, {
+      kind: "condition",
+      owner: view.owner,
+      conditionId: condition.id,
+      collectionId: view.collectionId,
+      suffixes,
+    });
+    out.write(");").end();
+  }
+
+  /** The view's sort as parameters (`_sort` · `_order`); a literal sort's field is a position. */
+  private writeSortParams(
+    out: CodeWriter,
+    query: ViewQuery,
+    view: ViewCode,
+    format: EndpointQuerySerialization,
+  ): void {
+    const sort = query.sort;
+    if (!sort) return;
+    const sortParam = literal(format.sortParam ?? "_sort");
+    const orderParam = literal(format.orderParam ?? "_order");
+    if ("variableId" in sort) {
+      const variable = this.variables.get(sort.variableId);
+      if (!variable) return;
+      out.line(
+        `url.searchParams.set(${sortParam}, String(${variable.name}.column));`,
+      );
+      out.line(
+        `url.searchParams.set(${orderParam}, ${variable.name}.direction === 'descending' ? 'desc' : 'asc');`,
+      );
+      return;
+    }
+    const key = this.pathKey(view.collectionId, sort.field);
+    out.start().write(`url.searchParams.set(${sortParam}, '`);
+    out.slot(key, {
+      kind: "sortField",
+      owner: view.owner,
+      collectionId: view.collectionId,
+    });
+    out.write("');").end();
+    out.line(
+      `url.searchParams.set(${orderParam}, ${literal(sort.direction === "descending" ? "desc" : "asc")});`,
+    );
+  }
+
+  /** A body format's sort (the field and direction as code). */
+  private sortCode(
+    query: ViewQuery,
+    view: ViewCode,
+  ): { field: string; direction: string } | undefined {
+    const sort = query.sort;
+    if (!sort) return undefined;
+    if ("variableId" in sort) {
+      const variable = this.variables.get(sort.variableId);
+      return variable
+        ? {
+            field: `${variable.name}.column`,
+            direction: `${variable.name}.direction`,
+          }
+        : undefined;
+    }
+    return {
+      field: literal(this.pathKey(view.collectionId, sort.field)),
+      direction: literal(sort.direction),
+    };
+  }
+
+  /** A body format's condition (`guard && {fields, op, value}`). */
+  private bodyCondition(condition: ViewCondition, view: ViewCode): string {
+    if (condition.enabled === false) return "";
+    const value = this.conditionValue(condition.value);
+    const fields = condition.fields.map((path) =>
+      literal(this.pathKey(view.collectionId, path)),
+    );
+    const object = `{fields: [${fields.join(", ")}], op: ${literal(condition.op)}${
+      condition.op === "exists" || condition.op === "notExists"
+        ? ""
+        : `, value: ${value.variable?.selection ? `[...${value.code}]` : value.code}`
+    }}`;
+    const guard = this.guardOf(condition, value);
+    return guard ? `${guard} && ${object}` : object;
+  }
+
+  /** The variables a served view reads (its conditions' values · 적용 flags · its sort). */
+  private servedDependencies(served: ServedView): string[] {
+    const names: string[] = [];
+    const add = (ref: unknown) => {
+      if (typeof ref !== "string" || !ref.startsWith("!var.")) return;
+      const variable = this.variables.get(ref.slice(5).split(".")[0]!);
+      if (variable && !names.includes(variable.name)) names.push(variable.name);
+    };
+    const visit = (item: ViewCondition | ViewConditionGroup) => {
+      if ("items" in item) item.items.forEach(visit);
+      else {
+        add(item.enabled);
+        if (Array.isArray(item.value)) item.value.forEach(add);
+        else add(item.value);
+      }
+    };
+    for (const { query } of served.chain) {
+      visit(query.where);
+      if (query.sort && "variableId" in query.sort)
+        add(`!var.${query.sort.variableId}`);
+    }
+    return names;
   }
 
   /** The rows a collection's code gives (`users.items` · `users`). */
@@ -618,7 +978,7 @@ class Generator {
         query = this.doc.node(code.owner.nodeId)!.binding!.view!;
         source = this.rowsOf(code.collectionId);
       }
-      this.writeView(out, code, query, source);
+      this.writeView(out, code, query, source, key);
     };
     for (const key of this.views.keys()) write(key);
   }
@@ -628,7 +988,14 @@ class Generator {
     code: ViewCode,
     query: ViewQuery,
     source: string,
+    viewKey: string,
   ): void {
+    // (A view the endpoint's request carries: the server answered it — the loaded items are it.)
+    const servedView = this.served.get(code.collectionId);
+    if (servedView?.chain.some((item) => item.key === viewKey)) {
+      out.line(`let ${code.name} = ${source};`);
+      return;
+    }
     const sort = query.sort;
     let dir: string | undefined;
     if (sort && "variableId" in sort) {

@@ -593,3 +593,153 @@ describe("ADR-284 G6 — the code view's 1:1 positions write the document (inver
     h.view.unmount();
   });
 });
+
+describe("ADR-284 Decision 9 — an API collection's code: the view goes in the request", () => {
+  const USERS: Collection = {
+    id: "users",
+    name: "users",
+    schema: [
+      { id: "u-id", key: "id", type: "string" },
+      { id: "u-name", key: "name", type: "string" },
+      { id: "u-gender", key: "gender", type: "string" },
+    ],
+    mockData: [{ id: "u1", name: "Kim", gender: "male" }],
+    endpoint: {
+      url: "http://localhost:5199/users",
+      method: "GET",
+      querySerialization: { kind: "suffix" },
+      dataPath: "items",
+      cursorPath: "next",
+    },
+  };
+  async function buildUsers(endpoint = USERS.endpoint) {
+    const collection = { ...USERS, endpoint } as Collection;
+    const h = await open(["Table", "GridList"], [collection]);
+    const [table, grid] = h.ids as [NodeId, NodeId];
+    h.bind(table, "users");
+    h.bind(grid, "users");
+    h.workspace.execute(
+      catalogShareView(
+        h.graph(),
+        { listId: table, name: "people", otherIds: [grid] },
+        h.workspace.newId,
+      ),
+    );
+    const { command, created } = catalogFilterCommand(
+      h.graph(),
+      {
+        listId: table,
+        field: h.field(USERS, "gender"),
+        kind: "radio",
+        control: { insert: true },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      h.workspace.newId,
+    );
+    h.workspace.execute(command);
+    h.rename(created.variableId, "gender");
+    const sort = catalogSortFollowCommand(
+      h.graph(),
+      { tableId: table, followerIds: [grid] },
+      h.workspace.newId,
+    );
+    h.workspace.execute(sort.command);
+    h.rename(sort.created.variableId, "sortDescriptor");
+    const result = () =>
+      catalogCodeView(h.graph(), HOME, {
+        collections: [collection],
+        endpoints: [],
+      })!;
+    return { ...h, result, conditionId: created.conditionId, table };
+  }
+
+  it("a query format: the conditions · sort are request parameters (skipped ones none), the response's items · cursor are read, a variable change reloads — no client filter", async () => {
+    const h = await buildUsers();
+    const code = h.result().code;
+    expect(code).toContain("let users = useAsyncList({");
+    expect(code).toContain("async load({signal, cursor}) {");
+    expect(code).toContain(
+      "let url = new URL('http://localhost:5199/users');",
+    );
+    expect(code).toContain(
+      "if (gender !== 'all') url.searchParams.append('gender', String(gender));",
+    );
+    expect(code).toContain(
+      "url.searchParams.set('_sort', String(sortDescriptor.column));",
+    );
+    expect(code).toContain(
+      "url.searchParams.set('_order', sortDescriptor.direction === 'descending' ? 'desc' : 'asc');",
+    );
+    expect(code).toContain("let res = await fetch(cursor || url, {signal});");
+    expect(code).toContain("return {items: json.items, cursor: json.next};");
+    expect(code).toContain(
+      "useEffect(() => { users.reload(); }, [gender, sortDescriptor]);",
+    );
+    // (The server answered the view: no `filter` · `toSorted` over the loaded rows.)
+    expect(code).toContain("let people = users.items;");
+    expect(code).not.toContain(".filter(item =>");
+    expect(code).not.toContain(".toSorted(");
+    expect(code).not.toContain("sortDescriptorDir");
+    h.view.unmount();
+  });
+
+  it("what the format cannot carry is said in the code (an or of conditions — not filtered here either, R1); a body format sends the tree", async () => {
+    const h = await buildUsers();
+    h.workspace.execute(
+      catalogOrFilterCondition(h.graph(), h.table, h.conditionId, "gender-or"),
+    );
+    const code = h.result().code;
+    expect(code).toContain(
+      "// Not in the request (an or of conditions) — and not filtered here.",
+    );
+    expect(code).not.toContain(".filter(item =>");
+    h.view.unmount();
+    const body = await buildUsers({
+      ...USERS.endpoint!,
+      method: "POST",
+      querySerialization: { kind: "body" },
+    } as never);
+    const posted = body.result().code;
+    expect(posted).toContain(
+      "let where = {op: 'and', items: [gender !== 'all' && {fields: ['gender'], op: 'equals', value: gender}].filter(Boolean)};",
+    );
+    expect(posted).toContain(
+      "let res = await fetch(cursor || 'http://localhost:5199/users', {signal, method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where, sort: {field: sortDescriptor.column, direction: sortDescriptor.direction}})});",
+    );
+    body.view.unmount();
+  });
+
+  it("a parameter is a 1:1 position: `gender_ne` writes the condition's comparison (one Undo)", async () => {
+    const h = await buildUsers();
+    const before = h.result();
+    const inverse = catalogCodeViewInverse(
+      before,
+      before.code.replace(
+        "url.searchParams.append('gender', String(gender))",
+        "url.searchParams.append('gender_ne', String(gender))",
+      ),
+    );
+    expect(inverse.rejected).toEqual([]);
+    expect(inverse.edits).toMatchObject([
+      { kind: "condition", op: "notEquals", value: expect.stringMatching(/^!var\./) },
+    ]);
+    expect(h.workspace.execute(catalogCodeViewCommand(inverse.edits))).toBeTruthy();
+    expect(h.result().code).toContain(
+      "url.searchParams.append('gender_ne', String(gender))",
+    );
+    h.view.unmount();
+  });
+
+  it("no query format: the endpoint is fetched as it is and the view filters the loaded rows", async () => {
+    const { querySerialization: _none, ...plain } = USERS.endpoint!;
+    const h = await buildUsers(plain as never);
+    const code = h.result().code;
+    expect(code).toContain("let res = await fetch(cursor || 'http://localhost:5199/users', {signal});");
+    expect(code).toContain("return {items: json.items, cursor: json.next};");
+    expect(code).toContain("let people = users.items");
+    expect(code).toContain(".filter(item =>");
+    expect(code).not.toContain("useEffect(");
+    h.view.unmount();
+  });
+});

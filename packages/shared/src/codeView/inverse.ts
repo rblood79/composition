@@ -159,7 +159,9 @@ function readSlot(
         : undefined;
     }
     case "condition": {
-      const term = termOf(text, result, target.collectionId);
+      const term = target.suffixes
+        ? paramOf(text, result, target.collectionId, target.suffixes)
+        : termOf(text, result, target.collectionId);
       return term
         ? {
             kind: "condition",
@@ -192,6 +194,64 @@ function literalOf(
       : undefined;
   }
   return undefined;
+}
+
+/** The comparisons a parameter suffix names, in the table's order (`_gt` = greater than first). */
+const PARAM_ORDER: readonly ViewComparison[] = [
+  "equals",
+  "notEquals",
+  "contains",
+  "gte",
+  "gt",
+  "lte",
+  "lt",
+  "after",
+  "before",
+];
+
+/**
+ * A request parameter the generator writes (`'gender_ne', String(gender)`) → its field, the
+ * comparison its suffix names and the value — the longest suffix that leaves a field key wins.
+ */
+function paramOf(
+  text: string,
+  result: CodeViewResult,
+  collectionId: string,
+  suffixes: Readonly<Partial<Record<ViewComparison, string>>>,
+):
+  | { fields: DataFieldPath[]; op: ViewComparison; value?: ViewConditionValue }
+  | undefined {
+  const m = /^'([^']+)', (.+)$/.exec(text);
+  if (!m) return undefined;
+  const fields = result.symbols.fields[collectionId] ?? {};
+  const candidates = PARAM_ORDER.flatMap((op) => {
+    const suffix = suffixes[op];
+    if (suffix === undefined || !m[1]!.endsWith(suffix)) return [];
+    const key = m[1]!.slice(0, m[1]!.length - suffix.length);
+    return fields[key] ? [{ op, key, length: suffix.length }] : [];
+  }).sort((a, b) => b.length - a.length);
+  const found = candidates[0];
+  if (!found) return undefined;
+  const raw = m[2]!.trim();
+  const inner = /^String\((.+)\)$/.exec(raw)?.[1] ?? raw;
+  let value: ViewConditionValue | undefined;
+  if (IDENTIFIER.test(inner) && result.symbols.variables[inner])
+    value = `!var.${result.symbols.variables[inner]}`;
+  else {
+    const literal = literalOf(inner);
+    if (
+      typeof literal === "string" ||
+      typeof literal === "number" ||
+      typeof literal === "boolean"
+    )
+      value = literal;
+  }
+  if (value === undefined) return undefined;
+  return {
+    fields: [[fields[found.key]! as DataFieldPath[number]]],
+    op: found.op,
+    value,
+  };
 }
 
 /** A `filter` term the generator writes → its field(s), comparison and value. */

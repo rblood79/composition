@@ -493,3 +493,10 @@
 - **live (G7)**: ADR 본문 [Live Exercise](../284-data-view-filter-sort-group-query.md#live-exercise) — plants 구성 · Preview · Publish · kanban 이동 · API 전환 · code view 대조 (22 중 20, 차이 2 = 구성 차이) · 인계 시나리오 기능 확인 (인간 관찰 UNVERIFIED) · 기본 컨트롤.
 - **번들**: Preview initial 309,408 B gz (Phase 6 대비 +1, §8b 배분 안) · Builder initial 1,450,682 B (+692).
 - **G8 대기**: 사용자 Builder 확인 (walkthrough ① · ⑥ · ⑫).
+
+### Phase 7 후속 — 2026-10-27 (code view 의 API 데이터 모양 — 설계 대조에서 찾음)
+
+- **결함**: 생성기의 `useAsyncList` 가 `load({signal, filterText, sortDescriptor})` 를 선언만 하고 고정 URL 을 불러 응답 전체를 `items` 로, 보기는 클라이언트 `filter` · `toSorted` 로 냈다. 실제 세션은 조회 형식 (`querySerialization`) 이 있고 보기가 하나면 조건 · 정렬을 요청에 싣고 응답을 다시 거르지 않는다 — code view 가 실행과 다른 데이터 흐름을 보였다. 수용 집합 5 종이 전부 로컬 데이터라 판정에서 걸리지 않았다.
+- **수리** (`codeView/generate.ts` · `inverse.ts` · `types.ts` · `catalogRuntime/codeView.ts`): `collectServed` 가 세션 `serverView` 와 같은 판정 (모든 page 의 바인딩 · 꼬리 count 보기 제외 · 묶기 없음) · `writeRequest` (접미 = `url.searchParams` + 건너뜀 guard, 본문 = `where` 트리 · `sort`, GET 본문 = 보내지 않음 주석) · 형식이 못 담는 조건은 `viewQueryLimits` 사유 주석 · 응답 `dataPath` · `cursorPath` · `fetch(cursor || url)` · 변수 → `useEffect(… reload())` · 그 보기 = `items` 그대로. 매개변수 자리 (`'key<suffix>', value`) 역매핑 = 조건 필드 · 비교 · 값.
+- **테스트** (`adr284CodeView` +4): 접미 형식 코드 · 매개변수 자리 → `notEquals` (한 step) · 형식 없음 = 그대로 부르고 거름 · 「또는」 묶음 주석 + 본문 형식 POST. 원복 RED 6/6 (판정 · 자리 · 응답 경로 · 주석 · 보기 통과 · reload). 수용 판정 5/5 · shared 1809 · builder 관련 2521 통과 · type-check 0.
+- **live**: 하지 않음 — 사용자 지시로 테스트 서버 (5175 · 5199) 를 내린 뒤.

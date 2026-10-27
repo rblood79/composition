@@ -7,7 +7,9 @@ import type {
   CatalogEntry,
   CatalogLibrary,
   EntryId,
+  ViewComparison,
 } from "../catalog/document/types";
+import type { EndpointQuerySerialization } from "../collections/view/serialize";
 
 /** What the generator reads of the document. */
 export interface CodeViewReader {
@@ -31,7 +33,15 @@ export interface CodeViewCollection {
     };
   }[];
   /** Loaded from an endpoint (`useAsyncList`); absent = local rows (`useListData` · an import). */
-  readonly endpoint?: { readonly url: string; readonly method?: string };
+  readonly endpoint?: {
+    readonly url: string;
+    readonly method?: string;
+    /** The view's request format (ADR-284 Decision 6) — absent · `none` = the rows are filtered here. */
+    readonly querySerialization?: EndpointQuerySerialization;
+    /** Where the response holds the items · the next cursor (`responseMapping`). */
+    readonly dataPath?: string;
+    readonly cursorPath?: string;
+  };
 }
 
 /** A data endpoint a rule calls (`callEndpoint`). */
@@ -58,12 +68,16 @@ export type CodeViewSlotTarget =
   | { readonly kind: "variableName"; readonly variableId: string }
   /** `useState(<default>)` — a variable's default value. */
   | { readonly kind: "variableDefault"; readonly variableId: string }
-  /** A `filter` term — the condition's field, comparison and value. */
+  /**
+   * A `filter` term — the condition's field, comparison and value. With `suffixes`: a request
+   * parameter (`'gender_ne', String(gender)` — the key, the format's suffix and the value).
+   */
   | {
       readonly kind: "condition";
       readonly owner: CodeViewViewOwner;
       readonly conditionId: string;
       readonly collectionId: string;
+      readonly suffixes?: Readonly<Partial<Record<ViewComparison, string>>>;
     }
   /** A literal sort's field (`a.<field>`). */
   | {

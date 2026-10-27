@@ -60,7 +60,21 @@ export function catalogCodeViewData(
           ...(field.reference ? { reference: field.reference } : {}),
         })),
         ...(endpoint
-          ? { endpoint: { url: url(endpoint), method: endpoint.method } }
+          ? {
+              endpoint: {
+                url: url(endpoint),
+                method: endpoint.method,
+                ...(endpoint.querySerialization
+                  ? { querySerialization: endpoint.querySerialization }
+                  : {}),
+                ...(endpoint.responseMapping?.dataPath
+                  ? { dataPath: endpoint.responseMapping.dataPath }
+                  : {}),
+                ...(endpoint.responseMapping?.cursorPath
+                  ? { cursorPath: endpoint.responseMapping.cursorPath }
+                  : {}),
+              },
+            }
           : {}),
       };
     }),

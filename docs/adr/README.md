@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-27 ADR-284 Phase 7 후속** — code view 의 API 데이터 모양을 설계 (Decision 9) 대로: 조회 형식이 있고 보기가 하나면 조건 · 정렬이 요청 (`url.searchParams` · JSON 본문) 에 실리고 그 보기는 불러온 행 그대로 · 변수 → `reload` · 담지 못하는 조건은 이유 주석 · 매개변수 자리 역매핑. 원복 RED 6/6. 열림 · 합계 변화 없음.
+
 > **2026-10-27 ADR-284 Phase 7 · G7 닫힘** — 결정 3 의 「적용 조건 수」 (집계 `applied` · 「적용 조건 수 표시」 · code view 필터 배지) · live 중 찾은 결함 3 수리 (이미 공유된 보기에 목록 합류 · 파생 보기가 읽던 노드와 함께 지워짐 · 「검색 추가」 컨트롤 = 필드 타입). live (5175 · mock 5199): plants 구성 → Preview · Publish · kanban 이동 · API 전환 (`GET /users?gender=female`) · code view 대조 (22 중 20, 차이 2 = 구성 차이) · 인계 시나리오 기능 확인 (인간 관찰 UNVERIFIED). 번들 Preview 309,408 B · Builder +692. 다음 G8 (사용자 Builder 확인 → Implemented). 열림 · 합계 변화 없음.
 
 > **2026-10-27 ADR-284 Phase 6b · 6c · G6 닫힘** — code view: 생성기 (page → React Aria 코드, 연구 §3 어휘) · 1:1 자리 역매핑 (변수 이름 · 초기값 · 조건 · 정렬 열 · When → 기존 명령 한 step, 자리 밖 = 줄 번호 거부) · 「코드」 패널 (전체 메뉴 · lazy). 수용 판정 스크립트 — 예제 5 종을 빌더로 재현 → 레퍼런스와 데이터 흐름 사실 PASS (plants 22 · photos 8 · kanban 8 · ios-list 7 · emoji 3). 재현 중 수리: 조건 「필드」 · 「고정 값」 조건 · 「검색 추가」 컨트롤이 변수를 따라감 (`PropVar`) · RadioGroup 「전체」 복귀. live (5175) 코드 편집 → Preview 반영 · 자리 밖 거부. 열림 · 합계 변화 없음.
