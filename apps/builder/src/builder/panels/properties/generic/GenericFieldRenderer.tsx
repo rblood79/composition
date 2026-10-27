@@ -33,7 +33,10 @@ import { PropertyInput } from "../../../components/property/PropertyInput";
 import {
   catalogCalendarDurationFits,
   catalogColumnSizeFits,
+  isPropVar,
+  isPropWhen,
 } from "../../../../../../../packages/shared/src/catalog/document/valueType";
+import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { isRacColorString } from "../../../../../../../packages/shared/src/catalog/document/colorValue";
 import { NumberFormatField } from "./NumberFormatField";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
@@ -66,6 +69,7 @@ import {
 } from "../hooks/useOwnerCollectionColumns";
 import {
   useFieldOwnerFields,
+  useFieldVariableName,
   useFieldVariableNames,
   useFieldValue,
   useFieldValuesSnapshot,
@@ -786,6 +790,39 @@ const CalendarDurationField = memo(function CalendarDurationField({
 });
 
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
+/** A prop value that reads a variable (ADR-284 Phase 6 — `{ kind: "var" }` · `{ kind: "when" }`). */
+const isVariableFollow = (value: unknown): boolean =>
+  isPropVar(value) || isPropWhen(value);
+
+/**
+ * A prop that follows a variable (a filter control's state prop · 「변수로 정하기」): the variable,
+ * not an editor — an editor reads the reference as a number or text (a Slider's NaN looped its
+ * render, 2026-10-27) and its first write would cut the link. The link is edited where it is made
+ * (the list's filter · 「변수로 정하기」).
+ */
+function VariableFollowField({
+  label,
+  value,
+}: {
+  label: string;
+  value: unknown;
+}) {
+  const { t } = useI18n();
+  const ref = isPropVar(value)
+    ? value.ref
+    : isPropWhen(value)
+      ? value.subject
+      : "";
+  const name = useFieldVariableName(ref);
+  return (
+    <PropertyFieldset legend={label}>
+      <span className="property-variable-follow">
+        {t("dataView.follow_field", { name })}
+      </span>
+    </PropertyFieldset>
+  );
+}
+
 const GenericField = memo(function GenericField({
   field,
   onSemanticUpdate,
@@ -810,6 +847,9 @@ const GenericField = memo(function GenericField({
   };
 
   const { t } = useI18n();
+
+  if (isVariableFollow(value))
+    return <VariableFollowField label={field.label} value={value} />;
 
   // 라벨은 전부 legend (상자 위) — Styles 패널과 같은 어법 (2026-09-15 사용자 판정; 종전 전폭
   //   행의 상자 안 suffix 라벨 · 스위치 inline 행은 폐기). 아이콘 prefix 는 legend 가 정체를
@@ -1004,12 +1044,16 @@ const GenericField = memo(function GenericField({
     }
 
     case "number": {
-      const numeric =
+      const stored =
         value != null
           ? Number(value)
           : field.baseValue != null
             ? Number(field.baseValue)
             : undefined;
+      // (A value that is not a number is shown as none — NaN never equals itself, and the
+      //   slider's prop sync looped on it.)
+      const numeric =
+        stored !== undefined && Number.isFinite(stored) ? stored : undefined;
       // 상한 있는 수 (strokeWidth · 각도 · 반지름 · 지속시간 …) 는 슬라이더 + 직접 입력 값 칸 —
       //   「어디쯤」 이 보인다 (Styles 「Width ──●── 1 px」 와 같은 행). 나머지는 스텝퍼.
       if (editor.type === "slider") {
@@ -1138,19 +1182,23 @@ const ChipGroupField = memo(function ChipGroupField({
   // 묶음의 origin 은 같다 (semantic) — 첫 필드 기준
   const origin = fields[0]?.origin ?? "semantic";
   const snapshot = useFieldValuesSnapshot(elementId, origin, keys, bases);
+  const values = useMemo(() => JSON.parse(snapshot) as unknown[], [snapshot]);
   const chips = useMemo<PropertyChip[]>(() => {
-    const values = JSON.parse(snapshot) as unknown[];
-    return fields.map((field, index) => {
+    return fields.flatMap((field, index) => {
       const editor = editors[index]!;
       const raw = values[index];
+      // (A prop that follows a variable is shown by its variable below, not as a chip.)
+      if (isVariableFollow(raw)) return [];
       const on = editor.onValue != null ? raw === editor.onValue : Boolean(raw);
-      return {
-        key: field.key,
-        label: editor.label,
-        selected: editor.negate ? !on : on,
-      };
+      return [
+        {
+          key: field.key,
+          label: editor.label,
+          selected: editor.negate ? !on : on,
+        },
+      ];
     });
-  }, [editors, fields, snapshot]);
+  }, [editors, fields, values]);
   const handleToggle = useCallback(
     (key: string, selected: boolean) => {
       const index = fields.findIndex((f) => f.key === key);
@@ -1166,12 +1214,27 @@ const ChipGroupField = memo(function ChipGroupField({
     [editors, fields, onSemanticUpdate, onStyleUpdate],
   );
   return (
-    <PropertyChipGroup
-      label={group === "Options" ? undefined : t(CHIP_GROUP_LABEL_KEY[group])}
-      ariaLabel={sectionLabel}
-      chips={chips}
-      onToggle={handleToggle}
-    />
+    <>
+      {chips.length > 0 && (
+        <PropertyChipGroup
+          label={
+            group === "Options" ? undefined : t(CHIP_GROUP_LABEL_KEY[group])
+          }
+          ariaLabel={sectionLabel}
+          chips={chips}
+          onToggle={handleToggle}
+        />
+      )}
+      {fields.map((field, index) =>
+        isVariableFollow(values[index]) ? (
+          <VariableFollowField
+            key={field.key}
+            label={editors[index]!.label}
+            value={values[index]}
+          />
+        ) : null,
+      )}
+    </>
   );
 });
 

@@ -6479,6 +6479,8 @@ const formattedMessages: Record<
     "dataView.actions": (args) => `${String(args?.name ?? "")} 동작`,
     "dataView.follow_remove": (args) =>
       `${String(args?.prop ?? "")} 의 변수 연결 해제`,
+    "dataView.follow_field": (args) =>
+      `변수 ${String(args?.name ?? "")} 를 따름`,
     "codeView.applied": (args) =>
       `문서에 ${String(args?.count ?? 0)} 곳을 반영했습니다.`,
     "codeView.rejectedLine": (args) =>
@@ -7097,6 +7099,8 @@ const formattedMessages: Record<
     "dataView.actions": (args) => `${String(args?.name ?? "")} actions`,
     "dataView.follow_remove": (args) =>
       `Stop setting ${String(args?.prop ?? "")} by a variable`,
+    "dataView.follow_field": (args) =>
+      `Follows the variable ${String(args?.name ?? "")}`,
     "codeView.applied": (args) =>
       `Applied ${String(args?.count ?? 0)} change(s) to the document.`,
     "codeView.rejectedLine": (args) =>

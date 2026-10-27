@@ -27,6 +27,8 @@ export interface FieldValueSource {
   useOwnerFields?(elementId: string | undefined): OwnerField[] | null;
   /** The variable names visible at the element (`{{` autocompletion) — a hook; absent = the project variables only. */
   useVariableNames?(elementId: string | undefined): readonly string[];
+  /** The name of the variable a `!var.<id>[.path]` reference reads — a hook; absent = the id. */
+  useVariableName?(ref: string): string | undefined;
 }
 
 export const FieldValueSourceContext = createContext<FieldValueSource | null>(
@@ -89,4 +91,14 @@ export function useFieldVariableNames(
     ? source.useVariableNames(elementId)
     : // eslint-disable-next-line react-hooks/rules-of-hooks -- fixed per provider
       useProjectVariableNames();
+}
+
+const VARIABLE_ID = (ref: string) => ref.slice("!var.".length).split(".")[0] ?? "";
+
+/** The variable a prop follows, by name (ADR-284 Phase 6 — `{ kind: "var" }` · `{ kind: "when" }`). */
+export function useFieldVariableName(ref: string): string {
+  const source = useFieldValueSource();
+  // A source's hook set does not change while it is provided (one provider per panel).
+  const name = source.useVariableName?.(ref);
+  return name ?? VARIABLE_ID(ref);
 }

@@ -94,7 +94,8 @@ export function PropertySlider({
    */
   const settledRef = useRef(false);
   const [draftValue, setDraftValue] = useState(value);
-  if (draftValue !== value) {
+  // (`Object.is` — a NaN value never equals itself and set state on every render, 2026-10-27.)
+  if (!Object.is(draftValue, value)) {
     setDraftValue(value);
     setDraft(null);
   }

@@ -21,6 +21,7 @@ const STUB_FIELD_VALUE_SOURCE: FieldValueSource = {
   useValuesSnapshot: (_id, _origin, _keys, baseValues) =>
     JSON.stringify(baseValues),
   useOwnerFields: () => ownerColumnsMock()?.map((key) => ({ key })) ?? null,
+  useVariableName: (ref) => (ref === "!var.v-age" ? "age" : undefined),
 };
 
 import { I18nProvider } from "@/i18n";
@@ -413,5 +414,48 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
     expect(c.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(c);
     expect(update).toHaveBeenCalledWith("autoCorrect", "on");
+  });
+});
+
+/**
+ * ADR-284 G8 후속 — 「검색 추가」 가 놓은 컨트롤의 상태 prop 은 변수를 읽는다 (`{ kind: "var" }`).
+ * 패널 편집기가 그 값을 숫자 · 글자로 바꾸면 Slider 는 NaN 으로 무한 렌더 (사용자 보고 2026-10-27),
+ * 다른 편집기는 쓰는 순간 변수 연결을 끊는다 — 편집기 대신 따르는 변수를 보여 준다.
+ */
+describe("GenericFieldRenderer — 변수를 따르는 prop", () => {
+  // (The stub source reads a field's `baseValue` — the stored prop goes there.)
+  const stored = (fields: ResolvedField[], value: unknown) =>
+    fields.map((f) => ({ ...f, baseValue: value }));
+  const sliderFields = (value: unknown): ResolvedField[] =>
+    resolveEditContract({
+      id: "slider-1",
+      type: "Slider",
+      props: { value, minValue: 18, maxValue: 60 },
+    } as never).fields.filter((f) => f.key === "value");
+  const AGE = { kind: "var", ref: "!var.v-age" };
+
+  it("Slider value 가 변수면 편집기 없이 변수 이름 (무한 렌더 없음)", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const fields = stored(sliderFields(AGE), AGE);
+    expect(fields).toHaveLength(1);
+    const { container } = renderFields(fields);
+    expect(container.querySelector(".react-aria-Slider")).toBeNull();
+    expect(container.textContent).toContain("age");
+  });
+
+  it("Switch isSelected 가 변수면 스위치 대신 변수 이름", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const fields = stored(
+      resolveEditContract({
+        id: "switch-1",
+        type: "Switch",
+        props: { isSelected: AGE },
+      } as never).fields.filter((f) => f.key === "isSelected"),
+      AGE,
+    );
+    expect(fields).toHaveLength(1);
+    const { container } = renderFields(fields);
+    expect(container.querySelector("[aria-pressed], input")).toBeNull();
+    expect(container.textContent).toContain("age");
   });
 });

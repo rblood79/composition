@@ -171,4 +171,15 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
     }, [scoped, project]);
     return useStableNames(names);
   },
+  /** A followed variable's name (a document state variable — the filter's · 「변수로 정하기」's). */
+  useVariableName(ref) {
+    const { runtime } = useCatalogWorkspace();
+    const id = ref.slice("!var.".length).split(".")[0] ?? "";
+    return (
+      useStepReading(() => {
+        const entry = runtime.graph.getEntry(id as never);
+        return entry?.kind === "stateVariable" ? entry.name : null;
+      }) ?? undefined
+    );
+  },
 };
