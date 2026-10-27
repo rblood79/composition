@@ -929,6 +929,7 @@ const koKR: TranslationKeys = {
     targetPickBanner: "대상으로 쓸 요소를 클릭 · Esc 로 취소",
     targetPickNoCapability: "기능 없음",
     targetOutOfContext: "이 자리에서는 대상에 닿지 않음",
+    selectionModeOff: "선택 모드를 켜면 선택 기능이 나옵니다",
     navigatePage: "페이지",
     eventsTitle: "이벤트",
     selectElement: "요소를 선택하세요",
@@ -1012,6 +1013,10 @@ const koKR: TranslationKeys = {
     paramValueToSelect: "선택할 값",
     paramPath: "경로",
     paramMessage: "메시지",
+    setProp: "{prop} 설정",
+    propOn: "{prop} 켜기",
+    propOff: "{prop} 끄기",
+    toggleProp: "{prop} 전환",
   },
   propertiesPanel: {
     overrideCleared: "'{label}' override 해제됨",
@@ -3493,6 +3498,7 @@ const enUS: TranslationKeys = {
     targetPickBanner: "Click the element to target · Esc to cancel",
     targetPickNoCapability: "No capability",
     targetOutOfContext: "The target is out of reach here",
+    selectionModeOff: "Turn on selection mode to see the selection actions",
     navigatePage: "Page",
     eventsTitle: "Events",
     selectElement: "Select an element",
@@ -3575,6 +3581,10 @@ const enUS: TranslationKeys = {
     paramValueToSelect: "Value to select",
     paramPath: "Path",
     paramMessage: "Message",
+    setProp: "Set {prop}",
+    propOn: "{prop} on",
+    propOff: "{prop} off",
+    toggleProp: "Toggle {prop}",
   },
   propertiesPanel: {
     overrideCleared: "'{label}' override cleared",
@@ -6745,6 +6755,11 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
     "interactions.summarySetState": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
+    // ADR-287 — a reference API Do's label (the prop name in a generic phrase).
+    "capabilities.setProp": (args) => `${String(args?.prop ?? "")} 설정`,
+    "capabilities.propOn": (args) => `${String(args?.prop ?? "")} 켜기`,
+    "capabilities.propOff": (args) => `${String(args?.prop ?? "")} 끄기`,
+    "capabilities.toggleProp": (args) => `${String(args?.prop ?? "")} 전환`,
     "propertiesPanel.stateUsageCount": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.slotRecommendations": (args) =>
@@ -7368,6 +7383,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
     "interactions.summarySetState": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
+    "capabilities.setProp": (args) => `Set ${String(args?.prop ?? "")}`,
+    "capabilities.propOn": (args) => `${String(args?.prop ?? "")} on`,
+    "capabilities.propOff": (args) => `${String(args?.prop ?? "")} off`,
+    "capabilities.toggleProp": (args) => `Toggle ${String(args?.prop ?? "")}`,
     "propertiesPanel.stateUsageCount": (args) =>
       `Used in ${String(args?.count ?? 0)}`,
     "propertiesPanel.slotRecommendations": (args) =>

@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-287 Implemented — Interactions 의 Do 가 컴포넌트마다 레퍼런스 API 대로] - 2026-10-28
+
+### Changed
+
+- **ADR-287 Implemented**: 사용자 Builder 확인 (G5). 본문은 `docs/adr/completed/287-interactions-do-from-reference-api.md` (`### Live Exercise` 5 시나리오).
+- **template 부품 전달의 비용**: Do 가 쓴 prop 을 template 부품에 전달하는 경로가, 쓴 key 를 묶는 부품이 template 에 없으면 record 를 걷지 않는다 — 바운드 행이 많은 목록의 선택 변경 · 입력칸의 글자 입력마다 하위 record 전체를 훑던 것 (수신자 조회 3 회로 고정, 항목 수 무관).
+  - 위치: `packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts` · 게이트 `apps/builder/src/preview/catalog/__tests__/adr287Reach.test.tsx`
+
+## [ADR-287 Phase 0 ~ 4 — Interactions 의 Do 가 컴포넌트마다 레퍼런스 API 대로] - 2026-10-28
+
+### Added
+
+- **컴포넌트 고유 Do**: Interactions 의 Do 목록이 공통 3 (보이기 · 숨기기 · 전환) 뿐이던 표시 컴포넌트에도 그 컴포넌트의 prop 마다 Do 가 나온다 — Meter · ProgressBar · ProgressCircle 의 「값 설정」 · 「minValue 설정」, Badge 「variant 설정」, ProgressBar 「isIndeterminate 켜기 · 끄기 · 전환」, Button 「children 설정」 등 (유도 1,074). 값 입력은 prop 종류대로 — 숫자 · 글자 · 아이콘 · 선택 목록 (catalog 의 choice). 라벨은 prop 이름을 넣는다 (「minValue 설정」 · 「Set minValue」).
+  - 위치: `packages/shared/src/interactions/referenceCapabilities.ts` · `capabilityRegistry.ts` · `apps/builder/src/builder/panels/interactions/{labels.ts,ValueField.tsx,CapabilityPicker.tsx,catalog/CatalogEventRow.tsx}`
+- **「변수로 정하기」 number · choice**: Meter `value` 를 숫자 변수에, `variant` 를 글자 변수에 연결할 수 있다. 선택지 밖 값이면 정의 값으로 그리고 경고 1 회.
+  - 위치: `apps/builder/src/builder/catalogRuntime/propFollow.ts` · `panels/properties/catalog/CatalogPropFollowSection.tsx` · `packages/shared/src/catalog/document/graph.ts` · `catalog/runtime/compositionRoot.ts`
+
+### Changed
+
+- **template 이 묶은 prop 의 Do 가 부품에 닿는다**: Meter `label` 을 바꾸는 Do 가 Label 부품의 글자를 바꾼다 (Preview 실행 상태 — 문서 · Canvas 무변경). Button · ToggleButton 의 `children` Do 는 `label` 에 쓴다 (글자가 덧붙지 않음).
+  - 위치: `packages/shared/src/catalog/runtime/catalogPreviewInteractions.ts`
+- **자기 disabled · read-only Do**: 노드 자기 `isDisabled` · `isReadOnly` 의 켜기 · 끄기는 자기 값이 막지 않는다 (조상 frame 의 disabled 는 그대로 막음).
+- **코드 보기**: 규칙 Do 가 쓰는 prop 을 RAC 모양 (`let [meterValue, setMeterValue] = useState(40)` · `<Meter value={meterValue}>`) 으로 내고, setter 호출 편집을 그 Do 로 읽는다.
+  - 위치: `packages/shared/src/codeView/{generate.ts,vocabulary.ts,types.ts}` · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts`
+- **`selectionMode: none` 목록의 선택 Do**: ListBox · GridList · Table · Menu · TagGroup · CardView 가 선택 모드 없음이면 「항목 선택」 · 「항목 선택 해제」 · 「선택 해제」 를 모두 숨기고 「선택 모드를 켜면 선택 기능이 나옵니다」 를 보인다 (전엔 「항목 선택」 만 숨었다). 실행은 그대로 — 해제 · 전체 해제는 RAC 가 받는 초기화.
+  - 위치: `packages/shared/src/interactions/exposure.ts` · `apps/builder/src/builder/panels/interactions/CapabilityPicker.tsx`
+
 ## [페이지 헤더 Code 토글] - 2026-10-28
 
 ### Added

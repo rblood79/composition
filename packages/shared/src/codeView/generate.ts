@@ -19,6 +19,7 @@
  * Markup is the document's node tree (types as RAC components, scalar props); styles are not code.
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
+import { getPrimitiveBinding } from "../catalog/bindings";
 import { definitionTypeName } from "../catalog/commands/context";
 import type {
   AuthoredValue,
@@ -330,6 +331,11 @@ class Generator {
     const variables: Record<string, string> = {};
     for (const variable of this.variables.values())
       variables[variable.name] = variable.entry.id;
+    const states: Record<string, { nodeId: string; prop: string }> = {};
+    for (const [key, state] of this.ruleStates) {
+      const [nodeId = "", prop = ""] = key.split("\u0000");
+      states[state.name] = { nodeId, prop };
+    }
     const fields: Record<string, Record<string, string>> = {};
     for (const collection of this.doc.input.collections) {
       const map: Record<string, string> = {};
@@ -337,7 +343,14 @@ class Generator {
         if (field.id) map[field.key] = `${FIELD}${field.id}`;
       fields[`${COLLECTION}${collection.id}`] = map;
     }
-    return { ...out.done(), symbols: { variables, fields } };
+    return {
+      ...out.done(),
+      symbols: {
+        variables,
+        fields,
+        ...(Object.keys(states).length ? { states } : {}),
+      },
+    };
   }
 
   /* ── collect ── */
@@ -469,20 +482,44 @@ class Generator {
             `${this.nodeNames.get(target.id)}${capital(prop)}`,
             "state",
           );
+          // ADR-287 — the state's kind is the Do's (a number · a boolean · a choice's text), its start
+          //   the node's authored value (RAC's pattern: `useState(<the prop's value>)`).
+          const valueType =
+            prop === "selectedKeys"
+              ? "string[]"
+              : prop === "isVisible" ||
+                  typeof def.value === "boolean" ||
+                  (def.value === "!self" && !def.prop.startsWith("style."))
+                ? "boolean"
+                : def.param?.kind === "number"
+                  ? "number"
+                  : "string";
+          const authored =
+            this.propValue(target, prop) ??
+            getPrimitiveBinding(this.doc.typeOf(target))?.props.accepts[prop]
+              ?.default;
+          const defaultValue =
+            prop === "selectedKeys"
+              ? []
+              : prop === "isVisible"
+                ? true
+                : valueType === "boolean"
+                  ? authored === true
+                  : valueType === "number"
+                    ? typeof authored === "number"
+                      ? authored
+                      : 0
+                    : typeof authored === "string"
+                      ? authored
+                      : "";
           this.ruleStates.set(key, {
             entry: {
               kind: "stateVariable",
               id: `capability:${key}` as never,
               ownerId: target.id,
               name,
-              valueType:
-                prop === "selectedKeys"
-                  ? "string[]"
-                  : prop === "isVisible"
-                    ? "boolean"
-                    : "string",
-              defaultValue:
-                prop === "selectedKeys" ? [] : prop === "isVisible" ? true : "",
+              valueType,
+              defaultValue,
             },
             name,
             setter: `set${capital(name)}`,
@@ -1924,6 +1961,8 @@ class Generator {
     let text: string | undefined;
     for (const [prop, write] of Object.entries(node.props)) {
       if (write.kind !== "set") continue;
+      // (ADR-287 — a prop a rule's implicit state holds is that state: its start is this value.)
+      if (this.ruleStates.has(`${node.id}\u0000${prop}`)) continue;
       const value = write.value as AuthoredValue;
       if (prop === "children" && typeof value === "string") {
         text = value;

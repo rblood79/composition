@@ -216,3 +216,7 @@
 - 사용자 지시 「ADR-285 G5 부터」. G5 의 세 시나리오를 Chrome MCP 로 별도 dev 서버 5174 「adr285-live」 에서 돌렸다 (본문 Live Exercise 10 ~ 12): ① `<Text>Hello G5</Text>` 추가 → 적용 → Canvas · `Text` import ② 「스니펫 → Add search · Users · company」 → 변수 · 조건 · 규칙이 코드로 → 적용 (4 변경) → Preview `tech` 10 → 3 행 ③ 두 요소 줄 삭제 → 적용 → ⌘Z 한 번 복원. 콘솔 오류 0 · 지적 0.
 - 관찰 (결함 아님): 요소 줄만 지우면 그 요소와 규칙만 지워지고, 지우지 않은 변수 · 조건 줄은 문서에 남는다 — 편집한 만큼만 적용 (Decision 2). 편집기의 JSX 자동 닫힘 태그가 손으로 `</Text>` 까지 치면 한 번 더 들어간다 — 진단이 바로 보여 지우면 된다 (LOW, 편집기 기본 동작).
 - 종결: Implemented — 본문 `git mv` → `completed/` · README (공지 · 열려 있는 것 · 순서 표 · 완료 표 306 · 열림 2 · 합계 308) · CHANGELOG · 메모리 `project-code-view-structural-edit-closed-vocabulary`. 후속 ADR-286 선행 충족.
+
+### 후속 — 2026-10-28 ADR-287 어휘표 1 행
+
+- `vocabulary.ts` 에 「규칙 Do 의 암묵 상태」 행 추가 (form `let [nodeProp, setNodeProp] = useState(v) · <Tag prop={nodeProp}> · setNodeProp(…)` · emit `writeState` · read `capabilityAt` · unit 「rule Do (a reference API prop)」). 변수가 이름 붙이지 않은 prop 에 규칙 Do 가 쓰면 생성기가 RAC 의 controlled 모양을 내고 (시작값 = 작성 값), 역변환이 setter 호출을 그 노드의 Do 로 읽는다 (`CodeViewSymbols.states`). 상세: [ADR-287 breakdown §8 Phase 3](287-interactions-do-from-reference-api-breakdown.md).

@@ -21,6 +21,7 @@ import { Braces, X } from "lucide-react";
 import { parseRuleValueRef } from "@composition/shared";
 
 import { PropertyFieldset } from "../../components/property/PropertyFieldset";
+import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { SearchField } from "../../components/ui/SearchField";
@@ -45,8 +46,10 @@ const GROUP_LABEL = {
 
 interface ValueFieldProps {
   label: string;
-  /** The literal's input kind. */
-  kind: "text" | "number" | "boolean";
+  /** The literal's input kind (ADR-287 — `icon`: an icon name from the icon picker). */
+  kind: "text" | "number" | "boolean" | "icon";
+  /** ADR-287 — a `choice` slot's values (the catalog's): the literal is one of them. */
+  choices?: readonly { value: string; label: string }[];
   value: unknown;
   onChange: (value: unknown) => void;
   sources: CatalogValueSources;
@@ -161,6 +164,7 @@ function ValuePicker({
 export const ValueField = memo(function ValueField({
   label,
   kind,
+  choices,
   value,
   onChange,
   sources,
@@ -211,6 +215,26 @@ export const ValueField = memo(function ValueField({
       </PropertyFieldset>
     );
   }
+  if (choices)
+    return (
+      <PropertySelect
+        label={label}
+        value={typeof value === "string" ? value : ""}
+        onChange={(next) => onChange(next)}
+        options={[...choices]}
+        translateOptions={false}
+        afterControl={<div className="interactions-value-after">{picker}</div>}
+      />
+    );
+  if (kind === "icon")
+    return (
+      <PropertyIconPicker
+        label={label}
+        value={typeof value === "string" ? value : undefined}
+        onChange={(name) => onChange(name)}
+        onClear={() => onChange("")}
+      />
+    );
   if (kind === "boolean")
     return (
       <PropertySelect

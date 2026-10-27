@@ -358,7 +358,10 @@ export interface CatalogPreviewInteractionsOptions {
   reloadCollection?: (collectionId: string) => Promise<unknown>;
   /** `useAsyncList.loadMore()` · `setFilterText(text)` (the session's) — reported like `reload`. */
   loadMore?: (collectionId: string) => Promise<unknown>;
-  setFilterText?: (collectionId: string, filterText: string) => Promise<unknown>;
+  setFilterText?: (
+    collectionId: string,
+    filterText: string,
+  ) => Promise<unknown>;
   /** The collection a record's text filters on the server (`CatalogPreviewSession.serverFilterOf`). */
   serverFilterOf?: (recordId: string) => string | undefined;
   /** Whether a collection pages (`CatalogPreviewSession.pages`). */
@@ -403,10 +406,16 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
 
   constructor(private readonly options: CatalogPreviewInteractionsOptions) {
     // A load a rule started settles later: its failure is reported and shown as a toast.
-    const settleLoad = (load: Promise<unknown>, collectionId: string, what: string) =>
+    const settleLoad = (
+      load: Promise<unknown>,
+      collectionId: string,
+      what: string,
+    ) =>
       load.catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[interactions] collection ${collectionId} ${what} 실패 — ${message}`);
+        console.warn(
+          `[interactions] collection ${collectionId} ${what} 실패 — ${message}`,
+        );
         options.showToast(message);
       });
     this.deps = {
@@ -432,10 +441,10 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       updateElementProps: (id, patch) => this.setRuntimeProps(id, patch),
       callEndpoint: (endpointId, body) => {
         const submit = options.submitEndpoint;
-        if (!submit)
-          return { ok: false, reason: "endpoint 제출 서비스 없음" };
+        if (!submit) return { ok: false, reason: "endpoint 제출 서비스 없음" };
         submit(endpointId, body).catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           console.warn(
             `[interactions] endpoint ${endpointId} 제출 실패 — ${message}`,
           );
@@ -458,7 +467,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         for (const record of root.domInputs.values()) {
           const source = graph.getEntry(record.sourceId as never);
           const binding = source?.kind === "node" ? source.binding : undefined;
-          if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+          if (binding?.collectionId !== `data:collection:${collectionId}`)
+            continue;
           const selected = catalogRuntimeStateOf(
             root,
             record,
@@ -479,7 +489,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         for (const record of [...root.domInputs.values()]) {
           const source = graph.getEntry(record.sourceId as never);
           const binding = source?.kind === "node" ? source.binding : undefined;
-          if (binding?.collectionId !== `data:collection:${collectionId}`) continue;
+          if (binding?.collectionId !== `data:collection:${collectionId}`)
+            continue;
           const selected = catalogRuntimeStateOf(
             root,
             record,
@@ -487,12 +498,14 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             "selectedKeys",
             (recordId) => this.overrideOf(recordId),
           );
-          if (selected !== undefined) this.setRuntimeProps(record.id, { selectedKeys: [] });
+          if (selected !== undefined)
+            this.setRuntimeProps(record.id, { selectedKeys: [] });
         }
       },
       reload: (collectionId) => {
         const reload = options.reloadCollection;
-        if (!reload) return { ok: false, reason: "collection 다시 읽기 서비스 없음" };
+        if (!reload)
+          return { ok: false, reason: "collection 다시 읽기 서비스 없음" };
         settleLoad(reload(collectionId), collectionId, "다시 읽기");
         return { ok: true };
       },
@@ -560,10 +573,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         const hostFlag = (flag: "isDisabled" | "isReadOnly") =>
           takes.includes(flag) && fromHosts[flag] === true;
         const inherited = {
-          isDisabled:
-            groupProps?.isDisabled === true || hostFlag("isDisabled"),
-          isReadOnly:
-            groupProps?.isReadOnly === true || hostFlag("isReadOnly"),
+          isDisabled: groupProps?.isDisabled === true || hostFlag("isDisabled"),
+          isReadOnly: groupProps?.isReadOnly === true || hostFlag("isReadOnly"),
         };
         return {
           ...(groupProps || inherited.isDisabled || inherited.isReadOnly
@@ -675,18 +686,25 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         const graph = this.options.graph();
         const record = this.options.root()?.domInputs.get(id);
         if (!graph || !record) return undefined;
-        for (const sourceId of [record.sourceId, ...(record.collapsedSourceIds ?? [])]) {
+        for (const sourceId of [
+          record.sourceId,
+          ...(record.collapsedSourceIds ?? []),
+        ]) {
           const entry = graph.getEntry(sourceId as never);
           const collectionId =
             entry?.kind === "node" ? entry.binding?.collectionId : undefined;
           if (collectionId)
-            return itemsByKeys(collectionId.replace(/^data:collection:/, ""), keys);
+            return itemsByKeys(
+              collectionId.replace(/^data:collection:/, ""),
+              keys,
+            );
         }
         return undefined;
       },
       // (Read at render, as RAC reads `selectionMode` — a change renders the record again.)
       singleSelection:
-        this.options.root()?.domInputs.get(id)?.props.selectionMode === "single",
+        this.options.root()?.domInputs.get(id)?.props.selectionMode ===
+        "single",
     };
   }
 
@@ -752,7 +770,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     if (!load) return;
     load(collectionId, filterText).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[interactions] collection ${collectionId} 검색 실패 — ${message}`);
+      console.warn(
+        `[interactions] collection ${collectionId} 검색 실패 — ${message}`,
+      );
       this.options.showToast(message);
     });
   }
@@ -761,7 +781,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     if (!load) return;
     load(collectionId).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`);
+      console.warn(
+        `[interactions] collection ${collectionId} 더 불러오기 실패 — ${message}`,
+      );
       this.options.showToast(message);
     });
   }
@@ -788,7 +810,12 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         if (keys === "all") continue;
         const multiple = record.props.selectionMode === "multiple";
         const current = catalogSelectValue(
-          catalogRuntimeStateOf(root, record, this.overrideOf(record.id), "value"),
+          catalogRuntimeStateOf(
+            root,
+            record,
+            this.overrideOf(record.id),
+            "value",
+          ),
           multiple,
         );
         const loaded = multiple ? [...keys] : (keys[0] ?? null);
@@ -835,18 +862,15 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       const single = record.props.selectionMode === "single";
       this.setRuntimeProps(record.id, {
         selectedKeys:
-          single && next !== "all" ? next.slice(join ? -1 : 0, join ? undefined : 1) : next,
+          single && next !== "all"
+            ? next.slice(join ? -1 : 0, join ? undefined : 1)
+            : next,
       });
     }
   }
   setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
-    const props = this.options.root()?.domInputs.get(id)?.props as
-      Readonly<Record<string, unknown>> | undefined;
-    const declared = { ...this.declaredAt.get(id) };
-    for (const key of Object.keys(patch))
-      declared[key] = declaredKey(props?.[key]);
-    this.declaredAt.set(id, declared);
-    this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
+    this.writeOverride(id, patch);
+    this.forwardTemplateBound(id, patch);
     if ("sortDescriptor" in patch)
       this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
     if (patch.colorScheme === "light" || patch.colorScheme === "dark")
@@ -865,6 +889,77 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
             value: normalizeImplicitStateValue(mirror.type, patch[mirror.prop]),
           });
     this.touch(id);
+  }
+  /** One record's runtime props over its declarations (what `overrideOf` reads back). */
+  private writeOverride(
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): void {
+    const props = this.options.root()?.domInputs.get(id)?.props as
+      Readonly<Record<string, unknown>> | undefined;
+    const declared = { ...this.declaredAt.get(id) };
+    for (const key of Object.keys(patch))
+      declared[key] = declaredKey(props?.[key]);
+    this.declaredAt.set(id, declared);
+    this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
+  }
+  /**
+   * ADR-287 R1 — a composite's display prop that its template binds into a part (Meter
+   * `Label.children: "{label}"`) reaches that part. The resolver binds `{label}` in the document
+   * projection, so the receiver's own override leaves the part's text as authored; the part record
+   * whose template prop is the whole `{key}` takes the same runtime value. Only the receiver's own
+   * template tree (its collapsed template roots) binds its props — a nested origin's parts bind that
+   * origin's. The document is not written.
+   */
+  private forwardTemplateBound(
+    id: string,
+    patch: Readonly<Record<string, unknown>>,
+  ): void {
+    const root = this.options.root();
+    const graph = this.options.graph();
+    const record = root?.domInputs.get(id);
+    if (!root || !graph || !record?.collapsedSourceIds?.length) return;
+    const keys = Object.keys(patch).filter((key) => key !== "style");
+    if (!keys.length) return;
+    // (The template tree first: a write no part binds — a list's `selectedKeys`, a field's `value`
+    //  on every keystroke — walks no records. Only then the record subtree, every level: an own
+    //  template node can sit under another origin's record — a nested instance's slot fill.)
+    const templates = graph.library.templates;
+    const own = new Set<string>();
+    const bindings = new Map<string, [prop: string, key: string][]>();
+    const collect = (templateId: string) => {
+      const template = templates.get(templateId as never);
+      if (!template || own.has(templateId)) return;
+      own.add(templateId);
+      for (const [prop, raw] of Object.entries(template.props ?? {})) {
+        const bound =
+          typeof raw === "string"
+            ? WHOLE_TEMPLATE_BINDING.exec(raw)?.[1]
+            : undefined;
+        if (bound && keys.includes(bound))
+          bindings.set(templateId, [
+            ...(bindings.get(templateId) ?? []),
+            [prop, bound],
+          ]);
+      }
+      template.children.forEach(collect);
+    };
+    record.collapsedSourceIds.forEach(collect);
+    if (!bindings.size) return;
+    const visit = (recordId: string) => {
+      for (const childId of root.domInputs.get(recordId)?.children ?? []) {
+        const bound = bindings.get(root.domInputs.get(childId)?.sourceId ?? "");
+        if (bound) {
+          this.writeOverride(
+            childId,
+            Object.fromEntries(bound.map(([prop, key]) => [prop, patch[key]])),
+          );
+          this.touch(childId);
+        }
+        visit(childId);
+      }
+    };
+    visit(id);
   }
   /** The record's runtime props still standing over their declarations. */
   overrideOf(id: string) {
@@ -894,6 +989,9 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
     };
   }
 }
+
+/** A template prop that is one whole `{key}` binding (the resolver's `WHOLE_TEMPLATE_BINDING`). */
+const WHOLE_TEMPLATE_BINDING = /^\{([a-zA-Z][a-zA-Z0-9_-]*)\}$/;
 
 /** A declared prop value as a comparable key (absent = its own key). */
 function declaredKey(value: unknown): string {

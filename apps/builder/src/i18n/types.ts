@@ -592,6 +592,7 @@ export interface TranslationKeys {
     targetPickBanner: string;
     targetPickNoCapability: string;
     targetOutOfContext: string;
+    selectionModeOff: string;
     showMoreEvents: string;
     inheritedTitle: string;
     inheritedEnabled: string;
@@ -730,6 +731,11 @@ export interface TranslationKeys {
     paramValueToSelect: string;
     paramPath: string;
     paramMessage: string;
+    /** ADR-287 — a reference API Do's label: the prop name in a generic phrase. */
+    setProp: string;
+    propOn: string;
+    propOff: string;
+    toggleProp: string;
   };
   propertiesPanel: {
     overrideCleared: string;

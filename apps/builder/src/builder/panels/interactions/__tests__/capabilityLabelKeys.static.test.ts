@@ -6,6 +6,7 @@
  * 타입은 아무것도 말해주지 않는다 — `t` 가 키를 그대로 돌려주므로 패널에
  * `capabilities.selectItem` 이 그대로 찍힌다. 그 조용한 새어나감을 여기서 잡는다.
  */
+import { COMPONENT_INTERACTION_SPECS } from "../../../../../../../packages/shared/src/interactions/componentInteractionSpecs";
 import { describe, expect, it } from "vitest";
 import {
   APP_ACTIONS,
@@ -61,6 +62,9 @@ describe("capability labelKey ↔ 카탈로그", () => {
   it.each(LOCALES)("%s 카탈로그가 모든 키를 해소한다", (locale) => {
     const unresolved = entries.filter(({ key }) => {
       const value = localizedStrings[locale][key];
+      // (ADR-287 — a label with the prop name is a formatted message: a function.)
+      if (typeof value === "function")
+        return String(value({ prop: "x" })).trim().length === 0;
       return typeof value !== "string" || value.trim().length === 0;
     });
     expect(
@@ -101,7 +105,10 @@ describe("ADR-281 — When 라벨 키 ↔ 카탈로그", () => {
     }
 
   it("등록표 58 type (55 + page 루트 · frame — ADR-281 Phase 2 · MenuItem — RAC event audit 2026-10-26) 이 그룹을 싣는다", () => {
-    expect(Object.keys(CAPABILITY_REGISTRY)).toHaveLength(58);
+    // (ADR-287 — types with reference API Do only join the registry too: the spec'd 58 are counted.)
+    const specs = Object.keys(COMPONENT_INTERACTION_SPECS);
+    expect(specs).toHaveLength(58);
+    expect(specs.filter((type) => !CAPABILITY_REGISTRY[type])).toEqual([]);
     expect(keys.length).toBeGreaterThanOrEqual(55);
   });
 

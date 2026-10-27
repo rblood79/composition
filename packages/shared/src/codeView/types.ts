@@ -161,4 +161,12 @@ export interface CodeViewSymbols {
   readonly variables: Readonly<Record<string, string>>;
   /** Collection id → field key → field id (`data:field:<id>`). */
   readonly fields: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  /**
+   * ADR-287 — a rule's implicit state (`let [meterValue, setMeterValue] = useState(40)` for a Do
+   * that writes a prop no variable names): its code name → the node and prop. The inverse reads a
+   * setter call on it as that node's Do.
+   */
+  readonly states?: Readonly<
+    Record<string, { readonly nodeId: string; readonly prop: string }>
+  >;
 }

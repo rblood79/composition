@@ -30,6 +30,10 @@ import {
   isPropVar,
   isPropWhen,
 } from "../../../../../packages/shared/src/catalog/document/valueType";
+import { getPrimitiveBinding } from "../../../../../packages/shared/src/catalog/bindings";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import type { InspectorFieldKind } from "../../../../../packages/shared/src/catalog/types";
+import { isExcludedProp } from "../../../../../packages/shared/src/interactions/referenceCapabilities";
 import { catalogVisibleVariableEntries } from "./stateVariables";
 
 export type CatalogPropFollow =
@@ -68,11 +72,35 @@ export function catalogPropFollowVariables(
   return catalogVisibleVariableEntries(graph as never, nodeId);
 }
 
-/** A follow's prop kind: a value condition · a text template · a key list (`PropVar`). */
-export type CatalogPropFollowType = "boolean" | "string" | "keys";
+/**
+ * A follow's prop kind: a value condition · a text template · a key list · ADR-287 a number · one of
+ * a choice prop's values (the last three hold the variable — `PropVar`).
+ */
+export type CatalogPropFollowType =
+  | "boolean"
+  | "string"
+  | "keys"
+  | "number"
+  | "choice";
 const KEY_LIST = /Keys$/;
 
-/** The props a follow may take: the node's accepted boolean, text and key list props. */
+/** ADR-287 Decision 6 — a binding `accepts` kind (D2) as a follow kind (none: not followed). */
+const FOLLOW_KIND: Partial<Record<InspectorFieldKind, CatalogPropFollowType>> = {
+  boolean: "boolean",
+  string: "string",
+  icon: "string",
+  number: "number",
+  enum: "choice",
+  variant: "choice",
+  size: "choice",
+  fillStyle: "choice",
+};
+
+/**
+ * The props a follow may take: the node's accepted boolean, text and key list props (its
+ * definition's — a composite's template-bound `label`), and ADR-287 its type's D2 props (the binding
+ * `accepts` — a Meter's `value` · `variant`), minus the names no Do writes either.
+ */
 export function catalogPropFollowProps(
   graph: Reader,
   nodeId: NodeId,
@@ -85,18 +113,40 @@ export function catalogPropFollowProps(
           { accepts?: Readonly<Record<string, string>> } | undefined
       )?.accepts) ??
     {};
+  const out = new Map<string, CatalogPropFollowType>();
+  for (const [prop, type] of Object.entries(accepts))
+    if (type === "boolean" || type === "string") out.set(prop, type);
+    else if (type === "string[]" && KEY_LIST.test(prop)) out.set(prop, "keys");
+  const binding = node
+    ? getPrimitiveBinding(definitionTypeName(graph as never, node.definitionId))
+    : undefined;
+  for (const [prop, contract] of Object.entries(binding?.props.accepts ?? {})) {
+    const type = FOLLOW_KIND[contract.kind];
+    if (!type || contract.editorHidden || isExcludedProp(prop)) continue;
+    out.set(prop, type);
+  }
   // (Booleans first — `isDisabled` leads: the state a value condition is for; text props after.)
   const rank = (entry: { prop: string; type: string }) =>
     entry.prop === "isDisabled" ? 0 : entry.type === "boolean" ? 1 : 2;
-  return Object.entries(accepts)
-    .flatMap(([prop, type]): { prop: string; type: CatalogPropFollowType }[] =>
-      type === "boolean" || type === "string"
-        ? [{ prop, type }]
-        : type === "string[]" && KEY_LIST.test(prop)
-          ? [{ prop, type: "keys" }]
-          : [],
-    )
+  return [...out]
+    .map(([prop, type]) => ({ prop, type }))
     .sort((a, b) => rank(a) - rank(b) || a.prop.localeCompare(b.prop));
+}
+
+/**
+ * ADR-287 — a follow moved to another prop keeps its variable; the prop's kind picks the shape (a
+ * boolean is a value condition, a number · a choice · a text the variable itself).
+ */
+export function catalogPropFollowMoved(
+  follow: CatalogPropFollow,
+  prop: string,
+  type: CatalogPropFollowType | undefined,
+): CatalogPropFollow {
+  const boolean = type === "boolean";
+  if (boolean === (follow.kind === "when")) return { ...follow, prop };
+  return boolean
+    ? { prop, kind: "when", variableId: follow.variableId, path: "", op: "exists" }
+    : { prop, kind: "variable", variableId: follow.variableId };
 }
 
 /** The variable id of a `!var.<id>[.path]` reference. */

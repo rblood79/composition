@@ -38,7 +38,12 @@ import { ValueField } from "../ValueField";
 import type { CatalogValueSources } from "../valueOptions";
 import { StateActionFieldsView } from "../StateActionFields";
 import { TriggerPicker } from "../TriggerPicker";
-import { ACTION_CHOICE_LABEL_KEYS, triggerLabel } from "../labels";
+import {
+  ACTION_CHOICE_LABEL_KEYS,
+  capabilityChoices,
+  capabilityLabel as labelOfCapability,
+  triggerLabel,
+} from "../labels";
 import type { ActionChoice } from "../types";
 
 const DeleteIcon = ACTION_ICONS.delete;
@@ -195,7 +200,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
   );
   const capabilityLabel = (id: string) => {
     const def = resolveCapabilities(targetType)[id];
-    return def ? t(def.labelKey) : id;
+    return def ? labelOfCapability(def, t) : id;
   };
   const shownFallback =
     fallback ??
@@ -252,7 +257,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
     }
     if (action.opcode === "capability") {
       const capability = resolveCapabilities(targetType)[action.capabilityId];
-      const label = capability ? t(capability.labelKey) : action.capabilityId;
+      const label = capability ? labelOfCapability(capability, t) : action.capabilityId;
       return `${when} → ${label} @ ${target && notice !== "unset" ? targetLabel(target) : t("interactions.targetUnset")}`;
     }
     return when;
@@ -572,7 +577,7 @@ export const CatalogEventRow = memo(function CatalogEventRow({
                   const keeps = action.capabilityId in capabilities;
                   const label = (id: string) => {
                     const def = resolveCapabilities(next.type)[id] ?? resolveCapabilities(targetType)[id];
-                    return def ? t(def.labelKey) : id;
+                    return def ? labelOfCapability(def, t) : id;
                   };
                   setFallback(
                     keeps
@@ -626,7 +631,18 @@ export const CatalogEventRow = memo(function CatalogEventRow({
               {capabilityDef?.param && (
                 <ValueField
                   label={t(capabilityDef.param.labelKey)}
-                  kind={capabilityDef.param.kind === "number" ? "number" : "text"}
+                  kind={
+                    capabilityDef.param.kind === "number"
+                      ? "number"
+                      : capabilityDef.param.kind === "icon"
+                        ? "icon"
+                        : "text"
+                  }
+                  choices={
+                    capabilityDef.param.kind === "choice"
+                      ? capabilityChoices(targetType, capabilityDef)
+                      : undefined
+                  }
                   value={action.value}
                   sources={valueSources}
                   onChange={(value) =>

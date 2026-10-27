@@ -1,3 +1,4 @@
+import { isPropVar } from "../document/valueType";
 import {
   catalogHostInheritedChanged,
   catalogInheritedReceivers,
@@ -1938,8 +1939,45 @@ export class CatalogCompositionRoot {
       ),
     );
     if (!props) return templateProps ? { ...rest, props: authored } : record;
-    return { ...rest, props, templateProps: authored };
+    return {
+      ...rest,
+      props: this.withinChoices(record, authored, props),
+      templateProps: authored,
+    };
   }
+  /**
+   * ADR-287 R7 — a choice prop that reads a variable (`PropVar`) takes only one of its choices: a
+   * value outside them is dropped (the definition's value draws) with one warning — the DOM never
+   * gets a variant it does not know.
+   */
+  private withinChoices<P extends Record<string, unknown>>(
+    record: CatalogConsumerNode,
+    authored: Readonly<Record<string, unknown>>,
+    props: P,
+  ): P {
+    const choices = (
+      this.runtime.graph.getDefinition(record.definitionId as never) as
+        | { propChoices?: Readonly<Record<string, readonly unknown[]>> }
+        | undefined
+    )?.propChoices;
+    if (!choices) return props;
+    let out: P | undefined;
+    for (const [key, value] of Object.entries(authored)) {
+      const allowed = choices[key];
+      if (!allowed || !isPropVar(value) || allowed.includes(props[key])) continue;
+      out ??= { ...props };
+      delete out[key];
+      const warned = `${record.id}\u0000${key}\u0000${String(props[key])}`;
+      if (!this.choiceWarnings.has(warned)) {
+        this.choiceWarnings.add(warned);
+        console.warn(
+          `[catalog] ${key} = ${JSON.stringify(props[key])} is not one of ${record.definitionId}'s choices — the definition's value draws`,
+        );
+      }
+    }
+    return out ?? props;
+  }
+  private readonly choiceWarnings = new Set<string>();
   /** Records whose written props hold a template (`names`: only those reading one of them). */
   private stateReaders(names?: ReadonlySet<string>): string[] {
     const ids: string[] = [];

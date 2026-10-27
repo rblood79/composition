@@ -259,10 +259,11 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
   });
 
   it("every capability names its RAC concept and d.ts type (racRef)", () => {
+    // (ADR-287 — a reference API Do names its binding accepts entry instead.)
     for (const [type, entry] of Object.entries(CAPABILITY_REGISTRY))
       for (const [name, def] of Object.entries(entry.capabilities))
         expect(def.racRef, `${type}.${name}`).toMatch(
-          /^concepts\/\w+\.ts satisfies \w/,
+          /^concepts\/\w+\.ts satisfies \w|^catalog binding \w+\.accepts\.\w/,
         );
   });
 
@@ -270,7 +271,13 @@ describe("ADR-280 G1 — the derived registry covers the hand registry", () => {
     const without = Object.entries(CAPABILITY_REGISTRY).flatMap(
       ([type, entry]) =>
         Object.entries(entry.capabilities)
-          .filter(([, def]) => !def.imperative && !def.guards?.length)
+          // (ADR-287 — a reference API Do is a display prop: no RAC condition stops writing it.)
+          .filter(
+            ([, def]) =>
+              !def.imperative &&
+              !def.guards?.length &&
+              !def.racRef.startsWith("catalog binding "),
+          )
           .map(([name]) => `${type}.${name}`),
     );
     // (Table sort and a ColorSwatchPicker's value have no RAC condition — a Table restricts

@@ -25,6 +25,10 @@
 
 import { COMPONENT_INTERACTION_SPECS } from "./componentInteractionSpecs";
 import { deriveRegistry } from "./deriveRegistry";
+import {
+  catalogAccepts,
+  deriveReferenceCapabilities,
+} from "./referenceCapabilities";
 
 /**
  * ADR-201 Phase 3 — 파일 입력 2종의 When 축 (정의는 `concepts/files.ts` — `satisfies` 로 RAC prop
@@ -34,7 +38,11 @@ export { DROP_ZONE_EVENTS, FILE_TRIGGER_EVENTS } from "./concepts/files";
 
 /** capability 가 값을 요구할 때 패널이 물어볼 입력의 종류 */
 export interface CapabilityParam {
-  kind: "itemKey" | "value" | "text" | "number";
+  /**
+   * ADR-287 — `choice` (one of the prop's catalog choices — `deriveOptions`, read where the panel
+   * shows them) · `icon` (an icon name).
+   */
+  kind: "itemKey" | "value" | "text" | "number" | "choice" | "icon";
   /** 입력 레이블의 카탈로그 키 (`labelKey` 와 같은 이유로 문구가 아니다) */
   labelKey: string;
 }
@@ -63,6 +71,11 @@ export interface CapabilityDef {
   value: unknown;
   /** RAC controlled prop 근거 — G1 증빙 (필수) */
   racRef: string;
+  /**
+   * ADR-287 — the reference API prop when the catalog stores it under another (`prop`): a Button's
+   * `children` is its `label` (ADR-276). Absent = `prop` is the reference's name.
+   */
+  referenceProp?: string;
   /** 값이 필요한 capability 의 입력 사양 (`value: "!param"` 과 쌍) */
   param?: CapabilityParam;
   /** generic prop patch 로 환원 불가 — DOM ref 경유 특례 */
@@ -165,7 +178,33 @@ export const COMMON_CAPABILITIES: Readonly<Record<string, CapabilityDef>> = {
  */
 export const CAPABILITY_REGISTRY: Readonly<
   Record<string, ComponentCapability>
-> = deriveRegistry(COMPONENT_INTERACTION_SPECS);
+> = withReferenceCapabilities(deriveRegistry(COMPONENT_INTERACTION_SPECS));
+
+/**
+ * ADR-287 — each type's reference API Do (`referenceCapabilities.ts`, from the binding `accepts`)
+ * after its concepts' (a concept's prop and id win). A type with no concept gets an entry of Do only.
+ */
+function withReferenceCapabilities(
+  concepts: Readonly<Record<string, ComponentCapability>>,
+): Readonly<Record<string, ComponentCapability>> {
+  const out: Record<string, ComponentCapability> = { ...concepts };
+  for (const [type, accepts] of catalogAccepts()) {
+    const entry = concepts[type];
+    const own = entry?.capabilities ?? {};
+    const derived = deriveReferenceCapabilities(
+      type,
+      accepts,
+      new Set(Object.values(own).map((def) => def.prop)),
+      new Set([...Object.keys(own), ...(entry?.deferred ?? [])]),
+    );
+    if (!Object.keys(derived).length) continue;
+    out[type] = Object.freeze({
+      ...(entry ?? { events: Object.freeze([]) }),
+      capabilities: Object.freeze({ ...own, ...derived }),
+    });
+  }
+  return Object.freeze(out);
+}
 
 /**
  * 앱 액션 — 대상 요소가 없는 전역 동작.

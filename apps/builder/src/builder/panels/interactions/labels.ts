@@ -5,7 +5,13 @@
  * When 축(RAC callback)과 Do 축 최상위 선택지만 다룬다. When 의 키는 손 목록이 아니라
  * 등록표의 그룹 (개념 = RAC 문서 절) 에서 유도한다 — `interactions.trigger.<개념>.<callback>`.
  */
-import { triggerGroupOf } from "@composition/shared";
+import {
+  getPrimitiveBinding,
+  resolveComponentRule,
+  triggerGroupOf,
+  type CapabilityDef,
+} from "@composition/shared";
+import { deriveOptions } from "../../../../../../packages/shared/src/catalog/outputs/editFields";
 
 /** 문구 해소기 — 순수 모듈이라 훅을 못 쓴다, 호출부가 넘긴다 (ADR-200 후속). */
 export type LabelTranslate = (
@@ -61,3 +67,26 @@ export const ACTION_CHOICE_LABEL_KEYS = {
   moveAfter: "interactions.actionMoveAfter",
   removeSelectedItems: "interactions.actionRemoveSelectedItems",
 } as const;
+
+/**
+ * A Do's label. ADR-287 user decision 2 — a reference API Do's phrase names its prop
+ * (「minValue 설정」); a dictionary Do (「값 설정」) ignores the extra argument.
+ */
+export function capabilityLabel(def: CapabilityDef, t: LabelTranslate): string {
+  return t(def.labelKey, { prop: def.prop });
+}
+
+/**
+ * ADR-287 — a `choice` Do's choices: the catalog's own (`deriveOptions` — the binding's
+ * `accepts.options`, or the rule's variants · sizes), as the Properties panel lists them.
+ */
+export function capabilityChoices(
+  type: string,
+  def: CapabilityDef,
+): { value: string; label: string }[] {
+  const contract = getPrimitiveBinding(type)?.props.accepts[def.prop];
+  if (!contract) return [];
+  return (
+    deriveOptions(contract, resolveComponentRule(type), { type }, def.prop) ?? []
+  ).map((option) => ({ value: option.value, label: option.label }));
+}

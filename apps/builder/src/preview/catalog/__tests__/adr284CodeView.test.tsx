@@ -809,3 +809,129 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
     h.view.unmount();
   });
 });
+
+describe("ADR-287 G3 — a reference API Do in the code view (RAC's useState + controlled prop)", () => {
+  async function meterButton() {
+    const h = await open(["Button", "Meter", "ProgressBar"], []);
+    const [button, meter, bar] = h.ids as [NodeId, NodeId, NodeId];
+    h.declare(meter, { value: 40 });
+    h.rules(button, [
+      [
+        "onPress",
+        [
+          {
+            opcode: "capability",
+            target: { nodeId: meter },
+            capabilityId: "setValue",
+            value: 80,
+          },
+          {
+            opcode: "capability",
+            target: { nodeId: meter },
+            capabilityId: "setVariant",
+            value: "negative",
+          },
+          {
+            opcode: "capability",
+            target: { nodeId: bar },
+            capabilityId: "isIndeterminateOn",
+          },
+        ],
+      ],
+    ]);
+    return { ...h, button, meter, bar };
+  }
+
+  it("a number · a choice · a boolean Do are implicit states that start at the authored value", async () => {
+    const h = await meterButton();
+    const code = h.code();
+    expect(code).toContain("let [meterValue, setMeterValue] = useState(40);");
+    expect(code).toContain(
+      "let [meterVariant, setMeterVariant] = useState('informative');",
+    );
+    expect(code).toContain(
+      "let [progressBarIsIndeterminate, setProgressBarIsIndeterminate] = useState(false);",
+    );
+    expect(code).toMatch(/<Meter[^>]*value=\{meterValue\}/);
+    expect(code).not.toMatch(/<Meter[^>]*value=\{40\}/);
+    expect(code).toContain("setMeterValue(80);");
+    expect(code).toContain("setMeterVariant('negative');");
+    expect(code).toContain("setProgressBarIsIndeterminate(true);");
+    roundTrip(h);
+    h.view.unmount();
+  });
+
+  it("「변수로 정하기」 on a number · a choice prop: value={progress} variant={tone} round-trips", async () => {
+    const h = await open(["Meter"], []);
+    const [meter] = h.ids as [NodeId];
+    for (const [name, valueType, defaultValue] of [
+      ["progress", "number", 30],
+      ["tone", "string", "positive"],
+    ] as const)
+      h.workspace.execute(
+        addRecord({
+          entry: {
+            kind: "stateVariable",
+            id: `project:stateVariable:${name}`,
+            ownerId: HOME,
+            name,
+            valueType,
+            defaultValue,
+          } as never,
+        }),
+      );
+    for (const [prop, name] of [
+      ["value", "progress"],
+      ["variant", "tone"],
+    ])
+      h.workspace.execute(
+        catalogPropFollowCommand(h.graph(), meter, prop, {
+          prop,
+          kind: "variable",
+          variableId: `project:stateVariable:${name}`,
+        }),
+      );
+    const code = h.code();
+    expect(code).toContain("let [progress, setProgress] = useState(30);");
+    expect(code).toMatch(/<Meter[^>]*value=\{progress\}[^>]*variant=\{tone\}/);
+    roundTrip(h);
+    h.view.unmount();
+  });
+
+  it("editing the setter's value writes the Do's value (one step)", async () => {
+    const h = await meterButton();
+    const session = catalogCodeViewSession(h.graph(), HOME, h.data)!;
+    const code = session.baseline.code;
+    const edited = code.replace("setMeterValue(80);", "setMeterValue(90);");
+    const from = code.indexOf("setMeterValue(80);");
+    const plan = catalogCodeViewPlan({
+      reader: h.graph().commandReader,
+      session,
+      edited,
+      changes: [
+        {
+          fromA: from,
+          toA: from + "setMeterValue(80);".length,
+          insert: "setMeterValue(90);",
+        },
+      ],
+      data: h.data,
+      newId: h.workspace.newId,
+    });
+    expect(plan.rejected).toEqual([]);
+    h.workspace.execute(plan.command!);
+    const project = h
+      .graph()
+      .getEntry(h.graph().projectId) as unknown as { interactionIds: string[] };
+    const actions = project.interactionIds.flatMap(
+      (id) =>
+        (h.graph().getEntry(id) as unknown as { actions: unknown[] }).actions,
+    );
+    expect(actions[0]).toMatchObject({
+      opcode: "capability",
+      capabilityId: "setValue",
+      value: 90,
+    });
+    h.view.unmount();
+  });
+});

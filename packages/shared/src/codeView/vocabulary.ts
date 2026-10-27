@@ -29,6 +29,14 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     unit: "variable",
   },
   {
+    // ADR-287 — a rule's Do on a prop no variable names: RAC's pattern (`useState` + the controlled
+    //   prop), the state starting at the authored value; the setter call is the Do.
+    form: "let [nodeProp, setNodeProp] = useState(v) · <Tag prop={nodeProp}> · setNodeProp(…)",
+    emit: "writeState",
+    read: "capabilityAt",
+    unit: "rule Do (a reference API prop)",
+  },
+  {
     form: "let {selectedKeys: x, setSelectedKeys: setX} = list",
     emit: "writeCollections",
     read: "planSelections",

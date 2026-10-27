@@ -552,8 +552,12 @@ class Planner {
   /* ── variables (`useState`) ── */
 
   private planVariables(): void {
+    // (ADR-287 — a rule's implicit state is the rule's, not a variable: its line is derived.)
+    const implicit = this.baseline.symbols.states ?? {};
     const statements = this.parsed.statements.filter(
-      (item) => item.kind === "state" || item.kind === "listSelection",
+      (item) =>
+        (item.kind === "state" || item.kind === "listSelection") &&
+        !(item.name && Object.hasOwn(implicit, item.name)),
     );
     const used = new Set<CodeViewStatement>();
     const variableAnchors = this.baseline.anchors
@@ -1287,11 +1291,27 @@ class Planner {
       | StateVariableEntry
       | undefined;
     const source = entry?.source;
-    const node = source ? this.reader.getEntry(source.nodeId) : undefined;
-    if (!source || node?.kind !== "node") return undefined;
+    return source
+      ? this.capabilityAt(source.nodeId, source.prop, next, valueOf)
+      : undefined;
+  }
+
+  /**
+   * A setter call on a node's prop state → that node's capability on the prop. ADR-287 — an implicit
+   * state (`symbols.states`) also takes a `!param` Do's value (`setMeterValue(80)` → 「값 설정」 80).
+   */
+  private capabilityAt(
+    nodeId: string,
+    prop: string,
+    next: string,
+    valueOf: (raw: string) => unknown,
+    implicit = false,
+  ): InteractionAction | undefined {
+    const node = this.reader.getEntry(nodeId);
+    if (node?.kind !== "node") return undefined;
     const defs = Object.entries(
       resolveCapabilities(definitionTypeName(this.reader, node.definitionId)),
-    ).filter(([, def]) => !def.imperative && def.prop === source.prop);
+    ).filter(([, def]) => !def.imperative && def.prop === prop);
     const add = /^v => new Set\(\[\.\.\.v, (.+)\]\)$/.exec(next);
     const remove =
       /^v => new Set\(\[\.\.\.v\]\.filter\(key => key !== (.+)\)\)$/.exec(next);
@@ -1307,6 +1327,17 @@ class Planner {
               : def.value !== "!param" &&
                 JSON.stringify(def.value) === JSON.stringify(literalOf(next)),
     );
+    const written =
+      !pick && implicit
+        ? defs.find(([, def]) => def.value === "!param" && !def.op)
+        : undefined;
+    if (written)
+      return {
+        opcode: "capability",
+        target: { nodeId: node.id },
+        capabilityId: written[0],
+        value: valueOf(next),
+      } as InteractionAction;
     if (!pick) return undefined;
     const param = add?.[1] ?? remove?.[1];
     return {
@@ -1403,6 +1434,25 @@ class Planner {
       if (set) {
         const variableId = setter(set[1]!);
         const value = set[2]!.trim();
+        // (ADR-287 — a rule's implicit state: its setter is the node's Do on that prop.)
+        const implicit = Object.entries(this.baseline.symbols.states ?? {}).find(
+          ([name]) => `set${capital(name)}` === set[1],
+        )?.[1];
+        if (!variableId && implicit) {
+          const capability = this.capabilityAt(
+            implicit.nodeId,
+            implicit.prop,
+            value,
+            valueOf,
+            true,
+          );
+          if (!capability) {
+            this.reject(from, "outsideVocabulary", value);
+            return undefined;
+          }
+          actions.push(capability);
+          continue;
+        }
         if (!variableId) {
           this.reject(from, "unknownReference", set[1]);
           return undefined;

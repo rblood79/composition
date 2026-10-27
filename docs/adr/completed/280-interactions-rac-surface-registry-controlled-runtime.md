@@ -11,6 +11,7 @@ Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 
 > - 값 해소 (Decision 8 ①): `!param` · `!event` · `!item` · `!var` · 리터럴 — dispatcher 의 모든 값 칸이 `interactions/valueRef.ts` `resolveRuleValue` 하나를 쓴다.
 > - Do 대상 (사용자 결정 7 「같은 페이지 노드」): ADR-283 이 장소 참조 (`{nodeId | address | local | unset}`, `resolveCapabilityTarget`) 로 바꿨다.
 > - 「제외 — 컬렉션 drag-and-drop」 은 ADR-284 Phase 5 가 `collectionDragDrop` 개념 (When `onReorder` 외 4) 으로 더했다.
+> - 등록표 = 개념 Do ⊕ **유도 Do** ⊕ 공통 3 (ADR-287, 2026-10-28): `withReferenceCapabilities` 가 catalog binding `accepts` 에서 prop 마다 Do 를 얹는다 (`interactions/referenceCapabilities.ts`). G1 의 「손 등록표 키 · capability 가 유도 결과에 있다」 불변식은 개념 Do 범위로 좁혔다 (`deriveRegistry.test.ts` · `capabilityRegistry.test.ts`). `selectionMode: "none"` 대상의 해제 · 전체 해제는 dispatcher 가 그대로 실행하고 패널만 숨긴다 (287 사용자 결정 3).
 > - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G5 사용자 Builder 확인 (G3 규칙 6)).
 
 > **2026-10-22 실행 착수** — 사용자 결정 6 = `@react-aria/test-utils` 를 builder devDependency 로 (테스트 하니스 전용 · production 번들 0).

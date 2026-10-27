@@ -131,16 +131,15 @@ describe("ADR-201 — 파일 입력 트리거 등재 (RAC 실존 callback 만)",
   });
 
   it("고유 capability 는 없다 (업로드 큐는 canonical 밖 런타임 층)", () => {
-    expect(Object.keys(resolveCapabilities("FileTrigger"))).toEqual([
-      "show",
-      "hide",
-      "toggle",
-    ]);
-    expect(Object.keys(resolveCapabilities("DropZone"))).toEqual([
-      "show",
-      "hide",
-      "toggle",
-    ]);
+    // (ADR-287 — their reference API props (label · isDisabled …) are derived Do; no concept Do.)
+    for (const type of ["FileTrigger", "DropZone"])
+      expect(
+        Object.values(resolveCapabilities(type)).filter(
+          (def) =>
+            def.prop !== "style.display" &&
+            !def.racRef.startsWith("catalog binding "),
+        ),
+      ).toEqual([]);
   });
 });
 

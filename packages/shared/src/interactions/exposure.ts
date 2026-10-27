@@ -5,7 +5,8 @@
  *
  * - When: a group whose concept RAC stops (`isDisabled` · `isReadOnly` · `isPending` ·
  *   `selectionMode: "none"` — RAC fires none of its events) is left out.
- * - Do: a capability `declaredRefusal` refuses (the dispatcher's own first check) is left out.
+ * - Do: a capability `declaredRefusal` refuses (the dispatcher's own first check) is left out, and
+ *   so are a `selectionMode: "none"` target's selection Do (ADR-287 decision 3 — panel only).
  * - Hidden events (RAC callbacks S2 removed — press side events · hover · focus) open with the
  *   panel's "all of RAC" toggle. Keyboard never (user decision Q3).
  * - A name a rule already uses is always offered — hiding never deletes a rule.
@@ -109,8 +110,36 @@ export function exposedCapabilities(
     Object.entries(all).filter(
       ([name, def]) =>
         name === used ||
-        !declaredRefusal(def.guards ?? [], input.props, input.inherited, def.op),
+        (!declaredRefusal(
+          def.guards ?? [],
+          input.props,
+          input.inherited,
+          def.op,
+        ) &&
+          !hiddenBySelectionMode(def, input)),
     ),
+  );
+}
+
+/**
+ * ADR-287 user decision 3 (gap B) — a target whose `selectionMode` is `"none"` offers none of its
+ * selection Do (select · deselect · clear): the panel hides all three and says so. Only the panel —
+ * the dispatcher still runs a deselect · clear (`declaredRefusal` refuses an added key only).
+ */
+export function hiddenBySelectionMode(
+  def: CapabilityDef,
+  input: ExposureInput,
+): boolean {
+  return (
+    (def.guards ?? []).includes("selectionMode") &&
+    input.props.selectionMode === "none"
+  );
+}
+
+/** Whether `selectionMode: "none"` hides any of a type's Do (the panel's notice). */
+export function selectionDoHidden(type: string, input: ExposureInput): boolean {
+  return Object.values(resolveCapabilities(type)).some((def) =>
+    hiddenBySelectionMode(def, input),
   );
 }
 

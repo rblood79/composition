@@ -50,8 +50,14 @@ const REACHED_AS: Readonly<Record<string, string>> = {
 
 describe("capability prop 이 렌더 경로까지 닿는다 (ADR-280 G2)", () => {
   it("등록표의 capability 를 가진 모든 type 이 render 도달 행렬에 있다", () => {
+    // (ADR-287 — a reference API Do writes a record prop that `withOverride` merges for every type;
+    //   its reach is ADR-287 G2's — `adr287Reach.test.tsx`. This matrix is the concepts' state props.)
     const missing = Object.entries(CAPABILITY_REGISTRY)
-      .filter(([, entry]) => Object.keys(entry.capabilities).length > 0)
+      .filter(([, entry]) =>
+        Object.values(entry.capabilities).some(
+          (def) => !def.racRef.startsWith("catalog binding "),
+        ),
+      )
       .map(([type]) => type)
       .filter(
         (type) =>

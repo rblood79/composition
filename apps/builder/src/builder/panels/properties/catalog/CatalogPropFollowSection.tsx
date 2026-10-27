@@ -11,6 +11,7 @@ import {
 } from "../../../../../../../packages/shared/src/collections/view/comparison";
 import {
   catalogPropFollowCommand,
+  catalogPropFollowMoved,
   catalogPropFollowProps,
   catalogPropFollowVariables,
   catalogPropFollows,
@@ -180,17 +181,19 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
                   value={follow.prop}
                   options={[
                     { value: follow.prop, label: follow.prop },
-                    ...free
-                      .filter((entry) => entry.type === typeOf(follow.prop))
-                      .map((entry) => ({
-                        value: entry.prop,
-                        label: entry.prop,
-                      })),
+                    ...free.map((entry) => ({
+                      value: entry.prop,
+                      label: entry.prop,
+                    })),
                   ]}
                   translateOptions={false}
                   onChange={(prop) => {
                     if (prop === follow.prop) return;
-                    write(follow.prop, { ...follow, prop });
+                    // (ADR-287 — another kind of prop takes the other shape.)
+                    write(
+                      follow.prop,
+                      catalogPropFollowMoved(follow, prop, typeOf(prop)),
+                    );
                   }}
                 />
                 <PropertySelect

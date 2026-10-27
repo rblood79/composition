@@ -59,8 +59,8 @@ export function applyCapabilityOp(
 
 /**
  * ADR-281 Decision 1 — the restriction the declared props alone put on a change (whatever value a
- * rule writes): `isDisabled` · `isReadOnly` (own or inherited) · `selectionMode: "none"` for an
- * added key. The dispatcher checks it first (below); the Interactions panel hides what it refuses
+ * rule writes): `isDisabled` · `isReadOnly` (own or inherited — `inherited:*` tokens: inherited only)
+ * · `selectionMode: "none"` for an added key. The dispatcher checks it first (below); the Interactions panel hides what it refuses
  * — one answer for both.
  */
 export function declaredRefusal(
@@ -79,6 +79,14 @@ export function declaredRefusal(
     (props.isReadOnly === true || inherited?.isReadOnly === true)
   )
     return "isReadOnly";
+  // ADR-287 (M4) — a Do that manages the node's own disabled · read-only state: only an ancestor's
+  //   refuses it (the node's own `true` is what its release writes over).
+  if (guards.includes("inherited:isDisabled") && inherited?.isDisabled === true)
+    return "isDisabled";
+  if (guards.includes("inherited:isReadOnly") && inherited?.isReadOnly === true)
+    return "isReadOnly";
+  // A removal · clear still runs under `none` — RAC takes the reset (ios-list's Cancel turns the mode
+  //   off, then clears). The panel hides all three (`exposedCapabilities` — ADR-287 decision 3).
   if (
     guards.includes("selectionMode") &&
     op === "add" &&

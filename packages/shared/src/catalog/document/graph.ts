@@ -1572,6 +1572,20 @@ export class CatalogGraph {
         bindingAccepts?.()?.[bound[1]] === definition.accepts[key]
       )
         continue;
+      // ADR-287 R7 — a whole text variable (「변수로 정하기」 on a choice prop): its value is known only at
+      //   run time, which checks it (`withState` — outside the choices, the definition's value).
+      //   A project variable lives outside the document (the data store): the run time checks it too.
+      if (isPropVar(raw)) {
+        const [id, ...path] = raw.ref.slice("!var.".length).split(".");
+        const variable = id ? get(id) : undefined;
+        if (
+          !path.length &&
+          (!variable ||
+            (variable.kind === "stateVariable" &&
+              variable.valueType === "string"))
+        )
+          continue;
+      }
       const value =
         raw && typeof raw === "object" && "tokenId" in raw
           ? (raw.tokenId as string).startsWith("lib:")
