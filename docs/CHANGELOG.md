@@ -346,7 +346,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Rust `grid_masonry_rows_*` 2 (가장 짧은 열 · 자기 margin · 열 폭이 다를 때 다시 풀기) · `waterfallLayout.test.ts` (lane 규칙 · CardView · GridList Canvas 배치 · grid 대조 · 새로고침 없이 전환).
 
-## [ADR-282 Phase 0 ~ 2 — Library page 원본 잠금 해제 · 리셋] - 2026-10-24
+## [ADR-282 Phase 0 ~ 3 — Library page 원본 잠금 해제 · 리셋 · Library · Local page = 문서의 page] - 2026-10-24
 
 ### Added
 

@@ -4,6 +4,14 @@
 
 Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 — pending 0 · HIGH 전부 fixed)
 
+> **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
+>
+> - G5 ratchet: A 등급 상한 올림 `1526e969a` (9 건, 사용자 승인 · 만료 2027-04-20) · `45aba38aa` (select get root). 번들 측정 기록은 없다. ratchet 은 `219c1a3dc` (2026-10-24) 뒤 push 에서 기본으로 돌지 않는다 — 수동 `pnpm gate:perf-ratchet` 또는 `PERF_RATCHET=1 git push`. 본문의 「pre-push ratchet」 은 이 뜻으로 읽는다.
+> - Position 모드 4 (Relative · Absolute · Sticky · Fixed) 는 전부 저작 가능하다 (사용자 결정 5 · 6 — Phase 6 · 7). 비활성은 rule 이 놓은 부품뿐 (`TransformSection.tsx` `disabledValues = rulePlaced ? […] : []`). 「Sticky · Fixed 는 비활성 표시만」 · 「ADR-267 결정 1 유지」 는 Phase 6 · 7 전의 기록.
+> - 판정 술어는 넷이다 — `catalogIsOutOfFlow` · `catalogIsAuthoredAbsolute` + Phase 7 의 `catalogIsAuthoredFixed` · `catalogIsAuthoredPlaced` (`runtime/positioning.ts`).
+> - Spacing 절은 결정 10 으로 제거됐다 (`SpacingSection` · `BoxModelEditor` · 테스트 — 사용자 승인 뒤 `d216be0d8`). 가운데 축 margin 잠금은 명령 거부로만 남는다 (`catalogStylesHost.ts`).
+> - 남은 것: G6 사용자 패널 확인 → Implemented. 확인 기록은 아직 없다.
+
 > **Phase 0 종결 2026-10-19 (G0 go)**: A4 `unsafe center` 가 Chromium 156 · WebKit 27.2 에서 27 / 27 가운데 (부모 block · flex · grid × Fixed · Hug · Hug padding 12 · border 2 · 넘침 Fixed · 넘침 Hug · 넘침 + 오프셋 · 부모 padding · `%` 오프셋). 대조군 `safe center` 는 넘침 9 건이 x = 0 (containing block 안으로) — fixture 가 두 정렬을 구별한다. 소비자 실측 src 24 (작성일 17, 1.4 배 — 추가 7: `clone.ts` · `fillLayout.ts` · `aiHost.ts` · `shortcuts.ts` 정렬 · 분배 · `styleDirty.ts` · `domBinding` 3 줄 · `catalogStylesHost` 4 줄) — breakdown §5.
 >
 > **Phase 1 종결 2026-10-19 (G1)**: 엔진이 absolute 자기 정렬을 읽는다 (`parse_abs_self_align` · `resolve_abs_axis` ④) · 늘이기 제외 판정 (`size_fixed_*` = 명시 길이 ∨ 키워드 ∨ 자기 정렬) 과 padding · border 가산 판정 (`has_*`) 분리 · 양쪽 margin auto 음수 여유는 가로 시작 0 / 세로 반씩. Chrome oracle `absoluteSelfAlign` 19 / 19 · Rust 538 · 판정 하나로 합친 변이 → RED (60 · x 170, 리뷰 예측 그대로) · parity 868 PASS (실패 1 = `adr248CatalogGeometryDelta` case 2 `subtreeNodeVisits` — HEAD 엔진에서도 같은 실패, 이번 변경 무관).
@@ -14,7 +22,7 @@ Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 �
 
 > **Phase 4 종결 2026-10-20 (G3)**: Position 절 혼합 방식 — Relative · Absolute (Sticky · Fixed 비활성) · pin 상자 (변 4 + 가운데 2, RAC `ToggleButton`) · 변 옆 T · R · B · L 칸 (`px` · `%`, pin 안 된 칸은 점선 `auto`) · Center X · Center Y · Fill · 결과 문장. 명령 `catalogPositionChangeCommand` (바꿔도 그 자리 · 빈 칸 입력 = 그 변으로 · Left+Right 는 폭 auto, 해제 시 그린 폭 고정 · Relative 진입 때 남은 inset 정리). 가운데 축 margin 잠금 (Spacing 칸 + 명령 거부, 사용자 결정 2). unit G3 7 · 제약 20 · TransformSection 10.
 >
-> **Phase 5 live 2026-10-20 (G4)**: 실제 builder (Chrome MCP, dev 5173, 새 프로젝트 `adr275-live`) — 아래 Live Exercise. G5 (ratchet · 번들) 는 커밋 뒤 pre-push 판정 · G6 (사용자 패널 확인) 대기.
+> **Phase 5 live 2026-10-20 (G4)**: 실제 builder (Chrome MCP, dev 5173, 새 프로젝트 `adr275-live`) — 아래 Live Exercise. G5 (ratchet · 번들) — ratchet 은 커밋 뒤 실행해 A 등급 상한을 올렸다 (`1526e969a` 9 건 · `45aba38aa`, 사용자 승인 · 만료 2027-04-20), 번들 측정 기록은 없다. G6 (사용자 패널 확인) 대기.
 
 > **Phase 6 종결 2026-10-20 (사용자 결정 5 — sticky 허용)**: 노드 `layout.position` 이 `sticky` 를 받는다 (검증 · contract 42 그대로 — 추가만이라 옛 문서 무변경). Position 절 Sticky 버튼 활성 — 네 칸이 각자 「스크롤할 때 붙는 거리」 (빈 칸 = auto), pin 상자 · 가운데 비활성, 진입 때 Top 0 + 지난 absolute inset · `unsafe center` 정리. DOM 은 `position: sticky` + inset, Canvas 는 ADR-267 constraints 그대로 + **positioned layer** (z-index 없는 sticky 상자는 흐름 형제 위에 그린다 — CSS 2 부록 E). live 에서 결함 1 발견 · 수리: sticky (· z-index) 로 바뀐 상자가 제자리에만 재기록돼 항목 아래 그려졌다 → 그리기 층이 바뀌면 다시 묶는다 (`paint-order`). Fixed 는 그대로 비활성 (ADR-267 결정 1 · 2). 원복 RED 6 · unit 신규 10.
 
@@ -85,7 +93,7 @@ F10 의 CSS 쪽 근거는 이렇다. CSS 2.1 §10.3.7 의 늘이기는 `width: a
 ### 선행 결정과의 관계
 
 - **ADR-026** 은 Figma 제약 전용 레이어를 기각했다 (대안 A, HIGH 2). 이 ADR 은 레이어를 만들지 않는다. 제약은 **어느 inset 이 있는가** 에서 읽어 내는 보기이고, 저장은 CSS 그대로다. ADR-026 의 결정은 유지된다.
-- **ADR-267 결정 1** (sticky · fixed 저작 허용 안 함) · **ADR-164** (fixed 의도적 미지원) 은 유지된다. 패널은 두 값을 비활성으로 보여 주기만 한다.
+- **ADR-267 결정 1** (sticky · fixed 저작 허용 안 함) · **ADR-164** (fixed 의도적 미지원) 은 사용자 결정 5 · 6 (Phase 6 · 7) 로 닫혔다 — sticky · fixed 둘 다 저작한다. 패널이 비활성으로 두는 것은 rule 이 놓은 부품뿐이다.
 - **ADR-224** (Fill sizing) 와는 늘이기의 폭 처리 (아래 Decision 4) 에서 만난다.
 
 ### 제약
@@ -93,7 +101,7 @@ F10 의 CSS 쪽 근거는 이렇다. CSS 2.1 §10.3.7 의 늘이기는 `width: a
 - **Hard**:
   - Canvas ↔ Preview 상자 일치 (`/cross-check`).
   - 엔진 입력의 직렬화기는 `styleOf` 하나다 · TS 에서 absolute 배치 보정 재도입 금지 (`.claude/rules/layout-engine.md` §position:absolute).
-  - drag 60Hz floor · pre-push ratchet (`pnpm gate:perf-ratchet`).
+  - drag 60Hz floor · ratchet (`pnpm gate:perf-ratchet` — 수동 실행, push 는 `PERF_RATCHET=1` 일 때만 · `219c1a3dc`).
   - initial 번들 Builder ≤ 1,390,000 B gzip (ADR-201 재승인).
 - **Soft**:
   - 개발 단계라 옛 문서 전환 코드를 넣지 않는다 (사용자 지시 2026-10-14).
@@ -145,7 +153,7 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
 
 1. **저장** — 저작 absolute = `layout.position: "absolute"` + `inset*`.
    - `placement` 는 타입 · 검증 · `setNodePlacement` op · 소비자에서 지운다.
-   - 판정은 **술어 둘** 로 나눈다 (리뷰 r1 M1 · F15). 지금은 `placement?.kind === "absolute"` 가 F8 의 여러 파일에 흩어져 있고, 이 한 조건이 두 뜻을 같이 졌다.
+   - 판정은 **술어** 로 나눈다 — 둘로 시작해 Phase 7 의 fixed 술어 둘 (`catalogIsAuthoredFixed` · `catalogIsAuthoredPlaced`) 을 더해 넷 (리뷰 r1 M1 · F15). 지금은 `placement?.kind === "absolute"` 가 F8 의 여러 파일에 흩어져 있고, 이 한 조건이 두 뜻을 같이 졌다.
      - **바깥 흐름** (`isOutOfFlow`) = resolved `layout.position === "absolute"`. 흐름 표면이 쓴다 (grid auto 행 · spacing 손잡이 · track 레이어 · 흐름 drop).
      - **저작 위치** (`isAuthoredAbsolute`) = `authoredLayout.position === "absolute"`. 편집 표면이 쓴다 (Canvas 이동 · Position 절 · 붙여넣기 위치).
      - rule 이 놓은 부품 (바깥 흐름 ∧ 저작 아님) 은 지금처럼 Canvas 이동을 거부한다.
@@ -164,7 +172,7 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
    **가운데의 넘침 계약** (리뷰 r1 H1 · 사용자 결정 4): 자식이 부모보다 넓어도 가운데 — Figma · Framer 와 같다. `unsafe` 는 넘칠 때 시작 쪽으로 물러나지 않게 한다 (css-align-3 overflow alignment). Hug 는 정렬이 stretch 가 아니므로 CSS 가 auto 크기를 fit-content 로 풀어 따로 `fit-content` 를 쓰지 않는다.
 
 3. **패널 UX (혼합 방식)**
-   - **position**: Relative · Absolute 글자 버튼. Sticky · Fixed 는 비활성 표시만 한다 (ADR-267 결정 1).
+   - **position**: Relative · Absolute · Sticky · Fixed 글자 버튼 (Sticky · Fixed 는 사용자 결정 5 · 6 — Phase 6 · 7 에서 활성). rule 이 놓은 부품은 넷 다 비활성.
    - **pin**: 4 변 + 축마다 가운데 십자선.
      - 가운데를 켜면 그 축의 변 pin 이 풀린다.
      - 축은 비지 않는다 — 마지막 pin 을 풀면 Left / Top 으로 돌아간다. 요소가 저절로 가운데로 가지 않는다.
@@ -286,7 +294,7 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
 | G2   | Phase 2 끝 | 노드 placement 참조 0 (정적 테스트) · 저장 검증이 `placement` 를 거부 · catalog parity (Canvas ↔ DOM) 6 제약 케이스 0 px · rule 부품 (ListBoxItem icon) Canvas drag 거부 유지 · 저작 absolute drag 허용                                                                                                                                                                                                                                                                                                           | 남은 소비자 수리                                                |
 | G3   | Phase 4 끝 | 제약 대응 왕복 unit · 입력 칸 = 그 변으로 바꿈 · 축 비지 않음 · 바꿔도 그 자리                                                                                                                                                                                                                                                                                                                                                                                                                                    | 대응 함수 수리                                                  |
 | G4   | Phase 5    | 실제 builder (Chrome MCP) 에서 시안 5 상태 재현 · 각 제약으로 drag 뒤 제약 유지 · breakpoint drag · Compare Mode Preview 위치 일치 · `/cross-check`                                                                                                                                                                                                                                                                                                                                                               | 해당 단계로 되돌림                                              |
-| G5   | push 전    | pre-push `gate:perf-ratchet` drag run A 초과 0 · 번들 ADR-201 상한 안                                                                                                                                                                                                                                                                                                                                                                                                                                             | 비용 원인 수리 · 상향은 사용자 승인                             |
+| G5   | push 전    | `gate:perf-ratchet` (수동 · `PERF_RATCHET=1` push) drag run A 초과 0 · 번들 ADR-201 상한 안                                                                                                                                                                                                                                                                                                                                                                                                                       | 비용 원인 수리 · 상향은 사용자 승인                             |
 | G6   | Phase 5    | 사용자가 패널 UI 확인 (사용자 판정)                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 지적 반영 후 재확인                                             |
 
 측정 조건 (`.claude/rules/measurement-validity.md` §1):
@@ -350,5 +358,5 @@ Phase 7 (fixed) — 같은 프로젝트, Mobile (390 × 844), 높이 1500 frame 
 ### Negative
 
 - 옛 개발용 프로젝트는 contract 42 에서 열리지 않는다 (결정 1).
-- 가운데 축은 margin 을 쓸 수 없다 — Spacing 칸 잠금 (결정 2).
+- 가운데 축은 margin 을 쓸 수 없다 — 명령이 거부한다 (결정 2 · Spacing 절은 결정 10 으로 삭제 `d216be0d8`).
 - 17 파일 소비자 교체 — Phase 2 한 커밋 단위가 커진다 (breakdown 에서 소비자 묶음별로 나눈다).

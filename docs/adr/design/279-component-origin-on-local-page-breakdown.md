@@ -115,7 +115,7 @@ headed Chrome (Claude in Chrome MCP) · dev 5173 · 새 프로젝트 「ADR279�
 
 ### Phase 3 결과 (2026-10-21, G3 통과 — 본문 `### Live Exercise`)
 
-headed Chrome (Claude in Chrome MCP) · dev 5173 · 새 프로젝트 「ADR279」 (contract 46, dashboard 에 남김 — G5 사용자 확인용). 7/7 통과. 발견 2 수리 (Create step 이 「Component impact」 를 묻던 것 · 카드 헤더가 column padding 만큼 어긋나던 것 — geometry 조상 합산) · LOW deferred 2 (dev handle 로 `showDefinition(undefined)` 와 `execute` 를 같은 tick 에 보내면 Local page view 노드를 보던 구독자가 `CATALOG_SUBSCRIBER_FAILED` — 문서는 commit 됨, UI 조작에서는 React 갱신이 사이에 들어 재현 경로 없음 · 삭제 확인 대화상자 문구가 「Editing … will affect N instances」 — 종전 dissolve 와 같은 대화상자).
+headed Chrome (Claude in Chrome MCP) · dev 5173 · 새 프로젝트 「ADR279」 (contract 46, dashboard 에 남김 — G5 사용자 확인용. 현재 contract 50 에서 열리지 않으므로 G5 는 새 프로젝트로). 7/7 통과. 발견 2 수리 (Create step 이 「Component impact」 를 묻던 것 · 카드 헤더가 column padding 만큼 어긋나던 것 — geometry 조상 합산) · LOW deferred 2 (dev handle 로 `showDefinition(undefined)` 와 `execute` 를 같은 tick 에 보내면 Local page view 노드를 보던 구독자가 `CATALOG_SUBSCRIBER_FAILED` — 문서는 commit 됨, UI 조작에서는 React 갱신이 사이에 들어 재현 경로 없음 · 삭제 확인 대화상자 문구가 「Editing … will affect N instances」 — 종전 dissolve 와 같은 대화상자).
 
 ## 5. Phase 4 — 문서 · 종결 (G4 · G5)
 

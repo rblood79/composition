@@ -60,7 +60,7 @@
 
 ### Phase 1 결과 (2026-10-21)
 
-- 사용자 결정 1 · 3 · 4 = 권고안 (Tooltip slot 예 · ContextualHelp footer slot 예 · Menu `Items`), 결정 2 (Phase 2) = Origin 줄 ◆ 오른쪽.
+- 사용자 결정 1 · 3 · 4 = 권고안 (Tooltip slot 예 · ContextualHelp footer slot 예 · Menu `Items`), 결정 2 (Phase 2) = Origin 줄 ◆ 오른쪽 (이후 Origin 줄 제거 `03a9ca02f` — ◆ 는 카드 제목 바로 뒤, Dialog · Popover 본체는 trigger 아래 `f480895f9`).
 - 변경: `types.ts` contract 45 · `reusableOriginLibrary.ts` (slot 선언 5 + region frame 2 — Popover region 은 `rowGap: 12px` 로 heading · description 간격 = Popover gap 유지, Tooltip 은 0) · `slots.ts` (`projectComponents()` 를 `items` · free 두 분기가 같이 쓴다 — 거름은 기존 `allowed` 의 `assertNestable`).
 - 발견 (설계 보정): 놓는 순간 slot 기본 내용이 instance 소유 노드가 된다 (2026-10-14 `ownSlotContents`) — 빈 slot (Dialog `actions`) 은 채우기 전까지 override 없음. 소유 노드는 DOM id 를 가지므로 Dialog description 의 DOM 에 `id` 가 생긴다 (`adr254ContainerParts` 정해진 차이).
 - 테스트: `adr278OverlayBodySlot.test.ts` 8 GREEN · 원복 RED (library 선언 제거 → 5/8: 선언 · 기본 내용 소유 · Dialog 채움 · Popover 채움 · Swap / `slots.ts` 되돌림 → 1/8: Menu `Items` Local 후보) · 정해진 차이 3 파일 (`adr255OverlayTrigger` · `adr256OverlayArrow` · `adr254ContainerParts`) · contract 리터럴 33 파일 (`sed`, 거부 테스트의 44 는 유지).
@@ -70,7 +70,7 @@
 ## 3. Phase 2 — Library page 본체 칸 · Item 줄 (G2)
 
 - `componentsPage.ts`:
-  - 오버레이 5 카드의 Origin 줄에 본체 칸 (사용자 결정 2 — 기본안: ◆ trigger 오른쪽). 샘플 instance 의 오버레이 자식 (Modal · Popover · Tooltip) 에 `displayState: "open"` (또는 같은 뜻의 patch) → `presence.ts:771` 분기가 그 record 에서는 숨기지 않는다. 구현 자리는 `catalogStateValue` 의 `isOpen` (`:3039`) 을 display state 로 읽게 하는 것 — hover · pressed 와 같은 모양.
+  - 오버레이 5 카드의 Origin 줄에 본체 칸 (사용자 결정 2 — 기본안: ◆ trigger 오른쪽. 지금은 Origin 줄 없음 · Dialog · Popover 는 아래). 샘플 instance 의 오버레이 자식 (Modal · Popover · Tooltip) 에 `displayState: "open"` (또는 같은 뜻의 patch) → `presence.ts:771` 분기가 그 record 에서는 숨기지 않는다. 구현 자리는 `catalogStateValue` 의 `isOpen` (`:3039`) 을 display state 로 읽게 하는 것 — hover · pressed 와 같은 모양.
   - Phase 0 (b) 가 RED 면 본체 칸 = slot holder 아래 내용만 (Dialog 는 heading · content · footer 를 Dialog 노드 없이).
   - `originItems`: slot holder 를 template 전체에서 찾되, `TRIGGER_OVERLAY_CHILDREN` 안 (닫힌 오버레이) 의 slot 은 Menu (open 상태로 그리는 카드) 만 포함 — Select · ComboBox 의 ListBox `Items` 는 제외 (R5). 2026-10-21 「Library page」 테스트의 7 카드 단언에서 Menu 는 Item 줄 있음으로 바꾼다 (MenuItem 상태 4 — `--unselected` 없음, 본문 §현재 참고).
   - 카드 `weight` 에 본체 높이.
@@ -79,7 +79,7 @@
 ### Phase 2 결과 (2026-10-21)
 
 - 「본체 열림」 구현 = patch 의 `displayState` (문서 schema: `DescendantPatchFields` 에 선택 필드 하나 — 검증 `DISPLAY_STATE_UNKNOWN`, 소비자는 resolver 한 곳 · 층 병합 `templateOwners.ts`). `DisplayStateName` 에 `open` (paint state · RAC prop 없음 — DOM 은 닫힌 오버레이 그대로, `adr278OverlayBodySlot` 단언). Components page 만 쓴다 (derived view entry, 저장 0).
-- `componentsPage.ts`: `OPEN_BODY_ORIGINS` 5 · `CLOSED_OVERLAY_TYPES` 3 · 샘플 patch `open` (root > 첫 Modal · Popover · Tooltip 자식) · Origin 칸의 샘플을 「Body line」 row frame 에 (layout 전용 — `readPageRows` 는 frame 을 지나간다) · `originItems` BFS 깊이 무제한 + 규칙 보정 (컬렉션 slot 안 `catalogChildKind(...).kind === "items"` 또는 한 holder 에 2+ — 트리거 · Close · footer Link 제외).
+- `componentsPage.ts`: `OPEN_BODY_ORIGINS` 5 · `CLOSED_OVERLAY_TYPES` 3 · 샘플 patch `open` (root > 첫 Modal · Popover · Tooltip 자식) · Origin 칸의 샘플을 「Body line」 frame 에 (Tooltip · ContextualHelp · Menu 는 row, Dialog · Popover 는 column — `f480895f9`) (layout 전용 — `readPageRows` 는 frame 을 지나간다) · `originItems` BFS 깊이 무제한 + 규칙 보정 (컬렉션 slot 안 `catalogChildKind(...).kind === "items"` 또는 한 holder 에 2+ — 트리거 · Close · footer Link 제외).
 - 테스트: Library page 테스트 (Menu Item 줄 · 오버레이 5 본체 hidden=false · geometry · trigger 오른쪽 · Select 숨김) · `adr278OverlayBodySlot` +2 (open patch 가 page instance 의 Modal 을 그림 · DOM 은 닫힘 / 검증) · Menu 샘플 상자 단언 갱신. 원복 RED: presence 분기 3/18 · open patch 2/18 · resolver patch 층 3/18.
 - Library page 관행 유지: slot 내용은 빗금 (opacity 0) — Dialog 본체 = 제목 · 빗금 content · 빗금 actions · Close, Popover · Tooltip 본체 = 상자 + 빗금. Menu Items 는 항목 3 전부 빗금 (root slot 만 「하나씩」).
 

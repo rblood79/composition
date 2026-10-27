@@ -5,7 +5,7 @@
 ## 1. 전제 lock-in
 
 - **분류**: 새 결정이다. 기존 ADR 의 fork · 분리가 아니고 의존 방향 변화도 없다.
-  - ADR-026 (제약 레이어 기각) · ADR-267 결정 1 (sticky · fixed 저작 안 함) · ADR-164 (fixed 미지원) 은 그대로 둔다.
+  - ADR-026 (제약 레이어 기각) · ADR-267 결정 1 (sticky · fixed 저작 안 함) · ADR-164 (fixed 미지원) 은 착수 때 그대로 두었고, 사용자 결정 5 · 6 (Phase 6 · 7) 로 sticky · fixed 저작을 열었다.
 - **schema**:
   - 노드 `placement` 를 지운다.
   - 저작 absolute 는 기존 `layout.position` · `inset*` · `margin*` 을 쓴다. 새 필드는 0 이다.
@@ -122,13 +122,13 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 
 ### Phase 4 — 패널 UI (G3)
 
-| 파일                                                 | 변경                                                                                                                                                                                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `panels/styles/sections/TransformSection.tsx`        | `PositionSection` 을 혼합 방식으로 다시 짠다. Relative · Absolute 글자 토글 (Sticky · Fixed 비활성) · pin 상자 88 px (4 변 + 십자선) · 변 옆 T · R · B · L 칸 (`PropertyUnitInput`, `px` · `%`) · 빠른 버튼 3 · 결과 문장 |
-| `panels/styles/sections/PositionPinBox.tsx` (새)     | pin 상자 — RAC `ToggleButton` 6 (변 4 · 가운데 2), `aria-pressed` · `aria-label`                                                                                                                                          |
-| `components/styles/inspector-layout.css` 또는 새 CSS | 칸 배치 grid (`1fr 88px 1fr` × `28px 88px 28px`) · 점선 `auto` 칸 · 미리보기 선 — 토큰 (`--accent` · `--fg-muted` · `--border`) 만                                                                                        |
-| `panels/styles/catalog/catalogStylesHost.ts`         | `applyAbsolute` → layout 쓰기 · 제약 읽기 값을 패널에 제공                                                                                                                                                                |
-| i18n `translations.ts`                               | 칸 이름 · 결과 문장 · 비활성 안내 (`Not allowed yet`)                                                                                                                                                                     |
+| 파일                                                 | 변경                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `panels/styles/sections/TransformSection.tsx`        | `PositionSection` 을 혼합 방식으로 다시 짠다. Relative · Absolute · Sticky · Fixed 글자 토글 (Sticky · Fixed 는 Phase 6 · 7 에서 활성) · pin 상자 88 px (4 변 + 십자선) · 변 옆 T · R · B · L 칸 (`PropertyUnitInput`, `px` · `%`) · 빠른 버튼 3 · 결과 문장 |
+| `panels/styles/sections/PositionPinBox.tsx` (새)     | pin 상자 — RAC `ToggleButton` 6 (변 4 · 가운데 2), `aria-pressed` · `aria-label`                                                                                                                                                                             |
+| `components/styles/inspector-layout.css` 또는 새 CSS | 칸 배치 grid (`1fr 88px 1fr` × `28px 88px 28px`) · 점선 `auto` 칸 · 미리보기 선 — 토큰 (`--accent` · `--fg-muted` · `--border`) 만                                                                                                                           |
+| `panels/styles/catalog/catalogStylesHost.ts`         | `applyAbsolute` → layout 쓰기 · 제약 읽기 값을 패널에 제공                                                                                                                                                                                                   |
+| i18n `translations.ts`                               | 칸 이름 · 결과 문장 · 비활성 안내 (`Not allowed yet`)                                                                                                                                                                                                        |
 
 - **패널 규칙**: 본문 Decision 3 그대로.
   - 축 비지 않음.
@@ -244,7 +244,7 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 ### Phase 4 — 2026-10-20 (G3)
 
 - **패널** (`panels/styles/sections/TransformSection.tsx` `PositionControls` · `PositionPinBox.tsx` · `inspector-layout.css`):
-  - 모드 seg (`PropertySegment` — `disabledValues` · `disabledHint` 추가): Relative · Absolute, Sticky · Fixed 비활성 「Not allowed yet」. rule 이 놓은 부품 (저작 아님 ∧ resolved absolute) 은 전부 비활성 + 「Placed by its component」.
+  - 모드 seg (`PropertySegment` — `disabledValues` · `disabledHint` 추가): Relative · Absolute, Sticky · Fixed 비활성 「Not allowed yet」 (Phase 6 · 7 에서 활성 — 지금 비활성은 rule 이 놓은 부품만). rule 이 놓은 부품 (저작 아님 ∧ resolved absolute) 은 전부 비활성 + 「Placed by its component」.
   - pin 상자 64 px (작성일 88 — 실제 패널 폭 ~190 px 에서 칸이 40 px 로 줄어 축소, 사후 보고) · 변 4 + 가운데 2 · 눌림 = accent + 굵기 (색만으로 구별하지 않음). 축 규칙 `catalogNextAxisConstraint` (마지막 pin 은 남음 · 반대 변 누름 = Left+Right).
   - 칸: `px` · `%` (작성 전 `vw` · `vh` 는 저장 불가였다). 가운데 축의 시작 칸 = 오프셋 (라벨 Center X / Y).
   - 빠른 버튼 Center X · Center Y · Fill, 결과 문장 (`aria-live`).
@@ -256,7 +256,7 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 ### Phase 5 — 2026-10-20 (G4 · G5 · G6)
 
 - G4 live: 본문 Live Exercise 표 (10 시나리오). 진행 중 수리 1 (Relative 진입 inset 정리).
-- G5: ratchet 은 dirty 트리면 HEAD worktree 를 잰다 — 커밋 뒤 pre-push 판정.
+- G5: ratchet 은 dirty 트리면 HEAD worktree 를 잰다 — 커밋 뒤 실행해 상한 올림 `1526e969a` · `45aba38aa` (사용자 승인). 번들 기록 없음.
 - G6: 사용자 패널 확인 대기 (시안 `.pen` 이 열려 있지 않아 ADR Decision 3 명세로 구현).
 - 테스트 프로젝트 `adr275-live` 는 사용자 IndexedDB 에 남아 있다 (삭제는 사용자 판단).
 
@@ -300,6 +300,6 @@ containing block 폭 `W` = 400, 상자 폭 `w` = 100 (Fixed) 일 때 x (padding 
 ### Padding = Layout 절 · Spacing 절 제거 — 2026-10-20 (사용자 결정 10)
 
 - 새 `sections/PaddingFields.tsx` (Layout 절, `fieldset.properties-aria.layout-padding` + legend 「Padding」 (Gap legend 와 같은 18) 안에 `fieldset-row` — 펼침 버튼은 늘 첫 줄 아이콘 칸 `actions-padding`). 가로 · 세로 = 두 변 한 편집 (`updateStylesImmediate` 한 step). 아이콘 칸 라벨 (`labelMode="icon"`): ↔ `MoveHorizontal` · ↕ `MoveVertical` · 변 `Panel{Left,Top,Right,Bottom}` · 펼침 `SquareDashed`. i18n 7 키 (`styles.layout.padding*`).
-- `StylesPanel` Layout 탭에서 `SpacingSection` 제거. `SpacingSection.tsx` · `BoxModelEditor.{tsx,css}` · `spacingBoxModelCommit.test.tsx` 파일은 삭제 승인 대기로 남겨 둠 (렌더 경로 0). `--inspector-diagram-height` 는 Position pin 상자만 쓴다.
+- `StylesPanel` Layout 탭에서 `SpacingSection` 제거. `SpacingSection.tsx` · `BoxModelEditor.{tsx,css}` · `spacingBoxModelCommit.test.tsx` 파일은 사용자 승인 뒤 `d216be0d8` 로 삭제 (`SPACING_PROPS` 포함). `--inspector-diagram-height` 는 Position pin 상자만 쓴다.
 - 원복 RED 2: 가로 칸이 두 변을 쓰지 않으면 · 두 변이 달라도 펼치지 않으면 (`PaddingFields.test.tsx`). `DesignPanel.test` 의 Layout 탭 표지를 Spacing → Position 으로.
 - live (Desktop): Padding 줄 = Gap 아래 8 · 칸 87 × 28 · 펼침 버튼 x = Layout 아이콘 칸 · 펼침 → 2 줄 (Left · Top / Right · Bottom) · Left 10 → 접으면 가로 Mixed · 가로 0 으로 복원 · Spacing 절 없음 (`layout · transform · position`).

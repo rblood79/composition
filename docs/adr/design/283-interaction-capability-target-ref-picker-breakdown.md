@@ -84,7 +84,7 @@ fixture: page 에 Local 컴포넌트 「OrderCard」 (안에 Button 「Save」 �
 
 테스트: `packages/shared/src/catalog/runtime/__tests__/` 반례 4 (① 행 셋 — 행 2 Delete → 같은 행 **형제** Text (sourceId 다름) 만 · ② instance 둘 · ③ `local` 원본 규칙 · ④ 행 template 안 instance 의 overlay 본체 Button → 같은 행 형제 — ADR-280 하니스 `openAdr280Preview` · RAC tester) · 후보 2+ 단언 · `document/__tests__/validation` (세 모양 + `unset` · dangling · page 밖 · `local` 주인 조건) · `document/__tests__/graph` 색인 (중간 instance id · `local` 의 중간 template id 가 `referrersOf` 에) · `commands/__tests__/` 명령 7 (중간 instance swap → 대상 재작성 · 중간 노드 createComponent → 대상 holder · `duplicateDefinition` → 복제 instance 의 `local` 대상 = 복제 Save · detach 뒤 `{ nodeId: 사본 }` · dissolve · 삭제 (중간 층) · swap 자리 없음 → `{ unset: true }` commit → `validateDocument` 통과 → 저장/로드 → 재지정 patch → undo/redo) · builder `__tests__/adr283TargetRef.test.ts` (AI host · `unset` 생성 거부). 원복 RED 4 — `[0]` 복귀 · 색인 root·leaf 만 · 복사 `local` 무변경 · createComponent holder 제거.
 
-**순서**: contract 49 커밋 전에 ADR-282 G5 (사용자 5173 확인) 가 끝났는지 알린다 (R4).
+**순서**: contract 49 커밋 전에 ADR-282 G5 (사용자 5173 확인) 가 끝났는지 알린다 (R4). → 지켜지지 않았다 — 49 는 `729c44749` 에서 282 G5 전에 커밋됐다 (2026-10-27 대조).
 
 ## 3. Phase 2 — 패널 (G2)
 
@@ -138,7 +138,7 @@ fixture: page 에 Local 컴포넌트 「OrderCard」 (안에 Button 「Save」 �
 - **RED 3**: ① 행 2 Delete → 행 1 Text (`recordsOfSource[0]` — 잠재 결함 3 재현) ② 패널 후보에 instance 안 Save 없음 ③ AI `CAPABILITY_TARGET_NOT_A_NODE`. 셋 다 의도한 이유로 RED.
 - **probe 1 · 2**: TextField 의 Input (`__2`) → `catalogSubpartOwnerType` = TextField, Dialog 의 Modal → `catalogOpenOwnerOf` = Dialog instance record (Phase 3 테스트로 고정).
 - **정정 2** (본문 Status): 모든 type 이 공통 capability 3 을 가져 「capability 없는 type」 은 없다 — 패널 후보는 page 노드 · instance 자리 전부 (Icon · Text 부품 포함, 결정 4 「전부」). Canvas 지정의 「클릭한 컴포넌트」 는 클릭 선택과 같은 정규화 (`picking.target`, ⌘ = 안쪽 요소) — raw hit 는 Button 의 Text 를 고른다.
-- **§1c 후보 수**: 사용자 CMS 22 페이지 · 「ADR281 live」 프로젝트는 contract 48 이라 측정 불가 (R4) — live fixture (Button 121 + OrderCard 2) 의 후보 372 (instance 자리 포함) 로 가상화 · 검색 확인.
+- **§1c 후보 수**: 사용자 CMS 22 페이지 · 「ADR281 live」 프로젝트는 contract 48 이라 측정 불가 (R4 — 현재 50) — live fixture (Button 121 + OrderCard 2) 의 후보 372 (instance 자리 포함) 로 가상화 · 검색 확인.
 
 ### Phase 1 — 모델 · 해소 · 명령 (G1, 2026-10-26)
 

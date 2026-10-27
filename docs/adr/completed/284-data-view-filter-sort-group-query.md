@@ -216,6 +216,8 @@ R1 · R2 는 G2 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 �
 
 **G8 후속 — 2026-10-27 · Chrome MCP · dev 5175 · 콘솔 오류 0** (사용자 보고 「검색 생성시 slider, combobox 가 누락」 · 「switch 도 누락」): 컨트롤 표가 손 표 7 종이었다 (breakdown §1 「손 표 금지」 위반) → 등록표 유도로 수리. Users Table 에서 「Add search」 의 Control 목록 = 22 종 + 고정 값 확인 · Switch (gender) 생성 → Canvas 「gender = male」 Switch · 조건 「gender Equals · Switch」 · 코드 `<Switch isSelected={genderFilter2} …>` · ComboBox (id) 생성 → 항목 All · u1 · u2 · u3 · Preview 에서 Switch 켬 → Kim · Lee 「2 results」, 끔 → 3, ComboBox u2 → Park 「1 results」. **PASS**. 정리는 삭제 명령 (조건 2 · 규칙 2 · 노드 2 · 변수 2). 범위 Slider (`[min, max]`) 는 남김 — Canvas 의 Slider 값이 숫자 하나뿐 (`presence.ts` `catalogSliderRange`) 이라 두 thumb 렌더가 먼저 필요하다.
 
+**G8 후속 2 — 2026-10-27 · Chrome MCP · dev 5175 · 콘솔 오류 0** (사용자 보고 「slider 등록후 오류」 — Slider 선택 시 Design 패널 「Too many re-renders」): 컨트롤의 상태 prop (`PropVar`) 을 패널 편집기가 숫자로 읽어 NaN → `PropertySlider` 무한 렌더. 변수를 따르는 prop 은 편집기 대신 「변수 X 를 따름」 으로 수리 (`189b23390`), 같이 찾은 「변수로 정하기」 의 `PropVar` 미읽기 · 숫자 prop 에 `{{ }}` 쓰기도 수리 (`fc3553c8b`). Users 목록 「검색 추가」 Slider → 선택 → Value 「Follows the variable idFilter」 · 「검색 추가」 SearchField → 「Set by variable」 에 `value ← idFilter` → 변수를 genderFilter 로 바꿔도 `{kind: "var"}` 유지. **PASS**. 정리는 삭제 명령 (558 → 555). 상세: breakdown 「G8 후속 2」.
+
 **G7 — 2026-10-27 · Chrome MCP · dev 5175 (사용자 5173 무관) · mock 서버 5199 · 콘솔 오류 0**.
 
 1. **plants 구성 (「검색 추가」 로)** — 새 page 에 Table · GridList (팔레트) → Table 「만들고 연결」 (Paste 6 행 · 열을 schema 로 교체) → 「검색 추가」 다섯 번 (common_name 검색 · isFavorite Checkbox · cycle · sunlight · watering TagGroup) → 검색 연결의 「또는 조건 추가」 → 사본 필드를 scientific_name 으로 → 「결과 수 표시」 · 「적용 조건 수 표시」 → GridList 를 같은 데이터에 연결 → Table 의 「이 보기 함께 읽기」 → GridList 「정렬 따라가기」. **PASS**.
