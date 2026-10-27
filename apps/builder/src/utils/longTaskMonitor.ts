@@ -8,7 +8,6 @@
  * - 함수 실행 시간 측정 (measure)
  * - 비동기 함수 측정 (measureAsync)
  * - 통계 리포트 (avg, max, p95, p99)
- * - postMessage 페이로드 모니터링
  * - 임계값 초과 시 경고
  *
  * @since 2025-12-18 Phase 9
@@ -32,11 +31,6 @@ export interface LongTaskReport {
   metrics: Record<string, MetricStats>;
   longTaskCount: number;
   longTaskTotalDuration: number;
-  postMessageStats: {
-    count: number;
-    totalSizeKB: number;
-    avgSizeBytes: number;
-  };
   startTime: number;
   reportTime: number;
   durationSeconds: number;
@@ -110,8 +104,6 @@ class LongTaskMonitor {
   private metrics = new Map<string, number[]>();
   private longTaskCount = 0;
   private longTaskTotalDuration = 0;
-  private postMessageCount = 0;
-  private postMessageTotalSize = 0;
   private startTime = Date.now();
   private thresholds: ThresholdConfig;
   private enabled: boolean;
@@ -260,31 +252,6 @@ class LongTaskMonitor {
   }
 
   // ============================================
-  // postMessage Monitoring
-  // ============================================
-
-  /**
-   * postMessage 호출 기록
-   *
-   * @param payloadSize - 페이로드 크기 (bytes)
-   */
-  recordPostMessage(payloadSize: number): void {
-    if (!this.enabled) return;
-
-    this.postMessageCount++;
-    this.postMessageTotalSize += payloadSize;
-
-    // 100회마다 로그 (너무 많은 로그 방지)
-    if (this.postMessageCount % 100 === 0) {
-      console.log(
-        `[postMessage] count: ${this.postMessageCount}, ` +
-          `total: ${(this.postMessageTotalSize / 1024).toFixed(1)}KB, ` +
-          `avg: ${(this.postMessageTotalSize / this.postMessageCount).toFixed(0)}B`,
-      );
-    }
-  }
-
-  // ============================================
   // Reporting
   // ============================================
 
@@ -320,14 +287,6 @@ class LongTaskMonitor {
       metrics: metricsReport,
       longTaskCount: this.longTaskCount,
       longTaskTotalDuration: this.longTaskTotalDuration,
-      postMessageStats: {
-        count: this.postMessageCount,
-        totalSizeKB: this.postMessageTotalSize / 1024,
-        avgSizeBytes:
-          this.postMessageCount > 0
-            ? this.postMessageTotalSize / this.postMessageCount
-            : 0,
-      },
       startTime: this.startTime,
       reportTime: now,
       durationSeconds: (now - this.startTime) / 1000,
@@ -344,10 +303,6 @@ class LongTaskMonitor {
     console.log(`Duration: ${report.durationSeconds.toFixed(1)}s`);
     console.log(
       `Long Tasks: ${report.longTaskCount} (total: ${report.longTaskTotalDuration.toFixed(0)}ms)`,
-    );
-    console.log(
-      `postMessage: ${report.postMessageStats.count} calls, ` +
-        `${report.postMessageStats.totalSizeKB.toFixed(1)}KB total`,
     );
 
     if (Object.keys(report.metrics).length > 0) {
@@ -396,8 +351,6 @@ class LongTaskMonitor {
     this.metrics.clear();
     this.longTaskCount = 0;
     this.longTaskTotalDuration = 0;
-    this.postMessageCount = 0;
-    this.postMessageTotalSize = 0;
     this.startTime = Date.now();
   }
 
@@ -483,13 +436,6 @@ export function measureAsync<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   return longTaskMonitor.measureAsync(name, fn);
-}
-
-/**
- * 수동 측정 시작 (단축 함수)
- */
-export function startMeasure(name: string): () => void {
-  return longTaskMonitor.start(name);
 }
 
 // ============================================

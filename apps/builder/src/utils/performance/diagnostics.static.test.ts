@@ -30,9 +30,7 @@ describe("performance diagnostics bootstrap", () => {
     );
 
     expect(mainSource).not.toContain('import "./utils/longTaskMonitor"');
-    expect(mainSource).not.toContain('import "./utils/postMessageMonitor"');
     expect(mainSource).toContain("initPerformanceDiagnostics();");
     expect(diagnosticsSource).toContain("initLongTaskMonitorDiagnostics");
-    expect(diagnosticsSource).toContain("initPostMessageMonitorDiagnostics");
   });
 });

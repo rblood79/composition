@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { darkColors, lightColors } from "@composition/rendering";
 
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
+import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
 import {
   openStylesFixture,
   type StylesFixture,
@@ -16,7 +17,7 @@ import { clearSpecPresetCache } from "../utils/specPresetResolver";
 
 const PICKER_TRANSPARENT = "#00000000";
 
-/** setTint 는 lightColors/darkColors 를 제자리 mutation 하므로 초기 팔레트를 스냅샷해 복원한다. */
+/** 테마 설치는 lightColors/darkColors 를 제자리 mutation 하므로 초기 팔레트를 스냅샷해 복원한다. */
 const LIGHT_COLORS_SNAPSHOT = { ...lightColors };
 const DARK_COLORS_SNAPSHOT = { ...darkColors };
 
@@ -74,7 +75,8 @@ describe("Style Panel catalog color values", () => {
   });
 
   it("tint 변경(themeVersion 증가)을 같은 theme 문자열에서도 다시 해석한다", async () => {
-    // resolveToken 은 lightColors 전역 객체를 읽고 setTint 는 그 객체를 제자리 mutation 한다.
+    // resolveToken 은 lightColors 전역 객체를 읽고 테마 설치 (`installThemeMaps`) 는 그 객체를
+    // 제자리 mutation 한 뒤 `applyResolvedTheme` 으로 themeVersion 을 올린다 (`builderTheme.ts`).
     // theme("light") 는 그대로라 themeVersion 이 유일한 재계산 신호다.
     await setButton({ size: "M", variant: "accent", fillStyle: "fill" });
     const appearance = hookOf(useAppearanceValues, "button-1");
@@ -83,7 +85,15 @@ describe("Style Panel catalog color values", () => {
 
     // rerender 를 강제하지 않는다 — themeVersion 구독만으로 다시 그려져야 한다.
     act(() => {
-      useThemeConfigStore.getState().setTint("red");
+      Object.assign(lightColors, resolveAccentColorTokens("red", "light"));
+      const theme = useThemeConfigStore.getState();
+      theme.applyResolvedTheme({
+        tint: "red",
+        darkMode: theme.darkMode,
+        neutral: theme.neutral,
+        radiusScale: theme.radiusScale,
+        baseTypography: theme.baseTypography,
+      });
     });
 
     expect(lightColors.accent).not.toBe(before);

@@ -438,20 +438,6 @@ export function hexToHsl(hex: string): ColorValueHSL | null {
 }
 
 /**
- * HSL → CSS 문자열 (레거시 호환)
- */
-export function hslToString(hsl: ColorValueHSL): string {
-  return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${hsl.a})`;
-}
-
-/**
- * RGB → CSS 문자열 (레거시 호환)
- */
-export function rgbToString(rgb: ColorValueRGB): string {
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgb.a})`;
-}
-
-/**
  * 다크모드 색상 자동 생성 (레거시 호환)
  * - Lightness 반전 (100 - L)
  * - 채도 15% 감소

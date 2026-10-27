@@ -30,14 +30,8 @@ export interface ItemsSource {
 /** Provided by the catalog Properties panel (`CATALOG_ITEMS_SOURCE`); no default (ADR-248 4e-7). */
 export const ItemsSourceContext = createContext<ItemsSource | null>(null);
 
-/** Old-store tests only (`itemsSource.store.ts`, removed with the old store): the source without a provider. */
-let testFallback: ItemsSource | null = null;
-export function setItemsSourceTestFallback(source: ItemsSource | null): void {
-  testFallback = source;
-}
-
 export function useItemsSource(): ItemsSource {
-  const source = useContext(ItemsSourceContext) ?? testFallback;
+  const source = useContext(ItemsSourceContext);
   if (!source) throw new Error("Items source is not provided");
   return source;
 }

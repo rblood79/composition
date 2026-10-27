@@ -28,7 +28,6 @@ import {
   type LLMProvider,
   type LLMStreamEvent,
 } from "./providers/LLMProvider";
-import { resolveProvider } from "./providers/agentProfiles";
 
 const MAX_TURNS = 10;
 const MAX_RETRIES = 3;
@@ -325,23 +324,4 @@ export class AgentService {
       return { role: "user", content: withContext };
     });
   }
-}
-
-/**
- * 활성 프로파일(`main`)로 AgentService 를 만든다.
- *
- * 미구성이면 `null` — 키가 없어서가 아니라 **endpoint·모델이 정해지지 않아서** 다.
- * 호출자는 이 상태를 사용자에게 설정으로 안내한다 (기존 "키 없음" 분기와 같은 자리).
- */
-export function createAgentService(t: PromptTranslate): AgentService | null {
-  const provider = resolveProvider("main");
-  if (!provider) {
-    if (import.meta.env.DEV) {
-      console.warn(
-        "[AgentService] 에이전트 프로파일이 구성되지 않았습니다 (endpoint·모델 미설정).",
-      );
-    }
-    return null;
-  }
-  return new AgentService(provider, t);
 }

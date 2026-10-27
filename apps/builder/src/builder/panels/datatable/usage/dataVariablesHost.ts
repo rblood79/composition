@@ -54,16 +54,8 @@ export const DataVariablesHostContext = createContext<DataVariablesHost | null>(
   null,
 );
 
-/** Old-store tests only (`dataVariablesHost.store.ts`, removed with the old store): the host without a provider. */
-let testFallback: DataVariablesHost | null = null;
-export function setDataVariablesHostTestFallback(
-  host: DataVariablesHost | null,
-): void {
-  testFallback = host;
-}
-
 export function useDataVariablesHost(): DataVariablesHost {
-  const host = useContext(DataVariablesHostContext) ?? testFallback;
+  const host = useContext(DataVariablesHostContext);
   if (!host) throw new Error("Data variables host is not provided");
   return host;
 }

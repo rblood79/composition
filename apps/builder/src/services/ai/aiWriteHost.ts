@@ -87,12 +87,6 @@ export function setAiWriteHost(host: AiWriteHost): () => void {
   };
 }
 
-/** Old-store tests only (`aiHosts.store.ts`, removed with the old store): the host without one installed. */
-let testFallback: AiWriteHost | null = null;
-export function setAiWriteHostTestFallback(host: AiWriteHost | null): void {
-  testFallback = host;
-}
-
 export function getAiWriteHost(): AiWriteHost | null {
-  return current ?? testFallback;
+  return current;
 }

@@ -1,8 +1,8 @@
 /**
- * Tint → Skia 색상 동기화
+ * Tint → accent 색상 토큰
  *
- * Tint 프리셋 변경 시 lightColors/darkColors의 accent 토큰을
- * 해당 tint의 oklch 값에서 파생된 hex 값으로 갱신한다.
+ * Tint 프리셋의 oklch 값에서 accent 토큰 hex 값을 파생한다 (순수 — 토큰 맵 mutation 없음,
+ * 설치는 `themeMaps.ts` `installThemeMaps`).
  *
  * preview-system.css의 oklch 값과 동일한 소스를 사용하여
  * CSS Preview ↔ Skia Canvas 색상 일치를 보장.
@@ -12,8 +12,6 @@
  */
 
 import {
-  lightColors,
-  darkColors,
   CHART_ACCENT_STEPS,
   CHART_ACCENT_TOKENS,
 } from "@composition/rendering";
@@ -127,41 +125,8 @@ export function resolveAccentLadder(
 }
 
 // ============================================================================
-// 메인 함수
+// accent 토큰 파생
 // ============================================================================
-
-/**
- * Tint 프리셋에 따라 lightColors/darkColors의 accent 5개 토큰을 갱신.
- *
- * **Mutation 방식**: lightColors/darkColors는 Object.freeze() 미적용이므로
- * 직접 mutation하여 다음 resolveToken() 호출에 즉시 반영.
- *
- * @param tint - 선택된 Tint 프리셋
- */
-export function tintToSkiaColors(tint: TintPreset): void {
-  const { h, c } = TINT_PRESETS[tint];
-
-  // Light mode accent
-  applyAccentColors(lightColors, c, h, "light");
-
-  // Dark mode accent
-  applyAccentColors(darkColors, c, h, "dark");
-}
-
-/**
- * accent 5개 토큰을 oklch 파생 hex로 갱신
- */
-function applyAccentColors(
-  colors: typeof lightColors,
-  c: number,
-  h: number,
-  mode: "light" | "dark",
-): void {
-  const resolved = createAccentColorTokens(c, h, mode);
-  for (const key of ACCENT_KEYS) {
-    (colors as unknown as Record<string, string>)[key] = resolved[key];
-  }
-}
 
 export function createAccentColorTokens(
   c: number,
@@ -193,7 +158,7 @@ export function createAccentColorTokens(
 }
 
 // ============================================================================
-// Per-element accent override (ADR-021 Phase E)
+// Per-element accent (ADR-021 Phase E)
 // ============================================================================
 
 /** accent 5개 토큰 스냅샷 */
@@ -209,43 +174,9 @@ export interface AccentColorTokens {
   "chart-accent-4": string;
 }
 
-const ACCENT_KEYS: (keyof AccentColorTokens)[] = [
-  "accent",
-  "accent-hover",
-  "accent-pressed",
-  "on-accent",
-  "accent-subtle",
-  ...CHART_ACCENT_TOKENS,
-];
-
-/** 현재 accent 토큰을 스냅샷 */
-function snapshotAccent(colors: typeof lightColors): AccentColorTokens {
-  return {
-    accent: colors.accent,
-    "accent-hover": colors["accent-hover"],
-    "accent-pressed": colors["accent-pressed"],
-    "on-accent": colors["on-accent"],
-    "accent-subtle": colors["accent-subtle"],
-    "chart-accent-1": colors["chart-accent-1"],
-    "chart-accent-2": colors["chart-accent-2"],
-    "chart-accent-3": colors["chart-accent-3"],
-    "chart-accent-4": colors["chart-accent-4"],
-  };
-}
-
-/** 스냅샷에서 accent 토큰 복원 */
-function restoreAccent(
-  colors: typeof lightColors,
-  snapshot: AccentColorTokens,
-): void {
-  for (const key of ACCENT_KEYS) {
-    (colors as unknown as Record<string, string>)[key] = snapshot[key];
-  }
-}
-
 /**
  * 요소별 tint가 바꾸는 accent token만 pure value로 계산한다.
- * Panel read 중 global lightColors/darkColors를 mutation하지 않는 경계다.
+ * 전역 토큰 맵을 mutation 하지 않는다.
  */
 export function resolveAccentColorTokens(
   accentTint: TintPreset | undefined,
@@ -256,32 +187,3 @@ export function resolveAccentColorTokens(
   return createAccentColorTokens(c, h, mode);
 }
 
-/**
- * 요소별 accent 오버라이드를 적용한 상태에서 콜백을 실행하고 원래 상태로 복원.
- * Skia 렌더링은 동기적이므로 mutation → 실행 → 복원이 안전.
- *
- * @param accentTint - 오버라이드할 Tint 프리셋 (없으면 콜백만 실행)
- * @param fn - accent가 적용된 상태에서 실행할 함수
- * @returns fn의 반환값
- */
-export function withAccentOverride<T>(
-  accentTint: TintPreset | undefined,
-  fn: () => T,
-): T {
-  if (!accentTint || !(accentTint in TINT_PRESETS)) {
-    return fn();
-  }
-
-  const lightSnapshot = snapshotAccent(lightColors);
-  const darkSnapshot = snapshotAccent(darkColors);
-
-  try {
-    const { h, c } = TINT_PRESETS[accentTint];
-    applyAccentColors(lightColors, c, h, "light");
-    applyAccentColors(darkColors, c, h, "dark");
-    return fn();
-  } finally {
-    restoreAccent(lightColors, lightSnapshot);
-    restoreAccent(darkColors, darkSnapshot);
-  }
-}

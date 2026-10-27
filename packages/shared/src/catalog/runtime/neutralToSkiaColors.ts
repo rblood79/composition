@@ -1,18 +1,14 @@
 /**
- * Neutral Preset → Skia 색상 동기화
+ * Neutral Preset → neutral 색상 토큰
  *
- * Tailwind v4 5종 gray 팔레트에서 S2 neutral 13개 토큰을
- * lightColors/darkColors에 직접 mutation하여 Skia 렌더링에 반영.
+ * Tailwind v4 5종 gray 팔레트에서 S2 neutral 13개 토큰을 파생한다 (순수 — 토큰 맵 mutation
+ * 없음, 설치는 `themeMaps.ts` `installThemeMaps`).
  *
  * @see packages/rendering/src/primitives/generated/tailwindPalette.ts (ADR-191 — tailwindcss/theme.css 파생, 손 복사 금지)
  * @see ADR-021 Phase B
  */
 
-import {
-  lightColors,
-  darkColors,
-  TAILWIND_PALETTE,
-} from "@composition/rendering";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 
 // ============================================================================
 // Types
@@ -71,39 +67,10 @@ const DARK_MAP: Record<string, number | string> = {
 };
 
 // ============================================================================
-// 메인 함수
+// neutral 토큰 파생
 // ============================================================================
 
-/**
- * Neutral 프리셋에 따라 lightColors/darkColors의 neutral 13개 토큰을 갱신.
- *
- * **Mutation 방식**: tintToSkiaColors와 동일 패턴.
- * Object.freeze() 미적용 → 직접 mutation하여 즉시 반영.
- */
-export function neutralToSkiaColors(preset: NeutralPreset): void {
-  const palette = NEUTRAL_PALETTES[preset];
-
-  applyNeutralColors(
-    lightColors as unknown as Record<string, string>,
-    palette,
-    LIGHT_MAP,
-  );
-  applyNeutralColors(
-    darkColors as unknown as Record<string, string>,
-    palette,
-    DARK_MAP,
-  );
-}
-
-function applyNeutralColors(
-  colors: Record<string, string>,
-  palette: Record<number, string>,
-  map: Record<string, number | string>,
-): void {
-  Object.assign(colors, neutralColorTokens(palette, map));
-}
-
-/** ADR-227 — 순수: neutral 프리셋 → 토큰 맵 (mutation 없음). `installThemeSnapshot` 이 쓴다. */
+/** ADR-227 — 순수: neutral 프리셋 → 토큰 맵 (mutation 없음). `installThemeMaps` 가 쓴다. */
 export function resolveNeutralColorTokens(
   preset: NeutralPreset,
   mode: "light" | "dark",

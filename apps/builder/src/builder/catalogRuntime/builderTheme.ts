@@ -13,7 +13,7 @@ import { catalogThemeState, type CatalogThemeState } from "./theme";
  * The installed theme as the Builder panels read it (ADR-248 4e-8): the theme config store's
  * preset · color mode · base typography, one set per install (`themeVersion` +1 — the color
  * picker's theme palette and the token swatches re-resolve). The document stays the source; the
- * store keeps no project (`initThemeConfig` is not called), so nothing is persisted.
+ * store persists nothing.
  */
 function publishThemeConfig(snapshot: ResolvedThemeSnapshot): void {
   useThemeConfigStore.getState().applyResolvedTheme({

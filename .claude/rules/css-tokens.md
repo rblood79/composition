@@ -248,4 +248,4 @@ Skia dark mode 적용 상세: canvas-rendering.md 참조.
 핵심 체크리스트:
 
 - `specShapesToSkia()` 두 번째 인자 `theme` 에 현재 테마 전달 (하드코딩 `"light"` 금지)
-- `setDarkMode` 시 `themeVersion++` + `notifyLayoutChange()` 호출 필수 (누락 시 Skia 무반응)
+- 다크 모드 · 테마 전환은 문서의 활성 테마가 정본이다 — `workspace.applyTheme` 이 테마 key 변화를 보고 `install()` (토큰 맵 `installThemeMaps` + 패널 store `applyResolvedTheme` 의 `themeVersion` +1) 뒤 Canvas root 를 다시 만든다. store 를 직접 바꾸는 setter 는 없다 (옛 `setTint` · `setDarkMode` 계열은 2026-10-27 삭제)

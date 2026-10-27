@@ -25,16 +25,8 @@ export const QuickConnectHostContext = createContext<QuickConnectHost | null>(
   null,
 );
 
-/** Old-store tests only (`quickConnectHost.store.ts`, removed with the old store): the host without a provider. */
-let testFallback: QuickConnectHost | null = null;
-export function setQuickConnectHostTestFallback(
-  host: QuickConnectHost | null,
-): void {
-  testFallback = host;
-}
-
 export function useQuickConnectHost(): QuickConnectHost {
-  const host = useContext(QuickConnectHostContext) ?? testFallback;
+  const host = useContext(QuickConnectHostContext);
   if (!host) throw new Error("Quick connect host is not provided");
   return host;
 }

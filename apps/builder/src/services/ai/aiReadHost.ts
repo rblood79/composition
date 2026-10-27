@@ -74,12 +74,6 @@ export function setAiReadHost(host: AiReadHost): () => void {
   };
 }
 
-/** Old-store tests only (`aiHosts.store.ts`, removed with the old store): the host without one installed. */
-let testFallback: AiReadHost | null = null;
-export function setAiReadHostTestFallback(host: AiReadHost | null): void {
-  testFallback = host;
-}
-
 export function getAiReadHost(): AiReadHost | null {
-  return current ?? testFallback;
+  return current;
 }

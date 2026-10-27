@@ -33,15 +33,9 @@ describe("ADR-912 Phase 3 panel paint read boundary", () => {
       resolve(here, "../utils/specPresetResolver.ts"),
       "utf8",
     );
-    const panelSources = [
-      readFileSync(resolve(here, "useColorStyleValues.ts"), "utf8"),
-      readFileSync(resolve(here, "../utils/styleValueHelpers.ts"), "utf8"),
-    ].join("\n");
-
     expect(adapterSource.match(/resolveCatalogPaint\(/g)).toHaveLength(1);
     expect(adapterSource).not.toMatch(
       /appearancePresetCache|typographyPresetCache/,
     );
-    expect(panelSources).not.toContain("withAccentOverride");
   });
 });

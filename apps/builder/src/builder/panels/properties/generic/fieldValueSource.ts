@@ -35,16 +35,8 @@ export const FieldValueSourceContext = createContext<FieldValueSource | null>(
   null,
 );
 
-/** Old-store tests only (`fieldValueSource.store.ts`, removed with the old store): the source without a provider. */
-let testFallback: FieldValueSource | null = null;
-export function setFieldValueSourceTestFallback(
-  source: FieldValueSource | null,
-): void {
-  testFallback = source;
-}
-
 function useFieldValueSource(): FieldValueSource {
-  const source = useContext(FieldValueSourceContext) ?? testFallback;
+  const source = useContext(FieldValueSourceContext);
   if (!source) throw new Error("Field value source is not provided");
   return source;
 }
@@ -93,7 +85,8 @@ export function useFieldVariableNames(
       useProjectVariableNames();
 }
 
-const VARIABLE_ID = (ref: string) => ref.slice("!var.".length).split(".")[0] ?? "";
+const VARIABLE_ID = (ref: string) =>
+  ref.slice("!var.".length).split(".")[0] ?? "";
 
 /** The variable a prop follows, by name (ADR-284 Phase 6 — `{ kind: "var" }` · `{ kind: "when" }`). */
 export function useFieldVariableName(ref: string): string {

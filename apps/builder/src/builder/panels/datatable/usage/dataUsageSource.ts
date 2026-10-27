@@ -24,16 +24,8 @@ export const DataUsageSourceContext = createContext<DataUsageSource | null>(
   null,
 );
 
-/** Old-store tests only (`dataUsageSource.store.ts`, removed with the old store): the host without a provider. */
-let testFallback: DataUsageSource | null = null;
-export function setDataUsageSourceTestFallback(
-  host: DataUsageSource | null,
-): void {
-  testFallback = host;
-}
-
 export function useDataUsageSource(): DataUsageSource {
-  const host = useContext(DataUsageSourceContext) ?? testFallback;
+  const host = useContext(DataUsageSourceContext);
   if (!host) throw new Error("Data usage host is not provided");
   return host;
 }

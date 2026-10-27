@@ -21,7 +21,7 @@
  */
 
 import { useMemo } from "react";
-import { resolveCollectionByName, type VariableDef } from "@composition/shared";
+import type { VariableDef } from "@composition/shared";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { StateCreator } from "zustand";
@@ -332,41 +332,11 @@ export const useCollections = (): DataTable[] => {
 };
 
 /**
- * 특정 DataTable 가져오기
- */
-export const useCollection = (name: string): DataTable | undefined => {
-  const collections = useDataStore((state) => state.collections);
-  // Map 은 id 키 (ADR-152 HC8) — name 시그니처는 fallback wrapper 로 유지.
-  return useMemo(
-    () =>
-      resolveCollectionByName(name, Array.from(collections.values())) ??
-      undefined,
-    [collections, name],
-  );
-};
-
-/** id 로 DataTable 가져오기 — O(1) (ADR-152 v2 안정 참조). */
-export const useCollectionById = (
-  id: string | undefined,
-): DataTable | undefined => {
-  const collections = useDataStore((state) => state.collections);
-  return id ? collections.get(id) : undefined;
-};
-
-/**
  * 모든 ApiEndpoint 목록 가져오기
  */
 export const useApiEndpoints = (): ApiEndpoint[] => {
   const apiEndpoints = useDataStore((state) => state.apiEndpoints);
   return Array.from(apiEndpoints.values());
-};
-
-/**
- * 특정 ApiEndpoint 가져오기
- */
-export const useApiEndpoint = (name: string): ApiEndpoint | undefined => {
-  const apiEndpoints = useDataStore((state) => state.apiEndpoints);
-  return apiEndpoints.get(name);
 };
 
 /**
@@ -407,46 +377,9 @@ export function toProjectVariableDefs(
   return out;
 }
 
-/**
- * 특정 Variable 가져오기
- */
-export const useVariable = (name: string): Variable | undefined => {
-  const variables = useDataStore((state) => state.variables);
-  return variables.get(name);
-};
-
-/**
- * Variable 런타임 값 가져오기 (defaultValue 포함)
- */
-export const useVariableValue = (name: string): unknown => {
-  const getRuntimeValue = useDataStore((state) => state.getRuntimeValue);
-  return getRuntimeValue(name);
-};
-
 // ============================================
 // Canvas Sync Utilities
 // ============================================
-
-/**
- * Variables를 Canvas RuntimeVariable 형태로 변환
- */
-export const getVariablesForCanvas = () => {
-  const { variables, getRuntimeValue } = useDataStore.getState();
-  return Array.from(variables.values()).map((v) => ({
-    id: v.id,
-    name: v.name,
-    type: v.type,
-    defaultValue: getRuntimeValue(v.name), // 런타임 값 포함
-    persist: v.persist,
-    scope: v.scope,
-    page_id: v.page_id,
-    // ADR-214 Phase 2 — preview 의 shared 런타임 store 정의 색인 입력 (project 소유자만 값을 갖는다;
-    // page/element 정의는 canonical 문서 자체로 간다). `definitionDefault` 는 정의의 기본값
-    // (위 `defaultValue` 는 legacy appState 초기화용 런타임 값).
-    owner: v.owner,
-    definitionDefault: v.defaultValue,
-  }));
-};
 
 /** ADR-214 — publish 탭 · export 로 가는 프로젝트 변수 정의 (VariableDef 형상, project 소유자만) */
 export const getProjectVariableDefinitions = () => {

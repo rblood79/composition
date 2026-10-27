@@ -316,59 +316,6 @@ export const TokenFilterSchema = z.object({
 });
 
 // ===== Type Guards =====
-export function isColorValueHSL(value: unknown): value is ColorValueHSL {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'h' in value &&
-    's' in value &&
-    'l' in value
-  );
-}
-
-export function isColorValueRGB(value: unknown): value is ColorValueRGB {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'r' in value &&
-    'g' in value &&
-    'b' in value
-  );
-}
-
-export function isTypographyValue(value: unknown): value is TypographyValue {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'fontFamily' in value &&
-    'fontSize' in value
-  );
-}
-
-export function isShadowValue(value: unknown): value is ShadowValue {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'offsetX' in value &&
-    'offsetY' in value &&
-    'blur' in value
-  );
-}
-
-export function isBorderValue(value: unknown): value is BorderValue {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'width' in value &&
-    'style' in value &&
-    'color' in value
-  );
-}
 
 export function isMotionValue(value: unknown): value is MotionValue {
   return (

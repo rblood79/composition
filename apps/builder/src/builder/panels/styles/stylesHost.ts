@@ -8,14 +8,8 @@ export {
   type StylesTargetSnapshot,
 } from "./stylesHostContext";
 
-/** Old-store tests only (`stylesHost.store.ts`, removed with the old store): the host without a provider. */
-let testFallback: StylesHost | null = null;
-export function setStylesHostTestFallback(host: StylesHost | null): void {
-  testFallback = host;
-}
-
 export function useStylesHost(): StylesHost {
-  const host = useContext(StylesHostContext) ?? testFallback;
+  const host = useContext(StylesHostContext);
   if (!host) throw new Error("Styles host is not provided");
   return host;
 }

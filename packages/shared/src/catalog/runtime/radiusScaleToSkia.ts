@@ -1,13 +1,12 @@
 /**
- * RadiusScale → Skia radius 토큰 동기화
+ * RadiusScale → radius 토큰
  *
- * RadiusScale 프리셋 변경 시 radius 토큰 객체를 직접 mutation하여
- * Skia 렌더링에 즉시 반영.
+ * RadiusScale 프리셋에서 radius 토큰 값을 파생한다 (순수 — 토큰 맵 mutation 없음,
+ * 설치는 `themeMaps.ts` `installThemeMaps`).
  *
  * @see ADR-021 Phase B
  */
 
-import { radius } from "@composition/rendering";
 import type { ThemePreset } from "../document/types";
 type RadiusScale = ThemePreset["radius"];
 
@@ -25,18 +24,8 @@ const SCALE_FACTORS: Record<RadiusScale, number> = {
 };
 
 // ============================================================================
-// 메인 함수
+// radius 토큰 파생
 // ============================================================================
-
-/**
- * RadiusScale에 따라 radius 토큰 객체를 갱신.
- *
- * **Mutation 방식**: tintToSkiaColors/neutralToSkiaColors와 동일 패턴.
- * Object.freeze() 미적용 → 직접 mutation하여 즉시 반영.
- */
-export function radiusScaleToSkia(scale: RadiusScale): void {
-  Object.assign(radius, resolveRadiusTokens(scale));
-}
 
 /**
  * ADR-227 — 순수: 스케일 → radius 토큰 맵 (mutation 없음). DOM `--radius-*` 와 같은 base 8 단계
