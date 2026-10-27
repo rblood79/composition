@@ -117,7 +117,7 @@ const targetLabel = (target: CatalogTargetOption) =>
 /** ADR-283 — why a rule's target names nothing from the selected place. */
 export type CatalogTargetNotice = "unset" | "outOfContext";
 
-interface CatalogRuleRowProps {
+interface CatalogEventRowProps {
   rule: InteractionEntry;
   componentType: string;
   context: CatalogActionContext;
@@ -148,7 +148,7 @@ interface CatalogRuleRowProps {
  * inline editor (When · Do · target/argument) with the record's action shape: navigate names a
  * page, setState always carries a valid value, capability a target node.
  */
-export const CatalogRuleRow = memo(function CatalogRuleRow({
+export const CatalogEventRow = memo(function CatalogEventRow({
   rule,
   componentType,
   context,
@@ -165,7 +165,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
   onToggle,
   onChange,
   onRemove,
-}: CatalogRuleRowProps) {
+}: CatalogEventRowProps) {
   const { t } = useI18n();
   // ADR-284 Decision 8 — the rule's Do list: the editor shows one Do at a time (the order list
   // picks it); a new Do goes last, a Do is removed while another stays.
@@ -327,7 +327,7 @@ export const CatalogRuleRow = memo(function CatalogRuleRow({
           type="button"
           className="interaction-rule-remove"
           onClick={onRemove}
-          aria-label={t("interactions.deleteRule")}
+          aria-label={t("interactions.deleteEvent")}
         >
           <DeleteIcon size={14} />
         </button>

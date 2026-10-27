@@ -1,6 +1,6 @@
 /**
  * ADR-281 G1 — the Interactions panel's vocabulary: When in concept groups with only what RAC
- * fires now, hidden RAC events behind the "Show all of RAC" toggle (never keyboard — Q3), and a
+ * fires now, hidden RAC events behind the "More events" toggle (never keyboard — Q3), and a
  * rule the declared props stop kept with a marker (the value source is `valueField.test.tsx`).
  */
 import {
@@ -17,7 +17,7 @@ import type {
   NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { TriggerPicker } from "../TriggerPicker";
-import { CatalogRuleRow } from "../catalog/CatalogRuleRow";
+import { CatalogEventRow } from "../catalog/CatalogEventRow";
 import { CatalogInheritedRuleRow } from "../catalog/CatalogInheritedRuleRow";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -57,7 +57,7 @@ describe("ADR-281 G1 — When groups and the hidden-event toggle", () => {
     expect(shown.headers).toEqual(["Press"]);
     expect(shown.options).toEqual(["On press"]);
     fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
-    fireEvent.click(screen.getByRole("switch", { name: "Show all of RAC" }));
+    fireEvent.click(screen.getByRole("switch", { name: "More events" }));
     const all = openSelect("When");
     expect(all.headers).toEqual(["Press", "Hover", "Focus"]);
     expect(all.options).toContain("On hover start");
@@ -86,8 +86,11 @@ describe("ADR-281 G1 — When groups and the hidden-event toggle", () => {
     );
     // (A rule on a hidden event keeps the toggle on; the read-only Checkbox's onChange is gone.)
     expect(
-      (screen.getByRole("switch", { name: "Show all of RAC" }) as HTMLInputElement)
-        .checked,
+      (
+        screen.getByRole("switch", {
+          name: "More events",
+        }) as HTMLInputElement
+      ).checked,
     ).toBe(true);
     expect(openSelect("When").options).not.toContain("On check change");
   });
@@ -99,12 +102,14 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
     id: "project:interaction:r1" as InteractionEntry["id"],
     ownerId: "project:node:b" as NodeId,
     trigger: "onPress",
-    actions: [{
-      opcode: "capability",
-      target: { nodeId: "project:node:list" as NodeId },
-      capabilityId: "selectItem",
-      value: "a",
-    }],
+    actions: [
+      {
+        opcode: "capability",
+        target: { nodeId: "project:node:list" as NodeId },
+        capabilityId: "selectItem",
+        value: "a",
+      },
+    ],
   };
   const context = {
     pages: [],
@@ -114,7 +119,7 @@ describe("ADR-281 G1 — a rule the declared props stop is kept, with a marker",
   };
   const row = (targetProps: Record<string, unknown>) =>
     wrap(
-      <CatalogRuleRow
+      <CatalogEventRow
         rule={rule}
         componentType="Button"
         context={context}
@@ -175,7 +180,9 @@ describe("ADR-281 G3 — the inherited rule row", () => {
       />,
     );
     expect(screen.getByText("On press → Show a toast")).toBeTruthy();
-    fireEvent.click(screen.getByRole("switch", { name: "Runs in this instance" }));
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Runs in this instance" }),
+    );
     expect(onEnabledChange).toHaveBeenCalledWith(false);
     fireEvent.click(
       screen.getByRole("button", { name: "Replace in this instance" }),
@@ -187,7 +194,9 @@ describe("ADR-281 G3 — the inherited rule row", () => {
     wrap(
       <CatalogInheritedRuleRow
         rule={rule}
-        status={{ replacedBy: "project:interaction:mine" as InteractionEntry["id"] }}
+        status={{
+          replacedBy: "project:interaction:mine" as InteractionEntry["id"],
+        }}
         componentType="Button"
         onEnabledChange={() => {}}
         onReplace={() => {}}

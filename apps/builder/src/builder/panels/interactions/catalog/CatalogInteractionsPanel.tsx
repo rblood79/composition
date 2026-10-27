@@ -40,13 +40,14 @@ import { EmptyState } from "../../../components/feedback/EmptyState";
 import { PanelContents } from "../../../components/panel/PanelContents";
 import { PanelHeader } from "../../../components/panel/PanelHeader";
 import { Section } from "../../../components/panel/Section";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useI18n } from "@/i18n";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
 import { useDataStore, useProjectVariableDefs } from "../../../stores/data";
-import { CatalogRuleRow, type CatalogTargetNotice } from "./CatalogRuleRow";
+import { CatalogEventRow, type CatalogTargetNotice } from "./CatalogEventRow";
 import { catalogTargetRefOf } from "../../../catalogRuntime/targetRef";
 import { CatalogInheritedRuleRow } from "./CatalogInheritedRuleRow";
 import "../InteractionsPanel.css";
@@ -157,7 +158,11 @@ function CatalogRules({
     const context: CatalogActionContext = {
       pages: catalogPageOptions(graph),
       currentPageId: pageId,
-      variables: catalogVisibleVariables(graph, owner.ownerId, projectVariables),
+      variables: catalogVisibleVariables(
+        graph,
+        owner.ownerId,
+        projectVariables,
+      ),
       // ADR-283 R6: read when a picker opens (once per graph revision), the first one stops early.
       targets: () =>
         (targets ??= catalogCapabilityTargets(graph, pageId, undefined, owner)),
@@ -183,8 +188,7 @@ function CatalogRules({
       exposure,
       triggers: resolveTriggers(componentType),
       // ADR-281 Decision 1 — a new rule starts from a When RAC fires now.
-      firstTrigger: exposedTriggerGroups(componentType, exposure)[0]
-        ?.events[0],
+      firstTrigger: exposedTriggerGroups(componentType, exposure)[0]?.events[0],
       rules: catalogInteractionsOf(graph, owner),
       // ADR-281 Decision 4 — what this instance position inherits from its component.
       inherited: catalogInheritedInteractionsOf(graph, owner),
@@ -293,7 +297,9 @@ function CatalogRules({
           <Section
             title={t("interactions.inheritedTitle")}
             id="interactions-inherited"
-            badge={String(view.inherited.length)}
+            badge={
+              <span className="category-count">{view.inherited.length}</span>
+            }
           >
             {view.inherited.map(({ rule, status }) => (
               <CatalogInheritedRuleRow
@@ -305,7 +311,9 @@ function CatalogRules({
                   id: rule.ownerId,
                 })}
                 onEnabledChange={(enabled) =>
-                  run(catalogInheritedRuleEnabledCommand(owner, rule.id, enabled))
+                  run(
+                    catalogInheritedRuleEnabledCommand(owner, rule.id, enabled),
+                  )
                 }
                 onReplace={() =>
                   run(
@@ -321,9 +329,24 @@ function CatalogRules({
           </Section>
         )}
         <Section
-          title={t("interactions.rulesTitle")}
+          title={t("interactions.eventsTitle")}
           id="interactions-rules"
-          badge={view.rules.length > 0 ? String(view.rules.length) : undefined}
+          badge={
+            view.rules.length > 0 ? (
+              <span className="category-count">{view.rules.length}</span>
+            ) : undefined
+          }
+          actions={
+            view.triggers.length > 0 ? (
+              <ActionIconButton
+                aria-label={t("interactions.addEvent")}
+                tooltip={t("interactions.addEvent")}
+                onPress={handleAdd}
+              >
+                <AddIcon size={16} />
+              </ActionIconButton>
+            ) : undefined
+          }
         >
           {view.triggers.length === 0 ? (
             <EmptyState
@@ -337,11 +360,11 @@ function CatalogRules({
               {view.rules.length === 0 && (
                 <EmptyState
                   icon={<SquareMousePointer size={32} />}
-                  message={t("interactions.noRules")}
+                  message={t("interactions.noEvents")}
                 />
               )}
               {view.rules.map((rule) => (
-                <CatalogRuleRow
+                <CatalogEventRow
                   key={rule.id}
                   rule={rule}
                   componentType={view.componentType}
@@ -382,15 +405,6 @@ function CatalogRules({
                   }}
                 />
               ))}
-              <button
-                type="button"
-                className="control-button"
-                data-variant="add"
-                onClick={handleAdd}
-              >
-                <AddIcon size={14} />
-                {t("interactions.addRule")}
-              </button>
             </>
           )}
         </Section>

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // adr214-p4-live.mjs — ADR-214 Phase 4 (쓰기 setState · 게이트 G3) live — 실제 빌더 + Preview iframe 에서:
-//   ① Interactions 패널 UI: Add rule → Do "Set state" → 변수 count · 동작 Increment (규칙이 문서 events 에)
+//   ① Interactions 패널 UI: Add event → Do "Set state" → 변수 count · 동작 Increment (규칙이 문서 events 에)
 //   ② Preview: Button 클릭 ×2 → Text "count=2" (dispatcher → shared runtimeState → 의존 인덱스)
 //   ③ 페이지 변수 step: 규칙 increment ×2 → 3 → 페이지 추가/전환/복귀 → 1 (페이지 진입 리셋)
 //   ④ persist: 규칙 set userName=Ana → 새로고침 → Preview "Hello Ana" · 새 프로젝트 (같은 이름) 는 guest (namespace 격리)
@@ -217,7 +217,7 @@ try {
   await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), btnId);
   await setPanel(page, "interactions", true);
   const ipanel = page.locator('[data-panel-id="events"]');
-  await ipanel.locator('button:has-text("Add rule"), button:has-text("규칙 추가")').first().click();
+  await ipanel.locator('button:has-text("Add event"), button:has-text("이벤트 추가")').first().click();
   await page.waitForTimeout(500);
   await ipanel.locator(".interaction-rule-toggle").first().click();
   const ruleEditor = ipanel.locator(".interaction-rule-editor").first();
@@ -244,7 +244,7 @@ try {
     500,
   );
   const summary = await ipanel.locator(".interaction-rule-text").first().textContent();
-  record("① Interactions 패널 Add rule → Set state · count · Increment → 문서 events 에 setState 규칙 (IndexedDB) · 요약 줄", ruleInDoc === true && /Increment count|증가 count/.test(summary ?? ""), JSON.stringify({ ruleInDoc, summary }));
+  record("① Interactions 패널 Add event → Set state · count · Increment → 문서 events 에 setState 규칙 (IndexedDB) · 요약 줄", ruleInDoc === true && /Increment count|증가 count/.test(summary ?? ""), JSON.stringify({ ruleInDoc, summary }));
 
   // ② Preview 클릭 ×2
   await ensureCompare();

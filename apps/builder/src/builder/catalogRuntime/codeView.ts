@@ -206,7 +206,7 @@ function editCommand(
             ).ops,
           );
         }
-        return { label: "Edit rule", ops };
+        return { label: "Edit interaction", ops };
       };
   }
 }

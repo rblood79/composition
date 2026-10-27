@@ -4,7 +4,7 @@
  * 등록표의 그룹 (개념 = RAC 문서 절) 으로 묶어 보이되 지금 RAC 가 받는 것만 —
  * 선언값이 막는 그룹 (`isDisabled` · `isReadOnly` · `selectionMode: "none"` …) 은 빠진다
  * (`exposedTriggerGroups`). 숨은 이벤트 (S2 가 뺀 press 보조 · hover · focus) 는
- * 「RAC 전체 보기」 로 열고, keyboard 는 열지 않는다 (사용자 결정 Q3). 규칙이 쓰는 이름은
+ * 「이벤트 더 보기」 로 열고, keyboard 는 열지 않는다 (사용자 결정 Q3). 규칙이 쓰는 이름은
  * 늘 남는다 — 숨김이 규칙을 지우지 않는다.
  */
 import { memo, useMemo, useState } from "react";
@@ -66,7 +66,7 @@ export const TriggerPicker = memo(function TriggerPicker({
         translateOptions={false}
       />
       <PropertySwitch
-        label={t("interactions.showAllRacEvents")}
+        label={t("interactions.showMoreEvents")}
         isSelected={showHidden}
         onChange={setShowAll}
       />

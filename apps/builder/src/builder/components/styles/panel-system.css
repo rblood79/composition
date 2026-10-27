@@ -349,6 +349,20 @@
       color: var(--fg);
     }
 
+    /* 제목 옆 개수 상자 — Components 패널 범주 · Interactions 의 Events 가 같이 쓴다 */
+    .section-header .category-count {
+      font-size: var(--text-xs);
+      color: var(--fg-muted);
+      padding: var(--spacing-2xs);
+      background: var(--bg-muted);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--inset-shadow-sm);
+      min-width: var(--text-2xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .section-header .section-actions {
       display: flex;
     }

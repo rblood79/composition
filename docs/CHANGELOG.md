@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions 패널 — 「Rule」 을 RAC 어휘 「Event」 로] - 2026-10-27
+
+### Changed
+
+- **Interactions 패널 어휘를 RAC 문서에 맞췄다**: RAC 는 이 축을 `## Events` 절 · 「Handler that is called when…」 으로 부르고, 「rule」 은 Form 검증 규칙 (`validate`) 에만 쓴다. 섹션 제목 Rules → Events (규칙 → 이벤트) · 빈 상태 · 삭제 라벨 · History 라벨 (이벤트 추가 · 편집 · 삭제) · AI 도구 라벨을 같이 바꿨다. code view 의 When 편집이 History 에 원문 「Edit rule」 로 남던 것도 「Edit event」 로 보인다.
+- **숨은 이벤트 토글** 「Show all of RAC」 → 「More events / 이벤트 더 보기」 — 구현 이름을 보이지 않고, keyboard 는 켜도 안 열리므로 「all」 도 빼었다.
+- **Add event 는 Events 섹션 헤더의 `+`** (State 섹션과 같은 `actions` 슬롯) — 목록 끝 점선 버튼을 없앴다. 제목 옆 개수는 Components 패널과 같은 개수 상자 (`.category-count`, panel-system 으로 올리고 `min-height` 제거).
+  - 위치: `panels/interactions/catalog/{CatalogInteractionsPanel,CatalogEventRow}.tsx` (`CatalogRuleRow` 개명) · `TriggerPicker.tsx` · `i18n/{translations,types}.ts` · `catalogRuntime/codeView.ts` · `components/styles/panel-system.css` · `ComponentList.css`
+
 ## [ADR-275 · 276 · 278 ~ 283 — Implemented] - 2026-10-27
 
 ### Changed

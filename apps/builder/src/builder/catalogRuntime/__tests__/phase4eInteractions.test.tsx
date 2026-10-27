@@ -327,7 +327,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     );
     const start = graph.revision;
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^(Add event|Add)$/i }));
     });
     expect(graph.revision).toBe(start + 1);
     const [rule] = catalogInteractionsOf(graph, owner);
@@ -339,13 +339,13 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
     expect(screen.getByText("On press → go to page (About)")).toBeTruthy();
     // A second add appends to the list.
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^(Add event|Add)$/i }));
     });
     const both = catalogInteractionsOf(graph, owner);
     expect(both.map((r) => r.id)).toEqual([rule!.id, expect.any(String)]);
     await act(async () => {
       fireEvent.click(
-        screen.getAllByRole("button", { name: /delete rule/i })[0]!,
+        screen.getAllByRole("button", { name: /delete event/i })[0]!,
       );
     });
     expect(catalogInteractionsOf(graph, owner)).toEqual([both[1]]);
@@ -363,7 +363,7 @@ describe("ADR-248 Phase 4e-4e Interactions", () => {
       </I18nProvider>,
     );
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^(Add rule|Add)$/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^(Add event|Add)$/i }));
     });
     const start = graph.revision;
     // (The new rule opens: its editor ends with 「Add Do」.)

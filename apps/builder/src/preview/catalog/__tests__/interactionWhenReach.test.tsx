@@ -787,7 +787,7 @@ const ROWS: Row[] = [
 
 /**
  * The element a type's press · hover · focus events come from (its palette instance) — the hidden
- * events the panel's 「Show all of RAC」 toggle opens.
+ * events the panel's 「More events」 toggle opens.
  */
 const POINTER_TARGET: Readonly<Record<string, string>> = {
   Button: "button",
@@ -887,7 +887,7 @@ describe("RAC event audit — every offered When runs its rule in the Preview", 
   });
 
   it.each(HIDDEN_ROWS.map((row) => [`${row.type}.${row.event}`, row] as const))(
-    "hidden (Show all of RAC): %s",
+    "hidden (More events): %s",
     async (_name, row) => {
       vi.spyOn(console, "warn").mockImplementation(() => {});
       const h = await openAdr280Preview([row.palette]);
