@@ -18,7 +18,7 @@ import type {
 
 import "./ImageFillEditor.css";
 import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl";
-import { isAssetWriterEnabled } from "../../../../utils/featureFlags";
+import { assetStorageEnabled } from "../../../config/assetStorage";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 interface ImageFillEditorProps {
@@ -116,7 +116,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
 
       // ADR-235 writer — 원본 바이트를 자산 저장소에 두고 문서엔 참조만. 저장이 실패하면
       //   종전처럼 dataURL 로 (데이터를 잃지 않는 쪽).
-      if (isAssetWriterEnabled()) {
+      if (assetStorageEnabled()) {
         void import("../../../../lib/assets/assetWriter")
           .then(({ storeUploadedFile }) => storeUploadedFile(file))
           .then(

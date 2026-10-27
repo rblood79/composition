@@ -36,10 +36,6 @@ import type {
   DataTableUpdate,
   Variable,
 } from "../../../types/builder/data.types";
-import {
-  isCanvasCompareMode,
-  isWebGLCanvas,
-} from "../../../utils/featureFlags";
 
 type DataStore = DataStoreState & DataStoreActions;
 type SetState = Parameters<StateCreator<DataStore>>[0];
@@ -93,37 +89,6 @@ export interface ReduceResult {
   apiEndpoints: Map<string, ApiEndpoint>;
   endpointsUpserted: Set<string>;
   endpointsDeleted: Set<string>;
-}
-
-// ============================================
-// Canvas Sync (iframe Preview — WebGL-only 모드에서는 no-op)
-// ============================================
-
-export function syncCollectionsToCanvas(
-  collections: Map<string, DataTable>,
-): void {
-  const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
-  if (isWebGLOnly) return;
-
-  try {
-    const iframe = document.getElementById("previewFrame") as HTMLIFrameElement;
-    if (iframe?.contentWindow) {
-      const dataTablesArray = Array.from(collections.values()).map((dt) => ({
-        id: dt.id,
-        name: dt.name,
-        schema: dt.schema,
-        mockData: dt.mockData,
-        runtimeData: dt.runtimeData,
-        useMockData: dt.useMockData,
-      }));
-      iframe.contentWindow.postMessage(
-        { type: "UPDATE_DATA_TABLES", collections: dataTablesArray },
-        "*",
-      );
-    }
-  } catch (error) {
-    console.warn("⚠️ Canvas 동기화 실패:", error);
-  }
 }
 
 // ============================================
@@ -1494,10 +1459,6 @@ export const createApplyDataChangeAction = (set: SetState, get: GetState) => {
       };
       dataHistoryRecorder?.(payload, affectedIds);
     }
-
-    // 변수만 바뀐 change 는 collections postMessage 를 보내지 않는다 — 변수 전송은
-    //   `useIframeMessenger` 의 variables useEffect (JSON 비교) 가 맡는다.
-    if (collectionIds.length > 0) syncCollectionsToCanvas(result.collections);
 
     return { applied, inverse, collectionIds, variableIds, endpointIds };
   };

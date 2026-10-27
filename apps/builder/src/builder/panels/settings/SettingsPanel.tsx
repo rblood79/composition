@@ -25,7 +25,6 @@ import { Section as PropertySection } from "../../components/panel/Section";
 import { PropertySizeToggle } from "../../components/property/PropertySizeToggle";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { PanelContents } from "../../components/panel/PanelContents";
-import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 import {
@@ -37,7 +36,6 @@ import { useCatalogToastPlacement } from "./useCatalogToastPlacement";
 import type { CatalogToastPlacement } from "../../../../../../packages/shared/src/catalog/document/types";
 
 function SettingsContent() {
-  const { sendDarkMode } = useThemeMessenger();
   const { t } = useI18n();
 
   // Grid & Guides 설정
@@ -112,12 +110,6 @@ function SettingsContent() {
   const handleThemeModeChange = (value: string) => {
     const mode = value as "light" | "dark" | "auto";
     setThemeMode(mode);
-
-    const isDark =
-      mode === "dark" ||
-      (mode === "auto" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches);
-    sendDarkMode(isDark);
   };
 
   const handleUiScaleChange = (value: string) => {

@@ -25,7 +25,6 @@ import { MiniThemePreview } from "./MiniThemePreview";
 import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";
 import { useI18n } from "../../../i18n";
-import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { useThemesHost } from "./themesHost";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
 import "./ThemesPanel.css";
@@ -233,7 +232,6 @@ function ThemesContent() {
   const neutral = preset.neutral as NeutralPreset;
   const radiusScale = preset.radiusScale;
   const baseTypography = host.useBaseTypography();
-  const { sendBaseTypography } = useThemeMessenger();
 
   const isDark = darkMode === "dark";
 
@@ -267,13 +265,12 @@ function ThemesContent() {
     [host],
   );
 
-  // ADR-056 Phase 3+4: Typography 핸들러 — 문서 (테마 델타) + Preview postMessage 동시
+  // 서체 변경은 테마 명령과 기존 catalog Preview 채널을 통해 반영한다.
   const applyTypography = useCallback(
     (patch: Partial<typeof baseTypography>) => {
       host.setActiveThemeBaseTypography(patch);
-      sendBaseTypography({ ...baseTypography, ...patch });
     },
-    [host, sendBaseTypography, baseTypography],
+    [host],
   );
   const handleFontFamilyChange = useCallback(
     (value: string) => applyTypography({ fontFamily: value }),

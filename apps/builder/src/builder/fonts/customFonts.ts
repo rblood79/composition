@@ -16,7 +16,7 @@ import {
   resolveAssetUrl,
   stripExtension,
 } from "@composition/shared/utils";
-import { isAssetWriterEnabled } from "../../utils/featureFlags";
+import { assetStorageEnabled } from "../config/assetStorage";
 
 const STYLE_ID = "composition-custom-fonts";
 
@@ -53,7 +53,7 @@ export async function createFontFaceFromFile(
   //   바이트라 localStorage 한도 (~5MB) 에 걸리지 않는다. 저장 실패 시 종전 dataURL.
   let buffer: ArrayBuffer;
   let sourceRef: { type: "project-asset" | "data-url-temp"; url: string };
-  const stored = isAssetWriterEnabled()
+  const stored = assetStorageEnabled()
     ? await import("../../lib/assets/assetWriter")
         .then(({ storeUploadedFile }) => storeUploadedFile(file))
         .catch((error: unknown) => {

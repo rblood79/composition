@@ -5,7 +5,7 @@ import {
   loadFontRegistry,
   saveRegistryAndNotify,
 } from "./customFonts";
-import { isAssetWriterEnabled } from "../../utils/featureFlags";
+import { assetStorageEnabled } from "../config/assetStorage";
 
 /** ADR-235 R7 — 이관 전 원본 레지스트리 (자산으로 백업) 참조. GC root (Phase 3). */
 export const FONT_REGISTRY_BACKUP_REF_KEY =
@@ -31,7 +31,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
   // ADR-235 Phase 2 — 레지스트리의 base64 폰트를 자산 저장소로 (1회 · 멱등, 원본은 자산으로 백업).
   if (
-    isAssetWriterEnabled() &&
+    assetStorageEnabled() &&
     localStorage.getItem(FONT_REGISTRY_STORAGE_KEY)?.includes("data:")
   ) {
     void import("../../lib/assets/assetMigration").then(

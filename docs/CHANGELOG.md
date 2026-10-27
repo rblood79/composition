@@ -36,6 +36,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 「검색 추가」 로 만든 Slider 를 선택하면 Design 패널이 「Too many re-renders」 로 멈추던 것 — 변수를 읽는 값 (`{ kind: "var" }`) 을 숫자로 바꿔 NaN 이 됐고 슬라이더의 값 동기화가 끝나지 않았다. 이제 변수를 따르는 속성은 편집 칸 대신 「변수 X 를 따름」 을 보인다 (Switch · ComboBox 등도 같음 — 편집 칸에 쓰면 필터 연결이 끊겼다).
 - 「변수로 정하기」 절이 「검색 추가」 컨트롤의 연결 (Slider value · ComboBox selectedKey · Switch isSelected …) 과 직접 연결한 key 목록 (`selectedKeys`) 을 보여 주지 않던 것 — 쓰는 세 모양 중 변수 값 자체 (`{ kind: "var" }`) 를 읽지 못했다. 이제 목록에 나오고, 변수를 바꿔도 저장 모양이 유지된다 (전에는 숫자 `value` 에 `{{ 이름 }}` 글자를 쓰려다 검증에서 거부됐다).
 
+## [공용 Feature Flags와 구형 Preview 통신 제거] - 2026-10-27
+
+### Removed
+
+- **공용 `utils/featureFlags.ts`와 구형 iframe 통신 경로 제거**:
+  - 호출부 없는 debug getter와 WebGL/iframe 전환 분기, 현재 수신자가 없는 테마·데이터 메시지 전송 및 테스트 mock을 삭제했다. 동기화는 기존 catalog 채널을 사용한다.
+  - 미사용 `VITE_ENABLE_DEBUG_LOGS`·`VITE_USE_WEBGL_CANVAS` 설정과 타입 선언을 제거했다.
+  - **Why**: 디버그 설정은 로그를 제어하지 않았고, 옛 Preview 메시지는 현재 catalog Preview에서 소비하지 않았다.
+
+### Changed
+
+- 사용 중인 Compare Mode 초기값과 CSS 선택 동기화 설정은 각각 store와 Preview 진입점에서 읽는다. 자산 저장 writer 설정은 `builder/config/assetStorage.ts`로 옮겨 이미지·폰트 저장의 기존 동작과 lazy load를 유지한다.
+
+## [Compare Mode — CSS 선택 동기화를 환경변수로 제어] - 2026-10-27
+
+### Changed
+
+- **`VITE_ENABLE_HITAREA_MODE=true`일 때만 CSS Preview 클릭을 Canvas 선택으로 전달**:
+  - 기본값 `false`에서는 선택용 클릭 리스너를 등록하지 않아 CSS 조작에 따른 Builder 선택·패널 갱신을 생략한다. 링크 이동과 컴포넌트의 실제 동작은 유지한다.
+  - **Why**: 사용되지 않던 환경변수와 달리 Preview 선택 리스너가 항상 등록되어, 동작을 확인하는 클릭도 Canvas 선택을 바꾸고 있었다.
+  - 위치: `apps/builder/src/preview/catalog/catalogPreviewApp.ts`
+
 ## [데이터 보기 (ADR-284) — Implemented] - 2026-10-27
 
 ### Changed

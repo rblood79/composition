@@ -14,10 +14,6 @@ vi.mock("../../panels/datatable/utils/secretVault", () => ({
 vi.mock("../../../lib/db", () => ({
   getDB: async () => ({ collection_runtime: { put: async () => {} } }),
 }));
-vi.mock("./dataChange", async (orig) => {
-  const actual = (await orig()) as Record<string, unknown>;
-  return { ...actual, syncCollectionsToCanvas: vi.fn() };
-});
 
 const endpoint = (): ApiEndpoint => ({
   id: "ep1",

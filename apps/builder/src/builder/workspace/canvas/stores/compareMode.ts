@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { isCanvasCompareMode } from "../../../../utils/featureFlags";
 
 export interface CompareModeState {
   /** Compare mode 활성화 여부 (Preview + Skia 분할) */
@@ -16,7 +15,9 @@ export interface CompareModeState {
 
 export const useCompareModeStore = create<CompareModeState>()((set) => ({
   // 초기값: VITE_CANVAS_COMPARE_MODE 로 시드 (true → 초기 분할 활성, 헤더 "Skia Only Mode" 상태)
-  isCompareMode: isCanvasCompareMode(),
+  isCompareMode: /^(true|1)$/i.test(
+    import.meta.env.VITE_CANVAS_COMPARE_MODE ?? "",
+  ),
   // Compare의 기존 동작은 Canvas 전체 page scene이다. 단일 page는 명시적 옵션이다.
   filterCurrentPage: false,
 

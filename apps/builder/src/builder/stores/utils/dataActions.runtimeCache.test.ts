@@ -35,10 +35,6 @@ const dbMock = {
   },
 };
 vi.mock("../../../lib/db", () => ({ getDB: async () => dbMock }));
-vi.mock("./dataChange", async (orig) => {
-  const actual = (await orig()) as Record<string, unknown>;
-  return { ...actual, syncCollectionsToCanvas: vi.fn() };
-});
 
 import { createHydrateRuntimeCacheAction } from "./dataActions";
 

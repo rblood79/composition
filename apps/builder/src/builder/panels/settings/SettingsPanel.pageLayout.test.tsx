@@ -5,21 +5,15 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsPanel } from "./SettingsPanel";
 
-const {
-  changeLayoutMock,
-  layoutView,
-  sendDarkModeMock,
-  setThemeModeMock,
-  setUiScaleMock,
-} = vi.hoisted(() => ({
-  changeLayoutMock: vi.fn(),
-  layoutView: {
-    current: {} as Record<string, unknown>,
-  },
-  sendDarkModeMock: vi.fn(),
-  setThemeModeMock: vi.fn(),
-  setUiScaleMock: vi.fn(),
-}));
+const { changeLayoutMock, layoutView, setThemeModeMock, setUiScaleMock } =
+  vi.hoisted(() => ({
+    changeLayoutMock: vi.fn(),
+    layoutView: {
+      current: {} as Record<string, unknown>,
+    },
+    setThemeModeMock: vi.fn(),
+    setUiScaleMock: vi.fn(),
+  }));
 const FIXED_VIEW = {
   direction: "auto",
   gap: 80,
@@ -148,10 +142,6 @@ vi.mock(
   }),
 );
 
-vi.mock("../../hooks/useThemeMessenger", () => ({
-  useThemeMessenger: () => ({ sendDarkMode: sendDarkModeMock }),
-}));
-
 vi.mock("@/i18n", () => ({
   LanguageSwitcher: () => null,
   useI18n: () => ({ t: (key: string) => key }),
@@ -174,7 +164,6 @@ describe("SettingsPanel page layout synchronization", () => {
   beforeEach(() => {
     layoutView.current = FIXED_VIEW;
     changeLayoutMock.mockReset();
-    sendDarkModeMock.mockReset();
     setThemeModeMock.mockReset();
     setUiScaleMock.mockReset();
   });
@@ -247,7 +236,7 @@ describe("SettingsPanel page layout synchronization", () => {
     });
   });
 
-  it("Theme Mode를 변경하면 토글 선택값과 dark mode 동기화를 유지한다", () => {
+  it("Theme Mode를 변경하면 UI 테마 설정에 반영한다", () => {
     render(<SettingsPanel />);
 
     fireEvent.change(screen.getByLabelText("settings.themeMode"), {
@@ -255,7 +244,6 @@ describe("SettingsPanel page layout synchronization", () => {
     });
 
     expect(setThemeModeMock).toHaveBeenCalledWith("dark");
-    expect(sendDarkModeMock).toHaveBeenCalledWith(true);
   });
 
   it("UI Scale은 S/M/L로 표시하고 실제 scale 값은 숫자로 저장한다", () => {

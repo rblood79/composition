@@ -37,6 +37,18 @@ function catalogPreviewSelectClick(
   };
 }
 
+/** 비활성 상태에서는 선택용 클릭 리스너와 메시지 전송 경로를 등록하지 않는다. */
+function registerCatalogPreviewSelectClick(
+  session: CatalogPreviewSession,
+  post: (message: unknown) => void,
+): (() => void) | undefined {
+  if (!/^(true|1)$/i.test(import.meta.env.VITE_ENABLE_HITAREA_MODE ?? ""))
+    return;
+  const click = catalogPreviewSelectClick(session, post);
+  document.addEventListener("click", click, true);
+  return () => document.removeEventListener("click", click, true);
+}
+
 /**
  * ADR-248 4e-6: the Preview document of a catalog project (`preview.html?catalog=1`). Messages
  * are taken only from the parent Builder window of this origin; the document says it is ready
@@ -69,12 +81,8 @@ async function startCatalogPreview(): Promise<void> {
   const toast = new CatalogPreviewToastBridge();
   const runtime = catalogPreviewRuntime(session, toast);
   document.addEventListener("click", catalogPreviewLinkClick(session), true);
-  document.addEventListener(
-    "click",
-    catalogPreviewSelectClick(session, (message) =>
-      window.parent.postMessage(message, origin),
-    ),
-    true,
+  registerCatalogPreviewSelectClick(session, (message) =>
+    window.parent.postMessage(message, origin),
   );
   createRoot(document.body).render(
     createElement(CatalogPreviewApp, { session, runtime, toast }),
@@ -89,6 +97,10 @@ export {
   catalogPreviewRuntime,
   CatalogPreviewView,
 } from "../../../../../packages/shared/src/catalog/runtime/domView";
-export { catalogPreviewSelectClick, startCatalogPreview };
+export {
+  catalogPreviewSelectClick,
+  registerCatalogPreviewSelectClick,
+  startCatalogPreview,
+};
 
 import { CatalogPreviewApp } from "./catalogPreviewApp.components";

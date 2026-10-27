@@ -130,11 +130,11 @@ page.on("console", (m) => {
 });
 let dialogs = 0;
 await page.addInitScript(() => {
-  // G1e' — iframe 으로 오는 UPDATE_DATA_TABLES payload 기록 (같은 origin 이라 부모의
+  // G1e' — iframe 으로 오는 CATALOG_DATA payload 기록 (같은 origin 이라 부모의
   // `iframe.contentWindow.postMessage(...)` 가 이 override 를 호출한다).
   const orig = window.postMessage.bind(window);
   window.postMessage = function (msg, ...rest) {
-    if (msg && msg.type === "UPDATE_DATA_TABLES" && Array.isArray(msg.collections))
+    if (msg && msg.type === "CATALOG_DATA" && Array.isArray(msg.collections))
       (window.__adr218_updateDataTables ??= []).push(msg.collections);
     return orig(msg, ...rest);
   };
@@ -314,7 +314,7 @@ try {
 
   // G1e' — hydration 이 in-memory runtimeData 를 현재 key 로 remap 했는지 **소비 경로**로 확인
   //   (편집기 격자는 mockData 만 그리므로 격자는 이 판정의 표면이 아니다 — Q4).
-  //   소비 경로 = Preview iframe 으로 가는 `UPDATE_DATA_TABLES` (useIframeMessenger · syncCollectionsToCanvas).
+  //   소비 경로 = CatalogPreviewFrame의 store 구독 → Preview iframe의 `CATALOG_DATA`.
   //   init script 가 iframe 의 window.postMessage 를 감싸 payload 를 기록한다 (같은 origin).
   const compareToggle = page
     .locator(

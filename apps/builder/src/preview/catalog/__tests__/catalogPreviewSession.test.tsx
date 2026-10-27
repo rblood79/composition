@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -33,6 +33,7 @@ import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/
 import {
   catalogPreviewLinkClick,
   catalogPreviewSelectClick,
+  registerCatalogPreviewSelectClick,
   catalogPreviewRuntime,
   CatalogPreviewDataProvider,
   CatalogPreviewView,
@@ -1096,6 +1097,53 @@ describe("ADR-248 4e-6 Preview entry", () => {
 
   // Compare Mode: a click in the Preview selects the element on the Canvas (the old
   // `ELEMENT_SELECTED`); ⌘ toggles it in the selection. The Builder maps the record by identity.
+  it.each([undefined, "false", "true", "1"])(
+    "선택 리스너는 HITAREA_MODE=%s에서 활성화된 경우에만 등록하고 컴포넌트 클릭은 유지한다",
+    async (value) => {
+      vi.stubEnv("VITE_ENABLE_HITAREA_MODE", value);
+      const { session, channel } = await open();
+      channel.setView(HOME);
+      channel.onReady();
+      const record = session.root!.recordsOfSource(TEXT)[0]!;
+      const button = document.createElement("button");
+      button.setAttribute("data-catalog-id", record);
+      const onPress = vi.fn();
+      button.addEventListener("click", onPress);
+      document.body.append(button);
+      const addListener = vi.spyOn(document, "addEventListener");
+      const post = vi.fn();
+      let dispose: (() => void) | undefined;
+      try {
+        dispose = registerCatalogPreviewSelectClick(session, post);
+        const enabled = value === "true" || value === "1";
+        expect(
+          addListener.mock.calls.filter(([type]) => type === "click"),
+        ).toHaveLength(enabled ? 1 : 0);
+        button.click();
+        expect(onPress).toHaveBeenCalledOnce();
+        if (enabled) {
+          expect(post).toHaveBeenCalledWith({
+            type: "CATALOG_SELECT",
+            identity: record,
+            sourceId: TEXT,
+            additive: false,
+          });
+          dispose!();
+          dispose = undefined;
+          button.click();
+          expect(post).toHaveBeenCalledOnce();
+        } else {
+          expect(post).not.toHaveBeenCalled();
+        }
+      } finally {
+        dispose?.();
+        button.remove();
+        addListener.mockRestore();
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
   it("a click on a Preview element posts its record; the Builder selects that record (⌘ toggles)", async () => {
     const { workspace, session, channel } = await open();
     channel.setView(HOME);

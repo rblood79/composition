@@ -23,10 +23,7 @@ import {
   resolveBoundCollection,
   resolveCollectionByName,
 } from "@composition/shared";
-import {
-  createApplyDataChangeAction,
-  syncCollectionsToCanvas,
-} from "./dataChange";
+import { createApplyDataChangeAction } from "./dataChange";
 import { collectionUpdateToOps } from "./dataChangeDiff";
 import {
   isUploadEndpointProbe,
@@ -61,12 +58,6 @@ const runSeqByCollection = new Map<string, number>();
 type DataStore = DataStoreState & DataStoreActions;
 type SetState = Parameters<StateCreator<DataStore>>[0];
 type GetState = Parameters<StateCreator<DataStore>>[1];
-
-// ============================================
-// Canvas Sync Helper
-// ============================================
-
-// `syncCollectionsToCanvas` 는 `./dataChange` 로 옮겨졌다 (적용기와 공유).
 
 type CollectionsDB = {
   collections?: {
@@ -151,9 +142,6 @@ export const createFetchDataTablesAction =
         errors: new Map(state.errors),
       }));
 
-      // 🆕 Canvas에 동기화 (기존 DataTable도 Canvas에 전송)
-      syncCollectionsToCanvas(dataTablesMap);
-
       // id 가 새로 부여된 collection 만 hydrate 직후 1회 write-back (R8) — 참조 (문서)
       // 가 먼저 저장돼도 정의의 id 가 재생성되지 않게. 실패해도 로드는 유효하다 (경고만).
       await writeBackAssignedFieldIds(db, assigned);
@@ -234,7 +222,6 @@ export const createHydrateRuntimeCacheAction =
           .currentProjectId;
         if (current != null && current !== projectId) return;
         set({ collections: next });
-        syncCollectionsToCanvas(next);
       }
     } catch (error) {
       console.warn("⚠️ runtimeData 캐시 hydration 실패:", error);
@@ -313,7 +300,6 @@ export const createUpdateDataTableAction =
           const newMap = new Map(collections);
           newMap.set(id, { ...current, runtimeData });
           set({ collections: newMap });
-          syncCollectionsToCanvas(newMap);
         }
       }
     } catch (error) {
@@ -402,9 +388,6 @@ export const createSetRuntimeDataAction =
     newMap.set(dataTable.id, { ...dataTable, runtimeData: data });
 
     set({ collections: newMap });
-
-    // 🆕 Canvas에 동기화
-    syncCollectionsToCanvas(newMap);
   };
 
 // ============================================
@@ -910,9 +893,6 @@ export const createExecuteApiEndpointAction =
               runtimeData,
             });
             set({ collections: newDataTables });
-
-            // 🆕 Canvas에 동기화
-            syncCollectionsToCanvas(newDataTables);
 
             // ADR-218 — runtimeData 캐시 영속 (별도 store, History 밖). 실패는 로드/실행을
             // 막지 않는다 (다음 실행에서 다시 채운다).
