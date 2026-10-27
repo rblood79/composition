@@ -158,6 +158,22 @@ function roundTrip(h: Awaited<ReturnType<typeof open>>) {
   });
   expect(plan.rejected).toEqual([]);
   expect(plan.command).toBeUndefined();
+  // ADR-285 G1 — strict: every unit read again (changed or not) is refused nowhere, and what it
+  // plans gives back the same code (each vocabulary form's reader is its emitter's inverse).
+  const strict = catalogCodeViewPlan({
+    reader: h.graph().commandReader,
+    session,
+    edited: code,
+    changes: [{ fromA: 0, toA: code.length, insert: code }],
+    data: h.data,
+    newId: h.workspace.newId,
+    strict: true,
+  });
+  expect(strict.rejected).toEqual([]);
+  if (strict.command) h.workspace.execute(strict.command);
+  expect(catalogCodeViewSession(h.graph(), HOME, h.data)!.baseline.code).toBe(
+    code,
+  );
 }
 
 /** The golden file: rewritten with `UPDATE_CODE_VIEW=1`, else the code must equal it. */

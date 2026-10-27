@@ -1,18 +1,16 @@
 /**
  * ADR-285 Decision 2 — the closed vocabulary as one table: each form the generator writes
  * (`emit` — a `generate.ts` function) and the reader that takes it back to the document (`read` —
- * a function of `inverse/parse.ts` or the builder's `codeViewEdit.ts`). A form whose reader does
- * not exist yet is `pending`: an edit of it is refused by the regenerated-code check (its line,
- * never a partial apply), and unchanged it round-trips as text. The static test
- * (`vocabulary.static.test.ts`) checks both names exist and holds the pending list (it only
- * shrinks).
+ * a function of `inverse/parse.ts` or the builder's `codeViewEdit.ts` · `codeViewViews.ts`). Every
+ * form has its reader (no pending form — 2026-10-27); the static test (`vocabulary.static.test.ts`)
+ * checks both names exist and that none goes back to pending.
  */
 export interface CodeViewVocabularyItem {
   /** The form as the code shows it. */
   readonly form: string;
   readonly emit: string;
-  /** The reader; `undefined` = pending. */
-  readonly read?: string;
+  /** The reader. */
+  readonly read: string;
   /** The document unit it is. */
   readonly unit: string;
 }
@@ -33,6 +31,7 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "let {selectedKeys: x, setSelectedKeys: setX} = list",
     emit: "writeCollections",
+    read: "planSelections",
     unit: "variable (a list's selection)",
   },
   {
@@ -44,11 +43,13 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "url.searchParams.append(…)",
     emit: "writeParam",
+    read: "requestOf",
     unit: "condition (request)",
   },
   {
     form: "url.searchParams.set(_sort …)",
     emit: "writeSortParams",
+    read: "requestOf",
     unit: "sort (request)",
   },
   {
@@ -60,7 +61,7 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "let v = rows.filter(item => …)",
     emit: "writeView",
-    read: "viewOf",
+    read: "specOf",
     unit: "view (built-in)",
   },
   {
@@ -69,23 +70,36 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
     read: "conditionOf",
     unit: "condition",
   },
-  { form: "an or of terms", emit: "fragmentOfGroup", unit: "condition group" },
+  {
+    form: "an or of terms",
+    emit: "fragmentOfGroup",
+    read: "itemOf",
+    unit: "condition group",
+  },
   {
     form: ".toSorted((a, b) => collator.compare(…))",
     emit: "writeView",
+    read: "specOf",
     unit: "sort",
   },
   {
     form: "Map.groupBy(…) · counts",
     emit: "writeGroup",
+    read: "groupedOf",
     unit: "group · aggregates",
   },
   {
     form: "[{id: 'row-1', count: …}]",
     emit: "aggregateFields",
+    read: "aggregateOf",
     unit: "aggregates",
   },
-  { form: "useDragAndDrop({…})", emit: "writeDragAndDrop", unit: "drop rules" },
+  {
+    form: "useDragAndDrop({…})",
+    emit: "writeDragAndDrop",
+    read: "planDragAndDrop",
+    unit: "drop rules",
+  },
   {
     form: "<Tag …>…</Tag>",
     emit: "writeNode",
@@ -101,6 +115,7 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "prop={x === … && …}",
     emit: "propWhen",
+    read: "whenOf",
     unit: "prop (value condition)",
   },
   {
@@ -112,6 +127,7 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "{`…${row?.f ?? ''}…`}",
     emit: "textCode",
+    read: "textValue",
     unit: "text (a row's field)",
   },
   {
@@ -129,12 +145,13 @@ export const CODE_VIEW_VOCABULARY: readonly CodeViewVocabularyItem[] = [
   {
     form: "list.update · move · remove · insert … · reload · capability · fetch",
     emit: "writeAction",
+    read: "dosOf",
     unit: "rule Dos (lists · capability · endpoint)",
   },
   {
     form: "items={rows} · {item => <Item …>}",
     emit: "writeNode",
-    read: "planItems",
+    read: "planCodeViews",
     unit: "binding · rows",
   },
 ];

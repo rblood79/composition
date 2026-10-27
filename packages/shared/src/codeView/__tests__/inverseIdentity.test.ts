@@ -91,6 +91,18 @@ describe("codeViewMapPos", () => {
 });
 
 describe("codeViewMatchElements — the review's probes", () => {
+  it("a tag typed over inside a kept span is another element (removed + added — live 2026-10-27)", () => {
+    const base = baseline(line("<Text>Text</Text>"));
+    // (CodeMirror's minimal change: `<` and `>` stay, the middle is replaced.)
+    const from = at(base.code, "<Text>Text</Text>", 1);
+    const to = at(base.code, "<Text>Text</Text>", "<Text>Text</Text".length);
+    const out = edit(base, [
+      { fromA: from, toA: to, insert: "ListBox items={users}></ListBox" },
+    ]);
+    expect(out.removed).toEqual(["a"]);
+    expect(out.result).toEqual([["+", "<ListBox items={users}></ListBox>"]]);
+  });
+
   it("a letter typed inside one line keeps the id (round 2)", () => {
     const base = baseline(line("<Text>A</Text>"), { a: "red" });
     const from = at(base.code, "<Text>A", 6);

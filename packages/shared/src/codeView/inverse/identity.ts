@@ -164,12 +164,14 @@ export function codeViewMatchElements(
     });
   };
 
-  // 0. Kept spans: the element at the span's place is the unit.
+  // 0. Kept spans: the element at the span's place is the unit — of the same tag (a tag typed
+  //    over is another element: no command changes a node's type — the editor's minimal change
+  //    keeps the span of `<Text>…` typed over as `<ListBox>…`).
   for (const unit of units) {
     if (unit.outcome.kind !== "kept") continue;
     const { from } = unit.outcome;
     const element = elements.find(
-      (item) => item.from === from && !matched.has(item),
+      (item) => item.from === from && !matched.has(item) && item.type === unit.type,
     );
     if (element) pair(element, unit);
   }

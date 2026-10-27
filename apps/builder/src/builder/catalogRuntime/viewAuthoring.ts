@@ -19,6 +19,7 @@
  * or `enabled` reads a variable, and the controls whose rules set that variable. Re-entering edits
  * that condition; it never makes a second variable or rule.
  */
+import { registerCodeViewActions } from "./codeViewActions";
 import {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
@@ -2080,3 +2081,11 @@ export function catalogReferenceCountCommand(
     created: { textId, viewId },
   };
 }
+
+// ADR-285 — the code view's snippets run these actions (its lazy chunk reads them here).
+registerCodeViewActions({
+  catalogFieldValues,
+  catalogFilterCommand,
+  catalogResultCountCommand,
+  catalogSortFollowCommand,
+});

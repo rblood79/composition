@@ -46,10 +46,7 @@ import type {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { isBodyType } from "../../../../../packages/shared/src/domain/predicates";
 import { generateCodeView } from "../../../../../packages/shared/src/codeView/generate";
-import {
-  literalOf,
-  termOf,
-} from "../../../../../packages/shared/src/codeView/inverse";
+import { literalOf } from "../../../../../packages/shared/src/codeView/inverse";
 import {
   codeViewAnchorOutcomes,
   codeViewMatchElements,
@@ -72,10 +69,17 @@ import type {
 } from "../../../../../packages/shared/src/codeView/types";
 import {
   eventArgNames,
+  eventArgsAreFields,
+  resolveCapabilities,
   resolveTriggers,
 } from "../../../../../packages/shared/src/interactions/capabilityRegistry";
+import { conceptStateOf } from "../../../../../packages/shared/src/interactions/conceptState";
 import type { catalogCodeViewData } from "./codeView";
-import { catalogBindingCommand } from "./dataBindingCommand";
+import {
+  codeName as codeNameOf,
+  planCodeViews,
+  splitTop,
+} from "./codeViewViews";
 import {
   catalogCreationProps,
   catalogPaletteDefinitionId,
@@ -134,6 +138,15 @@ export interface CatalogCodeViewPlan {
   readonly count?: number;
   readonly rejected: readonly CatalogCodeViewRejection[];
 }
+
+/** The Whens a list's `useDragAndDrop` options hold (its drop · reorder rules). */
+const DRAG_TRIGGERS = new Set([
+  "onReorder",
+  "onInsert",
+  "onRootDrop",
+  "onItemDrop",
+  "onDragEnd",
+]);
 
 /** The derived statements (the document makes them — checked, never applied · Decision 6). */
 const DERIVED_KINDS = new Set([
@@ -298,14 +311,249 @@ class Planner {
   plan(): CatalogCommand[] {
     this.planVariables();
     this.planElements();
+    this.planSelections();
+    this.planDragAndDrop();
+    if (this.ids)
+      planCodeViews({
+        reader: this.reader,
+        edited: this.parsed,
+        baseline: this.baseline,
+        baselineParsed: parseCodeView(this.baseline.code),
+        collections: this.input.data.collections,
+        variables: this.variables,
+        ids: this.ids,
+        rowReaders: this.rowReaders,
+        newId: this.input.newId,
+        strict: !!this.input.strict,
+        reject: this.reject,
+        step: (from, command) => this.step(from, command),
+      });
     return this.steps;
   }
+
+  /**
+   * A sort variable's state prop beside its handler (`sortDescriptor={s}` · `onSortChange={setS}`):
+   * the generator writes it from the rule (a sort variable is always the control's) — not a prop.
+   */
+  private sortControlled(element: CodeViewElement, type: string): Set<string> {
+    const out = new Set<string>();
+    for (const attribute of element.attributes) {
+      const code =
+        attribute.value?.kind === "expression"
+          ? attribute.value.code.trim()
+          : "";
+      const state = /^on[A-Z]/.test(attribute.name)
+        ? conceptStateOf(type, attribute.name)
+        : undefined;
+      const name = /^set[A-Z]/.test(code)
+        ? code.charAt(3).toLowerCase() + code.slice(4)
+        : "";
+      const sort = this.parsed.statements.some(
+        (item) =>
+          item.kind === "state" &&
+          item.name === name &&
+          /useState<SortDescriptor>/.test(item.code),
+      );
+      const prop = state
+        ? element.attributes.find((item) => item.name === state.prop)
+        : undefined;
+      if (
+        sort &&
+        prop?.value?.kind === "expression" &&
+        prop.value.code.trim() === name
+      )
+        out.add(state!.prop);
+    }
+    return out;
+  }
+
+  /**
+   * A list's `useDragAndDrop({…})` (its `dragAndDropHooks={…}`): each `onReorder(e) { … }` ·
+   * `async onInsert(e) { … }` option is that list's rule on the When (its Dos read as a handler's,
+   * the event's fields as `e.…`). The drag types and drop operation are the document's (derived).
+   */
+  private planDragAndDrop(): void {
+    const baseline = new Set(
+      parseCodeView(this.baseline.code)
+        .statements.filter((item) => item.kind === "dnd")
+        .map((item) => codeViewNormalized(item.code)),
+    );
+    for (const statement of this.parsed.statements) {
+      if (statement.kind !== "dnd") continue;
+      if (!this.input.strict && baseline.has(codeViewNormalized(statement.code)))
+        continue;
+      const element = this.findElement(
+        (item) =>
+          item.attributes.find((a) => a.name === "dragAndDropHooks")?.value
+            ?.code.trim() === statement.name,
+      );
+      const id = element ? this.ids?.get(element) : undefined;
+      const node = id ? this.reader.getEntry(id) : undefined;
+      const type =
+        node?.kind === "node"
+          ? definitionTypeName(this.reader, node.definitionId)
+          : element?.type;
+      if (!element || !id || !type) {
+        this.reject(statement.from, "unknownReference", statement.name);
+        continue;
+      }
+      // The options: `[async] <When>(e) {` … `},` at the object's top level.
+      const lines = statement.code.split("\n");
+      const options: { trigger: string; body: string; from: number }[] = [];
+      let at = statement.from;
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index]!;
+        const open = /^\s*(?:async )?(on[A-Z]\w*)\(e\) \{$/.exec(line);
+        if (open) {
+          const indent = /^\s*/.exec(line)![0];
+          const end = lines.findIndex(
+            (other, j) => j > index && other === `${indent}},`,
+          );
+          if (end < 0) {
+            this.reject(at, "outsideVocabulary", open[1]);
+            return;
+          }
+          options.push({
+            trigger: open[1]!,
+            body: lines.slice(index + 1, end).join("\n") + "\n",
+            from: at,
+          });
+          for (let j = index; j <= end; j += 1) at += lines[j]!.length + 1;
+          index = end;
+          continue;
+        }
+        at += line.length + 1;
+      }
+      const triggers = resolveTriggers(type);
+      const rules: { trigger: string; actions: InteractionAction[] }[] = [];
+      for (const option of options) {
+        if (!triggers.includes(option.trigger)) {
+          this.reject(option.from, "outsideVocabulary", option.trigger);
+          return;
+        }
+        const actions = this.dosOf(option.body, option.from, {
+          trigger: option.trigger,
+          args: eventArgNames(option.trigger)[0] ?? [],
+          fields: true,
+          params: ["e"],
+        });
+        if (!actions) return;
+        rules.push({ trigger: option.trigger, actions });
+      }
+      this.step(statement.from, (stage) => {
+        const project = stage.getEntry(stage.projectId) as ProjectEntry;
+        const own = project.interactionIds
+          .map((ruleId) => stage.getEntry(ruleId))
+          .filter(
+            (entry): entry is InteractionEntry =>
+              entry?.kind === "interaction" &&
+              entry.ownerId === id &&
+              !entry.address,
+          );
+        const entries = [
+          ...own.filter((rule) => !DRAG_TRIGGERS.has(rule.trigger)),
+          ...rules.map(
+            (rule) =>
+              ({
+                kind: "interaction",
+                id:
+                  own.find((item) => item.trigger === rule.trigger)?.id ??
+                  (this.input.newId("interaction") as EntryId<"interaction">),
+                ownerId: id as NodeId,
+                trigger: rule.trigger,
+                actions: rule.actions,
+              }) as InteractionEntry,
+          ),
+        ];
+        return setNodeInteractions({
+          ownerId: id as NodeId,
+          entries,
+          label: "Edit drag and drop",
+        })(stage);
+      });
+    }
+  }
+
+  /** `selectedKeys={x}` · `onSelectionChange={setX}` of a list selection `x` — the variable's. */
+  private selectionOwned(attribute: CodeViewAttribute): boolean {
+    const code =
+      attribute.value?.kind === "expression" ? attribute.value.code.trim() : "";
+    return this.parsed.statements.some(
+      (item) =>
+        item.kind === "listSelection" &&
+        ((attribute.name === "selectedKeys" && code === item.name) ||
+          (attribute.name === "onSelectionChange" && code === item.setter)),
+    );
+  }
+
+  /** List selections the code names newly: a variable of the list whose `selectedKeys` reads it. */
+  private readonly newSelections: CodeViewStatement[] = [];
+
+  /**
+   * A new `let {selectedKeys: x, setSelectedKeys: setX} = list;` — the selection of the list that
+   * reads it (`selectedKeys={x}`): a variable named on that list's `selectedKeys`.
+   */
+  private planSelections(): void {
+    for (const statement of this.newSelections) {
+      const name = statement.name!;
+      const element = this.findElement((item) =>
+        item.attributes.some(
+          (attribute) =>
+            attribute.name === "selectedKeys" &&
+            attribute.value?.kind === "expression" &&
+            attribute.value.code.trim() === name,
+        ),
+      );
+      const nodeId = element ? this.ids?.get(element) : undefined;
+      if (!nodeId) {
+        this.reject(statement.from, "unknownReference", name);
+        continue;
+      }
+      const id = this.input.newId("stateVariable") as EntryId<"stateVariable">;
+      this.variables.set(name, id);
+      this.step(
+        statement.from,
+        addRecord({
+          entry: {
+            kind: "stateVariable",
+            id,
+            ownerId: this.page.id,
+            name,
+            valueType: "string[]",
+            defaultValue: [],
+            source: { nodeId, prop: "selectedKeys" },
+          } as StateVariableEntry,
+        }),
+      );
+    }
+  }
+
+  /** The first element (depth first) that matches. */
+  private findElement(
+    match: (element: CodeViewElement) => boolean,
+  ): CodeViewElement | undefined {
+    const visit = (
+      elements: readonly CodeViewElement[],
+    ): CodeViewElement | undefined => {
+      for (const element of elements) {
+        if (match(element)) return element;
+        const inner = visit(element.children);
+        if (inner) return inner;
+      }
+      return undefined;
+    };
+    return visit(this.parsed.jsx?.roots ?? []);
+  }
+
+  /** Elements whose text reads a row (`<rows>.find(row => row.id === …)`) — the views bind them. */
+  private readonly rowReaders = new Map<CodeViewElement, string>();
+
 
   /* ── variables (`useState`) ── */
 
   private planVariables(): void {
     const statements = this.parsed.statements.filter(
-      (item) => item.kind === "state",
+      (item) => item.kind === "state" || item.kind === "listSelection",
     );
     const used = new Set<CodeViewStatement>();
     const variableAnchors = this.baseline.anchors
@@ -313,7 +561,7 @@ class Planner {
       .filter(
         (item) =>
           item.anchor.target.kind === "variable" &&
-          /^let \[/.test(this.code(item.anchor)),
+          /^let (?:\[|\{selectedKeys)/.test(this.code(item.anchor)),
       );
     const pairs: { statement: CodeViewStatement; id: string }[] = [];
     // Kept spans: the same variable (decision 5 — a name typed over is a rename).
@@ -385,12 +633,40 @@ class Planner {
       this.variables.set(statement.name!, id);
       const changes: Partial<StateVariableEntry> = {};
       if (oldName !== statement.name) changes.name = statement.name!;
-      if (next.valueType !== entry.valueType)
+      if (statement.kind === "listSelection") {
+        if (changes.name)
+          this.step(
+            statement.from,
+            updateRecord({
+              entry: { ...entry, ...changes } as StateVariableEntry,
+              label: "Edit variable",
+            }),
+          );
+        continue;
+      }
+      // (A selection is `useState<Selection>` whether its type says `array` or `string[]`.)
+      const selection = (type: string) => type === "array" || type === "string[]";
+      if (
+        next.valueType !== entry.valueType &&
+        !(selection(next.valueType) && selection(entry.valueType))
+      )
         changes.valueType = next.valueType;
+      // (A structured variable's empty start is `""` or `null` alike — the code shows neither.)
+      const empty = (value: unknown) => value === "" || value === null;
       if (
         JSON.stringify(next.defaultValue) !==
           JSON.stringify(entry.defaultValue) &&
-        !(next.defaultValue === null && entry.valueType === "object")
+        !(
+          next.valueType === "object" &&
+          empty(next.defaultValue) &&
+          empty(entry.defaultValue)
+        ) &&
+        // (A selection whose start is not a key list shows as `new Set()` — as written.)
+        !(
+          selection(entry.valueType) &&
+          !Array.isArray(entry.defaultValue) &&
+          JSON.stringify(next.defaultValue) === "[]"
+        )
       )
         changes.defaultValue = next.defaultValue as never;
       if (Object.keys(changes).length)
@@ -402,9 +678,13 @@ class Planner {
           }),
         );
     }
-    // New statements: new page variables.
+    // New statements: new page variables (a list's selection once its list is known).
     for (const statement of statements) {
       if (used.has(statement)) continue;
+      if (statement.kind === "listSelection") {
+        this.newSelections.push(statement);
+        continue;
+      }
       const next = this.stateOf(statement);
       if (!next) continue;
       const id = this.input.newId("stateVariable") as EntryId<"stateVariable">;
@@ -439,6 +719,8 @@ class Planner {
       );
       return undefined;
     }
+    if (statement.kind === "listSelection")
+      return { valueType: "string[]", defaultValue: [] };
     const m = /= useState(?:<(Selection|SortDescriptor)>)?\(([\s\S]*)\);$/.exec(
       statement.code,
     );
@@ -448,8 +730,9 @@ class Planner {
     }
     const [, type, raw = ""] = m;
     const text = raw.trim();
+    // (A sort variable starts empty — 「정렬 따라가기」 makes it so.)
     if (type === "SortDescriptor")
-      return text ? undefined : { valueType: "object", defaultValue: null };
+      return text ? undefined : { valueType: "object", defaultValue: "" };
     if (type === "Selection") {
       const keys = text === "new Set()" ? [] : literalOf(text);
       if (!Array.isArray(keys)) {
@@ -551,6 +834,10 @@ class Planner {
       }
       ids.set(element, this.input.newId("node"));
     }
+    // (Their entries now — reading their text is planning: a row read names the view to bind.)
+    const entries = new Map<CodeViewElement, NodeEntry[]>();
+    for (const element of identity.added)
+      if (ids.has(element)) entries.set(element, this.entriesOf(element, ids));
 
     // Structure: each parent's children as the code lists them (places · moves · inserts).
     const placeChildren = (
@@ -579,7 +866,7 @@ class Planner {
             ? insertNodes({
                 parent: { kind: "node", id: parentId as NodeId },
                 index,
-                entries: this.entriesOf(element, ids),
+                entries: entries.get(element)!,
                 rootIds: [id as NodeId],
                 newId: this.input.newId,
                 label: "Add element",
@@ -626,14 +913,24 @@ class Planner {
     const library = this.reader.library;
     const definitionId = catalogPaletteDefinitionId(library, type);
     const props = catalogCreationProps(library, definitionId, type);
+    const sorted = this.sortControlled(
+      element,
+      definitionTypeName(this.reader, definitionId),
+    );
     for (const attribute of element.attributes) {
-      if (/^on[A-Z]/.test(attribute.name)) continue;
+      if (
+        /^on[A-Z]/.test(attribute.name) ||
+        attribute.name === "items" ||
+        sorted.has(attribute.name) ||
+        this.selectionOwned(attribute)
+      )
+        continue;
       const value = this.propValue(attribute);
       if (value !== undefined)
         props[attribute.name] = { kind: "set", value } as never;
     }
     const text = element.text
-      ? this.textValue(element.text.code, element.text.from)
+      ? this.textValue(element.text.code, element.text.from, element)
       : undefined;
     if (text !== undefined)
       props.children = { kind: "set", value: text } as never;
@@ -659,7 +956,10 @@ class Planner {
   private planNewHandlers(element: CodeViewElement, id: string): void {
     const handlers = new Map(
       element.attributes
-        .filter((attribute) => /^on[A-Z]/.test(attribute.name))
+        .filter(
+          (attribute) =>
+            /^on[A-Z]/.test(attribute.name) && !this.selectionOwned(attribute),
+        )
         .map((attribute) => [attribute.name, attribute] as const),
     );
     const type =
@@ -693,8 +993,16 @@ class Planner {
       { kind: "set"; value: unknown } | { kind: "remove" }
     > = {};
     const handlers = new Map<string, CodeViewAttribute | undefined>();
+    const sorted = this.sortControlled(element, type);
     for (const attribute of element.attributes) {
       const old = before.find((anchor) => nameOf(anchor) === attribute.name);
+      if (
+        !old &&
+        (attribute.name === "items" ||
+          sorted.has(attribute.name) ||
+          this.selectionOwned(attribute))
+      )
+        continue;
       if (
         old &&
         !this.input.strict &&
@@ -738,7 +1046,7 @@ class Planner {
     ) {
       if (!newText) props.children = { kind: "remove" };
       else {
-        const value = this.textValue(newText.code, newText.from);
+        const value = this.textValue(newText.code, newText.from, element);
         if (value !== undefined) props.children = { kind: "set", value };
       }
     }
@@ -752,8 +1060,6 @@ class Planner {
         }),
       );
     if (handlers.size) this.planHandlers(element, node, type, handlers);
-    if (element.attributes.some((item) => item.name === "items"))
-      this.planItems(element, node);
   }
 
   /* ── values ── */
@@ -785,12 +1091,61 @@ class Planner {
     const literal = literalOf(text);
     if (literal !== undefined) return literal;
     if (text === "null") return null;
+    const when = this.whenOf(text);
+    if (when) return when;
     this.reject(value.from, "outsideVocabulary");
     return undefined;
   }
 
-  /** An element's text → its `children` (plain text · a template of variables). */
-  private textValue(code: string, from: number): string | undefined {
+  /** A prop that is a comparison of a variable (`propWhen`'s inverse — 「값 조건」). */
+  private whenOf(text: string): Record<string, unknown> | undefined {
+    const id = (name: string) => this.variables.get(name);
+    const empty = /^([\w$]+) !== 'all' && \1\.size === 0$/.exec(text);
+    if (empty && id(empty[1]!))
+      return { kind: "when", subject: `!var.${id(empty[1]!)}`, op: "notExists" };
+    const some = /^\(([\w$]+) === 'all' \|\| \1\.size > 0\)$/.exec(text);
+    if (some && id(some[1]!))
+      return { kind: "when", subject: `!var.${id(some[1]!)}`, op: "exists" };
+    const size = /^([\w$]+) !== 'all' && \1\.size (===|!==|>=|>|<=|<) (.+)$/.exec(text);
+    const plain = /^([\w$]+)((?:\.[\w$]+)*) (===|!==|>=|>|<=|<) (.+)$/.exec(text);
+    const ops = {
+      "===": "equals",
+      "!==": "notEquals",
+      ">=": "gte",
+      ">": "gt",
+      "<=": "lte",
+      "<": "lt",
+    } as const;
+    const valueOf = (raw: string) => {
+      const name = raw.trim();
+      if (IDENTIFIER.test(name) && id(name)) return `!var.${id(name)}`;
+      return literalOf(name);
+    };
+    const pick = size
+      ? { name: size[1]!, path: ".size", op: size[2]!, value: size[3]! }
+      : plain
+        ? { name: plain[1]!, path: plain[2]!, op: plain[3]!, value: plain[4]! }
+        : undefined;
+    if (!pick || !id(pick.name)) return undefined;
+    const value = valueOf(pick.value);
+    if (value === undefined) return undefined;
+    return {
+      kind: "when",
+      subject: `!var.${id(pick.name)}${pick.path}`,
+      op: ops[pick.op as keyof typeof ops],
+      value,
+    };
+  }
+
+  /**
+   * An element's text → its `children` (plain text · a template of variables · a row's fields —
+   * `${<rows>.find(row => row.id === …)?.<field> ?? ''}` is `{<field>}`, the views bind the row).
+   */
+  private textValue(
+    code: string,
+    from: number,
+    element?: CodeViewElement,
+  ): string | undefined {
     const template = /^\{`([\s\S]*)`\}$/.exec(code.trim());
     if (!template) {
       if (/[{}]/.test(code)) {
@@ -801,6 +1156,17 @@ class Planner {
     }
     let failed = false;
     const text = template[1]!.replace(/\$\{([^}]*)\}/g, (_, inner: string) => {
+      const row = /^(.+)\?\.([\w$.#]+) \?\? ''$/.exec(inner.trim());
+      if (row && element && /\.find\(row => row\.id === .+\)$/.test(row[1]!)) {
+        const read = this.rowReaders.get(element);
+        if (read !== undefined && read !== row[1]) {
+          failed = true;
+          this.reject(from, "outsideVocabulary", row[1]);
+          return "";
+        }
+        this.rowReaders.set(element, row[1]!);
+        return `{${row[2]}}`;
+      }
       const [name, ...path] = inner.trim().split(".");
       const id = this.variables.get(name!);
       const entry = id ? this.reader.getEntry(id) : undefined;
@@ -865,7 +1231,12 @@ class Planner {
     );
   }
 
-  /** A handler's code → its Do list (`handlerCode` · `writeAction`'s inverse, the common Dos). */
+  /**
+   * A handler's code → its Do list (`handlerCode` · `writeAction`'s inverse): Set state (a value ·
+   * toggle · increment · an event's keys), toast, navigate, a list's commands (`update` · `move…` ·
+   * `remove…` · `insert…` · `append` · `prepend` · `reload` · `loadMore` · `setFilterText`) and an
+   * endpoint call (`await fetch`).
+   */
   private actionsOf(
     trigger: string,
     attribute: CodeViewAttribute,
@@ -873,6 +1244,7 @@ class Planner {
     const code =
       attribute.value?.kind === "expression" ? attribute.value.code.trim() : "";
     const args = eventArgNames(trigger)[0] ?? [];
+    const fields = eventArgsAreFields(trigger);
     const setter = (name: string) =>
       [...this.variables].find(
         ([variable]) => `set${capital(variable)}` === name,
@@ -902,43 +1274,161 @@ class Planner {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
+    return this.dosOf(arrow[3]!, attribute.from, { trigger, args, fields, params });
+  }
+
+  /** A setter call on a node's named state → that node's capability (undefined = not one). */
+  private capabilityOf(
+    variableId: string,
+    next: string,
+    valueOf: (raw: string) => unknown,
+  ): InteractionAction | undefined {
+    const entry = this.reader.getEntry(variableId) as
+      | StateVariableEntry
+      | undefined;
+    const source = entry?.source;
+    const node = source ? this.reader.getEntry(source.nodeId) : undefined;
+    if (!source || node?.kind !== "node") return undefined;
+    const defs = Object.entries(
+      resolveCapabilities(definitionTypeName(this.reader, node.definitionId)),
+    ).filter(([, def]) => !def.imperative && def.prop === source.prop);
+    const add = /^v => new Set\(\[\.\.\.v, (.+)\]\)$/.exec(next);
+    const remove =
+      /^v => new Set\(\[\.\.\.v\]\.filter\(key => key !== (.+)\)\)$/.exec(next);
+    const pick = defs.find(([, def]) =>
+      next === "new Set()"
+        ? Array.isArray(def.value)
+        : next === "v => !v"
+          ? def.value === "!self"
+          : add
+            ? def.value === "!param" && def.op === "add"
+            : remove
+              ? def.value === "!param" && def.op === "remove"
+              : def.value !== "!param" &&
+                JSON.stringify(def.value) === JSON.stringify(literalOf(next)),
+    );
+    if (!pick) return undefined;
+    const param = add?.[1] ?? remove?.[1];
+    return {
+      opcode: "capability",
+      target: { nodeId: node.id },
+      capabilityId: pick[0],
+      ...(param !== undefined ? { value: valueOf(param) } : {}),
+    } as InteractionAction;
+  }
+
+  /** A handler's · drop option's statements → Dos (undefined = refused). */
+  private dosOf(
+    body: string,
+    from: number,
+    context: {
+      trigger: string;
+      args: readonly string[];
+      fields: boolean;
+      params: readonly string[];
+    },
+  ): InteractionAction[] | undefined {
+    const { args, fields, params } = context;
+    const setter = (name: string) =>
+      [...this.variables].find(
+        ([variable]) => `set${capital(variable)}` === name,
+      )?.[1];
+    const lists = new Map(
+      this.input.data.collections.map((collection) => [
+        codeNameOf(collection.name),
+        `data:collection:${collection.id}`,
+      ]),
+    );
+    /** An event · item · variable read, or a literal (`eventValue`'s inverse). */
     const valueOf = (raw: string): unknown => {
       const text = raw.trim();
-      const index = params.indexOf(text.split(".")[0]!);
-      if (index >= 0)
-        return [
-          `!event.${args[index] ?? text.split(".")[0]}`,
-          ...text.split(".").slice(1),
-        ].join(".");
-      const [name, ...path] = text.split(".");
-      if (IDENTIFIER.test(name!) && this.variables.has(name!))
-        return [`!var.${this.variables.get(name!)}`, ...path].join(".");
+      const keyed = /^(?:\[\.\.\.(.+)\]\[0\]|([\w$.]+)) \?\? ''$/.exec(text);
+      if (keyed) return valueOf(keyed[1] ?? keyed[2]!);
+      const items =
+        /^\[\.\.\.([\w$.]+)\]\.map\(key => [\w$]+\.getItem\(key\)\)(?:\.map\(row => row\?\.([\w$.]+)\))?$/.exec(
+          text,
+        );
+      if (items) {
+        const event = valueOf(items[1]!);
+        if (typeof event !== "string" || !event.startsWith("!event."))
+          return undefined;
+        return [`!item.${event.slice(7)}`, ...(items[2] ? [items[2]] : [])].join(
+          ".",
+        );
+      }
+      const [head, ...path] = text.split(".");
+      if (fields && head === "e" && path.length)
+        return `!event.${path.join(".")}`;
+      if (fields && head === "keys") return ["!event.keys", ...path].join(".");
+      const index = params.indexOf(head!);
+      if (!fields && index >= 0)
+        return [`!event.${args[index] ?? head}`, ...path].join(".");
+      if (IDENTIFIER.test(head!) && this.variables.has(head!))
+        return [`!var.${this.variables.get(head!)}`, ...path].join(".");
       return literalOf(text);
     };
+    const listOf = (name: string) => {
+      const collectionId = lists.get(name);
+      if (!collectionId) this.reject(from, "unknownReference", name);
+      return collectionId;
+    };
     const actions: InteractionAction[] = [];
-    for (const raw of arrow[3]!
+    const lines = body
       .split(/;\s*\n/)
       .map((line) => line.trim().replace(/;$/, ""))
-      .filter(Boolean)) {
+      .filter(Boolean);
+    for (let index = 0; index < lines.length; index += 1) {
+      const raw = lines[index]!;
+      // (A foreign drop's keys line — the drop's items read as the dragged keys.)
+      if (
+        /^let keys = await Promise\.all\(e\.items\.filter\(isTextDropItem\)\.map\(item => item\.getText\(.+\)\)\)$/.test(
+          raw,
+        )
+      )
+        continue;
       const set = /^(set[A-Z][\w$]*)\(([\s\S]*)\)$/.exec(raw);
       const toast = /^toasts\.add\(\{title: ('(?:[^'\\]|\\.)*')\}\)$/.exec(raw);
       const go = /^navigate\(('(?:[^'\\]|\\.)*')\)$/.exec(raw);
+      const list = /^([\w$]+)\.(\w+)\(([\s\S]*)\)$/.exec(raw);
+      const each =
+        /^for \(let id of (.+?)\) ([\w$]+)\.update\(id, \{\.\.\.\2\.getItem\(id\), ([\w$]+): ([\s\S]+)\}\)$/.exec(
+          raw,
+        );
+      const side =
+        /^if \((.+) === 'before'\) ([\w$]+)\.moveBefore\((.+?), (.+)\)$/.exec(raw);
+      const fetchCall =
+        /^await fetch\(('(?:[^'\\]|\\.)*'), \{method: ('[A-Z]+')(?:, body: JSON\.stringify\(([\s\S]+)\))?\}\)$/.exec(
+          raw,
+        );
       if (set) {
         const variableId = setter(set[1]!);
-        const body = set[2]!.trim();
+        const value = set[2]!.trim();
         if (!variableId) {
-          this.reject(attribute.from, "unknownReference", set[1]);
+          this.reject(from, "unknownReference", set[1]);
           return undefined;
         }
-        if (body === "v => !v") {
+        // (A component's named state — `setSelectedKeys(new Set())` on a list's selection: the
+        // component's capability on it, as `writeAction` names it.)
+        const capability = this.capabilityOf(variableId, value, valueOf);
+        if (capability) {
+          actions.push(capability);
+          continue;
+        }
+        if (value === "v => !v") {
+          actions.push({ opcode: "setState", variableId, op: "toggle" } as InteractionAction);
+          continue;
+        }
+        const toggle = /^v => v === (.+) \? .+ : \1$/.exec(value);
+        if (toggle) {
           actions.push({
             opcode: "setState",
             variableId,
             op: "toggle",
+            value: literalOf(toggle[1]!),
           } as InteractionAction);
           continue;
         }
-        const increment = /^v => v \+ (-?\d+(?:\.\d+)?)$/.exec(body);
+        const increment = /^v => v \+ (-?\d+(?:\.\d+)?)$/.exec(value);
         if (increment) {
           actions.push({
             opcode: "setState",
@@ -948,252 +1438,183 @@ class Planner {
           } as InteractionAction);
           continue;
         }
-        const value = valueOf(body);
-        if (value === undefined) {
-          this.reject(attribute.from, "outsideVocabulary");
+        // (The variable's start as its `useState` writes it: a reset — `new Set()` is no value.)
+        const start = this.parsed.statements
+          .find(
+            (item) =>
+              item.kind === "state" && item.setter === set[1],
+          )
+          ?.code.match(/useState(?:<\w+>)?\(([\s\S]*)\);$/)?.[1]
+          ?.trim();
+        if (start !== undefined && start === value) {
+          actions.push({ opcode: "setState", variableId, op: "reset" } as InteractionAction);
+          continue;
+        }
+        const next = value === "" ? undefined : valueOf(value);
+        if (next === undefined) {
+          this.reject(from, "outsideVocabulary", value);
           return undefined;
         }
         actions.push({
           opcode: "setState",
           variableId,
           op: "set",
-          value,
+          value: next,
         } as InteractionAction);
         continue;
       }
       if (toast) {
-        actions.push({
-          opcode: "toast",
-          message: literalOf(toast[1]!),
-        } as InteractionAction);
+        actions.push({ opcode: "toast", message: literalOf(toast[1]!) } as InteractionAction);
         continue;
       }
       if (go) {
         const route = literalOf(go[1]!);
-        const project = this.reader.getEntry(
-          this.reader.projectId,
-        ) as ProjectEntry;
+        const project = this.reader.getEntry(this.reader.projectId) as ProjectEntry;
         const pageId = project.pageIds.find(
           (pageId) =>
-            (this.reader.getEntry(pageId) as PageEntry | undefined)?.route ===
-            route,
+            (this.reader.getEntry(pageId) as PageEntry | undefined)?.route === route,
         );
         if (!pageId) {
-          this.reject(attribute.from, "unknownReference", String(route));
+          this.reject(from, "unknownReference", String(route));
           return undefined;
         }
         actions.push({ opcode: "navigate", pageId } as InteractionAction);
         continue;
       }
-      this.reject(attribute.from, "outsideVocabulary");
+      if (fetchCall) {
+        const url = literalOf(fetchCall[1]!);
+        const endpoint = this.input.data.endpoints.find(
+          (item) => item.url === url,
+        );
+        if (!endpoint) {
+          this.reject(from, "unknownReference", String(url));
+          return undefined;
+        }
+        actions.push({
+          opcode: "callEndpoint",
+          endpointId: `data:endpoint:${endpoint.id}`,
+          ...(fetchCall[3] !== undefined ? { body: valueOf(fetchCall[3]) } : {}),
+        } as InteractionAction);
+        continue;
+      }
+      if (each) {
+        const collectionId = listOf(each[2]!);
+        const field = collectionId
+          ? this.baseline.symbols.fields[collectionId]?.[each[3]!]
+          : undefined;
+        if (!collectionId || !field) return undefined;
+        actions.push({
+          opcode: "update",
+          collectionId,
+          key: valueOf(each[1]!),
+          field,
+          value: valueOf(each[4]!),
+        } as InteractionAction);
+        continue;
+      }
+      if (side) {
+        const other =
+          /^else if \((.+) === 'after'\) ([\w$]+)\.moveAfter\((.+?), (.+)\)$/.exec(
+            lines[index + 1] ?? "",
+          );
+        const collectionId = listOf(side[2]!);
+        if (
+          !collectionId ||
+          !other ||
+          other[1] !== side[1] ||
+          other[2] !== side[2] ||
+          other[3] !== side[3] ||
+          other[4] !== side[4]
+        ) {
+          this.reject(from, "outsideVocabulary", raw);
+          return undefined;
+        }
+        index += 1;
+        actions.push({
+          opcode: "moveBefore",
+          collectionId,
+          key: valueOf(side[3]!),
+          keys: valueOf(side[4]!),
+          dropPosition: valueOf(side[1]!),
+        } as InteractionAction);
+        continue;
+      }
+      if (list && lists.has(list[1]!)) {
+        const collectionId = lists.get(list[1]!)!;
+        const parts = splitTop(list[3]!, ",");
+        const method = list[2]!;
+        const one = (key: string, value: string) =>
+          ({ opcode: method, collectionId, [key]: valueOf(value) }) as never;
+        let action: InteractionAction | undefined;
+        if (["reload", "loadMore", "removeSelectedItems"].includes(method) && !parts.length)
+          action = { opcode: method, collectionId } as never;
+        else if (["append", "prepend", "setFilterText"].includes(method) && parts.length === 1)
+          action = one("value", parts[0]!);
+        else if (method === "remove" && parts.length === 1 && parts[0]!.startsWith("..."))
+          action = one("keys", parts[0]!.slice(3));
+        else if (method === "insert" && parts.length === 2)
+          action = {
+            opcode: "insert",
+            collectionId,
+            index: valueOf(parts[0]!),
+            value: valueOf(parts[1]!),
+          } as never;
+        else if (["insertBefore", "insertAfter"].includes(method) && parts.length === 2)
+          action = {
+            opcode: method,
+            collectionId,
+            key: valueOf(parts[0]!),
+            value: valueOf(parts[1]!),
+          } as never;
+        else if (method === "move" && parts.length === 2)
+          action = {
+            opcode: "move",
+            collectionId,
+            key: valueOf(parts[0]!),
+            toIndex: valueOf(parts[1]!),
+          } as never;
+        else if (["moveBefore", "moveAfter"].includes(method) && parts.length === 2)
+          action = {
+            opcode: method,
+            collectionId,
+            key: valueOf(parts[0]!),
+            keys: valueOf(parts[1]!),
+          } as never;
+        else if (method === "update" && parts.length === 2) {
+          const patch = /^\{\.\.\.[\w$]+\.getItem\((.+?)\), ([\w$]+): ([\s\S]+)\}$/.exec(
+            parts[1]!,
+          );
+          const field = patch
+            ? this.baseline.symbols.fields[collectionId]?.[patch[2]!]
+            : undefined;
+          action = patch
+            ? field
+              ? ({
+                  opcode: "update",
+                  collectionId,
+                  key: valueOf(parts[0]!),
+                  field,
+                  value: valueOf(patch[3]!),
+                } as never)
+              : undefined
+            : ({
+                opcode: "update",
+                collectionId,
+                key: valueOf(parts[0]!),
+                value: valueOf(parts[1]!),
+              } as never);
+        }
+        if (action) {
+          actions.push(action);
+          continue;
+        }
+      }
+      this.reject(from, "outsideVocabulary", raw);
       return undefined;
     }
     return actions;
   }
 
-  /* ── a list's rows (`items={…}`) and its view's `filter` terms ── */
-
-  private planItems(element: CodeViewElement, node: NodeEntry): void {
-    const binding = node.binding;
-    const attribute = element.attributes.find((item) => item.name === "items")!;
-    const name =
-      attribute.value?.kind === "expression" ? attribute.value.code.trim() : "";
-    if (!binding) {
-      this.reject(attribute.from, "notInCode");
-      return;
-    }
-    const statement = this.parsed.statements.find(
-      (item) => item.kind === "view" && item.name === name,
-    );
-    const rows = new Set(
-      [
-        binding.collectionId,
-        binding.collectionId.replace(/^data:collection:/, ""),
-      ].flatMap((id) => {
-        const collection = this.input.data.collections.find(
-          (item) => `data:collection:${item.id}` === id || item.id === id,
-        );
-        return collection
-          ? [codeName(collection.name), `${codeName(collection.name)}.items`]
-          : [];
-      }),
-    );
-    // `items={users}` — no view.
-    if (rows.has(name)) {
-      if (binding.view && !binding.viewId)
-        this.step(
-          attribute.from,
-          catalogBindingCommand([{ kind: "node", id: node.id }], {
-            ...binding,
-            view: undefined,
-          } as never),
-        );
-      return;
-    }
-    if (!statement || binding.viewId) return; // (unchanged — or the regenerated code tells)
-    // (The view's statement as the baseline wrote it: nothing to read.)
-    const before = this.baseline.anchors.find(
-      (anchor) =>
-        anchor.target.kind === "view" &&
-        "nodeId" in anchor.target.owner &&
-        anchor.target.owner.nodeId === node.id,
-    );
-    if (
-      before &&
-      !this.input.strict &&
-      codeViewNormalized(this.code(before)) ===
-        codeViewNormalized(statement.code)
-    )
-      return;
-    const view = this.viewOf(
-      statement,
-      rows,
-      binding.collectionId,
-      binding.view,
-    );
-    if (!view) return;
-    if (JSON.stringify(view) === JSON.stringify(binding.view)) return;
-    this.step(
-      statement.from,
-      catalogBindingCommand([{ kind: "node", id: node.id }], {
-        ...binding,
-        view,
-      }),
-    );
-  }
-
-  /** `let x = rows.filter(item => …)` → a built-in view (its conditions' ids kept where equal). */
-  private viewOf(
-    statement: CodeViewStatement,
-    rows: ReadonlySet<string>,
-    collectionId: string,
-    current: ViewQuery | undefined,
-  ): ViewQuery | undefined {
-    const m =
-      /^let [\w$]+ = ([\w$.]+)(?:\s*\.filter\(item =>\s*([\s\S]*)\))?;$/.exec(
-        statement.code,
-      );
-    if (!m || !rows.has(m[1]!)) {
-      this.reject(statement.from, "outsideVocabulary", m?.[1]);
-      return undefined;
-    }
-    const existing = new Map<string, ViewCondition>();
-    const collect = (group: ViewConditionGroup | undefined) =>
-      group?.items.forEach((item) =>
-        "items" in item ? collect(item) : existing.set(item.id, item),
-      );
-    collect(current?.where);
-    const symbols = {
-      variables: Object.fromEntries(this.variables),
-      fields: this.baseline.symbols.fields,
-    };
-    const items: (ViewCondition | ViewConditionGroup)[] = [];
-    for (const term of m[2] ? splitTop(m[2], "&&") : []) {
-      const condition = this.conditionOf(term.trim(), symbols, collectionId);
-      if (!condition) {
-        this.reject(statement.from, "outsideVocabulary", term.trim());
-        return undefined;
-      }
-      const same = [...existing.values()].find(
-        (item) =>
-          JSON.stringify({ ...item, id: "" }) ===
-          JSON.stringify({ ...condition, id: "" }),
-      );
-      items.push(same ?? condition);
-      if (same) existing.delete(same.id);
-    }
-    return {
-      ...(current ?? {}),
-      where: { id: current?.where.id ?? "where", op: "and", items },
-    };
-  }
-
-  /** One `filter` term (with its skip guard) → a condition. */
-  private conditionOf(
-    term: string,
-    symbols: {
-      variables: Record<string, string>;
-      fields: CodeViewResult["symbols"]["fields"];
-    },
-    collectionId: string,
-  ): ViewCondition | undefined {
-    let text = term;
-    let skip: ViewCondition["skip"];
-    let enabled: ViewCondition["enabled"];
-    const guarded = /^\(([\s\S]*)\)$/.exec(text);
-    if (guarded) {
-      const parts = splitTop(guarded[1]!, "||").map((part) => part.trim());
-      if (parts.length > 1) {
-        const inner = parts.at(-1)!;
-        const prefix = parts.slice(0, -1);
-        const flag = prefix[0]?.startsWith("!")
-          ? prefix.shift()!.slice(1)
-          : undefined;
-        if (flag) {
-          const id = symbols.variables[flag];
-          if (!id) return undefined;
-          enabled = `!var.${id}`;
-        }
-        const literal =
-          prefix.length === 1 ? /=== (.+)$/.exec(prefix[0]!)?.[1] : undefined;
-        if (literal && literal !== "''" && literal !== "null")
-          skip = literalOf(literal) as ViewCondition["skip"];
-        text = inner;
-      }
-    }
-    const read = termOf(text, { symbols } as never, collectionId);
-    if (!read) return undefined;
-    return {
-      id: `code-${this.input.newId("node").slice(-8)}`,
-      ...read,
-      ...(skip !== undefined ? { skip } : {}),
-      ...(enabled !== undefined ? { enabled } : {}),
-    } as ViewCondition;
-  }
-}
-
-/** The name the generator gives a collection's rows (`identifier`). */
-function codeName(raw: string): string {
-  const words = raw
-    .replace(/[^A-Za-z0-9_$\s-]/g, " ")
-    .split(/[\s_-]+/)
-    .filter(Boolean);
-  let name = words
-    .map((word, index) =>
-      index === 0
-        ? word.charAt(0).toLowerCase() + word.slice(1)
-        : word.charAt(0).toUpperCase() + word.slice(1),
-    )
-    .join("");
-  if (!name) name = "rows";
-  if (/^[0-9]/.test(name)) name = `_${name}`;
-  return name;
-}
-
-/** Split at a top-level operator (outside parentheses · brackets · strings). */
-function splitTop(code: string, op: "&&" | "||"): string[] {
-  const parts: string[] = [];
-  let depth = 0;
-  let quote: string | undefined;
-  let start = 0;
-  for (let index = 0; index < code.length; index += 1) {
-    const char = code[index]!;
-    if (quote) {
-      if (char === "\\") index += 1;
-      else if (char === quote) quote = undefined;
-      continue;
-    }
-    if (char === "'" || char === '"' || char === "`") quote = char;
-    else if ("([{".includes(char)) depth += 1;
-    else if (")]}".includes(char)) depth -= 1;
-    else if (depth === 0 && code.startsWith(op, index)) {
-      parts.push(code.slice(start, index));
-      start = index + op.length;
-      index += op.length - 1;
-    }
-  }
-  parts.push(code.slice(start));
-  return parts.map((part) => part.trim()).filter(Boolean);
 }
 
 /** What a node holds that its code does not show — equal states are indistinguishable. */

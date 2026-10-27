@@ -12,6 +12,8 @@ import {
 } from "react";
 import { Code } from "lucide-react";
 import { Button } from "react-aria-components/Button";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
 import { useI18n } from "@/i18n";
 import { CODE_CATALOG_SUPPORTED_TYPES } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type { EntryId } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -21,10 +23,7 @@ import {
   CatalogWorkspaceGate,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
-import {
-  catalogCodeView,
-  catalogCodeViewData,
-} from "../../catalogRuntime/codeView";
+import { catalogCodeViewData } from "../../catalogRuntime/codeView";
 import {
   catalogCodeViewApply,
   catalogCodeViewPlan,
@@ -32,25 +31,32 @@ import {
   type CatalogCodeViewRejection,
   type CatalogCodeViewSession,
 } from "../../catalogRuntime/codeViewEdit";
+import {
+  catalogCodeViewSnippetCode,
+  catalogCodeViewSnippets,
+} from "../../catalogRuntime/codeViewSnippets";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section } from "../../components/panel/Section";
 import { useApiEndpoints, useCollections } from "../../stores/data";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import type { CodeEditorVocabulary } from "./CodeEditor";
+import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
+import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
 import "./CatalogCodeViewPanel.css";
 
-/** ADR-285 — the editor loads with the edit only (CodeMirror 6, its own chunk). */
+/** ADR-285 — the editor (CodeMirror 6) is its own chunk, loaded when the panel opens. */
 const CodeEditor = lazy(() => import("./CodeEditor"));
 
 /**
  * The code view (ADR-284 Phase 6 · ADR-285): the shown page as React Aria code in the reference
- * examples' shape. 「코드 고치기」 opens an edit session on the page's code at that moment; Apply
- * reads the edit across the closed vocabulary — elements, props, text, events, variables, a list's
- * `filter` terms — and applies the difference as the document's commands in one step (one Undo).
- * A line it cannot take refuses the whole edit with the line, why, and what to do instead; a
- * document changed meanwhile refuses it too (the draft stays — 「다시 불러오기」).
+ * examples' shape, in the editor directly. While nothing is typed the editor follows the document
+ * (each change writes the new code in); the first edit holds the page's code at that moment as the
+ * session's baseline. Apply reads the edit across the closed vocabulary — elements, props, text,
+ * events, variables, a list's `filter` terms — and applies the difference as the document's
+ * commands in one step (one Undo). A line it cannot take refuses the whole edit with the line, why,
+ * and what to do instead; a document changed meanwhile refuses it too (the draft stays — 「다시
+ * 불러오기」).
  */
 export function CatalogCodeViewPanel() {
   return (
@@ -69,7 +75,9 @@ interface Draft {
 }
 
 function CodeViewContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const messages = codeViewMessages(locale);
+  const snippetLabels = codeViewSnippetLabels(locale);
   const workspace = useCatalogWorkspace();
   const tables = useCollections();
   const endpoints = useApiEndpoints();
@@ -88,11 +96,12 @@ function CodeViewContent() {
     () => catalogCodeViewData(tables, endpoints),
     [tables, endpoints],
   );
-  const result = useMemo((): CodeViewResult | undefined => {
+  // The page's code now — the editor's baseline while nothing is typed.
+  const live = useMemo((): CatalogCodeViewSession | undefined => {
     void revision;
     if (!pageId) return undefined;
     try {
-      return catalogCodeView(
+      return catalogCodeViewSession(
         workspace.runtime.graph,
         pageId as EntryId<"page">,
         data,
@@ -101,7 +110,9 @@ function CodeViewContent() {
       return undefined;
     }
   }, [data, pageId, revision, workspace]);
-  // (A draft per page — another page's draft is kept, never applied here.)
+  const result: CodeViewResult | undefined = live?.baseline;
+  // (A draft per page — the typed text on the baseline it started from. Another page's draft is
+  // kept, never applied here.)
   const [drafts, setDrafts] = useState<ReadonlyMap<string, Draft>>(new Map());
   const [previous, setPrevious] = useState<string | null>(null);
   const [report, setReport] = useState<
@@ -110,6 +121,9 @@ function CodeViewContent() {
     | null
   >(null);
   const draft = pageId ? drafts.get(pageId) : undefined;
+  const session = draft?.session ?? live;
+  // (Cancel and 「다시 불러오기」 start the editor again on the current code.)
+  const [opened, setOpened] = useState(0);
   const setDraft = (next: Draft | undefined) =>
     setDrafts((map) => {
       const copy = new Map(map);
@@ -118,7 +132,7 @@ function CodeViewContent() {
       return copy;
     });
   const reasonText = (line: CatalogCodeViewRejection) =>
-    `${t(`codeView.reason_${line.reason}`)}${line.detail ? ` (${line.detail})` : ""} — ${t(`codeView.alternative_${line.reason}`)}`;
+    `${messages[line.reason].reason}${line.detail ? ` (${line.detail})` : ""} — ${messages[line.reason].alternative}`;
 
   const vocabulary = useMemo(
     (): CodeEditorVocabulary => ({
@@ -135,14 +149,61 @@ function CodeViewContent() {
     }),
     [data, result],
   );
+  // Snippets: the Data panel's actions on the page's bound lists (their code for the draft).
+  const snippets = useMemo(() => {
+    void revision;
+    if (!pageId) return [];
+    return catalogCodeViewSnippets(
+      workspace.runtime.graph.commandReader,
+      pageId as EntryId<"page">,
+      tables,
+      data,
+    );
+  }, [data, pageId, revision, tables, workspace]);
+  const snippetItems = useMemo(
+    () =>
+      snippets.map((snippet) => ({
+        id: snippet.id,
+        label: snippetLabels[snippet.kind],
+        detail: [snippet.collection, snippet.field?.key]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    [snippetLabels, snippets],
+  );
+  const editorApi = useRef<CodeEditorApi | null>(null);
+  const snippetCode = useCallback(
+    async (id: string, text: string, changes: readonly CodeViewChange[]) => {
+      const session = sessionRef.current;
+      const snippet = snippets.find((item) => item.id === id);
+      if (!session || !snippet) return undefined;
+      return catalogCodeViewSnippetCode({
+        graph: workspace.runtime.graph,
+        session,
+        edited: text,
+        changes,
+        data,
+        tables,
+        newId: workspace.newId,
+        snippet,
+        text: {
+          allLabel: t("dataView.allOption"),
+          countText: t("dataView.countText"),
+          viewName: (list) => t("dataView.viewName", { list }),
+        },
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, snippets, tables, workspace],
+  );
   // (The editor's check reads the session at commit — not a ref written during render.)
-  const draftRef = useRef(draft);
+  const sessionRef = useRef(session);
   useEffect(() => {
-    draftRef.current = draft;
+    sessionRef.current = session;
   });
   const check = useCallback(
     (text: string, changes: readonly CodeViewChange[]) => {
-      const session = draftRef.current?.session;
+      const session = sessionRef.current;
       if (!session) return [];
       return catalogCodeViewPlan({
         reader: workspace.runtime.graph.commandReader,
@@ -157,10 +218,10 @@ function CodeViewContent() {
       }));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, workspace],
+    [data, workspace, messages],
   );
 
-  if (!result || !pageId)
+  if (!session || !result || !pageId)
     return (
       <>
         <PanelHeader
@@ -177,15 +238,9 @@ function CodeViewContent() {
       </>
     );
 
-  const begin = () => {
-    const session = catalogCodeViewSession(
-      workspace.runtime.graph,
-      pageId as EntryId<"page">,
-      data,
-    );
-    if (!session) return;
-    setDraft({ session, text: session.baseline.code, changes: [] });
-    setReport(null);
+  const restart = () => {
+    setDraft(undefined);
+    setOpened((count) => count + 1);
   };
   const apply = () => {
     if (!draft) return;
@@ -206,7 +261,8 @@ function CodeViewContent() {
   };
   const reload = () => {
     if (draft) setPrevious(draft.text);
-    begin();
+    setReport(null);
+    restart();
   };
   const stale =
     report?.kind === "rejected" &&
@@ -221,41 +277,51 @@ function CodeViewContent() {
       />
       <PanelContents>
         <Section title={t("codeView.section")}>
-          {draft ? (
-            <EditorBoundary
+          <EditorBoundary
+            fallback={
+              <>
+                <p className="code-view-report" role="alert">
+                  {t("codeView.editorUnavailable")}
+                </p>
+                <pre
+                  className="code-view-code"
+                  aria-label={t("codeView.codeLabel")}
+                >
+                  {draft ? draft.text : <code>{marked(result)}</code>}
+                </pre>
+              </>
+            }
+          >
+            <Suspense
               fallback={
-                <>
-                  <p className="code-view-report" role="alert">
-                    {t("codeView.editorUnavailable")}
-                  </p>
-                  <pre className="code-view-code">{draft.text}</pre>
-                </>
+                <pre className="code-view-code">
+                  {draft?.text ?? session.baseline.code}
+                </pre>
               }
             >
-              <Suspense
-                fallback={<pre className="code-view-code">{draft.text}</pre>}
-              >
-                <CodeEditor
-                  key={`${draft.session.pageId}:${draft.session.revision}`}
-                  code={draft.session.baseline.code}
-                  label={t("codeView.editorLabel")}
-                  vocabulary={vocabulary}
-                  check={check}
-                  onChange={(text, changes) => {
-                    setDraft({ session: draft.session, text, changes });
-                    setReport(null);
-                  }}
-                />
-              </Suspense>
-            </EditorBoundary>
-          ) : (
-            <pre
-              className="code-view-code"
-              aria-label={t("codeView.codeLabel")}
-            >
-              <code>{marked(result)}</code>
-            </pre>
-          )}
+              <CodeEditor
+                key={`${pageId}:${opened}`}
+                code={session.baseline.code}
+                label={t("codeView.editorLabel")}
+                vocabulary={vocabulary}
+                check={check}
+                snippets={snippetItems}
+                snippet={snippetCode}
+                onReady={(api) => {
+                  editorApi.current = api;
+                }}
+                onChange={(text, changes) => {
+                  // (Back to the baseline text: nothing is typed — it follows the document again.)
+                  setDraft(
+                    text === session.baseline.code
+                      ? undefined
+                      : { session, text, changes },
+                  );
+                  setReport(null);
+                }}
+              />
+            </Suspense>
+          </EditorBoundary>
           {report?.kind === "rejected" ? (
             <div className="code-view-report" role="alert">
               <p>{t("codeView.rejected")}</p>
@@ -283,36 +349,61 @@ function CodeViewContent() {
             </details>
           ) : null}
           <div className="code-view-actions">
-            {draft ? (
-              <>
-                <Button
-                  className="control-button"
-                  data-variant="primary"
-                  onPress={apply}
+            <Button
+              className="control-button"
+              data-variant="primary"
+              isDisabled={!draft}
+              onPress={apply}
+            >
+              {t("codeView.apply")}
+            </Button>
+            <MenuTrigger>
+              <Button className="control-button">{snippetLabels.menu}</Button>
+              <Popover
+                className="react-aria-Popover property-select-popover"
+                placement="bottom start"
+              >
+                <Menu
+                  className="react-aria-Menu"
+                  aria-label={snippetLabels.menu}
+                  items={snippetItems}
+                  renderEmptyState={() => snippetLabels.none}
+                  onAction={(key) =>
+                    void editorApi.current?.insertSnippet(String(key))
+                  }
                 >
-                  {t("codeView.apply")}
-                </Button>
-                {stale ? (
-                  <Button className="control-button" onPress={reload}>
-                    {t("codeView.reload")}
-                  </Button>
-                ) : null}
-                <Button
-                  className="control-button"
-                  onPress={() => {
-                    setDraft(undefined);
-                    setReport(null);
-                    setPrevious(null);
-                  }}
-                >
-                  {t("codeView.cancel")}
-                </Button>
-              </>
-            ) : (
-              <Button className="control-button" onPress={begin}>
-                {t("codeView.edit")}
+                  {(item) => (
+                    <MenuItem
+                      id={item.id}
+                      className="react-aria-MenuItem"
+                      textValue={`${item.label} ${item.detail}`}
+                    >
+                      <span>{item.label}</span>
+                      <span className="code-view-snippet-detail">
+                        {item.detail}
+                      </span>
+                    </MenuItem>
+                  )}
+                </Menu>
+              </Popover>
+            </MenuTrigger>
+            {stale ? (
+              <Button className="control-button" onPress={reload}>
+                {t("codeView.reload")}
               </Button>
-            )}
+            ) : null}
+            {draft ? (
+              <Button
+                className="control-button"
+                onPress={() => {
+                  setReport(null);
+                  setPrevious(null);
+                  restart();
+                }}
+              >
+                {t("codeView.cancel")}
+              </Button>
+            ) : null}
           </div>
         </Section>
       </PanelContents>

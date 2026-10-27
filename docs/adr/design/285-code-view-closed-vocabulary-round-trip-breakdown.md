@@ -171,3 +171,42 @@
 - G4 (열림): Builder initial 1,452,177 B — 착수 대비 **+1,288 B** (상한 +1,000 초과). initial 에 실린 것은 i18n 문자열 (거절 이유 · 대안 9 쌍 KO/EN) 과 실행 옵션뿐, `CodeEditor-*.js` (CodeMirror · lezer) 와 패널 chunk (역문법 · 차이) 는 initial 밖. 대안: 거절 문구를 패널 chunk 의 지역 사전으로.
 
 **어휘 pending 11** (`vocabulary.ts` — 편집하면 재생성 대조가 그 줄을 거절, 그대로면 통과): 목록 선택 변수 · 요청 매개변수 · 요청 정렬 · 「또는」 묶음 · `toSorted` · `Map.groupBy` · 결과 수 행 · `useDragAndDrop` · 값 조건 prop · 행 필드 글자 · 목록 명령 · capability · endpoint Do.
+
+### Phase 1 ~ 4 마무리 — 2026-10-27 (G1 · G2 · G3 · G4 닫힘, G5 남음)
+
+**어휘 pending 11 → 0** (`vocabulary.ts` `read` 필수):
+
+| 형태 | 읽는 곳 | 문서 |
+| ---- | ------- | ---- |
+| `let {selectedKeys: x, setSelectedKeys: setX} = list` | `planSelections` | 그 목록 `selectedKeys` 의 이름 붙은 변수 (`source`) |
+| `url.searchParams.append(…)` · `set(_sort …)` | `requestOf` (`codeViewViews.ts`) | served 보기의 조건 · 정렬 (접미 표 역변환 · guard → skip / enabled · `between` 두 줄 · 날짜 필드는 after / before) |
+| `(a \|\| b)` 묶음 | `itemOf` | 「또는」 그룹 — 같은 비교 · 다른 필드면 여러 필드 조건 (생성 코드가 같다) |
+| `.toSorted(…)` | `specOf` | 상수 필드 정렬 · 정렬 변수 (`<v>Dir` 줄과 짝) |
+| `Map.groupBy` 세 문장 | `groupedOf` | `groupBy` · `emptyGroups: "all"` · 집계 |
+| `[{id: 'row-1', …}]` | `aggregateOf` | count · applied · sum · mean · min · max |
+| `useDragAndDrop({…})` | `planDragAndDrop` | 각 `on…(e) { … }` = 그 목록의 drop 규칙 (Do 는 `dosOf`, 이벤트 필드 `e.…`) |
+| `prop={x === … && …}` | `whenOf` | `PropWhen` (selection `size` · exists · notExists 포함) |
+| `${rows.find(row => row.id === k)?.f ?? ''}` | `textValue` + `planCodeViews` | 글자 `{f}` + 그 요소의 key 바인딩 (보기 · key) |
+| 목록 명령 · capability · fetch | `dosOf` · `capabilityOf` | list Do · 이름 붙은 상태 setter → capability · `callEndpoint` · reset · 글자 toggle |
+
+**설계 구체화 (통상 구현 판단)**: 보기 문장은 이름으로 소유자를 정한다 — baseline 의 이름이면 그 소유자, 새 이름이면 「목록 하나만 `items` 로 읽음 · 행 원본 · 집계 · 묶기 없음 · 다른 보기 · 행 읽기가 읽지 않음」 일 때 그 목록의 내장 보기, 아니면 새 공유 보기 (이름 = 코드 이름). baseline 과 같은 문장은 다시 읽지 않는다 (strict 제외). 변수 시작값 비교에서 선택 (`array` · `string[]`) · 구조 변수의 빈 시작 (`""` · `null`) 은 같은 것으로 본다 (코드가 구별하지 않음).
+
+**스니펫 5** (`codeViewSnippets.ts`): 패널 동작 함수 (`catalogFilterCommand` · `catalogSortFollowCommand` · `catalogResultCountCommand`) 를 초안 계획 위 stage 에서 실행 → 생성 코드 → 편집기가 줄 LCS 로 다른 줄만 쓴다 (`codeEditorLineChanges`). 동작은 `codeViewActions.ts` registry 로 받는다 (아래 G4).
+
+**게이트 결과**: strict 왕복 golden 5 (거절 0 · 실행 뒤 코드 동일) · 붙여넣기 6 (검색 · 라디오 · 정렬 · 결과 수 · API 매개변수 · 또는 — 코드 · id 를 뺀 문서 모양 동일 · history +1 · Undo 1) · 스니펫 5 (스니펫 코드 == 패널 동작 문서) · 편집 3 (값 조건 prop · 상수 정렬 · `items={users}` 새 목록) · identity 13 · line diff 11 · 회귀 shared catalog · codeView 1,115 + builder catalogRuntime · preview catalog · codeView 3,003 PASS.
+
+**live 에서 찾은 결함 2 (수리 · 원복 RED)**: ① `<Text>` 줄을 `<ListBox …>` 로 바꾼 편집 — CodeMirror 의 최소 변경이 `<` · `>` 를 남겨 Text anchor 가 `kept`, 짝지은 id 의 type 이 달라 `notInCode` 거절. kept 짝도 태그가 같아야 한다 (`identity.ts` — 원복 시 identity 테스트 RED). ② 공용 `stageOver` 가 stage 를 감쌀 때 `libraryFor` 를 주지 않아, 중첩 명령이 project record 를 쓴 뒤 library 를 읽으면 `libraryFor is not a function` (스니펫 「결과 수 표시」 · 「검색 추가」 RED) — 아래 graph 의 `libraryFor` 로 위임.
+
+**G4 번들**: 착수 1,450,889 → **1,451,158 B (Δ +269, 101 files)**. 측정 경로: 거절 문구 i18n (Δ +1,288) → 패널 chunk 지역 사전 (Δ +62) → 스니펫이 `viewAuthoring` 을 정적 import (Δ +2,588, 106 files — main −14.5 KB · 공유 chunk `viewAuthoring` +16.4 KB · 아이콘 chunk 분리) → `import()` (Δ +2,995, 108 files — 같은 분할) → registry 역전 (Δ +269). Preview 코드 변경 0.
+
+**사후 보고 (scope)**: 추정 ~19 파일 → 실측 누적 ~38 (Phase 0 ~ 3 커밋 28 + 이번 새 파일 `codeViewViews.ts` · `codeViewSnippets.ts` · `codeViewActions.ts` · `codeViewMessages.ts` · 테스트 2 + 공용 `compose.ts` · `identity.ts` 수리) — 1.5 배 초과, inventory 보강으로 흡수 (fork 사유 아님).
+
+**남음**: G5 — 사용자 Builder 확인 (사용자 사례 `<Text>` 추가 · 「검색 추가」 를 코드로 · 요소 삭제) → Implemented.
+
+### 후속 — 2026-10-27 바로 편집 화면 (사용자 제안)
+
+- 사용자: 「edit code 를 매번 누르기보다 바로 편집 화면이 나오는 것이 어떨」 → 「코드 고치기」 버튼을 없애고 패널이 편집기를 바로 띄운다. 세션 baseline 은 첫 입력 때 잡힌다 (Decision 4 문구 갱신). 입력 전에는 패널의 현재 코드가 baseline 이고, 문서가 바뀌면 `CodeEditor` 가 새 코드를 다른 줄만 써 넣는다 (`rebase` annotation — `onChange` 없음 · undo 항목 없음 · 편집 연산은 새 baseline 부터 다시 셈). 입력이 baseline 과 같아지면 초안을 버리고 다시 문서를 따라간다. 「변경 취소」 · 「다시 불러오기」 는 편집기를 현재 코드로 다시 연다.
+- 게이트: `panels/codeView/__tests__/codeEditorRebase.test.tsx` 2 (새 baseline = 편집 아님 · 다음 편집은 새 baseline 기준 — `rebase` 건너뛰기를 지우면 RED) · type-check · 관련 builder 스위트 PASS · live 8 (ADR Live Exercise 표).
+- Undo · Redo (사용자 질문 「undo redo history 가 단일 소스로 동기화 되는지」): 문서의 기록은 workspace history 하나 — 적용 = 1 step, Canvas · History 패널 · 편집기 모두 그 기록을 따른다. 편집기의 CodeMirror history 는 **입력 중 초안의 글자 단계만** 가진다 (ADR-212 의 격자 셀 초안과 같은 구분). 결함: 전역 Undo 단축키가 `allowInInput` + capture 라 편집기 안의 ⌘Z 가 CodeMirror 에 닿지 않고 문서를 되돌렸다 (초안이 낡아 적용 거절). 수리: 편집기 host 가 자기 입력 단계가 있을 때만 `data-shortcut-local="undo" · "redo"` 를 단다 (`undoDepth` · `redoDepth`) — 없으면 문서 Undo 로 가고 편집기가 따라간다. 새 baseline 을 쓸 때 CodeMirror history 를 비운다 (`Compartment` 재구성 — 지난 baseline 의 단계가 남지 않게). 게이트: `codeEditorRebase.test.tsx` 3 번째 (호출을 지우면 RED) · live 9.
+- 코드의 출처 (사용자 원칙 2026-10-27 「빌더의 모든 코드의 소스는 단일 catalog 로 집중되어야 한다」): 지금 코드 보기는 catalog 문서 (페이지 · 요소 · 상태 변수 · 규칙 · 보기 · 테마) 와 data store + IndexedDB (데이터 표 스키마 · mock 행 · API endpoint · 프로젝트 변수 — `stores/data.ts`) 두 곳을 읽는다. 같은 날 사용자 결정: **정의만 catalog 로** (API 실행 결과 `runtimeData` 는 캐시 유지) · **ADR-285 먼저 닫고 이관은 새 ADR** (사용자 `/create-adr`). 2026-05 의 「collections 를 문서 root 로 올릴 의미 없음」 (ADR-131 · 132) 은 이 결정으로 바뀐다. 이 ADR 의 범위는 그대로 — `catalogCodeViewData` 가 이관 뒤 catalog reader 로 바뀌는 일은 새 ADR 에 포함.
+

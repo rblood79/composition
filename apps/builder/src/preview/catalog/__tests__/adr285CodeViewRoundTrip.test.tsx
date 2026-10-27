@@ -21,13 +21,23 @@ import {
   catalogCodeViewSession,
   type CatalogCodeViewSession,
 } from "../../../builder/catalogRuntime/codeViewEdit";
+import {
+  catalogCodeViewSnippetCode,
+  catalogCodeViewSnippets,
+} from "../../../builder/catalogRuntime/codeViewSnippets";
 import { catalogBindingRef } from "../../../builder/catalogRuntime/dataBinding";
+import { codeEditorLineChanges } from "../../../builder/panels/codeView/CodeEditor";
 import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindingCommand";
 import {
   catalogCreationProps,
   catalogPaletteDefinitionId,
 } from "../../../builder/catalogRuntime/paletteInsert";
-import { catalogFilterCommand } from "../../../builder/catalogRuntime/viewAuthoring";
+import {
+  catalogFilterCommand,
+  catalogOrFilterCondition,
+  catalogResultCountCommand,
+  catalogSortFollowCommand,
+} from "../../../builder/catalogRuntime/viewAuthoring";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -490,5 +500,393 @@ describe("ADR-285 G0 — RED 8 (code edit across the closed vocabulary)", () => 
     expect(result.applied).toBe(false);
     expect(result.reasons).toEqual(["derivedChanged"]);
     expect(h.body()).toHaveLength(2);
+  });
+});
+
+/**
+ * ADR-285 G3 — a panel action and its code are the same document: the Data panel's action on one
+ * page, its code pasted whole over the same page without it → applied, and the page's code is the
+ * code pasted (the snippets are this projection).
+ */
+async function pasteRoundTrip(
+  types: readonly string[],
+  collections: readonly CodeViewCollection[],
+  setup: (h: Harness) => void,
+  action: (h: Harness) => void,
+) {
+  const target = await open(types, collections);
+  setup(target);
+  action(target);
+  const code = target.code();
+  if (process.env.ADR285_DEBUG)
+    appendFileSync(process.env.ADR285_DEBUG, `----\n${code}\n`);
+  const h = await open(types, collections);
+  setup(h);
+  const session = begin(h);
+  const before = h.history() ?? 0;
+  const result = applyCode(h, session, [
+    { from: 0, to: session.code.length, insert: code },
+  ]);
+  // (One step: one Undo gives the page back as it was.)
+  if (result.applied) {
+    expect(h.history()).toBe(before + 1);
+    h.workspace.undo();
+    expect(h.code()).toBe(session.code);
+    h.workspace.redo();
+  }
+  return { target, h, code, result };
+}
+
+/**
+ * The page as a document without ids: its nodes (type · props · binding), variables, rules and
+ * views — ids become their order of appearance, a variable's start as the code shows it (an empty
+ * sort is `""` or `null`).
+ */
+function documentShape(h: Harness): unknown {
+  const graph = h.graph();
+  const names = new Map<string, string>();
+  const name = (id: string) => {
+    if (!names.has(id)) names.set(id, `#${names.size}`);
+    return names.get(id)!;
+  };
+  const ids = (value: unknown): unknown =>
+    JSON.parse(
+      JSON.stringify(value ?? null).replace(
+        /(project:[A-Za-z]+:[^"\\.]+|code-[\w-]+|filter-[\w-]+|or-[\w-]+)/g,
+        (id) => name(id),
+      ),
+    );
+  const node = (id: string): unknown => {
+    const entry = graph.getEntry(id) as NodeEntry;
+    return {
+      id: name(id),
+      type: entry.definitionId,
+      props: ids(entry.props),
+      binding: ids(entry.binding),
+      children: entry.children.map(node),
+    };
+  };
+  const project = graph.getEntry(graph.projectId) as {
+    stateVariableIds: readonly string[];
+    interactionIds: readonly string[];
+    viewIds?: readonly string[];
+  };
+  const body = node(BODY);
+  return {
+    body,
+    variables: project.stateVariableIds.map((id) => {
+      const { id: _id, ownerId: _owner, ...rest } = graph.getEntry(id) as {
+        id: string;
+        ownerId: string;
+        defaultValue: unknown;
+      };
+      return ids({ id: name(id), ...rest, defaultValue: rest.defaultValue ?? "" });
+    }),
+    rules: project.interactionIds.map((id) => ids(graph.getEntry(id))),
+    views: (project.viewIds ?? []).map((id) => {
+      const { name: _name, ...rest } = graph.getEntry(id) as { name: string };
+      return ids(rest);
+    }),
+  };
+}
+
+describe("ADR-285 G3 — panel action == its code pasted", () => {
+  const bound = (type: string) => (h: Harness) =>
+    h.bind(h.body()[0]! as NodeId, "users");
+  const list = (h: Harness) =>
+    h.body().find((id) => h.node(id)?.binding)! as NodeId;
+
+  it("검색 추가", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["ListBox"],
+      [USERS],
+      bound("ListBox"),
+      (t) => t.search(list(t), USERS),
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+
+  it("라디오로 거르기", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["ListBox"],
+      [USERS],
+      bound("ListBox"),
+      (t) => {
+        const field = USERS.schema.find((item) => item.key === "name")!;
+        t.workspace.execute(
+          catalogFilterCommand(
+            t.graph(),
+            {
+              listId: list(t),
+              field: { id: field.id!, key: field.key, type: field.type },
+              kind: "RadioGroup" as never,
+              control: { insert: true },
+              values: ["Ann", "Bob"],
+              allLabel: "All",
+            } as never,
+            t.workspace.newId,
+          ).command,
+        );
+      },
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+
+  it("정렬 따라가기", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["Table"],
+      [USERS],
+      bound("Table"),
+      (t) =>
+        t.workspace.execute(
+          catalogSortFollowCommand(
+            t.graph(),
+            { tableId: list(t), followerIds: [] },
+            t.workspace.newId,
+          ).command,
+        ),
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+
+  it("결과 수 표시", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["ListBox"],
+      [USERS],
+      bound("ListBox"),
+      (t) =>
+        t.workspace.execute(
+          catalogResultCountCommand(
+            t.graph(),
+            { listId: list(t), viewName: "users view", text: "{count} results" },
+            t.workspace.newId,
+          ).command,
+        ),
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+
+  it("API 요청 매개변수", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["ListBox"],
+      [USERS_API],
+      bound("ListBox"),
+      (t) => t.search(list(t), USERS_API),
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+
+  it("또는 조건", async () => {
+    const { target, h, code, result } = await pasteRoundTrip(
+      ["ListBox"],
+      [USERS],
+      (h) => {
+        bound("ListBox")(h);
+        h.search(list(h), USERS);
+      },
+      (t) => {
+        const id = conditions(viewOf(t, list(t))?.where)[0]!.id;
+        t.workspace.execute(
+          catalogOrFilterCondition(t.graph(), list(t), id, "or-probe"),
+        );
+      },
+    );
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    expect(documentShape(h)).toEqual(documentShape(target));
+  });
+});
+
+describe("ADR-285 G2 — the forms read back (edits)", () => {
+  it("a list written with `items={users}` is a new list connected to the data", async () => {
+    const target = await open(["ListBox"], [USERS]);
+    target.bind(target.body()[0]! as NodeId, "users");
+    const code = target.code();
+    const h = await open(["Text"], [USERS]);
+    const session = begin(h);
+    const result = applyCode(h, session, codeEditorLineChanges(session.code, code).reverse());
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+  });
+
+  it("a prop that compares a variable (`isDisabled={count >= 3}`) is a value condition", async () => {
+    const h = await open(["Button"]);
+    const [button] = h.body() as NodeId[];
+    const session = begin(h);
+    const head = "export default function Home() {\n";
+    const tag = /<Button\b/.exec(session.code)![0];
+    const result = applyCode(h, session, [
+      replace(session.code, head, `${head}  let [count, setCount] = useState(0);\n`),
+      replace(
+        edited(session, [
+          replace(session.code, head, `${head}  let [count, setCount] = useState(0);\n`),
+        ]),
+        tag,
+        `${tag} isDisabled={count >= 3}`,
+      ),
+    ]);
+    expect(result).toEqual({ applied: true, reasons: [] });
+    const write = h.node(button!)!.props.isDisabled;
+    expect(write?.kind === "set" ? write.value : undefined).toMatchObject({
+      kind: "when",
+      op: "gte",
+      value: 3,
+    });
+  });
+
+  it("a literal sort written (`toSorted` by a field, descending) sorts the list's view", async () => {
+    const h = await open(["ListBox"], [USERS]);
+    const list = h.body()[0]! as NodeId;
+    h.bind(list, "users");
+    h.search(list, USERS);
+    const session = begin(h);
+    const end = /contains\(String\(item\.name\), [A-Za-z]+\)\);/.exec(
+      session.code,
+    )![0];
+    const result = applyCode(h, session, [
+      replace(
+        session.code,
+        end,
+        `${end.slice(0, -1)}\n    .toSorted((a, b) => collator.compare(String(a.age), String(b.age)) * -1);`,
+      ),
+    ]);
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(viewOf(h, list)?.sort).toEqual({
+      field: ["data:field:u-age"],
+      direction: "descending",
+    });
+  });
+});
+
+describe("ADR-285 G3 — snippets: a snippet's code is its panel action's document", () => {
+  const TEXT = {
+    allLabel: "All",
+    countText: "{count} results",
+    viewName: (list: string) => `${list} view`,
+  };
+  const bound = (h: Harness) => {
+    const list = h.body()[0]! as NodeId;
+    h.bind(list, "users");
+    return list;
+  };
+  const tables = (h: Harness) =>
+    h.collections.map((collection) => ({
+      ...collection,
+      mockData: [],
+      useMockData: true,
+    }));
+  /** The page's snippet `kind` (the first) — its code, applied as the editor would. */
+  const viaSnippet = async (
+    type: string,
+    collection: CodeViewCollection,
+    kind: string,
+  ) => {
+    const h = await open([type], [collection]);
+    bound(h);
+    const session = begin(h);
+    const data = { collections: [...h.collections], endpoints: [] };
+    const snippet = catalogCodeViewSnippets(
+      h.graph().commandReader,
+      HOME,
+      tables(h),
+      data,
+    ).find((item) => item.kind === kind)!;
+    expect(snippet).toBeDefined();
+    const code = (await catalogCodeViewSnippetCode({
+      graph: h.graph(),
+      session,
+      edited: session.code,
+      changes: [],
+      data,
+      tables: tables(h),
+      newId: h.workspace.newId,
+      snippet,
+      text: TEXT,
+    }))!;
+    // (As the editor writes it: the lines that differ — later ones first, offsets stay valid.)
+    const result = applyCode(
+      h,
+      session,
+      [...codeEditorLineChanges(session.code, code)].reverse(),
+    );
+    return { h, code, result };
+  };
+  const viaPanel = async (
+    type: string,
+    collection: CodeViewCollection,
+    action: (h: Harness, list: NodeId) => void,
+  ) => {
+    const h = await open([type], [collection]);
+    action(h, bound(h));
+    return h;
+  };
+  const name = USERS.schema.find((item) => item.key === "name")!;
+  const field = { id: name.id!, key: name.key, type: name.type };
+  const filter =
+    (kind: string, collection: CodeViewCollection) =>
+    (h: Harness, list: NodeId) =>
+      h.workspace.execute(
+        catalogFilterCommand(
+          h.graph(),
+          {
+            listId: list,
+            field,
+            kind: kind as never,
+            control: { insert: true },
+            values: [],
+            allLabel: TEXT.allLabel,
+          } as never,
+          h.workspace.newId,
+        ).command,
+      );
+  const cases: [string, string, CodeViewCollection, (h: Harness, list: NodeId) => void][] = [
+    ["검색 추가", "search", USERS, filter("SearchField", USERS)],
+    ["라디오로 거르기", "radio", USERS, filter("RadioGroup", USERS)],
+    [
+      "정렬 따라가기",
+      "sortFollow",
+      USERS,
+      (h, list) =>
+        h.workspace.execute(
+          catalogSortFollowCommand(
+            h.graph(),
+            { tableId: list, followerIds: [] },
+            h.workspace.newId,
+          ).command,
+        ),
+    ],
+    [
+      "결과 수 표시",
+      "resultCount",
+      USERS,
+      (h, list) =>
+        h.workspace.execute(
+          catalogResultCountCommand(
+            h.graph(),
+            { listId: list, viewName: "users view", text: TEXT.countText },
+            h.workspace.newId,
+          ).command,
+        ),
+    ],
+    ["API 요청 매개변수", "requestParam", USERS_API, filter("SearchField", USERS_API)],
+  ];
+  it.each(cases)("%s", async (_, kind, collection, action) => {
+    const type = kind === "sortFollow" ? "Table" : "ListBox";
+    const { h, code, result } = await viaSnippet(type, collection, kind);
+    expect(result).toEqual({ applied: true, reasons: [] });
+    expect(h.code()).toBe(code);
+    const panel = await viaPanel(type, collection, action);
+    expect(h.code()).toBe(panel.code());
+    expect(documentShape(h)).toEqual(documentShape(panel));
   });
 });

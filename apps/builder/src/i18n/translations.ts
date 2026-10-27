@@ -2342,43 +2342,13 @@ const koKR: TranslationKeys = {
     codeLabel: "페이지의 React Aria 코드",
     editorLabel:
       "코드 편집 — 요소 · 변수 · 조건 · 이벤트를 고치고 적용하면 문서에 반영됩니다",
-    edit: "코드 고치기",
     apply: "적용",
-    cancel: "취소",
+    cancel: "변경 취소",
     reload: "다시 불러오기",
     previousDraft: "이전 초안",
     editorUnavailable:
       "편집기를 불러오지 못했습니다 — 코드는 읽기만 할 수 있습니다.",
     rejected: "아래 줄 때문에 아무것도 적용하지 않았습니다 (부분 적용 없음).",
-    reasonOutside: "표시된 자리 밖의 변경",
-    reasonUnreadable: "이 자리가 읽을 수 없는 값",
-    reason_unparsable: "코드로 읽을 수 없음 (괄호 · 태그 · 따옴표를 확인)",
-    reason_outsideVocabulary:
-      "코드 보기의 어휘 밖 (임의 함수 · 계산식 · 새 hook)",
-    reason_unknownTag: "팔레트에 없는 요소",
-    reason_unknownReference: "선언되지 않은 이름",
-    reason_notInCode: "문서로 옮겨지지 않는 부분",
-    reason_commandRefused: "문서가 이 변경을 받지 않음",
-    reason_derivedChanged: "문서에서 만들어지는 줄",
-    reason_ambiguousIdentity: "구별되지 않는 요소",
-    reason_staleBaseline: "편집을 시작한 뒤 문서가 바뀌었습니다",
-    alternative_unparsable: "닫히지 않은 태그 · 괄호를 닫으세요.",
-    alternative_outsideVocabulary:
-      "요소 · prop · useState · filter 항 · 이벤트만 적을 수 있습니다. 계산은 Data · Interactions 패널에서 조건 · Do 로.",
-    alternative_unknownTag:
-      "팔레트의 컴포넌트 이름 (Text · Button · TextField …) 이나 div 를 쓰세요.",
-    alternative_unknownReference:
-      "useState 로 선언한 변수 · 그 setter · 연결된 데이터 이름만 읽을 수 있습니다.",
-    alternative_notInCode:
-      "크기 · 색 · 배치는 Design 패널에서, 데이터 연결은 Data 패널에서 고치세요.",
-    alternative_commandRefused:
-      "그 요소가 받는 자식 · prop 인지 확인하세요 (Layers · Properties 패널).",
-    alternative_derivedChanged:
-      "이 줄은 되돌리세요. 데이터 원본은 items={…} 에서 바꿉니다.",
-    alternative_ambiguousIdentity:
-      "붙여넣기 대신 그 줄만 고치거나, Layers 에서 지우세요.",
-    alternative_staleBaseline:
-      "「다시 불러오기」 로 지금 코드를 열고 초안을 옮기세요.",
   },
   dataView: {
     section: "검색 · 필터",
@@ -4944,43 +4914,13 @@ const enUS: TranslationKeys = {
     codeLabel: "The page's React Aria code",
     editorLabel:
       "Edit code — elements, variables, conditions and events you change go back to the document",
-    edit: "Edit code",
     apply: "Apply",
-    cancel: "Cancel",
+    cancel: "Discard changes",
     reload: "Reload current code",
     previousDraft: "Previous draft",
     editorUnavailable: "The editor did not load — the code is read only.",
     rejected:
       "Nothing was applied because of the lines below (no partial apply).",
-    reasonOutside: "a change outside the marked parts",
-    reasonUnreadable: "a value this part cannot take",
-    reason_unparsable: "not readable as code (check brackets, tags, quotes)",
-    reason_outsideVocabulary:
-      "outside the code view's vocabulary (a function, a calculation, a new hook)",
-    reason_unknownTag: "not a palette element",
-    reason_unknownReference: "a name that is not declared",
-    reason_notInCode: "a part that does not go back to the document",
-    reason_commandRefused: "the document does not take this change",
-    reason_derivedChanged: "a line the document makes",
-    reason_ambiguousIdentity: "elements the code cannot tell apart",
-    reason_staleBaseline: "the document changed after you started editing",
-    alternative_unparsable: "Close the open tag or bracket.",
-    alternative_outsideVocabulary:
-      "Write elements, props, useState, filter terms and events only. Calculations are conditions and Dos in the Data and Interactions panels.",
-    alternative_unknownTag:
-      "Use a palette component name (Text, Button, TextField …) or div.",
-    alternative_unknownReference:
-      "Only variables declared with useState, their setters and connected data are read.",
-    alternative_notInCode:
-      "Change size, color and layout in the Design panel, data connections in the Data panel.",
-    alternative_commandRefused:
-      "Check that the element takes that child or prop (Layers · Properties).",
-    alternative_derivedChanged:
-      "Undo this line. The data source changes at items={…}.",
-    alternative_ambiguousIdentity:
-      "Edit that line instead of pasting over it, or delete in Layers.",
-    alternative_staleBaseline:
-      "Use Reload current code to open the current code and carry your draft over.",
   },
   dataView: {
     section: "Search · filter",

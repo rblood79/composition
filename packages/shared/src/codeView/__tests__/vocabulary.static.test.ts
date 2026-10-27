@@ -5,20 +5,24 @@ import { describe, expect, it } from "vitest";
 import { CODE_VIEW_VOCABULARY } from "../vocabulary";
 
 /**
- * ADR-285 G1 — the vocabulary table against the sources: every `emit` is a generator function,
- * every `read` a reader function (the parser or the builder's planner), and the pending forms (no
- * reader yet — refused when edited) are exactly the list below: it only shrinks.
+ * ADR-285 G1 — the vocabulary table against the sources: every `emit` is a generator function and
+ * every `read` a reader function (the parser or the builder's planner — `codeViewEdit.ts` ·
+ * `codeViewViews.ts`). No form is pending: each is read back (the strict round trip of the
+ * acceptance set — `adr284CodeView.test.tsx` — is the behavior gate).
  */
 const here = dirname(fileURLToPath(import.meta.url));
 const generator = readFileSync(join(here, "../generate.ts"), "utf8");
 const readers = [
   readFileSync(join(here, "../inverse/parse.ts"), "utf8"),
-  readFileSync(
-    join(
-      here,
-      "../../../../../apps/builder/src/builder/catalogRuntime/codeViewEdit.ts",
+  ...["codeViewEdit.ts", "codeViewViews.ts"].map((file) =>
+    readFileSync(
+      join(
+        here,
+        "../../../../../apps/builder/src/builder/catalogRuntime",
+        file,
+      ),
+      "utf8",
     ),
-    "utf8",
   ),
 ].join("\n");
 
@@ -27,27 +31,11 @@ describe("the code view vocabulary (ADR-285 Decision 2)", () => {
     "%s — its emit and read exist",
     (_, item) => {
       expect(generator).toMatch(new RegExp(`\\b${item.emit}\\(`));
-      if (item.read) expect(readers).toMatch(new RegExp(`\\b${item.read}\\(`));
+      expect(readers).toMatch(new RegExp(`\\b${item.read}\\(`));
     },
   );
 
-  it("the pending forms (no reader yet) — the list only shrinks", () => {
-    expect(
-      CODE_VIEW_VOCABULARY.filter((item) => !item.read).map(
-        (item) => item.form,
-      ),
-    ).toEqual([
-      "let {selectedKeys: x, setSelectedKeys: setX} = list",
-      "url.searchParams.append(…)",
-      "url.searchParams.set(_sort …)",
-      "an or of terms",
-      ".toSorted((a, b) => collator.compare(…))",
-      "Map.groupBy(…) · counts",
-      "[{id: 'row-1', count: …}]",
-      "useDragAndDrop({…})",
-      "prop={x === … && …}",
-      "{`…${row?.f ?? ''}…`}",
-      "list.update · move · remove · insert … · reload · capability · fetch",
-    ]);
+  it("no form is pending (each has a reader)", () => {
+    expect(CODE_VIEW_VOCABULARY.filter((item) => !item.read)).toEqual([]);
   });
 });

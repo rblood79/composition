@@ -1,4 +1,4 @@
-import type { NodeId } from "../document/types";
+import type { CatalogEntry, NodeId } from "../document/types";
 import type { CatalogGraph } from "../document/graph";
 import {
   CatalogStage,
@@ -61,6 +61,12 @@ export function stageOver(reader: CatalogReader): CatalogStage {
       },
       get library() {
         return reader.library;
+      },
+      // (A stage over a stage that wrote a project · override record reads the library through
+      // its own records — the graph under the first stage resolves it.)
+      libraryFor: (get: (id: string) => CatalogEntry | undefined) => {
+        const graph = (reader as { graph?: Partial<CatalogGraph> }).graph;
+        return graph?.libraryFor ? graph.libraryFor(get) : reader.library;
       },
       getEntry: (id: string) => reader.getEntry(id),
       ownerOf: (id: string) => reader.ownerOf(id),

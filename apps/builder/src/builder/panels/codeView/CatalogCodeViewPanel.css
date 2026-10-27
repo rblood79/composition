@@ -79,3 +79,9 @@
   display: flex;
   gap: var(--spacing-sm);
 }
+
+.code-view-snippet-detail {
+  margin-inline-start: auto;
+  padding-inline-start: var(--spacing-md);
+  color: var(--fg-muted);
+}

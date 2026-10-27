@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-27 ADR-285 Phase 1 ~ 4 마무리 — G1 ~ G4 닫힘, G5 (사용자 확인) 남음**: 코드로 고칠 수 없던 어휘 11 을 전부 읽는다 (보기 · 「또는」 · 정렬 · 묶기 · 집계 · 요청 매개변수 · 행 필드 글자 · 목록 명령 Do · capability · 값 조건 prop · `useDragAndDrop` · 목록 선택 변수 — pending 0) · golden 5 strict 왕복 게이트 · 스니펫 5 (「검색 추가」 · 「라디오로 거르기」 · 「정렬 따라가기」 · 「결과 수 표시」 · 「API 요청 매개변수」 — 패널 동작 그대로의 문서, 단언 5) · live 7/7 (5174 — 코드로 ListBox + Users 연결 · 스니펫 검색 → Preview `zoe` 1 행 · 편집 중 Canvas 변경 → 다시 불러오기 · 결과 수 `Results: 3`). live 결함 2 수리 (태그를 바꾼 줄의 identity · 중첩 stage 의 `libraryFor`). G4 Builder initial Δ **+269 B** (거절 문구 → 패널 chunk 사전 · 스니펫 동작 → registry). 열림 2 (Accepted 1 · Proposed 1 — 245 보류), 완료 305, 합계 307.
+
 > **2026-10-27 ADR-285 Phase 1 · 2 · 3 진행**: 「코드」 패널이 CodeMirror 6 편집기가 됐다 — 코드에 `<Text>` 를 적거나 줄을 지우면 문서에 요소가 생기고 지워진다 (Undo 한 번). 사용자 결정 1 · 2 · 3 · 5 권고안. 식별은 편집 연산 (anchor), 적용 전 재생성 대조 (stage 의 코드가 편집본을 돌려줘야 적용 — 부분 적용 0), baseline revision 실행. RED 11 GREEN · golden 5 왕복 · live 3/5. 남음: 어휘 pending 11 (편집 시 거절) · 스니펫 5 · live 2 · G4 initial Δ +1,288 B (i18n — 상한 +1,000 초과).
 
 > **2026-10-27 ADR-285 Accepted · Phase 0 완료** (사용자 `/execute-adr 285` + 리뷰 round 4 승인): 생성기 emit 지점 전수 → 어휘표 freeze (breakdown §8) · 파서 실측 → 사용자 결정 4 = **lezer 하나** (CodeMirror 6 chunk 168.5 KB gz 가 이미 싣는 `@lezer/javascript` 가 golden 5 를 오류 0 으로 읽음 · `@babel/parser` +78.9 KB gz 생략 · acorn 은 `type Selection` import 에서 실패) · `@codemirror/*` 8 · `@lezer/*` 2 catalog 고정 선언 · RED 11 `it.fails` (전부 `outsideSlot` 로 실패 확인). Builder initial 착수 값 1,450,889 B gz — ADR-201 상한 1,390,000 을 이미 넘음 (이 ADR 제품 코드 0, 284 이전부터). 열림 2 (Accepted 1 · Proposed 1 — 245 보류), 완료 305, 합계 307.
@@ -496,7 +498,7 @@
 
 #### [285](285-code-view-closed-vocabulary-round-trip.md) — code view 역변환: 코드 편집을 닫힌 어휘 전체 (요소 · 변수 · 조건 · 규칙 · API) 에서 문서로
 
-- **상태**: Accepted — 2026-10-27 · Phase 0 완료 (결정 4 = lezer) · **Phase 1 · 2 · 3 진행** — 코드로 요소 추가 · 삭제 · 이동 · prop · 글자 · 이벤트 · 변수 · `filter` 항 편집 동작 (CodeMirror 편집기 · 재생성 대조로 부분 적용 0 · RED 11 GREEN · live 3/5) · 남음: 어휘 pending 11 · 스니펫 5 · live 2 · G4 Builder initial Δ +1,288 B (상한 +1,000 초과)
+- **상태**: Accepted — 2026-10-27 · Phase 0 ~ 4 완료 (G0 ~ G4 닫힘) — 닫힌 어휘 전체 (pending 0) · strict 왕복 golden 5 · 스니펫 5 · live 7/7 · Builder initial Δ +269 B · 남음: **G5 사용자 Builder 확인** → Implemented
 - **규모**: Phase 0 (생성기 emit 전수 → 어휘표 · 파서 실측 babel vs acorn · RED 5) → Phase 1 파서 lazy + 역문법 + 의도 트리 + 왕복 불변식 → Phase 2 차이 → 기존 명령 한 트랜잭션 (추가 · 삭제 · 이동 · 변수 · 조건 · 규칙 · API, dry-run) → Phase 3 패널 (CodeMirror 6 · 닫힌 어휘 자동완성 · 스니펫 5 · 줄 안 진단 · 거절 = 줄 · 이유 · 대안 KO/EN) + live → Phase 4 번들 (Builder Δ ≤ +1 KB · Preview 0) · 문서 → G5 사용자 확인. 추정 ~19 파일. breakdown: [design/285](design/285-code-view-closed-vocabulary-round-trip-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -528,7 +530,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [285](285-code-view-closed-vocabulary-round-trip.md)                                           | Accepted — Phase 1 · 2 · 3 진행 (핵심 경로 동작)                                  | 어휘 pending 11 · 스니펫 5 · live 2 · G4 Δ 초과 수리                                           |
+|  1   | [285](285-code-view-closed-vocabulary-round-trip.md)                                           | Accepted — Phase 0 ~ 4 완료 (G0 ~ G4)                                             | G5 사용자 Builder 확인 (`<Text>` 추가 · 「검색 추가」 를 코드로 · 요소 삭제)                   |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
