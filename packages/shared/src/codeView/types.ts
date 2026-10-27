@@ -99,9 +99,59 @@ export interface CodeViewSlot {
   readonly target: CodeViewSlotTarget;
 }
 
+/**
+ * ADR-285 Decision 3 — the document unit a span of the code shows. The editor follows each span
+ * through the edit operations: a span that stays is the same unit (edited), one deleted whole is
+ * removed, text typed outside every span is new.
+ */
+export type CodeViewAnchorTarget =
+  /** A JSX element (`<Text>…</Text>`, with its `{state && …}` wrapper). */
+  | { readonly kind: "node"; readonly nodeId: string }
+  /**
+   * An attribute of an element: an own prop (`prop`), a prop a variable drives (`state` — the
+   * controlled pair · a named state · a rule's state), a handler (`handler` — the rules on that
+   * When), the list's rows (`items`) or its drag hooks (`dnd`).
+   */
+  | {
+      readonly kind: "attribute";
+      readonly nodeId: string;
+      readonly name: string;
+      readonly source: "prop" | "state" | "handler" | "items" | "dnd";
+      readonly interactionIds?: readonly string[];
+    }
+  /** An element's text (`children` — a literal or a template). */
+  | { readonly kind: "text"; readonly nodeId: string }
+  /** A row template (`{item => <ListBoxItem …>}`) — the binding's field map. */
+  | { readonly kind: "rows"; readonly nodeId: string }
+  /** `let [x, setX] = useState(…)` · a list's named selection. */
+  | { readonly kind: "variable"; readonly variableId: string }
+  /** A view's statements (`let items = rows.filter(…).toSorted(…)` · a grouping · a count). */
+  | { readonly kind: "view"; readonly owner: CodeViewViewOwner }
+  /** One `filter` term (with its skip guard) or request parameter — a condition. */
+  | {
+      readonly kind: "condition";
+      readonly owner: CodeViewViewOwner;
+      readonly conditionId: string;
+    }
+  /**
+   * A line the document makes from other units (`key` names it — `import:react-aria` ·
+   * `collection:<id>` · `effect:<id>` · `useFilter:base` · `collator` · `navigate` · `toasts` ·
+   * `dnd:<nodeId>` · `state:<nodeId>:<prop>` · `comment`): not edited itself, checked against the
+   * code the document gives (Decision 6).
+   */
+  | { readonly kind: "derived"; readonly key: string };
+
+export interface CodeViewAnchor {
+  readonly start: number;
+  readonly end: number;
+  readonly target: CodeViewAnchorTarget;
+}
+
 export interface CodeViewResult {
   readonly code: string;
   readonly slots: readonly CodeViewSlot[];
+  /** ADR-285 — every document unit's span (a superset of the slots' units). */
+  readonly anchors: readonly CodeViewAnchor[];
   /** The names the code gives document things — the inverse map reads an edit by them. */
   readonly symbols: CodeViewSymbols;
 }

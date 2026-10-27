@@ -175,7 +175,7 @@ function readSlot(
 }
 
 /** A JS literal the generator writes for a default: `'text'` · a number · a boolean · a key set. */
-function literalOf(
+export function literalOf(
   text: string,
 ): string | number | boolean | readonly string[] | undefined {
   const quoted = /^'((?:[^'\\]|\\.)*)'$|^"((?:[^"\\]|\\.)*)"$/.exec(text);
@@ -255,9 +255,9 @@ function paramOf(
 }
 
 /** A `filter` term the generator writes → its field(s), comparison and value. */
-function termOf(
+export function termOf(
   text: string,
-  result: CodeViewResult,
+  result: Pick<CodeViewResult, "symbols">,
   collectionId: string,
 ):
   | { fields: DataFieldPath[]; op: ViewComparison; value?: ViewConditionValue }

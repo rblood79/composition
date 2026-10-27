@@ -23,6 +23,10 @@ import {
   catalogCodeViewCommand,
   catalogCodeViewInverse,
 } from "../../../builder/catalogRuntime/codeView";
+import {
+  catalogCodeViewPlan,
+  catalogCodeViewSession,
+} from "../../../builder/catalogRuntime/codeViewEdit";
 import { catalogPropFollowCommand } from "../../../builder/catalogRuntime/propFollow";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import {
@@ -124,7 +128,36 @@ async function open(
   };
   const code = () =>
     generateCodeView({ reader: graph(), pageId: HOME, collections }).code;
-  return { ...h, graph, bind, rename, field, rules, code };
+  return {
+    ...h,
+    graph,
+    bind,
+    rename,
+    field,
+    rules,
+    code,
+    data: { collections: [...collections], endpoints: [] },
+  };
+}
+
+/**
+ * ADR-285 G1 — the round trip: the page's code pasted over itself (one change over the whole
+ * text, so every anchor is a paste hunk and identity goes by text) reads back with no refusal and
+ * no command — the closed vocabulary's reader covers what the generator wrote.
+ */
+function roundTrip(h: Awaited<ReturnType<typeof open>>) {
+  const session = catalogCodeViewSession(h.graph(), HOME, h.data)!;
+  const code = session.baseline.code;
+  const plan = catalogCodeViewPlan({
+    reader: h.graph().commandReader,
+    session,
+    edited: code,
+    changes: [{ fromA: 0, toA: code.length, insert: code }],
+    data: h.data,
+    newId: h.workspace.newId,
+  });
+  expect(plan.rejected).toEqual([]);
+  expect(plan.command).toBeUndefined();
 }
 
 /** The golden file: rewritten with `UPDATE_CODE_VIEW=1`, else the code must equal it. */
@@ -251,6 +284,7 @@ describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
   it("plants: search (two names) · favorite · cycle · sunlight · watering → one shared view, the Table's sort, the GridList reads it", async () => {
     const h = await buildPlants();
     golden("plants", h.code());
+    roundTrip(h);
     h.view.unmount();
   });
 
@@ -351,6 +385,7 @@ describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
     ]);
     await settle();
     golden("photos", h.code());
+    roundTrip(h);
     h.view.unmount();
   });
 
@@ -383,6 +418,7 @@ describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
       removeTargets({ targets: [{ kind: "node", id: list }] }),
     );
     golden("kanban", h.code());
+    roundTrip(h);
     h.view.unmount();
   });
 
@@ -473,6 +509,7 @@ describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
       ],
     ]);
     golden("ios-list", h.code());
+    roundTrip(h);
     h.view.unmount();
   });
 
@@ -508,6 +545,7 @@ describe("ADR-284 G6 — the acceptance set rebuilt and generated", () => {
         );
     }
     golden("emoji-picker", h.code());
+    roundTrip(h);
     h.view.unmount();
   });
 });
@@ -659,9 +697,7 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
     const code = h.result().code;
     expect(code).toContain("let users = useAsyncList({");
     expect(code).toContain("async load({signal, cursor}) {");
-    expect(code).toContain(
-      "let url = new URL('http://localhost:5199/users');",
-    );
+    expect(code).toContain("let url = new URL('http://localhost:5199/users');");
     expect(code).toContain(
       "if (gender !== 'all') url.searchParams.append('gender', String(gender));",
     );
@@ -728,9 +764,15 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
     );
     expect(inverse.rejected).toEqual([]);
     expect(inverse.edits).toMatchObject([
-      { kind: "condition", op: "notEquals", value: expect.stringMatching(/^!var\./) },
+      {
+        kind: "condition",
+        op: "notEquals",
+        value: expect.stringMatching(/^!var\./),
+      },
     ]);
-    expect(h.workspace.execute(catalogCodeViewCommand(inverse.edits))).toBeTruthy();
+    expect(
+      h.workspace.execute(catalogCodeViewCommand(inverse.edits)),
+    ).toBeTruthy();
     expect(h.result().code).toContain(
       "url.searchParams.append('gender_ne', String(gender))",
     );
@@ -741,7 +783,9 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
     const { querySerialization: _none, ...plain } = USERS.endpoint!;
     const h = await buildUsers(plain as never);
     const code = h.result().code;
-    expect(code).toContain("let res = await fetch(cursor || 'http://localhost:5199/users', {signal});");
+    expect(code).toContain(
+      "let res = await fetch(cursor || 'http://localhost:5199/users', {signal});",
+    );
     expect(code).toContain("return {items: json.items, cursor: json.next};");
     expect(code).toContain("let people = users.items");
     expect(code).toContain(".filter(item =>");

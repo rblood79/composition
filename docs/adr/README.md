@@ -11,6 +11,10 @@
 
 ---
 
+> **2026-10-27 ADR-285 Phase 1 · 2 · 3 진행**: 「코드」 패널이 CodeMirror 6 편집기가 됐다 — 코드에 `<Text>` 를 적거나 줄을 지우면 문서에 요소가 생기고 지워진다 (Undo 한 번). 사용자 결정 1 · 2 · 3 · 5 권고안. 식별은 편집 연산 (anchor), 적용 전 재생성 대조 (stage 의 코드가 편집본을 돌려줘야 적용 — 부분 적용 0), baseline revision 실행. RED 11 GREEN · golden 5 왕복 · live 3/5. 남음: 어휘 pending 11 (편집 시 거절) · 스니펫 5 · live 2 · G4 initial Δ +1,288 B (i18n — 상한 +1,000 초과).
+
+> **2026-10-27 ADR-285 Accepted · Phase 0 완료** (사용자 `/execute-adr 285` + 리뷰 round 4 승인): 생성기 emit 지점 전수 → 어휘표 freeze (breakdown §8) · 파서 실측 → 사용자 결정 4 = **lezer 하나** (CodeMirror 6 chunk 168.5 KB gz 가 이미 싣는 `@lezer/javascript` 가 golden 5 를 오류 0 으로 읽음 · `@babel/parser` +78.9 KB gz 생략 · acorn 은 `type Selection` import 에서 실패) · `@codemirror/*` 8 · `@lezer/*` 2 catalog 고정 선언 · RED 11 `it.fails` (전부 `outsideSlot` 로 실패 확인). Builder initial 착수 값 1,450,889 B gz — ADR-201 상한 1,390,000 을 이미 넘음 (이 ADR 제품 코드 0, 284 이전부터). 열림 2 (Accepted 1 · Proposed 1 — 245 보류), 완료 305, 합계 307.
+
 > **2026-10-27 ADR-275 · 276 · 278 ~ 283 Implemented** (사용자 「adr도 모두 확인은 했다」 — 남은 사용자 확인 gate 전부: 275 G6 · 276 G5 · 278 G5 · 279 G5 · 280 G5 · 281 G6 · 282 G5 · 283 G5) — 8 개 본문을 `completed/` 로 옮기고 링크를 고쳤다. 282 G4 (번들) 는 Builder initial 상한 초과 (284 이전부터, 282 몫 UNVERIFIED) 상태로, 275 G5 · 276 G4 는 번들 · preflight 기록 없이 닫는다 (각 본문 Live Exercise 에 명시). 열림 2 (Proposed 2 — 285 · 245 보류), 완료 305, 합계 307.
 
 > **2026-10-27 ADR-275 ~ 283 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」) — Accepted 8 (275 · 276 · 278 ~ 283) 모두 구현은 끝났고 마지막 사용자 확인 gate 만 남았다 (275 G6 · 276 G5 · 278 G5 · 279 G5 · 280 G5 · 281 G6 · 282 G4 · G5 · 283 G5 — 확인 기록 0). 뒤 커밋 · ADR 로 바뀐 사실을 각 본문 Status 의 「2026-10-27 현재 코드 대조」 블록에 적었다: 282 · 283 의 「미커밋」 → 커밋 해시 · contract 42 ~ 49 → 50 · Do 목록 `actions[]` (284) · 장소 참조 대상 (283) · 값 참조 `!item` · `!var` · Library page 카드 구성 (Origin 줄 · 칸 frame · 카드 번호 제거) · Local ◆ = `originOf` + `setViewChildren` · `LIBRARY_LOCKED` · Sticky · Fixed 저작 가능 · Spacing 절 삭제 · ratchet 수동 실행 (`219c1a3dc`). 옛 G5 확인용 프로젝트 「ADR278」 · 「ADR279」 는 contract 50 에서 열리지 않는다 — 확인은 새 프로젝트로. 282 G4: Builder initial 이 상한 초과 (282 몫 UNVERIFIED). 같은 날 후속: 283 live 관찰 「Library page 가 목록 밖에 남아 Publish `UNOWNED_ENTRY`」 의 원인 = Library 를 처음 열기 전에 기록된 step 의 undo (프로젝트 옛 사본이 `componentPageIds` 를 지움) → 재생이 목록 유지 + 남은 page 를 빼는 step 거부로 수리. 283 의 R4 는 「어김」 이 아니라 알린 뒤 사용자 지시. 277 은 Implemented 그대로.
@@ -492,7 +496,7 @@
 
 #### [285](285-code-view-closed-vocabulary-round-trip.md) — code view 역변환: 코드 편집을 닫힌 어휘 전체 (요소 · 변수 · 조건 · 규칙 · API) 에서 문서로
 
-- **상태**: Proposed — 2026-10-27 (사용자 `/create-adr` · 확인 항목 2 답함 — 닫힌 어휘 전체 양방향 · 284 는 G8 로 닫고 새 ADR) · 선행 [284](completed/284-data-view-filter-sort-group-query.md) Implemented (2026-10-27) — 착수 가능 · 리뷰 [round 1 ~ 4](reviews/285.md) — round 4 승인 (pending 0; h1 은 편집기 CodeMirror 6 의 편집 연산 추적 + 붙여넣기 구간의 정규화 텍스트 짝 우선 — 사용자 결정)
+- **상태**: Accepted — 2026-10-27 · Phase 0 완료 (결정 4 = lezer) · **Phase 1 · 2 · 3 진행** — 코드로 요소 추가 · 삭제 · 이동 · prop · 글자 · 이벤트 · 변수 · `filter` 항 편집 동작 (CodeMirror 편집기 · 재생성 대조로 부분 적용 0 · RED 11 GREEN · live 3/5) · 남음: 어휘 pending 11 · 스니펫 5 · live 2 · G4 Builder initial Δ +1,288 B (상한 +1,000 초과)
 - **규모**: Phase 0 (생성기 emit 전수 → 어휘표 · 파서 실측 babel vs acorn · RED 5) → Phase 1 파서 lazy + 역문법 + 의도 트리 + 왕복 불변식 → Phase 2 차이 → 기존 명령 한 트랜잭션 (추가 · 삭제 · 이동 · 변수 · 조건 · 규칙 · API, dry-run) → Phase 3 패널 (CodeMirror 6 · 닫힌 어휘 자동완성 · 스니펫 5 · 줄 안 진단 · 거절 = 줄 · 이유 · 대안 KO/EN) + live → Phase 4 번들 (Builder Δ ≤ +1 KB · Preview 0) · 문서 → G5 사용자 확인. 추정 ~19 파일. breakdown: [design/285](design/285-code-view-closed-vocabulary-round-trip-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -524,7 +528,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [285](285-code-view-closed-vocabulary-round-trip.md)                                           | Proposed 2026-10-27 — 리뷰 round 4 승인 (pending 0 · 편집기 CodeMirror 6)         | `/execute-adr 285` → Accepted (284 Implemented 2026-10-27)                                     |
+|  1   | [285](285-code-view-closed-vocabulary-round-trip.md)                                           | Accepted — Phase 1 · 2 · 3 진행 (핵심 경로 동작)                                  | 어휘 pending 11 · 스니펫 5 · live 2 · G4 Δ 초과 수리                                           |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |

@@ -1,12 +1,20 @@
 /**
  * ADR-284 Phase 6 — the code view's text writer: appends code and records the spans of the 1:1
  * positions (slots) as it writes them, so an edit inside a slot maps back to the document.
+ * ADR-285 — and the anchors: the span of each document unit the code shows (an element, its
+ * attribute, a variable, a view, a condition, a derived line), so an edit keeps its identity.
  */
-import type { CodeViewSlot, CodeViewSlotTarget } from "./types";
+import type {
+  CodeViewAnchor,
+  CodeViewAnchorTarget,
+  CodeViewSlot,
+  CodeViewSlotTarget,
+} from "./types";
 
 export class CodeWriter {
   private text = "";
   private readonly slotList: CodeViewSlot[] = [];
+  private readonly anchorList: CodeViewAnchor[] = [];
   private indent = 0;
 
   get length(): number {
@@ -27,6 +35,19 @@ export class CodeWriter {
     this.text += text;
     this.slotList.push({ start, end: this.text.length, text, target });
     return this;
+  }
+  /** Record `[start, here)` as the span of a document unit. */
+  anchor(start: number, target: CodeViewAnchorTarget): this {
+    this.anchorList.push({ start, end: this.text.length, target });
+    return this;
+  }
+  /** Write a whole line whose text (without the indent) is the span of a document unit. */
+  anchorLine(text: string, target: CodeViewAnchorTarget): this {
+    this.start();
+    const start = this.text.length;
+    this.text += text;
+    this.anchor(start, target);
+    return this.end();
   }
   /** Append a line at the current indent. */
   line(text = ""): this {
@@ -66,9 +87,15 @@ export class CodeWriter {
         start: slot.start + offset,
         end: slot.end + offset,
       });
+    for (const anchor of fragment.anchorList)
+      this.anchorList.push({
+        ...anchor,
+        start: anchor.start + offset,
+        end: anchor.end + offset,
+      });
     return this;
   }
-  done(): { code: string; slots: CodeViewSlot[] } {
-    return { code: this.text, slots: this.slotList };
+  done(): { code: string; slots: CodeViewSlot[]; anchors: CodeViewAnchor[] } {
+    return { code: this.text, slots: this.slotList, anchors: this.anchorList };
   }
 }

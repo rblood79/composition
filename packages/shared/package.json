@@ -71,6 +71,8 @@
     "@composition/upload": "workspace:*",
     "@internationalized/date": "catalog:",
     "@internationalized/number": "catalog:",
+    "@lezer/common": "catalog:",
+    "@lezer/javascript": "catalog:",
     "@react-aria/focus": "catalog:",
     "@react-aria/i18n": "catalog:",
     "@react-aria/utils": "catalog:",

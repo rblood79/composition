@@ -1792,14 +1792,19 @@ export class CatalogCompositionRoot {
   /**
    * One user action (ADR-248 Phase 4b): the command plans on the graph as it is and commits at
    * that revision. If the graph moved in between (REVISION_CONFLICT — a plan made before an await,
-   * or an edit a consumer caused), the command plans once more on the new graph.
+   * or an edit a consumer caused), the command plans once more on the new graph — unless the
+   * caller names the revision it planned against (`expectedRevision`, ADR-285 Decision 4: a code
+   * edit read against its session's baseline), which then commits there or not at all.
    */
-  execute(command: CatalogCommand): {
+  execute(
+    command: CatalogCommand,
+    options: { expectedRevision?: number } = {},
+  ): {
     plan: CatalogCommandPlan;
     result: CatalogTransactionResult;
   } {
     for (let attempt = 0; ; attempt++) {
-      const revision = this.runtime.graph.revision;
+      const revision = options.expectedRevision ?? this.runtime.graph.revision;
       const plan = command(this.runtime.graph.commandReader);
       try {
         return {
@@ -1814,6 +1819,7 @@ export class CatalogCompositionRoot {
       } catch (error) {
         if (
           attempt === 0 &&
+          options.expectedRevision === undefined &&
           error instanceof CatalogValidationError &&
           error.code === "REVISION_CONFLICT"
         )

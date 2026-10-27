@@ -18,6 +18,14 @@
     "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "catalog:",
+    "@codemirror/commands": "catalog:",
+    "@codemirror/lang-javascript": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@codemirror/lint": "catalog:",
+    "@codemirror/search": "catalog:",
+    "@codemirror/state": "catalog:",
+    "@codemirror/view": "catalog:",
     "@composition/publish": "workspace:*",
     "@composition/rendering": "workspace:*",
     "@composition/sample-data": "workspace:*",

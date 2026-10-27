@@ -691,8 +691,14 @@ export class CatalogWorkspace {
   private readonly executeListeners = new Set<
     (result: CatalogTransactionResult) => void
   >();
-  /** One user action; its `selectAfter` nodes become the selection (their first drawn position). */
-  execute(command: CatalogCommand): {
+  /**
+   * One user action; its `selectAfter` nodes become the selection (their first drawn position).
+   * `expectedRevision`: commit at that revision or throw `REVISION_CONFLICT` (no re-plan).
+   */
+  execute(
+    command: CatalogCommand,
+    options: { expectedRevision?: number } = {},
+  ): {
     plan: CatalogCommandPlan;
     result: CatalogTransactionResult;
   } {
@@ -715,6 +721,7 @@ export class CatalogWorkspace {
             : command,
         ),
       ),
+      options,
     );
     this.afterStep(executed.result);
     if (executed.plan.selectAfter)

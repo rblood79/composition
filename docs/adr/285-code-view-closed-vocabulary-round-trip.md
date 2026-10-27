@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-10-27
+Accepted — 2026-10-27 (사용자 `/execute-adr 285` + [reviews/285.md](reviews/285.md) Round 4 이슈 0 · pending 0 · CRITICAL/HIGH 전부 fixed). Proposed — 2026-10-27.
+
+> **Phase 1 · 2 · 3 진행 (2026-10-27) — 핵심 경로 동작, 어휘 잔여 11 · G3 일부 · G4 열림**. 사용자 결정 1 · 2 · 3 · 5 = 권고안 (같은 날 질문 — 새 요소 = 팔레트 원본 · 맨글자 Text / 모르는 태그 거절 · 삭제는 참조와 함께 · 줄을 남긴 채 이름만 고치면 rename). 구현: 생성기 anchor 표 (`CodeViewResult.anchors` — 요소 · 속성 · 글자 · 행 · 변수 · 보기 · 조건 · 파생 줄) · lezer 파서 (`codeView/inverse/parse.ts`) · identity (`inverse/identity.ts` — 편집 연산 결말 · 정규화 텍스트 짝 먼저 · 1:1 수정 대응 · 모호 거절, 리뷰 probe 12 단언) · 차이 → 명령 (`catalogRuntime/codeViewEdit.ts` — 요소 추가 · 삭제 · 이동 · prop · 글자 · 핸들러 (Set state · toast · navigate) · 변수 추가 · rename · 시작값 · 삭제 · 내장 보기 `filter` 항) · **재생성 대조** (명령을 stage 에 적용한 문서의 코드가 편집한 문장 · 요소 · 속성을 그대로 돌려줘야 적용 — 아니면 그 줄 거절, 부분 적용 0; 의도 트리 대신 이 대조가 왕복 불변식을 편집마다 집행) · baseline revision 실행 (`execute(command, {expectedRevision})` — 재계획 없음) · CodeMirror 6 편집기 (`panels/codeView/CodeEditor.tsx`, lazy chunk · 닫힌 어휘 자동완성 · 300 ms 줄 안 진단) · 패널 (편집 세션 · page 별 초안 · 거절 = 줄 · 이유 · 대안 KO/EN · 다시 불러오기). 게이트: RED 11 → GREEN · golden 5 왕복 (통째 붙여넣기 → 거절 0 · 명령 0) · 어휘표 정적 테스트 (`vocabulary.ts` — pending 11 고정, 줄기만) · live (5174, 새 프로젝트): 빈 page 에 `<Text>Text</Text>` 입력 → Apply → Canvas 에 Text · 코드 재생성 / `doSomething();` → 줄 안 밑줄 + 거절 목록 (이유 · 대안) · 적용 0 / Text 줄 삭제 → 적용 → Undo 한 번에 복원 · 콘솔 오류 0. **남은 것**: 어휘 pending 11 (목록 선택 변수 · 요청 매개변수 · 정렬 · 「또는」 묶음 · 묶기 · 집계 · dnd · 값 조건 prop · 행 필드 글자 · 목록 명령 Do — 편집하면 재생성 대조가 거절, 그대로면 왕복 통과) · 스니펫 5 · G3 live 2 (「검색 추가」 코드 → Preview 거르기 · 편집 중 Canvas 변경 → 다시 불러오기 — 둘 다 unit 통과) · G4 Builder initial Δ **+1,288 B** (상한 +1,000 초과 — 늘어난 i18n 문자열, CodeMirror · lezer · 역문법은 initial 밖).
+
+> **Phase 0 완료 (2026-10-27, G0)** — 어휘표 freeze (breakdown §8) · 파서 · 편집기 실측 → **사용자 결정 4 = lezer 하나** (같은 날 질문: CodeMirror chunk 168.5 KB gz 안의 `@lezer/javascript` 46.9 KB 가 golden 5 를 오류 0 으로 읽고 역문법 노드 (JSX 속성 · 타입 인자 · 화살표 · 템플릿) 를 다 냄 · `@babel/parser` +78.9 KB gz 는 추가하지 않음 · acorn+jsx 는 plants 의 `type Selection` import 에서 SyntaxError) · 의존 선언 (catalog 고정 — `@codemirror/*` 8 → Builder, `@lezer/common` · `@lezer/javascript` → shared) · RED 11 `it.fails` (`adr285CodeViewRoundTrip.test.tsx` — ① ~ ⑧, ⑥ 은 4 경우, 전부 기대 동작 부재 `outsideSlot` 로 실패 확인) · probe: `composeCommands` 는 한 command 가 던지면 전체 plan 중단 (커밋 0) · `CatalogCompositionRoot.execute` 는 `REVISION_CONFLICT` 에 한 번 재계획한다 → Phase 2 는 이 재시도를 거치지 않는 baseline revision 실행이 필요 (Decision 4). Builder initial 착수 값 1,450,889 B gz (HEAD `7037d45f5`, 제품 코드 변경 0 — ADR-201 상한 1,390,000 을 이미 넘음, 284 이전부터의 초과 · 이 ADR 몫 아님).
 
 - 사용자 요청: `/create-adr` (2026-10-27)
 - 방향을 정한 사용자 원문 (2026-10-27): 빈 page 의 「코드」 패널에서 `<Text>Text</Text>` 를 하나 더 적고 Apply → 「This code does not map back to the document — nothing was applied. Line 7 — a change outside the marked parts」 → 「code 에서 edit 시에 오류발생한다」 → 「B. 코드 편집으로 요소 추가 · 삭제까지, 스크립트까지 동일하게 처리」.
@@ -92,7 +96,7 @@ Proposed — 2026-10-27
 
 **대안 B.** 「코드」 패널의 편집을 자리 5 종에서 **생성기 어휘 전체** 로 넓힌다 — 요소 (추가 · 삭제 · 이동 · 글자 · prop) · 변수 (추가 · 삭제 · 이름 · 시작값) · 보기 (조건 추가 · 삭제 · 비교 · 값 · 「또는」 묶음 · 건너뜀 guard · 정렬 · 묶기 · 집계) · 규칙 (When · Do 목록 — `setX` · list 명령 · toast · endpoint 호출) · API (`useAsyncList` 의 요청 매개변수 · 본문 · 응답 경로). 코드는 파싱만 하고, 생성기 어휘의 역문법으로 「의도 트리」 를 만들어 현재 문서와의 차이만 기존 명령으로 적용한다.
 
-1. **파서**: `@babel/parser` (JSX + TypeScript 플러그인) 를 `packages/shared` 의존으로 선언하고 Builder 의 lazy chunk 에서만 부른다. acorn 은 생성 코드의 타입 주석 (`useState<SortDescriptor>()` · `useState<Selection>(…)`) 을 못 읽어 부적합, typescript 는 크기로 부적합.
+1. **파서** (사용자 결정 4 — Phase 0 실측 뒤 2026-10-27): **`@lezer/javascript`** (`dialect: 'jsx ts'`) 하나 — 편집기 (CodeMirror 6) 가 이미 싣는 파서라 추가 번들 0, 편집기와 Apply 가 같은 구문 트리를 읽는다. 오류는 던지지 않고 오류 노드로 표시되므로 역문법이 오류 노드 = `unparsable` 거절로 읽는다. `@babel/parser` (+78.9 KB gz) 는 추가하지 않는다. acorn 은 생성 코드의 TS 구문 (`import {type Selection}` · `useState<SortDescriptor>()`) 을 못 읽어 부적합, typescript 는 크기로 부적합.
 2. **역문법 = 어휘표 하나**: 생성기의 emit 지점마다 역문법 read 한 줄이 짝으로 있는 표 (breakdown §1a) — 생성기 · 역문법 · 판정 스크립트의 사실 추출기가 같은 표를 읽는다. 표에 없는 AST 노드는 거절.
 3. **identity 는 내용과 분리 — 편집기가 어느 범위를 고쳤는지 알려 준다** (리뷰 round 1 · 2 h1): 생성기가 코드와 함께 **anchor 표** (`CodeViewResult.anchors` — JSX 요소 · 변수 선언 · `filter` 항 · 정렬 · 규칙 핸들러 · `useAsyncList` 블록 · 파생 구문마다 「텍스트 범위 → 문서 id / 주소」) 를 낸다. 편집기 (CodeMirror 6) 는 anchor 를 **편집 연산마다 따라가는 범위** (`RangeSet` · `mapPos` · 통째 삭제 추적) 로 들고 있어, Apply 때 각 anchor 의 결말을 **추측 없이** 안다 — 범위가 남아 있으면 (안의 글자 · prop · 자식이 바뀌었어도) **같은 id · 수정**, 범위가 통째로 지워졌으면 **삭제**, anchor 밖에 입력된 텍스트는 **추가**. 줄 단위 LCS 는 쓰지 않는다. 한 줄짜리 `<Text>A</Text>` 안에서 A 를 B 로 치면 anchor 가 남아 수정이고 (id · 스타일 · 참조 보존), 같은 코드 둘 중 둘째 줄을 지우면 둘째 anchor 만 지워진다 (tie-break 없음). **붙여넣기로 anchor 를 통째로 덮은 구간** (선택 → 붙여넣기 · 전체 교체) 은 편집기가 「이 anchor 들이 지워지고 이 텍스트가 들어왔다」 만 알므로 그 구간 안에서 대응을 하되 **순서는 identity 의 근거가 아니다** (리뷰 round 3 h1). 차례 — ① **정규화 JSX 가 같은 짝 먼저**: 지워진 anchor 의 baseline 정규화 텍스트와 새 요소의 정규화 텍스트가 같으면 같은 id, 자리가 달라졌으면 `moveNodes` — 빨간 `<Text>A</Text>` · 파란 `<Text>B</Text>` 두 줄을 골라 B · A 순서로 붙여넣으면 파란 B · 빨간 A 가 이동한다 (빨간 B · 파란 A 가 아니다). 같은 텍스트가 양쪽에 같은 수면 순서대로 짝짓고 (코드 결과가 같아 구별할 것이 없다), 수가 다르고 그 모양의 후보 (그 부모의 **같은 정규화 모양 요소 전부** — 이미 남아 있는 anchor 포함) 의 문서 상태 (스타일 · 규칙 · 자식 · 참조) 가 다르면 `ambiguousIdentity`. ② 남은 지워진 anchor 와 남은 새 요소만 **수정 대응**: 그 부모 안에서 종류가 같은 남은 것이 **양쪽 다 하나** (1:1) 일 때 같은 id · 수정. anchor 쪽이 둘 이상이면 문서 상태가 같을 때만 순서대로, 다르면 `ambiguousIdentity`; 새 요소 쪽이 둘 이상 (한 줄을 두 줄로 교체 — 어느 줄이 원래 것인지 코드가 말하지 않음) 도 `ambiguousIdentity` 로 전체 적용 0 (「붙여넣기로 바뀐 구간에 구별되지 않는 요소가 있습니다 — 그 줄만 고치세요」). ③ 남은 것은 삭제 · 추가. 부모 간 이동은 ① 과 같은 규칙 — 「통째 삭제된 anchor」 와 「다른 곳의 추가 텍스트」 가 정규화 텍스트로 1:1 일 때 `moveNodes`, N:1 은 후보 문서 상태가 같을 때만. 어느 단계든 한 요소에 문서 상태가 다른 후보가 둘 이상이면 거절한다 — 임의로 하나를 고르지 않고, 모호성 검사를 수 감소에만 두지 않는다. 코드에 `id` prop 은 내지 않는다 (코드 = 레퍼런스 모양, 10-26). 변수 · 조건 · 규칙 · 파생 구문의 anchor 도 같은 규칙.
 4. **편집 세션 = baseline** (리뷰 round 1 h2): 「코드 고치기」 진입 때 `{projectId, pageId, baselineRevision, baselineResult (code · anchors · intent), draft}` 를 잡는다. 차이는 **baseline 의 의도 트리 ↔ 편집본** 으로 계산하고, Apply 직전 (lazy parse 가 끝난 뒤) 현재 문서의 `pageId` · revision 이 baseline 과 다르면 적용 0 — 「편집을 시작한 뒤 문서가 바뀌었습니다 (Canvas 편집 · 페이지 전환). 초안은 남아 있습니다 — 「다시 불러오기」 로 지금 코드와 나란히 봅니다」. 3-way 자동 병합은 하지 않는다. 트랜잭션은 `baselineRevision` 을 기대 revision 으로 실행해 (`REVISION_CONFLICT`) 이중으로 막는다 — 실행 직전 revision 을 새로 잡는 재시도 경로는 쓰지 않는다. 페이지를 바꾸면 그 page 의 초안은 보관만 하고 다른 page 에 적용하지 않는다.
@@ -106,13 +110,13 @@ Proposed — 2026-10-27
 
 ### 사용자 결정 5 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
 
-| #   | 항목                                                                                 | 권고                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| 1   | 코드에 적은 새 요소 (`<Text>`, `<Button>` …) 의 원본                                 | 팔레트와 같은 기본 origin instance (Design 기본값 · 자식 부품 포함). 코드에 적은 prop · 글자는 그 위에 덮어쓴다             |
-| 2   | JSX 안 맨글자 (`<div>안녕</div>`) · 모르는 태그 (`<span>`)                           | 맨글자는 Text 노드로 받는다 · 모르는 태그는 거절 (대안 문구: 팔레트 이름 목록)                                              |
-| 3   | 요소 삭제가 그 요소를 읽는 규칙 · 변수 · 파생 보기를 함께 지우는가                   | 함께 지운다 (`removeWithReferrers` — Canvas 삭제와 같은 결과 · Undo 한 번). 거절하지 않는다                                 |
-| 4   | 파서 의존 추가 (`@babel/parser`, lazy ~100 KB gz)                                    | 추가 (판정 근거: 생성 코드의 TS 타입 주석). 대안 acorn+jsx 는 타입 주석 때문에 생성 코드 자체를 못 읽는다                   |
-| 5   | 변수 이름 바꾸기 vs 「지우고 새로 만들기」 의 구분 (코드에서 이름만 바뀐 `useState`) | 같은 자리 (선언 순서) · 같은 타입 · 같은 시작값이면 이름 바꾸기 (규칙 · 조건이 따라감), 아니면 삭제 + 추가. 거절하지 않는다 |
+| #   | 항목                                                                                 | 권고                                                                                                                         |
+| --- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 코드에 적은 새 요소 (`<Text>`, `<Button>` …) 의 원본                                 | 팔레트와 같은 기본 origin instance (Design 기본값 · 자식 부품 포함). 코드에 적은 prop · 글자는 그 위에 덮어쓴다              |
+| 2   | JSX 안 맨글자 (`<div>안녕</div>`) · 모르는 태그 (`<span>`)                           | 맨글자는 Text 노드로 받는다 · 모르는 태그는 거절 (대안 문구: 팔레트 이름 목록)                                               |
+| 3   | 요소 삭제가 그 요소를 읽는 규칙 · 변수 · 파생 보기를 함께 지우는가                   | 함께 지운다 (`removeWithReferrers` — Canvas 삭제와 같은 결과 · Undo 한 번). 거절하지 않는다                                  |
+| 4   | 파서 의존 추가 (`@babel/parser`, lazy ~100 KB gz)                                    | **확정 (2026-10-27): lezer 하나** — 실측 뒤 권고를 바꿨다 (CodeMirror 의 lezer 가 생성 코드를 읽음 · babel +78.9 KB gz 생략) |
+| 5   | 변수 이름 바꾸기 vs 「지우고 새로 만들기」 의 구분 (코드에서 이름만 바뀐 `useState`) | 같은 자리 (선언 순서) · 같은 타입 · 같은 시작값이면 이름 바꾸기 (규칙 · 조건이 따라감), 아니면 삭제 + 추가. 거절하지 않는다  |
 
 ## Risks
 
@@ -153,6 +157,6 @@ Proposed — 2026-10-27
 
 ### Negative
 
-- `@babel/parser` 의존 추가 (lazy ~100 KB gz, Builder 전용) · CodeMirror 6 패키지 (lazy ≈130 KB gz 추정 — Phase 0 실측) · Phase 0 까지는 파서 둘 (편집기 lezer · 역문법 babel).
+- CodeMirror 6 패키지 (lazy 168.5 KB gz 실측 — lezer 파서 포함, Builder 전용). 역문법은 lezer 의 구체 구문 트리 (CST) 를 읽어 ESTree 보다 코드가 길다 (결정 4 의 대가).
 - 생성기에 어휘를 더할 때마다 역문법 · 판정 · 어휘표가 함께 바뀐다 — 한 항목이 세 곳.
 - 코드에 없는 것 (스타일 · 레이아웃 · 슬롯) 은 여전히 코드로 못 고친다 — 거절 문구가 Design 패널로 안내한다. 이것은 10-26 결정 (코드 = 데이터 층의 RAC 코드) 의 결과이지 결함이 아니다.

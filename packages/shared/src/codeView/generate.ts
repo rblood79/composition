@@ -57,6 +57,7 @@ import {
 } from "../interactions/conceptState";
 import { CodeWriter } from "./writer";
 import type {
+  CodeViewAnchorTarget,
   CodeViewCollection,
   CodeViewInput,
   CodeViewResult,
@@ -284,15 +285,25 @@ class Generator {
     this.writeJsx(jsx);
     // (The filter functions · collator are known once the views are written.)
     if (this.filterFns.size)
-      body.line(
+      body.anchorLine(
         `let {${[...this.filterFns].sort().join(", ")}} = useFilter({sensitivity: 'base'});`,
+        { kind: "derived", key: "useFilter:base" },
       );
     for (const [sensitivity, fns] of this.sensitiveFns)
-      body.line(
+      body.anchorLine(
         `let {${[...fns].map(([op, name]) => `${op}: ${name}`).join(", ")}} = useFilter({sensitivity: '${sensitivity}'});`,
+        { kind: "derived", key: `useFilter:${sensitivity}` },
       );
-    if (this.collator) body.line("let collator = useCollator();");
-    if (this.navigate) body.line("let navigate = useNavigate();");
+    if (this.collator)
+      body.anchorLine("let collator = useCollator();", {
+        kind: "derived",
+        key: "collator",
+      });
+    if (this.navigate)
+      body.anchorLine("let navigate = useNavigate();", {
+        kind: "derived",
+        key: "navigate",
+      });
     body.append(views);
     body.append(dnd);
     body.line();
@@ -305,7 +316,10 @@ class Generator {
     this.writeImports(out);
     out.line();
     if (this.toasts) {
-      out.line("const toasts = new UNSTABLE_ToastQueue<{title: string}>();");
+      out.anchorLine(
+        "const toasts = new UNSTABLE_ToastQueue<{title: string}>();",
+        { kind: "derived", key: "toasts" },
+      );
       out.line();
     }
     out.line(
@@ -517,9 +531,13 @@ class Generator {
       const names = [...this.imports.get(from)!].sort();
       const types = names.filter((name) => name.startsWith("type "));
       const values = names.filter((name) => !name.startsWith("type "));
-      out.line(`import {${[...values, ...types].join(", ")}} from '${from}';`);
+      out.anchorLine(
+        `import {${[...values, ...types].join(", ")}} from '${from}';`,
+        { kind: "derived", key: `import:${from}` },
+      );
     }
-    for (const line of this.dataImports) out.line(line);
+    for (const line of this.dataImports)
+      out.anchorLine(line, { kind: "derived", key: `import:${line}` });
   }
 
   /* ── state ── */
@@ -531,7 +549,9 @@ class Generator {
     for (const variable of states) {
       if (variable.fromList) continue;
       const { entry } = variable;
-      out.start().write("let [");
+      out.start();
+      const from = out.length;
+      out.write("let [");
       const isVariable = !entry.id.startsWith("capability:");
       if (isVariable)
         out.slot(variable.name, { kind: "variableName", variableId: entry.id });
@@ -548,7 +568,15 @@ class Generator {
       if (initial && isVariable)
         out.slot(initial, { kind: "variableDefault", variableId: entry.id });
       else out.write(initial);
-      out.write(");").end();
+      out.write(");");
+      out
+        .anchor(
+          from,
+          isVariable
+            ? { kind: "variable", variableId: entry.id }
+            : { kind: "derived", key: `state:${entry.id}` },
+        )
+        .end();
     }
   }
 
@@ -590,22 +618,28 @@ class Generator {
         this.dataImports.push(`import ${code.name} from '${file}';`);
         continue;
       }
+      const derived = {
+        kind: "derived",
+        key: `collection:${code.id}`,
+      } as const;
       if (code.hook === "list") {
         const initial = `${code.name}Data`;
         this.dataImports.push(`import ${initial} from '${file}';`);
         this.import("react-aria-components/useListData", "useListData");
+        const from = out.length;
         out.line(`let ${code.name} = useListData({`);
         out
           .in()
           .line(`initialItems: ${initial},`)
           .line(`getKey: item => item.${key}`)
           .out();
-        out.line("});");
+        out.line("});").anchor(from, derived);
         // (Its named selection reads the list's own — `removeSelectedItems` clears it.)
         for (const variable of this.variables.values())
           if (variable.fromList === code.name)
-            out.line(
+            out.anchorLine(
               `let {selectedKeys: ${variable.name}, setSelectedKeys: ${variable.setter}} = ${code.name};`,
+              { kind: "variable", variableId: variable.entry.id },
             );
         continue;
       }
@@ -613,6 +647,7 @@ class Generator {
       const url = endpoint?.url ?? "";
       const served = this.served.get(code.id);
       this.import("react-aria-components/useAsyncList", "useAsyncList");
+      const from = out.length;
       out.line(`let ${code.name} = useAsyncList({`);
       out.in().line("async load({signal, cursor}) {").in();
       if (served) this.writeRequest(out, code, served, url);
@@ -635,13 +670,14 @@ class Generator {
         `return {items: ${read(endpoint?.dataPath)}${endpoint?.cursorPath ? `, cursor: ${read(endpoint.cursorPath)}` : ""}};`,
       );
       out.out().line("}").out();
-      out.line("});");
+      out.line("});").anchor(from, derived);
       if (served) {
         const dependencies = this.servedDependencies(served);
         if (dependencies.length) {
           this.import("react", "useEffect");
-          out.line(
+          out.anchorLine(
             `useEffect(() => { ${code.name}.reload(); }, [${dependencies.join(", ")}]);`,
+            { kind: "derived", key: `effect:${code.id}` },
           );
         }
       }
@@ -829,26 +865,35 @@ class Generator {
     const value = this.conditionValue(condition.value);
     const guard = this.guardOf(condition, value);
     const lead = guard ? `if (${guard}) ` : "";
+    const anchor = {
+      kind: "condition",
+      owner: view.owner,
+      conditionId: condition.id,
+    } as const;
     const text = (code: string) =>
       /^'.*'$|^-?\d/.test(code) ? code : `String(${code})`;
     if (condition.op === "between") {
       const cells = Array.isArray(condition.value) ? condition.value : [];
       [suffixes.gte, suffixes.lte].forEach((suffix, index) => {
         const cell = this.conditionValue(cells[index]);
-        out.line(
+        out.anchorLine(
           `${lead}url.searchParams.append(${literal(`${key}${suffix}`)}, ${text(cell.code)});`,
+          anchor,
         );
       });
       return;
     }
     const suffix = suffixes[condition.op] ?? "";
     if (condition.op === "oneOf" || Array.isArray(condition.value)) {
-      out.line(
+      out.anchorLine(
         `${lead}for (let x of ${value.code}) url.searchParams.append(${literal(`${key}${suffix}`)}, String(x));`,
+        anchor,
       );
       return;
     }
-    out.start().write(`${lead}url.searchParams.append(`);
+    out.start();
+    const from = out.length;
+    out.write(`${lead}url.searchParams.append(`);
     out.slot(`${literal(`${key}${suffix}`)}, ${text(value.code)}`, {
       kind: "condition",
       owner: view.owner,
@@ -856,7 +901,7 @@ class Generator {
       collectionId: view.collectionId,
       suffixes,
     });
-    out.write(");").end();
+    out.write(");").anchor(from, anchor).end();
   }
 
   /** The view's sort as parameters (`_sort` · `_order`); a literal sort's field is a position. */
@@ -987,7 +1032,9 @@ class Generator {
         query = this.doc.node(code.owner.nodeId)!.binding!.view!;
         source = this.rowsOf(code.collectionId);
       }
+      const from = out.length;
       this.writeView(out, code, query, source, key);
+      out.anchor(from, { kind: "view", owner: code.owner });
     };
     for (const key of this.views.keys()) write(key);
   }
@@ -1325,7 +1372,11 @@ class Generator {
       collectionId: view.collectionId,
     });
     if (prefix.length) out.write(")");
-    return out;
+    return out.anchor(0, {
+      kind: "condition",
+      owner: view.owner,
+      conditionId: condition.id,
+    });
   }
 
   /** The value that skips the condition, as `v === …` terms (useFilter: an empty search matches). */
@@ -1509,6 +1560,7 @@ class Generator {
           ).filter(Boolean) as string[],
         ),
       ].map((id) => this.rowSources.get(id)?.name ?? id);
+      const from = out.length;
       out.line(`let {dragAndDropHooks: ${name}} = useDragAndDrop({`);
       out.in();
       if (draggable)
@@ -1548,7 +1600,10 @@ class Generator {
             this.writeAction(out, action, { node, trigger, fields: true });
         out.out().line("},");
       }
-      out.out().line("});");
+      out
+        .out()
+        .line("});")
+        .anchor(from, { kind: "derived", key: `dnd:${node.id}` });
     }
   }
 
@@ -1852,12 +1907,19 @@ class Generator {
     if (type === "frame" || (type === "Group" && !node.props["aria-label"]))
       type = type === "frame" ? "div" : type;
     if (type !== "div") this.import("react-aria-components", type);
-    const attributes: CodeWriter[] = [];
-    const attribute = (name: string, value: string | CodeWriter) => {
+    const attributes: { part: CodeWriter; target: CodeViewAnchorTarget }[] = [];
+    const attribute = (
+      name: string,
+      value: string | CodeWriter,
+      source: "prop" | "state" | "dnd" = "prop",
+    ) => {
       const part = new CodeWriter().write(`${name}=`);
       if (typeof value === "string") part.write(value);
       else part.append(value);
-      attributes.push(part);
+      attributes.push({
+        part,
+        target: { kind: "attribute", nodeId: node.id, name, source },
+      });
     };
     let text: string | undefined;
     for (const [prop, write] of Object.entries(node.props)) {
@@ -1882,25 +1944,26 @@ class Generator {
         state.prop === "selectedKeys" && !variable.selection
           ? `{[${variable.name}]}`
           : `{${variable.name}}`,
+        "state",
       );
     }
     for (const variable of this.variables.values())
       if (variable.entry.source?.nodeId === node.id) {
         const callback = callbackOf(type, variable.entry.source.prop);
-        attribute(variable.entry.source.prop, `{${variable.name}}`);
+        attribute(variable.entry.source.prop, `{${variable.name}}`, "state");
         if (
           callback &&
           !(this.rules.get(node.id) ?? []).some(
             (rule) => rule.trigger === callback,
           )
         )
-          attribute(callback, `{${variable.setter}}`);
+          attribute(callback, `{${variable.setter}}`, "state");
       }
     for (const state of this.ruleStates.values())
       if (state.entry.ownerId === node.id) {
         const prop = (state.entry.id as string).split("\u0000")[1]!;
         if (prop === "isVisible") continue;
-        attribute(prop, `{${state.name}}`);
+        attribute(prop, `{${state.name}}`, "state");
         const callback = callbackOf(type, prop);
         if (
           callback &&
@@ -1908,7 +1971,7 @@ class Generator {
             (rule) => rule.trigger === callback,
           )
         )
-          attribute(callback, `{${state.setter}}`);
+          attribute(callback, `{${state.setter}}`, "state");
       }
     const byTrigger = new Map<string, InteractionEntry[]>();
     for (const rule of this.rules.get(node.id) ?? [])
@@ -1940,11 +2003,20 @@ class Generator {
       const name = new CodeWriter().slot(trigger, slotTarget);
       const part = new CodeWriter().append(name).write("=");
       part.write(`{${value}}`);
-      attributes.push(part);
+      attributes.push({
+        part,
+        target: {
+          kind: "attribute",
+          nodeId: node.id,
+          name: trigger,
+          source: "handler",
+          interactionIds: rules.map((rule) => rule.id),
+        },
+      });
       void handler;
     }
     const dnd = this.dndNames.get(node.id);
-    if (dnd) attribute("dragAndDropHooks", `{${dnd}}`);
+    if (dnd) attribute("dragAndDropHooks", `{${dnd}}`, "dnd");
     const binding = node.binding;
     const children = node.children;
     const visible = [...this.ruleStates.values()].find(
@@ -1953,24 +2025,47 @@ class Generator {
         (state.entry.id as string).endsWith("\u0000isVisible"),
     );
     out.start();
+    const from = out.length;
     if (visible) out.write(`{${visible.name} && `);
     out.write(`<${type}`);
-    for (const part of attributes) out.write(" ").append(part);
+    for (const { part, target } of attributes) {
+      out.write(" ");
+      const at = out.length;
+      out.append(part).anchor(at, target);
+    }
+    const text$ = (code: string) => {
+      const at = out.length;
+      out.write(code).anchor(at, { kind: "text", nodeId: node.id });
+    };
     if (binding) {
       const rows = this.boundRows(node, binding);
       const item = this.itemType(type);
       if (item === undefined) {
         // (A keyed binding — one row: its text and the descendants read its fields.)
-        if (text !== undefined && !children.length)
-          out.write(">").write(this.textCode(text, rows)).write(`</${type}>`);
-        else {
+        if (text !== undefined && !children.length) {
+          out.write(">");
+          text$(this.textCode(text, rows));
+          out.write(`</${type}>`);
+        } else {
           out.write(">").end().in();
-          if (text !== undefined) out.line(this.textCode(text, rows));
+          if (text !== undefined)
+            out.anchorLine(this.textCode(text, rows), {
+              kind: "text",
+              nodeId: node.id,
+            });
           for (const child of children) this.writeNode(out, child, rows);
           out.out().start().write(`</${type}>`);
         }
       } else {
-        out.write(` items={${rows}}>`).end().in();
+        out.write(" ");
+        const at = out.length;
+        out.write(`items={${rows}}`).anchor(at, {
+          kind: "attribute",
+          nodeId: node.id,
+          name: "items",
+          source: "items",
+        });
+        out.write(">").end().in();
         this.import("react-aria-components", item);
         const key =
           resolveField(this.doc.collection(binding.collectionId)?.schema, "id")
@@ -1987,8 +2082,9 @@ class Generator {
         const labelKey = label
           ? this.doc.fieldKey(binding.collectionId, label)
           : key;
-        out.line(
+        out.anchorLine(
           `{item => <${item} id={item.${key}} textValue={String(${member("item", labelKey)})}>{${member("item", labelKey)}}</${item}>}`,
+          { kind: "rows", nodeId: node.id },
         );
         out.out().start().write(`</${type}>`);
       }
@@ -1996,17 +2092,21 @@ class Generator {
     else {
       out.write(">");
       if (text !== undefined && !children.length)
-        out.write(this.textCode(text, row));
+        text$(this.textCode(text, row));
       else {
         out.end().in();
-        if (text !== undefined) out.line(this.textCode(text, row));
+        if (text !== undefined)
+          out.anchorLine(this.textCode(text, row), {
+            kind: "text",
+            nodeId: node.id,
+          });
         for (const child of children) this.writeNode(out, child, row);
         out.out().start();
       }
       out.write(`</${type}>`);
     }
     if (visible) out.write("}");
-    out.end();
+    out.anchor(from, { kind: "node", nodeId: node.id }).end();
   }
 
   /** A list's item component (undefined = not a collection — a keyed binding's container). */

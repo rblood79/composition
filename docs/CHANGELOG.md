@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-285 Phase 1 · 2 · 3 — 「코드」 패널에서 코드를 고치면 문서가 바뀐다] - 2026-10-27
+
+### Added
+
+- **「코드」 패널 편집 = CodeMirror 6 편집기** (사용자 보고 「code 에서 edit 시에 오류발생한다」 — 빈 page 에 `<Text>Text</Text>` 를 적으면 「a change outside the marked parts」 로 거절되던 것): 「코드 고치기」 로 편집을 시작하고 Apply 하면 요소 추가 (팔레트와 같은 원본) · 삭제 (읽는 이벤트 · 파생 보기와 함께) · 이동 (잘라 붙이기 · 순서 바꿔 붙여넣기 — 스타일 · 이벤트 보존) · prop · 글자 · 이벤트 (`onX={setX}` · Set state · toast · navigate) · 변수 (`useState` 추가 · 이름 · 시작값 · 삭제) · 목록 보기의 `filter` 항이 문서에 반영된다 (Undo 한 번). 자동완성은 팔레트 이름 · 변수 · setter · 데이터 · 필드만, 받지 못하는 줄은 입력 중 밑줄 + 이유 · 대안.
+- **부분 적용 0**: 적용 전에 명령을 미리 실행한 문서의 코드가 편집본을 그대로 돌려주는지 대조한다 — 하나라도 다르면 그 줄 · 이유 · 대안 (KO/EN) 을 보이고 아무것도 바꾸지 않는다. 편집을 시작한 뒤 Canvas 에서 문서가 바뀌면 적용하지 않고 「다시 불러오기」 를 낸다 (초안 보존).
+- 아직 코드로 고칠 수 없는 어휘 11 (정렬 · 묶기 · 집계 · 드래그 · 값 조건 prop · 목록 명령 Do …) 은 고치면 거절, 그대로 두면 통과 (`vocabulary.ts` pending).
+  - 위치: `packages/shared/src/codeView/{generate,writer,types,vocabulary}.ts` · `codeView/inverse/{parse,identity}.ts` · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts` · `panels/codeView/{CodeEditor,CatalogCodeViewPanel}.tsx` · `catalog/runtime/compositionRoot.ts` (`execute` 의 `expectedRevision`) · `i18n/translations.ts`
+
+## [ADR-285 Phase 0 — code view 역변환 착수 · 파서 결정] - 2026-10-27
+
+### Changed
+
+- **ADR-285 Accepted · Phase 0 (G0)**: 코드 편집을 닫힌 어휘 전체로 넓히는 작업의 착수 측정. 생성기 emit 지점 전수를 어휘표로 freeze 하고, 파서를 실측해 사용자 결정 4 = **lezer 하나** — CodeMirror 6 이 싣는 `@lezer/javascript` 가 생성 코드 golden 5 를 오류 0 으로 읽어 `@babel/parser` (+78.9 KB gz) 를 더하지 않는다 (acorn 은 `import {type Selection}` 에서 실패). 의존 `@codemirror/*` 8 (Builder) · `@lezer/common` · `@lezer/javascript` (shared) 를 catalog 고정 버전으로 선언 (아직 import 0 — Builder initial 무변경). RED 11 (`adr285CodeViewRoundTrip.test.tsx` — 요소 추가 · 「검색 추가」 코드 · 조건 항 · 삭제 · 순서 · identity 4 · 편집 중 Canvas 변경 · 파생 줄) 이 오늘의 「자리 밖」 거절을 고정.
+  - 위치: `pnpm-workspace.yaml` · `apps/builder/package.json` · `packages/shared/package.json` · `apps/builder/src/preview/catalog/__tests__/adr285CodeViewRoundTrip.test.tsx` · `docs/adr/285-*.md` · `docs/adr/design/285-*-breakdown.md`
+
 ## [Design 패널 Layout — ProgressBar · Meter · Slider 의 grid 를 grid 로] - 2026-10-27
 
 ### Fixed

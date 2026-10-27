@@ -291,7 +291,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     maxWidth: 1000,
     defaultWidth: 480,
     defaultHeight: 600,
-    description: "페이지를 React Aria 코드로 보기 · 표시된 자리 고치기",
+    description: "페이지를 React Aria 코드로 보기 · 코드로 고치기 (ADR-285)",
     displayModes: ["panel", "floating"],
     // (진입점은 전체 메뉴 작업 공간 구역 — 레일 7 개는 그대로, 사용자 2026-09-29 레일 정책)
     hiddenFromRail: true,

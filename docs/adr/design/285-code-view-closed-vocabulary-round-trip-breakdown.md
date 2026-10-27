@@ -109,4 +109,65 @@
 
 ## 8. 기록
 
-(Phase 마다 추가.)
+### Phase 0 — 2026-10-27 (G0 닫힘)
+
+**어휘표 freeze** — `generate.ts` (2,164 줄, HEAD `7037d45f5`) 의 emit 지점 (역문법 read 가 짝으로 있어야 하는 것):
+
+| emit (줄)                                                                                                         | 어휘                                                                                     | 문서 단위 · 명령 (§1a 표와 같음)  |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------- |
+| `writeImports` 498 · 주석 (`NOT_SENT` 70 · 「a variable not on this page」 1607)                                  | import · 주석                                                                            | 파생 — canonical 대조             |
+| `writeState` 527 · `initialValue` 570                                                                             | `let [x, setX] = useState<T>(v)` (rule state `capability:` 포함)                         | 변수 · `catalogVariableCommands`  |
+| `writeCollections` 585 · `writeRequest` 726 · `writeParam` 821 · `writeSortParams` 863 · `bodyCondition` 923      | `useListData` · `useAsyncList` · `url.searchParams` · body `where` · `useEffect(reload)` | collection · endpoint · 보기 조건 |
+| `run` 286 ~ 295                                                                                                   | `useFilter` · `useCollator` · `useNavigate`                                              | 파생                              |
+| `writeView` 995 · `fragmentOfGroup` 1242 · `fragmentOfCondition` 1291 · `skipOf` 1332 · `comparison` 1370         | `filter` 항 (비교 18 · skip · 적용 flag · 「또는」) · `toSorted`                         | 보기 조건 · 정렬                  |
+| `writeGroup` 1078 · `aggregateFields` 1103 · `appliedCode` 1134                                                   | `Map.groupBy` · 집계 · 결과 수 행                                                        | 묶기 · 집계 · 파생 보기           |
+| `fieldRead` 1204                                                                                                  | 참조 경로 `rows.find(…)?.f`                                                              | 필드 경로 (읽기만)                |
+| `writeDragAndDrop` 1456                                                                                           | `useDragAndDrop({…})` 핸들러                                                             | dnd 규칙                          |
+| `writeAction` 1586 · `eventValue` 1557                                                                            | Do 16 opcode (setState 4 op · list 12 · toast · navigate · callEndpoint · capability)    | 규칙 Do                           |
+| `writeNode` 1844 · `propCode` 2073 · `propWhen` 1434 · `textCode` 2050 · `handlerCode` 2107 · `controlledBy` 1770 | JSX 요소 · prop · 값 조건 · 글자 템플릿 · 핸들러 · controlled 쌍 · `items={…}` 행 템플릿 | 노드 · prop · 규칙 · 바인딩       |
+
+- 표의 각 행은 Phase 1 `vocabulary.ts` 한 항목 (emit 함수 이름 ↔ read 함수 이름) 이 된다.
+
+**파서 · 편집기 실측** (scratchpad esbuild `--minify` + gzip -9):
+
+| 묶음                                                                        | raw     | gz      | golden 5                                                     |
+| --------------------------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------ |
+| CodeMirror 6 (`basicSetup` · lang-javascript · autocomplete · lint · state) | 505,207 | 168,502 | —                                                            |
+| `@lezer/javascript` 1.5.6 (위에 포함)                                       | 129,839 | 46,877  | 5/5 오류 노드 0 · JSX 속성 · `TypeArgList` · 화살표 · 템플릿 |
+| `@babel/parser` 7.29.8 (`jsx` · `typescript`)                               | 308,285 | 78,877  | 5/5 · 어휘 밖 샘플 10/10 파싱                                |
+| `acorn` 8.18 + `acorn-jsx`                                                  | 255,101 | 72,027  | 4/5 — plants 6:96 `import {…, type Selection}` SyntaxError   |
+
+- 깨진 코드 (`<Text>` 닫힘 없음 · `useState(;`) 는 lezer 가 오류 노드로 표시 (던지지 않음) — 역문법은 오류 노드 = 거절.
+- **사용자 결정 4 = lezer 하나** (2026-10-27 질문). 의존: `pnpm-workspace.yaml` catalog 고정 `@codemirror/{autocomplete 6.20.4, commands 6.11.1, lang-javascript 6.2.5, language 6.13.1, lint 6.9.7, search 6.7.2, state 6.7.6, view 6.43.15}` → `apps/builder`, `@lezer/common 1.5.4` · `@lezer/javascript 1.5.6` → `packages/shared`.
+
+**RED** — `apps/builder/src/preview/catalog/__tests__/adr285CodeViewRoundTrip.test.tsx` 11 `it.fails` (① ~ ⑧ — ⑥ 은 h1 4 경우). `it` 로 바꿔 돌린 실패 사유: 전부 `outsideSlot` 거절 (기대 동작 부재 — 하니스 오류 0). 입력은 편집기의 편집 연산 열 (`{from, to, insert}` 순서대로) 이라 Phase 2 는 `applyCode` 의 몸만 새 경로로 바꾼다. ② 는 「검색 추가」 를 실행한 같은 page 의 코드를 그 명령 없는 page 에 통째로 적용 — 왕복 (`code() === searched`) 까지 단언.
+
+**probe**:
+
+- `composeCommands` (`compose.ts:30`) — command 하나가 던지면 plan 전체 중단, 커밋 0 · ops 는 한 transaction = history 한 항목.
+- `CatalogCompositionRoot.execute` (`packages/shared/src/catalog/runtime/compositionRoot.ts:1797`) 는 `REVISION_CONFLICT` 에 한 번 재계획한다 — Decision 4 의 「baseline revision 으로 실행 · 재시도 없음」 은 이 경로를 거치지 않는 실행 진입점이 필요 (Phase 2).
+- 생성기는 같은 종류 · 같은 글자 요소 둘을 같은 텍스트로 낸다 (`<Text>Text</Text>` ×2) — identity 는 텍스트가 아니라 anchor (§3).
+- 팔레트 instance 의 template 자식 · slot 채움은 코드에 나오지 않는다 (`<Button />` · `<ListBox />`) — 코드에 없는 것 = 보존 대상.
+
+**번들 착수 값**: Builder initial JS gzip **1,450,889 B** (101 files, `adr209-bundle-closure.mjs`, HEAD `7037d45f5` + 의존 선언만) — ADR-201 상한 1,390,000 을 이미 넘는다 (282 G4 기록의 「284 이전부터 초과」 와 같은 상태, 이 ADR 의 제품 코드 0). G4 는 Δ (≤ +1,000) 와 chunk 위치로 판정하고 절대 상한 초과는 그대로 보고한다.
+
+**규모 재산정**: 파서가 lezer 하나라 `parse.ts` 는 얇아지고 (`grammar.ts` 가 CST 를 읽음) 파일 수는 §6 추정 ~19 그대로.
+
+### Phase 1 · 2 · 3 — 2026-10-27 (진행 — G1 · G2 핵심 닫힘, G3 일부, G4 열림)
+
+**사용자 결정 1 · 2 · 3 · 5 = 권고안** (같은 날 질문 4 개 한 번에).
+
+**설계 구체화 (통상 구현 판단)**:
+
+- 「의도 트리」 를 별도 모델로 두지 않았다 — 생성기가 문서 단위마다 anchor (텍스트 범위 → id) 를 내고, 차이 계산은 anchor 단위로 바뀐 것만 읽는다. 대신 **재생성 대조** 가 왕복 불변식을 편집마다 집행한다: 계획한 명령을 stage 에 적용 → 그 문서로 코드를 다시 생성 → 편집본의 문장 (순서 무관) · JSX 트리 · 속성 · 글자가 그대로 돌아와야 적용. 돌아오지 않는 줄 = 거절 (`outsideVocabulary` · `notInCode` · `derivedChanged`). 새 요소는 팔레트 기본값이 더해져도 받는다 (결정 1). 파생 줄 (import · hook · effect · collection) 은 편집본에만 있고 baseline 과 같으면 받는다 (소유자를 지운 편집 — 재생성에서 사라짐), 바뀌었으면 `derivedChanged`. import 는 같은 module 의 이름 부분집합이면 받는다 (새 요소의 import 를 손으로 적지 않아도 된다).
+- 실행은 `CatalogCompositionRoot.execute(command, { expectedRevision })` — 지정하면 `REVISION_CONFLICT` 에 재계획하지 않는다 (Decision 4). `workspace.execute` 가 같은 옵션을 넘긴다.
+- 편집 연산: CodeMirror 의 `ChangeSet` 을 세션 시작부터 compose 해 `iterChanges` 로 baseline 좌표 변경 목록을 낸다. 테스트도 같은 `ChangeSet` 으로 편집 연산 열을 만든다.
+
+**게이트 결과**:
+
+- G1: parser 17 (golden 5 문제 0 · 어휘 밖 10 거절 + 줄 번호 · 깨진 코드) · 어휘표 정적 24 (emit · read 대조, pending 11 고정) · golden 5 왕복 (통째 붙여넣기 → 거절 0 · 명령 0, `adr284CodeView.test.tsx` `roundTrip`). **strict 왕복** (바뀌지 않은 단위도 다시 읽기, `strict: true`) 은 plants · kanban (행 필드 글자) · photos · ios-list (목록 명령 Do · 값 조건 prop) · emoji (정적 조건 항) 에서 거절 — pending 어휘와 같은 목록. strict 를 게이트로 올리는 것은 pending 0 뒤.
+- G2: RED 11 GREEN (`adr285CodeViewRoundTrip.test.tsx` — ① Text 추가 · history +1 ② 「검색 추가」 코드 통째 적용 → 변수 1 · SearchField · 규칙 1 · 조건 1 · 코드 동일 ③ `&& item.age >= 20` → gte 조건 ④ Button 삭제 → 규칙 함께 · Undo 1 로 둘 다 ⑤ 잘라 붙이기 → 이동 · 색 보존 ⑥ h1 4 경우 ⑦ Canvas 변경 뒤 → `staleBaseline` ⑧ effect 변경 + Text 추가 → `derivedChanged` 1 · 명령 0) · identity 12 (리뷰 round 2 ~ 4 probe) · catalogRuntime 회귀 297 파일 2,468 PASS.
+- G3 (일부): CodeMirror 편집기 · 자동완성 (팔레트 이름 · 변수 · setter · collection · `item.` 필드) · 300 ms 진단 · 거절 목록 (줄 · 이유 · 대안 KO/EN) · 다시 불러오기 · page 별 초안. live 3/5 (5174 새 프로젝트 — Text 추가 · 어휘 밖 거절 · 삭제 + Undo). **남음**: 스니펫 5 (+ 패널 동작과 같은 문서 단언) · live 2 (「검색 추가」 코드 → Preview · 편집 중 Canvas 변경).
+- G4 (열림): Builder initial 1,452,177 B — 착수 대비 **+1,288 B** (상한 +1,000 초과). initial 에 실린 것은 i18n 문자열 (거절 이유 · 대안 9 쌍 KO/EN) 과 실행 옵션뿐, `CodeEditor-*.js` (CodeMirror · lezer) 와 패널 chunk (역문법 · 차이) 는 initial 밖. 대안: 거절 문구를 패널 chunk 의 지역 사전으로.
+
+**어휘 pending 11** (`vocabulary.ts` — 편집하면 재생성 대조가 그 줄을 거절, 그대로면 통과): 목록 선택 변수 · 요청 매개변수 · 요청 정렬 · 「또는」 묶음 · `toSorted` · `Map.groupBy` · 결과 수 행 · `useDragAndDrop` · 값 조건 prop · 행 필드 글자 · 목록 명령 · capability · endpoint Do.

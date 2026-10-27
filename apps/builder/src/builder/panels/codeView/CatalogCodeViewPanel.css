@@ -21,15 +21,28 @@
   white-space: pre;
 }
 
+/* ADR-285 — the CodeMirror editor's box (the editor draws its own lines inside). */
 .code-view-editor {
-  min-block-size: 50vh;
-  resize: vertical;
-  white-space: pre;
+  /* (A docked panel can be short: the editor scrolls inside, the actions stay in reach.) */
+  block-size: clamp(200px, 40vh, 600px);
+  padding: 0;
+  overflow: hidden;
 
-  &:focus-visible {
+  &:focus-within {
     outline: 2px solid var(--focus-ring);
     outline-offset: 1px;
   }
+
+  .cm-editor {
+    block-size: 100%;
+    background: transparent;
+  }
+}
+
+.code-view-previous summary {
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
 }
 
 /* A 1:1 position — an edit there maps back to the document. */
