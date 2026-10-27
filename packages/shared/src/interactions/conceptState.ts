@@ -1,10 +1,12 @@
 import { COMPONENT_INTERACTION_SPECS } from "./componentInteractionSpecs";
-import type { ComponentInteractionSpec } from "./concepts/types";
+import type { ComponentInteractionSpec, ValueTypeId } from "./concepts/types";
 
 /** A RAC state of a component type (`X` · `defaultX` of the concept whose change is `callback`). */
 export interface ConceptStateProp {
   readonly prop: string;
   readonly defaultProp?: string;
+  /** The value the change reports (a single selection's `key`, a list's `keys` …). */
+  readonly valueType: ValueTypeId;
 }
 
 const BY_CALLBACK = (() => {
@@ -23,6 +25,7 @@ const BY_CALLBACK = (() => {
         map.set(state.callback, {
           prop: state.prop,
           ...(state.defaultProp ? { defaultProp: state.defaultProp } : {}),
+          valueType: state.valueType,
         });
     }
     out.set(type, map);

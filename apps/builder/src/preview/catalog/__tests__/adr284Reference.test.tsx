@@ -132,7 +132,7 @@ describe("ADR-284 G4 — references in a view and in a row", () => {
       {
         listId: h.list,
         field: teamName,
-        kind: "radio",
+        kind: "RadioGroup",
         control: { insert: true },
         values,
         allLabel: "All",

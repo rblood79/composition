@@ -48,6 +48,48 @@ function definitionOf(id: string): LibraryDefinition | undefined {
   return definition;
 }
 
+/**
+ * The props a library definition's instance takes — its own `accepts` and its template root's
+ * (what the document's validator reads: a Slider origin takes `minValue` through its root).
+ */
+export function catalogDefinitionAccepts(
+  definitionId: string,
+): Readonly<Record<string, unknown>> {
+  const definition = definitionOf(definitionId);
+  if (!definition) return {};
+  return instanceContract(definition, definitionOf, (id) => templates.get(id))
+    .accepts;
+}
+
+/** The props a palette type's instance takes (its origin's, else its code-catalog definition's). */
+export function catalogTypeAccepts(
+  type: string,
+): Readonly<Record<string, unknown>> {
+  const reusableId = getReusableOriginId(type);
+  const definition =
+    (reusableId && definitions.get(`lib:definition:origin-${reusableId}`)) ||
+    catalogTypeDefinition(type);
+  return instanceContract(definition, definitionOf, (id) => templates.get(id))
+    .accepts;
+}
+
+/**
+ * Whether the palette's entry for a type places that type (the Menu entry places a MenuTrigger —
+ * its Menu is in the trigger's Popover).
+ */
+export function catalogPalettePlacesType(type: string): boolean {
+  const reusableId = getReusableOriginId(type);
+  const definition =
+    reusableId && definitions.get(`lib:definition:origin-${reusableId}`);
+  if (!definition || definition.mode !== "composite") return true;
+  const root = templates.get(String(definition.templateRootId)) as
+    { definitionId?: string } | undefined;
+  const rootDefinition = root?.definitionId
+    ? definitionOf(root.definitionId)
+    : undefined;
+  return !rootDefinition || rootDefinition.name === type;
+}
+
 /** 생성 시점의 편집 계약. 실제 instance validator와 동일한 library 정의·template 계약을 읽는다. */
 export function catalogCreationEditFields(type: string): ResolvedField[] {
   const reusableId = getReusableOriginId(type);

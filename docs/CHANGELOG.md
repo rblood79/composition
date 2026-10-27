@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 보기 (ADR-284 G8 후속) — 「검색 추가」 컨트롤 전부] - 2026-10-27
+
+### Fixed
+
+- 「검색 추가」 · 「이 컨트롤로 목록 거르기」 의 컨트롤 고르기에 Slider · ComboBox · Switch 등이 없던 것 — 손으로 적은 7 종 (SearchField · Select · RadioGroup · TagGroup · Checkbox · DatePicker · DateRangePicker) 표였다. 이제 상호작용 등록표의 값 상태에서 유도해 22 종을 고른다: 입력 (SearchField · TextField · TextArea · ComboBox 입력) · 하나 선택 (RadioGroup · Select · ComboBox) · 여러 개 선택 (TagGroup · CheckboxGroup · ListBox · GridList) · 켜면 적용 (Checkbox · Switch · ToggleButton) · 숫자 (NumberField · Slider) · 날짜 (DatePicker · DateField · TimeField · Calendar) · 기간 (DateRangePicker · RangeCalendar). 이미 놓은 Tabs · Tree · Table · CardView · ToggleButtonGroup · Menu 도 「이 컨트롤로 목록 거르기」 로 연결된다.
+- 숫자 필드로 「검색 추가」 를 하면 글자 검색이 생기던 것 — 이제 NumberField 가 기본이고 비교는 「이상」, 시작값은 필드의 가장 작은 값이라 처음엔 모든 행이 보인다. Slider 는 필드 값 범위를 최소 · 최대로 갖는다.
+- 「코드」 패널이 ComboBox · Tabs 의 선택을 `[...keys][0]` 로 적던 것 — 이 둘은 Set 이 아니라 key 하나를 넘긴다. 이제 `setX(keys ?? '')`.
+
 ## [데이터 보기 (ADR-284) — Implemented] - 2026-10-27
 
 ### Changed

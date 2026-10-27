@@ -509,3 +509,11 @@
 - 진행 중 질문 2: 「또는 조건 추가」 위치 (조건 행 ⋮ 메뉴 — 목록 「검색 · 필터」 · 컨트롤 「목록 거르기」 양쪽, `CatalogFilterSection.tsx:193`) · 「미만」 없음 (age 가 글자 타입 — `comparison.ts` 의 kind 별 비교, 설계대로). 사용성 메모 LOW deferred: 필드 타입 때문에 빠진 비교의 안내 없음.
 - Status Implemented · 본문 `completed/` 로 이동 · README · CHANGELOG 갱신. 후속 ADR-285 (code view 편집 닫힌 어휘 전체).
 - 5175 「ADR284 live」 테스트 문서 잔여 (Page 2 · Garden · Plants 표 · Home Table 합류) 는 사용자 결정 대기 — 서버는 꺼져 있음.
+
+### G8 후속 — 2026-10-27 (컨트롤 표를 등록표에서 유도 — 사용자 보고)
+
+- 보고: 「검색 생성시 slider, combobox 가 누락되었다」 · 「switch 도 누락」. 원인: `CATALOG_FILTER_CONTROLS` 가 손 표 7 종 (§Phase 3 의 「입력 · 선택 · 다중 선택 · 체크 · 날짜 · 범위」 예시를 그대로 굳힘) — §1 「컨트롤 → 값 모양은 등록표에서 유도 · 손 표 금지」 위반. 숫자 필드는 기본이 SearchField 였다.
+- 수리 (`catalogRuntime/viewAuthoring.ts`): `componentInteractionSpecs` 의 값 개념 (`value` · `valueCommit` · `toggle` · `singleSelection` · `multiSelection` · `inputValue`, 색 제외) 마다 컨트롤 하나 — 값 모양 7 (`text` · `key` · `keys` · `check` · `number` · `date` · `range`) 이 조건 · 변수 타입 · 시작값을 정한다. 항목은 그룹 항목 (`GROUP_ITEM_TYPES` — RAC `value` 를 받는 것만) · 컬렉션 항목 (`COLLECTION_FAMILIES` — panels · recursive 제외) · Select · ComboBox 의 ListBoxItem. 항목을 만들 수 없거나 팔레트가 다른 type 을 놓는 것 (Tabs · Tree · Table · CardView · ToggleButtonGroup · Menu) 은 「이 컨트롤로 거르기」 전용. ComboBox 는 둘 (선택 key · `:input` 입력 글자) — 컨트롤 진입점에서 고른다. 숫자 = NumberField 기본 · 「이상」 · 시작값 = 필드 최소 · Slider 는 min/max. 효과 accepts 는 `creationContract.ts` (`catalogDefinitionAccepts` · `catalogTypeAccepts` · `catalogPalettePlacesType`) — 문서 검증과 같은 instance 계약.
+- 같이 찾은 결함: code view 가 ComboBox · Tabs 의 `onSelectionChange(key)` 를 `[...keys][0]` 로 적음 → `conceptStateOf(...).valueType === "key"` 면 `keys ?? ''` (`codeView/generate.ts`).
+- 테스트: `adr284Authoring.test.tsx` +5 (등록표 목록 · 놓을 수 있는 모든 컨트롤 한 step + 처음엔 전부 보임 · Slider 이동 → 좁힘 · Switch 켬/끔 · ComboBox key · 입력 + 코드) · 기존 테스트의 kind 를 컨트롤 id 로. 원복 RED 5/5 (`viewAuthoring.ts` HEAD). 회귀: builder 363 파일 3,252 · shared codeView · interactions 49 · 판정 5/5 · type-check 0.
+- 남김: 범위 Slider (`[min, max]`) — 등록표의 Slider 값이 number 하나이고 Canvas 가 thumb 하나만 그린다 (`presence.ts` `catalogSliderRange`). 두 thumb 렌더 (Canvas · DOM 대칭) 가 선행.

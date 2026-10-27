@@ -20,6 +20,8 @@
  * that condition; it never makes a second variable or rule.
  */
 import {
+  COLLECTION_FAMILIES,
+  GROUP_ITEM_TYPES,
   insertCollectionItem,
   insertGroupItem,
 } from "../../../../../packages/shared/src/catalog/commands/collections";
@@ -44,6 +46,11 @@ import {
 import { nodePosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import { conceptStateOf } from "../../../../../packages/shared/src/interactions/conceptState";
+import { COMPONENT_INTERACTION_SPECS } from "../../../../../packages/shared/src/interactions/componentInteractionSpecs";
+import type {
+  ComponentInteractionSpec,
+  ValueTypeId,
+} from "../../../../../packages/shared/src/interactions/concepts/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   DataBindingRef,
@@ -72,6 +79,11 @@ import {
   viewRunSchema,
 } from "../../../../../packages/shared/src/collections/view/evaluate";
 import { parseRuleValueRef } from "../../../../../packages/shared/src/interactions/valueRef";
+import {
+  catalogDefinitionAccepts,
+  catalogPalettePlacesType,
+  catalogTypeAccepts,
+} from "./creationContract";
 import { catalogBindingCommand } from "./dataBindingCommand";
 import { catalogParentOfNode } from "./insertParent";
 import {
@@ -96,21 +108,44 @@ import {
   catalogVariableOwner,
 } from "./stateVariables";
 
-/** The control shapes 「검색 추가」 offers (breakdown §4 — 입력 · 선택 · 다중 선택 · 체크 · 날짜 · 범위). */
-export type CatalogFilterControlKind =
-  "text" | "select" | "radio" | "tags" | "check" | "date" | "range";
+/**
+ * The value a filter control writes — what its condition compares with (연구 §4.1): typed text ·
+ * one key · several keys · on/off · a number · a date · a date range.
+ */
+export type CatalogFilterShape =
+  "text" | "key" | "keys" | "check" | "number" | "date" | "range";
 
-interface FilterControlSpec {
-  /** The palette type placed. */
+/**
+ * A control 「검색 추가」 · 「이 컨트롤로 거르기」 wire to a list — one RAC value state of a palette
+ * type (2026-10-27 사용자 보고 「Slider · ComboBox · Switch 누락」: the 7-row hand table became this
+ * derivation from the interaction registry, as breakdown §1 asked — 「손 표 금지」).
+ */
+export interface CatalogFilterControl {
+  /** `<type>`, or `<type>:input` for a ComboBox's typed text (its other value is the chosen key). */
+  readonly id: string;
+  /** The palette type placed (or picked). */
   readonly type: string;
   /** The When its rule listens to, and the event argument it writes (`!event.<arg>`). */
   readonly trigger: string;
-  readonly arg: "value" | "keys";
-  /** The variable's type and default (a picker starts on 「전체」). */
+  readonly arg: string;
+  readonly shape: CatalogFilterShape;
+  /** The variable's type. */
   readonly valueType: StateVariableEntry["valueType"];
-  readonly defaultValue: StateVariableEntry["defaultValue"];
-  /** Its items come from the field's values — the item type, and whether 「전체」 leads. */
-  readonly items?: { readonly type: string; readonly all: boolean };
+  /**
+   * Its items come from the field's values — the item type, whether it joins as a group's item
+   * (Radio · Checkbox · ToggleButton) or a collection's, whether 「전체」 leads (one key).
+   */
+  readonly items?: {
+    readonly type: string;
+    readonly group: boolean;
+    readonly all: boolean;
+  };
+  /**
+   * 「검색 추가」 can place a new one: no items, or items made from the field's values. Tabs (a
+   * TabPanel per Tab) · Tree (nested) · Table · CardView (rows) filter only as the control the
+   * author already made.
+   */
+  readonly insertable: boolean;
 }
 
 /** The picker's 「전체」 item key — the value that skips the condition. */
@@ -118,83 +153,143 @@ export const CATALOG_FILTER_ALL = "all";
 /** At most this many field values become items (the rest are reachable by typing a filter). */
 const ITEM_LIMIT = 20;
 
-export const CATALOG_FILTER_CONTROLS: Readonly<
-  Record<CatalogFilterControlKind, FilterControlSpec>
-> = {
-  text: {
-    type: "SearchField",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "string",
-    defaultValue: "",
-  },
-  select: {
-    type: "Select",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "string",
-    defaultValue: CATALOG_FILTER_ALL,
-    items: { type: "ListBoxItem", all: true },
-  },
-  radio: {
-    type: "RadioGroup",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "string",
-    defaultValue: CATALOG_FILTER_ALL,
-    items: { type: "Radio", all: true },
-  },
-  tags: {
-    type: "TagGroup",
-    trigger: "onSelectionChange",
-    arg: "keys",
-    valueType: "array",
-    // (A structured variable's default is `""` — nothing chosen yet, read as `null`.)
-    defaultValue: "",
-    items: { type: "Tag", all: false },
-  },
-  check: {
-    type: "Checkbox",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "boolean",
-    defaultValue: false,
-  },
-  date: {
-    type: "DatePicker",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "object",
-    defaultValue: "",
-  },
-  range: {
-    type: "DateRangePicker",
-    trigger: "onChange",
-    arg: "value",
-    valueType: "object",
-    defaultValue: "",
-  },
+/** A filter control's id (`CatalogFilterControl.id`). */
+export type CatalogFilterControlKind = string;
+
+/** The RAC sections whose state is a control's value (not open · expansion · focus · sort). */
+const VALUE_CONCEPTS: ReadonlySet<string> = new Set([
+  "value",
+  "valueCommit",
+  "toggle",
+  "singleSelection",
+  "multiSelection",
+  "inputValue",
+]);
+const SHAPE_OF: Partial<Record<ValueTypeId, CatalogFilterShape>> = {
+  string: "text",
+  key: "key",
+  keys: "keys",
+  strings: "keys",
+  boolean: "check",
+  number: "number",
+  date: "date",
+  dateRange: "range",
 };
+const VARIABLE_TYPE: Readonly<
+  Record<CatalogFilterShape, StateVariableEntry["valueType"]>
+> = {
+  text: "string",
+  key: "string",
+  keys: "array",
+  check: "boolean",
+  number: "number",
+  date: "object",
+  range: "object",
+};
+const SHAPE_ORDER: readonly CatalogFilterShape[] = [
+  "text",
+  "key",
+  "keys",
+  "check",
+  "number",
+  "date",
+  "range",
+];
+/** Select · ComboBox hold their items in their ListBox (`collections.ts` — the ListBox family). */
+const LISTBOX_PICKERS: ReadonlySet<string> = new Set(["Select", "ComboBox"]);
+
+/** A selection control's items as 「검색 추가」 makes them; `null` = it cannot make them. */
+function filterItemsOf(
+  type: string,
+  shape: CatalogFilterShape,
+): CatalogFilterControl["items"] | null | undefined {
+  if (shape !== "key" && shape !== "keys") return undefined;
+  const all = shape === "key";
+  const group = GROUP_ITEM_TYPES[type]?.[0];
+  // (A group item carries the field's value as its RAC `value` — Radio · Checkbox. A ToggleButton's
+  // key is its node id, so a ToggleButtonGroup of field values cannot be made.)
+  if (group)
+    return "value" in catalogTypeAccepts(group)
+      ? { type: group, group: true, all }
+      : null;
+  const family = COLLECTION_FAMILIES.find((item) => item.owner === type);
+  if (family && !family.panels && !family.recursive)
+    return { type: family.item, group: false, all };
+  if (LISTBOX_PICKERS.has(type))
+    return { type: "ListBoxItem", group: false, all };
+  return null;
+}
+
+export const CATALOG_FILTER_CONTROLS: readonly CatalogFilterControl[] = (() => {
+  const out: CatalogFilterControl[] = [];
+  for (const [type, spec] of Object.entries(
+    COMPONENT_INTERACTION_SPECS as Readonly<
+      Record<string, ComponentInteractionSpec>
+    >,
+  )) {
+    // (An Autocomplete's typed text filters the collection it holds — RAC `filter` — not a value
+    // the page reads.)
+    if (type === "Autocomplete") continue;
+    for (const use of spec.concepts) {
+      const concept = use.concept;
+      const state = concept.state;
+      if (!state || use.owner === "item" || use.owner === "trigger") continue;
+      if (!VALUE_CONCEPTS.has(concept.id)) continue;
+      const shape = SHAPE_OF[state.valueType];
+      if (!shape) continue;
+      const id = concept.id === "inputValue" ? `${type}:input` : type;
+      if (out.some((control) => control.id === id)) continue;
+      const items = filterItemsOf(type, shape);
+      out.push({
+        id,
+        type,
+        trigger: state.callback,
+        arg: concept.args?.[state.callback]?.[0] ?? "value",
+        shape,
+        valueType: VARIABLE_TYPE[shape],
+        ...(items ? { items } : {}),
+        // (The palette's Menu entry places a MenuTrigger: its Menu filters only as the author's.)
+        insertable: items !== null && catalogPalettePlacesType(type),
+      });
+    }
+  }
+  return out.sort(
+    (a, b) => SHAPE_ORDER.indexOf(a.shape) - SHAPE_ORDER.indexOf(b.shape),
+  );
+})();
+
+/** A filter control by id. */
+export function catalogFilterControl(
+  id: CatalogFilterControlKind,
+): CatalogFilterControl | undefined {
+  return CATALOG_FILTER_CONTROLS.find((control) => control.id === id);
+}
+
+/** The filter controls a palette type is (a ComboBox is two: the chosen key · the typed text). */
+export function catalogFilterControlsOfType(
+  type: string,
+): CatalogFilterControl[] {
+  return CATALOG_FILTER_CONTROLS.filter((control) => control.type === type);
+}
 
 /**
  * A field type's default control in 「검색 추가」 (probe 4 — the value shape picks it): a boolean is
- * a Checkbox, a date a DatePicker, anything else a search.
+ * a Checkbox, a date a DatePicker, a number a NumberField, anything else a search.
  */
 export function catalogDefaultFilterKind(
   type: string | undefined,
 ): CatalogFilterControlKind {
-  if (type === "boolean") return "check";
-  if (type === "date" || type === "datetime") return "date";
-  return "text";
+  if (type === "boolean") return "Checkbox";
+  if (type === "date" || type === "datetime") return "DatePicker";
+  if (type === "number") return "NumberField";
+  return "SearchField";
 }
 
-/** A control type's filter kind (the control entry point); undefined = not a filter control. */
+/** A control type's first filter control (the control entry point); undefined = not a filter control. */
 export function catalogFilterKindOfType(
   type: string,
 ): CatalogFilterControlKind | undefined {
-  return (
-    Object.keys(CATALOG_FILTER_CONTROLS) as CatalogFilterControlKind[]
-  ).find((kind) => CATALOG_FILTER_CONTROLS[kind].type === type);
+  return catalogFilterControlsOfType(type)[0]?.id;
 }
 
 /** A schema field as the planner reads it. */
@@ -273,38 +368,42 @@ export function catalogViewFields(
 }
 
 /**
- * Decision B-7 — the condition a control kind makes on a field: the comparison (narrowed to what
- * the field's kind takes), the value, the value that skips it, the switch that turns it on.
+ * Decision B-7 — the condition a control makes on a field: the comparison (narrowed to what the
+ * field's kind takes), the value, the value that skips it, the switch that turns it on.
  */
 export function catalogFilterCondition(
-  kind: CatalogFilterControlKind,
+  kind: CatalogFilterControlKind | CatalogFilterShape,
   field: CatalogFilterField,
   variableRef: string,
   checkValue?: string,
 ): Omit<ViewCondition, "id" | "fields"> {
+  const shape =
+    catalogFilterControl(kind)?.shape ?? (kind as CatalogFilterShape);
   const fieldKind = viewFieldKind(field.type);
   const allowed = VIEW_COMPARISONS_BY_KIND[fieldKind];
   const pick = (op: ViewComparison): ViewComparison =>
     allowed.includes(op) ? op : "equals";
-  switch (kind) {
+  switch (shape) {
     case "text":
       // (Typed text: 「포함」 on a text field — on a number or date the typed value is matched whole.)
       return {
         op: pick(fieldKind === "text" ? "contains" : "equals"),
         value: variableRef,
       };
-    case "select":
-    case "radio":
+    case "key":
       return { op: "equals", value: variableRef, skip: CATALOG_FILTER_ALL };
-    case "tags":
+    case "keys":
       return { op: pick("oneOf"), value: variableRef };
     case "check":
-      // (A checkbox turns a condition on: a yes/no field is 「예」; another field 「= 고른 값」.)
+      // (A switch turns a condition on: a yes/no field is 「예」; another field 「= 고른 값」.)
       return {
         op: "equals",
         value: fieldKind === "boolean" ? true : (checkValue ?? ""),
         enabled: variableRef,
       };
+    case "number":
+      // (A number is a floor — 「이상」 — starting at the field's smallest value: every row shows.)
+      return { op: pick("gte"), value: variableRef };
     case "date":
       return { op: "equals", value: variableRef };
     case "range":
@@ -312,6 +411,31 @@ export function catalogFilterCondition(
         op: pick("between"),
         value: [`${variableRef}.start`, `${variableRef}.end`],
       };
+  }
+}
+
+/** The numbers among a field's values (a number control's range · start). */
+function numericValues(values: readonly string[]): number[] {
+  return values.map(Number).filter((value) => Number.isFinite(value));
+}
+
+/** The variable's start: a picker on 「전체」, a number at the field's smallest value. */
+function filterDefault(
+  control: CatalogFilterControl,
+  values: readonly string[],
+): StateVariableEntry["defaultValue"] {
+  switch (control.shape) {
+    case "key":
+      return CATALOG_FILTER_ALL;
+    case "check":
+      return false;
+    case "number": {
+      const numbers = numericValues(values);
+      return numbers.length ? Math.min(...numbers) : 0;
+    }
+    default:
+      // (Text starts empty; a structured variable's default is `""` — nothing chosen, read as `null`.)
+      return "";
   }
 }
 
@@ -418,6 +542,21 @@ function childIdsOf(
   return [];
 }
 
+/** The props a definition's instance takes (a library origin's and its template root's). */
+function itemAccepts(
+  reader: Pick<CatalogGraph, "library">,
+  definitionId: string,
+): Readonly<Record<string, unknown>> {
+  if (definitionId.startsWith("lib:"))
+    return catalogDefinitionAccepts(definitionId);
+  return (
+    (
+      reader.library.definitions.get(definitionId as LibraryDefinitionId) as
+        { accepts?: Record<string, unknown> } | undefined
+    )?.accepts ?? {}
+  );
+}
+
 /**
  * A picker's items replaced by the field's values (+ 「전체」 first for a single picker): the item
  * list the placed instance owns (`ownSlotContents`) gets new items of its items' own definition,
@@ -425,7 +564,7 @@ function childIdsOf(
  */
 function replaceItems(
   controlId: NodeId,
-  spec: FilterControlSpec,
+  spec: CatalogFilterControl,
   values: readonly string[],
   allLabel: string,
   newId: NewId,
@@ -484,7 +623,10 @@ function replaceItems(
                   { kind: "set" as const, value: value as never },
                 ]),
               );
-        if (items.type === "Radio") {
+        if (items.group) {
+          // (A group's item: its key is its RAC `value` (Radio · Checkbox), its text `label` or
+          // `children` — what the item's definition takes.)
+          const accepts = itemAccepts(stage, shape);
           const entry: NodeEntry = {
             kind: "node",
             id,
@@ -492,7 +634,7 @@ function replaceItems(
             children: [],
             props: props({
               value: key,
-              children: label,
+              ["label" in accepts ? "label" : "children"]: label,
               ...(selected ? { isSelected: true } : {}),
             }),
             visual: {},
@@ -617,7 +759,8 @@ export function catalogFilterCommand(
   plan: CatalogFilterPlan,
   newId: NewId,
 ): { command: CatalogCommand; created: CatalogFilterCreated } {
-  const spec = CATALOG_FILTER_CONTROLS[plan.kind];
+  const spec = catalogFilterControl(plan.kind);
+  if (!spec) throw new Error(`NOT_A_FILTER_CONTROL: ${plan.kind}`);
   const controlId =
     "nodeId" in plan.control ? plan.control.nodeId : (newId("node") as NodeId);
   const reuse = plan.reuseVariableId;
@@ -631,19 +774,22 @@ export function catalogFilterCommand(
       const parent = catalogParentOfNode(stage, plan.listId);
       if (!parent) throw new Error(`NO_PARENT: ${plan.listId}`);
       const definitionId = catalogPaletteDefinitionId(stage.library, spec.type);
-      const accepts =
-        (
-          stage.library.definitions.get(definitionId as LibraryDefinitionId) as
-            { accepts?: Record<string, unknown> } | undefined
-        )?.accepts ?? {};
+      const accepts = itemAccepts(stage, definitionId);
       const initial: Record<string, unknown> = {};
-      // (The field's name labels it; a checkbox says what it turns on.)
+      // (The field's name labels it; a switch says what it turns on; a slider spans the values.)
       if ("label" in accepts) initial.label = plan.field.key;
-      if (plan.kind === "check")
-        initial.children =
+      if (spec.shape === "check")
+        initial["label" in accepts ? "label" : "children"] =
           viewFieldKind(plan.field.type) === "boolean"
             ? plan.field.key
             : `${plan.field.key} = ${plan.values[0] ?? ""}`;
+      if (spec.shape === "number") {
+        const numbers = numericValues(plan.values);
+        if (numbers.length && "minValue" in accepts)
+          initial.minValue = Math.min(...numbers);
+        if (numbers.length && "maxValue" in accepts)
+          initial.maxValue = Math.max(...numbers);
+      }
       const entry: NodeEntry = {
         kind: "node",
         id: controlId,
@@ -685,7 +831,7 @@ export function catalogFilterCommand(
         ownerId,
         name: variableName(stage, ownerId, plan.field),
         valueType: spec.valueType,
-        defaultValue: spec.defaultValue,
+        defaultValue: filterDefault(spec, plan.values),
       } satisfies StateVariableEntry,
     });
   });
@@ -719,7 +865,7 @@ export function catalogFilterCommand(
           id: conditionId,
           fields: [catalogFieldPath(plan.field)],
           ...catalogFilterCondition(
-            plan.kind,
+            spec.shape,
             plan.field,
             variableRef,
             plan.values[0],
@@ -1193,9 +1339,9 @@ export function catalogUnreadFilterVariables(
     const owner = reader.getEntry(rule.ownerId);
     let filterControl = false;
     if (owner?.kind === "node")
-      filterControl = !!catalogFilterKindOfType(
-        typeOf(reader, owner.definitionId),
-      );
+      filterControl =
+        catalogFilterControlsOfType(typeOf(reader, owner.definitionId)).length >
+        0;
     if (!filterControl) continue;
     for (const action of rule.actions) {
       if (action.opcode !== "setState" || read.has(action.variableId)) continue;

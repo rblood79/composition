@@ -230,7 +230,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       {
         listId: nodeIdOf("list"),
         field: gender,
-        kind: "radio",
+        kind: "RadioGroup",
         control: { nodeId: nodeIdOf("radio") },
         values: ["male", "female"],
         allLabel: "All",
@@ -293,10 +293,11 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
   });
 
   it("「Add search」's control follows the field's type until one is chosen — a boolean is a Checkbox", () => {
-    expect(catalogDefaultFilterKind("boolean")).toBe("check");
-    expect(catalogDefaultFilterKind("date")).toBe("date");
-    expect(catalogDefaultFilterKind("string")).toBe("text");
-    expect(catalogDefaultFilterKind(undefined)).toBe("text");
+    expect(catalogDefaultFilterKind("boolean")).toBe("Checkbox");
+    expect(catalogDefaultFilterKind("date")).toBe("DatePicker");
+    expect(catalogDefaultFilterKind("number")).toBe("NumberField");
+    expect(catalogDefaultFilterKind("string")).toBe("SearchField");
+    expect(catalogDefaultFilterKind(undefined)).toBe("SearchField");
   });
 
   it("a view already shared (a result count promoted it): another list on the data joins it with 「Also read by」", () => {
@@ -306,7 +307,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       {
         listId: nodeIdOf("list"),
         field: { id: "f-gender", key: "gender", type: "string" },
-        kind: "radio",
+        kind: "RadioGroup",
         control: { nodeId: nodeIdOf("radio") },
         values: ["male", "female"],
         allLabel: "All",
@@ -354,7 +355,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       {
         listId: nodeIdOf("list"),
         field: { id: "f-gender", key: "gender", type: "string" },
-        kind: "radio",
+        kind: "RadioGroup",
         control: { nodeId: nodeIdOf("radio") },
         values: ["male", "female"],
         allLabel: "All",
@@ -417,7 +418,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       {
         listId: nodeIdOf("list"),
         field: { id: "f-name", key: "name", type: "string" },
-        kind: "text",
+        kind: "SearchField",
         control: { insert: true },
         values: [],
         allLabel: "All",
@@ -470,7 +471,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       {
         listId: nodeIdOf("list"),
         field: { id: "f-gender", key: "gender", type: "string" },
-        kind: "radio",
+        kind: "RadioGroup",
         control: { nodeId: nodeIdOf("radio") },
         values: ["male", "female"],
         allLabel: "All",

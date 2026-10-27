@@ -85,7 +85,7 @@ async function boundList() {
     {
       listId: list,
       field: GENDER,
-      kind: "radio",
+      kind: "RadioGroup",
       control: { insert: true },
       values: ["male", "female"],
       allLabel: "전체",

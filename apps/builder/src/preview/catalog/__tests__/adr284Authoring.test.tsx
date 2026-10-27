@@ -14,7 +14,9 @@ import { catalogBindingCommand } from "../../../builder/catalogRuntime/dataBindi
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import {
   CATALOG_FILTER_ALL,
+  CATALOG_FILTER_CONTROLS,
   catalogControlFilterConnections,
+  catalogFilterControlsOfType,
   catalogEditFilterCondition,
   catalogFilterCommand,
   catalogFilterConnections,
@@ -27,6 +29,7 @@ import {
   catalogUnreadFilterVariables,
   type CatalogFilterControlKind,
 } from "../../../builder/catalogRuntime/viewAuthoring";
+import { generateCodeView } from "../../../../../../packages/shared/src/codeView/generate";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -41,12 +44,14 @@ afterEach(() => {
 });
 
 const ROWS = [
-  { id: "u1", name: "Kim", gender: "male" },
-  { id: "u2", name: "Park", gender: "female" },
-  { id: "u3", name: "Lee", gender: "male" },
+  { id: "u1", name: "Kim", gender: "male", age: 31, joined: "2026-01-05" },
+  { id: "u2", name: "Park", gender: "female", age: 24, joined: "2026-03-10" },
+  { id: "u3", name: "Lee", gender: "male", age: 19, joined: "2026-05-20" },
 ];
 const NAME = { id: "f-name", key: "name", type: "string" };
 const GENDER = { id: "f-gender", key: "gender", type: "string" };
+const AGE = { id: "f-age", key: "age", type: "number" };
+const JOINED = { id: "f-joined", key: "joined", type: "date" };
 const NAMES = /Kim|Park|Lee/;
 
 const settle = () =>
@@ -66,7 +71,13 @@ async function boundList(types: readonly string[] = ["GridList"]) {
         {
           id: "users",
           name: "Users",
-          schema: [{ id: "f-id", key: "id", type: "string" }, NAME, GENDER],
+          schema: [
+            { id: "f-id", key: "id", type: "string" },
+            NAME,
+            GENDER,
+            AGE,
+            JOINED,
+          ],
           mockData: ROWS,
           runtimeData: [],
           useMockData: true,
@@ -99,8 +110,9 @@ async function boundList(types: readonly string[] = ["GridList"]) {
       .filter(Boolean);
   const add = (
     kind: CatalogFilterControlKind,
-    field = GENDER,
+    field: { id: string; key: string; type?: string } = GENDER,
     control: { insert: true } | { nodeId: NodeId } = { insert: true },
+    values: string[] = ["male", "female"],
   ) => {
     const { command, created } = catalogFilterCommand(
       graph(),
@@ -109,7 +121,7 @@ async function boundList(types: readonly string[] = ["GridList"]) {
         field,
         kind,
         control,
-        values: ["male", "female"],
+        values,
         allLabel: "전체",
       },
       h.workspace.newId,
@@ -136,7 +148,7 @@ describe("ADR-284 G3 — 「검색 추가」 makes the filter in one action", ()
   it("text: a SearchField before the list · a string variable · onChange → Set state · `contains` — typing narrows the list", async () => {
     const h = await boundList();
     const depth = h.workspace.runtime.historyDepth?.undo;
-    const created = h.add("text", NAME);
+    const created = h.add("SearchField", NAME);
     await settle();
     const graph = h.graph();
     const control = graph.getEntry(created.controlId) as NodeEntry;
@@ -204,7 +216,7 @@ describe("ADR-284 G3 — 「검색 추가」 makes the filter in one action", ()
 
   it("radio: items = 「전체」 + the field's values · `equals` skipped by `all` — choosing narrows, 「전체」 shows all", async () => {
     const h = await boundList();
-    const created = h.add("radio");
+    const created = h.add("RadioGroup");
     await settle();
     const radios = [
       ...h.element(created.controlId)!.querySelectorAll('input[type="radio"]'),
@@ -263,13 +275,13 @@ describe("ADR-284 G3 — 「검색 추가」 makes the filter in one action", ()
       visit(controlId);
       return ids;
     };
-    const select = h.add("select");
+    const select = h.add("Select");
     expect(itemsOf(select.controlId, "ListBoxItem")).toEqual([
       CATALOG_FILTER_ALL,
       "male",
       "female",
     ]);
-    const tags = h.add("tags");
+    const tags = h.add("TagGroup");
     expect(itemsOf(tags.controlId, "Tag")).toEqual(["male", "female"]);
     expect(graph().getEntry(tags.variableId)).toMatchObject({
       valueType: "array",
@@ -278,9 +290,17 @@ describe("ADR-284 G3 — 「검색 추가」 makes the filter in one action", ()
       trigger: "onSelectionChange",
       actions: [{ value: "!event.keys" }],
     });
-    const check = h.add("check");
-    const date = h.add("date", { id: "f-id", key: "joined", type: "date" });
-    const range = h.add("range", { id: "f-id", key: "joined", type: "date" });
+    const check = h.add("Checkbox");
+    const date = h.add("DatePicker", {
+      id: "f-id",
+      key: "joined",
+      type: "date",
+    });
+    const range = h.add("DateRangePicker", {
+      id: "f-id",
+      key: "joined",
+      type: "date",
+    });
     const conditions = Object.fromEntries(
       catalogFilterConnections(graph(), h.list).map((connection) => [
         connection.condition.id,
@@ -323,9 +343,9 @@ describe("ADR-284 Phase 6 — the controls 「검색 추가」 makes show their 
   it("a Clear button resetting the variables clears the TagGroup · Checkbox · RadioGroup (plants' Clear filters)", async () => {
     const h = await boundList(["GridList", "Button"]);
     const clear = h.ids[1] as NodeId;
-    const tags = h.add("tags");
-    const check = h.add("check");
-    const radio = h.add("radio");
+    const tags = h.add("TagGroup");
+    const check = h.add("Checkbox");
+    const radio = h.add("RadioGroup");
     h.rule(clear, "onPress", [
       { opcode: "setState", variableId: tags.variableId, op: "reset" },
       { opcode: "setState", variableId: check.variableId, op: "reset" },
@@ -377,7 +397,7 @@ describe("ADR-284 Phase 6 — the controls 「검색 추가」 makes show their 
 describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () => {
   it("「이 컨트롤로 거르기」 on a placed RadioGroup makes the same variable · rule · condition as 「검색 추가」", async () => {
     const a = await boundList();
-    const fromList = a.add("radio");
+    const fromList = a.add("RadioGroup");
     const listSide = {
       variable: a.graph().getEntry(fromList.variableId),
       rule: a.graph().getEntry(fromList.ruleId),
@@ -387,7 +407,7 @@ describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () =>
 
     const b = await boundList(["GridList", "RadioGroup"]);
     const radio = b.ids[1] as NodeId;
-    const fromControl = b.add("radio", GENDER, { nodeId: radio });
+    const fromControl = b.add("RadioGroup", GENDER, { nodeId: radio });
     expect(fromControl.controlId).toBe(radio);
     const controlSide = {
       variable: b.graph().getEntry(fromControl.variableId),
@@ -406,7 +426,7 @@ describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () =>
 
   it("re-entry edits the connection (no new variable · rule); 「또는」 wraps it; unlink drops only the condition", async () => {
     const h = await boundList();
-    const created = h.add("text", NAME);
+    const created = h.add("SearchField", NAME);
     // (Re-entry edits: the project's variables and the control's rules stay as many.)
     const count = (_kind: string) =>
       (
@@ -525,7 +545,7 @@ describe("ADR-284 G3 — the control entry point, re-entry, edit, unlink", () =>
       {
         listId: unbound,
         field: NAME,
-        kind: "text",
+        kind: "SearchField",
         control: { insert: true },
         values: [],
         allLabel: "전체",
@@ -696,7 +716,7 @@ describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록�
     const h = await boundList(["GridList", "ListBox"]);
     const other = h.ids[1] as NodeId;
     bindUsers(h, other);
-    const radio = h.add("radio");
+    const radio = h.add("RadioGroup");
     h.workspace.execute(
       catalogShareView(
         h.graph(),
@@ -747,7 +767,7 @@ describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록�
     const h = await boundList(["GridList", "RadioGroup"]);
     const radio = h.ids[1] as NodeId;
     // (The B habit: a variable and an onChange → Set state rule made by hand, no condition.)
-    const made = h.add("radio", GENDER, { nodeId: radio });
+    const made = h.add("RadioGroup", GENDER, { nodeId: radio });
     h.workspace.execute(
       catalogRemoveFilterCondition(h.graph(), h.list, made.conditionId),
     );
@@ -774,7 +794,7 @@ describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록�
       {
         listId: h.list,
         field: GENDER,
-        kind: "radio",
+        kind: "RadioGroup",
         control: { nodeId: radio },
         values: [],
         allLabel: "전체",
@@ -798,7 +818,7 @@ describe("ADR-284 G3 — a shared view (「N 개가 봅니다」 · 이 목록�
 describe("ADR-284 Decision 11 — the running Preview reports its variables (the Builder's detail reads them)", () => {
   it("a variable write is reported once, in plain values", async () => {
     const h = await boundList();
-    const created = h.add("radio");
+    const created = h.add("RadioGroup");
     await settle();
     const reports: Record<string, unknown>[] = [];
     (
@@ -821,6 +841,232 @@ describe("ADR-284 Decision 11 — the running Preview reports its variables (the
     await settle();
     expect(reports).toHaveLength(1);
     expect(reports[0]![created.variableId]).toBe("male");
+    h.view.unmount();
+  });
+});
+
+/**
+ * 2026-10-27 사용자 보고 「검색 생성시 slider, combobox 가 누락」 · 「switch 도 누락」 — the controls
+ * came from a 7-row hand table. They are now every RAC value state in the interaction registry
+ * (breakdown §1 「손 표 금지」): each one places, writes its variable and narrows the list.
+ */
+describe("ADR-284 G8 follow-up — 「검색 추가」 offers every value control the registry has", () => {
+  it("the controls are the registry's value states: Slider · NumberField · ComboBox (key + typed text) · Switch · ToggleButton …", () => {
+    const ids = CATALOG_FILTER_CONTROLS.map((control) => control.id);
+    for (const id of [
+      "SearchField",
+      "TextField",
+      "TextArea",
+      "ComboBox:input",
+      "RadioGroup",
+      "Select",
+      "ComboBox",
+      "Tabs",
+      "TagGroup",
+      "CheckboxGroup",
+      "ToggleButtonGroup",
+      "ListBox",
+      "GridList",
+      "Menu",
+      "Table",
+      "Tree",
+      "Checkbox",
+      "Switch",
+      "ToggleButton",
+      "NumberField",
+      "Slider",
+      "DatePicker",
+      "DateField",
+      "TimeField",
+      "Calendar",
+      "DateRangePicker",
+      "RangeCalendar",
+    ])
+      expect(ids).toContain(id);
+    // (Not a value: open · expansion · focus · sort · color; an Autocomplete filters its own list.)
+    for (const id of [
+      "Disclosure",
+      "Popover",
+      "ColorField",
+      "ColorSlider",
+      "Autocomplete",
+      "Autocomplete:input",
+    ])
+      expect(ids).not.toContain(id);
+    const shapeOf = (id: string) =>
+      CATALOG_FILTER_CONTROLS.find((control) => control.id === id)!.shape;
+    expect(shapeOf("Slider")).toBe("number");
+    expect(shapeOf("NumberField")).toBe("number");
+    expect(shapeOf("Switch")).toBe("check");
+    expect(shapeOf("ComboBox")).toBe("key");
+    expect(shapeOf("ComboBox:input")).toBe("text");
+    expect(shapeOf("CheckboxGroup")).toBe("keys");
+    expect(
+      catalogFilterControlsOfType("ComboBox").map((control) => control.id),
+    ).toEqual(["ComboBox:input", "ComboBox"]);
+    // (Tabs pair a TabPanel per Tab · Tree nests · Table · CardView hold rows: only the control
+    // the author made filters — 「이 컨트롤로 거르기」.)
+    const insertable = (id: string) =>
+      CATALOG_FILTER_CONTROLS.find((control) => control.id === id)!.insertable;
+    // (A ToggleButton's key is its node id: a group of field values cannot be made.)
+    expect(
+      ["Tabs", "Tree", "Table", "CardView", "ToggleButtonGroup", "Menu"].map(
+        insertable,
+      ),
+    ).toEqual([false, false, false, false, false, false]);
+    expect(
+      ["Slider", "ComboBox", "Switch", "CheckboxGroup"].map(insertable),
+    ).toEqual([true, true, true, true]);
+  });
+
+  it("every control 「검색 추가」 places makes its control · variable · rule · condition in one step, and each starts skipped", async () => {
+    const h = await boundList();
+    const fieldFor = {
+      text: NAME,
+      key: GENDER,
+      keys: GENDER,
+      check: GENDER,
+      number: AGE,
+      date: JOINED,
+      range: JOINED,
+    } as const;
+    for (const control of CATALOG_FILTER_CONTROLS.filter(
+      (item) => item.insertable,
+    )) {
+      const depth = h.workspace.runtime.historyDepth?.undo ?? 0;
+      const field = fieldFor[control.shape];
+      const values =
+        control.shape === "number"
+          ? ["31", "24", "19"]
+          : field === GENDER
+            ? ["male", "female"]
+            : [];
+      const made = h.add(control.id, field, { insert: true }, values);
+      expect(
+        h.workspace.runtime.historyDepth?.undo,
+        `${control.id}: one step`,
+      ).toBe(depth + 1);
+      const graph = h.graph();
+      const node = graph.getEntry(made.controlId);
+      expect(node?.kind, control.id).toBe("node");
+      expect(
+        definitionTypeName(graph, (node as NodeEntry).definitionId),
+        control.id,
+      ).toBe(control.type);
+      expect(graph.getEntry(made.ruleId), control.id).toMatchObject({
+        trigger: control.trigger,
+        actions: [{ value: `!event.${control.arg}` }],
+      });
+    }
+    await settle();
+    // (Every control starts on the value that skips its condition: the list shows every row.)
+    expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+    h.view.unmount();
+  });
+
+  it("Slider on a number field: spans the field's values, starts at the smallest (「이상」 — all rows), moving it narrows", async () => {
+    const h = await boundList();
+    const made = h.add("Slider", AGE, { insert: true }, ["31", "24", "19"]);
+    const graph = h.graph();
+    const slider = graph.getEntry(made.controlId) as NodeEntry;
+    expect(slider.props.minValue).toMatchObject({ value: 19 });
+    expect(slider.props.maxValue).toMatchObject({ value: 31 });
+    expect(graph.getEntry(made.variableId)).toMatchObject({
+      valueType: "number",
+      defaultValue: 19,
+    });
+    const [connection] = catalogFilterConnections(graph, h.list);
+    expect(connection!.condition).toMatchObject({
+      op: "gte",
+      value: `!var.${made.variableId}`,
+    });
+    await settle();
+    expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+    const input = h
+      .element(made.controlId)!
+      .querySelector('input[type="range"]') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    act(() => {
+      fireEvent.change(input, { target: { value: "24" } });
+    });
+    await settle();
+    expect(h.shown()).toEqual(["Kim", "Park"]);
+    h.view.unmount();
+  });
+
+  it("Switch: says what it turns on (「gender = male」), on narrows to that value, off shows all", async () => {
+    const h = await boundList();
+    const made = h.add("Switch");
+    await settle();
+    const element = h.element(made.controlId)!;
+    expect(element.textContent).toContain("gender = male");
+    const input = element.querySelector("input") as HTMLInputElement;
+    act(() => {
+      fireEvent.click(input);
+    });
+    await settle();
+    expect(h.shown()).toEqual(["Kim", "Lee"]);
+    act(() => {
+      fireEvent.click(input);
+    });
+    await settle();
+    expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+    h.view.unmount();
+  });
+
+  it("ComboBox: the chosen key (items 「전체」 + values, `equals` skipped by `all`) or the typed text (`contains`)", async () => {
+    const h = await boundList();
+    const picked = h.add("ComboBox");
+    const typed = h.add("ComboBox:input", NAME, { insert: true }, []);
+    const graph = h.graph();
+    const items: string[] = [];
+    const visit = (id: string) => {
+      const node = graph.getEntry(id);
+      if (node?.kind !== "node") return;
+      if (definitionTypeName(graph, node.definitionId) === "ListBoxItem")
+        items.push(String((node.props.id as { value?: unknown })?.value));
+      node.children.forEach(visit);
+      for (const override of node.descendantOverrides)
+        if (override.kind === "fillSlot") override.childIds.forEach(visit);
+    };
+    visit(picked.controlId);
+    expect(items).toEqual([CATALOG_FILTER_ALL, "male", "female"]);
+    expect(graph.getEntry(picked.ruleId)).toMatchObject({
+      trigger: "onSelectionChange",
+    });
+    expect(graph.getEntry(typed.ruleId)).toMatchObject({
+      trigger: "onInputChange",
+      actions: [{ value: "!event.value" }],
+    });
+    const conditions = Object.fromEntries(
+      catalogFilterConnections(graph, h.list).map((connection) => [
+        connection.condition.id,
+        connection.condition,
+      ]),
+    ) as Record<string, ViewCondition>;
+    expect(conditions[picked.conditionId]).toMatchObject({
+      op: "equals",
+      skip: CATALOG_FILTER_ALL,
+    });
+    expect(conditions[typed.conditionId]).toMatchObject({ op: "contains" });
+    // (Each control shows its variable: the typed one's text, the picked one's key.)
+    const props = (id: NodeId) => (graph.getEntry(id) as NodeEntry).props;
+    expect(props(typed.controlId).inputValue).toMatchObject({
+      value: { kind: "var", ref: `!var.${typed.variableId}` },
+    });
+    expect(props(picked.controlId).selectedKey).toMatchObject({
+      value: { kind: "var", ref: `!var.${picked.variableId}` },
+    });
+    // (The code view writes the key RAC reports — `onSelectionChange(key)` — not a Set's first.)
+    const code = generateCodeView({
+      reader: graph,
+      pageId: "project:page:home" as never,
+      collections: [],
+    }).code;
+    expect(code).toMatch(/setGenderFilter\(keys \?\? ''\)/);
+    expect(code).not.toMatch(/setGenderFilter\(\[\.\.\.keys\]\[0\]/);
+    await settle();
+    expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
     h.view.unmount();
   });
 });

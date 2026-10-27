@@ -193,7 +193,7 @@ async function buildPlants() {
     h.workspace.execute(command);
     return created;
   };
-  const search = filter("text", "common_name");
+  const search = filter("SearchField", "common_name");
   // (「또는 조건 추가」 then the copy's field: the scientific name.)
   h.workspace.execute(
     catalogOrFilterCondition(h.graph(), table, search.conditionId, "search-or"),
@@ -203,10 +203,10 @@ async function buildPlants() {
       fields: [catalogFieldPath(h.field(PLANTS, "scientific_name"))],
     }),
   );
-  const favorite = filter("check", "isFavorite");
-  const cycles = filter("tags", "cycle", ["Perennial", "Annual"]);
-  const sunlight = filter("tags", "sunlight", ["full sun", "part shade"]);
-  const watering = filter("tags", "watering", ["Frequent", "Average"]);
+  const favorite = filter("Checkbox", "isFavorite");
+  const cycles = filter("TagGroup", "cycle", ["Perennial", "Annual"]);
+  const sunlight = filter("TagGroup", "sunlight", ["full sun", "part shade"]);
+  const watering = filter("TagGroup", "watering", ["Frequent", "Average"]);
   const sort = catalogSortFollowCommand(
     h.graph(),
     { tableId: table, followerIds: [grid] },
@@ -630,7 +630,7 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
       {
         listId: table,
         field: h.field(USERS, "gender"),
-        kind: "radio",
+        kind: "RadioGroup",
         control: { insert: true },
         values: ["male", "female"],
         allLabel: "All",

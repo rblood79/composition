@@ -30,6 +30,8 @@ import { useCatalogWorkspace } from "../../../catalogRuntime/react.runtime";
 import { catalogNodePage } from "../../../catalogRuntime/stateVariables";
 import {
   CATALOG_FILTER_CONTROLS,
+  catalogFilterControl,
+  catalogFilterControlsOfType,
   catalogControlFilterConnections,
   catalogEditFilterCondition,
   catalogFieldPath,
@@ -76,10 +78,21 @@ import "./CatalogFilterSection.css";
 /** ADR-284 Phase 6 — 「고정 값으로」: a condition with no control (a literal value). */
 const STATIC = "static";
 type AddKind = CatalogFilterControlKind | typeof STATIC;
+/** 「검색 추가」 's controls — every one it can place (from the interaction registry), then 「고정 값」. */
 const KINDS: readonly AddKind[] = [
-  ...(Object.keys(CATALOG_FILTER_CONTROLS) as CatalogFilterControlKind[]),
+  ...CATALOG_FILTER_CONTROLS.filter((control) => control.insertable).map(
+    (control) => control.id,
+  ),
   STATIC,
 ];
+
+/** A control choice's label: its type and the value it writes (「Slider · 숫자」). */
+function kindLabel(t: ReturnType<typeof useI18n>["t"], kind: AddKind): string {
+  const control = kind === STATIC ? undefined : catalogFilterControl(kind);
+  return control
+    ? `${control.type} · ${t(`dataView.shape_${control.shape}`)}`
+    : t("dataView.kind_static");
+}
 
 /** The graph's revision as React state (every committed step re-reads the connections). */
 function useGraphRevision() {
@@ -302,6 +315,7 @@ function ConnectionRow({
 function AddForm({
   fields,
   kindChoice,
+  kinds,
   targets,
   target,
   onTarget,
@@ -310,6 +324,8 @@ function AddForm({
 }: {
   fields: readonly { id: string; key: string; type?: string }[];
   kindChoice: boolean;
+  /** The controls to choose from (default: every control 「검색 추가」 places). */
+  kinds?: readonly AddKind[];
   targets?: readonly { id: NodeId; label: string }[];
   target?: NodeId;
   onTarget?: (id: NodeId) => void;
@@ -320,9 +336,11 @@ function AddForm({
   const [fieldId, setFieldId] = useState(fields[0]?.id ?? "");
   // (The control follows the field's type until one is chosen — a boolean is a Checkbox.)
   const [chosen, setChosen] = useState<AddKind | null>(null);
-  const kind =
-    chosen ??
-    catalogDefaultFilterKind(fields.find((field) => field.id === fieldId)?.type);
+  const choices = kinds ?? KINDS;
+  const fallback = catalogDefaultFilterKind(
+    fields.find((field) => field.id === fieldId)?.type,
+  );
+  const kind = chosen ?? (choices.includes(fallback) ? fallback : choices[0]!);
   const setKind = setChosen;
   return (
     <div className="data-view-add-form">
@@ -356,9 +374,9 @@ function AddForm({
         <PropertySelect
           label={t("dataView.control")}
           value={kind}
-          options={KINDS.map((value) => ({
+          options={choices.map((value) => ({
             value,
-            label: t(`dataView.kind_${value}`),
+            label: kindLabel(t, value),
           }))}
           translateOptions={false}
           onChange={(value) => setKind(value as AddKind)}
@@ -855,17 +873,19 @@ export function CatalogControlFilterSection({
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [madeId, setMadeId] = useState<string | null>(null);
-  const kind = useMemo(() => {
+  // (A ComboBox is two controls — the chosen key · the typed text: the author picks which.)
+  const kinds = useMemo(() => {
     const node = graph.getEntry(controlId);
-    if (node?.kind !== "node") return undefined;
+    if (node?.kind !== "node") return [];
     try {
-      return catalogFilterKindOfType(
+      return catalogFilterControlsOfType(
         definitionTypeName(graph, node.definitionId),
-      );
+      ).map((control) => control.id);
     } catch {
-      return undefined;
+      return [];
     }
   }, [controlId, graph]);
+  const kind = kinds[0];
   const targets = useMemo(() => {
     void revision;
     const pageId = catalogNodePage(graph as never, controlId);
@@ -892,8 +912,9 @@ export function CatalogControlFilterSection({
   const collections = useCollections();
   if (!kind) return null;
   const fields = useViewFields(table);
-  const create = (fieldId: string) => {
+  const create = (fieldId: string, chosen: AddKind = kind!) => {
     const listId = target ?? targets[0]?.id;
+    if (chosen === STATIC) return;
     const field = fields.find((item) => item.id === fieldId);
     if (!listId || !field) return;
     const { command, created } = catalogFilterCommand(
@@ -901,7 +922,7 @@ export function CatalogControlFilterSection({
       {
         listId,
         field,
-        kind,
+        kind: chosen,
         control: { nodeId: controlId },
         values: catalogFieldValues(rowsOf(table), field),
         allLabel: t("dataView.allOption"),
@@ -948,11 +969,12 @@ export function CatalogControlFilterSection({
       ) : adding ? (
         <AddForm
           fields={fields}
-          kindChoice={false}
+          kindChoice={kinds.length > 1}
+          kinds={kinds}
           targets={targets}
           target={target ?? targets[0]?.id}
           onTarget={setTarget}
-          onCreate={(fieldId) => create(fieldId)}
+          onCreate={(fieldId, chosen) => create(fieldId, chosen)}
           onCancel={() => setAdding(false)}
         />
       ) : (
@@ -1064,9 +1086,7 @@ function SharedView({ listId }: { listId: NodeId }) {
             <Button
               className="control-button"
               onPress={() =>
-                run(
-                  catalogJoinSharedView(info.shared!.view.id, [joining]),
-                )
+                run(catalogJoinSharedView(info.shared!.view.id, [joining]))
               }
             >
               {t("dataView.shareJoin")}
@@ -1177,16 +1197,16 @@ function UnreadVariables({
               onCreate={(fieldId) => {
                 const field = fields.find((entry) => entry.id === fieldId);
                 const node = graph.getEntry(item.controlId);
-                let kind: CatalogFilterControlKind = "text";
+                let kind: CatalogFilterControlKind = "SearchField";
                 try {
                   kind =
                     (node?.kind === "node" &&
                       catalogFilterKindOfType(
                         definitionTypeName(graph, node.definitionId),
                       )) ||
-                    "text";
+                    "SearchField";
                 } catch {
-                  kind = "text";
+                  kind = "SearchField";
                 }
                 if (!field) return;
                 const { command } = catalogFilterCommand(

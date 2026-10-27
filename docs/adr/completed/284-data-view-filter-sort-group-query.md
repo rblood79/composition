@@ -214,6 +214,8 @@ R1 · R2 는 G2 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 �
 
 **G8 — 2026-10-27 · 사용자 confirm (본인 Builder 5173)** — walkthrough 과제 ① 라디오로 거르기 (「검색 추가」 → gender · 「선택 (라디오)」 → Preview 에서 female · 전체) · ⑥ 검색 AND (female OR age < 25) (검색 추가 둘 + gender 조건 행 ⋮ 「또는 조건 추가」 → age 「미만」 25 · 「결과 수 표시」) · ⑫ kanban 열 3 + 끌어 옮기기 (「묶기로 열 만들기」 → Preview drop → 머리 개수 · 행 값). 사용자 「확인되었다」. 진행 중 질문 2 — 「또는 조건 추가」 위치 (목록의 「검색 · 필터」 와 컨트롤의 「목록 거르기」 양쪽 조건 행 ⋮ 메뉴 · 같은 명령) · 「미만」 이 없음 (age 열이 글자 타입 — 숫자 비교는 number 필드에서만, 설계대로) → **사용성 메모 (LOW deferred)**: 필드 타입 때문에 비교가 빠졌다는 안내가 패널에 없다.
 
+**G8 후속 — 2026-10-27 · Chrome MCP · dev 5175 · 콘솔 오류 0** (사용자 보고 「검색 생성시 slider, combobox 가 누락」 · 「switch 도 누락」): 컨트롤 표가 손 표 7 종이었다 (breakdown §1 「손 표 금지」 위반) → 등록표 유도로 수리. Users Table 에서 「Add search」 의 Control 목록 = 22 종 + 고정 값 확인 · Switch (gender) 생성 → Canvas 「gender = male」 Switch · 조건 「gender Equals · Switch」 · 코드 `<Switch isSelected={genderFilter2} …>` · ComboBox (id) 생성 → 항목 All · u1 · u2 · u3 · Preview 에서 Switch 켬 → Kim · Lee 「2 results」, 끔 → 3, ComboBox u2 → Park 「1 results」. **PASS**. 정리는 삭제 명령 (조건 2 · 규칙 2 · 노드 2 · 변수 2). 범위 Slider (`[min, max]`) 는 남김 — Canvas 의 Slider 값이 숫자 하나뿐 (`presence.ts` `catalogSliderRange`) 이라 두 thumb 렌더가 먼저 필요하다.
+
 **G7 — 2026-10-27 · Chrome MCP · dev 5175 (사용자 5173 무관) · mock 서버 5199 · 콘솔 오류 0**.
 
 1. **plants 구성 (「검색 추가」 로)** — 새 page 에 Table · GridList (팔레트) → Table 「만들고 연결」 (Paste 6 행 · 열을 schema 로 교체) → 「검색 추가」 다섯 번 (common_name 검색 · isFavorite Checkbox · cycle · sunlight · watering TagGroup) → 검색 연결의 「또는 조건 추가」 → 사본 필드를 scientific_name 으로 → 「결과 수 표시」 · 「적용 조건 수 표시」 → GridList 를 같은 데이터에 연결 → Table 의 「이 보기 함께 읽기」 → GridList 「정렬 따라가기」. **PASS**.

@@ -747,7 +747,9 @@ class Generator {
     const owner = served.chain.at(-1)!;
     const view = this.views.get(owner.key)!;
     const init =
-      served.method === "GET" ? "{signal}" : `{signal, method: ${literal(served.method)}}`;
+      served.method === "GET"
+        ? "{signal}"
+        : `{signal, method: ${literal(served.method)}}`;
     const last = queries.at(-1)!;
     if (served.format.kind === "suffix") {
       out.line(`let url = new URL(${literal(url)});`);
@@ -755,7 +757,9 @@ class Generator {
       const visit = (item: ViewCondition | ViewConditionGroup) => {
         const reason = notSent.get(item.id);
         if (reason) {
-          out.line(`// Not in the request (${NOT_SENT[reason]}) — and not filtered here.`);
+          out.line(
+            `// Not in the request (${NOT_SENT[reason]}) — and not filtered here.`,
+          );
           return;
         }
         if ("items" in item) item.items.forEach(visit);
@@ -767,7 +771,9 @@ class Generator {
       return;
     }
     if (served.method === "GET" || served.method === "HEAD") {
-      out.line("// A GET request carries no body: the view is not sent — and not filtered here.");
+      out.line(
+        "// A GET request carries no body: the view is not sent — and not filtered here.",
+      );
       out.line(`let res = await fetch(cursor || ${literal(url)}, ${init});`);
       return;
     }
@@ -1050,9 +1056,7 @@ class Generator {
         const column = variable ? `${variable.name}.column` : "'id'";
         const compare = `collator.compare(String(a[${column}]), String(b[${column}])) * ${dir ?? 1}`;
         out.write(
-          variable
-            ? `${variable.name} ? ${compare} : 0)`
-            : `${compare})`,
+          variable ? `${variable.name} ? ${compare} : 0)` : `${compare})`,
         );
       } else {
         const key = this.pathKey(code.collectionId, sort.field);
@@ -1614,13 +1618,18 @@ class Generator {
         if (action.op === "reset")
           return void out.line(`${setter}(${this.initialValue(variable)});`);
         let next = value(action.value);
-        // (A key list into a text variable: a single selection's key.)
+        // (A key list into a text variable: a single selection's key. A ComboBox · Tabs report
+        // the key itself — RAC `onSelectionChange(key)` — not a Set.)
         if (
           !variable.selection &&
           typeof action.value === "string" &&
           /^!event\.keys$/.test(action.value)
         )
-          next = `[...${next}][0] ?? ''`;
+          next =
+            conceptStateOf(this.doc.typeOf(context.node), context.trigger)
+              ?.valueType === "key"
+              ? `${next} ?? ''`
+              : `[...${next}][0] ?? ''`;
         return void out.line(`${setter}(${next});`);
       }
       case "update": {
