@@ -20,7 +20,7 @@
  * 에 키로 남긴다 (G1 — 사용자에게 노출되지 않는다).
  *
  * @see docs/adr/completed/158-interactions-rules-capability-registry.md
- * @see docs/adr/280-interactions-rac-surface-registry-controlled-runtime.md
+ * @see docs/adr/completed/280-interactions-rac-surface-registry-controlled-runtime.md
  */
 
 import { COMPONENT_INTERACTION_SPECS } from "./componentInteractionSpecs";

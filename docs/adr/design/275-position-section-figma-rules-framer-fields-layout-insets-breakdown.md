@@ -1,6 +1,6 @@
 # ADR-275 breakdown — Position 절 (Figma 규칙 + Framer 칸 배치) · layout inset 저장
 
-> 본문: [ADR-275](../275-position-section-figma-rules-framer-fields-layout-insets.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다.
+> 본문: [ADR-275](../completed/275-position-section-figma-rules-framer-fields-layout-insets.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다.
 
 ## 1. 전제 lock-in
 

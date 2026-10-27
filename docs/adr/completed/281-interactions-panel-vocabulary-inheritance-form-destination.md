@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-22 · Phase 0 ~ 5 종결 · G6 (사용자 Builder 확인) 대기 (사용자 `/execute-adr 281` + [reviews/281.md](reviews/281.md) 최신 round pending 0 · HIGH 전부 fixed)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G6 사용자 Builder 확인 통과) · Accepted — 2026-10-22 · Phase 0 ~ 5 종결 · G6 (사용자 Builder 확인) 대기 (사용자 `/execute-adr 281` + [reviews/281.md](../reviews/281.md) 최신 round pending 0 · HIGH 전부 fixed)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -11,7 +11,7 @@ Accepted — 2026-10-22 · Phase 0 ~ 5 종결 · G6 (사용자 Builder 확인) �
 > - capability 라벨 대상은 58 type (spec 수와 같음 — 57 · 55 는 그때 값).
 > - Do 대상 (Decision 7): ADR-283 이 장소 참조로 바꿨다 (위 Status 의 283 메모와 같음).
 > - G6 확인용 샘플 `docs/how-to/samples/adr281-g6-check.composition.json` 은 contract 50 · `actions` 로 갱신돼 있어 지금도 열린다.
-> - 남은 것: G6 사용자 Builder 확인 → Implemented. 확인 기록은 아직 없다.
+> - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G6 사용자 Builder 확인).
 
 > **[ADR-283](283-interaction-capability-target-ref-picker.md) (2026-10-26)** — 이 ADR 이 규칙 **주인** 쪽에 둔 instance 주소 (`recordsOfOwner`) 를 규칙 **대상** 쪽에 적용했다: capability `target` = `{ nodeId }` · `{ address }` · `{ local }` · `{ unset }`, 실행한 record 기준 해소 (`resolveCapabilityTarget`) — 원본 규칙이 누른 instance 의 대상을 바꾼다.
 
@@ -27,16 +27,16 @@ Accepted — 2026-10-22 · Phase 0 ~ 5 종결 · G6 (사용자 Builder 확인) �
 
 > **Phase 0 종결 (2026-10-22)** — G0 통과. probe 6 (`adr281RacProbe.test.tsx`, 설치 RAC): P1 Select 가 trigger 의 `ButtonContext` 를 공급해 바깥 `Provider` 가 trigger 에 닿지 않음 · P2 CheckboxGroup 안 Checkbox 는 바깥 `CheckboxContext` 를 받음 · P3 Dialog 안 slot Button 은 바깥 `ButtonContext` 를 받지 않음 · P4 자식 자기 `isDisabled={false}` 가 이김 · P5 가까운 `I18nProvider` 가 이김 · P6 RAC 단독은 색 모드 속성 0 (theme `applyTheme` 의 것). RED 4 (`adr281Phase0.test.tsx`, `it.fails` — 각각 의도한 사유로 실패 확인): ① 원본 규칙이 instance 둘에서 실행되나 패널 0 · ② `selectionMode: none` ListBox 에 `selectItem` 노출 · ③ `callEndpoint` 규칙이 **저장부터 거부** (code catalog `CATALOG_ACTION_OPCODES` 에 없음 — `executionVocabulary.ts:15-20`, 본문 inventory 의 `library.ts:236` 은 허용 목록 검사일 뿐) · ④ page 루트 `isDisabled` 가 검증에서 거부 (`accepts: {}`). inventory 보강 (adr-writing M3): library `triggerIds` 는 `events` 만 담아 (`executionVocabulary.ts:27-30`) 숨은 이벤트 규칙은 지금 저장 불가 → Phase 1 이 숨은 이벤트 (keyboard 제외) 를 vocabulary 에 더한다 · Phase 4 가 `callEndpoint` 를 `CATALOG_ACTION_OPCODES` 에 더한다.
 
-- 사용자 요청: `/create-adr` (2026-10-22) — [ADR-280](280-interactions-rac-surface-registry-controlled-runtime.md) Phase 1 ~ 4 종결 보고 직후. ADR-280 이 「ADR B (응용)」 으로 이관한 목록 (280 Decision 10 · [breakdown §6](design/280-interactions-rac-surface-registry-controlled-runtime-breakdown.md)) 이 이 ADR 의 범위다.
+- 사용자 요청: `/create-adr` (2026-10-22) — [ADR-280](280-interactions-rac-surface-registry-controlled-runtime.md) Phase 1 ~ 4 종결 보고 직후. ADR-280 이 「ADR B (응용)」 으로 이관한 목록 (280 Decision 10 · [breakdown §6](../design/280-interactions-rac-surface-registry-controlled-runtime-breakdown.md)) 이 이 ADR 의 범위다.
 - 방향을 정한 사용자 원문 (2026-10-22, ADR-280 과 같음): 「이미 제공하는 기능들을 ui/ux 형태로 쉽게 전달해주는 것」 — 패널의 선택지는 RAC · S2 가 이미 가진 callback · prop 표면이지 새 어휘가 아니다 (메모리 `project-interactions-expose-rac-surface-not-new-vocabulary`).
 - 사용자가 이미 답한 확인 항목 (2026-10-22, 연구 §6 — ADR-280 Status 에 기록):
   - **Q2 = 허용**: `!event.<arg>` 를 규칙 값으로 넘긴다. 실행 층은 ADR-280 이 끝냈고 (`dispatcher.ts:137-146`), **패널에서 고르는 UI 는 이 ADR**.
   - **Q3 = 지금은 제외**: keyboard 는 When 노출 0 — 이 ADR 도 유지 (hidden 토글의 대상에서도 뺀다).
   - **Q4 = ADR 2 개**: 280 이 base, **이 ADR 이 응용 (280 의존)** — 「패널 어휘 · `!event` 패널 노출 · 조상 → 자손 상속 (RAC Provider) · 원본 → instance 규칙 상속 · Form 제출 목적지 · Publish 확인」. 분리는 사용자가 결정 지점 ① 로 이미 답했으므로 (280 Status) 재질문하지 않는다.
 
-> **Review round 1 반영 (2026-10-22, codex — [reviews/281.md](reviews/281.md))**: HIGH 3 을 코드로 확인하고 본문을 고쳤다. h1 — `callEndpoint` action 은 `endpointId` 뿐이고 검증이 추가 키를 거부한다 (`types.ts:879` · `validation.ts:1438`) → `body?: Scalar` 를 저장 필드로 명시하고 (제약 §스키마 · contract 47 에 포함) 검증 · 명령 · 패널 · Preview 변환을 G4 의 저장 단언으로 묶었다. h2 — 조회 실행기 `createCollectionEndpointExecutor` 는 진행 중 요청을 endpoint id 로 공유해 (`executeCollectionEndpoint.ts:25-39`) 둘째 Form 의 body 가 전송되지 않는다 → 제출 전용 `submitCollectionEndpoint` (fetch 조립만 공유 · pending 공유 0) 와 G4 동시 제출 반례. h3 — 같은 실행기가 성공 응답을 항상 `response.json()` 으로 읽어 (`:17-18`) `204` 가 실패 toast 가 된다 → `response.ok` = 성공 · 빈 본문 · 비 JSON 허용 (Decision 5 응답 층) 과 G4 응답 반례. 셋을 R8 (HIGH) 로 묶어 G4 와 1:1. **Round 2 (수리 검증, 2026-10-22)**: HIGH 1 — `scalar(action.body)` 를 무조건 부르면 body 없는 규칙이 `SCALAR_REQUIRED` 로 거부된다 (`validation.ts:326-330`) → 「`body !== undefined` 일 때만」 으로 Decision 5 · breakdown §5 를 고치고 G4 에 body 없는 규칙의 검증 · 재열기 + 원복 RED 를 넣었다 (RED 4). LOW — 등록표 「출력 모양 무변경」 을 「기존 키 무변경 + 선택 키 `eventArgs` · `groups` 추가」 로 본문 · breakdown §0 문구를 맞췄다.
+> **Review round 1 반영 (2026-10-22, codex — [reviews/281.md](../reviews/281.md))**: HIGH 3 을 코드로 확인하고 본문을 고쳤다. h1 — `callEndpoint` action 은 `endpointId` 뿐이고 검증이 추가 키를 거부한다 (`types.ts:879` · `validation.ts:1438`) → `body?: Scalar` 를 저장 필드로 명시하고 (제약 §스키마 · contract 47 에 포함) 검증 · 명령 · 패널 · Preview 변환을 G4 의 저장 단언으로 묶었다. h2 — 조회 실행기 `createCollectionEndpointExecutor` 는 진행 중 요청을 endpoint id 로 공유해 (`executeCollectionEndpoint.ts:25-39`) 둘째 Form 의 body 가 전송되지 않는다 → 제출 전용 `submitCollectionEndpoint` (fetch 조립만 공유 · pending 공유 0) 와 G4 동시 제출 반례. h3 — 같은 실행기가 성공 응답을 항상 `response.json()` 으로 읽어 (`:17-18`) `204` 가 실패 toast 가 된다 → `response.ok` = 성공 · 빈 본문 · 비 JSON 허용 (Decision 5 응답 층) 과 G4 응답 반례. 셋을 R8 (HIGH) 로 묶어 G4 와 1:1. **Round 2 (수리 검증, 2026-10-22)**: HIGH 1 — `scalar(action.body)` 를 무조건 부르면 body 없는 규칙이 `SCALAR_REQUIRED` 로 거부된다 (`validation.ts:326-330`) → 「`body !== undefined` 일 때만」 으로 Decision 5 · breakdown §5 를 고치고 G4 에 body 없는 규칙의 검증 · 재열기 + 원복 RED 를 넣었다 (RED 4). LOW — 등록표 「출력 모양 무변경」 을 「기존 키 무변경 + 선택 키 `eventArgs` · `groups` 추가」 로 본문 · breakdown §0 문구를 맞췄다.
 
-- fork 4 질문 lock-in: [breakdown §0](design/281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md). 의존 방향 158 → 248 · 250 · 256 → 280 → **281**. 이 ADR 은 ADR-280 의 등록표 (`deriveRegistry` 출력 — `events` · `hiddenEvents` · `capabilities{guards, op, param}`) 와 dispatcher deps 를 **소비** 하고 바꾸지 않는다.
+- fork 4 질문 lock-in: [breakdown §0](../design/281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md). 의존 방향 158 → 248 · 250 · 256 → 280 → **281**. 이 ADR 은 ADR-280 의 등록표 (`deriveRegistry` 출력 — `events` · `hiddenEvents` · `capabilities{guards, op, param}`) 와 dispatcher deps 를 **소비** 하고 바꾸지 않는다.
 - 선행 조건: ADR-280 G1 통과 (등록표 모양 확정 — 2026-10-22). 280 의 G5 (사용자 Builder 확인) 는 이 ADR 의 착수 조건이 아니다 — 두 ADR 이 건드리는 파일이 겹치지 않도록 breakdown §3 이 경계를 둔다.
 
 ## Context
@@ -112,7 +112,7 @@ B 가 HIGH 0 — 추가 루프 불요.
 
 **대안 B 채택.**
 
-> 구현 상세: [281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md](design/281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md)
+> 구현 상세: [281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md](../design/281-interactions-panel-vocabulary-inheritance-form-destination-breakdown.md)
 
 1. **패널의 When · Do 는 등록표를 그대로 보이되 RAC 가 지금 받을 수 있는 것만 보인다.** 그룹 = 개념 (RAC 문서 절) · 노출 = `events` − (조건 불충족 개념의 events) · Do = `capabilities` − (guard 가 선언값만으로 이미 막는 것: `isDisabled` · `isReadOnly` 선언, `selectionMode: "none"`). 선언값이 바뀌어 숨겨진 규칙은 **삭제하지 않고** 행에 「지금 RAC 가 받지 않음 (isReadOnly)」 표식 — 실행 시 report 와 같은 문구. 숨은 이벤트 (`hiddenEvents`, keyboard 제외) 는 행의 「RAC 전체 보기」 토글로 열리고, 토글 상태는 저장하지 않는다 (규칙이 숨은 이벤트를 쓰면 그 행은 늘 열림).
 2. **값 칸은 소스를 고른다.** 「리터럴 / 이벤트 인자 / 변수」 — 이벤트 인자 목록은 When 의 개념이 선언한 `args` (`EVENT_ARG_NAMES` 를 개념 파일의 `args: { onSelectionChange: ["keys"] }` 로 옮기고 `bindings.ts` 가 등록표에서 읽음). 저장은 지금 그대로 문자열 `"!event.keys"` (스키마 0). 소스는 「리터럴 / 이벤트 인자」 둘뿐 — 변수를 값으로 읽는 소스 (`!var.<id>` 류) 는 넣지 않는다 (ADR-214 의 변수는 `{{ name }}` 글자 바인딩과 `setState` 쓰기로 닿고, 읽기 소스는 사용자 결정 3 의 2 차와 함께 판단). **2026-10-26 개정** (`729c44749`): 값 칸 「값 고르기」 — 리터럴 또는 값 전체 참조 `!event.<인자>` · `!item.<key 인자>[.필드]` · `!var.<변수 id>[.경로]`, 해석은 `interactions/valueRef.ts` `resolveRuleValue` 하나, 선택지는 `panels/interactions/valueOptions.ts` 가 유도.
@@ -169,6 +169,8 @@ R2 는 G0 · G3 가, R8 은 G4 가 1:1 로 관리한다. 그 밖의 잔존 HIGH 
 | G6   | 종결    | 사용자 Builder 확인 (G5 의 네 축을 사용자 프로젝트에서) → Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 지적 수리 뒤 재확인                                                                                                    |
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G6 사용자 Builder 확인 PASS → Implemented.
 
 (Implemented 승격 시 기재 — G6 사용자 Builder 확인 대기. 실행자 live 는 Status 의 Phase 5 블록: 2026-10-22 dev 5174 · Compare Mode Preview · endpoint 스텁 5199.)
 

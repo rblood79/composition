@@ -8,7 +8,7 @@
  * names to the installed RAC d.ts with `satisfies`; `componentInteractionSpecs.ts` maps catalog
  * types to concepts, and `deriveRegistry` turns the two into `CAPABILITY_REGISTRY`.
  *
- * @see docs/adr/280-interactions-rac-surface-registry-controlled-runtime.md Decision 1 · 2
+ * @see docs/adr/completed/280-interactions-rac-surface-registry-controlled-runtime.md Decision 1 · 2
  */
 import type { CapabilityParam } from "../capabilityRegistry";
 

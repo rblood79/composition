@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-20 (Proposed 같은 날)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G5 사용자 확인 통과) · Accepted — 2026-10-20 (Proposed 같은 날)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -10,7 +10,7 @@ Accepted — 2026-10-20 (Proposed 같은 날)
 > - 글자 없는 자리 중 FieldButton · ContextualHelp trigger 는 자기 Icon 자식 대신 Button 의 `{icon}` 자리를 쓴다 — FieldButton 은 정의 기본 `icon: "chevron-down"` (`09a72805f` · `acb3dd68b`), ContextualHelp trigger 는 `children: []`. Decision 5 의 「자기 Icon 자식은 그대로」 는 이 둘에는 맞지 않는다.
 > - G4 (ratchet · 번들 · `codex:preflight`) 의 결과 기록이 없다 (UNVERIFIED). ratchet 은 `219c1a3dc` 뒤 수동 실행이다.
 > - 바뀐 테스트는 20 파일 (breakdown §6 — 「관련 테스트 12」 아님).
-> - 남은 것: G5 사용자 확인 → Implemented. 확인 기록은 아직 없다.
+> - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G5 사용자 확인).
 
 > **Accepted 근거**: 사용자 `/execute-adr 276` (2026-10-20) + `docs/adr/reviews/276.md` Round 2 — pending 0, HIGH 4 (h1 ~ h4) 전부 fixed (설계). 리뷰의 기술 PASS 는 아래 사용자 결정 3건을 대신하지 않는다 — Phase 0 끝에 묻고 여기에 적는다.
 >
@@ -101,7 +101,7 @@ S2 1.8.1 (D2 정본) 의 Button children 은 `<Icon/> <Text/>` 조립이고 Icon
   8. **icon-only Button**: `label: ""` (Text 없음) + `aria-label` (S2 ActionButton 의 접근성 규칙). Properties 가 Text 가 없고 `aria-label` 도 없으면 안내한다 (사용자 결정 2).
   9. **ToggleButton** 은 같은 `buttonChildHost` 라 같은 규칙 (origin template `ToggleButton > Icon{icon} + Text{label}` · 중첩 7 자리 `children` → `label` 이관) 을 적용한다.
 
-> 구현 상세: [276-button-text-child-iconbutton-merge-breakdown.md](design/276-button-text-child-iconbutton-merge-breakdown.md)
+> 구현 상세: [276-button-text-child-iconbutton-merge-breakdown.md](../design/276-button-text-child-iconbutton-merge-breakdown.md)
 
 ### 사용자 결정 3건 (execute-adr 가 닿을 때 묻는다)
 
@@ -136,6 +136,8 @@ S2 1.8.1 (D2 정본) 의 Button children 은 `<Icon/> <Text/>` 조립이고 Icon
 | G5   | Implemented 전 | 사용자 확인 — Button · ToggleButton · 옛 IconButton 자리의 모습 · 팔레트 · 재생성한 개발용 프로젝트                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 지적 수리 뒤 재확인                                           |
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G5 사용자 확인 PASS → Implemented. G4 (ratchet · 번들 · preflight) 결과 기록은 없다.
 
 2026-10-20, Chrome MCP (dev 5173, 새 프로젝트 `adr276-live`, Desktop 500 %):
 

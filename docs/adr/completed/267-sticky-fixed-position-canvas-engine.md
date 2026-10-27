@@ -4,7 +4,7 @@
 
 Implemented — 2026-10-17 (Phase 0 · 1 · 3. Phase 2 fixed 는 사용자 결정 1 「허용 안 함」 으로 ADR-164 의도적 미지원 유지 종결)
 
-> **2026-10-20 후속 — 사용자 결정 1 을 sticky 에 한해 뒤집음** ([ADR-275](../275-position-section-figma-rules-framer-fields-layout-insets.md) 사용자 결정 5 · Phase 6): 노드 `layout.position` 이 `sticky` 를 받고 Position 절에서 고른다. 이 ADR 의 엔진 constraints · Canvas 오프셋을 그대로 쓴다. `fixed` 도 같은 날 열렸다 (ADR-275 사용자 결정 6 · Phase 7 — 결정 2 = viewport 는 page body 영역 (원점 + breakpoint 화면 크기, 스크롤 0), page 스크롤에 안 움직임).
+> **2026-10-20 후속 — 사용자 결정 1 을 sticky 에 한해 뒤집음** ([ADR-275](275-position-section-figma-rules-framer-fields-layout-insets.md) 사용자 결정 5 · Phase 6): 노드 `layout.position` 이 `sticky` 를 받고 Position 절에서 고른다. 이 ADR 의 엔진 constraints · Canvas 오프셋을 그대로 쓴다. `fixed` 도 같은 날 열렸다 (ADR-275 사용자 결정 6 · Phase 7 — 결정 2 = viewport 는 page body 영역 (원점 + breakpoint 화면 크기, 스크롤 0), page 스크롤에 안 움직임).
 
 > **Implemented 2026-10-17**: 사용자 `/execute-adr 267` + 리뷰 [reviews/267.md](../reviews/267.md) Round 3 이슈 0 (pending 0) → Accepted, 같은 날 종결.
 >

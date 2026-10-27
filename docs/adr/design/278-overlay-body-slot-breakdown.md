@@ -1,6 +1,6 @@
 # ADR-278 design breakdown — 오버레이 본체 = slot
 
-> 본문: [../278-overlay-body-slot-local-component.md](../278-overlay-body-slot-local-component.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../278-overlay-body-slot-local-component.md](../completed/278-overlay-body-slot-local-component.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문)
 
@@ -97,7 +97,7 @@
 
 ### Phase 3 결과 (2026-10-21)
 
-- 본문 [Live Exercise](../278-overlay-body-slot-local-component.md#live-exercise) 7/7 PASS (프로젝트 「ADR278」 · contract 45). 2 단계의 Layers 경로 (리뷰 비차단 참고) 그대로.
+- 본문 [Live Exercise](../completed/278-overlay-body-slot-local-component.md#live-exercise) 7/7 PASS (프로젝트 「ADR278」 · contract 45). 2 단계의 Layers 경로 (리뷰 비차단 참고) 그대로.
 - LOW deferred 2 (Fill slot 목록 74 가 뷰포트보다 길면 스크롤 불가 · slot 절의 Local instance 라벨이 루트 type) — 같은 날 후속 (사용자 요청) 으로 닫음: slot 절의 채움 목록 = Swap 의 검색형 picker (추천 · Local · Library 묶음 · 목록 320px 스크롤) · 행 라벨 = 정의 이름. `phase4ePropertySections` 에 단위 1.
 - 설계 대비 점검 (같은 날): Tooltip `content` Preview · ListBox `Items` (root slot) Local 후보 단위 +2 → `adr278OverlayBodySlot` 12. Compare Mode parity 는 비교 대상 없음 (닫힌 오버레이 안 region div — Preview DOM 단위가 대신).
 - 함정: Preview 버튼은 publish 탭을 blob snapshot 으로 연다 — 뒤의 편집은 다시 열어야 보인다. dev handle `canvas.setCamera({scale:1,x,y})` 는 page 좌표 부호 반전 + 패널 폭 여유.

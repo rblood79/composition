@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-21 (Proposed 같은 날)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 통과) · Accepted — 2026-10-21 (Proposed 같은 날)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -15,15 +15,15 @@ Accepted — 2026-10-21 (Proposed 같은 날)
 
 > **Phase 1 종결 (2026-10-21, G1)** — 사용자 결정 4건 모두 권고안 (Tooltip `content` · 본체 칸은 Origin 줄 ◆ 오른쪽 (Origin 줄은 `03a9ca02f` 에서 없어졌고 ◆ 는 카드 제목 바로 뒤) · ContextualHelp `content` + `footer` · Menu `Items`). library: Dialog `content` · `actions`, Popover · Tooltip 은 OverlayArrow 뒤 region frame (`__content-region`, flex column — Popover 는 rowGap 12px 로 overlay 의 gap 유지) 에 `content`, ContextualHelp `content` · `footer`, Menu `Items` — contract 45. `slots.ts` `items` 분기가 project 정의를 후보에 넣고 기존 `assertNestable` 이 루트 type 으로 거른다 (h2). 새 단위 `adr278OverlayBodySlot` 8 (선언 · 44 거부 · 놓은 instance 의 기본 내용 소유 · Dialog 채움 → record · Preview Modal · Layers · 저장 재열기 · Popover 채움 → Preview · Swap 이동 · Dialog 채움 목록 · Menu `Items` Local 후보). 원복 RED: library 선언 되돌림 5/8 · `slots.ts` 되돌림 1/8. 정해진 차이 갱신: `adr255OverlayTrigger` (overlay 자식 = arrow + frame) · `adr256OverlayArrow` (레퍼런스 구조에 region div) · `adr254ContainerParts` (Popover · Tooltip 부품 경로 `/1/1/N` · Dialog description 이 소유 노드라 DOM id 를 가짐). contract 리터럴 44 → 45 (테스트 fixture 33 파일). type-check 6/6 · builder catalogRuntime 2372 중 제외 목록 밖 실패 0 · shared `src/catalog` 실패 12 = IconButton 잔재 (HEAD 와 같음). Compare Mode 는 Phase 3 live 에서.
 
-> **Phase 0 종결 (2026-10-21, G0)** — 사용자 `/execute-adr 278` · 리뷰 Round 1 pending 0 · HIGH 2 fixed → Accepted. 인벤토리 + RED 3: (a) 오버레이 안 slot 채움은 Canvas record · Preview Modal · Layers · 채움 목록에 전부 닿는다 (GREEN 3/3 — 수리 행 0, 발견: 놓는 순간 기본 내용이 소유 노드) · h2 Menu `Items` Local 후보 없음 (RED 1/1 → Phase 1) · (b) 숨김을 끈 Library page 샘플에서 Modal 448×162 · Popover 240×46 · Tooltip · ContextualHelp · Menu 전부 geometry 있음 (GREEN → Decision 4 기본안, 「내용만」 불필요). 상세: [breakdown §Phase 0 결과](design/278-overlay-body-slot-breakdown.md#phase-0-결과-2026-10-21-execute-adr-278).
+> **Phase 0 종결 (2026-10-21, G0)** — 사용자 `/execute-adr 278` · 리뷰 Round 1 pending 0 · HIGH 2 fixed → Accepted. 인벤토리 + RED 3: (a) 오버레이 안 slot 채움은 Canvas record · Preview Modal · Layers · 채움 목록에 전부 닿는다 (GREEN 3/3 — 수리 행 0, 발견: 놓는 순간 기본 내용이 소유 노드) · h2 Menu `Items` Local 후보 없음 (RED 1/1 → Phase 1) · (b) 숨김을 끈 Library page 샘플에서 Modal 448×162 · Popover 240×46 · Tooltip · ContextualHelp · Menu 전부 geometry 있음 (GREEN → Decision 4 기본안, 「내용만」 불필요). 상세: [breakdown §Phase 0 결과](../design/278-overlay-body-slot-breakdown.md#phase-0-결과-2026-10-21-execute-adr-278).
 
 - 사용자 요청: `/create-adr` (2026-10-21) — 같은 날 Library page 감사 (Framer component 체계 deep research 뒤 사용자 지적 「각 컴포넌트에 맞지 않는 불필요한 요소 · 잘못된 구성」) 의 방향 3. 방향 1 · 4 · 5 는 같은 날 수리 완료 (`acb3dd68b` · `35417aa8c`).
 - 방향을 정한 사용자 원문 (2026-10-21):
   - 「빌더 canvas 는 overlay 를 동작하는 것은 아니기에 components-library 기본 컴퍼넌트를 사용하던가 local 에 커스터마이징한 오버레이 화면을 디자인해 둬야 하는 것 아닌가」
   - 「Pages 에 추가한 page 를 오버레이 본체 = slot 으로 하게 하거나 Components 에 기본 컴퍼넌트나 local 에 커스터마이징한 컴퍼넌트를 slot 으로 사용하거나 어차피 동일한 내용인 듯하지만 결국 니가 제안한 "방향 3 의 재정의" 와 유사한 건가」 → 실행자 답 「같은 모델 — slot 에 무엇을 넣느냐만 다르다. Page 를 slot 내용으로는 권하지 않는다 (page = URL · 무거움 · context 끊김)」. 사용자가 이 답을 받고 `/create-adr` 를 호출했다 — Page 방식 기각은 본문 대안 C 에 기록.
 - 사용자가 이미 답한 확인 항목: 참조 모델은 pen.dev · Figma · **Framer** 셋이고 선택 기준은 「가장 사용자가 편리한 것」 (2026-10-21, 메모리 `project-origin-instance-slot-reference-pen-figma`) · 놓은 instance 의 slot 내용은 instance 의 것 (2026-10-14) · 기본 원본은 루트만 편집 (2026-10-05) · Components 탭 = Library · Local page (ADR-260).
-- 선행 ADR 과의 관계 (fork 4 질문 — [breakdown §0](design/278-overlay-body-slot-breakdown.md)): [ADR-255](completed/255-overlay-origins-with-trigger.md) (오버레이 원본 = trigger + 본체 한 트리) 가 base 다 — 트리 구조는 그대로 두고 본체에 slot 을 선언한다. ADR-255 Decision 5 「범위 밖: 닫힌 overlay 를 Canvas 에서 편집하는 방법 (Layers 선택으로 한다)」 이 이 ADR 의 범위다. [ADR-261](completed/261-component-api-swap-slot-suggestions-properties.md) 의 slot 채움 · 추천 · [ADR-260](completed/260-component-origin-in-place.md) 의 page 원본은 그대로 쓴다.
-- 리뷰 Round 1 (codex, 2026-10-21 — [reviews/278](reviews/278.md)) HIGH 2 → 같은 날 수리: h1 contract 45 는 44 문서를 거부한다 (옛 문서 무변경 로드 약속 삭제 — Decision 2 · R6 · G1) · h2 Menu `Items` 같은 컬렉션 slot 의 채움 목록은 Library 정의만 열거해 Local 컴포넌트를 고를 수 없다 (Phase 1 구현 항목 추가 — Decision 3 · R7 · G1 · G3). 비차단 정정 2 — Framer 는 Components 안 Relative Overlay 편집 모드가 있다 (「Framer 도 하지 않음」 삭제) · 튜토리얼 URL 404 삭제.
+- 선행 ADR 과의 관계 (fork 4 질문 — [breakdown §0](../design/278-overlay-body-slot-breakdown.md)): [ADR-255](255-overlay-origins-with-trigger.md) (오버레이 원본 = trigger + 본체 한 트리) 가 base 다 — 트리 구조는 그대로 두고 본체에 slot 을 선언한다. ADR-255 Decision 5 「범위 밖: 닫힌 overlay 를 Canvas 에서 편집하는 방법 (Layers 선택으로 한다)」 이 이 ADR 의 범위다. [ADR-261](261-component-api-swap-slot-suggestions-properties.md) 의 slot 채움 · 추천 · [ADR-260](260-component-origin-in-place.md) 의 page 원본은 그대로 쓴다.
+- 리뷰 Round 1 (codex, 2026-10-21 — [reviews/278](../reviews/278.md)) HIGH 2 → 같은 날 수리: h1 contract 45 는 44 문서를 거부한다 (옛 문서 무변경 로드 약속 삭제 — Decision 2 · R6 · G1) · h2 Menu `Items` 같은 컬렉션 slot 의 채움 목록은 Library 정의만 열거해 Local 컴포넌트를 고를 수 없다 (Phase 1 구현 항목 추가 — Decision 3 · R7 · G1 · G3). 비차단 정정 2 — Framer 는 Components 안 Relative Overlay 편집 모드가 있다 (「Framer 도 하지 않음」 삭제) · 튜토리얼 URL 404 삭제.
 
 ## Context
 
@@ -135,7 +135,7 @@ slot 선언은 library template 의 데이터다 — 생성기 없음 (`reusable
 3. ContextualHelp 의 Footer (Link) 도 slot 인가 — (기본안) 예 (`footer`) / 아니오 (`content` 만).
 4. Menu 의 slot 이름 — (기본안) `Items` (ListBox · GridList 와 같음) / `content`.
 
-> 구현 상세: [278-overlay-body-slot-breakdown.md](design/278-overlay-body-slot-breakdown.md)
+> 구현 상세: [278-overlay-body-slot-breakdown.md](../design/278-overlay-body-slot-breakdown.md)
 
 ## Risks
 
@@ -163,6 +163,8 @@ slot 선언은 library template 의 데이터다 — 생성기 없음 (`reusable
 | G5   | 종료     | 사용자 Builder 확인 (Implemented 조건)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                             |
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 PASS → Implemented.
 
 2026-10-21, headed Chrome (Claude in Chrome MCP) · dev 5173 · 새 프로젝트 「ADR278」 (contract 45 — 옛 프로젝트는 dashboard 에 보이지 않음, 정책대로). 시드는 dev handle `window.__COMPOSITION_CATALOG__` 의 `workspace.execute` (Dialog · Menu 놓기, frame Heading + Text → Create component 「Confirm body」, Menu 소유 항목 → Create component 「Menu row」), 조작은 Builder UI.
 

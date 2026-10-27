@@ -1,6 +1,6 @@
 # ADR-280 design breakdown — RAC 표면에서 유도하는 등록표와 controlled 배관
 
-> 본문: [../280-interactions-rac-surface-registry-controlled-runtime.md](../280-interactions-rac-surface-registry-controlled-runtime.md). 연구 정본: [INTERACTION_REDESIGN_RAC_S2_2026-10](../../explanation/research/INTERACTION_REDESIGN_RAC_S2_2026-10.md) (§3 매트릭스 · §4 gap · 부록 A/B). `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../280-interactions-rac-surface-registry-controlled-runtime.md](../completed/280-interactions-rac-surface-registry-controlled-runtime.md). 연구 정본: [INTERACTION_REDESIGN_RAC_S2_2026-10](../../explanation/research/INTERACTION_REDESIGN_RAC_S2_2026-10.md) (§3 매트릭스 · §4 gap · 부록 A/B). `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문 — 사용자 결정 Q4 「2 개 — base + 응용」, 2026-10-22)
 
@@ -177,7 +177,7 @@ Phase 0 은 연구 §3 (8 가족 90 행) 을 `type × concept × owner × 현 �
 - ADR-158 Status 에 「Superseded-in-part by ADR-280 (Phase 1 등록표 · Phase 3 실행 조건)」.
 - CHANGELOG (사용자 가시: deferred 13 해제 · 40 type 규칙 가능 · owner 이동 안내) · README.
 
-## 6. ADR B (응용) 이관 목록 — [ADR-281](../281-interactions-panel-vocabulary-inheritance-form-destination.md) (2026-10-22 Proposed)
+## 6. ADR B (응용) 이관 목록 — [ADR-281](../completed/281-interactions-panel-vocabulary-inheritance-form-destination.md) (2026-10-22 Proposed)
 
 패널 어휘 (개념 그룹 표시 · 조건부 노출 · `!event` 선택 UI · S2 예외 토글 · i18n 라벨 키 개념 단위) · 조상 → 자손 상속 (page 루트 · frame 의 RAC Provider prop — 연구 §4-f) · 원본 → instance 규칙 상속 표시 · 비활성 · override (ADR-262 축) · Form 제출 목적지 (`callEndpoint` 실행 · collection 행 추가 · 변수 쓰기) · theme/colorScheme 전환 · override 수명 재판단 · Do 대상 페이지 경계 재판단 · Publish 번들 확인.
 

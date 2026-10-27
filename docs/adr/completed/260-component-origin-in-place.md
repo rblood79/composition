@@ -2,7 +2,7 @@
 
 ## Status
 
-> **Superseded in part by [ADR-279](../279-component-origin-on-local-page.md) (2026-10-21, 사용자 결정 — 결정 지점 ④)**: Decision 2 · 3 · 5 · 6 · 8 · 9 (그 자리 ORIGIN · `originRef` 참조 모양 · 해체 때 원본 유지 · 원본 삭제 = 숨은 template + Restore · 복제 = instance 의 `asInstance` 경로 · page 위 중첩 원본) 은 폐기 — 정의가 template 을 소유하고 원본은 Local page 카드에, page 에는 instance (Framer Assets 모델, contract 46). Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard `definitions` · `tokens` snapshot — `origins` 는 삭제) 은 그대로. 아래 본문은 2026-10-14 당시의 기록이다.
+> **Superseded in part by [ADR-279](279-component-origin-on-local-page.md) (2026-10-21, 사용자 결정 — 결정 지점 ④)**: Decision 2 · 3 · 5 · 6 · 8 · 9 (그 자리 ORIGIN · `originRef` 참조 모양 · 해체 때 원본 유지 · 원본 삭제 = 숨은 template + Restore · 복제 = instance 의 `asInstance` 경로 · page 위 중첩 원본) 은 폐기 — 정의가 template 을 소유하고 원본은 Local page 카드에, page 에는 instance (Framer Assets 모델, contract 46). Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard `definitions` · `tokens` snapshot — `origins` 는 삭제) 은 그대로. 아래 본문은 2026-10-14 당시의 기록이다.
 
 Implemented — 2026-10-14 (Phase 0 ~ 4 · G0 ~ G5 종결 — main `010f3a2b5` · `af29d12e8`, pre-push perf ratchet pass · 사용자 G5 「확인했다」 · 아래 Live Exercise). Accepted — 2026-10-14 (사용자 `/execute-adr 260` · [리뷰 기록](../reviews/260.md) Round 3 pending 0 · HIGH 5 전부 fixed — 전제 확정)
 

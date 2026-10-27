@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Round 2 pending 0 · HIGH 전부 fixed 로 승격). 이전: Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4) · Round 1 HIGH 3 설계 반영)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G5 사용자 5173 확인 (G4 번들은 아래) 통과) · Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](../reviews/282.md) Round 2 pending 0 · HIGH 전부 fixed 로 승격). 이전: Proposed — 2026-10-24 (리뷰 Round 2 HIGH 1 (h4) · Round 1 HIGH 3 설계 반영)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -12,7 +12,7 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 > - 카드 구성: Origin 줄 · Icons 카드 · 여러 카드의 ◇ · Item 줄이 빠졌고 ◆ 는 제목 바로 뒤다. 칸 frame 은 같은 날 없어졌고 ◆ 를 담는 것은 카드 자체 또는 그 줄의 첫 grid — 결정 13 · 14 의 「칸 (캡션만 소유)」 · 「카드 · 줄 · 칸 · 캡션」 은 그 전 모양. 노드 수 · 크기는 `03a9ca02f` 에서 897 → 531 노드 · 382 → 257 KB.
 > - Local 카드 제목은 그 글자가 노드 이름과 같을 때만 rename 을 따른다 (번호 제거 `6db027780`).
 > - 결함 수리 (283 breakdown §8 Phase 4 의 관찰): undo · redo 가 기록된 프로젝트 항목 사본을 그대로 다시 써 `componentPageIds` 를 지웠다 — Library 를 처음 열기 (History 없는 load step) 전에 기록된 step 을 undo 하면 page 가 목록 밖에 남아 재열기 · Publish 가 `UNOWNED_ENTRY`. 수리 (2026-10-27): 재생이 지금 `componentPageIds` 를 유지 (`withCurrentComponentPages` — `runtime/controller.ts`) + 남아 있는 page 를 목록에서 빼는 step 은 그 step 에서 `UNOWNED_ENTRY` 로 거부 (`graph.ts` — 전에는 바뀐 항목만 봐서 조용히 저장).
-> - 남은 것: G4 — 번들 상한 · `gate:perf-ratchet` `counts.doc`. Builder initial 은 281 측정 1,389,801 → 283 측정 (282 포함) 1,410,913 → 284 Phase 0 1,421,341 로 상한 1,390,000 을 넘는다. 282 자체의 몫은 그 사이 다른 커밋이 있어 UNVERIFIED. G5 사용자 5173 확인 — 기록 없음.
+> - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G5 사용자 5173 확인 (G4 번들은 아래)).
 
 > **Phase 0 ~ 2 완료 (2026-10-24, 커밋 `0737a9349`)** — 사용자 결정 3 건 답 (같은 날): 1-a 선택한 ◆ 의 원본 · 2-a override 가 있는 원본 전부 · 3-a 부품 자리도 따른다.
 >
@@ -25,9 +25,9 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 
 - 사용자 요청: `/create-adr` (2026-10-24) — 같은 날 「navigator - components 탭 library page 는 수정 편집이 되지 않게 되어 있다. 우측에 잠금 ↔ 해제 아이콘 추가하고 해제 후에는 library page 의 origin 을 수정할 수 있게 — 우측 아이콘은 "리셋(초기화) - 해제(잠금)"」.
 - 방향을 정한 사용자 답 (2026-10-24, 결정 지점 ④ — 승인 scope 변경):
-  - 편집 범위 「**원본 전체 편집**」 — 자식 구조 · 부품 · 레이아웃 · 크기 · fill · breakpoint 까지. 2026-10-14 의 확인 「기본(라이브러리) 원본의 slot 은 코드가 정한 그대로 둔다 — 편집 가능 slot 지정은 사용자 컴포넌트 전용」 과 2026-10-05 의 「원본 편집은 루트 prop · 기본 스타일만」 (`originView.ts` 머리말 「Edits are root only (user decision)」) 을 **사용자가 다시 꺼내 뒤집은 것**이다 (재개 조건 (a) 사용자 재제기 — [premise-decision-points.md](../../.claude/rules/premise-decision-points.md)). 그 두 확인이 든 이유 (RAC 조립 계약 · 전 instance 영향) 는 §Context 의 제약으로 남긴다.
+  - 편집 범위 「**원본 전체 편집**」 — 자식 구조 · 부품 · 레이아웃 · 크기 · fill · breakpoint 까지. 2026-10-14 의 확인 「기본(라이브러리) 원본의 slot 은 코드가 정한 그대로 둔다 — 편집 가능 slot 지정은 사용자 컴포넌트 전용」 과 2026-10-05 의 「원본 편집은 루트 prop · 기본 스타일만」 (`originView.ts` 머리말 「Edits are root only (user decision)」) 을 **사용자가 다시 꺼내 뒤집은 것**이다 (재개 조건 (a) 사용자 재제기 — [premise-decision-points.md](../../../.claude/rules/premise-decision-points.md)). 그 두 확인이 든 이유 (RAC 조립 계약 · 전 instance 영향) 는 §Context 의 제약으로 남긴다.
   - 아이콘 자리 「**Library page 행 오른쪽**」 — Components 탭의 Library page 행에 [리셋] [잠금/해제] 두 개, Layout 행의 삭제 아이콘과 같은 자리. 리셋은 이 페이지의 원본 override 전부.
-- 선행: [ADR-248](completed/248-unified-catalog-document.md) (정의가 template 을 소유) · [ADR-253](completed/253-base-ui-origin-reuse.md) (기본 원본 재사용 · 원본 override 가 instance 루트에 닿음) · [ADR-279](279-component-origin-on-local-page.md) (프로젝트 컴포넌트의 원본 = 소유 template, Local page 가 그린다 — 이 ADR 이 재사용하는 모양). 후속 응용: 없음 (variant · 라이브러리 공유는 범위 밖 그대로).
+- 선행: [ADR-248](248-unified-catalog-document.md) (정의가 template 을 소유) · [ADR-253](253-base-ui-origin-reuse.md) (기본 원본 재사용 · 원본 override 가 instance 루트에 닿음) · [ADR-279](279-component-origin-on-local-page.md) (프로젝트 컴포넌트의 원본 = 소유 template, Local page 가 그린다 — 이 ADR 이 재사용하는 모양). 후속 응용: 없음 (variant · 라이브러리 공유는 범위 밖 그대로).
 
 ## Context
 
@@ -126,7 +126,7 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 2. **리셋 단위**: 행의 [리셋] 이 (a) override 가 있는 원본 전부 (권고 — 사용자 「리셋(초기화)」 · 확인 대화상자) · (b) 선택 원본만, 전체는 메뉴.
 3. **해제된 원본의 팔레트 놓기**: 새로 놓는 instance 도 사본을 따른다 (B 에서 자동). 다른 원본 template 안의 부품 instance (Select 의 Button) 도 따른다 — (a) 그대로 (권고 — 사용자 원칙 「한 세트」) · (b) 부품 자리는 기본 원본 고정.
 
-> 구현 상세: [282-library-origin-unlock-fork-and-reset-breakdown.md](design/282-library-origin-unlock-fork-and-reset-breakdown.md)
+> 구현 상세: [282-library-origin-unlock-fork-and-reset-breakdown.md](../design/282-library-origin-unlock-fork-and-reset-breakdown.md)
 
 ## Risks
 
@@ -154,6 +154,8 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 측정 명시 (measurement-validity Q1 ~ Q5): 대상은 사용자 CMS 22 페이지 프로젝트 (합성 아님) + 「ADR282」 새 프로젝트 · 불리 케이스 = Button (부품 · instance 최다) 해제 뒤 편집 step · 대조군 = 같은 문서의 프로젝트 컴포넌트 편집 카운트 · oracle = Preview DOM `getBoundingClientRect` (Canvas 와 독립).
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G5 사용자 5173 확인 (G4 번들은 아래) PASS → Implemented. G4 번들: Builder initial 이 ADR-201 상한 1,390,000 을 넘는 상태 (283 측정 1,410,913 · 284 Phase 0 1,421,341 — 상한 초과는 284 이전부터, 282 몫 UNVERIFIED) 를 그대로 둔 채 닫는다. `gate:perf-ratchet` `counts.doc` 실행 기록은 없다.
 
 (Implemented 승격 시 G5 와 함께 확정 — 아래는 G3 기록)
 
@@ -195,7 +197,7 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 14. **page 요소 = page 노드** — 카드 · 줄 · (칸 — 같은 날 제거) · 캡션 (컴포넌트 카드는 `03a9ca02f` 에서 제거) · body 는 선택 · 이동 · 삭제 · Layout · Style 편집이 된다 (home-body 와 같다). ◇ instance 는 그 원본의 instance (INSTANCE 칩). Layers 는 Pages 와 같은 트리이고 ◆ (원본) · ◇ (instance) 표식이 행에 선다.
 15. **Local page** — 정의가 생기거나 사라지면 Local page 의 카드를 맞춘다 (page 가 있을 때만 — 처음 열기 전이면 열 때 만든다).
 
-> 구현 상세: [breakdown §8 Phase 3](design/282-library-origin-unlock-fork-and-reset-breakdown.md#8-phase-3--library--local-page--문서의-page)
+> 구현 상세: [breakdown §8 Phase 3](../design/282-library-origin-unlock-fork-and-reset-breakdown.md#8-phase-3--library--local-page--문서의-page)
 
 ### Risks
 

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-275 · 276 · 278 ~ 283 — Implemented] - 2026-10-27
+
+### Changed
+
+- **사용자 Builder 확인으로 8 개 ADR 종결** (사용자 「adr도 모두 확인은 했다」): 275 Position 절 · 276 Button 글자 = Text 자식 · 278 오버레이 본체 = slot · 279 원본은 Local page · 280 Interactions 등록표 · controlled · 281 Interactions 패널 어휘 · 상속 · Form 목적지 · 282 Library 원본 잠금 해제 · Library · Local page = 문서의 page · 283 capability 대상 참조. 본문은 `docs/adr/completed/` 로 옮겼다.
+  - 기록 없이 닫은 것: 282 G4 (Builder initial 번들 상한 초과 — 284 이전부터) · 275 G5 번들 · 276 G4 (ratchet · 번들 · preflight). 각 본문 Live Exercise 에 적었다.
+
 ## [Components 탭 (ADR-282 후속) — undo 뒤 프로젝트가 열리지 않던 것] - 2026-10-27
 
 ### Fixed

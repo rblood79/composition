@@ -1,6 +1,6 @@
 # ADR-281 Design Breakdown — 패널 어휘 · 조상 상속 · instance 규칙 상속 · Form 제출 목적지
 
-> 본문: [281-interactions-panel-vocabulary-inheritance-form-destination.md](../281-interactions-panel-vocabulary-inheritance-form-destination.md). 실측 기준 main `34ce5f554` + ADR-280 작업 트리 (2026-10-22).
+> 본문: [281-interactions-panel-vocabulary-inheritance-form-destination.md](../completed/281-interactions-panel-vocabulary-inheritance-form-destination.md). 실측 기준 main `34ce5f554` + ADR-280 작업 트리 (2026-10-22).
 
 ## 0. fork 4 질문 lock-in (ADR-280 ↔ 281)
 

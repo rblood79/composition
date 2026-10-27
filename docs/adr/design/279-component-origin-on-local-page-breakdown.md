@@ -1,10 +1,10 @@
 # ADR-279 design breakdown — 원본은 Local page 로
 
-> 본문: [../279-component-origin-on-local-page.md](../279-component-origin-on-local-page.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../279-component-origin-on-local-page.md](../completed/279-component-origin-on-local-page.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (fork 4 질문 — 분리가 아니라 ADR-260 Decision 2 · 3 · 5 · 6 · 8 · 9 의 개정)
 
-1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) 의 정의 소유 모델 (정의가 template 을 소유, 4b 판정 ②) 이 base. [ADR-260](../completed/260-component-origin-in-place.md) 은 그 위에 참조 모양을 더한 응용이었고, 이 ADR 은 그 응용을 걷어 base 모양으로 돌아가면서 Builder 표면 (Local page 편집 · 이름 · 삭제) 을 더한다. [ADR-261](../completed/261-component-api-swap-slot-suggestions-properties.md) · [262](../completed/262-instance-override-push-and-reset-all.md) · [278](../278-overlay-body-slot-local-component.md) 은 instance ↔ 정의 관계 위의 응용이라 의존 방향 (248 → 279 → 261 · 262 · 278) 그대로.
+1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) 의 정의 소유 모델 (정의가 template 을 소유, 4b 판정 ②) 이 base. [ADR-260](../completed/260-component-origin-in-place.md) 은 그 위에 참조 모양을 더한 응용이었고, 이 ADR 은 그 응용을 걷어 base 모양으로 돌아가면서 Builder 표면 (Local page 편집 · 이름 · 삭제) 을 더한다. [ADR-261](../completed/261-component-api-swap-slot-suggestions-properties.md) · [262](../completed/262-instance-override-push-and-reset-all.md) · [278](../completed/278-overlay-body-slot-local-component.md) 은 instance ↔ 정의 관계 위의 응용이라 의존 방향 (248 → 279 → 261 · 262 · 278) 그대로.
 2. **schema**: `DefinitionEntry.originRef` 제거 (ADR-260 이 더한 필드 하나). `LIBRARY_CONTRACT_VERSION` 45 → 46, 변환 0 (2026-10-14 정책 · ADR-276 ~ 278 과 같다). 다른 필드 변경 0.
 3. **선행 전제 reverse 검증**: ADR-260 이 참조 모양을 든 사유는 「그 자리 ORIGIN」 사용자 요구 하나였고 (260 본문 「기각 사유 — D: 『그 자리』 요구 불일치」), 그 요구가 2026-10-21 철회됐다 (결정 지점 ④ confirm — 본문 Status). 260 의 Decision 11 · 12 · 13 은 소유 모양에도 있는 결함의 수리라 남는다 — 그 세 곳은 `originRef` 를 읽지 않는다 (grep: `templateOwners.ts` · `validation.ts` 순환 걷기 · `clipboardText.ts` 에 `originRef` 0).
 4. **판독**: 사용자가 요청할 때 `/review-adr 279`.

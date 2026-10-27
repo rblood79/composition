@@ -1,10 +1,10 @@
 # ADR-282 design breakdown — Library page 원본 잠금 해제 (fork) · 리셋
 
-> 본문: [../282-library-origin-unlock-fork-and-reset.md](../282-library-origin-unlock-fork-and-reset.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
+> 본문: [../282-library-origin-unlock-fork-and-reset.md](../completed/282-library-origin-unlock-fork-and-reset.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다.
 
 ## 0. 전제 lock-in (분리 아님 — ADR-279 모양의 적용)
 
-1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) (정의가 template 을 소유) → [ADR-279](../279-component-origin-on-local-page.md) (프로젝트 컴포넌트 = 소유 template, Local page 가 그린다) 가 base. 이 ADR 은 그 모양을 **기본 원본의 override** 에 적용하는 응용 — 의존 방향 248 → 279 → 282. [ADR-253](../completed/253-base-ui-origin-reuse.md) 의 「override 가 instance 루트에 닿는다」 는 그대로 쓴다.
+1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) (정의가 template 을 소유) → [ADR-279](../completed/279-component-origin-on-local-page.md) (프로젝트 컴포넌트 = 소유 template, Local page 가 그린다) 가 base. 이 ADR 은 그 모양을 **기본 원본의 override** 에 적용하는 응용 — 의존 방향 248 → 279 → 282. [ADR-253](../completed/253-base-ui-origin-reuse.md) 의 「override 가 instance 루트에 닿는다」 는 그대로 쓴다.
 2. **schema**: `DefinitionOverrideEntry` 에 `templateRootId?: NodeId` · `templateMap?: Record<LibraryTemplateId, NodeId>` 두 필드 추가 (둘은 같이 있거나 같이 없다). `LIBRARY_CONTRACT_VERSION` 47 → 48, 변환 0. 해제 때 override `visual` 은 사본 루트 visual 로 흡수해 비우고, `defaults` · `stateRules` 는 그대로 (본문 결정 1 — composite `accepts` namespace).
 3. **선행 전제 reverse 검증**: ADR-279 가 소유 template 을 택한 사유 (참조 모양의 결함 · Local page 편집) 는 라이브러리 원본 사본에도 같다 — 사본은 소유 노드라 279 Phase 0 probe (편집 7 조작 통과) 가 그대로 적용된다. 2026-10-14 · 10-05 의 「루트만」 확인은 사용자가 2026-10-24 뒤집었다 (본문 Status).
 4. **판독**: 사용자가 요청할 때 `/review-adr 282`.

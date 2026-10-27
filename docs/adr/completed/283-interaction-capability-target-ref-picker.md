@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-26 (사용자 `/execute-adr 283` 「모든 phase 완료까지 착수 진행해, 크리티컬한 오류 발생시 중지」 + [reviews/283.md](reviews/283.md) Round 2 HIGH 0 · pending 0) · Phase 0 ~ 4 완료 (`729c44749`) · G5 (사용자 Builder 확인) 대기
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 통과) · Accepted — 2026-10-26 (사용자 `/execute-adr 283` 「모든 phase 완료까지 착수 진행해, 크리티컬한 오류 발생시 중지」 + [reviews/283.md](../reviews/283.md) Round 2 HIGH 0 · pending 0) · Phase 0 ~ 4 완료 (`729c44749`) · G5 (사용자 Builder 확인) 대기
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -10,9 +10,9 @@ Accepted — 2026-10-26 (사용자 `/execute-adr 283` 「모든 phase 완료까�
 > - 규칙 모양: ADR-284 (contract 50) 가 `action` 을 Do 목록 `actions[]` 로 바꿨다 — `target` 은 각 capability Do 의 필드 (`types.ts` `InteractionEntry.actions`). Hard 스키마의 「`action` 무변경」 은 284 전.
 > - createComponent 의 대상 재작성은 `rewriteAddressesThroughExtracted` 에 얹지 않고 별도 `rewriteTargetsIntoComponent` 다 (`commands/components.ts`) — breakdown §8 과 같음.
 > - CMS · 「ADR279」 류 옛 프로젝트는 contract 50 에서 열리지 않는다 (48 · 49 모두).
-> - 남은 것: G5 사용자 Builder 확인 → Implemented. 확인 기록은 아직 없다.
+> - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G5 사용자 Builder 확인).
 
-> **Phase 0 ~ 4 (2026-10-26)**: G0 RED 3 (행 형제 · instance 안쪽 후보 · AI 거부) 이 의도한 이유로 RED → Phase 1 뒤 GREEN. 반례 5 (행 셋 형제 · instance 둘 · `address` · Local 컴포넌트 instance 를 행 template 에 ×3 — 후보 3 → 1) + 명령 7 + 색인 + 검증 + swap → `unset` 저장 · 로드 · 재지정 · undo/redo. 원복 RED 4/4. 사용자 결정 4 건은 권고안 그대로 구현 (올림 둘 · 같은 행 · 남기고 `unset` · 깊이 전부) — 별도 질문 없음 (사용자 지시 「모든 phase 완료까지」). Phase 0 정정 2: 모든 type 이 공통 capability 3 (show · hide · toggle) 을 가져 「capability 없는 type」 은 없다 (G3 의 「capability 없는 type 미지정」 은 닿지 않는 분기) · Canvas 지정의 「클릭한 컴포넌트」 = 클릭 선택과 같은 정규화 (`picking.target` — ⌘ 클릭 = 안쪽 요소). 번들: Builder initial 1,418,803 B gz (HEAD 1,410,913 — 상한 1,390,000 초과는 HEAD 의 기존 상태, 이번 Δ +7,890 = 코드 +4,651 · 청크 분할 +3.2 KB) · Preview 307,651 (Δ +1). 상세: [breakdown §8](design/283-interaction-capability-target-ref-picker-breakdown.md#8-기록).
+> **Phase 0 ~ 4 (2026-10-26)**: G0 RED 3 (행 형제 · instance 안쪽 후보 · AI 거부) 이 의도한 이유로 RED → Phase 1 뒤 GREEN. 반례 5 (행 셋 형제 · instance 둘 · `address` · Local 컴포넌트 instance 를 행 template 에 ×3 — 후보 3 → 1) + 명령 7 + 색인 + 검증 + swap → `unset` 저장 · 로드 · 재지정 · undo/redo. 원복 RED 4/4. 사용자 결정 4 건은 권고안 그대로 구현 (올림 둘 · 같은 행 · 남기고 `unset` · 깊이 전부) — 별도 질문 없음 (사용자 지시 「모든 phase 완료까지」). Phase 0 정정 2: 모든 type 이 공통 capability 3 (show · hide · toggle) 을 가져 「capability 없는 type」 은 없다 (G3 의 「capability 없는 type 미지정」 은 닿지 않는 분기) · Canvas 지정의 「클릭한 컴포넌트」 = 클릭 선택과 같은 정규화 (`picking.target` — ⌘ 클릭 = 안쪽 요소). 번들: Builder initial 1,418,803 B gz (HEAD 1,410,913 — 상한 1,390,000 초과는 HEAD 의 기존 상태, 이번 Δ +7,890 = 코드 +4,651 · 청크 분할 +3.2 KB) · Preview 307,651 (Δ +1). 상세: [breakdown §8](../design/283-interaction-capability-target-ref-picker-breakdown.md#8-기록).
 >
 > **구현 판독 (reviews/283 Round 3, 2026-10-26)**: HIGH 1 · MEDIUM 3 · LOW 3 → 같은 날 수리 (LOW 1 deferred) — `local` 의 instance 단계가 있으면 해소 anchor = 규칙 주인의 원본 루트 (`catalogOriginRootOf`) · 원본 안 중첩 instance detach 가 `local` 을 사본 경로로 · createComponent 가 중첩 instance 단계 앞에 새 instance 를 넣음 (page 의 frame 안 Button 부품 대상도) · 같은 template 규칙의 `{ nodeId }` 허용 (paste · move 가 이전처럼 통과). 반례 5 GREEN · 수리 원복 RED 4/4 · pending 0 · 실행자 닫힘.
 
@@ -20,7 +20,7 @@ Accepted — 2026-10-26 (사용자 `/execute-adr 283` 「모든 phase 완료까�
 - 방향을 정한 사용자 원문 (2026-10-25):
   - 「rac는 조상이 자식을 자동으로 승계 하지않나 그렇다면 가장 가까운 조상으로 하는게 맞지않나」 — Canvas 에서 클릭한 요소를 조상으로 올리는 규칙은 **RAC 가 상태를 부모에게 맡긴 부품**에만 (field 의 Label · Input, overlay 본체 → trigger). 그 밖은 클릭한 컴포넌트 자체.
   - 「필요해지면 이아니라 처음부터 모든 설계를 하고 진행해야한다」 — 대상 참조가 instance 안쪽을 가리키지 못하는 문서 모델의 한계를 「필요해지면 별도 ADR」 로 미루지 않고 이 ADR 이 **참조 모델 · 실행 · 문서 정합 · UI 를 한 번에** 설계한다 (메모리 `feedback-design-whole-scope-upfront-no-deferral`).
-- 선행: [ADR-158](completed/158-interactions-rules-capability-registry.md) (한 규칙 = 한 줄) · [ADR-248](completed/248-unified-catalog-document.md) (instance 주소 `InstanceAddress` · `CatalogStateOwnerRef`) · [ADR-280](280-interactions-rac-surface-registry-controlled-runtime.md) (등록표 · dispatcher) · [ADR-281](281-interactions-panel-vocabulary-inheritance-form-destination.md) (원본 규칙의 instance 상속 `effectiveInteractionsOf` · `exposure.ts`). 의존 방향 248 → 280 → 281 → **283**. 분리 아님 — 281 이 닫은 「규칙의 주인」 쪽 주소 모델을 「규칙의 대상」 쪽에 적용하는 응용 ([breakdown §0](design/283-interaction-capability-target-ref-picker-breakdown.md)).
+- 선행: [ADR-158](158-interactions-rules-capability-registry.md) (한 규칙 = 한 줄) · [ADR-248](248-unified-catalog-document.md) (instance 주소 `InstanceAddress` · `CatalogStateOwnerRef`) · [ADR-280](280-interactions-rac-surface-registry-controlled-runtime.md) (등록표 · dispatcher) · [ADR-281](281-interactions-panel-vocabulary-inheritance-form-destination.md) (원본 규칙의 instance 상속 `effectiveInteractionsOf` · `exposure.ts`). 의존 방향 248 → 280 → 281 → **283**. 분리 아님 — 281 이 닫은 「규칙의 주인」 쪽 주소 모델을 「규칙의 대상」 쪽에 적용하는 응용 ([breakdown §0](../design/283-interaction-capability-target-ref-picker-breakdown.md)).
 
 ## Context
 
@@ -97,7 +97,7 @@ B 가 HIGH 0 — 추가 루프 불요.
 
 **대안 B 채택.**
 
-> 구현 상세: [283-interaction-capability-target-ref-picker-breakdown.md](design/283-interaction-capability-target-ref-picker-breakdown.md)
+> 구현 상세: [283-interaction-capability-target-ref-picker-breakdown.md](../design/283-interaction-capability-target-ref-picker-breakdown.md)
 
 1. **대상 참조는 상태 주체 참조와 같은 세 모양 + 명시적 「대상 없음」 이다.** `CatalogNodeRef = { nodeId: NodeId } | { address: InstanceAddress } | { local: { instances: TemplateId[]; templatePath: TemplateId[] } }` 를 `types.ts` 공용 타입으로 꺼내 `CatalogStateOwnerRef.ancestor` 와 capability action `target` 이 같이 쓴다. capability 의 `target` 만 `CatalogNodeRef | { unset: true }` — `unset` 은 자리가 사라진 규칙의 **유효한 저장 모양** (리뷰 H4): 참조 0 (색인 · dangling 검사 대상 아님) · 해소 `undefined` + report `TARGET_UNSET` (dispatcher 에 넘기지 않음) · 패널 「대상 없음 · 다시 지정」 · AI 도구는 만들 수 없음 (`CAPABILITY_TARGET_REQUIRED`) · 명령 (swap · detach · dissolve) 만 쓴다. 검증은 `validation.ts:1811` 의 `ancestor` 검사를 함수로 나눠 둘이 공유하고 `unset` 분기는 capability 쪽만. contract 49.
 2. **해소는 실행한 record 기준이다 — 비교 단위는 경로가 아니라 반복 조상 record 다.** `resolveCapabilityTarget(root, firingRecordId, ref): recordId | undefined` 하나 (shared). (a) 후보 = 참조가 가리키는 source 의 record 전부 (`nodeId` 는 그 노드 · `address` · `local` 은 `templatePath` 끝). (b) 참조가 **이름 붙인 instance 사슬**로 좁힌다 — `address` 는 `recordsOfOwner` 와 같은 instancePath tail 비교 (`instances`) · `local` 은 실행 record 의 instancePath 에 `local.instances` 를 이은 것 · `nodeId` 는 좁히기 0. (c) 남은 후보 T 마다 T 의 **반복 조상 record** (record 를 여럿으로 늘리는 조상 — `rowIndex` 를 가진 행 record · source 가 instance 노드인 instance 루트 record, `parentId` 체인으로 수집) 중 참조가 이름 붙이지 않은 것 전부가 실행 record 의 조상-또는-자기 여야 한다 — **세 모양 모두, 면제 없음**. 참조가 이름 붙이는 것은 instance 루트 record 중 source 가 `address.instances` · `local.instances` 에 든 것뿐이다. **행 record 는 어느 모양도 이름 붙이지 않으므로 항상 실행 record 와 공유해야 한다** — instance 사슬이 같아도 행이 다르면 다른 record 다 (record identity 는 `instancePath::sourceId` 에 `#row:<key>` 가 붙고 `instancePath` 는 행마다 같다 — `compositionRoot.ts:494-498` · `resolver.ts:260-267` `withRowKey`). 예: Local 컴포넌트 Row 를 행 template 으로 3 번 반복할 때 원본 Edit 의 `local` 규칙 (→ Save) 은 (b) 뒤 후보 3 (instancePath 동일) → (c) 에서 행 2 의 Edit 와 행 record 를 공유하는 하나만 남는다 (리뷰 Round 2). (d) 남은 후보 1 = 그것 · 0 = `undefined` + report `TARGET_OUT_OF_CONTEXT` (다른 행 · 다른 instance 에서 이 자리를 가리킬 수 없음) · 2+ = 설계 위반 (테스트 단언). 같은 행의 **형제** (Delete → Text, path 가 다름) 가 (c) 에서 같은 행 record 를 공유해 한 후보로 남는 것이 G1 의 첫 반례다 (현재 7). `ruleOf` 의 `[0]` 은 삭제. 패널의 대상 표시도 같은 함수로 「이 규칙이 Preview 에서 바꿀 것」 을 보인다.
@@ -131,7 +131,7 @@ B 가 HIGH 0 — 추가 루프 불요.
 | R7  | `{ unset: true }` 가 유효 문서 모양이라 「대상 없음」 규칙이 쌓여도 검증이 알리지 않음 · 사용자가 모르는 채 Publish                                                                                  |  LOW   | 패널 행 「대상 없음 · 다시 지정」 (role `status`) · swap 보고 `targetsUnset` 토스트 · Publish 검증 보고 (ADR-248 publish 경로) 에 `TARGET_UNSET` 카운트 한 줄 (차단 아님)                                                                                                              |
 | R6  | 선택기 후보가 수백 개 (instance 안쪽 전부) 라 패널이 느림                                                                                                                                            |  LOW   | 후보는 선택 시 1 회 계산 · RAC `Virtualizer` (50 초과) · G2 가 300 후보 fixture 로 열림 ≤ 100 ms                                                                                                                                                                                       |
 
-R1 · R2 는 G0 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 없음. 리뷰 Round 1 (2026-10-25, [reviews/283.md](reviews/283.md)) 의 HIGH 4 — 형제 경로 불일치 · 중간 id 색인 누락 · 복사 `local` 무변경 · 「대상 없음」 저장 모양 없음 — 은 Decision 1 ~ 3 · R5 · R7 · G1 에 반영했다.
+R1 · R2 는 G0 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 없음. 리뷰 Round 1 (2026-10-25, [reviews/283.md](../reviews/283.md)) 의 HIGH 4 — 형제 경로 불일치 · 중간 id 색인 누락 · 복사 `local` 무변경 · 「대상 없음」 저장 모양 없음 — 은 Decision 1 ~ 3 · R5 · R7 · G1 에 반영했다.
 
 ## Gates
 
@@ -145,6 +145,8 @@ R1 · R2 는 G0 · G1 이 1:1 로 관리한다. 그 밖의 잔존 HIGH 위험 �
 | G5   | 종결    | 사용자 Builder 확인 → Implemented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 지적 수리 뒤 재확인                                                                                               |
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 PASS → Implemented.
 
 - **G4 실행자 live — 2026-10-26, Chrome MCP, 별도 dev 서버 5174 (사용자 5173 무관)**: 새 프로젝트에 OrderCard (frame > Button Save · Edit → Create component) instance 2 + 이름이 같은 Button 120 + Toggle 을 seed.
   - 패널: Toggle 규칙 Do 「Component capability」 → 대상 선택기 검색 「Save」 → 「Inside components」 그룹에 `OrderCard ▸ Save · #fa78` / `#ard2` (instance 별 짧은 id) · hover 가 session hover 를 둘째 instance 의 Save record 로 · 클릭 → 저장 `{ address: [card2] … save }` · 행 라벨 「OrderCard ▸ Save」.

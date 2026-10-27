@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-21 (Proposed 같은 날)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 통과) · Accepted — 2026-10-21 (Proposed 같은 날)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -12,18 +12,18 @@ Accepted — 2026-10-21 (Proposed 같은 날)
 > - Phase 4 문서는 모두 끝났다 — 260 superseded-in-part 줄 · 278 재기술 · state-management 규칙 줄 · CHANGELOG · README 완료 표 260 행 비고 (2026-10-27).
 > - G5 확인용 「ADR279」 프로젝트 (contract 46) 는 현재 contract 50 에서 열리지 않는다 — G5 는 새 프로젝트로 한다. 확인 기록은 아직 없다.
 
-> **Phase 2 · 3 종결 (2026-10-21, G2 · G3) — G4 통과 · G5 사용자 확인 대기.** Phase 2: 이름 대화상자 (bus + host, 입구 3 — host 없으면 기본 이름 동기) · Local 카드 헤더 (Canvas 페이지 헤더 층의 frame — 제목 더블클릭 rename · × = Delete component 확인) · Component 절 ORIGIN 이름 칸 + 「Delete component」 · ◆ ⌘D = `duplicateDefinition` · Go to component = 항상 Local page · 「In …」 삭제 · Create step 은 첫 편집 확인을 묻지 않음. Phase 3: [Live Exercise](#live-exercise) 7/7 (새 프로젝트 「ADR279」). 상세: [breakdown §Phase 2 · 3 결과](design/279-component-origin-on-local-page-breakdown.md).
+> **Phase 2 · 3 종결 (2026-10-21, G2 · G3) — G4 통과 · G5 사용자 확인 대기.** Phase 2: 이름 대화상자 (bus + host, 입구 3 — host 없으면 기본 이름 동기) · Local 카드 헤더 (Canvas 페이지 헤더 층의 frame — 제목 더블클릭 rename · × = Delete component 확인) · Component 절 ORIGIN 이름 칸 + 「Delete component」 · ◆ ⌘D = `duplicateDefinition` · Go to component = 항상 Local page · 「In …」 삭제 · Create step 은 첫 편집 확인을 묻지 않음. Phase 3: [Live Exercise](#live-exercise) 7/7 (새 프로젝트 「ADR279」). 상세: [breakdown §Phase 2 · 3 결과](../design/279-component-origin-on-local-page-breakdown.md).
 
-> **Phase 0 · 1 종결 (2026-10-21, G0 · G1)** — Phase 0: ADR-260 기계 inventory (8 · 17 · 12 파일, 추정과 같음) · Local ◆ 셀 편집 probe 6/6 통과 (막는 guard 없음 → R1 LOW) · 저장 주소 holder 4 + property target 1 발견 · fixture 테스트 12 RED. Phase 1: 소유 모양 하나 (`originRef` 삭제 · contract 46) · `createComponent` = 소유 template + 그 자리 instance + 층별 위치 이전 + 중첩 주소 재작성 (소비자 5 + `local` ref + property target prune) · `dissolveComponent` = 전부 detach + template 삭제 · `duplicateDefinition` · `restoreOrigin` · `keepRemovedOrigins` · clipboard `origins` 삭제. 새 테스트 14 (shared 11 · builder 2 · static 1) GREEN, 원복 RED 5/5 (`TEMPLATE_STEP_NOT_OWNED`). type-check 6/6 · shared 1691 · builder 6148 통과 (기존 실패 12 + 2 만). 상세: [breakdown §Phase 0 · 1 결과](design/279-component-origin-on-local-page-breakdown.md). `definitionOfTemplateRoot` 는 소유 역색인으로 유지 (G1 grep 0 목록에서 제외).
+> **Phase 0 · 1 종결 (2026-10-21, G0 · G1)** — Phase 0: ADR-260 기계 inventory (8 · 17 · 12 파일, 추정과 같음) · Local ◆ 셀 편집 probe 6/6 통과 (막는 guard 없음 → R1 LOW) · 저장 주소 holder 4 + property target 1 발견 · fixture 테스트 12 RED. Phase 1: 소유 모양 하나 (`originRef` 삭제 · contract 46) · `createComponent` = 소유 template + 그 자리 instance + 층별 위치 이전 + 중첩 주소 재작성 (소비자 5 + `local` ref + property target prune) · `dissolveComponent` = 전부 detach + template 삭제 · `duplicateDefinition` · `restoreOrigin` · `keepRemovedOrigins` · clipboard `origins` 삭제. 새 테스트 14 (shared 11 · builder 2 · static 1) GREEN, 원복 RED 5/5 (`TEMPLATE_STEP_NOT_OWNED`). type-check 6/6 · shared 1691 · builder 6148 통과 (기존 실패 12 + 2 만). 상세: [breakdown §Phase 0 · 1 결과](../design/279-component-origin-on-local-page-breakdown.md). `definitionOfTemplateRoot` 는 소유 역색인으로 유지 (G1 grep 0 목록에서 제외).
 
 - 사용자 요청: `/create-adr` (2026-10-21) — 같은 날 「컴포넌트 생성 시 이름 설정이 없다, 생성은 가능하지만 이름 변경도 없다. 다른 빌더들은 생성 시 이름을 정하는지, 생성 후 변경하는지 확인해」 조사 (Figma · Pencil · Framer · Webflow · Plasmic) 에서 출발.
 - 방향을 정한 사용자 원문 (2026-10-21):
   - 「composition 은 ADR-260 으로 『Create component → 노드가 ORIGIN 으로 page 에 남기』 ← 잘못된 선택이다. 현재 기본제공 컴퍼넌트들이 Components - Library 에 origin 들이 남는 구조인데 그렇다면 Create component → 노드가 ORIGIN 으로 Local page 로 들어가고 page 에는 instance 가 남는 게 맞지 않나」
   - 「추가되어야 하는 항목이 Local page - body 에 생성된 origin 컴퍼넌트 삭제 버튼 추가」
-- 사용자가 이미 답한 확인 항목 (AskUserQuestion, 2026-10-21 — 결정 지점 ④, [ADR-260](completed/260-component-origin-in-place.md) Decision 2 의 번복 confirm): **「Framer 식으로 전환」** (원본은 Local page ◆ 에만, page 는 INSTANCE, 생성 때 이름 입력 + 카드 rename) · **「정의 삭제 = page 의 instance 전부 detach 해 보통 노드로」** (Framer Unlink). 참조 모델은 pen.dev · Figma · Framer 셋이고 기준은 사용자 편의 (2026-10-21, 메모리 `project-origin-instance-slot-reference-pen-figma`) · 마이그레이션 코드 금지 (2026-10-14) · 기본 원본은 루트만 편집 (2026-10-05).
-- Accepted 근거 (2026-10-21): 사용자 `/execute-adr 279` 호출 + [reviews/279](reviews/279.md) Round 2 (codex, 수리 검증) pending 0 · HIGH 전부 `fixed` — 라운드 상한 안에서 닫힘. Phase 0 (G0) 결과는 [breakdown §Phase 0 결과](design/279-component-origin-on-local-page-breakdown.md): ◆ 셀 편집을 막는 guard 가 없어 R1 은 LOW, 저장 주소 holder 는 넷 (`descendantOverrides` 3 종 · interaction · `showWhen` address · `local`) + 추가 발견 1 (바깥 정의의 property target).
-- 리뷰 Round 1 (codex, 2026-10-21 — [reviews/279](reviews/279.md)) HIGH 2 → 같은 날 설계 수리: h1 중첩 추출이 바깥 instance 의 override 주소 (`instances` · `templatePath`) 를 끊는다 → 소유권 이전과 **같은 transaction 의 주소 재작성** 계약 (Decision 8 · R8 · G1) · h2 base 위치만 instance 로 옮기면 Mobile 위치가 base 에 덮인다 → **층별 (base · `responsive[bp].layout`) 위치 키 분리 이전** (Decision 2 · R3 · G1). ADR-261 · 262 「무변경」 은 그대로이되 주소 재작성이 그 둘의 주소 소비자를 포함한다 (breakdown §1a · §1e).
-- 선행 ADR 과의 관계 (fork 4 질문 — [breakdown §0](design/279-component-origin-on-local-page-breakdown.md)): 이 ADR 은 분리가 아니라 **[ADR-260](completed/260-component-origin-in-place.md) Decision 2 · 3 · 5 · 6 · 8 · 9 의 개정**이다 — 260 이 대안 D 로 적고 「그 자리」 요구 때문에 기각한 모델을, 그 요구가 철회되어 채택한다. 260 의 Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard 정의 snapshot) 은 소유 template 에도 쓰이므로 그대로다. [ADR-261](completed/261-component-api-swap-slot-suggestions-properties.md) · [262](completed/262-instance-override-push-and-reset-all.md) (교체 · slot 추천 · 속성 · 원본에 반영 · Reset all) 은 instance ↔ 정의 관계만 보므로 무변경. [ADR-278](278-overlay-body-slot-local-component.md) 의 「Local 컴포넌트 ORIGIN 이 page 에 남는다」 서술은 이 ADR 이 다시 쓴다 (Decision 9).
+- 사용자가 이미 답한 확인 항목 (AskUserQuestion, 2026-10-21 — 결정 지점 ④, [ADR-260](260-component-origin-in-place.md) Decision 2 의 번복 confirm): **「Framer 식으로 전환」** (원본은 Local page ◆ 에만, page 는 INSTANCE, 생성 때 이름 입력 + 카드 rename) · **「정의 삭제 = page 의 instance 전부 detach 해 보통 노드로」** (Framer Unlink). 참조 모델은 pen.dev · Figma · Framer 셋이고 기준은 사용자 편의 (2026-10-21, 메모리 `project-origin-instance-slot-reference-pen-figma`) · 마이그레이션 코드 금지 (2026-10-14) · 기본 원본은 루트만 편집 (2026-10-05).
+- Accepted 근거 (2026-10-21): 사용자 `/execute-adr 279` 호출 + [reviews/279](../reviews/279.md) Round 2 (codex, 수리 검증) pending 0 · HIGH 전부 `fixed` — 라운드 상한 안에서 닫힘. Phase 0 (G0) 결과는 [breakdown §Phase 0 결과](../design/279-component-origin-on-local-page-breakdown.md): ◆ 셀 편집을 막는 guard 가 없어 R1 은 LOW, 저장 주소 holder 는 넷 (`descendantOverrides` 3 종 · interaction · `showWhen` address · `local`) + 추가 발견 1 (바깥 정의의 property target).
+- 리뷰 Round 1 (codex, 2026-10-21 — [reviews/279](../reviews/279.md)) HIGH 2 → 같은 날 설계 수리: h1 중첩 추출이 바깥 instance 의 override 주소 (`instances` · `templatePath`) 를 끊는다 → 소유권 이전과 **같은 transaction 의 주소 재작성** 계약 (Decision 8 · R8 · G1) · h2 base 위치만 instance 로 옮기면 Mobile 위치가 base 에 덮인다 → **층별 (base · `responsive[bp].layout`) 위치 키 분리 이전** (Decision 2 · R3 · G1). ADR-261 · 262 「무변경」 은 그대로이되 주소 재작성이 그 둘의 주소 소비자를 포함한다 (breakdown §1a · §1e).
+- 선행 ADR 과의 관계 (fork 4 질문 — [breakdown §0](../design/279-component-origin-on-local-page-breakdown.md)): 이 ADR 은 분리가 아니라 **[ADR-260](260-component-origin-in-place.md) Decision 2 · 3 · 5 · 6 · 8 · 9 의 개정**이다 — 260 이 대안 D 로 적고 「그 자리」 요구 때문에 기각한 모델을, 그 요구가 철회되어 채택한다. 260 의 Decision 11 (template 노드 override 투영) · 12 (정의 순환 걷기) · 13 (clipboard 정의 snapshot) 은 소유 template 에도 쓰이므로 그대로다. [ADR-261](261-component-api-swap-slot-suggestions-properties.md) · [262](262-instance-override-push-and-reset-all.md) (교체 · slot 추천 · 속성 · 원본에 반영 · Reset all) 은 instance ↔ 정의 관계만 보므로 무변경. [ADR-278](278-overlay-body-slot-local-component.md) 의 「Local 컴포넌트 ORIGIN 이 page 에 남는다」 서술은 이 ADR 이 다시 쓴다 (Decision 9).
 
 ## Context
 
@@ -114,7 +114,7 @@ Accepted — 2026-10-21 (Proposed 같은 날)
 
 **기각 사유**: A — 사용자가 모델 자체를 기각 (Library ↔ Local 비대칭). C — 실제 page 예외 처리가 HIGH 두 축. D — 정책 위반 · 유지보수 HIGH.
 
-> 구현 상세: [279-component-origin-on-local-page-breakdown.md](design/279-component-origin-on-local-page-breakdown.md)
+> 구현 상세: [279-component-origin-on-local-page-breakdown.md](../design/279-component-origin-on-local-page-breakdown.md)
 
 ### 사용자 결정 N건 (execute-adr 가 닿을 때 묻는다)
 
@@ -150,6 +150,8 @@ Accepted — 2026-10-21 (Proposed 같은 날)
 | G5   | Implemented 승격 전 | 사용자 Builder 확인 (「확인했어」) · CHANGELOG · ADR-260 본문 상단 superseded-in-part 표기 + README 완료 표 비고 · ADR-278 Decision 3 · Positive 재기술 · `state-management.md` 「컴포넌트 원본은 page 의 노드다 (ADR-260)」 줄 교체 · 메모리 `project-origin-instance-slot-reference-pen-figma` 갱신                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 문서 미비 → 승격 보류 (`adr-status-sync-check.sh`)    |
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G5 사용자 Builder 확인 PASS → Implemented.
 
 2026-10-21 · headed Chrome (Claude in Chrome MCP) · dev 5173 (HMR) · 새 프로젝트 「ADR279」 (contract 46 — dashboard 에 남겨 둠, 사용자 G5 확인용. 현재 contract 50 에서는 열리지 않으므로 G5 는 새 프로젝트로). 시드는 dev handle (`insertNodes`), 조작은 실제 포인터 · 키.
 

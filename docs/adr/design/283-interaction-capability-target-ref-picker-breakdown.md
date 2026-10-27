@@ -1,10 +1,10 @@
 # ADR-283 design breakdown — capability 대상 참조 · 실행 record 기준 해소 · 검색 선택기 · Canvas 지정
 
-> 본문: [../283-interaction-capability-target-ref-picker.md](../283-interaction-capability-target-ref-picker.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다. 시안: [Design artifact](https://claude.ai/artifact/QhLirtifNa4oLdWSrFHFxz) (① 검색 선택기 · ② Canvas 지정 · ③ 기능 변경 안내 · ④ 현재 목록).
+> 본문: [../283-interaction-capability-target-ref-picker.md](../completed/283-interaction-capability-target-ref-picker.md). 이 문서가 Phase · 파일 · 검증의 정본이다. `docs/adr/evidence/` 는 로컬 전용이라 실측 결론은 여기에 둔다. 시안: [Design artifact](https://claude.ai/artifact/QhLirtifNa4oLdWSrFHFxz) (① 검색 선택기 · ② Canvas 지정 · ③ 기능 변경 안내 · ④ 현재 목록).
 
 ## 0. 전제 lock-in (분리 아님 — ADR-281 모양의 적용)
 
-1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) (`InstanceAddress` · `CatalogStateOwnerRef` 세 모양) → [ADR-280](../280-interactions-rac-surface-registry-controlled-runtime.md) (등록표 · dispatcher) → [ADR-281](../281-interactions-panel-vocabulary-inheritance-form-destination.md) (규칙 **주인** 쪽의 instance 주소 · `recordsOfOwner` · `effectiveInteractionsOf`) 가 base. 이 ADR 은 같은 주소 모양을 규칙 **대상** 쪽에 적용하는 응용 — 의존 방향 248 → 280 → 281 → 283.
+1. **base / 응용**: [ADR-248](../completed/248-unified-catalog-document.md) (`InstanceAddress` · `CatalogStateOwnerRef` 세 모양) → [ADR-280](../completed/280-interactions-rac-surface-registry-controlled-runtime.md) (등록표 · dispatcher) → [ADR-281](../completed/281-interactions-panel-vocabulary-inheritance-form-destination.md) (규칙 **주인** 쪽의 instance 주소 · `recordsOfOwner` · `effectiveInteractionsOf`) 가 base. 이 ADR 은 같은 주소 모양을 규칙 **대상** 쪽에 적용하는 응용 — 의존 방향 248 → 280 → 281 → 283.
 2. **schema**: capability action `targetId: NodeId` → `target: CatalogNodeRef | { unset: true }` (`{ nodeId } | { address } | { local }` — `CatalogStateOwnerRef.ancestor` 에서 꺼낸 공용 타입 · `unset` 은 자리가 사라진 규칙의 저장 모양, capability 전용). `LIBRARY_CONTRACT_VERSION` 48 → 49, 변환 0. 그 밖 `InteractionEntry` 무변경.
 3. **리뷰 Round 1 (2026-10-25) 반영**: 해소 비교 단위 = 반복 조상 record (`parentId` 체인, 경로 문자열 아님) · 색인 = 주소의 모든 project id · 복사 = 세 모양 모두 재매핑 · `unset` 모양. 상세는 본문 Decision 1 ~ 3 · [../reviews/283.md](../reviews/283.md).
 4. **선행 전제 reverse 검증**: 281 이 주인 쪽에 address 층을 둔 사유 (instance 마다 다른 record · 끄기 · 바꾸기) 는 대상 쪽에도 같다 — 대상도 instance 마다 다른 record 다. dispatcher 는 record id 를 받으므로 (`dispatcher.ts:598`) 해소가 Preview 변환 층에서 끝나면 280 · 281 코드는 바뀌지 않는다.

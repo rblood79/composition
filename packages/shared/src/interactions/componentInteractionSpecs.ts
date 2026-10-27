@@ -6,7 +6,7 @@
  * concept brings must exist on the type's installed RAC props — `RacPropsOf` below makes a
  * missing callback or prop a compile error (Decision 1: the installed RAC is the authority).
  *
- * @see docs/adr/280-interactions-rac-surface-registry-controlled-runtime.md
+ * @see docs/adr/completed/280-interactions-rac-surface-registry-controlled-runtime.md
  * @see docs/adr/design/280-interactions-rac-surface-registry-controlled-runtime-breakdown.md §1e-1 · §2
  */
 import type {

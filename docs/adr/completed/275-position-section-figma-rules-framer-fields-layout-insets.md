@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 — pending 0 · HIGH 전부 fixed)
+Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G6 사용자 패널 확인 통과) · Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 — pending 0 · HIGH 전부 fixed)
 
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
@@ -10,7 +10,7 @@ Accepted — 2026-10-19 (사용자 `/execute-adr 275` + 리뷰 round 1 종결 �
 > - Position 모드 4 (Relative · Absolute · Sticky · Fixed) 는 전부 저작 가능하다 (사용자 결정 5 · 6 — Phase 6 · 7). 비활성은 rule 이 놓은 부품뿐 (`TransformSection.tsx` `disabledValues = rulePlaced ? […] : []`). 「Sticky · Fixed 는 비활성 표시만」 · 「ADR-267 결정 1 유지」 는 Phase 6 · 7 전의 기록.
 > - 판정 술어는 넷이다 — `catalogIsOutOfFlow` · `catalogIsAuthoredAbsolute` + Phase 7 의 `catalogIsAuthoredFixed` · `catalogIsAuthoredPlaced` (`runtime/positioning.ts`).
 > - Spacing 절은 결정 10 으로 제거됐다 (`SpacingSection` · `BoxModelEditor` · 테스트 — 사용자 승인 뒤 `d216be0d8`). 가운데 축 margin 잠금은 명령 거부로만 남는다 (`catalogStylesHost.ts`).
-> - 남은 것: G6 사용자 패널 확인 → Implemented. 확인 기록은 아직 없다.
+> - 사용자 확인 2026-10-27 「adr도 모두 확인은 했다」 → Implemented (G6 사용자 패널 확인).
 
 > **Phase 0 종결 2026-10-19 (G0 go)**: A4 `unsafe center` 가 Chromium 156 · WebKit 27.2 에서 27 / 27 가운데 (부모 block · flex · grid × Fixed · Hug · Hug padding 12 · border 2 · 넘침 Fixed · 넘침 Hug · 넘침 + 오프셋 · 부모 padding · `%` 오프셋). 대조군 `safe center` 는 넘침 9 건이 x = 0 (containing block 안으로) — fixture 가 두 정렬을 구별한다. 소비자 실측 src 24 (작성일 17, 1.4 배 — 추가 7: `clone.ts` · `fillLayout.ts` · `aiHost.ts` · `shortcuts.ts` 정렬 · 분배 · `styleDirty.ts` · `domBinding` 3 줄 · `catalogStylesHost` 4 줄) — breakdown §5.
 >
@@ -209,7 +209,7 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
 - **A2**: translate 가 paint-only (`PAINT_ONLY_VISUAL_KEYS` 의 transform 계열) 라서 엔진 상자와 보이는 상자가 갈린다. 그러면 hit · snap · 선택 상자가 어긋난다.
 - **A3**: 대안 C 와 같은 매핑 문제다.
 
-> 구현 상세: [275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md](design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
+> 구현 상세: [275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md](../design/275-position-section-figma-rules-framer-fields-layout-insets-breakdown.md)
 
 ### 사용자 결정 3건 — 확정 2026-10-19
 
@@ -308,6 +308,8 @@ A1 의 넘침 (리뷰 r1 H1 · F13): 자식이 부모보다 넓으면 CSS 에서
   - 조건 기록: DPR · visibilityState
 
 ### Live Exercise
+
+**사용자 확인 — 2026-10-27** · 사용자 본인 Builder 「adr도 모두 확인은 했다」 — G6 사용자 패널 확인 PASS → Implemented. G5 번들 측정 기록은 없다 (ratchet 은 상한 올림 `1526e969a` · `45aba38aa`).
 
 2026-10-20 · Chrome MCP (dev 5173 · DPR 1 · visible 탭) · 새 프로젝트 `adr275-live` (contract 42) — Host frame 600 × 400 (border 2) 안 Box 120 × 60 · Flow 80 × 40:
 

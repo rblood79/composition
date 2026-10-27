@@ -1,6 +1,6 @@
 # ADR-276 breakdown — Button 글자를 Text 자식으로 · IconButton 통합
 
-> 본문: [ADR-276](../276-button-text-child-iconbutton-merge.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다. 인벤토리 수치는 2026-10-20 grep 실측이고 Phase 0 에서 다시 센다. Round 1 (2026-10-20) 의 HIGH 3 (h1 중첩 호스트 기본 라벨 · h2 owned Icon 순서 · h3 origin 삭제 + 옛 문서 유지) 과 Round 2 의 h4 (Pagination · Menu · Popover · Tooltip 을 글자 없는 호스트로 잘못 분류 — §2b 자리별 값 표로 정정) 를 반영했다.
+> 본문: [ADR-276](../completed/276-button-text-child-iconbutton-merge.md). 이 문서는 Phase · 파일 · 검증의 구현 상세다. 인벤토리 수치는 2026-10-20 grep 실측이고 Phase 0 에서 다시 센다. Round 1 (2026-10-20) 의 HIGH 3 (h1 중첩 호스트 기본 라벨 · h2 owned Icon 순서 · h3 origin 삭제 + 옛 문서 유지) 과 Round 2 의 h4 (Pagination · Menu · Popover · Tooltip 을 글자 없는 호스트로 잘못 분류 — §2b 자리별 값 표로 정정) 를 반영했다.
 
 ## 1. 전제 lock-in
 
