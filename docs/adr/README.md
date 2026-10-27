@@ -11,6 +11,10 @@
 
 ---
 
+> **2026-10-27 ADR-285 Implemented** (G5 — 사용자 「ADR-285 G5 부터」 · 세 시나리오를 Chrome MCP 로 별도 dev 서버 5174 에서 재확인: `<Text>` 추가 → Canvas 에 글자 · 「스니펫 → Add search · company」 = 변수 · 조건 · 규칙이 코드로 → Preview 거르기 10 → 3 행 · 두 요소 삭제 → ⌘Z 한 번에 복원 · 콘솔 오류 0 — live 12/12 · 지적 0) — 본문을 `completed/` 로 옮기고 완료 표 · 권장 착수 순서 표 · 링크를 맞췄다. 열림 2 = 286 (Proposed) · 245 (사용자 보류) · 완료 306 · 합계 308. 286 의 선행 「285 Implemented」 충족 — 착수는 사용자 `/execute-adr 286` (리뷰는 요청 시).
+
+> **2026-10-27 ADR-286 Proposed 추가** (사용자 `/create-adr` — 같은 날 사용자 원칙 「빌더의 모든 코드의 소스는 단일 catalog 로 집중되어야 한다」 · 「framer 의 경우 사이트 전체의 설정 부분이 있다 — 우리는 그 부분을 놓치고 있다」 · 「singlesignon」, AskUserQuestion 3회로 범위 확정: 정의만 catalog 로 (`runtimeData` 캐시 유지) · 285 먼저 닫고 새 ADR · 사이트 · 페이지 설정 포함 · SSO 는 방문자 = 이 ADR, 빌더 팀 = 별도 ADR · custom code 제외) — 실측: 데이터 표 · endpoint · 프로젝트 변수 정의는 Zustand `useDataStore` + IDB store 3 (`stores/data.ts` · `dataActions.ts` · `dataChange.ts` 3,208 줄 · 소비자 35 파일 · `getDB()` 11) 에 있고 문서는 id 참조만 (ADR-248 H1) · history 만 하나 (`setDataHistoryRecorder`) · 저장 · 프로젝트 파일 (`extras` 3 키) · publish 는 둘 · 코드 보기 `catalogCodeViewData` 가 store 를 읽음 · 사이트 설정 0 (publish `<title>` 고정 · `lang="en"` 고정) · `ProjectEntry` = 이름 · 배치 · toast · `PageEntry` = route · name. 채택 B — entry 3 종 (`collection` · `endpoint` · `projectVariable`) + `ProjectEntry.site` (favicon 밝은 · 어두운 · 제목 · 설명 · 소셜 이미지 · 언어 · 검색 · redirect · 접근 none | password | sso — 비밀 필드 없음) + `PageEntry.meta` (덮어쓰기) · 명령 하나 · history 하나 · 저장 하나 · `DataChange` op 어휘 유지 · selector hook 이름 유지 (35 소비자 무변경 목표) · contract 50 → 51 (변환 0 · 옛 문서 거부) · publish 내보내기는 열림 phase (publish 방침). 기각 A (지금 구조 + 어댑터 — 사용자 기각) · C (`runtimeData` 까지 — 사용자 기각) · D (설정만 별도 ADR — 사용자 기각). ADR-131 Phase 8 · 248 H1 의 「별도 data SSOT」 는 이 결정으로 바뀜. 사용자 결정 4 (mock 행 상한 · 비밀 저장 위치 · 프로젝트 변수 entry 통합 · 설정 자리). 추정 ~38 파일. 착수는 285 Implemented 뒤. 열림 3 (Accepted 1 · Proposed 2 — 286 · 245 보류), 완료 305, 합계 308. breakdown: [design/286](design/286-catalog-single-source-data-site-settings-breakdown.md).
+
 > **2026-10-27 ADR-285 Phase 1 ~ 4 마무리 — G1 ~ G4 닫힘, G5 (사용자 확인) 남음**: 코드로 고칠 수 없던 어휘 11 을 전부 읽는다 (보기 · 「또는」 · 정렬 · 묶기 · 집계 · 요청 매개변수 · 행 필드 글자 · 목록 명령 Do · capability · 값 조건 prop · `useDragAndDrop` · 목록 선택 변수 — pending 0) · golden 5 strict 왕복 게이트 · 스니펫 5 (「검색 추가」 · 「라디오로 거르기」 · 「정렬 따라가기」 · 「결과 수 표시」 · 「API 요청 매개변수」 — 패널 동작 그대로의 문서, 단언 5) · live 7/7 (5174 — 코드로 ListBox + Users 연결 · 스니펫 검색 → Preview `zoe` 1 행 · 편집 중 Canvas 변경 → 다시 불러오기 · 결과 수 `Results: 3`). live 결함 2 수리 (태그를 바꾼 줄의 identity · 중첩 stage 의 `libraryFor`). G4 Builder initial Δ **+269 B** (거절 문구 → 패널 chunk 사전 · 스니펫 동작 → registry). 열림 2 (Accepted 1 · Proposed 1 — 245 보류), 완료 305, 합계 307.
 
 > **2026-10-27 ADR-285 Phase 1 · 2 · 3 진행**: 「코드」 패널이 CodeMirror 6 편집기가 됐다 — 코드에 `<Text>` 를 적거나 줄을 지우면 문서에 요소가 생기고 지워진다 (Undo 한 번). 사용자 결정 1 · 2 · 3 · 5 권고안. 식별은 편집 연산 (anchor), 적용 전 재생성 대조 (stage 의 코드가 편집본을 돌려줘야 적용 — 부분 적용 0), baseline revision 실행. RED 11 GREEN · golden 5 왕복 · live 3/5. 남음: 어휘 pending 11 (편집 시 거절) · 스니펫 5 · live 2 · G4 initial Δ +1,288 B (i18n — 상한 +1,000 초과).
@@ -496,10 +500,10 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [285](285-code-view-closed-vocabulary-round-trip.md) — code view 역변환: 코드 편집을 닫힌 어휘 전체 (요소 · 변수 · 조건 · 규칙 · API) 에서 문서로
+#### [286](286-catalog-single-source-data-site-settings.md) — 빌더 코드의 소스 = 단일 catalog: 데이터 정의 · 사이트 · 페이지 설정 · 검색 · 호스팅 · 방문자 SSO 를 문서로
 
-- **상태**: Accepted — 2026-10-27 · Phase 0 ~ 4 완료 (G0 ~ G4 닫힘) — 닫힌 어휘 전체 (pending 0) · strict 왕복 golden 5 · 스니펫 5 · live 7/7 · Builder initial Δ +269 B · 남음: **G5 사용자 Builder 확인** → Implemented
-- **규모**: Phase 0 (생성기 emit 전수 → 어휘표 · 파서 실측 babel vs acorn · RED 5) → Phase 1 파서 lazy + 역문법 + 의도 트리 + 왕복 불변식 → Phase 2 차이 → 기존 명령 한 트랜잭션 (추가 · 삭제 · 이동 · 변수 · 조건 · 규칙 · API, dry-run) → Phase 3 패널 (CodeMirror 6 · 닫힌 어휘 자동완성 · 스니펫 5 · 줄 안 진단 · 거절 = 줄 · 이유 · 대안 KO/EN) + live → Phase 4 번들 (Builder Δ ≤ +1 KB · Preview 0) · 문서 → G5 사용자 확인. 추정 ~19 파일. breakdown: [design/285](design/285-code-view-closed-vocabulary-round-trip-breakdown.md)
+- **상태**: Proposed — 2026-10-27 (사용자 `/create-adr` · 범위는 같은 날 AskUserQuestion 3회로 확정 — 리뷰는 사용자 요청 시 `review-adr`). 착수는 285 Implemented 뒤.
+- **규모**: Phase 0 (쓰기 지점 전수 · 소비자 35 읽는 필드 · 사용자 로컬 데이터 수 보고 · RED 5) → Phase 1 entry 3 + `ProjectEntry.site` + `PageEntry.meta` + 명령 (`commands/data.ts` · `DataChange` op → 명령) + selector (hook 이름 유지) + IDB 3 store 삭제 + G2 문서 크기 · 저장 · Undo 측정 → Phase 2 코드 보기 입력 교체 (golden 5 byte 동일) · 프로젝트 파일 extras 삭제 · publish 읽기 · Preview 채널 runtimeData 전용 → Phase 3 Settings 「사이트」 섹션 · 페이지 설정 · `siteMeta` 순수 함수 · live → Phase 4 번들 (Builder · Preview Δ ≤ +1 KB) · 문서 → G6 사용자 확인. publish 내보내기 (`<head>` · sitemap · robots · redirect · 접근 보호) 는 열림 phase (사용자 지시). 추정 ~38 파일. breakdown: [design/286](design/286-catalog-single-source-data-site-settings-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -530,14 +534,14 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [285](285-code-view-closed-vocabulary-round-trip.md)                                           | Accepted — Phase 0 ~ 4 완료 (G0 ~ G4)                                             | G5 사용자 Builder 확인 (`<Text>` 추가 · 「검색 추가」 를 코드로 · 요소 삭제)                   |
+|  1   | [286](286-catalog-single-source-data-site-settings.md)                                         | Proposed — 2026-10-27 (범위 확정 · 리뷰 전)                                       | 리뷰 (사용자 요청 시) · Phase 0 에서 사용자 로컬 데이터 수 보고 (contract 51)                  |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |
 
 ---
 
-## 완료 ADR (305)
+## 완료 ADR (306)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -842,6 +846,7 @@
 | [272](completed/272-bounded-spatial-query-and-warmup-work-range.md) | 작업 범위 제한 (Pen.dev 비교 도입 3/4) — Phase 0 몫 표 (`many-pages` 100 · 300): 질의 ≤ 0.3 % → 전략 전환 no-go · 64 셀 넘는 항목 0 → 큰 항목 버킷 생략 (사용자 결정 2) · Phase 2 미리 기록: 자리 0 이면 생략 · 후보 = page root ∪ 공간 질의 · 가까운 k 개만 정렬 · 카메라 칸 · 자리를 못 채우면 전체 보충 (편집 뒤 준비 9.1 → 0.1 ms) · 참고 목표 미달은 기록 (사용자 결정 3) | Implemented | 2026-10-18 |
 | [277](completed/277-table-tableview-merge.md) | Table · TableView 통합 — 표는 하나 (RAC Table) — TableView type · origin · binding · rule · 생성 CSS · DOM 렌더러 · 팔레트 삭제, `"Table" \|\| "TableView"` 집합 14 자리 제거 · Table template 에 starter (Column 3 · Row 1 · Cell 3, Column 은 origin instance) · 첫 연결 (binding 없음) 은 열 교체 + 정적 Row Cell 재구축 · contract 44 · 새 단위 7 · live Canvas = Preview ≤ 0.01 px (270 칸) · 번들 Builder −176 · Preview −163 B gzip | Implemented | 2026-10-21 |
 | [284](completed/284-data-view-filter-sort-group-query.md) | 데이터 보기 — 조회 · 필터 · 정렬 · 묶기 · 참조를 변수와 보기로, RAC 코드로 환원되는 저장 형식 — contract 50 (`ViewEntry` · 조건 트리 · `actions[]`) · 로컬 계산기 (Preview · Publish 공유) · API 직렬화 · 재호출 · 「검색 추가」 한 동작 = 변수 · 규칙 · 조건 · 「정렬 따라가기」 · 공유 보기 · 연결 상세 실행 값 · 묶기 · 집계 · 결과 수 · 적용 조건 수 · 참조 · dnd + 다중 Do · code view (생성기 · 수용 판정 5/5 · 1:1 역매핑) · G8 사용자 확인 2026-10-27 · 후속 285 | Implemented | 2026-10-27 |
+| [285](completed/285-code-view-closed-vocabulary-round-trip.md) | code view 역변환 — 코드 편집을 닫힌 어휘 전체 (요소 · 변수 · 조건 · 규칙 · API) 에서 문서로 — lezer 파서 (CodeMirror 6 chunk 안) · 역문법 → 의도 트리 · 편집 연산 identity · 재생성 대조 (부분 적용 0) · 스니펫 5 · 바로 편집 화면 · 편집기 Undo = 입력 단계만 · Builder initial Δ +269 B · G5 사용자 확인 2026-10-27 (live 12/12) · 후속 286 | Implemented | 2026-10-27 |
 | [275](completed/275-position-section-figma-rules-framer-fields-layout-insets.md) | Position 절 — Figma 규칙 (pin 4 변 · 가운데) + Framer 칸, 저장은 layout `position` · `inset*` (노드 `placement` 삭제) · Sticky · Fixed 저작 · 술어 4 · Spacing 절 삭제 — contract 42 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [276](completed/276-button-text-child-iconbutton-merge.md) | Button 글자 = Text 자식 (`label` prop 바인딩 · `icon` 자리) · IconButton 통합 삭제 · 중첩 자리 34 `children` → `label` — contract 43 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [278](completed/278-overlay-body-slot-local-component.md) | 오버레이 본체 = slot (Dialog `content` · `actions` · Popover · Tooltip · ContextualHelp · Menu `Items`) · Library · Local 카드 본체 펼침 · 커스터마이징은 Local 컴포넌트 instance — contract 45 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |

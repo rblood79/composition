@@ -1,6 +1,6 @@
 # ADR-285 design breakdown — code view 역변환 (닫힌 어휘 전체)
 
-> 본문: [285-code-view-closed-vocabulary-round-trip.md](../285-code-view-closed-vocabulary-round-trip.md). 착수는 ADR-284 Implemented (G8) 뒤.
+> 본문: [285-code-view-closed-vocabulary-round-trip.md](../completed/285-code-view-closed-vocabulary-round-trip.md). 착수는 ADR-284 Implemented (G8) 뒤.
 
 ## 0. 전제 lock-in (fork 4 질문 — ADR-284 에서 분리)
 
@@ -176,18 +176,18 @@
 
 **어휘 pending 11 → 0** (`vocabulary.ts` `read` 필수):
 
-| 형태 | 읽는 곳 | 문서 |
-| ---- | ------- | ---- |
-| `let {selectedKeys: x, setSelectedKeys: setX} = list` | `planSelections` | 그 목록 `selectedKeys` 의 이름 붙은 변수 (`source`) |
-| `url.searchParams.append(…)` · `set(_sort …)` | `requestOf` (`codeViewViews.ts`) | served 보기의 조건 · 정렬 (접미 표 역변환 · guard → skip / enabled · `between` 두 줄 · 날짜 필드는 after / before) |
-| `(a \|\| b)` 묶음 | `itemOf` | 「또는」 그룹 — 같은 비교 · 다른 필드면 여러 필드 조건 (생성 코드가 같다) |
-| `.toSorted(…)` | `specOf` | 상수 필드 정렬 · 정렬 변수 (`<v>Dir` 줄과 짝) |
-| `Map.groupBy` 세 문장 | `groupedOf` | `groupBy` · `emptyGroups: "all"` · 집계 |
-| `[{id: 'row-1', …}]` | `aggregateOf` | count · applied · sum · mean · min · max |
-| `useDragAndDrop({…})` | `planDragAndDrop` | 각 `on…(e) { … }` = 그 목록의 drop 규칙 (Do 는 `dosOf`, 이벤트 필드 `e.…`) |
-| `prop={x === … && …}` | `whenOf` | `PropWhen` (selection `size` · exists · notExists 포함) |
-| `${rows.find(row => row.id === k)?.f ?? ''}` | `textValue` + `planCodeViews` | 글자 `{f}` + 그 요소의 key 바인딩 (보기 · key) |
-| 목록 명령 · capability · fetch | `dosOf` · `capabilityOf` | list Do · 이름 붙은 상태 setter → capability · `callEndpoint` · reset · 글자 toggle |
+| 형태                                                  | 읽는 곳                          | 문서                                                                                                               |
+| ----------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `let {selectedKeys: x, setSelectedKeys: setX} = list` | `planSelections`                 | 그 목록 `selectedKeys` 의 이름 붙은 변수 (`source`)                                                                |
+| `url.searchParams.append(…)` · `set(_sort …)`         | `requestOf` (`codeViewViews.ts`) | served 보기의 조건 · 정렬 (접미 표 역변환 · guard → skip / enabled · `between` 두 줄 · 날짜 필드는 after / before) |
+| `(a \|\| b)` 묶음                                     | `itemOf`                         | 「또는」 그룹 — 같은 비교 · 다른 필드면 여러 필드 조건 (생성 코드가 같다)                                          |
+| `.toSorted(…)`                                        | `specOf`                         | 상수 필드 정렬 · 정렬 변수 (`<v>Dir` 줄과 짝)                                                                      |
+| `Map.groupBy` 세 문장                                 | `groupedOf`                      | `groupBy` · `emptyGroups: "all"` · 집계                                                                            |
+| `[{id: 'row-1', …}]`                                  | `aggregateOf`                    | count · applied · sum · mean · min · max                                                                           |
+| `useDragAndDrop({…})`                                 | `planDragAndDrop`                | 각 `on…(e) { … }` = 그 목록의 drop 규칙 (Do 는 `dosOf`, 이벤트 필드 `e.…`)                                         |
+| `prop={x === … && …}`                                 | `whenOf`                         | `PropWhen` (selection `size` · exists · notExists 포함)                                                            |
+| `${rows.find(row => row.id === k)?.f ?? ''}`          | `textValue` + `planCodeViews`    | 글자 `{f}` + 그 요소의 key 바인딩 (보기 · key)                                                                     |
+| 목록 명령 · capability · fetch                        | `dosOf` · `capabilityOf`         | list Do · 이름 붙은 상태 setter → capability · `callEndpoint` · reset · 글자 toggle                                |
 
 **설계 구체화 (통상 구현 판단)**: 보기 문장은 이름으로 소유자를 정한다 — baseline 의 이름이면 그 소유자, 새 이름이면 「목록 하나만 `items` 로 읽음 · 행 원본 · 집계 · 묶기 없음 · 다른 보기 · 행 읽기가 읽지 않음」 일 때 그 목록의 내장 보기, 아니면 새 공유 보기 (이름 = 코드 이름). baseline 과 같은 문장은 다시 읽지 않는다 (strict 제외). 변수 시작값 비교에서 선택 (`array` · `string[]`) · 구조 변수의 빈 시작 (`""` · `null`) 은 같은 것으로 본다 (코드가 구별하지 않음).
 
@@ -209,4 +209,10 @@
 - 게이트: `panels/codeView/__tests__/codeEditorRebase.test.tsx` 2 (새 baseline = 편집 아님 · 다음 편집은 새 baseline 기준 — `rebase` 건너뛰기를 지우면 RED) · type-check · 관련 builder 스위트 PASS · live 8 (ADR Live Exercise 표).
 - Undo · Redo (사용자 질문 「undo redo history 가 단일 소스로 동기화 되는지」): 문서의 기록은 workspace history 하나 — 적용 = 1 step, Canvas · History 패널 · 편집기 모두 그 기록을 따른다. 편집기의 CodeMirror history 는 **입력 중 초안의 글자 단계만** 가진다 (ADR-212 의 격자 셀 초안과 같은 구분). 결함: 전역 Undo 단축키가 `allowInInput` + capture 라 편집기 안의 ⌘Z 가 CodeMirror 에 닿지 않고 문서를 되돌렸다 (초안이 낡아 적용 거절). 수리: 편집기 host 가 자기 입력 단계가 있을 때만 `data-shortcut-local="undo" · "redo"` 를 단다 (`undoDepth` · `redoDepth`) — 없으면 문서 Undo 로 가고 편집기가 따라간다. 새 baseline 을 쓸 때 CodeMirror history 를 비운다 (`Compartment` 재구성 — 지난 baseline 의 단계가 남지 않게). 게이트: `codeEditorRebase.test.tsx` 3 번째 (호출을 지우면 RED) · live 9.
 - 코드의 출처 (사용자 원칙 2026-10-27 「빌더의 모든 코드의 소스는 단일 catalog 로 집중되어야 한다」): 지금 코드 보기는 catalog 문서 (페이지 · 요소 · 상태 변수 · 규칙 · 보기 · 테마) 와 data store + IndexedDB (데이터 표 스키마 · mock 행 · API endpoint · 프로젝트 변수 — `stores/data.ts`) 두 곳을 읽는다. 같은 날 사용자 결정: **정의만 catalog 로** (API 실행 결과 `runtimeData` 는 캐시 유지) · **ADR-285 먼저 닫고 이관은 새 ADR** (사용자 `/create-adr`). 2026-05 의 「collections 를 문서 root 로 올릴 의미 없음」 (ADR-131 · 132) 은 이 결정으로 바뀐다. 이 ADR 의 범위는 그대로 — `catalogCodeViewData` 가 이관 뒤 catalog reader 로 바뀌는 일은 새 ADR 에 포함.
+- 사이트 설정 (사용자 지적 2026-10-27 「framer 의 경우 사이트 전체의 설정 부분이 있다 — 우리는 그 부분을 놓치고 있다」): 지금 `ProjectEntry` 는 이름 · 페이지 배치 · toast 위치, `PageEntry` 는 route · name 뿐이고 publish 의 `<title>` 은 고정 문자열이다. 같은 날 결정: 위 catalog 이관 ADR 에 **포함** — 사이트 기본값 (favicon 밝은 · 어두운 · 제목 · 설명 · 소셜 이미지 · 언어) · 페이지별 덮어쓰기 (제목 · 설명 · 소셜 이미지 · 검색 숨김) · 검색 · 호스팅 (색인 허용 · sitemap · robots · redirect) · **SSO** — 같은 날 결정 「둘 다」: 사이트 방문자 로그인 (SAML · OIDC · 보호할 페이지 — 공유 비밀번호 보호도 같은 자리) 은 이 이관 ADR 에, 빌더 팀 로그인 (Framer Enterprise 방식) 은 계정 · 인증 영역이라 별도 ADR. custom code (임의 스크립트) 는 제외.
 
+### G5 — 2026-10-27 (닫힘 · Implemented)
+
+- 사용자 지시 「ADR-285 G5 부터」. G5 의 세 시나리오를 Chrome MCP 로 별도 dev 서버 5174 「adr285-live」 에서 돌렸다 (본문 Live Exercise 10 ~ 12): ① `<Text>Hello G5</Text>` 추가 → 적용 → Canvas · `Text` import ② 「스니펫 → Add search · Users · company」 → 변수 · 조건 · 규칙이 코드로 → 적용 (4 변경) → Preview `tech` 10 → 3 행 ③ 두 요소 줄 삭제 → 적용 → ⌘Z 한 번 복원. 콘솔 오류 0 · 지적 0.
+- 관찰 (결함 아님): 요소 줄만 지우면 그 요소와 규칙만 지워지고, 지우지 않은 변수 · 조건 줄은 문서에 남는다 — 편집한 만큼만 적용 (Decision 2). 편집기의 JSX 자동 닫힘 태그가 손으로 `</Text>` 까지 치면 한 번 더 들어간다 — 진단이 바로 보여 지우면 된다 (LOW, 편집기 기본 동작).
+- 종결: Implemented — 본문 `git mv` → `completed/` · README (공지 · 열려 있는 것 · 순서 표 · 완료 표 306 · 열림 2 · 합계 308) · CHANGELOG · 메모리 `project-code-view-structural-edit-closed-vocabulary`. 후속 ADR-286 선행 충족.

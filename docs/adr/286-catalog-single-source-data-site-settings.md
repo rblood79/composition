@@ -1,0 +1,167 @@
+# ADR-286: 빌더 코드의 소스 = 단일 catalog — 데이터 정의 · 사이트 · 페이지 설정 · 검색 · 호스팅 · 방문자 SSO 를 문서로
+
+## Status
+
+Proposed — 2026-10-27
+
+- 사용자 요청: `/create-adr` (2026-10-27) — 「catalog 이관 ADR: 데이터 정의, 사이트 · 페이지 설정, 검색 · 호스팅, 방문자 SSO」.
+- 방향을 정한 사용자 원문 (2026-10-27, ADR-285 마무리 중):
+  - 「빌더의 모든 코드의 소스는 단일 catalog 로 집중되어야한다」 — 코드 보기가 catalog 문서와 별도 data store 두 곳을 읽는다는 보고에 대한 원칙.
+  - 「추가로 놓친부분은 framer 의경우 사이트 전체의 설정 부분이있다 우리는 그부분을 놓치고있다」.
+  - 「singlesignon」.
+- 사용자가 이미 답한 확인 항목 (같은 날 AskUserQuestion 3회):
+  1. **이관 범위 = 정의만 catalog 로** — 데이터 표 (스키마 · mock 행) · API endpoint (URL · 매개변수 · 응답 경로) · 프로젝트 변수. API 실행 결과 `runtimeData` 는 문서가 아니라 실행 결과라 **캐시 유지** (「실행 결과까지 전부」 · 「지금 구조 유지」 기각).
+  2. **순서 = ADR-285 먼저 닫고 이관은 새 ADR** (이 ADR). 코드 보기의 `catalogCodeViewData` 가 data store 대신 catalog 를 읽게 바꾸는 일은 이 ADR 에 포함.
+  3. **사이트 · 페이지 설정은 이 ADR 에 포함** (별도 ADR 기각). 범위 = **사이트 기본값 · 페이지별 덮어쓰기 · 검색 · 호스팅 · SSO**. **custom code (head · body 임의 스크립트) 는 고르지 않음 — 제외**.
+  4. **SSO = 둘 다** — 사이트 방문자 로그인 (SAML · OIDC · 보호할 페이지, 공유 비밀번호 보호도 같은 자리) 은 **이 ADR**, 빌더 팀 로그인 (Framer Enterprise 방식) 은 계정 · 인증 영역이라 **별도 ADR** (사용자 `/create-adr`).
+- 바뀌는 선행 결정: [ADR-131](completed/131-events-data-actions-first-class-collections.md) Phase 7 ~ 8 (2026-05-13) 의 「데이터 SSOT = `data_tables` (collections), 문서 root 격상은 잘못된 관점」 과 [ADR-248](completed/248-unified-catalog-document.md) H1 (「별도 data SSOT 유지, graph 는 ID 참조만」) 은 확인 항목 1 로 **바뀐다**. 그때의 근거 (RAC/RSC 가 `useCollectionData` 로 통합 소비 · binding 은 element 별 참조) 는 지금도 맞지만, 그것은 **읽는 쪽** 의 사실이고 **정의가 어디 사는가** 와는 다른 문제다 — 코드 보기 (ADR-284 · 285) 가 생기면서 문서 밖 정의가 코드에 섞여 나오는 것이 드러났다. 메모리 `project-catalog-single-source-of-builder-code` · `project-data-tables-ssot-framing` (바뀜 표시).
+- 메모리: `project-catalog-single-source-of-builder-code` (결정 원문 4) · `feedback-no-document-migration-code-dev-stage` (마이그레이션 코드 0) · `project-publish-link-only-defer-until-builder-stable` (publish 는 기능 링크만).
+
+> 구현 상세: [design/286-catalog-single-source-data-site-settings-breakdown.md](design/286-catalog-single-source-data-site-settings-breakdown.md)
+
+## Context
+
+### 도메인
+
+문서 모델 · 저장 (ADR-248 의 연장). D1 · D2 · D3 어느 것도 아니다 — RAC DOM · S2 prop · 시각 값을 건드리지 않는다. 사이트 설정이 publish 의 `<head>` (`<title>` · `<meta>` · `<link rel="icon">` · `<html lang>`) 에 쓰이는 것은 문서 메타이지 컴포넌트 D1 이 아니다. 경계 교차 없음.
+
+### 현재 (실측 2026-10-27, main `278c3896d`)
+
+- **문서 (catalog)**: `CatalogEntry` 11 종 (`packages/shared/src/catalog/document/types.ts:1252` — project · page · definition · definitionOverride · node · theme · token · stateVariable · interaction · asset · view). `ProjectEntry` (726 ~) 는 이름 · 페이지 목록 · 정의 · 테마 · 토큰 · 상태 변수 · 규칙 · 자산 · 보기 id 목록 · `activeThemeId` · `pageLayout` · `toastPlacement` 뿐. `PageEntry` (847 ~) 는 `route` · `name` · `children` · `placement` · `guideEntries` · `parentId` 뿐. `LIBRARY_CONTRACT_VERSION = 50` (139).
+- **데이터 정의 (catalog 밖)**: Zustand `useDataStore` (`apps/builder/src/builder/stores/data.ts` 396 줄 · `utils/dataActions.ts` 1,339 · `utils/dataChange.ts` 1,473) + IndexedDB store 3 (`lib/db/types.ts:56` `collections` · `api_endpoints` · `variables`, ADR-235 의 `collection_runtime` 캐시 별도). 타입은 `apps/builder/src/types/builder/data.types.ts` (641 줄 — `DataTable` 77 · `DataField` 44 · `ApiEndpoint` 234 · `ResponseMapping` 168 · `ServerConfig` 213 · `Variable` 349). 소비자 **35 파일** (`useDataStore` · `useCollections` · `useApiEndpoints` · `useVariables` — datatable 패널 15 · properties 4 · AI 3 · agent 2 · canvas 2 · codeView 1 · 그 밖 8). 문서는 `DataCollectionId = \`data:collection:${string}\``(161) · 필드`{#id}` · endpoint id 로 **참조만** 한다 (ADR-248 H1).
+- **기록 (history) 은 이미 하나**: `setDataHistoryRecorder` (`dataChange.ts:1163`, `CatalogBuilderCore.tsx:568`) — 데이터 변경이 catalog runtime history 에 `type:"data"` 항목으로 들어간다 (사용자 2026-09-30). 그러나 **저장은 둘** (문서 = catalog 저장, 데이터 = IDB 3 store) 이라 두 쪽을 함께 바꾸는 조작의 원자성은 없다 (ADR-248 Negative 「기존 수준에 머문다」).
+- **프로젝트 파일**: `ProjectContentV2 = { project, document, ...extras }` — `extras` 에 `collections` · `apiEndpoints` · `variables` · `fontRegistry` 를 **문서 옆에 따로** 싣는다 (`catalog/runtime/exchange.ts:125` `CatalogProjectFileExtras`, `useCatalogProjectFiles.tsx:93 ~ 111`). publish 는 `extras.collections ?? []` 로 받는다 (`apps/publish/src/catalogSession.ts:26 ~ 28`, `catalogProject.ts` 가 배열 모양만 검사).
+- **Preview**: Builder 가 data store 를 구독해 iframe 에 `collections` 를 보낸다 (`catalogPreviewSession.ts:565` `parseCatalogPreviewData` — `runtimeData` 포함). 문서 delta 와 별도 채널.
+- **코드 보기**: `catalogCodeViewData(tables, endpoints)` (`catalogRuntime/codeView.ts`) 가 `useCollections()` · `useApiEndpoints()` 를 받아 `import users from './data/users'` · `useAsyncList` 의 URL · 필드를 만든다 — 생성 코드의 어휘 중 **collection · endpoint 는 catalog 밖에서 온다**. 변수는 `StateVariableEntry` (문서) 이고 프로젝트 변수 (`Variable`, store) 는 코드에 나오지 않는다.
+- **사이트 설정**: 없다. publish 의 `<title>` 은 「composition Published App」 고정 · `<html lang="en">` 고정 (`apps/publish/index.html:2 · 6`), favicon · description · 소셜 이미지 · robots · sitemap · redirect · 접근 보호 어디에도 없음 (grep 0). Settings 패널 (`panels/settings/SettingsPanel.tsx`) 은 Builder 작업 환경 (눈금자 · 스냅 · 페이지 간격 · UI 배율) 과 문서 값 둘 (`pageLayout` · `toastPlacement` — `setPageLayoutSettings` · `setToastPlacement`, `commands/project.ts:268 · 283`) 뿐. 페이지 설정은 route · name 만 (`updatePage` 89).
+- **인증**: Builder 는 로컬 라이선스 (`apps/builder/src/auth/license/localAuth.ts` · `/signin`). publish 앱에는 인증 · 접근 제어가 없다 (`apps/publish/src/App.tsx` grep 0).
+- **자산**: `AssetEntry` (1244 — contentId · mediaType · byteLength · filename) 와 asset store (ADR-235) 가 있어 favicon · 소셜 이미지는 새 저장 기구 없이 자산 참조로 둘 수 있다.
+- **Framer 의 같은 자리** (공식 도움말, 2026-10-27 확인): Site Settings → General (favicon 밝은 · 어두운, 사이트 제목 · 설명 · 소셜 이미지) · Page Settings (제목 · 설명 · 소셜 이미지 · 검색에서 숨김 · CMS 변수) · Hosting (redirect — wildcard · 우선순위) · sitemap.xml · robots.txt 자동 · 사이트 암호 보호 (공유 비밀번호 하나) · SSO 는 팀 로그인 (Enterprise, SAML · OIDC) 만 기본 제공이고 방문자 SSO 는 외부 플러그인 (Descope).
+
+### 사용자와 인계 상황
+
+- 사용자 (비개발자 · 기능 단위 — 메모리 `user-non-developer-list-first-mental-model`) 는 「코드」 패널의 코드가 **문서 하나** 에서 나온다고 기대한다. 코드에 보이는 `./data/users` 와 API URL 이 다른 저장소에서 오면 Undo · 저장 · 내보내기 · publish 가 둘로 갈린 채 숨는다 (지금은 history 만 합쳐져 있다).
+- 개발자 인계 (ADR-284 §8a): 프로젝트 파일 하나에 문서와 데이터 정의가 **다른 모양** 으로 들어 있고, 사이트 제목 · favicon · 언어 · redirect 는 아예 없다 — 넘겨받은 쪽이 publish 의 `index.html` 을 손으로 고쳐야 한다.
+- Framer 를 레퍼런스로 두는 사용자 기준 (10-27 지적) 에서 빠진 것이 사이트 설정 전체다.
+
+### 제약
+
+- **Hard — 정의만 문서로**: 데이터 표의 스키마 · mock 행 · 실행 정책, endpoint 의 요청 · 응답 정의 · 조회 형식 · 서버 실행 설정, 프로젝트 변수의 이름 · 타입 · 시작값 · persist 는 catalog entry 가 된다. **`runtimeData` (API 실행 결과) 는 문서가 아니다** — ADR-218 의 `collection_runtime` 캐시 · Preview 채널 그대로 (확인 항목 1).
+- **Hard — 저장 · history · 내보내기 · publish 가 한 곳을 읽는다**: 데이터 정의 · 사이트 설정의 모든 쓰기는 catalog 명령 (`workspace.execute`) 하나로, history 항목 하나, 저장 큐 하나, 프로젝트 파일의 `document` 안. `extras.collections` · `apiEndpoints` · `variables` 는 사라진다 (`fontRegistry` 는 범위 밖 — 글꼴은 ADR-248 의 자산 축).
+- **Hard — 마이그레이션 코드 0** (사용자 지시 2026-10-14 · 메모리 `feedback-no-document-migration-code-dev-stage`): 개발 단계라 옛 프로젝트 · IDB 3 store 의 변환 코드를 쓰지 않는다. contract 50 → 51 은 옛 문서를 거부한다 (ADR-278 h1 과 같은 정책 — `storage.ts` · `validation.ts` 의 contract 검사). 사용자 데이터는 preset 으로 다시 만든다 (ADR-220 `@composition/sample-data`).
+- **Hard — 읽는 쪽 계약 유지**: RAC 컴포넌트의 데이터 소비 (`resolveCollectionItems` · `useCollectionData` · `CollectionDataSource`) 와 `DataCollectionId` · 필드 `{#id}` 참조 (ADR-152) 는 그대로 — 바뀌는 것은 정의의 **집** 이지 참조 모양이 아니다. 조건 · 정렬 · 보기 (ADR-284 `ViewEntry`) 는 이미 문서라 무변경.
+- **Hard — 코드 보기 왕복 유지**: ADR-285 의 strict 왕복 게이트 (golden 5 · 거절 0 · 적용해도 코드 동일) 가 이관 뒤에도 통과해야 한다. 코드 어휘는 늘지 않는다 — `catalogCodeViewData` 의 **입력이 catalog 로 바뀔 뿐**.
+- **Hard — 번들**: Builder initial Δ ≤ +1 KB gz · Preview Δ ≤ +1 KB gz (설정 읽기 코드만, 상한 ADR-201 재승인 값 — Builder 는 이미 초과 상태라 **이 ADR 몫 Δ** 로 잰다, ADR-285 G4 와 같은 방식 `adr209-bundle-closure.mjs`). 데이터 패널 · 설정 패널은 lazy 그대로.
+- **Hard — 보안**: endpoint 의 `serverConfig.secretMappings` 는 **이름** (어느 Vault 키) 만 문서에 — 값 (비밀) 은 지금처럼 서버 측. SSO 의 client secret · SAML 인증서 개인키는 문서에 넣지 않는다 (IdP 메타데이터 URL · client id · 발급자 · 보호할 페이지 목록만). 방문자 세션 · 토큰은 publish 런타임의 일이지 문서가 아니다.
+- **Hard — publish 는 기능 링크만** (메모리 `project-publish-link-only-defer-until-builder-stable`, 사용자 2026-08-21): 이 ADR 은 publish 가 **읽을 정의** 를 문서에 두고, `<head>` 메타 · sitemap · robots · redirect · 접근 보호를 **publish 런타임이 실제로 내보내는 일** 은 별도 phase 로 두되 그 착수는 사용자 지시로 (「publish 안정화 뒤」). 정의가 문서에 있으면 코드 보기 · 내보내기 · 리뷰가 바로 쓰고, publish 는 준비되면 같은 것을 읽는다.
+- **Hard — custom code 없음**: head · body 임의 스크립트 삽입은 범위 밖 (확인 항목 3 · 원칙 「불가 → 스크립트 escape 금지」). 분석 도구 연결 같은 요구가 오면 **이름 붙은 설정** (예: 측정 id 하나) 으로 별도 결정.
+- **Soft**: 데이터 패널 (`panels/datatable/*` 15 파일) 의 화면 · 조작은 그대로 — 아래가 store 에서 catalog 로 바뀌는 것을 사용자가 느끼지 않아야 한다. 데이터 변경 계약 (`DataChange` · `DataOp`, ADR-213 — AI · agent · import 가 쓰는 단일 진입점) 의 **op 어휘는 유지** 하고 적용기만 catalog 명령으로 바꾼다.
+
+## Alternatives Considered
+
+### 대안 A: 지금 구조 유지 + 코드 보기만 두 소스를 합쳐 읽기 (어댑터)
+
+- 설명: data store 는 그대로 두고 `catalogCodeViewData` 같은 어댑터 층을 코드 보기 · 내보내기 · publish 마다 둔다. 사이트 설정은 data store 에 네 번째 store (`site_settings`) 로 추가.
+- 리서치: 지금이 이 구조다 (ADR-131 Phase 8 · ADR-248 H1). Webflow · Framer 는 CMS 컬렉션 정의 · 사이트 설정이 프로젝트 하나의 일부로 publish 에 같이 나간다 — 두 저장소 모델이 아니다.
+- 위험: 기술 **L** / 성능 **L** / 유지보수 **H** (소비자가 늘 때마다 어댑터가 는다 — 코드 보기 · 내보내기 · publish · AI 도구가 각자 합친다; 저장 원자성 없음 그대로; 사이트 설정 store 가 네 번째 「문서 밖」 이 된다) / 마이그레이션 **L**.
+- 사용자 원칙 「모든 코드의 소스는 단일 catalog」 에 어긋난다 (확인 항목 1 에서 「지금 구조 유지」 기각).
+
+### 대안 B: 정의를 catalog entry 로 — collection · endpoint · projectVariable · 사이트 설정은 `ProjectEntry` 필드 · 페이지 설정은 `PageEntry` 필드 (채택)
+
+- 설명: `CatalogEntry` 에 `collection` (이름 · 스키마 · mock 행 · `useMockData` · 실행 정책) · `endpoint` (요청 · 응답 · 조회 형식 · 서버 실행 설정 이름 · 대상 collection id) · `projectVariable` (이름 · 타입 · 시작값 · persist) 세 종류를 더하고 `ProjectEntry` 가 id 목록을 든다 (`viewIds` 와 같은 모양). 사이트 설정은 `ProjectEntry.site` (favicon 밝은 · 어두운 = `AssetEntry` 참조 · 제목 · 설명 · 소셜 이미지 · 언어 · 검색 노출 · sitemap · robots · redirect 목록 · 접근 = none | password | sso(IdP 종류 · 메타데이터 URL · client id · 발급자 · 보호할 페이지)) · 페이지 설정은 `PageEntry.meta` (제목 · 설명 · 소셜 이미지 · 검색에서 숨김 — 없으면 사이트 값). 명령은 `commands/data.ts` (collection · endpoint · projectVariable CRUD + `DataChange` op → 명령 변환) · `commands/project.ts` 의 `setSiteSettings` · `updatePage` 확장. `useDataStore` 는 **catalog 를 읽는 selector hook** 으로 바뀌고 (`useCollections` 등 이름 · 반환 모양 유지 — 35 소비자 무변경 목표) IDB 3 store 와 `dataActions.ts` · `dataChange.ts` 의 저장 경로는 삭제. `runtimeData` 는 `collection_runtime` 캐시 (ADR-218) 와 Preview 채널 그대로, `DataTable.runtimeData` 는 selector 가 캐시에서 합쳐 돌려준다. 프로젝트 파일 `extras` 3 키 삭제, publish 는 문서에서 읽는다. contract 50 → 51.
+- 리서치: ADR-248 이 테마 · 토큰 · 상태 변수 · 규칙 · 보기를 같은 방식 (entry + `ProjectEntry` id 목록 + 명령) 으로 옮겼고 그 뒤 history 하나 · 저장 하나가 됐다. ADR-284 의 `ViewEntry` 가 가장 최근 선례 (contract 50). Framer 의 Site Settings · Page Settings 항목 구성은 Context 의 표 그대로.
+- 위험: 기술 **M** (entry 3 + 명령 + selector 전환 — 선례 있음) / 성능 **M** (mock 행이 문서에 들어간다 — 저장 · 스냅샷 · Preview delta 크기; 아래 Risks R2) / 유지보수 **L** (한 모델 · 한 명령 · 한 저장) / 마이그레이션 **M** (contract 51 — 옛 문서 거부, 변환 코드 0 정책; IDB 3 store 는 비우기만).
+
+### 대안 C: 실행 결과 (`runtimeData`) 까지 문서로
+
+- 설명: B + API 응답 행을 collection entry 에 저장.
+- 리서치: Framer CMS 는 정의와 항목이 다 프로젝트에 있지만 외부 API 응답을 캐시하지 않는다 (fetch 는 런타임). ADR-218 이 `runtimeData` 를 **버려도 되는 캐시** 로 분리한 이유가 그대로다 (응답 크기 · 급감 가드 · 저장 빈도).
+- 위험: 기술 **M** / 성능 **H** (응답 한 번에 수천 행 — 문서 저장 · history 스냅샷 · Preview delta 가 응답 크기에 비례) / 유지보수 **M** / 마이그레이션 **M**.
+- 확인 항목 1 에서 기각.
+
+### 대안 D: 사이트 · 페이지 설정만 별도 ADR, 데이터 정의만 이 ADR
+
+- 설명: 범위를 둘로.
+- 위험: 기술 **L** / 성능 **L** / 유지보수 **M** (같은 `ProjectEntry` · contract 를 두 ADR 이 연달아 올린다 — 51 · 52) / 마이그레이션 **M** (옛 문서 거부가 두 번).
+- 확인 항목 3 에서 기각 (「이관 ADR 에 포함」).
+
+### Risk Threshold Check
+
+| 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ |
+| ---- | :--: | :--: | :------: | :----------: | :---: |
+| A    |  L   |  L   |    H     |      L       |   1   |
+| B    |  M   |  M   |    L     |      M       |   0   |
+| C    |  M   |  H   |    M     |      M       |   1   |
+| D    |  L   |  L   |    M     |      M       |   0   |
+
+B · D 가 HIGH 0. D 는 사용자가 기각 (확인 항목 3). 루프 불필요.
+
+## Decision
+
+**대안 B.** 데이터 정의 (collection · endpoint · projectVariable) 와 사이트 설정 (`ProjectEntry.site`) · 페이지 설정 (`PageEntry.meta`) 을 catalog 문서로 옮긴다. 쓰기는 catalog 명령 하나 · history 하나 · 저장 하나 · 프로젝트 파일 `document` 하나이고, 코드 보기 · 내보내기 · Preview · publish 는 그 문서를 읽는다. `runtimeData` 는 캐시로 남긴다.
+
+위험 수용 근거: 성능 M (R2 — mock 행이 문서에) 은 mock 행이 **사용자가 만든 샘플** (preset `generateSample(count)` 기본 10 ~ 100 행) 이라 응답 크기와 다르고, 문서 스냅샷은 entry 단위라 collection entry 하나가 바뀔 때만 복사된다. 상한을 G2 로 잰다 (아래). 마이그레이션 M 은 개발 단계 정책 (변환 코드 0 · contract 거부) 그대로라 새 위험이 아니다.
+
+기각 사유 — A: 단일 소스 원칙 위반 · 어댑터 누적 · 원자성 없음 (사용자 기각). C: 응답 크기가 문서 크기를 정한다 (사용자 기각). D: contract 를 두 번 올리고 같은 entry 를 두 ADR 이 나눈다 (사용자 기각).
+
+### 결정 항목
+
+1. **entry 3 종**: `CollectionEntry` (`kind: "collection"`, id = 기존 `DataCollectionId` 모양 유지 — 참조 무변경) · `EndpointEntry` · `ProjectVariableEntry`. 필드는 지금 `DataTable` · `ApiEndpoint` · `Variable` 에서 **정의만** 가져온다 (`runtimeData` · `created_at` · `updated_at` · `project_id` · v1 잔존 `targetCollection` 이름 제외). `ProjectEntry` 에 `collectionIds` · `endpointIds` · `projectVariableIds`.
+2. **명령**: `commands/data.ts` — add · update · remove (참조 정리는 ADR-152 의 `{#id}` 규칙 그대로 — collection 삭제 시 바인딩 · 보기 · 조건의 참조를 `removeWithReferrers` 와 같은 방식으로). `DataChange` (ADR-213) 의 op 어휘는 유지하고 적용기 `reduceDataOps` 를 **명령 생성기** 로 바꾼다 — AI · agent · import 진입점 무변경.
+3. **읽기**: `useDataStore` → catalog selector (`useCatalogCollections` 등 — 기존 hook 이름을 re-export 로 유지). `DataTable.runtimeData` 는 `collection_runtime` 캐시를 selector 가 합친다. Preview 채널 (`parseCatalogPreviewData`) 은 runtimeData 전달용으로만 남고 정의는 문서 delta 로 간다.
+4. **사이트 설정 `ProjectEntry.site`**: `favicon: { light?: AssetRef; dark?: AssetRef }` · `title` · `description` · `socialImage?: AssetRef` · `lang` (BCP 47) · `search: { index: boolean; sitemap: boolean; robots: "allow" | "none" }` · `redirects: { from; to; permanent }[]` (순서 = 우선순위, `*` wildcard) · `access: { kind: "none" } | { kind: "password"; hint?: string } | { kind: "sso"; protocol: "saml" | "oidc"; issuer; metadataUrl?; clientId?; protectedPageIds: EntryId<"page">[] | "all" }`. 비밀 (비밀번호 해시 · client secret · 인증서) 은 문서 밖 — 저장 위치는 사용자 결정 2.
+5. **페이지 설정 `PageEntry.meta`**: `title?` · `description?` · `socialImage?: AssetRef` · `hidden?: { search?: boolean; sitemap?: boolean }`. 없으면 사이트 값 (Framer 의 override 규칙).
+6. **Settings 패널**: Builder 환경 (눈금자 · 스냅 · 배율 — 로컬 UI store 그대로) 과 **사이트** (문서) 를 섹션으로 나눈다. 페이지 설정은 Navigator Pages 의 페이지 ⋮ 메뉴 → 「페이지 설정」 (ADR-163 패널 표준 — `fieldset.properties-aria`).
+7. **publish 내보내기 (phase 분리)**: `<head>` 메타 · favicon · `lang` · sitemap.xml · robots.txt · redirect · 접근 보호는 정의를 **읽는 코드** 까지 이 ADR 이고, 실제 publish 산출물에 넣는 phase 는 사용자 지시로 착수 (publish 방침). 코드 보기는 사이트 설정을 코드에 내지 않는다 (RAC 레퍼런스 코드에 `<head>` 가 없다 — 10-26 「코드 = 레퍼런스 모양」).
+8. **빌더 팀 SSO 는 범위 밖** (확인 항목 4 — 별도 ADR).
+
+### 사용자 결정 4 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
+
+| #   | 항목                                                                 | 선택지                                                                                                                                                                                                          | 묻는 시점 |
+| --- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1   | mock 행의 문서 상한                                                  | (a) 상한 없음 — G2 측정값으로만 · (b) collection 당 1,000 행 상한, 초과는 Data 패널이 막음 (권고) · (c) 500                                                                                                     | Phase 1   |
+| 2   | 접근 보호의 비밀 저장 위치                                           | (a) publish 서버 측 설정 (환경 · Vault) 에 두고 문서는 「설정됨」 flag 만 (권고 — endpoint `serverConfig` 와 같은 자리) · (b) 프로젝트 파일 zip 의 별도 암호화 part · (c) 비밀번호 보호는 publish phase 로 미룸 | Phase 3   |
+| 3   | 프로젝트 변수와 `StateVariableEntry` (page · node 변수) 의 통합 여부 | (a) 별개 entry 유지 — 프로젝트 변수는 `ProjectVariableEntry`, 코드 보기에는 지금처럼 안 나옴 (권고 — ADR-214 소유자 모델 그대로) · (b) `StateVariableEntry.ownerId` 에 project 를 허용해 하나로                 | Phase 1   |
+| 4   | Settings 패널의 사이트 설정 자리                                     | (a) Settings 패널 안 「사이트」 섹션 (권고 — Framer Site Settings 와 같은 입구) · (b) 헤더 메뉴 File → 「사이트 설정」 다이얼로그                                                                               | Phase 3   |
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                    | 심각도 | 대응                                                                                                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 35 소비자 중 selector 로 덮이지 않는 쓰기 경로 (datatable 패널 · AI 도구 · agent 가 `useDataStore.setState` · `getDB()` 를 직접 쓰는 곳 — `dataActions.ts:123 ~ 1201` 의 11 `getDB()`) 가 남아 두 번째 쓰기 모델이 된다 |  HIGH  | Phase 0 inventory 가 쓰기 지점을 전수 (`setState` · `getDB` · `db.collections` grep) → 전부 명령으로. G1 = Builder 소스에 `db.collections` · `db.api_endpoints` · `db.variables` · `collections: new Map` 참조 0 (정적 테스트) |
+| R2  | mock 행 때문에 문서 · history 스냅샷 · Preview delta 가 커져 저장 · Undo 가 느려진다                                                                                                                                    |  MED   | G2 — 100 행 × 10 collection 문서에서 저장 · Undo · Preview delta 시간이 이관 전 대비 +20 % 이내 (Q2 불리 케이스 = 1,000 행 collection 편집). 사용자 결정 1 상한                                                                |
+| R3  | contract 51 로 사용자의 기존 로컬 프로젝트 (IDB 3 store 의 데이터) 가 열리지 않는다                                                                                                                                     |  MED   | 정책대로 (변환 0 · 거부). Phase 0 에서 사용자에게 **현재 프로젝트 수와 데이터 표 수** 를 보고하고 착수 승인 (ADR-278 h1 과 같은 처리). preset 으로 재생성                                                                      |
+| R4  | ADR-285 왕복 게이트가 입력 모양 변경으로 깨진다 (`CodeViewCollection` · `CodeViewEndpoint` 가 `DataTable` 에서 나오던 것)                                                                                               |  MED   | `catalogCodeViewData` 의 출력 타입 무변경 — 입력만 entry 로. G3 = golden 5 strict 왕복 그대로 PASS + 코드 byte 동일                                                                                                            |
+| R5  | publish 내보내기 phase 가 미뤄진 채 정의만 쌓여 「설정했는데 안 나온다」 가 된다                                                                                                                                        |  MED   | Settings 패널의 사이트 섹션 머리말에 「publish 반영은 준비 중」 상태 문구 (i18n) · README 열림 항목에 남은 phase 명시. 코드 보기 · 내보내기 (프로젝트 파일 `document`) 는 즉시 반영                                            |
+| R6  | SSO 설정이 비밀을 문서에 싣게 된다 (client secret 입력란)                                                                                                                                                               |  HIGH  | 스키마가 비밀 필드를 **갖지 않는다** (결정 4) — 정적 테스트가 `ProjectEntry.site.access` 키 집합을 고정. 비밀은 사용자 결정 2 의 자리                                                                                          |
+| R7  | Preview 가 정의를 문서 delta 와 runtimeData 채널 두 곳에서 받아 어긋난다 (같은 collection 의 스키마는 문서, 행은 채널)                                                                                                  |  MED   | 채널 메시지는 `{ collectionId, runtimeData }` 만 (스키마 · mock 제거). G4 = Preview 에서 mock 행 · API 행 · 스키마 변경 뒤 바인딩 목록이 맞는지 live                                                                           |
+
+## Gates
+
+| Gate | 시점    | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                      | 실패 시 대안                                                                    |
+| ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| G0   | Phase 0 | inventory: 쓰기 지점 전수 (`setState` · `getDB` · `db.*` · `DataChange` 적용 경로) · 소비자 35 의 읽는 필드 표 · 사용자 로컬 프로젝트 · 데이터 표 수 보고 (R3) · RED: 「collection 추가 → Undo 한 번 → 문서 · 저장 · 프로젝트 파일 모두 원상」 · 「사이트 제목 설정 → 프로젝트 파일 `document` 에 있음」 · 「코드 보기 입력 = catalog」 가 `it.fails` 로 실패 확인 (Q5: 기대 동작 부재로 실패) | 쓰기 지점이 inventory 의 1.5 배 이상이면 보강 커밋으로 흡수 (fork 사유 아님)    |
+| G1   | Phase 1 | entry 3 + 명령 + selector: Builder 소스에 IDB 데이터 store 참조 0 (정적) · `DataChange` op 전부가 명령으로 (op 별 테스트 — 왕복 불변식 `reduce(reduce(S, ops).inverse) = S` 는 명령 undo 로 대체) · collection 삭제 시 참조 정리 (바인딩 · 보기 · 조건 · endpoint 대상) · 원복 RED (명령 대신 store 쓰기로 되돌리면 정적 테스트 RED)                                                           | 참조 정리가 빠진 종류는 `removeWithReferrers` 패턴으로 추가 — 새 명령 신설 아님 |
+| G2   | Phase 1 | 성능 (Q1 사람이 만든 preset 문서 · Q2 불리 = 1,000 행 collection 의 한 행 편집 · Q3 대조군 = 이관 전 HEAD 같은 문서 · 조건 = headless dev · DPR 1 · visibilityState visible): 저장 · Undo · Preview delta 가 대조군 대비 +20 % 이내, 문서 JSON 크기 보고                                                                                                                                       | 초과하면 mock 행을 entry 안 별도 part (zip) 로 — 사용자 결정 1 로 상한          |
+| G3   | Phase 2 | 코드 보기: golden 5 strict 왕복 PASS · 생성 코드 **byte 동일** (이관 전 fixture 대비) · 스니펫 5 동일 문서 · 프로젝트 파일 `extras` 3 키 삭제 · publish `catalogSession` 이 문서에서 읽음 (publish 그리기 1회 — oracle 은 Builder Preview 와 같은 행 수)                                                                                                                                       | 코드가 달라지면 `catalogCodeViewData` 의 매핑 결함 — 어휘 변경 금지             |
+| G4   | Phase 3 | 사이트 · 페이지 설정 · live (Chrome MCP, 별도 서버): 사이트 제목 · 언어 · favicon (자산) 설정 → Undo 한 번 → 프로젝트 파일 내보내기에 있음 · 페이지 설정 덮어쓰기 · redirect 1 · 접근 = sso (비밀 없음) 저장 · Preview 에서 R7 (스키마 변경 뒤 바인딩 · mock 행 · API 행) · 콘솔 오류 0                                                                                                        | 결함은 `/fix` (증상 수정 금지)                                                  |
+| G5   | Phase 4 | 번들 Builder initial Δ ≤ +1 KB gz · Preview Δ ≤ +1 KB gz (이 ADR 몫, `adr209-bundle-closure.mjs` before/after 같은 머신) · `docs:stale-symbols` 0 · ADR-131 · 248 · 214 · 218 본문에 「ADR-286 이 바꿈」 표시 · 메모리 갱신 · README · CHANGELOG                                                                                                                                               | 초과분은 lazy 로 (설정 패널 · 명령 생성기는 이미 lazy 후보)                     |
+| G6   | 종결    | 사용자 Builder 확인 (데이터 표 만들기 · 코드 보기 · 사이트 설정 · Undo) → Implemented. publish 내보내기 phase 는 **열림 항목으로 남긴다** (사용자 지시로 착수)                                                                                                                                                                                                                                 | —                                                                               |
+
+측정 5-질문 (measurement-validity §1): Q1 = preset 으로 만든 문서 (사람 입력 모양, 부하용 복제 아님) · Q2 = 1,000 행 편집 · Q3 = 이관 전 HEAD 대조군 · Q4 = selector 가 실제 패널 · 코드 보기 · Preview 에 배선됨을 live 로 · Q5 = 코드 byte 동일은 **이관 전 fixture** (외부 기준) 대조, publish 행 수는 Builder Preview 와 대조.
+
+## Consequences
+
+### Positive
+
+- 문서 하나 = 저장 하나 · history 하나 · 프로젝트 파일 `document` 하나. 코드 보기 (`./data/users` · API URL) · 내보내기 · publish 가 같은 것을 읽는다 — 사용자 원칙 「모든 코드의 소스는 단일 catalog」.
+- 데이터 정의와 문서의 변경이 한 트랜잭션 (ADR-248 Negative 의 「원자성은 기존 수준」 해소).
+- 사이트 · 페이지 설정이 생긴다 (Framer Site · Page Settings 대응) — 제목 · 설명 · favicon · 언어 · 검색 · redirect · 접근 보호가 문서에 있고 내보내기 · 리뷰 대상이 된다.
+- `stores/data.ts` · `dataActions.ts` · `dataChange.ts` 의 저장 경로 (~3,200 줄 중 IDB · setState 부분) 와 IDB 3 store 삭제 — 쓰기 모델 하나.
+
+### Negative
+
+- contract 51 — 기존 로컬 프로젝트의 데이터 표 · endpoint · 변수는 다시 만든다 (변환 코드 0 정책).
+- mock 행이 문서에 들어가 문서 크기 · 스냅샷이 커진다 (G2 · 사용자 결정 1).
+- publish 가 `<head>` · sitemap · robots · redirect · 접근 보호를 실제로 내보내는 일은 이 ADR 종결 뒤 별도 phase (사용자 지시) — 그때까지 설정은 문서 · 내보내기에만 있다 (R5 상태 문구).
+- 빌더 팀 SSO 는 별도 ADR.

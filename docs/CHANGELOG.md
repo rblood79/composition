@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-285 Implemented — 코드 편집이 닫힌 어휘 전체에서 문서로] - 2026-10-27
+
+### Changed
+
+- **ADR-285 Implemented** (G5): 사용자 지시 「ADR-285 G5 부터」 로 G5 의 세 시나리오를 별도 dev 서버 (5174) 에서 Chrome MCP 로 재확인 — `<Text>` 한 줄 추가 → Canvas 에 글자 · 「스니펫 → Add search · company」 가 변수 · 조건 · 규칙을 코드로 넣고 Preview 에서 10 행 → 3 행 · 두 요소 줄 삭제 → Canvas 에서 사라지고 ⌘Z 한 번에 복원 · 콘솔 오류 0 (live 12/12 · 지적 0). 본문을 `docs/adr/completed/` 로 옮기고 README 완료 표 (306) · 권장 착수 순서 표에 반영했다. 후속 ADR-286 (코드의 소스 = 단일 catalog) 의 선행 조건 충족.
+  - 위치: `docs/adr/completed/285-code-view-closed-vocabulary-round-trip.md` · `docs/adr/README.md` · `docs/adr/design/285-code-view-closed-vocabulary-round-trip-breakdown.md`
+
 ## [ADR-285 Phase 1 ~ 4 마무리 — 코드의 모든 어휘가 문서로 · 스니펫] - 2026-10-27
 
 ### Added
