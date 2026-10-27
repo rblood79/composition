@@ -30,6 +30,10 @@ import {
   type CatalogFilterControlKind,
 } from "../../../builder/catalogRuntime/viewAuthoring";
 import { generateCodeView } from "../../../../../../packages/shared/src/codeView/generate";
+import {
+  catalogPropFollowCommand,
+  catalogPropFollows,
+} from "../../../builder/catalogRuntime/propFollow";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -1067,6 +1071,53 @@ describe("ADR-284 G8 follow-up — 「검색 추가」 offers every value contro
     expect(code).not.toMatch(/setGenderFilter\(\[\.\.\.keys\]\[0\]/);
     await settle();
     expect(h.shown()).toEqual(["Kim", "Park", "Lee"]);
+    h.view.unmount();
+  });
+});
+
+/**
+ * 「변수로 정하기」 reads what 「검색 추가」 wrote: a control's state prop is the variable's value
+ * (`{ kind: "var" }` — RAC's controlled pair). The section read only the value condition and the
+ * text template, so the Slider · ComboBox follows were missing (2026-10-27), and choosing the
+ * variable again wrote a `{{ name }}` text into a number prop.
+ */
+describe("ADR-284 G8 follow-up — 「변수로 정하기」 reads a control's variable", () => {
+  it("Slider value · ComboBox selectedKey are listed; writing one keeps it the variable's value", async () => {
+    const h = await boundList();
+    const slider = h.add("Slider", AGE, { insert: true }, ["31", "24", "19"]);
+    const combo = h.add("ComboBox");
+    const graph = h.graph;
+    expect(catalogPropFollows(graph(), slider.controlId)).toContainEqual({
+      prop: "value",
+      kind: "variable",
+      variableId: slider.variableId,
+    });
+    const follow = catalogPropFollows(graph(), combo.controlId).find(
+      (entry) => entry.prop === "selectedKey",
+    );
+    expect(follow).toEqual({
+      prop: "selectedKey",
+      kind: "variable",
+      variableId: combo.variableId,
+    });
+    // (The section's variable choice: the Slider follows the ComboBox's variable — still a value.)
+    for (const [nodeId, prop, variableId] of [
+      [slider.controlId, "value", combo.variableId],
+      [combo.controlId, "selectedKey", combo.variableId],
+    ] as const) {
+      h.workspace.execute(
+        catalogPropFollowCommand(graph(), nodeId, prop, {
+          prop,
+          kind: "variable",
+          variableId,
+        }),
+      );
+      const node = graph().getEntry(nodeId) as NodeEntry;
+      expect(node.props[prop]).toEqual({
+        kind: "set",
+        value: { kind: "var", ref: `!var.${variableId}` },
+      });
+    }
     h.view.unmount();
   });
 });

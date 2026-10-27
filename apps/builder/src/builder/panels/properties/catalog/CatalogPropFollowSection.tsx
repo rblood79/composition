@@ -46,7 +46,8 @@ function kindOf(valueType: string | undefined, path: string): ViewFieldKind {
 /**
  * ADR-284 Phase 6 — 「변수로 정하기」: the selected node's props that read a variable. A boolean
  * prop is true while the variable compares (the view's comparisons — 「값 없음」 · 「같음」 …, or a
- * selection's count); a text prop is the variable's value. One row per prop, one step per edit.
+ * selection's count); a text prop is the variable's value; a key list or a filter control's state
+ * prop (a Slider's `value`) is the variable itself. One row per prop, one step per edit.
  */
 export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
   nodeId,
@@ -98,7 +99,9 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
     [nodeId, workspace],
   );
 
-  if (!view.variables.length || !view.props.length) return null;
+  // (A follow is listed even where nothing more can follow — a filter control's state prop.)
+  if (!view.follows.length && (!view.variables.length || !view.props.length))
+    return null;
   const typeOf = (prop: string) =>
     view.props.find((entry) => entry.prop === prop)?.type;
   const variableOf = (id: string) =>

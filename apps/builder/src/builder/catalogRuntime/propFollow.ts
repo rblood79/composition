@@ -7,10 +7,13 @@
  * - a text prop holds the variable as a whole template (`{{ name }}` — ADR-214, as written in a
  *   text field), so the prop is the variable's value,
  * - a key list prop (`selectedKeys` · `expandedKeys` …) holds the variable (`PropVar` — the photos
- *   sidebar's `selectedKeys={[album]}`: RAC's selection follows the variable).
+ *   sidebar's `selectedKeys={[album]}`: RAC's selection follows the variable). 「검색 추가」 writes
+ *   the same shape into its control's state prop of any type (a Slider's `value`, a ComboBox's
+ *   `selectedKey`, a Switch's `isSelected`).
  *
- * Read back from the document: the follows are the node's props in those two shapes. Writing is
- * `setFields` (one step, one Undo); removing a follow returns the prop to its default.
+ * Read back from the document: the follows are the node's props in those three shapes — a
+ * follow written in one shape is read back and rewritten in it. Writing is `setFields` (one step,
+ * one Undo); removing a follow returns the prop to its default.
  */
 import { setFields } from "../../../../../packages/shared/src/catalog/commands/fields";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
@@ -96,6 +99,10 @@ export function catalogPropFollowProps(
     .sort((a, b) => rank(a) - rank(b) || a.prop.localeCompare(b.prop));
 }
 
+/** The variable id of a `!var.<id>[.path]` reference. */
+const variableIdOf = (ref: string) =>
+  ref.slice("!var.".length).split(".")[0] ?? "";
+
 /** The node's props that follow a variable, as stored. */
 export function catalogPropFollows(
   graph: Reader,
@@ -120,6 +127,10 @@ export function catalogPropFollows(
         op: value.op,
         ...(value.value !== undefined ? { value: value.value } : {}),
       });
+      continue;
+    }
+    if (isPropVar(value)) {
+      out.push({ prop, kind: "variable", variableId: variableIdOf(value.ref) });
       continue;
     }
     const name =
@@ -148,9 +159,18 @@ export function catalogPropFollowValue(
       op: follow.op,
       ...(follow.value !== undefined ? { value: follow.value } : {}),
     };
-  // (A key list prop reads the variable itself; a text prop its template.)
-  if (KEY_LIST.test(follow.prop))
-    return { kind: "var", ref: `!var.${follow.variableId}` };
+  // (A text prop reads the variable's template; every other prop — a key list, a control's state
+  //   prop 「검색 추가」 wrote — the variable itself. The stored shape stays: a `{{ }}` text prop
+  //   that a filter made a value is not turned into text.)
+  const stored = nodeOf(graph, nodeId)?.props[follow.prop];
+  const storedValue = stored?.kind === "set" ? stored.value : undefined;
+  const asTemplate =
+    !isPropVar(storedValue) &&
+    ((typeof storedValue === "string" && WHOLE_TEMPLATE.test(storedValue)) ||
+      catalogPropFollowProps(graph, nodeId).find(
+        (entry) => entry.prop === follow.prop,
+      )?.type === "string");
+  if (!asTemplate) return { kind: "var", ref: `!var.${follow.variableId}` };
   const variable = catalogPropFollowVariables(graph, nodeId).find(
     (entry) => entry.id === follow.variableId,
   );

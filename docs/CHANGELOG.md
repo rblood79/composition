@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 숫자 필드로 「검색 추가」 를 하면 글자 검색이 생기던 것 — 이제 NumberField 가 기본이고 비교는 「이상」, 시작값은 필드의 가장 작은 값이라 처음엔 모든 행이 보인다. Slider 는 필드 값 범위를 최소 · 최대로 갖는다.
 - 「코드」 패널이 ComboBox · Tabs 의 선택을 `[...keys][0]` 로 적던 것 — 이 둘은 Set 이 아니라 key 하나를 넘긴다. 이제 `setX(keys ?? '')`.
 - 「검색 추가」 로 만든 Slider 를 선택하면 Design 패널이 「Too many re-renders」 로 멈추던 것 — 변수를 읽는 값 (`{ kind: "var" }`) 을 숫자로 바꿔 NaN 이 됐고 슬라이더의 값 동기화가 끝나지 않았다. 이제 변수를 따르는 속성은 편집 칸 대신 「변수 X 를 따름」 을 보인다 (Switch · ComboBox 등도 같음 — 편집 칸에 쓰면 필터 연결이 끊겼다).
+- 「변수로 정하기」 절이 「검색 추가」 컨트롤의 연결 (Slider value · ComboBox selectedKey · Switch isSelected …) 과 직접 연결한 key 목록 (`selectedKeys`) 을 보여 주지 않던 것 — 쓰는 세 모양 중 변수 값 자체 (`{ kind: "var" }`) 를 읽지 못했다. 이제 목록에 나오고, 변수를 바꿔도 저장 모양이 유지된다 (전에는 숫자 `value` 에 `{{ 이름 }}` 글자를 쓰려다 검증에서 거부됐다).
 
 ## [데이터 보기 (ADR-284) — Implemented] - 2026-10-27
 
