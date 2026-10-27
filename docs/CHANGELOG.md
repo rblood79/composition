@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 Layout — ProgressBar · Meter · Slider 의 grid 를 grid 로] - 2026-10-27
+
+### Fixed
+
+- **ProgressBar · Meter · Slider 의 Display 가 grid 구조인데 flex column 으로 보이던 것** (사용자 보고):
+  - **Why**: 라벨 위치 컨테이너의 Display 토글이 실제 상자가 아니라 prop 고정 규칙 (`labelPosition` top = column · side = row) 을 보였다. 이 셋의 top 은 catalog 에서 grid (`"label value" "bar bar"`) 라 grid 구조가 비활성 flex column 으로 읽혔다.
+  - 수정: top 이 grid 인 라벨 위치 컨테이너 (catalog rule 의 기본 `display` 에서 유도) 는 Display 가 grid 를 보이고 두 상태를 grid = top · row = side 로 고른다 (column 은 이 셋에 없어 비활성). Gap 은 grid 칸 (Gap X · Gap Y) 으로 실제 `columnGap` · `rowGap` 을 보이고 (종전 Gap 한 칸은 4 만), Columns · Rows 는 catalog 영역이라 보이기만 한다 (격자 선택기 없음).
+  - 위치: `apps/builder/src/builder/panels/styles/{utils/orientationDrivenTags.ts,hooks/useLayoutAuxiliary.ts,hooks/useStyleActions.ts,sections/LayoutSection.tsx}`
+
 ## [Interactions 패널 — 「Rule」 을 RAC 어휘 「Event」 로] - 2026-10-27
 
 ### Changed

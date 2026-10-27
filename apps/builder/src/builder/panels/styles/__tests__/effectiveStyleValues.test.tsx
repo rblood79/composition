@@ -31,6 +31,9 @@ beforeAll(async () => {
     { id: "sel", type: "Select" },
     { id: "sl", type: "Slider" },
     { id: "btn", type: "Button" },
+    { id: "pb", type: "ProgressBar" },
+    { id: "mt", type: "Meter" },
+    { id: "slside", type: "Slider", props: { labelPosition: "side" } },
   ]);
 });
 
@@ -143,5 +146,22 @@ describe("Text 탭 — 부모 size 전파", () => {
     expect(values?.lineHeight).toBe("20px");
     expect(values?.fontWeight).toBe("500");
     expect(values?.fontWeightBase).toBe("500");
+  });
+});
+
+describe("Layout 탭 Display — top 이 grid 인 라벨 위치 컨테이너", () => {
+  // 사용자 보고 2026-10-27: catalog 가 grid (`"label value" "bar bar"`) 인데 Display 는 flex column 으로
+  // 보였다 — 토글이 prop 고정 규칙 (top = column) 을 읽었다. 이제 record 의 grid 를 그대로 보인다.
+  const keysOf = (record: string) =>
+    renderHook(() => useFlexDirectionKeys(record), { wrapper: fixture.wrapper })
+      .result.current;
+
+  it.each(["pb", "mt", "sl"])("%s 의 top 은 grid 로 표시한다", (id) => {
+    expect(layoutOf(fixture.recordOf(id))?.display).toBe("grid");
+    expect(keysOf(fixture.recordOf(id))).toEqual(["grid"]);
+  });
+
+  it("side 는 flex row 로 표시한다", () => {
+    expect(keysOf(fixture.recordOf("slside"))).toEqual(["row"]);
   });
 });

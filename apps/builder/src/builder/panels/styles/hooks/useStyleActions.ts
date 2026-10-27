@@ -20,6 +20,7 @@ import {
 import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
+  isGridTopLabelPositionTag,
 } from "../utils/orientationDrivenTags";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
@@ -172,10 +173,16 @@ export function useStyleActions() {
       const selected = host.readSelectedTarget();
       const drivenProp = resolveDirectionDrivenProp(selected.type);
       if (drivenProp) {
-        // 방향이 prop 인 컨테이너는 row · column 뿐 — 빈 선택 (선택된 버튼 재클릭) · grid 는 무시.
-        //   prop 번역은 column 외를 side / horizontal 로 흡수하므로 걸러야 top 이 side 로 뒤집히지 않는다.
-        if (value === undefined || next === "grid") return;
-        const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
+        // 방향이 prop 인 컨테이너는 두 상태뿐 — top (grid 인 타입은 grid, 그 밖은 column) · side (row).
+        //   빈 선택 (선택된 버튼 재클릭) 과 그 타입에 없는 상태는 무시한다 — prop 번역은 column 외를
+        //   side / horizontal 로 흡수하므로 걸러야 top 이 side 로 뒤집히지 않는다.
+        if (value === undefined) return;
+        const gridTop = isGridTopLabelPositionTag(selected.type);
+        if (next === (gridTop ? "column" : "grid")) return;
+        const drivenValue = flexDirectionToDrivenValue(
+          drivenProp,
+          next === "grid" ? "column" : value,
+        );
         const stale = staleDirectionKeys(selected.style);
         if (stale.length) {
           // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면

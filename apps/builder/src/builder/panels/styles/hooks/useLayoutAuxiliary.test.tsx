@@ -355,12 +355,9 @@ describe("useFlexAlignmentKeys — ADR-082 P4 Spec fallback (ADR-079 P2 완결)"
 });
 
 describe("useFlexDirectionKeys — labelPosition 축 컨테이너", () => {
-  // ProgressBar · Meter · Slider 의 top 은 grid 다. Direction 은 display 가 아니라 labelPosition 을 보인다.
-  it("grid 기본인 ProgressBar 도 labelPosition 으로 표시한다 (top → column · side → row)", () => {
-    setElement("e", {}, "ProgressBar");
-    expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
-      "column",
-    ]);
+  // ProgressBar · Meter · Slider 의 top 은 grid 다 — 그 표시는 실제 record 로 `effectiveStyleValues.test.tsx`
+  //   가 잰다 (이 stub 은 실효 display 를 싣지 않는다). side 는 prop 의 flex row.
+  it("grid 기본인 Slider 의 side 는 row 로 표시한다", () => {
     setElement("e", {}, "Slider", { labelPosition: "side" });
     expect(renderHook(() => useFlexDirectionKeys("e")).result.current).toEqual([
       "row",

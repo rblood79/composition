@@ -344,10 +344,10 @@ describe("useStyleActions", () => {
 
     it.each([
       ["ProgressBar", "row", "side"],
-      ["Meter", "column", "top"],
+      ["Meter", "grid", "top"],
       ["Slider", "row", "side"],
     ])(
-      "%s %s → labelPosition:%s (catalog side variant + accepts — field 동형)",
+      "%s %s → labelPosition:%s (top 이 grid 인 타입 — grid = top · row = side)",
       async (type, direction, expected) => {
         const { updateSelectedStyles, updateSelectedProperty } =
           await setupSelection(type);
@@ -361,6 +361,25 @@ describe("useStyleActions", () => {
           "labelPosition",
           expected,
         );
+        expect(updateSelectedStyles).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      ["Meter", "column"],
+      ["TextField", "grid"],
+    ])(
+      "%s 에 없는 상태 %s 는 쓰지 않는다 (top 이 grid 인 타입의 column · 그 밖 타입의 grid)",
+      async (type, direction) => {
+        const { updateSelectedStyles, updateSelectedProperty } =
+          await setupSelection(type);
+        const { result } = actions();
+
+        act(() => {
+          result.current.handleFlexDirection(direction);
+        });
+
+        expect(updateSelectedProperty).not.toHaveBeenCalled();
         expect(updateSelectedStyles).not.toHaveBeenCalled();
       },
     );

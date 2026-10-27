@@ -100,6 +100,29 @@ export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> =
   );
 
 /**
+ * 라벨 위치 컨테이너 중 top (기본) 이 grid 인 타입 (소문자) — catalog rule 의 기본
+ * `structure.containerStyles.display` 에서 유도한다 (Meter · ProgressBar · Slider: `"label value"
+ * "bar bar"` 영역). Display 토글은 이 타입의 top 을 column 이 아니라 grid 로 보인다 — 종전에는
+ * prop 고정 규칙 (top = column) 으로 보여 grid 구조가 flex column 으로 표시됐다 (사용자 보고
+ * 2026-10-27). side 는 그대로 flex row 다.
+ */
+export const LABEL_POSITION_GRID_TOP_TAGS: ReadonlySet<string> = new Set(
+  Object.entries(getComponentRulesTable())
+    .filter(
+      ([type, rule]) =>
+        LABEL_POSITION_DRIVEN_TAGS.has(type.toLowerCase()) &&
+        (rule.structure?.containerStyles as { display?: unknown } | undefined)
+          ?.display === "grid",
+    )
+    .map(([type]) => type.toLowerCase()),
+);
+
+/** 선택 요소가 top 이 grid 인 라벨 위치 컨테이너인가 (PascalCase 입력 허용). */
+export function isGridTopLabelPositionTag(type: string | undefined): boolean {
+  return LABEL_POSITION_GRID_TOP_TAGS.has((type ?? "").toLowerCase());
+}
+
+/**
  * ADR-251 — 그룹의 항목 묶음 (RadioItems · CheckboxItems). 묶음의 Direction 은 owner 그룹의
  * `orientation` 이다 (그룹 자신의 Direction = `labelPosition`). 표시는 owner 의 값을 읽고 쓰기는
  * owner target 에 간다 — 묶음 노드에는 prop 이 없다 (catalog Styles host 가 owner 로 옮긴다).

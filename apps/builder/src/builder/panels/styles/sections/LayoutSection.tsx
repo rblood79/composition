@@ -43,7 +43,10 @@ import {
   useLayoutAlignmentDisabled,
 } from "../hooks/useLayoutAuxiliary";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
+import {
+  isDirectionDrivenTag,
+  isGridTopLabelPositionTag,
+} from "../utils/orientationDrivenTags";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
@@ -78,10 +81,13 @@ const GridTrackField = memo(function GridTrackField({
   label,
   value,
   auto,
+  isDisabled = false,
   onCommit,
 }: {
   label: string;
   value: string;
+  /** The tracks are the component's own (a catalog part area) — shown, not edited. */
+  isDisabled?: boolean;
   /**
    * Rows: 「Auto」 — no row template, the rows are the items' (Figma Rows Auto: a row comes with an
    * item and goes when it empties — CSS implicit rows).
@@ -107,6 +113,7 @@ const GridTrackField = memo(function GridTrackField({
       <PropertyInput
         label={label}
         value={value}
+        disabled={isDisabled}
         onChange={(next) => onCommit(gridTemplateOf(next))}
       />
     );
@@ -115,6 +122,7 @@ const GridTrackField = memo(function GridTrackField({
       label={label}
       value={tracks.length ? String(tracks.length) : ""}
       units={[]}
+      isDisabled={isDisabled}
       allowKeywords={false}
       allowEmptyReset
       preserveEmptyValueOnUnitChange
@@ -218,9 +226,10 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
   // ref instance (팔레트가 만드는 요소) 는 origin 타입, instance 안 자식 (synthetic) 은 해소 노드로 판정한다.
   // The host's style context names the component type (an instance: its origin's type).
-  const isDirectionDriven = isDirectionDrivenTag(
-    useElementStyleContext(selectedId).type,
-  );
+  const selectedType = useElementStyleContext(selectedId).type;
+  const isDirectionDriven = isDirectionDrivenTag(selectedType);
+  // top 이 grid 인 라벨 위치 컨테이너 (Meter · ProgressBar · Slider): 두 상태 = grid (top) · row (side).
+  const isGridTopDriven = isGridTopLabelPositionTag(selectedType);
   const styleValues = useLayoutValues(selectedId);
   const host = useStylesHost();
   // A smaller count removes the last tracks: their items move with them (Figma — `applyGridTracks`).
@@ -316,7 +325,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       <div className="layout-direction">
         <div className="direction-controls flex-direction">
           <legend className="fieldset-legend">{localize("Display")}</legend>
-          {/* grid · row · column — 선택을 모두 끄면 block. 방향이 prop 인 컨테이너는 row · column 만 */}
+          {/* grid · row · column — 선택을 모두 끄면 block. 방향이 prop 인 컨테이너는 그 prop 의 두 상태 (top = column, grid 인 타입은 grid · side = row) */}
           <ToggleButtonGroup
             aria-label={localize("Display")}
             indicator
@@ -328,7 +337,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             <ToggleButton
               id="grid"
               aria-label={localize("Grid")}
-              isDisabled={isDirectionDriven}
+              isDisabled={isDirectionDriven && !isGridTopDriven}
             >
               <LayoutGrid
                 color={iconProps.color}
@@ -343,7 +352,11 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="column" aria-label={localize("Column")}>
+            <ToggleButton
+              id="column"
+              aria-label={localize("Column")}
+              isDisabled={isGridTopDriven}
+            >
               <LayoutArrowDown
                 color={iconProps.color}
                 size={iconProps.size}
@@ -357,6 +370,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             <GridTrackField
               label="Columns"
               value={styleValues.gridTemplateColumns}
+              isDisabled={isDirectionDriven}
               onCommit={(template, removed) =>
                 commitGridTracks("column", template, removed)
               }
@@ -364,6 +378,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             <GridTrackField
               label="Rows"
               value={styleValues.gridTemplateRows}
+              isDisabled={isDirectionDriven}
               onCommit={(template, removed) =>
                 commitGridTracks("row", template, removed)
               }
@@ -452,7 +467,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
         )}
         {/* 아이콘 칸 — grid 면 「열 × 행」 격자 선택기 (Figma), 아니면 비운다 */}
         <div className="fieldset-actions">
-          {isGrid && (
+          {isGrid && !isDirectionDriven && (
             <GridSizePicker
               columns={
                 gridTrackList(styleValues.gridTemplateColumns)?.length ?? 0

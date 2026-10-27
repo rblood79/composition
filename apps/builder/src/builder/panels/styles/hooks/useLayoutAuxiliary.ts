@@ -104,9 +104,13 @@ export function useFlexDirectionKeys(id: string | null): string[] {
   const { display, flexDirection, directionDriven } =
     useResolvedLayoutFields(id);
   return useMemo(() => {
-    // 그룹 축 prop 컨테이너는 display 와 무관하게 그 prop 을 보인다 — ProgressBar · Meter · Slider 의
-    //   top 은 grid 라, display 로 판정하면 disable 된 block 이 선택돼 보였다.
-    if (directionDriven) return [flexDirection === "column" ? "column" : "row"];
+    // 그룹 축 prop 컨테이너는 그 prop 이 만든 상자를 보인다 — ProgressBar · Meter · Slider 의 top 은
+    //   grid 그대로 (prop 고정 규칙 top = column 으로 보이면 grid 구조가 flex column 으로 읽혔다,
+    //   사용자 보고 2026-10-27), 그 밖은 prop 의 방향 (block 은 이 모델에 없다).
+    if (directionDriven) {
+      if (isGridDisplay(display)) return ["grid"];
+      return [flexDirection === "column" ? "column" : "row"];
+    }
     // Display 토글: grid · row · column, 아무것도 선택되지 않음 = block.
     if (isGridDisplay(display)) return ["grid"];
     if (!isFlexDisplay(display)) return [];
