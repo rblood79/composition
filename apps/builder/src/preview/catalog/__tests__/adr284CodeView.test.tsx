@@ -665,11 +665,17 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
     expect(code).toContain(
       "if (gender !== 'all') url.searchParams.append('gender', String(gender));",
     );
+    // (A sort variable starts empty: the run sends no sort until a column is picked — neither does the code.)
     expect(code).toContain(
-      "url.searchParams.set('_sort', String(sortDescriptor.column));",
+      "let [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>();",
     );
     expect(code).toContain(
-      "url.searchParams.set('_order', sortDescriptor.direction === 'descending' ? 'desc' : 'asc');",
+      [
+        "      if (sortDescriptor) {",
+        "        url.searchParams.set('_sort', String(sortDescriptor.column));",
+        "        url.searchParams.set('_order', sortDescriptor.direction === 'descending' ? 'desc' : 'asc');",
+        "      }",
+      ].join("\n"),
     );
     expect(code).toContain("let res = await fetch(cursor || url, {signal});");
     expect(code).toContain("return {items: json.items, cursor: json.next};");
@@ -705,7 +711,7 @@ describe("ADR-284 Decision 9 — an API collection's code: the view goes in the 
       "let where = {op: 'and', items: [gender !== 'all' && {fields: ['gender'], op: 'equals', value: gender}].filter(Boolean)};",
     );
     expect(posted).toContain(
-      "let res = await fetch(cursor || 'http://localhost:5199/users', {signal, method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where, sort: {field: sortDescriptor.column, direction: sortDescriptor.direction}})});",
+      "let res = await fetch(cursor || 'http://localhost:5199/users', {signal, method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where, sort: sortDescriptor && {field: sortDescriptor.column, direction: sortDescriptor.direction}})});",
     );
     body.view.unmount();
   });

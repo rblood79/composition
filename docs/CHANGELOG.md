@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - 「코드」 패널이 API 데이터를 고정 주소로 다 불러온 뒤 화면에서 거르는 코드로 보여 주던 것 — 실제로는 조건 · 정렬을 요청에 실어 보낸다. 이제 `url.searchParams` (또는 JSON 본문) 에 조건 · 정렬을 싣고 응답의 목록 · 다음 페이지 경로를 읽으며, 변수가 바뀌면 다시 부르는 (`reload`) 코드로 나온다. 요청에 담지 못하는 조건은 그 줄에 이유를 적는다. 매개변수 (`'gender', …` → `'gender_ne', …`) 를 고치면 조건 비교가 바뀐다
+- 「코드」 패널이 정렬 변수를 `{column: 'id', direction: 'ascending'}` 로 시작해 처음부터 id 순으로 정렬하고 API 요청에 `_sort=id` 를 싣던 것 — 실제로는 열을 고르기 전까지 정렬하지 않는다. 이제 `useState<SortDescriptor>()` 로 비어 시작하고, 정렬은 값이 있을 때만 (`if (sortDescriptor) {…}` · `sortDescriptor ? … : 0`)
 
 ## [데이터 보기 (ADR-284 Phase 7) — 적용 조건 수 · 공유 보기에 목록 더하기 · 파생 보기 정리] - 2026-10-27
 

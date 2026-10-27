@@ -545,7 +545,7 @@ class Generator {
         this.import("react-aria-components", "type SortDescriptor");
         out.write("<SortDescriptor>(");
       } else out.write("(");
-      if (isVariable)
+      if (initial && isVariable)
         out.slot(initial, { kind: "variableDefault", variableId: entry.id });
       else out.write(initial);
       out.write(");").end();
@@ -573,10 +573,10 @@ class Generator {
       const keys = Array.isArray(entry.defaultValue) ? entry.defaultValue : [];
       return keys.length ? `new Set(${literal(keys)})` : "new Set()";
     }
-    if (entry.valueType === "object" || entry.valueType === "array")
-      return this.isSortVariable(entry)
-        ? "{column: 'id', direction: 'ascending'}"
-        : "null";
+    if (entry.valueType === "object" || entry.valueType === "array") {
+      // (A structured variable starts empty: a sort sorts nothing until a column is picked.)
+      return this.isSortVariable(entry) ? "" : "null";
+    }
     return literal(entry.defaultValue);
   }
 
@@ -784,7 +784,7 @@ class Generator {
     );
     const sort = this.sortCode(last, view);
     out.line(
-      `let res = await fetch(cursor || ${literal(url)}, {signal, method: ${literal(served.method)}, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where${sort ? `, sort: {field: ${sort.field}, direction: ${sort.direction}}` : ""}})});`,
+      `let res = await fetch(cursor || ${literal(url)}, {signal, method: ${literal(served.method)}, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({where${sort ? `, sort: ${sort.when ? `${sort.when} && ` : ""}{field: ${sort.field}, direction: ${sort.direction}}` : ""}})});`,
     );
   }
 
@@ -867,12 +867,14 @@ class Generator {
     if ("variableId" in sort) {
       const variable = this.variables.get(sort.variableId);
       if (!variable) return;
+      out.line(`if (${variable.name}) {`).in();
       out.line(
         `url.searchParams.set(${sortParam}, String(${variable.name}.column));`,
       );
       out.line(
         `url.searchParams.set(${orderParam}, ${variable.name}.direction === 'descending' ? 'desc' : 'asc');`,
       );
+      out.out().line("}");
       return;
     }
     const key = this.pathKey(view.collectionId, sort.field);
@@ -892,7 +894,7 @@ class Generator {
   private sortCode(
     query: ViewQuery,
     view: ViewCode,
-  ): { field: string; direction: string } | undefined {
+  ): { field: string; direction: string; when?: string } | undefined {
     const sort = query.sort;
     if (!sort) return undefined;
     if ("variableId" in sort) {
@@ -901,6 +903,7 @@ class Generator {
         ? {
             field: `${variable.name}.column`,
             direction: `${variable.name}.direction`,
+            when: variable.name,
           }
         : undefined;
     }
@@ -1003,7 +1006,7 @@ class Generator {
       if (variable) {
         dir = this.names.take(`${variable.name}Dir`, "dir");
         out.line(
-          `let ${dir} = ${variable.name}.direction === 'descending' ? -1 : 1;`,
+          `let ${dir} = ${variable.name}?.direction === 'descending' ? -1 : 1;`,
         );
       }
     }
@@ -1045,8 +1048,11 @@ class Generator {
       if ("variableId" in sort) {
         const variable = this.variables.get(sort.variableId);
         const column = variable ? `${variable.name}.column` : "'id'";
+        const compare = `collator.compare(String(a[${column}]), String(b[${column}])) * ${dir ?? 1}`;
         out.write(
-          `collator.compare(String(a[${column}]), String(b[${column}])) * ${dir ?? 1})`,
+          variable
+            ? `${variable.name} ? ${compare} : 0)`
+            : `${compare})`,
         );
       } else {
         const key = this.pathKey(code.collectionId, sort.field);
