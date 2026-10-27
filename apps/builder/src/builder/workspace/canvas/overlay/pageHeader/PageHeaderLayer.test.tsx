@@ -143,7 +143,7 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     expect(isPageHeaderEventTarget(layer)).toBe(false);
   });
 
-  it("액션 버튼 (타이틀 앞 Play · 뒤 close) — 헤더마다 둘, 누르면 페이지 선택·드래그·이름편집으로 새지 않는다", () => {
+  it("액션 버튼 (타이틀 앞 Play · 뒤 Code · close) — 헤더마다 셋, 누르면 페이지 선택·드래그·이름편집으로 새지 않는다", () => {
     const onHeaderPointerDown = vi.fn();
     const onBeginRename = vi.fn();
     const { container } = render(
@@ -154,22 +154,27 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
       />,
     );
     const layer = container.firstElementChild as HTMLElement;
-    // 제목 있는 헤더 3개 각각에 액션 버튼 2개 (앞 Play · 뒤 close)
-    expect(layer.querySelectorAll(".page-header__action").length).toBe(6);
+    // 제목 있는 헤더 3개 각각에 액션 버튼 3개 (앞 Play · 뒤 Code · close)
+    expect(layer.querySelectorAll(".page-header__action").length).toBe(9);
 
     const actions = headerOf(layer, "p1").querySelectorAll<HTMLElement>(
       ".page-header__action",
     );
-    // DOM 순서 = 시각 순서: Play 가 타이틀 앞, close 가 뒤
+    // DOM 순서 = 시각 순서: Play 가 타이틀 앞, Code · close 가 뒤
     expect(actions[0].getAttribute("aria-label")).toBe("Play One");
-    expect(actions[1].getAttribute("aria-label")).toBe("Close One");
+    expect(actions[1].getAttribute("aria-label")).toBe("Code One");
+    expect(actions[2].getAttribute("aria-label")).toBe("Close One");
     const title = headerOf(layer, "p1").querySelector(".page-header__title");
     expect(
       actions[0].compareDocumentPosition(title!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      actions[1].compareDocumentPosition(title!) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
 
-    const action = actions[1];
+    const action = actions[2];
 
     // 액션 위 제스처는 헤더 제스처에서 제외 (층 루트 리스너가 버튼 자손을 삼키지 않는다)
     fireEvent.pointerDown(action, { button: 0, pointerId: 3 });
@@ -177,6 +182,42 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     fireEvent.dblClick(action, { button: 0 });
     expect(onBeginRename).not.toHaveBeenCalled();
     expect(layer.querySelector("input")).toBeNull();
+  });
+
+  it("Code 버튼 = 토글 — 누르면 onToggleCode(pageId) · codeOpen 이 눌림 상태 · 헤더 선택·드래그로 새지 않는다", () => {
+    const onHeaderPointerDown = vi.fn();
+    const onToggleCode = vi.fn();
+    const { container, rerender } = render(
+      <PageHeaderLayer
+        frames={frames}
+        codeOpen={false}
+        onHeaderPointerDown={onHeaderPointerDown}
+        onToggleCode={onToggleCode}
+      />,
+    );
+    const layer = container.firstElementChild as HTMLElement;
+    const code = () =>
+      headerOf(layer, "p2").querySelector<HTMLElement>(
+        '[aria-label="Code Two"]',
+      )!;
+    expect(code().getAttribute("aria-pressed")).toBe("false");
+    fireEvent.pointerDown(code(), { button: 0, pointerId: 5 });
+    fireEvent.pointerUp(code(), { button: 0, pointerId: 5 });
+    fireEvent.click(code(), { button: 0 });
+    expect(onToggleCode).toHaveBeenCalledWith("p2");
+    expect(onHeaderPointerDown).not.toHaveBeenCalled();
+
+    // 패널 열림 상태는 호스트가 소유한다 (전체 메뉴 Code 와 같은 패널 visibility).
+    rerender(
+      <PageHeaderLayer
+        frames={frames}
+        codeOpen
+        onHeaderPointerDown={onHeaderPointerDown}
+        onToggleCode={onToggleCode}
+      />,
+    );
+    expect(code().getAttribute("aria-pressed")).toBe("true");
+    expect(code().hasAttribute("data-selected")).toBe(true);
   });
 
   it("dblclick → onBeginRename + 편집기 (헤더 노드 안) · Enter → onRenamePage · Esc → 취소", () => {
@@ -277,7 +318,7 @@ describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
     useViewportSyncStore.getState().reset();
   });
 
-  it("settle zoom 0.1: 1920 → full (버튼 2) · 390 → compact (버튼 0 · 타이틀 유지)", () => {
+  it("settle zoom 0.1: 1920 → full (버튼 3) · 390 → compact (버튼 0 · 타이틀 유지)", () => {
     act(() =>
       useViewportSyncStore
         .getState()
@@ -288,7 +329,7 @@ describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
     const desktop = headerOf(layer, "desktop");
     const mobile = headerOf(layer, "mobile");
     expect(desktop.dataset.lod).toBe("full");
-    expect(desktop.querySelectorAll(".page-header__action").length).toBe(2);
+    expect(desktop.querySelectorAll(".page-header__action").length).toBe(3);
     expect(mobile.dataset.lod).toBe("compact");
     expect(mobile.querySelectorAll(".page-header__action").length).toBe(0);
     expect(mobile.querySelector(".page-header__title")?.textContent).toBe(
@@ -304,7 +345,7 @@ describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
     expect(headerOf(layer, "mobile").dataset.lod).toBe("full");
     expect(
       headerOf(layer, "mobile").querySelectorAll(".page-header__action").length,
-    ).toBe(2);
+    ).toBe(3);
   });
 
   it("제스처 중에는 zoom 미러가 바뀌어도 티어가 바뀌지 않는다 (settle 스냅샷)", () => {

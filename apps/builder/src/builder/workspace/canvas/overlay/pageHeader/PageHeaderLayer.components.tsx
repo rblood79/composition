@@ -12,7 +12,7 @@
  * 합성 핸들러는 root 에서 돌아 너무 늦다). 컨테이너 capture 가드는 `[data-page-header]`
  * 자손이면 Skia 선판정만 건너뛴다.
  */
-import { Play, X } from "lucide-react";
+import { Code, Play, X } from "lucide-react";
 
 import {
   memo,
@@ -26,7 +26,10 @@ import {
 
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 
-import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
+import {
+  ActionIconButton,
+  ActionIconToggleButton,
+} from "../../../../components/ui/ActionIconButton";
 
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 
@@ -54,6 +57,8 @@ export function PageHeaderLayer({
   onBeginRename,
   onRenamePage,
   onCloseFrame,
+  onToggleCode,
+  codeOpen = false,
   activePageId,
   hasSelection,
 }: PageHeaderLayerProps) {
@@ -93,6 +98,7 @@ export function PageHeaderLayer({
     onBeginRename,
     onRenamePage,
     onCloseFrame,
+    onToggleCode,
   });
   useLayoutEffect(() => {
     handlersRef.current = {
@@ -101,6 +107,7 @@ export function PageHeaderLayer({
       onBeginRename,
       onRenamePage,
       onCloseFrame,
+      onToggleCode,
     };
   });
 
@@ -141,6 +148,10 @@ export function PageHeaderLayer({
     (id: string) => handlersRef.current.onCloseFrame?.(id),
     [],
   );
+  const handleToggleCode = useCallback(
+    (id: string) => handlersRef.current.onToggleCode?.(id),
+    [],
+  );
 
   return (
     <div
@@ -170,6 +181,8 @@ export function PageHeaderLayer({
             onRenameCommit={handleRenameCommit}
             closable={frame.closable}
             onClose={handleClose}
+            codeOpen={codeOpen}
+            onToggleCode={handleToggleCode}
           />
         );
       })}
@@ -244,6 +257,8 @@ const PageHeaderItem = memo(function PageHeaderItem({
   onRenameCommit,
   closable,
   onClose,
+  codeOpen,
+  onToggleCode,
 }: PageHeaderItemProps) {
   const compact = lod === "compact";
   return (
@@ -273,6 +288,19 @@ const PageHeaderItem = memo(function PageHeaderItem({
             </ActionIconButton>
           )}
           <span className="page-header__title">{title}</span>
+          {/* 코드 패널 토글 (ADR-285) — 전체 메뉴 Code 와 같은 패널 visibility 를 열고 닫는다.
+              눌림 상태는 호스트의 visibility 가 정본 (controlled). 패널은 세션의 현재 page 를 보여 준다. */}
+          {!compact && (
+            <ActionIconToggleButton
+              aria-label={`Code ${title}`}
+              className={PAGE_HEADER_ACTION_CLASS}
+              tooltip="Code"
+              isSelected={codeOpen}
+              onChange={() => onToggleCode?.(id)}
+            >
+              <Code aria-hidden="true" size={iconProps.size} />
+            </ActionIconToggleButton>
+          )}
           {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
               크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠
               안에 박히는 버튼이라 그 범주를 따른다 (CSS 에서 --icon-control-size 재지정).

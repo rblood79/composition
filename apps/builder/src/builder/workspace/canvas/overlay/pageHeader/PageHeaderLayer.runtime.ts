@@ -139,6 +139,10 @@ export interface PageHeaderLayerProps {
   onRenamePage?: (pageId: string, title: string) => void;
   /** ADR-279: the × of a closable frame (a Local page card — deletes the component). */
   onCloseFrame?: (id: string) => void;
+  /** 타이틀 뒤 Code 토글 — 코드 패널 (ADR-285 code view) 을 열고 닫는다. 전체 메뉴 Code 와 같다. */
+  onToggleCode?: (id: string) => void;
+  /** 코드 패널이 열려 있는가 — Code 토글의 눌림 상태 (패널 visibility 가 정본). */
+  codeOpen?: boolean;
   /** The active page and whether anything is selected (the catalog session, ADR-248 4e). */
   activePageId: string | null;
   hasSelection: boolean;
@@ -150,10 +154,12 @@ export interface PageHeaderItemProps {
   active: boolean;
   highlighted: boolean;
   editing: boolean;
-  /** ADR-226 폭 티어 — compact 는 액션 버튼을 렌더하지 않는다 (CSS 숨김 아님, 노드 6 → 2). */
+  /** ADR-226 폭 티어 — compact 는 액션 버튼을 렌더하지 않는다 (CSS 숨김 아님, 노드 8 → 2). */
   lod: PageHeaderLod;
   onRenameCommit: (pageId: string, value: string | null) => void;
   /** ADR-279: × 가 동작하는 frame (Local page 카드) — `onClose` 를 부른다. */
   closable?: boolean;
   onClose?: (id: string) => void;
+  codeOpen: boolean;
+  onToggleCode?: (id: string) => void;
 }

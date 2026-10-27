@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지 헤더 Code 토글] - 2026-10-28
+
+### Added
+
+- **페이지 헤더 Code 버튼**: Canvas 페이지 헤더의 제목 뒤 · × 앞에 Code 토글 — 누르면 그 페이지를 현재 페이지로 하고 「코드」 패널을 열고 닫는다 (전체 메뉴 Code 와 같은 패널 토글). 눌림 상태는 패널 열림을 그대로 따라 전체 메뉴 · 패널 × 로 닫아도 함께 꺼진다. 좁은 헤더 (compact 티어) 에서는 다른 액션처럼 숨는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/overlay/pageHeader/PageHeaderLayer.{components.tsx,runtime.ts,css}` · `workspace/canvas/catalog/CatalogCanvas.tsx`
+
 ## [ADR-285 Implemented — 코드 편집이 닫힌 어휘 전체에서 문서로] - 2026-10-27
 
 ### Changed

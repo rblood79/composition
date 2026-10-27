@@ -128,6 +128,18 @@
   );
 }
 
+/* 토글 켜짐 (Code — 코드 패널 열림) 은 hover 와 같은 반전 면으로 고정한다. 위 18% 배경
+   규칙과 action-icon-button 의 [data-selected] 가 특정도가 같아 여기서 명시한다. */
+.page-header .page-header__action[data-selected] {
+  background: var(--fg-muted);
+  color: var(--bg-overlay);
+}
+
+.page-header[data-highlighted] .page-header__action[data-selected] {
+  background: var(--focus-ring);
+  color: var(--bg-overlay);
+}
+
 /* hover 는 반전 — 아이콘 색이 그대로 배경이 되고 글리프는 표면색으로 빠진다.
    action-icon-button 의 hover 와 특정도가 같아 소스 순서에 좌우되므로 여기서 명시한다. */
 .page-header .page-header__action[data-hovered] {

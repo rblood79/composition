@@ -65,6 +65,7 @@ import {
   useKeyboardShortcutsRegistry,
 } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
+import { togglePanelWorkspace } from "../../../hooks/usePanelLayout";
 import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
 import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
@@ -309,6 +310,10 @@ export function CatalogCanvas({
   const hasSelection = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().selection.length > 0,
+  );
+  // The page header's Code toggle shows the code panel's visibility (same as the main menu).
+  const codeOpen = useBuilderUiStore(
+    (state) => state.panelWorkspaceLayout?.visibility.codeView === true,
   );
   const callbacks = useRef({ onFirstFrame, onError });
   useLayoutEffect(() => {
@@ -1874,6 +1879,14 @@ export function CatalogCanvas({
         onBeginRename={(pageId) => {
           if (workspace.runtime.graph.getEntry(pageId)?.kind === "page")
             workspace.session.setPage(pageId as EntryId<"page">);
+        }}
+        codeOpen={codeOpen}
+        onToggleCode={(id) => {
+          // The code panel shows the session's page — a page header's Code shows that page.
+          if (workspace.runtime.graph.getEntry(id)?.kind === "page")
+            workspace.session.setPage(id as EntryId<"page">);
+          // Same toggle as the main menu's Code item (panel visibility).
+          togglePanelWorkspace("codeView");
         }}
         onCloseFrame={(id) => {
           // ADR-279 Decision 6: the card's × = delete the component (every instance detached).
