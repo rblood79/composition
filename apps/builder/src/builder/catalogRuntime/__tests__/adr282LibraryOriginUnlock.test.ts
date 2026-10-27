@@ -15,6 +15,7 @@ import {
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { createPage } from "../../../../../../packages/shared/src/catalog/commands/project";
 import { resolveCatalogNode } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { resolveCatalogClickRecord } from "../canvasPick";
 import { CatalogLayerTreeStore } from "../layerTree";
@@ -35,6 +36,7 @@ import { notifyEditRefusal, notifyOperationRefused } from "../operationNotice";
 import {
   LIBRARY_COMPONENT_PAGE,
   projectInstancesOf,
+  withoutComponentPages,
 } from "../../../../../../packages/shared/src/catalog/document/componentPages";
 import { newCatalogProjectDocument } from "../project";
 import {
@@ -510,5 +512,87 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
       catalogDirtyStyleProps(own(), "desktop", LAYOUT_PROPS, baseline),
     ).toEqual([]);
     workspace.dispose();
+  });
+});
+
+/**
+ * The component pages are made by a `load` step (no history entry). A recorded step from before
+ * that changed the project entry keeps the project's old copy as its inverse — undoing it put the
+ * project back without `componentPageIds`, leaving the Library page in the document unlisted:
+ * the Builder kept it (a step validates only what it changes), and Publish — which validates the
+ * whole document — refused it (`UNOWNED_ENTRY`, ADR-283 live 2026-10-26).
+ */
+describe("ADR-282 Phase 3 — the component pages outlive an undo", () => {
+  it("undo / redo of a page made before the Library's first open keeps the Library page listed", async () => {
+    const { workspace, library } = await open();
+    const graph = workspace.runtime.graph;
+    const DETAIL = "project:page:detail" as EntryId<"page">;
+    const DETAIL_BODY = "project:node:detail-body" as NodeId;
+    workspace.execute(
+      createPage({
+        page: {
+          kind: "page",
+          id: DETAIL,
+          route: "/detail",
+          name: "Detail",
+          children: [DETAIL_BODY],
+        },
+        entries: [
+          {
+            kind: "node",
+            id: DETAIL_BODY,
+            definitionId:
+              "lib:definition:type-body" as NodeEntry["definitionId"],
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+      }),
+    );
+    workspace.showDefinition(BUTTON);
+    const listed = () =>
+      (graph.getEntry(graph.projectId) as ProjectEntry).componentPageIds;
+    expect(listed()).toEqual([LIBRARY_COMPONENT_PAGE]);
+    // (The whole document validates — what a reopen and Publish do.)
+    const whole = () => {
+      const document = graph.exportDocument();
+      new CatalogGraph(document, library);
+      new CatalogGraph(withoutComponentPages(document), library);
+    };
+    workspace.undo();
+    expect(graph.getEntry(DETAIL)).toBeUndefined();
+    expect(listed()).toEqual([LIBRARY_COMPONENT_PAGE]);
+    expect(whole).not.toThrow();
+    workspace.redo();
+    expect(graph.getEntry(DETAIL)).toBeDefined();
+    expect(listed()).toEqual([LIBRARY_COMPONENT_PAGE]);
+    expect(whole).not.toThrow();
+  });
+
+  it("a step that drops a page the project still holds from its list is refused (not saved unowned)", async () => {
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    workspace.showDefinition(BUTTON);
+    const project = graph.getEntry(graph.projectId) as ProjectEntry;
+    const { componentPageIds: _, ...unlisted } = project;
+    let refused: unknown;
+    try {
+      workspace.execute(() => ({
+        label: "Drop the list",
+        ops: [{ kind: "put", entry: unlisted }],
+      }));
+    } catch (error) {
+      refused = error;
+    }
+    expect(refused).toMatchObject({
+      code: "UNOWNED_ENTRY",
+      message: LIBRARY_COMPONENT_PAGE,
+    });
+    expect(
+      (graph.getEntry(graph.projectId) as ProjectEntry).componentPageIds,
+    ).toEqual([LIBRARY_COMPONENT_PAGE]);
   });
 });

@@ -1,4 +1,5 @@
 import { docCounters } from "../docCounters";
+import { withCurrentComponentPages } from "../document/componentPages";
 import { CatalogGraph } from "../document/graph";
 import type {
   CatalogDocument,
@@ -512,7 +513,10 @@ export class CatalogRuntime {
       ? this.step(
           session,
           `Undo ${entry.label}`,
-          entry.inverse,
+          withCurrentComponentPages(
+            entry.inverse,
+            session.graph.getEntry(session.graph.projectId),
+          ),
           session.graph.revision,
           consumer,
           move,
@@ -534,7 +538,10 @@ export class CatalogRuntime {
       ? this.step(
           session,
           `Redo ${entry.label}`,
-          entry.forward,
+          withCurrentComponentPages(
+            entry.forward,
+            session.graph.getEntry(session.graph.projectId),
+          ),
           session.graph.revision,
           consumer,
           move,

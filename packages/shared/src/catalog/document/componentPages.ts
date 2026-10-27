@@ -1,4 +1,5 @@
 import { ownedChildren } from "./graph";
+import type { CatalogOperation } from "../transactions/transaction";
 import type {
   CatalogDocument,
   CatalogEntry,
@@ -42,6 +43,30 @@ export function withoutComponentPageIds(entry: CatalogEntry): CatalogEntry {
   if (entry.kind !== "project" || !entry.componentPageIds) return entry;
   const { componentPageIds: _, ...project } = entry;
   return project;
+}
+
+/**
+ * History's operations as they replay now: the project entry keeps its current
+ * `componentPageIds`. Only the unrecorded step that makes a component page writes that list, so
+ * an entry recorded before it holds the project without it — undoing that entry left the page in
+ * the document unlisted (`UNOWNED_ENTRY` on reopen and Publish, ADR-283 live 2026-10-26).
+ */
+export function withCurrentComponentPages(
+  operations: readonly CatalogOperation[],
+  current: CatalogEntry | undefined,
+): readonly CatalogOperation[] {
+  if (current?.kind !== "project") return operations;
+  return operations.map((operation) => {
+    if (operation.kind !== "put" || operation.entry.kind !== "project")
+      return operation;
+    const { componentPageIds: _, ...project } = operation.entry;
+    return {
+      kind: "put",
+      entry: current.componentPageIds
+        ? { ...project, componentPageIds: current.componentPageIds }
+        : project,
+    };
+  });
 }
 
 /** A document without its component pages (Preview's snapshot, publish). */

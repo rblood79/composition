@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components 탭 (ADR-282 후속) — undo 뒤 프로젝트가 열리지 않던 것] - 2026-10-27
+
+### Fixed
+
+- **Library 를 처음 열기 전에 한 편집을 undo 하면 프로젝트가 다시 열리지 않고 Publish 가 `UNOWNED_ENTRY` 로 실패하던 것**:
+  - Library · Local page 는 처음 열 때 History 없이 만들어지는데, 그 전에 기록된 step 의 undo · redo 가 프로젝트 항목 옛 사본을 그대로 다시 써 page 목록 (`componentPageIds`) 을 지웠다. 이제 재생은 그 목록을 지금 값으로 두고, 남아 있는 page 를 목록에서 빼는 step 은 그 자리에서 거부된다 (전에는 바뀐 항목만 검증해 깨진 문서가 저장됐다).
+  - 위치: `packages/shared/src/catalog/runtime/controller.ts` · `document/componentPages.ts` (`withCurrentComponentPages`) · `document/graph.ts`
+
 ## [데이터 보기 (ADR-284 G8 후속) — 「검색 추가」 컨트롤 전부] - 2026-10-27
 
 ### Fixed

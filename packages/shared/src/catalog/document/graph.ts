@@ -875,6 +875,25 @@ export class CatalogGraph {
       }
       if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
         throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+      // (An entry the project listed and still holds stays listed — only the entries this step
+      //   changes are checked below, so a project put that drops one would leave it unowned.)
+      const before = this.table.get(this.projectId);
+      if (before?.kind === "project")
+        for (const ids of [
+          before.pageIds,
+          before.componentPageIds ?? [],
+          before.definitionIds,
+          before.overrideIds,
+          before.themeIds,
+          before.tokenIds,
+          before.stateVariableIds,
+          before.interactionIds,
+          before.assetIds,
+          before.viewIds ?? [],
+        ])
+          for (const id of ids)
+            if (!listed.has(id) && get(id) !== undefined)
+              throw new CatalogValidationError("UNOWNED_ENTRY", id);
     }
     const isListed = (id: string): boolean => (listed ??= listedIds()).has(id);
     // Claims after the change: staged owners claim their owned children; an unstaged owner

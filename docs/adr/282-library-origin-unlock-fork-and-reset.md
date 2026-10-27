@@ -11,7 +11,7 @@ Accepted — 2026-10-24 (`/execute-adr 282` + [reviews/282](reviews/282.md) Roun
 > - body 는 같은 비율 열 `repeat(n, minmax(0, 1fr))` — desktop Library 4 · Local 3 · tablet 2 · mobile 1 (`componentsPage.ts` — `6210534ef`). 컴포넌트 카드는 캡션 없이 카드 폭 flex-wrap 줄 (`03a9ca02f` · `f480895f9`). 카드 폭: Library `100%` · Local `fit-content`.
 > - 카드 구성: Origin 줄 · Icons 카드 · 여러 카드의 ◇ · Item 줄이 빠졌고 ◆ 는 제목 바로 뒤다. 칸 frame 은 같은 날 없어졌고 ◆ 를 담는 것은 카드 자체 또는 그 줄의 첫 grid — 결정 13 · 14 의 「칸 (캡션만 소유)」 · 「카드 · 줄 · 칸 · 캡션」 은 그 전 모양. 노드 수 · 크기는 `03a9ca02f` 에서 897 → 531 노드 · 382 → 257 KB.
 > - Local 카드 제목은 그 글자가 노드 이름과 같을 때만 rename 을 따른다 (번호 제거 `6db027780`).
-> - 열린 결함 (283 breakdown §8 Phase 4 기록): `componentPageIds` 없이 남은 `catalog-library` page 가 있으면 Publish 가 `UNOWNED_ENTRY` 로 실패한다.
+> - 결함 수리 (283 breakdown §8 Phase 4 의 관찰): undo · redo 가 기록된 프로젝트 항목 사본을 그대로 다시 써 `componentPageIds` 를 지웠다 — Library 를 처음 열기 (History 없는 load step) 전에 기록된 step 을 undo 하면 page 가 목록 밖에 남아 재열기 · Publish 가 `UNOWNED_ENTRY`. 수리 (2026-10-27): 재생이 지금 `componentPageIds` 를 유지 (`withCurrentComponentPages` — `runtime/controller.ts`) + 남아 있는 page 를 목록에서 빼는 step 은 그 step 에서 `UNOWNED_ENTRY` 로 거부 (`graph.ts` — 전에는 바뀐 항목만 봐서 조용히 저장).
 > - 남은 것: G4 — 번들 상한 · `gate:perf-ratchet` `counts.doc`. Builder initial 은 281 측정 1,389,801 → 283 측정 (282 포함) 1,410,913 → 284 Phase 0 1,421,341 로 상한 1,390,000 을 넘는다. 282 자체의 몫은 그 사이 다른 커밋이 있어 UNVERIFIED. G5 사용자 5173 확인 — 기록 없음.
 
 > **Phase 0 ~ 2 완료 (2026-10-24, 커밋 `0737a9349`)** — 사용자 결정 3 건 답 (같은 날): 1-a 선택한 ◆ 의 원본 · 2-a override 가 있는 원본 전부 · 3-a 부품 자리도 따른다.

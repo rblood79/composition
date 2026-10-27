@@ -84,7 +84,7 @@ fixture: page 에 Local 컴포넌트 「OrderCard」 (안에 Button 「Save」 �
 
 테스트: `packages/shared/src/catalog/runtime/__tests__/` 반례 4 (① 행 셋 — 행 2 Delete → 같은 행 **형제** Text (sourceId 다름) 만 · ② instance 둘 · ③ `local` 원본 규칙 · ④ 행 template 안 instance 의 overlay 본체 Button → 같은 행 형제 — ADR-280 하니스 `openAdr280Preview` · RAC tester) · 후보 2+ 단언 · `document/__tests__/validation` (세 모양 + `unset` · dangling · page 밖 · `local` 주인 조건) · `document/__tests__/graph` 색인 (중간 instance id · `local` 의 중간 template id 가 `referrersOf` 에) · `commands/__tests__/` 명령 7 (중간 instance swap → 대상 재작성 · 중간 노드 createComponent → 대상 holder · `duplicateDefinition` → 복제 instance 의 `local` 대상 = 복제 Save · detach 뒤 `{ nodeId: 사본 }` · dissolve · 삭제 (중간 층) · swap 자리 없음 → `{ unset: true }` commit → `validateDocument` 통과 → 저장/로드 → 재지정 patch → undo/redo) · builder `__tests__/adr283TargetRef.test.ts` (AI host · `unset` 생성 거부). 원복 RED 4 — `[0]` 복귀 · 색인 root·leaf 만 · 복사 `local` 무변경 · createComponent holder 제거.
 
-**순서**: contract 49 커밋 전에 ADR-282 G5 (사용자 5173 확인) 가 끝났는지 알린다 (R4). → 지켜지지 않았다 — 49 는 `729c44749` 에서 282 G5 전에 커밋됐다 (2026-10-27 대조).
+**순서**: contract 49 커밋 전에 ADR-282 G5 (사용자 5173 확인) 가 끝났는지 알린다 (R4). → 알렸고 (2026-10-25), 사용자 지시 「커밋push해」 (2026-10-26) 로 49 는 `729c44749` 에서 282 G5 전에 커밋됐다 (2026-10-27 대조).
 
 ## 3. Phase 2 — 패널 (G2)
 
@@ -160,6 +160,6 @@ fixture: page 에 Local 컴포넌트 「OrderCard」 (안에 Button 「Save」 �
 ### Phase 4 — live · 측정 · 문서 (G4, 2026-10-26)
 
 - live: 본문 `### Live Exercise`. 번들: Builder 1,418,803 B gz (HEAD 1,410,913 — 별도 worktree 빌드, 상한 초과는 기존), Preview 307,651 (≤ 320,000). `docs:stale-symbols` exit 0. 문서: `state-management.md` §6 · ADR-158 · ADR-281 Status 한 줄 · README · CHANGELOG.
-- 관찰 (범위 밖): live 첫 프로젝트에서 `project:page:catalog-library` page 가 project 의 `componentPageIds` 없이 문서에 남아 Publish 가 `UNOWNED_ENTRY` 로 열리지 않았다 — 새 프로젝트에서 같은 seed 는 정상. 만든 경로 미확정 (ADR-282 Library page 생성 경로 후보).
+- 관찰 (범위 밖): live 첫 프로젝트에서 `project:page:catalog-library` page 가 project 의 `componentPageIds` 없이 문서에 남아 Publish 가 `UNOWNED_ENTRY` 로 열리지 않았다 — 새 프로젝트에서 같은 seed 는 정상. 만든 경로 미확정 (ADR-282 Library page 생성 경로 후보). → 원인 확정 · 수리 (2026-10-27, ADR-282 breakdown 후속): Library 를 처음 열기 전에 기록된 step 의 undo 가 프로젝트 항목 옛 사본으로 `componentPageIds` 를 지웠다.
 - **구현 판독 Round 3** ([reviews/283](../reviews/283.md)): HIGH 1 (instance 단계 `local` 의 anchor) · MEDIUM 3 (중첩 instance detach · 중첩 단계 createComponent — page 경로 포함 · 같은 template `nodeId` 거부) → 수리 + 반례 5 + 수리 원복 RED 4/4. §1b 의 「`local` anchor = 실행 record 체인에서 원본 루트를 그리는 record」 는 원본 루트를 `templatePath[0]` 이 아니라 규칙 주인의 owner 체인 top 에서 읽는다 (`catalogOriginRootOf`) — `local.instances` 가 있으면 `templatePath` 는 가장 안쪽 정의 기준이다 (`InstanceAddress` 규약). Decision 1 의 「template 노드는 `nodeId` 로 가리킬 수 없다」 는 「같은 template 의 규칙만」 으로 좁혔다 (paste · move).
 - 추정 대비: 소스 ~19 → 24 (새 4), 테스트 리터럴 ~33 + N → 29 + 18 + 샘플 3, 새 테스트 4 → 5. 1.5 배 미만.
