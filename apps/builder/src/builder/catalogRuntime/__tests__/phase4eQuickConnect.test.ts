@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import type { DataChange, DataOp } from "@composition/shared";
+import type { DataChange } from "@composition/shared";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -13,8 +13,9 @@ import {
   tableHeaderColumns,
   tableHeaderPosition,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import type { DataTable } from "../../../types/builder/data.types";
 import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
+import { useDataStore } from "../../stores/data";
+import { bindCatalogDataStore } from "../catalogDataStore";
 import { catalogBindingRef } from "../dataBinding";
 import { catalogBindingCommand } from "../dataBindingCommand";
 import { newCatalogProjectDocument } from "../project";
@@ -48,38 +49,23 @@ const schema = [
   { id: "f-email", key: "email", type: "email", label: "E-mail" },
 ];
 
-/** The data store stand-in: collections created / deleted by ops. */
-function fakeStore(options: { onApply?: () => void } = {}) {
-  const collections = new Map<string, DataTable>();
+/**
+ * ADR-286: the real data store bound to the workspace — the collection is a document entry, so
+ * create + connect is one document step.
+ */
+function boundStore() {
   return {
-    collections,
-    async apply(change: DataChange, _options: { record: false }) {
-      await Promise.resolve();
-      options.onApply?.();
-      const inverse: DataOp[] = [];
-      for (const op of change.ops) {
-        if (op.op === "create_collection") {
-          const id = op.id!;
-          collections.set(id, {
-            id,
-            name: op.name,
-            project_id: op.projectId,
-            schema: op.schema,
-            mockData: op.rows,
-            useMockData: true,
-          } as unknown as DataTable);
-          inverse.push({ op: "delete_collection", collectionId: id });
-        } else if (op.op === "delete_collection") {
-          collections.delete(op.collectionId);
-        }
-      }
-      return { applied: change.ops, inverse };
+    get collections() {
+      return useDataStore.getState().collections;
     },
-    collection: (id: string) => collections.get(id),
+    apply: (change: DataChange, options: { document?: readonly unknown[] }) =>
+      useDataStore.getState().applyDataChange(change, options),
+    collection: (id: string) => useDataStore.getState().collections.get(id),
   };
 }
 
-async function open(store = fakeStore()) {
+async function open() {
+  const store = boundStore();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({ projectId: PROJECT, name: "QC" }),
@@ -92,6 +78,8 @@ async function open(store = fakeStore()) {
       autosaveSchedule: () => {},
     },
   );
+  useDataStore.getState().reset();
+  bindCatalogDataStore(workspace);
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
@@ -206,31 +194,25 @@ describe("ADR-248 Phase 4e-4e quick connect (catalog)", () => {
     });
   });
 
-  it("a binding changed while the collection saves: nothing stays (collection removed, no entry)", async () => {
-    let change: (() => void) | undefined;
-    const store = fakeStore({ onApply: () => change?.() });
-    const { workspace, host, identity, bindingOf } = await open(store);
+  it("a binding changed after the capture: nothing is written (no collection, no entry)", async () => {
+    const { workspace, host, store, identity, bindingOf } = await open();
     const target = host.capture(identity(LIST))!;
-    change = () => {
-      change = undefined;
-      workspace.execute(
-        catalogBindingCommand(
-          [{ kind: "node", id: LIST }],
-          catalogBindingRef({
-            source: "dataTable",
-            collectionId: "other",
-            name: "",
-          })!,
-        ),
-      );
-    };
+    workspace.execute(
+      catalogBindingCommand(
+        [{ kind: "node", id: LIST }],
+        catalogBindingRef({
+          source: "dataTable",
+          collectionId: "other",
+          name: "",
+        })!,
+      ),
+    );
     const depth = workspace.runtime.historyDepth.undo;
     await expect(
       host.execute({ input, target, projectId: ROUTE }),
     ).rejects.toThrow(/binding-changed/);
     expect(store.collections.size).toBe(0);
-    // Only the concurrent edit is in history.
-    expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+    expect(workspace.runtime.historyDepth.undo).toBe(depth);
     expect(bindingOf(LIST)?.collectionId).toBe("data:collection:other");
   });
 });

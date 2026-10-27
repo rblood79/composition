@@ -95,7 +95,7 @@ describe("ADR-248 Phase 4e-6 project files", () => {
   it("a JSON file carries the content and each referenced asset's bytes; other JSON is refused", async () => {
     const { graph, bytes, hash, ref } = await sourceProject();
     const content = catalogProjectContent(graph, {
-      collections: [{ id: "c1", name: "Users" }],
+      fontRegistry: { version: 2, faces: [] },
       currentPageId: "project:page:home",
     });
     const text = await buildCatalogProjectJson(content, async (wanted) =>
@@ -161,25 +161,16 @@ describe("ADR-248 Phase 4e-6 project files", () => {
       },
     };
     await storage.create(target, library!);
-    const imported: unknown[] = [];
+    // ADR-286: the data definitions travel in the document — no data part, no id re-pointing.
     const result = await importCatalogProjectContent({
       content: catalogProjectContent(graph, {
-        collections: [{ id: "c1", name: "Users" }],
         currentPageId: "project:page:home",
       }),
       projectId: TARGET,
       name: "Target",
       library: library!,
       replace: (document) => storage.replace(document, library!),
-      importData: async (extras) => {
-        imported.push(extras.collections);
-        return new Map([
-          ["data:collection:c1", "data:collection:c9"],
-          ["data:endpoint:e1", "data:endpoint:e9"],
-        ]);
-      },
     });
-    expect(imported).toEqual([[{ id: "c1", name: "Users" }]]);
     expect(result).toMatchObject({
       pageId: "project:page:home",
       pageMissing: false,
@@ -193,12 +184,12 @@ describe("ADR-248 Phase 4e-6 project files", () => {
     expect(stored.entries[SOURCE]).toBeUndefined();
     expect(stored.entries["project:node:target-only"]).toBeUndefined();
     expect((stored.entries["project:node:list"] as NodeEntry).binding).toEqual({
-      collectionId: "data:collection:c9",
+      collectionId: "data:collection:c1",
       fieldMap: {},
     });
     expect(
       (stored.entries["project:interaction:submit"] as InteractionEntry).actions[0],
-    ).toMatchObject({ opcode: "callEndpoint", endpointId: "data:endpoint:e9" });
+    ).toMatchObject({ opcode: "callEndpoint", endpointId: "data:endpoint:e1" });
     expect(stored.entries["project:asset:logo"]).toBeDefined();
     // A save of the document the tab held before the import conflicts.
     await expect(
@@ -232,14 +223,12 @@ describe("ADR-248 Phase 4e-6 project files", () => {
       projectId: TARGET,
       library: library!,
       replace: (document) => storage.replace(document, library!),
-      importData: async () => new Map(),
     });
     expect(result).toMatchObject({
       pageId: "project:page:home",
       pageMissing: true,
     });
 
-    let dataWrites = 0;
     const content = catalogProjectContent(graph);
     await expect(
       importCatalogProjectContent({
@@ -247,13 +236,8 @@ describe("ADR-248 Phase 4e-6 project files", () => {
         projectId: TARGET,
         library: library!,
         replace: (document) => storage.replace(document, library!),
-        importData: async () => {
-          dataWrites += 1;
-          return new Map();
-        },
       }),
     ).rejects.toThrow("UNSUPPORTED_PROJECT_FORMAT");
-    expect(dataWrites).toBe(0);
     await expect(
       storage.replace(
         newCatalogProjectDocument({

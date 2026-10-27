@@ -9,37 +9,21 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
-import type { DataTable, Variable } from "../../../types/builder/data.types";
-
-const dbMock = {
-  collections: {
-    insert: vi.fn(async (dt: DataTable) => dt),
-    update: vi.fn(async () => ({}) as DataTable),
-    delete: vi.fn(async () => undefined),
-  },
-  variables: {
-    insert: vi.fn(async (v: Variable) => v),
-    update: vi.fn(
-      async (_id: string, _u: Partial<Variable>) => ({}) as Variable,
-    ),
-    delete: vi.fn(async () => undefined),
-  },
-};
-vi.mock("../../../lib/db", () => ({ getDB: async () => dbMock }));
+import type { Variable } from "../../../types/builder/data.types";
 
 const addEntry = vi.fn();
-vi.mock("../history", () => ({
-  historyManager: { addEntry: (...args: unknown[]) => addEntry(...args) },
-}));
-
 
 import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
-  setDocumentVariableNamesReader,
 } from "./dataChange";
-import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+import {
+  attachTestDataStore,
+  installTestDataChangeRecorder,
+  setTestDocumentVariableNames,
+  testDataCommits,
+} from "./__tests__/support/dataChangeRecorder";
 
 installTestDataChangeRecorder((entry) => addEntry(entry));
 
@@ -261,11 +245,13 @@ describe("applyDataChange — define_variable", () => {
     const state: Record<string, unknown> = {
       collections: new Map(),
       variables: seedVariables(),
+      apiEndpoints: new Map(),
       errors: new Map(),
     };
     const set = (patch: unknown) =>
       Object.assign(state, typeof patch === "function" ? patch(state) : patch);
     const get = () => state;
+    attachTestDataStore(set as never, get as never);
     return {
       state,
       apply: createApplyDataChangeAction(set as never, get as never),
@@ -274,11 +260,13 @@ describe("applyDataChange — define_variable", () => {
   }
   beforeEach(() => {
     vi.clearAllMocks();
+    testDataCommits.length = 0;
+    installTestDataChangeRecorder((entry) => addEntry(entry));
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("create → variables.insert 1 · 메모리 Map · History data entry (elementId = variableId) · collections DB 0", async () => {
+  it("create → 문서 쓰기 1 (변수만) · 메모리 Map · History data entry (elementId = variableId)", async () => {
     const { apply, variables } = makeStore();
     const result = await apply({
       ops: [
@@ -291,8 +279,9 @@ describe("applyDataChange — define_variable", () => {
     });
     const id = (result.applied[0] as { variableId: string }).variableId;
     expect(variables().get("count")?.id).toBe(id);
-    expect(dbMock.variables.insert).toHaveBeenCalledTimes(1);
-    expect(dbMock.collections.insert).not.toHaveBeenCalled();
+    expect(testDataCommits).toHaveLength(1);
+    expect(testDataCommits[0]!.variables!.map((v) => v.id)).toEqual([id]);
+    expect(testDataCommits[0]!.collections).toEqual([]);
     expect(addEntry).toHaveBeenCalledTimes(1);
     const entry = addEntry.mock.calls[0][0] as {
       type: string;
@@ -300,7 +289,6 @@ describe("applyDataChange — define_variable", () => {
       elementIds: string[];
       data: { dataChangeEvent: { inverse: DataOp[] } };
     };
-    expect(entry.type).toBe("data");
     expect(entry.elementId).toBe(id);
     expect(entry.elementIds).toEqual([id]);
     expect(entry.data.dataChangeEvent.inverse).toEqual([
@@ -309,7 +297,7 @@ describe("applyDataChange — define_variable", () => {
     expect(result.variableIds).toEqual([id]);
   });
 
-  it("update → variables.update 1 · remove → delete 1 · undo(remove) → insert 같은 id (record:false, History 0)", async () => {
+  it("update · remove · inverse 재적용 → 같은 id 로 되살린다", async () => {
     const { apply, variables } = makeStore();
     await apply({
       ops: [
@@ -321,27 +309,22 @@ describe("applyDataChange — define_variable", () => {
       ],
       origin: "user",
     });
-    expect(dbMock.variables.update).toHaveBeenCalledWith(
-      "v_user",
-      expect.objectContaining({ defaultValue: "Ana" }),
-    );
+    expect(testDataCommits[0]!.variables![0]).toMatchObject({
+      id: "v_user",
+      defaultValue: "Ana",
+    });
     expect(variables().get("userName")?.defaultValue).toBe("Ana");
-
     const removed = await apply({
       ops: [{ op: "define_variable", variableId: "v_user", definition: null }],
       origin: "user",
     });
-    expect(dbMock.variables.delete).toHaveBeenCalledWith("v_user");
+    expect(testDataCommits[1]!.variablesDeleted).toEqual(["v_user"]);
     expect(variables().has("userName")).toBe(false);
-
-    addEntry.mockClear();
-    await apply({ ops: removed.inverse, origin: "user" }, { record: false });
-    expect(addEntry).not.toHaveBeenCalled();
-    expect(dbMock.variables.insert).toHaveBeenCalledTimes(1);
+    await apply({ ops: removed.inverse, origin: "user" });
     expect(variables().get("userName")?.id).toBe("v_user");
   });
 
-  it("변수 0개 프로젝트에서 첫 생성 → undo → redo (record:false, projectId 미전달) 가 store 의 currentProjectId 로 같은 id 를 되살린다 (G1 live 결함)", async () => {
+  it("변수 0개 프로젝트에서 첫 생성 → inverse → applied 재적용 (projectId 미전달) 이 store 의 currentProjectId 로 같은 id 를 되살린다 (G1 live 결함)", async () => {
     const { apply, variables, state } = makeStore();
     state.variables = new Map();
     state.currentProjectId = "p-current";
@@ -360,50 +343,28 @@ describe("applyDataChange — define_variable", () => {
     });
     const id = (created.applied[0] as { variableId: string }).variableId;
     expect(variables().get("userName")?.project_id).toBe("p-current");
-    await apply({ ops: created.inverse, origin: "user" }, { record: false });
+    await apply({ ops: created.inverse, origin: "user" });
     expect(variables().size).toBe(0);
-    // redo = applied op 재적용 — projectId 옵션 없음, 변수 0개
-    await apply({ ops: created.applied, origin: "user" }, { record: false });
+    await apply({ ops: created.applied, origin: "user" });
     expect(variables().get("userName")?.id).toBe(id);
     expect(variables().get("userName")?.project_id).toBe("p-current");
   });
 
-  it("ADR-248 4e-4e — a set names reader (the catalog document) replaces the canonical lookup", async () => {
-    setDocumentVariableNamesReader(() => new Set(["catalogVar"]));
-    try {
-      const { apply, variables } = makeStore();
-      await expect(
-        apply({
-          ops: [
-            {
-              op: "define_variable",
-              definition: { name: "catalogVar", type: "string" },
-            },
-          ],
-          origin: "user",
-        }),
-      ).rejects.toThrow(DataChangeError);
-      expect(variables().has("catalogVar")).toBe(false);
-    } finally {
-      setDocumentVariableNamesReader(null);
-    }
-  });
-
-  it("DB 실패 → 메모리 0 · History 0 · errors 기록", async () => {
-    const { apply, variables, state } = makeStore();
-    dbMock.variables.insert.mockRejectedValueOnce(new Error("quota"));
+  it("문서의 페이지 · 요소 변수 이름은 프로젝트 변수로 못 쓴다 (ADR-214 HC5 — sink 가 읽는다)", async () => {
+    setTestDocumentVariableNames(["catalogVar"]);
+    const { apply, variables } = makeStore();
     await expect(
       apply({
         ops: [
-          { op: "define_variable", definition: { name: "x", type: "string" } },
+          {
+            op: "define_variable",
+            definition: { name: "catalogVar", type: "string" },
+          },
         ],
         origin: "user",
       }),
-    ).rejects.toThrow("quota");
-    expect(variables().has("x")).toBe(false);
-    expect(addEntry).not.toHaveBeenCalled();
-    expect((state.errors as Map<string, Error>).has("applyDataChange")).toBe(
-      true,
-    );
+    ).rejects.toThrow(DataChangeError);
+    expect(variables().has("catalogVar")).toBe(false);
+    expect(testDataCommits).toHaveLength(0);
   });
 });

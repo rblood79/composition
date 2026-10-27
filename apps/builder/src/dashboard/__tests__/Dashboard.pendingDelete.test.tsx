@@ -90,7 +90,8 @@ describe("Dashboard — 빌더가 넘긴 삭제 요청", () => {
     await waitFor(() =>
       expect(mocks.removeProject).toHaveBeenCalledWith("project:project:p-1"),
     );
-    expect(mocks.deleteCollection).toHaveBeenCalledWith("c-1");
+    // ADR-286: the data definitions are the document's — no data store rows to delete.
+    expect(mocks.deleteCollection).not.toHaveBeenCalled();
     // 2026-10-05 감사 L6 — runtime 캐시 행과 폴더 연결 기록도 함께 지운다 (고아 방지).
     expect(mocks.deleteRuntime).toHaveBeenCalledWith("c-1");
     expect(mocks.disconnectDirectory).toHaveBeenCalledWith("p-1");

@@ -134,9 +134,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 50 — ADR-284: a rule's Do is a list (`actions`, one action = a list of one) instead of one
  * `action`; a binding may read a view (`viewId` · `view`) and the project lists shared views
  * (`viewIds`). A 49 document is refused.
+ * 51 — ADR-286: data definitions (collections · API endpoints · project variables) are document
+ * entries (`collection` · `endpoint` · `projectVariable`, listed by the project), and the project
+ * holds its site settings (`site`) and a page its own (`meta`). A 50 document is refused.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 50 as const;
+export const LIBRARY_CONTRACT_VERSION = 51 as const;
 
 export type EntryKind =
   | "project"
@@ -149,8 +152,16 @@ export type EntryKind =
   | "stateVariable"
   | "interaction"
   | "asset"
-  | "view";
-export type EntryId<K extends EntryKind = EntryKind> = `project:${K}:${string}`;
+  | "view"
+  | "collection"
+  | "endpoint"
+  | "projectVariable";
+/** ADR-286 — the data entries keep their data reference ids (`data:collection:` …). */
+export type DataEntryKind = "collection" | "endpoint" | "projectVariable";
+export type EntryId<K extends EntryKind = EntryKind> = `project:${Exclude<
+  K,
+  DataEntryKind
+>}:${string}`;
 export type LibraryDefinitionId = `lib:definition:${string}`;
 export type LibraryTemplateId = `lib:template:${string}`;
 export type LibraryTokenId = `lib:token:${string}`;
@@ -743,6 +754,12 @@ export interface ProjectEntry {
   assetIds: readonly EntryId<"asset">[];
   /** ADR-284 — the shared data views (absent = none). */
   viewIds?: readonly EntryId<"view">[];
+  /** ADR-286 — the data definitions (absent = none). */
+  collectionIds?: readonly DataCollectionId[];
+  endpointIds?: readonly DataEndpointId[];
+  projectVariableIds?: readonly ProjectVariableId[];
+  /** ADR-286 Decision 5 — the site settings (absent = defaults). */
+  site?: CatalogSiteSettings;
   activeThemeId?: EntryId<"theme">;
   pageLayout?: PageLayoutDeclaration;
   /**
@@ -750,6 +767,48 @@ export interface ProjectEntry {
    * = `bottom end`, the region's place before (S2's own default is `bottom`).
    */
   toastPlacement?: CatalogToastPlacement;
+}
+/** ADR-235 content address of an uploaded asset (`asset:sha256-<hex>` — the asset GC reads it). */
+export type CatalogAssetUrl = `asset:sha256-${string}`;
+/**
+ * ADR-286 Decision 5 — who may open the published site. No secret lives in the document (a
+ * password's hash, a client secret, a certificate's key): the publish host keeps them.
+ */
+export type CatalogSiteAccess =
+  | { kind: "none" }
+  | { kind: "password"; hint?: string }
+  | {
+      kind: "sso";
+      protocol: "saml" | "oidc";
+      issuer: string;
+      metadataUrl?: string;
+      clientId?: string;
+      protectedPageIds: readonly EntryId<"page">[] | "all";
+    };
+/** ADR-286 Decision 5 — one redirect (the list's order is its priority; `*` matches any rest). */
+export interface CatalogSiteRedirect {
+  from: string;
+  to: string;
+  permanent: boolean;
+}
+/** ADR-286 Decision 5 — the site settings (Framer Site Settings). Every field optional. */
+export interface CatalogSiteSettings {
+  title?: string;
+  description?: string;
+  /** BCP 47 (`<html lang>`). */
+  lang?: string;
+  favicon?: { light?: CatalogAssetUrl; dark?: CatalogAssetUrl };
+  socialImage?: CatalogAssetUrl;
+  search?: { index: boolean; sitemap: boolean; robots: "allow" | "none" };
+  redirects?: readonly CatalogSiteRedirect[];
+  access?: CatalogSiteAccess;
+}
+/** ADR-286 Decision 6 — a page's own settings over the site's (absent = the site's). */
+export interface CatalogPageMeta {
+  title?: string;
+  description?: string;
+  socialImage?: CatalogAssetUrl;
+  hidden?: { search?: boolean; sitemap?: boolean };
 }
 /** S2 1.8.0 `ToastPlacement`. */
 export type CatalogToastPlacement = "top" | "top end" | "bottom" | "bottom end";
@@ -856,6 +915,8 @@ export interface PageEntry {
   >;
   /** Nested route: the parent page (route hierarchy only; pages stay separate frames). */
   parentId?: EntryId<"page">;
+  /** ADR-286 Decision 6 — the page's own title · description · social image · search. */
+  meta?: CatalogPageMeta;
 }
 export interface DefinitionEntry {
   kind: "definition";
@@ -1249,6 +1310,75 @@ export interface AssetEntry {
   byteLength: number;
   filename: string;
 }
+/** ADR-286 — a data field (the Data panel's column): `id` is the stable reference (`{#id}`). */
+export interface CatalogDataField {
+  id?: string;
+  key: string;
+  type?: string;
+  label?: string;
+  required?: boolean;
+  defaultValue?: unknown;
+  children?: readonly CatalogDataField[];
+  reference?: { collectionId: string; keyField: string };
+}
+/** ADR-286 Decision 1 — a collection's definition: its schema and the rows the author wrote. */
+export interface CollectionEntry {
+  kind: "collection";
+  id: DataCollectionId;
+  name: string;
+  description?: string;
+  schema: readonly CatalogDataField[];
+  /** At most `CATALOG_COLLECTION_ROW_LIMIT` rows (사용자 결정 1, 2026-10-28). */
+  mockData: readonly Readonly<Record<string, unknown>>[];
+  useMockData: boolean;
+  executionPolicy?: { mode: "auto" | "manual" | "interval"; intervalSec?: number };
+}
+/** ADR-286 사용자 결정 1 — a collection holds at most this many authored rows. */
+export const CATALOG_COLLECTION_ROW_LIMIT = 1000;
+/**
+ * ADR-286 Decision 1 — an API endpoint's definition (request · response · server run). A server
+ * run names its secrets (`serverConfig.secretMappings[].vaultKey`); their values stay server side.
+ */
+export interface EndpointEntry {
+  kind: "endpoint";
+  id: DataEndpointId;
+  name: string;
+  description?: string;
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  baseUrl: string;
+  path: string;
+  headers: readonly { key: string; value: string; enabled: boolean }[];
+  queryParams: readonly {
+    key: string;
+    value: string;
+    type: "string" | "number" | "boolean";
+    required: boolean;
+  }[];
+  bodyType: "json" | "form-data" | "x-www-form-urlencoded" | "none";
+  bodyTemplate?: string;
+  responseMapping: Readonly<Record<string, unknown>> & { dataPath: string };
+  querySerialization?: Readonly<Record<string, unknown>>;
+  /** The collection the response fills. */
+  targetCollectionId?: DataCollectionId;
+  executionMode: "client" | "server";
+  serverConfig?: Readonly<Record<string, unknown>>;
+  timeout?: number;
+  retryCount?: number;
+  uploadDryRun?: boolean;
+}
+/** ADR-286 Decision 1 · 사용자 결정 3 — a project variable (apart from page · node variables). */
+export interface ProjectVariableEntry {
+  kind: "projectVariable";
+  id: ProjectVariableId;
+  name: string;
+  valueType: "string" | "number" | "boolean" | "object" | "array";
+  defaultValue?: unknown;
+  persist: boolean;
+  validation?: Readonly<Record<string, unknown>>;
+  transform?: string;
+}
+export type DataEntry = CollectionEntry | EndpointEntry | ProjectVariableEntry;
+
 export type CatalogEntry =
   | ProjectEntry
   | PageEntry
@@ -1260,7 +1390,10 @@ export type CatalogEntry =
   | StateVariableEntry
   | InteractionEntry
   | AssetEntry
-  | ViewEntry;
+  | ViewEntry
+  | CollectionEntry
+  | EndpointEntry
+  | ProjectVariableEntry;
 
 /** What an edit addresses: an owned node, or a template position inside an instance. */
 export type EditTarget =

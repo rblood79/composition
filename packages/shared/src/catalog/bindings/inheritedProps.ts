@@ -30,7 +30,11 @@ export const CATALOG_COLOR_SCHEME_PROP: PropContract = {
   editorHidden: true,
 };
 
-/** Which props each inheritance host passes down (user decision 1 — page root + frame). */
+/**
+ * Which props each inheritance host passes down (user decision 1 — page root + frame). The page
+ * root's `locale` is not authored: it is the site's language (ADR-286, user 2026-10-28 — the
+ * composition root writes it on the `body` record).
+ */
 export const CATALOG_INHERITANCE_HOSTS: Readonly<
   Record<string, readonly string[]>
 > = {

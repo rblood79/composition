@@ -1,0 +1,42 @@
+.site-asset-field {
+  min-width: 0;
+}
+
+.site-asset-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.site-asset-thumb {
+  flex: none;
+  width: var(--control-size);
+  height: var(--control-size);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  overflow: hidden;
+}
+
+.site-asset-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.site-asset-choose {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-asset-choose span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-asset-remove {
+  flex: none;
+  width: var(--control-size);
+  padding: 0;
+  justify-content: center;
+}

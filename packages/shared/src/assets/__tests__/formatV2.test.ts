@@ -41,9 +41,6 @@ async function fixture() {
         },
       ],
     },
-    collections: [{ id: "c1", mockData: [{ avatar: refFromHash(png) }] }],
-    apiEndpoints: [{ id: "api1", url: "https://x" }],
-    variables: [{ id: "v1", defaultValue: 1 }],
     fontRegistry: {
       version: 2,
       faces: [
@@ -70,7 +67,8 @@ describe("형식 v2 (ADR-235 Phase 4)", () => {
     const paths = [...generation.files.keys()].sort();
     expect(paths).toContain(`assets/${png}.png`);
     expect(paths).toContain(`assets/${woff}.woff2`);
-    expect(paths.filter((p) => p.startsWith("parts/"))).toHaveLength(5);
+    // ADR-286: document · fonts (the data definitions are document entries).
+    expect(paths.filter((p) => p.startsWith("parts/"))).toHaveLength(2);
     expect(generation.manifest).toMatchObject({
       formatVersion: "2.0.0",
       project: { id: "p1", name: "Demo" },
@@ -92,7 +90,7 @@ describe("형식 v2 (ADR-235 Phase 4)", () => {
     ).rejects.toBeInstanceOf(V2AssetMissingError);
   });
 
-  it("zip 왕복 — 문서 · 자산 · collections 3종 · 폰트 · currentPageId · metadata 동일 (G5)", async () => {
+  it("zip 왕복 — 문서 (데이터 정의 포함, ADR-286) · 자산 · 폰트 · currentPageId · metadata 동일 (G5)", async () => {
     const { content, store } = await fixture();
     const generation = await buildV2Generation(
       content,

@@ -35,3 +35,34 @@ export function changedCollectionIds<T>(
   );
   return [...changed, ...referring];
 }
+
+/**
+ * ADR-286 — the collections whose API rows (`runtimeRows`, not the document) changed between two
+ * snapshots, and the collections whose reference field reads one of them. A definition change is a
+ * document step and its consume plan redraws; only these follow a store change.
+ */
+export function changedRuntimeCollectionIds(
+  next: ReadonlyMap<string, unknown>,
+  previous: ReadonlyMap<string, unknown>,
+  tables: ReadonlyMap<string, unknown>,
+): string[] {
+  if (next === previous) return [];
+  const changed = [...new Set([...next.keys(), ...previous.keys()])].filter(
+    (id) => next.get(id) !== previous.get(id),
+  );
+  if (!changed.length) return [];
+  const referring = [...tables.entries()].flatMap(([id, table]) =>
+    !changed.includes(id) &&
+    (
+      table as {
+        schema?: readonly { reference?: { collectionId: string } }[];
+      }
+    ).schema?.some(
+      (field) =>
+        field.reference && changed.includes(field.reference.collectionId),
+    )
+      ? [id]
+      : [],
+  );
+  return [...changed, ...referring];
+}

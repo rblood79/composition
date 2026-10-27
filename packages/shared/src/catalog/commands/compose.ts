@@ -46,6 +46,24 @@ export function composeCommands(
  * that runs several planners in order (ADR-261 Phase 5 — copy a position, then swap it) applies
  * each one's operations here so the next plans against them.
  */
+/** `composeCommands` over any reader (a composed command inside another composition). */
+export function composeOver(
+  reader: CatalogReader,
+  label: string,
+  commands: readonly CatalogCommand[],
+): CatalogCommandPlan {
+  const stage = stageOver(reader);
+  const ops: CatalogOperation[] = [];
+  const selectAfter: NodeId[] = [];
+  for (const command of commands) {
+    const plan = command(stage);
+    stage.apply(plan.ops);
+    ops.push(...plan.ops);
+    if (plan.selectAfter) selectAfter.push(...plan.selectAfter);
+  }
+  return { label, ops, ...(selectAfter.length ? { selectAfter } : {}) };
+}
+
 export function stageOver(reader: CatalogReader): CatalogStage {
   if (reader instanceof CatalogStage || !("isViewEntry" in reader)) {
     const base = reader as CatalogReader & {
@@ -74,6 +92,11 @@ export function stageOver(reader: CatalogReader): CatalogStage {
       instancesOf: (id: string) => reader.instancesOf(id),
       definitionOfTemplateRoot: (id: string) =>
         reader.definitionOfTemplateRoot(id),
+      // ADR-286 — a collection's bound nodes (a removed collection takes its bindings).
+      bindingsOf: (id: string) =>
+        (
+          reader as Partial<{ bindingsOf(id: string): ReadonlySet<string> }>
+        ).bindingsOf?.(id) ?? new Set<string>(),
       isViewEntry: (id: string) => base.isViewEntry?.(id) ?? false,
       viewChildIds: (id: string) => base.viewChildIds?.(id),
     } as unknown as CatalogGraph);

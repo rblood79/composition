@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import type { DataChange, DataOp } from "@composition/shared";
+import type { DataChange } from "@composition/shared";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import {
@@ -23,8 +23,9 @@ import {
 import { tableAlignedIn } from "../../../../../../packages/shared/src/catalog/commands/collections";
 import { CommandDraft } from "../../../../../../packages/shared/src/catalog/commands/context";
 import type { CatalogBoundRow } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
-import type { DataTable } from "../../../types/builder/data.types";
 import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
+import { useDataStore } from "../../stores/data";
+import { bindCatalogDataStore } from "../catalogDataStore";
 import {
   resolveColumnMode,
   targetHasBinding,
@@ -63,39 +64,21 @@ const input = {
   useMockData: true,
 } as never;
 
-/** The data store stand-in: collections created / deleted by ops (phase4eQuickConnect). */
-function fakeStore() {
-  const collections = new Map<string, DataTable>();
+/** ADR-286: the real data store bound to the workspace (phase4eQuickConnect). */
+function boundStore() {
   return {
-    collections,
-    async apply(change: DataChange, _options: { record: false }) {
-      await Promise.resolve();
-      const inverse: DataOp[] = [];
-      for (const op of change.ops) {
-        if (op.op === "create_collection") {
-          const id = op.id!;
-          collections.set(id, {
-            id,
-            name: op.name,
-            project_id: op.projectId,
-            schema: op.schema,
-            mockData: op.rows,
-            useMockData: true,
-          } as unknown as DataTable);
-          inverse.push({ op: "delete_collection", collectionId: id });
-        } else if (op.op === "delete_collection") {
-          collections.delete(op.collectionId);
-        }
-      }
-      return { applied: change.ops, inverse };
+    get collections() {
+      return useDataStore.getState().collections;
     },
-    collection: (id: string) => collections.get(id),
+    apply: (change: DataChange, options: { document?: readonly unknown[] }) =>
+      useDataStore.getState().applyDataChange(change, options),
+    collection: (id: string) => useDataStore.getState().collections.get(id),
   };
 }
 
 async function open() {
   const library = await buildCodeCatalogLibrary();
-  const store = fakeStore();
+  const store = boundStore();
   // Any bound collection's rows: the Quick Connect's (whatever id) or the fixed one.
   const rows: CatalogBoundRow[] = [
     { key: "r1", values: { title: "A", price: 10 } },
@@ -114,6 +97,8 @@ async function open() {
       root: { rows: () => rows },
     },
   );
+  useDataStore.getState().reset();
+  bindCatalogDataStore(workspace);
   const paletteHost = {
     graph: workspace.runtime.graph,
     get records() {

@@ -8,6 +8,7 @@ export const PANEL_TRANSLATION_KEYS: Partial<Record<PanelId, string>> = {
   datatableField: "panels.dataTableField",
   theme: "panels.theme",
   settings: "panels.settings",
+  site: "panels.site",
   ai: "panels.ai",
   properties: "panels.properties",
   events: "panels.interactions",

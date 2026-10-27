@@ -28,18 +28,7 @@ export function loadedCatalogContent(
   assets: ReadonlyMap<string, { bytes: Uint8Array; mime: string }>,
 ): LoadedCatalogProject {
   const { document, extras } = readCatalogProjectContent(content, library);
-  for (const key of ["collections", "apiEndpoints", "variables"] as const) {
-    const values = extras[key];
-    if (
-      values !== undefined &&
-      (!Array.isArray(values) ||
-        values.some(
-          (item) => !item || typeof item !== "object" || Array.isArray(item),
-        ))
-    ) {
-      throw new Error(`INVALID_PROJECT_DATA:${key}`);
-    }
-  }
+  // (ADR-286: the data definitions are the document's entries — validated with it.)
   const fonts = extras.fontRegistry as
     { version?: unknown; faces?: unknown } | undefined;
   if (

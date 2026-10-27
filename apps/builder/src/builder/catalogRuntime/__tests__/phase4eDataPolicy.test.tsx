@@ -5,10 +5,6 @@ import {
   useExecutionPolicyScheduler,
 } from "../../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { useDataStore } from "../../stores/data";
-import {
-  readVariableOwnerPageIds,
-  registerVariableOwnerPageSource,
-} from "../../stores/utils/variableOwnerMigration";
 
 /**
  * ADR-248 Phase 4e (gap audit F): the data store's execution policies run in the catalog Builder —
@@ -67,13 +63,5 @@ describe("ADR-248 Phase 4e data execution policies", () => {
     view.unmount();
     await vi.advanceTimersByTimeAsync(10000);
     expect(execute).toHaveBeenCalledTimes(2);
-  });
-
-  it("the owner page source is replaced and restored", () => {
-    const before = readVariableOwnerPageIds();
-    const restore = registerVariableOwnerPageSource(() => ["project:page:home"]);
-    expect(readVariableOwnerPageIds()).toEqual(["project:page:home"]);
-    restore();
-    expect(readVariableOwnerPageIds()).toEqual(before);
   });
 });

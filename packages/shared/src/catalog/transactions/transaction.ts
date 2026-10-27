@@ -27,7 +27,7 @@ import {
 
 export type CatalogOperation =
   | { kind: "put"; entry: CatalogEntry }
-  | { kind: "remove"; id: EntryId }
+  | { kind: "remove"; id: CatalogEntry["id"] }
   | {
       kind: "patchNodeProp";
       id: NodeId;
@@ -388,6 +388,14 @@ export class CatalogStage implements CatalogReader {
     return this.overlay(
       this.graph.instancesOf(definitionId),
       (entry) => entry.kind === "node" && entry.definitionId === definitionId,
+    );
+  }
+  /** ADR-286 — nodes bound to a data collection after the staged records. */
+  bindingsOf(collectionId: string): ReadonlySet<string> {
+    return this.overlay(
+      this.graph.bindingsOf(collectionId),
+      (entry) =>
+        entry.kind === "node" && entry.binding?.collectionId === collectionId,
     );
   }
   definitionOfTemplateRoot(id: string): DefinitionId | undefined {

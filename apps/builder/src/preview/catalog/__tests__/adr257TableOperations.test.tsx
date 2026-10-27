@@ -30,6 +30,7 @@ import {
   catalogPreviewRuntime,
   CatalogPreviewView,
 } from "../catalogPreviewApp";
+import { sendCatalogData } from "./support/catalogDataEntries";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 
 /**
@@ -118,8 +119,8 @@ async function open(
   channel.setView(HOME);
   channel.onReady();
   if (collections.length)
-    session.receive(
-      structuredClone({ type: "CATALOG_DATA", version: 1, collections }),
+    sendCatalogData(workspace, session, structuredClone({ collections }), () =>
+      flushes.splice(0).forEach((run) => run()),
     );
   const runtime = catalogPreviewRuntime(session, { show: () => {} });
   const view = render(

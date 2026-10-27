@@ -36,10 +36,27 @@ import type {
 } from "../../../../../packages/shared/src/codeView/types";
 import { resolveTriggers } from "../../../../../packages/shared/src/interactions/capabilityRegistry";
 import type { ApiEndpoint, DataTable } from "../../types/builder/data.types";
+import {
+  catalogApiEndpoints,
+  catalogCollectionTables,
+} from "./catalogDataStore";
 import { catalogBindingCommand } from "./dataBindingCommand";
 
-/** The data store's tables and endpoints as the generator reads them. */
+/**
+ * ADR-286 — the document's collections and endpoints as the generator reads them: the code's
+ * `./data/<name>` · API URLs come from the catalog, the one source of the Builder's code.
+ */
 export function catalogCodeViewData(
+  reader: Pick<CatalogReader, "projectId" | "getEntry">,
+): { collections: CodeViewCollection[]; endpoints: CodeViewEndpoint[] } {
+  return codeViewDataOf(
+    catalogCollectionTables(reader, new Map()),
+    catalogApiEndpoints(reader),
+  );
+}
+
+/** The tables and endpoints (the store's shapes) as the generator reads them. */
+export function codeViewDataOf(
   tables: readonly DataTable[],
   endpoints: readonly ApiEndpoint[],
 ): { collections: CodeViewCollection[]; endpoints: CodeViewEndpoint[] } {

@@ -4,6 +4,8 @@
 
 Implemented — 2026-09-13 (Phase 0~~3 완료, G0~~G3 PASS)
 
+> **ADR-286 이 바꿈 (2026-10-28)**: collection 정의 (schema · mock 행 · 실행 정책) 는 문서 entry 다. 이 ADR 의 `runtimeData` 캐시 (`collection_runtime`) 와 실행 정책 읽기는 그대로 — API 결과만 store (`runtimeRows`) 에 남는다.
+
 - Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지시 충족)
 - Phase 0 완료 — 2026-09-12 (G0 PASS: §2 인벤토리 freeze · export 3채널 전수 · BC 0% breaking · m5 조건·통과선 확정 — breakdown §2.1). 제품 코드 변경 0.
 - Phase 1 완료 — 2026-09-13 (G1 live 9/9 · `1de25662c`·`b6156c6f5`): executionPolicy 필드 · collection_runtime store(DB_VERSION 22) · sourceRev 지문 · secret revision · hydration 유효성.

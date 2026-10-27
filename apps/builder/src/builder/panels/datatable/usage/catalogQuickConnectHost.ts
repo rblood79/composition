@@ -5,7 +5,6 @@ import {
   tableHeaderPosition,
 } from "../../../../../../../packages/shared/src/catalog/commands";
 import {
-  composeCommands,
   type CatalogCommand,
 } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import { catalogTypeDefinitionId } from "../../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -20,7 +19,6 @@ import type {
 } from "../../../../types/builder/data.types";
 import { catalogCollectionId } from "../../../catalogRuntime/dataBinding";
 import { catalogBindingCommand } from "../../../catalogRuntime/dataBindingCommand";
-import { dataChangeEffect } from "../../../catalogRuntime/dataHistory";
 import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { catalogRouteIdOf } from "../../../catalogRuntime/project";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -38,17 +36,16 @@ const COLUMN_ORIGIN =
 interface DataStoreAccess {
   apply(
     change: DataChange,
-    options: { record: false; projectId?: string },
+    options: { projectId?: string; document?: readonly unknown[] },
   ): Promise<{ applied: DataOp[]; inverse: DataOp[] }>;
   collection(id: string): DataTable | undefined;
 }
 
 /**
  * ADR-248 Phase 4e-4e: quick connect over the catalog document — the target is an owned node
- * (the record the Properties panel shows); create + connect is **one history entry**: the new
- * collection (data store, H1) is its outside effect, the Table columns (`insertTableColumns` on
- * the table's header position) and the typed binding its document part. A failed document part
- * removes the collection again (nothing is reported as done).
+ * (the record the Properties panel shows); create + connect is **one document step** (ADR-286):
+ * the new collection entry, the Table columns (`insertTableColumns` on the table's header
+ * position) and the typed binding. A refused part refuses the whole step (nothing is written).
  */
 export function createCatalogQuickConnectHost(
   workspace: CatalogWorkspace,
@@ -123,7 +120,59 @@ export function createCatalogQuickConnectHost(
     async execute({ input, target, projectId, replaceColumns = false }) {
       const schema = (input.schema ?? []) as DataField[];
       const collectionId = crypto.randomUUID();
-      const created = await store.apply(
+      const recheck = host.precheck(target, projectId);
+      if (!recheck.ok) throw new Error(`QUICK_CONNECT_${recheck.reason}`);
+      const position = header(target);
+      const mode = resolveColumnMode(
+        plan(target),
+        replaceColumns,
+        targetHasBinding(target),
+      );
+      const commands: CatalogCommand[] = [];
+      if (position && (mode === "create" || mode === "replace"))
+        commands.push(
+          insertTableColumns({
+            header: position,
+            columns: schema.map((field) => ({
+              key: field.key,
+              label: field.label ?? field.key,
+            })),
+            replace: mode === "replace",
+            buildColumn: () => {
+              const id = workspace.newId("node") as NodeId;
+              return {
+                entries: [column(id, COLUMN_ORIGIN)],
+                rootId: id,
+              };
+            },
+            buildCell: () => {
+              const id = workspace.newId("node") as NodeId;
+              return {
+                entries: [
+                  column(
+                    id,
+                    catalogTypeDefinitionId(
+                      "Cell",
+                    ) as NodeEntry["definitionId"],
+                  ),
+                ],
+                rootId: id,
+              };
+            },
+            newId: workspace.newId,
+          }),
+        );
+      commands.push(
+        catalogBindingCommand(
+          [{ kind: "node", id: target.elementId as NodeId }],
+          {
+            collectionId: catalogCollectionId(collectionId),
+            fieldMap: {},
+          },
+          workspace.newId,
+        ),
+      );
+      await store.apply(
         {
           ops: [
             {
@@ -137,91 +186,10 @@ export function createCatalogQuickConnectHost(
             },
           ],
           origin: "user",
+          label: label(input.name),
         },
-        { record: false, projectId },
+        { projectId, document: commands },
       );
-      const undoCreate = () =>
-        store.apply(
-          { ops: created.inverse, origin: "user" },
-          { record: false, projectId },
-        );
-      try {
-        // The target may have changed while the collection was saved.
-        const recheck = host.precheck(target, projectId);
-        if (!recheck.ok) throw new Error(`QUICK_CONNECT_${recheck.reason}`);
-        const position = header(target);
-        const mode = resolveColumnMode(
-          plan(target),
-          replaceColumns,
-          targetHasBinding(target),
-        );
-        const commands: CatalogCommand[] = [];
-        if (position && (mode === "create" || mode === "replace"))
-          commands.push(
-            insertTableColumns({
-              header: position,
-              columns: schema.map((field) => ({
-                key: field.key,
-                label: field.label ?? field.key,
-              })),
-              replace: mode === "replace",
-              buildColumn: () => {
-                const id = workspace.newId("node") as NodeId;
-                return {
-                  entries: [column(id, COLUMN_ORIGIN)],
-                  rootId: id,
-                };
-              },
-              buildCell: () => {
-                const id = workspace.newId("node") as NodeId;
-                return {
-                  entries: [
-                    column(
-                      id,
-                      catalogTypeDefinitionId(
-                        "Cell",
-                      ) as NodeEntry["definitionId"],
-                    ),
-                  ],
-                  rootId: id,
-                };
-              },
-              newId: workspace.newId,
-            }),
-          );
-        commands.push(
-          catalogBindingCommand(
-            [{ kind: "node", id: target.elementId as NodeId }],
-            {
-              collectionId: catalogCollectionId(collectionId),
-              fieldMap: {},
-            },
-            workspace.newId,
-          ),
-        );
-        const name = label(input.name);
-        workspace.recordExternal(
-          name,
-          dataChangeEffect(
-            {
-              change: { ops: created.applied, origin: "user", label: name },
-              inverse: created.inverse,
-            },
-            (change, options) => store.apply(change, { ...options, projectId }),
-          ),
-          // The connected node stays selected (the new columns are not selected).
-          (reader) => {
-            const { selectAfter: _selectAfter, ...plan } =
-              commands.length > 1
-                ? composeCommands(graph(), name, commands)
-                : commands[0]!(reader);
-            return plan;
-          },
-        );
-      } catch (error) {
-        await undoCreate();
-        throw error;
-      }
       const table = store.collection(collectionId);
       if (!table) throw new Error("QUICK_CONNECT_COLLECTION_MISSING");
       return table;

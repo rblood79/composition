@@ -8,24 +8,9 @@ import {
 import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
-import { toProjectVariableDefs, useDataStore } from "../../../stores/data";
+import { useDataStore } from "../../../stores/data";
 import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecutionPolicyScheduler";
-import { endpointWithTarget } from "../../../utils/endpointTarget";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
-
-/** The collections as the Preview reads them (the old Preview channel's projection). */
-function previewCollections(
-  collections: ReturnType<typeof useDataStore.getState>["collections"],
-) {
-  return [...collections.values()].map((table) => ({
-    id: table.id,
-    name: table.name,
-    schema: table.schema,
-    mockData: table.mockData ?? [],
-    runtimeData: table.runtimeData,
-    useMockData: table.useMockData,
-  }));
-}
 
 const PREVIEW_PANE_ID = "workspace-compare-panel-css";
 
@@ -116,31 +101,26 @@ export function CatalogPreviewFrame({
     followView();
     const offSession = workspace.session.subscribe(followView);
     let ready = false;
+    // ADR-286 R7: the definitions reach the Preview as document deltas; this channel carries the
+    // API rows only (`runtimeData` — the data store's cache, never the document).
     const sendData = () => {
-      const { apiEndpoints, collections, variables } = useDataStore.getState();
+      const { runtimeRows } = useDataStore.getState();
       frameRef.current?.contentWindow?.postMessage(
         {
           type: "CATALOG_DATA",
           version: CATALOG_PREVIEW_PAYLOAD_VERSION,
-          collections: previewCollections(collections),
-          variables: toProjectVariableDefs(variables),
-          // (Each query endpoint names the collection it fills — the Preview's `reload`.)
-          apiEndpoints: [...apiEndpoints.values()].map((endpoint) =>
-            endpointWithTarget(endpoint, collections),
-          ),
+          collections: [...runtimeRows].map(([id, runtimeData]) => ({
+            id,
+            runtimeData,
+          })),
         },
         origin,
       );
     };
     const offData = useDataStore.subscribe(
-      (store) =>
-        [store.collections, store.variables, store.apiEndpoints] as const,
+      (store) => store.runtimeRows,
       () => {
         if (ready) sendData();
-      },
-      {
-        equalityFn: (left, right) =>
-          left[0] === right[0] && left[1] === right[1] && left[2] === right[2],
       },
     );
     const onMessage = (event: MessageEvent) => {

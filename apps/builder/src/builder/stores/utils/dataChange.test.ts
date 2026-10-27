@@ -10,31 +10,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DataOpSchema, type DataOp } from "@composition/shared";
 import type { DataTable } from "../../../types/builder/data.types";
 
-const dbMock = {
-  collections: {
-    insert: vi.fn(async (dt: DataTable) => dt),
-    update: vi.fn(
-      async (_id: string, _u: Partial<DataTable>) => ({}) as DataTable,
-    ),
-    delete: vi.fn(async () => undefined),
-  },
-};
-vi.mock("../../../lib/db", () => ({ getDB: async () => dbMock }));
-
 const addEntry = vi.fn();
-vi.mock("../history", () => ({
-  historyManager: { addEntry: (...args: unknown[]) => addEntry(...args) },
-}));
 
 import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
-  registerDataBindingConsumer,
-  setDataHistoryRecorder,
-  type DataBindingConsumer,
+  setDataDefinitionSink,
+  type DataDefinitionWrite,
 } from "./dataChange";
-import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+import {
+  attachTestDataStore,
+  installTestDataChangeRecorder,
+  testDataCommits,
+  testElementBindings,
+} from "./__tests__/support/dataChangeRecorder";
 
 installTestDataChangeRecorder((entry) => addEntry(entry));
 
@@ -384,15 +374,18 @@ describe("reduceDataOps — op 별 결과 + 역연산 왕복", () => {
   });
 });
 
-describe("applyDataChange — DB · 메모리 · History · record:false", () => {
+describe("applyDataChange — ADR-286: one document write per change", () => {
   function makeStore() {
     const state: Record<string, unknown> = {
       collections: seed(),
+      variables: new Map(),
+      apiEndpoints: new Map(),
       errors: new Map(),
     };
     const set = (patch: unknown) =>
       Object.assign(state, typeof patch === "function" ? patch(state) : patch);
     const get = () => state;
+    attachTestDataStore(set as never, get as never);
     return {
       state,
       apply: createApplyDataChangeAction(set as never, get as never),
@@ -401,58 +394,14 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
   }
   beforeEach(() => {
     vi.clearAllMocks();
+    testDataCommits.length = 0;
+    testElementBindings.clear();
+    installTestDataChangeRecorder((entry) => addEntry(entry));
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("ADR-248 4e-4e — a set recorder takes the entry instead of the old history manager", async () => {
-    const { apply } = makeStore();
-    const recorded: unknown[] = [];
-    setDataHistoryRecorder((payload) => recorded.push(payload));
-    try {
-      await apply({
-        ops: [
-          {
-            op: "set_cell",
-            collectionId: "c1",
-            rowIndex: 0,
-            fieldId: "f_name",
-            value: "A",
-          },
-        ],
-        origin: "user",
-        label: "Edit cell",
-      });
-      // record:false stays unrecorded.
-      await apply(
-        {
-          ops: [
-            {
-              op: "set_cell",
-              collectionId: "c1",
-              rowIndex: 0,
-              fieldId: "f_name",
-              value: "a",
-            },
-          ],
-          origin: "user",
-        },
-        { record: false },
-      );
-    } finally {
-      installTestDataChangeRecorder((entry) => addEntry(entry));
-    }
-    expect(addEntry).not.toHaveBeenCalled();
-    expect(recorded).toEqual([
-      expect.objectContaining({
-        change: expect.objectContaining({ label: "Edit cell" }),
-        inverse: [expect.objectContaining({ op: "set_cell", value: "a" })],
-      }),
-    ]);
-  });
-
-  // 2026-10-05 감사 M1 — 겹친 두 쓰기는 차례로 적용된다 (앞 편집이 뒤 편집의 before 에 들어간다).
-  it("동시에 보낸 셀 편집 둘은 둘 다 남는다 — 메모리 · 마지막 DB 쓰기 모두", async () => {
+  it("동시에 보낸 셀 편집 둘은 둘 다 남는다", async () => {
     const { apply, collections } = makeStore();
     const cell = (rowIndex: number, value: string) =>
       apply({
@@ -468,17 +417,16 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
         origin: "user",
       });
     await Promise.all([cell(0, "A"), cell(1, "B")]);
-    const rows = collections()
-      .get("c1")!
-      .mockData.map((row) => row.name);
-    expect(rows).toEqual(["A", "B", "c"]);
-    const lastWrite = dbMock.collections.update.mock.calls.at(-1)![1] as {
-      mockData: { name: string }[];
-    };
-    expect(lastWrite.mockData.map((row) => row.name)).toEqual(["A", "B", "c"]);
+    expect(
+      collections()
+        .get("c1")!
+        .mockData.map((row) => row.name),
+    ).toEqual(["A", "B", "c"]);
+    const last = testDataCommits.at(-1)!.collections![0]!;
+    expect(last.mockData.map((row) => row.name)).toEqual(["A", "B", "c"]);
   });
 
-  it("셀 편집 → DB update 1 · 메모리 갱신 · History data entry (inverse 동봉)", async () => {
+  it("셀 편집 → 문서 쓰기 1 (정의 + payload · inverse) · store 갱신", async () => {
     const { apply, collections } = makeStore();
     const result = await apply({
       ops: [
@@ -491,42 +439,19 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
         },
       ],
       origin: "user",
+      label: "Edit cell",
     });
     expect(collections().get("c1")!.mockData[0].name).toBe("A");
-    expect(dbMock.collections.update).toHaveBeenCalledTimes(1);
-    expect(dbMock.collections.update.mock.calls[0][0]).toBe("c1");
-    expect(addEntry).toHaveBeenCalledTimes(1);
-    const entry = addEntry.mock.calls[0][0] as {
-      type: string;
-      elementId: string;
-      data: {
-        dataChangeEvent: {
-          change: { ops: DataOp[]; origin: string };
-          inverse: DataOp[];
-        };
-      };
-    };
-    expect(entry.type).toBe("data");
-    expect(entry.elementId).toBe("c1");
-    expect(entry.data.dataChangeEvent.change.origin).toBe("user");
-    expect(entry.data.dataChangeEvent.inverse).toEqual(result.inverse);
+    expect(testDataCommits).toHaveLength(1);
+    expect(testDataCommits[0]!.collections!.map((t) => t.id)).toEqual(["c1"]);
+    expect(testDataCommits[0]!.payload).toMatchObject({
+      change: { origin: "user", label: "Edit cell" },
+      inverse: result.inverse,
+    });
     expect(result.inverse[0]).toMatchObject({ op: "set_cell", value: "a" });
   });
 
-  it("record:false 는 History 0 (undo/redo 재적용 경로)", async () => {
-    const { apply } = makeStore();
-    await apply(
-      {
-        ops: [{ op: "remove_rows", collectionId: "c1", rowIndexes: [0] }],
-        origin: "user",
-      },
-      { record: false },
-    );
-    expect(addEntry).not.toHaveBeenCalled();
-    expect(dbMock.collections.update).toHaveBeenCalledTimes(1);
-  });
-
-  it("create → insert · delete → delete · undo(delete) → insert 같은 id", async () => {
+  it("create · delete · inverse 재적용 → 같은 id 로 되살린다", async () => {
     const { apply, collections } = makeStore();
     const created = await apply({
       ops: [
@@ -538,23 +463,19 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
       ],
       origin: "user",
     });
-    expect(dbMock.collections.insert).toHaveBeenCalledTimes(1);
     const id = (created.applied[0] as { id: string }).id;
     expect(collections().has(id)).toBe(true);
-
     const deleted = await apply({
       ops: [{ op: "delete_collection", collectionId: id }],
       origin: "user",
     });
-    expect(dbMock.collections.delete).toHaveBeenCalledWith(id);
+    expect(testDataCommits.at(-1)!.collectionsDeleted).toEqual([id]);
     expect(collections().has(id)).toBe(false);
-
-    await apply({ ops: deleted.inverse, origin: "user" }, { record: false });
-    expect(dbMock.collections.insert).toHaveBeenCalledTimes(2);
+    await apply({ ops: deleted.inverse, origin: "user" });
     expect(collections().get(id)?.name).toBe("Roles");
   });
 
-  it("검증 실패 → DB 0 · 메모리 0 · History 0 · throw", async () => {
+  it("검증 실패 → 쓰기 0 · store 0 · throw", async () => {
     const { apply, collections } = makeStore();
     await expect(
       apply({
@@ -572,13 +493,19 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
       }),
     ).rejects.toThrow(DataChangeError);
     expect(collections().get("c1")!.mockData[0].name).toBe("a");
-    expect(dbMock.collections.update).not.toHaveBeenCalled();
-    expect(addEntry).not.toHaveBeenCalled();
+    expect(testDataCommits).toHaveLength(0);
   });
 
-  it("DB 실패 → 메모리 0 · History 0 · errors 기록 · throw", async () => {
-    const { apply, collections, state } = makeStore();
-    dbMock.collections.update.mockRejectedValueOnce(new Error("quota"));
+  it("문서가 거부하면 (명령 실패) throw · store 무변경", async () => {
+    const { apply, collections } = makeStore();
+    setDataDefinitionSink({
+      hasElement: () => false,
+      readBinding: () => null,
+      documentVariableNames: () => new Set(),
+      commit: (_write: DataDefinitionWrite) => {
+        throw new Error("COLLECTION_ROW_LIMIT");
+      },
+    });
     await expect(
       apply({
         ops: [
@@ -592,250 +519,128 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
         ],
         origin: "user",
       }),
-    ).rejects.toThrow("quota");
+    ).rejects.toThrow("COLLECTION_ROW_LIMIT");
     expect(collections().get("c1")!.mockData[0].name).toBe("a");
-    expect(addEntry).not.toHaveBeenCalled();
-    expect((state.errors as Map<string, Error>).has("applyDataChange")).toBe(
-      true,
-    );
+  });
+
+  it("열린 문서가 없으면 (sink 없음) throw — 조용한 no-op 금지", async () => {
+    const { apply } = makeStore();
+    setDataDefinitionSink(null);
+    await expect(
+      apply({
+        ops: [{ op: "remove_rows", collectionId: "c1", rowIndexes: [0] }],
+        origin: "user",
+      }),
+    ).rejects.toThrow(DataChangeError);
   });
 });
 
-describe("applyDataChange — bind_element (ADR-213 Phase 2, canonical 축 consumer + cross-store 원자성)", () => {
-  type Snap = { props?: unknown; extension?: unknown };
-  /** 가짜 canonical — 요소별 props/extension dataBinding 자리 */
-  let nodes: Map<string, Snap>;
-  let failOn: string | null;
-  const consumer: DataBindingConsumer = {
-    has: (id) => nodes.has(id),
-    read: (id) => {
-      const node = nodes.get(id);
-      return node ? { props: node.props, extension: node.extension } : null;
-    },
-    apply: (id, write) => {
-      if (id === failOn) throw new Error("canonical write failed");
-      const node = nodes.get(id);
-      if (!node) return null;
-      const previous: Snap = { props: node.props, extension: node.extension };
-      if (write.restore) {
-        nodes.set(id, {
-          props: write.restore.props,
-          extension: write.restore.extension,
-        });
-      } else if (write.binding === null) {
-        nodes.set(id, {});
-      } else {
-        nodes.set(id, { props: write.binding });
-      }
-      return { previous };
-    },
-  };
-
+describe("applyDataChange — bind_element (ADR-286: the bindings go in the same document write)", () => {
   function makeStore() {
     const state: Record<string, unknown> = {
       collections: seed(),
+      variables: new Map(),
+      apiEndpoints: new Map(),
       errors: new Map(),
     };
     const set = (patch: unknown) =>
       Object.assign(state, typeof patch === "function" ? patch(state) : patch);
     const get = () => state;
+    attachTestDataStore(set as never, get as never);
     return {
-      state,
       apply: createApplyDataChangeAction(set as never, get as never),
       collections: () => state.collections as Map<string, DataTable>,
     };
   }
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    nodes = new Map([
-      ["e_free", {}],
-      [
-        "e_legacy",
-        {
-          extension: {
-            type: "collection",
-            source: "static",
-            config: { data: [] },
-          },
-        },
-      ],
-    ]);
-    failOn = null;
-    registerDataBindingConsumer(consumer);
-  });
-  afterEach(() => {
-    registerDataBindingConsumer(null);
-    vi.restoreAllMocks();
+    testDataCommits.length = 0;
+    testElementBindings.clear();
+    testElementBindings.set("el1", undefined);
+    installTestDataChangeRecorder((entry) => addEntry(entry));
   });
 
-  it("bind → props.dataBinding 이 사람 UI 형상 {source:dataTable, collectionId, name} 으로 기록 · History 1 · inverse 는 restore 스냅샷", async () => {
-    const { apply } = makeStore();
-    const result = await apply({
-      ops: [
-        {
-          op: "bind_element",
-          elementId: "e_free",
-          collectionId: "c1",
-          fieldMap: { value: "f_name" },
-        },
-      ],
-      origin: "ai",
-    });
-    expect(nodes.get("e_free")).toEqual({
-      props: {
-        source: "dataTable",
-        collectionId: "c1",
-        name: "Users",
-        fieldMap: { value: "f_name" },
-      },
-    });
-    expect(addEntry).toHaveBeenCalledTimes(1);
-    const entry = addEntry.mock.calls[0][0] as {
-      elementIds: string[];
-      data: { dataChangeEvent: { change: { origin: string } } };
-    };
-    expect(entry.elementIds).toContain("e_free");
-    expect(entry.data.dataChangeEvent.change.origin).toBe("ai");
-    expect(result.inverse).toEqual([
-      {
-        op: "bind_element",
-        elementId: "e_free",
-        collectionId: null,
-        restore: { props: undefined, extension: undefined },
-      },
-    ]);
-    expect(dbMock.collections.update).not.toHaveBeenCalled();
-  });
-
-  it("undo(inverse, record:false) 는 legacy extension 형태까지 원상 복구한다", async () => {
-    const { apply } = makeStore();
-    const before = structuredClone(nodes.get("e_legacy"));
-    const forward = await apply({
-      ops: [{ op: "bind_element", elementId: "e_legacy", collectionId: "c1" }],
-      origin: "agent",
-    });
-    expect(nodes.get("e_legacy")).toEqual({
-      props: { source: "dataTable", collectionId: "c1", name: "Users" },
-    });
-    await apply({ ops: forward.inverse, origin: "agent" }, { record: false });
-    expect(nodes.get("e_legacy")).toEqual(before);
-    expect(addEntry).toHaveBeenCalledTimes(1);
-  });
-
-  it("collectionId:null 은 해제 — inverse 로 다시 붙는다", async () => {
+  it("bind → 사람 UI 형상 {source:dataTable, collectionId, name} 으로 같은 쓰기에 실린다", async () => {
     const { apply } = makeStore();
     await apply({
-      ops: [{ op: "bind_element", elementId: "e_free", collectionId: "c1" }],
-      origin: "user",
+      ops: [{ op: "bind_element", elementId: "el1", collectionId: "c1" }],
+      origin: "ai",
     });
-    const unbound = await apply({
-      ops: [{ op: "bind_element", elementId: "e_free", collectionId: null }],
-      origin: "user",
-    });
-    expect(nodes.get("e_free")).toEqual({});
-    await apply({ ops: unbound.inverse, origin: "user" }, { record: false });
-    expect(nodes.get("e_free")).toEqual({
-      props: { source: "dataTable", collectionId: "c1", name: "Users" },
-    });
+    expect(testDataCommits).toHaveLength(1);
+    expect(testDataCommits[0]!.bindings).toEqual([
+      {
+        elementId: "el1",
+        binding: { source: "dataTable", collectionId: "c1", name: "Users" },
+      },
+    ]);
+    expect(testElementBindings.get("el1")).toMatchObject({ collectionId: "c1" });
   });
 
-  it("preflight — 없는 요소 · 없는 collection 은 아무것도 바꾸지 않고 throw (같은 change 안에서 만든 collection 은 허용)", async () => {
+  it("collectionId:null 은 해제", async () => {
+    const { apply } = makeStore();
+    await apply({
+      ops: [{ op: "bind_element", elementId: "el1", collectionId: null }],
+      origin: "user",
+    });
+    expect(testDataCommits[0]!.bindings).toEqual([
+      { elementId: "el1", binding: null },
+    ]);
+  });
+
+  it("preflight — 없는 요소 · 없는 collection 은 쓰지 않고 throw (같은 change 안에서 만든 collection 은 허용)", async () => {
     const { apply, collections } = makeStore();
     await expect(
       apply({
-        ops: [{ op: "bind_element", elementId: "ghost", collectionId: "c1" }],
+        ops: [{ op: "bind_element", elementId: "nope", collectionId: "c1" }],
         origin: "ai",
       }),
     ).rejects.toThrow(DataChangeError);
     await expect(
       apply({
-        ops: [
-          {
-            op: "set_cell",
-            collectionId: "c1",
-            rowIndex: 0,
-            fieldId: "f_name",
-            value: "A",
-          },
-          { op: "bind_element", elementId: "e_free", collectionId: "nope" },
-        ],
+        ops: [{ op: "bind_element", elementId: "el1", collectionId: "zz" }],
         origin: "ai",
       }),
     ).rejects.toThrow(DataChangeError);
-    expect(collections().get("c1")!.mockData[0].name).toBe("a");
-    expect(dbMock.collections.update).not.toHaveBeenCalled();
-    expect(addEntry).not.toHaveBeenCalled();
-
-    const created = await apply({
+    expect(testDataCommits).toHaveLength(0);
+    await apply({
       ops: [
         {
           op: "create_collection",
-          id: "c_new",
-          name: "Roles",
-          schema: [{ key: "r", type: "string" }],
+          id: "c_qc",
+          name: "Quick",
+          schema: [{ key: "q", type: "string" }],
         },
-        { op: "bind_element", elementId: "e_free", collectionId: "c_new" },
+        { op: "bind_element", elementId: "el1", collectionId: "c_qc" },
       ],
       origin: "ai",
     });
-    expect(nodes.get("e_free")).toEqual({
-      props: { source: "dataTable", collectionId: "c_new", name: "Roles" },
+    expect(collections().has("c_qc")).toBe(true);
+    expect(testDataCommits).toHaveLength(1);
+    expect(testElementBindings.get("el1")).toMatchObject({
+      collectionId: "c_qc",
+      name: "Quick",
     });
-    expect(created.inverse.map((o) => o.op)).toEqual([
-      "bind_element",
-      "delete_collection",
-    ]);
-    expect(addEntry).toHaveBeenCalledTimes(1);
   });
 
-  it("두 번째 binding 이 실패하면 첫 binding 과 collection 변경을 전부 되돌리고 History 0", async () => {
-    const { apply, collections } = makeStore();
-    failOn = "e_legacy";
-    const before = structuredClone(nodes.get("e_legacy"));
+  it("restore op 는 거부한다 (문서 기록이 되돌린다)", async () => {
+    const { apply } = makeStore();
     await expect(
       apply({
         ops: [
           {
-            op: "set_cell",
-            collectionId: "c1",
-            rowIndex: 0,
-            fieldId: "f_name",
-            value: "A",
+            op: "bind_element",
+            elementId: "el1",
+            collectionId: null,
+            restore: { props: undefined },
           },
-          { op: "bind_element", elementId: "e_free", collectionId: "c1" },
-          { op: "bind_element", elementId: "e_legacy", collectionId: "c1" },
         ],
-        origin: "ai",
-      }),
-    ).rejects.toThrow("canonical write failed");
-    expect(nodes.get("e_free")).toEqual({});
-    expect(nodes.get("e_legacy")).toEqual(before);
-    expect(collections().get("c1")!.mockData[0].name).toBe("a");
-    // DB: 1회 commit + 1회 rollback update
-    expect(dbMock.collections.update).toHaveBeenCalledTimes(2);
-    expect(addEntry).not.toHaveBeenCalled();
-  });
-
-  it("consumer 미등록이면 binding op 는 throw (조용한 no-op 금지)", async () => {
-    registerDataBindingConsumer(null);
-    const { apply } = makeStore();
-    await expect(
-      apply({
-        ops: [{ op: "bind_element", elementId: "e_free", collectionId: "c1" }],
-        origin: "ai",
+        origin: "user",
       }),
     ).rejects.toThrow(DataChangeError);
   });
 
-  // ADR-013 — 연결 모드: 비동기 저장 뒤 canonical commit 경계에서 대상 바인딩이 캡처 시점과
-  //   다르면 (사용자가 그 사이 다른 collection 을 골랐다) 무변경 중단 + collection rollback.
-  it("expectBindings: 캡처 스냅샷과 현재 바인딩이 다르면 DataChangeError · collection 생성도 되돌린다", async () => {
+  it("expectBindings: 캡처 스냅샷과 현재 바인딩이 다르면 DataChangeError · collection 생성도 쓰지 않는다", async () => {
     const { apply, collections } = makeStore();
-    // 캡처 시점엔 미연결이었는데 apply 전에 누가 c1 을 연결했다
-    nodes.set("e_free", {
-      props: { source: "dataTable", collectionId: "c1", name: "Users" },
-    });
+    testElementBindings.set("el1", { collectionId: "other" });
     await expect(
       apply(
         {
@@ -844,47 +649,28 @@ describe("applyDataChange — bind_element (ADR-213 Phase 2, canonical 축 consu
               op: "create_collection",
               id: "c_qc",
               name: "Quick",
-              schema: [{ key: "n", type: "string" }],
+              schema: [{ key: "q", type: "string" }],
             },
-            { op: "bind_element", elementId: "e_free", collectionId: "c_qc" },
+            { op: "bind_element", elementId: "el1", collectionId: "c_qc" },
           ],
-          origin: "user",
+          origin: "ai",
         },
-        { expectBindings: { e_free: { props: undefined } } },
+        { expectBindings: { el1: {} } },
       ),
     ).rejects.toThrow(DataChangeError);
-    expect(nodes.get("e_free")!.props).toEqual({
-      source: "dataTable",
-      collectionId: "c1",
-      name: "Users",
-    });
     expect(collections().has("c_qc")).toBe(false);
-    expect(dbMock.collections.delete).toHaveBeenCalledWith("c_qc");
-    expect(addEntry).not.toHaveBeenCalled();
+    expect(testDataCommits).toHaveLength(0);
   });
 
   it("expectBindings: 스냅샷이 같으면 정상 적용 (undefined ↔ 없음 동치)", async () => {
     const { apply } = makeStore();
     await apply(
       {
-        ops: [
-          {
-            op: "create_collection",
-            id: "c_qc",
-            name: "Quick",
-            schema: [{ key: "n", type: "string" }],
-          },
-          { op: "bind_element", elementId: "e_free", collectionId: "c_qc" },
-        ],
-        origin: "user",
+        ops: [{ op: "bind_element", elementId: "el1", collectionId: "c1" }],
+        origin: "ai",
       },
-      {
-        expectBindings: { e_free: { props: undefined, extension: undefined } },
-      },
+      { expectBindings: { el1: { props: undefined } } },
     );
-    expect(nodes.get("e_free")).toEqual({
-      props: { source: "dataTable", collectionId: "c_qc", name: "Quick" },
-    });
-    expect(addEntry).toHaveBeenCalledTimes(1);
+    expect(testDataCommits).toHaveLength(1);
   });
 });

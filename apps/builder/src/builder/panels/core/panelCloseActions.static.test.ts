@@ -19,6 +19,7 @@ const STANDARD_PANEL_SOURCES = [
   // The catalog Themes panel wraps the shared panel (its header lives there).
   { component: "CatalogThemesPanel", source: "../themes/ThemesPanel.tsx" },
   { component: "SettingsPanel", source: "../settings/SettingsPanel.tsx" },
+  { component: "SitePanel", source: "../site/SitePanel.tsx" },
   { component: "AIPanel", source: "../ai/AIPanel.tsx" },
   // ADR-252 — Properties · Styles 를 합친 Design 패널 (id properties). 헤더는 패널 한 곳.
   { component: "DesignPanel", source: "../design/DesignPanel.tsx" },
@@ -45,14 +46,14 @@ function panelHeaderBlocks(source: string): string[] {
 }
 
 describe("registered panel close action coverage", () => {
-  it("등록된 12개 패널을 전부 인벤토리한다", async () => {
+  it("등록된 13개 패널을 전부 인벤토리한다", async () => {
     const configs = await readFile(
       resolve(__dirname, "panelConfigs.ts"),
       "utf-8",
     );
     const registeredComponents = configs.match(/^\s*component:\s*\w+,/gm) ?? [];
 
-    expect(registeredComponents).toHaveLength(12);
+    expect(registeredComponents).toHaveLength(13);
     for (const { component } of STANDARD_PANEL_SOURCES) {
       expect(configs).toContain(`component: ${component}`);
     }

@@ -31,6 +31,7 @@ import {
   CatalogPreviewView,
 } from "../../catalogPreviewApp";
 import { CatalogPreviewSession } from "../../catalogPreviewSession";
+import { sendCatalogData } from "./catalogDataEntries";
 
 /**
  * ADR-280 — the whole Preview path in one place: a Builder workspace, its Preview session over the
@@ -124,6 +125,31 @@ export async function openAdr280Preview(
     schedule: (flush) => flushes.push(flush),
   });
   const flush = () => act(() => flushes.splice(0).forEach((run) => run()));
+  // ADR-286: a test's `CATALOG_DATA` (definitions + rows, as the channel carried them before) is
+  // what the Builder does now — the definitions as one document step (delivered as a delta), the
+  // channel with the API rows only.
+  const receive = session.receive.bind(session);
+  session.receive = (value: unknown) => {
+    const message = value as {
+      type?: unknown;
+      collections?: readonly Record<string, unknown>[];
+      apiEndpoints?: unknown;
+      variables?: unknown;
+    };
+    if (
+      message?.type !== "CATALOG_DATA" ||
+      (message.apiEndpoints === undefined &&
+        message.variables === undefined &&
+        !message.collections?.some((item) => "name" in item || "schema" in item))
+    )
+      return receive(value);
+    return sendCatalogData(
+      workspace,
+      { receive },
+      value as Parameters<typeof sendCatalogData>[2],
+      () => flushes.splice(0).forEach((run) => run()),
+    ) as ReturnType<typeof receive>;
+  };
   channel.setView(HOME);
   channel.onReady();
   const toasts: string[] = [];

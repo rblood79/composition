@@ -9,7 +9,6 @@ import {
   catalogVariableIndex,
   catalogVariableUsageCounter,
 } from "../../../catalogRuntime/dataVariables";
-import { dataChangeEffect } from "../../../catalogRuntime/dataHistory";
 import { catalogVariableNameConflict } from "../../../catalogRuntime/stateVariables";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import {
@@ -21,7 +20,7 @@ import {
 interface DataStoreAccess {
   apply(
     change: DataChange,
-    options: { record: false },
+    options: { document?: readonly unknown[] },
   ): Promise<{ applied: DataOp[]; inverse: DataOp[] }>;
 }
 
@@ -165,7 +164,8 @@ export function createCatalogDataVariablesHost(
         workspace.newId,
       );
       if ("refused" in move) return false;
-      const removed = await store.apply(
+      // ADR-286: one document step — the project variable goes, the page variable comes.
+      await store.apply(
         {
           ops: [
             {
@@ -175,28 +175,10 @@ export function createCatalogDataVariablesHost(
             },
           ],
           origin: "user",
-        },
-        { record: false },
-      );
-      try {
-        workspace.recordExternal(
           label,
-          dataChangeEffect(
-            {
-              change: { ops: removed.applied, origin: "user", label },
-              inverse: removed.inverse,
-            },
-            store.apply,
-          ),
-          move.command,
-        );
-      } catch (error) {
-        await store.apply(
-          { ops: removed.inverse, origin: "user" },
-          { record: false },
-        );
-        throw error;
-      }
+        },
+        { document: [move.command] },
+      );
       return true;
     },
   };

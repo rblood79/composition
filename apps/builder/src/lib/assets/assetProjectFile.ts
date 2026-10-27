@@ -53,9 +53,6 @@ export interface ImportedProjectV2 {
     currentPageId: string | null;
     fontRegistry?: unknown;
     metadata?: unknown;
-    collections?: unknown[];
-    apiEndpoints?: unknown[];
-    variables?: unknown[];
   };
   recovered: boolean;
   assets: number;
@@ -90,9 +87,6 @@ export async function readProjectV2Zip(file: Blob): Promise<ImportedProjectV2> {
         ? { fontRegistry: content.fontRegistry }
         : {}),
       ...(content.metadata !== undefined ? { metadata: content.metadata } : {}),
-      ...(content.collections ? { collections: content.collections } : {}),
-      ...(content.apiEndpoints ? { apiEndpoints: content.apiEndpoints } : {}),
-      ...(content.variables ? { variables: content.variables } : {}),
     },
     recovered: read.recovered,
     assets: read.assets.size,

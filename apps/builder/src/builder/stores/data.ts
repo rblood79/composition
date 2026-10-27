@@ -6,9 +6,10 @@
  *
  * ## 아키텍처 설계
  *
- * 1. **Source of Truth**: IndexedDB (persist 미들웨어 사용 안함)
- *    - 앱 시작 시 IndexedDB 에서 로드
- *    - 변경 시 IndexedDB 에 저장 + 메모리 업데이트
+ * 1. **Source of Truth**: the catalog document (ADR-286). `collections` · `apiEndpoints` ·
+ *    `variables` are its projection (`bindCatalogDataStore` — `catalogRuntime/catalogDataStore.ts`)
+ *    and every write is one document command (history · save · project file).
+ *    API 실행 결과 (`runtimeRows`) 만 이 store 의 것 (ADR-218 캐시).
  *
  * 2. **Runtime Values**: 메모리에서만 관리
  *    - Variable.persist: true인 경우 localStorage에 값만 저장
@@ -196,28 +197,16 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   // Project Initialization
   // ============================================
 
+  /**
+   * ADR-286 — the definitions come from the bound document (`bindCatalogDataStore` projects them
+   * first); this restores the API rows cache (ADR-218) and the persisted runtime values.
+   */
   const initializeForProject = async (projectId: string) => {
-    const { currentProjectId, isInitialized } = get();
-
-    // 이미 같은 프로젝트로 초기화됨
-    if (isInitialized && currentProjectId === projectId) {
-      console.log(`[DataStore] Already initialized for project: ${projectId}`);
-      return;
-    }
-
-    console.log(`[DataStore] Initializing for project: ${projectId}`);
     set({ isLoading: true, currentProjectId: projectId });
 
     try {
-      // IndexedDB 에서 병렬로 로드
-      await Promise.all([
-        fetchVariables(projectId),
-        fetchCollections(projectId),
-        fetchApiEndpoints(projectId),
-      ]);
-
-      // ADR-218 — collections·apiEndpoints 로드 후 runtimeData 캐시 hydration
-      // (지문 유효한 마지막 성공 응답 복원, 무효/고아 폐기). 실패는 로드를 막지 않는다.
+      // ADR-218 — runtimeData 캐시 hydration (지문 유효한 마지막 성공 응답 복원, 무효/고아
+      // 폐기). 실패는 로드를 막지 않는다.
       await hydrateRuntimeCache(projectId);
 
       // Another project started meanwhile: its own initialization owns the store now.
@@ -257,6 +246,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     collections: new Map<string, DataTable>(),
     apiEndpoints: new Map<string, ApiEndpoint>(),
     variables: new Map<string, Variable>(),
+    runtimeRows: new Map<string, Record<string, unknown>[]>(),
     loadingApis: new Set<string>(),
     apiRuns: new Map<string, ApiRunRecord>(),
     errors: new Map<string, Error>(),

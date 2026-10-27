@@ -1,3 +1,4 @@
+import { isBodyType } from "../../domain/predicates";
 import { isPropVar } from "../document/valueType";
 import {
   catalogHostInheritedChanged,
@@ -1640,6 +1641,72 @@ export class CatalogCompositionRoot {
    * — the record id, or the author's HTML id): what a sort variable a Table's rule wrote sorts by.
    */
   /** The nodes whose binding reads a view — directly or through views derived from it. */
+  /** ADR-286 R8 — the roots drawing what changed data entries (`ids`) feed. */
+  /** ADR-286 — the site's language (`ProjectEntry.site.lang`), the app's locale; absent = none set. */
+  siteLocale(): string | undefined {
+    const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
+    return project?.kind === "project" ? project.site?.lang : undefined;
+  }
+  /** What RAC reads when a node sets no locale: the site's language, else the environment's. */
+  private get environmentLocale(): string | undefined {
+    return this.siteLocale() ?? this.locale;
+  }
+  /** The site language the records were last resolved with (a change redraws every root). */
+  private resolvedSiteLocale: string | undefined | null = null;
+  private dataReaderRoots(ids: readonly string[]): Set<NodeId> {
+    const roots = new Set<NodeId>();
+    const collections = new Set<string>();
+    let variables = false;
+    for (const id of ids)
+      if (id.startsWith("data:collection:")) collections.add(id);
+      else if (id.startsWith("data:variable:")) variables = true;
+    if (!collections.size && !variables) return roots;
+    if (collections.size) {
+      // A reference field (ADR-284) reads another collection's rows by key.
+      const raw = new Set(
+        [...collections].map((id) => id.slice("data:collection:".length)),
+      );
+      const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
+      for (const id of project?.kind === "project"
+        ? (project.collectionIds ?? [])
+        : []) {
+        const entry = this.runtime.graph.getEntry(id);
+        if (
+          entry?.kind === "collection" &&
+          entry.schema.some(
+            (field) =>
+              field.reference &&
+              (raw.has(field.reference.collectionId) ||
+                collections.has(field.reference.collectionId)),
+          )
+        )
+          collections.add(id);
+      }
+    }
+    for (const [sourceId, recordIds] of this.sourceInstances) {
+      const entry = this.runtime.graph.getEntry(sourceId);
+      const binding = entry?.kind === "node" ? entry.binding : undefined;
+      if (!binding) continue;
+      if (
+        !collections.has(binding.collectionId) &&
+        !(
+          variables &&
+          (binding.key !== undefined || binding.view || binding.viewId)
+        )
+      )
+        continue;
+      for (const recordId of recordIds) {
+        const root = this.recordRoots.get(recordId);
+        if (root) roots.add(root);
+      }
+    }
+    if (variables)
+      for (const id of this.stateReaders()) {
+        const root = this.recordRoots.get(id);
+        if (root) roots.add(root);
+      }
+    return roots;
+  }
   private viewReaders(viewId: string): string[] {
     const graph = this.runtime.graph;
     const nodes: string[] = [];
@@ -2053,7 +2120,7 @@ export class CatalogCompositionRoot {
           : unbound,
         get,
         this.typeOf,
-        this.locale,
+        this.environmentLocale,
       );
       if (sameFields(valued.props, record.props)) continue;
       // A value-conditioned part (ADR-256 Decision 7) follows its new final text.
@@ -2082,7 +2149,7 @@ export class CatalogCompositionRoot {
           current,
           read,
           this.typeOf,
-          this.locale,
+          this.environmentLocale,
         );
         const next =
           valued.presentWhen === undefined
@@ -2338,6 +2405,20 @@ export class CatalogCompositionRoot {
     visit(top, region?.parentId ?? "catalog:root");
     const get = (key: string) =>
       output.get(key) ?? (region ? this.records.get(key) : undefined);
+    // ADR-286 (user 2026-10-28): the page root's locale is the site's language — a page sets none of
+    // its own (a frame still can). It reaches RAC as the page root's `I18nProvider` (DOM) and the
+    // descendants' inherited values like any host's (`inheritedProps.ts`).
+    const siteLocale = this.siteLocale();
+    this.resolvedSiteLocale = siteLocale;
+    for (const [id, record] of output) {
+      if (!isBodyType(this.typeOf(record)) || record.props.locale === siteLocale)
+        continue;
+      const { locale: _authored, ...props } = record.props;
+      output.set(id, {
+        ...record,
+        props: siteLocale ? { ...props, locale: siteLocale } : props,
+      });
+    }
     const pageId = this.rootPage.get(rootId);
     for (const [id, record] of output) {
       const templated = this.withState(record, get, pageId);
@@ -2346,7 +2427,7 @@ export class CatalogCompositionRoot {
     // ADR-256 Decision 12: value bindings read their owners' records (a part's final text decides
     // its `presentWhen` below).
     for (const [id, record] of output) {
-      const valued = catalogWithValues(record, get, this.typeOf, this.locale);
+      const valued = catalogWithValues(record, get, this.typeOf, this.environmentLocale);
       if (valued !== record) output.set(id, valued);
     }
     for (const [id, record] of output)
@@ -2377,7 +2458,7 @@ export class CatalogCompositionRoot {
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
-    const derived = catalogDerivedProps(record, get, this.typeOf, this.locale);
+    const derived = catalogDerivedProps(record, get, this.typeOf, this.environmentLocale);
     // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
     // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
     // to that sheet (`domBinding.tsx`), so the derived color is the Canvas's.
@@ -2438,7 +2519,7 @@ export class CatalogCompositionRoot {
       item,
       get,
       this.typeOf,
-      this.locale,
+      this.environmentLocale,
     );
     const color = catalogRuleTextColor({
       node: itemDerived
@@ -2831,7 +2912,7 @@ export class CatalogCompositionRoot {
       locale: ((own, system) => (system ? `${own}-u-ca-${system}` : own))(
         typeof prop("locale") === "string" && prop("locale")
           ? String(prop("locale"))
-          : (this.locale ?? globalThis.navigator?.language ?? "en-US"),
+          : (this.environmentLocale ?? globalThis.navigator?.language ?? "en-US"),
         typeof prop("calendarSystem") === "string"
           ? String(prop("calendarSystem"))
           : "",
@@ -4187,7 +4268,7 @@ export class CatalogCompositionRoot {
         ),
         (key) => this.records.get(key),
         this.typeOf,
-        this.locale,
+        this.environmentLocale,
       );
       // A parent prop change reaches the direct children its partRules target.
       for (const childId of this.partRuleChildren(before, record))
@@ -4560,7 +4641,7 @@ export class CatalogCompositionRoot {
           get(thumb.id)!,
           get,
           this.typeOf,
-          this.locale,
+          this.environmentLocale,
         );
         // A dependent's presence follows the owner too (a value-conditioned part's final text —
         // Decision 7; an owner-hidden part — a NumberField's steppers under `hideStepper`): its
@@ -4888,6 +4969,23 @@ export class CatalogCompositionRoot {
         const root = this.recordRoots.get(id);
         if (root && currentRoots.has(root)) affectedRoots.add(root);
       }
+    // ADR-286 R8: data definitions are document entries — their step redraws what reads them
+    // (no store subscription after the fact): a collection's schema · rows → the lists bound to it
+    // (and to a collection whose reference field reads it); a project variable → every `{{ }}`
+    // reader and every binding whose key or view reads a variable.
+    for (const root of this.dataReaderRoots([
+      ...result.changedIds,
+      ...result.removedIds,
+    ]))
+      if (currentRoots.has(root)) affectedRoots.add(root);
+    // ADR-286: the site's language is every page root's locale and the Canvas's date · number
+    // formats — a change redraws every root (a rare edit).
+    if (
+      this.resolvedSiteLocale !== null &&
+      result.changedIds.has(this.runtime.graph.projectId) &&
+      this.siteLocale() !== this.resolvedSiteLocale
+    )
+      for (const root of currentRoots) affectedRoots.add(root);
     // ADR-284: a shared view changed — the lists reading it (directly, or through a view derived
     // from it) show other rows; their binding did not change, so nothing else names them.
     for (const id of result.changedIds) {

@@ -4,6 +4,8 @@
 
 Implemented — 2026-10-27 (사용자 Builder 확인 「adr도 모두 확인은 했다」 — G6 사용자 Builder 확인 통과) · Accepted — 2026-10-22 · Phase 0 ~ 5 종결 · G6 (사용자 Builder 확인) 대기 (사용자 `/execute-adr 281` + [reviews/281.md](../reviews/281.md) 최신 round pending 0 · HIGH 전부 fixed)
 
+> **ADR-286 이 바꿈 (2026-10-28, 사용자 결정)**: 결정 3 의 page 루트 `locale` 은 작성 값이 아니다 — 사이트 언어 (`ProjectEntry.site.lang`) 가 page 루트 locale 이고 Canvas 의 환경 locale 이다. frame 의 `locale` (부분 덮어쓰기) 과 나머지 상속 prop 은 그대로.
+
 > **2026-10-27 현재 코드 대조** (사용자 「adr 275 ~ 283 도 체크해」 — 아래 본문은 그때의 결정 기록이고, 뒤 커밋 · ADR 로 바뀐 사실은 여기가 정본):
 >
 > - 규칙 모양: ADR-284 가 `action` 을 Do 목록 `actions[]` 로 (opcode 12, contract 50). 「규칙 모양 · 5 opcode 무변경 · 다중 액션 없음 · contract 47」 은 284 전. ADR-262 반영 · Reset all 의 원본 규칙 교체도 `trigger` · `actions` 를 옮긴다 (`commands/instanceOverrides.ts`).

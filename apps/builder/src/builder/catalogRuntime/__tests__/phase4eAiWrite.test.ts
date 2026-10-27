@@ -23,14 +23,7 @@ import {
 import { setAgentCommandHost } from "../../../services/agent/agentCommandHost";
 import { createCatalogAgentCommandHost } from "../agentHost";
 import { useDataStore } from "../../stores/data";
-import {
-  setDataHistoryRecorder,
-  setDocumentBindingCommitter,
-} from "../../stores/utils/dataChange";
-import {
-  catalogDataHistoryRecorder,
-  catalogDocumentBindingCommitter,
-} from "../dataHistory";
+import { bindCatalogDataStore } from "../catalogDataStore";
 import { catalogInteractionsOf } from "../interactions";
 import { createElementTool } from "../../../services/ai/tools/createElement";
 import { readCompilerState } from "../../../services/ai/compiler/builderHost";
@@ -369,17 +362,11 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
 
   it("bind_collection and propose_data_change bind_element: approved, one entry of the document history; undo takes the binding and the new collection back", async () => {
     const { workspace, steps } = await open();
-    const apply = useDataStore.getState().applyDataChange;
-    uninstall.push(
-      () => setDataHistoryRecorder(null),
-      () => setDocumentBindingCommitter(null),
-    );
-    setDataHistoryRecorder(catalogDataHistoryRecorder(workspace, apply));
+    // ADR-286: the data store bound to the document (a data change is a document step).
+    useDataStore.getState().reset();
+    uninstall.push(bindCatalogDataStore(workspace));
     uninstall.push(
       setAgentCommandHost(createCatalogAgentCommandHost(workspace)),
-    );
-    setDocumentBindingCommitter(
-      catalogDocumentBindingCommitter(workspace, apply),
     );
     let approve = true;
     uninstall.push(
@@ -388,21 +375,19 @@ describe("ADR-248 Phase 4e-5 AI writes", () => {
           queueMicrotask(() => resolveAgentCommandConfirmation(approve));
       }),
     );
-    useDataStore.setState({
-      currentProjectId: "p1",
-      collections: new Map([
-        [
-          "c1",
-          {
-            id: "c1",
-            name: "Users",
-            schema: [{ id: "f1", key: "name", type: "string" }],
-            mockData: [{ name: "Ann" }],
-            useMockData: true,
-          },
-        ],
-      ]),
-    } as never);
+    await useDataStore.getState().applyDataChange({
+      ops: [
+        {
+          op: "create_collection",
+          id: "c1",
+          name: "Users",
+          schema: [{ id: "f1", key: "name", type: "string" }],
+          rows: [{ name: "Ann" }],
+          source: "manual",
+        },
+      ],
+      origin: "user",
+    });
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },

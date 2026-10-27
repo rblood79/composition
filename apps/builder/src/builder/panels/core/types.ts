@@ -75,6 +75,7 @@ export type PanelId =
   // System panels
   | "user"
   | "settings"
+  | "site" // ADR-286 — 사이트 설정 (Settings 와 분리, 사용자 2026-10-28)
   // Editor panels
   | "properties" // Design 패널 (ADR-252 — Properties · Styles 통합, id 는 저장 키라 유지)
   | "events"

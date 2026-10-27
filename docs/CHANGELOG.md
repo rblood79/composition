@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-286 Phase 0 ~ 4 — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로] - 2026-10-28
+
+### Added
+
+- **「사이트」 패널**: 사이트 제목 · 설명 · 언어 · favicon (밝은 · 어두운) · 공유 이미지 · 검색 노출 · sitemap · robots · redirect (위가 먼저 — 행 메뉴로 순서 · 301/302 · 제거) · 접근 (누구나 · 비밀번호 · SSO — OIDC/SAML · issuer · metadata URL · client id · 보호할 페이지). 비밀 (비밀번호 · client secret · 인증서) 은 문서에 저장하지 않고 게시 서버 설정에 둔다 — 입력 칸이 없다. 게시 사이트 반영은 다음 phase. 전체 메뉴의 「Site」.
+  - 위치: `apps/builder/src/builder/panels/site/` · `packages/shared/src/catalog/commands/project.ts` (`setSiteSettings`) · `catalog/runtime/siteMeta.ts`
+- **페이지 「검색 · 공유」**: Navigator 의 page 설정 (Design 패널 page 섹션) 에 페이지 제목 · 설명 · 공유 이미지 · 검색 · sitemap 에서 숨김. 비우면 사이트 값.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogPageMetaSection.tsx`
+
+### Changed
+
+- **데이터 표 · API endpoint · 프로젝트 변수가 프로젝트 문서 안에**: 정의 (schema · 샘플 행 · 요청 · 시작값) 편집이 문서 명령 한 단계라 Undo · 저장 · 프로젝트 파일 · 코드 보기 · Preview · 게시가 같은 값을 본다. 샘플 행은 표당 1,000 행까지. API 로 받은 행은 문서 밖 (캐시) 그대로.
+  - 위치: `packages/shared/src/catalog/document/{types,validation,graph}.ts` · `catalog/commands/data.ts` · `apps/builder/src/builder/catalogRuntime/{catalogDataStore,catalogDataRead}.ts` · `stores/utils/{dataChange,dataActions}.ts`
+- **Canvas 가 데이터 편집을 바로 따라온다**: 샘플 행 · 프로젝트 변수 시작값을 바꾸거나 Undo 하면 바운드 목록 · `{{ }}` 글자가 같은 단계에서 다시 그려진다 (store 구독 없이).
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`dataReaderRoots`)
+- **page 의 Locale 칸 삭제 → 사이트 언어**: page 루트의 Locale 대신 사이트 「언어」 가 page 의 locale (날짜 · 숫자 형식) 이고 Canvas 도 그 값으로 그린다. frame 의 Locale (부분 덮어쓰기) 은 그대로.
+  - 위치: `packages/shared/src/catalog/bindings/Body.binding.ts` · `catalog/runtime/compositionRoot.ts` (`siteLocale`)
+- **보호 페이지 삭제**: SSO 보호 목록에 든 page 를 지우면 목록에서도 빠지고 Undo 로 함께 돌아온다.
+- **프로젝트 파일**: 데이터는 문서 part 안 (part 5 → 2). contract 51 — 이전 형식의 로컬 프로젝트 · 파일은 열리지 않는다 (개발 단계 정책, 변환 없음).
+
+### Removed
+
+- IndexedDB 데이터 store 3 (`collections` · `api_endpoints` · `variables` — DB_VERSION 26) · 데이터 history recorder (`dataHistory.ts`) · 변수 소유자 이관 (`variableOwnerMigration.ts`) · `endpointTarget.ts` · `importCollectionEnvelope.ts`.
+
+### Known
+
+- 번들: Builder initial gzip +5,977 B (ADR 상한 +1,000 초과 — 사용자 수용) — 모듈 합계는 −1,115 B raw, initial 파일 101 → 117 로 분할된 몫. Preview −85 B.
+
 ## [ADR-287 Implemented — Interactions 의 Do 가 컴포넌트마다 레퍼런스 API 대로] - 2026-10-28
 
 ### Changed

@@ -9,7 +9,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 50,
+    "libraryContractVersion": 51,
     "revision": 27,
     "projectId": "project:project:7d834a71-b4e7-417f-a0c7-d6c2dde53998",
     "rootId": "project:project:7d834a71-b4e7-417f-a0c7-d6c2dde53998",
@@ -516,35 +516,39 @@
           "project:interaction:a77524eb-61d7-40df-a5c5-5b12a1abc14e",
           "project:interaction:9130040c-d3ba-4269-959b-e0d912c64b28"
         ],
-        "assetIds": []
+        "assetIds": [],
+        "projectVariableIds": [
+          "data:variable:3debe2bb-1381-49bc-bbec-272ce67f3ad4",
+          "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+          "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2"
+        ]
+      },
+      "data:variable:3debe2bb-1381-49bc-bbec-272ce67f3ad4": {
+        "kind": "projectVariable",
+        "id": "data:variable:3debe2bb-1381-49bc-bbec-272ce67f3ad4",
+        "name": "isMember",
+        "valueType": "boolean",
+        "persist": false,
+        "defaultValue": false
+      },
+      "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8": {
+        "kind": "projectVariable",
+        "id": "data:variable:c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
+        "name": "count",
+        "valueType": "number",
+        "persist": false,
+        "defaultValue": 0
+      },
+      "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2": {
+        "kind": "projectVariable",
+        "id": "data:variable:f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
+        "name": "userName",
+        "valueType": "string",
+        "persist": false,
+        "defaultValue": ""
       }
     }
   },
   "currentPageId": "project:page:home",
-  "collections": [],
-  "apiEndpoints": [],
-  "variables": [
-    {
-      "id": "3debe2bb-1381-49bc-bbec-272ce67f3ad4",
-      "name": "isMember",
-      "type": "boolean",
-      "defaultValue": false,
-      "persist": false
-    },
-    {
-      "id": "c06b8fc7-c0f4-4a21-a6b1-3292a515d2f8",
-      "name": "count",
-      "type": "number",
-      "defaultValue": 0,
-      "persist": false
-    },
-    {
-      "id": "f0a5c092-c9ec-49c0-9da1-8fb9a802e7d2",
-      "name": "userName",
-      "type": "string",
-      "defaultValue": "",
-      "persist": false
-    }
-  ],
   "assets": {}
 }

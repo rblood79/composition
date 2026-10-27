@@ -1,14 +1,14 @@
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   InteractionEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { importDataParts } from "../../utils/importCollectionEnvelope";
+import { catalogRuntimeData } from "../../../../../../packages/shared/src/catalog/runtime/catalogData";
 import {
   importCatalogProjectContent,
   readCatalogProjectJson,
@@ -32,25 +32,6 @@ async function importSample(file: string) {
     newCatalogProjectDocument({ projectId: TARGET, name: "Imported" }),
     library,
   );
-  let next = 0;
-  const store = {
-    collections: new Map(),
-    apiEndpoints: new Map(),
-    variables: new Map(),
-    createDataTable: vi.fn(async (config: { name: string }) => ({
-      ...config,
-      id: `table-${(next += 1)}`,
-    })),
-    updateCollection: vi.fn(),
-    setRuntimeData: vi.fn(),
-    // (Another PC: the store gives each endpoint its own id.)
-    createApiEndpoint: vi.fn(async (config: { name: string }) => ({
-      ...config,
-      id: `local-${(next += 1)}`,
-    })),
-    updateApiEndpoint: vi.fn(),
-    applyDataChange: vi.fn(async () => ({})),
-  };
   const { content } = await readCatalogProjectJson(
     readFileSync(resolve(SAMPLES, file), "utf8"),
   );
@@ -60,49 +41,41 @@ async function importSample(file: string) {
     name: "Imported",
     library,
     replace: (document) => storage.replace(document, library),
-    importData: (extras) =>
-      importDataParts(
-        "imported",
-        extras as Parameters<typeof importDataParts>[1],
-        store as unknown as Parameters<typeof importDataParts>[2],
-      ),
   });
   const document = await storage.load(TARGET, library);
   const graph = new CatalogGraph(document, library);
   const rules = Object.values(document.entries).filter(
     (entry): entry is InteractionEntry => entry.kind === "interaction",
   );
-  return { graph, rules, store, content };
+  // ADR-286: the data definitions travel inside the document.
+  const data = catalogRuntimeData(graph);
+  return { graph, rules, data };
 }
 
-describe("sample project files import into another project", () => {
-  it("ADR-281 G6 check: both Forms' callEndpoint name the endpoints the import created", async () => {
-    const { graph, rules, store } = await importSample(
+describe("sample project files import into another project (ADR-286 — data in the document)", () => {
+  it("ADR-281 G6 check: both Forms' callEndpoint name the file's endpoints", async () => {
+    const { graph, rules, data } = await importSample(
       "adr281-g6-check.composition.json",
     );
     expect(graph.getEntry(TARGET)?.kind).toBe("project");
-    const created = await Promise.all(
-      store.createApiEndpoint.mock.results.map((result) => result.value),
-    );
     const endpoints = rules
       .map((rule) => rule.actions[0])
       .filter((action) => action.opcode === "callEndpoint")
       .map((action) => action.endpointId);
     expect(endpoints).toHaveLength(2);
     expect(new Set(endpoints)).toEqual(
-      new Set(created.map((endpoint) => `data:endpoint:${endpoint.id}`)),
+      new Set(data.apiEndpoints.map((endpoint) => `data:endpoint:${endpoint.id}`)),
     );
   });
 
-  it("global variable CRUD: every setState names a variable the file defines", async () => {
-    const { rules, content } = await importSample(
+  it("global variable CRUD: every setState names a variable the document defines", async () => {
+    const { rules, data } = await importSample(
       "global-variable-crud.composition.json",
     );
     const defined = new Set(
-      ((content.variables ?? []) as { id: string }[]).map(
-        (def) => `data:variable:${def.id}`,
-      ),
+      data.variables.map((def) => `data:variable:${def.id}`),
     );
+    expect(defined.size).toBe(3);
     const written = rules
       .map((rule) => rule.actions[0])
       .filter((action) => action.opcode === "setState")
@@ -112,15 +85,14 @@ describe("sample project files import into another project", () => {
   });
 
   it("collection CRUD: list · detail — every submit reloads the list, the detail loads one item (GET /users/{{ params.id }}) and binds it", async () => {
-    const { graph, rules, store, content } = await importSample(
+    const { graph, rules, data } = await importSample(
       "collection-crud.composition.json",
     );
-    const [table, detailTable] = await Promise.all(
-      store.createDataTable.mock.results.map((result) => result.value),
-    );
-    const endpoints = await Promise.all(
-      store.createApiEndpoint.mock.results.map((result) => result.value),
-    );
+    const table = data.collections.find((item) => item.name === "Users")!;
+    const detailTable = data.collections.find(
+      (item) => item.name === "UserDetail",
+    )!;
+    const endpoints = data.apiEndpoints;
     const entries = Object.values(graph.exportDocument().entries);
     const collection = `data:collection:${table.id}`;
     const detail = `data:collection:${detailTable.id}`;
@@ -193,22 +165,14 @@ describe("sample project files import into another project", () => {
           rule.actions[0].collectionId === detail,
       ),
     ).toBe(true);
-    expect(store.applyDataChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ops: [
-          {
-            op: "set_execution_policy",
-            collectionId: table.id,
-            policy: { mode: "auto" },
-          },
-        ],
-      }),
-      { projectId: "imported" },
-    );
+    // The execution policy travels with the collection entry.
+    expect(
+      graph.getEntry(collection)?.kind === "collection" &&
+        (graph.getEntry(collection) as { executionPolicy?: unknown })
+          .executionPolicy,
+    ).toEqual({ mode: "auto" });
     const defined = new Set(
-      ((content.variables ?? []) as { id: string }[]).map(
-        (def) => `data:variable:${def.id}`,
-      ),
+      data.variables.map((def) => `data:variable:${def.id}`),
     );
     for (const action of rules.map((rule) => rule.actions[0]))
       if (action.opcode === "setState") expect(defined).toContain(action.variableId);

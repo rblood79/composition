@@ -479,19 +479,13 @@ function Dashboard() {
     },
   );
 
-  // 프로젝트 문서는 새 저장소에서 지운다. 데이터 저장소 (컬렉션 · API endpoint · 변수)
-  // 는 route id 를 project id 로 쓰므로 같은 id 로 정리한다.
+  // 프로젝트 문서 (데이터 정의 포함 — ADR-286) 는 새 저장소에서 지운다. API 응답 캐시는
+  // route id 를 project id 로 쓰므로 같은 id 로 정리한다.
   const deleteProjectMutation = useAsyncMutation<void, string>(
     async (routeId) => {
       const projectId = catalogProjectIdOf(routeId);
       if (!projectId) throw new Error(`INVALID_PROJECT_ROUTE:${routeId}`);
       const db = await getDB();
-      for (const dataTable of await db.collections.getByProject(routeId))
-        await db.collections.delete(dataTable.id);
-      for (const endpoint of await db.api_endpoints.getByProject(routeId))
-        await db.api_endpoints.delete(endpoint.id);
-      for (const variable of await db.variables.getByProject(routeId))
-        await db.variables.delete(variable.id);
       // The API response cache and the folder link record key by the route id too — left behind
       // they stayed as orphans (2026-10-05 audit L6).
       const runtime = (

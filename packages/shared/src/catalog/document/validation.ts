@@ -7,6 +7,7 @@ import {
   CATALOG_PRESENT_WHEN,
   CATALOG_STATE_KEYS,
   CATALOG_TOAST_PLACEMENTS,
+  CATALOG_COLLECTION_ROW_LIMIT,
   COMPONENT_PROPERTY_KINDS,
   type CatalogStateKey,
   type CatalogToastPlacement,
@@ -49,7 +50,16 @@ const entryKinds = new Set<EntryKind>([
   "interaction",
   "asset",
   "view",
+  "collection",
+  "endpoint",
+  "projectVariable",
 ]);
+/** ADR-286 — a data entry keeps its data reference id. */
+const DATA_ENTRY_PREFIX: Partial<Record<EntryKind, string>> = {
+  collection: "data:collection:",
+  endpoint: "data:endpoint:",
+  projectVariable: "data:variable:",
+};
 const visualFields = new Set<VisualField>([
   "color",
   "backgroundColor",
@@ -395,6 +405,169 @@ function componentProperties(value: unknown, at: string): void {
         seen.add(value);
       }
     }
+  }
+}
+/** A string (empty allowed — a cleared field). */
+function text(value: unknown, at: string): string {
+  if (typeof value !== "string") invalid("STRING_REQUIRED", at);
+  return value;
+}
+function boolean(value: unknown, at: string): boolean {
+  if (typeof value !== "boolean") invalid("BOOLEAN_REQUIRED", at);
+  return value;
+}
+/** A JSON value: what a project file carries back unchanged (no `undefined`, no non-finite number). */
+function jsonValue(value: unknown, at: string, depth = 0): void {
+  if (depth > 32) invalid("VALUE_TOO_DEEP", at);
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) invalid("SCALAR_REQUIRED", at);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => jsonValue(item, `${at}[${index}]`, depth + 1));
+    return;
+  }
+  if (typeof value === "object") {
+    for (const [key, item] of Object.entries(value as Record<string, unknown>))
+      if (item !== undefined) jsonValue(item, `${at}.${key}`, depth + 1);
+    return;
+  }
+  invalid("JSON_VALUE_REQUIRED", at);
+}
+/** ADR-286 — a collection's fields (the Data panel's columns). */
+function dataFields(value: unknown, at: string, depth = 0): void {
+  if (!Array.isArray(value)) invalid("ARRAY_REQUIRED", at);
+  if (depth > 8) invalid("VALUE_TOO_DEEP", at);
+  value.forEach((item, index) => {
+    const field = object(item, `${at}[${index}]`);
+    const here = `${at}[${index}]`;
+    exact(
+      field,
+      [
+        "id",
+        "key",
+        "type",
+        "label",
+        "required",
+        "defaultValue",
+        "children",
+        "reference",
+      ],
+      here,
+    );
+    if (field.id !== undefined) string(field.id, `${here}.id`);
+    string(field.key, `${here}.key`);
+    if (field.type !== undefined) string(field.type, `${here}.type`);
+    if (field.label !== undefined) text(field.label, `${here}.label`);
+    if (field.required !== undefined) boolean(field.required, `${here}.required`);
+    if (field.defaultValue !== undefined)
+      jsonValue(field.defaultValue, `${here}.defaultValue`);
+    if (field.children !== undefined)
+      dataFields(field.children, `${here}.children`, depth + 1);
+    if (field.reference !== undefined) {
+      const reference = object(field.reference, `${here}.reference`);
+      exact(reference, ["collectionId", "keyField"], `${here}.reference`);
+      string(reference.collectionId, `${here}.reference.collectionId`);
+      string(reference.keyField, `${here}.reference.keyField`);
+    }
+  });
+}
+const ASSET_URL = /^asset:sha256-[0-9a-f]{64}$/;
+function assetUrl(value: unknown, at: string): void {
+  if (typeof value !== "string" || !ASSET_URL.test(value))
+    invalid("INVALID_ASSET_REF", at);
+}
+/**
+ * ADR-286 Decision 5 — the site settings. `access` has no secret field (R6): the key sets are
+ * closed, so a password · client secret · certificate never enters the document.
+ */
+function siteSettings(value: unknown, at: string): void {
+  const site = object(value, at);
+  exact(
+    site,
+    [
+      "title",
+      "description",
+      "lang",
+      "favicon",
+      "socialImage",
+      "search",
+      "redirects",
+      "access",
+    ],
+    at,
+  );
+  for (const key of ["title", "description"] as const)
+    if (site[key] !== undefined) text(site[key], `${at}.${key}`);
+  if (site.lang !== undefined) {
+    const lang = string(site.lang, `${at}.lang`);
+    if (!/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(lang))
+      invalid("INVALID_LANG", `${at}.lang`);
+  }
+  if (site.favicon !== undefined) {
+    const favicon = object(site.favicon, `${at}.favicon`);
+    exact(favicon, ["light", "dark"], `${at}.favicon`);
+    for (const key of ["light", "dark"] as const)
+      if (favicon[key] !== undefined) assetUrl(favicon[key], `${at}.favicon.${key}`);
+  }
+  if (site.socialImage !== undefined)
+    assetUrl(site.socialImage, `${at}.socialImage`);
+  if (site.search !== undefined) {
+    const search = object(site.search, `${at}.search`);
+    exact(search, ["index", "sitemap", "robots"], `${at}.search`);
+    boolean(search.index, `${at}.search.index`);
+    boolean(search.sitemap, `${at}.search.sitemap`);
+    if (search.robots !== "allow" && search.robots !== "none")
+      invalid("INVALID_ROBOTS", `${at}.search.robots`);
+  }
+  if (site.redirects !== undefined) {
+    if (!Array.isArray(site.redirects)) invalid("ARRAY_REQUIRED", `${at}.redirects`);
+    site.redirects.forEach((item, index) => {
+      const here = `${at}.redirects[${index}]`;
+      const redirect = object(item, here);
+      exact(redirect, ["from", "to", "permanent"], here);
+      const from = string(redirect.from, `${here}.from`);
+      if (!from.startsWith("/")) invalid("INVALID_REDIRECT", `${here}.from`);
+      string(redirect.to, `${here}.to`);
+      boolean(redirect.permanent, `${here}.permanent`);
+    });
+  }
+  if (site.access !== undefined) {
+    const access = object(site.access, `${at}.access`);
+    if (access.kind === "none") exact(access, ["kind"], `${at}.access`);
+    else if (access.kind === "password") {
+      exact(access, ["kind", "hint"], `${at}.access`);
+      if (access.hint !== undefined) text(access.hint, `${at}.access.hint`);
+    } else if (access.kind === "sso") {
+      exact(
+        access,
+        ["kind", "protocol", "issuer", "metadataUrl", "clientId", "protectedPageIds"],
+        `${at}.access`,
+      );
+      if (access.protocol !== "saml" && access.protocol !== "oidc")
+        invalid("INVALID_SSO_PROTOCOL", `${at}.access.protocol`);
+      string(access.issuer, `${at}.access.issuer`);
+      for (const key of ["metadataUrl", "clientId"] as const)
+        if (access[key] !== undefined) string(access[key], `${at}.access.${key}`);
+      if (access.protectedPageIds !== "all")
+        list(access.protectedPageIds, "project:page:", `${at}.access.protectedPageIds`);
+    } else invalid("INVALID_SITE_ACCESS", `${at}.access.kind`);
+  }
+}
+/** ADR-286 Decision 6 — a page's own settings. */
+function pageMeta(value: unknown, at: string): void {
+  const meta = object(value, at);
+  exact(meta, ["title", "description", "socialImage", "hidden"], at);
+  for (const key of ["title", "description"] as const)
+    if (meta[key] !== undefined) text(meta[key], `${at}.${key}`);
+  if (meta.socialImage !== undefined) assetUrl(meta.socialImage, `${at}.socialImage`);
+  if (meta.hidden !== undefined) {
+    const hidden = object(meta.hidden, `${at}.hidden`);
+    exact(hidden, ["search", "sitemap"], `${at}.hidden`);
+    for (const key of ["search", "sitemap"] as const)
+      if (hidden[key] !== undefined) boolean(hidden[key], `${at}.hidden.${key}`);
   }
 }
 function list(value: unknown, prefix: string, at: string): string[] {
@@ -1279,7 +1452,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
   const item = object(value, "entry");
   const kind = item.kind as EntryKind;
   if (!entryKinds.has(kind)) invalid("UNKNOWN_ENTRY_KIND", "entry.kind");
-  id(item.id, `project:${kind}:`, "entry.id");
+  id(item.id, DATA_ENTRY_PREFIX[kind] ?? `project:${kind}:`, "entry.id");
   switch (kind) {
     case "project":
       exact(
@@ -1298,6 +1471,10 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "interactionIds",
           "assetIds",
           "viewIds",
+          "collectionIds",
+          "endpointIds",
+          "projectVariableIds",
+          "site",
           "activeThemeId",
           "pageLayout",
           "toastPlacement",
@@ -1318,6 +1495,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         list(item[key], prefix, `entry.${key}`);
       if (item.viewIds !== undefined)
         list(item.viewIds, "project:view:", "entry.viewIds");
+      for (const [key, prefix] of [
+        ["collectionIds", "data:collection:"],
+        ["endpointIds", "data:endpoint:"],
+        ["projectVariableIds", "data:variable:"],
+      ] as const)
+        if (item[key] !== undefined) list(item[key], prefix, `entry.${key}`);
+      if (item.site !== undefined) siteSettings(item.site, "entry.site");
       if (item.componentPageIds !== undefined)
         list(item.componentPageIds, "project:page:", "entry.componentPageIds");
       if (item.activeThemeId !== undefined)
@@ -1344,9 +1528,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "placement",
           "guideEntries",
           "parentId",
+          "meta",
         ],
         "entry",
       );
+      if (item.meta !== undefined) pageMeta(item.meta, "entry.meta");
       string(item.route, "entry.route");
       if (item.parentId !== undefined)
         id(item.parentId, "project:page:", "entry.parentId");
@@ -1794,6 +1980,148 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           }
         } else invalid("UNKNOWN_ACTION_OPCODE", `${at}.opcode`);
       }
+      break;
+    }
+    case "collection": {
+      // ADR-286 Decision 1 — a collection's definition (rows the author wrote, never API rows).
+      exact(
+        item,
+        [
+          "kind",
+          "id",
+          "name",
+          "description",
+          "schema",
+          "mockData",
+          "useMockData",
+          "executionPolicy",
+        ],
+        "entry",
+      );
+      string(item.name, "entry.name");
+      if (item.description !== undefined)
+        text(item.description, "entry.description");
+      dataFields(item.schema, "entry.schema");
+      if (!Array.isArray(item.mockData)) invalid("ARRAY_REQUIRED", "entry.mockData");
+      if (item.mockData.length > CATALOG_COLLECTION_ROW_LIMIT)
+        invalid("COLLECTION_ROW_LIMIT", "entry.mockData");
+      item.mockData.forEach((row, index) => {
+        object(row, `entry.mockData[${index}]`);
+        jsonValue(row, `entry.mockData[${index}]`);
+      });
+      boolean(item.useMockData, "entry.useMockData");
+      if (item.executionPolicy !== undefined) {
+        const policy = object(item.executionPolicy, "entry.executionPolicy");
+        exact(policy, ["mode", "intervalSec"], "entry.executionPolicy");
+        if (!["auto", "manual", "interval"].includes(policy.mode as string))
+          invalid("INVALID_EXECUTION_POLICY", "entry.executionPolicy.mode");
+        if (
+          policy.intervalSec !== undefined &&
+          (!Number.isInteger(policy.intervalSec) ||
+            (policy.intervalSec as number) <= 0)
+        )
+          invalid("INVALID_EXECUTION_POLICY", "entry.executionPolicy.intervalSec");
+      }
+      break;
+    }
+    case "endpoint": {
+      // ADR-286 Decision 1 — the request · response · server run (secret names only).
+      exact(
+        item,
+        [
+          "kind",
+          "id",
+          "name",
+          "description",
+          "method",
+          "baseUrl",
+          "path",
+          "headers",
+          "queryParams",
+          "bodyType",
+          "bodyTemplate",
+          "responseMapping",
+          "querySerialization",
+          "targetCollectionId",
+          "executionMode",
+          "serverConfig",
+          "timeout",
+          "retryCount",
+          "uploadDryRun",
+        ],
+        "entry",
+      );
+      string(item.name, "entry.name");
+      if (item.description !== undefined)
+        text(item.description, "entry.description");
+      if (!["GET", "POST", "PUT", "DELETE", "PATCH"].includes(item.method as string))
+        invalid("INVALID_METHOD", "entry.method");
+      text(item.baseUrl, "entry.baseUrl");
+      text(item.path, "entry.path");
+      for (const key of ["headers", "queryParams"] as const) {
+        if (!Array.isArray(item[key])) invalid("ARRAY_REQUIRED", `entry.${key}`);
+        (item[key] as unknown[]).forEach((row, index) => {
+          object(row, `entry.${key}[${index}]`);
+          jsonValue(row, `entry.${key}[${index}]`);
+        });
+      }
+      if (
+        !["json", "form-data", "x-www-form-urlencoded", "none"].includes(
+          item.bodyType as string,
+        )
+      )
+        invalid("INVALID_BODY_TYPE", "entry.bodyType");
+      if (item.bodyTemplate !== undefined)
+        text(item.bodyTemplate, "entry.bodyTemplate");
+      const mapping = object(item.responseMapping, "entry.responseMapping");
+      text(mapping.dataPath, "entry.responseMapping.dataPath");
+      jsonValue(mapping, "entry.responseMapping");
+      for (const key of ["querySerialization", "serverConfig"] as const)
+        if (item[key] !== undefined) {
+          object(item[key], `entry.${key}`);
+          jsonValue(item[key], `entry.${key}`);
+        }
+      if (item.targetCollectionId !== undefined)
+        id(item.targetCollectionId, "data:collection:", "entry.targetCollectionId");
+      if (!["client", "server"].includes(item.executionMode as string))
+        invalid("INVALID_EXECUTION_MODE", "entry.executionMode");
+      for (const key of ["timeout", "retryCount"] as const)
+        if (item[key] !== undefined) nonnegative(item[key], `entry.${key}`);
+      if (item.uploadDryRun !== undefined)
+        boolean(item.uploadDryRun, "entry.uploadDryRun");
+      break;
+    }
+    case "projectVariable": {
+      // ADR-286 Decision 1 · 사용자 결정 3 — a project variable (apart from page · node variables).
+      exact(
+        item,
+        [
+          "kind",
+          "id",
+          "name",
+          "valueType",
+          "defaultValue",
+          "persist",
+          "validation",
+          "transform",
+        ],
+        "entry",
+      );
+      string(item.name, "entry.name");
+      if (
+        !["string", "number", "boolean", "object", "array"].includes(
+          item.valueType as string,
+        )
+      )
+        invalid("INVALID_VALUE_TYPE", "entry.valueType");
+      if (item.defaultValue !== undefined)
+        jsonValue(item.defaultValue, "entry.defaultValue");
+      boolean(item.persist, "entry.persist");
+      if (item.validation !== undefined) {
+        object(item.validation, "entry.validation");
+        jsonValue(item.validation, "entry.validation");
+      }
+      if (item.transform !== undefined) text(item.transform, "entry.transform");
       break;
     }
     case "view": {

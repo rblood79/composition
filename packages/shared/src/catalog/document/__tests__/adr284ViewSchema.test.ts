@@ -69,7 +69,7 @@ describe("ADR-284 — the view shape", () => {
       accepted([bound({ view: { where: { ...where, items: [gender] } } })]),
     ).toBe("ACCEPTED");
     expect(accepted([bound({ viewId: VIEW })], [shared()])).toBe("ACCEPTED");
-    expect(documentOf([], []).libraryContractVersion).toBe(50);
+    expect(documentOf([], []).libraryContractVersion).toBe(51);
   });
 
   it("refuses: both view and viewId · grouping in a built-in view · an empty `or` · duplicate ids", () => {

@@ -24,7 +24,6 @@ import {
   type VariableDefinition,
 } from "@composition/shared";
 import type { EndpointQuerySerialization } from "../../../../../../packages/shared/src/collections/view/serialize";
-import { getDB } from "../../../lib/db";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import type {
@@ -919,7 +918,7 @@ export function reduceDataOps(
 // ============================================
 
 // ============================================
-// bind_element — canonical 축 consumer (ADR-213 Phase 2)
+// bind_element — the catalog document's bindings (ADR-213 Phase 2 · ADR-248 4e-5)
 // ============================================
 
 export type BindElementOp = Extract<DataOp, { op: "bind_element" }>;
@@ -932,61 +931,16 @@ export interface DataTableBindingValue {
   fieldMap?: BindElementOp["fieldMap"];
 }
 
-export interface DataBindingWrite {
-  /** `null` = 해제. `restore` 가 있으면 무시된다. */
-  binding: DataTableBindingValue | null;
-  /** inverse 전용 — props · extension 원본을 그대로 되돌린다. */
-  restore?: BindElementOp["restore"];
-}
-
 export interface DataBindingSnapshot {
   props?: unknown;
   extension?: unknown;
-}
-
-/**
- * canonical 문서에 바인딩을 쓰는 쪽 (elements store) 이 등록한다 — data store 가
- * elements store 를 import 하면 순환이라 bridge 로 잇는다 (`stores/index.ts` 가 등록).
- * History 는 만들지 않는다 — 이 적용기가 `type:"data"` entry 하나로 묶는다 (HC4).
- */
-export interface DataBindingConsumer {
-  has: (elementId: string) => boolean;
-  /**
-   * ADR-013 — 현재 바인딩 스냅샷 (props · extension 두 자리). 연결 모드의 commit 경계
-   * 검증 (`ApplyDataChangeOptions.expectBindings`) 이 읽는다. 요소가 없으면 null.
-   */
-  read: (elementId: string) => DataBindingSnapshot | null;
-  /** @returns 적용 전 스냅샷. 요소가 없으면 null. */
-  apply: (
-    elementId: string,
-    write: DataBindingWrite,
-  ) => { previous: DataBindingSnapshot } | null;
-}
-
-let bindingConsumer: DataBindingConsumer | null = null;
-
-export function registerDataBindingConsumer(
-  consumer: DataBindingConsumer | null,
-): void {
-  bindingConsumer = consumer;
-}
-
-/**
- * ADR-013 — 등록된 consumer 로 요소의 현재 바인딩 스냅샷을 읽는다 (Creator 의 대상 캡처 ·
- * 성공 read-back). consumer 미등록·요소 없음은 null. data store 가 elements store 를
- * import 하지 않는 경계를 그대로 지킨다.
- */
-export function readDataBindingSnapshot(
-  elementId: string,
-): DataBindingSnapshot | null {
-  return bindingConsumer?.read(elementId) ?? null;
 }
 
 function isBindElementOp(op: DataOp): op is BindElementOp {
   return op.op === "bind_element";
 }
 
-/** collection 축 / canonical 축 분리 — 순서는 각 축 안에서만 보존한다. */
+/** collection 축 / 문서 축 분리 — 순서는 각 축 안에서만 보존한다. */
 function partitionDataOps(ops: readonly DataOp[]): {
   collectionOps: DataOp[];
   bindingOps: BindElementOp[];
@@ -1000,88 +954,17 @@ function partitionDataOps(ops: readonly DataOp[]): {
   return { collectionOps, bindingOps };
 }
 
-/**
- * ADR-248 Phase 4e-5: the catalog document the bindings go to while a catalog project is open. Set
- * = `bind_element` ops are checked against it (`has`, `read` for `expectBindings`) and `commit`
- * records the change as **one** history entry of the document — the data part (collections ·
- * variables · endpoints, already saved) its outside effect, the bindings its document part — so
- * undo takes both back. Unset = the old elements store consumer and the data history entry.
- */
-export interface DocumentBindingCommitter {
-  has: (elementId: string) => boolean;
-  read: (elementId: string) => DataBindingSnapshot | null;
-  /** Throws when the bindings cannot be written (the data part is then rolled back). */
-  commit: (input: {
-    /** The whole change (its label names the entry). */
-    payload: DataChangeHistoryPayload;
-    /** The data part without the bindings; `null` = bindings only. */
-    data: DataChangeHistoryPayload | null;
-    bindings: readonly {
-      elementId: string;
-      binding: DataTableBindingValue | null;
-    }[];
-  }) => void;
-}
-
-let documentBindingCommitter: DocumentBindingCommitter | null = null;
-
-export function setDocumentBindingCommitter(
-  committer: DocumentBindingCommitter | null,
-): void {
-  documentBindingCommitter = committer;
-}
-
-/** 검증 (순수) — 요소 존재 · collection 존재 (같은 change 의 create 결과 포함). */
-function preflightBindingOps(
-  ops: readonly BindElementOp[],
-  collections: Map<string, DataTable>,
-  committer: DocumentBindingCommitter | null,
-): DataBindingConsumer {
-  if (ops.length === 0) return bindingConsumer as DataBindingConsumer;
-  const target = committer ?? bindingConsumer;
-  if (!target) {
-    throw new DataChangeError(
-      "bind_element consumer 가 등록되지 않았습니다 (elements store 미초기화)",
-      ops[0],
-    );
-  }
-  for (const op of ops) {
-    // The document's history takes a committed binding back; it is never re-applied as an op.
-    if (committer && op.restore) {
-      throw new DataChangeError(
-        "bind_element restore 는 문서 기록이 되돌립니다",
-        op,
-      );
-    }
-    if (!target.has(op.elementId)) {
-      throw new DataChangeError(`요소를 찾을 수 없습니다: ${op.elementId}`, op);
-    }
-    if (op.restore || op.collectionId === null) continue;
-    if (!collections.has(op.collectionId)) {
-      throw new DataChangeError(
-        `collection 을 찾을 수 없습니다: ${op.collectionId}`,
-        op,
-      );
-    }
-  }
-  return bindingConsumer as DataBindingConsumer;
-}
-
-function toBindingWrite(
+function toBinding(
   op: BindElementOp,
   collections: Map<string, DataTable>,
-): DataBindingWrite {
-  if (op.restore) return { binding: null, restore: op.restore };
-  if (op.collectionId === null) return { binding: null };
-  const collectionId = op.collectionId;
-  const collection = collections.get(collectionId);
+): DataTableBindingValue | null {
+  if (op.collectionId === null) return null;
+  const collection = collections.get(op.collectionId);
   return {
-    binding: {
-      source: "dataTable",
-      collectionId,
-      name: collection?.name ?? collectionId,
-      ...(op.fieldMap ? { fieldMap: op.fieldMap } : {}),
-    },
+    source: "dataTable",
+    collectionId: op.collectionId,
+    name: collection?.name ?? op.collectionId,
+    ...(op.fieldMap ? { fieldMap: op.fieldMap } : {}),
   };
 }
 
@@ -1096,35 +979,23 @@ function isSameBindingSnapshot(
   );
 }
 
-function inverseOfBinding(
-  op: BindElementOp,
-  previous: DataBindingSnapshot,
-): BindElementOp {
-  const prevProps = previous.props as
-    Partial<DataTableBindingValue> | undefined;
-  return {
-    op: "bind_element",
-    elementId: op.elementId,
-    collectionId:
-      typeof prevProps?.collectionId === "string"
-        ? prevProps.collectionId
-        : null,
-    restore: { props: previous.props, extension: previous.extension },
-  };
-}
+// ============================================
+// ADR-286 — the definitions are catalog document entries
+// ============================================
 
 export interface ApplyDataChangeOptions {
-  /** false = History entry 를 만들지 않는다 (undo/redo 재적용). 기본 true. */
-  record?: boolean;
   projectId?: string;
   /**
    * ADR-013 연결 모드 — `bind_element` 를 쓰기 직전, 요소의 현재 바인딩 스냅샷이 여기 적힌
    * 것과 같아야 한다 (직렬화 비교 · `undefined` 와 부재는 같다). 다르면 그 사이 사용자가
-   * 바인딩을 바꾼 것이라 `DataChangeError` 로 중단하고 앞선 collection 변경은 rollback
-   * 된다. 검증은 비동기 저장 **뒤** canonical commit 경계에서 한다 — preflight 시점 검사만으로는
-   * IndexedDB await 틈의 편집을 못 잡는다. IR (`DataOp`) 은 바꾸지 않는다.
+   * 바인딩을 바꾼 것이라 `DataChangeError` 로 중단한다 (아무것도 쓰지 않는다).
    */
   expectBindings?: Readonly<Record<string, DataBindingSnapshot>>;
+  /**
+   * Document commands (catalog `CatalogCommand`s) that go in the same step — quick connect's
+   * columns and binding, a legacy variable's move onto its page. One history entry, one save.
+   */
+  document?: readonly unknown[];
 }
 
 export interface ApplyDataChangeResult {
@@ -1138,336 +1009,148 @@ export interface ApplyDataChangeResult {
   endpointIds: string[];
 }
 
+/** A data change's history label source (the History panel's data labels). */
 export interface DataChangeHistoryPayload {
   change: { ops: DataOp[]; origin: DataChangeOrigin; label?: string };
   inverse: DataOp[];
 }
 
-/**
- * ADR-248 Phase 4e-4e: where a recorded data change goes. The catalog app sets it (the data
- * change joins the document's single history, user 2026-09-30); unset = the old history manager.
- */
-let dataHistoryRecorder:
-  ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null =
-  null;
-/**
- * ADR-248 Phase 4e-4e: where the page/element variable names project variables may not take are
- * read from (the catalog document); unset = none (the old store's reader: `dataChange.store.ts`).
- */
-let documentVariableNamesReader: (() => ReadonlySet<string>) | null = null;
-export function setDocumentVariableNamesReader(
-  reader: (() => ReadonlySet<string>) | null,
-): void {
-  documentVariableNamesReader = reader;
-}
-/** Where a data change's history entry goes (the catalog runtime history; unset = none). */
-export function setDataHistoryRecorder(
-  recorder:
-    ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null,
-): void {
-  dataHistoryRecorder = recorder;
-}
-
-type CollectionsDB = {
-  collections?: {
-    insert: (dt: DataTable) => Promise<DataTable>;
-    update: (id: string, updates: DataTableUpdate) => Promise<DataTable>;
-    delete: (id: string) => Promise<void>;
-  };
-  variables?: {
-    insert: (v: Variable) => Promise<Variable>;
-    update: (id: string, updates: Partial<Variable>) => Promise<Variable>;
-    delete: (id: string) => Promise<void>;
-  };
-  api_endpoints?: {
-    insert: (ep: ApiEndpoint) => Promise<ApiEndpoint>;
-    update: (id: string, updates: Partial<ApiEndpoint>) => Promise<ApiEndpoint>;
-    delete: (id: string) => Promise<void>;
-  };
-  /** ADR-218 — runtimeData 캐시 정리 (collection 삭제 시 고아 0, R8). */
-  collection_runtime?: {
-    delete: (collectionId: string) => Promise<void>;
-  };
-};
-
-function persistablePatch(dt: DataTable): DataTableUpdate {
-  return {
-    name: dt.name,
-    schema: dt.schema,
-    mockData: dt.mockData,
-    useMockData: dt.useMockData,
-    // ADR-218 — 실행 정책은 collections store 에 영속 (runtimeData 는 별도 collection_runtime store).
-    executionPolicy: dt.executionPolicy,
-  };
+/** One data step: the definitions written · removed, the element bindings, document commands. */
+export interface DataDefinitionWrite {
+  collections?: readonly DataTable[];
+  collectionsDeleted?: readonly string[];
+  variables?: readonly Variable[];
+  variablesDeleted?: readonly string[];
+  endpoints?: readonly ApiEndpoint[];
+  endpointsDeleted?: readonly string[];
+  bindings?: readonly {
+    elementId: string;
+    binding: DataTableBindingValue | null;
+  }[];
+  document?: readonly unknown[];
+  /** Names the history entry. */
+  payload: DataChangeHistoryPayload;
 }
 
 /**
- * 적용 순서: 검증·파급 (순수) → IndexedDB → 메모리 → History → Canvas.
- *
- * 호출은 **한 줄로 세운다** — 한 번의 적용은 시작할 때 `before` 를 읽고 IndexedDB 를 await 한
- * 뒤 그 `before` 에서 만든 Map 으로 덮어쓴다. 두 쓰기가 겹치면 (DataGrid 연속 셀 커밋 · AI 제안
- * 적용 · 데이터 undo) 뒤 쓰기가 앞 편집을 메모리와 IndexedDB 에서 지웠다 (2026-10-05 감사 M1).
- * 적용 도중 다시 `applyDataChange` 를 await 하는 경로는 없다 (recorder · committer 는 기록만).
+ * ADR-286 Decision 2 — where the data store writes: the open catalog workspace (one command → one
+ * history step · one save · the project file's document). It reads element bindings for
+ * `bind_element` checks and the document's page · element variable names (ADR-214 HC5). The store
+ * is a projection of the document (`bindCatalogDataStore`); the sink brings it up to date in the
+ * same call.
  */
-export const createApplyDataChangeAction = (set: SetState, get: GetState) => {
-  let tail: Promise<unknown> = Promise.resolve();
-  const applyOne = async (
+export interface DataDefinitionSink {
+  hasElement(elementId: string): boolean;
+  readBinding(elementId: string): DataBindingSnapshot | null;
+  documentVariableNames(): ReadonlySet<string>;
+  commit(write: DataDefinitionWrite): void;
+}
+
+let dataDefinitionSink: DataDefinitionSink | null = null;
+export function setDataDefinitionSink(sink: DataDefinitionSink | null): void {
+  dataDefinitionSink = sink;
+}
+function requireSink(op?: DataOp): DataDefinitionSink {
+  if (!dataDefinitionSink)
+    throw new DataChangeError("열린 프로젝트가 없습니다 (catalog 문서 미연결)", op);
+  return dataDefinitionSink;
+}
+
+/**
+ * A definition write that is not a `DataChange` op (an endpoint's server run · timeout, a
+ * variable's validation): one document step like any other (history · save).
+ */
+export function commitDataDefinitions(write: DataDefinitionWrite): void {
+  requireSink().commit(write);
+}
+
+/**
+ * 적용 순서: 검증 · 파급 (순수 reduce) → 바인딩 검증 → 문서 명령 하나 (정의 + 바인딩 + 함께 오는
+ * 문서 명령) → store 투영. 검증 실패는 아무것도 바꾸지 않는다 (all-or-nothing — 한 transaction).
+ */
+export const createApplyDataChangeAction = (_set: SetState, get: GetState) => {
+  const applyNow = (
     change: DataChange,
-    options: ApplyDataChangeOptions = {},
-  ): Promise<ApplyDataChangeResult> => {
+    options: ApplyDataChangeOptions,
+  ): ApplyDataChangeResult => {
+    const sink = requireSink(change.ops[0]);
     const before = get().collections;
-    const beforeVariables = get().variables;
-    const beforeEndpoints = get().apiEndpoints;
-    // ADR-214 — History 재적용 (undo/redo) 은 projectId 를 안 넘긴다. 변수가 0개인 프로젝트에서
-    // 첫 변수 생성을 redo 하면 reducer 가 projectId 를 알 길이 없어 실패했다 (G1 live 에서 발견)
-    // → store 의 현재 프로젝트를 기본값으로.
     const projectId =
       options.projectId ??
       (get() as { currentProjectId?: string | null }).currentProjectId ??
       undefined;
-    // 1. preflight (순수) — collections · variables reduce 전량 + binding 검증. 실패는 무변경.
     const { collectionOps, bindingOps } = partitionDataOps(change.ops);
     const touchesVariables = collectionOps.some(
       (op) => op.op === "define_variable",
     );
     const result = reduceDataOps(before, collectionOps, {
       projectId,
-      variables: beforeVariables,
-      apiEndpoints: beforeEndpoints,
+      variables: get().variables,
+      apiEndpoints: get().apiEndpoints,
       // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
       ...(touchesVariables
-        ? {
-            documentVariableNames: documentVariableNamesReader
-              ? documentVariableNamesReader()
-              : new Set<string>(),
-          }
+        ? { documentVariableNames: sink.documentVariableNames() }
         : {}),
     });
-    const committer = bindingOps.length ? documentBindingCommitter : null;
-    if (committer && options.record === false) {
-      throw new DataChangeError(
-        "bind_element 는 문서 기록 없이 적용하지 않습니다",
-        bindingOps[0],
-      );
-    }
-    const consumer = preflightBindingOps(
-      bindingOps,
-      result.collections,
-      committer,
-    );
-    const variablesChanged =
-      result.variablesUpserted.size > 0 || result.variablesDeleted.size > 0;
-    const endpointsChanged =
-      result.endpointsUpserted.size > 0 || result.endpointsDeleted.size > 0;
-    const statePatch = (reduced: ReduceResult): Partial<DataStoreState> => ({
-      collections: reduced.collections,
-      ...(variablesChanged ? { variables: reduced.variables } : {}),
-      ...(endpointsChanged ? { apiEndpoints: reduced.apiEndpoints } : {}),
-    });
-
-    const persist = async (
-      prev: Map<string, DataTable>,
-      prevVariables: Map<string, Variable>,
-      reduced: ReduceResult,
-      prevEndpoints: ReadonlyMap<string, ApiEndpoint> = beforeEndpoints,
-    ): Promise<void> => {
-      const db = (await getDB()) as unknown as CollectionsDB;
-      const store = db.collections;
-      if (!store) throw new Error("collections store not found in database");
-      for (const id of reduced.deleted) {
-        await store.delete(id);
-        // ADR-218 R8 — 정의 삭제 시 runtimeData 캐시도 정리 (고아 0).
-        await db.collection_runtime?.delete(id);
-      }
-      for (const id of reduced.upserted) {
-        const next = reduced.collections.get(id);
-        if (!next) continue;
-        if (prev.has(id)) await store.update(id, persistablePatch(next));
-        else await store.insert(next);
-      }
-      // ADR-214 — 프로젝트 변수 축 저장 (IndexedDB `variables`, keyPath id)
-      if (
-        reduced.variablesUpserted.size > 0 ||
-        reduced.variablesDeleted.size > 0
-      ) {
-        const variablesStore = db.variables;
-        if (!variablesStore)
-          throw new Error("variables store not found in database");
-        const beforeIds = new Set([...prevVariables.values()].map((v) => v.id));
-        for (const id of reduced.variablesDeleted)
-          await variablesStore.delete(id);
-        for (const id of reduced.variablesUpserted) {
-          const next = findVariableById(reduced.variables, id);
-          if (!next) continue;
-          if (beforeIds.has(id)) await variablesStore.update(id, next);
-          else await variablesStore.insert(next);
-        }
-      }
-      // ADR-213 Phase 4 — API endpoint 축 저장 (IndexedDB `api_endpoints`, keyPath id)
-      if (
-        reduced.endpointsUpserted.size > 0 ||
-        reduced.endpointsDeleted.size > 0
-      ) {
-        const endpointsStore = db.api_endpoints;
-        if (!endpointsStore)
-          throw new Error("api_endpoints store not found in database");
-        const beforeIds = new Set([...prevEndpoints.values()].map((e) => e.id));
-        for (const id of reduced.endpointsDeleted)
-          await endpointsStore.delete(id);
-        for (const id of reduced.endpointsUpserted) {
-          const next = findEndpointById(reduced.apiEndpoints, id);
-          if (!next) continue;
-          if (beforeIds.has(id)) await endpointsStore.update(id, next);
-          else await endpointsStore.insert(next);
-        }
-      }
-    };
-
-    // 2. collections · variables commit (IndexedDB → 메모리)
-    try {
-      await persist(before, beforeVariables, result);
-    } catch (error) {
-      console.error("❌ DataChange 저장 실패:", error);
-      set((state) => {
-        const errors = new Map(state.errors);
-        errors.set("applyDataChange", error as Error);
-        return { errors };
-      });
-      throw error;
-    }
-    set(statePatch(result));
-
-    // 3. canonical 축 commit — 실패 시 앞서 적용한 binding 과 collections·variables 를 역순 rollback
-    const appliedBindings: BindElementOp[] = [];
-    const bindingInverse: BindElementOp[] = [];
-    try {
-      if (committer) {
-        for (const op of bindingOps) {
-          const expected = options.expectBindings?.[op.elementId];
-          if (!expected) continue;
-          const current = committer.read(op.elementId);
-          if (!current || !isSameBindingSnapshot(current, expected)) {
-            throw new DataChangeError(
-              `대상 요소의 바인딩이 캡처 시점과 다릅니다: ${op.elementId}`,
-              op,
-            );
-          }
-        }
-        const stamp = {
-          origin: change.origin,
-          ...(change.label !== undefined ? { label: change.label } : {}),
-        };
-        committer.commit({
-          payload: {
-            change: { ops: [...result.applied, ...bindingOps], ...stamp },
-            inverse: result.inverse,
-          },
-          data: result.applied.length
-            ? {
-                change: { ops: result.applied, ...stamp },
-                inverse: result.inverse,
-              }
-            : null,
-          bindings: bindingOps.map((op) => ({
-            elementId: op.elementId,
-            binding: toBindingWrite(op, result.collections).binding,
-          })),
-        });
-        appliedBindings.push(...bindingOps);
-      }
-      for (const op of committer ? [] : bindingOps) {
-        const expected = options.expectBindings?.[op.elementId];
-        if (expected) {
-          const current = consumer.read(op.elementId);
-          if (!current || !isSameBindingSnapshot(current, expected)) {
-            throw new DataChangeError(
-              `대상 요소의 바인딩이 캡처 시점과 다릅니다: ${op.elementId}`,
-              op,
-            );
-          }
-        }
-        const outcome = consumer.apply(
-          op.elementId,
-          toBindingWrite(op, result.collections),
+    for (const op of bindingOps) {
+      if (op.restore)
+        throw new DataChangeError("bind_element restore 는 문서 기록이 되돌립니다", op);
+      if (!sink.hasElement(op.elementId))
+        throw new DataChangeError(`요소를 찾을 수 없습니다: ${op.elementId}`, op);
+      if (op.collectionId !== null && !result.collections.has(op.collectionId))
+        throw new DataChangeError(
+          `collection 을 찾을 수 없습니다: ${op.collectionId}`,
+          op,
         );
-        if (!outcome) {
+      const expected = options.expectBindings?.[op.elementId];
+      if (expected) {
+        const current = sink.readBinding(op.elementId);
+        if (!current || !isSameBindingSnapshot(current, expected))
           throw new DataChangeError(
-            `요소를 찾을 수 없습니다: ${op.elementId}`,
+            `대상 요소의 바인딩이 캡처 시점과 다릅니다: ${op.elementId}`,
             op,
           );
-        }
-        appliedBindings.push(op);
-        bindingInverse.unshift(inverseOfBinding(op, outcome.previous));
       }
-    } catch (error) {
-      for (const inverse of bindingInverse) {
-        consumer.apply(
-          inverse.elementId,
-          toBindingWrite(inverse, result.collections),
-        );
-      }
-      if (result.applied.length > 0) {
-        const rollback = reduceDataOps(result.collections, result.inverse, {
-          projectId,
-          variables: result.variables,
-          apiEndpoints: result.apiEndpoints,
-        });
-        set(statePatch(rollback));
-        try {
-          await persist(
-            result.collections,
-            result.variables,
-            rollback,
-            result.apiEndpoints,
-          );
-        } catch (persistError) {
-          console.error("❌ DataChange rollback 저장 실패:", persistError);
-        }
-      }
-      console.error("❌ DataChange 바인딩 적용 실패 (rollback):", error);
-      throw error;
     }
-
-    const applied: DataOp[] = [...result.applied, ...appliedBindings];
-    const inverse: DataOp[] = [...bindingInverse, ...result.inverse];
-    const collectionIds = [...result.upserted, ...result.deleted];
-    const variableIds = [
-      ...result.variablesUpserted,
-      ...result.variablesDeleted,
-    ];
-    const endpointIds = [
-      ...result.endpointsUpserted,
-      ...result.endpointsDeleted,
-    ];
-    const affectedIds = [
-      ...collectionIds,
-      ...variableIds,
-      ...endpointIds,
-      ...appliedBindings.map((op) => op.elementId),
-    ];
-
-    // 4. History 1 entry — 승인 묶음 = entry 1 (⌘Z 1회로 전체 원상, HC4). A committed binding
-    //    change is already the document's entry (the inverse then holds the data part only).
-    if (options.record !== false && !committer) {
-      const payload: DataChangeHistoryPayload = {
-        change: {
-          ops: applied,
-          origin: change.origin,
-          ...(change.label !== undefined ? { label: change.label } : {}),
-        },
-        inverse,
-      };
-      dataHistoryRecorder?.(payload, affectedIds);
-    }
-
-    return { applied, inverse, collectionIds, variableIds, endpointIds };
+    const applied: DataOp[] = [...result.applied, ...bindingOps];
+    const stamp = {
+      origin: change.origin,
+      ...(change.label !== undefined ? { label: change.label } : {}),
+    };
+    sink.commit({
+      collections: [...result.upserted].map((id) => result.collections.get(id)!),
+      collectionsDeleted: [...result.deleted],
+      variables: [...result.variablesUpserted].map(
+        (id) => findVariableById(result.variables, id)!,
+      ),
+      variablesDeleted: [...result.variablesDeleted],
+      endpoints: [...result.endpointsUpserted].map(
+        (id) => findEndpointById(result.apiEndpoints, id)!,
+      ),
+      endpointsDeleted: [...result.endpointsDeleted],
+      bindings: bindingOps.map((op) => ({
+        elementId: op.elementId,
+        binding: toBinding(op, result.collections),
+      })),
+      ...(options.document ? { document: options.document } : {}),
+      payload: { change: { ops: applied, ...stamp }, inverse: result.inverse },
+    });
+    return {
+      applied,
+      inverse: result.inverse,
+      collectionIds: [...result.upserted, ...result.deleted],
+      variableIds: [...result.variablesUpserted, ...result.variablesDeleted],
+      endpointIds: [...result.endpointsUpserted, ...result.endpointsDeleted],
+    };
   };
   return (
     change: DataChange,
     options: ApplyDataChangeOptions = {},
   ): Promise<ApplyDataChangeResult> => {
-    const next = tail.then(() => applyOne(change, options));
-    tail = next.catch(() => undefined);
-    return next;
+    try {
+      return Promise.resolve(applyNow(change, options));
+    } catch (error) {
+      return Promise.reject(error);
+    }
   };
 };

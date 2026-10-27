@@ -76,6 +76,7 @@ import {
 } from "../../collections/resolveCollectionItems";
 import { catalogTableColumnKey } from "./tableSort";
 import type { CatalogListPosition } from "../../interactions/dispatcher";
+import { catalogRuntimeData, type CatalogRuntimeData } from "./catalogData";
 
 /**
  * The Preview's data services: the API endpoints only (bound collections draw their rows through
@@ -434,8 +435,21 @@ export class CatalogPreviewSession {
   /** The editor's breakpoint (`CATALOG_VIEW`): the root resolves the responsive layers at it. */
   private breakpoint: BreakpointName = "desktop";
   private shownPage: EntryId<"page"> | undefined;
-  /** The Builder's collections: bound collections draw their rows from them. */
-  private collections: readonly CollectionDataSource[] = [];
+  /**
+   * ADR-286 — the API rows the Builder sends (`CATALOG_DATA`, by collection id): the document's
+   * collections (`catalogRuntimeData`) show them. Never the document.
+   */
+  private runtimeRows = new Map<string, Record<string, unknown>[]>();
+  /** The document's collections with the Builder's API rows: bound collections draw from them. */
+  private get collections(): readonly CollectionDataSource[] {
+    return this.data().collections;
+  }
+  private data(): CatalogRuntimeData {
+    const graph = this.receiver.graph;
+    return graph
+      ? catalogRuntimeData(graph, this.runtimeRows)
+      : { collections: [], apiEndpoints: [], variables: [] };
+  }
   /**
    * ADR-281 user decision 3, second step — what `append` · `update` · `remove` rules did, by
    * collection id, in order (`useListData`'s operations): session state (a reload drops it, the
@@ -451,7 +465,9 @@ export class CatalogPreviewSession {
   /** The Builder's API items last received, by collection id (a change drops a reload's). */
   private readonly receivedItems = new Map<string, string>();
   /** The project's API endpoints (each query endpoint names the collection it fills). */
-  private endpoints: readonly ApiEndpointDefinition[] = [];
+  private get endpoints(): readonly ApiEndpointDefinition[] {
+    return this.data().apiEndpoints;
+  }
   /**
    * The URL each collection was last loaded from — a query endpoint whose path · query read
    * `{{ params.id }}` loads again only when the shown path gives another URL (`loadRouted`).
@@ -487,13 +503,25 @@ export class CatalogPreviewSession {
   private readonly pendingSubmits = new Set<Promise<unknown>>();
   /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
   private readonly tableSorts = new Map<string, CatalogTableSort>();
-  /** The Builder's project variables (the data store's, H1). */
-  private variables: readonly VariableDef[] = [];
+  /** The project variables (the document's — ADR-286). */
+  private get variables(): readonly VariableDef[] {
+    return this.data().variables;
+  }
   /**
-   * The Builder's API endpoints as the shared components read them (`CollectionDataContext`):
-   * FileUpload resolves its endpoint id here, an API-bound collection runs its endpoint.
+   * The project's API endpoints as the shared components read them (`CollectionDataContext`):
+   * FileUpload resolves its endpoint id here, an API-bound collection runs its endpoint. A new
+   * object when the endpoints change (`syncServices`).
    */
   private services: CollectionDataServices = catalogPreviewDataServices([]);
+  private servicesOf: readonly ApiEndpointDefinition[] = [];
+  private syncServices(): void {
+    const endpoints = this.endpoints;
+    if (endpoints === this.servicesOf) return;
+    this.servicesOf = endpoints;
+    this.services = catalogPreviewDataServices(
+      endpoints as ApiEndpointDefinition[],
+    );
+  }
   private state: RuntimeStateHandle | undefined;
   private version = 0;
   private readonly listeners = new Set<() => void>();
@@ -508,6 +536,7 @@ export class CatalogPreviewSession {
       (_graph, ops) => this.currentRoot!.sync(ops),
     );
     this.receiver.subscribe((update) => {
+      this.syncServices();
       if (update.invalidatedIds === "all") {
         this.runtime = new CatalogRuntime(update.graph);
         this.openState(update.graph.projectId);
@@ -562,7 +591,14 @@ export class CatalogPreviewSession {
     }
     const data = parseCatalogPreviewData(value);
     if (data) {
-      this.collections = data.collections as readonly CollectionDataSource[];
+      // ADR-286 R7: the message carries API rows only — the definitions are the document's.
+      const rows = new Map<string, Record<string, unknown>[]>();
+      for (const item of data.collections) {
+        const id = item.id;
+        if (typeof id !== "string" || !Array.isArray(item.runtimeData)) continue;
+        rows.set(id, item.runtimeData as Record<string, unknown>[]);
+      }
+      this.runtimeRows = rows;
       // Items the Builder loaded again replace a `reload`'s (the newer load wins).
       for (const collection of this.collections) {
         if (!collection.id) continue;
@@ -574,13 +610,7 @@ export class CatalogPreviewSession {
           this.reloadedItems.delete(collection.id);
         this.receivedItems.set(collection.id, received);
       }
-      this.endpoints = (data.apiEndpoints ??
-        []) as unknown as typeof this.endpoints;
-      this.variables = (data.variables ??
-        []) as unknown as readonly VariableDef[];
-      this.services = catalogPreviewDataServices(
-        (data.apiEndpoints ?? []) as unknown as ApiEndpointDefinition[],
-      );
+      this.syncServices();
       this.syncDefinitions();
       if (this.currentRoot) {
         const errors = [

@@ -30,7 +30,11 @@ export interface ProjectLocalStamp {
   dataStamp: string;
 }
 
-const DATA_STAMP_STORES = ["collections", "api_endpoints", "variables"];
+/**
+ * ADR-286: the data definitions are catalog document entries (the catalog storage), not rows of
+ * this database — nothing here stamps them any more; the API rows cache still goes on eviction.
+ */
+const DATA_STAMP_STORES: string[] = [];
 /** project_id 인덱스로 지우는 store — runtime 은 캐시 */
 const INDEXED_STORES = [...DATA_STAMP_STORES, "collection_runtime"];
 
@@ -121,6 +125,7 @@ export async function readProjectLocalStamp(
   const db = await openAssetDb();
   if (!db) return null;
   const stores = existing(db, DATA_STAMP_STORES);
+  if (!stores.length) return { documentRevision: null, dataStamp: "" };
   const tx = db.transaction(stores, "readonly");
   const stamp = await readStampIn(tx, db, projectId);
   await transactionDone(tx);

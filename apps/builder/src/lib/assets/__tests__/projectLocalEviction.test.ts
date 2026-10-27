@@ -47,17 +47,19 @@ async function seedProject(id: string, data = true) {
     updated_at: "",
   } as never);
   if (!data) return;
-  await adapter.collections.insert({
-    id: `${id}-c`,
+  // ADR-286: the data definitions are catalog document entries — what this database holds of a
+  // project is the API rows cache.
+  await adapter.collection_runtime.put({
+    collectionId: `${id}-c`,
     project_id: id,
-    name: "c",
-  } as never);
-  await adapter.variables.insert({
-    id: `${id}-v`,
-    project_id: id,
-    name: "v",
-  } as never);
+    runtimeData: [{ n: 1 }],
+    sourceRev: "r",
+    fieldKeys: {},
+    updated_at: "",
+  });
 }
+const runtimeOf = async (id: string) =>
+  (await adapter.collection_runtime.getByProject(id)).length;
 
 describe("clearProjectLocalContent", () => {
   it("도장은 catalog 문서를 담지 않는다 (documentRevision null)", async () => {
@@ -65,31 +67,19 @@ describe("clearProjectLocalContent", () => {
     expect((await readProjectLocalStamp("a"))?.documentRevision).toBeNull();
   });
 
-  it("도장이 같으면 그 프로젝트 data 행만 지우고 projects 행 (요약) 은 남긴다", async () => {
+  it("도장이 같으면 그 프로젝트 캐시 행만 지우고 projects 행 (요약) 은 남긴다", async () => {
     await seedProject("a");
     await seedProject("b");
     const stamp = (await readProjectLocalStamp("a"))!;
+    // ADR-286: no data definition rows here — the stamp has nothing to count.
+    expect(stamp.dataStamp).toBe("");
 
     expect(await clearProjectLocalContent("a", stamp)).toBe("cleared");
 
-    expect(await adapter.collections.getByProject("a")).toEqual([]);
-    expect(await adapter.variables.getByProject("a")).toEqual([]);
+    expect(await runtimeOf("a")).toBe(0);
     expect(await adapter.projects.getById("a")).toMatchObject({ id: "a" });
     // 다른 프로젝트는 그대로
-    expect(await adapter.collections.getByProject("b")).toHaveLength(1);
-    expect(await adapter.variables.getByProject("b")).toHaveLength(1);
-  });
-
-  it("도장 뒤 DB 가 바뀌었으면 (collection) 아무것도 지우지 않는다", async () => {
-    await seedProject("a");
-    const stamp = (await readProjectLocalStamp("a"))!;
-    await adapter.collections.insert({
-      id: "a-c2",
-      project_id: "a",
-      name: "c2",
-    } as never);
-    expect(await clearProjectLocalContent("a", stamp)).toBe("changed");
-    expect(await adapter.collections.getByProject("a")).toHaveLength(2);
+    expect(await runtimeOf("b")).toBe(1);
   });
 });
 
@@ -216,14 +206,6 @@ describe("evictStaleDirectoryProjects", () => {
     },
   );
 
-  it("has-data — collections · API · 변수 행이 있으면 (export 투영이 필드를 버림) 지우지 않는다", async () => {
-    await linkedStaleProject({}, true);
-    expect(await sweep(await folderAt(3))).toEqual([
-      { projectId: "a", result: "has-data" },
-    ]);
-    expect(await adapter.collections.getByProject("a")).toHaveLength(1);
-  });
-
   it("open — 확인하는 동안 누가 열었으면 (기록 변경) 표식하지 않는다", async () => {
     await linkedStaleProject();
     const result = await sweep(await folderAt(3), {
@@ -248,19 +230,6 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(dir)).toEqual([
       { projectId: "a", result: "folder-unreadable" },
     ]);
-  });
-
-  it("changed — 마지막 폴더 저장 뒤 DB 가 바뀌었으면 지우지 않고 표식도 되돌린다", async () => {
-    await linkedStaleProject();
-    await adapter.collections.insert({
-      id: "a-c2",
-      project_id: "a",
-      name: "c2",
-    } as never);
-    expect(await sweep(await folderAt(3))).toEqual([
-      { projectId: "a", result: "changed" },
-    ]);
-    expect(await adapter.collections.getByProject("a")).toHaveLength(1);
   });
 });
 

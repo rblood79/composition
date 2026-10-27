@@ -4,6 +4,8 @@
 
 Implemented — 2026-10-05 (최종 기술 검증 완료 및 사용자 커밋·push 지시). Accepted: 2026-09-28.
 
+> **ADR-286 이 바꿈 (2026-10-28)**: H1 「데이터 (행) 는 문서에 들어가지 않는다」 중 정의 몫 (collection schema · mock 행 · endpoint · 프로젝트 변수) 은 문서 entry 가 됐다 (contract 51). API 결과 행 (`runtimeData`) 은 여전히 문서 밖.
+
 사용자 요청: catalog에 정의와 프로젝트 모델을 통합하여 canonical을 제거한다. **기존 사용처와 보존할 프로젝트가 없는 개발 단계**라는 사용자 확인을 전제로 한다. 구 데이터 migration·하위 호환 adapter·dual-write는 범위에서 제외한다. 2026-09-28 구현 착수 지시로 Accepted 승격했으며 최종 제품 gate는 2026-10-05 종결했다.
 
 > **리뷰 round 1·2 종결**: [리뷰 기록](../reviews/248.md) round 1 HIGH 6 · MEDIUM 2 · LOW 1 → round 2 수리 검증 HIGH 0. H1/H2/H4는 2026-09-28 사용자 판정으로 확정했고 (아래 표), 본문·breakdown은 그 판정으로 정리했다. 같은 날 사용자 구현 지시로 Accepted 승격했다.

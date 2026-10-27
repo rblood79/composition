@@ -5,7 +5,7 @@
  * <name>.composition/            ← 디렉토리 (작업) 또는 같은 구조의 zip (교환)
  * ├── manifest.json              현재 세대 — manifests/<revision>.json 과 같은 내용
  * ├── manifests/<revision>.json  불변 세대 기록 (디렉토리만 · zip 은 현재 세대 1개)
- * ├── parts/<sha256>.json        불변 part — document · collections · apiEndpoints · variables · fonts
+ * ├── parts/<sha256>.json        불변 part — document · fonts (ADR-286: 데이터 정의는 document 안)
  * └── assets/<sha256>.<ext>      원본 바이트 그대로 (불변)
  * ```
  *
@@ -35,8 +35,8 @@ export interface V2AssetEntry {
   name?: string;
 }
 
-export type V2PartKey =
-  "document" | "collections" | "apiEndpoints" | "variables" | "fonts";
+/** ADR-286: the data definitions are document entries — no part of their own. */
+export type V2PartKey = "document" | "fonts";
 
 export interface ManifestV2 {
   formatVersion: typeof FORMAT_V2_VERSION;
@@ -54,9 +54,6 @@ export interface ManifestV2 {
 export interface ProjectContentV2 {
   project: { id: string; name: string };
   document: unknown;
-  collections?: unknown[];
-  apiEndpoints?: unknown[];
-  variables?: unknown[];
   fontRegistry?: unknown;
   currentPageId?: string | null;
   metadata?: unknown;
@@ -130,9 +127,6 @@ export async function buildV2Generation(
   const files = new Map<string, Uint8Array>();
   const refs = findAssetRefs([
     content.document,
-    content.collections,
-    content.apiEndpoints,
-    content.variables,
     content.fontRegistry,
   ]);
   const assets: V2AssetEntry[] = [];
@@ -158,9 +152,6 @@ export async function buildV2Generation(
     encoder.encode(JSON.stringify(content.document)),
   );
   const optional: [V2PartKey, unknown][] = [
-    ["collections", content.collections],
-    ["apiEndpoints", content.apiEndpoints],
-    ["variables", content.variables],
     ["fonts", content.fontRegistry],
   ];
   for (const [key, value] of optional) {
@@ -250,15 +241,6 @@ async function readGeneration(
     content: {
       project: manifest.project,
       document: values.document,
-      ...(values.collections !== undefined
-        ? { collections: values.collections as unknown[] }
-        : {}),
-      ...(values.apiEndpoints !== undefined
-        ? { apiEndpoints: values.apiEndpoints as unknown[] }
-        : {}),
-      ...(values.variables !== undefined
-        ? { variables: values.variables as unknown[] }
-        : {}),
       ...(values.fonts !== undefined ? { fontRegistry: values.fonts } : {}),
       currentPageId: manifest.editor?.currentPageId ?? null,
       ...(manifest.metadata !== undefined

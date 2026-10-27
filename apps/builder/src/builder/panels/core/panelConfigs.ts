@@ -13,6 +13,7 @@ import {
   History,
   ListTree,
   Settings,
+  Globe,
   PaintRoller,
   SquareMousePointer,
   SwatchBook,
@@ -53,6 +54,12 @@ const CatalogHistoryPanel = lazyPanel(() =>
 const SettingsPanel = lazyPanel(() =>
   import("../settings/SettingsPanel").then((m) => ({
     default: m.SettingsPanel,
+  })),
+);
+
+const SitePanel = lazyPanel(() =>
+  import("../site/SitePanel").then((m) => ({
+    default: m.SitePanel,
   })),
 );
 
@@ -204,6 +211,24 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // 전체 메뉴에는 도움 구역의 "설정" 명령 항목으로 따로 선다 (ADR-249)
     hiddenFromMenu: true,
   },
+  {
+    id: "site",
+    name: "사이트",
+    nameEn: "Site",
+    icon: Globe,
+    component: SitePanel,
+    category: "system",
+    defaultPosition: "left",
+    minWidth: 233,
+    maxWidth: 640,
+    defaultWidth: 280,
+    defaultHeight: 560,
+    description: "사이트 제목 · favicon · 검색 · redirect · 접근 보호 (ADR-286)",
+    displayModes: ["panel", "floating"],
+    // 문서 값이라 Builder 환경 설정 (settings) 과 나눈다 (사용자 2026-10-28). 진입점은 전체 메뉴
+    // 작업 공간 구역 — 레일 7 개는 그대로 (사용자 2026-09-29 레일 정책).
+    hiddenFromRail: true,
+  },
 
   {
     id: "ai",
@@ -309,6 +334,7 @@ export function preloadOffscreenPanels(): void {
   preloadLazyPanels([
     CatalogHistoryPanel,
     SettingsPanel,
+    SitePanel,
     CatalogInteractionsPanel,
     CatalogThemesPanel,
     DataTablePanel,

@@ -13,6 +13,8 @@ import type {
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import type { Variable } from "../../../types/builder/data.types";
 import { createCatalogDataVariablesHost } from "../../panels/datatable/usage/catalogDataVariablesHost";
+import { useDataStore } from "../../stores/data";
+import { bindCatalogDataStore } from "../catalogDataStore";
 import { useStateSectionFocus } from "../../panels/properties/state/stateSectionFocus";
 import {
   catalogDocumentVariableNames,
@@ -187,24 +189,27 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
       workspace.newId,
     );
     workspace.execute(catalogInteractionsCommand(owner, [rule], "Add"));
-    // The data store stand-in.
-    const defined = new Set(["v-old"]);
-    const apply = async (change: DataChange) => {
-      await Promise.resolve();
-      const inverse: DataOp[] = [];
-      for (const op of change.ops)
-        if (op.op === "define_variable") {
-          if (op.definition === null) {
-            defined.delete(op.variableId!);
-            inverse.push({
-              op: "define_variable",
-              variableId: op.variableId,
-              definition: { name: "old", type: "number" },
-            });
-          } else defined.add(op.variableId!);
-        }
-      return { applied: change.ops, inverse };
+    // ADR-286: the data store bound to this document (its project variables are entries).
+    useDataStore.getState().reset();
+    const unbind = bindCatalogDataStore(workspace);
+    await useDataStore.getState().applyDataChange({
+      ops: [
+        {
+          op: "define_variable",
+          variableId: "v-old",
+          definition: { name: "old", type: "number", defaultValue: 3 },
+        },
+      ],
+      origin: "user",
+    });
+    const defined = {
+      has: (id: string) =>
+        graph.getEntry(`data:variable:${id}`)?.kind === "projectVariable",
     };
+    const apply = (
+      change: DataChange,
+      options?: { document?: readonly unknown[] },
+    ) => useDataStore.getState().applyDataChange(change, options);
     const host = createCatalogDataVariablesHost(
       workspace,
       { apply },
@@ -249,6 +254,7 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
     expect(ruleBack?.kind === "interaction" && ruleBack.actions[0]).toMatchObject({
       variableId: "data:variable:v-old",
     });
+    unbind();
   });
 
   it("the tab view groups the index by page; jumping selects the owner and asks its State section to open the variable", async () => {

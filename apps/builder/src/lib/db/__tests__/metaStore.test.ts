@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import { IndexedDBAdapter } from "../indexedDB/adapter";
 
 describe("IndexedDB adapter schema (data store · 자산)", () => {
-  it("DB_VERSION 이 25 로 갱신된다 (2026-10-05 ADR-248 후속: 구 canonical 문서 store 삭제)", async () => {
+  it("DB_VERSION 이 26 으로 갱신된다 (2026-10-28 ADR-286: 데이터 정의 store 삭제)", async () => {
     // pin 은 버전 상향을 의도적으로 만들기 위한 ratchet 이다. 19(ADR-143)·20(backup ring)
     // 시점에 미갱신으로 stale 였고 21(2026-09-07 canonical 변경 노드 저장) 에서 다시 맞췄다.
     // 22(ADR-218 collection_runtime) 는 P1 커밋이 이 ratchet 을 못 올렸다 — 후속에서 정합.
@@ -12,7 +12,7 @@ describe("IndexedDB adapter schema (data store · 자산)", () => {
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*25\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*26\b/);
     expect(source).toMatch(/createObjectStore\(\s*["']collection_runtime["']/);
     expect(source).toMatch(/createObjectStore\(ASSETS_STORE/);
     expect(source).toMatch(/createObjectStore\(ASSET_GC_STORE/);
@@ -56,7 +56,8 @@ describe("IndexedDB adapter schema (data store · 자산)", () => {
       };
     });
     for (const name of OLD) expect(names).not.toContain(name);
-    expect(names).toContain("collections");
+    expect(names).not.toContain("collections");
+    expect(names).toContain("collection_runtime");
   });
 
   it("the adapter has no document API", async () => {

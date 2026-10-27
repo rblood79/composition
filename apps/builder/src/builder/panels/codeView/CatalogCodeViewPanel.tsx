@@ -23,6 +23,7 @@ import {
   CatalogWorkspaceGate,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
+import { catalogCollectionTables } from "../../catalogRuntime/catalogDataStore";
 import { catalogCodeViewData } from "../../catalogRuntime/codeView";
 import {
   catalogCodeViewApply,
@@ -39,7 +40,6 @@ import { EmptyState } from "../../components/feedback/EmptyState";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section } from "../../components/panel/Section";
-import { useApiEndpoints, useCollections } from "../../stores/data";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
 import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
@@ -79,8 +79,6 @@ function CodeViewContent() {
   const messages = codeViewMessages(locale);
   const snippetLabels = codeViewSnippetLabels(locale);
   const workspace = useCatalogWorkspace();
-  const tables = useCollections();
-  const endpoints = useApiEndpoints();
   const pageId = useSyncExternalStore(
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId,
@@ -92,10 +90,15 @@ function CodeViewContent() {
     ),
     () => workspace.runtime.graph.revision,
   );
-  const data = useMemo(
-    () => catalogCodeViewData(tables, endpoints),
-    [tables, endpoints],
-  );
+  // ADR-286: the data definitions are the document's — the code reads one source.
+  const tables = useMemo(() => {
+    void revision;
+    return catalogCollectionTables(workspace.runtime.graph);
+  }, [revision, workspace]);
+  const data = useMemo(() => {
+    void revision;
+    return catalogCodeViewData(workspace.runtime.graph);
+  }, [revision, workspace]);
   // The page's code now — the editor's baseline while nothing is typed.
   const live = useMemo((): CatalogCodeViewSession | undefined => {
     void revision;

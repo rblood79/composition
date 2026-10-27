@@ -57,6 +57,7 @@ import {
   type CollectionDataSource,
 } from "@composition/shared";
 import { matchCatalogRoute, resolveCatalogRoute } from "../../../../../../packages/shared/src/catalog/runtime/catalogPreviewRoute";
+import { sendCatalogData } from "./support/catalogDataEntries";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../packages/shared/src/catalog/preview/protocol";
@@ -363,14 +364,9 @@ describe("ADR-248 4e-6 Preview entry", () => {
       visit(root.recordsOfSource(LIST)[0]!);
       return out;
     };
+    // ADR-286: the definitions go as a document step (the channel's delta), the rows message after.
     const send = () =>
-      session.receive(
-        structuredClone({
-          type: "CATALOG_DATA",
-          version: 1,
-          collections,
-        }),
-      );
+      sendCatalogData(workspace, session, structuredClone({ collections }));
     channel.onReady();
     // No collections yet: the template's sample items (rows unknown).
     expect(texts(session.root!)).not.toContain("Alpha");
@@ -867,14 +863,17 @@ describe("ADR-248 4e-6 Preview entry", () => {
     );
     act(() => channel.onReady());
     act(() => {
-      session.receive({
-        type: "CATALOG_DATA",
-        version: CATALOG_PREVIEW_PAYLOAD_VERSION,
-        collections: [],
-        variables: [
-          { id: "v-user", name: "user", type: "string", defaultValue: "Ann" },
-        ],
-      });
+      sendCatalogData(
+        workspace,
+        session,
+        {
+          collections: [],
+          variables: [
+            { id: "v-user", name: "user", type: "string", defaultValue: "Ann" },
+          ],
+        },
+        flush,
+      );
     });
     const text = () => view.container.textContent ?? "";
     expect(text()).toContain("a=0");
@@ -1184,8 +1183,8 @@ describe("ADR-248 4e-6 Preview entry", () => {
     view.unmount();
   });
 
-  it("the Builder's API endpoints reach the Preview's components (FileUpload resolves its endpoint)", async () => {
-    const { session, channel } = await open();
+  it("the document's API endpoints reach the Preview's components (FileUpload resolves its endpoint) — ADR-286", async () => {
+    const { workspace, session, channel, flush } = await open();
     channel.setView(HOME);
     channel.onReady();
     const endpoint = {
@@ -1197,25 +1196,24 @@ describe("ADR-248 4e-6 Preview entry", () => {
       headers: [{ key: "Authorization", value: "{{secret.UPLOAD}}", enabled: true }],
       uploadDryRun: false,
     };
+    sendCatalogData(
+      workspace,
+      session,
+      { collections: [], apiEndpoints: [endpoint] },
+      flush,
+    );
+    expect(
+      session.dataServices.apiEndpointService?.getApiEndpoints(),
+    ).toEqual([expect.objectContaining(endpoint)]);
+    // A rows message (the channel) does not touch the definitions.
     session.receive({
       type: "CATALOG_DATA",
       version: CATALOG_PREVIEW_PAYLOAD_VERSION,
       collections: [],
-      apiEndpoints: [endpoint],
     });
     expect(
       session.dataServices.apiEndpointService?.getApiEndpoints(),
-    ).toEqual([endpoint]);
-    // A malformed endpoint list is not data (the services stay as they were).
-    session.receive({
-      type: "CATALOG_DATA",
-      version: CATALOG_PREVIEW_PAYLOAD_VERSION,
-      collections: [],
-      apiEndpoints: ["api_upload"],
-    });
-    expect(
-      session.dataServices.apiEndpointService?.getApiEndpoints(),
-    ).toEqual([endpoint]);
+    ).toEqual([expect.objectContaining(endpoint)]);
     let seen: readonly unknown[] | undefined;
     function Probe() {
       seen = useCollectionDataServices().apiEndpointService?.getApiEndpoints();
@@ -1226,14 +1224,16 @@ describe("ADR-248 4e-6 Preview entry", () => {
         <Probe />
       </CatalogPreviewDataProvider>,
     );
-    expect(seen).toEqual([endpoint]);
-    // A later message without endpoints clears them (the Builder deleted the last one).
+    expect(seen).toEqual([expect.objectContaining(endpoint)]);
+    // The Builder deleted the last endpoint: a document step removes it.
     act(() => {
-      session.receive({
-        type: "CATALOG_DATA",
-        version: CATALOG_PREVIEW_PAYLOAD_VERSION,
-        collections: [],
-      });
+      sendCatalogData(
+        workspace,
+        session,
+        { collections: [], apiEndpoints: [] },
+        flush,
+        true,
+      );
     });
     expect(seen).toEqual([]);
     view.unmount();

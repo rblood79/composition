@@ -1,8 +1,9 @@
 // @vitest-environment node
 /**
  * ADR-248 G4 (live R10, 2026-10-03): the old document's `events` / `actions` fan-out mirrors are
- * gone. A fresh profile does not create the two stores; a DB of version 23 drops them on upgrade
- * and keeps the data stores (collections · api_endpoints · variables) and their rows (H1).
+ * gone. A fresh profile does not create the two stores; a DB of version 23 drops them on upgrade.
+ * ADR-286 (DB_VERSION 26): the data definition stores (collections · api_endpoints · variables)
+ * go too — the definitions are catalog document entries (no conversion — a dev-stage policy).
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -31,16 +32,17 @@ describe("ADR-248 G4 — events/actions mirror stores", () => {
     await adapter.close();
   });
 
-  it("a fresh profile has the data stores and no events/actions stores", async () => {
+  it("a fresh profile has no events/actions stores and no data definition stores (ADR-286)", async () => {
     await adapter.init();
     await adapter.close();
     const names = await storeNames();
     expect(names).not.toContain("events");
     expect(names).not.toContain("actions");
-    for (const store of DATA_STORES) expect(names).toContain(store);
+    for (const store of DATA_STORES) expect(names).not.toContain(store);
+    expect(names).toContain("collection_runtime");
   });
 
-  it("upgrading a version 23 DB drops events/actions and keeps the data rows", async () => {
+  it("upgrading a version 23 DB drops events/actions and the data definition stores (ADR-286)", async () => {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open("composition", 23);
       request.onupgradeneeded = () => {
@@ -69,12 +71,10 @@ describe("ADR-248 G4 — events/actions mirror stores", () => {
       request.onerror = () => reject(request.error);
     });
     await adapter.init();
-    expect(await adapter.collections.getByProject("p")).toMatchObject([
-      { id: "c1", name: "t" },
-    ]);
     await adapter.close();
     const names = await storeNames();
     expect(names).not.toContain("events");
     expect(names).not.toContain("actions");
+    for (const store of DATA_STORES) expect(names).not.toContain(store);
   });
 });

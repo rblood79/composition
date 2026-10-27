@@ -19,14 +19,9 @@ export function createPublishedSession(
     // (ADR-281 Decision 6 — a page root's colorScheme), as the Builder's Preview does.
     applyTheme: applyCatalogPreviewTheme,
   });
+  // ADR-286: the data definitions (collections · endpoints · variables) are the document's — the
+  // session reads them from the snapshot; a published app has no Builder API rows to receive.
   const { document, extras } = project;
-  session.receive({
-    type: "CATALOG_DATA",
-    version: 1,
-    collections: extras.collections ?? [],
-    apiEndpoints: extras.apiEndpoints ?? [],
-    variables: extras.variables ?? [],
-  });
   const receipt = session.receive({
     type: "CATALOG_SNAPSHOT",
     version: 1,

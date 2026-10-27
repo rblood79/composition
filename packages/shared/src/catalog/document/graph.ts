@@ -16,6 +16,7 @@ import type {
   DefinitionOverrideEntry,
   InteractionEntry,
   NodeEntry,
+  ProjectEntry,
   NodeId,
   TokenId,
   TokenType,
@@ -132,6 +133,33 @@ export function catalogViewRootCollection(
   return undefined;
 }
 /** By-ID references not carried by the owner, definition, token or collection edges. */
+/**
+ * ADR-286 — the project's data and site references resolve: an endpoint's target collection, a
+ * protected page. (A binding's collection stays a loose reference — a list over a deleted
+ * collection draws nothing, as before; the delete command takes the bindings with it.)
+ */
+function validateDataReferences(
+  root: ProjectEntry,
+  get: (id: string) => CatalogEntry | undefined,
+): void {
+  for (const id of root.endpointIds ?? []) {
+    const endpoint = get(id);
+    if (
+      endpoint?.kind === "endpoint" &&
+      endpoint.targetCollectionId &&
+      get(endpoint.targetCollectionId)?.kind !== "collection"
+    )
+      throw new CatalogValidationError(
+        "DANGLING_COLLECTION",
+        endpoint.targetCollectionId,
+      );
+  }
+  const access = root.site?.access;
+  if (access?.kind === "sso" && access.protectedPageIds !== "all")
+    for (const pageId of access.protectedPageIds)
+      if (!root.pageIds.includes(pageId))
+        throw new CatalogValidationError("DANGLING_PAGE", pageId);
+}
 export function referencedIds(entry: CatalogEntry): string[] {
   const ids: string[] = [];
   const address = (value: {
@@ -857,6 +885,9 @@ export class CatalogGraph {
         root.interactionIds,
         root.assetIds,
         root.viewIds ?? [],
+        root.collectionIds ?? [],
+        root.endpointIds ?? [],
+        root.projectVariableIds ?? [],
       ])
         for (const id of ids) {
           if (listed.has(id) || (id as string) === root.id)
@@ -875,6 +906,7 @@ export class CatalogGraph {
       }
       if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
         throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+      validateDataReferences(root, get);
       // (An entry the project listed and still holds stays listed — only the entries this step
       //   changes are checked below, so a project put that drops one would leave it unowned.)
       const before = this.table.get(this.projectId);
@@ -890,6 +922,9 @@ export class CatalogGraph {
           before.interactionIds,
           before.assetIds,
           before.viewIds ?? [],
+          before.collectionIds ?? [],
+          before.endpointIds ?? [],
+          before.projectVariableIds ?? [],
         ])
           for (const id of ids)
             if (!listed.has(id) && get(id) !== undefined)
@@ -913,6 +948,15 @@ export class CatalogGraph {
         throw new CatalogValidationError("MULTIPLE_PROJECT_ROOTS", entry.id);
       if (entry.kind !== "node" && entry.kind !== "project" && !isListed(id))
         throw new CatalogValidationError("UNOWNED_ENTRY", id);
+      if (
+        entry.kind === "endpoint" &&
+        entry.targetCollectionId &&
+        get(entry.targetCollectionId)?.kind !== "collection"
+      )
+        throw new CatalogValidationError(
+          "DANGLING_COLLECTION",
+          entry.targetCollectionId,
+        );
       if (entry.kind === "definitionOverride") {
         const other = overrideTargets.get(entry.targetId);
         const committed = this.overrideIndex.get(entry.targetId);
@@ -1096,6 +1140,9 @@ export class CatalogGraph {
       root.interactionIds,
       root.assetIds,
       root.viewIds ?? [],
+      root.collectionIds ?? [],
+      root.endpointIds ?? [],
+      root.projectVariableIds ?? [],
     ])
       for (const id of ids) {
         if (listed.has(id))
@@ -1109,6 +1156,7 @@ export class CatalogGraph {
     }
     if (root.activeThemeId && !root.themeIds.includes(root.activeThemeId))
       throw new CatalogValidationError("DANGLING_THEME", root.activeThemeId);
+    validateDataReferences(root, get);
     const owners = new Map<string, string>();
     const templateRoots = new Set<string>();
     const overrides = new Set<string>();

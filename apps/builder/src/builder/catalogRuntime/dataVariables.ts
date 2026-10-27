@@ -4,7 +4,7 @@ import {
   setNodeInteractions,
 } from "../../../../../packages/shared/src/catalog/commands";
 import {
-  composeCommands,
+  composeOver,
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
@@ -257,7 +257,7 @@ export function catalogLegacyVariableMove(
     variableId: id,
     command:
       commands.length > 1
-        ? () => composeCommands(graph, "Move variable to page", commands)
+        ? (reader) => composeOver(reader, "Move variable to page", commands)
         : commands[0]!,
   };
 }

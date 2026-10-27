@@ -74,7 +74,7 @@ describe("toExportCollection (ADR-218 — export 채널)", () => {
   // ExportedProjectSchema 의 executionPolicy 통과(import 보존)는 G3 live(export→import)로 검증.
 });
 
-describe("catalog JSON collection 필드 보존", () => {
+describe("catalog JSON collection 필드 보존 (ADR-286 — 문서 entry)", () => {
   it("schema 필드 id를 왕복 보존한다", async () => {
     const { createG1Fixture } = await import("../../catalog/document/fixture");
     const {
@@ -82,18 +82,39 @@ describe("catalog JSON collection 필드 보존", () => {
       readCatalogProjectJson,
       catalogProjectContent,
     } = await import("../../catalog/runtime/exchange");
+    const { setDataEntries } = await import("../../catalog/commands/data");
+    const { applyCatalogTransaction } = await import(
+      "../../catalog/transactions/transaction"
+    );
     const fixture = createG1Fixture();
     const graph = new CatalogGraph(fixture.document, fixture.library);
+    const plan = setDataEntries({
+      puts: [
+        {
+          kind: "collection",
+          id: "data:collection:t1",
+          name: "Users",
+          schema: [{ id: "f-name", key: "name", type: "string" }],
+          mockData: [{ name: "Ada" }],
+          useMockData: true,
+        },
+      ],
+    })(graph);
+    applyCatalogTransaction(graph, {
+      projectId: graph.projectId,
+      expectedRevision: graph.revision,
+      history: { kind: "record", label: plan.label },
+      ops: plan.ops,
+    });
     const text = await buildCatalogProjectJson(
-      catalogProjectContent(graph, {
-        collections: [toRuntimeCollection(table as never)],
-      }),
+      catalogProjectContent(graph),
       async () => null,
     );
     const result = await readCatalogProjectJson(text);
-    expect(
-      (result.content.collections as { schema: unknown[] }[])[0].schema[0],
-    ).toMatchObject({
+    const document = result.content.document as {
+      entries: Record<string, { schema?: unknown[] }>;
+    };
+    expect(document.entries["data:collection:t1"]?.schema?.[0]).toMatchObject({
       id: "f-name",
       key: "name",
     });

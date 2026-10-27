@@ -1,4 +1,3 @@
-import { CatalogGraph } from "../../catalog/document/graph";
 import { Chart } from "../Chart";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,12 +5,6 @@ import { CollectionDataProvider } from "../../hooks/CollectionDataProvider";
 import { useCollectionData } from "../../hooks/useCollectionData";
 import { useResolvedCollectionItems } from "../../hooks/useResolvedCollectionItems";
 import { createCollectionSnapshotServices } from "../../collections/collectionSnapshot";
-import {
-  buildCatalogProjectJson,
-  readCatalogProjectJson,
-  catalogProjectContent,
-} from "../../catalog/runtime/exchange";
-import { createG1Fixture } from "../../catalog/document/fixture";
 import type { DataBinding, DataTableDefinition } from "../../types";
 import {
   CHART_DEFAULT_PROPS,
@@ -102,16 +95,9 @@ describe("ADR-209 공통 collection runtime 공급", () => {
         runtimeData: rows,
         useMockData: false,
       };
-      // Builder 메모리 없이 publish JSON만으로 공급할 수 있는지 같은 envelope를 왕복한다.
-      const fixture = createG1Fixture();
-      const graph = new CatalogGraph(fixture.document, fixture.library);
-      const decoded = await readCatalogProjectJson(
-        await buildCatalogProjectJson(
-          catalogProjectContent(graph, { collections: [table] }),
-          async () => null,
-        ),
-      );
-      renderTable(decoded.content.collections![0] as typeof table);
+      // (ADR-286: API rows are not the document — the project file carries the definitions only;
+      // the runtime supply is the same services object the Preview · publish sessions build.)
+      renderTable(table);
       await vi.waitFor(() => expect(result("chart").count).toBe(count));
       expect(result("list").count).toBe(count);
       expect(result("list").first).toEqual(result("chart").first);

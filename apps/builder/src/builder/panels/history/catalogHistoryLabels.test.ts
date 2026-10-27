@@ -33,7 +33,7 @@ describe("ADR-248 Phase 4e catalog History labels", () => {
     const sources = import.meta.glob<string>(
       [
         "../../../../../../packages/shared/src/catalog/commands/**/*.ts",
-        "../../catalogRuntime/dataHistory.ts",
+        "../../catalogRuntime/catalogDataStore.ts",
         "!**/*.test.ts",
       ],
       { query: "?raw", import: "default", eager: true },

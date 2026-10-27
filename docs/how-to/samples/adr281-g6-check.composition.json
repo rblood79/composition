@@ -9,7 +9,7 @@
   "document": {
     "format": "composition-catalog",
     "schemaVersion": 1,
-    "libraryContractVersion": 50,
+    "libraryContractVersion": 51,
     "revision": 42,
     "projectId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
     "rootId": "project:project:3f7c3764-8569-444c-9580-4e1d2b027263",
@@ -822,44 +822,46 @@
           "project:interaction:ac7bb2f0-c9ba-49b1-9149-29d12d5e6118",
           "project:interaction:e15c3f00-0d6e-4c6c-8364-9c1cff57733f"
         ],
-        "assetIds": []
+        "assetIds": [],
+        "endpointIds": [
+          "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2",
+          "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2"
+        ]
+      },
+      "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2": {
+        "name": "submitForm",
+        "baseUrl": "http://localhost:5199",
+        "path": "/submit",
+        "method": "POST",
+        "headers": [],
+        "queryParams": [],
+        "bodyType": "json",
+        "responseMapping": {
+          "dataPath": ""
+        },
+        "executionMode": "client",
+        "timeout": 30000,
+        "kind": "endpoint",
+        "id": "data:endpoint:59ab4de3-143e-4a9d-b744-6b965f5e9be2"
+      },
+      "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2": {
+        "name": "failForm",
+        "baseUrl": "http://localhost:5199",
+        "path": "/fail",
+        "method": "POST",
+        "headers": [],
+        "queryParams": [],
+        "bodyType": "json",
+        "responseMapping": {
+          "dataPath": ""
+        },
+        "executionMode": "client",
+        "timeout": 30000,
+        "kind": "endpoint",
+        "id": "data:endpoint:f6109b5d-beb2-47c6-bc9a-b5f47732e8c2"
       }
     }
   },
   "currentPageId": "project:page:home",
-  "collections": [],
-  "apiEndpoints": [
-    {
-      "id": "59ab4de3-143e-4a9d-b744-6b965f5e9be2",
-      "name": "submitForm",
-      "baseUrl": "http://localhost:5199",
-      "path": "/submit",
-      "method": "POST",
-      "headers": [],
-      "queryParams": [],
-      "bodyType": "json",
-      "responseMapping": {
-        "dataPath": ""
-      },
-      "executionMode": "client",
-      "timeout": 30000
-    },
-    {
-      "id": "f6109b5d-beb2-47c6-bc9a-b5f47732e8c2",
-      "name": "failForm",
-      "baseUrl": "http://localhost:5199",
-      "path": "/fail",
-      "method": "POST",
-      "headers": [],
-      "queryParams": [],
-      "bodyType": "json",
-      "responseMapping": {
-        "dataPath": ""
-      },
-      "executionMode": "client",
-      "timeout": 30000
-    }
-  ],
-  "variables": [],
   "assets": {}
 }

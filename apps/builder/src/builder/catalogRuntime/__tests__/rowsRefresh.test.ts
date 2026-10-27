@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { changedCollectionIds } from "../rowsRefresh";
+import {
+  changedCollectionIds,
+  changedRuntimeCollectionIds,
+} from "../rowsRefresh";
 
 /**
  * 2026-10-21 레버 3a — 빌더 mount 가 바인딩 행을 무조건 다시 해석했다 (데이터 store 는 root 를
@@ -56,27 +59,46 @@ describe("changedCollectionIds", () => {
   });
 });
 
+describe("changedRuntimeCollectionIds (ADR-286 — API rows only)", () => {
+  it("바뀐 API 행의 collection 과 그 collection 을 참조하는 collection 만 돌려준다", () => {
+    const rows = [{ id: 1 }];
+    const tables = new Map<string, object>([
+      ["teams", { schema: [] }],
+      ["users", { schema: [{ key: "teamId", reference: { collectionId: "teams" } }] }],
+      ["orders", { schema: [] }],
+    ]);
+    expect(changedRuntimeCollectionIds(new Map(), new Map(), tables)).toEqual([]);
+    expect(
+      changedRuntimeCollectionIds(new Map([["teams", rows]]), new Map(), tables),
+    ).toEqual(["teams", "users"]);
+  });
+});
+
 describe("CatalogBuilderCore rows refresh on mount", () => {
-  it("mount 는 root 가 읽은 collections 와 다른 것만 새로 고친다 (무조건 refreshRows 금지)", async () => {
+  it("mount 는 root 가 읽은 API 행과 다른 것만 새로 고친다 (무조건 refreshRows 금지) · 정의는 consume plan", async () => {
     const source = await readFile(
       resolve(__dirname, "../../main/CatalogBuilderCore.tsx"),
       "utf8",
     );
     const effect = source.slice(
-      source.indexOf("// A collection's rows changed"),
-      source.indexOf("// Project variables changed"),
+      source.indexOf("// API rows changed"),
+      source.indexOf("const quickConnect = useMemo("),
     );
     expect(effect).not.toContain("workspace.refreshRows();");
     expect(effect.replace(/\s+/g, " ")).toContain(
-      "changedCollectionIds( useDataStore.getState().collections, rowsSource, )",
+      "changedRuntimeCollectionIds( useDataStore.getState().runtimeRows, rowsSource,",
     );
-    // The snapshot the root resolved its rows from — read after the data store is initialized.
+    // ADR-286 R8: no store subscription refreshes for definitions or project variables.
+    expect(source).not.toContain("(store) => store.collections");
+    expect(source).not.toContain("(store) => store.variables");
+    expect(source).not.toContain("workspace.refreshState()");
+    // The snapshot the root resolved its rows from.
     const boot = source.slice(
-      source.indexOf("initializeForProject(routeId)"),
+      source.indexOf("useDataStore.getState().reset();"),
       source.indexOf("opened = new CatalogWorkspace("),
     );
     expect(boot).toContain(
-      "const rowsSource = useDataStore.getState().collections;",
+      "const rowsSource = useDataStore.getState().runtimeRows;",
     );
   });
 });

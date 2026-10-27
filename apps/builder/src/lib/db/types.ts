@@ -5,12 +5,6 @@
  * 동일한 인터페이스로 사용하기 위한 추상화 레이어
  */
 
-import type {
-  DataTable,
-  ApiEndpoint,
-  Variable,
-} from "../../types/builder/data.types";
-
 // === Project Types ===
 
 export interface Project {
@@ -50,42 +44,6 @@ export interface DatabaseAdapter {
 
   // Canonical document primary storage (ADR-116)
   // put 은 급감 가드 + 백업 ring 경유 (2026-07-14 — documentPersistGuard.ts).
-
-
-  // Data Tables (Data Panel System)
-  collections: {
-    insert(dataTable: DataTable): Promise<DataTable>;
-    update(id: string, data: Partial<DataTable>): Promise<DataTable>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<DataTable | null>;
-    getByProject(projectId: string): Promise<DataTable[]>;
-    getByName(name: string): Promise<DataTable | null>;
-    getAll(): Promise<DataTable[]>;
-  };
-
-  // API Endpoints (Data Panel System)
-  api_endpoints: {
-    insert(apiEndpoint: ApiEndpoint): Promise<ApiEndpoint>;
-    update(id: string, data: Partial<ApiEndpoint>): Promise<ApiEndpoint>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<ApiEndpoint | null>;
-    getByProject(projectId: string): Promise<ApiEndpoint[]>;
-    getByName(name: string): Promise<ApiEndpoint | null>;
-    getAll(): Promise<ApiEndpoint[]>;
-  };
-
-  // Variables (Data Panel System)
-  variables: {
-    insert(variable: Variable): Promise<Variable>;
-    update(id: string, data: Partial<Variable>): Promise<Variable>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<Variable | null>;
-    getByProject(projectId: string): Promise<Variable[]>;
-    getByName(name: string): Promise<Variable | null>;
-    getByScope(scope: string): Promise<Variable[]>;
-    getByPage(pageId: string): Promise<Variable[]>;
-    getAll(): Promise<Variable[]>;
-  };
 }
 
 // === Helper Types ===

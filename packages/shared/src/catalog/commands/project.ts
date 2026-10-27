@@ -3,6 +3,7 @@ import { cloneNodeSubgraph } from "../document/clone";
 import type {
   CatalogReader,
   CatalogToastPlacement,
+  CatalogSiteSettings,
   DefinitionEntry,
   EntryId,
   InstanceAddress,
@@ -83,7 +84,7 @@ export const createPage =
 
 type PageFields = Pick<
   PageEntry,
-  "name" | "route" | "parentId" | "placement" | "guideEntries"
+  "name" | "route" | "parentId" | "placement" | "guideEntries" | "meta"
 >;
 /** Page fields; an `undefined` value clears an optional field (parent, placement, guides). */
 export const updatePage =
@@ -277,6 +278,30 @@ export const setPageLayoutSettings =
       input.pageLayout ? { ...project, pageLayout: input.pageLayout } : project,
     );
     return { label: input.label ?? "Page layout", ops: draft.ops() };
+  };
+
+/**
+ * ADR-286 Decision 5 — the site settings: each key of `patch` replaces that setting (`undefined`
+ * removes it); a site left with no setting is absent.
+ */
+export const setSiteSettings =
+  (input: {
+    patch: { [K in keyof CatalogSiteSettings]?: CatalogSiteSettings[K] | undefined };
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const { site: current, ...project } = draft.project();
+    const site: Record<string, unknown> = { ...current };
+    for (const [key, value] of Object.entries(input.patch))
+      if (value === undefined) delete site[key];
+      else site[key] = structuredClone(value);
+    draft.write(
+      Object.keys(site).length
+        ? { ...project, site: site as CatalogSiteSettings }
+        : project,
+    );
+    return { label: input.label ?? "Site settings", ops: draft.ops() };
   };
 
 /** Where the app's toasts show (S2 `ToastContainer` `placement`); `undefined` restores the default. */

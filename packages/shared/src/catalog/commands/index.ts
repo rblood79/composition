@@ -96,12 +96,24 @@ export {
   setActiveTheme,
   setNodeInteractions,
   setPageLayoutSettings,
+  setSiteSettings,
   setToastPlacement,
   setThemeToken,
   updatePage,
   updateRecord,
   updateTheme,
 } from "./project";
+export {
+  addCollection,
+  catalogDataEntries,
+  removeCollection,
+  removeEndpoint,
+  removeProjectVariable,
+  setDataEntries,
+  setEndpoint,
+  setProjectVariable,
+  updateCollection,
+} from "./data";
 export {
   addView,
   catalogViewUsers,

@@ -14,42 +14,19 @@ import type {
   Variable,
 } from "../../../types/builder/data.types";
 
-const dbMock = {
-  collections: {
-    insert: vi.fn(async (dt: DataTable) => dt),
-    update: vi.fn(async () => ({}) as DataTable),
-    delete: vi.fn(async () => undefined),
-  },
-  variables: {
-    insert: vi.fn(async (v: Variable) => v),
-    update: vi.fn(async () => ({}) as Variable),
-    delete: vi.fn(async () => undefined),
-  },
-  api_endpoints: {
-    insert: vi.fn(async (ep: ApiEndpoint) => ep),
-    update: vi.fn(
-      async (_id: string, _u: Partial<ApiEndpoint>) => ({}) as ApiEndpoint,
-    ),
-    delete: vi.fn(async () => undefined),
-  },
-};
-vi.mock("../../../lib/db", () => ({ getDB: async () => dbMock }));
-
 const addEntry = vi.fn();
-vi.mock("../history", () => ({
-  historyManager: { addEntry: (...args: unknown[]) => addEntry(...args) },
-}));
-vi.mock("../canonical/canonicalElementsBridge", () => ({
-  getActiveCanonicalDocument: () => null,
-}));
 
 import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
-  registerDataBindingConsumer,
 } from "./dataChange";
-import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+import {
+  attachTestDataStore,
+  installTestDataChangeRecorder,
+  testDataCommits,
+  testElementBindings,
+} from "./__tests__/support/dataChangeRecorder";
 
 installTestDataChangeRecorder((entry) => addEntry(entry));
 
@@ -333,6 +310,7 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
     const set = (patch: unknown) =>
       Object.assign(state, typeof patch === "function" ? patch(state) : patch);
     const get = () => state;
+    attachTestDataStore(set as never, get as never);
     return {
       state,
       apply: createApplyDataChangeAction(set as never, get as never),
@@ -341,11 +319,14 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
   }
   beforeEach(() => {
     vi.clearAllMocks();
+    testDataCommits.length = 0;
+    testElementBindings.clear();
+    installTestDataChangeRecorder((entry) => addEntry(entry));
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("update → api_endpoints.update 1 · 메모리 Map · History 1 (elementId = endpoint id) · collections DB 0", async () => {
+  it("update → 문서 쓰기 1 (endpoint 만) · 메모리 Map · History 1 (elementId = endpoint id)", async () => {
     const { apply, endpoints } = makeStore();
     const result = await apply(
       {
@@ -374,9 +355,11 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
     );
     expect(result.endpointIds).toEqual(["ep_users"]);
     expect(endpoints().get("getUsers")?.headers[0].key).toBe("Authorization");
-    expect(dbMock.api_endpoints.update).toHaveBeenCalledTimes(1);
-    expect(dbMock.api_endpoints.insert).not.toHaveBeenCalled();
-    expect(dbMock.collections.update).not.toHaveBeenCalled();
+    expect(testDataCommits).toHaveLength(1);
+    expect(testDataCommits[0]!.endpoints!.map((e) => e.id)).toEqual([
+      "ep_users",
+    ]);
+    expect(testDataCommits[0]!.collections).toEqual([]);
     expect(addEntry).toHaveBeenCalledTimes(1);
     expect(addEntry.mock.calls[0][0]).toMatchObject({
       type: "data",
@@ -384,7 +367,7 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
     });
   });
 
-  it("create → insert 1 · undo (inverse delete_endpoint, record:false) → delete 1 · Map 원상 · History 0", async () => {
+  it("create → 쓰기 1 · inverse (delete_endpoint) 재적용 → 삭제 쓰기 · Map 원상", async () => {
     const { apply, endpoints } = makeStore();
     const result = await apply(
       {
@@ -403,21 +386,14 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
       },
       { projectId: "p" },
     );
-    expect(dbMock.api_endpoints.insert).toHaveBeenCalledTimes(1);
+    expect(testDataCommits[0]!.endpoints).toHaveLength(1);
     expect(endpoints().size).toBe(2);
-    await apply({ ops: result.inverse, origin: "user" }, { record: false });
-    expect(dbMock.api_endpoints.delete).toHaveBeenCalledTimes(1);
+    await apply({ ops: result.inverse, origin: "user" });
+    expect(testDataCommits[1]!.endpointsDeleted).toHaveLength(1);
     expect(endpoints().size).toBe(1);
-    expect(addEntry).toHaveBeenCalledTimes(1);
   });
 
-  it("endpoint 생성 + bind_element 한 묶음에서 바인딩이 실패하면 endpoint 도 rollback (Map · DB delete)", async () => {
-    // preflight 는 통과 (요소 있음) 하고 commit 에서 실패하는 경우
-    registerDataBindingConsumer({
-      has: () => true,
-      read: () => null,
-      apply: () => null,
-    });
+  it("endpoint 생성 + bind_element 한 묶음에서 요소가 없으면 아무것도 쓰지 않는다 (한 transaction)", async () => {
     const { apply, endpoints } = makeStore();
     await expect(
       apply(
@@ -440,8 +416,7 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
       ),
     ).rejects.toThrow();
     expect(endpoints().size).toBe(1);
-    expect(dbMock.api_endpoints.insert).toHaveBeenCalledTimes(1);
-    expect(dbMock.api_endpoints.delete).toHaveBeenCalledTimes(1);
+    expect(testDataCommits).toHaveLength(0);
     expect(addEntry).not.toHaveBeenCalled();
   });
 });

@@ -40,10 +40,10 @@ import {
 import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
 import { catalogBoundRows } from "../catalogRuntime/dataBinding";
 import {
-  catalogDataHistoryRecorder,
-  catalogDocumentBindingCommitter,
-} from "../catalogRuntime/dataHistory";
-import { catalogDocumentVariableNames } from "../catalogRuntime/dataVariables";
+  catalogCollectionTables,
+  catalogDataProjectId,
+  catalogProjectVariableDefs,
+} from "../catalogRuntime/catalogDataRead";
 import { loadCatalogProductLibrary } from "../catalogRuntime/library";
 import { catalogProjectIdOf } from "../catalogRuntime/project";
 import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
@@ -82,17 +82,10 @@ import {
   createCatalogSnapshotHost,
 } from "../panels/history/catalogSnapshotHost";
 import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
-import { toProjectVariableDefs, useDataStore } from "../stores/data";
-import { changedCollectionIds } from "../catalogRuntime/rowsRefresh";
-import type { DataTable } from "../../types/builder/data.types";
+import { useDataStore } from "../stores/data";
+import { changedRuntimeCollectionIds } from "../catalogRuntime/rowsRefresh";
 import { notifyEditRefusal } from "../catalogRuntime/operationNotice";
 import { useToastStore } from "../stores/toast";
-import {
-  setDataHistoryRecorder,
-  setDocumentBindingCommitter,
-  setDocumentVariableNamesReader,
-} from "../stores/utils/dataChange";
-import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
 import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
 import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
 import {
@@ -136,8 +129,8 @@ type OpenState =
       kind: "open";
       workspace: CatalogWorkspace;
       name: string;
-      /** The data-store collections the root resolved its bound rows from (`rows` option). */
-      rowsSource: ReadonlyMap<string, DataTable>;
+      /** The API rows the root resolved its bound rows from (`rows` option — ADR-286). */
+      rowsSource: ReadonlyMap<string, Record<string, unknown>[]>;
     }
   | { kind: "failed"; message: string };
 
@@ -185,7 +178,6 @@ export function CatalogBuilderCore() {
   useEffect(() => {
     let cancelled = false;
     let opened: CatalogWorkspace | undefined;
-    let restorePageSource: (() => void) | undefined;
     // `mark`: a boot segment's end as User Timing (`composition:builder.boot.<mark>`), read by the
     // boot latency harness (ADR-244 Phase 0) together with `first-commit` and `presented`.
     const stage = (progress: number, mark?: string) => {
@@ -212,27 +204,18 @@ export function CatalogBuilderCore() {
         library,
       );
       stage(75);
-      // A route change meanwhile: register nothing for this run — the cleanup already ran and would
-      // never unregister it (audit L2).
+      // A route change meanwhile: nothing for this run (the cleanup already ran — audit L2).
       if (cancelled) return;
-      // ADR-214 owner rule C (one page → it owns a page variable without `page_id`): the
-      // document's pages, not the old store's (empty here).
-      restorePageSource = registerVariableOwnerPageSource(() => {
-        const project = graph.getEntry(graph.projectId);
-        return project?.kind === "project" ? project.pageIds : [];
-      });
-      // Collections · API endpoints · variables stay in the data store (H1), keyed by the route id.
-      try {
-        await useDataStore.getState().initializeForProject(routeId);
-      } catch (error) {
-        console.error("[CatalogBuilder] data store init failed:", error);
-      }
-      if (cancelled) return;
+      // ADR-286: collections · API endpoints · variables are the document's entries; the data
+      // store projects them once the workspace is open (`bindCatalogDataStore`). Only the API rows
+      // cache (ADR-218) is the store's — a project switch starts without the last one's.
+      useDataStore.getState().reset();
       // The rest is the Canvas's first frame (the overlay goes when it is drawn).
       stage(90, "document");
-      // The rows the root is about to resolve: the mount refreshes only collections that change
-      // after this read (a second whole resolve of the bound pages was ~1/4 of the first frame).
-      const rowsSource = useDataStore.getState().collections;
+      // The API rows the root is about to resolve: the mount refreshes only collections whose rows
+      // change after this read (a second whole resolve of the bound pages was ~1/4 of the first
+      // frame).
+      const rowsSource = useDataStore.getState().runtimeRows;
       const snapRatio = window.devicePixelRatio || 1;
       setBorderSnapRatio(snapRatio);
       opened = new CatalogWorkspace(graph, storage, {
@@ -254,16 +237,12 @@ export function CatalogBuilderCore() {
           devicePixelRatio: snapRatio,
           // The old Canvas's sample: a bound list that grows with its rows draws the first 10.
           rowSample: COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT,
+          // ADR-286: the document's collections, with the API rows the store caches.
           rows: (binding, kind) =>
-            catalogBoundRows(
-              binding,
-              [...useDataStore.getState().collections.values()],
-              kind,
-            ),
-          // `{{ name }}` at defaults; project variables live in the data store (H1).
+            catalogBoundRows(binding, catalogCollectionTables(graph), kind),
+          // `{{ name }}` at defaults; project variables are the document's (ADR-286).
           state: {
-            projectVariables: () =>
-              toProjectVariableDefs(useDataStore.getState().variables),
+            projectVariables: () => catalogProjectVariableDefs(graph),
           },
         },
       });
@@ -321,7 +300,6 @@ export function CatalogBuilderCore() {
     return () => {
       cancelled = true;
       opened?.dispose();
-      restorePageSource?.();
     };
   }, [routeId, openCount]);
 
@@ -524,21 +502,52 @@ export function CatalogBuilderCore() {
       uninstall?.();
     };
   }, []);
-  // A collection's rows changed (edit, load, delete): its bound collections draw them again.
-  // The root already resolved the rows of the store it was opened with (`rowsSource`): on mount
-  // only what changed since is refreshed (2026-10-21 — an unconditional refresh resolved every
-  // bound page root a second time, ~125 ms of a 22-page document's first frame, 4× throttle ~520).
+  // ADR-286: the data store projects the document's data entries and writes them as document
+  // commands (one history step · one save); then the API rows cache of this project loads. The
+  // projection and its write path load after the first paint (the Canvas reads the document —
+  // `catalogDataRead`; every data editor is a lazy panel).
+  useEffect(() => {
+    if (!workspace) return;
+    let unbind: (() => void) | null = null;
+    let cancelled = false;
+    void import("../catalogRuntime/catalogDataStore")
+      .then(({ bindCatalogDataStore }) => {
+        if (cancelled) return;
+        unbind = bindCatalogDataStore(workspace, (payload) =>
+          dataChangeEventLabel(payload, t),
+        );
+        return useDataStore
+          .getState()
+          .initializeForProject(catalogDataProjectId(workspace.runtime.graph));
+      })
+      .catch((error: unknown) =>
+        console.error("[CatalogBuilder] data store init failed:", error),
+      );
+    return () => {
+      cancelled = true;
+      unbind?.();
+    };
+  }, [t, workspace]);
+  // API rows changed (a run, the cache, a delete): the collections they fill draw them again. A
+  // definition change is a document step — its consume plan redraws (ADR-286 R8). The root read
+  // the rows it was opened with (`rowsSource`): on mount only what changed since is refreshed
+  // (2026-10-21 — an unconditional refresh resolved every bound page root a second time).
   useEffect(() => {
     if (!workspace || !rowsSource) return;
-    const since = changedCollectionIds(
-      useDataStore.getState().collections,
+    const since = changedRuntimeCollectionIds(
+      useDataStore.getState().runtimeRows,
       rowsSource,
+      useDataStore.getState().collections,
     );
     if (since.length) workspace.refreshRows(since);
     return useDataStore.subscribe(
-      (store) => store.collections,
+      (store) => store.runtimeRows,
       (next, previous) => {
-        const changed = changedCollectionIds(next, previous);
+        const changed = changedRuntimeCollectionIds(
+          next,
+          previous,
+          useDataStore.getState().collections,
+        );
         if (!changed.length) return;
         try {
           workspace.refreshRows(changed);
@@ -548,47 +557,6 @@ export function CatalogBuilderCore() {
       },
     );
   }, [workspace, rowsSource]);
-  // Project variables changed (add, rename, default): the `{{ }}` readers resolve again.
-  useEffect(() => {
-    if (!workspace) return;
-    return useDataStore.subscribe(
-      (store) => store.variables,
-      () => {
-        try {
-          workspace.refreshState();
-        } catch (error) {
-          console.error("[CatalogBuilder] state refresh failed:", error);
-        }
-      },
-    );
-  }, [workspace]);
-  // Recorded data changes join the document's single history while this project is open.
-  useEffect(() => {
-    if (!workspace) return;
-    setDataHistoryRecorder(
-      catalogDataHistoryRecorder(
-        workspace,
-        useDataStore.getState().applyDataChange,
-        (payload) => dataChangeEventLabel(payload, t),
-      ),
-    );
-    // `bind_element` (an approved AI data proposal) binds the document's node, one entry.
-    setDocumentBindingCommitter(
-      catalogDocumentBindingCommitter(
-        workspace,
-        useDataStore.getState().applyDataChange,
-        (payload) => dataChangeEventLabel(payload, t),
-      ),
-    );
-    setDocumentVariableNamesReader(() =>
-      catalogDocumentVariableNames(workspace.runtime.graph),
-    );
-    return () => {
-      setDataHistoryRecorder(null);
-      setDocumentBindingCommitter(null);
-      setDocumentVariableNamesReader(null);
-    };
-  }, [t, workspace]);
   const quickConnect = useMemo(
     () =>
       workspace

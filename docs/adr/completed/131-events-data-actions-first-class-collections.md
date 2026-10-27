@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-13 (Phase 0-8 전수 완결 + G1-G4 PASS + ADR-133 partial reverse 반영)
 
+> **ADR-286 이 바꿈 (2026-10-28)**: Phase 8 의 「data = `DataTablePanel` 의 별도 SSOT」 는 바뀌었다 — collection · endpoint · 프로젝트 변수 정의는 catalog 문서 entry (`collection` · `endpoint` · `projectVariable`) 이고 data store 는 그 투영이다. 바인딩 읽기 계약은 그대로.
+
 ### Implemented 승격 사유 (2026-05-13)
 
 Phase 0-6 G1-G4 PASS land 후 Phase 7 (IndexedDB store land) → Phase 7-revert (data store drop) → Phase 8 (SerializedData / `CompositionDocument.data` 영역 전수 revert) 까지 사용자 framing 정합 완결. events / actions root collection 영역은 schema + adapter + store + bridge + Inspector UI 전수 land. data 영역은 사용자 framing ("RAC/RSC data SSOT = `data_tables`") 으로 revert 완결.

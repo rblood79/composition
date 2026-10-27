@@ -290,26 +290,12 @@ describe("§3.1 참조 공개 · 삭제 경쟁 (G3 고정 반례)", () => {
 });
 
 describe("영속 root 수집 (G0 (b) 보유처)", () => {
-  it("catalog DB 밖의 data store (collections · variables) 를 모으고 구 문서 store 는 읽지 않는다", async () => {
-    const inCollection = await asset(11);
-    const inVariable = await asset(12);
-    await adapter.collections.insert({
-      id: "c1",
-      project_id: "p1",
-      name: "c",
-      rows: [{ image: inCollection.ref }],
-    } as never);
-    await adapter.variables.insert({
-      id: "v1",
-      project_id: "p1",
-      name: "v",
-      defaultValue: inVariable.ref,
-    } as never);
+  it("catalog DB 밖의 root 는 브라우저 저장소 키뿐 — 데이터 정의는 catalog 문서 root (ADR-286) · 구 문서 store 는 읽지 않는다", async () => {
     const db = (await openAssetDb())!;
     expect(db.objectStoreNames.contains("documents")).toBe(false);
     expect(db.objectStoreNames.contains("document_parts")).toBe(false);
-    const text = JSON.stringify(await collectDurableAssetRoots());
-    expect(text).toContain(inCollection.hash);
-    expect(text).toContain(inVariable.hash);
+    expect(db.objectStoreNames.contains("collections")).toBe(false);
+    // localStorage 3 keys + sessionStorage 1 key — nothing read from a data store.
+    expect(await collectDurableAssetRoots()).toHaveLength(4);
   });
 });

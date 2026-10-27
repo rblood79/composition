@@ -367,7 +367,7 @@ export interface Variable {
    * 소유자 (ADR-214 Phase 1, additive). 이 store 의 변수는 전부 프로젝트 저장이므로
    * 정상 값은 `{ kind: "project" }` 이고, `{ kind: "page" }` 는 `scope:"page" + page_id`
    * 구 데이터의 읽기 변환 결과다 (페이지 변수의 정본은 canonical 페이지 노드 `state`).
-   * 로드 시 `migrateVariableOwners` 가 채우며 저장 전까지 IndexedDB 원본은 재직렬화하지 않는다.
+   * ADR-286: 문서 투영이 늘 `{ kind: "project" }` 를 채운다 (페이지 · 요소 변수는 문서의 상태 변수).
    * `scope` / `page_id` 는 하위 호환 (`isVariable` 가드 · 구 UI) 으로 남긴다.
    */
   owner?: VariableOwner;
@@ -516,6 +516,12 @@ export interface DataStoreState {
   /** 프로젝트의 모든 Variable */
   variables: Map<string, Variable>;
 
+  /**
+   * ADR-286 — API 실행 결과 행 (collection id → rows). 문서가 아니다 (ADR-218 캐시) — 투영된
+   * `DataTable.runtimeData` 로 합쳐 보인다.
+   */
+  runtimeRows: Map<string, Record<string, unknown>[]>;
+
   /** 현재 로딩 중인 API ID 목록 */
   loadingApis: Set<string>;
 
@@ -544,13 +550,14 @@ export interface DataStoreActions {
   hydrateRuntimeCache: (projectId: string) => Promise<void>;
   /**
    * ADR-152 §2-3 — 데이터 편집 단일 진입점. create/update/deleteCollection 은 이
-   * 적용기의 wrapper 다. `record:false` 는 undo/redo 재적용 (History 없음).
+   * 적용기의 wrapper 다. ADR-286: 한 번의 적용 = catalog 문서 명령 하나 (History · 저장).
    */
   applyDataChange: (
     change: DataChange,
     options?: {
-      record?: boolean;
       projectId?: string;
+      /** ADR-286 — 같은 step 에 들어갈 문서 명령 (catalog `CatalogCommand`). */
+      document?: readonly unknown[];
       /** ADR-013 — bind_element 쓰기 직전 대상 바인딩 스냅샷 대조 (다르면 중단·rollback). */
       expectBindings?: Readonly<
         Record<string, { props?: unknown; extension?: unknown }>

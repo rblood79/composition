@@ -1,5 +1,3 @@
-import { toExportCollection } from "@composition/shared";
-import { endpointWithTarget } from "../utils/endpointTarget";
 import type { ProjectContentV2 } from "@composition/shared/assets";
 import {
   useCallback,
@@ -13,9 +11,8 @@ import { useI18n } from "../../i18n";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
 import type { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
-import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
+import { useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
-import { importDataParts } from "../utils/importCollectionEnvelope";
 import DirectoryLinkButton from "./DirectoryLinkButton";
 import { withoutComponentPages } from "../../../../../packages/shared/src/catalog/document/componentPages";
 import type { CatalogDocument } from "../../../../../packages/shared/src/catalog/document/types";
@@ -103,12 +100,7 @@ export function useCatalogProjectFiles(options: {
       document: graph.exportDocument(),
       currentPageId: open.session.getSnapshot().pageId ?? null,
       fontRegistry: loadFontRegistry(),
-      collections: [...data.collections.values()].map(toExportCollection),
-      // (The collection a query endpoint fills travels by name — the import re-points it.)
-      apiEndpoints: [...data.apiEndpoints.values()].map((endpoint) =>
-        endpointWithTarget(endpoint, data.collections),
-      ),
-      variables: getProjectVariableDefinitions(),
+      // (ADR-286: collections · API endpoints · variables are the document's entries.)
     };
   }, [routeId]);
 
@@ -203,12 +195,6 @@ export function useCatalogProjectFiles(options: {
         library: open.runtime.graph.library,
         replace: (document) =>
           new CatalogStorage().replace(document, open.runtime.graph.library),
-        importData: (extras) =>
-          importDataParts(
-            routeId,
-            extras as Parameters<typeof importDataParts>[1],
-            useDataStore.getState(),
-          ),
       });
       if (result.extras.fontRegistry)
         saveRegistryAndNotify(

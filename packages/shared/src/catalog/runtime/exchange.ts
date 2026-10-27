@@ -118,9 +118,8 @@ export async function writeCatalogFolder(
 
 /**
  * ADR-248 §4.2 project file (folder or zip): the ADR-235 v2 container — immutable content-addressed
- * parts, asset bytes, generation recovery — whose document part is the catalog document. The
- * data stores (collections, API endpoints, variables; ADR-131 data SSOT) and fonts travel as the
- * container's other parts, unchanged. `buildV2Generation` / `readV2Generation` do the file work.
+ * parts, asset bytes, generation recovery — whose document part is the catalog document (its data
+ * definitions included — ADR-286). Fonts travel as the container's other part, unchanged. `buildV2Generation` / `readV2Generation` do the file work.
  */
 export type CatalogProjectFileExtras = Omit<
   ProjectContentV2,
@@ -176,20 +175,6 @@ export function rehomeCatalogDocument(
 ): CatalogDocument {
   if (document.projectId === projectId) return document;
   return replaceStrings(document, new Map([[document.projectId, projectId]]));
-}
-
-/**
- * The file's data parts are created or matched by name in the open project's data store (the old
- * import rule); one that got another id there is re-pointed wherever the document references it —
- * `data:collection:` (bindings, data actions), `data:endpoint:` (a Form's `callEndpoint`, ADR-281),
- * `data:variable:` (`setState`). `refs` holds the whole reference ids.
- */
-export function remapCatalogDataRefs(
-  document: CatalogDocument,
-  refs: ReadonlyMap<string, string>,
-): CatalogDocument {
-  const map = new Map([...refs].filter(([from, to]) => from !== to));
-  return map.size ? replaceStrings(document, map) : document;
 }
 
 /**
@@ -277,10 +262,10 @@ export async function readCatalogProjectJson(text: string): Promise<{
 /**
  * Import a project file's content into the open project (the old import's rule — the open project
  * keeps its identity, the file's document replaces its document): the document part is checked
- * first, then the data parts go into the data store (`importData` — collections matched by name,
- * returning file id → store id), then the document, re-homed and re-pointed, replaces the stored
- * one (the open project's name kept). The caller reopens the project. The page to open is the file's current page when the
- * document has it, else the first page (`pageMissing`).
+ * first, then the document, re-homed, replaces the stored one (the open project's name kept). Its
+ * data definitions travel inside it (ADR-286 — collections · endpoints · variables are entries, no
+ * data part to merge). The caller reopens the project. The page to open is the file's current page
+ * when the document has it, else the first page (`pageMissing`).
  */
 export async function importCatalogProjectContent(options: {
   content: ProjectContentV2;
@@ -289,9 +274,6 @@ export async function importCatalogProjectContent(options: {
   name?: string;
   library: CatalogLibrary;
   replace: (document: CatalogDocument) => Promise<unknown>;
-  importData: (
-    extras: CatalogProjectFileExtras,
-  ) => Promise<ReadonlyMap<string, string>>;
 }): Promise<{
   document: CatalogDocument;
   pageId: string | undefined;
@@ -302,11 +284,7 @@ export async function importCatalogProjectContent(options: {
     options.content,
     options.library,
   );
-  const ids = await options.importData(extras);
-  const remapped = remapCatalogDataRefs(
-    rehomeCatalogDocument(read, options.projectId),
-    ids,
-  );
+  const remapped = rehomeCatalogDocument(read, options.projectId);
   const project: ProjectEntry = {
     ...(remapped.entries[remapped.projectId] as ProjectEntry),
     ...(options.name !== undefined ? { name: options.name } : {}),

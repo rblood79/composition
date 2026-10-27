@@ -79,12 +79,9 @@ const memory = (files: Map<string, Uint8Array>): V2Source => ({
 });
 
 describe("ADR-248 Phase 4d project file", () => {
-  it("a new project roundtrips through the v2 container with its data parts and asset bytes", async () => {
+  it("a new project roundtrips through the v2 container with its document (data definitions inside — ADR-286) and asset bytes", async () => {
     const { graph, bytes, hash } = await projectWithImage();
     const extras = {
-      collections: [{ id: "data:collection:users", name: "Users" }],
-      apiEndpoints: [],
-      variables: [{ id: "var-1", name: "count" }],
       fontRegistry: { families: [] },
       currentPageId: HOME,
     };

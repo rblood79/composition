@@ -19,7 +19,7 @@ import {
  * D1: composition `<body>` 페이지 루트 (internal source, generic `div` fallback).
  *     Preview/Publish의 nested body div와 실제 document.body 동기화가 같은 class resolver를 쓴다.
  * D2: children(페이지 콘텐츠) + 자손에 내려주는 prop (ADR-281 — `inheritedProps.ts`: v3 Provider 의
- *     `isDisabled` · `isReadOnly` · `isRequired` · S2 Provider 의 `locale` · `colorScheme`).
+ *     `isDisabled` · `isReadOnly` · `isRequired` · S2 Provider 의 `colorScheme` — `locale` 은 사이트 언어 (ADR-286, compositionRoot 가 넣는다)).
  * D3: 시각(배경 `{color.base}`)은 theme rule(COMPONENT_RULES_TABLE.body).
  */
 export const bodyBinding: PrimitiveBinding = {
@@ -29,7 +29,11 @@ export const bodyBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      ...CATALOG_INHERITED_PROP_CONTRACTS,
+      // ADR-286 (user 2026-10-28): no page `locale` — the site's language is the page root's
+      // (the composition root sets it; a frame still overrides a part).
+      isDisabled: CATALOG_INHERITED_PROP_CONTRACTS.isDisabled!,
+      isReadOnly: CATALOG_INHERITED_PROP_CONTRACTS.isReadOnly!,
+      isRequired: CATALOG_INHERITED_PROP_CONTRACTS.isRequired!,
       colorScheme: CATALOG_COLOR_SCHEME_PROP,
     },
     toRacProps: "default",

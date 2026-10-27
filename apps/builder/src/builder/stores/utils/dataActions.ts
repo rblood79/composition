@@ -18,23 +18,17 @@ import {
 } from "../../panels/datatable/utils/secretVault";
 import { computeSourceRev } from "../../panels/datatable/utils/sourceRev";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
-import { normalizeCollectionMap } from "../../../utils/data/normalizeCollection";
 import {
   resolveBoundCollection,
   resolveCollectionByName,
 } from "@composition/shared";
-import { createApplyDataChangeAction } from "./dataChange";
+import { commitDataDefinitions, createApplyDataChangeAction } from "./dataChange";
 import { collectionUpdateToOps } from "./dataChangeDiff";
 import {
   isUploadEndpointProbe,
   tusResumableVersion,
 } from "./uploadEndpointProbe";
 import { getDB } from "../../../lib/db";
-import {
-  migrateVariableOwner,
-  migrateVariableOwners,
-  readVariableOwnerPageIds,
-} from "./variableOwnerMigration";
 import type {
   DataTable,
   DataTableCreate,
@@ -60,9 +54,6 @@ type SetState = Parameters<StateCreator<DataStore>>[0];
 type GetState = Parameters<StateCreator<DataStore>>[1];
 
 type CollectionsDB = {
-  collections?: {
-    update: (id: string, updates: DataTableUpdate) => Promise<DataTable>;
-  };
   collection_runtime?: {
     get: (
       collectionId: string,
@@ -78,26 +69,27 @@ type CollectionsDB = {
 };
 
 /**
- * `DataField.id` 가 새로 부여된 collection 의 schema 를 IndexedDB 에 되쓴다 (ADR-152 R8).
- * 프로젝트당 id 없는 collection N건 · 1회, 이후 로드는 0건. 개별 실패는 로드를
- * 막지 않는다 — 다음 로드에서 다시 부여·재시도된다 (같은 창에서는 메모리 id 로 동작).
+ * ADR-286 — API rows (`runtimeData`) are not the document: the store keeps them per collection id
+ * (`runtimeRows`) and merges them into the projected table (the rows a list of an API collection
+ * shows). `undefined` = none.
  */
-export async function writeBackAssignedFieldIds(
-  db: unknown,
-  assigned: readonly DataTable[],
-): Promise<number> {
-  const store = (db as CollectionsDB).collections;
-  if (!store || assigned.length === 0) return 0;
-  let written = 0;
-  for (const dt of assigned) {
-    try {
-      await store.update(dt.id, { schema: dt.schema });
-      written += 1;
-    } catch (error) {
-      console.warn(`⚠️ DataField.id write-back 실패 (${dt.name}):`, error);
-    }
+export function setRuntimeRows(
+  set: SetState,
+  get: GetState,
+  id: string,
+  rows: Record<string, unknown>[] | undefined,
+): void {
+  const state = get();
+  const runtimeRows = new Map(state.runtimeRows);
+  if (rows) runtimeRows.set(id, rows);
+  else runtimeRows.delete(id);
+  const table = state.collections.get(id);
+  const collections = new Map(state.collections);
+  if (table) {
+    const { runtimeData: _old, ...definition } = table;
+    collections.set(id, rows ? { ...definition, runtimeData: rows } : definition);
   }
-  return written;
+  set({ runtimeRows, collections });
 }
 
 // ============================================
@@ -112,48 +104,12 @@ export type IsCurrentProject = (projectId: string) => boolean;
 const ALWAYS_CURRENT: IsCurrentProject = () => true;
 
 /**
- * 프로젝트의 모든 DataTable을 가져오는 액션
+ * ADR-286 — the store projects the open catalog document (`bindCatalogDataStore`): nothing to
+ * fetch. Kept for the Data panel's refresh calls.
  */
 export const createFetchDataTablesAction =
-  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (projectId: string): Promise<void> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      const data =
-        (await (
-          db as unknown as {
-            collections: {
-              getByProject: (projectId: string) => Promise<DataTable[]>;
-            };
-          }
-        ).collections?.getByProject(projectId)) || [];
-
-      // ADR-152 HC7/HC8: 진입 경계 정규화 (DataField.id 부여) + **id 키** Map.
-      const { collections: dataTablesMap, assigned } = normalizeCollectionMap(
-        data || [],
-      );
-      if (!isCurrent(projectId)) return;
-
-      set((state) => ({
-        collections: dataTablesMap,
-        isLoading: false,
-        errors: new Map(state.errors),
-      }));
-
-      // id 가 새로 부여된 collection 만 hydrate 직후 1회 write-back (R8) — 참조 (문서)
-      // 가 먼저 저장돼도 정의의 id 가 재생성되지 않게. 실패해도 로드는 유효하다 (경고만).
-      await writeBackAssignedFieldIds(db, assigned);
-    } catch (error) {
-      console.error("❌ DataTable 목록 조회 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("fetchCollections", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-    }
-  };
+  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
+  async (_projectId: string): Promise<void> => {};
 
 /**
  * ADR-218 — runtimeData 캐시(collection_runtime) hydration. collections·apiEndpoints 가
@@ -174,10 +130,9 @@ export const createHydrateRuntimeCacheAction =
       const { collections, apiEndpoints } = get();
       const endpoints = Array.from(apiEndpoints.values());
       const secretRevisions = await getSecretRevisions(projectId);
-      const next = new Map(collections);
-      let changed = false;
+      const next = new Map<string, Record<string, unknown>[]>();
       for (const row of rows) {
-        const table = next.get(row.collectionId);
+        const table = collections.get(row.collectionId);
         // 정의 없는 고아 캐시 정리 (R8)
         if (!table) {
           await db.collection_runtime?.delete(row.collectionId);
@@ -213,15 +168,15 @@ export const createHydrateRuntimeCacheAction =
               renameRowsKey(runtimeData, oldKey, f.key) ?? runtimeData;
           }
         }
-        next.set(table.id, { ...table, runtimeData });
-        changed = true;
+        next.set(table.id, runtimeData);
       }
-      if (changed) {
+      if (next.size) {
         // The user moved to another project while the cache loaded (audit L2).
         const current = (get() as { currentProjectId?: string | null })
           .currentProjectId;
         if (current != null && current !== projectId) return;
-        set({ collections: next });
+        for (const [id, runtimeData] of next)
+          setRuntimeRows(set, get, id, runtimeData);
       }
     } catch (error) {
       console.warn("⚠️ runtimeData 캐시 hydration 실패:", error);
@@ -293,15 +248,8 @@ export const createUpdateDataTableAction =
       if (ops.length > 0) {
         await createApplyDataChangeAction(set, get)({ ops, origin: "user" });
       }
-      if (runtimeData !== undefined) {
-        const { collections } = get();
-        const current = collections.get(id);
-        if (current) {
-          const newMap = new Map(collections);
-          newMap.set(id, { ...current, runtimeData });
-          set({ collections: newMap });
-        }
-      }
+      if (runtimeData !== undefined)
+        setRuntimeRows(set, get, id, runtimeData);
     } catch (error) {
       console.error("❌ DataTable 업데이트 실패:", error);
       set((state) => {
@@ -384,66 +332,51 @@ export const createSetRuntimeDataAction =
       return;
     }
 
-    const newMap = new Map(collections);
-    newMap.set(dataTable.id, { ...dataTable, runtimeData: data });
-
-    set({ collections: newMap });
+    setRuntimeRows(set, get, dataTable.id, data);
   };
 
 // ============================================
 // ApiEndpoint Actions
 // ============================================
 
-/**
- * 프로젝트의 모든 ApiEndpoint을 가져오는 액션
- */
+/** ADR-286 — projected from the document (see `createFetchDataTablesAction`). */
 export const createFetchApiEndpointsAction =
-  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (projectId: string): Promise<void> => {
-    set({ isLoading: true });
+  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
+  async (_projectId: string): Promise<void> => {};
 
-    try {
-      const db = await getDB();
-      const data =
-        (await (
-          db as unknown as {
-            api_endpoints: {
-              getByProject: (projectId: string) => Promise<ApiEndpoint[]>;
-            };
-          }
-        ).api_endpoints?.getByProject(projectId)) || [];
+/** The id of the collection an endpoint names (id first, else the v1 name). */
+function targetIdOf(
+  get: GetState,
+  endpoint: Pick<ApiEndpoint, "targetCollectionId" | "targetCollection">,
+): string | undefined {
+  const collections = get().collections;
+  if (endpoint.targetCollectionId && collections.has(endpoint.targetCollectionId))
+    return endpoint.targetCollectionId;
+  if (!endpoint.targetCollection) return undefined;
+  return resolveCollectionByName(
+    endpoint.targetCollection,
+    Array.from(collections.values()),
+  )?.id;
+}
 
-      const apiEndpointsMap = new Map<string, ApiEndpoint>();
-      (data || []).forEach((ep) => {
-        apiEndpointsMap.set(ep.name, ep);
-      });
-      if (!isCurrent(projectId)) return;
-
-      set((state) => ({
-        apiEndpoints: apiEndpointsMap,
-        isLoading: false,
-        errors: new Map(state.errors),
-      }));
-    } catch (error) {
-      console.error("❌ ApiEndpoint 목록 조회 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("fetchApiEndpoints", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-    }
-  };
+function findEndpoint(get: GetState, id: string): ApiEndpoint | undefined {
+  for (const endpoint of get().apiEndpoints.values())
+    if (endpoint.id === id) return endpoint;
+  return undefined;
+}
 
 /**
- * 새 ApiEndpoint을 생성하는 액션
+ * 새 ApiEndpoint 생성 — ADR-286: 문서 entry (명령 하나 · History · 저장). 이름 고유는
+ * `define_endpoint` 와 같은 규칙.
  */
 export const createCreateApiEndpointAction =
   (set: SetState, get: GetState) =>
   async (data: ApiEndpointCreate): Promise<ApiEndpoint> => {
-    set({ isLoading: true });
-
     try {
-      const db = await getDB();
+      for (const endpoint of get().apiEndpoints.values())
+        if (endpoint.name.trim() === data.name.trim())
+          throw new Error(`endpoint 이름이 이미 있습니다: ${data.name}`);
+      const targetCollectionId = targetIdOf(get, data);
       const newApiEndpoint: ApiEndpoint = {
         id: crypto.randomUUID(),
         name: data.name,
@@ -454,92 +387,59 @@ export const createCreateApiEndpointAction =
         headers: data.headers || [],
         queryParams: data.queryParams || [],
         bodyType: data.bodyType || "none",
-        bodyTemplate: data.bodyTemplate,
+        ...(data.bodyTemplate !== undefined
+          ? { bodyTemplate: data.bodyTemplate }
+          : {}),
         // 빈 경로 = 응답 전체 (실행기가 배열을 자동 감지한다 — utils/data/responseData.ts)
         responseMapping: data.responseMapping || { dataPath: "" },
-        targetCollection: data.targetCollection,
+        ...(targetCollectionId ? { targetCollectionId } : {}),
         executionMode: data.executionMode || "client",
-        serverConfig: data.serverConfig,
+        ...(data.serverConfig ? { serverConfig: data.serverConfig } : {}),
         timeout: data.timeout || 30000,
         retryCount: data.retryCount || 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
-
-      await (
-        db as unknown as {
-          api_endpoints: { insert: (ep: ApiEndpoint) => Promise<ApiEndpoint> };
-        }
-      ).api_endpoints?.insert(newApiEndpoint);
-
-      // 메모리 상태 업데이트
-      const { apiEndpoints } = get();
-      const newMap = new Map(apiEndpoints);
-      newMap.set(newApiEndpoint.name, newApiEndpoint);
-
-      set({ apiEndpoints: newMap, isLoading: false });
-
-      return newApiEndpoint;
+      commitDataDefinitions({
+        endpoints: [newApiEndpoint],
+        payload: {
+          change: { ops: [], origin: "user", label: "Add API" },
+          inverse: [],
+        },
+      });
+      return findEndpoint(get, newApiEndpoint.id) ?? newApiEndpoint;
     } catch (error) {
       console.error("❌ ApiEndpoint 생성 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set("createApiEndpoint", error as Error);
-        return { errors: newErrors, isLoading: false };
+        return { errors: newErrors };
       });
       throw error;
     }
   };
 
-/**
- * ApiEndpoint을 업데이트하는 액션
- *
- * ⚡ 개별 업데이트는 isLoading 표시 안함 (빠른 작업이므로)
- */
+/** ApiEndpoint 갱신 — ADR-286: 문서 entry 하나를 바꾸는 명령 (History · 저장). */
 export const createUpdateApiEndpointAction =
   (set: SetState, get: GetState) =>
   async (id: string, updates: ApiEndpointUpdate): Promise<void> => {
     try {
-      const db = await getDB();
-      await (
-        db as unknown as {
-          api_endpoints: {
-            update: (
-              id: string,
-              updates: ApiEndpointUpdate,
-            ) => Promise<ApiEndpoint>;
-          };
-        }
-      ).api_endpoints?.update(id, updates);
-
-      // 메모리 상태 업데이트
-      const { apiEndpoints } = get();
-      const newMap = new Map(apiEndpoints);
-
-      // ID로 ApiEndpoint 찾기
-      let foundKey: string | undefined;
-      apiEndpoints.forEach((ep, key) => {
-        if (ep.id === id) foundKey = key;
-      });
-
-      if (foundKey) {
-        const existing = newMap.get(foundKey)!;
-        const updated = {
-          ...existing,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        };
-
-        // 이름이 변경된 경우 키도 업데이트
-        if (updates.name && updates.name !== foundKey) {
-          newMap.delete(foundKey);
-          newMap.set(updates.name, updated);
-        } else {
-          newMap.set(foundKey, updated);
-        }
+      const existing = findEndpoint(get, id);
+      if (!existing) {
+        console.warn("⚠️ updateApiEndpoint: endpoint 없음", id);
+        return;
       }
-
-      set({ apiEndpoints: newMap });
+      const merged: ApiEndpoint = { ...existing, ...updates };
+      const { targetCollection: _name, targetCollectionId: _id, ...rest } =
+        merged;
+      const targetCollectionId = targetIdOf(get, merged);
+      commitDataDefinitions({
+        endpoints: [
+          { ...rest, ...(targetCollectionId ? { targetCollectionId } : {}) },
+        ],
+        payload: {
+          change: { ops: [], origin: "user", label: "Edit API" },
+          inverse: [],
+        },
+      });
     } catch (error) {
       console.error("❌ ApiEndpoint 업데이트 실패:", error);
       set((state) => {
@@ -551,38 +451,21 @@ export const createUpdateApiEndpointAction =
     }
   };
 
-/**
- * ApiEndpoint을 삭제하는 액션
- */
+/** ApiEndpoint 삭제 — ADR-286: `delete_endpoint` (History · 저장, undo 는 같은 id). */
 export const createDeleteApiEndpointAction =
   (set: SetState, get: GetState) =>
   async (id: string): Promise<void> => {
-    set({ isLoading: true });
-
     try {
-      const db = await getDB();
-      await (
-        db as unknown as {
-          api_endpoints: { delete: (id: string) => Promise<void> };
-        }
-      ).api_endpoints?.delete(id);
-
-      // 메모리 상태 업데이트
-      const { apiEndpoints } = get();
-      const newMap = new Map(apiEndpoints);
-
-      // ID로 ApiEndpoint 찾아서 삭제
-      apiEndpoints.forEach((ep, key) => {
-        if (ep.id === id) newMap.delete(key);
+      await createApplyDataChangeAction(set, get)({
+        ops: [{ op: "delete_endpoint", endpointId: id }],
+        origin: "user",
       });
-
-      set({ apiEndpoints: newMap, isLoading: false });
     } catch (error) {
       console.error("❌ ApiEndpoint 삭제 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set("deleteApiEndpoint", error as Error);
-        return { errors: newErrors, isLoading: false };
+        return { errors: newErrors };
       });
       throw error;
     }
@@ -887,12 +770,7 @@ export const createExecuteApiEndpointAction =
           const latest = get().collections;
           const latestTable = latest.get(targetTable.id);
           if (endRev === startRev && isLatest && latestTable) {
-            const newDataTables = new Map(latest);
-            newDataTables.set(targetTable.id, {
-              ...latestTable,
-              runtimeData,
-            });
-            set({ collections: newDataTables });
+            setRuntimeRows(set, get, targetTable.id, runtimeData);
 
             // ADR-218 — runtimeData 캐시 영속 (별도 store, History 밖). 실패는 로드/실행을
             // 막지 않는다 (다음 실행에서 다시 채운다).
@@ -960,168 +838,53 @@ export const createExecuteApiEndpointAction =
 // Variable Actions
 // ============================================
 
-/**
- * 프로젝트의 모든 Variable을 가져오는 액션
- */
+/** ADR-286 — projected from the document (see `createFetchDataTablesAction`). */
 export const createFetchVariablesAction =
-  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (projectId: string): Promise<void> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      const data =
-        (await (
-          db as unknown as {
-            variables: {
-              getByProject: (projectId: string) => Promise<Variable[]>;
-            };
-          }
-        ).variables?.getByProject(projectId)) || [];
-
-      // ADR-214 Phase 1 — `owner` 읽기 변환 (결정적 · 메모리만 · IndexedDB 재직렬화 0).
-      //   component / page-without-page_id (페이지 2개 이상) 는 owner-unresolved 배지 + 로그 1회.
-      //   page-without-page_id 는 프로젝트 페이지가 1개뿐이면 그 페이지 (판정 C, 2026-09-11) —
-      //   페이지 목록은 `stores/index.ts` 가 등록한 공급자에서 읽는다.
-      //   C 귀속만 1회 write-back (`page_id`) — 페이지가 늘어도 귀속이 고정되도록 (사용자
-      //   지시 2026-09-11). 대상은 "page_id 없는 page 변수 × 페이지 1개" 뿐이라 그 외 재직렬화 0.
-      const { variables: migrated, report } = migrateVariableOwners(
-        data || [],
-        {
-          projectId,
-          pageIds: readVariableOwnerPageIds(),
-        },
-      );
-      const assignedPageIds = new Map(
-        report.pageAssigned.map((entry) => [entry.id, entry.pageId]),
-      );
-      const variablesMap = new Map<string, Variable>();
-      migrated.forEach((v) => {
-        const pageId = assignedPageIds.get(v.id);
-        variablesMap.set(v.name, pageId ? { ...v, page_id: pageId } : v);
-      });
-      // A stale project's variables neither show nor write back (its page source is gone).
-      if (!isCurrent(projectId)) return;
-      if (assignedPageIds.size > 0) {
-        const store = (
-          db as unknown as {
-            variables?: {
-              update: (
-                id: string,
-                updates: Partial<Variable>,
-              ) => Promise<Variable>;
-            };
-          }
-        ).variables;
-        for (const [id, page_id] of assignedPageIds) {
-          try {
-            await store?.update(id, { page_id });
-          } catch (error) {
-            console.warn(
-              `[ADR-214] Variable ${id} page_id write-back 실패 — 메모리 귀속은 유지:`,
-              error,
-            );
-          }
-        }
-      }
-
-      set((state) => ({
-        variables: variablesMap,
-        isLoading: false,
-        errors: new Map(state.errors),
-      }));
-    } catch (error) {
-      console.error("❌ Variable 목록 조회 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("fetchVariables", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-    }
-  };
+  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
+  async (_projectId: string): Promise<void> => {};
 
 /**
- * 프로젝트 변수 생성 — ADR-214 Phase 1: ADR-152 적용기 `define_variable` 의 얇은 wrapper
- * (History `type:"data"` entry · IndexedDB · 메모리 · 이름 고유 검증을 적용기가 맡는다).
- *
- * 구 UI 가 `scope: "page" | "component"` 를 요청하면 (Phase 5 가 표면을 교체하기 전의
- * legacy 경로) 적용기를 거치지 않고 종전 직접 저장을 유지한다 — 그 형태는 `define_variable`
- * 로 표현되지 않으며 (프로젝트 변수 op), 로드 변환이 `owner-unresolved` 로 표시한다.
+ * 프로젝트 변수 생성 — ADR-214 · 286: `define_variable` 의 얇은 wrapper (문서 entry · History).
+ * 페이지 · 요소 변수는 문서의 `StateVariableEntry` 다 (이 store 의 scope 는 project 뿐).
  */
 export const createCreateVariableAction =
   (set: SetState, get: GetState) =>
   async (data: VariableCreate): Promise<Variable> => {
-    set({ isLoading: true });
-
     try {
-      const scope = data.scope || "global";
-      if (scope === "global") {
-        const result = await createApplyDataChangeAction(set, get)(
-          {
-            ops: [
-              {
-                op: "define_variable",
-                definition: {
-                  name: data.name,
-                  type: data.type,
-                  ...(data.defaultValue !== undefined
-                    ? { defaultValue: data.defaultValue }
-                    : {}),
-                  persist: data.persist ?? false,
-                },
-              },
-            ],
-            origin: "user",
-          },
-          { projectId: data.project_id },
-        );
-        const [variableId] = result.variableIds;
-        const created = findVariableByIdInMap(get().variables, variableId);
-        if (!created)
-          throw new Error("생성된 변수를 store 에서 찾을 수 없습니다");
-        set({ isLoading: false });
-        return created;
-      }
-
-      // legacy scope (page / component) — 직접 저장 (Phase 5 표면 교체 전까지).
-      // page 는 `page_id` 필수 (사용자 판정 2026-09-11) — 소유 페이지 없는 page 변수를 더
-      // 만들지 않는다 (구 UI 가 한 번도 안 채워 실 데이터가 전부 그 형태였다).
-      if (scope === "page" && !data.page_id) {
+      if (data.scope && data.scope !== "global")
         throw new Error(
-          "page 변수는 page_id (소유 페이지) 가 있어야 합니다 — 현재 페이지 id 를 넘기세요",
+          "페이지 · 요소 변수는 문서의 상태 변수입니다 (State 섹션) — 이 목록은 프로젝트 변수만",
         );
-      }
-      const db = await getDB();
-      const newVariable: Variable = migrateVariableOwner({
-        id: crypto.randomUUID(),
-        name: data.name,
-        project_id: data.project_id,
-        type: data.type,
-        defaultValue: data.defaultValue,
-        persist: data.persist ?? false,
-        scope,
-        page_id: data.page_id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).variable;
-
-      await (
-        db as unknown as {
-          variables: { insert: (v: Variable) => Promise<Variable> };
-        }
-      ).variables?.insert(newVariable);
-
-      const { variables } = get();
-      const newMap = new Map(variables);
-      newMap.set(newVariable.name, newVariable);
-      set({ variables: newMap, isLoading: false });
-      return newVariable;
+      const result = await createApplyDataChangeAction(set, get)(
+        {
+          ops: [
+            {
+              op: "define_variable",
+              definition: {
+                name: data.name,
+                type: data.type,
+                ...(data.defaultValue !== undefined
+                  ? { defaultValue: data.defaultValue }
+                  : {}),
+                persist: data.persist ?? false,
+              },
+            },
+          ],
+          origin: "user",
+        },
+        { projectId: data.project_id },
+      );
+      const [variableId] = result.variableIds;
+      const created = findVariableByIdInMap(get().variables, variableId);
+      if (!created)
+        throw new Error("생성된 변수를 store 에서 찾을 수 없습니다");
+      return created;
     } catch (error) {
       console.error("❌ Variable 생성 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set("createVariable", error as Error);
-        return { errors: newErrors, isLoading: false };
+        return { errors: newErrors };
       });
       throw error;
     }
@@ -1146,11 +909,9 @@ const VARIABLE_DEFINITION_KEYS = [
 ] as const satisfies readonly (keyof VariableUpdate)[];
 
 /**
- * 프로젝트 변수 갱신 — ADR-214 Phase 1: 정의 축 (name · type · defaultValue · persist) 은
- * 적용기 `define_variable` (History 동봉). 그 밖의 legacy 필드 (scope · page_id · validation ·
- * transform — Phase 5 에서 숨김/정리 대상) 만 종전 직접 저장 경로로 남긴다.
- *
- * ⚡ 개별 업데이트는 isLoading 표시 안함 (빠른 작업이므로)
+ * 프로젝트 변수 갱신 — 정의 축 (name · type · defaultValue · persist) 은 `define_variable`,
+ * validation · transform 은 같은 entry 를 쓰는 문서 명령 (둘 다 History · 저장). scope ·
+ * page_id 는 없다 (ADR-286 — 페이지 변수는 문서의 상태 변수).
  */
 export const createUpdateVariableAction =
   (set: SetState, get: GetState) =>
@@ -1161,7 +922,6 @@ export const createUpdateVariableAction =
         console.warn("⚠️ updateVariable: variable 없음", id);
         return;
       }
-
       const definitionTouched = VARIABLE_DEFINITION_KEYS.some(
         (key) => key in updates,
       );
@@ -1170,10 +930,7 @@ export const createUpdateVariableAction =
           "defaultValue" in updates
             ? updates.defaultValue
             : existing.defaultValue;
-        await createApplyDataChangeAction(
-          set,
-          get,
-        )({
+        await createApplyDataChangeAction(set, get)({
           ops: [
             {
               op: "define_variable",
@@ -1189,53 +946,25 @@ export const createUpdateVariableAction =
           origin: "user",
         });
       }
-
-      const legacyUpdates: Partial<Variable> = {};
-      for (const [key, value] of Object.entries(updates)) {
-        if ((VARIABLE_DEFINITION_KEYS as readonly string[]).includes(key))
-          continue;
-        (legacyUpdates as Record<string, unknown>)[key] = value;
-      }
-      if (Object.keys(legacyUpdates).length === 0) return;
-
-      const db = await getDB();
-      await (
-        db as unknown as {
-          variables: {
-            update: (
-              id: string,
-              updates: Partial<Variable>,
-            ) => Promise<Variable>;
-          };
-        }
-      ).variables?.update(id, legacyUpdates);
-
-      const { variables } = get();
-      const current = findVariableByIdInMap(variables, id);
+      if (!("validation" in updates) && !("transform" in updates)) return;
+      const current = findVariableByIdInMap(get().variables, id);
       if (!current) return;
-      const newMap = new Map(variables);
-      const merged: Variable = {
-        ...current,
-        ...legacyUpdates,
-        updated_at: new Date().toISOString(),
-      };
-      // scope / page_id 가 바뀌면 메모리 `owner` (로드 변환 결과) 를 다시 판정한다 —
-      // IndexedDB 는 owner 를 갖지 않으므로 여기서 지우고 같은 규칙으로 재계산.
-      const ownerTouched =
-        "scope" in legacyUpdates || "page_id" in legacyUpdates;
-      if (ownerTouched) {
-        delete merged.owner;
-        delete merged.migrationStatus;
+      const next: Variable = { ...current };
+      if ("validation" in updates) {
+        if (updates.validation) next.validation = updates.validation;
+        else delete next.validation;
       }
-      newMap.set(
-        current.name,
-        ownerTouched
-          ? migrateVariableOwner(merged, {
-              pageIds: readVariableOwnerPageIds(),
-            }).variable
-          : merged,
-      );
-      set({ variables: newMap });
+      if ("transform" in updates) {
+        if (updates.transform !== undefined) next.transform = updates.transform;
+        else delete next.transform;
+      }
+      commitDataDefinitions({
+        variables: [next],
+        payload: {
+          change: { ops: [], origin: "user", label: "Edit variable" },
+          inverse: [],
+        },
+      });
     } catch (error) {
       console.error("❌ Variable 업데이트 실패:", error);
       set((state) => {
@@ -1248,29 +977,23 @@ export const createUpdateVariableAction =
   };
 
 /**
- * 프로젝트 변수 삭제 — ADR-214 Phase 1: 적용기 `define_variable` (definition null) 의 wrapper.
+ * 프로젝트 변수 삭제 — 적용기 `define_variable` (definition null) 의 wrapper.
  * undo 는 같은 id 로 되살린다 (참조 보존).
  */
 export const createDeleteVariableAction =
   (set: SetState, get: GetState) =>
   async (id: string): Promise<void> => {
-    set({ isLoading: true });
-
     try {
-      await createApplyDataChangeAction(
-        set,
-        get,
-      )({
+      await createApplyDataChangeAction(set, get)({
         ops: [{ op: "define_variable", variableId: id, definition: null }],
         origin: "user",
       });
-      set({ isLoading: false });
     } catch (error) {
       console.error("❌ Variable 삭제 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set("deleteVariable", error as Error);
-        return { errors: newErrors, isLoading: false };
+        return { errors: newErrors };
       });
       throw error;
     }
@@ -1294,23 +1017,20 @@ export const createGetVariableValueAction =
   };
 
 /**
- * Variable 값을 설정하는 액션
+ * Variable 값을 설정하는 액션 — ADR-286: 시작값은 문서 정의다 (`updateVariable`). 런타임 값은
+ * Preview 세션의 것 (ADR-214) 이라 이 store 에는 쓰지 않는다.
  */
 export const createSetVariableValueAction =
   (set: SetState, get: GetState) =>
   (name: string, value: unknown): void => {
-    const { variables } = get();
-    const variable = variables.get(name);
-
+    const variable = get().variables.get(name);
     if (!variable) {
       console.warn(`⚠️ Variable "${name}" not found`);
       return;
     }
-
-    const newMap = new Map(variables);
-    newMap.set(name, { ...variable, defaultValue: value });
-
-    set({ variables: newMap });
+    void createUpdateVariableAction(set, get)(variable.id, {
+      defaultValue: value,
+    });
   };
 
 // ============================================
@@ -1332,7 +1052,9 @@ export const createResetAction = (set: SetState) => (): void => {
     collections: new Map(),
     apiEndpoints: new Map(),
     variables: new Map(),
+    runtimeRows: new Map(),
     loadingApis: new Set(),
+    apiRuns: new Map(),
     errors: new Map(),
     isLoading: false,
   });

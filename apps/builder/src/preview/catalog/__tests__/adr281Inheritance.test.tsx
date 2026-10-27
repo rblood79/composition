@@ -1,12 +1,16 @@
 import { act, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setSiteSettings,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { bodyBinding } from "../../../../../../packages/shared/src/catalog/bindings/Body.binding";
 import { openAdr280Preview } from "./support/adr280Harness";
 
 /**
@@ -180,8 +184,8 @@ describe("ADR-281 G2 — a frame passes its props down (user decision 1)", () =>
   });
 });
 
-describe("ADR-281 G2 — a page root's locale", () => {
-  it("a descendant DateField orders its segments by the page root's locale", async () => {
+describe("ADR-286 — the site's language is the page root's locale (user 2026-10-28)", () => {
+  it("a descendant DateField orders its segments by the site's language; a page sets none of its own", async () => {
     const h = await openAdr280Preview(["DateField"]);
     const [field] = h.ids as [NodeId];
     const order = () =>
@@ -191,10 +195,57 @@ describe("ADR-281 G2 — a page root's locale", () => {
       ]
         .map((segment) => segment.dataset.type)
         .filter((type) => type !== "literal");
-    h.declare(BODY, { locale: "ko-KR" });
+    const site = (lang: string | undefined) => {
+      act(() => {
+        h.workspace.execute(setSiteSettings({ patch: { lang } }));
+      });
+      h.flush();
+    };
+    site("ko-KR");
     expect(order()).toEqual(["year", "month", "day"]);
-    h.declare(BODY, { locale: "en-US" });
+    site("en-US");
     expect(order()).toEqual(["month", "day", "year"]);
+    // The page root takes no locale of its own (the Body binding does not accept it).
+    expect("locale" in bodyBinding.props.accepts).toBe(false);
+    h.view.unmount();
+  });
+
+  it("a frame still sets its own part's locale over the site's", async () => {
+    const library = await buildCodeCatalogLibrary();
+    const h = await openAdr280Preview(["frame"]);
+    const [frame] = h.ids as [NodeId];
+    const inside = "project:node:inside-date" as NodeId;
+    act(() => {
+      h.workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: frame },
+          entries: [
+            {
+              kind: "node",
+              id: inside,
+              definitionId: catalogPaletteDefinitionId(library, "DateField"),
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as unknown as NodeEntry,
+          ],
+          rootIds: [inside],
+          newId: h.workspace.newId,
+        }),
+      );
+      h.workspace.execute(setSiteSettings({ patch: { lang: "en-US" } }));
+    });
+    h.flush();
+    h.declare(frame, { locale: "ko-KR" });
+    const order = [
+      ...(h.element(inside)?.querySelectorAll<HTMLElement>("[data-type]") ??
+        []),
+    ]
+      .map((segment) => segment.dataset.type)
+      .filter((type) => type !== "literal");
+    expect(order).toEqual(["year", "month", "day"]);
     h.view.unmount();
   });
 });

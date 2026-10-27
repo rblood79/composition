@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-28 ADR-286 In Progress — Phase 0 ~ 3 완료 · Phase 4 G5 미달** (사용자 `/execute-adr 286` — 같은 날 결정: R3 착수 · mock 1,000 행 상한 · 프로젝트 변수 별개 entry · 비밀 = publish 서버 측 · 사이트 설정 = 별도 「사이트」 패널 (처음 Settings 섹션 → 사용자 「분리해야한다」) · page 루트 locale 삭제 → 사이트 언어). 데이터 정의 (collection · endpoint · 프로젝트 변수) 는 문서 entry · data store 는 투영 · 쓰기 = 문서 명령 한 step · IDB 데이터 store 3 삭제 · 코드 보기 · 프로젝트 파일 (part 5 → 2) · publish · Preview 는 문서를 읽는다 · 사이트 · 페이지 설정 (`ProjectEntry.site` · `PageEntry.meta`). G1 · G3 · G4 live (5174 — 설정 · Undo · 내보내기 · redirect · SSO · R7 · R8 Canvas ↔ Preview · R9 · 콘솔 0) 통과. G2: Undo · delta +20 % 안 (10 × 100 저장만 +0.05 ~ 0.09 ms — fake IDB 바닥). **G5 초과 → 사용자 수용**: Builder initial gzip +5,977 B (상한 +1,000) — 모듈 합계는 −1,115 B raw, initial 파일 101 → 117 (새 lazy chunk 와 공유 모듈 분할) · Preview −85 B. G6 사용자 Builder 확인 대기. 열림 2 = 286 (In Progress) · 245 (보류) · 완료 307 · 합계 309.
+
 > **2026-10-28 ADR-287 Implemented** (G5 — 사용자 「확인 했다」 · live 는 Chrome MCP 로 별도 dev 서버 5176: Button → Meter 값 · variant · label 이 Preview 에 닿음 · 「변수로 정하기」 choice + 선택지 밖 값 경고 · `selectionMode: none` 선택 Do 숨김 + 안내). `/review` 판독 1 의 LOW 가설 (R1 전달이 setRuntimeProps 마다 하위 record 전체를 걷던 것) 은 template 먼저 판정으로 수리 — 결정적 카운트 게이트. 본문을 `completed/` 로 옮기고 열림 · 순서 표 · 완료 표 · 링크를 맞췄다. 열림 2 = 286 (Proposed) · 245 (사용자 보류) · 완료 307 · 합계 309.
 
 > **2026-10-28 ADR-287 Accepted · Phase 0 ~ 4 닫힘** (사용자 `/execute-adr 287` · 리뷰 Round 2 pending 0 으로 승격): 컴포넌트마다 binding `accepts` 의 prop 에서 Do 를 유도 (1,074 — 추정 +250 의 4.3 배, 사후 보고) · 레퍼런스 API 표 (RAC 53 · S2 70) 가 정적 게이트 oracle. Meter · ProgressBar · Badge … 의 「값 설정」 · 「variant 설정」 이 Preview 에 닿고 (template-bound prop 은 part 로 전달), 코드 보기는 `useState` + controlled prop, 「변수로 정하기」 는 number · choice. 사용자 결정 1 ~ 4 (자기 disabled 류 · Chart 유도 / prop 이름 라벨 / `selectionMode: none` 선택 Do 3 패널 숨김 + 안내 / Image 기각) · G4 번들 정정 (Builder +2,079 · Preview +1,004 — 실측 수용). 남은 것: G5 (사용자 Builder 확인 → Implemented).
@@ -508,7 +510,7 @@
 
 #### [286](286-catalog-single-source-data-site-settings.md) — 빌더 코드의 소스 = 단일 catalog: 데이터 정의 · 사이트 · 페이지 설정 · 검색 · 호스팅 · 방문자 SSO 를 문서로
 
-- **상태**: Proposed — 2026-10-27 (사용자 `/create-adr` · 범위는 같은 날 AskUserQuestion 3회로 확정 — 리뷰는 사용자 요청 시 `review-adr`). 착수는 285 Implemented 뒤.
+- **상태**: In Progress — 2026-10-28 (Accepted 같은 날 — 사용자 `/execute-adr 286` · 리뷰 Round 2 닫힘). Phase 0 ~ 3 완료 (G1 · G2 · G3 · G4 live). Phase 4: `docs:stale-symbols` 0 · 규칙 · 관련 ADR 표시 완료, G5 번들 초과 (Builder initial gzip +5,977 B / 상한 +1,000 — 모듈 합계 −1,115 B raw, 파일 분할 몫) 는 사용자 수용. G6 사용자 Builder 확인 대기. publish 내보내기는 열림 phase.
 - **규모**: Phase 0 (쓰기 지점 전수 · 소비자 35 읽는 필드 · 사용자 로컬 데이터 수 보고 · RED 5) → Phase 1 entry 3 + `ProjectEntry.site` + `PageEntry.meta` + 명령 (`commands/data.ts` · `DataChange` op → 명령) + selector (hook 이름 유지) + IDB 3 store 삭제 + G2 문서 크기 · 저장 · Undo 측정 → Phase 2 코드 보기 입력 교체 (golden 5 byte 동일) · 프로젝트 파일 extras 삭제 · publish 읽기 · Preview 채널 runtimeData 전용 → Phase 3 Settings 「사이트」 섹션 · 페이지 설정 · `siteMeta` 순수 함수 · live → Phase 4 번들 (Builder · Preview Δ ≤ +1 KB) · 문서 → G6 사용자 확인. publish 내보내기 (`<head>` · sitemap · robots · redirect · 접근 보호) 는 열림 phase (사용자 지시). 추정 ~38 파일. breakdown: [design/286](design/286-catalog-single-source-data-site-settings-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -540,7 +542,7 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                    |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [286](286-catalog-single-source-data-site-settings.md)                                         | Proposed — 2026-10-27 (범위 확정 · 리뷰 전)                                       | 리뷰 (사용자 요청 시) · Phase 0 에서 사용자 로컬 데이터 수 보고 (contract 51)                  |
+|  1   | [286](286-catalog-single-source-data-site-settings.md)                                         | In Progress — Phase 0 ~ 4 완료 (G5 초과 수용)                                     | G6 사용자 Builder 확인 · publish 내보내기 phase 는 사용자 지시로                               |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                    |

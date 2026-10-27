@@ -1,4 +1,11 @@
-import { memo, useCallback, useState, useSyncExternalStore } from "react";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { CircleAlert, Layout, RefreshCw, WandSparkles, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
@@ -31,6 +38,14 @@ import {
 import { SwatchIconButton } from "../../../components/ui/SwatchIconButton";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import "../editors/styles/pageSelectors.css";
+
+// ADR-286 — the page's search · sharing settings (and its image picker) load with the section
+// (below the route fields), not with the Builder's first screen.
+const CatalogPageMetaSection = lazy(() =>
+  import("./CatalogPageMetaSection").then((m) => ({
+    default: m.CatalogPageMetaSection,
+  })),
+);
 
 const ROUTE_MESSAGES: Record<CatalogRouteRefusal, string> = {
   ROUTE_EMPTY: "Route cannot be empty",
@@ -295,6 +310,9 @@ export const CatalogPageSection = memo(function CatalogPageSection({
           </div>
         )}
       </PropertySection>
+      <Suspense fallback={null}>
+        <CatalogPageMetaSection pageId={pageId} />
+      </Suspense>
     </>
   );
 });

@@ -1172,6 +1172,28 @@ export function removeWithReferrers(
   }
   // ADR-284 — a derived view (a result count's · a grouping's) goes with its last reader.
   removeUnreadDerivedViews(draft, removedNodes);
+  // ADR-286 R9 — a removed page leaves the site's protected list, in this step (before the early
+  // return: a page with no variable · rule never reaches the project write below).
+  const access = draft.project().site?.access;
+  if (
+    access?.kind === "sso" &&
+    access.protectedPageIds !== "all" &&
+    access.protectedPageIds.some((id) => draft.removed(id))
+  ) {
+    const project = draft.project();
+    draft.write({
+      ...project,
+      site: {
+        ...project.site,
+        access: {
+          ...access,
+          protectedPageIds: access.protectedPageIds.filter(
+            (id) => !draft.removed(id),
+          ),
+        },
+      },
+    });
+  }
   if (!removedRelated.length) return;
   const gone = new Set(removedRelated);
   const project = draft.project();

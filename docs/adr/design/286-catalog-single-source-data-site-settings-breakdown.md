@@ -87,4 +87,30 @@ Phase 0 에서 위 표를 줄 번호와 함께 다시 freeze 한다 (1.5 배 이
 
 ## 9. 기록
 
-(착수 시 Phase 별로 적는다.)
+### Phase 0 (2026-10-28)
+
+- R3 실측 (사용자 5173 IDB, 읽기만): catalog 프로젝트 1 (contract 50) · collection 1 (mock 4) · endpoint 0 · 변수 0 → 사용자 「착수」 (contract 51 거부 수용). 사용자 결정 1 = 1,000 행 상한 · 결정 3 = 별개 entry.
+- 쓰기 지점은 추정의 ~1.3 배 — `dataActions` 의 endpoint · 변수 생성 · 수정, quick connect (데이터 + 바인딩 한 step), AI `bind_element`, 변수 소유자 이동 (`catalogLegacyVariableMove`) 이 추가. 모두 sink 하나 (`commitDataDefinitions`) 로 모았다. RED 7.
+
+### Phase 1 (2026-10-28)
+
+- entry 3 + `ProjectEntry.site` · `PageEntry.meta` · contract 51 · 검증 (site 닫힌 키 — 비밀 키는 `UNKNOWN_FIELD`, endpoint 대상 · sso 보호 page 존재 검증) · `setDataEntries` · `setSiteSettings` · `removeWithReferrers` 의 보호 page 정리 (R9).
+- data store = 투영 + sink (`catalogDataStore.ts`), `reduceDataOps` · op 어휘 유지. consume plan `dataReaderRoots` (R8).
+- mutation RED 중 발견: `setDataEntries` 가 매번 project 를 다시 써 셀 편집마다 전체 redraw — `listsChanged` 가드로 수리 (그 뒤 RED 6 이 변이에 반응).
+- G2 bench — Status 인용 블록 참조. 대조군은 재구성 (같은 reducer + IDB put + 옛 `CATALOG_DATA`) 이라 HEAD 의 recorder · store 구독 비용이 빠져 있다.
+
+### Phase 2 (2026-10-28)
+
+- 코드 보기 · 프로젝트 파일 (part 5 → 2) · publish · Preview `CATALOG_DATA` = runtimeRows 만. 하니스 `sendCatalogData` 는 `replace` 플래그 (빈 collections 메시지가 바인딩을 지우던 것).
+
+### Phase 3 (2026-10-28)
+
+- 사용자 결정 2 = publish 서버 측 · 결정 4 = 별도 「사이트」 패널 (처음 Settings 섹션 → 사용자 「분리해야한다」). 페이지 설정은 Design 패널 page 섹션 (Navigator ⚙ 가 이미 연다 — breakdown 의 「⋮ → 다이얼로그」 대신 기존 입구).
+- 사용자 결정 (추가): page 루트 `locale` 삭제 → 사이트 `lang` 이 page 루트 locale · Canvas 환경 locale (frame 은 유지). 테스트 `adr281Inheritance` 의 locale 절을 바꿈 (mutation RED 확인).
+- G4 live — Status 인용 블록 참조. 관찰 (이 ADR 밖, 변경 0): 변수 편집기 (`VariableEditor`) 가 스타일 없이 그려짐 · Design 패널 오른쪽 칸이 스크롤바에 약간 가림.
+
+### Phase 4 (2026-10-28)
+
+- G5 초과 → 사용자 수용 (2026-10-28 「번들은 수용하고 커밋 푸시해」) — Status 인용 블록 참조 (initial gzip +5,977 B, 모듈 합계는 −1,115 B raw, 파일 수 101 → 117). 측정 스크립트: scratchpad `bundle286.sh` (HEAD worktree + engine-pkg 복사 + `vite build`) · rolldown `renderedLength` 수집 config.
+- `docs:stale-symbols` 0 · 규칙 (`state-management.md` §1 · §2 · §3 · §4 · §5) · 관련 ADR 표시 (131 · 214 · 218 · 248 · 281).
+
