@@ -309,6 +309,9 @@
        「Left · Top · 펼침」 / 「Right · Bottom」. 펼침 버튼은 늘 첫 줄 아이콘 칸 */
     &[data-section-id="layout"] .layout-padding {
       min-width: 0;
+      /* 안쪽에 3·3·1 격자를 가진 한 줄 전체 — 한 필드 행의 액션 칸 비우기
+         (panel-system `.section-content > .properties-aria`) 대상이 아니다 */
+      max-inline-size: none;
 
       .actions-padding {
         grid-area: 1 / 3;
@@ -712,9 +715,11 @@
         "font-style text-decoration ."
         "text-transform wrap .";
 
-      /* 모든 grid 자식 요소에 min-width: 0 적용하여 1fr 균등 분할 보장 */
+      /* 모든 grid 자식 요소에 min-width: 0 적용하여 1fr 균등 분할 보장. 칸은 grid-area 가
+         정하므로 한 필드 행의 액션 칸 비우기 (panel-system) 를 끈다 — 켜 두면 칸마다 36 이 빠진다 */
       > * {
         min-width: 0;
+        max-inline-size: none;
       }
 
       .font-family {

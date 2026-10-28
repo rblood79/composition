@@ -179,6 +179,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
   // 헤더 「+」 — 추가할 속성을 고르는 메뉴 (전부 추가됐으면 비활성)
   const addOverrideAction = (
     <PropertyRowMenu
+      quiet
       icon={AddIcon}
       label={`Add ${bpLabel} override`}
       items={availableToAdd}
