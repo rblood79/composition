@@ -1,5 +1,4 @@
 import { memo, useCallback, useState } from "react";
-import { Button as RACButton } from "react-aria-components/Button";
 import { ArrowDown, ArrowUp, Globe, Lock, LockOpen, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
@@ -21,7 +20,7 @@ import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
-import { SwatchIconButton } from "../../components/ui";
+import { ActionIconButton, SwatchIconButton } from "../../components/ui";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { SiteAssetField } from "./SiteAssetField";
 import { SiteAppSection } from "./SitePageSections";
@@ -247,7 +246,27 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
           }
         />
       </PropertySection>
-      <PropertySection title={t("settings.siteRedirects")}>
+      <PropertySection
+        title={t("settings.siteRedirects")}
+        actions={
+          // 절 머리줄 「+」 — 다른 절과 같은 투명 아이콘 버튼 (2026-10-29 사용자)
+          <ActionIconButton
+            aria-label={t("settings.siteRedirectAdd")}
+            onPress={() =>
+              writeRedirects([
+                ...redirects,
+                { from: "/old", to: "/", permanent: true },
+              ])
+            }
+          >
+            <AddIcon
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ActionIconButton>
+        }
+      >
         {redirects.map((redirect, index) => {
           const update = (patch: Partial<CatalogSiteRedirect>) =>
             writeRedirects(
@@ -331,19 +350,6 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
             </div>
           );
         })}
-        <RACButton
-          className="control-button"
-          data-variant="add"
-          onPress={() =>
-            writeRedirects([
-              ...redirects,
-              { from: "/old", to: "/", permanent: true },
-            ])
-          }
-        >
-          <AddIcon aria-hidden="true" size={14} />
-          {t("settings.siteRedirectAdd")}
-        </RACButton>
       </PropertySection>
       <PropertySection title={t("settings.siteAccess")}>
         <PropertySelect
