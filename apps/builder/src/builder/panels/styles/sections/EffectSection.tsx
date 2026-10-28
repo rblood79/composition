@@ -1,13 +1,13 @@
 /**
  * EffectSection — Style 탭 Effect 절
  *
- *   Effect                                 [+ Opacity · 그림자 · 프리셋 · Blur]  [↺]
+ *   Effect                                 [+ Opacity · Blur · 그림자 · 프리셋 S/M/L]  [↺]
  *   Opacity                                     ← fieldset (legend + 슬라이더)
  *   [──●── 50 %                          ][−]
- *   Box Shadows                                 ← fieldset (legend + 레이어 목록)
- *   [■ 0 · 4 · 12 · 0                  −][▢]   ← 레이어마다 (클릭 → 편집 팝오버)
  *   Filters                                     ← fieldset (legend + blur 한 종)
  *   [Blur                          4 px  ][−]
+ *   Box Shadows                                 ← fieldset (legend + 레이어 목록)
+ *   [■ 0 · 4 · 12 · 0                  −][▢]   ← 레이어마다 (클릭 → 편집 팝오버)
  *
  * 세 효과 모두 기본은 「없음」 — 값이 없으면 그 묶음 (legend · 내용) 을 그리지 않고, 추가는 절
  * 머리줄 「+」 메뉴 하나로 한다 (2026-10-28 사용자 결정 — Opacity 기본 100 % 도 「없음」, Fill
@@ -59,7 +59,14 @@ import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 const AddIcon = ACTION_ICONS.add;
 
 /** ADR-166: Spectrum 2 elevation 3단계 (xl 없음). 목록 전체를 교체한다. */
-const SHADOW_PRESET_KEYS: readonly ShadowPresetKey[] = ["sm", "md", "lg"];
+const SHADOW_PRESET_KEYS = ["sm", "md", "lg"] as const satisfies readonly ShadowPresetKey[];
+
+/** 프리셋 표시 — 컴포넌트 size 토글과 같은 S · M · L */
+const SHADOW_PRESET_LABEL: Record<(typeof SHADOW_PRESET_KEYS)[number], string> = {
+  sm: "S",
+  md: "M",
+  lg: "L",
+};
 
 /** 새 blur 기본값 (px) */
 const DEFAULT_BLUR_PX = 4;
@@ -226,31 +233,6 @@ const EffectSectionContent = memo(function EffectSectionContent() {
         </div>
       )}
 
-      {/* Box Shadows — legend + 레이어 목록 */}
-      {boxShadowModel && shadowLayers.length > 0 && (
-        <fieldset className="properties-aria effect-group style-shadow">
-          <legend className="fieldset-legend">{localize("Box Shadows")}</legend>
-          <div className="effect-group__list">
-            {shadowLayers.map((_, index) => (
-              <BoxShadowLayerRow
-                // 행은 index 로 안정 (커밋마다 remount 되면 열린 팝오버가 닫힌다) — 편집기만 key
-                key={`${selectedId ?? "none"}:${index}`}
-                value={boxShadowModel}
-                layerIndex={index}
-                editorKey={editorKey}
-                onAction={handleLayerAction}
-                editor={{
-                  onPreview: handleBoxShadowModelPreview,
-                  onCommit: handleBoxShadowModelCommit,
-                  onCancel: () => host.cancelPreview?.(),
-                  livePreview: true,
-                }}
-              />
-            ))}
-          </div>
-        </fieldset>
-      )}
-
       {/* Filters — legend + blur 한 종 · [Blur 176][−] */}
       {blurPx !== null && (
         <fieldset className="properties-aria effect-group style-filter">
@@ -287,6 +269,31 @@ const EffectSectionContent = memo(function EffectSectionContent() {
           </div>
         </fieldset>
       )}
+      {/* Box Shadows — legend + 레이어 목록 */}
+      {boxShadowModel && shadowLayers.length > 0 && (
+        <fieldset className="properties-aria effect-group style-shadow">
+          <legend className="fieldset-legend">{localize("Box Shadows")}</legend>
+          <div className="effect-group__list">
+            {shadowLayers.map((_, index) => (
+              <BoxShadowLayerRow
+                // 행은 index 로 안정 (커밋마다 remount 되면 열린 팝오버가 닫힌다) — 편집기만 key
+                key={`${selectedId ?? "none"}:${index}`}
+                value={boxShadowModel}
+                layerIndex={index}
+                editorKey={editorKey}
+                onAction={handleLayerAction}
+                editor={{
+                  onPreview: handleBoxShadowModelPreview,
+                  onCommit: handleBoxShadowModelCommit,
+                  onCancel: () => host.cancelPreview?.(),
+                  livePreview: true,
+                }}
+              />
+            ))}
+          </div>
+        </fieldset>
+      )}
+
     </>
   );
 });
@@ -308,6 +315,8 @@ const EffectAddMenu = memo(function EffectAddMenu() {
   const hasOpacity = styleValues.opacity !== "";
   const hasBlur = parseFilterBlurPx(styleValues.filter) !== null;
 
+  // 순서 = 절의 묶음 순서 (Opacity · Blur · Box Shadows). 프리셋 표기는 컴포넌트 size 와
+  //   같은 S · M · L (저장 키는 Spectrum elevation sm · md · lg).
   const items = [
     {
       id: "opacity",
@@ -315,18 +324,18 @@ const EffectAddMenu = memo(function EffectAddMenu() {
       icon: AddIcon,
       isDisabled: hasOpacity,
     },
-    { id: "shadow", label: localize("Box Shadows"), icon: AddIcon },
-    // 프리셋은 그림자 목록 전체를 바꾼다 — 그림자 항목 바로 아래, 아이콘 없이
-    ...SHADOW_PRESET_KEYS.map((key) => ({
-      id: key,
-      label: `${localize("Box Shadows")} · ${key}`,
-    })),
     {
       id: "blur",
       label: localize("Blur"),
       icon: AddIcon,
       isDisabled: hasBlur,
     },
+    { id: "shadow", label: localize("Box Shadows"), icon: AddIcon },
+    // 프리셋은 그림자 목록 전체를 바꾼다 — 그림자 항목 바로 아래, 아이콘 없이
+    ...SHADOW_PRESET_KEYS.map((key) => ({
+      id: key,
+      label: `${localize("Box Shadows")} · ${SHADOW_PRESET_LABEL[key]}`,
+    })),
   ];
 
   const handleAction = (action: string): void => {

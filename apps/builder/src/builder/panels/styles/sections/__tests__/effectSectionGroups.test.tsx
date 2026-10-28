@@ -43,7 +43,7 @@ describe("EffectSection groups", () => {
     expect(view.getByRole("button", { name: "Add effect" })).toBeTruthy();
   });
 
-  it("draws each authored effect as a fieldset with its legend", async () => {
+  it("draws each authored effect as a fieldset with its legend — Opacity · Blur · Box Shadows", async () => {
     const { view } = await renderEffect([
       {
         id: "box",
@@ -56,8 +56,8 @@ describe("EffectSection groups", () => {
     ]);
     expect(legendsOf(view.container)).toEqual([
       "Opacity",
-      "Box Shadows",
       "Filters",
+      "Box Shadows",
     ]);
   });
 
