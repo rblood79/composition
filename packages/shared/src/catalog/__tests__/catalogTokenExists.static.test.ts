@@ -43,22 +43,11 @@ const TOKEN_CATEGORIES = new Set([
 ]);
 
 /**
- * Skia 맵에 없는 것이 설계인 토큰 — named hue 의 hover · pressed 는 DOM 만 color-mix 로 파생한다
- * (`tokenResolver.ts` ADR-193 후속: 「Skia 는 hover 를 소비하지 않으므로 표에 넣지 않는다」). Badge
- * 의 variants 가 참조하지만 Badge 는 Canvas 에서 hover · pressed 를 그리지 않는다. 목록은 정확히
- * 일치해야 한다 — 새 hue 를 Skia 맵 없이 참조하면 여기 더하는 대신 맵에 넣는다.
+ * Skia 맵에 없어도 되는 토큰 — 없다 (2026-10-28 사용자 「레퍼런스대로 채워」). named hue 의 hover ·
+ * pressed 는 DOM 이 `color-mix(in srgb, X 85% · 75%, black)` 로 파생하고, Skia 맵도 같은 식으로
+ * 채운다 (`semanticPaletteMap.ts` `resolveSemanticStateColors`). 새 예외를 여기 더하지 않는다.
  */
-const SKIA_HOVER_PRESSED_DOM_ONLY: ReadonlySet<string> = new Set(
-  [
-    "chartreuse",
-    "celery",
-    "seafoam",
-    "brown",
-    "cinnamon",
-    "silver",
-    "purple",
-  ].flatMap((hue) => [`{color.${hue}-hover}`, `{color.${hue}-pressed}`]),
-);
+const SKIA_HOVER_PRESSED_DOM_ONLY: ReadonlySet<string> = new Set<string>();
 
 function collectFromValue(
   node: unknown,
@@ -271,23 +260,33 @@ describe("catalog 토큰 존재 — 참조하는 모든 토큰이 theme/tokens �
     expect(undeclared).toEqual([]);
   });
 
-  it("Skia 가 빼는 hover · pressed 목록은 실제 참조 · 실제 Skia 누락과 정확히 같다 (ratchet)", () => {
+  it("Skia: named hue 의 hover · pressed 는 DOM 과 같은 식 (srgb 에서 검정과 85 · 75 %)", () => {
     installThemeMaps(null);
-    const actual = [...REFS.keys()]
+    const hues = [...REFS.keys()]
+      .map((ref) => /^\{color\.([a-z]+)-(hover|pressed)\}$/.exec(ref))
       .filter(
-        (ref) =>
-          categoryOf(ref) === "color" &&
-          /-(hover|pressed)\}$/.test(ref) &&
-          !resolvesInSkiaMaps(ref, "light"),
-      )
-      .sort();
-    expect(actual).toEqual([...SKIA_HOVER_PRESSED_DOM_ONLY].sort());
-    // (그 hue 들은 DOM 이 color-mix 로 파생하는 named hue 다.)
-    for (const ref of actual)
-      expect(
-        ref.replace(/^\{color\./, "").replace(/-(hover|pressed)\}$/, "") in
-          SEMANTIC_PALETTE_MAP,
-        ref,
-      ).toBe(true);
+        (m): m is RegExpExecArray => !!m && m[1]! in SEMANTIC_PALETTE_MAP,
+      );
+    expect(hues.length).toBeGreaterThanOrEqual(14);
+    const mix = (hex: string, pct: number) =>
+      `#${[1, 3, 5]
+        .map((i) =>
+          Math.round(Number.parseInt(hex.slice(i, i + 2), 16) * (pct / 100))
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("")}`;
+    const wrong: string[] = [];
+    for (const [ref, hue, state] of hues)
+      for (const mode of ["light", "dark"] as const) {
+        // (A status hue keeps its hand-tuned pair — `colors.ts` negative · accent · neutral.)
+        if (hue === "negative") continue;
+        const base = resolveToken(`{color.${hue}}` as TokenRef, mode) as string;
+        const want = mix(base, state === "hover" ? 85 : 75);
+        const got = resolveToken(ref as TokenRef, mode);
+        if (got !== want)
+          wrong.push(`${ref} (${mode}) ${String(got)} ≠ ${want}`);
+      }
+    expect(wrong).toEqual([]);
   });
 });

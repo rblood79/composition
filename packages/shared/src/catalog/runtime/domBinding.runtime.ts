@@ -1545,6 +1545,11 @@ function buttonElement(
       // filled Button paint off, and a rest paint the document wrote stays out while quiet, as
       // on a quiet field's Input.)
       ...quietState(node),
+      // (A field's own button keeps its size's corner — the Button rule's `field-button` blocks;
+      //  a Button elsewhere is S2's pill.)
+      ...(typeof node.derivedProps?.fieldButton === "string"
+        ? { "data-field-button": node.derivedProps.fieldButton }
+        : {}),
       style: quietStyle(node, style),
     } as unknown as Parameters<typeof Button>[0],
     ...children,

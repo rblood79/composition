@@ -34,7 +34,7 @@
   /* Default size */
   padding: 4px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   line-height: var(--text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -139,7 +139,7 @@
 .react-aria-Button[data-size="XS"] {
   padding: 1px 4px;
   font-size: var(--text-2xs);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   line-height: var(--text-2xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -151,7 +151,7 @@
 .react-aria-Button[data-size="S"] {
   padding: 2px 8px;
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   line-height: var(--text-xs--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -163,7 +163,7 @@
 .react-aria-Button[data-size="M"] {
   padding: 4px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   line-height: var(--text-sm--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -175,7 +175,7 @@
 .react-aria-Button[data-size="L"] {
   padding: 8px 16px;
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-full);
   line-height: var(--text-base--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -187,7 +187,7 @@
 .react-aria-Button[data-size="XL"] {
   padding: 12px 24px;
   font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-full);
   line-height: var(--text-lg--line-height);
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -211,6 +211,9 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Button {
     forced-color-adjust: auto;
@@ -222,5 +225,26 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Button[data-field-button="XS"] {
+    border-radius: var(--radius-sm);
+  }
+
+  .react-aria-Button[data-field-button="S"] {
+    border-radius: var(--radius-sm);
+  }
+
+  .react-aria-Button[data-field-button="M"] {
+    border-radius: var(--radius-md);
+  }
+
+  .react-aria-Button[data-field-button="L"] {
+    border-radius: var(--radius-lg);
+  }
+
+  .react-aria-Button[data-field-button="XL"] {
+    border-radius: var(--radius-xl);
+  }
+
 
 } /* @layer components */

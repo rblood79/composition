@@ -271,8 +271,9 @@ function buttonDefinition(
     });
     for (const state of ["hover", "pressed"] as const) {
       const fill = paint.fill.default[state];
-      // The legacy premium/genai table names hover tokens absent from the current palette.
-      // Keep those state axes open instead of inventing a color for either consumer.
+      // (Every variant's hover · pressed token resolves since 2026-10-28 — the palette derives
+      //  `purple-hover` · `-pressed` as the DOM's color-mix, `resolveSemanticStateColors`. A token
+      //  the palette lacks still leaves its state axis open.)
       const resolved = fill ? resolveToken(fill as TokenRef, theme) : undefined;
       // Hover also takes the variant's hover border/text (`resolveCatalogPaint`: `borderHover`,
       // `textHover`), when the palette resolves them.
@@ -297,6 +298,30 @@ function buttonDefinition(
       if (typeof resolved === "string" && color)
         childColor(color, { variant, fillStyle: "fill" }, state);
     }
+  }
+  // S2 Button is a pill (`sizes` `{radius.full}`); a field's own button keeps its size's corner —
+  // the rule's `containerVariants["field-button"]` (the DOM's `[data-field-button]` blocks), turned
+  // on by the derived `fieldButton` (`catalogDerivedRestVisual` — never an authored prop).
+  const fieldButton = (
+    rule as {
+      containerVariants?: Record<
+        string,
+        Record<string, { styles?: Record<string, string> }>
+      >;
+    }
+  ).containerVariants?.["field-button"];
+  for (const [size, block] of Object.entries(fieldButton ?? {})) {
+    const corner = /^var\(--radius-([a-z0-9]+)\)$/.exec(
+      block.styles?.["border-radius"] ?? "",
+    )?.[1];
+    if (!corner)
+      throw new Error(`CODE_CATALOG_BUTTON_FIELD_CORNER_UNSUPPORTED:${size}`);
+    conditionalRules.push({
+      when: { fieldButton: size },
+      visual: {
+        radius: sourceToken(`{radius.${corner}}`, "radius", theme, tokens),
+      },
+    });
   }
   const defaults: Record<string, string> = {
     variant: rule.defaultVariant ?? "primary",

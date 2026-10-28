@@ -25,6 +25,7 @@ import {
   VIEW_COMPARISONS,
   type VisualField,
 } from "./types";
+import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import { catalogCalendarDurationFits } from "./valueType";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 
@@ -1051,7 +1052,8 @@ function propCondition(
   const condition = object(value, at);
   for (const [prop, item] of Object.entries(condition)) {
     scalar(item, `${at}.${prop}`);
-    if (!accepted) continue;
+    // (A derived variant prop — never authored, so no `accepts` entry: `derivedVariantProps.ts`.)
+    if (!accepted || CATALOG_DERIVED_VARIANT_PROPS.has(prop)) continue;
     if (!accepted[prop])
       invalid("CONDITION_PROP_NOT_ACCEPTED", `${at}.${prop}`);
     if (typeof item !== accepted[prop])

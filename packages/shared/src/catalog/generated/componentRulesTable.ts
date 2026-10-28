@@ -43,6 +43,32 @@ const FIELD_PREFIX_SIZES = {
   XL: prefixSize("text-lg", 8),
 } as const;
 
+// S2 Button shape (2026-10-28 — 사용자 「Button 모서리를 S2 처럼 완전히 둥글게」): S2 `Button` is
+// `control({shape: 'pill'})` at every size (Button.tsx); the button sizes' `borderRadius` is
+// `{radius.full}`. A field's own button (Picker trigger · NumberField steppers · ComboBox · date
+// picker · SearchField button — S2 field buttons, not `Button`s) keeps the corner of its own size:
+// one table read by the Canvas (`containerVariants["field-button"]` — the derived `fieldButton`,
+// `presence.ts` `catalogFieldButtonSize`) and the DOM (`rootSelectors` — `data-field-button`).
+const FIELD_BUTTON_CORNERS = {
+  XS: "sm",
+  S: "sm",
+  M: "md",
+  L: "lg",
+  XL: "xl",
+} as const;
+const FIELD_BUTTON_CORNER_VARIANTS = Object.fromEntries(
+  Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
+    size,
+    { styles: { "border-radius": `var(--radius-${corner})` } },
+  ]),
+);
+const FIELD_BUTTON_CORNER_SELECTORS = Object.fromEntries(
+  Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
+    `&[data-field-button="${size}"]`,
+    { styles: { "border-radius": `var(--radius-${corner})` } },
+  ]),
+);
+
 // Button and ToggleButton have one root box for CSS generation and Canvas typed definitions.
 // Keeping separate copies dropped fit-content in Canvas when the parent became a flex column.
 const BUTTON_ROOT_BOX = {
@@ -1221,12 +1247,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   2.25 × height" 하한 (XS 45 · S 50 · M 68 · L 95 · XL 122) 을 뺐다 — 설치 S2 1.8.1 `Button.tsx`
     //   에는 min-width 가 없고, paddingX 가 짧은 라벨의 모양을 지킨다. 두 consumer 가 같이 읽던 값이라
     //   생성 CSS `min-width` 와 Canvas `styleOf` 의 min_width 가 함께 사라진다.
+    // (A field's own button: its size's corner — `FIELD_BUTTON_CORNERS`; the sizes are S2's pill.)
+    containerVariants: { "field-button": FIELD_BUTTON_CORNER_VARIANTS },
     sizes: {
       XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 500,
-        borderRadius: "{radius.sm}",
+        borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
         iconSize: 14,
@@ -1239,7 +1267,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 500,
-        borderRadius: "{radius.sm}",
+        borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
         iconSize: 16,
@@ -1252,7 +1280,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 500,
-        borderRadius: "{radius.md}",
+        borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
         iconSize: 18,
@@ -1265,7 +1293,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 500,
-        borderRadius: "{radius.lg}",
+        borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
         iconSize: 24,
@@ -1278,7 +1306,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 500,
-        borderRadius: "{radius.xl}",
+        borderRadius: "{radius.full}",
         borderWidth: "{border.width.thin}",
         height: 0,
         iconSize: 28,
@@ -1307,6 +1335,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       cssEmitMode: "button-base",
+      composition: {
+        delegation: [],
+        rootSelectors: FIELD_BUTTON_CORNER_SELECTORS,
+      },
     },
   },
   ButtonGroup: {

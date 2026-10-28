@@ -104,6 +104,7 @@ import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
 import { resolveElementFills } from "../utils/fillMigration";
 import { isOwnerOrientationTag } from "../utils/orientationDrivenTags";
 import { replayFillEdit } from "./fillEdit";
+import { catalogDerivedRestVisual } from "../../../catalogRuntime/libraryVisual";
 
 const noSubscription = () => () => {};
 
@@ -268,7 +269,18 @@ function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
 /** The effective CSS view of a drawn record (undefined without a record). */
 function effectiveOf(workspace: CatalogWorkspace, id: string | null) {
   const record = id ? workspace.root.domInputs.get(id) : undefined;
-  return record ? catalogEffectiveStyle(record) : undefined;
+  if (!record) return undefined;
+  // (What the sheet's `[data-*]` block draws for an owner-derived prop — a field's own Button at its
+  //  size's corner — is the drawn value, as on the Canvas: `catalogDerivedRestVisual`.)
+  const rest = catalogDerivedRestVisual(workspace.root, record);
+  return catalogEffectiveStyle(
+    Object.keys(rest).length
+      ? ({
+          ...record,
+          visual: { ...record.visual, ...rest },
+        } as typeof record)
+      : record,
+  );
 }
 
 /** The drawn font size of a record (a px line height is a ratio to it). */

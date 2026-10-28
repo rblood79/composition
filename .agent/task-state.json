@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-28T06:53:02.750681+00:00",
+  "updatedAt": "2026-10-28T16:37:53.530622+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -792,26 +792,163 @@
     "decisions": [
       "3 다중 선택 의미: 지금대로 + 문서화",
       "6 DI 형태: 지금대로 + 문서화",
-      "8 pageLayout · toastPlacement 를 Settings → Site 패널로 이동"
+      "8 toastPlacement 만 Site 패널 — pageLayout 은 Settings (Builder 설정) 로 되돌림 (사용자 2026-10-28, f1bd46267)",
+      "Fill 행 = 1fr 1fr 28 격자 · opacity scrub 자리에 제거 버튼 (사용자 2026-10-28, 9496badb8)"
     ],
     "next": [
-      "[ ] 1 PanelProps 고정값",
-      "[ ] 2 Section memo onReset",
-      "[ ] 3 다중 선택 문서화",
-      "[ ] 4 CatalogWorkspaceGate 위치 통일",
-      "[ ] 5 step 구독 보일러플레이트 · Interactions/CodeView 구독",
-      "[ ] 6 DI 형태 문서화",
-      "[ ] 8 Settings → Site 이동",
-      "[ ] 9 헤더 버튼 · 하드코딩 제목 i18n (@layer · 명명은 판단 후)",
-      "[ ] 11 Variables 목록 · 낡은 주석 · V2/V3 잔재 · registry helper"
+      "[x] 1 PanelProps 고정값",
+      "[x] 2 Section memo onReset",
+      "[x] 3 다중 선택 문서화",
+      "[x] 4 CatalogWorkspaceGate 위치 통일",
+      "[x] 5 step 구독 보일러플레이트 · Interactions/CodeView 구독",
+      "[x] 6 DI 형태 문서화",
+      "[x] 8 Settings → Site 이동",
+      "[x] 9 헤더 버튼 · 하드코딩 제목 i18n (@layer · 명명은 판단 후)",
+      "[x] 11 Variables 목록 · 낡은 주석 · V2/V3 잔재 · registry helper",
+      "[ ] (사용자 「뒤에 하겠다」 2026-10-28) 그래디언트 · 메시 · 이미지 fill 의 레이어 opacity 입력 없음 — 행 scrub 제거 (9496badb8) 뒤 단색만 피커 알파로 가능. 후보: FillDetailPopover 푸터 Blend 옆 Opacity 칸"
     ],
     "done": [
       "4f1d4ae5c",
       "4599f7899",
       "f2ab01a64",
       "db8d76dc2",
-      "1f7112fbe"
+      "1f7112fbe",
+      "ce0d8e135",
+      "9071fce98",
+      "89f7f3e73",
+      "52cbcdbb5",
+      "17a6e8e05",
+      "ed1451e55",
+      "9496badb8",
+      "f1bd46267",
+      "9390120ce"
     ],
-    "guard": "다른 세션 VariableEditor.* 미커밋 변경 보존 — pathspec 커밋"
+    "guard": "다른 세션 VariableEditor.* 미커밋 변경 보존 — pathspec 커밋",
+    "skipped": [
+      "9 @layer 감싸기 · 클래스 명명 — cascade 순서가 바뀌어 시각 회귀 위험 / 규칙이 rename 기각",
+      "11 Variables 목록 RAC GridList 전환 — 다른 세션이 VariableEditor 작업 중",
+      "11 V2 파일을 V4 공용 타입 정본에서 분리 — 큰 이동 · 동작 이득 없음"
+    ]
+  },
+  "reviewAdr288": {
+    "task": "ADR-288 설계 리뷰",
+    "phase": "round2_repair_verified",
+    "status": "high_0_medium_0_pending_0",
+    "scope": "ADR·breakdown과 현행 런타임/검증 계약 대조; 제품 코드·ADR 본문·Status 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-28-review-adr288",
+    "updatedAt": "2026-10-28T08:22:29.716437+00:00",
+    "head": "ed1451e55",
+    "reviewLog": "docs/adr/reviews/288.md (Round 2)",
+    "findings": [
+      "H1 페이지·요소 structured JSON 시작값과 contract 51 충돌",
+      "H2 prop과 binding.key의 서로 다른 해소 범위",
+      "H3 새 이름의 projectVariable 참조 가로채기",
+      "M4 params 변수와 route fallback 구분 필요"
+    ],
+    "validation": {
+      "probe": "Vitest 7/7 PASS",
+      "reviewSchema": "오류 0",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/288.md 포맷 불일치; 검사만 수행"
+    },
+    "unverified": "새 명령·공용 변수 표·패널·팝오버 구현; 실제 Builder·Canvas/Preview/Publish·Undo·저장/재열기·번들·성능",
+    "completedAt": "2026-10-28T08:10:40.154399+00:00",
+    "resolution": "기존 4건 fixed (설계); 상세 reviewAdr288Repair 참조"
+  },
+  "reviewAdr288Repair": {
+    "task": "ADR-288 Round 1 설계 수리 검증 1회",
+    "phase": "round2_recorded",
+    "status": "high_0_medium_0_pending_0",
+    "scope": "H1/H2/H3/M4 설계 수정 직접 대조; 제품 코드·ADR 본문·Status 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-28-review-adr288",
+    "updatedAt": "2026-10-28T08:21:09.613992+00:00",
+    "head": "9496badb8",
+    "reviewLog": "docs/adr/reviews/288.md (Round 2)",
+    "findings": [
+      "H1/H2/H3/M4 fixed (설계): 소유자별 JSON 계약·필드별 해소·새 이름 가로채기 거절·params fallback 구분",
+      "실제 instance 참조 탐색·명령 및 UI 구현 검증은 해당 phase gate에 남음"
+    ],
+    "validation": {
+      "reviewSchema": "오류 0; Round 1/2 pending 0",
+      "preservation": "Round 1 frontmatter·fix_note·본문 보존 확인",
+      "source": "Round 1 대비 관련 원본 6파일 변경 0; 기존 probe 7개 근거 재사용, 재실행 없음",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/288.md 포맷 불일치; 검사만 수행"
+    },
+    "unverified": "실제 구현·instance 경로 참조 재작성·Builder·Canvas/Preview/Publish·Undo·저장/재열기·번들·성능",
+    "completedAt": "2026-10-28T08:22:29.716437+00:00"
+  },
+  "panelGrid7": {
+    "task": "패널 7칸 격자 통일 (사용자 2026-10-28 — 행 모양 84·84·28 / 84·84 / 176·28 / 176, 액션 칸은 비워도 남김)",
+    "next": [
+      "[x] 1단계 두 칸 행 · 한 필드 행 (bd76df0af)",
+      "[x] 그림자 레이어 행 · Direction 아이콘 · 색 견본 5열 (9d91d2d67)",
+      "[x] Effect 절 fieldset 구조 · 세 효과 기본 없음 · 머리줄 「+」 · 순서 Opacity · Blur · Box Shadows · 프리셋 S/M/L (df5b944f3 · 3afc4f2a5)",
+      "[ ] 보류 (사용자 2026-10-28 「ADR-288 완료 후 다시 체크 후 판단」): Theme 목록 행 액션 3 · State 절 상위 변수 행 (액션 없음 204) · Item roles 스위치 폭 · .list-row 열 공용 격자 고정 (Component properties · Set by variable · Slot · 항목 넣기 · Show when · Chart ItemsManager · Themes Tokens) · 다른 절 legend 위반 점검",
+      "[x] Navigator · Components = 예외 (사용자 결정)",
+      "[ ] 제외: Data 패널 (다른 세션 ADR-288 · VariableEditor) · 팝오버 내부",
+      "[ ] 확인용 프로젝트 grid-verify (f2994c66-…) 남아 있음 — 사용자에게 삭제 여부"
+    ],
+    "tool": "Chrome MCP 에서 window.__audit2(panelRoot) — 절의 칸 경계 · 액션 칸 침범 자동 점검 (이 세션 탭에만 주입됨)"
+  },
+  "designDataFollowUps": {
+    "task": "adobe 저장소 분석 권장 착수 3건 (design-data 차이 보고서 · catalog 토큰 존재 검사 · RAC 동작 차이 테스트)",
+    "phase": "committed_pushed",
+    "status": "890686420 pushed",
+    "scope": "제품 코드 변경 0 — 보고서 1 + 정적 테스트 2 파일 추가",
+    "findings": [
+      "보고서 .agent/runs/2026-10-28-design-data-diff-button-textfield-table/report.md — 결함 0 · 후보 Table disallowEmptySelection (다른 컬렉션 5종엔 있음) · TextField validationBehavior · XS 크기 composition 확장 · Button radius 세 축 상이",
+      "catalogTokenExists.static.test.ts 7 PASS — named hue 7종의 hover·pressed 14 토큰은 DOM 만 color-mix 파생 (Skia 맵 없음, 설계) 을 ratchet 목록으로 고정 · 변이 2건 RED 확인",
+      "racBehaviorParity.test.tsx 19 PASS — Tree·GridList·Table 의 selection·keyboard focus·controlled 전환·RAC drag reorder·Tree 확장이 upstream RAC 와 동일 → 수정할 버그 0"
+    ],
+    "unverified": "Builder live 1회 미실행 (테스트·문서만, 사용자-가시 동작 변경 0)"
+  },
+  "reviewAdr289": {
+    "task": "ADR-289 설계 리뷰",
+    "phase": "round3_design_repair_verified",
+    "scope": "ADR·breakdown과 현행 타입 강제·행 명령·문서 검증 대조; 제품 코드·ADR 본문·Status 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-29-review-adr289",
+    "updatedAt": "2026-10-28T17:09:37.237869+00:00",
+    "head": "3a6612001",
+    "status": "high_0_medium_0_pending_0",
+    "findings": [
+      "JSON 기본값에 String(defaultValue)를 적용하면 새로 저장한 object/array 값까지 유실된다",
+      "행 id 누락/중복을 허용하는 문서에서 index + id 대조는 잘못된 행 수정을 막지 못한다",
+      "Insert와 Update가 빈 입력의 기본값 대입 규칙을 공유하면 선택 필드를 null로 비울 수 없다"
+    ],
+    "validation": {
+      "probe": "7/7 PASS",
+      "reviewSchema": "오류 0",
+      "writer": "Round 1 저장 성공",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/289.md 포맷 불일치; 검사만 수행"
+    },
+    "reviewLog": "docs/adr/reviews/289.md (Round 3)",
+    "unverified": "새 행·열 UI 통합, Builder live·포커스·키보드·반응형·클립보드, Canvas/Preview·Undo/Redo·저장/재열기, 번들·reference 10k 성능"
+  },
+  "reviewAdr289Repair": {
+    "task": "ADR-289 사용자 후속 H2 snapshot 재설계 확인",
+    "phase": "round3_recorded",
+    "status": "high_0_medium_0_pending_0",
+    "scope": "H2 새 collection 참조/JSON snapshot 규칙을 실제 catalog transaction과 대조; 제품 코드·ADR 본문·Status 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-29-review-adr289",
+    "reviewLog": "docs/adr/reviews/289.md (Round 3)",
+    "findings": [
+      "H2 fixed (설계): 행 객체/id fallback 제거, 행 JSON이 바뀌면 거절, 동일 snapshot과 유효 field에서만 기존 index 허용",
+      "H1·M3 fixed 유지; 활성 HIGH 0·MEDIUM 0·pending 0"
+    ],
+    "validation": {
+      "probe": "9/9 PASS (실제 catalog transaction·Undo + 새 판정 명세 모델)",
+      "reviewSchema": "오류 0",
+      "writer": "Round 3 저장 성공; 이전 round 본문 보존; 모든 pending 0",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/289.md 포맷 불일치; 검사만 수행"
+    },
+    "unverified": "새 함수·UI 구현, Builder live·Canvas/Preview 사용자 흐름, UI 저장/재로드, 번들·reference 성능",
+    "updatedAt": "2026-10-28T17:09:37.237869+00:00"
   }
 }

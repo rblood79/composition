@@ -10,7 +10,10 @@
 
 import type { ColorTokens } from "../types/token.types";
 import { TAILWIND_PALETTE } from "./generated/tailwindPalette";
-import { resolveSemanticColors } from "./semanticPaletteMap";
+import {
+  resolveSemanticColors,
+  resolveSemanticStateColors,
+} from "./semanticPaletteMap";
 import { resolveChartPaletteColors } from "./chartPaletteMap";
 
 /**
@@ -22,6 +25,8 @@ import { resolveChartPaletteColors } from "./chartPaletteMap";
  * `semanticPaletteMap.ts` 표에서 파생 — 단계 조정은 표에서만 한다 (CSS 생성 산출물과 같은 원천).
  */
 export const lightColors: ColorTokens = {
+  // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
+  ...resolveSemanticStateColors("light"),
   // --- Accent (기존 primary → --highlight-background) ---
   accent: TAILWIND_PALETTE.blue[600], // blue-600
   "accent-hover": "#1f54c8",
@@ -71,6 +76,8 @@ export const lightColors: ColorTokens = {
  * 시맨틱 토큰 dark mode fallback 값 기준
  */
 export const darkColors: ColorTokens = {
+  // --- Status + Named hue 의 hover · pressed — DOM color-mix 와 같은 식 (손 값이 아래에서 이긴다) ---
+  ...resolveSemanticStateColors("dark"),
   // --- Accent ---
   accent: TAILWIND_PALETTE.blue[500], // blue-500
   "accent-hover": "#3270d1",

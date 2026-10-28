@@ -79,6 +79,29 @@ export function catalogDerivedConditionalVisual(
 }
 
 /**
+ * The definition's values an owner-derived prop turns on (`catalogDerivedConditionalVisual`) for
+ * the keys the node does not author — what the generated sheet's `[data-*]` block draws under the
+ * inline style (a field's own Button: its size's corner over the S2 pill, 2026-10-28). The Canvas
+ * paint and the Styles panel's effective value read it; the record's `visual` keeps the definition
+ * value (an authored write stays the difference from it).
+ */
+export function catalogDerivedRestVisual(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): Record<string, unknown> {
+  if (!node.derivedProps) return {};
+  const derived = catalogDerivedConditionalVisual(root, node);
+  const keys = Object.keys(derived);
+  if (!keys.length) return {};
+  const authored = catalogAuthoredVisual(root, node);
+  return Object.fromEntries(
+    keys
+      .filter((key) => authored[key] === undefined)
+      .map((key) => [key, derived[key]]),
+  );
+}
+
+/**
  * Resolved visual values of a rule-backed node that differ from what its definition declares:
  * the authored writes (project override, template, instance, path, state rules). The rule-backed
  * executors layer only these on the rule — Canvas as style overrides, DOM as inline style over

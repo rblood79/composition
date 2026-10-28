@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import { TAILWIND_PALETTE } from "../generated/tailwindPalette";
 import { darkColors, lightColors } from "../colors";
 import {
+  resolveSemanticStateColors,
   SEMANTIC_PALETTE_MAP,
   resolveSemanticHex,
   type SemanticPaletteToken,
@@ -201,11 +202,19 @@ const DARK_SNAPSHOT = {
 
 describe("ADR-193 semanticPaletteMap — colors.ts 스냅샷", () => {
   it("lightColors 전 키가 착수 시점 값과 같다 (G1 light 불변)", () => {
-    expect(lightColors).toEqual(LIGHT_SNAPSHOT);
+    // (2026-10-28: the only keys added since are the derived hover · pressed of the table's base
+    //  tokens — `resolveSemanticStateColors`; every snapshot key keeps its value, hand pairs win.)
+    expect(lightColors).toEqual({
+      ...resolveSemanticStateColors("light"),
+      ...LIGHT_SNAPSHOT,
+    });
   });
 
   it("darkColors 전 키가 착수 시점 값과 같다 (표 이관 무변경)", () => {
-    expect(darkColors).toEqual(DARK_SNAPSHOT);
+    expect(darkColors).toEqual({
+      ...resolveSemanticStateColors("dark"),
+      ...DARK_SNAPSHOT,
+    });
   });
 
   it("표의 모든 토큰이 colors.ts 양 테마에서 표 값으로 파생된다", () => {

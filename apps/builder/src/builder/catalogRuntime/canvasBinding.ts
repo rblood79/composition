@@ -70,6 +70,7 @@ import {
 import {
   catalogAuthoredVisual,
   catalogDerivedConditionalVisual,
+  catalogDerivedRestVisual,
 } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -1026,10 +1027,20 @@ function paintedNodeData(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
+  // (A value the generated sheet's `[data-*]` block draws for an owner-derived prop — a field's own
+  //  Button at its size's corner over the S2 pill — under the authored writes:
+  //  `catalogDerivedRestVisual`.)
+  const rest = catalogDerivedRestVisual(root, input);
+  const restored = Object.keys(rest).length
+    ? ({
+        ...input,
+        visual: { ...input.visual, ...rest },
+      } as CatalogConsumerNode)
+    : input;
   // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down.)
   const node = catalogVisualWithBackground(
     catalogFieldBoxStepperNode(
-      input,
+      restored,
       (id) => root.canvasInputs.get(id),
       root.typeOf,
     ),

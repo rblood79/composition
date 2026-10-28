@@ -13,7 +13,10 @@ import {
   resolveCatalogRuleCanvasBox,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { manualBoxRule } from "./manualBoxRules";
-import { catalogContainerVariantRootRules } from "./rulePartRules";
+import {
+  CATALOG_DERIVED_VARIANT_PROPS,
+  catalogContainerVariantRootRules,
+} from "./rulePartRules";
 import { RULE_TYPE_PROP_CONTRACTS } from "./itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { InspectorFieldKind } from "../types";
@@ -555,6 +558,7 @@ export function ruleTypeDefinition(
       Object.entries(variant.when).every(
         ([prop, value]) =>
           accepts[prop] === "string" ||
+          CATALOG_DERIVED_VARIANT_PROPS.has(prop) ||
           accepts[prop] === "slot" ||
           (accepts[prop] === "boolean" &&
             (value === "true" || value === "false")),

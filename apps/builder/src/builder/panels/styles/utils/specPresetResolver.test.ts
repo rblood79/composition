@@ -367,10 +367,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.borderWidth).toBeUndefined();
     });
 
-    it("Button.sizes.M.borderRadius = '{radius.md}' → 6 로 resolve", () => {
+    it("Button.sizes.M.borderRadius = '{radius.full}' → 9999 로 resolve (S2 pill, 2026-10-28)", () => {
       // 가장 사용 빈도 높은 spec — 기존 숫자 필터에서 skip 되던 회귀 복구
       const preset = resolveAppearanceSpecPreset("Button", "M");
-      expect(preset.borderRadius).toBe(6);
+      expect(preset.borderRadius).toBe(9999);
     });
 
     it("숫자 그대로 저장된 sizes 필드는 회귀 없이 통과 (Kbd.sizes.M.height)", () => {
@@ -486,8 +486,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("Button (sizes 전용 — 기존 회귀 경로 보존)", () => {
-      // sizes.M.borderRadius='{radius.md}'=6 → Appearance.borderRadius
-      expect(resolveAppearanceSpecPreset("Button", "M").borderRadius).toBe(6);
+      // sizes.M.borderRadius='{radius.full}'=9999 (S2 pill, 2026-10-28) → Appearance.borderRadius
+      expect(resolveAppearanceSpecPreset("Button", "M").borderRadius).toBe(
+        9999,
+      );
       const layout = resolveLayoutSpecPreset("Button", "M");
       // catalog Button.containerStyles.display 는 DOM 과 같은 `inline-flex` (ADR-923 Phase 5,
       // 2026-09-02). 2026-06-27 에 `flex` 로 바꿨던 이유 (Direction selector 가 inline-flex 를

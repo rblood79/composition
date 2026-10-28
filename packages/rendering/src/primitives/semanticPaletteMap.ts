@@ -303,3 +303,36 @@ export function resolveSemanticColors(
   }
   return out;
 }
+
+/** CSS `color-mix(in srgb, hex P%, black)` — srgb 채널마다 × P/100 (검정 = 0). */
+function mixHexWithBlack(hex: string, percent: number): string {
+  return `#${[1, 3, 5]
+    .map((i) =>
+      Math.round(Number.parseInt(hex.slice(i, i + 2), 16) * (percent / 100))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+/**
+ * 본색 토큰의 hover · pressed (2026-10-28 — 사용자 「레퍼런스대로 채워」): DOM 이 `tokenToCSSVar` 에서
+ * `var(--X-hover, color-mix(in srgb, var(--hue-X) 85%, black))` · pressed 75 % 로 파생하는 값을 Skia
+ * 맵에도 같은 식으로 둔다. 그전에는 Skia 에 키가 없어 Badge · Button (premium · genai) 의 hover ·
+ * pressed 표본을 Canvas 가 칠하지 못했다. `colors.ts` 의 손 값 (negative) 이 이긴다 — 여기 값은
+ * 객체 맨 앞에 펼친다. 테마가 본색을 바꾸면 `resolveThemeSnapshot` 이 같은 식으로 다시 섞는다.
+ */
+export function resolveSemanticStateColors(
+  theme: ColorTheme,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const token of Object.keys(
+    SEMANTIC_PALETTE_MAP,
+  ) as SemanticPaletteToken[]) {
+    if (token.endsWith("-subtle")) continue;
+    const hex = resolveSemanticHex(token, theme);
+    out[`${token}-hover`] = mixHexWithBlack(hex, 85);
+    out[`${token}-pressed`] = mixHexWithBlack(hex, 75);
+  }
+  return out;
+}

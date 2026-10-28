@@ -1391,7 +1391,12 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   // S2 InlineAlert (2026-10-13): its title keeps clear of the variant's icon (`inlineAlertIcon.ts`).
   InlineAlert: { variant: "variant" },
   GridListItem: { "overflow-mode": "overflowMode" },
+  // S2 Button (2026-10-28): a pill, and a field's own button at its size's corner — the derived
+  // `fieldButton` (`presence.ts` `catalogFieldButtonSize`, `derivedVariantProps.ts`).
+  Button: { "field-button": "fieldButton" },
 };
+
+export { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {
   return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };
 }

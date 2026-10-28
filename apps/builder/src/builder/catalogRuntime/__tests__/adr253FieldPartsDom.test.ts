@@ -632,7 +632,8 @@ function inputTextBand(workspace: CatalogWorkspace, id: string) {
  * 2026-10-14: a required CheckboxGroup's checkboxes are required — RAC reads a grouped item's
  * `isRequired ?? group's` (the items passed `false` before, so the reference markup had none).
  */
-const CHECKBOX_INPUT = "data-react-aria-pressable=true tabindex=0 type=checkbox";
+const CHECKBOX_INPUT =
+  "data-react-aria-pressable=true tabindex=0 type=checkbox";
 const REQUIRED_CHECKBOX_INPUT =
   "data-react-aria-pressable=true required= tabindex=0 type=checkbox";
 
@@ -665,7 +666,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           if (!write) expect(fixture[`${type}/${name}`]).toBeUndefined();
           return;
         }
-        const markup = normalize(rendered.html);
+        // (2026-10-28: a field's own Button marks its corner — `data-field-button`, after this
+        //  fixture; `s2ButtonPill.test.ts` checks it.)
+        const markup = normalize(rendered.html).replace(
+          / data-field-button=[A-Z]+/g,
+          "",
+        );
         if (write) {
           written[`${type}/${name}`] = markup;
           return;

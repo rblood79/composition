@@ -1889,7 +1889,43 @@ export function catalogDerivedProps(
   const tracked = tracks ? { ...colored, _tableTracks: tracks } : colored;
   // (ADR-267: a standalone list's section header sticks — the ListBox rule's section header.)
   const sticky = catalogListSectionHeaderInsets(node, get, typeOf);
-  return sticky ? { ...tracked, ...sticky } : tracked;
+  const stuck = sticky ? { ...tracked, ...sticky } : tracked;
+  // (S2 Button is a pill; a field's own button keeps its size's corner — the Button rule's
+  //  `field-button` blocks, `catalogFieldButtonSize`.)
+  const fieldButton = catalogFieldButtonSize(node, get, typeOf);
+  return fieldButton ? { ...stuck, fieldButton } : stuck;
+}
+
+/**
+ * The fields whose own buttons are S2 field buttons, not S2 `Button`s (2026-10-28): the Picker's
+ * trigger, NumberField's steppers, ComboBox's · the date pickers' field button, SearchField's clear
+ * button. Here they are instances of the Button origin (ADR-253 — the Button rule owns their shape).
+ */
+const FIELD_BUTTON_OWNERS: ReadonlySet<string> = new Set([
+  "Select",
+  "NumberField",
+  "ComboBox",
+  "SearchField",
+  "DatePicker",
+  "DateRangePicker",
+]);
+
+/**
+ * S2 `Button` is `control({shape: 'pill'})` (Button.tsx); a field's own button keeps the corner of
+ * its size (2026-10-28 — 사용자 「Button 모서리를 S2 처럼 완전히 둥글게」). The Button's own size for
+ * a button a field owns (through its part frames and control Group — `triggerOwner`) — the key of
+ * the Button rule's `field-button` blocks (DOM `data-field-button`, Canvas `containerVariants`).
+ * Undefined for any other node.
+ */
+export function catalogFieldButtonSize(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (typeOf(node) !== "Button") return undefined;
+  const owner = triggerOwner(node, get, typeOf);
+  if (!owner || !FIELD_BUTTON_OWNERS.has(typeOf(owner))) return undefined;
+  return typeof node.props.size === "string" ? node.props.size : "M";
 }
 
 /**
