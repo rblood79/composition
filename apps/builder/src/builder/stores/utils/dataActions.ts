@@ -22,7 +22,10 @@ import {
   resolveBoundCollection,
   resolveCollectionByName,
 } from "@composition/shared";
-import { commitDataDefinitions, createApplyDataChangeAction } from "./dataChange";
+import {
+  commitDataDefinitions,
+  createApplyDataChangeAction,
+} from "./dataChange";
 import { collectionUpdateToOps } from "./dataChangeDiff";
 import {
   isUploadEndpointProbe,
@@ -87,7 +90,10 @@ export function setRuntimeRows(
   const collections = new Map(state.collections);
   if (table) {
     const { runtimeData: _old, ...definition } = table;
-    collections.set(id, rows ? { ...definition, runtimeData: rows } : definition);
+    collections.set(
+      id,
+      rows ? { ...definition, runtimeData: rows } : definition,
+    );
   }
   set({ runtimeRows, collections });
 }
@@ -95,21 +101,6 @@ export function setRuntimeRows(
 // ============================================
 // DataTable Actions
 // ============================================
-
-/**
- * Whether a project's fetch result still belongs on screen — a fetch started for project A must
- * not overwrite project B's data after the user moved on (2026-10-05 audit L2). Default: always.
- */
-export type IsCurrentProject = (projectId: string) => boolean;
-const ALWAYS_CURRENT: IsCurrentProject = () => true;
-
-/**
- * ADR-286 — the store projects the open catalog document (`bindCatalogDataStore`): nothing to
- * fetch. Kept for the Data panel's refresh calls.
- */
-export const createFetchDataTablesAction =
-  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (_projectId: string): Promise<void> => {};
 
 /**
  * ADR-218 — runtimeData 캐시(collection_runtime) hydration. collections·apiEndpoints 가
@@ -248,8 +239,7 @@ export const createUpdateDataTableAction =
       if (ops.length > 0) {
         await createApplyDataChangeAction(set, get)({ ops, origin: "user" });
       }
-      if (runtimeData !== undefined)
-        setRuntimeRows(set, get, id, runtimeData);
+      if (runtimeData !== undefined) setRuntimeRows(set, get, id, runtimeData);
     } catch (error) {
       console.error("❌ DataTable 업데이트 실패:", error);
       set((state) => {
@@ -339,18 +329,16 @@ export const createSetRuntimeDataAction =
 // ApiEndpoint Actions
 // ============================================
 
-/** ADR-286 — projected from the document (see `createFetchDataTablesAction`). */
-export const createFetchApiEndpointsAction =
-  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (_projectId: string): Promise<void> => {};
-
 /** The id of the collection an endpoint names (id first, else the v1 name). */
 function targetIdOf(
   get: GetState,
   endpoint: Pick<ApiEndpoint, "targetCollectionId" | "targetCollection">,
 ): string | undefined {
   const collections = get().collections;
-  if (endpoint.targetCollectionId && collections.has(endpoint.targetCollectionId))
+  if (
+    endpoint.targetCollectionId &&
+    collections.has(endpoint.targetCollectionId)
+  )
     return endpoint.targetCollectionId;
   if (!endpoint.targetCollection) return undefined;
   return resolveCollectionByName(
@@ -428,8 +416,11 @@ export const createUpdateApiEndpointAction =
         return;
       }
       const merged: ApiEndpoint = { ...existing, ...updates };
-      const { targetCollection: _name, targetCollectionId: _id, ...rest } =
-        merged;
+      const {
+        targetCollection: _name,
+        targetCollectionId: _id,
+        ...rest
+      } = merged;
       const targetCollectionId = targetIdOf(get, merged);
       commitDataDefinitions({
         endpoints: [
@@ -456,7 +447,10 @@ export const createDeleteApiEndpointAction =
   (set: SetState, get: GetState) =>
   async (id: string): Promise<void> => {
     try {
-      await createApplyDataChangeAction(set, get)({
+      await createApplyDataChangeAction(
+        set,
+        get,
+      )({
         ops: [{ op: "delete_endpoint", endpointId: id }],
         origin: "user",
       });
@@ -574,7 +568,8 @@ export const createExecuteApiEndpointAction =
       // `useAsyncList`'s load arguments (`{{ cursor }}` · `{{ filterText }}` ·
       // `{{ sortDescriptor.* }}`) are the first load's empty ones here: their parameters are left
       // out (the Preview session gives them — `loadCollectionEndpoint`).
-      const LOAD_ARGUMENT = /\{\{\s*(?:cursor|filterText|sortDescriptor)\b[^}]*\}\}/g;
+      const LOAD_ARGUMENT =
+        /\{\{\s*(?:cursor|filterText|sortDescriptor)\b[^}]*\}\}/g;
       const withoutLoadArguments = (text: string) =>
         text.replace(LOAD_ARGUMENT, "");
       url = withoutLoadArguments(url);
@@ -838,11 +833,6 @@ export const createExecuteApiEndpointAction =
 // Variable Actions
 // ============================================
 
-/** ADR-286 — projected from the document (see `createFetchDataTablesAction`). */
-export const createFetchVariablesAction =
-  (_set: SetState, _isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
-  async (_projectId: string): Promise<void> => {};
-
 /**
  * 프로젝트 변수 생성 — ADR-214 · 286: `define_variable` 의 얇은 wrapper (문서 entry · History).
  * 페이지 · 요소 변수는 문서의 `StateVariableEntry` 다 (이 store 의 scope 는 project 뿐).
@@ -930,7 +920,10 @@ export const createUpdateVariableAction =
           "defaultValue" in updates
             ? updates.defaultValue
             : existing.defaultValue;
-        await createApplyDataChangeAction(set, get)({
+        await createApplyDataChangeAction(
+          set,
+          get,
+        )({
           ops: [
             {
               op: "define_variable",
@@ -984,7 +977,10 @@ export const createDeleteVariableAction =
   (set: SetState, get: GetState) =>
   async (id: string): Promise<void> => {
     try {
-      await createApplyDataChangeAction(set, get)({
+      await createApplyDataChangeAction(
+        set,
+        get,
+      )({
         ops: [{ op: "define_variable", variableId: id, definition: null }],
         origin: "user",
       });

@@ -5,8 +5,8 @@
  * id 없이 들어온다. 참조 (`{#id}` 템플릿 · fieldMap · 차트 시리즈, canonical 문서)
  * 와 정의 (`DataField.id`, IndexedDB `collections`) 는 저장 단위가 달라, 메모리에서만
  * 부여한 id 는 문서가 먼저 저장되는 순서에서 재생성된다. 그래서 (1) store 에 넣는
- * **모든** 경로가 이 함수를 지나고 (2) id 가 새로 부여된 collection 은 호출자
- * (`fetchCollections`) 가 hydrate 직후 1회 write-back 한다 — `assigned` 가 그 판정.
+ * **모든** 경로가 이 함수를 지나고 (2) id 가 새로 부여된 collection 은 호출자가
+ * write-back 한다 — `assigned` 가 그 판정.
  *
  * 부여가 없으면 **같은 참조**를 돌려준다 — Map 이 그대로면 `useCollections` 의 memo
  * 가 유지된다 (ADR-210 P4 실측: 배열이 바뀌면 Chart 컨트롤이 전부 다시 그린다).

@@ -185,7 +185,9 @@ export const Section = memo(
       prevProps.badge === nextProps.badge &&
       prevProps.actions === nextProps.actions &&
       prevProps.className === nextProps.className &&
-      !!prevProps.onReset === !!nextProps.onReset
+      // 참조 비교 — 유무만 보면 같은 children 으로 다시 그릴 때 새 onReset 이 버려져 Reset 이
+      //   옛 클로저 (이전 선택 · 값) 를 실행했다 (Section.test.tsx).
+      prevProps.onReset === nextProps.onReset
     );
   },
 );

@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/main/CatalogBuilderCore.tsx` · `panels/core/panelConfigs.ts` (`preloadOffscreenPanels`)
 - **패널 편집의 거부 안내 통일**: Properties 의 「변수로 정하기」 · RAC slot · 표시 조건 섹션은 거부 (잠긴 Library 등) 를 안내 대신 일반 오류 toast 로 냈고, Theme · Settings (페이지 그리드 · toast 위치) · Canvas page 위치 편집은 오류를 잡지 않아 이벤트 핸들러 밖으로 던졌다. 모든 패널 명령이 한 runner 를 지난다.
   - 위치: `apps/builder/src/builder/catalogRuntime/commandRunner.ts` (`useCatalogCommandRunner` · `runCatalogCommand` · `runBuiltCatalogCommand` — `panels/navigator/catalog/` 에서 이동) · 정적 게이트 `panels/core/panelCommandRunner.static.test.ts`
+- **절 Reset 이 마지막 값으로 되돌린다**: `Section` 의 memo 가 `onReset` 의 유무만 비교해, 같은 children 으로 다시 그릴 때 새 Reset 콜백이 버려지고 옛 클로저가 실행될 수 있었다 (참조 비교로).
+  - 위치: `apps/builder/src/builder/components/panel/Section.tsx`
+
+### Removed
+
+- **Data 패널 헤더의 새로고침 버튼**: ADR-286 로 데이터 정의가 문서에 들어온 뒤 다시 불러올 대상이 없어 눌러도 아무 일도 하지 않았다. 함께 빈 store 액션 `fetchCollections` · `fetchApiEndpoints` · `fetchVariables` 와 패널 공통 props (`isActive` · `side` · `displayMode` · `onClose` — 고정값이라 읽는 패널이 없었다) 를 지웠다.
+  - 위치: `apps/builder/src/builder/panels/datatable/DataTablePanel.tsx` · `stores/data.ts` · `panels/core/types.ts` (`PanelProps`)
 
 ## [개발용 계측 버튼 제거 — ADR-187 Phase 6 후속 정리] - 2026-10-28
 

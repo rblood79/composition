@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-27T14:57:52.600104+00:00",
+  "updatedAt": "2026-10-28T06:53:02.750681+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -786,5 +786,32 @@
     "commit": "8dda78e0f9df3000797fb41d3a6178e464f6346c",
     "remote": "origin/main",
     "remoteVerified": true
+  },
+  "panelCleanup": {
+    "task": "빌더 패널 구조 리포트 후속 (사용자 2026-10-28 「1~6 · 8 · 9 · 11 시작해」)",
+    "decisions": [
+      "3 다중 선택 의미: 지금대로 + 문서화",
+      "6 DI 형태: 지금대로 + 문서화",
+      "8 pageLayout · toastPlacement 를 Settings → Site 패널로 이동"
+    ],
+    "next": [
+      "[ ] 1 PanelProps 고정값",
+      "[ ] 2 Section memo onReset",
+      "[ ] 3 다중 선택 문서화",
+      "[ ] 4 CatalogWorkspaceGate 위치 통일",
+      "[ ] 5 step 구독 보일러플레이트 · Interactions/CodeView 구독",
+      "[ ] 6 DI 형태 문서화",
+      "[ ] 8 Settings → Site 이동",
+      "[ ] 9 헤더 버튼 · 하드코딩 제목 i18n (@layer · 명명은 판단 후)",
+      "[ ] 11 Variables 목록 · 낡은 주석 · V2/V3 잔재 · registry helper"
+    ],
+    "done": [
+      "4f1d4ae5c",
+      "4599f7899",
+      "f2ab01a64",
+      "db8d76dc2",
+      "1f7112fbe"
+    ],
+    "guard": "다른 세션 VariableEditor.* 미커밋 변경 보존 — pathspec 커밋"
   }
 }

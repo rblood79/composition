@@ -2,6 +2,7 @@
 import "fake-indexeddb/auto";
 import { cleanup, render } from "@testing-library/react";
 import type { ComponentType } from "react";
+import type { PanelProps } from "../core/types";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/i18n";
@@ -22,7 +23,7 @@ afterEach(() => {
   useDataTableEditorStore.getState().close();
 });
 
-const PANELS: [string, ComponentType<{ isActive: boolean }>][] = [
+const PANELS: [string, ComponentType<PanelProps>][] = [
   ["DataTablePanel", DataTablePanel],
   ["DataTableEditorPanel", DataTableEditorPanel],
   ["DataTableFieldPanel", DataTableFieldPanel],
@@ -34,7 +35,7 @@ describe("Data panels before the workspace exists", () => {
       <I18nProvider initialLocale="en-US">
         <MemoryRouter initialEntries={["/builder/project-1"]}>
           <Routes>
-            <Route path="/builder/:projectId" element={<Panel isActive />} />
+            <Route path="/builder/:projectId" element={<Panel />} />
           </Routes>
         </MemoryRouter>
       </I18nProvider>,

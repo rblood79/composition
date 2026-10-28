@@ -26,8 +26,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
     expect(source).toMatch(
       /<Activity mode=\{mode === "hidden" \? "hidden" : "visible"\}>/,
     );
-    expect(source).toContain("<PanelComponent");
-    expect(source).toContain("isActive={true}");
+    // 패널은 props 없이 마운트 — 보임 여부는 Activity 가 맡는다 (PanelProps 는 비어 있다).
+    expect(source).toContain("<PanelComponent />");
   });
 
   it("기존 PanelHeader 제목·action 구조와 rail toggle을 shell이 대체하지 않는다", async () => {
@@ -37,7 +37,8 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
       readCanvasStyles(),
     ]);
 
-    expect(source).toContain("onClose={undefined}");
+    // 닫기는 셸이 아니라 패널의 PanelHeader (`panelId`) 가 맡는다.
+    expect(source).not.toMatch(/<PanelComponent[^>]*onClose/);
     expect(source).not.toContain("panel-header:first-child");
     expect(source).not.toContain("panel-title");
     expect(styles).not.toContain(

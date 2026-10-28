@@ -488,14 +488,12 @@ interface PanelFrameContentProps {
   config: PanelConfig;
   contentId: string;
   mode: PanelFrameMode;
-  side: PanelSide;
 }
 
 const PanelFrameContent = memo(function PanelFrameContent({
   config,
   contentId,
   mode,
-  side,
 }: PanelFrameContentProps) {
   const [hasBeenPlaced, setHasBeenPlaced] = useState(mode === "placed");
   const PanelComponent = config.component;
@@ -515,12 +513,7 @@ const PanelFrameContent = memo(function PanelFrameContent({
     >
       {shouldMount ? (
         <Activity mode={mode === "hidden" ? "hidden" : "visible"}>
-          <PanelComponent
-            isActive={true}
-            side={side}
-            displayMode={mode === "placed" ? "floating" : "panel"}
-            onClose={undefined}
-          />
+          <PanelComponent />
         </Activity>
       ) : null}
     </div>
@@ -877,12 +870,7 @@ const PanelFrame = memo(function PanelFrame({
       >
         <span />
       </button>
-      <PanelFrameContent
-        config={config}
-        contentId={contentId}
-        mode={mode}
-        side={side}
-      />
+      <PanelFrameContent config={config} contentId={contentId} mode={mode} />
       {resizeEdges.map((edge) => (
         <PanelSplitter
           key={edge}

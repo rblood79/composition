@@ -96,17 +96,17 @@ afterEach(() => {
 describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
   it("타겟 없으면 안내, 타겟 있으면 폼 (필드 키 = 대상 key)", () => {
     const { getByText, container, rerender } = render(
-      wrap(<DataTableFieldPanel isActive />),
+      wrap(<DataTableFieldPanel />),
     );
     expect(getByText("Pick a column header to edit it.")).toBeTruthy();
     openField("f-age");
-    rerender(wrap(<DataTableFieldPanel isActive />));
+    rerender(wrap(<DataTableFieldPanel />));
     expect(keyInput(container).value).toBe("age");
   });
 
   it("rename → update_field { key } 한 op (152 적용기가 행 이전)", async () => {
     openField("f-age");
-    const { container } = render(wrap(<DataTableFieldPanel isActive />));
+    const { container } = render(wrap(<DataTableFieldPanel />));
     const input = keyInput(container);
     fireEvent.change(input, { target: { value: "years" } });
     fireEvent.keyDown(input, { key: "Enter" });
@@ -123,7 +123,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("빈 key · 중복 key 는 경고 + 쓰기 0", async () => {
     openField("f-age");
-    const { container } = render(wrap(<DataTableFieldPanel isActive />));
+    const { container } = render(wrap(<DataTableFieldPanel />));
     const input = keyInput(container);
     fireEvent.change(input, { target: { value: "id" } }); // 중복
     fireEvent.keyDown(input, { key: "Enter" });
@@ -133,9 +133,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("타입 변경 — 강제 실패 행이 있으면 ConfirmDialog, '비움' 은 update_field + set_cell null", async () => {
     openField("f-age");
-    const { getByRole, getByText } = render(
-      wrap(<DataTableFieldPanel isActive />),
-    );
+    const { getByRole, getByText } = render(wrap(<DataTableFieldPanel />));
     // 타입 목록에서 Number 선택 (age: "30" ok, "x" 실패, "" 성공 null)
     fireEvent.click(getByText("Number"));
     const dialog = await waitFor(() => getByRole("alertdialog"));
@@ -173,9 +171,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("타입 변경 — 전부 강제 가능하면 다이얼로그 없이 update_field 하나", async () => {
     openField("f-age");
-    const { getByText, queryByRole } = render(
-      wrap(<DataTableFieldPanel isActive />),
-    );
+    const { getByText, queryByRole } = render(wrap(<DataTableFieldPanel />));
     fireEvent.click(getByText("Email"));
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     // age 값 "30"/"x"/"" 는 email 강제 실패 → 다이얼로그가 떠야 함. Boolean 등과 달리 email 은
@@ -185,7 +181,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("삭제 — 사용처 0 이면 즉시 remove_field", async () => {
     openField("f-age");
-    const { getByRole } = render(wrap(<DataTableFieldPanel isActive />));
+    const { getByRole } = render(wrap(<DataTableFieldPanel />));
     const del = getByRole("button", { name: /Delete field/ });
     fireEvent.pointerDown(del, { pointerType: "mouse", button: 0 });
     fireEvent.pointerUp(del, { pointerType: "mouse", button: 0 });
@@ -198,9 +194,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("fieldId null → 빈 상태 (생성은 격자 헤더 인라인 담당)", () => {
     openField(null);
-    const { container, queryByRole } = render(
-      wrap(<DataTableFieldPanel isActive />),
-    );
+    const { container, queryByRole } = render(wrap(<DataTableFieldPanel />));
     expect(container.querySelector(".datatable-field-empty")).not.toBeNull();
     expect(keyInput(container)).toBeNull();
     expect(queryByRole("button", { name: "New field" })).toBeNull();
@@ -208,7 +202,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("required 토글 → update_field { required }", async () => {
     openField("f-age");
-    const { getByRole } = render(wrap(<DataTableFieldPanel isActive />));
+    const { getByRole } = render(wrap(<DataTableFieldPanel />));
     const checkbox = getByRole("checkbox");
     fireEvent.click(checkbox);
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
@@ -224,9 +218,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
 
   it("헤더 타입 아이콘 진입 (focus: type) → 타입 검색 input 에 포커스, 같은 필드로 다시 요청해도 (seq) 포커스", () => {
     openField("f-age");
-    const { container, rerender } = render(
-      wrap(<DataTableFieldPanel isActive />),
-    );
+    const { container, rerender } = render(wrap(<DataTableFieldPanel />));
     const search = container.querySelector<HTMLInputElement>(
       ".datatable-field-type-search",
     )!;
@@ -238,7 +230,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
         focus: { section: "type", seq: 1 },
       },
     });
-    rerender(wrap(<DataTableFieldPanel isActive />));
+    rerender(wrap(<DataTableFieldPanel />));
     expect(document.activeElement).toBe(search);
     keyInput(container).focus();
     useDataTableEditorStore.setState({
@@ -248,7 +240,7 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
         focus: { section: "type", seq: 2 },
       },
     });
-    rerender(wrap(<DataTableFieldPanel isActive />));
+    rerender(wrap(<DataTableFieldPanel />));
     expect(document.activeElement).toBe(search);
   });
 });

@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 const Loaded: ComponentType<PanelProps> = () => <div>loaded-panel</div>;
-const props = { isActive: true } as PanelProps;
+const props: PanelProps = {};
 
 async function flush() {
   await act(async () => {

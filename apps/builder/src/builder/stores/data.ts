@@ -36,7 +36,6 @@ import type {
 } from "../../types/builder/data.types";
 import {
   // DataTable Actions
-  createFetchDataTablesAction,
   createCreateDataTableAction,
   createUpdateDataTableAction,
   createDeleteDataTableAction,
@@ -44,13 +43,11 @@ import {
   createSetRuntimeDataAction,
   createHydrateRuntimeCacheAction,
   // ApiEndpoint Actions
-  createFetchApiEndpointsAction,
   createCreateApiEndpointAction,
   createUpdateApiEndpointAction,
   createDeleteApiEndpointAction,
   createExecuteApiEndpointAction,
   // Variable Actions
-  createFetchVariablesAction,
   createCreateVariableAction,
   createUpdateVariableAction,
   createDeleteVariableAction,
@@ -128,14 +125,7 @@ function savePersistedRuntimeValues(
 
 export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   // Factory 함수로 액션 생성
-  // A fetch for an earlier project lands only while that project is still the store's (audit L2).
-  const isCurrentProject = (projectId: string) => {
-    const current = get().currentProjectId;
-    return current == null || current === projectId;
-  };
-
   // DataTable Actions
-  const fetchCollections = createFetchDataTablesAction(set, isCurrentProject);
   const createDataTable = createCreateDataTableAction(set, get);
   const updateCollection = createUpdateDataTableAction(set, get);
   const deleteCollection = createDeleteDataTableAction(set, get);
@@ -145,17 +135,12 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   const applyDataChange = createApplyDataChangeAction(set, get);
 
   // ApiEndpoint Actions
-  const fetchApiEndpoints = createFetchApiEndpointsAction(
-    set,
-    isCurrentProject,
-  );
   const createApiEndpoint = createCreateApiEndpointAction(set, get);
   const updateApiEndpoint = createUpdateApiEndpointAction(set, get);
   const deleteApiEndpoint = createDeleteApiEndpointAction(set, get);
   const executeApiEndpoint = createExecuteApiEndpointAction(set, get);
 
   // Variable Actions
-  const fetchVariables = createFetchVariablesAction(set, isCurrentProject);
   const createVariable = createCreateVariableAction(set, get);
   const updateVariable = createUpdateVariableAction(set, get);
   const deleteVariable = createDeleteVariableAction(set, get);
@@ -262,7 +247,6 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     // ============================================
 
     // DataTable CRUD
-    fetchCollections,
     createDataTable,
     updateCollection,
     deleteCollection,
@@ -272,14 +256,12 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     applyDataChange,
 
     // ApiEndpoint CRUD
-    fetchApiEndpoints,
     createApiEndpoint,
     updateApiEndpoint,
     deleteApiEndpoint,
     executeApiEndpoint,
 
     // Variable CRUD
-    fetchVariables,
     createVariable,
     updateVariable,
     deleteVariable,

@@ -540,7 +540,6 @@ export interface DataStoreState {
  */
 export interface DataStoreActions {
   // DataTable CRUD
-  fetchCollections: (projectId: string) => Promise<void>;
   createDataTable: (data: DataTableCreate) => Promise<DataTable>;
   updateCollection: (id: string, updates: DataTableUpdate) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
@@ -574,7 +573,6 @@ export interface DataStoreActions {
   }>;
 
   // ApiEndpoint CRUD
-  fetchApiEndpoints: (projectId: string) => Promise<void>;
   createApiEndpoint: (data: ApiEndpointCreate) => Promise<ApiEndpoint>;
   updateApiEndpoint: (id: string, updates: ApiEndpointUpdate) => Promise<void>;
   deleteApiEndpoint: (id: string) => Promise<void>;
@@ -584,7 +582,6 @@ export interface DataStoreActions {
   ) => Promise<unknown>;
 
   // Variable CRUD
-  fetchVariables: (projectId: string) => Promise<void>;
   createVariable: (data: VariableCreate) => Promise<Variable>;
   updateVariable: (id: string, updates: VariableUpdate) => Promise<void>;
   deleteVariable: (id: string) => Promise<void>;

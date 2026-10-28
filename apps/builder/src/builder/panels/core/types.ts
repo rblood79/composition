@@ -166,23 +166,12 @@ export interface PanelConfig {
 }
 
 /**
- * 패널 컴포넌트 Props
- *
- * 모든 패널 컴포넌트가 받는 공통 props
+ * 패널 컴포넌트 Props — 없다. 보임 여부는 `PanelWorkspace` 의 `<Activity>` 가, 닫기는
+ * `PanelHeader panelId` 가 (`togglePanelWorkspace`) 맡는다. 2026-10-28 전에는 `isActive` ·
+ * `side` · `displayMode` · `onClose` 를 넘겼지만 고정값 (`isActive={true}` 등) 이라 읽는 패널이
+ * 없었다 (DataTablePanel 의 `isActive` 는 ADR-286 로 빈 함수가 된 IndexedDB 로드만 걸었다).
  */
-export interface PanelProps {
-  /** 현재 패널이 활성 상태인지 */
-  isActive?: boolean;
-
-  /** 패널이 위치한 사이드 */
-  side?: PanelSide;
-
-  /** 현재 표시 모드 */
-  displayMode?: PanelDisplayMode;
-
-  /** 패널 닫기 콜백 (옵션) */
-  onClose?: () => void;
-}
+export type PanelProps = Record<string, never>;
 
 /** 이전 `modalPanels` 저장 키와 호환되는 floating 패널 상태. */
 export interface ModalPanelState {
