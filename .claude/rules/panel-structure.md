@@ -66,6 +66,13 @@ paths:
 - **필드 상태 문구는 필드 안 `slot="description"`** (`PropertySelect.afterControl`) — 값·데이터에 반응하는 메시지 (disabled 사유 · 초과 · 누락) 만. 정적 설명 문단 (`<p class="…-hint">`) 은 섹션에 두지 않는다 — legend 뒤 help 어포던스는 후속 (i18n 키는 유지).
 - **catalog 파생 섹션에 비-catalog 컨트롤을 넣는 채널은 `GenericFieldRenderer` 의 `contentExtras` (content 선두) · `sectionExtras` (section 별 말미)** 둘뿐. 섹션 순서는 `GenericFieldRenderer` 의 `SECTION_ORDER` (Content → Collection → Appearance → Layout → State → Interaction → Locale — 2026-09-15 사용자 판정, `4eba1eabb`) 이고, 표 밖 섹션은 그 뒤에 계약의 `section` 첫 등장 순서 (`editorHidden` 필드 포함) 로 선다. 섹션 구성은 catalog 계약이 소유한다 — 패널 코드에서 `PropertySection` 을 직접 쌓아 순서를 만들지 않는다. **Why**: 계약 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는 State 가 Appearance 앞) 같은 패널에서 섹션 자리가 바뀌었다.
 
+## 1-1. Design 패널의 두 본문 — Properties · Styles (2026-10-28 사용자 결정)
+
+Design 패널 (id `properties`) 의 Property 탭은 `CatalogPropertiesBody`, Layout · Style · Text · Screen 탭은 `StylesTabBody` 다. 두 본문은 아래 두 점에서 **의도적으로** 다르다 — 맞추지 않는다.
+
+- **다중 선택 의미**: Properties 는 첫 선택과 **같은 definition** 인 대상에만 쓴다 (`CatalogPropertiesPanel.runtime.ts` — 섞인 선택은 첫 대상만). Styles 는 **선택 전체**에 쓴다 (`catalogStylesHost.ts` `styleCommandOf`). **Why**: prop 은 컴포넌트마다 이름 · 값 집합이 달라 다른 definition 에 같은 값을 쓸 근거가 없고, CSS 축 (색 · 크기 · 간격) 은 모든 요소에 공통이다.
+- **패널 ↔ 문서 연결 (DI) 형태**: Styles 는 큰 `StylesHost` 인터페이스 하나를 Context 로 주입한다 (`stylesHostContext.ts` — 읽기 hook · 쓰기 · 미리보기 · 위치를 한 객체에). Properties 는 hook 객체 `FieldValueSource` · `ItemsSource` 를 주입한다 (`generic/fieldValueSource.ts` — `GenericFieldRenderer` 가 workspace 를 모르게). **Why**: 둘 다 구현이 catalog 하나뿐이라 한 형태로 합쳐도 동작 이득이 없다 (사용자 결정 — 통합 리팩터 기각). 새 본문을 만들 때는 가까운 쪽 형태를 따른다.
+
 ## 2. 클래스 네이밍 규칙
 
 **Prefix 예약표** — 아래 prefix/클래스는 구조 예약어. 패널 로컬 CSS 에서 신규 정의/재정의 금지:
