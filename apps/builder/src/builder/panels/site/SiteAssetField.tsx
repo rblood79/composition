@@ -1,6 +1,5 @@
 import { memo, useCallback, useRef } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { ImagePlus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type { CatalogAssetUrl } from "../../../../../../packages/shared/src/catalog/document/types";
 import { useResolvedAssetUrl } from "../../../lib/assets/useResolvedAssetUrl";
@@ -62,7 +61,6 @@ export const SiteAssetField = memo(function SiteAssetField({
           className="control-button site-asset-choose"
           onPress={() => input.current?.click()}
         >
-          <ImagePlus aria-hidden="true" size={iconEditProps.size} />
           <span>
             {value
               ? t("settings.siteImageReplace")

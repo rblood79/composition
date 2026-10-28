@@ -1,5 +1,14 @@
 import { memo, useCallback, useState } from "react";
-import { ArrowDown, ArrowUp, Globe, Lock, LockOpen, Minus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Globe,
+  Lock,
+  LockOpen,
+  Minus,
+  Network,
+  ScanSearch,
+} from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
   CatalogSiteAccess,
@@ -222,11 +231,13 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
         <div className="fieldset-row site-search-row">
           <PropertySwitch
             label={t("settings.siteSearchIndex")}
+            icon={ScanSearch}
             isSelected={search.index}
             onChange={(index) => change({ search: { ...search, index } })}
           />
           <PropertySwitch
             label={t("settings.siteSitemap")}
+            icon={Network}
             isSelected={search.sitemap}
             onChange={(sitemap) => change({ search: { ...search, sitemap } })}
           />

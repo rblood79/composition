@@ -69,7 +69,7 @@ describe("fillPresentation", () => {
         blendMode: "normal",
         color: "#123456FF",
       }),
-    ).toBe("#123456");
+    ).toBe("123456");
     expect(
       getFillDisplayLabel({
         id: "m-1",
