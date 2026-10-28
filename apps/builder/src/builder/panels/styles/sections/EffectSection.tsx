@@ -29,7 +29,6 @@ import { applyShadowInset, getShadowToken } from "@composition/rendering";
 import type { ShadowPresetKey } from "@composition/rendering";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
-import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import {
@@ -85,75 +84,43 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
-  const {
-    cancelBoxShadowPresentation,
-    commitBoxShadowModelPresentation,
-    isBoxShadowPresentationOwned,
-    previewBoxShadowModelPresentation,
-    cancelOpacityPresentation,
-    commitOpacityPresentation,
-    isOpacityPresentationOwned,
-    previewOpacityPresentation,
-  } = useStylePresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
-  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  // 색 드래그도 Styles host 미리보기
   const host = useStylesHost();
-  const livePreview = !host.presentation;
   // 레이어 topology 가 바뀐 뒤 (추가·제거) 행 목록은 index key 라 그대로, 편집기만 remount.
   const editorMountRef = useRef(0);
 
   if (!styleValues) return null;
 
-  const presentationOwnsBoxShadow = isBoxShadowPresentationOwned();
-  const presentationOwnsOpacity = isOpacityPresentationOwned();
   const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
   const blurPx = parseFilterBlurPx(styleValues.filter);
 
-  // 요소 opacity — presentation 경로 (pilot 이 소유하면
-  //   Skia 가 OpacityEffect 만 갈아끼우고, 아니면 canonical preview/commit).
+  // 요소 opacity — 드래그는 미리보기, 놓으면 commit ("" = 100 % 는 키 삭제).
   const handleOpacityPreview = (percent: number): void => {
-    const value = String(percent / 100);
-    if (presentationOwnsOpacity && previewOpacityPresentation(value)) return;
-    updateStylePreview("opacity", value);
+    updateStylePreview("opacity", String(percent / 100));
   };
 
   const handleOpacityCommit = (percent: number): void => {
-    const value = percentToOpacityValue(percent);
-    // "" (100 %) 는 inline 키 삭제 — presentation 은 값을 요구하므로 세션을 닫고 canonical 로.
-    if (value === "") {
-      cancelOpacityPresentation("superseded");
-      updateStyleImmediate("opacity", value);
-      return;
-    }
-    if (presentationOwnsOpacity && commitOpacityPresentation(value)) return;
-    updateStyleImmediate("opacity", value);
+    updateStyleImmediate("opacity", percentToOpacityValue(percent));
   };
 
   const handleBoxShadowModelPreview = (
     value: BoxShadowPresentationValue,
   ): void => {
-    if (presentationOwnsBoxShadow) {
-      previewBoxShadowModelPresentation(value);
-      return;
-    }
     updateStylePreview("boxShadow", serializeBoxShadowPresentation(value));
   };
 
   const handleBoxShadowModelCommit = (
     value: BoxShadowPresentationValue,
   ): void => {
-    if (presentationOwnsBoxShadow && commitBoxShadowModelPresentation(value)) {
-      return;
-    }
     updateStyle("boxShadow", serializeBoxShadowPresentation(value));
   };
 
-  // 레이어 추가 · 제거 · inset · 프리셋 — topology 변경은 presentation owner 가 거부하므로 열린
-  //   세션을 닫고 canonical commit 으로 바로 간다 (Skia 는 parseAllBoxShadows 로 다중 렌더).
+  // 레이어 추가 · 제거 · inset · 프리셋 — 편집기를 다시 마운트하고 바로 commit 한다 (Skia 는
+  //   parseAllBoxShadows 로 다중 렌더).
   const commitBoxShadowTopology = (nextBoxShadow: string): void => {
     editorMountRef.current += 1;
-    cancelBoxShadowPresentation("superseded");
     updateStyle("boxShadow", nextBoxShadow);
   };
 
@@ -205,7 +172,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     commitBoxShadowTopology(serializeBoxShadowPresentation(next));
   };
 
-  // blur 는 presentation pilot 이 없다 — scrub 중은 store preview (rAF, 히스토리 없음), 놓으면 commit.
+  // blur — scrub 중은 host 미리보기 (rAF, 히스토리 없음), 놓으면 commit.
   const handleBlurScrub = (px: number): void => {
     updateStylePreview("filter", setFilterBlurPx(styleValues.filter, px));
   };
@@ -266,12 +233,8 @@ const EffectSectionContent = memo(function EffectSectionContent() {
             editor={{
               onPreview: handleBoxShadowModelPreview,
               onCommit: handleBoxShadowModelCommit,
-              onCancel: (reason) => {
-                if (!cancelBoxShadowPresentation(reason))
-                  host.cancelPreview?.();
-              },
-              presentationOwnsFrameScheduling: presentationOwnsBoxShadow,
-              livePreview,
+              onCancel: () => host.cancelPreview?.(),
+              livePreview: true,
             }}
           />
         ))}

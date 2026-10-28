@@ -36,8 +36,6 @@ import {
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
-import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
-import { useTextMetricsPresentationActions } from "../hooks/useTextMetricsPresentationActions";
 import { useTypographyValues } from "../hooks/useTypographyValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { getFontWeightOptions } from "../../../fonts/customFonts";
@@ -103,20 +101,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   const { updateStyle, updateStyles } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
-  const {
-    cancelTextColorPresentation,
-    commitTextColorPresentation,
-    isTextColorPresentationOwned,
-    previewTextColorPresentation,
-  } = useStylePresentationActions();
-  const {
-    commitTextMetricPresentation,
-    isTextMetricPresentationOwned,
-    previewTextMetricPresentation,
-  } = useTextMetricsPresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useTypographyValues(selectedId);
-  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  // 색 드래그도 Styles host 미리보기
   const host = useStylesHost();
   // 등록된 face 는 Font Weight 옵션 산출에만 쓴다 — 패밀리 목록은 FontFamilyPicker 가 직접 읽는다.
   const { registry } = useFontRegistry();
@@ -142,65 +129,24 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     [styleValues?.fontFamily, registry.faces],
   );
 
-  const presentationOwnsTextColor = isTextColorPresentationOwned();
-  const presentationOwnsTextMetric = isTextMetricPresentationOwned("fontSize");
-
   const handleTextColorPreview = useCallback(
-    (value: string): void => {
-      if (presentationOwnsTextColor && previewTextColorPresentation(value)) {
-        return;
-      }
-      updateStylePreview("color", value);
-    },
-    [
-      presentationOwnsTextColor,
-      previewTextColorPresentation,
-      updateStylePreview,
-    ],
+    (value: string): void => updateStylePreview("color", value),
+    [updateStylePreview],
   );
 
   const handleTextColorCommit = useCallback(
-    (value: string): void => {
-      if (presentationOwnsTextColor && commitTextColorPresentation(value)) {
-        return;
-      }
-      updateStyle("color", value);
-    },
-    [commitTextColorPresentation, presentationOwnsTextColor, updateStyle],
+    (value: string): void => updateStyle("color", value),
+    [updateStyle],
   );
 
   const handleTextMetricPreview = useCallback(
-    (value: string): void => {
-      if (
-        presentationOwnsTextMetric &&
-        previewTextMetricPresentation("fontSize", value)
-      ) {
-        return;
-      }
-      updateStylePreview("fontSize", value);
-    },
-    [
-      presentationOwnsTextMetric,
-      previewTextMetricPresentation,
-      updateStylePreview,
-    ],
+    (value: string): void => updateStylePreview("fontSize", value),
+    [updateStylePreview],
   );
 
   const handleTextMetricCommit = useCallback(
-    (value: string): void => {
-      if (
-        presentationOwnsTextMetric &&
-        commitTextMetricPresentation("fontSize", value)
-      ) {
-        return;
-      }
-      updateStyleImmediate("fontSize", value);
-    },
-    [
-      commitTextMetricPresentation,
-      presentationOwnsTextMetric,
-      updateStyleImmediate,
-    ],
+    (value: string): void => updateStyleImmediate("fontSize", value),
+    [updateStyleImmediate],
   );
 
   if (!styleValues) return null;
@@ -224,11 +170,8 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         value={styleValues.color}
         onChange={handleTextColorCommit}
         onPreview={handleTextColorPreview}
-        presentationOwnsFrameScheduling={presentationOwnsTextColor}
-        livePreview={!host.presentation}
-        onPresentationCancel={(reason) => {
-          if (!cancelTextColorPresentation(reason)) host.cancelPreview?.();
-        }}
+        livePreview
+        onPresentationCancel={() => host.cancelPreview?.()}
         placeholder="#000000"
       />
 
@@ -238,15 +181,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         className="font-weight"
         value={styleValues.fontWeight}
         options={fontWeightOptions}
-        onChange={(value) => {
-          if (
-            isTextMetricPresentationOwned("fontWeight") &&
-            commitTextMetricPresentation("fontWeight", value)
-          ) {
-            return;
-          }
-          updateStyle("fontWeight", value);
-        }}
+        onChange={(value) => updateStyle("fontWeight", value)}
       />
       <PropertyUnitInput
         label="Font Size"
@@ -384,15 +319,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
                 : Number(styleValues.fontWeightBase) >= 600
                   ? "400"
                   : "";
-              if (
-                value !== "" &&
-                isTextMetricPresentationOwned("fontWeight") &&
-                commitTextMetricPresentation("fontWeight", value)
-              ) {
-                // presentation 이 커밋
-              } else {
-                updateStyle("fontWeight", value);
-              }
+              updateStyle("fontWeight", value);
             }
             if (italicNext !== isItalic) {
               updateStyle("fontStyle", italicNext ? "italic" : "normal");

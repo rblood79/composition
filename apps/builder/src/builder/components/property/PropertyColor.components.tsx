@@ -36,9 +36,8 @@ import { usePropertySelection } from "./propertySelection";
  * Hue/Alpha 슬라이더 + EyeDropper + HEX/RGBA/CSS 포맷 입력) 을 소비한다 —
  * 종전 자체 구현(ColorArea+Hue+맨 hex input, 미스타일)을 대체 (2026-08-14).
  *
- * 드래그/커밋 계약은 ColorPickerPanel 이 소유한다. ADR-187 presentation owner가
- * 있는 대상만 onChange를 preview 채널로 전달하고, 미지원 대상은 commit-only로
- * 닫는다. onChangeEnd는 dedup commit으로 연결한다. 외부 value 재동기화는 resetKey
+ * 드래그/커밋 계약은 ColorPickerPanel 이 소유한다. `livePreview` 인 대상만 onChange를
+ * preview (`onPreview`) 로 전달하고, 아니면 commit-only로 닫는다. onChangeEnd는 dedup commit으로 연결한다. 외부 value 재동기화는 resetKey
  * 변경 시에만 일어나므로 preview가 value prop을 선반영해도 commit 판정 기준이
  * 오염되지 않는다 (구 isPreviewSessionRef 수동 가드 대체 — style-ssot.md
  * commit-skip 함정의 설계 차단).
@@ -49,7 +48,6 @@ export const PropertyColorControl = memo(
     value,
     onChange,
     onPreview,
-    presentationOwnsFrameScheduling = false,
     livePreview = false,
     onPresentationCancel,
     className,
@@ -65,10 +63,10 @@ export const PropertyColorControl = memo(
 
     const handlePreview = useCallback(
       (hexa: string) => {
-        if (!presentationOwnsFrameScheduling && !livePreview) return;
+        if (!livePreview) return;
         onPreview?.(normalizeHexForStyle(hexa));
       },
-      [onPreview, presentationOwnsFrameScheduling, livePreview],
+      [onPreview, livePreview],
     );
     const handleCommit = useCallback(
       (hexa: string) => {
@@ -114,7 +112,6 @@ export const PropertyColorControl = memo(
               resetKey={selectedElementId ?? "none"}
               onChange={handlePreview}
               onChangeEnd={handleCommit}
-              presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
               livePreview={livePreview}
               onPresentationCancel={onPresentationCancel}
             />
@@ -131,8 +128,6 @@ export const PropertyColorControl = memo(
       prevProps.className === nextProps.className &&
       prevProps.placeholder === nextProps.placeholder &&
       prevProps.showValue === nextProps.showValue &&
-      prevProps.presentationOwnsFrameScheduling ===
-        nextProps.presentationOwnsFrameScheduling &&
       prevProps.livePreview === nextProps.livePreview
     );
   },

@@ -19,7 +19,7 @@ interface ColorMockProps {
   readonly onChange: (value: string) => void;
   readonly onPresentationCancel?: (reason: "escape" | "pointer-cancel") => void;
   readonly onPreview?: (value: string) => void;
-  readonly presentationOwnsFrameScheduling?: boolean;
+  readonly livePreview?: boolean;
   readonly showValue?: boolean;
   readonly value: string;
 }
@@ -29,7 +29,7 @@ const componentMocks = vi.hoisted(() => ({
     onChange,
     onPresentationCancel,
     onPreview,
-    presentationOwnsFrameScheduling,
+    livePreview,
     showValue,
     value,
   }: ColorMockProps) => (
@@ -37,7 +37,7 @@ const componentMocks = vi.hoisted(() => ({
       data-testid="shadow-color"
       data-value={value}
       data-show-value={String(showValue)}
-      data-frame-owned={String(presentationOwnsFrameScheduling)}
+      data-live-preview={String(livePreview)}
     >
       <button onClick={() => onPreview?.("#12345680")}>Color preview</button>
       <button onClick={() => onChange("#12345680")}>Color commit</button>
@@ -123,7 +123,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
         onPreview={vi.fn()}
         onCommit={vi.fn()}
         onCancel={vi.fn()}
-        presentationOwnsFrameScheduling
+        livePreview
       />,
     );
 
@@ -134,7 +134,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
     expect(screen.getByTestId("Spread").dataset.min).toBe("-9999");
     expect(screen.getByTestId("shadow-color").dataset.value).toBe("#ff000080");
     expect(screen.getByTestId("shadow-color").dataset.showValue).toBe("true");
-    expect(screen.getByTestId("shadow-color").dataset.frameOwned).toBe("true");
+    expect(screen.getByTestId("shadow-color").dataset.livePreview).toBe("true");
   });
 
   it("numeric drag는 typed preview, terminal은 typed commit — 다른 레이어는 그대로", () => {
@@ -147,7 +147,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
         onPreview={onPreview}
         onCommit={onCommit}
         onCancel={vi.fn()}
-        presentationOwnsFrameScheduling
+        livePreview
       />,
     );
 
@@ -182,7 +182,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
         onPreview={onPreview}
         onCommit={vi.fn()}
         onCancel={vi.fn()}
-        presentationOwnsFrameScheduling
+        livePreview
       />,
     );
 
@@ -202,7 +202,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
         onPreview={vi.fn()}
         onCommit={vi.fn()}
         onCancel={vi.fn()}
-        presentationOwnsFrameScheduling
+        livePreview
       />,
     );
     expect(container.querySelector(".box-shadow-editor")).toBeNull();
@@ -217,7 +217,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
         onPreview={vi.fn()}
         onCommit={vi.fn()}
         onCancel={onCancel}
-        presentationOwnsFrameScheduling
+        livePreview
       />,
     );
     const editor = container.querySelector(".box-shadow-editor");

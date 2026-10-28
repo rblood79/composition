@@ -45,7 +45,6 @@ import { useResolvedAssetUrl } from "../../../../lib/assets/useResolvedAssetUrl"
  * 모든 레이어가 Styles host 미리보기를 쓴다 (`livePreview`, 커밋은 행 기본 경로).
  */
 export interface FillLayerRowPopoverOverrides {
-  readonly presentationOwnsColorFrameScheduling?: boolean;
   /** Drags preview through the Styles host (catalog): a cancel puts the record back. */
   readonly livePreview?: boolean;
   readonly onColorPresentationCancel?: (
@@ -212,9 +211,6 @@ export const FillLayerRow = memo(function FillLayerRow({
           >
             <FillDetailPopover
               fill={fill}
-              presentationOwnsColorFrameScheduling={
-                popover?.presentationOwnsColorFrameScheduling
-              }
               livePreview={popover?.livePreview}
               onColorPresentationCancel={popover?.onColorPresentationCancel}
               onColorChange={

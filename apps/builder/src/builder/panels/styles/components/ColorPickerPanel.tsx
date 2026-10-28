@@ -28,12 +28,9 @@ import {
 
 import "./ColorPickerPanel.css";
 
-
 interface ColorPickerPanelProps {
   value: string; // "#RRGGBBAA" hex8
   resetKey?: string;
-  /** ADR-187 runtime이 유일한 frame scheduler인 migrated control. */
-  presentationOwnsFrameScheduling?: boolean;
   /**
    * `onChange` previews on the Canvas through the Styles host (catalog): Escape / pointer cancel
    * report `onPresentationCancel` so the preview goes back. The release still commits only a
@@ -52,7 +49,6 @@ interface ColorPickerPanelProps {
 export const ColorPickerPanel = memo(function ColorPickerPanel({
   value: initialValue,
   resetKey,
-  presentationOwnsFrameScheduling = false,
   livePreview = false,
   onPresentationCancel,
   onChange,
@@ -64,8 +60,7 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
   const lastSavedRef = useRef<string>(initialValue);
   /**
    * `livePreview`: a drag is under way, and whether Escape / pointer cancel ended it — the rest of
-   * that gesture (moves and its release) neither previews nor commits, as a presentation session
-   * cancels.
+   * that gesture (moves and its release) neither previews nor commits.
    */
   const draggingRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -83,13 +78,14 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     lastSavedRef.current = parsed.toString("hexa");
   }, [initialValue, resetKey]);
 
-  // 드래그 중: 로컬 상태와 presentation runtime 입력을 즉시 갱신한다.
-  // 프레임 배칭은 editor presentation runtime 단일 owner가 담당한다.
+  // 드래그 중: 로컬 상태를 즉시 갱신하고 `onChange` 로 미리보기를 넘긴다 (프레임 배칭은
+  // Styles host 미리보기 쪽 — `useOptimizedStyleActions`).
   // 색 영역 · 색상 슬라이더가 내는 Color 는 알파를 잃을 수 있다 (RAC ColorArea 의 키보드
   //   onChangeEnd 가 알파 1 인 hsb Color 를 냈다 — 2026-09-15 live). rgb 가 바뀐 이벤트는 로컬
   //   알파를 보존하고, rgb 가 같고 알파만 다른 이벤트 (알파 슬라이더) 만 알파를 받는다.
   const withLocalAlpha = useCallback(
-    (color: Color) => color.withChannelValue("alpha", localColor.getChannelValue("alpha")),
+    (color: Color) =>
+      color.withChannelValue("alpha", localColor.getChannelValue("alpha")),
     [localColor],
   );
   const reconcileAlpha = useCallback(
@@ -126,12 +122,12 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
       setLocalColor(color);
 
       const hex = color.toString("hexa");
-      if (presentationOwnsFrameScheduling || hex !== lastSavedRef.current) {
+      if (hex !== lastSavedRef.current) {
         lastSavedRef.current = hex;
         onChangeEnd(hex);
       }
     },
-    [onChangeEnd, presentationOwnsFrameScheduling],
+    [onChangeEnd],
   );
 
   // InputFields에서 직접 hex8 문자열로 변경
@@ -169,16 +165,13 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
         onKeyDownCapture={(event) => {
           if (event.key !== "Escape" && !draggingRef.current)
             cancelledRef.current = false;
-          if (
-            (presentationOwnsFrameScheduling || livePreview) &&
-            event.key === "Escape"
-          ) {
+          if (livePreview && event.key === "Escape") {
             cancelLiveDrag();
             onPresentationCancel?.("escape");
           }
         }}
         onPointerCancelCapture={() => {
-          if (presentationOwnsFrameScheduling || livePreview) {
+          if (livePreview) {
             cancelLiveDrag();
             onPresentationCancel?.("pointer-cancel");
           }

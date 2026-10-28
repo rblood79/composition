@@ -48,7 +48,6 @@ import {
   isGridTopLabelPositionTag,
 } from "../utils/orientationDrivenTags";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
-import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
 import { resolveGapAxisProperty } from "../utils/gapAxis";
 import {
@@ -214,8 +213,6 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   // 🚀 Phase 1: RAF 기반 스로틀 업데이트
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
-  const { commitLayoutPresentation, previewLayoutPresentation } =
-    useLayoutPresentationActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
   const selectedId = useStylesSelectedId();
@@ -298,26 +295,20 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
       : readSessionSpacingValue(spacingSession, selectedId, gapProperty);
 
   const handleSpacingCommit = (value: string) => {
-    if (!commitLayoutPresentation(gapProperty, value)) {
-      updateStyleImmediate(gapProperty, value);
-    }
+    updateStyleImmediate(gapProperty, value);
   };
 
   const handleSpacingPreview = (value: string) => {
-    if (!previewLayoutPresentation(gapProperty, value)) {
-      updateStylePreview(gapProperty, value);
-    }
+    updateStylePreview(gapProperty, value);
   };
 
   if (!styleValues) return null;
   const isGrid = flexDirectionKeys[0] === "grid";
   const commitGap = (property: "rowGap" | "columnGap", value: string) => {
-    if (!commitLayoutPresentation(property, value))
-      updateStyleImmediate(property, value);
+    updateStyleImmediate(property, value);
   };
   const previewGap = (property: "rowGap" | "columnGap", value: string) => {
-    if (!previewLayoutPresentation(property, value))
-      updateStylePreview(property, value);
+    updateStylePreview(property, value);
   };
 
   return (

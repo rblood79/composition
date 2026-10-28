@@ -47,7 +47,6 @@ function alphaHexToOpacity(alphaHex: string): number {
 
 interface FillDetailPopoverProps {
   fill: FillItem;
-  presentationOwnsColorFrameScheduling?: boolean;
   /** Drags preview through the Styles host (catalog): Escape / pointer cancel restore. */
   livePreview?: boolean;
   onColorPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
@@ -93,7 +92,6 @@ function categoryToDefaultFillType(category: FillCategory): FillType {
 
 export const FillDetailPopover = memo(function FillDetailPopover({
   fill,
-  presentationOwnsColorFrameScheduling,
   livePreview,
   onColorPresentationCancel,
   onColorChange,
@@ -137,7 +135,15 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       color: colorRgbFF,
       opacity: Math.round(fill.opacity * alpha * 1000) / 1000,
     } as Partial<FillItem>);
-  }, [colorRgbFF, fill.id, fill.opacity, isColor, isVariableBound, onUpdateEnd, rawColorValue]);
+  }, [
+    colorRgbFF,
+    fill.id,
+    fill.opacity,
+    isColor,
+    isVariableBound,
+    onUpdateEnd,
+    rawColorValue,
+  ]);
 
   // 피커 값 (hex8) → 색 (rgb) 과 opacity (alpha) 로 갈라 각자의 경로로 (presentation 경로가
   //   color / opacity 로 나뉘어 있다 — useFillActions)
@@ -212,7 +218,6 @@ export const FillDetailPopover = memo(function FillDetailPopover({
         <ColorPickerPanel
           value={colorValue}
           resetKey={`${fill.id}:${fill.type}`}
-          presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
           livePreview={livePreview}
           onPresentationCancel={onColorPresentationCancel}
           onChange={handlePickerChange}
@@ -222,7 +227,6 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       {isGradient && (
         <GradientEditor
           fill={fill as Parameters<typeof GradientEditor>[0]["fill"]}
-          presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
           onChange={onUpdate}
           onChangeEnd={onUpdateEnd}
           onSubTypeChange={handleGradientSubTypeChange}

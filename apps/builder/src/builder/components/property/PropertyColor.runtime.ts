@@ -7,11 +7,9 @@ export interface PropertyColorProps {
    * 생략 시 커밋-only 동작 (드롭 시점에만 캔버스 반영).
    */
   onPreview?: (value: string) => void;
-  /** ADR-187: migrated owner가 frame scheduling을 직접 소유하는지 여부. */
-  presentationOwnsFrameScheduling?: boolean;
   /**
-   * The catalog Builder: drags call `onPreview` (the Styles host previews on the Canvas) without
-   * the presentation channel; the release commits only a changed value.
+   * Drags call `onPreview` (the Styles host previews on the Canvas); the release commits only a
+   * changed value. Escape / pointer cancel report `onPresentationCancel`.
    */
   livePreview?: boolean;
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;

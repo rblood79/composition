@@ -38,55 +38,43 @@ describe("ADR-187 Phase 6 legacy cleanup guards", () => {
       "popover?.onOpacityChange ?? ignoreContinuousOpacityChange",
     );
     expect(row).toContain("popover?.onUpdate ?? ignoreContinuousFillUpdate");
-    // 다른 레이어의 연속 콜백은 catalog Builder (presentation 없음 — host 미리보기, 문서·기록
-    //   무변경) 에서만 붙는다. 옛 store 는 그대로 commit-only.
+    // 모든 레이어의 연속 콜백은 host 미리보기 (문서·기록 무변경).
     expect(section).toContain(
       "index === 0 ? firstRowPopover : layerPopovers.get(fill.id)",
     );
-    expect(section).toContain(
-      "const livePreview = !useStylesHost().presentation;",
-    );
     expect(section).toMatch(
-      /new Map<string, FillLayerRowPopoverOverrides>\(\s*livePreview/,
+      /new Map<string, FillLayerRowPopoverOverrides>\(\s*fills\.map/,
     );
   });
 
-  it("미지원 fill은 commit-only 경계를 유지한다", async () => {
+  it("가상 fill 은 놓을 때 한 번만 실제 fill 로 승격한다", async () => {
     const section = await source("../panels/styles/sections/FillSection.tsx");
-    expect(section).toContain(
-      "Unsupported fill targets remain commit-only by design.",
-    );
-    expect(section).toContain(
-      "Unsupported gradient/mesh targets remain commit-only by design.",
-    );
-    expect(section).toContain(
-      "Unsupported paint targets remain commit-only by design.",
-    );
-
     const previewStart = section.indexOf("const handleColorChange =");
     const terminalStart = section.indexOf("const handleColorChangeEnd =");
-    const cancelStart = section.indexOf(
-      "const handleColorPresentationCancel =",
-    );
+    const nextStart = section.indexOf("const handleFillUpdate =");
     expect(previewStart).toBeGreaterThan(-1);
     expect(terminalStart).toBeGreaterThan(previewStart);
-    expect(cancelStart).toBeGreaterThan(terminalStart);
+    expect(nextStart).toBeGreaterThan(terminalStart);
     expect(section.slice(previewStart, terminalStart)).not.toContain(
       "ensureColorFill(color)",
     );
-    expect(section.slice(terminalStart, cancelStart)).toContain(
+    expect(section.slice(terminalStart, nextStart)).toContain(
       "ensureColorFill(color)",
     );
   });
 
-  it("presentation owner가 없는 공용 color property는 commit-only다 (catalog livePreview 예외)", async () => {
+  it("Styles host 에 옛 presentation 채널이 돌아오지 않는다", async () => {
+    const host = await source("../panels/styles/stylesHostContext.ts");
+    expect(host).not.toContain("presentation?:");
+    expect(host).not.toContain("StylesPresentationBridge");
+  });
+
+  it("공용 color property 는 livePreview 일 때만 드래그를 미리보기로 넘긴다", async () => {
     const propertyColor = await source(
       "../components/property/PropertyColor.components.tsx",
     );
 
-    // catalog Builder 의 `livePreview` 는 Styles host 미리보기 (문서·기록 무변경) 로만 간다.
-    expect(propertyColor).toContain(
-      "if (!presentationOwnsFrameScheduling && !livePreview) return;",
-    );
+    // `livePreview` 는 Styles host 미리보기 (문서·기록 무변경) 로만 간다.
+    expect(propertyColor).toContain("if (!livePreview) return;");
   });
 });

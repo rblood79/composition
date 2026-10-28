@@ -26,7 +26,6 @@ export interface BoxShadowEditorProps {
   readonly onCancel: (reason: BoxShadowEditorCancelReason) => void;
   readonly onCommit: (value: BoxShadowPresentationValue) => void;
   readonly onPreview: (value: BoxShadowPresentationValue) => void;
-  readonly presentationOwnsFrameScheduling: boolean;
   /** The color drag previews through the Styles host (catalog). */
   readonly livePreview?: boolean;
   readonly value: BoxShadowPresentationValue;
@@ -60,7 +59,6 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
   onCancel,
   onCommit,
   onPreview,
-  presentationOwnsFrameScheduling,
   livePreview,
   value,
   layerIndex,
@@ -153,7 +151,6 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
         value={activeLayer.color}
         onPreview={(nextColor) => updateField("color", nextColor, "preview")}
         onChange={(nextColor) => updateField("color", nextColor, "commit")}
-        presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
         livePreview={livePreview}
         onPresentationCancel={cancel}
       />

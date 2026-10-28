@@ -6,55 +6,6 @@ import type { RatioEditError } from "../../utils/ratioEditError";
 import type { FillItem } from "../../../types/builder/fill.types";
 import type { SelectedElement } from "../../inspector/types";
 import type { ResponsiveOverridesInfo } from "./hooks/useResponsiveOverrides";
-import type { EditorPresentationTransactionRuntime } from "../../presentation/editorPresentationRuntime";
-import type {
-  BorderColorPresentationPilotTarget,
-  BoxShadowPresentationPilotTarget,
-  FillPresentationPilotTarget,
-  LayoutPresentationPilotTarget,
-  LayoutPresentationProperty,
-  OpacityPresentationPilotTarget,
-  TextColorPresentationPilotTarget,
-  TextMetricPresentationPilotTarget,
-  TextMetricPresentationProperty,
-} from "../../presentation/editorPresentationPilotTypes";
-import type { ColorFillItem } from "../../../types/builder/fill.types";
-
-/**
- * ADR-248 4e-7: what the Styles presentation hooks need from the old editor presentation channel —
- * the old store's selection (a session's owner check), its pilot runtime and target resolvers.
- * The hooks reach them only through the host, so the catalog Builder's graph does not import them.
- */
-export interface StylesPresentationBridge {
-  readSelectedElementId(): string | null;
-  subscribeSelection(listener: () => void): () => void;
-  runtime: EditorPresentationTransactionRuntime;
-  resolveFillTarget(
-    selectedElementId: string | null,
-    fillId: string,
-    fallbackFill?: ColorFillItem,
-  ): FillPresentationPilotTarget | null;
-  resolveBorderColorTarget(
-    selectedElementId: string | null,
-  ): BorderColorPresentationPilotTarget | null;
-  resolveBoxShadowTarget(
-    selectedElementId: string | null,
-  ): BoxShadowPresentationPilotTarget | null;
-  resolveOpacityTarget(
-    selectedElementId: string | null,
-  ): OpacityPresentationPilotTarget | null;
-  resolveTextColorTarget(
-    selectedElementId: string | null,
-  ): TextColorPresentationPilotTarget | null;
-  resolveLayoutTarget(
-    selectedElementId: string | null,
-    property: LayoutPresentationProperty,
-  ): LayoutPresentationPilotTarget | null;
-  resolveTextMetricTarget(
-    selectedElementId: string | null,
-    property?: TextMetricPresentationProperty,
-  ): TextMetricPresentationPilotTarget | null;
-}
 
 /** The selected element as the style actions read it when they run. */
 export interface StylesTargetSnapshot {
@@ -180,17 +131,16 @@ export interface StylesHost {
   resetFills(): void;
   /**
    * Live paint layers while dragging a Fill (no history; the release commits through
-   * `updateFills`). Absent = the old store, where only the presentation channel previews.
+   * `updateFills`). Absent = commit-only.
    */
   previewFills?(fills: FillItem[]): void;
   /**
-   * Put the selection's own values back after a cancelled drag (Escape, pointer cancel). Absent =
-   * the old store (its presentation sessions cancel themselves).
+   * Put the selection's own values back after a cancelled drag (Escape, pointer cancel).
    */
   cancelPreview?(): void;
   /**
    * Counts the ends of drags (each commit, each `cancelPreview`): a preview a section scheduled
-   * before the count moved is stale and is not shown. Absent = the old store.
+   * before the count moved is stale and is not shown.
    */
   previewEpoch?(): number;
   /** Which of `properties` (CSS keys) the selection authors at the active breakpoint. */
@@ -213,12 +163,6 @@ export interface StylesHost {
   setResponsiveVisibility(breakpoint: BreakpointName, visible: boolean): void;
   /** The selected element as the panel frame reads it (title, Modified list, copy). */
   useSelectedElement(): SelectedElement | null;
-  /**
-   * The old Canvas editor presentation channel (live paint while editing, ADR-187) — only the old
-   * element store has one (`stylesHost.store.ts`). Absent (the catalog Builder), the color pickers
-   * preview every drag through `previewStyle` / `previewFills`.
-   */
-  presentation?: StylesPresentationBridge;
   /**
    * The parent that owns the element's style axis as a delegated sub-part: the panel shows the
    * owner notice instead of fields nothing reads.

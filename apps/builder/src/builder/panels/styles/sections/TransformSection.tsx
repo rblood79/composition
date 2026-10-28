@@ -30,7 +30,6 @@ import type { RatioEditError } from "../../../utils/ratioEditError";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
-import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useHasDirtyStyles, useResetStyles } from "../hooks/useResetStyles";
 import {
@@ -146,7 +145,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const localize = useSemanticLabel();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
-  const { previewLayoutPresentation } = useLayoutPresentationActions();
   const selectedId = useStylesSelectedId();
   const bundle = useTransformValues(selectedId, part);
   const sizeContext = useElementStyleContext(selectedId);
@@ -437,10 +435,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
           ]}
           onChange={(value) => commitAxisValue("width", value)}
-          onDrag={(value) =>
-            previewLayoutPresentation("width", value) ||
-            updateStylePreview("width", value)
-          }
+          onDrag={(value) => updateStylePreview("width", value)}
           min={widthMode === "fill" && isFraction("width") ? 1 : 0}
           max={widthMode === "fill" && isFraction("width") ? 1000 : 9999}
         />
@@ -459,10 +454,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
             ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
           ]}
           onChange={(value) => commitAxisValue("height", value)}
-          onDrag={(value) =>
-            previewLayoutPresentation("height", value) ||
-            updateStylePreview("height", value)
-          }
+          onDrag={(value) => updateStylePreview("height", value)}
           min={heightMode === "fill" && isFraction("height") ? 1 : 0}
           max={heightMode === "fill" && isFraction("height") ? 1000 : 9999}
         />

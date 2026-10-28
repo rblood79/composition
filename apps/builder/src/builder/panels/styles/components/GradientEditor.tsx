@@ -38,8 +38,6 @@ type GradientFill =
 /** 그래디언트 하위 타입 (Mesh 포함) */
 interface GradientEditorProps {
   fill: GradientFill;
-  /** presentation runtime이 frame scheduling을 소유하는지 여부 */
-  presentationOwnsFrameScheduling?: boolean;
   /** Canvas preview during drag (→ updateFillPreview → elementsMap만 업데이트, selectedElementProps 미변경) */
   onChange?: (updates: Partial<FillItem>) => void;
   onChangeEnd: (updates: Partial<FillItem>) => void;
@@ -99,7 +97,6 @@ function getColorAtPosition(stops: GradientStop[], position: number): string {
 
 export const GradientEditor = memo(function GradientEditor({
   fill,
-  presentationOwnsFrameScheduling,
   onChange,
   onChangeEnd,
   onSubTypeChange,
@@ -311,7 +308,6 @@ export const GradientEditor = memo(function GradientEditor({
           <ColorPickerPanel
             value={committedStopColor}
             resetKey={`${fill.id}:${activeStopIndex}:${fill.type}`}
-            presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
             onChange={handleColorChange}
             onChangeEnd={handleColorChangeEnd}
           />

@@ -3,14 +3,14 @@
  *
  * Gradient Phase 2: Fill 배열 CRUD 액션 + 타입 변경
  * - fills 배열을 복사 → 변경 → Styles host `updateFills` 호출 (구 store 또는 catalog 문서)
- * - 연속 프리뷰는 presentation runtime owner가 담당하며 미지원 대상은 commit-only
+ * - 연속 프리뷰는 Styles host `previewFills` (`previewFill`), 놓을 때 commit
  * - changeFillType: Color ↔ Gradient 타입 전환
  *
  * @since 2026-02-10 Color Picker Phase 1
  * @updated 2026-02-10 Gradient Phase 2
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import type {
   ColorFillItem,
   FillItem,
@@ -21,18 +21,7 @@ import {
   createDefaultColorFill,
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
-import type {
-  EditorMutationDescriptor,
-  EditorPresentationCancelReason,
-  EditorPresentationHandle,
-  EditorPresentationTargetRef,
-} from "../../../presentation/editorPresentationTypes";
 import { useStylesHost } from "../stylesHost";
-import {
-  presentationRuntime,
-  presentationSelection,
-  subscribePresentationSelection,
-} from "./presentationBridge";
 
 export interface FillActions {
   addFill: (type?: FillType, initialColor?: string) => void;
@@ -47,40 +36,9 @@ export interface FillActions {
   reorderFill: (fromIndex: number, toIndex: number) => void;
   toggleFill: (fillId: string) => void;
   updateFill: (fillId: string, updates: Partial<FillItem>) => void;
-  isFirstFillPresentationOwned: (
-    fillId: string,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  isFirstFillColorPresentationOwned: (
-    fillId: string,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  previewFirstFillColorPresentation: (
-    fillId: string,
-    color: string,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  commitFirstFillColorPresentation: (
-    fillId: string,
-    color: string,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  previewFirstFillPaintPresentation: (
-    fillId: string,
-    updates: Partial<FillItem>,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  commitFirstFillPaintPresentation: (
-    fillId: string,
-    updates: Partial<FillItem>,
-    fallbackFill?: ColorFillItem,
-  ) => boolean;
-  cancelFirstFillColorPresentation: (
-    reason: EditorPresentationCancelReason,
-  ) => boolean;
   /**
-   * A Fill drag (color, opacity, gradient stops) on any layer through the host's `previewFills`
-   * (the catalog Builder, where no presentation channel exists); false = the host has none.
+   * A Fill drag (color, opacity, gradient stops) on any layer through the host's `previewFills`;
+   * false = the host has none.
    * Successive previews of one gesture add up; the release commits through `updateFill`.
    */
   previewFill: (
@@ -104,18 +62,7 @@ function applyFillUpdates(
 }
 
 export function useFillActions(): FillActions {
-  const presentationRef = useRef<{
-    baseFills: readonly FillItem[];
-    commitFillId: string;
-    fillId: string;
-    handle: EditorPresentationHandle;
-    phase: "active" | "cancelled" | "failed";
-    selectedElementId: string;
-    target: EditorPresentationTargetRef;
-  } | null>(null);
-  const [ownerId] = useState(() => `fill-color-owner-${nextFillOwnerId++}`);
   const host = useStylesHost();
-  const bridge = host.presentation;
   const getCurrentFills = host.readFills;
   /** The layers a host preview shows during one gesture. */
   const draftRef = useRef<{
@@ -132,302 +79,6 @@ export function useFillActions(): FillActions {
       host.updateFills(fills);
     },
     [dropDraft, host],
-  );
-
-  // cleanup on unmount
-  useEffect(() => {
-    const unsubscribeSelection = subscribePresentationSelection(bridge, () => {
-      const presentation = presentationRef.current;
-      if (!presentation) return;
-      const { selectedElementId } = presentationSelection(bridge);
-      if (selectedElementId === presentation.selectedElementId) return;
-      presentation.handle.cancel("selection-change");
-      presentation.phase = "cancelled";
-      // terminal callback이 뒤늦게 도착해도 legacy fallback으로 흘려
-      // 새 selection을 쓰지 않도록 owner marker는 terminal까지 유지한다.
-    });
-    const handleWindowBlur = (): void => {
-      const presentation = presentationRef.current;
-      if (!presentation || presentation.phase !== "active") return;
-      presentation.handle.cancel("blur");
-      presentation.phase = "cancelled";
-    };
-    window.addEventListener("blur", handleWindowBlur);
-    return () => {
-      presentationRef.current?.handle.cancel("unmount");
-      presentationRef.current = null;
-      unsubscribeSelection();
-      window.removeEventListener("blur", handleWindowBlur);
-    };
-  }, [bridge]);
-
-  const isFirstFillColorPresentationOwned = useCallback(
-    (fillId: string, fallbackFill?: ColorFillItem) => {
-      const { selectedElementId } = presentationSelection(bridge);
-      return (
-        (bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
-          null) !== null
-      );
-    },
-    [bridge],
-  );
-
-  const isFirstFillPresentationOwned = isFirstFillColorPresentationOwned;
-
-  const previewFirstFillColorPresentation = useCallback(
-    (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
-      const { selectedElementId } = presentationSelection(bridge);
-      const existing = presentationRef.current;
-      if (existing?.phase === "cancelled") {
-        if (
-          existing.selectedElementId !== selectedElementId &&
-          existing.fillId === fillId
-        ) {
-          return true;
-        }
-        presentationRef.current = null;
-      }
-      if (existing?.phase === "failed") {
-        existing.handle.cancel("superseded");
-        presentationRef.current = null;
-      }
-      let presentation = presentationRef.current;
-      if (
-        presentation &&
-        (presentation.fillId !== fillId ||
-          presentation.selectedElementId !== selectedElementId)
-      ) {
-        presentation.handle.cancel("selection-change");
-        presentation = null;
-        presentationRef.current = null;
-      }
-      if (!presentation) {
-        const pilot =
-          bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
-          null;
-        if (!pilot || !selectedElementId) return false;
-        presentation = {
-          baseFills: pilot.fills,
-          commitFillId: pilot.materializedFallback
-            ? createDefaultColorFill().id
-            : fillId,
-          fillId,
-          handle: presentationRuntime(bridge).beginEditorPresentation({
-            commitIntent: "fill-color",
-            ownerId,
-            projectId: pilot.projectId,
-            targets: [pilot.target],
-          }),
-          phase: "active",
-          selectedElementId,
-          target: pilot.target,
-        };
-        presentationRef.current = presentation;
-      }
-
-      const descriptor: EditorMutationDescriptor = {
-        fills: presentation.baseFills.map((fill) =>
-          fill.id === fillId ? { ...fill, color } : fill,
-        ) as FillItem[],
-        target: presentation.target,
-        type: "fills.replace",
-      };
-      if (!presentation.handle.publish(descriptor)) {
-        presentationRef.current = { ...presentation, phase: "cancelled" };
-      }
-      return true;
-    },
-    [bridge, ownerId],
-  );
-
-  const commitFirstFillColorPresentation = useCallback(
-    (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
-      const { selectedElementId } = presentationSelection(bridge);
-      const active = presentationRef.current;
-      if (active?.phase === "cancelled") {
-        presentationRef.current = null;
-        return true;
-      }
-      if (!active) {
-        if (!previewFirstFillColorPresentation(fillId, color, fallbackFill)) {
-          return false;
-        }
-      }
-
-      const presentation = presentationRef.current;
-      if (
-        !presentation ||
-        presentation.fillId !== fillId ||
-        presentation.selectedElementId !== selectedElementId
-      ) {
-        presentation?.handle.cancel("selection-change");
-        presentationRef.current = null;
-        return true;
-      }
-      const result = presentation.handle.finish({
-        fills: presentation.baseFills.map((fill) =>
-          fill.id === fillId
-            ? { ...fill, color, id: presentation.commitFillId }
-            : fill,
-        ) as FillItem[],
-        target: presentation.target,
-        type: "fills.replace",
-      });
-      if (result.status === "failed") {
-        presentation.phase = "failed";
-      } else {
-        presentationRef.current = null;
-      }
-      return true;
-    },
-    [bridge, previewFirstFillColorPresentation],
-  );
-
-  const previewFirstFillPaintPresentation = useCallback(
-    (
-      fillId: string,
-      updates: Partial<FillItem>,
-      fallbackFill?: ColorFillItem,
-    ): boolean => {
-      const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
-      const hasOpacityUpdate =
-        "opacity" in updates &&
-        typeof updates.opacity === "number" &&
-        Number.isFinite(updates.opacity);
-      if (!hasStopsUpdate && !hasOpacityUpdate) {
-        return false;
-      }
-      const { selectedElementId } = presentationSelection(bridge);
-      const existing = presentationRef.current;
-      if (existing?.phase === "cancelled") {
-        if (
-          existing.selectedElementId !== selectedElementId &&
-          existing.fillId === fillId
-        ) {
-          return true;
-        }
-        presentationRef.current = null;
-      }
-      if (existing?.phase === "failed") {
-        existing.handle.cancel("superseded");
-        presentationRef.current = null;
-      }
-      let presentation = presentationRef.current;
-      if (
-        presentation &&
-        (presentation.fillId !== fillId ||
-          presentation.selectedElementId !== selectedElementId)
-      ) {
-        presentation.handle.cancel("selection-change");
-        presentation = null;
-        presentationRef.current = null;
-      }
-      if (!presentation) {
-        // legacy backgroundColor read-through (canonical fills 0) 는 color 경로처럼 가상 fill 을
-        //   base 로 materialize 한다 — 없으면 pilot null → opacity scrub 이 commit-only 로 새서
-        //   드래그 중 캔버스가 안 움직였다 (2026-09-14 live).
-        const pilot =
-          bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
-          null;
-        if (!pilot || !selectedElementId) return false;
-        presentation = {
-          baseFills: pilot.fills,
-          commitFillId: pilot.materializedFallback
-            ? createDefaultColorFill().id
-            : fillId,
-          fillId,
-          handle: presentationRuntime(bridge).beginEditorPresentation({
-            commitIntent: hasStopsUpdate
-              ? "fill-gradient-stop"
-              : "fill-opacity",
-            ownerId,
-            projectId: pilot.projectId,
-            targets: [pilot.target],
-          }),
-          phase: "active",
-          selectedElementId,
-          target: pilot.target,
-        };
-        presentationRef.current = presentation;
-      }
-
-      const descriptor: EditorMutationDescriptor = {
-        fills: applyFillUpdates(presentation.baseFills, fillId, updates),
-        target: presentation.target,
-        type: "fills.replace",
-      };
-      if (!presentation.handle.publish(descriptor)) {
-        presentationRef.current = { ...presentation, phase: "cancelled" };
-      }
-      return true;
-    },
-    [bridge, ownerId],
-  );
-
-  const commitFirstFillPaintPresentation = useCallback(
-    (
-      fillId: string,
-      updates: Partial<FillItem>,
-      fallbackFill?: ColorFillItem,
-    ): boolean => {
-      const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
-      const hasOpacityUpdate =
-        "opacity" in updates &&
-        typeof updates.opacity === "number" &&
-        Number.isFinite(updates.opacity);
-      if (!hasStopsUpdate && !hasOpacityUpdate) {
-        return false;
-      }
-      const { selectedElementId } = presentationSelection(bridge);
-      const active = presentationRef.current;
-      if (active?.phase === "cancelled") {
-        presentationRef.current = null;
-        return true;
-      }
-      if (!active) {
-        if (!previewFirstFillPaintPresentation(fillId, updates, fallbackFill))
-          return false;
-      }
-
-      const presentation = presentationRef.current;
-      if (
-        !presentation ||
-        presentation.fillId !== fillId ||
-        presentation.selectedElementId !== selectedElementId
-      ) {
-        presentation?.handle.cancel("selection-change");
-        presentationRef.current = null;
-        return true;
-      }
-      const result = presentation.handle.finish({
-        fills: applyFillUpdates(presentation.baseFills, fillId, updates).map(
-          (fill) =>
-            fill.id === fillId
-              ? { ...fill, id: presentation.commitFillId }
-              : fill,
-        ) as FillItem[],
-        target: presentation.target,
-        type: "fills.replace",
-      });
-      if (result.status === "failed") {
-        presentation.phase = "failed";
-      } else {
-        presentationRef.current = null;
-      }
-      return true;
-    },
-    [bridge, previewFirstFillPaintPresentation],
-  );
-
-  const cancelFirstFillColorPresentation = useCallback(
-    (reason: EditorPresentationCancelReason): boolean => {
-      const presentation = presentationRef.current;
-      if (!presentation || presentation.phase !== "active") return false;
-      presentation.handle.cancel(reason);
-      presentation.phase = "cancelled";
-      return true;
-    },
-    [],
   );
 
   const previewFill = useCallback(
@@ -640,17 +291,8 @@ export function useFillActions(): FillActions {
     reorderFill,
     toggleFill,
     updateFill,
-    isFirstFillPresentationOwned,
-    isFirstFillColorPresentationOwned,
-    previewFirstFillColorPresentation,
-    commitFirstFillColorPresentation,
-    previewFirstFillPaintPresentation,
-    commitFirstFillPaintPresentation,
-    cancelFirstFillColorPresentation,
     previewFill,
     cancelFillPreview,
     changeFillType,
   };
 }
-
-let nextFillOwnerId = 1;

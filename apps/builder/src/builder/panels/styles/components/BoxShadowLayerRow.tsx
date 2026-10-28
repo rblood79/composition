@@ -34,14 +34,9 @@ interface BoxShadowLayerRowProps {
   readonly onAction: (action: BoxShadowLayerAction, layerIndex: number) => void;
   readonly editor: Pick<
     BoxShadowEditorProps,
-    | "onCancel"
-    | "onCommit"
-    | "onPreview"
-    | "presentationOwnsFrameScheduling"
-    | "livePreview"
+    "onCancel" | "onCommit" | "onPreview" | "livePreview"
   >;
 }
-
 
 function describeLayer(layer: BoxShadowPresentationLayer): string {
   return [layer.offsetX, layer.offsetY, layer.blur, layer.spread].join(" · ");
@@ -85,9 +80,6 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
             onCancel={editor.onCancel}
             onCommit={editor.onCommit}
             onPreview={editor.onPreview}
-            presentationOwnsFrameScheduling={
-              editor.presentationOwnsFrameScheduling
-            }
             livePreview={editor.livePreview}
           />
         </Popover>

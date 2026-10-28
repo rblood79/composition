@@ -57,7 +57,6 @@ import { SwatchIconToggleButton } from "../../../components/ui";
 import { BORDER_PROPS } from "./styleSectionProps";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
-import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { resolveCssLengthPx } from "../utils/cssLengthPx";
@@ -150,34 +149,20 @@ const BorderSectionContent = memo(function BorderSectionContent() {
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
-  const {
-    cancelBorderColorPresentation,
-    commitBorderColorPresentation,
-    isBorderColorPresentationOwned,
-    previewBorderColorPresentation,
-  } = useStylePresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
-  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  // 색 드래그도 Styles host 미리보기
   const host = useStylesHost();
   // 코너 4방향 펼침 토글 — 훅은 early return 앞에 (선택 해제 ↔ 선택 사이에 훅 순서가 바뀌면 안 된다)
   const [cornersOpen, setCornersOpen] = useState(false);
 
   if (!styleValues) return null;
 
-  const presentationOwnsBorderColor = isBorderColorPresentationOwned();
-
   const handleBorderColorPreview = (value: string): void => {
-    if (presentationOwnsBorderColor && previewBorderColorPresentation(value)) {
-      return;
-    }
     updateStylePreview("borderColor", value);
   };
 
   const handleBorderColorCommit = (value: string): void => {
-    if (presentationOwnsBorderColor && commitBorderColorPresentation(value)) {
-      return;
-    }
     updateStyle("borderColor", value);
   };
 
@@ -306,11 +291,8 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           value={styleValues.borderColor}
           onChange={handleBorderColorCommit}
           onPreview={handleBorderColorPreview}
-          presentationOwnsFrameScheduling={presentationOwnsBorderColor}
-          livePreview={!host.presentation}
-          onPresentationCancel={(reason) => {
-            if (!cancelBorderColorPresentation(reason)) host.cancelPreview?.();
-          }}
+          livePreview
+          onPresentationCancel={() => host.cancelPreview?.()}
           placeholder="#000000"
         />
       </div>

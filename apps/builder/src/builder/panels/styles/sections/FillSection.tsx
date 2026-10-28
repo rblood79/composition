@@ -6,7 +6,7 @@
  * 하나로, panel-ui 02, 2026-09-14). fills 가 비어 있으면 backgroundColor 기반 가상
  * 레이어를 한 행 그리고, 색을 커밋하는 순간 실제 fill 로 승격한다 (`ensureColorFill`).
  *
- * 첫 레이어만 ADR-187 presentation 경로 (연속 preview) 를 쓴다 — 나머지는 commit-only.
+ * 모든 레이어의 드래그는 Styles host 미리보기 (`previewFill`), 놓을 때 commit 한다.
  * 순서는 @dnd-kit/sortable 드래그.
  */
 
@@ -110,18 +110,10 @@ const FillSectionContent = memo(function FillSectionContent() {
     reorderFill,
     toggleFill,
     updateFill,
-    isFirstFillPresentationOwned,
-    previewFirstFillColorPresentation,
-    commitFirstFillColorPresentation,
-    previewFirstFillPaintPresentation,
-    commitFirstFillPaintPresentation,
-    cancelFirstFillColorPresentation,
     previewFill,
     cancelFillPreview,
     changeFillType,
   } = useFillActions();
-  // The catalog Builder previews every layer's drag through the Styles host (no presentation).
-  const livePreview = !useStylesHost().presentation;
 
   const firstFill = fills[0] ?? null;
 
@@ -130,25 +122,6 @@ const FillSectionContent = memo(function FillSectionContent() {
   const virtualFill: ColorFillItem = createVirtualColorFill(
     styleValues?.backgroundColor,
   );
-
-  const presentationOwnsColor =
-    firstFill?.type === FillType.Color
-      ? isFirstFillPresentationOwned(firstFill.id, firstFill)
-      : !firstFill
-        ? isFirstFillPresentationOwned(virtualFill.id, virtualFill)
-        : false;
-  const presentationOwnsGradientStops =
-    (firstFill?.type === FillType.LinearGradient ||
-      firstFill?.type === FillType.RadialGradient ||
-      firstFill?.type === FillType.AngularGradient) &&
-    isFirstFillPresentationOwned(firstFill.id);
-  // color 경로와 같이 legacy backgroundColor 가상 fill 을 fallback 으로 — 없으면 pilot null 이라
-  //   opacity scrub 이 commit-only 였다 (드래그 중 캔버스 무반응, 2026-09-14 live).
-  const paintFallbackFill =
-    firstFill?.type === FillType.Color ? firstFill : undefined;
-  const presentationOwnsPaint = firstFill
-    ? isFirstFillPresentationOwned(firstFill.id, paintFallbackFill)
-    : false;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -174,153 +147,57 @@ const FillSectionContent = memo(function FillSectionContent() {
   // 제한한다. raw input 중에는 canonical/history/persist write를 만들지 않는다.
   const handleColorChange = useCallback(
     (color: string) => {
-      if (firstFill && firstFill.type === FillType.Color) {
-        if (previewFirstFillColorPresentation(firstFill.id, color, firstFill)) {
-          return;
-        }
-        // Unsupported fill targets remain commit-only by design.
+      if (firstFill && firstFill.type === FillType.Color)
         previewFill(firstFill.id, { color } as Partial<ColorFillItem>);
-      } else if (!firstFill) {
-        if (
-          previewFirstFillColorPresentation(virtualFill.id, color, virtualFill)
-        ) {
-          return;
-        }
+      else if (!firstFill)
         previewFill(
           virtualFill.id,
           { color } as Partial<ColorFillItem>,
           virtualFill,
         );
-      }
     },
-    [firstFill, virtualFill, previewFirstFillColorPresentation, previewFill],
+    [firstFill, virtualFill, previewFill],
   );
 
   const handleColorChangeEnd = useCallback(
     (color: string) => {
-      if (firstFill && firstFill.type === FillType.Color) {
-        if (commitFirstFillColorPresentation(firstFill.id, color, firstFill)) {
-          return;
-        }
+      if (firstFill && firstFill.type === FillType.Color)
         updateFill(firstFill.id, { color } as Partial<ColorFillItem>);
-      } else if (!firstFill) {
-        if (
-          commitFirstFillColorPresentation(virtualFill.id, color, virtualFill)
-        ) {
-          return;
-        }
-        // 가상 fill은 pointer terminal에서 정확히 한 번 실제 fill로 승격한다.
-        ensureColorFill(color);
-      }
+      // 가상 fill은 pointer terminal에서 정확히 한 번 실제 fill로 승격한다.
+      else if (!firstFill) ensureColorFill(color);
     },
-    [
-      firstFill,
-      virtualFill,
-      commitFirstFillColorPresentation,
-      updateFill,
-      ensureColorFill,
-    ],
-  );
-
-  const handleColorPresentationCancel = useCallback(
-    (reason: "pointer-cancel" | "escape") => {
-      if (!cancelFirstFillColorPresentation(reason)) cancelFillPreview();
-    },
-    [cancelFirstFillColorPresentation, cancelFillPreview],
+    [firstFill, updateFill, ensureColorFill],
   );
 
   const handleFillUpdate = useCallback(
     (updates: Partial<FillItem>) => {
-      if (
-        firstFill &&
-        presentationOwnsGradientStops &&
-        previewFirstFillPaintPresentation(firstFill.id, updates)
-      ) {
-        return;
-      }
-      // Unsupported gradient/mesh targets remain commit-only by design.
       if (firstFill) previewFill(firstFill.id, updates);
     },
-    [
-      firstFill,
-      presentationOwnsGradientStops,
-      previewFirstFillPaintPresentation,
-      previewFill,
-    ],
+    [firstFill, previewFill],
   );
 
   const handleFillUpdateEnd = useCallback(
     (updates: Partial<FillItem>) => {
-      if (
-        firstFill &&
-        presentationOwnsGradientStops &&
-        commitFirstFillPaintPresentation(firstFill.id, updates)
-      ) {
-        return;
-      }
       if (firstFill) updateFill(firstFill.id, updates);
     },
-    [
-      firstFill,
-      presentationOwnsGradientStops,
-      commitFirstFillPaintPresentation,
-      updateFill,
-    ],
+    [firstFill, updateFill],
   );
 
   const handleFillOpacityChange = useCallback(
     (opacity: number) => {
-      if (
-        firstFill &&
-        presentationOwnsPaint &&
-        previewFirstFillPaintPresentation(
-          firstFill.id,
-          { opacity },
-          paintFallbackFill,
-        )
-      ) {
-        return;
-      }
-      // Unsupported paint targets remain commit-only by design.
       if (firstFill) previewFill(firstFill.id, { opacity });
       else previewFill(virtualFill.id, { opacity }, virtualFill);
     },
-    [
-      firstFill,
-      virtualFill,
-      paintFallbackFill,
-      presentationOwnsPaint,
-      previewFirstFillPaintPresentation,
-      previewFill,
-    ],
+    [firstFill, virtualFill, previewFill],
   );
 
   const handleFillOpacityChangeEnd = useCallback(
     (opacity: number) => {
-      if (
-        firstFill &&
-        presentationOwnsPaint &&
-        commitFirstFillPaintPresentation(
-          firstFill.id,
-          { opacity },
-          paintFallbackFill,
-        )
-      ) {
-        return;
-      }
       if (firstFill) updateFill(firstFill.id, { opacity });
       // The virtual row previewed the opacity: its commit makes the fill real, like a color does.
       else ensureColorFillOpacity(opacity, virtualFill.color);
     },
-    [
-      firstFill,
-      virtualFill.color,
-      paintFallbackFill,
-      presentationOwnsPaint,
-      commitFirstFillPaintPresentation,
-      updateFill,
-      ensureColorFillOpacity,
-    ],
+    [firstFill, virtualFill.color, updateFill, ensureColorFillOpacity],
   );
 
   const handleTypeChange = useCallback(
@@ -337,10 +214,8 @@ const FillSectionContent = memo(function FillSectionContent() {
 
   const firstRowPopover = useMemo<FillLayerRowPopoverOverrides>(
     () => ({
-      presentationOwnsColorFrameScheduling:
-        presentationOwnsColor || presentationOwnsGradientStops,
-      livePreview,
-      onColorPresentationCancel: handleColorPresentationCancel,
+      livePreview: true,
+      onColorPresentationCancel: () => cancelFillPreview(),
       onColorChange: handleColorChange,
       onColorChangeEnd: handleColorChangeEnd,
       onOpacityChange: handleFillOpacityChange,
@@ -350,10 +225,7 @@ const FillSectionContent = memo(function FillSectionContent() {
       onTypeChange: handleTypeChange,
     }),
     [
-      presentationOwnsColor,
-      presentationOwnsGradientStops,
-      livePreview,
-      handleColorPresentationCancel,
+      cancelFillPreview,
       handleColorChange,
       handleColorChangeEnd,
       handleFillOpacityChange,
@@ -364,25 +236,23 @@ const FillSectionContent = memo(function FillSectionContent() {
     ],
   );
 
-  /** The other layers: commit-only on the old store; live through the host in the catalog. */
+  /** The other layers: drags preview through the host; the release commits through the row. */
   const layerPopovers = useMemo(
     () =>
       new Map<string, FillLayerRowPopoverOverrides>(
-        livePreview
-          ? fills.map((fill) => [
-              fill.id,
-              {
-                livePreview,
-                onColorPresentationCancel: () => cancelFillPreview(),
-                onColorChange: (color) =>
-                  previewFill(fill.id, { color } as Partial<ColorFillItem>),
-                onOpacityChange: (opacity) => previewFill(fill.id, { opacity }),
-                onUpdate: (updates) => previewFill(fill.id, updates),
-              },
-            ])
-          : [],
+        fills.map((fill) => [
+          fill.id,
+          {
+            livePreview: true,
+            onColorPresentationCancel: () => cancelFillPreview(),
+            onColorChange: (color) =>
+              previewFill(fill.id, { color } as Partial<ColorFillItem>),
+            onOpacityChange: (opacity) => previewFill(fill.id, { opacity }),
+            onUpdate: (updates) => previewFill(fill.id, updates),
+          },
+        ]),
       ),
-    [fills, livePreview, previewFill, cancelFillPreview],
+    [fills, previewFill, cancelFillPreview],
   );
 
   const fillIds = fills.map((f) => f.id);
