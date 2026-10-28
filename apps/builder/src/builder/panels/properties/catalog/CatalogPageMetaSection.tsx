@@ -1,3 +1,4 @@
+import { Network, ScanSearch } from "lucide-react";
 import { memo, useCallback, useSyncExternalStore } from "react";
 import { useI18n } from "@/i18n";
 import { updatePage } from "../../../../../../../packages/shared/src/catalog/commands";
@@ -100,11 +101,13 @@ export const CatalogPageMetaSection = memo(function CatalogPageMetaSection({
       />
       <PropertySwitch
         label={t("settings.pageMetaHideSearch")}
+        icon={ScanSearch}
         isSelected={meta?.hidden?.search === true}
         onChange={(value) => hide("search", value)}
       />
       <PropertySwitch
         label={t("settings.pageMetaHideSitemap")}
+        icon={Network}
         isSelected={meta?.hidden?.sitemap === true}
         onChange={(value) => hide("sitemap", value)}
       />

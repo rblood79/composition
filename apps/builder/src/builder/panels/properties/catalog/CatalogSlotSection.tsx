@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { ChevronDown, Minus } from "lucide-react";
+import { Asterisk, ChevronDown, LayoutTemplate, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
   DefinitionId,
@@ -357,6 +357,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
           <div className="fieldset-row" data-wide="true">
             <PropertySwitch
               label={t("propertiesPanel.slotSection")}
+              icon={LayoutTemplate}
               isSelected={Boolean(slot)}
               onChange={toggleSlot}
             />
@@ -373,6 +374,7 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
               <div className="fieldset-row" data-wide="true">
                 <PropertySwitch
                   label="Required"
+                  icon={Asterisk}
                   isSelected={slot.required}
                   onChange={setRequired}
                 />

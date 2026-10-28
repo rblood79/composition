@@ -1,3 +1,4 @@
+import { DecimalsArrowRight } from "lucide-react";
 import { memo, useState } from "react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
@@ -233,6 +234,7 @@ export const NumberFormatField = memo(function NumberFormatField({
           <div className="fieldset-row" data-wide="true">
             <PropertySwitch
               label="Grouping"
+              icon={DecimalsArrowRight}
               isSelected={format.useGrouping !== false}
               onChange={(next) =>
                 write(withKey("useGrouping", next ? undefined : false))

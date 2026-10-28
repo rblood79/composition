@@ -7,6 +7,7 @@
  * 「이벤트 더 보기」 로 열고, keyboard 는 열지 않는다 (사용자 결정 Q3). 규칙이 쓰는 이름은
  * 늘 남는다 — 숨김이 규칙을 지우지 않는다.
  */
+import { ListPlus } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import {
   exposedTriggerGroups,
@@ -67,6 +68,7 @@ export const TriggerPicker = memo(function TriggerPicker({
       />
       <PropertySwitch
         label={t("interactions.showMoreEvents")}
+        icon={ListPlus}
         isSelected={showHidden}
         onChange={setShowAll}
       />
