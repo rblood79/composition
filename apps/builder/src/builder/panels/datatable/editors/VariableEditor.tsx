@@ -22,6 +22,7 @@ import type {
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
+import { Section } from "../../../components/panel/Section";
 import "./VariableEditor.css";
 import {
   semanticLabelKeys,
@@ -89,7 +90,13 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  const defaultValueHeadingId = useId();
+  const defaultValueLabel = i18n
+    ? translateKey(
+        i18n.t,
+        semanticLabelKeys["Default Value"] ?? "Default Value",
+        "Default Value",
+      )
+    : "Default Value";
   // The open Builder's pages (catalog: the session page and the document's page names).
   const { currentPageId, ownerTitle: ownerPageTitle } =
     useDataVariablesHost().usePageContext(
@@ -119,8 +126,13 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
     onUpdate({ defaultValue: parsed });
   };
 
+  // 패널 표준 (ADR-163) — 필드 모양은 `.section-content` 아래에서만 걸린다.
   return (
-    <div className="basic-editor">
+    <Section
+      id="variable-editor"
+      title={localize("variable", "Variable")}
+      collapsible={false}
+    >
       <PropertySelect
         label="Type"
         value={variable.type}
@@ -138,7 +150,7 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
           options={scopeOptions}
         />
       )}
-      <p className="field-description">
+      <p className="variable-editor-hint">
         {variable.scope === "global" &&
           localize("globalHint", "Available on all pages.")}
         {variable.scope === "page" &&
@@ -163,18 +175,6 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         </Button>
       ) : null}
 
-      <div className="section-divider" />
-
-      <h4 className="section-title" id={defaultValueHeadingId}>
-        {i18n
-          ? translateKey(
-              i18n.t,
-              semanticLabelKeys["Default Value"] ?? "Default Value",
-              "Default Value",
-            )
-          : "Default Value"}
-      </h4>
-
       {variable.type === "boolean" ? (
         <PropertySwitch
           label="Default Value"
@@ -184,7 +184,7 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
       ) : variable.type === "object" || variable.type === "array" ? (
         <JsonDefaultValue
           key={variable.id}
-          defaultValueHeadingId={defaultValueHeadingId}
+          label={defaultValueLabel}
           value={defaultValueStr}
           type={variable.type}
           onCommit={(parsed) => onUpdate({ defaultValue: parsed })}
@@ -198,20 +198,18 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         />
       )}
 
-      <div className="section-divider" />
-
       <PropertySwitch
         label="Persist to localStorage"
         isSelected={variable.persist || false}
         onChange={(checked) => onUpdate({ persist: checked })}
       />
-      <p className="field-description">
+      <p className="variable-editor-hint">
         {localize(
           "persistHint",
           "The value persists after refreshing the page.",
         )}
       </p>
-    </div>
+    </Section>
   );
 }
 
@@ -220,16 +218,17 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
  * is valid JSON of the type (a half-typed value is marked invalid, never saved as `[]` / `{}`).
  */
 function JsonDefaultValue({
-  defaultValueHeadingId,
+  label,
   value,
   type,
   onCommit,
 }: {
-  defaultValueHeadingId: string;
+  label: string;
   value: string;
   type: VarType;
   onCommit: (parsed: unknown) => void;
 }) {
+  const legendId = useId();
   const [draft, setDraft] = useState(value);
   const [invalid, setInvalid] = useState(false);
   const focused = useRef(false);
@@ -267,10 +266,13 @@ function JsonDefaultValue({
       onCommit(parsed);
   };
   return (
-    <div className="json-editor-wrapper">
+    <fieldset className="properties-aria variable-editor-json">
+      <legend className="fieldset-legend" id={legendId}>
+        {label}
+      </legend>
       <textarea
-        className="json-textarea"
-        aria-labelledby={defaultValueHeadingId}
+        className="variable-editor-json-input"
+        aria-labelledby={legendId}
         aria-invalid={invalid || undefined}
         value={draft}
         onFocus={() => {
@@ -281,7 +283,7 @@ function JsonDefaultValue({
         placeholder={type === "array" ? "[]" : "{}"}
         rows={6}
       />
-    </div>
+    </fieldset>
   );
 }
 

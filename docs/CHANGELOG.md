@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-286 사이트 설정을 페이지 `<head>` 에 · 변수 편집기 모양 복구] - 2026-10-28
+
+### Added
+
+- **사이트 설정이 Preview · 게시 페이지에 적용된다**: 보이는 page 의 제목 (없으면 사이트 제목) · 설명 · favicon (밝은 · 어두운) · 사이트 언어 (`<html lang · dir>`) 가 Preview 와 게시 페이지 (Builder 의 Preview 버튼 포함) 의 `<head>` 에 들어간다. 사이트 favicon 이 있는 동안 페이지 자신의 아이콘은 빠졌다가 지우면 돌아온다.
+  - 위치: `packages/shared/src/catalog/runtime/documentHead.ts` (`useCatalogDocumentHead`) · `apps/builder/src/preview/PreviewLocale.tsx` · `apps/publish/src/App.tsx`
+- **앱 아이콘 · 앱 이름 · 테마 색 (사이트 패널)**: 휴대폰 · 데스크톱의 바로 가기 설치용. `apple-touch-icon` · `theme-color` 를 싣고, 게시 페이지에는 Web App Manifest (아이콘 192 · 512 PNG · standalone · 시작 주소 = 게시 주소) 를 만든다. Builder Preview 와 끌어 놓은 파일은 주소가 탭보다 오래 살지 않아 manifest 를 만들지 않는다.
+  - 위치: `apps/builder/src/builder/panels/site/SitePanel.tsx` · `packages/shared/src/catalog/document/{types,validation}.ts` (`appIcon` · `appName` · `themeColor`)
+
+### Fixed
+
+- **Canvas 빈 곳 클릭이 Site 패널을 닫던 결함**: Settings 에서 분리할 때 빠진 유지 목록에 site 를 넣었다.
+  - 위치: `apps/builder/src/builder/layout/panelWorkspaceVisibility.ts`
+- **변수 편집기 모양 복구**: Data 패널에서 변수를 열면 칸 간격이 없고 라벨이 16px 로 다른 패널과 달랐다. 편집기가 빌려 쓰던 `.basic-editor` · `.field-description` 이 9-12 API 편집기 재작성 (`f9838b34e`) 때 지워졌고, 편집기가 패널 표준 `Section` 밖이라 필드 모양도 걸리지 않았다. 이제 「Variable」 절 안에 그려지고 Object · Array 의 JSON 입력칸에도 「Default Value」 라벨 · 포커스 표시 (`--focus-ring`) · 잘못된 값 테두리가 붙는다.
+  - 위치: `apps/builder/src/builder/panels/datatable/editors/VariableEditor.{tsx,css}` · 정적 게이트 `editors/__tests__/variableEditorClasses.static.test.ts`
+
 ## [패널 구조 정리 — lazy 패널 선로드 복구 · 명령 실행 단일화] - 2026-10-28
 
 ### Fixed
