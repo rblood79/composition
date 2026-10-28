@@ -1,6 +1,10 @@
 /**
  * useSectionCollapse - 섹션 접기/펴기 상태 관리 훅
  *
+ * 모든 패널의 `Section` · `SectionSplitStack` · `SectionGroupToggleButton` 이 읽는 패널 공용
+ * store (2026-10-28 `panels/styles/hooks/` 에서 이동). persist 키 `styles-panel-collapse` 는
+ * 사용자 접힘 상태의 저장 키라 이름을 바꾸지 않는다.
+ *
  * Zustand + persist로 localStorage에 저장
  * 키보드 단축키:
  * - Alt/Option + S: 전체 펼침/접기
@@ -200,7 +204,7 @@ export const useSectionCollapse = create<SectionCollapseState>()(
         }),
     }),
     {
-      name: "styles-panel-collapse", // localStorage key
+      name: "styles-panel-collapse", // localStorage key (저장 호환 — 이름 유지)
       // Custom serialization for Set
       partialize: (state) => ({
         collapsedSections: Array.from(state.collapsedSections),

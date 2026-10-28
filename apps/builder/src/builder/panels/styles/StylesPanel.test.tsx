@@ -5,7 +5,7 @@ import {
   openStylesFixture,
   type StylesFixture,
 } from "./__tests__/support/catalogStylesFixture";
-import { useSectionCollapse } from "./hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../components/panel/useSectionCollapse";
 import { DesignPanelView } from "../design/DesignPanel";
 import { useDesignPanelView } from "../design/designPanelView";
 import { I18nProvider } from "../../../i18n";

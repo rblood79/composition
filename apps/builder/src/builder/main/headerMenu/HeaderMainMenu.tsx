@@ -32,7 +32,7 @@ import {
 } from "../../config/keyboardShortcuts";
 import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
 import { PanelRegistry } from "../../panels/core/PanelRegistry";
-import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../components/panel/useSectionCollapse";
 import { useBuilderUiStore } from "../../stores/builderUiStore";
 // 읽기 모델은 agent executor 경유 — executor 청크가 이미 싣고 있는 모듈 묶음을 그대로 가리켜야
 // Rolldown 이 initial 공유 청크 (canvasActions) 를 쪼개지 않는다 (G2, headerMenuRuntime.ts).

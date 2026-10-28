@@ -41,7 +41,7 @@ import {
   STYLE_PANEL_SECTION_IDS,
   useSectionCollapse,
   useSectionGroupToggle,
-} from "./hooks/useSectionCollapse";
+} from "../../components/panel/useSectionCollapse";
 
 import { useStyleActions } from "./hooks/useStyleActions";
 

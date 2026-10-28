@@ -6,7 +6,7 @@ import {
   zoomViewportAtContainerCenter,
 } from "../../builder/workspace/canvas/viewport/viewportActions";
 import { togglePanelWorkspace } from "../../builder/hooks/usePanelLayout";
-import { useSectionCollapse } from "../../builder/panels/styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../builder/components/panel/useSectionCollapse";
 import { resolveCommand } from "../../builder/stores/commandRegistry";
 import type { ShortcutId } from "../../builder/config/keyboardShortcuts";
 import type { PanelId } from "../../builder/panels/core/types";

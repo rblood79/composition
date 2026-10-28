@@ -8,7 +8,7 @@ import {
   screen,
 } from "@testing-library/react";
 import { SectionGroupToggleButton } from "./SectionGroupToggleButton";
-import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "./useSectionCollapse";
 
 const IDS = ["comp-layout", "comp-form"] as const;
 

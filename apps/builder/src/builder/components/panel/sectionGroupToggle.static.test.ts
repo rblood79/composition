@@ -34,7 +34,7 @@ describe("section group toggle wiring", () => {
 
   it("collapseAll() default list is the exported constant, not a second literal", async () => {
     const source = await read(
-      "builder/panels/styles/hooks/useSectionCollapse.ts",
+      "builder/components/panel/useSectionCollapse.ts",
     );
 
     expect(source).toContain("...(sectionIds ?? STYLE_PANEL_SECTION_IDS)");

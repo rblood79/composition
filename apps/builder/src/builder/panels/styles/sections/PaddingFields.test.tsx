@@ -13,7 +13,7 @@ import {
   openStylesFixture,
   type StylesFixture,
 } from "../__tests__/support/catalogStylesFixture";
-import { useSectionCollapse } from "../hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../../components/panel/useSectionCollapse";
 import { LayoutSection } from "./LayoutSection";
 
 // jsdom has no Web Animations (the Layout toggle groups' selection indicator asks for them).

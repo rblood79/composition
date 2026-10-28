@@ -14,7 +14,7 @@ import {
   openStylesFixture,
   type StylesFixture,
 } from "../__tests__/support/catalogStylesFixture";
-import { useSectionCollapse } from "../hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../../components/panel/useSectionCollapse";
 import { TransformSection } from "./TransformSection";
 
 // jsdom has no Web Animations (the Position mode group's selection indicator asks for them).

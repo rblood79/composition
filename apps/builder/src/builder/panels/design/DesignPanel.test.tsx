@@ -17,7 +17,7 @@ import {
   openStylesFixture,
   type StylesFixture,
 } from "../styles/__tests__/support/catalogStylesFixture";
-import { useSectionCollapse } from "../styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../components/panel/useSectionCollapse";
 import { DesignPanelView } from "./DesignPanel";
 import {
   openDesignPanel,

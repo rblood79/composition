@@ -28,7 +28,7 @@ import { resetCommandRegistry } from "../../../../stores/commandRegistry";
 import { useDataStore } from "../../../../stores/data";
 import { DesignPanelView } from "../../../design/DesignPanel";
 import { useDesignPanelView } from "../../../design/designPanelView";
-import { useSectionCollapse } from "../../../styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../../../components/panel/useSectionCollapse";
 import {
   nodeIdOf,
   openStylesFixture,

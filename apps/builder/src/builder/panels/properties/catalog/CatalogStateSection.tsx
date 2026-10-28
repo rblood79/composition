@@ -54,7 +54,7 @@ import {
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStateSectionFocus } from "../state/stateSectionFocus";
-import { useSectionCollapse } from "../../styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../../components/panel/useSectionCollapse";
 import "../state/StateSection.css";
 
 const AddIcon = ACTION_ICONS.add;

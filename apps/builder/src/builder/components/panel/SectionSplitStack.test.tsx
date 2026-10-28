@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { Section } from "./Section";
 import { SectionSplitStack } from "./SectionSplitStack";
 import { readSplitCap, resolveSplitLayout } from "./sectionSplitLayout";
-import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "./useSectionCollapse";
 
 const STORAGE_KEY = "test-split";
 const CONTAINER_HEIGHT = 600;

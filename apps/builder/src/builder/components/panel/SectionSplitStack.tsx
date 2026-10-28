@@ -22,7 +22,7 @@ import { PanelSplitter } from "../../layout/PanelSplitter";
 import {
   isSectionCollapsedInState,
   useSectionCollapse,
-} from "../../panels/styles/hooks/useSectionCollapse";
+} from "./useSectionCollapse";
 import {
   clampSplitValue,
   readSplitCap,

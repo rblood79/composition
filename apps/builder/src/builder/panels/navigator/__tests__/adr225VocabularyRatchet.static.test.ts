@@ -20,8 +20,8 @@ const LEGACY_FEATURE_NAME_PATTERN =
 
 /** 구 persisted section id 를 새 id 로 승계하는 유일한 자리 (HC6/G4). */
 const ALLOWLIST: readonly string[] = [
-  "builder/panels/styles/hooks/useSectionCollapse.ts",
-  "builder/panels/styles/hooks/useSectionCollapse.test.ts",
+  "builder/components/panel/useSectionCollapse.ts",
+  "builder/components/panel/useSectionCollapse.test.ts",
   // 게이트 자신 (정규식 리터럴)
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
 ];
@@ -37,8 +37,8 @@ const ALLOWLIST: readonly string[] = [
 const LEGACY_FEATURE_COPY_PATTERN =
   /\bframes?[- ](?:tab|preset|section|list(?!-tree)|layers)\b|Navigator Frames|Frames\/Layers|Pages\/Frames/i;
 const COPY_ALLOWLIST: readonly string[] = [
-  "builder/panels/styles/hooks/useSectionCollapse.ts",
-  "builder/panels/styles/hooks/useSectionCollapse.test.ts",
+  "builder/components/panel/useSectionCollapse.ts",
+  "builder/components/panel/useSectionCollapse.test.ts",
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
 ];
 

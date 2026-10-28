@@ -621,7 +621,7 @@
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcut": 187,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcutKey": 187,
           "v8.fn.src/builder/layout/panelWorkspaceLayoutCoordinator.ts#get": 198,
-          "v8.fn.src/builder/panels/styles/hooks/useSectionCollapse.ts#isSectionCollapsedInState": 150,
+          "v8.fn.src/builder/components/panel/useSectionCollapse.ts#isSectionCollapsedInState": 150,
           "v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getDataViewMemory0": 160,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 694,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 571,

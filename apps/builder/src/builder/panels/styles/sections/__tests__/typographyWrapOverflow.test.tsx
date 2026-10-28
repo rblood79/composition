@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/i18n";
 import { openStylesFixture } from "../../__tests__/support/catalogStylesFixture";
-import { useSectionCollapse } from "../../hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../../../components/panel/useSectionCollapse";
 import { TypographySection } from "../TypographySection";
 
 beforeEach(() => {

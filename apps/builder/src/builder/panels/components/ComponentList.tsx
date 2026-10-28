@@ -23,7 +23,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { ComponentSearch } from "./ComponentSearch";
 import { useRecentComponents } from "../../hooks/useRecentComponents";
 import { useFavoriteComponents } from "../../hooks/useFavoriteComponents";
-import { useSectionCollapse } from "../styles/hooks/useSectionCollapse";
+import { useSectionCollapse } from "../../components/panel/useSectionCollapse";
 import "@composition/shared/components/styles/ComponentList.css";
 import { Badge } from "@composition/shared/components/Badge";
 import { ACTION_ICONS } from "../../config/actionIcons";

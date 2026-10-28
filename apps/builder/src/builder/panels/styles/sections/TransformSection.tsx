@@ -36,7 +36,7 @@ import { useHasDirtyStyles, useResetStyles } from "../hooks/useResetStyles";
 import {
   isSectionCollapsedInState,
   useSectionCollapse,
-} from "../hooks/useSectionCollapse";
+} from "../../../components/panel/useSectionCollapse";
 import {
   useFillGrow,
   useHeightSizeMode,

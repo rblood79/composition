@@ -23,7 +23,7 @@ import { ActionIconButton } from "../ui/ActionIconButton";
 import {
   isSectionCollapsedInState,
   useSectionCollapse,
-} from "../../panels/styles/hooks/useSectionCollapse";
+} from "./useSectionCollapse";
 import {
   semanticLabelKeys,
   translateKey,

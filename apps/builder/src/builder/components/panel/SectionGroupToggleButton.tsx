@@ -9,7 +9,7 @@
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../ui/ActionIconButton";
-import { useSectionGroupToggle } from "../../panels/styles/hooks/useSectionCollapse";
+import { useSectionGroupToggle } from "./useSectionCollapse";
 import {
   semanticLabelKeys,
   translateKey,
