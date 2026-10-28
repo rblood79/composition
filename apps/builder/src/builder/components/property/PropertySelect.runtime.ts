@@ -53,6 +53,11 @@ export interface PropertySelectProps {
    * 키보드 계약은 바꾸지 않는다. 사유 문구는 호출부가 별도 hint 로 둔다.
    */
   disabledKeys?: readonly string[];
+  /**
+   * ADR-289 Decision 3 — a second line under an option (the field type's one-line hint). Keyed by
+   * option value; options without one show the label only. List mode only.
+   */
+  descriptions?: Readonly<Record<string, string>>;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;

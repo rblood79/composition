@@ -14,6 +14,8 @@ import {
 
 import { Popover } from "react-aria-components/Popover";
 
+import { Text } from "react-aria-components/Text";
+
 import {
   Select as AriaSelect,
   SelectValue,
@@ -52,6 +54,7 @@ export const PropertySelectControl = memo(
     gridSections,
     sections,
     disabledKeys,
+    descriptions,
     icon: Icon,
     className,
     labelMode = "legend",
@@ -185,7 +188,19 @@ export const PropertySelectControl = memo(
                 style={{ background: swatches[option.value] }}
               />
             )}
-            {text}
+            {descriptions?.[option.value] ? (
+              <span className="property-select__option-text">
+                <Text slot="label">{text}</Text>
+                <Text
+                  slot="description"
+                  className="property-select__option-description"
+                >
+                  {descriptions[option.value]}
+                </Text>
+              </span>
+            ) : (
+              text
+            )}
           </ListBoxItem>
         );
       };
@@ -255,6 +270,7 @@ export const PropertySelectControl = memo(
       options,
       sections,
       swatches,
+      descriptions,
       t,
       translateOptions,
     ]);
@@ -324,6 +340,10 @@ export const PropertySelectControl = memo(
                       )}
                       {selectedText}
                     </>
+                  ) : descriptions ? (
+                    // An option with a hint renders label + description; the trigger shows the
+                    // label only (`selectedText` = textValue).
+                    selectedText
                   ) : (
                     defaultChildren
                   )
@@ -366,6 +386,7 @@ export const PropertySelectControl = memo(
       prevProps.optionValueMode === nextProps.optionValueMode &&
       prevProps.disabledKeys === nextProps.disabledKeys &&
       prevProps.swatches === nextProps.swatches &&
+      prevProps.descriptions === nextProps.descriptions &&
       prevProps.grid === nextProps.grid &&
       prevProps.gridSections === nextProps.gridSections &&
       prevProps.sections === nextProps.sections &&

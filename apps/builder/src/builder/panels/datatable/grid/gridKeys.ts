@@ -2,7 +2,7 @@
  * 격자 키 라우팅 — ADR-212 Phase 2 R1 (충돌 매트릭스).
  *
  * RAC Table 은 `keyboardNavigationBehavior="tab"` 에서 Arrow · Home/End (셀 이동) · Tab (격자
- * 밖으로 — 단일 tab stop) · Esc (선택 해제) 를 갖는다. 셀 편집기는 그 위에 자기 키 (Enter · F2 ·
+ * 밖으로 — 단일 tab stop) 을 갖는다 (행 선택은 체크박스 열의 자체 상태 — RAC 선택은 끔). 셀 편집기는 그 위에 자기 키 (Enter · F2 ·
  * 타이핑 → 진입, Enter/Tab → commit + 이동, Esc → 취소) 를 얹는데, 두 층이 같은 키를 다르게 읽는
  * 조합을 여기 한 표로 고정한다. 컴포넌트는 결과 action 만 실행한다:
  *
@@ -30,6 +30,8 @@ export type GridKeyAction =
   | { type: "stop" }
   | { type: "start-edit"; initialDraft?: string }
   | { type: "clear-cell" }
+  /** ADR-289 — Shift+Enter on a cell opens the row form (Update row) for that row. */
+  | { type: "open-row" }
   | { type: "commit"; move: "down" | "up" | "right" | "left" }
   | { type: "cancel" }
   | { type: "revert-draft" };
@@ -90,6 +92,7 @@ export function resolveGridKey(
 
   switch (input.key) {
     case "Enter":
+      return input.shiftKey ? { type: "open-row" } : { type: "start-edit" };
     case "F2":
       return { type: "start-edit" };
     case "Delete":

@@ -82,4 +82,66 @@
 
 ## 7. 기록
 
-(execute-adr 가 phase 마다 적는다.)
+### Phase 0 (인벤토리 · RED) — 2026-10-29
+
+- 착수 HEAD `51fe50daa` (main, 작업 트리 clean). Status Proposed → Accepted (리뷰 round 3 pending 0 + 사용자 `/execute-adr 289`).
+- RED 4 `grid/__tests__/adr289Red.test.tsx` — `it.fails` 4/4 expected fail (`vitest run`, 2.4 s): ① Insert row 가 `insert_rows` 즉시 (dialog 없음) ② `required: true` 열 `name` 이 `null` 로 삽입 ③ `boolean` 기본값 `"true"` 가 행에 글자 `"true"` ④ 행 선택 뒤 `Copy` 버튼 없음.
+- 인벤토리 (코드 실측):
+  - `defaultValue` 를 읽는 곳 = `DataGrid.components.tsx` `addRow` · `ColumnEditorPopover.tsx` 기본값 칸 둘뿐 — 붙여넣기 (`pasteGrid.ts`) · import (`importPlan.ts` · `ImportPreview.tsx`) 는 읽지 않는다 (본문 §현재와 일치 — 읽는 쪽을 `resolveFieldDefault` 하나로 모으는 범위가 둘 + 새 행 양식).
+  - 셀 편집기 타입 분기 (`cellValue.ts` `resolveCellEditorKind`): **팝오버** = `array` · `object` · `date` · `datetime` 언제나, 그 밖 타입은 글자 > 80 또는 줄바꿈 포함 때 · **인라인** = `string` · `email` · `url` · `image` · `reference` · `number` (`inputMode decimal`) · `boolean` (글자 입력).
+  - `coerceCellValue` 입력 범위: `number` = `^-?\d+(\.\d+)?([eE][+-]?\d+)?$` · `boolean` = `true|1|yes|y` / `false|0|no|n` (대소문자 무관) · `date` = `Date.parse` → `YYYY-MM-DD` · `datetime` = `Date.parse` → ISO · `array` · `object` = `JSON.parse` + 모양 검사 · 나머지 = trim 한 글자. 빈 글자 = `null` 성공.
+  - 본문 폭: 패널 기본 100 % (사용자 작업 영역 1,478 → 본문 ≈ 1,478 − 228 − 1 ≈ 1,249) · 패널 ≤ 459 면 한 열 (목록 · 본문 번갈아, 본문 = 패널 폭) · 저장 폭 280 (ADR-288 R4) 이면 본문 280 < 680 → 양식이 격자 자리를 대신한다. 경계 680 = `DATA_SURFACE_BODY_MIN` 320 + 양식 360.
+  - 행 양식 자리 구현 사실: `DataSurfaceBody` 의 `.datatable-body-contents > *` 가 flex column 이라 `DataTableEditor` 가 `.datatable-editor-split` (grid `minmax(0,1fr) 360px`) 을 그리면 된다 — 좁은 폭 전환은 `container-type: inline-size` + `@container (max-width: 679px)` 로 CSS 가 판정 (JS 측정 없음, breakdown §2 의 `data-replace` 를 컨테이너 쿼리로 대신한다).
+- Phase 0 은 go/no-go 가 아니다 — 사용자 결정 1 · 2 · 4 · 5 를 Phase 1 착수 전에, 3 을 Phase 2 착수 전에 묻는다.
+
+### Phase 1 (행 양식) — 2026-10-29
+
+- **사용자 결정 1 · 2 · 4 · 5 (2026-10-29, AskUserQuestion)**: 1 = B 사이드 패널 · 2 = Insert row… 가 양식을 연다 · 4 = ↗ + `Shift+Enter` · 5 = 「계속 추가」 행 · 열 양식 둘 다. 전부 권장안.
+- 새 파일 (전부 `grid/`, datatable lazy chunk 안): `fieldDefault.ts` (`resolveFieldDefault` · `cloneCellValue`) · `rowFormValues.ts` (`initialDraftText` · `finalRowValue` · `storedRowValue` · `isMissingRequired`) · `rowFormTarget.ts` (`openRowFormTarget` · `resolveRowFormTarget`, `SNAPSHOT_MAX_ROWS` 1,000 — 그보다 큰 표는 JSON 을 들지 않고 배열 참조만 믿어 이름 변경 중 저장도 충돌로 거절) · `FieldValueInput.tsx` (타입별 입력 — string · email · url 자라는 textarea, number `inputMode decimal`, boolean 3 상태 `PropertySelect`, date · datetime native (datetime 은 ISO ↔ `datetime-local` 변환), image URL + 미리보기, array · object JSON textarea, reference RAC `ComboBox` 50 개 `useDeferredValue`, id 읽기 전용) · `RowForm.tsx` · `RowForm.css`.
+- 바뀐 파일: `DataGrid.components.tsx` (`addRow` 삭제 → `openInsertForm` · `openUpdateForm` · `.datagrid-split` 두 열 · 선택 셀 ↗ `datagrid-row-open` · `open-row` 키) · `DataGrid.runtime.ts` (`SELECT_COLUMN_WIDTH` 56) · `gridKeys.ts` (`Shift+Enter` = `open-row`) · `DataGrid.css` (컨테이너 쿼리 `@container datagrid (max-width: 679px)` — 양식이 격자 자리를 대신, ✕ 복귀) · `i18n/translations.ts` (`datatable.rowForm*` 23 키 ko · en + `formattedMessages` 5 — `{param}` 글자는 함수 등록이 있어야 치환된다 · `insertRow` → 「행 삽입…」 · `openRow`).
+- 통상 구현 판단 (breakdown §2 와 다른 점): 양식 상태 · 두 열 배치는 `DataTableEditor` 가 아니라 **`DataGrid` 가 소유** (Insert 메뉴 · ↗ · `Shift+Enter` 가 전부 격자 안이라 prop 왕복이 없고, 격자 단독 테스트가 양식까지 덮는다) · 좁은 폭은 `data-replace` 측정 대신 CSS 컨테이너 쿼리 (`.datagrid` 가 `container-type: inline-size`) · 「선택 항목 — 비워 두면 기본값」 은 별도 안내 문단이 아니라 절 제목 (panel-structure §1 정적 설명 문단 금지) · 생성 Dialog sheet (overlay archetype — 모서리 12 · 폭) 가 모든 `.react-aria-Dialog` 에 닿아 `.datatable-row-form.react-aria-Dialog` 가 되돌린다 (5174 실측 310 → 360).
+- 테스트: `fieldDefault.test.ts` 6 · `rowFormValues.test.ts` 5 · `rowFormTarget.test.ts` 11 (실제 `CatalogWorkspace` · `bindCatalogDataStore` · `applyDataChange` · `workspace.undo()` — 리뷰 round 3 probe 를 제품 함수로 옮김) · `RowForm.test.tsx` 11 · `DataGrid.test.tsx` 갱신 2 (Insert row… → 양식 · 빈 저장 = 옛 빈 행 / ↗ · `Shift+Enter`) · RED ① ② ③ GREEN (`.fails` 제거, ④ 는 Phase 3). grid 디렉터리 103 PASS · 1 expected fail · `pnpm type-check` PASS. `sharedActionVocabulary` 게이트로 en 「Required」 → 「Required fields」 · 「Empty」 → 「No value」 (ko 「값 없음」).
+- **G1 live (Chrome MCP, 5174 — 「ADR288 live」 프로젝트 Roles 표, 2026-10-29)**: Insert row… → 양식 (Automatic `Auto: row_6` · Required fields `name` · Optional fields) → 빈 저장 → `Required.` 인라인 오류 + name 포커스 · 쓰기 0 → `Live role` 입력 ⌘Enter → row_6 추가 · 「Row added.」 · 새 행 첫 셀 포커스 → ⌘Z 1 회 → 5 행 → Editor 행 ↗ → Update 양식 (현재 값) → description · level 수정 → 저장 → 두 셀 반영 · 「Row updated.」 → ⌘Z 1 회 → 두 셀 함께 복귀 (한 step) → Guest 셀 `Shift+Enter` → Update 양식 (셀 편집기 열리지 않음) → 입력 뒤 Esc → 「Discard changes?」 → Cancel 로 입력 유지 → 격자에서 Guest 삭제 → 저장 → 충돌 안내 · 입력 보존 · Save 비활성 → Close → ⌘Z → Guest 복귀 → Insert row… + 「계속 추가」 → More A ⌘Enter · More B ⌘Enter → row_6 · row_7 · 양식 유지 · 첫 칸 포커스 → Esc (변경 없음, 즉시 닫힘) → ⌘Z 2 회 → 5 행. 좁은 폭: `.datagrid` 를 JS 로 600 px 로 강제 (list splitter 의 합성 드래그는 반응 없음 — 메모리 `reference-synthetic-pointer-drag-testing-traps`) → 양식이 격자 자리 (600 폭 · 왼 테두리 0) → ✕ → 격자 복귀. 콘솔 오류 0. axe 는 돌리지 않음 (도구 없음 — G5 사용자 확인 때 병기). 발견 · 수리 2: 생성 Dialog 규칙이 폭 310 · 모서리 12 로 그림 → CSS 되돌림 · Update 포커스 시 caret 이 맨 앞 (「 XGuest」) → `focusField` 가 끝으로.
+- 미구현 (범위 그대로): reference ComboBox · boolean · date 입력은 이 표에 없어 unit 만 (G4 10k reference 측정 때 live).
+- Phase 1 닫힘 — 실행자 선언 (HIGH 0).
+
+### Phase 2 (열 편집기 절 넷 · 만들기 경로) — 2026-10-29
+
+- **사용자 결정 3 (2026-10-29)**: 타입 설명 11 종 초안 그대로 (§3 표) → i18n `datatable.typeHints.*` (ko · en). 절 이름은 공용 어휘 게이트 (`sharedActionVocabulary`) 에 맞춰 「이름 · 유형 · 규칙 · 사용처」 (en Name · Type · Rules · Usage — 「타입」 은 기존 「유형」 과 충돌).
+- 바뀐 파일: `grid/ColumnEditorPopover.tsx` (편집 모드 = `Section` 넷 · 기본값 = `FieldValueInput` (blur · Enter 에 `coerceCellValue` → `update_field { defaultValue }`, boolean 은 고르는 즉시, 안 맞는 글자는 `fieldDefaultInvalid` 안내 + 쓰기 0) · 타입 변경이 `resolveFieldDefault` 로 기본값을 다시 읽어 같은 `update_field` 에 싣고 (안 맞으면 `null` + `fieldDefaultCleared`) · **`ColumnCreatePopover` · `ColumnCreator`** (만들기 모드 — 이름 · 유형 · 기본값 · 필수 · 참조 · 「계속 추가」 → `add_field` 한 번, 키 비움 · 중복은 경고)) · `grid/DataGrid.components.tsx` (`Insert ▾ → Insert column…` 이 `+` 슬롯에 anchor 한 만들기 팝오버 — 슬롯의 인라인 입력은 그대로) · `components/property/PropertySelect.*` (**`descriptions` prop** — 항목에 `<Text slot="description">` 둘째 줄, 트리거는 `selectedText` 만) · `PropertySelectGrid.css` · `ColumnEditorPopover.css` · i18n (`typeHints.*` 11 · `fieldSection{Name,Type,Rules}` · `fieldCreateTitle` · `fieldDefaultInvalid` · `fieldDefaultCleared` · `insertColumn` → 「열 삽입…」).
+- 테스트: `ColumnEditorPopover.test.tsx` +5 (절 넷 · 설명 11 · boolean 기본값 `false` 저장 · number 기본값 글자 거절 → `7` 저장 · 타입 변경이 기본값 동반 (`"yes"` string → boolean `true`) · 만들기 `add_field { key, type: boolean, required, defaultValue: true }` + 「계속 추가」 + 중복 키 경고) · `DataGrid.test.tsx` +1 (Insert column… → 「New column」 팝오버 · `+` 인라인과 별개). grid 109 PASS · 1 expected fail (④) · `tsc` PASS.
+- **G2 live (Chrome MCP 5174 Roles, 2026-10-29)**: `name` 머리글 → 팝오버 절 넷 (Name · Type · Rules · Usage) → Type 목록 11 항목마다 설명 한 줄 → Esc → `Insert ▾ → Insert column…` → 「New column」 팝오버 → key `active` · Boolean · 기본값 On · 필수 → Create → 열 `active` (boolean 아이콘) · 「Added field "active".」 → Insert row… → Required fields 에 `name, active` · active 자리 「Default: true」 → 이름만 넣고 ⌘Enter → 새 행 `active` 셀 `true` · `data-kind="boolean"` (글자 아님) → ⌘Z 2 회 → 5 행 · 6 열. 콘솔 오류 0. 발견 · 수리 3: 만들기 Cancel 라벨이 `datatable.cancel` (없는 키) → `common.cancel` · Select 트리거가 설명까지 그림 (「BooleanOn or off」) → `descriptions` 있으면 `selectedText` · 만들기 팝오버가 Dialog 에 포커스 → key 입력 autofocus. 수리 뒤 live 재확인 (포커스 · 트리거 「String」 · Cancel).
+- 기존 글자 기본값 `"true"` 열 (G2 조건) 은 unit (`ColumnEditor` 가 On 으로 보임 · 행 양식 placeholder `Default: true`) 으로 — 이 live 표에 그런 열이 없다. `object` · `array` · `[]` 기본값 왕복은 `fieldDefault.test.ts` · `rowFormValues.test.ts`.
+- Phase 2 닫힘 — 실행자 선언 (HIGH 0).
+
+### Phase 3 (선택 행 바) — 2026-10-29
+
+- 바뀐 파일: `grid/DataGrid.components.tsx` — 행을 고르면 바가 `복사 ▾` (CSV · JSON → `navigator.clipboard.writeText`, 성공 시 `gridRowsCopied` status · 실패 시 `gridCopyFailed` 토스트) · `내보내기 ▾` (선택 행 CSV · JSON 파일 `<name>-selected.csv|json`) · `Delete N rows`. 선택이 없으면 `Insert ▾` + `내보내기 ▾` (전체 CSV · JSON — 종전 `Export` 단일 버튼 대체). 공용 `ToolbarMenu` (Insert 메뉴와 같은 row-menu 시트). CSV 직렬화는 구조 값 (array · object) 을 `formatCellValue` 로 JSON 글자로 — 붙여넣기가 다시 파싱하는 모양 (Papa 는 배열을 `a,b` 로 이어 붙인다 — 종전 전체 Export 도 그랬다, 같이 고침). i18n `copyRows` · `copyCsv` · `copyJson` · `exportSelectedCsv` · `exportSelectedJson` · `exportJson` · `gridRowsCopied` (+ formattedMessages) · `gridCopyFailed`.
+- 테스트: `DataGrid.test.tsx` +1 (clipboard · createObjectURL · anchor click mock — 행 2 선택 → CSV 클립보드 = 머리글 + 2 행 (`"[""a""]"`) · JSON = 원본 배열 · 선택 JSON 내보내기 파일명 `Users-selected.json` · 해제 → Insert ▾ · 전체 `Users.csv`) · RED ④ GREEN (`.fails` 제거 — RED 4 전부 GREEN, 파일은 G0 기록으로 유지). grid 111 PASS.
+- **G3 live (Chrome MCP 5174 Roles, 2026-10-29)**: 행 2 체크 → 바 `Copy ▾ · Export ▾ · Delete 2 rows` (Insert ▾ 사라짐) → `Copy ▾ → Copy as CSV` → 「Copied 2 rows.」 (clipboard write 성공 — 내용 읽기는 페이지 권한으로 불가 · 합성 ⌘V 도 붙지 않아 내용은 unit 으로) → `Export ▾` 항목 2 (선택 행 CSV · JSON — 실제 다운로드는 사용자 Downloads 에 파일을 남기므로 live 에서 누르지 않음, 파일명은 unit) → 머리글 체크박스 2 회 → 해제 → 바 `Insert ▾ · Export ▾` 복귀. 콘솔 오류 0.
+- Phase 3 닫힘 — 실행자 선언 (HIGH 0).
+
+### Phase 4 (번들 · 성능 · 문서) — 2026-10-29
+
+- **번들 (G4)** — scratchpad `bundle289.sh` (착수 HEAD `51fe50daa` 를 `.cache/adr289-bundle/wt` 에 detached worktree · `pnpm install --offline --frozen-lockfile` · engine-pkg · license 복사 · `vite build` / 작업 트리 `vite build` / `adr209-bundle-closure.mjs --compare`):
+
+| 대상 (51fe50daa → 작업 트리) | before B | after B | Δ B |
+| --- | ---: | ---: | ---: |
+| Builder initial JS gzip | 1,457,792 | 1,459,683 | **+1,891** (상한 +300 초과) |
+| Builder initial CSS gzip | 83,210 | 83,299 | +89 |
+| Preview initial JS gzip | 310,991 | 310,992 | +1 (해시 노이즈 — Preview 소스 변경 0) |
+| datatable lazy chunk (`DataTablePanel-*.js`) gzip | 43,925 | 48,780 | +4,855 (기록만) |
+
+  귀속 (chunk 별 gzip 재계산): `locales-*.js` **+1,786** (i18n `datatable.rowForm*` 23 · `typeHints.*` 11 · `fieldSection*` · 복사 · 내보내기 8 — ko · en + formattedMessages 6; translations 모듈은 initial 에 통째로 들어간다 — 패널별 lazy i18n 이 없다) · `actionIcons-*.js` +110 (`PropertySelect.descriptions` — property 위젯은 initial) · 나머지 +14. 기능 코드 (RowForm · FieldValueInput · 순수 함수 3 · ColumnCreator · 선택 바) 는 전부 datatable lazy chunk 에 있다 (initial 0). **lazy 로 뺄 수 있는 초과분이 없다** — 줄이려면 i18n 키 수 · 문구 길이뿐. 상한 재승인은 사용자 판단 (G5 에서 묻는다 — ADR-288 Phase 5 의 +556 과 같은 종류).
+- **reference ComboBox 성능 (G4)**: 문서 불변식 `CATALOG_COLLECTION_ROW_LIMIT = 1000` (`packages/shared/src/catalog/document/types.ts:1343`, `validation.ts:2017` `COLLECTION_ROW_LIMIT`) 이라 **10k 행 대상 표는 문서에 들어가지 않는다** (`create_collection` 10,000 행 → `CatalogValidationError entry.mockData`). ComboBox 는 `target.mockData` 만 읽으므로 가능한 최대 = 1,000 행 — 그 규모로 쟀다 (합성 · 규모 전용): 5174 「ADR288 live」 에 `PerfTarget` 1,000 행 (`create_collection` 69 ms) + Roles `target` reference 열을 `useDataStore.applyDataChange` 로 시드 → Insert row… → `target` ComboBox 에 22 타 (「Target 12」 9 · Backspace 9 · 「t_99」 4) · 각 `input` 이벤트 → 다음 rAF 까지: **p50 7.6 · p95 8.4 · max 8.8 ms** (조건: dev 서버 · foreground `visibilityState visible` · DPR 2 · 창 1800×989 · 필터 결과 50 / 11 / 50 개 · 측정 중 빌드 없음). ≤ 16 충족. 시드는 Discard · ⌘Z 2 회로 되돌림 (Roles 5 행 · 6 열 확인). 10k 는 측정 전제가 성립하지 않아 **상한 재설정이 아니라 전제 정정** (측정 등급 A — 코드 근거). API 행 (`runtimeData`, 문서 밖) 은 ComboBox 가 읽지 않는다 — 범위 밖 기록.
+- 문서: `panel-structure.md` 「본문 안 양식 자리 — 격자 옆 두 번째 열, 좁으면 격자 대신」 한 항 · `pnpm docs:stale-symbols` 게이트 영역 0 · README · CHANGELOG (Phase 1 ~ 4 엔트리) · 본문 Status.
+- 게이트: `actionIcons.static.test.ts` 가 선택 바의 `Copy` 직접 import 를 잡아 `ACTION_ICONS.copy` (`DataGrid.runtime.ts` `CopyIcon`) 로 — datatable · i18n · components · config 스위트 PASS (chromeIsland 1 건은 `PanelWorkspace.css` 대상 — 착수 HEAD 에서 이미 실패, 이 ADR 밖).
+- Phase 4 닫힘 — 실행자 선언 (HIGH 0). 남은 것: **G5** — 사용자 Builder (5173) 확인 (행 양식 · 열 만들기 · 선택 바) + Builder initial +1,891 B gz 수용 여부 → Implemented · `### Live Exercise` · `completed/` 이동.
+
+### G5 중 사용자 피드백 — 행 선택은 체크박스로만 (ADR-289 밖 · 별도 커밋) — 2026-10-29
+
+- 사용자: 「supabase 는 셀 선택 후 입력이나 더블클릭 시에 셀 입력창이 열린다, 셀 선택 시 행 전체가 선택되지 않는다. 체크박스 선택 외에는 다중 선택이 없다.」 → 결정 「체크박스로만 선택」.
+- 차이는 하나였다: 셀 클릭 → RAC Table `selectionBehavior="toggle"` 이 행을 선택 (타이핑 · 더블클릭 → 편집은 이미 같음). RAC 1.22 Table 에는 체크박스 전용 옵션이 없다 (`UNSTABLE_itemBehavior="action"` 은 ListBox 만 — `useSelectableItem` 112행). `onAction` 을 두는 RAC 「체크박스 + 동작」 어법은 선택이 1개 이상이면 행 클릭이 토글이라 편집 격자에 맞지 않아 기각.
+- 적용: `selectionMode="none"` + 체크박스 열의 자체 상태 `selectedIndexes` (행 `data-checked` — RAC Row 가 `data-selected` 를 자기 값으로 덮어써서 이름을 바꿨다) · 머리글 체크박스 = 보이는 (필터된) 행 전부 · `slot={null}` 로 Row 의 RAC selection slot 을 벗어난다. 선택 바 · 삭제 · 복사 · 내보내기 · 행 양식은 그대로.
+- 검증: grid 스위트 112/112 (새 케이스 「셀 클릭 = 그 셀 포커스만」) · type-check PASS · live 5174 Roles 표 — 셀 클릭 → 포커스만 (`data-checked` 0 · 선택 바 없음) · `x` 타이핑 → 편집기 · 행 체크박스 → 「Delete 1 rows」 + 머리글 indeterminate · 머리글 → 5/5 · 화살표 ↓ → 이동 · 콘솔 오류 0.
+- 잃는 것: 행 `aria-selected` · ⌘A 전체 선택 · Esc 선택 해제 (RAC 선택 기능). 체크박스 상태가 접근성 표면.

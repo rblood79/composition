@@ -1,0 +1,174 @@
+/**
+ * RowForm — ADR-289 Decision 1. The form is the grid body's second column (`DataGrid.css`
+ * `.datagrid-split`); here only the form's own shell · fields · footer. The fields take their look
+ * from panel-system.css · form-controls.css through the `.section` scope (ADR-163).
+ */
+
+/* The generated Dialog sheet (overlay archetype — radius 12 · margins · a width) reaches every
+   `.react-aria-Dialog`; this one is a column of the body, not an overlay. */
+.datatable-row-form.react-aria-Dialog {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-overlay);
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  font-size: var(--text-xs);
+}
+
+.datatable-row-form-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.datatable-row-form-fields {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.datatable-row-form-conflict {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--negative-strong);
+  background: var(--negative-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.datatable-row-form-conflict > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.datatable-row-form-footer {
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border-top: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.datatable-row-form-footer .datatable-row-form-more {
+  flex: 1;
+  min-width: 0;
+}
+
+.datatable-row-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-left: auto;
+}
+
+/* ─ FieldValueInput ─ the legend carries the type glyph before the column key */
+.datatable-value-field .fieldset-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2xs);
+}
+
+/* Growing text · JSON textareas — form-controls.css nowraps every Input/TextArea in a section */
+.datatable-row-form .datatable-value-text,
+.datatable-row-form .datatable-value-json,
+.datatable-field-form .datatable-value-text,
+.datatable-field-form .datatable-value-json {
+  white-space: pre-wrap;
+  overflow: auto;
+  resize: none;
+  max-height: 160px;
+  line-height: var(--text-xs--line-height);
+  padding-top: var(--spacing-3xs);
+  padding-bottom: var(--spacing-3xs);
+}
+
+.datatable-value-json {
+  font-family: var(--font-mono, monospace);
+}
+
+.datatable-value-readonly {
+  color: var(--fg-muted);
+}
+
+.datatable-value-image {
+  display: block;
+  max-width: 100%;
+  max-height: 96px;
+  margin-top: var(--spacing-2xs);
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.datatable-value-error {
+  display: block;
+  margin-top: var(--spacing-2xs);
+  font-size: var(--text-2xs);
+  color: var(--negative);
+}
+
+/* Reference ComboBox — the unit ComboBox's assembly (form-controls `.react-aria-UnitComboBox`) */
+.datatable-reference-combobox {
+  width: 100%;
+}
+
+.datatable-reference-combobox .combobox-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  min-width: 0;
+}
+
+.datatable-reference-combobox .react-aria-Input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+}
+
+.datatable-reference-combobox .react-aria-Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.datatable-reference-popover .react-aria-ListBoxItem {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: baseline;
+}
+
+.datatable-reference-hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}

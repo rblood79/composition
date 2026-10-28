@@ -11,6 +11,7 @@ import {
   fireEvent,
   render,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,8 +21,12 @@ const { applyDataChange, toastError } = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../stores/data", () => ({
-  useDataStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ applyDataChange }),
+  // ADR-289 — the row form reads `getState()` at save (the latest rows · the Update target).
+  useDataStore: Object.assign(
+    (selector: (s: Record<string, unknown>) => unknown) =>
+      selector({ applyDataChange, collections: new Map() }),
+    { getState: () => ({ applyDataChange, collections: new Map() }) },
+  ),
 }));
 // 오류는 토스트 (Phase 1 결정 — role=status 는 결과만), 결과는 Data 패널 status 영역
 vi.mock("../../../stores/toast", () => ({
@@ -260,7 +265,7 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     ]);
   });
 
-  it("array 셀은 Popover 편집기 (textarea) — ⌘Enter commit 은 JSON 으로", async () => {
+  it("array 셀은 Popover 편집기 (textarea) — 키 안내 · ⏎ commit 은 JSON 으로 · ⇧⏎ 는 줄 바꿈", async () => {
     const { container } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
@@ -275,8 +280,16 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       return el;
     });
     expect(textarea.value).toBe('["a"]');
+    // Key hints (Supabase 어법) beside the buttons: ⏎ Save · ⇧⏎ New line · Esc Cancel.
+    const keys = [...container.ownerDocument.querySelectorAll(".datagrid-popover-key")].map(
+      (el) => el.textContent,
+    );
+    expect(keys).toEqual(["⏎Save changes", "⇧⏎New line", "EscCancel changes"]);
     fireEvent.change(textarea, { target: { value: '["a","b"]' } });
-    fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
+    // ⇧⏎ keeps the newline (no commit) · plain ⏎ commits.
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: true });
+    expect(applyDataChange).not.toHaveBeenCalled();
+    fireEvent.keyDown(textarea, { key: "Enter" });
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     expect(lastOps()).toEqual([
       {
@@ -401,7 +414,70 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(getByRole("button", { name: "Delete 2 rows" })).toBeTruthy();
   });
 
-  it("Insert ▾ → Insert row = insert_rows (id 자동, 나머지 null) + role=status", async () => {
+  it("행 2 선택 → 복사 ▾ CSV = 머리글 + 2 행 클립보드 · JSON = 배열 2 · 내보내기 ▾ 선택 행 · 해제 → Insert ▾ 복귀 (ADR-289 Decision 4)", async () => {
+    const writeText = vi.fn(async (_text: string) => {});
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const createObjectURL = vi.fn(() => "blob:x");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, configurable: true });
+    const clicks: string[] = [];
+    const origClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      clicks.push(this.download);
+    };
+    try {
+      const { container, getByRole, queryByRole } = render(
+        wrap(<DataGrid table={table} virtualized={false} />),
+      );
+      // No selection: Export ▾ (CSV · JSON) beside Insert ▾, no Copy.
+      expect(queryByRole("button", { name: "Copy" })).toBeNull();
+      expect(getByRole("button", { name: "Export" })).toBeTruthy();
+      const boxes = container.querySelectorAll<HTMLInputElement>(
+        '.datagrid-cell-select .react-aria-Checkbox input[type="checkbox"]',
+      );
+      await act(async () => {
+        fireEvent.click(boxes[0]);
+        fireEvent.click(boxes[1]);
+      });
+      await waitFor(() => expect(getByRole("button", { name: "Delete 2 rows" })).toBeTruthy());
+      expect(queryByRole("button", { name: "Insert" })).toBeNull();
+
+      fireEvent.click(getByRole("button", { name: "Copy" }));
+      await press(await waitFor(() => getByRole("menuitem", { name: "Copy as CSV" })));
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+      expect(writeText.mock.calls[0][0]).toBe('id,name,age,tags\r\n1,Ann,30,"[""a""]"\r\n2,Bob,41,[]');
+      expect(useDataPanelStatusStore.getState().status?.message).toBe("Copied 2 rows.");
+
+      fireEvent.click(getByRole("button", { name: "Copy" }));
+      await press(await waitFor(() => getByRole("menuitem", { name: "Copy as JSON" })));
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+      expect(JSON.parse(writeText.mock.calls[1][0])).toEqual(table.mockData);
+
+      fireEvent.click(getByRole("button", { name: "Export" }));
+      await press(await waitFor(() => getByRole("menuitem", { name: "Export selected rows as JSON" })));
+      await waitFor(() => expect(clicks).toEqual(["Users-selected.json"]));
+      expect(applyDataChange).not.toHaveBeenCalled();
+
+      // Deselect → Insert ▾ and the whole-table Export ▾ return.
+      await act(async () => {
+        fireEvent.click(boxes[0]);
+        fireEvent.click(boxes[1]);
+      });
+      await waitFor(() => expect(getByRole("button", { name: "Insert" })).toBeTruthy());
+      expect(queryByRole("button", { name: "Copy" })).toBeNull();
+      fireEvent.click(getByRole("button", { name: "Export" }));
+      await press(await waitFor(() => getByRole("menuitem", { name: "Export CSV" })));
+      await waitFor(() => expect(clicks).toEqual(["Users-selected.json", "Users.csv"]));
+    } finally {
+      HTMLAnchorElement.prototype.click = origClick;
+    }
+  });
+
+  it("Insert ▾ → Insert row… = 행 양식 (ADR-289) · 빈 저장 = insert_rows (id 자동, 나머지 기본값 · null) + role=status", async () => {
     const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
@@ -410,17 +486,21 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(queryByRole("button", { name: "Import CSV" })).toBeNull();
     fireEvent.click(getByRole("button", { name: "Insert" }));
     await waitFor(() => expect(queryByRole("menu")).not.toBeNull());
-    expect(
-      getByRole("menu")
-        .querySelectorAll("[role=menuitem]")
-        .length,
-    ).toBe(3);
-    const button = getByRole("menuitem", { name: "Insert row" });
+    expect(getByRole("menu").querySelectorAll("[role=menuitem]").length).toBe(3);
+    const button = getByRole("menuitem", { name: "Insert row…" });
     await act(async () => {
       fireEvent.pointerDown(button, { pointerType: "mouse", button: 0 });
       fireEvent.pointerUp(button, { pointerType: "mouse", button: 0 });
       fireEvent.click(button);
     });
+    // The form opens beside the grid (the grid stays) — nothing is written yet.
+    const dialog = await waitFor(() => getByRole("dialog", { name: "Add a row to Users" }));
+    expect(applyDataChange).not.toHaveBeenCalled();
+    expect(container.querySelector(".datagrid-split")?.getAttribute("data-form")).toBe("true");
+    expect(container.querySelector("[role=grid]")).not.toBeNull();
+    // The first editable field has focus; an empty save is the old empty row.
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await press(within(dialog).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     expect(lastOps()).toEqual([
       {
@@ -430,10 +510,73 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
         at: 2,
       },
     ]);
-    expect(useDataPanelStatusStore.getState().status?.message).toBe(
-      "Row added.",
+    expect(useDataPanelStatusStore.getState().status?.message).toBe("Row added.");
+    // Saved without 「Create more」 → the form closes and the new row's first cell takes focus.
+    await waitFor(() => expect(queryByRole("dialog")).toBeNull());
+  });
+
+  it("셀 클릭 = 그 셀 포커스만 — 행은 선택되지 않고 (data-selected 없음 · 선택 바 없음) 체크박스로만 (Supabase 어법)", async () => {
+    const { container, queryByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
     );
-    expect(container.querySelector("[data-testid=datagrid]")).toBeTruthy();
+    const target = cell(container, 1, "name");
+    await press(target);
+    expect(container.querySelector(".datagrid-row[data-checked]")).toBeNull();
+    expect(container.querySelector('[role="row"][aria-selected="true"]')).toBeNull();
+    expect(queryByRole("button", { name: /Delete \d+ rows/ })).toBeNull();
+
+    const second = container.querySelectorAll(
+      '.datagrid-cell-select .react-aria-Checkbox input[type="checkbox"]',
+    )[1] as HTMLInputElement;
+    await act(async () => {
+      fireEvent.click(second);
+    });
+    await waitFor(() =>
+      expect(container.querySelectorAll(".datagrid-row[data-checked]")).toHaveLength(1),
+    );
+    expect(
+      container.querySelector(".datagrid-row[data-checked] [data-field-key='name']")!.textContent,
+    ).toBe("Bob");
+  });
+
+  it("행 ↗ · 셀 Shift+Enter = 그 행의 Update 양식 (ADR-289 사용자 결정 4)", async () => {
+    const { container, getByRole, queryByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const open = container.querySelectorAll<HTMLElement>(".datagrid-row-open")[1]!;
+    expect(open.getAttribute("aria-label")).toBe("Open row");
+    expect(open.getAttribute("tabindex")).toBe("-1");
+    await press(open);
+    const dialog = await waitFor(() => getByRole("dialog", { name: "Update a row of Users" }));
+    expect(within(dialog).getByRole("group", { name: "name" }).querySelector("textarea")!.value).toBe("Bob");
+    await act(async () => {
+      fireEvent.keyDown(dialog.querySelector(".datatable-row-form-body")!, { key: "Escape" });
+    });
+    await waitFor(() => expect(queryByRole("dialog")).toBeNull());
+
+    const target = cell(container, 0, "age");
+    target.focus();
+    fireEvent.keyDown(target, { key: "Enter", shiftKey: true });
+    const again = await waitFor(() => getByRole("dialog", { name: "Update a row of Users" }));
+    expect(within(again).getByRole("group", { name: "name" }).querySelector("textarea")!.value).toBe("Ann");
+    expect(container.querySelector("input[data-grid-editor]")).toBeNull();
+  });
+
+  it("Insert ▾ → Insert column… = 열 편집기 만들기 모드 (팝오버 「New column」) — `+` 인라인 길과 별개 (ADR-289)", async () => {
+    const { getByRole, queryByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    fireEvent.click(getByRole("button", { name: "Insert" }));
+    const item = await waitFor(() => getByRole("menuitem", { name: "Insert column…" }));
+    await press(item);
+    const dialog = await waitFor(() => getByRole("dialog", { name: "New column" }));
+    expect(dialog.querySelector(".datatable-field-form[data-mode=create]")).not.toBeNull();
+    expect(queryByRole("textbox", { name: "New field" })).toBeNull();
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: "Escape" });
+    });
+    await waitFor(() => expect(queryByRole("dialog")).toBeNull());
+    expect(applyDataChange).not.toHaveBeenCalled();
   });
 
   it("헤더 + → 인라인 입력 → Enter = add_field(string), 입력은 연속 추가로 유지", async () => {
@@ -558,7 +701,7 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(applyDataChange).not.toHaveBeenCalled();
   });
 
-  it("타입 아이콘 클릭 → 머리글 팝오버 (타입 검색 포커스) · 라벨 클릭 / ⌄ → 그 열의 팝오버 (ADR-288)", async () => {
+  it("타입 아이콘 클릭 → 머리글 팝오버 (타입 검색 포커스) · 라벨 클릭 → 그 열의 팝오버 (ADR-288) · ⌄ 는 동작 메뉴", async () => {
     const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
@@ -571,7 +714,7 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(typeBtn.getAttribute("tabindex")).toBe("-1");
     const menuBtn = head.querySelector<HTMLElement>(".datagrid-column-menu")!;
     expect(menuBtn.getAttribute("tabindex")).toBe("-1");
-    expect(menuBtn.getAttribute("aria-label")).toBe("Field settings");
+    expect(menuBtn.getAttribute("aria-label")).toBe("name column actions");
     expect(queryByRole("dialog")).toBeNull();
 
     await press(typeBtn);
@@ -595,8 +738,63 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       fireEvent.keyDown(getByRole("dialog", { name: "age" }), { key: "Escape" });
     });
 
+    // ⌄ = the column's actions (Supabase 어법), not a third way to the editor.
     await press(menuBtn);
-    expect(getByRole("dialog", { name: "name" })).toBeTruthy();
+    const menu = await waitFor(() => getByRole("menu", { name: "name column actions" }));
+    expect(within(menu).getAllByRole("menuitem").map((el) => el.textContent)).toEqual([
+      "Sort ascending",
+      "Sort descending",
+      "Copy name",
+      "Edit column",
+      "Freeze column",
+      "Delete column",
+    ]);
+    await press(within(menu).getByRole("menuitem", { name: "Edit column" }));
+    await waitFor(() => expect(getByRole("dialog", { name: "name" })).toBeTruthy());
+  });
+
+  it("열 ⌄ → 내림차순 정렬 = 보기만 (문서 쓰기 없음) · 정렬 해제 · 열 고정 · 열 삭제는 확인 뒤 remove_field 한 번", async () => {
+    const { container, getByRole, queryByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const names = () =>
+      [...container.querySelectorAll(".datagrid-cell[data-field-key='name']")].map(
+        (el) => el.textContent,
+      );
+    expect(names()).toEqual(["Ann", "Bob"]);
+    const openMenu = async (key: string) => {
+      await press(getByRole("button", { name: `${key} column actions` }));
+      return waitFor(() => getByRole("menu", { name: `${key} column actions` }));
+    };
+
+    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Sort descending" }));
+    await waitFor(() => expect(names()).toEqual(["Bob", "Ann"]));
+    expect(container.querySelector(".datagrid-column-sort[data-direction='descending']")).not.toBeNull();
+    // Bob keeps its stored index — the cell still addresses row 1.
+    expect(cell(container, 1, "name").textContent).toBe("Bob");
+    expect(applyDataChange).not.toHaveBeenCalled();
+    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Remove sort" }));
+    await waitFor(() => expect(names()).toEqual(["Ann", "Bob"]));
+
+    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Freeze column" }));
+    await waitFor(() =>
+      expect(container.querySelector(".datagrid-cell[data-field-key='age'][data-frozen='last']")).not.toBeNull(),
+    );
+    expect(
+      within(await openMenu("age")).getByRole("menuitem", { name: "Unfreeze column" }),
+    ).toBeTruthy();
+    await act(async () => {
+      fireEvent.keyDown(getByRole("menu", { name: "age column actions" }), { key: "Escape" });
+    });
+
+    await press(within(await openMenu("tags")).getByRole("menuitem", { name: "Delete column" }));
+    const confirm = await waitFor(() => getByRole("alertdialog"));
+    expect(confirm.textContent).toContain('Deletes column "tags"');
+    expect(applyDataChange).not.toHaveBeenCalled();
+    await press(within(confirm).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([{ op: "remove_field", collectionId: "c1", fieldId: "f-tags" }]);
+    await waitFor(() => expect(queryByRole("alertdialog")).toBeNull());
   });
 });
 

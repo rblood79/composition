@@ -28,3 +28,22 @@
 .datatable-field-form .control-button[data-tone="danger"] {
   color: var(--negative);
 }
+
+/* ADR-289 Decision 3 — four sections in one popover: the sections stack with no gap between
+   them (each `.section` draws its own header row). */
+.datatable-field-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.datatable-field-note {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+.datatable-field-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+}

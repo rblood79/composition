@@ -22,12 +22,25 @@
  */
 import type { DataOp } from "@composition/shared";
 
-import { ChevronDown, Download, Search, Upload, X } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  ChevronDown,
+  Download,
+  Maximize2,
+  Pencil,
+  Pin,
+  PinOff,
+  Search,
+  Upload,
+  X,
+} from "lucide-react";
 
 import Papa from "papaparse";
 
 import {
   memo,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -48,7 +61,12 @@ import { Dialog } from "react-aria-components/Dialog";
 
 import { Heading } from "react-aria-components/Heading";
 
-import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import {
+  Menu,
+  MenuItem,
+  MenuTrigger,
+  Separator,
+} from "react-aria-components/Menu";
 
 import { Popover } from "react-aria-components/Popover";
 
@@ -67,11 +85,15 @@ import {
   TableBody,
   TableHeader,
   TableStateContext,
-  useTableOptions,
-  type Selection,
 } from "react-aria-components/Table";
 
-import { TableLayout, Virtualizer } from "react-aria-components/Virtualizer";
+import {
+  TableLayout,
+  type TableLayoutProps,
+  Virtualizer,
+} from "react-aria-components/Virtualizer";
+import type { InvalidationContext } from "react-stately/useVirtualizerState";
+import type { Key } from "react-aria-components/Table";
 
 import { useOptionalI18n } from "../../../../i18n";
 
@@ -91,7 +113,16 @@ import { globalToast } from "../../../stores/toast";
 
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 
-import { ColumnEditorPopover } from "./ColumnEditorPopover";
+import {
+  ColumnCreatePopover,
+  ColumnDeleteDialog,
+  ColumnEditorPopover,
+} from "./ColumnEditorPopover";
+import { sortGridItems, type GridSort } from "./gridSort";
+
+import { RowForm, type RowFormMode } from "./RowForm";
+
+import { openRowFormTarget } from "./rowFormTarget";
 
 import { planFieldRename } from "../utils/fieldRename";
 
@@ -122,16 +153,17 @@ import {
   ColumnHeadProps,
   ColumnRenameInputProps,
   CommitMove,
+  CopyIcon,
   DataGridCellProps,
   DataGridProps,
   DeleteIcon,
   EditingState,
   GRID_ROW_HEIGHT,
   SELECT_COLUMN,
+  SELECT_COLUMN_WIDTH,
   cellId,
   coordOf,
   isReadonlyField,
-  nextRowId,
   resolveScroller,
   useDisableGridNavigation,
 } from "./DataGrid.runtime";
@@ -159,17 +191,33 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const [invalidCells, setInvalidCells] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+  // Row selection is the checkbox column's own state (Supabase 어법, 사용자 결정 2026-10-29):
+  // a cell click only focuses that cell, rows are selected by their checkbox (and the header
+  // checkbox) only. RAC Table selection stays off — in `toggle` mode a row press selects the
+  // row, and RAC 1.22 Table has no checkbox-only option (`itemBehavior` is ListBox only).
+  const [selectedIndexes, setSelectedIndexes] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
   const [filterText, setFilterText] = useState("");
+  // Column ⌄ menu view state (Supabase 어법) — not written to the document.
+  const [sort, setSort] = useState<GridSort | null>(null);
+  const [frozenKeys, setFrozenKeys] = useState<readonly string[]>([]);
   const [pendingPaste, setPendingPaste] = useState<GridPastePlan | null>(null);
   const [focusRequest, setFocusRequest] = useState<CellCoord | null>(null);
   const [importRows, setImportRows] = useState<
     Record<string, unknown>[] | null
   >(null);
   const [addingField, setAddingField] = useState(false);
+  // ADR-289 Decision 1 — the row form (Insert row… · ↗ Update row · Shift+Enter) beside the grid.
+  const [rowForm, setRowForm] = useState<RowFormMode | null>(null);
+  const [rowFormNonce, setRowFormNonce] = useState(0);
   // 입력은 uncontrolled — 값은 DOM 이 갖고, 열기·추가마다 nonce 로 입력 key 를 바꿔 신선한
   // 빈 입력을 받는다 (연속 추가).
   const [addNonce, setAddNonce] = useState(0);
+  // ADR-289 Decision 3 — `Insert ▾ → Insert column…` opens the column editor's create mode under
+  // the `+` slot (the slot's inline name input stays the quick path).
+  const [creatingField, setCreatingField] = useState(false);
+  const addSlotRef = useRef<HTMLDivElement>(null);
   // 새 필드 슬롯의 x — 마지막 열 오른쪽 (열이 뷰포트 안이면) 또는 뷰포트 오른쪽 가장자리
   const [addSlotLeft, setAddSlotLeft] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -292,17 +340,48 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   );
   const items = useMemo(() => {
     const term = filterText.trim().toLowerCase();
-    if (term === "") return searchable;
-    return searchable.filter(({ haystack }) => haystack.includes(term));
-  }, [searchable, filterText]);
+    const filtered =
+      term === ""
+        ? searchable
+        : searchable.filter(({ haystack }) => haystack.includes(term));
+    const sortField = sort && schema.find((f) => f.key === sort.key);
+    return sortField
+      ? sortGridItems(filtered, sortField, sort!.direction)
+      : filtered;
+  }, [searchable, filterText, sort, schema]);
 
+  // Frozen columns come first (after the checkbox column) so a pinned column sticks at its own
+  // left offset — the layout pins them (`FrozenTableLayout`). Keys of deleted fields drop out.
+  const frozen = useMemo(
+    () => schema.filter((f) => frozenKeys.includes(f.key)).map((f) => f.key),
+    [schema, frozenKeys],
+  );
   const columns = useMemo(
     () => [
       { id: SELECT_COLUMN, field: null as DataField | null },
-      ...schema.map((field) => ({ id: field.key, field })),
+      ...schema
+        .filter((field) => frozen.includes(field.key))
+        .map((field) => ({ id: field.key, field })),
+      ...schema
+        .filter((field) => !frozen.includes(field.key))
+        .map((field) => ({ id: field.key, field })),
     ],
-    [schema],
+    [schema, frozen],
   );
+  const frozenMark = useCallback(
+    (key: string): "true" | "last" | undefined =>
+      frozen.includes(key)
+        ? frozen[frozen.length - 1] === key
+          ? "last"
+          : "true"
+        : undefined,
+    [frozen],
+  );
+  const toggleFreeze = useCallback((key: string) => {
+    setFrozenKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }, []);
 
   // 새 필드 슬롯 위치 — 가로 스크롤러 (가상화면 Table 자신, 아니면 컨테이너) 의 콘텐츠 폭·scrollLeft
   // 로 계산. left = min(콘텐츠 끝 − scrollLeft, 뷰포트 폭 − 슬롯 폭): 열이 다 보이면 마지막 열에
@@ -504,29 +583,65 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [collectionId, fieldByKey, fieldRef, rows, t, write],
   );
 
-  const addRow = useCallback(async () => {
-    const row: Record<string, unknown> = {};
-    for (const field of schema) {
-      row[field.key] = isReadonlyField(field)
-        ? nextRowId(rows, field.type)
-        : (field.defaultValue ?? null);
-    }
-    const at = rows.length;
-    const ok = await write([
-      { op: "insert_rows", collectionId, rows: [row], at },
-    ]);
-    if (!ok) return;
-    announceDataPanelStatus(t("gridRowAdded"), { tone: "success" });
-    const first = schema.find((f) => !isReadonlyField(f)) ?? schema[0];
-    if (first) setFocusRequest({ rowIndex: at, key: first.key });
-  }, [collectionId, rows, schema, t, write]);
+  // ADR-289 — Insert row… opens the form (사용자 결정 2); an empty save is the old empty row.
+  const openInsertForm = useCallback(() => {
+    setRowForm({ kind: "insert" });
+    setRowFormNonce((n) => n + 1);
+  }, []);
+  const openUpdateForm = useCallback(
+    (rowIndex: number) => {
+      if (rowIndex < 0 || rowIndex >= rows.length) return;
+      setRowForm({
+        kind: "update",
+        rowIndex,
+        opened: openRowFormTarget(table, rowIndex),
+      });
+      setRowFormNonce((n) => n + 1);
+    },
+    [rows.length, table],
+  );
+  const closeRowForm = useCallback(() => setRowForm(null), []);
+  const focusSavedRow = useCallback(
+    (rowIndex: number) => {
+      const first = schema.find((f) => !isReadonlyField(f)) ?? schema[0];
+      if (first) setFocusRequest({ rowIndex, key: first.key });
+    },
+    [schema],
+  );
 
-  const selectedRowIndexes = useMemo(() => {
-    if (selectedKeys === "all") return items.map((item) => item.index);
-    return [...selectedKeys]
-      .map((key) => Number(key))
-      .filter((n) => Number.isInteger(n));
-  }, [selectedKeys, items]);
+  const selectedRowIndexes = useMemo(
+    () =>
+      [...selectedIndexes]
+        .filter((index) => index < rows.length)
+        .sort((a, b) => a - b),
+    [selectedIndexes, rows.length],
+  );
+  const toggleRow = useCallback((index: number, selected: boolean) => {
+    setSelectedIndexes((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(index);
+      else next.delete(index);
+      return next;
+    });
+  }, []);
+  // The header checkbox covers the visible (filtered) rows only.
+  const allVisibleSelected =
+    items.length > 0 && items.every((item) => selectedIndexes.has(item.index));
+  const someVisibleSelected =
+    !allVisibleSelected && items.some((item) => selectedIndexes.has(item.index));
+  const toggleVisibleRows = useCallback(
+    (selected: boolean) => {
+      setSelectedIndexes((prev) => {
+        const next = new Set(prev);
+        for (const item of items) {
+          if (selected) next.add(item.index);
+          else next.delete(item.index);
+        }
+        return next;
+      });
+    },
+    [items],
+  );
 
   const deleteSelected = useCallback(async () => {
     if (selectedRowIndexes.length === 0) return;
@@ -534,7 +649,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       { op: "remove_rows", collectionId, rowIndexes: selectedRowIndexes },
     ]);
     if (!ok) return;
-    setSelectedKeys(new Set());
+    setSelectedIndexes(new Set());
     announceDataPanelStatus(
       t("gridRowsDeleted", { count: selectedRowIndexes.length }),
       { tone: "success" },
@@ -627,9 +742,13 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         e.preventDefault();
         e.stopPropagation();
         void clearCell(coord);
+      } else if (action.type === "open-row") {
+        e.preventDefault();
+        e.stopPropagation();
+        openUpdateForm(coord.rowIndex);
       }
     },
-    [clearCell, startEdit],
+    [clearCell, openUpdateForm, startEdit],
   );
 
   const handleFileSelect = useCallback(
@@ -683,36 +802,104 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [t],
   );
 
-  const handleExportCSV = useCallback(() => {
-    if (rows.length === 0) return;
-    const csv = Papa.unparse(rows, { columns: schema.map((f) => f.key) });
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${table.name || "data"}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [rows, schema, table.name]);
+  // ADR-289 Decision 4 — the selection bar: Copy ▾ (CSV · JSON → clipboard) · Export ▾ (the
+  // selected rows as a file) · Delete N rows. Without a selection Export ▾ is the whole table.
+  const serializeRows = useCallback(
+    (subset: readonly Record<string, unknown>[], format: "csv" | "json") =>
+      format === "csv"
+        ? // Structure values as JSON text (what a paste parses back) — Papa would join an array.
+          Papa.unparse(
+            subset.map((row) =>
+              Object.fromEntries(
+                schema.map((f) => {
+                  const value = row[f.key];
+                  return [
+                    f.key,
+                    typeof value === "object" && value !== null
+                      ? formatCellValue(value)
+                      : value,
+                  ];
+                }),
+              ),
+            ),
+            { columns: schema.map((f) => f.key) },
+          )
+        : JSON.stringify(subset, null, 2),
+    [schema],
+  );
+  const exportRows = useCallback(
+    (
+      subset: readonly Record<string, unknown>[],
+      format: "csv" | "json",
+      suffix = "",
+    ) => {
+      if (subset.length === 0) return;
+      const text = serializeRows(subset, format);
+      const blob = new Blob([text], {
+        type:
+          format === "csv"
+            ? "text/csv;charset=utf-8;"
+            : "application/json;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${table.name || "data"}${suffix}.${format}`;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    [serializeRows, table.name],
+  );
+  const selectedRows = useMemo(
+    () => selectedRowIndexes.map((index) => rows[index]).filter(Boolean),
+    [selectedRowIndexes, rows],
+  );
+  const copySelected = useCallback(
+    async (format: "csv" | "json") => {
+      if (selectedRows.length === 0) return;
+      try {
+        await navigator.clipboard.writeText(serializeRows(selectedRows, format));
+        announceDataPanelStatus(
+          t("gridRowsCopied", { count: selectedRows.length }),
+          { tone: "success" },
+        );
+      } catch {
+        globalToast.error(t("gridCopyFailed"));
+      }
+    },
+    [selectedRows, serializeRows, t],
+  );
 
   const tableNode = (
     <Table
       aria-label={table.name}
       className="datagrid-table"
       keyboardNavigationBehavior="tab"
-      selectionMode="multiple"
-      selectionBehavior="toggle"
-      selectedKeys={selectedKeys}
-      onSelectionChange={setSelectedKeys}
+      selectionMode="none"
     >
       <TableHeader
         columns={columns}
         // RAC 는 render 함수 결과를 캐시한다 — 인라인 rename 상태가 헤더에 반영되려면 의존성 선언
-        dependencies={[renamingKey, commitRename, t]}
+        dependencies={[
+          renamingKey,
+          commitRename,
+          t,
+          allVisibleSelected,
+          someVisibleSelected,
+          toggleVisibleRows,
+          sort,
+          frozenMark,
+          toggleFreeze,
+        ]}
       >
         {(column) =>
           column.id === SELECT_COLUMN ? (
-            <SelectColumn label={t("gridSelectAllRows")} />
+            <SelectColumn
+              label={t("gridSelectAllRows")}
+              isSelected={allVisibleSelected}
+              isIndeterminate={someVisibleSelected}
+              onChange={toggleVisibleRows}
+            />
           ) : (
             <Column
               id={column.id}
@@ -720,6 +907,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               defaultWidth={140}
               minWidth={72}
               className="datagrid-column"
+              data-frozen={frozenMark(column.id)}
             >
               <ColumnHead
                 field={column.field!}
@@ -730,6 +918,16 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                 onStartRename={() => setRenamingKey(column.field!.key)}
                 onCancelRename={() => setRenamingKey(null)}
                 onCommitRename={(raw) => void commitRename(column.field!, raw)}
+                sortDirection={
+                  sort?.key === column.field!.key ? sort.direction : null
+                }
+                onSort={(direction) =>
+                  setSort(
+                    direction ? { key: column.field!.key, direction } : null,
+                  )
+                }
+                frozen={frozen.includes(column.field!.key)}
+                onToggleFreeze={() => toggleFreeze(column.field!.key)}
               />
               <ColumnResizer className="datagrid-column-resizer" />
             </Column>
@@ -738,7 +936,16 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       </TableHeader>
       <TableBody
         items={items}
-        dependencies={[editing, invalidCells, schema, gridId]}
+        dependencies={[
+          editing,
+          invalidCells,
+          schema,
+          gridId,
+          openUpdateForm,
+          selectedIndexes,
+          toggleRow,
+          frozenMark,
+        ]}
         renderEmptyState={() => (
           <div className="datagrid-empty">
             {t("gridNoRows", {
@@ -751,17 +958,41 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           <Row
             id={item.id}
             columns={columns}
-            dependencies={[editing, invalidCells, item.row, gridId]}
+            dependencies={[
+              editing,
+              invalidCells,
+              item.row,
+              gridId,
+              openUpdateForm,
+              selectedIndexes,
+              toggleRow,
+              frozenMark,
+            ]}
             className="datagrid-row"
+            data-checked={selectedIndexes.has(item.index) || undefined}
           >
             {(column) =>
               column.id === SELECT_COLUMN ? (
                 <Cell className="datagrid-cell datagrid-cell-select">
+                  {/* slot={null} opts out of the Row's RAC selection slot (selection is off). */}
                   <Checkbox
+                    slot={null}
                     size="S"
                     aria-label={t("gridSelectRow")}
                     className="datagrid-checkbox"
+                    isSelected={selectedIndexes.has(item.index)}
+                    onChange={(selected) => toggleRow(item.index, selected)}
                   />
+                  {/* ADR-289 (사용자 결정 4) — ↗ opens the row form on this row; shown on row
+                      hover · focus, outside the tab order (the grid stays one tab stop). */}
+                  <Button
+                    className="datagrid-row-open"
+                    aria-label={t("openRow")}
+                    excludeFromTabOrder
+                    onPress={() => openUpdateForm(item.index)}
+                  >
+                    <Maximize2 size={iconSmall.size} />
+                  </Button>
                 </Cell>
               ) : (
                 <DataGridCell
@@ -782,6 +1013,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                   onStartEdit={startEdit}
                   onCommit={commitEdit}
                   onCancel={endEdit}
+                  frozen={frozenMark(column.field!.key)}
                   hint={t}
                 />
               )
@@ -835,14 +1067,36 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               row · column · CSV import — in place of the footer's Add row and the toolbar's
               Import. With rows selected the bar swaps to `Delete N rows` (the selection toolbar). */}
           {selectedRowIndexes.length > 0 ? (
-            <Button
-              className="control-button"
-              data-tone="danger"
-              onPress={() => void deleteSelected()}
-            >
-              <DeleteIcon {...iconEditProps} />
-              {t("gridDeleteRows", { count: selectedRowIndexes.length })}
-            </Button>
+            <>
+              <ToolbarMenu
+                label={t("copyRows")}
+                icon={<CopyIcon {...iconEditProps} />}
+                items={[
+                  { id: "csv", label: t("copyCsv") },
+                  { id: "json", label: t("copyJson") },
+                ]}
+                onAction={(id) => void copySelected(id as "csv" | "json")}
+              />
+              <ToolbarMenu
+                label={t("export")}
+                icon={<Download {...iconEditProps} />}
+                items={[
+                  { id: "csv", label: t("exportSelectedCsv") },
+                  { id: "json", label: t("exportSelectedJson") },
+                ]}
+                onAction={(id) =>
+                  exportRows(selectedRows, id as "csv" | "json", "-selected")
+                }
+              />
+              <Button
+                className="control-button"
+                data-tone="danger"
+                onPress={() => void deleteSelected()}
+              >
+                <DeleteIcon {...iconEditProps} />
+                {t("gridDeleteRows", { count: selectedRowIndexes.length })}
+              </Button>
+            </>
           ) : (
             <MenuTrigger>
               <Button
@@ -862,8 +1116,8 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                   aria-label={t("insert")}
                   disabledKeys={schema.length === 0 ? ["row"] : []}
                   onAction={(key) => {
-                    if (key === "row") void addRow();
-                    else if (key === "column") openAddField();
+                    if (key === "row") openInsertForm();
+                    else if (key === "column") setCreatingField(true);
                     else if (key === "csv") fileInputRef.current?.click();
                   }}
                 >
@@ -893,15 +1147,18 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               </Popover>
             </MenuTrigger>
           )}
-          <Button
-            className="control-button"
-            onPress={handleExportCSV}
-            isDisabled={rows.length === 0}
-            aria-label={t("exportCsv")}
-          >
-            <Download {...iconEditProps} />
-            {t("export")}
-          </Button>
+          {selectedRowIndexes.length === 0 && (
+            <ToolbarMenu
+              label={t("export")}
+              icon={<Download {...iconEditProps} />}
+              isDisabled={rows.length === 0}
+              items={[
+                { id: "csv", label: t("exportCsv") },
+                { id: "json", label: t("exportJson") },
+              ]}
+              onAction={(id) => exportRows(rows, id as "csv" | "json")}
+            />
+          )}
         </div>
       </div>
       {filterText && (
@@ -925,14 +1182,16 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           }}
         />
       )}
+      <div className="datagrid-split" data-form={rowForm ? "true" : undefined}>
       <div className="datagrid-scroll-wrap">
         {virtualized ? (
           <ResizableTableContainer className="datagrid-scroll">
-            <Virtualizer
-              layout={TableLayout}
+            <Virtualizer<FrozenLayoutOptions>
+              layout={FrozenTableLayout}
               layoutOptions={{
                 rowHeight: GRID_ROW_HEIGHT,
                 headingHeight: GRID_ROW_HEIGHT,
+                frozenColumns: frozen.join("\0"),
               }}
             >
               {tableNode}
@@ -945,6 +1204,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         )}
         {/* 새 필드 슬롯 — 헤더 행 높이, 마지막 열 오른쪽 / 뷰포트 오른쪽 가장자리 (가시성) */}
         <div
+          ref={addSlotRef}
           className="datagrid-add-field-slot"
           data-adding={String(addingField)}
           style={{ left: addSlotLeft }}
@@ -980,6 +1240,22 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           )}
         </div>
       </div>
+      <ColumnCreatePopover
+        table={table}
+        triggerRef={addSlotRef}
+        isOpen={creatingField}
+        onOpenChange={setCreatingField}
+      />
+      {rowForm && (
+        <RowForm
+          key={`${rowForm.kind}-${rowForm.kind === "update" ? rowForm.rowIndex : ""}-${rowFormNonce}`}
+          table={table}
+          mode={rowForm}
+          onClose={closeRowForm}
+          onSaved={focusSavedRow}
+        />
+      )}
+      </div>
       <ConfirmDialog
         isOpen={pendingPaste !== null}
         title={t("gridPasteExtraTitle")}
@@ -1010,6 +1286,122 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   );
 }
 
+interface FrozenLayoutOptions extends TableLayoutProps {
+  /** Frozen field keys joined by `\0` — a string so the layout can compare it cheaply. */
+  frozenColumns?: string;
+}
+
+/**
+ * RAC `TableLayout` with pinned columns — the checkbox column and the frozen fields are sticky
+ * (`isStickyColumn` is the layout's subclass hook; S2 TableView pins its checkbox the same way).
+ * Sticky cells keep their own left offset, so the frozen fields are ordered first (`columns`).
+ */
+class FrozenTableLayout<T> extends TableLayout<T, FrozenLayoutOptions> {
+  private frozen: ReadonlySet<string> = new Set();
+
+  shouldInvalidateLayoutOptions(
+    newOptions: FrozenLayoutOptions,
+    oldOptions: FrozenLayoutOptions,
+  ): boolean {
+    return (
+      newOptions.frozenColumns !== oldOptions.frozenColumns ||
+      super.shouldInvalidateLayoutOptions(newOptions, oldOptions)
+    );
+  }
+
+  update(invalidationContext: InvalidationContext<FrozenLayoutOptions>): void {
+    const keys = invalidationContext.layoutOptions?.frozenColumns;
+    this.frozen = new Set(keys ? keys.split("\0") : []);
+    super.update(invalidationContext);
+  }
+
+  // The header · body row groups clip by default (`overflow: hidden`), which makes each group the
+  // sticky cells' scroll container — they then scroll away with it. Opening the groups leaves the
+  // grid's scroller as the sticky container (rows already allow overflow).
+  protected buildTableHeader() {
+    const node = super.buildTableHeader();
+    node.layoutInfo.allowOverflow = true;
+    for (const row of node.children ?? []) row.layoutInfo.allowOverflow = true;
+    return node;
+  }
+
+  // Every body row group comes through here (`buildBody` and the sectioned collection path). The
+  // node type (`GridNode`) is not exported, so the parameter is widened and passed through.
+  protected buildRowGroup(y: number, node: unknown) {
+    const group = super.buildRowGroup(y, node as never);
+    group.layoutInfo.allowOverflow = true;
+    return group;
+  }
+
+  // Called for header columns and for body cells — a cell's key is `row:field`, so a cell reads
+  // its column by `colIndex ?? index` (the lookup `getRenderedColumnWidth` uses).
+  protected isStickyColumn(node: {
+    key: Key;
+    type: string;
+    index: number;
+    colIndex?: number | null;
+  }): boolean {
+    const columns = (
+      this.virtualizer?.collection as { columns?: readonly { key: Key }[] } | undefined
+    )?.columns;
+    const key =
+      node.type === "cell"
+        ? columns?.[node.colIndex ?? node.index]?.key
+        : node.key;
+    return key === SELECT_COLUMN || (key != null && this.frozen.has(String(key)));
+  }
+}
+
+/** A toolbar `Label ▾` menu — the Insert menu's sheet (row-menu visuals). */
+function ToolbarMenu({
+  label,
+  icon,
+  items,
+  onAction,
+  isDisabled,
+}: {
+  label: string;
+  icon: ReactNode;
+  items: readonly { id: string; label: string }[];
+  onAction: (id: string) => void;
+  isDisabled?: boolean;
+}) {
+  return (
+    <MenuTrigger>
+      <Button
+        className="control-button datagrid-insert-trigger"
+        aria-label={label}
+        isDisabled={isDisabled}
+      >
+        {icon}
+        {label}
+        <ChevronDown size={iconSmall.size} aria-hidden="true" />
+      </Button>
+      <Popover
+        className="react-aria-Popover property-select-popover property-row-menu-popover"
+        placement="bottom end"
+      >
+        <Menu
+          className="react-aria-Menu property-row-menu"
+          aria-label={label}
+          onAction={(key) => onAction(String(key))}
+        >
+          {items.map((item) => (
+            <MenuItem
+              key={item.id}
+              id={item.id}
+              className="react-aria-MenuItem"
+              textValue={item.label}
+            >
+              <span>{item.label}</span>
+            </MenuItem>
+          ))}
+        </Menu>
+      </Popover>
+    </MenuTrigger>
+  );
+}
+
 function ColumnHead({
   field,
   labelId,
@@ -1019,6 +1411,10 @@ function ColumnHead({
   onStartRename,
   onCancelRename,
   onCommitRename,
+  sortDirection,
+  onSort,
+  frozen,
+  onToggleFreeze,
 }: ColumnHeadProps) {
   const typeEntry = resolveFieldType(field.type);
   const TypeGlyph = typeEntry.icon;
@@ -1027,8 +1423,49 @@ function ColumnHead({
   // opens it on the type list. Esc · outside closes it (RAC Popover).
   const headRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<{ focus?: "type" } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const onOpenPanel = (options?: { focus?: "type" }) =>
     setEditor(options ?? {});
+  const SortGlyph =
+    sortDirection === "ascending"
+      ? ArrowUpNarrowWide
+      : sortDirection === "descending"
+        ? ArrowDownWideNarrow
+        : null;
+  // The ⌄ menu (Supabase 어법 — sort · copy name · edit · freeze · delete). The label and the type
+  // icon open the column editor; the menu is the column's actions, not a third way to the editor.
+  const onMenuAction = (id: string) => {
+    switch (id) {
+      case "sort-asc":
+        onSort("ascending");
+        break;
+      case "sort-desc":
+        onSort("descending");
+        break;
+      case "sort-clear":
+        onSort(null);
+        break;
+      case "copy-name":
+        void navigator.clipboard.writeText(field.key).then(
+          () =>
+            announceDataPanelStatus(
+              t("columnNameCopied", { key: field.key }),
+              { tone: "success" },
+            ),
+          () => globalToast.error(t("gridCopyFailed")),
+        );
+        break;
+      case "edit":
+        onOpenPanel();
+        break;
+      case "freeze":
+        onToggleFreeze();
+        break;
+      case "delete":
+        setDeleting(true);
+        break;
+    }
+  };
   return (
     <div
       ref={headRef}
@@ -1074,14 +1511,108 @@ function ColumnHead({
           {field.key}
         </Button>
       )}
-      <Button
-        className="datagrid-column-menu"
-        aria-label={t("fieldSettings")}
-        excludeFromTabOrder
-        onPress={() => onOpenPanel()}
-      >
-        <ChevronDown size={iconSmall.size} />
-      </Button>
+      {SortGlyph && (
+        <SortGlyph
+          className="datagrid-column-sort"
+          size={iconSmall.size}
+          aria-hidden="true"
+          data-direction={sortDirection}
+        />
+      )}
+      <MenuTrigger>
+        <Button
+          className="datagrid-column-menu"
+          aria-label={t("columnActions", { key: field.key })}
+          excludeFromTabOrder
+        >
+          <ChevronDown size={iconSmall.size} />
+        </Button>
+        <Popover
+          className="react-aria-Popover property-select-popover property-row-menu-popover"
+          placement="bottom end"
+        >
+          <Menu
+            className="react-aria-Menu property-row-menu datagrid-column-actions"
+            aria-label={t("columnActions", { key: field.key })}
+            onAction={(key) => onMenuAction(String(key))}
+          >
+            <MenuItem
+              id="sort-asc"
+              className="react-aria-MenuItem"
+              textValue={t("sortAscending")}
+              data-current={sortDirection === "ascending" || undefined}
+            >
+              <ArrowUpNarrowWide size={iconSmall.size} aria-hidden="true" />
+              <span>{t("sortAscending")}</span>
+            </MenuItem>
+            <MenuItem
+              id="sort-desc"
+              className="react-aria-MenuItem"
+              textValue={t("sortDescending")}
+              data-current={sortDirection === "descending" || undefined}
+            >
+              <ArrowDownWideNarrow size={iconSmall.size} aria-hidden="true" />
+              <span>{t("sortDescending")}</span>
+            </MenuItem>
+            {sortDirection && (
+              <MenuItem
+                id="sort-clear"
+                className="react-aria-MenuItem"
+                textValue={t("sortClear")}
+              >
+                <X size={iconSmall.size} aria-hidden="true" />
+                <span>{t("sortClear")}</span>
+              </MenuItem>
+            )}
+            <Separator className="datagrid-column-actions-separator" />
+            <MenuItem
+              id="copy-name"
+              className="react-aria-MenuItem"
+              textValue={t("columnCopyName")}
+            >
+              <CopyIcon size={iconSmall.size} aria-hidden="true" />
+              <span>{t("columnCopyName")}</span>
+            </MenuItem>
+            <MenuItem
+              id="edit"
+              className="react-aria-MenuItem"
+              textValue={t("columnEdit")}
+            >
+              <Pencil size={iconSmall.size} aria-hidden="true" />
+              <span>{t("columnEdit")}</span>
+            </MenuItem>
+            <MenuItem
+              id="freeze"
+              className="react-aria-MenuItem"
+              textValue={t(frozen ? "columnUnfreeze" : "columnFreeze")}
+            >
+              {frozen ? (
+                <PinOff size={iconSmall.size} aria-hidden="true" />
+              ) : (
+                <Pin size={iconSmall.size} aria-hidden="true" />
+              )}
+              <span>{t(frozen ? "columnUnfreeze" : "columnFreeze")}</span>
+            </MenuItem>
+            <Separator className="datagrid-column-actions-separator" />
+            <MenuItem
+              id="delete"
+              className="react-aria-MenuItem"
+              textValue={t("columnDelete")}
+              data-tone="danger"
+            >
+              <DeleteIcon size={iconSmall.size} aria-hidden="true" />
+              <span>{t("columnDelete")}</span>
+            </MenuItem>
+          </Menu>
+        </Popover>
+      </MenuTrigger>
+      {deleting && (
+        <ColumnDeleteDialog
+          table={table}
+          field={field}
+          onClose={() => setDeleting(false)}
+        />
+      )}
       <ColumnEditorPopover
         table={table}
         field={field}
@@ -1146,21 +1677,36 @@ function ColumnRenameInput({
 }
 
 // ============================================
-// 선택 열 헤더 — useTableOptions 는 TableHeader 안에서만
+// 선택 열 헤더 — 보이는 행 전체 선택 · 해제 (자체 상태, RAC 선택 slot 은 끔)
 // ============================================
 
-function SelectColumn({ label }: { label: string }) {
-  const { selectionMode } = useTableOptions();
+function SelectColumn({
+  label,
+  isSelected,
+  isIndeterminate,
+  onChange,
+}: {
+  label: string;
+  isSelected: boolean;
+  isIndeterminate: boolean;
+  onChange: (selected: boolean) => void;
+}) {
   return (
     <Column
       id={SELECT_COLUMN}
-      width={36}
-      minWidth={36}
+      width={SELECT_COLUMN_WIDTH}
+      minWidth={SELECT_COLUMN_WIDTH}
       className="datagrid-column datagrid-column-select"
     >
-      {selectionMode === "multiple" && (
-        <Checkbox size="S" aria-label={label} className="datagrid-checkbox" />
-      )}
+      <Checkbox
+        slot={null}
+        size="S"
+        aria-label={label}
+        className="datagrid-checkbox"
+        isSelected={isSelected}
+        isIndeterminate={isIndeterminate}
+        onChange={onChange}
+      />
     </Column>
   );
 }
@@ -1175,6 +1721,7 @@ const DataGridCell = memo(function DataGridCell({
   onStartEdit,
   onCommit,
   onCancel,
+  frozen,
   hint,
 }: DataGridCellProps) {
   const cellRef = useRef<HTMLTableCellElement | HTMLDivElement | null>(null);
@@ -1211,6 +1758,7 @@ const DataGridCell = memo(function DataGridCell({
       data-readonly={readonly || undefined}
       data-invalid={invalid || undefined}
       data-editing={editing ? editing.kind : undefined}
+      data-frozen={frozen}
       onDoubleClick={readonly ? undefined : () => onStartEdit(coord)}
     >
       {editing?.kind === "inline" ? (
@@ -1395,12 +1943,17 @@ function PopoverCellEditor({
         if (!open) cancel();
       }}
       placement="bottom start"
-      className="datagrid-popover"
+      // The shared `.react-aria-Popover` · `.react-aria-Dialog` sheets carry the surface (bg ·
+      // border · shadow · radius) — a bare class name would drop them (5174 실측 2026-10-29).
+      className="react-aria-Popover datagrid-popover"
     >
-      <Dialog className="datagrid-popover-dialog">
+      <Dialog className="react-aria-Dialog datagrid-popover-dialog">
         <div className="datagrid-popover-body" data-grid-editor="popover">
           <Heading slot="title" className="datagrid-popover-title">
             {hint("gridCellEditorTitle", { key: field.key })}
+            {hintKey && (
+              <span className="datagrid-popover-hint">{hint(hintKey)}</span>
+            )}
           </Heading>
           <textarea
             autoFocus
@@ -1416,7 +1969,8 @@ function PopoverCellEditor({
               setIsInvalid(false);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              // Supabase 어법: ⏎ saves, ⇧⏎ keeps the newline (⌘⏎ saves too), Esc cancels.
+              if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 void commit();
@@ -1430,9 +1984,20 @@ function PopoverCellEditor({
             }}
           />
           <div className="datagrid-popover-footer">
-            {hintKey && (
-              <span className="datagrid-popover-hint">{hint(hintKey)}</span>
-            )}
+            <div className="datagrid-popover-keys">
+              <span className="datagrid-popover-key">
+                <kbd>⏎</kbd>
+                {hint("gridKeySave")}
+              </span>
+              <span className="datagrid-popover-key">
+                <kbd>⇧⏎</kbd>
+                {hint("gridKeyNewline")}
+              </span>
+              <span className="datagrid-popover-key">
+                <kbd>Esc</kbd>
+                {hint("gridKeyCancel")}
+              </span>
+            </div>
             <Button className="control-button" onPress={cancel}>
               {i18n ? i18n.t("common.cancel") : "Cancel"}
             </Button>

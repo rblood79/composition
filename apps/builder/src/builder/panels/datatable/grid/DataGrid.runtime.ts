@@ -38,11 +38,17 @@ import "./DataGrid.css";
 
 export const AddIcon = ACTION_ICONS.add;
 
+/** ADR-289 — the selection bar's Copy ▾ (the registry's copy, shared with the inspector). */
+export const CopyIcon = ACTION_ICONS.copy;
+
 export const DeleteIcon = ACTION_ICONS.delete;
 
 export const GRID_ROW_HEIGHT = 28;
 
 export const SELECT_COLUMN = "__select";
+
+/** The select column — the checkbox and (ADR-289) the row's ↗ Open row button. */
+export const SELECT_COLUMN_WIDTH = 56;
 
 /** 새 필드 슬롯 폭 — 버튼 / 인라인 입력 */
 export const ADD_SLOT_WIDTH = 36;
@@ -139,6 +145,12 @@ export interface ColumnHeadProps {
   onStartRename: () => void;
   onCancelRename: () => void;
   onCommitRename: (raw: string) => void;
+  /** The column ⌄ menu (Supabase 어법) — a view sort on this column, or none. */
+  sortDirection: "ascending" | "descending" | null;
+  onSort: (direction: "ascending" | "descending" | null) => void;
+  /** Frozen = pinned to the left edge while the grid scrolls sideways (view state). */
+  frozen: boolean;
+  onToggleFreeze: () => void;
 }
 
 export interface ColumnRenameInputProps {
@@ -167,6 +179,8 @@ export interface DataGridCellProps {
     move: CommitMove,
   ) => Promise<boolean>;
   onCancel: (focus: CellCoord | null) => void;
+  /** Pinned column (`"last"` = the pinned group's right edge). */
+  frozen?: "true" | "last";
   hint: (
     key: string,
     params?: Record<string, string | number | boolean>,

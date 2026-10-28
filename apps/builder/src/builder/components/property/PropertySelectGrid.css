@@ -103,3 +103,22 @@
   font-size: var(--text-2xs);
   color: var(--fg-muted);
 }
+
+/* ADR-289 Decision 3 — an option with a one-line hint (the field type list): label over a muted
+   second line. Rows with a description grow past the 28 row; the ListBox scrolls as before. */
+.property-select__option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-block: var(--spacing-2xs);
+  line-height: var(--text-xs--line-height);
+}
+
+.property-select__option-description {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

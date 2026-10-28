@@ -11,6 +11,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 격자 — 행 선택은 체크박스로만 · 셀 클릭은 그 셀만] - 2026-10-29
+
+### Changed
+
+- **셀을 클릭하면 그 셀만 포커스되고 행은 선택되지 않는다** (Supabase Table Editor 어법, 사용자 결정 2026-10-29): 행 선택은 맨 앞 체크박스 (머리글 체크박스 = 보이는 행 전부) 로만 하고, 다중 선택도 체크박스로만 쌓인다. 선택 후 타이핑 · 더블클릭 → 셀 편집, `Shift+Enter` · ↗ → 행 양식, 선택 바 (복사 · 내보내기 · 삭제) 는 그대로. 전에는 RAC Table 의 `toggle` 선택이라 셀 클릭마다 행 전체가 파랗게 선택되고 클릭이 쌓였다. RAC 1.22 Table 에는 「체크박스로만」 옵션이 없어 (ListBox 의 `itemBehavior` 만) Table 선택을 끄고 (`selectionMode="none"`) 체크박스 열이 자기 상태 (`data-checked`) 를 가진다 — 행의 `aria-selected` 는 더 이상 나오지 않고 체크박스의 상태가 접근성 표면이다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` · `grid/DataGrid.css` · `grid/gridKeys.ts`
+
+### Fixed
+
+- **셀 포커스 테두리가 클릭에도 · 인라인 편집 중에도 보인다** (사용자 지적 2026-10-29 「permission 열의 셀만 편집 시 포커스가 나타난다」): 전에는 키보드 포커스에만 테두리가 있었고, 인라인 편집기의 흰 바탕이 셀 테두리를 덮어 목록 · 묶음 (팝오버) 열에서만 보였다. 이제 클릭한 셀에도 테두리가 있고 (Supabase 어법) 인라인 입력은 바탕이 투명해 테두리가 그대로 남는다. 숫자 열의 인라인 입력은 오른쪽 정렬이라 편집 들어갈 때 글자가 왼쪽으로 뛰지 않는다. 팝오버 편집 중 셀 글자가 8 px 왼쪽으로 밀리던 것 (편집 중 padding 0 이 팝오버 종류에도 걸림) 은 인라인 편집에만 걸도록 좁혔다.
+- **셀 팝오버 편집기 (JSON · 목록 · 긴 값) 에 바탕 · 테두리 · 그림자가 돌아왔다**: 팝오버의 class 가 RAC 기본 `react-aria-Popover` 를 대체해 공용 팝오버 시트가 닿지 않았다 — 열 편집기 팝오버와 같은 class 조합 · 폭 320 · 그림자.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`PopoverCellEditor`) · `grid/DataGrid.css`
+- **열 머리글 ⌄ 가 열 동작 메뉴가 된다** (사용자 지적 2026-10-29, Supabase 대조 — 「제목 · 타입 · ⌄ 가 모두 같은 팝오버」): ⌄ 는 `오름차순 정렬 · 내림차순 정렬 (· 정렬 해제) │ 이름 복사 · 열 편집 · 열 고정 │ 열 삭제` 메뉴이고, 제목 · 타입 아이콘은 지금처럼 열 편집 팝오버. 정렬은 보기만 바꾼다 (문서 순서 · 행 번호 · 편집 대상 그대로, 빈 칸은 끝, 숫자 인식 비교 — `grid/gridSort.ts`) 그리고 머리글에 방향 표시. 고정한 열은 체크박스 열 다음으로 모여 가로 스크롤 때 왼쪽에 남는다 — RAC `TableLayout` 의 `isStickyColumn` 확장 (체크박스 열도 늘 고정, 본문 · 머리글 묶음은 overflow 를 열어 sticky 기준이 격자 스크롤러가 되게). 정렬 · 고정은 패널 상태라 저장되지 않는다. 열 삭제는 항상 확인창 (쓰이는 곳이 있으면 그 수) 뒤 `remove_field` 한 번.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`ColumnHead` · `FrozenTableLayout`) · `grid/gridSort.ts` (새) · `grid/ColumnEditorPopover.tsx` (`ColumnDeleteDialog`) · `grid/DataGrid.css` · `apps/builder/src/i18n/translations.ts`
+- **행 여는 아이콘 = `maximize-2`** (사용자 지시 2026-10-29): 체크박스 옆 ↗ (`square-arrow-out-up-right`) 를 Supabase 의 펼치기 아이콘과 같은 `maximize-2` 로.
+- **격자 머리글 글자 14 · 열 메뉴 ⌄ 는 늘 보인다** (사용자 지적 2026-10-29): 공용 `Table.css` 가 `.react-aria-TableHeader` 에 16 을 주어 머리글만 본문 (12) 보다 훨씬 컸던 것을 격자 안에서 14 (`--text-sm`) 로. 열 머리글 오른쪽 ⌄ 는 hover 에서만 드러나던 것 (opacity 0) 을 없애 항상 보인다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.css`
+- **셀 팝오버 편집기가 키로도 저장 · 취소하고 그 안내를 보인다** (사용자 지적 2026-10-29, Supabase 대조): 단추 왼쪽에 `⏎ 변경 저장` · `⇧⏎ 줄 바꿈` · `Esc 변경 취소` 키 안내. `Enter` 가 저장 (전에는 `⌘Enter` 만 — 지금도 된다) 하고 `Shift+Enter` 가 줄 바꿈. 형식 안내 (JSON · 날짜) 는 제목 옆으로.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`PopoverCellEditor`) · `grid/DataGrid.css` · `apps/builder/src/i18n/translations.ts` (`datatable.gridKeySave/Newline/Cancel`)
+
+## [ADR-289 Phase 1 ~ 4 — 데이터 격자 행 양식 · 열 편집기 절 넷 · Insert column… · 선택 행 복사 · 내보내기] - 2026-10-29
+
+### Added
+
+- **행을 고르면 복사 · 내보내기 · 삭제** (ADR-289 Decision 4, Supabase 선택 바 대조): 격자 위 바가 `복사 ▾` (CSV · JSON 으로 클립보드) · `내보내기 ▾` (선택 행만 CSV · JSON 파일) · `Delete N rows` 로 바뀐다. 선택이 없을 때의 내보내기는 전체 CSV 에 JSON 이 더해졌다. CSV 의 목록 · 묶음 칸은 JSON 글자로 적혀 붙여넣기가 그대로 읽는다 (전에는 배열이 `a,b` 로 이어졌다).
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx`
+- **셀렉트 항목에 설명 둘째 줄** (`PropertySelect.descriptions`): 항목 값마다 설명 한 줄을 주면 라벨 아래 흐린 글자로 보이고, 트리거에는 라벨만 남는다. 열 유형 목록이 첫 소비자.
+  - 위치: `apps/builder/src/builder/components/property/PropertySelect.components.tsx` · `PropertySelectGrid.css`
+- **열 편집기가 절 넷으로 읽히고, 유형마다 설명 한 줄이 붙는다** (ADR-289 Decision 3, 사용자 결정 3): 머리글 팝오버가 「이름 (필드 키 · 레이블) · 유형 (유형 · 기본값) · 규칙 (필수 · 참조 대상) · 사용처 (사용처 · 삭제)」 로 나뉘고, 유형 목록의 항목마다 「글자 — 이름 · 제목 · 설명」 같은 설명이 둘째 줄에 보인다. 기본값 칸은 유형에 맞는 입력 (켬/끔 · 숫자 · 날짜 · JSON …) 이고 값 그대로 저장한다 — 유형과 맞지 않는 글자는 「기본값이 유형과 맞지 않습니다.」 로 거절. 유형을 바꾸면 기본값을 새 유형으로 다시 읽고, 맞지 않으면 비우고 알린다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/ColumnEditorPopover.tsx` · `components/property/PropertySelect.components.tsx` (`descriptions`)
+- **`Insert ▾ → Insert column…` 으로 열을 한 번에 만든다**: 이름 · 유형 · 기본값 · 필수 · 참조 대상을 정해 「생성」 — 한 번의 변경. 「계속 추가」 를 켜면 팝오버가 비워진 채 남는다. 머리글 끝 `+` 의 인라인 이름 입력 (글자 열 · Enter 연속) 은 빠른 길로 그대로.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/ColumnEditorPopover.tsx` (`ColumnCreatePopover`) · `grid/DataGrid.components.tsx`
+
+- **행 하나를 한 화면에서 넣고 고친다** (ADR-289 Decision 1, Supabase Table Editor 대조 — 사용자 결정 1 · 2 · 4 · 5): `Insert ▾ → Insert row…` 가 격자 오른쪽에 360 px 양식을 연다 — 필수 열 먼저, 아래 「선택 항목 — 비워 두면 기본값」. 입력은 타입별 (글자는 자라는 칸, 숫자 · 날짜 · 날짜시각 · 이미지 미리보기 · JSON · 다른 표 행 고르기 · 켬/끔) 이고 비운 칸은 기본값이 들어간다 (placeholder 가 그 값을 보인다). 필수 칸이 비면 그 칸 아래 오류 + 포커스. 저장은 한 번의 변경 (Undo 한 번). 「계속 추가」 를 켜면 저장 뒤 양식이 비워진 채 남는다. 기존 행은 행에 마우스를 올리면 나오는 ↗ 또는 셀에서 `Shift+Enter` 로 같은 양식 (Update) — 손대지 않은 칸은 그대로, 지운 칸은 빈 값, 바뀐 칸만 한 번에 쓴다. 양식을 연 뒤 다른 곳에서 그 표의 행이 바뀌면 (삭제 · 삽입 · 편집 · 가져오기) 저장을 거절하고 입력을 지킨다. 본문이 680 px 보다 좁으면 양식이 격자 자리를 대신하고 ✕ 로 돌아온다. 저장 안 한 입력이 있을 때 Esc · ✕ 는 확인창.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/{RowForm,FieldValueInput}.tsx` (새) · `grid/{fieldDefault,rowFormValues,rowFormTarget}.ts` (새) · `grid/DataGrid.components.tsx` · `grid/gridKeys.ts` · `grid/DataGrid.css`
+
+### Changed
+
+- **번들** (ADR-289 Phase 4, 착수 HEAD `51fe50daa` 대비): Builder initial JS gzip +1,891 B (상한 +300 초과 — 전부 i18n `locales` chunk 의 새 키 (+1,786) 와 `PropertySelect.descriptions` (+110); 기능 코드는 datatable lazy chunk +4,855 B) · Preview +1 B. 수용 여부는 G5 사용자 판단.
+
+### Fixed
+
+- **열의 기본값이 타입을 지킨다** (ADR-289 Decision 2 — 리뷰 H1): Boolean 열의 기본값 `"true"` (글자) 가 새 행에 글자 그대로 들어가던 것이, 읽는 쪽 하나 (`resolveFieldDefault`) 가 타입이 맞는 값은 그대로 · 글자는 셀 편집과 같은 규칙으로 바꿔 넣는다 (`{ "enabled": true }` · `[1, 2]` · `[]` 도 그대로 — `[object Object]` · `1,2` 아님). 기존 문서는 고치지 않는다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/fieldDefault.ts`
+- **「필수」 가 처음으로 동작한다**: 지금까지 열의 「필수」 스위치는 저장만 되고 어디서도 쓰이지 않았다 — 행 양식이 저장할 최종 값으로 판정한다 (Insert 는 기본값을 채운 뒤, Update 는 그대로 두는 칸의 현재 값까지).
+
 ## [ADR-288 Implemented — 데이터 패널 하나로 · G6 사용자 확인 · 팝오버 폭 288] - 2026-10-29
 
 ### Fixed
