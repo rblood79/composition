@@ -1,0 +1,1 @@
+.site-settings-notice{font-size:var(--text-xs);color:var(--fg-muted)}.site-redirects,.site-sso-pages{display:flex;flex-direction:column;gap:var(--spacing-sm);min-width:0}.site-redirect-row .actions-site-redirect{align-self:end}.site-redirect-kind{grid-column:1 / -1;font-size:var(--text-xs);color:var(--fg-muted)}
