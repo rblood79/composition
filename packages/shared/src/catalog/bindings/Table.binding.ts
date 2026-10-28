@@ -61,6 +61,14 @@ export const tableBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
+      // S2 TableView `disallowEmptySelection` (2026-10-28 — the other collections' binding has it;
+      //   the design-data diff report found Table alone without). `CatalogTable` passes it to RAC's
+      //   Table; the rules' `clearSelection` · `deselectItem` guard reads it (`constraints.ts`).
+      disallowEmptySelection: {
+        kind: "boolean",
+        label: "Disallow Empty Selection",
+        section: "state",
+      },
       // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
       //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
       //   not there (`catalogTableSelectionPartHidden`).

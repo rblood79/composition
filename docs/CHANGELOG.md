@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Table 「Disallow Empty Selection」] - 2026-10-28
+
+### Added
+
+- **Table 도 마지막 선택을 지울 수 없게 할 수 있다**: S2 TableView 의 `disallowEmptySelection` 을 Table Property 의 Behavior 절에 추가했다. GridList · ListBox · TagGroup · ToggleButtonGroup · Tree 에는 이미 있었고 Table 만 빠져 있었다 (design-data 차이 보고서). 켜면 Preview · 게시 페이지에서 선택된 마지막 행을 다시 눌러도 선택이 남고, 규칙의 「전체 해제」 Do 는 실행되지 않고 이유를 알린다.
+  - 위치: `packages/shared/src/catalog/bindings/Table.binding.ts` · 테스트 `apps/builder/src/preview/catalog/__tests__/tableDisallowEmptySelection.test.tsx`
+
 ## [ADR-286 사이트 설정을 페이지 `<head>` 에 · 변수 편집기 모양 복구] - 2026-10-28
 
 ### Added

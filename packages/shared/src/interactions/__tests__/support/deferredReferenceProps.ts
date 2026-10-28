@@ -314,7 +314,6 @@ export const DEFERRED_REFERENCE_PROPS: Readonly<Record<string, string>> = {
   "TabList.items": NOT_IN_ACCEPTS,
   "Table.disabledBehavior": NOT_IN_ACCEPTS,
   "Table.disabledKeys": NOT_IN_ACCEPTS,
-  "Table.disallowEmptySelection": NOT_IN_ACCEPTS,
   "Table.dragAndDropHooks": NOT_IN_ACCEPTS,
   "Table.escapeKeyBehavior": NOT_IN_ACCEPTS,
   "Table.expandedKeys": NOT_IN_ACCEPTS,
