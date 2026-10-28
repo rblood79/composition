@@ -1467,6 +1467,10 @@ export interface TranslationKeys {
     siteFaviconLight: string;
     siteFaviconDark: string;
     siteSocialImage: string;
+    siteAppIcon: string;
+    siteAppIconHint: string;
+    siteAppName: string;
+    siteThemeColor: string;
     siteImageChoose: string;
     siteImageReplace: string;
     siteImageRemove: string;

@@ -9,8 +9,8 @@
  * 컴포넌트가 스스로 그리는 상태 문구는 `@composition/shared` 의 사전이 따로 갖는다 —
  * 이쪽은 셸, 저쪽은 컴포넌트라 수명과 소유가 다르다.
  */
-import { useEffect, useMemo } from "react";
-import { useLocale, useLocalizedStringFormatter } from "@react-aria/i18n";
+import { useMemo } from "react";
+import { useLocalizedStringFormatter } from "@react-aria/i18n";
 
 type StringVariables = Record<string, string | number | boolean> | undefined;
 
@@ -88,19 +88,4 @@ export function usePublishStrings(): PublishTranslate {
     () => (key, variables) => formatter.format(key, variables),
     [formatter],
   );
-}
-
-/**
- * 문서가 실제 언어를 말하게 한다.
- *
- * `index.html` 은 `lang="ko"` 로 고정돼 있었다 — 배포된 페이지가 어떤 방문자에게나
- * 한국어라고 주장하면 스크린리더 발음과 브라우저 번역 제안이 어긋난다. 문구를 고르는
- * 것과 **같은 locale** 을 쓰도록 `useLocale()` 에서 받아 세운다.
- */
-export function usePublishDocumentLanguage(): void {
-  const { locale, direction } = useLocale();
-  useEffect(() => {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = direction;
-  }, [locale, direction]);
 }

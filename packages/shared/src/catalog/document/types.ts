@@ -798,6 +798,12 @@ export interface CatalogSiteSettings {
   /** BCP 47 (`<html lang>`). */
   lang?: string;
   favicon?: { light?: CatalogAssetUrl; dark?: CatalogAssetUrl };
+  /** The installed app's icon (home screen · desktop shortcut — `apple-touch-icon` · manifest). */
+  appIcon?: CatalogAssetUrl;
+  /** The installed app's name (absent = the site title). */
+  appName?: string;
+  /** `#rrggbb` — the browser bar · installed app window (`theme-color` · manifest). */
+  themeColor?: string;
   socialImage?: CatalogAssetUrl;
   search?: { index: boolean; sitemap: boolean; robots: "allow" | "none" };
   redirects?: readonly CatalogSiteRedirect[];

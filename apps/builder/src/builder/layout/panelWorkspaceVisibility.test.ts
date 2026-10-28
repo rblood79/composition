@@ -108,6 +108,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
         "events",
         "history",
         "settings",
+        "site",
       ].map((id) => ({ id })),
     );
     mocks.storeState.panelWorkspaceLayout = {

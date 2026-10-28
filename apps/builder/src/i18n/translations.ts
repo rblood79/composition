@@ -1659,7 +1659,8 @@ const koKR: TranslationKeys = {
     toastAlign: "토스트 정렬",
     toastAlignCenter: "가운데",
     toastAlignEnd: "끝",
-    sitePublishPending: "이 설정은 문서에 저장됩니다 — 게시 사이트 반영은 준비 중입니다.",
+    sitePublishPending:
+      "제목 · 설명 · favicon · 언어 · 앱 아이콘은 Preview 와 게시 페이지에 적용됩니다 — 검색 · 리디렉션 · 접근 설정의 게시 반영은 준비 중입니다.",
     siteGeneral: "일반",
     siteSearch: "검색",
     siteAccessWho: "볼 수 있는 사람",
@@ -1671,6 +1672,11 @@ const koKR: TranslationKeys = {
     siteFaviconLight: "Favicon (밝은 화면)",
     siteFaviconDark: "Favicon (어두운 화면)",
     siteSocialImage: "공유 이미지",
+    siteAppIcon: "앱 아이콘",
+    siteAppIconHint:
+      "홈 화면 · 바탕화면에 설치할 때의 아이콘 — 정사각형 512px 이상 PNG 권장",
+    siteAppName: "앱 이름",
+    siteThemeColor: "테마 색",
     siteImageChoose: "이미지 선택…",
     siteImageReplace: "이미지 바꾸기…",
     siteImageRemove: "이미지 지우기",
@@ -4292,7 +4298,8 @@ const enUS: TranslationKeys = {
     toastAlign: "Toast Align",
     toastAlignCenter: "Center",
     toastAlignEnd: "End",
-    sitePublishPending: "Saved in the document — applying them to the published site is coming.",
+    sitePublishPending:
+      "Title, description, favicon, language and app icon apply to the Preview and the published page — search, redirects and access are coming.",
     siteGeneral: "General",
     siteSearch: "Search",
     siteAccessWho: "Who can view",
@@ -4304,6 +4311,11 @@ const enUS: TranslationKeys = {
     siteFaviconLight: "Favicon (light)",
     siteFaviconDark: "Favicon (dark)",
     siteSocialImage: "Social image",
+    siteAppIcon: "App icon",
+    siteAppIconHint:
+      "Shown when installed on a home screen or desktop — a square PNG of 512px or more",
+    siteAppName: "App name",
+    siteThemeColor: "Theme color",
     siteImageChoose: "Choose image…",
     siteImageReplace: "Replace image…",
     siteImageRemove: "Remove image",

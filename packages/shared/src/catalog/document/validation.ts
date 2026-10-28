@@ -492,6 +492,9 @@ function siteSettings(value: unknown, at: string): void {
       "description",
       "lang",
       "favicon",
+      "appIcon",
+      "appName",
+      "themeColor",
       "socialImage",
       "search",
       "redirects",
@@ -499,8 +502,14 @@ function siteSettings(value: unknown, at: string): void {
     ],
     at,
   );
-  for (const key of ["title", "description"] as const)
+  for (const key of ["title", "description", "appName"] as const)
     if (site[key] !== undefined) text(site[key], `${at}.${key}`);
+  if (
+    site.themeColor !== undefined &&
+    !/^#[0-9a-f]{6}$/i.test(string(site.themeColor, `${at}.themeColor`))
+  )
+    invalid("INVALID_THEME_COLOR", `${at}.themeColor`);
+  if (site.appIcon !== undefined) assetUrl(site.appIcon, `${at}.appIcon`);
   if (site.lang !== undefined) {
     const lang = string(site.lang, `${at}.lang`);
     if (!/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(lang))

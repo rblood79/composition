@@ -72,7 +72,7 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
   const { t } = useI18n();
   const pages = useCatalogPages();
   const text = useCallback(
-    (key: "title" | "description", value: string) => {
+    (key: "title" | "description" | "appName", value: string) => {
       const next = value.trim() || undefined;
       if (next !== site[key]) change({ [key]: next });
     },
@@ -150,6 +150,41 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
             });
           }}
         />
+      <SiteAssetField
+        label={t("settings.siteAppIcon")}
+        value={site.appIcon}
+        onChange={(appIcon) => change({ appIcon })}
+      />
+      <div className="site-settings-notice">{t("settings.siteAppIconHint")}</div>
+      <PropertyInput
+        label={t("settings.siteAppName")}
+        value={site.appName ?? ""}
+        placeholder={site.title || t("settings.siteTitlePlaceholder")}
+        onChange={(value) => text("appName", value)}
+      />
+      <div className="site-theme-color">
+        {/* Hex text — the Styles color picker needs the Styles panel's host. */}
+        <PropertyInput
+          label={t("settings.siteThemeColor")}
+          value={site.themeColor ?? ""}
+          placeholder="#ffffff"
+          onChange={(value) => {
+            const raw = value.trim().toLowerCase().replace(/^#?/, "#");
+            // `#rgb` → `#rrggbb`; the document holds `#rrggbb` (`theme-color` has no alpha).
+            const hex = /^#[0-9a-f]{3}$/.test(raw)
+              ? `#${[...raw.slice(1)].map((c) => c + c).join("")}`
+              : raw;
+            if (!value.trim()) change({ themeColor: undefined });
+            else if (/^#[0-9a-f]{6}$/.test(hex) && hex !== site.themeColor)
+              change({ themeColor: hex });
+          }}
+        />
+        <span
+          className="site-theme-swatch"
+          aria-hidden="true"
+          style={site.themeColor ? { background: site.themeColor } : undefined}
+        />
+      </div>
       <SiteAssetField
         label={t("settings.siteSocialImage")}
         value={site.socialImage}

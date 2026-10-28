@@ -18,7 +18,7 @@ export function CatalogPreviewApp({
   toast: CatalogPreviewToastBridge;
 }) {
   return (
-    <PreviewLocale>
+    <PreviewLocale session={session}>
       <CatalogToastProvider session={session}>
         <CatalogPreviewToasts toast={toast} />
         <CatalogPreviewDataProvider session={session}>

@@ -133,6 +133,30 @@ describe("ADR-286 site · page settings in the document", () => {
     expect(redirectFor(graph, "/other")).toBeUndefined();
   });
 
+  it("앱 아이콘 · 앱 이름 · 테마 색 — head 가 싣고 (앱 이름 없으면 사이트 제목), 테마 색은 #rrggbb 만", () => {
+    const graph = graphOf([text("a", "A")], ["a"]);
+    const icon = `asset:sha256-${"c".repeat(64)}` as const;
+    run(
+      graph,
+      setSiteSettings({
+        patch: { title: "Acme", appIcon: icon, themeColor: "#0a0b0c" },
+      }),
+    );
+    const page = project(graph).pageIds[0];
+    expect(siteHead(graph, page)).toMatchObject({
+      appIcon: icon,
+      appName: "Acme",
+      themeColor: "#0a0b0c",
+    });
+    run(graph, setSiteSettings({ patch: { appName: "Acme App" } }));
+    expect(siteHead(graph, page).appName).toBe("Acme App");
+    expect(
+      code(() =>
+        run(graph, setSiteSettings({ patch: { themeColor: "red" } })),
+      ),
+    ).toBe("INVALID_THEME_COLOR");
+  });
+
   it("RED 5: ProjectEntry.site.access 에 비밀 필드 (secret · password · certificate) 가 없다 — 스키마가 거부", () => {
     const source = readFileSync(
       resolve(__dirname, "../../document/types.ts"),

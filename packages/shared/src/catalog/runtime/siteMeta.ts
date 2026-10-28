@@ -27,6 +27,10 @@ export interface CatalogPageHead {
   lang?: string;
   favicon: { light?: CatalogAssetUrl; dark?: CatalogAssetUrl };
   socialImage?: CatalogAssetUrl;
+  /** The installed app: its icon, its name (the site title when unset) and the theme color. */
+  appIcon?: CatalogAssetUrl;
+  appName?: string;
+  themeColor?: string;
   /** `noindex` when the site or the page is kept out of search. */
   robots: "index" | "noindex";
 }
@@ -60,6 +64,11 @@ export function siteHead(reader: SiteReader, pageId: string): CatalogPageHead {
     ...resolvePageMeta(reader, pageId),
     ...(site.lang ? { lang: site.lang } : {}),
     favicon: { ...site.favicon },
+    ...(site.appIcon ? { appIcon: site.appIcon } : {}),
+    ...(site.appName || site.title
+      ? { appName: (site.appName || site.title) as string }
+      : {}),
+    ...(site.themeColor ? { themeColor: site.themeColor } : {}),
     robots: hidden ? "noindex" : "index",
   };
 }

@@ -29,6 +29,7 @@ const CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS = new Set<PanelId>([
   "theme",
   "user",
   "settings",
+  "site",
 ]);
 
 function currentPanelStageRect(): PanelWorkspaceRect | null {

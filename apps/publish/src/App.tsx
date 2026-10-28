@@ -14,6 +14,7 @@ import {
 import { buildCodeCatalogLibrary } from "../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type { EntryId } from "../../../packages/shared/src/catalog/document/types";
 import type { CatalogPreviewSession } from "../../../packages/shared/src/catalog/runtime/catalogPreviewSession";
+import { useCatalogDocumentHead } from "../../../packages/shared/src/catalog/runtime/documentHead";
 import {
   CatalogPreviewDataProvider,
   catalogPreviewLinkClick,
@@ -30,7 +31,7 @@ import {
 } from "./catalogProject";
 import { createPublishedSession } from "./catalogSession";
 import { PageNav } from "./components/PageNav";
-import { usePublishDocumentLanguage, usePublishStrings } from "./i18n";
+import { usePublishStrings } from "./i18n";
 import { PublishErrorBoundary } from "./PublishErrorBoundary";
 import "./styles/index.css";
 
@@ -61,6 +62,8 @@ interface PublishedProject {
   runtime: ReturnType<typeof catalogPreviewRuntime>;
   toast: CatalogPreviewToastBridge;
   key: number;
+  /** Loaded from an address that outlives this tab (not a dropped file · the Builder's blob:). */
+  installable: boolean;
   dispose: () => void;
 }
 
@@ -149,10 +152,16 @@ function PublishedView({
 
 /** 독립 파일 runtime. Builder store나 부모 window의 편집 상태를 읽지 않는다. */
 export function App() {
-  usePublishDocumentLanguage();
   const t = usePublishStrings();
   const [view, setView] = useState<PublishedProject>();
   const session = view?.session;
+  // ADR-286 — the site's title · description · favicon · language (else the visitor's locale) ·
+  // app icon, and a manifest when this address can be installed.
+  useCatalogDocumentHead(session, {
+    manifestStartUrl: view?.installable
+      ? location.href.split("#")[0]
+      : undefined,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const lifecycle = useRef({
@@ -196,6 +205,8 @@ export function App() {
           runtime,
           toast,
           key: own,
+          installable:
+            typeof source === "string" && !source.startsWith("blob:"),
           dispose: () => {
             runtime.dispose();
             loaded.dispose();
