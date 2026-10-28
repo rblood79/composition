@@ -6,9 +6,6 @@ afterEach(() => {
   delete window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS_DOM_ABORT__;
   delete window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__;
   delete document.documentElement.dataset.compositionAdr187Metrics;
-  document
-    .querySelectorAll("[data-adr187-metrics-command]")
-    .forEach((element) => element.remove());
   window.history.replaceState({}, "", "/");
   vi.resetModules();
 });
@@ -26,21 +23,13 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       counters: { rawInputCount: 0 },
     });
 
-    document
-      .querySelector<HTMLButtonElement>(
-        '[data-adr187-metrics-command="enable"]',
-      )
-      ?.click();
+    window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.enable();
     metrics.recordEditorPresentationRawInput();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: true,
       counters: { rawInputCount: 1 },
     });
-    document
-      .querySelector<HTMLButtonElement>(
-        '[data-adr187-metrics-command="snapshot"]',
-      )
-      ?.click();
+    document.dispatchEvent(new Event("composition:adr187-metrics-snapshot"));
     expect(
       JSON.parse(
         document.documentElement.dataset.compositionAdr187Metrics ?? "{}",
@@ -50,11 +39,7 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       counters: { rawInputCount: 1 },
     });
 
-    document
-      .querySelector<HTMLButtonElement>(
-        '[data-adr187-metrics-command="disable"]',
-      )
-      ?.click();
+    window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.disable();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: false,
       counters: { rawInputCount: 0 },

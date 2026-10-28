@@ -327,43 +327,4 @@ if (typeof document !== "undefined" && import.meta.env.DEV) {
     },
     { signal: controller.signal },
   );
-
-  const commands = {
-    disable: () =>
-      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.disable(),
-    enable: () =>
-      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.enable(),
-    reset: () =>
-      window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__?.reset(),
-    snapshot: () => undefined,
-  } as const;
-  for (const [commandIndex, [command, run]] of Object.entries(
-    commands,
-  ).entries()) {
-    const selector = `[data-adr187-metrics-command="${command}"]`;
-    let button = document.querySelector<HTMLButtonElement>(selector);
-    if (!button) {
-      button = document.createElement("button");
-      button.type = "button";
-      button.tabIndex = -1;
-      button.setAttribute("aria-hidden", "true");
-      button.dataset.adr187MetricsCommand = command;
-      document.documentElement.append(button);
-    }
-    Object.assign(button.style, {
-      border: "0",
-      height: "1px",
-      left: `${commandIndex}px`,
-      opacity: "0",
-      padding: "0",
-      position: "fixed",
-      top: "0",
-      width: "1px",
-      zIndex: "2147483647",
-    });
-    button.onclick = () => {
-      run();
-      writeDomSnapshot();
-    };
-  }
 }

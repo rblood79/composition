@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [개발용 계측 버튼 제거 — ADR-187 Phase 6 후속 정리] - 2026-10-28
+
+### Removed
+
+- **Builder dev의 숨김 버튼 4개 제거**: `<html>` 바로 아래에 생성하던 성능 계측 제어 버튼을 제거했다. 기존 계측 API와 DOM 이벤트는 유지한다.
+  - **Why:** 실제 측정 스크립트는 계측 API를 직접 사용하며 버튼을 호출하는 제품 경로가 없다.
+  - 위치: `apps/builder/src/builder/performance/editorPresentationPhase0Metrics.ts`
+
 ## [ADR-286 Phase 0 ~ 4 — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로] - 2026-10-28
 
 ### Added
