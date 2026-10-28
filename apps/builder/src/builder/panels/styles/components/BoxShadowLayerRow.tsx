@@ -1,10 +1,11 @@
 /**
  * BoxShadowLayerRow — Effect 절 Box Shadows 목록 행 (레이어 하나)
  *
- *   [swatch 16 · 「0 · 4 · 12 · 0」 · OUTER|INSET]  (팝오버 trigger → BoxShadowEditor)  |  [⋮]
+ *   [swatch · 「0 · 4 · 12 · 0」 (팝오버 trigger → BoxShadowEditor) · 제거 −]  |  [inset 토글]
  *
- * Fill 레이어 행과 같은 lrow 어법 (panel-ui 02, 2026-09-14). 28 열 ⋮ 는 inset/outer 전환 · 제거
- * (topology 변경 — presentation owner 가 거부하므로 절이 canonical commit 으로 보낸다).
+ * Fill 레이어 행과 같은 구조 (2026-10-28 사용자 결정 — 인스펙터 격자 3 · 3 | 1, 제거는 본문 안,
+ * 액션 칸은 inset 토글 하나, inset/outer 글자 꼬리표 없음 — 토글 아이콘이 상태를 보인다).
+ * inset 전환 · 제거는 topology 변경 — presentation owner 가 거부하므로 절이 canonical commit 으로 보낸다.
  */
 
 import { memo } from "react";
@@ -55,38 +56,34 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
 
   return (
     <div className="effect-layer-row" data-inset={layer.inset || undefined}>
-      <DialogTrigger>
-        <AriaButton
-          className="effect-layer-row__trigger"
-          aria-label={localize("Edit shadow layer")}
-        >
-          <ColorSwatch color={parseRacColorOrBlack(layer.color)} />
-          <span className="effect-layer-row__value">
-            {describeLayer(layer)}
-          </span>
-          <span className="effect-layer-row__tag" aria-hidden="true">
-            {layer.inset ? "inset" : "outer"}
-          </span>
-        </AriaButton>
-        <Popover
-          placement="bottom start"
-          className="box-shadow-popover"
-          hideArrow
-        >
-          <BoxShadowEditor
-            key={editorKey}
-            value={value}
-            layerIndex={layerIndex}
-            onCancel={editor.onCancel}
-            onCommit={editor.onCommit}
-            onPreview={editor.onPreview}
-            livePreview={editor.livePreview}
-          />
-        </Popover>
-      </DialogTrigger>
-      {/* 행 액션 그룹 — Fill 레이어 행과 같은 구조 [−][inset 토글] (28 그룹 안 20×20 둘, 2026-09-15).
-          종전 ⋮ 메뉴 (inset · remove) 를 버튼 둘로 */}
-      <div className="effect-layer-row__actions">
+      <div className="effect-layer-row__body">
+        <DialogTrigger>
+          <AriaButton
+            className="effect-layer-row__trigger"
+            aria-label={localize("Edit shadow layer")}
+          >
+            <ColorSwatch color={parseRacColorOrBlack(layer.color)} />
+            <span className="effect-layer-row__value">
+              {describeLayer(layer)}
+            </span>
+          </AriaButton>
+          <Popover
+            placement="bottom start"
+            className="box-shadow-popover"
+            hideArrow
+          >
+            <BoxShadowEditor
+              key={editorKey}
+              value={value}
+              layerIndex={layerIndex}
+              onCancel={editor.onCancel}
+              onCommit={editor.onCommit}
+              onPreview={editor.onPreview}
+              livePreview={editor.livePreview}
+            />
+          </Popover>
+        </DialogTrigger>
+        {/* 제거 — 목록 행의 「−」 (Fill 행과 같은 자리) */}
         <AriaButton
           className="effect-layer-row__action effect-layer-row__remove"
           onPress={() => onAction("remove", layerIndex)}
@@ -98,6 +95,9 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
             color={iconProps.color}
           />
         </AriaButton>
+      </div>
+      {/* 행 액션 칸 — inset 토글 하나 (28 열) */}
+      <div className="effect-layer-row__actions">
         <AriaToggleButton
           className="effect-layer-row__action effect-layer-row__inset"
           isSelected={Boolean(layer.inset)}

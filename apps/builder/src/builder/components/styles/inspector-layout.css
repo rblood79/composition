@@ -694,13 +694,15 @@
         }
       }
 
-      /* 레이어 행 — 액션 그룹 ([−][inset] 52) 이 28 열보다 넓어 1fr + auto (Fill 행과 같음) */
+      /* 레이어 행 — 인스펙터 격자 (3 · 3 | 1): 본문 두 칸 · 액션 칸 하나 (Fill 행과 같음,
+         2026-10-28 — 종전 [−][inset] 52 액션 그룹이 28 열을 넓혔다) */
       .effect-layer-row {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: var(--inspector-row-columns);
         grid-template-areas: none;
 
         > :first-child {
           grid-area: auto;
+          grid-column: 1 / 3;
         }
       }
     }

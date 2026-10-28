@@ -21,8 +21,9 @@
     color: var(--fg);
   }
 
-  /* 레이어 행 = 본문 28 그룹 (pad 4, 안쪽 20) + 액션 그룹 [−][inset] — Fill 레이어 행과 같은 구조
-     (2026-09-15 사용자 판정). 격자 열은 inspector-layout 의 effect 블록 (1fr auto). */
+  /* 레이어 행 = 본문 28 그룹 (pad 4, 안쪽 20 — 그림자 행은 제거 「−」 포함) + 액션 칸 하나 (inset
+     토글 · Blur 는 제거) — Fill 레이어 행과 같은 구조 (2026-10-28). 격자 열은 inspector-layout 의
+     effect 블록 (인스펙터 격자 3 · 3 | 1). */
   .effect-layer-row__trigger,
   .effect-layer-row__body {
     display: flex;
@@ -35,6 +36,18 @@
     background: var(--bg-muted);
     border-radius: var(--radius-md);
     color: var(--fg);
+  }
+
+  /* 그림자 행 — 본문 그룹 (muted 28) 안의 trigger 는 상자 없이 남은 폭을 차지 (Fill 행과 같음) */
+  .effect-layer-row__body:has(> .effect-layer-row__trigger) {
+    padding-inline-start: var(--spacing);
+  }
+
+  .effect-layer-row__body > .effect-layer-row__trigger {
+    flex: 1;
+    block-size: var(--text-xl);
+    padding: 0;
+    background: transparent;
   }
 
   .effect-layer-row__trigger {
@@ -114,17 +127,6 @@
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
     font-variant-numeric: tabular-nums;
-  }
-
-  /* outer / inset 꼬리표 (10 mono caps) */
-  .effect-layer-row__tag {
-    flex: none;
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    line-height: 1;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--fg-muted);
   }
 
   /* Blur 행의 scrub — 28 그룹 안 20 (Fill 행 scrub 과 같은 규칙, 2026-09-15) */

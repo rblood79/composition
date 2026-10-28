@@ -9,10 +9,11 @@
   gap: var(--spacing-sm);
 }
 
-/* TintGrid: swatch 28 · 6열 gap 8 (panel-ui 14 — 대조 B10; 종전 5열 1fr 라 실측 gap 17) */
+/* TintGrid: swatch 28 · 5열 gap 8 = 172 — 한 필드 칸 (176, 7칸 격자의 [6][ ]) 안에 든다
+   (2026-10-28 사용자 결정; 종전 6열 208 은 액션 칸을 침범했다 — panel-ui 14 의 gap 8 은 유지) */
 .tint-grid {
   display: grid;
-  grid-template-columns: repeat(6, var(--control-size));
+  grid-template-columns: repeat(5, var(--control-size));
   gap: var(--spacing-sm);
   padding: 0;
 }

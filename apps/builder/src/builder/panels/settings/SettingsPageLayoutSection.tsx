@@ -1,3 +1,4 @@
+import { LayoutArrowDown, LayoutArrowRight } from "lucide-react";
 import { useI18n } from "@/i18n";
 import {
   catalogPageColumnsChange,
@@ -8,6 +9,7 @@ import { PropertySizeToggle } from "../../components/property/PropertySizeToggle
 import { PropertySwitch } from "../../components/property/PropertySwitch";
 import { PropertyUnitInput } from "../../components/property/PropertyUnitInput";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   normalizePageLayoutDirection,
   type PageLayoutDirection,
@@ -28,10 +30,32 @@ export function SettingsPageLayoutSection() {
   // ADR-274: Auto = 기준 배율 (`40%`), Fixed = 개수 (`3`) — 같은 칸의 단위가 모드다.
   const columnsFieldValue = catalogPageColumnsFieldValue(layoutView);
 
+  // 가로 · 세로는 아이콘 (Layout 절의 방향 아이콘과 같음) — 176 칸에서 「Horizontal」 이 잘린다
+  //   (2026-10-28 사용자 결정). 글자는 접근 이름으로 남는다.
   const pageLayoutOptions = [
     { id: "auto", label: t("settings.pageLayoutAuto") },
-    { id: "horizontal", label: t("settings.pageLayoutHorizontal") },
-    { id: "vertical", label: t("settings.pageLayoutVertical") },
+    {
+      id: "horizontal",
+      label: t("settings.pageLayoutHorizontal"),
+      icon: (
+        <LayoutArrowRight
+          color={iconProps.color}
+          size={iconProps.size}
+          strokeWidth={iconProps.strokeWidth}
+        />
+      ),
+    },
+    {
+      id: "vertical",
+      label: t("settings.pageLayoutVertical"),
+      icon: (
+        <LayoutArrowDown
+          color={iconProps.color}
+          size={iconProps.size}
+          strokeWidth={iconProps.strokeWidth}
+        />
+      ),
+    },
   ];
 
   const handlePageLayoutChange = (value: string) => {

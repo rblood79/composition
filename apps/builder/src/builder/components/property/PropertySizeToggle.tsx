@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, type ReactNode } from "react";
 import type { Key } from "react-aria-components/Collection";
 import {
   ToggleButton,
@@ -17,17 +17,23 @@ interface PropertySizeToggleProps {
   className?: string;
   /** Size options: "3" = S/M/L, "5" = XS/S/M/L/XL */
   scale?: "3" | "5";
-  /** Custom options override (scale 무시) */
-  options?: { id: string; label: string }[];
+  /** Custom options override (scale 무시). `icon` 이 있으면 글자 대신 아이콘 — label 은 접근 이름 */
+  options?: SizeToggleOption[];
 }
 
-const SIZE_3 = [
+interface SizeToggleOption {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+}
+
+const SIZE_3: SizeToggleOption[] = [
   { id: "S", label: "S" },
   { id: "M", label: "M" },
   { id: "L", label: "L" },
 ];
 
-const SIZE_5 = [
+const SIZE_5: SizeToggleOption[] = [
   { id: "XS", label: "XS" },
   { id: "S", label: "S" },
   { id: "M", label: "M" },
@@ -71,17 +77,25 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
         onSelectionChange={handleChange}
         indicator
       >
-        {items.map((item) => (
-          <ToggleButton key={item.id} id={item.id}>
-            {i18n
-              ? translateKey(
-                  i18n.t,
-                  semanticLabelKeys[item.label] ?? item.label,
-                  item.label,
-                )
-              : item.label}
-          </ToggleButton>
-        ))}
+        {items.map((item) => {
+          const itemLabel = i18n
+            ? translateKey(
+                i18n.t,
+                semanticLabelKeys[item.label] ?? item.label,
+                item.label,
+              )
+            : item.label;
+          const icon = item.icon;
+          return (
+            <ToggleButton
+              key={item.id}
+              id={item.id}
+              aria-label={icon ? itemLabel : undefined}
+            >
+              {icon ?? itemLabel}
+            </ToggleButton>
+          );
+        })}
       </ToggleButtonGroup>
     </fieldset>
   );
