@@ -51,8 +51,11 @@ export const PropertyColorControl = memo(
     livePreview = false,
     onPresentationCancel,
     className,
+    placeholder,
     showValue = false,
   }: PropertyColorProps) {
+    // 값이 없으면 placeholder 색을 흐린 글자로 보인다 (값이 비면 견본이 검정으로 보여 「설정됨」 처럼 읽혔다)
+    const shown = value || placeholder || "";
     const i18n = useOptionalI18n();
     const displayLabel =
       label && i18n
@@ -97,9 +100,14 @@ export const PropertyColorControl = memo(
                 : "Color")
             }
           >
-            <ColorSwatch color={parseRacColorOrBlack(value)} />
+            <ColorSwatch color={parseRacColorOrBlack(shown)} />
             {showValue && (
-              <span className="color-swatch-value">{toDisplayHex(value)}</span>
+              <span
+                className="color-swatch-value"
+                data-placeholder={(!value && placeholder) || undefined}
+              >
+                {toDisplayHex(shown)}
+              </span>
             )}
           </AriaButton>
           {/* 전용 클래스 — 공용 Popover/타 popover 무영향으로 inset 을 이 popover 만 소유.
@@ -108,7 +116,7 @@ export const PropertyColorControl = memo(
             <ColorPickerPanel
               // 요소 전환 시에만 외부 value 로 재동기화 (편집 세션 보존)
               key={selectedElementId ?? "none"}
-              value={value}
+              value={shown}
               resetKey={selectedElementId ?? "none"}
               onChange={handlePreview}
               onChangeEnd={handleCommit}

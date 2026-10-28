@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
-import { ArrowDown, ArrowUp, Globe, Lock, LockOpen } from "lucide-react";
+import { ArrowDown, ArrowUp, Globe, Lock, LockOpen, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
   CatalogSiteAccess,
@@ -15,10 +15,13 @@ import {
 import { PanelContents } from "../../components/panel/PanelContents";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertyColor } from "../../components/property/PropertyColor";
+import { CatalogStylesHostProvider } from "../styles/catalog/CatalogStylesPanel";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
+import { SwatchIconButton } from "../../components/ui";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { SiteAssetField } from "./SiteAssetField";
 import { SiteAppSection } from "./SitePageSections";
@@ -178,30 +181,37 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
           placeholder={site.title || t("settings.siteTitlePlaceholder")}
           onChange={(value) => text("appName", value)}
         />
-        <div className="site-theme-color">
-          {/* Hex text — the Styles color picker needs the Styles panel's host. */}
-          <PropertyInput
-            label={t("settings.siteThemeColor")}
-            value={site.themeColor ?? ""}
-            placeholder="#ffffff"
-            onChange={(value) => {
-              const raw = value.trim().toLowerCase().replace(/^#?/, "#");
-              // `#rgb` → `#rrggbb`; the document holds `#rrggbb` (`theme-color` has no alpha).
-              const hex = /^#[0-9a-f]{3}$/.test(raw)
-                ? `#${[...raw.slice(1)].map((c) => c + c).join("")}`
-                : raw;
-              if (!value.trim()) change({ themeColor: undefined });
-              else if (/^#[0-9a-f]{6}$/.test(hex) && hex !== site.themeColor)
-                change({ themeColor: hex });
-            }}
-          />
-          <span
-            className="site-theme-swatch"
-            aria-hidden="true"
-            style={
-              site.themeColor ? { background: site.themeColor } : undefined
-            }
-          />
+        {/* Styles 의 색 입력 (Border Color 와 같은 견본 + 값) — `theme-color` 는 alpha 가 없어
+            `#rrggbb` 만 저장한다 */}
+        <div className="fieldset-row site-theme-color" data-wide>
+          {/* 피커는 Styles host 를 읽는다 (문서 색 팔레트 · 입력 칸 선택 비교) — Design 패널과 같은 host */}
+          <CatalogStylesHostProvider>
+            <PropertyColor
+              label={t("settings.siteThemeColor")}
+              showValue
+              value={site.themeColor ?? ""}
+              placeholder="#ffffff"
+              onChange={(value) => {
+                const hex = value.slice(0, 7).toLowerCase();
+                if (/^#[0-9a-f]{6}$/.test(hex) && hex !== site.themeColor)
+                  change({ themeColor: hex });
+              }}
+            />
+          </CatalogStylesHostProvider>
+          {site.themeColor && (
+            <div className="fieldset-actions actions-remove">
+              <SwatchIconButton
+                aria-label={t("settings.siteThemeColorRemove")}
+                onPress={() => change({ themeColor: undefined })}
+              >
+                <Minus
+                  color={iconProps.color}
+                  size={iconProps.size}
+                  strokeWidth={iconProps.strokeWidth}
+                />
+              </SwatchIconButton>
+            </div>
+          )}
         </div>
         <SiteAssetField
           label={t("settings.siteSocialImage")}

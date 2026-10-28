@@ -20,23 +20,3 @@
   font-size: var(--text-xs);
   color: var(--fg-muted);
 }
-
-.site-theme-color {
-  display: flex;
-  align-items: end;
-  gap: var(--spacing-sm);
-  min-width: 0;
-}
-
-.site-theme-color > :first-child {
-  flex: 1;
-  min-width: 0;
-}
-
-.site-theme-swatch {
-  flex: none;
-  width: var(--control-size);
-  height: var(--control-size);
-  border-radius: var(--radius-sm);
-  background: var(--bg-raised);
-}

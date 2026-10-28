@@ -116,6 +116,11 @@
           line-height: var(--text-xs--line-height);
           font-variant-numeric: tabular-nums;
           color: var(--fg);
+
+          /* 값 없음 — placeholder 색 (PropertyColor) */
+          &[data-placeholder] {
+            color: var(--fg-muted);
+          }
         }
       }
     }

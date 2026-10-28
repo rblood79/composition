@@ -2,18 +2,21 @@
   min-width: 0;
 }
 
+/* 그룹 28 (pad 4) = 다른 필드와 같은 높이. 안쪽 컨트롤은 20 — Styles Fill 행과 같은 어법:
+   [견본 20 + 「Choose image…」 (상자 없는 trigger, flex 1)] [제거 20] (2026-10-29 사용자 결정) */
 .site-asset-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .site-asset-thumb {
   flex: none;
-  width: var(--control-size);
-  height: var(--control-size);
+  width: var(--text-xl);
+  height: var(--text-xl);
   border-radius: var(--radius-sm);
   background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -23,9 +26,17 @@
   object-fit: contain;
 }
 
+.site-asset-row .control-button {
+  block-size: var(--text-xl);
+  background: transparent;
+  border: none;
+}
+
 .site-asset-choose {
   flex: 1;
   min-width: 0;
+  justify-content: start;
+  padding: 0;
 }
 
 .site-asset-choose span {
@@ -36,7 +47,7 @@
 
 .site-asset-remove {
   flex: none;
-  width: var(--control-size);
+  width: var(--text-xl);
   padding: 0;
   justify-content: center;
 }

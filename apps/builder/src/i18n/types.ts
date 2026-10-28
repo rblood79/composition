@@ -1473,6 +1473,7 @@ export interface TranslationKeys {
     siteAppIconHint: string;
     siteAppName: string;
     siteThemeColor: string;
+    siteThemeColorRemove: string;
     siteImageChoose: string;
     siteImageReplace: string;
     siteImageRemove: string;
