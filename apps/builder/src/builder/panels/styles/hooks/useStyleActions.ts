@@ -1,12 +1,10 @@
 /**
  * useStyleActions - 스타일 업데이트 액션 훅
  *
- * Builder Store의 updateSelectedStyle, updateSelectedStyles를 래핑하여 제공
+ * Styles host (`useStylesHost` — catalog 문서, `catalogStylesHost.ts`) 의 `updateStyle(s)` ·
+ * `updateFlexStyles` 를 섹션이 쓰는 모양으로 감싼다 (각 편집 = 명령 한 step).
  *
- * ⚠️ 최적화: 모든 액션은 getState()를 사용하여 구독하지 않음
- * Action 함수는 변경되지 않으므로 리렌더링 유발할 필요 없음
- *
- * 🚀 Single Source of Truth: useInspectorState 제거, Builder Store 직접 사용
+ * ⚠️ 최적화: 액션은 host 를 그때 읽어 구독하지 않는다 — 함수가 바뀌지 않으니 리렌더를 만들지 않는다.
  */
 
 import { useCallback } from "react";

@@ -6,8 +6,8 @@ import { useProjectVariableNames } from "../hooks/useVisibleVariableNames";
 /**
  * Where the generic field renderer reads a field's shown value. Each function is a hook (it
  * subscribes to one value). The catalog Properties panel (ADR-248 Phase 4e-4) provides the read
- * model's prop sources, so the renderer itself is shared. 4e-7: no default — the old canonical
- * store's source is `fieldValueSource.store.ts` (old-store tests only).
+ * model's prop sources, so the renderer itself is shared (`catalog/catalogFieldValueSource.ts`).
+ * No default — a renderer outside the catalog Properties panel provides its own.
  */
 export interface FieldValueSource {
   useValue(

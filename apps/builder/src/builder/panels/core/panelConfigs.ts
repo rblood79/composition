@@ -98,10 +98,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "navigator",
     name: "탐색기",
-    nameEn: "Navigator",
     icon: ListTree,
     component: CatalogNavigatorPanel,
-    category: "navigation",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: 640,
@@ -112,10 +110,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "components",
     name: "컴포넌트",
-    nameEn: "Components",
     icon: ACTION_ICONS.component,
     component: CatalogComponentsPanel,
-    category: "navigation",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: 640,
@@ -126,10 +122,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "datatable",
     name: "데이터테이블",
-    nameEn: "DataTable",
     icon: Database,
     component: DataTablePanel,
-    category: "navigation",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: "100%",
@@ -140,10 +134,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "datatableEditor",
     name: "데이터테이블 에디터",
-    nameEn: "DataTable Editor",
     icon: FileEdit,
     component: DataTableEditorPanel,
-    category: "editor",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: "100%",
@@ -155,10 +147,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "datatableField",
     name: "필드",
-    nameEn: "Field",
     icon: Columns3,
     component: DataTableFieldPanel,
-    category: "editor",
     defaultPosition: "left",
     minWidth: 240,
     maxWidth: 480,
@@ -176,10 +166,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "theme",
     name: "테마",
-    nameEn: "Theme",
     icon: SwatchBook,
     component: CatalogThemesPanel,
-    category: "tool",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: 640,
@@ -193,10 +181,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "settings",
     name: "설정",
-    nameEn: "Settings",
     icon: Settings,
     component: SettingsPanel,
-    category: "system",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: 1000,
@@ -204,7 +190,6 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 500,
     description: "앱 설정 및 환경설정",
     shortcutId: "openSettings",
-    displayModes: ["panel", "floating"],
     // 진입점은 2026-08-25 에 헤더 좌측 메뉴로 옮겼다 — 저빈도 작업이라 좌측
     // 레일 한 칸을 상주로 차지할 이유가 없다. 패널 배치·토글 경로는 그대로다.
     hiddenFromRail: true,
@@ -214,10 +199,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "site",
     name: "사이트",
-    nameEn: "Site",
     icon: Globe,
     component: SitePanel,
-    category: "system",
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: "100%",
@@ -225,7 +208,6 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 560,
     description:
       "사이트 제목 · favicon · 검색 · redirect · 접근 보호 (ADR-286)",
-    displayModes: ["panel", "floating"],
     // 문서 값이라 Builder 환경 설정 (settings) 과 나눈다 (사용자 2026-10-28). 진입점은 전체 메뉴
     // 작업 공간 구역 — 레일 7 개는 그대로 (사용자 2026-09-29 레일 정책).
     hiddenFromRail: true,
@@ -234,10 +216,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "ai",
     name: "AI",
-    nameEn: "AI",
     icon: Bot,
     component: AIPanel,
-    category: "tool",
     defaultPosition: "right",
     minWidth: 228,
     maxWidth: 800,
@@ -245,7 +225,6 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultHeight: 500,
     description: "AI 도구 및 제안",
     shortcutId: "toggleAI",
-    displayModes: ["panel", "floating"],
   },
 
   // Editor panels
@@ -258,10 +237,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // 새 아이콘은 initial 번들을 늘린다 (G4), 탭 아이콘과 겹치지 않는다.
     id: "properties",
     name: "디자인",
-    nameEn: "Design",
     icon: PaintRoller,
     component: DesignPanel,
-    category: "editor",
     defaultPosition: "right",
     minWidth: 228,
     maxWidth: 640,
@@ -274,10 +251,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // `id` 는 패널 위치/크기 persist 키라 유지한다 (rename 시 사용자 레이아웃 소실).
     id: "events",
     name: "인터랙션",
-    nameEn: "Interactions",
     icon: SquareMousePointer,
     component: CatalogInteractionsPanel,
-    category: "editor",
     defaultPosition: "right",
     minWidth: 228,
     maxWidth: 800,
@@ -290,10 +265,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   {
     id: "history",
     name: "히스토리",
-    nameEn: "History",
     icon: History,
     component: CatalogHistoryPanel,
-    category: "editor",
     defaultPosition: "right",
     minWidth: 228,
     maxWidth: 640,
@@ -303,22 +276,18 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     shortcutId: "toggleHistory",
     // 진입점은 전체 메뉴 작업 공간 구역 · ⌥8 (사용자 2026-09-29 — 레일에서 뺌)
     hiddenFromRail: true,
-    displayModes: ["panel", "floating"],
   },
   {
     id: "codeView",
     name: "코드",
-    nameEn: "Code",
     icon: Code,
     component: CatalogCodeViewPanel,
-    category: "editor",
     defaultPosition: "right",
     minWidth: 320,
     maxWidth: "100%",
     defaultWidth: 480,
     defaultHeight: 600,
     description: "페이지를 React Aria 코드로 보기 · 코드로 고치기 (ADR-285)",
-    displayModes: ["panel", "floating"],
     // (진입점은 전체 메뉴 작업 공간 구역 — 레일 7 개는 그대로, 사용자 2026-09-29 레일 정책)
     hiddenFromRail: true,
   },

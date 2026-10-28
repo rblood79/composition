@@ -17,7 +17,6 @@ function panelConfig(
     name: id,
     icon: PanelLeft,
     component: () => null,
-    category: "editor",
     defaultPosition: id === "navigator" ? "left" : "right",
     defaultWidth: 320,
     minWidth: 233,

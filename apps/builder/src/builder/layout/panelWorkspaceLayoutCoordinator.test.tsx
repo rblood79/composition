@@ -113,8 +113,6 @@ describe("ADR-922 PanelWorkspaceLayoutCoordinator", () => {
     expect(snapshot.version).toBe(0);
     expect(Object.isFrozen(snapshot)).toBe(true);
     expect(Object.isFrozen(snapshot.workspaceRect)).toBe(true);
-    expect(Object.isFrozen(snapshot.mainContentRect)).toBe(true);
-    expect(Object.isFrozen(snapshot.occupiedInsets)).toBe(true);
     expect(Object.isFrozen(snapshot.frameGeometries)).toBe(true);
     expect(Object.isFrozen(snapshot.visiblePanelIds)).toBe(true);
     expect("set" in snapshot.frameGeometries).toBe(false);

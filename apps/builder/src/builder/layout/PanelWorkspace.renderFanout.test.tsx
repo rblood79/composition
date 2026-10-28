@@ -45,7 +45,6 @@ const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
     name: entry.id,
     icon: PanelLeft,
     component: () => null,
-    category: "editor",
     defaultPosition: entry.defaultPosition,
     defaultWidth: entry.defaultWidth,
     minWidth: entry.minWidth,

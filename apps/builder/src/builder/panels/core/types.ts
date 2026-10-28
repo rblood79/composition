@@ -10,26 +10,9 @@ import type { LucideIcon } from "lucide-react";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
 
 /**
- * 패널 카테고리
- * - navigation: Pages, Components, Library 등 탐색 관련
- * - editor: Properties, Styles, Data, Events 등 편집 관련
- * - tool: Theme, AI 등 도구
- * - system: User, Settings 등 시스템
- */
-export type PanelCategory = "navigation" | "editor" | "tool" | "system";
-
-/**
  * 패널 위치
  */
 export type PanelSide = "left" | "right" | "bottom";
-
-/**
- * 패널 표시 모드
- * - panel: 사이드바/하단에 고정된 패널 (기본)
- * - floating: Canvas 위 non-modal 이동 프레임
- * - modal: 이전 저장 상태/호출부를 읽기 위한 호환 값
- */
-export type PanelDisplayMode = "panel" | "modal" | "floating";
 
 /**
  * 패널 크기.
@@ -65,7 +48,6 @@ export type PanelId =
   // Navigation panels
   | "navigator"
   | "components"
-  | "library"
   | "datatable"
   | "datatableEditor" // DataTable 에디터 패널 (DataTablePanel과 함께 사용)
   | "datatableField" // ADR-212 — 편집기 옆에 스냅되는 필드 패널
@@ -73,7 +55,6 @@ export type PanelId =
   | "theme"
   | "ai"
   // System panels
-  | "user"
   | "settings"
   | "site" // ADR-286 — 사이트 설정 (Settings 와 분리, 사용자 2026-10-28)
   // Editor panels
@@ -94,17 +75,11 @@ export interface PanelConfig {
   /** 표시 이름 (한글) */
   name: string;
 
-  /** 표시 이름 (영문, 옵션) */
-  nameEn?: string;
-
   /** 아이콘 컴포넌트 (lucide-react) */
   icon: LucideIcon;
 
   /** 패널 컴포넌트 */
   component: ComponentType<PanelProps>;
-
-  /** 카테고리 */
-  category: PanelCategory;
 
   /** 기본 위치 */
   defaultPosition: PanelSide;
@@ -145,9 +120,6 @@ export interface PanelConfig {
    * 로 굳어 있었다.
    */
   shortcutId?: ShortcutId;
-
-  /** 지원하는 표시 모드 목록 (기본: ['panel']) */
-  displayModes?: PanelDisplayMode[];
 
   /**
    * 레일(PanelToggleGroup) 아이콘 노출에서 제외한다 (기본: false).
@@ -290,11 +262,3 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   panelClusters: [],
   nextModalZIndex: 1000,
 };
-
-/**
- * 패널 검색 필터
- */
-export interface PanelFilter {
-  category?: PanelCategory;
-  search?: string;
-}

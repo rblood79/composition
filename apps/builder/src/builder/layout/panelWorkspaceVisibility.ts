@@ -22,12 +22,10 @@ import { activatePanelWorkspacePanelV4 } from "./panelWorkspacePolicyV4";
  * Workflow/Shortcut은 PanelId가 아닌 overlay이므로 이 경로의 대상이 아니다.
  */
 const CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS = new Set<PanelId>([
-  "library",
   "datatable",
   "datatableEditor",
   "datatableField",
   "theme",
-  "user",
   "settings",
   "site",
 ]);

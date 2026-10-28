@@ -33,7 +33,6 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
       name: "Properties",
       icon: (() => null) as unknown as PanelConfig["icon"],
       component: (() => null) as PanelConfig["component"],
-      category: "editor",
       defaultPosition: "right",
       minWidth: "20%",
       maxWidth: "100%",

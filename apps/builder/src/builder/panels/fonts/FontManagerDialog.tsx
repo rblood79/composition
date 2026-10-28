@@ -1,8 +1,8 @@
 /**
  * FontManagerDialog - 폰트 관리 모달
  *
- * Font Family 피커 안의 "폰트 추가·관리" 진입점이 여는 모달. 본문은 도킹 패널과
- * 같은 `FontManagerBody`.
+ * Font Family 피커 안의 "폰트 추가·관리" 진입점이 여는 모달. 본문은 `FontManagerBody`
+ * (구 「폰트」 도킹 패널은 2026-08-25 등록 해제 — `panelConfigs.ts`).
  *
  * **Why 모달인가**: 폰트 등록은 저빈도 작업이라 인스펙터 레일 한 칸을 상주로
  * 차지할 이유가 없다 (Figma 는 Admin → Resources → Fonts, Pen 은 피커 안

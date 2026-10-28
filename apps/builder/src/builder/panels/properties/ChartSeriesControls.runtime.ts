@@ -12,7 +12,7 @@ import "./ChartAuthoringControls.css";
 /**
  * 범주가 색을 가르는 모드 (pie · 단일 시리즈 radial · bar colorBy=category) 에서는 시리즈
  * 설정이 적용되지 않는다 — Series 섹션 자체를 열지 않는다 (저장 config 는 휴면 보존).
- * `PropertiesPanel` 이 `sectionExtras.series` 를 넣을지 여기로 판정한다.
+ * Properties 패널 (`CatalogPropertiesPanel.components.tsx` → `useChartPropertyExtras`) 이 `sectionExtras.series` 를 넣을지 여기로 판정한다.
  */
 export function chartSeriesConfigApplies(
   fields: ResolvedField[],

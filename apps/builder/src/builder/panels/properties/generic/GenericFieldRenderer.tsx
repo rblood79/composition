@@ -5,8 +5,10 @@
  * `field.origin` 으로 write 를 라우팅한다. 컴포넌트별 분기 0 — 모든 노드가 동일 generic 경로.
  *
  * **origin 라우팅(write 단일 진실)**:
- * - `semantic` → `onSemanticUpdate(key, value)` (node.props, updateSelectedProperties)
- * - `style`    → `onStyleUpdate(key, value)` (node.props.style, updateSelectedStyle + distributeShorthand)
+ * - `semantic` → `onSemanticUpdate(key, value)` — catalog Properties 는 `catalogPropertiesPatchCommand`
+ *   한 step (`CatalogPropertiesPanel.components.tsx`)
+ * - `style`    → `onStyleUpdate(key, value)` — catalog Properties 는 semantic 필드만 넘기므로
+ *   부르지 않는다 (style 은 Styles 탭 — `catalogStylesHost.ts`, ADR-248)
  *
  * **section 그룹핑**: 같은 `section` 필드를 `PropertySection` 으로 묶는다. caller 가
  * `fields` 를 origin 으로 필터(Properties view = semantic / Style view = style)해 넘긴다 —

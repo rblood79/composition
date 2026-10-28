@@ -4,7 +4,6 @@ import type {
   PanelResizeEdge,
 } from "../panels/core/types";
 import type {
-  PanelWorkspaceRailSizes,
   PanelWorkspaceRect,
   PanelWorkspaceRegistryEntry,
   PanelWorkspaceResult,
@@ -47,9 +46,7 @@ export interface PanelWorkspaceSplitterGeometry {
 export interface PanelWorkspaceLayoutSnapshot {
   version: number;
   workspaceRect: Readonly<PanelWorkspaceRect>;
-  mainContentRect: Readonly<PanelFrameGeometry>;
   frameGeometries: ReadonlyMap<PanelId, PanelWorkspaceFrameSnapshot>;
-  occupiedInsets: Readonly<PanelWorkspaceRailSizes>;
   splitters: readonly PanelWorkspaceSplitterGeometry[];
   visiblePanelIds: ReadonlySet<PanelId>;
   panelOrder: readonly PanelId[];
@@ -333,14 +330,7 @@ function createSnapshot(
   return Object.freeze({
     version,
     workspaceRect: Object.freeze({ ...solution.surfaceRect }),
-    mainContentRect: freezeRect({
-      x: 0,
-      y: 0,
-      width: solution.surfaceRect.width,
-      height: solution.surfaceRect.height,
-    }),
     frameGeometries,
-    occupiedInsets: Object.freeze({ left: 0, right: 0, bottom: 0 }),
     splitters,
     visiblePanelIds: readonlySetView(new Set(mutableFrames.keys())),
     panelOrder: Object.freeze(registry.map((entry) => entry.id)),
