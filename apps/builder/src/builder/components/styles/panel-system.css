@@ -455,6 +455,13 @@
       }
     }
 
+    /* 한 필드 행 = 7칸 격자의 [6][ ] — 행 래퍼 없이 절에 바로 놓인 필드 · 추가 버튼도 액션 칸
+       (28 + 틈) 을 비워 둔다. 액션 칸은 지금 버튼이 없어도 편의 기능이 들어갈 자리다
+       (2026-10-28 사용자 결정 — 행 모양은 84·84·28 / 84·84 / 176·28 / 176 넷뿐). */
+    .section-content > :is(.properties-aria, .control-button) {
+      max-inline-size: calc(100% - var(--control-size) - var(--spacing-sm));
+    }
+
     /* 값이 긴 필드 (id · class · 텍스트) 와 목록 행 본문은 1·2열을 합쳐 쓴다 — 아이콘 칸
        (28) 은 그대로 남아 행 끝 액션이 열을 지킨다 (panel-ui 07). */
     .fieldset-row[data-wide] > :first-child {

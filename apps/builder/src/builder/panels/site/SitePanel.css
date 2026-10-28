@@ -3,10 +3,6 @@
   color: var(--fg-muted);
 }
 
-.fieldset-row.site-search-row {
-  grid-template-columns: 1fr 1fr;
-}
-
 .site-redirects,
 .site-sso-pages {
   display: flex;

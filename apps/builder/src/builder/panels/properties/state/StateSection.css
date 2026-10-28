@@ -49,11 +49,7 @@
   color: var(--fg-muted);
 }
 
-/* 직접 만든 변수: 이름+타입 · 기본값 한 행 + 우측 공통 액션 열. */
-.state-def .fieldset-row.state-variable-row {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) var(--control-size);
-  gap: var(--spacing-xs);
-}
+/* 직접 만든 변수: 이름+타입 · 기본값 한 행 + 우측 공통 액션 열 — 인스펙터 격자 그대로 (3 · 3 | 1). */
 
 .state-def .state-variable-row > .fieldset-actions {
   grid-column: 3;

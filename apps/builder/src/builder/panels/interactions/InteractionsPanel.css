@@ -95,10 +95,6 @@
   border-top: 1px solid var(--border);
 }
 
-.interaction-rule-row.fieldset-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 /* ADR-284 — the Do order list (a rule with several Do): the list takes the row, remove last */
 .interaction-rule-dos.fieldset-row {
   grid-template-columns: minmax(0, 1fr) var(--control-size);
