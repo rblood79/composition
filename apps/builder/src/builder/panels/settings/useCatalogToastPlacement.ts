@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import type { CatalogToastPlacement } from "../../../../../../packages/shared/src/catalog/document/types";
 import { setToastPlacement } from "../../../../../../packages/shared/src/catalog/commands";
+import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react";
 
 const noop = () => () => {};
@@ -36,7 +37,8 @@ export function useCatalogToastPlacement(): {
   );
   const change = useCallback(
     (placement: CatalogToastPlacement) => {
-      workspace?.execute(setToastPlacement({ placement }));
+      if (workspace)
+        runCatalogCommand(workspace, setToastPlacement({ placement }));
     },
     [workspace],
   );

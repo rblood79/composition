@@ -12,7 +12,7 @@ import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
 } from "../../../hooks/useKeyboardShortcutsRegistry";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 /**
  * ADR-248 Phase 4e-5: Properties copy / paste (the old `PropertyClipboardActions`) over the

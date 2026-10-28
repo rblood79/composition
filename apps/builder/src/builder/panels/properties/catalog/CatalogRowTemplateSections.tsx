@@ -12,7 +12,7 @@ import {
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { useCollections } from "../../../stores/data";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { fieldsFromOwner } from "../hooks/useOwnerCollectionColumns";
 import "../ItemOriginNoticeSection.css";
 

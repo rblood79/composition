@@ -23,7 +23,7 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useToastStore } from "../../../stores/toast";
+import { runBuiltCatalogCommand } from "../../../catalogRuntime/commandRunner";
 
 const AddIcon = ACTION_ICONS.add;
 /** The comparisons that take no value. */
@@ -79,23 +79,9 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
 
   const write = useCallback(
     (prop: string, follow: CatalogPropFollow | undefined) => {
-      try {
-        workspace.execute(
-          catalogPropFollowCommand(
-            workspace.runtime.graph,
-            nodeId,
-            prop,
-            follow,
-          ),
-        );
-      } catch (error) {
-        useToastStore
-          .getState()
-          .showToast(
-            "error",
-            error instanceof Error ? error.message : String(error),
-          );
-      }
+      runBuiltCatalogCommand(workspace, () =>
+        catalogPropFollowCommand(workspace.runtime.graph, nodeId, prop, follow),
+      );
     },
     [nodeId, workspace],
   );

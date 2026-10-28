@@ -41,7 +41,7 @@ tags: [architecture, reference, patterns]
 | 패턴                 | 참조 파일                                                     | 설명                                                                                                  |
 | -------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Properties 편집 명령 | `builder/catalogRuntime/editContract.ts`                      | `catalogPropertiesPatchCommand` — 바뀐 키만, binding 키 분리, 여럿이면 `composeCommands` (entry 하나) |
-| 패널 명령 실행       | `builder/panels/navigator/catalog/useCatalogCommandRunner.ts` | `workspace.execute` + 거절 toast                                                                      |
+| 패널 명령 실행       | `builder/catalogRuntime/commandRunner.ts` | `workspace.execute` + 거절 toast                                                                      |
 | Styles host          | `builder/panels/styles/catalog/catalogStylesHost.ts`          | CSS 키 → typed field 명령, 미리보기 `previewRecord`                                                   |
 
 ## Canvas/Skia 패턴

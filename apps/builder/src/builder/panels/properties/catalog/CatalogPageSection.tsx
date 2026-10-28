@@ -36,7 +36,7 @@ import {
   iconSmall,
 } from "../../../../utils/ui/uiConstants";
 import { SwatchIconButton } from "../../../components/ui/SwatchIconButton";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import "../editors/styles/pageSelectors.css";
 
 // ADR-286 — the page's search · sharing settings (and its image picker) load with the section

@@ -71,7 +71,7 @@ import {
   serializeViewQueries,
   viewQueryLimits,
 } from "../../../../../../../packages/shared/src/collections/view/serialize";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
 

@@ -22,7 +22,7 @@ import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import "./CatalogComponentPropertiesSection.css";
 
 /**
@@ -80,11 +80,12 @@ export const CatalogComponentPropertiesSection = memo(
           kind === "text" ? { id: nodeId, prop: textProp } : { id: nodeId },
         ),
       );
-    const applyOptions = (["text", "boolean", "instance"] as const).flatMap((kind) =>
-      view.applicable[kind].map((item) => ({
-        value: `${kind}:${item.key}`,
-        label: `${item.name} (${kindLabel(kind)})`,
-      })),
+    const applyOptions = (["text", "boolean", "instance"] as const).flatMap(
+      (kind) =>
+        view.applicable[kind].map((item) => ({
+          value: `${kind}:${item.key}`,
+          label: `${item.name} (${kindLabel(kind)})`,
+        })),
     );
     const apply = (value: string) => {
       const [kind, key] = value.split(":");
@@ -164,7 +165,9 @@ export const CatalogComponentPropertiesSection = memo(
               name={row.name}
               preferred={row.preferred ?? []}
               onChange={(preferred) =>
-                run(catalogPropertyCommands.preferred(origin, row.key, preferred))
+                run(
+                  catalogPropertyCommands.preferred(origin, row.key, preferred),
+                )
               }
             />
           ))}

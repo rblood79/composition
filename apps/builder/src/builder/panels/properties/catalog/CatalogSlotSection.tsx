@@ -25,7 +25,7 @@ import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import type { CatalogSwapCandidate } from "../../../catalogRuntime/swapInstance";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { CatalogItemInsertSection } from "./CatalogItemInsertSection";

@@ -14,11 +14,8 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import { useToastStore } from "../../../stores/toast";
-import {
-  stateAncestors,
-  type StateAncestor,
-} from "./showWhenAncestors";
+import { runBuiltCatalogCommand } from "../../../catalogRuntime/commandRunner";
+import { stateAncestors, type StateAncestor } from "./showWhenAncestors";
 import {
   KEEP,
   NEAREST,
@@ -92,18 +89,9 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
       if (!current) return;
       // (A row the author did not touch keeps its stored owner — `keep`.)
       const showWhen = showWhenOf(conditions);
-      try {
-        workspace.execute(
-          setShowWhen({ id: current.nodeId as NodeId, showWhen }),
-        );
-      } catch (error) {
-        useToastStore
-          .getState()
-          .showToast(
-            "error",
-            error instanceof Error ? error.message : String(error),
-          );
-      }
+      runBuiltCatalogCommand(workspace, () =>
+        setShowWhen({ id: current.nodeId as NodeId, showWhen }),
+      );
     },
     [read, workspace],
   );

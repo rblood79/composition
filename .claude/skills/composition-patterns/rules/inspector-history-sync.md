@@ -13,7 +13,7 @@ Design 패널 (Properties · Styles) 의 편집은 catalog 명령 하나로 실�
 
 | 편집            | 명령                                                                                                                                                        | 실행                                                                                                                    |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Properties      | `catalogPropertiesPatchCommand` (`catalogRuntime/editContract.ts`) — 바뀐 키만 `setFields`, binding 키는 `catalogBindingCommand`, 둘 다면 `composeCommands` | `CatalogPropertiesPanel` → `useCatalogCommandRunner` (`panels/navigator/catalog/`) → `workspace.execute` — 거절은 toast |
+| Properties      | `catalogPropertiesPatchCommand` (`catalogRuntime/editContract.ts`) — 바뀐 키만 `setFields`, binding 키는 `catalogBindingCommand`, 둘 다면 `composeCommands` | `CatalogPropertiesPanel` → `useCatalogCommandRunner` (`catalogRuntime/commandRunner.ts`) → `workspace.execute` — 거절은 toast |
 | Styles          | `catalogStylesHost` (`panels/styles/catalog/catalogStylesHost.ts`) `styleCommandOf` → `catalogStyleWritesOf` + `setFields` (활성 breakpoint)                | `workspace.execute`                                                                                                     |
 | Styles 미리보기 | 명령 없음 — `workspace.root.previewRecord` (문서 · 히스토리 쓰기 0), 손을 놓을 때 commit 한 번                                                              |                                                                                                                         |
 
@@ -57,4 +57,4 @@ host.updateStyle(property, value);
 - `apps/builder/src/builder/catalogRuntime/editContract.ts`
 - `apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.components.tsx`
 - `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts`
-- `apps/builder/src/builder/panels/navigator/catalog/useCatalogCommandRunner.ts`
+- `apps/builder/src/builder/catalogRuntime/commandRunner.ts`

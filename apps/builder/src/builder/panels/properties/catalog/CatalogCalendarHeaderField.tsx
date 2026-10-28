@@ -12,7 +12,7 @@ import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 /** RAC's month picker without `format` (`CalendarMonthPicker` — short; no default stored). */
 const DEFAULT_MONTH_FORMAT = "short";
@@ -70,11 +70,9 @@ export const CatalogCalendarHeaderField = memo(
           type,
         );
       const format = contract("CalendarMonthPicker").format as
-        | { options?: readonly { value: string; label: string }[] }
-        | undefined;
+        { options?: readonly { value: string; label: string }[] } | undefined;
       const years = contract("CalendarYearPicker").visibleYears as
-        | { default?: unknown }
-        | undefined;
+        { default?: unknown } | undefined;
       return {
         formatOptions: format?.options ?? [],
         defaultYears:

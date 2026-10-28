@@ -5,7 +5,7 @@ import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 const AddIcon = ACTION_ICONS.add;
 

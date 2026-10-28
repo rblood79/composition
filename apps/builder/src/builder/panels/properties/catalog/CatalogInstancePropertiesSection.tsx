@@ -19,7 +19,7 @@ import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useToastStore } from "../../../stores/toast";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { CatalogComponentPicker } from "./CatalogSwapPicker";
 import "./CatalogComponentPropertiesSection.css";
 

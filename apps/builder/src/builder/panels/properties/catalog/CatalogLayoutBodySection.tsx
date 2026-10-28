@@ -10,7 +10,7 @@ import {
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { LayoutPresetGrid } from "../editors/LayoutPresetSelector";
 import { LayoutSlotsList } from "../editors/LayoutPresetSelector/LayoutSlotsSection";
 import type { ExistingSlotInfo } from "../editors/LayoutPresetSelector/types";

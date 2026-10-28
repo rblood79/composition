@@ -9,7 +9,7 @@ import {
 import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../../components/panel/Section";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStylesSelectedId } from "../stylesHost";
 
 /**

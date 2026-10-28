@@ -10,7 +10,7 @@ import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { SiteAssetField } from "../../site/SiteAssetField";
 
 /**
@@ -98,16 +98,16 @@ export const CatalogPageMetaSection = memo(function CatalogPageMetaSection({
         value={meta?.socialImage}
         onChange={(socialImage) => write({ socialImage })}
       />
-        <PropertySwitch
-          label={t("settings.pageMetaHideSearch")}
-          isSelected={meta?.hidden?.search === true}
-          onChange={(value) => hide("search", value)}
-        />
-        <PropertySwitch
-          label={t("settings.pageMetaHideSitemap")}
-          isSelected={meta?.hidden?.sitemap === true}
-          onChange={(value) => hide("sitemap", value)}
-        />
+      <PropertySwitch
+        label={t("settings.pageMetaHideSearch")}
+        isSelected={meta?.hidden?.search === true}
+        onChange={(value) => hide("search", value)}
+      />
+      <PropertySwitch
+        label={t("settings.pageMetaHideSitemap")}
+        isSelected={meta?.hidden?.sitemap === true}
+        onChange={(value) => hide("sitemap", value)}
+      />
     </PropertySection>
   );
 });

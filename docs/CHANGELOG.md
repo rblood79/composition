@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널 구조 정리 — lazy 패널 선로드 복구 · 명령 실행 단일화] - 2026-10-28
+
+### Fixed
+
+- **화면 밖 패널이 다시 바로 열린다**: History · Settings · Site · Interactions · Theme · Data 패널 chunk 를 부팅 뒤 idle 에 미리 받는다. ADR-248 삭제 3차 (`0b0eaea28`) 가 옛 `usePageManager` 와 함께 호출을 지워, 이 패널들은 첫 열림마다 Suspense 공개 지연 (~300 ms, ADR-242 실측) 을 다시 겪고 있었다.
+  - 위치: `apps/builder/src/builder/main/CatalogBuilderCore.tsx` · `panels/core/panelConfigs.ts` (`preloadOffscreenPanels`)
+- **패널 편집의 거부 안내 통일**: Properties 의 「변수로 정하기」 · RAC slot · 표시 조건 섹션은 거부 (잠긴 Library 등) 를 안내 대신 일반 오류 toast 로 냈고, Theme · Settings (페이지 그리드 · toast 위치) · Canvas page 위치 편집은 오류를 잡지 않아 이벤트 핸들러 밖으로 던졌다. 모든 패널 명령이 한 runner 를 지난다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/commandRunner.ts` (`useCatalogCommandRunner` · `runCatalogCommand` · `runBuiltCatalogCommand` — `panels/navigator/catalog/` 에서 이동) · 정적 게이트 `panels/core/panelCommandRunner.static.test.ts`
+
 ## [개발용 계측 버튼 제거 — ADR-187 Phase 6 후속 정리] - 2026-10-28
 
 ### Removed

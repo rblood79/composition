@@ -2,8 +2,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import type { CatalogSiteSettings } from "../../../../../../packages/shared/src/catalog/document/types";
 import { setSiteSettings } from "../../../../../../packages/shared/src/catalog/commands";
 import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react";
-import { notifyEditRefusal } from "../../catalogRuntime/operationNotice";
-import { useToastStore } from "../../stores/toast";
+import { runCatalogCommand } from "../../catalogRuntime/commandRunner";
 
 const noop = () => () => {};
 const EMPTY: CatalogSiteSettings = {};
@@ -45,19 +44,10 @@ export function useCatalogSiteSettings(): {
   const change = useCallback(
     (patch: SiteSettingsPatch) => {
       if (!workspace) return false;
-      try {
-        workspace.execute(setSiteSettings({ patch, label: "Site settings" }));
-        return true;
-      } catch (error) {
-        if (!notifyEditRefusal(error))
-          useToastStore
-            .getState()
-            .showToast(
-              "error",
-              error instanceof Error ? error.message : String(error),
-            );
-        return false;
-      }
+      return runCatalogCommand(
+        workspace,
+        setSiteSettings({ patch, label: "Site settings" }),
+      );
     },
     [workspace],
   );

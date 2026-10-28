@@ -9,7 +9,7 @@ import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContrac
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import { useToastStore } from "../../../stores/toast";
+import { runCatalogCommand } from "../../../catalogRuntime/commandRunner";
 
 const DEFAULT = "";
 const DETACH = "__detach__";
@@ -95,16 +95,7 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
         () => current.authored,
       );
       if (!command) return;
-      try {
-        workspace.execute(command);
-      } catch (error) {
-        useToastStore
-          .getState()
-          .showToast(
-            "error",
-            error instanceof Error ? error.message : String(error),
-          );
-      }
+      runCatalogCommand(workspace, command);
     },
     [identity, read, workspace],
   );

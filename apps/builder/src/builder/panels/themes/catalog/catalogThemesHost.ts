@@ -29,6 +29,7 @@ import {
   CATALOG_VIRTUAL_THEME_ID,
   catalogThemesView,
 } from "../../../catalogRuntime/theme";
+import { runCatalogCommand } from "../../../catalogRuntime/commandRunner";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import {
   DEFAULT_BASE_TYPOGRAPHY,
@@ -75,8 +76,7 @@ export function createCatalogThemesHost(
   const isVirtual = (id: string) => id === CATALOG_VIRTUAL_THEME_ID;
   const run = (command: CatalogCommand): boolean => {
     const before = graph().revision;
-    workspace.execute(command);
-    return graph().revision !== before;
+    return runCatalogCommand(workspace, command) && graph().revision !== before;
   };
   /** Several commands as one step, each reading the state the ones before it leave. */
   const runAll = (label: string, commands: readonly CatalogCommand[]) =>

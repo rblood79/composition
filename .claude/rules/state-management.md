@@ -34,7 +34,7 @@ paths:
 
 ## 2. 편집 파이프라인 (순서 필수 보존)
 
-문서를 바꾸는 길은 **명령 하나**다 — `CatalogCommand` (`packages/shared/src/catalog/commands/**`: `setFields` · `insertNodes` · `moveNodes` · `pasteNodes` …) 를 `workspace.execute(command)` 에 넘긴다. 패널은 `useCatalogCommandRunner` (`panels/navigator/catalog/`) 가 실패를 toast 로 바꿔 준다. graph 를 직접 고치거나 op 를 손으로 만들어 `runtime` 에 넣지 않는다.
+문서를 바꾸는 길은 **명령 하나**다 — `CatalogCommand` (`packages/shared/src/catalog/commands/**`: `setFields` · `insertNodes` · `moveNodes` · `pasteNodes` …) 를 `workspace.execute(command)` 에 넘긴다. 패널은 `useCatalogCommandRunner` (hook) · `runCatalogCommand` (workspace 를 prop 으로 받는 곳) (`catalogRuntime/commandRunner.ts`) 가 거부를 안내로 (`notifyEditRefusal`), 그 밖의 실패를 toast 로 바꿔 준다 — 패널 코드에서 `workspace.execute` 를 직접 try/catch 하지 않는다. graph 를 직접 고치거나 op 를 손으로 만들어 `runtime` 에 넣지 않는다.
 
 1. `CatalogWorkspace.execute` (`workspace.ts`) — 자동 HTML id · origin view 재작성 → `root.execute` → 정의 view 후처리 · 선택 (`plan.selectAfter`)
 2. `CatalogCompositionRoot.execute` (`compositionRoot.ts`) — 현재 revision 에 대해 명령을 계획하고 `runtime.dispatch`. `REVISION_CONFLICT` 면 한 번 다시 계획한다

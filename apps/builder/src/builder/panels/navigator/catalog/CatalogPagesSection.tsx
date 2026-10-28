@@ -34,7 +34,7 @@ import { buildPageTree } from "../tree/PageTree/buildPageTree";
 import { PageTreeItemContent } from "../tree/PageTree/PageTreeItemContent";
 import type { PageTreeNode } from "../tree/PageTree/types";
 import { isValidPageDrop } from "../tree/PageTree/validation";
-import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
 import { catalogRouteFollowEdit } from "../../../catalogRuntime/pageSettings";
 import { useToastStore } from "../../../stores/toast";

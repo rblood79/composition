@@ -47,7 +47,7 @@ import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { catalogSwapPlan } from "../../../catalogRuntime/swapInstance";
 import { CatalogSwapPicker } from "./CatalogSwapPicker";
 import { CatalogInstancePropertiesRows } from "./CatalogInstancePropertiesSection";
@@ -216,9 +216,9 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const stateKey = useSyncExternalStore(subscribe, () =>
     JSON.stringify(catalogComponentState(graph, target, definitionView)),
   );
-  const { instanceOf, originOf, unlocked } = JSON.parse(
-    stateKey,
-  ) as ReturnType<typeof catalogComponentState>;
+  const { instanceOf, originOf, unlocked } = JSON.parse(stateKey) as ReturnType<
+    typeof catalogComponentState
+  >;
   const component = instanceOf ?? originOf;
   const own = useCatalogOwnFields(target);
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
@@ -236,38 +236,42 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
     if (node?.kind !== "node") return "[[],[]]";
     return JSON.stringify([
       extraRows(node, "", "root", t),
-      node.descendantOverrides.flatMap((item): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
-        const at = templateLabel(graph, item.address.templatePath.at(-1));
-        const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
-        if (item.kind === "replace") {
-          const shown = graph.getEntry(item.replacementId);
+      node.descendantOverrides.flatMap(
+        (
+          item,
+        ): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
+          const at = templateLabel(graph, item.address.templatePath.at(-1));
+          const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
+          if (item.kind === "replace") {
+            const shown = graph.getEntry(item.replacementId);
+            return [
+              {
+                id: `replace:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`,
+                key: "",
+                field: "replace" as const,
+                replacementId: item.replacementId,
+                label: `${at} → ${shown?.kind === "node" ? catalogComponentLabel(graph, shown.definitionId) : ""}`,
+                address: item.address,
+              },
+            ];
+          }
           return [
-            {
-              id: `replace:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`,
-              key: "",
-              field: "replace" as const,
-              replacementId: item.replacementId,
-              label: `${at} → ${shown?.kind === "node" ? catalogComponentLabel(graph, shown.definitionId) : ""}`,
-              address: item.address,
-            },
-          ];
-        }
-        return [
-          ...PATCH_FIELDS.flatMap((field) =>
-            Object.keys(item[field] ?? {}).map((key) => ({
-              id: `${field}:${positionId}:${key}`,
-              key,
-              field,
-              label: `${at}.${key}`,
+            ...PATCH_FIELDS.flatMap((field) =>
+              Object.keys(item[field] ?? {}).map((key) => ({
+                id: `${field}:${positionId}:${key}`,
+                key,
+                field,
+                label: `${at}.${key}`,
+                address: item.address,
+              })),
+            ),
+            ...extraRows(item, `${at}.`, positionId, t, true).map((row) => ({
+              ...row,
               address: item.address,
             })),
-          ),
-          ...extraRows(item, `${at}.`, positionId, t, true).map((row) => ({
-            ...row,
-            address: item.address,
-          })),
-        ];
-      }),
+          ];
+        },
+      ),
     ]);
   });
   const [rootExtraRows, patchRows] = JSON.parse(overrideKey) as [
@@ -452,19 +456,19 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                 ...(key ? { key } : {}),
                 label: "Reset override",
               } as ResetOverrideFieldInput)
-          : field === "props"
-          ? catalogPropertiesPatchCommand(
-              graph,
-              [target],
-              { [key]: undefined },
-              () => true,
-              new Set(),
-            )
-          : setFields({
-              targets: [target],
-              [field]: { [key as VisualField]: { kind: "remove" } },
-              label: "Reset override",
-            } as Parameters<typeof setFields>[0]);
+            : field === "props"
+              ? catalogPropertiesPatchCommand(
+                  graph,
+                  [target],
+                  { [key]: undefined },
+                  () => true,
+                  new Set(),
+                )
+              : setFields({
+                  targets: [target],
+                  [field]: { [key as VisualField]: { kind: "remove" } },
+                  label: "Reset override",
+                } as Parameters<typeof setFields>[0]);
       // No confirmation (the flow keeps going); one step, so the toast's undo restores it.
       if (command && run(command))
         useToastStore

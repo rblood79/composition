@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
+import { runBuiltCatalogCommand } from "../../catalogRuntime/commandRunner";
 import { useOptionalCatalogWorkspace } from "../../catalogRuntime/react";
 import {
   catalogPageLayoutCommand,
@@ -39,7 +40,7 @@ export function useCatalogPageLayout(): {
   const change = useCallback(
     (next: CatalogPageLayoutChange) => {
       if (!workspace) return;
-      workspace.execute(
+      runBuiltCatalogCommand(workspace, () =>
         catalogPageLayoutCommand(
           workspace.readModel.pageLayout(),
           workspace.session.getSnapshot().breakpoint,

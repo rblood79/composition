@@ -43,7 +43,7 @@ import { Section } from "../../../components/panel/Section";
 import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useI18n } from "@/i18n";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
 import { useDataStore, useProjectVariableDefs } from "../../../stores/data";

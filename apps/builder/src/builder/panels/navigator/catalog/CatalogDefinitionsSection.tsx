@@ -42,7 +42,7 @@ import { ICON_EDIT_PROPS } from "../tree/helpers";
 import { InlineRenameInput } from "../tree/InlineRenameInput";
 import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
-import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 /** A listed definition: a project one, or the Components page (`page` — the built-in origins). */
 type DefinitionNode = Omit<CatalogDefinitionItem, "id"> & {

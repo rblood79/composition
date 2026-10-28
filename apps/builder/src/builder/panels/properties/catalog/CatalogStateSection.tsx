@@ -52,7 +52,7 @@ import {
   SwatchIconButton,
 } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { useStateSectionFocus } from "../state/stateSectionFocus";
 import { useSectionCollapse } from "../../styles/hooks/useSectionCollapse";
 import "../state/StateSection.css";

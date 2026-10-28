@@ -6,7 +6,7 @@ import {
 } from "../../../catalogRuntime/contextualHelpCommand";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 const KIND_OPTIONS: readonly {
   value: CatalogContextualHelpKind;

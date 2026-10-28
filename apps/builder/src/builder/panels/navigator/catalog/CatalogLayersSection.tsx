@@ -34,7 +34,7 @@ import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
 import { LAYER_TREE_ROW_SIZE_PX } from "../tree/LayerTree/virtualization";
 import { CatalogLayerItem } from "./CatalogLayerItem";
-import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogMenuView } from "../../../workspace/canvas/catalog/catalogMenuView";

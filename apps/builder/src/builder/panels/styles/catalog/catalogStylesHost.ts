@@ -85,8 +85,7 @@ import {
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { SelectedElement } from "../../../inspector/types";
-import { notifyEditRefusal } from "../../../catalogRuntime/operationNotice";
-import { useToastStore } from "../../../stores/toast";
+import { runBuiltCatalogCommand } from "../../../catalogRuntime/commandRunner";
 import {
   resolveEligibleSeedDefault,
   SHORTHAND_TO_LONGHAND,
@@ -336,18 +335,7 @@ export function createCatalogStylesHost(
     build: () => Parameters<typeof workspace.execute>[0] | undefined,
   ) => {
     try {
-      const command = build();
-      if (command) workspace.execute(command);
-    } catch (error) {
-      if (notifyEditRefusal(error)) return;
-      useToastStore
-        .getState()
-        .showToast(
-          "error",
-          error instanceof CatalogStyleValueError || error instanceof Error
-            ? error.message
-            : String(error),
-        );
+      runBuiltCatalogCommand(workspace, build);
     } finally {
       previewEpoch += 1;
       endPreviews();
@@ -1303,12 +1291,13 @@ export function createCatalogStylesHost(
         );
       },
       commit: (pageId, point) => {
-        const command = catalogPageDropCommand(
-          workspace.root,
-          pageId as EntryId<"page">,
-          point,
+        runBuiltCatalogCommand(workspace, () =>
+          catalogPageDropCommand(
+            workspace.root,
+            pageId as EntryId<"page">,
+            point,
+          ),
         );
-        if (command) workspace.execute(command);
       },
     },
     documentColors: {

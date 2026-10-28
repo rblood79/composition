@@ -55,7 +55,7 @@ import { targetKey } from "../../../catalogRuntime/session";
 
 import { EmptyState } from "../../../components/feedback/EmptyState";
 
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
 

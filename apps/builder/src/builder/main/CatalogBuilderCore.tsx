@@ -115,8 +115,8 @@ import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 import "../components/styles";
 import "../workspace/Workspace.css";
 
-// 패널 등록 (side effect import — registerAllPanels() 자동 실행)
-import "../panels/core/panelConfigs";
+// 패널 등록 (모듈 로드가 registerAllPanels() 를 실행) · 화면 밖 패널 idle 선로드
+import { preloadOffscreenPanels } from "../panels/core/panelConfigs";
 
 /** The zoom menu while the project is still opening (no page frames yet). */
 const NO_VIEWPORT_ACTIONS = { fit() {}, fill() {}, alignPages() {} };
@@ -275,6 +275,9 @@ export function CatalogBuilderCore() {
         name: project?.kind === "project" ? project.name : routeId,
         rowsSource,
       });
+      // ADR-242 HC3 — the offscreen lazy panels' chunks at idle (an opened one skips the Suspense
+      // reveal delay).
+      preloadOffscreenPanels();
     })().catch(async (error: unknown) => {
       if (cancelled) return;
       console.error("[CatalogBuilder] open failed:", error);

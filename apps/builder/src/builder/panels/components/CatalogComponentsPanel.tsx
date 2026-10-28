@@ -11,7 +11,7 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
-import { useCatalogCommandRunner } from "../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../catalogRuntime/commandRunner";
 import ComponentList from "./ComponentList";
 
 /**

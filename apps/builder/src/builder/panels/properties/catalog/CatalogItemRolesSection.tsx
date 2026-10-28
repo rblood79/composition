@@ -9,7 +9,7 @@ import {
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
 const ROLE_LABEL_KEY: Partial<Record<SlotRole, string>> = {
   icon: "propertiesPanel.itemRoleIcon",

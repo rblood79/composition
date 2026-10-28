@@ -3,7 +3,7 @@ import { editItems } from "../../../../../../../packages/shared/src/catalog/comm
 import type { ItemsEdit } from "../../../../../../../packages/shared/src/catalog/commands/items";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { targetKey } from "../../../catalogRuntime/session";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import type { ItemsActions, ItemsSource } from "../generic/itemsSource";
 
 type Item = Record<string, unknown>;
