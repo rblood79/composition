@@ -192,15 +192,13 @@ describe("NavigatorPanel shared panel style contract", () => {
   });
 
   it("keeps authoring trees outside the public Tree style scope", async () => {
-    const [treeBaseSource, virtualizedTreeSource] = await Promise.all([
-      readFile(resolve(__dirname, "tree/TreeBase/TreeBase.tsx"), "utf-8"),
-      readFile(resolve(__dirname, "tree/TreeBase/VirtualizedTree.tsx"), "utf-8"),
-    ]);
+    const treeBaseSource = await readFile(
+      resolve(__dirname, "tree/TreeBase/TreeBase.tsx"),
+      "utf-8",
+    );
 
     expect(treeBaseSource).toMatch(/from "react-aria-components\//);
     expect(treeBaseSource).not.toContain("@composition/shared/components/Tree");
     expect(treeBaseSource).not.toContain("data-composition-tree");
-    expect(virtualizedTreeSource).toContain("className={`virtual-tree-item");
-    expect(virtualizedTreeSource).not.toContain("data-composition-tree");
   });
 });

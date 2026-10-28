@@ -502,27 +502,6 @@
   stroke: var(--bg-overlay);
 }
 
-/* ========================================
- * 🚀 VirtualizedTree - 가상화된 트리 스타일
- * ======================================== */
-
-/* 가상화된 트리 컨테이너 */
-.virtualized-tree {
-  outline: none;
-
-  &:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: -2px;
-  }
-}
-
-.virtualized-tree-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-}
-
 /* ♿ Keyboard Focus 상태 (ARIA) */
 .elementItem.focused {
   outline: 2px solid var(--focus-ring);
