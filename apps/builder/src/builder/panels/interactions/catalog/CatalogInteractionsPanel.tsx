@@ -44,6 +44,7 @@ import { Section } from "../../../components/panel/Section";
 import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useI18n } from "@/i18n";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { ACTION_CHOICE_LABEL_KEYS } from "../labels";
 import type { ActionChoice } from "../types";
@@ -77,8 +78,8 @@ function CatalogInteractionsContent() {
     return (
       <div className="panel interactions-panel">
         <PanelHeader
-          title="Interactions"
-          icon={<SquareMousePointer size={14} />}
+          title={t("panels.interactions")}
+          icon={<SquareMousePointer size={iconProps.size} />}
           panelId="events"
         />
         <PanelContents>
@@ -287,8 +288,8 @@ function CatalogRules({
   return (
     <div className="panel interactions-panel">
       <PanelHeader
-        title="Interactions"
-        icon={<SquareMousePointer size={14} />}
+        title={t("panels.interactions")}
+        icon={<SquareMousePointer size={iconProps.size} />}
         panelId="events"
       />
       <PanelContents>

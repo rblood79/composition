@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **페이지 레이아웃 · 앱 toast 위치가 Site 패널로**: 둘 다 프로젝트 문서 값이라 Builder 환경 설정 (Settings — 눈금자 · 스냅 · 액션 바 · 테마 모드 · 배율 · 언어) 에서 Site 패널의 「Page Layout」 · 「App」 절로 옮겼다 (사용자 결정 2026-10-28). 필드 · 동작은 같다.
   - 위치: `apps/builder/src/builder/panels/site/SitePageSections.tsx` (+ `useCatalogPageLayout` · `useCatalogToastPlacement` 이동)
+- **패널 제목 · 아이콘 피커 · 테마 토글이 언어 설정을 따른다**: Components · AI · Interactions 패널 제목이 메뉴 · 레일과 같은 번역 라벨이 됐다 (AI 패널 제목 「AI Assistant」 → 「AI」). 아이콘 피커의 검색 · 개수 문구와 테마 패널의 라이트 · 다크 토글 이름도 번역된다. Site 페이지 레이아웃의 방향 라벨은 Styles 와 같은 「방향」.
+  - 위치: `apps/builder/src/builder/panels/{components/ComponentList,ai/AIPanel,interactions/catalog/CatalogInteractionsPanel,icons/IconPickerPopover,themes/ThemesPanel}.tsx` · `src/i18n/translations.ts`
 
 ### Removed
 

@@ -1696,6 +1696,17 @@ export interface TranslationKeys {
     catBorder: string;
     catShadow: string;
     catFocus: string;
+    /** 테마 패널 헤더의 라이트 · 다크 미리보기 토글 (aria-label). */
+    switchToLight: string;
+    switchToDark: string;
+  };
+  /** 아이콘 피커 (Icon prop 선택 popover). */
+  iconPicker: {
+    title: string;
+    search: string;
+    searchPlaceholder: string;
+    /** `{count}` = 지금 보이는 아이콘 수. */
+    count: string;
   };
   styles: {
     responsiveGlobalHint: string;

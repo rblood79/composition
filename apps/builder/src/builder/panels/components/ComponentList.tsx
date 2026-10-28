@@ -108,6 +108,7 @@ const ComponentList = memo(
     selectedElementId,
     isLayoutMode = false,
   }: ComponentListProps) => {
+    const i18n = useOptionalI18n();
     const {
       recentTags,
       addRecentComponent,
@@ -319,8 +320,8 @@ const ComponentList = memo(
     return (
       <div className="panel">
         <PanelHeader
-          icon={<Blocks size={16} />}
-          title="Components"
+          icon={<Blocks size={iconProps.size} />}
+          title={i18n ? i18n.t("panels.components") : "Components"}
           panelId="components"
           actions={<SectionGroupToggleButton sectionIds={compSectionIds} />}
         />

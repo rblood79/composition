@@ -172,7 +172,8 @@ describe("AIPanel Photoshop-style initial experience", () => {
   it("shows contextual recommendations and the persistent composer", () => {
     renderWithI18n(<AIPanel />);
 
-    expect(screen.getByRole("heading", { name: "AI Assistant" })).toBeTruthy();
+    // The header title is the panel's menu · rail label (`panels.ai`), like every panel.
+    expect(screen.getByRole("heading", { name: "AI" })).toBeTruthy();
     expect(
       screen.getByText("Ready to run for the selected Button."),
     ).toBeTruthy();

@@ -294,7 +294,9 @@ function ThemesContent() {
         actions={
           <RAToggleButton
             className="iconButton"
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              isDark ? t("themes.switchToLight") : t("themes.switchToDark")
+            }
             isSelected={isDark}
             onChange={handleDarkModeToggle}
           >

@@ -24,6 +24,7 @@ import {
   Virtualizer,
 } from "react-aria-components/Virtualizer";
 import type { Key } from "react-aria-components/Collection";
+import { useOptionalI18n } from "@/i18n";
 import { IconPreview } from "./components/IconPreview";
 import { useIconSearch } from "./hooks/useIconSearch";
 
@@ -68,6 +69,7 @@ export const IconPickerPopover = memo(function IconPickerPopover({
   children,
   popoverStyle,
 }: IconPickerPopoverProps) {
+  const labels = usePickerLabels();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSelect = useCallback(
@@ -86,13 +88,27 @@ export const IconPickerPopover = memo(function IconPickerPopover({
         className="icon-picker-popover"
         style={popoverStyle}
       >
-        <Dialog className="icon-picker-dialog" aria-label="Icons">
+        <Dialog className="icon-picker-dialog" aria-label={labels.title}>
           <IconPickerContent value={value} onSelect={handleSelect} />
         </Dialog>
       </Popover>
     </DialogTrigger>
   );
 });
+
+/** The picker's labels — English without an `I18nProvider` (a shared property widget). */
+function usePickerLabels() {
+  const i18n = useOptionalI18n();
+  return {
+    title: i18n ? i18n.t("iconPicker.title") : "Icons",
+    search: i18n ? i18n.t("iconPicker.search") : "Search icons",
+    searchPlaceholder: i18n
+      ? i18n.t("iconPicker.searchPlaceholder")
+      : "Search icons…",
+    count: (count: number) =>
+      i18n ? i18n.t("iconPicker.count", { count }) : `${count} icons`,
+  };
+}
 
 const IconPickerContent = memo(function IconPickerContent({
   value,
@@ -101,6 +117,7 @@ const IconPickerContent = memo(function IconPickerContent({
   value?: string;
   onSelect: (iconName: string) => void;
 }) {
+  const labels = usePickerLabels();
   const { query, setQuery, filteredIcons } = useIconSearch();
 
   const items = useMemo(
@@ -124,21 +141,21 @@ const IconPickerContent = memo(function IconPickerContent({
     <Autocomplete inputValue={query} onInputChange={setQuery}>
       <SearchField
         className="icon-picker-search"
-        aria-label="Search icons"
+        aria-label={labels.search}
         autoFocus
       >
         <Input
-          placeholder="Search icons…"
+          placeholder={labels.searchPlaceholder}
           className="icon-picker-search-input"
         />
       </SearchField>
       <div className="icon-picker-count" aria-live="polite">
-        {filteredIcons.length} icons
+        {labels.count(filteredIcons.length)}
       </div>
       <Virtualizer layout={GridLayout} layoutOptions={GRID_LAYOUT_OPTIONS}>
         <ListBox
           className="icon-picker-grid"
-          aria-label="Icons"
+          aria-label={labels.title}
           layout="grid"
           items={items}
           selectionMode="single"

@@ -365,7 +365,7 @@ function AIPanelContent() {
     <div className="panel">
       <PanelHeader
         icon={<Bot size={iconProps.size} />}
-        title="AI Assistant"
+        title={t("panels.ai")}
         panelId="ai"
         actions={
           <>

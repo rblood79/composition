@@ -1636,7 +1636,7 @@ const koKR: TranslationKeys = {
     snapToObjects: "개체에 스냅",
     showActionBar: "선택 액션 바 표시",
     pageLayout: "페이지 레이아웃",
-    pageLayoutDirection: "배치 방향",
+    pageLayoutDirection: "방향",
     pageGap: "페이지 간격",
     pageColumns: "열 수",
     pageLayoutTierOverride: "이 breakpoint 만",
@@ -1703,7 +1703,8 @@ const koKR: TranslationKeys = {
     siteAccessNone: "누구나",
     siteAccessPassword: "비밀번호",
     siteAccessSso: "SSO",
-    siteAccessSecretsNotice: "비밀번호 · client secret · 인증서는 문서에 저장하지 않습니다 — 게시 서버 설정에 둡니다.",
+    siteAccessSecretsNotice:
+      "비밀번호 · client secret · 인증서는 문서에 저장하지 않습니다 — 게시 서버 설정에 둡니다.",
     siteAccessHint: "비밀번호 힌트",
     siteSsoProtocol: "Protocol",
     siteSsoIssuer: "발급자 (Issuer)",
@@ -1906,6 +1907,14 @@ const koKR: TranslationKeys = {
     catBorder: "테두리 폭",
     catShadow: "그림자",
     catFocus: "포커스",
+    switchToLight: "라이트 모드로",
+    switchToDark: "다크 모드로",
+  },
+  iconPicker: {
+    title: "아이콘",
+    search: "아이콘 검색",
+    searchPlaceholder: "아이콘 검색…",
+    count: "아이콘 {count}개",
   },
   styles: {
     responsiveGlobalHint:
@@ -4343,7 +4352,8 @@ const enUS: TranslationKeys = {
     siteAccessNone: "Everyone",
     siteAccessPassword: "Password",
     siteAccessSso: "SSO",
-    siteAccessSecretsNotice: "Passwords, client secrets and certificates are not stored in the document — they live in the publish server's settings.",
+    siteAccessSecretsNotice:
+      "Passwords, client secrets and certificates are not stored in the document — they live in the publish server's settings.",
     siteAccessHint: "Password hint",
     siteSsoProtocol: "Protocol",
     siteSsoIssuer: "Issuer",
@@ -4546,6 +4556,14 @@ const enUS: TranslationKeys = {
     catBorder: "Border width",
     catShadow: "Shadow",
     catFocus: "Focus",
+    switchToLight: "Switch to light mode",
+    switchToDark: "Switch to dark mode",
+  },
+  iconPicker: {
+    title: "Icons",
+    search: "Search icons",
+    searchPlaceholder: "Search icons…",
+    count: "{count} icons",
   },
   styles: {
     responsiveGlobalHint:
@@ -6733,6 +6751,7 @@ const formattedMessages: Record<
     "styles.responsiveNoOverrides": (args) =>
       `아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을 추가하면 ${String(args?.breakpoint ?? "")} 전용으로 분리됩니다.`,
     "workspace.movePanel": (args) => `${String(args?.panel ?? "")} 패널 이동`,
+    "iconPicker.count": (args) => `아이콘 ${String(args?.count ?? "")}개`,
     "workspace.resizePanel": (args) =>
       `${String(args?.panel ?? "")} 패널 ${String(args?.edge ?? "")} 크기 조절`,
     "workspace.resizeRow": (args) =>
@@ -7360,6 +7379,7 @@ const formattedMessages: Record<
     "styles.responsiveNoOverrides": (args) =>
       `No overrides yet — edits are global. Add a property below to split it into ${String(args?.breakpoint ?? "")} only.`,
     "workspace.movePanel": (args) => `Move ${String(args?.panel ?? "")} panel`,
+    "iconPicker.count": (args) => `${String(args?.count ?? "")} icons`,
     "workspace.resizePanel": (args) =>
       `Resize ${String(args?.panel ?? "")} panel ${String(args?.edge ?? "")}`,
     "workspace.resizeRow": (args) =>
