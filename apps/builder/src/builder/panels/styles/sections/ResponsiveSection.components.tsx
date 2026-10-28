@@ -189,7 +189,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
 
   return (
     <>
-      <PropertySection title="Responsive">
+      <PropertySection id="responsive" title="Responsive">
         <div className="responsive-visibility">
           <fieldset className="properties-aria responsive-visibility-seg">
             <legend className="fieldset-legend">
@@ -234,6 +234,7 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
 
       {!isBase && (
         <PropertySection
+          id="responsive-overrides"
           title="Overrides"
           className="responsive-overrides"
           badge={

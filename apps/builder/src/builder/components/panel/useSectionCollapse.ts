@@ -16,12 +16,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * Styles 패널의 섹션 id 4개 — `collapseAll()` 기본 대상이자 ⌥S 전체 토글의 판정 집합.
- * 종전에는 StylesPanel 이 `collapsedSections.size === 4` 로 "전부 접힘" 을 판정해,
- * 다른 패널(Components/Monitor/History)의 섹션이 하나라도 접혀 있으면 영원히 거짓이 되어
- * ⌥S 로 다시 펼칠 수 없었다. 판정은 반드시 id 집합으로 한다.
- */
-/**
  * 처음부터 접혀 있는 절 — Position (Layout 탭): static 요소에서 Left/Top 은 비활성이라
  * 펼칠 이유가 없고, position 이 absolute 가 되면 TransformSection 이 펼친다 (panel-ui 01,
  * 2026-09-14). 저장된 상태가 있는 사용자에게도 한 번은 적용한다 (`defaultsApplied`).
@@ -54,19 +48,24 @@ export function migrateLegacySectionId(id: string | null): string | null {
   return LEGACY_SECTION_ID_MAP[id] ?? id;
 }
 
-/** ⌥S 전체 토글 대상 — Styles 패널이 그리는 절 전부 (탭 순서대로). */
+/**
+ * ⌥⇧E 전체 토글 대상 — Styles 탭이 그리는 절 전부 (탭 순서대로). Design 격자 보기의 절
+ * (`grid-columns` · `grid-rows`) 은 Styles 탭이 아니라 넣지 않는다 — 넣으면 Styles 탭의 토글이
+ * 보이지 않는 그 절까지 접는다. 목록 ↔ 실제 절 id 대조: `styleSectionIds.static.test.ts`.
+ * 「전부 접힘」 판정은 이 id 집합으로 한다 — 접힌 개수로 세면 다른 패널의 접힌 절 때문에 영원히
+ * 거짓이 되어 다시 펼칠 수 없었다.
+ */
 export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
+  "layout",
   "transform",
   "position",
-  "layout",
-  "grid-columns",
-  "grid-rows",
-  "spacing",
   "fill",
   "border",
   "effect",
   "class-name",
   "typography",
+  "responsive",
+  "responsive-overrides",
 ];
 
 /**
