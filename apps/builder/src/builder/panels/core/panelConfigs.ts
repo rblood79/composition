@@ -103,7 +103,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: CatalogNavigatorPanel,
     category: "navigation",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultHeight: 320,
     description: "페이지, 프레임 및 레이어 구조 탐색",
@@ -117,7 +117,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: CatalogComponentsPanel,
     category: "navigation",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultHeight: 520,
     description: "컴포넌트 라이브러리",
@@ -131,7 +131,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: DataTablePanel,
     category: "navigation",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: "100%",
     defaultHeight: 520,
     description: "DataTables, APIs, Variables 관리",
@@ -145,7 +145,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: DataTableEditorPanel,
     category: "editor",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: "100%",
     // 격자 + 탭 라벨이 잘리지 않는 첫 열림 폭 (리서치 U1). 리사이즈 · 폭 저장은 그대로.
     defaultWidth: 560,
@@ -181,7 +181,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: CatalogThemesPanel,
     category: "tool",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultHeight: 520,
     description: "Tint 프리셋 및 테마 설정",
@@ -198,9 +198,9 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: SettingsPanel,
     category: "system",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 1000,
-    defaultWidth: 233,
+    defaultWidth: 228,
     defaultHeight: 500,
     description: "앱 설정 및 환경설정",
     shortcutId: "openSettings",
@@ -219,11 +219,12 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: SitePanel,
     category: "system",
     defaultPosition: "left",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultWidth: 280,
     defaultHeight: 560,
-    description: "사이트 제목 · favicon · 검색 · redirect · 접근 보호 (ADR-286)",
+    description:
+      "사이트 제목 · favicon · 검색 · redirect · 접근 보호 (ADR-286)",
     displayModes: ["panel", "floating"],
     // 문서 값이라 Builder 환경 설정 (settings) 과 나눈다 (사용자 2026-10-28). 진입점은 전체 메뉴
     // 작업 공간 구역 — 레일 7 개는 그대로 (사용자 2026-09-29 레일 정책).
@@ -238,7 +239,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: AIPanel,
     category: "tool",
     defaultPosition: "right",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 800,
     defaultWidth: 360,
     defaultHeight: 500,
@@ -252,7 +253,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     // ADR-252 — Properties · Styles 를 한 패널의 탭으로 합친 Design 패널. `id` 는 패널
     // 위치/크기 persist 키라 `properties` 그대로 둔다 (Events → Interactions 와 같은 선례).
     // 저장된 레이아웃의 `styles` row 는 registry 에 없어 정규화가 버린다 (변환 없음).
-    // 최소 폭 233 그대로 — 탭 5개 (Modified 를 뺀 뒤, 사용자 2026-10-04) 는 233 에서도 선택 탭
+    // 최소 폭 228 그대로 — 탭 5개 (Modified 를 뺀 뒤, 사용자 2026-10-04) 는 228 에서도 선택 탭
     // 라벨이 잘리지 않는다 (탭 6개일 때는 262 가 경계였다). 아이콘은 구 Styles 의 PaintRoller —
     // 새 아이콘은 initial 번들을 늘린다 (G4), 탭 아이콘과 겹치지 않는다.
     id: "properties",
@@ -262,7 +263,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: DesignPanel,
     category: "editor",
     defaultPosition: "right",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultHeight: 520,
     description: "요소 속성 · 스타일 편집",
@@ -278,7 +279,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: CatalogInteractionsPanel,
     category: "editor",
     defaultPosition: "right",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 800,
     defaultHeight: 520,
     description: "한 줄 규칙으로 요소 동작 정의",
@@ -294,7 +295,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     component: CatalogHistoryPanel,
     category: "editor",
     defaultPosition: "right",
-    minWidth: 233,
+    minWidth: 228,
     maxWidth: 640,
     defaultWidth: 320,
     defaultHeight: 450,

@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-24T15:56:10.815867+00:00",
+  "updatedAt": "2026-10-27T14:57:52.600104+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -387,5 +387,404 @@
     "reviewLog": "docs/adr/reviews/283.md (Round 2)",
     "evidenceDirectory": ".agent/runs/2026-10-25-review-adr283",
     "completedAt": "2026-10-25T14:11:01.951200+00:00"
+  },
+  "adr283": {
+    "task": "ADR-283 실행 — capability 대상 참조 (Phase 0 ~ 4)",
+    "phase": "phase4-done-g5-pending",
+    "status": "implemented_uncommitted",
+    "scope": "사용자 /execute-adr 283 「모든 phase 완료까지 · 크리티컬 오류 시 중지」 · 커밋은 요청 시 · contract 49 커밋은 282 G5 뒤 (R4)",
+    "next": [
+      "[x] Phase 0 inventory · RED 3 · probe 2",
+      "[x] Phase 1 모델 · 해소 · 명령 7 (원복 RED 4/4)",
+      "[x] Phase 2 패널 선택기",
+      "[x] Phase 3 Canvas 지정",
+      "[x] Phase 4 live · 번들 · 문서",
+      "[x] 판독 1 회 (Round 3) — HIGH 1 · MEDIUM 3 수리 · 닫힘",
+      "[ ] 커밋 (사용자 요청 시 · 282 G5 뒤 — R4)",
+      "[ ] G5 사용자 확인 → Implemented"
+    ]
+  },
+  "framerApplicationDesignReview": {
+    "task": "Framer 보고서 근거 검증 및 Composition 항목별 적용 설계",
+    "phase": "design_draft_complete",
+    "scope": "분석·계획·설계만; 제품 코드·ADR 상태 변경 없음",
+    "baselineHead": "d9a3748d8",
+    "evidenceDirectory": ".agent/runs/2026-10-26-framer-design-review",
+    "updatedAt": "2026-10-25T17:22:44.089224+00:00",
+    "status": "static_review_complete_live_unverified",
+    "deliverables": [
+      ".agent/runs/2026-10-26-framer-design-review/design-review.md",
+      ".agent/runs/2026-10-26-framer-design-review/evidence.json"
+    ],
+    "validation": {
+      "screenshots": "5/5 SHA-256 일치, 4개 시각 재검토",
+      "officialDocs": "6개 공식 문서 재조회",
+      "source": "22개 주요 소스 경로와 hash 기록; 정적 검토",
+      "liveTestsPerf": "미실행; 제품 코드 변경 없음"
+    }
+  },
+  "racEventAudit": {
+    "task": "RAC 레퍼런스 기준 컴포넌트별 When(event)·Do(고유 기능) 누락 전수 조사 → 검증 → 수정 보완 → 테스트 (사용자 요청 2026-10-26)",
+    "phase": "done-uncommitted",
+    "status": "verified",
+    "scope": "packages/shared/src/interactions (concepts·specs) · catalog runtime 전달 경로 · Preview When 도달 행렬 테스트",
+    "findings": [
+      "RAC 1.22.1 d.ts 76 type 스캔 (scratchpad racscan) — GlobalDOMEvents·TextInputDOMEvents·onClick(deprecated) 제외",
+      "확정 결함: Select selectionMode multiple 에서 RAC 가 selectedKey 무시·onSelectionChange 미호출 (useSelectState.mjs) — S2 Picker 표면은 value/onChange",
+      "누락 후보: DropZone onDropEnter/Move/Activate/Exit · Menu onClose · Form onInvalid · 항목 onAction (ListBoxItem·GridListItem·Row·TreeItem·Tag·MenuItem) · MenuItem 미등재 · focus/keyboard/press 숨은 이벤트 일부",
+      "When 이벤트 도달 게이트 없음 (capability 도달만 있음)"
+    ],
+    "next": [
+      "[x] When 도달 행렬 (196) RED→GREEN",
+      "[x] Select value/onChange 전환",
+      "[x] 누락 이벤트 개념 추가",
+      "[x] Do 보완 9",
+      "[x] 원복 RED 5/5 · shared 1741 · builder 6648 (기존 실패 1) · type-check",
+      "[x] live 5174 Publish 탭",
+      "[ ] 커밋 (사용자 요청 시)",
+      "[ ] 범위 밖: DisclosureGroup key 어휘 · multiple Select 값 글자 배치"
+    ]
+  },
+  "reviewAdr284PersonaSupplement": {
+    "task": "ADR-284 신입 개발자 관점 분석 보충 여부 판단",
+    "phase": "requested_supplement_applied_and_verified",
+    "scope": "사용자 수정반영해 요청: ADR-284와 breakdown 보충 4건, 리뷰 반영 기록; 제품 코드 구현 및 상태 승격 없음",
+    "updatedAt": "2026-10-26T12:33:50.626388+00:00",
+    "status": "documentation_complete_proposed_implementation_unverified",
+    "reviewLog": "docs/adr/reviews/284.md (Round 2)",
+    "findings": [
+      "기존 방향 유지: 두 진입점·기본 보기·타입별 비교·API 직렬화 이미 반영",
+      "계약 보충: 연결 재편집·해제·Undo 및 결과 계산 범위",
+      "UX·검증 보강: 현재 값·결과 설명 및 제작자 부재 시 인계 수정",
+      "비개발자 흐름 유지; 신입은 보조 페르소나"
+    ],
+    "validation": {
+      "guard": "PASS",
+      "format": "PASS 3 owned documents",
+      "localLinks": "PASS 18 links",
+      "reviewSchema": "PASS errors0",
+      "diffCheck": "PASS"
+    },
+    "unverified": "신규 기능 구현·Builder·Canvas·Preview·Publish·실제 신입 사용자 관찰·성능; 문서 작업으로 미실행",
+    "changedFiles": [
+      "docs/adr/284-data-view-filter-sort-group-query.md",
+      "docs/adr/design/284-data-view-filter-sort-group-query-breakdown.md",
+      "docs/adr/reviews/284.md"
+    ]
+  },
+  "reviewAdr285": {
+    "task": "ADR-285 설계 리뷰",
+    "phase": "round3_editor_repair_review_recorded",
+    "status": "high_1_pending_1_replaced_hunk_order",
+    "scope": "설계 리뷰만. 제품 코드·ADR 본문·상태 변경 없음",
+    "head": "29af87ee0",
+    "findings": [
+      "Round2 한줄수정·동일줄 특정삭제: 편집 연산 추적으로 설계 수리 확인",
+      "잔여 h1: replaced hunk 순서 대응이 A/B 재배치를 내용 교환으로 확정; 모양 개수 동일하여 모호성 검사 우회",
+      "h2·m3 fixed 유지; CodeMirror 도입 자체 차단 이슈 없음"
+    ],
+    "validation": {
+      "specificationProbe": "replaced hunk 재배치 반례 1건 실행 PASS (제품 구현 아님)",
+      "reviewSchema": "errors 0",
+      "format": "PASS 리뷰 파일",
+      "guard": "PASS",
+      "diffCheck": "PASS"
+    },
+    "unverified": "실제 CodeMirror 통합·inverse·Builder·Canvas/Preview·저장/재열기·번들·성능",
+    "reviewLog": "docs/adr/reviews/285.md (Round 3)",
+    "evidenceDirectory": ".agent/runs/2026-10-27-review-adr285-round3",
+    "completedAt": "2026-10-27T02:58:09.238646+00:00",
+    "updatedAt": "2026-10-27T02:56:43.483537+00:00"
+  },
+  "compareCssSelectionCost": {
+    "task": "Compare Mode CSS 클릭의 Canvas 선택 동기화 비용 조사",
+    "phase": "static_analysis_complete",
+    "status": "analysis_only",
+    "scope": "선택 전달 및 Canvas invalidate/present 경로 정적 확인; 제품 코드 변경 없음",
+    "findings": [
+      "CSS click → CATALOG_SELECT → workspace.selectRecords → CatalogSession.select 공통 선택 상태",
+      "동일 선택은 session.select에서 알림 생략; 같은 page/breakpoint는 Preview channel.setView 전송 생략",
+      "일반 선택은 overlayVersion 및 frame schedule 갱신; 안정된 콘텐츠는 snapshot blit + overlay present",
+      "페이지 전환·텍스트 편집 종료·애니메이션 등의 별도 변화는 content 갱신 가능",
+      "Layers 및 Design 선택 구독도 반응하므로 Canvas 테두리 표시만으로 전체 비용 판단 불가"
+    ],
+    "unverified": "현재 사용자 프로젝트 브라우저 프로파일 및 CPU/GPU 소요 시간 미측정",
+    "updatedAt": "2026-10-27T02:52:55.729104+00:00"
+  },
+  "adr284FilterControls": {
+    "task": "fix(adr-284): 「검색 추가」 · 「이 컨트롤로 목록 거르기」 컨트롤 종류를 등록표에서 유도 (Slider · ComboBox · Switch 등 누락 — 사용자 보고 2026-10-27)",
+    "phase": "pushed",
+    "status": "in_progress",
+    "scope": "viewAuthoring.ts CATALOG_FILTER_CONTROLS 손 표 7 → 등록표 (componentInteractionSpecs) 유도 · 숫자 필드 기본 NumberField · 두 진입점 같은 표 · 범위 Slider",
+    "next": [
+      "[x] 코드 읽기 · 설계 — 등록표 값 개념 → 컨트롤 22 (+ 진입점 전용 6)",
+      "[x] 구현 — viewAuthoring 유도 · 숫자 기본 NumberField · 패널 · i18n shape_* · creationContract accepts · code view 단일 key",
+      "[x] 테스트 +5 · 원복 RED 5/5 · 회귀 3,252 · shared 49 · 판정 5/5 · type-check",
+      "[x] live 5175 — 패널 22 종 · Switch · ComboBox 생성 · Preview 좁힘 · 정리 (삭제 명령) · 서버 종료",
+      "[x] 커밋 push — 1b988b05b",
+      "[ ] 남김: 범위 Slider ([min, max]) — Canvas 두 thumb 렌더 선행 (사용자 보고)"
+    ],
+    "updatedAt": "2026-10-27T05:30:51.581973+00:00"
+  },
+  "hitareaSelectionFlag": {
+    "task": "VITE_ENABLE_HITAREA_MODE로 CSS → Canvas 선택 리스너 등록 제어",
+    "phase": "verified",
+    "status": "complete_local_uncommitted",
+    "scope": "Preview 선택 리스너·feature flag·회귀·live harness·CHANGELOG; 보호 설정 파일 유지",
+    "evidenceDirectory": ".agent/runs/2026-10-27-hitarea-selection-flag",
+    "updatedAt": "2026-10-27T05:41:28.560222+00:00",
+    "validation": {
+      "vitest": "15 PASS",
+      "typecheck": "PASS",
+      "registration": "6 PASS",
+      "live": "headed Chrome false/true 양쪽 PASS; CSS Radio 동작 유지; 콘솔 오류 0",
+      "format": "신규 코드 및 추가 테스트 구간 PASS; 기존 인접 테스트 원본 포맷 불일치",
+      "preflight": "기존 인접 테스트 파일 포맷에서 중단; HEAD 원본 동일 불일치 확인",
+      "diffCheck": "PASS"
+    },
+    "temporaryServer": "검증용 5175 종료; 기존 5173 유지"
+  },
+  "legacyFeatureFlagsCleanup": {
+    "task": "공용 featureFlags.ts와 연결된 레거시 Preview 통신 정리",
+    "phase": "verified",
+    "status": "complete_local_uncommitted",
+    "scope": "공용 플래그 파일·dead debug/WebGL gate·구형 iframe 메시지 제거; 활성 Compare/HITAREA/자산 저장 설정은 도메인으로 이동",
+    "updatedAt": "2026-10-27T06:10:10.227977+00:00",
+    "evidenceDirectory": ".agent/runs/2026-10-27-legacy-feature-flags-cleanup",
+    "validation": {
+      "adjacentTests": "90 PASS: 73 + settings 6 (잔여 mock 수정 후) + theme 11",
+      "typecheck": "최종 PASS (baseline 0)",
+      "browser": "headed Chrome / CPU throttle 없음: false 및 true에서 선택 리스너 0/1, CATALOG_DATA 생성·runtime 변경 반영, dark theme·fontSize 18px 반영, 구형 메시지 0, 콘솔 오류 0",
+      "format": "신규 코드 및 변경 구간 PASS; preflight는 HEAD부터 있던 4개 파일의 포맷 불일치에서 중단",
+      "diffCheck": "PASS"
+    },
+    "settings": "보호 파일 승인 패치 적용: .env/.env.example의 DEBUG_LOGS·USE_WEBGL_CANVAS 삭제 및 타입 정리; 사용 중인 세 설정 유지",
+    "temporaryServer": "검증용 5175 종료; 기존 5173 유지"
+  },
+  "enableDevFlagAudit": {
+    "task": "VITE_ENABLE_DEV 사용 여부 확인",
+    "status": "analysis_complete",
+    "findings": [
+      "apps/builder/.env: VITE_ENABLE_DEV=false",
+      "apps/packages/scripts 코드 참조 0; 타입 및 getter 없음",
+      "현재 개발 전용 코드는 import.meta.env.DEV 사용; 설정값 수정 없음"
+    ],
+    "updatedAt": "2026-10-27T06:10:10.228043+00:00"
+  },
+  "unusedFunctionAudit": {
+    "task": "Builder 미사용 레거시 함수 조사",
+    "phase": "static_inventory_complete",
+    "status": "analysis_complete",
+    "scope": "분석만; 함수 선언/소비처 및 런타임 진입점 도달성 조사; 제품 코드 수정 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-27-unused-function-audit",
+    "updatedAt": "2026-10-27T06:22:17.888702+00:00",
+    "findings": {
+      "scannedFiles": 3381,
+      "exportedFunctions": 2102,
+      "initialCandidates": 231,
+      "manuallyConfirmedSymbols": 41,
+      "groups": 7
+    },
+    "report": ".agent/runs/2026-10-27-unused-function-audit/report.md",
+    "unverified": "레포 밖 동적 소비·실제 삭제 후 빌드/브라우저. 삭제 요청 없음."
+  },
+  "featureFlagsCommit": {
+    "task": "현재 레거시 정리 및 HITAREA 변경 commit/push",
+    "phase": "pushed",
+    "status": "complete",
+    "files": 22,
+    "evidenceDirectory": ".agent/runs/2026-10-27-feature-flags-commit",
+    "updatedAt": "2026-10-27T06:52:33.972920+00:00",
+    "commit": "d3aee6d280c93ef0b6ed601248f02af306d94d53",
+    "branch": "main",
+    "remote": "origin/main",
+    "validation": {
+      "vitest": "90 PASS",
+      "typecheck": "PASS (baseline 0)",
+      "registration": "6 PASS",
+      "headedBrowser": "false/true selection 및 CSS Radio·데이터·테마·서체 동기화 PASS; console errors 0",
+      "preflight": "기존 소유 파일 4개 및 당시 동시 작업 파일 3개의 포맷 불일치로 중단; 범위 분리 및 상태 명시",
+      "diffCheck": "PASS"
+    },
+    "excluded": "로컬 .agent 기록과 조사만 한 미사용 함수 41개; 다른 작업은 별도 커밋으로 보존",
+    "temporaryServer": "5175 종료; 기존 5173 유지"
+  },
+  "reviewAdr286": {
+    "task": "ADR-286 설계 리뷰",
+    "phase": "round2-repair-review-recorded",
+    "status": "high_0_medium_1_pending_1",
+    "scope": "ADR-286 문서 수리 검증 1회; 제품 코드·ADR 본문·Status 변경 없음",
+    "findings": [
+      "h1 fixed: consume plan 무효화와 G0/G1/G4 설계 반영",
+      "m2 pending: project 말단 정리 앞 removedRelated 조기 반환 및 삭제 ID 집합 보강 필요",
+      "m3 fixed: Undo 전 graph·같은 저장 묶음·내보낸 document 존재 단언"
+    ],
+    "validation": {
+      "probe": "Vitest 1/1 PASS (빈 보호 페이지 removePage 명령의 말단 정리 미도달 확인)",
+      "reviewSchema": "178/178 PASS",
+      "guard": "PASS",
+      "format": "FAIL: docs/adr/reviews/286.md 포맷 불일치; ADR 본문·breakdown PASS",
+      "diffCheck": "PASS"
+    },
+    "unverified": "미래 schema commit·실제 IndexedDB·Builder·Canvas/Preview/Publish live·저장/재열기·성능·번들",
+    "reviewLog": "docs/adr/reviews/286.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-27-review-adr286",
+    "completedAt": "2026-10-27T14:32:27.682Z",
+    "recheck": {
+      "checkedAt": "2026-10-27T14:01:52.173Z",
+      "head": "25e2290be",
+      "scope": "기존 Round 1의 현행 코드·명세 probe 재확인; 중복 round 및 제품·ADR 본문 변경 없음",
+      "probe": "Vitest 3/3 PASS",
+      "reviewSchema": "178/178 PASS",
+      "guard": "PASS",
+      "format": "FAIL: docs/adr/reviews/286.md 기존 포맷 불일치; 검사만 수행",
+      "diffCheck": "PASS",
+      "unverified": "실제 IndexedDB·Builder·Canvas/Preview/Publish live·저장/재열기·성능·번들"
+    }
+  },
+  "reviewAdr287": {
+    "task": "ADR-287 설계 리뷰",
+    "phase": "round1_recorded",
+    "status": "changes_requested_high_3_medium_2_pending_5",
+    "scope": "문서·현행 코드 대조 및 로컬 실행 probe; 제품 코드·ADR 본문·Status 변경 없음",
+    "head": "1c62634f1",
+    "reviewLog": "docs/adr/reviews/287.md (Round 1)",
+    "evidenceDirectory": ".agent/runs/2026-10-28-review-adr287",
+    "findings": [
+      "h1 variant·size 옵션 출처: accepts.options가 아닌 catalog rule 필요",
+      "h2 runtime-local 병합만으로 Meter.label의 자식 template binding 미갱신",
+      "h3 Meter.variant 변수 바인딩 transaction PROP_CHOICE_MISMATCH",
+      "m4 자기 isDisabled 유도 시 해제도 guard 거절",
+      "m5 API 전체 포괄성과 accepts-only 및 Image 포함 26종 gate 모순"
+    ],
+    "validation": {
+      "probe": "Vitest 7/7 PASS",
+      "reviewSchema": "179/179 PASS",
+      "guard": "PASS",
+      "format": "FAIL: writer 생성 docs/adr/reviews/287.md 포맷 불일치; 검사만 수행",
+      "diffCheck": "PASS"
+    },
+    "unverified": "새 유도·패널·코드왕복 구현; 실제 headed Builder·Canvas/Preview/Publish·저장/재열기·번들·성능",
+    "updatedAt": "2026-10-27T15:05:40.950928+00:00"
+  },
+  "adobeRepositoryAnalysis": {
+    "task": "Adobe 공개 저장소와 Composition 실제 코드 적용 가치 분석",
+    "phase": "analysis_complete",
+    "status": "complete",
+    "scope": "공개 upstream 소스와 현행 로컬 코드 정적 분석; 제품 코드 변경 없음",
+    "evidenceDirectory": ".agent/runs/2026-10-28-adobe-repository-analysis",
+    "report": ".agent/runs/2026-10-28-adobe-repository-analysis/report.md",
+    "updatedAt": "2026-10-27T15:36:06.725807+00:00",
+    "inventory": {
+      "publicRepositories": 1126,
+      "shortlistedRepositories": 12,
+      "implementationSourceRepositories": 9
+    },
+    "findings": [
+      "신규 활용 우선: spectrum-design-data 대조 자동화, leonardo 선택형 대비 기반 테마 생성",
+      "react-spectrum 기존 도입 확인; 추가 가치는 계약 및 테스트 누락 보강",
+      "json-formula 계산 필드 요구 시 조건부 추천; 기존 ADR-284 평가기 교체 불필요",
+      "차트와 SVG는 부분 구현 참고 우선; S3Mock은 현재 TUS와 직접 대응 없음",
+      "spectrum-css 2026-10-13 archived 확인"
+    ],
+    "validation": {
+      "sourceLinks": "15 paths verified against fetched upstream trees",
+      "product": "정적 분석만; 설치·제품 수정·브라우저·벤치마크·preflight 실행 없음"
+    }
+  },
+  "reviewAdr287Repair": {
+    "task": "ADR-287 Round 1 수리 검증 1회",
+    "phase": "round2_recorded",
+    "status": "high_0_medium_1_pending_1",
+    "scope": "기존 다섯 지적 설계 수리 검증; 제품 코드·ADR 본문·Status·커밋 변경 없음",
+    "head": "1c62634f1",
+    "reviewLog": "docs/adr/reviews/287.md (Round 2)",
+    "findings": [
+      "H1/H2/H3/M5 fixed: 선택지 출처·template-bound 전달·동적 enum 저장 정책·API 모집단/분모 설계 반영 확인",
+      "M4 pending: guards:[]는 own과 inherited disabled 검사를 모두 우회; inherited 전용 판정 계약 필요"
+    ],
+    "validation": {
+      "probe": "Vitest 1/1 PASS (guards=[]의 own/inherited 우회 반증)",
+      "reviewSchema": "179/179 PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/287.md 포맷 불일치; 검사만 수행"
+    },
+    "unverified": "제품 구현·실제 Builder·Canvas/Preview/Publish·저장/재열기·왕복·번들",
+    "evidenceDirectory": ".agent/runs/2026-10-28-review-adr287/round2-*",
+    "completedAt": "2026-10-27T15:27:11.649371+00:00"
+  },
+  "jsonFormulaRustAssessment": {
+    "task": "json-formula 기능 및 기존 Rust/WASM 엔진 편입 타당성",
+    "status": "analysis_complete",
+    "phase": "source_contract_assessed",
+    "updatedAt": "2026-10-27T16:59:24.578772+00:00",
+    "scope": "공식 Rust 구현과 현행 engine export·Builder loader·공용 view evaluator 정적 대조",
+    "findings": [
+      "계산 필드·조건식·문자열·배열 집계·날짜 연산에 활용 가능",
+      "Rust 편입은 별도 FormulaEngine 또는 공용 계산 crate로 가능; LayoutTree 및 레이아웃 dirty 경로와 분리",
+      "현재 engine WASM은 Builder 전용 경로; Preview/Publish 공용 evaluator 배포 및 초기화 계약 필요",
+      "upstream compile/run 존재, run은 serde_json Value를 내부 JfValue로 변환하므로 batch와 캐시 및 경계비용 측정 필요",
+      "WASM wrapper 미제공; chrono/난수 의존성·지금/난수 결과 일관성·계산 예산·공식 corpus 동등성 확인 필요"
+    ],
+    "unverified": "WASM 컴파일·crate 추가·native 테스트·제품 실행·번들·성능 측정 없음"
+  },
+  "adr286": {
+    "task": "ADR-286 execute — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로",
+    "phase": "phase4-done-pushed-535ef4b5f — G6 사용자 확인 대기",
+    "decisions": {
+      "R3": "착수 (로컬 프로젝트 1 · collection 1 · mock 4 · endpoint 0 · 변수 0, contract 50)",
+      "1": "mock 행 collection 당 1,000 상한",
+      "3": "ProjectVariableEntry 별개 entry"
+    },
+    "next": [
+      "[x] Phase 0 · 1 · 2 (G1 · G2 · G3)",
+      "[x] Phase 3 — 사이트 패널 (Settings 와 분리, 사용자) · 페이지 검색 · 공유 · page locale → 사이트 언어 (사용자) · G4 live 5174",
+      "[x] Phase 4 — docs:stale-symbols 0 · state-management · 관련 ADR 131/214/218/248/281 · README · CHANGELOG · breakdown §9 · 메모리",
+      "[x] G5 번들 미달 (Builder initial gzip +5,977 / +1,000, 모듈 합계 −1,115 raw · 파일 101→117) — 사용자 수용",
+      "[ ] G6 사용자 Builder 확인 → Implemented + Live Exercise 절 + git mv completed",
+      "[x] 커밋 · 푸시 535ef4b5f (사용자 지시)",
+      "[x] scratchpad worktree 정리"
+    ],
+    "stop": "크리티컬 오류 시 정지 (사용자)",
+    "updatedAt": "2026-10-27T23:02:04.685085+00:00",
+    "goal": "ADR-286 실행 — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로 (사용자 /execute-adr 286, 크리티컬 오류 시 정지)",
+    "guard": "web PR 금지 · 커밋은 요청 시 · 원본 삭제는 파일별 승인 · 사용자 5173 서버 무변경"
+  },
+  "adr187MeasurementHistoryCheck": {
+    "task": "ADR-187 최근 측정 내역 확인",
+    "status": "investigation_complete",
+    "updatedAt": "2026-10-28T08:22:25+09:00",
+    "scope": "기존 ADR·git 이력·로컬 실행 기록 조사. 새 측정과 제품 코드 변경 없음",
+    "findings": [
+      "ADR-187 Implemented 2026-08-24",
+      "확인된 ADR-187 최종 직접 측정: 2026-08-24 Phase 6 G8, native ColorArea drag 5회, apply p95 median 0.2ms/p99 median 0.3ms/worst max 1.6ms",
+      "후속 2026-09-06 frame-performance closure는 별도 성능·동작 검증; 스크립트에 adr187Metrics 쿼리 사용",
+      "현재 보존된 .agent/runs·archives 및 /private/tmp에서 최근 ADR-187 재측정 원시 결과 발견 못 함; 기록 부재는 미실행의 증명 아님",
+      "숨김 DOM 버튼을 상시 유지해야 한다는 최근 측정 근거 발견 못 함"
+    ],
+    "evidence": [
+      "docs/adr/design/187-phase-6-g8-live-parity.md",
+      "docs/adr/design/187-phase-0-presentation-baseline.md",
+      "docs/migrations/frame-performance/closure.md"
+    ],
+    "unverified": "현재 HEAD 성능과 외부·삭제된 측정 내역은 미검증"
+  },
+  "adr187HiddenButtonsCleanup": {
+    "task": "ADR-187 개발용 숨김 버튼 4개 제거",
+    "status": "committed_pushed_verified",
+    "scope": "button 생성 경로와 테스트 의존 제거. 계측 API·기존 DOM 이벤트 유지",
+    "next": "완료",
+    "updatedAt": "2026-10-28T12:08:08+09:00",
+    "findings": [
+      "숨김 button 생성 경로 39줄 제거",
+      "기존 테스트의 button click 의존을 계측 API·DOM 이벤트 호출로 변경",
+      "실제 기존 Builder 새로고침 후 버튼 0개, 콘솔 오류·경고 0건",
+      "인접 Vitest 2파일 4개·codex:preflight·diff check PASS"
+    ],
+    "evidenceDirectory": ".agent/runs/2026-10-28-adr187-hidden-buttons-cleanup",
+    "commit": "8dda78e0f9df3000797fb41d3a6178e464f6346c",
+    "remote": "origin/main",
+    "remoteVerified": true
   }
 }
