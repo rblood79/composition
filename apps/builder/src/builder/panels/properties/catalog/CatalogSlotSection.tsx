@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { ChevronDown, Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -8,7 +8,10 @@ import type {
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { catalogItemInsertChoices } from "../../../catalogRuntime/itemInsert";
 import { catalogCreationProps } from "../../../catalogRuntime/paletteInsert";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import {
   CATALOG_PART_INSERT_HOSTS,
   catalogSlotCommands,
@@ -109,59 +112,58 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => {
-    const declaration =
-      target.kind === "node"
-        ? catalogSlotDeclaration(graph, target.id)
-        : undefined;
-    const position = catalogSlotPosition(graph, target);
-    // (The instance holds the slot's content — the restore applies.)
-    const filled = position?.fillIds !== undefined;
-    // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert —
-    // a slot declaration only names the position, so a part with no slot whose parts the palette
-    // doesn't offer (a Calendar's header) has the list too.
-    const options =
-      position || (type !== undefined && CATALOG_PART_INSERT_HOSTS.has(type))
-        ? catalogSlotInsertOptions(graph, target)
-        : [];
-    // ADR-261 Decision 3: a declared slot's suggestions (and what it can suggest).
-    const nameOf = (id: string) => {
-      const definition = graph.getDefinition(id as DefinitionId);
-      return definition?.name ?? id;
-    };
-    const suggestions = declaration?.slot?.suggested?.map((id) => ({
-      id,
-      label: nameOf(id),
-    }));
-    const choices =
-      declaration?.slot && target.kind === "node"
-        ? catalogSlotSuggestionChoices(graph, target.id).filter(
-            (choice) =>
-              !declaration.slot?.suggested?.includes(choice.definitionId),
-          )
-        : [];
-    return JSON.stringify({
-      declaration,
-      position,
-      filled,
-      options,
-      suggestions,
-      choices,
-    });
-  });
   const { declaration, position, filled, options, suggestions, choices } =
-    JSON.parse(viewKey) as {
-      suggestions?: { id: string; label: string }[];
-      choices: ReturnType<typeof catalogSlotSuggestionChoices>;
-      declaration?: ReturnType<typeof catalogSlotDeclaration>;
-      position?: ReturnType<typeof catalogSlotPosition>;
-      filled: boolean;
-      options: ReturnType<typeof catalogSlotInsertOptions>;
-    };
+    useCatalogStepReading(
+      workspace,
+      (): {
+        suggestions?: { id: string; label: string }[];
+        choices: ReturnType<typeof catalogSlotSuggestionChoices>;
+        declaration?: ReturnType<typeof catalogSlotDeclaration>;
+        position?: ReturnType<typeof catalogSlotPosition>;
+        filled: boolean;
+        options: ReturnType<typeof catalogSlotInsertOptions>;
+      } => {
+        const declaration =
+          target.kind === "node"
+            ? catalogSlotDeclaration(graph, target.id)
+            : undefined;
+        const position = catalogSlotPosition(graph, target);
+        // (The instance holds the slot's content — the restore applies.)
+        const filled = position?.fillIds !== undefined;
+        // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert —
+        // a slot declaration only names the position, so a part with no slot whose parts the palette
+        // doesn't offer (a Calendar's header) has the list too.
+        const options =
+          position ||
+          (type !== undefined && CATALOG_PART_INSERT_HOSTS.has(type))
+            ? catalogSlotInsertOptions(graph, target)
+            : [];
+        // ADR-261 Decision 3: a declared slot's suggestions (and what it can suggest).
+        const nameOf = (id: string) => {
+          const definition = graph.getDefinition(id as DefinitionId);
+          return definition?.name ?? id;
+        };
+        const suggestions = declaration?.slot?.suggested?.map((id) => ({
+          id,
+          label: nameOf(id),
+        }));
+        const choices =
+          declaration?.slot && target.kind === "node"
+            ? catalogSlotSuggestionChoices(graph, target.id).filter(
+                (choice) =>
+                  !declaration.slot?.suggested?.includes(choice.definitionId),
+              )
+            : [];
+        return {
+          declaration,
+          position,
+          filled,
+          options,
+          suggestions,
+          choices,
+        };
+      },
+    );
 
   // Handlers read the committed declaration (field controls keep their first onChange).
   const currentSlot = useCallback(

@@ -1,11 +1,4 @@
-import {
-  lazy,
-  memo,
-  Suspense,
-  useCallback,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { CircleAlert, Layout, RefreshCw, WandSparkles, X } from "lucide-react";
 import { translateKey, useI18n } from "@/i18n";
@@ -25,6 +18,7 @@ import {
 } from "../../../catalogRuntime/pageSettings";
 import {
   useCatalogPages,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -74,22 +68,18 @@ export const CatalogPageSection = memo(function CatalogPageSection({
   const graph = workspace.runtime.graph;
   const pages = useCatalogPages();
   const page = pages.find((entry) => entry.id === pageId);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const layoutKey = useSyncExternalStore(subscribe, () =>
-    JSON.stringify({
+  const { layouts, current, slots } = useCatalogStepReading(
+    workspace,
+    (): {
+      layouts: ReturnType<typeof catalogPageLayouts>;
+      current: string;
+      slots: ReturnType<typeof catalogPageLayoutSlots>;
+    } => ({
       layouts: catalogPageLayouts(graph),
       current: catalogPageLayoutId(graph, pageId) ?? "",
       slots: catalogPageLayoutSlots(graph, pageId),
     }),
   );
-  const { layouts, current, slots } = JSON.parse(layoutKey) as {
-    layouts: ReturnType<typeof catalogPageLayouts>;
-    current: string;
-    slots: ReturnType<typeof catalogPageLayoutSlots>;
-  };
   const [routeError, setRouteError] = useState<string | null>(null);
   // A root page has no parent to follow; offer it only right after it left one.
   const [leftParent, setLeftParent] = useState<string | null>(null);

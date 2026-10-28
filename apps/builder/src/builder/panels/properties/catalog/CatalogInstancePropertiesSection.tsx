@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useState } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { ChevronDown } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -15,7 +15,10 @@ import {
   catalogInstancePropertyScope,
   type CatalogInstancePropertyRow,
 } from "../../../catalogRuntime/componentProperties";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { ActionTooltipTrigger } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useToastStore } from "../../../stores/toast";
@@ -36,17 +39,13 @@ export const CatalogInstancePropertiesRows = memo(
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
     const graph = workspace.runtime.graph;
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
+    const rows = useCatalogStepReading(
+      workspace,
+      (): CatalogInstancePropertyRow[] => {
+        const scope = catalogInstancePropertyScope(graph, target);
+        return scope ? catalogInstancePropertyRows(graph, scope) : [];
+      },
     );
-    const rowsKey = useSyncExternalStore(subscribe, () => {
-      const scope = catalogInstancePropertyScope(graph, target);
-      return scope
-        ? JSON.stringify(catalogInstancePropertyRows(graph, scope))
-        : "[]";
-    });
-    const rows = JSON.parse(rowsKey) as CatalogInstancePropertyRow[];
     const [open, setOpen] = useState<string | undefined>();
     const pick = useCallback(
       (key: string, definitionId: DefinitionId | null) => {

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
+import { useCatalogRevision } from "../../../catalogRuntime/react";
 import {
   catalogCollectionUsage,
   catalogFieldUsageElements,
@@ -12,13 +13,7 @@ export function createCatalogDataUsageSource(
   workspace: CatalogWorkspace,
 ): DataUsageSource {
   const graph = () => workspace.runtime.graph;
-  const useRevision = () => {
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [],
-    );
-    return useSyncExternalStore(subscribe, () => graph().revision);
-  };
+  const useRevision = () => useCatalogRevision(workspace);
   return {
     useCollectionUsage(collections) {
       const revision = useRevision();

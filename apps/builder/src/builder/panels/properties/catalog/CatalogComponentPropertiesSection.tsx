@@ -1,4 +1,4 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Minus, Unlink } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -14,7 +14,10 @@ import {
   catalogPropertyView,
   type CatalogPropertyView,
 } from "../../../catalogRuntime/componentProperties";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { catalogSlotSuggestionChoices } from "../../../catalogRuntime/slots";
 import { catalogComponentLabel } from "../../../catalogRuntime/componentProperties";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -45,17 +48,14 @@ export const CatalogComponentPropertiesSection = memo(
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
     const graph = workspace.runtime.graph;
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
+    const view = useCatalogStepReading(
+      workspace,
+      (): CatalogPropertyView | null => {
+        const textProp = catalogTextKey(workspace.root.domInputs.get(identity));
+        return catalogPropertyView(graph, nodeId, textProp) ?? null;
+      },
     );
-    const viewKey = useSyncExternalStore(subscribe, () => {
-      const textProp = catalogTextKey(workspace.root.domInputs.get(identity));
-      const view = catalogPropertyView(graph, nodeId, textProp);
-      return view ? JSON.stringify(view) : "";
-    });
-    if (!viewKey) return null;
-    const view = JSON.parse(viewKey) as CatalogPropertyView;
+    if (!view) return null;
     const { origin, rows, textProp, canBoolean, canInstance } = view;
     const kindLabel = (kind: ComponentPropertyKind) =>
       kind === "text"

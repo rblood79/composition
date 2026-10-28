@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SquareMousePointer } from "lucide-react";
 import { exposedTriggerGroups, resolveTriggers } from "@composition/shared";
 import type {
@@ -32,6 +32,7 @@ import {
 } from "../../../catalogRuntime/interactions";
 import {
   CatalogWorkspaceGate,
+  useCatalogRevision,
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
@@ -113,11 +114,9 @@ function CatalogRules({
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
   const owner = useMemo(() => catalogInteractionOwner(target), [target]);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const revision = useSyncExternalStore(subscribe, () => graph.revision);
+  // The rules' targets and values read across the document (pages, nodes, variables) — the whole
+  // revision, not one entry's fields.
+  const revision = useCatalogRevision(workspace);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // Project variables live in the data store (H1).
   const projectVariables = useProjectVariableDefs();

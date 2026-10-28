@@ -1,4 +1,5 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
+import { useCatalogStepReading } from "../../../catalogRuntime/react";
 import { Minus } from "lucide-react";
 import { setShowWhen } from "../../../../../../../packages/shared/src/catalog/commands";
 import {
@@ -76,12 +77,7 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
       }),
     };
   }, [identity, root, workspace]);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  const view = JSON.parse(viewKey) as ShowWhenView | null;
+  const view: ShowWhenView | null = useCatalogStepReading(workspace, read);
 
   const write = useCallback(
     (conditions: readonly ConditionView[]) => {

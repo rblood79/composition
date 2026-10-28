@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { NodeId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogAppliedPreset,
@@ -7,6 +7,7 @@ import {
 } from "../../../catalogRuntime/layoutPreset";
 import {
   useCatalogSession,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -46,23 +47,11 @@ export const CatalogLayoutBodySection = memo(function CatalogLayoutBodySection({
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
   const breakpoint = useCatalogSession((state) => state.breakpoint);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
+  // Re-read on each step: the layout's slots (name · node · child count); null = not a layout.
+  const layoutSlots = useCatalogStepReading(workspace, () =>
+    layoutOfRoot(graph, nodeId) ? catalogLayoutSlots(graph, nodeId) : null,
   );
-  // Re-read on each step: the slot list as a key (name · node · child count).
-  const key = useSyncExternalStore(subscribe, () =>
-    layoutOfRoot(graph, nodeId)
-      ? catalogLayoutSlots(graph, nodeId)
-          .map((slot) => `${slot.nodeId}:${slot.slotName}:${slot.childCount}`)
-          .join("|")
-      : null,
-  );
-  const slots = useMemo(
-    () => (key === null ? [] : catalogLayoutSlots(graph, nodeId)),
-
-    [key, graph, nodeId],
-  );
+  const slots = useMemo(() => layoutSlots ?? [], [layoutSlots]);
   const existing = useMemo<ExistingSlotInfo[]>(
     () =>
       slots.map((slot) => ({
@@ -93,7 +82,7 @@ export const CatalogLayoutBodySection = memo(function CatalogLayoutBodySection({
     },
     [workspace],
   );
-  if (key === null) return null;
+  if (layoutSlots === null) return null;
   return (
     <>
       <PropertySection title="Layout Preset">

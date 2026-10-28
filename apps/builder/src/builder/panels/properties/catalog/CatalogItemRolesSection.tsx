@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
 import type { SlotRole } from "@composition/shared";
 import { useI18n } from "@/i18n";
 import {
@@ -6,7 +6,10 @@ import {
   catalogItemRoles,
   type CatalogItemRoles,
 } from "../../../catalogRuntime/itemRoles";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
@@ -41,15 +44,7 @@ export const CatalogItemRolesSection = memo(function CatalogItemRolesSection({
       return null;
     }
   }, [identity, workspace]);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  const roles = useMemo(
-    () => JSON.parse(viewKey) as CatalogItemRoles | null,
-    [viewKey],
-  );
+  const roles = useCatalogStepReading<CatalogItemRoles | null>(workspace, read);
   if (!roles) return null;
   const label = (role: SlotRole) => {
     const key = ROLE_LABEL_KEY[role];

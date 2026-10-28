@@ -14,4 +14,6 @@ export {
   useCatalogComponents,
   useCatalogSaveStatus,
   useCatalogEditContract,
+  useCatalogRevision,
+  useCatalogStepReading,
 } from "./react.runtime";

@@ -22,6 +22,7 @@ import {
 } from "../../../catalogRuntime/layouts";
 import {
   useCatalogSession,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import {
@@ -79,24 +80,18 @@ export const CatalogDefinitionsSection = memo(
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
     const graph = workspace.runtime.graph;
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
-    );
-    const listKey = useSyncExternalStore(subscribe, () =>
-      JSON.stringify(catalogDefinitionList(graph, usage)),
+    const list = useCatalogStepReading(workspace, (): CatalogDefinitionItem[] =>
+      catalogDefinitionList(graph, usage),
     );
     const items = useMemo(
       () =>
-        (JSON.parse(listKey) as CatalogDefinitionItem[]).map(
-          (item): DefinitionNode => ({
-            ...item,
-            parentId: null,
-            depth: 0,
-            hasChildren: false,
-          }),
-        ),
-      [listKey],
+        list.map((item): DefinitionNode => ({
+          ...item,
+          parentId: null,
+          depth: 0,
+          hasChildren: false,
+        })),
+      [list],
     );
     const componentsPage = useMemo(
       (): DefinitionNode[] => [
@@ -360,11 +355,8 @@ function LibraryOriginActions() {
     ),
     () => workspace.isLibraryUnlocked,
   );
-  const overridden = useSyncExternalStore(
-    useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
-    ),
+  const overridden = useCatalogStepReading(
+    workspace,
     () => catalogOverriddenOrigins(graph).length,
   );
   const LockIcon = unlocked ? LockOpen : Lock;

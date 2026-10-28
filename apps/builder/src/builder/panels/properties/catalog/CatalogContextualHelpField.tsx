@@ -1,10 +1,13 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
 import {
   catalogContextualHelp,
   catalogContextualHelpCommand,
   type CatalogContextualHelpKind,
 } from "../../../catalogRuntime/contextualHelpCommand";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 
@@ -28,12 +31,8 @@ export const CatalogContextualHelpField = memo(
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
     const graph = workspace.runtime.graph;
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
-    );
-    const kind = useSyncExternalStore(
-      subscribe,
+    const kind = useCatalogStepReading(
+      workspace,
       () =>
         catalogContextualHelp(graph, workspace.positionOfRecord(elementId))
           ?.kind,

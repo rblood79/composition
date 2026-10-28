@@ -5,6 +5,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useRef,
   useSyncExternalStore,
 } from "react";
@@ -48,6 +49,39 @@ export function useCatalogWorkspace(): CatalogWorkspace {
   const workspace = useContext(WorkspaceContext);
   if (!workspace) throw new Error("CATALOG_WORKSPACE_REQUIRED");
   return workspace;
+}
+
+/**
+ * The document revision, re-read after each step — for a view that reads across the whole document
+ * (the code view's page code, the interaction rules' target list). A view over one entry's fields
+ * subscribes to those fields instead (`useCatalogPropSource` · `runtime.subscribeEntryField`).
+ */
+export function useCatalogRevision(workspace: CatalogWorkspace): number {
+  const { runtime } = workspace;
+  const subscribe = useCallback(
+    (notify: () => void) => runtime.subscribeSteps(() => notify()),
+    [runtime],
+  );
+  return useSyncExternalStore(subscribe, () => runtime.graph.revision);
+}
+
+/**
+ * A document reading re-run after each step and kept while its JSON is the same (the same object
+ * until something it reads changed). `read` runs on every step — keep it to what the view shows.
+ * Same rule as `useCatalogRevision`: a reading of one entry's fields subscribes to them instead.
+ */
+export function useCatalogStepReading<T>(
+  workspace: CatalogWorkspace,
+  read: () => T,
+): T {
+  const { runtime } = workspace;
+  const subscribe = useCallback(
+    (notify: () => void) => runtime.subscribeSteps(() => notify()),
+    [runtime],
+  );
+  const key = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
+  // (A reading of `undefined` has no JSON — it comes back as `null`.)
+  return useMemo(() => JSON.parse(key ?? "null") as T, [key]);
 }
 
 /** One session field (selection, page, hover, …); state fields keep their identity until changed. */

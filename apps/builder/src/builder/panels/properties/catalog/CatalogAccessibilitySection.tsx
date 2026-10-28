@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useState } from "react";
 import { Fingerprint } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
@@ -17,6 +17,7 @@ import { setNodeAttribute } from "../../../../../../../packages/shared/src/catal
 import {
   useCatalogEditContract,
   useCatalogNodeMetadata,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
@@ -50,13 +51,9 @@ export const CatalogAccessibilitySection = memo(
     const graph = workspace.runtime.graph;
     const contract = useCatalogEditContract(target);
     const nodeId = target.kind === "node" ? target.id : undefined;
-    const subscribeSteps = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
-    );
     const htmlId = useCatalogNodeMetadata(nodeId, "htmlId");
     // The id an empty field stands for: the first free `type_N` (what the check would assign).
-    const automaticHtmlId = useSyncExternalStore(subscribeSteps, () => {
+    const automaticHtmlId = useCatalogStepReading(workspace, (): string => {
       const entry = nodeId ? graph.getEntry(nodeId) : undefined;
       return entry?.kind === "node"
         ? catalogAutomaticHtmlId(

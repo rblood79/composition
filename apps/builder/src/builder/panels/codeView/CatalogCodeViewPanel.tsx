@@ -21,6 +21,7 @@ import type { CodeViewChange } from "../../../../../../packages/shared/src/codeV
 import type { CodeViewResult } from "../../../../../../packages/shared/src/codeView/types";
 import {
   CatalogWorkspaceGate,
+  useCatalogRevision,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
 import { catalogCollectionTables } from "../../catalogRuntime/catalogDataStore";
@@ -83,13 +84,8 @@ function CodeViewContent() {
     workspace.session.subscribe,
     () => workspace.session.getSnapshot().pageId,
   );
-  const revision = useSyncExternalStore(
-    useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
-    ),
-    () => workspace.runtime.graph.revision,
-  );
+  // The page's code reads the whole document (its nodes, data, variables) — the whole revision.
+  const revision = useCatalogRevision(workspace);
   // ADR-286: the data definitions are the document's — the code reads one source.
   const tables = useMemo(() => {
     void revision;

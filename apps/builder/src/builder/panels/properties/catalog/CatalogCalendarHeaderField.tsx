@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { readTargetProp } from "../../../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   catalogCalendarHeaderCommand,
@@ -8,7 +8,10 @@ import {
 } from "../../../catalogRuntime/calendarHeader";
 import { catalogSemanticContracts } from "../../../catalogRuntime/editContract";
 import { catalogPaletteDefinitionId } from "../../../catalogRuntime/paletteInsert";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
@@ -29,39 +32,37 @@ export const CatalogCalendarHeaderField = memo(
     const workspace = useCatalogWorkspace();
     const run = useCatalogCommandRunner();
     const graph = workspace.runtime.graph;
-    const subscribe = useCallback(
-      (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-      [workspace],
+    const view = useCatalogStepReading(
+      workspace,
+      (): {
+        mode?: "heading" | "pickers";
+        format?: unknown;
+        visibleYears?: unknown;
+        hasMonth?: boolean;
+        hasYear?: boolean;
+      } => {
+        const calendar = workspace.positionOfRecord(elementId);
+        const mode = catalogCalendarHeaderMode(graph, calendar);
+        if (mode !== "pickers") return { mode };
+        const pickers = catalogCalendarPickerTargets(graph, calendar);
+        const read = (targets: readonly unknown[], key: string) => {
+          const target = targets[0] as Parameters<typeof readTargetProp>[1];
+          if (!target) return undefined;
+          try {
+            return readTargetProp(graph, target, key);
+          } catch {
+            return undefined;
+          }
+        };
+        return {
+          mode,
+          format: read(pickers.CalendarMonthPicker, "format"),
+          visibleYears: read(pickers.CalendarYearPicker, "visibleYears"),
+          hasMonth: pickers.CalendarMonthPicker.length > 0,
+          hasYear: pickers.CalendarYearPicker.length > 0,
+        };
+      },
     );
-    const viewKey = useSyncExternalStore(subscribe, () => {
-      const calendar = workspace.positionOfRecord(elementId);
-      const mode = catalogCalendarHeaderMode(graph, calendar);
-      if (mode !== "pickers") return JSON.stringify({ mode });
-      const pickers = catalogCalendarPickerTargets(graph, calendar);
-      const read = (targets: readonly unknown[], key: string) => {
-        const target = targets[0] as Parameters<typeof readTargetProp>[1];
-        if (!target) return undefined;
-        try {
-          return readTargetProp(graph, target, key);
-        } catch {
-          return undefined;
-        }
-      };
-      return JSON.stringify({
-        mode,
-        format: read(pickers.CalendarMonthPicker, "format"),
-        visibleYears: read(pickers.CalendarYearPicker, "visibleYears"),
-        hasMonth: pickers.CalendarMonthPicker.length > 0,
-        hasYear: pickers.CalendarYearPicker.length > 0,
-      });
-    });
-    const view = JSON.parse(viewKey) as {
-      mode?: "heading" | "pickers";
-      format?: unknown;
-      visibleYears?: unknown;
-      hasMonth?: boolean;
-      hasYear?: boolean;
-    };
     // The pickers' own fields (their edit contracts — the one source of the choices and defaults).
     const { formatOptions, defaultYears } = useMemo(() => {
       const contract = (type: string) =>

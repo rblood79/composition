@@ -1,4 +1,4 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
 import { setFields } from "../../../../../../../packages/shared/src/catalog/commands";
 import { readTargetProp } from "../../../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
@@ -6,7 +6,10 @@ import {
   catalogFieldPrefixCommand,
   type CatalogFieldPrefixKind,
 } from "../../../catalogRuntime/fieldPrefixCommand";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -34,30 +37,33 @@ export const CatalogFieldPrefixField = memo(function CatalogFieldPrefixField({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
+  const view = useCatalogStepReading(
+    workspace,
+    (): {
+      kind: CatalogFieldPrefixKind;
+      text?: unknown;
+      icon?: unknown;
+    } | null => {
+      const state = catalogFieldPrefix(
+        graph,
+        workspace.positionOfRecord(elementId),
+      );
+      if (!state) return null;
+      const read = (key: string) => {
+        if (!state.prefix) return undefined;
+        try {
+          return readTargetProp(graph, state.prefix.target, key);
+        } catch {
+          return undefined;
+        }
+      };
+      return {
+        kind: state.kind,
+        text: state.kind === "text" ? read("children") : undefined,
+        icon: state.kind === "icon" ? read("iconName") : undefined,
+      };
+    },
   );
-  const viewKey = useSyncExternalStore(subscribe, () => {
-    const state = catalogFieldPrefix(
-      graph,
-      workspace.positionOfRecord(elementId),
-    );
-    if (!state) return "";
-    const read = (key: string) => {
-      if (!state.prefix) return undefined;
-      try {
-        return readTargetProp(graph, state.prefix.target, key);
-      } catch {
-        return undefined;
-      }
-    };
-    return JSON.stringify({
-      kind: state.kind,
-      text: state.kind === "text" ? read("children") : undefined,
-      icon: state.kind === "icon" ? read("iconName") : undefined,
-    });
-  });
   const setKind = useCallback(
     (value: string) => {
       const field = workspace.positionOfRecord(elementId);
@@ -90,12 +96,7 @@ export const CatalogFieldPrefixField = memo(function CatalogFieldPrefixField({
     [elementId, graph, run, workspace],
   );
 
-  if (!viewKey) return null;
-  const view = JSON.parse(viewKey) as {
-    kind: CatalogFieldPrefixKind;
-    text?: unknown;
-    icon?: unknown;
-  };
+  if (!view) return null;
   return (
     <>
       <div className="fieldset-row" data-wide="true">

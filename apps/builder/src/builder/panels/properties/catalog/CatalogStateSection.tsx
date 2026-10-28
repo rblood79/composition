@@ -1,12 +1,4 @@
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
@@ -38,7 +30,10 @@ import {
   catalogVariableUsageCount,
   type CatalogVariableType,
 } from "../../../catalogRuntime/stateVariables";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { useControlPopoverMetrics } from "../../../components/property/useControlPopoverMetrics";
 import { useSelectTriggerFocusRestore } from "../../../components/property/useSelectTriggerFocusRestore";
@@ -274,13 +269,9 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     },
     [graph, t],
   );
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => {
+  const view = useCatalogStepReading(workspace, (): StateView => {
     const own = catalogOwnVariables(graph, owner);
-    return JSON.stringify({
+    return {
       isPage: owner !== nodeId,
       sources:
         owner === nodeId
@@ -301,9 +292,8 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           catalogVariableUsageCount(graph, variable.id),
         ]),
       ),
-    } satisfies StateView);
+    } satisfies StateView;
   });
-  const view = JSON.parse(viewKey) as StateView;
 
   // The Data panel's index jumps here: focus the variable and bring the section into view.
   const focusRequest = useStateSectionFocus((state) => state.request);

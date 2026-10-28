@@ -1,8 +1,11 @@
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import { memo, useMemo } from "react";
 import { useI18n } from "@/i18n";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { catalogBindingValue } from "../../../catalogRuntime/dataBinding";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import {
   catalogCardFieldCommand,
   catalogCardFields,
@@ -16,16 +19,6 @@ import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import { fieldsFromOwner } from "../hooks/useOwnerCollectionColumns";
 import "../ItemOriginNoticeSection.css";
 
-function useStepValue<T>(read: () => T): T {
-  const workspace = useCatalogWorkspace();
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const key = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  return useMemo(() => JSON.parse(key ?? "null") as T, [key]);
-}
-
 /**
  * ADR-248 Phase 4e-4e: the item origin notice over the catalog document (the old
  * ItemOriginNoticeSection) — the selection is a bound collection's row template (or inside it),
@@ -38,7 +31,8 @@ export const CatalogItemOriginNotice = memo(function CatalogItemOriginNotice({
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
-  const owner = useStepValue(
+  const owner = useCatalogStepReading(
+    workspace,
     () => catalogRowTemplateOwner(workspace.runtime.graph, target) ?? null,
   );
   if (!owner) return null;
@@ -66,7 +60,7 @@ export const CatalogCardFieldsSection = memo(function CatalogCardFieldsSection({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const collections = useCollections();
-  const read = useStepValue(() => {
+  const read = useCatalogStepReading(workspace, () => {
     const position = workspace.positionOfRecord(identity);
     try {
       return position

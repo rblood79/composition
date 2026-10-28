@@ -1,4 +1,5 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
+import { useCatalogStepReading } from "../../../catalogRuntime/react";
 import { Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import type {
@@ -70,12 +71,7 @@ export const CatalogPropFollowSection = memo(function CatalogPropFollowSection({
       })),
     };
   }, [nodeId, workspace]);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  const view = JSON.parse(viewKey) as FollowView;
+  const view: FollowView = useCatalogStepReading(workspace, read);
 
   const write = useCallback(
     (prop: string, follow: CatalogPropFollow | undefined) => {

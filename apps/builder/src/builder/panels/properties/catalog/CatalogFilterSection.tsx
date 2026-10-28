@@ -14,6 +14,7 @@
  * parts (변수 · 규칙 · 조건) are the detail's.
  */
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCatalogRevision } from "../../../catalogRuntime/react";
 import { Button } from "react-aria-components/Button";
 import { useI18n } from "@/i18n";
 import type {
@@ -96,15 +97,7 @@ function kindLabel(t: ReturnType<typeof useI18n>["t"], kind: AddKind): string {
 
 /** The graph's revision as React state (every committed step re-reads the connections). */
 function useGraphRevision() {
-  const workspace = useCatalogWorkspace();
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  return useSyncExternalStore(
-    subscribe,
-    () => workspace.runtime.graph.revision,
-  );
+  return useCatalogRevision(useCatalogWorkspace());
 }
 
 /** A bound node's collection (the data store's table). */

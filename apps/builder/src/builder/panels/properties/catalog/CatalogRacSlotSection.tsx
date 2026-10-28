@@ -1,4 +1,5 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
+import { useCatalogStepReading } from "../../../catalogRuntime/react";
 import {
   catalogRacSlotConsumer,
   catalogRacSlotProvider,
@@ -74,12 +75,7 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
       required: requiredPartOwner(type, ancestors) !== undefined,
     };
   }, [identity, root]);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const viewKey = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  const view = JSON.parse(viewKey) as RacSlotView | null;
+  const view: RacSlotView | null = useCatalogStepReading(workspace, read);
 
   const choose = useCallback(
     (value: string) => {

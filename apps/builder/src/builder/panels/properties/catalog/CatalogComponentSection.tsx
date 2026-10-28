@@ -1,4 +1,4 @@
-import { memo, useCallback, useSyncExternalStore } from "react";
+import { memo, useCallback } from "react";
 import { Button as RACButton } from "react-aria-components/Button";
 import { Diamond } from "lucide-react";
 import { useI18n } from "@/i18n";
@@ -32,6 +32,7 @@ import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import {
   useCatalogOwnFields,
   useCatalogSession,
+  useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import {
@@ -209,16 +210,11 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
   const definitionView = useCatalogSession((state) => state.definitionView);
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
+  const { instanceOf, originOf, unlocked } = useCatalogStepReading(
+    workspace,
+    (): ReturnType<typeof catalogComponentState> =>
+      catalogComponentState(graph, target, definitionView),
   );
-  const stateKey = useSyncExternalStore(subscribe, () =>
-    JSON.stringify(catalogComponentState(graph, target, definitionView)),
-  );
-  const { instanceOf, originOf, unlocked } = JSON.parse(stateKey) as ReturnType<
-    typeof catalogComponentState
-  >;
   const component = instanceOf ?? originOf;
   const own = useCatalogOwnFields(target);
   // An instance's overrides, or a built-in origin's project defaults (its sample's own fields).
@@ -230,54 +226,57 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   // The instance's writes at its template positions (the old list's `path.field` rows) and its
   // root's whole · state · breakpoint overrides (ADR-262 — every kind a Reset reaches).
   // (One graph read per step — the ADR-246 selection ratchet counts `getEntry`.)
-  const overrideKey = useSyncExternalStore(subscribe, () => {
-    if (!instanceOf || !nodeId) return "[[],[]]";
-    const node = graph.getEntry(nodeId);
-    if (node?.kind !== "node") return "[[],[]]";
-    return JSON.stringify([
-      extraRows(node, "", "root", t),
-      node.descendantOverrides.flatMap(
-        (
-          item,
-        ): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
-          const at = templateLabel(graph, item.address.templatePath.at(-1));
-          const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
-          if (item.kind === "replace") {
-            const shown = graph.getEntry(item.replacementId);
-            return [
-              {
-                id: `replace:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`,
-                key: "",
-                field: "replace" as const,
-                replacementId: item.replacementId,
-                label: `${at} → ${shown?.kind === "node" ? catalogComponentLabel(graph, shown.definitionId) : ""}`,
-                address: item.address,
-              },
-            ];
-          }
-          return [
-            ...PATCH_FIELDS.flatMap((field) =>
-              Object.keys(item[field] ?? {}).map((key) => ({
-                id: `${field}:${positionId}:${key}`,
-                key,
-                field,
-                label: `${at}.${key}`,
-                address: item.address,
-              })),
-            ),
-            ...extraRows(item, `${at}.`, positionId, t, true).map((row) => ({
-              ...row,
-              address: item.address,
-            })),
-          ];
-        },
-      ),
-    ]);
-  });
-  const [rootExtraRows, patchRows] = JSON.parse(overrideKey) as [
+  type OverrideRows = [
     RowSeed[],
     (Omit<OverrideRow, "target"> & { address: InstanceAddress })[],
   ];
+  const [rootExtraRows, patchRows] = useCatalogStepReading(
+    workspace,
+    (): OverrideRows => {
+      if (!instanceOf || !nodeId) return [[], []];
+      const node = graph.getEntry(nodeId);
+      if (node?.kind !== "node") return [[], []];
+      return [
+        extraRows(node, "", "root", t),
+        node.descendantOverrides.flatMap(
+          (
+            item,
+          ): (Omit<OverrideRow, "target"> & { address: InstanceAddress })[] => {
+            const at = templateLabel(graph, item.address.templatePath.at(-1));
+            const positionId = `${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`;
+            if (item.kind === "replace") {
+              const shown = graph.getEntry(item.replacementId);
+              return [
+                {
+                  id: `replace:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}`,
+                  key: "",
+                  field: "replace" as const,
+                  replacementId: item.replacementId,
+                  label: `${at} → ${shown?.kind === "node" ? catalogComponentLabel(graph, shown.definitionId) : ""}`,
+                  address: item.address,
+                },
+              ];
+            }
+            return [
+              ...PATCH_FIELDS.flatMap((field) =>
+                Object.keys(item[field] ?? {}).map((key) => ({
+                  id: `${field}:${positionId}:${key}`,
+                  key,
+                  field,
+                  label: `${at}.${key}`,
+                  address: item.address,
+                })),
+              ),
+              ...extraRows(item, `${at}.`, positionId, t, true).map((row) => ({
+                ...row,
+                address: item.address,
+              })),
+            ];
+          },
+        ),
+      ];
+    },
+  );
   // ADR-262: push · reset all act on the selected instance itself (not a position inside one) —
   // the same test as `catalogOverrideCleanupTarget`, from the state already read above.
   const cleanupTarget =
@@ -674,25 +673,18 @@ function CatalogOriginDefaultsRows({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const graph = workspace.runtime.graph;
-  const subscribe = useCallback(
-    (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
-    [workspace],
-  );
-  const key = useSyncExternalStore(subscribe, () => {
+  const fields = useCatalogStepReading(workspace, (): [string, string][] => {
     const definition = graph.library.definitions.get(definitionId);
     const written = catalogOriginOverride(graph, definitionId)?.defaults ?? {};
-    return JSON.stringify(
-      Object.entries(definition?.accepts ?? {})
-        .filter(([, type]) => type === "string")
-        .map(([prop]) => {
-          const write = written[prop];
-          const value =
-            write?.kind === "set" ? write.value : definition?.defaults[prop];
-          return [prop, typeof value === "string" ? value : ""];
-        }),
-    );
+    return Object.entries(definition?.accepts ?? {})
+      .filter(([, type]) => type === "string")
+      .map(([prop]): [string, string] => {
+        const write = written[prop];
+        const value =
+          write?.kind === "set" ? write.value : definition?.defaults[prop];
+        return [prop, typeof value === "string" ? value : ""];
+      });
   });
-  const fields = JSON.parse(key) as [string, string][];
   if (!fields.length) return null;
   return (
     <>

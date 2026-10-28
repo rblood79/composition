@@ -5,7 +5,10 @@ import {
   catalogBindingValue,
   catalogTargetBinding,
 } from "../../../catalogRuntime/dataBinding";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
+import {
+  useCatalogStepReading,
+  useCatalogWorkspace,
+} from "../../../catalogRuntime/react";
 import { catalogRowTemplateOwner } from "../../../catalogRuntime/rowTemplate";
 import { targetKey } from "../../../catalogRuntime/session";
 import { catalogVisibleVariableEntries } from "../../../catalogRuntime/stateVariables";
@@ -50,17 +53,6 @@ const subscribeValue = (
   key === BINDING_KEY
     ? readModel.subscribeBinding(target, notify)
     : readModel.subscribePropSource(target, key, notify);
-
-/** A document reading kept while its JSON is the same (re-read after each step). */
-function useStepReading<T>(read: () => T): T {
-  const { runtime } = useCatalogWorkspace();
-  const subscribe = useCallback(
-    (notify: () => void) => runtime.subscribeSteps(() => notify()),
-    [runtime],
-  );
-  const key = useSyncExternalStore(subscribe, () => JSON.stringify(read()));
-  return useMemo(() => JSON.parse(key ?? "null") as T, [key]);
-}
 
 function useSourcedValues(
   target: EditTarget | undefined,
@@ -123,10 +115,11 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
    * (the old owner lookup's binding source; the rows read the template's value).
    */
   useOwnerFields(elementId) {
-    const { runtime } = useCatalogWorkspace();
+    const workspace = useCatalogWorkspace();
+    const { runtime } = workspace;
     const target = useRecordTarget(elementId);
     const collections = useCollections();
-    const binding = useStepReading(() => {
+    const binding = useCatalogStepReading(workspace, () => {
       const ownerId = target
         ? catalogRowTemplateOwner(runtime.graph, target)
         : undefined;
@@ -149,9 +142,10 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
    * descendant: its instance's), its page's, then the project's.
    */
   useVariableNames(elementId) {
-    const { runtime } = useCatalogWorkspace();
+    const workspace = useCatalogWorkspace();
+    const { runtime } = workspace;
     const target = useRecordTarget(elementId);
-    const scoped = useStepReading(() => {
+    const scoped = useCatalogStepReading(workspace, () => {
       if (!target) return [];
       try {
         return catalogVisibleVariableEntries(
@@ -173,10 +167,11 @@ export const CATALOG_FIELD_VALUE_SOURCE: FieldValueSource = {
   },
   /** A followed variable's name (a document state variable — the filter's · 「변수로 정하기」's). */
   useVariableName(ref) {
-    const { runtime } = useCatalogWorkspace();
+    const workspace = useCatalogWorkspace();
+    const { runtime } = workspace;
     const id = ref.slice("!var.".length).split(".")[0] ?? "";
     return (
-      useStepReading(() => {
+      useCatalogStepReading(workspace, () => {
         const entry = runtime.graph.getEntry(id as never);
         return entry?.kind === "stateVariable" ? entry.name : null;
       }) ?? undefined

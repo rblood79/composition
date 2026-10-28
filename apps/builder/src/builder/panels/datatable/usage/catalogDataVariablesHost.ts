@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCatalogRevision } from "../../../catalogRuntime/react";
 import type { DataChange, DataOp, VisibleVariable } from "@composition/shared";
 import type {
   EntryId,
@@ -57,12 +58,7 @@ export function createCatalogDataVariablesHost(
       return { currentPageId, ownerTitle };
     },
     useView(legacyPageVariables, projectDefs) {
-      const subscribe = useCallback(
-        (notify: () => void) =>
-          workspace.runtime.subscribeSteps(() => notify()),
-        [],
-      );
-      const revision = useSyncExternalStore(subscribe, () => graph().revision);
+      const revision = useCatalogRevision(workspace);
       const pageTitle = useCallback(
         (pageId: string) => {
           void revision;
