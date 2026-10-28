@@ -1,17 +1,23 @@
 /**
  * EffectSection — Style 탭 Effect 절
  *
- *   「Opacity ──●── 100 %」
- *   Box Shadows                       [⋮ 추가 · 프리셋]
- *   [■ 0 · 4 · 12 · 0  outer]         [⋮ inset · 제거]   ← 레이어마다 (클릭 → 편집 팝오버)
- *   Filters                           [+]
- *   [Blur  4 px]                      [삭제]             ← blur 한 종
+ *   Effect                                 [+ Opacity · 그림자 · 프리셋 · Blur]  [↺]
+ *   Opacity                                     ← fieldset (legend + 슬라이더)
+ *   [──●── 50 %                          ][−]
+ *   Box Shadows                                 ← fieldset (legend + 레이어 목록)
+ *   [■ 0 · 4 · 12 · 0                  −][▢]   ← 레이어마다 (클릭 → 편집 팝오버)
+ *   Filters                                     ← fieldset (legend + blur 한 종)
+ *   [Blur                          4 px  ][−]
  *
- * 종전 Appearance 절에서 분리 (panel-ui 02, 2026-09-14). Box Shadow 는 「프리셋 Select + inset
- * 토글 + 인라인 편집기」 → 레이어 목록 (Skia 는 parseAllBoxShadows 로 다중·inset·spread 를
- * 이미 그린다). 프리셋 (sm/md/lg = Spectrum elevation, theme 별 정규화) 은 3 레이어 문자열이라
- * 목록 전체를 바꾼다 → 추가 행 ⋮ 메뉴에. Filters 는 Skia 가 blur 를 LayerBlurEffect 로
- * 접붙이므로 blur 한 종 (다른 함수는 저장값 보존).
+ * 세 효과 모두 기본은 「없음」 — 값이 없으면 그 묶음 (legend · 내용) 을 그리지 않고, 추가는 절
+ * 머리줄 「+」 메뉴 하나로 한다 (2026-10-28 사용자 결정 — Opacity 기본 100 % 도 「없음」, Fill
+ * 절의 머리줄 추가 · Overrides 절의 「+」 메뉴와 같은 어법). 각 묶음은 패널 표준
+ * `fieldset.properties-aria > legend.fieldset-legend + 내용` 이고 행은 7칸 격자 (176 · 28).
+ *
+ * 종전 Appearance 절에서 분리 (panel-ui 02, 2026-09-14). Skia 는 parseAllBoxShadows 로 다중 ·
+ * inset · spread 를 그리고, 프리셋 (sm/md/lg = Spectrum elevation, theme 별 정규화) 은 3 레이어
+ * 문자열이라 목록 전체를 바꾼다. Filters 는 Skia 가 blur 를 LayerBlurEffect 로 접붙이므로 blur
+ * 한 종 (다른 함수는 저장값 보존).
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
@@ -58,13 +64,15 @@ const SHADOW_PRESET_KEYS: readonly ShadowPresetKey[] = ["sm", "md", "lg"];
 /** 새 blur 기본값 (px) */
 const DEFAULT_BLUR_PX = 4;
 
+/** 머리줄 「+」 메뉴로 추가한 opacity 의 첫 값 — 100 % (시각 변화 0, 행만 생긴다) */
+const ADDED_OPACITY_VALUE = "1";
+
 /**
  * 요소 opacity ↔ 슬라이더 % 변환.
  *
  * 저장은 CSS `opacity` 문자열 (0~1). Skia 는 `style.opacity` → OpacityEffect
- * (styleConverter `convertToEffects`), DOM 은 inline 그대로 — 채널은 이미 양쪽에 있었고
- * 패널 컨트롤만 없었다 (Fill 레이어 opacity 와 별개). 100 % 는 CSS 기본값이라 inline 키를
- * 지워 baseline 으로 복귀시킨다 — "1" 을 기록하면 boxShadow "none" 과 같은 영구 dirty.
+ * (styleConverter `convertToEffects`), DOM 은 inline 그대로 (Fill 레이어 opacity 와 별개).
+ * 값이 없으면 (`""`) 행이 없다 — 100 % 도 사용자가 추가했으면 그 값으로 남고, 「−」 가 키를 지운다.
  */
 function opacityToPercent(raw: string): number {
   const parsed = raw.trim().endsWith("%")
@@ -75,8 +83,30 @@ function opacityToPercent(raw: string): number {
 }
 
 function percentToOpacityValue(percent: number): string {
-  if (percent >= 100) return "";
   return String(Math.max(0, Math.min(100, percent)) / 100);
+}
+
+/** 목록 행 액션 칸의 「−」 (Blur — 액션이 하나뿐인 레이어 행) */
+function RemoveActionButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Button
+      className="effect-layer-row__action effect-layer-row__remove"
+      aria-label={label}
+      onPress={onPress}
+    >
+      <Minus
+        color={iconProps.color}
+        size={iconProps.size}
+        strokeWidth={iconProps.strokeWidth}
+      />
+    </Button>
+  );
 }
 
 const EffectSectionContent = memo(function EffectSectionContent() {
@@ -94,9 +124,11 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   if (!styleValues) return null;
 
   const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
+  const shadowLayers = boxShadowModel?.layers ?? [];
   const blurPx = parseFilterBlurPx(styleValues.filter);
+  const hasOpacity = styleValues.opacity !== "";
 
-  // 요소 opacity — 드래그는 미리보기, 놓으면 commit ("" = 100 % 는 키 삭제).
+  // 요소 opacity — 드래그는 미리보기, 놓으면 commit.
   const handleOpacityPreview = (percent: number): void => {
     updateStylePreview("opacity", String(percent / 100));
   };
@@ -117,31 +149,11 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     updateStyle("boxShadow", serializeBoxShadowPresentation(value));
   };
 
-  // 레이어 추가 · 제거 · inset · 프리셋 — 편집기를 다시 마운트하고 바로 commit 한다 (Skia 는
+  // 레이어 제거 · inset — 편집기를 다시 마운트하고 바로 commit 한다 (Skia 는
   //   parseAllBoxShadows 로 다중 렌더).
   const commitBoxShadowTopology = (nextBoxShadow: string): void => {
     editorMountRef.current += 1;
     updateStyle("boxShadow", nextBoxShadow);
-  };
-
-  const handleShadowListAction = (action: string): void => {
-    if (action === "add") {
-      const base: BoxShadowPresentationValue = boxShadowModel ?? { layers: [] };
-      const added = addBoxShadowPresentationLayer(base, base.layers.length - 1);
-      commitBoxShadowTopology(serializeBoxShadowPresentation(added.value));
-      return;
-    }
-    const presetKey = SHADOW_PRESET_KEYS.find((key) => key === action);
-    if (!presetKey) return;
-    // **light 를 정규형으로 기록한다** (ADR-166 후속). 저장 형식은 리터럴이라 theme 정보를
-    //   담지 못하므로 읽는 쪽 (Skia `normalizeShadowForTheme` / DOM `shadowLiteralToCssVar`)
-    //   이 현재 theme 으로 되돌린다. 목록에 inset 레이어가 있었으면 프리셋도 inset 으로.
-    const cssValue = getShadowToken(presetKey, "light");
-    if (!cssValue) return;
-    const insetActive = boxShadowModel?.layers.some((l) => l.inset) ?? false;
-    commitBoxShadowTopology(
-      insetActive ? applyShadowInset(cssValue) : cssValue,
-    );
   };
 
   const handleLayerAction = (
@@ -180,77 +192,31 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     updateStyleImmediate("filter", setFilterBlurPx(styleValues.filter, px));
   };
 
-  const shadowListItems = [
-    { id: "add", label: localize("Add shadow layer"), icon: AddIcon },
-    ...SHADOW_PRESET_KEYS.map((key) => ({
-      id: key,
-      label: `${localize("Shadow preset")} · ${key}`,
-    })),
-  ];
-
   const editorKey = `${selectedId ?? "none"}:${editorMountRef.current}:${styleValues.boxShadow}`;
 
   return (
     <>
-      {/* Opacity — 요소 전체 (Fill 레이어 opacity 와 별개) */}
-      <div className="style-opacity">
-        <PropertySlider
-          label="Opacity"
-          className="opacity"
-          editable
-          unit="%"
-          value={opacityToPercent(styleValues.opacity)}
-          min={0}
-          max={100}
-          step={1}
-          onChange={handleOpacityPreview}
-          onChangeEnd={handleOpacityCommit}
-        />
-      </div>
-
-      {/* Box Shadows — 추가 행 + 레이어 행 */}
-      <div className="effect-list style-shadow">
-        <div className="effect-add-row">
-          <span className="effect-add-row__label">
-            {localize("Box Shadows")}
-          </span>
-          <div className="fieldset-actions actions-icon">
-            <PropertyRowMenu
-              label={localize("Box shadow actions")}
-              items={shadowListItems}
-              onAction={handleShadowListAction}
-            />
-          </div>
-        </div>
-        {boxShadowModel?.layers.map((_, index) => (
-          <BoxShadowLayerRow
-            // 행은 index 로 안정 (커밋마다 remount 되면 열린 팝오버가 닫힌다) — 편집기만 key
-            key={`${selectedId ?? "none"}:${index}`}
-            value={boxShadowModel}
-            layerIndex={index}
-            editorKey={editorKey}
-            onAction={handleLayerAction}
-            editor={{
-              onPreview: handleBoxShadowModelPreview,
-              onCommit: handleBoxShadowModelCommit,
-              onCancel: () => host.cancelPreview?.(),
-              livePreview: true,
-            }}
+      {/* Opacity — 요소 전체 (Fill 레이어 opacity 와 별개) · [슬라이더 176][−] */}
+      {hasOpacity && (
+        <div className="fieldset-row style-opacity" data-wide>
+          <PropertySlider
+            label="Opacity"
+            className="effect-opacity"
+            editable
+            unit="%"
+            value={opacityToPercent(styleValues.opacity)}
+            min={0}
+            max={100}
+            step={1}
+            onChange={handleOpacityPreview}
+            onChangeEnd={handleOpacityCommit}
           />
-        ))}
-      </div>
-
-      {/* Filters — blur 한 종 */}
-      <div className="effect-list style-filter">
-        <div className="effect-add-row">
-          <span className="effect-add-row__label">{localize("Filters")}</span>
-          <div className="fieldset-actions actions-icon">
+          <div className="fieldset-actions actions-remove">
             <SwatchIconButton
-              aria-label={localize("Add blur filter")}
-              isDisabled={blurPx !== null}
-              onPress={() => handleBlurCommit(DEFAULT_BLUR_PX)}
+              aria-label={localize("Remove opacity")}
+              onPress={() => updateStyleImmediate("opacity", "")}
             >
-              <AddIcon
+              <Minus
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -258,48 +224,153 @@ const EffectSectionContent = memo(function EffectSectionContent() {
             </SwatchIconButton>
           </div>
         </div>
-        {blurPx !== null && (
-          <div className="effect-layer-row">
-            <div className="effect-layer-row__body">
-              <span className="effect-layer-row__value">
-                {localize("Blur")}
-              </span>
-              <ScrubInput
-                value={blurPx}
-                onScrub={handleBlurScrub}
-                onCommit={handleBlurCommit}
-                min={0}
-                max={200}
-                suffix="px"
-                label="Blur radius"
-                className="effect-layer-row__scrub"
+      )}
+
+      {/* Box Shadows — legend + 레이어 목록 */}
+      {boxShadowModel && shadowLayers.length > 0 && (
+        <fieldset className="properties-aria effect-group style-shadow">
+          <legend className="fieldset-legend">{localize("Box Shadows")}</legend>
+          <div className="effect-group__list">
+            {shadowLayers.map((_, index) => (
+              <BoxShadowLayerRow
+                // 행은 index 로 안정 (커밋마다 remount 되면 열린 팝오버가 닫힌다) — 편집기만 key
+                key={`${selectedId ?? "none"}:${index}`}
+                value={boxShadowModel}
+                layerIndex={index}
+                editorKey={editorKey}
+                onAction={handleLayerAction}
+                editor={{
+                  onPreview: handleBoxShadowModelPreview,
+                  onCommit: handleBoxShadowModelCommit,
+                  onCancel: () => host.cancelPreview?.(),
+                  livePreview: true,
+                }}
               />
-            </div>
-            {/* 행 액션 그룹 — Fill · Shadow 행과 같은 [−] (2026-09-15) */}
-            <div className="effect-layer-row__actions">
-              <Button
-                className="effect-layer-row__action effect-layer-row__remove"
-                aria-label={localize("Remove blur filter")}
-                onPress={() =>
-                  updateStyleImmediate(
-                    "filter",
-                    setFilterBlurPx(styleValues.filter, null),
-                  )
-                }
-              >
-                <Minus
-                  color={iconProps.color}
-                  size={iconProps.size}
-                  strokeWidth={iconProps.strokeWidth}
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {/* Filters — legend + blur 한 종 · [Blur 176][−] */}
+      {blurPx !== null && (
+        <fieldset className="properties-aria effect-group style-filter">
+          <legend className="fieldset-legend">{localize("Filters")}</legend>
+          <div className="effect-group__list">
+            <div className="effect-layer-row">
+              <div className="effect-layer-row__body">
+                <span className="effect-layer-row__value">
+                  {localize("Blur")}
+                </span>
+                <ScrubInput
+                  value={blurPx}
+                  onScrub={handleBlurScrub}
+                  onCommit={handleBlurCommit}
+                  min={0}
+                  max={200}
+                  suffix="px"
+                  label="Blur radius"
+                  className="effect-layer-row__scrub"
                 />
-              </Button>
+              </div>
+              <div className="effect-layer-row__actions">
+                <RemoveActionButton
+                  label={localize("Remove blur filter")}
+                  onPress={() =>
+                    updateStyleImmediate(
+                      "filter",
+                      setFilterBlurPx(styleValues.filter, null),
+                    )
+                  }
+                />
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </fieldset>
+      )}
     </>
   );
 });
+
+/**
+ * 절 머리줄 「+」 — Opacity · 그림자 레이어 · 그림자 프리셋 · Blur 를 고르는 메뉴. 이미 있는
+ * Opacity · Blur 는 비활성 (그림자는 레이어를 더 쌓는다). 접힌 절에서도 머리줄은 보이므로 내용
+ * 컴포넌트와 따로 값을 읽는다.
+ */
+const EffectAddMenu = memo(function EffectAddMenu() {
+  const localize = useSemanticLabel();
+  const { updateStyle } = useStyleActions();
+  const { updateStyleImmediate } = useOptimizedStyleActions();
+  const selectedId = useStylesSelectedId();
+  const styleValues = useAppearanceValues(selectedId);
+  if (!styleValues) return null;
+
+  const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
+  const hasOpacity = styleValues.opacity !== "";
+  const hasBlur = parseFilterBlurPx(styleValues.filter) !== null;
+
+  const items = [
+    {
+      id: "opacity",
+      label: localize("Opacity"),
+      icon: AddIcon,
+      isDisabled: hasOpacity,
+    },
+    { id: "shadow", label: localize("Box Shadows"), icon: AddIcon },
+    // 프리셋은 그림자 목록 전체를 바꾼다 — 그림자 항목 바로 아래, 아이콘 없이
+    ...SHADOW_PRESET_KEYS.map((key) => ({
+      id: key,
+      label: `${localize("Box Shadows")} · ${key}`,
+    })),
+    {
+      id: "blur",
+      label: localize("Blur"),
+      icon: AddIcon,
+      isDisabled: hasBlur,
+    },
+  ];
+
+  const handleAction = (action: string): void => {
+    if (action === "opacity") {
+      updateStyleImmediate("opacity", ADDED_OPACITY_VALUE);
+      return;
+    }
+    if (action === "blur") {
+      updateStyleImmediate(
+        "filter",
+        setFilterBlurPx(styleValues.filter, DEFAULT_BLUR_PX),
+      );
+      return;
+    }
+    if (action === "shadow") {
+      const base: BoxShadowPresentationValue = boxShadowModel ?? { layers: [] };
+      const added = addBoxShadowPresentationLayer(base, base.layers.length - 1);
+      updateStyle("boxShadow", serializeBoxShadowPresentation(added.value));
+      return;
+    }
+    const presetKey = SHADOW_PRESET_KEYS.find((key) => key === action);
+    if (!presetKey) return;
+    // **light 를 정규형으로 기록한다** (ADR-166 후속). 저장 형식은 리터럴이라 theme 정보를
+    //   담지 못하므로 읽는 쪽 (Skia `normalizeShadowForTheme` / DOM `shadowLiteralToCssVar`)
+    //   이 현재 theme 으로 되돌린다. 목록에 inset 레이어가 있었으면 프리셋도 inset 으로.
+    const cssValue = getShadowToken(presetKey, "light");
+    if (!cssValue) return;
+    const insetActive = boxShadowModel?.layers.some((l) => l.inset) ?? false;
+    updateStyle("boxShadow", insetActive ? applyShadowInset(cssValue) : cssValue);
+  };
+
+  return (
+    <PropertyRowMenu
+      quiet
+      icon={AddIcon}
+      label={localize("Add effect")}
+      items={items}
+      onAction={handleAction}
+    />
+  );
+});
+
+// 머리줄 액션은 참조가 안정해야 Section memo 가 다시 그리지 않는다
+const EFFECT_ADD_MENU = <EffectAddMenu />;
 
 /**
  * EffectSection - 외부 래퍼 (PropertySection 관리)
@@ -312,6 +383,7 @@ export const EffectSection = memo(function EffectSection() {
     <PropertySection
       id="effect"
       title="Effect"
+      actions={EFFECT_ADD_MENU}
       onReset={hasDirty ? () => resetStyles(EFFECT_PROPS) : undefined}
     >
       <EffectSectionContent />

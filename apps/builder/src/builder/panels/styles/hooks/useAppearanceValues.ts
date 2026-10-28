@@ -17,7 +17,7 @@ export interface AppearanceStyleValues {
   borderRadius: string;
   borderStyle: string;
   boxShadow: string;
-  /** 요소 전체 opacity (CSS `opacity`, 0~1 문자열). inline 또는 "1". */
+  /** 요소 전체 opacity (CSS `opacity`, 0~1 문자열). inline 또는 "" (없음 = 100 %, Effect 절에 행 없음). */
   opacity: string;
   /** CSS `filter` (blur 한 종을 패널이 편집, 나머지 함수는 보존). inline 또는 "". */
   filter: string;
@@ -62,7 +62,7 @@ export function useAppearanceValues(
         text(e.boxShadow) ?? preset.boxShadow,
         "none",
       ),
-      opacity: firstDefined(s.opacity, undefined, "1"),
+      opacity: firstDefined(s.opacity, undefined, ""),
       filter: firstDefined(s.filter, undefined, ""),
       borderGeometry: resolveBorderGeometry(s, { borderRadius, borderWidth }),
     };

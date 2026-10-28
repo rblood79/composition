@@ -12,6 +12,7 @@ import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { EllipsisVertical } from "lucide-react";
 import { SwatchIconButton } from "../ui/SwatchIconButton";
+import { ActionIconButton } from "../ui/ActionIconButton";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import "./PropertyRowMenu.css";
 
@@ -33,6 +34,11 @@ interface PropertyRowMenuProps {
    */
   icon?: ComponentType<{ size?: number; strokeWidth?: number }>;
   isDisabled?: boolean;
+  /**
+   * 절 머리줄 (`.section-actions`) 에 둘 때 — 트리거를 Reset 과 같은 투명 아이콘 버튼
+   * (`ActionIconButton`) 으로. raised `SwatchIconButton` 은 본문 필드 열용 (2026-09-15 판정).
+   */
+  quiet?: boolean;
 }
 
 export const PropertyRowMenu = memo(function PropertyRowMenu({
@@ -41,13 +47,15 @@ export const PropertyRowMenu = memo(function PropertyRowMenu({
   onAction,
   icon: Icon = EllipsisVertical,
   isDisabled,
+  quiet,
 }: PropertyRowMenuProps) {
+  const Trigger = quiet ? ActionIconButton : SwatchIconButton;
   const disabledKeys = items.filter((i) => i.isDisabled).map((i) => i.id);
   return (
     <MenuTrigger>
-      <SwatchIconButton aria-label={label} isDisabled={isDisabled}>
+      <Trigger aria-label={label} isDisabled={isDisabled}>
         <Icon size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
-      </SwatchIconButton>
+      </Trigger>
       <Popover
         className="react-aria-Popover property-select-popover property-row-menu-popover"
         placement="bottom end"

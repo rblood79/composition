@@ -1,26 +1,9 @@
 /**
- * EffectSection — 추가 행 · 레이어 행 (Box Shadows · Filters). Fill 레이어 행과 같은 lrow 어법.
- * 격자 (c12 + 28 열) 는 inspector-layout.css 의 [data-section-id="effect"] 블록.
+ * EffectSection — 레이어 행 (Box Shadows · Filters) 의 본문 · 액션 상자. Fill 레이어 행과 같은 어법.
+ * 묶음 (fieldset) · 행 격자 (인스펙터 3 · 3 | 1) 는 inspector-layout.css 의 [data-section-id="effect"] 블록.
  */
 
 @layer components {
-  .effect-list {
-    display: grid;
-    gap: var(--spacing-sm);
-  }
-
-  /* 「Box Shadows」 + 28 열 액션 */
-  .effect-add-row__label {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    block-size: var(--control-size);
-    padding-inline-start: var(--spacing-xs);
-    font-size: var(--text-xs);
-    line-height: var(--text-xs--line-height);
-    color: var(--fg);
-  }
-
   /* 레이어 행 = 본문 28 그룹 (pad 4, 안쪽 20 — 그림자 행은 제거 「−」 포함) + 액션 칸 하나 (inset
      토글 · Blur 는 제거) — Fill 레이어 행과 같은 구조 (2026-10-28). 격자 열은 inspector-layout 의
      effect 블록 (인스펙터 격자 3 · 3 | 1). */

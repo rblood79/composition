@@ -666,42 +666,32 @@
       }
     }
 
+    /* Effect — 절 본문은 표준 1열 세로 스택 그대로. 묶음은 fieldset (legend + 내용) 이고 머리줄
+       「+」 로 추가한 효과만 그린다 (2026-10-28). Opacity 는 `.fieldset-row[data-wide]`
+       (176 · 28), 그림자 · 필터 묶음은 행마다 액션 칸을 가지므로 7칸 전폭을 쓴다. */
     &[data-section-id="effect"] .section-content {
-      display: grid;
-      gap: var(--spacing-sm);
-
-      .actions-icon {
-        grid-area: icon;
-        display: flex;
-        align-self: end;
+      > .properties-aria.effect-group {
+        max-inline-size: none;
+        min-width: 0;
       }
 
-      .style-opacity,
-      .effect-add-row,
+      .effect-group__list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+      }
+
+      /* 레이어 행 — 인스펙터 격자 (3 · 3 | 1): 본문 두 칸 · 액션 칸 하나 (Fill 행과 같음) */
       .effect-layer-row {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
-        grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "main main icon";
 
         > * {
           min-width: 0;
         }
 
         > :first-child {
-          grid-area: main;
-        }
-      }
-
-      /* 레이어 행 — 인스펙터 격자 (3 · 3 | 1): 본문 두 칸 · 액션 칸 하나 (Fill 행과 같음,
-         2026-10-28 — 종전 [−][inset] 52 액션 그룹이 28 열을 넓혔다) */
-      .effect-layer-row {
-        grid-template-columns: var(--inspector-row-columns);
-        grid-template-areas: none;
-
-        > :first-child {
-          grid-area: auto;
           grid-column: 1 / 3;
         }
       }

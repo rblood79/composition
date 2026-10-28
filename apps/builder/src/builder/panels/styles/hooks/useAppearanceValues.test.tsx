@@ -110,13 +110,13 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(values?.boxShadow).toBe("none");
   });
 
-  it('opacity — 저장된 값을 문자열로 읽고, 없으면 "1" (요소 opacity 컨트롤)', async () => {
+  it('opacity — 저장된 값을 문자열로 읽고, 없으면 "" (Effect 절에 행 없음)', async () => {
     const nodes: StylesFixtureNode[] = [
       { id: "el-opacity", type: "ListBox", style: { opacity: "0.35" } },
       { id: "el-opacity-absent", type: "ListBox" },
     ];
     expect((await appearanceOf(nodes, "el-opacity"))?.opacity).toBe("0.35");
-    expect((await appearanceOf(nodes, "el-opacity-absent"))?.opacity).toBe("1");
+    expect((await appearanceOf(nodes, "el-opacity-absent"))?.opacity).toBe("");
   });
 
   it("returns null when id is null", async () => {
