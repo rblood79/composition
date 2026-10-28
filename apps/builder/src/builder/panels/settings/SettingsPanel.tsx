@@ -7,6 +7,8 @@
  * @updated 2025-12-29 - Save Mode, Preview & Overlay, Element Visualization 섹션 제거
  *   (WebGL 캔버스 전환 및 로컬 저장 방식으로 변경됨에 따라 불필요해짐)
  * @updated 2026-02-11 - Page Layout 설정 추가 (자동/가로/세로 페이지 배치, BuilderHeader에서 이동)
+ * @updated 2026-10-28 - 페이지 레이아웃 · toast 위치 (프로젝트 문서 값) 를 Site 패널로 이동 —
+ *   Settings 는 이 Builder 의 환경 (눈금자 · 스냅 · 액션 바 · 테마 모드 · 배율 · 언어) 만
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
@@ -14,26 +16,14 @@ import { Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useBuilderUiStore } from "../../stores/builderUiStore";
-import {
-  normalizePageLayoutDirection,
-  type PageLayoutDirection,
-} from "../../stores/canvasSettings";
 import { useUiStore } from "../../../stores/uiStore";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
-import { PropertyUnitInput } from "../../components/property/PropertyUnitInput";
 import { Section as PropertySection } from "../../components/panel/Section";
 import { PropertySizeToggle } from "../../components/property/PropertySizeToggle";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
-import {
-  catalogPageColumnsChange,
-  catalogPageColumnsFieldValue,
-} from "../../catalogRuntime/pageLayoutSettings";
-import { useCatalogPageLayout } from "./useCatalogPageLayout";
-import { useCatalogToastPlacement } from "./useCatalogToastPlacement";
-import type { CatalogToastPlacement } from "../../../../../../packages/shared/src/catalog/document/types";
 
 function SettingsContent() {
   const { t } = useI18n();
@@ -48,39 +38,6 @@ function SettingsContent() {
     (state) => state.setActionBarHidden,
   );
   const setShowRulers = useBuilderUiStore((state) => state.setShowRulers);
-
-  // ADR-248 4e — the open project's page grid is its catalog `pageLayout` declaration (the old
-  // store / canonical document page layout went with the old Builder, 4e-7).
-  const catalogLayout = useCatalogPageLayout();
-  const layoutView = catalogLayout?.view;
-  const effectiveDirection = layoutView?.direction ?? "horizontal";
-  // ADR-274: Auto = 기준 배율 (`40%`), Fixed = 개수 (`3`) — 같은 칸의 단위가 모드다.
-  const columnsFieldValue = layoutView
-    ? catalogPageColumnsFieldValue(layoutView)
-    : "";
-
-  // S2 ToastContainer placement — the open project's app (Preview · Publish) toast region. S2's
-  // one value (`top` · `top end` · `bottom` · `bottom end`) is two fields here, as S2's Toast reads
-  // it (`placement` + `align`) — four labels do not fit one row of the panel.
-  const toastPlacement = useCatalogToastPlacement();
-  const toastVertical = toastPlacement?.value.startsWith("top")
-    ? "top"
-    : "bottom";
-  const toastAlign = toastPlacement?.value.endsWith("end") ? "end" : "center";
-  const changeToast = (vertical: string, align: string) =>
-    toastPlacement?.change(
-      (align === "end"
-        ? `${vertical} end`
-        : vertical) as CatalogToastPlacement,
-    );
-  const toastPlacementOptions = [
-    { id: "top", label: t("settings.toastPlacementTop") },
-    { id: "bottom", label: t("settings.toastPlacementBottom") },
-  ];
-  const toastAlignOptions = [
-    { id: "center", label: t("settings.toastAlignCenter") },
-    { id: "end", label: t("settings.toastAlignEnd") },
-  ];
 
   // UI 설정 (글로벌 uiStore에서 가져옴)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -101,12 +58,6 @@ function SettingsContent() {
     { id: "120", label: "L" },
   ];
 
-  const pageLayoutOptions = [
-    { id: "auto", label: t("settings.pageLayoutAuto") },
-    { id: "horizontal", label: t("settings.pageLayoutHorizontal") },
-    { id: "vertical", label: t("settings.pageLayoutVertical") },
-  ];
-
   const handleThemeModeChange = (value: string) => {
     const mode = value as "light" | "dark" | "auto";
     setThemeMode(mode);
@@ -115,26 +66,6 @@ function SettingsContent() {
   const handleUiScaleChange = (value: string) => {
     const scale = parseInt(value) as 80 | 100 | 120;
     setUiScale(scale);
-  };
-
-  const handlePageLayoutChange = (value: string) => {
-    catalogLayout?.change({
-      kind: "direction",
-      direction: normalizePageLayoutDirection(value as PageLayoutDirection) as
-        "auto" | "vertical" | "horizontal",
-    });
-  };
-
-  const handlePageGapChange = (value: string) => {
-    const nextGap = Number.parseFloat(value);
-    if (!Number.isFinite(nextGap) || nextGap < 0) return;
-    catalogLayout?.change({ kind: "gap", gap: nextGap });
-  };
-
-  const handlePageColumnsChange = (value: string) => {
-    if (!layoutView) return;
-    const change = catalogPageColumnsChange(layoutView, value);
-    if (change) catalogLayout?.change(change);
   };
 
   return (
@@ -178,83 +109,8 @@ function SettingsContent() {
               onChange={setSnapToObjects}
               icon={ACTION_ICONS.toggleSnap}
             />
-
-            {/* 「80 PX」 — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + stepper (panel-ui 20 — 대조 B11) */}
-            <PropertyUnitInput
-              label={t("settings.pageGap")}
-              value={`${layoutView?.gap ?? 0}px`}
-              min={0}
-              max={2000}
-              onChange={handlePageGapChange}
-              units={["px"]}
-              unitSuffix
-              allowKeywords={false}
-            />
           </div>
-
-          {/* ADR-232 — 컨테이너 폭은 뷰포트가 아니라 **열 수** 다 (대안 D 기각). */}
-          {layoutView && effectiveDirection === "auto" && (
-            <div className="fieldset-row settings-row">
-              <PropertyUnitInput
-                label={t("settings.pageColumns")}
-                value={columnsFieldValue}
-                // 개수 1 ~ 24 · 배율 10 ~ 100 % (사용자 결정 2) — 한 칸이라 넓은 쪽으로 받고
-                //   단위별 범위는 명령이 맞춘다 (`catalogPageColumnsChange`).
-                min={1}
-                max={100}
-                onChange={handlePageColumnsChange}
-                // `%` = Auto (이 배율로 줌아웃하면 모니터 한 폭에 들어가는 만큼 — ADR-274), 단위
-                //   없음 = Fixed 개수. `auto` 를 쳐도 Auto 다.
-                units={["", "%"]}
-                unitSuffix
-                allowKeywords
-              />
-              {layoutView.tierOverrideAvailable && (
-                <PropertySwitch
-                  label={t("settings.pageLayoutTierOverride")}
-                  isSelected={layoutView.hasTierOverride}
-                  onChange={(selected: boolean) =>
-                    catalogLayout?.change({
-                      kind: "tierOverride",
-                      enabled: selected,
-                    })
-                  }
-                  icon={ACTION_ICONS.toggleRulers}
-                />
-              )}
-            </div>
-          )}
-
-          <PropertySizeToggle
-            label={t("settings.pageLayout")}
-            value={effectiveDirection}
-            onChange={handlePageLayoutChange}
-            options={pageLayoutOptions}
-            className="settings-page-layout-toggle"
-          />
         </PropertySection>
-
-        {/* App 절 — the project's app (S2 ToastContainer placement) */}
-        {toastPlacement && (
-          <PropertySection title={t("settings.app")}>
-            <div className="fieldset-row settings-row">
-              <PropertySizeToggle
-                label={t("settings.toastPlacement")}
-                value={toastVertical}
-                onChange={(value: string) => changeToast(value, toastAlign)}
-                options={toastPlacementOptions}
-                className="settings-toast-placement-toggle"
-              />
-              <PropertySizeToggle
-                label={t("settings.toastAlign")}
-                value={toastAlign}
-                onChange={(value: string) => changeToast(toastVertical, value)}
-                options={toastAlignOptions}
-                className="settings-toast-align-toggle"
-              />
-            </div>
-          </PropertySection>
-        )}
 
         {/* Appearance 절 (종전 Theme & Appearance) */}
         <PropertySection title={t("settings.themeAppearance")}>

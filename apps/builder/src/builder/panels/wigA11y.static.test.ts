@@ -64,7 +64,6 @@ describe("div onClick → button", () => {
 
 describe("아이콘 전용 버튼 — aria-label", () => {
   it.each([
-    ["datatable/DataTablePanel.tsx", /aria-label=\{localize\("refresh"/],
     ["datatable/components/VariableList.tsx", /aria-label=\{localize\("edit"/],
     [
       "datatable/components/VariableList.tsx",

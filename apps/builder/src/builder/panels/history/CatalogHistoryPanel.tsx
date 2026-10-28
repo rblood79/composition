@@ -31,11 +31,11 @@ const DeleteIcon = ACTION_ICONS.delete;
  */
 export function CatalogHistoryPanel() {
   return (
-    <div className="panel history-panel">
-      <CatalogWorkspaceGate>
+    <CatalogWorkspaceGate>
+      <div className="panel history-panel">
         <CatalogHistoryContent />
-      </CatalogWorkspaceGate>
-    </div>
+      </div>
+    </CatalogWorkspaceGate>
   );
 }
 

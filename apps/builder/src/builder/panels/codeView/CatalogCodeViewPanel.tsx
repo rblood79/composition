@@ -60,11 +60,11 @@ const CodeEditor = lazy(() => import("./CodeEditor"));
  */
 export function CatalogCodeViewPanel() {
   return (
-    <div className="panel code-view-panel">
-      <CatalogWorkspaceGate>
+    <CatalogWorkspaceGate>
+      <div className="panel code-view-panel">
         <CodeViewContent />
-      </CatalogWorkspaceGate>
-    </div>
+      </div>
+    </CatalogWorkspaceGate>
   );
 }
 

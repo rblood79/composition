@@ -13,7 +13,6 @@ import {
   CatalogWorkspaceGate,
   useCatalogSession,
   useCatalogWorkspace,
-  useOptionalCatalogWorkspace,
 } from "../../../catalogRuntime/react";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { PanelHeader } from "../../../components/panel/PanelHeader";
@@ -45,16 +44,25 @@ const TAB_LIST_SECTION: Record<CatalogNavigatorTab, string> = {
  * Pages, and choosing Pages leaves it; choosing Components / Layouts only shows the list.
  */
 export function CatalogNavigatorPanel() {
-  const { t } = useI18n();
-  const workspace = useOptionalCatalogWorkspace();
-  // Panels mount before the workspace exists: no project = no edit view.
-  const definitionView = useSyncExternalStore(
-    workspace?.session.subscribe ?? noSubscribe,
-    () => workspace?.session.getSnapshot().definitionView,
+  // Panels mount before the workspace exists: the whole panel waits for it (like every panel).
+  return (
+    <CatalogWorkspaceGate>
+      <NavigatorPanelContent />
+    </CatalogWorkspaceGate>
   );
-  const viewTab = workspace
-    ? catalogNavigatorTabOf(workspace.runtime.graph, definitionView)
-    : undefined;
+}
+
+function NavigatorPanelContent() {
+  const { t } = useI18n();
+  const workspace = useCatalogWorkspace();
+  const definitionView = useSyncExternalStore(
+    workspace.session.subscribe,
+    () => workspace.session.getSnapshot().definitionView,
+  );
+  const viewTab = catalogNavigatorTabOf(
+    workspace.runtime.graph,
+    definitionView,
+  );
   // The chosen tab, reset when the edit view changes (adjusted while rendering — no stale frame).
   const [chosen, setChosen] = useState<{
     view: typeof definitionView;
@@ -70,7 +78,7 @@ export function CatalogNavigatorPanel() {
       const next = String(key) as CatalogNavigatorTab;
       setChosen({ view: definitionView, tab: next });
       if (next === "pages" && definitionView)
-        workspace?.showDefinition(undefined);
+        workspace.showDefinition(undefined);
     },
     [definitionView, workspace],
   );
@@ -135,17 +143,13 @@ export function CatalogNavigatorPanel() {
             id={id}
             className={panelContents("navigator-panel-content")}
           >
-            <CatalogWorkspaceGate>
-              <NavigatorSections tab={id} />
-            </CatalogWorkspaceGate>
+            <NavigatorSections tab={id} />
           </TabPanel>
         ))}
       </Tabs>
     </div>
   );
 }
-
-const noSubscribe = () => () => {};
 
 function NavigatorSections({ tab }: { tab: CatalogNavigatorTab }) {
   const { t } = useI18n();

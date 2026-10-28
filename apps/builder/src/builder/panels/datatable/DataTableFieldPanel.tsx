@@ -37,7 +37,6 @@ import { CompactSelect } from "./editors/CompactSelect";
 import { useDataUsageSource } from "./usage/dataUsageSource";
 import type { FieldUsageRef } from "./utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "./utils/typeChangePreview";
-import type { PanelProps } from "../core/types";
 import "./DataTableFieldPanel.css";
 import { CatalogWorkspaceGate } from "../../catalogRuntime/react";
 
@@ -50,7 +49,7 @@ interface PendingTypeChange {
 }
 
 /** Panels mount before the workspace exists — the Data hosts are provided with it. */
-export function DataTableFieldPanel(_props: PanelProps) {
+export function DataTableFieldPanel() {
   return (
     <CatalogWorkspaceGate>
       <DataTableFieldPanelContent />

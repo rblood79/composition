@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **절 Reset 이 마지막 값으로 되돌린다**: `Section` 의 memo 가 `onReset` 의 유무만 비교해, 같은 children 으로 다시 그릴 때 새 Reset 콜백이 버려지고 옛 클로저가 실행될 수 있었다 (참조 비교로).
   - 위치: `apps/builder/src/builder/components/panel/Section.tsx`
 
+### Changed
+
+- **페이지 레이아웃 · 앱 toast 위치가 Site 패널로**: 둘 다 프로젝트 문서 값이라 Builder 환경 설정 (Settings — 눈금자 · 스냅 · 액션 바 · 테마 모드 · 배율 · 언어) 에서 Site 패널의 「Page Layout」 · 「App」 절로 옮겼다 (사용자 결정 2026-10-28). 필드 · 동작은 같다.
+  - 위치: `apps/builder/src/builder/panels/site/SitePageSections.tsx` (+ `useCatalogPageLayout` · `useCatalogToastPlacement` 이동)
+
 ### Removed
 
 - **Data 패널 헤더의 새로고침 버튼**: ADR-286 로 데이터 정의가 문서에 들어온 뒤 다시 불러올 대상이 없어 눌러도 아무 일도 하지 않았다. 함께 빈 store 액션 `fetchCollections` · `fetchApiEndpoints` · `fetchVariables` 와 패널 공통 props (`isActive` · `side` · `displayMode` · `onClose` — 고정값이라 읽는 패널이 없었다) 를 지웠다.

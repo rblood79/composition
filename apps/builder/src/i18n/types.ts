@@ -1428,6 +1428,8 @@ export interface TranslationKeys {
     snapToObjects: string;
     showActionBar: string;
     pageLayout: string;
+    /** 페이지 배치 방향 (Auto · 가로 · 세로) — Site 패널 페이지 레이아웃 절의 토글 라벨. */
+    pageLayoutDirection: string;
     pageGap: string;
     /** ADR-232 — 페이지 컨테이너 열 수 (direction auto). */
     pageColumns: string;

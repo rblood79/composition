@@ -13,41 +13,21 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).not.toContain('className="settings-panel"');
   });
 
-  it("offers Auto, Horizontal, and Vertical page layout choices", async () => {
+  it("Builder 환경 선택지 — 테마 모드 · 배율 (페이지 레이아웃은 Site 패널)", async () => {
     const source = await readFile(
       resolve(__dirname, "SettingsPanel.tsx"),
       "utf-8",
     );
-    expect(source).toContain('id: "auto"');
-    expect(source).toContain('t("settings.pageLayoutAuto")');
     expect(source).toContain("PropertySizeToggle");
-    expect(source).toContain('className="settings-page-layout-toggle"');
     expect(source).toContain('className="settings-theme-mode-toggle"');
     expect(source).toContain('className="settings-ui-scale-toggle"');
     expect(source).toContain('t("settings.themeModeAuto")');
-    expect(source).toContain('id: "light"');
-    expect(source).toContain('id: "dark"');
-    expect(source).toContain('id: "auto"');
     expect(source).toContain('{ id: "80", label: "S" }');
     expect(source).toContain('{ id: "100", label: "M" }');
     expect(source).toContain('{ id: "120", label: "L" }');
     expect(source).not.toContain("getThemeModeIcon");
     expect(source).not.toContain("PropertySelect");
-    expect(source).toContain("PropertyUnitInput");
-    expect(source).toContain('t("settings.pageGap")');
-    // 「80 PX」 — 단위 suffix, preset · 아이콘 · stepper 없음 (panel-ui 20 — 대조 B11).
-    //   ADR-248 4e-7: the gap is the catalog page layout's (`layoutView.gap`).
-    expect(source).toContain("value={`${layoutView?.gap ?? 0}px`}");
-    expect(source).toContain('units={["px"]}');
-    expect(source).toContain("unitSuffix");
-    expect(source).toContain("allowKeywords={false}");
-    expect(source).not.toContain("PAGE_GAP_PRESETS");
-    expect(source).not.toContain("icon={UnfoldHorizontal}");
-    expect(source).toContain("onChange={handlePageLayoutChange}");
-    expect(source).toContain("onChange={handlePageGapChange}");
-    // The catalog page grid places the pages itself — no realign call after a change (4e-7).
-    expect(source).not.toContain("alignPagesToScreen();");
-    expect(source).not.toContain('value: "zigzag"');
-    expect(source).not.toContain("pageLayoutZigzag");
+    expect(source).not.toContain("useCatalogPageLayout");
+    expect(source).not.toContain("useCatalogToastPlacement");
   });
 });

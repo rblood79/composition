@@ -8,7 +8,10 @@ import type {
   CatalogSiteSettings,
   EntryId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { useCatalogPages } from "../../catalogRuntime/react";
+import {
+  CatalogWorkspaceGate,
+  useCatalogPages,
+} from "../../catalogRuntime/react";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section as PropertySection } from "../../components/panel/Section";
@@ -18,6 +21,7 @@ import { PropertySelect } from "../../components/property/PropertySelect";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { SiteAssetField } from "./SiteAssetField";
+import { SiteAppSection, SitePageLayoutSection } from "./SitePageSections";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   useCatalogSiteSettings,
@@ -41,9 +45,18 @@ const asPath = (value: string) => {
  * (user 2026-10-28): the open project's site settings (`ProjectEntry.site`), each edit one history
  * step. Access protection names who may open the site; its secrets (password · client secret ·
  * certificate) are kept by the publish host (user decision 2) — no secret field here. Publish does
- * not read these yet (R5 — the notice).
+ * not read these yet (R5 — the notice). The project's page grid and app toast placement are here
+ * too (document values — moved from Settings 2026-10-28).
  */
 export function SitePanel() {
+  return (
+    <CatalogWorkspaceGate>
+      <SitePanelContent />
+    </CatalogWorkspaceGate>
+  );
+}
+
+function SitePanelContent() {
   const { t } = useI18n();
   const settings = useCatalogSiteSettings();
   return (
@@ -57,6 +70,8 @@ export function SitePanel() {
         {settings && (
           <SiteSettingsForm site={settings.site} change={settings.change} />
         )}
+        <SitePageLayoutSection />
+        <SiteAppSection />
       </PanelContents>
     </div>
   );
@@ -105,29 +120,29 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
   return (
     <>
       <PropertySection title={t("settings.siteGeneral")}>
-      <div className="site-settings-notice" role="note">
-        {t("settings.sitePublishPending")}
-      </div>
-      <PropertyInput
-        label={t("settings.siteTitle")}
-        value={site.title ?? ""}
-        placeholder={t("settings.siteTitlePlaceholder")}
-        onChange={(value) => text("title", value)}
-      />
-      <PropertyInput
-        label={t("settings.siteDescription")}
-        value={site.description ?? ""}
-        multiline
-        onChange={(value) => text("description", value)}
-      />
-      <PropertySelect
-        label={t("settings.siteLang")}
-        value={site.lang ?? ""}
-        options={langOptions}
-        translateOptions={false}
-        optionValueMode="literal"
-        onChange={(value) => change({ lang: value || undefined })}
-      />
+        <div className="site-settings-notice" role="note">
+          {t("settings.sitePublishPending")}
+        </div>
+        <PropertyInput
+          label={t("settings.siteTitle")}
+          value={site.title ?? ""}
+          placeholder={t("settings.siteTitlePlaceholder")}
+          onChange={(value) => text("title", value)}
+        />
+        <PropertyInput
+          label={t("settings.siteDescription")}
+          value={site.description ?? ""}
+          multiline
+          onChange={(value) => text("description", value)}
+        />
+        <PropertySelect
+          label={t("settings.siteLang")}
+          value={site.lang ?? ""}
+          options={langOptions}
+          translateOptions={false}
+          optionValueMode="literal"
+          onChange={(value) => change({ lang: value || undefined })}
+        />
         <SiteAssetField
           label={t("settings.siteFaviconLight")}
           value={site.favicon?.light}
@@ -150,76 +165,78 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
             });
           }}
         />
-      <SiteAssetField
-        label={t("settings.siteAppIcon")}
-        value={site.appIcon}
-        onChange={(appIcon) => change({ appIcon })}
-      />
-      <div className="site-settings-notice">{t("settings.siteAppIconHint")}</div>
-      <PropertyInput
-        label={t("settings.siteAppName")}
-        value={site.appName ?? ""}
-        placeholder={site.title || t("settings.siteTitlePlaceholder")}
-        onChange={(value) => text("appName", value)}
-      />
-      <div className="site-theme-color">
-        {/* Hex text — the Styles color picker needs the Styles panel's host. */}
+        <SiteAssetField
+          label={t("settings.siteAppIcon")}
+          value={site.appIcon}
+          onChange={(appIcon) => change({ appIcon })}
+        />
+        <div className="site-settings-notice">
+          {t("settings.siteAppIconHint")}
+        </div>
         <PropertyInput
-          label={t("settings.siteThemeColor")}
-          value={site.themeColor ?? ""}
-          placeholder="#ffffff"
-          onChange={(value) => {
-            const raw = value.trim().toLowerCase().replace(/^#?/, "#");
-            // `#rgb` → `#rrggbb`; the document holds `#rrggbb` (`theme-color` has no alpha).
-            const hex = /^#[0-9a-f]{3}$/.test(raw)
-              ? `#${[...raw.slice(1)].map((c) => c + c).join("")}`
-              : raw;
-            if (!value.trim()) change({ themeColor: undefined });
-            else if (/^#[0-9a-f]{6}$/.test(hex) && hex !== site.themeColor)
-              change({ themeColor: hex });
-          }}
+          label={t("settings.siteAppName")}
+          value={site.appName ?? ""}
+          placeholder={site.title || t("settings.siteTitlePlaceholder")}
+          onChange={(value) => text("appName", value)}
         />
-        <span
-          className="site-theme-swatch"
-          aria-hidden="true"
-          style={site.themeColor ? { background: site.themeColor } : undefined}
+        <div className="site-theme-color">
+          {/* Hex text — the Styles color picker needs the Styles panel's host. */}
+          <PropertyInput
+            label={t("settings.siteThemeColor")}
+            value={site.themeColor ?? ""}
+            placeholder="#ffffff"
+            onChange={(value) => {
+              const raw = value.trim().toLowerCase().replace(/^#?/, "#");
+              // `#rgb` → `#rrggbb`; the document holds `#rrggbb` (`theme-color` has no alpha).
+              const hex = /^#[0-9a-f]{3}$/.test(raw)
+                ? `#${[...raw.slice(1)].map((c) => c + c).join("")}`
+                : raw;
+              if (!value.trim()) change({ themeColor: undefined });
+              else if (/^#[0-9a-f]{6}$/.test(hex) && hex !== site.themeColor)
+                change({ themeColor: hex });
+            }}
+          />
+          <span
+            className="site-theme-swatch"
+            aria-hidden="true"
+            style={
+              site.themeColor ? { background: site.themeColor } : undefined
+            }
+          />
+        </div>
+        <SiteAssetField
+          label={t("settings.siteSocialImage")}
+          value={site.socialImage}
+          onChange={(socialImage) => change({ socialImage })}
         />
-      </div>
-      <SiteAssetField
-        label={t("settings.siteSocialImage")}
-        value={site.socialImage}
-        onChange={(socialImage) => change({ socialImage })}
-      />
-
       </PropertySection>
       <PropertySection title={t("settings.siteSearch")}>
-      <div className="fieldset-row site-search-row">
-        <PropertySwitch
-          label={t("settings.siteSearchIndex")}
-          isSelected={search.index}
-          onChange={(index) => change({ search: { ...search, index } })}
+        <div className="fieldset-row site-search-row">
+          <PropertySwitch
+            label={t("settings.siteSearchIndex")}
+            isSelected={search.index}
+            onChange={(index) => change({ search: { ...search, index } })}
+          />
+          <PropertySwitch
+            label={t("settings.siteSitemap")}
+            isSelected={search.sitemap}
+            onChange={(sitemap) => change({ search: { ...search, sitemap } })}
+          />
+        </div>
+        <PropertySelect
+          label={t("settings.siteRobots")}
+          value={search.robots}
+          options={[
+            { value: "allow", label: t("settings.siteRobotsAllow") },
+            { value: "none", label: t("settings.siteRobotsNone") },
+          ]}
+          translateOptions={false}
+          onChange={(robots) =>
+            change({
+              search: { ...search, robots: robots as "allow" | "none" },
+            })
+          }
         />
-        <PropertySwitch
-          label={t("settings.siteSitemap")}
-          isSelected={search.sitemap}
-          onChange={(sitemap) => change({ search: { ...search, sitemap } })}
-        />
-      </div>
-      <PropertySelect
-        label={t("settings.siteRobots")}
-        value={search.robots}
-        options={[
-          { value: "allow", label: t("settings.siteRobotsAllow") },
-          { value: "none", label: t("settings.siteRobotsNone") },
-        ]}
-        translateOptions={false}
-        onChange={(robots) =>
-          change({
-            search: { ...search, robots: robots as "allow" | "none" },
-          })
-        }
-      />
-
       </PropertySection>
       <PropertySection title={t("settings.siteRedirects")}>
         {redirects.map((redirect, index) => {
@@ -320,53 +337,52 @@ const SiteSettingsForm = memo(function SiteSettingsForm({
         </RACButton>
       </PropertySection>
       <PropertySection title={t("settings.siteAccess")}>
-
-      <PropertySelect
-        label={t("settings.siteAccessWho")}
-        value={access.kind}
-        icon={access.kind === "none" ? LockOpen : Lock}
-        options={[
-          { value: "none", label: t("settings.siteAccessNone") },
-          { value: "password", label: t("settings.siteAccessPassword") },
-          { value: "sso", label: t("settings.siteAccessSso") },
-        ]}
-        translateOptions={false}
-        onChange={(kind) => {
-          if (kind === access.kind) return;
-          if (kind === "password") writeAccess({ kind: "password" });
-          else if (kind === "sso")
-            writeAccess({
-              kind: "sso",
-              protocol: "oidc",
-              issuer: "",
-              protectedPageIds: "all",
-            });
-          else writeAccess({ kind: "none" });
-        }}
-      />
-      {access.kind !== "none" && (
-        <div className="site-settings-notice" role="note">
-          {t("settings.siteAccessSecretsNotice")}
-        </div>
-      )}
-      {access.kind === "password" && (
-        <PropertyInput
-          label={t("settings.siteAccessHint")}
-          value={access.hint ?? ""}
-          onChange={(value) => {
-            const hint = value.trim();
-            if (hint !== (access.hint ?? ""))
-              writeAccess(hint ? { ...access, hint } : { kind: "password" });
+        <PropertySelect
+          label={t("settings.siteAccessWho")}
+          value={access.kind}
+          icon={access.kind === "none" ? LockOpen : Lock}
+          options={[
+            { value: "none", label: t("settings.siteAccessNone") },
+            { value: "password", label: t("settings.siteAccessPassword") },
+            { value: "sso", label: t("settings.siteAccessSso") },
+          ]}
+          translateOptions={false}
+          onChange={(kind) => {
+            if (kind === access.kind) return;
+            if (kind === "password") writeAccess({ kind: "password" });
+            else if (kind === "sso")
+              writeAccess({
+                kind: "sso",
+                protocol: "oidc",
+                issuer: "",
+                protectedPageIds: "all",
+              });
+            else writeAccess({ kind: "none" });
           }}
         />
-      )}
-      {access.kind === "sso" && (
-        <SsoFields
-          access={access}
-          pages={pages.map((page) => ({ id: page.id, name: page.name }))}
-          write={writeAccess}
-        />
-      )}
+        {access.kind !== "none" && (
+          <div className="site-settings-notice" role="note">
+            {t("settings.siteAccessSecretsNotice")}
+          </div>
+        )}
+        {access.kind === "password" && (
+          <PropertyInput
+            label={t("settings.siteAccessHint")}
+            value={access.hint ?? ""}
+            onChange={(value) => {
+              const hint = value.trim();
+              if (hint !== (access.hint ?? ""))
+                writeAccess(hint ? { ...access, hint } : { kind: "password" });
+            }}
+          />
+        )}
+        {access.kind === "sso" && (
+          <SsoFields
+            access={access}
+            pages={pages.map((page) => ({ id: page.id, name: page.name }))}
+            write={writeAccess}
+          />
+        )}
       </PropertySection>
     </>
   );
