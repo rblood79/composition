@@ -1,7 +1,7 @@
 /**
  * workspace 패널 표시 보장 — ADR-212 UI-8 (편집 패널 생명주기 일반화).
  *
- * `datatableEditor` · `datatableField` 처럼 **다른 패널이 여는** 패널의 유일한 진입점.
+ * 다른 코드가 **여는** 패널 (Quick Connect · CollectionBinding 이 켜는 `datatable` — ADR-288) 의 유일한 진입점.
  * 마운트된 PanelWorkspace 가 있으면 그 dispatcher (runtime → `activatePanelWorkspacePanelV4`)
  * 를 지나고, 없으면 (테스트 · 아직 마운트 전) 같은 정책 함수를 store layout 에 직접 적용한다.
  * 어느 쪽이든 visibility 를 손으로 뒤집지 않는다 — 스냅 (`snapTo`) · overflow 정책은 정책
@@ -23,8 +23,6 @@ import { activatePanelWorkspacePanelV4 } from "./panelWorkspacePolicyV4";
  */
 const CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS = new Set<PanelId>([
   "datatable",
-  "datatableEditor",
-  "datatableField",
   "theme",
   "settings",
   "site",

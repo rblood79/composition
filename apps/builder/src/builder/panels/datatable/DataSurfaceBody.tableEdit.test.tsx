@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 /**
- * 테이블 편집기 shell (table-edit): 탭 없음 — 격자가 유일한 뷰, 설정은 헤더 gear 토글
- * (aria-pressed) 로 같은 자리에서 본문만 바뀐다. 제목은 더블클릭/Enter 로 인라인 rename
- * (updateCollection { name }). 편집기 본문은 stub — shell 계약만 본다.
+ * Data 본문 shell (table-edit, ADR-288 — 옛 편집 패널의 shell 그대로): 탭 없음 — 격자가 유일한
+ * 뷰. 설정은 G6 수정 9 로 목록 행 ⋮ → «Edit table…» 팝오버로 갔으니 헤더에는 gear 가 없고
+ * 액션은 Close 하나다. 제목은 더블클릭/Enter 로 인라인 rename (updateCollection { name }).
+ * 본문은 stub — shell 계약만 본다.
  */
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -30,15 +31,13 @@ vi.mock("../../stores/data", () => ({
     }),
 }));
 vi.mock("./editors", () => ({
-  DataTableEditor: ({ view }: { view: string }) => (
-    <div data-testid="table-editor" data-view={view} />
-  ),
+  DataTableEditor: () => <div data-testid="table-editor" />,
   DataTableCreator: () => null,
   ApiEndpointEditor: () => null,
-  VariableEditor: () => null,
   ApiEndpointCreator: () => null,
   VariableCreator: () => null,
 }));
+vi.mock("./components/VariableList", () => ({ VariableList: () => null }));
 vi.mock("../../hooks/usePanelLayout", () => ({
   togglePanelWorkspace: vi.fn(),
 }));
@@ -47,8 +46,7 @@ import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import { CatalogWorkspaceProvider } from "../../catalogRuntime/react";
 import type { CatalogWorkspace } from "../../catalogRuntime/workspace";
-import { DataTableEditorPanel } from "./DataTableEditorPanel";
-import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
+import { DataSurfaceBody } from "./DataSurfaceBody";
 
 // (An open project — the panel waits for the workspace; its body reads only the hosts.)
 const wrap = (node: ReactNode) => (
@@ -64,45 +62,33 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("DataTableEditorPanel · table-edit shell", () => {
-  it("탭 없음 · gear 토글이 격자 ↔ 설정을 같은 자리에서 바꾼다 (aria-pressed)", () => {
-    useDataTableEditorStore.setState({
-      mode: { type: "table-edit", tableId: "c1" },
-    });
-    const { container, getByRole, getByTestId } = render(
-      wrap(<DataTableEditorPanel />),
-    );
+const close = vi.fn();
+const body = () => (
+  <DataSurfaceBody mode={{ type: "table-edit", tableId: "c1" }} close={close} />
+);
+
+describe("DataSurfaceBody · table-edit shell", () => {
+  it("탭 없음 · gear 없음 — 헤더 액션은 Close 하나, 본문은 격자", () => {
+    const { container, queryByRole, getByTestId } = render(wrap(body()));
     expect(container.querySelector('[role="tablist"]')).toBeNull();
     expect(container.querySelector(".panel-tab")).toBeNull();
-    expect(getByTestId("table-editor").getAttribute("data-view")).toBe("grid");
+    expect(getByTestId("table-editor")).not.toBeNull();
 
-    const gear = getByRole("button", { name: "Settings" });
-    expect(gear.getAttribute("aria-pressed")).toBe("false");
-    // gear 는 close 왼쪽 (같은 .panel-actions 안, close 가 마지막)
+    // G6 수정 9: the gear (settings view toggle) is gone — settings live in the list row's ⋮.
+    expect(queryByRole("button", { name: "Settings" })).toBeNull();
     const actions = Array.from(
       container.querySelectorAll(".panel-actions button"),
     );
-    expect(actions.at(-1)?.getAttribute("aria-label")).toBe("Close");
-    expect(actions.indexOf(gear)).toBe(actions.length - 2);
-
-    fireEvent.click(gear);
-    expect(gear.getAttribute("aria-pressed")).toBe("true");
-    expect(getByTestId("table-editor").getAttribute("data-view")).toBe(
-      "settings",
-    );
-    // 제목은 그대로
+    expect(actions.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Close",
+    ]);
     expect(container.querySelector(".panel-title-text")?.textContent).toBe(
       "Users",
     );
-    fireEvent.click(gear);
-    expect(getByTestId("table-editor").getAttribute("data-view")).toBe("grid");
   });
 
   it("제목 더블클릭 → 인라인 입력 → Enter = updateCollection({ name }) · Esc 취소 · 빈 값 무시", () => {
-    useDataTableEditorStore.setState({
-      mode: { type: "table-edit", tableId: "c1" },
-    });
-    const { container } = render(wrap(<DataTableEditorPanel />));
+    const { container } = render(wrap(body()));
     const title = container.querySelector(
       ".panel-title-renamable",
     ) as HTMLElement;

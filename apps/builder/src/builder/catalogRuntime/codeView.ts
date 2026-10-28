@@ -11,6 +11,7 @@ import {
   type CatalogCommandPlan,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { updateRecord } from "../../../../../packages/shared/src/catalog/commands/project";
+import { renameVariable } from "../../../../../packages/shared/src/catalog/commands/variables";
 import { updateView } from "../../../../../packages/shared/src/catalog/commands/views";
 import type { CatalogReader } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import type {
@@ -161,16 +162,19 @@ function editCommand(
 ): CatalogCommand {
   switch (edit.kind) {
     case "renameVariable":
+      // ADR-288 — the `{{ old }}` readers follow the name in the same step.
+      return renameVariable({
+        variableId: edit.variableId,
+        name: edit.name,
+        label: "Edit variable",
+      });
     case "variableDefault": {
       const entry = reader.getEntry(edit.variableId) as
         StateVariableEntry | undefined;
       if (entry?.kind !== "stateVariable")
         throw new Error(`NO_VARIABLE: ${edit.variableId}`);
       return updateRecord({
-        entry:
-          edit.kind === "renameVariable"
-            ? { ...entry, name: edit.name }
-            : { ...entry, defaultValue: edit.value },
+        entry: { ...entry, defaultValue: edit.value },
         label: "Edit variable",
       });
     }

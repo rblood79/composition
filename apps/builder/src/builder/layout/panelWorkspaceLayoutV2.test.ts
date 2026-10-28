@@ -111,7 +111,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 model", () => {
     expect(Object.keys(result.value.visibility)).not.toContain("removed");
     expect(result.value.railOrder.left).toEqual([
       "navigator",
-      "datatableEditor",
+      "codeView",
       "settings",
     ]);
     expect([...panelOccurrences(result.value).values()]).toEqual(
@@ -296,7 +296,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
   it("800px viewport에서는 right를 유지하고 left를 overlay한 뒤 확장 시 원 anchor로 복귀한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     layout.visibility.navigator = false;
-    layout.visibility.datatableEditor = true;
+    layout.visibility.codeView = true;
     const persistedBefore = structuredClone(layout);
 
     const constrained = solvePanelWorkspaceLayoutV2(

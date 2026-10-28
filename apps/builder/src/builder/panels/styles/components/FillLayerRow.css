@@ -167,6 +167,9 @@
          폭. 종전 180 (fieldset 폭) 은 인스펙터 행 템플릿(1fr 1fr 28 + gap 8 = 217 안쪽)
          보다 좁아 필드가 라벨-위 배치로 밀렸다 (2026-09-13). */
       min-width: 233px;
+      /* 빌더 팝오버 그림자 — Select 목록 · 메뉴와 같은 높이 (2026-10-29 사용자 「다른 menu,
+         popover, select 에도 동일하게」 — 테두리는 이미 Popover 한 겹) */
+      box-shadow: var(--shadow-lg);
     }
 
     .react-aria-Dialog {

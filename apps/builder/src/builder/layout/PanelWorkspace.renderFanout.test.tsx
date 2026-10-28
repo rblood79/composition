@@ -61,9 +61,9 @@ const TEST_REGISTRY = TEST_CONFIGS.map((config) =>
 
 function migrateFixture(): PanelWorkspaceLayoutV4 {
   const source = createPanelWorkspaceLayoutV2();
-  // navigator 아래에 datatableEditor 를 쌓아 좌측 cluster 에 row splitter (.panel-cluster-splitter)
+  // navigator 아래에 codeView 를 쌓아 좌측 cluster 에 row splitter (.panel-cluster-splitter)
   // 와 column rail (.panel-dock-rail) 이 생기게 한다 — 그 leaf 들의 fan-out 도 함께 잰다.
-  source.visibility.datatableEditor = true;
+  source.visibility.codeView = true;
   const migrated = migratePanelWorkspaceLayoutV2ToV4(source, TEST_REGISTRY, {
     surfaceRect: { width: 1600, height: 852 },
     migrationId: "panel-workspace-render-fanout-fixture",

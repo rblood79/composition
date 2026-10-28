@@ -1,0 +1,30 @@
+/**
+ * ColumnEditorPopover — ADR-288 Decision 2 (the ADR-212 Phase 3 field panel body, under the
+ * column head). G6 수정 12: the body is a panel `Section` with inspector rows — fields, switch and
+ * selects take their look from panel-system.css · form-controls.css (the `.section` scope). Only the
+ * popover box is local.
+ */
+
+.datatable-field-popover {
+  /* 공용 `.react-aria-Popover` (shared Popover.css) 의 `max-width: 250px` 가 288 을 250 으로
+     깎았다 (5173 실측 2026-10-29, G6 수정 16) — 폭과 상한을 같이 둔다. */
+  width: 288px;
+  max-width: 288px;
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+/* The shared `.react-aria-Dialog` (overlays.css) pads 16 — the Section owns its insets. */
+/* RAC 레퍼런스: 테두리 · 그림자 · 배경 · 모서리는 Popover 하나, 안의 Dialog 는 면 없음 (생성 Dialog
+   규칙의 흰 배경 · 모서리 12 가 Popover 면 위에 두 번째 면을 그렸다 — 2026-10-29). */
+.datatable-field-dialog {
+  outline: none;
+  padding: 0;
+  background: transparent;
+  border-radius: inherit;
+}
+
+.datatable-field-form .control-button[data-tone="danger"] {
+  color: var(--negative);
+}

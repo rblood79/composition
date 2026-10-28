@@ -86,9 +86,9 @@ afterEach(() => {
 });
 
 describe("DataTableList (ADR-212 Phase 1)", () => {
-  it("행은 role=row 이고 Enter 로 열리며 배지가 사용처 · 소스 · 오류를 낸다", () => {
+  it("행은 role=row 이고 Enter 로 열리며 메타 한 줄이 소스 · 필드 · 행 · 사용처 · 오류를 낸다", () => {
     const onEditingChange = vi.fn();
-    const { container, getByText } = render(
+    const { container } = render(
       wrap(
         <DataTableList
           projectId="p"
@@ -101,20 +101,47 @@ describe("DataTableList (ADR-212 Phase 1)", () => {
     const rows = container.querySelectorAll('[role="row"]');
     expect(rows).toHaveLength(2);
     expect(container.querySelector('[role="grid"]')).not.toBeNull();
-    // 사용처 2 (c1) · 0 (c2)
-    expect(getByText(/used by 2/)).toBeTruthy();
-    expect(rows[0].textContent).toContain("2");
-    // c2: 0행 → data-empty, 마지막 실행 401 → error 배지
+    // c2: 0행 → data-empty, 마지막 실행 401 → data-error + 메타 첫 칸이 오류
     expect(rows[1].getAttribute("data-empty")).toBe("true");
     expect(rows[1].getAttribute("data-error")).toBe("true");
-    expect(rows[1].querySelector(".list-item-badge.error")).not.toBeNull();
-    expect(rows[0].querySelector(".list-item-badge.local")).not.toBeNull();
+    expect(rows[1].getAttribute("data-source")).toBe("api");
+    expect(rows[0].getAttribute("data-source")).toBe("local");
+    // ADR-288 G6 수정 10 — Navigator Pages 행: 이름만 글자, 메타는 title (hover) 로
+    expect(rows[0].querySelector(".elementItem")).not.toBeNull();
+    expect(rows[0].querySelector(".datatable-tree-meta")).toBeNull();
+    expect(
+      rows[0].querySelector(".elementItemLabel")?.getAttribute("title"),
+    ).toMatch(/Sample · 2 fields · 2 rows · used by 2/);
+    expect(
+      rows[1].querySelector(".elementItemLabel")?.getAttribute("title"),
+    ).toMatch(/401/);
+    // 행 액션 = 설정 · 삭제 아이콘 (Pages 와 같은 자리)
+    expect(
+      rows[0].querySelector('button[aria-label="Table settings Users"]'),
+    ).not.toBeNull();
+    expect(
+      rows[0].querySelector('button[aria-label="Delete Users"]'),
+    ).not.toBeNull();
 
     // 키보드 열림 — 행에 포커스 후 Enter
     (rows[0] as HTMLElement).focus();
     fireEvent.keyDown(rows[0], { key: "Enter" });
     fireEvent.keyUp(rows[0], { key: "Enter" });
     expect(onEditingChange).toHaveBeenCalledWith("c1");
+    // G6 — 편집 버튼 없음, 행 선택 (클릭) 이 곧 열기
+    expect(
+      container.querySelector('button[aria-label^="Edit"]'),
+    ).toBeNull();
+    // G6 — 「New table」 은 목록 아래 버튼이 아니라 섹션 헤더 액션 (Navigator Pages 패턴)
+    expect(container.querySelector('.control-button[data-variant="add"]')).toBeNull();
+    expect(
+      container.querySelector('.section-header button[aria-label="New table"]'),
+    ).not.toBeNull();
+    onEditingChange.mockClear();
+    fireEvent.pointerDown(rows[1], { pointerType: "mouse", button: 0 });
+    fireEvent.pointerUp(rows[1], { pointerType: "mouse", button: 0 });
+    fireEvent.click(rows[1]);
+    expect(onEditingChange).toHaveBeenCalledWith("c2");
   });
 
   it("삭제는 ConfirmDialog 뒤 wrapper 를 부르고 role=status 로 알린다", async () => {
@@ -129,7 +156,7 @@ describe("DataTableList (ADR-212 Phase 1)", () => {
       ),
     );
     const del = container.querySelector(
-      'button[aria-label$="Users"][aria-label^="Delete"], button[aria-label$="Users"][aria-label^="삭제"]',
+      'button[aria-label="Delete Users"]',
     ) as HTMLElement;
     expect(del).not.toBeNull();
     // RAC usePress — pointer 시퀀스로 눌러야 onPress 가 난다
@@ -148,5 +175,41 @@ describe("DataTableList (ADR-212 Phase 1)", () => {
         /Users/,
       ),
     );
+  });
+
+  it("설정 아이콘은 행 아래 표 설정 팝오버 (이름 · Use Table Data · API endpoint · Execution policy)", async () => {
+    const { container, getByRole } = render(
+      wrap(
+        <DataTableList
+          projectId="p"
+          editingId={null}
+          onEditingChange={() => {}}
+          onCreateClick={() => {}}
+        />,
+      ),
+    );
+    expect(container.querySelector(".datatable-settings-popover")).toBeNull();
+    const edit = container.querySelector(
+      'button[aria-label="Table settings Users"]',
+    ) as HTMLElement;
+    fireEvent.pointerDown(edit, { pointerType: "mouse", button: 0 });
+    fireEvent.pointerUp(edit, { pointerType: "mouse", button: 0 });
+    fireEvent.click(edit);
+    const dialog = await vi.waitFor(() =>
+      getByRole("dialog", { name: "Table settings Users" }),
+    );
+    // G6 수정 12 — panel Section + inspector rows (no local form classes)
+    expect(dialog.querySelector(".section .section-content")).not.toBeNull();
+    expect(dialog.querySelectorAll(".fieldset-row").length).toBe(4);
+    expect(dialog.querySelector(".settings-editor, .settings-input")).toBeNull();
+    const name = [...dialog.querySelectorAll("fieldset")].find(
+      (f) => f.querySelector("legend")?.textContent === "Table Name",
+    );
+    expect((name?.querySelector("input") as HTMLInputElement).value).toBe(
+      "Users",
+    );
+    expect(dialog.textContent).toContain("Use Table Data");
+    expect(dialog.textContent).toContain("API endpoint");
+    expect(dialog.textContent).toContain("Execution policy");
   });
 });

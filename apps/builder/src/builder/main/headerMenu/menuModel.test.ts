@@ -72,7 +72,7 @@ function context(overrides: Partial<MenuModelContext> = {}): MenuModelContext {
             shortcutId: "toggleNavigator",
             icon: NavigatorIcon,
           },
-          { id: "datatableEditor" },
+          { id: "codeView" },
         ] as PanelConfig[],
       },
       {
@@ -142,7 +142,7 @@ describe("buildMenuModel", () => {
     expect(navigator).toMatchObject({ checked: true, shortcut: "1" });
     // 단축키가 없는 패널도 항목이 선다 — 명령 정의로 만들면 빠진다
     expect(panelBlocks[0].entries[1]).toMatchObject({
-      key: "panel:datatableEditor",
+      key: "panel:codeView",
       shortcut: undefined,
     });
   });
@@ -151,7 +151,7 @@ describe("buildMenuModel", () => {
     const keysOf = (block: MenuBlock) =>
       block.entries.map((entry) => entry.key).join(",");
     expect(model.map((block) => [keysOf(block), block.separated])).toEqual([
-      ["panel:navigator,panel:datatableEditor", false],
+      ["panel:navigator,panel:codeView", false],
       ["panel:history", true],
       ["cmd:toggleWorkflowOverlay", true],
       ["cmd:openProject", false],

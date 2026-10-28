@@ -4,8 +4,6 @@ export const PANEL_TRANSLATION_KEYS: Partial<Record<PanelId, string>> = {
   navigator: "panels.navigator",
   components: "panels.components",
   datatable: "panels.dataTable",
-  datatableEditor: "panels.dataTableEditor",
-  datatableField: "panels.dataTableField",
   theme: "panels.theme",
   settings: "panels.settings",
   site: "panels.site",

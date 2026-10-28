@@ -19,6 +19,13 @@ import type {
   Scalar,
   StateVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { renameVariable } from "../../../../../packages/shared/src/catalog/commands/variables";
+import { variableDefaultForType } from "../../../../../packages/shared/src/catalog/runtime/variableTypeChange";
+import {
+  variableNameTaken,
+  variableReferenceCount,
+} from "../../../../../packages/shared/src/catalog/runtime/variableReferences";
+import type { ProjectVariableEntry } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogSettingsPage } from "./pageSettings";
 
 /** The graph reads the State section needs (`CatalogGraph` is one). */
@@ -118,34 +125,26 @@ export function catalogVisibleVariableEntries(
 
 /**
  * A variable with the same name on the owner's chain — an ancestor, the owner itself or a
- * descendant (names stay unique wherever one owner can see the other). Reads only variables.
+ * descendant (names stay unique wherever one owner can see the other) — or a project variable
+ * (the end of every chain — ADR-288 R8). The `renameVariable` command makes the same judgment.
  */
 export function catalogVariableNameConflict(
   graph: CatalogVariableReader,
   ownerId: CatalogVariableOwnerId,
   name: string,
   excludeId?: string,
-): StateVariableEntry | undefined {
-  const target = name.trim();
-  if (!target) return undefined;
-  const chain = new Set(ownerChain(graph, ownerId));
-  const project = graph.getEntry(graph.projectId);
-  if (project?.kind !== "project") return undefined;
-  for (const id of project.stateVariableIds) {
-    if (id === excludeId) continue;
-    const entry = graph.getEntry(id);
-    if (entry?.kind !== "stateVariable" || entry.name.trim() !== target)
-      continue;
-    if (
-      chain.has(entry.ownerId) ||
-      ownerChain(graph, entry.ownerId).includes(ownerId)
-    )
-      return entry;
-  }
-  return undefined;
+): StateVariableEntry | ProjectVariableEntry | undefined {
+  return variableNameTaken(
+    graph,
+    { kind: "stateVariable", ownerId, ...(excludeId ? { id: excludeId } : {}) },
+    name,
+  );
 }
 
-/** Interactions that set the variable (the delete confirmation's count; they go with it). */
+/**
+ * How many places use the variable: the interactions that set it (they go with it on delete)
+ * and the `{{ name }}` templates the runtime resolves to it (ADR-288 — the rename's judgment).
+ */
 export function catalogVariableUsageCount(
   graph: CatalogVariableReader,
   variableId: string,
@@ -153,7 +152,7 @@ export function catalogVariableUsageCount(
   let count = 0;
   for (const id of graph.referrersOf(variableId))
     if (graph.getEntry(id)?.kind === "interaction") count++;
-  return count;
+  return count + variableReferenceCount(graph, variableId);
 }
 
 /** `state1`, `state2`, … — the first name no variable on the chain uses. */
@@ -305,10 +304,9 @@ function sourceDefault(
 }
 
 /**
- * ADR-248 Phase 4e-4: the State section's commands/**
  * ADR-248 Phase 4e-4: the State section's commands — each one history step. Changing the type
- * resets the default to the new type's empty value; delete also removes the interactions that set
- * the variable.
+ * keeps a default that fits the new type and empties one that does not (ADR-288 — the same rule
+ * as a project variable's); delete also removes the interactions that set the variable.
  */
 export const catalogVariableCommands = {
   add: (
@@ -326,8 +324,10 @@ export const catalogVariableCommands = {
         defaultValue: "",
       },
     }),
+  /** ADR-288 — the rename rewrites every `{{ old }}` that read this variable (one step). */
   rename: (variable: StateVariableEntry, name: string): CatalogCommand =>
-    updateRecord({ entry: { ...variable, name }, label: "Rename variable" }),
+    renameVariable({ variableId: variable.id, name }),
+  /** ADR-288 결정 1 — a default that fits the new type stays (converted), else the type's empty. */
   setType: (
     variable: StateVariableEntry,
     type: CatalogVariableType,
@@ -336,7 +336,11 @@ export const catalogVariableCommands = {
       entry: {
         ...variable,
         valueType: type,
-        defaultValue: catalogEmptyVariableValue(type),
+        defaultValue: variableDefaultForType(
+          type,
+          variable.defaultValue,
+          "state",
+        ) as Scalar,
       },
       label: "Edit variable",
     }),

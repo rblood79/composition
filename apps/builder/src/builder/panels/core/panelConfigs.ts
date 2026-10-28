@@ -7,9 +7,7 @@
 import {
   Bot,
   Code,
-  Columns3,
   Database,
-  FileEdit,
   History,
   ListTree,
   Settings,
@@ -35,13 +33,8 @@ import { DesignPanel } from "../design/DesignPanel";
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
 // L2 고급 토글로 흡수 예정 (Phase 3). document.actions 는 canonical read view.
 
-// ADR-212 HC5: 편집기 구현은 lazy 경계 뒤 — initial chunk 에 editor bytes 0.
-const DataTableEditorPanel = lazyPanel(
-  () => import("../datatable/DataTableEditorPanel"),
-);
-const DataTableFieldPanel = lazyPanel(
-  () => import("../datatable/DataTableFieldPanel"),
-);
+// ADR-212 HC5 → ADR-288: 데이터 편집기 · 필드 패널은 없다 — `datatable` 패널 하나가 목록 열 +
+//   본문 (격자 · API 양식 · 변수 표) 이고 열 편집은 머리글 팝오버다. 전부 그 lazy chunk 안.
 
 // ADR-242 — 초기 화면 밖 패널은 첫 열림에 chunk 를 받는다 (패널 밖이 값으로 쓰는 store · utils 는
 //   그대로 initial). 상수 이름은 등록 인벤토리 검사 (`panelCloseActions.static`) 가 읽는다.
@@ -121,45 +114,18 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   },
   {
     id: "datatable",
-    name: "데이터테이블",
+    name: "데이터",
     icon: Database,
     component: DataTablePanel,
     defaultPosition: "left",
     minWidth: 228,
     maxWidth: "100%",
+    // ADR-288 (사용자 2026-10-28 「패널 사이즈를 100% 로」) — 데이터 표면은 이 패널 하나: 첫 열림에
+    // 작업 영역 전체 폭 (캔버스를 덮는다 — 폭을 줄이면 나란히). 저장된 폭은 그대로 (R4).
+    defaultWidth: "100%",
     defaultHeight: 520,
-    description: "DataTables, APIs, Variables 관리",
+    description: "데이터 표 · API · 변수 — 목록과 편집이 한 패널",
     shortcutId: "toggleDatatable",
-  },
-  {
-    id: "datatableEditor",
-    name: "데이터테이블 에디터",
-    icon: FileEdit,
-    component: DataTableEditorPanel,
-    defaultPosition: "left",
-    minWidth: 228,
-    maxWidth: "100%",
-    // 격자 + 탭 라벨이 잘리지 않는 첫 열림 폭 (리서치 U1). 리사이즈 · 폭 저장은 그대로.
-    defaultWidth: 560,
-    defaultHeight: 600,
-    description: "DataTable, API, Variable 편집",
-  },
-  {
-    id: "datatableField",
-    name: "필드",
-    icon: Columns3,
-    component: DataTableFieldPanel,
-    defaultPosition: "left",
-    minWidth: 240,
-    maxWidth: 480,
-    // ADR-212 HC2/HC3 — 편집기 옆 열에 스냅, 필드 패널 폭 260 (Widths 아트보드)
-    defaultWidth: 260,
-    defaultHeight: 600,
-    snapTo: "datatableEditor",
-    // 편집기 헤더 `+` / 헤더 클릭으로만 연다 — rail · 전체 메뉴 진입점 없음
-    hiddenFromRail: true,
-    hiddenFromMenu: true,
-    description: "테이블 필드 편집 (편집기 옆 스냅)",
   },
 
   // Tool panels
@@ -298,7 +264,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
 
 /**
  * ADR-242 HC3 — 부팅 뒤 idle 에 초기 화면 밖 패널 chunk 를 미리 받는다 (받은 패널은 fallback 없이
- * 바로 열린다). AI (100 KB) · datatable 편집기/필드 (목록 패널에서 여는 2차 표면) 는 첫 열림에 받는다.
+ * 바로 열린다). AI (100 KB) 는 첫 열림에 받는다.
  */
 export function preloadOffscreenPanels(): void {
   preloadLazyPanels([

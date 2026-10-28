@@ -15,7 +15,7 @@ export const PANEL_WORKSPACE_TEST_REGISTRY: PanelWorkspaceRegistryEntry[] = [
     defaultHeight: 520,
   },
   {
-    id: "datatableEditor",
+    id: "codeView",
     defaultPosition: "left",
     minWidth: 490,
     maxWidth: 1000,
@@ -71,14 +71,14 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
     version: 2,
     visibility: {
       navigator: true,
-      datatableEditor: false,
+      codeView: false,
       settings: false,
       properties: true,
       history: false,
       theme: false,
     },
     railOrder: {
-      left: ["navigator", "datatableEditor", "settings"],
+      left: ["navigator", "codeView", "settings"],
       right: ["properties", "history"],
       bottom: ["theme"],
     },
@@ -92,7 +92,7 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
             width: 490,
             rows: [
               { panelId: "navigator", height: 520 },
-              { panelId: "datatableEditor", height: 600 },
+              { panelId: "codeView", height: 600 },
               { panelId: "settings", height: 500 },
             ],
           },

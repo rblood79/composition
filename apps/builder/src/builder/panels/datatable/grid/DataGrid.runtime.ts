@@ -134,7 +134,8 @@ export interface ColumnHeadProps {
     key: string,
     params?: Record<string, string | number | boolean>,
   ) => string;
-  onOpenPanel: (options?: { focus?: "type" }) => void;
+  /** ADR-288 — the column's editor is a popover under the head; it needs the table's data. */
+  table: DataTable;
   onStartRename: () => void;
   onCancelRename: () => void;
   onCommitRename: (raw: string) => void;

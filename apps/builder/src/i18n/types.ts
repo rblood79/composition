@@ -248,6 +248,8 @@ export interface TranslationKeys {
     originRootOnly: string;
     libraryLocked: string;
     ungroupInstance: string;
+    variableNameConflict: string;
+    variableNameShadows: string;
   };
   history: {
     title: string;
@@ -788,6 +790,18 @@ export interface TranslationKeys {
     stateDeleteMessage: string;
     stateDeleteSettersMessage: string;
     stateAncestorTitle: string;
+    statePersist: string;
+    stateUsage: string;
+    stateActions: string;
+    stateEmpty: string;
+    stateFollowsSource: string;
+    stateRuleSets: string;
+    stateGoToOwner: string;
+    stateRowActions: string;
+    stateJsonInvalid: string;
+    stateView: string;
+    stateProjectVariables: string;
+    stateAllVariables: string;
     stateOwnerProject: string;
     stateOwnerPage: string;
     stateInstanceHint: string;
@@ -1631,8 +1645,6 @@ export interface TranslationKeys {
     navigator: string;
     components: string;
     dataTable: string;
-    dataTableEditor: string;
-    dataTableField: string;
     theme: string;
     settings: string;
     site: string;

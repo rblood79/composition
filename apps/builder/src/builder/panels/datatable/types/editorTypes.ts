@@ -16,7 +16,8 @@ export type DataTableEditorMode =
   | { type: "api-create"; projectId: string }
   | { type: "api-edit"; endpointId: string; initialTab?: ApiEditorTab }
   | { type: "variable-create"; projectId: string }
-  | { type: "variable-edit"; variableId: string }
+  /** ADR-288 — the project's variable table (edits happen in its rows). */
+  | { type: "variables"; projectId: string }
   | null;
 
 /**
@@ -48,25 +49,12 @@ export const API_EDITOR_TABS = [
 export type ApiEditorTab = (typeof API_EDITOR_TABS)[number];
 
 /**
- * 에디터 상태 인터페이스
+ * 에디터 상태 인터페이스 — ADR-288: 본문이 무엇을 그리는지 (편집 패널 · 필드 패널은 없다 —
+ * 열 편집은 머리글 팝오버, `ColumnEditorPopover`).
  */
 export interface DataTableEditorState {
   /** 현재 에디터 모드 */
   mode: DataTableEditorMode;
-  /** ADR-212 — 편집기 옆에 스냅되는 필드 패널의 대상 (없으면 닫힘). `fieldId` null = 새 필드 */
-  fieldPanel: DataTableFieldPanelTarget | null;
-}
-
-export interface DataTableFieldPanelTarget {
-  collectionId: string;
-  fieldId: string | null;
-  /** 진입점이 요청한 초기 포커스 — 헤더 타입 아이콘 클릭 = 타입 목록. `seq` 는 같은 필드로
-   *  다시 눌러도 포커스가 다시 가도록 (effect 의존성). */
-  focus?: { section: "type"; seq: number };
-}
-
-export interface OpenFieldPanelOptions {
-  focus?: "type";
 }
 
 /**
@@ -86,15 +74,8 @@ export interface DataTableEditorActions {
 
   // Variable
   openVariableCreator: (projectId: string) => void;
-  openVariableEditor: (variableId: string) => void;
-
-  // Field panel (ADR-212)
-  openFieldPanel: (
-    collectionId: string,
-    fieldId?: string | null,
-    options?: OpenFieldPanelOptions,
-  ) => void;
-  closeFieldPanel: () => void;
+  /** ADR-288 — the variable table in the Data body. */
+  openVariables: (projectId: string) => void;
 
   // Common
   close: () => void;

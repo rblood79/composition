@@ -26,6 +26,7 @@ import {
 import type { EndpointQuerySerialization } from "../../../../../../packages/shared/src/collections/view/serialize";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
+import { variableDefaultForType } from "../../../../../../packages/shared/src/catalog/runtime/variableTypeChange";
 import type {
   ApiEndpoint,
   DataField,
@@ -258,8 +259,17 @@ function reduceDefineVariable(
       persist: op.definition.persist ?? existing.persist ?? false,
       updated_at: stamp,
     };
-    if (op.definition.defaultValue !== undefined) {
-      next.defaultValue = op.definition.defaultValue;
+    // ADR-288 결정 1 — on a type change the default stays only when it fits the new type.
+    const defaultValue =
+      op.definition.type !== existing.type
+        ? variableDefaultForType(
+            op.definition.type,
+            op.definition.defaultValue,
+            "project",
+          )
+        : op.definition.defaultValue;
+    if (defaultValue !== undefined) {
+      next.defaultValue = defaultValue;
     } else {
       delete next.defaultValue;
     }

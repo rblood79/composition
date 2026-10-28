@@ -269,7 +269,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       );
     });
     const configs = [...TEST_CONFIGS, EVENTS_TEST_CONFIG].map((config) =>
-      config.id === "datatableEditor"
+      config.id === "codeView"
         ? { ...config, component: DeferredPanel }
         : config,
     );
@@ -283,11 +283,11 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     if (!left) throw new Error("left cluster is required");
     left.columns[0]!.rows = [
       { panelId: "navigator", height: 350 },
-      { panelId: "datatableEditor", height: 300 },
+      { panelId: "codeView", height: 300 },
     ];
     source.visibility = {
       ...source.visibility,
-      datatableEditor: false,
+      codeView: false,
     };
     useBuilderUiStore.setState({
       panelWorkspaceLayout: migrateFixture(source),
@@ -305,7 +305,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     ).toBeNull();
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("datatableEditor", true)).toBe(
+      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(
         true,
       );
       flushScheduledFrames();
@@ -323,7 +323,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("datatableEditor", false)).toBe(
+      expect(dispatchPanelWorkspaceActivation("codeView", false)).toBe(
         true,
       );
       flushScheduledFrames();
@@ -331,7 +331,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     await waitFor(() => {
       expect(
         container
-          .querySelector('.workspace-panel-frame[data-panel="datatableEditor"]')
+          .querySelector('.workspace-panel-frame[data-panel="codeView"]')
           ?.getAttribute("data-mode"),
       ).toBe("hidden");
       expect(
@@ -340,7 +340,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
 
     act(() => {
-      expect(dispatchPanelWorkspaceActivation("datatableEditor", true)).toBe(
+      expect(dispatchPanelWorkspaceActivation("codeView", true)).toBe(
         true,
       );
       flushScheduledFrames();
@@ -348,7 +348,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     await waitFor(() => {
       expect(
         container
-          .querySelector('.workspace-panel-frame[data-panel="datatableEditor"]')
+          .querySelector('.workspace-panel-frame[data-panel="codeView"]')
           ?.getAttribute("data-mode"),
       ).toBe("placed");
       expect(
@@ -393,7 +393,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
 
     left.columns[0]!.rows = [
       { panelId: "navigator", height: 350 },
-      { panelId: "datatableEditor", height: 300 },
+      { panelId: "codeView", height: 300 },
       { panelId: "settings", height: 300 },
     ];
     right.columns[0]!.rows = [
@@ -404,7 +404,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     layout.railOrder.right.push("events");
     layout.visibility = {
       ...layout.visibility,
-      datatableEditor: false,
+      codeView: false,
       history: false,
       settings: false,
       events: false,
@@ -421,7 +421,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
 
     const clickRailButton = (side: "left" | "right", panelId: string) => {
       const panelLabels: Record<string, string> = {
-        datatableEditor: "Data Editor",
+        codeView: "Code",
         history: "History",
         settings: "Settings",
         events: "Interactions",
@@ -435,7 +435,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
 
     clickRailButton("right", "history");
     clickRailButton("right", "events");
-    clickRailButton("left", "datatableEditor");
+    clickRailButton("left", "codeView");
     clickRailButton("left", "settings");
 
     const updated = useBuilderUiStore.getState().panelWorkspaceLayout!;
@@ -455,7 +455,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       updatedLeft?.columns.map((column) =>
         column.rows.map((row) => row.panelId),
       ),
-    ).toEqual([["navigator", "datatableEditor"], ["settings"]]);
+    ).toEqual([["navigator", "codeView"], ["settings"]]);
   });
 
   it("cross-rail snap은 anchor 기준 outer edge와 shared column splitter 하나를 렌더링한다", () => {

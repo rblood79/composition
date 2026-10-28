@@ -108,8 +108,6 @@
   gap: var(--spacing-md);
   padding: var(--spacing-sm);
   background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
 }
 
 /* Filter */
@@ -118,7 +116,7 @@
   align-items: center;
   flex: 1;
   max-width: 240px;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-2xs) var(--spacing-sm);
   background: var(--bg-overlay);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -276,54 +274,7 @@
   color: var(--color-error-600);
 }
 
-/* Settings Editor */
-.settings-editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.settings-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.settings-label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--fg);
-}
-
-.settings-input {
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  background: var(--bg-overlay);
-  color: var(--fg);
-}
-
-.settings-input:focus-visible {
-  outline: none;
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
-}
-
-.settings-description {
-  font-size: var(--text-sm);
-  color: var(--fg-muted);
-  line-height: 1.5;
-}
-
-/* ADR-218 — 데이터 소스 (API 엔드포인트 연결 + 실행 정책) */
-.settings-datasource {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border);
-}
+/* Settings Editor → components/TableSettingsPopover.css (ADR-288 G6 수정 9) */
 
 /* ADR-212 Phase 5 — 편집기 상단 상태 배지 (0행/오류, 목록 배지와 같은 값) */
 .datatable-editor-status {

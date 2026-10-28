@@ -3,6 +3,7 @@
  * ADR-214 Phase 5 — Data 탭 Variables: 프로젝트 변수 (편집 가능, 사용처 배지) + 페이지 · 컴포넌트
  * 인덱스 (소유자 열 · 클릭 → 소유자 선택 + Properties 상태 절 포커스 요청).
  * ADR-248 4e-9 C: catalog workspace 의 변수 host 위에서 (옛 store host 는 옛 store 와 함께 제거).
+ * ADR-288: 프로젝트 변수와 색인이 한 `VariableTable` — 색인은 「모든 변수」 보기에서 읽기 전용 행.
  */
 import type { ReactNode } from "react";
 import { cleanup, fireEvent, render } from "@testing-library/react";
@@ -78,26 +79,37 @@ describe("VariableList — 인덱스 (ADR-214 Phase 5)", () => {
       ]),
     } as never);
 
-    const { container } = render(<VariableList projectId={PROJECT_ID} />, {
-      wrapper: ({ children }: { children: ReactNode }) => (
-        <I18nProvider>{fixture.wrapper({ children })}</I18nProvider>
-      ),
-    });
+    const { container, getByRole } = render(
+      <VariableList projectId={PROJECT_ID} />,
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <I18nProvider>{fixture.wrapper({ children })}</I18nProvider>
+        ),
+      },
+    );
+    // ADR-288: the project variable is a row of the shared table, editable in place.
     const projectRow = container.querySelector(
-      '[data-variable-group="project"] .list-item',
-    );
-    expect(projectRow?.textContent).toContain("count");
-    expect(projectRow?.textContent).toContain("Used in 1");
+      '[data-variable-group="project"] .variable-table__row[data-variable-id="v-count"]',
+    )!;
+    expect(
+      projectRow.querySelector<HTMLInputElement>(".variable-table__cell-name input")!.value,
+    ).toBe("count");
+    expect(projectRow.querySelector(".variable-table__cell-usage")?.textContent).toBe("1");
+    expect(container.querySelectorAll(".variable-table__row[data-read-only]")).toHaveLength(0);
 
-    const indexRows = [...container.querySelectorAll(".variable-index-item")];
-    expect(indexRows.map((row) => row.getAttribute("data-owner-kind"))).toEqual(
-      ["page", "element"],
-    );
+    // 「모든 변수」 (사용자 결정 2): the page · element index joins the table as read-only rows.
+    fireEvent.click(getByRole("button", { name: /보기|View/ }));
+    fireEvent.click(getByRole("option", { name: /모든 변수|All variables/ }));
+    const indexRows = [
+      ...container.querySelectorAll<HTMLElement>(".variable-table__row[data-read-only]"),
+    ];
+    expect(indexRows.map((row) => row.getAttribute("data-variable-id"))).toHaveLength(2);
     expect(indexRows[0]!.textContent).toContain("filter");
-    expect(indexRows[0]!.textContent).toContain("Used in 1");
+    expect(indexRows[0]!.querySelector(".variable-table__cell-usage")?.textContent).toBe("1");
     expect(indexRows[1]!.textContent).toContain("selectedKey");
+    expect(indexRows[1]!.textContent).toContain("users-list");
 
-    fireEvent.click(indexRows[1]!);
+    fireEvent.click(indexRows[1]!.querySelector("button")!);
     expect(
       workspace.session.getSnapshot().selection.map((item) => item.target),
     ).toEqual([{ kind: "node", id: nodeIdOf("list") }]);
@@ -105,7 +117,7 @@ describe("VariableList — 인덱스 (ADR-214 Phase 5)", () => {
       ownerNodeId: nodeIdOf("list"),
     });
 
-    fireEvent.click(indexRows[0]!);
+    fireEvent.click(indexRows[0]!.querySelector("button")!);
     expect(
       workspace.session.getSnapshot().selection.map((item) => item.target),
     ).toEqual([{ kind: "node", id: BODY }]);

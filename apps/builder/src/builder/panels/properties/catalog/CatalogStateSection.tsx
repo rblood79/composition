@@ -1,11 +1,13 @@
-import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
-import { Button } from "react-aria-components/Button";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { Popover } from "react-aria-components/Popover";
 import {
-  Select as AriaSelect,
-  SelectValue,
-} from "react-aria-components/Select";
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Minus } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { definitionTypeName } from "../../../../../../../packages/shared/src/catalog/commands/context";
@@ -16,7 +18,6 @@ import type {
 import { catalogStateSourceValue } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom.runtime";
 import {
   CATALOG_VARIABLE_TYPES,
-  catalogStructuredVariableType,
   catalogAncestorVariables,
   catalogNodePage,
   catalogNodeStateSources,
@@ -34,12 +35,10 @@ import {
   useCatalogStepReading,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
-import { PropertyInput } from "../../../components/property/PropertyInput";
-import { useControlPopoverMetrics } from "../../../components/property/useControlPopoverMetrics";
-import { useSelectTriggerFocusRestore } from "../../../components/property/useSelectTriggerFocusRestore";
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
 import { Section as PropertySection } from "../../../components/panel/Section";
-import { PropertySelect } from "../../../components/property/PropertySelect";
+import type { VariableTableRow } from "../../../components/variables/VariableTable";
+import { focusVariableOwner } from "../../datatable/usage/dataVariablesHost";
 import { ConfirmDialog } from "../../../components/overlay";
 import {
   ActionIconButton,
@@ -54,57 +53,18 @@ import "../state/StateSection.css";
 
 const AddIcon = ACTION_ICONS.add;
 const STATE_SECTION_ID = "property-state";
+// ADR-288 G5 — the Design panel is initial; the variable table (RAC Table) comes with the Data
+// panel's lazy chunk and loads here on first render (bundle +16.9 KB gz otherwise, 2026-10-28).
+const VariableTable = lazy(() =>
+  import("../../../components/variables/VariableTable").then((m) => ({
+    default: m.VariableTable,
+  })),
+);
 const NAME_PATTERN = /^[A-Za-z_$][\w$]*$/;
 const TYPE_OPTIONS = CATALOG_VARIABLE_TYPES.map((type) => ({
   value: type,
   label: type,
 }));
-
-/** 단위 피커와 같은 입력 내부 보조 선택. 타입 이름 자체가 트리거가 된다. */
-function StateVariableTypeSelect({
-  value,
-  onChange,
-}: {
-  value: CatalogVariableType;
-  onChange: (value: CatalogVariableType) => void;
-}) {
-  const { t } = useI18n();
-  const { controlRef, popoverStyle } = useControlPopoverMetrics();
-  const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
-  return (
-    <AriaSelect
-      className="react-aria-Select state-variable-type"
-      ref={controlRef}
-      aria-label={t("propertiesPanel.stateType")}
-      selectedKey={value}
-      onSelectionChange={(key) =>
-        key !== null && onChange(String(key) as CatalogVariableType)
-      }
-      onOpenChange={restoreFocusOnClose}
-    >
-      <Button className="react-aria-Button" ref={triggerRef}>
-        <SelectValue />
-      </Button>
-      <Popover
-        className="react-aria-Popover property-select-popover"
-        style={popoverStyle}
-      >
-        <ListBox className="react-aria-ListBox">
-          {TYPE_OPTIONS.map((option) => (
-            <ListBoxItem
-              key={option.value}
-              id={option.value}
-              textValue={option.label}
-              className="react-aria-ListBoxItem"
-            >
-              {option.label}
-            </ListBoxItem>
-          ))}
-        </ListBox>
-      </Popover>
-    </AriaSelect>
-  );
-}
 
 /** 기존 상태 이름을 직접 편집하고 실제로 바뀐 값만 반영한다. */
 function StateSourceField({
@@ -387,7 +347,10 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           variable.id,
           t("propertiesPanel.stateNameConflict", {
             name,
-            owner: ownerLabel(conflict.ownerId),
+            owner:
+              conflict.kind === "stateVariable"
+                ? ownerLabel(conflict.ownerId)
+                : t("propertiesPanel.stateOwnerProject"),
           }),
         );
       setError(variable.id, null);
@@ -413,7 +376,10 @@ export const CatalogStateSection = memo(function CatalogStateSection({
           errorId,
           t("propertiesPanel.stateNameConflict", {
             name,
-            owner: ownerLabel(conflict.ownerId),
+            owner:
+              conflict.kind === "stateVariable"
+                ? ownerLabel(conflict.ownerId)
+                : t("propertiesPanel.stateOwnerProject"),
           }),
         );
       setError(errorId, null);
@@ -472,90 +438,51 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     setError(target.id, null);
   }, [pendingDelete, run, setError]);
 
-  const renderRow = (variable: StateVariableEntry) => {
-    const source = variable.source;
-    const usages = view.usage[variable.id] ?? 0;
-    const error = errors[variable.id];
-    return (
-      <div
-        key={variable.id}
-        className="state-def"
-        data-variable-id={variable.id}
-      >
-        <div
-          className="fieldset-row state-variable-row"
-          data-source={source ? "true" : undefined}
-        >
-          <PropertyInput
-            label={t(
-              source
-                ? "propertiesPanel.stateVariableName"
-                : "propertiesPanel.stateName",
-            )}
-            value={variable.name}
-            onChange={(value) => rename(variable.id, value)}
-            endControl={
-              !source ? (
-                <StateVariableTypeSelect
-                  value={variable.valueType as CatalogVariableType}
-                  onChange={(value) => changeType(variable.id, value)}
-                />
-              ) : undefined
-            }
-          />
-          {/* (A structured variable has no literal default — a rule's reference fills it.) */}
-          {!source && !catalogStructuredVariableType(variable.valueType) && (
-            <>
-              {variable.valueType === "boolean" ? (
-                <PropertySelect
-                  label={t("propertiesPanel.stateDefault")}
-                  value={String(variable.defaultValue === true)}
-                  options={[
-                    { value: "false", label: "false" },
-                    { value: "true", label: "true" },
-                  ]}
-                  translateOptions={false}
-                  onChange={(value) => changeDefault(variable.id, value)}
-                />
-              ) : (
-                <PropertyInput
-                  label={t("propertiesPanel.stateDefault")}
-                  value={String(variable.defaultValue)}
-                  onChange={(value) => changeDefault(variable.id, value)}
-                />
-              )}
-            </>
-          )}
-          <div className="fieldset-actions state-variable-actions">
-            <ActionTooltipTrigger tooltip={t("common.delete")}>
-              <SwatchIconButton
-                onPress={() => setPendingDelete(variable)}
-                aria-label={t("common.delete")}
-              >
-                <Minus size={16} />
-              </SwatchIconButton>
-            </ActionTooltipTrigger>
-          </div>
-        </div>
-        {source && (
-          <p className="state-source-hint">
-            <code>{`{{ ${variable.name} }}`}</code>{" "}
-            {t("propertiesPanel.stateSourceReference")}
-          </p>
-        )}
-        {usages > 0 && (
-          <span className="state-source-hint">
-            {t("propertiesPanel.stateUsageCount", { count: usages })}
-          </span>
-        )}
-        {error && (
-          <p className="state-def-error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-    );
-  };
+  // ADR-288 Decision 3 — the one variable table (사용자 결정 4: name · type · default + ⋮).
+  const ownRows: VariableTableRow[] = view.own.map((variable) => ({
+    id: variable.id,
+    name: variable.name,
+    type: variable.valueType,
+    defaultValue: variable.defaultValue,
+    usage: view.usage[variable.id] ?? 0,
+    ...(variable.source ? { source: { prop: variable.source.prop } } : {}),
+    error: errors[variable.id] ?? null,
+  }));
+  const ancestorRows: VariableTableRow[] = view.ancestors.map(
+    ({ variable, owner: label }) => ({
+      id: variable.id,
+      name: variable.name,
+      type: variable.valueType,
+      defaultValue: variable.defaultValue,
+      usage: 0,
+      readOnly: { owner: label },
+    }),
+  );
+  // An inherited variable's row goes to its owner (the page body or the element) with the
+  // section focused on it — the Data panel's index does the same.
+  const goToOwner = useCallback(
+    (variableId: string) => {
+      const variable = graph.getEntry(variableId);
+      if (variable?.kind !== "stateVariable") return;
+      const ownerEntry = graph.getEntry(variable.ownerId);
+      const target =
+        ownerEntry?.kind === "page" ? ownerEntry.children[0] : variable.ownerId;
+      if (target) {
+        const [record] = workspace.root.recordsOfSource(target as NodeId);
+        if (record) workspace.selectRecords([record]);
+      }
+      focusVariableOwner(variable.ownerId, variableId);
+    },
+    [graph, workspace],
+  );
+  const removeRow = useCallback(
+    (id: string) => {
+      const variable = current(id);
+      if (variable) setPendingDelete(variable);
+    },
+    [current],
+  );
+  const noop = useCallback(() => {}, []);
 
   return (
     <div data-state-owner={owner} ref={rootRef}>
@@ -617,7 +544,23 @@ export const CatalogStateSection = memo(function CatalogStateSection({
                   : "propertiesPanel.stateExplicitTitle",
               )}
             </legend>
-            {view.own.map((variable) => renderRow(variable))}
+            <Suspense fallback={null}>
+            <VariableTable
+              owner={view.isPage ? "page" : "element"}
+              dense
+              rows={ownRows}
+              label={t(
+                view.isPage
+                  ? "propertiesPanel.statePageTitle"
+                  : "propertiesPanel.stateExplicitTitle",
+              )}
+              typeOptions={TYPE_OPTIONS}
+              onRename={rename}
+              onType={(id, type) => changeType(id, type as CatalogVariableType)}
+              onDefault={changeDefault}
+              onRemove={removeRow}
+            />
+            </Suspense>
           </fieldset>
         )}
         {view.ancestors.length > 0 && (
@@ -628,18 +571,20 @@ export const CatalogStateSection = memo(function CatalogStateSection({
             <legend className="fieldset-legend">
               {t("propertiesPanel.stateAncestorTitle")}
             </legend>
-            {view.ancestors.map(({ variable, owner: label }) => (
-              <div key={variable.id} className="list-row state-ancestor-row">
-                <div className="list-row__body">
-                  <span className="list-row__label state-def-name">
-                    {variable.name}
-                  </span>
-                  <span className="list-row__meta state-def-meta">
-                    {variable.valueType} · {label}
-                  </span>
-                </div>
-              </div>
-            ))}
+            <Suspense fallback={null}>
+            <VariableTable
+              owner="page"
+              dense
+              rows={ancestorRows}
+              label={t("propertiesPanel.stateAncestorTitle")}
+              typeOptions={TYPE_OPTIONS}
+              onRename={noop}
+              onType={noop}
+              onDefault={noop}
+              onRemove={noop}
+              onGoToOwner={goToOwner}
+            />
+            </Suspense>
           </fieldset>
         )}
       </PropertySection>

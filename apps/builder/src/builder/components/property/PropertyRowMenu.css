@@ -1,12 +1,23 @@
 /* 행 액션 메뉴 팝오버 — 트리거(28px 아이콘 칸) 기준이 아니라 항목 라벨 폭으로 뜬다.
    `.property-select-popover` 의 `min-width: 100%` 는 필드 박스 폭 정렬용이라 여기서는
-   28px 로 접히므로 되돌린다. 항목 밀도는 field-picker-menu 와 같은 ListBoxItem(md) 규약. */
+   28px 로 접히므로 되돌린다. 항목 밀도는 field-picker-menu 와 같은 ListBoxItem(md) 규약.
+   소비처: PropertyRowMenu · 격자 「Insert ▾」 (ADR-288) · Canvas grid track 메뉴.
+
+   테두리는 Popover 한 곳 (2026-10-29 사용자 「popover 에도 border, menu 에도 border」): RAC
+   레퍼런스 (vanilla starter) 는 테두리 · 모서리 · 그림자 · 배경을 Popover 에 두고 Menu 는
+   테두리 없이 `border-radius: inherit` 다. 빌더 Select 목록 (generated Select.css — Popover
+   테두리 + `--shadow-lg`, ListBox 는 테두리 없음 · 투명) 과 같은 모양. 생성 Menu.css 의
+   「Popover 가 테두리를 버리고 Menu 가 갖는」 위임은 `[data-size]` (캔버스 컴포넌트) 팝오버만이라
+   빌더 팝오버에서는 두 겹이 됐다. */
 .property-row-menu-popover.property-select-popover {
   min-width: max-content;
+  box-shadow: var(--shadow-lg);
 }
 
 .react-aria-Menu.property-row-menu {
-  border-radius: var(--radius-lg);
+  border: none;
+  background: transparent;
+  border-radius: inherit;
 }
 
 /* 행 기하(28 · gap 8 · padding 0 8)는 styles/modules/builder-menu-row.css 가 소유한다. */

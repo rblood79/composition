@@ -2,16 +2,19 @@
  * DataTableList - DataTable 목록 컴포넌트
  *
  * ADR-212 Phase 1 — 항목은 RAC `GridList` 행 (키보드로 열림 · 행 안 버튼은 Arrow 로 도달,
- * A5) 이고 배지는 필드 수 · 행 수 · 소스 (샘플/API) · 사용처 N (152 역참조) · 0행 · 마지막
- * 실행 오류 (UI-6, Main 아트보드). 세 곳 (목록 · 편집기 · 캔버스 배지) 이 같은 값을 보이는
- * 규칙의 첫 자리.
+ * A5). ADR-288 G6 (사용자 2026-10-28 「navigator 의 pages · layers 패턴으로 — field · rows ·
+ * used 는 … 줄임」): 행은 Navigator 의 `.elementItem` 한 줄 (아이콘 · 이름 · 메타 · 행 액션) 이고
+ * 행 액션은 Navigator Pages 와 같은 두 아이콘 (G6 수정 10, 사용자 2026-10-29 「edit, delete 버튼을
+ * navigator-pages 처럼 바로」): 설정 (Settings2) 이 행 아래 표 설정 팝오버 (`TableSettingsPopover`) 를
+ * 열고, 삭제는 ConfirmDialog. 메타 (소스 · 필드 수 · 행 수 · 사용처 N · 마지막 실행 오류) 는 글자로
+ * 보이지 않고 행의 `title` 로만 남는다 — `data-empty` · `data-error` · `data-source` 는 그대로.
  *
  * @see presets/dataTablePresets.ts (카탈로그) · @composition/sample-data (생성기, ADR-220) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
-import { SquarePen, Table2 } from "lucide-react";
+import { Settings2, Table2 } from "lucide-react";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "react-aria-components/Button";
 
@@ -26,12 +29,15 @@ import { EmptyState } from "../../../components/feedback/EmptyState";
 import { ConfirmDialog } from "../../../components/overlay";
 
 import { Section } from "../../../components/panel/Section";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 
 import { useDataStore } from "../../../stores/data";
 
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 
 import { useDataUsageSource } from "../usage/dataUsageSource";
+
+import { TableSettingsPopover } from "./TableSettingsPopover";
 
 import {
   findLinkedApi,
@@ -80,6 +86,17 @@ export function DataTableList({
   void projectId;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Settings — the table settings popover anchors under the row's actions cell (G6 수정 9 · 10).
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+  const actionCells = useRef(new Map<string, HTMLElement>());
+  const settingsTriggerRef = useRef<Element | null>(null);
+  const openSettings = (id: string) => {
+    settingsTriggerRef.current = actionCells.current.get(id) ?? null;
+    setSettingsId(id);
+  };
+  const settingsTable = settingsId
+    ? (collections.find((c) => c.id === settingsId) ?? null)
+    : null;
 
   const confirmDelete = async () => {
     const id = pendingDeleteId;
@@ -104,9 +121,19 @@ export function DataTableList({
       id="datatable-list"
       title={localize("tableList", "Tables")}
       badge={
-        <span className="datatable-list-count">
+        <span className="category-count">
           {t("countItems", { count: collections.length })}
         </span>
+      }
+      // Navigator's Pages pattern (G6, 사용자): the add action sits in the section header.
+      actions={
+        <ActionIconButton
+          aria-label={localize("addTable", "New table")}
+          tooltip={localize("addTable", "New table")}
+          onPress={onCreateClick}
+        >
+          <AddIcon {...iconProps} />
+        </ActionIconButton>
       }
       collapsible={false}
     >
@@ -117,11 +144,18 @@ export function DataTableList({
         />
       ) : (
         <GridList
-          className="list-group list-group--stack"
+          className="datatable-tree"
           aria-label={localize("tableList", "Tables")}
           selectionMode="single"
           selectionBehavior="replace"
           selectedKeys={editingId ? [editingId] : []}
+          // Selecting a row opens it (G6, 사용자 「선택시 바로 테이블 edit 으로」) — Enter too.
+          onSelectionChange={(keys) => {
+            if (keys === "all") return;
+            const key = [...keys][0];
+            if (key !== undefined && String(key) !== editingId)
+              onEditingChange(String(key));
+          }}
           onAction={(key) => onEditingChange(String(key))}
         >
           {collections.map((table) => {
@@ -134,78 +168,82 @@ export function DataTableList({
             const rows = status.rows;
             const used = usage.get(table.id) ?? 0;
             const failed = status.state === "error";
+            const source = linkedApi
+              ? localize("sourceApi", "API")
+              : localize("sourceSample", "Sample");
+            // Hover text only (G6 수정 10) — the row shows the name; the states stay as data-*.
+            const meta = [
+              failed
+                ? t("runError", { status: status.errorStatus ?? "—" })
+                : source,
+              t("tableMeta", { fields: table.schema.length, rows }),
+              linkedApi?.name,
+              t("usedBy", { count: used }),
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return (
               <GridListItem
                 key={table.id}
                 id={table.id}
                 textValue={table.name}
-                className={({ isSelected }) =>
-                  `list-item ${isSelected ? "selected" : ""}`
-                }
+                className="datatable-tree-item"
                 data-empty={rows === 0 || undefined}
                 data-error={failed || undefined}
+                data-source={linkedApi ? "api" : "local"}
               >
-                <div className="list-item-icon">
-                  <Table2 {...iconProps} />
-                </div>
-                <div className="list-item-content">
-                  <div className="list-item-name">{table.name}</div>
-                  <div className="list-item-meta">
-                    <span>
-                      {t("tableMeta", { fields: table.schema.length, rows })}
-                    </span>
-                    {linkedApi ? <span> · {linkedApi.name}</span> : null}
-                    <span className="list-item-usage">
-                      {" "}
-                      · {t("usedBy", { count: used })}
-                    </span>
+                {({ isSelected, isFocusVisible }) => (
+                  <div
+                    className={`elementItem ${isSelected ? "active" : ""} ${
+                      isFocusVisible ? "focused" : ""
+                    }`}
+                  >
+                    <div className="elementItemIcon">
+                      <Table2 {...iconEditProps} />
+                    </div>
+                    <div className="elementItemLabel" title={meta}>
+                      <span className="datatable-tree-name">{table.name}</span>
+                    </div>
+                    <div
+                      className="elementItemActions"
+                      ref={(el) => {
+                        if (el) actionCells.current.set(table.id, el);
+                        else actionCells.current.delete(table.id);
+                      }}
+                    >
+                      <Button
+                        className="iconButton"
+                        onPress={() => openSettings(table.id)}
+                        aria-label={`${localize("tableSettings", "Table settings")} ${table.name}`}
+                      >
+                        <Settings2 {...iconEditProps} />
+                      </Button>
+                      <Button
+                        className="iconButton"
+                        onPress={() => setPendingDeleteId(table.id)}
+                        aria-label={`${localize("delete", "Delete")} ${table.name}`}
+                      >
+                        <DeleteIcon {...iconEditProps} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                {failed ? (
-                  <span className="list-item-badge error">
-                    {t("runError", {
-                      status: status.errorStatus ?? "—",
-                    })}
-                  </span>
-                ) : (
-                  <span
-                    className={`list-item-badge ${linkedApi ? "api" : "local"}`}
-                  >
-                    {linkedApi
-                      ? localize("sourceApi", "API")
-                      : localize("sourceSample", "Sample")}
-                  </span>
                 )}
-                <div className="list-item-actions">
-                  <Button
-                    className="iconButton"
-                    onPress={() => onEditingChange(table.id)}
-                    aria-label={`${localize("edit", "Edit")} ${table.name}`}
-                  >
-                    <SquarePen {...iconEditProps} />
-                  </Button>
-                  <Button
-                    className="iconButton"
-                    onPress={() => setPendingDeleteId(table.id)}
-                    aria-label={`${localize("delete", "Delete")} ${table.name}`}
-                  >
-                    <DeleteIcon {...iconEditProps} />
-                  </Button>
-                </div>
               </GridListItem>
             );
           })}
         </GridList>
       )}
 
-      <Button
-        className="control-button"
-        data-variant="add"
-        onPress={onCreateClick}
-      >
-        <AddIcon {...iconProps} />
-        <span>{localize("addTable", "New table")}</span>
-      </Button>
+      {settingsTable && (
+        <TableSettingsPopover
+          table={settingsTable}
+          triggerRef={settingsTriggerRef}
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) setSettingsId(null);
+          }}
+        />
+      )}
       <ConfirmDialog
         isOpen={pendingDeleteId !== null}
         title={localize("deleteTitle", "Delete")}

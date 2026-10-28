@@ -158,19 +158,17 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
       "navigator",
       "components",
       "datatable",
-      "datatableEditor",
       "ai",
       "properties",
       "events",
     ]);
   });
 
-  it("panelConfigs 소스 파서가 메뉴 패널 11 개를 읽는다 (ADR-284 코드 · ADR-286 사이트 — 메뉴 전용)", () => {
+  it("panelConfigs 소스 파서가 메뉴 패널 10 개를 읽는다 (ADR-284 코드 · ADR-286 사이트 — 메뉴 전용)", () => {
     expect(railPanels.map((panel) => panel.id)).toEqual([
       "navigator",
       "components",
       "datatable",
-      "datatableEditor",
       "theme",
       "site",
       "ai",

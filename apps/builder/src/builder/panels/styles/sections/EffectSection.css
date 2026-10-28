@@ -126,6 +126,8 @@
     box-sizing: border-box;
     inline-size: 233px;
     max-width: none;
+    /* 빌더 팝오버 그림자 — Select 목록 · 메뉴와 같은 높이 (2026-10-29) */
+    box-shadow: var(--shadow-lg);
 
     .react-aria-Dialog {
       outline: none;

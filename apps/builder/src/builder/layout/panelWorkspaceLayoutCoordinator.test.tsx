@@ -403,7 +403,7 @@ describe("ADR-922 useSyncExternalStore snapshot selectors", () => {
   it("값 비교 selector 는 layoutVersion 만 바뀐 cluster splitter 를 같은 객체로 돌려준다", () => {
     const scheduler = new TestFrameScheduler();
     const source = createPanelWorkspaceLayoutV2();
-    source.visibility.datatableEditor = true; // 좌측 column 에 row splitter 생성
+    source.visibility.codeView = true; // 좌측 column 에 row splitter 생성
     const migrated = migratePanelWorkspaceLayoutV2ToV4(
       source,
       PANEL_WORKSPACE_TEST_REGISTRY,

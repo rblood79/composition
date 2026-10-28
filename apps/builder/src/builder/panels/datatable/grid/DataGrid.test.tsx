@@ -33,6 +33,10 @@ import { I18nProvider } from "@/i18n";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
+import {
+  DataUsageSourceContext,
+  type DataUsageSource,
+} from "../usage/dataUsageSource";
 import { DataGrid } from "./DataGrid";
 
 const table: DataTable = {
@@ -52,8 +56,17 @@ const table: DataTable = {
   useMockData: true,
 } as unknown as DataTable;
 
+/** ADR-288: the column editor popover reads field usage from the Data usage host. */
+const USAGE: DataUsageSource = {
+  useCollectionUsage: () => new Map(),
+  useFieldUsage: () => [],
+};
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <DataUsageSourceContext.Provider value={USAGE}>
+      {node}
+    </DataUsageSourceContext.Provider>
+  </I18nProvider>
 );
 
 function cell(container: HTMLElement, rowIndex: number, key: string) {
@@ -79,7 +92,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   useDataPanelStatusStore.setState({ status: null });
-  useDataTableEditorStore.setState({ mode: null, fieldPanel: null });
+  useDataTableEditorStore.setState({ mode: null });
 });
 
 const press = async (el: Element) => {
@@ -353,11 +366,56 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     ]);
   });
 
-  it("행 추가 = insert_rows (id 자동, 나머지 null) + role=status", async () => {
-    const { container, getByRole } = render(
+  it("선택 체크박스 = 공용 Checkbox (체크 · 대시) — 한 행 선택이면 헤더는 indeterminate, 바에 Delete N rows", async () => {
+    const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
-    const button = getByRole("button", { name: "Add row" });
+    const head = getByRole("checkbox", { name: "Select all rows" });
+    const headLabel = head.closest(".react-aria-Checkbox") as HTMLElement;
+    // The shared part's indicator (`div.checkbox > svg`), not a bare span.
+    expect(headLabel.querySelector(".checkbox svg")).not.toBeNull();
+    expect(container.querySelector(".datagrid-checkbox-box")).toBeNull();
+    expect(headLabel.hasAttribute("data-indeterminate")).toBe(false);
+
+    const first = container.querySelectorAll(
+      '.datagrid-cell-select .react-aria-Checkbox input[type="checkbox"]',
+    )[0] as HTMLInputElement;
+    await act(async () => {
+      fireEvent.click(first);
+    });
+    await waitFor(() =>
+      expect(headLabel.hasAttribute("data-indeterminate")).toBe(true),
+    );
+    expect(headLabel.querySelector("svg.lucide-minus")).not.toBeNull();
+    expect(getByRole("button", { name: "Delete 1 rows" })).toBeTruthy();
+    expect(queryByRole("button", { name: "Insert" })).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(head);
+    });
+    await waitFor(() =>
+      expect(headLabel.hasAttribute("data-selected")).toBe(true),
+    );
+    expect(headLabel.hasAttribute("data-indeterminate")).toBe(false);
+    expect(headLabel.querySelector("svg.lucide-check")).not.toBeNull();
+    expect(getByRole("button", { name: "Delete 2 rows" })).toBeTruthy();
+  });
+
+  it("Insert ▾ → Insert row = insert_rows (id 자동, 나머지 null) + role=status", async () => {
+    const { container, getByRole, queryByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    // G6 수정 8: no footer Add row — the toolbar's Insert menu (row · column · CSV).
+    expect(queryByRole("button", { name: "Add row" })).toBeNull();
+    expect(queryByRole("button", { name: "Import CSV" })).toBeNull();
+    fireEvent.click(getByRole("button", { name: "Insert" }));
+    await waitFor(() => expect(queryByRole("menu")).not.toBeNull());
+    expect(
+      getByRole("menu")
+        .querySelectorAll("[role=menuitem]")
+        .length,
+    ).toBe(3);
+    const button = getByRole("menuitem", { name: "Insert row" });
     await act(async () => {
       fireEvent.pointerDown(button, { pointerType: "mouse", button: 0 });
       fireEvent.pointerUp(button, { pointerType: "mouse", button: 0 });
@@ -465,7 +523,6 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
         patch: { key: "fullName" },
       },
     ]);
-    expect(useDataTableEditorStore.getState().fieldPanel).toBeNull();
     expect(container.querySelector(".datagrid-column-rename-input")).toBeNull();
   });
 
@@ -501,8 +558,8 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(applyDataChange).not.toHaveBeenCalled();
   });
 
-  it("타입 아이콘 클릭 → 필드 패널 (타입 목록 포커스 요청) · 라벨 클릭 / ⌄ → 필드 패널 전체", async () => {
-    const { container, getByRole } = render(
+  it("타입 아이콘 클릭 → 머리글 팝오버 (타입 검색 포커스) · 라벨 클릭 / ⌄ → 그 열의 팝오버 (ADR-288)", async () => {
+    const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
     const head = container.querySelector<HTMLElement>(
@@ -515,25 +572,31 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     const menuBtn = head.querySelector<HTMLElement>(".datagrid-column-menu")!;
     expect(menuBtn.getAttribute("tabindex")).toBe("-1");
     expect(menuBtn.getAttribute("aria-label")).toBe("Field settings");
+    expect(queryByRole("dialog")).toBeNull();
 
     await press(typeBtn);
-    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
-      collectionId: "c1",
-      fieldId: "f-name",
-      focus: { section: "type", seq: 1 },
+    const dialog = getByRole("dialog", { name: "name" });
+    expect(head.getAttribute("data-editor-open")).toBe("true");
+    expect(document.activeElement).toBe(
+      dialog.querySelector(".datatable-field-type .react-aria-Button"),
+    );
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: "Escape" });
     });
+    expect(queryByRole("dialog")).toBeNull();
 
     await press(getByRole("button", { name: "age" }));
-    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
-      collectionId: "c1",
-      fieldId: "f-age",
+    expect(
+      getByRole("dialog", { name: "age" }).querySelector<HTMLInputElement>(
+        ".datatable-field-key input",
+      )!.value,
+    ).toBe("age");
+    await act(async () => {
+      fireEvent.keyDown(getByRole("dialog", { name: "age" }), { key: "Escape" });
     });
 
     await press(menuBtn);
-    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
-      collectionId: "c1",
-      fieldId: "f-name",
-    });
+    expect(getByRole("dialog", { name: "name" })).toBeTruthy();
   });
 });
 

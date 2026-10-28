@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const notifyEditRefusal = vi.fn<(error: unknown) => boolean>();
+const notifyKnownRefusal = vi.fn<(error: unknown) => boolean>(() => false);
 vi.mock("../operationNotice", () => ({
   notifyEditRefusal: (error: unknown) => notifyEditRefusal(error),
+  notifyKnownRefusal: (error: unknown) => notifyKnownRefusal(error),
 }));
 const showToast = vi.fn();
 vi.mock("../../stores/toast", () => ({
@@ -51,6 +53,16 @@ describe("runCatalogCommand", () => {
     });
     expect(runCatalogCommand(workspace, command)).toBe(false);
     expect(notifyEditRefusal).toHaveBeenCalledWith(refusal);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("a refused command with a known reason (ADR-288 variable names) shows it, no error toast", () => {
+    notifyEditRefusal.mockReturnValue(false);
+    notifyKnownRefusal.mockReturnValueOnce(true);
+    const workspace = workspaceThat(() => {
+      throw new Error("VARIABLE_NAME_SHADOWS: a");
+    });
+    expect(runCatalogCommand(workspace, command)).toBe(false);
     expect(showToast).not.toHaveBeenCalled();
   });
 

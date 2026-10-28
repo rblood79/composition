@@ -48,9 +48,7 @@ export type PanelId =
   // Navigation panels
   | "navigator"
   | "components"
-  | "datatable"
-  | "datatableEditor" // DataTable 에디터 패널 (DataTablePanel과 함께 사용)
-  | "datatableField" // ADR-212 — 편집기 옆에 스냅되는 필드 패널
+  | "datatable" // ADR-288 — 데이터 표면 하나 (옛 datatableEditor · datatableField 는 등록 해제)
   // Tool panels
   | "theme"
   | "ai"
@@ -242,7 +240,6 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
     "navigator",
     "components",
     "datatable",
-    "datatableEditor", // DataTable 에디터 (datatable과 함께 사용)
     "theme",
     "settings",
   ],

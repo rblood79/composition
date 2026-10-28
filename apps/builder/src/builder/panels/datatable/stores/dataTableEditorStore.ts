@@ -1,9 +1,9 @@
 /**
- * DataTableEditorPanel Store
- *
- * 에디터 모드 상태 + 편집 패널 (`datatableEditor`) · 필드 패널 (`datatableField`) 표시.
- * 패널 표시는 `setPanelWorkspacePanelVisibility` 한 경로 (ADR-212 UI-8) — layout store 의
- * visibility 를 여기서 직접 뒤집지 않는다.
+ * DataTableEditorPanel Store — ADR-288: the Data panel is one surface. `mode` says what the
+ * panel's body draws (a table's grid · an API form · the variable table · a creator); `open`
+ * shows the `datatable` panel itself through `setPanelWorkspacePanelVisibility` (ADR-212 UI-8 —
+ * the one activation path; the Quick Connect and CollectionBinding entry points go through here).
+ * There is no editor or field panel any more — a column's editor is the header popover.
  */
 
 import { create } from "zustand";
@@ -18,18 +18,10 @@ import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspace
 export const useDataTableEditorStore = create<DataTableEditorStore>(
   (set, get) => ({
     mode: null,
-    fieldPanel: null,
 
     open: (mode: NonNullable<DataTableEditorMode>) => {
-      const previous = get().mode;
-      // 다른 테이블/모드로 바뀌면 필드 패널은 대상이 사라진 것 — 같이 닫는다.
-      const keepField =
-        previous?.type === "table-edit" &&
-        mode.type === "table-edit" &&
-        previous.tableId === mode.tableId;
-      set({ mode, ...(keepField ? {} : { fieldPanel: null }) });
-      setPanelWorkspacePanelVisibility("datatableEditor", true);
-      if (!keepField) setPanelWorkspacePanelVisibility("datatableField", false);
+      set({ mode });
+      setPanelWorkspacePanelVisibility("datatable", true);
     },
 
     openTableCreator: (projectId: string, connect?: QuickConnectTarget) =>
@@ -46,35 +38,12 @@ export const useDataTableEditorStore = create<DataTableEditorStore>(
       get().open({ type: "api-edit", endpointId, initialTab }),
     openVariableCreator: (projectId: string) =>
       get().open({ type: "variable-create", projectId }),
-    openVariableEditor: (variableId: string) =>
-      get().open({ type: "variable-edit", variableId }),
+    openVariables: (projectId: string) =>
+      get().open({ type: "variables", projectId }),
 
-    openFieldPanel: (collectionId, fieldId = null, options) => {
-      const mode = get().mode;
-      if (mode?.type !== "table-edit" || mode.tableId !== collectionId) {
-        get().open({ type: "table-edit", tableId: collectionId });
-      }
-      const focus = options?.focus
-        ? {
-            section: options.focus,
-            seq: (get().fieldPanel?.focus?.seq ?? 0) + 1,
-          }
-        : undefined;
-      set({
-        fieldPanel: { collectionId, fieldId, ...(focus ? { focus } : {}) },
-      });
-      setPanelWorkspacePanelVisibility("datatableField", true);
-    },
-
-    closeFieldPanel: () => {
-      set({ fieldPanel: null });
-      setPanelWorkspacePanelVisibility("datatableField", false);
-    },
-
+    /** Back to the list (the panel stays — the user closes it from its header). */
     close: () => {
-      set({ mode: null, fieldPanel: null });
-      setPanelWorkspacePanelVisibility("datatableField", false);
-      setPanelWorkspacePanelVisibility("datatableEditor", false);
+      set({ mode: null });
     },
   }),
 );
@@ -84,6 +53,3 @@ export const useDataTableEditorStore = create<DataTableEditorStore>(
  */
 export const useDataTableEditorMode = () =>
   useDataTableEditorStore((state) => state.mode);
-
-export const useDataTableFieldPanel = () =>
-  useDataTableEditorStore((state) => state.fieldPanel);

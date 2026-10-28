@@ -162,18 +162,43 @@ function defaultValueOf(def: {
   }
 }
 
+/**
+ * ADR-288 — `{{ old }}` → `{{ new }}`: every token whose root `rename(root)` answers for gets the
+ * new root (its path · spacing kept); `\{{` literals and reserved roots stay as written. The same
+ * string comes back when nothing changed (the same tokenizer as the resolver — no drift).
+ */
+export function rewriteStateTemplateRoots(
+  value: string,
+  rename: (root: string) => string | undefined,
+): string {
+  if (!value.includes("{{")) return value;
+  let changed = false;
+  const out = value.replace(
+    TEMPLATE_TOKEN_PATTERN,
+    (whole: string, name: string | undefined) => {
+      if (whole === "\\{{" || !name || RESERVED_ROOTS.has(name)) return whole;
+      const next = rename(name);
+      if (next === undefined || next === name) return whole;
+      changed = true;
+      return whole.replace(/^(\{\{\s*)[A-Za-z_$][\w$]*/, `$1${next}`);
+    },
+  );
+  return changed ? out : value;
+}
+
 const MAX_SYNTAX_SCAN_DEPTH = 6;
 
 /**
  * props 어딘가의 문자열에 `{{` 가 있는가 — 참조 스캐너는 `\{{` 리터럴을 참조로 세지 않으므로
  * (unescape 만 필요한 노드) 해석기 실행 여부는 이 검사로 판정한다.
  */
-export function hasStateTemplateSyntax(
-  value: unknown,
-  depth = 0,
-): boolean {
+export function hasStateTemplateSyntax(value: unknown, depth = 0): boolean {
   if (typeof value === "string") return value.includes("{{");
-  if (depth >= MAX_SYNTAX_SCAN_DEPTH || value === null || typeof value !== "object")
+  if (
+    depth >= MAX_SYNTAX_SCAN_DEPTH ||
+    value === null ||
+    typeof value !== "object"
+  )
     return false;
   if (Array.isArray(value))
     return value.some((item) => hasStateTemplateSyntax(item, depth + 1));

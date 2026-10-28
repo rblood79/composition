@@ -1,19 +1,21 @@
 /**
  * ApiEndpointList - API Endpoint 목록 컴포넌트
  *
- * ADR-212 Phase 1 — RAC `GridList` 행 (키보드 열림) + 배지: method · 마지막 실행 (status ·
- * ms · 상대 시각, ADR-213 `apiRuns` 스냅샷) · 연결 테이블 (ApiList 아트보드).
- * 편집 UI는 DataTableEditorPanel에서 처리
+ * ADR-212 Phase 1 — RAC `GridList` 행 (키보드 열림). ADR-288 G6 (사용자 2026-10-28, 표 목록과
+ * 같이): Navigator 의 `.elementItem` 한 줄 — 아이콘 · 이름 · 메타 (method · URL · 마지막 실행
+ * (status · ms · 상대 시각, ADR-213 `apiRuns` 스냅샷) · 연결 테이블) 말줄임 · 행 액션은 Test ·
+ * 삭제. 행 선택이 곧 열기, 「Add API」 는 섹션 헤더의 +. 편집 UI 는 Data 본문.
  */
 
 import { useMemo, useState } from "react";
-import { Globe, SquarePen, Play } from "lucide-react";
+import { Globe, Play } from "lucide-react";
 import { Button } from "react-aria-components/Button";
 import { GridList, GridListItem } from "react-aria-components/GridList";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { Section } from "../../../components/panel/Section";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { ConfirmDialog } from "../../../components/overlay";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -93,9 +95,19 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
       id="api-list"
       title={localize("apiList", "API List")}
       badge={
-        <span className="datatable-list-count">
+        <span className="category-count">
           {t("countItems", { count: apiEndpoints.length })}
         </span>
+      }
+      // Navigator's Pages pattern (G6): the add action sits in the section header.
+      actions={
+        <ActionIconButton
+          aria-label={localize("addApi", "Add API")}
+          tooltip={localize("addApi", "Add API")}
+          onPress={handleCreate}
+        >
+          <AddIcon {...iconProps} />
+        </ActionIconButton>
       }
       collapsible={false}
     >
@@ -106,11 +118,18 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
         />
       ) : (
         <GridList
-          className="list-group list-group--stack"
+          className="datatable-tree"
           aria-label={localize("apiList", "API List")}
           selectionMode="single"
           selectionBehavior="replace"
           selectedKeys={editingApiId ? [editingApiId] : []}
+          // Selecting a row opens it (G6) — Enter too.
+          onSelectionChange={(keys) => {
+            if (keys === "all") return;
+            const key = [...keys][0];
+            if (key !== undefined && String(key) !== editingApiId)
+              openApiEditor(String(key));
+          }}
           onAction={(key) => openApiEditor(String(key))}
         >
           {apiEndpoints.map((endpoint) => {
@@ -123,80 +142,64 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                     c.name === endpoint.targetCollection,
                 );
             const failed = run && !run.ok;
+            // One line after the name — it truncates as a whole.
+            const meta = [
+              endpoint.method,
+              `${endpoint.baseUrl}${endpoint.path}`,
+              run ? lastRunLabel(endpoint.id) : null,
+              linked?.name,
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return (
               <GridListItem
                 key={endpoint.id}
                 id={endpoint.id}
                 textValue={endpoint.name}
-                className={({ isSelected }) =>
-                  `list-item ${isSelected ? "selected" : ""}`
-                }
+                className="datatable-tree-item"
                 data-error={failed || undefined}
+                data-method={endpoint.method}
               >
-                <div className="list-item-icon">
-                  <Globe {...iconProps} />
-                </div>
-                <div className="list-item-content">
-                  <div className="list-item-name">{endpoint.name}</div>
-                  <div className="list-item-meta">
-                    <span>
-                      {endpoint.baseUrl}
-                      {endpoint.path}
-                    </span>
-                    {run ? (
-                      <span
-                        className={
-                          failed ? "list-item-run error" : "list-item-run"
-                        }
-                      >
-                        {" "}
-                        · {lastRunLabel(endpoint.id)}
+                {({ isSelected, isFocusVisible }) => (
+                  <div
+                    className={`elementItem ${isSelected ? "active" : ""} ${
+                      isFocusVisible ? "focused" : ""
+                    }`}
+                  >
+                    <div className="elementItemIcon">
+                      <Globe {...iconEditProps} />
+                    </div>
+                    <div className="elementItemLabel">
+                      <span className="datatable-tree-name">
+                        {endpoint.name}
                       </span>
-                    ) : null}
-                    {linked ? (
-                      <span className="list-item-linked"> · {linked.name}</span>
-                    ) : null}
+                      <span className="datatable-tree-meta" title={meta}>
+                        {meta}
+                      </span>
+                    </div>
+                    <div className="elementItemActions">
+                      <Button
+                        className="iconButton"
+                        onPress={() => openApiEditor(endpoint.id, "response")}
+                        aria-label={`${localize("test", "Test")} ${endpoint.name}`}
+                      >
+                        <Play {...iconEditProps} />
+                      </Button>
+                      <Button
+                        className="iconButton"
+                        onPress={() => setPendingDeleteId(endpoint.id)}
+                        aria-label={`${localize("delete", "Delete")} ${endpoint.name}`}
+                      >
+                        <DeleteIcon {...iconEditProps} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <span className={`list-item-badge method ${endpoint.method}`}>
-                  {endpoint.method}
-                </span>
-                <div className="list-item-actions">
-                  <Button
-                    className="iconButton"
-                    onPress={() => openApiEditor(endpoint.id, "response")}
-                    aria-label={`${localize("test", "Test")} ${endpoint.name}`}
-                  >
-                    <Play {...iconEditProps} />
-                  </Button>
-                  <Button
-                    className="iconButton"
-                    onPress={() => openApiEditor(endpoint.id)}
-                    aria-label={`${localize("edit", "Edit")} ${endpoint.name}`}
-                  >
-                    <SquarePen {...iconEditProps} />
-                  </Button>
-                  <Button
-                    className="iconButton"
-                    onPress={() => setPendingDeleteId(endpoint.id)}
-                    aria-label={`${localize("delete", "Delete")} ${endpoint.name}`}
-                  >
-                    <DeleteIcon {...iconEditProps} />
-                  </Button>
-                </div>
+                )}
               </GridListItem>
             );
           })}
         </GridList>
       )}
-      <Button
-        className="control-button"
-        data-variant="add"
-        onPress={handleCreate}
-      >
-        <AddIcon {...iconProps} />
-        <span>{localize("addApi", "Add API")}</span>
-      </Button>
       <ConfirmDialog
         isOpen={pendingDeleteId !== null}
         title={localize("deleteTitle", "Delete")}

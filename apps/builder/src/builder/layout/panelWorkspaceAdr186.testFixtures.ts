@@ -55,6 +55,8 @@ export const ADR_186_ZONE_ORIGIN_FIXTURES: ReadonlyArray<{
   { zone: "bottom-right", x: 1000, y: 700 },
 ];
 
+// (12 fixture panels — 3 rail-ordered + one per zone origin. ADR-288 removed two real ids, so two
+// fixture-only names stand in; the layout code treats ids as opaque keys.)
 const FLOATING_PANEL_IDS = [
   "navigator",
   "properties",
@@ -62,13 +64,13 @@ const FLOATING_PANEL_IDS = [
   "components",
   "site",
   "datatable",
-  "datatableEditor",
+  "codeView",
   "settings",
   "history",
-  "datatableField",
+  "fixtureExtra",
   "events",
   "ai",
-] as const satisfies readonly PanelId[];
+] as const;
 
 const RAIL_BY_PANEL: Record<
   (typeof FLOATING_PANEL_IDS)[number],
@@ -80,17 +82,17 @@ const RAIL_BY_PANEL: Record<
   components: "left",
   site: "left",
   datatable: "left",
-  datatableEditor: "left",
+  codeView: "left",
   settings: "left",
   history: "right",
-  datatableField: "right",
+  fixtureExtra: "right",
   events: "right",
   ai: "right",
 };
 
 function registryEntry(panelId: (typeof FLOATING_PANEL_IDS)[number]) {
   return {
-    id: panelId,
+    id: panelId as PanelId,
     defaultPosition: RAIL_BY_PANEL[panelId],
     minWidth: 80,
     maxWidth: 640,
@@ -124,7 +126,7 @@ export function createAdr186TenPlusFloatingFixture(): Adr186TenPlusFloatingFixtu
             width: ADR_186_CLUSTER_SIZE_FIXTURE.width,
             rows: [
               {
-                panelId,
+                panelId: panelId as PanelId,
                 height: ADR_186_CLUSTER_SIZE_FIXTURE.height,
               },
             ],
@@ -148,10 +150,16 @@ export function createAdr186TenPlusFloatingFixture(): Adr186TenPlusFloatingFixtu
           "components",
           "site",
           "datatable",
-          "datatableEditor",
+          "codeView",
           "settings",
         ],
-        right: ["properties", "history", "datatableField", "events", "ai"],
+        right: [
+          "properties",
+          "history",
+          "fixtureExtra",
+          "events",
+          "ai",
+        ] as PanelId[],
         bottom: ["theme"],
       },
       clusters: [

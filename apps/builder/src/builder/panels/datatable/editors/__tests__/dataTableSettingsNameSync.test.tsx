@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SettingsEditor } from "../DataTableEditor";
+import { SettingsEditor } from "../../components/TableSettingsPopover";
 
 /**
  * 2026-10-05 감사 LOW — 설정 화면이 열린 채 테이블 이름이 밖에서 바뀌면 (undo · 목록에서 rename)
@@ -26,7 +26,10 @@ describe("SettingsEditor — 밖에서 바뀐 값", () => {
     const { rerender } = render(<SettingsEditor {...first} />);
     const next = { ...props("members"), onNameChange: first.onNameChange };
     rerender(<SettingsEditor {...next} />);
-    const input = screen.getByRole("textbox", { name: "Table Name" });
+    // G6 수정 12 — inspector PropertyInput: the field's name is its fieldset legend.
+    const input = screen
+      .getByRole("group", { name: "Table Name" })
+      .querySelector("input") as HTMLInputElement;
     expect((input as HTMLInputElement).value).toBe("members");
     fireEvent.blur(input);
     expect(first.onNameChange).not.toHaveBeenCalled();

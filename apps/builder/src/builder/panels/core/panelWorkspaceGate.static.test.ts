@@ -14,8 +14,6 @@ const ROOTS: readonly [file: string, component: string][] = [
   ["navigator/catalog/CatalogNavigatorPanel.tsx", "CatalogNavigatorPanel"],
   ["components/CatalogComponentsPanel.tsx", "CatalogComponentsPanel"],
   ["datatable/DataTablePanel.tsx", "DataTablePanel"],
-  ["datatable/DataTableEditorPanel.tsx", "DataTableEditorPanel"],
-  ["datatable/DataTableFieldPanel.tsx", "DataTableFieldPanel"],
   ["themes/catalog/CatalogThemesPanel.tsx", "CatalogThemesPanel"],
   ["site/SitePanel.tsx", "SitePanel"],
   ["design/DesignPanel.tsx", "DesignPanel"],

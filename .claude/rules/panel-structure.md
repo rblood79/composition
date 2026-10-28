@@ -46,7 +46,7 @@ paths:
   - **왜 "빼는" 통일인가 (실측 2026-08-30)**: 아이콘 사용 섹션은 54개 중 9개(17%)뿐이었고, 나머지 45개의 큰 몫이 catalog 파생 섹션(`GenericFieldRenderer`/`CatalogInspectorFields` 가 `field.section` 문자열로 생성)이라 **아이콘을 넘길 채널이 없다** — 채우는 통일은 catalog 계약에 icon 축 신설(D2/D3 확장)이 전제다. 같은 Properties 패널 한 화면에 아이콘 섹션(Component/Attributes)과 무아이콘 섹션(Content/Appearance/State)이 함께 뜨던 것이 제거 동기.
 - 라벨 있는 필드 그룹은 `fieldset.properties-aria.{고유클래스}` + `legend.fieldset-legend` (memory: feedback-panel-field-group-fieldset-legend-pattern).
 - 컨트롤 묶음 시각(inset 배경)은 `.react-aria-Group` 조합.
-- **패널 id 는 저장 키다 — 패널을 합쳐도 id 는 남긴다** (Events → Interactions · Properties + Styles → Design, ADR-252). 합친 패널의 id 에 묶인 CSS 는 그 패널이 원래 그리던 본문 (탭) 으로 범위를 좁힌다 (`.panel-wrapper[data-panel="properties"] .design-property-contents …`) — 그대로 두면 새로 들어온 탭의 섹션 배치를 덮는다.
+- **패널 id 는 저장 키다 — 패널을 합쳐도 id 는 남긴다** (Events → Interactions · Properties + Styles → Design, ADR-252). 합친 패널의 id 에 묶인 CSS 는 그 패널이 원래 그리던 본문 (탭) 으로 범위를 좁힌다 (`.panel-wrapper[data-panel="properties"] .design-property-contents …`) — 그대로 두면 새로 들어온 탭의 섹션 배치를 덮는다. **반대 경우 — 패널을 없앨 때는 id 를 지워도 된다** (ADR-288, 2026-10-28: `datatableEditor` · `datatableField` 가 `datatable` 하나로): 저장 레이아웃의 V4 정규화 (`normalizePanelWorkspaceLayoutV4`) 가 등록에 없는 id 를 rail · visibility · row 에서 버리므로 무시 경로가 따로 없다 (`panelWorkspaceLayoutV4.unknownPanel.test.ts`). 레이아웃 fixture 가 그 id 를 generic 패널로 쓰고 있었으면 다른 id 로 바꾼다.
 - **패널 탭은 단일 패턴** — 마크업·클래스 조합이 하나다:
   `Tabs.panel-tabs` > `div.panel-header.panel-tabrow` > `TabList.panel-tablist` > `Tab.panel-tab` > `span.panel-tab-label`, 구현은 RAC `Tabs`/`TabList`/`Tab`.
   바 크롬(32px·`--bg-raised`·하단 구분선)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.

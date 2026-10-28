@@ -1,4 +1,3 @@
-import { collectPropsStateRefs } from "@composition/shared";
 import {
   addRecord,
   setNodeInteractions,
@@ -13,13 +12,12 @@ import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/do
 import type {
   EntryId,
   InteractionEntry,
-  NodeId,
   Scalar,
   StateVariableEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { variableReferenceCount } from "../../../../../packages/shared/src/catalog/runtime/variableReferences";
 import {
   catalogVariableNameConflict,
-  catalogVisibleVariableEntries,
   type CatalogVariableReader,
 } from "./stateVariables";
 
@@ -82,30 +80,10 @@ export function catalogDocumentVariableNames(
   );
 }
 
-/** Every node on the project's pages (owned children and instance fill children). */
-function everyNode(graph: CatalogVariableReader): NodeId[] {
-  const project = graph.getEntry(graph.projectId);
-  if (project?.kind !== "project") return [];
-  const out: NodeId[] = [];
-  const visit = (id: NodeId) => {
-    const node = graph.getEntry(id);
-    if (node?.kind !== "node") return;
-    out.push(id);
-    node.children.forEach(visit);
-    for (const item of node.descendantOverrides)
-      if (item.kind === "fillSlot") item.childIds.forEach(visit);
-  };
-  for (const pageId of project.pageIds) {
-    const page = graph.getEntry(pageId);
-    if (page?.kind === "page") page.children.forEach(visit);
-  }
-  return out;
-}
-
 /**
  * How many places use a variable (a page/element variable id, or a project variable's data-store
- * id): setState rules that set it, and nodes whose `{$name}` templates resolve to it (the nearest
- * visible page/element variable of that name wins over a project variable).
+ * id): setState rules that set it, and the `{{ name }}` templates the runtime resolves to it
+ * (ADR-288 — `variableReferences.ts`, the same judgment the rename rewrites with).
  */
 export function catalogVariableUsageCounter(
   graph: CatalogVariableReader,
@@ -119,45 +97,23 @@ export function catalogVariableUsageCounter(
           return entry?.kind === "interaction" ? [entry] : [];
         })
       : [];
-  // The template names each node reads, found once.
-  const refs = everyNode(graph).flatMap((id) => {
-    const node = graph.getEntry(id);
-    if (node?.kind !== "node") return [];
-    const props: Record<string, unknown> = {};
-    for (const [key, write] of Object.entries(node.props))
-      if (write.kind === "set") props[key] = write.value;
-    const names = collectPropsStateRefs(props);
-    return names.length ? [{ id, names }] : [];
-  });
   const counts = new Map<string, number>();
   return (variableId) => {
     const cached = counts.get(variableId);
     if (cached !== undefined) return cached;
-    const variable = graph.getEntry(variableId);
-    const projectVariable = projectVariables.find(
-      (item) => item.id === variableId,
-    );
-    const name =
-      variable?.kind === "stateVariable"
-        ? variable.name
-        : projectVariable?.name;
-    const ids = new Set([variableId, catalogProjectVariableId(variableId)]);
-    let count = interactions.filter(
-      (entry: InteractionEntry) =>
+    const isProject = projectVariables.some((item) => item.id === variableId);
+    const entryId = isProject
+      ? catalogProjectVariableId(variableId)
+      : variableId;
+    const ids = new Set([variableId, entryId]);
+    const count =
+      interactions.filter((entry: InteractionEntry) =>
         entry.actions.some(
           (action) =>
             action.opcode === "setState" && ids.has(action.variableId),
         ),
-    ).length;
-    if (name)
-      for (const ref of refs) {
-        if (!ref.names.includes(name)) continue;
-        const nearest = catalogVisibleVariableEntries(graph, ref.id).find(
-          (entry) => entry.name === name,
-        );
-        const resolved = nearest?.id ?? projectVariable?.id;
-        if (resolved === variableId) count++;
-      }
+      ).length +
+      variableReferenceCount(graph, entryId, { projectVariables });
     counts.set(variableId, count);
     return count;
   };
@@ -188,7 +144,15 @@ export function catalogLegacyVariableMove(
   if (page?.kind !== "page") return { refused: "page" };
   if (!["string", "number", "boolean"].includes(variable.type))
     return { refused: "type" };
-  if (catalogVariableNameConflict(graph, page.id, variable.name))
+  // (The legacy variable itself may still be a project variable of that name — not a conflict.)
+  if (
+    catalogVariableNameConflict(
+      graph,
+      page.id,
+      variable.name,
+      catalogProjectVariableId(variable.id),
+    )
+  )
     return { refused: "conflict" };
   const type = variable.type as StateVariableEntry["valueType"];
   const empty: Scalar = type === "number" ? 0 : type === "boolean" ? false : "";

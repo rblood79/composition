@@ -414,7 +414,7 @@ describe("ADR-186 Phase 3 panel workspace zone drop", () => {
       targetCluster?.columns.flatMap((column) =>
         column.rows.map((row) => row.panelId),
       ),
-    ).toEqual(["navigator", "properties", "datatableEditor", "settings"]);
+    ).toEqual(["navigator", "properties", "codeView", "settings"]);
     expect(committed.value.layout.railOrder).toEqual(layout.railOrder);
   });
 

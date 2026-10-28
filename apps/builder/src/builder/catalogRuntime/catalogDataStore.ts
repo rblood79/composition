@@ -25,6 +25,7 @@ import {
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { setDataEntries } from "../../../../../packages/shared/src/catalog/commands/data";
+import { renameVariable } from "../../../../../packages/shared/src/catalog/commands/variables";
 import type {
   ApiEndpoint,
   DataField,
@@ -286,6 +287,17 @@ export function bindCatalogDataStore(
       for (const id of write.collectionsDeleted ?? [])
         runtimeChanged = runtime.delete(id) || runtimeChanged;
       const commands: CatalogCommand[] = [];
+      // ADR-288 — a project variable whose name changes renames through `renameVariable` first
+      // (its `{{ old }}` readers follow; a taken or capturing name refuses the whole step).
+      for (const variable of write.variables ?? []) {
+        const id = `${VARIABLE}${variable.id}` as ProjectVariableId;
+        const current = graph().getEntry(id);
+        if (
+          current?.kind === "projectVariable" &&
+          current.name !== variable.name
+        )
+          commands.push(renameVariable({ variableId: id, name: variable.name }));
+      }
       const puts: DataEntry[] = [
         ...(write.collections ?? []).map(toCollectionEntry),
         ...(write.endpoints ?? []).map(toEndpointEntry),

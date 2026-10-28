@@ -126,10 +126,13 @@ describe("ADR-248 4e-6 state templates on the Canvas", () => {
       catalogVariableCommands.setDefault(variable("who"), "Ann"),
     );
     expect(record("greet").props.children).toBe("Hi Ann {{ nope }}");
-    // A rename leaves the old name unresolved; undo brings it back.
+    // ADR-288: a rename rewrites the reader in the same step — the Text keeps resolving; undo
+    // brings the old name back in both.
     workspace.execute(catalogVariableCommands.rename(variable("count"), "n"));
-    expect(record("count").props.children).toBe("Count: {{ count }}");
+    expect(record("count").templateProps?.children).toBe("Count: {{ n }}");
+    expect(record("count").props.children).toBe("Count: 3");
     workspace.undo();
+    expect(record("count").templateProps?.children).toBe("Count: {{ count }}");
     expect(record("count").props.children).toBe("Count: 3");
   });
 

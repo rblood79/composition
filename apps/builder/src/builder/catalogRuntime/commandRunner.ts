@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { useCatalogWorkspace } from "./react";
-import { notifyEditRefusal } from "./operationNotice";
+import { notifyEditRefusal, notifyKnownRefusal } from "./operationNotice";
 import type { CatalogWorkspace } from "./workspace";
 import { useToastStore } from "../stores/toast";
 
@@ -10,7 +10,7 @@ import { useToastStore } from "../stores/toast";
  * `/` …) shows its reason (`notifyEditRefusal`), anything else its message as an error toast.
  */
 export function reportCatalogCommandError(error: unknown): void {
-  if (notifyEditRefusal(error)) return;
+  if (notifyEditRefusal(error) || notifyKnownRefusal(error)) return;
   useToastStore
     .getState()
     .showToast("error", error instanceof Error ? error.message : String(error));

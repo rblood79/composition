@@ -11,12 +11,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-288 Implemented — 데이터 패널 하나로 · G6 사용자 확인 · 팝오버 폭 288] - 2026-10-29
+
+### Fixed
+
+- **표 설정 · 열 편집 팝오버가 설계 폭 288 px 로 열린다** (ADR-288 G6 수정 16, 사용자 5173 서버 실측): 공용 팝오버 규칙의 `max-width: 250px` 가 두 팝오버를 250 으로 깎아 안의 7 칸 격자가 `94 · 94 · 28` 로 좁게 그려졌다. 두 팝오버 규칙에 상한을 같이 두어 288 (`113 · 113 · 28`) 로 열린다.
+  - 위치: `apps/builder/src/builder/panels/datatable/components/TableSettingsPopover.css` · `grid/ColumnEditorPopover.css`
+
+### Changed
+
+- **ADR-288 Implemented** (G6 — 사용자 지시로 Chrome MCP 가 5173 에서 수정 7 ~ 15 확인: 행 체크박스 선택 · 일부 선택, `Insert ▾` 메뉴, 목록 행 설정 아이콘 → 표 설정 팝오버, 열 편집기 · Type Select · Styles 팝오버의 테두리 · 그림자 한 곳, 콘솔 오류 0). Preview initial 번들 +402 B gz (Preview 소스 변경 0 · chunk 분리) 는 사용자 수용. 본문은 `docs/adr/completed/288-data-panel-single-surface-column-popover-variable-table.md`.
+
+## [ADR-288 G6 — 격자 선택 체크박스 · Insert 메뉴 · 표 설정은 목록 행 「Edit table…」] - 2026-10-29
+
+### Fixed
+
+- **격자 첫 열 체크박스가 선택 · 일부 선택을 구분해 보인다** (ADR-288 G6 수정 7, 사용자 「checkbox 도 selected, indeterminate 도 정상작동하지 않는다」): 행 하나를 고르면 머리글 체크박스에 대시, 모두 고르면 체크가 그려진다. 전에는 격자가 자체 사각형을 그려 두 상태가 같은 채운 사각형으로 보였다 (선택 상태 자체는 맞았다). 이제 Builder 의 다른 체크박스와 같은 부품이다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` · `grid/DataGrid.css`
+
+### Changed
+
+- **표 설정 · 열 편집 팝오버가 빌더 패널과 같은 모양이다** (ADR-288 G6 수정 11 · 12, 사용자 「popover 내에 스타일들이 빌더의 디자인패턴 ui 가 전혀 적용이 안 되었다」): 두 팝오버가 Design 패널 절처럼 머리줄 (표 설정 / 열 이름) 과 같은 입력칸 · 스위치 · 셀렉트로 그려진다. 겹쳐 있던 여백 (24 px) 도 하나로 줄었다. 열 편집의 타입은 검색 목록 대신 셀렉트 (트리거에 타입 아이콘) 이고, 필수는 브라우저 체크박스 대신 스위치다. 행 ⋮ · 「Insert ▾」 · 필드 템플릿 · 코드 보기 스니펫 메뉴는 테두리가 팝오버 한 겹이고 그림자가 있다 (전에는 팝오버와 메뉴가 각각 테두리 — 두 겹). 부품 교체 · 상호작용 대상 · 글꼴 목록, Styles 패널의 Fill · 그림자 · 색 · 격자 크기 팝오버, 표 설정 · 열 편집 · 변수 JSON 팝오버도 같은 그림자를 받는다. 표 설정 · 열 편집 · 변수 JSON 은 안쪽의 흰 두 번째 면이 없어졌다.
+  - 위치: `apps/builder/src/builder/panels/datatable/components/TableSettingsPopover.tsx` · `grid/ColumnEditorPopover.tsx` · `components/property/{PropertyRowMenu,PropertyFieldTemplateInput}.css` · `panels/codeView/CatalogCodeViewPanel.tsx` · `panels/{properties/catalog/CatalogSwapPicker,interactions/catalog/CatalogTargetPicker,fonts/FontFamilyPicker}.css` · `components/variables/VariableTable.css` · `panels/styles/{components/FillLayerRow,sections/EffectSection,sections/GridSizePicker}.css` · `components/styles/form-controls.css`
+- **격자 위 바에 「Insert ▾」 하나** (ADR-288 G6 수정 8, Supabase Table Editor 대조): 행 삽입 · 열 삽입 · CSV 가져오기가 한 메뉴에 있고, 행을 고르면 그 자리가 「Delete N rows」 로 바뀐다. 격자 아래 「Add row」 줄과 바의 「Import」 버튼은 없어졌다 (머리글 끝 + 로 열을 더하는 길은 그대로).
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx`
+- **표 설정은 목록 행의 설정 아이콘** (ADR-288 G6 수정 9 · 10, 사용자 「설정 버튼 제거하고 배치」 · 「edit, delete 버튼을 navigator-pages 처럼 바로」): 행에 마우스를 올리면 Navigator 페이지 행처럼 설정 · 삭제 아이콘이 나오고, 설정이 이름 · Use Table Data · API endpoint · Execution policy (· Interval) 를 행 아래 팝오버 (열 편집기와 같은 모양) 로 연다. 본문 헤더의 톱니 (설정 보기 전환) 는 없어졌고 헤더에는 ✕ 만 남는다. 행 이름 옆의 「6 fields · 5 rows · used by 1」 글자는 빠지고 마우스를 올리면 툴팁으로 보인다.
+  - 위치: `apps/builder/src/builder/panels/datatable/components/TableSettingsPopover.tsx` (새) · `components/DataTableList.components.tsx` · `DataSurfaceBody.tsx` · `editors/DataTableEditor.tsx`
+
+## [Button 모서리를 S2 처럼 완전히 둥글게 · Canvas 의 named hue hover · pressed 색] - 2026-10-28
+
+### Changed
+
+- **Button 이 S2 처럼 완전히 둥글다**: S2 `Button` 은 모든 크기에서 pill (`control({shape: 'pill'})`) 이다. Button 규칙의 크기별 모서리를 `{radius.full}` 로 바꿨다. 필드 안 버튼 (Select 트리거 · NumberField 증감 · ComboBox · DatePicker · DateRangePicker · SearchField 버튼) 은 S2 에서 Button 이 아니라 필드 버튼이라 지금 모서리를 유지한다. 모양의 주인은 여전히 Button 규칙이다 (ADR-253). 필드 안 버튼에는 파생 표지 `fieldButton` (버튼 자신의 크기) 이 붙고, Button 규칙의 크기별 표 하나를 DOM 은 `[data-field-button]` 으로, Canvas 는 정의의 조건 규칙으로 읽는다. 작성한 모서리 값은 그대로 이긴다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (`FIELD_BUTTON_CORNERS`) · `runtime/presence.ts` (`catalogFieldButtonSize`) · `runtime/libraryVisual.ts` (`catalogDerivedRestVisual`) · `document/derivedVariantProps.ts` · 테스트 `apps/builder/src/builder/catalogRuntime/__tests__/s2ButtonPill.test.ts`
+
+### Fixed
+
+- **Canvas 가 named hue 의 hover · pressed 색을 칠한다**: Badge 와 Button (premium · genai) 이 참조하는 chartreuse · celery · seafoam · brown · cinnamon · silver · purple 의 `-hover` · `-pressed` 색이 Preview 에만 있고 Canvas 색 맵에는 없었다. Preview 와 같은 식 (sRGB 에서 검정과 85 % · 75 % 섞기) 으로 Canvas 맵도 채웠다. 그래서 premium · genai Button 의 hover · pressed 표본도 Canvas 에 칠해진다. 토큰 존재 검사의 예외 목록은 비었다.
+  - 위치: `packages/rendering/src/primitives/semanticPaletteMap.ts` (`resolveSemanticStateColors`) · `primitives/colors.ts` · 테스트 `packages/shared/src/catalog/__tests__/catalogTokenExists.static.test.ts`
+
 ## [Table 「Disallow Empty Selection」] - 2026-10-28
 
 ### Added
 
 - **Table 도 마지막 선택을 지울 수 없게 할 수 있다**: S2 TableView 의 `disallowEmptySelection` 을 Table Property 의 Behavior 절에 추가했다. GridList · ListBox · TagGroup · ToggleButtonGroup · Tree 에는 이미 있었고 Table 만 빠져 있었다 (design-data 차이 보고서). 켜면 Preview · 게시 페이지에서 선택된 마지막 행을 다시 눌러도 선택이 남고, 규칙의 「전체 해제」 Do 는 실행되지 않고 이유를 알린다.
   - 위치: `packages/shared/src/catalog/bindings/Table.binding.ts` · 테스트 `apps/builder/src/preview/catalog/__tests__/tableDisallowEmptySelection.test.tsx`
+
+## [ADR-288 Phase 2 ~ 5 — 데이터 패널 하나 · 열 편집은 머리글 팝오버 · 변수는 공용 표] - 2026-10-28
+
+### Changed
+
+- **Data 패널 하나가 데이터 표면이다** (ADR-288 Phase 3, 사용자 2026-10-28 「패널 사이즈를 100% 로」): 처음 열면 작업 영역 전체 폭 (캔버스를 덮는다 — 폭을 줄이면 나란히). 제목 아래 탭은 그대로 Tables · APIs · Variables (사용자 「기존의 탭형태로」) — Tables · APIs 는 왼쪽 목록 (228 px, 오른쪽 가장자리를 끌어 조절 — 폭은 기억된다) + 오른쪽 본문 (표의 격자 · API 양식 · 만들기 양식), Variables 는 변수 표가 전체 폭. 표 목록의 행은 Navigator 의 페이지 · 레이어 행과 같은 한 줄 (아이콘 · 이름 · 「Sample · 6 fields · 5 rows · used by 1」 말줄임, 행을 고르면 바로 격자가 열리고 hover 에 설정 · 삭제 아이콘 (10-29 G6 수정 9 · 10 — 메타 글자는 툴팁으로), 「새 테이블」 은 Tables 헤더의 +). API 목록과 변수 목록도 같은 패턴 (행 선택 = 열기 · 추가는 헤더 +). 「데이터테이블 에디터」 · 「필드」 패널은 없어졌다 — 저장된 레이아웃에 그 id 가 남아 있어도 그대로 열린다. 좁은 폭 (≤ 459 px) 에서는 목록과 본문이 번갈아 보이고 본문 헤더의 ✕ 가 목록으로 돌아간다.
+  - 위치: `apps/builder/src/builder/panels/datatable/{DataTablePanel,DataSurfaceBody}.tsx` · `panels/core/{panelConfigs,types}.ts` · `stores/dataTableEditorStore.ts`
+- **열 정보는 머리글 팝오버에서 바꾼다** (ADR-288 Phase 4, 사용자 「패널 형태로 수정해야 한다. 불편하다」): 열 이름 · ⌄ 를 누르면 그 열 아래에 이름 · 타입 (검색) · 참조 대상 · 필수 · 라벨 · 기본값 · 사용처 · 삭제가 열리고, 타입 아이콘을 누르면 타입 검색에 바로 포커스. Esc · 바깥 클릭으로 닫힌다. 더블클릭 · F2 의 그 자리 이름 편집은 그대로.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/ColumnEditorPopover.tsx` · `grid/DataGrid.components.tsx`
+- **변수는 세 소유자가 같은 표에서** (ADR-288 Phase 2, 사용자 「variables 도 table 형태로」 · 「page 내에서도 동일하게」): Data 패널의 프로젝트 변수와 Design 패널 State 절의 페이지 · 요소 변수가 한 표 (이름 · 타입 · 시작값 · 유지 (프로젝트만) · 사용처 · ⋮) 에서 그 자리에서 편집된다. Data 패널의 「보기」 를 「모든 변수」 로 두면 페이지 · 요소 변수가 읽기 전용 행으로 함께 보이고 「소유자에서 편집」 이 그 요소를 선택해 State 절을 연다. 페이지 · 요소의 Object · Array 시작값은 「규칙이 정함」 (규칙이 채운다), JSON 시작값은 프로젝트 변수만.
+  - 위치: `apps/builder/src/builder/components/variables/VariableTable.tsx` · `panels/datatable/components/VariableList.tsx` · `panels/properties/catalog/CatalogStateSection.tsx`
+
+### Removed
+
+- `DataTableEditorPanel` · `DataTableFieldPanel` · `VariableEditor` (사용자 승인 2026-10-28) — 내용은 위 세 부품으로 옮겼다.
+
+### Performance
+
+- 번들: Builder initial JS gzip +556 B (ADR-288 상한 +1,000) · CSS −393 B. Design 패널의 변수 표는 lazy 로 받는다 (RAC Table 을 initial 에 넣으면 +16.9 KB). Preview initial +402 B gz 는 `createLucideIcon` 이 공용 chunk 로 분리된 결과 (Preview 소스 변경 0).
+
+## [ADR-288 Phase 1 — 변수 이름 변경이 참조를 따라간다 · 타입 변경 규칙 하나] - 2026-10-28
+
+### Fixed
+
+- **변수 이름을 바꾸면 그 변수를 읽던 `{{ 이름 }}` 이 같이 바뀐다** (ADR-288 Phase 1): 전에는 변수 entry 의 이름만 바뀌어 Text 에 `{{ 옛이름 }}` 이 그대로 찍혔다. 프로젝트 · 페이지 · 요소 변수 모두, Design 패널 State 절 · Data 패널 · 코드 보기 어디서 바꿔도 한 명령 (`renameVariable`) 이고 Undo 한 번에 돌아온다. 재작성은 그 자리에서 런타임이 이름을 그 변수로 해소할 때만 — 요소의 글자 prop 은 요소 → 조상 → 페이지 → 프로젝트 사슬, `binding.key` 는 페이지 · 프로젝트, API endpoint 의 URL · query · header · body 템플릿은 프로젝트 변수만. `\{{` 리터럴 · `{{ env.x }}` · 변수가 없는 `{{ params.x }}` 는 그대로.
+  - 새 이름이 기존 `{{ 이름 }}` 을 가로채게 되면 (예: 프로젝트 `a` 를 읽는 페이지에서 페이지 변수를 `a` 로) 거절하고 안내한다 (`operation.variableNameShadows`); 보이는 범위에 같은 이름이 있으면 `operation.variableNameConflict`. 이름 충돌 검사가 프로젝트 변수까지 본다.
+  - 위치: `packages/shared/src/catalog/runtime/variableReferences.ts` · `packages/shared/src/catalog/commands/variables.ts` · `packages/shared/src/state/template.ts` (`rewriteStateTemplateRoots`) · `apps/builder/src/builder/catalogRuntime/{stateVariables,dataVariables,codeView,catalogDataStore,operationNotice}.ts`
+
+### Changed
+
+- **변수 타입 변경 시 시작값 규칙 하나** (ADR-288 결정 1, 사용자 2026-10-28): 새 타입에 맞는 값은 변환해 두고 (`"42"` → `42` · `"true"` → `true`), 안 맞으면 비운다. 전에는 프로젝트 변수는 `"hi"` 가 Number 변수에 남고 페이지 · 요소 변수는 늘 비웠다. 사용처 수도 이름 변경과 같은 판정으로 센다 (interaction + 템플릿).
+  - 위치: `packages/shared/src/catalog/runtime/variableTypeChange.ts` · `apps/builder/src/builder/stores/utils/dataChange.ts` (`define_variable`) · `catalogRuntime/stateVariables.ts` (`setType`)
 
 ## [ADR-286 사이트 설정을 페이지 `<head>` 에 · 변수 편집기 모양 복구] - 2026-10-28
 

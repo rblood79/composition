@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  configs: [{ id: "datatableEditor" }, { id: "navigator" }],
+  configs: [{ id: "codeView" }, { id: "navigator" }],
   createRegistryEntry: vi.fn((config: { id: string }) => ({ id: config.id })),
   dispatchActivation: vi.fn(() => true),
   activatePolicy: vi.fn(() => ({ ok: true, value: { layout: "next" } })),
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   setLayout: vi.fn(),
   storeState: {
     panelWorkspaceLayout: {
-      visibility: { datatableEditor: false },
+      visibility: { codeView: false },
     } as { visibility: Record<string, boolean> } | null,
   },
 }));
@@ -50,7 +50,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
       if (typeof fn === "function" && "mockClear" in fn) fn.mockClear();
     }
     mocks.storeState.panelWorkspaceLayout = {
-      visibility: { datatableEditor: false },
+      visibility: { codeView: false },
     };
   });
 
@@ -63,7 +63,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
     });
     document.body.appendChild(stage);
 
-    setPanelWorkspacePanelVisibility("datatableEditor", true);
+    setPanelWorkspacePanelVisibility("codeView", true);
 
     expect(mocks.createRegistryEntry).toHaveBeenNthCalledWith(
       1,
@@ -71,7 +71,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
       { width: 1234, height: 567 },
     );
     expect(mocks.dispatchActivation).toHaveBeenCalledWith(
-      "datatableEditor",
+      "codeView",
       true,
     );
     expect(mocks.activatePolicy).not.toHaveBeenCalled();
@@ -79,14 +79,14 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
   });
 
   it("이미 같은 상태면 아무것도 하지 않는다", () => {
-    setPanelWorkspacePanelVisibility("datatableEditor", false);
+    setPanelWorkspacePanelVisibility("codeView", false);
     expect(mocks.dispatchActivation).not.toHaveBeenCalled();
     expect(mocks.setLayout).not.toHaveBeenCalled();
   });
 
   it("dispatcher 가 없으면 같은 정책 함수 (activatePanelWorkspacePanelV4) 로 폴백한다 — visibility 직접 쓰기 0", () => {
     mocks.dispatchActivation.mockReturnValueOnce(false);
-    setPanelWorkspacePanelVisibility("datatableEditor", true);
+    setPanelWorkspacePanelVisibility("codeView", true);
     expect(mocks.activatePolicy).toHaveBeenCalledTimes(1);
     expect(mocks.setLayout).toHaveBeenCalledWith("next");
   });
@@ -99,8 +99,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
         "navigator",
         "components",
         "datatable",
-        "datatableEditor",
-        "datatableField",
+        "codeView",
         "theme",
         "ai",
         "properties",
@@ -121,6 +120,7 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
       [
         "navigator",
         "components",
+        "codeView",
         "ai",
         "properties",
         "styles",

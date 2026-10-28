@@ -413,6 +413,10 @@ const koKR: TranslationKeys = {
     libraryLocked:
       "Library 가 잠겨 있습니다 — Navigator 의 Library 잠금을 풀면 편집할 수 있습니다",
     ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
+    variableNameConflict:
+      "이미 같은 이름의 변수가 보이는 범위에 있습니다 — 다른 이름을 쓰세요",
+    variableNameShadows:
+      "그 이름을 이미 읽는 자리가 있어 다른 변수의 값을 가로채게 됩니다 — 다른 이름을 쓰세요",
   },
   history: {
     title: "작업 내역",
@@ -1073,6 +1077,19 @@ const koKR: TranslationKeys = {
     stateDeleteSettersMessage:
       "'{name}' 을 삭제합니다. 이 상태를 바꾸는 인터랙션 {count} 개도 함께 삭제됩니다.",
     stateAncestorTitle: "상속된 변수",
+    // ADR-288 — 공용 변수 표 (Data 패널 · State 절)
+    statePersist: "유지",
+    stateUsage: "사용처",
+    stateActions: "행 동작",
+    stateEmpty: "변수가 없습니다",
+    stateFollowsSource: "{prop} 를 따름",
+    stateRuleSets: "규칙이 정함",
+    stateGoToOwner: "소유자에서 편집",
+    stateRowActions: "{name} 동작",
+    stateJsonInvalid: "{type} 형식의 JSON 이 아닙니다",
+    stateView: "보기",
+    stateProjectVariables: "프로젝트 변수",
+    stateAllVariables: "모든 변수",
     stateOwnerProject: "프로젝트",
     stateOwnerPage: "페이지",
     stateInstanceHint: "인스턴스마다 별도 값",
@@ -1843,8 +1860,6 @@ const koKR: TranslationKeys = {
     navigator: "탐색기",
     components: "컴포넌트",
     dataTable: "데이터",
-    dataTableEditor: "데이터 편집기",
-    dataTableField: "필드",
     theme: "테마",
     settings: "설정",
     site: "사이트",
@@ -2110,6 +2125,12 @@ const koKR: TranslationKeys = {
     connectColumnsUnmatched: "새 스키마에 없는 컬럼: {keys}",
     connectReplaceColumns: "새 스키마로 컬럼 교체",
     gridAddRow: "행 추가",
+    insert: "삽입",
+    insertRow: "행 삽입",
+    insertColumn: "열 삽입",
+    editTable: "표 편집…",
+    tableSettings: "표 설정",
+    moreActions: "더 보기",
     gridDeleteRows: "{count}개 행 삭제",
     gridRowAdded: "행을 추가했습니다.",
     gridRowsDeleted: "{count}개 행을 삭제했습니다.",
@@ -2143,6 +2164,7 @@ const koKR: TranslationKeys = {
     fieldNamePlaceholder: "필드 이름 · Enter",
     fieldUsedBy: "사용처 {count}",
     fieldUsedByNone: "사용처 없음",
+    fieldUsage: "사용처",
     fieldDelete: "필드 삭제",
     fieldDeleteConfirmTitle: '"{key}" 필드 삭제',
     fieldDeleteConfirmUsed:
@@ -2347,6 +2369,7 @@ const koKR: TranslationKeys = {
     close: "닫기",
     tableList: "테이블",
     variableList: "변수 목록",
+    resizeList: "목록 폭 조절",
     apiList: "API 목록",
     global: "전역",
     page: "페이지",
@@ -3061,6 +3084,10 @@ const enUS: TranslationKeys = {
       "On an origin, only its outer element's props and styles change",
     libraryLocked: "The Library is locked — unlock it in the Navigator to edit",
     ungroupInstance: "An instance can't be ungrouped — detach it first",
+    variableNameConflict:
+      "A variable of that name is already visible here — choose another name",
+    variableNameShadows:
+      "Something already reads that name and would start reading this variable — choose another name",
   },
   history: {
     title: "History",
@@ -3719,6 +3746,19 @@ const enUS: TranslationKeys = {
     stateDeleteSettersMessage:
       "Delete '{name}'. The {count} interaction(s) that set it are deleted too.",
     stateAncestorTitle: "Inherited variables",
+    // ADR-288 — the shared variable table (Data panel · State section)
+    statePersist: "Persist",
+    stateUsage: "Used",
+    stateActions: "Row actions",
+    stateEmpty: "No variables",
+    stateFollowsSource: "follows {prop}",
+    stateRuleSets: "set by a rule",
+    stateGoToOwner: "Edit at owner",
+    stateRowActions: "{name} actions",
+    stateJsonInvalid: "Not valid {type} JSON",
+    stateView: "View",
+    stateProjectVariables: "Project variables",
+    stateAllVariables: "All variables",
     stateOwnerProject: "Project",
     stateOwnerPage: "Page",
     stateInstanceHint: "Separate value per instance",
@@ -4493,8 +4533,6 @@ const enUS: TranslationKeys = {
     navigator: "Navigator",
     components: "Components",
     dataTable: "Data",
-    dataTableEditor: "Data Editor",
-    dataTableField: "Field",
     theme: "Theme",
     settings: "Settings",
     site: "Site",
@@ -4762,6 +4800,12 @@ const enUS: TranslationKeys = {
     connectColumnsUnmatched: "Columns missing from the new schema: {keys}",
     connectReplaceColumns: "Replace columns with the new schema",
     gridAddRow: "Add row",
+    insert: "Insert",
+    insertRow: "Insert row",
+    insertColumn: "Insert column",
+    editTable: "Edit table…",
+    tableSettings: "Table settings",
+    moreActions: "More actions",
     gridDeleteRows: "Delete {count} rows",
     gridRowAdded: "Row added.",
     gridRowsDeleted: "Deleted {count} rows.",
@@ -4795,6 +4839,7 @@ const enUS: TranslationKeys = {
     fieldNamePlaceholder: "Field name · Enter",
     fieldUsedBy: "Used by {count}",
     fieldUsedByNone: "Not used",
+    fieldUsage: "Usage",
     fieldDelete: "Delete field",
     fieldDeleteConfirmTitle: 'Delete field "{key}"',
     fieldDeleteConfirmUsed:
@@ -5002,6 +5047,7 @@ const enUS: TranslationKeys = {
     close: "Close",
     tableList: "Tables",
     variableList: "Variable List",
+    resizeList: "Resize list",
     apiList: "API List",
     global: "Global",
     page: "Page",
@@ -6913,6 +6959,12 @@ const formattedMessages: Record<
     "capabilities.toggleProp": (args) => `${String(args?.prop ?? "")} 전환`,
     "propertiesPanel.stateUsageCount": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.stateFollowsSource": (args) =>
+      `${String(args?.prop ?? "")} 를 따름`,
+    "propertiesPanel.stateRowActions": (args) =>
+      `${String(args?.name ?? "")} 동작`,
+    "propertiesPanel.stateJsonInvalid": (args) =>
+      `${String(args?.type ?? "")} 형식의 JSON 이 아닙니다`,
     "propertiesPanel.slotRecommendations": (args) =>
       `추천 ${String(args?.count ?? 0)}개`,
     "propertiesPanel.resetOverride": (args) =>
@@ -7541,6 +7593,12 @@ const formattedMessages: Record<
     "capabilities.toggleProp": (args) => `Toggle ${String(args?.prop ?? "")}`,
     "propertiesPanel.stateUsageCount": (args) =>
       `Used in ${String(args?.count ?? 0)}`,
+    "propertiesPanel.stateFollowsSource": (args) =>
+      `follows ${String(args?.prop ?? "")}`,
+    "propertiesPanel.stateRowActions": (args) =>
+      `${String(args?.name ?? "")} actions`,
+    "propertiesPanel.stateJsonInvalid": (args) =>
+      `Not valid ${String(args?.type ?? "")} JSON`,
     "propertiesPanel.slotRecommendations": (args) =>
       `${String(args?.count ?? 0)} recommendations`,
     "propertiesPanel.resetOverride": (args) =>

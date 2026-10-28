@@ -244,11 +244,11 @@ describe("ADR-186 G4 v4 panel policy", () => {
     const surface = { width: 1600, height: 2000 } as const;
     const registry: PanelWorkspaceRegistryEntry[] = [
       { ...registryEntry("datatable", "left"), defaultWidth: 233 },
-      { ...registryEntry("datatableEditor", "left"), defaultWidth: 560 },
+      { ...registryEntry("codeView", "left"), defaultWidth: 560 },
       {
-        ...registryEntry("datatableField", "left"),
+        ...registryEntry("events", "left"),
         defaultWidth: 260,
-        snapTo: "datatableEditor",
+        snapTo: "codeView",
       },
       registryEntry("navigator", "left"),
       registryEntry("components", "left"),
@@ -279,37 +279,37 @@ describe("ADR-186 G4 v4 panel policy", () => {
       createDefaultPanelWorkspaceLayoutV4(registry, surface),
     );
     layout = act(layout, "datatable");
-    layout = act(layout, "datatableEditor");
+    layout = act(layout, "codeView");
     // 편집기는 목록 아래에 stack (surface 가 높아 overflow 없음 — column 폭은 목록 233 유지)
     expect(columnsOf(layout)).toEqual([
-      { width: 233, rows: ["datatable", "datatableEditor"] },
+      { width: 233, rows: ["datatable", "codeView"] },
     ]);
 
-    layout = act(layout, "datatableField");
+    layout = act(layout, "events");
     // 필드 패널은 세로 자리가 남아도 anchor 옆 새 column (자기 defaultWidth) 으로
     expect(columnsOf(layout)).toEqual([
-      { width: 233, rows: ["datatable", "datatableEditor"] },
-      { width: 260, rows: ["datatableField"] },
+      { width: 233, rows: ["datatable", "codeView"] },
+      { width: 260, rows: ["events"] },
     ]);
 
     // 닫았다 다시 열어도 같은 자리
-    layout = act(layout, "datatableField");
+    layout = act(layout, "events");
     expect(columnsOf(layout)).toEqual([
-      { width: 233, rows: ["datatable", "datatableEditor"] },
+      { width: 233, rows: ["datatable", "codeView"] },
     ]);
-    layout = act(layout, "datatableField");
+    layout = act(layout, "events");
     expect(columnsOf(layout)[1]).toEqual({
       width: 260,
-      rows: ["datatableField"],
+      rows: ["events"],
     });
 
     // anchor 가 안 보이면 일반 경로 — 마지막 자리 (자기 column) 를 그대로 보존한다
-    layout = act(layout, "datatableField");
-    layout = act(layout, "datatableEditor");
-    layout = act(layout, "datatableField");
+    layout = act(layout, "events");
+    layout = act(layout, "codeView");
+    layout = act(layout, "events");
     expect(columnsOf(layout)).toEqual([
       { width: 233, rows: ["datatable"] },
-      { width: 260, rows: ["datatableField"] },
+      { width: 260, rows: ["events"] },
     ]);
   });
 
@@ -317,11 +317,11 @@ describe("ADR-186 G4 v4 panel policy", () => {
     const surface = { width: 4000, height: 2000 } as const;
     const registry: PanelWorkspaceRegistryEntry[] = [
       registryEntry("datatable", "left"),
-      registryEntry("datatableEditor", "left"),
+      registryEntry("codeView", "left"),
       {
-        ...registryEntry("datatableField", "left"),
+        ...registryEntry("events", "left"),
         defaultWidth: 260,
-        snapTo: "datatableEditor",
+        snapTo: "codeView",
       },
     ];
     const layout = requireLayout(
@@ -337,8 +337,8 @@ describe("ADR-186 G4 v4 panel policy", () => {
         id: "c1",
         width: 200,
         rows: [
-          { panelId: "datatableEditor", height: 100 },
-          { panelId: "datatableField", height: 100 },
+          { panelId: "codeView", height: 100 },
+          { panelId: "events", height: 100 },
         ],
       },
     ];
@@ -350,11 +350,11 @@ describe("ADR-186 G4 v4 panel policy", () => {
       });
     }
     layout.visibility.datatable = true;
-    layout.visibility.datatableEditor = true;
+    layout.visibility.codeView = true;
     const result = activatePanelWorkspacePanelV4(
       layout,
       registry,
-      "datatableField",
+      "events",
       surface,
     );
     expect(result.ok).toBe(true);
@@ -362,11 +362,11 @@ describe("ADR-186 G4 v4 panel policy", () => {
     const column = result.value.layout.clusters
       .find((c) => c.placementZone === "top-left")!
       .columns.find((c) =>
-        c.rows.some((r) => r.panelId === "datatableEditor"),
+        c.rows.some((r) => r.panelId === "codeView"),
       )!;
     expect(column.rows.map((r) => r.panelId)).toEqual([
-      "datatableEditor",
-      "datatableField",
+      "codeView",
+      "events",
     ]);
   });
 

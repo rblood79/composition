@@ -860,5 +860,7 @@
     inline-size: 233px;
     max-width: none;
     padding: 8px;
+    /* 빌더 팝오버 그림자 — Select 목록 · 메뉴와 같은 높이 (2026-10-29) */
+    box-shadow: var(--shadow-lg);
   }
 }

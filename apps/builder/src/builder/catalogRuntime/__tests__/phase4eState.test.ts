@@ -104,9 +104,10 @@ describe("ADR-248 Phase 4e-4 State section", () => {
     // Its own variables are not listed as visible from ancestors.
     expect(catalogAncestorVariables(graph, id("inner"))).toEqual([pageVar]);
     // The page sees a descendant's name as taken (it would shadow); a sibling branch does not.
-    expect(catalogVariableNameConflict(graph, PAGE, "open")?.ownerId).toBe(
-      id("inner"),
-    );
+    expect(
+      (catalogVariableNameConflict(graph, PAGE, "open") as StateVariableEntry)
+        .ownerId,
+    ).toBe(id("inner"));
     expect(catalogVariableNameConflict(graph, id("side"), "open")).toBe(
       undefined,
     );

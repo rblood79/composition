@@ -6,8 +6,6 @@ import type { PanelProps } from "../core/types";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/i18n";
-import { DataTableEditorPanel } from "./DataTableEditorPanel";
-import { DataTableFieldPanel } from "./DataTableFieldPanel";
 import { DataTablePanel } from "./DataTablePanel";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 
@@ -23,10 +21,9 @@ afterEach(() => {
   useDataTableEditorStore.getState().close();
 });
 
+// ADR-288: the Data panel is the one data surface (editor · field panels are gone).
 const PANELS: [string, ComponentType<PanelProps>][] = [
   ["DataTablePanel", DataTablePanel],
-  ["DataTableEditorPanel", DataTableEditorPanel],
-  ["DataTableFieldPanel", DataTableFieldPanel],
 ];
 
 describe("Data panels before the workspace exists", () => {

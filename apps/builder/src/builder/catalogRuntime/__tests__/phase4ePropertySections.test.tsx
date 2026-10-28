@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -238,10 +238,15 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    // The page's variable shows as visible from an ancestor.
-    expect(
-      container.querySelector(".state-ancestor-row")?.textContent,
-    ).toContain("taken");
+    // The page's variable shows as visible from an ancestor (a read-only row of the table — the
+    // table is a lazy chunk in the Design panel, G5).
+    await waitFor(() =>
+      expect(
+        container.querySelector(
+          '[data-group="ancestors"] .variable-table__row[data-read-only]',
+        )?.textContent,
+      ).toContain("taken"),
+    );
     const add = within(container).getByRole("button", { name: "Add" });
     expect(add.closest(".section-header .section-actions")).not.toBeNull();
     await act(async () => {
@@ -255,54 +260,64 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     const own = () => catalogOwnVariables(graph, id("a"));
     expect(own().map((variable) => variable.name)).toEqual(["state1"]);
-    expect(container.querySelector(".state-def-toggle")).toBeNull();
-    const nameField = within(container).getByRole("group", { name: "Name" });
-    expect(
-      nameField.querySelector(".react-aria-control .state-variable-type"),
-    ).not.toBeNull();
-    expect(nameField.querySelector(".select-chevron")).toBeNull();
-    expect(
-      within(container)
-        .getByRole("button", { name: "Delete" })
-        .closest(".fieldset-actions"),
-    ).not.toBeNull();
-    const revision = graph.revision;
-    const input = container.querySelector(
-      ".state-variable-row input",
+    // ADR-288: the own variables are rows of the shared table (name · type · default + ⋮).
+    const explicit = () =>
+      container.querySelector('[data-group="explicit"]') as HTMLElement;
+    await waitFor(() =>
+      expect(
+        explicit().querySelector(".variable-table__cell-name input"),
+      ).not.toBeNull(),
+    );
+    const input = explicit().querySelector(
+      ".variable-table__cell-name input",
     ) as HTMLInputElement;
+    expect(input.value).toBe("state1");
+    expect(
+      explicit().querySelector(".variable-table__cell-type .react-aria-Select"),
+    ).not.toBeNull();
+    expect(
+      within(explicit()).getByRole("button", { name: "state1 actions" }),
+    ).toBeTruthy();
+    const revision = graph.revision;
     fireEvent.change(input, { target: { value: "taken" } });
     await act(async () => {
       fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.blur(input);
     });
-    expect(container.querySelector(".state-def-error")?.textContent).toContain(
-      "taken",
-    );
+    expect(
+      container.querySelector(".variable-table__error")?.textContent,
+    ).toContain("taken");
     expect(graph.revision).toBe(revision);
     fireEvent.change(input, { target: { value: "open" } });
     await act(async () => {
       fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.blur(input);
     });
     expect(own().map((variable) => variable.name)).toEqual(["open"]);
     expect(graph.revision).toBe(revision + 1);
-    expect(container.querySelector(".state-def-error")).toBeNull();
+    expect(container.querySelector(".variable-table__error")).toBeNull();
     // The default field was rendered before the rename; its edit keeps the new name.
-    const defaultInput = container.querySelectorAll(
-      ".state-variable-row input",
-    )[1] as HTMLInputElement;
+    const defaultInput = explicit().querySelector(
+      ".variable-table__cell-default input",
+    ) as HTMLInputElement;
     fireEvent.change(defaultInput, { target: { value: "hello" } });
     await act(async () => {
       fireEvent.keyDown(defaultInput, { key: "Enter" });
+      fireEvent.blur(defaultInput);
     });
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
-    // Changing the embedded type keeps the edited name and resets the default for that type.
-    const typeSelect = nameField.querySelector(".state-variable-type select")!;
+    // Changing the type keeps the edited name; "hello" does not fit Number → the type's empty
+    // (ADR-288 결정 1).
+    const typeSelect = explicit().querySelector(".variable-table__type select")!;
     await act(async () => {
       fireEvent.change(typeSelect, { target: { value: "number" } });
     });
     expect(own()).toMatchObject([
       { name: "open", valueType: "number", defaultValue: 0 },
     ]);
-    expect(nameField.querySelector("button")?.textContent).toBe("number");
+    expect(
+      explicit().querySelector(".variable-table__type button")?.textContent,
+    ).toBe("number");
   });
 
   it("the component state commits only changed names and removes or resets in the same field", async () => {

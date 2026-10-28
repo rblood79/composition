@@ -17,7 +17,7 @@ import {
 function createV1Layout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
-    leftPanels: ["navigator", "datatableEditor", "settings"],
+    leftPanels: ["navigator", "codeView", "settings"],
     rightPanels: ["properties", "history"],
     activeLeftPanels: ["navigator"],
     activeRightPanels: ["properties"],
@@ -236,7 +236,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
     expect(result.railOrder.left).toEqual([
       "navigator",
       "settings",
-      "datatableEditor",
+      "codeView",
     ]);
     expect(placementIds(result)).not.toContain("removed");
     expect(

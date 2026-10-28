@@ -50,8 +50,8 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
   );
   const createVariable = useDataStore((state) => state.createVariable);
   const variables = useVariables();
-  const openVariableEditor = useDataTableEditorStore(
-    (state) => state.openVariableEditor,
+  const openVariables = useDataTableEditorStore(
+    (state) => state.openVariables,
   );
 
   const [name, setName] = useState("");
@@ -75,7 +75,8 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
         persist: false,
         scope: "global",
       });
-      openVariableEditor(created.id);
+      void created;
+      openVariables(projectId);
     } catch (error) {
       console.error("Variable 생성 실패:", error);
       globalToast.error(
@@ -90,7 +91,7 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
     trimmed,
     projectId,
     type,
-    openVariableEditor,
+    openVariables,
     localize,
   ]);
 

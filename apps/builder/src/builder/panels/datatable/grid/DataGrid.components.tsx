@@ -44,13 +44,18 @@ import {
 
 import { Button } from "react-aria-components/Button";
 
-import { Checkbox } from "react-aria-components/Checkbox";
-
 import { Dialog } from "react-aria-components/Dialog";
 
 import { Heading } from "react-aria-components/Heading";
 
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+
 import { Popover } from "react-aria-components/Popover";
+
+// ADR-288 G6 수정 7 (사용자 2026-10-29 「checkbox 도 selected · indeterminate 정상작동하지 않는다」):
+// the grid drew its own box — a filled square with no check and no dash, so all-selected and
+// some-selected looked the same. The shared Checkbox (Builder chrome, `Checkbox.css`) draws both.
+import { Checkbox } from "@composition/shared/components/list";
 
 import {
   Cell,
@@ -86,7 +91,7 @@ import { globalToast } from "../../../stores/toast";
 
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 
-import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
+import { ColumnEditorPopover } from "./ColumnEditorPopover";
 
 import { planFieldRename } from "../utils/fieldRename";
 
@@ -101,6 +106,8 @@ import {
 } from "./cellValue";
 
 import "./DataGrid.css";
+// The Insert menu's popover · items use the row-menu sheet (the inspector's ⋮ menu visuals).
+import "../../../components/property/PropertyRowMenu.css";
 
 import { resolveGridKey } from "./gridKeys";
 
@@ -143,9 +150,6 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [i18n],
   );
   const applyDataChange = useDataStore((state) => state.applyDataChange);
-  const openFieldPanel = useDataTableEditorStore(
-    (state) => state.openFieldPanel,
-  );
   const schema = table.schema;
   const rows = table.mockData;
   const collectionId = table.id;
@@ -722,13 +726,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                 labelId={`${gridId}-h-${column.field!.key}`}
                 renaming={renamingKey === column.field!.key}
                 t={t}
-                onOpenPanel={(options) =>
-                  openFieldPanel(
-                    collectionId,
-                    column.field!.id ?? column.field!.key,
-                    options,
-                  )
-                }
+                table={table}
                 onStartRename={() => setRenamingKey(column.field!.key)}
                 onCancelRename={() => setRenamingKey(null)}
                 onCommitRename={(raw) => void commitRename(column.field!, raw)}
@@ -760,12 +758,10 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               column.id === SELECT_COLUMN ? (
                 <Cell className="datagrid-cell datagrid-cell-select">
                   <Checkbox
-                    slot="selection"
+                    size="S"
                     aria-label={t("gridSelectRow")}
                     className="datagrid-checkbox"
-                  >
-                    <span className="datagrid-checkbox-box" />
-                  </Checkbox>
+                  />
                 </Cell>
               ) : (
                 <DataGridCell
@@ -835,14 +831,68 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
             onChange={handleFileSelect}
             style={{ display: "none" }}
           />
-          <Button
-            className="control-button"
-            onPress={() => fileInputRef.current?.click()}
-            aria-label={t("importCsv")}
-          >
-            <Upload {...iconEditProps} />
-            {t("import")}
-          </Button>
+          {/* ADR-288 G6 수정 8 (Supabase Table Editor 대조, 2026-10-29): one `Insert ▾` menu —
+              row · column · CSV import — in place of the footer's Add row and the toolbar's
+              Import. With rows selected the bar swaps to `Delete N rows` (the selection toolbar). */}
+          {selectedRowIndexes.length > 0 ? (
+            <Button
+              className="control-button"
+              data-tone="danger"
+              onPress={() => void deleteSelected()}
+            >
+              <DeleteIcon {...iconEditProps} />
+              {t("gridDeleteRows", { count: selectedRowIndexes.length })}
+            </Button>
+          ) : (
+            <MenuTrigger>
+              <Button
+                className="control-button datagrid-insert-trigger"
+                aria-label={t("insert")}
+              >
+                <AddIcon {...iconEditProps} />
+                {t("insert")}
+                <ChevronDown size={iconSmall.size} aria-hidden="true" />
+              </Button>
+              <Popover
+                className="react-aria-Popover property-select-popover property-row-menu-popover"
+                placement="bottom end"
+              >
+                <Menu
+                  className="react-aria-Menu property-row-menu"
+                  aria-label={t("insert")}
+                  disabledKeys={schema.length === 0 ? ["row"] : []}
+                  onAction={(key) => {
+                    if (key === "row") void addRow();
+                    else if (key === "column") openAddField();
+                    else if (key === "csv") fileInputRef.current?.click();
+                  }}
+                >
+                  <MenuItem
+                    id="row"
+                    className="react-aria-MenuItem"
+                    textValue={t("insertRow")}
+                  >
+                    <span>{t("insertRow")}</span>
+                  </MenuItem>
+                  <MenuItem
+                    id="column"
+                    className="react-aria-MenuItem"
+                    textValue={t("insertColumn")}
+                  >
+                    <span>{t("insertColumn")}</span>
+                  </MenuItem>
+                  <MenuItem
+                    id="csv"
+                    className="react-aria-MenuItem"
+                    textValue={t("importCsv")}
+                  >
+                    <Upload size={iconSmall.size} />
+                    <span>{t("importCsv")}</span>
+                  </MenuItem>
+                </Menu>
+              </Popover>
+            </MenuTrigger>
+          )}
           <Button
             className="control-button"
             onPress={handleExportCSV}
@@ -930,27 +980,6 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           )}
         </div>
       </div>
-      <div className="datagrid-footer">
-        <Button
-          className="control-button"
-          data-variant="add"
-          onPress={() => void addRow()}
-          isDisabled={schema.length === 0}
-        >
-          <AddIcon {...iconEditProps} />
-          {t("gridAddRow")}
-        </Button>
-        {selectedRowIndexes.length > 0 && (
-          <Button
-            className="control-button"
-            data-tone="danger"
-            onPress={() => void deleteSelected()}
-          >
-            <DeleteIcon {...iconEditProps} />
-            {t("gridDeleteRows", { count: selectedRowIndexes.length })}
-          </Button>
-        )}
-      </div>
       <ConfirmDialog
         isOpen={pendingPaste !== null}
         title={t("gridPasteExtraTitle")}
@@ -986,7 +1015,7 @@ function ColumnHead({
   labelId,
   renaming,
   t,
-  onOpenPanel,
+  table,
   onStartRename,
   onCancelRename,
   onCommitRename,
@@ -994,11 +1023,19 @@ function ColumnHead({
   const typeEntry = resolveFieldType(field.type);
   const TypeGlyph = typeEntry.icon;
   const typeLabel = `${t("fieldType")}: ${t(typeEntry.i18n)}`;
+  // ADR-288 Decision 2 — the column editor opens under the head (label · chevron), the type icon
+  // opens it on the type list. Esc · outside closes it (RAC Popover).
+  const headRef = useRef<HTMLDivElement>(null);
+  const [editor, setEditor] = useState<{ focus?: "type" } | null>(null);
+  const onOpenPanel = (options?: { focus?: "type" }) =>
+    setEditor(options ?? {});
   return (
     <div
+      ref={headRef}
       className="datagrid-column-head"
       data-field-type={field.type}
       data-renaming={String(renaming)}
+      data-editor-open={editor ? "true" : undefined}
       onDoubleClick={(e) => {
         if (renaming) return;
         e.preventDefault();
@@ -1045,6 +1082,16 @@ function ColumnHead({
       >
         <ChevronDown size={iconSmall.size} />
       </Button>
+      <ColumnEditorPopover
+        table={table}
+        field={field}
+        triggerRef={headRef}
+        isOpen={editor !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditor(null);
+        }}
+        focus={editor?.focus}
+      />
     </div>
   );
 }
@@ -1112,13 +1159,7 @@ function SelectColumn({ label }: { label: string }) {
       className="datagrid-column datagrid-column-select"
     >
       {selectionMode === "multiple" && (
-        <Checkbox
-          slot="selection"
-          aria-label={label}
-          className="datagrid-checkbox"
-        >
-          <span className="datagrid-checkbox-box" />
-        </Checkbox>
+        <Checkbox size="S" aria-label={label} className="datagrid-checkbox" />
       )}
     </Column>
   );

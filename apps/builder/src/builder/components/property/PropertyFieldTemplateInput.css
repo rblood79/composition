@@ -70,8 +70,16 @@
    않는다. 언레이어 규칙이라 @layer components 를 이긴다.
    행 기하 (28 · pad 0 8 · fs 12) 는 builder-menu-row.css 메뉴 항목 규격 (panel-ui 21) —
    여기는 모서리·굵기만. ListBox(md): border-radius radius-lg. */
+/* 테두리 · 그림자는 Popover 한 곳 (RAC 레퍼런스 · 빌더 Select 목록과 같다 — PropertyRowMenu.css
+   머리말, 2026-10-29). Menu 는 테두리 없이 Popover 모서리를 따른다. */
+.property-select-popover[data-trigger="MenuTrigger"]:has(> .field-picker-menu) {
+  box-shadow: var(--shadow-lg);
+}
+
 .react-aria-Menu.field-picker-menu {
-  border-radius: var(--radius-lg);
+  border: none;
+  background: transparent;
+  border-radius: inherit;
 }
 
 .react-aria-Menu.field-picker-menu .react-aria-MenuItem {

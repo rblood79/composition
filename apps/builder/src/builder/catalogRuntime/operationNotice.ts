@@ -25,7 +25,22 @@ const REASON_KEY: Record<string, string> = {
   REQUIRED_PART_NOT_REMOVABLE: "operation.requiredPartKept",
   // ADR-256 Phase 5i-3: a Table row keeps one cell per column (RAC).
   TABLE_CELLS_NOT_ALIGNED: "operation.tableCellsAligned",
+  // ADR-288: a variable's new name is taken where it is visible, or would capture a `{{ name }}`.
+  VARIABLE_NAME_CONFLICT: "operation.variableNameConflict",
+  VARIABLE_NAME_SHADOWS: "operation.variableNameShadows",
 };
+
+/**
+ * A refused command with a known reason (a rule the edit met — not a failure): tell why and
+ * return true; anything else returns false for the caller's own report.
+ */
+export function notifyKnownRefusal(error: unknown): boolean {
+  if (!(error instanceof CatalogValidationError)) return false;
+  const key = REASON_KEY[error.code];
+  if (!key) return false;
+  useToastStore.getState().showToast("info", key, { messageKey: key });
+  return true;
+}
 
 /**
  * The nesting violation behind a refusal (`fail("NESTING_NOT_ALLOWED", "Parent>Child")`),

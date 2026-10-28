@@ -45,6 +45,7 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import type { CodeEditorApi, CodeEditorVocabulary } from "./CodeEditor";
 import { codeViewMessages, codeViewSnippetLabels } from "./codeViewMessages";
 import "./CatalogCodeViewPanel.css";
+import "../../components/property/PropertyRowMenu.css";
 
 /** ADR-285 — the editor (CodeMirror 6) is its own chunk, loaded when the panel opens. */
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -358,12 +359,14 @@ function CodeViewContent() {
             </Button>
             <MenuTrigger>
               <Button className="control-button">{snippetLabels.menu}</Button>
+              {/* The Builder menu surface (PropertyRowMenu.css): border · shadow on the Popover,
+                  the Menu borderless — RAC reference, 2026-10-29. */}
               <Popover
-                className="react-aria-Popover property-select-popover"
+                className="react-aria-Popover property-select-popover property-row-menu-popover"
                 placement="bottom start"
               >
                 <Menu
-                  className="react-aria-Menu"
+                  className="react-aria-Menu property-row-menu"
                   aria-label={snippetLabels.menu}
                   items={snippetItems}
                   renderEmptyState={() => snippetLabels.none}

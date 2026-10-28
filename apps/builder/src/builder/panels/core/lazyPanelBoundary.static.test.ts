@@ -15,8 +15,6 @@ const PANELS = resolve(__dirname, "..");
 
 /** lazy 대상 — `dir` 은 값 import 가 허용되는 패널 디렉토리, `module` 은 구현 파일 basename */
 const LAZY_TARGETS = [
-  { dir: "datatable", module: "DataTableEditorPanel" },
-  { dir: "datatable", module: "DataTableFieldPanel" },
   { dir: "ai", module: "AIPanel" },
   { dir: "history", module: "CatalogHistoryPanel" },
   { dir: "datatable", module: "DataTablePanel" },

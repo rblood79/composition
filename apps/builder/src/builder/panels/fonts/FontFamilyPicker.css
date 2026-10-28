@@ -2,11 +2,14 @@
   /* 팝오버 껍데기는 다른 패널 드롭다운과 같은 `.react-aria-Popover` 를 쓰고,
      내용 배치(검색 / 목록 높이 / 관리 진입 줄)만 여기서 정한다. */
   /* 233 = 색 · 아이콘 팝오버와 같은 폭 (종전 내용 폭 179) — 안쪽 pad 8 (panel-ui 20) */
+  /* 빌더 팝오버 표면 — 테두리 · 그림자는 Popover (Select 목록 · 행 메뉴와 같은 `--shadow-lg`,
+     2026-10-29 사용자 「다른 menu, popover, select 에도 동일하게」). */
   .react-aria-Popover.font-picker-popover {
     box-sizing: border-box;
     inline-size: 233px;
     min-width: 233px;
     max-width: none;
+    box-shadow: var(--shadow-lg);
   }
 
   .font-picker-dialog {

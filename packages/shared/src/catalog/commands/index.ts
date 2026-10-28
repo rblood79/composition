@@ -139,3 +139,6 @@ export {
   tableHeaderPosition,
   type TableColumnSpec,
 } from "./collections";
+
+// ADR-288 — a variable rename that keeps its `{{ }}` references.
+export { renameVariable } from "./variables";
