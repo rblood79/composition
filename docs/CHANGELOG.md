@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **앱 toast 위치가 Site 패널로**: Preview · Publish 앱의 값이라 Builder 설정 (Settings) 에서 Site 패널의 「App」 절로 옮겼다 (사용자 결정 2026-10-28). 필드 · 동작은 같다. 페이지 레이아웃도 함께 Site 로 옮겼다가, Canvas 의 페이지 배치라 Builder 설정에 두기로 해 같은 날 Settings 의 「Page Layout」 절로 되돌렸다 (사용자 결정).
+- **앱 toast 위치가 Site 패널로**: Preview · Publish 앱의 값이라 Builder 설정 (Settings) 에서 Site 패널의 「App」 절로 옮겼다 (사용자 결정 2026-10-28). 필드 · 동작은 같다. 페이지 레이아웃도 함께 Site 로 옮겼다가, Canvas 의 페이지 배치라 Builder 설정에 두기로 해 같은 날 Settings 의 「Page Layout」 절로 되돌렸다 (사용자 결정) 이때 Page Gap 과 Column Count 를 한 줄에 두었다 (tier 스위치는 아래 줄).
   - 위치: `apps/builder/src/builder/panels/site/SitePageSections.tsx` (+ `useCatalogToastPlacement` 이동) · `panels/settings/SettingsPageLayoutSection.tsx` (+ `useCatalogPageLayout`)
 - **패널 제목 · 아이콘 피커 · 테마 토글이 언어 설정을 따른다**: Components · AI · Interactions 패널 제목이 메뉴 · 레일과 같은 번역 라벨이 됐다 (AI 패널 제목 「AI Assistant」 → 「AI」). 아이콘 피커의 검색 · 개수 문구와 테마 패널의 라이트 · 다크 토글 이름도 번역된다. Site 페이지 레이아웃의 방향 라벨은 Styles 와 같은 「방향」.
   - 위치: `apps/builder/src/builder/panels/{components/ComponentList,ai/AIPanel,interactions/catalog/CatalogInteractionsPanel,icons/IconPickerPopover,themes/ThemesPanel}.tsx` · `src/i18n/translations.ts`

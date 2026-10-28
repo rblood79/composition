@@ -55,6 +55,8 @@ export function SettingsPageLayoutSection() {
 
   return (
     <PropertySection id="settings-page-layout" title={t("settings.pageLayout")}>
+      {/* Page Gap | Column Count 한 줄 (2026-10-28 사용자 지적 — 종전엔 열 수 줄에 tier 스위치가
+          같이 있어 두 줄로 갈렸다). 열 수는 Auto 방향에서만. */}
       <div className="fieldset-row settings-row">
         {/* 「80 PX」 — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + stepper (panel-ui 20 — 대조 B11) */}
         <PropertyUnitInput
@@ -67,10 +69,8 @@ export function SettingsPageLayoutSection() {
           unitSuffix
           allowKeywords={false}
         />
-      </div>
-      {/* ADR-232 — 컨테이너 폭은 뷰포트가 아니라 **열 수** 다 (대안 D 기각). */}
-      {layoutView.direction === "auto" && (
-        <div className="fieldset-row settings-row">
+        {/* ADR-232 — 컨테이너 폭은 뷰포트가 아니라 **열 수** 다 (대안 D 기각). */}
+        {layoutView.direction === "auto" && (
           <PropertyUnitInput
             label={t("settings.pageColumns")}
             value={columnsFieldValue}
@@ -85,19 +85,21 @@ export function SettingsPageLayoutSection() {
             unitSuffix
             allowKeywords
           />
-          {layoutView.tierOverrideAvailable && (
-            <PropertySwitch
-              label={t("settings.pageLayoutTierOverride")}
-              isSelected={layoutView.hasTierOverride}
-              onChange={(selected: boolean) =>
-                catalogLayout.change({
-                  kind: "tierOverride",
-                  enabled: selected,
-                })
-              }
-              icon={ACTION_ICONS.toggleRulers}
-            />
-          )}
+        )}
+      </div>
+      {layoutView.direction === "auto" && layoutView.tierOverrideAvailable && (
+        <div className="fieldset-row settings-row">
+          <PropertySwitch
+            label={t("settings.pageLayoutTierOverride")}
+            isSelected={layoutView.hasTierOverride}
+            onChange={(selected: boolean) =>
+              catalogLayout.change({
+                kind: "tierOverride",
+                enabled: selected,
+              })
+            }
+            icon={ACTION_ICONS.toggleRulers}
+          />
         </div>
       )}
       <PropertySizeToggle
