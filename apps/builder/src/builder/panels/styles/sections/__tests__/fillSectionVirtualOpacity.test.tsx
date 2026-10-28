@@ -1,11 +1,21 @@
 // @vitest-environment jsdom
 /**
  * 2026-10-05 감사 — fill 이 없는 요소의 가상 fill 행에서 opacity 를 commit 하면 실제 fill 로
- * 승격된다 (미리보기만 하고 commit 분기가 없어 문서가 그대로 남던 결함).
+ * 승격된다 (미리보기만 하고 commit 분기가 없어 문서가 그대로 남던 결함). 행 opacity scrub 은
+ * 2026-10-28 제거 — opacity 는 팝오버 (단색 = 피커 알파) 가 commit 한다.
  */
 import "fake-indexeddb/auto";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../components/FillDetailPopover", () => ({
+  FillDetailPopover: ({
+    onOpacityChangeEnd,
+  }: {
+    onOpacityChangeEnd: (opacity: number) => void;
+  }) => <button onClick={() => onOpacityChangeEnd(0.5)}>commit 50%</button>,
+}));
+
 import { I18nProvider } from "@/i18n";
 import { openStylesFixture } from "../../__tests__/support/catalogStylesFixture";
 import { FillSection } from "../FillSection";
@@ -24,17 +34,11 @@ describe("FillSection virtual fill opacity", () => {
         </Wrapper>
       </I18nProvider>,
     );
-    const display = view.getAllByLabelText("Fill opacity")[0]!;
-    fireEvent.pointerDown(display, { button: 0, clientX: 0, clientY: 0 });
-    fireEvent.pointerUp(document, { button: 0, clientX: 0, clientY: 0 });
-    const input = view
-      .getAllByLabelText("Fill opacity")
-      .find((el) => el.tagName === "INPUT") as HTMLInputElement;
-    expect(input).toBeDefined();
-    fireEvent.change(input, { target: { value: "50" } });
-    // Enter blurs the input (jsdom: the input is not focused — the blur commits).
     await act(async () => {
-      fireEvent.blur(input);
+      fireEvent.click(view.getByLabelText("Edit fill"));
+    });
+    await act(async () => {
+      fireEvent.click(await view.findByText("commit 50%"));
     });
     const fills = fixture.host.readFills();
     expect(fills).toHaveLength(1);

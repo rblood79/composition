@@ -550,7 +550,7 @@
       }
     }
 
-    /* Fill 절 — 레이어 행 목록 (FillLayerRow 가 c12 + 28 열 두 칸을 스스로 그린다) */
+    /* Fill 절 — 레이어 행 목록 (FillLayerRow 가 행 템플릿의 c12 + 28 열을 스스로 그린다) */
     &[data-section-id="fill"] .section-content {
       display: grid;
       gap: var(--spacing-sm);

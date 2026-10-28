@@ -5,13 +5,14 @@
  */
 
 @layer components {
-  /* 목록 행 = c12 (그룹 28) + 액션 그룹 (눈 · 삭제).
-     그룹 안은 다른 28 그룹과 같은 규칙 — pad 4, 안쪽 컨트롤 20:
-     [swatch 20×20 (팝오버 trigger, 라벨 포함 flex 1)] [불투명도 scrub 20] + 액션 그룹 [눈 20][제거 20]
-     (2026-09-15 사용자 판정 — 종전 swatch 16 · scrub 28 · 제거 28 hover 전용 · 눈 28 열) */
+  /* 목록 행 = Layout 절과 같은 행 템플릿 (`1fr 1fr 28` — 7칸 격자 3 + 3 | 1).
+     본문 그룹 28 이 c12, 액션 칸이 c3 (눈 하나). 그룹 안은 다른 28 그룹과 같은 규칙 — pad 4,
+     안쪽 컨트롤 20: [swatch 20 + 라벨 (팝오버 trigger, flex 1)] [제거 20] | [눈 20]
+     (2026-10-28 사용자 결정 — 종전 opacity scrub 자리에 제거, 액션 칸에 눈 · 제거 둘이라
+     행이 격자를 벗어났다) */
   .fill-layer-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: var(--inspector-row-columns);
     gap: var(--spacing-sm);
     align-items: center;
     opacity: 0.5;
@@ -22,6 +23,7 @@
   }
 
   .fill-layer-row__body {
+    grid-column: span 2;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
@@ -98,16 +100,7 @@
     min-width: 0;
   }
 
-  /* Opacity scrub — 그룹 안 20 (ScrubInput 기본 28 상자를 안쪽 티어로) */
-  .fill-layer-row__opacity-scrub.scrub-input {
-    width: 48px;
-    flex-shrink: 0;
-    block-size: var(--text-xl);
-    border: none;
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* 행 액션 그룹 — 28 그룹 안 20×20 둘 (눈 토글 · 삭제). 행 템플릿의 28 열 대신 auto 폭 (52). */
+  /* 행 액션 칸 — 28 상자 안 20×20 눈 토글 하나 (행 템플릿의 28 열) */
   .fill-layer-row__actions {
     display: flex;
     align-items: center;

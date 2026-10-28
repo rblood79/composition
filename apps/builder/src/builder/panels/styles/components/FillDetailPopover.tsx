@@ -249,8 +249,8 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       )}
 
       <div className="fill-detail-popover__divider" />
-      {/* 푸터 — Blend 하나. 레이어 Opacity 는 레이어 행의 scrub 과 피커 알파가 같은 숫자라 별도
-          행이 없다 (2026-09-15 사용자 판정). 그래디언트는 stop 마다 알파 (다른 축). */}
+      {/* 푸터 — Blend 하나. 단색의 레이어 Opacity 는 피커 알파가 같은 숫자라 별도 행이 없다
+          (2026-09-15 사용자 판정 · 행 scrub 은 2026-10-28 제거). 그래디언트는 stop 마다 알파. */}
       <div className="fill-detail-popover__footer">
         {/* 아이콘 prefix 없음 — legend 가 이름을 준다 (panel-ui 17 — 대조 B13) */}
         <PropertySelect

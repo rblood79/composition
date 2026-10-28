@@ -7,7 +7,7 @@
 @layer components {
   /* 상자 = .scrub-input 하나 (28 = --control-size, 테두리·배경·suffix 를 한 상자 안에).
      종전에는 display/field 가 각자 padding 2 로 24 였고 suffix 가 상자 밖에 붙어
-     소비처마다 (Fill opacity 24 · 스톱 위치 22 · Mesh grid 24 · RGBA 24) 티어 밖 값이
+     소비처마다 (스톱 위치 22 · Mesh grid 24 · RGBA 24) 티어 밖 값이
      났다 — 여기서 한 번에 28 (panel-ui 17, 2026-09-14). */
   .scrub-input {
     display: flex;

@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/panels/site/SitePageSections.tsx` (+ `useCatalogPageLayout` · `useCatalogToastPlacement` 이동)
 - **패널 제목 · 아이콘 피커 · 테마 토글이 언어 설정을 따른다**: Components · AI · Interactions 패널 제목이 메뉴 · 레일과 같은 번역 라벨이 됐다 (AI 패널 제목 「AI Assistant」 → 「AI」). 아이콘 피커의 검색 · 개수 문구와 테마 패널의 라이트 · 다크 토글 이름도 번역된다. Site 페이지 레이아웃의 방향 라벨은 Styles 와 같은 「방향」.
   - 위치: `apps/builder/src/builder/panels/{components/ComponentList,ai/AIPanel,interactions/catalog/CatalogInteractionsPanel,icons/IconPickerPopover,themes/ThemesPanel}.tsx` · `src/i18n/translations.ts`
+- **Fill 행이 Layout 절과 같은 격자에 선다**: 행 오른쪽 액션 묶음에 눈 · 제거 두 버튼이 있어 열이 `152 · 52` 로 인스펙터 행 템플릿 (`1fr 1fr 28` — Layout 절의 7칸 격자 3 + 3 | 1) 을 벗어났다. 행 안의 opacity scrub 을 지우고 그 자리에 제거 「−」 를 두어, 본문은 두 칸 · 액션 칸은 눈 토글 하나가 됐다 (사용자 결정 2026-10-28). 단색 fill 의 opacity 는 팝오버의 피커 알파로 바꾼다 — 그래디언트 · 이미지 fill 의 레이어 opacity 칸은 이제 없다.
+  - 위치: `apps/builder/src/builder/panels/styles/components/FillLayerRow.{tsx,css}`
 
 ### Removed
 

@@ -364,7 +364,6 @@ export const semanticLabelKeys: Record<string, string> = {
   "Remove fill": "styles.fill.removeFill",
   "Toggle fill visibility": "styles.fill.toggleVisibility",
   "No background": "styles.fill.noBackground",
-  "Fill opacity": "styles.fill.opacity",
   "Add background": "styles.fill.addBackground",
   "Edit background fill": "styles.fill.editBackgroundFill",
   "Slot Fill": "styles.fill.slotFill",

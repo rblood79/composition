@@ -1,8 +1,9 @@
 /**
  * FillLayerRow - Fill 레이어 목록 행 (Fill 절의 모든 레이어가 이 행 — 첫 레이어 포함)
  *
- * 레이아웃 (인스펙터 행 템플릿 `1fr 1fr 28px` 의 c12 + 28 열):
- *   [swatch 16 · HEX/타입 라벨 (팝오버 trigger)] [opacity %] [제거 (hover)]  |  [눈 토글 28]
+ * 레이아웃 (인스펙터 행 템플릿 `1fr 1fr 28px` — Layout 절과 같은 7칸 격자 3 + 3 | 1):
+ *   [swatch · HEX/타입 라벨 (팝오버 trigger)] [제거 −]  |  [눈 토글]
+ *   레이어 opacity 는 팝오버의 피커 알파가 정본 (2026-10-28 — 행 scrub 제거).
  *
  * 첫 레이어는 ADR-187 presentation 경로 (연속 preview) 를 Fill 절이 소유하므로
  * `popover` override 로 받는다. 나머지 레이어는 commit-only.
@@ -11,6 +12,7 @@
  *
  * @since 2026-02-10 Color Picker Phase 1
  * @updated 2026-09-14 panel-ui 02 — 첫 레이어 통합 · 눈 토글 28 열
+ * @updated 2026-10-28 opacity scrub 자리에 제거 버튼 · 액션 칸 = 눈 토글 하나
  */
 
 import { memo, useCallback, useMemo } from "react";
@@ -27,7 +29,6 @@ import type {
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
 import { FillDetailPopover } from "./FillDetailPopover";
-import { ScrubInput } from "./ScrubInput";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   buildFillSwatchStyle,
@@ -95,7 +96,6 @@ export const FillLayerRow = memo(function FillLayerRow({
 
   const colorValue = isColor ? (fill as ColorFillItem).color : "#000000FF";
   const displayLabel = getFillDisplayLabel(fill);
-  const opacityPercent = Math.round(fill.opacity * 100);
   // ADR-235 — image fill 의 `asset:` 이 준비되면 swatch 를 다시 만든다
   const imageUrl = useResolvedAssetUrl(
     fill.type === FillType.Image ? (fill as ImageFillItem).url : null,
@@ -115,8 +115,7 @@ export const FillLayerRow = memo(function FillLayerRow({
   }, [fill.id, onRemove]);
 
   const handleOpacityCommit = useCallback(
-    (value: number) => {
-      const opacity = value / 100;
+    (opacity: number) => {
       if (popover?.onOpacityChangeEnd) {
         popover.onOpacityChangeEnd(opacity);
         return;
@@ -125,17 +124,6 @@ export const FillLayerRow = memo(function FillLayerRow({
     },
     [fill.id, onUpdate, popover],
   );
-  // 행 scrub 도 드래그 중 캔버스에 보인다 (첫 fill = presentation 경로, 팝오버 scrub 과 같음).
-  //   presentation 경로가 없는 행 (둘째 이후) 은 commit-only 그대로.
-  const onOpacityChange = popover?.onOpacityChange;
-  const handleOpacityScrub = useMemo(
-    () =>
-      onOpacityChange
-        ? (value: number) => onOpacityChange(value / 100)
-        : undefined,
-    [onOpacityChange],
-  );
-
   const handleColorChangeEnd = useCallback(
     (color: string) => {
       if (popover?.onColorChangeEnd) {
@@ -220,9 +208,7 @@ export const FillLayerRow = memo(function FillLayerRow({
               onOpacityChange={
                 popover?.onOpacityChange ?? ignoreContinuousOpacityChange
               }
-              onOpacityChangeEnd={(opacity) =>
-                handleOpacityCommit(opacity * 100)
-              }
+              onOpacityChangeEnd={handleOpacityCommit}
               onUpdate={popover?.onUpdate ?? ignoreContinuousFillUpdate}
               onUpdateEnd={handleFillUpdateEnd}
               onTypeChange={handleTypeChange}
@@ -230,21 +216,8 @@ export const FillLayerRow = memo(function FillLayerRow({
           </Popover>
         </DialogTrigger>
 
-        <ScrubInput
-          value={opacityPercent}
-          onScrub={handleOpacityScrub}
-          onCommit={handleOpacityCommit}
-          min={0}
-          max={100}
-          suffix="%"
-          label="Fill opacity"
-          className="fill-layer-row__opacity-scrub"
-        />
-      </div>
-
-      {/* 행 액션 그룹 — 삭제 · 눈 토글을 한 28 그룹 (안쪽 20×20 둘, 2026-09-15 사용자 판정).
-          삭제는 목록 행의 「−」 (헤더 「+」 와 짝) — Trash 는 요소 삭제 어법 */}
-      <div className="fill-layer-row__actions">
+        {/* 제거 — 목록 행의 「−」 (헤더 「+」 와 짝, Trash 는 요소 삭제 어법). 종전 opacity scrub
+            자리 (2026-10-28 사용자 결정 — 액션 칸에는 눈 토글 하나) */}
         <AriaButton
           className="fill-layer-row__action fill-layer-row__delete"
           onPress={handleRemove}
@@ -257,6 +230,10 @@ export const FillLayerRow = memo(function FillLayerRow({
             color={iconProps.color}
           />
         </AriaButton>
+      </div>
+
+      {/* 행 액션 칸 — 눈 토글 하나 (28 열, Layout 절의 액션 열과 같은 칸) */}
+      <div className="fill-layer-row__actions">
         <AriaToggleButton
           className="fill-layer-row__action fill-layer-row__visibility"
           isSelected={fill.enabled}
