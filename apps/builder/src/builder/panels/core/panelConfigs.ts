@@ -220,7 +220,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "system",
     defaultPosition: "left",
     minWidth: 228,
-    maxWidth: 640,
+    maxWidth: "100%",
     defaultWidth: 280,
     defaultHeight: 560,
     description:
@@ -314,7 +314,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     category: "editor",
     defaultPosition: "right",
     minWidth: 320,
-    maxWidth: 1000,
+    maxWidth: "100%",
     defaultWidth: 480,
     defaultHeight: 600,
     description: "페이지를 React Aria 코드로 보기 · 코드로 고치기 (ADR-285)",
