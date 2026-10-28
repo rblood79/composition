@@ -1,1 +1,0 @@
-import{a as e}from"./i18n-BPa7Zxbl.js";var t={name:`code`,size:24,node:[[`path`,{d:`m16 18 6-6-6-6`,key:`eg8j8`}],[`path`,{d:`m8 6-6 6 6 6`,key:`ppft3o`}]]};t.node;var n=e(t),r;function i(e){r=e}function a(){return r}export{i as n,n as r,a as t};
