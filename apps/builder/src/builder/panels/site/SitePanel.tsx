@@ -21,7 +21,7 @@ import { PropertySelect } from "../../components/property/PropertySelect";
 import { PropertySwitch } from "../../components/property/PropertySwitch";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { SiteAssetField } from "./SiteAssetField";
-import { SiteAppSection, SitePageLayoutSection } from "./SitePageSections";
+import { SiteAppSection } from "./SitePageSections";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   useCatalogSiteSettings,
@@ -45,8 +45,8 @@ const asPath = (value: string) => {
  * (user 2026-10-28): the open project's site settings (`ProjectEntry.site`), each edit one history
  * step. Access protection names who may open the site; its secrets (password · client secret ·
  * certificate) are kept by the publish host (user decision 2) — no secret field here. Publish does
- * not read these yet (R5 — the notice). The project's page grid and app toast placement are here
- * too (document values — moved from Settings 2026-10-28).
+ * not read these yet (R5 — the notice). The app's toast placement is here too (moved from Settings
+ * 2026-10-28); the page grid arranges the Builder's Canvas, so it stays in Settings.
  */
 export function SitePanel() {
   return (
@@ -70,7 +70,6 @@ function SitePanelContent() {
         {settings && (
           <SiteSettingsForm site={settings.site} change={settings.change} />
         )}
-        <SitePageLayoutSection />
         <SiteAppSection />
       </PanelContents>
     </div>

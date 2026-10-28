@@ -6,7 +6,8 @@ import { resolve } from "node:path";
  * Workspace 를 읽는 패널은 **패널 전체** 를 `CatalogWorkspaceGate` 로 감싼다 — 패널은 workspace 가
  * 열리기 전에 마운트된다. 2026-10-28 전에는 패널 전체 · 본문만 (헤더는 보임) · Gate 없이
  * `useOptional…` 분기, 세 형태가 섞여 workspace 가 없을 때 패널마다 보이는 것이 달랐다.
- * Settings · AI 는 workspace 를 읽지 않아 대상이 아니다.
+ * AI 는 workspace 를 읽지 않아 대상이 아니다. Settings 는 Builder 환경 패널이라 프로젝트 없이도
+ * 보이고, workspace 를 읽는 페이지 레이아웃 절만 열린 프로젝트에서 나타난다 (절이 `null`).
  */
 const PANELS = resolve(__dirname, "..");
 const ROOTS: readonly [file: string, component: string][] = [

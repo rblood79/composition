@@ -7,8 +7,8 @@
  * @updated 2025-12-29 - Save Mode, Preview & Overlay, Element Visualization 섹션 제거
  *   (WebGL 캔버스 전환 및 로컬 저장 방식으로 변경됨에 따라 불필요해짐)
  * @updated 2026-02-11 - Page Layout 설정 추가 (자동/가로/세로 페이지 배치, BuilderHeader에서 이동)
- * @updated 2026-10-28 - 페이지 레이아웃 · toast 위치 (프로젝트 문서 값) 를 Site 패널로 이동 —
- *   Settings 는 이 Builder 의 환경 (눈금자 · 스냅 · 액션 바 · 테마 모드 · 배율 · 언어) 만
+ * @updated 2026-10-28 - toast 위치 (앱 값) 는 Site 패널로. 페이지 레이아웃은 Canvas 의 페이지
+ *   배치라 Builder 설정에 남는다 (사용자 결정 — 잠시 Site 로 옮겼다가 되돌림)
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
@@ -24,6 +24,7 @@ import { PanelHeader } from "../../components/panel/PanelHeader";
 import { PanelContents } from "../../components/panel/PanelContents";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
+import { SettingsPageLayoutSection } from "./SettingsPageLayoutSection";
 
 function SettingsContent() {
   const { t } = useI18n();
@@ -111,6 +112,9 @@ function SettingsContent() {
             />
           </div>
         </PropertySection>
+
+        {/* 페이지 레이아웃 — 문서에 저장되지만 Canvas 의 페이지 배치 (열린 프로젝트에서만) */}
+        <SettingsPageLayoutSection />
 
         {/* Appearance 절 (종전 Theme & Appearance) */}
         <PropertySection title={t("settings.themeAppearance")}>

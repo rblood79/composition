@@ -123,6 +123,21 @@ vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock("./useCatalogPageLayout", () => ({
+  useCatalogPageLayout: () => ({
+    view: {
+      direction: "auto",
+      gap: 80,
+      columns: 3,
+      autoFitZoom: 40,
+      columnCount: 3,
+      tierOverrideAvailable: false,
+      hasTierOverride: false,
+    },
+    change: () => {},
+  }),
+}));
+
 vi.mock("../../../stores/uiStore", () => {
   const state = {
     setThemeMode: setThemeModeMock,
@@ -146,11 +161,14 @@ describe("SettingsPanel — Builder 환경 설정", () => {
     cleanup();
   });
 
-  it("페이지 레이아웃 · toast 위치 (문서 값) 는 Settings 에 없다 — Site 패널 (2026-10-28)", () => {
+  it("toast 위치 (앱 값) 는 Settings 에 없다 — Site 패널 (2026-10-28)", () => {
     render(<SettingsPanel />);
-    expect(screen.queryByLabelText("settings.pageGap")).toBeNull();
-    expect(screen.queryByLabelText("settings.pageLayoutDirection")).toBeNull();
     expect(screen.queryByLabelText("settings.toastPlacement")).toBeNull();
+  });
+
+  it("페이지 레이아웃은 Settings 에 있다 (열린 프로젝트)", () => {
+    render(<SettingsPanel />);
+    expect(screen.getByLabelText("settings.pageLayoutDirection")).toBeTruthy();
   });
 
   it("Theme Mode를 변경하면 UI 테마 설정에 반영한다", () => {
