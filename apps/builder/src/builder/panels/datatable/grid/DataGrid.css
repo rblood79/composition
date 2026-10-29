@@ -10,10 +10,30 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  gap: var(--spacing-xs);
+  /* No gap: the toolbar's own padding separates it from the grid (a gap left a strip of panel
+     background between the toolbar and the grid's top border — 사용자 지적 2026-10-29). The
+     optional rows between them carry their own spacing (below). */
   /* ADR-289 — the row form's narrow-body rule reads the grid's width (container query below). */
   container-type: inline-size;
   container-name: datagrid;
+}
+
+/* The filter field keeps the toolbar's old width cap; its look is the shared SearchField. */
+.datagrid-filter-field.builder-search-field {
+  flex: 1;
+  width: auto;
+  max-width: 240px;
+}
+
+/* The rows between the toolbar and the grid: the filter count lines up with the toolbar's content
+   (8 px sides); the import preview is a bordered card, inset like the toolbar and clear of the
+   grid's top border. */
+.datagrid > .filter-result-info {
+  padding: 0 var(--spacing-sm) var(--spacing-xs);
+}
+
+.datagrid > .datatable-import {
+  margin: 0 var(--spacing-sm) var(--spacing-sm);
 }
 
 /* ADR-289 Decision 1 (대안 B) — grid | row form (360) as two columns of the body. Under 680
@@ -169,6 +189,14 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
   color: var(--negative);
 }
 
+/* Sticky cells (the checkbox column · frozen columns) are `display: inline-block` in normal flow
+   (RAC VirtualizerItem), so they sat on the row's text baseline: the line box (14 px font →
+   21 px line) grew the header row to 34 px over the first row, and body rows overflowed to 33 px
+   (사용자 지적 2026-10-29). Top-aligning the row's items keeps the line box at the cell height. */
+.datagrid-table [role="row"] > div {
+  vertical-align: top;
+}
+
 /* Frozen (pinned) columns — RAC layout makes them sticky; they need an opaque surface so the
    scrolled cells pass beneath, and the group's right edge carries a stronger line. */
 .datagrid-cell-select,
@@ -292,20 +320,22 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
   box-shadow: 0 0 0 2px var(--color-primary-100);
 }
 
+/* Select cell = [checkbox][↗] — ↗ shows on row hover · focus (가시성 원칙, the column ⌄ rule).
+   The cell keeps `.datagrid-cell`'s 8 px side padding: 8 + 16 (box) + 4 (gap) + 20 (↗) + 8 = the
+   56 px column (SELECT_COLUMN_WIDTH). The space between siblings is the cell's gap (사용자 결정
+   2026-10-29 — not a margin on ↗). The header (select all) has no ↗, so an empty slot of the same
+   width keeps its checkbox on the rows' vertical line (사용자 지적 2026-10-29). */
 .datagrid-column-select,
-.datagrid-cell-select {
-  text-align: center;
-  padding: 0;
-}
-
-/* Select cell = [checkbox][↗] — ↗ shows on row hover · focus (가시성 원칙, the column ⌄ rule). */
 .datagrid-cell-select {
   display: flex;
   align-items: center;
+  gap: var(--spacing-xs);
 }
 
-.datagrid-cell-select .datagrid-checkbox.react-aria-Checkbox {
-  width: 36px;
+.datagrid-column-select::after {
+  content: "";
+  flex: none;
+  width: 20px;
 }
 
 .datagrid-row-open {
@@ -570,4 +600,3 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
   font-size: 10px;
   line-height: 1;
 }
-

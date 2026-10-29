@@ -5,7 +5,13 @@
  * views the format cannot carry whole are listed here (the format-change moment of the three
  * warnings — never silently dropped).
  */
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 // (The file, not the `@composition/shared` barrel — the serializer stays out of the Preview's
 // initial chunk: only its lazy session uses it.)
 import {
@@ -24,6 +30,7 @@ import { catalogCollectionId } from "../../../../../../../packages/shared/src/ca
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { catalogTargetTypeName } from "../../../catalogRuntime/interactions";
 import { useOptionalCatalogWorkspace } from "../../../catalogRuntime/react.runtime";
+import { Section } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useDataStore } from "../../../stores/data";
 import type { ApiEndpoint } from "../../../../types/builder/data.types";
@@ -97,6 +104,61 @@ function useViewLimits(
   }, [workspace, collections, endpoint, format, revision]);
 }
 
+/**
+ * A table cell that saves on blur · Enter — and on unmount while focused: a tab switch removes it
+ * inside React's commit, where the browser's blur is not delivered (PropertyInput has the same
+ * rule). The caller's `onCommit` ignores an unchanged value.
+ */
+function CommitInput({
+  defaultValue,
+  placeholder,
+  onCommit,
+}: {
+  defaultValue: string;
+  placeholder: string;
+  onCommit: (text: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const editing = useRef(false);
+  /** The text last handed to `onCommit` — a re-key after an Enter save does not send it again. */
+  const sent = useRef(defaultValue);
+  const latest = useRef(onCommit);
+  latest.current = onCommit;
+  const commit = (text: string) => {
+    sent.current = text;
+    latest.current(text);
+  };
+  useEffect(() => {
+    const input = ref.current;
+    return () => {
+      if (editing.current && input && input.value !== sent.current)
+        commit(input.value);
+    };
+    // (Unmount only — `commit` reads refs.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <input
+      ref={ref}
+      type="text"
+      className="react-aria-Input"
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      spellCheck={false}
+      onFocus={() => {
+        editing.current = true;
+      }}
+      onBlur={(event) => {
+        editing.current = false;
+        commit(event.target.value);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") commit(event.currentTarget.value);
+      }}
+    />
+  );
+}
+
 export function QueryFormatSection({
   endpoint,
   save,
@@ -135,7 +197,11 @@ export function QueryFormatSection({
     });
 
   return (
-    <div className="datatable-api-section datatable-api-query">
+    <Section
+      title={dt("apiQuerySection")}
+      collapsible={false}
+      className="datatable-api-query"
+    >
       <PropertySelect
         label={dt("apiQueryFormat")}
         value={format.kind}
@@ -159,22 +225,17 @@ export function QueryFormatSection({
           {SUFFIX_ROWS.map((op) => (
             <label className="datatable-api-query-row" key={op}>
               <span className="datatable-api-query-op">{op}</span>
-              <input
-                type="text"
-                className="datatable-api-input"
-                // (Re-keyed by the saved value: a reset table shows its own.)
-                key={`${op}:${suffixes[op] ?? ""}`}
-                defaultValue={
-                  suffixes[op] === undefined ? "" : `${FIELD}${suffixes[op]}`
-                }
-                placeholder={dt("apiQueryNotSent")}
-                spellCheck={false}
-                onBlur={(event) => setSuffix(op, event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter")
-                    setSuffix(op, event.currentTarget.value);
-                }}
-              />
+              <span className="react-aria-control react-aria-Group">
+                <CommitInput
+                  // (Re-keyed by the saved value: a reset table shows its own.)
+                  key={`${op}:${suffixes[op] ?? ""}`}
+                  defaultValue={
+                    suffixes[op] === undefined ? "" : `${FIELD}${suffixes[op]}`
+                  }
+                  placeholder={dt("apiQueryNotSent")}
+                  onCommit={(text) => setSuffix(op, text)}
+                />
+              </span>
             </label>
           ))}
           {(["sortParam", "orderParam"] as const).map((param) => (
@@ -182,20 +243,19 @@ export function QueryFormatSection({
               <span className="datatable-api-query-op">
                 {dt(`apiQuery_${param}`)}
               </span>
-              <input
-                type="text"
-                className="datatable-api-input"
-                key={`${param}:${format[param] ?? ""}`}
-                defaultValue={format[param] ?? ""}
-                placeholder={param === "sortParam" ? "_sort" : "_order"}
-                spellCheck={false}
-                onBlur={(event) => {
-                  const value = event.target.value.trim();
-                  if (value === (format[param] ?? "")) return;
-                  const { [param]: _previous, ...rest } = format;
-                  setFormat(value ? { ...rest, [param]: value } : rest);
-                }}
-              />
+              <span className="react-aria-control react-aria-Group">
+                <CommitInput
+                  key={`${param}:${format[param] ?? ""}`}
+                  defaultValue={format[param] ?? ""}
+                  placeholder={param === "sortParam" ? "_sort" : "_order"}
+                  onCommit={(text) => {
+                    const value = text.trim();
+                    if (value === (format[param] ?? "")) return;
+                    const { [param]: _previous, ...rest } = format;
+                    setFormat(value ? { ...rest, [param]: value } : rest);
+                  }}
+                />
+              </span>
             </label>
           ))}
         </fieldset>
@@ -227,6 +287,6 @@ export function QueryFormatSection({
           ))}
         </ul>
       )}
-    </div>
+    </Section>
   );
 }

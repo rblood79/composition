@@ -106,6 +106,29 @@ export const PropertyInputControl = memo(
       focusedElementIdRef.current = null;
     }, [value, selectedElementId]);
 
+    // A field removed while focused (a tab switch, a closing popover) gets no blur: the browser
+    // fires it during React's commit, when React delivers no events. Commit the edit on unmount
+    // instead — the same rule as a blur (changed value · same selection). 2026-10-29: the API
+    // editor dropped the text typed just before another tab was pressed.
+    const editingRef = useRef(false);
+    const pendingRef = useRef({ inputValue, value, onChange, selection });
+    pendingRef.current = { inputValue, value, onChange, selection };
+    useEffect(
+      () => () => {
+        if (!editingRef.current) return;
+        const pending = pendingRef.current;
+        const focusedId = focusedElementIdRef.current;
+        if (
+          focusedId !== null &&
+          pending.selection.readSelectedId() !== focusedId
+        )
+          return;
+        if (pending.inputValue !== String(pending.value ?? ""))
+          pending.onChange(pending.inputValue);
+      },
+      [],
+    );
+
     const handleFocus = (
       e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
     ) => {
@@ -113,6 +136,7 @@ export const PropertyInputControl = memo(
       e.target.select();
       // Reset flag on focus (new editing session)
       justSavedViaEnterRef.current = false;
+      editingRef.current = true;
       focusedElementIdRef.current = selectedElementId ?? null;
     };
 
@@ -123,6 +147,7 @@ export const PropertyInputControl = memo(
     };
 
     const handleBlur = () => {
+      editingRef.current = false;
       // ⭐ Skip save if we just saved via Enter key (useRef는 즉시 반영됨!)
       if (justSavedViaEnterRef.current) {
         justSavedViaEnterRef.current = false;

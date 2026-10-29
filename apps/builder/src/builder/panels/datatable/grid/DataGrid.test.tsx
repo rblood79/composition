@@ -585,6 +585,46 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     ).toBe("Bob");
   });
 
+  it("셀을 누른 뒤 빈 곳 (행 아래 · 툴바 빈 자리) 을 누르면 셀 포커스가 풀린다 — 셀 · 버튼 · 입력은 그대로 (Supabase 어법)", async () => {
+    const { container, getByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const target = cell(container, 1, "name");
+    const blur = vi.spyOn(HTMLElement.prototype, "blur");
+    const focusTarget = async () => {
+      await press(target);
+      target.focus();
+      expect(document.activeElement).toBe(target);
+      blur.mockClear();
+    };
+    try {
+      await focusTarget();
+      // presses on interactive things keep their own path — the handler does not blur
+      for (const el of [
+        cell(container, 0, "age"),
+        getByRole("button", { name: "Insert" }),
+        container.querySelector(".datagrid-filter-field input")!,
+      ]) {
+        fireEvent.pointerDown(el);
+      }
+      expect(blur).not.toHaveBeenCalled();
+
+      // the grid element itself (the space below the rows) is not focusable — focus would stay
+      await focusTarget();
+      fireEvent.pointerDown(container.querySelector(".datagrid-table")!);
+      expect(blur).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).not.toBe(target);
+
+      // the toolbar's blank space also leaves the cell
+      await focusTarget();
+      fireEvent.pointerDown(container.querySelector(".datagrid-toolbar")!);
+      expect(blur).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).not.toBe(target);
+    } finally {
+      blur.mockRestore();
+    }
+  });
+
   it("행 ↗ · 셀 Shift+Enter = 그 행의 Update 양식 (ADR-289 사용자 결정 4)", async () => {
     const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),

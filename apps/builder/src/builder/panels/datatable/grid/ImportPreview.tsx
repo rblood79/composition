@@ -9,6 +9,8 @@ import { useMemo, useState } from "react";
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { useI18n } from "../../../../i18n";
+import { Section } from "../../../components/panel/Section";
+import { PropertySegment } from "../../../components/property/PropertySegment";
 import type { DataField } from "../../../../types/builder/data.types";
 import { CompactSelect } from "../editors/CompactSelect";
 import {
@@ -67,17 +69,16 @@ export function ImportPreview({
   };
 
   return (
-    <div
+    <Section
+      title={dt("importTitle")}
+      collapsible={false}
       className="datatable-import"
-      role="group"
-      aria-label={dt("importTitle")}
-    >
-      <div className="datatable-import-head">
-        <span className="datatable-import-title">{dt("importTitle")}</span>
+      badge={
         <span className="datatable-import-count">
           {dt("importRows", { count: rows.length })}
         </span>
-      </div>
+      }
+    >
       <div className="datatable-import-cols">
         {base.columns.map((col) => (
           <div className="datatable-import-col" key={col.sourceKey}>
@@ -101,23 +102,15 @@ export function ImportPreview({
           </div>
         ))}
       </div>
-      <div
-        className="datatable-import-mode"
-        role="radiogroup"
-        aria-label={dt("importAction")}
-      >
-        {(["replace", "append"] as const).map((m) => (
-          <label key={m} className="datatable-import-mode-opt">
-            <input
-              type="radio"
-              name="import-mode"
-              checked={mode === m}
-              onChange={() => setMode(m)}
-            />
-            {dt(m === "replace" ? "importModeReplace" : "importModeAppend")}
-          </label>
-        ))}
-      </div>
+      <PropertySegment
+        label={dt("importMode")}
+        value={mode}
+        onChange={(m) => setMode(m as typeof mode)}
+        options={[
+          { value: "replace", label: dt("importModeReplace") },
+          { value: "append", label: dt("importModeAppend") },
+        ]}
+      />
       <div className="datatable-import-actions">
         <Button className="control-button" onPress={() => onDone(null)}>
           {dt("importCancel")}
@@ -131,6 +124,6 @@ export function ImportPreview({
           {dt("importApply")}
         </Button>
       </div>
-    </div>
+    </Section>
   );
 }

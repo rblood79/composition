@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 패널 — API 편집기 · 가져오기 · 표 만들기 칸을 빌더 필드로] - 2026-10-29
+
+### Fixed
+
+- **API 편집기의 칸 · 탭이 다른 패널과 같은 빌더 필드 모양이 된다** (사용자 지시 2026-10-29 「빌더 UI 를 쓰지 않는 곳」 감사 1군): 탭 본문이 `Section` 이 아닌 `div` 라 빌더 필드 CSS (`.section` 범위) 가 닿지 않았고, URL · 헤더 · 쿼리 · 인증 칸이 흰 바탕 · 1px 테두리 · 모서리 4px 의 자체 모양이었다. 탭 본문을 `Section` (Params · 응답 경로 · 조회 · 업로드 · Headers · Body · Auth · Response) 으로, 응답 경로 · 키 이름 · Secret 이름 · 표 이름을 `PropertyInput` 으로, 요청 본문을 `PropertyInput` 여러 줄 모드로, 키 · 값 줄과 조회 형식 표의 칸을 빌더 필드 상자로, Pretty · Raw · Schema 를 `PropertySegment` 로 바꿨다. 요청 바의 URL 칸은 같은 필드 토큰 (회색 바탕 · 안쪽 그림자 · 상자 포커스 링) 이다.
+- **API 요청 바의 Method 칸이 줄 전체로 늘어나 URL 칸이 16px 로 눌리던 것**: Method 선택에 폭 규칙이 없어 trigger 가 줄 폭까지 컸다 — 폭 92px 고정.
+- **CSV · JSON 가져오기의 Replace · Append 가 빌더 세그먼트가 된다** (같은 감사 1군): 브라우저 기본 라디오 두 개 → `PropertySegment`. 가져오기 미리보기도 `Section` (제목 · 행 수 badge) 이다.
+- **표 만들기의 행 수 · 빈 값 비율이 빌더 숫자 필드가 된다** (같은 감사 2군): 절 머리 오른쪽의 기본 `<input type="number">` (행 수) 와 손으로 짠 숫자 칸 (빈 값 %) → `PropertyNumberInput` 한 줄 (상하한 0 ~ 100 · 0 ~ 90 은 필드가 맞춘다). 붙여넣기 · AI 설명 칸은 바탕 없는 textarea 였다 — 빌더 필드 상자 (`PropertyFieldset`) 안으로.
+- **칸에 입력한 뒤 다른 탭을 바로 누르면 그 입력이 저장되지 않던 것** (2026-10-29 live 재현 — API 편집기 응답 경로 · 본문 · 인증 · 조회 형식 표): 탭 전환이 React commit 안에서 포커스된 칸을 지우고, 그때 브라우저가 보내는 blur 는 React 가 commit 동안 이벤트 전달을 꺼 두어 (`dispatchEvent` 의 `_enabled` 검사) `onBlur` 가 돌지 않았다. blur 에만 저장하던 `PropertyInput` 과 조회 형식 표의 칸이 이제 편집 중에 사라지면 그때 저장한다 — blur 와 같은 규칙 (바뀐 값만 · 포커스할 때의 선택이 그대로일 때만). `PropertyInput` 을 쓰는 다른 탭 패널 (Design 패널 등) 도 같은 경로다.
+  - 위치: `apps/builder/src/builder/panels/datatable/editors/{ApiEndpointEditor.tsx,ApiEndpointEditor.css,QueryFormatSection.tsx,DataTableCreator.tsx,DataTableCreator.css}` · `grid/{ImportPreview.tsx,ImportPreview.css}` · `apps/builder/src/builder/components/property/PropertyInput.components.tsx` (+ `PropertyInput.unmount.test.tsx`) · `src/i18n/messages/{en-US,ko-KR}.ts` (절 제목 4 · `importMode`)
+
 ## [Builder 번역 — 언어별 chunk 로 분리 · 쓰는 언어 하나만 받는다] - 2026-10-29
 
 ### Changed
@@ -37,7 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`PopoverCellEditor`) · `grid/DataGrid.css`
 - **열 머리글 ⌄ 가 열 동작 메뉴가 된다** (사용자 지적 2026-10-29, Supabase 대조 — 「제목 · 타입 · ⌄ 가 모두 같은 팝오버」): ⌄ 는 `오름차순 정렬 · 내림차순 정렬 (· 정렬 해제) │ 이름 복사 · 열 편집 · 열 고정 │ 열 삭제` 메뉴이고, 제목 · 타입 아이콘은 지금처럼 열 편집 팝오버. 정렬은 보기만 바꾼다 (문서 순서 · 행 번호 · 편집 대상 그대로, 빈 칸은 끝, 숫자 인식 비교 — `grid/gridSort.ts`) 그리고 머리글에 방향 표시. 고정한 열은 체크박스 열 다음으로 모여 가로 스크롤 때 왼쪽에 남는다 — RAC `TableLayout` 의 `isStickyColumn` 확장 (체크박스 열도 늘 고정, 본문 · 머리글 묶음은 overflow 를 열어 sticky 기준이 격자 스크롤러가 되게). 정렬 · 고정은 패널 상태라 저장되지 않는다. 열 삭제는 항상 확인창 (쓰이는 곳이 있으면 그 수) 뒤 `remove_field` 한 번.
   - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`ColumnHead` · `FrozenTableLayout`) · `grid/gridSort.ts` (새) · `grid/ColumnEditorPopover.tsx` (`ColumnDeleteDialog`) · `grid/DataGrid.css` · `apps/builder/src/i18n/translations.ts`
-- **행 여는 아이콘 = `maximize-2`** (사용자 지시 2026-10-29): 체크박스 옆 ↗ (`square-arrow-out-up-right`) 를 Supabase 의 펼치기 아이콘과 같은 `maximize-2` 로.
+- **격자의 「Filter rows…」 가 빌더 검색 필드가 된다** (사용자 지적 2026-10-29, Navigator 「Search pages」 대조): 직접 짠 입력 (`filter-input-wrapper` · `filter-input` · `filter-clear-btn` 과 그 CSS) 을 공용 `SearchField` (`appearance="control"`) 로 — 같은 바탕 · 안쪽 그림자 · 포커스 링 · 글자 12 px, 지우기 단추와 Esc 비우기는 RAC SearchField 가 준다. 폭 상한 240 px 는 그대로. 쓰는 곳이 없어진 옛 필터 CSS 는 지웠다.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` · `grid/DataGrid.css` · `editors/DataTableEditor.css`
+- **셀을 누른 뒤 빈 곳을 눌러도 셀 선택이 풀리지 않던 것** (사용자 지적 2026-10-29): 행 아래 · 열 오른쪽 빈 곳은 격자 요소 자신 (`tabindex=-1`) 이라 눌러도 포커스가 움직이지 않아, 누른 셀이 포커스와 테두리를 그대로 가졌다. 격자 영역의 빈 곳 (행 아래 · 열 오른쪽 · 툴바 빈 자리) 을 누르면 셀 포커스를 놓는다 (Supabase 어법) — 셀 · 버튼 · 입력 · 대화상자를 누를 때는 그대로. 인라인 편집 중이면 그 blur 로 저장된다 (기존 동작).
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.components.tsx` (`handlePointerDown`)
+- **머리글이 첫 행을 덮던 것** (사용자 지적 2026-10-29, 열 고정 도입이 낸 회귀): 고정 열 (체크박스 열 포함) 은 RAC 가 `inline-block` 으로 그려 줄의 글자 기준선에 앉았다 — 14 px 글자의 줄 높이 21 px 때문에 머리글 행이 28 → 34 px 로 커져 첫 행 위 6 px 를 덮었고, 본문 행도 내용이 33 px 로 넘쳤다. 행의 칸을 위쪽 정렬 (`vertical-align: top`) 해 머리글 · 행 모두 28 px.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.css`
+- **툴바와 격자 사이의 띠를 없앴다** (사용자 지적 2026-10-29): 격자 묶음 (`.datagrid`) 의 `gap` 4 px 가 툴바의 바탕과 표 위 테두리 사이에 패널 바탕 띠를 남겼다 (ADR-212 때부터). gap 을 지우고, 그 사이에 오는 두 줄은 각자 여백을 갖는다 — 필터 중 「N / 전체」 는 툴바 내용과 같은 왼쪽 8 px, 가져오기 미리보기 상자는 좌우 · 아래 8 px.
+  - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.css`
+- **행 여는 아이콘 = `maximize-2`** (사용자 지시 2026-10-29): 체크박스 옆 ↗ (`square-arrow-out-up-right`) 를 Supabase 의 펼치기 아이콘과 같은 `maximize-2` 로. 체크박스와 아이콘 사이는 셀의 `gap` (`--spacing-xs` 4 px — 체크박스 테두리에서 아이콘까지 보이는 간격 8 px) 이고, 한 번도 적용되지 않던 선택 셀 `padding: 0` · 체크박스 `width: 36px` 규칙은 지웠다 (뒤의 `.datagrid-cell` padding 이 이기고, 36 px 칸은 flex 가 16 으로 줄였다). 머리글의 전체 선택 체크박스는 ↗ 가 없어 가운데로 밀렸던 것 (행보다 11.5 px 오른쪽) 을 행 셀과 같은 배치 + ↗ 자리만큼의 빈 칸으로 맞춰 같은 세로 줄에 둔다.
 - **격자 머리글 글자 14 · 열 메뉴 ⌄ 는 늘 보인다** (사용자 지적 2026-10-29): 공용 `Table.css` 가 `.react-aria-TableHeader` 에 16 을 주어 머리글만 본문 (12) 보다 훨씬 컸던 것을 격자 안에서 14 (`--text-sm`) 로. 열 머리글 오른쪽 ⌄ 는 hover 에서만 드러나던 것 (opacity 0) 을 없애 항상 보인다.
   - 위치: `apps/builder/src/builder/panels/datatable/grid/DataGrid.css`
 - **셀 팝오버 편집기가 키로도 저장 · 취소하고 그 안내를 보인다** (사용자 지적 2026-10-29, Supabase 대조): 단추 왼쪽에 `⏎ 변경 저장` · `⇧⏎ 줄 바꿈` · `Esc 변경 취소` 키 안내. `Enter` 가 저장 (전에는 `⌘Enter` 만 — 지금도 된다) 하고 `Shift+Enter` 가 줄 바꿈. 형식 안내 (JSON · 날짜) 는 제목 옆으로.

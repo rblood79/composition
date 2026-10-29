@@ -31,7 +31,6 @@ import {
   Pencil,
   Pin,
   PinOff,
-  Search,
   Upload,
   X,
 } from "lucide-react";
@@ -40,6 +39,7 @@ import Papa from "papaparse";
 
 import {
   memo,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   useCallback,
   useContext,
@@ -102,6 +102,7 @@ import type { DataField } from "../../../../types/builder/data.types";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 
 import { ConfirmDialog } from "../../../components/overlay/ConfirmDialog";
+import { SearchField } from "../../../components/ui/SearchField";
 
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 
@@ -724,6 +725,26 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   );
 
   // 비편집 키 — 편집 중엔 셀 안 편집기가 자기 keydown 에서 처리한다 (R1 매트릭스의 editing 축).
+  // A press on an empty spot of the grid area (below the rows, right of the columns, the toolbar's
+  // blank space) leaves the cell — Supabase 어법 (사용자 지적 2026-10-29). Those spots are not
+  // focusable (the grid element itself is `tabindex=-1` and keeps focus where it was), so without
+  // this the clicked cell kept focus and its ring. An open inline editor commits on that blur.
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const target = e.target as Element;
+      if (target.closest(INTERACTIVE_IN_GRID)) return;
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        e.currentTarget.contains(active) &&
+        active.closest('[role="gridcell"], [role="columnheader"]')
+      ) {
+        active.blur();
+      }
+    },
+    [],
+  );
+
   const handleKeyDownCapture = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
@@ -1034,30 +1055,20 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       data-testid="datagrid"
       data-adding={String(addingField)}
       onKeyDownCapture={handleKeyDownCapture}
+      onPointerDown={handlePointerDown}
       onPaste={handlePaste}
     >
       <div className="data-toolbar datagrid-toolbar">
-        <div className="filter-input-wrapper">
-          <Search {...iconEditProps} className="filter-icon" />
-          <input
-            type="text"
-            className="filter-input"
-            placeholder={t("filterRows")}
-            aria-label={t("filterRows")}
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-          />
-          {filterText && (
-            <button
-              type="button"
-              className="filter-clear-btn"
-              aria-label={t("filterClear")}
-              onClick={() => setFilterText("")}
-            >
-              <X size={iconSmall.size} />
-            </button>
-          )}
-        </div>
+        {/* The Builder's panel search field (Navigator 「Search pages」 와 같은 부품 · 모양) —
+            RAC SearchField: its clear button and Esc empty the filter. */}
+        <SearchField
+          className="datagrid-filter-field"
+          appearance="control"
+          value={filterText}
+          onChange={setFilterText}
+          placeholder={t("filterRows")}
+          aria-label={t("filterRows")}
+        />
         <div className="toolbar-actions">
           <input
             ref={fileInputRef}
@@ -1288,6 +1299,10 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     </div>
   );
 }
+
+/** What a press in the grid area may land on and keep its own behavior (not an "empty spot"). */
+const INTERACTIVE_IN_GRID =
+  '[role="gridcell"], [role="columnheader"], [role="rowheader"], [role="dialog"], button, input, textarea, select, a, label, [contenteditable="true"]';
 
 interface FrozenLayoutOptions extends TableLayoutProps {
   /** Frozen field keys joined by `\0` — a string so the layout can compare it cheaply. */

@@ -127,31 +127,6 @@
   content-visibility: visible;
 }
 
-.creator-sample-count {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--text-xs);
-  color: var(--fg-muted);
-  padding-right: var(--spacing-sm);
-}
-
-.creator-sample-count input {
-  border: 1px solid var(--border);
-  font-size: var(--text-xs);
-  text-align: center;
-  background-color: var(--bg-muted);
-  border-radius: var(--radius-sm);
-  min-width: 0;
-  padding: var(--spacing-2xs);
-  box-shadow: var(--inset-shadow-sm);
-}
-
-.creator-sample-count input:focus-visible {
-  outline: none;
-  border-color: var(--focus-ring);
-}
-
 .section[data-section-id="schema-preview"] .section-content {
   flex: 1;
   min-height: 0;
@@ -282,9 +257,12 @@
   outline-offset: -2px;
 }
 
-.creator-paste-input {
+/* Paste · AI description — the panel multiline field box, taller and in code type. */
+.creator-paste-field .react-aria-TextArea {
   width: 100%;
   min-height: 120px;
+  white-space: pre-wrap;
+  overflow: auto;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   resize: vertical;

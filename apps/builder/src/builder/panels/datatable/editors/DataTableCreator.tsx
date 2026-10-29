@@ -63,6 +63,7 @@ import { translateKey, useOptionalI18n } from "../../../../i18n";
 import { Section } from "../../../components/panel/Section";
 import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
+import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
 import { useDataStore } from "../../../stores/data";
@@ -688,17 +689,22 @@ export function DataTableCreator({
             title={localize("methodPaste", "Paste")}
             collapsible={false}
           >
-            <textarea
-              className="react-aria-TextArea creator-paste-input"
-              value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
-              rows={6}
-              aria-label={localize("pasteRows", "Paste rows")}
-              placeholder={localize(
-                "pastePlaceholder",
-                "JSON array, or tab/comma separated rows with a header line",
-              )}
-            />
+            <PropertyFieldset
+              legend={localize("pasteRows", "Paste rows")}
+              className="creator-paste-field"
+            >
+              <textarea
+                className="react-aria-TextArea"
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={6}
+                aria-label={localize("pasteRows", "Paste rows")}
+                placeholder={localize(
+                  "pastePlaceholder",
+                  "JSON array, or tab/comma separated rows with a header line",
+                )}
+              />
+            </PropertyFieldset>
             {pasteText.trim() && !imported ? (
               <p className="creator-form-hint" role="note">
                 {localize(
@@ -802,17 +808,22 @@ export function DataTableCreator({
             title={localize("methodAi", "Describe to AI")}
             collapsible={false}
           >
-            <textarea
-              className="react-aria-TextArea creator-paste-input"
-              value={aiDescription}
-              onChange={(e) => setAiDescription(e.target.value)}
-              rows={4}
-              aria-label={localize("aiDescription", "Describe the table")}
-              placeholder={localize(
-                "aiPlaceholder",
-                "e.g. blog posts with title, author, tags and a published date",
-              )}
-            />
+            <PropertyFieldset
+              legend={localize("aiDescription", "Describe the table")}
+              className="creator-paste-field"
+            >
+              <textarea
+                className="react-aria-TextArea"
+                value={aiDescription}
+                onChange={(e) => setAiDescription(e.target.value)}
+                rows={4}
+                aria-label={localize("aiDescription", "Describe the table")}
+                placeholder={localize(
+                  "aiPlaceholder",
+                  "e.g. blog posts with title, author, tags and a published date",
+                )}
+              />
+            </PropertyFieldset>
             <p className="creator-form-hint">
               {localize(
                 "aiMethodHint",
@@ -833,61 +844,39 @@ export function DataTableCreator({
         <Section
           id="schema-preview"
           title={`${selectedPreset.name} ${localize("schema", "Schema")}`}
-          actions={
-            <div className="creator-sample-count">
-              <label htmlFor="sample-count">
-                {localize("rowCount", "row count")}
-              </label>
-              <input
-                id="sample-count"
-                aria-label={localize("rowCount", "row count")}
-                aria-required="true"
-                aria-invalid="false"
-                type="number"
-                min="0"
-                max="100"
-                value={sampleCount}
-                onChange={(e) =>
-                  setSampleCount(
-                    Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
-                  )
-                }
-              />
-            </div>
-          }
           collapsible={false}
         >
-          {/* 생성 조건 — seed (재현) · 빈 값 비율 (required 아닌 컬럼) */}
+          {/* 생성 조건 — 행 수 · 빈 값 비율 (required 아닌 컬럼) · seed (재현) */}
           <div className="fieldset-row creator-generate-options">
-            <PropertyFieldset legend={localize("seed", "Seed")}>
-              <input
-                className="react-aria-Input"
-                type="text"
-                value={seed}
-                onChange={(e) => setSeed(e.target.value)}
-                placeholder={localize("seedPlaceholder", "Empty for random…")}
-                aria-label={localize("seed", "Seed")}
-                spellCheck={false}
-                autoComplete="off"
-              />
-            </PropertyFieldset>
-            <PropertyFieldset legend={localize("blankRate", "Blank %")}>
-              <input
-                className="react-aria-Input"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                max="90"
-                value={blankPercent}
-                onChange={(e) =>
-                  setBlankPercent(
-                    Math.max(0, Math.min(90, parseInt(e.target.value) || 0)),
-                  )
-                }
-                aria-label={localize("blankRate", "Blank %")}
-              />
-            </PropertyFieldset>
+            <PropertyNumberInput
+              label={localize("rowCount", "Row count")}
+              value={sampleCount}
+              min={0}
+              max={100}
+              allowEmpty={false}
+              onChange={(value) => setSampleCount(value ?? 0)}
+            />
+            <PropertyNumberInput
+              label={localize("blankRate", "Blank %")}
+              value={blankPercent}
+              min={0}
+              max={90}
+              allowEmpty={false}
+              onChange={(value) => setBlankPercent(value ?? 0)}
+            />
           </div>
+          <PropertyFieldset legend={localize("seed", "Seed")}>
+            <input
+              className="react-aria-Input"
+              type="text"
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+              placeholder={localize("seedPlaceholder", "Empty for random…")}
+              aria-label={localize("seed", "Seed")}
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </PropertyFieldset>
           {selectedPreset.schema.map((field) => (
             <div key={field.key} className="creator-schema-field">
               <span className="schema-field-name">

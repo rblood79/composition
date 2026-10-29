@@ -2247,6 +2247,10 @@ const catalog: TranslationKeys = {
     apiTotalPath: "전체 개수 경로",
     apiTotalPathHint:
       "응답에서 이 조회에 맞는 전체 개수가 있는 곳 (예: total · meta.total). 데이터 보기가 「총 N 개」 를 보이고, 없으면 불러온 행까지만 센다.",
+    apiResponsePaths: "응답 경로",
+    apiQuerySection: "조회",
+    apiUploadSection: "업로드",
+    apiBodyContent: "본문 내용",
     apiQueryFormat: "조회 형식",
     apiQueryFormat_none: "없음 (불러온 행에서 거름)",
     apiQueryFormat_suffix: "쿼리 파라미터 (json-server 식)",
@@ -2334,6 +2338,7 @@ const catalog: TranslationKeys = {
     importActionExisting: "기존 필드",
     importActionNew: "새 필드",
     importActionIgnore: "무시",
+    importMode: "행",
     importModeReplace: "전체 교체",
     importModeAppend: "뒤에 추가",
     importApply: "가져오기",

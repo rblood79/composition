@@ -35,6 +35,10 @@ import type {
 } from "../../../../types/builder/data.types";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { panelContents } from "../../../components/panel/panelContentsUtils";
+import { Section } from "../../../components/panel/Section";
+import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertySegment } from "../../../components/property/PropertySegment";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { CompactSelect } from "./CompactSelect";
 import { useDataStore } from "../../../stores/data";
@@ -282,29 +286,33 @@ export function ApiEndpointEditor({
 
         <TabPanel id="params" className={panelContents()}>
           <ParamsTab endpoint={endpoint} save={save} dt={dt} />
-          <ResponsePathRow
-            endpoint={endpoint}
-            save={save}
-            dt={dt}
-            field="cursorPath"
-            placeholder="next"
-          />
-          <ResponsePathRow
-            endpoint={endpoint}
-            save={save}
-            dt={dt}
-            field="selectedKeysPath"
-            placeholder="selected"
-          />
-          <ResponsePathRow
-            endpoint={endpoint}
-            save={save}
-            dt={dt}
-            field="totalPath"
-            placeholder="total"
-          />
+          <Section title={dt("apiResponsePaths")} collapsible={false}>
+            <ResponsePathRow
+              endpoint={endpoint}
+              save={save}
+              dt={dt}
+              field="cursorPath"
+              placeholder="next"
+            />
+            <ResponsePathRow
+              endpoint={endpoint}
+              save={save}
+              dt={dt}
+              field="selectedKeysPath"
+              placeholder="selected"
+            />
+            <ResponsePathRow
+              endpoint={endpoint}
+              save={save}
+              dt={dt}
+              field="totalPath"
+              placeholder="total"
+            />
+          </Section>
           <QueryFormatSection endpoint={endpoint} save={save} dt={dt} />
-          <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
+          <Section title={dt("apiUploadSection")} collapsible={false}>
+            <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
+          </Section>
         </TabPanel>
         <TabPanel id="headers" className={panelContents()}>
           <HeadersTab endpoint={endpoint} save={save} dt={dt} />
@@ -341,7 +349,7 @@ function UploadTransportRow({
   const live = endpoint.uploadDryRun === false;
   return (
     <div
-      className="datatable-api-section"
+      className="datatable-api-stack"
       data-upload-transport={live ? "live" : "dry-run"}
     >
       <PropertySwitch
@@ -375,15 +383,14 @@ function ResponsePathRow({
   placeholder: string;
 }) {
   const saved = endpoint.responseMapping?.[field] ?? "";
-  const [draft, setDraft] = useState(saved);
   const label =
     field === "cursorPath"
       ? "apiCursorPath"
       : field === "selectedKeysPath"
         ? "apiSelectedKeysPath"
         : "apiTotalPath";
-  const commit = () => {
-    const path = draft.trim();
+  const commit = (text: string) => {
+    const path = text.trim();
     if (path === saved) return;
     const { [field]: _previous, ...mapping } = endpoint.responseMapping ?? {
       dataPath: "",
@@ -393,25 +400,15 @@ function ResponsePathRow({
     });
   };
   return (
-    <div className="datatable-api-section">
-      <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt(label)}</legend>
-        <input
-          type="text"
-          className="datatable-api-input"
-          aria-label={dt(label)}
-          value={draft}
-          placeholder={placeholder}
-          spellCheck={false}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-          }}
-        />
-      </fieldset>
+    <>
+      <PropertyInput
+        label={dt(label)}
+        value={saved}
+        placeholder={placeholder}
+        onChange={commit}
+      />
       <p className="datatable-api-hint">{dt(`${label}Hint`)}</p>
-    </div>
+    </>
   );
 }
 type DtFn = (
@@ -502,25 +499,29 @@ function KeyValueEditor({
       </span>
       {draft.map((row, index) => (
         <div className="datatable-kv-row" key={index}>
-          <input
-            ref={index === draft.length - 1 ? lastKeyRef : undefined}
-            type="text"
-            className="datatable-api-input"
-            aria-label={`${keyPlaceholder} ${index + 1}`}
-            placeholder={keyPlaceholder}
-            spellCheck={false}
-            value={row.key}
-            onChange={(e) => update(index, { key: e.target.value })}
-          />
-          <input
-            type="text"
-            className="datatable-api-input"
-            aria-label={`${valuePlaceholder} ${index + 1}`}
-            placeholder={valuePlaceholder}
-            spellCheck={false}
-            value={row.value}
-            onChange={(e) => update(index, { value: e.target.value })}
-          />
+          <div className="react-aria-control react-aria-Group">
+            <input
+              ref={index === draft.length - 1 ? lastKeyRef : undefined}
+              type="text"
+              className="react-aria-Input"
+              aria-label={`${keyPlaceholder} ${index + 1}`}
+              placeholder={keyPlaceholder}
+              spellCheck={false}
+              value={row.key}
+              onChange={(e) => update(index, { key: e.target.value })}
+            />
+          </div>
+          <div className="react-aria-control react-aria-Group">
+            <input
+              type="text"
+              className="react-aria-Input"
+              aria-label={`${valuePlaceholder} ${index + 1}`}
+              placeholder={valuePlaceholder}
+              spellCheck={false}
+              value={row.value}
+              onChange={(e) => update(index, { value: e.target.value })}
+            />
+          </div>
           <Button
             className="datatable-kv-remove"
             aria-label={removeLabel(row.key, index)}
@@ -552,7 +553,7 @@ function ParamsTab({
     value: q.value,
   }));
   return (
-    <div className="datatable-api-section">
+    <Section title={dt("apiTabParams")} collapsible={false}>
       <p className="datatable-api-hint">{dt("apiParamsHint")}</p>
       <KeyValueEditor
         rows={rows}
@@ -573,7 +574,7 @@ function ParamsTab({
           })
         }
       />
-    </div>
+    </Section>
   );
 }
 
@@ -591,7 +592,7 @@ function HeadersTab({
     value: h.value,
   }));
   return (
-    <div className="datatable-api-section">
+    <Section title={dt("headers")} collapsible={false}>
       <KeyValueEditor
         rows={rows}
         addLabel={dt("apiAddHeader")}
@@ -610,7 +611,7 @@ function HeadersTab({
           })
         }
       />
-    </div>
+    </Section>
   );
 }
 
@@ -623,9 +624,8 @@ function BodyTab({
   save: SaveFn;
   dt: DtFn;
 }) {
-  const bodyId = useId();
   return (
-    <div className="datatable-api-section">
+    <Section title={dt("body")} collapsible={false}>
       <PropertySelect
         label={dt("apiBodyType")}
         value={endpoint.bodyType}
@@ -633,23 +633,16 @@ function BodyTab({
         options={BODY_TYPES.map((b) => ({ value: b, label: b }))}
       />
       {endpoint.bodyType !== "none" && (
-        <textarea
+        <PropertyInput
           className="datatable-api-body"
-          aria-label={dt("body")}
-          aria-multiline="true"
-          spellCheck={false}
-          id={bodyId}
-          defaultValue={endpoint.bodyTemplate ?? ""}
-          key={`${endpoint.id}-body`}
+          label={dt("apiBodyContent")}
+          multiline
+          value={endpoint.bodyTemplate ?? ""}
           placeholder={dt("apiBodyPlaceholder")}
-          rows={10}
-          onBlur={(e) => {
-            if (e.target.value !== (endpoint.bodyTemplate ?? ""))
-              void save({ bodyTemplate: e.target.value });
-          }}
+          onChange={(bodyTemplate) => void save({ bodyTemplate })}
         />
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -699,16 +692,19 @@ function AuthTab({
   const appliedSecret = "secretName" in detected ? detected.secretName : "";
   const appliedName = detected.type === "apiKey" ? detected.name : "";
 
-  const buildAuth = (type: AuthPreset["type"]): AuthPreset => {
+  const buildAuth = (
+    type: AuthPreset["type"],
+    vaultName = secretName,
+  ): AuthPreset => {
     switch (type) {
       case "none":
         return { type: "none" };
       case "bearer":
-        return { type: "bearer", secretName };
+        return { type: "bearer", secretName: vaultName };
       case "basic":
-        return { type: "basic", secretName };
+        return { type: "basic", secretName: vaultName };
       case "apiKey":
-        return { type: "apiKey", in: where, name, secretName };
+        return { type: "apiKey", in: where, name, secretName: vaultName };
     }
   };
 
@@ -721,7 +717,7 @@ function AuthTab({
   };
 
   return (
-    <div className="datatable-api-section">
+    <Section title={dt("apiTabAuth")} collapsible={false}>
       <PropertySelect
         label={dt("apiAuthType")}
         value={preset}
@@ -753,49 +749,38 @@ function AuthTab({
               { value: "query", label: dt("apiAuthInQuery") },
             ]}
           />
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">{dt("apiAuthKeyName")}</legend>
-            <input
-              type="text"
-              className="datatable-api-input"
-              aria-label={dt("apiAuthKeyName")}
-              value={name}
-              spellCheck={false}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => {
-                if (name !== appliedName)
-                  applyPreset({ type: "apiKey", in: where, name, secretName });
-              }}
-            />
-          </fieldset>
+          <PropertyInput
+            label={dt("apiAuthKeyName")}
+            value={name}
+            onChange={(next) => {
+              setName(next);
+              if (next !== appliedName)
+                applyPreset({
+                  type: "apiKey",
+                  in: where,
+                  name: next,
+                  secretName,
+                });
+            }}
+          />
         </>
       )}
 
       {preset !== "none" && (
         <>
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">
-              {dt("apiAuthSecretName")}
-            </legend>
-            <input
-              type="text"
-              className="datatable-api-input"
-              aria-label={dt("apiAuthSecretName")}
-              value={secretName}
-              spellCheck={false}
-              onChange={(e) => setSecretName(e.target.value)}
-              onBlur={() => {
-                if (secretName !== appliedSecret)
-                  applyPreset(buildAuth(preset));
-              }}
-            />
-          </fieldset>
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">{dt("apiAuthValue")}</legend>
-            <div className="datatable-api-secret-row">
+          <PropertyInput
+            label={dt("apiAuthSecretName")}
+            value={secretName}
+            onChange={(next) => {
+              setSecretName(next);
+              if (next !== appliedSecret) applyPreset(buildAuth(preset, next));
+            }}
+          />
+          <div className="datatable-api-secret-row">
+            <PropertyFieldset legend={dt("apiAuthValue")}>
               <input
                 type="password"
-                className="datatable-api-input"
+                className="react-aria-Input"
                 aria-label={dt("apiAuthValue")}
                 value={secretValue}
                 autoComplete="off"
@@ -807,19 +792,19 @@ function AuthTab({
                 }
                 onChange={(e) => setSecretValue(e.target.value)}
               />
-              <Button
-                className="control-button"
-                onPress={() => void saveSecret()}
-                isDisabled={secretValue === "" || secretName === ""}
-              >
-                {dt("apiAuthSave")}
-              </Button>
-            </div>
-            <p className="datatable-api-hint">{dt("apiAuthValueHint")}</p>
-          </fieldset>
+            </PropertyFieldset>
+            <Button
+              className="control-button"
+              onPress={() => void saveSecret()}
+              isDisabled={secretValue === "" || secretName === ""}
+            >
+              {dt("apiAuthSave")}
+            </Button>
+          </div>
+          <p className="datatable-api-hint">{dt("apiAuthValueHint")}</p>
         </>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -841,13 +826,13 @@ function ResponseTab({
   const [view, setView] = useState<"pretty" | "raw" | "schema">("pretty");
   if (!run || !run.response) {
     return (
-      <div className="datatable-api-section">
+      <Section title={dt("response")} collapsible={false}>
         <div className="datatable-api-empty">
           {run && !run.response
             ? (run.error ?? dt("apiResponseEmpty"))
             : dt("apiResponseEmpty")}
         </div>
-      </div>
+      </Section>
     );
   }
   const { response } = run;
@@ -859,7 +844,11 @@ function ResponseTab({
       ([k]) => k.toLowerCase() === "allow",
     )?.[1];
     return (
-      <div className="datatable-api-section datatable-api-response">
+      <Section
+        title={dt("response")}
+        collapsible={false}
+        className="datatable-api-response"
+      >
         <div
           className="datatable-api-upload-endpoint"
           role="status"
@@ -875,7 +864,7 @@ function ResponseTab({
           ) : null}
         </div>
         <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
-      </div>
+      </Section>
     );
   }
   const bytes = new Blob([response.bodyPreview]).size;
@@ -889,7 +878,11 @@ function ResponseTab({
   }
 
   return (
-    <div className="datatable-api-section datatable-api-response">
+    <Section
+      title={dt("response")}
+      collapsible={false}
+      className="datatable-api-response"
+    >
       <div
         className="datatable-api-status"
         role="status"
@@ -908,31 +901,16 @@ function ResponseTab({
         </span>
       </div>
 
-      <div
-        className="datatable-api-response-tabs"
-        role="tablist"
-        aria-label={dt("apiResponseView")}
-      >
-        {(["pretty", "raw", "schema"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            role="tab"
-            aria-selected={view === v}
-            className="datatable-api-response-tab"
-            data-selected={view === v || undefined}
-            onClick={() => setView(v)}
-          >
-            {dt(
-              v === "pretty"
-                ? "apiResponsePretty"
-                : v === "raw"
-                  ? "apiResponseRaw"
-                  : "apiResponseSchema",
-            )}
-          </button>
-        ))}
-      </div>
+      <PropertySegment
+        label={dt("apiResponseView")}
+        value={view}
+        onChange={(v) => setView(v as typeof view)}
+        options={[
+          { value: "pretty", label: dt("apiResponsePretty") },
+          { value: "raw", label: dt("apiResponseRaw") },
+          { value: "schema", label: dt("apiResponseSchema") },
+        ]}
+      />
 
       {view === "raw" && (
         <pre className="datatable-api-body-view">{response.bodyPreview}</pre>
@@ -947,7 +925,7 @@ function ResponseTab({
       {view === "schema" && (
         <SchemaView endpoint={endpoint} parsed={parsed} dt={dt} save={save} />
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -1082,17 +1060,11 @@ function SchemaView({
           }))}
         />
       ) : (
-        <fieldset className="properties-aria">
-          <legend className="fieldset-legend">{dt("apiSaveTableName")}</legend>
-          <input
-            type="text"
-            className="datatable-api-input"
-            aria-label={dt("apiSaveTableName")}
-            value={tableName}
-            spellCheck={false}
-            onChange={(e) => setTableName(e.target.value)}
-          />
-        </fieldset>
+        <PropertyInput
+          label={dt("apiSaveTableName")}
+          value={tableName}
+          onChange={setTableName}
+        />
       )}
       <Button
         className="control-button"

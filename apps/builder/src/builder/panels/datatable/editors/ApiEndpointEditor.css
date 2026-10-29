@@ -19,23 +19,35 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   border-bottom: 1px solid var(--border);
 }
 
+/* The method select had no width of its own — its trigger (`width: 100%` of an auto-width flex
+   item) grew to the bar and squeezed the URL box to its 16px padding. The longest method is
+   DELETE. */
+.datatable-api-method {
+  flex: none;
+  width: 92px;
+}
+
+/* The request bar sits above the tab bodies (no `.section`), so the panel field surface
+   (form-controls.css `.section .react-aria-Group`) does not reach it — the URL box takes the same
+   field tokens here: muted inset surface, no border, focus ring on the box. */
 .datatable-api-url {
   flex: 1;
   min-width: 0;
-  height: var(--inspector-control-size, 28px);
+  box-sizing: border-box;
+  height: var(--control-size);
   padding: 0 var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-overlay);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  box-shadow: var(--inset-shadow-sm);
   color: var(--fg);
   font-family: var(--font-mono, monospace);
   font-size: var(--text-xs);
 }
 
 .datatable-api-url:focus-visible {
-  outline: none;
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
 }
 
 .datatable-api-cors {
@@ -66,35 +78,17 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   flex-shrink: 0;
 }
 
-.datatable-api-section {
+/* A field and its hint inside a section (the section content already stacks with its gap). */
+.datatable-api-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
+  gap: var(--spacing-xs);
 }
 
 .datatable-api-hint {
   margin: 0;
   font-size: var(--text-xs);
   color: var(--fg-muted);
-}
-
-.datatable-api-input {
-  box-sizing: border-box;
-  width: 100%;
-  height: var(--inspector-control-size, 28px);
-  padding: 0 var(--spacing-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-overlay);
-  color: var(--fg);
-  font-size: var(--text-xs);
-}
-
-.datatable-api-input:focus-visible {
-  outline: none;
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
 }
 
 /* key-value 편집기 */
@@ -106,7 +100,7 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
 
 .datatable-kv-row {
   display: grid;
-  grid-template-columns: 1fr 1fr var(--inspector-control-size, 28px);
+  grid-template-columns: 1fr 1fr var(--control-size);
   gap: var(--spacing-xs);
   align-items: center;
 }
@@ -115,8 +109,8 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--inspector-control-size, 28px);
-  height: var(--inspector-control-size, 28px);
+  width: var(--control-size);
+  height: var(--control-size);
   border: none;
   background: transparent;
   color: var(--fg-muted);
@@ -134,7 +128,6 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.datatable-api-body,
 .datatable-api-body-view {
   box-sizing: border-box;
   width: 100%;
@@ -147,9 +140,12 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   padding: var(--spacing-sm);
 }
 
-.datatable-api-body {
-  resize: vertical;
-  min-height: 120px;
+/* Request body — the panel multiline field (PropertyInput), taller and in code type. */
+.datatable-api-body .react-aria-TextArea {
+  min-height: 160px;
+  font-family: var(--font-mono, monospace);
+  white-space: pre-wrap;
+  overflow: auto;
 }
 
 .datatable-api-body-view {
@@ -160,16 +156,14 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   word-break: break-word;
 }
 
-.datatable-api-body:focus-visible {
-  outline: none;
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
-}
-
 .datatable-api-secret-row {
   display: flex;
   gap: var(--spacing-xs);
-  align-items: center;
+  align-items: flex-end;
+}
+.datatable-api-secret-row > .properties-aria {
+  flex: 1;
+  min-width: 0;
 }
 
 .datatable-api-empty {
@@ -207,33 +201,6 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
 
 .datatable-api-status[data-ok] {
   background: var(--color-success-100, var(--bg-raised));
-}
-
-.datatable-api-response-tabs {
-  display: flex;
-  gap: 2px;
-}
-
-.datatable-api-response-tab {
-  height: 26px;
-  padding: 0 var(--spacing-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--fg-muted);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  cursor: pointer;
-}
-
-.datatable-api-response-tab[data-selected] {
-  background: var(--bg-overlay);
-  color: var(--fg);
-  box-shadow: var(--shadow-sm);
-}
-
-.datatable-api-response-tab:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .datatable-api-schema {

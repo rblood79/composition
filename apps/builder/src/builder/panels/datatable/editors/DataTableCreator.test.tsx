@@ -145,9 +145,10 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
       fireEvent.change(getByRole("textbox", { name: "Seed" }), {
         target: { value: seedValue },
       });
-      fireEvent.change(getByRole("spinbutton", { name: "Blank %" }), {
-        target: { value: blank },
-      });
+      // (The panel number field commits on blur.)
+      const blankField = getByRole("textbox", { name: "Blank %" });
+      fireEvent.change(blankField, { target: { value: blank } });
+      fireEvent.blur(blankField);
       press([...container.querySelectorAll(".creator-footer button")].at(-1)!);
       await vi.waitFor(() => expect(createDataTable).toHaveBeenCalled());
       const input = createDataTable.mock.calls.at(-1)![0] as unknown as {

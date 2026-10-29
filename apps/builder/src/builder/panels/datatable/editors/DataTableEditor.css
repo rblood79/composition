@@ -110,67 +110,6 @@
   background: var(--bg-raised);
 }
 
-/* Filter */
-.filter-input-wrapper {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  max-width: 240px;
-  padding: var(--spacing-2xs) var(--spacing-sm);
-  background: var(--bg-overlay);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  gap: var(--spacing-xs);
-}
-
-.filter-input-wrapper:focus-within {
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 2px var(--color-primary-100);
-}
-
-.filter-icon {
-  color: var(--fg-disabled);
-  flex-shrink: 0;
-}
-
-.filter-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: var(--text-sm);
-  color: var(--fg);
-  outline: none;
-  min-width: 0;
-}
-
-.filter-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.filter-input::placeholder {
-  color: var(--fg-disabled);
-}
-
-.filter-clear-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  background: var(--bg-raised);
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--fg-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.filter-clear-btn:hover {
-  background: var(--bg-muted);
-  color: var(--fg);
-}
-
 /* Filter result info */
 .filter-result-info {
   font-size: var(--text-xs);

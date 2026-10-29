@@ -7,6 +7,10 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// jsdom has no Web Animations (the response view segment's selection indicator asks for them).
+(Element.prototype as { getAnimations?: () => Animation[] }).getAnimations ??=
+  () => [];
+
 const { applyDataChange, execute, apiRuns, collections } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({ endpointIds: ["ep1"] })),
   execute: vi.fn(async () => ({})),
@@ -279,7 +283,8 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
       ),
     );
     fireEvent.click(getByRole("tab", { name: "Response" }));
-    fireEvent.click(getByRole("tab", { name: /Schema/ }));
+    // (Pretty · Raw · Schema is the panel segment — a single-select toggle group.)
+    fireEvent.click(getByRole("radio", { name: /Schema/ }));
     fireEvent.click(getByLabelText("Attach to existing table"));
     const save = getByRole("button", { name: /Save/ });
     fireEvent.pointerDown(save, { button: 0 });
@@ -308,7 +313,7 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
         },
       ],
     } as unknown as ApiEndpoint;
-    const { getByLabelText } = render(
+    const { getByRole } = render(
       wrap(
         <ApiEndpointEditor
           endpoint={withAuth}
@@ -317,7 +322,10 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
         />,
       ),
     );
-    const secret = getByLabelText("Secret name") as HTMLInputElement;
+    // (The panel field: its legend names the group, the input sits in its box.)
+    const secret = getByRole("group", { name: "Secret name" }).querySelector(
+      "input",
+    ) as HTMLInputElement;
     expect(secret.value).toBe("MY_TOKEN");
     fireEvent.focus(secret);
     fireEvent.blur(secret);
@@ -436,5 +444,48 @@ describe("ADR-284 — the query format (Params tab)", () => {
       equals: "",
       startsWith: "_start",
     });
+  });
+
+  // 2026-10-29 live — a field typed in and then left by pressing another tab kept nothing: the tab
+  // switch removes the field inside React's commit, where its blur is not delivered.
+  it("an edit left by pressing another tab is saved (a path field · a query table cell)", async () => {
+    const { getByRole } = render(
+      wrap(
+        <WorkspaceContext.Provider value={workspace}>
+          <ApiEndpointEditor endpoint={suffixEndpoint} onClose={() => {}} />
+        </WorkspaceContext.Provider>,
+      ),
+    );
+    const cursor = getByRole("group", {
+      name: "Next page cursor path",
+    }).querySelector("input")!;
+    fireEvent.focus(cursor);
+    fireEvent.change(cursor, { target: { value: "meta.next" } });
+    const table = getByRole("group", { name: "Comparison → parameter" });
+    const startsWith = [...table.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("startsWith"))!
+      .querySelector("input")!;
+    fireEvent.focus(startsWith);
+    fireEvent.change(startsWith, { target: { value: "{field}_start" } });
+    fireEvent.click(getByRole("tab", { name: "Headers" }));
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(2));
+    const sent = applyDataChange.mock.calls.map(
+      (call) =>
+        (call as unknown as [{ ops: { endpoint: ApiEndpoint }[] }])[0].ops[0]!
+          .endpoint,
+    );
+    // (The draft carries the response paths flat — `toEndpointDraft`.)
+    expect(
+      sent.some(
+        (e) => (e as { cursorPath?: string }).cursorPath === "meta.next",
+      ),
+    ).toBe(true);
+    expect(
+      sent.some(
+        (e) =>
+          (e.querySerialization as { suffixes?: Record<string, string> })
+            ?.suffixes?.startsWith === "_start",
+      ),
+    ).toBe(true);
   });
 });
