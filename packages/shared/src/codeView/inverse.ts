@@ -196,6 +196,93 @@ export function literalOf(
   return undefined;
 }
 
+/**
+ * A JSON value as the generator writes it for a structured default (`{count: 1}` · `[1, 1, 2]` ·
+ * `{'a-b': 'x', list: [true, null]}`) — objects, arrays, quoted text, numbers, booleans, `null`.
+ * Undefined when the text is anything else (an expression, a call, an identifier).
+ */
+export function structuredLiteralOf(
+  text: string,
+): { value: unknown } | undefined {
+  let at = 0;
+  const space = () => {
+    while (at < text.length && /\s/.test(text[at]!)) at += 1;
+  };
+  const fail = Symbol("fail");
+  const quoted = (): string | typeof fail => {
+    const m = /^'((?:[^'\\]|\\.)*)'|^"((?:[^"\\]|\\.)*)"/.exec(text.slice(at));
+    if (!m) return fail;
+    at += m[0].length;
+    return (m[1] ?? m[2]!).replace(/\\(.)/g, "$1");
+  };
+  const value = (): unknown => {
+    space();
+    const ch = text[at];
+    if (ch === "'" || ch === '"') return quoted();
+    if (ch === "[") {
+      at += 1;
+      const items: unknown[] = [];
+      for (;;) {
+        space();
+        if (text[at] === "]") {
+          at += 1;
+          return items;
+        }
+        const item = value();
+        if (item === fail) return fail;
+        items.push(item);
+        space();
+        if (text[at] === ",") at += 1;
+        else if (text[at] !== "]") return fail;
+      }
+    }
+    if (ch === "{") {
+      at += 1;
+      const out: Record<string, unknown> = {};
+      for (;;) {
+        space();
+        if (text[at] === "}") {
+          at += 1;
+          return out;
+        }
+        let key: string | typeof fail;
+        if (text[at] === "'" || text[at] === '"') key = quoted();
+        else {
+          const m = /^[A-Za-z_$][\w$]*/.exec(text.slice(at));
+          if (!m) return fail;
+          at += m[0].length;
+          key = m[0];
+        }
+        if (key === fail) return fail;
+        space();
+        if (text[at] !== ":") return fail;
+        at += 1;
+        const item = value();
+        if (item === fail) return fail;
+        out[key] = item;
+        space();
+        if (text[at] === ",") at += 1;
+        else if (text[at] !== "}") return fail;
+      }
+    }
+    const word = /^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(
+      text.slice(at),
+    );
+    if (!word) return fail;
+    at += word[0].length;
+    return word[0] === "true"
+      ? true
+      : word[0] === "false"
+        ? false
+        : word[0] === "null"
+          ? null
+          : Number(word[0]);
+  };
+  const result = value();
+  space();
+  return result === fail || at !== text.length ? undefined : { value: result };
+}
+
 /** The comparisons a parameter suffix names, in the table's order (`_gt` = greater than first). */
 const PARAM_ORDER: readonly ViewComparison[] = [
   "equals",

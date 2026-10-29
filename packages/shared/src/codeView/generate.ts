@@ -150,8 +150,29 @@ const member = (object: string, key: string) =>
 const stateProp = conceptStateOf;
 const callbackOf = conceptCallbackOf;
 
-const isSelectionType = (valueType: string) =>
-  valueType === "array" || valueType === "string[]";
+/**
+ * A variable that is a RAC `Selection` (a key set): a key list (`string[]`), or an `array` that a
+ * selection names (a control's named keys state) or writes (`!event.keys`) — or one with no JSON
+ * start (the page array before 2026-10-29 was a selection). An `array` with a JSON start nothing
+ * selects into is a plain array (`useState([1, 1, 2])` — a Set would drop its repeats).
+ */
+function isSelectionVariable(
+  entry: StateVariableEntry,
+  interactions: readonly InteractionEntry[],
+): boolean {
+  if (entry.valueType === "string[]") return true;
+  if (entry.valueType !== "array") return false;
+  if (entry.source || !Array.isArray(entry.defaultValue)) return true;
+  return interactions.some((rule) =>
+    rule.actions.some(
+      (action) =>
+        action.opcode === "setState" &&
+        action.variableId === entry.id &&
+        typeof action.value === "string" &&
+        /^!event\.keys$/.test(action.value),
+    ),
+  );
+}
 
 /** A date variable's start in code — the `@internationalized/date` parser of its text's shape. */
 const DATE_PARSE_FN: Record<DateValueKind, string> = {
@@ -384,6 +405,7 @@ class Generator {
         this.rules.set(rule.ownerId, list);
       }
     // Variables: the page's, its nodes' (and named states of its nodes).
+    const interactions = this.doc.interactions;
     for (const entry of this.doc.variables) {
       if (entry.ownerId !== this.page.id && !this.nodeIds.has(entry.ownerId))
         continue;
@@ -392,7 +414,7 @@ class Generator {
         entry,
         name,
         setter: `set${capital(name)}`,
-        selection: isSelectionType(entry.valueType),
+        selection: isSelectionVariable(entry, interactions),
       });
     }
     // Collections: the bound ones, the ones a rule writes, the views' sources.
@@ -672,6 +694,12 @@ class Generator {
           ? parseDateValue(entry.defaultValue)
           : undefined;
       if (!parsed) return "null";
+      // (An instant written with `Z` · an offset is read in UTC — `parseZonedDateTime` takes only
+      //   the bracketed zone form, review 2026-10-29.)
+      if (parsed.kind === "zoned" && !String(entry.defaultValue).includes("[")) {
+        this.import("@internationalized/date", "parseAbsolute");
+        return `parseAbsolute(${literal(entry.defaultValue)}, 'UTC')`;
+      }
       const fn = DATE_PARSE_FN[parsed.kind];
       this.import("@internationalized/date", fn);
       return `${fn}(${literal(entry.defaultValue)})`;

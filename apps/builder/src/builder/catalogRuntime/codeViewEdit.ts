@@ -47,7 +47,10 @@ import type {
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { isBodyType } from "../../../../../packages/shared/src/domain/predicates";
 import { generateCodeView } from "../../../../../packages/shared/src/codeView/generate";
-import { literalOf } from "../../../../../packages/shared/src/codeView/inverse";
+import {
+  literalOf,
+  structuredLiteralOf,
+} from "../../../../../packages/shared/src/codeView/inverse";
 import {
   codeViewAnchorOutcomes,
   codeViewMatchElements,
@@ -750,11 +753,12 @@ class Planner {
     // (A date variable: `useState<DateValue | null>(parseDate('…'))` · `(null)` — its ISO text.)
     if (type === "DateValue | null" || type === "Time | null") {
       if (text === "null") return { valueType: "date", defaultValue: "" };
+      // (An absolute instant is `parseAbsolute('…Z', 'UTC')` — the zone its text is read in.)
       const call =
-        /^parse(?:Date|DateTime|Time|ZonedDateTime|Absolute)\(([\s\S]*)\)$/.exec(
+        /^parse(?:Date|DateTime|Time|ZonedDateTime)\(([\s\S]*)\)$|^parseAbsolute\(([\s\S]*?),\s*'UTC'\)$/.exec(
           text,
         );
-      const iso = call ? literalOf(call[1]!.trim()) : undefined;
+      const iso = call ? literalOf((call[1] ?? call[2])!.trim()) : undefined;
       if (typeof iso !== "string" || !isDateValueText(iso) || iso === "") {
         this.reject(statement.from, "outsideVocabulary");
         return undefined;
@@ -762,12 +766,17 @@ class Planner {
       return { valueType: "date", defaultValue: iso };
     }
     if (text === "null") return { valueType: "object", defaultValue: null };
-    const value = literalOf(text);
     // (A JSON literal is a structured default — `{…}` an object's, `[…]` an array's, 2026-10-29.)
-    if (Array.isArray(value))
-      return { valueType: "array", defaultValue: value };
-    if (value && typeof value === "object")
-      return { valueType: "object", defaultValue: value };
+    if (text.startsWith("{") || text.startsWith("[")) {
+      const structured = structuredLiteralOf(text)?.value;
+      if (Array.isArray(structured))
+        return { valueType: "array", defaultValue: structured };
+      if (structured && typeof structured === "object")
+        return { valueType: "object", defaultValue: structured };
+      this.reject(statement.from, "outsideVocabulary");
+      return undefined;
+    }
+    const value = literalOf(text);
     if (typeof value === "string")
       return { valueType: "string", defaultValue: value };
     if (typeof value === "number")

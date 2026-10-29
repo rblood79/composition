@@ -173,8 +173,8 @@ export const CATALOG_PARAMS_ROOT = "params";
 
 /** A `{{ }}` environment that also reads a variable by id (a value condition's `!var.<id>`). */
 export interface CatalogStateEnv extends StateTemplateEnv {
-  /** A visible variable's value by id; undefined = not visible here. */
-  byId(id: string): { value: unknown } | undefined;
+  /** A visible variable's value (and its type) by id; undefined = not visible here. */
+  byId(id: string): { value: unknown; type?: string } | undefined;
 }
 
 /** The `{{ }}` environment of a visible list: nearest name wins; unknown names stay as written. */
@@ -197,6 +197,7 @@ export function catalogStateEnv(
         value:
           read?.(entry.id, entry.scope) ??
           defaultOf(entry.type, entry.defaultValue),
+        type: entry.type,
       };
     },
     get(name) {
@@ -270,10 +271,14 @@ export function catalogPropWhenValue(
   when: PropWhen,
   env: Pick<CatalogStateEnv, "byId">,
 ): boolean {
-  const read = (ref: string): { value: unknown } | undefined => {
+  const read = (
+    ref: string,
+  ): { value: unknown; type?: string } | undefined => {
     const [id, ...path] = ref.slice("!var.".length).split(".");
     const found = id ? env.byId(id) : undefined;
     if (!found) return undefined;
+    // (A path reads into the value — its type is the variable's only at the root.)
+    if (!path.length) return found;
     let value = found.value;
     for (const segment of path) {
       if (segment === "size" && (Array.isArray(value) || value instanceof Set))
@@ -294,8 +299,12 @@ export function catalogPropWhenValue(
       ? read(when.value)?.value
       : when.value;
   const cell = subject.value;
+  // (A `date` variable is stored as ISO text — its type, not the value's `typeof`, makes it a date:
+  //   the panel offers the date comparisons, 2026-10-29.)
   const kind =
-    typeof cell === "number"
+    subject.type === "date"
+      ? "date"
+      : typeof cell === "number"
       ? "number"
       : typeof cell === "boolean"
         ? "boolean"

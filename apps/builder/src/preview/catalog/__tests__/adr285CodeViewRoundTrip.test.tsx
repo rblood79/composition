@@ -785,6 +785,79 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     });
   });
 
+  it("a JSON start (`useState({count: 1})`) reads back — its own edit and an unrelated one both apply (review 2026-10-29 H1)", async () => {
+    const h = await open(["Button"]);
+    const session = begin(h);
+    const head = "export default function Home() {\n";
+    const line = "  let [payload, setPayload] = useState({count: 1});\n";
+    expect(
+      applyCode(h, session, [replace(session.code, head, `${head}${line}`)]),
+    ).toEqual({ applied: true, reasons: [] });
+    const project = () =>
+      h.graph().getEntry(h.graph().projectId) as {
+        stateVariableIds: readonly string[];
+      };
+    const variable = () => h.graph().getEntry(project().stateVariableIds[0]!);
+    expect(variable()).toMatchObject({
+      valueType: "object",
+      defaultValue: { count: 1 },
+    });
+    expect(h.code()).toContain(line);
+    const session2 = begin(h);
+    expect(
+      applyCode(h, session2, [replace(session2.code, "count: 1", "count: 2")]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(variable()).toMatchObject({ defaultValue: { count: 2 } });
+    const [button] = h.body() as NodeId[];
+    const session3 = begin(h);
+    expect(
+      applyCode(h, session3, [
+        replace(session3.code, "<Button", "<Button isDisabled={true}"),
+      ]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(h.node(button!)!.props.isDisabled).toMatchObject({ value: true });
+    expect(variable()).toMatchObject({ defaultValue: { count: 2 } });
+  });
+
+  it("a JSON array start stays an array in code (`useState([1, 1, 2])`, not a Set — review 2026-10-29 M2)", async () => {
+    const h = await open(["Button"]);
+    const session = begin(h);
+    const head = "export default function Home() {\n";
+    const line = "  let [ids, setIds] = useState([1, 1, 2]);\n";
+    expect(
+      applyCode(h, session, [replace(session.code, head, `${head}${line}`)]),
+    ).toEqual({ applied: true, reasons: [] });
+    const project = h.graph().getEntry(h.graph().projectId) as {
+      stateVariableIds: readonly string[];
+    };
+    expect(h.graph().getEntry(project.stateVariableIds[0]!)).toMatchObject({
+      valueType: "array",
+      defaultValue: [1, 1, 2],
+    });
+    expect(h.code()).toContain(line);
+    expect(h.code()).not.toContain("new Set([1, 1, 2])");
+  });
+
+  it("an absolute instant (`…Z`) is `parseAbsolute('…', 'UTC')` both ways (review 2026-10-29 M3)", async () => {
+    const h = await open(["Button"]);
+    const session = begin(h);
+    const head = "export default function Home() {\n";
+    const line =
+      "  let [due, setDue] = useState<DateValue | null>(parseAbsolute('2026-10-29T10:30:00Z', 'UTC'));\n";
+    expect(
+      applyCode(h, session, [replace(session.code, head, `${head}${line}`)]),
+    ).toEqual({ applied: true, reasons: [] });
+    const project = h.graph().getEntry(h.graph().projectId) as {
+      stateVariableIds: readonly string[];
+    };
+    expect(h.graph().getEntry(project.stateVariableIds[0]!)).toMatchObject({
+      valueType: "date",
+      defaultValue: "2026-10-29T10:30:00Z",
+    });
+    expect(h.code()).toContain(line);
+    expect(h.code()).not.toContain("parseZonedDateTime");
+  });
+
   it("a literal sort written (`toSorted` by a field, descending) sorts the list's view", async () => {
     const h = await open(["ListBox"], [USERS]);
     const list = h.body()[0]! as NodeId;

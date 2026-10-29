@@ -32,3 +32,17 @@
 ## 4. 커밋
 
 `1a6af386e feat(data-panel): 변수 편집 두 모양 · date 타입 · 표 열 타입을 변수와 같은 공통 타입으로` — 72 파일. 공유 파일 `packages/shared/src/catalog/document/types.ts` · `validation.ts` 는 다른 세션 (ADR-291 json-formula `formula`) 의 줄을 빼고 stage (`git update-index --cacheinfo`). prettier 가 다른 세션의 줄까지 다시 감싼 5 파일 (~590 줄) 은 HEAD 위에 의미 변경만 다시 얹어 117 줄로 줄인 뒤 커밋.
+
+## 5. 코드 리뷰 수리 (2026-10-29)
+
+`1a6af386e` 정적 리뷰 (`.agent/runs/2026-10-29-review-adr292-code/report.md`, 로컬) 의 HIGH 1 · MEDIUM 4 는 모두 production 재현이 있어 수리했다 — 판독 1 + 수리 검증 1 로 닫음 (`review-loop-closure.md`).
+
+| #   | 결함                                                                    | 수리                                                                                   |
+| --- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| H1  | 코드 보기가 `{…}` · `[…]` 시작값을 못 읽어 그 페이지의 모든 편집이 거절 | `inverse.ts` `structuredLiteralOf` → `codeViewEdit.ts`                                 |
+| M2  | JSON 배열 시작값이 `new Set([…])` (중복 소실)                           | `generate.ts` `isSelectionVariable` — 선택에 쓰이는 변수만 `Selection`                 |
+| M3  | `…Z` 시작값이 `parseZonedDateTime` (실행 예외)                          | `parseAbsolute('…', 'UTC')` 양방향                                                     |
+| M4  | 시각만 담은 date 값이 비교 불가                                         | `comparison.ts` `viewTime`                                                             |
+| M5  | date 변수 속성 조건이 글자 비교                                         | `stateTemplate.ts` — `byId` 가 변수 타입을 주고 `catalogPropWhenValue` 가 date 로 비교 |
+
+검증: 수리마다 원복 RED (회귀 테스트 `adr285CodeViewRoundTrip.test.tsx` 3 · `evaluate.test.ts` 2 · `adr284PropWhen.test.ts` 1) · live 5174 (새 프로젝트 — 코드 보기 적용 · 재생성 · 편집 · Preview 버튼 disabled / 대조 enabled). M4 는 unit 만 (Canvas · Preview 가 같은 평가 모듈).

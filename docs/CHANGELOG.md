@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-292 리뷰 수리 — 코드 보기의 JSON · date 시작값 · 시각 비교 · date 조건] - 2026-10-29
+
+### Fixed
+
+- **JSON 시작값이 있는 페이지에서 코드 보기 편집이 전부 거절되던 것** (코드 리뷰 HIGH): `useState({count: 1})` 을 읽지 못해 값 수정뿐 아니라 무관한 요소 편집도 「어휘 밖」 이었다. 생성기가 쓰는 객체 · 배열 리터럴을 그대로 읽는다 (`structuredLiteralOf`).
+- **JSON 배열 시작값이 `new Set([…])` 으로 나오던 것**: `[1, 1, 2]` 의 중복이 사라졌다. `Set` 은 RAC 선택에 쓰이는 변수 (`string[]` · 이름 붙인 선택 상태 · `!event.keys` 로 쓰이는 변수 · JSON 시작값이 없는 옛 배열) 만, 나머지는 `useState([1, 1, 2])`.
+- **`…Z` · 오프셋 date 시작값의 코드가 실행 시 예외를 내던 것**: `parseZonedDateTime` 대신 `parseAbsolute('…', 'UTC')` 로 쓰고 읽는다.
+- **시각만 담은 date 값이 같은 값으로 걸러도 탈락하던 것**: 시각끼리는 시각으로 비교한다 (시각 ↔ 날짜는 맞지 않음).
+- **date 변수의 속성 조건이 글자로 비교되던 것**: 조건 실행이 변수 타입을 받아 표의 날짜 비교와 같은 답을 낸다 (`2026-10-29T10:30` equals `2026-10-29` → 참).
+  - 위치: `packages/shared/src/codeView/{inverse.ts,generate.ts}` · `collections/view/comparison.ts` · `catalog/runtime/stateTemplate.ts` · `apps/builder/src/builder/catalogRuntime/codeViewEdit.ts`
+  - 검증: 수리마다 원복 RED · shared 1,907 · builder 3,697 · publish 14 PASS · type-check PASS · live 5174 (코드 보기 세 시작값 적용 · 재생성 · `count` 편집 · `<Button />` 추가 · Preview 버튼 disabled ↔ 대조 값에서 enabled · 콘솔 오류 0)
+
 ## [데이터 패널 — API 편집기 · 가져오기 · 표 만들기 칸을 빌더 필드로] - 2026-10-29
 
 ### Fixed

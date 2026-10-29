@@ -5,7 +5,7 @@
  *
  * Text follows RAC `useFilter` (`react-aria` `i18n/useFilter` — `Intl.Collator` `usage: "search"`,
  * NFC on both sides, an empty search matches): a condition is a pure function so it cannot call the
- * hook, it builds the same collator. Dates compare by day.
+ * hook, it builds the same collator. Dates compare by day; a time-only date by its time.
  */
 import type {
   ViewComparison,
@@ -143,6 +143,30 @@ function textMatch(
 }
 
 /**
+ * A time-only value as a sortable text (`HH:MM:SS.mmm`): a `date` cell's time shape (`10:30` ·
+ * `10:30:15.5` — 2026-10-29) or a RAC `Time`-like object (`hour` · `minute`, no `year`).
+ * Undefined when it is none — a time compares only with a time (it has no day).
+ */
+function viewTime(value: unknown): string | undefined {
+  const pad = (n: number, size = 2) => String(n).padStart(size, "0");
+  if (typeof value === "string") {
+    const m = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/.exec(value.trim());
+    if (!m) return undefined;
+    return `${m[1]}:${m[2]}:${m[3] ?? "00"}.${(m[4] ?? "").padEnd(3, "0").slice(0, 3)}`;
+  }
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    const { year, hour, minute, second, millisecond } = value as Record<
+      string,
+      unknown
+    >;
+    if (year !== undefined || typeof hour !== "number" || typeof minute !== "number")
+      return undefined;
+    return `${pad(hour)}:${pad(minute)}:${pad(typeof second === "number" ? second : 0)}.${pad(typeof millisecond === "number" ? millisecond : 0, 3)}`;
+  }
+  return undefined;
+}
+
+/**
  * A value as a day (`YYYY-MM-DD`): an ISO date · date-time string, a `Date`, a timestamp, or a
  * RAC `CalendarDate`-like object (`year` · `month` · `day`). Undefined when it is none.
  */
@@ -200,6 +224,12 @@ function order(
   options: ViewCompareOptions,
 ): number | undefined {
   if (options.kind === "date") {
+    const leftTime = viewTime(a);
+    const rightTime = viewTime(b);
+    if (leftTime || rightTime) {
+      if (!leftTime || !rightTime) return undefined;
+      return leftTime < rightTime ? -1 : leftTime > rightTime ? 1 : 0;
+    }
     const left = viewDay(a);
     const right = viewDay(b);
     if (!left || !right) return undefined;

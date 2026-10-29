@@ -420,3 +420,47 @@ describe("ADR-284 Decision 3 — the view runs before the display window", () =>
     expect(bound.view?.matched).toBe(200);
   });
 });
+
+describe("ADR-292 review 2026-10-29 M4 — a time-only date compares by its time", () => {
+  it("equals · before · after between times; a time never matches a day", () => {
+    const date = { kind: "date" } as const;
+    expect(viewCompare("equals", "10:30", "10:30", date)).toBe(true);
+    expect(viewCompare("equals", "10:30", "10:30:00", date)).toBe(true);
+    expect(viewCompare("before", "09:15", "10:30", date)).toBe(true);
+    expect(viewCompare("after", "10:30:01", "10:30", date)).toBe(true);
+    expect(
+      viewCompare("equals", "10:30", { hour: 10, minute: 30 }, date),
+    ).toBe(true);
+    expect(viewCompare("equals", "10:30", "2026-10-29", date)).toBe(false);
+    expect(viewCompare("equals", "2026-10-29T10:30", "2026-10-29", date)).toBe(
+      true,
+    );
+  });
+  it("runs in a view query", () => {
+    const rows = [
+      { id: "one", at: "10:30" },
+      { id: "two", at: "11:00" },
+    ];
+    const result = runViewQueries(rows, {
+      queries: [
+        {
+          where: {
+            id: "w",
+            op: "and",
+            items: [
+              {
+                id: "c",
+                fields: [["data:field:at"]],
+                op: "equals",
+                value: "10:30",
+              },
+            ],
+          },
+        },
+      ],
+      schema: [{ id: "at", key: "at", type: "date" }],
+      resolve: (value: unknown) => ({ value }),
+    } as never);
+    expect(result.rows).toEqual([rows[0]]);
+  });
+});

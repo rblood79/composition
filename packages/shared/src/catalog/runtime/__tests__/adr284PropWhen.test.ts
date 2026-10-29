@@ -130,3 +130,29 @@ describe("ADR-284 Phase 6 — a text variable's toggle · a single selection's k
     });
   });
 });
+
+describe("ADR-292 review 2026-10-29 M5 — a date variable's condition compares as a date", () => {
+  const dated = (value: unknown) => ({
+    byId: (id: string) =>
+      id === "due" ? { value, type: "date" } : undefined,
+  });
+  it("by its type (ISO text, by day) — not as text", () => {
+    const when = {
+      kind: "when",
+      subject: "!var.due",
+      op: "equals",
+      value: "2026-10-29",
+    } as const;
+    expect(catalogPropWhenValue(when, dated("2026-10-29T10:30"))).toBe(true);
+    expect(
+      catalogPropWhenValue(
+        { ...when, op: "before", value: "2026-10-30" },
+        dated("2026-10-29T23:59"),
+      ),
+    ).toBe(true);
+    // (A text variable with the same text still compares as text.)
+    expect(catalogPropWhenValue(when, env({ due: "2026-10-29T10:30" }))).toBe(
+      false,
+    );
+  });
+});
