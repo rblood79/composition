@@ -1,1 +1,0 @@
-import{i as e}from"./rolldown-runtime-Dd_uD5pT.js";import{Yo as t}from"./aria-runtime-D0Dj8x6p.js";import"./src-B-QIvRVT.js";import{v as n,x as r}from"./createLucideIcon-CPKV7vDP.js";var i=e(t(),1);function a(e){return(0,i.useSyncExternalStore)(r,()=>n(e))}export{a as t};
