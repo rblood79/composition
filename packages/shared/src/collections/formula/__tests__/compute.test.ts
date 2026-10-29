@@ -1,10 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import {
-  coerceFormulaResult,
-  formulaCellErrors,
-  withComputedCells,
-} from "../compute";
-import { dateTextToDays, daysToDateText, loadFormulaEngine } from "../engine";
+import { formulaCellErrors, withComputedCells } from "../compute";
+import { coerceFormulaResult } from "../computeCells";
+import { loadFormulaEngine } from "../engine";
+import { dateTextToDays, daysToDateText } from "../instance";
 
 /**
  * ADR-291 G2 — result types and the date bridge, hand-computed: number · string · boolean · date

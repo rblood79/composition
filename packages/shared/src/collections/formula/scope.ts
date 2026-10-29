@@ -12,7 +12,8 @@
  * the walk's identifier sequence and the tokens' must be equal, else refused.
  */
 import type { FormulaAst } from "@adobe/json-formula";
-import { compileFormula, type FormulaEngine } from "./engine";
+import type { FormulaEngine } from "./engine";
+import { compileFormula } from "./instance";
 
 export type FormulaScopeCode =
   | "FORMULA_SYNTAX"

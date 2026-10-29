@@ -79,6 +79,7 @@ import {
 } from "../../../../../packages/shared/src/interactions/capabilityRegistry";
 import { conceptStateOf } from "../../../../../packages/shared/src/interactions/conceptState";
 import type { catalogCodeViewData } from "./codeView";
+import { planCodeViewFields } from "./codeViewFields";
 import {
   codeName as codeNameOf,
   planCodeViews,
@@ -162,6 +163,9 @@ const DERIVED_KINDS = new Set([
   "collator",
   "navigate",
   "dnd",
+  // ADR-291 — the json-formula helpers and the computed rows line (the fields block is edited).
+  "formula",
+  "computedRows",
 ]);
 
 interface PlanInput {
@@ -317,6 +321,15 @@ class Planner {
     this.planElements();
     this.planSelections();
     this.planDragAndDrop();
+    // ADR-291 — the computed-column blocks (a formula typed over is the column's new formula).
+    planCodeViewFields({
+      reader: this.reader,
+      edited: this.parsed,
+      baseline: this.baseline,
+      strict: !!this.input.strict,
+      reject: this.reject,
+      step: (from, command) => this.step(from, command),
+    });
     if (this.ids)
       planCodeViews({
         reader: this.reader,

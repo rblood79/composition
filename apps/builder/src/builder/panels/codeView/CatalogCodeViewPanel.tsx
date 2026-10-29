@@ -27,6 +27,10 @@ import {
 import { catalogCollectionTables } from "../../catalogRuntime/catalogDataStore";
 import { catalogCodeViewData } from "../../catalogRuntime/codeView";
 import {
+  schemaHasFormula,
+  useFormulaEngine,
+} from "../../catalogRuntime/formulaEngine";
+import {
   catalogCodeViewApply,
   catalogCodeViewPlan,
   catalogCodeViewSession,
@@ -96,9 +100,14 @@ function CodeViewContent() {
     void revision;
     return catalogCodeViewData(workspace.runtime.graph);
   }, [revision, workspace]);
+  // ADR-291 — a computed column's formula is shown over field keys once the engine is loaded.
+  const formulaEngine = useFormulaEngine(
+    data.collections.some((collection) => schemaHasFormula(collection.schema)),
+  );
   // The page's code now — the editor's baseline while nothing is typed.
   const live = useMemo((): CatalogCodeViewSession | undefined => {
     void revision;
+    void formulaEngine;
     if (!pageId) return undefined;
     try {
       return catalogCodeViewSession(
@@ -109,7 +118,7 @@ function CodeViewContent() {
     } catch {
       return undefined;
     }
-  }, [data, pageId, revision, workspace]);
+  }, [data, formulaEngine, pageId, revision, workspace]);
   const result: CodeViewResult | undefined = live?.baseline;
   // (A draft per page — the typed text on the baseline it started from. Another page's draft is
   // kept, never applied here.)

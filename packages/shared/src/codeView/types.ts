@@ -129,6 +129,11 @@ export type CodeViewAnchorTarget =
   | { readonly kind: "variable"; readonly variableId: string }
   /** A view's statements (`let items = rows.filter(…).toSorted(…)` · a grouping · a count). */
   | { readonly kind: "view"; readonly owner: CodeViewViewOwner }
+  /**
+   * ADR-291 — a collection's computed columns (`let <rows>Fields = {<key>: {type, formula}}`):
+   * each `formula` text (shown over field keys) is the column's formula; `type` is read only.
+   */
+  | { readonly kind: "fields"; readonly collectionId: string }
   /** One `filter` term (with its skip guard) or request parameter — a condition. */
   | {
       readonly kind: "condition";

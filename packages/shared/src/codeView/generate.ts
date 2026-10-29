@@ -58,6 +58,11 @@ import {
   conceptStateOf,
 } from "../interactions/conceptState";
 import { CodeWriter } from "./writer";
+import {
+  formulaEngineSync,
+  loadFormulaEngine,
+} from "../collections/formula/engine";
+import { formulaToDisplay } from "../collections/formula/names";
 import type {
   CodeViewAnchorTarget,
   CodeViewCollection,
@@ -90,7 +95,7 @@ const DRAG_EVENTS = new Set([
   "onDragEnd",
 ]);
 const RESERVED = new Set(
-  "break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static implements interface package private protected public await item e keys key".split(
+  "break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static implements interface package private protected public await item e keys key formula computed".split(
     " ",
   ),
 );
@@ -295,6 +300,8 @@ class Generator {
   private readonly nodeNames = new Map<string, string>();
   private readonly imports = new Map<string, Set<string>>();
   private readonly dataImports: string[] = [];
+  /** ADR-291 — the json-formula helpers written once a collection has a computed column. */
+  private formulaHelpers = false;
   private filterFns = new Set<string>();
   private collator = false;
   private toasts = false;
@@ -717,8 +724,20 @@ class Generator {
     for (const code of this.rowSources.values()) {
       const file = `./data/${identifier(code.collection?.name ?? code.name, "rows")}`;
       const key = resolveField(code.collection?.schema, "id")?.key ?? "id";
+      const fields = this.writeComputedFields(out, code);
+      const computed = (rows: string) =>
+        fields ? `${rows}.map(item => computed(item, ${fields}))` : rows;
       if (code.hook === "rows") {
-        this.dataImports.push(`import ${code.name} from '${file}';`);
+        if (!fields) {
+          this.dataImports.push(`import ${code.name} from '${file}';`);
+          continue;
+        }
+        const data = `${code.name}Data`;
+        this.dataImports.push(`import ${data} from '${file}';`);
+        out.anchorLine(`let ${code.name} = ${computed(data)};`, {
+          kind: "derived",
+          key: `rows:${code.id}`,
+        });
         continue;
       }
       const derived = {
@@ -733,7 +752,7 @@ class Generator {
         out.line(`let ${code.name} = useListData({`);
         out
           .in()
-          .line(`initialItems: ${initial},`)
+          .line(`initialItems: ${computed(initial)},`)
           .line(`getKey: item => item.${key}`)
           .out();
         out.line("});").anchor(from, derived);
@@ -770,7 +789,7 @@ class Generator {
           : "json";
       out.line("let json = await res.json();");
       out.line(
-        `return {items: ${read(endpoint?.dataPath)}${endpoint?.cursorPath ? `, cursor: ${read(endpoint.cursorPath)}` : ""}};`,
+        `return {items: ${computed(read(endpoint?.dataPath))}${endpoint?.cursorPath ? `, cursor: ${read(endpoint.cursorPath)}` : ""}};`,
       );
       out.out().line("}").out();
       out.line("});").anchor(from, derived);
@@ -785,6 +804,71 @@ class Generator {
         }
       }
     }
+  }
+
+  /**
+   * ADR-291 Decision 9 — a collection's computed columns as a field definition block the rows
+   * are mapped through: `let <rows>Fields = {<key>: {type, formula}}` (the formula shown over
+   * field keys — `names.ts`; `type` is the column's result type) and, once, the json-formula
+   * helpers. Returns the block's name; undefined when the collection has no computed column.
+   */
+  private writeComputedFields(
+    out: CodeWriter,
+    code: CollectionCode,
+  ): string | undefined {
+    // (The document's definition when the reader holds it — ADR-286: the data is the document's,
+    //   and an edit of the block regenerates from the staged document.)
+    const entry = this.doc.get(code.id);
+    const schema: CodeViewCollection["schema"] =
+      entry?.kind === "collection"
+        ? entry.schema.map((field) => ({
+            ...(field.id ? { id: field.id } : {}),
+            key: field.key,
+            ...(field.type ? { type: field.type } : {}),
+            ...(field.formula ? { formula: field.formula } : {}),
+          }))
+        : (code.collection?.schema ?? []);
+    const computed = schema.filter(
+      (field) => typeof field.formula === "string" && field.formula !== "",
+    );
+    if (!computed.length) return undefined;
+    if (!this.formulaHelpers) {
+      this.formulaHelpers = true;
+      this.dataImports.unshift("import JsonFormula from '@adobe/json-formula';");
+      out.anchorLine("let formula = new JsonFormula();", {
+        kind: "derived",
+        key: "formula",
+      });
+      out.anchorLine(
+        "let computed = (item, fields) => ({...item, ...Object.fromEntries(Object.entries(fields).map(([key, field]) => [key, formula.search(field.formula, item)]))});",
+        { kind: "derived", key: "computed" },
+      );
+    }
+    // (Shown over keys when the engine is loaded — the panel reads again once it is; until then
+    //   the stored form.)
+    const engine = formulaEngineSync();
+    if (!engine) void loadFormulaEngine();
+    const shown = (stored: string) => {
+      if (!engine) return stored;
+      try {
+        return formulaToDisplay(engine, stored, schema);
+      } catch {
+        return stored;
+      }
+    };
+    const name = `${code.name}Fields`;
+    out.start();
+    const from = out.length;
+    out.write(`let ${name} = {`).end();
+    out.in();
+    for (const field of computed)
+      out.line(
+        `${property(field.key)}: {type: ${literal(field.type ?? "string")}, formula: ${literal(shown(field.formula!))}},`,
+      );
+    out.out();
+    out.write("  ".repeat(out.depth)).write("};");
+    out.anchor(from, { kind: "fields", collectionId: code.id }).end();
+    return name;
   }
 
   /** The nodes of every page bound to a collection (the session reads them all). */

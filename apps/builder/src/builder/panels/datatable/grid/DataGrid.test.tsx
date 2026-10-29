@@ -13,7 +13,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { applyDataChange, toastError } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({})),
@@ -42,6 +42,7 @@ import {
   DataUsageSourceContext,
   type DataUsageSource,
 } from "../usage/dataUsageSource";
+import { loadFormulaEngine } from "../../../../../../../packages/shared/src/collections/formula/engine";
 import { DataGrid } from "./DataGrid";
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 
@@ -957,5 +958,63 @@ describe("nextRowId", () => {
     );
     expect(nextRowId([{ id: "row_2" }, { id: "a" }], "string")).toBe("row_3");
     expect(nextRowId([{ id: 4 }, { id: 9 }], "number")).toBe(10);
+  });
+});
+
+/* ─── ADR-291 Phase 2 — computed columns in the grid (사용자 결정 5 — the values shown) ───── */
+
+const ORDERS: DataTable = {
+  id: "c2",
+  name: "Orders",
+  project_id: "p",
+  schema: [
+    { id: "f-id", key: "id", type: "string" },
+    { id: "f-name", key: "name", type: "string" },
+    { id: "f-price", key: "price", type: "number" },
+    { id: "f-qty", key: "qty", type: "number" },
+    {
+      id: "f-total",
+      key: "total",
+      type: "number",
+      formula: "'f-price' * 'f-qty'",
+    },
+    {
+      id: "f-bad",
+      key: "bad",
+      type: "number",
+      formula: "'f-price' * 'f-name'",
+    },
+  ],
+  mockData: [
+    { id: "1", name: "Ann", price: 30, qty: 2 },
+    { id: "2", name: "Bob", price: 5, qty: 3 },
+  ],
+  useMockData: true,
+} as unknown as DataTable;
+
+describe("DataGrid — ADR-291 computed columns", () => {
+  beforeAll(() => loadFormulaEngine());
+
+  it("a computed column shows the formula's value, read only (aria-readonly · Σ · the formula on the head); a failing row is marked", async () => {
+    const { container } = render(
+      wrap(<DataGrid table={ORDERS} virtualized={false} />),
+    );
+    await waitFor(() => expect(cell(container, 0, "total").textContent).toBe("60"));
+    expect(cell(container, 1, "total").textContent).toBe("15");
+    expect(cell(container, 0, "total").getAttribute("aria-readonly")).toBe("true");
+    expect(cell(container, 0, "total").getAttribute("data-formula-error")).toBeNull();
+    // ("price * name" — a string in arithmetic: the cell is empty and marked, the row stays.)
+    expect(cell(container, 0, "bad").textContent).toBe("");
+    expect(cell(container, 0, "bad").getAttribute("data-formula-error")).toBe("TypeError");
+    const head = [...container.querySelectorAll<HTMLElement>(".datagrid-column-head")].find(
+      (el) => el.querySelector(".datagrid-column-label")?.textContent === "total",
+    )!;
+    expect(head.getAttribute("title")).toBe("Formula: price * qty");
+    expect(head.getAttribute("data-computed")).toBe("true");
+    expect(head.querySelector(".datagrid-column-type")?.getAttribute("aria-label")).toContain(
+      "Computed column",
+    );
+    // (The document's rows carry no computed cell — a write targets the stored columns only.)
+    expect(ORDERS.mockData[0]).not.toHaveProperty("total");
   });
 });

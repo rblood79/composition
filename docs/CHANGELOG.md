@@ -33,6 +33,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 시작값 없는 배열의 기존 `Selection` 표현은 유지하되, 코드에서 명시적으로 `useState([])`로 바꾸면 빈 JSON 배열을 저장한다. Undo/Redo도 두 시작값을 구분한다.
 - JSON의 `__proto__` 키를 일반 데이터 키로 생성하고 읽는다. 중첩 객체도 키를 보존하며, 해당 시작값이 있는 페이지에서 무관한 코드 편집이 거절되던 문제를 수정했다.
 
+## [ADR-291 Implemented — 계산 필드 · 서버 조회 범위] - 2026-10-29
+
+### Changed
+
+- **ADR-291 Implemented** (사용자 G8 확인): 계산 필드 (열 편집기 「계산 열」 · 격자 · 코드 보기 · Canvas · Preview · 조건 · 묶기 · Chart) 와 서버 조회 범위가 완료됐다. publish 런타임의 상주 Worker (Phase 4) 는 보류 — 계산 셀 캐시로 입력 끊김이 사라져 남은 몫은 데이터를 처음 받을 때의 계산 한 번이다.
+- **필터 절의 요청 표시가 serializer 를 필요할 때만 불러온다**: API 표의 「Request sent」 줄은 연결 상세를 열 때 준비된다. Builder 첫 화면 번들 −1.2 KB gzip (이 ADR 전체 +0.6 KB).
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/viewSerializer.ts`
+
+## [ADR-291 Phase 5 진행 — 계산 필드 번들 경계 · live 결함 2 수리] - 2026-10-29
+
+### Fixed
+
+- **계산 필드를 조건으로 쓰는 표가 프로젝트를 열 때 비어 보이던 문제**: 수식 엔진이 로드되기 전의 보기 결과(계산 값이 비어 전부 탈락)를 로드 뒤에도 그대로 썼다. 이제 엔진이 로드되면 다시 계산한다 (Canvas · Preview · Publish 공통).
+- **필터 패널의 행 판정 (「Row verdicts」)** 이 계산 필드 조건을 계산 전 값으로 판정해 보이는 행을 「hidden」 으로 표시하던 문제.
+
+### Changed
+
+- **계산 필드 코드는 첫 화면 번들에서 빠진다**: 계산 필드가 있는 문서를 처음 읽을 때 수식 엔진과 함께 불러온다. Builder 첫 화면 번들의 계산 필드 몫 +4.2 KB → +1.8 KB (gzip, 착수 대비 — 나머지는 서버 조회 범위 코드).
+  - 위치: `packages/shared/src/collections/formula/{engine,compute,computeCells,instance}.ts`
+
+## [ADR-291 Phase 2 — 계산 열 UI · 코드 보기 필드 정의 블록 · G6] - 2026-10-29
+
+### Added
+
+- **열 편집기 「계산 열」** (ADR-291 Decision 8 · 사용자 결정 5 · 7): Type 절의 스위치를 켜면 수식 입력 (열 이름으로 적는다 — 저장은 열 id · 글자는 쌍따옴표) 이 열리고 Type 은 결과 타입 (Number · String · Boolean · Date), 기본값 칸은 사라진다. 틀린 수식 (문법 · 없는 열 · 없는 함수 · 순환 · 타입) 은 입력 아래 빨간 줄로 보이고 저장되지 않는다. 스위치를 끄면 보통 열로 돌아간다. 「Insert column…」 도 같은 스위치로 계산 열을 만든다.
+- **데이터 격자의 계산 열**: 읽기 전용 열로 mock 행의 계산 결과를 보이고 머리글은 Σ 아이콘 + 툴팁에 수식, 계산이 실패한 행의 셀은 빈 칸 + 테두리 표지. 수식 엔진은 계산 열이 있는 표에서만 불러온다.
+- **코드 보기의 계산 열** (Decision 9): `import JsonFormula from '@adobe/json-formula'` · `let <rows>Fields = {<key>: {type, formula}}` · `let <rows> = <rows>Data.map(item => computed(item, <rows>Fields))` — 수식 문자열을 코드에서 고쳐 Apply 하면 그 열의 수식이 바뀐다 (한 step · Undo 한 번). `type` 변경 · 열 추가 · 삭제는 코드에서 거절 (열 편집기에서).
+
+### Changed
+
+- **계산 열이 있는 보기의 입력 반응** (R6): 계산 셀을 원본 행 · 수식 · 수식이 읽는 변수 값 · 오늘 날짜 기준으로 캐시한다 — 검색어 같은 변수가 바뀌어도 수식은 다시 돌지 않는다. 10,000 행 × 계산 열 5 의 변수 변경 1 회 268 → 5 ms (Chrome 4x CPU throttle), 한 행 편집은 그 행만 다시 계산. `now()` 를 쓰는 수식은 캐시하지 않는다.
+  - 위치: `packages/shared/src/collections/formula/compute.ts`
+
+### Fixed
+
+- 프로젝트를 새로 열면 Canvas 의 계산 열이 빈 칸으로 남던 문제 — 수식 엔진이 데이터 패널 상태보다 먼저 로드되면 다시 읽기를 건너뛰었다 (Phase 2 에서 생긴 결함). 계산 열이 있는 표를 문서에서 읽는다.
+- Phase 3 가 놓친 테스트 2 (API 보기 `body` 요청의 `total: true` · `suffix` 묶기는 전체 로드 뒤 `complete`) 와 Builder mount 의 rows refresh 정적 게이트 (엔진 로드 뒤 refresh 는 계산 열이 있는 표만).
+
 ## [ADR-291 Phase 0 · 1 · 3 — 계산 필드 (json-formula) · 서버 조회 범위 · 조회용 보기의 전체 로드 상한] - 2026-10-29
 
 ### Added

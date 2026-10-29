@@ -494,3 +494,8 @@ section- 는 건드리지 않는다 — 전부 datagrid- 고유 클래스.
 }
 
 /* Popover 편집기 (JSON · 날짜 · 긴 값) */
+
+/* ADR-291 — a computed cell whose formula failed on its row (the error's name in the attribute). */
+.datagrid-cell[data-formula-error] {
+  box-shadow: inset 0 0 0 1px var(--negative);
+}

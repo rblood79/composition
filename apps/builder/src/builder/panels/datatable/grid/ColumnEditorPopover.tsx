@@ -20,6 +20,12 @@
  * Every write is `applyDataChange` (HC1); a rename is `update_field { key }` (the reducer moves the
  * rows). A type change previews (UX-5) and asks "clear / keep", writing `update_field` + `set_cell`
  * as one DataChange.
+ *
+ * ADR-291 (사용자 결정 5 · 7) — 「계산 열」 in the Type section: the switch opens the formula input
+ * (over field keys — `names.ts` stores it over ids), the Type select is then the result type
+ * (number · string · boolean · date), the default is gone (the cells are the formula's). A formula
+ * that does not read as a sound definition (`storeFormulaDraft`) shows its error under the input
+ * and writes nothing; switching the column back writes `formula: null`.
  */
 import {
   useCallback,
@@ -49,6 +55,8 @@ import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { ConfirmDialog } from "../../../components/overlay/ConfirmDialog";
 import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
+import { formulaToDisplay } from "../../../../../../../packages/shared/src/collections/formula/names";
+import { useFormulaEngine } from "../../../catalogRuntime/formulaEngine";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { planFieldRename } from "../utils/fieldRename";
 import {
@@ -60,6 +68,11 @@ import {
 import { useDataUsageSource } from "../usage/dataUsageSource";
 import type { FieldUsageRef } from "../utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "../utils/typeChangePreview";
+import {
+  FORMULA_COLUMN_TYPES,
+  formulaColumnType,
+  storeFormulaDraft,
+} from "../utils/formulaDraft";
 import { coerceCellValue, formatCellValue } from "./cellValue";
 import { FieldValueInput } from "./FieldValueInput";
 import { resolveFieldDefault } from "./fieldDefault";
@@ -227,22 +240,85 @@ function FormatSelect({
   );
 }
 
-/** The type options — label + the one-line hint (사용자 결정 3). */
-function useTypeOptions(dt: Dt) {
-  return useMemo(
-    () => ({
-      options: FIELD_TYPES.map((ft) => ({
+/**
+ * The type options — label + the one-line hint (사용자 결정 3). A computed column's are the
+ * result types only (ADR-291 사용자 결정 7).
+ */
+function useTypeOptions(dt: Dt, computed = false) {
+  return useMemo(() => {
+    const types = computed
+      ? FIELD_TYPES.filter((ft) => FORMULA_COLUMN_TYPES.includes(ft.value))
+      : FIELD_TYPES;
+    return {
+      options: types.map((ft) => ({
         value: ft.value,
         label: dt(ft.i18n),
       })),
       descriptions: Object.fromEntries(
-        FIELD_TYPES.map((ft) => [
+        types.map((ft) => [
           ft.value,
           dt(ft.i18n.replace(/^types\./, "typeHints.")),
         ]),
       ) as Record<string, string>,
-    }),
-    [dt],
+    };
+  }, [computed, dt]);
+}
+
+/** ADR-291 — the formula input (over field keys), its hint · loading note and the error line. */
+function FormulaInput({
+  dt,
+  text,
+  error,
+  loading,
+  onChange,
+  onCommit,
+}: {
+  dt: Dt;
+  text: string;
+  error: string | null;
+  loading: boolean;
+  onChange: (text: string) => void;
+  onCommit: () => void;
+}) {
+  return (
+    <div className="fieldset-row" data-wide>
+      <PropertyFieldset
+        legend={dt("fieldFormula")}
+        className="datatable-field-formula"
+        afterControl={
+          <>
+            <span slot="description" className="datatable-field-note">
+              {loading ? dt("fieldFormulaLoading") : dt("fieldComputedHint")}
+            </span>
+            {error ? (
+              <span role="alert" className="datatable-value-error">
+                {error}
+              </span>
+            ) : null}
+          </>
+        }
+      >
+        <textarea
+          className="react-aria-TextArea datatable-field-formula-input"
+          rows={2}
+          spellCheck={false}
+          value={text}
+          placeholder={dt("fieldFormulaPlaceholder")}
+          disabled={loading}
+          aria-invalid={error ? true : undefined}
+          data-shortcut-local="undo redo"
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onCommit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              e.stopPropagation();
+              onCommit();
+            }
+          }}
+        />
+      </PropertyFieldset>
+    </div>
   );
 }
 
@@ -307,6 +383,7 @@ export function ColumnEditor({
     <FieldForm
       key={field.id ?? field.key}
       collectionId={table.id}
+      schema={table.schema}
       existingKeys={table.schema.map((f) => f.key)}
       rows={table.mockData}
       field={field}
@@ -321,6 +398,8 @@ export function ColumnEditor({
 
 interface FieldFormProps {
   collectionId: string;
+  /** The table's columns (a formula names them by key, stores them by id). */
+  schema: readonly DataField[];
   existingKeys: string[];
   rows: readonly Record<string, unknown>[];
   field: DataField;
@@ -349,6 +428,7 @@ function remapDefault(
 
 function FieldForm({
   collectionId,
+  schema,
   existingKeys,
   rows,
   field,
@@ -364,7 +444,31 @@ function FieldForm({
   const [pendingType, setPendingType] = useState<PendingTypeChange | null>(
     null,
   );
-  const { options: typeOptions, descriptions: typeHints } = useTypeOptions(dt);
+  // ADR-291 — the computed switch: on before a formula is written shows the input (nothing
+  // written yet); off on a computed column writes `formula: null`.
+  const computed = !!field.formula;
+  const [computedDraft, setComputedDraft] = useState(computed);
+  useEffect(() => setComputedDraft(computed), [computed]);
+  const formulaEngine = useFormulaEngine(computedDraft);
+  const shownFormula = useMemo(() => {
+    if (!field.formula) return "";
+    if (!formulaEngine) return field.formula;
+    try {
+      return formulaToDisplay(formulaEngine, field.formula, schema);
+    } catch {
+      return field.formula;
+    }
+  }, [field.formula, formulaEngine, schema]);
+  const [formulaText, setFormulaText] = useState(shownFormula);
+  const [formulaError, setFormulaError] = useState<string | null>(null);
+  useEffect(() => {
+    setFormulaText(shownFormula);
+    setFormulaError(null);
+  }, [shownFormula]);
+  const { options: typeOptions, descriptions: typeHints } = useTypeOptions(
+    dt,
+    computedDraft,
+  );
 
   const fieldId = field.id ?? field.key;
   const type = field.type;
@@ -418,6 +522,40 @@ function FieldForm({
     await write([{ op: "update_field", collectionId, fieldId, patch }]);
   };
 
+  const commitFormula = () => {
+    if (!formulaEngine) return;
+    const text = formulaText.trim();
+    if (text === "") {
+      setFormulaError(dt("fieldFormulaEmpty"));
+      return;
+    }
+    const resultType = formulaColumnType(type);
+    const result = storeFormulaDraft(
+      formulaEngine,
+      text,
+      { ...(field.id ? { id: field.id } : {}), key: field.key, type: resultType },
+      schema,
+    );
+    if ("code" in result) {
+      setFormulaError(dt(`fieldFormulaError${result.code}`));
+      return;
+    }
+    setFormulaError(null);
+    if (result.stored === field.formula && resultType === type) return;
+    void patchField({
+      formula: result.stored,
+      ...(resultType !== type ? { type: resultType } : {}),
+      // (A computed column has no default — its cells are the formula's.)
+      ...(field.defaultValue !== undefined ? { defaultValue: null } : {}),
+    });
+  };
+  const toggleComputed = (on: boolean) => {
+    setComputedDraft(on);
+    setFormulaError(null);
+    if (!on && computed) void patchField({ formula: null });
+    if (on) setFormulaText(shownFormula);
+  };
+
   const commitDefault = () => {
     const coerced = coerceCellValue(type, defaultText);
     if (!coerced.ok) {
@@ -433,6 +571,11 @@ function FieldForm({
   const requestTypeChange = (newType: DataFieldType) => {
     // (JSON is one choice — an `array` column picking it again changes nothing.)
     if (newType === shownFieldType(field.type)) return;
+    // (A computed column's type is its result type — no stored cells to preview.)
+    if (computed) {
+      void patchField({ type: newType });
+      return;
+    }
     const remap = remapDefault(field, newType);
     setDefaultNote(remap.cleared ? dt("fieldDefaultCleared") : null);
     const preview = previewTypeChange(field, newType, rows, field.key);
@@ -519,6 +662,14 @@ function FieldForm({
         title={dt("fieldSectionType")}
         collapsible={false}
       >
+        <div className="fieldset-row" data-wide>
+          <PropertySwitch
+            className="datatable-field-computed"
+            label={dt("fieldComputed")}
+            isSelected={computedDraft}
+            onChange={toggleComputed}
+          />
+        </div>
         {/* Type — the Builder Select (its list is the panel picker: 28 rows · ✓), every option
             with its one-line hint, the trigger shows the current type's icon. Opened from the
             head's type icon, the trigger takes focus. */}
@@ -527,7 +678,9 @@ function FieldForm({
             className="datatable-field-type"
             label={dt("fieldType")}
             icon={resolveFieldGlyph(field)}
-            value={shownFieldType(type)}
+            value={
+              computedDraft ? formulaColumnType(type) : shownFieldType(type)
+            }
             optionValueMode="literal"
             options={typeOptions}
             descriptions={typeHints}
@@ -541,13 +694,27 @@ function FieldForm({
             }
           />
         </div>
-        {type === "string" ? (
+        {computedDraft ? (
+          <FormulaInput
+            dt={dt}
+            text={formulaText}
+            error={formulaError}
+            loading={!formulaEngine}
+            onChange={(next) => {
+              setFormulaText(next);
+              setFormulaError(null);
+            }}
+            onCommit={commitFormula}
+          />
+        ) : null}
+        {type === "string" && !computedDraft ? (
           <FormatSelect
             value={field.format}
             dt={dt}
             onChange={(format) => void patchField({ format: format ?? null })}
           />
         ) : null}
+        {computedDraft ? null : (
         <div className="fieldset-row" data-wide>
           <FieldValueInput
             className="datatable-field-default"
@@ -570,6 +737,7 @@ function FieldForm({
             onSubmit={commitDefault}
           />
         </div>
+        )}
       </Section>
 
       <Section
@@ -674,7 +842,14 @@ export function ColumnCreator({
   const dt = useDt();
   const { t } = useI18n();
   const write = useWrite();
-  const { options: typeOptions, descriptions: typeHints } = useTypeOptions(dt);
+  const [computed, setComputed] = useState(false);
+  const [formulaText, setFormulaText] = useState("");
+  const [formulaError, setFormulaError] = useState<string | null>(null);
+  const formulaEngine = useFormulaEngine(computed);
+  const { options: typeOptions, descriptions: typeHints } = useTypeOptions(
+    dt,
+    computed,
+  );
   const [key, setKey] = useState("");
   const [keyNonce, setKeyNonce] = useState(0);
   const [type, setType] = useState<DataFieldType>("string");
@@ -696,18 +871,21 @@ export function ColumnCreator({
   const draft = useMemo<DataField>(
     () => ({
       key: key.trim(),
-      type,
-      ...(type === "string" && format ? { format } : {}),
+      type: computed ? formulaColumnType(type) : type,
+      ...(!computed && type === "string" && format ? { format } : {}),
       ...(required ? { required: true } : {}),
-      ...(type === "reference" && reference ? { reference } : {}),
+      ...(!computed && type === "reference" && reference ? { reference } : {}),
     }),
-    [key, type, format, required, reference],
+    [computed, key, type, format, required, reference],
   );
 
   const reset = () => {
     setKey("");
     setKeyNonce((n) => n + 1);
     setType("string");
+    setComputed(false);
+    setFormulaText("");
+    setFormulaError(null);
     setFormat(undefined);
     setDefaultText("");
     setDefaultError(null);
@@ -725,7 +903,29 @@ export function ColumnCreator({
       globalToast.warning(dt("fieldKeyDup", { key: next }));
       return;
     }
-    const coerced = coerceCellValue(type, defaultText);
+    let formula: string | undefined;
+    if (computed) {
+      if (!formulaEngine) return;
+      const text = formulaText.trim();
+      if (text === "") {
+        setFormulaError(dt("fieldFormulaEmpty"));
+        return;
+      }
+      const result = storeFormulaDraft(
+        formulaEngine,
+        text,
+        { key: next, type: draft.type },
+        table.schema,
+      );
+      if ("code" in result) {
+        setFormulaError(dt(`fieldFormulaError${result.code}`));
+        return;
+      }
+      formula = result.stored;
+    }
+    const coerced = computed
+      ? { ok: true as const, value: null }
+      : coerceCellValue(type, defaultText);
     if (!coerced.ok) {
       setDefaultError(dt("fieldDefaultInvalid"));
       return;
@@ -734,6 +934,7 @@ export function ColumnCreator({
       ...draft,
       key: next,
       ...(coerced.value !== null ? { defaultValue: coerced.value } : {}),
+      ...(formula !== undefined ? { formula } : {}),
     };
     const ok = await write(
       [{ op: "add_field", collectionId: table.id, field }],
@@ -765,11 +966,22 @@ export function ColumnCreator({
           />
         </div>
         <div className="fieldset-row" data-wide>
+          <PropertySwitch
+            className="datatable-field-computed"
+            label={dt("fieldComputed")}
+            isSelected={computed}
+            onChange={(on) => {
+              setComputed(on);
+              setFormulaError(null);
+            }}
+          />
+        </div>
+        <div className="fieldset-row" data-wide>
           <PropertySelect
             className="datatable-field-type"
             label={dt("fieldType")}
-            icon={resolveFieldGlyph(draft)}
-            value={type}
+            icon={resolveFieldGlyph({ ...draft, formula: computed ? "x" : undefined })}
+            value={draft.type}
             optionValueMode="literal"
             options={typeOptions}
             descriptions={typeHints}
@@ -780,9 +992,23 @@ export function ColumnCreator({
             }}
           />
         </div>
-        {type === "string" ? (
+        {computed ? (
+          <FormulaInput
+            dt={dt}
+            text={formulaText}
+            error={formulaError}
+            loading={!formulaEngine}
+            onChange={(next) => {
+              setFormulaText(next);
+              setFormulaError(null);
+            }}
+            onCommit={() => {}}
+          />
+        ) : null}
+        {type === "string" && !computed ? (
           <FormatSelect value={format} dt={dt} onChange={setFormat} />
         ) : null}
+        {computed ? null : (
         <div className="fieldset-row" data-wide>
           <FieldValueInput
             className="datatable-field-default"
@@ -798,6 +1024,7 @@ export function ColumnCreator({
             onSubmit={() => void create()}
           />
         </div>
+        )}
         <div className="fieldset-row" data-wide>
           <PropertySwitch
             label={dt("fieldRequired")}
@@ -805,7 +1032,7 @@ export function ColumnCreator({
             onChange={setRequired}
           />
         </div>
-        {type === "reference" ? (
+        {type === "reference" && !computed ? (
           <ReferenceTarget
             reference={reference}
             collectionId={table.id}

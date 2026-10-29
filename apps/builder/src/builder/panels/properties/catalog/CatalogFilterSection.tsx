@@ -68,11 +68,7 @@ import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox"
 import { useCollections, useDataStore } from "../../../stores/data";
 import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
 import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
-import {
-  serializeViewQueries,
-  VIEW_LOCAL_LOAD_CAP,
-  viewQueryLimits,
-} from "../../../../../../../packages/shared/src/collections/view/serialize";
+import { useViewSerializer } from "./viewSerializer";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import type { DataTable } from "../../../../types/builder/data.types";
 import "./CatalogFilterSection.css";
@@ -1341,17 +1337,18 @@ function ConnectionRun({
     return String((text && record[text.key]) ?? record.id ?? "");
   };
   const verdict = (value: string) => t(`dataView.verdict_${value}`);
+  const serializer = useViewSerializer(!!endpoint?.querySerialization);
   const request =
-    endpoint?.querySerialization && queries
-      ? serializeViewQueries(
+    serializer && endpoint?.querySerialization && queries
+      ? serializer.serializeViewQueries(
           endpoint.querySerialization,
           { queries, schema, resolve },
           endpoint.method,
         )
       : undefined;
   const limits =
-    endpoint?.querySerialization && queries
-      ? viewQueryLimits(
+    serializer && endpoint?.querySerialization && queries
+      ? serializer.viewQueryLimits(
           endpoint.querySerialization,
           { queries, schema },
           endpoint.method,
@@ -1412,7 +1409,7 @@ function ConnectionRun({
                     condition: warning.conditionId ?? "",
                     comparison: warning.comparison ?? "",
                     field: warning.field ?? "",
-                    cap: VIEW_LOCAL_LOAD_CAP.toLocaleString(),
+                    cap: serializer?.VIEW_LOCAL_LOAD_CAP.toLocaleString() ?? "",
                   })}
                 </li>
               ))}

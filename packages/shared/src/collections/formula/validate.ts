@@ -5,11 +5,8 @@
  * loads keeps the shape check only — what it holds was checked when it was written.
  */
 import { isFormulaFunction, isHiddenFormulaFunction } from "./allowed";
-import {
-  computedFieldOrder,
-  FORMULA_RESULT_TYPES,
-  type ComputedSchemaField,
-} from "./compute";
+import { FORMULA_RESULT_TYPES, type ComputedSchemaField } from "./compute";
+import { computedFieldOrder } from "./computeCells";
 import type { FormulaEngine } from "./engine";
 import {
   FormulaScopeError,

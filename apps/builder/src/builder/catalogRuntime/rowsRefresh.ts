@@ -66,3 +66,16 @@ export function changedRuntimeCollectionIds(
   );
   return [...changed, ...referring];
 }
+
+/**
+ * ADR-291 — the collections whose computed cells a formula engine load reads again (a cell read
+ * before the engine landed is `null`). Read from the document's tables: the data store's
+ * projection loads after the first paint, the engine can land before it.
+ */
+export function formulaCollectionIds(
+  tables: readonly { id: string; schema: readonly { formula?: string }[] }[],
+): string[] {
+  return tables
+    .filter((table) => table.schema.some((field) => field.formula))
+    .map((table) => table.id);
+}

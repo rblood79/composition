@@ -642,6 +642,8 @@ export function explainViewRow(
   const verdicts = new Map<string, ViewVerdict>();
   const query = input.queries[queryIndex];
   if (!query) return verdicts;
+  // (ADR-291 — the row the run judges: its computed cells written, as `runViewQueries` does.)
+  [row] = withComputedCells([row], input.schema, input);
   const stage = { ...input, schema: viewSchemaAt(input, queryIndex) };
   const visit = (item: PreparedCondition | PreparedGroup): ViewVerdict => {
     const verdict = judge(item, row, stage);

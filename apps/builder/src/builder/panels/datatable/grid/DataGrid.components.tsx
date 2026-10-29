@@ -105,6 +105,15 @@ import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { PopoverTextEditor } from "./PopoverTextEditor";
 import { nativeDateInputOf } from "../../../../../../../packages/shared/src/state/dateValue";
+import {
+  formulaCellErrors,
+  withComputedCells,
+} from "../../../../../../../packages/shared/src/collections/formula/compute";
+import { formulaToDisplay } from "../../../../../../../packages/shared/src/collections/formula/names";
+import {
+  schemaHasFormula,
+  useFormulaEngine,
+} from "../../../catalogRuntime/formulaEngine";
 
 import { useDataStore } from "../../../stores/data";
 
@@ -184,6 +193,17 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const schema = table.schema;
   const rows = table.mockData;
   const collectionId = table.id;
+  // ADR-291 사용자 결정 5 — computed columns show their values: the rows the grid shows carry the
+  // computed cells (copies — the writes · the row form read `rows`, the document's). The engine
+  // is wanted only when a column has a formula; the grid renders again when it loads.
+  const hasFormula = schemaHasFormula(schema);
+  const formulaEngine = useFormulaEngine(hasFormula);
+  const shownRows = useMemo(() => {
+    void formulaEngine;
+    return hasFormula
+      ? (withComputedCells(rows, schema) as readonly Record<string, unknown>[])
+      : rows;
+  }, [formulaEngine, hasFormula, rows, schema]);
   const gridId = useId();
 
   const [editing, setEditing] = useState<EditingState | null>(null);
@@ -323,7 +343,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   //   행당 includes 1회
   const searchable = useMemo(
     () =>
-      rows.map((row, index) => ({
+      shownRows.map((row, index) => ({
         id: index,
         index,
         row,
@@ -335,7 +355,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           .join("\0")
           .toLowerCase(),
       })),
-    [rows, schema],
+    [shownRows, schema],
   );
   const items = useMemo(() => {
     const term = filterText.trim().toLowerCase();
@@ -1037,6 +1057,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                   onCancel={endEdit}
                   frozen={frozenMark(column.field!.key)}
                   hint={t}
+                  formulaError={
+                    column.field!.formula
+                      ? formulaCellErrors(item.row)?.[column.field!.key]
+                      : undefined
+                  }
                 />
               )
             }
@@ -1437,7 +1462,20 @@ function ColumnHead({
 }: ColumnHeadProps) {
   const typeEntry = resolveFieldType(field.type);
   const TypeGlyph = resolveFieldGlyph(field);
-  const typeLabel = `${t("fieldType")}: ${t(typeEntry.i18n)}`;
+  // ADR-291 (사용자 결정 5) — a computed column's head names its formula (over field keys).
+  const formulaEngine = useFormulaEngine(!!field.formula);
+  const formulaText = useMemo(() => {
+    if (!field.formula) return undefined;
+    if (!formulaEngine) return field.formula;
+    try {
+      return formulaToDisplay(formulaEngine, field.formula, table.schema);
+    } catch {
+      return field.formula;
+    }
+  }, [field.formula, formulaEngine, table.schema]);
+  const typeLabel = formulaText
+    ? `${t("fieldComputed")} · ${t(typeEntry.i18n)} — ${formulaText}`
+    : `${t("fieldType")}: ${t(typeEntry.i18n)}`;
   // ADR-288 Decision 2 — the column editor opens under the head (label · chevron), the type icon
   // opens it on the type list. Esc · outside closes it (RAC Popover).
   const headRef = useRef<HTMLDivElement>(null);
@@ -1489,6 +1527,8 @@ function ColumnHead({
       ref={headRef}
       className="datagrid-column-head"
       data-field-type={field.type}
+      data-computed={field.formula ? "true" : undefined}
+      title={formulaText ? `${t("fieldFormula")}: ${formulaText}` : undefined}
       data-renaming={String(renaming)}
       data-editor-open={editor ? "true" : undefined}
       onDoubleClick={(e) => {
@@ -1741,6 +1781,7 @@ const DataGridCell = memo(function DataGridCell({
   onCancel,
   frozen,
   hint,
+  formulaError,
 }: DataGridCellProps) {
   const cellRef = useRef<HTMLTableCellElement | HTMLDivElement | null>(null);
   const readonly = isReadonlyField(field);
@@ -1777,6 +1818,7 @@ const DataGridCell = memo(function DataGridCell({
       data-invalid={invalid || undefined}
       data-editing={editing ? editing.kind : undefined}
       data-frozen={frozen}
+      data-formula-error={formulaError}
       onDoubleClick={readonly ? undefined : () => onStartEdit(coord)}
     >
       {editing?.kind === "inline" ? (
@@ -1797,6 +1839,7 @@ const DataGridCell = memo(function DataGridCell({
               ? "empty"
               : typeof cellValue
           }
+          title={formulaError ? hint("gridFormulaCellError") : undefined}
         >
           {text}
         </span>

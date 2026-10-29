@@ -7,7 +7,7 @@
  * reference. The popover shell (RAC Popover · Esc · outside) is exercised in DataGrid.test.
  */
 import { within, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const { applyDataChange, toastWarn } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({})),
@@ -51,6 +51,7 @@ import {
   DataUsageSourceContext,
   type DataUsageSource,
 } from "../usage/dataUsageSource";
+import { loadFormulaEngine } from "../../../../../../../packages/shared/src/collections/formula/engine";
 import { ColumnCreator, ColumnEditor } from "./ColumnEditorPopover";
 
 /** ADR-248 4e-9 C: no node uses the collection. */
@@ -181,7 +182,7 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
     const { getByRole } = render(
       wrap(<ColumnEditor table={table} field={age} onClose={() => {}} />),
     );
-    fireEvent.click(getByRole("switch"));
+    fireEvent.click(getByRole("switch", { name: "Required" }));
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
     expect(lastOps()).toEqual([
       {
@@ -364,5 +365,135 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
     fireEvent.click(create);
     await waitFor(() => expect(toastWarn).toHaveBeenCalled());
     expect(applyDataChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* ─── ADR-291 Phase 2 — 「계산 열」 (사용자 결정 5 · 7) ─────────────────────────────────── */
+
+const ORDERS = {
+  id: "c2",
+  name: "Orders",
+  project_id: "p",
+  schema: [
+    { id: "f-id", key: "id", type: "string" },
+    { id: "f-price", key: "price", type: "number" },
+    { id: "f-qty", key: "qty", type: "number" },
+    { id: "f-total", key: "total", type: "number" },
+    {
+      id: "f-double",
+      key: "double",
+      type: "number",
+      formula: "'f-price' * 2",
+    },
+  ],
+  mockData: [{ id: "1", price: 10, qty: 2 }],
+  useMockData: true,
+} as unknown as DataTable;
+const total = ORDERS.schema[3]!;
+const double = ORDERS.schema[4]!;
+
+const formulaArea = (c: HTMLElement) =>
+  c.querySelector(".datatable-field-formula-input") as HTMLTextAreaElement;
+const computedSwitch = (c: HTMLElement) =>
+  c.querySelector(".datatable-field-computed input") as HTMLInputElement;
+
+describe("ColumnEditor — ADR-291 computed column", () => {
+  beforeAll(() => loadFormulaEngine());
+
+  it("the switch opens the formula input; a sound formula (over keys) is stored over ids — one update_field", async () => {
+    const { container, getByRole } = render(
+      wrap(<ColumnEditor table={ORDERS} field={total} onClose={() => {}} />),
+    );
+    expect(formulaArea(container)).toBeNull();
+    fireEvent.click(computedSwitch(container));
+    const area = await waitFor(() => {
+      const el = formulaArea(container);
+      if (!el) throw new Error("no formula input");
+      return el;
+    });
+    // (The type select is the result type now — Number · String · Boolean · Date.)
+    fireEvent.click(
+      within(getByRole("group", { name: "Type" })).getByRole("button"),
+    );
+    await waitFor(() => getByRole("option", { name: "Number" }));
+    expect(container.ownerDocument.querySelectorAll('[role="option"]')).toHaveLength(4);
+    fireEvent.keyDown(container.ownerDocument.activeElement!, { key: "Escape" });
+    fireEvent.change(area, { target: { value: "price * qty" } });
+    fireEvent.blur(area);
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([
+      {
+        op: "update_field",
+        collectionId: "c2",
+        fieldId: "f-total",
+        patch: { formula: "'f-price' * 'f-qty'" },
+      },
+    ]);
+  });
+
+  it("a formula that reads a column the table lacks shows the error and writes nothing", async () => {
+    const { container } = render(
+      wrap(<ColumnEditor table={ORDERS} field={total} onClose={() => {}} />),
+    );
+    fireEvent.click(computedSwitch(container));
+    const area = await waitFor(() => formulaArea(container));
+    fireEvent.change(area, { target: { value: "price * discount" } });
+    fireEvent.blur(area);
+    await waitFor(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        "column this table does not have",
+      ),
+    );
+    expect(applyDataChange).not.toHaveBeenCalled();
+    expect(area.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("a computed column shows its formula over keys (Σ on the type); the switch off writes formula: null", async () => {
+    const { container } = render(
+      wrap(<ColumnEditor table={ORDERS} field={double} onClose={() => {}} />),
+    );
+    const area = await waitFor(() => formulaArea(container));
+    expect(area.value).toBe("price * 2");
+    expect(computedSwitch(container).checked).toBe(true);
+    // (No default input — the cells are the formula's.)
+    expect(container.querySelector(".datatable-field-default")).toBeNull();
+    fireEvent.click(computedSwitch(container));
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([
+      {
+        op: "update_field",
+        collectionId: "c2",
+        fieldId: "f-double",
+        patch: { formula: null },
+      },
+    ]);
+  });
+
+  it("create mode — 「계산 열」 + name + formula → one add_field with the stored formula", async () => {
+    const { container, getByRole } = render(
+      wrap(<ColumnCreator table={ORDERS} onClose={() => {}} />),
+    );
+    fireEvent.change(keyInput(container), { target: { value: "sum" } });
+    fireEvent.keyDown(keyInput(container), { key: "Enter" });
+    fireEvent.click(computedSwitch(container));
+    const area = await waitFor(() => formulaArea(container));
+    fireEvent.change(area, { target: { value: "price + qty" } });
+    const create = getByRole("button", { name: "Create" });
+    fireEvent.pointerDown(create, { pointerType: "mouse", button: 0 });
+    fireEvent.pointerUp(create, { pointerType: "mouse", button: 0 });
+    fireEvent.click(create);
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([
+      {
+        op: "add_field",
+        collectionId: "c2",
+        // (The type is the author's — the create form starts at String, 사용자 결정 7.)
+        field: {
+          key: "sum",
+          type: "string",
+          formula: "'f-price' + 'f-qty'",
+        },
+      },
+    ]);
   });
 });

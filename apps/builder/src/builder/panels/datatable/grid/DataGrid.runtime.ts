@@ -70,8 +70,9 @@ export function resolveScroller(
   return { scroller: virtualized ? table : container, table };
 }
 
+/** `id` and a computed column (ADR-291 사용자 결정 5 — its cells are the formula's). */
 export function isReadonlyField(field: DataField): boolean {
-  return field.key === "id";
+  return field.key === "id" || !!field.formula;
 }
 
 export interface CellCoord {
@@ -181,6 +182,8 @@ export interface DataGridCellProps {
   onCancel: (focus: CellCoord | null) => void;
   /** Pinned column (`"last"` = the pinned group's right edge). */
   frozen?: "true" | "last";
+  /** ADR-291 — a computed cell whose formula failed on this row (the error's name). */
+  formulaError?: string;
   hint: (
     key: string,
     params?: Record<string, string | number | boolean>,

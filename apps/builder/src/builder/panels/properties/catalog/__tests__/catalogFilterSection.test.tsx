@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -388,7 +389,7 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
     ]);
   });
 
-  it("an API collection's detail shows the request it sends and what it cannot carry — no reason for rows the server left out", () => {
+  it("an API collection's detail shows the request it sends and what it cannot carry — no reason for rows the server left out", async () => {
     const w = fixture.workspace;
     const store = useDataStore.getState();
     const users = store.collections.get("users")!;
@@ -434,7 +435,10 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       w.setPreviewValues({ [made.created.variableId]: "pa" });
     });
     const run = group.querySelector(".data-view-run")!;
-    expect(run.textContent).toContain("Request sent: ?name_like=pa");
+    // (ADR-291 G3 — the serializer loads when the request is shown: off the first screen.)
+    await waitFor(() =>
+      expect(run.textContent).toContain("Request sent: ?name_like=pa"),
+    );
     expect(run.textContent).toContain(
       "Why the server left a row out cannot be told here.",
     );

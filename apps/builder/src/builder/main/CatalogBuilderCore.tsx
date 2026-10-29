@@ -83,7 +83,10 @@ import {
 } from "../panels/history/catalogSnapshotHost";
 import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { useDataStore } from "../stores/data";
-import { changedRuntimeCollectionIds } from "../catalogRuntime/rowsRefresh";
+import {
+  changedRuntimeCollectionIds,
+  formulaCollectionIds,
+} from "../catalogRuntime/rowsRefresh";
 import { onFormulaEngineLoaded } from "../../../../../packages/shared/src/collections/formula/engine";
 import { notifyEditRefusal } from "../catalogRuntime/operationNotice";
 import { useToastStore } from "../stores/toast";
@@ -544,10 +547,15 @@ export function CatalogBuilderCore() {
       useDataStore.getState().collections,
     );
     if (since.length) workspace.refreshRows(since);
-    // (ADR-291 — computed cells read before the formula engine loaded were `null`: read again.)
+    // (ADR-291 — computed cells read before the formula engine loaded were `null`: read again —
+    // the tables from the document, the store's projection may not have loaded yet.)
     const unsubscribeFormula = onFormulaEngineLoaded(() => {
+      const computed = formulaCollectionIds(
+        catalogCollectionTables(workspace.runtime.graph),
+      );
+      if (!computed.length) return;
       try {
-        workspace.refreshRows();
+        workspace.refreshRows(computed);
       } catch (error) {
         console.error("[CatalogBuilder] formula refresh failed:", error);
       }

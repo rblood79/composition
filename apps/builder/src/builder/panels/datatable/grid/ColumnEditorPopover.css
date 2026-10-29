@@ -47,3 +47,12 @@
   justify-content: flex-end;
   gap: var(--spacing-xs);
 }
+
+/* ADR-291 — the formula input (over field keys): a two-line text area in the field's box. */
+.datatable-field-formula .datatable-field-formula-input {
+  width: 100%;
+  min-height: calc(var(--control-size) * 1.5);
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}

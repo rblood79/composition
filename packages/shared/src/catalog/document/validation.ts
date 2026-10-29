@@ -30,11 +30,7 @@ import { catalogCalendarDurationFits } from "./valueType";
 import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 import type { ComputedSchemaField } from "../../collections/formula/compute";
-import { formulaEngineSync } from "../../collections/formula/engine";
-import {
-  formulaCycleError,
-  formulaDefinitionError,
-} from "../../collections/formula/validate";
+import { formulaRuntimeSync } from "../../collections/formula/engine";
 
 export class CatalogValidationError extends Error {
   constructor(
@@ -473,10 +469,10 @@ function dataFields(value: unknown, at: string, depth = 0): void {
       // ADR-291 — a computed field: its definition is checked when the engine is loaded (the
       // data sink loads it before writing one); a read before that keeps the shape check.
       string(field.formula, `${here}.formula`);
-      const engine = formulaEngineSync();
-      if (engine) {
-        const problem = formulaDefinitionError(
-          engine,
+      const runtime = formulaRuntimeSync();
+      if (runtime) {
+        const problem = runtime.definitionError(
+          runtime.engine,
           field as unknown as ComputedSchemaField & { formula: string },
           value as readonly ComputedSchemaField[],
         );
@@ -498,9 +494,9 @@ function dataFields(value: unknown, at: string, depth = 0): void {
       string(reference.keyField, `${here}.reference.keyField`);
     }
   });
-  const engine = formulaEngineSync();
-  if (engine && value.some((item) => (item as { formula?: unknown }).formula !== undefined)) {
-    const loop = formulaCycleError(engine, value as readonly ComputedSchemaField[]);
+  const runtime = formulaRuntimeSync();
+  if (runtime && value.some((item) => (item as { formula?: unknown }).formula !== undefined)) {
+    const loop = runtime.cycleError(runtime.engine, value as readonly ComputedSchemaField[]);
     if (loop) invalid(loop.code, at);
   }
 }

@@ -10,6 +10,7 @@ import {
   Link as LinkIcon,
   Link2,
   Mail,
+  Sigma,
   ToggleLeft,
   Type as TypeIcon,
   type LucideIcon,
@@ -59,10 +60,14 @@ export const FIELD_FORMATS: readonly FieldFormatEntry[] = [
 export const shownFieldType = (type: string): DataFieldType =>
   type === "array" ? "object" : (type as DataFieldType);
 
-/** A column's glyph — its format's for a formatted text, else its type's. */
+/**
+ * A column's glyph — a computed column's Σ (ADR-291 — `formula`, no type added), else its
+ * format's for a formatted text, else its type's.
+ */
 export function resolveFieldGlyph(
-  field: Pick<DataField, "type" | "format">,
+  field: Pick<DataField, "type" | "format" | "formula">,
 ): LucideIcon {
+  if (field.formula) return Sigma;
   if (field.type === "string" && field.format) {
     const format = FIELD_FORMATS.find((entry) => entry.value === field.format);
     if (format) return format.icon;

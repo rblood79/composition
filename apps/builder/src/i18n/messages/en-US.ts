@@ -2144,6 +2144,26 @@ const catalog: TranslationKeys = {
     fieldCreateTitle: "New column",
     fieldDefaultInvalid: "The default is not a value of this type.",
     fieldDefaultCleared: "The type changed — the default was cleared.",
+    fieldComputed: "Computed column",
+    fieldComputedHint:
+      "Calculated from the row by a formula (json-formula) — strings go in double quotes.",
+    fieldFormula: "Formula",
+    fieldFormulaPlaceholder: "price * qty",
+    fieldFormulaLoading: "Loading the formula engine…",
+    fieldFormulaEmpty: "Write a formula.",
+    fieldFormulaErrorFORMULA_SYNTAX: "The formula does not parse.",
+    fieldFormulaErrorFORMULA_SCOPE_UNSUPPORTED:
+      "This form of expression cannot be told apart from a field reference — write it another way.",
+    fieldFormulaErrorFORMULA_GLOBAL: "A variable is read as $var_<id>.",
+    fieldFormulaErrorFORMULA_UNKNOWN_FIELD:
+      "The formula reads a column this table does not have.",
+    fieldFormulaErrorFORMULA_UNKNOWN_FUNCTION: "No such function.",
+    fieldFormulaErrorFORMULA_FUNCTION_HIDDEN:
+      "That function is not available to a formula.",
+    fieldFormulaErrorFORMULA_CYCLE: "Computed columns read each other in a loop.",
+    fieldFormulaErrorFORMULA_RESULT_TYPE:
+      "A computed column's type is Number, String, Boolean or Date.",
+    gridFormulaCellError: "The formula failed on this row.",
     openRow: "Open row",
     rowFormInsertTitle: "Add a row to {name}",
     rowFormUpdateTitle: "Update a row of {name}",

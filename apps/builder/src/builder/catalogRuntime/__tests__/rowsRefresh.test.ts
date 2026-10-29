@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   changedCollectionIds,
   changedRuntimeCollectionIds,
+  formulaCollectionIds,
 } from "../rowsRefresh";
 
 /**
@@ -74,6 +75,17 @@ describe("changedRuntimeCollectionIds (ADR-286 — API rows only)", () => {
   });
 });
 
+describe("formulaCollectionIds (ADR-291 — the engine load reads computed cells again)", () => {
+  it("돌려주는 것은 식이 있는 collection 뿐이다", () => {
+    expect(
+      formulaCollectionIds([
+        { id: "orders", schema: [{}, { formula: "'f-a' * 2" }] },
+        { id: "users", schema: [{}] },
+      ]),
+    ).toEqual(["orders"]);
+  });
+});
+
 describe("CatalogBuilderCore rows refresh on mount", () => {
   it("mount 는 root 가 읽은 API 행과 다른 것만 새로 고친다 (무조건 refreshRows 금지) · 정의는 consume plan", async () => {
     const source = await readFile(
@@ -87,6 +99,15 @@ describe("CatalogBuilderCore rows refresh on mount", () => {
     expect(effect).not.toContain("workspace.refreshRows();");
     expect(effect.replace(/\s+/g, " ")).toContain(
       "changedRuntimeCollectionIds( useDataStore.getState().runtimeRows, rowsSource,",
+    );
+    // ADR-291 (2026-10-29 live): the engine can land before the store's projection — the
+    // collections with formulas are read from the document, never the store.
+    const formula = effect.slice(effect.indexOf("onFormulaEngineLoaded("));
+    expect(formula.replace(/\s+/g, " ")).toContain(
+      "formulaCollectionIds( catalogCollectionTables(workspace.runtime.graph), )",
+    );
+    expect(formula.slice(0, formula.indexOf("});"))).not.toContain(
+      "useDataStore.getState().collections",
     );
     // ADR-286 R8: no store subscription refreshes for definitions or project variables.
     expect(source).not.toContain("(store) => store.collections");

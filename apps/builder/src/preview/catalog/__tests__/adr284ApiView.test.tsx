@@ -385,6 +385,8 @@ describe("ADR-284 G2 — the server answers the view as the local evaluator woul
       expect(h.session.viewResult(h.list)?.unsent).toBeUndefined();
     }
     expect(server.requests.at(-1)!.body).toEqual({
+      // (ADR-291 Decision 6 — a body request asks for the total.)
+      total: true,
       where: {
         op: "and",
         items: [
@@ -555,8 +557,8 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
     h.view.unmount();
   });
 
-  it("a grouped view (G4) is not a request: it counts the loaded rows and never calls them complete", async () => {
-    // (Pages of 3: the loaded rows are part of the data until the last page.)
+  it("a grouped view (G4) on a suffix endpoint is not a request: every page is loaded (ADR-291 Decision 6 · 사용자 결정 6) and the rows are grouped here", async () => {
+    // (Pages of 3: a grouping the format cannot carry loads the whole data — up to the cap.)
     const server = stubServer(3);
     const h = await apiPreview(SUFFIX_VIEW, {
       queryParams: [{ key: "page", value: "{{ cursor }}" }],
@@ -595,14 +597,15 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
     });
     h.flush();
     await settle();
-    // (No request carries a grouping; the result is the Builder's loaded rows grouped.)
+    // (No request carries a grouping; every page came (3 of 3 · 3 · 2) and the 8 rows are grouped
+    //   here — male · female, complete.)
     expect(server.urls().filter((url) => url.includes("gender"))).toEqual([]);
+    expect(server.urls().filter((url) => url.includes("page=3"))).toHaveLength(1);
     const result = h.session.viewResult(h.list);
     expect(result?.served).toBeUndefined();
-    expect(result?.complete).not.toBe(true);
-    // (The first page's 3 rows — Kim · Park · Lee — are 2 male · 1 female, not the 8 rows' 4 · 4.)
+    expect(result?.complete).toBe(true);
     expect(result?.matched).toBe(2);
-    expect(result?.loaded).toBe(3);
+    expect(result?.loaded).toBe(8);
     h.view.unmount();
   });
 

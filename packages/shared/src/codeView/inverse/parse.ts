@@ -27,6 +27,12 @@ export type CodeViewStatementKind =
   | "collator"
   | "navigate"
   | "dnd"
+  /** ADR-291 — `let formula = new JsonFormula();` · the `computed` helper (derived). */
+  | "formula"
+  /** ADR-291 — `let <rows>Fields = {…}`: a collection's computed columns (edited by formula). */
+  | "fields"
+  /** ADR-291 — `let <rows> = <rows>Data.map(item => computed(item, <rows>Fields));` (derived). */
+  | "computedRows"
   | "view";
 
 export interface CodeViewStatement extends CodeViewSpan {
@@ -88,6 +94,13 @@ const STATEMENTS: readonly [RegExp, CodeViewStatementKind][] = [
   [/^let collator = useCollator\(\);$/, "collator"],
   [/^let navigate = useNavigate\(\);$/, "navigate"],
   [/^let \{dragAndDropHooks: ([A-Za-z_$][\w$]*)\} = useDragAndDrop\(/, "dnd"],
+  [/^let formula = new JsonFormula\(\);$/, "formula"],
+  [/^let computed = \(item, fields\) => /, "formula"],
+  [/^let ([A-Za-z_$][\w$]*)Fields = \{/, "fields"],
+  [
+    /^let ([A-Za-z_$][\w$]*) = [A-Za-z_$][\w$]*\.map\(item => computed\(item, [A-Za-z_$][\w$]*Fields\)\);$/,
+    "computedRows",
+  ],
   [/^let ([A-Za-z_$][\w$]*) = /, "view"],
 ];
 
