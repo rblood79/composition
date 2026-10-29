@@ -68,6 +68,10 @@ import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox"
 import { useCollections, useDataStore } from "../../../stores/data";
 import { catalogBindingViews } from "../../../../../../../packages/shared/src/catalog/runtime/viewQuery";
 import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
+import {
+  schemaHasFormula,
+  useFormulaEngine,
+} from "../../../catalogRuntime/formulaEngine";
 import { useViewSerializer } from "./viewSerializer";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
 import type { DataTable } from "../../../../types/builder/data.types";
@@ -1320,6 +1324,9 @@ function ConnectionRun({
   const binding = list?.kind === "node" ? list.binding : undefined;
   const queries = binding ? catalogBindingViews(graph, binding) : undefined;
   const schema = useViewFields(table);
+  // (ADR-291 — the verdicts read computed cells: rendered again once the formula engine loads,
+  //   not left on the cells read before it.)
+  useFormulaEngine(schemaHasFormula(schema));
   const local = table?.useMockData !== false;
   const endpoint = !local
     ? [...endpoints.values()].find((item) =>

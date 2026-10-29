@@ -25,6 +25,10 @@ import {
 } from "../../../../catalogRuntime/viewAuthoring";
 import { definitionTypeName } from "../../../../../../../../packages/shared/src/catalog/commands/context";
 import type { NodeEntry } from "../../../../../../../../packages/shared/src/catalog/document/types";
+import {
+  formulaRuntimeSync,
+  loadFormulaEngine,
+} from "../../../../../../../../packages/shared/src/collections/formula/engine";
 import { resetCommandRegistry } from "../../../../stores/commandRegistry";
 import { useDataStore } from "../../../../stores/data";
 import { DesignPanelView } from "../../../design/DesignPanel";
@@ -515,6 +519,54 @@ describe("ADR-284 G3 — 「Search · filter」 in the Design panel", () => {
       "Contains any of",
       "Contains all of",
       "Between (ends included)",
+    ]);
+  });
+
+  it("a condition on a computed column: the verdicts read again once the formula engine loads (ADR-291 — not the cells read before it)", async () => {
+    expect(formulaRuntimeSync()).toBeUndefined();
+    const w = fixture.workspace;
+    const users = useDataStore.getState().collections.get("users")!;
+    const mark = {
+      id: "f-mark",
+      key: "mark",
+      type: "string",
+      formula: "'f-gender'",
+    };
+    useDataStore.setState({
+      collections: new Map([
+        ["users", { ...users, schema: [...users.schema!, mark] } as never],
+      ]),
+    });
+    const made = catalogFilterCommand(
+      w.runtime.graph,
+      {
+        listId: nodeIdOf("list"),
+        field: { id: mark.id, key: mark.key, type: mark.type },
+        kind: "RadioGroup",
+        control: { nodeId: nodeIdOf("radio") },
+        values: ["male", "female"],
+        allLabel: "All",
+      },
+      w.newId,
+    );
+    w.execute(made.command);
+    act(() => fixture.select("list"));
+    renderDesign();
+    const group = groupByLegend("Search · filter");
+    fireEvent.click(buttonByText(group, "mark Equals · RadioGroup"));
+    act(() => {
+      w.setPreviewValues({ [made.created.variableId]: "female" });
+    });
+    const lines = () =>
+      [...group.querySelectorAll(".data-view-run li")].map(
+        (li) => li.textContent,
+      );
+    await act(async () => {
+      await loadFormulaEngine();
+    });
+    expect(lines()).toEqual([
+      "Kim — this condition: no match · hidden",
+      "Park — this condition: match · shown",
     ]);
   });
 });

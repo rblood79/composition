@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-291 후속 — 필터 패널 판정이 계산 열을 엔진 로드 뒤 다시 읽는다] - 2026-10-29
+
+### Fixed
+
+- 계산 열에 건 검색 · 필터 연결의 상세 (Design 패널 「Search · filter」 의 행별 판정) 가 수식 엔진이 로드되기 전에 그려지면 빈 셀 기준 판정 (「no match · hidden」) 이 그대로 남던 문제를 수정했다. 연결 상세가 엔진 로드를 구독해 로드 뒤 다시 그린다.
+  - 위치: `apps/builder/src/builder/panels/properties/catalog/CatalogFilterSection.tsx` (`ConnectionRun`) · 회귀 테스트 `catalogFilterSection.test.tsx` · 규칙 `.claude/rules/state-management.md` (계산 셀 소비처는 엔진 로드 구독)
+
 ## [ADR-286 Implemented — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로] - 2026-10-29
 
 ### Changed
