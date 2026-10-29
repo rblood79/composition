@@ -113,13 +113,13 @@ describe("create / update / delete — define_variable wrapper (문서 쓰기 ·
     expect(variables().get("b")).toMatchObject({ id: "v1", defaultValue: "y" });
     expect(addEntry).toHaveBeenCalledTimes(1);
 
-    await update("v1", { transform: "v => v" });
+    await update("v1", { validation: { required: true } });
     expect(addEntry).toHaveBeenCalledTimes(2);
     expect(testDataCommits.at(-1)!.variables![0]).toMatchObject({
       id: "v1",
-      transform: "v => v",
+      validation: { required: true },
     });
-    expect(variables().get("b")?.transform).toBe("v => v");
+    expect(variables().get("b")?.validation).toEqual({ required: true });
   });
 
   it("updateVariable 이름 충돌 → throw · 상태 무변경", async () => {

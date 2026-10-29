@@ -38,6 +38,8 @@ export interface CatalogRowQuery {
      * of that answer (「결과 수 표시」 — `catalogCountOnlyView`), the server's total when it gave one.
      */
     depth?: number;
+    /** ADR-291 Decision 5 — the answer's shape: the view's rows, or its grouped result (`group` sent). */
+    mode?: "rows" | "aggregate";
   };
   /** The session's load of an API collection the view runs on locally: `complete` = no further page. */
   loaded?: { complete: boolean };

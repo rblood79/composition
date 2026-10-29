@@ -192,6 +192,7 @@ describe("ADR-284 — view → body JSON", () => {
           ],
         },
         sort: { field: "name", direction: "ascending" },
+        total: true,
       },
       warnings: [],
     });

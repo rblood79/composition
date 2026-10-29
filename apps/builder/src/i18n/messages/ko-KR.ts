@@ -2277,7 +2277,9 @@ const catalog: TranslationKeys = {
     apiQueryWarnGET_BODY: "GET 은 본문을 보내지 않는다 — 방식을 POST 로",
     apiQueryWarnMULTI_VIEW: "서로 다른 보기 여럿 — 요청에 싣지 않는다",
     apiQueryWarnGROUP:
-      "묶기 · 집계는 요청에 싣지 않는다 — 불러온 행으로 계산 (마지막 페이지 전에는 일부)",
+      "묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 ({cap} 행까지) 여기서 묶는다",
+    apiQueryWarnCOMPUTED:
+      "{field} 은(는) 계산 열 — 서버에 그 셀이 없다: 이 보기는 서버로 보낼 수 없고 전체 행을 불러와 ({cap} 행까지) 여기서 돌린다",
     apiUploadLive: "미리보기에서 실제 업로드",
     apiUploadLiveHint:
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
@@ -3526,6 +3528,10 @@ const formattedMessages: Record<
     `「${String(args?.condition ?? "")}」 참조 너머 필드 — 아직 보낼 수 없다`,
   "datatable.apiQueryWarnBROKEN": (args) =>
     `「${String(args?.condition ?? "")}」 필드가 없다 — 건너뛴다`,
+  "datatable.apiQueryWarnGROUP": (args) =>
+    `묶기 · 집계는 파라미터로 보낼 수 없다 — 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 묶는다`,
+  "datatable.apiQueryWarnCOMPUTED": (args) =>
+    `${String(args?.field ?? "")} 은(는) 계산 열 — 서버에 그 셀이 없다: 이 보기는 서버로 보낼 수 없고 전체 행을 불러와 (${String(args?.cap ?? "")} 행까지) 여기서 돌린다`,
   "datatable.apiSchemaCandidate": (args) =>
     `${String(args?.path ?? "")} · ${String(args?.count ?? 0)}행`,
   "datatable.importRows": (args) => `${String(args?.count ?? 0)}행`,

@@ -29,6 +29,12 @@ import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import { catalogCalendarDurationFits } from "./valueType";
 import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
+import type { ComputedSchemaField } from "../../collections/formula/compute";
+import { formulaEngineSync } from "../../collections/formula/engine";
+import {
+  formulaCycleError,
+  formulaDefinitionError,
+} from "../../collections/formula/validate";
 
 export class CatalogValidationError extends Error {
   constructor(
@@ -457,11 +463,26 @@ function dataFields(value: unknown, at: string, depth = 0): void {
         "defaultValue",
         "children",
         "reference",
+        "formula",
       ],
       here,
     );
     if (field.format !== undefined) string(field.format, `${here}.format`);
     if (field.id !== undefined) string(field.id, `${here}.id`);
+    if (field.formula !== undefined) {
+      // ADR-291 — a computed field: its definition is checked when the engine is loaded (the
+      // data sink loads it before writing one); a read before that keeps the shape check.
+      string(field.formula, `${here}.formula`);
+      const engine = formulaEngineSync();
+      if (engine) {
+        const problem = formulaDefinitionError(
+          engine,
+          field as unknown as ComputedSchemaField & { formula: string },
+          value as readonly ComputedSchemaField[],
+        );
+        if (problem) invalid(problem.code, `${here}.formula`);
+      }
+    }
     string(field.key, `${here}.key`);
     if (field.type !== undefined) string(field.type, `${here}.type`);
     if (field.label !== undefined) text(field.label, `${here}.label`);
@@ -477,6 +498,11 @@ function dataFields(value: unknown, at: string, depth = 0): void {
       string(reference.keyField, `${here}.reference.keyField`);
     }
   });
+  const engine = formulaEngineSync();
+  if (engine && value.some((item) => (item as { formula?: unknown }).formula !== undefined)) {
+    const loop = formulaCycleError(engine, value as readonly ComputedSchemaField[]);
+    if (loop) invalid(loop.code, at);
+  }
 }
 const ASSET_URL = /^asset:sha256-[0-9a-f]{64}$/;
 function assetUrl(value: unknown, at: string): void {
@@ -2132,7 +2158,6 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "defaultValue",
           "persist",
           "validation",
-          "transform",
         ],
         "entry",
       );

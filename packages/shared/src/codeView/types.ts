@@ -31,6 +31,8 @@ export interface CodeViewCollection {
       readonly collectionId: string;
       readonly keyField: string;
     };
+    /** ADR-291 — a computed field's formula (stored over ids). */
+    readonly formula?: string;
   }[];
   /** Loaded from an endpoint (`useAsyncList`); absent = local rows (`useListData` · an import). */
   readonly endpoint?: {

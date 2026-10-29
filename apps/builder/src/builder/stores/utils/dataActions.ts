@@ -900,7 +900,7 @@ const VARIABLE_DEFINITION_KEYS = [
 
 /**
  * 프로젝트 변수 갱신 — 정의 축 (name · type · defaultValue · persist) 은 `define_variable`,
- * validation · transform 은 같은 entry 를 쓰는 문서 명령 (둘 다 History · 저장). scope ·
+ * validation 은 같은 entry 를 쓰는 문서 명령 (History · 저장 — `transform` 은 ADR-291 사용자 결정 2 로 삭제). scope ·
  * page_id 는 없다 (ADR-286 — 페이지 변수는 문서의 상태 변수).
  */
 export const createUpdateVariableAction =
@@ -939,17 +939,13 @@ export const createUpdateVariableAction =
           origin: "user",
         });
       }
-      if (!("validation" in updates) && !("transform" in updates)) return;
+      if (!("validation" in updates)) return;
       const current = findVariableByIdInMap(get().variables, id);
       if (!current) return;
       const next: Variable = { ...current };
       if ("validation" in updates) {
         if (updates.validation) next.validation = updates.validation;
         else delete next.validation;
-      }
-      if ("transform" in updates) {
-        if (updates.transform !== undefined) next.transform = updates.transform;
-        else delete next.transform;
       }
       commitDataDefinitions({
         variables: [next],

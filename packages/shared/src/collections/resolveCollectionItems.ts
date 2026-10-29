@@ -151,6 +151,8 @@ export type CollectionDataSource = {
     type?: string;
     /** ADR-284 — a reference field's target (`DataField.reference`). */
     reference?: { collectionId: string; keyField: string };
+    /** ADR-291 — a computed field's formula (over field ids). */
+    formula?: string;
   }[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;

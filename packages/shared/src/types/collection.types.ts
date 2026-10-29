@@ -23,6 +23,8 @@ export interface SchemaField {
   key: string;
   type: string;
   label?: string;
+  /** ADR-291 — a computed field: its json-formula expression over field ids. */
+  formula?: string;
 }
 
 // ============================================

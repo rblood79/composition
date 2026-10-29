@@ -25,6 +25,7 @@ import {
   type ViewFieldKind,
 } from "./comparison";
 import { catalogTableSortCompare } from "../../catalog/runtime/tableSort";
+import { withComputedCells } from "../formula/compute";
 
 /** A source schema field (the data's `DataField` — `id` without the `data:field:` prefix). */
 export interface ViewRunField {
@@ -35,6 +36,11 @@ export interface ViewRunField {
   reference?: { collectionId: string; keyField: string };
   /** A field read through references (`team.name`): the target row's value, not `row[key]`. */
   read?: (row: unknown) => unknown;
+  /**
+   * ADR-291 Decision 2 · 3 — a computed field: its json-formula expression over field ids
+   * (`'f-price' * 'f-qty'`), written onto the rows before the views read them (`withComputedCells`).
+   */
+  formula?: string;
 }
 
 /** A referenced collection as the run reads it (the target of a reference field). */
@@ -82,6 +88,7 @@ export function viewRunSchema(
         key: string;
         type?: string;
         reference?: { collectionId: string; keyField: string };
+        formula?: string;
       }[]
     | undefined,
 ): ViewRunField[] {
@@ -93,6 +100,7 @@ export function viewRunSchema(
             key: field.key,
             ...(field.type ? { type: field.type } : {}),
             ...(field.reference ? { reference: field.reference } : {}),
+            ...(field.formula ? { formula: field.formula } : {}),
           },
         ]
       : [],
@@ -585,6 +593,8 @@ export function runViewQueries(
   input: ViewRunInput,
 ): ViewRunResult {
   const broken: string[] = [];
+  // (ADR-291 Decision 3 — computed cells exist before the first view reads a row.)
+  rows = withComputedCells(rows, input.schema, input);
   let out = rows;
   let schema = input.schema;
   // (The conditions the views before this one applied — a derived view's `applied` aggregate.)

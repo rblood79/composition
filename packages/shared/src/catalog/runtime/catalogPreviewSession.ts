@@ -29,8 +29,10 @@ import {
   catalogRowQueryResolve,
   type CatalogRowQuery,
 } from "./viewQuery";
+import { onFormulaEngineLoaded } from "../../collections/formula/engine";
 import {
   serializeViewQueries,
+  VIEW_LOCAL_LOAD_CAP,
   type SerializedViewQuery,
 } from "../../collections/view/serialize";
 import type { CatalogTableSort } from "./tableSort";
@@ -535,6 +537,12 @@ export class CatalogPreviewSession {
       options.requestSnapshot,
       (_graph, ops) => this.currentRoot!.sync(ops),
     );
+    // (ADR-291 — computed cells read before the formula engine loaded were `null`: read again.)
+    onFormulaEngineLoaded(() => {
+      const errors = this.currentRoot?.refreshRows() ?? [];
+      if (errors.length) console.error("[CatalogPreview] formula:", ...errors);
+      this.changed();
+    });
     this.receiver.subscribe((update) => {
       this.syncServices();
       if (update.invalidatedIds === "all") {
@@ -1159,8 +1167,9 @@ export class CatalogPreviewSession {
     this.loadControllers.set(collectionId, controller);
     this.setLoadingState(collectionId, state);
     const resolve = this.endpointTemplateFor(collectionId, cursor);
-    // ADR-284 Decision 6: the views reading the collection, in the endpoint's query format.
-    const extra = this.viewRequest(collectionId);
+    // ADR-284 Decision 6: the views reading the collection, in the endpoint's query format (with
+    // the page the format carries — ADR-291 Decision 6).
+    const extra = this.viewRequest(collectionId, { cursor });
     try {
       await Promise.allSettled([...this.pendingSubmits]);
       if (cursor === undefined) {
@@ -1215,6 +1224,32 @@ export class CatalogPreviewSession {
         query: CatalogRowQuery;
         serialized: SerializedViewQuery;
         nodeId: string;
+        /** ADR-291 Decision 5 · 6 — the answer is the view's rows, or its grouped result. */
+        mode: "rows" | "aggregate";
+      }
+    | undefined {
+    const view = this.uniqueView(collectionId);
+    // (ADR-291 — a view the request cannot carry whole (`load: "all"` — a computed field, a
+    // grouping a flat format has no parameters for) is not the server's answer: every row is
+    // loaded (`loadAll`) and the whole chain runs here.)
+    if (!view || view.serialized.load === "all") return undefined;
+    return {
+      ...view,
+      mode: view.serialized.body?.group ? "aggregate" : "rows",
+    };
+  }
+  /**
+   * The one view (by its definition) the bindings of a collection read, in its endpoint's query
+   * format — what the request carries of it and what it cannot (`warnings` · `load`).
+   */
+  private uniqueView(
+    collectionId: string,
+    page?: { cursor?: string },
+  ):
+    | {
+        query: CatalogRowQuery;
+        serialized: SerializedViewQuery;
+        nodeId: string;
       }
     | undefined {
     const graph = this.graph;
@@ -1247,10 +1282,6 @@ export class CatalogPreviewSession {
     }
     if (views.size !== 1) return undefined;
     const [{ query, nodeId }] = [...views.values()];
-    // (A grouping · an aggregate is not a request: the view runs on the loaded rows, partial until
-    // the last page — Decision 6, never a partial count shown as the whole.)
-    if (query.queries.some((item) => item.groupBy || item.aggregates))
-      return undefined;
     return {
       query,
       nodeId,
@@ -1260,22 +1291,67 @@ export class CatalogPreviewSession {
           queries: query.queries,
           schema: (collection.schema ?? []).flatMap((field) =>
             field.id && field.key
-              ? [{ id: field.id, key: field.key, type: field.type }]
+              ? [
+                  {
+                    id: field.id,
+                    key: field.key,
+                    type: field.type,
+                    ...(field.formula ? { formula: field.formula } : {}),
+                  },
+                ]
               : [],
           ),
           resolve: catalogRowQueryResolve(query),
         },
         endpoint.method,
+        page,
       ),
     };
   }
-  /** The request parts a collection's server view adds (none = the endpoint as authored). */
-  private viewRequest(collectionId: string) {
-    const view = this.serverView(collectionId);
+  /**
+   * The request parts a collection's view adds (none = the endpoint as authored) — a view loaded
+   * whole still sends what the format carries (a `suffix` format's conditions before its grouping).
+   */
+  private viewRequest(collectionId: string, page?: { cursor?: string }) {
+    const view = this.uniqueView(collectionId, page);
     if (!view) return undefined;
     const { params, body } = view.serialized;
+    if (!params.length && !body) return undefined;
     return { query: params, ...(body ? { body } : {}) };
   }
+  /** ADR-291 — whether a collection's view must see every row before it can be right. */
+  private viewLoadsAll(collectionId: string): boolean {
+    return this.uniqueView(collectionId)?.serialized.load === "all";
+  }
+  /**
+   * ADR-291 Decision 5 · 사용자 결정 3 — every page of a collection whose view runs here, up to
+   * `VIEW_LOCAL_LOAD_CAP`; past the cap the view is refused: no rows, a notice — never a quiet
+   * partial result.
+   */
+  private async loadAll(collectionId: string): Promise<void> {
+    while (this.loadArguments.get(collectionId)?.cursor !== undefined) {
+      const shown = this.collectionItems(collectionId).length;
+      const total = this.loadTotals.get(collectionId);
+      if ((total !== undefined && total > VIEW_LOCAL_LOAD_CAP) || shown >= VIEW_LOCAL_LOAD_CAP) {
+        this.refuseView(collectionId, total ?? shown);
+        return;
+      }
+      await this.loadMore(collectionId);
+    }
+  }
+  /** The rows a refused view would show: none (the bound components show their empty state). */
+  private refuseView(collectionId: string, count: number): void {
+    const { cursor: _dropped, ...rest } = this.loadArguments.get(collectionId) ?? {};
+    this.loadArguments.set(collectionId, rest);
+    this.viewRefusals.set(collectionId, count);
+    console.warn(
+      `[CatalogPreview] ${collectionId}: the view runs here and needs every row — ${count} rows is past the ${VIEW_LOCAL_LOAD_CAP} cap; it shows nothing.`,
+    );
+    this.showLoaded(collectionId, []);
+    this.setLoadingState(collectionId, "error");
+  }
+  /** ADR-291 — collections whose view was refused for the row cap, with the count that was too many. */
+  readonly viewRefusals = new Map<string, number>();
   /** Show a collection's loaded items (they replace the Builder's — the rules' edits go). */
   private showLoaded(
     collectionId: string,
@@ -1297,9 +1373,12 @@ export class CatalogPreviewSession {
   ): Promise<void> {
     const page = await this.loadPage(collectionId, state);
     if (!page) return;
+    this.viewRefusals.delete(collectionId);
     this.showLoaded(collectionId, page.items);
     if (page.selectedKeys !== undefined)
       this.selectLoaded(collectionId, page.selectedKeys, false);
+    // (ADR-291 — a view that runs here needs the whole data before it is right.)
+    if (this.viewLoadsAll(collectionId)) await this.loadAll(collectionId);
   }
   /**
    * The keys a load returned (`useAsyncList` load `selectedKeys` — `responseMapping.selectedKeysPath`)
@@ -1493,6 +1572,7 @@ export class CatalogPreviewSession {
               complete: this.loadArguments.get(id)?.cursor === undefined,
               warnings: view.serialized.warnings.length,
               ...(depth < authored.query.queries.length ? { depth } : {}),
+              mode: view.mode,
             },
           },
         };
@@ -1562,8 +1642,9 @@ export class CatalogPreviewSession {
     for (const collection of this.collections) {
       if (!collection.id || collection.useMockData) continue;
       const endpoint = this.endpointFilling(collection);
-      // (ADR-284: a view the request carries — a variable it reads gives another request.)
-      const viewed = !!this.serverView(collection.id);
+      // (ADR-284: a view the request carries — a variable it reads gives another request. ADR-291:
+      // a view that runs here over every row is the session's load too.)
+      const viewed = !!this.uniqueView(collection.id);
       // (An endpoint that pages — `cursorPath` — is the session's to load: the cursor is its.)
       if (
         !endpoint ||

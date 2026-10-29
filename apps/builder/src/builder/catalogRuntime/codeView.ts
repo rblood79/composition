@@ -76,6 +76,7 @@ export function codeViewDataOf(
           key: field.key,
           ...(field.type ? { type: field.type } : {}),
           ...(field.reference ? { reference: field.reference } : {}),
+          ...(field.formula ? { formula: field.formula } : {}),
         })),
         ...(endpoint
           ? {

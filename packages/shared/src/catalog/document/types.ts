@@ -693,12 +693,7 @@ export interface ViewConditionGroup {
  * is not counted; the same for every row).
  */
 export type ViewAggregateFn =
-  | "count"
-  | "sum"
-  | "mean"
-  | "min"
-  | "max"
-  | "applied";
+  "count" | "sum" | "mean" | "min" | "max" | "applied";
 export interface ViewAggregate {
   fn: ViewAggregateFn;
   /** The field summed · compared; absent for `count` · `applied`. */
@@ -1036,8 +1031,7 @@ export type CatalogStateKey = (typeof CATALOG_STATE_KEYS)[number];
  * a position of that origin (`local`, prefixed with the current instance when used).
  */
 export type CatalogStateOwnerRef =
-  | { type: string }
-  | { ancestor: CatalogNodeRef };
+  { type: string } | { ancestor: CatalogNodeRef };
 /**
  * A stored reference to one drawn place of the document (ADR-283 Decision 1 — shared by a state
  * owner reference and a capability's target): an authored node (`nodeId`), a position inside an
@@ -1199,124 +1193,124 @@ export interface InteractionEntry {
 }
 /** One Do of a rule (ADR-284 — a rule holds a list of them). */
 export type InteractionAction =
-    | {
-        opcode: "setState";
-        variableId: EntryId<"stateVariable"> | ProjectVariableId;
-        op: "set" | "toggle" | "increment" | "reset";
-        value?: Scalar;
-      }
-    | { opcode: "navigate"; pageId: EntryId<"page"> }
-    | {
-        opcode: "callEndpoint";
-        endpointId: DataEndpointId;
-        /** ADR-281 Decision 5 — the request body: a literal or `"!event.formData"`. */
-        body?: Scalar;
-      }
-    | {
-        opcode: "append";
-        collectionId: DataCollectionId;
-        /** The value appended: `"!event.formData"` (a Form's fields) — resolved when the rule runs. */
-        value?: Scalar;
-        /** `useTreeData.append(parentKey, …)` — the parent item's key; absent = the top level. */
-        parentKey?: Scalar;
-      }
-    | {
-        /** `useListData.update(key, newValue)` — the item's fields take the value's. */
-        opcode: "update";
-        collectionId: DataCollectionId;
-        /**
-         * The item's key (`"!event.key"` · a literal); absent = the value's `id`. Keys
-         * (`"!event.keys"`) update each item (the reference's `for (let id of ids) list.update(…)`).
-         */
-        key?: Scalar;
-        value?: Scalar;
-        /**
-         * ADR-284 Phase 5 — the one field the value writes (`{...list.getItem(id), [field]: value}`
-         * — the kanban's status); absent = the value is a record whose fields the item takes.
-         */
-        field?: DataFieldId;
-      }
-    | {
-        /** `useAsyncList.reload()` — the collection's endpoint runs again (its items replace). */
-        opcode: "reload";
-        collectionId: DataCollectionId;
-      }
-    | {
-        /** `useListData.insert(index, …items)` — the value at `index` (a number). */
-        opcode: "insert";
-        collectionId: DataCollectionId;
-        index?: Scalar;
-        value?: Scalar;
-        /** `useTreeData.insert(parentKey, index, …)` — the parent item's key; absent = the top. */
-        parentKey?: Scalar;
-      }
-    | {
-        /** `useListData.insertBefore(key, …)` · `insertAfter(key, …)` — next to the item `key`. */
-        opcode: "insertBefore" | "insertAfter";
-        collectionId: DataCollectionId;
-        key?: Scalar;
-        value?: Scalar;
-      }
-    | {
-        /** `useListData.prepend(…items)`. */
-        opcode: "prepend";
-        collectionId: DataCollectionId;
-        value?: Scalar;
-        /** `useTreeData.prepend(parentKey, …)` — the parent item's key; absent = the top level. */
-        parentKey?: Scalar;
-      }
-    | {
-        /** `useListData.move(key, toIndex)`. */
-        opcode: "move";
-        collectionId: DataCollectionId;
-        key?: Scalar;
-        toIndex?: Scalar;
-        /** `useTreeData.move(key, toParentKey, index)` — the new parent's key; absent = the top. */
-        toParentKey?: Scalar;
-      }
-    | {
-        /** `useListData.moveBefore(key, keys)` · `moveAfter(key, keys)` — `keys` next to `key`. */
-        opcode: "moveBefore" | "moveAfter";
-        collectionId: DataCollectionId;
-        key?: Scalar;
-        keys?: Scalar;
-        /**
-         * ADR-284 Phase 5 — the side a drop chose (`"!event.target.dropPosition"`): `before` runs
-         * `moveBefore`, `after` `moveAfter` (the reference's `if (e.target.dropPosition === …)`);
-         * absent = the opcode's side.
-         */
-        dropPosition?: Scalar;
-      }
-    | {
-        /** `useListData.removeSelectedItems()` — the selection of the components showing it. */
-        opcode: "removeSelectedItems";
-        collectionId: DataCollectionId;
-      }
-    | {
-        /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */
-        opcode: "loadMore";
-        collectionId: DataCollectionId;
-      }
-    | {
-        /** `useAsyncList.setFilterText(text)` — loads again with the text (`load({filterText})`). */
-        opcode: "setFilterText";
-        collectionId: DataCollectionId;
-        value?: Scalar;
-      }
-    | {
-        /** `useListData.remove(...keys)`. */
-        opcode: "remove";
-        collectionId: DataCollectionId;
-        /** The items' keys: `"!event.key"` · `"!event.keys"` (a selection) · a literal. */
-        keys?: Scalar;
-      }
-    | { opcode: "toast"; message: string }
-    | {
-        opcode: "capability";
-        target: CatalogCapabilityTarget;
-        capabilityId: string;
-        value?: Scalar | readonly Scalar[];
-      };
+  | {
+      opcode: "setState";
+      variableId: EntryId<"stateVariable"> | ProjectVariableId;
+      op: "set" | "toggle" | "increment" | "reset";
+      value?: Scalar;
+    }
+  | { opcode: "navigate"; pageId: EntryId<"page"> }
+  | {
+      opcode: "callEndpoint";
+      endpointId: DataEndpointId;
+      /** ADR-281 Decision 5 — the request body: a literal or `"!event.formData"`. */
+      body?: Scalar;
+    }
+  | {
+      opcode: "append";
+      collectionId: DataCollectionId;
+      /** The value appended: `"!event.formData"` (a Form's fields) — resolved when the rule runs. */
+      value?: Scalar;
+      /** `useTreeData.append(parentKey, …)` — the parent item's key; absent = the top level. */
+      parentKey?: Scalar;
+    }
+  | {
+      /** `useListData.update(key, newValue)` — the item's fields take the value's. */
+      opcode: "update";
+      collectionId: DataCollectionId;
+      /**
+       * The item's key (`"!event.key"` · a literal); absent = the value's `id`. Keys
+       * (`"!event.keys"`) update each item (the reference's `for (let id of ids) list.update(…)`).
+       */
+      key?: Scalar;
+      value?: Scalar;
+      /**
+       * ADR-284 Phase 5 — the one field the value writes (`{...list.getItem(id), [field]: value}`
+       * — the kanban's status); absent = the value is a record whose fields the item takes.
+       */
+      field?: DataFieldId;
+    }
+  | {
+      /** `useAsyncList.reload()` — the collection's endpoint runs again (its items replace). */
+      opcode: "reload";
+      collectionId: DataCollectionId;
+    }
+  | {
+      /** `useListData.insert(index, …items)` — the value at `index` (a number). */
+      opcode: "insert";
+      collectionId: DataCollectionId;
+      index?: Scalar;
+      value?: Scalar;
+      /** `useTreeData.insert(parentKey, index, …)` — the parent item's key; absent = the top. */
+      parentKey?: Scalar;
+    }
+  | {
+      /** `useListData.insertBefore(key, …)` · `insertAfter(key, …)` — next to the item `key`. */
+      opcode: "insertBefore" | "insertAfter";
+      collectionId: DataCollectionId;
+      key?: Scalar;
+      value?: Scalar;
+    }
+  | {
+      /** `useListData.prepend(…items)`. */
+      opcode: "prepend";
+      collectionId: DataCollectionId;
+      value?: Scalar;
+      /** `useTreeData.prepend(parentKey, …)` — the parent item's key; absent = the top level. */
+      parentKey?: Scalar;
+    }
+  | {
+      /** `useListData.move(key, toIndex)`. */
+      opcode: "move";
+      collectionId: DataCollectionId;
+      key?: Scalar;
+      toIndex?: Scalar;
+      /** `useTreeData.move(key, toParentKey, index)` — the new parent's key; absent = the top. */
+      toParentKey?: Scalar;
+    }
+  | {
+      /** `useListData.moveBefore(key, keys)` · `moveAfter(key, keys)` — `keys` next to `key`. */
+      opcode: "moveBefore" | "moveAfter";
+      collectionId: DataCollectionId;
+      key?: Scalar;
+      keys?: Scalar;
+      /**
+       * ADR-284 Phase 5 — the side a drop chose (`"!event.target.dropPosition"`): `before` runs
+       * `moveBefore`, `after` `moveAfter` (the reference's `if (e.target.dropPosition === …)`);
+       * absent = the opcode's side.
+       */
+      dropPosition?: Scalar;
+    }
+  | {
+      /** `useListData.removeSelectedItems()` — the selection of the components showing it. */
+      opcode: "removeSelectedItems";
+      collectionId: DataCollectionId;
+    }
+  | {
+      /** `useAsyncList.loadMore()` — the next page (the cursor the last load gave). */
+      opcode: "loadMore";
+      collectionId: DataCollectionId;
+    }
+  | {
+      /** `useAsyncList.setFilterText(text)` — loads again with the text (`load({filterText})`). */
+      opcode: "setFilterText";
+      collectionId: DataCollectionId;
+      value?: Scalar;
+    }
+  | {
+      /** `useListData.remove(...keys)`. */
+      opcode: "remove";
+      collectionId: DataCollectionId;
+      /** The items' keys: `"!event.key"` · `"!event.keys"` (a selection) · a literal. */
+      keys?: Scalar;
+    }
+  | { opcode: "toast"; message: string }
+  | {
+      opcode: "capability";
+      target: CatalogCapabilityTarget;
+      capabilityId: string;
+      value?: Scalar | readonly Scalar[];
+    };
 export interface AssetEntry {
   kind: "asset";
   id: EntryId<"asset">;
@@ -1337,6 +1331,12 @@ export interface CatalogDataField {
   defaultValue?: unknown;
   children?: readonly CatalogDataField[];
   reference?: { collectionId: string; keyField: string };
+  /**
+   * ADR-291 Decision 2 — a computed field: a json-formula expression over the row's field **ids**
+   * (`'f-price' * 'f-qty'`, a variable as `$var_<id>`), shown with keys; `type` is its result type
+   * (number · string · boolean · date). Absent = an authored column.
+   */
+  formula?: string;
 }
 /** ADR-286 Decision 1 — a collection's definition: its schema and the rows the author wrote. */
 export interface CollectionEntry {
@@ -1348,7 +1348,10 @@ export interface CollectionEntry {
   /** At most `CATALOG_COLLECTION_ROW_LIMIT` rows (사용자 결정 1, 2026-10-28). */
   mockData: readonly Readonly<Record<string, unknown>>[];
   useMockData: boolean;
-  executionPolicy?: { mode: "auto" | "manual" | "interval"; intervalSec?: number };
+  executionPolicy?: {
+    mode: "auto" | "manual" | "interval";
+    intervalSec?: number;
+  };
 }
 /** ADR-286 사용자 결정 1 — a collection holds at most this many authored rows. */
 export const CATALOG_COLLECTION_ROW_LIMIT = 1000;
@@ -1392,7 +1395,6 @@ export interface ProjectVariableEntry {
   defaultValue?: unknown;
   persist: boolean;
   validation?: Readonly<Record<string, unknown>>;
-  transform?: string;
 }
 export type DataEntry = CollectionEntry | EndpointEntry | ProjectVariableEntry;
 

@@ -79,6 +79,7 @@ const NOT_SENT: Record<SerializationWarningCode, string> = {
   GET_BODY: "a GET request carries no body",
   MULTI_VIEW: "several views",
   GROUP: "a grouping",
+  COMPUTED: "a computed field",
 };
 const FOREIGN_DROPS = new Set(["onInsert", "onRootDrop", "onItemDrop"]);
 const DRAG_EVENTS = new Set([
@@ -134,7 +135,10 @@ function literal(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(literal).join(", ")}]`;
   if (value && typeof value === "object")
     return `{${Object.entries(value)
-      .map(([key, item]) => `${property(key)}: ${literal(item)}`)
+      .map(
+        ([key, item]) =>
+          `${key === "__proto__" ? `[${literal(key)}]` : property(key)}: ${literal(item)}`,
+      )
       .join(", ")}}`;
   return JSON.stringify(value);
 }
@@ -871,7 +875,16 @@ class Generator {
       {
         queries,
         schema: collection.schema.flatMap((field) =>
-          field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+          field.id
+            ? [
+                {
+                  id: field.id,
+                  key: field.key,
+                  type: field.type,
+                  ...(field.formula ? { formula: field.formula } : {}),
+                },
+              ]
+            : [],
         ),
       },
       served.method,
@@ -2282,10 +2295,12 @@ class Generator {
       const variable = this.variables.get(id!);
       if (!variable) return undefined;
       const read = [variable.name, ...path].join(".");
-      // (A key list prop of a text variable: its one key — `selectedKeys={[album]}`.)
-      return /Keys$/.test(prop) && !variable.selection
-        ? `{[${read}]}`
-        : `{${read}}`;
+      // A JSON array stays an array even when a key-list prop reads it. Only a scalar key
+      // needs wrapping; changing the variable to a Set would discard repeated data values.
+      const keyList =
+        variable.selection ||
+        (!path.length && variable.entry.valueType === "array");
+      return /Keys$/.test(prop) && !keyList ? `{[${read}]}` : `{${read}}`;
     }
     if (typeof value === "string") {
       const whole = /^\{\{\s*([A-Za-z_$][\w$]*)\s*\}\}$/.exec(value);

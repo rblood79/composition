@@ -67,6 +67,7 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
+    "@adobe/json-formula": "2.1.0",
     "@composition/rendering": "workspace:*",
     "@composition/upload": "workspace:*",
     "@internationalized/date": "catalog:",

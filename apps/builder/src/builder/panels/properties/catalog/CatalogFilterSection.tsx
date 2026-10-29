@@ -70,6 +70,7 @@ import { catalogBindingViews } from "../../../../../../../packages/shared/src/ca
 import { explainViewRow } from "../../../../../../../packages/shared/src/collections/view/evaluate";
 import {
   serializeViewQueries,
+  VIEW_LOCAL_LOAD_CAP,
   viewQueryLimits,
 } from "../../../../../../../packages/shared/src/collections/view/serialize";
 import { useCatalogCommandRunner } from "../../../catalogRuntime/commandRunner";
@@ -1410,6 +1411,8 @@ function ConnectionRun({
                   {t(`datatable.apiQueryWarn${warning.code}`, {
                     condition: warning.conditionId ?? "",
                     comparison: warning.comparison ?? "",
+                    field: warning.field ?? "",
+                    cap: VIEW_LOCAL_LOAD_CAP.toLocaleString(),
                   })}
                 </li>
               ))}

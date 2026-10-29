@@ -2285,7 +2285,9 @@ const catalog: TranslationKeys = {
     apiQueryWarnGET_BODY: "GET sends no body — use POST",
     apiQueryWarnMULTI_VIEW: "Several different views — not put in the request",
     apiQueryWarnGROUP:
-      "Grouping · aggregates are not put in the request — computed on the loaded rows (part of them until the last page)",
+      "Grouping · aggregates cannot be parameters — every row is loaded (up to {cap}) and grouped here",
+    apiQueryWarnCOMPUTED:
+      "{field} is a computed column — the server has no such cell: nothing of this view is sent, every row is loaded (up to {cap}) and the view runs here",
     apiUploadLive: "Real upload in preview",
     apiUploadLiveHint:
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
@@ -3535,6 +3537,10 @@ const formattedMessages: Record<
     `"${String(args?.condition ?? "")}" field through a reference — cannot be sent yet`,
   "datatable.apiQueryWarnBROKEN": (args) =>
     `"${String(args?.condition ?? "")}" field is missing — skipped`,
+  "datatable.apiQueryWarnGROUP": (args) =>
+    `Grouping · aggregates cannot be parameters — every row is loaded (up to ${String(args?.cap ?? "")}) and grouped here`,
+  "datatable.apiQueryWarnCOMPUTED": (args) =>
+    `${String(args?.field ?? "")} is a computed column — the server has no such cell: nothing of this view is sent, every row is loaded (up to ${String(args?.cap ?? "")}) and the view runs here`,
   "datatable.apiSchemaCandidate": (args) =>
     `${String(args?.path ?? "")} · ${String(args?.count ?? 0)} rows`,
   "datatable.importRows": (args) => `${String(args?.count ?? 0)} rows`,

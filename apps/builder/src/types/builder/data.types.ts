@@ -73,6 +73,9 @@ export interface DataField {
 
   /** ADR-284 — `type: "reference"`: the target collection and the field its key matches. */
   reference?: { collectionId: string; keyField: string };
+
+  /** ADR-291 — a computed field: its json-formula expression over field ids (`type` = the result type). */
+  formula?: string;
 }
 
 /**
@@ -391,9 +394,6 @@ export interface Variable {
   /** 유효성 검사 규칙 */
   validation?: VariableValidation;
 
-  /** 변환 함수 코드 (value, context) => transformedValue */
-  transform?: string;
-
   created_at?: string;
   updated_at?: string;
 }
@@ -421,7 +421,6 @@ export type VariableUpdate = Partial<
     | "scope"
     | "page_id"
     | "validation"
-    | "transform"
   >
 >;
 

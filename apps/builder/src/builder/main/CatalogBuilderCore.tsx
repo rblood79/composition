@@ -84,6 +84,7 @@ import {
 import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { useDataStore } from "../stores/data";
 import { changedRuntimeCollectionIds } from "../catalogRuntime/rowsRefresh";
+import { onFormulaEngineLoaded } from "../../../../../packages/shared/src/collections/formula/engine";
 import { notifyEditRefusal } from "../catalogRuntime/operationNotice";
 import { useToastStore } from "../stores/toast";
 import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
@@ -543,7 +544,15 @@ export function CatalogBuilderCore() {
       useDataStore.getState().collections,
     );
     if (since.length) workspace.refreshRows(since);
-    return useDataStore.subscribe(
+    // (ADR-291 — computed cells read before the formula engine loaded were `null`: read again.)
+    const unsubscribeFormula = onFormulaEngineLoaded(() => {
+      try {
+        workspace.refreshRows();
+      } catch (error) {
+        console.error("[CatalogBuilder] formula refresh failed:", error);
+      }
+    });
+    const unsubscribeRows = useDataStore.subscribe(
       (store) => store.runtimeRows,
       (next, previous) => {
         const changed = changedRuntimeCollectionIds(
@@ -559,6 +568,10 @@ export function CatalogBuilderCore() {
         }
       },
     );
+    return () => {
+      unsubscribeFormula();
+      unsubscribeRows();
+    };
   }, [workspace, rowsSource]);
   const quickConnect = useMemo(
     () =>

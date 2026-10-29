@@ -302,6 +302,8 @@ export interface CatalogFilterField {
   readonly path?: readonly string[];
   /** A path's value of a row (the target row's field — `viewFieldOf`'s reader). */
   readonly read?: (row: unknown) => unknown;
+  /** ADR-291 — a computed field's formula (the view cannot go to the server through it). */
+  readonly formula?: string;
 }
 
 /** A grouped view's field of a group by `field` (a path's result field id joins its steps). */
@@ -327,6 +329,7 @@ export function catalogViewFields(
           key: string;
           type?: string;
           reference?: { collectionId: string; keyField: string };
+          formula?: string;
         }[];
       }
     | undefined,
@@ -340,10 +343,11 @@ export function catalogViewFields(
 ): CatalogFilterField[] {
   const schema = viewRunSchema(table?.schema);
   const references = viewRunReferences(collections as never);
-  const out: CatalogFilterField[] = schema.map(({ id, key, type }) => ({
+  const out: CatalogFilterField[] = schema.map(({ id, key, type, formula }) => ({
     id,
     key,
     ...(type ? { type } : {}),
+    ...(formula ? { formula } : {}),
   }));
   for (const field of schema) {
     const target = field.reference && references(field.reference.collectionId);

@@ -124,9 +124,6 @@ export function toProjectVariableEntry(
     ...(variable.validation
       ? { validation: variable.validation as Record<string, unknown> }
       : {}),
-    ...(variable.transform !== undefined
-      ? { transform: variable.transform }
-      : {}),
   });
 }
 
@@ -182,7 +179,6 @@ export function fromProjectVariableEntry(
     ...(entry.validation
       ? { validation: entry.validation as Variable["validation"] }
       : {}),
-    ...(entry.transform !== undefined ? { transform: entry.transform } : {}),
   };
   variableCache.set(entry, { projectId, variable });
   return variable;

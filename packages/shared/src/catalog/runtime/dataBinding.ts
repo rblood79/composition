@@ -18,10 +18,12 @@ import type {
 } from "../resolution/resolver";
 import {
   runViewQueries,
+  viewResultSchema,
   viewRunReferences,
   viewRunSchema,
   type ViewRunResult,
 } from "../../collections/view/evaluate";
+import { withComputedCells } from "../../collections/formula/compute";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import type {
   CatalogReader,
@@ -199,10 +201,18 @@ export function catalogBoundRows(
           }
         : source,
     );
+  // (ADR-291 Decision 3 — computed cells exist at the row-reading stage, whatever the view · the
+  // server did: a binding with no view and rows the server answered read them too.)
+  const schema = viewRunSchema(table.schema);
+  const computedRows = (rows: readonly unknown[], query?: CatalogRowQuery) =>
+    withComputedCells(rows, schema, {
+      ...(query ? { resolve: catalogRowQueryResolve(query) } : {}),
+    });
   if (ref.query?.served) {
     // (The server answered this view: its rows are the result — never filtered again, R1.)
-    const rows = readDataBindingRows(dataBinding, sources);
-    const { complete, total, warnings, depth } = ref.query.served;
+    const source = readDataBindingRows(dataBinding, sources);
+    const rows = computedRows(source, ref.query);
+    const { complete, total, warnings, depth, mode } = ref.query.served;
     const whole = complete && (total === undefined || total <= rows.length);
     view = {
       matched: rows.length,
@@ -264,6 +274,16 @@ export function catalogBoundRows(
       );
       view = { ...view, matched: counted.length, complete: known };
       collections = resultRows(counted, result.schema);
+    } else if (mode === "aggregate") {
+      // (ADR-291 Decision 6 — the server ran the grouping: its rows are the view's result rows,
+      // with the result's fields — the group keys and the aggregates.)
+      const last = ref.query.queries.at(-1)!;
+      collections = resultRows(
+        rows,
+        viewResultSchema(last, schema, viewRunReferences(sources)),
+      );
+    } else if (rows !== source) {
+      collections = resultRows(rows);
     }
   } else if (ref.query) {
     const rows = readDataBindingRows(dataBinding, sources);
@@ -288,6 +308,10 @@ export function catalogBoundRows(
         ? partialAggregates(result.rows, ref.query.queries)
         : result.rows,
       grouped ? result.schema : undefined,
+    );
+  } else if ((table.schema ?? []).some((field) => field.formula)) {
+    collections = resultRows(
+      computedRows(readDataBindingRows(dataBinding, sources)),
     );
   }
   if (view && ref.query?.sort) view = { ...view, sort: ref.query.sort };
@@ -374,7 +398,14 @@ function runBindingView(
         ]
       : [];
   });
-  const signature = JSON.stringify([query.queries, query.values, referenced]);
+  // (ADR-291 — a formula edit changes the rows' cells without changing the rows.)
+  const formulas = (table.schema ?? []).map((field) => field.formula ?? "");
+  const signature = JSON.stringify([
+    query.queries,
+    query.values,
+    referenced,
+    formulas,
+  ]);
   let runs = viewRuns.get(rows);
   if (!runs) viewRuns.set(rows, (runs = new Map()));
   const cached = runs.get(signature);

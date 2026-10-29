@@ -17,6 +17,7 @@ import {
 // initial chunk: only its lazy session uses it.)
 import {
   DEFAULT_QUERY_SUFFIXES,
+  VIEW_LOCAL_LOAD_CAP,
   viewQueryLimits,
   type EndpointQuerySerialization,
   type SerializationWarning,
@@ -71,7 +72,16 @@ function useViewLimits(
     if (!workspace || !table) return [];
     const graph = workspace.runtime.graph;
     const schema = table.schema.flatMap((field) =>
-      field.id ? [{ id: field.id, key: field.key, type: field.type }] : [],
+      field.id
+        ? [
+            {
+              id: field.id,
+              key: field.key,
+              type: field.type,
+              ...(field.formula ? { formula: field.formula } : {}),
+            },
+          ]
+        : [],
     );
     const seen = new Set<string>();
     const out: { name: string; warnings: SerializationWarning[] }[] = [];
@@ -196,6 +206,8 @@ export function QueryFormatSection({
     dt(`apiQueryWarn${warning.code}`, {
       condition: warning.conditionId ?? "",
       comparison: warning.comparison ?? "",
+      field: warning.field ?? "",
+      cap: VIEW_LOCAL_LOAD_CAP.toLocaleString(),
     });
 
   return (

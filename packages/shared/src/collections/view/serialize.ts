@@ -7,21 +7,45 @@
  *   the parameter), the sort as `_sort` · `_order`. A flat parameter list cannot hold an `or` of
  *   applied conditions, a several-field condition or a comparison the table does not name — those
  *   are left out and **reported** (never silently dropped: R1).
- * - `body` — the condition tree as JSON (`{ where, sort }`) the server reads whole.
+ * - `body` — the condition tree as JSON the server reads whole: `{ where, sort, group, page, total }`
+ *   (ADR-291 Decision 6 — a grouping · aggregates go as `group`, the page as `page`, `total: true`
+ *   asks for the whole count).
  * - `none` — local only: the session filters the loaded rows itself (a partial result when the
  *   endpoint pages).
  *
  * The skip rule (empty · skip literal · `enabled`) is the evaluator's (`readViewCondition`): a
  * skipped condition is no parameter.
+ *
+ * ADR-291 Decision 5 — a view that reads a **computed field** anywhere (a condition · the sort · a
+ * group key · an aggregate's input) cannot go to the server (it has neither the cell nor the
+ * formula): `COMPUTED` is reported, nothing of the view is sent, and the session loads every row
+ * (`load: "all"`, up to its cap) to run the whole chain locally — never half a request (conditions
+ * on the server, aggregates here: an aggregate answer has no raw cells to recover from). A `suffix`
+ * format cannot carry a grouping either: its conditions are sent and the rows are loaded whole
+ * (`GROUP` · `load: "all"`), the grouping runs here.
  */
 import type {
+  DataFieldPath,
+  ViewAggregate,
   ViewComparison,
   ViewCondition,
   ViewConditionGroup,
   ViewQuery,
 } from "../../catalog/document/types";
 import { viewDay } from "./comparison";
-import { readViewCondition, viewFieldOf, type ViewRunInput } from "./evaluate";
+import {
+  readViewCondition,
+  viewFieldOf,
+  type ViewRunField,
+  type ViewRunInput,
+} from "./evaluate";
+
+/**
+ * ADR-291 사용자 결정 3 (2026-10-29) — the most rows the session loads to run a view locally (a
+ * computed field in the view · a grouping a `suffix` format cannot carry); past it the view is
+ * refused (no rows, a notice) — never a quiet partial result.
+ */
+export const VIEW_LOCAL_LOAD_CAP = 10_000;
 
 /** An endpoint's query format for the views that read its collection. */
 export interface EndpointQuerySerialization {
@@ -31,6 +55,15 @@ export interface EndpointQuerySerialization {
   /** `suffix`: the sort's parameter names (default `_sort` · `_order`). */
   sortParam?: string;
   orderParam?: string;
+  /**
+   * ADR-291 Decision 6 — `suffix`: the page parameters (json-server `_page` · `_limit`), sent when
+   * `pageSize` is set (the cursor is the page number, from 1). `body`: `pageSize` is `page.limit`.
+   */
+  pageParam?: string;
+  limitParam?: string;
+  pageSize?: number;
+  /** The response header holding the whole count (json-server `X-Total-Count`); absent = that. */
+  totalHeader?: string;
 }
 
 /**
@@ -68,22 +101,48 @@ export type SerializationWarningCode =
   | "GET_BODY"
   /** Several different views read one endpoint's collection (one request — none sent). */
   | "MULTI_VIEW"
-  /** A grouping · aggregates: not a request — the view runs on the loaded rows (Phase 4). */
-  | "GROUP";
+  /** A grouping · aggregates in a `suffix` format: not parameters — every row is loaded, grouped here. */
+  | "GROUP"
+  /**
+   * ADR-291 Decision 5 — the view reads a computed field (a condition · the sort · a group key · an
+   * aggregate's input): nothing of it is sent, every row is loaded, the whole chain runs here.
+   */
+  | "COMPUTED";
 
 export interface SerializationWarning {
   code: SerializationWarningCode;
   /** The condition (or group) it is about; absent = the whole view · endpoint. */
   conditionId?: string;
   comparison?: ViewComparison;
+  /** `COMPUTED`: the aggregate (its `as`) reading a computed field. */
+  aggregate?: string;
+  /** `COMPUTED`: the computed field's key. */
+  field?: string;
 }
 
+/** `body`: a grouping · aggregates as the server runs them (ADR-291 Decision 6). */
+export interface SerializedViewGroup {
+  by: string[];
+  aggregates: { fn: ViewAggregate["fn"]; field?: string; as: string }[];
+}
 export interface SerializedViewQuery {
   /** `suffix`: the parameters, in condition order. */
   params: [string, string][];
   /** `body`: the JSON the request carries. */
-  body?: { where?: unknown; sort?: { field: string; direction: string } };
+  body?: {
+    where?: unknown;
+    sort?: { field: string; direction: string };
+    group?: SerializedViewGroup;
+    page?: { cursor?: string; limit?: number };
+    total?: true;
+  };
   warnings: SerializationWarning[];
+  /**
+   * `"all"` = the session loads every page (to its cap) before the view can be right: the view
+   * reads a computed field (`COMPUTED` — nothing sent), or a `suffix` format cannot carry its
+   * grouping (`GROUP` — conditions sent, grouped here). Absent = the answer is the view's result.
+   */
+  load?: "all";
 }
 
 /** A value as a parameter: a day for date-like objects, else its text. */
@@ -94,17 +153,79 @@ function text(value: unknown): string {
 }
 
 /**
+ * ADR-291 Decision 5 — where a view chain reads a computed field (`ViewRunField.formula`): a
+ * condition's field, the sort's, a group key, an aggregate's input. A computed field reading
+ * another is computed itself, so the transit is in the set. A sort held by a variable is judged by
+ * the run (`serializeViewQueries` resolves it); the static limits take it as not computed.
+ */
+export function computedViewUses(
+  input: Pick<ViewRunInput, "queries" | "schema"> & Partial<Pick<ViewRunInput, "resolve">>,
+): SerializationWarning[] {
+  const warnings: SerializationWarning[] = [];
+  const computedOf = (path: DataFieldPath): ViewRunField | undefined => {
+    const field = viewFieldOf(path, input.schema);
+    return field?.formula ? field : undefined;
+  };
+  const visit = (item: ViewCondition | ViewConditionGroup) => {
+    if ("items" in item) {
+      item.items.forEach(visit);
+      return;
+    }
+    const computed = item.fields.map(computedOf).find((field) => field);
+    if (computed)
+      warnings.push({ code: "COMPUTED", conditionId: item.id, field: computed.key });
+  };
+  for (const query of input.queries) {
+    visit(query.where);
+    for (const path of query.groupBy ?? []) {
+      const computed = computedOf(path);
+      if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+    }
+    for (const aggregate of query.aggregates ?? []) {
+      const computed = aggregate.field && computedOf(aggregate.field);
+      if (computed)
+        warnings.push({ code: "COMPUTED", aggregate: aggregate.as, field: computed.key });
+    }
+    const sort = query.sort;
+    if (sort && "field" in sort) {
+      const computed = computedOf(sort.field);
+      if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+    } else if (sort && input.resolve) {
+      const value = input.resolve(`!var.${sort.variableId}`)?.value as
+        | { column?: unknown }
+        | undefined;
+      const column = value && typeof value === "object" ? String(value.column) : undefined;
+      const computed =
+        column !== undefined
+          ? input.schema.find(
+              (item) =>
+                item.formula &&
+                (item.id === column.replace(/^data:field:/, "") || item.key === column),
+            )
+          : undefined;
+      if (computed) warnings.push({ code: "COMPUTED", field: computed.key });
+    }
+  }
+  return warnings;
+}
+
+/**
  * The views of a binding (the last is the bound one; a derived view's sources first) as one
- * request. Only the bound view chain's conditions and the last sort are sent.
+ * request. Only the bound view chain's conditions and the last sort are sent. `page` = the load's
+ * cursor (a `suffix` page number · a `body` cursor) — the format's page parameters carry it.
  */
 export function serializeViewQueries(
   serialization: EndpointQuerySerialization,
   input: Pick<ViewRunInput, "queries" | "schema" | "resolve">,
   method = "GET",
+  page?: { cursor?: string },
 ): SerializedViewQuery {
   const warnings: SerializationWarning[] = [];
   const params: [string, string][] = [];
   if (serialization.kind === "none") return { params, warnings };
+  // (ADR-291 Decision 5 — a computed field anywhere in the chain: the whole view runs here.)
+  const computed = computedViewUses(input);
+  if (computed.length) return { params, warnings: computed, load: "all" };
   const suffixes = serialization.suffixes ?? DEFAULT_QUERY_SUFFIXES;
   const keyOf = (condition: ViewCondition, index = 0) =>
     viewFieldOf(condition.fields[index]!, input.schema)?.key;
@@ -228,6 +349,7 @@ export function serializeViewQueries(
       : undefined;
   };
   const sort = sortOf(last);
+  const grouped = queries.some((query) => query.groupBy || query.aggregates);
 
   // (`none` returned above: anything but `suffix` is the body tree.)
   if (serialization.kind !== "suffix") {
@@ -236,6 +358,16 @@ export function serializeViewQueries(
     const groups = queries
       .map((query) => bodyGroup(query.where))
       .filter((group) => group !== undefined);
+    // (ADR-291 Decision 6 — the chain's grouping · aggregates as the server runs them; a derived
+    // view grouping a grouped view is one grouping here (the last query's).)
+    const group = grouped ? bodyGroupOf(queries, input.schema) : undefined;
+    const pageBody =
+      page?.cursor !== undefined || serialization.pageSize !== undefined
+        ? {
+            ...(page?.cursor !== undefined ? { cursor: page.cursor } : {}),
+            ...(serialization.pageSize !== undefined ? { limit: serialization.pageSize } : {}),
+          }
+        : undefined;
     return {
       params,
       body: {
@@ -246,6 +378,9 @@ export function serializeViewQueries(
             }
           : {}),
         ...(sort ? { sort } : {}),
+        ...(group ? { group } : {}),
+        ...(pageBody ? { page: pageBody } : {}),
+        total: true,
       },
       warnings,
     };
@@ -258,7 +393,33 @@ export function serializeViewQueries(
       sort.direction === "descending" ? "desc" : "asc",
     ]);
   }
+  if (serialization.pageSize !== undefined) {
+    params.push([serialization.pageParam ?? "_page", page?.cursor ?? "1"]);
+    params.push([serialization.limitParam ?? "_limit", String(serialization.pageSize)]);
+  }
+  // (ADR-291 Decision 6 — a flat parameter list has no grouping: every row, grouped here.)
+  if (grouped) {
+    warnings.push({ code: "GROUP" });
+    return { params, warnings, load: "all" };
+  }
   return { params, warnings };
+}
+
+/** The grouping the body carries: the last grouped query's keys and aggregates, by field key. */
+function bodyGroupOf(
+  queries: readonly ViewQuery[],
+  schema: readonly ViewRunField[],
+): SerializedViewGroup | undefined {
+  const query = [...queries].reverse().find((item) => item.groupBy || item.aggregates);
+  if (!query) return undefined;
+  const keyOf = (path: DataFieldPath) => viewFieldOf(path, schema)?.key;
+  return {
+    by: (query.groupBy ?? []).map(keyOf).filter((key): key is string => key !== undefined),
+    aggregates: (query.aggregates ?? []).map((aggregate) => {
+      const field = aggregate.field && keyOf(aggregate.field);
+      return { fn: aggregate.fn, ...(field ? { field } : {}), as: aggregate.as };
+    }),
+  };
 }
 
 /**
@@ -274,6 +435,9 @@ export function viewQueryLimits(
 ): SerializationWarning[] {
   const warnings: SerializationWarning[] = [];
   if (serialization.kind === "none") return warnings;
+  // (ADR-291 Decision 5 — a computed field anywhere: nothing of the view goes; that is the report.)
+  const computed = computedViewUses(input);
+  if (computed.length) return computed;
   const suffixes = serialization.suffixes ?? DEFAULT_QUERY_SUFFIXES;
   const visit = (item: ViewCondition | ViewConditionGroup) => {
     if ("items" in item) {
@@ -315,7 +479,9 @@ export function viewQueryLimits(
   };
   for (const query of input.queries) {
     visit(query.where);
-    if (query.groupBy || query.aggregates) warnings.push({ code: "GROUP" });
+    // (ADR-291 Decision 6 — a body carries the grouping; a flat parameter list cannot.)
+    if (serialization.kind === "suffix" && (query.groupBy || query.aggregates))
+      warnings.push({ code: "GROUP" });
   }
   if (
     serialization.kind !== "suffix" &&

@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-292 잔여 수리 — key-list 배열 전달 · 빈 배열 초기화 · JSON 예약 키 보존] - 2026-10-29
+
+### Fixed
+
+- JSON 배열을 `!var`로 `selectedKeys`·`defaultSelectedKeys`에 연결하면 생성 코드가 배열을 한 번 더 감싸던 문제를 수정했다. 일반 배열은 중복을 보존하고 key-list prop에 그대로 전달한다.
+- 시작값 없는 배열의 기존 `Selection` 표현은 유지하되, 코드에서 명시적으로 `useState([])`로 바꾸면 빈 JSON 배열을 저장한다. Undo/Redo도 두 시작값을 구분한다.
+- JSON의 `__proto__` 키를 일반 데이터 키로 생성하고 읽는다. 중첩 객체도 키를 보존하며, 해당 시작값이 있는 페이지에서 무관한 코드 편집이 거절되던 문제를 수정했다.
+
+## [ADR-291 Phase 0 · 1 · 3 — 계산 필드 (json-formula) · 서버 조회 범위 · 조회용 보기의 전체 로드 상한] - 2026-10-29
+
+### Added
+
+- **계산 필드** (ADR-291 Decision 1 ~ 4, 사용자 결정 1 · 7): 표의 열에 `formula` (json-formula 식 — 필드 id 로 저장 · 이름으로 표시, 변수는 `$var_<id>`) 와 결과 타입 `type` (number · string · boolean · date) 을 두면 행을 읽는 단계에서 셀이 계산된다 — 보기의 조건 · 집계 · 정렬 · `{field}` 템플릿 · 보기 없는 바인딩 · 서버가 답한 행 모두 같은 값. 정의 오류 (문법 · 모르는 필드 · 숨긴 함수 `random` 등 4 · 순환 · 결과 타입 · 분류 못 하는 범위) 는 저장이 거절되고, 행 오류 (0 나눗셈 · 타입) 는 그 셀만 `null` + 표지. 날짜는 UTC 일수로 다리를 놓아 `'due' - today()` 가 남은 날이다. 엔진은 식이 있는 문서만 lazy 로드. 열 편집기 · 격자의 계산 열 UI 는 ADR-289 뒤 (Phase 2).
+  - 위치: `packages/shared/src/collections/formula/{engine,scope,names,compute,validate,allowed}.ts` · `catalog/document/{types,validation}.ts` · `collections/view/evaluate.ts` · `catalog/runtime/dataBinding.ts`
+- **서버 조회 범위** (Decision 5 · 6, 사용자 결정 3 · 6): `body` 형식 요청이 묶기 · 집계 (`group`) · 페이지 (`page`) · 전체 수 (`total: true`) 를 싣고 서버의 묶음 행이 그대로 보기 결과가 된다. `suffix` 형식은 `pageSize` 를 두면 `_page` · `_limit` 로 페이지를 넘기고 `X-Total-Count` 로 전체 수를 읽는다. 계산 필드를 조건 · 정렬 · 묶기 키 · 집계 입력으로 쓰는 보기 (계산 필드를 읽는 계산 필드 포함) 는 서버로 보내지 않고 (`COMPUTED`), `suffix` 의 묶기는 조건만 보내고 (`GROUP`) — 둘 다 전체 행을 **10,000 행까지** 불러와 여기서 돌린다. 넘으면 행 0 + 경고 (조용한 부분 결과 없음). mock 서버 `apps/builder/scripts/mock-query-server.mjs` (body · json-server 두 형식, CLI).
+  - 위치: `packages/shared/src/collections/view/serialize.ts` · `collections/executeCollectionEndpoint.ts` · `catalog/runtime/{catalogPreviewSession,viewQuery,dataBinding}.ts` · 패널 문구 `apiQueryWarnGROUP` · `apiQueryWarnCOMPUTED`
+
+### Removed
+
+- **프로젝트 변수의 `transform`** (사용자 결정 2): 임의 JS 문자열 자리 — 실행하는 코드가 없었다. 타입 · 검증 · 복사 · `updateVariable` 분기 삭제.
+
+### Changed
+
+- 「묶기 · 집계는 요청에 싣지 않는다 — 불러온 행으로 계산 (마지막 페이지 전에는 일부)」 문구가 「파라미터로 보낼 수 없다 — 전체 행을 불러와 (10,000 행까지) 여기서 묶는다」 로 (body 형식은 싣는다).
+  - 검증: RED 9/9 GREEN (`adr291Red.test.ts` shared · builder) · G1 · G2 (`collections/formula/__tests__/` 36) · G4 세션 3 · G5 mock 서버 동치 4 · shared · builder 전체 PASS · type-check PASS. Phase 0 측정 표 (10만 행 26 ~ 30 ms · 100만 행 ~270 ms · Worker 는 복제가 지배 · 해석기 셀당 0.5 ~ 2 µs) 는 breakdown §1c.
+
 ## [ADR-292 리뷰 수리 — 코드 보기의 JSON · date 시작값 · 시각 비교 · date 조건] - 2026-10-29
 
 ### Fixed

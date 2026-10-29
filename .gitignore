@@ -64,6 +64,7 @@ packages/shared/src/**/*.d.ts.map
 !packages/shared/src/**/*.config.js
 # 손수 작성 ambient 선언 (컴파일 산출물 아님)
 !packages/shared/src/css-modules.d.ts
+!packages/shared/src/collections/formula/json-formula.d.ts
 
 # Agent / worktree / local settings
 .worktrees/

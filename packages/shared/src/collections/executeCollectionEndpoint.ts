@@ -123,11 +123,20 @@ export async function loadCollectionEndpoint(endpoint: ApiEndpointDefinition, si
   // (ADR-284 Decision 3 — the query's whole count, when the response holds it. The Data panel keeps
   // it under `pagination` — read when the top-level one is absent.)
   const totalPath = endpoint.responseMapping?.totalPath ?? (endpoint.responseMapping as {pagination?: {totalPath?: string}} | undefined)?.pagination?.totalPath;
-  const total = totalPath ? Number(readPath(result, totalPath)) : NaN;
+  // (ADR-291 Decision 6 — no `totalPath`: the whole count may be a header, json-server's `X-Total-Count`.)
+  const serialization = endpoint.querySerialization;
+  const totalHeader = totalPath ? null : response.headers.get(serialization?.totalHeader ?? "X-Total-Count");
+  const total = totalPath ? Number(readPath(result, totalPath)) : totalHeader === null ? NaN : Number(totalHeader);
+  const items = mappedItems(endpoint, result);
+  // (ADR-291 Decision 6 — a `suffix` format paging by number (`pageSize`, no `cursorPath`): a full
+  // page means a next one — the cursor is the next page number.)
+  const pageSize = serialization?.kind === "suffix" ? serialization.pageSize : undefined;
+  const numbered = !cursorPath && pageSize !== undefined && Array.isArray(items) && items.length >= pageSize
+    ? String((Number(cursor ?? "1") || 1) + 1) : undefined;
   return {
-    items: mappedItems(endpoint, result),
+    items,
     ...(Number.isFinite(total) && total >= 0 ? {total} : {}),
-    ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : {}),
+    ...(typeof next === "string" && next !== "" ? {cursor: next} : typeof next === "number" ? {cursor: String(next)} : numbered !== undefined ? {cursor: numbered} : {}),
     // (The load's `selectedKeys` — an array of keys or `"all"`; anything else is none.)
     ...(selected === "all" ? {selectedKeys: "all" as const} : Array.isArray(selected) ? {selectedKeys: selected.map(String)} : {}),
   };

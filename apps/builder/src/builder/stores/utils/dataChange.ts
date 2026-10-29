@@ -251,7 +251,7 @@ function reduceDefineVariable(
 
   if (existing) {
     // update — name/type/defaultValue/persist 만 쓰고 나머지 (owner · scope · page_id ·
-    //   migrationStatus 배지 · validation · transform) 는 보존한다. 배지 해소는 Phase 5 의 명시 UI.
+    //   migrationStatus 배지 · validation) 는 보존한다. 배지 해소는 Phase 5 의 명시 UI.
     const next: Variable = {
       ...existing,
       name,
