@@ -10,6 +10,7 @@ import type JsonFormula from "@adobe/json-formula";
 import type Lexer from "@adobe/json-formula/src/Lexer.js";
 import type { computeCellsWith } from "./computeCells";
 import type { formulaCycleError, formulaDefinitionError } from "./validate";
+import { createLazyModule } from "../../utils/lazyModule";
 
 export interface FormulaEngine {
   readonly formula: JsonFormula;
@@ -23,44 +24,42 @@ export interface FormulaRuntime {
   readonly cycleError: typeof formulaCycleError;
 }
 
-let runtime: FormulaRuntime | undefined;
-let loading: Promise<FormulaEngine> | undefined;
-const listeners = new Set<() => void>();
-/**
- * Runs once the engine is loaded (at once when it already is) — the row sources read again: a
- * document read before the load showed its computed cells as `null` (`FORMULA_ENGINE_NOT_READY`).
- */
-export function onFormulaEngineLoaded(listener: () => void): () => void {
-  if (runtime) listener();
-  else listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-/** The engine, loading it on first use (one import of json-formula for the whole runtime). */
-export function loadFormulaEngine(): Promise<FormulaEngine> {
-  if (runtime) return Promise.resolve(runtime.engine);
-  loading ??= Promise.all([
-    import("./instance"),
-    import("./computeCells"),
-    import("./validate"),
-  ]).then(async ([instance, cells, validate]) => {
-    const engine = await instance.createFormulaEngine();
-    runtime = {
-      engine,
+export const formulaRuntimeLoader = createLazyModule<FormulaRuntime>(
+  async () => {
+    const [instance, cells, validate] = await Promise.all([
+      import("./instance"),
+      import("./computeCells"),
+      import("./validate"),
+    ]);
+    return {
+      engine: await instance.createFormulaEngine(),
       computeCells: cells.computeCellsWith,
       definitionError: validate.formulaDefinitionError,
       cycleError: validate.formulaCycleError,
     };
-    for (const listener of [...listeners]) listener();
-    listeners.clear();
-    return engine;
-  });
-  return loading;
+  },
+);
+/**
+ * Runs once the engine is loaded (at once when it already is) — the row sources read again: a
+ * document read before the load showed its computed cells as `null` (`FORMULA_ENGINE_NOT_READY`).
+ */
+export const onFormulaEngineLoaded = formulaRuntimeLoader.subscribe;
+let loadingEngine: Promise<FormulaEngine> | undefined;
+/**
+ * The engine, loading it on first use (one import of json-formula for the whole runtime). One
+ * promise for every call — the row reads call it on each read, and a failed chunk rejects once.
+ */
+export function loadFormulaEngine(): Promise<FormulaEngine> {
+  loadingEngine ??= formulaRuntimeLoader
+    .load()
+    .then((runtime) => runtime.engine);
+  return loadingEngine;
 }
 /** The engine when it is loaded (the sync paths — validation · evaluation); else undefined. */
 export function formulaEngineSync(): FormulaEngine | undefined {
-  return runtime?.engine;
+  return formulaRuntimeLoader.getSnapshot()?.engine;
 }
 /** The engine and the modules loaded with it; undefined until the load lands. */
 export function formulaRuntimeSync(): FormulaRuntime | undefined {
-  return runtime;
+  return formulaRuntimeLoader.getSnapshot();
 }

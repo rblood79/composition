@@ -4,26 +4,16 @@
  * document has one (`wanted` — a document without a formula never requests json-formula, G3)
  * and renders again once it is loaded.
  */
-import { useSyncExternalStore } from "react";
+import { useLazyModule } from "../../../../../packages/shared/src/hooks/useLazyModule";
 import {
-  formulaEngineSync,
-  loadFormulaEngine,
-  onFormulaEngineLoaded,
+  formulaRuntimeLoader,
   type FormulaEngine,
 } from "../../../../../packages/shared/src/collections/formula/engine";
 import { hasFormula } from "../../../../../packages/shared/src/collections/formula/compute";
 
-const subscribe = (listener: () => void) => onFormulaEngineLoaded(listener);
-
 /** The engine when loaded; `wanted` starts the load (once) and the hook re-renders on it. */
 export function useFormulaEngine(wanted = true): FormulaEngine | undefined {
-  const engine = useSyncExternalStore(
-    subscribe,
-    formulaEngineSync,
-    formulaEngineSync,
-  );
-  if (wanted && !engine) void loadFormulaEngine();
-  return engine;
+  return useLazyModule(formulaRuntimeLoader, wanted)?.engine;
 }
 
 /** Whether a schema has a computed column (what makes the engine wanted). */

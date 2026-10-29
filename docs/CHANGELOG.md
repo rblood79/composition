@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [지연 모듈 로더 공용화 — serializer · formula engine] - 2026-10-29
+
+### Changed
+
+- **serializer와 수식 엔진의 지연 로딩·구독을 공용 helper로 통합**:
+  - `createLazyModule`이 단일 로딩 Promise, 동기 snapshot, 완료 알림과 구독 해제를 담당한다. 수식 엔진의 로드 후 즉시 알림과 동적 import 경계를 유지한다.
+  - 두 Builder hook은 `useLazyModule`을 사용하며, 필요한 모듈은 effect에서 불러온다.
+  - `loadFormulaEngine()`은 호출마다 같은 Promise를 돌려준다 — 행 읽기마다 부르는 경로에서 chunk 로드가 실패해도 처리되지 않은 rejection이 한 번만 난다 (`formula/__tests__/engineLoad.test.ts`).
+  - 위치: `packages/shared/src/utils/lazyModule.ts`, `packages/shared/src/hooks/useLazyModule.ts`, `collections/formula/engine.ts`, Builder `formulaEngine.ts` · `viewSerializer.ts`
+
 ## [ADR-291 후속 — 필터 패널 판정이 계산 열을 엔진 로드 뒤 다시 읽는다] - 2026-10-29
 
 ### Fixed
