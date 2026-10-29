@@ -21,6 +21,7 @@
  * (Phase 0 evidence §2).
  */
 import type { VariableDef, VariableDefType } from "./variable.types";
+import { dateValueToText, isDateValueText } from "./dateValue";
 import type { VisibleVariable } from "./visibility";
 
 export type RuntimeScope =
@@ -160,6 +161,15 @@ export function coerceRuntimeValue(
       if (typeof value === "number") return { ok: true, value: value !== 0 };
       return { ok: false };
     }
+    case "date": {
+      // (An ISO date text in RAC's shapes, `""` = none; a `Date` · RAC value by its text.)
+      if (typeof value === "string")
+        return isDateValueText(value)
+          ? { ok: true, value: value.trim() }
+          : { ok: false };
+      const text = dateValueToText(value);
+      return text ? { ok: true, value: text } : { ok: false };
+    }
     case "object":
       // (`null` = nothing — a single selection cleared, `!item.keys` of no key.)
       return value === null ||
@@ -180,6 +190,8 @@ function defaultFor(def: VariableDef): unknown {
       return 0;
     case "boolean":
       return false;
+    case "date":
+      return "";
     case "object":
       return {};
     case "array":

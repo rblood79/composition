@@ -51,7 +51,7 @@ export const users: DataTablePreset = definePreset({
       weights: [7, 1, 1, 1],
     }),
     col("jobLevel", "string", "jobLevel", { kind: "jobLevel" }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 2 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 2 }),
   ],
 });
 
@@ -149,8 +149,8 @@ export const invitations: DataTablePreset = definePreset({
         { value: "revoked", weight: 1 },
       ],
     }),
-    col("expiresAt", "datetime", "expiresAt", { kind: "futureDate", days: 30 }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 1 }),
+    col("expiresAt", "date", "expiresAt", { kind: "futureDate", days: 30 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 1 }),
   ],
 });
 

@@ -147,11 +147,6 @@
   border-right: 0;
 }
 
-/* Variables 탭 — 한 열 (표가 전체 폭) */
-.datatable-panel .panel-contents.datatable-surface-single {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .datatable-surface-list .panel-contents,
 .datatable-surface-body > .panel-contents {
   flex: 1;

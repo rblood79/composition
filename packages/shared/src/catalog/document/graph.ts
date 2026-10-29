@@ -1,4 +1,5 @@
 import { catalogColorControlPropsError } from "./colorValue";
+import { isDateValueText } from "../../state/dateValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits, isPropVar } from "./valueType";
 import { definitionTypeName } from "../commands/context";
@@ -1503,7 +1504,9 @@ export class CatalogGraph {
               !parseRuleValueRef(value) &&
               (variable.valueType === "object" || variable.valueType === "array"
                 ? value !== ""
-                : typeof value !== variable.valueType)
+                : variable.valueType === "date"
+                  ? !isDateValueText(value)
+                  : typeof value !== variable.valueType)
             )
               throw new CatalogValidationError(
                 "STATE_VALUE_TYPE",

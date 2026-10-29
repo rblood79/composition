@@ -1,7 +1,11 @@
 /**
  * VariableTable — ADR-288 Decision 3. Builder chrome RAC Table (no catalog id). ADR-163 panel
- * standard: structure prefixes untouched, every class `variable-table*`. The table is
- * `table-layout: fixed` so a 228 px panel never overflows — cells clip, columns keep their share.
+ * standard: structure prefixes untouched, every class `variable-table*` · `variable-row*`. The
+ * table is `table-layout: fixed` — cells clip, columns keep their share.
+ *
+ * Two shapes, the same content (사용자 2026-10-29): the Data panel's table in the data grid's look
+ * (`[data-look="grid"]`, at the end of this file); the Design panel's State section a panel field
+ * row per variable (`.variable-row` — the panel's `.fieldset-row` 84 · 84 · 28, ID · Route's).
  */
 
 .variable-table-wrap {
@@ -59,13 +63,9 @@
   width: 44px;
 }
 
-/* The ⋮ (28) plus the cell's side padding — else the button clips at the table's edge (live). */
+/* The grid's delete (28) plus the cell's side padding — else the button clips at the table's edge. */
 .variable-table__col-actions {
   width: calc(var(--control-size) + var(--spacing-xs) * 2);
-}
-
-.variable-table-wrap[data-dense] .variable-table__col-type {
-  width: 60px;
 }
 
 .variable-table__cell {
@@ -90,49 +90,6 @@
 
 .variable-table__row[data-read-only][data-hovered] .variable-table__cell {
   background: var(--bg-raised);
-}
-
-/* The group box is the field — the input inside has no box of its own (list-row__input). */
-.variable-table__input {
-  width: 100%;
-  min-width: 0;
-  height: var(--text-xl);
-  padding: 0 var(--spacing);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--bg-muted);
-  color: var(--fg);
-  font: inherit;
-  font-size: var(--text-xs);
-}
-
-.variable-table__input:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
-}
-
-.variable-table__input[aria-invalid="true"] {
-  box-shadow: inset 0 0 0 1px var(--negative);
-}
-
-.variable-table__type {
-  width: 100%;
-  min-width: 0;
-}
-
-.variable-table__type .react-aria-Button {
-  width: 100%;
-  min-width: 0;
-  height: var(--text-xl);
-  padding: 0 var(--spacing);
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--fg-muted);
-  background: var(--bg-muted);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .variable-table__text,
@@ -167,81 +124,10 @@
   align-items: center;
 }
 
-.variable-table__json-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  width: 100%;
-  min-width: 0;
-  height: var(--text-xl);
-  padding: 0 var(--spacing);
-  border-radius: var(--radius-sm);
-  background: var(--bg-muted);
-  color: var(--fg-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-}
-
-.variable-table__json-preview {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.variable-table__json-popover {
-  width: min(320px, 90vw);
-  box-shadow: var(--shadow-lg);
-}
-
-/* RAC 레퍼런스: 테두리 · 그림자 · 배경 · 모서리는 Popover 하나, 안의 Dialog 는 면 없음 (생성 Dialog
-   규칙의 흰 배경 · 모서리 12 가 Popover 면 위에 두 번째 면을 그렸다 — 2026-10-29). */
-.variable-table__json-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
-  outline: none;
-  background: transparent;
-  border-radius: inherit;
-}
-
-.variable-table__json-input {
-  width: 100%;
-  min-height: 96px;
-  padding: var(--spacing);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-overlay);
-  color: var(--fg);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  resize: vertical;
-}
-
-.variable-table__json-input:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -1px;
-}
-
-.variable-table__json-input[aria-invalid="true"] {
-  border-color: var(--negative);
-}
-
+/* The go-to-owner and delete buttons are `ActionIconButton` — transparent, the icon control size
+   from the geometry file (builder-control-size.css); only the glyph colour is local. */
 .variable-table__goto {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--text-xl);
-  height: var(--text-xl);
-  padding: 0;
-  border-radius: var(--radius-sm);
   color: var(--fg-muted);
-}
-
-.variable-table__goto[data-hovered] {
-  color: var(--fg);
-  background: var(--bg-muted);
 }
 
 .variable-table__error {
@@ -260,4 +146,239 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ============================================
+   The Data panel's table — the data grid's look (사용자 2026-10-29 「격자 모양으로」,
+   `panels/datatable/grid/DataGrid.css`): no box border (a line above the header · each cell's
+   right and bottom rule, the last ones included), 28 px header (14 px semibold on the raised
+   surface) and rows, the focused cell's inset ring (pointer focus too), a read-only row on the
+   raised surface, cell text that edits in place.
+   ============================================ */
+
+.variable-table-wrap[data-look="grid"] {
+  .variable-table {
+    border-top: 1px solid var(--border);
+  }
+
+  .variable-table:focus-visible {
+    border-radius: 0;
+  }
+
+  .variable-table__col {
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 var(--spacing-sm);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+    background: var(--bg-raised);
+    border-right: 1px solid var(--border);
+  }
+
+  .variable-table__col[data-focus-visible] {
+    box-shadow: inset 0 0 0 2px var(--focus-ring);
+  }
+
+  .variable-table__col-type {
+    width: 72px;
+  }
+
+  /* The 14 px header's widest label + the cell's 8 px sides: "Persist" 45 · 「사용처」 ~42 → 64
+     (56 clipped both — live 2026-10-29). The persist switch is 36. */
+  .variable-table__col-persist,
+  .variable-table__col-usage {
+    width: 64px;
+  }
+
+  .variable-table__cell {
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 var(--spacing-sm);
+    color: var(--fg);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  .variable-table__cell-actions {
+    padding: 0 var(--spacing-xs);
+  }
+
+  .variable-table__cell[data-edit-column] {
+    cursor: cell;
+  }
+
+  /* The focused cell shows its ring on pointer focus too and keeps it while editing (the inline
+     input is transparent). */
+  .variable-table__cell:focus-visible {
+    outline: none;
+  }
+
+  .variable-table__cell[data-focused],
+  .variable-table__cell[data-focus-visible],
+  .variable-table__cell[data-editing] {
+    box-shadow: inset 0 0 0 2px var(--focus-ring);
+  }
+
+  .variable-table__cell[data-editing="inline"] {
+    padding: 0;
+  }
+
+  .variable-table__cell[data-invalid] {
+    box-shadow: inset 0 0 0 1px var(--negative);
+    background: var(--color-error-100);
+  }
+
+  .variable-table__row[data-read-only] .variable-table__cell {
+    color: var(--fg-muted);
+    background: var(--bg-raised);
+  }
+
+  .variable-table__row[data-read-only][data-hovered] .variable-table__cell {
+    background: var(--bg-muted);
+  }
+
+  .variable-table__text[data-kind="number"] {
+    text-align: right;
+  }
+
+  .variable-table__text[data-kind="empty"]::before {
+    content: "—";
+    color: var(--fg-disabled);
+  }
+
+  .variable-table__count {
+    display: block;
+    text-align: right;
+    font-size: var(--text-xs);
+  }
+}
+
+/* The in-place editor (the grid's `.datagrid-cell-input`). */
+.variable-table__cell-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0 var(--spacing-sm);
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+
+.variable-table__cell-input[inputmode="decimal"] {
+  text-align: right;
+}
+
+/* The browser's date · time picker in a cell — the field's own glyphs, the cell's text colour. */
+.variable-table__cell-input:is(
+  [type="date"],
+  [type="datetime-local"],
+  [type="time"]
+) {
+  color-scheme: light dark;
+  font-variant-numeric: tabular-nums;
+}
+
+.variable-table__cell-input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 2px var(--negative);
+}
+
+/* The grid's type list — the panel picker popover sheet (`property-select-popover`, the Popover's
+   `trigger="Select"`), as wide as the list needs (the cell may be narrower). */
+.variable-table__type-popover {
+  min-width: 120px;
+}
+
+/* ============================================
+   The Design panel's State section — a panel field row per variable (사용자 2026-10-29
+   「Design 패널 State 절은 변수마다 패널행」): `.fieldset-row` (panel-system.css) at 4fr 2fr var(--control-size)
+   = [name + type][default][⋮ · ↗]. The field boxes are the panel's (`PropertyFieldset`).
+   ============================================ */
+
+.variable-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+/* The name box is the wide one, the action column the control size (사용자 2026-10-29
+   「4fr 2fr var(--control-size)」): at 212 that is 112 · 56 · 28. */
+.variable-row {
+  grid-template-columns: 4fr 2fr var(--control-size);
+}
+
+.variable-row .react-aria-Input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The type sits at the end of the name box — the panel Select's ▾ box (form-controls.css
+   `.select-chevron`, 20) holding the type's icon instead of the chevron (2026-10-29). */
+.variable-row__type {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.variable-row__type .react-aria-Button {
+  width: auto;
+}
+
+.variable-row__type-icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  color: var(--fg-muted);
+}
+
+
+.variable-row__type-popover {
+  min-width: 120px;
+}
+
+/* A JSON default in the field box — its text, the box's own look; a press opens the grid's popover
+   editor on it. */
+.variable-row__json {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--text-xl);
+  padding: 0 var(--spacing);
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.variable-row__json-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.variable-row__json-text[data-kind="empty"]::before {
+  content: "{ }";
+  color: var(--fg-disabled);
+}
+
+/* A value with no field box (a switch · 「set by a rule」 · a source · an inherited row's text). */
+.variable-row__value {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  height: var(--control-size);
 }

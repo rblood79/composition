@@ -4,70 +4,48 @@
  * API 응답 데이터에서 컬럼을 자동 감지하고 타입을 추론합니다.
  */
 
-import type { DataFieldType, DataField } from "../../../../types/builder/data.types";
+import type {
+  DataField,
+  DataFieldFormat,
+  DataFieldType,
+} from "../../../../types/builder/data.types";
 
 export interface DetectedColumn {
   key: string;
   label: string;
   type: DataFieldType;
+  /** A text column's kind (an email · a URL · an image address). */
+  format?: DataFieldFormat;
   sampleValue: unknown;
   selected: boolean;
 }
 
+interface InferredType {
+  type: DataFieldType;
+  format?: DataFieldFormat;
+}
+
 /**
- * 값의 타입을 추론합니다.
+ * 값의 타입을 추론합니다 — 변수와 같은 타입 (2026-10-29): 날짜 · 날짜+시각은 `date`, 이메일 ·
+ * URL · 이미지는 `string` + `format`.
  */
-function inferType(value: unknown): DataFieldType {
-  if (value === null || value === undefined) {
-    return "string";
-  }
-
-  if (typeof value === "boolean") {
-    return "boolean";
-  }
-
-  if (typeof value === "number") {
-    return "number";
-  }
-
-  if (Array.isArray(value)) {
-    return "array";
-  }
-
-  if (typeof value === "object") {
-    return "object";
-  }
-
+function inferType(value: unknown): InferredType {
+  if (value === null || value === undefined) return { type: "string" };
+  if (typeof value === "boolean") return { type: "boolean" };
+  if (typeof value === "number") return { type: "number" };
+  if (Array.isArray(value)) return { type: "array" };
+  if (typeof value === "object") return { type: "object" };
   if (typeof value === "string") {
-    // 이메일 패턴 체크
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return "email";
-    }
-
-    // URL 패턴 체크
-    if (/^https?:\/\/.+/.test(value)) {
-      return "url";
-    }
-
-    // 이미지 URL 체크
-    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value)) {
-      return "image";
-    }
-
-    // ISO 날짜+시간 패턴 체크
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
-      return "datetime";
-    }
-
-    // ISO 날짜 패턴 체크
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return "date";
-    }
-
-    return "string";
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+      return { type: "string", format: "email" };
+    // (An image address is a URL too — the image check first.)
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value))
+      return { type: "string", format: "image" };
+    if (/^https?:\/\/.+/.test(value)) return { type: "string", format: "url" };
+    if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?/.test(value)) return { type: "date" };
+    return { type: "string" };
   }
-
-  return "string";
+  return { type: "string" };
 }
 
 /**
@@ -107,7 +85,7 @@ export function detectColumns(data: unknown): DetectedColumn[] {
 
   for (const key of keys) {
     // 여러 아이템에서 샘플 값 수집하여 가장 정확한 타입 추론
-    let inferredType: DataFieldType = "string";
+    let inferred: InferredType = { type: "string" };
     let sampleValue: unknown = null;
 
     // 최대 5개 아이템에서 타입 추론
@@ -117,10 +95,10 @@ export function detectColumns(data: unknown): DetectedColumn[] {
 
       if (value !== null && value !== undefined) {
         sampleValue = value;
-        inferredType = inferType(value);
+        inferred = inferType(value);
 
         // null이 아닌 값을 찾으면 타입 확정
-        if (inferredType !== "string") {
+        if (inferred.type !== "string" || inferred.format) {
           break;
         }
       }
@@ -129,7 +107,8 @@ export function detectColumns(data: unknown): DetectedColumn[] {
     columns.push({
       key,
       label: keyToLabel(key),
-      type: inferredType,
+      type: inferred.type,
+      ...(inferred.format ? { format: inferred.format } : {}),
       sampleValue,
       selected: true, // 기본적으로 모두 선택
     });
@@ -147,6 +126,7 @@ export function columnsToSchema(columns: DetectedColumn[]): DataField[] {
     .map((col) => ({
       key: col.key,
       type: col.type,
+      ...(col.format ? { format: col.format } : {}),
       label: col.label,
       required: false,
     }));

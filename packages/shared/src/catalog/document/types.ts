@@ -175,6 +175,9 @@ export type DataEndpointId = `data:endpoint:${string}`;
 export type ProjectVariableId = `data:variable:${string}`;
 
 export type Scalar = string | number | boolean;
+/** A structured variable's JSON default (`object` · `array`) — `""` when none. */
+export type StructuredDefault =
+  Readonly<Record<string, unknown>> | readonly unknown[];
 export interface TokenUse {
   kind: "token";
   tokenId: TokenId;
@@ -1163,11 +1166,17 @@ export interface StateVariableEntry {
   name: string;
   /**
    * `object` · `array` hold structured values a rule writes (a selected row — the Value field's
-   * `!item.keys`); their default is `""` (nothing yet — read as `null`).
+   * `!item.keys`); their default is `""` (nothing yet — read as `null`) or a JSON value of the
+   * type (사용자 결정 2026-10-29 — the State section edits it like the project's). `date` holds
+   * an ISO date text (`state/dateValue.ts` — a day · a day and time · a time · a zoned instant),
+   * `""` = none.
    */
-  valueType: ValueType | "object" | "array";
-  /** A `source` variable's array kind (selected · expanded keys) holds the keys. */
-  defaultValue: Scalar | readonly string[];
+  valueType: ValueType | "object" | "array" | "date";
+  /**
+   * A `source` variable's array kind (selected · expanded keys) holds the keys; an `object` ·
+   * `array` variable's JSON default is a plain object · an array (or `""`).
+   */
+  defaultValue: Scalar | readonly string[] | StructuredDefault;
   /**
    * A named RAC state (the old implicit state): the variable follows this node's RAC state prop at
    * run time (Preview · publish observe the RAC event — never a controlled prop, D1) and is read
@@ -1321,6 +1330,8 @@ export interface CatalogDataField {
   id?: string;
   key: string;
   type?: string;
+  /** A `string` field's kind — `email` · `url` · `image` (2026-10-29). */
+  format?: string;
   label?: string;
   required?: boolean;
   defaultValue?: unknown;
@@ -1377,7 +1388,7 @@ export interface ProjectVariableEntry {
   kind: "projectVariable";
   id: ProjectVariableId;
   name: string;
-  valueType: "string" | "number" | "boolean" | "object" | "array";
+  valueType: "string" | "number" | "boolean" | "date" | "object" | "array";
   defaultValue?: unknown;
   persist: boolean;
   validation?: Readonly<Record<string, unknown>>;

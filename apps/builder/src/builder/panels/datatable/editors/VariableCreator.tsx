@@ -24,14 +24,16 @@ const TYPES: { value: VariableType; label: string }[] = [
   { value: "string", label: "String" },
   { value: "number", label: "Number" },
   { value: "boolean", label: "Boolean" },
-  { value: "object", label: "Object" },
-  { value: "array", label: "Array" },
+  { value: "date", label: "Date" },
+  // One JSON type on the screen (2026-10-29) — stored `object`; a saved array value makes it `array`.
+  { value: "object", label: "JSON" },
 ];
 
 const DEFAULTS: Record<VariableType, unknown> = {
   string: "",
   number: 0,
   boolean: false,
+  date: "",
   object: {},
   array: [],
 };

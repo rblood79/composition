@@ -3,10 +3,11 @@
  * 사이즈를 100% 로」 · G6 「기존의 탭형태로 tables, api, variables 구조로」): full workspace width
  * by default (it covers the canvas; narrower = side by side). Under the title the three tabs the
  * panel always had — Tables · APIs · Variables (the shared `.panel-tabs` skeleton, Navigator /
- * Styles). Tables and APIs draw a list column plus a body (`DataSurfaceBody` — the grid · the API
- * form · a creator, whatever `dataTableEditorStore.mode` says); Variables draws the variable
- * table across the whole width (or the creator). No editor or field panel: a column's editor is
- * its header popover.
+ * Styles). Each tab draws a list column plus a body (`DataSurfaceBody` — the grid · the API
+ * form · a variable group's table · a creator, whatever `dataTableEditorStore.mode` says). The
+ * Variables list is groups (project · each page — 사용자 2026-10-29 「tables · apis 처럼」), not
+ * single variables: a group's variables are edited in its table. No editor or field panel: a
+ * column's editor is its header popover.
  *
  * The tab follows the mode (an entry point that opens a table lands on Tables; `openVariables`
  * lands on Variables) and switching tabs closes a body that belongs to another tab.
@@ -41,7 +42,7 @@ import { EmptyState } from "../../components/feedback/EmptyState";
 import { LoadingSpinner } from "../../components/feedback/LoadingSpinner";
 import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
-import { VariableList } from "./components/VariableList";
+import { VariableGroupList } from "./components/VariableGroupList";
 import { DataPanelStatusRegion } from "./components/DataPanelStatusRegion";
 import { DataSurfaceBody, dataSurfaceModeKey } from "./DataSurfaceBody";
 import { PanelSplitter } from "../../layout/PanelSplitter";
@@ -63,7 +64,10 @@ const LIST_WIDTH_STORAGE_KEY = "builder.datatable.listWidth.v1";
 
 /** The list width a drag lands on — clamped to [min, panel − body min]. */
 export function clampDataListWidth(width: number, panelWidth: number): number {
-  const max = Math.max(DATA_SURFACE_LIST_MIN, panelWidth - DATA_SURFACE_BODY_MIN);
+  const max = Math.max(
+    DATA_SURFACE_LIST_MIN,
+    panelWidth - DATA_SURFACE_BODY_MIN,
+  );
   return Math.round(Math.min(max, Math.max(DATA_SURFACE_LIST_MIN, width)));
 }
 
@@ -226,10 +230,7 @@ function DataTablePanelContent() {
 
   const editingTableId = mode?.type === "table-edit" ? mode.tableId : null;
 
-  const renderSurface = (
-    forTab: "tables" | "endpoints",
-    list: React.ReactNode,
-  ) => {
+  const renderSurface = (forTab: DataTableTab, list: React.ReactNode) => {
     const body = bodyFor(forTab);
     const showList = !narrow || body === null;
     const showBody = !narrow || body !== null;
@@ -288,9 +289,7 @@ function DataTablePanelContent() {
       data-narrow={narrow ? "true" : undefined}
       data-mode={mode?.type ?? "none"}
       data-tab={tab}
-      style={
-        { "--datatable-list-width": `${listWidth}px` } as CSSProperties
-      }
+      style={{ "--datatable-list-width": `${listWidth}px` } as CSSProperties}
     >
       <PanelHeader
         icon={<Database size={iconProps.size} />}
@@ -357,28 +356,11 @@ function DataTablePanelContent() {
             <ApiEndpointList projectId={projectId} />,
           )}
         </TabPanel>
-        {/* Variables — the table across the whole width; the creator takes the body (its header
-            close returns to the table). */}
-        <TabPanel
-          id="variables"
-          className={panelContents(
-            "datatable-surface",
-            "datatable-surface-single",
+        <TabPanel id="variables" className={panelContents("datatable-surface")}>
+          {renderSurface(
+            "variables",
+            <VariableGroupList projectId={projectId} />,
           )}
-        >
-          <div className="datatable-surface-body">
-            {mode?.type === "variable-create" ? (
-              <DataSurfaceBody
-                key={dataSurfaceModeKey(mode)}
-                mode={mode}
-                close={close}
-              />
-            ) : (
-              <PanelContents>
-                <VariableList projectId={projectId} />
-              </PanelContents>
-            )}
-          </div>
         </TabPanel>
       </Tabs>
       {/* ADR-212 HC4 — 저장 · 행 추가 · Run · import 결과의 `role=status` 영역 (항상 마운트) */}

@@ -98,7 +98,7 @@ describe("create / update / delete — id 키 (HC8)", () => {
     });
     await createUpdateDataTableAction(set, get)("c1", {
       name: "People",
-      schema: [...existing.schema, { key: "email", type: "email" }],
+      schema: [...existing.schema, { key: "email", type: "string", format: "email" }],
     });
     const updated = collections().get("c1")!;
     expect(updated.name).toBe("People");

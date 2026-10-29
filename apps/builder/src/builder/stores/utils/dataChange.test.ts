@@ -34,7 +34,7 @@ const users = (): DataTable => ({
   project_id: "p",
   schema: [
     { id: "f_name", key: "name", type: "string", label: "Name" },
-    { id: "f_email", key: "email", type: "email" },
+    { id: "f_email", key: "email", type: "string", format: "email" },
   ],
   mockData: [
     { name: "a", email: "a@x" },
@@ -206,7 +206,7 @@ describe("reduceDataOps — op 별 결과 + 역연산 왕복", () => {
       {
         op: "add_field",
         collectionId: "c1",
-        field: { id: "f_email", key: "email", type: "email" },
+        field: { id: "f_email", key: "email", type: "string", format: "email" },
         index: 1,
       },
     ]);

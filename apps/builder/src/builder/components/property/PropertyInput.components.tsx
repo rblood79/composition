@@ -1,4 +1,10 @@
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useLatestCallbacks } from "./latestCallbacks";
 
@@ -112,7 +118,10 @@ export const PropertyInputControl = memo(
     // editor dropped the text typed just before another tab was pressed.
     const editingRef = useRef(false);
     const pendingRef = useRef({ inputValue, value, onChange, selection });
-    pendingRef.current = { inputValue, value, onChange, selection };
+    // (Written at commit — a render that never commits must not reach the unmount.)
+    useLayoutEffect(() => {
+      pendingRef.current = { inputValue, value, onChange, selection };
+    });
     useEffect(
       () => () => {
         if (!editingRef.current) return;

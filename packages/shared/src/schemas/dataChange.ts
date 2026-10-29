@@ -16,19 +16,23 @@
 import { z } from "zod";
 import { VARIABLE_DEF_TYPES } from "../state/variable.types";
 
-/** The value types a field holds by itself (an AI table spec's choices). */
+/**
+ * The value types a field holds by itself (an AI table spec's choices) — the variables' types
+ * (사용자 결정 2026-10-29 「공통 타입으로 맞춰」): `date` is an ISO text whose shape says its
+ * precision (a day · a day and time · a time — `state/dateValue.ts`); a text field's kind (an
+ * email · a web address · an image address) is its `format`, not a type.
+ */
 export const DATA_VALUE_FIELD_TYPES = [
   "string",
   "number",
   "boolean",
   "date",
-  "datetime",
-  "email",
-  "url",
-  "image",
   "array",
   "object",
 ] as const;
+/** A `string` field's kind — the input it gets (an email · a URL keyboard, an image preview). */
+export const DATA_FIELD_FORMATS = ["email", "url", "image"] as const;
+export type DataFieldFormat = (typeof DATA_FIELD_FORMATS)[number];
 /**
  * Every field type — and `reference` (ADR-284 Decision 4): the row's value is a key of another
  * collection's row (`reference`), a view reads that row's fields by a field path.
@@ -53,6 +57,8 @@ export interface DataFieldShape {
   id?: string;
   key: string;
   type: (typeof DATA_FIELD_TYPES)[number];
+  /** A `string` field's kind (`DATA_FIELD_FORMATS`). */
+  format?: DataFieldFormat;
   label?: string;
   required?: boolean;
   defaultValue?: unknown;
@@ -64,6 +70,7 @@ export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
   id: z.string().optional(),
   key: z.string(),
   type: z.enum(DATA_FIELD_TYPES),
+  format: z.enum(DATA_FIELD_FORMATS).optional(),
   label: z.string().optional(),
   required: z.boolean().optional(),
   defaultValue: z.unknown().optional(),
@@ -80,6 +87,7 @@ export const DataFieldSchema: z.ZodType<DataFieldShape> = z.object({
 export const DataFieldPatchSchema = z.object({
   key: z.string().optional(),
   type: z.enum(DATA_FIELD_TYPES).optional(),
+  format: z.enum(DATA_FIELD_FORMATS).nullable().optional(),
   label: z.string().nullable().optional(),
   required: z.boolean().nullable().optional(),
   defaultValue: z.unknown().nullable().optional(),

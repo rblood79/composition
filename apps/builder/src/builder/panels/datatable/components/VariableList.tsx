@@ -5,11 +5,14 @@
  * 사용처 · ⋮ 삭제). 쓰기는 전부 store 의 `updateVariable` → `define_variable` → sink → 문서 명령
  * 한 step (이름 변경은 sink 가 `renameVariable` 을 묶어 `{{ old }}` 참조까지 따라간다).
  *
- * 보기 필터 「프로젝트 변수 | 모든 변수」 — 「모든 변수」 는 페이지 · 요소 변수 색인을 같은 표에
- * 읽기 전용 행으로 (소유자 열 · 행 = 소유자로 이동, 편집은 소유자의 State 절에서만).
- * 구 data store 의 `scope:"page"` 변수 (legacy) 는 아래 목록에 남아 「페이지로 이관」 한다.
+ * 본문은 목록 열에서 고른 묶음 하나 (사용자 2026-10-29 「tables · apis 처럼 left-list」 — Figma
+ * Variables 의 묶음 목록 + 표): `project` 는 프로젝트 변수 (편집 가능), 페이지 묶음은 그 페이지 ·
+ * 요소 변수 색인 (읽기 전용 행 — 소유자 열 · 행 = 소유자로 이동, 편집은 소유자의 State 절에서만)
+ * 과 구 data store 의 `scope:"page"` 변수 (legacy — 「페이지로 이관」). 묶음 목록은
+ * `VariableGroupList`.
  */
 
+import { parseDateValue } from "../../../../../../../packages/shared/src/state/dateValue";
 import { Variable } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { translateKey, useI18n, useOptionalI18n } from "../../../../i18n";
@@ -19,39 +22,37 @@ import { reportCatalogCommandError } from "../../../catalogRuntime/commandRunner
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { ConfirmDialog } from "../../../components/overlay";
 import { Section } from "../../../components/panel/Section";
-import { ActionIconButton } from "../../../components/ui/ActionIconButton";
-import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
   VariableTable,
   type VariableTableRow,
 } from "../../../components/variables/VariableTable";
-import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
   useDataStore,
   useProjectVariableDefs,
   useVariables,
 } from "../../../stores/data";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
-import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
+import type { VariableGroupId } from "../types/editorTypes";
 import {
   useDataVariablesHost,
   type VariableIndexGroup,
 } from "../usage/dataVariablesHost";
 
-/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
-const AddIcon = ACTION_ICONS.add;
-
-const TYPE_OPTIONS = ["string", "number", "boolean", "object", "array"].map(
-  (type) => ({ value: type, label: type }),
-);
-
-type VariableView = "project" | "all";
+const TYPE_OPTIONS = [
+  "string",
+  "number",
+  "boolean",
+  "date",
+  "object",
+  "array",
+].map((type) => ({ value: type, label: type }));
 
 interface VariableListProps {
-  projectId: string;
+  /** The list column's row — the project's own variables or a page's (read-only index). */
+  group?: VariableGroupId;
 }
 
-export function VariableList({ projectId }: VariableListProps) {
+export function VariableList({ group = "project" }: VariableListProps) {
   const i18n = useOptionalI18n();
   const { t: tr } = useI18n();
   const localize = (key: string, fallback: string) =>
@@ -84,7 +85,6 @@ export function VariableList({ projectId }: VariableListProps) {
   } = host.useView(legacyPageVariables, projectDefs);
   const jumpToOwner = host.jumpToOwner;
 
-  const [view, setView] = useState<VariableView>("project");
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const setError = useCallback((id: string, message: string | null) => {
     setErrors((prev) =>
@@ -105,18 +105,31 @@ export function VariableList({ projectId }: VariableListProps) {
     [setError, updateVariable],
   );
 
+  const pageGroup =
+    group === "project"
+      ? undefined
+      : indexGroups.find((entry) => entry.pageId === group);
   const indexEntries = useMemo(
     () =>
-      indexGroups.flatMap((group) =>
-        group.entries.flatMap((item) =>
-          item.kind === "doc" ? [{ group, item }] : [],
+      (pageGroup ? [pageGroup] : []).flatMap((owner) =>
+        owner.entries.flatMap((item) =>
+          item.kind === "doc" ? [{ group: owner, item }] : [],
         ),
       ),
-    [indexGroups],
+    [pageGroup],
   );
 
   const rows = useMemo<VariableTableRow[]>(() => {
-    const own: VariableTableRow[] = projectVariables.map((variable) => ({
+    if (group !== "project")
+      return indexEntries.map(({ group: owner, item }) => ({
+        id: item.entry.def.id,
+        name: item.entry.def.name,
+        type: item.entry.def.type,
+        defaultValue: item.entry.def.defaultValue,
+        usage: usageCount(item.entry.def.id),
+        readOnly: { owner: item.ownerLabel ?? owner.title },
+      }));
+    return projectVariables.map((variable) => ({
       id: variable.id,
       name: variable.name,
       type: variable.type,
@@ -125,19 +138,7 @@ export function VariableList({ projectId }: VariableListProps) {
       persist: variable.persist ?? false,
       error: errors[variable.id] ?? null,
     }));
-    if (view !== "all") return own;
-    return [
-      ...own,
-      ...indexEntries.map(({ group, item }) => ({
-        id: item.entry.def.id,
-        name: item.entry.def.name,
-        type: item.entry.def.type,
-        defaultValue: item.entry.def.defaultValue,
-        usage: usageCount(item.entry.def.id),
-        readOnly: { owner: item.ownerLabel ?? group.title },
-      })),
-    ];
-  }, [errors, indexEntries, projectVariables, usageCount, view]);
+  }, [errors, group, indexEntries, projectVariables, usageCount]);
 
   const onRename = useCallback(
     (id: string, raw: string) => {
@@ -158,6 +159,16 @@ export function VariableList({ projectId }: VariableListProps) {
       if (!variable) return;
       if (variable.type === "boolean")
         return void write(id, { defaultValue: raw === "true" });
+      if (variable.type === "date") {
+        const text = raw.trim();
+        if (text === "") return void write(id, { defaultValue: undefined });
+        if (!parseDateValue(text))
+          return setError(
+            id,
+            tr("propertiesPanel.stateDefaultInvalid", { type: "date" }),
+          );
+        return void write(id, { defaultValue: text });
+      }
       if (variable.type === "number") {
         const text = raw.trim();
         if (text === "") return void write(id, { defaultValue: undefined });
@@ -173,9 +184,24 @@ export function VariableList({ projectId }: VariableListProps) {
     },
     [projectVariables, setError, tr, write],
   );
+  // The screen's one JSON type (2026-10-29): the saved value decides `array` · `object` — one step.
   const onJsonDefault = useCallback(
-    (id: string, value: unknown) => void write(id, { defaultValue: value }),
-    [write],
+    (id: string, value: unknown) => {
+      const variable = projectVariables.find((v) => v.id === id);
+      const type =
+        value === undefined
+          ? variable?.type
+          : Array.isArray(value)
+            ? "array"
+            : "object";
+      void write(
+        id,
+        type && type !== variable?.type
+          ? { type, defaultValue: value }
+          : { defaultValue: value },
+      );
+    },
+    [projectVariables, write],
   );
   const onPersist = useCallback(
     (id: string, persist: boolean) => void write(id, { persist }),
@@ -208,9 +234,6 @@ export function VariableList({ projectId }: VariableListProps) {
     [announce, host, pageTitle, t],
   );
 
-  const openVariableCreator = useDataTableEditorStore(
-    (state) => state.openVariableCreator,
-  );
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const confirmDelete = async () => {
@@ -224,9 +247,9 @@ export function VariableList({ projectId }: VariableListProps) {
     }
   };
 
-  const legacyEntries = indexGroups.flatMap((group) =>
-    group.entries.flatMap((item) =>
-      item.kind === "legacy" ? [{ group, item }] : [],
+  const legacyEntries = (pageGroup ? [pageGroup] : []).flatMap((owner) =>
+    owner.entries.flatMap((item) =>
+      item.kind === "legacy" ? [{ group: owner, item }] : [],
     ),
   );
 
@@ -276,56 +299,35 @@ export function VariableList({ projectId }: VariableListProps) {
     );
   };
 
-  const total =
-    view === "all"
-      ? projectVariables.length + indexEntries.length
-      : projectVariables.length;
+  const isProject = group === "project";
 
   return (
     <Section
       id="variable-list"
-      title={localize("variableList", "Variable List")}
+      title={
+        isProject
+          ? tr("propertiesPanel.stateProjectVariables")
+          : (pageGroup?.title ?? pageTitle(group))
+      }
       badge={
         <span className="category-count">
-          {t("countItems", { count: total })}
+          {t("countItems", { count: rows.length })}
         </span>
       }
-      // Navigator's Pages pattern (G6, 사용자 2026-10-28): the add action sits in the header.
-      actions={
-        <ActionIconButton
-          aria-label={localize("addVariable", "Add Variable")}
-          tooltip={localize("addVariable", "Add Variable")}
-          onPress={() => openVariableCreator(projectId)}
-        >
-          <AddIcon {...iconProps} />
-        </ActionIconButton>
-      }
+      // (The add action is the list column's header + — `VariableGroupList`.)
       collapsible={false}
     >
-      {indexEntries.length > 0 && (
-        <PropertySelect
-          label={tr("propertiesPanel.stateView")}
-          value={view}
-          onChange={(value) => setView(value as VariableView)}
-          options={[
-            {
-              value: "project",
-              label: tr("propertiesPanel.stateProjectVariables"),
-            },
-            { value: "all", label: tr("propertiesPanel.stateAllVariables") },
-          ]}
-          translateOptions={false}
-        />
-      )}
-      <div data-variable-group="project" data-variable-view={view}>
+      <div data-variable-group={isProject ? "project" : "page"}>
         {rows.length === 0 ? (
-          <EmptyState
-            icon={<Variable size={32} />}
-            message={localize(
-              "variableEmpty",
-              "No variables. Add a new variable.",
-            )}
-          />
+          isProject || legacyEntries.length === 0 ? (
+            <EmptyState
+              icon={<Variable size={32} />}
+              message={localize(
+                "variableEmpty",
+                "No variables. Add a new variable.",
+              )}
+            />
+          ) : null
         ) : (
           <VariableTable
             owner="project"

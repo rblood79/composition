@@ -16,7 +16,7 @@ const base = (): DataTable => ({
   project_id: "p",
   schema: [
     { id: "f_name", key: "name", type: "string" },
-    { id: "f_email", key: "email", type: "email" },
+    { id: "f_email", key: "email", type: "string", format: "email" },
   ],
   mockData: [
     { name: "a", email: "a@x" },

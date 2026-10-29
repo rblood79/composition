@@ -28,7 +28,7 @@ export const organizations: DataTablePreset = definePreset({
       name: "plans",
       weights: [5, 3, 1],
     }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 3 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 3 }),
   ],
 });
 
@@ -178,7 +178,7 @@ export const engines: DataTablePreset = definePreset({
         },
       ],
     }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 2 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 2 }),
   ],
 });
 
@@ -258,7 +258,7 @@ export const auditLogs: DataTablePreset = definePreset({
       compute: ({ index, t }) =>
         t("presetData.auditDescription", { n: index + 1 }),
     }),
-    col("timestamp", "datetime", "time", { kind: "pastDate", years: 1 }),
+    col("timestamp", "date", "time", { kind: "pastDate", years: 1 }),
     col("ipAddress", "string", "ipAddress", { kind: "ipv4" }),
     col("userAgent", "string", "userAgent", { kind: "userAgent" }),
   ],
@@ -282,8 +282,8 @@ export const projectMemberships: DataTablePreset = definePreset({
       max: 100,
     }),
     col("billable", "boolean", "billable", { kind: "boolean", trueRatio: 0.7 }),
-    col("joinedAt", "datetime", "joinedAt", { kind: "pastDate", years: 2 }),
-    col("lastActiveAt", "datetime", "lastActive", {
+    col("joinedAt", "date", "joinedAt", { kind: "pastDate", years: 2 }),
+    col("lastActiveAt", "date", "lastActive", {
       kind: "pastDate",
       days: 180,
     }),

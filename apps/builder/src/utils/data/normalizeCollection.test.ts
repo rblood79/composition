@@ -26,7 +26,7 @@ describe("normalizeSchema", () => {
   it("id 없는 필드에 고유 id 를 부여하고 있는 id 는 보존한다", () => {
     const { schema, assigned } = normalizeSchema([
       { key: "name", type: "string" },
-      { id: "keep", key: "email", type: "email" },
+      { id: "keep", key: "email", type: "string", format: "email" },
     ]);
     expect(assigned).toBe(true);
     expect(schema[0].id).toMatch(/\S+/);
@@ -37,7 +37,7 @@ describe("normalizeSchema", () => {
   it("전부 id 가 있으면 같은 배열 참조 · assigned=false (재렌더 무효화 0)", () => {
     const input = [
       { id: "a", key: "name", type: "string" as const },
-      { id: "b", key: "email", type: "email" as const },
+      { id: "b", key: "email", type: "string" as const, format: "email" as const },
     ];
     const { schema, assigned } = normalizeSchema(input);
     expect(assigned).toBe(false);

@@ -40,11 +40,10 @@ function matchesType(type: DataField["type"], value: unknown): boolean {
     case "object":
       return isPlainObject(value);
     case "date":
-    case "datetime":
       // Dates are text — always normalised through `coerceCellValue`.
       return false;
     default:
-      // string · email · url · image · reference
+      // string (any format) · reference
       return typeof value === "string";
   }
 }

@@ -51,7 +51,12 @@ import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { planFieldRename } from "../utils/fieldRename";
-import { FIELD_TYPES, resolveFieldType } from "../utils/fieldTypes";
+import {
+  FIELD_FORMATS,
+  FIELD_TYPES,
+  resolveFieldGlyph,
+  shownFieldType,
+} from "../utils/fieldTypes";
 import { useDataUsageSource } from "../usage/dataUsageSource";
 import type { FieldUsageRef } from "../utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "../utils/typeChangePreview";
@@ -178,6 +183,47 @@ function useDt(): Dt {
     (key: string, params?: Record<string, string | number | boolean>) =>
       t(`datatable.${key}`, params),
     [t],
+  );
+}
+
+/**
+ * A text column's kind (2026-10-29 — email · URL · image were types; now `string` + a format):
+ * the Format select under the type, 「Text」 = none.
+ */
+function FormatSelect({
+  value,
+  dt,
+  onChange,
+}: {
+  value: DataField["format"];
+  dt: Dt;
+  onChange: (format: DataField["format"] | undefined) => void;
+}) {
+  return (
+    <div className="fieldset-row" data-wide>
+      <PropertySelect
+        className="datatable-field-format"
+        label={dt("fieldFormat")}
+        value={value ?? ""}
+        optionValueMode="literal"
+        options={[
+          { value: "", label: dt("fieldFormatNone") },
+          ...FIELD_FORMATS.map((format) => ({
+            value: format.value,
+            label: dt(format.i18n),
+          })),
+        ]}
+        descriptions={Object.fromEntries(
+          FIELD_FORMATS.map((format) => [
+            format.value,
+            dt(format.i18n.replace(/^types\./, "typeHints.")),
+          ]),
+        )}
+        onChange={(next) =>
+          onChange(next === "" ? undefined : (next as DataField["format"]))
+        }
+      />
+    </div>
   );
 }
 
@@ -385,7 +431,8 @@ function FieldForm({
   };
 
   const requestTypeChange = (newType: DataFieldType) => {
-    if (newType === field.type) return;
+    // (JSON is one choice — an `array` column picking it again changes nothing.)
+    if (newType === shownFieldType(field.type)) return;
     const remap = remapDefault(field, newType);
     setDefaultNote(remap.cleared ? dt("fieldDefaultCleared") : null);
     const preview = previewTypeChange(field, newType, rows, field.key);
@@ -479,8 +526,8 @@ function FieldForm({
           <PropertySelect
             className="datatable-field-type"
             label={dt("fieldType")}
-            icon={resolveFieldType(type).icon}
-            value={type}
+            icon={resolveFieldGlyph(field)}
+            value={shownFieldType(type)}
             optionValueMode="literal"
             options={typeOptions}
             descriptions={typeHints}
@@ -494,6 +541,13 @@ function FieldForm({
             }
           />
         </div>
+        {type === "string" ? (
+          <FormatSelect
+            value={field.format}
+            dt={dt}
+            onChange={(format) => void patchField({ format: format ?? null })}
+          />
+        ) : null}
         <div className="fieldset-row" data-wide>
           <FieldValueInput
             className="datatable-field-default"
@@ -624,6 +678,7 @@ export function ColumnCreator({
   const [key, setKey] = useState("");
   const [keyNonce, setKeyNonce] = useState(0);
   const [type, setType] = useState<DataFieldType>("string");
+  const [format, setFormat] = useState<DataField["format"]>(undefined);
   const [defaultText, setDefaultText] = useState("");
   const [defaultError, setDefaultError] = useState<string | null>(null);
   const [required, setRequired] = useState(false);
@@ -642,16 +697,18 @@ export function ColumnCreator({
     () => ({
       key: key.trim(),
       type,
+      ...(type === "string" && format ? { format } : {}),
       ...(required ? { required: true } : {}),
       ...(type === "reference" && reference ? { reference } : {}),
     }),
-    [key, type, required, reference],
+    [key, type, format, required, reference],
   );
 
   const reset = () => {
     setKey("");
     setKeyNonce((n) => n + 1);
     setType("string");
+    setFormat(undefined);
     setDefaultText("");
     setDefaultError(null);
     setRequired(false);
@@ -711,7 +768,7 @@ export function ColumnCreator({
           <PropertySelect
             className="datatable-field-type"
             label={dt("fieldType")}
-            icon={resolveFieldType(type).icon}
+            icon={resolveFieldGlyph(draft)}
             value={type}
             optionValueMode="literal"
             options={typeOptions}
@@ -723,6 +780,9 @@ export function ColumnCreator({
             }}
           />
         </div>
+        {type === "string" ? (
+          <FormatSelect value={format} dt={dt} onChange={setFormat} />
+        ) : null}
         <div className="fieldset-row" data-wide>
           <FieldValueInput
             className="datatable-field-default"

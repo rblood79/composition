@@ -57,10 +57,6 @@ import {
 
 import { Button } from "react-aria-components/Button";
 
-import { Dialog } from "react-aria-components/Dialog";
-
-import { Heading } from "react-aria-components/Heading";
-
 import {
   Menu,
   MenuItem,
@@ -107,6 +103,8 @@ import { SearchField } from "../../../components/ui/SearchField";
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 
 import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
+import { PopoverTextEditor } from "./PopoverTextEditor";
+import { nativeDateInputOf } from "../../../../../../../packages/shared/src/state/dateValue";
 
 import { useDataStore } from "../../../stores/data";
 
@@ -127,7 +125,7 @@ import { openRowFormTarget } from "./rowFormTarget";
 
 import { planFieldRename } from "../utils/fieldRename";
 
-import { resolveFieldType } from "../utils/fieldTypes";
+import { resolveFieldGlyph, resolveFieldType } from "../utils/fieldTypes";
 
 import { parsePastedRows } from "../utils/pasteRows";
 
@@ -1438,7 +1436,7 @@ function ColumnHead({
   onToggleFreeze,
 }: ColumnHeadProps) {
   const typeEntry = resolveFieldType(field.type);
-  const TypeGlyph = typeEntry.icon;
+  const TypeGlyph = resolveFieldGlyph(field);
   const typeLabel = `${t("fieldType")}: ${t(typeEntry.i18n)}`;
   // ADR-288 Decision 2 — the column editor opens under the head (label · chevron), the type icon
   // opens it on the type list. Esc · outside closes it (RAC Popover).
@@ -1834,14 +1832,30 @@ function InlineCellEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const settledRef = useRef(false);
 
+  // A date cell edits in the browser's picker of its value's shape (the variable table's date
+  // cell — 2026-10-29); a typed key edits the ISO text instead (another precision can be typed).
+  const native =
+    field.type === "date" && initial === original
+      ? nativeDateInputOf(draft)
+      : undefined;
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (!input) return;
     input.focus();
+    if (native) {
+      // (`showPicker` needs the activation that started the edit; where refused, the field stays.)
+      try {
+        input.showPicker?.();
+      } catch {
+        /* no activation · unsupported — the field itself */
+      }
+      return;
+    }
     // 타이핑으로 진입했으면 caret 을 끝에, Enter/F2 면 전체 선택
     if (initial !== original)
       input.setSelectionRange(initial.length, initial.length);
     else input.select();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only: the picker opens once
   }, [initial, original]);
 
   const commit = async (move: CommitMove) => {
@@ -1890,8 +1904,8 @@ function InlineCellEditor({
       data-grid-editor="inline"
       data-shortcut-local="undo redo"
       className="datagrid-cell-input"
-      type="text"
-      value={draft}
+      type={native?.type ?? "text"}
+      value={native ? native.value : draft}
       aria-labelledby={headerId}
       aria-invalid={isInvalid || undefined}
       inputMode={field.type === "number" ? "decimal" : undefined}
@@ -1926,112 +1940,18 @@ function PopoverCellEditor({
   hint: DataGridCellProps["hint"];
 }) {
   useDisableGridNavigation();
-  const i18n = useOptionalI18n();
-  const [draft, setDraft] = useState(original);
-  const [isInvalid, setIsInvalid] = useState(false);
-  const settledRef = useRef(false);
   const isJson = field.type === "array" || field.type === "object";
-  const hintKey =
-    field.type === "date"
-      ? "gridDateHint"
-      : field.type === "datetime"
-        ? "gridDatetimeHint"
-        : isJson
-          ? "gridJsonHint"
-          : null;
-
-  const commit = async () => {
-    if (settledRef.current) return;
-    settledRef.current = true;
-    const ok = await onCommit(coord, draft, "none");
-    if (!ok) {
-      settledRef.current = false;
-      setIsInvalid(true);
-    }
-  };
-  const cancel = () => {
-    if (settledRef.current) return;
-    settledRef.current = true;
-    onCancel(coord);
-  };
-
+  const hintKey = isJson ? "gridJsonHint" : null;
   return (
-    <Popover
+    <PopoverTextEditor
       triggerRef={triggerRef}
-      isOpen
-      onOpenChange={(open) => {
-        if (!open) cancel();
-      }}
-      placement="bottom start"
-      // The shared `.react-aria-Popover` · `.react-aria-Dialog` sheets carry the surface (bg ·
-      // border · shadow · radius) — a bare class name would drop them (5174 실측 2026-10-29).
-      className="react-aria-Popover datagrid-popover"
-    >
-      <Dialog className="react-aria-Dialog datagrid-popover-dialog">
-        <div className="datagrid-popover-body" data-grid-editor="popover">
-          <Heading slot="title" className="datagrid-popover-title">
-            {hint("gridCellEditorTitle", { key: field.key })}
-            {hintKey && (
-              <span className="datagrid-popover-hint">{hint(hintKey)}</span>
-            )}
-          </Heading>
-          <textarea
-            autoFocus
-            data-shortcut-local="undo redo"
-            className="datagrid-popover-textarea"
-            aria-labelledby={headerId}
-            aria-invalid={isInvalid || undefined}
-            aria-multiline="true"
-            rows={isJson ? 8 : 3}
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              setIsInvalid(false);
-            }}
-            onKeyDown={(e) => {
-              // Supabase 어법: ⏎ saves, ⇧⏎ keeps the newline (⌘⏎ saves too), Esc cancels.
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                void commit();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                cancel();
-              } else if (e.key !== "Tab") {
-                e.stopPropagation();
-              }
-            }}
-          />
-          <div className="datagrid-popover-footer">
-            <div className="datagrid-popover-keys">
-              {/* Key glyphs come from the shortcut formatter (platform-aware — ⇧ on Mac). */}
-              <span className="datagrid-popover-key">
-                <kbd>{formatShortcut({ key: "Enter", modifier: "none" })}</kbd>
-                {hint("gridKeySave")}
-              </span>
-              <span className="datagrid-popover-key">
-                <kbd>{formatShortcut({ key: "Enter", modifier: "shift" })}</kbd>
-                {hint("gridKeyNewline")}
-              </span>
-              <span className="datagrid-popover-key">
-                <kbd>{formatShortcut({ key: "Escape", modifier: "none" })}</kbd>
-                {hint("gridKeyCancel")}
-              </span>
-            </div>
-            <Button className="control-button" onPress={cancel}>
-              {i18n ? i18n.t("common.cancel") : "Cancel"}
-            </Button>
-            <Button
-              className="control-button"
-              data-variant="primary"
-              onPress={() => void commit()}
-            >
-              {i18n ? i18n.t("common.save") : "Save"}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    </Popover>
+      title={hint("gridCellEditorTitle", { key: field.key })}
+      hint={hintKey ? hint(hintKey) : undefined}
+      labelledBy={headerId}
+      initial={original}
+      rows={isJson ? 8 : 3}
+      onCommit={(draft) => onCommit(coord, draft, "none")}
+      onCancel={() => onCancel(coord)}
+    />
   );
 }

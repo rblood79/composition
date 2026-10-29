@@ -12,6 +12,7 @@ import type {
   DataTableEditorStore,
   ApiEditorTab,
   QuickConnectTarget,
+  VariableGroupId,
 } from "../types/editorTypes";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
 
@@ -38,8 +39,12 @@ export const useDataTableEditorStore = create<DataTableEditorStore>(
       get().open({ type: "api-edit", endpointId, initialTab }),
     openVariableCreator: (projectId: string) =>
       get().open({ type: "variable-create", projectId }),
-    openVariables: (projectId: string) =>
-      get().open({ type: "variables", projectId }),
+    openVariables: (projectId: string, group?: VariableGroupId) =>
+      get().open({
+        type: "variables",
+        projectId,
+        ...(group && group !== "project" ? { group } : {}),
+      }),
 
     /** Back to the list (the panel stays — the user closes it from its header). */
     close: () => {

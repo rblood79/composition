@@ -3,7 +3,10 @@
  * labelKey 는 `presetField.` 접두를 여기서 붙인다.
  */
 
-import type { DataFieldType } from "../../../../../types/builder/data.types";
+import type {
+  DataFieldFormat,
+  DataFieldType,
+} from "../../../../../types/builder/data.types";
 import type { SampleRule } from "@composition/sample-data";
 import type { PresetColumn } from "../types";
 
@@ -13,14 +16,22 @@ export interface ColumnExtra {
   blank?: number;
 }
 
+/** A column's type — or a text format (`email` · `url` · `image` → `string` + that format). */
+export type ColumnType = DataFieldType | DataFieldFormat;
+
+const FORMATS: readonly string[] = ["email", "url", "image"];
+
 export function col(
   key: string,
-  type: DataFieldType,
+  type: ColumnType,
   label: string,
   rule: SampleRule,
   extra: ColumnExtra = {},
 ): PresetColumn {
-  return { key, type, labelKey: `presetField.${label}`, rule, ...extra };
+  const shape = FORMATS.includes(type)
+    ? { type: "string" as const, format: type as DataFieldFormat }
+    : { type: type as DataFieldType };
+  return { key, ...shape, labelKey: `presetField.${label}`, rule, ...extra };
 }
 
 /** 첫 컬럼 관용구 — 필수 id */

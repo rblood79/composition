@@ -5,18 +5,20 @@
 import {
   Braces,
   Calendar,
-  CalendarClock,
   Hash,
   Image as ImageIcon,
   Link as LinkIcon,
   Link2,
-  List,
   Mail,
   ToggleLeft,
   Type as TypeIcon,
   type LucideIcon,
 } from "lucide-react";
-import type { DataFieldType } from "../../../../types/builder/data.types";
+import type {
+  DataField,
+  DataFieldFormat,
+  DataFieldType,
+} from "../../../../types/builder/data.types";
 
 export interface FieldTypeEntry {
   value: DataFieldType;
@@ -25,21 +27,51 @@ export interface FieldTypeEntry {
   i18n: string;
 }
 
+/**
+ * The types a column picks — the variables' types (string · number · boolean · date · JSON) and
+ * `reference` (a table's own — 사용자 결정 2026-10-29 「reference 는 표 전용으로 남기고 공통 타입으로」).
+ * `object` · `array` show as one JSON (`array` resolves to it); a text's kind is a format.
+ */
 export const FIELD_TYPES: readonly FieldTypeEntry[] = [
   { value: "string", icon: TypeIcon, i18n: "types.string" },
   { value: "number", icon: Hash, i18n: "types.number" },
   { value: "boolean", icon: ToggleLeft, i18n: "types.boolean" },
   { value: "date", icon: Calendar, i18n: "types.date" },
-  { value: "datetime", icon: CalendarClock, i18n: "types.dateTime" },
-  { value: "email", icon: Mail, i18n: "types.email" },
-  { value: "url", icon: LinkIcon, i18n: "types.url" },
-  { value: "image", icon: ImageIcon, i18n: "types.image" },
-  { value: "array", icon: List, i18n: "types.array" },
-  { value: "object", icon: Braces, i18n: "types.object" },
+  { value: "object", icon: Braces, i18n: "types.json" },
   { value: "reference", icon: Link2, i18n: "types.reference" },
 ];
 
+export interface FieldFormatEntry {
+  value: DataFieldFormat;
+  icon: LucideIcon;
+  /** `datatable.types.*` i18n 키 (the old type labels — Email · URL · Image) */
+  i18n: string;
+}
+
+/** A `string` column's kinds (`DataField.format`). */
+export const FIELD_FORMATS: readonly FieldFormatEntry[] = [
+  { value: "email", icon: Mail, i18n: "types.email" },
+  { value: "url", icon: LinkIcon, i18n: "types.url" },
+  { value: "image", icon: ImageIcon, i18n: "types.image" },
+];
+
+/** The picked type as shown — an `array` column is the JSON one. */
+export const shownFieldType = (type: string): DataFieldType =>
+  type === "array" ? "object" : (type as DataFieldType);
+
+/** A column's glyph — its format's for a formatted text, else its type's. */
+export function resolveFieldGlyph(
+  field: Pick<DataField, "type" | "format">,
+): LucideIcon {
+  if (field.type === "string" && field.format) {
+    const format = FIELD_FORMATS.find((entry) => entry.value === field.format);
+    if (format) return format.icon;
+  }
+  return resolveFieldType(field.type).icon;
+}
+
 /** 모르는 타입 (구 문서) 은 string 아이콘으로 */
 export function resolveFieldType(type: string): FieldTypeEntry {
-  return FIELD_TYPES.find((ft) => ft.value === type) ?? FIELD_TYPES[0];
+  const shown = shownFieldType(type);
+  return FIELD_TYPES.find((ft) => ft.value === shown) ?? FIELD_TYPES[0];
 }

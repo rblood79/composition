@@ -243,7 +243,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     await waitFor(() =>
       expect(
         container.querySelector(
-          '[data-group="ancestors"] .variable-table__row[data-read-only]',
+          '[data-group="ancestors"] .variable-row[data-read-only]',
         )?.textContent,
       ).toContain("taken"),
     );
@@ -260,20 +260,20 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     });
     const own = () => catalogOwnVariables(graph, id("a"));
     expect(own().map((variable) => variable.name)).toEqual(["state1"]);
-    // ADR-288: the own variables are rows of the shared table (name · type · default + ⋮).
+    // ADR-288: the own variables are panel field rows (name · type · default + ⋮ — 2026-10-29).
     const explicit = () =>
       container.querySelector('[data-group="explicit"]') as HTMLElement;
     await waitFor(() =>
       expect(
-        explicit().querySelector(".variable-table__cell-name input"),
+        explicit().querySelector(".variable-row__name input"),
       ).not.toBeNull(),
     );
     const input = explicit().querySelector(
-      ".variable-table__cell-name input",
+      ".variable-row__name input",
     ) as HTMLInputElement;
     expect(input.value).toBe("state1");
     expect(
-      explicit().querySelector(".variable-table__cell-type .react-aria-Select"),
+      explicit().querySelector(".variable-row__name .react-aria-Select"),
     ).not.toBeNull();
     expect(
       within(explicit()).getByRole("button", { name: "state1 actions" }),
@@ -298,7 +298,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(container.querySelector(".variable-table__error")).toBeNull();
     // The default field was rendered before the rename; its edit keeps the new name.
     const defaultInput = explicit().querySelector(
-      ".variable-table__cell-default input",
+      ".variable-row__default input",
     ) as HTMLInputElement;
     fireEvent.change(defaultInput, { target: { value: "hello" } });
     await act(async () => {
@@ -308,7 +308,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(own()).toMatchObject([{ name: "open", defaultValue: "hello" }]);
     // Changing the type keeps the edited name; "hello" does not fit Number → the type's empty
     // (ADR-288 결정 1).
-    const typeSelect = explicit().querySelector(".variable-table__type select")!;
+    const typeSelect = explicit().querySelector(".variable-row__type select")!;
     await act(async () => {
       fireEvent.change(typeSelect, { target: { value: "number" } });
     });
@@ -316,8 +316,8 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       { name: "open", valueType: "number", defaultValue: 0 },
     ]);
     expect(
-      explicit().querySelector(".variable-table__type button")?.textContent,
-    ).toBe("number");
+      explicit().querySelector(".variable-row__type button")?.textContent,
+    ).toBe("Number");
   });
 
   it("the component state commits only changed names and removes or resets in the same field", async () => {

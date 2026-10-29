@@ -7,6 +7,7 @@
  * (`Selection` Set → 배열, `"all"` 은 문자열 그대로).
  */
 import { COMPONENT_INTERACTION_SPECS } from "../interactions/componentInteractionSpecs";
+import { dateValueToText } from "./dateValue";
 import type {
   ComponentInteractionSpec,
   ValueTypeId,
@@ -35,6 +36,8 @@ const VARIABLE_TYPE_OF: Partial<Record<ValueTypeId, VariableDefType>> = {
   key: "string",
   keys: "array",
   strings: "array",
+  // (A RAC date — a Calendar's focused day, a date field's value — as its ISO text, 2026-10-29.)
+  date: "date",
 };
 
 function deriveImplicitStateSources(): Readonly<
@@ -96,6 +99,7 @@ export function normalizeImplicitStateValue(
   if (type === "boolean") return Boolean(raw);
   if (type === "string")
     return raw === null || raw === undefined ? "" : String(raw);
+  if (type === "date") return dateValueToText(raw);
   return raw;
 }
 

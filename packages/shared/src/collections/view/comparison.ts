@@ -23,7 +23,6 @@ export function viewFieldKind(type: string | undefined): ViewFieldKind {
     case "boolean":
       return "boolean";
     case "date":
-    case "datetime":
       return "date";
     case "array":
       return "list";

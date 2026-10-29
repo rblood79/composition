@@ -1,3 +1,4 @@
+import { parseDateValue } from "../../../../../packages/shared/src/state/dateValue";
 import {
   addRecord,
   removeRecords,
@@ -35,17 +36,22 @@ export interface CatalogVariableReader extends CatalogReader {
 }
 
 export type CatalogVariableOwnerId = EntryId<"page"> | NodeId;
-/** `object` · `array` hold what a rule's reference writes (a selected row); they start empty. */
+/**
+ * `object` · `array` hold what a rule's reference writes (a selected row); they start empty.
+ * `date` is an ISO date text (shared `state/dateValue.ts`), `""` = none.
+ */
 export type CatalogVariableType =
   | "string"
   | "number"
   | "boolean"
+  | "date"
   | "object"
   | "array";
 export const CATALOG_VARIABLE_TYPES: readonly CatalogVariableType[] = [
   "string",
   "number",
   "boolean",
+  "date",
   "object",
   "array",
 ];
@@ -179,6 +185,10 @@ export function catalogParseVariableValue(
   if (type === "string") return raw;
   if (catalogStructuredVariableType(type)) return "";
   if (type === "boolean") return raw.trim() === "true";
+  if (type === "date") {
+    const text = raw.trim();
+    return text === "" || parseDateValue(text) ? text : undefined;
+  }
   const text = raw.trim();
   if (text === "") return 0;
   const n = Number(text);
@@ -347,6 +357,30 @@ export const catalogVariableCommands = {
   setDefault: (variable: StateVariableEntry, value: Scalar): CatalogCommand =>
     updateRecord({
       entry: { ...variable, defaultValue: value },
+      label: "Edit variable",
+    }),
+  /**
+   * A structured variable's JSON default (2026-10-29 — the State section edits it like the
+   * project's): `undefined` empties it (`""`); the stored type follows the value (an array →
+   * `array`, an object → `object`) in the same step.
+   */
+  setJsonDefault: (
+    variable: StateVariableEntry,
+    value: unknown,
+  ): CatalogCommand =>
+    updateRecord({
+      entry: {
+        ...variable,
+        valueType:
+          value === undefined
+            ? variable.valueType
+            : Array.isArray(value)
+              ? "array"
+              : "object",
+        defaultValue: (value === undefined
+          ? ""
+          : value) as StateVariableEntry["defaultValue"],
+      },
       label: "Edit variable",
     }),
   /**

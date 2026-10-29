@@ -27,6 +27,7 @@ import {
 } from "./types";
 import { CATALOG_DERIVED_VARIANT_PROPS } from "./derivedVariantProps";
 import { catalogCalendarDurationFits } from "./valueType";
+import { isDateValueText } from "../../state/dateValue";
 import { catalogNumberFormatFits } from "./numberFormatValue";
 
 export class CatalogValidationError extends Error {
@@ -450,6 +451,7 @@ function dataFields(value: unknown, at: string, depth = 0): void {
         "id",
         "key",
         "type",
+        "format",
         "label",
         "required",
         "defaultValue",
@@ -458,6 +460,7 @@ function dataFields(value: unknown, at: string, depth = 0): void {
       ],
       here,
     );
+    if (field.format !== undefined) string(field.format, `${here}.format`);
     if (field.id !== undefined) string(field.id, `${here}.id`);
     string(field.key, `${here}.key`);
     if (field.type !== undefined) string(field.type, `${here}.type`);
@@ -1851,9 +1854,24 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           break;
         }
       }
-      // (A structured variable starts empty — its value comes from a rule's reference.)
+      // (A structured variable starts empty — `""`, a rule's reference fills it — or with a JSON
+      //   value of its type, 2026-10-29.)
       if (item.valueType === "object" || item.valueType === "array") {
-        if (item.defaultValue !== "")
+        const value = item.defaultValue;
+        if (value !== "") {
+          if (
+            typeof value !== "object" ||
+            value === null ||
+            Array.isArray(value) !== (item.valueType === "array")
+          )
+            invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
+          else jsonValue(value, "entry.defaultValue");
+        }
+        break;
+      }
+      // (A date is an ISO text in RAC's shapes, or `""` — `state/dateValue.ts`.)
+      if (item.valueType === "date") {
+        if (!isDateValueText(item.defaultValue))
           invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
         break;
       }
@@ -2120,13 +2138,19 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       );
       string(item.name, "entry.name");
       if (
-        !["string", "number", "boolean", "object", "array"].includes(
+        !["string", "number", "boolean", "date", "object", "array"].includes(
           item.valueType as string,
         )
       )
         invalid("INVALID_VALUE_TYPE", "entry.valueType");
       if (item.defaultValue !== undefined)
         jsonValue(item.defaultValue, "entry.defaultValue");
+      if (
+        item.valueType === "date" &&
+        item.defaultValue !== undefined &&
+        !isDateValueText(item.defaultValue)
+      )
+        invalid("DEFAULT_VALUE_TYPE", "entry.defaultValue");
       boolean(item.persist, "entry.persist");
       if (item.validation !== undefined) {
         object(item.validation, "entry.validation");

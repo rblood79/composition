@@ -79,7 +79,7 @@ export const profiles: DataTablePreset = definePreset({
     col("latitude", "number", "latitude", { kind: "latitude" }),
     col("longitude", "number", "longitude", { kind: "longitude" }),
     col("timezone", "string", "timezone", { kind: "timezone" }),
-    col("registeredAt", "datetime", "registeredAt", {
+    col("registeredAt", "date", "registeredAt", {
       kind: "pastDate",
       years: 5,
     }),
@@ -131,7 +131,7 @@ export const contacts: DataTablePreset = definePreset({
     ),
     col(
       "lastContactedAt",
-      "datetime",
+      "date",
       "lastContactedAt",
       { kind: "pastDate", days: 90 },
       {

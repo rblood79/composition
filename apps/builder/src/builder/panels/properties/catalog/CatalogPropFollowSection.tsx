@@ -41,6 +41,7 @@ function kindOf(valueType: string | undefined, path: string): ViewFieldKind {
   if (path === "size") return "number";
   if (valueType === "number") return "number";
   if (valueType === "boolean") return "boolean";
+  if (valueType === "date") return "date";
   if (valueType === "string[]" || valueType === "array") return "list";
   return "text";
 }

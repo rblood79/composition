@@ -8,6 +8,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -123,7 +124,9 @@ function CommitInput({
   /** The text last handed to `onCommit` — a re-key after an Enter save does not send it again. */
   const sent = useRef(defaultValue);
   const latest = useRef(onCommit);
-  latest.current = onCommit;
+  useLayoutEffect(() => {
+    latest.current = onCommit;
+  });
   const commit = (text: string) => {
     sent.current = text;
     latest.current(text);
@@ -135,7 +138,6 @@ function CommitInput({
         commit(input.value);
     };
     // (Unmount only — `commit` reads refs.)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <input

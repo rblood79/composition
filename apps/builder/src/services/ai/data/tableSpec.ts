@@ -11,7 +11,9 @@
  * 결정적 생성: seed = 테이블 이름 → 같은 설명이면 같은 미리보기 (재승인 · 테스트 안정).
  */
 import {
+  DATA_FIELD_FORMATS,
   DATA_VALUE_FIELD_TYPES,
+  isDateValueText,
   type DataFieldShape,
 } from "@composition/shared";
 import { z } from "zod";
@@ -147,6 +149,8 @@ const GenerateRuleSchema = z.discriminatedUnion("kind", [
     /** ISO 날짜 (YYYY-MM-DD) — 생략 시 최근 1년 */
     from: z.string().optional(),
     to: z.string().optional(),
+    /** A day and time instead of a day (one `date` type — the value's shape, 2026-10-29). */
+    withTime: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("reference"),
@@ -173,6 +177,8 @@ const FieldSpecSchema = z.object({
     .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "key 는 식별자 형태 (영문 · 숫자 · _)"),
   // (A reference needs its target collection — the Data panel sets it, not a table spec.)
   type: z.enum(DATA_VALUE_FIELD_TYPES),
+  /** A text field's kind — an email · a web address · an image address (`string` only). */
+  format: z.enum(DATA_FIELD_FORMATS).optional(),
   label: z.string().max(80).optional(),
   required: z.boolean().optional(),
   /** 샘플 값 생성 규칙 — 생략 시 type 과 key 로 기본 규칙 */
@@ -269,20 +275,15 @@ const KEY_HINTS: Array<[RegExp, GenerateRule]> = [
 
 /** 규칙이 없을 때 — type 이 정하고, string 은 key 이름 힌트를 본다. */
 export function defaultRuleFor(field: FieldSpec): GenerateRule {
+  // (A text's kind picks its values — the former email · url · image types, 2026-10-29.)
+  if (field.type === "string" && field.format) return { kind: field.format };
   switch (field.type) {
     case "number":
       return { kind: "integer", min: 0, max: 100 };
     case "boolean":
       return { kind: "boolean" };
     case "date":
-    case "datetime":
       return { kind: "date" };
-    case "email":
-      return { kind: "email" };
-    case "url":
-      return { kind: "url" };
-    case "image":
-      return { kind: "image" };
     case "array":
       return { kind: "list", values: ["alpha", "beta", "gamma", "delta"] };
     case "object":
@@ -333,7 +334,8 @@ function generateFieldValue(
   ctx: SampleGenerationContext,
 ): unknown {
   const random = mock.random.next;
-  const withTime = field.type === "datetime";
+  // (One date type — a day, or a day and time when the rule asks for it.)
+  const withTime = rule.kind === "date" && rule.withTime === true;
   switch (rule.kind) {
     case "generate":
       return generateValue({ kind: rule.type } as SampleRule, {
@@ -443,9 +445,18 @@ export interface SampleRowIssue {
   value?: unknown;
 }
 
-function typeMatches(type: DataFieldShape["type"], value: unknown): boolean {
+function typeMatches(
+  field: Pick<DataFieldShape, "type" | "format">,
+  value: unknown,
+): boolean {
   if (value === null || value === undefined) return true;
-  switch (type) {
+  if (field.type === "string" && field.format) {
+    if (typeof value !== "string") return false;
+    return field.format === "email"
+      ? /^[^\s@]+@[^\s@]+$/.test(value)
+      : /^https?:\/\//.test(value);
+  }
+  switch (field.type) {
     case "number":
       return typeof value === "number" && Number.isFinite(value);
     case "boolean":
@@ -455,13 +466,10 @@ function typeMatches(type: DataFieldShape["type"], value: unknown): boolean {
     case "object":
       return typeof value === "object" && !Array.isArray(value);
     case "date":
-    case "datetime":
-      return typeof value === "string" && !Number.isNaN(Date.parse(value));
-    case "email":
-      return typeof value === "string" && /^[^\s@]+@[^\s@]+$/.test(value);
-    case "url":
-    case "image":
-      return typeof value === "string" && /^https?:\/\//.test(value);
+      return (
+        typeof value === "string" &&
+        (isDateValueText(value) || !Number.isNaN(Date.parse(value)))
+      );
     default:
       return typeof value === "string";
   }
@@ -499,7 +507,7 @@ export function validateSampleRows(
         continue;
       }
       if (empty) continue;
-      if (!typeMatches(field.type, value)) {
+      if (!typeMatches(field, value)) {
         issues.push({
           row: rowIndex,
           key: field.key,
@@ -538,6 +546,7 @@ export function tableSpecToSchema(spec: TableSpec): DataFieldShape[] {
   return spec.fields.map((field) => ({
     key: field.key,
     type: field.type,
+    ...(field.type === "string" && field.format ? { format: field.format } : {}),
     ...(field.label ? { label: field.label } : {}),
     ...(field.required !== undefined ? { required: field.required } : {}),
   }));

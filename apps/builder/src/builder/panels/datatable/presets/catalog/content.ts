@@ -55,7 +55,7 @@ export const posts: DataTablePreset = definePreset({
         { value: "archived", weight: 1 },
       ],
     }),
-    col("publishedAt", "datetime", "publishedAt", {
+    col("publishedAt", "date", "publishedAt", {
       kind: "pastDate",
       years: 1,
     }),
@@ -93,7 +93,7 @@ export const comments: DataTablePreset = definePreset({
         },
       ],
     }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", days: 120 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", days: 120 }),
   ],
 });
 
@@ -134,7 +134,7 @@ export const todos: DataTablePreset = definePreset({
           false,
         ),
     }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", days: 90 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", days: 90 }),
   ],
 });
 

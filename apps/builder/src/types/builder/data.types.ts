@@ -22,21 +22,22 @@ export type { ExecutionPolicy } from "@composition/shared";
 // ============================================
 
 /**
- * 데이터 필드 타입
+ * 데이터 필드 타입 — 변수와 같은 타입 (사용자 결정 2026-10-29 「공통 타입으로 맞춰」): `date` 는 ISO
+ * 글자 (모양이 정밀도 — 날짜 · 날짜+시각 · 시각), `object` · `array` 는 화면에서 JSON 하나.
+ * 이메일 · URL · 이미지는 타입이 아니라 `string` 의 `format`. `reference` 는 표 전용.
  */
 export type DataFieldType =
   | "string"
   | "number"
   | "boolean"
   | "date"
-  | "datetime"
-  | "email"
-  | "url"
-  | "image"
   | "array"
   | "object"
   /** ADR-284 — a key of another collection's row (`DataField.reference`). */
   | "reference";
+
+/** A `string` field's kind — its input (an email · a URL keyboard, an image preview). */
+export type DataFieldFormat = "email" | "url" | "image";
 
 /**
  * 데이터 필드 정의
@@ -54,6 +55,9 @@ export interface DataField {
 
   /** 필드 타입 */
   type: DataFieldType;
+
+  /** `string` 필드의 종류 — 이메일 · URL · 이미지 (입력 상자 · 미리보기만 다르다) */
+  format?: DataFieldFormat;
 
   /** UI 표시용 레이블 */
   label?: string;
@@ -323,7 +327,13 @@ export type ApiEndpointUpdate = Partial<
 /**
  * 변수 타입
  */
-export type VariableType = "string" | "number" | "boolean" | "object" | "array";
+export type VariableType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "object"
+  | "array";
 
 /**
  * 변수 스코프

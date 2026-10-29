@@ -4,12 +4,14 @@
  * stays (converted — `"42"` → `42`, `"true"` → `true`, `3` → `"3"`), one that does not is emptied.
  *
  * "Empty" is the owner's contract: a page · element variable (`StateVariableEntry`) holds a
- * scalar (`""` · `0` · `false`; `object` · `array` are always `""` — contract 51, a rule fills
- * them), a project variable (`ProjectVariableEntry`) has no default (`undefined` — the runtime
- * reads the type's zero value). Structured defaults (JSON) are the project's only.
+ * scalar (`""` · `0` · `false`; `object` · `array` start as `""` — a rule fills them, or a JSON
+ * default typed in the State section, 2026-10-29), a project variable (`ProjectVariableEntry`)
+ * has no default (`undefined` — the runtime reads the type's zero value).
  */
+import { isDateValueText } from "../../state/dateValue";
+
 export type VariableValueType =
-  "string" | "number" | "boolean" | "object" | "array";
+  "string" | "number" | "boolean" | "date" | "object" | "array";
 
 /** Whose default: `state` = page · element (scalar contract), `project` = project variable. */
 export type VariableDefaultOwner = "state" | "project";
@@ -48,11 +50,14 @@ export function variableDefaultForType(
       const text = value.trim().toLowerCase();
       return text === "true" ? true : text === "false" ? false : empty;
     }
+    case "date":
+      // (An ISO date text in any of its shapes stays; `dateValue.ts`.)
+      return typeof value === "string" && isDateValueText(value)
+        ? value.trim()
+        : empty;
     case "object":
-      if (owner === "state") return "";
       return typeof value === "object" && !Array.isArray(value) ? value : empty;
     case "array":
-      if (owner === "state") return "";
       return Array.isArray(value) ? value : empty;
   }
 }

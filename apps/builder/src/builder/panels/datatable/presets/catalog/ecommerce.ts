@@ -120,7 +120,7 @@ export const products: DataTablePreset = definePreset({
       picsum: { width: 640, height: 480 },
     }),
     col("isActive", "boolean", "isActive", { kind: "boolean", trueRatio: 0.8 }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 2 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 2 }),
   ],
 });
 
@@ -195,7 +195,7 @@ export const orders: DataTablePreset = definePreset({
       weights: [2, 3, 3, 6, 1],
     }),
     col("shippingAddress", "string", "shippingAddress", { kind: "address" }),
-    col("createdAt", "datetime", "orderedAt", { kind: "pastDate", years: 1 }),
+    col("createdAt", "date", "orderedAt", { kind: "pastDate", years: 1 }),
   ],
 });
 
@@ -286,7 +286,7 @@ export const carts: DataTablePreset = definePreset({
           0,
         ),
     }),
-    col("updatedAt", "datetime", "updatedAt", { kind: "pastDate", days: 30 }),
+    col("updatedAt", "date", "updatedAt", { kind: "pastDate", days: 30 }),
   ],
 });
 
@@ -330,7 +330,7 @@ export const reviews: DataTablePreset = definePreset({
       kind: "boolean",
       trueRatio: 0.65,
     }),
-    col("date", "datetime", "reviewDate", { kind: "pastDate", days: 365 }),
+    col("date", "date", "reviewDate", { kind: "pastDate", days: 365 }),
   ],
 });
 

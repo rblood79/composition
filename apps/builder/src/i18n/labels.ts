@@ -446,7 +446,6 @@ export const semanticLabelKeys: Record<string, string> = {
   Object: "datatable.types.object",
   Array: "datatable.types.array",
   Date: "datatable.types.date",
-  DateTime: "datatable.types.dateTime",
   Email: "datatable.types.email",
   URL: "datatable.types.url",
   Image: "datatable.types.image",

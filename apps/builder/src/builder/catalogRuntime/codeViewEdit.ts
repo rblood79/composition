@@ -12,6 +12,7 @@
  * may gain its palette defaults). What does not — a part the vocabulary does not read, or reads
  * but no command makes — is refused with its line, and nothing is applied (no partial edit).
  */
+import { isDateValueText } from "../../../../../packages/shared/src/state/dateValue";
 import {
   insertNodes,
   moveNodes,
@@ -725,9 +726,10 @@ class Planner {
     }
     if (statement.kind === "listSelection")
       return { valueType: "string[]", defaultValue: [] };
-    const m = /= useState(?:<(Selection|SortDescriptor)>)?\(([\s\S]*)\);$/.exec(
-      statement.code,
-    );
+    const m =
+      /= useState(?:<(Selection|SortDescriptor|DateValue \| null|Time \| null)>)?\(([\s\S]*)\);$/.exec(
+        statement.code,
+      );
     if (!m) {
       this.reject(statement.from, "outsideVocabulary");
       return undefined;
@@ -745,8 +747,27 @@ class Planner {
       }
       return { valueType: "string[]", defaultValue: keys };
     }
+    // (A date variable: `useState<DateValue | null>(parseDate('…'))` · `(null)` — its ISO text.)
+    if (type === "DateValue | null" || type === "Time | null") {
+      if (text === "null") return { valueType: "date", defaultValue: "" };
+      const call =
+        /^parse(?:Date|DateTime|Time|ZonedDateTime|Absolute)\(([\s\S]*)\)$/.exec(
+          text,
+        );
+      const iso = call ? literalOf(call[1]!.trim()) : undefined;
+      if (typeof iso !== "string" || !isDateValueText(iso) || iso === "") {
+        this.reject(statement.from, "outsideVocabulary");
+        return undefined;
+      }
+      return { valueType: "date", defaultValue: iso };
+    }
     if (text === "null") return { valueType: "object", defaultValue: null };
     const value = literalOf(text);
+    // (A JSON literal is a structured default — `{…}` an object's, `[…]` an array's, 2026-10-29.)
+    if (Array.isArray(value))
+      return { valueType: "array", defaultValue: value };
+    if (value && typeof value === "object")
+      return { valueType: "object", defaultValue: value };
     if (typeof value === "string")
       return { valueType: "string", defaultValue: value };
     if (typeof value === "number")

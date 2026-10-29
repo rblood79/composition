@@ -14,6 +14,15 @@ describe("variableDefaultForType", () => {
       a: 1,
     });
     expect(variableDefaultForType("array", [1], "project")).toEqual([1]);
+    // date (2026-10-29): an ISO text of any shape stays, trimmed.
+    expect(variableDefaultForType("date", " 2026-10-29 ", "state")).toBe(
+      "2026-10-29",
+    );
+    expect(variableDefaultForType("date", "2026-10-29T10:00", "project")).toBe(
+      "2026-10-29T10:00",
+    );
+    expect(variableDefaultForType("date", "10:00", "state")).toBe("10:00");
+    expect(variableDefaultForType("date", "", "state")).toBe("");
   });
 
   it("empties a value that does not fit — the owner's empty", () => {
@@ -27,11 +36,20 @@ describe("variableDefaultForType", () => {
     expect(variableDefaultForType("array", { a: 1 }, "project")).toBe(
       undefined,
     );
+    expect(variableDefaultForType("date", "hello", "state")).toBe("");
+    expect(variableDefaultForType("date", "2026-13-01", "project")).toBe(
+      undefined,
+    );
+    expect(variableDefaultForType("date", 20261029, "state")).toBe("");
   });
 
-  it("a page · element structured default is always the contract's empty string", () => {
-    expect(variableDefaultForType("object", { a: 1 }, "state")).toBe("");
-    expect(variableDefaultForType("array", [1, 2], "state")).toBe("");
+  it("a page · element structured default keeps a JSON value of the type, else the contract's empty string (2026-10-29)", () => {
+    expect(variableDefaultForType("object", { a: 1 }, "state")).toEqual({
+      a: 1,
+    });
+    expect(variableDefaultForType("array", [1, 2], "state")).toEqual([1, 2]);
+    expect(variableDefaultForType("object", [1, 2], "state")).toBe("");
+    expect(variableDefaultForType("array", { a: 1 }, "state")).toBe("");
     expect(variableDefaultForType("array", "", "state")).toBe("");
   });
 

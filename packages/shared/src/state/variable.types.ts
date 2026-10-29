@@ -16,11 +16,16 @@
  */
 import { z } from "zod";
 
-/** 기존 `VariableType` (data.types.ts) 과 같은 5종 — 문서·envelope·op 가 한 enum 을 본다. */
+/**
+ * 기존 `VariableType` (data.types.ts) 과 같은 6종 — 문서·envelope·op 가 한 enum 을 본다. `date` 는
+ * ISO 글자 (`dateValue.ts` — 날짜 · 날짜+시각 · 시각 · 시간대 instant 를 글자 모양으로 구분, 사용자
+ * 결정 2026-10-29).
+ */
 export const VARIABLE_DEF_TYPES = [
   "string",
   "number",
   "boolean",
+  "date",
   "object",
   "array",
 ] as const;

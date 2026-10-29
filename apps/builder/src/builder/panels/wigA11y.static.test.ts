@@ -69,10 +69,6 @@ describe("아이콘 전용 버튼 — aria-label", () => {
       "../components/variables/VariableTable.tsx",
       /variable-table__goto"\s+aria-label=/,
     ],
-    [
-      "../components/variables/VariableTable.tsx",
-      /variable-table__json-trigger"\s+aria-label=/,
-    ],
     ["history/useCatalogSnapshotUi.tsx", /history-snapshot-rename"\s+aria-label=/],
   ])("%s", (rel, pattern) => {
     expect(read(rel)).toMatch(pattern);

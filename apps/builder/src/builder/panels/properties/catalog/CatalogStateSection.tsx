@@ -412,6 +412,16 @@ export const CatalogStateSection = memo(function CatalogStateSection({
     [current, run],
   );
 
+  const changeJsonDefault = useCallback(
+    (id: string, value: unknown) => {
+      const variable = current(id);
+      if (!variable) return;
+      setError(variable.id, null);
+      run(catalogVariableCommands.setJsonDefault(variable, value));
+    },
+    [current, run, setError],
+  );
+
   const changeDefault = useCallback(
     (id: string, raw: string) => {
       const variable = current(id);
@@ -558,6 +568,7 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               onRename={rename}
               onType={(id, type) => changeType(id, type as CatalogVariableType)}
               onDefault={changeDefault}
+              onJsonDefault={changeJsonDefault}
               onRemove={removeRow}
             />
             </Suspense>

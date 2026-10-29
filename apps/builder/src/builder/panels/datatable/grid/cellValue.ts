@@ -6,6 +6,7 @@
  * 와 다른 점). 빈 입력은 어느 타입이든 `null` (성공).
  */
 import type { DataFieldType } from "../../../../types/builder/data.types";
+import { coerceDateText } from "../../../../../../../packages/shared/src/state/dateValue";
 
 export type CoercedCell =
   { ok: true; value: unknown } | { ok: false; value: null };
@@ -31,30 +32,21 @@ export function coerceCellValue(type: DataFieldType, raw: string): CoercedCell {
       return FAIL;
     }
     case "date": {
-      const ms = Date.parse(text);
-      if (Number.isNaN(ms)) return FAIL;
-      return { ok: true, value: new Date(ms).toISOString().slice(0, 10) };
-    }
-    case "datetime": {
-      const ms = Date.parse(text);
-      if (Number.isNaN(ms)) return FAIL;
-      return { ok: true, value: new Date(ms).toISOString() };
+      // (The variables' date — an ISO text whose shape says its precision; a looser text the
+      //   browser reads becomes a day · a day and time, `coerceDateText`.)
+      const value = coerceDateText(text);
+      return value === undefined ? FAIL : { ok: true, value };
     }
     case "array":
     case "object": {
+      // (One JSON type on screen — an object or an array, 2026-10-29.)
       let parsed: unknown;
       try {
         parsed = JSON.parse(text);
       } catch {
         return FAIL;
       }
-      const isArray = Array.isArray(parsed);
-      if (
-        type === "array"
-          ? !isArray
-          : isArray || typeof parsed !== "object" || parsed === null
-      )
-        return FAIL;
+      if (typeof parsed !== "object" || parsed === null) return FAIL;
       return { ok: true, value: parsed };
     }
     default:
@@ -76,20 +68,18 @@ export function formatCellValue(value: unknown): string {
 
 export type CellEditorKind = "inline" | "popover";
 
-/** 긴 값 · JSON · 날짜는 Popover 편집 (RAC 권고 Y2) — 셀 안 한 줄 input 으로는 못 다룬다. */
+/**
+ * 긴 값 · JSON 은 Popover 편집 (RAC 권고 Y2) — 셀 안 한 줄 input 으로는 못 다룬다. 날짜는 셀 안의
+ * 브라우저 날짜 선택기 (변수 표와 같은 편집 — 2026-10-29).
+ */
 export const INLINE_TEXT_MAX = 80;
 
 export function resolveCellEditorKind(
   type: DataFieldType,
   value: unknown,
 ): CellEditorKind {
-  if (
-    type === "array" ||
-    type === "object" ||
-    type === "date" ||
-    type === "datetime"
-  )
-    return "popover";
+  if (type === "array" || type === "object") return "popover";
+  if (type === "date") return "inline";
   const text = formatCellValue(value);
   return text.length > INLINE_TEXT_MAX || text.includes("\n")
     ? "popover"

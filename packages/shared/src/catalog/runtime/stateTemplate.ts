@@ -72,7 +72,7 @@ function ownedVariables(
 /** A catalog value type in the shared variable model (structured values are arrays). */
 /** A document variable's default: a structured one's `""` is nothing yet (`null`). */
 function documentDefault(variable: {
-  valueType: ValueType | "object" | "array";
+  valueType: ValueType | "object" | "array" | "date";
   defaultValue: unknown;
 }): unknown {
   return (variable.valueType === "object" || variable.valueType === "array") &&
@@ -81,8 +81,10 @@ function documentDefault(variable: {
     : variable.defaultValue;
 }
 
-function variableType(type: ValueType | "object" | "array"): VariableDefType {
-  if (type === "object" || type === "array") return type;
+function variableType(
+  type: ValueType | "object" | "array" | "date",
+): VariableDefType {
+  if (type === "object" || type === "array" || type === "date") return type;
   return type === "string[]" || type === "items"
     ? "array"
     : type === "slot"

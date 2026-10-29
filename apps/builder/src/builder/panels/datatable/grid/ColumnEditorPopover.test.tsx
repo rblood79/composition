@@ -223,7 +223,11 @@ describe("ColumnEditor (ADR-288 — the column head popover's body)", () => {
     );
     const listbox = await waitFor(() => getByRole("listbox"));
     const options = within(listbox).getAllByRole("option");
-    expect(options.length).toBe(11);
+    // The common types (사용자 2026-10-29): string · number · boolean · date · JSON · reference.
+    expect(options).toHaveLength(6);
+    expect(
+      within(listbox).getByRole("option", { name: /JSON/ }).textContent,
+    ).toContain("A list or a set of name · value pairs");
     const number = within(listbox).getByRole("option", { name: /Number/ });
     expect(number.querySelector(".property-select__option-description")!.textContent).toBe(
       "Number — for math and sorting",

@@ -219,6 +219,17 @@ describe("createRuntimeState", () => {
       ok: true,
       value: true,
     });
+    // date (2026-10-29): an ISO text in RAC's shapes, trimmed; a Date by its instant; else no.
+    expect(coerceRuntimeValue("date", " 2026-10-29 ")).toEqual({
+      ok: true,
+      value: "2026-10-29",
+    });
+    expect(coerceRuntimeValue("date", "")).toEqual({ ok: true, value: "" });
+    expect(
+      coerceRuntimeValue("date", new Date(Date.UTC(2026, 9, 29))),
+    ).toEqual({ ok: true, value: "2026-10-29T00:00:00.000Z" });
+    expect(coerceRuntimeValue("date", "hello")).toEqual({ ok: false });
+    expect(coerceRuntimeValue("date", 1)).toEqual({ ok: false });
     expect(coerceRuntimeValue("object", [])).toEqual({ ok: false });
     expect(coerceRuntimeValue("array", [1])).toEqual({ ok: true, value: [1] });
   });

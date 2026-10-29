@@ -16,9 +16,16 @@ export type DataTableEditorMode =
   | { type: "api-create"; projectId: string }
   | { type: "api-edit"; endpointId: string; initialTab?: ApiEditorTab }
   | { type: "variable-create"; projectId: string }
-  /** ADR-288 — the project's variable table (edits happen in its rows). */
-  | { type: "variables"; projectId: string }
+  /**
+   * ADR-288 — a variable group's table (edits happen in its rows). `group` = the list column's
+   * row: the project's own variables (default) or a page (its page and element variables, read
+   * only — edited at their owner).
+   */
+  | { type: "variables"; projectId: string; group?: VariableGroupId }
   | null;
+
+/** The Variables list column's rows: `"project"` or a page id. */
+export type VariableGroupId = "project" | (string & {});
 
 /**
  * ADR-013 — Properties Data 행에서 연 Creator 의 연결 대상. 직렬화 가능한 식별 정보만 둔다
@@ -74,8 +81,8 @@ export interface DataTableEditorActions {
 
   // Variable
   openVariableCreator: (projectId: string) => void;
-  /** ADR-288 — the variable table in the Data body. */
-  openVariables: (projectId: string) => void;
+  /** ADR-288 — a variable group's table in the Data body (default: the project's own). */
+  openVariables: (projectId: string, group?: VariableGroupId) => void;
 
   // Common
   close: () => void;

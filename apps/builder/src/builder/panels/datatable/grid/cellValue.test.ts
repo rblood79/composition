@@ -15,8 +15,8 @@ describe("coerceCellValue", () => {
       ok: true,
       value: "hello",
     });
-    expect(coerceCellValue("email", "")).toEqual({ ok: true, value: null });
-    expect(coerceCellValue("url", " x ")).toEqual({ ok: true, value: "x" });
+    expect(coerceCellValue("string", "")).toEqual({ ok: true, value: null });
+    expect(coerceCellValue("string", " x ")).toEqual({ ok: true, value: "x" });
   });
   it("number 는 유한수만 — 실패는 null + ok:false (0 으로 바꾸지 않음)", () => {
     expect(coerceCellValue("number", "42")).toEqual({ ok: true, value: 42 });
@@ -49,12 +49,12 @@ describe("coerceCellValue", () => {
       value: null,
     });
   });
-  it("date 는 YYYY-MM-DD 로, datetime 은 ISO 로 정규화", () => {
+  it("date 는 ISO 글자 그대로 (모양이 정밀도), 느슨한 글자는 날짜로 정규화", () => {
     expect(coerceCellValue("date", "2026-09-12")).toEqual({
       ok: true,
       value: "2026-09-12",
     });
-    expect(coerceCellValue("date", "2026-09-12T10:00:00Z")).toEqual({
+    expect(coerceCellValue("date", "Sep 12 2026")).toEqual({
       ok: true,
       value: "2026-09-12",
     });
@@ -62,21 +62,31 @@ describe("coerceCellValue", () => {
       ok: false,
       value: null,
     });
-    expect(coerceCellValue("datetime", "2026-09-12T10:00:00.000Z")).toEqual({
+    // (One date type, 2026-10-29 — an ISO text of any shape stays as written: a day and time,
+    //   a zoned instant, a time.)
+    expect(coerceCellValue("date", "2026-09-12T10:00:00.000Z")).toEqual({
       ok: true,
       value: "2026-09-12T10:00:00.000Z",
     });
-    expect(coerceCellValue("datetime", "")).toEqual({ ok: true, value: null });
+    expect(coerceCellValue("date", "2026-09-12T10:00")).toEqual({
+      ok: true,
+      value: "2026-09-12T10:00",
+    });
+    expect(coerceCellValue("date", "10:30")).toEqual({
+      ok: true,
+      value: "10:30",
+    });
   });
-  it("array · object 는 JSON — 모양이 다르면 실패", () => {
+  it("array · object 는 JSON 하나 — 객체 · 배열 어느 쪽이든, 스칼라 · 깨진 JSON 은 실패 (2026-10-29)", () => {
     expect(coerceCellValue("array", "[1,2]")).toEqual({
       ok: true,
       value: [1, 2],
     });
     expect(coerceCellValue("array", '{"a":1}')).toEqual({
-      ok: false,
-      value: null,
+      ok: true,
+      value: { a: 1 },
     });
+    expect(coerceCellValue("object", "3")).toEqual({ ok: false, value: null });
     expect(coerceCellValue("object", '{"a":1}')).toEqual({
       ok: true,
       value: { a: 1 },
@@ -101,10 +111,11 @@ describe("formatCellValue", () => {
 });
 
 describe("resolveCellEditorKind", () => {
-  it("array · object · date · datetime 은 popover", () => {
-    for (const type of ["array", "object", "date", "datetime"] as const) {
+  it("array · object 는 popover, date 는 셀 안 선택기 (inline)", () => {
+    for (const type of ["array", "object"] as const) {
       expect(resolveCellEditorKind(type, "")).toBe("popover");
     }
+    expect(resolveCellEditorKind("date", "2026-10-29")).toBe("inline");
   });
   it("긴 문자열 · 줄바꿈은 popover, 짧은 값은 inline", () => {
     expect(resolveCellEditorKind("string", "short")).toBe("inline");

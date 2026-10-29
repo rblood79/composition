@@ -744,6 +744,47 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     });
   });
 
+  it("a date variable written as `useState<DateValue | null>(parseDate('…'))` is a `date` variable, and comes back with its import (2026-10-29)", async () => {
+    const h = await open(["Button"]);
+    const session = begin(h);
+    const head = "export default function Home() {\n";
+    const line =
+      "  let [due, setDue] = useState<DateValue | null>(parseDate('2026-10-29'));\n";
+    const result = applyCode(h, session, [
+      replace(session.code, head, `${head}${line}`),
+    ]);
+    expect(result).toEqual({ applied: true, reasons: [] });
+    const project = h.graph().getEntry(h.graph().projectId) as {
+      stateVariableIds: readonly string[];
+    };
+    expect(project.stateVariableIds).toHaveLength(1);
+    expect(h.graph().getEntry(project.stateVariableIds[0]!)).toMatchObject({
+      kind: "stateVariable",
+      name: "due",
+      valueType: "date",
+      defaultValue: "2026-10-29",
+    });
+    expect(h.code()).toContain(line);
+    expect(h.code()).toContain(
+      "import {parseDate, type DateValue} from '@internationalized/date';",
+    );
+    // (A time's start is a `Time`; none is `null` — the empty date.)
+    const session2 = begin(h);
+    const result2 = applyCode(h, session2, [
+      replace(session2.code, line, "  let [due, setDue] = useState<DateValue | null>(null);\n"),
+    ]);
+    expect(result2).toEqual({ applied: true, reasons: [] });
+    const after = h.graph().getEntry(h.graph().projectId) as {
+      stateVariableIds: readonly string[];
+    };
+    expect(after.stateVariableIds).toHaveLength(1);
+    expect(h.graph().getEntry(after.stateVariableIds[0]!)).toMatchObject({
+      name: "due",
+      valueType: "date",
+      defaultValue: "",
+    });
+  });
+
   it("a literal sort written (`toSorted` by a field, descending) sorts the list's view", async () => {
     const h = await open(["ListBox"], [USERS]);
     const list = h.body()[0]! as NodeId;

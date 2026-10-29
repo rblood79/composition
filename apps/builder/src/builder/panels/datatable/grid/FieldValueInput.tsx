@@ -6,7 +6,7 @@
  *
  * - `string` · `email` · `url` — a growing textarea (one line to start, ⌘Enter submits)
  * - `number` — `inputMode="decimal"` · `boolean` — a three-way Select (empty · on · off)
- * - `date` · `datetime` — native pickers (`datetime` shows the ISO text as local time)
+ * - `date` — the browser picker of the value's shape (a day · a day and time · a time)
  * - `image` — a URL input with a preview · `array` · `object` — a JSON textarea
  * - `reference` — a ComboBox over the target table's rows (key field value · the first text column,
  *   50 matches, `useDeferredValue`) · `id` — read-only (`readonlyText`)
@@ -15,6 +15,7 @@
  * box) — the error goes under the box as `role="alert"` (ADR-163 · web-interface-guidelines).
  */
 import { resolveField } from "@composition/shared";
+import { nativeDateInputOf } from "../../../../../../../packages/shared/src/state/dateValue";
 import {
   useCallback,
   useDeferredValue,
@@ -35,7 +36,7 @@ import type { DataField } from "../../../../types/builder/data.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useDataStore } from "../../../stores/data";
-import { resolveFieldType } from "../utils/fieldTypes";
+import { resolveFieldGlyph } from "../utils/fieldTypes";
 
 export interface FieldValueInputProps {
   field: DataField;
@@ -62,15 +63,6 @@ export interface FieldValueInputProps {
 
 const REFERENCE_MATCH_MAX = 50;
 
-const pad = (n: number) => String(n).padStart(2, "0");
-
-/** ISO text → the `datetime-local` value (local time); anything unparsable → "". */
-export function toLocalDatetimeInput(text: string): string {
-  const ms = Date.parse(text);
-  if (Number.isNaN(ms)) return "";
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function growTextarea(el: HTMLTextAreaElement | null) {
   if (!el) return;
@@ -100,7 +92,7 @@ export function FieldValueInput({
     [i18n],
   );
   const errorId = `${field.id ?? field.key}-error`;
-  const TypeGlyph = resolveFieldType(field.type).icon;
+  const TypeGlyph = resolveFieldGlyph(field);
 
   const submitOnEnter = (e: ReactKeyboardEvent<HTMLElement>) => {
     // ⌘Z inside the input is the input's own undo — not the History stack (data-shortcut-local).
@@ -181,30 +173,21 @@ export function FieldValueInput({
       />
     );
   } else if (field.type === "date") {
+    // (One date type — the picker follows the value's shape: a day · a day and time · a time,
+    //   the variables' date, 2026-10-29.)
+    const native = nativeDateInputOf(text);
     control = (
       <input
         {...common}
         ref={controlRef}
         className="react-aria-Input"
-        type="date"
-        value={/^\d{4}-\d{2}-\d{2}$/.test(text) ? text : ""}
+        type={native.type}
+        value={native.value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={submitOnEnter}
       />
     );
-  } else if (field.type === "datetime") {
-    control = (
-      <input
-        {...common}
-        ref={controlRef}
-        className="react-aria-Input"
-        type="datetime-local"
-        value={toLocalDatetimeInput(text)}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={submitOnEnter}
-      />
-    );
-  } else if (field.type === "image") {
+  } else if (field.type === "string" && field.format === "image") {
     control = (
       <>
         <input
@@ -267,7 +250,7 @@ export function FieldValueInput({
       />
     );
   } else {
-    // string · email · url — a textarea that grows with the text (one line to start)
+    // string (and its email · url formats) — a textarea that grows with the text (one line to start)
     control = (
       <textarea
         {...common}
@@ -277,11 +260,11 @@ export function FieldValueInput({
         }}
         className="react-aria-TextArea datatable-value-text"
         rows={1}
-        spellCheck={field.type === "string"}
+        spellCheck={field.type === "string" && !field.format}
         inputMode={
-          field.type === "email"
+          field.format === "email"
             ? "email"
-            : field.type === "url"
+            : field.format === "url"
               ? "url"
               : undefined
         }

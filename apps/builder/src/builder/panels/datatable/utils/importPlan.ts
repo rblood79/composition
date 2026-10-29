@@ -18,6 +18,8 @@ export interface ImportColumn {
   action: ImportColumnAction;
   targetKey: string;
   type: DataFieldType;
+  /** A new text column's kind (`DetectedColumn.format`). */
+  format?: DataField["format"];
 }
 
 export interface ImportPlan {
@@ -41,7 +43,13 @@ export function planImport(
           targetKey: existing.key,
           type: existing.type,
         }
-      : { sourceKey: col.key, action: "new", targetKey: col.key, type: col.type };
+      : {
+          sourceKey: col.key,
+          action: "new",
+          targetKey: col.key,
+          type: col.type,
+          ...(col.format ? { format: col.format } : {}),
+        };
   });
   return { columns, rows: [...rows], rowCount: rows.length };
 }
@@ -64,7 +72,11 @@ export function importPlanToOps(
       ops.push({
         op: "add_field",
         collectionId,
-        field: { key: col.targetKey, type: col.type },
+        field: {
+          key: col.targetKey,
+          type: col.type,
+          ...(col.format ? { format: col.format } : {}),
+        },
       });
     }
   }

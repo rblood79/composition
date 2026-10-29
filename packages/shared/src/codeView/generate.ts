@@ -20,6 +20,7 @@
  * The slots (`CodeViewSlot`) record the 1:1 positions an edit maps back to.
  */
 import { getPrimitiveBinding } from "../catalog/bindings";
+import { parseDateValue, type DateValueKind } from "../state/dateValue";
 import { definitionTypeName } from "../catalog/commands/context";
 import type {
   AuthoredValue,
@@ -151,6 +152,14 @@ const callbackOf = conceptCallbackOf;
 
 const isSelectionType = (valueType: string) =>
   valueType === "array" || valueType === "string[]";
+
+/** A date variable's start in code — the `@internationalized/date` parser of its text's shape. */
+const DATE_PARSE_FN: Record<DateValueKind, string> = {
+  date: "parseDate",
+  dateTime: "parseDateTime",
+  time: "parseTime",
+  zoned: "parseZonedDateTime",
+};
 
 class Doc {
   readonly project;
@@ -549,6 +558,7 @@ class Generator {
   private writeImports(out: CodeWriter): void {
     const order = [
       "react",
+      "@internationalized/date",
       "react-aria",
       "react-aria-components",
       "react-aria-components/useListData",
@@ -601,6 +611,15 @@ class Generator {
       } else if (this.isSortVariable(entry)) {
         this.import("react-aria-components", "type SortDescriptor");
         out.write("<SortDescriptor>(");
+      } else if (entry.valueType === "date") {
+        const time =
+          typeof entry.defaultValue === "string" &&
+          parseDateValue(entry.defaultValue)?.kind === "time";
+        this.import(
+          "@internationalized/date",
+          time ? "type Time" : "type DateValue",
+        );
+        out.write(time ? "<Time | null>(" : "<DateValue | null>(");
       } else out.write("(");
       if (initial && isVariable)
         out.slot(initial, { kind: "variableDefault", variableId: entry.id });
@@ -639,8 +658,23 @@ class Generator {
       return keys.length ? `new Set(${literal(keys)})` : "new Set()";
     }
     if (entry.valueType === "object" || entry.valueType === "array") {
-      // (A structured variable starts empty: a sort sorts nothing until a column is picked.)
-      return this.isSortVariable(entry) ? "" : "null";
+      // (A structured variable starts empty — a sort sorts nothing until a column is picked —
+      //   or with its JSON default as a literal, 2026-10-29.)
+      if (this.isSortVariable(entry)) return "";
+      return entry.defaultValue === "" || entry.defaultValue === null
+        ? "null"
+        : literal(entry.defaultValue);
+    }
+    if (entry.valueType === "date") {
+      // (RAC's date values — `parseDate('2026-10-29')` · `parseTime('10:00')` …; none = `null`.)
+      const parsed =
+        typeof entry.defaultValue === "string"
+          ? parseDateValue(entry.defaultValue)
+          : undefined;
+      if (!parsed) return "null";
+      const fn = DATE_PARSE_FN[parsed.kind];
+      this.import("@internationalized/date", fn);
+      return `${fn}(${literal(entry.defaultValue)})`;
     }
     return literal(entry.defaultValue);
   }

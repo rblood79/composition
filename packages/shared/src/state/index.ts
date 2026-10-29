@@ -5,6 +5,7 @@
  * Phase 3: `template.ts` (`{{ }}` 해석기).
  */
 export * from "./variable.types";
+export * from "./dateValue";
 export * from "./visibility";
 export * from "./cloneState";
 export * from "./stateDependencies";

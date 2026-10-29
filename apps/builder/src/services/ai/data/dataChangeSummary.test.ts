@@ -71,7 +71,7 @@ describe("summarizeDataChange", () => {
         {
           op: "add_field",
           collectionId: "users",
-          field: { key: "email", type: "email" },
+          field: { key: "email", type: "string", format: "email" },
         },
         {
           op: "update_field",
@@ -101,7 +101,7 @@ describe("summarizeDataChange", () => {
     ]);
     expect(items[0]).toMatchObject({
       collection: { id: "users", name: "Users", isNew: false },
-      field: { key: "email", type: "email" },
+      field: { key: "email", type: "string" },
     });
     expect(items[1]).toMatchObject({
       field: { key: "age", type: "number" },

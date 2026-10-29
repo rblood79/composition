@@ -14,7 +14,12 @@ import {
 
 /** A value's shape as the Value field tells it (the variable model's types). */
 export type CatalogValueType =
-  "string" | "number" | "boolean" | "object" | "array";
+  | "string"
+  | "number"
+  | "boolean"
+  | "date"
+  | "object"
+  | "array";
 
 /** What a rule's value can name here. */
 export interface CatalogValueSources {
@@ -51,7 +56,7 @@ const EVENT_ARG_TYPES: Readonly<Record<string, CatalogValueType>> = {
   formData: "object",
   files: "array",
   descriptor: "object",
-  date: "object",
+  date: "date",
   // (A collection's drag and drop — ADR-284 Phase 5: the drop event's fields.)
   items: "array",
   target: "object",
@@ -160,6 +165,8 @@ export function catalogValueFits(
   if (!expected || !option.type || option.type === expected) return true;
   return (
     expected === "string" &&
-    (option.type === "number" || option.type === "boolean")
+    (option.type === "number" ||
+      option.type === "boolean" ||
+      option.type === "date")
   );
 }

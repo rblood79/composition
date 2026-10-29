@@ -11,7 +11,7 @@ import {
 } from "../variable.types";
 
 describe("isVariableDef", () => {
-  it("id · name · type 5종이 있어야 한다", () => {
+  it("id · name · type 6종이 있어야 한다", () => {
     expect(isVariableDef({ id: "v1", name: "count", type: "number" })).toBe(
       true,
     );
@@ -24,7 +24,8 @@ describe("isVariableDef", () => {
         persist: true,
       }),
     ).toBe(true);
-    expect(isVariableDef({ id: "v1", name: "x", type: "date" })).toBe(false);
+    expect(isVariableDef({ id: "v1", name: "x", type: "date" })).toBe(true);
+    expect(isVariableDef({ id: "v1", name: "x", type: "time" })).toBe(false);
     expect(isVariableDef({ id: "v1", name: "", type: "string" })).toBe(false);
     expect(isVariableDef({ name: "x", type: "string" })).toBe(false);
     expect(isVariableDef(null)).toBe(false);
@@ -42,11 +43,12 @@ describe("isVariableDef", () => {
     expect(isVariableDefList({})).toBe(false);
   });
 
-  it("VARIABLE_DEF_TYPES 는 기존 VariableType 5종과 같다", () => {
+  it("VARIABLE_DEF_TYPES 는 기존 VariableType 6종과 같다 (date 2026-10-29)", () => {
     expect([...VARIABLE_DEF_TYPES]).toEqual([
       "string",
       "number",
       "boolean",
+      "date",
       "object",
       "array",
     ]);

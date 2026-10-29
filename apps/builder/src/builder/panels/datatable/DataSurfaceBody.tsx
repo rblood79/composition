@@ -116,9 +116,7 @@ export function DataSurfaceBody({ mode, close }: DataSurfaceBodyProps) {
               message={localize("tableNotFound", "Table not found")}
             />
           );
-        return (
-          <DataTableEditor dataTable={dataTable} onClose={close} />
-        );
+        return <DataTableEditor dataTable={dataTable} onClose={close} />;
       }
       case "api-create":
         return (
@@ -144,7 +142,7 @@ export function DataSurfaceBody({ mode, close }: DataSurfaceBodyProps) {
       case "variable-create":
         return <VariableCreator projectId={mode.projectId} onClose={close} />;
       case "variables":
-        return <VariableList projectId={mode.projectId} />;
+        return <VariableList group={mode.group ?? "project"} />;
     }
   };
 
@@ -181,6 +179,6 @@ export function dataSurfaceModeKey(
     case "variable-create":
       return `variable-create-${mode.projectId}`;
     case "variables":
-      return `variables-${mode.projectId}`;
+      return `variables-${mode.projectId}-${mode.group ?? "project"}`;
   }
 }

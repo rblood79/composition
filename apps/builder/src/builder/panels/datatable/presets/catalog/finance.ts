@@ -58,7 +58,7 @@ export const transactions: DataTablePreset = definePreset({
         round2(mock.random.float(500, 20000) + Number(row.amount)),
     }),
     col("reference", "string", "reference", { kind: "uuid" }),
-    col("transactedAt", "datetime", "transactedAt", {
+    col("transactedAt", "date", "transactedAt", {
       kind: "pastDate",
       days: 90,
     }),
@@ -104,7 +104,7 @@ export const paymentCards: DataTablePreset = definePreset({
       kind: "formula",
       compute: ({ index }) => index === 0,
     }),
-    col("createdAt", "datetime", "createdAt", { kind: "pastDate", years: 3 }),
+    col("createdAt", "date", "createdAt", { kind: "pastDate", years: 3 }),
   ],
 });
 
@@ -191,7 +191,7 @@ export const invoices: DataTablePreset = definePreset({
       },
     }),
     // 결제된 청구서만 결제일
-    col("paidAt", "datetime", "paidAt", {
+    col("paidAt", "date", "paidAt", {
       kind: "formula",
       compute: ({ row, mock }) =>
         row.status === "paid"
@@ -271,7 +271,7 @@ export const images: DataTablePreset = definePreset({
       min: 1,
       max: 3,
     }),
-    col("uploadedAt", "datetime", "uploadedAt", { kind: "pastDate", years: 1 }),
+    col("uploadedAt", "date", "uploadedAt", { kind: "pastDate", years: 1 }),
   ],
 });
 
