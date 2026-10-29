@@ -1,0 +1,189 @@
+# ADR-291: 데이터 층 조회 · 어휘 — 계산 필드 (json-formula) · 서버 조회 범위 · publish 런타임의 대량 조회
+
+## Status
+
+Proposed — 2026-10-29
+
+- 사용자 요청: `/create-adr` (2026-10-29) — 「데이터 층 조회 · 어휘 — 계산 필드 포함」.
+- 방향을 정한 사용자 원문 (같은 날, json-formula 검토 중):
+  - 「지금은 빌더 개발 중이니 계산 필드가 없지」 — 「요구가 없다」 로 미루지 않는다 (설계는 처음부터 전체 범위).
+  - 「우리의 빌더를 사용하는 고객은 대부분 대량의 데이터를 가져와 sorting 하고 차트를 봐야하며 여러조건을 필터링해 조회데이터를 출력한다」.
+  - 「canvas 에서 그것을 하지는 않는다 canvas 는 빌더의 레이아웃 디자인을 위한 도구일 뿐이다」 · 「퍼블리싱된 rac 컴퍼넌트들로 만들어진 웹에서 처리할 부분이지」 · 「퍼블리시는 canvas 로 하지 않는다」.
+  - 「퍼블리시 기준이라면 json-formula 는 들어가는 것이 맞지 않나」 → 「사용할 가치가 있다고 판단되나」 → (검토 뒤) 「결론은?」 — 결론: json-formula 를 식 언어로 도입, 대량 로컬 조회 엔진은 Adobe 밖에서 측정 뒤.
+- 사용자가 이미 답한 확인 항목:
+  1. **계산 필드는 데이터 층 범위에 지금 넣는다** — ADR-284 결정 10 의 「수식 언어 배제」 를 **닫힌 식 언어 (json-formula) 는 허용** 으로 바꾼다. 자유 코드 · 임의 JS 는 그대로 배제 (원칙 「불가 → 스크립트 escape 금지」).
+  2. **데이터 의미의 정본은 publish 런타임** (DOM + RAC) 이고 저자 확인 자리는 Preview (같은 런타임). Canvas 는 mock 행 (≤ 1,000, ADR-286 사용자 결정 1) 으로 모양만 보이며 publish 결과를 보증하지 않는다 — 「Canvas = Publish 결과 동일」 게이트는 두지 않는다.
+  3. **먼저 테스트** (사용자 「먼저 테스트부터 해봐 compare mode 로 양쪽 모두 나오는지」) — spike 통과: `@adobe/json-formula@2.1.0` + 필드 `formula` + 평가기 한 분기로 Orders (price · qty · `total = price * qty`) 가 Compare Mode 에서 Canvas · Preview 둘 다 20 · 22 · 0 (dev 5176 · 콘솔 오류 0). spike 코드 6 파일은 **미커밋** 상태로 Phase 0 의 증거 (breakdown §1e) — 그대로 제품 코드가 되지 않는다 (필드 key 참조 · 정적 import · 보기 없는 바인딩 분기 임시).
+  4. **Adobe 저장소 전수 (715)** 에서 이 계획에 쓸 것은 json-formula 하나. react-spectrum-charts 는 Recharts + Canvas 대칭 (ADR-209) 교체라 **별도 ADR 보류**. 대량 로컬 조회 엔진은 Adobe 에 없다.
+- **리뷰 Round 1 반영 (2026-10-29, codex — [reviews/291.md](reviews/291.md))**: h1 집계 입력 · 계산 의존 전이가 `COMPUTED` 판정에서 빠짐 → 결정 5 (요청 전체의 실행 위치 하나) · G4 반례. h2 식별자 일괄 치환이 JSON 하위 속성 (`sum(items[*].price)` 의 `price`) 을 바꿈 → 결정 2 (루트 범위 식별자만 필드 참조) · G1 fixture. **Round 2 (같은 날)**: h1 · m3 해소, h2 잔존 — 「ChainedExpression 첫 자식만 루트」 가 `@.price` 를 빠뜨림 (rename 뒤 20 → 0) → 결정 2 를 **값 컨텍스트 추적** (루트 행 · 하위 · 생성 값, `@` 는 유지) + 분류 불가 구문 명시 거절로 바꾸고 G1 fixture 8. **Round 2 수리 검증 닫힘** (같은 날 — codex 「HIGH 0 · MEDIUM 0 · pending 0」, 추가 라운드 없음 → 전제 확정 · 재질문 금지). 실제 `scope.ts` · rename 뒤 값 · 의존 보존 · Builder 동작은 UNVERIFIED — G1 · G7 에서. m3 코드 보기에 `resultType` 보존 계약 없음 → 저장 형식을 `type` = 결과 타입 + `formula` 문자열로 바꿔 (별도 `resultType` 칸 없음) 코드 보기의 기존 `type` 키가 그대로 타입을 나른다 · golden 에 같은 식 두 타입.
+- 검토 원문: [JSON_FORMULA_COMPUTED_FIELDS_2026-10.md](../explanation/research/JSON_FORMULA_COMPUTED_FIELDS_2026-10.md) (json-formula 실측 · 끼울 자리 · 설계 항목 8 · 대안 대조). 메모리: `project-computed-field-json-formula-review-2026-10` · `user-customer-profile-large-data-sort-chart-filter` · `project-data-layer-rac-examples-research-2026-10`.
+
+> 구현 상세: [design/291-data-query-vocabulary-computed-fields-breakdown.md](design/291-data-query-vocabulary-computed-fields-breakdown.md)
+
+## Context
+
+### 도메인
+
+문서 모델 · 데이터 조회 (ADR-284 의 연장). D1 · D2 · D3 어느 것도 아니다 — RAC DOM · S2 prop · 시각 값을 건드리지 않는다. 계산 필드 값은 행의 다른 셀과 같은 길 (`useAsyncList` 항목 → RAC 컴포넌트 → `{field}` 템플릿) 로 화면에 닿고, 식 언어는 데이터 조회 어휘다 (ADR-284 §8 후속 — 「새 어휘 금지」 는 RAC 표면이 있는 Interactions 에만 닿는다). 경계 교차 없음.
+
+### 현재 (실측 2026-10-29, main `51fe50daa`)
+
+- **보기 평가기** `packages/shared/src/collections/view/evaluate.ts` (`runViewQueries` — 조건 → 묶기 · 집계 → 정렬, 순수 함수) 를 Canvas · Preview · Publish 가 한 모듈로 쓴다 (ADR-284 결정 6, `oneEvaluator.static.test.ts`). 셀 읽기는 `cellOf(row, field)` 하나이고 `ViewRunField.read` 훅이 있으면 그것을 부른다 — **참조 필드 (ADR-284 결정 4) 가 그 훅으로 다른 collection 행을 읽는다** (`viewFieldOf`). 계산 필드가 끼울 자리가 이미 있다.
+- **행 안 계산은 어디에도 없다**: `DataFieldType` 11 종 (`apps/builder/src/types/builder/data.types.ts:27` — string · number · boolean · date · datetime · email · url · image · array · object · reference) · `CatalogDataField` (`packages/shared/src/catalog/document/types.ts:1320`) · 패널 표 `FIELD_TYPES` (`panels/datatable/utils/fieldTypes.ts`). 집계 어휘는 행 사이 (`ViewAggregateFn` = count · sum · mean · min · max · applied). 「단가 × 수량」 · 「마감까지 며칠」 · 「재고 0 → 품절」 은 데이터를 손으로 고치는 수밖에 없다.
+- **보기가 없는 바인딩은 평가기를 타지 않는다** — `catalog/runtime/dataBinding.ts` `catalogBoundRows` 는 `ref.query` 가 있을 때만 `runViewQueries` 를 부른다 (spike 에서 확인 — 계산 필드는 보기와 무관하게 늘 돌아야 한다).
+- **서버 조회 범위** `collections/view/serialize.ts` — 조건 · 정렬은 endpoint 형식 (`suffix` · `body`) 으로 보내고 못 보내는 조건은 보고한다 (R1 「조용히 떨어뜨리지 않는다」). **묶기 · 집계는 요청이 아니다** (`serialize.ts:71` — `GROUP` 경고, 「the view runs on the loaded rows」) · 페이지는 `useAsyncList` cursor (`loadMore` · `cursorPath`) 뿐 · 전체 수는 `responseMapping.totalPath`. 대량 데이터의 「월별 매출 차트」 는 행 전부를 불러와 브라우저에서 묶는다.
+- **표시 투영 상한** 100 행 (`collections/resolveCollectionItems.ts:36`) · 문서 mock 행 상한 1,000 (`CATALOG_COLLECTION_ROW_LIMIT`). 평가기는 행 객체 배열을 메인 스레드에서 돈다 — publish 런타임에 Worker · 열 지향 저장 없음.
+- **죽은 식 자리**: `ProjectVariableEntry.transform?: string` (`types.ts:1384`, 「변환 함수 코드 `(value, context) => transformedValue`」) — 임의 JS 문자열인데 실행하는 코드 0 (`catalogDataStore.ts:127` 복사만). 「스크립트 escape 금지」 와 충돌.
+- **json-formula 실측** (`@adobe/json-formula` 2.1.0 — Apache-2.0 · 의존 0 · ESM src 배포 · gzip 41,432 B): JMESPath + OpenFormula, 함수 ~90, 식별자 `[a-zA-Z_$][a-zA-Z0-9_$]*` 그 밖은 홑따옴표, 없는 필드 → `null`, 전역 `$name`, `compile(expr, allowedGlobalNames) → AST` (평범한 객체 — `Identifier` · `QuotedIdentifier` 노드로 읽는 필드를 뽑을 수 있다) · `run(ast, row, language, globals)`, 오류 4 종 (`SyntaxError` · `TypeError` · `FunctionError` · `EvaluationError`), 호스트 확장 (전역 · `stringToNumber` · 사용자 함수 · locale). **함정 3**: 날짜 = epoch 일수 숫자 (행은 ISO 문자열) · AST → 문자열 역변환 없음 (Lexer 토큰 `start` 위치는 있다) · 서버 조회는 식을 모른다. Rust 판 없음.
+- **번들**: Builder initial 1,450,889 B gz (상한 1,390,000 이미 초과 — ADR-285 Phase 0) · Preview ≤ 320,000 B gz (ADR-201 재승인). json-formula 는 두 쪽 다 lazy 여야 한다.
+
+### 사용자와 인계 상황
+
+- 고객 (대시보드 · 내부 조회 도구) 의 핵심 동작은 대량 데이터의 정렬 · 차트 (집계) · 다중 조건 필터다. 차트 측정값 (이익 = 매출 − 원가 · 전환율) · 묶는 버킷 (날짜 → 월 · 금액 → 구간) · 파생 상태 (지연 = 마감 < 오늘 && 미완료) 는 전부 **행 안 계산** 이라 지금 어휘로는 못 적는다. 참조 제품 (Airtable · Notion · Framer CMS) 은 전부 formula 필드를 가진다.
+- 같은 고객에게 **묶기 · 집계가 서버로 안 가는 것** 이 계산 필드보다 앞선 결함이다 — 100만 행의 차트가 100만 행을 내려받는다.
+- 개발자 인계 (ADR-284 §8a · 285 코드 보기): 식은 코드 보기에 문자열 그대로 나와야 하고 (닫힌 어휘에 키 하나), 저자가 쓴 식이 실행기 교체에도 바뀌지 않아야 한다.
+
+### 제약
+
+- **Hard — 닫힌 어휘**: 식 언어는 json-formula 문법 · 함수 목록으로 닫힌다. 임의 JS · `new Function` · 사용자 코드 저장은 없다. 저자에게 숨기는 함수 (`register` · `registerWithParams` · `debug` · `random` — 결정성 · 어휘 밖) 는 목록에서 뺀다.
+- **Hard — 식은 필드 id 로 저장, 이름으로 표시**: rename 은 `key` 만 바꾸고 `id` 를 유지한다 (ADR-152 · `DataField.id`). 저장된 식이 key 를 읽으면 rename 이 식을 끊는다 (ADR-288 의 `{{ name }}` 참조와 같은 결함 class). 변수는 `$var_<id>`.
+- **Hard — 데이터 의미의 정본은 publish 런타임** (확인 항목 2): 계산 · 조회 · 집계의 결과는 Preview · Publish 가 같은 모듈 하나로 낸다 (ADR-284 결정 6 유지 — Preview · Publish 사이). Canvas 는 같은 식 언어로 mock 행을 계산해 모양을 보이되 결과 보증 · 게이트 대상이 아니다.
+- **Hard — 표시용 / 조회용 구분**: 계산 필드는 불러온 행 위에서 계산되는 **표시용** 이 기본이다. 계산 필드로 **거르기 · 정렬 · 묶기** 하려면 전체를 불러와야 맞는 결과라, 서버가 그 계산을 모르면 저자에게 「서버로 보낼 수 없음 · 전체 N 행을 불러옵니다」 를 보이고 상한 (사용자 결정 3) 을 넘으면 거부한다 (조용한 부분 결과 금지 — ADR-284 결정 6 과 같은 원칙).
+- **Hard — 서버 조회 범위 확장**: 묶기 · 집계 · 전체 수 · 페이지를 endpoint 형식이 담을 수 있으면 요청으로 보내고, 못 담으면 지금처럼 보고한다. 보고 없이 로컬로 떨어지는 경우는 없다.
+- **Hard — 마이그레이션 코드 0** (사용자 지시 2026-10-14): `formula` 는 선택 필드라 contract 51 그대로 (ADR-289 와 같은 정책). `transform` 삭제는 사용자 승인 뒤 (사용자 결정 2).
+- **Hard — 번들**: Builder · Preview initial Δ ≤ +1 KB gz (ADR-285 · 286 과 같은 `adr209-bundle-closure.mjs`). json-formula (41 KB) 와 식 모듈은 문서에 formula 필드가 있을 때만 동적 import. publish 로컬 조회 엔진 (wasm) 이 들어온다면 publish 런타임 lazy 이고 Builder 에는 들어가지 않는다.
+- **Hard — 코드 보기 왕복 유지**: ADR-285 strict 게이트 (golden · 거절 0 · 적용해도 코드 동일) 가 formula 가 있는 collection 에도 통과한다 — 어휘에 키 하나 (`formula`) 만 는다.
+- **Hard — 측정 선행 (C 등급)**: publish 런타임의 대량 로컬 조회 엔진 선택 (JS 평가기 + Worker / AST → JS 코드 생성 / 열 지향 wasm 엔진 번역) 은 Phase 0 측정 (현 평가기 1만 · 10만 · 100만 행 · Worker 유무 · 후보 wasm 크기 · 식 언어 · 라이선스) 뒤 **사용자 결정 4** 로 정한다. 이 ADR 은 측정과 자리 (식 언어 고정 · `useAsyncList.load` 뒤의 소스) 를 정하고 엔진 자체는 정하지 않는다.
+- **Soft**: 데이터 패널 격자 · 열 편집기 (ADR-288 · 289 의 모양) 는 그대로 — 계산 열은 읽기 전용 열 하나 · 열 편집기 「계산 열」 토글 + 식 입력 + 오류 한 줄, Type 은 결과 타입. ADR-289 가 열 편집기를 바꾸는 중이라 (`grid/ColumnEditorPopover.tsx` dirty) 착수는 289 뒤.
+
+## Alternatives Considered
+
+### 대안 A: 계산 필드 없이 — 계산은 데이터 소스 (서버 · 사전 계산 열) 에 둔다
+
+- 설명: 빌더는 행 안 계산을 제공하지 않는다. 저자는 API · DB 쪽에 계산 열을 만들거나 mock 데이터를 손으로 고친다. 서버 조회 범위 확장 (묶기 · 집계 · 페이지) 만 한다.
+- 리서치: Framer CMS · Webflow CMS 는 formula 가 없다 (콘텐츠 사이트). Airtable · Notion · Supabase (generated column) · Retool (JS transformer) 은 전부 있다 — 고객 프로필 (대시보드) 쪽 제품은 전부 가진다.
+- 위험: 기술 **L** / 성능 **L** / 유지보수 **M** (계산 요구마다 서버 쪽 작업 — 인건비 원칙 위반) / 마이그레이션 **L**.
+- 사용자 원칙 「인건비 · 일관성 · 유지보수」 · 「불가 → 스크립트 escape 금지」 에 어긋난다 — 날짜 파생 (매일 바뀜) 은 손으로 넣을 수도 없다.
+
+### 대안 B: 자체 식 언어 (산술 + 함수 20 개) 를 평가기 안에 직접 쓴다
+
+- 설명: `price * qty` · `if` · `concat` 정도의 작은 파서 · 평가기 (~5 KB) 를 `collections/formula/` 에 둔다.
+- 리서치: 작은 식 엔진은 결국 날짜 · 문자열 · 배열 · 오류 · locale 을 다시 짠다. Airtable formula 함수 ~100 · Notion formula 2.0 ~80 · json-formula ~90 — 참조 수준까지 가면 json-formula 를 재작성하는 셈.
+- 위험: 기술 **M** (파서 · 타입 강제 · 오류 모델을 새로 검증) / 성능 **L** / 유지보수 **H** (함수 요구마다 언어가 자란다 · spec 없음) / 마이그레이션 **M** (언어를 나중에 바꾸면 저장된 식이 바뀐다).
+
+### 대안 C: json-formula 를 식 언어로 고정 + 규모별 실행기 + 서버 조회 범위 확장 + publish 엔진은 측정 뒤 (채택)
+
+- 설명: (1) 식 언어 = json-formula 문법 · 함수 목록 (닫힌 어휘, Adobe 유지 · Apache-2.0 · AST 노출). 저장은 필드 id, 표시는 이름 (Lexer 토큰 위치 치환). 결과 타입은 저자 지정. 날짜는 `@internationalized/date` 로 ISO ↔ epoch 일수 다리. 오류는 정의 때 (문법 · 이름 · 순환) 와 셀 (`null` + 표지). (2) 평가 자리 = `ViewRunField.read` 훅 (참조 필드와 같은 함수) — 조건 · 집계 · 정렬 앞에서 행에 값이 있다. 보기 없는 바인딩 · 서버가 답한 행 (`served`) 에도 적용. (3) 실행기는 규모에 따라 셋 중 하나가 뒤에 붙는다 — 해석기 (불러온 페이지 · Canvas mock) · AST → JS 코드 생성 (수만 행) · 열 지향 엔진의 계산 열로 번역 (그 위). 저자 문서는 바뀌지 않는다. (4) 서버 조회 범위: `body` 형식에 묶기 · 집계 · 전체 수 · 페이지를 싣고, 못 담는 형식은 「전체 N 행」 보고 + 상한. 계산 필드 조건은 서버로 못 보내는 조건으로 같은 경로. (5) publish 런타임의 대량 로컬 조회 엔진은 Phase 0 측정 뒤 사용자 결정 — 이 ADR 은 자리 (`useAsyncList.load` 뒤 · Worker) 와 측정만 정한다.
+- 리서치: json-formula spec 2.1.0 · npm tarball 실측 (검토 원문 §1) · spike 통과 (확인 항목 3). 참조 제품의 formula 는 전부 「필드 id 저장 + 이름 표시」 (Airtable `{Field Name}` 은 내부 id 로 바뀐다 · Notion `prop("Name")`). 대량 로컬 조회 후보: Perspective (FINOS — 피벗 · 집계 · 계산 열 식 언어 · 스트리밍, Apache-2.0) · DuckDB-WASM (SQL · Arrow · Parquet, MIT) · Arquero (JS 열 지향). 셋 다 `load` 뒤의 소스로 숨는다.
+- 위험: 기술 **M** (역변환 · 날짜 다리 · 조회용 전체 로드는 직접 쓴다) / 성능 **M** (해석기는 행마다 µs 단위 — 불러온 페이지 · mock 1,000 행에는 충분하나 수만 행 위는 코드 생성 · 엔진으로 — 측정 선행) / 유지보수 **M** (외부 spec 의존 — 버전 고정 · AST 는 저장하지 않는다) / 마이그레이션 **L** (선택 필드 · contract 그대로 · `transform` 삭제는 승인 뒤).
+
+### 대안 D: 지금 바로 열 지향 wasm 엔진 (DuckDB-WASM) 을 publish 조회 엔진으로 — 계산 필드 = SQL 식
+
+- 설명: 보기 전체 (조건 · 묶기 · 집계 · 정렬 · 계산 필드) 를 SQL 로 번역해 Worker 안 DuckDB 가 돌린다. 식 언어는 SQL 식.
+- 리서치: DuckDB-WASM 은 수백만 행 group by 를 브라우저에서 하지만 wasm 이 수 MB ~ 십수 MB 이고, SQL 식은 비개발자 어휘가 아니다 (참조 제품은 spreadsheet 어법). Preview 상한 320 KB 와 충돌.
+- 위험: 기술 **H** (측정 전에 엔진을 고른다 · SQL 번역의 의미 동치 전수) / 성능 **H** (Preview 번들 · 첫 로드) / 유지보수 **M** / 마이그레이션 **H** (저장된 식이 SQL 이면 엔진 교체가 문서를 바꾼다).
+
+### 대안 E: HyperFormula (Handsontable) 를 식 엔진으로
+
+- 설명: Excel 호환 함수 ~400 · 의존 그래프 · 증분 재계산.
+- 리서치: 모델이 시트 셀 (A1 참조) 이라 행 단위 필드 식과 모양이 다르고, GPLv3 또는 상용 라이선스, 크기 수백 KB.
+- 위험: 기술 **M** / 성능 **H** / 유지보수 **M** / 마이그레이션 **M**. 라이선스가 걸린다.
+
+### Risk Threshold Check
+
+| 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ |
+| ---- | :--: | :--: | :------: | :----------: | :---: |
+| A    |  L   |  L   |    M     |      L       |   0   |
+| B    |  M   |  L   |    H     |      M       |   1   |
+| C    |  M   |  M   |    M     |      L       |   0   |
+| D    |  H   |  H   |    M     |      H       |   3   |
+| E    |  M   |  H   |    M     |      M       |   1   |
+
+HIGH 0 인 대안이 둘 (A · C) 이므로 루프 추가 없음. A 는 사용자 원칙 (확인 항목 1) 으로 기각. C 채택.
+
+## Decision
+
+**대안 C 채택.**
+
+> 구현 상세: [design/291-data-query-vocabulary-computed-fields-breakdown.md](design/291-data-query-vocabulary-computed-fields-breakdown.md)
+
+1. **식 언어 = json-formula 로 고정**한다 (문법 · 함수 목록 · 오류 4 종). 저자에게 보이는 어휘는 그 함수 이름이고 (사용자 결정 1), 숨기는 함수 4 (`register` · `registerWithParams` · `debug` · `random`) 는 패널 목록 · 정의 검증에서 거절한다. ADR-284 결정 10 의 「수식 언어 배제」 는 이 결정으로 **닫힌 식 언어 허용** 으로 바뀐다 (확인 항목 1). 자유 코드 · 임의 JS 는 그대로 배제.
+2. **계산 필드 = `CatalogDataField.formula?: string` + 기존 `type` = 결과 타입** (선택 필드 · contract 51 그대로 — 리뷰 m3 로 `resultType` 별도 칸을 없앴다: `type` 이 number · string · boolean · date · datetime 중 하나로 결과 타입을 나르고 `formula` 유무가 계산 열을 가른다. 비교 · 정렬 · 코드 보기 · 격자가 이미 `type` 을 읽는다). `formula` 는 필드 **id** 를 홑따옴표 식별자로 (`'fld_a' * 'fld_b'`), 변수는 `$var_<id>` 전역으로 읽는다. 패널 · 코드 보기는 이름으로 보이고 저장 때 역치환한다. **치환 · 검증 · 의존 탐색은 식의 루트 범위 식별자만 필드 참조로 본다** (리뷰 h2) — 점 뒤 (`a.b` 의 `b`) · projection 뒤 (`items[*].price` 의 `price`) · filter 조건 안 (`[?qty > 2]`) · `&expr` 안 · 파이프 `|` 오른쪽 · 객체 생성 키 (`{total: …}`) 는 그 값의 JSON 하위 속성이라 그대로 둔다. 판정은 **값 컨텍스트 추적** 이다 (리뷰 Round 2 h2 — 노드 위치가 아니라 「그 식별자가 어떤 값에 적용되는가」): AST 를 걸으며 각 식이 평가되는 값을 **루트 행 · 하위 값 · 생성 값** 셋 중 하나로 들고 간다. 식별자는 루트 행에 적용될 때만 필드 참조다. `@` (Current) 는 컨텍스트를 바꾸지 않으므로 `@.price` · `(@).price` · `@ \| price` 의 `price` 는 루트 참조다 (설치본 `TreeInterpreter.js:103` — 왼쪽 결과가 오른쪽의 컨텍스트, `:379` Current 는 값 그대로). 컨텍스트를 바꾸는 것: 식별자 · 함수 결과 · 리터럴 뒤의 `.` (하위) · 투영 `[*]` · `[]` · filter `[?…]` 와 `&expr` (원소) · 파이프 오른쪽 (왼쪽 결과 — 왼쪽이 루트를 유지하면 루트) · 객체 · 배열 생성 (`{k: …}` 의 값은 현재 컨텍스트, 만든 객체 뒤의 `.k` 는 생성 값). 추적이 분류하지 못하는 구문 (예: 함수 결과 위의 투영 · 다단 파이프 · 식 참조를 받는 함수 밖의 `&`) 은 **명시적으로 거절** (`FORMULA_SCOPE_UNSUPPORTED`) 한다 — 조용한 통과 0. 같은 추적을 토큰 걷기에도 적용해 글자 위치를 얻고, 두 쪽의 루트 식별자 다중집합이 다르면 역시 거절. 의존 · 순환 탐색은 같은 루트 참조 집합을 쓴다. AST 는 저장하지 않는다 (spec 버전이 바뀌면 AST 모양이 바뀐다). 결과 타입 (`type`) 은 저자가 고른다 (사용자 결정 7).
+3. **평가 자리 = 평가기의 `read` 훅** (참조 필드와 같은 함수 `viewFieldOf` 안). 계산 필드는 보기 유무 · 서버 답 유무와 무관하게 **행 읽기 단계** 에서 늘 굳혀져 조건 · 집계 · 정렬 · 템플릿 · 차트가 같은 값을 읽는다. compile 은 식당 1회 (문서 revision 키 캐시), run 은 행마다. 행 오류는 `null` + 셀 표지 (행 하나가 보기를 멈추지 않는다), 정의 오류 (문법 · 모르는 이름 · 순환 · 숨긴 함수) 는 정의 때 거절 + 필드 「깨짐」 표시 (조건의 `broken` 과 같은 어법).
+4. **날짜 · 타입 다리 하나**: 행의 `date` · `datetime` 값은 `stringToNumber` 훅과 `read` 전처리로 epoch 일수로 넘기고, `type: "date"` · `"datetime"` 계산 열의 결과는 ISO 문자열로 되돌린다 (`@internationalized/date` — 새 의존 0). 비교 · 정렬은 그 `type` 으로 `viewFieldKind` 를 정한다 (`comparison.ts` 무변경).
+5. **표시용 / 조회용**: 계산 필드를 조건 · 정렬 · 묶기 키 · **집계 입력 (`aggregates[].field`)** 으로 쓰는 보기, 그리고 그 필드가 **의존 전이** 로 닿는 계산 필드 (계산 필드가 읽는 필드 · 참조 경로의 대상 필드가 다시 계산 필드) 를 쓰는 보기는 **서버로 못 보내는 보기** 다 (리뷰 h1 — `groupBy(raw) + sum(total)` 은 서버에 `total` 도 식도 없다). 판정은 보기 사슬 전체에 하나 — `serialize.ts` 가 `COMPUTED` 코드 (조건 id 또는 집계 이름) 를 내고, 하나라도 있으면 **그 보기의 조건 · 묶기 · 집계 전부를 로컬에서** 돌린다 (조건만 서버 · 집계만 로컬 같은 반쪽 요청 0 — 서버 집계 응답에는 원시 열이 없어 뒤에 복구할 수 없다). 세션은 응답 모드를 **원시 행** (로컬 보기 실행) 과 **서버 집계 결과** (묶음 행 = 결과 schema) 로 구분해 둘을 섞지 않는다. 패널은 「서버로 보낼 수 없음 · 전체 N 행을 불러옵니다」 를 보이며 상한 (사용자 결정 3) 초과면 거부한다. 서버가 그 계산을 하는 길 (식 → 서버 조회 번역) 은 이 ADR 밖 — 실증 뒤.
+6. **서버 조회 범위 확장**: `body` 형식에 `groupBy` · `aggregates` · `page` (cursor 또는 offset · limit) · 전체 수 요청을 싣는다 (`{ where, sort, group, page }`). `suffix` 형식은 묶기 · 집계를 담지 못하므로 지금의 `GROUP` 보고를 「전체 N 행」 표시 + 상한으로 바꾼다 (사용자 결정 6). 응답의 집계 결과는 보기의 결과 schema (ADR-284 결정 3) 그대로이고, 서버 집계와 로컬 집계의 의미 동치는 G5 가 같은 fixture 로 단언한다.
+7. **publish 런타임의 대량 로컬 조회**: 평가는 `useAsyncList.load` 뒤의 **소스** 가 한다 — RAC 컴포넌트는 소스를 모른다 (사용자 「퍼블리싱된 RAC 컴포넌트 웹에서 처리」). Phase 0 이 현 평가기를 1만 · 10만 · 100만 행에서 재고 (조건 5 + 정렬 + 묶기 · Worker 유무), 후보 wasm 엔진의 크기 · 식 언어 · 라이선스를 같은 표로 적는다. 엔진 선택 (없음 / 코드 생성 / Perspective / DuckDB-WASM) 은 **사용자 결정 4** 이고, 고르면 **별도 ADR** 로 간다 (이 ADR 은 측정 · 자리 · 식 언어 고정까지). Canvas 에는 어떤 엔진도 싣지 않는다 (확인 항목 2).
+8. **데이터 패널 격자** 는 계산 열을 읽기 전용 열로 보인다 (사용자 결정 5 — 지금 spike 에서 빈 칸). 열 편집기 「계산 열」 토글 + 식 입력 + 오류 한 줄, Type = 결과 타입 (ADR-289 의 절 구조 그대로).
+9. **코드 보기**: `./data/<collection>` 의 필드 정의에 `formula: "…"` 문자열 (이름 표기) 을 더하고 결과 타입은 **기존 `type` 키** 가 나른다 (리뷰 m3 — 같은 식의 number 열과 string 열이 `type` 으로 갈린다). ADR-285 닫힌 어휘에 키 하나, golden 에 formula collection 1 (같은 식 두 타입 + 배열 하위 속성 식). 역변환은 같은 치환 모듈로 id 저장 · `type` 그대로.
+10. **`ProjectVariableEntry.transform` 처리** (사용자 결정 2): 권고 **삭제** (실행자 0 · 원칙 위반). 같은 식 언어로 바꾸는 쪽을 고르면 변수 「계산 변수」 로 이 ADR 의 phase 에 넣는다.
+11. **배제 유지**: 자유 코드 · 임의 JS · 식 → 서버 조회 번역 (실증 뒤) · Canvas 결과 보증 · 엔진 자체 선택 (별도 ADR) · react-spectrum-charts (별도 ADR).
+
+**위험 수용 근거**: 기술 M — 끼울 자리가 참조 필드와 같은 훅이라 평가기 본문 무변경 (spike 60 줄), 새로 쓰는 것은 치환 · 날짜 다리 · 보고 코드 하나. 성능 M — 해석기 비용은 불러온 페이지 (≤ 표시 상한 × 페이지) · mock 1,000 행 범위에서 G6 가 잰다 (1,000 행 × 식 5 ≤ 16 ms 한 프레임 — 불리 케이스 = 날짜 함수 · 문자열 연결). 그 위는 측정 뒤 사용자 결정. 유지 M — 버전 고정 (`2.1.0`) · AST 비저장 · 식 문자열만 문서. 이관 L — 선택 필드.
+
+**기각 사유**: A — 사용자 원칙 (인건비 · escape 금지) 위반 · 날짜 파생 불가. B — 참조 수준까지 가면 재작성, spec 없음. D — 측정 전 엔진 선택 · Preview 번들 · 문서가 SQL 에 묶임. E — 셀 모델 · 라이선스.
+
+### 사용자 결정 7 건 (execute-adr 가 그 항목에 닿을 때 묻는다 — 4 결정 지점 밖)
+
+| #   | 항목                                                                                                              | 권고                                                                                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 저자에게 보이는 함수 이름 — json-formula 영어 그대로인가, 패널에서 한국어 별칭을 보이는가                         | **영어 그대로** — 참조 제품 (Airtable `IF` · `DATETIME_DIFF`) 과 대응 · 코드 보기 왕복 · 문서 (spec) 가 그 이름. 패널 설명은 i18n                             |
+| 2   | `ProjectVariableEntry.transform` — 삭제 / 같은 식 언어로 교체 (계산 변수) / 유지                                  | **삭제** (실행자 0 · 임의 JS 자리). 계산 변수가 필요하면 그때 식 언어로 — 이 ADR phase 안                                                                     |
+| 3   | 조회용 계산 필드 (조건 · 정렬 · 묶기 키) 의 전체 로드 상한                                                        | **10,000 행** — 넘으면 「서버로 보낼 수 없음 · N 행 초과」 거부 (조용한 부분 결과 금지). 값은 G6 측정 뒤 고친다                                               |
+| 4   | publish 런타임의 대량 로컬 조회 엔진 — 없음 (JS 평가기 + Worker) / AST → JS 코드 생성 / Perspective / DuckDB-WASM | **Phase 0 측정 뒤** — 임계 (수만 행) 아래면 「없음 + Worker」, 위면 Perspective 우선 (대시보드 · 계산 열 식 언어 · Apache-2.0). 고르면 별도 ADR               |
+| 5   | 데이터 패널 격자의 계산 열 — 읽기 전용 열로 값 표시 / 식만 표시 / 숨김                                            | **값 표시 (읽기 전용 · 식은 머리글 툴팁)** — 저자가 결과를 격자에서 바로 본다                                                                                 |
+| 6   | 서버 조회 범위 — `body` 형식에만 묶기 · 집계 · 페이지 / `suffix` 에도 (json-server `_page` · `_limit`)            | **`body` 에 전부 + `suffix` 는 페이지 · 전체 수만** (json-server 가 `_page` · `_limit` · `X-Total-Count` 를 가진다) · 묶기 · 집계는 suffix 에서 「전체 N 행」 |
+| 7   | 계산 열의 결과 타입 (`type`) — 저자 지정 / 식에서 추론                                                            | **저자 지정** — null 행에서 추론이 흔들린다 · 비교 · 정렬 · 차트 집계가 타입을 읽는다. 기본값은 식의 첫 run 이 낸 타입을 제안                                 |
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                                                                                         | 심각도 | 대응                                                                                                                                                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 식이 필드 **key** 를 읽어 rename 이 식을 끊는다 (spike 가 그렇다 · `DataField.id` 주석 — rename 은 key 만) — ADR-288 의 `{{ name }}` 결함 class 재발 (`commands/data.ts` · `columnKey` · `codeView.ts:74`)                                                                                   |  HIGH  | Decision 2 — id 저장 · 이름 표시 · 치환 모듈 하나를 패널 · 코드 보기 · 검증이 같이 쓴다 · **G1** rename 뒤 값 불변 + 원복 RED                                                                                                        |
+| R2  | 계산 필드로 거르기 · 정렬 · 묶기 · **집계** 하는 보기 (의존 전이 포함) 가 서버 페이지 · 서버 집계 위에서 돌아 **부분 결과 · 빈 집계** 를 전체처럼 보인다 (`dataBinding.ts` `served` 분기 · `serialize.ts` 보고 코드 · `catalogPreviewSession.ts` 집계 응답) — 대량 데이터 고객에게 틀린 조회 |  HIGH  | Decision 5 — `COMPUTED` 판정에 집계 입력 · 의존 전이 포함 · 보기 사슬 전체를 원시 행 모드로 · 「전체 N 행」 + 상한 거부 · **G4** 반례 (`groupBy(raw) + sum(total)` → 로컬 42 · 요청에 `group` 없음)                                  |
+| R3  | 서버 집계와 로컬 집계의 의미 불일치 (mean 의 null 처리 · 날짜 버킷 경계 · 빈 묶음) — ADR-284 R1 의 묶기 판                                                                                                                                                                                   |  HIGH  | Decision 6 — 같은 fixture 를 로컬 평가기와 mock 서버 (json-server 류 + body 형식 어댑터) 로 돌려 결과 동치 · **G5** · 못 담는 형식은 보고                                                                                            |
+| R4  | 날짜 숫자 모델 (epoch 일수) 과 행의 ISO 문자열 · `viewDay` (`comparison.ts:147`) 가 어긋나 「마감까지 며칠」 이 하루 틀린다 (UTC · 시간대)                                                                                                                                                   |  MED   | Decision 4 — 다리 한 모듈 · G2 fixture (경계일 · 시간대 · null) · 날짜 비교는 `viewDay` 그대로                                                                                                                                       |
+| R5  | json-formula 정적 import 로 Builder · Preview initial 이 +41 KB gz (spike 상태)                                                                                                                                                                                                              |  MED   | 동적 import (formula 필드 있는 문서만) · G3 Δ ≤ +1 KB                                                                                                                                                                                |
+| R6  | 해석기 비용 — 식마다 트리 순회 · 타입 매칭, 1,000 행 × 식 n × 보기 재계산 (변수 변경마다) 이 Preview 프레임을 먹는다                                                                                                                                                                         |  MED   | compile 캐시 · 보기 memo 키에 식 포함 · G6 (1,000 행 × 식 5 ≤ 16 ms · 불리 케이스 날짜 · 문자열) · 그 위는 사용자 결정 4                                                                                                             |
+| R7  | spec 버전 변경 (함수 추가 · 의미 변경) 이 저장된 식의 결과를 바꾼다                                                                                                                                                                                                                          |  MED   | 버전 고정 `2.1.0` (catalog) · 함수 목록 스냅샷 테스트 (설치본의 함수 이름 = 패널 목록) · AST 비저장                                                                                                                                  |
+| R8  | 열 편집기 · 격자가 ADR-289 와 같은 파일 (`grid/ColumnEditorPopover.tsx` · `DataGrid.*` — 2026-10-29 dirty) 을 건드린다                                                                                                                                                                       |  MED   | 착수 = 289 Implemented 뒤 (README 순서) · Phase 2 만 그 파일                                                                                                                                                                         |
+| R10 | 이름 ↔ id 치환이 JSON 하위 속성 · 객체 키 · 투영 항목의 식별자까지 바꾸거나 (`sum(items[*].price)` 30 → 0) 루트를 유지하는 `@.price` 를 빠뜨려 rename 뒤 값이 틀린다 (`@.price * qty` 20 → 0 — 리뷰 Round 1 · 2 probe), 또는 분류 못 하는 문법이 조용히 통과한다                             |  HIGH  | Decision 2 — 값 컨텍스트 추적 (루트 행 · 하위 · 생성) · `@` 는 컨텍스트 유지 · 분류 불가 = `FORMULA_SCOPE_UNSUPPORTED` 거절 · 토큰 ↔ AST 다중집합 불일치 = 거절 · **G1** 범위 fixture 8 각각 원식 값 · rename 뒤 값 · 의존 집합 보존 |
+| R9  | 숨긴 함수 (`random` · `now` 류) 가 결정성을 깨 코드 보기 왕복 · 적합성 fixture 가 흔들린다                                                                                                                                                                                                   |  LOW   | `random` 거절 · `now` · `today` 는 `ViewRunInput.today` (이미 있다 — `withinLast`) 를 전역으로 넘겨 결정적                                                                                                                           |
+
+## Gates
+
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 실패 시 대안                                      |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| G0   | Phase 0 끝          | RED 7 (breakdown §1d) 전부 `it.fails` 로 실패 확인 · 쓰기 지점 · 소비자 전수 표 freeze · spike 6 파일을 증거로 기록한 뒤 원복 · **측정 표** (현 평가기 1만 · 10만 · 100만 행 × 조건 5 + 정렬 + 묶기 · 메인 / Worker · 기기 · 4x throttle 병기 — Q1 합성 행은 규모 전용) · 후보 wasm 3 의 크기 · 식 언어 · 라이선스 표 → 사용자 결정 4 입력                                                                                                                                                                                                                                                                                                       | 측정 없이는 Phase 4 착수 금지                     |
+| G1   | Phase 1 끝          | 필드 rename (`key` 변경) 뒤 계산값 · 코드 보기 문자열 · 패널 표시 전부 불변 (id 저장) · 원복 RED (key 저장으로 되돌리면 rename 테스트가 깨진다) · 순환 참조 정의 거절 · 숨긴 함수 거절 · **범위 fixture 8** (설치 엔진 값 = 치환 뒤 값 = rename 뒤 값 · 의존 집합 단언) — `sum(items[*].price)` = 30 (루트 `items` 만) · `@.price * qty` = 20 (둘 다 루트 — `price` → `unitPrice` rename 뒤 20) · `(@).price` · `@ \| price` (루트 유지) · `a.b` · `[?qty > 2]` · `map(&price, items)` · `{total: price * qty}.total` (생성 값) · 분류 불가 구문 2 (함수 결과 위 투영 · 다단 파이프) → `FORMULA_SCOPE_UNSUPPORTED` 거절 · 토큰 ↔ AST 불일치 거절 | 추적 규칙 수리 — key 저장 금지 · 조용한 통과 금지 |
+| G2   | Phase 1 끝          | 타입 · 날짜 fixture — number · string · boolean · date 결과 각 3 · 날짜 경계 (월말 · 윤년 · 시간대 · null) · `TypeError` · 0 나눗셈 행 → `null` + 표지 · 결과 타입이 `viewFieldKind` 로 비교 목록을 정한다                                                                                                                                                                                                                                                                                                                                                                                                                                       | 다리 모듈 수리                                    |
+| G3   | Phase 5             | `adr209-bundle-closure.mjs` — Builder · Preview initial Δ ≤ +1 KB gz (착수 HEAD 대비) · formula 필드 없는 문서는 json-formula 요청 0 (네트워크 기록)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 동적 import 경계 수리                             |
+| G4   | Phase 3 끝          | 계산 필드를 조건 · 정렬 · 묶기 키 · 집계 입력으로 쓰는 보기 + 페이지 endpoint → `COMPUTED` 보고 1 · 서버 집계 요청 0 (요청 본문에 `group` 없음) · 패널 「전체 N 행」 표시 · 상한 초과 → 거부 (행 0 · 안내) · 부분 결과 표시 0 — **반례** `groupBy(raw) + sum(total)` 두 행 `{10,2}` · `{11,2}` → 로컬 전체 42 (서버 집계로 보내면 RED) · 의존 전이 (계산 필드가 계산 필드를 읽음) 도 같은 판정 — 원복 RED (보고 제거 → 부분 결과가 통과하면 RED)                                                                                                                                                                                                 | 보고 경로 · 모드 분기 수리                        |
+| G5   | Phase 3 끝          | 같은 fixture (행 200 · 묶기 2 · 집계 5 · null 포함) 를 로컬 평가기와 mock 서버 (body 형식 어댑터) 로 → 결과 동치 (행 · 값 · 전체 수) · `suffix` endpoint 의 묶기 → 「전체 N 행」 보고 · 페이지 · 전체 수 요청 (json-server `_page` · `X-Total-Count`) 왕복                                                                                                                                                                                                                                                                                                                                                                                       | 어댑터 또는 보고 수리                             |
+| G6   | Phase 2 끝          | node bench (ADR-286 G2 틀 · 중앙값 100 회 · 2 회 반복): 1,000 행 × 식 5 (산술 · 문자열 연결 · 날짜 차 · 조건 · 배열 합) 평가 ≤ 16 ms · 변수 변경 100 회 재계산 ≤ 16 ms/회 · 대조군 = 식 0 (같은 보기) — 불리 케이스 = 날짜 · 문자열                                                                                                                                                                                                                                                                                                                                                                                                              | compile 캐시 · 코드 생성 (사용자 결정 4 앞당김)   |
+| G7   | Phase 5             | live (Chrome MCP · 별도 dev 서버): Orders (price · qty · total) → Table 연결 → Compare Mode Preview 값 · mock 셀 편집 → total 따라옴 · 날짜 식 (「D-day」) · 조건 「total > 20」 → Preview 거르기 · 묶기 (버킷 식) → Chart · 코드 보기 formula 문자열 왕복 (golden 6) · 격자 읽기 전용 열 · 오류 식 → 「깨짐」 · 콘솔 오류 0                                                                                                                                                                                                                                                                                                                     | 결함 수리 뒤 재실행                               |
+| G8   | Implemented 승격 전 | 사용자가 본인 Builder (5173) 에서 계산 필드 하나를 만들고 Preview 에서 값을 확인 — 「확인」 원문 기록 · 사용자 결정 1 ~ 7 기록                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 보고 뒤 대기                                      |
+
+측정 5-질문 (measurement-validity §1): Q1 G0 · G6 의 행은 생성 합성물 — **규모 전용**, 분포 (중복도 · 값 종류) 인용 금지. Q2 불리 케이스 = 날짜 · 문자열 식 · 변수 변경 반복 · Worker 없음. Q3 대조군 = 식 0 보기 · 착수 HEAD. Q4 소비 경로 = `viewFieldOf` → `cellOf` → 조건 · 집계 · 템플릿 (grep 3). Q5 oracle = 손계산 fixture (G2 · G5) · json-server 실행 (G5) · 사용자 동작 (G8).
+
+### Live Exercise
+
+(Implemented 승격 시 기재)
+
+## Consequences
+
+### Positive
+
+- 저자가 데이터를 고치지 않고 화면 값을 만든다 — 합계 · 글자 합치기 · 남은 날 · 상태 분류 · 단위 변환 · 차트 측정값 · 버킷. 식 한 줄 = 열 하나, Undo 한 번.
+- 식 언어가 먼저 고정되므로 실행기 (해석기 → 코드 생성 → 엔진) 가 바뀌어도 저자 문서 · 코드 보기가 바뀌지 않는다.
+- 묶기 · 집계 · 페이지가 서버로 가서 대량 데이터의 차트가 행 전부를 내려받지 않는다. 못 보낼 때는 저자가 그 사실을 본다.
+- publish 런타임의 대량 조회 엔진 결정이 측정 표 위에서 내려진다 (추측 0).
+- 죽은 `transform` 자리가 사라진다 (승인 뒤).
+
+### Negative
+
+- 외부 spec 의존 하나 (json-formula 2.1.0) — 버전 고정 · 함수 스냅샷 테스트 유지 비용.
+- 이름 ↔ id 치환 모듈을 직접 쓴다 (json-formula 에 역변환 없음) — Lexer 토큰 위치 의존, 버전 올릴 때 확인.
+- 조회용 계산 필드는 대량 데이터에서 쓸 수 없다 (상한 거부) — 식 → 서버 조회 번역은 별도 실증.
+- 열 편집기 · 격자 · 코드 보기 · 직렬화 · 평가기 · Preview 세션에 걸친다 (추정 ~22 파일, breakdown §0) — 착수는 289 뒤.
+- 엔진 선택은 이 ADR 에서 끝나지 않는다 — 사용자 결정 4 뒤 별도 ADR.
