@@ -20,7 +20,7 @@
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
-import type { DataOp } from "@composition/shared";
+import { resolveField, type DataOp } from "@composition/shared";
 
 import {
   ArrowDownWideNarrow,
@@ -344,7 +344,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       term === ""
         ? searchable
         : searchable.filter(({ haystack }) => haystack.includes(term));
-    const sortField = sort && schema.find((f) => f.key === sort.key);
+    const sortField = sort ? resolveField(schema, sort.key) : null;
     return sortField
       ? sortGridItems(filtered, sortField, sort!.direction)
       : filtered;
@@ -628,7 +628,8 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const allVisibleSelected =
     items.length > 0 && items.every((item) => selectedIndexes.has(item.index));
   const someVisibleSelected =
-    !allVisibleSelected && items.some((item) => selectedIndexes.has(item.index));
+    !allVisibleSelected &&
+    items.some((item) => selectedIndexes.has(item.index));
   const toggleVisibleRows = useCallback(
     (selected: boolean) => {
       setSelectedIndexes((prev) => {
@@ -858,7 +859,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     async (format: "csv" | "json") => {
       if (selectedRows.length === 0) return;
       try {
-        await navigator.clipboard.writeText(serializeRows(selectedRows, format));
+        await navigator.clipboard.writeText(
+          serializeRows(selectedRows, format),
+        );
         announceDataPanelStatus(
           t("gridRowsCopied", { count: selectedRows.length }),
           { tone: "success" },
@@ -1183,78 +1186,78 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         />
       )}
       <div className="datagrid-split" data-form={rowForm ? "true" : undefined}>
-      <div className="datagrid-scroll-wrap">
-        {virtualized ? (
-          <ResizableTableContainer className="datagrid-scroll">
-            <Virtualizer<FrozenLayoutOptions>
-              layout={FrozenTableLayout}
-              layoutOptions={{
-                rowHeight: GRID_ROW_HEIGHT,
-                headingHeight: GRID_ROW_HEIGHT,
-                frozenColumns: frozen.join("\0"),
-              }}
-            >
-              {tableNode}
-            </Virtualizer>
-          </ResizableTableContainer>
-        ) : (
-          <ResizableTableContainer className="datagrid-scroll">
-            {tableNode}
-          </ResizableTableContainer>
-        )}
-        {/* 새 필드 슬롯 — 헤더 행 높이, 마지막 열 오른쪽 / 뷰포트 오른쪽 가장자리 (가시성) */}
-        <div
-          ref={addSlotRef}
-          className="datagrid-add-field-slot"
-          data-adding={String(addingField)}
-          style={{ left: addSlotLeft }}
-        >
-          {addingField ? (
-            <input
-              key={addNonce}
-              className="datagrid-add-field-input"
-              autoFocus
-              aria-label={t("fieldAddTitle")}
-              placeholder={t("fieldNamePlaceholder")}
-              defaultValue=""
-              data-shortcut-local="undo redo"
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void commitAddField(e.currentTarget.value);
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  cancelAddField();
-                }
-              }}
-            />
+        <div className="datagrid-scroll-wrap">
+          {virtualized ? (
+            <ResizableTableContainer className="datagrid-scroll">
+              <Virtualizer<FrozenLayoutOptions>
+                layout={FrozenTableLayout}
+                layoutOptions={{
+                  rowHeight: GRID_ROW_HEIGHT,
+                  headingHeight: GRID_ROW_HEIGHT,
+                  frozenColumns: frozen.join("\0"),
+                }}
+              >
+                {tableNode}
+              </Virtualizer>
+            </ResizableTableContainer>
           ) : (
-            <Button
-              className="datagrid-add-field"
-              aria-label={t("fieldAddTitle")}
-              onPress={openAddField}
-            >
-              <AddIcon size={iconSmall.size} />
-            </Button>
+            <ResizableTableContainer className="datagrid-scroll">
+              {tableNode}
+            </ResizableTableContainer>
           )}
+          {/* 새 필드 슬롯 — 헤더 행 높이, 마지막 열 오른쪽 / 뷰포트 오른쪽 가장자리 (가시성) */}
+          <div
+            ref={addSlotRef}
+            className="datagrid-add-field-slot"
+            data-adding={String(addingField)}
+            style={{ left: addSlotLeft }}
+          >
+            {addingField ? (
+              <input
+                key={addNonce}
+                className="datagrid-add-field-input"
+                autoFocus
+                aria-label={t("fieldAddTitle")}
+                placeholder={t("fieldNamePlaceholder")}
+                defaultValue=""
+                data-shortcut-local="undo redo"
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void commitAddField(e.currentTarget.value);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelAddField();
+                  }
+                }}
+              />
+            ) : (
+              <Button
+                className="datagrid-add-field"
+                aria-label={t("fieldAddTitle")}
+                onPress={openAddField}
+              >
+                <AddIcon size={iconSmall.size} />
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-      <ColumnCreatePopover
-        table={table}
-        triggerRef={addSlotRef}
-        isOpen={creatingField}
-        onOpenChange={setCreatingField}
-      />
-      {rowForm && (
-        <RowForm
-          key={`${rowForm.kind}-${rowForm.kind === "update" ? rowForm.rowIndex : ""}-${rowFormNonce}`}
+        <ColumnCreatePopover
           table={table}
-          mode={rowForm}
-          onClose={closeRowForm}
-          onSaved={focusSavedRow}
+          triggerRef={addSlotRef}
+          isOpen={creatingField}
+          onOpenChange={setCreatingField}
         />
-      )}
+        {rowForm && (
+          <RowForm
+            key={`${rowForm.kind}-${rowForm.kind === "update" ? rowForm.rowIndex : ""}-${rowFormNonce}`}
+            table={table}
+            mode={rowForm}
+            onClose={closeRowForm}
+            onSaved={focusSavedRow}
+          />
+        )}
       </div>
       <ConfirmDialog
         isOpen={pendingPaste !== null}
@@ -1342,13 +1345,16 @@ class FrozenTableLayout<T> extends TableLayout<T, FrozenLayoutOptions> {
     colIndex?: number | null;
   }): boolean {
     const columns = (
-      this.virtualizer?.collection as { columns?: readonly { key: Key }[] } | undefined
+      this.virtualizer?.collection as
+        { columns?: readonly { key: Key }[] } | undefined
     )?.columns;
     const key =
       node.type === "cell"
         ? columns?.[node.colIndex ?? node.index]?.key
         : node.key;
-    return key === SELECT_COLUMN || (key != null && this.frozen.has(String(key)));
+    return (
+      key === SELECT_COLUMN || (key != null && this.frozen.has(String(key)))
+    );
   }
 }
 
@@ -1448,10 +1454,9 @@ function ColumnHead({
       case "copy-name":
         void navigator.clipboard.writeText(field.key).then(
           () =>
-            announceDataPanelStatus(
-              t("columnNameCopied", { key: field.key }),
-              { tone: "success" },
-            ),
+            announceDataPanelStatus(t("columnNameCopied", { key: field.key }), {
+              tone: "success",
+            }),
           () => globalToast.error(t("gridCopyFailed")),
         );
         break;
@@ -1985,16 +1990,17 @@ function PopoverCellEditor({
           />
           <div className="datagrid-popover-footer">
             <div className="datagrid-popover-keys">
+              {/* Key glyphs come from the shortcut formatter (platform-aware — ⇧ on Mac). */}
               <span className="datagrid-popover-key">
-                <kbd>⏎</kbd>
+                <kbd>{formatShortcut({ key: "Enter", modifier: "none" })}</kbd>
                 {hint("gridKeySave")}
               </span>
               <span className="datagrid-popover-key">
-                <kbd>⇧⏎</kbd>
+                <kbd>{formatShortcut({ key: "Enter", modifier: "shift" })}</kbd>
                 {hint("gridKeyNewline")}
               </span>
               <span className="datagrid-popover-key">
-                <kbd>Esc</kbd>
+                <kbd>{formatShortcut({ key: "Escape", modifier: "none" })}</kbd>
                 {hint("gridKeyCancel")}
               </span>
             </div>

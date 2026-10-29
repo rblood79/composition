@@ -42,7 +42,7 @@ import {
   type AgentHost,
 } from "../../builder/stores/agentCommandLog";
 import type { ToolTranslate } from "../../types/integrations/ai.types";
-import { localizedStrings } from "../../i18n/translations";
+import { getLocaleMessages } from "../../i18n/loadMessages";
 import { getStoredLocale } from "../../i18n/locales";
 import { AGENT_VIEW_COMMANDS } from "./agentViewCommands";
 import { getAgentCommandHost } from "./agentCommandHost";
@@ -151,7 +151,8 @@ export function buildDataAgentReadModel(): DataAgentReadModel {
 
 /** React 밖 translate — 저장된 locale 의 평탄 카탈로그 (함수 메시지는 params 적용). */
 function catalogTranslate(): ToolTranslate {
-  const catalog = localizedStrings[getStoredLocale()];
+  // The stored locale is the loaded one (main.tsx loads it before the app renders).
+  const catalog = getLocaleMessages(getStoredLocale())?.strings ?? {};
   return (key, params) => {
     const message = catalog[key];
     if (message === undefined) return key;

@@ -7,6 +7,7 @@
 
 import React, {
   createContext,
+  use,
   useCallback,
   useEffect,
   useMemo,
@@ -14,10 +15,12 @@ import React, {
 } from "react";
 import {
   I18nProvider as AriaI18nProvider,
+  useLocale,
   useLocalizedStringFormatter,
 } from "@react-aria/i18n";
 import type { I18nContextValue, LocaleConfig, SupportedLocale } from "./types";
-import { localizedStrings } from "./translations";
+import { getLocaleMessages, loadLocaleMessages } from "./loadMessages";
+import type { LocaleMessages } from "./messages/shared";
 import { getLocaleConfig, getStoredLocale, setStoredLocale } from "./locales";
 import { formatNumber, formatCurrency } from "@composition/shared/utils";
 
@@ -47,24 +50,30 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   );
 
   const config = useMemo(() => getLocaleConfig(locale), [locale]);
+  // Only the active language is loaded (one chunk per locale — `loadMessages.ts`). `main.tsx`
+  // loads the stored locale before the first render and `setLocale` switches only after the new
+  // locale has loaded, so this is synchronous; `use` covers a provider mounted without that
+  // preload (it suspends until the chunk arrives).
+  const messages = getLocaleMessages(locale) ?? use(loadLocaleMessages(locale));
 
-  /**
-   * Set locale and persist to localStorage
-   */
+  /** Set locale and persist to localStorage — after its messages have loaded. */
   const setLocale = useCallback((newLocale: SupportedLocale) => {
-    setLocaleState(newLocale);
-    setStoredLocale(newLocale);
-
-    // Update document dir attribute for RTL support
-    document.documentElement.dir = getLocaleConfig(newLocale).direction;
-
-    // Update document lang attribute
-    document.documentElement.lang = newLocale;
+    const apply = () => {
+      setLocaleState(newLocale);
+      setStoredLocale(newLocale);
+    };
+    if (getLocaleMessages(newLocale)) apply();
+    else void loadLocaleMessages(newLocale).then(apply);
   }, []);
 
   return (
     <AriaI18nProvider locale={locale}>
-      <I18nRuntime locale={locale} config={config} setLocale={setLocale}>
+      <I18nRuntime
+        locale={locale}
+        config={config}
+        messages={messages}
+        setLocale={setLocale}
+      >
         {children}
       </I18nRuntime>
     </AriaI18nProvider>
@@ -75,6 +84,7 @@ interface I18nRuntimeProps {
   children: React.ReactNode;
   locale: SupportedLocale;
   config: LocaleConfig;
+  messages: LocaleMessages;
   setLocale: (locale: SupportedLocale) => void;
 }
 
@@ -82,9 +92,17 @@ function I18nRuntime({
   children,
   locale,
   config,
+  messages,
   setLocale,
 }: I18nRuntimeProps): React.ReactElement {
-  const stringFormatter = useLocalizedStringFormatter(localizedStrings);
+  // React Aria owns the locale and its layout direction (`useLocale` — the root sets `lang` ·
+  // `dir` from it); the dictionary holds only the active locale.
+  const { direction } = useLocale();
+  const dictionary = useMemo(
+    () => ({ [locale]: messages.strings }),
+    [locale, messages],
+  );
+  const stringFormatter = useLocalizedStringFormatter(dictionary);
 
   /** Translate function backed by React Aria's localized string formatter. */
   const t = useCallback(
@@ -159,7 +177,7 @@ function I18nRuntime({
       locale,
       setLocale,
       t,
-      direction: config.direction,
+      direction,
       config,
       formatDate,
       formatTime,
@@ -170,6 +188,7 @@ function I18nRuntime({
       locale,
       setLocale,
       t,
+      direction,
       config,
       formatDate,
       formatTime,
@@ -178,13 +197,11 @@ function I18nRuntime({
     ],
   );
 
-  /**
-   * Set initial dir and lang attributes
-   */
+  /** The document's `lang` · `dir` follow React Aria's locale (useLocale 권고 — the app root). */
   useEffect(() => {
-    document.documentElement.dir = config.direction;
+    document.documentElement.dir = direction;
     document.documentElement.lang = locale;
-  }, [config.direction, locale]);
+  }, [direction, locale]);
 
   return (
     <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>

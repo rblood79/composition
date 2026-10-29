@@ -43,6 +43,7 @@ import {
   type DataUsageSource,
 } from "../usage/dataUsageSource";
 import { DataGrid } from "./DataGrid";
+import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 
 const table: DataTable = {
   id: "c1",
@@ -281,10 +282,15 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     });
     expect(textarea.value).toBe('["a"]');
     // Key hints (Supabase 어법) beside the buttons: ⏎ Save · ⇧⏎ New line · Esc Cancel.
-    const keys = [...container.ownerDocument.querySelectorAll(".datagrid-popover-key")].map(
-      (el) => el.textContent,
-    );
-    expect(keys).toEqual(["⏎Save changes", "⇧⏎New line", "EscCancel changes"]);
+    const keys = [
+      ...container.ownerDocument.querySelectorAll(".datagrid-popover-key"),
+    ].map((el) => el.textContent);
+    // Glyphs come from the shortcut formatter (jsdom is not a Mac: words, not symbols).
+    expect(keys).toEqual([
+      `${formatShortcut({ key: "Enter", modifier: "none" })}Save changes`,
+      `${formatShortcut({ key: "Enter", modifier: "shift" })}New line`,
+      `${formatShortcut({ key: "Escape", modifier: "none" })}Cancel changes`,
+    ]);
     fireEvent.change(textarea, { target: { value: '["a","b"]' } });
     // ⇧⏎ keeps the newline (no commit) · plain ⏎ commits.
     fireEvent.keyDown(textarea, { key: "Enter", shiftKey: true });
@@ -422,8 +428,14 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     });
     const createObjectURL = vi.fn(() => "blob:x");
     const revokeObjectURL = vi.fn();
-    Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, configurable: true });
-    Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, configurable: true });
+    Object.defineProperty(URL, "createObjectURL", {
+      value: createObjectURL,
+      configurable: true,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      value: revokeObjectURL,
+      configurable: true,
+    });
     const clicks: string[] = [];
     const origClick = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function () {
@@ -443,22 +455,36 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
         fireEvent.click(boxes[0]);
         fireEvent.click(boxes[1]);
       });
-      await waitFor(() => expect(getByRole("button", { name: "Delete 2 rows" })).toBeTruthy());
+      await waitFor(() =>
+        expect(getByRole("button", { name: "Delete 2 rows" })).toBeTruthy(),
+      );
       expect(queryByRole("button", { name: "Insert" })).toBeNull();
 
       fireEvent.click(getByRole("button", { name: "Copy" }));
-      await press(await waitFor(() => getByRole("menuitem", { name: "Copy as CSV" })));
+      await press(
+        await waitFor(() => getByRole("menuitem", { name: "Copy as CSV" })),
+      );
       await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
-      expect(writeText.mock.calls[0][0]).toBe('id,name,age,tags\r\n1,Ann,30,"[""a""]"\r\n2,Bob,41,[]');
-      expect(useDataPanelStatusStore.getState().status?.message).toBe("Copied 2 rows.");
+      expect(writeText.mock.calls[0][0]).toBe(
+        'id,name,age,tags\r\n1,Ann,30,"[""a""]"\r\n2,Bob,41,[]',
+      );
+      expect(useDataPanelStatusStore.getState().status?.message).toBe(
+        "Copied 2 rows.",
+      );
 
       fireEvent.click(getByRole("button", { name: "Copy" }));
-      await press(await waitFor(() => getByRole("menuitem", { name: "Copy as JSON" })));
+      await press(
+        await waitFor(() => getByRole("menuitem", { name: "Copy as JSON" })),
+      );
       await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
       expect(JSON.parse(writeText.mock.calls[1][0])).toEqual(table.mockData);
 
       fireEvent.click(getByRole("button", { name: "Export" }));
-      await press(await waitFor(() => getByRole("menuitem", { name: "Export selected rows as JSON" })));
+      await press(
+        await waitFor(() =>
+          getByRole("menuitem", { name: "Export selected rows as JSON" }),
+        ),
+      );
       await waitFor(() => expect(clicks).toEqual(["Users-selected.json"]));
       expect(applyDataChange).not.toHaveBeenCalled();
 
@@ -467,11 +493,17 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
         fireEvent.click(boxes[0]);
         fireEvent.click(boxes[1]);
       });
-      await waitFor(() => expect(getByRole("button", { name: "Insert" })).toBeTruthy());
+      await waitFor(() =>
+        expect(getByRole("button", { name: "Insert" })).toBeTruthy(),
+      );
       expect(queryByRole("button", { name: "Copy" })).toBeNull();
       fireEvent.click(getByRole("button", { name: "Export" }));
-      await press(await waitFor(() => getByRole("menuitem", { name: "Export CSV" })));
-      await waitFor(() => expect(clicks).toEqual(["Users-selected.json", "Users.csv"]));
+      await press(
+        await waitFor(() => getByRole("menuitem", { name: "Export CSV" })),
+      );
+      await waitFor(() =>
+        expect(clicks).toEqual(["Users-selected.json", "Users.csv"]),
+      );
     } finally {
       HTMLAnchorElement.prototype.click = origClick;
     }
@@ -486,7 +518,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(queryByRole("button", { name: "Import CSV" })).toBeNull();
     fireEvent.click(getByRole("button", { name: "Insert" }));
     await waitFor(() => expect(queryByRole("menu")).not.toBeNull());
-    expect(getByRole("menu").querySelectorAll("[role=menuitem]").length).toBe(3);
+    expect(getByRole("menu").querySelectorAll("[role=menuitem]").length).toBe(
+      3,
+    );
     const button = getByRole("menuitem", { name: "Insert row…" });
     await act(async () => {
       fireEvent.pointerDown(button, { pointerType: "mouse", button: 0 });
@@ -494,9 +528,13 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       fireEvent.click(button);
     });
     // The form opens beside the grid (the grid stays) — nothing is written yet.
-    const dialog = await waitFor(() => getByRole("dialog", { name: "Add a row to Users" }));
+    const dialog = await waitFor(() =>
+      getByRole("dialog", { name: "Add a row to Users" }),
+    );
     expect(applyDataChange).not.toHaveBeenCalled();
-    expect(container.querySelector(".datagrid-split")?.getAttribute("data-form")).toBe("true");
+    expect(
+      container.querySelector(".datagrid-split")?.getAttribute("data-form"),
+    ).toBe("true");
     expect(container.querySelector("[role=grid]")).not.toBeNull();
     // The first editable field has focus; an empty save is the old empty row.
     expect(dialog.contains(document.activeElement)).toBe(true);
@@ -510,7 +548,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
         at: 2,
       },
     ]);
-    expect(useDataPanelStatusStore.getState().status?.message).toBe("Row added.");
+    expect(useDataPanelStatusStore.getState().status?.message).toBe(
+      "Row added.",
+    );
     // Saved without 「Create more」 → the form closes and the new row's first cell takes focus.
     await waitFor(() => expect(queryByRole("dialog")).toBeNull());
   });
@@ -522,7 +562,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     const target = cell(container, 1, "name");
     await press(target);
     expect(container.querySelector(".datagrid-row[data-checked]")).toBeNull();
-    expect(container.querySelector('[role="row"][aria-selected="true"]')).toBeNull();
+    expect(
+      container.querySelector('[role="row"][aria-selected="true"]'),
+    ).toBeNull();
     expect(queryByRole("button", { name: /Delete \d+ rows/ })).toBeNull();
 
     const second = container.querySelectorAll(
@@ -532,10 +574,14 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       fireEvent.click(second);
     });
     await waitFor(() =>
-      expect(container.querySelectorAll(".datagrid-row[data-checked]")).toHaveLength(1),
+      expect(
+        container.querySelectorAll(".datagrid-row[data-checked]"),
+      ).toHaveLength(1),
     );
     expect(
-      container.querySelector(".datagrid-row[data-checked] [data-field-key='name']")!.textContent,
+      container.querySelector(
+        ".datagrid-row[data-checked] [data-field-key='name']",
+      )!.textContent,
     ).toBe("Bob");
   });
 
@@ -543,22 +589,37 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     const { container, getByRole, queryByRole } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
-    const open = container.querySelectorAll<HTMLElement>(".datagrid-row-open")[1]!;
+    const open =
+      container.querySelectorAll<HTMLElement>(".datagrid-row-open")[1]!;
     expect(open.getAttribute("aria-label")).toBe("Open row");
     expect(open.getAttribute("tabindex")).toBe("-1");
     await press(open);
-    const dialog = await waitFor(() => getByRole("dialog", { name: "Update a row of Users" }));
-    expect(within(dialog).getByRole("group", { name: "name" }).querySelector("textarea")!.value).toBe("Bob");
+    const dialog = await waitFor(() =>
+      getByRole("dialog", { name: "Update a row of Users" }),
+    );
+    expect(
+      within(dialog)
+        .getByRole("group", { name: "name" })
+        .querySelector("textarea")!.value,
+    ).toBe("Bob");
     await act(async () => {
-      fireEvent.keyDown(dialog.querySelector(".datatable-row-form-body")!, { key: "Escape" });
+      fireEvent.keyDown(dialog.querySelector(".datatable-row-form-body")!, {
+        key: "Escape",
+      });
     });
     await waitFor(() => expect(queryByRole("dialog")).toBeNull());
 
     const target = cell(container, 0, "age");
     target.focus();
     fireEvent.keyDown(target, { key: "Enter", shiftKey: true });
-    const again = await waitFor(() => getByRole("dialog", { name: "Update a row of Users" }));
-    expect(within(again).getByRole("group", { name: "name" }).querySelector("textarea")!.value).toBe("Ann");
+    const again = await waitFor(() =>
+      getByRole("dialog", { name: "Update a row of Users" }),
+    );
+    expect(
+      within(again)
+        .getByRole("group", { name: "name" })
+        .querySelector("textarea")!.value,
+    ).toBe("Ann");
     expect(container.querySelector("input[data-grid-editor]")).toBeNull();
   });
 
@@ -567,10 +628,16 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       wrap(<DataGrid table={table} virtualized={false} />),
     );
     fireEvent.click(getByRole("button", { name: "Insert" }));
-    const item = await waitFor(() => getByRole("menuitem", { name: "Insert column…" }));
+    const item = await waitFor(() =>
+      getByRole("menuitem", { name: "Insert column…" }),
+    );
     await press(item);
-    const dialog = await waitFor(() => getByRole("dialog", { name: "New column" }));
-    expect(dialog.querySelector(".datatable-field-form[data-mode=create]")).not.toBeNull();
+    const dialog = await waitFor(() =>
+      getByRole("dialog", { name: "New column" }),
+    );
+    expect(
+      dialog.querySelector(".datatable-field-form[data-mode=create]"),
+    ).not.toBeNull();
     expect(queryByRole("textbox", { name: "New field" })).toBeNull();
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
@@ -735,13 +802,21 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       )!.value,
     ).toBe("age");
     await act(async () => {
-      fireEvent.keyDown(getByRole("dialog", { name: "age" }), { key: "Escape" });
+      fireEvent.keyDown(getByRole("dialog", { name: "age" }), {
+        key: "Escape",
+      });
     });
 
     // ⌄ = the column's actions (Supabase 어법), not a third way to the editor.
     await press(menuBtn);
-    const menu = await waitFor(() => getByRole("menu", { name: "name column actions" }));
-    expect(within(menu).getAllByRole("menuitem").map((el) => el.textContent)).toEqual([
+    const menu = await waitFor(() =>
+      getByRole("menu", { name: "name column actions" }),
+    );
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((el) => el.textContent),
+    ).toEqual([
       "Sort ascending",
       "Sort descending",
       "Copy name",
@@ -750,7 +825,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       "Delete column",
     ]);
     await press(within(menu).getByRole("menuitem", { name: "Edit column" }));
-    await waitFor(() => expect(getByRole("dialog", { name: "name" })).toBeTruthy());
+    await waitFor(() =>
+      expect(getByRole("dialog", { name: "name" })).toBeTruthy(),
+    );
   });
 
   it("열 ⌄ → 내림차순 정렬 = 보기만 (문서 쓰기 없음) · 정렬 해제 · 열 고정 · 열 삭제는 확인 뒤 remove_field 한 번", async () => {
@@ -758,42 +835,74 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       wrap(<DataGrid table={table} virtualized={false} />),
     );
     const names = () =>
-      [...container.querySelectorAll(".datagrid-cell[data-field-key='name']")].map(
-        (el) => el.textContent,
-      );
+      [
+        ...container.querySelectorAll(".datagrid-cell[data-field-key='name']"),
+      ].map((el) => el.textContent);
     expect(names()).toEqual(["Ann", "Bob"]);
     const openMenu = async (key: string) => {
       await press(getByRole("button", { name: `${key} column actions` }));
-      return waitFor(() => getByRole("menu", { name: `${key} column actions` }));
+      return waitFor(() =>
+        getByRole("menu", { name: `${key} column actions` }),
+      );
     };
 
-    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Sort descending" }));
+    await press(
+      within(await openMenu("age")).getByRole("menuitem", {
+        name: "Sort descending",
+      }),
+    );
     await waitFor(() => expect(names()).toEqual(["Bob", "Ann"]));
-    expect(container.querySelector(".datagrid-column-sort[data-direction='descending']")).not.toBeNull();
+    expect(
+      container.querySelector(
+        ".datagrid-column-sort[data-direction='descending']",
+      ),
+    ).not.toBeNull();
     // Bob keeps its stored index — the cell still addresses row 1.
     expect(cell(container, 1, "name").textContent).toBe("Bob");
     expect(applyDataChange).not.toHaveBeenCalled();
-    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Remove sort" }));
+    await press(
+      within(await openMenu("age")).getByRole("menuitem", {
+        name: "Remove sort",
+      }),
+    );
     await waitFor(() => expect(names()).toEqual(["Ann", "Bob"]));
 
-    await press(within(await openMenu("age")).getByRole("menuitem", { name: "Freeze column" }));
+    await press(
+      within(await openMenu("age")).getByRole("menuitem", {
+        name: "Freeze column",
+      }),
+    );
     await waitFor(() =>
-      expect(container.querySelector(".datagrid-cell[data-field-key='age'][data-frozen='last']")).not.toBeNull(),
+      expect(
+        container.querySelector(
+          ".datagrid-cell[data-field-key='age'][data-frozen='last']",
+        ),
+      ).not.toBeNull(),
     );
     expect(
-      within(await openMenu("age")).getByRole("menuitem", { name: "Unfreeze column" }),
+      within(await openMenu("age")).getByRole("menuitem", {
+        name: "Unfreeze column",
+      }),
     ).toBeTruthy();
     await act(async () => {
-      fireEvent.keyDown(getByRole("menu", { name: "age column actions" }), { key: "Escape" });
+      fireEvent.keyDown(getByRole("menu", { name: "age column actions" }), {
+        key: "Escape",
+      });
     });
 
-    await press(within(await openMenu("tags")).getByRole("menuitem", { name: "Delete column" }));
+    await press(
+      within(await openMenu("tags")).getByRole("menuitem", {
+        name: "Delete column",
+      }),
+    );
     const confirm = await waitFor(() => getByRole("alertdialog"));
     expect(confirm.textContent).toContain('Deletes column "tags"');
     expect(applyDataChange).not.toHaveBeenCalled();
     await press(within(confirm).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
-    expect(lastOps()).toEqual([{ op: "remove_field", collectionId: "c1", fieldId: "f-tags" }]);
+    expect(lastOps()).toEqual([
+      { op: "remove_field", collectionId: "c1", fieldId: "f-tags" },
+    ]);
     await waitFor(() => expect(queryByRole("alertdialog")).toBeNull());
   });
 });
@@ -803,7 +912,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
 describe("nextRowId", () => {
   it("a string id skips the ids in use", async () => {
     const { nextRowId } = await import("./DataGrid");
-    expect(nextRowId([{ id: "row_1" }, { id: "row_3" }], "string")).toBe("row_4");
+    expect(nextRowId([{ id: "row_1" }, { id: "row_3" }], "string")).toBe(
+      "row_4",
+    );
     expect(nextRowId([{ id: "row_2" }, { id: "a" }], "string")).toBe("row_3");
     expect(nextRowId([{ id: 4 }, { id: 9 }], "number")).toBe(10);
   });

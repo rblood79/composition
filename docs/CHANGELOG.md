@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Builder 번역 — 언어별 chunk 로 분리 · 쓰는 언어 하나만 받는다] - 2026-10-29
+
+### Changed
+
+- **Builder 가 쓰는 언어의 번역만 받는다** (사용자 결정 2026-10-29 「언어별로 분리」): 한국어 · 영어 번역이 한 파일 (`translations.ts`, 7,965줄) 에 있어 어느 언어를 쓰든 두 언어가 초기 번들에 실렸다. 언어마다 모듈 하나 (`i18n/messages/ko-KR.ts` · `en-US.ts`) 로 나누고 `i18n/loadMessages.ts` 가 동적으로 불러온다 — 앱 시작 때 저장된 언어 하나를 받은 뒤 첫 화면을 그리고, 언어를 바꾸면 그 언어를 받은 다음 전환한다. 컴포넌트 목록 검색은 모든 언어의 이름으로 찾으므로 첫 검색 때 나머지 언어를 받는다. 문서의 `lang` · `dir` 은 React Aria `useLocale()` 의 값을 따른다 (자체 설정표의 방향 대신). `translations.ts` 는 두 언어를 함께 보는 테스트 · 도구 전용으로 남고, 앱 코드가 그것이나 언어 모듈을 직접 import 하면 `localeSplit.static.test.ts` 가 막는다.
+  - 번들 (Builder initial JS gzip, `7eadcf38b` 대비): 1,460,360 → 1,373,807 B (−86,553). 시작 때 받는 언어 chunk 를 더하면 영어 1,421,662 (−38,698) · 한국어 1,426,708 (−33,652). 언어 chunk 는 영어 47,855 · 한국어 52,901 B.
+  - 위치: `apps/builder/src/i18n/{loadMessages.ts,messages/,translations.ts,I18nProvider.tsx,index.ts,localeSplit.static.test.ts}` · `src/main.tsx` · `builder/panels/components/ComponentList.tsx` · `services/agent/executeAgentCommand.ts` · `src/test/i18nPreload.ts`
+
+### Fixed
+
+- **정적 게이트 3건** (ADR-289 커밋 `7eadcf38b` 이 깬 것): 셀 팝오버의 키 안내가 단축키 기호를 직접 적던 것을 `formatShortcut` 으로 (Mac 이 아니면 `Shift+Enter` 처럼 단어), 참조 열 · 정렬 열 조회를 `resolveField` 와 id 인자 `collections.get` 으로 (ADR-152 단일 resolve 게이트).
+
 ## [데이터 격자 — 행 선택은 체크박스로만 · 셀 클릭은 그 셀만] - 2026-10-29
 
 ### Changed

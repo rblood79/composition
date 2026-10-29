@@ -9,7 +9,9 @@ describe("i18n Builder wiring", () => {
   it("mounts I18nProvider at the application root", () => {
     const source = readBuilderFile("main.tsx");
 
-    expect(source).toContain('import { I18nProvider } from "./i18n";');
+    expect(source).toMatch(/import \{ I18nProvider[^}]*\} from "\.\/i18n";/);
+    // One chunk per locale: the stored locale loads before the first render.
+    expect(source).toContain("loadLocaleMessages(getStoredLocale())");
     expect(source).toContain("<I18nProvider>");
     expect(source).toContain("</I18nProvider>");
   });
@@ -19,7 +21,9 @@ describe("i18n Builder wiring", () => {
 
     expect(provider).toContain("useLocalizedStringFormatter,");
     expect(provider).toContain('from "@react-aria/i18n"');
-    expect(provider).toContain("useLocalizedStringFormatter(localizedStrings)");
+    expect(provider).toContain("useLocalizedStringFormatter(dictionary)");
+    // React Aria owns locale + direction (useLocale); lang · dir follow it.
+    expect(provider).toContain("const { direction } = useLocale();");
     expect(provider).not.toContain("getTranslation(locale, key)");
     expect(provider).not.toContain("replacePlaceholders");
     expect(provider).not.toContain("labels.");

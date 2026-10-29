@@ -13,7 +13,14 @@ export {
   localizeSemanticLabel,
 } from "./useI18n";
 export { semanticLabelKeys, translateKey } from "./labels";
-export { translations, localizedStrings } from "./translations";
+// One chunk per locale — the eager two-locale tables (`./translations`) are for tests only.
+export {
+  SUPPORTED_LOCALES,
+  getLocaleMessages,
+  loadAllLocaleMessages,
+  loadLocaleMessages,
+} from "./loadMessages";
+export type { LocaleMessages, LocaleStrings } from "./messages/shared";
 export {
   localeConfigs,
   DEFAULT_LOCALE,

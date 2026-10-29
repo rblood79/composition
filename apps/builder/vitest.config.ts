@@ -56,7 +56,7 @@ export const browserPlugins = () => [wasm()];
 
 export const unitTest: TestUserConfig = {
   environment: "jsdom",
-  setupFiles: ["./src/test/rtlCleanup.ts"],
+  setupFiles: ["./src/test/rtlCleanup.ts", "./src/test/i18nPreload.ts"],
   // ADR-256 G5 example 13: the S2 oracle (`@react-spectrum/s2`, a test-only devDependency) imports
   // its compiled `.css` — Vite transforms it (inline) instead of Node loading it.
   server: { deps: { inline: [/@react-spectrum\/s2/] } },

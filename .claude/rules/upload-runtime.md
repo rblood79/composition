@@ -38,7 +38,7 @@ paths:
 2. CSRF 403 이 CORS 헤더 없이 나가면 브라우저는 status 0 → `E_NETWORK` 로 보인다. 계약은 교차 출처 운영을 비권장 (§5).
 3. `XSRF-TOKEN` 쿠키 Path 는 `/` — 컨텍스트 경로면 다른 컨텍스트의 페이지가 `document.cookie` 로 못 읽는다.
 4. Spring DispatcherServlet `/` 가 정적 `js/*.iife.js` 를 삼킨다 → `configureDefaultServletHandling`.
-5. `{version}` 같은 파라미터 메시지는 `translations.ts` `formattedMessages` 함수 등록 없이는 치환되지 않는다 (정적 문자열만 두면 live 에 `{version}` 그대로).
+5. `{version}` 같은 파라미터 메시지는 언어 모듈 (`i18n/messages/ko-KR.ts` · `en-US.ts`) 의 `formattedMessages` 함수 등록 없이는 치환되지 않는다 (정적 문자열만 두면 live 에 `{version}` 그대로).
 6. **live 하니스 실행 중 소스를 편집하지 않는다** — dev 서버 HMR 이 preview iframe 을 교체해 `Frame was detached` 로 끝난다.
 7. `docs/adr/evidence/` 는 gitignore — worktree 를 지우면 그 안의 evidence 가 같이 사라진다. 제거 전 main 으로 복사.
 8. 번들 게이트는 sameLockfile 을 검사하지 않는다 (workspace package 추가가 산출물). 상한 재승인은 `APPROVED` 상수로 사용자 결정을 코드에 남긴다.

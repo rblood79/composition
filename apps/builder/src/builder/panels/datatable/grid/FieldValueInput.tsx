@@ -14,6 +14,7 @@
  * Markup is the panel field (`fieldset.properties-aria` + `legend.fieldset-legend` + the control
  * box) — the error goes under the box as `role="alert"` (ADR-163 · web-interface-guidelines).
  */
+import { resolveField } from "@composition/shared";
 import {
   useCallback,
   useDeferredValue,
@@ -352,14 +353,13 @@ function ReferenceComboBox({
   errorId?: string;
 }) {
   const collections = useDataStore((state) => state.collections);
-  const target = field.reference
-    ? collections.get(field.reference.collectionId)
+  const reference = field.reference;
+  const target = reference
+    ? collections.get(reference.collectionId)
     : undefined;
   const items = useMemo<ReferenceItem[]>(() => {
     if (!target || !field.reference) return [];
-    const keyField =
-      target.schema.find((f) => f.id === field.reference!.keyField) ??
-      target.schema.find((f) => f.key === field.reference!.keyField);
+    const keyField = resolveField(target.schema, field.reference.keyField);
     if (!keyField) return [];
     const hintField = target.schema.find(
       (f) => f.key !== keyField.key && f.type === "string",

@@ -10,7 +10,8 @@ import {
   exposedCapabilities,
   resolveCapabilities,
 } from "@composition/shared";
-import { I18nProvider, localizedStrings } from "@/i18n";
+import { I18nProvider } from "@/i18n";
+import { localizedStrings } from "@/i18n/translations";
 import { capabilityChoices, capabilityLabel } from "../labels";
 import { ValueField } from "../ValueField";
 import { CapabilityPicker } from "../CapabilityPicker";

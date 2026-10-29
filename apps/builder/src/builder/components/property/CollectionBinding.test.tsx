@@ -226,6 +226,9 @@ describe("CollectionBinding — fieldMap value (ADR-152 Phase 2)", () => {
       import("../../panels/datatable/usage/quickConnectHost"),
       import("../../panels/datatable/usage/dataUsageSource"),
     ]);
+    // The reloaded i18n module has an empty locale cache — load the messages as `main.tsx` does
+    // before rendering (one chunk per locale; the provider reads them synchronously).
+    await (await import("@/i18n")).loadAllLocaleMessages();
     const renderFresh = (ui: ReactElement) =>
       render(ui, {
         wrapper: hostsWrapper(

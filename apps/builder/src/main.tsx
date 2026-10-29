@@ -44,7 +44,7 @@ import "@composition/shared/components/styles/builder-components.css";
 import Dashboard from "./dashboard";
 import Builder from "./builder";
 import Signin from "./auth/Signin";
-import { I18nProvider } from "./i18n";
+import { I18nProvider, getStoredLocale, loadLocaleMessages } from "./i18n";
 
 // Lazy load PublishApp to prevent CSS conflicts (CSS loads only when route is accessed)
 const PublishApp = lazy(() => import("@composition/publish"));
@@ -131,12 +131,19 @@ const root = document.getElementById("root");
 const basename = import.meta.env.PROD ? "/composition" : "/";
 
 // ADR-152 Phase 5 후속: React Query 소비처 0 (useDataQueries 삭제) — QueryClientProvider 제거.
-ReactDOM.createRoot(root!).render(
-  <I18nProvider>
-    <BrowserRouter basename={basename}>
-      <ParticleBackgroundProvider>
-        <AppLayout />
-      </ParticleBackgroundProvider>
-    </BrowserRouter>
-  </I18nProvider>,
-);
+// Only the stored locale's messages ship (one chunk per language) — load it before the first
+// render so every string is there synchronously. A failed load still renders: the provider then
+// waits for the chunk itself.
+void loadLocaleMessages(getStoredLocale())
+  .catch(() => undefined)
+  .finally(() => {
+    ReactDOM.createRoot(root!).render(
+      <I18nProvider>
+        <BrowserRouter basename={basename}>
+          <ParticleBackgroundProvider>
+            <AppLayout />
+          </ParticleBackgroundProvider>
+        </BrowserRouter>
+      </I18nProvider>,
+    );
+  });

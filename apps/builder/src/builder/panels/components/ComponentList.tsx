@@ -1,10 +1,12 @@
 import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import {
-  localizedStrings,
+  getLocaleMessages,
+  loadAllLocaleMessages,
   semanticLabelKeys,
-  translations,
+  SUPPORTED_LOCALES,
   translateKey,
   useOptionalI18n,
+  type LocaleMessages,
 } from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
@@ -117,6 +119,26 @@ const ComponentList = memo(
     } = useRecentComponents();
     const { favoriteTags } = useFavoriteComponents();
     const [searchQuery, setSearchQuery] = useState("");
+    // Search matches every language's label. Only the active locale ships up front (one chunk per
+    // language), so the others load on the first search.
+    const [localeMessages, setLocaleMessages] = useState<LocaleMessages[]>(() =>
+      SUPPORTED_LOCALES.map(getLocaleMessages).filter(
+        (m): m is LocaleMessages => m !== undefined,
+      ),
+    );
+    const isSearching = searchQuery.trim() !== "";
+    useEffect(() => {
+      if (!isSearching || localeMessages.length === SUPPORTED_LOCALES.length) {
+        return;
+      }
+      let live = true;
+      void loadAllLocaleMessages().then((all) => {
+        if (live) setLocaleMessages(all);
+      });
+      return () => {
+        live = false;
+      };
+    }, [isSearching, localeMessages.length]);
 
     // 검색 시 카테고리 자동 펼치기 (Section 컴포넌트가 collapse 상태 자체를 관리)
     const expandSections = useSectionCollapse((s) => s.expandSections);
@@ -176,7 +198,6 @@ const ComponentList = memo(
       const map = new Map<string, string[]>();
       // type 과 i18n key 가 다른 항목만 등재 (TailSwatch → colorPicker 는 2026-09-04 팔레트에서 제거).
       const specialTagMap: Record<string, string> = {};
-      const allLocales = Object.values(translations);
 
       for (const comp of allComponents) {
         const i18nKey =
@@ -186,20 +207,18 @@ const ComponentList = memo(
           label.toLowerCase(),
         );
         const labelKey = semanticLabelKeys[comp.label];
-        for (const locale of Object.values(localizedStrings)) {
-          const label = locale[labelKey];
+        for (const messages of localeMessages) {
+          const label = messages.strings[labelKey];
           if (typeof label === "string") labels.push(label.toLowerCase());
-        }
-        for (const locale of allLocales) {
-          const label = (
-            locale.components as Record<string, string | undefined>
+          const componentLabel = (
+            messages.catalog.components as Record<string, string | undefined>
           )[i18nKey];
-          if (label) labels.push(label.toLowerCase());
+          if (componentLabel) labels.push(componentLabel.toLowerCase());
         }
         map.set(comp.type, labels);
       }
       return map;
-    }, [allComponents]);
+    }, [allComponents, localeMessages]);
 
     // Fuzzy search results (다국어 지원)
     const searchResults = useMemo(() => {
