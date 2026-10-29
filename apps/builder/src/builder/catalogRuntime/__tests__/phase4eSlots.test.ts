@@ -8,10 +8,7 @@ import type {
   NodeId,
   TemplateId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import {
-  duplicateNodes,
-  insertNodes,
-} from "../../../../../../packages/shared/src/catalog/commands";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogComponentCommands } from "../componentActions";
 import { newCatalogProjectDocument } from "../project";
 import {

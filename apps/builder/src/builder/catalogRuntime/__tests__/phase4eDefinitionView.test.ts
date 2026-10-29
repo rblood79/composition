@@ -8,9 +8,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
-  duplicateNodes,
   insertNodes,
-  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
@@ -80,10 +78,8 @@ async function open() {
   const instance = workspace.execute(
     catalogComponentCommands.create(id("card"), "Card", workspace.newId),
   ).plan.selectAfter![0] as NodeId;
-  const definitionId = catalogComponentState(
-    workspace.runtime.graph,
-    instance,
-  ).instanceOf!.definitionId as EntryId<"definition">;
+  const definitionId = catalogComponentState(workspace.runtime.graph, instance)
+    .instanceOf!.definitionId as EntryId<"definition">;
   return { workspace, instance, definitionId };
 }
 
@@ -96,7 +92,9 @@ describe("ADR-248 4e definition edit view", () => {
     const graph = workspace.runtime.graph;
     const definition = graph.getEntry(definitionId);
     const templateRoot =
-      definition?.kind === "definition" ? definition.templateRootId! : undefined;
+      definition?.kind === "definition"
+        ? definition.templateRootId!
+        : undefined;
     expect(templateRoot).toBeDefined();
     // The page draws the instance (its title a template record under it).
     const instanceTitle = () =>
@@ -136,15 +134,21 @@ describe("ADR-248 4e definition edit view", () => {
       },
       PROJECT_COMPONENTS_VIEW as never,
     );
+    layers.connect();
     // The stored Local page is a page tree (ADR-282 Phase 3): body > card > ◆ cell >
     // the template root, the origin.
     const originRecord = workspace.itemsOfNode(templateRoot!, 1)[0]!.identity;
     const path = originRecord.split("::")[0]!.split("/");
     layers.setExpanded(
-      new Set(path.map((id, at) => `${path.slice(0, at + 1).join("/")}::${id}`)),
+      new Set(
+        path.map((id, at) => `${path.slice(0, at + 1).join("/")}::${id}`),
+      ),
     );
     type Row = ReturnType<typeof layers.getSnapshot>[number];
-    const find = (rows: readonly Row[] | undefined, id: string): Row | undefined => {
+    const find = (
+      rows: readonly Row[] | undefined,
+      id: string,
+    ): Row | undefined => {
       for (const row of rows ?? []) {
         if (row.id === id) return row;
         const found = find(row.children, id);
@@ -172,9 +176,9 @@ describe("ADR-248 4e definition edit view", () => {
         props: { children: { kind: "set", value: "Edited" } },
       }),
     );
-    expect(textOf(workspace, workspace.root.recordsOfSource(id("title"))[0])).toBe(
-      "Edited",
-    );
+    expect(
+      textOf(workspace, workspace.root.recordsOfSource(id("title"))[0]),
+    ).toBe("Edited");
     workspace.showDefinition(undefined);
     expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
     // On the page the instance row carries the instance mark (the body row none).
@@ -188,6 +192,7 @@ describe("ADR-248 4e definition edit view", () => {
       },
       project?.kind === "project" ? project.pageIds[0] : ("" as never),
     );
+    pageLayers.connect();
     const [bodyRow] = pageLayers.getSnapshot();
     pageLayers.setExpanded(new Set([bodyRow.id]));
     const [pageBody] = pageLayers.getSnapshot();
@@ -221,7 +226,9 @@ describe("ADR-248 4e definition edit view", () => {
     expect(workspace.session.getSnapshot().definitionView).toBeUndefined();
     expect(workspace.root.pageFrameRects().size).toBeGreaterThan(0);
     expect(() =>
-      workspace.showDefinition("project:definition:nope" as EntryId<"definition">),
+      workspace.showDefinition(
+        "project:definition:nope" as EntryId<"definition">,
+      ),
     ).toThrow(/CATALOG_DEFINITION_NOT_FOUND/);
     workspace.dispose();
   });

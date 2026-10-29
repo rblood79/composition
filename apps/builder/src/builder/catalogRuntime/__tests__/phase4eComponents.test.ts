@@ -215,6 +215,7 @@ describe("ADR-248 Phase 4e-4 Component section", () => {
       },
       pageId,
     );
+    store.connect();
     type Row = { id: string; role?: string; children?: readonly Row[] };
     const all = (rows: readonly Row[]): Row[] =>
       rows.flatMap((row) => [row, ...all(row.children ?? [])]);

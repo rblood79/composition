@@ -7,10 +7,7 @@ import type {
   EntryId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import {
-  insertNodes,
-  removeTargets,
-} from "../../../../../../packages/shared/src/catalog/commands";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
 import { CatalogNavigatorPanel } from "../../panels/navigator/catalog/CatalogNavigatorPanel";
 import { catalogComponentCommands } from "../componentActions";

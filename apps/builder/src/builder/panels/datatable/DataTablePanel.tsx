@@ -164,12 +164,16 @@ function DataTablePanelContent() {
   );
   const close = useDataTableEditorStore((state) => state.close);
 
-  const [tab, setTab] = useState<DataTableTab>("tables");
   // The tab follows the body — Quick Connect · CollectionBinding · the agent open a mode from
-  // outside the panel and the user has to see it.
-  useEffect(() => {
+  // outside the panel and the user has to see it (in the render the mode arrives in).
+  const [tab, setTab] = useState<DataTableTab>(() =>
+    mode ? dataTableTabFor(mode) : "tables",
+  );
+  const [tabMode, setTabMode] = useState(mode);
+  if (tabMode !== mode) {
+    setTabMode(mode);
     if (mode) setTab(dataTableTabFor(mode));
-  }, [mode]);
+  }
 
   const rootRef = useRef<HTMLDivElement>(null);
   const panelWidth = usePanelWidth(rootRef);

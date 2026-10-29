@@ -1,4 +1,3 @@
-/// <reference path="./json-formula.d.ts" />
 /**
  * ADR-291 Decision 1 · 4 — the formula engine's loader (the only formula module the first screen
  * holds — G3): one json-formula instance (`instance.ts`, 41 KB gz) and the computed cell ·

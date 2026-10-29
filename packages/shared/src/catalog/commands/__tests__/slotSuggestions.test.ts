@@ -36,7 +36,6 @@ const definition = (name: string, root: string): DefinitionEntry => ({
   stateRules: {},
   templateRootId: id(root),
 });
-const CARD = "project:definition:Card" as const;
 const CHIP = "project:definition:Chip" as const;
 
 /** Card (origin on the page: root > slot S) · Chip (origin on the page). */

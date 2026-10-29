@@ -88,14 +88,16 @@ function StateSourceField({
   const variable = source.variable;
   const savedName = variable?.name ?? source.prop;
   const [draft, setDraft] = useState(savedName);
+  // (Another variable · a saved rename replaces the draft in the render it arrives in.)
+  const [draftOf, setDraftOf] = useState({ id: variable?.id, savedName });
+  if (draftOf.id !== variable?.id || draftOf.savedName !== savedName) {
+    setDraftOf({ id: variable?.id, savedName });
+    setDraft(savedName);
+  }
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelOnBlur = useRef(false);
   const changed = draft.trim() !== savedName;
-
-  useEffect(() => {
-    setDraft(savedName);
-  }, [variable?.id, savedName]);
 
   const commit = () => {
     if (cancelOnBlur.current) {
@@ -555,22 +557,24 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               )}
             </legend>
             <Suspense fallback={null}>
-            <VariableTable
-              owner={view.isPage ? "page" : "element"}
-              dense
-              rows={ownRows}
-              label={t(
-                view.isPage
-                  ? "propertiesPanel.statePageTitle"
-                  : "propertiesPanel.stateExplicitTitle",
-              )}
-              typeOptions={TYPE_OPTIONS}
-              onRename={rename}
-              onType={(id, type) => changeType(id, type as CatalogVariableType)}
-              onDefault={changeDefault}
-              onJsonDefault={changeJsonDefault}
-              onRemove={removeRow}
-            />
+              <VariableTable
+                owner={view.isPage ? "page" : "element"}
+                dense
+                rows={ownRows}
+                label={t(
+                  view.isPage
+                    ? "propertiesPanel.statePageTitle"
+                    : "propertiesPanel.stateExplicitTitle",
+                )}
+                typeOptions={TYPE_OPTIONS}
+                onRename={rename}
+                onType={(id, type) =>
+                  changeType(id, type as CatalogVariableType)
+                }
+                onDefault={changeDefault}
+                onJsonDefault={changeJsonDefault}
+                onRemove={removeRow}
+              />
             </Suspense>
           </fieldset>
         )}
@@ -583,18 +587,18 @@ export const CatalogStateSection = memo(function CatalogStateSection({
               {t("propertiesPanel.stateAncestorTitle")}
             </legend>
             <Suspense fallback={null}>
-            <VariableTable
-              owner="page"
-              dense
-              rows={ancestorRows}
-              label={t("propertiesPanel.stateAncestorTitle")}
-              typeOptions={TYPE_OPTIONS}
-              onRename={noop}
-              onType={noop}
-              onDefault={noop}
-              onRemove={noop}
-              onGoToOwner={goToOwner}
-            />
+              <VariableTable
+                owner="page"
+                dense
+                rows={ancestorRows}
+                label={t("propertiesPanel.stateAncestorTitle")}
+                typeOptions={TYPE_OPTIONS}
+                onRename={noop}
+                onType={noop}
+                onDefault={noop}
+                onRemove={noop}
+                onGoToOwner={goToOwner}
+              />
             </Suspense>
           </fieldset>
         )}

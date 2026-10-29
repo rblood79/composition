@@ -19,7 +19,6 @@ import {
   setDataEntries,
   setProjectVariable,
 } from "../../../../../../packages/shared/src/catalog/commands/data";
-import { renameVariable } from "../../../../../../packages/shared/src/catalog/commands/variables";
 import { catalogBindingKey } from "../../../../../../packages/shared/src/catalog/runtime/stateTemplate";
 import { reduceDataOps } from "../../stores/utils/dataChange";
 import { catalogBindingCommand } from "../dataBindingCommand";
@@ -144,136 +143,117 @@ describe("ADR-288 G0 RED", () => {
     },
   );
 
-  it(
-    "② a project variable String → Number does not keep the String default",
-    () => {
-      const variables = new Map([
-        [
-          "g",
-          {
-            id: "v1",
+  it("② a project variable String → Number does not keep the String default", () => {
+    const variables = new Map([
+      [
+        "g",
+        {
+          id: "v1",
+          name: "g",
+          project_id: "p",
+          type: "string",
+          defaultValue: "hi",
+          persist: false,
+          scope: "global",
+          owner: { kind: "project" },
+          created_at: "",
+          updated_at: "",
+        },
+      ],
+    ]) as never;
+    const result = reduceDataOps(
+      new Map(),
+      [
+        {
+          op: "define_variable",
+          variableId: "v1",
+          definition: {
             name: "g",
-            project_id: "p",
-            type: "string",
+            type: "number",
             defaultValue: "hi",
             persist: false,
-            scope: "global",
-            owner: { kind: "project" },
-            created_at: "",
-            updated_at: "",
           },
-        ],
-      ]) as never;
-      const result = reduceDataOps(
-        new Map(),
-        [
-          {
-            op: "define_variable",
-            variableId: "v1",
-            definition: {
-              name: "g",
-              type: "number",
-              defaultValue: "hi",
-              persist: false,
-            },
-          },
-        ],
-        { projectId: "p", variables },
-      );
-      // Today the reducer stores whatever default it is given — `"hi"` on a Number variable.
-      expect(result.variables.get("g")?.defaultValue).not.toBe("hi");
-    },
-  );
+        },
+      ],
+      { projectId: "p", variables },
+    );
+    // Today the reducer stores whatever default it is given — `"hi"` on a Number variable.
+    expect(result.variables.get("g")?.defaultValue).not.toBe("hi");
+  });
 
-  it(
-    "④ the column head no longer opens the field panel (a popover instead)",
-    () => {
-      const source = readFileSync(
-        resolve(
-          __dirname,
-          "../../panels/datatable/grid/DataGrid.components.tsx",
-        ),
-        "utf8",
-      );
-      expect(source).not.toContain("openFieldPanel");
-      expect(source).toMatch(/ColumnEditorPopover|DialogTrigger/);
-    },
-  );
+  it("④ the column head no longer opens the field panel (a popover instead)", () => {
+    const source = readFileSync(
+      resolve(__dirname, "../../panels/datatable/grid/DataGrid.components.tsx"),
+      "utf8",
+    );
+    expect(source).not.toContain("openFieldPanel");
+    expect(source).toMatch(/ColumnEditorPopover|DialogTrigger/);
+  });
 
-  it(
-    "⑤ a page variable may not take a project variable's name that the page already reads",
-    async () => {
-      const { workspace, record, root, stateVariable } = await open({
-        text: "{{ a }}",
-      });
+  it("⑤ a page variable may not take a project variable's name that the page already reads", async () => {
+    const { workspace, record, root, stateVariable } = await open({
+      text: "{{ a }}",
+    });
+    workspace.execute(
+      setProjectVariable({ entry: projectVariable("a", "a", "GLOBAL") }),
+    );
+    workspace.execute(catalogVariableCommands.add(PAGE, "x", workspace.newId));
+    workspace.execute(
+      catalogVariableCommands.setDefault(stateVariable("x"), "LOCAL"),
+    );
+    root.refreshState();
+    expect(record("text").props.children).toBe("GLOBAL");
+    // Today: `catalogVariableNameConflict` looks at state variables only — the rename passes and
+    // the page's `{{ a }}` now reads the page value.
+    expect(() =>
       workspace.execute(
-        setProjectVariable({ entry: projectVariable("a", "a", "GLOBAL") }),
-      );
-      workspace.execute(
-        catalogVariableCommands.add(PAGE, "x", workspace.newId),
-      );
-      workspace.execute(
-        catalogVariableCommands.setDefault(stateVariable("x"), "LOCAL"),
-      );
-      root.refreshState();
-      expect(record("text").props.children).toBe("GLOBAL");
-      // Today: `catalogVariableNameConflict` looks at state variables only — the rename passes and
-      // the page's `{{ a }}` now reads the page value.
-      expect(() =>
-        workspace.execute(
-          catalogVariableCommands.rename(stateVariable("x"), "a"),
-        ),
-      ).toThrow();
-      root.refreshState();
-      expect(record("text").props.children).toBe("GLOBAL");
-    },
-  );
+        catalogVariableCommands.rename(stateVariable("x"), "a"),
+      ),
+    ).toThrow();
+    root.refreshState();
+    expect(record("text").props.children).toBe("GLOBAL");
+  });
 
-  it(
-    "⑥ renaming an element variable rewrites the node's prop but not its binding.key of the same name",
-    async () => {
-      const { workspace, graph, stateVariable, nodeEntry } = await open({
-        item: "{{ a }}",
-      });
-      const collection: CollectionEntry = {
-        kind: "collection",
-        id: "data:collection:c1" as DataCollectionId,
-        name: "Users",
-        schema: [],
-        mockData: [],
-        useMockData: true,
-      };
-      workspace.execute(setDataEntries({ puts: [collection] }));
-      workspace.execute(
-        setProjectVariable({ entry: projectVariable("a", "a", "GLOBAL") }),
-      );
-      workspace.execute(
-        catalogVariableCommands.add(id("item"), "a", workspace.newId),
-      );
-      workspace.execute(
-        catalogVariableCommands.setDefault(stateVariable("a"), "LOCAL"),
-      );
-      workspace.execute(
-        catalogBindingCommand([{ kind: "node", id: id("item") }], {
-          collectionId: collection.id,
-          fieldMap: {},
-          key: "{{ a }}",
-        }),
-      );
-      const source = {
-        projectVariables: () => catalogProjectVariableDefs(graph),
-      };
-      expect(nodeEntry("item").binding?.key).toBe("{{ a }}");
-      expect(catalogBindingKey(graph, "{{ a }}", id("item"), source)).toBe(
-        "GLOBAL",
-      );
-      workspace.execute(
-        catalogVariableCommands.rename(stateVariable("a"), "b"),
-      );
-      // Phase 1: the prop (element chain) follows, the key (page · project) does not.
-      const props = nodeEntry("item").props.children;
-      expect(props?.kind === "set" ? props.value : props).toBe("{{ b }}");
-      expect(nodeEntry("item").binding?.key).toBe("{{ a }}");
-    },
-  );
+  it("⑥ renaming an element variable rewrites the node's prop but not its binding.key of the same name", async () => {
+    const { workspace, graph, stateVariable, nodeEntry } = await open({
+      item: "{{ a }}",
+    });
+    const collection: CollectionEntry = {
+      kind: "collection",
+      id: "data:collection:c1" as DataCollectionId,
+      name: "Users",
+      schema: [],
+      mockData: [],
+      useMockData: true,
+    };
+    workspace.execute(setDataEntries({ puts: [collection] }));
+    workspace.execute(
+      setProjectVariable({ entry: projectVariable("a", "a", "GLOBAL") }),
+    );
+    workspace.execute(
+      catalogVariableCommands.add(id("item"), "a", workspace.newId),
+    );
+    workspace.execute(
+      catalogVariableCommands.setDefault(stateVariable("a"), "LOCAL"),
+    );
+    workspace.execute(
+      catalogBindingCommand([{ kind: "node", id: id("item") }], {
+        collectionId: collection.id,
+        fieldMap: {},
+        key: "{{ a }}",
+      }),
+    );
+    const source = {
+      projectVariables: () => catalogProjectVariableDefs(graph),
+    };
+    expect(nodeEntry("item").binding?.key).toBe("{{ a }}");
+    expect(catalogBindingKey(graph, "{{ a }}", id("item"), source)).toBe(
+      "GLOBAL",
+    );
+    workspace.execute(catalogVariableCommands.rename(stateVariable("a"), "b"));
+    // Phase 1: the prop (element chain) follows, the key (page · project) does not.
+    const props = nodeEntry("item").props.children;
+    expect(props?.kind === "set" ? props.value : props).toBe("{{ b }}");
+    expect(nodeEntry("item").binding?.key).toBe("{{ a }}");
+  });
 });

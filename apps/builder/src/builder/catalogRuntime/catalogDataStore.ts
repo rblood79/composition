@@ -6,17 +6,14 @@
  * project file's document. API results (`runtimeData`) are not the document — they stay the
  * store's (ADR-218 cache), merged into the projected tables.
  */
-import type { VariableDef } from "@composition/shared";
 import type {
   CatalogDataField,
-  CatalogReader,
   CollectionEntry,
   DataCollectionId,
   DataEndpointId,
   DataEntry,
   EndpointEntry,
   NodeId,
-  ProjectEntry,
   ProjectVariableEntry,
   ProjectVariableId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -28,7 +25,6 @@ import { setDataEntries } from "../../../../../packages/shared/src/catalog/comma
 import { renameVariable } from "../../../../../packages/shared/src/catalog/commands/variables";
 import type {
   ApiEndpoint,
-  DataField,
   DataTable,
   Variable,
 } from "../../types/builder/data.types";
@@ -292,7 +288,9 @@ export function bindCatalogDataStore(
           current?.kind === "projectVariable" &&
           current.name !== variable.name
         )
-          commands.push(renameVariable({ variableId: id, name: variable.name }));
+          commands.push(
+            renameVariable({ variableId: id, name: variable.name }),
+          );
       }
       const puts: DataEntry[] = [
         ...(write.collections ?? []).map(toCollectionEntry),

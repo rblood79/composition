@@ -40,9 +40,6 @@ import type {
   PageEntry,
   ProjectEntry,
   StateVariableEntry,
-  ViewCondition,
-  ViewConditionGroup,
-  ViewQuery,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { isBodyType } from "../../../../../packages/shared/src/domain/predicates";
@@ -397,12 +394,16 @@ class Planner {
     );
     for (const statement of this.parsed.statements) {
       if (statement.kind !== "dnd") continue;
-      if (!this.input.strict && baseline.has(codeViewNormalized(statement.code)))
+      if (
+        !this.input.strict &&
+        baseline.has(codeViewNormalized(statement.code))
+      )
         continue;
       const element = this.findElement(
         (item) =>
-          item.attributes.find((a) => a.name === "dragAndDropHooks")?.value
-            ?.code.trim() === statement.name,
+          item.attributes
+            .find((a) => a.name === "dragAndDropHooks")
+            ?.value?.code.trim() === statement.name,
       );
       const id = element ? this.ids?.get(element) : undefined;
       const node = id ? this.reader.getEntry(id) : undefined;
@@ -565,7 +566,6 @@ class Planner {
   /** Elements whose text reads a row (`<rows>.find(row => row.id === …)`) — the views bind them. */
   private readonly rowReaders = new Map<CodeViewElement, string>();
 
-
   /* ── variables (`useState`) ── */
 
   private planVariables(): void {
@@ -666,7 +666,8 @@ class Planner {
         continue;
       }
       // (A selection is `useState<Selection>` whether its type says `array` or `string[]`.)
-      const selection = (type: string) => type === "array" || type === "string[]";
+      const selection = (type: string) =>
+        type === "array" || type === "string[]";
       if (
         next.valueType !== entry.valueType &&
         !(selection(next.valueType) && selection(entry.valueType))
@@ -1150,12 +1151,19 @@ class Planner {
     const id = (name: string) => this.variables.get(name);
     const empty = /^([\w$]+) !== 'all' && \1\.size === 0$/.exec(text);
     if (empty && id(empty[1]!))
-      return { kind: "when", subject: `!var.${id(empty[1]!)}`, op: "notExists" };
+      return {
+        kind: "when",
+        subject: `!var.${id(empty[1]!)}`,
+        op: "notExists",
+      };
     const some = /^\(([\w$]+) === 'all' \|\| \1\.size > 0\)$/.exec(text);
     if (some && id(some[1]!))
       return { kind: "when", subject: `!var.${id(some[1]!)}`, op: "exists" };
-    const size = /^([\w$]+) !== 'all' && \1\.size (===|!==|>=|>|<=|<) (.+)$/.exec(text);
-    const plain = /^([\w$]+)((?:\.[\w$]+)*) (===|!==|>=|>|<=|<) (.+)$/.exec(text);
+    const size =
+      /^([\w$]+) !== 'all' && \1\.size (===|!==|>=|>|<=|<) (.+)$/.exec(text);
+    const plain = /^([\w$]+)((?:\.[\w$]+)*) (===|!==|>=|>|<=|<) (.+)$/.exec(
+      text,
+    );
     const ops = {
       "===": "equals",
       "!==": "notEquals",
@@ -1322,7 +1330,12 @@ class Planner {
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
-    return this.dosOf(arrow[3]!, attribute.from, { trigger, args, fields, params });
+    return this.dosOf(arrow[3]!, attribute.from, {
+      trigger,
+      args,
+      fields,
+      params,
+    });
   }
 
   /** A setter call on a node's named state → that node's capability (undefined = not one). */
@@ -1332,8 +1345,7 @@ class Planner {
     valueOf: (raw: string) => unknown,
   ): InteractionAction | undefined {
     const entry = this.reader.getEntry(variableId) as
-      | StateVariableEntry
-      | undefined;
+      StateVariableEntry | undefined;
     const source = entry?.source;
     return source
       ? this.capabilityAt(source.nodeId, source.prop, next, valueOf)
@@ -1427,9 +1439,10 @@ class Planner {
         const event = valueOf(items[1]!);
         if (typeof event !== "string" || !event.startsWith("!event."))
           return undefined;
-        return [`!item.${event.slice(7)}`, ...(items[2] ? [items[2]] : [])].join(
-          ".",
-        );
+        return [
+          `!item.${event.slice(7)}`,
+          ...(items[2] ? [items[2]] : []),
+        ].join(".");
       }
       const [head, ...path] = text.split(".");
       if (fields && head === "e" && path.length)
@@ -1470,7 +1483,9 @@ class Planner {
           raw,
         );
       const side =
-        /^if \((.+) === 'before'\) ([\w$]+)\.moveBefore\((.+?), (.+)\)$/.exec(raw);
+        /^if \((.+) === 'before'\) ([\w$]+)\.moveBefore\((.+?), (.+)\)$/.exec(
+          raw,
+        );
       const fetchCall =
         /^await fetch\(('(?:[^'\\]|\\.)*'), \{method: ('[A-Z]+')(?:, body: JSON\.stringify\(([\s\S]+)\))?\}\)$/.exec(
           raw,
@@ -1479,9 +1494,9 @@ class Planner {
         const variableId = setter(set[1]!);
         const value = set[2]!.trim();
         // (ADR-287 — a rule's implicit state: its setter is the node's Do on that prop.)
-        const implicit = Object.entries(this.baseline.symbols.states ?? {}).find(
-          ([name]) => `set${capital(name)}` === set[1],
-        )?.[1];
+        const implicit = Object.entries(
+          this.baseline.symbols.states ?? {},
+        ).find(([name]) => `set${capital(name)}` === set[1])?.[1];
         if (!variableId && implicit) {
           const capability = this.capabilityAt(
             implicit.nodeId,
@@ -1509,7 +1524,11 @@ class Planner {
           continue;
         }
         if (value === "v => !v") {
-          actions.push({ opcode: "setState", variableId, op: "toggle" } as InteractionAction);
+          actions.push({
+            opcode: "setState",
+            variableId,
+            op: "toggle",
+          } as InteractionAction);
           continue;
         }
         const toggle = /^v => v === (.+) \? .+ : \1$/.exec(value);
@@ -1534,14 +1553,15 @@ class Planner {
         }
         // (The variable's start as its `useState` writes it: a reset — `new Set()` is no value.)
         const start = this.parsed.statements
-          .find(
-            (item) =>
-              item.kind === "state" && item.setter === set[1],
-          )
+          .find((item) => item.kind === "state" && item.setter === set[1])
           ?.code.match(/useState(?:<\w+>)?\(([\s\S]*)\);$/)?.[1]
           ?.trim();
         if (start !== undefined && start === value) {
-          actions.push({ opcode: "setState", variableId, op: "reset" } as InteractionAction);
+          actions.push({
+            opcode: "setState",
+            variableId,
+            op: "reset",
+          } as InteractionAction);
           continue;
         }
         const next = value === "" ? undefined : valueOf(value);
@@ -1558,15 +1578,21 @@ class Planner {
         continue;
       }
       if (toast) {
-        actions.push({ opcode: "toast", message: literalOf(toast[1]!) } as InteractionAction);
+        actions.push({
+          opcode: "toast",
+          message: literalOf(toast[1]!),
+        } as InteractionAction);
         continue;
       }
       if (go) {
         const route = literalOf(go[1]!);
-        const project = this.reader.getEntry(this.reader.projectId) as ProjectEntry;
+        const project = this.reader.getEntry(
+          this.reader.projectId,
+        ) as ProjectEntry;
         const pageId = project.pageIds.find(
           (pageId) =>
-            (this.reader.getEntry(pageId) as PageEntry | undefined)?.route === route,
+            (this.reader.getEntry(pageId) as PageEntry | undefined)?.route ===
+            route,
         );
         if (!pageId) {
           this.reject(from, "unknownReference", String(route));
@@ -1587,7 +1613,9 @@ class Planner {
         actions.push({
           opcode: "callEndpoint",
           endpointId: `data:endpoint:${endpoint.id}`,
-          ...(fetchCall[3] !== undefined ? { body: valueOf(fetchCall[3]) } : {}),
+          ...(fetchCall[3] !== undefined
+            ? { body: valueOf(fetchCall[3]) }
+            : {}),
         } as InteractionAction);
         continue;
       }
@@ -1640,11 +1668,21 @@ class Planner {
         const one = (key: string, value: string) =>
           ({ opcode: method, collectionId, [key]: valueOf(value) }) as never;
         let action: InteractionAction | undefined;
-        if (["reload", "loadMore", "removeSelectedItems"].includes(method) && !parts.length)
+        if (
+          ["reload", "loadMore", "removeSelectedItems"].includes(method) &&
+          !parts.length
+        )
           action = { opcode: method, collectionId } as never;
-        else if (["append", "prepend", "setFilterText"].includes(method) && parts.length === 1)
+        else if (
+          ["append", "prepend", "setFilterText"].includes(method) &&
+          parts.length === 1
+        )
           action = one("value", parts[0]!);
-        else if (method === "remove" && parts.length === 1 && parts[0]!.startsWith("..."))
+        else if (
+          method === "remove" &&
+          parts.length === 1 &&
+          parts[0]!.startsWith("...")
+        )
           action = one("keys", parts[0]!.slice(3));
         else if (method === "insert" && parts.length === 2)
           action = {
@@ -1653,7 +1691,10 @@ class Planner {
             index: valueOf(parts[0]!),
             value: valueOf(parts[1]!),
           } as never;
-        else if (["insertBefore", "insertAfter"].includes(method) && parts.length === 2)
+        else if (
+          ["insertBefore", "insertAfter"].includes(method) &&
+          parts.length === 2
+        )
           action = {
             opcode: method,
             collectionId,
@@ -1667,7 +1708,10 @@ class Planner {
             key: valueOf(parts[0]!),
             toIndex: valueOf(parts[1]!),
           } as never;
-        else if (["moveBefore", "moveAfter"].includes(method) && parts.length === 2)
+        else if (
+          ["moveBefore", "moveAfter"].includes(method) &&
+          parts.length === 2
+        )
           action = {
             opcode: method,
             collectionId,
@@ -1675,9 +1719,10 @@ class Planner {
             keys: valueOf(parts[1]!),
           } as never;
         else if (method === "update" && parts.length === 2) {
-          const patch = /^\{\.\.\.[\w$]+\.getItem\((.+?)\), ([\w$]+): ([\s\S]+)\}$/.exec(
-            parts[1]!,
-          );
+          const patch =
+            /^\{\.\.\.[\w$]+\.getItem\((.+?)\), ([\w$]+): ([\s\S]+)\}$/.exec(
+              parts[1]!,
+            );
           const field = patch
             ? this.baseline.symbols.fields[collectionId]?.[patch[2]!]
             : undefined;
@@ -1708,7 +1753,6 @@ class Planner {
     }
     return actions;
   }
-
 }
 
 /** What a node holds that its code does not show — equal states are indistinguishable. */

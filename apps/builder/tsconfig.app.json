@@ -11,6 +11,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": [
+    "src",
+    "../../packages/shared/src/collections/formula/json-formula.d.ts"
+  ],
   "exclude": []
 }

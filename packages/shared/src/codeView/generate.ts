@@ -436,7 +436,7 @@ class Generator {
         for (const action of rule.actions)
           if ("collectionId" in action && action.collectionId)
             written.add(action.collectionId);
-    const use = (collectionId: string) => {
+    const addRowSource = (collectionId: string) => {
       if (this.rowSources.has(collectionId)) return;
       const collection = this.doc.collection(collectionId);
       const base = this.names.take(
@@ -455,8 +455,8 @@ class Generator {
       });
     };
     for (const node of this.nodes)
-      if (node.binding) use(node.binding.collectionId);
-    for (const id of written) use(id);
+      if (node.binding) addRowSource(node.binding.collectionId);
+    for (const id of written) addRowSource(id);
     // Views: shared ones (sources first) and the built-in ones.
     const shared = (viewId: string): ViewCode | undefined => {
       const existing = this.views.get(viewId);
@@ -470,7 +470,7 @@ class Generator {
           ? view.source.collectionId
           : source?.collectionId;
       if (!collectionId) return undefined;
-      use(collectionId);
+      addRowSource(collectionId);
       const code: ViewCode = {
         name: this.names.take(view.name, "view"),
         owner: { viewId: view.id },
@@ -708,7 +708,10 @@ class Generator {
       if (!parsed) return "null";
       // (An instant written with `Z` · an offset is read in UTC — `parseZonedDateTime` takes only
       //   the bracketed zone form, review 2026-10-29.)
-      if (parsed.kind === "zoned" && !String(entry.defaultValue).includes("[")) {
+      if (
+        parsed.kind === "zoned" &&
+        !String(entry.defaultValue).includes("[")
+      ) {
         this.import("@internationalized/date", "parseAbsolute");
         return `parseAbsolute(${literal(entry.defaultValue)}, 'UTC')`;
       }
@@ -833,7 +836,9 @@ class Generator {
     if (!computed.length) return undefined;
     if (!this.formulaHelpers) {
       this.formulaHelpers = true;
-      this.dataImports.unshift("import JsonFormula from '@adobe/json-formula';");
+      this.dataImports.unshift(
+        "import JsonFormula from '@adobe/json-formula';",
+      );
       out.anchorLine("let formula = new JsonFormula();", {
         kind: "derived",
         key: "formula",

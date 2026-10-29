@@ -97,9 +97,6 @@ async function open() {
   const J = workspace.execute(
     duplicateNodes({ ids: [I], newId: workspace.newId }),
   ).plan.selectAfter![0]! as NodeId;
-  function definitionOf() {
-    return graph.definitionOfTemplateRoot(id("card"))!;
-  }
   const host: CatalogMenuHost = {
     graph,
     get records() {

@@ -388,6 +388,7 @@ describe("ADR-278 — overlay body = slot", () => {
       },
       project.pageIds[0] as never,
     );
+    store.connect();
     const rows = allRows(store);
     const textRow = rows.find(
       (row) =>

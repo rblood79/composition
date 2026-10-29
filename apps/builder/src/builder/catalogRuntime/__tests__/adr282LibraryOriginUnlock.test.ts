@@ -39,10 +39,7 @@ import {
   withoutComponentPages,
 } from "../../../../../../packages/shared/src/catalog/document/componentPages";
 import { newCatalogProjectDocument } from "../project";
-import {
-  catalogDirtyStyleProps,
-  catalogResetStyleWrites,
-} from "../styleDirty";
+import { catalogDirtyStyleProps, catalogResetStyleWrites } from "../styleDirty";
 import { LAYOUT_PROPS } from "../../panels/styles/sections/styleSectionProps";
 import { ORIGIN_VIEW_NODE } from "../../../../../../packages/shared/src/catalog/runtime/originViewNode";
 import { useToastStore } from "../../stores/toast";
@@ -215,9 +212,12 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
       },
       COMPONENTS_VIEW,
     );
+    store.connect();
     const path = rootRecord.split("::")[0]!.split("/");
     store.setExpanded(
-      new Set(path.map((id, at) => `${path.slice(0, at + 1).join("/")}::${id}`)),
+      new Set(
+        path.map((id, at) => `${path.slice(0, at + 1).join("/")}::${id}`),
+      ),
     );
     const rowOf = (
       rows: ReturnType<typeof store.getSnapshot>,
@@ -333,8 +333,8 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     const { workspace, reopen, storage, library } = await open();
     workspace.showDefinition(BUTTON);
     workspace.setLibraryUnlocked(true);
-    const root = workspace.runtime.graph.getDefinitionOverride(BUTTON)!
-      .templateRootId!;
+    const root =
+      workspace.runtime.graph.getDefinitionOverride(BUTTON)!.templateRootId!;
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: root },
@@ -380,7 +380,11 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
   it("Phase 3 · G6: the Library is the project's page — made on the first open (no history entry), its ◆ cells draw the origin but never store it, Preview never sees the page, a reopen keeps it", async () => {
     const { workspace, reopen, storage, library } = await open();
     const graph = workspace.runtime.graph;
-    const posts: { type: string; document?: CatalogDocument; changed?: { id: string }[] }[] = [];
+    const posts: {
+      type: string;
+      document?: CatalogDocument;
+      changed?: { id: string }[];
+    }[] = [];
     const preview = workspace.attachPreview({
       post: (message) => posts.push(message as (typeof posts)[number]),
     });
@@ -390,13 +394,18 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     const project = graph.getEntry(graph.projectId) as ProjectEntry;
     expect(project.componentPageIds).toEqual([LIBRARY_COMPONENT_PAGE]);
     expect(project.pageIds).not.toContain(LIBRARY_COMPONENT_PAGE);
-    expect(workspace.history.getSnapshot().labels).toEqual(["Insert", "Insert"]);
+    expect(workspace.history.getSnapshot().labels).toEqual([
+      "Insert",
+      "Insert",
+    ]);
     // The card draws the origin's sample right after its title (no Origin line — user
     // 2026-10-25); the document keeps its other children.
     const cell = componentPageNodeId(originCardId(BUTTON));
     const sample = originSampleId(BUTTON);
     expect((graph.getEntry(cell) as NodeEntry).children[1]).toBe(sample);
-    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(sample);
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(
+      sample,
+    );
     expect((graph.storedEntry(cell) as NodeEntry).originOf).toBe(BUTTON);
     // Locked, the page takes no edit (user 2026-10-25 「잠금해제 하지 않아도 수정 가능하다」).
     expect(() =>
@@ -418,7 +427,9 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
         visual: { paddingTop: { kind: "set", value: 8 } },
       }),
     );
-    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(
+      copyRoot,
+    );
     workspace.showDefinition(undefined);
     workspace.undo();
     workspace.redo();
@@ -426,7 +437,9 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
       kind: "set",
       value: 8,
     });
-    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
+    expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(
+      copyRoot,
+    );
     // Preview: no component page in the snapshot or in a delta (nor the project's list of them).
     preview.onReady(); // (a new Preview document after the page was made)
     const snapshots = posts.filter((post) => post.type === "CATALOG_SNAPSHOT");
@@ -458,8 +471,13 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     // Saved and opened again: the page as it was (its edit kept), drawn from the document.
     await workspace.runtime.save();
     workspace.dispose();
-    const loaded = new CatalogGraph(await storage.load(PROJECT, library), library);
-    expect((loaded.storedEntry(cell) as NodeEntry).children).not.toContain(copyRoot);
+    const loaded = new CatalogGraph(
+      await storage.load(PROJECT, library),
+      library,
+    );
+    expect((loaded.storedEntry(cell) as NodeEntry).children).not.toContain(
+      copyRoot,
+    );
     expect((loaded.storedEntry(cell) as NodeEntry).visual.paddingTop).toEqual({
       kind: "set",
       value: 8,
@@ -474,7 +492,10 @@ describe("ADR-282 Phase 2 — the Library page's lock", () => {
     const { workspace } = await open();
     const graph = workspace.runtime.graph;
     workspace.showDefinition(BUTTON);
-    const body = { kind: "node" as const, id: componentPageNodeId(ORIGIN_VIEW_NODE) };
+    const body = {
+      kind: "node" as const,
+      id: componentPageNodeId(ORIGIN_VIEW_NODE),
+    };
     const own = () => workspace.readModel.ownFields(body);
     const baseline = workspace.componentPageBaseline(body);
     expect(baseline).toBeDefined();

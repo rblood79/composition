@@ -19,7 +19,6 @@ import { detachInstances, dissolveComponent } from "../components";
 import { copyNodes, pasteNodes, type CatalogClipboard } from "../structure";
 import {
   allocator,
-  code,
   documentOf,
   graphOf,
   library,
@@ -184,11 +183,7 @@ describe("ADR-260 Decision 13 — the clipboard knows origins, definitions and t
     });
     return new CatalogGraph(
       withTokens(
-        documentOf(
-          [origin, own, node("inst", DEF)],
-          ["inst"],
-          [definition()],
-        ),
+        documentOf([origin, own, node("inst", DEF)], ["inst"], [definition()]),
         [brand()],
       ),
       library(),

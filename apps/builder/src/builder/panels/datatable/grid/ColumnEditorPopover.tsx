@@ -361,7 +361,10 @@ export function ColumnDeleteDialog({
       title={dt("fieldDeleteConfirmTitle", { key: field.key })}
       message={
         usage.length > 0
-          ? dt("fieldDeleteConfirmUsed", { key: field.key, count: usage.length })
+          ? dt("fieldDeleteConfirmUsed", {
+              key: field.key,
+              count: usage.length,
+            })
           : dt("fieldDeleteConfirm", { key: field.key })
       }
       tone="danger"
@@ -466,7 +469,12 @@ function FieldForm({
   // written yet); off on a computed column writes `formula: null`.
   const computed = !!field.formula;
   const [computedDraft, setComputedDraft] = useState(computed);
-  useEffect(() => setComputedDraft(computed), [computed]);
+  // (The stored values replace the drafts in the render they change in — not an effect's second.)
+  const [shownComputed, setShownComputed] = useState(computed);
+  if (shownComputed !== computed) {
+    setShownComputed(computed);
+    setComputedDraft(computed);
+  }
   const formulaEngine = useFormulaEngine(computedDraft);
   const shownFormula = useMemo(
     () =>
@@ -475,10 +483,12 @@ function FieldForm({
   );
   const [formulaText, setFormulaText] = useState(shownFormula);
   const [formulaError, setFormulaError] = useState<string | null>(null);
-  useEffect(() => {
+  const [formulaOf, setFormulaOf] = useState(shownFormula);
+  if (formulaOf !== shownFormula) {
+    setFormulaOf(shownFormula);
     setFormulaText(shownFormula);
     setFormulaError(null);
-  }, [shownFormula]);
+  }
   const { options: typeOptions, descriptions: typeHints } = useTypeOptions(
     dt,
     computedDraft,
@@ -497,12 +507,14 @@ function FieldForm({
     storedDefault.ok ? null : dt("fieldDefaultInvalid"),
   );
   const [defaultNote, setDefaultNote] = useState<string | null>(null);
-  useEffect(() => {
+  const [defaultOf, setDefaultOf] = useState({ storedDefault, dt });
+  if (defaultOf.storedDefault !== storedDefault || defaultOf.dt !== dt) {
+    setDefaultOf({ storedDefault, dt });
     setDefaultText(
       storedDefault.ok ? formatCellValue(storedDefault.value) : "",
     );
     setDefaultError(storedDefault.ok ? null : dt("fieldDefaultInvalid"));
-  }, [storedDefault, dt]);
+  }
 
   const commitKey = async (draft: string) => {
     const plan = planFieldRename(collectionId, field, existingKeys, draft);
@@ -543,7 +555,11 @@ function FieldForm({
       dt,
       formulaEngine,
       formulaText,
-      { ...(field.id ? { id: field.id } : {}), key: field.key, type: resultType },
+      {
+        ...(field.id ? { id: field.id } : {}),
+        key: field.key,
+        type: resultType,
+      },
       schema,
     );
     if ("error" in result) {
@@ -725,28 +741,28 @@ function FieldForm({
           />
         ) : null}
         {computedDraft ? null : (
-        <div className="fieldset-row" data-wide>
-          <FieldValueInput
-            className="datatable-field-default"
-            field={{ ...field, defaultValue: null }}
-            label={dt("fieldDefault")}
-            text={defaultText}
-            placeholder={dt("rowFormEmpty")}
-            error={defaultError}
-            onChange={(text) => {
-              setDefaultText(text);
-              setDefaultError(null);
-              // The boolean Select commits as it changes (no blur).
-              if (type === "boolean") {
-                const coerced = coerceCellValue(type, text);
-                if (coerced.ok)
-                  void patchField({ defaultValue: coerced.value });
-              }
-            }}
-            onBlur={type === "boolean" ? undefined : commitDefault}
-            onSubmit={commitDefault}
-          />
-        </div>
+          <div className="fieldset-row" data-wide>
+            <FieldValueInput
+              className="datatable-field-default"
+              field={{ ...field, defaultValue: null }}
+              label={dt("fieldDefault")}
+              text={defaultText}
+              placeholder={dt("rowFormEmpty")}
+              error={defaultError}
+              onChange={(text) => {
+                setDefaultText(text);
+                setDefaultError(null);
+                // The boolean Select commits as it changes (no blur).
+                if (type === "boolean") {
+                  const coerced = coerceCellValue(type, text);
+                  if (coerced.ok)
+                    void patchField({ defaultValue: coerced.value });
+                }
+              }}
+              onBlur={type === "boolean" ? undefined : commitDefault}
+              onSubmit={commitDefault}
+            />
+          </div>
         )}
       </Section>
 
@@ -1014,21 +1030,21 @@ export function ColumnCreator({
           <FormatSelect value={format} dt={dt} onChange={setFormat} />
         ) : null}
         {computed ? null : (
-        <div className="fieldset-row" data-wide>
-          <FieldValueInput
-            className="datatable-field-default"
-            field={draft}
-            label={dt("fieldDefault")}
-            text={defaultText}
-            placeholder={dt("rowFormEmpty")}
-            error={defaultError}
-            onChange={(text) => {
-              setDefaultText(text);
-              setDefaultError(null);
-            }}
-            onSubmit={() => void create()}
-          />
-        </div>
+          <div className="fieldset-row" data-wide>
+            <FieldValueInput
+              className="datatable-field-default"
+              field={draft}
+              label={dt("fieldDefault")}
+              text={defaultText}
+              placeholder={dt("rowFormEmpty")}
+              error={defaultError}
+              onChange={(text) => {
+                setDefaultText(text);
+                setDefaultError(null);
+              }}
+              onSubmit={() => void create()}
+            />
+          </div>
         )}
         <div className="fieldset-row" data-wide>
           <PropertySwitch

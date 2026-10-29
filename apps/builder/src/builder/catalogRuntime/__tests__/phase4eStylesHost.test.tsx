@@ -10,7 +10,6 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
-  duplicateNodes,
   insertNodes,
   setFields,
   type CatalogCommand,
@@ -27,7 +26,6 @@ import {
 } from "../../panels/styles/stylesHost";
 import { useToastStore } from "../../stores/toast";
 import { catalogComponentCommands } from "../componentActions";
-import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
@@ -282,7 +280,6 @@ describe("ADR-248 Phase 4e-4d Styles host", () => {
       width: "200px",
     });
   });
-
 
   it("a gesture that ended without a commit leaves nothing for the next one to carry over", async () => {
     const { workspace, host, record } = await open();

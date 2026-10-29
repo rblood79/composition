@@ -38,7 +38,9 @@ function nameOf(el: Element): string {
         const ref = el.ownerDocument.getElementById(id);
         if (!ref) return "";
         if (ref === el) return el.getAttribute("aria-label") ?? "";
-        return textOf(ref).replace(/\u00a0/g, " ").trim();
+        return textOf(ref)
+          .replace(/\u00a0/g, " ")
+          .trim();
       })
       .filter(Boolean)
       .join(" ");
@@ -125,7 +127,7 @@ async function contextualHelpOracle() {
       buttonExpandedClosed: button.getAttribute("aria-expanded"),
       labelRowTag: row.tagName.toLowerCase(),
       labelRowChildren: [...row.children].map((c) => c.tagName.toLowerCase()),
-      labelRowText: row.textContent?.replace(/ /g, "␣"),
+      labelRowText: row.textContent?.replace(/\u00a0/g, "␣"),
     };
     // Open it.
     await act(async () => {

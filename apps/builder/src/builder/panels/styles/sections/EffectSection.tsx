@@ -21,7 +21,7 @@
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
-import { memo, useRef } from "react";
+import { memo, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import { Minus } from "lucide-react";
 import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
@@ -59,14 +59,19 @@ import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 const AddIcon = ACTION_ICONS.add;
 
 /** ADR-166: Spectrum 2 elevation 3단계 (xl 없음). 목록 전체를 교체한다. */
-const SHADOW_PRESET_KEYS = ["sm", "md", "lg"] as const satisfies readonly ShadowPresetKey[];
+const SHADOW_PRESET_KEYS = [
+  "sm",
+  "md",
+  "lg",
+] as const satisfies readonly ShadowPresetKey[];
 
 /** 프리셋 표시 — 컴포넌트 size 토글과 같은 S · M · L */
-const SHADOW_PRESET_LABEL: Record<(typeof SHADOW_PRESET_KEYS)[number], string> = {
-  sm: "S",
-  md: "M",
-  lg: "L",
-};
+const SHADOW_PRESET_LABEL: Record<(typeof SHADOW_PRESET_KEYS)[number], string> =
+  {
+    sm: "S",
+    md: "M",
+    lg: "L",
+  };
 
 /** 새 blur 기본값 (px) */
 const DEFAULT_BLUR_PX = 4;
@@ -126,7 +131,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   // 색 드래그도 Styles host 미리보기
   const host = useStylesHost();
   // 레이어 topology 가 바뀐 뒤 (추가·제거) 행 목록은 index key 라 그대로, 편집기만 remount.
-  const editorMountRef = useRef(0);
+  const [editorMount, setEditorMount] = useState(0);
 
   if (!styleValues) return null;
 
@@ -159,7 +164,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   // 레이어 제거 · inset — 편집기를 다시 마운트하고 바로 commit 한다 (Skia 는
   //   parseAllBoxShadows 로 다중 렌더).
   const commitBoxShadowTopology = (nextBoxShadow: string): void => {
-    editorMountRef.current += 1;
+    setEditorMount((mount) => mount + 1);
     updateStyle("boxShadow", nextBoxShadow);
   };
 
@@ -199,7 +204,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     updateStyleImmediate("filter", setFilterBlurPx(styleValues.filter, px));
   };
 
-  const editorKey = `${selectedId ?? "none"}:${editorMountRef.current}:${styleValues.boxShadow}`;
+  const editorKey = `${selectedId ?? "none"}:${editorMount}:${styleValues.boxShadow}`;
 
   return (
     <>
@@ -293,7 +298,6 @@ const EffectSectionContent = memo(function EffectSectionContent() {
           </div>
         </fieldset>
       )}
-
     </>
   );
 });
@@ -364,7 +368,10 @@ const EffectAddMenu = memo(function EffectAddMenu() {
     const cssValue = getShadowToken(presetKey, "light");
     if (!cssValue) return;
     const insetActive = boxShadowModel?.layers.some((l) => l.inset) ?? false;
-    updateStyle("boxShadow", insetActive ? applyShadowInset(cssValue) : cssValue);
+    updateStyle(
+      "boxShadow",
+      insetActive ? applyShadowInset(cssValue) : cssValue,
+    );
   };
 
   return (

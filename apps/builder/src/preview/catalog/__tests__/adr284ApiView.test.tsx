@@ -140,13 +140,6 @@ function expected(view: ViewQuery, values: Record<string, unknown>) {
 
 // ── The mock server: json-server's suffixes and a body tree, written apart from the serializer ──
 
-const day = (value: unknown) =>
-  value && typeof value === "object"
-    ? (() => {
-        const { year, month, day } = value as Record<string, number>;
-        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      })()
-    : String(value);
 /** json-server compares numbers as numbers, anything else as text. */
 function order(a: unknown, b: string) {
   const x = Number(a);
@@ -600,7 +593,9 @@ describe("ADR-284 G2 — a variable write is a new query", () => {
     // (No request carries a grouping; every page came (3 of 3 · 3 · 2) and the 8 rows are grouped
     //   here — male · female, complete.)
     expect(server.urls().filter((url) => url.includes("gender"))).toEqual([]);
-    expect(server.urls().filter((url) => url.includes("page=3"))).toHaveLength(1);
+    expect(server.urls().filter((url) => url.includes("page=3"))).toHaveLength(
+      1,
+    );
     const result = h.session.viewResult(h.list);
     expect(result?.served).toBeUndefined();
     expect(result?.complete).toBe(true);

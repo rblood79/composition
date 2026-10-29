@@ -1,5 +1,4 @@
 import {
-  createElement,
   useContext,
   useEffect,
   useRef,
@@ -15,7 +14,10 @@ import {
   type ComboBoxState,
   type Key,
 } from "react-aria-components";
-import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
+import { ComboBox as AriaComboBoxTyped } from "react-aria-components/ComboBox";
+
+/** (The record's props pass through unchecked — the binding's `accepts`.) */
+const AriaComboBox = AriaComboBoxTyped as ElementType;
 
 /** The record's runtime write: the selection and the input text, in one update. */
 type SelectionTextWrite = (patch: {
@@ -36,6 +38,24 @@ const selectedText = (state: ComboBoxState1, key: Key | null) =>
 type Seen = { key: Key | null; text: string | undefined };
 
 /**
+ * The record's write, with the render that brings new input text marked quiet (`menuTrigger:
+ * "manual"`) — `current` is the state the text is compared with (the event's, the effect's).
+ */
+function writeSelectionText(
+  current: ComboBoxState1 | null,
+  patch: Parameters<SelectionTextWrite>[0],
+  onSelectionText: SelectionTextWrite,
+  quiet: (text: string) => void,
+) {
+  if (
+    patch.inputValue !== undefined &&
+    patch.inputValue !== current?.inputValue
+  )
+    quiet(patch.inputValue);
+  onSelectionText(patch);
+}
+
+/**
  * The input text follows the selection — what RAC does itself unless both `selectedKey` and
  * `inputValue` are controlled (`useComboBoxState`: "it's the user's responsibility to update
  * inputValue in onSelectionChange"). A selection made elsewhere (a rule · a load's
@@ -44,15 +64,17 @@ type Seen = { key: Key | null; text: string | undefined };
  */
 function SelectionText({
   stateRef,
-  seen,
-  write,
+  seenRef,
+  onSelectionText,
   quietText,
+  quiet,
   settle,
 }: {
   stateRef: RefObject<ComboBoxState1 | null>;
-  seen: RefObject<Seen | null>;
-  write: SelectionTextWrite;
+  seenRef: RefObject<Seen | null>;
+  onSelectionText: SelectionTextWrite;
   quietText: string | null;
+  quiet: (text: string) => void;
   settle: () => void;
 }): null {
   const state = useContext(ComboBoxStateContext) as ComboBoxState1 | null;
@@ -71,8 +93,10 @@ function SelectionText({
     }
     const key = state.selectedKey;
     const text = selectedText(state, key);
-    const previous = seen.current;
-    seen.current = {
+    const write: SelectionTextWrite = (patch) =>
+      writeSelectionText(state, patch, onSelectionText, quiet);
+    const previous = seenRef.current;
+    seenRef.current = {
       key,
       text: text ?? (previous?.key === key ? previous.text : undefined),
     };
@@ -107,24 +131,15 @@ export function CatalogComboBox({
   children?: ReactNode;
 }): ReactElement {
   const stateRef = useRef<ComboBoxState1 | null>(null);
-  const seen = useRef<Seen | null>(null);
+  const seenRef = useRef<Seen | null>(null);
   const [quietText, setQuietText] = useState<string | null>(null);
   if (!onSelectionText)
-    return createElement(AriaComboBox as ElementType, props, children);
-  const write: SelectionTextWrite = (patch) => {
-    if (
-      patch.inputValue !== undefined &&
-      patch.inputValue !== stateRef.current?.inputValue
-    )
-      setQuietText(patch.inputValue);
-    onSelectionText(patch);
-  };
-  return createElement(
-    AriaComboBox as ElementType,
-    {
-      ...props,
-      ...(quietText !== null ? { menuTrigger: "manual" } : {}),
-      onSelectionChange: (key: Key | null) => {
+    return <AriaComboBox {...props}>{children}</AriaComboBox>;
+  return (
+    <AriaComboBox
+      {...props}
+      {...(quietText !== null ? { menuTrigger: "manual" } : {})}
+      onSelectionChange={(key: Key | null) => {
         const state = stateRef.current;
         // (No key: RAC committed the typed text as a custom value — `allowsCustomValue` — and
         // keeps it; the text effect must not empty it either.)
@@ -132,24 +147,31 @@ export function CatalogComboBox({
           key == null
             ? undefined
             : ((state ? selectedText(state, key) : undefined) ??
-              (seen.current?.key === key ? seen.current.text : undefined));
-        seen.current = { key, text: key == null ? "" : text };
-        write(
+              (seenRef.current?.key === key
+                ? seenRef.current.text
+                : undefined));
+        seenRef.current = { key, text: key == null ? "" : text };
+        writeSelectionText(
+          state,
           text === undefined
             ? { selectedKey: key }
             : { selectedKey: key, inputValue: text },
+          onSelectionText,
+          setQuietText,
         );
         // (The rest — the record's `onSelectionChange` rules, `withRuntime`.)
         props.onSelectionChange?.(key);
-      },
-    },
-    children,
-    createElement(SelectionText, {
-      stateRef,
-      seen,
-      write,
-      quietText,
-      settle: () => setQuietText(null),
-    }),
+      }}
+    >
+      {children}
+      <SelectionText
+        stateRef={stateRef}
+        seenRef={seenRef}
+        onSelectionText={onSelectionText}
+        quietText={quietText}
+        quiet={setQuietText}
+        settle={() => setQuietText(null)}
+      />
+    </AriaComboBox>
   );
 }

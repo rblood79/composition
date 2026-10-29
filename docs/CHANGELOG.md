@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [lint 오류 75 → 0 — React hooks 규칙 위반의 구조 수정] - 2026-10-30
+
+### Fixed
+
+- **Design 패널 검색 · 필터 컨트롤 절이 hook 을 조건부로 불렀다**: early return 뒤의 `useViewFields` 가 `kind` 가 바뀌면 hook 개수를 바꿔 React 가 "Rendered more hooks" 로 죽을 수 있었다. return 앞으로 옮겼다 (`CatalogFilterSection.tsx`).
+- **Effect 절 레이어 제거 · inset 의 편집기 remount 가 ref 카운터였다**: 값이 같으면 다시 그리지 않았다. state 로 바꿨다 (`EffectSection.tsx`).
+- **저장값을 draft 로 복사하던 effect 9곳**이 한 render 늦게 따라갔다 (낡은 값 한 프레임): 변수 표 · State 절 이름 · Data 패널 탭 · 열 편집기 (계산 열 · 수식 · 기본값) 는 render 중 조정, Button 대기 표시 · ComboBox 로딩 스피너는 경과 상태에서 계산한다.
+
+### Changed
+
+- **Layers store 수명**: `CatalogLayerTreeStore` 는 생성 때 읽기만 하고 `connect()` 가 문서 구독을 시작 · 반환값이 정지다. 패널은 `useMemo` + effect 로 소유한다 (첫 render 에 행이 있다).
+- **ComboBox selection-text · waterfall grid 를 JSX 로**: `comboBoxSelectionText.tsx` · `waterfall.components.tsx` (레이아웃 규칙은 `waterfall.ts` 에 남고 react 를 import 하지 않는다). 드래그 앤 드롭 「최신 핸들러」 ref 제거 — RAC `useDragAndDrop` 이 매 render options 로 hook 을 다시 만든다.
+- json-formula ambient 선언은 triple-slash 대신 builder tsconfig `include` (`css-modules.d.ts` 와 같은 방식). 필드 아이콘은 `FieldGlyph` 하나로.
+- Live: 2026-10-30 Chrome MCP (5173) — Layers 추가 · 펼침 · 페이지 전환, Users 표 생성 · 열 편집기 계산 열 토글 · 기본값 commit, State 절 변수 이름, 검색 컨트롤 생성 · 선택 전환, Effect 레이어 3 → 2, publish 미리보기 검색 필터 · ComboBox 선택 글자. 콘솔 오류 0.
+  - 위치: `packages/shared/src/catalog/runtime/*` · `apps/builder/src/builder/catalogRuntime/layerTree.ts` · `panels/{navigator,properties,styles,datatable,codeView}/**`
+
 ## [지연 모듈 로더 공용화 — serializer · formula engine] - 2026-10-29
 
 ### Changed

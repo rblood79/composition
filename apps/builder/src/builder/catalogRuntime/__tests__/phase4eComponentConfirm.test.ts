@@ -8,9 +8,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
-  duplicateNodes,
   insertNodes,
-  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {

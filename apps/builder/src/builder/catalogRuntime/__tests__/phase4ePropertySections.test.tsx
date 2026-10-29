@@ -1,9 +1,15 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   createPage,
-  duplicateNodes,
   insertNodes,
   removeTargets,
   setFields,

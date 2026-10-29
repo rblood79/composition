@@ -8,10 +8,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import {
-  duplicateNodes,
-  insertNodes,
-} from "../../../../../../packages/shared/src/catalog/commands";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { setAgentCommandHost } from "../../../services/agent/agentCommandHost";
 import { executeAgentCommand } from "../../../services/agent/executeAgentCommand";
 import type { AgentReadModel } from "../../config/commandMeta";

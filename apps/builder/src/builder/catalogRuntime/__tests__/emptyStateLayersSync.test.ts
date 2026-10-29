@@ -80,6 +80,7 @@ describe("EmptyState in Layers — synced on the step", () => {
       },
       workspace.session.getSnapshot().pageId!,
     );
+    store.connect();
     const expandAll = () =>
       store.setExpanded(new Set(workspace.root.domInputs.keys()));
     const tags = () => {

@@ -248,19 +248,30 @@ export class CatalogLayerTreeStore {
     hidden: boolean;
   }[] = [];
   private readonly listeners = new Set<() => void>();
-  private readonly unsubscribeSteps: () => void;
-  private readonly unsubscribeBoundRows: () => void;
-  private readonly unsubscribeRoot: () => void;
+  /** Stops following the document — set while connected (`connect`). */
+  private disconnectHost: (() => void) | undefined;
   private rowsChanged = false;
   private disposed = false;
 
+  /** Reads the rows once; `connect` follows the document (a component connects in its effect). */
   constructor(
     private readonly host: CatalogLayerTreeHost,
     /** A page, or the definition of the definition edit view. */
     readonly ownerId: EntryId<"page"> | CatalogDefinitionViewId,
   ) {
-    // Constructed after the read model: its step listener has recomputed the row lists by now.
-    this.unsubscribeSteps = host.subscribeSteps(({ result }) => {
+    this.rebuild();
+  }
+
+  /**
+   * Follows the document — its steps, bound rows, root and the read row lists — from now (the rows
+   * read again first); returns the stop. Connecting again while connected is the same connection.
+   */
+  connect(): () => void {
+    if (this.disposed) return () => {};
+    if (this.disconnectHost) return this.disconnectHost;
+    const host = this.host;
+    // Connected after the read model: its step listener has recomputed the row lists by now.
+    const unsubscribeSteps = host.subscribeSteps(({ result }) => {
       const counting = process.env.NODE_ENV === "development";
       const renamed = [...result.changedIds].some((id) =>
         (this.visibleNodes.get(id) ?? []).some((identity) => {
@@ -301,12 +312,12 @@ export class CatalogLayerTreeStore {
       )
         this.rebuild();
     });
-    this.unsubscribeBoundRows =
+    const unsubscribeBoundRows =
       host.subscribeBoundRows?.(() => this.rebuild()) ?? (() => {});
     // The step's listeners run before the workspace lays the project components page out again
     // (`afterStep`): the rows are read once more from the new page (user 2026-10-21). A root
     // built for leaving the page (its view entries gone) is not: the panel switches owner next.
-    this.unsubscribeRoot =
+    const unsubscribeRoot =
       host.subscribeRoot?.(() => {
         if (
           isProjectComponentsView(this.ownerId) &&
@@ -316,7 +327,17 @@ export class CatalogLayerTreeStore {
         )
           this.rebuild();
       }) ?? (() => {});
+    this.disconnectHost = () => {
+      if (!this.disconnectHost) return;
+      this.disconnectHost = undefined;
+      unsubscribeSteps();
+      unsubscribeBoundRows();
+      unsubscribeRoot();
+      for (const unsubscribe of this.rowSubscriptions.values()) unsubscribe();
+      this.rowSubscriptions.clear();
+    };
     this.rebuild();
+    return this.disconnectHost;
   }
 
   getSnapshot = (): readonly CatalogLayerNode[] => this.snapshot;
@@ -339,12 +360,8 @@ export class CatalogLayerTreeStore {
     return this.nodes.get(identity);
   }
   dispose(): void {
+    this.disconnectHost?.();
     this.disposed = true;
-    this.unsubscribeSteps();
-    this.unsubscribeBoundRows();
-    this.unsubscribeRoot();
-    for (const unsubscribe of this.rowSubscriptions.values()) unsubscribe();
-    this.rowSubscriptions.clear();
     this.listeners.clear();
   }
 
@@ -527,7 +544,8 @@ export class CatalogLayerTreeStore {
     this.visibleNodes = visibleNodes;
     this.valueGated = valueGated;
     this.collectionGated = collectionGated;
-    this.syncSubscriptions(wanted);
+    // (Unconnected, the rows are only read — `connect` reads them again and subscribes.)
+    if (this.disconnectHost) this.syncSubscriptions(wanted);
     const changed =
       top.length !== this.snapshot.length ||
       top.some((node, index) => node !== this.snapshot[index]);

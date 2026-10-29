@@ -9,7 +9,6 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
-  duplicateNodes,
   insertNodes,
   moveNodes,
   removeTargets,
@@ -286,7 +285,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
     expect(view.queryByRole("button", { name: /Select instances/ })).toBeNull();
     // … nor its component's dissolve: one detach, its own (user 2026-10-14).
     expect(view.queryByRole("button", { name: "Detach component" })).toBeNull();
-    expect(view.getAllByRole("button", { name: "Detach instance" })).toHaveLength(1);
+    expect(
+      view.getAllByRole("button", { name: "Detach instance" }),
+    ).toHaveLength(1);
     view.unmount();
 
     const definitionId = (graph.getEntry(instance) as NodeEntry).definitionId;
@@ -305,7 +306,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
       origin.getByRole("button", { name: "Select instances (1)" }),
     ).toBeTruthy();
     // Dissolving is the origin's (user 2026-10-14) — the instance above has no such button.
-    expect(origin.getByRole("button", { name: "Delete component" })).toBeTruthy();
+    expect(
+      origin.getByRole("button", { name: "Delete component" }),
+    ).toBeTruthy();
     origin.unmount();
   });
 
@@ -355,18 +358,31 @@ describe("ADR-248 4e-8 instance override rows", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    expect(view.getByRole("button", { name: /Text\.tablet\.width/ })).toBeTruthy();
-    expect(view.getByRole("button", { name: /Text\.tablet\.display/ })).toBeTruthy();
+    expect(
+      view.getByRole("button", { name: /Text\.tablet\.width/ }),
+    ).toBeTruthy();
+    expect(
+      view.getByRole("button", { name: /Text\.tablet\.display/ }),
+    ).toBeTruthy();
     expect(view.getByRole("button", { name: /Push changes/ })).toBeTruthy();
-    expect(view.getByRole("button", { name: /Reset all changes/ })).toBeTruthy();
+    expect(
+      view.getByRole("button", { name: /Reset all changes/ }),
+    ).toBeTruthy();
     fireEvent.click(view.getByRole("button", { name: /Text\.tablet\.width/ }));
     const layer = () => {
-      const patch = (graph.getEntry(instance) as NodeEntry).descendantOverrides[0];
+      const patch = (graph.getEntry(instance) as NodeEntry)
+        .descendantOverrides[0];
       return patch?.kind === "patch" ? patch.responsive?.tablet : undefined;
     };
-    expect(layer()).toEqual({ layout: { display: { kind: "set", value: "flex" } } });
-    fireEvent.click(view.getByRole("button", { name: /Text\.tablet\.display/ }));
-    expect((graph.getEntry(instance) as NodeEntry).descendantOverrides).toEqual([]);
+    expect(layer()).toEqual({
+      layout: { display: { kind: "set", value: "flex" } },
+    });
+    fireEvent.click(
+      view.getByRole("button", { name: /Text\.tablet\.display/ }),
+    );
+    expect((graph.getEntry(instance) as NodeEntry).descendantOverrides).toEqual(
+      [],
+    );
     view.unmount();
   });
 
@@ -417,7 +433,9 @@ describe("ADR-248 4e-8 instance override rows", () => {
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );
-    expect(view.getAllByRole("button", { name: /Text\.color/ })).toHaveLength(2);
+    expect(view.getAllByRole("button", { name: /Text\.color/ })).toHaveLength(
+      2,
+    );
     expect(
       error.mock.calls.some((call) => String(call[0]).includes("same key")),
     ).toBe(false);

@@ -73,6 +73,7 @@ async function open() {
     },
     HOME,
   );
+  tree.connect();
   const record = (id: NodeId) => workspace.root.recordsOfSource(id)[0];
   tree.setExpanded(new Set([record(BODY), record(CHECKBOX)]));
   const checkboxRow = (): CatalogLayerNode =>

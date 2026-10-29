@@ -14,7 +14,6 @@ import type {
 import {
   createComponent,
   detachInstances,
-  duplicateNodes,
   insertNodes,
   moveNodes,
   removeTargets,
@@ -174,7 +173,9 @@ describe("ADR-256 Decision 5 — required parts", () => {
                   instances: [id],
                   templatePath: [
                     "lib:template:component-dialog",
-                    ...path.map((part) => `lib:template:component-dialog__${part}`),
+                    ...path.map(
+                      (part) => `lib:template:component-dialog__${part}`,
+                    ),
                   ] as LibraryTemplateId[],
                 },
               },
@@ -453,7 +454,11 @@ describe("ADR-256 Decision 5 — required parts", () => {
       expect(
         code(() =>
           workspace.execute(
-            moveNodes({ ids: [extra], parent: atRoot(b), newId: workspace.newId }),
+            moveNodes({
+              ids: [extra],
+              parent: atRoot(b),
+              newId: workspace.newId,
+            }),
           ),
         ),
       ).toBe("ok");

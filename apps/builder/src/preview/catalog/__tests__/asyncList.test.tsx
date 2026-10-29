@@ -41,7 +41,7 @@ function stubServer(urlCursor = false) {
     const url = new URL(String(input));
     urls.push(`${url.pathname}${url.search}`);
     const q = url.searchParams.get("q");
-    let rows = q ? ROWS.filter((row) => row.name.includes(q)) : [...ROWS];
+    const rows = q ? ROWS.filter((row) => row.name.includes(q)) : [...ROWS];
     if (url.searchParams.get("sort") === "name") {
       rows.sort((a, b) => a.name.localeCompare(b.name));
       if (url.searchParams.get("dir") === "descending") rows.reverse();

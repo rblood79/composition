@@ -14,7 +14,7 @@ import type { DataTable } from "../../../../types/builder/data.types";
 import { DataGrid } from "../grid/DataGrid";
 import { findLinkedApi } from "../utils/collectionBadgeStatus";
 import "./DataTableEditor.css";
-import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { useOptionalI18n } from "../../../../i18n";
 
 interface DataTableEditorProps {
   dataTable: DataTable;

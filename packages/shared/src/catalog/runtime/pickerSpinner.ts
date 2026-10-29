@@ -2,7 +2,6 @@ import {
   createElement,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactElement,
 } from "react";
@@ -47,21 +46,19 @@ function ComboBoxSpinner({
 }): ReactElement | null {
   const state = useContext(ComboBoxStateContext);
   const busy = loadingState === "loading" || loadingState === "filtering";
-  const inputValue = state?.inputValue;
-  const [shown, setShown] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // (The wait this render is in — the input text a busy load runs for; none when idle.)
+  const wait = busy ? (state?.inputValue ?? "") : null;
+  const [elapsed, setElapsed] = useState<string | null>(null);
   useEffect(() => {
-    if (!busy) {
-      setShown(false);
-      return undefined;
-    }
-    setShown(false);
-    timer.current = setTimeout(() => setShown(true), COMBOBOX_SPINNER_DELAY_MS);
+    if (wait === null) return undefined;
+    const timer = setTimeout(() => setElapsed(wait), COMBOBOX_SPINNER_DELAY_MS);
     return () => {
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = null;
+      clearTimeout(timer);
+      setElapsed(null);
     };
-  }, [busy, inputValue]);
+  }, [wait]);
+  // (A new text or the load's end hides it in the same render — the elapsed wait is another's.)
+  const shown = wait !== null && elapsed === wait;
   const visible =
     shown && (!!state?.isOpen || manual || loadingState === "loading");
   if (!visible) return null;

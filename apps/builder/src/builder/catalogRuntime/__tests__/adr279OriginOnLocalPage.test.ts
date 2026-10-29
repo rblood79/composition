@@ -27,10 +27,7 @@ import {
   promptCatalogComponentName,
   watchCatalogComponentEdits,
 } from "../componentConfirm";
-import {
-  catalogComponentsPageRows,
-  catalogProjectComponentCardFrames,
-} from "../componentsPage";
+import { catalogProjectComponentCardFrames } from "../componentsPage";
 import { catalogCanvasMenuItems } from "../canvasMenu";
 import { CatalogLayerTreeStore } from "../layerTree";
 import {
@@ -377,11 +374,18 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
     )[0]!;
     // The page is the project's (ADR-282 Phase 3): the component's card, its ◆ cell — which
     // draws the template root its definition owns, and stores only the reference.
-    expect(pageRoot.target).toEqual({ kind: "node", id: PROJECT_ORIGIN_VIEW_NODE });
+    expect(pageRoot.target).toEqual({
+      kind: "node",
+      id: PROJECT_ORIGIN_VIEW_NODE,
+    });
     expect(
-      graph.storedEntry(componentPageNodeId(projectComponentCardId(definitionId))),
+      graph.storedEntry(
+        componentPageNodeId(projectComponentCardId(definitionId)),
+      ),
     ).toBeDefined();
-    const cell = componentPageNodeId(projectComponentOriginCellId(definitionId));
+    const cell = componentPageNodeId(
+      projectComponentOriginCellId(definitionId),
+    );
     expect((graph.getEntry(cell) as NodeEntry).children[0]).toBe(id("card"));
     expect((graph.storedEntry(cell) as NodeEntry).children).not.toContain(
       id("card"),
@@ -494,14 +498,14 @@ describe("ADR-279 Decision 3b · 6 · 7 — the Local page card: header, rename,
       workspace.execute(
         catalogComponentCommands.dissolve(definitionId, workspace.newId),
       );
-    expect(await confirmCatalogDissolve(graph, definitionId, run, confirm)).toBe(
-      false,
-    );
+    expect(
+      await confirmCatalogDissolve(graph, definitionId, run, confirm),
+    ).toBe(false);
     expect(graph.getEntry(definitionId)?.kind).toBe("definition");
     answer = true;
-    expect(await confirmCatalogDissolve(graph, definitionId, run, confirm)).toBe(
-      true,
-    );
+    expect(
+      await confirmCatalogDissolve(graph, definitionId, run, confirm),
+    ).toBe(true);
     expect(asked).toEqual([2, 2]);
     expect(graph.getEntry(definitionId)).toBeUndefined();
     expect(graph.getEntry(id("card"))).toBeUndefined();
@@ -536,6 +540,7 @@ describe("ADR-279 — Delete component while the Local page Layers list the card
       },
       PROJECT_COMPONENTS_VIEW as never,
     );
+    layers.connect();
     // Body → ◆ → its parts expanded, as the user had them.
     const expand = () => {
       const keys = new Set<string>();
@@ -619,7 +624,10 @@ describe("ADR-279 Decision 4 — the first edit of an origin with instances asks
         parent: { kind: "node", id: BODY },
         entries: [
           node("card", "lib:definition:type-frame", [id("title")]),
-          { ...node("title", "lib:definition:text"), props: { children: set("Hello") } },
+          {
+            ...node("title", "lib:definition:text"),
+            props: { children: set("Hello") },
+          },
         ],
         rootIds: [id("card")],
         newId: workspace.newId,
@@ -700,13 +708,19 @@ describe("ADR-279 후속 — the Local page card draws an overlay component's bo
       // On the page: the instance's overlay is the closed one (ADR-278).
       const onPage = recordsOf(workspace.root, instance, type);
       expect(onPage.length, name).toBeGreaterThan(0);
-      expect(onPage.every((record) => record.hidden === true), name).toBe(true);
+      expect(
+        onPage.every((record) => record.hidden === true),
+        name,
+      ).toBe(true);
       // On the Local page (its own root): the origin's body is open — a box the user edits.
       workspace.showDefinition(PROJECT_COMPONENTS_VIEW);
       const root = workspace.root;
       const onCard = recordsOf(root, id(`${name}-origin`), type);
       expect(onCard.length, name).toBeGreaterThan(0);
-      expect(onCard.every((record) => record.hidden !== true), name).toBe(true);
+      expect(
+        onCard.every((record) => record.hidden !== true),
+        name,
+      ).toBe(true);
       const box = root.getGeometry([onCard[0]!.id]).get(onCard[0]!.id)!;
       expect(box.width, name).toBeGreaterThan(0);
       expect(box.height, name).toBeGreaterThan(0);

@@ -36,6 +36,7 @@ import type { DataField } from "../../../../types/builder/data.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { useDataStore } from "../../../stores/data";
+import { FieldGlyph } from "../utils/FieldGlyph";
 import { resolveFieldGlyph } from "../utils/fieldTypes";
 
 export interface FieldValueInputProps {
@@ -62,7 +63,6 @@ export interface FieldValueInputProps {
 }
 
 const REFERENCE_MATCH_MAX = 50;
-
 
 function growTextarea(el: HTMLTextAreaElement | null) {
   if (!el) return;
@@ -92,7 +92,6 @@ export function FieldValueInput({
     [i18n],
   );
   const errorId = `${field.id ?? field.key}-error`;
-  const TypeGlyph = resolveFieldGlyph(field);
 
   const submitOnEnter = (e: ReactKeyboardEvent<HTMLElement>) => {
     // ⌘Z inside the input is the input's own undo — not the History stack (data-shortcut-local).
@@ -134,7 +133,7 @@ export function FieldValueInput({
       <PropertySelect
         className={`datatable-value-field ${className ?? ""}`}
         label={label}
-        icon={showTypeIcon ? TypeGlyph : undefined}
+        icon={showTypeIcon ? resolveFieldGlyph(field) : undefined}
         value={text === "true" || text === "false" ? text : ""}
         optionValueMode="literal"
         translateOptions={false}
@@ -286,7 +285,8 @@ export function FieldValueInput({
     >
       <legend className="fieldset-legend">
         {showTypeIcon && (
-          <TypeGlyph
+          <FieldGlyph
+            field={field}
             size={iconSmall.size}
             strokeWidth={iconSmall.strokeWidth}
             aria-hidden="true"

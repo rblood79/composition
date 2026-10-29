@@ -1,4 +1,3 @@
-/// <reference path="./json-formula.d.ts" />
 /**
  * ADR-291 Decision 1 · 4 — the one json-formula instance (41 KB gz), created by the loader in
  * `engine.ts` on the first read of a document with a `formula` field, with the date bridge: a row's `date` text (`2026-10-29` · `2026-10-25T09:00:00Z`) becomes json-formula's

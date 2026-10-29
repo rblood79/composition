@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { DataChange, DataOp } from "@composition/shared";
+import type { DataChange } from "@composition/shared";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -243,15 +243,19 @@ describe("ADR-248 Phase 4e-4e Data variables", () => {
       defaultValue: 3,
     });
     const ruleNow = graph.getEntry(rule.id);
-    expect(ruleNow?.kind === "interaction" && ruleNow.actions[0]).toMatchObject({
-      variableId: moved.id,
-    });
+    expect(ruleNow?.kind === "interaction" && ruleNow.actions[0]).toMatchObject(
+      {
+        variableId: moved.id,
+      },
+    );
     workspace.undo();
     await workspace.runtime.settled();
     expect(defined.has("v-old")).toBe(true);
     expect(graph.getEntry(moved.id)).toBeUndefined();
     const ruleBack = graph.getEntry(rule.id);
-    expect(ruleBack?.kind === "interaction" && ruleBack.actions[0]).toMatchObject({
+    expect(
+      ruleBack?.kind === "interaction" && ruleBack.actions[0],
+    ).toMatchObject({
       variableId: "data:variable:v-old",
     });
     unbind();

@@ -96,6 +96,7 @@ function layers(workspace: CatalogWorkspace, pageId: EntryId<"page">) {
     },
     pageId,
   );
+  store.connect();
   store.setExpanded(new Set(workspace.root.domInputs.keys()));
   const all = (nodes: readonly CatalogLayerNode[]): CatalogLayerNode[] =>
     nodes.flatMap((node) => [node, ...all(node.children ?? [])]);
@@ -201,20 +202,20 @@ describe("ADR-248 4e layout applied to a page", () => {
       (item) => item.kind === "submenu" && item.id === "move-to-slot",
     );
     if (submenu?.kind !== "submenu") throw new Error("no Move to slot");
-    expect(submenu.items.map((item) => item.kind === "action" && item.labelKey)).toEqual([
-      "header",
-      "sidebar",
-      "aside",
-      "footer",
-    ]);
+    expect(
+      submenu.items.map((item) => item.kind === "action" && item.labelKey),
+    ).toEqual(["header", "sidebar", "aside", "footer"]);
     const footer = submenu.items.at(-1)!;
     if (footer.kind === "action") footer.run();
     const fills = body(workspace).descendantOverrides.flatMap((item) =>
       item.kind === "fillSlot"
         ? [
             [
-              (graphOf(workspace).getEntry(item.address.templatePath.at(-1)!) as NodeEntry)
-                .slot?.name,
+              (
+                graphOf(workspace).getEntry(
+                  item.address.templatePath.at(-1)!,
+                ) as NodeEntry
+              ).slot?.name,
               item.childIds,
             ],
           ]

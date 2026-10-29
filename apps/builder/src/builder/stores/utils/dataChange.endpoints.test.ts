@@ -8,11 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataOp } from "@composition/shared";
-import type {
-  ApiEndpoint,
-  DataTable,
-  Variable,
-} from "../../../types/builder/data.types";
+import type { ApiEndpoint, DataTable } from "../../../types/builder/data.types";
 
 const addEntry = vi.fn();
 

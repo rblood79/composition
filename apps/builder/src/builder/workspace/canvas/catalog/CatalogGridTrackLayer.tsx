@@ -549,7 +549,6 @@ export function CatalogGridTrackLayer({
       return;
     }
     if (!model) return;
-    const headers = headersOf(model.headers, current.axis);
     if (!current.dragging) {
       press(current.axis, current.index, event.currentTarget, current);
       return;

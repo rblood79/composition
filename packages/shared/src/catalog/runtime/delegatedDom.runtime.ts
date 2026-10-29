@@ -1,6 +1,7 @@
 import { isPropVar } from "../document/valueType";
 import { resolveTextSourceText } from "@composition/rendering";
-import { CatalogWaterfallGrid, catalogWaterfallLayout } from "./waterfall";
+import { CatalogWaterfallGrid } from "./waterfall.components";
+import { catalogWaterfallLayout } from "./waterfall";
 import { catalogItemLinkProps } from "../document/itemLinks";
 
 import {
@@ -1202,22 +1203,6 @@ function toggleButton(
           ),
       }),
   };
-}
-
-/**
- * A CheckboxGroup's / RadioGroup's items in order: the toggles in the group's RAC context — any
- * depth, not in a nested group (`catalogToggleGroupItems` — as an item judges itself in the group).
- */
-function groupItems(
-  input: DelegatedDomInput,
-  itemType: string,
-): CatalogConsumerNode[] {
-  return catalogToggleGroupItems(
-    input.node,
-    itemType,
-    domGet(input.root),
-    (record) => catalogTypeName(input.root, record),
-  ).items;
 }
 
 /** A group's items and the containers between — a change to either can move its value. */
@@ -3292,8 +3277,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ),
               ...focusedDateProps(
                 input,
-                (dateRangeValue(input.node.props.value) as { start?: unknown } | null)
-                  ?.start,
+                (
+                  dateRangeValue(input.node.props.value) as {
+                    start?: unknown;
+                  } | null
+                )?.start,
               ),
             }),
       }),
@@ -3445,7 +3433,13 @@ export function catalogStateSourceValue(
   const type = catalogTypeName(root, node);
   // (ADR-284 Phase 6 — a state prop that reads a variable (「검색 추가」 · 「변수로 정하기」) is the
   //  variable's value: it beats the items' start selection — a RadioGroup's 「전체」 after a pick.)
-  if (isPropVar((node as { templateProps?: Record<string, unknown> }).templateProps?.[prop]))
+  if (
+    isPropVar(
+      (node as { templateProps?: Record<string, unknown> }).templateProps?.[
+        prop
+      ],
+    )
+  )
     return props[prop];
   switch (prop) {
     case "selectedKey":

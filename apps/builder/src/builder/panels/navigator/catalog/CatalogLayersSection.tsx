@@ -47,12 +47,9 @@ import type {
 import { useToastStore } from "../../../stores/toast";
 
 const LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
-const EMPTY: readonly CatalogLayerNode[] = [];
-const noSubscription = () => () => {};
 // Stable item accessors (ADR-265): a new function each render made `TreeBase` re-index every row.
 const layerKey = (node: CatalogLayerNode) => node.id;
 const layerText = (node: CatalogLayerNode) => node.name;
-const noSnapshot = () => EMPTY;
 
 /**
  * What a row reads from the selection: indent guides and the selection's area. A context, not the
@@ -60,7 +57,7 @@ const noSnapshot = () => EMPTY;
  * the last selection's area on the rows it did not re-render.
  */
 const LayerRowSelection = createContext<{
-  tree: CatalogLayerTreeStore | undefined;
+  tree: CatalogLayerTreeStore;
   selectedKeys: ReadonlySet<Key>;
   selectedChain: ReadonlySet<string>;
   regionTails: ReadonlySet<string>;
@@ -127,34 +124,33 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const selection = useCatalogSession((state) => state.selection);
-  const [tree, setTree] = useState<CatalogLayerTreeStore>();
-  useEffect(() => {
-    const store = new CatalogLayerTreeStore(
-      {
-        readModel: workspace.readModel,
-        graph: workspace.runtime.graph,
-        subscribeSteps: (listener) =>
-          workspace.runtime.subscribeSteps(listener),
-        // A bound collection lists the data rows the Canvas draws (4e-6-36).
-        boundRows: (position) => workspace.boundRowsOf(position),
-        subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
-        subscribeRoot: (listener) => workspace.subscribeRoot(listener),
-        // A part with no value to show (an empty `{description}`) has no row.
-        absentByValue: (position) => workspace.rowAbsentByValue(position),
-        // A collection's EmptyState while it has items · its item positions while its data is
-        // empty are not drawn, so they have no row.
-        collectionRowHidden: (position, parentType) =>
-          workspace.collectionRowHidden(position, parentType),
-      },
-      ownerId,
-    );
-    setTree(store);
-    return () => store.dispose();
-  }, [workspace, ownerId]);
-  const items = useSyncExternalStore(
-    tree?.subscribe ?? noSubscription,
-    tree?.getSnapshot ?? noSnapshot,
+  // The tree reads the rows when made (this render has them) and follows the document while
+  // mounted (`connect` — its stop is the cleanup).
+  const tree = useMemo(
+    () =>
+      new CatalogLayerTreeStore(
+        {
+          readModel: workspace.readModel,
+          graph: workspace.runtime.graph,
+          subscribeSteps: (listener) =>
+            workspace.runtime.subscribeSteps(listener),
+          // A bound collection lists the data rows the Canvas draws (4e-6-36).
+          boundRows: (position) => workspace.boundRowsOf(position),
+          subscribeBoundRows: (listener) => workspace.subscribeRows(listener),
+          subscribeRoot: (listener) => workspace.subscribeRoot(listener),
+          // A part with no value to show (an empty `{description}`) has no row.
+          absentByValue: (position) => workspace.rowAbsentByValue(position),
+          // A collection's EmptyState while it has items · its item positions while its data is
+          // empty are not drawn, so they have no row.
+          collectionRowHidden: (position, parentType) =>
+            workspace.collectionRowHidden(position, parentType),
+        },
+        ownerId,
+      ),
+    [workspace, ownerId],
   );
+  useEffect(() => tree.connect(), [tree]);
+  const items = useSyncExternalStore(tree.subscribe, tree.getSnapshot);
 
   // Expanded rows = user toggles + every selection's ancestors (+ a single selection itself) −
   // rows the user closed.
@@ -199,7 +195,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     if (opened.length) setExpandedKeys(new Set([...expandedKeys, ...opened]));
   }
   useLayoutEffect(() => {
-    tree?.setExpanded(new Set([...expandedKeys].map(String)));
+    tree.setExpanded(new Set([...expandedKeys].map(String)));
   }, [expandedKeys, tree]);
 
   const handleExpandedChange = useCallback(
@@ -226,7 +222,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
       const ids = [
         ...new Set(
           [...keys].map(
-            (key) => tree?.node(String(key))?.selects ?? String(key),
+            (key) => tree.node(String(key))?.selects ?? String(key),
           ),
         ),
       ];
@@ -372,7 +368,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
     const tails = new Set<string>();
     if (!items.length) return tails;
     for (const id of selectedIds) {
-      let node = tree?.node(id);
+      let node = tree.node(id);
       if (!node?.children?.length) continue;
       while (node.children?.length)
         node = node.children[node.children.length - 1];

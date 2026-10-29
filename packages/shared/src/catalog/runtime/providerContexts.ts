@@ -39,8 +39,6 @@ import {
  */
 export type CatalogInheritedFlag = "isDisabled" | "isReadOnly" | "isRequired";
 
-type PropsOf<C> = C extends Context<ContextValue<infer P, infer _E>> ? P : never;
-
 /** One row: the catalog type a context is for, the context, and the inherited props it takes. */
 export interface CatalogProviderRow {
   type: string;
@@ -48,10 +46,10 @@ export interface CatalogProviderRow {
   props: readonly CatalogInheritedFlag[];
 }
 
-function reaches<C extends Context<ContextValue<any, any>>>(
+function reaches<P, E extends Element>(
   type: string,
-  context: C,
-  props: readonly Extract<keyof PropsOf<C>, CatalogInheritedFlag>[],
+  context: Context<ContextValue<P, E>>,
+  props: readonly Extract<keyof P, CatalogInheritedFlag>[],
 ): CatalogProviderRow {
   return { type, context: context as unknown as Context<unknown>, props };
 }

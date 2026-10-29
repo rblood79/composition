@@ -13,6 +13,7 @@
   "include": [
     "tests",
     "src/vite-env.d.ts",
-    "../../packages/shared/src/css-modules.d.ts"
+    "../../packages/shared/src/css-modules.d.ts",
+    "../../packages/shared/src/collections/formula/json-formula.d.ts"
   ]
 }

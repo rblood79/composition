@@ -104,7 +104,6 @@ describe("executeRenderCommands — piece-table 실행", () => {
   }
 
   function stream() {
-    const body = { id: "body", type: "body", props: {} } as CanvasSceneNode;
     const children = Array.from(
       { length: 6 },
       (_, i) =>

@@ -577,12 +577,20 @@ function documentShape(h: Harness): unknown {
   return {
     body,
     variables: project.stateVariableIds.map((id) => {
-      const { id: _id, ownerId: _owner, ...rest } = graph.getEntry(id) as {
+      const {
+        id: _id,
+        ownerId: _owner,
+        ...rest
+      } = graph.getEntry(id) as {
         id: string;
         ownerId: string;
         defaultValue: unknown;
       };
-      return ids({ id: name(id), ...rest, defaultValue: rest.defaultValue ?? "" });
+      return ids({
+        id: name(id),
+        ...rest,
+        defaultValue: rest.defaultValue ?? "",
+      });
     }),
     rules: project.interactionIds.map((id) => ids(graph.getEntry(id))),
     views: (project.viewIds ?? []).map((id) => {
@@ -593,8 +601,7 @@ function documentShape(h: Harness): unknown {
 }
 
 describe("ADR-285 G3 — panel action == its code pasted", () => {
-  const bound = (type: string) => (h: Harness) =>
-    h.bind(h.body()[0]! as NodeId, "users");
+  const bound = (h: Harness) => h.bind(h.body()[0]! as NodeId, "users");
   const list = (h: Harness) =>
     h.body().find((id) => h.node(id)?.binding)! as NodeId;
 
@@ -602,7 +609,7 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
     const { target, h, code, result } = await pasteRoundTrip(
       ["ListBox"],
       [USERS],
-      bound("ListBox"),
+      bound,
       (t) => t.search(list(t), USERS),
     );
     expect(result).toEqual({ applied: true, reasons: [] });
@@ -614,7 +621,7 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
     const { target, h, code, result } = await pasteRoundTrip(
       ["ListBox"],
       [USERS],
-      bound("ListBox"),
+      bound,
       (t) => {
         const field = USERS.schema.find((item) => item.key === "name")!;
         t.workspace.execute(
@@ -642,7 +649,7 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
     const { target, h, code, result } = await pasteRoundTrip(
       ["Table"],
       [USERS],
-      bound("Table"),
+      bound,
       (t) =>
         t.workspace.execute(
           catalogSortFollowCommand(
@@ -661,12 +668,16 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
     const { target, h, code, result } = await pasteRoundTrip(
       ["ListBox"],
       [USERS],
-      bound("ListBox"),
+      bound,
       (t) =>
         t.workspace.execute(
           catalogResultCountCommand(
             t.graph(),
-            { listId: list(t), viewName: "users view", text: "{count} results" },
+            {
+              listId: list(t),
+              viewName: "users view",
+              text: "{count} results",
+            },
             t.workspace.newId,
           ).command,
         ),
@@ -680,7 +691,7 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
     const { target, h, code, result } = await pasteRoundTrip(
       ["ListBox"],
       [USERS_API],
-      bound("ListBox"),
+      bound,
       (t) => t.search(list(t), USERS_API),
     );
     expect(result).toEqual({ applied: true, reasons: [] });
@@ -693,7 +704,7 @@ describe("ADR-285 G3 — panel action == its code pasted", () => {
       ["ListBox"],
       [USERS],
       (h) => {
-        bound("ListBox")(h);
+        bound(h);
         h.search(list(h), USERS);
       },
       (t) => {
@@ -716,7 +727,11 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     const code = target.code();
     const h = await open(["Text"], [USERS]);
     const session = begin(h);
-    const result = applyCode(h, session, codeEditorLineChanges(session.code, code).reverse());
+    const result = applyCode(
+      h,
+      session,
+      codeEditorLineChanges(session.code, code).reverse(),
+    );
     expect(result).toEqual({ applied: true, reasons: [] });
     expect(h.code()).toBe(code);
   });
@@ -728,10 +743,18 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     const head = "export default function Home() {\n";
     const tag = /<Button\b/.exec(session.code)![0];
     const result = applyCode(h, session, [
-      replace(session.code, head, `${head}  let [count, setCount] = useState(0);\n`),
+      replace(
+        session.code,
+        head,
+        `${head}  let [count, setCount] = useState(0);\n`,
+      ),
       replace(
         edited(session, [
-          replace(session.code, head, `${head}  let [count, setCount] = useState(0);\n`),
+          replace(
+            session.code,
+            head,
+            `${head}  let [count, setCount] = useState(0);\n`,
+          ),
         ]),
         tag,
         `${tag} isDisabled={count >= 3}`,
@@ -773,7 +796,11 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     // (A time's start is a `Time`; none is `null` — the empty date.)
     const session2 = begin(h);
     const result2 = applyCode(h, session2, [
-      replace(session2.code, line, "  let [due, setDue] = useState<DateValue | null>(null);\n"),
+      replace(
+        session2.code,
+        line,
+        "  let [due, setDue] = useState<DateValue | null>(null);\n",
+      ),
     ]);
     expect(result2).toEqual({ applied: true, reasons: [] });
     const after = h.graph().getEntry(h.graph().projectId) as {
@@ -1048,26 +1075,29 @@ describe("ADR-285 G3 — snippets: a snippet's code is its panel action's docume
   };
   const name = USERS.schema.find((item) => item.key === "name")!;
   const field = { id: name.id!, key: name.key, type: name.type };
-  const filter =
-    (kind: string, collection: CodeViewCollection) =>
-    (h: Harness, list: NodeId) =>
-      h.workspace.execute(
-        catalogFilterCommand(
-          h.graph(),
-          {
-            listId: list,
-            field,
-            kind: kind as never,
-            control: { insert: true },
-            values: [],
-            allLabel: TEXT.allLabel,
-          } as never,
-          h.workspace.newId,
-        ).command,
-      );
-  const cases: [string, string, CodeViewCollection, (h: Harness, list: NodeId) => void][] = [
-    ["검색 추가", "search", USERS, filter("SearchField", USERS)],
-    ["라디오로 거르기", "radio", USERS, filter("RadioGroup", USERS)],
+  const filter = (kind: string) => (h: Harness, list: NodeId) =>
+    h.workspace.execute(
+      catalogFilterCommand(
+        h.graph(),
+        {
+          listId: list,
+          field,
+          kind: kind as never,
+          control: { insert: true },
+          values: [],
+          allLabel: TEXT.allLabel,
+        } as never,
+        h.workspace.newId,
+      ).command,
+    );
+  const cases: [
+    string,
+    string,
+    CodeViewCollection,
+    (h: Harness, list: NodeId) => void,
+  ][] = [
+    ["검색 추가", "search", USERS, filter("SearchField")],
+    ["라디오로 거르기", "radio", USERS, filter("RadioGroup")],
     [
       "정렬 따라가기",
       "sortFollow",
@@ -1094,7 +1124,7 @@ describe("ADR-285 G3 — snippets: a snippet's code is its panel action's docume
           ).command,
         ),
     ],
-    ["API 요청 매개변수", "requestParam", USERS_API, filter("SearchField", USERS_API)],
+    ["API 요청 매개변수", "requestParam", USERS_API, filter("SearchField")],
   ];
   it.each(cases)("%s", async (_, kind, collection, action) => {
     const type = kind === "sortFollow" ? "Table" : "ListBox";

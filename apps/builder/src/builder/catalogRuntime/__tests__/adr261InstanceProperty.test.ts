@@ -12,7 +12,6 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
   createComponent,
-  duplicateNodes,
   insertNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {

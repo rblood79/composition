@@ -298,6 +298,7 @@ describe("ADR-261 Phase 1 — drop · paste · reorder parent = the edit target"
       },
       HOME,
     );
+    tree.connect();
     const inJ = (name: string) =>
       workspace.root.recordsOfSource(id(name)).find((identity) => {
         for (
@@ -342,6 +343,7 @@ describe("ADR-261 Phase 1 — drop · paste · reorder parent = the edit target"
       },
       HOME,
     );
+    tree.connect();
     tree.setExpanded(
       new Set([
         workspace.root.recordsOfSource(BODY)[0],

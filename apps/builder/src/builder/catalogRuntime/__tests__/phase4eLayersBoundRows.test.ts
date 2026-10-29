@@ -108,6 +108,7 @@ function layers(workspace: CatalogWorkspace) {
     },
     page,
   );
+  store.connect();
   const [list] = workspace.root.recordsOfSource(LIST);
   store.setExpanded(new Set([workspace.root.recordsOfSource(BODY)[0]!, list!]));
   const listRow = () => {

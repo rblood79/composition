@@ -87,6 +87,7 @@ async function open() {
     },
     HOME,
   );
+  tree.connect();
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const children = (name: string) => {
     const entry = workspace.runtime.graph.getEntry(id(name));

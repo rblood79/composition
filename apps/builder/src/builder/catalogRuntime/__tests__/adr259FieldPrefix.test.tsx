@@ -194,7 +194,11 @@ function nameOf(el: Element): string {
     .split(/\s+/)
     .map((id) => {
       const ref = el.ownerDocument.getElementById(id);
-      return ref ? textOf(ref).replace(/ /g, " ").trim() : "";
+      return ref
+        ? textOf(ref)
+            .replace(/\u00a0/g, " ")
+            .trim()
+        : "";
     })
     .filter(Boolean)
     .join(" ");

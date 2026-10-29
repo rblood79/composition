@@ -224,10 +224,13 @@ function CommitInput({
   onCommit: (next: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
-  const cancel = useRef(false);
-  useEffect(() => {
+  // (A new value from outside replaces the draft — in this render, not an effect's second one.)
+  const [shown, setShown] = useState(value);
+  if (shown !== value) {
+    setShown(value);
     setDraft(value);
-  }, [value]);
+  }
+  const cancel = useRef(false);
   const commit = () => {
     if (cancel.current) {
       cancel.current = false;

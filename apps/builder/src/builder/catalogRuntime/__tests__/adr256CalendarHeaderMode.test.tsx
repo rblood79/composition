@@ -392,7 +392,7 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
   // `Button.css` `flex-shrink: 0`, `Select.css` the trigger `width: 100%; min-width: 0` with an
   // ellipsized value): the nav Buttons keep their width and the two Selects share the rest equally.
   it("the pickers share the header's width equally; the nav Buttons keep theirs (gap 4)", async () => {
-    const { workspace, root, switchTo, recordOf } = await open(
+    const { root, switchTo, recordOf } = await open(
       "lib:definition:origin-component-calendar",
       false,
     );

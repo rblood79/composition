@@ -33,7 +33,6 @@ import type {
   DataStoreActions,
   DataStoreState,
   DataTable,
-  DataTableUpdate,
   Variable,
 } from "../../../types/builder/data.types";
 
@@ -1062,7 +1061,10 @@ export function setDataDefinitionSink(sink: DataDefinitionSink | null): void {
 }
 function requireSink(op?: DataOp): DataDefinitionSink {
   if (!dataDefinitionSink)
-    throw new DataChangeError("열린 프로젝트가 없습니다 (catalog 문서 미연결)", op);
+    throw new DataChangeError(
+      "열린 프로젝트가 없습니다 (catalog 문서 미연결)",
+      op,
+    );
   return dataDefinitionSink;
 }
 
@@ -1104,9 +1106,15 @@ export const createApplyDataChangeAction = (_set: SetState, get: GetState) => {
     });
     for (const op of bindingOps) {
       if (op.restore)
-        throw new DataChangeError("bind_element restore 는 문서 기록이 되돌립니다", op);
+        throw new DataChangeError(
+          "bind_element restore 는 문서 기록이 되돌립니다",
+          op,
+        );
       if (!sink.hasElement(op.elementId))
-        throw new DataChangeError(`요소를 찾을 수 없습니다: ${op.elementId}`, op);
+        throw new DataChangeError(
+          `요소를 찾을 수 없습니다: ${op.elementId}`,
+          op,
+        );
       if (op.collectionId !== null && !result.collections.has(op.collectionId))
         throw new DataChangeError(
           `collection 을 찾을 수 없습니다: ${op.collectionId}`,
@@ -1128,14 +1136,16 @@ export const createApplyDataChangeAction = (_set: SetState, get: GetState) => {
       ...(change.label !== undefined ? { label: change.label } : {}),
     };
     sink.commit({
-      collections: [...result.upserted].map((id) => result.collections.get(id)!),
+      collections: [...result.upserted].map((id) =>
+        result.collections.get(id)!,
+      ),
       collectionsDeleted: [...result.deleted],
-      variables: [...result.variablesUpserted].map(
-        (id) => findVariableById(result.variables, id)!,
+      variables: [...result.variablesUpserted].map((id) =>
+        findVariableById(result.variables, id)!,
       ),
       variablesDeleted: [...result.variablesDeleted],
-      endpoints: [...result.endpointsUpserted].map(
-        (id) => findEndpointById(result.apiEndpoints, id)!,
+      endpoints: [...result.endpointsUpserted].map((id) =>
+        findEndpointById(result.apiEndpoints, id)!,
       ),
       endpointsDeleted: [...result.endpointsDeleted],
       bindings: bindingOps.map((op) => ({

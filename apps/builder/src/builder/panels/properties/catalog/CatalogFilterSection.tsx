@@ -904,9 +904,9 @@ export function CatalogControlFilterSection({
     return catalogControlFilterConnections(graph, controlId);
   }, [controlId, graph, revision]);
   const collections = useCollections();
-  if (!kind) return null;
   const fields = useViewFields(table);
-  const create = (fieldId: string, chosen: AddKind = kind!) => {
+  if (!kind) return null;
+  const create = (fieldId: string, chosen: AddKind = kind) => {
     const listId = target ?? targets[0]?.id;
     if (chosen === STATIC) return;
     const field = fields.find((item) => item.id === fieldId);
@@ -1191,7 +1191,7 @@ function UnreadVariables({
               onCreate={(fieldId) => {
                 const field = fields.find((entry) => entry.id === fieldId);
                 const node = graph.getEntry(item.controlId);
-                let kind: CatalogFilterControlKind = "SearchField";
+                let kind: CatalogFilterControlKind;
                 try {
                   kind =
                     (node?.kind === "node" &&

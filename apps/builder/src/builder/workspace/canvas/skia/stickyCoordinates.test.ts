@@ -43,7 +43,6 @@ const register = (id: string, data: Record<string, unknown>) =>
     ...data,
   } as never);
 
-const list = node("list", null);
 const section = node("section", "list");
 const header = node("header", "section");
 const label = node("label", "header");

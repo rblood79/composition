@@ -2168,7 +2168,6 @@ function ruleDom(
   // S2's link-out glyph of an item opening a new tab — the box the Canvas draws (`ruleShapes`).
   const linkOut = catalogItemLinkOut(type, node.props);
   if (linkOut) {
-    const glyph = catalogLinkOutGlyph(type, node.props.size);
     const ownRight = catalogLinkOutOwnRight(node);
     style = {
       ...style,

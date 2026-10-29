@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useRef, type ReactElement } from "react";
+import { cloneElement, type ReactElement } from "react";
 import {
   isTextDropItem,
   useDragAndDrop,
@@ -86,16 +86,14 @@ export default function CatalogDragAndDrop({
   acceptedTypes?: readonly string[];
   draggable?: boolean;
 }): ReactElement {
-  // (The rules' handlers change with the document; the options call the latest — set on commit.)
-  const latest = useRef(handlers);
-  useEffect(() => {
-    latest.current = handlers;
-  });
+  // (The rules' handlers change with the document: the options are this render's — RAC rebuilds
+  //  its hooks from them (`useDragAndDrop` memoizes on `options`) and calls a drop target's
+  //  latest `onDrop`.)
   const { dragAndDropHooks } = useDragAndDrop(
     catalogDragAndDropOptions(
       handlers,
       dragType,
-      (name, event) => latest.current[name]?.(event),
+      (name, event) => handlers[name]?.(event),
       acceptedTypes,
       draggable,
     ),

@@ -3,7 +3,6 @@ import type {
   CatalogLibrary,
   DescendantOverride,
   DescendantPatchFields,
-  InstanceAddress,
   NodeEntry,
   NodeId,
   TemplateId,

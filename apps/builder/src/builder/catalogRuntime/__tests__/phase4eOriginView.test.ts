@@ -172,9 +172,7 @@ const aloneCells = (card: NodeEntry, nodeOf: (id: string) => NodeEntry) => {
 /** A Components page node's id: its stored one once the page is stored (ADR-282 Phase 3). */
 const pageNode = (workspace: CatalogWorkspace, viewId: string): NodeId => {
   const stored = componentPageNodeId(viewId);
-  return (
-    graphOf(workspace).storedEntry(stored) ? stored : viewId
-  ) as NodeId;
+  return (graphOf(workspace).storedEntry(stored) ? stored : viewId) as NodeId;
 };
 const placedLabel = (workspace: CatalogWorkspace) =>
   resolveCatalogNode(graphOf(workspace), PLACED).props.label;
@@ -198,7 +196,7 @@ describe("ADR-248 4e library origin view", () => {
   });
 
   it("opening an origin shows the Components page (stored as the project's Library page the first time — ADR-282 Phase 3) with its sample selected", async () => {
-    const { workspace, library, button } = await open();
+    const { workspace, button } = await open();
     const sampleId = originSampleId(button.id);
     const revealed: string[] = [];
     workspace.subscribeRevealRecord((identity) => revealed.push(identity));
@@ -229,6 +227,7 @@ describe("ADR-248 4e library origin view", () => {
       },
       COMPONENTS_VIEW,
     );
+    store.connect();
     const [root] = store.getSnapshot();
     expect(root!.role).toBe(undefined);
     expect(root!.body).toBe(true);
@@ -270,7 +269,10 @@ describe("ADR-248 4e library origin view", () => {
     const names = sampleRecord
       .split("::")[0]!
       .split("/")
-      .map((id) => (graphOf(workspace).getEntry(id) as NodeEntry | undefined)?.name);
+      .map(
+        (id) =>
+          (graphOf(workspace).getEntry(id) as NodeEntry | undefined)?.name,
+      );
     // (No Origin line: the ◆ stands right under the card's title — user 2026-10-25.)
     expect(names.filter(Boolean)).not.toContain("Origin");
     expect(names.filter(Boolean)[0]).toBe("Button");
@@ -354,14 +356,10 @@ describe("ADR-248 4e library origin view", () => {
     const titleOf = (name: string) =>
       nodeOf(cards.find((candidate) => candidate.name === name)!.children[0]!)
         .name;
-    expect(THEME.map(titleOf)).toEqual([
-      "COLORS",
-      "TYPOGRAPHY",
-      "SPACING",
-    ]);
-    expect(THEME.map((name) => cards.findIndex((card) => card.name === name))).toEqual([
-      0, 1, 2,
-    ]);
+    expect(THEME.map(titleOf)).toEqual(["COLORS", "TYPOGRAPHY", "SPACING"]);
+    expect(
+      THEME.map((name) => cards.findIndex((card) => card.name === name)),
+    ).toEqual([0, 1, 2]);
     const themeNode = (path: string) =>
       nodeOf(`${ORIGIN_VIEW_NODE}/theme/${path}`);
     expect(themeNode("colors/accent/sample").visual).toMatchObject({
@@ -372,7 +370,10 @@ describe("ADR-248 4e library origin view", () => {
     });
     // Colors lists the semantic colors only — no row of the raw palette they pick from.
     const linesOf = (name: string) =>
-      cardLines(cards.find((candidate) => candidate.name === name)!, nodeOf);
+      cardLines(
+        cards.find((candidate) => candidate.name === name)!,
+        nodeOf,
+      );
     const cellsOf = (line: { grids: NodeEntry[] }) => lineCells(line, nodeOf);
     expect(linesOf("Colors").map((line) => line.name)).toEqual([
       "Origin",
@@ -389,7 +390,9 @@ describe("ADR-248 4e library origin view", () => {
       nodeOf,
     );
     expect(typeSizes.map((line) => line.name)).toEqual(["Origin"]);
-    const sizesFrame = nodeOf(`${ORIGIN_VIEW_NODE}/theme/typography/line/sizes/1`);
+    const sizesFrame = nodeOf(
+      `${ORIGIN_VIEW_NODE}/theme/typography/line/sizes/1`,
+    );
     expect(sizesFrame.layout).toMatchObject({
       display: { kind: "set", value: "flex" },
       flexDirection: { kind: "set", value: "column" },
@@ -400,9 +403,7 @@ describe("ADR-248 4e library origin view", () => {
     // A theme card reads as a component card: its base value as the origin, the rest as instances.
     const spacingRows = linesOf("Spacing");
     expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
-    expect(cellsOf(spacingRows[0]!).map((cell) => cell.name)).toEqual([
-      "◆ md",
-    ]);
+    expect(cellsOf(spacingRows[0]!).map((cell) => cell.name)).toEqual(["◆ md"]);
     expect(cellsOf(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
     const colorRows = linesOf("Colors");
     expect(cellsOf(colorRows[0]!).map((cell) => cell.name)).toEqual(
@@ -464,9 +465,10 @@ describe("ADR-248 4e library origin view", () => {
     expect(linesOf("ComboBox").map((row) => row.name)).not.toContain("Item");
     // The origin alone under the title (its slot empty — no filled instance, user 2026-10-25).
     expect(
-      aloneCells(cards.find((candidate) => candidate.name === "GridList")!, nodeOf).map(
-        (cell) => cell.name,
-      ),
+      aloneCells(
+        cards.find((candidate) => candidate.name === "GridList")!,
+        nodeOf,
+      ).map((cell) => cell.name),
     ).toEqual(["GridList"]);
     // The Item row opens with the item origin itself (its editable sample; user 2026-10-13
     // 「Item 줄 맨 앞에 ◆ 원본 칸」), then its instances at rest and in each state.
@@ -491,7 +493,9 @@ describe("ADR-248 4e library origin view", () => {
       address: { instances: [itemSample.id] },
       props: { children: { kind: "set", value: "Item" } },
     });
-    expect(itemCells.map((cell) => cell.name)[0]).toMatch(/^GridList \/ Item \//);
+    expect(itemCells.map((cell) => cell.name)[0]).toMatch(
+      /^GridList \/ Item \//,
+    );
     // Every page node stands in one place (no item origin's sample is drawn twice).
     const placed = new Map<string, number>();
     const visit = (id: string) => {
@@ -620,12 +624,21 @@ describe("ADR-248 4e library origin view", () => {
       "Meter",
     ]);
     expect(nodeOf(meter.children[1]!).id).toBe(
-      originSampleId("lib:definition:origin-component-meter" as LibraryDefinitionId),
+      originSampleId(
+        "lib:definition:origin-component-meter" as LibraryDefinitionId,
+      ),
     );
     expect(
-      (graph.storedEntry(pageNode(workspace, originCardId(
-        "lib:definition:origin-component-meter" as LibraryDefinitionId,
-      ))) as NodeEntry).originOf,
+      (
+        graph.storedEntry(
+          pageNode(
+            workspace,
+            originCardId(
+              "lib:definition:origin-component-meter" as LibraryDefinitionId,
+            ),
+          ),
+        ) as NodeEntry
+      ).originOf,
     ).toBe("lib:definition:origin-component-meter");
     const chartRows = linesOf("Chart");
     // (No Variants row — the Chart has no variant axis, 2026-10-12.)
@@ -657,7 +670,8 @@ describe("ADR-248 4e library origin view", () => {
     // The chart types are drawn two to a line (each half the card's inner width — two `1fr`
     // columns, user 2026-10-25), the ◆ the card's inner width.
     const chartRects = chartTypes.map((cell) => rectOf(sampleOf(cell).id));
-    const chart = "lib:definition:origin-component-chart" as LibraryDefinitionId;
+    const chart =
+      "lib:definition:origin-component-chart" as LibraryDefinitionId;
     const chartInner =
       rectOf(pageNode(workspace, originCardId(chart))).width - 2 * 24;
     expect(chartRects.map((rect) => Math.round(rect.width))).toEqual(
@@ -761,7 +775,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(body.children.every((id) => isPageCard(id))).toBe(true);
     // Every card is its grid column's width (`width: 100%` — user 2026-10-25).
     expect(
-      new Set(body.children.map((id) => JSON.stringify(nodeOf(id).visual.width))),
+      new Set(
+        body.children.map((id) => JSON.stringify(nodeOf(id).visual.width)),
+      ),
     ).toEqual(new Set([JSON.stringify({ kind: "set", value: "100%" })]));
     // … its min · max sizes auto (user 2026-10-25).
     expect(
@@ -817,15 +833,15 @@ describe("ADR-248 4e library origin view", () => {
     // On mobile the Chart no longer widens the one column past the page (user 2026-10-25: its
     // fixed 248px type columns and 320px ◆ made every card 512 wide). (This env's text is
     // narrower than a browser's: live, the five-column state lines still do — 2026-10-25.)
-    expect(
-      new Set(body.children.map((id) => rectOf(id).width)),
-    ).toEqual(new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]));
+    expect(new Set(body.children.map((id) => rectOf(id).width))).toEqual(
+      new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]),
+    );
     // … nor, unlocked, an origin's copy (its own width — a Dialog's, 400 until 2026-10-25; user 2026-10-25
     // 「edit 모드시 다시 mobile 넓이를 넘어선다」): the columns are equal shares.
     workspace.setLibraryUnlocked(true);
-    expect(
-      new Set(body.children.map((id) => rectOf(id).width)),
-    ).toEqual(new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]));
+    expect(new Set(body.children.map((id) => rectOf(id).width))).toEqual(
+      new Set([CANVAS_VIEWPORT.mobile.width - 2 * 16]),
+    );
     workspace.setLibraryUnlocked(false);
     // A component card's lines wrap (a flex row as wide as the card — user 2026-10-25: five
     // `auto` columns of states made every mobile card 525 wide live); a theme card's captioned
@@ -1306,11 +1322,7 @@ describe("ADR-248 4e library origin view", () => {
         expect.not.arrayContaining(["Item"]),
       ]);
     // Items held in a slot stay items.
-    for (const name of [
-      "Tabs",
-      "ListBox",
-      "Menu",
-    ])
+    for (const name of ["Tabs", "ListBox", "Menu"])
       expect([name, rowsOf(name)]).toEqual([
         name,
         expect.arrayContaining(["Item"]),
@@ -1338,7 +1350,10 @@ describe("ADR-248 4e library origin view", () => {
       ]);
     expect(rowsOf("Checkbox")).toContain("Default");
     expect(
-      cards.filter((card) => ["Link", "Checkbox", "Radio"].includes(card.name ?? ""))
+      cards
+        .filter((card) =>
+          ["Link", "Checkbox", "Radio"].includes(card.name ?? ""),
+        )
         .map((card) => card.name),
     ).toEqual(["Link", "Checkbox"]);
     const lib = (name: string) =>

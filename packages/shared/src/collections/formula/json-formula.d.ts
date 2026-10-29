@@ -1,7 +1,8 @@
 /**
  * ADR-291 — `@adobe/json-formula` 2.1.0 ships no types (ESM `src/`, no `exports` map). What the
- * formula module reads of it (`engine.ts` references this file; it is a hand-written ambient
- * declaration, kept out of the `*.d.ts` ignore like `css-modules.d.ts`).
+ * formula module reads of it (a hand-written ambient declaration — `packages/shared` includes it with
+ * `src`, a consumer compiling shared's source lists it in its tsconfig `include` like
+ * `css-modules.d.ts`: `apps/builder/tsconfig.app.json` · `tsconfig.tests.json`).
  */
 declare module "@adobe/json-formula" {
   /** A compiled expression (a plain object tree — `Identifier` · `Function` · … nodes). */

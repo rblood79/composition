@@ -134,7 +134,8 @@ import { openRowFormTarget } from "./rowFormTarget";
 
 import { planFieldRename } from "../utils/fieldRename";
 
-import { resolveFieldGlyph, resolveFieldType } from "../utils/fieldTypes";
+import { FieldGlyph } from "../utils/FieldGlyph";
+import { resolveFieldType } from "../utils/fieldTypes";
 
 import { parsePastedRows } from "../utils/pasteRows";
 
@@ -199,7 +200,10 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const formulaEngine = useFormulaEngine(schemaHasFormula(schema));
   const shownRows = useMemo(() => {
     void formulaEngine;
-    return withComputedCells(rows, schema) as readonly Record<string, unknown>[];
+    return withComputedCells(rows, schema) as readonly Record<
+      string,
+      unknown
+    >[];
   }, [formulaEngine, rows, schema]);
   const gridId = useId();
 
@@ -1458,7 +1462,6 @@ function ColumnHead({
   onToggleFreeze,
 }: ColumnHeadProps) {
   const typeEntry = resolveFieldType(field.type);
-  const TypeGlyph = resolveFieldGlyph(field);
   // ADR-291 (사용자 결정 5) — a computed column's head names its formula (over field keys).
   const formulaEngine = useFormulaEngine(!!field.formula);
   const formulaText = useMemo(
@@ -1546,7 +1549,7 @@ function ColumnHead({
         excludeFromTabOrder
         onPress={() => onOpenPanel({ focus: "type" })}
       >
-        <TypeGlyph size={iconSmall.size} />
+        <FieldGlyph field={field} size={iconSmall.size} />
       </Button>
       {renaming ? (
         <ColumnRenameInput

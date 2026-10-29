@@ -20,19 +20,19 @@ import {
  * — a short pending state does not flash it — and goes at once when it turns off.
  */
 export function usePendingState(isPending: boolean): boolean {
-  const [isProgressVisible, setIsProgressVisible] = useState(false);
+  const [elapsed, setElapsed] = useState(false);
   useEffect(() => {
-    if (!isPending) {
-      setIsProgressVisible(false);
-      return;
-    }
+    if (!isPending) return;
     const timeout = setTimeout(
-      () => setIsProgressVisible(true),
+      () => setElapsed(true),
       CATALOG_BUTTON_PENDING_DELAY_MS,
     );
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      setElapsed(false);
+    };
   }, [isPending]);
-  return isProgressVisible;
+  return isPending && elapsed;
 }
 
 /** RAC Button's render-function argument (its render props with `defaultChildren`). */
@@ -131,25 +131,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                   ? children(renderProps)
                   : children}
               </span>
-            <span
-              data-pending-indicator=""
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "grid",
-                placeItems: "center",
-                visibility: isProgressVisible ? "visible" : "hidden",
-              }}
-            >
-              <ProgressCircle
-                isIndeterminate
-                aria-label={CATALOG_BUTTON_PENDING_LABELS.en}
-                diameter={pendingIndicator.diameter}
-                strokeWidth={pendingIndicator.strokeWidth}
-                indicatorColor="currentColor"
-                trackColor={`color-mix(in srgb, currentColor ${Math.round(pendingIndicator.trackAlpha * 100)}%, transparent)`}
-              />
-            </span>
+              <span
+                data-pending-indicator=""
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  visibility: isProgressVisible ? "visible" : "hidden",
+                }}
+              >
+                <ProgressCircle
+                  isIndeterminate
+                  aria-label={CATALOG_BUTTON_PENDING_LABELS.en}
+                  diameter={pendingIndicator.diameter}
+                  strokeWidth={pendingIndicator.strokeWidth}
+                  indicatorColor="currentColor"
+                  trackColor={`color-mix(in srgb, currentColor ${Math.round(pendingIndicator.trackAlpha * 100)}%, transparent)`}
+                />
+              </span>
             </>
           )
         ) : (

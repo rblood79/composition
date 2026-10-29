@@ -136,6 +136,7 @@ function layers(workspace: CatalogWorkspace) {
     },
     workspace.session.getSnapshot().pageId!,
   );
+  store.connect();
   store.setExpanded(new Set(workspace.root.domInputs.keys()));
   const all = (nodes: readonly CatalogLayerNode[]): CatalogLayerNode[] =>
     nodes.flatMap((node) => [node, ...all(node.children ?? [])]);

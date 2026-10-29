@@ -180,6 +180,11 @@ function CodeViewContent() {
       })),
     [snippetLabels, snippets],
   );
+  // (The editor's check · snippets read the session at commit — not a ref written during render.)
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  });
   const editorApi = useRef<CodeEditorApi | null>(null);
   const snippetCode = useCallback(
     async (id: string, text: string, changes: readonly CodeViewChange[]) => {
@@ -205,11 +210,6 @@ function CodeViewContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, snippets, tables, workspace],
   );
-  // (The editor's check reads the session at commit — not a ref written during render.)
-  const sessionRef = useRef(session);
-  useEffect(() => {
-    sessionRef.current = session;
-  });
   const check = useCallback(
     (text: string, changes: readonly CodeViewChange[]) => {
       const session = sessionRef.current;
