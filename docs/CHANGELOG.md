@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-289 Implemented — 데이터 격자 행 양식 · 열 편집기 절 넷 · 선택 행 복사 · 내보내기] - 2026-10-29
+
+### Changed
+
+- **ADR-289 Implemented** (G5 사용자 확인 — 「G5 확인, 번들 수용」): 행 양식 (삽입 · 수정) · 타입별 기본값 · 열 편집기 절 넷 · `Insert column…` · 선택 바 복사 ▾ · 내보내기 ▾ 가 사용자 Builder (5173) 에서 확인됐다. Phase 4 번들 초과 (Builder initial +1,891 B gz, 상한 +300) 는 사용자 수용 — 뒤이은 `08d43fb17` i18n 언어별 분리가 initial −86,553 B. 기능 상세는 아래 「ADR-289 Phase 1 ~ 4」 엔트리.
+  - 위치: `docs/adr/completed/289-data-grid-row-form-column-editor-selection-actions.md` (`### Live Exercise` — G1 ~ G3 Chrome MCP 5174 + G5 사용자 confirm) · `docs/adr/README.md`
+
 ## [ADR-292 잔여 수리 — key-list 배열 전달 · 빈 배열 초기화 · JSON 예약 키 보존] - 2026-10-29
 
 ### Fixed

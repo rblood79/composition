@@ -1,6 +1,6 @@
 # ADR-289 Design Breakdown — 격자 행 양식 · 열 편집기 절 구조 · 선택 행 동작
 
-> 본문: [289-data-grid-row-form-column-editor-selection-actions.md](../289-data-grid-row-form-column-editor-selection-actions.md). 착수는 사용자 `/execute-adr 289`. 선행: ADR-288 G6 수정 7 ~ 9 (격자 체크박스 공용 부품 · `Insert ▾` 메뉴 · 표 설정 팝오버 — 2026-10-29 완료, Implemented 는 G6 사용자 확인 뒤). 이 문서가 구현 정본이고 `docs/adr/evidence/` 는 로컬 전용이라 인벤토리 · 실측 결론은 여기에 둔다.
+> 본문: [289-data-grid-row-form-column-editor-selection-actions.md](../completed/289-data-grid-row-form-column-editor-selection-actions.md). 착수는 사용자 `/execute-adr 289`. 선행: ADR-288 G6 수정 7 ~ 9 (격자 체크박스 공용 부품 · `Insert ▾` 메뉴 · 표 설정 팝오버 — 2026-10-29 완료, Implemented 는 G6 사용자 확인 뒤). 이 문서가 구현 정본이고 `docs/adr/evidence/` 는 로컬 전용이라 인벤토리 · 실측 결론은 여기에 둔다.
 
 ## 1. Phase 0 — 인벤토리 · RED (G0)
 
@@ -79,6 +79,8 @@
 - 문서: `panel-structure.md` 「본문 안 양식 자리 — 격자 옆 두 번째 열 · 좁으면 대신」 한 항 · README · CHANGELOG · `docs:stale-symbols` 0.
 
 ## 6. G5 — 사용자 확인 → Implemented · `completed/` 이동
+
+- **종결 2026-10-29** — 사용자 「G5 확인, 번들 수용」. 5173 Builder 확인 · Phase 4 Builder initial +1,891 B gz 초과 수용 (뒤이은 `08d43fb17` i18n 언어별 분리가 initial −86,553 B). Status Implemented · `### Live Exercise` · 본문 `completed/` 이동 · README · CHANGELOG.
 
 ## 7. 기록
 

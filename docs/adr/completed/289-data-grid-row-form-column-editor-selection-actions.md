@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-10-29 (Proposed → Accepted → In Progress 같은 날)
+Implemented — 2026-10-29 (Proposed → Accepted → In Progress → Implemented 같은 날 — 사용자 `/execute-adr 289` · 리뷰 [reviews/289.md](../reviews/289.md) round 3 pending 0). Phase 0 ~ 4 완료 · **G5 종결 2026-10-29** — 사용자 「G5 확인, 번들 수용」 (5173 Builder 확인 · Phase 4 Builder initial +1,891 B gz 초과 수용). 초과분은 바로 뒤 `08d43fb17` (i18n 언어별 chunk 분리, 사용자 결정) 이 Builder initial JS gzip 1,460,360 → 1,373,807 (−86,553) 로 흡수했다 — 시작 때 받는 언어 chunk 포함 영어 1,421,662 · 한국어 1,426,708.
 
 > **Phase 1 (행 양식) 완료 2026-10-29** — 사용자 결정 1 · 2 · 4 · 5 전부 권장안 (B 사이드 패널 · Insert row… = 양식 · ↗ + `Shift+Enter` · 「계속 추가」 둘 다). G1 live (Chrome MCP 5174): 필수 오류 + 포커스 · insert 1 step · Update 2 칸 1 step · Undo · 충돌 거절 (입력 보존) · Create more 2 행 · Esc ConfirmDialog · 좁은 폭 대체 · 콘솔 0 — breakdown §7. 
 > **Phase 2 (열 편집기 절 넷 · 만들기 경로) 완료 2026-10-29** — 사용자 결정 3 초안 그대로 (타입 설명 11 종). 절 Name · Type · Rules · Usage · 타입별 기본값 (저장 시 타입 유지 · 타입 변경 시 재해석) · `Insert column…` 만들기 모드 (`add_field` 한 번 · 「계속 추가」) · `PropertySelect.descriptions`. G2 live (5174): boolean 열 만들기 → 새 행 셀이 boolean `true`.
@@ -21,7 +21,7 @@ In Progress — 2026-10-29 (Proposed → Accepted → In Progress 같은 날)
 - 리뷰 round 1 (2026-10-29, codex — `docs/adr/reviews/289.md`): HIGH 2 · MEDIUM 1 을 설계에 반영 — H1 기본값 읽기는 `String()` 대신 `resolveFieldDefault` (Decision 2) · H2 행 대상은 `id` 를 믿지 않는 판정 (Decision 1 · R2) · M3 Insert 의 「미입력 = 기본값」 과 Update 의 「지움 = 비움」 분리 (Decision 1). round 2 (같은 날): H1 · M3 해소, H2 는 HIGH 1 로 남음 — 「행 객체 참조」 판정은 store 투영이 바뀐 collection 을 JSON 으로 복제해 (`catalogDataStore.ts:64`) 성립하지 않고, 유일 `id` fallback 은 같은 `id` · 같은 값의 B/C 에서 B 를 지우면 C 를 고른다. → **행 집합 snapshot 비교로 보수적 거절** (Decision 1 · R2) 로 다시 설계. round 3 (같은 날): HIGH 0 · MEDIUM 0 · pending 0 — 실제 catalog transaction 포함 9/9 (행 변경 · 중복 행 삭제 거절, Undo 복귀 · 표 이름 변경 · 다른 표 편집 허용). 전제 확정 (리뷰 승인 = 종결 계약 1). 착수는 사용자 `/execute-adr 289`.
 - 메모리: `user-non-developer-list-first-mental-model` (기능 단위 사고 · 진입점 양쪽 · 첫 화면 어휘는 비개발자) · `feedback-design-whole-scope-upfront-no-deferral` (설계는 처음부터 전체 범위) · `feedback-no-document-migration-code-dev-stage` (마이그레이션 코드 금지) · `project-catalog-single-source-of-builder-code` (쓰기는 `applyDataChange` 한 step).
 
-> 구현 상세: [design/289-data-grid-row-form-breakdown.md](design/289-data-grid-row-form-breakdown.md)
+> 구현 상세: [design/289-data-grid-row-form-breakdown.md](../design/289-data-grid-row-form-breakdown.md)
 
 ## Context
 
@@ -156,7 +156,8 @@ HIGH 없음 — 루프 종료. B 채택.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G1 · G2 · G3 의 Chrome MCP 결과와 G5 사용자 confirm.)
+- **2026-10-29 — G5, 사용자 confirm (5173)**: 사용자 「G5 확인, 번들 수용」 — 행 양식 · 열 만들기 · 선택 바를 사용자 Builder 에서 확인, Phase 4 번들 초과 (+1,891 B gz) 수용. G5 도중 피드백 「행 선택은 체크박스로만」 은 별도 커밋으로 반영 · live 5174 확인 (breakdown §7).
+- **2026-10-29 — G1 · G2 · G3, Chrome MCP · 별도 dev 서버 5174** (「ADR288 live」 프로젝트 Roles 표): G1 행 양식 — 필수 오류 + 포커스 · insert 1 step · Update 2 칸 1 step · Undo · 충돌 거절 (입력 보존 · Save 비활성) · Create more 2 행 · Esc ConfirmDialog · 좁은 폭 격자 자리 대체 · 콘솔 오류 0. G2 — `Insert column…` boolean 열 → 새 행 셀 boolean `true`. G3 — 행 2 선택 → `복사 ▾` 「Copied 2 rows.」 · 메뉴 · 선택 해제 뒤 `Insert ▾` 복귀. 상세 breakdown §7.
 
 ## Consequences
 
