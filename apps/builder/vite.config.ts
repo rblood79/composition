@@ -393,6 +393,11 @@ export default defineConfig(({ command }) => {
         "three/examples/jsm/postprocessing/AfterimagePass.js",
         "three/examples/jsm/postprocessing/UnrealBloomPass.js",
         "three/examples/jsm/postprocessing/OutputPass.js",
+        // ADR-291 — lazy-imported formula engine (shared). Pre-bundled so a running dev server does
+        // not discover it at first use and re-optimize (which left two React copies in the page —
+        // RAC Table "Invalid hook call", 2026-10-29).
+        "@composition/shared > @adobe/json-formula",
+        "@composition/shared > @adobe/json-formula/src/Lexer.js",
       ],
     },
     server: {
