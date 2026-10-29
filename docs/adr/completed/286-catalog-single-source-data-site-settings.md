@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-10-28 (Phase 0 ~ 4 완료 — G5 번들 초과는 사용자 수용 · G6 사용자 확인 대기). Accepted — 2026-10-28 (사용자 `/execute-adr 286` · 리뷰 [reviews/286.md](reviews/286.md) Round 2 닫힘 — pending 0 · HIGH 전부 fixed). Proposed — 2026-10-27
+Implemented — 2026-10-29 (G6 — 사용자 「Implemented 로 올리고 커밋 푸시해」, live 는 아래 `### Live Exercise`. publish 내보내기 phase 는 열림 항목 — breakdown §6, 사용자 지시로 착수). In Progress — 2026-10-28 (Phase 0 ~ 4 완료 — G5 번들 초과는 사용자 수용). Accepted — 2026-10-28 (사용자 `/execute-adr 286` · 리뷰 [reviews/286.md](../reviews/286.md) Round 2 닫힘 — pending 0 · HIGH 전부 fixed). Proposed — 2026-10-27
 
 > **착수 확인 (2026-10-28, AskUserQuestion)**: R3 — 사용자 로컬 (5173 IDB 실측) catalog 프로젝트 1 (contract 50) · collection 1 (mock 4 행) · endpoint 0 · 변수 0 → **착수** (contract 51 거부 수용). 사용자 결정 1 = **(b) collection 당 1,000 행 상한**. 사용자 결정 3 = **(a) 별개 entry** (`ProjectVariableEntry`).
 
@@ -24,10 +24,10 @@ In Progress — 2026-10-28 (Phase 0 ~ 4 완료 — G5 번들 초과는 사용자
   2. **순서 = ADR-285 먼저 닫고 이관은 새 ADR** (이 ADR). 코드 보기의 `catalogCodeViewData` 가 data store 대신 catalog 를 읽게 바꾸는 일은 이 ADR 에 포함.
   3. **사이트 · 페이지 설정은 이 ADR 에 포함** (별도 ADR 기각). 범위 = **사이트 기본값 · 페이지별 덮어쓰기 · 검색 · 호스팅 · SSO**. **custom code (head · body 임의 스크립트) 는 고르지 않음 — 제외**.
   4. **SSO = 둘 다** — 사이트 방문자 로그인 (SAML · OIDC · 보호할 페이지, 공유 비밀번호 보호도 같은 자리) 은 **이 ADR**, 빌더 팀 로그인 (Framer Enterprise 방식) 은 계정 · 인증 영역이라 **별도 ADR** (사용자 `/create-adr`).
-- 바뀌는 선행 결정: [ADR-131](completed/131-events-data-actions-first-class-collections.md) Phase 7 ~ 8 (2026-05-13) 의 「데이터 SSOT = `data_tables` (collections), 문서 root 격상은 잘못된 관점」 과 [ADR-248](completed/248-unified-catalog-document.md) H1 (「별도 data SSOT 유지, graph 는 ID 참조만」) 은 확인 항목 1 로 **바뀐다**. 그때의 근거 (RAC/RSC 가 `useCollectionData` 로 통합 소비 · binding 은 element 별 참조) 는 지금도 맞지만, 그것은 **읽는 쪽** 의 사실이고 **정의가 어디 사는가** 와는 다른 문제다 — 코드 보기 (ADR-284 · 285) 가 생기면서 문서 밖 정의가 코드에 섞여 나오는 것이 드러났다. 메모리 `project-catalog-single-source-of-builder-code` · `project-data-tables-ssot-framing` (바뀜 표시).
+- 바뀌는 선행 결정: [ADR-131](131-events-data-actions-first-class-collections.md) Phase 7 ~ 8 (2026-05-13) 의 「데이터 SSOT = `data_tables` (collections), 문서 root 격상은 잘못된 관점」 과 [ADR-248](248-unified-catalog-document.md) H1 (「별도 data SSOT 유지, graph 는 ID 참조만」) 은 확인 항목 1 로 **바뀐다**. 그때의 근거 (RAC/RSC 가 `useCollectionData` 로 통합 소비 · binding 은 element 별 참조) 는 지금도 맞지만, 그것은 **읽는 쪽** 의 사실이고 **정의가 어디 사는가** 와는 다른 문제다 — 코드 보기 (ADR-284 · 285) 가 생기면서 문서 밖 정의가 코드에 섞여 나오는 것이 드러났다. 메모리 `project-catalog-single-source-of-builder-code` · `project-data-tables-ssot-framing` (바뀜 표시).
 - 메모리: `project-catalog-single-source-of-builder-code` (결정 원문 4) · `feedback-no-document-migration-code-dev-stage` (마이그레이션 코드 0) · `project-publish-link-only-defer-until-builder-stable` (publish 는 기능 링크만).
 
-> 구현 상세: [design/286-catalog-single-source-data-site-settings-breakdown.md](design/286-catalog-single-source-data-site-settings-breakdown.md)
+> 구현 상세: [design/286-catalog-single-source-data-site-settings-breakdown.md](../design/286-catalog-single-source-data-site-settings-breakdown.md)
 
 ## Context
 
@@ -162,6 +162,11 @@ B · D 가 HIGH 0. D 는 사용자가 기각 (확인 항목 3). 루프 불필요
 | G6   | 종결    | 사용자 Builder 확인 (데이터 표 만들기 · 코드 보기 · 사이트 설정 · Undo) → Implemented. publish 내보내기 phase 는 **열림 항목으로 남긴다** (사용자 지시로 착수)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | —                                                                               |
 
 측정 5-질문 (measurement-validity §1): Q1 = preset 으로 만든 문서 (사람 입력 모양, 부하용 복제 아님) · Q2 = 1,000 행 편집 · Q3 = 이관 전 HEAD 대조군 · Q4 = selector 와 consume plan 무효화가 실제 패널 · Canvas · 코드 보기 · Preview 에 배선됨을 live 로 · Q5 = 코드 byte 동일은 **이관 전 fixture** (외부 기준) 대조, publish 행 수는 Builder Preview 와 대조.
+
+### Live Exercise
+
+- **2026-10-29 — G6, Chrome MCP · 별도 dev 서버 5177 (새 프로젝트 `adr286-g6`)**: Data 패널 Tables `+` → Roles 프리셋 → 문서 `collection` entry (`schema` · `mockData` 5 행 · `useMockData`) · history 1 step. 셀 「Editor → Writer」 → ⌘Z 한 번에 문서 `mockData` · 격자 둘 다 「Editor」 → ⌘⇧Z 「Writer」. ListBox 를 Design 패널 Collection 「Data source」 로 Roles 에 연결 → Canvas 5 행 (Writer 반영) · 코드 보기 `import roles from './data/roles'` · `<ListBox items={roles}>` (문서의 collection 을 읽음). 「사이트」 패널 제목 「G6 Site」 · 언어 ko → 각 1 step → ⌘Z 두 번에 패널 · 문서 `site` 원상 → Redo 둘. 새로고침 뒤 `site {title, lang}` · 행 (Writer) · 바인딩 노드 1 그대로 · 콘솔 오류 0. 발견 (이 ADR 범위 밖): fit zoom 에서 페이지 헤더 Code 버튼이 앱 상단 바 (`header_right`) 아래에 깔려 눌리지 않음 — 전체 메뉴 Code 로 대신 열었다.
+- **2026-10-28 — G4, Chrome MCP · 별도 dev 서버 5174**: Status 의 「Phase 3 완료」 인용 블록 (사이트 · 페이지 설정 · Undo · 내보내기 · redirect · SSO · R7 · R8 Canvas ↔ Preview · R9 · 콘솔 0).
 
 ## Consequences
 

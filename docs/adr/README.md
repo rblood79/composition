@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-29 ADR-286 Implemented** (G6 — 사용자 「Implemented 로 올리고 커밋 푸시해」 · live 는 Chrome MCP 로 별도 dev 서버 5177 새 프로젝트: Data 패널 Roles 프리셋 → 문서 `collection` entry (mock 5 행) · 셀 「Editor → Writer」 → ⌘Z 한 번에 문서 · 격자 둘 다 복원 · Redo · ListBox 를 Roles 에 연결 → 코드 보기 `import roles from './data/roles'` · `<ListBox items={roles}>` · Canvas 5 행 · 사이트 제목 · 언어 각 1 step → ⌘Z 두 번에 패널 · 문서 원상 · Redo · 새로고침 뒤 사이트 값 · 행 · 바인딩 유지 · 콘솔 오류 0) — 본문을 `completed/` 로 옮기고 열림 · 순서 표 · 완료 표 · 링크를 맞췄다. publish 내보내기 phase 는 열림 항목 (breakdown §6, 사용자 지시로 착수). 열림 3 (In Progress 1 = 291 · Proposed 2 = 290 · 245 보류) · 완료 311.
+>
 > **2026-10-29 ADR-289 Implemented** (G5 — 사용자 「G5 확인, 번들 수용」: 5173 Builder 에서 행 양식 · 열 만들기 · 선택 바 확인 · Phase 4 Builder initial +1,891 B gz 초과 수용 — 뒤이은 `08d43fb17` i18n 언어별 chunk 분리가 initial −86,553 B. live 근거 G1 ~ G3 Chrome MCP 5174 + G5 사용자 confirm) — 본문을 `completed/` 로 옮기고 열림 · 순서 표 · 완료 표 · 링크를 맞췄다. ADR-291 Phase 2 (열 편집기 · 격자) 의 선행 「289 Implemented」 충족. 열림 4 (In Progress 2 = 286 · 291 · Proposed 2 = 290 · 245 보류) · 완료 310.
 >
 > **2026-10-29 ADR-291 Phase 3 완료 (G4 · G5) · 사용자 결정 2 · 3 · 4 · 6 (전부 권고안)** — 직렬화기 `COMPUTED` (계산 필드가 조건 · 정렬 · 묶기 키 · 집계 입력 어디든 → 보기 전송 0 + 전체 로드) · `body` 에 `group` · `page` · `total` · `suffix` 는 `pageSize` 페이지 + `X-Total-Count` · 묶기는 `GROUP` + 전체 로드 · 상한 10,000 (`VIEW_LOCAL_LOAD_CAP`) 초과 = 행 0 + `viewRefusals` · 서버 집계 답은 `served.mode: "aggregate"` 로 결과 schema 행 · 보기 없는 바인딩 · served 행에도 계산 셀 · `transform` 삭제. G4 세션 3 (반례 `groupBy(raw) + sum(total)` 요청에 `group` 없음 · 페이지 전부 · 로컬 43 · 26 · 상한 거부) · G5 4 (독립 mock 서버 `scripts/mock-query-server.mjs` = 로컬 동치 · 손계산 · 페이지 · 전체 수 왕복). RED 9/9 GREEN · 전체 PASS. 남은 것: Phase 2 (289 뒤) · Phase 4 (상주 Worker) · Phase 5.
@@ -530,11 +532,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [286](286-catalog-single-source-data-site-settings.md) — 빌더 코드의 소스 = 단일 catalog: 데이터 정의 · 사이트 · 페이지 설정 · 검색 · 호스팅 · 방문자 SSO 를 문서로
-
-- **상태**: In Progress — 2026-10-28 (Accepted 같은 날 — 사용자 `/execute-adr 286` · 리뷰 Round 2 닫힘). Phase 0 ~ 3 완료 (G1 · G2 · G3 · G4 live). Phase 4: `docs:stale-symbols` 0 · 규칙 · 관련 ADR 표시 완료, G5 번들 초과 (Builder initial gzip +5,977 B / 상한 +1,000 — 모듈 합계 −1,115 B raw, 파일 분할 몫) 는 사용자 수용. G6 사용자 Builder 확인 대기. publish 내보내기는 열림 phase.
-- **규모**: Phase 0 (쓰기 지점 전수 · 소비자 35 읽는 필드 · 사용자 로컬 데이터 수 보고 · RED 5) → Phase 1 entry 3 + `ProjectEntry.site` + `PageEntry.meta` + 명령 (`commands/data.ts` · `DataChange` op → 명령) + selector (hook 이름 유지) + IDB 3 store 삭제 + G2 문서 크기 · 저장 · Undo 측정 → Phase 2 코드 보기 입력 교체 (golden 5 byte 동일) · 프로젝트 파일 extras 삭제 · publish 읽기 · Preview 채널 runtimeData 전용 → Phase 3 Settings 「사이트」 섹션 · 페이지 설정 · `siteMeta` 순수 함수 · live → Phase 4 번들 (Builder · Preview Δ ≤ +1 KB) · 문서 → G6 사용자 확인. publish 내보내기 (`<head>` · sitemap · robots · redirect · 접근 보호) 는 열림 phase (사용자 지시). 추정 ~38 파일. breakdown: [design/286](design/286-catalog-single-source-data-site-settings-breakdown.md)
-
 #### [290](290-theme-accent-contrast-target-lightness.md) — Theme Accent 를 목표 대비로 정하기: 역할별 accent 토큰 · 모드별 명도 계산 · 두 렌더러에 같은 hex
 
 - **상태**: Proposed — 2026-10-29 (사용자 `/create-adr`, Adobe Leonardo 검토 뒤 — 패키지 비도입 · 계산 직접 구현). 리뷰 round 1 ([reviews/290.md](reviews/290.md)) HIGH 1 · MEDIUM 2 설계 반영 (pending 0) — accent 하나로는 dark 에서 배경 · 글자 역할을 동시에 만족할 수 없어 **역할별 토큰 `accent` · `accent-content`** · 탐색은 Tone · 명시 surface 델타 반영 뒤 · 테마 색 변수 전체를 forced-colors media 안에. round 2 (수리 검증) HIGH 1 — Badge subtle 바탕 `accent-subtle` 누락 → 대비 대상을 rule 에서 유도한 바탕 집합으로 반영, pending 0 · 실행자 닫힘 선언. 착수는 `/execute-adr 290`.
@@ -574,16 +571,15 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                       | 차단 · 선행                                                                                                                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [286](286-catalog-single-source-data-site-settings.md)                                         | In Progress — Phase 0 ~ 4 완료 (G5 초과 수용)                                     | G6 사용자 Builder 확인 · publish 내보내기 phase 는 사용자 지시로                                                                                                          |
-|  2   | [290](290-theme-accent-contrast-target-lightness.md)                                           | Proposed 2026-10-29 — 리뷰 round 2 닫힘 (pending 0) — `/execute-adr 290` 가능     | 리뷰 (`review-adr`) · 사용자 결정 4 (dark 글자 흰색 · hex 시작 명도 · 대비 표시 · 브랜드 Tone) · 다른 열린 ADR 과 파일 겹침 없음                                          |
-|  3   | [291](291-data-query-vocabulary-computed-fields.md)                                            | In Progress 2026-10-29 — Phase 0 · 1 · 3 완료 (G0 ~ G2 · G4 · G5)                 | Phase 4 (상주 Worker — 결정 4) 진행 가능 · Phase 2 착수 가능 (289 Implemented 2026-10-29) (열 편집기 · 격자 파일) · 사용자 결정 5 (격자 열) 만 남음 · Phase 5 는 2 · 4 뒤 |
+|  1   | [290](290-theme-accent-contrast-target-lightness.md)                                           | Proposed 2026-10-29 — 리뷰 round 2 닫힘 (pending 0) — `/execute-adr 290` 가능     | 리뷰 (`review-adr`) · 사용자 결정 4 (dark 글자 흰색 · hex 시작 명도 · 대비 표시 · 브랜드 Tone) · 다른 열린 ADR 과 파일 겹침 없음                                          |
+|  2   | [291](291-data-query-vocabulary-computed-fields.md)                                            | In Progress 2026-10-29 — Phase 0 · 1 · 3 완료 (G0 ~ G2 · G4 · G5)                 | Phase 4 (상주 Worker — 결정 4) 진행 가능 · Phase 2 착수 가능 (289 Implemented 2026-10-29) (열 편집기 · 격자 파일) · 사용자 결정 5 (격자 열) 만 남음 · Phase 5 는 2 · 4 뒤 |
 |  —   | [245](245-ai-panel-on-device-model-path.md)                                                    | **사용자 보류 2026-10-16** 「adr 245는 미뤄졌다」 — 선택 경로 (no-go 종결도 정상) | 재개는 사용자 지시 · 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                            |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                           | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                | 각 항목의 재개 조건 발생 시                                                                                                                                               |
 
 ---
 
-## 완료 ADR (310)
+## 완료 ADR (311)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -893,6 +889,7 @@
 | [288](completed/288-data-panel-single-surface-column-popover-variable-table.md) | 데이터 패널 하나로 — `datatable` 패널 하나 (`defaultWidth: "100%"` · 탭 Tables · APIs · Variables · 목록 열 + 본문) · 열 편집 = 머리글 팝오버 (Section 행) · 공용 `VariableTable` (프로젝트 · 페이지 · 요소) · `renameVariable` = 참조까지 한 step (`VARIABLE_NAME_SHADOWS`) · 타입 규칙 하나 · 패널 2 등록 삭제 · G6 수정 1 ~ 16 (탭 복원 · 격자 체크박스 공용 부품 · `Insert ▾` · 표 설정 = 목록 행 아이콘 → 288 팝오버 · 빌더 팝오버 테두리 · 그림자 통일) · 번들 Builder +556 B · Preview +402 B 수용 · G6 사용자 지시 확인 2026-10-29 | Implemented | 2026-10-29 |
 | [289](completed/289-data-grid-row-form-column-editor-selection-actions.md) | 데이터 격자의 행 · 열 입력 양식 — 행 양식 (격자 옆 360 · 좁으면 격자 자리 · 타입별 입력 · 필수 → 선택 절 · Create more · Update = ↗ · `Shift+Enter` · 열 때 행 집합과 다르면 충돌 거절) · 타입별 기본값 (`resolveFieldDefault`) · 열 편집기 절 넷 · 타입 설명 11 · `Insert column…` 만들기 · 선택 바 복사 ▾ · 내보내기 ▾ · 행 선택 = 체크박스만 · 번들 Builder +1,891 B 수용 · G5 사용자 확인 2026-10-29 | Implemented | 2026-10-29 |
 | [292](completed/292-variable-editing-two-shapes-date-type-common-field-types.md) | 변수 편집 두 모양 (Data = 격자 · State 절 = 패널 행) · Variables 목록 열 · 변수 타입 `date` (ISO 글자 · `@internationalized/date`) · JSON 하나 · 페이지 · 요소 JSON 시작값 (ADR-288 contract 51 넓힘) · JSON 편집기 하나 (`PopoverTextEditor`) · 표 열 타입 = 공통 타입 + `reference` (11 → 6, 이메일 · URL · 이미지 = `string` 의 `format`) · 옛 타입 열 마이그레이션 없음 — 사용자 지시 2026-10-29 | Implemented | 2026-10-29 |
+| [286](completed/286-catalog-single-source-data-site-settings.md) | 빌더 코드의 소스 = 단일 catalog — 데이터 정의 (`collection` · `endpoint` · `projectVariable` entry, contract 51) · data store = 문서 투영 (쓰기 = 문서 명령 한 step · IDB 데이터 store 3 삭제) · 코드 보기 · 프로젝트 파일 (part 5 → 2) · publish · Preview 가 문서를 읽음 · 사이트 설정 (`ProjectEntry.site` — 「사이트」 패널) · 페이지 설정 (`PageEntry.meta`) · page 루트 locale → 사이트 언어 · G5 번들 초과 (Builder initial +5,977 B gz) 사용자 수용 · G6 live 2026-10-29 · publish 내보내기 phase 열림 | Implemented | 2026-10-29 |
 | [275](completed/275-position-section-figma-rules-framer-fields-layout-insets.md) | Position 절 — Figma 규칙 (pin 4 변 · 가운데) + Framer 칸, 저장은 layout `position` · `inset*` (노드 `placement` 삭제) · Sticky · Fixed 저작 · 술어 4 · Spacing 절 삭제 — contract 42 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [276](completed/276-button-text-child-iconbutton-merge.md) | Button 글자 = Text 자식 (`label` prop 바인딩 · `icon` 자리) · IconButton 통합 삭제 · 중첩 자리 34 `children` → `label` — contract 43 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |
 | [278](completed/278-overlay-body-slot-local-component.md) | 오버레이 본체 = slot (Dialog `content` · `actions` · Popover · Tooltip · ContextualHelp · Menu `Items`) · Library · Local 카드 본체 펼침 · 커스터마이징은 Local 컴포넌트 instance — contract 45 · 사용자 확인 2026-10-27 | Implemented | 2026-10-27 |

@@ -1,6 +1,6 @@
 # ADR-286 design breakdown — 빌더 코드의 소스 = 단일 catalog
 
-> 본문: [286-catalog-single-source-data-site-settings.md](../286-catalog-single-source-data-site-settings.md). 착수는 ADR-285 Implemented (G5) 뒤.
+> 본문: [286-catalog-single-source-data-site-settings.md](../completed/286-catalog-single-source-data-site-settings.md). 착수는 ADR-285 Implemented (G5) 뒤.
 
 ## 0. 전제 lock-in (fork 4 질문 — ADR-131 · 248 의 데이터 경계 결정을 바꾸는 새 ADR)
 
@@ -71,7 +71,7 @@ Phase 0 에서 위 표를 줄 번호와 함께 다시 freeze 한다 (1.5 배 이
 ## 5. Phase 4 — 번들 · 문서 (G5) → G6
 
 - `adr209-bundle-closure.mjs` before (착수 HEAD) / after. `docs:stale-symbols`. ADR-131 · 214 · 218 · 248 본문 Status 아래 「ADR-286 (2026-10-27) 이 데이터 정의의 집을 catalog 로 바꿈 — 읽기 계약은 유지」 한 줄. 메모리 `project-data-tables-ssot-framing` (이미 바뀜 표시) · `project-catalog-single-source-of-builder-code` 갱신. README · CHANGELOG.
-- G6 사용자 확인 → Implemented. publish 내보내기 (§6) 는 열림 항목.
+- G6 사용자 확인 → Implemented. publish 내보내기 (§6) 는 열림 항목. **완료 2026-10-29** — live 5177 (데이터 표 · 셀 Undo · 코드 보기 · 사이트 설정 Undo · 새로고침 유지 · 콘솔 0), 본문 `### Live Exercise`.
 
 ## 6. 열림 — publish 내보내기 phase (사용자 지시로 착수)
 

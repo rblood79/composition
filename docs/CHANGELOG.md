@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-286 Implemented — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로] - 2026-10-29
+
+### Changed
+
+- **ADR-286 Implemented** (G6 — 사용자 「Implemented 로 올리고 커밋 푸시해」): 데이터 표 만들기 · 셀 편집 Undo · 코드 보기 (바인딩된 표가 `./data/roles` 로) · 사이트 제목 · 언어 Undo · 새로고침 뒤 유지를 Builder 에서 확인했다 (Chrome MCP · 별도 dev 서버 5177 · 콘솔 오류 0). Phase 4 번들 초과 (Builder initial +5,977 B gz) 는 2026-10-28 사용자 수용. publish 내보내기 phase 는 열림 항목. 기능 상세는 아래 「ADR-286 Phase 0 ~ 4」 엔트리.
+  - 위치: `docs/adr/completed/286-catalog-single-source-data-site-settings.md` (`### Live Exercise`) · `docs/adr/README.md`
+
 ## [ADR-289 Implemented — 데이터 격자 행 양식 · 열 편집기 절 넷 · 선택 행 복사 · 내보내기] - 2026-10-29
 
 ### Changed
