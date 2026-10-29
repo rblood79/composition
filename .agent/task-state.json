@@ -70,7 +70,7 @@
   "guard": "제품 코드 변경 없음 (원인 확정 전) · 다른 세션 dirty 변경 보존 · 사용자 5173 서버 건드리지 않음 (하니스는 5175)",
   "stop": "type-check 실패 커밋 금지",
   "tip": "증거 .agent/runs/2026-10-21-canvas-perf-regression/lever{1,2,3,4}/README.md · 스크립트 scratchpad/lever{1-select,2-pan,2a-live,3-load,3-refresh,3a-live,4-connect,4-steps}.mjs (인자 cms-doc-dump.json data-dump.json 필수 · SERVE_DIST 로 production · ARMS=1,4)",
-  "updatedAt": "2026-10-28T16:37:53.530622+00:00",
+  "updatedAt": "2026-10-29T09:11:39.794595+00:00",
   "componentEmptyDoubleClick": {
     "task": "Body 선택 후 컴포넌트 빈 영역 더블클릭 선택 수리",
     "phase": "verified",
@@ -733,9 +733,9 @@
     "task": "ADR-286 execute — 데이터 정의 · 사이트 · 페이지 설정을 catalog 문서로",
     "phase": "phase4-done-pushed-535ef4b5f — G6 사용자 확인 대기",
     "decisions": {
-      "R3": "착수 (로컬 프로젝트 1 · collection 1 · mock 4 · endpoint 0 · 변수 0, contract 50)",
       "1": "mock 행 collection 당 1,000 상한",
-      "3": "ProjectVariableEntry 별개 entry"
+      "3": "ProjectVariableEntry 별개 entry",
+      "R3": "착수 (로컬 프로젝트 1 · collection 1 · mock 4 · endpoint 0 · 변수 0, contract 50)"
     },
     "next": [
       "[x] Phase 0 · 1 · 2 (G1 · G2 · G3)",
@@ -950,5 +950,128 @@
     },
     "unverified": "새 함수·UI 구현, Builder live·Canvas/Preview 사용자 흐름, UI 저장/재로드, 번들·reference 성능",
     "updatedAt": "2026-10-28T17:09:37.237869+00:00"
+  },
+  "adr289": {
+    "task": "ADR-289 실행 — 격자 행 양식 · 열 편집기 절 구조 · 선택 행 복사 · 내보내기",
+    "phase": "phase4-done · 7eadcf38b pushed → G5 사용자 확인 (5173) + 번들 +1,891 B gz 수용 판단 대기",
+    "head": "51fe50daa",
+    "next": [
+      "[x] Phase 0: RED 4 (adr289Red.test.tsx) · 인벤토리 (breakdown §7) · Status Accepted",
+      "[x] 사용자 결정 1·2·4·5 (전부 권장안) (양식 자리 · Insert row 동작 · Update 진입 · Create more)",
+      "[x] Phase 1: fieldDefault.ts · rowFormValues.ts · rowFormTarget.ts · FieldValueInput · RowForm · DataGrid 연결 · i18n · 테스트 · G1 live (5174)",
+      "[x] 사용자 결정 3 (초안 그대로) → Phase 2: 열 편집기 절 넷 · 만들기 모드 · G2",
+      "[x] Phase 3: 선택 바 복사 ▾ · 내보내기 ▾ · G3",
+      "[x] Phase 4: 번들 (착수 HEAD 51fe50daa 대비) · 10k reference p95 · 문서 · G4",
+      "[ ] G5 사용자 확인 → Implemented · completed/ 이동",
+      "[ ] 사용자 결정: Builder initial +1,891 B gz (locales i18n) 수용 여부 · 커밋 지시",
+      "[x] (289 밖 · 별도 커밋) 사용자 결정 10-29: 행 선택은 체크박스로만 — Table selectionMode none + 자체 선택 상태 · unit 112 · live 5174 5/5 · CHANGELOG 블록 · 파일 DataGrid.components.tsx · DataGrid.css · gridKeys.ts · DataGrid.test.tsx (289 변경과 같은 파일이라 pathspec 커밋 시 순서 주의)",
+      "[x] 10-29 커밋 7eadcf38b push — Phase 1~4 + G5 피드백 (체크박스 선택 · 셀 포커스 · 팝오버 편집기 · 머리글 14 · 열 ⌄ 메뉴 정렬 · 고정 · maximize-2). 다른 세션 파일 제외",
+      "[x] 10-29 (289 밖, 미커밋) 사용자 결정 「언어별로 분리」: i18n/messages/{ko-KR,en-US}.ts + loadMessages.ts (동적 chunk) · main.tsx 선로드 · provider useLocale · ComponentList 첫 검색 때 전 언어 · localeSplit 게이트 · initial gz −86,553 (언어 chunk 포함 영어 −38,698 · 한국어 −33,652) · live 5174 en/ko 시작 · 전환 · 검색 PASS",
+      "[x] 7eadcf38b 이 깬 정적 게이트 3 수정 (shortcut glyph · resolveField · collections.get id) — 미커밋",
+      "[x] c47f9eb9d push — 언어별 chunk 분리 + 정적 게이트 3 수정 (다른 세션 파일 제외)"
+    ],
+    "guard": "쓰기는 applyDataChange 한 번 · DataField 스키마 무변경 · 마이그레이션 코드 없음 · 코드는 datatable lazy chunk 안",
+    "updatedAt": "2026-10-29T00:52:22.515388+00:00"
+  },
+  "reviewAdr291": {
+    "task": "ADR-291 설계 리뷰",
+    "phase": "round2_resolution_record_confirmed",
+    "scope": "설계·현행 코드·설치본 파서 대조; 제품 코드와 ADR Status 변경 없음",
+    "updatedAt": "2026-10-29T03:19:08.675211+00:00",
+    "status": "high_0_medium_0_pending_0",
+    "reviewLog": "docs/adr/reviews/291.md (Round 2)",
+    "evidenceDirectory": ".agent/runs/2026-10-29-review-adr291",
+    "validation": {
+      "probe": "repair-probe.mjs 6 assertions PASS",
+      "reviewSchema": "182/182 PASS",
+      "guard": "동일 리뷰 파일 범위의 이전 PASS 재사용",
+      "diffCheck": "PASS",
+      "format": "사용자 PASS 보고; 이번 확인에서 재실행하지 않음"
+    },
+    "unverified": "신규 구현·실제 Builder/Preview/Publish·저장/Undo·번들·성능",
+    "findings": [
+      "h1 fixed: 집계 및 전이 의존성의 전체 원시 행 모드",
+      "h2 fixed (설계): 값 컨텍스트 추적, root @ 유지, 분류 불가 거절; G1 rename 및 의존 집합 계약",
+      "m3 fixed: formula string + type 결과 타입"
+    ],
+    "resolution": "사용자 Round 2 반영을 문서 직접 대조. 추가 리뷰 round 없음. 실제 구현 검증은 Phase gate에 남음."
+  },
+  "reviewAdr292Code": {
+    "task": "1a6af386e ADR-292 코드 정적 리뷰",
+    "phase": "review_complete_findings_open",
+    "scope": "publish date/JSON, code view round trip, type changes, State JSON save; 제품 코드 수정 없음",
+    "updatedAt": "2026-10-29T07:48:34.484970+00:00",
+    "status": "high_1_medium_4",
+    "evidenceDirectory": ".agent/runs/2026-10-29-review-adr292-code",
+    "validation": {
+      "reproduction": "5 FAIL / 1 PASS; committed source overlay",
+      "guard": "PASS"
+    },
+    "findings": [
+      "H1 JSON inverse parser blocks page code edits",
+      "M2 generic JSON array emitted as Selection Set",
+      "M3 absolute date emitted with parseZonedDateTime",
+      "M4 time-only date filter never matches equality",
+      "M5 date prop conditions evaluated as text"
+    ],
+    "unverified": "실제 브라우저 Builder/Preview/publish · 브라우저 autosave · 번들/성능"
+  },
+  "reviewAdr292Repair": {
+    "task": "00b90f6cc 수리 검증 1회",
+    "phase": "repair_verification_complete",
+    "scope": "지정 소스 5개 H1 M2 M3 M4 M5 및 직접 회귀, M2 selectedKeys/empty array",
+    "updatedAt": "2026-10-29T08:25:28.321421+00:00",
+    "status": "high_0_medium_3_close_criterion_met",
+    "evidenceDirectory": ".agent/runs/2026-10-29-adr292-repair-verification",
+    "validation": {
+      "regression": "50/50 PASS",
+      "probe": "7 PASS / 3 FAIL (confirmed MEDIUM residuals)"
+    },
+    "findings": [
+      "M2 selectedKeys !var JSON array nested in generated code",
+      "M2 empty sentinel to explicit [] code edit rejected",
+      "H1 reserved __proto__ own key parser causes guarded code edit refusal"
+    ],
+    "resolution": "판독 1 + 수리 검증 1 완료. HIGH 0으로 사용자 닫힘 조건 충족; 추가 리뷰 라운드 요구 없음.",
+    "unverified": "이번 실제 브라우저 live · 브라우저 autosave · 번들/성능"
+  },
+  "fixAdr292Residual": {
+    "task": "ADR-292 잔여 MEDIUM 3건 수리",
+    "phase": "implemented_tests_pass_live_blocked",
+    "scope": "key-list 배열 전달 · 빈 배열 명시 초기화 · __proto__ JSON own key 보존",
+    "updatedAt": "2026-10-29T08:54:23.712216+00:00",
+    "evidence": ".agent/runs/2026-10-29-adr292-residual-fix/report.md",
+    "verification": {
+      "sharedCodeView": 65,
+      "builderRoundTrip": 33,
+      "builderAdr284": 14,
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "typecheck": "BLOCKED by concurrent ADR-291",
+      "live": "UNVERIFIED: ADR-291 missing export"
+    },
+    "handoff": "ADR-291 is handled by Claude per user; our temporary build fixes reverted. ADR-292 fixes retained, no commit/push."
+  },
+  "reviewAdr290": {
+    "task": "ADR-290 설계 수리 검증 1회",
+    "phase": "round2_recorded",
+    "status": "original_3_fixed_design_high_1_pending_1",
+    "scope": "제품 코드 및 ADR 본문/Status 변경 없음",
+    "head": "00b90f6cc",
+    "reviewLog": "docs/adr/reviews/290.md",
+    "evidenceDirectory": ".agent/runs/2026-10-29-review-adr290",
+    "unverified": "실제 Builder/Canvas/Preview/Publish 및 forced-colors 화면, 새 solver 구현, 번들/성능",
+    "updatedAt": "2026-10-29T09:25:57.086Z",
+    "validation": {
+      "contrastProbe": "제안 제약 독립 격자 탐색; blue 시작 명도 통과에도 Badge subtle 4.318442:1",
+      "reviewSchema": "PASS",
+      "guard": "PASS",
+      "diffCheck": "PASS",
+      "format": "FAIL: writer 출력 docs/adr/reviews/290.md 포맷 불일치; 검사만 수행"
+    },
+    "findings": [
+      "기존 H1/M2/M3 설계 반영 확인",
+      "HIGH: Badge subtle의 accent-subtle이 accent-content 탐색 제약에서 누락; light blue 4.318442:1"
+    ]
   }
 }

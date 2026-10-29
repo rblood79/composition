@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { structuredLiteralOf } from "../inverse";
 import {
   codeViewLineAt,
   codeViewNormalized,
@@ -26,6 +27,25 @@ const golden = readdirSync(GENERATED).map((file) => ({
 
 const count = (elements: readonly CodeViewElement[]): number =>
   elements.reduce((sum, element) => sum + 1 + count(element.children), 0);
+
+describe("structuredLiteralOf — JSON own keys", () => {
+  it("preserves reserved keys without changing object prototypes", () => {
+    const parsed = structuredLiteralOf(
+      "{['__proto__']: {enabled: true}, nested: {['__proto__']: 1}, constructor: 'data'}",
+    )!.value as Record<string, unknown>;
+    expect(JSON.stringify(parsed)).toBe(
+      '{"__proto__":{"enabled":true},"nested":{"__proto__":1},"constructor":"data"}',
+    );
+    expect(Object.getPrototypeOf(parsed)).toBe(Object.prototype);
+    expect(Object.hasOwn(parsed, "__proto__")).toBe(true);
+    expect(parsed.enabled).toBeUndefined();
+  });
+
+  it.each(["{[name]: 1}", "{[run()]: 1}", "{['a' + 'b']: 1}"])(
+    "rejects expressions in a computed key: %s",
+    (text) => expect(structuredLiteralOf(text)).toBeUndefined(),
+  );
+});
 
 describe("parseCodeView — the generated golden 5", () => {
   it.each(golden)("$file reads with no problem", ({ code }) => {

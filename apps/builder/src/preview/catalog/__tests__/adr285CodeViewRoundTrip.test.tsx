@@ -9,6 +9,7 @@ import type {
   EntryId,
   NodeEntry,
   NodeId,
+  StateVariableEntry,
   ViewCondition,
   ViewConditionGroup,
 } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -16,6 +17,7 @@ import { ChangeSet } from "@codemirror/state";
 import type { CodeViewChange } from "../../../../../../packages/shared/src/codeView/inverse/identity";
 import type { CodeViewCollection } from "../../../../../../packages/shared/src/codeView/types";
 import { catalogCodeView } from "../../../builder/catalogRuntime/codeView";
+import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import {
   catalogCodeViewApply,
   catalogCodeViewSession,
@@ -836,6 +838,106 @@ describe("ADR-285 G2 — the forms read back (edits)", () => {
     });
     expect(h.code()).toContain(line);
     expect(h.code()).not.toContain("new Set([1, 1, 2])");
+  });
+
+  it.each(["selectedKeys", "defaultSelectedKeys"])(
+    "passes a JSON array directly to %s without changing its data semantics",
+    async (prop) => {
+      const h = await open(["ListBox", "Button"]);
+      const session = begin(h);
+      const head = "export default function Home() {\n";
+      const line = "  let [chosen, setChosen] = useState(['a', 'a', 'b']);\n";
+      expect(
+        applyCode(h, session, [replace(session.code, head, `${head}${line}`)]),
+      ).toEqual({ applied: true, reasons: [] });
+      const id = Object.values(begin(h).baseline.symbols.variables)[0]!;
+      h.declare(h.body()[0]! as NodeId, {
+        selectionMode: "multiple",
+        [prop]: { kind: "var", ref: `!var.${id}` },
+      });
+      const bound = begin(h);
+      expect(bound.code).toContain(line);
+      expect(bound.code).toContain(`${prop}={chosen}`);
+      expect(bound.code).not.toContain(`${prop}={[chosen]}`);
+      expect(
+        applyCode(h, bound, [
+          replace(bound.code, "<Button", "<Button isDisabled={true}"),
+        ]),
+      ).toEqual({ applied: true, reasons: [] });
+      expect(h.graph().getEntry(id)).toMatchObject({
+        defaultValue: ["a", "a", "b"],
+      });
+    },
+  );
+
+  it("keeps an empty legacy array on unrelated edits but saves an explicit [] with Undo/Redo", async () => {
+    const h = await open(["Button"]);
+    h.workspace.execute(
+      catalogVariableCommands.add(HOME, "pending", h.workspace.newId),
+    );
+    const id = Object.values(begin(h).baseline.symbols.variables)[0]!;
+    const variable = () => h.graph().getEntry(id) as StateVariableEntry;
+    h.workspace.execute(catalogVariableCommands.setType(variable(), "array"));
+    const session = begin(h);
+    expect(session.code).toContain("useState<Selection>(new Set())");
+    expect(
+      applyCode(h, session, [
+        replace(session.code, "<Button", "<Button isDisabled={true}"),
+      ]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(variable().defaultValue).toBe("");
+    const next = begin(h);
+    expect(
+      applyCode(h, next, [
+        replace(next.code, "useState<Selection>(new Set())", "useState([])"),
+      ]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(variable()).toMatchObject({ valueType: "array", defaultValue: [] });
+    expect(h.code()).toContain("useState([])");
+    h.workspace.undo();
+    expect(variable().defaultValue).toBe("");
+    h.workspace.redo();
+    expect(variable().defaultValue).toEqual([]);
+  });
+
+  it("preserves JSON __proto__ own keys through code edits and Undo/Redo", async () => {
+    const h = await open(["Button"]);
+    h.workspace.execute(
+      catalogVariableCommands.add(HOME, "payload", h.workspace.newId),
+    );
+    const id = Object.values(begin(h).baseline.symbols.variables)[0]!;
+    const variable = () => h.graph().getEntry(id) as StateVariableEntry;
+    const value = JSON.parse(
+      '{"__proto__":{"enabled":true},"nested":{"__proto__":1},"count":1}',
+    );
+    h.workspace.execute(
+      catalogVariableCommands.setJsonDefault(variable(), value),
+    );
+    const session = begin(h);
+    expect(session.code).toContain("['__proto__']: {enabled: true}");
+    expect(session.code).toContain("nested: {['__proto__']: 1}");
+    expect(
+      applyCode(h, session, [
+        replace(session.code, "<Button", "<Button isDisabled={true}"),
+      ]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(JSON.stringify(variable().defaultValue)).toBe(JSON.stringify(value));
+    const next = begin(h);
+    expect(
+      applyCode(h, next, [replace(next.code, "count: 1", "count: 2")]),
+    ).toEqual({ applied: true, reasons: [] });
+    expect(JSON.stringify(variable().defaultValue)).toBe(
+      JSON.stringify({ ...value, count: 2 }),
+    );
+    expect(Object.hasOwn(variable().defaultValue as object, "__proto__")).toBe(
+      true,
+    );
+    h.workspace.undo();
+    expect(JSON.stringify(variable().defaultValue)).toBe(JSON.stringify(value));
+    h.workspace.redo();
+    expect(JSON.stringify(variable().defaultValue)).toBe(
+      JSON.stringify({ ...value, count: 2 }),
+    );
   });
 
   it("an absolute instant (`…Z`) is `parseAbsolute('…', 'UTC')` both ways (review 2026-10-29 M3)", async () => {

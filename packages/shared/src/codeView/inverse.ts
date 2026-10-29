@@ -246,7 +246,16 @@ export function structuredLiteralOf(
           return out;
         }
         let key: string | typeof fail;
-        if (text[at] === "'" || text[at] === '"') key = quoted();
+        if (text[at] === "[") {
+          // The generator writes ['__proto__'] as an own data key, not a prototype setter.
+          // Only quoted literal keys are accepted here; computed expressions are not run.
+          at += 1;
+          space();
+          key = quoted();
+          space();
+          if (key === fail || text[at] !== "]") return fail;
+          at += 1;
+        } else if (text[at] === "'" || text[at] === '"') key = quoted();
         else {
           const m = /^[A-Za-z_$][\w$]*/.exec(text.slice(at));
           if (!m) return fail;
@@ -259,7 +268,12 @@ export function structuredLiteralOf(
         at += 1;
         const item = value();
         if (item === fail) return fail;
-        out[key] = item;
+        Object.defineProperty(out, key, {
+          value: item,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
         space();
         if (text[at] === ",") at += 1;
         else if (text[at] !== "}") return fail;

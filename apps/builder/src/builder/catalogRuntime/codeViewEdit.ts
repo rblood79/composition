@@ -684,6 +684,7 @@ class Planner {
         ) &&
         // (A selection whose start is not a key list shows as `new Set()` — as written.)
         !(
+          next.valueType === "string[]" &&
           selection(entry.valueType) &&
           !Array.isArray(entry.defaultValue) &&
           JSON.stringify(next.defaultValue) === "[]"
