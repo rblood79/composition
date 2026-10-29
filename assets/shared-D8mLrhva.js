@@ -1,0 +1,1 @@
+function e(t,n=``,r={}){if(typeof t!=`object`||!t||Array.isArray(t))return r;for(let[i,a]of Object.entries(t)){let t=n?`${n}.${i}`:i;typeof a==`string`?r[t]=a:e(a,t,r)}return r}export{e as t};
