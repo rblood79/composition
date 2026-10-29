@@ -21,32 +21,32 @@
 
   /* Default size */
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-size="XS"] {
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-size="S"] {
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-size="M"] {
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-size="L"] {
   font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-size="XL"] {
   font-size: var(--text-xl);
-  border-radius: var(--radius-xl);
+  border-radius: 0;
 }
 
 .react-aria-ToggleButtonGroup[data-focus-visible] {
@@ -67,19 +67,19 @@
 }
 
 .react-aria-ToggleButtonGroup[data-size="S"] {
-  --btn-border-radius: var(--radius-sm);
+  --btn-border-radius: 7px;
 }
 
 .react-aria-ToggleButtonGroup[data-size="M"] {
-  --btn-border-radius: var(--radius-md);
+  --btn-border-radius: 8px;
 }
 
 .react-aria-ToggleButtonGroup[data-size="L"] {
-  --btn-border-radius: var(--radius-lg);
+  --btn-border-radius: 9px;
 }
 
 .react-aria-ToggleButtonGroup[data-size="XL"] {
-  --btn-border-radius: var(--radius-lg);
+  --btn-border-radius: 10px;
 }
 
 .react-aria-ToggleButtonGroup[data-orientation="horizontal"] {

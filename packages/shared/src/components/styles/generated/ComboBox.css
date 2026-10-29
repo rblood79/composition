@@ -17,7 +17,7 @@
 
   /* Default size */
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
@@ -31,28 +31,28 @@
 
 .react-aria-ComboBox[data-size="S"] {
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   gap: 4px;
   --icon-size: 16px;
 }
 
 .react-aria-ComboBox[data-size="M"] {
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 6px;
   --icon-size: 18px;
 }
 
 .react-aria-ComboBox[data-size="L"] {
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: 9px;
   gap: 8px;
   --icon-size: 22px;
 }
 
 .react-aria-ComboBox[data-size="XL"] {
   font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  border-radius: 10px;
   gap: 10px;
   --icon-size: 28px;
 }

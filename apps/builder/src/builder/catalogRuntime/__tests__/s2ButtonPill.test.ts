@@ -31,7 +31,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 const OWNER = "project:node:owner" as NodeId;
 
-async function open(type: string, size: string) {
+async function open(type: string, size: string, bindingId = "button") {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -57,7 +57,8 @@ async function open(type: string, size: string) {
           id: OWNER,
           definitionId: catalogPaletteDefinitionId(library, type),
           children: [],
-          props: { size: { kind: "set", value: size } },
+          // (No size: a component that takes none — the Dialog.)
+          props: size ? { size: { kind: "set", value: size } } : {},
           visual: {},
           sizing: {},
           descendantOverrides: [],
@@ -74,7 +75,7 @@ async function open(type: string, size: string) {
   // The owner's own buttons (a picker's calendar nav buttons are the calendar's — not counted).
   const buttons = [...root.domInputs.values()].filter(
     (item) =>
-      item.bindingId === "button" &&
+      item.bindingId === bindingId &&
       item.props.slot !== "previous" &&
       item.props.slot !== "next" &&
       // (Its records: the owner itself, or a position under it — the identity names the owner.)
@@ -91,26 +92,29 @@ async function open(type: string, size: string) {
     return value ?? null;
   });
   canvas.dispose();
-  return { html, radii, count: buttons.length };
+  // (The document value — a closed overlay body has no Canvas node.)
+  const visualRadii = buttons.map((button) => button.visual.radius ?? null);
+  return { html, radii, visualRadii, count: buttons.length };
 }
 
 /**
  * Each field's own buttons' Canvas radius before the change (measured 2026-10-28 on this test's
- * `open`, the arrays are per button — a NumberField stepper's own corners stay its template's). The
- * change must leave every one as it was: each is its Button's own size corner (a ComboBox ·
+ * `open`, the arrays are per button — a NumberField stepper's own corners stay its template's;
+ * Select · NumberField at S · M · L · XL re-measured 2026-10-30 after the field box corner 7 · 8 · 9 ·
+ * 10). The change must leave every one as it was: each is its Button's own size corner (a ComboBox ·
  * date picker button is size S at every field size).
  */
 const FIELD_BUTTON_RADII_BEFORE: ReadonlyArray<[string, string, unknown[]]> = [
   ["Select", "XS", [4]],
-  ["Select", "S", [4]],
-  ["Select", "M", [6]],
-  ["Select", "L", [8]],
-  ["Select", "XL", [12]],
+  ["Select", "S", [7]],
+  ["Select", "M", [8]],
+  ["Select", "L", [9]],
+  ["Select", "XL", [10]],
   ["NumberField", "XS", [0, [0, 4, 4, 0]]],
-  ["NumberField", "S", [0, [0, 4, 4, 0]]],
-  ["NumberField", "M", [0, [0, 6, 6, 0]]],
-  ["NumberField", "L", [0, [0, 8, 8, 0]]],
-  ["NumberField", "XL", [0, [0, 12, 12, 0]]],
+  ["NumberField", "S", [0, [0, 7, 7, 0]]],
+  ["NumberField", "M", [0, [0, 8, 8, 0]]],
+  ["NumberField", "L", [0, [0, 9, 9, 0]]],
+  ["NumberField", "XL", [0, [0, 10, 10, 0]]],
   ["ComboBox", "XS", [4]],
   ["ComboBox", "S", [4]],
   ["ComboBox", "M", [4]],
@@ -148,8 +152,105 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
       const { html, radii: after } = await open(type, size);
       expect(after).toEqual(radii);
       expect(html).toContain("data-field-button=");
+      // (The DOM: no inline corner over the sheet's `[data-field-button]` block — the rule's pill
+      //  went inline and beat it in the Preview, 2026-10-30 live.)
+      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g) ?? [])
+        expect(tag).not.toMatch(/border(-[a-z]+)*-radius:\s*9999px/);
     },
   );
+
+  // The Popover component's trigger (2026-10-30 — 사용자 「popover 컴포넌트의 클릭하는 버튼
+  // border-radius: S, M, L 모두 8px」): its template Button's own `radius: 8` beats the pill.
+  it.each(["S", "M", "L"])(
+    "the Popover at %s: its trigger Button is 8 (Canvas · DOM)",
+    async (size) => {
+      const { html, radii } = await open("Popover", size);
+      expect(radii).toEqual([8]);
+      expect(html).toMatch(
+        /class="[^"]*react-aria-Button[^"]*"[^>]*border-radius:8px/,
+      );
+    },
+  );
+
+  // The Menu component's trigger (2026-10-30 — 사용자 「menu 컴포넌트의 클릭하는 버튼
+  // border-radius: 8px」): its template Button's own `radius: 8` at every size.
+  it.each(["XS", "S", "M", "L", "XL"])(
+    "the Menu at %s: its trigger Button is 8 (Canvas · DOM)",
+    async (size) => {
+      const { html, radii } = await open("Menu", size);
+      expect(radii).toEqual([8]);
+      expect(html).toMatch(
+        /class="[^"]*react-aria-Button[^"]*"[^>]*border-radius:8px/,
+      );
+    },
+  );
+
+  // The Tooltip component's trigger (2026-10-30 — 사용자 「tooltip 의 버튼 border-radius 8px」).
+  it.each(["S", "M", "L"])(
+    "the Tooltip at %s: its trigger Button is 8 (Canvas · DOM)",
+    async (size) => {
+      const { html, radii } = await open("Tooltip", size);
+      expect(radii).toEqual([8]);
+      expect(html).toMatch(
+        /class="[^"]*react-aria-Button[^"]*"[^>]*border-radius:8px/,
+      );
+    },
+  );
+
+  // ToggleButton (2026-10-30 — 사용자 「ToggleButton, ToggleButtonGroup S:7, M:8, L:9, XL:10」).
+  it.each([
+    ["S", 7],
+    ["M", 8],
+    ["L", 9],
+    ["XL", 10],
+  ] as const)("a ToggleButton at %s is %i (Canvas)", async (size, radius) => {
+    const { radii } = await open("ToggleButton", size, "togglebutton");
+    expect(radii).toEqual([radius]);
+  });
+
+  // ToggleButtonGroup (2026-10-30 — 「ToggleButtonGroup 에 border-radius 불필요, ToggleButton 에」):
+  // the group box has no corner; its ToggleButtons keep theirs.
+  it.each([
+    ["S", 7],
+    ["M", 8],
+    ["L", 9],
+    ["XL", 10],
+  ] as const)(
+    "a ToggleButtonGroup at %s: no corner of its own, its ToggleButtons %i",
+    async (size, radius) => {
+      const group = await open("ToggleButtonGroup", size, "togglebuttongroup");
+      expect(group.count).toBe(1);
+      expect(group.radii.every((value) => !value)).toBe(true);
+      const { radii } = await open("ToggleButtonGroup", size, "togglebutton");
+      expect(radii.length).toBeGreaterThan(0);
+      expect(radii.every((value) => value === radius)).toBe(true);
+    },
+  );
+
+  // Pagination's page buttons (2026-10-30 — 사용자 「pagination 의 button S:7, M:8, L:9, XL:10」):
+  // the Button's own size corner (its template buttons are size S), DOM `data-field-button`.
+  it.each(["S", "M", "L"])(
+    "the Pagination at %s: its buttons are 7 (size S) · data-field-button",
+    async (size) => {
+      const { html, radii } = await open("Pagination", size);
+      expect(radii).toEqual([7, 7, 7, 7, 7]);
+      expect(html.match(/data-field-button="S"/g)).toHaveLength(5);
+      for (const tag of html.match(/<button[^>]*data-field-button[^>]*>/g)!)
+        expect(tag).toMatch(/border-radius:7px/);
+    },
+  );
+
+  // Dialog · Popover bodies (2026-10-30 — 사용자 「dialog · popover border-radius: size 상관없이 16px」).
+  it.each([
+    ["Dialog", "dialog", [""]],
+    ["Popover", "popover", ["S", "M", "L"]],
+  ] as const)("the %s body is 16 at every size it takes", async (type, binding, sizes) => {
+    for (const size of sizes) {
+      const { visualRadii, count } = await open(type, size, binding);
+      expect(count).toBe(1);
+      expect(visualRadii).toEqual([16]);
+    }
+  });
 
   it("the generated sheet: sizes are pills, and a field's button takes the size's corner after them", () => {
     const css = readFileSync(
@@ -167,7 +268,7 @@ describe("S2 Button shape — a pill; a field's own button keeps its corner", ()
       "border-radius: var(--radius-full)",
     );
     expect(css.slice(fieldBlock, css.indexOf("}", fieldBlock))).toContain(
-      "border-radius: var(--radius-md)",
+      "border-radius: 8px",
     );
   });
 });

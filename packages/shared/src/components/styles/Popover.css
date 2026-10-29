@@ -28,7 +28,6 @@
     /* box-shadow 는 catalog `Popover.structure.containerStyles.boxShadow` 정본 →
        generated/Popover.css 가 emit (2026-07-25). 같은 값을 여기 중복 선언하면
        Style Panel 이 읽는 catalog 와 실제 CSS 가 갈라질 수 있어 제거. */
-    border-radius: var(--radius-lg);
     background: var(--bg-raised);
     color: var(--fg);
     outline: none;
@@ -186,22 +185,35 @@
     }
   }
 
+  /* ========== Corner (Builder 자체 popover 만) ==========
+     catalog 노드 (`[data-catalog-id]` — Popover · Dialog · Menu · Tooltip 컴포넌트) 의 모서리는
+     catalog Popover rule 이 정본이다 (생성 `generated/Popover.css`). 이 시트는 그 뒤에 로드되어
+     같은 명시도로 이겼다 — 2026-10-30 live: catalog 16px 이 Preview 에서 8px. */
+  .react-aria-Popover:not([data-catalog-id]) {
+    border-radius: var(--radius-lg);
+  }
+
+  .react-aria-Popover:not([data-catalog-id])[data-size="S"] {
+    border-radius: var(--radius-md);
+  }
+
+  .react-aria-Popover:not([data-catalog-id])[data-size="L"] {
+    border-radius: var(--radius-xl);
+  }
+
   /* ========== Size Variants ========== */
   .react-aria-Popover[data-size="S"] {
     max-width: 200px;
-    border-radius: var(--radius-md);
     font-size: var(--text-sm);
   }
 
   .react-aria-Popover[data-size="M"] {
     max-width: 250px;
-    border-radius: var(--radius-lg);
     font-size: var(--text-base);
   }
 
   .react-aria-Popover[data-size="L"] {
     max-width: 320px;
-    border-radius: var(--radius-xl);
     font-size: var(--text-lg);
   }
 

@@ -231,19 +231,19 @@
   }
 
   .react-aria-Button[data-field-button="S"] {
-    border-radius: var(--radius-sm);
+    border-radius: 7px;
   }
 
   .react-aria-Button[data-field-button="M"] {
-    border-radius: var(--radius-md);
+    border-radius: 8px;
   }
 
   .react-aria-Button[data-field-button="L"] {
-    border-radius: var(--radius-lg);
+    border-radius: 9px;
   }
 
   .react-aria-Button[data-field-button="XL"] {
-    border-radius: var(--radius-xl);
+    border-radius: 10px;
   }
 
 

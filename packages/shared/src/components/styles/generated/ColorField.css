@@ -17,7 +17,7 @@
 
   /* Default size */
   font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 8px;
   --icon-size: 26px;
 }
@@ -31,28 +31,28 @@
 
 .react-aria-ColorField[data-size="S"] {
   font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   gap: 6px;
   --icon-size: 20px;
 }
 
 .react-aria-ColorField[data-size="M"] {
   font-size: var(--text-base);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 8px;
   --icon-size: 26px;
 }
 
 .react-aria-ColorField[data-size="L"] {
   font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  border-radius: 9px;
   gap: 10px;
   --icon-size: 32px;
 }
 
 .react-aria-ColorField[data-size="XL"] {
   font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
   gap: 12px;
   --icon-size: 36px;
 }

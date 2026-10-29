@@ -163,6 +163,7 @@ import { resolveAssetUrl } from "../../utils/assetRef";
 import {
   catalogAuthoredLayout,
   catalogAuthoredVisual,
+  catalogDerivedRestVisual,
   catalogHasAuthoredColor,
 } from "./libraryVisual";
 
@@ -3287,7 +3288,7 @@ export function renderNode(
   }
   // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down — inline, over
   // the Button sheet's border.)
-  const stepper =
+  const fieldBox =
     node.bindingId === "button"
       ? catalogFieldBoxStepperNode(
           node,
@@ -3295,6 +3296,17 @@ export function renderNode(
           (entry) => catalogTypeName(root, entry),
         )
       : node;
+  // A field's own Button (derived `fieldButton`) draws its size's corner, not the rule's pill: the
+  // same rest value the Canvas paints (`catalogDerivedRestVisual`). The record's pill went inline
+  // and beat the sheet's `[data-field-button]` block — Select trigger · NumberField stepper ·
+  // Pagination were pills in the Preview (2026-10-30 live).
+  const restRadius = node.derivedProps?.fieldButton
+    ? catalogDerivedRestVisual(root, node).radius
+    : undefined;
+  const stepper: CatalogConsumerNode =
+    typeof restRadius === "number"
+      ? { ...fieldBox, visual: { ...fieldBox.visual, radius: restRadius } }
+      : fieldBox;
   const bound = binding
     ? {
         ...catalogDomStyle(
@@ -3338,6 +3350,20 @@ export function renderNode(
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;
+  // A ToggleButton's label Text (ADR-276 — the button owns it) takes the button's color, which the
+  // sheet changes with RAC's runtime selection (`[data-selected]`): a resting color inline stayed
+  // when the user toggled it in the Preview, so the selected label vanished (2026-10-30).
+  if (
+    bound &&
+    node.bindingId === "text" &&
+    !catalogHasAuthoredColor(root, node) &&
+    catalogToggleButtonGlyphOwner(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    bound.color = "inherit";
   // The repeat templates RAC draws per day · date · segment (Decision 13) are RAC's `th` · cell ·
   // segment: their display is the element's (a table cell, the sheet's) unless the document wrote
   // one — the box default `flex` made every weekday `th` a flex box (G5 example 15: the grid 380

@@ -3581,7 +3581,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Menu",
       "size": "{size}"
     },
-    "visual": {}
+    "visual": {
+      "radius": 8
+    }
   },
   {
     "id": "lib:template:component-menu__popover",
@@ -6607,7 +6609,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "label": "Open Popover"
     },
-    "visual": {}
+    "visual": {
+      "radius": 8
+    }
   },
   {
     "id": "lib:template:component-popover__overlay",
@@ -6807,7 +6811,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "label": "Hover me"
     },
-    "visual": {}
+    "visual": {
+      "radius": 8
+    }
   },
   {
     "id": "lib:template:component-tooltip__overlay",

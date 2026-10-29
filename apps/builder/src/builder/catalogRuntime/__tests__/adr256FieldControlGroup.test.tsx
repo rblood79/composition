@@ -131,7 +131,7 @@ describe("ADR-256 Phase 6b — a field's control box is a RAC Group node", () =>
       fill: DATE_RANGE_GROUP_PAINT.fill,
       borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
       borderWidth: 1,
-      radius: 6,
+      radius: 8,
     });
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     cleanups.push(() => canvas.dispose());

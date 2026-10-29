@@ -1124,8 +1124,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(shapes.find((shape) => shape.type === "roundRect")).toEqual(
       expect.objectContaining({ height: 42, radius: input.visual.radius }),
     );
-    // (The corner follows the DateInput rule's size step — lg.)
-    expect(input.visual.radius).toBe(8);
+    // (The corner follows the DateInput rule's size step — L 9px, 2026-10-30.)
+    expect(input.visual.radius).toBe(9);
     const texts = shapes.filter((shape) => shape.type === "text") as Array<{
       text: string;
       fontStyle?: string;

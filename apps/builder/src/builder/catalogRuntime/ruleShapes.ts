@@ -453,8 +453,17 @@ export function catalogDateInputPaintProps(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): Record<string, unknown> | undefined {
+  const { radius, borderWidth } = node.visual;
+  // (The node's corner · border width reach the box whether or not the segment row is measured —
+  // without them the primitive falls back to its own size table, 2026-10-30.)
+  const box = {
+    ...(typeof radius === "number" ? { _boxRadius: radius } : {}),
+    ...(typeof borderWidth === "number"
+      ? { _boxBorderWidth: snapBorderWidth(borderWidth) }
+      : {}),
+  };
   const paint = root.dateSegmentPaint(node.id);
-  if (!paint) return undefined;
+  if (!paint) return Object.keys(box).length > 0 ? box : undefined;
   const { color, opacity, fontStyle } = paint.placeholder;
   const token = color ? cssVarToTokenRef(color) : null;
   const resolved = token ? resolveToken(token, root.colorMode) : color;
@@ -466,12 +475,8 @@ export function catalogDateInputPaintProps(
             .padStart(2, "0")}`
         : resolved
       : undefined;
-  const { radius, borderWidth } = node.visual;
   return {
-    ...(typeof radius === "number" ? { _boxRadius: radius } : {}),
-    ...(typeof borderWidth === "number"
-      ? { _boxBorderWidth: snapBorderWidth(borderWidth) }
-      : {}),
+    ...box,
     _segmentRuns: paint.runs,
     ...(fill ? { _segmentPlaceholderFill: fill } : {}),
     ...(fontStyle === "italic" ? { _segmentPlaceholderItalic: true } : {}),

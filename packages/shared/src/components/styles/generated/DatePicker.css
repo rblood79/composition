@@ -20,7 +20,7 @@
 
   /* Default size */
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 4px;
   --icon-size: 16px;
 }
@@ -34,28 +34,28 @@
 
 .react-aria-DatePicker[data-size="S"] {
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   gap: 4px;
   --icon-size: 14px;
 }
 
 .react-aria-DatePicker[data-size="M"] {
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   gap: 4px;
   --icon-size: 16px;
 }
 
 .react-aria-DatePicker[data-size="L"] {
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: 9px;
   gap: 4px;
   --icon-size: 20px;
 }
 
 .react-aria-DatePicker[data-size="XL"] {
   font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
+  border-radius: 10px;
   gap: 8px;
   --icon-size: 24px;
 }

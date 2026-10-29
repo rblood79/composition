@@ -684,7 +684,7 @@ describe("ADR-259 Phase 2 — field prefix", () => {
         // rounds every corner.)
         expect(paintOf(root, group.id)).toEqual(
           type === "NumberField"
-            ? { ...before, radius: state === "quiet" ? "0" : "6" }
+            ? { ...before, radius: state === "quiet" ? "0" : "8" }
             : before,
         );
         expect(paintOf(root, input.id)).toMatchObject({

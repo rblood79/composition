@@ -275,6 +275,14 @@ describe("button Icon inherits text color", () => {
       expect(element.querySelector("svg")!.getAttribute("stroke")).toBe(
         "currentColor",
       );
+      // (The label Text too — 2026-10-30 사용자 「Preview 에서 수동 토글로 선택하면 글자가 안 보임」:
+      //  an inline resting color stays when RAC selects it at runtime; the sheet's selected color
+      //  must reach it through `inherit`.)
+      if (type === "ToggleButton")
+        expect(
+          host.querySelector<HTMLElement>(`[data-catalog-id="${text.id}"]`)!
+            .style.color,
+        ).toBe("inherit");
       workspace.execute(
         setFields({
           targets: [workspace.itemOfRecord(icon.id)!.target],

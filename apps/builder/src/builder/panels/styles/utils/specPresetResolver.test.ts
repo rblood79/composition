@@ -360,10 +360,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.borderWidth).toBe(1);
     });
 
-    it("InlineAlert.sizes.M.borderRadius = '{radius.lg}' → 8 로 resolve", () => {
+    it("InlineAlert.sizes.M.borderRadius = 10 (px 숫자, 2026-10-30) → 10 으로 resolve", () => {
       // InlineAlert 는 borderWidth 필드 자체 없음 → undefined 유지 (sizes 미정의 = 기본값 0)
       const preset = resolveAppearanceSpecPreset("InlineAlert", "M");
-      expect(preset.borderRadius).toBe(8);
+      expect(preset.borderRadius).toBe(10);
       expect(preset.borderWidth).toBeUndefined();
     });
 

@@ -49,23 +49,25 @@ const FIELD_PREFIX_SIZES = {
 // picker · SearchField button — S2 field buttons, not `Button`s) keeps the corner of its own size:
 // one table read by the Canvas (`containerVariants["field-button"]` — the derived `fieldButton`,
 // `presence.ts` `catalogFieldButtonSize`) and the DOM (`rootSelectors` — `data-field-button`).
+// (2026-10-30 — 사용자 「field 입력폼 부분 S:7, M:8, L:9, XL:10」: the field input box's corner
+// (`Input` · `DateInput` · field `sizes`), so a Select trigger · NumberField stepper meets its box.)
 const FIELD_BUTTON_CORNERS = {
-  XS: "sm",
-  S: "sm",
-  M: "md",
-  L: "lg",
-  XL: "xl",
+  XS: "var(--radius-sm)",
+  S: "7px",
+  M: "8px",
+  L: "9px",
+  XL: "10px",
 } as const;
 const FIELD_BUTTON_CORNER_VARIANTS = Object.fromEntries(
   Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
     size,
-    { styles: { "border-radius": `var(--radius-${corner})` } },
+    { styles: { "border-radius": corner } },
   ]),
 );
 const FIELD_BUTTON_CORNER_SELECTORS = Object.fromEntries(
   Object.entries(FIELD_BUTTON_CORNERS).map(([size, corner]) => [
     `&[data-field-button="${size}"]`,
-    { styles: { "border-radius": `var(--radius-${corner})` } },
+    { styles: { "border-radius": corner } },
   ]),
 );
 
@@ -2460,7 +2462,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         height: 32,
         gap: 6,
         iconSize: 20,
@@ -2468,7 +2470,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 10,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         height: 40,
         gap: 8,
         iconSize: 26,
@@ -2476,7 +2478,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         paddingX: 12,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         height: 48,
         gap: 10,
         iconSize: 32,
@@ -2484,7 +2486,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         paddingX: 14,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 10,
         height: 56,
         gap: 12,
         iconSize: 36,
@@ -3006,7 +3008,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         height: 22,
         iconSize: 16,
         gap: 4,
@@ -3014,7 +3016,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         height: 30,
         iconSize: 18,
         gap: 6,
@@ -3022,7 +3024,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         height: 42,
         iconSize: 22,
         gap: 8,
@@ -3030,7 +3032,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         height: 54,
         iconSize: 28,
         gap: 10,
@@ -3457,7 +3459,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 8,
@@ -3466,7 +3468,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 12,
@@ -3475,7 +3477,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 16,
@@ -3484,7 +3486,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 24,
@@ -3642,25 +3644,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       S: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         iconSize: 14,
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         iconSize: 16,
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         iconSize: 20,
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         iconSize: 24,
         gap: 8,
       },
@@ -3881,25 +3883,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       S: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         iconSize: 14,
         gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         iconSize: 16,
         gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         iconSize: 20,
         gap: 4,
       },
       XL: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         iconSize: 24,
         gap: 8,
       },
@@ -4052,28 +4054,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--drp-group-gap": "var(--spacing-2xs)",
               },
               S: {
-                "--drp-group-radius": "var(--radius-sm)",
+                "--drp-group-radius": "7px",
                 "--drp-group-padding": "1px 1px 1px var(--spacing-sm)",
                 "--drp-group-font-size": "var(--text-xs)",
                 "--drp-group-line-height": "var(--text-xs--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               M: {
-                "--drp-group-radius": "var(--radius-md)",
+                "--drp-group-radius": "8px",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-md)",
                 "--drp-group-font-size": "var(--text-sm)",
                 "--drp-group-line-height": "var(--text-sm--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               L: {
-                "--drp-group-radius": "var(--radius-lg)",
+                "--drp-group-radius": "9px",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-lg)",
                 "--drp-group-font-size": "var(--text-base)",
                 "--drp-group-line-height": "var(--text-base--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               XL: {
-                "--drp-group-radius": "var(--radius-xl)",
+                "--drp-group-radius": "10px",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-xl)",
                 "--drp-group-font-size": "var(--text-lg)",
                 "--drp-group-line-height": "var(--text-lg--line-height)",
@@ -4321,6 +4323,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 모서리 16px — size 무관 (2026-10-30 사용자 「dialog · popover 의 border-radius: size 상관없이 16px」).
     sizes: {
       // ADR-912 단계5 step4 (2026-06-16): paddingY/gap 보강 — generated CSS 의 `padding: {Y}px {X}px`
       //   + `gap: {gap}px` 가 rule 에서 emit 되도록(DialogSpec.sizes 미러, paddingX==paddingY).
@@ -4333,7 +4336,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 16,
         gap: 4,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 16,
         height: 0,
       },
       S: {
@@ -4341,7 +4344,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 24,
         gap: 8,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 16,
         height: 0,
       },
       M: {
@@ -4349,7 +4352,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 40,
         gap: 12,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 16,
         height: 0,
       },
       L: {
@@ -4357,7 +4360,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 48,
         gap: 16,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.2xl}",
+        borderRadius: 16,
         height: 0,
       },
       XL: {
@@ -4365,7 +4368,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 56,
         gap: 20,
         fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.2xl}",
+        borderRadius: 16,
         height: 0,
       },
     },
@@ -6161,7 +6164,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 8,
         gap: 8,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 10,
         height: "auto",
       },
       M: {
@@ -6169,7 +6172,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 16,
         gap: 12,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 10,
         height: "auto",
       },
       L: {
@@ -6177,7 +6180,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 24,
         gap: 16,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         height: "auto",
       },
     },
@@ -6317,7 +6320,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 8,
@@ -6326,7 +6329,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 12,
@@ -6335,7 +6338,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 16,
@@ -6344,7 +6347,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingX: 24,
@@ -7997,7 +8000,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         height: 22,
         gap: 4,
         iconSize: 14,
@@ -8005,7 +8008,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         height: 30,
         gap: 6,
         iconSize: 18,
@@ -8013,7 +8016,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         height: 42,
         gap: 8,
         iconSize: 22,
@@ -8021,7 +8024,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         height: 54,
         gap: 10,
         iconSize: 28,
@@ -8394,6 +8397,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 모서리 16px — size 무관 (2026-10-30 사용자 「dialog · popover 의 border-radius: size 상관없이 16px」).
     sizes: {
       // ADR-912 단계5 step4 Popover 단건 (2026-06-16): paddingY/gap 보강 —
       //   Popover.spec.ts 삭제 대비 generated Popover.css(padding: NNpx NNpx / gap: NNpx) diff-0 유지.
@@ -8403,7 +8407,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 12,
         gap: 8,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 16,
         height: 0,
       },
       M: {
@@ -8411,7 +8415,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 16,
         gap: 12,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 16,
         height: 0,
       },
       L: {
@@ -8419,7 +8423,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 20,
         gap: 16,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 16,
         height: 0,
       },
     },
@@ -9607,7 +9611,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         height: 22,
         iconSize: 16,
         gap: 4,
@@ -9615,7 +9619,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         height: 30,
         iconSize: 18,
         gap: 6,
@@ -9623,7 +9627,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         height: 42,
         iconSize: 22,
         gap: 8,
@@ -9631,7 +9635,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         height: 54,
         iconSize: 28,
         gap: 10,
@@ -12279,25 +12283,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         gap: 4,
       },
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         gap: 6,
       },
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         gap: 8,
       },
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         gap: 10,
       },
     },
@@ -12418,7 +12422,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         height: 22,
         minWidth: 33,
         gap: 4,
@@ -12426,7 +12430,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         height: 30,
         minWidth: 45,
         gap: 6,
@@ -12434,7 +12438,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         height: 42,
         minWidth: 63,
         gap: 8,
@@ -12442,7 +12446,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 10,
         height: 54,
         minWidth: 81,
         gap: 10,
@@ -12893,7 +12897,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         fontWeight: 500,
-        borderRadius: "{radius.sm}",
+        borderRadius: 7,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingY: 2,
@@ -12905,7 +12909,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         fontWeight: 500,
-        borderRadius: "{radius.md}",
+        borderRadius: 8,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingY: 4,
@@ -12917,7 +12921,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         fontWeight: 500,
-        borderRadius: "{radius.lg}",
+        borderRadius: 9,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingY: 8,
@@ -12929,7 +12933,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         fontWeight: 500,
-        borderRadius: "{radius.lg}",
+        borderRadius: 10,
         borderWidth: "{border.width.thin}",
         height: 0,
         paddingY: 12,
@@ -13004,30 +13008,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // 그룹 상자는 모서리가 없다 (2026-10-30 사용자 「ToggleButtonGroup 에 border-radius 불필요 — ToggleButton 에」) — 모서리는 안의 ToggleButton (--btn-border-radius).
     sizes: {
       XS: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
+        borderRadius: 0,
         height: 0,
       },
       S: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
+        borderRadius: 0,
         height: 0,
       },
       M: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
+        borderRadius: 0,
         height: 0,
       },
       L: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 0,
         height: 0,
       },
       XL: {
         fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.xl}",
+        borderRadius: 0,
         height: 0,
       },
     },
@@ -13062,24 +13067,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-ToggleButton",
             // --btn-border-radius: SelectionIndicator pill + segmented 코너 radius 공용.
-            //   값은 ToggleButton.css 의 size별 border-radius 와 일치(xs/sm→sm, md→md,
-            //   lg/xl→lg) — segmented containerVariants 의 first/last-child 코너가 이 변수를
+            //   값은 ToggleButton.css 의 size별 border-radius 와 일치(xs→sm, S 7 · M 8 · L 9 ·
+            //   XL 10px — 2026-10-30 사용자 결정) — segmented containerVariants 의 first/last-child 코너가 이 변수를
             //   참조하여 size 분기 없이 size별 radius 정합(2026-06-22 segmented 추가).
             variables: {
               XS: {
                 "--btn-border-radius": "var(--radius-sm)",
               },
               S: {
-                "--btn-border-radius": "var(--radius-sm)",
+                "--btn-border-radius": "7px",
               },
               M: {
-                "--btn-border-radius": "var(--radius-md)",
+                "--btn-border-radius": "8px",
               },
               L: {
-                "--btn-border-radius": "var(--radius-lg)",
+                "--btn-border-radius": "9px",
               },
               XL: {
-                "--btn-border-radius": "var(--radius-lg)",
+                "--btn-border-radius": "10px",
               },
             },
           },

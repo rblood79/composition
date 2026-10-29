@@ -1028,7 +1028,11 @@ function generateSizeStyles(
 
   // border-radius — ADR-071: containerStyles.borderRadius 존재 시 skip (이중 emit 방지)
   if (!options?.skipBorderRadius) {
-    const radiusValue = tokenToCSSVar(size.borderRadius);
+    // (A px number — 2026-10-30 field box S 7 · M 8 · L 9 · XL 10 — carries its unit.)
+    const radiusValue =
+      typeof size.borderRadius === "number" && size.borderRadius !== 0
+        ? `${size.borderRadius}px`
+        : tokenToCSSVar(size.borderRadius);
     lines.push(`  border-radius: ${radiusValue === "0" ? "0" : radiusValue};`);
   }
 

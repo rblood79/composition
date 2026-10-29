@@ -311,15 +311,17 @@ function buttonDefinition(
     }
   ).containerVariants?.["field-button"];
   for (const [size, block] of Object.entries(fieldButton ?? {})) {
-    const corner = /^var\(--radius-([a-z0-9]+)\)$/.exec(
-      block.styles?.["border-radius"] ?? "",
-    )?.[1];
-    if (!corner)
+    const value = block.styles?.["border-radius"] ?? "";
+    const corner = /^var\(--radius-([a-z0-9]+)\)$/.exec(value)?.[1];
+    const px = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
+    if (!corner && px === undefined)
       throw new Error(`CODE_CATALOG_BUTTON_FIELD_CORNER_UNSUPPORTED:${size}`);
     conditionalRules.push({
       when: { fieldButton: size },
       visual: {
-        radius: sourceToken(`{radius.${corner}}`, "radius", theme, tokens),
+        radius: corner
+          ? sourceToken(`{radius.${corner}}`, "radius", theme, tokens)
+          : Number(px),
       },
     });
   }

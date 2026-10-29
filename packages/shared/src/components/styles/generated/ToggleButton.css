@@ -34,7 +34,7 @@
   /* Default size */
   padding: 4px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   line-height: 20px;
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -94,7 +94,7 @@
 .react-aria-ToggleButton[data-size="S"] {
   padding: 2px 8px;
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   line-height: 16px;
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -105,7 +105,7 @@
 .react-aria-ToggleButton[data-size="M"] {
   padding: 4px 12px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   line-height: 20px;
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -116,7 +116,7 @@
 .react-aria-ToggleButton[data-size="L"] {
   padding: 8px 16px;
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: 9px;
   line-height: 24px;
   font-weight: 500;
   border-width: var(--border-width-thin);
@@ -127,7 +127,7 @@
 .react-aria-ToggleButton[data-size="XL"] {
   padding: 12px 24px;
   font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
   line-height: 28px;
   font-weight: 500;
   border-width: var(--border-width-thin);

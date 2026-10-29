@@ -620,20 +620,20 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   }),
   // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
   // delegation `.react-aria-Group`: `background: var(--bg-inset)` · `border: … var(--border)` ·
-  // `border-radius: var(--drp-group-radius)` = the size's radius token, read from the same
+  // `border-radius: var(--drp-group-radius)` = the size's radius, read from the same
   // delegation's `variables`). The part rule compiler carries only its box geometry (padding ·
   // border width); the paint is stated here with the same values (`adr256FieldControlGroup` checks
   // the bridges still say so).
   DateRangePicker: () => ({
     parts: Object.keys(sizesOf("DateRangePicker")).map(
       (name): CompiledPartRule => {
-        const radius = px(
-          cssVarToTokenRef(
-            String(
-              DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
-            ),
-          ),
+        const value = String(
+          DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
         );
+        // (A size's radius token, or a px value — 2026-10-30 field box S 7 · M 8 · L 9 · XL 10.)
+        const literal = /^(\d+(?:\.\d+)?)px$/.exec(value)?.[1];
+        const radius =
+          literal !== undefined ? Number(literal) : px(cssVarToTokenRef(value));
         return {
           childType: "Group",
           size: name,

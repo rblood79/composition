@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 모서리 값 정리 · 필드 버튼 Preview pill 수리 · ToggleButton 선택 글자] - 2026-10-30
+
+### Changed
+
+- 모서리 (border-radius) 를 사용자 지정 값으로 바꿨다 — Canvas · Preview 같은 값.
+  - 필드 입력 상자 (TextField · TextArea · NumberField · ComboBox · Select 트리거 · ColorField · DateField · TimeField · DatePicker · DateRangePicker, Form 안 입력 포함) 와 ToggleButton: S 7 · M 8 · L 9 · XL 10px (XS 는 그대로). NumberField 증감 버튼 · Pagination 버튼도 같은 값.
+  - ToggleButtonGroup 상자 자체는 0 (모서리는 안의 ToggleButton).
+  - InlineAlert 10px, Dialog · Popover 본체 16px (size 무관), Popover · Menu · Tooltip 컴포넌트의 트리거 버튼 8px.
+  - 7 · 9 · 10px 는 theme 토큰에 없어 px 고정이다 — theme radius 스케일이 이 값들에 적용되지 않는다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `document/generated/reusableOriginLibrary.ts` · `runtime/presence.ts` (Pagination 을 필드 버튼 소유자로)
+
+### Fixed
+
+- Preview 에서 필드 소유 버튼 (Select 트리거 · NumberField 증감 · Pagination) 이 pill 로 그려지던 문제 — DOM 이 규칙의 pill 값을 inline 으로 써서 `[data-field-button]` 시트를 이겼다 (10-28 pill 도입 뒤). DOM 도 Canvas 와 같은 `catalogDerivedRestVisual` 값을 쓴다 (`domBinding.runtime.ts`).
+- Preview 에서 ToggleButton 을 클릭으로 선택하면 글자가 배경색과 같아져 사라지던 문제 — 글자 Text 에 휴지 색이 inline 으로 고정돼 있었다. Icon 과 같이 `color: inherit` (`domBinding.runtime.ts`).
+- 수동 `Popover.css` 의 모서리가 생성 CSS 뒤에 로드되어 catalog Popover 값을 덮던 문제 — Builder 자체 popover (`:not([data-catalog-id])`) 로 범위를 좁혔다.
+- 숫자 모서리 값이 생성 CSS 에 단위 없이 (`border-radius: 8;`) 나가던 문제 — `px` 를 붙인다 (`CSSGenerator.ts`). Canvas 의 DateInput 상자가 측정 전 자체 표 (4/6/8/10/12) 로 그려지던 경로도 노드 값으로 (`ruleShapes.ts`).
+
 ## [lint 오류 75 → 0 — React hooks 규칙 위반의 구조 수정] - 2026-10-30
 
 ### Fixed

@@ -1908,6 +1908,9 @@ const FIELD_BUTTON_OWNERS: ReadonlySet<string> = new Set([
   "SearchField",
   "DatePicker",
   "DateRangePicker",
+  // (2026-10-30 — 사용자 「pagination 의 button 에 border-radius S:7, M:8, L:9, XL:10」: the page
+  //  buttons take the same size corners, not the pill.)
+  "Pagination",
 ]);
 
 /**

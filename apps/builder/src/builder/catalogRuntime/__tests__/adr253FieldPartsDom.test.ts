@@ -1029,7 +1029,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingY: 4,
         paddingX: 12,
         fontSize: 14,
-        radius: 6,
+        radius: 8,
         borderWidth: 1,
       });
       workspace.execute(
@@ -1043,7 +1043,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         paddingY: 8,
         paddingX: 16,
         fontSize: 16,
-        radius: 8,
+        radius: 9,
       });
       expect(
         Number(input().visual.lineHeight) * Number(input().visual.fontSize),
@@ -1175,7 +1175,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(rect(increment.id).x + 30).toBe(group.width);
       // The square corners on the touching sides are written on the template positions.
       expect(input.visual).toMatchObject({
-        radius: 6,
+        radius: 8,
         radiusTopRight: 0,
         radiusBottomRight: 0,
       });
@@ -1793,7 +1793,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           paddingX: 12,
           paddingY: 4,
           borderWidth: 1,
-          radius: 6,
+          radius: 8,
           minWidth: 150,
         });
         // DOM: the RAC DateInput is the node's element, sized by its `data-size`; its box is the
