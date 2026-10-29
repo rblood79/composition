@@ -34,9 +34,10 @@ export const FORMULA_RESULT_TYPES: readonly string[] = [
 export const FORMULA_ENGINE_NOT_READY = "FORMULA_ENGINE_NOT_READY";
 
 export const fieldId = (field: ComputedSchemaField) => field.id ?? field.key;
-export const hasFormula = (
-  field: ComputedSchemaField,
-): field is ComputedSchemaField & { formula: string } =>
+/** Whether a field is computed — the one test (a blank formula is not one). */
+export const hasFormula = <T extends { readonly formula?: string }>(
+  field: T,
+): field is T & { formula: string } =>
   typeof field.formula === "string" && field.formula.trim() !== "";
 
 const cellErrors = new WeakMap<object, Record<string, string>>();

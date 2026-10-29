@@ -1,3 +1,5 @@
+import { hasFormula } from "../../../../../packages/shared/src/collections/formula/compute";
+
 /**
  * The data-store collections whose table object changed between two snapshots (added, removed or
  * replaced — the store replaces a table on every change). The Builder refreshes the bound rows of
@@ -76,6 +78,6 @@ export function formulaCollectionIds(
   tables: readonly { id: string; schema: readonly { formula?: string }[] }[],
 ): string[] {
   return tables
-    .filter((table) => table.schema.some((field) => field.formula))
+    .filter((table) => table.schema.some(hasFormula))
     .map((table) => table.id);
 }

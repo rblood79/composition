@@ -23,7 +23,7 @@ import {
   viewRunSchema,
   type ViewRunResult,
 } from "../../collections/view/evaluate";
-import { withComputedCells } from "../../collections/formula/compute";
+import { hasFormula, withComputedCells } from "../../collections/formula/compute";
 import { formulaRuntimeSync } from "../../collections/formula/engine";
 import { catalogRowQueryResolve, type CatalogRowQuery } from "./viewQuery";
 import type {
@@ -402,7 +402,8 @@ function runBindingView(
   // (ADR-291 — a formula edit changes the rows' cells without changing the rows; a run before the
   // engine loaded read them as `null` — the load is another key, not that result.)
   const formulas = (table.schema ?? []).map((field) => field.formula ?? "");
-  const pending = formulas.some(Boolean) && !formulaRuntimeSync();
+  const pending =
+    (table.schema ?? []).some(hasFormula) && !formulaRuntimeSync();
   const signature = JSON.stringify([
     query.queries,
     query.values,

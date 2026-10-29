@@ -6,6 +6,7 @@
  */
 import {
   FORMULA_RESULT_TYPES,
+  fieldId,
   type ComputedSchemaField,
 } from "../../../../../../../packages/shared/src/collections/formula/compute";
 import type { FormulaEngine } from "../../../../../../../packages/shared/src/collections/formula/engine";
@@ -42,12 +43,7 @@ export function storeFormulaDraft(
   field: Pick<DataField, "id" | "key" | "type">,
   schema: readonly Pick<DataField, "id" | "key" | "type" | "formula">[],
 ): FormulaDraftResult {
-  const fields: ComputedSchemaField[] = schema.map((item) => ({
-    ...(item.id ? { id: item.id } : {}),
-    key: item.key,
-    type: item.type,
-    ...(item.formula ? { formula: item.formula } : {}),
-  }));
+  const fields: readonly ComputedSchemaField[] = schema;
   let stored: string;
   try {
     stored = formulaToStored(engine, display, fields);
@@ -55,14 +51,14 @@ export function storeFormulaDraft(
     if (error instanceof FormulaScopeError) return { code: error.code };
     throw error;
   }
-  const id = field.id ?? field.key;
+  const id = fieldId(field);
   const self: ComputedSchemaField & { formula: string } = {
     id,
     key: field.key,
     type: field.type,
     formula: stored,
   };
-  const index = fields.findIndex((item) => (item.id ?? item.key) === id);
+  const index = fields.findIndex((item) => fieldId(item) === id);
   const next =
     index >= 0
       ? fields.map((item, at) => (at === index ? self : item))

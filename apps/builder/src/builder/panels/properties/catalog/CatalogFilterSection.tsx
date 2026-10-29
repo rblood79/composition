@@ -1338,22 +1338,24 @@ function ConnectionRun({
   };
   const verdict = (value: string) => t(`dataView.verdict_${value}`);
   const serializer = useViewSerializer(!!endpoint?.querySerialization);
-  const request =
+  const served =
     serializer && endpoint?.querySerialization && queries
-      ? serializer.serializeViewQueries(
-          endpoint.querySerialization,
-          { queries, schema, resolve },
-          endpoint.method,
-        )
+      ? {
+          request: serializer.serializeViewQueries(
+            endpoint.querySerialization,
+            { queries, schema, resolve },
+            endpoint.method,
+          ),
+          limits: serializer.viewQueryLimits(
+            endpoint.querySerialization,
+            { queries, schema },
+            endpoint.method,
+          ),
+          cap: serializer.VIEW_LOCAL_LOAD_CAP.toLocaleString(),
+        }
       : undefined;
-  const limits =
-    serializer && endpoint?.querySerialization && queries
-      ? serializer.viewQueryLimits(
-          endpoint.querySerialization,
-          { queries, schema },
-          endpoint.method,
-        )
-      : [];
+  const request = served?.request;
+  const limits = served?.limits ?? [];
   return (
     <div className="data-view-run">
       <p className="data-view-detail-line">
@@ -1409,7 +1411,7 @@ function ConnectionRun({
                     condition: warning.conditionId ?? "",
                     comparison: warning.comparison ?? "",
                     field: warning.field ?? "",
-                    cap: serializer?.VIEW_LOCAL_LOAD_CAP.toLocaleString() ?? "",
+                    cap: served?.cap ?? "",
                   })}
                 </li>
               ))}

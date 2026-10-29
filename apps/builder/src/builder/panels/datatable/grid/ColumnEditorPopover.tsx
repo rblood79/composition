@@ -55,11 +55,13 @@ import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { ConfirmDialog } from "../../../components/overlay/ConfirmDialog";
 import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
-import { formulaToDisplay } from "../../../../../../../packages/shared/src/collections/formula/names";
+import type { FormulaEngine } from "../../../../../../../packages/shared/src/collections/formula/engine";
+import { formulaShown } from "../../../../../../../packages/shared/src/collections/formula/names";
 import { useFormulaEngine } from "../../../catalogRuntime/formulaEngine";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { planFieldRename } from "../utils/fieldRename";
 import {
+  COMPUTED_FIELD_GLYPH,
   FIELD_FORMATS,
   FIELD_TYPES,
   resolveFieldGlyph,
@@ -265,6 +267,22 @@ function useTypeOptions(dt: Dt, computed = false) {
 }
 
 /** ADR-291 — the formula input (over field keys), its hint · loading note and the error line. */
+/** The typed formula stored over ids (`storeFormulaDraft`), else the message under the input. */
+function readFormula(
+  dt: Dt,
+  engine: FormulaEngine,
+  text: string,
+  field: Parameters<typeof storeFormulaDraft>[2],
+  schema: Parameters<typeof storeFormulaDraft>[3],
+): { stored: string } | { error: string } {
+  const typed = text.trim();
+  if (typed === "") return { error: dt("fieldFormulaEmpty") };
+  const result = storeFormulaDraft(engine, typed, field, schema);
+  return "code" in result
+    ? { error: dt(`fieldFormulaError${result.code}`) }
+    : result;
+}
+
 function FormulaInput({
   dt,
   text,
@@ -278,7 +296,7 @@ function FormulaInput({
   error: string | null;
   loading: boolean;
   onChange: (text: string) => void;
-  onCommit: () => void;
+  onCommit?: () => void;
 }) {
   return (
     <div className="fieldset-row" data-wide>
@@ -313,7 +331,7 @@ function FormulaInput({
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
               e.stopPropagation();
-              onCommit();
+              onCommit?.();
             }
           }}
         />
@@ -450,15 +468,11 @@ function FieldForm({
   const [computedDraft, setComputedDraft] = useState(computed);
   useEffect(() => setComputedDraft(computed), [computed]);
   const formulaEngine = useFormulaEngine(computedDraft);
-  const shownFormula = useMemo(() => {
-    if (!field.formula) return "";
-    if (!formulaEngine) return field.formula;
-    try {
-      return formulaToDisplay(formulaEngine, field.formula, schema);
-    } catch {
-      return field.formula;
-    }
-  }, [field.formula, formulaEngine, schema]);
+  const shownFormula = useMemo(
+    () =>
+      field.formula ? formulaShown(formulaEngine, field.formula, schema) : "",
+    [field.formula, formulaEngine, schema],
+  );
   const [formulaText, setFormulaText] = useState(shownFormula);
   const [formulaError, setFormulaError] = useState<string | null>(null);
   useEffect(() => {
@@ -524,20 +538,16 @@ function FieldForm({
 
   const commitFormula = () => {
     if (!formulaEngine) return;
-    const text = formulaText.trim();
-    if (text === "") {
-      setFormulaError(dt("fieldFormulaEmpty"));
-      return;
-    }
     const resultType = formulaColumnType(type);
-    const result = storeFormulaDraft(
+    const result = readFormula(
+      dt,
       formulaEngine,
-      text,
+      formulaText,
       { ...(field.id ? { id: field.id } : {}), key: field.key, type: resultType },
       schema,
     );
-    if ("code" in result) {
-      setFormulaError(dt(`fieldFormulaError${result.code}`));
+    if ("error" in result) {
+      setFormulaError(result.error);
       return;
     }
     setFormulaError(null);
@@ -906,19 +916,15 @@ export function ColumnCreator({
     let formula: string | undefined;
     if (computed) {
       if (!formulaEngine) return;
-      const text = formulaText.trim();
-      if (text === "") {
-        setFormulaError(dt("fieldFormulaEmpty"));
-        return;
-      }
-      const result = storeFormulaDraft(
+      const result = readFormula(
+        dt,
         formulaEngine,
-        text,
+        formulaText,
         { key: next, type: draft.type },
         table.schema,
       );
-      if ("code" in result) {
-        setFormulaError(dt(`fieldFormulaError${result.code}`));
+      if ("error" in result) {
+        setFormulaError(result.error);
         return;
       }
       formula = result.stored;
@@ -980,7 +986,7 @@ export function ColumnCreator({
           <PropertySelect
             className="datatable-field-type"
             label={dt("fieldType")}
-            icon={resolveFieldGlyph({ ...draft, formula: computed ? "x" : undefined })}
+            icon={computed ? COMPUTED_FIELD_GLYPH : resolveFieldGlyph(draft)}
             value={draft.type}
             optionValueMode="literal"
             options={typeOptions}
@@ -1002,7 +1008,6 @@ export function ColumnCreator({
               setFormulaText(next);
               setFormulaError(null);
             }}
-            onCommit={() => {}}
           />
         ) : null}
         {type === "string" && !computed ? (

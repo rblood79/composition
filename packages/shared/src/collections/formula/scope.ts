@@ -85,7 +85,23 @@ export function formulaGlobalNames(expression: string): string[] {
   return [...new Set(expression.match(/\$[A-Za-z_][A-Za-z0-9_]*/g) ?? [])];
 }
 
+const scopes = new Map<string, FormulaScope>();
+/** One analysis per expression (like `compileFormula`'s tree) — a computed cell run reads every
+ *  formula's scope on each call, the cache hit included. A refused expression is not kept. */
 export function formulaScope(
+  engine: FormulaEngine,
+  expression: string,
+): FormulaScope {
+  let scope = scopes.get(expression);
+  if (!scope) {
+    scope = analyzeFormula(engine, expression);
+    if (scopes.size >= 512) scopes.delete(scopes.keys().next().value!);
+    scopes.set(expression, scope);
+  }
+  return scope;
+}
+
+function analyzeFormula(
   engine: FormulaEngine,
   expression: string,
 ): FormulaScope {

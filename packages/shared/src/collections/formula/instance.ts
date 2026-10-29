@@ -10,7 +10,7 @@
 import type { FormulaAst } from "@adobe/json-formula";
 import type { FormulaEngine } from "./engine";
 
-export const MS_IN_DAY = 86_400_000;
+const MS_IN_DAY = 86_400_000;
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const ZONED = /(Z|[+-]\d{2}:?\d{2})$/;

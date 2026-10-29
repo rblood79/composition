@@ -64,10 +64,13 @@ export const shownFieldType = (type: string): DataFieldType =>
  * A column's glyph — a computed column's Σ (ADR-291 — `formula`, no type added), else its
  * format's for a formatted text, else its type's.
  */
+/** A computed column's glyph (ADR-291 — whatever its result type). */
+export const COMPUTED_FIELD_GLYPH: LucideIcon = Sigma;
+
 export function resolveFieldGlyph(
   field: Pick<DataField, "type" | "format" | "formula">,
 ): LucideIcon {
-  if (field.formula) return Sigma;
+  if (field.formula) return COMPUTED_FIELD_GLYPH;
   if (field.type === "string" && field.format) {
     const format = FIELD_FORMATS.find((entry) => entry.value === field.format);
     if (format) return format.icon;

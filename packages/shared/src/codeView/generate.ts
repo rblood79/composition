@@ -62,7 +62,8 @@ import {
   formulaEngineSync,
   loadFormulaEngine,
 } from "../collections/formula/engine";
-import { formulaToDisplay } from "../collections/formula/names";
+import { hasFormula } from "../collections/formula/compute";
+import { formulaShown } from "../collections/formula/names";
 import type {
   CodeViewAnchorTarget,
   CodeViewCollection,
@@ -828,9 +829,7 @@ class Generator {
             ...(field.formula ? { formula: field.formula } : {}),
           }))
         : (code.collection?.schema ?? []);
-    const computed = schema.filter(
-      (field) => typeof field.formula === "string" && field.formula !== "",
-    );
+    const computed = schema.filter(hasFormula);
     if (!computed.length) return undefined;
     if (!this.formulaHelpers) {
       this.formulaHelpers = true;
@@ -848,14 +847,7 @@ class Generator {
     //   the stored form.)
     const engine = formulaEngineSync();
     if (!engine) void loadFormulaEngine();
-    const shown = (stored: string) => {
-      if (!engine) return stored;
-      try {
-        return formulaToDisplay(engine, stored, schema);
-      } catch {
-        return stored;
-      }
-    };
+    const shown = (stored: string) => formulaShown(engine, stored, schema);
     const name = `${code.name}Fields`;
     out.start();
     const from = out.length;

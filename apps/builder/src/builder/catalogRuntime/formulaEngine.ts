@@ -11,6 +11,7 @@ import {
   onFormulaEngineLoaded,
   type FormulaEngine,
 } from "../../../../../packages/shared/src/collections/formula/engine";
+import { hasFormula } from "../../../../../packages/shared/src/collections/formula/compute";
 
 const subscribe = (listener: () => void) => onFormulaEngineLoaded(listener);
 
@@ -29,7 +30,5 @@ export function useFormulaEngine(wanted = true): FormulaEngine | undefined {
 export function schemaHasFormula(
   schema: readonly { formula?: string }[] | undefined,
 ): boolean {
-  return !!schema?.some(
-    (field) => typeof field.formula === "string" && field.formula !== "",
-  );
+  return !!schema?.some(hasFormula);
 }

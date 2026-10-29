@@ -109,7 +109,7 @@ import {
   formulaCellErrors,
   withComputedCells,
 } from "../../../../../../../packages/shared/src/collections/formula/compute";
-import { formulaToDisplay } from "../../../../../../../packages/shared/src/collections/formula/names";
+import { formulaShown } from "../../../../../../../packages/shared/src/collections/formula/names";
 import {
   schemaHasFormula,
   useFormulaEngine,
@@ -196,14 +196,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   // ADR-291 사용자 결정 5 — computed columns show their values: the rows the grid shows carry the
   // computed cells (copies — the writes · the row form read `rows`, the document's). The engine
   // is wanted only when a column has a formula; the grid renders again when it loads.
-  const hasFormula = schemaHasFormula(schema);
-  const formulaEngine = useFormulaEngine(hasFormula);
+  const formulaEngine = useFormulaEngine(schemaHasFormula(schema));
   const shownRows = useMemo(() => {
     void formulaEngine;
-    return hasFormula
-      ? (withComputedCells(rows, schema) as readonly Record<string, unknown>[])
-      : rows;
-  }, [formulaEngine, hasFormula, rows, schema]);
+    return withComputedCells(rows, schema) as readonly Record<string, unknown>[];
+  }, [formulaEngine, rows, schema]);
   const gridId = useId();
 
   const [editing, setEditing] = useState<EditingState | null>(null);
@@ -1464,15 +1461,13 @@ function ColumnHead({
   const TypeGlyph = resolveFieldGlyph(field);
   // ADR-291 (사용자 결정 5) — a computed column's head names its formula (over field keys).
   const formulaEngine = useFormulaEngine(!!field.formula);
-  const formulaText = useMemo(() => {
-    if (!field.formula) return undefined;
-    if (!formulaEngine) return field.formula;
-    try {
-      return formulaToDisplay(formulaEngine, field.formula, table.schema);
-    } catch {
-      return field.formula;
-    }
-  }, [field.formula, formulaEngine, table.schema]);
+  const formulaText = useMemo(
+    () =>
+      field.formula
+        ? formulaShown(formulaEngine, field.formula, table.schema)
+        : undefined,
+    [field.formula, formulaEngine, table.schema],
+  );
   const typeLabel = formulaText
     ? `${t("fieldComputed")} · ${t(typeEntry.i18n)} — ${formulaText}`
     : `${t("fieldType")}: ${t(typeEntry.i18n)}`;

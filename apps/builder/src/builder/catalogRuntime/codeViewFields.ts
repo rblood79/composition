@@ -16,6 +16,7 @@ import {
 } from "../../../../../packages/shared/src/codeView/inverse/parse";
 import type { CodeViewResult } from "../../../../../packages/shared/src/codeView/types";
 import { formulaEngineSync } from "../../../../../packages/shared/src/collections/formula/engine";
+import { hasFormula } from "../../../../../packages/shared/src/collections/formula/compute";
 import { formulaToStored } from "../../../../../packages/shared/src/collections/formula/names";
 import type { CatalogCodeViewReason } from "./codeViewEdit";
 
@@ -78,7 +79,7 @@ export function planCodeViewFields(input: CodeViewFieldsInput): void {
     const block = value as Record<string, unknown>;
     const computedKeys = new Set(
       entry.schema
-        .filter((field) => typeof field.formula === "string" && field.formula)
+        .filter(hasFormula)
         .map((field) => field.key),
     );
     for (const key of Object.keys(block))

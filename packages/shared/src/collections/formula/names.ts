@@ -51,6 +51,21 @@ export function formulaToDisplay(
   return rewrite(engine, stored, (id) => byId.get(id));
 }
 
+/** The formula as the author reads it — the stored form until the engine is loaded or when it
+ *  does not read (a panel shows it, never throws). */
+export function formulaShown(
+  engine: FormulaEngine | undefined,
+  stored: string,
+  fields: readonly FormulaNameField[],
+): string {
+  if (!engine) return stored;
+  try {
+    return formulaToDisplay(engine, stored, fields);
+  } catch {
+    return stored;
+  }
+}
+
 /** The author's (key) form stored with ids. */
 export function formulaToStored(
   engine: FormulaEngine,
