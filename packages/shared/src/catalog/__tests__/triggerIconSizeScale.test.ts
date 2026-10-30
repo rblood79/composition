@@ -58,14 +58,14 @@ function delegationSizes(
 describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () => {
   // ADR-253: field 안 버튼은 FieldButton 원본의 instance 다 (ComboBox · DatePicker · DateRangePicker). glyph
   //   는 그 안의 Icon 노드이고 크기는 Button rule 의 glyph 단계다 — 부모 rule 에는 버튼 **상자** 크기만
-  //   남는다. 세 부모가 같은 상자 단계를 쓴다 (control 안쪽 정사각형).
-  const FIELD_BUTTON_BOX: Record<string, string> = {
-    XS: "16px",
-    S: "18px",
-    M: "22px",
-    L: "34px",
-    XL: "46px",
-  };
+  //   남는다. 세 부모가 같은 상자 단계를 쓴다 — S2 field 버튼 (`{size.field-button.<S>}`, ADR-295 Phase 3c-2:
+  //   ComboBox · DatePicker `inputButton` S 16 · M 20 · L 24 · XL 32, 터치 × 1.25).
+  const FIELD_BUTTON_BOX: Record<string, string> = Object.fromEntries(
+    ["XS", "S", "M", "L", "XL"].map((size) => [
+      size,
+      `var(--catalog-token-size-field-button-${size})`,
+    ]),
+  );
   const targets = [
     { type: "ComboBox", prefix: "combo-btn", vars: ["--combo-btn-size"] },
     { type: "DatePicker", prefix: "dp-btn", vars: ["--dp-btn-size"] },
@@ -73,7 +73,7 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
   ] as const;
 
   it.each(targets)(
-    "$type($prefix) 의 FieldButton 상자 크기가 세 부모에서 같다 (16/18/22/34/46)",
+    "$type($prefix) 의 FieldButton 상자 크기가 세 부모에서 같다 (S2 field 버튼 토큰)",
     ({ type, prefix, vars }) => {
       for (const cssVar of vars) {
         expect(delegationSizes(type, prefix, cssVar)).toEqual(FIELD_BUTTON_BOX);

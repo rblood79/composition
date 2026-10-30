@@ -93,8 +93,24 @@ export const BUILDER_CATALOG_VARS_CSS = join(
   "builder-catalog-vars.css",
 );
 export const BUILDER_COMPONENTS_CSS = join(stylesDir, "builder-components.css");
+export const BUILDER_CATALOG_PINS_CSS = join(
+  stylesDir,
+  "builder-catalog-pins.css",
+);
 
-export function resolveBuilderGeneratedSheets(rootFiles) {
+const contextOf = (rule) => {
+  const ctx = [];
+  for (let p = rule.parent; p && p.type === "atrule"; p = p.parent)
+    ctx.unshift(`@${p.name} ${p.params}`);
+  return ctx.join(" › ") || "-";
+};
+
+/**
+ * `pinFiles` (ADR-295 Phase 3c-2) = 생성 시트에서 사라진 선언을 빌더만 유지하는 시트. 각 선언은 같은 조건 ·
+ * 선택자의 블록을 가진 생성 시트 하나의 entry 로 덮어쓴다 (빌더가 생성 시트 뒤에 싣는다). 그 블록이 없거나
+ * 둘 이상이면 던진다 — 고정할 자리가 사라진 선언이다. `pins` = 덮어쓴 key → 생성 시트만의 값 (없으면 undefined).
+ */
+export function resolveBuilderGeneratedSheets(rootFiles, pinFiles = []) {
   const rootVars = {};
   const seen = new Set();
   for (const file of rootFiles) collectRootVars(file, rootVars, seen);
@@ -113,10 +129,36 @@ export function resolveBuilderGeneratedSheets(rootFiles) {
       if (!/\d|var\(/.test(d.value)) return;
       const rule = d.parent;
       if (rule.type !== "rule") return;
-      const ctx = [];
-      for (let p = rule.parent; p && p.type === "atrule"; p = p.parent)
-        ctx.unshift(`@${p.name} ${p.params}`);
-      const key = `${rel} › ${ctx.join(" › ") || "-"} › ${rule.selector.replace(/\s+/g, " ")} | ${d.prop}`;
+      const key = `${rel} › ${contextOf(rule)} › ${rule.selector.replace(/\s+/g, " ")} | ${d.prop}`;
+      entries[key] = remToPx(substitute(rootVars, d.value));
+    });
+  }
+
+  const blocks = new Map();
+  for (const key of Object.keys(entries)) {
+    const [block] = key.split(" | ");
+    const [rel, ...rest] = block.split(" › ");
+    const at = rest.join(" › ");
+    blocks.set(at, new Set([...(blocks.get(at) ?? []), rel]));
+  }
+  const pins = {};
+  for (const file of pinFiles) {
+    const root = postcss.parse(readFileSync(file, "utf8"), { from: file });
+    root.walkDecls((d) => {
+      const rule = d.parent;
+      if (rule.type !== "rule") return;
+      // (the pin's `/publish` exclusion is not part of the generated selector)
+      const selector = rule.selector
+        .replace(/:not\(:where\(\.publish-app \*\)\)/g, "")
+        .replace(/\s+/g, " ");
+      const at = `${contextOf(rule)} › ${selector}`;
+      const owners = [...(blocks.get(at) ?? [])];
+      if (owners.length !== 1)
+        throw new Error(
+          `ADR-295 builder pin without one generated block (${owners.length}): ${at} | ${d.prop}`,
+        );
+      const key = `${owners[0]} › ${at} | ${d.prop}`;
+      pins[key] = entries[key];
       entries[key] = remToPx(substitute(rootVars, d.value));
     });
   }
@@ -134,6 +176,7 @@ export function resolveBuilderGeneratedSheets(rootFiles) {
 
   return {
     sheets: imports,
+    pins,
     rootVarCount: Object.keys(rootVars).length,
     unresolvedExternal: [
       ...new Set(Object.values(entries).flatMap(external)),

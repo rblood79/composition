@@ -45,6 +45,33 @@ export const S2_ICON_SIZE = {
   XL: 22,
 } as const;
 
+/**
+ * S2 `controlSize('sm')` (desktop px — `style-utils.ts` `controlSizeS`, rem × `--s2-scale`): Checkbox 상자 ·
+ * Radio 고리 · Switch track 의 높이. rule 은 `{size.height-sm.<S>}` 로 참조한다 (ADR-295 Phase 3c-2). S2 에
+ * XS 가 없고 toggle 도 XS 를 받지 않는다.
+ */
+export const S2_CONTROL_HEIGHT_SM = {
+  S: 14,
+  M: 16,
+  L: 18,
+  XL: 20,
+} as const;
+
+/**
+ * S2 field 안 버튼 상자 (desktop px — ComboBox · DatePicker `inputButton` 의 `size` · `width`, rem × `--s2-scale`).
+ * field 높이와의 여백 S 4 · M 6 · L 8 · XL 8. XS 는 S2 에 없어 XS field (20) 의 여백 3 으로 14 (ADR-295 Phase 3c-2).
+ */
+export const S2_FIELD_BUTTON_SIZE = {
+  XS: 14,
+  S: 16,
+  M: 20,
+  L: 24,
+  XL: 32,
+} as const;
+
+/** S2 막대 (ProgressBar · Meter) 의 최소 폭 — `bar-utils.ts` `minWidth: 48` (rem × `--s2-scale`). */
+export const S2_BAR_MIN_WIDTH = 48;
+
 export function s2ControlHeights(scale: number): Record<string, number> {
   return Object.fromEntries(
     Object.entries(S2_CONTROL_HEIGHT).map(([size, px]) => [size, px * scale]),
@@ -67,6 +94,16 @@ export function s2SizeTokens(scale: number): Record<string, number> {
       `icon.${size}`,
       px * scale,
     ]),
+    // ADR-295 Phase 3c-2: `{size.height-sm.<S>}` · `{size.field-button.<S>}` · `{size.bar.min-width}`.
+    ...Object.entries(S2_CONTROL_HEIGHT_SM).map(([size, px]) => [
+      `height-sm.${size}`,
+      px * scale,
+    ]),
+    ...Object.entries(S2_FIELD_BUTTON_SIZE).map(([size, px]) => [
+      `field-button.${size}`,
+      px * scale,
+    ]),
+    ["bar.min-width", S2_BAR_MIN_WIDTH * scale],
   ]);
 }
 

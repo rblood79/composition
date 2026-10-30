@@ -56,15 +56,18 @@ export function catalogDeviceTypographyCss(
 }
 
 const SIZE_HEIGHT_REF = /^\{size\.height\.([A-Z]+)\}$/;
-/** A width · height square of an S2 control height or icon step (ADR-295 Phase 3 · 3b). */
-const SIZE_SIDE_REF = /^\{size\.(height|icon)\.([A-Z]+)\}$/;
+/**
+ * A length of the S2 size map (ADR-295 Phase 3 · 3b · 3c-2): a control height or icon step, a small control
+ * (`height-sm`), a field button square, the bar minimum — `{size.<family>.<key>}`.
+ */
+const SIZE_SIDE_REF = /^\{size\.([a-z-]+)\.([A-Za-z-]+)\}$/;
 const TYPOGRAPHY_LENGTH_REF =
   /^\{typography\.(text-[a-z0-9-]+?)(--line-height)?\}$/;
 
 /**
  * ADR-295 Phase 3b · 3c — the device-set CSS length of a token a record's side · glyph came from: an S2
- * control height or icon step (`var(--catalog-token-size-<axis>-<S>)`), a font size (S2 `1em` — the
- * font variable) or a font's line (S2 `1lh` — font × the unitless line ratio). `undefined` for any other.
+ * size-map length (`var(--catalog-token-size-<family>-<key>)`), a font size (S2 `1em` — the font variable)
+ * or a font's line (S2 `1lh` — font × the unitless line ratio). `undefined` for any other.
  */
 export function catalogDeviceLength(ref: string): string | undefined {
   const side = SIZE_SIDE_REF.exec(ref);
@@ -102,6 +105,10 @@ export function catalogDeviceControlCss(
   //   (a Button's · Disclosure trigger's Icon — Phase 3b): its sides.
   for (const key of ["width", "height"] as const) {
     const sideRef = catalogResolvedTokenRef(visual, key);
+    // A field button's square stays desktop px: its start margin and the Input's end room (other keys,
+    //   other records) are inline px of the same square — the device forms of margin · padding are
+    //   Phase 3c-3's, and a square grown alone would overhang the field's end (2026-10-30 live).
+    if (sideRef?.startsWith("{size.field-button.")) continue;
     const side = sideRef ? catalogDeviceLength(sideRef) : undefined;
     if (side && resolveToken(sideRef as TokenRef) === px(style[key]))
       style[key] = side;

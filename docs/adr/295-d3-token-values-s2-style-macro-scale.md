@@ -31,6 +31,8 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 
 > **Phase 3c-1 (2026-10-30)** — S2 control 아이콘은 `size: '1lh'` (Button · ActionButton · SearchField) · `1em` (DatePicker 달력) 이다 — desktop 은 아이콘 단과 같지만 터치는 글자 행간 (18 · 22 · 24 · 26) 이라 × 1.25 와 반 px 씩 갈렸다. Decision 3 의 `{ em }` 객체 대신 이미 두 벌인 글자 · 행간 토큰을 참조한다 (`{typography.<글자>--line-height}` · `{typography.<글자>}` — 생성 CSS 는 글자 × 행간 비율, 빌더는 3b 의 컴포넌트 고정값). G4 터치 차이 표 → 두 벌 일치 단언 (원복 RED). G2 두 arm 263/263. minWidth · ListBoxItem (생성 시트에서 사라지는 선언의 빌더 고정 필요) 은 3c-2. 상세 breakdown §6.5.
 
+> **Phase 3c-2a (2026-10-30)** — size 맵에 S2 의 `controlSize('sm')` · field 버튼 (ComboBox · DatePicker `inputButton` 16 · 20 · 24 · 32) · 막대 최소 폭 48 을 더했다 (터치 × 1.25). TextField · SearchField 최소 폭 삭제 (S2 에 없음) · ProgressBar 최소 폭 토큰 · field 버튼 정사각형 토큰 (offset · 끝 공간은 그 값의 식) · ListBoxItem = S2 menuitem (높이 토큰 · 테두리 0 · 위아래 7). 생성 시트에서 사라진 선언은 빌더 전용 고정 시트 (`builder-catalog-pins.css` — 같은 선택자, `/publish` 경로 제외) 가 유지하고 게이트 (c) · (d) 가 대조한다. G4 (추출기 두 키 추가) · 원복 RED · G2 263/263. 터치의 field 버튼은 margin · padding 기기 식과 함께 3c-3, toggle indicator 는 3c-2b. 상세 breakdown §6.6.
+
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context

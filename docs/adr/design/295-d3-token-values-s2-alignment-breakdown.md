@@ -354,7 +354,7 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 
 ### 6.5 Phase 3c-1 (2026-10-30, 컨트롤 아이콘의 값의 형)
 
-> **3c 분할 (실행 판단 — 사후 보고)**: 3c 를 셋으로 나눈다 — 3c-1 아이콘의 형 (이 절) · 3c-2 생성 시트에서 사라지는 선언의 빌더 고정 (minWidth · ListBoxItem) + field 안 버튼 상자 · toggle indicator · 3c-3 padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c).
+> **3c 분할 (실행 판단 — 사후 보고)**: 3c 를 셋으로 나눈다 — 3c-1 아이콘의 형 (이 절) · 3c-2 생성 시트에서 사라지는 선언의 빌더 고정 (minWidth · ListBoxItem) + field 안 버튼 상자 · toggle indicator · 3c-3 padding · gap 정렬 (사용자 결정 1) + 컴포넌트 글자 매핑 (G4 c). 3c-2 는 다시 3c-2a (§6.6) · 3c-2b (toggle indicator) 로 나눴다.
 
 **발견 — S2 control 아이콘의 형은 `{ em }` 이 아니라 행간**: S2 `Button.tsx` · `ActionButton.tsx` 의 아이콘은 `size: '1lh'` (그 글자의 행간 상자) 이다. desktop 은 글자 11 · 12 · 14 · 16 · 18 의 행간 14 · 16 · 18 · 20 · 22 로 아이콘 단과 같은 값이라 3b 의 `{size.icon}` 로도 맞았지만, 터치는 글자 13 · 15 · 17 · 19 · 22 의 행간 16 · 18 · 22 · 24 · 26 이라 × 1.25 (17.5 · 20 · 22.5 · 25 · 27.5) 와 갈렸다 (3b 「알려진 터치 차이 표」). SearchField 글리프도 같은 `1lh` (oracle 16 · 18 · 20 · 22 → 18 · 22 · 24 · 26). DatePicker 달력 아이콘은 글자 크기 `1em` (12 · 14 · 16 · 18 → 15 · 17 · 19 · 22) — 3b 가 `{size.icon}` (M 18) 로 둔 것이 S2 (M 14) 와 달랐다. 그래서 새 형 (`{ em }` 객체) 대신 **이미 두 벌인 글자 · 행간 토큰을 참조** 한다 — 기기 두 벌 · 토큰 출처 · 빌더 고정이 그대로 따라온다.
 
@@ -382,6 +382,46 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 - **minWidth**: S2 TextField · SearchField 에는 min-width 가 없다 (1.5 × · 3 × 는 Spectrum 1). 지우면 생성 시트에서 선언이 사라지는데, 빌더 위젯이 같은 시트를 읽어 게이트 (c) 가 막는다 — 사라지는 선언을 빌더만 유지하는 길이 필요하다. ProgressBar 48 은 S2 `bar-utils.ts` `minWidth: 48` (`size()` — 터치 60).
 - **ListBoxItem**: S2 메뉴 항목 (`menuitem` = `control({wrap, icon})`) 은 테두리 없이 label padding 7 (= (32 − 18) / 2) · description 사이 2 — 우리 생성기 식 (테두리 포함 6) 과 리터럴 4 둘 다 아니다. ListBox 시트는 빌더 chrome 과 공유 (위와 같은 문제).
 - **Button minWidth**: S2 `control()` 은 `minWidth: controlSize()` (= 높이) 를 준다 — 2026-10-14 결정 「S2 Button 에 min-width 없음」 의 전제와 다르다. 지금 padding 으로는 보이는 차이가 없어 (아이콘만 Button M = 12 + 18 + 12 = 42 > 32) 이번엔 두고 보고만 한다.
+
+### 6.6 Phase 3c-2a (2026-10-30, 사라지는 선언의 빌더 고정 · 최소 폭 · field 버튼 · 메뉴 항목)
+
+> **3c-2 분할 (실행 판단 — 사후 보고)**: toggle 표시 상자 (Checkbox · Radio · Switch) 는 빌더 chrome 과 공유하는 수동 시트 (`Checkbox.css` · `Radio.css` · `Switch.css`) · Skia primitive (`checkbox` · `radio` · `switch_toggle`) · indicator part rule 을 함께 바꿔야 해서 3c-2b 로 뗀다. 이 절은 3c-2a.
+
+**S2 실측 (설치본 1.8.1)**:
+
+- TextField · SearchField 에 min-width 없음 (1.5 × · 3 × 높이는 Spectrum 1). 막대 (ProgressBar · Meter) 는 `bar-utils.ts` `minWidth: 48` (`size()`).
+- field 안 버튼: ComboBox · DatePicker `inputButton` 의 `size` · `width` = S 16 · M 20 · L 24 · XL 32 (`size()` — 터치 × 1.25). 우리 값 16 · 18 · 22 · 34 · 46 은 「옛 높이 − 4 · 4 · 8 · 8 · 8」 리터럴이었다.
+- `controlSize('sm')` = S 14 · M 16 · L 18 · XL 20 — Checkbox 상자 · Radio 고리 · Switch track 높이 (3c-2b 가 쓴다).
+- 메뉴 항목 (`menuitem` = `control({wrap, icon})`) 은 테두리 없이 control 높이 M 안에 label 을 가운데 — (32 − 18) / 2 = 7, description 사이 2.
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| 토큰 | rendering `device.ts` (`S2_CONTROL_HEIGHT_SM` · `S2_FIELD_BUTTON_SIZE` · `S2_BAR_MIN_WIDTH`) · `resolveThemeSnapshot.ts` · `tokenResolver.ts` (`cssVarToTokenRef`) | size 맵에 `height-sm.<S>` · `field-button.<S>` (XS 14 — S2 에 없어 XS field 20 의 여백 3) · `bar.min-width`. DOM 변수는 size 맵 키 전부 (`--catalog-token-size-<family>-<key>`, desktop · touch 두 벌) |
+| rule | `componentRulesTable.ts` | TextField · SearchField minWidth 삭제 · ProgressBar minWidth `{size.bar.min-width}` · ComboBox · DatePicker · DateRangePicker 버튼 정사각형 `var(--catalog-token-size-field-button-<S>)`, offset · 입력칸 끝 공간은 그 값의 `calc` (안쪽 여백 2 · 2 · 4 · 4 · 4 · 끝 공간 +4 · 8 · 12 · 16 · 24 는 그대로 — 3c-3) · ListBoxItem `minHeight {size.height.M}` · `borderWidth {border.width.none}` · paddingY 7 (생성기의 S2 가운데 식) |
+| 생성기 | `CSSGenerator.ts` | size `minWidth` 토큰 → 변수 (`minHeight` 와 같은 길) |
+| field 접두 | `fieldPrefix.ts` (`buttonOverlayInset`) | offset 이 `calc(0px − 정사각형 − 안쪽 여백)` 이라 안쪽 여백을 식에서 읽는다 |
+| DOM 터치 | `deviceTypography.ts` (`catalogDeviceLength` · `catalogDeviceControlCss`) | size 맵의 모든 족 → 기기 변수. 단 field 버튼 정사각형은 desktop px 로 둔다 — 아래 live 발견 |
+| 빌더 고정 | `builder-catalog-vars.css` · 신규 `builder-catalog-pins.css` (+ `builder-components.css` import) | field 버튼 고정값 16 · 18 · 22 · 34 · 46 (식이 295 전 offset · 끝 공간을 돌려준다) · bar 48. 생성 시트에서 **사라진** 선언 (TextField · SearchField min-width) 은 같은 선택자로 고정 시트가 유지 — `:not(:where(.publish-app *))` (specificity 0) 로 같은 탭의 `/publish` 경로 (빌더 번들이 시트를 같이 싣는다) 를 뺀다 |
+| 게이트 | `adr295BuilderGeneratedSheets.mjs` (`pinFiles`) · `builderCatalogVars.static.test.ts` (c) · 신규 (d) | 고정 시트 선언은 같은 조건 · 선택자의 생성 블록 하나를 덮어쓴다 (없거나 둘이면 throw). (d) 생성 시트만으로 같은 값이면 낡은 고정 · 미디어 쿼리 · `var(` 0 · `/publish` 제외 접미 · 생성 시트 뒤 · `CatalogStates` 앞 |
+| G4 | 추출기 (`fieldButton` · `barMinWidth`) · oracle fixture (그 두 키만 추가 — 나머지 diff 0) · `d3S2Alignment` | 세 족 두 벌 = 설치본 · field 버튼 변수 · ProgressBar 토큰 · TextField · SearchField 최소 폭 없음 · ListBoxItem (32 − 18) / 2 |
+| ratchet | `componentRulesTable.static.test.ts` | minWidth 상한 13 → 0 · ListBoxItem minHeight 32 등재 삭제 |
+
+**원복 RED**: ComboBox M 버튼 22px + ListBoxItem paddingY 4 → G4 1 FAIL · 고정 시트에서 SearchField M 빼기 → 게이트 (c) 1 FAIL (복원 cmp 일치).
+
+**G2 두 arm**: 263/263. **하니스 사각 (기록)**: 터치 arm 의 Canvas 는 터치 맵으로 field 버튼 25 · offset −29, DOM 은 inline 20 · −24 인데 263/263 그대로였다 — G2 비교가 field 버튼 상자를 잡지 못한다. 3c-3 (margin · padding 기기 식) 에서 같이 본다.
+
+**회귀**: type-check PASS · rendering 전량 · shared 2,049 · builder unit (chromeIsland 1 — 기존) · parity (GeometryDelta case 2 — 기존) · G3 (propAxisCanvasDom 5 · paletteBaseCanvas — 기존 목록). 값 단언 갱신: `adr253FieldPartsDom` (버튼 20 · 32 · 끝 공간 32 · 56) · `resolveContainerStylesFallback` · `collectionItemMetrics` · `triggerIconSizeScale`.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 ComboBox 추가. Preview (Compare Mode): 버튼 20 · 안쪽 여백 4 · 입력칸 32 · 끝 공간 32 · 메뉴 항목 50 (7 + 18 + 2 + 16 + 7, 테두리 0) · TextField 최소 폭 없음. 「터치 크기로 미리보기」: 입력칸 40 · 버튼 20 가운데 · 메뉴 항목 60 (위아래 9 — S2 터치). Canvas 화면도 항목 ~50 · 버튼 안쪽 4. 빌더 root: field 버튼 M 22px · TextField M 최소 폭 45 · SearchField L 126 (295 전), `.publish-app` 안은 최소 폭 없음. 새로고침 뒤 콘솔 오류 0. ComboBox 는 삭제 명령으로 지움.
+
+**live 발견 2**:
+
+- **같은 탭 `/publish` 경로가 빌더 번들의 시트를 싣는다** (`main.tsx` 가 `builder-components.css` 를 전역으로 — ADR-235): 고정 시트가 Preview 버튼의 publish 화면에도 TextField 최소 폭 45 를 줬다 → `.publish-app` 제외로 수리 · (d) 가 단언. 같은 경로에서 빌더 chrome 의 `[data-size="M"]` 규칙이 ComboBox Input 행간을 21 (`--text-base--line-height`) 로 바꾸는 것도 보였다 (입력칸 35) — 이 phase 와 무관한 기존 누수라 보고만 한다.
+- **터치에서 field 버튼만 커지면 field 끝을 1px 넘는다**: 정사각형은 기기 변수 (25) 인데 offset · 끝 공간은 다른 키 · 다른 record 의 inline px (−24 · 32). margin · padding 을 기기 식으로 inline 하는 것은 3c-3 의 몫이라, 이번엔 DOM 정사각형도 desktop px (`catalogDeviceControlCss` 가 field-button 족을 건너뜀) — 터치에서 세 값이 같이 desktop, 3c-3 에서 함께 기기 식으로.
+
+**3c-2b 로 넘긴 것**: toggle 표시 상자 — S2 `controlSize('sm')` 14 · 16 · 18 · 20 (우리 Checkbox · Radio 16 · 20 · 24 · 30 — 수동 시트가 `--text-base/xl/2xl/3xl` 을 상자 크기로 읽는다) · Checkbox 모서리 `controlBorderRadius('sm')` 4 · 4 · 5 · 5 · Switch track 폭 `fontRelative(26)` · thumb. Meter 최소 폭 48 (S2 `bar-utils` 는 Meter 도 — 빌더 시트에 새 선언이라 고정이 필요).
 
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4

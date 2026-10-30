@@ -66,6 +66,18 @@
     /* DateRangePicker 범위 상자의 S2 control 높이 — 빌더 위젯은 295 전처럼 내용 높이 (초기값). */
     --catalog-token-drp-group-min-height: auto;
 
+    /* field 안 버튼 상자 (ADR-295 Phase 3c-2): ComboBox · DatePicker · DateRangePicker 의 버튼 정사각형은 S2 field 버튼
+       (`{size.field-button.<S>}`) 이고 끝 여백 · 입력칸 끝 공간은 그 값의 식이다. 빌더 위젯은 295 전 정사각형 — 식이
+       295 전 offset (−18 · −20 · −26 · −38 · −50) · 끝 공간 (20 · 26 · 34 · 50 · 70) 을 돌려준다. */
+    --catalog-token-size-field-button-XS: 16px;
+    --catalog-token-size-field-button-S: 18px;
+    --catalog-token-size-field-button-M: 22px;
+    --catalog-token-size-field-button-L: 34px;
+    --catalog-token-size-field-button-XL: 46px;
+
+    /* ProgressBar 최소 폭 (ADR-295 Phase 3c-2): S2 `bar-utils.ts` `minWidth: 48` 은 `size()` (터치 60) — 빌더는 desktop. */
+    --catalog-token-size-bar-min-width: 48px;
+
     /* 아이콘 (ADR-295 Phase 3b): 생성 시트의 `--icon-size` 는 컴포넌트 고정 변수 → S2 아이콘 단 `--catalog-token-size-icon-*`
        순으로 읽는다. 빌더 위젯은 295 전 rule 의 px 를 고정 변수로 (Preview · Publish 는 고정 변수를 선언하지 않는다). */
     --catalog-token-size-icon-XS: 14px;

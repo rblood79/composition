@@ -84,5 +84,8 @@
 @import "./generated/Slot.css";
 @import "./Toast.css";
 
+/* ADR-295 Phase 3c-2: 생성 시트에서 사라진 선언 (S2 에 없는 값) 의 빌더 위젯 고정값 — 생성 시트 뒤. */
+@import "./builder-catalog-pins.css";
+
 /* Authored catalog state values, scoped to catalog node attributes. */
 @import "./generated/CatalogStates.css";

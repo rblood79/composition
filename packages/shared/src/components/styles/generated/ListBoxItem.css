@@ -26,12 +26,13 @@
 
   /* Default size */
   height: auto;
-  padding: 4px 12px;
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 12px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-lg);
   line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 400;
-  min-height: 32px;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
   gap: 2px;
   --icon-size: 16px;
 }

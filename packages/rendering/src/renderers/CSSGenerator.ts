@@ -1125,7 +1125,10 @@ function generateSizeStyles(
 
   // min-width / min-height
   if (size.minWidth !== undefined) {
-    lines.push(`  min-width: ${size.minWidth}px;`);
+    // ADR-295 Phase 3c-2: `{size.bar.min-width}` → `var(--catalog-token-size-bar-min-width)` (기기 두 벌).
+    lines.push(
+      `  min-width: ${typeof size.minWidth === "number" ? `${size.minWidth}px` : tokenToCSSVar(size.minWidth)};`,
+    );
   }
   if (size.minHeight !== undefined) {
     // ADR-295 Phase 3: `{size.height.<S>}` → `var(--catalog-token-size-height-<S>)` (기기 두 벌).

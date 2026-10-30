@@ -20,42 +20,36 @@
   /* Default size */
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  min-width: 45px;
   gap: 6px;
 }
 
 .react-aria-TextField[data-size="XS"] {
   font-size: var(--catalog-token-text-2xs);
   border-radius: var(--catalog-token-radius-sm);
-  min-width: 27px;
   gap: 2px;
 }
 
 .react-aria-TextField[data-size="S"] {
   font-size: var(--catalog-token-text-xs);
   border-radius: 7px;
-  min-width: 33px;
   gap: 4px;
 }
 
 .react-aria-TextField[data-size="M"] {
   font-size: var(--catalog-token-text-sm);
   border-radius: 8px;
-  min-width: 45px;
   gap: 6px;
 }
 
 .react-aria-TextField[data-size="L"] {
   font-size: var(--catalog-token-text-base);
   border-radius: 9px;
-  min-width: 63px;
   gap: 8px;
 }
 
 .react-aria-TextField[data-size="XL"] {
   font-size: var(--catalog-token-text-lg);
   border-radius: 10px;
-  min-width: 81px;
   gap: 10px;
 }
 

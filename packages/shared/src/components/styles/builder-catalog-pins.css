@@ -1,0 +1,54 @@
+/* ============================================
+   빌더 위젯이 유지하는 생성 시트의 옛 선언 — chrome 소유 고정값 (ADR-295 Phase 3c-2)
+   ============================================
+
+   builder-catalog-vars.css 는 생성 시트가 읽는 `--catalog-token-*` 의 값을 고정한다. 그런데 S2 정렬로 생성
+   시트에서 선언 자체가 사라지면 (S2 에 없는 값) 고정할 변수가 없다 — 빌더 위젯 (Data RowForm 의 TextField ·
+   SearchField …) 은 그 선언을 295 전 값 그대로 이 시트에서 받는다.
+
+   - 선택자 · 조건은 그 선언이 있던 생성 시트의 것과 같다 (같은 `@layer components`, 생성 시트 뒤에 싣는다 —
+     같은 specificity 에서 import 순서로 이긴다). 끝의 `:not(:where(.publish-app *))` (specificity 0) 는 같은 탭의
+     `/publish` 경로 (Preview 버튼 — 빌더 번들이 이 시트를 같이 싣는다) 의 사용자 컴포넌트를 뺀다.
+   - desktop 한 벌 · 미디어 쿼리 금지 · `--catalog-token-*` 를 읽지 않는다 (손으로 쓴 px).
+   - 게이트: builderCatalogVars.static.test.ts — (c) 생성 시트 + 이 시트로 푼 치수 == 295 전 기준 JSON, (d) 이
+     시트의 선언은 생성 시트에서 사라졌거나 다른 값인 것만 (낡은 고정 금지) · 같은 선택자를 생성 시트가 갖는다.
+   - Preview · Publish 는 이 파일을 싣지 않는다.
+   ============================================ */
+@layer components {
+  /* generated/TextField.css — S2 TextField 에 min-width 없음 (295 전: Spectrum 1 의 1.5 × 높이) */
+  .react-aria-TextField:not(:where(.publish-app *)) {
+    min-width: 45px;
+  }
+  .react-aria-TextField[data-size="XS"]:not(:where(.publish-app *)) {
+    min-width: 27px;
+  }
+  .react-aria-TextField[data-size="S"]:not(:where(.publish-app *)) {
+    min-width: 33px;
+  }
+  .react-aria-TextField[data-size="M"]:not(:where(.publish-app *)) {
+    min-width: 45px;
+  }
+  .react-aria-TextField[data-size="L"]:not(:where(.publish-app *)) {
+    min-width: 63px;
+  }
+  .react-aria-TextField[data-size="XL"]:not(:where(.publish-app *)) {
+    min-width: 81px;
+  }
+
+  /* generated/SearchField.css — S2 SearchField 에 min-width 없음 (295 전: Spectrum 1 의 3 × 높이) */
+  .react-aria-SearchField:not(:where(.publish-app *)) {
+    min-width: 90px;
+  }
+  .react-aria-SearchField[data-size="S"]:not(:where(.publish-app *)) {
+    min-width: 66px;
+  }
+  .react-aria-SearchField[data-size="M"]:not(:where(.publish-app *)) {
+    min-width: 90px;
+  }
+  .react-aria-SearchField[data-size="L"]:not(:where(.publish-app *)) {
+    min-width: 126px;
+  }
+  .react-aria-SearchField[data-size="XL"]:not(:where(.publish-app *)) {
+    min-width: 162px;
+  }
+}

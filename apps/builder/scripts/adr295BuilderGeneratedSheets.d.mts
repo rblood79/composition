@@ -1,8 +1,13 @@
 export declare const THEME_CSS: string;
 export declare const BUILDER_CATALOG_VARS_CSS: string;
 export declare const BUILDER_COMPONENTS_CSS: string;
-export declare function resolveBuilderGeneratedSheets(rootFiles: string[]): {
+export declare const BUILDER_CATALOG_PINS_CSS: string;
+export declare function resolveBuilderGeneratedSheets(
+  rootFiles: string[],
+  pinFiles?: string[],
+): {
   sheets: string[];
+  pins: Record<string, string | undefined>;
   rootVarCount: number;
   unresolvedExternal: string[];
   entries: Record<string, string>;

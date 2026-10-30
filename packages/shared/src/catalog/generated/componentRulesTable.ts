@@ -3203,11 +3203,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Input",
             prefix: "combo-input",
             variables: {
-              XS: { "--combo-input-pad-end": "20px" },
-              S: { "--combo-input-pad-end": "26px" },
-              M: { "--combo-input-pad-end": "34px" },
-              L: { "--combo-input-pad-end": "50px" },
-              XL: { "--combo-input-pad-end": "70px" },
+              XS: {
+                "--combo-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-XS) + 4px)",
+              },
+              S: {
+                "--combo-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-S) + 8px)",
+              },
+              M: {
+                "--combo-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-M) + 12px)",
+              },
+              L: {
+                "--combo-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-L) + 16px)",
+              },
+              XL: {
+                "--combo-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-XL) + 24px)",
+              },
             },
             bridges: {
               "min-width": "0",
@@ -3215,15 +3230,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            // A square inside the control (2px in at xs · sm, 4px from md), over the Input's end.
+            // A square inside the control (2px in at xs · sm, 4px from md), over the Input's end. The square
+            //   is S2's field button (`{size.field-button.<S>}` — ComboBox · DatePicker `inputButton` S 16 ·
+            //   M 20 · L 24 · XL 32, the touch set × 1.25 — ADR-295 Phase 3c-2); the offset and the Input's
+            //   end room follow it (the builder pins the pre-295 squares, where they give the pre-295 lengths).
             childSelector: ".react-aria-Button",
             prefix: "combo-btn",
             variables: {
-              XS: { "--combo-btn-size": "16px", "--combo-btn-offset": "-18px" },
-              S: { "--combo-btn-size": "18px", "--combo-btn-offset": "-20px" },
-              M: { "--combo-btn-size": "22px", "--combo-btn-offset": "-26px" },
-              L: { "--combo-btn-size": "34px", "--combo-btn-offset": "-38px" },
-              XL: { "--combo-btn-size": "46px", "--combo-btn-offset": "-50px" },
+              XS: {
+                "--combo-btn-size": "var(--catalog-token-size-field-button-XS)",
+                "--combo-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-XS) - 2px)",
+              },
+              S: {
+                "--combo-btn-size": "var(--catalog-token-size-field-button-S)",
+                "--combo-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-S) - 2px)",
+              },
+              M: {
+                "--combo-btn-size": "var(--catalog-token-size-field-button-M)",
+                "--combo-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-M) - 4px)",
+              },
+              L: {
+                "--combo-btn-size": "var(--catalog-token-size-field-button-L)",
+                "--combo-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-L) - 4px)",
+              },
+              XL: {
+                "--combo-btn-size": "var(--catalog-token-size-field-button-XL)",
+                "--combo-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-XL) - 4px)",
+              },
             },
             bridges: {
               flex: "0 0 auto",
@@ -3828,19 +3866,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             prefix: "dp-input",
             variables: {
               XS: {
-                "--dp-input-pad-end": "20px",
+                "--dp-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-XS) + 4px)",
               },
               S: {
-                "--dp-input-pad-end": "26px",
+                "--dp-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-S) + 8px)",
               },
               M: {
-                "--dp-input-pad-end": "34px",
+                "--dp-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-M) + 12px)",
               },
               L: {
-                "--dp-input-pad-end": "50px",
+                "--dp-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-L) + 16px)",
               },
               XL: {
-                "--dp-input-pad-end": "70px",
+                "--dp-input-pad-end":
+                  "calc(var(--catalog-token-size-field-button-XL) + 24px)",
               },
             },
             // (폭은 DateInput 자기 것 — 100%. `flex: 1` 을 주면 버튼의 음수 margin 만큼 Group 밖으로 넘친다.)
@@ -3854,24 +3897,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             prefix: "dp-btn",
             variables: {
               XS: {
-                "--dp-btn-size": "16px",
-                "--dp-btn-offset": "-18px",
+                "--dp-btn-size": "var(--catalog-token-size-field-button-XS)",
+                "--dp-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-XS) - 2px)",
               },
               S: {
-                "--dp-btn-size": "18px",
-                "--dp-btn-offset": "-20px",
+                "--dp-btn-size": "var(--catalog-token-size-field-button-S)",
+                "--dp-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-S) - 2px)",
               },
               M: {
-                "--dp-btn-size": "22px",
-                "--dp-btn-offset": "-26px",
+                "--dp-btn-size": "var(--catalog-token-size-field-button-M)",
+                "--dp-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-M) - 4px)",
               },
               L: {
-                "--dp-btn-size": "34px",
-                "--dp-btn-offset": "-38px",
+                "--dp-btn-size": "var(--catalog-token-size-field-button-L)",
+                "--dp-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-L) - 4px)",
               },
               XL: {
-                "--dp-btn-size": "46px",
-                "--dp-btn-offset": "-50px",
+                "--dp-btn-size": "var(--catalog-token-size-field-button-XL)",
+                "--dp-btn-offset":
+                  "calc(0px - var(--catalog-token-size-field-button-XL) - 4px)",
               },
             },
             bridges: {
@@ -4196,19 +4244,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             prefix: "drp-btn",
             variables: {
               XS: {
-                "--drp-btn-size": "16px",
+                "--drp-btn-size": "var(--catalog-token-size-field-button-XS)",
               },
               S: {
-                "--drp-btn-size": "18px",
+                "--drp-btn-size": "var(--catalog-token-size-field-button-S)",
               },
               M: {
-                "--drp-btn-size": "22px",
+                "--drp-btn-size": "var(--catalog-token-size-field-button-M)",
               },
               L: {
-                "--drp-btn-size": "34px",
+                "--drp-btn-size": "var(--catalog-token-size-field-button-L)",
               },
               XL: {
-                "--drp-btn-size": "46px",
+                "--drp-btn-size": "var(--catalog-token-size-field-button-XL)",
               },
             },
             bridges: {
@@ -7139,18 +7187,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         // height 0 = content-fit (행 시각 = label(+description) + padding).
         height: 0,
-        // The reference's `min-height: var(--spacing-8)` (32). (2026-07-22: an explicit min-height
-        //   drops a flex column item's automatic minimum — a fixed-height list squeezed its items;
-        //   the ListBox rule's item selector gives `flex-shrink: 0`, so they stay whole and the list
-        //   scrolls.)
-        minHeight: 32,
+        // S2 `menuitem` (`control({wrap, icon})` — Picker · ComboBox · Menu items): the control height M
+        //   with no border, the label centred in it — paddingY = (32 − 18) / 2 = 7 (ADR-295 Phase 3c-2; the
+        //   generated CSS writes the formula over the device variables). (2026-07-22: an explicit
+        //   min-height drops a flex column item's automatic minimum — a fixed-height list squeezed its
+        //   items; the ListBox rule's item selector gives `flex-shrink: 0`, so they stay whole and the
+        //   list scrolls.)
+        minHeight: "{size.height.M}",
+        borderWidth: "{border.width.none}",
         // The item's weight (normal — the reference's `font` shorthand); the label slot's 500 is
         //   the ListBox rule's item selector (the Canvas's ListBox part rule).
         fontWeight: 400,
-        // spec.sizes.M 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
+        // paddingX 12 (S2 `edge-to-text` 는 3c-3) · paddingY = the S2 centring above (desktop result).
         paddingX: 12,
-        paddingY: 4,
-        // label↔description 수직 간격 (spec gap 2).
+        paddingY: 7,
+        // label↔description 수직 간격 (S2 menuitem description 2).
         gap: 2,
         // selection indicator / icon glyph 크기 (spec iconSize 16).
         iconSize: 16,
@@ -8536,7 +8587,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
         height: 4,
-        minWidth: 48, // Spectrum guideline 48~768 (2026-08-21)
+        minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `minWidth: 48` (`size()` — 터치 60, ADR-295 Phase 3c-2)
         maxWidth: 768,
         gap: 4,
       },
@@ -8545,7 +8596,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 8,
-        minWidth: 48,
+        minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
       },
@@ -8554,7 +8605,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
         height: 12,
-        minWidth: 48,
+        minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
       },
@@ -8563,7 +8614,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
         height: 16,
-        minWidth: 48,
+        minWidth: "{size.bar.min-width}",
         maxWidth: 768,
         gap: 4,
       },
@@ -9323,6 +9374,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SearchField: {
     defaultSize: "M",
     variants: {},
+    // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
+    //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
@@ -9332,7 +9385,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
-        minWidth: 66, // Spectrum 3×height — 식별성 하한 (2026-08-21)
         gap: 6,
         columnGap: 0,
         iconSize: "{typography.text-xs--line-height}",
@@ -9341,7 +9393,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
-        minWidth: 90,
         gap: 8,
         columnGap: 0,
         iconSize: "{typography.text-sm--line-height}",
@@ -9350,7 +9401,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
-        minWidth: 126,
         gap: 10,
         columnGap: 0,
         iconSize: "{typography.text-base--line-height}",
@@ -9359,7 +9409,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
-        minWidth: 162,
         gap: 10,
         columnGap: 0,
         iconSize: "{typography.text-lg--line-height}",
@@ -12473,6 +12522,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   TextField: {
     defaultSize: "M",
     variants: {},
+    // minWidth 없음 (ADR-295 Phase 3c-2): S2 TextField · SearchField 에는 min-width 가 없다 (2026-08-21 의 1.5 × · 3 ×
+    //   높이는 Spectrum 1). 빌더 위젯은 builder-catalog-pins.css 가 295 전 하한을 유지한다.
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TextField.spec.sizes 미러). padding 은 composition.layout=flex-column root
@@ -12482,7 +12533,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
         height: 18,
-        minWidth: 27, // Spectrum 1.5×height — 식별성 하한 (design-data 감사 §1-4, 2026-08-21)
         gap: 2,
       },
       S: {
@@ -12490,7 +12540,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: 7,
         height: 22,
-        minWidth: 33,
         gap: 4,
       },
       M: {
@@ -12498,7 +12547,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: 8,
         height: 30,
-        minWidth: 45,
         gap: 6,
       },
       L: {
@@ -12506,7 +12554,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: 9,
         height: 42,
-        minWidth: 63,
         gap: 8,
       },
       XL: {
@@ -12514,7 +12561,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: 10,
         height: 54,
-        minWidth: 81,
         gap: 10,
       },
     },

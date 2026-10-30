@@ -17,10 +17,10 @@ const STRICT_KEYS = [
   "iconSize",
 ] as const;
 
-/** 3c · 3d 가 형을 선언할 때까지의 상한 (2026-10-30 Phase 3b 측정값). */
+/** 3c · 3d 가 형을 선언할 때까지의 상한 (2026-10-30 Phase 3b 측정값 — minWidth 는 3c-2 에서 0). */
 const CEILING: Readonly<Record<string, number>> = {
   height: 389,
-  minWidth: 13,
+  minWidth: 0,
   paddingX: 167,
   paddingY: 111,
   gap: 178,
@@ -151,13 +151,6 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     values: { M: 16 },
     reason:
       "목록 항목 icon slot (`--lb-icon-size` 16) — 수동 ListBox.css 와 같은 값",
-  },
-  {
-    component: "ListBoxItem",
-    key: "minHeight",
-    values: { M: 32 },
-    reason:
-      "S2 control 높이 M 과 같은 값 — paddingY 4 가 S2 가운데 식 (6) 과 달라 `{size.height.M}` 은 3c 의 padding 정렬과 함께",
   },
   {
     component: "Slot",

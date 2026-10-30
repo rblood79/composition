@@ -1370,24 +1370,25 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         ["lib:template:component-fieldbutton", "lib:template:component-button"],
       ]);
       const [input, button] = parts();
-      // Canvas: the Input is the whole control; the button is a square 4px inside its end.
+      // Canvas: the Input is the whole control; the button is a square 4px inside its end (S2 field
+      //   button M 20 — ADR-295 Phase 3c-2).
       const group = rect(wrapper().id);
       expect(rect(input.id)).toMatchObject({
         x: 0,
         width: group.width,
         height: 32,
       });
-      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
+      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 32 });
       // (The end padding keeps the text clear of the button; its start stays the Input's own.)
       expect(inputTextBand(workspace, input.id)).toEqual({
         x: 12,
-        paddingRight: 34,
+        paddingRight: 32,
       });
       expect(rect(button.id)).toMatchObject({
-        x: group.width - 26,
-        y: 5,
-        width: 22,
-        height: 22,
+        x: group.width - 24,
+        y: 6,
+        width: 20,
+        height: 20,
       });
       expect(button.visual).toMatchObject({
         fill: "var(--accent-subtle)",
@@ -1396,7 +1397,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       const glyph = records.get(button.children[0]!)!;
       expect(glyph.props.iconName).toBe("chevron-down");
-      expect(rect(glyph.id)).toMatchObject({ x: 2, y: 2, width: 18 });
+      expect(rect(glyph.id)).toMatchObject({ x: 1, y: 1, width: 18 });
       // The field's `placeholder` and `iconName` reach the parts (template bindings).
       expect(input.props.placeholder).toBe("Type or select...");
       workspace.execute(
@@ -1440,13 +1441,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts().map((part) => part.props.size)).toEqual(["XL", "XL"]);
-      // (ADR-295 Phase 3: the box is the S2 control height 48 — the button's 46 is Phase 3c's.)
+      // (ADR-295: the box is the S2 control height 48, the button S2's field button XL 32 — Phase 3c-2.)
       expect(rect(parts()[1]!.id)).toMatchObject({
-        width: 46,
-        height: 46,
-        y: 1,
+        width: 32,
+        height: 32,
+        y: 8,
       });
-      expect(parts()[0]!.visual.paddingRight).toBe(70);
+      expect(parts()[0]!.visual.paddingRight).toBe(56);
       // The FieldButton origin is where the button's shape comes from; it is itself an instance
       // of the Button origin, whose style reaches it under the FieldButton's own.
       workspace.execute(
@@ -1869,13 +1870,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       expect(pickerParts()[0]!.visual).toMatchObject({
         paddingX: 12,
-        paddingRight: 34,
+        paddingRight: 32,
         borderWidth: 1,
       });
       expect(picker.rect(pickerParts()[1]!.id)).toMatchObject({
-        x: group.width - 26,
-        width: 22,
-        height: 22,
+        x: group.width - 24,
+        width: 20,
+        height: 20,
       });
       const pickerGlyph = () =>
         picker.records.get(pickerParts()[1]!.children[0]!)!;
@@ -1933,10 +1934,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const rangeBox = range.rect(range.wrapper().id);
       expect(rangeBox.height).toBe(32);
       expect(range.rect(button.id)).toMatchObject({
-        x: rangeBox.width - 1 - 3 - 22,
-        y: 5,
-        width: 22,
-        height: 22,
+        x: rangeBox.width - 1 - 3 - 20,
+        y: 6,
+        width: 20,
+        height: 20,
       });
       const rangeGroup = range
         .host()
@@ -1963,8 +1964,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "XL",
       ]);
       expect(range.rect(rangeParts()[3]!.id)).toMatchObject({
-        width: 46,
-        height: 46,
+        width: 32,
+        height: 32,
       });
     },
   );

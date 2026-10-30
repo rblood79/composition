@@ -1041,7 +1041,7 @@ export interface SizeSpec {
   borderWidth?: number | BorderWidthTokenRef;
 
   /** 최소 너비 (optional, px) */
-  minWidth?: number;
+  minWidth?: number | TokenRef;
 
   /** 최대 너비 (optional, px) — Spectrum guideline 수치 (ProgressBar 768 / Tooltip 160) */
   maxWidth?: number;

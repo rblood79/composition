@@ -7,13 +7,16 @@
  *       없이 빈 값이 되지 않게).
  *   (b) 그 시트에 미디어 쿼리가 없다 (pointer: coarse 에서도 빌더 위젯은 desktop 값).
  *   (c) 그 값으로 푼 생성 시트의 모든 치수 == Phase 0 에서 뜬 295 전 기준 JSON (oracle 은 이름을 바꾸기 전
- *       시트를 chrome 토큰으로 푼 값 — 이 시트의 값과 독립).
+ *       시트를 chrome 토큰으로 푼 값 — 이 시트의 값과 독립). 생성 시트에서 사라진 선언 (S2 에 없는 값) 은
+ *       `builder-catalog-pins.css` 가 같은 선택자로 유지한다 (Phase 3c-2).
+ *   (d) 그 고정 시트는 생성 시트가 지금 주지 않는 값만 담는다 (낡은 고정 금지) · 미디어 쿼리 · 토큰 0.
  * 그리고 생성 시트에는 chrome 토큰 이름 (`var(--radius-*)` · `var(--text-*)`) 이 남지 않는다.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  BUILDER_CATALOG_PINS_CSS,
   BUILDER_CATALOG_VARS_CSS,
   BUILDER_COMPONENTS_CSS,
   THEME_CSS,
@@ -56,10 +59,10 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
   });
 
   it("(c) 빌더 값으로 푼 생성 시트 치수 == 295 전 기준", () => {
-    const now = resolveBuilderGeneratedSheets([
-      THEME_CSS,
-      BUILDER_CATALOG_VARS_CSS,
-    ]);
+    const now = resolveBuilderGeneratedSheets(
+      [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
+      [BUILDER_CATALOG_PINS_CSS],
+    );
     expect(now.sheets).toEqual(baseline.sheets);
     // 값은 계산값으로 비교한다 — S2 padding 식 (`calc(높이 − 글자 × 행간 − 테두리 × 2) / 2`) 과 행간 토큰
     //   비율이 빌더 값에서 295 전 px 와 같으면 같다 (ADR-295 Phase 3).
@@ -98,6 +101,41 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
         return !(inert(after[key]!) || (local && inertLocal.has(local)));
       }),
     ).toEqual([]);
+  });
+
+  it("(d) 고정 시트는 생성 시트가 주지 않는 값만 — 미디어 쿼리 · 토큰 0, 생성 시트 뒤", () => {
+    const { pins, entries } = resolveBuilderGeneratedSheets(
+      [THEME_CSS, BUILDER_CATALOG_VARS_CSS],
+      [BUILDER_CATALOG_PINS_CSS],
+    );
+    expect(Object.keys(pins).length).toBeGreaterThan(0);
+    // 생성 시트만으로 같은 값이면 고정이 낡았다 (S2 정렬이 되돌아갔거나 고정할 필요가 없어졌다).
+    expect(
+      Object.entries(pins)
+        .filter(([key, generated]) => generated === entries[key])
+        .map(([key]) => key),
+    ).toEqual([]);
+    const css = readFileSync(BUILDER_CATALOG_PINS_CSS, "utf8").replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    expect(css).not.toMatch(/@media|var\(/);
+    // 같은 탭의 `/publish` 경로 (Preview 버튼) 는 빌더 번들의 시트를 같이 싣는다 — 사용자 컴포넌트는 뺀다.
+    const selectors = [...css.matchAll(/([^{}]+)\{/g)]
+      .map((m) => m[1]!.trim())
+      .filter((selector) => !selector.startsWith("@"));
+    expect(selectors.length).toBeGreaterThan(0);
+    expect(
+      selectors.filter(
+        (selector) => !selector.endsWith(":not(:where(.publish-app *))"),
+      ),
+    ).toEqual([]);
+    const order = readFileSync(BUILDER_COMPONENTS_CSS, "utf8");
+    const at = order.indexOf('@import "./builder-catalog-pins.css"');
+    // (`generated/CatalogStates.css` — 작성한 상태 값 — 만 그 뒤)
+    const states = order.indexOf('@import "./generated/CatalogStates.css"');
+    expect(at).toBeGreaterThan(order.lastIndexOf('@import "./generated/', states - 1));
+    expect(at).toBeLessThan(states);
   });
 
   it("생성 시트는 chrome 토큰 이름을 읽지 않는다", () => {

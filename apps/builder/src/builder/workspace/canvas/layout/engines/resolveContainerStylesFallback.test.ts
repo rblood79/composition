@@ -129,8 +129,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         alignItems: "flex-start",
         justifyContent: "center",
         position: "relative",
-        paddingTop: 4,
-        paddingBottom: 4,
+        // ADR-295 Phase 3c-2 — S2 `menuitem`: no border, the label centred in the control height M.
+        borderWidth: 0,
+        paddingTop: 7,
+        paddingBottom: 7,
         paddingLeft: 12,
         paddingRight: 12,
         rowGap: 2,

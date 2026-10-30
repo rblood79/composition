@@ -80,23 +80,23 @@
 }
 
 .react-aria-DatePicker[data-size="XS"] {
-  --dp-input-pad-end: 20px;
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XS) + 4px);
 }
 
 .react-aria-DatePicker[data-size="S"] {
-  --dp-input-pad-end: 26px;
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-S) + 8px);
 }
 
 .react-aria-DatePicker[data-size="M"] {
-  --dp-input-pad-end: 34px;
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-M) + 12px);
 }
 
 .react-aria-DatePicker[data-size="L"] {
-  --dp-input-pad-end: 50px;
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-L) + 16px);
 }
 
 .react-aria-DatePicker[data-size="XL"] {
-  --dp-input-pad-end: 70px;
+  --dp-input-pad-end: calc(var(--catalog-token-size-field-button-XL) + 24px);
 }
 
 .react-aria-DatePicker .react-aria-DateInput {
@@ -105,28 +105,28 @@
 }
 
 .react-aria-DatePicker[data-size="XS"] {
-  --dp-btn-size: 16px;
-  --dp-btn-offset: -18px;
+  --dp-btn-size: var(--catalog-token-size-field-button-XS);
+  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-XS) - 2px);
 }
 
 .react-aria-DatePicker[data-size="S"] {
-  --dp-btn-size: 18px;
-  --dp-btn-offset: -20px;
+  --dp-btn-size: var(--catalog-token-size-field-button-S);
+  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-S) - 2px);
 }
 
 .react-aria-DatePicker[data-size="M"] {
-  --dp-btn-size: 22px;
-  --dp-btn-offset: -26px;
+  --dp-btn-size: var(--catalog-token-size-field-button-M);
+  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-M) - 4px);
 }
 
 .react-aria-DatePicker[data-size="L"] {
-  --dp-btn-size: 34px;
-  --dp-btn-offset: -38px;
+  --dp-btn-size: var(--catalog-token-size-field-button-L);
+  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-L) - 4px);
 }
 
 .react-aria-DatePicker[data-size="XL"] {
-  --dp-btn-size: 46px;
-  --dp-btn-offset: -50px;
+  --dp-btn-size: var(--catalog-token-size-field-button-XL);
+  --dp-btn-offset: calc(0px - var(--catalog-token-size-field-button-XL) - 4px);
 }
 
 .react-aria-DatePicker .react-aria-Button {

@@ -180,23 +180,23 @@
 }
 
 .react-aria-DateRangePicker[data-size="XS"] {
-  --drp-btn-size: 16px;
+  --drp-btn-size: var(--catalog-token-size-field-button-XS);
 }
 
 .react-aria-DateRangePicker[data-size="S"] {
-  --drp-btn-size: 18px;
+  --drp-btn-size: var(--catalog-token-size-field-button-S);
 }
 
 .react-aria-DateRangePicker[data-size="M"] {
-  --drp-btn-size: 22px;
+  --drp-btn-size: var(--catalog-token-size-field-button-M);
 }
 
 .react-aria-DateRangePicker[data-size="L"] {
-  --drp-btn-size: 34px;
+  --drp-btn-size: var(--catalog-token-size-field-button-L);
 }
 
 .react-aria-DateRangePicker[data-size="XL"] {
-  --drp-btn-size: 46px;
+  --drp-btn-size: var(--catalog-token-size-field-button-XL);
 }
 
 .react-aria-DateRangePicker .react-aria-Button {

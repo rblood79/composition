@@ -156,6 +156,21 @@ for (const [variant, base] of [["default", radius.default], ["sm", radius.sm]]) 
   );
 }
 
+// field 안 버튼 · 막대 최소 폭 (ADR-295 Phase 3c-2) — ComboBox `inputButton` 의 `size` · DatePicker `inputButton` 의
+//   `width` 표 (둘이 같아야 한다), `bar-utils.ts` 의 `minWidth`.
+function parseInputButton(file, prop) {
+  const src = readFileSync(join(s2Dir, `src/${file}`), "utf8");
+  const block = /const inputButton = style[\s\S]*?\n\}\);/.exec(src)[0];
+  const m = new RegExp(`\\n  ${prop}: \\{\\s*size: \\{([^}]*)\\}`).exec(block);
+  return Object.fromEntries([...m[1].matchAll(/(\w+): (\d+)/g)].map((x) => [x[1], Number(x[2])]));
+}
+const fieldButton = parseInputButton("ComboBox.tsx", "size");
+if (JSON.stringify(fieldButton) !== JSON.stringify(parseInputButton("DatePicker.tsx", "width")))
+  throw new Error("S2 ComboBox · DatePicker field button tables differ");
+const barMinWidth = Number(
+  /minWidth: (\d+)/.exec(readFileSync(join(s2Dir, "src/bar-utils.ts"), "utf8"))[1],
+);
+
 const tokens = {
   iconStyleSize,
   s2Version,
@@ -170,6 +185,8 @@ const tokens = {
   fontTable,
   controlSize,
   controlRadius: { steps: radiusSteps, ...controlRadius },
+  fieldButton,
+  barMinWidth,
 };
 
 // ── 2) 브라우저 ──────────────────────────────────────────────────────────

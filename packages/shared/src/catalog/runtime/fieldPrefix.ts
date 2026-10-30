@@ -148,7 +148,7 @@ function inputBox(size: unknown) {
  */
 /**
  * A ComboBox's button sits over its Input's end room by a negative start margin past its own width
- * (`--combo-btn-offset` − `--combo-btn-size`, md 26 − 22 = 4): in a prefix box the Input fills
+ * (`--combo-btn-offset` = −(square + inset), md inset 4): in a prefix box the Input fills
  * that overlap, so the box keeps it as end padding — the button stays inset as without a prefix.
  */
 function buttonOverlayInset(
@@ -171,9 +171,11 @@ function buttonOverlayInset(
   const vars =
     delegation?.variables?.[String(size)] ??
     delegation?.variables?.[rule.defaultSize ?? "M"];
-  const offset = px(vars?.["--combo-btn-offset"]);
-  const width = px(vars?.["--combo-btn-size"]);
-  return Math.max(0, -offset - width);
+  // `calc(0px - <the square> - <inset>)` — the square is S2's field button token (ADR-295 Phase 3c-2).
+  const inset = /-\s*(\d+(?:\.\d+)?)px\)$/.exec(
+    String(vars?.["--combo-btn-offset"] ?? ""),
+  );
+  return inset ? Number(inset[1]) : 0;
 }
 
 export function catalogFieldBoxStyle(

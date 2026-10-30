@@ -386,10 +386,13 @@ export function tokenToCSSVar(ref: TokenRef): string {
  */
 export function cssVarToTokenRef(cssVar: string): TokenRef | null {
   if (typeof cssVar !== "string") return null;
-  const sizeVar = /^var\(--catalog-token-size-(height|icon)-([A-Z]+)\)$/.exec(
-    cssVar,
-  );
+  const sizeVar =
+    /^var\(--catalog-token-size-(height|icon|height-sm|field-button)-([A-Z]+)\)$/.exec(
+      cssVar,
+    );
   if (sizeVar) return `{size.${sizeVar[1]}.${sizeVar[2]}}` as TokenRef;
+  if (cssVar === "var(--catalog-token-size-bar-min-width)")
+    return "{size.bar.min-width}" as TokenRef;
   const match = cssVar.match(/^var\(--([a-z][a-z0-9-]*)\)$/);
   if (!match) return null;
   const name = match[1];

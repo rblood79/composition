@@ -14,8 +14,11 @@ import {
   borderWidth,
   radius,
   resolveToken,
+  S2_BAR_MIN_WIDTH,
   S2_CONTROL_HEIGHT,
+  S2_CONTROL_HEIGHT_SM,
   S2_DEVICE,
+  S2_FIELD_BUTTON_SIZE,
   S2_FONT_RATIO,
   S2_FONT_SIZE_BASE,
   S2_ICON_SIZE,
@@ -122,6 +125,23 @@ describe("ADR-295 G4 (a) — 토큰 표 · 상수 = S2 설치본", () => {
     }
   });
 
+  it("작은 control · field 버튼 · 막대 최소 폭 — `{size.height-sm | field-button | bar}` 두 벌 (3c-2)", () => {
+    expect(S2_CONTROL_HEIGHT_SM).toEqual(t.controlSize.sm);
+    // XS 는 S2 에 없다 (S2_FIELD_BUTTON_SIZE 의 머리말 — XS field 여백 3).
+    const { XS: _xs, ...fieldButton } = S2_FIELD_BUTTON_SIZE;
+    expect(fieldButton).toEqual(t.fieldButton);
+    expect(S2_BAR_MIN_WIDTH).toBe(t.barMinWidth);
+    for (const device of ["desktop", "touch"] as const) {
+      const { scale } = S2_DEVICE[device];
+      const map = s2SizeTokens(scale);
+      for (const [size, px] of Object.entries(t.controlSize.sm))
+        expect(map[`height-sm.${size}`]).toBe(px * scale);
+      for (const [size, px] of Object.entries(S2_FIELD_BUTTON_SIZE))
+        expect(map[`field-button.${size}`]).toBe(px * scale);
+      expect(map["bar.min-width"]).toBe(t.barMinWidth * scale);
+    }
+  });
+
   it("아이콘 5단 (`iconStyle`) — `{size.icon.<S>}` 두 벌", () => {
     for (const size of SIZES) {
       expect(S2_ICON_SIZE[size]).toBe(rem(t.iconStyleSize[size][0]!));
@@ -212,5 +232,49 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         `${type} ${size} installed`,
       ).toBe(devices.desktop[0]!.w);
     }
+  });
+
+  it("3c-2 — field 버튼 · 막대 최소 폭 · 메뉴 항목은 S2 값의 토큰, TextField · SearchField 는 최소 폭 없음", () => {
+    const delegation = (type: string, prefix: string) =>
+      (
+        COMPONENT_RULES_TABLE as unknown as Record<
+          string,
+          {
+            structure?: {
+              composition?: {
+                delegation?: {
+                  prefix?: string;
+                  variables?: Record<string, Record<string, string>>;
+                }[];
+              };
+            };
+          }
+        >
+      )[type]!.structure!.composition!.delegation!.find(
+        (entry) => entry.prefix === prefix,
+      )!.variables!;
+    for (const [type, prefix] of [
+      ["ComboBox", "combo-btn"],
+      ["DatePicker", "dp-btn"],
+      ["DateRangePicker", "drp-btn"],
+    ] as const)
+      for (const size of SIZES)
+        expect(delegation(type, prefix)[size]![`--${prefix}-size`]).toBe(
+          `var(--catalog-token-size-field-button-${size})`,
+        );
+    for (const size of Object.values(rules.ProgressBar!.sizes))
+      expect(size.minWidth).toBe("{size.bar.min-width}");
+    for (const type of ["TextField", "SearchField"])
+      for (const size of Object.values(rules[type]!.sizes))
+        expect(size.minWidth, type).toBeUndefined();
+    // S2 `menuitem` = `control({wrap, icon})` 테두리 없음: (32 − 18) / 2 = 7.
+    const item = rules.ListBoxItem!.sizes.M!;
+    expect([item.minHeight, item.borderWidth, item.paddingY]).toEqual([
+      "{size.height.M}",
+      "{border.width.none}",
+      ((t) => (t.controlSize.md.M - s2LineHeight(S2_FONT_SIZE_BASE)) / 2)(
+        oracle.tokens,
+      ),
+    ]);
   });
 });

@@ -77,23 +77,23 @@
 }
 
 .react-aria-ComboBox[data-size="XS"] {
-  --combo-input-pad-end: 20px;
+  --combo-input-pad-end: calc(var(--catalog-token-size-field-button-XS) + 4px);
 }
 
 .react-aria-ComboBox[data-size="S"] {
-  --combo-input-pad-end: 26px;
+  --combo-input-pad-end: calc(var(--catalog-token-size-field-button-S) + 8px);
 }
 
 .react-aria-ComboBox[data-size="M"] {
-  --combo-input-pad-end: 34px;
+  --combo-input-pad-end: calc(var(--catalog-token-size-field-button-M) + 12px);
 }
 
 .react-aria-ComboBox[data-size="L"] {
-  --combo-input-pad-end: 50px;
+  --combo-input-pad-end: calc(var(--catalog-token-size-field-button-L) + 16px);
 }
 
 .react-aria-ComboBox[data-size="XL"] {
-  --combo-input-pad-end: 70px;
+  --combo-input-pad-end: calc(var(--catalog-token-size-field-button-XL) + 24px);
 }
 
 .react-aria-ComboBox .react-aria-Input {
@@ -102,28 +102,28 @@
 }
 
 .react-aria-ComboBox[data-size="XS"] {
-  --combo-btn-size: 16px;
-  --combo-btn-offset: -18px;
+  --combo-btn-size: var(--catalog-token-size-field-button-XS);
+  --combo-btn-offset: calc(0px - var(--catalog-token-size-field-button-XS) - 2px);
 }
 
 .react-aria-ComboBox[data-size="S"] {
-  --combo-btn-size: 18px;
-  --combo-btn-offset: -20px;
+  --combo-btn-size: var(--catalog-token-size-field-button-S);
+  --combo-btn-offset: calc(0px - var(--catalog-token-size-field-button-S) - 2px);
 }
 
 .react-aria-ComboBox[data-size="M"] {
-  --combo-btn-size: 22px;
-  --combo-btn-offset: -26px;
+  --combo-btn-size: var(--catalog-token-size-field-button-M);
+  --combo-btn-offset: calc(0px - var(--catalog-token-size-field-button-M) - 4px);
 }
 
 .react-aria-ComboBox[data-size="L"] {
-  --combo-btn-size: 34px;
-  --combo-btn-offset: -38px;
+  --combo-btn-size: var(--catalog-token-size-field-button-L);
+  --combo-btn-offset: calc(0px - var(--catalog-token-size-field-button-L) - 4px);
 }
 
 .react-aria-ComboBox[data-size="XL"] {
-  --combo-btn-size: 46px;
-  --combo-btn-offset: -50px;
+  --combo-btn-size: var(--catalog-token-size-field-button-XL);
+  --combo-btn-offset: calc(0px - var(--catalog-token-size-field-button-XL) - 4px);
 }
 
 .react-aria-ComboBox .react-aria-Button {

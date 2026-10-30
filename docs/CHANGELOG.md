@@ -11,7 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-295 Phase 3c-1 — 컨트롤 아이콘 = 글자의 행간 · 글자 크기 (S2 1lh · 1em)] - 2026-10-30
+## [ADR-295 Phase 3c-2a — field 버튼 · 메뉴 항목 · 최소 폭 = S2] - 2026-10-30
+
+### Changed
+
+- **ComboBox · DatePicker · DateRangePicker 안 버튼이 S2 크기가 된다** — XS ~ XL 16 · 18 · 22 · 34 · 46 → 14 · 16 · 20 · 24 · 32. 입력칸 끝 공간도 그만큼 줄어든다.
+- **목록 항목 (ListBox · Select · ComboBox 의 항목) 이 S2 메뉴 항목 모양** — 테두리 없이 위아래 7, 최소 높이는 control 높이 (터치 기기 · 「터치 크기로 미리보기」 에서 40 · 위아래 9). 설명이 있는 항목은 44 → 50.
+- TextField · SearchField 의 최소 폭을 없앴다 (S2 에 없음 — 종전 높이의 1.5 · 3 배). ProgressBar 최소 폭 48 은 터치에서 60.
+- 빌더 패널의 TextField · SearchField · ComboBox · DatePicker 는 그대로다 (295 전 값 고정).
+
+— 컨트롤 아이콘 = 글자의 행간 · 글자 크기 (S2 1lh · 1em)] - 2026-10-30
 
 ### Fixed
 
