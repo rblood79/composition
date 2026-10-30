@@ -145,4 +145,49 @@
   }
 
 
+  .react-aria-Checkbox[data-size="S"] .react-aria-CheckboxButton .checkbox {
+    width: var(--catalog-token-size-height-sm-S);
+    height: var(--catalog-token-size-height-sm-S);
+    border-radius: 4px;
+  }
+
+  .react-aria-Checkbox[data-size="S"] .react-aria-CheckboxButton .checkbox svg {
+    width: var(--catalog-token-size-height-sm-S);
+    height: var(--catalog-token-size-height-sm-S);
+  }
+
+  .react-aria-Checkbox[data-size="M"] .react-aria-CheckboxButton .checkbox {
+    width: var(--catalog-token-size-height-sm-M);
+    height: var(--catalog-token-size-height-sm-M);
+    border-radius: 4px;
+  }
+
+  .react-aria-Checkbox[data-size="M"] .react-aria-CheckboxButton .checkbox svg {
+    width: var(--catalog-token-size-height-sm-M);
+    height: var(--catalog-token-size-height-sm-M);
+  }
+
+  .react-aria-Checkbox[data-size="L"] .react-aria-CheckboxButton .checkbox {
+    width: var(--catalog-token-size-height-sm-L);
+    height: var(--catalog-token-size-height-sm-L);
+    border-radius: 5px;
+  }
+
+  .react-aria-Checkbox[data-size="L"] .react-aria-CheckboxButton .checkbox svg {
+    width: var(--catalog-token-size-height-sm-L);
+    height: var(--catalog-token-size-height-sm-L);
+  }
+
+  .react-aria-Checkbox[data-size="XL"] .react-aria-CheckboxButton .checkbox {
+    width: var(--catalog-token-size-height-sm-XL);
+    height: var(--catalog-token-size-height-sm-XL);
+    border-radius: 5px;
+  }
+
+  .react-aria-Checkbox[data-size="XL"] .react-aria-CheckboxButton .checkbox svg {
+    width: var(--catalog-token-size-height-sm-XL);
+    height: var(--catalog-token-size-height-sm-XL);
+  }
+
+
 } /* @layer components */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveComponentRule } from "@composition/shared";
+import { catalogToggleIndicatorMetrics } from "../../../../../../../../../packages/shared/src/catalog/document/rulePartRules";
 
 /**
  * design-data 감사 §1-3 toggle 계열 xl 완결 (2026-08-21).
@@ -44,42 +45,52 @@ describe("catalog xl 단계 (§1-3 Checkbox 계열 결손 보수)", () => {
   });
 });
 
-describe("catalog indicator 채널 배선 (Skia size 무관 고정 해소)", () => {
-  it("Checkbox: boxSize 16/20/24/30 (DOM --cb-box-size 미러)", () => {
-    const s = sizes("Checkbox");
-    expect(
-      (["S", "M", "L", "XL"] as const).map((k) => s[k].indicator?.boxSize),
-    ).toEqual([16, 20, 24, 30]);
-  });
+// ADR-295 Phase 3c-2b: the indicator is S2 — `controlSize('sm')` boxes (size-map tokens), Checkbox
+//   corners `controlBorderRadius('sm')`, the Radio's white dot 4, the Switch track width = font × 26 / 14
+//   and its thumb inset 4 (selected 3). `catalogToggleIndicatorMetrics` resolves them (desktop maps).
+const metrics = (type: string) =>
+  (["S", "M", "L", "XL"] as const).map((k) =>
+    catalogToggleIndicatorMetrics(
+      resolveComponentRule(type)!.sizes[k] as never,
+    ),
+  );
 
-  it("Radio: boxSize 16/20/24/30 + dotSize 6/8/10/14 (= box - 2×border)", () => {
-    const s = sizes("Radio");
+describe("catalog indicator 채널 배선 (Skia size 무관 고정 해소)", () => {
+  it("Checkbox: box 14/16/18/20 · radius 4/4/5/5 (S2 controlSize · controlBorderRadius 'sm')", () => {
     expect(
-      (["S", "M", "L", "XL"] as const).map((k) => [
-        s[k].indicator?.boxSize,
-        s[k].indicator?.dotSize,
-      ]),
+      metrics("Checkbox").map((m) => [m?.boxSize, m?.boxRadius]),
     ).toEqual([
-      [16, 6],
-      [20, 8],
-      [24, 10],
-      [30, 14],
+      [14, 4],
+      [16, 4],
+      [18, 5],
+      [20, 5],
     ]);
   });
 
-  it("Switch: track 32~52 × 18~30 / thumb 14~24 (Switch.css 미러)", () => {
-    const s = sizes("Switch");
+  it("Radio: ring 14/16/18/20 · white dot 4 (S2 selected border (h − 4) / 2)", () => {
+    expect(metrics("Radio").map((m) => [m?.boxSize, m?.dotSize])).toEqual([
+      [14, 4],
+      [16, 4],
+      [18, 4],
+      [20, 4],
+    ]);
+  });
+
+  it("Switch: track font × 26/14 × 14~20 / thumb h − 8 (selected h − 6, end 3)", () => {
     expect(
-      (["S", "M", "L", "XL"] as const).map((k) => [
-        s[k].indicator?.trackWidth,
-        s[k].indicator?.trackHeight,
-        s[k].indicator?.thumbSize,
+      metrics("Switch").map((m) => [
+        Math.round(m!.trackWidth! * 100) / 100,
+        m?.trackHeight,
+        m?.thumbSize,
+        m?.thumbOffset,
+        m?.thumbSizeSelected,
+        m?.thumbOffsetSelected,
       ]),
     ).toEqual([
-      [32, 18, 14],
-      [36, 20, 16],
-      [44, 24, 20],
-      [52, 30, 24],
+      [22.29, 14, 6, 4, 8, 3],
+      [26, 16, 8, 4, 10, 3],
+      [29.71, 18, 10, 4, 12, 3],
+      [33.43, 20, 12, 4, 14, 3],
     ]);
   });
 });

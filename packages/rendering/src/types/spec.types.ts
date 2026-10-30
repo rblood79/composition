@@ -1138,6 +1138,12 @@ export interface IndicatorSpec {
 
   /** 썸 offset — 트랙 내부 여백 (Switch) */
   thumbOffset?: number;
+
+  /** 선택된 Switch 의 썸 크기 (없으면 thumbSize — ADR-295 Phase 3c-2b: S2 는 선택이면 2 커진다) */
+  thumbSizeSelected?: number;
+
+  /** 선택된 Switch 의 썸과 트랙 끝의 여백 (없으면 thumbOffset) */
+  thumbOffsetSelected?: number;
 }
 
 /**

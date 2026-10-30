@@ -43,17 +43,19 @@ const G0: Record<
   Record<string, { gap: number; height: number; labelX: number; topY: number }>
 > = {
   // (ADR-295 Phase 3: topY = the group Label's line — the S2 line-height formula 18 · 20 · 22 — + gap.)
+  // (ADR-295 Phase 3c-2b: the item indicator is S2 `controlSize('sm')` 14 · 16 · 18 · 20 — shorter than the
+  //   item Label line 16 · 18 · 20 · 22, so the item height is the line; Label x = indicator + gap.)
   RadioGroup: {
-    S: { gap: 8, height: 16, labelX: 22, topY: 24 },
-    M: { gap: 12, height: 20, labelX: 28, topY: 30 },
-    L: { gap: 16, height: 24, labelX: 34, topY: 36 },
-    XL: { gap: 12, height: 30, labelX: 42, topY: 42 },
+    S: { gap: 8, height: 16, labelX: 20, topY: 24 },
+    M: { gap: 12, height: 18, labelX: 24, topY: 30 },
+    L: { gap: 16, height: 20, labelX: 28, topY: 36 },
+    XL: { gap: 12, height: 22, labelX: 32, topY: 42 },
   },
   CheckboxGroup: {
-    S: { gap: 8, height: 16, labelX: 22, topY: 24 },
-    M: { gap: 12, height: 20, labelX: 28, topY: 30 },
-    L: { gap: 16, height: 24, labelX: 34, topY: 36 },
-    XL: { gap: 12, height: 30, labelX: 42, topY: 42 },
+    S: { gap: 8, height: 16, labelX: 20, topY: 24 },
+    M: { gap: 12, height: 18, labelX: 24, topY: 30 },
+    L: { gap: 16, height: 20, labelX: 28, topY: 36 },
+    XL: { gap: 12, height: 22, labelX: 32, topY: 42 },
   },
 };
 

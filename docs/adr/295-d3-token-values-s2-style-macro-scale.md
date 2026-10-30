@@ -33,6 +33,8 @@ Accepted — 2026-10-30 (사용자 `/execute-adr 295` + [reviews/295.md](reviews
 
 > **Phase 3c-2a (2026-10-30)** — size 맵에 S2 의 `controlSize('sm')` · field 버튼 (ComboBox · DatePicker `inputButton` 16 · 20 · 24 · 32) · 막대 최소 폭 48 을 더했다 (터치 × 1.25). TextField · SearchField 최소 폭 삭제 (S2 에 없음) · ProgressBar 최소 폭 토큰 · field 버튼 정사각형 토큰 (offset · 끝 공간은 그 값의 식) · ListBoxItem = S2 menuitem (높이 토큰 · 테두리 0 · 위아래 7). 생성 시트에서 사라진 선언은 빌더 전용 고정 시트 (`builder-catalog-pins.css` — 같은 선택자, `/publish` 경로 제외) 가 유지하고 게이트 (c) · (d) 가 대조한다. G4 (추출기 두 키 추가) · 원복 RED · G2 263/263. 터치의 field 버튼은 margin · padding 기기 식과 함께 3c-3, toggle indicator 는 3c-2b. 상세 breakdown §6.6.
 
+> **Phase 3c-2b (2026-10-30)** — toggle 표시 상자를 S2 로: Checkbox 상자 · Radio 고리 · Switch track 높이 = `controlSize('sm')` (`{size.height-sm.<S>}`), Checkbox 모서리 `controlBorderRadius('sm')`, Radio 선택 고리 (높이 − 4) / 2, Switch track 폭 `fontRelative(26)` (글자 × 26 / 14) · thumb 안쪽 4 (선택 3). Canvas 는 rule `size.indicator` 를 `catalogToggleIndicatorMetrics` 로 풀고, DOM 은 rule 의 indicator 선택자가 생성 시트로 간다 — 수동 시트는 chrome 경계상 `--catalog-token-*` 을 읽지 못해 빌더 chrome 의 295 전 값으로 남는다. Meter 도 `bar()` 폭 48 · 768. G4 (S2 probe 두 벌 대조) · 원복 RED · G2 263/263. 3d 의 정리 2 건 (`paletteBaseCanvas` 은퇴 · `collectionItemMetrics` 숨은 사본) 은 병렬로 끝났다. 상세 breakdown §6.7 · §6.8.
+
 > 구현 상세: [design/295-d3-token-values-s2-alignment-breakdown.md](design/295-d3-token-values-s2-alignment-breakdown.md)
 
 ## Context

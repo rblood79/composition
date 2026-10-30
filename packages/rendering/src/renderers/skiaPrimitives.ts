@@ -1207,7 +1207,14 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
       ? ("{color.accent-subtle}" as TokenRef)
       : paint.backgroundColor;
 
-  const thumbX = isChecked ? trackWidth - thumbSize - thumbOffset : thumbOffset;
+  // ADR-295 Phase 3c-2b: S2 grows the selected thumb (track height − 6 vs − 8) and sits it 3 from the
+  //   end (4 from the start unselected) — `thumbSizeSelected` · `thumbOffsetSelected`.
+  const thumb = isChecked
+    ? (size.indicator?.thumbSizeSelected ?? thumbSize)
+    : thumbSize;
+  const thumbX = isChecked
+    ? trackWidth - thumb - (size.indicator?.thumbOffsetSelected ?? thumbOffset)
+    : thumbOffset;
   const trackRadius = trackHeight / 2;
 
   const shapes: Shape[] = [
@@ -1236,9 +1243,9 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   shapes.push({
     id: "thumb",
     type: "circle",
-    x: thumbX + thumbSize / 2,
+    x: thumbX + thumb / 2,
     y: trackHeight / 2,
-    radius: thumbSize / 2,
+    radius: thumb / 2,
     fill: isChecked
       ? ("{color.white}" as TokenRef)
       : ("{color.neutral-subtle}" as TokenRef),

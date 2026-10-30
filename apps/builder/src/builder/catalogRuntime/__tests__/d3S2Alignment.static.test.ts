@@ -25,6 +25,7 @@ import {
   s2FontSize,
   s2LineHeight,
   s2SizeTokens,
+  s2TypographyTokens,
   spacing,
   TYPOGRAPHY_STEPS,
   type TokenRef,
@@ -232,6 +233,57 @@ describe("ADR-295 G4 (c) — 컴포넌트 값 = S2 computed", () => {
         `${type} ${size} installed`,
       ).toBe(devices.desktop[0]!.w);
     }
+  });
+
+  it("3c-2b — toggle 표시 상자 (두 벌) · Checkbox 모서리 · Switch track 폭 = S2 computed, 막대 폭 = `bar()`", () => {
+    // The rule's indicator forms (size-map token · font × em) under each device's maps = the S2
+    //   probe's computed box (`componentTable` — Checkbox box · Radio ring · Switch track).
+    for (const [probe, type] of [
+      ["Checkbox", "Checkbox"],
+      ["RadioGroup", "Radio"],
+      ["Switch", "Switch"],
+    ] as const)
+      for (const size of ["S", "M", "L", "XL"]) {
+        const rule = rules[type]!.sizes[size]!;
+        const indicator = rule.indicator as {
+          boxSize?: string;
+          boxRadius?: number;
+          trackHeight?: string;
+          trackWidthEm?: number;
+        };
+        const side = (indicator.boxSize ?? indicator.trackHeight)!;
+        expect(side, `${type} ${size}`).toBe(`{size.height-sm.${size}}`);
+        const font = /^\{typography\.(text-[a-z]+)\}$/.exec(
+          rule.fontSize as string,
+        )![1]!;
+        for (const device of ["desktop", "touch"] as const) {
+          const { scale, fontBase } = S2_DEVICE[device];
+          const height = s2SizeTokens(scale)[`height-sm.${size}`]!;
+          const width = indicator.trackWidthEm
+            ? (s2TypographyTokens(fontBase) as unknown as Record<string, number>)[font]! *
+              indicator.trackWidthEm
+            : height;
+          const s2 = table[probe]![size]![device]!;
+          expect(height, `${type} ${size} ${device} height`).toBeCloseTo(
+            s2.height!,
+            3,
+          );
+          // (the probe's em width is rounded by the browser — 25.98 for 26)
+          expect(
+            Math.abs(width - s2.width!),
+            `${type} ${size} ${device} width`,
+          ).toBeLessThan(0.05);
+        }
+        if (type === "Checkbox")
+          expect(indicator.boxRadius).toBe(
+            oracle.tokens.controlRadius.sm[size as "S"],
+          );
+      }
+    for (const type of ["Meter", "ProgressBar"])
+      for (const size of Object.values(rules[type]!.sizes)) {
+        expect(size.minWidth, type).toBe("{size.bar.min-width}");
+        expect(size.maxWidth, type).toBe(oracle.tokens.barMaxWidth);
+      }
   });
 
   it("3c-2 — field 버튼 · 막대 최소 폭 · 메뉴 항목은 S2 값의 토큰, TextField · SearchField 는 최소 폭 없음", () => {

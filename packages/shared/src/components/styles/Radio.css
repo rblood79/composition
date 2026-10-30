@@ -25,8 +25,9 @@
     forced-color-adjust: none;
     width: fit-content;
 
-    /* indicator 상자는 px (ADR-295 Phase 1 — 종전 글자 토큰을 상자로 썼다). Canvas 는
-       manualBoxRules `GROUP_ITEM_INDICATORS` 의 같은 값. */
+    /* indicator 상자는 px (ADR-295 Phase 1 — 종전 글자 토큰을 상자로 썼다). ADR-295 Phase 3c-2b: catalog Radio 의
+       고리 (S2 `controlSize('sm')` · 선택 고리 (높이 − 4) / 2) 는 생성 시트의 `RADIO_INDICATOR_SELECTORS` 가 준다 —
+       이 시트의 값은 빌더 chrome 의 것. */
     .indicator {
       display: block;
       flex-shrink: 0;

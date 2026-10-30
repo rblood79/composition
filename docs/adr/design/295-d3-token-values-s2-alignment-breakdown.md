@@ -430,6 +430,35 @@ size 키: XS 35 · S 102 · M 130 · L 101 · XL 58 · XXL 3.
 - **`paletteBaseCanvas` 은퇴** (사용자 삭제 승인 2026-10-30): `apps/builder/tests/adr248-g3/paletteBaseCanvas.browser.test.ts` 삭제 — ADR-248 G0 의 frozen 옛 Canvas PNG 와 비교해 295 뒤로는 항상 FAIL 이었다 (§6.0). ADR-248 증거 (`248-phase3-palette-base-canvas.json` · PNG 폴더 · `adr248-g3-old-defect-ledger.mjs`) 는 완료 ADR 이 인용해 남긴다. `.codex/tests/workflow.test.mjs` 의 G3 config 선택 예시는 `propAxisCanvasDom` 경로로. 이후 G3 회귀 목록은 `propAxisCanvasDom` 의 기존 실패만.
 - **숨은 사본 (`collectionItemMetrics`)** (worktree 에이전트 `a86bfe0d0` + 사용자 삭제 승인 2026-10-30): 화면에 쓰이던 손 사본은 GridList 카드의 label ↔ description 간격 하나 — `gridlist_card` 가 rule `GridListItem.sizes.*.gap` 을 읽는다 (값 2 그대로, 원복 RED: 사본 값 고정 → 새 단언 `38 ≠ 42` FAIL). rule 과 이미 갈린 나머지 사본 (ListBoxItem paddingY 4 ↔ rule 7 · GridListItem padding 16 · 12 / radius 8 / border 1 ↔ rule 12 · 8 / none / none — §6.0 의 「radius 12 · 8 · 8」) 은 테스트 전용 resolver (`resolveListBoxSpacingMetric` · `resolveGridListSpacingMetric`) 만 읽어 화면에 닿지 않았다 → 함수와 테스트 파일 2 개 (`ListBox.spacing.test.ts` · `GridList.spacing.test.ts`) 삭제, rendering index 의 소비처 0 re-export 20 삭제, `style-ssot.md` §8 인용 정정. rendering 105 파일 · 1,279 pass · G2 263/263 (에이전트 실행) · `docs:stale-symbols` 0.
 
+
+### 6.8 Phase 3c-2b (2026-10-30, toggle 표시 상자)
+
+**S2 실측 (설치본 1.8.1)**: Checkbox `box` = `controlSize('sm')` · 테두리 2 · `controlBorderRadius('sm')` (4 · 4 · 5 · 5). Radio `circle` = `controlSize('sm')` · 선택 테두리 `calc((self(height) − (4 / 16) * 1rem) / 2)` (흰 점 4, rem 이라 터치도 4). Switch `track` = 높이 `controlSize('sm')` · 폭 `fontRelative(26)` (26 / 14 em) · 테두리 2, `handle` = 높이 full 을 perspective 로 줄여 끔 track − 8 · 켬 track − 6, 켬 위치는 `translateX(trackWidth − 100% − 4px)` (끝에서 3). `bar()` = minWidth 48 · maxWidth 768 (Meter · ProgressBar).
+
+**경계 발견**: 수동 시트 (`Checkbox.css` · `Radio.css` · `Switch.css`) 는 빌더 chrome 과 공유하고, 게이트 「chrome CSS 는 `--catalog-token-*` 를 읽지 않는다」 가 기기 변수를 막는다. 그래서 catalog 값은 rule 의 선택자 (`*_INDICATOR_SELECTORS` → `rootSelectors`) 로 생성 시트에 싣는다 — RAC 버튼을 넣은 선택자라 수동 시트의 그룹 위임 (`[data-radio-size] .react-aria-Radio .indicator`) 보다 specificity 가 같거나 높고, 생성 시트가 뒤에 실린다. 빌더는 생성 toggle 시트를 싣지 않아 chrome (DataGrid Checkbox S · PropertySwitch 기본) 은 수동 시트의 295 전 px 그대로.
+
+**변경**:
+
+| 영역 | 파일 | 내용 |
+| --- | --- | --- |
+| rule | `componentRulesTable.ts` | Checkbox `indicator {boxSize: {size.height-sm.<S>}, boxRadius: 4 · 4 · 5 · 5}` · Radio `{boxSize: 토큰, dotSize: 4}` · Switch `{trackHeight: 토큰, trackWidthEm: 26/14, thumbInset: 4, thumbInsetSelected: 3}` + 셋의 `rootSelectors` (상수 한 묶음에서 rule 값과 DOM 선택자를 같이 만든다). Meter `minWidth {size.bar.min-width}` · `maxWidth 768` |
+| 타입 | `catalog-style.types.ts` · rendering `spec.types.ts` | indicator 의 토큰 · em · inset 필드, `IndicatorSpec.thumbSizeSelected` · `thumbOffsetSelected` |
+| Canvas | `rulePartRules.ts` (`catalogToggleIndicatorMetrics` — 설치 맵으로 px) · `ruleShapes.ts` (toggle primitive 에 풀린 indicator) · `skiaPrimitives.ts` (Switch 켬 thumb 크기 · 끝 여백) · `manualBoxRules.ts` (그룹 항목 최소 높이 = 토큰) | indicator 노드 상자 (part rule) 와 primitive 가 같은 함수 |
+| DOM | 생성 `Checkbox.css` · `Radio.css` · `Switch.css` · `Meter.css` | 상자 = `var(--catalog-token-size-height-sm-<S>)`, Switch 폭 = `calc(var(--catalog-token-text-*) * 26 / 14)` |
+| 빌더 고정 | `builder-catalog-pins.css` · 게이트 (c) | Meter 새 선언을 초기값 (`auto` · `none`) 으로 — (c) 는 초기값으로 고정한 새 min · max 폭을 효과 없음으로 읽는다 |
+| G4 | 추출기 `barMaxWidth` · oracle (그 키만 추가) · `d3S2Alignment` | rule 의 형 (토큰 · 글자 × em) 을 두 기기 맵으로 푼 값 = S2 probe computed (Checkbox · Radio · Switch 상자 · Switch 폭 0.05 안) · Checkbox 모서리 · 막대 폭 |
+
+**원복 RED**: Switch em 26/14 → 28/14 → G4 1 FAIL · 생성 Checkbox 선택자 제거 → G2 Checkbox · CheckboxGroup 전 size FAIL (복원 cmp 일치).
+
+**G2 두 arm**: 263/263.
+
+**회귀**: type-check PASS · rendering 1,279 · shared 2,049 · builder unit (chromeIsland 1 — 기존 · `phase4eG5LeafScope` 1 은 시간 초과로 재실행 PASS). 값 단언 갱신: `toggleIndicatorXlCatalog` · `toggleIndicatorNode` (손계산 기대값 — 행 높이 = 글자 줄 16 · 18 · 20 · 22, 상자 y 1, Switch 폭 글자 × 26 / 14) · `adr251ItemsNode` · `adr253OriginOverrideChannel`.
+
+**live (Chrome MCP, 5175 · `adr295-live`)**: 팔레트 Checkbox · Switch · RadioGroup 을 body 에 각각. Canvas 16 · 26×16 · 16. Preview (Compare Mode) desktop: Checkbox 16 · 모서리 4 · Switch 26×16 · 켬 thumb 10 · 이동 9 · 끔 thumb 8 · 안쪽 4 · Radio 16 · 선택 고리 6 (흰 점 4). 「터치 크기로 미리보기」: Checkbox 20 · Switch 31.57×20 (S2 probe 31.56) · thumb 12 · Radio 20 · 선택 고리 8. 빌더 문서 probe: Checkbox S 16 · 기본 20 · Switch 36×20 · Meter 최소 폭 없음 (295 전). 새로고침 뒤 콘솔 오류 0. 세 요소는 삭제 명령으로 지움.
+
+**live 측정 함정 (기록)**: 팔레트 클릭은 선택된 요소 안에 넣는다 — 첫 시도에서 Radio 가 Switch · Checkbox 안에 들어가 Switch 의 `[data-selected] .indicator` 칠이 Radio 고리를 검게 칠했다 (이 phase 와 무관). 각 삽입 전에 body 를 고른다.
+
+**3c-3 로 넘긴 것**: toggle 의 라벨 gap (S2 `text-to-control` 10 / 14 em) · 글자 매핑 (Checkbox · Radio 글자가 S2 보다 한 단 위 — G4 c) · Checkbox 체크 글리프 크기 (S2 는 한 단 작은 ui-icon, 우리는 상자 비례 — 두 consumer 같음).
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

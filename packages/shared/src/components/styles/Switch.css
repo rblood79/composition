@@ -3,9 +3,11 @@
  */
 
 @layer components {
-  /* ADR-295 Phase 1 · 2: 글자 토큰을 상자 크기로 쓰던 자리는 px 로 고정했다 — Phase 1 은 값이 S2 로 바뀐 2xl ~ 5xl,
-     Phase 2 는 나머지 (xs ~ xl — 터치 벌에서 글자 토큰이 1.2배가 되면 DOM 상자만 커진다). 그 전 px 로
-     고정했다 (Canvas 는 toggle rule `size.indicator` px). S2 control 크기 정렬은 Phase 3. */
+  /* ADR-295 Phase 1 · 2: 글자 토큰을 상자 크기로 쓰던 자리는 px 로 고정했다 (터치 벌에서 글자 토큰이 커지면
+     DOM 상자만 커진다). */
+  /* ADR-295 Phase 3c-2b: catalog 컴포넌트의 표시 상자 (S2 `controlSize('sm')` · Switch track 폭 글자 × 26 / 14 · thumb)
+     는 생성 시트의 rule 선택자 (`*_INDICATOR_SELECTORS` — RAC 버튼을 넣어 이 시트보다 specificity 가 같거나 높고 뒤에
+     실린다) 가 준다. 이 시트의 size 블록은 빌더 chrome (생성 toggle 시트를 싣지 않는다) 의 295 전 px 이다. */
   /* Two structures carry `.react-aria-Switch`: the shared `Switch` / PropertySwitch (RAC `Switch`, the
      `label` itself) and the catalog Switch (ADR-256 Phase 3 — RAC `SwitchField` `div` around a
      `SwitchButton` `label`). RAC puts the pressed / focus-visible state on the label, so those

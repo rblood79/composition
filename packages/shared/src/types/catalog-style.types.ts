@@ -356,13 +356,21 @@ export interface ComponentRuleSize {
    * (ruleSizeToSizeSpec 은 cast passthrough 라 타입 확장만으로 흐른다).
    */
   indicator?: {
-    boxSize?: number;
+    /** px 또는 size 맵 토큰 (`{size.height-sm.<S>}` — ADR-295 Phase 3c-2b). */
+    boxSize?: number | string;
     boxRadius?: number;
     dotSize?: number;
     trackWidth?: number;
-    trackHeight?: number;
+    /** px 또는 size 맵 토큰 (Switch — `{size.height-sm.<S>}`). */
+    trackHeight?: number | string;
+    /** Switch track 폭 = 그 size 의 글자 × 이 값 (S2 `fontRelative(26)` = 26 / 14). */
+    trackWidthEm?: number;
     thumbSize?: number;
     thumbOffset?: number;
+    /** Switch thumb 과 track 바깥 끝의 간격 (thumb = track 높이 − 2 × 이 값). */
+    thumbInset?: number;
+    /** 선택된 Switch 의 그 간격. */
+    thumbInsetSelected?: number;
   };
 }
 

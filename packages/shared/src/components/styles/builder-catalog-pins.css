@@ -51,4 +51,27 @@
   .react-aria-SearchField[data-size="XL"]:not(:where(.publish-app *)) {
     min-width: 162px;
   }
+
+  /* generated/Meter.css — S2 `bar()` 의 최소 · 최대 폭 48 · 768 은 새 선언 (ADR-295 Phase 3c-2b — 295 전
+     Meter 에 없었다). 빌더는 초기값으로 둔다. */
+  .react-aria-Meter:not(:where(.publish-app *)) {
+    min-width: auto;
+    max-width: none;
+  }
+  .react-aria-Meter[data-size="S"]:not(:where(.publish-app *)) {
+    min-width: auto;
+    max-width: none;
+  }
+  .react-aria-Meter[data-size="M"]:not(:where(.publish-app *)) {
+    min-width: auto;
+    max-width: none;
+  }
+  .react-aria-Meter[data-size="L"]:not(:where(.publish-app *)) {
+    min-width: auto;
+    max-width: none;
+  }
+  .react-aria-Meter[data-size="XL"]:not(:where(.publish-app *)) {
+    min-width: auto;
+    max-width: none;
+  }
 }

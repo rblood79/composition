@@ -170,6 +170,10 @@ if (JSON.stringify(fieldButton) !== JSON.stringify(parseInputButton("DatePicker.
 const barMinWidth = Number(
   /minWidth: (\d+)/.exec(readFileSync(join(s2Dir, "src/bar-utils.ts"), "utf8"))[1],
 );
+// (ADR-295 Phase 3c-2b: the bar's maximum too — `bar()` = Meter · ProgressBar.)
+const barMaxWidth = Number(
+  /maxWidth: (\d+)/.exec(readFileSync(join(s2Dir, "src/bar-utils.ts"), "utf8"))[1],
+);
 
 const tokens = {
   iconStyleSize,
@@ -187,6 +191,7 @@ const tokens = {
   controlRadius: { steps: radiusSteps, ...controlRadius },
   fieldButton,
   barMinWidth,
+  barMaxWidth,
 };
 
 // ── 2) 브라우저 ──────────────────────────────────────────────────────────

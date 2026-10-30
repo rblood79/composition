@@ -146,4 +146,81 @@
   }
 
 
+  .react-aria-Switch[data-size="S"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-xs) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-S);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="S"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-S) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-S) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="S"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-S) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-S) - 6px);
+    translate: calc(calc(var(--catalog-token-text-xs) * 26 / 14) - var(--catalog-token-size-height-sm-S) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="M"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-sm) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-M);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="M"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-M) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-M) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="M"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-M) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-M) - 6px);
+    translate: calc(calc(var(--catalog-token-text-sm) * 26 / 14) - var(--catalog-token-size-height-sm-M) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="L"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-base) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-L);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="L"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-L) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-L) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="L"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-L) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-L) - 6px);
+    translate: calc(calc(var(--catalog-token-text-base) * 26 / 14) - var(--catalog-token-size-height-sm-L) - 1px) 0;
+  }
+
+  .react-aria-Switch[data-size="XL"] .react-aria-SwitchButton .indicator {
+    width: calc(var(--catalog-token-text-lg) * 26 / 14);
+    height: var(--catalog-token-size-height-sm-XL);
+    border-radius: 9999px;
+  }
+
+  .react-aria-Switch[data-size="XL"] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-XL) - 8px);
+    height: calc(var(--catalog-token-size-height-sm-XL) - 8px);
+    border-radius: 9999px;
+    margin: 0 2px;
+  }
+
+  .react-aria-Switch[data-size="XL"][data-selected] .react-aria-SwitchButton .indicator::before {
+    width: calc(var(--catalog-token-size-height-sm-XL) - 6px);
+    height: calc(var(--catalog-token-size-height-sm-XL) - 6px);
+    translate: calc(calc(var(--catalog-token-text-lg) * 26 / 14) - var(--catalog-token-size-height-sm-XL) - 1px) 0;
+  }
+
+
 } /* @layer components */

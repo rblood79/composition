@@ -32,6 +32,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/document/itemLinks";
 import { catalogInlineAlertIcon } from "../../../../../packages/shared/src/catalog/document/inlineAlertIcon";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import { catalogToggleIndicatorMetrics } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import {
   CHILD_PROP_MERGE_TYPES,
   catalogRuleTextColor,
@@ -112,9 +113,15 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
     input,
     input.rect,
   );
+  // ADR-295 Phase 3c-2b: a toggle's indicator carries size-map tokens · the Switch track's font ratio
+  //   — the primitive draws the px under the installed maps (`catalogToggleIndicatorMetrics`).
+  const indicator =
+    input.rule.structure?.archetype === "toggle-indicator"
+      ? catalogToggleIndicatorMetrics(size as never)
+      : undefined;
   const ctx = {
     props,
-    size: size as unknown as SizeSpec,
+    size: (indicator ? { ...size, indicator } : size) as unknown as SizeSpec,
     visual: variant ? ruleVariantToVisual(variant) : undefined,
     paint,
     style: {

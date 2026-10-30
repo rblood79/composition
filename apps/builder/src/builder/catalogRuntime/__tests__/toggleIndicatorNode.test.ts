@@ -72,28 +72,28 @@ const EXPECTED: Record<
     }
   >
 > = {
-  // ADR-295 Phase 3: the Label line is the S2 line-height formula (14 → 18), centred in the row —
-  //   label y = (indicator − line) / 2.
+  // ADR-295 Phase 3: the Label line is the S2 line-height formula (14 → 18), centred in the row.
+  // ADR-295 Phase 3c-2b: the indicator is S2 `controlSize('sm')` (14 · 16 · 18 · 20) — now shorter than
+  //   the Label line (16 · 18 · 20 · 22), so the row is the line and the box sits centred in it
+  //   (y 1); the Switch track is font × 26 / 14 wide. label x = indicator + gap.
   Checkbox: {
-    S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    M: { box: [20, 20], height: 20, labelX: 28, labelY: 1, indicatorY: 0 },
-    L: { box: [24, 24], height: 24, labelX: 34, labelY: 2, indicatorY: 0 },
-    // was height 28 · label y 0 (the 30px box overflowed the row)
-    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 4, indicatorY: 0 },
+    S: { box: [14, 14], height: 16, labelX: 20, labelY: 0, indicatorY: 1 },
+    M: { box: [16, 16], height: 18, labelX: 24, labelY: 0, indicatorY: 1 },
+    L: { box: [18, 18], height: 20, labelX: 28, labelY: 0, indicatorY: 1 },
+    XL: { box: [20, 20], height: 22, labelX: 32, labelY: 0, indicatorY: 1 },
   },
   RadioGroup: {
-    S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    M: { box: [20, 20], height: 20, labelX: 28, labelY: 1, indicatorY: 0 },
-    L: { box: [24, 24], height: 24, labelX: 34, labelY: 2, indicatorY: 0 },
-    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 4, indicatorY: 0 },
+    S: { box: [14, 14], height: 16, labelX: 20, labelY: 0, indicatorY: 1 },
+    M: { box: [16, 16], height: 18, labelX: 24, labelY: 0, indicatorY: 1 },
+    L: { box: [18, 18], height: 20, labelX: 28, labelY: 0, indicatorY: 1 },
+    XL: { box: [20, 20], height: 22, labelX: 32, labelY: 0, indicatorY: 1 },
   },
   Switch: {
-    // was height 24 · label y 4 (the track painted at y 0, above the padding)
-    S: { box: [32, 18], height: 26, labelX: 40, labelY: 5, indicatorY: 4 },
-    M: { box: [36, 20], height: 28, labelX: 46, labelY: 5, indicatorY: 4 },
-    L: { box: [44, 24], height: 32, labelX: 56, labelY: 6, indicatorY: 4 },
-    // was height 36 · label y 4
-    XL: { box: [52, 30], height: 38, labelX: 66, labelY: 8, indicatorY: 4 },
+    // (paddingY 4 above and below the row)
+    S: { box: [12 * 26 / 14, 14], height: 24, labelX: 12 * 26 / 14 + 8, labelY: 4, indicatorY: 5 },
+    M: { box: [26, 16], height: 26, labelX: 36, labelY: 4, indicatorY: 5 },
+    L: { box: [16 * 26 / 14, 18], height: 28, labelX: 16 * 26 / 14 + 12, labelY: 4, indicatorY: 5 },
+    XL: { box: [18 * 26 / 14, 20], height: 30, labelX: 18 * 26 / 14 + 14, labelY: 4, indicatorY: 5 },
   },
 };
 
@@ -175,7 +175,9 @@ describe("toggle indicator node", () => {
       const offset = button ? geometry.get(button.id)! : { x: 0, y: 0 };
       const expected = EXPECTED[owner][size];
       const box = geometry.get(indicator.id)!;
-      expect([box.width, box.height]).toEqual(expected.box);
+      // (f32 — the Switch track is font × 26 / 14)
+      expect(box.width).toBeCloseTo(expected.box[0], 3);
+      expect(box.height).toBeCloseTo(expected.box[1], 3);
       expect(offset.x + box.x).toBeCloseTo(0, 3);
       expect(offset.y + box.y).toBeCloseTo(expected.indicatorY, 3);
       expect(geometry.get(toggle.id)!.height).toBeCloseTo(expected.height, 3);
@@ -325,11 +327,12 @@ describe("toggle indicator node", () => {
     workspace.dispose();
   });
 
+  // (ADR-295 Phase 3c-2b: the S2 boxes 14 · 16 · 18 · 20.)
   it.each([
-    ["S", 16],
-    ["M", 20],
-    ["L", 24],
-    ["XL", 30],
+    ["S", 14],
+    ["M", 16],
+    ["L", 18],
+    ["XL", 20],
   ] as const)(
     "Checkbox %s: the check and the dash are the DOM's lucide glyphs in the box's content area",
     async (size, box) => {

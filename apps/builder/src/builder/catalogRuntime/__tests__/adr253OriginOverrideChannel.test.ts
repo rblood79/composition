@@ -213,9 +213,10 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
     const inView = () =>
       drawnOf(workspace, resolve(workspace, "cards"), "Card");
     // The group's rule gives its Checkbox a min height; the CardView template gives each Card
-    // position a width of its own.
+    // position a width of its own. (ADR-295 Phase 3c-2b: the min height is the S2 indicator box —
+    // `{size.height-sm.M}` 16.)
     expect(inGroup().map((record) => record.visual.minHeight)).toEqual([
-      20, 20,
+      16, 16,
     ]);
     // (Its column's width — user 2026-10-25 「cardview - card - width: 200px → 100%」.)
     expect(inView().map((record) => record.visual.width)).toEqual([

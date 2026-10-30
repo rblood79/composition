@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-295 Phase 3c-2b · 3d 정리 — toggle 표시 상자 = S2] - 2026-10-30
+
+### Changed
+
+- **Checkbox · Radio · Switch 의 표시 상자가 S2 크기가 된다** — S ~ XL 16 · 20 · 24 · 30 → 14 · 16 · 18 · 20 (터치 기기 · 「터치 크기로 미리보기」 에서 × 1.25). Checkbox 모서리는 S2 처럼 4 · 4 · 5 · 5.
+  - Radio 를 고르면 가운데 흰 점이 크기와 상관없이 4 (S2).
+  - Switch track 폭은 글자 크기 × 26 / 14 (M 36 → 26), thumb 은 켜면 2 커지고 끝에서 3 떨어진다 (S2).
+  - 상자가 글자 줄보다 작아져 행 높이는 글자 줄이 정하고, 상자는 줄 가운데에 선다.
+- Meter 도 ProgressBar 처럼 최소 · 최대 폭 48 · 768 을 갖는다 (S2 `bar()`).
+- 빌더 패널의 Checkbox · Switch 는 그대로다 (295 전 값).
+
+### Removed
+
+- 화면에 쓰이지 않던 목록 항목 간격 사본 (`collectionItemMetrics` 의 테스트 전용 resolver) 과 옛 Canvas PNG 비교 테스트 (`paletteBaseCanvas`) 를 지웠다 (사용자 승인).
+
 ## [ADR-295 Phase 3c-2a — field 버튼 · 메뉴 항목 · 최소 폭 = S2] - 2026-10-30
 
 ### Changed
@@ -20,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TextField · SearchField 의 최소 폭을 없앴다 (S2 에 없음 — 종전 높이의 1.5 · 3 배). ProgressBar 최소 폭 48 은 터치에서 60.
 - 빌더 패널의 TextField · SearchField · ComboBox · DatePicker 는 그대로다 (295 전 값 고정).
 
-— 컨트롤 아이콘 = 글자의 행간 · 글자 크기 (S2 1lh · 1em)] - 2026-10-30
+## [ADR-295 Phase 3c-1 — 컨트롤 아이콘 = 글자의 행간 · 글자 크기 (S2 1lh · 1em)] - 2026-10-30
 
 ### Fixed
 

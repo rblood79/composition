@@ -92,10 +92,14 @@ describe("ADR-295 Decision 9 — builder-catalog-vars.css", () => {
               .every((key) => inert(after[key]!)),
         ),
     );
+    // (A new min · max width the builder pins to the property's initial value is inert too — Meter's
+    //   S2 `bar()` widths, Phase 3c-2b, `builder-catalog-pins.css`.)
+    const INITIAL: Record<string, string> = { "min-width": "auto", "max-width": "none" };
     expect(
       added.filter((key) => {
         const prop = key.split(" | ")[1]!;
         if (prop.startsWith("--")) return !inertLocal.has(prop);
+        if (INITIAL[prop] !== undefined) return after[key] !== INITIAL[prop];
         if (prop !== "min-height") return true;
         const local = /^var\((--[\w-]+)\)$/.exec(after[key]!)?.[1];
         return !(inert(after[key]!) || (local && inertLocal.has(local)));

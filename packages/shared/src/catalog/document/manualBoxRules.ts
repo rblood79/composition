@@ -204,14 +204,13 @@ const itemLabelFontParts = (itemType: string): CompiledPartRule[] => {
  * reaches them through it (`via`). The item's Label offset needs no group rule: the group size
  * reaches the item (`CATALOG_SIZE_PROPAGATION`), so the item's own rule gives the same offset.
  */
-// Radio indicator 상자 (px) — `Radio.css` 의 `.indicator` 와 같은 값. ADR-295 Phase 1: 종전 글자 토큰
-//   (`text-base` · `text-xl` · `text-2xl` · `text-3xl`) 을 상자로 썼다 — 글자 값이 S2 로 바뀌어도 상자는
-//   그대로 두고 (16 · 20 · 24 · 30), S2 control 크기 (14 · 16 · 18 · 20) 정렬은 Phase 3.
-const GROUP_ITEM_INDICATORS: Readonly<Record<string, number>> = {
-  S: 16,
-  M: 20,
-  L: 24,
-  XL: 30,
+// 그룹 항목 indicator 상자 — S2 `controlSize('sm')` (ADR-295 Phase 3c-2b — `{size.height-sm.<S>}`, 항목
+//   rule 의 `size.indicator` 와 같은 토큰). 항목 행은 그 높이 이상이다.
+const GROUP_ITEM_INDICATORS: Readonly<Record<string, string>> = {
+  S: "{size.height-sm.S}",
+  M: "{size.height-sm.M}",
+  L: "{size.height-sm.L}",
+  XL: "{size.height-sm.XL}",
 };
 const groupItemIndicatorParts = (
   itemType: string,

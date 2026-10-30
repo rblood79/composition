@@ -73,6 +73,88 @@ const FIELD_BUTTON_CORNER_SELECTORS = Object.fromEntries(
 
 // Button and ToggleButton have one root box for CSS generation and Canvas typed definitions.
 // Keeping separate copies dropped fit-content in Canvas when the parent became a flex column.
+// ADR-295 Phase 3c-2b — toggle 표시 상자 = S2. Checkbox 상자 · Radio 고리 · Switch track 의 높이는 S2
+//   `controlSize('sm')` (`{size.height-sm.<S>}` — 터치 × 1.25), Checkbox 모서리는 `controlBorderRadius('sm')`
+//   (기기 배율 없음), Radio 의 선택 고리 = (높이 − 4) / 2 (가운데 흰 점 4 — S2 `(4 / 16) * 1rem`), Switch track
+//   폭은 `fontRelative(26)` (그 size 의 글자 × 26 / 14), thumb 은 track 높이 − 8 (안쪽 4) · 선택이면 − 6
+//   (안쪽 3 — S2 perspective 식의 결과). Canvas 는 `size.indicator` 를 `catalogToggleIndicatorMetrics` 로
+//   풀어 읽고, DOM 은 아래 선택자 (생성 시트) 가 같은 값을 읽는다 — 수동 `Checkbox.css` · `Radio.css` ·
+//   `Switch.css` 의 size 블록은 빌더 chrome (생성 toggle 시트를 싣지 않는다) 의 것으로 남는다. 선택자는
+//   RAC 버튼 (`*Button`) 을 넣어 수동 시트의 그룹 위임 (`[data-radio-size]` …) 보다 specificity 가 같거나 높다.
+const TOGGLE_SIZES = ["S", "M", "L", "XL"] as const;
+type ToggleSize = (typeof TOGGLE_SIZES)[number];
+const toggleBox = (size: ToggleSize) =>
+  `var(--catalog-token-size-height-sm-${size})`;
+const CHECKBOX_RADIUS: Record<ToggleSize, number> = { S: 4, M: 4, L: 5, XL: 5 };
+const RADIO_DOT = 4;
+const SWITCH_FONT: Record<ToggleSize, string> = {
+  S: "text-xs",
+  M: "text-sm",
+  L: "text-base",
+  XL: "text-lg",
+};
+const SWITCH_TRACK_EM = 26 / 14;
+const SWITCH_THUMB_INSET = 4;
+const SWITCH_THUMB_INSET_SELECTED = 3;
+const togglePerSize = (
+  make: (size: ToggleSize) => Record<string, Record<string, string>>,
+): Record<string, { styles: Record<string, string> }> =>
+  Object.fromEntries(
+    TOGGLE_SIZES.flatMap((size) =>
+      Object.entries(make(size)).map(([selector, styles]) => [
+        selector,
+        { styles },
+      ]),
+    ),
+  );
+const CHECKBOX_INDICATOR_SELECTORS = togglePerSize(
+  (size): Record<string, Record<string, string>> => ({
+  [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox`]: {
+    width: toggleBox(size),
+    height: toggleBox(size),
+    "border-radius": `${CHECKBOX_RADIUS[size]}px`,
+  },
+  [`&[data-size="${size}"] .react-aria-CheckboxButton .checkbox svg`]: {
+    width: toggleBox(size),
+    height: toggleBox(size),
+  },
+}));
+const RADIO_INDICATOR_SELECTORS = togglePerSize(
+  (size): Record<string, Record<string, string>> => ({
+  [`&[data-size="${size}"] .react-aria-RadioButton .indicator`]: {
+    width: toggleBox(size),
+    height: toggleBox(size),
+    "border-radius": "9999px",
+  },
+  [`&[data-size="${size}"][data-selected] .react-aria-RadioButton .indicator`]: {
+    "border-width": `calc((${toggleBox(size)} - ${RADIO_DOT}px) / 2)`,
+  },
+}));
+const switchTrackWidth = (size: ToggleSize) =>
+  `calc(var(--catalog-token-${SWITCH_FONT[size]}) * 26 / 14)`;
+const SWITCH_INDICATOR_SELECTORS = togglePerSize(
+  (size): Record<string, Record<string, string>> => ({
+  [`&[data-size="${size}"] .react-aria-SwitchButton .indicator`]: {
+    width: switchTrackWidth(size),
+    height: toggleBox(size),
+    "border-radius": "9999px",
+  },
+  // (The track's border is 2 — the thumb's start margin is its inset less the border.)
+  [`&[data-size="${size}"] .react-aria-SwitchButton .indicator::before`]: {
+    width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
+    height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET * 2}px)`,
+    "border-radius": "9999px",
+    margin: `0 ${SWITCH_THUMB_INSET - 2}px`,
+  },
+  // Selected: the thumb grows to height − 6 and its end sits 3 from the track's end.
+  [`&[data-size="${size}"][data-selected] .react-aria-SwitchButton .indicator::before`]:
+    {
+      width: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
+      height: `calc(${toggleBox(size)} - ${SWITCH_THUMB_INSET_SELECTED * 2}px)`,
+      translate: `calc(${switchTrackWidth(size)} - ${toggleBox(size)} - ${SWITCH_THUMB_INSET - SWITCH_THUMB_INSET_SELECTED}px) 0`,
+    },
+}));
+
 const BUTTON_ROOT_BOX = {
   display: "inline-flex",
   flexDirection: "row",
@@ -2061,8 +2143,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   boxRadius)는 generated CSS 미emit(수동/React) → rule 불요.
       // indicator 채널 배선 + xl (2026-08-21, design-data 감사 §1-3): Skia `checkbox` primitive 는
       //   size.indicator.{boxSize,boxRadius} 를 읽으나 catalog 부재로 전 size 20px 고정이었다
-      //   (DOM Checkbox.css --cb-box-size 16/20/24 와 비대칭). boxSize 는 CSS 미러
-      //   (--text-base/xl/2xl/3xl = 16/20/24/30). xl 은 Radio 형제 미러 (Spectrum 4단계 규정).
+      //   (DOM Checkbox.css --cb-box-size 16/20/24 와 비대칭).
+      // ADR-295 Phase 3c-2b: 상자 = S2 `controlSize('sm')` 14 · 16 · 18 · 20 (토큰 — 터치 × 1.25) · 모서리
+      //   4 · 4 · 5 · 5 (`CHECKBOX_RADIUS` — DOM 은 `CHECKBOX_INDICATOR_SELECTORS`).
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
@@ -2070,7 +2153,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 6,
-        indicator: { boxSize: 16, boxRadius: 4 },
+        indicator: { boxSize: "{size.height-sm.S}", boxRadius: CHECKBOX_RADIUS.S },
       },
       M: {
         fontSize: "{typography.text-base}",
@@ -2079,7 +2162,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 8,
-        indicator: { boxSize: 20, boxRadius: 4 },
+        indicator: { boxSize: "{size.height-sm.M}", boxRadius: CHECKBOX_RADIUS.M },
       },
       L: {
         fontSize: "{typography.text-lg}",
@@ -2088,7 +2171,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 10,
-        indicator: { boxSize: 24, boxRadius: 4 },
+        indicator: { boxSize: "{size.height-sm.L}", boxRadius: CHECKBOX_RADIUS.L },
       },
       XL: {
         fontSize: "{typography.text-xl}",
@@ -2097,7 +2180,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 12,
-        indicator: { boxSize: 30, boxRadius: 4 },
+        indicator: { boxSize: "{size.height-sm.XL}", boxRadius: CHECKBOX_RADIUS.XL },
       },
     },
     // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `CheckboxField > CheckboxButton (indicator + 글자) + Description +
@@ -2137,6 +2220,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "outline-offset": "var(--focus-ring-offset)",
           },
         },
+        rootSelectors: CHECKBOX_INDICATOR_SELECTORS,
         delegation: [
           {
             // 행 gap — 크기별 gap 을 root 에 `--cb-button-gap` 으로 (sizes 파생, `variables: "auto"`).
@@ -7508,6 +7592,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
         height: 4,
+        minWidth: "{size.bar.min-width}", // S2 `bar-utils.ts` `bar()` — Meter 도 ProgressBar 와 같은 최소 · 최대 폭 (ADR-295 Phase 3c-2b)
+        maxWidth: 768,
         gap: 4,
       },
       M: {
@@ -7515,6 +7601,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 8,
+        minWidth: "{size.bar.min-width}",
+        maxWidth: 768,
         gap: 4,
       },
       L: {
@@ -7522,6 +7610,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
         height: 12,
+        minWidth: "{size.bar.min-width}",
+        maxWidth: 768,
         gap: 4,
       },
       XL: {
@@ -7529,6 +7619,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
         height: 16,
+        minWidth: "{size.bar.min-width}",
+        maxWidth: 768,
         gap: 4,
       },
     },
@@ -9029,8 +9121,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   dotSize)는 generated CSS 미emit(수동/React) → rule 불요.
       // indicator 채널 배선 (2026-08-21, design-data 감사 §1-3): Skia `radio` primitive 는
       //   size.indicator.{boxSize,dotSize} 를 읽으나 catalog 부재로 전 size 20/8 고정이었다.
-      //   boxSize = Radio.css :before (--text-base/xl/2xl/3xl), dotSize = boxSize - 2×selected
-      //   border-width (5/6/7/8) 미러.
+      // ADR-295 Phase 3c-2b: 고리 = S2 `controlSize('sm')` (토큰 — 터치 × 1.25), 선택 고리 두께 = (높이 − 4) / 2
+      //   라 가운데 흰 점은 늘 4 (`RADIO_DOT` — DOM 은 `RADIO_INDICATOR_SELECTORS`).
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
@@ -9038,7 +9130,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 6,
-        indicator: { boxSize: 16, dotSize: 6 },
+        indicator: { boxSize: "{size.height-sm.S}", dotSize: RADIO_DOT },
       },
       M: {
         fontSize: "{typography.text-base}",
@@ -9047,7 +9139,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 8,
-        indicator: { boxSize: 20, dotSize: 8 },
+        indicator: { boxSize: "{size.height-sm.M}", dotSize: RADIO_DOT },
       },
       L: {
         fontSize: "{typography.text-lg}",
@@ -9056,7 +9148,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 10,
-        indicator: { boxSize: 24, dotSize: 10 },
+        indicator: { boxSize: "{size.height-sm.L}", dotSize: RADIO_DOT },
       },
       XL: {
         fontSize: "{typography.text-xl}",
@@ -9065,7 +9157,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 0,
         paddingY: 0,
         gap: 12,
-        indicator: { boxSize: 30, dotSize: 14 },
+        indicator: { boxSize: "{size.height-sm.XL}", dotSize: RADIO_DOT },
       },
     },
     // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `RadioField > RadioButton (div.indicator + 글자) + Description`.
@@ -9102,6 +9194,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "outline-offset": "var(--focus-ring-offset)",
           },
         },
+        rootSelectors: RADIO_INDICATOR_SELECTORS,
         delegation: [
           {
             // 행 gap — 크기별 gap 을 root 에 `--radio-button-gap` 으로 (sizes 파생, `variables: "auto"`).
@@ -10947,8 +11040,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `padding: var(--spacing) 0` 실효값 이관 — size 무관 상수 (값 불변).
       // indicator 채널 배선 (2026-08-21, design-data 감사 §1-3): Skia `switch_toggle` 은
       //   size.indicator.{trackWidth,trackHeight,thumbSize,thumbOffset} 를 읽으나 catalog
-      //   부재로 전 size 36/20/16/2(md) 고정이었다. 값은 Switch.css indicator 미러 —
-      //   track 32/36/44/52 × 18/20/24/30, thumb 14/16/20/24, offset = (track높이-thumb)/2.
+      //   부재로 전 size 36/20/16/2(md) 고정이었다.
+      // ADR-295 Phase 3c-2b: track = S2 — 높이 `controlSize('sm')` (토큰), 폭 글자 × 26 / 14 (`fontRelative(26)`),
+      //   thumb 은 track 안쪽 4 (선택 3). DOM 은 `SWITCH_INDICATOR_SELECTORS`.
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
@@ -10957,10 +11051,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 8,
         indicator: {
-          trackWidth: 32,
-          trackHeight: 18,
-          thumbSize: 14,
-          thumbOffset: 2,
+          trackHeight: "{size.height-sm.S}",
+          trackWidthEm: SWITCH_TRACK_EM,
+          thumbInset: SWITCH_THUMB_INSET,
+          thumbInsetSelected: SWITCH_THUMB_INSET_SELECTED,
         },
       },
       M: {
@@ -10971,10 +11065,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 10,
         indicator: {
-          trackWidth: 36,
-          trackHeight: 20,
-          thumbSize: 16,
-          thumbOffset: 2,
+          trackHeight: "{size.height-sm.M}",
+          trackWidthEm: SWITCH_TRACK_EM,
+          thumbInset: SWITCH_THUMB_INSET,
+          thumbInsetSelected: SWITCH_THUMB_INSET_SELECTED,
         },
       },
       L: {
@@ -10985,10 +11079,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 12,
         indicator: {
-          trackWidth: 44,
-          trackHeight: 24,
-          thumbSize: 20,
-          thumbOffset: 2,
+          trackHeight: "{size.height-sm.L}",
+          trackWidthEm: SWITCH_TRACK_EM,
+          thumbInset: SWITCH_THUMB_INSET,
+          thumbInsetSelected: SWITCH_THUMB_INSET_SELECTED,
         },
       },
       XL: {
@@ -10999,10 +11093,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 14,
         indicator: {
-          trackWidth: 52,
-          trackHeight: 30,
-          thumbSize: 24,
-          thumbOffset: 3,
+          trackHeight: "{size.height-sm.XL}",
+          trackWidthEm: SWITCH_TRACK_EM,
+          thumbInset: SWITCH_THUMB_INSET,
+          thumbInsetSelected: SWITCH_THUMB_INSET_SELECTED,
         },
       },
     },
@@ -11042,6 +11136,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "outline-offset": "var(--focus-ring-offset)",
           },
         },
+        rootSelectors: SWITCH_INDICATOR_SELECTORS,
         delegation: [
           {
             // 행 gap — 크기별 gap 을 root 에 `--sw-button-gap` 으로 (sizes 파생, `variables: "auto"`).

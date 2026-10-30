@@ -629,7 +629,8 @@
       "L": 24,
       "XL": 32
     },
-    "barMinWidth": 48
+    "barMinWidth": 48,
+    "barMaxWidth": 768
   },
   "componentTable": {
     "TextField": {

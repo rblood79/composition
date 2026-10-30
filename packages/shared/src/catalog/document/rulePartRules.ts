@@ -977,7 +977,7 @@ export function catalogToggleIndicatorBox(
   const size =
     rule.sizes?.[sizeName ?? ""] ??
     (rule.defaultSize ? rule.sizes?.[rule.defaultSize] : undefined);
-  const indicator = size?.indicator;
+  const indicator = catalogToggleIndicatorMetrics(size);
   if (typeof indicator?.boxSize === "number")
     return { width: indicator.boxSize, height: indicator.boxSize };
   if (
@@ -986,6 +986,64 @@ export function catalogToggleIndicatorBox(
   )
     return { width: indicator.trackWidth, height: indicator.trackHeight };
   return undefined;
+}
+
+type ToggleIndicatorMetrics = {
+  boxSize?: number;
+  boxRadius?: number;
+  dotSize?: number;
+  trackWidth?: number;
+  trackHeight?: number;
+  thumbSize?: number;
+  thumbOffset?: number;
+  thumbSizeSelected?: number;
+  thumbOffsetSelected?: number;
+};
+
+/**
+ * ADR-295 Phase 3c-2b — a toggle size's `indicator` in px under the installed maps (desktop on the
+ * Canvas; the touch arm's maps in the G2 harness): a size-map token side (`{size.height-sm.<S>}`)
+ * resolved, the Switch track width from the size's font (`trackWidthEm` — S2 `fontRelative(26)`) and
+ * its thumbs from the insets (track height − 2 × inset, unselected · selected). The DOM reads the same
+ * values from the rule's indicator selectors (generated sheet).
+ */
+export function catalogToggleIndicatorMetrics(
+  size: ComponentRule["sizes"][string] | undefined,
+): ToggleIndicatorMetrics | undefined {
+  const indicator = size?.indicator;
+  if (!indicator) return undefined;
+  const length = (value: unknown): number | undefined => {
+    const resolved =
+      typeof value === "string" ? resolveToken(value as TokenRef) : value;
+    return typeof resolved === "number" && Number.isFinite(resolved)
+      ? resolved
+      : undefined;
+  };
+  const out: ToggleIndicatorMetrics = {};
+  const boxSize = length(indicator.boxSize);
+  if (boxSize !== undefined) out.boxSize = boxSize;
+  if (indicator.boxRadius !== undefined) out.boxRadius = indicator.boxRadius;
+  if (indicator.dotSize !== undefined) out.dotSize = indicator.dotSize;
+  const trackHeight = length(indicator.trackHeight);
+  if (trackHeight !== undefined) out.trackHeight = trackHeight;
+  const font = length(size?.fontSize);
+  const trackWidth =
+    indicator.trackWidthEm !== undefined && font !== undefined
+      ? font * indicator.trackWidthEm
+      : indicator.trackWidth;
+  if (trackWidth !== undefined) out.trackWidth = trackWidth;
+  if (trackHeight !== undefined && indicator.thumbInset !== undefined) {
+    out.thumbSize = trackHeight - 2 * indicator.thumbInset;
+    out.thumbOffset = indicator.thumbInset;
+    const selected = indicator.thumbInsetSelected ?? indicator.thumbInset;
+    out.thumbSizeSelected = trackHeight - 2 * selected;
+    out.thumbOffsetSelected = selected;
+  } else {
+    if (indicator.thumbSize !== undefined) out.thumbSize = indicator.thumbSize;
+    if (indicator.thumbOffset !== undefined)
+      out.thumbOffset = indicator.thumbOffset;
+  }
+  return out;
 }
 
 function toggleIndicatorPartRules(parentType: string): CompiledPartRule[] {
