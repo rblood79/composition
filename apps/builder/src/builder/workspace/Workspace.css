@@ -119,9 +119,9 @@
 .ruler-strip--h {
   /* cursor 는 여기서 정하지 않는다 — 축 매핑과 같은 소스에서 파생해야 한다
      (rulerMetrics.guideCursorForAxis). CSS 에 두면 축을 바꿀 때 한쪽만 고쳐진다 */
-  left: var(--ruler-inset-left, 0px);
+  left: 0;
   right: 0;
-  top: var(--ruler-inset-top, 0px);
+  top: 0;
   height: var(--ruler-size, 20px);
   border-bottom: 1px solid var(--border);
   background-image:
@@ -136,8 +136,8 @@
 }
 
 .ruler-strip--v {
-  left: var(--ruler-inset-left, 0px);
-  top: calc(var(--ruler-inset-top, 0px) + var(--ruler-size, 20px));
+  left: 0;
+  top: var(--ruler-size, 20px);
   bottom: 0;
   width: var(--ruler-size, 20px);
   border-right: 1px solid var(--border);
@@ -156,8 +156,8 @@
 /* 두 스트립이 만나는 모서리 — 가로 자의 눈금·라벨을 덮어 겹침을 막는다 */
 .ruler-corner {
   position: absolute;
-  left: var(--ruler-inset-left, 0px);
-  top: var(--ruler-inset-top, 0px);
+  left: 0;
+  top: 0;
   width: var(--ruler-size, 20px);
   height: var(--ruler-size, 20px);
   background-color: var(--bg-overlay);

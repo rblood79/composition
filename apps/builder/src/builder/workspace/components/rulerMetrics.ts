@@ -66,7 +66,7 @@ export interface RulerAxisMetricsInput {
   zoom: number;
   /**
    * 스트립의 좌(상)단이 캔버스 좌표계에서 시작하는 위치 (screen px).
-   * 캔버스가 full-bleed 라 좌측 패널 폭만큼 밀린다 (`canvasViewportInset`).
+   * 가로 자는 0, 세로 자는 코너 아래의 RULER_SIZE_PX에서 시작한다.
    */
   origin: number;
 }

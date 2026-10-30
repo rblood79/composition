@@ -34,12 +34,6 @@ import {
   guideCursorForAxis,
   type RulerLabel,
 } from "./rulerMetrics";
-import {
-  ZERO_VIEWPORT_INSET,
-  measureCanvasViewportInset,
-  observeCanvasViewportInset,
-  type CanvasViewportInset,
-} from "./canvasViewportInset";
 import { RULER_OVERLAY_ATTR } from "./rulerOverlayUtils";
 
 /** ADR-047: 상시 will-change 금지 — 팬 중에만 합성 레이어 힌트 */
@@ -129,7 +123,6 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
 
   const hPoolRef = useRef<HTMLSpanElement[]>([]);
   const vPoolRef = useRef<HTMLSpanElement[]>([]);
-  const insetRef = useRef<CanvasViewportInset>(ZERO_VIEWPORT_INSET);
   const sizeRef = useRef({ width: 0, height: 0 });
   const willChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isWillChangeActiveRef = useRef(false);
@@ -146,30 +139,27 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
     if (!root || !hStrip || !vStrip || !hLabels || !vLabels) return;
 
     const strips = [hStrip, vStrip];
+    // 고정 크기는 표시할 때 한 번만 설정한다. 위치는 CSS의 캔버스 원점이다.
+    root.style.setProperty("--ruler-size", `${RULER_SIZE_PX}px`);
 
     const apply = () => {
       const { x, y, scale } = getViewportPresentationSnapshot();
-      const inset = insetRef.current;
       const { width, height } = sizeRef.current;
 
-      root.style.setProperty("--ruler-inset-left", `${inset.left}px`);
-      root.style.setProperty("--ruler-inset-top", `${inset.top}px`);
-      root.style.setProperty("--ruler-size", `${RULER_SIZE_PX}px`);
-
-      // 가로 자: 스트립 로컬 원점 = 가시 영역 좌단
-      const xAxis = { pan: x, zoom: scale, origin: inset.left };
+      // 가로 자: 스트립 로컬 원점 = 캔버스 좌단
+      const xAxis = { pan: x, zoom: scale, origin: 0 };
       // 세로 자: 코너 아래에서 시작 — 원점이 스트립 두께만큼 내려간다
       const yAxis = {
         pan: y,
         zoom: scale,
-        origin: inset.top + RULER_SIZE_PX,
+        origin: RULER_SIZE_PX,
       };
 
       setAxisVars(hStrip, calculateRulerAxisMetrics(xAxis));
       setAxisVars(vStrip, calculateRulerAxisMetrics(yAxis));
 
-      const hLength = Math.max(0, width - inset.left);
-      const vLength = Math.max(0, height - inset.top - RULER_SIZE_PX);
+      const hLength = Math.max(0, width);
+      const vLength = Math.max(0, height - RULER_SIZE_PX);
       // 가로 자의 앞 RULER_SIZE_PX 는 코너에 가려지므로 라벨을 만들지 않는다
       syncLabels(
         hLabels,
@@ -211,18 +201,11 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
     });
     sizeObserver.observe(root);
 
-    insetRef.current = measureCanvasViewportInset();
-    const stopInset = observeCanvasViewportInset((next) => {
-      insetRef.current = next;
-      apply();
-    });
-
     apply();
     const unsubscribe = subscribeViewportPresentation(apply);
 
     return () => {
       unsubscribe();
-      stopInset();
       sizeObserver.disconnect();
       if (willChangeTimerRef.current !== null) {
         clearTimeout(willChangeTimerRef.current);

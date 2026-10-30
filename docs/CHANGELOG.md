@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [눈금자 원점 정렬 — 고정 위치 반복 갱신 제거] - 2026-10-31
+
+### Fixed
+
+- **Show rulers의 시작 위치를 캔버스 (0, 0)으로 정렬**하고 눈금·라벨 계산도 같은 원점을 사용한다.
+  - **Why:** 헤더·레일의 끝 좌표를 inset으로 사용해 44px 밀렸고, 카메라 갱신마다 고정 inset과 크기를 다시 대입했다.
+  - 위치는 CSS로 고정하고 눈금자 크기는 표시 시 한 번만 설정한다.
+  - 위치: `apps/builder/src/builder/workspace/components/RulerOverlay.tsx`, `apps/builder/src/builder/workspace/Workspace.css`
+
 ## [ADR-295 Phase 3c-2b · 3d 정리 — toggle 표시 상자 = S2] - 2026-10-30
 
 ### Changed
