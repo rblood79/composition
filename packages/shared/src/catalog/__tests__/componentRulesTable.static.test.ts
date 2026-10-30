@@ -298,6 +298,18 @@ export const INTENTIONAL_LITERAL: readonly IntentionalLiteral[] = [
     "S2 Toolbar 는 RAC 를 감싸기만 하고 스타일이 없다 (`Toolbar.tsx`) — composition 묶음 간격",
   ),
   sizes(
+    "Breadcrumb",
+    "height",
+    { S: 24, M: 32, L: 40 },
+    "S2 Breadcrumbs 항목 `height: controlSize()` (`Breadcrumbs.tsx` — S 는 control S) · 옛 Skia `breadcrumb_crumb` 조각만 읽는다 (상자는 Breadcrumbs 의 최소 높이 토큰)",
+  ),
+  sizes(
+    "Header",
+    "paddingX",
+    { S: 9, L: 15 },
+    "S2 Menu sectionHeader 좌우 `edgeToText` 9 · 12 · 15 (rem — 터치에서 그대로, M 12 는 spacing 단)",
+  ),
+  sizes(
     "Avatar",
     "height",
     { XS: 24, S: 28, M: 32, L: 40, XL: 48 },
@@ -413,24 +425,11 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "MenuItem 안 label Text 가 MenuItem 글자가 아니라 Text 기본 (16 · 행간 20) 이고 MenuItem 은 size accept 가 없어 크기별 자식 규칙이 닿지 않는다 — S2 `menuitem` (최소 높이 control · 여백 높이 × 3/8 · 간격 text-to-visual · label = control 글자) 은 그 글자를 먼저 고친 뒤",
   ),
   pending(
-    "Breadcrumb",
-    "height",
-    { S: 16, M: 24, L: 24 },
-    "S2 Breadcrumbs 항목 높이 = control 높이 (M 32 · L 40 — `Breadcrumbs.tsx` `height: controlSize()`)",
-  ),
-  pending(
-    "Breadcrumbs",
-    "height",
-    { S: 16, M: 24, L: 24 },
-    "S2 Breadcrumbs 항목 높이 = control 높이 (M 32 · L 40 — `Breadcrumbs.tsx` `height: controlSize()`)",
-  ),
-  pending(
     "ColorArea",
     "height",
     { S: 120, M: 180, L: 240 },
     "S2 ColorArea 192 · size 축 없음 (`ColorArea.tsx`)",
   ),
-  pending("Header", "paddingY", { M: 6 }, "S2 대조 전"),
   pending(
     "Slider",
     "height",
@@ -478,18 +477,6 @@ export const S2_PENDING_LITERAL: readonly PendingLiteral[] = [
     "S2 TableView 셀 centerPadding (행 높이 − 행간) / 2 (`TableView.tsx`) — 행 높이 · 경계 대조 전",
   ),
   pending("TagList", "gap", { L: 6 }, "S2 대조 전"),
-  pending(
-    "Tooltip",
-    "paddingX",
-    { M: 10 },
-    "S2 Tooltip 가로 여백 대조 전 (`Tooltip.tsx`)",
-  ),
-  pending(
-    "Tooltip",
-    "paddingY",
-    { M: 6 },
-    "S2 Tooltip paddingY = centerPadding (`Tooltip.tsx`) — 최소 높이 대조 전",
-  ),
 ];
 
 interface Literal {
@@ -586,7 +573,7 @@ describe("ADR-295 G3 — rule 치수 리터럴", () => {
     expect(stale).toEqual([]);
   });
 
-  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16)", () => {
-    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(16);
+  it("S2 값 대조 대기는 줄기만 한다 (3c-3b ③ 45 → 3c-3c ① 32 → ②a 16 → ②b-1 11)", () => {
+    expect(S2_PENDING_LITERAL.length).toBeLessThanOrEqual(11);
   });
 });

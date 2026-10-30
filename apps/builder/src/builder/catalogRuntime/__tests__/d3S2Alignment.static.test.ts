@@ -896,3 +896,68 @@ describe("ADR-295 G4 — 3c-3c ②a 크기 축 없는 S2 고정 치수 (모든 �
     expect(new Set(every("DropZone", "height"))).toEqual(new Set([0]));
   });
 });
+
+describe("ADR-295 G4 — 3c-3c ②b-1 control 높이 형 (Tooltip · Menu section header · Breadcrumbs)", () => {
+  const rules = COMPONENT_RULES_TABLE as unknown as Record<
+    string,
+    { sizes: Record<string, Record<string, unknown>> }
+  >;
+  const source = (file: string) =>
+    readFileSync(
+      resolve(
+        __dirname,
+        "../../../../node_modules/@react-spectrum/s2/src",
+        file,
+      ),
+      "utf8",
+    );
+
+  it("Tooltip = S2 Tooltip: 최소 높이 24 (control S) · 글자 ui-sm · 좌우 높이 × 3/8 · 위아래 centerPadding (모든 크기)", () => {
+    const s2 = source("Tooltip.tsx");
+    const minHeight = Number(/minHeight: (\d+),\s*boxSizing/.exec(s2)![1]);
+    const font =
+      /minHeight: \d+,\s*boxSizing: 'border-box',\s*font: '([\w-]+)'/.exec(
+        s2,
+      )![1];
+    expect(s2).toMatch(
+      /paddingX: 'edge-to-text',\s*paddingY: centerPadding\(\)/,
+    );
+    expect(S2_CONTROL_HEIGHT.S).toBe(minHeight);
+    for (const [size, block] of Object.entries(rules.Tooltip!.sizes)) {
+      expect(block.minHeight, size).toBe("{size.height.S}");
+      expect(FONT_NAME[String(block.fontSize).slice(12, -1)], size).toBe(font);
+      expect(
+        parseRuleLengthRef(ruleSizeLengthRef(block, "paddingX")!),
+        size,
+      ).toMatchObject({
+        base: "{size.height.S}",
+        ratio: 3 / 8,
+      });
+      expect(block.paddingY, size).toBe((minHeight - 16) / 2);
+    }
+  });
+
+  it("Menu section header = S2 sectionHeader: 최소 높이 control · 글자 ui bold · centerPadding", () => {
+    const s2 = source("Menu.tsx");
+    expect(s2).toMatch(
+      /minHeight: controlSize\(\),\s*paddingY: centerPadding\(\)/,
+    );
+    const font =
+      /export let sectionHeading = style\(\{\s*font: '([\w-]+)'/.exec(s2)![1];
+    for (const [size, block] of Object.entries(rules.Header!.sizes)) {
+      expect(block.minHeight, size).toBe(`{size.height.${size}}`);
+      expect(FONT_NAME[String(block.fontSize).slice(12, -1)], size).toBe(font);
+      expect(block.fontWeight, size).toBe(700);
+      const height = S2_CONTROL_HEIGHT[size as keyof typeof S2_CONTROL_HEIGHT];
+      expect(block.paddingY, size).toBe((height - 18) / 2);
+    }
+  });
+
+  it("Breadcrumbs 높이 = S2 항목 `height: controlSize()` (최소 높이 control 토큰)", () => {
+    expect(source("Breadcrumbs.tsx")).toMatch(/height: controlSize\(\)/);
+    for (const [size, block] of Object.entries(rules.Breadcrumbs!.sizes)) {
+      expect(block.minHeight, size).toBe(`{size.height.${size}}`);
+      expect(block.height, size).toBe(0);
+    }
+  });
+});

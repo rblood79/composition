@@ -24,9 +24,12 @@
 
   /* Default size */
   height: auto;
-  padding: 6px 10px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-M, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
   max-width: 160px;
 }
 
@@ -71,25 +74,34 @@
 
 .react-aria-Tooltip[data-size="S"] {
   height: auto;
-  padding: 4px 8px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-S, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
   max-width: 160px;
 }
 
 .react-aria-Tooltip[data-size="M"] {
   height: auto;
-  padding: 6px 10px;
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-M, calc(var(--catalog-token-size-height-S) * 3 / 8));
   font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-sm);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
   max-width: 160px;
 }
 
 .react-aria-Tooltip[data-size="L"] {
   height: auto;
-  padding: 8px 12px;
-  font-size: var(--catalog-token-text-sm);
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-xs) * var(--catalog-token-text-xs--line-height) - 2 * var(--border-width-none)) / 2) var(--catalog-token-tooltip-padding-x-L, calc(var(--catalog-token-size-height-S) * 3 / 8));
+  font-size: var(--catalog-token-text-xs);
   border-radius: var(--catalog-token-radius-md);
+  line-height: var(--catalog-token-text-xs--line-height);
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
   max-width: 160px;
 }
 

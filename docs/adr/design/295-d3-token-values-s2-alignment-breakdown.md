@@ -603,6 +603,20 @@ field 버튼 (ComboBox · DatePicker · DateRangePicker): 정사각형 `{size.fi
 
 **live (Chrome MCP, 5175)**: 팔레트 Tree · DropZone. Canvas Tree 390 × 90 (행 40 × 2) · DropZone 143 × 117, Compare Mode Preview TreeItem 380 × 40 · Tree 390 × 90 · DropZone 142.84 × 117. 콘솔 오류 0, 삭제 명령으로 지움. Toast 는 팔레트 항목이 없어 unit (`toastColorPickerShell` Canvas 56) 으로만.
 
+**②b-1 control 높이 형 (이 커밋)**: S2 가 control 높이 · centerPadding 식으로 쓰는 셋을 Badge 와 같은 형으로 (`minHeight {size.height.<S>}` — 터치 × 1.25 도 S2 와 같다).
+
+| 자리                         | 전                                         | S2                                                                                                                                         |
+| ---------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tooltip (모든 크기)          | 여백 8/4 · 10/6 · 12/8, 글자 L text-sm     | 최소 높이 24 (`{size.height.S}`) · 좌우 `ofHeight(3, 8)` 9 · 위아래 centerPadding 4 · 글자 `ui-sm` (text-xs) · 테두리 없음 — `Tooltip.tsx` |
+| Menu section header (Header) | 여백 12/4 · 12/6 · 16/8, 글자 xs · xs · sm | 최소 높이 control · centerPadding 3 · 7 · 11 · 글자 `ui` bold (text-sm) · 좌우 `edgeToText` 9 · 12 · 15 — `Menu.tsx` sectionHeader         |
+| Breadcrumbs 높이             | 16 · 24 · 24 고정                          | 최소 높이 control 24 · 32 · 40 (S2 항목 `height: controlSize()` — 항목은 루트 `align-items: center`)                                       |
+
+Breadcrumb (조각) 높이는 옛 Skia `breadcrumb_crumb` 만 읽어 control 값 24 · 32 · 40 으로. ListBox · GridList 안 Header 는 manual 규칙 (4) 이 덮는다 — S2 `listboxHeader` 는 후속. 대기 16 → 11. 빌더는 세 시트를 읽지 않는다 (Decision 9 (c) 무변화).
+
+**게이트**: G4 「3c-3c ②b-1」 — 설치본 `Tooltip.tsx` (최소 높이 24 = control S · 글자 · `edge-to-text` · `centerPadding()`) · `Menu.tsx` (`minHeight: controlSize()` · `sectionHeading` 글자) · `Breadcrumbs.tsx` (`height: controlSize()`) 를 읽어 rule 과 대조. **원복 RED**: Tooltip M 최소 높이 S → M → G4 1 · Header M paddingY 7 → 6 → G3 1 · G4 1 · Breadcrumbs M 고정 24 → G3 1 · G4 1. 복원 cmp 일치. **회귀**: builder unit — `adr256Followups` 14 (②a 의 Tree 행 40 반영 누락분, 32 → 40). G2 desktop · touch 263/263.
+
+**live (Chrome MCP, 5175)**: Breadcrumbs — Canvas 390 × 32, Compare Mode Preview nav 32 (`min-height: 32px`) · 항목 20.6 가운데. 콘솔 오류 0, 삭제 명령으로 지움. Tooltip 은 Canvas 에서 닫혀 있고 Menu 기본 원본에 section header 가 없어 G2 · unit 으로만.
+
 - G1 before/after: §6.1
 - G2 두 arm: §6.2 · Phase 3a §6.3 · Phase 3b §6.4
 - G4 (b) 최종 snapshot (preset 5 × 델타) · (c) 컴포넌트별 desktop/touch vs S2 computed: §6.4 (c 의 padding · gap 은 3c)

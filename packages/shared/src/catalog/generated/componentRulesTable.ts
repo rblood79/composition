@@ -1133,21 +1133,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 16,
+        height: 24,
         iconSize: 14,
         gap: 0,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 32,
         iconSize: 16,
         gap: 2,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 40,
         iconSize: 18,
         gap: 4,
       },
@@ -1190,23 +1190,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     // gap = 조각 사이 간격 (Breadcrumb.sizes.gap 과 같은 값 — 구분자 Icon 양옆 간격).
+    // 높이 = S2 Breadcrumbs 항목 `height: controlSize()` (M 32 · L 40 — S 는 control S 24, ADR-295 Phase 3c-3c):
+    //   최소 높이 control 토큰 (터치 × 1.25 도 S2 와 같다), 항목은 루트의 `align-items: center` 로 가운데.
     sizes: {
       S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 16,
+        height: 0,
+        minHeight: "{size.height.S}",
         gap: 0,
       },
       M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 0,
+        minHeight: "{size.height.M}",
         gap: 2,
       },
       L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
-        height: 24,
+        height: 0,
+        minHeight: "{size.height.L}",
         gap: 4,
       },
     },
@@ -5829,29 +5834,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Header: {
     defaultSize: "M",
     variants: {},
+    // S2 Menu `sectionHeader` (`Menu.tsx`, ADR-295 Phase 3c-3c): 최소 높이 control · 위아래 centerPadding (생성기가 식과
+    //   대조 — (높이 − 18) / 2) · 글자 `ui` bold (크기 무관) · 좌우 `edgeToText` 9 · 12 · 15 (rem — 터치에서 그대로).
     sizes: {
       S: {
-        fontSize: "{typography.text-xs}",
+        minHeight: "{size.height.S}",
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 12,
-        paddingY: 4,
+        paddingX: 9,
+        paddingY: 3,
         fontWeight: 700,
       },
       M: {
-        fontSize: "{typography.text-xs}",
+        minHeight: "{size.height.M}",
+        fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 12,
-        paddingY: 6,
+        paddingY: 7,
         fontWeight: 700,
       },
       L: {
+        minHeight: "{size.height.L}",
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 16,
-        paddingY: 8,
+        paddingX: 15,
+        paddingY: 11,
         fontWeight: 700,
       },
     },
@@ -13831,33 +13847,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // S2 Tooltip (`Tooltip.tsx` — size 축 없음, 모든 크기에 같은 값, ADR-295 Phase 3c-3c): 최소 높이 24 (control S —
+    //   터치 30 도 S2 와 같다) · 글자 `ui-sm` · 좌우 `edge-to-text` (높이 × 3/8 = 9) · 위아래 centerPadding (생성기가 식과
+    //   대조 — (24 − 16) / 2 = 4) · 테두리 없음. 모서리는 크기 그대로 (토큰 · 별도).
     sizes: {
-      // ADR-912 단계5 step4 (2026-06-16): paddingY 보강 — generated CSS 의 `padding: {Y}px {X}px`
-      //   Y값(sm:4/md:6/lg:8)이 rule 에서 emit 되도록(TooltipSpec.sizes.paddingY 미러). spec 삭제
-      //   후 STRUCTURE_META virtual override 가 동일 padding 재생성 → diff 0. paddingX 와 대칭.
       S: {
-        paddingX: 8,
+        minHeight: "{size.height.S}",
+        paddingX: ofHeight(3, 8),
         paddingY: 4,
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.sm}",
         height: 0,
         maxWidth: 160, // Spectrum 스키마 maxWidth (2026-08-21)
       },
       M: {
-        paddingX: 10,
-        paddingY: 6,
+        minHeight: "{size.height.S}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 4,
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.sm}",
         height: 0,
-        maxWidth: 160,
+        maxWidth: 160, // Spectrum 스키마 maxWidth (2026-08-21)
       },
       L: {
-        paddingX: 12,
-        paddingY: 8,
-        fontSize: "{typography.text-sm}",
+        minHeight: "{size.height.S}",
+        paddingX: ofHeight(3, 8),
+        paddingY: 4,
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderWidth: "{border.width.none}",
         borderRadius: "{radius.md}",
         height: 0,
-        maxWidth: 160,
+        maxWidth: 160, // Spectrum 스키마 maxWidth (2026-08-21)
       },
     },
     structure: {

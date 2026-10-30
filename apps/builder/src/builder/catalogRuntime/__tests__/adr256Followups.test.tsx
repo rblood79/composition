@@ -281,7 +281,7 @@ describe("ADR-256 후속 C — Tree · Table", () => {
     const g = root.getGeometry([parent.id, content.id, child.id]);
     const row = g.get(content.id)!;
     expect(root.typeOf(content)).toBe("TreeItemContent");
-    expect(row.height).toBe(32);
+    expect(row.height).toBe(40); // S2 TreeView 행 (ADR-295 Phase 3c-3c)
     expect(g.get(child.id)!.y).toBe(row.y + row.height);
     // (Geometry is relative to the parent item: the child row starts where the row does.)
     expect(g.get(child.id)!.x).toBe(row.x);

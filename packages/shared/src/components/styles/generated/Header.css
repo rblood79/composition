@@ -21,34 +21,46 @@
 
   /* Default size */
   height: auto;
-  padding: 6px 12px;
-  font-size: var(--catalog-token-text-xs);
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 12px;
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 700;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
 }
 
 .react-aria-Header[data-size="S"] {
   height: auto;
-  padding: 4px 12px;
-  font-size: var(--catalog-token-text-xs);
+  padding: calc((var(--catalog-token-size-height-S) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 9px;
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 700;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-S);
 }
 
 .react-aria-Header[data-size="M"] {
   height: auto;
-  padding: 6px 12px;
-  font-size: var(--catalog-token-text-xs);
+  padding: calc((var(--catalog-token-size-height-M) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 12px;
+  font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 700;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-M);
 }
 
 .react-aria-Header[data-size="L"] {
   height: auto;
-  padding: 8px 16px;
+  padding: calc((var(--catalog-token-size-height-L) - var(--catalog-token-text-sm) * var(--catalog-token-text-sm--line-height) - 2 * var(--border-width-none)) / 2) 15px;
   font-size: var(--catalog-token-text-sm);
   border-radius: var(--catalog-token-radius-none);
+  line-height: var(--catalog-token-text-sm--line-height);
   font-weight: 700;
+  border-width: var(--border-width-none);
+  min-height: var(--catalog-token-size-height-L);
 }
 
 .react-aria-Header[data-focus-visible] {
